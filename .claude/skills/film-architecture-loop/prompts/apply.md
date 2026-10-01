@@ -35,5 +35,5 @@ SAFETY (mandatory; in a sibling repo a heredoc of probe text once ran `rm -rf ~`
 - Probe strings target only harmless paths such as /nonexistent/film-probe-x.
 - Never read or print credentials (the ElevenLabs key, tokens). Never log private reading or note content.
 
-Report (final message): commits (hash + subject), `git diff --stat <base>..HEAD | tail -1`, per-item result with file:line receipts, the timing and performance comparisons, the owner's stills or clips if any, the last `GATE EXIT`, the `bun run merge-audit` output of the last merge of main, decisions for the orchestrator, upstream effect-oxlint candidates, and what the live check should drive (stills at which times, which lab controls).
+Report (final message): commits (hash + subject), `git diff --stat <base>..HEAD | tail -1`, per-item result with file:line receipts, the timing and performance comparisons, the last `GATE EXIT`, the `bun run merge-audit` output of the last merge of main, decisions for the orchestrator, upstream effect-oxlint candidates, and what the live check should drive (stills at which times, which lab controls).
 ```
