@@ -26,7 +26,17 @@ import {
   text,
 } from '../../fixtures/harness.ts';
 import { SourceRefused } from '../../../core/refusals.ts';
-import { attributeIs, textIs, until, valueIs, waitFor } from '../../fixtures/settled.ts';
+import {
+  attributeIs,
+  attributesAre,
+  countIs,
+  evaluates,
+  textHas,
+  textIs,
+  until,
+  valueIs,
+  waitFor,
+} from '../../fixtures/settled.ts';
 import { tone } from '../../fixtures/tone.ts';
 
 const SLOW = 30_000;
@@ -255,9 +265,6 @@ const FILM = '?film=toy';
 
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 
-const evaluate = <A>(page: Page, script: string) =>
-  Effect.promise(() => page.evaluate(script) as Promise<A>);
-
 const MIX = "document.querySelector('audio.rv-mix')?.getAttribute('src') ?? ''";
 
 /** A variant's element by its point and id. */
@@ -284,16 +291,9 @@ describe("a film's choices", () => {
         yield* waitFor(page, '.rv-picture video');
         // The picked option is heard first; the picture's own sound is muted.
         yield* until(page, `${MIX}.startsWith('/lab/toy/choices/mix?point=score&variant=strings')`);
-        expect(
-          yield* evaluate<boolean>(page, "document.querySelector('.rv-picture video').muted"),
-        ).toBe(true);
+        yield* evaluates(page, "document.querySelector('.rv-picture video').muted", true);
         // A missing option cannot be heard.
-        expect(
-          yield* evaluate<boolean>(
-            page,
-            `document.querySelector('${at('score', 'choir')} [data-act="hear"]') === null`,
-          ),
-        ).toBe(true);
+        yield* countIs(page, `${at('score', 'choir')} [data-act="hear"]`, 0);
         yield* click(page, `${at('score', 'piano')} [data-act="hear"]`);
         yield* until(page, `${MIX}.startsWith('/lab/toy/choices/mix?point=score&variant=piano')`);
         yield* waitFor(page, `${at('score', 'piano')} [data-act="hear"][aria-pressed="true"]`);
@@ -303,12 +303,12 @@ describe("a film's choices", () => {
           page,
           `${MIX}.startsWith('/lab/toy/choices/mix?point=take%3Apaper.page&variant=${WAITING}')`,
         );
-        expect(
-          yield* evaluate<string>(
-            page,
-            `document.querySelector('${at('take:paper.page', WAITING)} audio').getAttribute('src')`,
-          ),
-        ).toBe(`/lab/toy/choices/alone?point=take%3Apaper.page&variant=${WAITING}`);
+        yield* attributeIs(
+          page,
+          `${at('take:paper.page', WAITING)} audio`,
+          'src',
+          `/lab/toy/choices/alone?point=take%3Apaper.page&variant=${WAITING}`,
+        );
         // The picture's own sound: no mix, the picture heard.
         yield* click(page, '.rv-picture [data-act="hear"]');
         yield* until(page, "document.querySelector('audio.rv-mix') === null");
@@ -338,12 +338,7 @@ describe("a film's choices", () => {
         );
         yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === false');
         // Undo says what it would undo.
-        expect(
-          yield* evaluate<string>(
-            page,
-            'document.querySelector(\'[data-act="undo"]\').textContent',
-          ),
-        ).toBe('Undo score play piano');
+        yield* textIs(page, '[data-act="undo"]', 'Undo score play piano');
         expect(posted(asked, '/lab/toy/choices/pick')).toEqual({
           point: 'score',
           variant: 'piano',
@@ -351,12 +346,11 @@ describe("a film's choices", () => {
         });
         // The sound check runs after the pick, and its findings are shown.
         yield* waitFor(page, '[data-check="sound check"] summary[data-findings="1"]');
-        expect(
-          yield* evaluate<string>(
-            page,
-            'document.querySelector(\'[data-check="sound check"] li\').textContent',
-          ),
-        ).toContain('the score sits under the voice at piano');
+        yield* textHas(
+          page,
+          '[data-check="sound check"] li',
+          'the score sits under the voice at piano',
+        );
         // Every mix is asked for again once the source has changed.
         yield* until(page, `${MIX}.endsWith('&v=1')`);
 
@@ -366,12 +360,11 @@ describe("a film's choices", () => {
           "document.querySelector('.rv-status').textContent.includes('sound paper.page keep')",
         );
         // A kept take can only be unkept (and approved).
-        expect(
-          yield* evaluate<string>(
-            page,
-            `Array.from(document.querySelectorAll('${at('take:paper.page', KEPT)} button.rv-chip')).map((b) => b.dataset.act).join()`,
-          ),
-        ).toBe('unpick,approve,comment');
+        yield* attributesAre(page, `${at('take:paper.page', KEPT)} button.rv-chip`, 'data-act', [
+          'unpick',
+          'approve',
+          'comment',
+        ]);
 
         yield* click(page, '[data-act="undo"]');
         yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
@@ -531,9 +524,7 @@ describe("a film's choices", () => {
           viewport: { width: 390, height: 844 },
         });
         yield* waitFor(page, '[data-point="take:paper.page"]');
-        expect(
-          yield* evaluate<boolean>(page, 'document.documentElement.scrollWidth <= innerWidth'),
-        ).toBe(true);
+        yield* evaluates(page, 'document.documentElement.scrollWidth <= innerWidth', true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

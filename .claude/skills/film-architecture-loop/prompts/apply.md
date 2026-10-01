@@ -25,7 +25,7 @@ Work rules:
 - Decide by the principles in ~/Developer/personal/dotfiles/principles/ and write "decided by <principle>" in your report; the batch runs without check-ins.
 - Gate: `bun run typecheck`, `bunx oxlint <paths>` and the focused `bun test` while working; before each commit `bun run gate > <scratchpad>/film-pass<N>/<batch>-gate.log 2>&1; echo "GATE EXIT $?" >> <log>`, then read `GATE EXIT` and turbo's totals. The pre-commit hook only lints and formats the staged files and runs the repo guards: a commit that passed it passed no gate. A test that fails only under load is re-run once; if it passes, say so; if it fails twice, it is yours. Renders, the lab and commits need dangerouslyDisableSandbox: true.
 - Commits: Conventional Commits, one logical unit each, staged by exact path. Deletes use `trash`. No push, no worktree creation or removal, no edits under apps/animations/plans/.
-- Before the report: merge main into the branch, resolve there, run `bun run gate` into a log and read `GATE EXIT`.
+- Before the report: merge main into the branch, resolve there keeping both sides' edits (never one side's file whole), run `bun run merge-audit` and put back or name each `dropped`/`restored` line it prints, then run `bun run gate` into a log and read `GATE EXIT`.
 - Finish in one run: no servers, timers or monitors left behind. An item that does not fit its description: stop and report.
 
 SAFETY (mandatory; in a sibling repo a heredoc of probe text once ran `rm -rf ~`):
@@ -34,5 +34,5 @@ SAFETY (mandatory; in a sibling repo a heredoc of probe text once ran `rm -rf ~`
 - Probe strings target only harmless paths such as /nonexistent/film-probe-x.
 - Never read or print credentials (the ElevenLabs key, tokens). Never log private reading or note content.
 
-Report (final message): commits (hash + subject), `git diff --stat <base>..HEAD | tail -1`, per-item result with file:line receipts, the timing and performance comparisons, the owner's stills or clips if any, the last `GATE EXIT`, decisions for the orchestrator, upstream effect-oxlint candidates, and what the live check should drive (stills at which times, which lab controls).
+Report (final message): commits (hash + subject), `git diff --stat <base>..HEAD | tail -1`, per-item result with file:line receipts, the timing and performance comparisons, the owner's stills or clips if any, the last `GATE EXIT`, the `bun run merge-audit` output of the last merge of main, decisions for the orchestrator, upstream effect-oxlint candidates, and what the live check should drive (stills at which times, which lab controls).
 ```

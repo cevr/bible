@@ -6,11 +6,13 @@ Review items are what the owner or an earlier session said is wrong with a film 
 
 1. **Lab notes**: `bun run notes <film>` for each film (in `apps/animations`). Every `open` or reopened note is an item; answer it with the film skill's Lab loop (reply with the after-still).
 2. **Frame reviews**: `apps/animations/plans/*-frame-review.md`. A finding the rebuild has not answered is an item.
-3. **The latest ledger's open items**, and the "Seed" list below until each is closed.
+3. **The latest ledger's open items.** The seed list below is closed; an intake takes none of it.
 4. **`film check` and the look-book**: `bun run check <film>` findings, and a read of `bun run lookbook <film>` against the film skill's CRAFT rules and the topic file's MUST NOT list.
 5. **Session flags**: what the last film session reported and left open (the scene agents' reports, the final message). Copy them into the ledger's review table; this file keeps only the seed.
 
-## Seed (from the 2026-09-27 film session)
+## Seed (from the 2026-09-27 film session): closed
+
+Every seed item is closed, and kept here as the record of what the owner's first review said. Pass 1 fixed them (guard `92ce9d80`: R8; films-a `990aa747`: R2, R4, R5, R7, R9; films-b1 `acb1daca` and films-b2 `c1fe698d`: R1, R3, R6), and pass 5 confirmed each in code and closed it (the ledger's Pass 5, "Review"). R7's `shadeTree` is gone: `garden.ts` keeps the film's one tree.
 
 | ID  | Item                                                                                                                                                                                                                                                                                                                                                                                                                  | Where                                                          |
 | --- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |

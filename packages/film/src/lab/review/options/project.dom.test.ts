@@ -26,7 +26,17 @@ import {
   refused,
   route,
 } from '../../fixtures/harness.ts';
-import { attached, countIs, until, valueIs, waitFor } from '../../fixtures/settled.ts';
+import {
+  attached,
+  attributeIs,
+  attributesAre,
+  countIs,
+  evaluates,
+  textIs,
+  until,
+  valueIs,
+  waitFor,
+} from '../../fixtures/settled.ts';
 
 const SLOW = 30_000;
 
@@ -306,9 +316,6 @@ const PROJECT = '?project=toy';
 
 const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
 
-const evaluate = <A>(page: Page, script: string) =>
-  Effect.promise(() => page.evaluate(script) as Promise<A>);
-
 const scene = (id: string) => `[data-scene="${id}"]`;
 
 /** A scene's render card. */
@@ -332,12 +339,10 @@ describe("a film's project", () => {
         yield* until(page, "location.search === '?project=toy'");
         yield* waitFor(page, '[data-act-name="opening"]');
         // The act holds its scenes; the scenes in no act follow.
-        expect(
-          yield* evaluate<string>(
-            page,
-            'Array.from(document.querySelectorAll(\'[data-act-name="opening"] [data-scene]\')).map((e) => e.dataset.scene).join()',
-          ),
-        ).toBe('open,close');
+        yield* attributesAre(page, '[data-act-name="opening"] [data-scene]', 'data-scene', [
+          'open',
+          'close',
+        ]);
         yield* waitFor(page, `${scene('coda')}[data-state="current"]`);
         yield* waitFor(page, `${scene('close')}[data-state="stale"]`);
         // A rendered scene plays its render; one with none recorded shows none.
@@ -345,39 +350,30 @@ describe("a film's project", () => {
           page,
           `document.querySelector('${render('open')} video')?.getAttribute('src') === '/review/files/out/toy/scenes/open/main.share.mp4'`,
         );
-        expect(
-          yield* evaluate<boolean>(
-            page,
-            `document.querySelector('${render('close')} video') === null`,
-          ),
-        ).toBe(true);
+        yield* countIs(page, `${render('close')} video`, 0);
         // A render stale by the film's sound alone says so, beside its approval of an earlier version.
-        expect(
-          yield* evaluate<string>(
-            page,
-            `document.querySelector('${render('close')} .rv-tag[data-state]').textContent`,
-          ),
-        ).toBe("stale: the film's sound changed since it was made");
-        expect(
-          yield* evaluate<string>(
-            page,
-            `document.querySelector('${render('close')} .rv-badge[data-approval]').textContent`,
-          ),
-        ).toBe('approved an earlier version');
+        yield* textIs(
+          page,
+          `${render('close')} .rv-tag[data-state]`,
+          "stale: the film's sound changed since it was made",
+        );
+        yield* textIs(
+          page,
+          `${render('close')} .rv-badge[data-approval]`,
+          'approved an earlier version',
+        );
         // A stale scene is not approved until it is rendered again.
-        expect(
-          yield* evaluate<boolean>(
-            page,
-            `document.querySelector('${render('close')} [data-act="approve"]').disabled`,
-          ),
-        ).toBe(true);
+        yield* evaluates(
+          page,
+          `document.querySelector('${render('close')} [data-act="approve"]').disabled`,
+          true,
+        );
         // A missing scene names the command that renders it.
-        expect(
-          yield* evaluate<string>(
-            page,
-            `document.querySelector('${render('end')} .rv-meta').textContent`,
-          ),
-        ).toBe('not rendered yet: film project render toy --scene end');
+        yield* textIs(
+          page,
+          `${render('end')} .rv-meta`,
+          'not rendered yet: film project render toy --scene end',
+        );
         // The score with the film; a layer of the act's scenes with the act; one across parts with the film.
         yield* waitFor(page, '.rv-film [data-point="score"]');
         yield* attached(
@@ -389,18 +385,11 @@ describe("a film's project", () => {
         yield* attached(page, `${scene('open')} [data-point="take:paper.page"]`);
         yield* attached(page, `${scene('close')} [data-point="voice:close"]`);
         // Each card once: a scene links the layers that play in it but sit elsewhere.
-        expect(
-          yield* evaluate<number>(
-            page,
-            'document.querySelectorAll(".rv-option:not([data-kind=\\"render\\"])").length',
-          ),
-        ).toBe(5);
-        expect(
-          yield* evaluate<string>(
-            page,
-            `Array.from(document.querySelectorAll('${scene('close')} [data-plays]')).map((a) => a.dataset.plays).join()`,
-          ),
-        ).toBe('take:paper.hum,take:room.tone');
+        yield* countIs(page, '.rv-option:not([data-kind="render"])', 5);
+        yield* attributesAre(page, `${scene('close')} [data-plays]`, 'data-plays', [
+          'take:paper.hum',
+          'take:room.tone',
+        ]);
         // A link opens the part its card is folded under.
         yield* click(page, `${scene('open')} [data-plays="take:paper.hum"]`);
         yield* waitFor(
@@ -496,21 +485,17 @@ describe("a film's project", () => {
         yield* Effect.promise(() =>
           page.fill(`${scene('open')} .rv-comment-input`, 'half a thought'),
         );
-        yield* evaluate(page, `window.clip = document.querySelector('${scene('open')} video')`);
+        yield* Effect.promise(() =>
+          page.evaluate(`window.clip = document.querySelector('${scene('open')} video')`),
+        );
         yield* click(page, `${scene('coda')} [data-act="approve"]`);
         yield* waitFor(page, `${scene('coda')} .rv-badge[data-approval="approved"]`);
-        expect(
-          yield* evaluate<string>(
-            page,
-            `document.querySelector('${scene('open')} .rv-comment-input').value`,
-          ),
-        ).toBe('half a thought');
-        expect(
-          yield* evaluate<boolean>(
-            page,
-            `window.clip === document.querySelector('${scene('open')} video')`,
-          ),
-        ).toBe(true);
+        yield* valueIs(page, `${scene('open')} .rv-comment-input`, 'half a thought');
+        yield* evaluates(
+          page,
+          `window.clip === document.querySelector('${scene('open')} video')`,
+          true,
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -592,12 +577,12 @@ describe("a film's project", () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject(true), { search: PROJECT });
         yield* waitFor(page, `${scene('open')} video`);
-        expect(
-          yield* evaluate<string>(
-            page,
-            `document.querySelector('${scene('open')} video').getAttribute('src')`,
-          ),
-        ).toBe('/review/files/out/toy/scenes/open/main.share.mp4');
+        yield* attributeIs(
+          page,
+          `${scene('open')} video`,
+          'src',
+          '/review/files/out/toy/scenes/open/main.share.mp4',
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

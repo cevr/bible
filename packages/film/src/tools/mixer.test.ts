@@ -3,7 +3,7 @@
 // behind. A sound at another rate fails the mix rather than being resampled.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Duration, Effect, Fiber, Layer, Option, Path, Result, Schema } from 'effect';
+import { Deferred, Effect, Fiber, Layer, Option, Path, Result, Schedule, Schema } from 'effect';
 import { silence } from '../core/audio.ts';
 import { filmEnd, layout } from '../core/layout.ts';
 import { MIX_RATE, mixKey } from '../core/mix.ts';
@@ -183,7 +183,10 @@ describe('Mixer', () => {
           yield* Deferred.await(held);
           const fiber = yield* Effect.forkChild(mixing());
           // The mix has written its track beside the old one, and waits for the lock.
-          yield* Effect.sleep(Duration.millis(300));
+          yield* Effect.sync(() => partials().length).pipe(
+            Effect.repeat({ until: (n) => n === 1, schedule: Schedule.spaced('5 millis') }),
+            Effect.timeout('10 seconds'),
+          );
           const seen = { track: read(TRACK), stamp: read(STAMP), partials: partials().length };
           yield* Deferred.succeed(release, true);
           yield* Fiber.join(other);

@@ -1568,11 +1568,14 @@ field that is not there. Write `(line) => Console.log(line)`.
 `film/no-read-once` (`lint/no-read-once.ts`) holds the lab's browser tests
 (`*.dom.test.ts`): a test waits for the value it asserts through
 `src/lab/fixtures/settled.ts` (`textIs`, `textHas`, `textsAre`,
-`attributeIs`, `attributesAre`, `valueIs`, `countIs`, `waitFor`, `attached`,
-`until`), and a read that times out fails naming what it wanted and what the
-page last showed. A one-shot read (`textContent()`, `inputValue()`, `$eval`,
-`$$eval`, `isVisible()`, and `getAttribute()` or `count()` on the page or a
-locator) takes whatever the page had drawn at that instant, and is refused.
+`attributeIs`, `attributesAre`, `valueIs`, `countIs`, `evaluates` for a
+script's answer, `waitFor`, `attached`, `until`), and a read that times out
+fails naming what it wanted and what the page last showed. A one-shot read
+(`textContent()`, `inputValue()`, `$eval`, `$$eval`, `isVisible()`,
+`getAttribute()` or `count()` on the page or a locator, and an `evaluate(…)`
+whose answer `expect` asserts) takes whatever the page had drawn at that
+instant, and is refused. An `evaluate` run for what it does is an action; one
+whose answer a binding keeps is not seen.
 `film/spawn-budget` (`lint/spawn-budget.ts`) holds every test of
 `packages/film` and `apps/animations/test`: a test whose body spawns a process
 (`ChildProcess.make`, `Bun.spawn`, `Bun.spawnSync`, `runCli`, or a function of
@@ -1612,7 +1615,7 @@ a knob draws the same frame; it is what lets the lab tweak it.
 
 `src/core` never touches the DOM at runtime (type-only DOM references are
 fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
-tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools` or `lab`, and `canvas` no `player`, `tools` or `lab`.
+tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools` or `lab`, `canvas` no `player`, `tools` or `lab`, and `player` no `tools` or `lab`.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.

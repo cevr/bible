@@ -67,7 +67,23 @@
     "effect/noUnknownTypeAliases": "error",
     "effect/noUnsafeDictionaryType": "error",
     "effect/noWidenThenAssert": "error",
-    "effect/preferEffectFn": "error"
+    "effect/preferEffectFn": "error",
+    // A test waits on the event it asserts (a Deferred, a Latch, a condition
+    // wait), never a fixed time: under load the fixed wait guesses wrong.
+    "effect/noFixedWaitInTests": "error"
+  },
+  // Test code besides `*.test.*` and `*.spec.*` modules: the harness helpers
+  // the fixed-wait rule and effect's other test-aware rules read as tests.
+  "settings": {
+    "effect": {
+      "testFiles": [
+        "**/fixtures/**",
+        "**/test/**",
+        "**/tests/**",
+        "**/e2e/**",
+        "packages/test-utils/**"
+      ]
+    }
   },
   "ignorePatterns": [
     "**/dist/**",
@@ -353,6 +369,22 @@
                   "@bible/film/lab"
                 ],
                 "message": "the engine never imports the player, tools or lab: they import it (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": ["**/packages/film/src/player/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["**/tools/**", "**/lab/**", "@bible/film/tools", "@bible/film/lab"],
+                "message": "the player never imports the tools or the lab: the lab mounts the player (packages/film/README.md, the purity rule)."
               }
             ]
           }

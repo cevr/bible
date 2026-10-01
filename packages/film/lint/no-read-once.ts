@@ -10,9 +10,12 @@
 // DOM methods (`textContent()`, `innerText()`, `innerHTML()`, `inputValue()`,
 // `allTextContents()`, `allInnerTexts()`, `isChecked()`, `isVisible()`,
 // `isHidden()`, `isEnabled()`, `isDisabled()`, `isEditable()`, `$eval`,
-// `$$eval`), and `getAttribute()` or `count()` called on the page or a
+// `$$eval`), `getAttribute()` or `count()` called on the page or a
 // locator taken from it (`page.getAttribute(…)`, `page.locator(…).count()`),
-// not on an element inside a function the page runs.
+// not on an element inside a function the page runs, and an `evaluate(…)`
+// (the page's, or a helper of that name) whose answer `expect` asserts. An
+// `evaluate` run for what it does is an action, and passes; one whose answer a
+// binding keeps is not seen.
 
 import { Effect, Option } from 'effect';
 import {
@@ -63,6 +66,47 @@ const readOnce = (call: ESTree.CallExpression): Option.Option<string> => {
   );
 };
 
+/** A call to `evaluate`: `page.evaluate(…)`, or a local helper by that name. */
+const isEvaluate = (call: ESTree.CallExpression): boolean => {
+  const callee = call.callee;
+  if (callee.type === 'Identifier') return callee.name === 'evaluate';
+  return callee.type === 'MemberExpression' && Option.contains(memberName(callee), 'evaluate');
+};
+
+const isExpect = (call: ESTree.CallExpression): boolean =>
+  call.callee.type === 'Identifier' && call.callee.name === 'expect';
+
+/** Nodes that hand the value they wrap on unchanged: `yield*`, `await`, a cast. */
+const PASSES_ON = new Set([
+  'YieldExpression',
+  'AwaitExpression',
+  'TSAsExpression',
+  'TSSatisfiesExpression',
+  'TSNonNullExpression',
+  'ParenthesizedExpression',
+]);
+
+/**
+ * Whether `expect(…)` asserts the value `n` answers, past what only hands it on
+ * (`yield*`, `await`, a cast, and a call such as `Effect.promise(() => …)` that
+ * takes it, or an arrow answering it, as an argument).
+ */
+const isAsserted = (n: ESTree.Node): boolean => {
+  if (n.type === 'Program') return false;
+  const up = n.parent;
+  if (PASSES_ON.has(up.type)) return isAsserted(up);
+  if (up.type === 'ArrowFunctionExpression')
+    return up.body === n && up.parent.type === 'CallExpression' && isAsserted(up);
+  if (up.type !== 'CallExpression' || !up.arguments.some((a) => a === n)) return false;
+  return isExpect(up) || isAsserted(up);
+};
+
+/** What a call reads once, when it reads one. */
+const refused = (call: ESTree.CallExpression): Option.Option<string> => {
+  if (isEvaluate(call) && isAsserted(call)) return Option.some('evaluate');
+  return readOnce(call);
+};
+
 export const noReadOnce = Rule.define({
   name: 'no-read-once',
   meta: Rule.meta({
@@ -73,13 +117,13 @@ export const noReadOnce = Rule.define({
   create: function* () {
     const context = yield* RuleContext;
     return Visitor.on('CallExpression', (node) =>
-      Option.match(readOnce(node), {
+      Option.match(refused(node), {
         onNone: () => Effect.void,
         onSome: (name) =>
           context.report(
             Diagnostic.make({
               node,
-              message: `${name} reads the page once, whatever it had drawn at that instant: wait for the value instead (textIs, textHas, valueIs, attributeIs, countIs or until in lab/fixtures/settled.ts).`,
+              message: `${name} reads the page once, whatever it had drawn at that instant: wait for the value instead (textIs, textHas, valueIs, attributeIs, countIs, evaluates or until in lab/fixtures/settled.ts).`,
             }),
           ),
       }),
