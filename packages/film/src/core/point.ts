@@ -13,16 +13,9 @@
 // back is canonical too: a string is a point only when it is that point's own
 // id, so `level:bed:01:x` or `render:scenes:a,` is no point.
 
-import {
-  Array as Arr,
-  Effect,
-  Match,
-  Option,
-  Schema,
-  SchemaIssue,
-  SchemaTransformation,
-} from 'effect';
-import { Address, addressKey } from './address.ts';
+import { Effect, Match, Option, Schema, SchemaIssue, SchemaTransformation } from 'effect';
+import { Address, addressKey, addressOfKey } from './address.ts';
+import { PartId } from './address-schema.ts';
 
 /** A name inside a point's id: never empty, so the id reads back as the point. */
 const Name = Schema.NonEmptyString;
@@ -45,20 +38,6 @@ export const LevelTarget = Schema.Union([
 ]);
 export type LevelTarget = typeof LevelTarget.Type;
 
-/** An address key read back (`addressKey`), when `key` is one. */
-const addressOfKey = (key: string): Option.Option<Address> => {
-  if (key === 'film') return Option.some({ _tag: 'Film' });
-  const [kind = '', ...rest] = key.split(':');
-  const name = rest.join(':');
-  if (name === '') return Option.none();
-  if (kind === 'act') return Option.some({ _tag: 'Act', act: name });
-  if (kind === 'short') return Option.some({ _tag: 'Short', id: name });
-  if (kind !== 'scenes') return Option.none();
-  const ids = name.split(',');
-  if (!Arr.isReadonlyArrayNonEmpty(ids)) return Option.none();
-  return Option.some({ _tag: 'Scenes', ids });
-};
-
 /**
  * A montage's clip, named by its file: never empty, and never an address key
  * (`film`, `act:…`, `scenes:…`, `short:…`), so its `render:` id reads back
@@ -79,7 +58,7 @@ export const PointRef = Schema.Union([
   Schema.TaggedStruct('Montage', { clip: Clip }),
   Schema.TaggedStruct('Score', {}),
   Schema.TaggedStruct('Take', { sound: Name }),
-  Schema.TaggedStruct('Voice', { beat: Name }),
+  Schema.TaggedStruct('Voice', { beat: PartId }),
   Schema.TaggedStruct('Look', { name: Name }),
   Schema.TaggedStruct('Level', { target: LevelTarget }),
 ]).pipe(Schema.toTaggedUnion('_tag'));

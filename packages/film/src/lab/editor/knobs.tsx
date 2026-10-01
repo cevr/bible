@@ -15,9 +15,9 @@ import { Option, Schema } from 'effect';
 import type { Accessor } from 'solid-js';
 import { createMemo } from 'solid-js';
 import { type Knob, Point } from '../../core/schema.ts';
+import { toMs } from '../../core/time.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
-import { round } from './format.ts';
 import { KnobWrite, knobRefusal } from './grip.ts';
 import { type Handle, handleOf, handlesOf, isCameraTarget } from './handles.ts';
 import { NumberField } from './inspector.tsx';
@@ -82,7 +82,7 @@ const Row = (props: { readonly scene: string; readonly name: string; readonly va
             field="value"
             value={Number(props.value)}
             writable={writable()}
-            commit={(v) => commit(round(v))}
+            commit={(v) => commit(toMs(v))}
           />
         }
       >
@@ -92,13 +92,13 @@ const Row = (props: { readonly scene: string; readonly name: string; readonly va
               field="x"
               value={p()[0]}
               writable={writable()}
-              commit={(v) => commit([round(v), p()[1]])}
+              commit={(v) => commit([toMs(v), p()[1]])}
             />
             <NumberField
               field="y"
               value={p()[1]}
               writable={writable()}
-              commit={(v) => commit([p()[0], round(v)])}
+              commit={(v) => commit([p()[0], toMs(v)])}
             />
             <Where scene={props.scene} name={props.name} />
           </>

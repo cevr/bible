@@ -1,13 +1,10 @@
-// How the editor words and draws what it shows: a cue's anchor, a number as
-// the write stores it, an ease as a small curve, and the status line.
+// How the editor words and draws what it shows: a cue's anchor,
+// an ease as a small curve, and the status line.
 
 import { Match, Option } from 'effect';
 import type { CheckLine, CheckReport, EaseName, Span } from '../../core/schema.ts';
 import { ease } from '../../core/time.ts';
 import type { EditState } from './machine.ts';
-
-/** Seconds and pixels to the thousandth, as the write stores them. */
-export const round = (v: number): number => Math.round(v * 1000) / 1000 + 0;
 
 /** What a cue's span starts from, in words. */
 export const anchorText = (span: Span): string => {

@@ -21,7 +21,7 @@
 // Pure: the tools' adapters (`tools/choices.ts`, `tools/review.ts`) build
 // the points, and the review page shows them.
 
-import { Array as Arr, Option, Schema } from 'effect';
+import { Array as Arr, Effect, Option, Schema, SchemaIssue, SchemaTransformation } from 'effect';
 import { Address } from './address.ts';
 import {
   ApprovalState,
@@ -34,7 +34,7 @@ import {
   saidOn,
   topicAt,
 } from './catalogue.ts';
-import { type PointRef, pointIdOf } from './point.ts';
+import { PointRef, pointIdOf, pointRefOf } from './point.ts';
 import { CheckLine, Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
@@ -100,11 +100,11 @@ export const ChoiceKnob = Schema.Struct({
 });
 export type ChoiceKnob = typeof ChoiceKnob.Type;
 
-/** A choice point: at an address, variants to compare, pick, comment on and approve. */
-export const ChoicePoint = Schema.Struct({
+/** A choice point's fields as the wire carries them: everything but its ref, which its id writes. */
+const pointFields = {
   /**
    * Unique in its film: `score`, `take:paper.slide`, `look:ground`,
-   * `render:scenes:cold`; a `PointRef` as `point.ts` writes it.
+   * `render:scenes:cold`; its `ref` as `point.ts` writes it.
    */
   id: Schema.String,
   kind: ChoiceKind,
@@ -119,7 +119,33 @@ export const ChoicePoint = Schema.Struct({
   marks: Schema.Array(ChoiceMark),
   knob: maybe(ChoiceKnob),
   variants: Schema.Array(ChoiceVariant),
-});
+};
+
+/**
+ * A choice point: at an address, variants to compare, pick, comment on and
+ * approve. Which point it is is data (`ref`): read from its id once, where
+ * the point is decoded, and written back as the id alone, so the wire
+ * carries one name for it and a verb reads the ref, never the id parsed back.
+ */
+export const ChoicePoint = Schema.Struct(pointFields).pipe(
+  Schema.decodeTo(
+    Schema.toType(Schema.Struct({ ...pointFields, ref: PointRef })),
+    SchemaTransformation.transformEffect({
+      decode: (point) =>
+        Effect.fromOption(pointRefOf(point.id)).pipe(
+          Effect.map((ref) => ({ ...point, ref })),
+          Effect.mapError(
+            () =>
+              new SchemaIssue.InvalidValue(
+                { message: `no choice point is "${point.id}"` },
+                point.id,
+              ),
+          ),
+        ),
+      encode: ({ ref: _ref, ...point }) => Effect.succeed(point),
+    }),
+  ),
+);
 export type ChoicePoint = typeof ChoicePoint.Type;
 
 /** A variant as its adapter describes it, before the owner's say is read. */
@@ -139,9 +165,10 @@ const KIND = {
   Level: 'level',
 } as const satisfies { readonly [Tag in PointRef['_tag']]: ChoiceKind };
 
-/** A point's id and kind, both read off the one ref it is. */
-export const pointHead = (ref: PointRef): Pick<ChoicePoint, 'id' | 'kind'> => ({
+/** A point's ref, with its id and kind, both read off it. */
+export const pointHead = (ref: PointRef): Pick<ChoicePoint, 'id' | 'ref' | 'kind'> => ({
   id: pointIdOf(ref),
+  ref,
   kind: KIND[ref._tag],
 });
 
@@ -150,7 +177,6 @@ export interface PointDraft extends Omit<
   ChoicePoint,
   'id' | 'kind' | 'variants' | 'moments' | 'marks' | 'knob' | 'start'
 > {
-  readonly ref: PointRef;
   readonly variants: ReadonlyArray<VariantDraft>;
   readonly start?: number;
   readonly moments?: Option.Option<ReadonlyArray<number>>;
@@ -165,12 +191,53 @@ export const subjectAt = (
   variant: { readonly id: string; readonly key: string },
 ): Subject => ({ ...topicAt(address, ref, variant.id), key: variant.key });
 
+/** Why a variant of each kind is stale when nothing more says why, and how to make one current. */
+const STALE = {
+  render: 'it was drawn for an earlier version; render it again, then approve the new render',
+  score: 'it was composed for an earlier plan; compose it again, then approve that',
+  take: 'it was made for an earlier declaration; approve a take made for the one now',
+  voice: 'it was recorded for an earlier line; approve an attempt at the line now',
+  look: 'it is no level the look offers now',
+  level: 'it is no level the film sets now',
+} as const satisfies { readonly [K in ChoiceKind]: string };
+
+/** Why a render stale by `StaleBy` is, and how to make it current. */
+const STALE_BY = {
+  sources: 'its sources changed since it was made; render it again, then approve the new render',
+  sound:
+    "the film's sound changed since it was made; render it again (a re-mux), then approve that",
+} as const satisfies { readonly [S in StaleBy]: string };
+
+/**
+ * Why `variant` of a point of `kind` is no approval's subject, or none when it
+ * is: an approval is of a variant as it is now, so only a current one is
+ * approved. The one rule for every say that approves (the project's scenes,
+ * the choices); the page's disabled button is its face.
+ */
+export const approvalRefused = (
+  kind: ChoiceKind,
+  variant: {
+    readonly state: VariantState;
+    readonly staleBy: Option.Option<StaleBy>;
+  },
+): Option.Option<string> => {
+  if (variant.state === 'current') return Option.none();
+  if (variant.state === 'missing')
+    return Option.some('nothing is made of it yet; make it, then approve it');
+  return Option.some(
+    `it is stale: ${Option.match(variant.staleBy, {
+      onNone: () => STALE[kind],
+      onSome: (by) => STALE_BY[by],
+    })}`,
+  );
+};
+
 /** `draft` as its point, with each variant's approval and comments as `catalogue` records them. */
 export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft): ChoicePoint => {
-  const { ref, ...rest } = draft;
+  const { ref } = draft;
   return {
+    ...draft,
     ...pointHead(ref),
-    ...rest,
     start: draft.start ?? 0,
     moments: draft.moments ?? Option.none(),
     marks: draft.marks ?? [],

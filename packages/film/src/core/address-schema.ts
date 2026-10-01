@@ -1,10 +1,11 @@
 // An address as data: which part of a film a command works on, and the one
-// string it is keyed by. Its own module, importing nothing of the film, so
+// string it is keyed by, written and read back here. Its own module,
+// importing nothing of the film, so
 // `schema.ts` (a finding's address) and `address.ts` (resolving one against
 // the placed film, which reaches `schema.ts` through the layout) both read it
 // with no import cycle. `address.ts` re-exports it as the address's one face.
 
-import { Match, Schema } from 'effect';
+import { Array as Arr, Match, Option, Schema } from 'effect';
 
 const PART_ID = /^[a-z0-9][a-z0-9-]*$/;
 
@@ -63,6 +64,26 @@ export const addressKey = (address: Address): string =>
     Scenes: ({ ids }) => `scenes:${ids.join(',')}`,
     Short: ({ id }) => `short:${id}`,
   });
+
+/**
+ * `addressKey`'s inverse: the address `key` is written as, when its shape is
+ * one (`film`, `act:…`, `scenes:…`, `short:…`, with a non-empty name). The
+ * names are read as they stand; a caller that needs a valid address judges
+ * the result by `Address` (a choice point's id does, and checks the round
+ * trip).
+ */
+export const addressOfKey = (key: string): Option.Option<Address> => {
+  if (key === 'film') return Option.some({ _tag: 'Film' });
+  const [kind = '', ...rest] = key.split(':');
+  const name = rest.join(':');
+  if (name === '') return Option.none();
+  if (kind === 'act') return Option.some({ _tag: 'Act', act: name });
+  if (kind === 'short') return Option.some({ _tag: 'Short', id: name });
+  if (kind !== 'scenes') return Option.none();
+  const ids = name.split(',');
+  if (!Arr.isReadonlyArrayNonEmpty(ids)) return Option.none();
+  return Option.some({ _tag: 'Scenes', ids });
+};
 
 /** One scene's address. */
 export const sceneAddress = (id: string): Address => ({ _tag: 'Scenes', ids: [id] });

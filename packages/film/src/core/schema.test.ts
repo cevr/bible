@@ -119,6 +119,17 @@ describe('Timed', () => {
       expect(Result.isFailure(at(act))).toBe(true);
   });
 
+  test('two acts of one name are refused, naming the name: `act:<name>` must name one part', () => {
+    const look = Schema.decodeResult(Look)({
+      acts: [
+        { from: 'cold', name: 'valley' },
+        { from: 'roof', name: 'valley' },
+      ],
+    });
+    expect(Result.isFailure(look)).toBe(true);
+    if (Result.isFailure(look)) expect(String(look.failure)).toContain('valley');
+  });
+
   test('a span may name an ease; an ease the kit lacks is refused', () => {
     expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","ease":"outBack"}}}')).toBe(true);
     expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","ease":"bouncy"}}}')).toBe(false);

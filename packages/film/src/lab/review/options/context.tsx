@@ -43,16 +43,16 @@ import { type ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } fr
 /** The player's clock: the film's render, its own sound muted unless it is the one heard. */
 export const PICTURE = 'picture';
 
-/** What is heard over the picture: its own sound, or the mix with one variant of a point in place. */
-export type Heard = Data.TaggedEnum<{
+/** What plays over the picture: its own sound, or the mix with one variant of a point in place. */
+export type Playing = Data.TaggedEnum<{
   Own: {};
   InPlace: { readonly point: string; readonly variant: string };
 }>;
-export const Heard = Data.taggedEnum<Heard>();
+export const Playing = Data.taggedEnum<Playing>();
 
-/** The URL of the mix `heard` plays, at the film's `version` (none for the picture's own sound). */
-const mixOf = (film: string, heard: Heard, version: number): Option.Option<string> =>
-  Match.value(heard).pipe(
+/** The URL of the mix `playing` names, at the film's `version` (none for the picture's own sound). */
+const mixOf = (film: string, playing: Playing, version: number): Option.Option<string> =>
+  Match.value(playing).pipe(
     Match.tagsExhaustive({
       Own: () => Option.none<string>(),
       InPlace: (h) => Option.some(`${choiceMixUrl(film, h.point, h.variant)}&v=${version}`),
@@ -60,15 +60,15 @@ const mixOf = (film: string, heard: Heard, version: number): Option.Option<strin
   );
 
 /** The player's id for what is heard: the picture, or the mix's URL. */
-const trackOf = (film: string, heard: Heard, version: number): string =>
-  Option.getOrElse(mixOf(film, heard, version), () => PICTURE);
+const trackOf = (film: string, playing: Playing, version: number): string =>
+  Option.getOrElse(mixOf(film, playing, version), () => PICTURE);
 
 /** Whether a variant is heard in the film's mix. */
 const inPlace = (media: FilmChoices['points'][number]['variants'][number]['media']) =>
   media._tag === 'Heard' && media.inPlace;
 
-/** What is heard first: the score option the film plays, when it is heard; else the first that is. */
-const firstHeard = (choices: FilmChoices): Heard =>
+/** What plays first: the score option the film plays, when it is heard; else the first that is. */
+const firstPlaying = (choices: FilmChoices): Playing =>
   Option.getOrElse(
     Option.flatMap(
       Option.fromUndefinedOr(choices.points.find((p) => p.kind === 'score')),
@@ -78,15 +78,16 @@ const firstHeard = (choices: FilmChoices): Heard =>
           Option.orElse(Option.fromUndefinedOr(heard.find((v) => v.picked)), () =>
             Option.fromUndefinedOr(heard[0]),
           ),
-          (v): Heard => Heard.InPlace({ point: score.id, variant: v.id }),
+          (v): Playing => Playing.InPlace({ point: score.id, variant: v.id }),
         );
       },
     ),
-    (): Heard => Heard.Own(),
+    (): Playing => Playing.Own(),
   );
 
-/** Whether two `Heard`s are the same sound. */
-export const sameHeard = (a: Heard, b: Heard): boolean => trackOf('', a, 0) === trackOf('', b, 0);
+/** Whether two `Playing`s are the same sound. */
+export const samePlaying = (a: Playing, b: Playing): boolean =>
+  trackOf('', a, 0) === trackOf('', b, 0);
 
 interface FilmContextValue {
   readonly film: string;
@@ -104,8 +105,8 @@ interface FilmContextValue {
   /** The render the sound plays over, when the film has one. */
   readonly picture: Accessor<Option.Option<ReviewVideo>>;
   readonly choosePicture: (ref: string) => void;
-  readonly heard: Accessor<Heard>;
-  readonly hear: (heard: Heard) => void;
+  readonly playing: Accessor<Playing>;
+  readonly hear: (playing: Playing) => void;
   /** The mix heard now, when it is not the picture's own. */
   readonly mix: Accessor<Option.Option<string>>;
   readonly sync: Accessor<SyncState>;
@@ -191,10 +192,10 @@ const FilmBody = (
       Option.fromUndefinedOr(choices().pictures.find((p) => p.ref === ref)),
     ),
   );
-  const [heard, setHeard] = createSignal<Heard>(firstHeard(first));
-  const mix = createMemo(() => mixOf(film, heard(), version()));
+  const [playing, setPlaying] = createSignal<Playing>(firstPlaying(first));
+  const mix = createMemo(() => mixOf(film, playing(), version()));
   createEffect(
-    () => trackOf(film, heard(), version()),
+    () => trackOf(film, playing(), version()),
     (id) => send(SyncEvent.HeardChosen({ id })),
   );
 
@@ -232,8 +233,8 @@ const FilmBody = (
       send(SyncEvent.PausePressed);
       setPictureRef(Option.some(ref));
     },
-    heard,
-    hear: setHeard,
+    playing,
+    hear: setPlaying,
     mix,
     sync,
     send,

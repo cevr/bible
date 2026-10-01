@@ -29,13 +29,14 @@ taken over Schema-encoded requests, so a committed hash stays current.
 The export page's handle and what its probe records (`ExportInfo`,
 `TextBox`, `InkMark`, `FaceMark`, `HandMark`, `Probed`) are declared beside
 the handle in `core/export-handle.ts`; a choice point's id in
-`core/point.ts`; an address as data (`Address`, `addressKey`) in
-`core/address-schema.ts`, a leaf both `schema.ts` and `address.ts` read
-(`address.ts` re-exports it beside `resolveAddress`). A scene's and a short's
+`core/point.ts`; an address as data (`Address`, `addressKey` and its inverse
+`addressOfKey`) in `core/address-schema.ts`, a leaf both `schema.ts` and
+`address.ts` read (`address.ts` re-exports it beside `resolveAddress`). A scene's and a short's
 id is one shape, `PartId` (lower case, digits and dashes, starting with a
 letter or a digit), and an act's name (`ActName`) never starts with `-`: the
 film is refused at load, naming the id, when one names no address, point or
-argument.
+argument. A short's id and an act's name are each declared once (`Shorts`,
+`Look`), so `short:<id>` and `act:<name>` each name one part.
 
 ## Tools
 
@@ -371,9 +372,15 @@ from the master at the pieces it recorded (the renderer's master check
 first), its pictures and its share copy's are copied, and no page opens
 (`render.remux frames_drawn=0`, `remuxVideo`: media and the disk only).
 Chromium launches with the first page a scene opens (`Browser.layer`), so a
-run where every scene is current or re-muxed opens no browser. `film project approve <film> --scene id,id | --act name |
---all` approves the scenes' renders, an act's current scenes, or every current
-scene (a stale or missing scene is left, and named); `film project withdraw
+run where every scene is current or re-muxed opens no browser. `film project
+approve <film> --scene id,id | --act name | --all` approves the scenes'
+renders, an act's current scenes, or every current scene. An approval is of
+a render as it is now, so only a current one is approved: `--act` and
+`--all` leave a stale or missing scene, and `--scene` naming one refuses it
+and approves nothing (`VerbRefused`, 409 on the review's route, naming why it
+is stale and the render that makes it current; `SceneNotRendered`, 404, for
+one never rendered). The rule is `approvalRefused` (`core/choice.ts`), which
+the choices' say keeps too; `film project withdraw
 <film> --scene id,id | --act name | --all` withdraws those scenes' approvals,
 whatever version they were given on. `film project comment
 <film> "text" [--scene id | --act name]` records a comment on a scene's render
@@ -1115,7 +1122,9 @@ options in `lab/review/options/`), dark and made for a phone first.
 
 **A choice point** (`ChoicePoint`, `core/choice.ts`) is the one shape:
 at an address in the film, variants to compare, pick, comment on and
-approve. Each variant has a state (`current`, `stale`, `missing`), whether
+approve. Which point it is is data (`ref`, a `PointRef`): decoded from its
+id once, where the point crosses the wire, and encoded back as the id alone,
+so a verb reads the ref and never parses the id back. Each variant has a state (`current`, `stale`, `missing`), whether
 it is picked, the verbs its state allows (`pick`, `unpick`, `reject`), its
 media (`Seen`: a video; `Heard`: alone and/or in the film's whole mix;
 `Unseen`), the key the owner's say is given on, and that say (approval and
@@ -1269,7 +1278,8 @@ heard over it: 🔊 on a variant heard in place (a score option, a take) swaps
 it, and it joins where the clock stands. A point's marks jump the clock
 there. Every point is one card (`options/choice.tsx`): its variants with
 their verbs (Pick, Unpick, Reject as the state allows), a hear-alone player,
-approve (a current variant only), withdraw once approved, and a line to
+approve (a current variant only: `Choices.say` refuses a stale or missing
+one with `VerbRefused`, 409), withdraw once approved, and a line to
 comment; a level point's knob is a slider, written on release. Every say is
 one `POST …/choices/say`, answered by the film's choices with it recorded,
 which the page shows as they are. Undo and Redo say what they would undo or

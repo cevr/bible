@@ -87,6 +87,9 @@ describe('the choice point id', () => {
       'level:bed:0x1:amb',
       'render:scenes:a,',
       'render:scenes:,a',
+      // A beat is a scene: its id is a `PartId`.
+      'voice:Cold Open',
+      'voice:-all',
     ]) {
       expect(pointRefOf(id)).toEqual(Option.none());
       expect(Result.isFailure(Schema.decodeResult(PointId)(id))).toBe(true);

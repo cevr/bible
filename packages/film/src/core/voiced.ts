@@ -9,6 +9,7 @@
 
 import type { Pcm } from './audio.ts';
 import { Heard, type HeardWord, type TakeWord, type Voiced, type Word } from './schema.ts';
+import { toMs } from './time.ts';
 
 /** A window is voiced when its level is over this, in dBFS. */
 const VOICE_GATE_DB = -40;
@@ -23,9 +24,6 @@ export const voicedAt = (start: number, end: number): Voiced => ({
   start: Heard.make(start),
   end: Heard.make(end),
 });
-
-/** Seconds to the millisecond, as the timings keep them. */
-const ms = (s: number) => Math.round(s * 1000) / 1000;
 
 /** The mean square of `pcm` over frames `[from, to)`, every channel together. */
 const meanSquare = (pcm: Pcm, from: number, to: number): number => {
@@ -61,8 +59,8 @@ export const voicedSpan = (pcm: Pcm, start: number, end: number): Voiced => {
   }
   if (first < 0) return voicedAt(end, end);
   // On the timings' millisecond grid, and never outside the span it was read in.
-  const on = Math.min(end, Math.max(start, ms(first / pcm.rate)));
-  return voicedAt(on, Math.min(end, Math.max(on, ms(last / pcm.rate))));
+  const on = Math.min(end, Math.max(start, toMs(first / pcm.rate)));
+  return voicedAt(on, Math.min(end, Math.max(on, toMs(last / pcm.rate))));
 };
 
 /** Each word of a take with where its voice is heard, read from the take's audio. */

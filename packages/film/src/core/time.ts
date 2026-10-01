@@ -18,6 +18,13 @@ export interface Interval {
   readonly to: number;
 }
 
+/**
+ * Seconds (or pixels) to the millisecond, as every file the tools write keeps
+ * them: one rounding, so a value read back compares equal to the one written.
+ * Never −0, which would print as `-0` in a scene module.
+ */
+export const toMs = (v: number): number => Math.round(v * 1000) / 1000 + 0;
+
 export const clamp = (v: number, lo = 0, hi = 1) => (v < lo ? lo : v > hi ? hi : v);
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const invLerp = (a: number, b: number, v: number) => (a === b ? 0 : (v - a) / (b - a));

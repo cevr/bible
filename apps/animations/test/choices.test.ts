@@ -518,6 +518,15 @@ describe("a film's choices", () => {
         expect(Option.map(piano(listed), (v) => [v.approval, v.comments.length])).toEqual(
           Option.some(['approved', 1]),
         );
+        // Only a current variant is approved: `strings` is not composed yet.
+        const refused = yield* Effect.flip(
+          choices.say(tiny, { point: 'score', variant: 'strings', say: { _tag: 'Approve' } }),
+        );
+        expect(refused).toMatchObject({
+          _tag: 'VerbRefused',
+          verb: 'approve',
+          reason: expect.stringContaining('nothing is made of it yet'),
+        });
         const { out } = yield* Copy;
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;

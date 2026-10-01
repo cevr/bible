@@ -6,8 +6,9 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
+import { CatalogueJson } from '@bible/film/core';
 import { ProjectRead } from '@bible/film/tools';
-import { Effect, FileSystem, Schema } from 'effect';
+import { Effect, FileSystem, Option, Schema } from 'effect';
 import { FIXTURE_FILM, runCli, spawnBudget } from './cli-run.ts';
 
 const film = FIXTURE_FILM;
@@ -176,6 +177,68 @@ describe('film cli', () => {
         expect(lost.out).toContain('ScoreUnknown');
       }),
     spawnBudget(2),
+  );
+
+  it.effect.layer(BunServices.layer)(
+    "a stale scene's render is not approved by name: the run refuses it, naming why and how",
+    () =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const out = yield* fs.makeTempDirectoryScoped();
+          // A render of `turn` drawn from sources the scene no longer has.
+          const catalogue = `${out}/${film}/catalogue.json`;
+          yield* fs.makeDirectory(`${out}/${film}`, { recursive: true });
+          yield* fs.writeFileString(
+            catalogue,
+            yield* Schema.encodeEffect(CatalogueJson)({
+              film,
+              renders: [
+                {
+                  address: { _tag: 'Scenes', ids: ['turn'] },
+                  variant: 'main',
+                  kind: 'video',
+                  settings: { scale: 1, captions: true },
+                  stamp: { commit: Option.none(), key: 'drawn-before-the-change' },
+                  span: Option.none(),
+                  files: {
+                    clip: Option.some('scenes/turn/main.mp4'),
+                    share: Option.none(),
+                    captions: Option.none(),
+                    chapters: Option.none(),
+                    images: [],
+                  },
+                  sound: Option.none(),
+                  at: 1,
+                },
+              ],
+              approvals: [],
+              comments: [],
+            }),
+          );
+          const before = yield* fs.readFileString(catalogue);
+          const run = yield* runCli({ FILMS_OUT: out }, [
+            'project',
+            'approve',
+            film,
+            '--scene',
+            'turn',
+            '--json',
+          ]);
+          expect(run.exitCode).not.toBe(0);
+          // The one line the review reads: the refusal, which it answers as a 409.
+          expect(
+            yield* Schema.decodeEffect(Schema.fromJsonString(Schema.Unknown))(run.stdout.trim()),
+          ).toMatchObject({
+            _tag: 'VerbRefused',
+            point: 'render:scenes:turn',
+            verb: 'approve',
+            reason: expect.stringContaining('its sources changed since it was made'),
+          });
+          expect(yield* fs.readFileString(catalogue)).toBe(before);
+        }),
+      ),
+    spawnBudget(1),
   );
 
   it.effect.layer(BunServices.layer)(
