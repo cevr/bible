@@ -17,8 +17,6 @@ import type * as SqlClient from 'effect/sql/SqlClient';
 
 import type { TopicService } from '../topics/service.js';
 import type { WikiSectionSources } from './section-composer.js';
-import type { UpdatableCorpus } from '../content-update/model.js';
-import { ContentActivation } from '../content-update/service.js';
 import { WikiService, type WikiServiceApi } from './service.js';
 
 /** Opens the artifact **read-only and without creating it**, in this host's
@@ -248,27 +246,6 @@ export const layerReloadableWiki = <R>(
         Context.add(ReloadableArtifact, ReloadableArtifact.of({ reload })),
       );
     }),
-  );
-
-/** The host wiring §3.6's activation onto this seam.
- *
- *  `ContentUpdate` says *when* a reader must reopen; `ReloadableArtifact` knows
- *  *how*. Neither should import the other — the update policy has no business
- *  knowing the wiki exists, and the wiki has no business knowing about
- *  manifests — so the join lives here, in one layer.
- *
- *  Only `topics` reloads because only `topics` has a runtime artifact behind
- *  this service; a future corpus adds its own arm rather than being reloaded by
- *  accident. */
-export const layerReloadOnActivation: Layer.Layer<ContentActivation, never, ReloadableArtifact> =
-  Layer.effect(
-    ContentActivation,
-    Effect.map(ReloadableArtifact, (artifact) => ({
-      onActivated: (corpus: UpdatableCorpus) => {
-        if (corpus === 'topics') return artifact.reload;
-        return Effect.void;
-      },
-    })),
   );
 
 /** The file-backed host's reloadable wiki, whose artifact is a path on disk

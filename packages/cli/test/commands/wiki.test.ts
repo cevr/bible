@@ -237,7 +237,7 @@ const composeTopicsEnvelope = (layer: Layer.Layer<WikiService>) =>
   }).pipe(Effect.provide(layer));
 
 describe('bible wiki --json stdout', () => {
-  it.effect('prints exactly what the RPC procedure would put on the wire', () =>
+  it.effect('prints exactly the core codec encoding of the service result', () =>
     Effect.gen(function* () {
       const result = yield* runWiki(['topic', 'sanctuary', '--json']);
       expect(result.success).toBe(true);
@@ -758,7 +758,7 @@ describe('bible wiki lookup', () => {
     }),
   );
 
-  it.effect('prints exactly what the RPC procedure would put on the wire', () =>
+  it.effect('prints exactly the core codec encoding of the service result', () =>
     Effect.gen(function* () {
       const result = yield* runLookup([WIKI_PAGE_FIXTURE.phrase, '--json']);
       expect(result.success).toBe(true);

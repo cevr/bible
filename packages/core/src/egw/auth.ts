@@ -334,8 +334,7 @@ export class EGWAuth extends Context.Service<EGWAuth, EGWAuthService>()(
   /**
    * Convenience layer that bundles `Live` with a filesystem-backed
    * `EGWTokenStore`. Use this in Node-hosted contexts (CLI, sync workers, dev
-   * scripts) where the token file lives on disk. The renderer should compose
-   * `Live` with its own `EGWTokenStore.layerFromJsonPort` instead.
+   * scripts) where the token file lives on disk.
    *
    * Pass `tokenFile` to override the default `data/tokens.json` path
    * (otherwise reads `EGW_TOKEN_FILE` from env, with `data/tokens.json` as the

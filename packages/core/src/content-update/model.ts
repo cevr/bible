@@ -254,27 +254,6 @@ export type ContentUpdateJson = typeof ContentUpdateJson.Encoded;
 export const CONTENT_MANIFEST_URL =
   'https://github.com/cevr/bible/releases/download/content-manifest/manifest.json';
 
-/** Where a browser host reads it: a same-origin route that proxies the
- *  manifest, mirroring `/api/assets/topics`. */
-export const CONTENT_MANIFEST_PROXY_PATH = '/api/content/manifest';
-
-/** Where the browser reads the *bytes* a manifest entry names.
- *
- *  `/api/assets/topics` proxies the **pinned** release — one compiled-in
- *  address, no query. §3.6's runtime leg names a different artifact per
- *  release, so the address is a parameter, and the worker asks for it as
- *  `?url=`. That is the whole difference; the trust rules are the manifest
- *  route's, because a route that fetches an address a client supplied is a
- *  request-forgery gadget unless the same origin allowlist, the same bounded
- *  redirect follow and the same counted size cap apply (round-4 F1, F4).
- *
- *  The cap is the *declared* size rather than a constant: the offer states how
- *  many bytes it is, the digest states which bytes, and both were checked
- *  against a manifest served from the allowlisted host. An artifact is
- *  megabytes where a manifest is kilobytes, so one shared constant could not
- *  bound both. */
-export const CONTENT_ARTIFACT_PROXY_PATH = '/api/content/artifact';
-
 /** The origins a manifest may be fetched from, in production.
  *
  *  Derived from the pinned constant rather than written twice, so moving the

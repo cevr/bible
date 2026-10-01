@@ -89,31 +89,6 @@ export class EGWTokenStore extends Context.Service<EGWTokenStore, EGWTokenStoreS
       }),
     );
 
-  /**
-   * Adapter for hosts that already have a JSON string read/write port. Pass
-   * the two raw effects and EGWTokenStore handles the schema marshaling.
-   */
-  static layerFromJsonPort = (port: {
-    readonly readJson: Effect.Effect<Option.Option<string>>;
-    readonly writeJson: (json: string) => Effect.Effect<void>;
-  }) =>
-    Layer.succeed(
-      EGWTokenStore,
-      EGWTokenStore.of({
-        read: Effect.gen(function* () {
-          const text = yield* port.readJson;
-          if (Option.isNone(text)) return Option.none<AccessToken>();
-          const parsed = yield* decodePersisted(text.value);
-          return Option.some(toAccessToken(parsed));
-        }),
-        write: (token) =>
-          Effect.gen(function* () {
-            const json = yield* encodePersisted(toPersisted(token));
-            yield* port.writeJson(json);
-          }),
-      }),
-    );
-
   /** In-memory test layer. */
   static layerTest = (initial: Option.Option<AccessToken> = Option.none()) =>
     Layer.effect(

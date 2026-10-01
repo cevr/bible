@@ -1,13 +1,8 @@
 import { Context, Effect, Layer, Option, Schema, SchemaTransformation } from 'effect';
 import type { Stream } from 'effect';
 
-import { CorpusInstallationError, type CorpusSourceUnavailableError } from './errors.js';
-import {
-  registeredCorpusName,
-  type CorpusFileName,
-  type CorpusGeneration,
-  type CorpusProvenance,
-} from './model.js';
+import type { CorpusInstallationError, CorpusSourceUnavailableError } from './errors.js';
+import type { CorpusFileName, CorpusGeneration, CorpusProvenance } from './model.js';
 import { makeCorpusStorageIdentity, type CorpusStorageIdentity } from './storage-identity.js';
 
 /** Where one candidate File Corpus Artifact came from, in the order a Recipe
@@ -210,17 +205,6 @@ export interface FileCorpusArtifact<Corpus extends string, RecipeId, InstallerId
     readonly releaseSource?: (release: RuntimeArtifactRelease) => FileArtifactSourceService;
   }) => Layer.Layer<RecipeId>;
   readonly layerInstaller: (installer: FileArtifactInstallerService) => Layer.Layer<InstallerId>;
-  /** This corpus, declared present but holding nothing.
-   *
-   *  A host that wires no artifact at all leaves both tags unprovided, and
-   *  `wired` answers `None` — which is the right answer for a host that does
-   *  not have this corpus. But a *seam* that requires the tags needs something
-   *  to hand a fixture, and "no sources, nothing
-   *  installed, install refused" is a decision worth writing down rather than a
-   *  stub every suite re-invents. `install` fails rather than dies: a caller
-   *  that reaches it has asked a wired corpus to install, and the answer is the
-   *  same typed refusal an empty recipe already produces. */
-  readonly layerEmpty: Layer.Layer<InstallerId | RecipeId>;
 }
 
 /** Whichever keys a File Corpus was declared with, the pipeline only ever asks
@@ -273,20 +257,6 @@ export const makeUnregisteredFileCorpusArtifact = <
       releaseSource: Option.fromUndefinedOr(recipe.releaseSource),
     }),
   layerInstaller: (installer) => Layer.succeed(input.Installer, installer),
-  layerEmpty: Layer.merge(
-    Layer.succeed(input.Recipe, { sources: [], releaseSource: Option.none() }),
-    Layer.succeed(input.Installer, {
-      current: Effect.succeedNone,
-      activeFile: Effect.succeedNone,
-      install: () =>
-        Effect.fail(
-          CorpusInstallationError.make({
-            corpus: Option.getOrUndefined(registeredCorpusName(input.corpus)),
-            cause: `${input.label} Artifact is not wired on this host`,
-          }),
-        ),
-    }),
-  ),
 });
 
 /** Declares a File Corpus the supply pipeline can register: the corpus name
