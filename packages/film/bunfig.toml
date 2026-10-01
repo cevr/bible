@@ -1,0 +1,4 @@
+[test]
+# The browser tests run their cases at once: each opens its own context in the
+# worker's shared Chromium (src/lab/fixtures/browsers.ts).
+concurrentTestGlob = ["**/*.dom.test.ts", "**/*.pixel.test.ts"]

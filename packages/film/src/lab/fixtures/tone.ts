@@ -1,10 +1,8 @@
 // A fake microphone's input for the browser tests: a 16-bit WAV of a 440 Hz
-// sine at `amplitude` of full scale, written to a scoped temp file Chromium's
-// fake capture device plays (`--use-file-for-fake-audio-capture`). Mono by
+// sine at `amplitude` of full scale, the file Chromium's fake capture device
+// plays (`--use-file-for-fake-audio-capture`, written by `browsers.ts`). Mono by
 // default; `left-only` is a two-input interface with the voice on input 1 and
 // silence on input 2.
-
-import { Effect, FileSystem, Path } from 'effect';
 
 /** How the tone is laid out: its rate, and its channels. */
 export interface ToneLayout {
@@ -12,7 +10,7 @@ export interface ToneLayout {
   readonly channels: 'mono' | 'left-only';
 }
 
-const MONO_48K: ToneLayout = { rate: 48000, channels: 'mono' };
+export const MONO_48K: ToneLayout = { rate: 48000, channels: 'mono' };
 
 const CHANNELS = { mono: 1, 'left-only': 2 } as const;
 
@@ -53,13 +51,3 @@ export const tone = (
     );
   return bytes;
 };
-
-/** The tone written to a temp file for the scope's life: its path. */
-export const toneFile = (seconds: number, amplitude: number, layout: ToneLayout = MONO_48K) =>
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-tone-' });
-    const wav = (yield* Path.Path).join(dir, 'tone.wav');
-    yield* fs.writeFile(wav, tone(seconds, amplitude, layout));
-    return wav;
-  });

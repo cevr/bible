@@ -6,13 +6,12 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { Deferred, Effect, FileSystem, Option, Schema } from 'effect';
-import { type Page, type Route, chromium } from 'playwright-core';
+import type { Browser, BrowserContextOptions, Page, Route } from 'playwright-core';
 import { Refusal, statusOf } from '../../core/api.ts';
 import { solidPlugin } from '../../tools/solid-plugin.ts';
+import { ORIGIN, type Tone, micBrowser, sharedBrowser } from './browsers.ts';
 import { PROBE } from './probe-film.ts';
 
-/** The fake origin the page is served at. */
-const ORIGIN = 'http://lab.test';
 const API = `/lab/${PROBE}`;
 
 /** A JSON value, as the fake server answers and the page posts. */
@@ -145,8 +144,13 @@ const defaults: ReadonlyArray<FakeRoute> = [
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
 ];
 
-/** A page's script (`entry`, beside this file), bundled for the browser with Solid's compiler. */
-const bundleOf = (entry: string) =>
+/**
+ * A page's script (`entry`, beside this file), bundled for the browser with
+ * Solid's compiler: once per test file, however many cases open the page.
+ */
+export const bundleOf = (entry: string) => Effect.runSync(Effect.cached(bundled(entry)));
+
+const bundled = (entry: string) =>
   Effect.promise(() =>
     Bun.build({
       entrypoints: [`${import.meta.dir}/${entry}`],
@@ -166,9 +170,13 @@ const bundleOf = (entry: string) =>
 /** The lab page's script. */
 const bundle = bundleOf('lab-page.ts');
 
-const css = FileSystem.FileSystem.use((fs) =>
-  fs.readFileString(`${import.meta.dir}/../../player/player.css`),
-).pipe(Effect.orDie, Effect.provide(BunServices.layer));
+const css = Effect.runSync(
+  Effect.cached(
+    FileSystem.FileSystem.use((fs) =>
+      fs.readFileString(`${import.meta.dir}/../../player/player.css`),
+    ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
+  ),
+);
 
 /** The lab page as `lab.html` has it, with the player's styles inline. */
 const page = (style: string) =>
@@ -208,6 +216,20 @@ const answer = (r: Route, found: Answer) => {
 };
 
 /**
+ * `canvas.toBlob` encoding at once, from `toDataURL`: the same image in the
+ * same type. Chromium encodes a toBlob in the renderer's idle time and, when
+ * a page animating on a loaded machine leaves none, only after its 5 s
+ * fallback, so a note's still took 1 s or 7 s by chance. Answered after the
+ * call, as the real one is.
+ */
+const TO_BLOB_AT_ONCE = `HTMLCanvasElement.prototype.toBlob = function (done, type, quality) {
+  const url = this.toDataURL(type, quality);
+  const bytes = Uint8Array.from(atob(url.slice(url.indexOf(',') + 1)), (c) => c.charCodeAt(0));
+  const blob = new Blob([bytes], { type: url.slice(5, url.indexOf(';')) });
+  queueMicrotask(() => done(blob));
+};`;
+
+/**
  * The lab open in a fresh page: the page, what it asked of the API, and any
  * page errors, Solid's reactivity diagnostics among them (a `[STRICT_…]`
  * warning is a read or a write the page does not mean).
@@ -227,31 +249,25 @@ const collectErrors = (tab: Page, errors: Array<string>) => {
 };
 
 /**
- * A microphone for the page: the browser's fake device playing `wav`, and
+ * A microphone for the page: the browser's fake device playing `tone`, and
  * the permissions the page has (`['microphone']`, or none to be refused).
- * The full Chromium runs it (the headless shell has no getUserMedia), and
- * the fake origin counts as secure, as localhost does.
  */
 interface FakeMic {
-  readonly wav: string;
+  readonly tone: Tone;
   readonly permissions: ReadonlyArray<string>;
 }
 
-const micLaunch = (mic: FakeMic) => ({
-  channel: 'chromium',
-  args: [
-    '--disable-accelerated-2d-canvas',
-    '--use-fake-device-for-media-stream',
-    `--use-file-for-fake-audio-capture=${mic.wav}`,
-    `--unsafely-treat-insecure-origin-as-secure=${ORIGIN}`,
-    '--autoplay-policy=no-user-gesture-required',
-  ],
-});
+/** A fresh tab in `browser`: its own context, closed with the scope. */
+const tabIn = (browser: Browser, options: BrowserContextOptions) =>
+  Effect.acquireRelease(
+    Effect.promise(() => browser.newContext(options)),
+    (context) => Effect.promise(() => context.close()),
+  ).pipe(Effect.flatMap((context) => Effect.promise(() => context.newPage())));
 
 /**
  * Open the lab on the probe film at `hash` (`#T`, `&sel=…` in `query`), with
  * `routes` answering the API before the defaults, and `mic` as its
- * microphone when given. The browser closes with the scope.
+ * microphone when given. The tab closes with the scope.
  */
 export const openLab = Effect.fn('lab.fixture.open')(function* (
   routes: ReadonlyArray<FakeRoute> = [],
@@ -259,27 +275,19 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
 ) {
   const [script, style] = yield* Effect.all([bundle, css], { concurrency: 2 });
   const mic = Option.fromUndefinedOr(at.mic);
-  const browser = yield* Effect.acquireRelease(
-    Effect.promise(() =>
-      chromium.launch(
-        Option.getOrElse(Option.map(mic, micLaunch), () => ({
-          args: ['--disable-accelerated-2d-canvas'],
-        })),
+  const browser = yield* Option.match(mic, {
+    onNone: () => sharedBrowser,
+    onSome: (m) => micBrowser(m.tone),
+  });
+  const tab = yield* tabIn(browser, {
+    viewport: { width: 1400, height: 900 },
+    permissions: [
+      ...Option.getOrElse(
+        Option.map(mic, (m) => m.permissions),
+        () => [],
       ),
-    ),
-    (b) => Effect.promise(() => b.close()),
-  );
-  const tab = yield* Effect.promise(() =>
-    browser.newPage({
-      viewport: { width: 1400, height: 900 },
-      permissions: [
-        ...Option.getOrElse(
-          Option.map(mic, (m) => m.permissions),
-          () => [],
-        ),
-      ],
-    }),
-  );
+    ],
+  });
   const asked: Array<Asked> = [];
   const errors: Array<string> = [];
   collectErrors(tab, errors);
@@ -309,6 +317,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   // `page.clock.runFor` rather than waiting out a count-in, a retry or a
   // loop's playback. Audio still runs on its own, real, clock.
   yield* Effect.promise(() => tab.clock.install());
+  yield* Effect.promise(() => tab.addInitScript(TO_BLOB_AT_ONCE));
   yield* Effect.promise(() =>
     tab.goto(`${ORIGIN}/lab?film=${PROBE}${at.query ?? ''}${at.hash ?? ''}`),
   );
@@ -332,25 +341,16 @@ interface ReviewAt {
  * Open the review page (`fixtures/review-page.ts`, the real `mountReview`)
  * at `search`, with `routes` answering its requests by their whole path
  * (`/review/index`, `/review/files/…`): what none answers is a 404. The
- * browser plays media without a gesture, its clock is the test's, and it
- * closes with the scope.
+ * browser plays media without a gesture, its clock is the test's, and the
+ * tab closes with the scope.
  */
 export const openReview = Effect.fn('lab.fixture.review')(function* (
   routes: ReadonlyArray<FakeRoute>,
   at: ReviewAt = {},
 ) {
   const script = yield* reviewBundle;
-  const browser = yield* Effect.acquireRelease(
-    Effect.promise(() =>
-      chromium.launch({
-        args: ['--disable-accelerated-2d-canvas', '--autoplay-policy=no-user-gesture-required'],
-      }),
-    ),
-    (b) => Effect.promise(() => b.close()),
-  );
-  const tab = yield* Effect.promise(() =>
-    browser.newPage({ viewport: at.viewport ?? { width: 1400, height: 900 } }),
-  );
+  const browser = yield* sharedBrowser;
+  const tab = yield* tabIn(browser, { viewport: at.viewport ?? { width: 1400, height: 900 } });
   const asked: Array<Asked> = [];
   const errors: Array<string> = [];
   collectErrors(tab, errors);

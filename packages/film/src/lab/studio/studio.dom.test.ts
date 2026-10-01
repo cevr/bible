@@ -37,7 +37,6 @@ import {
   textsAre,
   until,
 } from '../fixtures/settled.ts';
-import { toneFile } from '../fixtures/tone.ts';
 import { COUNT_IN } from './machine.ts';
 
 const beat = (id: string, state: string, parts: Json, extra: Record<string, Json> = {}): Json => ({
@@ -177,8 +176,10 @@ const wavFormat = (base64: string) =>
 
 const withMic = (amplitude: number, permissions: ReadonlyArray<string>) =>
   Effect.gen(function* () {
-    const wav = yield* toneFile(4, amplitude);
-    return yield* openLab(studioRoutes, { hash: '#1', mic: { wav, permissions } });
+    return yield* openLab(studioRoutes, {
+      hash: '#1',
+      mic: { tone: { seconds: 4, amplitude }, permissions },
+    });
   });
 
 /** Wait until `#T` holds `t` film seconds. */
@@ -345,7 +346,7 @@ describe('the studio', () => {
         Effect.gen(function* () {
           const { page } = yield* openLab(studioRoutes, {
             hash: '#1',
-            mic: { wav: yield* toneFile(4, 0.5), permissions: ['microphone'] },
+            mic: { tone: { seconds: 4, amplitude: 0.5 }, permissions: ['microphone'] },
           });
           yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
           yield* focusStudio(page);

@@ -881,7 +881,13 @@ component matches a state's tag, and a renamed state touches only its
 module. The browser tests (`lab/**/*.dom.test.ts`) open the real
 page over a probe film in headless Chromium with the lab API faked
 (`lab/fixtures/harness.ts`) and the page's clock the test's: a count-in, a
-retry or a loop's playback is moved on with `page.clock`, not waited out.
+retry or a loop's playback is moved on with `page.clock`, not waited out,
+and `canvas.toBlob` encodes at once (Chromium's waits for idle time a busy
+page may not leave, up to 5 s). A test process launches one Chromium per way of launching it
+(`lab/fixtures/browsers.ts`: headless, or the full one with a fake
+microphone per tone) and each case opens its own context in it, so a file's
+cases run at once (`concurrentTestGlob` in `bunfig.toml`) and the page's
+script is bundled once per process.
 
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
@@ -1641,11 +1647,14 @@ today and why, and how it got here lives in the ledger and `git log`. It
 refuses the forms history takes on its face: a loop pass by number, a batch
 id, a commit hash, and "used to" said of what the code did (not "is used
 to"). History told in other words is the sweep's to find.
-The package's tests run with `bun test --timeout 20000` (its `test` script):
-the lab's browser tests open a page, bundle the lab and draw the probe film
-before they assert, which took 3–4.5 s at a load average of 50 beside
-sibling renders, where bun's 5 s default failed them in the gate. A test that
-hangs still fails, at 20 s.
+The package's tests run with `bun test --parallel --no-isolate --timeout
+20000` (its `test` script): one worker per core, each keeping its module
+registry and its Chromium across the files it runs, so the module graph
+loads once per worker rather than once per file. A test file therefore
+leaves no global behind it (a stand-in it sets, it puts back). The lab's
+browser tests open a page and draw the probe film before they assert, which
+took 3–4.5 s at a load average of 50 beside sibling renders, where bun's 5 s
+default failed them in the gate. A test that hangs still fails, at 20 s.
 
 ## Knobs
 

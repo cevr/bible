@@ -19,6 +19,7 @@ import {
 } from 'effect';
 import { TestClock } from 'effect/testing';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { collect } from './process.ts';
 import { ContentStore, type Manifest } from './content-store.ts';
 import { FilmName, FilmRepo } from './film-repo.ts';
 import { SceneSources } from './scene-sources.ts';
@@ -143,6 +144,21 @@ const oxfmtCheck = Effect.fn('test.oxfmtCheck')(function* () {
 });
 
 describe('scene writer', () => {
+  it.effect(
+    "formats with the repo's oxfmt, from the film's folder: bunx fetches none",
+    () =>
+      Effect.gen(function* () {
+        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+        const dir = (yield* Path.Path).dirname(yield* HandFile);
+        const ran = yield* collect(
+          spawner,
+          ChildProcess.make('bunx', ['oxfmt', '--version'], { cwd: dir }),
+        );
+        expect([ran.exitCode, ran.stderr]).toEqual([0, '']);
+      }).pipe(Effect.provide(fixture)),
+    SPAWNS_MS,
+  );
+
   it.effect(
     'changes one offset: the file differs by that value only, as oxfmt leaves it',
     () =>

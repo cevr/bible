@@ -51,31 +51,38 @@ const colors = ['#c0392b', '#2c3e50', '#f4d03f', '#7fb3d5', '#101010'];
 const cases = (group: typeof flat) =>
   group.flatMap(([name, m]) => colors.map((color): FaceCase => ({ name, m, color })));
 
-/** The fixture page's script, bundled for the browser. */
-const fixture = Effect.promise(() =>
-  Bun.build({
-    entrypoints: [`${import.meta.dir}/fixtures/face-pixels.ts`],
-    target: 'browser',
-    format: 'iife',
-  }),
-).pipe(
-  Effect.flatMap((built) => {
-    const out = built.outputs[0];
-    return out === undefined ? Effect.succeed('') : Effect.promise(() => out.text());
-  }),
-);
+/** The fixture page's script, bundled for the browser once for the file. */
+const fixture = Effect.cached(
+  Effect.promise(() =>
+    Bun.build({
+      entrypoints: [`${import.meta.dir}/fixtures/face-pixels.ts`],
+      target: 'browser',
+      format: 'iife',
+    }),
+  ).pipe(
+    Effect.flatMap((built) => {
+      const out = built.outputs[0];
+      return out === undefined ? Effect.succeed('') : Effect.promise(() => out.text());
+    }),
+  ),
+).pipe(Effect.runSync);
 
-/** Headless Chromium with the renderer's software 2D canvas (`tools/browser.ts`), closed with the scope. */
-const browser = Effect.acquireRelease(
+/**
+ * Headless Chromium with the renderer's software 2D canvas (`tools/browser.ts`),
+ * launched once for the file's cases; Playwright closes it as the process ends.
+ */
+const browser = Effect.cached(
   Effect.promise(() => chromium.launch({ args: ['--disable-accelerated-2d-canvas'] })),
-  (b) => Effect.promise(() => b.close()),
-);
+).pipe(Effect.runSync);
 
 /** Each case drawn both ways in one page. */
 const deltas = (faces: ReadonlyArray<FaceCase>) =>
   Effect.gen(function* () {
     const script = yield* fixture;
-    const page = yield* Effect.flatMap(browser, (b) => Effect.promise(() => b.newPage()));
+    const page = yield* Effect.acquireRelease(
+      Effect.flatMap(browser, (b) => Effect.promise(() => b.newPage())),
+      (p) => Effect.promise(() => p.close()),
+    );
     yield* Effect.promise(() => page.setContent('<!doctype html><html><body></body></html>'));
     yield* Effect.promise(() => page.addScriptTag({ content: script }));
     return yield* Effect.promise((): Promise<ReadonlyArray<FaceDelta>> =>
