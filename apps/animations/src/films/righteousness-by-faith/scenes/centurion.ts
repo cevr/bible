@@ -20,7 +20,6 @@ import {
   pushOn,
   shotPath,
   sub,
-  type Posed,
   ground,
   glow,
   rounded,
@@ -37,7 +36,7 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
-  type IconCount,
+  iconScratch,
   christ,
   handOf,
   icons,
@@ -184,9 +183,7 @@ const timeline = {
 type CenturionFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 
 /** The three icons' light, faith's set each frame (a scratch tuple, so the draw allocates none). */
-const LIT: [number, number, number] = [0, 0, 0];
-const LEAD: [number, number, number] = [0, 0, 0];
-const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
+const { lit: LIT, lead: LEAD, count: COUNT } = iconScratch();
 /** Each icon's size as the row settles: faith from the word, the other two popping in. */
 const SHOWN: [number, number, number] = [1, 0, 0];
 

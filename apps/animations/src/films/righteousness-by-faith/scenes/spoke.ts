@@ -22,7 +22,6 @@ import {
   rectShape,
   shotPath,
   sub,
-  type Posed,
   glow,
   rounded,
   sky,
@@ -36,7 +35,7 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
-  type IconCount,
+  iconScratch,
   icons,
   person,
   piece,
@@ -56,9 +55,7 @@ const FAITH: Camera = {
 const SHRUG_FAR: GestureAt = { to: [-78, -112], reach: 0, grip: 'palm' };
 const SHRUG_NEAR: GestureAt = { to: [78, -112], reach: 0, grip: 'palm' };
 /** The row's glow and which icon leads, rewritten every frame. */
-const LIT: [number, number, number] = [1, 1, 1];
-const LEAD: [number, number, number] = [0, 0, 0];
-const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
+const { lit: LIT, lead: LEAD, count: COUNT } = iconScratch([1, 1, 1]);
 /** The gold that falls from the hung word to the tree: the word's light, clear at the ground. */
 const BEAM = [
   [0, C.glow],

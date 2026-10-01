@@ -41,7 +41,7 @@ import {
 } from '@bible/film/canvas';
 import { clamp, lerp, gait } from '@bible/film/core';
 import { type House, WENT, house } from '../gospel.ts';
-import { C, type Hands, type IconCount, ICON_KEPT, ICON_LEAD, ICON_X, type Three } from '../kit.ts';
+import { C, type Hands, ICON_KEPT, ICON_LEAD, ICON_X, type Three, iconScratch } from '../kit.ts';
 import { GIFTS_AT, GIFTS_S, TAKEN, giftHand, giftRow, message } from './message.ts';
 
 const timeline = {
@@ -137,9 +137,7 @@ export const BAND_S = 0.32;
 const BAND_ABOVE = -120;
 
 /** The row's glow and lead, rewritten every frame. */
-const LIT: [number, number, number] = [0, 0, 0];
-const LEAD: [number, number, number] = [0, 0, 0];
-const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
+const { lit: LIT, lead: LEAD, count: COUNT } = iconScratch();
 const ALL: readonly [number, number, number] = [1, 1, 1];
 
 /**
