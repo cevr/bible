@@ -141,7 +141,7 @@ dist
 # Turborepo
 .turbo
 
-# Browser and desktop end-to-end test artifacts
+# Browser end-to-end test artifacts
 **/playwright-report/
 **/test-results/
 

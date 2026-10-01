@@ -76,13 +76,7 @@
   // the fixed-wait rule and effect's other test-aware rules read as tests.
   "settings": {
     "effect": {
-      "testFiles": [
-        "**/fixtures/**",
-        "**/test/**",
-        "**/tests/**",
-        "**/e2e/**",
-        "packages/test-utils/**"
-      ]
+      "testFiles": ["**/fixtures/**", "**/test/**", "**/tests/**", "**/e2e/**"]
     }
   },
   "ignorePatterns": [
@@ -149,26 +143,10 @@
       }
     },
     {
-      "files": ["**/packages/web/src/**"],
-      "rules": {
-        "import/no-self-import": "off",
-        "import/namespace": "off"
-      }
-    },
-    {
       "files": ["**/packages/core/src/egw/build-defines.ts"],
       "rules": {
         "effect/noGlobals": "off",
         "effect/noTernary": "off"
-      }
-    },
-    {
-      "files": ["**/packages/web/src/server.ts"],
-      "rules": {
-        "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off",
-        "effect/noNodeBuiltinImport": "off",
-        "effect/noTryCatch": "off"
       }
     },
     {
@@ -442,81 +420,6 @@
       }
     },
     {
-      "files": ["**/apps/web/src/workers/sqlite-host.ts"],
-      "rules": {
-        "effect/noAsyncFunction": "off"
-      }
-    },
-    {
-      "files": ["**/apps/web/src/workers/database-file-downloader.ts"],
-      "rules": {
-        "effect/noGlobals": "off"
-      }
-    },
-    {
-      "files": ["**/apps/web/src/workers/db-worker-host.ts"],
-      "rules": {
-        "effect/noGlobals": "off"
-      }
-    },
-    {
-      "files": ["**/apps/web/src/workers/database-worker.ts"],
-      "rules": {
-        "effect/noGlobals": "off"
-      }
-    },
-    {
-      "files": ["**/apps/web/e2e/smoke.spec.ts"],
-      "rules": {
-        "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off"
-      }
-    },
-    {
-      "files": ["**/apps/web/e2e/playwright.config.ts", "**/apps/desktop/e2e/playwright.config.ts"],
-      "rules": {
-        "effect/noGlobals": "off"
-      }
-    },
-    {
-      "files": ["**/apps/desktop/e2e/smoke.spec.ts"],
-      "rules": {
-        "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off",
-        "effect/noNodeBuiltinImport": "off",
-        "effect/noTryCatch": "off"
-      }
-    },
-    {
-      "files": ["**/apps/desktop/electron/main.ts"],
-      "rules": {
-        "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off",
-        "effect/noNodeBuiltinImport": "off"
-      }
-    },
-    {
-      "files": ["**/apps/web/server/main.ts"],
-      "rules": {
-        "effect/noGlobals": "off",
-        "effect/noNodeBuiltinImport": "off"
-      }
-    },
-    {
-      "files": ["**/apps/desktop/scripts/vite-plugin-electron-dev.ts"],
-      "rules": {
-        "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off",
-        "effect/noNodeBuiltinImport": "off"
-      }
-    },
-    {
-      "files": ["**/apps/desktop/electron/user-state-generation-host.ts"],
-      "rules": {
-        "effect/noNodeBuiltinImport": "off"
-      }
-    },
-    {
       "files": ["**/tests/**", "**/test/**", "**/*.test.ts", "**/*.test.tsx"],
       "rules": {
         "typescript/no-non-null-assertion": "off",
@@ -536,8 +439,6 @@
         "**/packages/cli/src/instrumentation/**",
         "**/packages/cli/src/services/logger.ts",
         "**/packages/cli/src/lib/paths.ts",
-        "**/apps/web/server/main.ts",
-        "**/apps/web/e2e/**",
         "**/packages/core/src/egw/auth.ts",
         "**/packages/core/src/egw/client.ts",
         "**/packages/core/src/egw-db/book-database.ts",
@@ -555,13 +456,10 @@
         "**/packages/core/src/bible-db/bible-database.ts",
         "**/packages/core/src/hymnal/**",
         "**/packages/core/src/sync/**",
-        "**/apps/web/src/workers/**",
-        "**/packages/test-utils/**",
         "**/packages/cli/src/lib/**",
         "**/packages/cli/src/data/**",
         "**/packages/cli/src/services/**",
-        "**/packages/cli/src/commands/**",
-        "**/apps/desktop/electron/**"
+        "**/packages/cli/src/commands/**"
       ],
       "rules": {
         "typescript/no-unsafe-type-assertion": "off",

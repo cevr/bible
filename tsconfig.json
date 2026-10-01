@@ -135,14 +135,10 @@
               "**/scripts/**/*.ts",
               "**/scripts/**/*.tsx",
               "**/packages/core/src/sync/**/*.ts",
-              "**/apps/web/**/*.ts",
-              "**/apps/web/**/*.tsx",
               "**/packages/cli/src/instrumentation/**/*.ts",
               "**/packages/cli/src/main.ts",
               "**/packages/cli/src/tui/**/*.tsx",
-              "**/packages/cli/src/tui/**/*.ts",
-              "**/apps/desktop/**/*.ts",
-              "**/apps/desktop/**/*.tsx"
+              "**/packages/cli/src/tui/**/*.ts"
             ],
             "options": {
               "diagnosticSeverity": {
@@ -154,16 +150,10 @@
       }
     ],
     "paths": {
-      "@bible/api": ["./packages/api/src/index.ts"],
-      "@bible/api/*": ["./packages/api/src/*"],
       "@bible/atom-solid": ["./packages/atom-solid/src/index.ts"],
       "@bible/atom-solid/*": ["./packages/atom-solid/src/*"],
       "@bible/core": ["./packages/core/src/index.ts"],
-      "@bible/core/*": ["./packages/core/src/*"],
-      "@bible/desktop": ["./apps/desktop/src/index.ts"],
-      "@bible/desktop/*": ["./apps/desktop/src/*"],
-      "@bible/test-utils": ["./packages/test-utils/src/index.ts"],
-      "@bible/test-utils/*": ["./packages/test-utils/src/*"]
+      "@bible/core/*": ["./packages/core/src/*"]
     }
   },
   "include": [],
