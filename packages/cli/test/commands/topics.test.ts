@@ -1,17 +1,15 @@
-/** §10 M9's CLI leg of the host-parity rule: `bible topics status --json` and
- *  `bible topics update --json` emit **byte-identical** JSON to what the RPC
- *  handler returns for the same corpus.
+/** `bible topics status --json` and `bible topics update --json` print the
+ *  `ContentUpdate` service's own result through the core codecs.
  *
- *  `packages/core/src/content-update/*.test.ts` already proves the policy, and
- *  the two round-trip suites prove it survives each host's transport. What none
- *  of them can see is the last hop: whether the *command* still runs the shared
+ *  `packages/core/src/content-update/*.test.ts` already proves the policy. What
+ *  it cannot see is the last hop: whether the *command* still runs the shared
  *  codec on the way to stdout. A hand-written projection reappearing in the
  *  printer would leave every other suite green and break every script that pipes
  *  `--json`.
  *
  *  So these tests run the real command — argument parsing, the layer seam, the
- *  encoder, `Console.log` — and compare its captured stdout to the bytes the RPC
- *  client returns, over one `ContentUpdate` instance shared by both seams.
+ *  encoder, `Console.log` — and compare its captured stdout to the bytes the
+ *  same `ContentUpdate` instance answers with when asked directly.
  */
 
 import {
@@ -38,11 +36,8 @@ import {
 } from '@bible/core/corpus-supply';
 import { layerNativeFileArtifacts } from '@bible/core/corpus-supply/node';
 import { BunFileSystem } from '@effect/platform-bun';
-import { BibleProcedureGroup, BibleProcedureHandlers } from '@bible/core/procedure';
-import { procedureDependencies } from '@bible/core/procedure/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Schema } from 'effect';
-import { RpcTest } from 'effect/rpc';
 
 import { topicsStatus, topicsUpdate } from '../../src/commands/topics.js';
 import { ContentLayer } from '../../src/commands/topics-layer.js';
@@ -58,23 +53,18 @@ const fixtureContent: Layer.Layer<ContentUpdate> = refusingContentUpdate;
 const encodeStatus = Schema.encodeEffect(Schema.fromJsonString(ContentStatusJson, { space: 2 }));
 const encodeUpdate = Schema.encodeEffect(Schema.fromJsonString(ContentUpdateJson, { space: 2 }));
 
-/** The handler graph both RPC assertions run against — the production handlers
- *  over the same one `ContentUpdate` the command resolves. */
-const handlers = BibleProcedureHandlers.pipe(
-  Layer.provide(procedureDependencies({ content: fixtureContent })),
+/** `status`, asked of the fixture service and encoded the way the command
+ *  encodes it. */
+const serviceStatusJson = Effect.flatMap(ContentUpdate, (content) => content.status('topics')).pipe(
+  Effect.flatMap(encodeStatus),
+  Effect.provide(fixtureContent),
 );
 
-/** `v1.content.status`, encoded the way the command encodes it. */
-const rpcStatusJson = Effect.gen(function* () {
-  const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-  return yield* encodeStatus(yield* client['v1.content.status']({ corpus: 'topics' }));
-}).pipe(Effect.provide(handlers));
-
-/** `v1.content.update`, encoded the way the command encodes it. */
-const rpcUpdateJson = Effect.gen(function* () {
-  const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-  return yield* encodeUpdate(yield* client['v1.content.update']({ corpus: 'topics' }));
-}).pipe(Effect.provide(handlers));
+/** `update`, asked the same way. */
+const serviceUpdateJson = Effect.flatMap(ContentUpdate, (content) => content.update('topics')).pipe(
+  Effect.flatMap(encodeUpdate),
+  Effect.provide(fixtureContent),
+);
 
 /** The bytes an offered release serves, and their true digest. A stand-in for
  *  a `topics.db`: what is under test is whether `status` reaches for the
@@ -163,14 +153,14 @@ describe('bible topics', () => {
    *  providing it to all of them costs nothing. */
   const hosted = it.scopedLive.layer(BunFileSystem.layer);
 
-  it.scopedLive('status --json is byte-identical to v1.content.status', () =>
+  it.scopedLive('status --json is byte-identical to the service status', () =>
     Effect.gen(function* () {
       const cli = yield* runCli(topicsStatus, ['--json'], {}).pipe(
         Effect.provideService(ContentLayer, fixtureContent),
       );
       expect(cli.success).toBe(true);
 
-      expect(cli.stdout).toBe(yield* rpcStatusJson);
+      expect(cli.stdout).toBe(yield* serviceStatusJson);
       // Not vacuous: the fixture manifest names a schema major above this
       // build's, so both sides are carrying a real refusal rather than two
       // empty envelopes that happen to match.
@@ -179,14 +169,14 @@ describe('bible topics', () => {
     }),
   );
 
-  it.scopedLive('update --json is byte-identical to v1.content.update', () =>
+  it.scopedLive('update --json is byte-identical to the service update', () =>
     Effect.gen(function* () {
       const cli = yield* runCli(topicsUpdate, ['--json'], {}).pipe(
         Effect.provideService(ContentLayer, fixtureContent),
       );
       expect(cli.success).toBe(true);
 
-      expect(cli.stdout).toBe(yield* rpcUpdateJson);
+      expect(cli.stdout).toBe(yield* serviceUpdateJson);
     }),
   );
 

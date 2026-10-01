@@ -3,7 +3,7 @@
  *  A cold `bible egw search` pays the whole §9 stack per invocation: open the
  *  writings database, load the ~1.2 GB embedding model, parse the 264 MB
  *  vector index — ~10 seconds before the first answer. The daemon pays that
- *  once and then answers `v1.search.query` over a unix socket in the time the
+ *  once and then answers `search.query` over a unix socket in the time the
  *  query itself costs (~150 ms scan + embed).
  *
  *  **Lifecycle.** One daemon per user, keyed by the socket path. On start it
@@ -21,7 +21,6 @@
  */
 
 import { SearchQuery, SearchService } from '@bible/core/search';
-import { NO_FILTER } from '@bible/core/writings';
 import { BunServices, BunSocketServer } from '@effect/platform-bun';
 import {
   Clock,
@@ -95,23 +94,10 @@ export const runSearchDaemon = (options: {
       Effect.gen(function* () {
         const search = yield* SearchService;
         return {
-          'v1.search.query': (input) =>
-            touch.pipe(
-              Effect.andThen(
-                search.query(
-                  SearchQuery.make({
-                    text: input.text,
-                    scope: Option.fromNullishOr(input.scope),
-                    bookCode: Option.fromNullishOr(input.bookCode),
-                    limit: Option.fromNullishOr(input.limit),
-                    // Forwarded, not decided here: the daemon is a transport
-                    // for the same service the CLI calls in-process, so it must
-                    // not narrow a query differently than the direct path.
-                    filter: { ...NO_FILTER, excludeApparatus: input.excludeApparatus ?? false },
-                  }),
-                ),
-              ),
-            ),
+          // Forwarded, not decided here: the daemon is a transport for the
+          // same service the CLI calls in-process, so it answers the query it
+          // was sent, unchanged.
+          'search.query': (query) => touch.pipe(Effect.andThen(search.query(query))),
           'daemon.status': () =>
             touch.pipe(
               Effect.as(

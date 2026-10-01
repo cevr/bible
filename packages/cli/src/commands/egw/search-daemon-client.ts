@@ -8,14 +8,19 @@
  *  this file may surface as an error — only as the slower path.
  */
 
-import { MODEL_FINGERPRINT, SearchService, type SearchQuery } from '@bible/core/search';
+import { SearchService, type SearchQuery } from '@bible/core/search';
 import { BunSocket } from '@effect/platform-bun';
-import { Effect, Layer, Option, Schema } from 'effect';
+import type { Option } from 'effect';
+import { Effect, Layer, Schema } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { RpcClient, RpcSerialization } from 'effect/rpc';
 
 import { selfInvocation } from '../../lib/paths.js';
-import { SearchDaemonGroup, type SearchDaemonStatus } from './search-daemon-protocol.js';
+import {
+  DAEMON_FINGERPRINT,
+  SearchDaemonGroup,
+  type SearchDaemonStatus,
+} from './search-daemon-protocol.js';
 
 /** Client protocol stack for one socket path. Fresh per use — a probe and the
  *  long-lived facade must not share a connection, because the probe's scope
@@ -75,20 +80,7 @@ export const searchDaemonClientLayer = (socketPath: string): Layer.Layer<SearchS
     Effect.gen(function* () {
       const client = yield* RpcClient.make(SearchDaemonGroup);
       return SearchService.of({
-        query: (input: SearchQuery) =>
-          client['v1.search.query']({
-            text: input.text,
-            scope: Option.getOrUndefined(input.scope),
-            bookCode: Option.getOrUndefined(input.bookCode),
-            limit: Option.getOrUndefined(input.limit),
-            // Every narrowing the caller asked for has to cross the socket, or
-            // the daemon answers a different question than the in-process path
-            // would have — and which one a reader gets depends only on whether
-            // a daemon happens to be running. `filter` is optional on
-            // `SearchQuery` and defaults to `NO_FILTER`, so this reads the one
-            // axis the wire carries rather than assuming the field is present.
-            excludeApparatus: input.filter?.excludeApparatus ?? false,
-          }).pipe(Effect.orDie),
+        query: (query: SearchQuery) => client['search.query'](query).pipe(Effect.orDie),
       });
     }),
   ).pipe(
@@ -135,4 +127,4 @@ export const spawnSearchDaemon: Effect.Effect<
 
 /** Re-exported so the one fingerprint the client gates on is visibly the one
  *  the daemon reports. */
-export const CLIENT_FINGERPRINT = MODEL_FINGERPRINT;
+export const CLIENT_FINGERPRINT = DAEMON_FINGERPRINT;
