@@ -16,8 +16,9 @@
 //       scenes/<id>/<variant>.mp4, all through one probe and one pool of pages
 //       (`Renderer.session`); one stale by its sound alone is re-muxed
 //   film project approve <film> (--scene id,id | --act name | --all) [--variant v] [--json]
-//       approve those scenes' renders as they are stamped, an act's current
-//       scenes, or every current scene
+//       approve those scenes' renders, each current (a stale or missing one
+//       named is refused, and nothing approved), an act's current scenes, or
+//       every current scene
 //   film project withdraw <film> (--scene id,id | --act name | --all) [--variant v] [--json]
 //       withdraw every approval of those scenes' renders, whatever version
 //   film project comment <film> <text> [--scene id | --act name] [--variant v] [--json]
@@ -44,7 +45,6 @@ import {
   type SceneKey,
   type Stamp,
   type Topic,
-  approve,
   approveCurrent,
   comment,
   nextCommentId,
@@ -52,11 +52,15 @@ import {
   projectOf,
   renderIn,
   renderNeed,
+  renderState,
   sceneSlot,
   subjectOf,
   withdraw,
 } from '../core/catalogue.ts';
+import { approvalRefused } from '../core/choice.ts';
 import { UnknownAct } from '../core/errors.ts';
+import { pointIdOf } from '../core/point.ts';
+import { VerbRefused } from '../core/refusals.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
 import { type Placed, everyTakeRecorded } from '../core/layout.ts';
 import { RenderCatalogue, renderRecord } from './catalogue.ts';
@@ -463,21 +467,30 @@ const approveScenes = Command.make(
         const done = approveCurrent(catalogue, scenes, tree.sound, input.variant, at);
         return [done.approved, done.catalogue] as const;
       });
+    /** `scene`'s render, when it is current; else the refusal naming why and how to make it so. */
+    const approvable = (catalogue: Catalogue, { scene, key }: SceneKey) =>
+      Effect.gen(function* () {
+        const render = yield* renderOf(catalogue, input.film, scene, input.variant);
+        const refused = approvalRefused(
+          'render',
+          renderState(Option.some(render), { key, sound: tree.sound }),
+        );
+        if (Option.isNone(refused)) return;
+        return yield* VerbRefused.make({
+          point: pointIdOf({ _tag: 'Render', address: sceneAddress(scene) }),
+          variant: input.variant,
+          verb: 'approve',
+          reason: `${refused.value} (film project render ${input.film} --scene ${scene})`,
+        });
+      });
+    /** The scenes `ids` approved, each current, or none when any is not. */
     const named = (ids: ReadonlyArray<string>) =>
       Effect.gen(function* () {
         yield* scenesNamed(loaded, placed, Option.some(ids));
         const catalogue = yield* catalogues.read(loaded.paths);
-        const renders = yield* Effect.forEach(ids, (id) =>
-          renderOf(catalogue, input.film, id, input.variant),
-        );
-        return yield* catalogues.update(
-          loaded.paths,
-          (now) =>
-            [
-              ids,
-              renders.reduce((cat, render) => approve(cat, subjectOf(render), at), now),
-            ] as const,
-        );
+        const scenes = tree.scenes.filter((s) => ids.includes(s.scene));
+        yield* Effect.forEach(scenes, (scene) => approvable(catalogue, scene));
+        return yield* current(scenes);
       });
     const inAct = (name: string) =>
       Effect.flatMap(actNamed(tree, name), (act) =>
@@ -496,7 +509,7 @@ const approveScenes = Command.make(
   }, answeringIf),
 ).pipe(
   Command.withDescription(
-    "Approve scenes' renders as they are stamped (--scene id,id), an act's current scenes (--act name), or every scene whose render is current (--all); a new render of a scene makes its approval stale",
+    "Approve scenes' renders, each current (--scene id,id: a stale or missing one is refused, naming why), an act's current scenes (--act name), or every scene whose render is current (--all); a new render of a scene makes its approval stale",
   ),
 );
 

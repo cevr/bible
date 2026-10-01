@@ -19,7 +19,7 @@ import {
 import { type Project, emptyCatalogue, projectOf } from '../core/catalogue.ts';
 import { ChoiceWrite, FilmChoices, SoundCheck, withSay } from '../core/choice.ts';
 import { ReviewDuration, ReviewIndex } from '../core/review.ts';
-import { SceneNotRendered } from '../core/refusals.ts';
+import { SceneNotRendered, VerbRefused } from '../core/refusals.ts';
 import { Choices } from './choices.ts';
 import { FilmFolder } from './film-repo.ts';
 import { reviewHandler, refFromUrl } from './review-http.ts';
@@ -106,6 +106,15 @@ const filmServices = (films: string, PICK = pickIn(films)) =>
       project: (args) =>
         Effect.suspend(() => {
           projectRuns.push(args);
+          if (args.includes('b'))
+            return Effect.fail(
+              VerbRefused.make({
+                point: 'render:scenes:b',
+                variant: 'main',
+                verb: 'approve',
+                reason: 'it is stale: its sources changed since it was made',
+              }),
+            );
           if (args.includes('--scene'))
             return Effect.fail(SceneNotRendered.make({ film: 'f', scene: 'a', variant: 'main' }));
           return Effect.succeed(PROJECT);
@@ -536,7 +545,7 @@ describe("a film's project", () => {
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
-  it.effect("a scene with no render is the run's refusal: 404", () =>
+  it.effect("a scene with no render is the run's refusal: 404; a stale one's is a 409", () =>
     Effect.gen(function* () {
       const refused = yield* ask(
         say('{"address":{"_tag":"Scenes","ids":["a"]},"say":{"_tag":"Approve"}}'),
@@ -546,6 +555,12 @@ describe("a film's project", () => {
         _tag: 'SceneNotRendered',
         scene: 'a',
       });
+      // A stale one is the run's refusal too: only a current render is approved.
+      const stale = yield* ask(
+        say('{"address":{"_tag":"Scenes","ids":["b"]},"say":{"_tag":"Approve"}}'),
+      );
+      expect(stale.status).toBe(409);
+      expect(refusalOf(yield* body(stale))).toMatchObject({ _tag: 'VerbRefused', verb: 'approve' });
       const unknown = yield* ask(get('/review/project/nope'));
       expect(unknown.status).toBe(404);
     }).pipe(Effect.scoped, Effect.provide(fixture)),

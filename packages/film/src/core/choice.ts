@@ -167,6 +167,47 @@ export const subjectAt = (
   variant: { readonly id: string; readonly key: string },
 ): Subject => ({ ...topicAt(address, ref, variant.id), key: variant.key });
 
+/** Why a variant of each kind is stale when nothing more says why, and how to make one current. */
+const STALE = {
+  render: 'it was drawn for an earlier version; render it again, then approve the new render',
+  score: 'it was composed for an earlier plan; compose it again, then approve that',
+  take: 'it was made for an earlier declaration; approve a take made for the one now',
+  voice: 'it was recorded for an earlier line; approve an attempt at the line now',
+  look: 'it is no level the look offers now',
+  level: 'it is no level the film sets now',
+} as const satisfies { readonly [K in ChoiceKind]: string };
+
+/** Why a render stale by `StaleBy` is, and how to make it current. */
+const STALE_BY = {
+  sources: 'its sources changed since it was made; render it again, then approve the new render',
+  sound:
+    "the film's sound changed since it was made; render it again (a re-mux), then approve that",
+} as const satisfies { readonly [S in StaleBy]: string };
+
+/**
+ * Why `variant` of a point of `kind` is no approval's subject, or none when it
+ * is: an approval is of a variant as it is now, so only a current one is
+ * approved. The one rule for every say that approves (the project's scenes,
+ * the choices); the page's disabled button is its face.
+ */
+export const approvalRefused = (
+  kind: ChoiceKind,
+  variant: {
+    readonly state: VariantState;
+    readonly staleBy: Option.Option<StaleBy>;
+  },
+): Option.Option<string> => {
+  if (variant.state === 'current') return Option.none();
+  if (variant.state === 'missing')
+    return Option.some('nothing is made of it yet; make it, then approve it');
+  return Option.some(
+    `it is stale: ${Option.match(variant.staleBy, {
+      onNone: () => STALE[kind],
+      onSome: (by) => STALE_BY[by],
+    })}`,
+  );
+};
+
 /** `draft` as its point, with each variant's approval and comments as `catalogue` records them. */
 export const withSay = (catalogue: Option.Option<Catalogue>, draft: PointDraft): ChoicePoint => {
   const { ref } = draft;

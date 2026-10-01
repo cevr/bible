@@ -53,7 +53,7 @@ bun run render <film> ... --variant <name>     # another render of the same addr
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
 bun run project render <film> [--scene id,id] [--scale 0.33]  # render each scene on its own into out/<film>/scenes/<id>/; a current one is skipped (--force), a stale:sound one re-muxed (nothing drawn)
-bun run project approve <film> --scene id,id | --act name | --all  # approve scenes' renders, an act's current scenes, or every current one; a re-render leaves the approval stale
+bun run project approve <film> --scene id,id | --act name | --all  # approve scenes' renders (a stale or missing one named is refused), an act's current scenes, or every current one; a re-render leaves the approval stale
 bun run project withdraw <film> --scene id,id | --act name | --all  # withdraw those scenes' approvals
 bun run project comment <film> "text" [--scene id | --act name]  # a comment on a scene's render as it is now (or the scene, before its first render), an act, or (neither) the film
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line

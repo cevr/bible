@@ -54,6 +54,7 @@ import {
   type FilmChoices,
   type KnobPost,
   type PickPost,
+  approvalRefused,
   pointNamed,
   subjectAt,
   variantNamed,
@@ -434,6 +435,14 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
             reason: 'it belongs to no film address',
           }),
         );
+        const stale = approvalRefused(point.kind, variant);
+        if (asked.say._tag === 'Approve' && Option.isSome(stale))
+          return yield* VerbRefused.make({
+            point: point.id,
+            variant: variant.id,
+            verb: 'approve',
+            reason: stale.value,
+          });
         const at = yield* Clock.currentTimeMillis;
         const subject = subjectAt(point.ref, address, variant);
         const after = yield* catalogues.update(folder.paths(film), (catalogue) => {
