@@ -7,7 +7,7 @@
 import { Schema } from 'effect';
 import { Line, TakeStaleReason } from './narration.ts';
 import { HeardAs, TakeSource, Timings, Voice, VoiceTiming } from './schema.ts';
-import { Part, SheetBeat } from './sheet.ts';
+import { SheetBeat } from './sheet.ts';
 
 /**
  * The largest body the studio reads, in bytes: 64 MiB, a base64 recording of
@@ -61,11 +61,8 @@ export type StudioReading = typeof StudioReading.Type;
 
 /** One beat as the studio lists it. */
 export const StudioBeat = Schema.Struct({
-  id: Schema.String,
-  /** The name `takes import` reads it under, for a recording made elsewhere. */
-  file: Schema.String,
-  parts: Schema.Array(Part),
-  sources: Schema.Array(Schema.String),
+  /** Its line as the sheet sets it: the file `takes import` reads it under, its parts and sources. */
+  ...SheetBeat.fields,
   /** `recorded`: a person's take, current; `staging`: ElevenLabs'; `stale`: see `staleReason`. */
   state: Schema.Literals(['recorded', 'staging', 'stale']),
   staleReason: Schema.optionalKey(TakeStaleReason),
@@ -139,19 +136,3 @@ export const StudioAttempts = Schema.Struct({
   attempts: Schema.Array(StudioAttempt),
 });
 export type StudioAttempts = typeof StudioAttempts.Type;
-
-/**
- * What the studio answers when it does not keep a take: the failure's tag and
- * message, and for a `TakeMismatch` what was heard and the attempt it saved,
- * which `keep` with `acceptMismatch` makes the take.
- */
-export const StudioRefusal = Schema.Struct({
-  _tag: Schema.String,
-  message: Schema.String,
-  beat: Schema.optionalKey(Schema.String),
-  script: Schema.optionalKey(Schema.String),
-  heard: Schema.optionalKey(Schema.String),
-  wer: Schema.optionalKey(Schema.Finite),
-  attempt: Schema.optionalKey(Schema.String),
-});
-export type StudioRefusal = typeof StudioRefusal.Type;

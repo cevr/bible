@@ -28,10 +28,10 @@ import {
   spawnLoop,
 } from './loop.ts';
 
-export type Rate = LabView['rate'];
-export type OnionView = LabView['onion'];
+type Rate = LabView['rate'];
+type OnionView = LabView['onion'];
 
-export interface MotionState {
+interface MotionState {
   readonly rate: Accessor<Rate>;
   readonly onion: Accessor<OnionView>;
   /** The cue a loop would play: the one selected, if a cue is. */
@@ -40,7 +40,7 @@ export interface MotionState {
   readonly status: Accessor<string>;
 }
 
-export interface MotionActions {
+interface MotionActions {
   /** Mark A, or B, at the frame shown. */
   readonly markA: () => void;
   readonly markB: () => void;
@@ -51,7 +51,7 @@ export interface MotionActions {
   readonly setOnion: (change: Partial<OnionView>) => void;
 }
 
-export interface MotionContextValue {
+interface MotionContextValue {
   readonly state: MotionState;
   readonly actions: MotionActions;
 }

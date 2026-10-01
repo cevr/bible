@@ -5,7 +5,9 @@
 // path to the entry's file. An export nobody reads is deleted from the
 // entry, not kept "in case", and an entry names its exports (`export *`
 // publishes a module whole). The engine's own parts stay exported from their
-// files for the framework and its tests.
+// files for the framework and its tests, and in a swept directory (`SWEPT`)
+// only while another file imports them: a name its own file alone reads is
+// not exported. A directory joins `SWEPT` once its unread exports are gone.
 //
 // The entries guarded, and who uses them:
 //   canvas    films, their kits and tests: the draw kit
@@ -20,10 +22,22 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Array as Arr, Effect, FileSystem, Option, Path } from 'effect';
+import { Array as Arr, Effect, FileSystem, Option, Path, Schema } from 'effect';
 
 /** The tools that use a guarded entry as its users do: the draw leg draws into the stand-in. */
 const TOOL_USERS: ReadonlySet<string> = new Set(['packages/film/src/tools/draw-check.ts']);
+
+/**
+ * The directories whose modules export only what another file imports by
+ * name (a test or a lint fixture counts, an `export * from` passes a name
+ * through): an export its own file alone reads is not exported.
+ */
+const SWEPT = ['packages/film/src/core/', 'packages/film/src/lab/'] as const;
+
+/** `packages/film/package.json`'s specifiers: `./core` → `./src/core/index.ts`. */
+const PackageExports = Schema.fromJsonString(
+  Schema.Struct({ exports: Schema.Record(Schema.String, Schema.String) }),
+);
 
 /** Each guarded entry: its specifier under `@bible/film/` and its file under packages/film. */
 const ENTRIES = [
@@ -32,6 +46,10 @@ const ENTRIES = [
   { entry: 'stand-in', file: 'src/canvas/fixtures/stand-in.ts' },
   { entry: 'core', file: 'src/core/index.ts' },
 ] as const;
+
+/** A module's code without its comments, so a doc's `export const look` names nothing. */
+const codeOf = (source: string): string =>
+  source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 /** `a, type B, c as d` → the names each part gives: the left of `as` (`pick` 0) or its right (1). */
 const namesIn = (list: string, pick: 0 | 1): ReadonlyArray<string> =>
@@ -109,12 +127,13 @@ describe('the package entries', () => {
         (file) => isUser(file) || TOOL_USERS.has(file),
       );
       const sources = new Map<string, string>();
-      for (const file of files) sources.set(file, yield* fs.readFileString(path.join(root, file)));
+      for (const file of files)
+        sources.set(file, codeOf(yield* fs.readFileString(path.join(root, file))));
 
       const found: Record<string, { readonly whole: boolean; readonly unused: string[] }> = {};
       for (const { entry, file } of ENTRIES) {
         const at = path.join(films, file);
-        const source = yield* fs.readFileString(at);
+        const source = codeOf(yield* fs.readFileString(at));
         const used = new Set<string>();
         for (const [user, text] of sources) {
           if (path.join(root, user) === at) continue;
@@ -134,6 +153,75 @@ describe('the package entries', () => {
       expect(found).toEqual(
         Object.fromEntries(ENTRIES.map(({ entry }) => [entry, { whole: false, unused: [] }])),
       );
+    }).pipe(Effect.provide(BunServices.layer)),
+  );
+
+  it.effect('every module in a swept directory exports only names another file imports', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const root = path.resolve(import.meta.dir, '../../..');
+      const films = path.join(root, 'packages/film');
+      const read = (dir: string) =>
+        Effect.map(fs.readDirectory(path.join(root, dir), { recursive: true }), (found) =>
+          found.map((f) => `${dir}/${f}`),
+        );
+      const files = Arr.filter(
+        [
+          ...(yield* read('apps')),
+          ...(yield* read('packages/film/src')),
+          ...(yield* read('packages/film/lint')),
+        ],
+        (file) =>
+          /\.tsx?$/.test(file) &&
+          !file.includes('node_modules') &&
+          !/^apps\/[^/]+\/out\//.test(file),
+      );
+      const sources = new Map<string, string>();
+      for (const file of files)
+        sources.set(file, codeOf(yield* fs.readFileString(path.join(root, file))));
+      const specifiers = yield* Schema.decodeEffect(PackageExports)(
+        yield* fs.readFileString(path.join(films, 'package.json')),
+      );
+
+      /** The file `from` names, as `user` imports it: a relative path, or the package's specifier. */
+      const resolved = (user: string, from: string): Option.Option<string> => {
+        if (from.startsWith('.'))
+          return Option.some(path.relative(root, path.resolve(root, path.dirname(user), from)));
+        return Option.map(
+          Option.fromUndefinedOr(specifiers.exports[`.${from.slice('@bible/film'.length)}`]),
+          (file) => path.join('packages/film', file),
+        );
+      };
+      /** Each module's `export * from` sources: a name taken from it is taken from them too. */
+      const stars = new Map<string, ReadonlyArray<string>>();
+      for (const [file, text] of sources)
+        stars.set(
+          file,
+          [...text.matchAll(/export\s*\*\s*from\s*'([^']+)'/g)].flatMap((m) =>
+            Option.toArray(resolved(file, m[1] ?? '')),
+          ),
+        );
+      const used = new Set<string>();
+      const take = (module: string, name: string) => {
+        used.add(`${module}#${name}`);
+        for (const star of stars.get(module) ?? []) used.add(`${star}#${name}`);
+      };
+      for (const [user, text] of sources)
+        for (const { names, from } of takes(text))
+          for (const module of Option.toArray(resolved(user, from)))
+            if (module !== user) for (const name of names) take(module, name);
+
+      const unused = [...sources]
+        .filter(
+          ([file]) => SWEPT.some((dir) => file.startsWith(dir)) && !/\.test\.tsx?$/.test(file),
+        )
+        .flatMap(([file, text]) =>
+          exported(text)
+            .filter((name) => !used.has(`${file}#${name}`))
+            .map((name) => `${file.slice('packages/film/src/'.length)} ${name}`),
+        );
+      expect(unused).toEqual([]);
     }).pipe(Effect.provide(BunServices.layer)),
   );
 });

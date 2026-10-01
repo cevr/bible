@@ -29,8 +29,8 @@ import {
 } from './signal.ts';
 
 /** A pitch by note name: letter, optional sharp or flat, octave (`D5`, `F#3`, `Bb2`). */
-export const Pitch = Schema.String.check(Schema.isPattern(/^[A-G](#|b)?[0-8]$/));
-export type Pitch = typeof Pitch.Type;
+const Pitch = Schema.String.check(Schema.isPattern(/^[A-G](#|b)?[0-8]$/));
+type Pitch = typeof Pitch.Type;
 
 const Secs = Schema.Finite.check(Schema.isGreaterThan(0));
 

@@ -12,7 +12,7 @@ import { type LabFailure, reasonOf } from '../api.ts';
 import type { CompareMode } from './machine.ts';
 
 /** A scene's declarations today: its drawing's timeline and knobs. */
-export interface Declared {
+interface Declared {
   readonly timeline?: Timeline;
   readonly knobs?: Knobs;
 }

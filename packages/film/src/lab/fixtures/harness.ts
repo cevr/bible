@@ -12,7 +12,7 @@ import { solidPlugin } from '../../tools/solid-plugin.ts';
 import { PROBE } from './probe-film.ts';
 
 /** The fake origin the page is served at. */
-export const ORIGIN = 'http://lab.test';
+const ORIGIN = 'http://lab.test';
 const API = `/lab/${PROBE}`;
 
 /** A JSON value, as the fake server answers and the page posts. */
@@ -31,7 +31,7 @@ export interface Asked {
 }
 
 /** How a fake route answers: JSON with a status, a refusal as the server answers it, or text. */
-export type Answer =
+type Answer =
   | { readonly _tag: 'Json'; readonly status: number; readonly json: Json }
   | { readonly _tag: 'Refused'; readonly refusal: Refusal }
   | { readonly _tag: 'Text'; readonly status: number; readonly text: string }
@@ -94,7 +94,7 @@ export const sourceOne = {
 const sourceTwo = { scene: 'two', file: 'scenes/two.ts', cues: [], knobs: [], refused: [] };
 
 /** Scene three's source: its camera's target and zoom, and a pole, all literals. */
-export const sourceThree = {
+const sourceThree = {
   scene: 'three',
   file: 'scenes/three.ts',
   cues: [],
@@ -107,7 +107,7 @@ export const sourceThree = {
 };
 
 /** A write the server took, as it answers one. */
-export const wrote = (target: string, scene = 'one') => ({
+const wrote = (target: string, scene = 'one') => ({
   scene,
   file: `scenes/${scene}.ts`,
   target,
@@ -193,7 +193,7 @@ const answer = (r: Route, found: Answer) => {
  * page errors, Solid's reactivity diagnostics among them (a `[STRICT_…]`
  * warning is a read or a write the page does not mean).
  */
-export interface OpenLab {
+interface OpenLab {
   readonly page: Page;
   readonly asked: ReadonlyArray<Asked>;
   readonly errors: ReadonlyArray<string>;
@@ -213,7 +213,7 @@ const collectErrors = (tab: Page, errors: Array<string>) => {
  * The full Chromium runs it (the headless shell has no getUserMedia), and
  * the fake origin counts as secure, as localhost does.
  */
-export interface FakeMic {
+interface FakeMic {
   readonly wav: string;
   readonly permissions: ReadonlyArray<string>;
 }
@@ -304,7 +304,7 @@ const reviewBundle = bundleOf('review-page.ts');
 const reviewPage = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title></head><body><script src="/review.js"></script></body></html>`;
 
 /** Where the review opens, and how wide its window is (a phone's, or a desk's). */
-export interface ReviewAt {
+interface ReviewAt {
   readonly search?: string;
   readonly viewport?: { readonly width: number; readonly height: number };
 }

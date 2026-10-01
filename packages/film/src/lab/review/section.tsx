@@ -424,7 +424,7 @@ export const QualityToggle = () => {
 const VIEW_TITLES = { all: 'All', pair: 'vs one', moments: 'Moments', notes: 'Notes' } as const;
 
 /** All, the first against one, the moments, the notes. */
-export const ViewTabs = () => {
+const ViewTabs = () => {
   const { set, view, send } = useSet();
   const first = Option.getOrElse(
     Option.map(Option.fromUndefinedOr(set.variants[0]), (v) => v.label),

@@ -12,7 +12,7 @@ import { Refusal, ReviewHttpApi, reviewFileUrl } from '../../core/api.ts';
 import type { ReviewIndex } from '../../core/review.ts';
 import { type LabFailure, heard } from '../api.ts';
 
-export interface ReviewCalls {
+interface ReviewCalls {
   /** Every folder with something to review; `fresh` walks the roots again now. */
   readonly index: (fresh: boolean) => Effect.Effect<ReviewIndex, LabFailure>;
   /** A video's length, in seconds. */

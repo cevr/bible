@@ -3,8 +3,9 @@
 // (render choice points, `choice.ts`) and the files in no set. Pure: the
 // review's server and its page share them.
 
-import { Effect, Schema } from 'effect';
+import { Array as Arr, Effect, Option, Schema } from 'effect';
 import { ChoicePoint } from './choice.ts';
+import { Clip } from './point.ts';
 import { Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
@@ -40,6 +41,25 @@ const ManifestSet = Schema.Struct({
   variants: orElse(Schema.Record(Schema.String, ManifestVariant), {}),
 });
 
+const isClip = Schema.is(Clip);
+
+/**
+ * The sets by clip. A clip that is empty or named like an address (`film`,
+ * `act:…`) is refused, not dropped, so the review's warning names it and no
+ * montage's id reads back as a film's render.
+ */
+const ManifestSets = Schema.Record(Schema.String, ManifestSet).check(
+  Schema.makeFilter((sets) =>
+    Option.match(
+      Arr.findFirst(Object.keys(sets), (clip) => !isClip(clip)),
+      {
+        onNone: () => true,
+        onSome: (bad) => `a set's clip is never empty nor named like an address ("${bad}")`,
+      },
+    ),
+  ),
+);
+
 /**
  * A montage's `review.json`: the record the review lists a folder of
  * hand-made clips by (a film's renders are listed by their catalogue). A
@@ -58,7 +78,7 @@ export const ReviewManifest = Schema.Struct({
   images: orElse(Schema.Array(Schema.String), []),
   /** Videos in no set, relative to the folder, shown with it. */
   videos: orElse(Schema.Array(Schema.String), []),
-  sets: orElse(Schema.Record(Schema.String, ManifestSet), {}),
+  sets: orElse(ManifestSets, {}),
 });
 export type ReviewManifest = typeof ReviewManifest.Type;
 

@@ -10,11 +10,11 @@
 import { Match, Option, Schema } from 'effect';
 
 /** The GPU's encoder: quantizer rate control, at most 14 at once (tools/render-plan.ts). */
-export const Hardware = Schema.TaggedStruct('Hardware', {});
+const Hardware = Schema.TaggedStruct('Hardware', {});
 /** The browser's software encoder (OpenH264 in Chromium): bitrate control, one a core. */
-export const Software = Schema.TaggedStruct('Software', {});
+const Software = Schema.TaggedStruct('Software', {});
 /** None of the allowed encoders encodes the film here, and why. */
-export const NoEncoder = Schema.TaggedStruct('Missing', { reason: Schema.String });
+const NoEncoder = Schema.TaggedStruct('Missing', { reason: Schema.String });
 
 /** An encoder a render can use. */
 export const Encoder = Schema.Union([Hardware, Software]).pipe(Schema.toTaggedUnion('_tag'));

@@ -21,31 +21,33 @@ import {
 import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
-import {
-  STUDIO_IMPORT_WAIT_S,
-  type StudioAttempt,
-  type StudioRefusal,
-  type StudioTake,
-} from '../../core/studio.ts';
+import { BodyTooLarge, SttUntimed, TakeMismatch } from '../../core/refusals.ts';
+import { STUDIO_IMPORT_WAIT_S, type StudioAttempt, type StudioTake } from '../../core/studio.ts';
+import type { LabFailure } from '../api.ts';
 import { Stage, type StageOps } from '../stage.ts';
-import { StudioApi, type StudioCalls, StudioRefused } from './api.ts';
-import { Capture, type CaptureOps, MicDenied } from './capture.ts';
-import { COUNT_IN, RecorderEvent, RecorderState, limitAt, recorderMachine } from './machine.ts';
+import { StudioApi, type StudioCalls } from './api.ts';
+import { Capture, type CaptureOps, MicDenied, MicLost } from './capture.ts';
+import {
+  COUNT_IN,
+  ImportUnanswered,
+  RecorderEvent,
+  RecorderState,
+  limitAt,
+  recorderMachine,
+} from './machine.ts';
 import { statusOf } from './view.ts';
 import { type Pcm, encodeWav } from './wav.ts';
 
 const pcm: Pcm = { rate: 48000, samples: Float32Array.of(0, 0.25, -0.25, 0.5) };
 const wav = encodeWav(pcm);
 
-const mismatch: StudioRefusal = {
-  _tag: 'TakeMismatch',
-  message: 'TakeMismatch: a heard "hello word" (50.0% of words differ)',
-  beat: 'a',
+const mismatch = TakeMismatch.make({
+  id: 'a',
   script: 'hello world',
   heard: 'hello word',
   wer: 0.5,
   attempt: 'a.1234.flac',
-};
+});
 
 const took: StudioTake = {
   beat: 'a',
@@ -72,7 +74,7 @@ interface Listed {
  * was asked of it, and a studio whose posts answer `answers` in turn (the
  * last one again once they run out; a take kept when none are given).
  */
-const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, StudioRefused>>) => {
+const fakes = (...answers: ReadonlyArray<Effect.Effect<StudioTake, LabFailure>>) => {
   const log: Log = { calls: [], open: false };
   const say = (call: string) => Effect.sync(() => void log.calls.push(call));
   /** Done, the open microphone's track ends (unplugged). */
@@ -163,7 +165,7 @@ describe('arming', () => {
       expect(result.states[1]).toEqual(
         RecorderState.Failed({
           beat: 'a',
-          refusal: { _tag: 'MicDenied', message: 'no microphone: NotAllowedError' },
+          refusal: MicDenied.make({ reason: 'NotAllowedError' }),
           wav: Option.none(),
         }),
       );
@@ -286,11 +288,7 @@ describe('a microphone lost mid-take', () => {
         expect(failed).toEqual(
           RecorderState.Failed({
             beat: 'a',
-            refusal: {
-              _tag: 'MicLost',
-              message:
-                'the microphone went away (unplugged, or another app took it); the recording up to then is kept: Back (Esc) to hear it',
-            },
+            refusal: MicLost.make({}),
             wav: Option.some(wav),
           }),
         );
@@ -391,7 +389,7 @@ describe('importing', () => {
   it.effect('a refusal fails with it, keeping the recording; Retry goes back to review', () => {
     const { layer } = fakes();
     return Effect.gen(function* () {
-      const tooBig: StudioRefusal = { _tag: 'BodyTooLarge', message: 'BodyTooLarge: over 64 MiB' };
+      const tooBig = BodyTooLarge.make({ limit: 64 * 1024 * 1024 });
       const result = yield* simulate(machine, [
         ...recorded,
         RecorderEvent.Submit,
@@ -433,8 +431,13 @@ describe('importing', () => {
     () => {
       const { layer } = fakes();
       return Effect.gen(function* () {
-        const { attempt: _, ...unsaved } = mismatch;
-        const untimed: StudioRefusal = { _tag: 'SttUntimed', message: 'SttUntimed: no words' };
+        const unsaved = TakeMismatch.make({
+          id: 'a',
+          script: 'hello world',
+          heard: 'hello word',
+          wer: 0.5,
+        });
+        const untimed = SttUntimed.make({ file: 'a.wav', heard: 2 });
         for (const refusal of [unsaved, untimed]) {
           const result = yield* simulate(machine, [
             ...recorded,
@@ -518,7 +521,7 @@ const settled = (state: RecorderState) =>
 describe('the import task, through an actor', () => {
   /** The actor's state once `events` were sent and the import settled, and what the fakes saw. */
   const run = (
-    answer: Effect.Effect<StudioTake, StudioRefused>,
+    answer: Effect.Effect<StudioTake, LabFailure>,
     events: ReadonlyArray<RecorderEvent>,
   ) => {
     const { log, layer } = fakes(answer);
@@ -547,10 +550,7 @@ describe('the import task, through an actor', () => {
 
   it.live("a refusal shows the server's words", () =>
     Effect.gen(function* () {
-      const { state } = yield* run(Effect.fail(StudioRefused.make({ refusal: mismatch })), [
-        ...recorded,
-        RecorderEvent.Submit,
-      ]);
+      const { state } = yield* run(Effect.fail(mismatch), [...recorded, RecorderEvent.Submit]);
       expect(state).toEqual(
         RecorderState.Failed({ beat: 'a', refusal: mismatch, wav: Option.some(wav) }),
       );
@@ -567,10 +567,7 @@ describe('the import task, through an actor', () => {
   );
 
   it.live('Accept anyway posts keep with acceptMismatch for the attempt the mismatch saved', () => {
-    const { log, layer } = fakes(
-      Effect.fail(StudioRefused.make({ refusal: mismatch })),
-      Effect.succeed(took),
-    );
+    const { log, layer } = fakes(Effect.fail(mismatch), Effect.succeed(took));
     return Effect.gen(function* () {
       const actor = yield* Machine.spawn(machine);
       yield* actor.start;
@@ -664,11 +661,10 @@ describe('an import the lab does not answer', () => {
         expect(state).toEqual(
           RecorderState.Failed({
             beat: 'a',
-            refusal: {
-              _tag: 'ImportUnanswered',
+            refusal: ImportUnanswered.make({
               message:
                 'the lab did not answer within 3 min 30 s, and lists no attempt of this take yet: it may still be making it (the lab log says). Keep it from the attempts once it shows, or record again',
-            },
+            }),
             wav: Option.none(),
           }),
         );
@@ -690,11 +686,10 @@ describe('an import the lab does not answer', () => {
       expect(state).toEqual(
         RecorderState.Failed({
           beat: 'a',
-          refusal: {
-            _tag: 'ImportUnanswered',
+          refusal: ImportUnanswered.make({
             message:
               'the lab did not answer within 3 min 30 s; it heard the take as “hello word” (50.0% words differ) and did not keep it: keep it from the attempts below, or record again',
-          },
+          }),
           wav: Option.none(),
         }),
       );

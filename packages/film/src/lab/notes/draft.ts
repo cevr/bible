@@ -9,7 +9,7 @@ import { nearestMoment } from '../../core/notes.ts';
 import type { InkStroke, NoteBox, NoteDraft, Point } from '../../core/schema.ts';
 
 /** What the composer holds: the frame noted, what is marked on it, and the words. */
-export interface Composed {
+interface Composed {
   readonly T: number;
   readonly box: Option.Option<NoteBox>;
   readonly ink: ReadonlyArray<InkStroke>;

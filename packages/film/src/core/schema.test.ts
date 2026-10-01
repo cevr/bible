@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { Result, Schema } from 'effect';
 import {
   CuePatch,
+  Look,
   type Span,
   Timed,
   Timings,
@@ -99,6 +100,24 @@ describe('Timed', () => {
   /** A scene as JSON text, decoded as the tools decode a scene module. */
   const decodes = (json: string) =>
     Result.isSuccess(Schema.decodeResult(Schema.fromJsonString(Timed))(json));
+
+  test('a scene id is lower case, digits and dashes, as its address and point id carry it', () => {
+    for (const id of ['cold', 'rain-2', '3'])
+      expect(Result.isSuccess(Schema.decodeResult(Timed)({ id }))).toBe(true);
+    for (const id of ['', 'a,b', 'act:x', 'A B', '-all', 'Cold'])
+      expect(Result.isFailure(Schema.decodeResult(Timed)({ id }))).toBe(true);
+  });
+
+  test('an act starts on a scene id and is named by a word, never a flag', () => {
+    const at = (act: { from: string; name: string }) => Schema.decodeResult(Look)({ acts: [act] });
+    expect(Result.isSuccess(at({ from: 'cold', name: 'cold open' }))).toBe(true);
+    for (const act of [
+      { from: 'cold', name: '-all' },
+      { from: 'cold', name: '' },
+      { from: 'a,b', name: 'open' },
+    ])
+      expect(Result.isFailure(at(act))).toBe(true);
+  });
 
   test('a span may name an ease; an ease the kit lacks is refused', () => {
     expect(decodes('{"id":"a","timeline":{"slam":{"mark":"m","ease":"outBack"}}}')).toBe(true);

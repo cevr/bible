@@ -14,12 +14,12 @@ import type { ResolvedShort } from './shorts.ts';
 import { heard } from './voiced.ts';
 
 /** The most words a phrase holds. */
-export const PHRASE_MAX = 4;
+const PHRASE_MAX = 4;
 /** A phrase holds this long after its last word, unless the next comes first. */
 export const PHRASE_HOLD = 0.6;
 
 /** A word as a short's caption sets it: its time on the short's clock, and whether it is quoted. */
-export interface PhraseWord extends Word {
+interface PhraseWord extends Word {
   readonly quoted: boolean;
 }
 

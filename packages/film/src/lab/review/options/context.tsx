@@ -51,7 +51,7 @@ export type Heard = Data.TaggedEnum<{
 export const Heard = Data.taggedEnum<Heard>();
 
 /** The URL of the mix `heard` plays, at the film's `version` (none for the picture's own sound). */
-export const mixOf = (film: string, heard: Heard, version: number): Option.Option<string> =>
+const mixOf = (film: string, heard: Heard, version: number): Option.Option<string> =>
   Match.value(heard).pipe(
     Match.tagsExhaustive({
       Own: () => Option.none<string>(),
@@ -88,7 +88,7 @@ const firstHeard = (choices: FilmChoices): Heard =>
 /** Whether two `Heard`s are the same sound. */
 export const sameHeard = (a: Heard, b: Heard): boolean => trackOf('', a, 0) === trackOf('', b, 0);
 
-export interface FilmContextValue {
+interface FilmContextValue {
   readonly film: string;
   readonly choices: Accessor<FilmChoices>;
   /** The film's static check: as first read, then as the last source write answered it. */

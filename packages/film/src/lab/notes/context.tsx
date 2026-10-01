@@ -39,11 +39,11 @@ import { draftOf, whereText } from './draft.ts';
 import { type FeedActor, FeedEvent, feedText, spawnFeed } from './feed.ts';
 
 /** A reply to a note, or its resolve: what the thread writes. */
-export type ThreadWrite =
+type ThreadWrite =
   | { readonly _tag: 'Reply'; readonly id: string; readonly text: string }
   | { readonly _tag: 'Resolve'; readonly id: string };
 
-export interface NotesState {
+interface NotesState {
   /** Whether the composer shows: from a press on the frame until the note is saved or cancelled. */
   readonly composerOpen: Accessor<boolean>;
   /** Whether the composer waits for the note's words, and so takes the keys. */
@@ -65,7 +65,7 @@ export interface NotesState {
   readonly threadStatus: Accessor<string>;
 }
 
-export interface NotesActions {
+interface NotesActions {
   readonly togglePen: () => void;
   /** The pointer went down on the frame at `at`, film pixels. */
   readonly press: (at: Point) => void;
@@ -81,7 +81,7 @@ export interface NotesActions {
   readonly write: (write: ThreadWrite) => void;
 }
 
-export interface NotesContextValue {
+interface NotesContextValue {
   readonly state: NotesState;
   readonly actions: NotesActions;
 }

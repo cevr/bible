@@ -49,7 +49,7 @@ export const speechSpans = (voice: Pcm): ReadonlyArray<Interval> => {
  * ramp up into it (none where the film opens without a voice) and down out of
  * it (none where the film ends without one).
  */
-export interface Alone {
+interface Alone {
   readonly hold: Interval;
   readonly rise: boolean;
   readonly fall: boolean;
@@ -120,7 +120,7 @@ const where = (pcm: Pcm, weights: Float32Array, keep: (w: number) => boolean): P
 };
 
 /** The two gains (linear) the score plays at: under the voice, and alone. */
-export interface ScoreGains {
+interface ScoreGains {
   readonly under: number;
   readonly alone: number;
 }

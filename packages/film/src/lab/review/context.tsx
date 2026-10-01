@@ -1,7 +1,7 @@
-// The review's providers. `<Review.Root>` holds the page: its runtime (the
+// The review's providers. `<Root>` holds the page: its runtime (the
 // review's routes), where it is (read from and kept in the URL, so Back and a
 // reload work), the index, the copy its videos play (the phone's 720p or the
-// file), the home page's filter and the lightbox. `<Review.SetProvider>`
+// file), the home page's filter and the lightbox. `<SetProvider>`
 // holds one comparison set: its two machines (the synced player and the
 // view, spawned on the runtime and stopped with the set), the driver that
 // makes its videos follow the player, and its moments.
@@ -88,7 +88,7 @@ interface ReviewMeta {
   readonly now: () => number;
 }
 
-export interface ReviewContextValue {
+interface ReviewContextValue {
   readonly state: ReviewStateValue;
   readonly actions: ReviewActions;
   readonly meta: ReviewMeta;
@@ -96,7 +96,7 @@ export interface ReviewContextValue {
 
 const ReviewContext = createContext<ReviewContextValue>();
 
-/** The review's context: only inside `<Review.Root>`. */
+/** The review's context: only inside `<Root>`. */
 export const useReview = (): ReviewContextValue => useContext(ReviewContext);
 
 /** Where the page keeps its choices between visits. */
@@ -204,7 +204,7 @@ export const Root = (props: ParentProps<{ readonly origin: string }>) => {
 // ---------------------------------------------------------------------------
 // One comparison set
 
-export interface SetContextValue {
+interface SetContextValue {
   readonly folder: ReviewFolder;
   readonly set: SeenPoint;
   /** The synced player's state. */
@@ -222,7 +222,7 @@ export interface SetContextValue {
 
 const SetContext = createContext<SetContextValue>();
 
-/** A set's context: only inside `<Review.SetProvider>`. */
+/** A set's context: only inside `<SetProvider>`. */
 export const useSet = (): SetContextValue => useContext(SetContext);
 
 interface SetActors {

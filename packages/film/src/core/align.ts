@@ -54,7 +54,7 @@ const MOVES = [PAIR, LEFT_OVER, UNHEARD] as const;
 type Move = (typeof MOVES)[number];
 
 /** Opening a run of left-over or unheard words costs this on top of each word's 1. */
-export const GAP_OPEN = 1;
+const GAP_OPEN = 1;
 
 /**
  * The least cost of lining up the first `i` script tokens with the first `j`
@@ -100,7 +100,7 @@ const costs = (want: ReadonlyArray<string>, got: ReadonlyArray<string>) => {
  * words heard (a line read twice pairs with the reading that finished it; the
  * false start is left over).
  */
-export const lineUp = (
+const lineUp = (
   want: ReadonlyArray<string>,
   got: ReadonlyArray<string>,
 ): ReadonlyArray<Option.Option<Paired>> => {
@@ -221,7 +221,7 @@ export const timeScript = (
 };
 
 /** A beat's spoken words. */
-export interface BeatText {
+interface BeatText {
   readonly id: string;
   readonly text: string;
 }
@@ -242,7 +242,7 @@ export interface BeatSpan {
 }
 
 /** A beat is found when at least this share of its words were heard as written. */
-export const MIN_HEARD = 0.5;
+const MIN_HEARD = 0.5;
 
 /**
  * Each beat's span in one recording of the whole script, `duration` seconds
@@ -294,14 +294,14 @@ export const placeBeats = (
 };
 
 /** A stretch of a recording, in seconds. */
-export interface Cut {
+interface Cut {
   readonly id: string;
   readonly from: number;
   readonly to: number;
 }
 
 /** A cut is placed by the sound in windows this long, in seconds. */
-export const CUT_WINDOW = 0.01;
+const CUT_WINDOW = 0.01;
 
 /** A beat cut from a reading fades in and out over this long, in seconds: no click at either edge. */
 export const CUT_FADE = 0.005;
@@ -311,7 +311,7 @@ export const CUT_FADE = 0.005;
  * its quietest `CUT_WINDOW`, so a cut lands in the silence, not in a breath or
  * a word's decay. The middle of the stretch when it is shorter than a window.
  */
-export const quietestAt = (pcm: Pcm, from: number, to: number): number => {
+const quietestAt = (pcm: Pcm, from: number, to: number): number => {
   const window = Math.max(1, Math.round(CUT_WINDOW * pcm.rate));
   const first = Math.max(0, Math.ceil(from * pcm.rate));
   const last = Math.min(pcm.frames, Math.floor(to * pcm.rate)) - window;

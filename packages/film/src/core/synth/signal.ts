@@ -61,10 +61,10 @@ export interface Coefficients {
   readonly a2: number;
 }
 
-export type FilterKind = 'lowPass' | 'highPass' | 'bandPass' | 'peak' | 'highShelf';
+type FilterKind = 'lowPass' | 'highPass' | 'bandPass' | 'peak' | 'highShelf';
 
 /** One biquad's design: its kind, corner or centre, Q, and gain (peak and shelf only). */
-export interface FilterSpec {
+interface FilterSpec {
   readonly kind: FilterKind;
   readonly hz: number;
   readonly q: number;
@@ -73,7 +73,7 @@ export interface FilterSpec {
 }
 
 /** The RBJ Audio EQ Cookbook's coefficients for `spec`. */
-export const biquad = (spec: FilterSpec): Coefficients => {
+const biquad = (spec: FilterSpec): Coefficients => {
   const w = (2 * Math.PI * spec.hz) / spec.rate;
   const cos = Math.cos(w);
   const alpha = Math.sin(w) / (2 * spec.q);

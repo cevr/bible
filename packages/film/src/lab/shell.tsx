@@ -21,7 +21,7 @@ import { type Selection, searchWithSelection, selectionFromSearch } from './sele
 import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
 
 /** What every panel reads: the film on the stage and the frame it shows. */
-export interface LabState {
+interface LabState {
   /** Film seconds of the frame drawn last: follows every draw, a lab preview's included. */
   readonly T: Accessor<number>;
   /** Counts the frames drawn: a panel that must follow each draw (not only T) reads it. */
@@ -32,14 +32,14 @@ export interface LabState {
   readonly selection: Accessor<Option.Option<Selection>>;
 }
 
-export interface LabActions {
+interface LabActions {
   /** Keep `layer` exactly over the film canvas until the returned function is called. */
   readonly pin: (layer: HTMLElement | SVGElement) => () => void;
   /** Select a cue or a knob, or nothing; the URL keeps it through a reload. */
   readonly select: (selection: Option.Option<Selection>) => void;
 }
 
-export interface LabMeta {
+interface LabMeta {
   /** The film's name (`?film=`), which every lab route names. */
   readonly name: string;
   readonly film: Film;
@@ -52,7 +52,7 @@ export interface LabMeta {
   readonly runtime: Atom.AtomRuntime<Stage | LabApi | NotesApi>;
 }
 
-export interface LabContextValue {
+interface LabContextValue {
   readonly state: LabState;
   readonly actions: LabActions;
   readonly meta: LabMeta;

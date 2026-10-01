@@ -6,19 +6,42 @@
 
 import { Match, Schema } from 'effect';
 
-/** A scene's id as an address names it: never empty, and without the `,` that joins a key's ids. */
-const SceneName = Schema.NonEmptyString.check(Schema.isPattern(/^[^,]*$/));
+const PART_ID = /^[a-z0-9][a-z0-9-]*$/;
+
+/**
+ * A scene's or a short's id: lower case, digits and dashes, starting with a
+ * letter or a digit (`cold`, `rain-2`). It names the part's files, its
+ * address key and its choice point's id, so it never holds the `,` that
+ * joins a key's ids nor the `:` of a key, and never reads as a flag. A
+ * refusal names the id.
+ */
+export const PartId = Schema.String.check(
+  Schema.makeFilter(
+    (id: string) =>
+      PART_ID.test(id) ||
+      `"${id}" is no id: lower case, digits and dashes, starting with a letter or a digit`,
+  ),
+  // The pattern again, as a pattern: property tests generate ids from it.
+  Schema.isPattern(PART_ID),
+);
+
+/** An act's name (`cold open`): never empty, and never starting with the `-` of a flag. */
+export const ActName = Schema.String.check(
+  Schema.isPattern(/^[^-]/, {
+    message: 'an act is named by a word, never empty nor starting with "-"',
+  }),
+);
 
 const FilmPart = Schema.TaggedStruct('Film', {});
-const ActPart = Schema.TaggedStruct('Act', { act: Schema.NonEmptyString });
-const ScenesPart = Schema.TaggedStruct('Scenes', { ids: Schema.NonEmptyArray(SceneName) });
+const ActPart = Schema.TaggedStruct('Act', { act: ActName });
+const ScenesPart = Schema.TaggedStruct('Scenes', { ids: Schema.NonEmptyArray(PartId) });
 
 /** Which part of a film: the whole, one act, some scenes (in the order named), or one short. */
 export const Address = Schema.Union([
   FilmPart,
   ActPart,
   ScenesPart,
-  Schema.TaggedStruct('Short', { id: Schema.NonEmptyString }),
+  Schema.TaggedStruct('Short', { id: PartId }),
 ]);
 export type Address = typeof Address.Type;
 

@@ -222,7 +222,19 @@ describe('the lab reads the film as it stands', () => {
           'ServerFailed',
           why,
         ]);
+        // The studio's reading and a cue write's clock say it the same way.
+        expect(said(yield* Effect.flip(fresh.reading(asFilmName('tiny'))))).toEqual([
+          'ServerFailed',
+          why,
+        ]);
+        expect(
+          said(yield* Effect.flip(fresh.cue(asFilmName('tiny'), 'a', 'x', Option.none()))),
+        ).toEqual(['ServerFailed', why]);
+        // The check after a write: one error finding, the film's own words.
+        expect(yield* fresh.check('tiny', 'static')).toEqual([
+          { level: 'error', tag: 'FilmModuleInvalid', message: why },
+        ]);
       }).pipe(Effect.scoped, Effect.provide(fixture)),
-    spawnBudget(2),
+    spawnBudget(5),
   );
 });

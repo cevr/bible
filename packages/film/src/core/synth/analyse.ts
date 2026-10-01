@@ -6,7 +6,7 @@
 import type { Pcm } from '../audio.ts';
 
 /** A sound described. Seconds, Hz, and a 0–1 flatness. */
-export interface Described {
+interface Described {
   readonly secs: number;
   /** When it first comes within 30 dB of its loudest 10 ms. */
   readonly onset: number;

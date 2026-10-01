@@ -5,10 +5,3 @@ import { Provider } from './context.tsx';
 import { Section } from './section.tsx';
 
 export const Studio = { Provider, Section };
-export { useStudio } from './context.tsx';
-export type {
-  AttemptRow,
-  StudioActions,
-  StudioContextValue,
-  StudioStateValue,
-} from './context.tsx';

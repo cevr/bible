@@ -84,7 +84,7 @@ interface SyncClock {
   readonly seek: number;
 }
 
-export const clockOf = (state: SyncState): SyncClock => ({
+const clockOf = (state: SyncState): SyncClock => ({
   t: state.t,
   start: state.start,
   end: state.end,

@@ -59,7 +59,7 @@ import {
   variantNamed,
   withSay,
 } from '../core/choice.ts';
-import { said } from '../core/catalogue.ts';
+import { type Catalogue, said } from '../core/catalogue.ts';
 import { PointRef, pointRefOf } from '../core/point.ts';
 import type { CheckLine } from '../core/schema.ts';
 import { type CatalogueError, RenderCatalogue } from './catalogue.ts';
@@ -149,8 +149,21 @@ export type ChoicesNeeds =
   | RenderCatalogue
   | Takes;
 
+/**
+ * `point`'s say read again from `catalogue`. The point came from a fresh
+ * run, so which point it is is read back from its id; one whose id names no
+ * point is left as it came.
+ */
+const sayAgain =
+  (catalogue: Catalogue) =>
+  (point: ChoicePoint): ChoicePoint =>
+    Option.match(pointRefOf(point.id), {
+      onNone: () => point,
+      onSome: (ref) => withSay(Option.some(catalogue), { ...point, ref }),
+    });
+
 /** The point `id` among `points`, or `ChoiceUnknown` naming the ones there are. */
-export const offeredPoint = (
+const offeredPoint = (
   film: string,
   points: ReadonlyArray<ChoicePoint>,
   id: string,
@@ -160,7 +173,7 @@ export const offeredPoint = (
   );
 
 /** The variant `id` of `point`, or `VariantUnknown` naming the ones it has. */
-export const offeredVariant = (
+const offeredVariant = (
   film: string,
   point: ChoicePoint,
   id: string,
@@ -454,7 +467,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         const result: FilmChoices = {
           film,
           pictures: yield* review.pictures(film),
-          points: known.map((p) => withSay(Option.some(after), p)),
+          points: known.map(sayAgain(after)),
         };
         return result;
       });

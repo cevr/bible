@@ -40,7 +40,7 @@ export const slice = (pcm: Pcm, from: number, frames: number): Pcm => ({
 });
 
 /** A stretch of a sound: `frames` frames from frame `from`. */
-export interface Piece {
+interface Piece {
   readonly from: number;
   readonly frames: number;
 }
@@ -131,7 +131,7 @@ export const toInt16 = (pcm: Pcm): Int16Array => {
 };
 
 /** How loud a sound is, in dBFS: its mean power and its peak (what libavfilter's volumedetect reports). */
-export interface Levels {
+interface Levels {
   readonly mean: number;
   readonly peak: number;
 }

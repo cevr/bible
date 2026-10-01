@@ -7,5 +7,3 @@ import { Provider } from './context.tsx';
 import { Divider, Layer, Section } from './section.tsx';
 
 export const Compare = { Provider, Section, Layer, Divider };
-export { useCompare } from './context.tsx';
-export type { CompareActions, CompareContextValue, CompareStateValue } from './context.tsx';

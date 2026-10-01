@@ -37,13 +37,13 @@ import { findingsOf, statusText } from './format.ts';
 import { type EditActor, EditEvent, spawnEditor } from './machine.ts';
 
 /** What the lab knows of a scene's source: it, or why it could not be read. */
-export interface Known {
+interface Known {
   readonly source: Option.Option<SceneSource>;
   /** The server's reason, when the source could not be read. */
   readonly error: string;
 }
 
-export interface EditorState {
+interface EditorState {
   /** What the editor last did, or is doing: the status line. */
   readonly status: Accessor<string>;
   /** The findings to list: the landed write's, else the check the page loaded with. */
@@ -59,7 +59,7 @@ export interface EditorState {
 }
 
 /** Where on a cue's bar a press landed, and the strip's scale. */
-export interface Press {
+interface Press {
   readonly scene: string;
   readonly cue: string;
   readonly edge: DragEdge;
@@ -69,7 +69,7 @@ export interface Press {
 }
 
 /** The overlay's screen box. */
-export interface Box {
+interface Box {
   readonly left: number;
   readonly top: number;
   readonly width: number;
@@ -77,7 +77,7 @@ export interface Box {
 }
 
 /** A press on a knob's handle on the frame: which, where it sits, and the overlay's screen box. */
-export interface KnobPress {
+interface KnobPress {
   readonly scene: string;
   readonly knob: string;
   readonly handle: Handle;
@@ -87,7 +87,7 @@ export interface KnobPress {
   readonly y: number;
 }
 
-export interface EditorActions {
+interface EditorActions {
   /** A press on a cue's bar: select it, and grab it (or say why it cannot be dragged). */
   readonly press: (press: Press) => void;
   /** A press on a knob's handle: select it, and grab it (or say why it cannot be moved). */
@@ -99,7 +99,7 @@ export interface EditorActions {
   readonly refuse: (message: string) => void;
 }
 
-export interface EditorContextValue {
+interface EditorContextValue {
   readonly state: EditorState;
   readonly actions: EditorActions;
 }

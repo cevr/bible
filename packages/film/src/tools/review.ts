@@ -58,8 +58,7 @@ import {
   saidOn,
   subjectOf,
 } from '../core/catalogue.ts';
-import { type ChoicePoint, type ChoiceVariant, seenVariants } from '../core/choice.ts';
-import { pointIdOf } from '../core/point.ts';
+import { type ChoicePoint, type ChoiceVariant, pointHead, seenVariants } from '../core/choice.ts';
 import type {
   ReviewFile,
   ReviewFolder,
@@ -325,8 +324,7 @@ export const projectFolder = (parts: FolderParts<Catalogue>): ReviewFolder => {
       if (variants.length === 0) return [];
       return [
         {
-          id: pointIdOf({ _tag: 'Render', address: renders[0].address }),
-          kind: 'render',
+          ...pointHead({ _tag: 'Render', address: renders[0].address }),
           address: Option.some(renders[0].address),
           title: addressTitle(renders[0]),
           lines: [],
@@ -445,8 +443,7 @@ export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder 
       if (variants.length === 0) return [];
       return [
         {
-          id: pointIdOf({ _tag: 'Montage', clip }),
-          kind: 'render',
+          ...pointHead({ _tag: 'Montage', clip }),
           address: Option.none(),
           title: Option.getOrElse(set.title, () => clip),
           lines: [],
@@ -666,8 +663,9 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           width: number,
         ) {
           const file = yield* resolve(ref);
+          // A time before the start is the first frame: one key, one still.
           let t = 0;
-          if (Option.isSome(at)) t = at.value;
+          if (Option.isSome(at)) t = Math.max(0, at.value);
           else t = (yield* duration(ref)) * 0.1;
           const w = Math.round(Math.min(1920, Math.max(160, width)));
           const key = yield* sourceKey(file, [t.toFixed(3), w]);

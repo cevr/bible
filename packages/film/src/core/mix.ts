@@ -64,14 +64,14 @@ export const LIMIT: Limit = { limit: 0.95, attack: 5, release: 50 };
 export const MASTER = { loudness: -18 } as const;
 
 /** The score fades in over its first `MUSIC_FADE_IN` seconds and out over the film's last `MUSIC_FADE_OUT`. */
-export const MUSIC_FADE_IN = 2;
-export const MUSIC_FADE_OUT = 6;
+const MUSIC_FADE_IN = 2;
+const MUSIC_FADE_OUT = 6;
 
 /** A bed fades in and out over this many seconds when it names no `fade`. */
-export const BED_FADE = 1;
+const BED_FADE = 1;
 
 /** A bed crosses into itself over this many seconds where it wraps (at most a quarter of its length). */
-export const BED_CROSSFADE = 0.5;
+const BED_CROSSFADE = 0.5;
 
 /** One sound on a bus: where it starts (seconds into the film), how loud, and its pitch nudge. */
 export interface Placement<A> {
@@ -135,7 +135,7 @@ export interface MixPlan<A> {
   readonly warnings: ReadonlyArray<string>;
 }
 
-export interface MixInput {
+interface MixInput {
   /** The film's name: it seeds each effect's variant and jitter. */
   readonly film: string;
   readonly placed: ReadonlyArray<Placed>;

@@ -11,13 +11,13 @@ import type { Placed } from './layout.ts';
 import type { Interval } from './time.ts';
 
 /** What a part declares: the scene it begins on and its name. */
-export interface PartOf {
+interface PartOf {
   readonly from: string;
   readonly name: string;
 }
 
 /** A part's scenes, by id, in film order. */
-export interface Members<P> {
+interface Members<P> {
   readonly part: P;
   readonly scenes: ReadonlyArray<string>;
 }

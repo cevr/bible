@@ -49,7 +49,7 @@ const Prompter = () => {
 };
 
 /** Every beat, where its take stands, and the counts. */
-export const Beats = () => {
+const Beats = () => {
   const { state, actions } = useStudio();
   return (
     <div class="studio-beats">
@@ -106,7 +106,7 @@ const Mic = () => {
 };
 
 /** Peak and RMS in dBFS with a bar, and the clip warning at −1 dBFS; empty while the microphone is closed. */
-export const Meter = () => {
+const Meter = () => {
   const { state } = useStudio();
   return (
     <div class="studio-meter" data-role="meter">
@@ -194,7 +194,7 @@ const Attempt = (props: { readonly row: Accessor<AttemptRow> }) => {
 };
 
 /** The selected beat's recordings, newest first, each to hear and keep. */
-export const Attempts = () => {
+const Attempts = () => {
   const { state } = useStudio();
   return (
     <div class="studio-attempts">

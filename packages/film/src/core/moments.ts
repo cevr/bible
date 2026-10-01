@@ -16,7 +16,7 @@ export interface SceneMoment {
 }
 
 /** Which moments to take: marks as well as cue edges and the 60% point. */
-export interface MomentKinds {
+interface MomentKinds {
   readonly marks: boolean;
 }
 

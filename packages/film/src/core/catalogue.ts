@@ -46,14 +46,14 @@ export const RenderKind = Schema.Literals(['video', 'stills', 'contact', 'lookbo
 export type RenderKind = typeof RenderKind.Type;
 
 /** How a render was made, beside what it drew: a render at another size is another render. */
-export const RenderSettings = Schema.Struct({
+const RenderSettings = Schema.Struct({
   scale: Schema.Finite,
   captions: Schema.Boolean,
 });
-export type RenderSettings = typeof RenderSettings.Type;
+type RenderSettings = typeof RenderSettings.Type;
 
 /** A render's files, relative to the project folder. */
-export const RenderFiles = Schema.Struct({
+const RenderFiles = Schema.Struct({
   /** The video. */
   clip: maybe(Schema.String),
   /** Its smaller copy to send and to stream. */
@@ -64,7 +64,7 @@ export const RenderFiles = Schema.Struct({
   /** Stills, a contact sheet, a look-book: in time order. */
   images: Schema.Array(Schema.String),
 });
-export type RenderFiles = typeof RenderFiles.Type;
+type RenderFiles = typeof RenderFiles.Type;
 
 /**
  * The sound a video carries: the film's master as mixed from the plan `mix`
@@ -110,17 +110,17 @@ const SayFields = {
 };
 
 /** The owner's approval of one variant, as it was when approved. */
-export const Approval = Schema.Struct({ ...SayFields, at: Schema.Finite });
-export type Approval = typeof Approval.Type;
+const Approval = Schema.Struct({ ...SayFields, at: Schema.Finite });
+type Approval = typeof Approval.Type;
 
 /** The owner's comment on one variant, as it was when said. */
-export const Comment = Schema.Struct({
+const Comment = Schema.Struct({
   id: Schema.String,
   ...SayFields,
   text: Schema.String,
   at: Schema.Finite,
 });
-export type Comment = typeof Comment.Type;
+type Comment = typeof Comment.Type;
 
 /** `catalogue.json`: a film's renders, approvals and comments. */
 export const Catalogue = Schema.Struct({
@@ -145,7 +145,7 @@ export const emptyCatalogue = (film: string): Catalogue => ({
 export const MAIN_VARIANT = 'main';
 
 /** The address, variant and kind that name one render's place in the catalogue. */
-export interface Slot {
+interface Slot {
   readonly address: Address;
   readonly variant: string;
   readonly kind: RenderKind;
@@ -237,7 +237,7 @@ export type StaleBy = typeof StaleBy.Type;
  * has no track yet or its plan does not build (the check names why): then
  * no render is judged by its sound.
  */
-export interface RenderNow {
+interface RenderNow {
   readonly key: string;
   readonly sound: Option.Option<string>;
 }
@@ -250,7 +250,7 @@ const soundsNow = (render: Render, sound: Option.Option<string>): boolean =>
   });
 
 /** Why `render` is stale against `now`, or none while it is current. */
-export const staleBy = (render: Render, now: RenderNow): Option.Option<StaleBy> => {
+const staleBy = (render: Render, now: RenderNow): Option.Option<StaleBy> => {
   if (render.stamp.key !== now.key) return Option.some('sources');
   if (!soundsNow(render, now.sound)) return Option.some('sound');
   return Option.none();
@@ -307,7 +307,7 @@ export const recordedNow = (catalogue: Catalogue, address: Address): Option.Opti
  * the sound is cut again at the pieces it recorded); or a `draw` (no render,
  * other sources or settings, or a video that recorded no sound to re-cut).
  */
-export type RenderNeed = 'current' | 'remux' | 'draw';
+type RenderNeed = 'current' | 'remux' | 'draw';
 
 /** What `slot` needs to be current against `now`, rendered at `settings` (`RenderNeed`). */
 export const renderNeed = (
@@ -518,7 +518,7 @@ export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): 
 });
 
 /** A catalogue after an approval, and the scenes it approved. */
-export interface Approved {
+interface Approved {
   readonly catalogue: Catalogue;
   readonly approved: ReadonlyArray<string>;
 }

@@ -36,33 +36,33 @@ export const TAKE_LEVEL = { speech: -17.1, ceiling: -1 } as const;
 export const TAKE_PAD = { lead: 0.07, tail: 0 } as const;
 
 /** Sound is measured this many seconds at a time. */
-export const TAKE_WINDOW = 0.01;
+const TAKE_WINDOW = 0.01;
 
 /**
  * A window is speech when it is within this many dB of the take's loudest.
  * The staging takes' loudest window is about −9.5 dBFS, so this is the −50
  * dBFS gate their padding was measured at.
  */
-export const TAKE_GATE = 40;
+const TAKE_GATE = 40;
 
 /**
  * A recording whose loudest speech is under this, in dBFS, holds none:
  * a quiet room reads −70 or lower, a voice at a normal distance −30 or higher.
  */
-export const TAKE_FLOOR = -60;
+const TAKE_FLOOR = -60;
 
 /**
  * Sound over the gate is speech when it lasts this long, in seconds, counting
  * any gaps under `TAKE_HOLD` inside it: a click, a tap or a lip smack is
  * shorter, and is trimmed with the silence around it.
  */
-export const TAKE_MIN_SPEECH = 0.1;
+const TAKE_MIN_SPEECH = 0.1;
 
 /** Speech goes on across a gap under this, in seconds: a stop inside a word, or a breath between two. */
-export const TAKE_HOLD = 0.25;
+const TAKE_HOLD = 0.25;
 
 /** A take fades in and out over this long, in seconds, so neither trim clicks. */
-export const TAKE_FADE = 0.005;
+const TAKE_FADE = 0.005;
 
 /**
  * How loud the speech in `pcm` is, in dBFS, with pauses left out: the mean

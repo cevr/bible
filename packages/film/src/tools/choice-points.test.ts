@@ -12,6 +12,7 @@ import { Option, Result } from 'effect';
 import { type Catalogue, approve, comment, emptyCatalogue } from '../core/catalogue.ts';
 import { type ChoicePoint, subjectAt } from '../core/choice.ts';
 import { layout } from '../core/layout.ts';
+import { pointIdOf } from '../core/point.ts';
 import type { Sound } from '../core/schema.ts';
 import { type Variant, defineLibrary, requestKey } from '../core/sfx.ts';
 import {
@@ -114,7 +115,7 @@ const named = (all: ReadonlyArray<ChoicePoint>, id: string) =>
 describe('the adapters', () => {
   test("the score's options, `play` picked, the others offered a pick", () => {
     const score = Option.getOrThrow(scorePoint(film(), placed));
-    expect(score.id).toBe('score');
+    expect(score.ref).toEqual({ _tag: 'Score' });
     expect(score.address).toEqual(Option.some({ _tag: 'Film' }));
     expect(score.variants.map((v) => [v.id, v.state, v.picked, v.verbs])).toEqual([
       ['piano', 'missing', true, []],
@@ -130,7 +131,7 @@ describe('the adapters', () => {
 
   test("each look's levels, `play` (today's `now`) picked", () => {
     const [ground] = lookPoints(film());
-    expect(ground?.id).toBe('look:ground');
+    expect(ground?.ref).toEqual({ _tag: 'Look', name: 'ground' });
     expect(ground?.variants.map((v) => [v.id, v.picked, v.verbs, v.key])).toEqual([
       ['now', true, [], 'now=0'],
       ['light', false, ['pick'], 'light=0.5'],
@@ -143,7 +144,7 @@ describe('the adapters', () => {
     const [held, ...rest] = voicePoints(film(), BEATS);
     // A beat with no attempts has no point.
     expect(rest).toEqual([]);
-    expect(held?.id).toBe('voice:held');
+    expect(held?.ref).toEqual({ _tag: 'Voice', beat: 'held' });
     expect(held?.address).toEqual(Option.some({ _tag: 'Scenes', ids: ['held'] }));
     expect(held?.variants.map((v) => [v.id, v.state, v.picked, v.verbs])).toEqual([
       ['held-3.flac', 'current', false, ['pick']],
@@ -237,7 +238,7 @@ describe('a take point when the mix plan does not build', () => {
       placed,
       'sound.ts',
       SOUND_TS,
-    ).find((p) => p.id === 'level:effect:page');
+    ).find((p) => pointIdOf(p.ref) === 'level:effect:page');
     expect(effect?.lines.some((line) => line.includes('nosuch'))).toBe(true);
   });
 });

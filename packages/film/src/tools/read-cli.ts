@@ -2,7 +2,9 @@
 // sources stand on disk. The lab runs these in a fresh process (`FreshFilm`,
 // `fresh-film.ts`) because its own imports of the film's script, voice and
 // scenes are as they were at its start. Each prints one line of JSON
-// (`FreshLine`) on stdout; logs go to stderr.
+// (`FreshLine`) on stdout; logs go to stderr. A run that fails answers with
+// its failure (`answering`: a refusal as itself, any other as ServerFailed),
+// so a film that does not load reads as one sentence.
 //
 //   film read voice <film>
 //       what the studio reads: the voice, how speech-to-text writes the
@@ -21,7 +23,7 @@ import { type Quote, type ScriptLine, sheetBeats } from '../core/sheet.ts';
 import type { StudioReading } from '../core/studio.ts';
 import { resolveTimeline } from '../core/timeline.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { CueRead, TimelineJson, VoiceRead, printLine } from './fresh-film.ts';
+import { CueRead, TimelineJson, VoiceRead, answering, printLine } from './fresh-film.ts';
 import { beatsOf } from './narrator.ts';
 import { quotesOf } from './script-sheet.ts';
 
@@ -34,7 +36,7 @@ const film = Argument.String('film').pipe(
  * beat's line, and the sheet set from `script` (each scene's `say` when the
  * film keeps no `script.ts`) and the film's quotations. Pure.
  */
-export const studioReading = (
+const studioReading = (
   loaded: LoadedFilm,
   script: Option.Option<ReadonlyArray<ScriptLine>>,
   quotes: ReadonlyArray<Quote>,
@@ -89,7 +91,7 @@ const voice = Command.make(
   Effect.fn('film.read.voice')(function* (input) {
     const loaded = yield* (yield* FilmRepo).load(input.film);
     yield* printLine(VoiceRead.make({ reading: yield* readingOf(loaded) }));
-  }),
+  }, answering),
 ).pipe(
   Command.withDescription(
     "What the lab's studio reads of the film (its voice, each beat's line, the reading sheet), as one line of JSON",
@@ -112,7 +114,7 @@ const cue = Command.make(
     const placed = yield* placeFilm(yield* (yield* FilmRepo).load(input.film));
     const spans = Option.getOrElse(input.spans, () => ({}));
     yield* printLine(cueOf(placed, input.scene, input.cue, spans));
-  }),
+  }, answering),
 ).pipe(
   Command.withDescription(
     "A cue on its scene's clock as the scene file declares it (or with --spans in its place), or why its timeline does not resolve, as one line of JSON",

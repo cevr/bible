@@ -25,7 +25,7 @@ export const addInto = (
 };
 
 /** A linear fade (afade, `curve=tri`). */
-export interface Fade {
+interface Fade {
   readonly type: 'in' | 'out';
   /** The first frame of the fade. */
   readonly start: number;

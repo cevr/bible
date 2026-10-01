@@ -5,7 +5,7 @@
 // definition. Pure: Schema runs in the browser, the tools and the tests alike.
 
 import { Array as Arr, Option, Schema, SchemaTransformation } from 'effect';
-import { Address } from './address-schema.ts';
+import { ActName, Address, PartId } from './address-schema.ts';
 import type { ease } from './time.ts';
 
 /**
@@ -51,7 +51,7 @@ export type Word = typeof Word.Type;
  * Seconds at which a voice is heard (measured from the take's audio,
  * `voiced.ts`), not where the aligner puts a word, pause before it and all.
  * Branded, so aligned seconds passed where the ear is met (a short's
- * captions, its hook, its loop, a take's speech end) are a type error.
+ * captions, its hook, its loop) are a type error.
  */
 export const Heard = Seconds.pipe(Schema.brand('Heard'));
 export type Heard = typeof Heard.Type;
@@ -187,8 +187,8 @@ export const Reader = Schema.Union([
 export type Reader = typeof Reader.Type;
 
 /** One voice of a cast: the name a line hands over to with `{@name}`. */
-export const CastVoice = Schema.Struct({ name: Schema.String, voiceId: Schema.String });
-export type CastVoice = typeof CastVoice.Type;
+const CastVoice = Schema.Struct({ name: Schema.String, voiceId: Schema.String });
+type CastVoice = typeof CastVoice.Type;
 
 /**
  * Voices in conversation, every take read through text-to-dialogue, so a
@@ -269,11 +269,11 @@ export type EaseName = typeof EaseName.Type;
 /** Fails the typecheck unless `EaseName` names every curve in `ease` and nothing else. */
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Assert<T extends true> = T;
-export type EaseNamesMatch = Assert<Same<EaseName, keyof typeof ease>>;
+type _EaseNamesMatch = Assert<Same<EaseName, keyof typeof ease>>;
 
 /** A scene's landmarks: its start, where its voice starts and ends, and its end. */
-export const Landmark = Schema.Literals(['start', 'speech', 'speechEnd', 'end']);
-export type Landmark = typeof Landmark.Type;
+const Landmark = Schema.Literals(['start', 'speech', 'speechEnd', 'end']);
+type Landmark = typeof Landmark.Type;
 
 /** A key a point must not name beside its own anchor. */
 const none = Schema.optionalKey(Schema.Never);
@@ -409,7 +409,8 @@ export type Knobs = typeof Knobs.Type;
 
 /** The part of a scene the clock reads. */
 export const Timed = Schema.Struct({
-  id: Schema.String,
+  /** Names the scene's files, its address and its render's choice point. */
+  id: PartId,
   /** Narration, with optional `{mark}` cues. Omit for a silent beat. */
   say: Schema.optionalKey(Schema.String),
   /** Silence before the voice starts. */
@@ -480,12 +481,10 @@ export const ShortSpan = Schema.Struct({
 });
 export type ShortSpan = typeof ShortSpan.Type;
 
-/** A short's id names its files (`out/<film>/shorts/<id>.mp4`): lower case, digits and dashes. */
-const ShortId = Schema.String.check(Schema.isPattern(/^[a-z0-9][a-z0-9-]*$/));
-
 /** A vertical short cut from a film (`shorts.ts`): its spans, played back to back. */
 export const Short = Schema.Struct({
-  id: ShortId,
+  /** Names its files (`out/<film>/shorts/<id>.mp4`) and its address. */
+  id: PartId,
   title: Schema.String,
   /**
    * The line set above the picture from the first frame for its first
@@ -599,7 +598,7 @@ export type SoundEffect = typeof SoundEffect.Type;
  * itself where it wraps, faded in and out, ducked under the voice unless the
  * library says it sits under everything.
  */
-export const SoundBed = Schema.Struct({
+const SoundBed = Schema.Struct({
   sound: Schema.String,
   /** dB relative to the voice; else the library's, else the bed default. */
   level: Schema.optionalKey(Schema.Finite),
@@ -608,7 +607,7 @@ export const SoundBed = Schema.Struct({
   /** Seconds each end fades over; `BED_FADE` when none. */
   fade: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
 });
-export type SoundBed = typeof SoundBed.Type;
+type SoundBed = typeof SoundBed.Type;
 
 /** A film's score, beds and effects (`sound.ts`). */
 export const Sound = Schema.Struct({
@@ -684,9 +683,9 @@ const Range = Schema.Tuple([Schema.Finite, Schema.Finite]);
  */
 export const Act = Schema.Struct({
   /** The scene the act starts on; it runs until the next act's. The first holds every scene before it. */
-  from: Schema.String,
+  from: PartId,
   /** The act's name, for the report: `cold open`, `valley`. */
-  name: Schema.String,
+  name: ActName,
   /**
    * The narrator's question that opens the act, in the viewer's words: its
    * YouTube chapter title (`film chapters`).
@@ -710,7 +709,7 @@ export type Look = typeof Look.Type;
  * `light`, `lighter`): each level's value, and `play`, the one the film is
  * drawn at. The review compares them and a pick rewrites `play`.
  */
-export const LookOption = Schema.Struct({
+const LookOption = Schema.Struct({
   options: Schema.Record(Schema.String, Schema.Finite),
   play: Schema.String,
 }).check(
@@ -720,7 +719,7 @@ export const LookOption = Schema.Struct({
       `plays "${look.play}", which is none of its levels (${Object.keys(look.options).join(', ')})`,
   ),
 );
-export type LookOption = typeof LookOption.Type;
+type LookOption = typeof LookOption.Type;
 
 /** A film's look options by name (`export const looks` in `palette.ts`). */
 export const Looks = Schema.Record(Schema.String, LookOption);

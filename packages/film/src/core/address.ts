@@ -111,11 +111,6 @@ export const resolveAddress = (
     onNone: () => Result.succeed<ReadonlyArray<Stretch<Act>>>([]),
     onSome: (look) => stretchesOf(look.acts, film.placed),
   });
-  const stretch = (scenes: ReadonlyArray<Placed>) => ({
-    scenes,
-    span: Option.some(spanOf(scenes)),
-    short: Option.none<Short>(),
-  });
   return Match.valueTags(address, {
     Film: (whole) =>
       Result.map(acts, (all): Scope => ({
@@ -161,7 +156,9 @@ export const resolveAddress = (
         );
         return Result.succeed({
           address: { _tag: 'Scenes', ids: Arr.sort(Arr.dedupe(named.ids), played) },
-          ...stretch(run),
+          scenes: run,
+          span: Option.some(spanOf(run)),
+          short: Option.none(),
           acts: [],
         });
       }),

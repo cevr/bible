@@ -11,9 +11,9 @@ import type { Pcm } from './audio.ts';
 import { Heard, type HeardWord, type TakeWord, type Voiced, type Word } from './schema.ts';
 
 /** A window is voiced when its level is over this, in dBFS. */
-export const VOICE_GATE_DB = -40;
+const VOICE_GATE_DB = -40;
 /** The windows the level is read over, in seconds. */
-export const VOICE_WINDOW = 0.01;
+const VOICE_WINDOW = 0.01;
 
 /** The gate as a mean square: `VOICE_GATE_DB` is 10·log10 of it. */
 const GATE = 10 ** (VOICE_GATE_DB / 10);

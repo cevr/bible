@@ -78,6 +78,45 @@ describe('the choice point id', () => {
       expect(Result.isFailure(Schema.decodeResult(PointId)(id))).toBe(true);
   });
 
+  test('an id no point is written as does not decode', () => {
+    for (const id of [
+      'level:bed::amb',
+      'level:bed:01:amb',
+      'level:bed:1e0:amb',
+      'level:bed: 1:amb',
+      'level:bed:0x1:amb',
+      'render:scenes:a,',
+      'render:scenes:,a',
+    ]) {
+      expect(pointRefOf(id)).toEqual(Option.none());
+      expect(Result.isFailure(Schema.decodeResult(PointId)(id))).toBe(true);
+    }
+  });
+
+  test('any string that reads as a point is that point’s own id', () => {
+    const heads = ['', 'score', 'take:', 'look:', 'render:', 'render:scenes:', 'render:act:'];
+    const idLike = Arbitrary.map(
+      Arbitrary.all([
+        Arbitrary.schema(Schema.Literals([...heads, 'level:bed:', 'level:bed:0', 'level:const:'])),
+        Arbitrary.schema(Schema.String),
+      ]),
+      ([head, tail]) => head + tail,
+    );
+    const result = Effect.runSync(
+      Arbitrary.checkEffect(
+        idLike,
+        (id) =>
+          Option.match(pointRefOf(id), {
+            onNone: () => Result.isFailure(Schema.decodeResult(PointId)(id)),
+            onSome: (ref) =>
+              pointIdOf(ref) === id && Result.isSuccess(Schema.decodeResult(PointRef)(ref)),
+          }),
+        { runs: 4000, seed: 7 },
+      ),
+    );
+    expect(Arbitrary.formatCheckFailure(result)).toBeUndefined();
+  });
+
   test('a catalogue with a say on each kind of point keeps its bytes', () => {
     // As the catalogue writes a say: the render's with no point, every other with its id.
     const said = (point: Option.Option<string>, i: number) =>

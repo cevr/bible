@@ -90,7 +90,7 @@ export const patchSpan = (span: Span, patch: CuePatch): Span => ({
 export type DragEdge = 'move' | 'start' | 'end';
 
 /** Where a dragged bar now sits on the scene clock. */
-export interface DraggedBar {
+interface DraggedBar {
   readonly start: number;
   readonly end: number;
 }
@@ -204,7 +204,7 @@ export const pointOn = <E>(
 };
 
 /** A span's anchor as a point: `after` a cue is its end, `with` it its start. */
-export const anchorPoint = (span: Span): ScenePoint => {
+const anchorPoint = (span: Span): ScenePoint => {
   if ('mark' in span)
     return span.word === undefined ? { mark: span.mark } : { mark: span.mark, word: span.word };
   if ('after' in span) return { cue: span.after, edge: 'end' };

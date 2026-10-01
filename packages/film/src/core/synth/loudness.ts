@@ -12,7 +12,7 @@ import type { Pcm } from '../audio.ts';
 import { type Coefficients, runBiquad } from './signal.ts';
 
 /** A sound's loudness: integrated and momentary max in LUFS, sample peak in dBFS; silence is -Infinity. */
-export interface Loudness {
+interface Loudness {
   readonly integrated: number;
   readonly momentaryMax: number;
   readonly peak: number;

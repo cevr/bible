@@ -10,13 +10,3 @@ import { Handles, Rows } from './knobs.tsx';
 import { Strip } from './strip.tsx';
 
 export const Editor = { Provider, Strip, Section, Knobs: Rows, Handles };
-export { useEditor } from './context.tsx';
-export type {
-  Box,
-  EditorActions,
-  EditorContextValue,
-  EditorState,
-  KnobPress,
-  Known,
-  Press,
-} from './context.tsx';

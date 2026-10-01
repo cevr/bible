@@ -30,7 +30,7 @@ import {
 } from './schema.ts';
 
 /** The API refuses chunks shorter than this. */
-export const MIN_CHUNK_MS = 3000;
+const MIN_CHUNK_MS = 3000;
 
 /** The API refuses chunks longer than this. */
 export const MAX_CHUNK_MS = 120_000;
@@ -44,7 +44,7 @@ export const MAX_CHUNK_MS = 120_000;
 export const MUSIC_TAIL = 6;
 
 /** One option of a score, by its name. */
-export interface ScoreOption {
+interface ScoreOption {
   readonly name: string;
   readonly music: Music;
 }
@@ -80,7 +80,7 @@ export const cueTime = (
   });
 
 /** How long one movement of the score lasts, in whole milliseconds, as its plan sends it. */
-export interface MovementSpan {
+interface MovementSpan {
   readonly movement: Movement;
   readonly ms: number;
 }
@@ -145,10 +145,7 @@ export const musicKey = (music: Music, plan: Plan): string =>
   hashText(Schema.encodeSync(MusicRequestKey)({ model: music.model, plan }));
 
 /** Why a composed option no longer fits: the film was re-timed (the plan's key now), or no plan holds. */
-export type ScoreStale =
-  | { readonly _tag: 'Retimed'; readonly key: string }
-  | PartError
-  | MovementLength;
+type ScoreStale = { readonly _tag: 'Retimed'; readonly key: string } | PartError | MovementLength;
 
 /**
  * Where a score option stands against what was composed for it, the one

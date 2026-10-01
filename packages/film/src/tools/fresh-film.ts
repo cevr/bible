@@ -119,7 +119,7 @@ export const printLine = (line: FreshLine) =>
   Effect.flatMap(Schema.encodeEffect(FreshLineJson)(line), (text) => Console.log(text));
 
 /** Whether an error is one a fresh run answers with (its line), not a failure of the run. */
-export const isRefusal = Schema.is(FreshRefusal);
+const isFreshRefusal = Schema.is(FreshRefusal);
 
 /** A failure that names itself: a tag, and words a page can show. */
 interface Named {
@@ -135,7 +135,7 @@ const isNamed = (u: unknown): u is Named =>
 
 /** The line a failure answers with: a refusal as itself, any other as `ServerFailed`. */
 const failureLine = (error: Named): FreshRefusal | ServerFailed => {
-  if (isRefusal(error)) return error;
+  if (isFreshRefusal(error)) return error;
   return ServerFailed.make({ tag: error._tag, reason: error.message });
 };
 
@@ -178,6 +178,28 @@ export const checkLines = Effect.fn('FreshFilm.checkLines')(function* (
 export const failedCheck = (error: FreshProcessFailed): ReadonlyArray<CheckLine> => [
   { level: 'error', tag: error._tag, message: error.message },
 ];
+
+/** A finding as one line of JSON, as `film check --json` prints it. */
+export const encodeCheckLine = Schema.encodeSync(CheckLineJson);
+
+/**
+ * `film check`'s run, answering with `--json` a check that cannot run (the
+ * film does not load, a flag it refuses) as its one error finding, in the
+ * failure's own words, then failing with it as before. A check that ran has
+ * printed its findings, and fails as CheckFailed.
+ */
+export const answeringCheck = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+  input: { readonly json: boolean },
+) => {
+  if (!input.json) return effect;
+  return Effect.tapError(effect, (error) => {
+    if (!isNamed(error) || error._tag === 'CheckFailed') return Effect.void;
+    return Console.log(
+      encodeCheckLine({ level: 'error', tag: error._tag, message: error.message }),
+    );
+  });
+};
 
 /** How long a read may take (a cold start and the film's modules, a few seconds), a mix, a kept take. */
 const READ_LIMIT = Duration.seconds(60);

@@ -156,6 +156,13 @@ const MANIFEST = `{
 describe('a montage', () => {
   const manifest = Schema.decodeSync(ReviewManifestJson)(MANIFEST);
 
+  test('a set named like an address is refused, so its id never reads as a film render', () => {
+    for (const clip of ['film', 'act:valley', 'scenes:cold', 'short:hook', ''])
+      expect(() => Schema.decodeSync(ReviewManifestJson)(`{"sets":{"${clip}":{}}}`)).toThrow(
+        `a set's clip is never empty nor named like an address ("${clip}")`,
+      );
+  });
+
   test('names every file it may show: a variant with no file by its share copy, then its master', () => {
     expect(namesInMontage(manifest)).toEqual([
       '../brief.md',
@@ -521,6 +528,19 @@ describe('the review service', () => {
       expect(frames[0]).toEndWith('roof.A.mp4 1.25 640');
       yield* review.frame('out/art/roof.A.mp4', Option.some(3), 640);
       expect(spawned.filter((c) => c.startsWith('still'))).toHaveLength(2);
+    }).pipe(Effect.provide(fixture(false))),
+  );
+
+  it.effect('a time before the start is the first frame, made and kept once', () =>
+    Effect.gen(function* () {
+      const review = yield* Review;
+      const spawned = yield* Spawned;
+      const first = yield* review.frame('out/art/roof.A.mp4', Option.some(0), 640);
+      const before = yield* review.frame('out/art/roof.A.mp4', Option.some(-2), 640);
+      expect(before).toBe(first);
+      expect(spawned.filter((c) => c.startsWith('still'))).toEqual([
+        expect.stringMatching(/roof\.A\.mp4 0 640$/),
+      ]);
     }).pipe(Effect.provide(fixture(false))),
   );
 
