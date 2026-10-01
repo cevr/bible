@@ -5,12 +5,12 @@
 // silence on input 2.
 
 /** How the tone is laid out: its rate, and its channels. */
-export interface ToneLayout {
+interface ToneLayout {
   readonly rate: number;
   readonly channels: 'mono' | 'left-only';
 }
 
-export const MONO_48K: ToneLayout = { rate: 48000, channels: 'mono' };
+const MONO_48K: ToneLayout = { rate: 48000, channels: 'mono' };
 
 const CHANNELS = { mono: 1, 'left-only': 2 } as const;
 

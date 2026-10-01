@@ -182,7 +182,7 @@ type ToolError =
   | EncoderReadyError
   | PreviewServerFailed;
 /** What a doctor check needs from the platform. */
-type ToolNeeds = Path.Path | ChildProcessSpawner.ChildProcessSpawner;
+type ToolNeeds = FileSystem.FileSystem | Path.Path | ChildProcessSpawner.ChildProcessSpawner;
 
 interface ToolCheck<E, R> {
   readonly tool: string;

@@ -143,7 +143,6 @@
         "mpg123-decoder": "1.0.3",
         "node-av": "6.1.1",
         "oxc-parser": "0.152.0",
-        "playwright-core": "1.63.0",
         "solid-js": "catalog:",
       },
       "devDependencies": {

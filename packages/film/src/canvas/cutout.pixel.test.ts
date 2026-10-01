@@ -4,12 +4,12 @@
 // Magnifying a pre-blended tile resamples the blend, where the look blends
 // the resampled pastel; soft-light is not linear, so a face pushed in to
 // 1.4x or squashed drifts up to 11/255 from the look. Those faces must keep
-// the two-pass draw. Drawn in headless Chromium with the renderer's software
+// the two-pass draw. Drawn in headless Chrome with the renderer's software
 // 2D canvas, as the export draws them.
 
-import { Effect } from 'effect';
+import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { chromium } from 'playwright-core';
+import { openTab, respond, servePaths } from '../lab/fixtures/browsers.ts';
 import type { FaceCase, FaceDelta } from './fixtures/face-pixels.ts';
 
 /** The most a pre-blended face may drift from the look, per channel /255: 8-bit rounding. */
@@ -68,30 +68,31 @@ const fixture = Effect.cached(
 ).pipe(Effect.runSync);
 
 /**
- * Headless Chromium with the renderer's software 2D canvas (`tools/browser.ts`),
- * launched once for the file's cases; Playwright closes it as the process ends.
+ * Each case drawn both ways in one page: a tab of the browser tests' Chrome,
+ * which draws with the renderer's software 2D canvas (`tools/browser.ts`).
  */
-const browser = Effect.cached(
-  Effect.promise(() => chromium.launch({ args: ['--disable-accelerated-2d-canvas'] })),
-).pipe(Effect.runSync);
-
-/** Each case drawn both ways in one page. */
 const deltas = (faces: ReadonlyArray<FaceCase>) =>
   Effect.gen(function* () {
     const script = yield* fixture;
-    const page = yield* Effect.acquireRelease(
-      Effect.flatMap(browser, (b) => Effect.promise(() => b.newPage())),
-      (p) => Effect.promise(() => p.close()),
-    );
-    yield* Effect.promise(() => page.setContent('<!doctype html><html><body></body></html>'));
-    yield* Effect.promise(() => page.addScriptTag({ content: script }));
-    return yield* Effect.promise((): Promise<ReadonlyArray<FaceDelta>> =>
-      page.evaluate(
-        (cs) => Reflect.apply(Reflect.get(globalThis, 'faceDeltas'), undefined, [cs]),
-        faces,
-      ),
-    );
+    const page = yield* openTab({
+      width: 800,
+      height: 600,
+      microphone: false,
+      init: [],
+      serve: servePaths({
+        '/': respond(
+          '<!doctype html><html><body><script src="/faces.js"></script></body></html>',
+          'text/html',
+        ),
+        '/faces.js': respond(script, 'text/javascript'),
+      }),
+    });
+    yield* page.goto('/');
+    return yield* page.evaluate<ReadonlyArray<FaceDelta>>(`faceDeltas(${json(faces)})`);
   });
+
+/** The cases as JSON, to hand to the page. */
+const json = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
 /** The cases that drift past rounding, named, so a failure says which. */
 const drifting = (ds: ReadonlyArray<FaceDelta>) =>

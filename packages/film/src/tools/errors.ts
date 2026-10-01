@@ -294,13 +294,12 @@ export class CuesLate extends Schema.TaggedError<CuesLate>()('CuesLate', {
   }
 }
 
-/** No headless Chromium to render with: Playwright ships without one. */
+/** No Chrome to render with: none where `BUN_CHROME_PATH` points, or none found (`chrome.ts`). */
 export class BrowserMissing extends Schema.TaggedError<BrowserMissing>()('BrowserMissing', {
   executable: Schema.String,
-  install: Schema.String,
 }) {
   override get message() {
-    return `no headless Chromium at ${this.executable}; install it with:\n  ${this.install}`;
+    return `no Chrome at ${this.executable}: install Google Chrome or Chromium, or set BUN_CHROME_PATH to its executable`;
   }
 }
 

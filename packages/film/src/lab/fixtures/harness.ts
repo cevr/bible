@@ -1,26 +1,24 @@
 // The lab's browser tests: the lab page (`fixtures/lab-page.ts`, the real
-// `mountLab` over the probe film) bundled with Solid's compiler, served to
-// headless Chromium at a fake origin, with the lab API answered by routes the
-// test gives (then the defaults below). Every request the page makes is kept,
-// so a test can read what the lab wrote.
+// `mountLab` over the probe film) bundled with Solid's compiler, served to a
+// tab of the test process's Chrome (`browsers.ts`) at its own origin, with the
+// lab API answered by routes the test gives (then the defaults below). Every
+// request the page makes is kept, so a test can read what the lab wrote.
 
 import { BunServices } from '@effect/platform-bun';
-import { Deferred, Effect, FileSystem, Option, Schema } from 'effect';
-import type { Browser, BrowserContextOptions, Page, Route } from 'playwright-core';
+import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effect';
 import { Refusal, statusOf } from '../../core/api.ts';
 import { solidPlugin } from '../../tools/solid-plugin.ts';
-import { ORIGIN, type Tone, micBrowser, sharedBrowser } from './browsers.ts';
+import { openTab, respond } from './browsers.ts';
+import { CLOCK_SCRIPT } from './clock.ts';
 import { PROBE } from './probe-film.ts';
+import type { Request, Response, Tab } from './tab.ts';
 
 const API = `/lab/${PROBE}`;
 
 /** A JSON value, as the fake server answers and the page posts. */
-export type Json =
-  | string
-  | number
-  | boolean
-  | ReadonlyArray<Json>
-  | { readonly [key: string]: Json };
+export type Json = Schema.Json;
+
+const JsonText = Schema.fromJsonString(Schema.Json);
 
 /** A request the page made to the lab API. */
 export interface Asked {
@@ -179,41 +177,81 @@ const css = Effect.runSync(
 );
 
 /** The lab page as `lab.html` has it, with the player's styles inline. */
-const page = (style: string) =>
+const labPage = (style: string) =>
   `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style></head><body class="lab"><script src="/lab.js"></script></body></html>`;
 
-const bodyOf = (r: Route): Option.Option<Json> =>
-  Option.flatMap(Option.fromNullishOr(r.request().postData()), () =>
-    Option.fromNullishOr<Json>(r.request().postDataJSON()),
-  );
+/** The page's JSON body, when it sent one. */
+const bodyOf = (request: Request): Option.Option<Json> =>
+  Schema.decodeOption(JsonText)(request.body);
 
 const encodeRefusal = Schema.encodeSync(Schema.fromJsonString(Refusal));
 
-const answer = (r: Route, found: Answer) => {
-  if (found._tag === 'Hold') return;
-  if (found._tag === 'Later') {
-    const { gate, then } = found;
-    Effect.runFork(
-      Effect.andThen(
-        Deferred.await(gate),
-        Effect.sync(() => {
-          void answer(r, then);
-        }),
-      ),
-    );
-    return;
-  }
-  if (found._tag === 'File') return r.fulfill({ path: found.path });
+/** A file the fake server answers, its type read from its name. */
+const fileAnswer = (path: string) =>
+  FileSystem.FileSystem.use((fs) => fs.readFile(path)).pipe(
+    Effect.map((bytes) => respond(bytes, typeOfFile(path))),
+    Effect.orDie,
+    Effect.provide(BunServices.layer),
+  );
+
+/** The media types of the files the tests answer with (a tone, as a fixture video's sound). */
+const TYPES = new Map([['.wav', 'audio/wav']]);
+
+const typeOfFile = (path: string) =>
+  Option.getOrElse(
+    Option.fromUndefinedOr(TYPES.get(path.slice(path.lastIndexOf('.')))),
+    () => 'application/octet-stream',
+  );
+
+/** `found` as the tab's server answers it: never, for a hold; after its gate, for a later one. */
+const answer = (found: Answer): Effect.Effect<Option.Option<Response>> => {
+  if (found._tag === 'Hold') return Effect.succeedNone;
+  if (found._tag === 'Later') return Effect.andThen(Deferred.await(found.gate), answer(found.then));
+  if (found._tag === 'File') return Effect.asSome(fileAnswer(found.path));
   if (found._tag === 'Text')
-    return r.fulfill({ status: found.status, contentType: 'text/plain', body: found.text });
+    return Effect.succeedSome(respond(found.text, 'text/plain', found.status));
   if (found._tag === 'Refused')
-    return r.fulfill({
-      status: statusOf(found.refusal),
-      contentType: 'application/json',
-      body: encodeRefusal(found.refusal),
-    });
-  return r.fulfill({ status: found.status, json: found.json });
+    return Effect.succeedSome(
+      respond(encodeRefusal(found.refusal), 'application/json', statusOf(found.refusal)),
+    );
+  return Effect.succeedSome(
+    respond(Schema.encodeSync(JsonText)(found.json), 'application/json', found.status),
+  );
 };
+
+/**
+ * A request to the API: kept in `asked` (its path past `prefix`) and
+ * answered by the first of `routes` that matches it, or a 404.
+ */
+const apiAnswer =
+  (prefix: string, routes: ReadonlyArray<FakeRoute>, asked: Array<Asked>) =>
+  (request: Request): Effect.Effect<Option.Option<Response>> => {
+    const made: Asked = {
+      method: request.method,
+      path: `${request.url.pathname.slice(prefix.length)}${request.url.search}`,
+      body: bodyOf(request),
+    };
+    asked.push(made);
+    const found = routes.find((f) => f.method === made.method && f.path.test(made.path));
+    return Option.match(Option.fromUndefinedOr(found), {
+      onNone: () => Effect.succeedSome(respond('no fake route', 'text/plain', 404)),
+      onSome: (f) => answer(f.answer(made)),
+    });
+  };
+
+/** A page's fake server: `pages` by path (its HTML and its script), then the API (`apiAnswer`). */
+const fakeServer =
+  (
+    pages: ReadonlyMap<string, Response>,
+    prefix: string,
+    routes: ReadonlyArray<FakeRoute>,
+    asked: Array<Asked>,
+  ) =>
+  (request: Request): Effect.Effect<Option.Option<Response>> =>
+    Option.match(Option.fromUndefinedOr(pages.get(request.url.pathname)), {
+      onSome: Effect.succeedSome,
+      onNone: () => apiAnswer(prefix, routes, asked)(request),
+    });
 
 /**
  * `canvas.toBlob` encoding at once, from `toDataURL`: the same image in the
@@ -230,39 +268,39 @@ const TO_BLOB_AT_ONCE = `HTMLCanvasElement.prototype.toBlob = function (done, ty
 };`;
 
 /**
- * The lab open in a fresh page: the page, what it asked of the API, and any
+ * A microphone 6 dB hotter than the shared fake one, its tone at 0.99 of
+ * full scale: every microphone source the page makes goes through a gain.
+ */
+const HOT_MIC = `(() => {
+  const real = AudioContext.prototype.createMediaStreamSource;
+  AudioContext.prototype.createMediaStreamSource = function (stream) {
+    const source = real.call(this, stream);
+    const gain = this.createGain();
+    gain.gain.value = 1.98;
+    source.connect(gain);
+    return gain;
+  };
+})()`;
+
+/**
+ * A page open in a fresh tab: the tab, what it asked of its server, and any
  * page errors, Solid's reactivity diagnostics among them (a `[STRICT_…]`
  * warning is a read or a write the page does not mean).
  */
 interface OpenLab {
-  readonly page: Page;
+  readonly page: Tab;
   readonly asked: ReadonlyArray<Asked>;
   readonly errors: ReadonlyArray<string>;
 }
 
-/** Collect `tab`'s errors into `errors`: what it throws, and each reactivity diagnostic it warns. */
-const collectErrors = (tab: Page, errors: Array<string>) => {
-  tab.on('pageerror', (e) => errors.push(String(e)));
-  tab.on('console', (m) => {
-    if (m.type() === 'warning' && m.text().startsWith('[STRICT_')) errors.push(m.text());
-  });
-};
-
 /**
- * A microphone for the page: the browser's fake device playing `tone`, and
- * the permissions the page has (`['microphone']`, or none to be refused).
+ * The page's microphone: the shared fake (`browsers.ts`), allowed or
+ * refused, and `hot` when it should clip.
  */
 interface FakeMic {
-  readonly tone: Tone;
-  readonly permissions: ReadonlyArray<string>;
+  readonly allowed: boolean;
+  readonly hot?: boolean;
 }
-
-/** A fresh tab in `browser`: its own context, closed with the scope. */
-const tabIn = (browser: Browser, options: BrowserContextOptions) =>
-  Effect.acquireRelease(
-    Effect.promise(() => browser.newContext(options)),
-    (context) => Effect.promise(() => context.close()),
-  ).pipe(Effect.flatMap((context) => Effect.promise(() => context.newPage())));
 
 /**
  * Open the lab on the probe film at `hash` (`#T`, `&sel=…` in `query`), with
@@ -275,54 +313,33 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
 ) {
   const [script, style] = yield* Effect.all([bundle, css], { concurrency: 2 });
   const mic = Option.fromUndefinedOr(at.mic);
-  const browser = yield* Option.match(mic, {
-    onNone: () => sharedBrowser,
-    onSome: (m) => micBrowser(m.tone),
-  });
-  const tab = yield* tabIn(browser, {
-    viewport: { width: 1400, height: 900 },
-    permissions: [
-      ...Option.getOrElse(
-        Option.map(mic, (m) => m.permissions),
-        () => [],
-      ),
-    ],
-  });
   const asked: Array<Asked> = [];
-  const errors: Array<string> = [];
-  collectErrors(tab, errors);
-  const all = [...routes, ...defaults];
-  yield* Effect.promise(() =>
-    tab.route(`${ORIGIN}/**`, (r) => {
-      const url = new URL(r.request().url());
-      if (url.pathname === '/lab')
-        return r.fulfill({ contentType: 'text/html', body: page(style) });
-      if (url.pathname === '/lab.js')
-        return r.fulfill({ contentType: 'text/javascript', body: script });
-      const request: Asked = {
-        method: r.request().method(),
-        path: `${url.pathname.slice(API.length)}${url.search}`,
-        body: bodyOf(r),
-      };
-      asked.push(request);
-      const found = all.find((f) => f.method === request.method && f.path.test(request.path));
-      return Option.match(Option.fromUndefinedOr(found), {
-        onNone: () => r.fulfill({ status: 404, body: 'no fake route' }),
-        onSome: (f) => answer(r, f.answer(request)),
-      });
-    }),
-  );
-  // The page's clock (timers, animation frames, `Date`, `performance.now`) is
-  // the test's: it runs on with real time, and a test moves it on with
-  // `page.clock.runFor` rather than waiting out a count-in, a retry or a
-  // loop's playback. Audio still runs on its own, real, clock.
-  yield* Effect.promise(() => tab.clock.install());
-  yield* Effect.promise(() => tab.addInitScript(TO_BLOB_AT_ONCE));
-  yield* Effect.promise(() =>
-    tab.goto(`${ORIGIN}/lab?film=${PROBE}${at.query ?? ''}${at.hash ?? ''}`),
-  );
-  yield* Effect.promise(() => tab.waitForSelector('.lab-panel'));
-  const open: OpenLab = { page: tab, asked, errors };
+  const page = yield* openTab({
+    width: 1400,
+    height: 900,
+    microphone: Option.exists(mic, (m) => m.allowed),
+    // The page's clock (timers, animation frames, `Date`, `performance.now`) is
+    // the test's: it runs on with real time, and a test moves it on with
+    // `clock.runFor` rather than waiting out a count-in, a retry or a loop's
+    // playback. Audio still runs on its own, real, clock.
+    init: [
+      CLOCK_SCRIPT,
+      TO_BLOB_AT_ONCE,
+      ...Arr.filter([HOT_MIC], () => Option.exists(mic, (m) => m.hot === true)),
+    ],
+    serve: fakeServer(
+      new Map([
+        ['/lab', respond(labPage(style), 'text/html')],
+        ['/lab.js', respond(script, 'text/javascript')],
+      ]),
+      API,
+      [...routes, ...defaults],
+      asked,
+    ),
+  });
+  yield* page.goto(`/lab?film=${PROBE}${at.query ?? ''}${at.hash ?? ''}`);
+  yield* page.waitFor('.lab-panel');
+  const open: OpenLab = { page, asked, errors: page.errors };
   return open;
 });
 
@@ -349,35 +366,24 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
   at: ReviewAt = {},
 ) {
   const script = yield* reviewBundle;
-  const browser = yield* sharedBrowser;
-  const tab = yield* tabIn(browser, { viewport: at.viewport ?? { width: 1400, height: 900 } });
   const asked: Array<Asked> = [];
-  const errors: Array<string> = [];
-  collectErrors(tab, errors);
-  yield* Effect.promise(() =>
-    tab.route(`${ORIGIN}/**`, (r) => {
-      const url = new URL(r.request().url());
-      if (url.pathname === '/') return r.fulfill({ contentType: 'text/html', body: reviewPage });
-      if (url.pathname === '/review.js')
-        return r.fulfill({ contentType: 'text/javascript', body: script });
-      const request: Asked = {
-        method: r.request().method(),
-        path: `${url.pathname}${url.search}`,
-        body: bodyOf(r),
-      };
-      asked.push(request);
-      const found = routes.find((f) => f.method === request.method && f.path.test(request.path));
-      return Option.match(Option.fromUndefinedOr(found), {
-        onNone: () => r.fulfill({ status: 404, body: 'no fake route' }),
-        onSome: (f) => answer(r, f.answer(request)),
-      });
-    }),
-  );
-  // The page's clock is the test's, as the lab's is: it runs on with real
-  // time, and a test moves it on (`page.clock.runFor`) rather than waiting.
-  yield* Effect.promise(() => tab.clock.install());
-  yield* Effect.promise(() => tab.goto(`${ORIGIN}/${at.search ?? ''}`));
-  yield* Effect.promise(() => tab.waitForSelector('.rv-main'));
-  const open: OpenLab = { page: tab, asked, errors };
+  const page = yield* openTab({
+    ...(at.viewport ?? { width: 1400, height: 900 }),
+    microphone: false,
+    // The page's clock is the test's, as the lab's is.
+    init: [CLOCK_SCRIPT],
+    serve: fakeServer(
+      new Map([
+        ['/', respond(reviewPage, 'text/html')],
+        ['/review.js', respond(script, 'text/javascript')],
+      ]),
+      '',
+      routes,
+      asked,
+    ),
+  });
+  yield* page.goto(`/${at.search ?? ''}`);
+  yield* page.waitFor('.rv-main');
+  const open: OpenLab = { page, asked, errors: page.errors };
   return open;
 });

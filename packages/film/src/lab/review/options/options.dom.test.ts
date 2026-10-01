@@ -15,7 +15,7 @@
 import { Deferred, Effect, Exit, FileSystem, Option, Schedule, Schema } from 'effect';
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Page } from 'playwright-core';
+import type { Tab } from '../../fixtures/tab.ts';
 import {
   type FakeRoute,
   type Json,
@@ -265,7 +265,7 @@ const fakeFilm = () => {
 
 const FILM = '?film=toy';
 
-const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
+const click = (page: Tab, selector: string) => page.click(selector);
 
 const MIX = "document.querySelector('audio.rv-mix')?.getAttribute('src') ?? ''";
 
@@ -287,7 +287,7 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm());
-        yield* click(page, 'a.rv-chip >> text=toy · choices');
+        yield* click(page, 'a.rv-chip[href="/?film=toy"]');
         yield* until(page, "location.search === '?film=toy'");
         yield* waitFor(page, '.rv-transport');
         yield* waitFor(page, '.rv-picture video');
@@ -411,9 +411,7 @@ describe("a film's choices", () => {
         );
         yield* attributeIs(page, '.rv-writes', 'data-reading', 'true');
         // Said while the read is out: the say answers the choices with the comment.
-        yield* Effect.promise(() =>
-          page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close'),
-        );
+        yield* page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close');
         yield* click(page, `${at('score', 'strings')} [data-act="comment"]`);
         yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
         // The older read lands last: the page has read it, and the comment stays.
@@ -440,14 +438,12 @@ describe("a film's choices", () => {
         });
 
         // The knob is written on release.
-        yield* Effect.promise(() =>
-          page.evaluate(`(() => {
+        yield* page.evaluate(`(() => {
             const input = document.querySelector('[data-knob="level:const:PAPER"] input');
             input.value = '-20';
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
-          })()`),
-        );
+          })()`);
         yield* until(
           page,
           "document.querySelector('.rv-status').textContent.includes('level:const:PAPER -20')",
@@ -467,9 +463,7 @@ describe("a film's choices", () => {
           variant: 'strings',
           say: { _tag: 'Approve' },
         });
-        yield* Effect.promise(() =>
-          page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close'),
-        );
+        yield* page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close');
         yield* click(page, `${at('score', 'strings')} [data-act="comment"]`);
         yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
         expect(
@@ -512,14 +506,12 @@ describe("a film's choices", () => {
         );
         const knob = '[data-knob="level:const:PAPER"]';
         yield* waitFor(page, `${knob} input`);
-        yield* Effect.promise(() =>
-          page.evaluate(`(() => {
+        yield* page.evaluate(`(() => {
             const input = document.querySelector('${knob} input');
             input.value = '-20';
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
-          })()`),
-        );
+          })()`);
         yield* attributeIs(page, '.rv-status', 'data-failed', 'true');
         yield* textIs(page, `${knob} output`, '-24 dB');
         yield* valueIs(page, `${knob} input`, '-24');
@@ -552,10 +544,10 @@ describe("a film's choices", () => {
         yield* waitFor(page, '.rv-picture video');
         yield* until(page, `${MIX}.startsWith('/lab/toy/choices/mix?point=score&variant=strings')`);
         yield* until(page, "document.querySelector('audio.rv-mix').error !== null");
-        yield* Effect.promise(() => page.keyboard.press('Space'));
+        yield* page.press('Space');
         yield* until(page, "document.querySelector('.rv-picture video').paused === false");
         // The retry's wait is run through on the page's clock.
-        yield* Effect.promise(() => page.clock.runFor(5_000));
+        yield* page.clock.runFor(5_000);
         yield* until(page, "document.querySelector('audio.rv-mix').readyState >= 1");
         expect(asks).toBe(2);
         // The reload stalls the set (Buffering) until the mix can play, and the set resumes it.

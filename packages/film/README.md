@@ -87,8 +87,9 @@ use's default (`DEFAULT_INFLUENCE`: 0.7 for a one-shot, 0.3 for a bed) and
 as `DEFAULT_CANDIDATES` (6 one-shots, 3 beds), both measured in the sweet-spot
 trials (`apps/animations/sounds/PROMPTING.md`).
 
-Preflights: `film doctor` checks headless Chromium (launched and closed;
-`BrowserMissing` carries the install command), the `elevenlabs` CLI and its
+Preflights: `film doctor` checks headless Chrome (a page opened and closed
+in Bun.WebView's Chrome: `BUN_CHROME_PATH`, else the Chrome Bun finds, else
+Playwright's cached Chromium; `BrowserMissing` names `BUN_CHROME_PATH`), the `elevenlabs` CLI and its
 login (`auth status`, free), the H.264 encoder a render would use (a page
 chooses it as a render does; the line says `hardware` or `software`, the
 default pages and the encoder budget), reports each, and fails if any is
@@ -278,8 +279,8 @@ apart with the `quotes.jsonl` record whose words hold it, and `/` at each
 sentence end for a breath (not after an abbreviation such as `Mrs.` or `St.`,
 the same list the take check reads out).
 
-`render` opens the app's server, headless Chromium (`Browser`, the only
-Playwright code) and a pool of player pages (`Pages`, `tools/pages.ts`: the
+`render` opens the app's server, headless Chrome (`Browser`: tabs of the
+process's one Chrome, `tools/chrome.ts`) and a pool of player pages (`Pages`, `tools/pages.ts`: the
 one pool `check`, `look` and `render` open, bounded, a crashed page dropped
 for a fresh one) in one scope; a failure in any page, or Ctrl-C, closes every
 page, the browser and the server. The export page's handle is declared once
@@ -369,7 +370,7 @@ first), its pictures and its share copy's are copied, and no page opens
 (`render.remux frames_drawn=0`, `remuxer`: media and the disk only). The run decides
 every scene's need from the catalogue first; when it re-muxes any, the master is
 checked and decoded once for all of them, and each scene cuts and encodes only its own piece.
-Chromium launches with the first page a scene opens (`Browser.layer`), so a
+Chrome starts with the first page a scene opens (`Browser.layer`), so a
 run where every scene is current or re-muxed opens no browser. `film project
 approve <film> --scene id,id | --act name | --all` approves the scenes'
 renders, an act's current scenes, or every current scene. An approval is of
@@ -834,7 +835,7 @@ studio's routes, the capture), so the shell knows nothing of it, and hands
 the section derived values and actions (`view.ts`: the controls each state
 offers with their keys, the status line, the meter, the counts), never the
 machine's states. `lab/studio/studio.dom.test.ts` drives the whole panel in
-Chromium with a fake microphone.
+Chrome with a fake microphone.
 
 **Notes** live in `lab/<film>/notes.json` (`NotesFileJson`) with their stills
 in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in
@@ -875,14 +876,18 @@ machine and actions, never the machine's state: the editor's `status` and
 `split`, the notes' `composerOpen`, `composerTyping` and `draft`; so no
 component matches a state's tag, and a renamed state touches only its
 module. The browser tests (`lab/**/*.dom.test.ts`) open the real
-page over a probe film in headless Chromium with the lab API faked
-(`lab/fixtures/harness.ts`) and the page's clock the test's: a count-in, a
-retry or a loop's playback is moved on with `page.clock`, not waited out,
-and `canvas.toBlob` encodes at once (Chromium's waits for idle time a busy
-page may not leave, up to 5 s). A test process launches one Chromium per way of launching it
-(`lab/fixtures/browsers.ts`: headless, or the full one with a fake
-microphone per tone) and each case opens its own context in it, so a file's
-cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
+page over a probe film in headless Chrome with the lab API faked
+(`lab/fixtures/harness.ts`) and the page's clock the test's
+(`lab/fixtures/clock.ts`): a count-in, a retry or a loop's playback is moved
+on with `page.clock`, not waited out, and `canvas.toBlob` encodes at once
+(Chromium's waits for idle time a busy page may not leave, up to 5 s). The
+page is a tab (`lab/fixtures/tab.ts`) of the one Chrome Bun.WebView spawns
+per test process (`lab/fixtures/browsers.ts`, with `tools/chrome.ts`): every
+tab on an origin of its own, so cases share no storage and no permission,
+and one fake microphone (a 440 Hz tone on input 1) every tab hears, allowed
+or refused per tab. The tab answers the page's requests itself (the
+protocol's `Fetch`), types and clicks with native input events, and waits in
+the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
 worker (`--max-concurrency=3` in the test script: one worker a core, so three
 pages a core, and a case's timeout counts its own work, not its siblings'),
 and the page's script is bundled once per process.
@@ -1647,7 +1652,7 @@ id, a commit hash, and "used to" said of what the code did (not "is used
 to"). History told in other words is the sweep's to find.
 The package's tests run with `bun test --parallel --no-isolate --timeout
 20000` (its `test` script): one worker per core, each keeping its module
-registry and its Chromium across the files it runs, so the module graph
+registry and its Chrome across the files it runs, so the module graph
 loads once per worker rather than once per file. A test file therefore
 leaves no global behind it (a stand-in it sets, it puts back). The lab's
 browser tests open a page and draw the probe film before they assert, which

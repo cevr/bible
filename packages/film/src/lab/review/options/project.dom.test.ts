@@ -18,7 +18,7 @@
 
 import { Array as Arr, Deferred, Effect, Exit, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Page } from 'playwright-core';
+import type { Tab } from '../../fixtures/tab.ts';
 import { FreshProcessFailed, VerbRefused } from '../../../core/refusals.ts';
 import {
   type FakeRoute,
@@ -334,7 +334,7 @@ const fakeProject = (elsewhere = false, goneStale: ReadonlyArray<string> = []) =
 
 const PROJECT = '?project=toy';
 
-const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
+const click = (page: Tab, selector: string) => page.click(selector);
 
 const scene = (id: string) => `[data-scene="${id}"]`;
 
@@ -355,7 +355,7 @@ describe("a film's project", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject());
-        yield* click(page, 'a.rv-chip >> text=toy · project');
+        yield* click(page, 'a.rv-chip[href="/?project=toy"]');
         yield* until(page, "location.search === '?project=toy'");
         yield* waitFor(page, '[data-act-name="opening"]');
         // The act holds its scenes; the scenes in no act follow.
@@ -442,15 +442,11 @@ describe("a film's project", () => {
         yield* until(page, `document.querySelector('[data-act="approve-all"]').disabled === true`);
         yield* until(page, `document.querySelector('[data-act="approve-act"]').disabled === true`);
 
-        yield* Effect.promise(() =>
-          page.fill(`${render('open')} .rv-comment-input`, 'the hand jumps'),
-        );
+        yield* page.fill(`${render('open')} .rv-comment-input`, 'the hand jumps');
         yield* click(page, `${render('open')} [data-act="comment"]`);
         yield* waitFor(page, `${render('open')} [data-comment="c1"]`);
         // A scene not rendered yet is commented on too.
-        yield* Effect.promise(() =>
-          page.fill(`${render('end')} .rv-comment-input`, 'render it warm'),
-        );
+        yield* page.fill(`${render('end')} .rv-comment-input`, 'render it warm');
         yield* click(page, `${render('end')} [data-act="comment"]`);
         yield* waitFor(page, `${render('end')} [data-comment="c1"]`);
 
@@ -468,15 +464,11 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
         yield* countIs(page, '[data-act="withdraw-all"]', 0);
 
-        yield* Effect.promise(() =>
-          page.fill('[data-act-name="opening"] > .rv-say .rv-comment-input', 'the act drags'),
-        );
+        yield* page.fill('[data-act-name="opening"] > .rv-say .rv-comment-input', 'the act drags');
         yield* click(page, '[data-act-name="opening"] > .rv-say [data-act="comment"]');
         yield* waitFor(page, '[data-act-name="opening"] > .rv-comments [data-comment="c1"]');
 
-        yield* Effect.promise(() =>
-          page.fill('.rv-film > .rv-say .rv-comment-input', 'a whole film note'),
-        );
+        yield* page.fill('.rv-film > .rv-say .rv-comment-input', 'a whole film note');
         yield* click(page, '.rv-film > .rv-say [data-act="comment"]');
         yield* waitFor(page, '.rv-film > .rv-comments [data-comment="c1"]');
         const scenes = (id: string) => ({ _tag: 'Scenes', ids: [id] });
@@ -506,12 +498,8 @@ describe("a film's project", () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject(), { search: PROJECT });
         yield* waitFor(page, `${scene('open')} video`);
-        yield* Effect.promise(() =>
-          page.fill(`${scene('open')} .rv-comment-input`, 'half a thought'),
-        );
-        yield* Effect.promise(() =>
-          page.evaluate(`window.clip = document.querySelector('${scene('open')} video')`),
-        );
+        yield* page.fill(`${scene('open')} .rv-comment-input`, 'half a thought');
+        yield* page.evaluate(`window.clip = document.querySelector('${scene('open')} video')`);
         yield* click(page, `${scene('coda')} [data-act="approve"]`);
         yield* waitFor(page, `${scene('coda')} .rv-badge[data-approval="approved"]`);
         yield* valueIs(page, `${scene('open')} .rv-comment-input`, 'half a thought');
@@ -557,7 +545,7 @@ describe("a film's project", () => {
         /** Say `text` in the box at `at`, posted as the `n`th say to `path`; wait for `status` to fail it. */
         const failedSay = (at: string, text: string, path: string, n: number, status: string) =>
           Effect.gen(function* () {
-            yield* Effect.promise(() => page.fill(box(at), text));
+            yield* page.fill(box(at), text);
             yield* click(page, `${at} [data-act="comment"]`);
             yield* Effect.sync(() => asked.filter((a) => a.path === path).length).pipe(
               Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (m) => m >= n }),
@@ -676,9 +664,7 @@ describe("a film's project", () => {
         );
         yield* attributeIs(page, '.rv-film', 'data-reading', 'true');
         // Said while the read is out: the say answers the project with the comment.
-        yield* Effect.promise(() =>
-          page.fill(`${render('open')} .rv-comment-input`, 'said while it read'),
-        );
+        yield* page.fill(`${render('open')} .rv-comment-input`, 'said while it read');
         yield* click(page, `${render('open')} [data-act="comment"]`);
         yield* waitFor(page, `${render('open')} [data-comment="c1"]`);
         // The older read lands last: the page has read it, and the comment stays.
@@ -712,9 +698,7 @@ describe("a film's project", () => {
         const reads = () =>
           asked.filter((a) => a.method === 'GET' && a.path === '/review/project/toy').length;
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
-        yield* Effect.promise(() =>
-          page.fill(`${render('open')} .rv-comment-input`, 'said before the pick'),
-        );
+        yield* page.fill(`${render('open')} .rv-comment-input`, 'said before the pick');
         yield* click(page, `${render('open')} [data-act="comment"]`);
         yield* Effect.sync(() => saysPosted(asked).length).pipe(
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 1 }),
@@ -733,7 +717,12 @@ describe("a film's project", () => {
         // The say lands last: the project is read again, and the comment shows.
         yield* Deferred.done(land, Exit.void);
         yield* waitFor(page, `${render('open')} [data-comment="c1"]`);
-        expect(reads()).toBe(3);
+        // The read again can reach the server after the comment shows: wait for it.
+        const all = yield* Effect.sync(reads).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 3 }),
+          Effect.timeout('10 seconds'),
+        );
+        expect(all).toBe(3);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -757,7 +746,7 @@ describe("a film's project", () => {
             .map((a) => a.path);
         const before = asked.length;
         yield* click(page, `${scene('open')} > .rv-layers > summary`);
-        yield* Effect.promise(() => page.fill(`${take} .rv-comment-input`, 'the page is late'));
+        yield* page.fill(`${take} .rv-comment-input`, 'the page is late');
         yield* click(page, `${take} [data-act="comment"]`);
         yield* waitFor(page, `${take} [data-comment="c1"]`);
         yield* click(

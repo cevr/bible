@@ -630,7 +630,7 @@ type FakeHandle = {
 };
 
 /**
- * `handle` behind the same path Playwright takes (`Invoke`): each answer
+ * `handle` behind the same path a tab takes (`Invoke`): each answer
  * encoded by its call's schema as the page would hand it across, a failure
  * the page itself gives kept, any other refused with its message.
  */

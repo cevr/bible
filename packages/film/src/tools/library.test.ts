@@ -130,6 +130,52 @@ const fixture = Layer.unwrap(
   }),
 ).pipe(Layer.provideMerge(BunServices.layer));
 
+const all = {
+  names: Option.none(),
+  force: false,
+  yes: true,
+  cap: Option.none(),
+  tally: Option.none(),
+};
+
+/**
+ * What `make` leaves of the fixture's generated sounds (every candidate's
+ * FLAC and the lock), made once per file: the cases that start from a made
+ * library are given a copy, not a make of their own (six FLAC encodes each).
+ */
+const madeOnce = Effect.runSync(
+  Effect.cached(
+    Effect.gen(function* () {
+      const { dir } = yield* Fixture;
+      const fs = yield* FileSystem.FileSystem;
+      yield* (yield* SoundLibrary).make(all);
+      const names = yield* fs.readDirectory(`${dir}/files`, { recursive: true });
+      const files = yield* Effect.forEach(
+        names.filter((name) => name.endsWith('.flac')),
+        (name) =>
+          Effect.map(fs.readFile(`${dir}/files/${name}`), (bytes) => [name, bytes] as const),
+      );
+      return { files, lock: yield* fs.readFileString(`${dir}/library.lock.json`) };
+    }).pipe(Effect.provide(fixture), Effect.orDie),
+  ),
+);
+
+/** The fixture with its generated sounds already made: `madeOnce` written into it. */
+const made = Layer.effectDiscard(
+  Effect.gen(function* () {
+    const { dir } = yield* Fixture;
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const snapshot = yield* madeOnce;
+    for (const [name, bytes] of snapshot.files) {
+      const file = path.join(dir, 'files', name);
+      yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+      yield* fs.writeFile(file, bytes);
+    }
+    yield* fs.writeFileString(`${dir}/library.lock.json`, snapshot.lock);
+  }).pipe(Effect.orDie),
+).pipe(Layer.provideMerge(fixture));
+
 /** A test body with the fixture's paths. */
 const withLibrary = <A, E, R>(
   body: (at: Fixture['Service']) => Effect.Effect<A, E, R>,
@@ -143,14 +189,6 @@ const fileBroken = Predicate.or(
   Predicate.isTagged('SoundFileMissing'),
   Predicate.isTagged('SoundCorrupt'),
 );
-
-const all = {
-  names: Option.none(),
-  force: false,
-  yes: true,
-  cap: Option.none(),
-  tally: Option.none(),
-};
 
 describe('channelsFor', () => {
   test('reads the channel count off the length of headerless PCM', () => {
@@ -173,7 +211,7 @@ describe('channelsFor', () => {
   });
 });
 
-describe('SoundLibrary', () => {
+describe.concurrent('SoundLibrary', () => {
   it.effect.layer(fixture)('plans only generated sounds, by their candidates and seconds', () =>
     withLibrary(() =>
       Effect.gen(function* () {
@@ -338,13 +376,12 @@ describe('SoundLibrary', () => {
       ),
   );
 
-  it.effect.layer(fixture)(
+  it.effect.layer(made)(
     'unkeeps a kept variant back to waiting, and keeps in place of the kept ones with replace',
     () =>
       withLibrary(() =>
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
-          yield* library.make({ ...all, names: Option.some(new Set(['paper.slide'])) });
           const first = yield* library.keep(
             'paper.slide',
             yield* library.takesAt('paper.slide', [1, 2], 'candidates'),
@@ -379,13 +416,12 @@ describe('SoundLibrary', () => {
       ),
   );
 
-  it.effect.layer(fixture)(
+  it.effect.layer(made)(
     'keeps the take its hash names, wherever a curation that landed first moved it',
     () =>
       withLibrary(() =>
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
-          yield* library.make({ ...all, names: Option.some(new Set(['paper.slide'])) });
           // Both acts are decided while the candidates are [a, b, c, d]; rejecting a lands first.
           const waiting = (yield* library.load).lock['paper.slide']?.candidates ?? [];
           const [a = '', b = ''] = waiting.map((v) => v.sha256);
@@ -398,14 +434,13 @@ describe('SoundLibrary', () => {
       ),
   );
 
-  it.effect.layer(fixture)(
+  it.effect.layer(made)(
     'push names each file it sends, sends again a store copy that is not its bytes, and names a file lost everywhere',
     () =>
       withLibrary(({ dir, storeDir }) =>
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
           const fs = yield* FileSystem.FileSystem;
-          yield* library.make(all);
           const lock = (yield* library.load).lock;
           const files = Object.values(lock).flatMap((e) => e.candidates.map((v) => v.file));
           const first = yield* library.push(NO_SCORES, Option.none());
@@ -448,14 +483,13 @@ describe('SoundLibrary', () => {
       ),
   );
 
-  it.effect.layer(fixture)(
+  it.effect.layer(made)(
     'push --from moves an older folder store into the store, names what neither holds, deletes nothing, and runs again as a no-op',
     () =>
       withLibrary(({ dir, storeDir }) =>
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
           const fs = yield* FileSystem.FileSystem;
-          yield* library.make(all);
           const lock = (yield* library.load).lock;
           const files = Object.values(lock)
             .flatMap((e) => e.candidates.map((v) => v.file))
@@ -489,12 +523,11 @@ describe('SoundLibrary', () => {
       ),
   );
 
-  it.effect.layer(fixture)('checks files by hash, and syncs them through the folder store', () =>
+  it.effect.layer(made)('checks files by hash, and syncs them through the folder store', () =>
     withLibrary(({ dir, storeDir }) =>
       Effect.gen(function* () {
         const library = yield* SoundLibrary;
         const fs = yield* FileSystem.FileSystem;
-        yield* library.make(all);
         yield* library.keep(
           'paper.slide',
           yield* library.takesAt('paper.slide', [1], 'candidates'),
@@ -536,14 +569,13 @@ describe('SoundLibrary', () => {
     ),
   );
 
-  it.effect.layer(fixture)(
+  it.effect.layer(made)(
     'keeping a take records where it starts and hits; sfx describe fills a lock that lacks them',
     () =>
       withLibrary(({ dir }) =>
         Effect.gen(function* () {
           const library = yield* SoundLibrary;
           const fs = yield* FileSystem.FileSystem;
-          yield* library.make(all);
           yield* library.keep(
             'paper.slide',
             yield* library.takesAt('paper.slide', [1], 'candidates'),

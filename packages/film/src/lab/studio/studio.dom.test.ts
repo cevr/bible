@@ -16,7 +16,7 @@ import { Effect, type FileSystem, Option, type Path, Result, Schedule, type Scop
 import { Base64 } from 'effect/encoding';
 import { TakeMismatch } from '../../core/refusals.ts';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Page } from 'playwright-core';
+import type { Tab } from '../fixtures/tab.ts';
 import {
   type Asked,
   type FakeRoute,
@@ -122,41 +122,35 @@ const askedMoreThan = (asked: ReadonlyArray<Asked>, path: string, least: number)
   );
 
 /** Wait until the status line reads `pattern`. */
-const statusIs = (page: Page, pattern: RegExp) => textIs(page, '[data-role="status"]', pattern);
+const statusIs = (page: Tab, pattern: RegExp) => textIs(page, '[data-role="status"]', pattern);
 
 /** Wait until the recording has kept at least `seconds` of the microphone, as its status counts. */
-const recorded = (page: Page, seconds: number) =>
-  Effect.promise(() =>
-    page.waitForFunction(
-      (least) => {
-        const status = document.querySelector('[data-role="status"]')?.textContent ?? '';
-        return Number(/^recording · (\d+(?:\.\d+)?) s/.exec(status)?.[1] ?? '-1') >= least;
-      },
-      seconds,
-      { timeout: 10_000 },
-    ),
-  );
+const recorded = (page: Tab, seconds: number) =>
+  page.until(`(() => {
+    const status = document.querySelector('[data-role="status"]')?.textContent ?? '';
+    return Number(/^recording · (\\d+(?:\\.\\d+)?) s/.exec(status)?.[1] ?? '-1') >= ${seconds};
+  })()`);
 
 /**
  * Run the page's clock on by `ms`: its timers and frames run that much,
  * however slow the machine, so what a key would have started has started.
  */
-const runClock = (page: Page, ms: number) => Effect.promise(() => page.clock.runFor(ms));
+const runClock = (page: Tab, ms: number) => page.clock.runFor(ms);
 
-const press = (page: Page, key: string) => Effect.promise(() => page.keyboard.press(key));
+const press = (page: Tab, key: string) => page.press(key);
 
 /** The count-in, each second of it moved on by the page's clock, until the take records. */
-const countedIn = (page: Page) =>
+const countedIn = (page: Tab) =>
   Effect.gen(function* () {
     for (let n = COUNT_IN; n > 0; n--) {
       yield* statusIs(page, new RegExp(`^recording in ${n}…$`));
-      yield* Effect.promise(() => page.clock.fastForward(1000));
+      yield* page.clock.fastForward(1000);
     }
     yield* statusIs(page, /^recording · /);
   });
 
 /** Focus the studio, as a click into it does. */
-const focusStudio = (page: Page) => Effect.promise(() => page.focus('[data-role="studio"]'));
+const focusStudio = (page: Tab) => page.focus('[data-role="studio"]');
 
 const posted = (asked: ReadonlyArray<Asked>, path: RegExp) =>
   asked.filter((a) => a.method === 'POST' && path.test(a.path));
@@ -174,16 +168,12 @@ const wavFormat = (base64: string) =>
     };
   });
 
-const withMic = (amplitude: number, permissions: ReadonlyArray<string>) =>
-  Effect.gen(function* () {
-    return yield* openLab(studioRoutes, {
-      hash: '#1',
-      mic: { tone: { seconds: 4, amplitude }, permissions },
-    });
-  });
+/** The lab with the studio's routes, and the fake microphone (`browsers.ts`): allowed or refused, and hot to clip. */
+const withMic = (mic: { readonly allowed: boolean; readonly hot?: boolean }) =>
+  openLab(studioRoutes, { hash: '#1', mic });
 
 /** Wait until `#T` holds `t` film seconds. */
-const shownAt = (page: Page, t: number) =>
+const shownAt = (page: Tab, t: number) =>
   evaluates(page, "Number.parseFloat(location.hash.slice(1).split('&')[0])", t);
 
 const scoped = <A, E>(self: Effect.Effect<A, E, Scope.Scope | FileSystem.FileSystem | Path.Path>) =>
@@ -195,8 +185,8 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          const { page, errors } = yield* withMic(0.5, ['microphone']);
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
+          const { page, errors } = yield* withMic({ allowed: true });
+          yield* page.waitFor('[data-beat="thesis"]');
           yield* textIs(page, '.studio-counts', '1 recorded · 1 staging · 1 stale');
           yield* textsAre(page, '[data-role="badge"]', [
             'recorded',
@@ -204,8 +194,8 @@ describe('the studio', () => {
             'stale: text changed',
           ]);
           yield* textIs(page, '[data-role="prompter"]', 'In the beginning.');
-          yield* Effect.promise(() => page.click('[data-beat="thesis"]'));
-          yield* Effect.promise(() => page.waitForSelector('.studio-quotation cite'));
+          yield* page.click('[data-beat="thesis"]');
+          yield* page.waitFor('.studio-quotation cite');
           yield* textIs(page, '.studio-line', 'The law is holy.');
           yield* textIs(page, '.studio-quotation p', 'The law of the Lord is perfect.');
           yield* textIs(page, '.studio-quotation cite', 'David, Ps 19:7');
@@ -236,9 +226,9 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          const { page, asked, errors } = yield* withMic(0.5, ['microphone']);
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
-          yield* Effect.promise(() => page.click('[data-beat="thesis"]'));
+          const { page, asked, errors } = yield* withMic({ allowed: true });
+          yield* page.waitFor('[data-beat="thesis"]');
+          yield* page.click('[data-beat="thesis"]');
           yield* focusStudio(page);
           yield* press(page, 'r');
           yield* countedIn(page);
@@ -249,14 +239,7 @@ describe('the studio', () => {
           yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
           yield* attributeIs(page, '[data-role="review"]', 'src', /^blob:/);
           // The browser reads the recording back as audio it can play, over a second long.
-          yield* Effect.promise(() =>
-            page.waitForFunction(
-              () =>
-                (document.querySelector('[data-role="review"]') as HTMLAudioElement).duration > 1,
-              '',
-              { timeout: 5000 },
-            ),
-          );
+          yield* page.until('document.querySelector(\'[data-role="review"]\').duration > 1');
           yield* countIs(page, '.studio-meter-fill', 0);
 
           yield* press(page, 'k');
@@ -282,9 +265,9 @@ describe('the studio', () => {
 
           // The take kept and mixed: the page loads again, at the same T, on the same beat.
           const beatsBefore = asked.filter((a) => a.path === '/studio/beats').length;
-          const loaded = page.waitForEvent('load');
+          const loaded = yield* page.nextLoad;
           yield* press(page, 'k');
-          yield* Effect.promise(() => loaded);
+          yield* loaded;
           const [keep] = posted(asked, /^\/studio\/takes\/thesis\/keep$/);
           expect(
             Option.getOrUndefined(Option.fromUndefinedOr(keep).pipe(Option.flatMap((k) => k.body))),
@@ -292,7 +275,7 @@ describe('the studio', () => {
             file: 'thesis.abcd.flac',
             acceptMismatch: true,
           });
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"].selected'));
+          yield* page.waitFor('[data-beat="thesis"].selected');
           yield* shownAt(page, 1);
           expect(asked.filter((a) => a.path === '/studio/beats').length).toBeGreaterThan(
             beatsBefore,
@@ -313,12 +296,10 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          const { page, asked } = yield* withMic(0.5, ['microphone']);
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
-          yield* Effect.promise(() => page.click('[data-beat="thesis"]'));
-          yield* Effect.promise(() =>
-            page.click('[data-file="thesis.new.flac"] [data-act="keep"]'),
-          );
+          const { page, asked } = yield* withMic({ allowed: true });
+          yield* page.waitFor('[data-beat="thesis"]');
+          yield* page.click('[data-beat="thesis"]');
+          yield* page.click('[data-file="thesis.new.flac"] [data-act="keep"]');
           yield* statusIs(
             page,
             /^kept thesis\.new\.flac: heard “the law is holy” · 0\.0% words differ · the mix failed; the lab log says why$/,
@@ -346,14 +327,14 @@ describe('the studio', () => {
         Effect.gen(function* () {
           const { page } = yield* openLab(studioRoutes, {
             hash: '#1',
-            mic: { tone: { seconds: 4, amplitude: 0.5 }, permissions: ['microphone'] },
+            mic: { allowed: true },
           });
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
+          yield* page.waitFor('[data-beat="thesis"]');
           yield* focusStudio(page);
           yield* press(page, 'ArrowRight');
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"].selected'));
+          yield* page.waitFor('[data-beat="thesis"].selected');
           yield* press(page, 'ArrowRight');
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="close"].selected'));
+          yield* page.waitFor('[data-beat="close"].selected');
           // At the last beat → and Space (nothing to stop) are still the studio's: the film holds.
           yield* press(page, 'ArrowRight');
           yield* press(page, ' ');
@@ -362,14 +343,10 @@ describe('the studio', () => {
           yield* textIs(page, '[data-act="play"]', PAUSED);
           yield* countIs(page, '[data-beat="close"].selected', 1);
           // Out of the studio the lab's keys are the lab's again: → steps the film, not the beat.
-          yield* Effect.promise(() =>
-            page.evaluate(() => (document.activeElement as HTMLElement).blur()),
-          );
+          yield* page.evaluate('document.activeElement.blur()');
           yield* press(page, 'Shift+ArrowRight');
-          yield* Effect.promise(() =>
-            page.waitForFunction(
-              () => Number.parseFloat(location.hash.replace(/^#/, '').split('&')[0] ?? '') === 2,
-            ),
+          yield* page.until(
+            "Number.parseFloat(location.hash.replace(/^#/, '').split('&')[0] ?? '') === 2",
           );
           yield* shownAt(page, 2);
           yield* countIs(page, '[data-beat="close"].selected', 1);
@@ -383,10 +360,10 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          const { page, errors } = yield* withMic(0.5, ['microphone']);
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
-          yield* Effect.promise(() => page.click('[data-beat="thesis"]'));
-          yield* Effect.promise(() => page.click('[data-act="arm"]'));
+          const { page, errors } = yield* withMic({ allowed: true });
+          yield* page.waitFor('[data-beat="thesis"]');
+          yield* page.click('[data-beat="thesis"]');
+          yield* page.click('[data-act="arm"]');
           yield* countedIn(page);
           yield* recorded(page, 0.6);
           yield* press(page, ' ');
@@ -404,19 +381,13 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          const { page } = yield* withMic(0.5, ['microphone']);
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
-          yield* Effect.promise(() => page.click('[data-beat="thesis"]'));
-          yield* Effect.promise(() => page.waitForSelector('[data-file="thesis.new.flac"] audio'));
+          const { page } = yield* withMic({ allowed: true });
+          yield* page.waitFor('[data-beat="thesis"]');
+          yield* page.click('[data-beat="thesis"]');
+          yield* page.waitFor('[data-file="thesis.new.flac"] audio');
           // Mark the row's player; a row built again would lose the mark.
-          yield* Effect.promise(() =>
-            page.evaluate(() =>
-              Reflect.set(
-                document.querySelector('[data-file="thesis.new.flac"] audio') ?? {},
-                'filmMark',
-                true,
-              ),
-            ),
+          yield* page.evaluate(
+            `document.querySelector('[data-file="thesis.new.flac"] audio').filmMark = true`,
           );
           yield* focusStudio(page);
           yield* press(page, 'r');
@@ -438,24 +409,17 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          const { page } = yield* withMic(0.5, ['microphone']);
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
-          yield* Effect.promise(() =>
-            page.evaluate(() => window.localStorage.setItem('film-lab-mic', 'film-probe-gone')),
-          );
-          yield* Effect.promise(() => page.reload());
-          yield* Effect.promise(() =>
-            page.waitForSelector('[data-field="mic"] option[value="film-probe-gone"]', {
-              state: 'attached',
-              timeout: 10_000,
-            }),
-          );
+          const { page } = yield* withMic({ allowed: true });
+          yield* page.waitFor('[data-beat="thesis"]');
+          yield* page.evaluate("window.localStorage.setItem('film-lab-mic', 'film-probe-gone')");
+          yield* page.reload;
+          yield* page.attached('[data-field="mic"] option[value="film-probe-gone"]');
           yield* textIs(
             page,
             '[data-field="mic"] option:checked',
             'the microphone picked before (not connected)',
           );
-          yield* Effect.promise(() => page.selectOption('[data-field="mic"]', ''));
+          yield* page.select('[data-field="mic"]', '');
           yield* evaluates(page, "window.localStorage.getItem('film-lab-mic')", '');
         }),
       ),
@@ -467,13 +431,11 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          const { page } = yield* withMic(0.99, ['microphone']);
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
+          const { page } = yield* withMic({ allowed: true, hot: true });
+          yield* page.waitFor('[data-beat="thesis"]');
           yield* focusStudio(page);
           yield* press(page, 'r');
-          yield* Effect.promise(() =>
-            page.waitForSelector('[data-role="clip"]', { timeout: 10_000 }),
-          );
+          yield* page.waitFor('[data-role="clip"]');
           yield* textIs(page, '[data-role="clip"]', 'clipping: turn the input down');
           yield* press(page, 'Escape');
           yield* statusIs(page, /^ready/);
@@ -487,8 +449,8 @@ describe('the studio', () => {
     () =>
       scoped(
         Effect.gen(function* () {
-          const { page } = yield* withMic(0.5, []);
-          yield* Effect.promise(() => page.waitForSelector('[data-beat="thesis"]'));
+          const { page } = yield* withMic({ allowed: false });
+          yield* page.waitFor('[data-beat="thesis"]');
           yield* focusStudio(page);
           yield* press(page, 'r');
           yield* statusIs(page, /^no microphone: /);

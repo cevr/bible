@@ -278,7 +278,8 @@ export const limitInto = (
     nextlen: 0,
   };
   for (let n = 0; n < frames; n++) {
-    for (const [c, channel] of input.entries()) l.buffer[l.pos + c] = channel[n] ?? 0;
+    // Index loops: an iterator per frame per channel was most of a mix's time.
+    for (let c = 0; c < channels; c++) l.buffer[l.pos + c] = input[c]?.[n] ?? 0;
     const peak = peakAt(l, l.pos);
     if (peak > ceiling) queuePeak(l, peak);
 
@@ -287,8 +288,11 @@ export const limitInto = (
     const gain = l.att;
     advance(l, oldest);
 
-    for (const [c, channel] of out.entries())
-      channel[n] = Math.min(ceiling, Math.max(-ceiling, (l.buffer[oldest + c] ?? 0) * gain));
+    for (let c = 0; c < out.length; c++) {
+      const channel = out[c];
+      if (channel)
+        channel[n] = Math.min(ceiling, Math.max(-ceiling, (l.buffer[oldest + c] ?? 0) * gain));
+    }
     l.pos = (l.pos + channels) % bufferSize;
   }
 };
