@@ -24,6 +24,11 @@ export const repoJson = <S extends Parameters<typeof Schema.fromJsonString>[0]>(
     ),
   );
 
+/** The names `names` holds more than once, each once, in first-seen order. */
+const repeated = (names: ReadonlyArray<string>): ReadonlyArray<string> => [
+  ...new Set(names.filter((name, i) => names.indexOf(name) !== i)),
+];
+
 // ---------------------------------------------------------------------------
 // Narration
 
@@ -209,8 +214,7 @@ export const Cast = Schema.Struct({
   voices: Schema.NonEmptyArray(CastVoice),
 }).check(
   Schema.makeFilter((cast) => {
-    const names = cast.voices.map((v) => v.name);
-    const twice = names.filter((name, i) => names.indexOf(name) !== i);
+    const twice = repeated(cast.voices.map((v) => v.name));
     return twice.length === 0 || `the cast names ${twice.join(', ')} more than once`;
   }),
 );
@@ -499,9 +503,8 @@ export type Short = typeof Short.Type;
 /** A film's `shorts.ts`: its shorts, each id once. */
 export const Shorts = Schema.Array(Short).check(
   Schema.makeFilter((shorts) => {
-    const ids = shorts.map((s) => s.id);
-    const twice = ids.filter((id, i) => ids.indexOf(id) !== i);
-    return twice.length === 0 || `short ids must be unique: ${[...new Set(twice)].join(', ')}`;
+    const twice = repeated(shorts.map((s) => s.id));
+    return twice.length === 0 || `short ids must be unique: ${twice.join(', ')}`;
   }),
 );
 export type Shorts = typeof Shorts.Type;
@@ -700,8 +703,18 @@ export const Act = Schema.Struct({
 });
 export type Act = typeof Act.Type;
 
-/** A film's declared look (`export const look` in `film.ts`): its acts, in film order. */
-export const Look = Schema.Struct({ acts: Schema.Array(Act) });
+/**
+ * A film's declared look (`export const look` in `film.ts`): its acts, in
+ * film order, each named once, since `act:<name>` addresses one part.
+ */
+export const Look = Schema.Struct({
+  acts: Schema.Array(Act).check(
+    Schema.makeFilter((acts) => {
+      const twice = repeated(acts.map((a) => a.name));
+      return twice.length === 0 || `acts must be named once: ${twice.join(', ')}`;
+    }),
+  ),
+});
 export type Look = typeof Look.Type;
 
 /**

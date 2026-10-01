@@ -35,7 +35,8 @@ the handle in `core/export-handle.ts`; a choice point's id in
 id is one shape, `PartId` (lower case, digits and dashes, starting with a
 letter or a digit), and an act's name (`ActName`) never starts with `-`: the
 film is refused at load, naming the id, when one names no address, point or
-argument.
+argument. A short's id and an act's name are each declared once (`Shorts`,
+`Look`), so `short:<id>` and `act:<name>` each name one part.
 
 ## Tools
 
