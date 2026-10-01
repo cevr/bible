@@ -451,6 +451,20 @@ ci none sha=97eaacda (no run of its own: pushed inside a later push)
 ci success run=36801133213 sha=cbe9a54a
 ```
 
+## Pass 10 (2026-10-01)
+
+- Baseline: main 44c93de3. Six sweeps, reports in `SP/film-pass10/`.
+- Findings: no P1; 3 P2 (SourceWriter rewrites the library lock without the store lock: 111 of 1,500 concurrent writes lost; the project page shows the answer that lands last, so a re-read can hide an accepted say; six cues repeat their parent's length in seconds and stay behind under a drag), the rest P3. Core, engine, guardrails: only polish. Not closed.
+- Loop gap closed: every batch takes the P3 and not-worth lines in its files from every sweep report, not only its own area's (two pass-9 lab lines in tools files went untaken).
+- Triage: `SP/film-pass10/triage.md`.
+
+| Wave | Batch     | Items                                                                                                        | Result |
+| ---- | --------- | ------------------------------------------------------------------------------------------------------------ | ------ |
+| A    | p10-tools | SourceWriter writes under the store lock, carried trims (UNREAD, errors barrel, toMs, point.ref, one isFilm) |        |
+| A    | p10-page  | the newest-asked answer wins on the project and options pages, one meaning of "heard"                        |        |
+| A    | p10-films | cues follow their parent under a drag + a check, iconScratch lead/dim, resample end point                    |        |
+| A    | p10-guard | history-comment check, decisions carried by the template, no-read-once arithmetic, SKILL approve wording     |        |
+
 ## Close
 
 - Unswept directories: none this finish (every source directory of `packages/film` and `apps/animations` was swept in pass 1–2).
