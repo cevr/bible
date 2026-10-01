@@ -8,6 +8,7 @@ import {
   type Hand,
   type HandRoot,
   type PieceStyle,
+  type Posed,
   type Pt,
   type StrokeStyle,
   CLOSE_LINE,
@@ -893,7 +894,7 @@ export interface GestureAt extends PersonGesture {
   lent?: number;
 }
 
-/** A scene's hands: its own `f.hand`, or another scene's from `f.handsOf(scene)`. */
+/** A scene's hands: its own `f.hand`, or another scene's from `f.handsOf(drawing)`. */
 export type Hands = (k: string) => Hand;
 
 /**
@@ -956,6 +957,19 @@ export const ICON_LEAD = 0.55;
 /** How far an unlit icon fades while the row counts. */
 const ICON_DIM = 0.62;
 const NO_COUNT: IconCount = { lead: [0, 0, 0], dim: 0 };
+
+/** A scene's scratch for the row, rewritten every frame: each icon's glow, each one's lead, and the count over that lead. */
+interface IconScratch {
+  readonly lit: [number, number, number];
+  readonly lead: [number, number, number];
+  readonly count: Posed<IconCount>;
+}
+
+/** A scene's icon-row scratch, made once at module scope: its glow from `lit` (none lit by default), no lead, no fade. */
+export const iconScratch = (lit: Three = [0, 0, 0]): IconScratch => {
+  const lead: [number, number, number] = [0, 0, 0];
+  return { lit: [lit[0], lit[1], lit[2]], lead, count: { lead, dim: 0 } };
+};
 
 /**
  * The film's three icons in a row centred on the origin, the answer's shape

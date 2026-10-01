@@ -364,9 +364,13 @@ each) reads `f.staggerAt(name, at)`, `at` 0 for the first and 1 for the last.
 A part of a cue (a fill over its last tenth) is a cue of its own, `{ after:
 'into', dur: 0.1, ends: true }`, never `clamp((f.at('into') - 0.75) / 0.25)` (`film/no-cue-remap`):
 the lab cannot reach a fraction written in the draw. A step part way
-through a cue (the card shows its other side halfway through the flip) is a
-cue of no length, `turned: { with: 'flip', offset: 0.25, dur: 0 }` read as
-`f.at('turned') > 0`, never `f.at('flip') >= 0.5`. A set that takes a
+through a cue (the colour comes back to a face as it starts to sit up) is a
+cue of no length, `colour: { with: 'sit', offset: 0.056, dur: 0 }` read as
+`f.at('colour') > 0`, never `f.at('sit') >= 0.3`. An instant the drawing's
+own shape makes is read from the shape, so a drag keeps it there: the word
+card shows its other side once it is edge on, `Math.cos(f.at('flip') *
+Math.PI) < 0`, and a book's cover is open once both halves of its opening
+are, `lerp(230, 460, (f.at('unclasp') + f.at('pages')) / 2)`. A set that takes a
 number staggers its pieces with `staggered(p, at, share)` (`@bible/film/core`).
 Plain `keys(t, …)` is for ornament. Wrap the drawing in `drawing({ timeline,
 draw })` so an undeclared name fails to compile, in `f.cue`/`f.at`/`f.keys`/`f.stagger` and in the

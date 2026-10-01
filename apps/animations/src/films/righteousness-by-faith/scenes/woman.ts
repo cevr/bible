@@ -35,7 +35,7 @@ import {
 } from '@bible/film/canvas';
 import { lerp, gait } from '@bible/film/core';
 import { COURT_GONE, COURT_WIDE, GONE_LOOK, type Temple, temple } from '../gospel.ts';
-import { ICON_ROW, ICON_SKY, type IconCount } from '../kit.ts';
+import { ICON_ROW, ICON_SKY, iconScratch } from '../kit.ts';
 import { giftRow } from './message.ts';
 import { BAND_S, counted, roof } from './roof.ts';
 
@@ -110,9 +110,7 @@ type WomanFrame = Frame<keyof typeof timeline & string, typeof knobs>;
 const BAND_ABOVE = -120;
 
 /** The row's glow and lead, rewritten every frame. */
-const LIT: [number, number, number] = [0, 0, 0];
-const LEAD: [number, number, number] = [0, 0, 0];
-const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
+const { lit: LIT, lead: LEAD, count: COUNT } = iconScratch();
 const ALL: readonly [number, number, number] = [1, 1, 1];
 /** The court's pose, rewritten every frame. */
 const LOOK: [number, number] = [0, 0];

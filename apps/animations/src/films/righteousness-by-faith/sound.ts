@@ -388,11 +388,11 @@ export const sound: Sound = {
     flip: {
       sound: 'paper.flip',
       level: -14,
-      // The page lands as the flip ends, and as the book falls open.
+      // The page lands as the flip ends, and as the book's pages spread.
       sync: 'hit',
       at: [
         { scene: 'word', cue: 'flip', edge: 'end' },
-        { scene: 'spoke', cue: 'bookOpen', edge: 'end' },
+        { scene: 'spoke', cue: 'pages', edge: 'end' },
       ],
     },
     tablets: {

@@ -22,7 +22,6 @@ import {
   spline,
   stroke,
   sub,
-  type Posed,
   blob,
   glow,
   knobCamera,
@@ -39,7 +38,7 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
-  type IconCount,
+  iconScratch,
   icons,
   type HandPush,
   person,
@@ -486,9 +485,7 @@ export const look = drawing({
 });
 
 /** The row's glow: faith lit, the other two not yet; faith leads and they fade (rewritten every frame). */
-const LIT: [number, number, number] = [1, 0, 0];
-const LEAD: [number, number, number] = [0, 0, 0];
-const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
+const { lit: LIT, lead: LEAD, count: COUNT } = iconScratch([1, 0, 0]);
 /** The four at the hole, framed by the `hole` knobs (its camera rewritten every frame). */
 const HOLE_CAM: Camera = { x: 960, y: 540, zoom: 1 };
 const HOLE: House = { ...AT_THE_HOLE, cam: HOLE_CAM };

@@ -22,7 +22,6 @@ import {
   rectShape,
   shotPath,
   sub,
-  type Posed,
   glow,
   rounded,
   sky,
@@ -36,7 +35,7 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
-  type IconCount,
+  iconScratch,
   icons,
   person,
   piece,
@@ -56,9 +55,7 @@ const FAITH: Camera = {
 const SHRUG_FAR: GestureAt = { to: [-78, -112], reach: 0, grip: 'palm' };
 const SHRUG_NEAR: GestureAt = { to: [78, -112], reach: 0, grip: 'palm' };
 /** The row's glow and which icon leads, rewritten every frame. */
-const LIT: [number, number, number] = [1, 1, 1];
-const LEAD: [number, number, number] = [0, 0, 0];
-const COUNT: Posed<IconCount> = { lead: LEAD, dim: 0 };
+const { lit: LIT, lead: LEAD, count: COUNT } = iconScratch([1, 1, 1]);
 /** The gold that falls from the hung word to the tree: the word's light, clear at the ground. */
 const BEAM = [
   [0, C.glow],
@@ -77,9 +74,9 @@ export const spoke = drawing({
     // The bubble's gold fills the frame as the push goes through it.
     gold: { after: 'into', dur: 0.1, ends: true, ease: 'linear' },
     bookIn: { after: 'into', offset: -0.1, dur: 0.6, ease: 'outBack' },
-    bookOpen: { mark: 'back', offset: 0.1, dur: 0.6 },
-    // Its two halves: the clasp fades as the cover starts to widen, then the pages spread.
-    unclasp: { with: 'bookOpen', dur: 0.3, ease: 'inCubic' },
+    // The book opens in two halves: the clasp fades as the cover starts to
+    // widen, then the pages spread as it widens the rest of the way.
+    unclasp: { mark: 'back', offset: 0.1, dur: 0.3, ease: 'inCubic' },
     pages: { after: 'unclasp', dur: 0.3, ease: 'outCubic' },
     plunge: { mark: 'dark', offset: -1, dur: 1.1, ease: 'inCubic' },
     // The dark page fills the frame as the camera goes through it.
@@ -88,7 +85,7 @@ export const spoke = drawing({
     drift: { after: 'plunge', dur: 10.4, ease: 'linear' },
     flight: { mark: 'then', offset: 0.1, dur: 1.3, ease: 'inOutSine' },
     burst: { after: 'flight', dur: 0.6, ease: 'outCubic' },
-    // The flying word is gone into the sun once the burst is half out (its outCubic's half).
+    // The flying word is gone into the sun just after the burst begins.
     becomesSun: { with: 'burst', offset: 0.124, dur: 0 },
     flood: { mark: 'spake', offset: -0.5, dur: 1.4 },
     day: { after: 'flood', dur: 1.4 },
@@ -174,19 +171,25 @@ export const spoke = drawing({
       camera(ctx, cam, w, h, () => {
         const inAt = f.at('bookIn');
         if (inAt <= 0) return;
-        const open = f.at('bookOpen');
+        const unclasp = f.at('unclasp');
+        const k = f.at('pages');
         at(
           ctx,
           { x: BOOK[0], y: BOOK[1] + (1 - inAt) * 260, rot: -0.04, scale: 1.45 * inAt },
           () => {
-            // Closed: a cover. Open: two pages, the right one the dark of the beginning.
-            piece(ctx, rounded(0, 0, lerp(230, 460, open), 300, 12), C.boardDeep, hand('cover'), {
-              role: 'scenery',
-              kind: 'cut',
-              line: 4,
-            });
-            const unclasp = f.at('unclasp');
-            const k = f.at('pages');
+            // A cover, open once both halves of the opening are; then two
+            // pages, the right one the dark of the beginning.
+            piece(
+              ctx,
+              rounded(0, 0, lerp(230, 460, (unclasp + k) / 2), 300, 12),
+              C.boardDeep,
+              hand('cover'),
+              {
+                role: 'scenery',
+                kind: 'cut',
+                line: 4,
+              },
+            );
             if (unclasp < 1)
               piece(ctx, rounded(0, 0, 150, 200, 8), C.cream, hand('clasp'), {
                 role: 'scenery',

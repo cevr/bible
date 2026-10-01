@@ -77,8 +77,8 @@ export const accuser = drawing({
     RAISED.reach = raise;
     // Joshua bows on his name and lifts his head as the accuser is silenced.
     const bow = f.at('bow') * (1 - f.at('lift'));
-    // Each stain lights in 0.3 s, 0.4 s after the one before, and dims over
-    // 1.2 s from 0.9 s after it lit.
+    // The stains light one after another across `flare`, and each dims in
+    // the same order across `dim`.
     const stainLit = (i: number) =>
       f.stagger('flare', i, TUNIC_STAINS.length) * (1 - f.stagger('dim', i, TUNIC_STAINS.length));
 

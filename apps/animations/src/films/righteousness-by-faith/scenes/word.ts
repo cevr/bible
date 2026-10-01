@@ -58,8 +58,6 @@ const timeline = {
   shrug: { mark: 'church', offset: 0.2, dur: 0.4, ease: 'outBack' },
   unshrug: { mark: 'fair', dur: 0.5 },
   flip: { mark: 'right', offset: -0.1, dur: 0.5, ease: 'inOutSine' },
-  // Edge on, halfway through the flip, the card shows its other side.
-  turned: { with: 'flip', offset: 0.25, dur: 0 },
   cardOut: { mark: 'whose', offset: -0.2, dur: 0.4, ease: 'inCubic' },
   tape: { mark: 'whose', offset: 0.1, dur: 0.9, ease: 'outCubic' },
   wonder: { mark: 'whose', offset: 0.3, dur: 0.4 },
@@ -162,8 +160,9 @@ const card = (f: WordFrame) => {
   const [x, y] = f.knob('card');
   const show = f.at('card') * (1 - f.at('cardOut'));
   if (show <= 0.01) return;
-  const flip = f.at('flip');
-  const turned = f.at('turned') > 0;
+  // The card turns over on its long axis: past edge on, its other side faces us.
+  const face = Math.cos(f.at('flip') * Math.PI);
+  const turned = face < 0;
   const text = turned ? MEANING : WORD_CARD;
   // It comes up under the landing word, fading in at nearly its size (never a speck over the word).
   at(
@@ -177,7 +176,7 @@ const card = (f: WordFrame) => {
     () => {
       ctx.save();
       ctx.globalAlpha *= show;
-      ctx.scale(1, Math.max(0.02, Math.abs(Math.cos(flip * Math.PI))));
+      ctx.scale(1, Math.max(0.02, Math.abs(face)));
       const board = plate(0, 0, 820, 210);
       piece(ctx, board, C.cream, f.hand('card'), {
         role: 'scenery',
