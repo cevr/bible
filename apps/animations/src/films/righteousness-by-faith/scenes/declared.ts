@@ -26,7 +26,6 @@ import {
   rectShape,
   shotPath,
   write,
-  type Posed,
   blob,
   glow,
   knobCamera,
@@ -43,7 +42,7 @@ import {
   ICON_KEPT,
   ICON_ROW,
   ICON_SKY,
-  type IconCount,
+  iconScratch,
   clipToGarment,
   icons,
   person,
@@ -293,9 +292,11 @@ const clothAt = (bloom: number) =>
  * it, then on "now" stepping back to kept as the robe pops forward; the heart
  * faded. And how far above the frame the row lifts to.
  */
-const ROW_LIT: [number, number, number] = [1, 0, 0];
-const ROW_LEAD: [number, number, number] = [1, 0, 0];
-const ROW_COUNT: Posed<IconCount> = { lead: ROW_LEAD, dim: 1 };
+const {
+  lit: ROW_LIT,
+  lead: ROW_LEAD,
+  count: ROW_COUNT,
+} = iconScratch([1, 0, 0], { lead: [1, 0, 0], dim: 1 });
 const ROW_GONE = -320;
 
 /** Where the doubtful hand goes: under the chin, in front of the body. */

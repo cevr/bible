@@ -59,8 +59,8 @@ export const thesis = drawing({
     away: { with: 'textOut', offset: 0.6, dur: 4.5, ease: 'inOutSine' },
     // The court lets go to the sky, then the city comes in: no double image.
     courtOut: { with: 'away', offset: 1.66, dur: 0.88, ease: 'linear' },
-    cityIn: { with: 'away', offset: 2.39, dur: 2.11, ease: 'outQuad' },
-    city: { with: 'away', offset: 2.6, dur: 11, ease: 'inOutSine' },
+    cityIn: { after: 'courtOut', offset: -0.15, dur: 2.11, ease: 'outQuad' },
+    city: { with: 'cityIn', offset: 0.21, dur: 11, ease: 'inOutSine' },
     // The two of them turn to each other once the city has settled.
     turn: { after: 'city', offset: 1.3, dur: 1.2 },
   },

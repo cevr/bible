@@ -166,7 +166,7 @@ const timeline = {
   settle: { mark: 'faith', offset: -0.8, dur: 1.5, ease: 'outCubic' },
   // The word's fall into the palm, beside its glide across: down fast, then
   // resting, so its path arcs over into the hand.
-  drop: { with: 'settle', dur: 1.5, ease: 'outExpo' },
+  drop: { with: 'settle', until: { cue: 'settle' }, ease: 'outExpo' },
   hold: { mark: 'faith', offset: 0.7, until: 'gift', ease: 'linear' },
   // Faith's disc opens on the word in his hand and pulls back to the row's
   // place; the robe and the heart pop in beside it as it settles, so no disc

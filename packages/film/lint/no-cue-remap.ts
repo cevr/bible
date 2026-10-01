@@ -19,7 +19,9 @@
 // done: the cue's own edges). `x` is a call to `.at(…)` or a name bound (by
 // `const`, anywhere in scope) to one, and `k`, `a`, `b`, `c` are numbers
 // written out or module consts. A progress passed in as a parameter or kept
-// on scratch is not traced.
+// on scratch is not traced. A part that runs to the cue's end, `(x - a) / (1 -
+// a)` or `(x - a) * k` with k = 1 / (1 - a), is told to land on that end
+// (`{ after: cue, dur, ends: true }`), so a drag of the cue carries it.
 
 import { Effect, Option } from 'effect';
 import {
@@ -89,6 +91,37 @@ const stepped = (n: ESTree.BinaryExpression): Reads => {
   return Effect.succeed(false);
 };
 
+/** How far a tail's shift and length may miss 1 and still be the cue's last part. */
+const WHOLE = 1e-6;
+
+/**
+ * Whether `n` is `(x - a) / (1 - a)` or `(x - a) * k` with k = 1 / (1 - a),
+ * read from its numbers: a part that ends where its cue does.
+ */
+const isTail = (n: ESTree.Node): boolean => {
+  const e = bare(n);
+  if (e.type !== 'BinaryExpression' || (e.operator !== '/' && e.operator !== '*')) return false;
+  const left = bare(e.left);
+  if (left.type !== 'BinaryExpression' || left.operator !== '-') return false;
+  const operator = e.operator;
+  return Option.exists(Option.all([numberOf(left.right), numberOf(bare(e.right))]), ([a, k]) =>
+    restIsWhole(operator, a, k),
+  );
+};
+
+/** Whether the rest of a cue after share `a`, divided by `k` (`/`) or scaled by it (`*`), is the whole 0→1. */
+const restIsWhole = (operator: '/' | '*', a: number, k: number): boolean => {
+  if (operator === '/') return Math.abs(1 - a - k) < WHOLE;
+  return Math.abs((1 - a) * k - 1) < WHOLE;
+};
+
+/** What the rule says of a part of a cue: a tail is landed on the cue's end, any other part runs with it. */
+const partMessage = (e: ESTree.Node): string => {
+  if (isTail(e))
+    return "a cue's last part split by a fraction written in the draw: declare it as its own cue that lands on the cue's end ({ after: cue, dur, ends: true }) and read it with f.at, so a drag of the cue carries it.";
+  return 'a cue split by a fraction written in the draw: declare the part as its own cue ({ with: cue, dur }, or { after: cue, dur, ends: true } for its last part) and read it with f.at, where the lab can reach it.';
+};
+
 /** A call's argument, when it is an expression. */
 const argument = (n: ESTree.CallExpression, i: number): Option.Option<ESTree.Node> =>
   Option.filter(Option.fromUndefinedOr(n.arguments[i]), (a) => a.type !== 'SpreadElement');
@@ -133,18 +166,13 @@ export const noCueRemap = Rule.define({
       Visitor.on('CallExpression', (node) =>
         Option.match(clamped(node), {
           onNone: () => Effect.void,
-          onSome: (e) =>
-            report(
-              node,
-              'a cue split by a fraction written in the draw: declare the part as its own cue ({ with: cue, dur } or { after: cue, dur, ends: true }) and read it with f.at, where the lab can reach it.',
-              remapped(e),
-            ),
+          onSome: (e) => report(node, partMessage(e), remapped(e)),
         }),
       ),
       Visitor.on('BinaryExpression', (node) =>
         report(
           node,
-          'a step part way through a cue, written in the draw: declare the instant as its own cue ({ with: cue, offset, dur: 0 }) and read f.at(instant) > 0, where the lab can reach it and a sound can follow it.',
+          "a step part way through a cue, written in the draw: declare the instant as its own cue ({ with: cue, offset, dur: 0 }) and read f.at(instant) > 0, where the lab can reach it and a sound can follow it; an instant the drawing's own shape makes is read from that shape (Math.cos(f.at('flip') * Math.PI) < 0).",
           stepped(node),
         ),
       ),

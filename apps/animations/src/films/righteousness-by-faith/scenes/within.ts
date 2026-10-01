@@ -27,7 +27,6 @@ import {
   shotPath,
   stroke,
   sub,
-  type Posed,
   blob,
   glow,
   knobCamera,
@@ -45,7 +44,7 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
-  type IconCount,
+  iconScratch,
   type Person,
   handOf,
   heart as drawHeart,
@@ -368,11 +367,19 @@ const STEM: Pt[] = [
   [0, -30],
 ];
 
-/** The row's glow: faith kept, forgiveness settling from `robe`'s full glow, the heart lighting. */
-const LIT: [number, number, number] = [ICON_KEPT, 1, 0];
-/** The robe leading as `robe` left it, until the heart pops forward on "power"; the unlit faded. */
-const LEAD: [number, number, number] = [0, 1, 0];
-const COUNT: Posed<IconCount> = { lead: LEAD, dim: 1 };
+/**
+ * The row's glow: faith kept, forgiveness settling from `robe`'s full glow,
+ * the heart lighting; the robe leading as `robe` left it, until the heart
+ * pops forward on "power"; the unlit faded.
+ */
+const {
+  lit: LIT,
+  lead: LEAD,
+  count: COUNT,
+} = iconScratch([ICON_KEPT, 1, 0], {
+  lead: [0, 1, 0],
+  dim: 1,
+});
 
 /**
  * B: the section head's icon row, as `robe` leaves it (the woman's plate

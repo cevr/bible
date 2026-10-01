@@ -4,13 +4,16 @@
 // check` probes, less the marks), each labelled, under the film's palette as
 // swatches. The page composes it with `film.render`, so the lab shows it live
 // (`?film=…&lookbook`, linked from the lab) and `film lookbook` asks an export page for the
-// same sheet (`ExportHandle.lookbook`) and writes it to `out/<film>/lookbook.jpg`.
+// same sheet (`ExportHandle.lookbook`) and writes it to
+// `out/<film>/film/<variant>/lookbook.jpg`. A still's click opens the lab on
+// its time, written as `#T` is (`tInHash`).
 // It is set in the film's own type: its shorts' hook face for the title, their
 // caption face for the rest (`film.look.short`), so the engine names no family.
 
 import type { Film } from '../canvas/film.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { labUrl } from './pages.ts';
+import { tInHash } from './t-in-url.ts';
 
 /** Stills across a row. */
 const COLS = 6;
@@ -227,7 +230,7 @@ export const mountLookbook = (film: Film, name: string, captions: boolean): void
         const x = ((e.clientX - r.left) / r.width) * canvas.width;
         const y = ((e.clientY - r.top) / r.height) * canvas.height;
         const hit = tiles.find((t) => x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h);
-        if (hit !== undefined) location.href = `${lab}#${hit.moment.time.toFixed(2)}`;
+        if (hit !== undefined) location.href = `${lab}#${tInHash(hit.moment.time)}`;
       });
     })
     .catch((e: unknown) => say(`failed: ${String(e)}`));

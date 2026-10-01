@@ -8,6 +8,15 @@
 
 import { type Throttled, browserTimers, throttled } from './throttle.ts';
 
+/**
+ * `T` as `#T` writes it: to the millisecond, rounded up, so a reload reads it
+ * back in its own frame and never before it. A scene's start that falls
+ * between two hundredths (`]` seeks there exactly) would read back in the
+ * scene before. The nudge below 1e-6 keeps a time already on the grid as
+ * itself, so reload after reload never creeps.
+ */
+export const tInHash = (T: number): string => (Math.ceil(T * 1000 - 1e-6) / 1000).toFixed(3);
+
 interface TInUrl {
   /** T moved: write it, at most once per period. Held, nothing. */
   moved(): void;

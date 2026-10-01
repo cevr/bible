@@ -15,7 +15,7 @@ import { encodeChunk, encoderChoice } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
 import { narration, narrationNote } from './narration.ts';
 import { labUrl } from './pages.ts';
-import { tInUrl } from './t-in-url.ts';
+import { tInHash, tInUrl } from './t-in-url.ts';
 import { lookFrames } from './look-frames.ts';
 
 /** The longest `#T` in the URL trails the frame shown while it plays. */
@@ -327,7 +327,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
    * call per frame.
    */
   const url = tInUrl(
-    () => history.replaceState(null, '', `${location.search}#${T.toFixed(2)}`),
+    () => history.replaceState(null, '', `${location.search}#${tInHash(T)}`),
     HASH_MS,
   );
 

@@ -353,20 +353,29 @@ const byDur = {
 
 /**
  * Where a span runs `until`: a `{mark}` in the scene's narration (its name),
- * or a scene landmark (`{ at: 'speechEnd' }`), so a re-take moves the end
- * with it.
+ * a scene landmark (`{ at: 'speechEnd' }`), so a re-take moves the end with
+ * it, or another cue's edge (`{ cue: 'roll' }`, its end unless `edge` names
+ * the start), so a lab drag of that cue moves the end with it.
  */
-export const Until = Schema.Union([Schema.String, Schema.Struct({ at: Landmark })]);
+export const Until = Schema.Union([
+  Schema.String,
+  Schema.Struct({ at: Landmark, cue: none, edge: none }),
+  Schema.Struct({
+    cue: Schema.String,
+    edge: Schema.optionalKey(Schema.Literals(['start', 'end'])),
+    at: none,
+  }),
+]);
 export type Until = typeof Until.Type;
 
-/** A span that ends on a mark or a landmark. */
+/** A span that ends on a mark, a landmark or a cue's edge. */
 const untilPoint = {
   until: Until,
   dur: Schema.optionalKey(Schema.Never),
   ends: Schema.optionalKey(Schema.Never),
 };
 
-/** One anchor's two spans: ended by `dur`, or `until` a mark or landmark; never both. */
+/** One anchor's two spans: ended by `dur`, or `until` a mark, a landmark or a cue's edge; never both. */
 const anchored = <A extends Schema.Struct.Fields>(anchor: A) =>
   [
     Schema.Struct({ ...anchor, ...spanTiming, ...byDur }),

@@ -7,7 +7,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import type { Timers } from './throttle.ts';
-import { tInUrl } from './t-in-url.ts';
+import { tInHash, tInUrl } from './t-in-url.ts';
 
 const fakeTimers = () => {
   let now = 0;
@@ -87,5 +87,16 @@ describe('#T in the URL', () => {
     clock.advance(300);
     url.moved();
     expect(written).toEqual([10, 10.1, 20, 20.5]);
+  });
+
+  test('a time written to #T reads back in its own frame, never before it', () => {
+    // A scene that starts off the 10 ms grid: `]` seeks to its exact start.
+    for (const T of [12.3333333, 4.5, 0, 7.12999, 99.0001]) {
+      const read = Number.parseFloat(tInHash(T));
+      expect(read).toBeGreaterThanOrEqual(T);
+      expect(read - T).toBeLessThan(0.001);
+    }
+    // A time already on the grid is written as itself, so reloads never creep.
+    expect(tInHash(12.33)).toBe('12.330');
   });
 });

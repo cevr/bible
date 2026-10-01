@@ -45,7 +45,7 @@ import {
   ICON_ROW,
   ICON_SKY,
   ICON_X,
-  type IconCount,
+  iconScratch,
   type Person,
   ROBE,
   icons,
@@ -111,8 +111,8 @@ const timeline = {
   carry: { mark: 'take', word: 'him', offset: -0.1, dur: 2.75, ease: 'inOutSine' },
   specks: { with: 'carry', offset: 0.4, dur: 0.8 },
   speck: { mark: 'pass', dur: 1.17 },
-  // The speck on his cheek fades as it lifts.
-  cheekOff: { with: 'speck', offset: 0.49, dur: 0.68, ease: 'outCubic' },
+  // The speck on his cheek fades as it lifts, gone as it reaches the top.
+  cheekOff: { after: 'speck', dur: 0.68, ends: true, ease: 'outCubic' },
   reachOut: { mark: 'clothe', dur: 0.75 },
   loomIn: { mark: 'loom', offset: -0.33, dur: 0.67 },
   pushLoom: { mark: 'loom', offset: 0.33, dur: 1.17 },
@@ -529,11 +529,12 @@ const reclaimed = (f: RobeFrame) => {
   ctx.restore();
 };
 
-/** The icons' glow: faith kept from its section, the robe lighting; rewritten each frame, never made per frame. */
-const ICONS_LIT: [number, number, number] = [ICON_KEPT, 0, 0];
-/** The robe leading as it lights, the heart faded. */
-const ICONS_LEAD: [number, number, number] = [0, 0, 0];
-const ICONS_COUNT: Posed<IconCount> = { lead: ICONS_LEAD, dim: 1 };
+/** The icons' glow: faith kept from its section, the robe lighting and leading as it lights, the heart faded. */
+const {
+  lit: ICONS_LIT,
+  lead: ICONS_LEAD,
+  count: ICONS_COUNT,
+} = iconScratch([ICON_KEPT, 0, 0], { lead: [0, 0, 0], dim: 1 });
 
 /** E: after the quotation, pull back to the section head's icon row, the robe lit and leading. */
 const iconsBack = (f: RobeFrame, toIcons: number) => {

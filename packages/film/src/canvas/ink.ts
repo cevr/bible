@@ -32,9 +32,15 @@ export const resample = (path: Path, spacing = 4): Pt[] => {
     carry = seg - (d - spacing);
   }
   const last = path[path.length - 1];
-  if (last !== undefined && out[out.length - 1] !== last) out.push(last);
+  if (last === undefined) return out;
+  // A path a whole number of spacings long put its last point there already.
+  if (carry < ON_END) out[out.length - 1] = last;
+  else out.push(last);
   return out;
 };
+
+/** How near the last spaced point may fall to the path's end and be its end (px). */
+const ON_END = 1e-6;
 
 export const length = (path: Path): number => {
   let sum = 0;

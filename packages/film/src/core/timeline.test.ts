@@ -239,6 +239,32 @@ describe('timeline', () => {
     );
   });
 
+  test('`until` ends a cue on another cue’s edge: a drag of that cue moves the end with it', () => {
+    const at = (roll: number) =>
+      Result.getOrThrow(
+        resolveTimeline(
+          {
+            roll: { mark: 'fiction', dur: roll },
+            steady: { with: 'roll', offset: 0.1, until: { cue: 'roll' } },
+            rest: { at: 'start', until: { cue: 'roll', edge: 'start' } },
+          },
+          clock,
+        ),
+      );
+    expect(at(0.8).get('steady')).toMatchObject({ start: 2.6, end: 3.3 });
+    expect(at(1.4).get('steady')?.end).toBeCloseTo(3.9);
+    expect(at(1.4).get('rest')).toMatchObject({ start: 0, end: 2.5 });
+    expect(
+      failure({ roll: { mark: 'fiction', dur: 1 }, late: { mark: 'as', until: { cue: 'roll' } } }),
+    ).toEqual(
+      UntilBeforeStart.make({ scene: 'justified', cue: 'late', until: 'the end of cue "roll"' }),
+    );
+    // A cue that runs until itself, or until a cue anchored on it, is a cycle, not a loop.
+    expect(
+      failure({ a: { mark: 'fiction', until: { cue: 'b' } }, b: { after: 'a', dur: 1 } }),
+    ).toEqual(CueCycle.make({ scene: 'justified', cycle: ['a', 'b', 'a'] }));
+  });
+
   test('`until` an unknown mark, or a mark before the cue starts, is an authoring error', () => {
     expect(failure({ walk: { at: 'start', until: 'nope' } })).toEqual(
       UnknownMark.make({
