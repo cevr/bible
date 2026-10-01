@@ -1198,6 +1198,13 @@ Montage images follow their manifest order so staged scenes read in sequence;
 missing images are skipped and each file path appears once. Videos and docs
 remain newest first. A folder's `blurb` renders as escaped Markdown, like its
 notes and docs, so scene lists and judging instructions stay readable.
+Optional `downloads` names file links relative to the montage, in authored
+order. Use it for a native master or another artifact to save: explicitly
+declared downloads are served with byte ranges even above the 600 MiB
+inline-video limit. Downloads alone get no player, poster or phone copy;
+inline video declarations retain the existing video and phone-copy limits.
+Missing downloads are skipped, duplicate paths appear once, and links retain
+the review's root and symlink checks.
 A file neither record names is not listed; nothing reads a file name back.
 A film's page plays its newest whole-film render as the catalogue records it.
 

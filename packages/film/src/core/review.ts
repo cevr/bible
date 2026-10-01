@@ -63,7 +63,7 @@ const ManifestSets = Schema.Record(Schema.String, ManifestSet).check(
 /**
  * A montage's `review.json`: the record the review lists a folder of
  * hand-made clips by (a film's renders are listed by their catalogue). A
- * title and a line for the folder, the videos, images and docs it shows, and
+ * title and a line for the folder, the videos, images, docs and downloads it shows, and
  * per comparison set (by clip) its title, order, start, moments, and each
  * variant's label, tag, verdict, notes, or file when it lies elsewhere. A set
  * lists the variants its `order` and `variants` name. Every key may be left
@@ -78,6 +78,8 @@ export const ReviewManifest = Schema.Struct({
   images: orElse(Schema.Array(Schema.String), []),
   /** Videos in no set, relative to the folder, shown with it. */
   videos: orElse(Schema.Array(Schema.String), []),
+  /** Explicit file downloads, relative to the folder, including masters too large to stream inline. */
+  downloads: orElse(Schema.Array(Schema.String), []),
   sets: orElse(ManifestSets, {}),
 });
 export type ReviewManifest = typeof ReviewManifest.Type;
@@ -99,6 +101,8 @@ export const ReviewFolder = Schema.Struct({
   videos: Schema.Array(ReviewVideo),
   images: Schema.Array(ReviewFile),
   docs: Schema.Array(ReviewFile),
+  /** Authored file links; omitted by older servers and by project folders. */
+  downloads: Schema.optionalKey(Schema.Array(ReviewFile)),
 });
 export type ReviewFolder = typeof ReviewFolder.Type;
 

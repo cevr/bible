@@ -10,7 +10,7 @@
 //   and captions are listed with the folder. A film's whole-film renders are
 //   also the pictures its options are heard against (`pictures`);
 // - a montage by its manifest (`review.json`): the sets, variants, videos,
-//   images and docs it names. A variant with no `file` is
+//   images, docs and downloads it names. A variant with no `file` is
 //   `<clip>.<id>.share.mp4`, else `<clip>.<id>.mp4`, beside it.
 //
 // A file is named by its ref, its root's label and its path under the root,
@@ -86,7 +86,7 @@ interface ReviewConfig {
   readonly cache: string;
   /** A video over this many bytes gets a 720p phone copy. */
   readonly phoneOver: number;
-  /** A video over this many bytes (a master) is not reviewed: too big to stream. */
+  /** A video over this many bytes is not played inline; an authored download may still name it. */
   readonly maxVideo: number;
   /** Whether phone copies are made in the background as the index finds big videos. */
   readonly phoneCopies: boolean;
@@ -390,6 +390,7 @@ export const namesInMontage = (manifest: ReviewManifest): ReadonlyArray<string> 
     ...manifest.docs,
     ...manifest.images,
     ...manifest.videos,
+    ...manifest.downloads,
     ...Object.entries(manifest.sets).flatMap(([clip, set]) =>
       variantIds(set).flatMap((id) => [
         ...variantNames(clip, id, set),
@@ -466,6 +467,7 @@ export const montageFolder = (parts: FolderParts<ReviewManifest>): ReviewFolder 
     videos: Arr.sort(videos, newestFirst).map((f) => ({ ...fileOf(f), phone: parts.phone(f) })),
     images: uniqueFiles(found(parts, manifest.images)).map(fileOf),
     docs: newestFiles(found(parts, manifest.docs)),
+    downloads: uniqueFiles(found(parts, manifest.downloads)).map(fileOf),
   };
 };
 
@@ -550,7 +552,9 @@ const refsIn = (folder: ReviewFolder): ReadonlyArray<string> => [
     ...seenVariants(set).map((seen) => seen.video.ref),
     ...set.variants.flatMap((v) => Option.toArray(Option.map(v.notes, (n) => n.ref))),
   ]),
-  ...[...folder.videos, ...folder.images, ...folder.docs].map((f) => f.ref),
+  ...[...folder.videos, ...folder.images, ...folder.docs, ...(folder.downloads ?? [])].map(
+    (f) => f.ref,
+  ),
 ];
 
 export class Review extends Context.Service<Review, ReviewService>()('@bible/film/tools/Review') {
@@ -755,10 +759,11 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             ),
           );
 
-        /** The files `names` (relative to `dir`) as found there, and each video's phone state. */
+        /** The named files and phone state for the subset eligible for previews; download-only files get none. */
         const lookIn = Effect.fn('Review.lookIn')(function* (
           dir: string,
           names: ReadonlyArray<string>,
+          phoneNames: ReadonlyArray<string> = names,
         ) {
           const byName = new Map<string, Found>();
           for (const name of names) {
@@ -766,7 +771,9 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
             if (Option.isSome(at)) byName.set(name, at.value);
           }
           const phones = new Map<string, PhoneState>();
-          for (const file of byName.values())
+          for (const file of phoneNames.flatMap((name) =>
+            Option.toArray(Option.fromUndefinedOr(byName.get(name))),
+          ))
             if (!phones.has(file.path)) phones.set(file.path, yield* phoneState(file));
           const pending = [...byName.values()].filter(
             (f) => phones.get(f.path) === 'pending' && f.size <= config.maxVideo,
@@ -817,7 +824,11 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           const manifest = yield* decodeRecord(file, ReviewManifestJson);
           if (Option.isNone(manifest)) return Option.none();
           const record = manifest.value;
-          const { parts, pending } = yield* lookIn(dir, namesInMontage(record));
+          const { parts, pending } = yield* lookIn(
+            dir,
+            namesInMontage(record),
+            namesInMontage({ ...record, downloads: [] }),
+          );
           return Option.some({
             folder: montageFolder({ ...parts, record }),
             pending,
@@ -827,7 +838,12 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
         });
 
         const hasAny = (f: ReviewFolder) =>
-          f.sets.length + f.videos.length + f.images.length + f.docs.length > 0;
+          f.sets.length +
+            f.videos.length +
+            f.images.length +
+            f.docs.length +
+            (f.downloads?.length ?? 0) >
+          0;
 
         /** What a read of the roots found: the index, and each film's pictures, newest first. */
         interface Read {

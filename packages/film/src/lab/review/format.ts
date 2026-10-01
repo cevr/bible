@@ -52,6 +52,7 @@ export const countsText = (folder: ReviewFolder): string =>
     counted(folder.videos.length, 'video'),
     counted(folder.images.length, 'image'),
     counted(folder.docs.length, 'doc'),
+    counted(folder.downloads?.length ?? 0, 'download'),
   ]).join(' · ');
 
 /** The folder's name as its card shows it: its manifest's title, else its ref's last part. */

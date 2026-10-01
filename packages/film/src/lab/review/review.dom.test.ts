@@ -86,6 +86,9 @@ const index: Json = {
       ],
       videos: [{ ref: 'out/art/walk.mp4', name: 'walk.mp4', size: 4096, mtime: 0, phone: 'none' }],
       images: [],
+      downloads: [
+        { ref: 'out/art/master #1.mp4', name: 'master #1.mp4', size: 1700000000, mtime: 0 },
+      ],
       docs: [
         { ref: 'out/art/walk.vtt', name: 'walk.vtt', size: 10, mtime: 0 },
         { ref: 'out/art/why.md', name: 'why.md', size: 10, mtime: 0 },
@@ -139,6 +142,15 @@ describe('the review page', () => {
         yield* textHas(page, 'a.rv-card', 'compare 3');
         yield* textHas(page, '.rv-card', 'walk.mp4');
         yield* attributeIs(page, '.rv-tall track', 'src', '/review/files/out/art/walk.vtt');
+        yield* textHas(page, '[data-review-download]', 'master #1.mp4');
+        yield* attributeIs(
+          page,
+          '[data-review-download]',
+          'href',
+          '/review/files/out/art/master%20%231.mp4',
+        );
+        yield* attributeIs(page, '[data-review-download]', 'download', 'master #1.mp4');
+        yield* countIs(page, 'video[src*="master"], img[src*="master"]', 0);
         yield* page.click('.rv-doc summary');
         yield* waitFor(page, '.rv-doc .rv-note li b');
         yield* evaluates(

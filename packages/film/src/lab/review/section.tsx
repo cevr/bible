@@ -366,6 +366,22 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
           </p>
         </Show>
       </Section>
+      <Section title="Downloads" count={props.folder.downloads?.length ?? 0}>
+        <p class="rv-row">
+          <For each={props.folder.downloads ?? []}>
+            {(file) => (
+              <a
+                class="rv-chip"
+                data-review-download
+                href={reviewFileUrl(file.ref)}
+                download={file.name}
+              >
+                {file.name} · {sizeText(file.size)}
+              </a>
+            )}
+          </For>
+        </p>
+      </Section>
     </>
   );
 };
