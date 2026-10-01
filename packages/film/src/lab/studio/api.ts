@@ -31,7 +31,7 @@ export class TakeTooLong extends Schema.TaggedError<TakeTooLong>()('TakeTooLong'
 }
 
 /** Why a studio call gave no answer: the server's refusal, the lab not reached, or a take too long. */
-export type StudioFailure = LabFailure | TakeTooLong;
+type StudioFailure = LabFailure | TakeTooLong;
 
 export interface StudioCalls {
   /** Every beat with a line: its sheet text and where its take stands. */

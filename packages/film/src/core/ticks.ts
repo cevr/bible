@@ -9,9 +9,9 @@ import type { Sound } from './schema.ts';
 import { cueTime } from './sound.ts';
 import { stretchesOf } from './acts.ts';
 
-export type TickKind = 'mark' | 'cue' | 'effect' | 'movement';
+type TickKind = 'mark' | 'cue' | 'effect' | 'movement';
 
-export interface Tick {
+interface Tick {
   readonly kind: TickKind;
   /** What a hover shows: the scene and the moment's name. */
   readonly name: string;

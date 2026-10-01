@@ -3,7 +3,7 @@
 
 import type { EaseName } from './schema.ts';
 
-export type Ease = (t: number) => number;
+type Ease = (t: number) => number;
 
 /**
  * Frames a second a film draws at when its spec names no rate (`createFilm`).

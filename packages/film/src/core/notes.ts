@@ -19,7 +19,7 @@ import type {
 } from './schema.ts';
 
 /** Where a time falls on the film: its scene, and the cue edge and mark nearest it there. */
-export interface Moment {
+interface Moment {
   readonly scene: string;
   readonly cue: Option.Option<NoteCue>;
   readonly mark: Option.Option<string>;
@@ -71,8 +71,8 @@ export const noteById = (file: NotesFile, id: string): Option.Option<Note> =>
   Arr.findFirst(file.notes, (n) => n.id === id);
 
 /** The id and still file a note made at change `seq` gets. */
-export const noteId = (seq: number) => `n${seq}`;
-export const noteStill = (id: string) => `${id}.png`;
+const noteId = (seq: number) => `n${seq}`;
+const noteStill = (id: string) => `${id}.png`;
 /** A reply's still: beside its note's, numbered by the reply's change. */
 export const replyStill = (id: string, seq: number) => `${id}.r${seq}.png`;
 
@@ -95,7 +95,7 @@ export const addNote = (file: NotesFile, draft: NoteDraft, at: string): NotesFil
 };
 
 /** What a reply says, with its still when it has one. */
-export interface ReplyDraft {
+interface ReplyDraft {
   readonly by: NoteAuthor;
   readonly text: string;
   readonly still: Option.Option<string>;

@@ -42,7 +42,7 @@ const percentile = (values: ReadonlyArray<number>, p: number): number => {
 };
 
 /** An effect whose loudest `hotWindow` comes within `BALANCE.hot` dB under the voice around it. */
-export interface HotEffect {
+interface HotEffect {
   readonly name: string;
   readonly at: number;
   /** Its loudest moment against the voice around it, in dB (negative: under it). */

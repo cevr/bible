@@ -12,10 +12,10 @@ import type { ScenePoint, Short, ShortSpan } from './schema.ts';
 
 /** A short as it plays: 1080 × 1920, vertical. */
 export const SHORT_WIDTH = 1080;
-export const SHORT_HEIGHT = 1920;
+const SHORT_HEIGHT = 1920;
 
 /** One span of a short on the film's clock: film seconds `[from, to)`, starting at `at` in the short. */
-export interface ShortCut {
+interface ShortCut {
   readonly scene: string;
   readonly from: number;
   readonly to: number;
@@ -54,7 +54,7 @@ export const SHORT_LAYOUT = {
  * the platform's own furniture. Data, so `film check --short` and the lab
  * read one set of zones.
  */
-export interface SafeZone {
+interface SafeZone {
   readonly top: number;
   readonly bottom: number;
   readonly left: number;
@@ -121,7 +121,7 @@ export const shortPage = (width: number) => ({
 });
 
 /** Where the film's frame sits on a short's page, in page px. */
-export interface ShortBand {
+interface ShortBand {
   readonly top: number;
   readonly width: number;
   readonly height: number;

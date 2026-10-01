@@ -26,7 +26,7 @@ export interface Handle {
 }
 
 /** Why a knob has no handle on this frame. */
-export interface NoHandle {
+interface NoHandle {
   readonly _tag: 'NoHandle';
   readonly why: string;
 }

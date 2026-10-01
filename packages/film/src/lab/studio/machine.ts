@@ -53,13 +53,13 @@ const Wav = Schema.Uint8Array;
  * the track remixed with it, the mix failed, or no answer came to say (the
  * page stopped waiting and read the take as kept from the attempts).
  */
-export const Kept = Schema.Struct({
+const Kept = Schema.Struct({
   file: Schema.String,
   heard: Schema.String,
   wer: Schema.Finite,
   mix: Schema.Literals(['mixed', 'failed', 'unanswered']),
 });
-export type Kept = typeof Kept.Type;
+type Kept = typeof Kept.Type;
 
 /** An import that got no answer, nor an answer from the attempts, in the owner's words. */
 export class ImportUnanswered extends Schema.TaggedError<ImportUnanswered>()('ImportUnanswered', {
@@ -237,7 +237,7 @@ const unanswered = (message: string) => ImportUnanswered.make({ message });
  * now (newest first): kept (the mix unanswered), or refused in words. An
  * upload is the newest attempt made `since`; a keep, its file.
  */
-export const settle = (
+const settle = (
   work: Work,
   since: number,
   attempts: ReadonlyArray<StudioAttempt>,

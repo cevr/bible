@@ -139,7 +139,7 @@ const Lightbox = () => {
 };
 
 /** The review: its header, the page it is on, and the lightbox. */
-export const ReviewPage = (props: { readonly origin: string }) => (
+const ReviewPage = (props: { readonly origin: string }) => (
   <Root origin={props.origin}>
     <Header />
     <Page />

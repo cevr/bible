@@ -4,7 +4,7 @@
 import type { Pcm } from '../audio.ts';
 
 /** How a bed's end meets its start when looped. */
-export interface Seam {
+interface Seam {
   /** The difference in short-term (3 s) level either side of the join, in dB. */
   readonly db: number;
   /** The sample step across the join, as a multiple of the sound's median step. */
@@ -12,9 +12,9 @@ export interface Seam {
 }
 
 /** A bed's loop point may change its short-term level by at most this, in dB. */
-export const SEAM_DB = 1;
+const SEAM_DB = 1;
 /** A step across the join larger than this many median steps is a click. */
-export const SEAM_CLICK = 8;
+const SEAM_CLICK = 8;
 
 /** The mean square of every channel over `[from, to)`. */
 const power = (pcm: Pcm, from: number, to: number): number => {

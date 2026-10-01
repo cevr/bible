@@ -67,7 +67,7 @@ export interface ProjectSay {
   readonly say: Say;
 }
 
-export interface OptionsCalls {
+interface OptionsCalls {
   /** The app's films. */
   readonly films: Effect.Effect<ReviewFilms, LabFailure>;
   /** A film's choice points as they stand. */

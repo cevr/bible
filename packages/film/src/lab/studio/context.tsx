@@ -67,7 +67,7 @@ export interface AttemptRow {
 /** How the status line reads: at rest, working, near the take limit, a take kept, or refused. */
 type StudioTone = 'rest' | 'busy' | 'warn' | 'kept' | 'refused';
 
-export interface StudioStateValue {
+interface StudioStateValue {
   /** Every beat with a line, in the film's order. */
   readonly beats: Accessor<ReadonlyArray<StudioBeat>>;
   /** How many beats are recorded, staging, stale. */
@@ -99,7 +99,7 @@ export interface StudioStateValue {
   readonly hadFocus: boolean;
 }
 
-export interface StudioActions {
+interface StudioActions {
   readonly select: (beat: string) => void;
   readonly perform: (act: Act) => void;
   /** Keep an earlier attempt as the beat's take. */
@@ -111,7 +111,7 @@ export interface StudioActions {
   readonly focused: (inside: boolean) => void;
 }
 
-export interface StudioContextValue {
+interface StudioContextValue {
   readonly state: StudioStateValue;
   readonly actions: StudioActions;
 }

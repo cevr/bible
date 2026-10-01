@@ -6,11 +6,3 @@ import { Provider } from './context.tsx';
 import { Onion, Section } from './section.tsx';
 
 export const Motion = { Provider, Section, Onion };
-export { useMotion } from './context.tsx';
-export type {
-  MotionActions,
-  MotionContextValue,
-  MotionState,
-  OnionView,
-  Rate,
-} from './context.tsx';

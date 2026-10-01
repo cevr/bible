@@ -9,11 +9,11 @@
 import { Schema } from 'effect';
 
 /** A store that is a folder (`~/` is the home folder): each key a file at that path under it. */
-export const FolderStoreConfig = Schema.Struct({
+const FolderStoreConfig = Schema.Struct({
   kind: Schema.tag('folder'),
   folder: Schema.String,
 });
-export type FolderStoreConfig = typeof FolderStoreConfig.Type;
+type FolderStoreConfig = typeof FolderStoreConfig.Type;
 
 /**
  * A private Cloudflare R2 bucket, reached over its S3 API. The account and

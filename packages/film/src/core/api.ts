@@ -145,7 +145,7 @@ const status = HttpApiSchema.status;
  * take the lab will not make 422; a tool or a service that failed 502; the
  * rest 500.
  */
-export const Refusals = [
+const Refusals = [
   NoteNotFound.pipe(status(404)),
   SceneNotLocated.pipe(status(404)),
   HeadUnavailable.pipe(status(404)),
@@ -205,7 +205,7 @@ export const statusOf = (refusal: Refusal): number => {
 // The groups.
 
 /** A write with nothing to say (undo, redo, resolve) still sends JSON: the server takes no other write. */
-export const NoBody = Schema.Struct({});
+const NoBody = Schema.Struct({});
 
 /** `GET /lab/<film>/steps`: the film's history as `CheckReport` gives it, without the check. */
 export const Steps = Schema.Struct({
@@ -237,7 +237,7 @@ const FileBytes = Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array());
 const film = { film: Schema.String };
 
 /** The notes on a film's frames: the file (its `seq` the cursor), a long-polled wait, a still. */
-export class NotesGroup extends HttpApiGroup.make('notes').add(
+class NotesGroup extends HttpApiGroup.make('notes').add(
   HttpApiEndpoint.get('list', '/lab/:film/notes', {
     params: film,
     success: NotesFile,
@@ -276,7 +276,7 @@ export class NotesGroup extends HttpApiGroup.make('notes').add(
 ) {}
 
 /** A scene's source as the lab edits it: what it may rewrite, HEAD's version, a cue or a knob written. */
-export class ScenesGroup extends HttpApiGroup.make('scenes').add(
+class ScenesGroup extends HttpApiGroup.make('scenes').add(
   HttpApiEndpoint.get('source', '/lab/:film/scenes/:scene/source', {
     params: { ...film, scene: Schema.String },
     success: SceneSource,
@@ -302,7 +302,7 @@ export class ScenesGroup extends HttpApiGroup.make('scenes').add(
 ) {}
 
 /** The film's writes stepped back and on, and its check: the lab's and the review's alike. */
-export class StepsGroup extends HttpApiGroup.make('steps').add(
+class StepsGroup extends HttpApiGroup.make('steps').add(
   HttpApiEndpoint.post('undo', '/lab/:film/undo', {
     params: film,
     payload: NoBody,
@@ -330,7 +330,7 @@ export class StepsGroup extends HttpApiGroup.make('steps').add(
 ) {}
 
 /** The studio: the film's voice recorded in the browser, beat by beat. */
-export class StudioGroup extends HttpApiGroup.make('studio').add(
+class StudioGroup extends HttpApiGroup.make('studio').add(
   HttpApiEndpoint.get('beats', '/lab/:film/studio/beats', {
     params: film,
     success: StudioBeats,
@@ -366,7 +366,7 @@ export const REVIEW_FILES = '/review/files/';
 export const REVIEW_PHONE = '/review/phone/';
 
 /** The review: every folder with something to review, each file where it lies, a frame, a length. */
-export class ReviewGroup extends HttpApiGroup.make('review').add(
+class ReviewGroup extends HttpApiGroup.make('review').add(
   HttpApiEndpoint.get('index', '/review/index', {
     query: { fresh: Schema.optionalKey(Schema.String) },
     success: ReviewIndex,
@@ -399,7 +399,7 @@ export class ReviewGroup extends HttpApiGroup.make('review').add(
  * variant heard alone or in the film's mix, and the film's sound checked
  * after a pick.
  */
-export class ChoicesGroup extends HttpApiGroup.make('choices').add(
+class ChoicesGroup extends HttpApiGroup.make('choices').add(
   HttpApiEndpoint.get('films', '/review/films', { success: ReviewFilms, error: Refusals }),
   HttpApiEndpoint.get('list', '/lab/:film/choices', {
     params: film,
@@ -477,7 +477,7 @@ export type ProjectView = typeof ProjectView.Type;
  * and a withdrawal withdraws every approval of its scenes. Each call runs
  * `film project` in a fresh process and answers the project as it now stands.
  */
-export class ProjectGroup extends HttpApiGroup.make('project').add(
+class ProjectGroup extends HttpApiGroup.make('project').add(
   HttpApiEndpoint.get('get', '/review/project/:film', {
     params: film,
     query: variantField,

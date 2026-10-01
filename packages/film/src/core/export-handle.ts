@@ -156,8 +156,8 @@ export const Probed = Schema.Struct({
 export type Probed = typeof Probed.Type;
 
 /** The formats a frame or a look-book comes back in: PNG (lossless) or JPEG. */
-export const FrameFormat = Schema.Literals(['image/png', 'image/jpeg']);
-export type FrameFormat = typeof FrameFormat.Type;
+const FrameFormat = Schema.Literals(['image/png', 'image/jpeg']);
+type FrameFormat = typeof FrameFormat.Type;
 
 /** A rectangle of a frame in canvas px, and the grid its luma is sampled down to. */
 export const LumaArea = Schema.Struct({
@@ -171,12 +171,12 @@ export const LumaArea = Schema.Struct({
 export type LumaArea = typeof LumaArea.Type;
 
 /** The look pass's frames: thumbs end to end, and each frame's faces and hands. */
-export const LookedFrames = Schema.Struct({
+const LookedFrames = Schema.Struct({
   thumbs: Schema.Uint8ArrayFromBase64,
   faces: Schema.Array(Schema.Array(FaceMark)),
   hands: Schema.Array(Schema.Array(HandMark)),
 });
-export type LookedFrames = typeof LookedFrames.Type;
+type LookedFrames = typeof LookedFrames.Type;
 
 /**
  * Where a chunk's time went in the page, in ms: drawing its frames (each
@@ -191,12 +191,12 @@ export const ChunkTiming = Schema.Struct({
 export type ChunkTiming = typeof ChunkTiming.Type;
 
 /** A chunk from the page (player/encode.ts): the master, the share copy if asked for, and its timing. */
-export const EncodedChunk = Schema.Struct({
+const EncodedChunk = Schema.Struct({
   master: Schema.Uint8ArrayFromBase64,
   share: Schema.OptionFromOptionalKey(Schema.Uint8ArrayFromBase64),
   timing: ChunkTiming,
 });
-export type EncodedChunk = typeof EncodedChunk.Type;
+type EncodedChunk = typeof EncodedChunk.Type;
 
 /**
  * Every call the export handle answers, and its arguments, as the tools pass
@@ -265,7 +265,7 @@ export type WireAnswers = { readonly [K in ExportCall]: (typeof Answers)[K]['Enc
 export type CallAnswers = { readonly [K in ExportCall]: (typeof Answers)[K]['Type'] };
 
 /** Each call's answer schema, typed call by call. */
-export type AnswerSchemas = {
+type AnswerSchemas = {
   readonly [K in ExportCall]: Schema.Codec<CallAnswers[K], WireAnswers[K]>;
 };
 
@@ -273,7 +273,7 @@ export type AnswerSchemas = {
 export const ExportAnswers: AnswerSchemas = Answers;
 
 /** Every call of the handle, as the page answers it (bytes as base64). */
-export type HandleCalls = {
+type HandleCalls = {
   readonly [K in ExportCall]: (...args: CallArgs[K]) => WireAnswers[K] | Promise<WireAnswers[K]>;
 };
 

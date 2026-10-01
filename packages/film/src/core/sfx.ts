@@ -22,10 +22,8 @@ import { Recipe, synthesize } from './synth/recipes.ts';
 // Names and declarations
 
 /** `family.thing`, lower case: `paper.slide`, `amb.court`, `tone.chime`. */
-export const SoundName = Schema.String.check(
-  Schema.isPattern(/^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$/),
-);
-export type SoundName = typeof SoundName.Type;
+const SoundName = Schema.String.check(Schema.isPattern(/^[a-z][a-z0-9]*(\.[a-z][a-z0-9-]*)+$/));
+type SoundName = typeof SoundName.Type;
 
 /** A sound's family: what `sfx list <family>` searches by. */
 export const familyOf = (name: string): string => name.slice(0, Math.max(0, name.indexOf('.')));
@@ -35,26 +33,26 @@ export const SoundUse = Schema.Literals(['one-shot', 'bed']);
 export type SoundUse = typeof SoundUse.Type;
 
 /** A placement's seeded spread: up to ± `pitch` semitones and ± `gain` dB. */
-export const Jitter = Schema.Struct({
+const Jitter = Schema.Struct({
   pitch: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1 })),
   gain: Schema.Finite.check(Schema.isBetween({ minimum: 0, maximum: 1.5 })),
 });
-export type Jitter = typeof Jitter.Type;
+type Jitter = typeof Jitter.Type;
 
 /**
  * A licence that lets a recording sit in a public repo and a monetised film:
  * CC0 only (the owner's rule), so no credit line is ever owed.
  */
-export const PublicLicence = Schema.Literals(['CC0-1.0']);
-export type PublicLicence = typeof PublicLicence.Type;
+const PublicLicence = Schema.Literals(['CC0-1.0']);
+type PublicLicence = typeof PublicLicence.Type;
 
 /** A recording's licence, its author and where it came from. */
-export const Licence = Schema.Struct({
+const Licence = Schema.Struct({
   id: PublicLicence,
   author: Schema.String,
   source: Schema.String,
 });
-export type Licence = typeof Licence.Type;
+type Licence = typeof Licence.Type;
 
 /** What every kind of sound declares besides how it is made. */
 const placing = {
@@ -68,7 +66,7 @@ const placing = {
 };
 
 /** The shortest and longest sound ElevenLabs makes, in seconds. */
-export const GENERATED_SECS = { min: 0.5, max: 30 } as const;
+const GENERATED_SECS = { min: 0.5, max: 30 } as const;
 
 export const Generated = Schema.Struct({
   kind: Schema.Literal('generated'),
@@ -86,26 +84,26 @@ export const Generated = Schema.Struct({
 });
 export type Generated = typeof Generated.Type;
 
-export const Procedural = Schema.Struct({
+const Procedural = Schema.Struct({
   kind: Schema.Literal('procedural'),
   recipe: Recipe,
   /** Seeds 1…n: each a variant. */
   variants: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 12 })),
   ...placing,
 });
-export type Procedural = typeof Procedural.Type;
+type Procedural = typeof Procedural.Type;
 
 /**
  * A recording under a licence that may be public: `sfx import` trims and
  * measures each one into the lock as a variant, its file under `public/`
  * (committed).
  */
-export const Recorded = Schema.Struct({
+const Recorded = Schema.Struct({
   kind: Schema.Literal('recorded'),
   licence: Licence,
   ...placing,
 });
-export type Recorded = typeof Recorded.Type;
+type Recorded = typeof Recorded.Type;
 
 export const LibraryEntry = Schema.Union([Generated, Procedural, Recorded]);
 export type LibraryEntry = typeof LibraryEntry.Type;
@@ -121,12 +119,12 @@ export const defineLibrary = <const L extends Library>(library: L): L => library
 // What was made (`library.lock.json`)
 
 /** How loud a variant measured when it was made: LUFS and dBFS, silence floored at `SILENT`. */
-export const VariantLoudness = Schema.Struct({
+const VariantLoudness = Schema.Struct({
   integrated: Schema.Finite,
   momentaryMax: Schema.Finite,
   peak: Schema.Finite,
 });
-export type VariantLoudness = typeof VariantLoudness.Type;
+type VariantLoudness = typeof VariantLoudness.Type;
 
 /** A measure of silence as the lock writes it: JSON has no -Infinity. */
 export const SILENT = -120;
@@ -149,11 +147,11 @@ export const lockLoudness = (measured: {
 export const SFX_MODEL = 'eleven_text_to_sound_v2';
 export const SFX_FORMAT = 'pcm_44100';
 /** "40 credits per second when duration is specified", whatever the prompt. */
-export const CREDITS_PER_SECOND = 40;
+const CREDITS_PER_SECOND = 40;
 
 /** Where a variant's licence lets it live: a paid generation stays private. */
-export const VariantLicence = Schema.Literals(['elevenlabs-paid-sfx', 'CC0-1.0']);
-export type VariantLicence = typeof VariantLicence.Type;
+const VariantLicence = Schema.Literals(['elevenlabs-paid-sfx', 'CC0-1.0']);
+type VariantLicence = typeof VariantLicence.Type;
 
 /** One made variant: a file named by its bytes' hash, as measured and paid for when it was made. */
 export const Variant = Schema.Struct({
@@ -240,7 +238,7 @@ const RequestKey = Schema.fromJsonString(
  * 30 Hz); a bed keeps the model's own air at the API's 0.3, and a crowd bed
  * loops cleaner at 0.6 (its declaration names that).
  */
-export const DEFAULT_INFLUENCE = { 'one-shot': 0.7, bed: 0.3 } satisfies Record<SoundUse, number>;
+const DEFAULT_INFLUENCE = { 'one-shot': 0.7, bed: 0.3 } satisfies Record<SoundUse, number>;
 
 /** The `prompt_influence` a generated sound is made with: its own, or its use's default. */
 export const influenceOf = (entry: Generated): number =>
@@ -271,7 +269,7 @@ export const requestKey = (entry: LibraryEntry): string => {
 };
 
 /** Where a sound stands against the lock. */
-export type SoundState =
+type SoundState =
   /** Procedural: rendered from its recipe, nothing to make. */
   | { readonly _tag: 'Derived'; readonly variants: number }
   /** No variant kept for any request: nothing plays. */
@@ -304,7 +302,7 @@ export const soundState = (entry: LibraryEntry, lock: Option.Option<LockEntry>):
 /** How many candidates a generated sound is made as, when it names no number. */
 // About a third of the sweet-spot takes were usable (p4-sfx2): six one-shots,
 // or three beds, give one usable take nearly always.
-export const DEFAULT_CANDIDATES = { 'one-shot': 6, bed: 3 } satisfies Record<SoundUse, number>;
+const DEFAULT_CANDIDATES = { 'one-shot': 6, bed: 3 } satisfies Record<SoundUse, number>;
 
 export const candidatesOf = (entry: Generated): number =>
   Option.getOrElse(Option.fromUndefinedOr(entry.candidates), () => DEFAULT_CANDIDATES[entry.use]);
@@ -417,7 +415,7 @@ export const resolveUse = (
 export const VOICE_LEVEL = TAKE_LEVEL.speech;
 
 /** A sound's level relative to the voice when neither the film nor the library names one. */
-export const DEFAULT_LEVEL = { 'one-shot': -10, bed: -28 } satisfies Record<SoundUse, number>;
+const DEFAULT_LEVEL = { 'one-shot': -10, bed: -28 } satisfies Record<SoundUse, number>;
 
 /** The level a placement plays at: the film's, else the library's, else the use's default. */
 export const levelOf = (entry: LibraryEntry, placed: Option.Option<number>): number =>
@@ -549,7 +547,7 @@ export interface Placing {
 }
 
 /** What a placement plays: which variant, and its seeded nudge. */
-export interface Played {
+interface Played {
   readonly variant: number;
   /** Semitones (the variant is resampled, so its length changes with it). */
   readonly pitch: number;
@@ -616,7 +614,7 @@ export interface StagedAudio {
 }
 
 /** A staged audio file the repo may not take, and why: its licence, or what it is. */
-export interface Refused {
+interface Refused {
   readonly file: string;
   readonly licence: string;
 }

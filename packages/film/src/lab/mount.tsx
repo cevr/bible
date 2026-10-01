@@ -13,12 +13,12 @@ import { Studio } from './studio/index.ts';
 import { Lab } from './shell.tsx';
 
 /** The lab page could not start: the film did not load, or the page has no such film. */
-export class LabStartFailed extends Schema.TaggedError<LabStartFailed>()('LabStartFailed', {
+class LabStartFailed extends Schema.TaggedError<LabStartFailed>()('LabStartFailed', {
   reason: Schema.String,
 }) {}
 
 /** The lab: the shell, and each tool in its place. */
-export const LabPage = (props: { readonly name: string; readonly player: Player }) => (
+const LabPage = (props: { readonly name: string; readonly player: Player }) => (
   <Lab.Root name={props.name} player={props.player}>
     <Editor.Provider>
       <Motion.Provider>

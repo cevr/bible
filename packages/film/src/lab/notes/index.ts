@@ -8,5 +8,3 @@ import { Provider } from './context.tsx';
 import { Marks, Pen, Pins, Section } from './section.tsx';
 
 export const Notes = { Provider, Pen, Section, Marks, Pins };
-export { useNotes } from './context.tsx';
-export type { NotesActions, NotesContextValue, NotesState, ThreadWrite } from './context.tsx';

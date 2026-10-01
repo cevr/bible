@@ -32,7 +32,7 @@ import {
   splitOf,
 } from './machine.ts';
 
-export interface CompareStateValue {
+interface CompareStateValue {
   /** The mode chosen: off, wipe or blink. */
   readonly mode: Accessor<CompareMode>;
   /** What the HEAD layer shows now: nothing, HEAD, or now (a blink's other side). */
@@ -47,13 +47,13 @@ export interface CompareStateValue {
   readonly status: Accessor<string>;
 }
 
-export interface CompareActions {
+interface CompareActions {
   readonly choose: (mode: CompareMode) => void;
   /** The divider dragged to `split`, 0–1 across the frame. */
   readonly split: (split: number) => void;
 }
 
-export interface CompareContextValue {
+interface CompareContextValue {
   readonly state: CompareStateValue;
   readonly actions: CompareActions;
 }

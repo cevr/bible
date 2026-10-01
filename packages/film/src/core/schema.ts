@@ -187,8 +187,8 @@ export const Reader = Schema.Union([
 export type Reader = typeof Reader.Type;
 
 /** One voice of a cast: the name a line hands over to with `{@name}`. */
-export const CastVoice = Schema.Struct({ name: Schema.String, voiceId: Schema.String });
-export type CastVoice = typeof CastVoice.Type;
+const CastVoice = Schema.Struct({ name: Schema.String, voiceId: Schema.String });
+type CastVoice = typeof CastVoice.Type;
 
 /**
  * Voices in conversation, every take read through text-to-dialogue, so a
@@ -269,11 +269,11 @@ export type EaseName = typeof EaseName.Type;
 /** Fails the typecheck unless `EaseName` names every curve in `ease` and nothing else. */
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 type Assert<T extends true> = T;
-export type EaseNamesMatch = Assert<Same<EaseName, keyof typeof ease>>;
+type _EaseNamesMatch = Assert<Same<EaseName, keyof typeof ease>>;
 
 /** A scene's landmarks: its start, where its voice starts and ends, and its end. */
-export const Landmark = Schema.Literals(['start', 'speech', 'speechEnd', 'end']);
-export type Landmark = typeof Landmark.Type;
+const Landmark = Schema.Literals(['start', 'speech', 'speechEnd', 'end']);
+type Landmark = typeof Landmark.Type;
 
 /** A key a point must not name beside its own anchor. */
 const none = Schema.optionalKey(Schema.Never);
@@ -598,7 +598,7 @@ export type SoundEffect = typeof SoundEffect.Type;
  * itself where it wraps, faded in and out, ducked under the voice unless the
  * library says it sits under everything.
  */
-export const SoundBed = Schema.Struct({
+const SoundBed = Schema.Struct({
   sound: Schema.String,
   /** dB relative to the voice; else the library's, else the bed default. */
   level: Schema.optionalKey(Schema.Finite),
@@ -607,7 +607,7 @@ export const SoundBed = Schema.Struct({
   /** Seconds each end fades over; `BED_FADE` when none. */
   fade: Schema.optionalKey(Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0))),
 });
-export type SoundBed = typeof SoundBed.Type;
+type SoundBed = typeof SoundBed.Type;
 
 /** A film's score, beds and effects (`sound.ts`). */
 export const Sound = Schema.Struct({
@@ -709,7 +709,7 @@ export type Look = typeof Look.Type;
  * `light`, `lighter`): each level's value, and `play`, the one the film is
  * drawn at. The review compares them and a pick rewrites `play`.
  */
-export const LookOption = Schema.Struct({
+const LookOption = Schema.Struct({
   options: Schema.Record(Schema.String, Schema.Finite),
   play: Schema.String,
 }).check(
@@ -719,7 +719,7 @@ export const LookOption = Schema.Struct({
       `plays "${look.play}", which is none of its levels (${Object.keys(look.options).join(', ')})`,
   ),
 );
-export type LookOption = typeof LookOption.Type;
+type LookOption = typeof LookOption.Type;
 
 /** A film's look options by name (`export const looks` in `palette.ts`). */
 export const Looks = Schema.Record(Schema.String, LookOption);

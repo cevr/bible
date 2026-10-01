@@ -137,7 +137,7 @@ export const Edit = Schema.Struct({
 });
 
 /** Where a drag has got to: the write its release makes (none when back where it began) and the edit it shows. */
-export interface Dragged {
+interface Dragged {
   readonly write: Option.Option<CueWrite | KnobWrite>;
   readonly scene: string;
   readonly edit: SceneEdit;

@@ -82,7 +82,7 @@ export interface LabCalls {
 export class LabApi extends Context.Service<LabApi, LabCalls>()('@bible/film/lab/LabApi') {}
 
 /** A new note as the page posts it: the draft and the frame's still, as bytes. */
-export type NotePost = typeof NotePostSchema.Type;
+type NotePost = typeof NotePostSchema.Type;
 
 /** The film's notes: read, long-polled, added to and answered. */
 export interface NotesCalls {
@@ -100,7 +100,7 @@ export interface NotesCalls {
 export class NotesApi extends Context.Service<NotesApi, NotesCalls>()('@bible/film/lab/NotesApi') {}
 
 /** How long one wait for the notes holds on the server, in seconds. */
-export const WAIT_S = 55;
+const WAIT_S = 55;
 
 /** The lab's client on `origin`: every group of `LabHttpApi`. */
 export const labClient = (origin: string) => HttpApiClient.make(LabHttpApi, { baseUrl: origin });
