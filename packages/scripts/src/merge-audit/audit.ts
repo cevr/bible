@@ -10,6 +10,8 @@
 // skill's paragraph is one line of many claims). One under 8 characters (a
 // brace, a fence, a rule) is too common to say anything and is left out.
 
+import { Option } from 'effect';
+
 /** One file's text in the merge base, in each parent, and in the merge. */
 export interface Versions {
   readonly base: string;
@@ -99,13 +101,22 @@ export const fileLines = (file: string, lost: LostEdits): ReadonlyArray<string> 
   return out;
 };
 
-/** The first line: the merge, the files git left conflicted, and those the resolution changed. */
+/**
+ * A merge's first line: the merge, the files git left conflicted, and those the
+ * resolution changed. A merge of main made inside the merged branch names
+ * the outer merge it is `inside`.
+ */
 export const headLine = (
   merge: string,
   conflicted: ReadonlyArray<string>,
   changed: ReadonlyArray<string>,
+  inside: Option.Option<string> = Option.none(),
 ): string =>
-  `merge-audit ${merge.slice(0, 8)} conflicted=${conflicted.length} resolved-by-hand=${changed.length}`;
+  [
+    `merge-audit ${merge.slice(0, 8)}`,
+    ...Option.toArray(Option.map(inside, (outer) => `inside ${outer.slice(0, 8)}`)),
+    `conflicted=${conflicted.length} resolved-by-hand=${changed.length}`,
+  ].join(' ');
 
 /** The paths `git merge-tree --write-tree` lists as conflicted: `<mode> <oid> <stage>\t<path>` lines. */
 export const conflictedPaths = (mergeTreeOut: string): ReadonlyArray<string> => {
