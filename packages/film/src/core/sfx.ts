@@ -17,6 +17,7 @@ import { TAKE_LEVEL } from './recording.ts';
 import { describeSound } from './synth/analyse.ts';
 import { loudness } from './synth/loudness.ts';
 import { Recipe, synthesize } from './synth/recipes.ts';
+import { toMs } from './time.ts';
 
 // ---------------------------------------------------------------------------
 // Names and declarations
@@ -187,8 +188,8 @@ export interface VariantTiming {
 
 /** A variant's onset and hit as the lock writes them, to the millisecond. */
 export const lockTiming = (described: VariantTiming): VariantTiming => ({
-  onset: Math.round(described.onset * 1000) / 1000,
-  hit: Math.round(described.hit * 1000) / 1000,
+  onset: toMs(described.onset),
+  hit: toMs(described.hit),
 });
 
 /** A one-shot's lead-in (its onset) over this many seconds is heard late on a cue that places its first sample: `check` says so (`LeadIn`). */

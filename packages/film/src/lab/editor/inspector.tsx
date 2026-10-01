@@ -9,12 +9,12 @@ import { createMemo } from 'solid-js';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
-import { DEFAULT_EASE } from '../../core/time.ts';
+import { DEFAULT_EASE, toMs } from '../../core/time.ts';
 import { patchSpan, untilText } from '../../core/timeline.ts';
 import type { Selection } from '../selection.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
-import { EASE_BOX, anchorText, easePoints, easeY, round } from './format.ts';
+import { EASE_BOX, anchorText, easePoints, easeY } from './format.ts';
 import { CueWrite } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
@@ -40,7 +40,7 @@ export const NumberField = (props: NumberFieldProps) => (
     type="number"
     step="0.01"
     data-field={props.field}
-    value={String(round(props.value))}
+    value={String(toMs(props.value))}
     disabled={!props.writable}
     onChange={(e) => {
       const v = Number.parseFloat(e.currentTarget.value);
@@ -91,7 +91,7 @@ const CueFields = (props: CueFieldsProps) => {
           field="offset"
           value={props.span.offset ?? 0}
           writable={writable('offset')}
-          commit={(v) => write({ offset: round(v) }, { ...props.span, offset: v })}
+          commit={(v) => write({ offset: toMs(v) }, { ...props.span, offset: v })}
         />
         <Show
           when={props.span.until}
@@ -104,7 +104,7 @@ const CueFields = (props: CueFieldsProps) => {
                 writable={writable('dur')}
                 commit={(v) =>
                   write(
-                    { dur: round(Math.max(0, v)) },
+                    { dur: toMs(Math.max(0, v)) },
                     patchSpan(props.span, { dur: Math.max(0, v) }),
                   )
                 }

@@ -17,7 +17,7 @@ import {
 } from './errors.ts';
 import { wordAfter } from './narration.ts';
 import type { CuePatch, ResolvedCue, ScenePoint, Span, Timeline, Until, Word } from './schema.ts';
-import { DEFAULT_EASE, type Key, ease, keys, progress } from './time.ts';
+import { DEFAULT_EASE, type Key, ease, keys, progress, toMs } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
 export const cueProgress = (cue: ResolvedCue, t: number): number =>
@@ -95,9 +95,6 @@ interface DraggedBar {
   readonly end: number;
 }
 
-/** A time as the lab writes it: to the millisecond. */
-const ms = (v: number) => Math.round(v * 1000) / 1000 + 0;
-
 /**
  * The patch a lab drag of `span` writes, given its cue as resolved before the
  * drag and where the bar now sits; none when the drag changes nothing. The
@@ -121,9 +118,9 @@ export const dragPatch = (
     return untilPatch(span, cue, edge, at, cue.start - (span.offset ?? 0), frame);
   const lands = span.ends === true;
   const anchor = (lands ? cue.end : cue.start) - (span.offset ?? 0);
-  const offset = ms((lands ? at.end : at.start) - anchor);
-  const dur = ms(at.end - at.start);
-  if (offset === ms(span.offset ?? 0) && dur === ms(cue.dur)) return Option.none();
+  const offset = toMs((lands ? at.end : at.start) - anchor);
+  const dur = toMs(at.end - at.start);
+  if (offset === toMs(span.offset ?? 0) && dur === toMs(cue.dur)) return Option.none();
   if (edge === 'move') return Option.some({ offset });
   if (edge === (lands ? 'start' : 'end')) return Option.some({ dur });
   return Option.some({ offset, dur });
@@ -139,11 +136,11 @@ const untilPatch = (
   frame: number,
 ): Option.Option<CuePatch> => {
   if (edge === 'end') {
-    if (ms(at.end) === ms(cue.end)) return Option.none();
-    return Option.some({ dur: ms(Math.max(0, at.end - cue.start)) });
+    if (toMs(at.end) === toMs(cue.end)) return Option.none();
+    return Option.some({ dur: toMs(Math.max(0, at.end - cue.start)) });
   }
-  const offset = ms(Math.min(at.start, cue.end - frame) - anchor);
-  if (offset === ms(span.offset ?? 0)) return Option.none();
+  const offset = toMs(Math.min(at.start, cue.end - frame) - anchor);
+  if (offset === toMs(span.offset ?? 0)) return Option.none();
   return Option.some({ offset });
 };
 
