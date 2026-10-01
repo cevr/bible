@@ -1,9 +1,8 @@
 // `film/spawn-budget`: a test that spawns a process declares its timeout. A
-// spawn is a cold start whose time is the machine's, not the test's: the CLI
-// over the fixture film takes under a second idle and has taken over bun's
-// default 5 s while sibling renders loaded every core. Give the test its budget as its last
-// argument: `spawnBudget(n)` from `apps/animations/test/cli-run.ts` for n CLI
-// spawns, or a number of milliseconds.
+// spawn is a cold start whose time is the machine's, not the test's: a CLI
+// spawn takes under a second idle and has taken over bun's default 5 s while
+// sibling renders loaded every core. Give the test its budget, in
+// milliseconds, as its last argument.
 //
 // A test is a call to `it` or `test` (`it.effect`, `it.live`,
 // `it.effect.layer(…)`) with a name and a body. It spawns when its body calls
@@ -152,7 +151,7 @@ export const spawnBudget = Rule.define({
             Diagnostic.make({
               node: test,
               message:
-                "this test spawns a process and has no timeout: a cold start's time is the machine's, so give it its budget as the last argument (spawnBudget(n) for n CLI spawns, or milliseconds).",
+                "this test spawns a process and has no timeout: a cold start's time is the machine's, so give it its budget in milliseconds as the last argument.",
             }),
           ),
         { discard: true },

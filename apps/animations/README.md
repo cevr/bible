@@ -122,15 +122,14 @@ Once every take is recorded, the static leg also reads `narration/full.wav`
 and the stamp `mix` writes beside it (`full.json`): missing is
 `AudioMissing`; longer or shorter than the film, or mixed for another plan
 (a score pick, a re-take, a moved effect), is `AudioStale`; `mix` fixes both. `check` is a
-review step, run by hand: the app's `gate` runs typecheck and tests only. One
-of those tests (`test/every-scene-draws.test.ts`) runs `check --draw`'s leg
-(`drawFindings`, the one implementation) on every film in
-`src/films/index.ts`: every scene at its first frame, each cue's edges and
+review step, run by hand: films have no tests and the gate checks no film (a
+film is a function of the framework's code, and its change is reviewed by its
+diff). `check --draw` runs every scene at its first frame, each cue's edges and
 midpoint, its 60% point and its last frame, through the film's own
 compositor into the framework's stand-in 2D context, so a scene that reads a
 mark, cue or knob its film no longer has, or draws what a real canvas
 refuses (a negative arc radius), or a frame that depends on the one drawn
-before it, fails the gate, not the next render.
+before it, is an error.
 
 Render flags that would be ignored fail with `FlagsConflict` before a browser
 opens: `--stills` goes with none of `--contact`, `--scene`, `--act`,
@@ -334,7 +333,7 @@ that has no mark is a word pin: `{ mark: 'gift', word: 'faith', dur: 0.6 }`
 starts on the first word said at or after `{gift}` that reads `faith` (read as
 a take is checked: any case, apostrophes dropped, `cover` in `cover-up`, accents kept), so a re-take carries it; `check` warns `WordPinFar` when it lands more than a sentence past the mark; a line that never says
 the word there fails the layout with `WordMissing` (`film check`, the player,
-the gate's every-scene test), never falling back to the mark. It lasts its `dur`
+`check --draw`), never falling back to the mark. It lasts its `dur`
 (`check` warns `DurOnWord` where a `dur` of a second or more ends, or with
 `ends` starts, within 80 ms of where a phrase of its take is heard to start
 or stop: a length sized to this take, which a re-take leaves behind; it
@@ -534,7 +533,7 @@ store, declared by `store` in `sounds/library.ts` as a tagged union:
 
 ```ts
 export const store = defineStore({ kind: 'folder', folder: '~/film-sounds' });
-export const store = defineStore({ kind: 'r2', bucket: 'film-store' }); // the bucket the stack makes (infra/store.test.ts checks)
+export const store = defineStore({ kind: 'r2', bucket: 'film-store' }); // the bucket the stack makes (infra/store.ts)
 ```
 
 Keys are prefixes in the one store: `files/<name>/<hash>.flac` (the library's

@@ -13,8 +13,8 @@ Commit plan: <one numbered item per commit with its subject. Order: guardrail fi
 Work rules:
 - Bugs are red first: the test fails on the unfixed code, quoted. A new guardrail is red first too: it fires on the defect before the fix.
 - Reductions use the deletion test: delete, and let typecheck and tests name the consumers. Caller greps cover apps/animations/ and packages/film/.
-- Pixels: a change is reviewed by its diff; the code says what a frame draws. No before/after `cmp` of stills and no test that pins a past render's pixels or levels. A new scene, look or score, or a change that moves pixels on purpose, renders stills or short clips at its marks (`bun run render <film> --stills <t,…> --variant p<N>`, times from `bun run cues <film>`) for the owner to review; name them in the report.
-- Timing: a change that claims no timing change diffs `bun run cues <film>` before and after.
+- Pixels: a change is reviewed by its diff; the code says what a frame draws. No before/after `cmp` of stills and no test that pins a past render's pixels or levels. No still, clip or montage is made for the owner, and no film is changed or checked, until he asks for scene review (owner, 2026-10-01).
+- Tests: the framework's only (`packages/film`), fast, on fixture films; a film has none.
 - Performance: a speed claim has a measured before/after (median of several runs, same machine) with `uptime`; at a load average over 4 a time claims nothing, so count work per frame instead. No cache that carries state between frames.
 - Draw path (packages/film/src/canvas, the kit and scenes): plain synchronous code in the pmndrs math style (out-params, no per-point allocation); use `math` where it has the helper. Tooling: Effect, Scope, Schema, typed errors.
 - A lint guardrail is a rule in the repo's `film` oxlint plugin (`packages/film/lint/`), written with the builder from `oxlint-plugin-effect/rule-bindings` (examples: `node_modules/oxlint-plugin-effect/dist/rules/`), scoped with an `overrides` entry in `.oxlintrc.json`, with a test that is red on a fixture. A rule true of any Effect code is reported for the orchestrator as an upstream effect-oxlint candidate instead.

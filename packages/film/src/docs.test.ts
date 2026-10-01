@@ -1,5 +1,5 @@
 // The docs name what the code has: each doc that teaches the film framework
-// (both READMEs, the `film` skill and the loop's) is read against the source,
+// (its README, the `film` skill and the loop's) is read against the source,
 // so a route, a rule, a script, a path, a flag or a finding renamed or removed
 // in the code fails here instead of waiting for a sweep to read it. Read:
 //
@@ -10,7 +10,8 @@
 //   (below it);
 // - each `film/<rule>` named: registered in the `film` lint plugin, and each
 //   registered rule turned on in .oxlintrc.json;
-// - each `bun run <script>`: a script of the root, the app or this package;
+// - each `bun run <script>`: a script of the root, this package, or the app
+//   whose scripts run the film commands (its package.json, never its films);
 // - each path written from the repo root (`packages/…`, `apps/…`, `.claude/…`,
 //   `.github/…`) exists;
 // - each `--flag` given to a film command (`bun run render <film> --stills …`)
@@ -208,10 +209,8 @@ const readDocs = Effect.fn('test.docs.readDocs')(function* (root: string) {
         files.filter((f) => f.endsWith('.md')).map((f) => `${dir}/${f}`),
       ),
   );
-  return yield* Effect.forEach(
-    ['apps/animations/README.md', 'packages/film/README.md', ...skills.flat()],
-    (file) =>
-      Effect.map(fs.readFileString(path.join(root, file)), (text) => ({ path: file, text })),
+  return yield* Effect.forEach(['packages/film/README.md', ...skills.flat()], (file) =>
+    Effect.map(fs.readFileString(path.join(root, file)), (text) => ({ path: file, text })),
   );
 });
 

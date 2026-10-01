@@ -25,8 +25,7 @@
     "deploy": "alchemy deploy alchemy.run.ts --stage prod",
     "store:keys": "bun infra/keys.ts --stage prod",
     "review": "bun cli.ts review",
-    "typecheck": "tsc --noEmit",
-    "test": "bun test test infra"
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@bible/film": "workspace:*",
@@ -35,7 +34,6 @@
   },
   "devDependencies": {
     "@effect/platform-node": "catalog:",
-    "alchemy": "https://pkg.alchemy.run/alchemy/-/0b74dc88ad083e12082d7d84a7e46b4e7094ae17db987b4e799159402d4930ab.tgz",
-    "effect-bun-test": "catalog:"
+    "alchemy": "https://pkg.alchemy.run/alchemy/-/0b74dc88ad083e12082d7d84a7e46b4e7094ae17db987b4e799159402d4930ab.tgz"
   }
 }
