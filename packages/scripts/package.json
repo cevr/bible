@@ -7,7 +7,6 @@
   "author": "",
   "type": "module",
   "scripts": {
-    "checkpoint": "bun src/checkpoint.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test src",
     "build:topics": "bun src/topics-compiler/main.ts",

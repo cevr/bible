@@ -24,7 +24,6 @@
     "fmt:check": "oxfmt --check",
     "test": "turbo run test",
     "test:perf": "turbo run test:perf --concurrency=1",
-    "checkpoint": "bun run --cwd packages/scripts checkpoint",
     "gate": "concurrently -n style,turbo -c yellow,cyan \"bun run guard\" \"turbo run gate\"",
     "guard": "bun run lint && bun run fmt:check",
     "ci": "bun packages/scripts/src/ci-verdict.ts",
