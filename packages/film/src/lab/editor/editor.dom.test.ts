@@ -32,6 +32,17 @@ const postedReach = (asked: ReadonlyArray<Asked>, n: number) =>
  */
 const runClock = (page: Tab, ms: number) => page.clock.runFor(ms);
 
+/**
+ * Wait until cue `rise` is on the strip and its scene's source has come: the
+ * cues draw from the film, and a drag before the source is in says "cannot
+ * edit: no source for this scene" and writes nothing.
+ */
+const editable = (page: Tab) =>
+  Effect.gen(function* () {
+    yield* page.waitFor('.lab-cue[data-cue="rise"]');
+    yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
+  });
+
 /** Drag the bar of cue `name` by `dx` pixels from `at` across it (0 left edge, 0.5 middle, 1 right edge). */
 const dragBar = (page: Tab, name: string, at: number, dx: number) =>
   Effect.gen(function* () {
@@ -58,7 +69,7 @@ describe('the cue strip', () => {
   it.live('a drag of a cue body writes its offset once, on release, and selects it', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([], { hash: '#1' });
-      yield* page.waitFor('.lab-cue[data-cue="rise"]');
+      yield* editable(page);
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* statusSays(page, 'wrote scenes/one.ts');
       const writes = posted(asked);
@@ -83,7 +94,7 @@ describe('the cue strip', () => {
       const { page } = yield* openLab([route('POST', /^\/cues\//, () => refused(failure))], {
         hash: '#1',
       });
-      yield* page.waitFor('.lab-cue[data-cue="rise"]');
+      yield* editable(page);
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* textIs(page, '.lab-edit-status', refusal);
     }).pipe(Effect.scoped),
@@ -99,8 +110,7 @@ describe('the cue strip', () => {
         [route('GET', /^\/scenes\/one\/source$/, () => json(computed))],
         { hash: '#1' },
       );
-      yield* page.waitFor('.lab-cue[data-cue="rise"]');
-      yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
+      yield* editable(page);
       yield* dragBar(page, 'rise', 1, 30);
       yield* statusSays(page, 'cannot drag rise: its dur is computed in the source');
       expect(posted(asked)).toEqual([]);
@@ -113,6 +123,7 @@ describe('one write at a time', () => {
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([], { hash: '#1' });
       const bar = '.lab-cue[data-cue="rise"]';
+      yield* editable(page);
       const box = yield* page.box(bar);
       const y = box.y + box.height / 2;
       const x = box.x + box.width / 2;
@@ -133,7 +144,7 @@ describe('one write at a time', () => {
       const { page, asked } = yield* openLab([route('POST', /^\/cues\//, () => hold)], {
         hash: '#1',
       });
-      yield* page.waitFor('.lab-cue[data-cue="rise"]');
+      yield* editable(page);
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* postedReach(asked, 1);
       yield* statusSays(page, 'writing…');
@@ -148,7 +159,8 @@ describe('the inspector', () => {
   it.live('its offset field and its eases write the selected cue', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([], { query: '&sel=cue:one:rise', hash: '#1' });
-      yield* page.waitFor('.lab-edit-cue input[data-field="offset"]');
+      // Enabled once the scene's source has come.
+      yield* page.waitFor('.lab-edit-cue input[data-field="offset"]:not([disabled])');
       yield* page.fill('.lab-edit-cue input[data-field="offset"]', '0.3');
       yield* page.pressIn('.lab-edit-cue input[data-field="offset"]', 'Enter');
       yield* statusSays(page, 'wrote');
