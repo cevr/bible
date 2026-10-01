@@ -159,7 +159,7 @@ const timeline = {
   // Landed by the bed, the word's light fades.
   landed: { after: 'fly', dur: 1.5, ease: 'linear' },
   sit: { mark: 'healed', dur: 0.8, ease: 'outBack' },
-  // As the servant starts to sit up, the colour comes back to the face (sit's outBack at 0.3).
+  // As the servant starts to sit up, the colour comes back to the face.
   colour: { with: 'sit', offset: 0.056, dur: 0 },
   toWindow: { mark: 'room', offset: -0.4, dur: 1.1 },
   handShot: { mark: 'room', word: 'room', dur: 1.2, ease: 'outCubic' },

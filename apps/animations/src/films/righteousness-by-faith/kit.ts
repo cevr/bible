@@ -893,7 +893,7 @@ export interface GestureAt extends PersonGesture {
   lent?: number;
 }
 
-/** A scene's hands: its own `f.hand`, or another scene's from `f.handsOf(scene)`. */
+/** A scene's hands: its own `f.hand`, or another scene's from `f.handsOf(drawing)`. */
 export type Hands = (k: string) => Hand;
 
 /**
