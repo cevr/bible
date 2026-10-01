@@ -33,7 +33,7 @@ export * from './lab.ts';
 export * from './choices.ts';
 export * from './fresh-film.ts';
 export * from './choice-points.ts';
-export { Review, type ReviewRoot } from './review.ts';
+export { type ReviewRoot } from './review.ts';
 export { type LabBound, type LabHandler } from './api-server.ts';
 export * from './notes-lines.ts';
 export * from './scene-source.ts';

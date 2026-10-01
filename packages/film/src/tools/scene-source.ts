@@ -28,7 +28,7 @@ import { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
 
 /** A `timeline` or `knobs` property: an object literal, something else, or not there. */
-export type Slot =
+type Slot =
   | { readonly _tag: 'Literal'; readonly node: ObjectExpression }
   | { readonly _tag: 'Computed'; readonly text: string }
   | { readonly _tag: 'Absent' };
