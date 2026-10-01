@@ -425,6 +425,20 @@ ci success run=36795636877 sha=e9df1b63
 ci success run=36795676262 sha=76714126
 ```
 
+## Pass 9 (2026-10-01)
+
+- Baseline: main 93cc51a5. Six sweeps, reports in `SP/film-pass9/`.
+- Findings: no P1; 8 P2 (two acts can share a name; `film notes` never checks its film; a stale render can be approved from the CLI and the choices route; narration 404s for a film added after the review starts; pass-8 declared instants written as fixed seconds stop following their parent cue; the CI record skips the triage push; `git stash` shared across worktrees popped another batch's work twice; the motion test's `holdClock` flaked 3 of 5 pass-8 gates), the rest P3. Engine: only polish. Not closed.
+- Decision: an approval is of a current render; the CLI and the choices route refuse a stale one, as the page does (explicit over implicit).
+- Triage: `SP/film-pass9/triage.md`.
+
+| Wave | Batch    | Items                                                                                                                                        | Result |
+| ---- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| A    | p9-tools | `film notes` checks its film, exports guard over tools/canvas/player/lint, master decoded once per run, outputs under the app                |        |
+| A    | p9-core  | act names unique, refs never parsed back from ids, approving a stale render refused, narration reads the film set per request                |        |
+| A    | p9-films | declared instants follow their parent cue, cue-remap lint sees `Math.min`, one icon-row setup                                                |        |
+| A    | p9-guard | CI record covers every push, no `git stash` across worktrees, motion clock in one step, merge-audit sees branch merges, bound evaluate reads |        |
+
 ## Close
 
 - Unswept directories: none this finish (every source directory of `packages/film` and `apps/animations` was swept in pass 1–2).
