@@ -132,7 +132,7 @@ const expectAllClosed = (ledger: RenderLedger) => {
   expect(finished + killed).toBe(spawned);
 };
 
-describe('Renderer', () => {
+describe.concurrent('Renderer', () => {
   it.live('renders every frame once, joins the segments in order, and closes everything', () =>
     Effect.gen(function* () {
       const { ledger, files, joined, render } = joinedBytes();

@@ -147,7 +147,7 @@ const tempDir = Effect.gen(function* () {
   return yield* (yield* FileSystem.FileSystem).makeTempDirectoryScoped();
 });
 
-describe('Media', () => {
+describe.concurrent('Media', () => {
   it.effect.layer(MediaOnFixtures)(
     'a WAV written reads back as the same 16-bit samples, and measures its length',
     () =>

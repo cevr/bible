@@ -70,16 +70,32 @@ const butterfly = (
   im[a] = (im[a] ?? 0) + ti;
 };
 
-/** An in-place radix-2 FFT over `re` and `im` (length a power of two). */
+/** Each stage's turns, `size` by `size` up to `FFT_SIZE`: worked out once, not per butterfly. */
+const TWIDDLES = Array.from({ length: Math.log2(FFT_SIZE) }, (_, stage) => {
+  const size = 2 << stage;
+  const step = (-2 * Math.PI) / size;
+  return {
+    cos: Float64Array.from({ length: size / 2 }, (_, k) => Math.cos(step * k)),
+    sin: Float64Array.from({ length: size / 2 }, (_, k) => Math.sin(step * k)),
+  };
+});
+
+/** The Hann window over one `FFT_SIZE` frame. */
+const HANN = Float64Array.from(
+  { length: FFT_SIZE },
+  (_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (FFT_SIZE - 1)),
+);
+
+/** An in-place radix-2 FFT over `re` and `im` (`FFT_SIZE` long). */
 const fft = (re: Float64Array, im: Float64Array): void => {
   const n = re.length;
   bitReverse(re, im);
-  for (let size = 2; size <= n; size <<= 1) {
-    const step = (-2 * Math.PI) / size;
+  TWIDDLES.forEach(({ cos, sin }, stage) => {
+    const size = 2 << stage;
     for (let start = 0; start < n; start += size)
       for (let k = 0; k < size / 2; k++)
-        butterfly(re, im, start + k, start + k + size / 2, Math.cos(step * k), Math.sin(step * k));
-  }
+        butterfly(re, im, start + k, start + k + size / 2, cos[k] ?? 1, sin[k] ?? 0);
+  });
 };
 
 /** The power spectrum averaged over Hann-windowed frames of the first channel. */
@@ -90,8 +106,7 @@ const spectrum = (pcm: Pcm): Float64Array => {
   for (let from = 0; from + FFT_SIZE <= Math.max(FFT_SIZE, plane.length); from += FFT_SIZE / 2) {
     const re = new Float64Array(FFT_SIZE);
     const im = new Float64Array(FFT_SIZE);
-    for (let i = 0; i < FFT_SIZE; i++)
-      re[i] = (plane[from + i] ?? 0) * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (FFT_SIZE - 1)));
+    for (let i = 0; i < FFT_SIZE; i++) re[i] = (plane[from + i] ?? 0) * (HANN[i] ?? 0);
     fft(re, im);
     for (let k = 0; k < power.length; k++)
       power[k] = (power[k] ?? 0) + (re[k] ?? 0) ** 2 + (im[k] ?? 0) ** 2;

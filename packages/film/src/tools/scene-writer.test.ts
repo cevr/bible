@@ -143,7 +143,7 @@ const oxfmtCheck = Effect.fn('test.oxfmtCheck')(function* () {
   );
 });
 
-describe('scene writer', () => {
+describe.concurrent('scene writer', () => {
   it.effect(
     "formats with the repo's oxfmt, from the film's folder: bunx fetches none",
     () =>
