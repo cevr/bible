@@ -47,6 +47,11 @@ Guardrails added:
 | Defect class | Check (`film/` lint rule / effect lint rule / type / film check / test / CI step) | Red on | Hash |
 | ------------ | --------------------------------------------------------------------------------- | ------ | ---- |
 
+Carried: each decision a batch handed to files it did not own (its report's "decisions for the orchestrator"), open until a batch takes it. The next sweep brief's carried slot copies the open rows.
+
+| Decision | From (batch) | Files | Status (`open` / `done <hash>` / `rejected: <receipt>`) |
+| -------- | ------------ | ----- | ------------------------------------------------------- |
+
 Counsel defects:
 
 | ID  | Defect | Red test | Status |

@@ -3,7 +3,7 @@
 One agent per batch, in the batch's own worktree. Fill the slots. The **work rules** block goes in verbatim; its **SAFETY** lines are also in [`sweep.md`](sweep.md), so edit both together.
 
 ```
-Film pass-<N> apply batch `p<N>-<batch>`. Worktree <worktree path> (branch p<N>-<batch>, base main <hash>). Work only there; the repo root stays untouched. Read CLAUDE.md, apps/animations/README.md, .claude/skills/film/SKILL.md and .claude/skills/film-architecture-loop/north-stars.md first. Apply <item ids> from <report paths> and the ledger <ledger path>; re-verify each receipt in the source first, line numbers move. Reject an item that does not hold, and say why.
+Film pass-<N> apply batch `p<N>-<batch>`. Worktree <worktree path> (branch p<N>-<batch>, base main <hash>). Work only there; the repo root stays untouched. Read CLAUDE.md, apps/animations/README.md, .claude/skills/film/SKILL.md and .claude/skills/film-architecture-loop/north-stars.md first. Apply <item ids> from <report paths> and the ledger <ledger path>; re-verify each receipt in the source first, line numbers move. Reject an item that does not hold, and say why. Read every sweep report of the pass, not only your area's: each P3 and "not worth a pass" line on a file you own is yours to fix or reject with a reason.
 
 <Decisions the orchestrator already made, with their principle.>
 <Files other batches own: report a fix there as a decision; leave the file unedited.>
@@ -25,7 +25,7 @@ Work rules:
 - Decide by the principles in ~/Developer/personal/dotfiles/principles/ and write "decided by <principle>" in your report; the batch runs without check-ins.
 - Gate: `bun run typecheck`, `bunx oxlint <paths>` and the focused `bun test` while working; before each commit `bun run gate > <scratchpad>/film-pass<N>/<batch>-gate.log 2>&1; echo "GATE EXIT $?" >> <log>`, then read `GATE EXIT` and turbo's totals. The pre-commit hook only lints and formats the staged files and runs the repo guards: a commit that passed it passed no gate. A test that fails only under load is re-run once; if it passes, name it in the report's decisions with the test and its error (triage takes each as a finding, its fix on the ledger); if it fails twice, it is yours. Renders, the lab and commits need dangerouslyDisableSandbox: true.
 - Commits: Conventional Commits, one logical unit each, staged by exact path. Deletes use `trash`. No push, no worktree creation or removal, no edits under apps/animations/plans/.
-- Never `git stash`: the stash is one ref shared by every worktree, so another batch's pop takes your entry (passes 7 and 8 lost work that way). Read old code with `git show <commit>:<path>` into the scratchpad. While other worktrees exist, a stash entry refuses every commit and gate (lefthook's `no-shared-stash`).
+- Never `git stash`: the stash is one ref shared by every worktree, so another batch's pop takes your entry (and that batch's work is lost). Read old code with `git show <commit>:<path>` into the scratchpad. While other worktrees exist, a stash entry refuses every commit and gate (lefthook's `no-shared-stash`).
 - Before the report: merge main into the branch, resolve there keeping both sides' edits (never one side's file whole), run `bun run merge-audit` and put back or name each `dropped`/`restored` line it prints, then run `bun run gate` into a log and read `GATE EXIT`.
 - Finish in one run: no servers, timers or monitors left behind. An item that does not fit its description: stop and report.
 
