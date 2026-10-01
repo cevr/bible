@@ -42,30 +42,6 @@ jobs:
           restore-keys: bun-${{ runner.os }}-
       - run: bun install --frozen-lockfile
 
-      # Headless Chromium for the film framework's lab and canvas tests
-      # (packages/film's *.dom.test.ts), at playwright-core's version.
-      - name: Cache Chromium
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: chromium-${{ runner.os }}-${{ hashFiles('packages/film/package.json') }}
-      # Its system libraries come through apt, whose mirror sometimes stalls for
-      # many minutes: each attempt has 6 minutes, and a stalled one is tried
-      # once more before this named step fails the job.
-      - name: Install Chromium
-        id: install-chromium
-        continue-on-error: true
-        timeout-minutes: 6
-        working-directory: packages/film
-        run: bun x playwright-core install --with-deps chromium chromium-headless-shell
-      - name: Install Chromium, second attempt
-        if: steps.install-chromium.outcome == 'failure'
-        timeout-minutes: 6
-        working-directory: packages/film
-        run: |
-          sudo dpkg --configure -a
-          bun x playwright-core install --with-deps chromium chromium-headless-shell
-
       # EmbeddingGemma's weights are not committed (core §10). Core's adapter
       # parity test loads the model, and with nothing in the cache it reads it
       # downloads the weights itself on every run: they are fetched once into a
