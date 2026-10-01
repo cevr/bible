@@ -65,7 +65,7 @@ const BEATS: Json = {
 
 const attempt = (file: string, kept: boolean, current: boolean): Json => ({
   file,
-  heard: 'the law is holy',
+  transcript: 'the law is holy',
   wer: 0,
   at: 0,
   duration: 2.5,
@@ -93,7 +93,7 @@ const MISMATCH = TakeMismatch.make({
 const took = (file: string): Json => ({
   beat: 'thesis',
   take: { hash: 'h', file, duration: 2.5, words: [], source: 'recorded' },
-  heard: 'the law is holy',
+  transcript: 'the law is holy',
   wer: 0,
   timings: { voice: 'v', scenes: {} },
   // The newest attempt's mix fails: its keep stays on the page to say so.

@@ -16,7 +16,7 @@ import { type ProjectView, ReviewHttpApi, type Say, type Steps } from '../../../
 import type { ChoiceVerb, ChoiceWrite, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewFilms } from '../../../core/review.ts';
 import type { CheckLine, CheckReport, LabWrite } from '../../../core/schema.ts';
-import { type LabFailure, heard } from '../../api.ts';
+import { type LabFailure, called } from '../../api.ts';
 
 /** What a page asks of a film: a verb on a variant, a knob set, a say on a variant, a step back or on. */
 export type ChoiceAct = Data.TaggedEnum<{
@@ -135,13 +135,13 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* (origin: string) {
       choices: Option.some(choices),
     });
   const api: OptionsCalls = {
-    films: heard(client.choices.films()),
-    choices: (film) => heard(client.choices.list({ params: { film } })),
-    check: (film) => heard(client.steps.check({ params: { film } })),
-    steps: (film) => heard(client.steps.steps({ params: { film } })),
-    soundCheck: (film) => heard(client.choices.soundCheck({ params: { film } })),
+    films: called(client.choices.films()),
+    choices: (film) => called(client.choices.list({ params: { film } })),
+    check: (film) => called(client.steps.check({ params: { film } })),
+    steps: (film) => called(client.steps.steps({ params: { film } })),
+    soundCheck: (film) => called(client.choices.soundCheck({ params: { film } })),
     write: (film, act) =>
-      heard(
+      called(
         Match.value(act).pipe(
           Match.tagsExhaustive({
             Verb: (v) =>
@@ -176,9 +176,9 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* (origin: string) {
         ),
       ),
     project: (film, variant) =>
-      heard(client.project.get({ params: { film }, query: variantOf(variant) })),
+      called(client.project.get({ params: { film }, query: variantOf(variant) })),
     sayOfProject: (film, variant, said) =>
-      heard(
+      called(
         client.project.say({
           params: { film },
           payload: { address: said.address, say: said.say, ...variantOf(variant) },

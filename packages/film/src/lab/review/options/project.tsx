@@ -13,10 +13,11 @@
 // folded under that part; a scene lists the layers placed elsewhere that
 // play in it as links to their cards. Every say answers the project as it
 // leaves it; a source write reads it again (a pick changes the film's
-// sound, a kept voice a scene's key). The page updates in place: a playing
-// clip plays on and a half-typed comment stays.
+// sound, a kept voice a scene's key), the film marked reading while it
+// does. Answers land in any order: the page shows the newest asked. The page
+// updates in place: a playing clip plays on and a half-typed comment stays.
 
-import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, Show } from '@solidjs/web';
 import { Array as Arr, Exit, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -29,6 +30,8 @@ import {
   renderVersion,
 } from '../../../core/catalogue.ts';
 import { type ChoicePoint, type VariantMedia, pointHead } from '../../../core/choice.ts';
+import type { LabFailure } from '../../api.ts';
+import { type Ask, newestAsked } from '../asked.ts';
 import { useReview } from '../context.tsx';
 import { pressed } from '../format.ts';
 import { Loaded, statusText } from '../loaded.tsx';
@@ -119,6 +122,8 @@ interface ProjectValue {
   /** Say `said` of the project: whether it was said. */
   readonly say: (said: ProjectSay) => Promise<boolean>;
   readonly saying: () => boolean;
+  /** Whether the project is being read again. */
+  readonly reading: () => boolean;
 }
 
 /** The says of the project at `address`: a render card's, an act's, the film's. */
@@ -321,7 +326,7 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
   const loose = () => project().scenes.filter((s) => !inActs().has(s.scene));
   return (
     <>
-      <section class="rv-film" data-film={props.at.film}>
+      <section class="rv-film" data-film={props.at.film} data-reading={pressed(props.at.reading())}>
         <div class="rv-row">
           <PartApproval at={props.at} address={FILM} scenes={project().scenes} part="all" />
           <span class="rv-hint" data-counts="">
@@ -345,38 +350,66 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
   );
 };
 
-/** The project read, the last say, and what the page shows: the newest of them, kept in place. */
+/** Whether a say was refused for the state its scenes are in now (one drawn again since the page read it). */
+const staleSinceRead = (exit: Exit.Exit<ProjectView, LabFailure>): boolean =>
+  Option.exists(Exit.findErrorOption(exit), (e) => e._tag === 'VerbRefused');
+
+/**
+ * The project read, read again, and said: the page shows the answer to the
+ * newest of them asked (`asked.ts`), kept in place. A say overtaken by a
+ * read asked after it reads the project again: that read may not hold it.
+ * So does a say refused for its scenes' state: the cards then say why.
+ */
 const ProjectReady = (props: { readonly film: string }) => {
   const { meta } = useReview();
   const { wrote } = useFilm();
   const film = props.film;
   const variant = Option.none<string>();
   const readAtom = meta.runtime.atom(OptionsApi.use((api) => api.project(film, variant)));
+  const againAtom = meta.runtime.fn(() => OptionsApi.use((api) => api.project(film, variant)));
   const sayAtom = meta.runtime.fn((said: ProjectSay) =>
     OptionsApi.use((api) => api.sayOfProject(film, variant, said)),
   );
   const read = useAtomValue(() => readAtom);
-  const refresh = useAtomRefresh(() => readAtom);
+  const again = useAtomValue(() => againAtom);
+  const askAgain = useAtomSet(() => againAtom, { mode: 'promiseExit' });
   const said = useAtomValue(() => sayAtom);
   const say = useAtomSet(() => sayAtom, { mode: 'promiseExit' });
   const [shown, setShown] = createSignal(Option.none<ProjectView>());
+  const asks = newestAsked();
+  /** Show `exit`'s project when it answered and `ask` is still the newest: whether it answered. */
+  const answered = (ask: Ask, exit: Exit.Exit<ProjectView, LabFailure>): boolean => {
+    if (Exit.isFailure(exit)) return false;
+    ask.answer(() => setShown(Option.some(exit.value)));
+    return true;
+  };
+  const first = asks.ask();
   createEffect(read, (r) => {
     if (r.waiting) return;
-    Option.map(AsyncResult.value(r), (v) => setShown(Option.some(v)));
+    Option.map(AsyncResult.value(r), (v) => first.answer(() => setShown(Option.some(v))));
   });
-  createEffect(said, (r) => {
-    if (r.waiting) return;
-    Option.map(AsyncResult.value(r), (v) => setShown(Option.some(v)));
-  });
+  const readAgain = () => {
+    const ask = asks.ask();
+    void askAgain().then((exit) => answered(ask, exit));
+  };
+  const sayOf = (s: ProjectSay) => {
+    const ask = asks.ask();
+    return say(s).then((exit) => {
+      const ok = answered(ask, exit);
+      if ((ok && ask.overtaken()) || staleSinceRead(exit)) readAgain();
+      return ok;
+    });
+  };
   // A source write changes the film (a pick its sound, a kept voice a scene): its scenes are read again.
   createEffect(wrote, (r) => {
-    if (AsyncResult.isSuccess(r) && !r.waiting && writesSource(r.value.act)) refresh();
+    if (AsyncResult.isSuccess(r) && !r.waiting && writesSource(r.value.act)) readAgain();
   });
   const at = (view: Accessor<ProjectView>): ProjectValue => ({
     film,
     view,
-    say: (s) => say(s).then(Exit.isSuccess),
+    say: sayOf,
     saying: () => said().waiting,
+    reading: () => again().waiting,
   });
   return (
     <Loaded value={shown()} result={read()} reading={`Reading ${film}'s project…`}>

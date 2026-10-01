@@ -15,7 +15,7 @@ import {
   type StudioTake,
   TakePost,
 } from '../../core/studio.ts';
-import { type LabFailure, heard, labClient } from '../api.ts';
+import { type LabFailure, called, labClient } from '../api.ts';
 import { BYTES_PER_SAMPLE, WAV_HEADER_BYTES, wavBytes, wavRate, wavSeconds } from './wav.ts';
 
 /** A take the studio refused as too large, said in time rather than bytes. */
@@ -102,17 +102,17 @@ export const tooLong =
 const makeStudioApi = Effect.fn('lab.studio.make')(function* (origin: string, film: string) {
   const client = (yield* labClient(origin)).studio;
   const api: StudioCalls = {
-    beats: heard(client.beats({ params: { film } })),
-    attempts: (beat) => heard(client.attempts({ params: { film, beat } })),
+    beats: called(client.beats({ params: { film } })),
+    attempts: (beat) => called(client.attempts({ params: { film, beat } })),
     take: (beat, wav) =>
-      heard(
+      called(
         client.take({
           params: { film, beat },
           payload: { audio: Base64.encode(wav), type: WAV_TYPE },
         }),
       ).pipe(Effect.mapError(tooLong(wav))),
     keep: (beat, file, acceptMismatch) =>
-      heard(client.keep({ params: { film, beat }, payload: { file, acceptMismatch } })),
+      called(client.keep({ params: { film, beat }, payload: { file, acceptMismatch } })),
   };
   return api;
 });

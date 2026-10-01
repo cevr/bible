@@ -207,7 +207,7 @@ const kept = Effect.fn('studio.kept')(function* (film: FilmName, imported: Impor
   const take: StudioTake = {
     beat: imported.id,
     take: imported.take,
-    heard: imported.heard,
+    transcript: imported.heard,
     wer: imported.wer,
     timings: yield* timingsOf(film),
     mixed,
@@ -321,7 +321,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
               beat,
               attempts: attempts.map((a) => ({
                 file: a.file,
-                heard: a.heard,
+                transcript: a.heard,
                 wer: a.wer,
                 at: a.at,
                 duration: a.take.duration,

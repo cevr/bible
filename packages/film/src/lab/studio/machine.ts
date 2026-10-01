@@ -55,7 +55,7 @@ const Wav = Schema.Uint8Array;
  */
 const Kept = Schema.Struct({
   file: Schema.String,
-  heard: Schema.String,
+  transcript: Schema.String,
   wer: Schema.Finite,
   mix: Schema.Literals(['mixed', 'failed', 'unanswered']),
 });
@@ -215,7 +215,7 @@ const send = (beat: string, work: Work) =>
 
 const keptOf = (take: StudioTake): Kept => ({
   file: take.take.file,
-  heard: take.heard,
+  transcript: take.transcript,
   wer: take.wer,
   mix: Match.value(take.mixed).pipe(
     Match.when(true, () => 'mixed' as const),
@@ -258,11 +258,11 @@ const settle = (
     onSome: (a) => {
       if (a.kept)
         return RecorderEvent.Imported({
-          kept: { file: a.file, heard: a.heard, wer: a.wer, mix: 'unanswered' },
+          kept: { file: a.file, transcript: a.transcript, wer: a.wer, mix: 'unanswered' },
         });
       return RecorderEvent.Refused({
         refusal: unanswered(
-          `the lab did not answer within ${WAITED}; it heard the take as “${a.heard}” (${(a.wer * 100).toFixed(1)}% words differ) and did not keep it: keep it from the attempts below, or record again`,
+          `the lab did not answer within ${WAITED}; it heard the take as “${a.transcript}” (${(a.wer * 100).toFixed(1)}% words differ) and did not keep it: keep it from the attempts below, or record again`,
         ),
       });
     },

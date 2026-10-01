@@ -10,7 +10,7 @@ import { FetchHttpClient, HttpClient, HttpClientResponse } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 import { Refusal, ReviewHttpApi, reviewFileUrl } from '../../core/api.ts';
 import type { ReviewIndex } from '../../core/review.ts';
-import { type LabFailure, heard } from '../api.ts';
+import { type LabFailure, called } from '../api.ts';
 
 interface ReviewCalls {
   /** Every folder with something to review; `fresh` walks the roots again now. */
@@ -37,11 +37,11 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: string) {
   const http = yield* HttpClient.HttpClient;
   const api: ReviewCalls = {
     index: (fresh) => {
-      if (fresh) return heard(client.index({ query: { fresh: '1' } }));
-      return heard(client.index({ query: {} }));
+      if (fresh) return called(client.index({ query: { fresh: '1' } }));
+      return called(client.index({ query: {} }));
     },
-    duration: (ref) => heard(Effect.map(client.duration({ query: { ref } }), (d) => d.seconds)),
-    text: (ref) => heard(Effect.flatMap(http.get(`${origin}${reviewFileUrl(ref)}`), fileText)),
+    duration: (ref) => called(Effect.map(client.duration({ query: { ref } }), (d) => d.seconds)),
+    text: (ref) => called(Effect.flatMap(http.get(`${origin}${reviewFileUrl(ref)}`), fileText)),
   };
   return api;
 });

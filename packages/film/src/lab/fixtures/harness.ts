@@ -5,7 +5,7 @@
 // so a test can read what the lab wrote.
 
 import { BunServices } from '@effect/platform-bun';
-import { Effect, FileSystem, Option, Schema } from 'effect';
+import { Deferred, Effect, FileSystem, Option, Schema } from 'effect';
 import { type Page, type Route, chromium } from 'playwright-core';
 import { Refusal, statusOf } from '../../core/api.ts';
 import { solidPlugin } from '../../tools/solid-plugin.ts';
@@ -36,7 +36,8 @@ type Answer =
   | { readonly _tag: 'Refused'; readonly refusal: Refusal }
   | { readonly _tag: 'Text'; readonly status: number; readonly text: string }
   | { readonly _tag: 'File'; readonly path: string }
-  | { readonly _tag: 'Hold' };
+  | { readonly _tag: 'Hold' }
+  | { readonly _tag: 'Later'; readonly gate: Deferred.Deferred<void>; readonly then: Answer };
 
 export const json = (value: Json, status = 200): Answer => ({
   _tag: 'Json',
@@ -52,6 +53,12 @@ export const text = (value: string, status: number): Answer => ({
 });
 /** Never answered: a long-poll that is still waiting. */
 export const hold: Answer = { _tag: 'Hold' };
+/** Answered `then` once `gate` is done: a request the test lets land after others. */
+export const later = (gate: Deferred.Deferred<void>, then: Answer): Answer => ({
+  _tag: 'Later',
+  gate,
+  then,
+});
 /** A file on disk, its type read from its name (a fixture video). */
 export const file = (path: string): Answer => ({ _tag: 'File', path });
 
@@ -176,6 +183,18 @@ const encodeRefusal = Schema.encodeSync(Schema.fromJsonString(Refusal));
 
 const answer = (r: Route, found: Answer) => {
   if (found._tag === 'Hold') return;
+  if (found._tag === 'Later') {
+    const { gate, then } = found;
+    Effect.runFork(
+      Effect.andThen(
+        Deferred.await(gate),
+        Effect.sync(() => {
+          void answer(r, then);
+        }),
+      ),
+    );
+    return;
+  }
   if (found._tag === 'File') return r.fulfill({ path: found.path });
   if (found._tag === 'Text')
     return r.fulfill({ status: found.status, contentType: 'text/plain', body: found.text });

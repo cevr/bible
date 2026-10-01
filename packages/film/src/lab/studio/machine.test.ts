@@ -52,7 +52,7 @@ const mismatch = TakeMismatch.make({
 const took: StudioTake = {
   beat: 'a',
   take: { hash: 'h', file: 'a.1234.flac', duration: 1.2, words: [], source: 'recorded' },
-  heard: 'hello world',
+  transcript: 'hello world',
   wer: 0,
   timings: { voice: 'v', scenes: {} },
   mixed: true,
@@ -344,7 +344,12 @@ describe('review', () => {
 });
 
 describe('importing', () => {
-  const kept = { file: took.take.file, heard: took.heard, wer: took.wer, mix: 'mixed' as const };
+  const kept = {
+    file: took.take.file,
+    transcript: took.transcript,
+    wer: took.wer,
+    mix: 'mixed' as const,
+  };
 
   it.effect('a take kept rests with what was heard', () => {
     const { layer } = fakes();
@@ -540,7 +545,12 @@ describe('the import task, through an actor', () => {
       expect(state).toEqual(
         RecorderState.Idle({
           beat: 'a',
-          kept: Option.some({ file: 'a.1234.flac', heard: 'hello world', wer: 0, mix: 'mixed' }),
+          kept: Option.some({
+            file: 'a.1234.flac',
+            transcript: 'hello world',
+            wer: 0,
+            mix: 'mixed',
+          }),
         }),
       );
       expect(log.calls).toContain(`take a ${wav.length} bytes`);
@@ -591,7 +601,7 @@ describe('an import the lab does not answer', () => {
   /** An attempt of beat a as the server lists it, recorded at `at` (epoch ms). */
   const listedAttempt = (file: string, at: number, kept: boolean, wer = 0): StudioAttempt => ({
     file,
-    heard: 'hello word',
+    transcript: 'hello word',
     wer,
     at,
     duration: 1,
@@ -635,7 +645,7 @@ describe('an import the lab does not answer', () => {
             beat: 'a',
             kept: Option.some({
               file: 'a.new.flac',
-              heard: 'hello word',
+              transcript: 'hello word',
               wer: 0,
               mix: 'unanswered',
             }),
@@ -705,7 +715,12 @@ describe('an import the lab does not answer', () => {
       expect(state).toEqual(
         RecorderState.Idle({
           beat: 'a',
-          kept: Option.some({ file: 'a.old.flac', heard: 'hello word', wer: 0, mix: 'unanswered' }),
+          kept: Option.some({
+            file: 'a.old.flac',
+            transcript: 'hello word',
+            wer: 0,
+            mix: 'unanswered',
+          }),
         }),
       );
       expect(posts(log)).toEqual(['keep a a.old.flac false']);
