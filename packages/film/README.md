@@ -1197,13 +1197,18 @@ makes no phone copies.
 (`source-writer.ts`), the lab's knob and cue writes included: it reads the
 file, makes the new text, formats it with oxfmt through stdin, verifies it
 (the edit reads back as meant), and swaps it in only if the file is still as
-it was read (compare and swap), then runs `check --static`. A score or look
+it was read (compare and swap, under the file's store lock, so another
+process's store write, `sfx make` on the library's lock say, never lands
+between the comparison and the write and is lost), then runs
+`check --static`. A score or look
 pick splices the one `play` string literal, and a knob its one level
 literal (`choice-source.ts`, through oxc); a
 take's act runs the library's own `keep`, `unkeep` or `reject` on the lock,
 the writer recording the lock's bytes before and after and leaving the lock
 as oxfmt does (the library's own JSON writer spreads short arrays the
-formatter keeps on one line), so the diff is only the pick. A write that
+formatter keeps on one line), so the diff is only the pick; when another
+writer changed the lock after the act, its write stays and the lock is left
+unformatted. A write that
 changes nothing answers `(already so)` and records nothing. Each film keeps
 its own undo and redo stacks (50 deep): Undo puts the newest change back byte
 for byte, only while the file is exactly as that change left it (else
