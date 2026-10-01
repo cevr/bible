@@ -5,7 +5,7 @@
 // test's timeout is its spawns' budget (`cli-run.ts`).
 
 import { BunServices } from '@effect/platform-bun';
-import { ContentStore, NotesStore } from '@bible/film/tools';
+import { ContentStore, FilmName, NotesStore } from '@bible/film/tools';
 import { describe, expect, it } from 'effect-bun-test';
 import {
   ConfigProvider,
@@ -21,7 +21,7 @@ import {
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { FIXTURE_CLI, FIXTURE_FILM, SPAWN_MS, appDir, runCli, spawnBudget } from './cli-run.ts';
 
-const film = FIXTURE_FILM;
+const film = FilmName.make(FIXTURE_FILM);
 
 /** The fixture CLI with `...args` and notes under `lab`: its exit code and everything it printed. */
 const cli = (lab: string, ...args: ReadonlyArray<string>) => runCli({ FILMS_LAB: lab }, args);

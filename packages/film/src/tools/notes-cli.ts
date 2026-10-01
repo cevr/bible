@@ -1,6 +1,8 @@
 // `film notes`: the lab's notes on frames, read and answered from the
 // terminal. Each note and each event is one line (`notes-lines.ts`), so an
-// agent reads them, and a Monitor streams `--watch`.
+// agent reads them, and a Monitor streams `--watch`. Each command names its
+// film first (`filmNamed`): a name that is not one of the films answers
+// `FilmUnknown` with the films there are, before any notes file is read.
 //
 //   film notes <film> [--watch] [--since n]
 //       the open notes and the cursor; --watch streams each new note and
@@ -13,6 +15,7 @@ import { Argument, Command, Flag } from 'effect/cli';
 import { Console, Effect, FileSystem, Option } from 'effect';
 import { eventsSince } from '../core/notes.ts';
 import type { StoreError } from './content-store.ts';
+import { filmNamed } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import { agentCursor, cursorLine, eventLine, noteLine, watchLine } from './notes-lines.ts';
 
@@ -42,21 +45,22 @@ const notesReply = Command.make(
   Effect.fn('film.notes.reply')(function* (input) {
     const fs = yield* FileSystem.FileSystem;
     const store = yield* NotesStore;
-    const at = store.paths(input.film);
+    const name = yield* filmNamed(input.film);
+    const at = store.paths(name);
     const still = yield* Option.match(input.still, {
       onNone: () => Effect.succeedNone,
       onSome: (file) => Effect.asSome(fs.readFile(file)),
     });
     // Where the agent left off, read before its reply moves it.
     const cursor = yield* Option.match(input.since, {
-      onNone: () => Effect.map(store.read(input.film), agentCursor),
+      onNone: () => Effect.map(store.read(name), agentCursor),
       onSome: (since) => Effect.succeed(since),
     });
-    const note = yield* store.reply(input.film, input.id, { by: 'agent', text: input.text, still });
+    const note = yield* store.reply(name, input.id, { by: 'agent', text: input.text, still });
     yield* Console.log(noteLine(at, note, note.changed));
     // What the user said while the agent worked: new notes and user replies past its cursor,
     // but the note it just answered, whose line is above.
-    const news = eventsSince(yield* store.read(input.film), cursor);
+    const news = eventsSince(yield* store.read(name), cursor);
     for (const event of news.events)
       if (!(event._tag === 'NoteAdded' && event.note.id === note.id))
         yield* Effect.forEach(Option.toArray(eventLine(at, event)), (line) => Console.log(line));
@@ -72,8 +76,10 @@ const notesResolve = Command.make(
   'resolve',
   { film, id: noteId },
   Effect.fn('film.notes.resolve')(function* (input) {
-    const note = yield* (yield* NotesStore).resolve(input.film, input.id);
-    yield* Console.log(noteLine((yield* NotesStore).paths(input.film), note, note.changed));
+    const store = yield* NotesStore;
+    const name = yield* filmNamed(input.film);
+    const note = yield* store.resolve(name, input.id);
+    yield* Console.log(noteLine(store.paths(name), note, note.changed));
   }),
 ).pipe(Command.withDescription('Mark a note resolved'));
 
@@ -100,22 +106,23 @@ export const notes = Command.make(
   },
   Effect.fn('film.notes')(function* (input) {
     const store = yield* NotesStore;
-    const at = store.paths(input.film);
-    const file = yield* store.read(input.film);
+    const name = yield* filmNamed(input.film);
+    const at = store.paths(name);
+    const file = yield* store.read(name);
     if (!input.watch) {
       const open = file.notes.filter((n) => n.status !== 'resolved');
       for (const note of open) yield* Console.log(noteLine(at, note, note.changed));
       // The cursor this list saw: a watch started past it misses nothing made since.
       yield* Console.log(cursorLine(file.seq));
-      yield* Effect.log(`notes.list film=${input.film} open=${open.length} cursor=${file.seq}`);
+      yield* Effect.log(`notes.list film=${name} open=${open.length} cursor=${file.seq}`);
       return;
     }
     const start = Option.getOrElse(input.since, () => file.seq);
     yield* Console.log(watchLine(start));
-    yield* Effect.log(`notes.watch film=${input.film} since=${start}`);
+    yield* Effect.log(`notes.watch film=${name} since=${start}`);
     // Each wait passes the cursor on, so every change prints once.
     const watch = (since: number): Effect.Effect<never, StoreError> =>
-      store.wait(input.film, since, WATCH_WAIT).pipe(
+      store.wait(name, since, WATCH_WAIT).pipe(
         Effect.tap((waited) =>
           Effect.forEach(waited.events, (event) =>
             Effect.forEach(Option.toArray(eventLine(at, event)), (line) => Console.log(line)),
