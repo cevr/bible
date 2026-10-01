@@ -9,13 +9,13 @@
 // rate, or leaves a processing stage on, fails the capture in words. A page
 // not allowed the microphone gets MicDenied in the owner's words.
 
-import { BunServices } from '@effect/platform-bun';
-import { Effect, Option } from 'effect';
+import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { type BrowserContext, chromium } from 'playwright-core';
-import { solidPlugin } from '../../tools/solid-plugin.ts';
+import type { BrowserContext } from 'playwright-core';
+import { micBrowser } from '../fixtures/browsers.ts';
 import type { ProbeSetup, Probed } from '../fixtures/capture-page.ts';
-import { type ToneLayout, toneFile } from '../fixtures/tone.ts';
+import { bundleOf } from '../fixtures/harness.ts';
+import type { ToneLayout } from '../fixtures/tone.ts';
 
 const ORIGIN = 'http://localhost';
 
@@ -25,40 +25,16 @@ const MONO_44K: ToneLayout = { rate: 44100, channels: 'mono' };
 /** A two-input interface: the voice on input 1, silence on input 2. */
 const LEFT_ONLY_44K: ToneLayout = { rate: 44100, channels: 'left-only' };
 
-const script = Effect.promise(() =>
-  Bun.build({
-    entrypoints: [`${import.meta.dir}/../fixtures/capture-page.ts`],
-    target: 'browser',
-    format: 'iife',
-    plugins: [solidPlugin],
-  }),
-).pipe(
-  Effect.flatMap((built) =>
-    Option.match(Option.fromUndefinedOr(built.outputs[0]), {
-      onNone: () => Effect.die(`capture page did not bundle: ${built.logs.join('\n')}`),
-      onSome: (out) => Effect.promise(() => out.text()),
-    }),
-  ),
-);
+const script = bundleOf('capture-page.ts');
 
-/** A browser whose fake microphone plays the tone; closed with the scope. */
-const browserWithTone = (layout: ToneLayout) =>
-  Effect.gen(function* () {
-    const wav = yield* toneFile(3, 0.5, layout);
-    return yield* Effect.acquireRelease(
-      Effect.promise(() =>
-        chromium.launch({
-          channel: 'chromium',
-          args: [
-            '--use-fake-device-for-media-stream',
-            `--use-file-for-fake-audio-capture=${wav}`,
-            '--autoplay-policy=no-user-gesture-required',
-          ],
-        }),
-      ),
-      (b) => Effect.promise(() => b.close()),
-    );
-  });
+/** A context of the browser whose fake microphone plays a 3 s tone of `layout`, closed with the scope. */
+const contextWithTone = (layout: ToneLayout, permissions: ReadonlyArray<string>) =>
+  Effect.flatMap(micBrowser({ seconds: 3, amplitude: 0.5, layout }), (browser) =>
+    Effect.acquireRelease(
+      Effect.promise(() => browser.newContext({ permissions: [...permissions] })),
+      (context) => Effect.promise(() => context.close()),
+    ),
+  );
 
 /** The capture page open in `context`, probed as `setup` says. */
 const probe = (context: BrowserContext, setup: ProbeSetup) =>
@@ -85,10 +61,7 @@ const probe = (context: BrowserContext, setup: ProbeSetup) =>
 /** A probe of a page allowed the microphone, whose fake plays a tone of `layout`. */
 const allowed = (layout: ToneLayout, setup: ProbeSetup) =>
   Effect.gen(function* () {
-    const browser = yield* browserWithTone(layout);
-    const context = yield* Effect.promise(() =>
-      browser.newContext({ permissions: ['microphone'] }),
-    );
+    const context = yield* contextWithTone(layout, ['microphone']);
     return yield* probe(context, setup);
   });
 
@@ -110,7 +83,7 @@ describe('the AudioWorklet capture', () => {
         expect(probed.levels).toBeGreaterThan(10);
         expect(probed.loudest).toBeGreaterThan(0.45);
         expect(probed.closedAfter).toBe(true);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     30_000,
   );
 
@@ -123,7 +96,7 @@ describe('the AudioWorklet capture', () => {
         expect(probed.trackRate).toBe(44100);
         expect(probed.rate).toBe(44100);
         expect(probed.frames).toBeGreaterThanOrEqual(44100);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     30_000,
   );
 
@@ -137,7 +110,7 @@ describe('the AudioWorklet capture', () => {
         expect(probed.peak).toBeLessThan(0.55);
         expect(probed.rms).toBeGreaterThan(0.3);
         expect(probed.rms).toBeLessThan(0.4);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     30_000,
   );
 
@@ -150,7 +123,7 @@ describe('the AudioWorklet capture', () => {
         expect(probed.lost).toBe(true);
         expect(probed.frames).toBeGreaterThanOrEqual(44100);
         expect(probed.peak).toBeGreaterThan(0.45);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     30_000,
   );
 
@@ -162,7 +135,7 @@ describe('the AudioWorklet capture', () => {
         expect(probed.refused).toBe(
           'the recording stopped: its last samples never came from the audio thread, so the take would end short; record it again',
         );
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     30_000,
   );
 
@@ -174,7 +147,7 @@ describe('the AudioWorklet capture', () => {
         expect(probed.refused).toBe(
           'the recording stopped: the browser runs the audio at 48000 Hz, not the microphone’s 44100 Hz, and would resample every take; use Chrome or Firefox',
         );
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     30_000,
   );
 
@@ -186,7 +159,7 @@ describe('the AudioWorklet capture', () => {
         expect(probed.refused).toBe(
           'the recording stopped: the browser kept echo cancellation on though asked not to; use Chrome or Firefox',
         );
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     30_000,
   );
 
@@ -194,13 +167,12 @@ describe('the AudioWorklet capture', () => {
     'a page not allowed the microphone gets MicDenied, in the owner’s words',
     () =>
       Effect.gen(function* () {
-        const browser = yield* browserWithTone(MONO_44K);
-        const context = yield* Effect.promise(() => browser.newContext());
+        const context = yield* contextWithTone(MONO_44K, []);
         const probed = yield* probe(context, { seconds: 1 });
         expect(probed.refused).toBe(
           'no microphone: the browser was not allowed to use it; allow the microphone for this page',
         );
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     30_000,
   );
 });

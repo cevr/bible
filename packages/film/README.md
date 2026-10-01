@@ -885,6 +885,11 @@ module. The browser tests (`lab/**/*.dom.test.ts`) open the real
 page over a probe film in headless Chromium with the lab API faked
 (`lab/fixtures/harness.ts`) and the page's clock the test's: a count-in, a
 retry or a loop's playback is moved on with `page.clock`, not waited out.
+A test process launches one Chromium per way of launching it
+(`lab/fixtures/browsers.ts`: headless, or the full one with a fake
+microphone per tone) and each case opens its own context in it, so a file's
+cases run at once (`concurrentTestGlob` in `bunfig.toml`) and the page's
+script is bundled once per process.
 
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
