@@ -429,6 +429,9 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('coda')} .rv-badge[data-approval="approved"]`);
         // The stale scene is left for a render.
         yield* waitFor(page, `${render('close')} .rv-badge[data-approval="stale"]`);
+        // Nothing current is left to approve, in the film or the act: no say would change a thing.
+        yield* until(page, `document.querySelector('[data-act="approve-all"]').disabled === true`);
+        yield* until(page, `document.querySelector('[data-act="approve-act"]').disabled === true`);
 
         yield* Effect.promise(() =>
           page.fill(`${render('open')} .rv-comment-input`, 'the hand jumps'),
@@ -442,15 +445,16 @@ describe("a film's project", () => {
         yield* click(page, `${render('end')} [data-act="comment"]`);
         yield* waitFor(page, `${render('end')} [data-comment="c1"]`);
 
-        yield* click(page, '[data-act="approve-act"]');
-        yield* until(page, "document.querySelector('p.rv-status').dataset.said === 'true'");
-        yield* until(page, `document.querySelector('[data-act="approve-act"]').disabled === false`);
-        // An act's approvals withdrawn in one say (the stale one too), then the film's.
+        // An act's approvals withdrawn in one say (the stale one too), its current scenes
+        // approved again in one, then the film's withdrawn.
         yield* click(page, '[data-act="withdraw-act"]');
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
         yield* waitFor(page, `${render('close')} [data-act="approve"][data-approval="none"]`);
         yield* waitFor(page, `${render('coda')} .rv-badge[data-approval="approved"]`);
         yield* countIs(page, '[data-act="withdraw-act"]', 0);
+        yield* click(page, '[data-act="approve-act"]');
+        yield* waitFor(page, `${render('open')} .rv-badge[data-approval="approved"]`);
+        yield* until(page, `document.querySelector('[data-act="approve-act"]').disabled === true`);
         yield* click(page, '[data-act="withdraw-all"]');
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
         yield* countIs(page, '[data-act="withdraw-all"]', 0);
@@ -473,8 +477,8 @@ describe("a film's project", () => {
           { address: { _tag: 'Film' }, say: { _tag: 'Approve' } },
           { address: scenes('open'), say: { _tag: 'Comment', text: 'the hand jumps' } },
           { address: scenes('end'), say: { _tag: 'Comment', text: 'render it warm' } },
-          { address: { _tag: 'Act', act: 'opening' }, say: { _tag: 'Approve' } },
           { address: { _tag: 'Act', act: 'opening' }, say: { _tag: 'Withdraw' } },
+          { address: { _tag: 'Act', act: 'opening' }, say: { _tag: 'Approve' } },
           { address: { _tag: 'Film' }, say: { _tag: 'Withdraw' } },
           {
             address: { _tag: 'Act', act: 'opening' },

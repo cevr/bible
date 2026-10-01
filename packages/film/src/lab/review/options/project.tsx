@@ -237,10 +237,14 @@ const PART_WORDS = {
   all: { approve: 'Approve all current', withdraw: 'Withdraw every approval' },
 } as const;
 
+/** Whether approving `scenes` would change one: a current render not yet approved as it is. */
+const leftToApprove = (scenes: ReadonlyArray<ProjectScene>): boolean =>
+  scenes.some((s) => s.state === 'current' && s.approval !== 'approved');
+
 /**
  * A part's approvals, each in one say: approve every scene of it whose
- * render is current; withdraw every approval of its scenes (an earlier
- * version's too), offered while one has one.
+ * render is current, while one is left to approve; withdraw every approval
+ * of its scenes (an earlier version's too), offered while one has one.
  */
 const PartApproval = (props: {
   readonly at: ProjectValue;
@@ -253,7 +257,7 @@ const PartApproval = (props: {
       type="button"
       class="rv-chip"
       data-act={`approve-${props.part}`}
-      disabled={props.scenes.every((s) => s.state !== 'current') || props.at.saying()}
+      disabled={!leftToApprove(props.scenes) || props.at.saying()}
       onClick={() => props.at.say({ address: props.address, say: { _tag: 'Approve' } })}
     >
       {PART_WORDS[props.part].approve}
