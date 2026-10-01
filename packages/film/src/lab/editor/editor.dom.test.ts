@@ -7,7 +7,7 @@
 
 import { Effect, Option, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Page } from 'playwright-core';
+import type { Tab } from '../fixtures/tab.ts';
 import { SourceRefused } from '../../core/refusals.ts';
 import { type Asked, hold, json, openLab, refused, route, sourceOne } from '../fixtures/harness.ts';
 import { attributeIs, attributesAre, evaluates, textHas, textIs } from '../fixtures/settled.ts';
@@ -16,7 +16,7 @@ const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));
 
 /** Wait until the status line reads something containing `part`. */
-const statusSays = (page: Page, part: string) => textHas(page, '.lab-edit-status', part);
+const statusSays = (page: Tab, part: string) => textHas(page, '.lab-edit-status', part);
 
 /** Wait until the lab has posted `n` writes. */
 const postedReach = (asked: ReadonlyArray<Asked>, n: number) =>
@@ -30,28 +30,25 @@ const postedReach = (asked: ReadonlyArray<Asked>, n: number) =>
  * Run the page's clock on by `ms`: its timers and frames run that much,
  * however slow the machine, so what a key or a drag would start has started.
  */
-const runClock = (page: Page, ms: number) => Effect.promise(() => page.clock.runFor(ms));
+const runClock = (page: Tab, ms: number) => page.clock.runFor(ms);
 
 /** Drag the bar of cue `name` by `dx` pixels from `at` across it (0 left edge, 0.5 middle, 1 right edge). */
-const dragBar = (page: Page, name: string, at: number, dx: number) =>
+const dragBar = (page: Tab, name: string, at: number, dx: number) =>
   Effect.gen(function* () {
-    const bar = page.locator(`.lab-cue[data-cue="${name}"]`);
-    const box = yield* Effect.promise(() => bar.boundingBox());
-    const b = yield* Effect.fromNullishOr(box);
+    const b = yield* page.box(`.lab-cue[data-cue="${name}"]`);
     const x = b.x + Math.min(b.width - 2, Math.max(2, b.width * at));
     const y = b.y + b.height / 2;
-    yield* Effect.promise(() => page.mouse.move(x, y));
-    yield* Effect.promise(() => page.mouse.down());
-    for (const step of [1, 2, 3, 4])
-      yield* Effect.promise(() => page.mouse.move(x + (dx * step) / 4, y));
-    yield* Effect.promise(() => page.mouse.up());
-  }).pipe(Effect.orDie);
+    yield* page.mouse.move(x, y);
+    yield* page.mouse.down;
+    for (const step of [1, 2, 3, 4]) yield* page.mouse.move(x + (dx * step) / 4, y);
+    yield* page.mouse.up;
+  });
 
 describe('the cue strip', () => {
   it.live('shows the scene under the playhead: its cues, by name', () =>
     Effect.gen(function* () {
       const { page, errors } = yield* openLab([], { hash: '#1' });
-      yield* Effect.promise(() => page.waitForSelector('.lab-cue[data-cue="fall"]'));
+      yield* page.waitFor('.lab-cue[data-cue="fall"]');
       yield* attributesAre(page, '.lab-cue', 'data-cue', ['rise', 'fall']);
       yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
       expect(errors).toEqual([]);
@@ -61,7 +58,7 @@ describe('the cue strip', () => {
   it.live('a drag of a cue body writes its offset once, on release, and selects it', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([], { hash: '#1' });
-      yield* Effect.promise(() => page.waitForSelector('.lab-cue[data-cue="rise"]'));
+      yield* page.waitFor('.lab-cue[data-cue="rise"]');
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* statusSays(page, 'wrote scenes/one.ts');
       const writes = posted(asked);
@@ -86,7 +83,7 @@ describe('the cue strip', () => {
       const { page } = yield* openLab([route('POST', /^\/cues\//, () => refused(failure))], {
         hash: '#1',
       });
-      yield* Effect.promise(() => page.waitForSelector('.lab-cue[data-cue="rise"]'));
+      yield* page.waitFor('.lab-cue[data-cue="rise"]');
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* textIs(page, '.lab-edit-status', refusal);
     }).pipe(Effect.scoped),
@@ -102,7 +99,7 @@ describe('the cue strip', () => {
         [route('GET', /^\/scenes\/one\/source$/, () => json(computed))],
         { hash: '#1' },
       );
-      yield* Effect.promise(() => page.waitForSelector('.lab-cue[data-cue="rise"]'));
+      yield* page.waitFor('.lab-cue[data-cue="rise"]');
       yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
       yield* dragBar(page, 'rise', 1, 30);
       yield* statusSays(page, 'cannot drag rise: its dur is computed in the source');
@@ -115,25 +112,18 @@ describe('one write at a time', () => {
   it.live('Escape during a drag puts the cue back and writes nothing', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([], { hash: '#1' });
-      const bar = page.locator('.lab-cue[data-cue="rise"]');
-      yield* Effect.promise(() => bar.waitFor());
-      const box = yield* Effect.promise(() => bar.boundingBox()).pipe(
-        Effect.flatMap(Effect.fromNullishOr),
-        Effect.orDie,
-      );
+      const bar = '.lab-cue[data-cue="rise"]';
+      const box = yield* page.box(bar);
       const y = box.y + box.height / 2;
       const x = box.x + box.width / 2;
-      yield* Effect.promise(() => page.mouse.move(x, y));
-      yield* Effect.promise(() => page.mouse.down());
-      yield* Effect.promise(() => page.mouse.move(x + 60, y, { steps: 4 }));
-      yield* Effect.promise(() => page.keyboard.press('Escape'));
-      yield* Effect.promise(() => page.mouse.up());
+      yield* page.mouse.move(x, y);
+      yield* page.mouse.down;
+      yield* page.mouse.move(x + 60, y, 4);
+      yield* page.press('Escape');
+      yield* page.mouse.up;
       yield* runClock(page, 200);
       expect(posted(asked)).toEqual([]);
-      const after = yield* Effect.promise(() => bar.boundingBox()).pipe(
-        Effect.flatMap(Effect.fromNullishOr),
-        Effect.orDie,
-      );
+      const after = yield* page.box(bar);
       expect(Math.round(after.x)).toBe(Math.round(box.x));
     }).pipe(Effect.scoped),
   );
@@ -143,7 +133,7 @@ describe('one write at a time', () => {
       const { page, asked } = yield* openLab([route('POST', /^\/cues\//, () => hold)], {
         hash: '#1',
       });
-      yield* Effect.promise(() => page.waitForSelector('.lab-cue[data-cue="rise"]'));
+      yield* page.waitFor('.lab-cue[data-cue="rise"]');
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* postedReach(asked, 1);
       yield* statusSays(page, 'writing…');
@@ -158,11 +148,11 @@ describe('the inspector', () => {
   it.live('its offset field and its eases write the selected cue', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([], { query: '&sel=cue:one:rise', hash: '#1' });
-      yield* Effect.promise(() => page.waitForSelector('.lab-edit-cue input[data-field="offset"]'));
-      yield* Effect.promise(() => page.fill('.lab-edit-cue input[data-field="offset"]', '0.3'));
-      yield* Effect.promise(() => page.press('.lab-edit-cue input[data-field="offset"]', 'Enter'));
+      yield* page.waitFor('.lab-edit-cue input[data-field="offset"]');
+      yield* page.fill('.lab-edit-cue input[data-field="offset"]', '0.3');
+      yield* page.pressIn('.lab-edit-cue input[data-field="offset"]', 'Enter');
       yield* statusSays(page, 'wrote');
-      yield* Effect.promise(() => page.click('.lab-ease[data-ease="linear"]'));
+      yield* page.click('.lab-ease[data-ease="linear"]');
       yield* postedReach(asked, 2);
       expect(posted(asked)).toEqual([
         { path: '/cues/one/rise', body: Option.some({ offset: 0.3 }) },
@@ -191,9 +181,9 @@ describe('the inspector', () => {
         ],
         { hash: '#1' },
       );
-      yield* Effect.promise(() => page.waitForSelector('.lab-finding'));
+      yield* page.waitFor('.lab-finding');
       yield* textIs(page, '.lab-finding', 'late rise ends after the scene');
-      yield* Effect.promise(() => page.click('.lab-edit button[data-act="undo"]:not([disabled])'));
+      yield* page.click('.lab-edit button[data-act="undo"]:not([disabled])');
       yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
       expect(posted(asked)).toEqual([{ path: '/undo', body: Option.some({}) }]);
     }).pipe(Effect.scoped),

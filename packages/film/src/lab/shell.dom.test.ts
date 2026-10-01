@@ -6,7 +6,7 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Page } from 'playwright-core';
+import type { Tab } from './fixtures/tab.ts';
 import { openLab } from './fixtures/harness.ts';
 import { attributeIs, evaluates, textHas } from './fixtures/settled.ts';
 
@@ -20,15 +20,13 @@ const rects = (sel: string) =>
  * before this one, and on the canvas's ResizeObserver in the same rendering
  * step, so the next read sees them placed.
  */
-const resize = (page: Page, size: { readonly width: number; readonly height: number }) =>
+const resize = (page: Tab, size: { readonly width: number; readonly height: number }) =>
   Effect.gen(function* () {
-    yield* Effect.promise(() =>
-      page.evaluate(
-        `window.labResized = new Promise((done) => addEventListener('resize', () => done(true), { once: true })); true`,
-      ),
+    yield* page.evaluate(
+      `window.labResized = new Promise((done) => addEventListener('resize', () => done(true), { once: true })); true`,
     );
-    yield* Effect.promise(() => page.setViewportSize(size));
-    yield* Effect.promise(() => page.evaluate('window.labResized'));
+    yield* page.resize(size.width, size.height);
+    yield* page.evaluate('window.labResized');
   });
 
 /** The pinned layers over the film canvas. */
@@ -59,7 +57,7 @@ describe('the lab shell', () => {
       const { page } = yield* openLab();
       yield* evaluates(page, layersOnCanvas, true);
       // The canvas's box as it stands, kept in the page for the resize to move.
-      yield* Effect.promise(() => page.evaluate(`window.labCanvasBefore = ${canvasBox}; true`));
+      yield* page.evaluate(`window.labCanvasBefore = ${canvasBox}; true`);
       yield* resize(page, { width: 1000, height: 800 });
       yield* evaluates(page, `${canvasBox} !== window.labCanvasBefore`, true);
       yield* evaluates(page, layersOnCanvas, true);
@@ -95,17 +93,15 @@ describe('the lab shell', () => {
   it.live('a scene of many cues scrolls its strip, and the film keeps its size', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab();
-      yield* Effect.promise(() => page.setViewportSize({ width: 1440, height: 900 }));
-      yield* Effect.promise(() => page.waitForSelector('.lab-strip-row'));
+      yield* page.resize(1440, 900);
+      yield* page.waitFor('.lab-strip-row');
       // 35 cue rows, as roof's busiest scene has: the probe's own rows, copied.
-      yield* Effect.promise(() =>
-        page.evaluate(() => {
-          const rows = document.querySelector('.lab-strip-rows');
-          const row = rows?.querySelector('.lab-strip-row');
-          for (let i = rows?.querySelectorAll('.lab-strip-row').length ?? 35; i < 35; i++)
-            if (row) rows?.append(row.cloneNode(true));
-        }),
-      );
+      yield* page.evaluate(`(() => {
+        const rows = document.querySelector('.lab-strip-rows');
+        const row = rows?.querySelector('.lab-strip-row');
+        for (let i = rows?.querySelectorAll('.lab-strip-row').length ?? 35; i < 35; i++)
+          if (row) rows?.append(row.cloneNode(true));
+      })()`);
       // The film keeps at least half its column; the strip scrolls, and scrolled
       // to its end still shows the words row at its top.
       yield* evaluates(
@@ -132,10 +128,10 @@ describe('the lab shell', () => {
       // Past the end: the player shows the last frame, kept in the page.
       const { page } = yield* openLab([], { hash: '#999' });
       yield* evaluates(page, `${T} > 1`, true);
-      yield* Effect.promise(() => page.evaluate(`window.labEnd = ${T}; true`));
-      yield* Effect.promise(() => page.keyboard.press(' '));
-      yield* Effect.promise(() => page.clock.runFor(500));
-      yield* Effect.promise(() => page.keyboard.press(' '));
+      yield* page.evaluate(`window.labEnd = ${T}; true`);
+      yield* page.press(' ');
+      yield* page.clock.runFor(500);
+      yield* page.press(' ');
       yield* evaluates(page, `${T} > 0 && ${T} < window.labEnd`, true);
     }).pipe(Effect.scoped),
   );

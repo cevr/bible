@@ -6,47 +6,36 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Page } from 'playwright-core';
 import { HeadUnavailable } from '../../core/refusals.ts';
 import { json, openLab, refused, route } from '../fixtures/harness.ts';
 import { evaluates, textHas } from '../fixtures/settled.ts';
+import { type Tab, jsonOf } from '../fixtures/tab.ts';
 
-const compareSays = (page: Page, part: string) => textHas(page, '.lab-compare-status', part);
+const compareSays = (page: Tab, part: string) => textHas(page, '.lab-compare-status', part);
 
-const click = (page: Page, selector: string) => Effect.promise(() => page.click(selector));
+const click = (page: Tab, selector: string) => page.click(selector);
 
 /** Wait until HEAD's layer is clipped to `want`: the layer is painted on the next animation frame. */
-const clipIs = (page: Page, want: string) =>
-  Effect.promise(() =>
-    page.waitForFunction(
-      (clip) =>
-        document.querySelector<HTMLCanvasElement>('canvas.lab-compare')?.style.clipPath === clip,
-      want,
-    ),
-  );
+const clipIs = (page: Tab, want: string) =>
+  page.until(`document.querySelector('canvas.lab-compare')?.style.clipPath === ${jsonOf(want)}`);
 
 describe('compare with HEAD', () => {
   it.live('a wipe shows HEAD left of a divider the pointer drags', () =>
     Effect.gen(function* () {
       const { page, asked, errors } = yield* openLab([], { hash: '#1' });
-      yield* Effect.promise(() => page.waitForSelector('.lab-compare-tools [data-mode="wipe"]'));
+      yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, 'scenes/one.ts at HEAD');
-      yield* Effect.promise(() => page.waitForSelector('canvas.lab-compare:not([hidden])'));
+      yield* page.waitFor('canvas.lab-compare:not([hidden])');
       yield* clipIs(page, 'inset(0px 50% 0px 0px)');
-      const grip = yield* Effect.promise(() =>
-        page.locator('.lab-divider circle').boundingBox(),
-      ).pipe(Effect.flatMap(Effect.fromNullishOr), Effect.orDie);
-      const frame = yield* Effect.promise(() => page.locator('.lab-overlay').boundingBox()).pipe(
-        Effect.flatMap(Effect.fromNullishOr),
-        Effect.orDie,
-      );
+      const grip = yield* page.box('.lab-divider circle');
+      const frame = yield* page.box('.lab-overlay');
       const x = grip.x + grip.width / 2;
       const y = grip.y + grip.height / 2;
-      yield* Effect.promise(() => page.mouse.move(x, y));
-      yield* Effect.promise(() => page.mouse.down());
-      yield* Effect.promise(() => page.mouse.move(frame.x + frame.width * 0.25, y, { steps: 4 }));
-      yield* Effect.promise(() => page.mouse.up());
+      yield* page.mouse.move(x, y);
+      yield* page.mouse.down;
+      yield* page.mouse.move(frame.x + frame.width * 0.25, y, 4);
+      yield* page.mouse.up;
       yield* clipIs(page, 'inset(0px 75% 0px 0px)');
       expect(asked.filter((a) => a.path === '/scenes/one/head')).toHaveLength(1);
       expect(asked.filter((a) => a.path === '/notes' && a.method === 'POST')).toEqual([]);
@@ -57,13 +46,11 @@ describe('compare with HEAD', () => {
   it.live("a blink flips HEAD's frame in and out", () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([], { hash: '#1' });
-      yield* Effect.promise(() => page.waitForSelector('.lab-compare-tools [data-mode="blink"]'));
+      yield* page.waitFor('.lab-compare-tools [data-mode="blink"]');
       yield* click(page, '.lab-compare-tools [data-mode="blink"]');
-      yield* Effect.promise(() => page.waitForSelector('canvas.lab-compare:not([hidden])'));
-      yield* Effect.promise(() =>
-        page.waitForSelector('canvas.lab-compare[hidden]', { state: 'attached' }),
-      );
-      yield* Effect.promise(() => page.waitForSelector('canvas.lab-compare:not([hidden])'));
+      yield* page.waitFor('canvas.lab-compare:not([hidden])');
+      yield* page.attached('canvas.lab-compare[hidden]');
+      yield* page.waitFor('canvas.lab-compare:not([hidden])');
     }).pipe(Effect.scoped),
   );
 
@@ -77,7 +64,7 @@ describe('compare with HEAD', () => {
         ],
         { hash: '#1' },
       );
-      yield* Effect.promise(() => page.waitForSelector('.lab-compare-tools [data-mode="wipe"]'));
+      yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, 'one: scenes/one.ts: no HEAD version to compare with: not in git');
       yield* evaluates(page, "document.querySelector('canvas.lab-compare')?.hidden", true);
@@ -102,7 +89,7 @@ describe('compare with HEAD', () => {
         ],
         { hash: '#1' },
       );
-      yield* Effect.promise(() => page.waitForSelector('.lab-compare-tools [data-mode="wipe"]'));
+      yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, "one: HEAD's timeline does not resolve now: ");
       yield* compareSays(page, '{soar}');
@@ -114,11 +101,11 @@ describe('compare with HEAD', () => {
   it.live('a reload keeps the mode', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([], { hash: '#1' });
-      yield* Effect.promise(() => page.waitForSelector('.lab-compare-tools [data-mode="wipe"]'));
+      yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, 'at HEAD');
-      yield* Effect.promise(() => page.reload());
-      yield* Effect.promise(() => page.waitForSelector('.lab-compare-tools [data-mode="wipe"].on'));
+      yield* page.reload;
+      yield* page.waitFor('.lab-compare-tools [data-mode="wipe"].on');
       yield* compareSays(page, 'at HEAD');
     }).pipe(Effect.scoped),
   );

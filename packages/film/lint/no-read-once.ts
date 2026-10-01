@@ -5,16 +5,11 @@
 // passes on an idle machine and fails under load. The shared waits are in `packages/film/src/lab/fixtures/settled.ts`
 // (`textIs`, `textHas`, `valueIs`, `attributeIs`, `countIs`, …).
 //
-// Refused in a `*.dom.test.ts`: Playwright's one-shot reads, which are never
-// DOM methods (`textContent()`, `innerText()`, `innerHTML()`, `inputValue()`,
-// `allTextContents()`, `allInnerTexts()`, `isChecked()`, `isVisible()`,
-// `isHidden()`, `isEnabled()`, `isDisabled()`, `isEditable()`, `$eval`,
-// `$$eval`), `getAttribute()` or `count()` called on the page or a
-// locator taken from it (`page.getAttribute(…)`, `page.locator(…).count()`),
-// not on an element inside a function the page runs, and an `evaluate(…)`
-// (the page's, or a helper of that name) whose answer `expect` asserts or a
-// matcher compares with: directly, through a `const` bound to it (each read of
-// the name), a local helper whose arrow answers it (each call), a part of it
+// The tab (`lab/fixtures/tab.ts`) reads the page one way only, `evaluate`;
+// so refused in a `*.dom.test.ts` is an `evaluate(…)` (the tab's, or a
+// helper of that name) whose answer `expect` asserts or a matcher compares
+// with: directly, through a `const` bound to it (each read of the name), a
+// local helper whose arrow answers it (each call), a part of it
 // (`box.canvas`), a literal that holds it (`{ canvas }`) or a value computed
 // from it (`after - before`, `!open`, `` `at ${hash}` ``). An `evaluate` run
 // for what it does is an action, and passes; so does one whose kept answer
@@ -31,45 +26,6 @@ import {
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
 import { memberName } from './nodes.ts';
-
-/** Playwright methods that read the page once, and are no DOM method's name. */
-const READS = new Set([
-  'textContent',
-  'innerText',
-  'innerHTML',
-  'inputValue',
-  'allTextContents',
-  'allInnerTexts',
-  'isChecked',
-  'isVisible',
-  'isHidden',
-  'isEnabled',
-  'isDisabled',
-  'isEditable',
-  '$eval',
-  '$$eval',
-]);
-
-/** Reads that share a DOM method's name: refused only on the page or a locator from it. */
-const ON_PAGE = new Set(['getAttribute', 'count']);
-
-/** Whether an expression is `page`, or a call chain that starts at it (`page.locator(…).first()`). */
-const fromPage = (n: ESTree.Node): boolean => {
-  if (n.type === 'Identifier') return n.name === 'page';
-  if (n.type === 'MemberExpression') return fromPage(n.object);
-  if (n.type === 'CallExpression') return fromPage(n.callee);
-  return false;
-};
-
-/** The read a call makes once, when it makes one. */
-const readOnce = (call: ESTree.CallExpression): Option.Option<string> => {
-  const callee = call.callee;
-  if (callee.type !== 'MemberExpression') return Option.none();
-  return Option.filter(
-    memberName(callee),
-    (name) => READS.has(name) || (ON_PAGE.has(name) && fromPage(callee.object)),
-  );
-};
 
 /** A call to `evaluate`: `page.evaluate(…)`, or a local helper by that name. */
 const isEvaluate = (call: ESTree.CallExpression): boolean => {
@@ -177,7 +133,7 @@ const callTakes = (
 /**
  * Whether `expect(…)` asserts the value `n` answers, or a matcher compares with
  * it, past what only hands it on (`yield*`, `await`, a cast), a call that
- * takes it (`Effect.promise(() => …)`, `x.pipe(…)`), a part of it
+ * takes it (`Effect.map(…)`, `x.pipe(…)`), a part of it
  * (`box.canvas`), a literal that holds it, a value computed from it
  * (arithmetic, a test, a template), a `const` bound to it (each read
  * of the name), and a local helper whose arrow answers it (each call).
@@ -194,9 +150,9 @@ const asserted = (n: ESTree.Node, seen: ReadonlySet<ESTree.Node>): Asserted => {
   return Effect.succeed(false);
 };
 
-/** What a call reads once, when it reads one. */
+/** The read a call makes once, when it is an `evaluate` whose answer is asserted. */
 const refused = (call: ESTree.CallExpression) => {
-  if (!isEvaluate(call)) return Effect.succeed(readOnce(call));
+  if (!isEvaluate(call)) return Effect.succeedNone;
   return Effect.map(asserted(call, new Set()), (yes) =>
     Option.filter(Option.some('evaluate'), () => yes),
   );

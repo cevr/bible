@@ -834,7 +834,7 @@ studio's routes, the capture), so the shell knows nothing of it, and hands
 the section derived values and actions (`view.ts`: the controls each state
 offers with their keys, the status line, the meter, the counts), never the
 machine's states. `lab/studio/studio.dom.test.ts` drives the whole panel in
-Chromium with a fake microphone.
+Chrome with a fake microphone.
 
 **Notes** live in `lab/<film>/notes.json` (`NotesFileJson`) with their stills
 in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in
@@ -875,14 +875,18 @@ machine and actions, never the machine's state: the editor's `status` and
 `split`, the notes' `composerOpen`, `composerTyping` and `draft`; so no
 component matches a state's tag, and a renamed state touches only its
 module. The browser tests (`lab/**/*.dom.test.ts`) open the real
-page over a probe film in headless Chromium with the lab API faked
-(`lab/fixtures/harness.ts`) and the page's clock the test's: a count-in, a
-retry or a loop's playback is moved on with `page.clock`, not waited out,
-and `canvas.toBlob` encodes at once (Chromium's waits for idle time a busy
-page may not leave, up to 5 s). A test process launches one Chromium per way of launching it
-(`lab/fixtures/browsers.ts`: headless, or the full one with a fake
-microphone per tone) and each case opens its own context in it, so a file's
-cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
+page over a probe film in headless Chrome with the lab API faked
+(`lab/fixtures/harness.ts`) and the page's clock the test's
+(`lab/fixtures/clock.ts`): a count-in, a retry or a loop's playback is moved
+on with `page.clock`, not waited out, and `canvas.toBlob` encodes at once
+(Chromium's waits for idle time a busy page may not leave, up to 5 s). The
+page is a tab (`lab/fixtures/tab.ts`) of the one Chrome Bun.WebView spawns
+per test process (`lab/fixtures/browsers.ts`, with `tools/chrome.ts`): every
+tab on an origin of its own, so cases share no storage and no permission,
+and one fake microphone (a 440 Hz tone on input 1) every tab hears, allowed
+or refused per tab. The tab answers the page's requests itself (the
+protocol's `Fetch`), types and clicks with native input events, and waits in
+the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
 worker (`--max-concurrency=3` in the test script: one worker a core, so three
 pages a core, and a case's timeout counts its own work, not its siblings'),
 and the page's script is bundled once per process.
@@ -1647,7 +1651,7 @@ id, a commit hash, and "used to" said of what the code did (not "is used
 to"). History told in other words is the sweep's to find.
 The package's tests run with `bun test --parallel --no-isolate --timeout
 20000` (its `test` script): one worker per core, each keeping its module
-registry and its Chromium across the files it runs, so the module graph
+registry and its Chrome across the files it runs, so the module graph
 loads once per worker rather than once per file. A test file therefore
 leaves no global behind it (a stand-in it sets, it puts back). The lab's
 browser tests open a page and draw the probe film before they assert, which

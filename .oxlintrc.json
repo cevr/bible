@@ -358,6 +358,32 @@
       }
     },
     {
+      // An engine pixel test draws in the browser tests' Chrome: it may open
+      // a tab (lab/fixtures/browsers.ts), and nothing else of the lab.
+      "files": ["**/packages/film/src/canvas/**/*.pixel.test.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/player/**",
+                  "**/tools/**",
+                  "**/lab/**",
+                  "!**/lab/fixtures/browsers.ts",
+                  "@bible/film/player",
+                  "@bible/film/tools",
+                  "@bible/film/lab"
+                ],
+                "message": "the engine never imports the player, tools or lab: they import it (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
       "files": ["**/packages/film/src/player/**/*.ts"],
       "rules": {
         "no-restricted-imports": [

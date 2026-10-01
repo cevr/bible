@@ -1,26 +1,26 @@
 // Fixture for film/no-read-once: each line marked RED fires the rule, and
 // nothing else does.
-import type { Page } from 'playwright-core';
 
-declare const page: Page;
+/** The lab's tab (`lab/fixtures/tab.ts`), as far as the rule reads it. */
+interface Tab {
+  readonly evaluate: <A = unknown>(script: string) => Promise<A>;
+  readonly until: (script: string) => Promise<void>;
+  readonly waitFor: (selector: string) => Promise<void>;
+  readonly click: (selector: string) => Promise<void>;
+}
 
-export const reads = [
-  page.textContent('.lab-status'), // RED film/no-read-once
-  page.inputValue('.lab-compose textarea'), // RED film/no-read-once
-  page.getAttribute('.lab-lookbook', 'href'), // RED film/no-read-once
-  page.locator('.lab-cue').first().getAttribute('class'), // RED film/no-read-once
-  page.locator('.lab-cue').count(), // RED film/no-read-once
-  page.$eval('[data-role="review"]', (a) => a.id), // RED film/no-read-once
-  page.$$eval('.lab-cue', (els) => els.length), // RED film/no-read-once
-  page.locator('.lab-cue').isVisible(), // RED film/no-read-once
-  page.waitForFunction(() => document.querySelector('.lab-status')?.getAttribute('data-tone')),
-  page.waitForSelector('.lab-status'),
-  page.evaluate(() => document.body.getAttribute('class')),
+declare const page: Tab;
+
+export const actions = [
+  page.until("document.querySelector('.lab-status')?.getAttribute('data-tone') === 'ok'"),
+  page.waitFor('.lab-status'),
+  page.click('.lab-cue'),
+  page.evaluate("document.body.getAttribute('class')"),
 ];
 
 declare const expect: (value: unknown) => { toBe: (want: unknown) => void };
 declare const promise: <A>(run: () => Promise<A>) => A;
-const evaluate = <A>(script: string) => page.evaluate(script) as Promise<A>; // RED film/no-read-once
+const evaluate = <A>(script: string) => page.evaluate<A>(script); // RED film/no-read-once
 
 // A value `evaluate` answers is a read once when a test asserts it.
 export async function evaluated() {
@@ -37,15 +37,15 @@ export async function evaluated() {
 export async function kept() {
   const title = await page.evaluate('document.title'); // RED film/no-read-once
   expect(title).toBe('lab');
-  const shown = () => promise(() => page.evaluate('location.hash')); // RED film/no-read-once
+  const shown = () => promise(() => page.evaluate<string>('location.hash')); // RED film/no-read-once
   const at = shown();
   const box = { at, size: [at.length] };
   expect(box.size[0]).toBe(2);
   const rate = await page.evaluate('new AudioContext().sampleRate'); // RED film/no-read-once
   expect({ rate: 48_000 }).toBe({ rate });
   // A value computed from kept answers: arithmetic, a test, a template.
-  const from = await page.evaluate('scrollY'); // RED film/no-read-once
-  const to = await page.evaluate('scrollY'); // RED film/no-read-once
+  const from = await page.evaluate<number>('scrollY'); // RED film/no-read-once
+  const to = await page.evaluate<number>('scrollY'); // RED film/no-read-once
   expect(to - from).toBe(0);
   const open = await page.evaluate('document.hidden'); // RED film/no-read-once
   expect(!open ? 'shown' : 'hidden').toBe('shown');
@@ -53,5 +53,5 @@ export async function kept() {
   expect(`at ${hash}`).toBe('at #T');
   // A kept answer handed only to a wait, as its baseline: no read is asserted.
   const before = await page.evaluate('document.title');
-  promise(() => page.waitForFunction(`document.title !== ${JSON.stringify(before)}`));
+  await page.until(`document.title !== ${JSON.stringify(before)}`);
 }

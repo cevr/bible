@@ -121,16 +121,16 @@ describe('the review page', () => {
         yield* textHas(page, '.rv-h', 'Comparisons');
         yield* textHas(page, '.rv-h', 'Renders');
         yield* textHas(page, 'a.rv-card', 'Roofs at dusk');
-        yield* Effect.promise(() => page.fill('.rv-filter', 'sea'));
+        yield* page.fill('.rv-filter', 'sea');
         yield* until(page, "!document.body.textContent.includes('Roofs at dusk')");
-        yield* Effect.promise(() => page.fill('.rv-filter', ''));
-        yield* Effect.promise(() => page.click('a.rv-card >> text=Roofs at dusk'));
+        yield* page.fill('.rv-filter', '');
+        yield* page.click('a.rv-card[href="/?folder=out%2Fart"]');
         yield* until(page, "location.search === '?folder=out%2Fart'");
         yield* textHas(page, '.rv-crumbs', 'Roofs at dusk');
         yield* textHas(page, 'a.rv-card', 'compare 3');
         yield* textHas(page, '.rv-card', 'walk.mp4');
         yield* attributeIs(page, '.rv-tall track', 'src', '/review/files/out/art/walk.vtt');
-        yield* Effect.promise(() => page.click('.rv-doc summary'));
+        yield* page.click('.rv-doc summary');
         yield* waitFor(page, '.rv-doc .rv-note li b');
         yield* evaluates(
           page,
@@ -138,7 +138,7 @@ describe('the review page', () => {
           true,
         );
         yield* countIs(page, '.rv-note script', 0);
-        yield* Effect.promise(() => page.goBack());
+        yield* page.back;
         yield* textHas(page, '.rv-h', 'Renders');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -157,25 +157,25 @@ describe('the review page', () => {
           "Array.from(document.querySelectorAll('.rv-card[data-id]')).filter((c) => !c.querySelector('video').muted).map((c) => c.dataset.id).join()";
         yield* until(page, `${heard} === 'A'`);
         yield* attributeIs(page, '.rv-audible', 'data-id', 'A');
-        yield* Effect.promise(() => page.click('.rv-card[data-id="C"] .rv-sound'));
+        yield* page.click('.rv-card[data-id="C"] .rv-sound');
         yield* until(page, `${heard} === 'C'`);
         yield* waitFor(page, '.rv-card[data-id="C"].rv-audible');
         // Space plays and pauses; ←/→ step 2 s while paused.
-        yield* Effect.promise(() => page.keyboard.press('Space'));
+        yield* page.press('Space');
         yield* textHas(page, '.rv-big', '❚❚');
-        yield* Effect.promise(() => page.keyboard.press('Space'));
+        yield* page.press('Space');
         yield* textHas(page, '.rv-big', '▶');
-        yield* Effect.promise(() => page.keyboard.press('ArrowRight'));
-        yield* Effect.promise(() => page.keyboard.press('ArrowRight'));
+        yield* page.press('ArrowRight');
+        yield* page.press('ArrowRight');
         yield* textHas(page, '.rv-time', '0:04.0');
-        yield* Effect.promise(() => page.keyboard.press('ArrowLeft'));
+        yield* page.press('ArrowLeft');
         yield* textHas(page, '.rv-time', '0:02.0');
         // Every video stands where the clock does.
         yield* until(
           page,
           "Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - 2) < 0.01 || v.readyState === 0)",
         );
-        yield* Effect.promise(() => page.click('.rv-seg button[data-rate="0.5"]'));
+        yield* page.click('.rv-seg button[data-rate="0.5"]');
         yield* waitFor(page, '.rv-seg button[data-rate="0.5"][aria-pressed="true"]');
         yield* evaluates(
           page,
@@ -193,42 +193,42 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { search: SET });
         yield* waitFor(page, '.rv-transport');
-        yield* Effect.promise(() => page.click('.rv-card[data-id="C"] .rv-sound'));
-        yield* Effect.promise(() => page.click('.rv-views button[data-view="pair"]'));
+        yield* page.click('.rv-card[data-id="C"] .rv-sound');
+        yield* page.click('.rv-views button[data-view="pair"]');
         yield* until(page, "location.search.endsWith('&view=pair&other=B')");
         const shown =
           "Array.from(document.querySelectorAll('.rv-card[data-id]')).map((c) => c.dataset.id).join()";
         yield* until(page, `${shown} === 'A,B'`);
         // C was heard; the pair hears one of its own.
         yield* waitFor(page, '.rv-card[data-id="A"].rv-audible');
-        yield* Effect.promise(() => page.click('button[data-other="C"]'));
+        yield* page.click('button[data-other="C"]');
         yield* until(page, `${shown} === 'A,C'`);
         yield* until(page, "location.search.endsWith('&view=pair&other=C')");
 
-        yield* Effect.promise(() => page.click('.rv-views button[data-view="moments"]'));
+        yield* page.click('.rv-views button[data-view="moments"]');
         yield* waitFor(page, 'button[data-moment="0"][aria-pressed="true"]');
         yield* countIs(page, '.rv-transport', 0);
         const frames =
           "Array.from(document.querySelectorAll('.rv-card img')).map((i) => new URL(i.src).searchParams.get('t')).join()";
         yield* until(page, `${frames} === '1,1,1'`);
-        yield* Effect.promise(() => page.keyboard.press('ArrowRight'));
+        yield* page.press('ArrowRight');
         yield* until(page, `${frames} === '5,5,5'`);
-        yield* Effect.promise(() => page.keyboard.press('ArrowLeft'));
-        yield* Effect.promise(() => page.keyboard.press('ArrowLeft'));
+        yield* page.press('ArrowLeft');
+        yield* page.press('ArrowLeft');
         yield* until(page, `${frames} === '19,19,19'`);
         yield* until(page, "location.search.endsWith('&view=moments&m=4')");
-        yield* Effect.promise(() => page.click('.rv-card img'));
+        yield* page.click('.rv-card img');
         yield* waitFor(page, '.rv-lightbox');
-        yield* Effect.promise(() => page.keyboard.press('Escape'));
+        yield* page.press('Escape');
         yield* until(page, "document.querySelector('.rv-lightbox') === null");
 
-        yield* Effect.promise(() => page.click('.rv-views button[data-view="notes"]'));
+        yield* page.click('.rv-views button[data-view="notes"]');
         yield* textHas(page, '.rv-verdict', 'verdict B');
         yield* waitFor(page, '.rv-note[data-id="A"] i');
         yield* textHas(page, '.rv-note[data-id="A"]', 'Warm reads best.');
 
         // A reload opens the view the URL keeps.
-        yield* Effect.promise(() => page.goto(`http://lab.test/${SET}&view=moments&m=2`));
+        yield* page.goto(`/${SET}&view=moments&m=2`);
         yield* waitFor(page, 'button[data-moment="2"][aria-pressed="true"]');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -248,7 +248,7 @@ describe('the review page', () => {
           ],
           { search: '?folder=out%2Fart' },
         );
-        yield* Effect.promise(() => page.click('.rv-doc summary'));
+        yield* page.click('.rv-doc summary');
         yield* textIs(
           page,
           '.rv-doc .rv-note',
@@ -273,10 +273,10 @@ describe('the review page', () => {
         );
         yield* waitFor(page, '.rv-card[data-id="C"] [data-state="stale"]');
         yield* onlyCStale;
-        yield* Effect.promise(() => page.click('.rv-views button[data-view="moments"]'));
+        yield* page.click('.rv-views button[data-view="moments"]');
         yield* waitFor(page, '.rv-card[data-id="C"] img');
         yield* onlyCStale;
-        yield* Effect.promise(() => page.click('.rv-views button[data-view="notes"]'));
+        yield* page.click('.rv-views button[data-view="notes"]');
         yield* waitFor(page, '.rv-note[data-id="C"]');
         yield* onlyCStale;
         expect(errors).toEqual([]);

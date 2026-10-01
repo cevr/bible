@@ -198,13 +198,6 @@ const LOAD_TIMEOUT_MS = 60_000;
 /** A failed call waits this long for the crash or page error that explains it. */
 const SETTLE = Duration.seconds(1);
 
-/** Playwright's own installer, run with Bun, for the error that says how to get a browser. */
-const installCommand = Effect.gen(function* () {
-  const path = yield* Path.Path;
-  const pkg = yield* path.fromFileUrl(new URL(import.meta.resolve('playwright-core/package.json')));
-  return `bun ${path.join(path.dirname(pkg), 'cli.js')} install chromium-headless-shell`;
-}).pipe(Effect.orElseSucceed(() => 'bunx playwright-core install chromium-headless-shell'));
-
 /** Playwright reports a missing browser only in its message; this is the one place it is read. */
 const MISSING = /Executable doesn't exist at (\S+)/;
 
@@ -223,9 +216,8 @@ export const launchArgs = (platform: string): ReadonlyArray<string> => [
   '--disable-accelerated-2d-canvas',
 ];
 
-const launch = Effect.gen(function* () {
-  const install = yield* installCommand;
-  return yield* Effect.tryPromise({
+const launch = Effect.suspend(() =>
+  Effect.tryPromise({
     try: () =>
       chromium.launch({
         args: [...launchArgs(process.platform)],
@@ -240,12 +232,12 @@ const launch = Effect.gen(function* () {
         Option.flatMap(Option.fromNullishOr(MISSING.exec(reason)), (m) => Arr.get(m, 1)),
         {
           onNone: () => BrowserFailed.make({ reason }),
-          onSome: (executable) => BrowserMissing.make({ executable, install }),
+          onSome: (executable) => BrowserMissing.make({ executable }),
         },
       );
     },
-  });
-});
+  }),
+);
 
 const openPage = (page: Page, url: string) =>
   Effect.gen(function* () {
