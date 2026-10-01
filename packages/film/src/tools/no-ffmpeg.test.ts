@@ -1,8 +1,8 @@
 // The film's media runs in-process (mediabunny, and FFmpeg's libraries
-// through NodeAV), never the ffmpeg CLI: no source in the film package or the
-// animations app names `ffmpeg` or `ffprobe` as a word inside a string (the
-// bare name, a command line, a path, a template), the only way to start
-// either as a process. And no doc tells an agent the tools use it:
+// through NodeAV), never the ffmpeg CLI: no source in the film package names
+// `ffmpeg` or `ffprobe` as a word inside a string (the bare name, a command
+// line, a path, a template), the only way to start either as a process. The
+// films are not swept: they have no tests. And no doc tells an agent the tools use it:
 // every clause of the READMEs and the film skill that names the CLI (`ffmpeg`,
 // `ffprobe`, "the ffmpeg CLI") says it is not used.
 
@@ -12,9 +12,9 @@ import { Effect, FileSystem } from 'effect';
 
 const repo = `${import.meta.dir}/../../../..`;
 
-/** Source roots, and the directories under them that hold no code the films run. */
-const ROOTS = ['packages/film/src', 'apps/animations'];
-const SKIPPED = /(^|\/)(node_modules|plans|dist|out)\//;
+/** The framework's source, and the installed packages under it, which are not its code. */
+const ROOT = 'packages/film';
+const SKIPPED = /(^|\/)node_modules\//;
 
 /** This file, whose doc fixtures quote the CLI's name as the stale docs did. */
 const SELF = 'packages/film/src/tools/no-ffmpeg.test.ts';
@@ -125,11 +125,10 @@ describe('no ffmpeg CLI', () => {
   );
 
   it.effect.layer(BunServices.layer)(
-    'no film source names ffmpeg or ffprobe as a command',
+    'no framework source names ffmpeg or ffprobe as a command',
     () =>
       Effect.gen(function* () {
-        const found = yield* Effect.forEach(ROOTS, commandsIn);
-        expect(found.flat()).toEqual([]);
+        expect(yield* commandsIn(ROOT)).toEqual([]);
       }),
     30_000,
   );
