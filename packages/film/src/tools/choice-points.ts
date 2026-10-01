@@ -485,7 +485,7 @@ export const levelPoints = (
 // ---------------------------------------------------------------------------
 
 /** What a film's points are read from beside the film: its sound source, its beats' attempts. */
-export interface PointInputs {
+interface PointInputs {
   readonly loaded: LoadedFilm;
   readonly placed: ReadonlyArray<Placed>;
   /** `sound.ts`: its path and text, when the film has one. */

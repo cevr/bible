@@ -66,19 +66,6 @@ const UNSWEPT = (file: string) =>
   file.includes('/fixtures/films/') ||
   file.startsWith('packages/film/lint/fixtures/');
 
-/**
- * The unread exports still exported, each to drop: the sweep lists exactly
- * these, so a new unread export is not hidden among them, and an entry goes
- * once its `export` does.
- */
-const UNREAD = [
-  'src/tools/choices.ts ChoicesError',
-  'src/tools/choices.ts Checked',
-  'src/tools/choices.ts ChoicesService',
-  'src/tools/choice-points.ts PointInputs',
-  'src/tools/project-http.ts addressArgs',
-];
-
 /** `packages/film/package.json`'s specifiers: `./core` → `./src/core/index.ts`. */
 const PackageExports = Schema.fromJsonString(
   Schema.Struct({ exports: Schema.Record(Schema.String, Schema.String) }),
@@ -300,6 +287,7 @@ describe('the package entries', () => {
       const resolved = (user: string, from: string): Option.Option<string> => {
         if (from.startsWith('.'))
           return Option.some(path.relative(root, path.resolve(root, path.dirname(user), from)));
+        if (from !== '@bible/film' && !from.startsWith('@bible/film/')) return Option.none();
         return Option.map(
           Option.fromUndefinedOr(specifiers.exports[`.${from.slice('@bible/film'.length)}`]),
           (file) => path.join('packages/film', file),
@@ -337,7 +325,7 @@ describe('the package entries', () => {
             )
             .map((name) => `${file.slice('packages/film/'.length)} ${name}`),
         );
-      expect(unused.toSorted()).toEqual(UNREAD.toSorted());
+      expect(unused).toEqual([]);
     }).pipe(Effect.provide(BunServices.layer)),
   );
 });

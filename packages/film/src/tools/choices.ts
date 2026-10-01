@@ -89,15 +89,15 @@ export interface Picked {
   readonly change: Option.Option<Change>;
 }
 
-export type ChoicesError = FreshError | SourceRefused | StoreError | PlatformError;
+type ChoicesError = FreshError | SourceRefused | StoreError | PlatformError;
 
 /** The choices after a write, and the static check of the sources it left. */
-export interface Checked {
+interface Checked {
   readonly choices: FilmChoices;
   readonly findings: ReadonlyArray<CheckLine>;
 }
 
-export interface ChoicesService {
+interface ChoicesService {
   /** The film's choice points as they stand, and the renders they are heard against. */
   readonly list: (film: FilmName) => Effect.Effect<FilmChoices, ChoicesError>;
   /** `list` and the film's static check, from one fresh run: what a write answers. */

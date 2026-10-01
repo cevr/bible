@@ -31,10 +31,7 @@ const variantArgs = (given: { readonly variant?: string }): ReadonlyArray<string
  * `comment`: `film` for the whole film (`--all` to approve or withdraw, none
  * to comment on it).
  */
-export const addressArgs = (
-  address: PartAddress,
-  film: ReadonlyArray<string>,
-): ReadonlyArray<string> =>
+const addressArgs = (address: PartAddress, film: ReadonlyArray<string>): ReadonlyArray<string> =>
   Match.valueTags(address, {
     Film: () => film,
     Act: ({ act }) => ['--act', act],
