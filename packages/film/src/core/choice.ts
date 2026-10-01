@@ -21,7 +21,7 @@
 // Pure: the tools' adapters (`tools/choices.ts`, `tools/review.ts`) build
 // the points, and the review page shows them.
 
-import { Array as Arr, Option, Schema } from 'effect';
+import { Array as Arr, Effect, Option, Schema, SchemaIssue, SchemaTransformation } from 'effect';
 import { Address } from './address.ts';
 import {
   ApprovalState,
@@ -34,7 +34,7 @@ import {
   saidOn,
   topicAt,
 } from './catalogue.ts';
-import { PointRef, pointIdOf } from './point.ts';
+import { PointRef, pointIdOf, pointRefOf } from './point.ts';
 import { CheckLine, Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
@@ -100,15 +100,13 @@ export const ChoiceKnob = Schema.Struct({
 });
 export type ChoiceKnob = typeof ChoiceKnob.Type;
 
-/** A choice point: at an address, variants to compare, pick, comment on and approve. */
-export const ChoicePoint = Schema.Struct({
+/** A choice point's fields as the wire carries them: everything but its ref, which its id writes. */
+const pointFields = {
   /**
    * Unique in its film: `score`, `take:paper.slide`, `look:ground`,
    * `render:scenes:cold`; its `ref` as `point.ts` writes it.
    */
   id: Schema.String,
-  /** Which point it is, as data: what a verb on it reads, never its id parsed back. */
-  ref: PointRef,
   kind: ChoiceKind,
   /** Where in the film it belongs; none for a montage's set, which no film owns. */
   address: maybe(Address),
@@ -121,7 +119,33 @@ export const ChoicePoint = Schema.Struct({
   marks: Schema.Array(ChoiceMark),
   knob: maybe(ChoiceKnob),
   variants: Schema.Array(ChoiceVariant),
-});
+};
+
+/**
+ * A choice point: at an address, variants to compare, pick, comment on and
+ * approve. Which point it is is data (`ref`): read from its id once, where
+ * the point is decoded, and written back as the id alone, so the wire
+ * carries one name for it and a verb reads the ref, never the id parsed back.
+ */
+export const ChoicePoint = Schema.Struct(pointFields).pipe(
+  Schema.decodeTo(
+    Schema.toType(Schema.Struct({ ...pointFields, ref: PointRef })),
+    SchemaTransformation.transformEffect({
+      decode: (point) =>
+        Effect.fromOption(pointRefOf(point.id)).pipe(
+          Effect.map((ref) => ({ ...point, ref })),
+          Effect.mapError(
+            () =>
+              new SchemaIssue.InvalidValue(
+                { message: `no choice point is "${point.id}"` },
+                point.id,
+              ),
+          ),
+        ),
+      encode: ({ ref: _ref, ...point }) => Effect.succeed(point),
+    }),
+  ),
+);
 export type ChoicePoint = typeof ChoicePoint.Type;
 
 /** A variant as its adapter describes it, before the owner's say is read. */
