@@ -8,7 +8,6 @@ export * from './topics-verifier-contract.js';
 export * from './unavailable.js';
 export * from './egw-sync.js';
 export { layerEgwWritingsAssetSource } from './writings-egw-source.js';
-export { layerWritingsLibraryRuntime } from './writings-library.js';
 export {
   layerWritingsAssetRecipe,
   layerWritingsAssetSource,

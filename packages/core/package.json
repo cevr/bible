@@ -3,10 +3,6 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./local-first": "./src/local-first/index.ts",
-    "./local-first/bun": "./src/local-first/database-bun.ts",
-    "./local-first/migrations/0001_user_state.sql": "./src/local-first/migrations/0001_user_state.sql",
-    "./library-state": "./src/library-state/index.ts",
     "./egw": "./src/egw/index.ts",
     "./egw-db": "./src/egw-db/index.ts",
     "./egw-db/bun": "./src/egw-db/book-database-bun.ts",
@@ -22,8 +18,6 @@
     "./wiki": "./src/wiki/index.ts",
     "./wiki/bun": "./src/wiki/service-bun.ts",
     "./wiki/testing": "./src/wiki/testing.ts",
-    "./procedure": "./src/procedure/index.ts",
-    "./procedure/testing": "./src/procedure/testing.ts",
     "./bible": "./src/bible/index.ts",
     "./bible/service": "./src/bible/service.ts",
     "./writings": "./src/writings/index.ts",
@@ -58,7 +52,6 @@
     "@effect/sql-sqlite-bun": "catalog:",
     "@huggingface/transformers": "4.3.0",
     "@noble/hashes": "^2.4.0",
-    "drizzle-orm": "catalog:",
     "effect": "catalog:",
     "fflate": "^0.8.3",
     "htmlparser2": "^12.0.0"
