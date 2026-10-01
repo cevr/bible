@@ -10,6 +10,7 @@
 
 import {
   type Frame,
+  type Posed,
   type Pt,
   at,
   camera,
@@ -40,10 +41,19 @@ const STAINS = [
   blob(12, -112, 14, 12, 34),
 ];
 
-/** The sewer's hands: the patch held in the far hand, the needle in the near, which rises to `PROMISING` on the promise. */
+/**
+ * The sewer's hands: the patch held in the far hand, the needle in the near,
+ * which rises to `PROMISING` on the promise holding the needle and, as it
+ * lands, opens from its hold to show its palm (written each frame).
+ */
 const PATCH: GestureAt = { to: [-18, -86], reach: 0, grip: 'hold' };
-const NEEDLE: GestureAt = { to: [22, -86], reach: 0, grip: 'hold' };
+const NEEDLE: Posed<GestureAt> = { to: [22, -86], reach: 0, grip: 'palm', was: 'hold', change: 0 };
 const PROMISING: Pt = [60, -176];
+/** The needle, from the fingers that hold it to its eye, and where its thread is stitched into the apron, in a person's units. */
+const NEEDLE_EYE: Pt = [10, -22];
+const STITCHED: Pt = [-6, -70];
+/** How far the needle falls from the opening hand, in a person's units. */
+const NEEDLE_FALL = 60;
 /** The viewer's cloth hand at the glass (and its reflection's), rubbing up and down about `SCRUB_AT`. */
 const SCRUB_AT: Pt = [70, -124];
 const SCRUBBING: GestureAt = { to: [SCRUB_AT[0], SCRUB_AT[1]], reach: 0, grip: 'hold' };
@@ -57,6 +67,8 @@ const timeline = {
   toPatch: { mark: 'harder', dur: 0.6, ease: 'inOutSine' },
   // The needle hand rises beside the head: a travel of 0.7 s, landing on the word, never a jump.
   promise: { mark: 'promise', offset: -0.3, dur: 0.7, ease: 'inOutSine' },
+  // As it lands, the hand opens to show its palm and lets the needle fall.
+  open: { after: 'promise', dur: 0.3, ends: true, ease: 'inOutSine' },
   sheepish: { mark: 'going', offset: 0.1, dur: 0.4 },
   // The promising hand comes back down as they turn sheepish.
   lower: { mark: 'going', dur: 0.8, ease: 'inOutSine' },
@@ -118,13 +130,14 @@ const garden = (f: MirrorFrame) => {
   const droop = f.at('droop');
   const stitch = Math.sin(t * 9);
   // The far hand holds the patch while they sew; the near hand stitches, then
-  // rises beside the head on the promise, and both go as they turn sheepish.
+  // rises beside the head on the promise and opens as it lands, and both go
+  // as they turn sheepish.
   PATCH.reach = sewing;
   const raised = f.at('promise') * (1 - f.at('lower'));
   NEEDLE.to[0] = lerp(22 + 14 * stitch, PROMISING[0], raised);
   NEEDLE.to[1] = lerp(-86 - 10 * stitch, PROMISING[1], raised);
   NEEDLE.reach = clamp(sewing + raised);
-  NEEDLE.grip = raised < 0.5 ? 'hold' : 'palm';
+  NEEDLE.change = f.at('open');
   multiplane(
     ctx,
     cam,
@@ -163,39 +176,41 @@ const garden = (f: MirrorFrame) => {
         draw: () => {
           ring(ctx, f.hand('ring'), fx, fy - 200, lerp(1400, 640, f.at('shrink')));
           at(ctx, { x: fx, y: fy, scale: 1.8 }, () => {
-            person(
-              ctx,
-              {
-                look: [
-                  lerp(lerp(0, -1, sewing), 0, sheepish),
-                  lerp(lerp(-2, 4, sewing) - 4 * promise, 1.5, sheepish),
-                ],
-                nod: 5 * sewing * (1 - sheepish),
-                tilt: 0.08 * sewing - 0.1 * sheepish,
-                browL: -1 * sewing + 2 * promise + 4 * sheepish + 3 * droop,
-                browR: -1 * sewing + 3 * promise + 5 * sheepish + 4 * droop,
-                browTilt: -0.25 * sewing + 0.45 * sheepish + 0.4 * droop,
-                mouth: 0.4 * droop,
-                far: PATCH,
-                near: NEEDLE,
-              },
-              f.hand('sewer'),
-            );
+            const sewer: Person = {
+              look: [
+                lerp(lerp(0, -1, sewing), 0, sheepish),
+                lerp(lerp(-2, 4, sewing) - 4 * promise, 1.5, sheepish),
+              ],
+              nod: 5 * sewing * (1 - sheepish),
+              tilt: 0.08 * sewing - 0.1 * sheepish,
+              browL: -1 * sewing + 2 * promise + 4 * sheepish + 3 * droop,
+              browR: -1 * sewing + 3 * promise + 5 * sheepish + 4 * droop,
+              browTilt: -0.25 * sewing + 0.45 * sheepish + 0.4 * droop,
+              mouth: 0.4 * droop,
+              far: PATCH,
+              near: NEEDLE,
+            };
+            person(ctx, sewer, f.hand('sewer'));
             apron(ctx, f.hand('apron'), 1 + 1.2 * f.at('leaves') + 3.8 * f.at('patches'), droop);
-            // The needle and its thread, while they sew.
-            if (sewing > 0.05 && promise < 0.5) {
-              const nx = 22 + 14 * stitch;
-              const ny = -86 - 10 * stitch;
+            // The needle and its thread ride the needle hand, coming in with it
+            // as it goes to sew; as the hand opens on the promise they fall from it.
+            const letGo = f.at('open');
+            const held = f.at('toSew') * (1 - letGo);
+            if (held > 0) {
+              const [nx, hy] = handOf(sewer, 'near', f.hand('sewer'));
+              const ny = hy + NEEDLE_FALL * letGo;
+              const ex = nx + NEEDLE_EYE[0];
+              const ey = ny + NEEDLE_EYE[1];
               stroke(
                 ctx,
-                line([nx, ny], [nx + 10, ny - 22]),
-                { color: C.inkSoft, width: 2.5, jitter: 0.2, boil: 'crawl' },
+                line([nx, ny], [ex, ey]),
+                { color: C.inkSoft, width: 2.5, jitter: 0.2, boil: 'crawl', alpha: held },
                 f.hand('needle'),
               );
               stroke(
                 ctx,
-                line([nx + 10, ny - 22], [-6, -70]),
-                { color: C.scarlet, width: 1.5, jitter: 0.6, boil: 'crawl' },
+                line([ex, ey], STITCHED),
+                { color: C.scarlet, width: 1.5, jitter: 0.6, boil: 'crawl', alpha: held },
                 f.hand('thread'),
               );
             }
