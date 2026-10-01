@@ -28,7 +28,7 @@ const StoreOutputs = Schema.Struct({
 });
 
 /** The stack was never deployed at the stage (or was destroyed). */
-export class StoreNotDeployed extends Schema.TaggedError<StoreNotDeployed>()('StoreNotDeployed', {
+class StoreNotDeployed extends Schema.TaggedError<StoreNotDeployed>()('StoreNotDeployed', {
   stage: Schema.String,
 }) {
   override get message() {

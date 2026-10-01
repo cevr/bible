@@ -233,9 +233,9 @@ const RequestKey = Schema.fromJsonString(
 );
 
 /**
- * `prompt_influence` when a sound names none, by use. Measured (p4-sfx2, one
- * axis at a time): a one-shot keeps to its prompt, at full level and dry, only
- * from 0.7 up (a gavel at 0.5 came out 20–30 dB quieter, with its energy under
+ * `prompt_influence` when a sound names none, by use. Measured in the
+ * sweet-spot trials (one axis at a time, `apps/animations/sounds/PROMPTING.md`):
+ * a one-shot keeps to its prompt, at full level and dry, only from 0.7 up (a gavel at 0.5 came out 20–30 dB quieter, with its energy under
  * 30 Hz); a bed keeps the model's own air at the API's 0.3, and a crowd bed
  * loops cleaner at 0.6 (its declaration names that).
  */
@@ -301,7 +301,7 @@ export const soundState = (entry: LibraryEntry, lock: Option.Option<LockEntry>):
 };
 
 /** How many candidates a generated sound is made as, when it names no number. */
-// About a third of the sweet-spot takes were usable (p4-sfx2): six one-shots,
+// About a third of the sweet-spot takes were usable: six one-shots,
 // or three beds, give one usable take nearly always.
 const DEFAULT_CANDIDATES = { 'one-shot': 6, bed: 3 } satisfies Record<SoundUse, number>;
 

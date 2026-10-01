@@ -11,7 +11,7 @@
 // The first library (audio-design §9): 30 generated one-shots, 9 generated
 // beds, 1 recorded one-shot, 6 procedural sounds. Prompts are concrete, close and dry: a film's cue
 // places them, the mix sets their level against the voice. How to word a prompt
-// and pick its settings, from the p4-sfx2 trials: sounds/PROMPTING.md.
+// and pick its settings, from the trials in sounds/PROMPTING.md.
 //
 // Influence and candidate count follow the framework's defaults by use
 // (one-shot 0.7 × 6, bed 0.3 × 3); a sound names its own only where a trial
@@ -60,7 +60,7 @@ export const library = defineLibrary({
     level: -24,
     duck: false,
   },
-  // Redone (p4-sfx2): "quiet … faint … very soft" gave near-silent room tone.
+  // From the trials: "quiet … faint … very soft" gave near-silent room tone.
   // The model hears a crowd when the crowd is the subject and the room its
   // colour; at 0.6 a crowd holds steady enough to loop.
   'amb.court': bed(
@@ -75,23 +75,23 @@ export const library = defineLibrary({
     'a small packed house, many people close together, soft shuffling and low murmur, no clear words',
     { influence: 0.6 },
   ),
-  // Redone (p4-sfx2): "quiet … far away" gave low rumble. Voices first.
+  // From the trials: "quiet … far away" gave low rumble. Voices first.
   'amb.town': bed(
     'people talking in a busy village market street heard from across the square, many indistinct voices, footsteps, a donkey cart, daytime, steady',
     { influence: 0.6 },
   ),
-  // Redone (p4-sfx2): birds named first and close; "leaves rustling" alone
+  // From the trials: birds named first and close; "leaves rustling" alone
   // turned to wind boom.
   'amb.garden': bed('songbirds chirping in a garden, light leaf rustle, crisp, close', {
     influence: 0.6,
   }),
-  // Redone (p4-sfx2): an even, constant wind loops; "wide" and "empty" gave
+  // From the trials: an even, constant wind loops; "wide" and "empty" gave
   // gusts, and 30 s evens the level out between the ends.
   'amb.desert': bed('a soft steady wind blowing over sand, constant and even, no gusts, dry', {
     secs: 30,
   }),
   'amb.roof': bed('rooftop wind over a sleeping city at night, faint distant town sounds, soft'),
-  // Redone (p4-sfx2): "first quiet birdsong … still air" came in gaps and failed
+  // From the trials: "first quiet birdsong … still air" came in gaps and failed
   // the seam; ask for song that never stops.
   'amb.dawn': bed('early morning birdsong in the distance, soft and continuous, even, calm', {
     influence: 0.6,
@@ -103,7 +103,7 @@ export const library = defineLibrary({
     'a stack of paper documents dropped flat onto a wooden desk, close, dry',
     1.5,
   ),
-  // Redone (p4-sfx2): "sound block … short room" came out at −41 to −56 LUFS,
+  // From the trials: "sound block … short room" came out at −41 to −56 LUFS,
   // starting on its peak. At 0.9 the knock is loud and clean; padded to 1.6 s
   // it lands 20–30 ms in instead of on sample 0.
   'wood.gavel': {
@@ -123,7 +123,7 @@ export const library = defineLibrary({
     1,
   ),
   'paper.flip': oneShot('a single page flipped over quickly, crisp paper, close', 0.8),
-  // Redone (p4-sfx2): "murmuring then rising in surprise" gave a dense wall; one
+  // From the trials: "murmuring then rising in surprise" gave a dense wall; one
   // shape the model holds is a murmur that grows.
   'crowd.swell': oneShot(
     'a crowd murmur growing louder, many people talking at once indoors, rising excitement, no clear words',
@@ -135,19 +135,19 @@ export const library = defineLibrary({
     1.5,
   ),
   'wings.pass': oneShot('a single bird flying past close, wing flaps, no calls', 1.5),
-  // Re-rolled (p4-sfx2): "unfurling … in the wind" was sub-30 Hz rumble at
+  // From the trials: "unfurling … in the wind" was sub-30 Hz rumble at
   // every influence; a flag's flutter named as crisp fabric has none.
   'cloth.banner': oneShot(
     'a cloth flag flapping and snapping once, crisp fabric flutter, close, dry',
     1.5,
   ),
-  // Re-rolled (p4-sfx2): "as something is lowered" gave a thin ratchet; the
+  // From the trials: "as something is lowered" gave a thin ratchet; the
   // load and one long creak give a fuller one.
   'rope.creak': oneShot(
     'a thick hemp rope stretching under a heavy load, one slow long creak, close, dry',
     2,
   ),
-  // Redone (p4-sfx2): "soft" made the quietest family; name the crackle. Held
+  // From the trials: "soft" made the quietest family; name the crackle. Held
   // to 1.2 s the rustle is dense.
   'mat.roll': oneShot(
     'a dry straw mat rolled up on a wooden floor, reeds crackling and rustling, close',
@@ -160,7 +160,7 @@ export const library = defineLibrary({
     'a few stones dropped one by one into dust on the ground, dull thuds',
     1.5,
   ),
-  // Redone (p4-sfx2): "measuring tape" is a steel tape to the model, whatever the
+  // From the trials: "measuring tape" is a steel tape to the model, whatever the
   // cloth; describe the ribbon, not the tool. At 1.5 s it ticked; held to
   // 0.8 s it is a cloth swish.
   'tape.measure': oneShot(
@@ -169,7 +169,7 @@ export const library = defineLibrary({
     { influence: 0.5 },
   ),
   'tablet.set': oneShot('a heavy stone tablet set down on stone, one low knock, close', 1),
-  // Redone (p4-sfx2): a count in the prompt is not heard; give each stitch its
+  // From the trials: a count in the prompt is not heard; give each stitch its
   // sound and room. "needle and thread" alone is a sewing machine; at 0.9 the
   // described action gives two punches.
   'needle.thread': oneShot(
@@ -195,7 +195,7 @@ export const library = defineLibrary({
     'a large round stone rolled slowly aside in a stone groove, deep rumble',
     3,
   ),
-  // Redone (p4-sfx2): a stain has no sound; a sizzle does. The bare noun
+  // From the trials: a stain has no sound; a sizzle does. The bare noun
   // phrase is louder and dies away; "faint steady" gave a flat hiss.
   'stain.hiss': oneShot('water sizzle on hot metal', 1.5, { influence: 0.5 }),
   // Recorded: every generated take (8 over two rolls) was one boomy hit, never

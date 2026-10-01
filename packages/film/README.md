@@ -86,9 +86,10 @@ candidates wait under their own request, and become keepable when the
 declaration is changed to say the same (`TrialInvalid` for settings no
 declaration could take). A sound that names no `influence` is made at its
 use's default (`DEFAULT_INFLUENCE`: 0.7 for a one-shot, 0.3 for a bed) and
-as `DEFAULT_CANDIDATES` (6 one-shots, 3 beds), both measured in the p4-sfx2
-sweet-spot runs. `guard` is the
-pre-commit hook's: of the staged files, it refuses any audio under `files/`,
+as `DEFAULT_CANDIDATES` (6 one-shots, 3 beds), both measured in the sweet-spot
+trials (`apps/animations/sounds/PROMPTING.md`). `guard` is the sound-licence
+repo guard's: of the files it is given (the staged ones at pre-commit, every
+tracked one under `bun run guard` and in CI), it refuses any audio under `files/`,
 any copy of a variant or candidate that is not CC0 (by its sha256, wherever
 it is staged), and anything under `public/` the lock does not hold as a CC0
 variant (`SoundsRefused`).
@@ -1608,8 +1609,9 @@ fails naming what it wanted and what the page last showed. A one-shot read
 (`textContent()`, `inputValue()`, `$eval`, `$$eval`, `isVisible()`,
 `getAttribute()` or `count()` on the page or a locator, and an `evaluate(…)`
 whose answer `expect` asserts or a matcher compares with, followed through a
-`const` bound to it, a local helper that answers it, a part of it and a
-literal that holds it) takes whatever the page had drawn at that instant, and
+`const` bound to it, a local helper that answers it, a part of it, a
+literal that holds it and a value computed from it, as `after - before`)
+takes whatever the page had drawn at that instant, and
 is refused. An `evaluate` run for what it does is an action, and so is one
 whose kept answer only a wait reads (a baseline the page keeps).
 `film/spawn-budget` (`lint/spawn-budget.ts`) holds every test of
@@ -1619,6 +1621,12 @@ the same file that does) gives its timeout as its last argument
 (`spawnBudget(n)` from `apps/animations/test/cli-run.ts`, or milliseconds): a
 cold start's time is the machine's, and bun's default 5 s fails a loaded one.
 A spawn inside a service the test provides is not seen.
+`film/no-history-comment` (`lint/no-history-comment.ts`) holds every comment
+in `packages/film` and `apps/animations`: a comment says what the code does
+today and why, and how it got here lives in the ledger and `git log`. It
+refuses the forms history takes on its face: a loop pass by number, a batch
+id, a commit hash, and "used to" said of what the code did (not "is used
+to"). History told in other words is the sweep's to find.
 The package's tests run with `bun test --timeout 20000` (its `test` script):
 the lab's browser tests open a page, bundle the lab and draw the probe film
 before they assert, which took 3–4.5 s at a load average of 50 beside
@@ -1657,5 +1665,5 @@ Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.
 
 ```sh
-bun run gate   # repo root, as CI: lint, format check, the repo guards, every package's typecheck, build and tests, then the perf tests
+bun run gate   # repo root, as CI: lint, format check, typecheck-inputs, the repo guards, every package's typecheck, build and tests, then the perf tests
 ```

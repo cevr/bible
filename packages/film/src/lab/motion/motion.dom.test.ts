@@ -18,7 +18,7 @@ const click = (page: Page, selector: string) => Effect.promise(() => page.click(
  * How far ahead of the page's clock it is paused: the test's own time limit
  * (`bun test --timeout 20000`). The clock runs on in real time between the
  * read and the pause, and `pauseAt` refuses a time already past ("Cannot
- * fast-forward to the past", three gates in pass 8 at a lead of 10 ms); no
+ * fast-forward to the past", which a lead of 10 ms met under load); no
  * test lives long enough to pass this one. The jump fires each timer due in
  * it once; the player is paused, so the film stays where it stands.
  */

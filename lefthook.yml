@@ -47,7 +47,7 @@ pre-commit:
 
     # Guard rail: `git stash` is one ref every worktree of this repository
     # shares, so a batch's `stash pop` in one worktree takes the entry another
-    # batch pushed in its own (passes 7 and 8 lost work that way). While other
+    # batch pushed in its own, and that batch's work is lost. While other
     # worktrees exist, a stash entry left behind refuses the commit and the
     # gate (`bun run guard` runs the repo-guard jobs), naming each entry.
     # Lefthook's own "lefthook auto backup" entry, which it pushes and pops

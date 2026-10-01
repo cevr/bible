@@ -9,6 +9,7 @@ import { framingIsAKnob } from './framing-is-a-knob.ts';
 import { noCueRemap } from './no-cue-remap.ts';
 import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
+import { noHistoryComment } from './no-history-comment.ts';
 import { noPointFreeLog } from './no-point-free-log.ts';
 import { noReadOnce } from './no-read-once.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
@@ -23,6 +24,7 @@ export default Plugin.define({
     'no-cue-remap': noCueRemap,
     'no-ease-on-cue': noEaseOnCue,
     'no-hand-timed-seconds': noHandTimedSeconds,
+    'no-history-comment': noHistoryComment,
     'no-point-free-log': noPointFreeLog,
     'no-read-once': noReadOnce,
     'no-unprobed-ink': noUnprobedInk,

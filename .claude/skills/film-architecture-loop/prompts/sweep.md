@@ -5,7 +5,7 @@ Fill the slots into `<scratchpad>/film-pass<N>/sweep-brief.md`. Each area agent 
 ```
 # Film pass-<N> sweep brief (read-only)
 
-Repo: <repo path>, branch main, HEAD <hash>. Edit, commit and create nothing in the repo; write only your report. Start no server except where your area says so; render nothing except stills your area names; call no paid API (TTS, music, effects).
+Repo: <repo path>, branch main, HEAD <hash>. Edit, commit and create nothing in the repo; write only your report. Start no server except where your area says so; render nothing except stills your area names; call no paid API (TTS, music, effects, speech-to-text).
 
 Goal: a film framework with good guardrails and deep, small abstractions: fewer concepts, less code, faster frames, a better lab, Effect-native tooling, every valuable feature kept. Read first: apps/animations/README.md, packages/film/README.md, .claude/skills/film/SKILL.md, .claude/skills/film-architecture-loop/north-stars.md, <ledger path> (whole: decisions, rejected rows, every pass), .claude/skills/film-architecture-loop/rejected.md. A done or rejected item returns only with a new receipt. Prior art: .claude/skills/film-architecture-loop/prior-art.md; repos at `okra repo path <slug>`; pmndrs math is installed at node_modules/.bun/math@0.1.0/node_modules/math (README, API.md, skills/math/SKILL.md).
 
@@ -15,7 +15,7 @@ North stars: pure frames, narration is the clock, declared once, Effect-native t
 
 Pass <N-1> changed <`git diff --stat <prev base>..HEAD | tail -1`>. Review these changes hardest for regressions: <per area, the mechanisms each batch added>.
 
-In flight, do not report: <batch: items>. Open review items (the review batch owns them): <ids>. Known open, report only with a new receipt or a fix shape: <items>.
+In flight, do not report: <batch: items>. Open review items (the review batch owns them): <ids>. Known open, report only with a new receipt or a fix shape: <items>. Carried, open (copied from the open rows of the ledger's `Carried` lists, not from memory; confirm or close each with a receipt): <decision: files>.
 
 Performance baseline (from the ledger): <table>. A performance claim needs a measurement from a scratch script under <scratchpad> or a render's log; without one it is a question.
 

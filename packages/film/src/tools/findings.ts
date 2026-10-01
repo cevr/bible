@@ -556,8 +556,8 @@ export class DrawThrew extends Schema.TaggedError<DrawThrew>()('DrawThrew', {
 
 /**
  * A frame that is not a function of its time: drawn after the frame after
- * it, then after the frame before it, it leaves a different picture
- * (ab75a2a1, 5da347fd). `why` names the first call that differs.
+ * it, then after the frame before it, it leaves a different picture.
+ * `why` names the first call that differs.
  */
 export class FrameImpure extends Schema.TaggedError<FrameImpure>()('FrameImpure', {
   ...sampled,

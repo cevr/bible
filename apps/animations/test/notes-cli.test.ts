@@ -227,7 +227,7 @@ describe('film notes', () => {
         const listed = yield* cli(lab, 'notes', film);
         const cursor = /^cursor seq=(\d+)$/m.exec(listed.stdout)?.[1];
         expect(cursor).toBe('1');
-        // Made after the list, before the watch starts: the gap a Monitor used to fall into.
+        // Made after the list, before the watch starts: a note in this gap still reaches the watch.
         yield* cardNote('made in the gap');
         yield* notes.reply(film, 'n2', { by: 'user', text: 'and this', still: Option.none() });
         const watch = yield* watchCli(lab, '--since', `${cursor}`);
