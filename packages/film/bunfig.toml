@@ -1,4 +1,10 @@
 [test]
 # The browser tests run their cases at once: each opens its own context in the
-# worker's shared Chromium (src/lab/fixtures/browsers.ts).
+# worker's shared Chromium (src/lab/fixtures/browsers.ts). The test script's
+# --max-concurrency=3 (bunfig has no key for it) holds a worker to three cases
+# at a time; --parallel runs one worker a core, so three pages a core. Unbound,
+# every case in a file shares the cores with all its siblings and takes the
+# whole file's time: on a loaded 4-core runner a case that takes 0.5 s alone
+# took 13-15 s. A case waiting for its turn has not started, so its timeout
+# counts its own work only.
 concurrentTestGlob = ["**/*.dom.test.ts", "**/*.pixel.test.ts"]

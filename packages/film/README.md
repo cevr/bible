@@ -882,8 +882,10 @@ and `canvas.toBlob` encodes at once (Chromium's waits for idle time a busy
 page may not leave, up to 5 s). A test process launches one Chromium per way of launching it
 (`lab/fixtures/browsers.ts`: headless, or the full one with a fake
 microphone per tone) and each case opens its own context in it, so a file's
-cases run at once (`concurrentTestGlob` in `bunfig.toml`) and the page's
-script is bundled once per process.
+cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
+worker (`--max-concurrency=3` in the test script: one worker a core, so three
+pages a core, and a case's timeout counts its own work, not its siblings'),
+and the page's script is bundled once per process.
 
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
