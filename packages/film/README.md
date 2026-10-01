@@ -1608,8 +1608,9 @@ fails naming what it wanted and what the page last showed. A one-shot read
 (`textContent()`, `inputValue()`, `$eval`, `$$eval`, `isVisible()`,
 `getAttribute()` or `count()` on the page or a locator, and an `evaluate(…)`
 whose answer `expect` asserts or a matcher compares with, followed through a
-`const` bound to it, a local helper that answers it, a part of it and a
-literal that holds it) takes whatever the page had drawn at that instant, and
+`const` bound to it, a local helper that answers it, a part of it, a
+literal that holds it and a value computed from it, as `after - before`)
+takes whatever the page had drawn at that instant, and
 is refused. An `evaluate` run for what it does is an action, and so is one
 whose kept answer only a wait reads (a baseline the page keeps).
 `film/spawn-budget` (`lint/spawn-budget.ts`) holds every test of

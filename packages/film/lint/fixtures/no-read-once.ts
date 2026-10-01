@@ -43,6 +43,14 @@ export async function kept() {
   expect(box.size[0]).toBe(2);
   const rate = await page.evaluate('new AudioContext().sampleRate'); // RED film/no-read-once
   expect({ rate: 48_000 }).toBe({ rate });
+  // A value computed from kept answers: arithmetic, a test, a template.
+  const from = await page.evaluate('scrollY'); // RED film/no-read-once
+  const to = await page.evaluate('scrollY'); // RED film/no-read-once
+  expect(to - from).toBe(0);
+  const open = await page.evaluate('document.hidden'); // RED film/no-read-once
+  expect(!open ? 'shown' : 'hidden').toBe('shown');
+  const hash = await page.evaluate('location.hash'); // RED film/no-read-once
+  expect(`at ${hash}`).toBe('at #T');
   // A kept answer handed only to a wait, as its baseline: no read is asserted.
   const before = await page.evaluate('document.title');
   promise(() => page.waitForFunction(`document.title !== ${JSON.stringify(before)}`));

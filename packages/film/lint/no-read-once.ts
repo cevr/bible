@@ -2,8 +2,7 @@
 // value it asserts, never by reading once. A value read once is whatever the
 // page had drawn at that instant: a status line before its update lands, a
 // list before the write it shows comes back, a peak meter at the floor. That
-// passes on an idle machine and fails under load (four times in passes 5 and
-// 6). The shared waits are in `packages/film/src/lab/fixtures/settled.ts`
+// passes on an idle machine and fails under load. The shared waits are in `packages/film/src/lab/fixtures/settled.ts`
 // (`textIs`, `textHas`, `valueIs`, `attributeIs`, `countIs`, …).
 //
 // Refused in a `*.dom.test.ts`: Playwright's one-shot reads, which are never
@@ -16,7 +15,8 @@
 // (the page's, or a helper of that name) whose answer `expect` asserts or a
 // matcher compares with: directly, through a `const` bound to it (each read of
 // the name), a local helper whose arrow answers it (each call), a part of it
-// (`box.canvas`) or a literal that holds it (`{ canvas }`). An `evaluate` run
+// (`box.canvas`), a literal that holds it (`{ canvas }`) or a value computed
+// from it (`after - before`, `!open`, `` `at ${hash}` ``). An `evaluate` run
 // for what it does is an action, and passes; so does one whose kept answer
 // only a wait reads. An answer returned from a function body (`return yield*`)
 // is not followed.
@@ -101,6 +101,15 @@ const PASSES_ON = new Set([
 /** Nodes that hold the value they take: `{ canvas }`, `{ ...strip }`, `[a, b]`. */
 const HOLDS = new Set(['Property', 'SpreadElement', 'ObjectExpression', 'ArrayExpression']);
 
+/** Nodes whose value is computed from what they take: `after - before`, `!open`, `a ?? b`, `x ? a : b`, `` `at ${hash}` ``. */
+const DERIVES = new Set([
+  'BinaryExpression',
+  'UnaryExpression',
+  'LogicalExpression',
+  'ConditionalExpression',
+  'TemplateLiteral',
+]);
+
 type Asserted = Effect.Effect<boolean, never, RuleContext>;
 
 /** Whether any of `checks` answers true. */
@@ -169,13 +178,15 @@ const callTakes = (
  * Whether `expect(…)` asserts the value `n` answers, or a matcher compares with
  * it, past what only hands it on (`yield*`, `await`, a cast), a call that
  * takes it (`Effect.promise(() => …)`, `x.pipe(…)`), a part of it
- * (`box.canvas`), a literal that holds it, a `const` bound to it (each read
+ * (`box.canvas`), a literal that holds it, a value computed from it
+ * (arithmetic, a test, a template), a `const` bound to it (each read
  * of the name), and a local helper whose arrow answers it (each call).
  */
 const asserted = (n: ESTree.Node, seen: ReadonlySet<ESTree.Node>): Asserted => {
   if (n.type === 'Program') return Effect.succeed(false);
   const up = n.parent;
-  if (PASSES_ON.has(up.type) || HOLDS.has(up.type)) return asserted(up, seen);
+  if (PASSES_ON.has(up.type) || HOLDS.has(up.type) || DERIVES.has(up.type))
+    return asserted(up, seen);
   if (up.type === 'MemberExpression' && up.object === n) return asserted(up, seen);
   if (up.type === 'ArrowFunctionExpression') return arrowAnswers(n, up, seen);
   if (up.type === 'VariableDeclarator' && up.init === n) return readsOf(up, seen, false);
