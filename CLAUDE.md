@@ -21,7 +21,7 @@ bible/
 
 ### The Sure Word site (packages/web)
 
-Static-site builder in Effect v4 (`effect@4.0.0-beta.x`, opencode-style domain
+Static-site builder in Effect v4 (`effect@4.0.0`, opencode-style domain
 modules): `src/study.ts` + `src/comparison.ts` (Schema domain), `src/content.ts`
 (comparisons manifest + studies dir), `src/builder.ts` (Context.Service that
 discovers and renders studies), `src/build.ts` (BunRuntime entry), `src/render.ts`
