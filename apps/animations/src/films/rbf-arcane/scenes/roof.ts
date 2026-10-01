@@ -102,9 +102,13 @@ export const roof = drawing({
       f.at('walk') * (1 - count) + (f.at('threeWalk') + f.at('proofWalk') * 0.25) * count;
     const clean = f.at('specks') * (1 - count) + f.at('twoSpecks') * count;
     stage(f, 'roof', cam, () => {
+      for (const p of paintedCrowd(51, 1200, 12)) figure(ctx, { ...p, y: p.y - 10 });
+
       for (const [i, x] of [1460, 1610].entries()) {
         ctx.fillStyle = P.wood;
-        ctx.fillRect(x - 55, 935, 110, 18);
+        ctx.fillRect(x - 55, 836, 110, 15);
+        ctx.fillRect(x - 49, 851, 12, 86);
+        ctx.fillRect(x + 37, 851, 12, 86);
         figure(
           ctx,
           person(x, 937, 350, {
@@ -120,7 +124,6 @@ export const roof = drawing({
         tablets(ctx, x + 38, 775, 0.45);
       }
 
-      for (const p of paintedCrowd(51, 1200, 12)) figure(ctx, { ...p, y: p.y - 10 });
       for (let i = 0; i < 4; i++)
         figure(
           ctx,

@@ -77,7 +77,7 @@ export const centurion = drawing({
       ctx.restore();
       figure(
         ctx,
-        person(1510, 855, 290, {
+        person(1510, 933.7, 290, {
           pose: 'sit',
           alpha: sit,
           robe: P.white,

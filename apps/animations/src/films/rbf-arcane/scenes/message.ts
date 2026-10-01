@@ -7,7 +7,7 @@ import {
   stage,
   paintedCrowd,
   oval,
-  robe,
+  tablets,
   gifts,
   inscription,
   line,
@@ -72,7 +72,19 @@ export const message = drawing({
 
     const band = f.at('through');
     stage(f, 'hall', cam, () => {
-      for (const p of paintedCrowd(321, 960, 15)) figure(ctx, { ...p, alpha: 1 - band });
+      for (const [i, p] of paintedCrowd(321, 960, 15).entries()) {
+        const charge = i % 2 === 0 ? f.at('split') * (1 - f.at('light')) : 0;
+        figure(ctx, {
+          ...p,
+          alpha: 1 - band,
+          near: { to: [0.2, -0.55 - 0.16 * charge], grip: 'hold' },
+          face: { brow: -0.5 * charge },
+        });
+        ctx.save();
+        ctx.globalAlpha *= charge * (1 - band);
+        tablets(ctx, p.x + 0.2 * p.h, p.y - 0.62 * p.h, p.h / 900);
+        ctx.restore();
+      }
       figure(
         ctx,
         person(850, 935, 450, {
@@ -123,11 +135,29 @@ export const message = drawing({
     ctx.save();
     ctx.globalAlpha *= banner;
     figure(ctx, christ(500 + 1000 * f.at('fly'), 340, 150, { shadow: 0 }));
-    robe(ctx, 500 + 1000 * f.at('fly') - 80, 265, 0.9);
+    const angelX = 500 + 1000 * f.at('fly');
+    ctx.fillStyle = P.white;
+    for (const side of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(angelX + side * 20, 245);
+      ctx.quadraticCurveTo(angelX + side * 160, 145, angelX + side * 190, 210);
+      ctx.quadraticCurveTo(angelX + side * 120, 290, angelX + side * 20, 285);
+      ctx.fill();
+    }
     ctx.fillStyle = P.cream;
     ctx.fillRect(450, 380, 1040, 112);
     ctx.restore();
-    inscription(f, 'The commandments of God, and the faith of Jesus', 960, 447, 39, 1, banner);
+    inscription(
+      f,
+      'The commandments of God, and the faith of Jesus',
+      960,
+      447,
+      39,
+      1,
+      banner,
+      0,
+      P.ink,
+    );
     gifts(ctx, [f.at('faith'), f.at('forgiveness'), f.at('power')], band);
     if (f.at('days') > 0)
       oval(

@@ -45,6 +45,7 @@ export const motes = (ctx: CanvasRenderingContext2D, t: number, m: Motes) => {
   const halo = m.halo ?? 4;
   const twinkle = m.twinkle ?? 0.3;
   const core = clearOf(m.color);
+  const inheritedAlpha = ctx.globalAlpha;
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   for (let i = 0; i < m.count; i++) {
@@ -62,8 +63,9 @@ export const motes = (ctx: CanvasRenderingContext2D, t: number, m: Motes) => {
     const lit = 1 - twinkle * (0.5 + 0.5 * noise1(t * (1.5 + speed) + phase, m.seed + i));
     const a = m.alpha * lit * Math.sin(Math.PI * along);
     if (a <= 0.004) continue;
+    ctx.globalAlpha = inheritedAlpha;
     if (halo > 0) glow(ctx, x, y, r * halo, m.color, a * 0.35);
-    ctx.globalAlpha = Math.min(1, a);
+    ctx.globalAlpha = inheritedAlpha * Math.min(1, a);
     const g = ctx.createRadialGradient(x, y, 0, x, y, r);
     g.addColorStop(0, '#ffffff');
     g.addColorStop(0.35, m.color);
@@ -108,6 +110,7 @@ export const rays = (ctx: CanvasRenderingContext2D, t: number, r: Rays) => {
   const [sx, sy] = r.from;
   const sway = r.sway ?? 0.3;
   const clear = clearOf(r.color);
+  const inheritedAlpha = ctx.globalAlpha;
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   for (let i = 0; i < r.count; i++) {
@@ -129,7 +132,8 @@ export const rays = (ctx: CanvasRenderingContext2D, t: number, r: Rays) => {
     g.addColorStop(1, clear);
     ctx.fillStyle = g;
     for (const k of SOFT) {
-      ctx.globalAlpha = (r.alpha * breath * (0.5 + 0.5 * hash2(i, r.seed + 4))) / SOFT.length;
+      ctx.globalAlpha =
+        (inheritedAlpha * r.alpha * breath * (0.5 + 0.5 * hash2(i, r.seed + 4))) / SOFT.length;
       const half = (width * k) / 2;
       ctx.beginPath();
       ctx.moveTo(sx + nx * half * 0.05, sy + ny * half * 0.05);
@@ -169,6 +173,7 @@ export const rain = (ctx: CanvasRenderingContext2D, t: number, r: Rain) => {
   const [bx, by, bw, bh] = r.box;
   const dx = Math.sin(r.slant);
   const dy = Math.cos(r.slant);
+  const inheritedAlpha = ctx.globalAlpha;
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   ctx.fillStyle = r.color;
@@ -179,7 +184,7 @@ export const rain = (ctx: CanvasRenderingContext2D, t: number, r: Rain) => {
     const x = bx + wrap(hash2(i, r.seed) * bw + dx * fall, bw);
     const len = r.length * near;
     const half = (r.width * near) / 2;
-    ctx.globalAlpha = r.alpha * near * Math.sin((Math.PI * (y - by)) / bh);
+    ctx.globalAlpha = inheritedAlpha * r.alpha * near * Math.sin((Math.PI * (y - by)) / bh);
     ctx.beginPath();
     ctx.moveTo(x - dy * half, y + dx * half);
     ctx.lineTo(x - dx * len, y - dy * len);
@@ -205,6 +210,7 @@ interface Stars {
 export const stars = (ctx: CanvasRenderingContext2D, t: number, s: Stars) => {
   const [bx, by, bw, bh] = s.box;
   const [small, large] = s.size;
+  const inheritedAlpha = ctx.globalAlpha;
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   ctx.fillStyle = s.color;
@@ -214,8 +220,9 @@ export const stars = (ctx: CanvasRenderingContext2D, t: number, s: Stars) => {
     const x = bx + hash2(i, s.seed) * bw;
     const y = by + hash2(i, s.seed + 1) * bh;
     const a = s.alpha * (0.55 + 0.45 * noise1(t * 0.8 + i * 1.3, s.seed + 3));
+    ctx.globalAlpha = inheritedAlpha;
     if (big > 0.4) glow(ctx, x, y, r * 6, s.color, a * 0.4);
-    ctx.globalAlpha = a;
+    ctx.globalAlpha = inheritedAlpha * a;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();

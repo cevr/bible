@@ -120,12 +120,20 @@ export const woman = drawing({
           face: { brow: 0.45, smile: wash * 0.5 },
         }),
       );
+      const crouch = f.at('stoop') * (1 - f.at('straighten'));
+      ctx.save();
+      ctx.globalAlpha *= crouch;
+      oval(ctx, 1100, 1045, 235, 28, '#b8a184');
+      ctx.restore();
       figure(
         ctx,
-        christ(1200, 945, 450, {
-          lean: 0.5 * f.at('stoop') * (1 - f.at('straighten')),
-          pose: 'stoop',
-          near: { to: [0.24, -0.27 - 0.39 * f.at('straighten')], grip: 'point' },
+        christ(1200, 945 + 100 * crouch, 450, {
+          pose: crouch > 0.5 ? 'kneel' : 'stand',
+          lean: 1.2 * crouch,
+          near: {
+            to: [0.24 - 0.08 * f.at('writing') * crouch, -0.66 + 0.64 * crouch],
+            grip: crouch > 0.5 ? 'point' : 'open',
+          },
           face: { open: 0.12 * Math.sin(f.at('speaks') * Math.PI * 14) },
         }),
       );
@@ -135,9 +143,9 @@ export const woman = drawing({
         line(
           ctx,
           [
-            [1070 + i * 16, 960],
-            [1080 + i * 16, 953],
-            [1092 + i * 16, 959],
+            [1070 + i * 16, 1036],
+            [1080 + i * 16, 1029],
+            [1092 + i * 16, 1035],
           ],
           '#806b54',
           3,

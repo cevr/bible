@@ -1,5 +1,5 @@
 import { drawing, knobCamera, shotPath } from '@bible/film/canvas';
-import { P, person, figure, stains, stage, inscription, bench, papers, gavel } from '../kit.ts';
+import { person, figure, stains, stage, inscription, bench, papers, judge, gavel } from '../kit.ts';
 
 export const cold = drawing({
   timeline: {
@@ -41,17 +41,10 @@ export const cold = drawing({
     ]);
 
     stage(f, 'court', cam, () => {
-      figure(
-        ctx,
-        person(1280, 847, 495, {
-          pose: 'sit',
-          robe: P.ink,
-          head: 'bare',
-          beard: true,
-          near: { to: [0.3, -0.35], grip: 'hold' },
-          face: { brow: -0.2 },
-        }),
-      );
+      figure(ctx, {
+        ...judge(f.at('gavel'), 0.08 * f.at('lean') * (1 - f.at('lift'))),
+        face: { brow: -0.2 },
+      });
       bench(ctx);
       gavel(ctx, f.at('gavel'));
       figure(

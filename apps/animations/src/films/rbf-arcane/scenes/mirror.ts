@@ -32,8 +32,8 @@ export const mirror = drawing({
   knobs: {
     close: [740, 640],
     closeZoom: 1.24,
-    sewFace: [630, 563],
-    sewFaceZoom: 4.6,
+    sewFace: [680, 685],
+    sewFaceZoom: 2.5,
     reflection: [1180, 642],
     reflectionZoom: 2.1,
   },
@@ -118,7 +118,29 @@ export const mirror = drawing({
       ctx.restore();
       ctx.save();
       ctx.globalAlpha *= wash;
-      oval(ctx, 1205, 700 + Math.sin(t * 5) * 12, 28, 15, P.cream);
+      ctx.translate(1205, 695 + Math.sin(t * 5) * 12 * wash);
+      ctx.rotate(-0.2 + Math.sin(t * 5) * 0.18 * wash);
+      oval(ctx, 0, 0, 31, 43, P.woodLit);
+      oval(ctx, 0, 0, 25, 36, '#aac0b4');
+      line(
+        ctx,
+        [
+          [-12, -9],
+          [6, 5],
+          [14, 20],
+        ],
+        P.scarlet,
+        8,
+      );
+      line(
+        ctx,
+        [
+          [0, 38],
+          [0, 66],
+        ],
+        P.woodLit,
+        11,
+      );
       ctx.restore();
     });
   },

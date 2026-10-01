@@ -1,5 +1,5 @@
 import { UNMOVED, drawing, knobCamera, shotPath, glow, stars } from '@bible/film/canvas';
-import { P, stage, tree, wordLight, gifts, line } from '../kit.ts';
+import { P, stage, tree, wordLight, gifts, line, mass } from '../kit.ts';
 
 export const spoke = drawing({
   timeline: {
@@ -87,8 +87,25 @@ export const spoke = drawing({
       ctx.restore();
       ctx.save();
       ctx.globalAlpha *= creation;
-      ctx.fillStyle = '#76a7a7';
-      ctx.fillRect(-200, 790, 1100, 150);
+      mass(ctx, '#76a7a7', () => {
+        ctx.moveTo(-300, 800);
+        ctx.quadraticCurveTo(160, 745, 500, 815);
+        ctx.quadraticCurveTo(730, 820, 955, 890);
+        ctx.quadraticCurveTo(410, 930, -300, 995);
+        ctx.closePath();
+      });
+      for (let i = 0; i < 9; i++) {
+        const y = 830 + i * 14;
+        line(
+          ctx,
+          [
+            [-200 + i * 25, y],
+            [430 + i * 34, y + 5],
+          ],
+          P.tealDay,
+          2,
+        );
+      }
       ctx.restore();
     });
     gifts(ctx, [1, 0, 0], 1 - f.at('into'));

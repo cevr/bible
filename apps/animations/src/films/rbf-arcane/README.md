@@ -3,8 +3,9 @@
 A separate painted version of all twenty Righteousness by Faith scenes.
 The original film is unchanged. Script, credits, voice and sound declarations
 are imported from it, and its take files and timing sheet are linked here.
-The narration and existing music/effects are mixed offline into this film's
-own ignored audio master; no recording or generated artwork is required.
+The original complete narration, music and effects master is linked here.
+The explicit original sound seed preserves effect variants and jitter, so
+its real mix plan validates without remixing. No recording is required.
 
 The painted sets have five depths, warm light and teal shadows. Figures,
 scattered crowds, architecture, rain and stars come from the film framework.

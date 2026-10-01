@@ -1,5 +1,16 @@
 import { drawing, knobCamera, shotPath } from '@bible/film/canvas';
-import { rooftop, P, person, christ, figure, stage, inscription, bench } from '../kit.ts';
+import {
+  rooftop,
+  P,
+  person,
+  christ,
+  figure,
+  stage,
+  inscription,
+  bench,
+  judge,
+  gavel,
+} from '../kit.ts';
 import { name } from './name.ts';
 
 export const thesis = drawing({
@@ -37,8 +48,9 @@ export const thesis = drawing({
     stage(f, 'court', cam, () => {
       ctx.save();
       ctx.globalAlpha *= 1 - city;
-      figure(ctx, person(1280, 847, 495, { pose: 'sit', robe: P.ink, head: 'bare', beard: true }));
+      figure(ctx, judge(1 - f.at('gavel')));
       bench(ctx, 0.45);
+      gavel(ctx, 1 - f.at('gavel'));
       figure(
         ctx,
         person(600, 966, 435, {

@@ -86,7 +86,7 @@ export const paintedCrowd = (seed: number, focus: number, count = 17) =>
     cloths: ['#ceb68f', '#718788', '#af8371'],
     skins: ['#b8785a', '#d69b72', '#946647'],
     light: LIGHT,
-    seated: 0.3,
+    seated: 0,
     gap: 0.45,
   });
 
@@ -245,13 +245,14 @@ export const inscription = (
   progress = 1,
   alpha = 1,
   hollow = 0,
+  color: Hex = P.cream,
 ) => {
   write(
     f.ctx,
     text,
     x,
     y,
-    { family: fonts.display, size, weight: 600, color: P.cream, align: 'center' },
+    { family: fonts.display, size, weight: 600, color, align: 'center' },
     f.hand(text),
     { progress, alpha, boil: 0, outline: hollow, fill: hollow > 0 ? 0 : 1 },
   );
@@ -297,15 +298,41 @@ export const bench = (ctx: CanvasRenderingContext2D, warm = 0) => {
   for (let i = 0; i < 3; i++) ctx.fillRect(1010 + i * 200, 720, 160, 164);
 };
 export const papers = (ctx: CanvasRenderingContext2D, progress: number) => {
+  ctx.save();
   for (let i = 0; i < 8; i++) {
+    ctx.save();
+    ctx.translate(430 + (i % 3) * 5, 958 - i * 4 - 110 * (1 - progress));
+    ctx.rotate(((i % 3) - 1) * 0.035);
     ctx.fillStyle = i % 2 ? P.cream : P.peach;
-    ctx.fillRect(420 + (i % 3) * 6, 958 - i * 19 - 110 * (1 - progress), 240, 15);
+    ctx.fillRect(0, -28, 220, 28);
+    ctx.fillStyle = '#796b5d';
+    ctx.fillRect(15, -22, 85, 1.5);
+    ctx.fillRect(15, -15, 130, 1.5);
+    ctx.restore();
   }
+  ctx.restore();
+};
+export const judge = (progress: number, lean = 0): Figure => {
+  const angle = -0.8 + progress * 0.8;
+  return person(1390, 847, 495, {
+    pose: 'sit',
+    robe: P.ink,
+    head: 'bare',
+    beard: true,
+    lean,
+    near: {
+      to: [
+        (1450 - 85 * Math.cos(angle) - 1390) / 495,
+        (545 + 67 * progress - 85 * Math.sin(angle) - 847) / 495,
+      ],
+      grip: 'hold',
+    },
+  });
 };
 export const gavel = (ctx: CanvasRenderingContext2D, progress: number) => {
   ctx.save();
-  ctx.translate(1510, 625);
-  ctx.rotate(-0.8 + progress * 0.95);
+  ctx.translate(1450, 545 + 67 * progress);
+  ctx.rotate(-0.8 + progress * 0.8);
   ctx.fillStyle = P.woodLit;
   ctx.fillRect(-110, -7, 150, 14);
   ctx.fillStyle = P.wood;
@@ -565,7 +592,7 @@ export const rooftop = (ctx: CanvasRenderingContext2D, turn: number) => {
   });
   figure(
     ctx,
-    person(1110, 734, 250, {
+    person(1110, 807.5, 250, {
       pose: 'sit',
       robe: P.white,
       cloth: P.white,
@@ -577,6 +604,11 @@ export const rooftop = (ctx: CanvasRenderingContext2D, turn: number) => {
   );
   figure(
     ctx,
-    christ(1240, 734, 260, { pose: 'sit', dir: -1, turn: 0.3 + 0.3 * turn, face: { smile: 0.4 } }),
+    christ(1240, 810.2, 260, {
+      pose: 'sit',
+      dir: -1,
+      turn: 0.3 + 0.3 * turn,
+      face: { smile: 0.4 },
+    }),
   );
 };

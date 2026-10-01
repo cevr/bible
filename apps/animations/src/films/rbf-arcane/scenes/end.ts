@@ -40,7 +40,8 @@ export const end = drawing({
     CREDITS.forEach((c, i) => {
       const y = top + i * 54;
       if (y < 130 || y > 955) return;
-      const size = c.kind === 'name' ? 46 : c.kind === 'head' ? 29 : 25;
+      const base = c.kind === 'name' ? 46 : c.kind === 'head' ? 29 : 25;
+      const size = Math.min(base, 1080 / Math.max(24, c.text.length));
       write(
         ctx,
         c.text,

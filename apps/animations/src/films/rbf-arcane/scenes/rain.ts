@@ -76,6 +76,14 @@ export const rain = drawing({
       ctx.fillStyle = P.gold;
       ctx.fillRect(890, 280, 320, 100);
       tablets(ctx, 1050, 323, 0.55);
+      figure(
+        ctx,
+        christ(1050, 965, 450, {
+          alpha: 1 - fall,
+          near: { to: [0.24, -0.85], grip: 'open' },
+          far: { to: [-0.2, -0.83], grip: 'open' },
+        }),
+      );
       fallingRain(ctx, t, {
         seed: 123,
         count: 150,
@@ -92,6 +100,7 @@ export const rain = drawing({
           ctx,
           person(370 + i * 270, 965, 210, {
             robe: P.white,
+            alpha: fall,
             nod: -0.3,
             near: { to: [0.17, -0.88], grip: 'open' },
             seed: 601 + i,
@@ -113,6 +122,16 @@ export const rain = drawing({
     ctx.fillStyle = P.cream;
     ctx.fillRect(440, 475, 1060, 96);
     ctx.restore();
-    inscription(f, 'The commandments of God, and the faith of Jesus', 970, 536, 39, 1, fly);
+    inscription(
+      f,
+      'The commandments of God, and the faith of Jesus',
+      970,
+      536,
+      39,
+      1,
+      fly,
+      0,
+      P.ink,
+    );
   },
 });

@@ -98,6 +98,10 @@ export const daily = drawing({
       }
       ctx.save();
       ctx.globalAlpha *= rest;
+      ctx.fillStyle = P.woodLit;
+      ctx.fillRect(1345, 855, 120, 12);
+      ctx.fillRect(1350, 867, 12, 110);
+      ctx.fillRect(1450, 867, 12, 110);
       figure(
         ctx,
         person(1405, 977, 435, {
