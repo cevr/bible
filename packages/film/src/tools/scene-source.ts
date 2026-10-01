@@ -5,7 +5,8 @@
 // never a regex's guess. Pure: text in, text out.
 //
 // An edit rewrites only a value the parser proves is a literal: a number
-// (`0.4`, `-0.2`), a string (`'inQuad'`) or a two-number array (`[960, 800]`).
+// (`0.4`, `-0.2`), a string (`'inQuad'`), a literal cue/landmark end
+// (`{ cue: 'roll' }`) or a two-number array (`[960, 800]`).
 // A computed value, a spread, a shorthand or a duplicate key is refused, since
 // the lab could not say what it would be changing. A missing `offset`, `dur`,
 // `until`, `ease` or `stagger` is added after the span's anchor, in that order; a span
@@ -23,7 +24,7 @@ import {
   Visitor,
   parseSync,
 } from 'oxc-parser';
-import { type CuePatch, EaseName, type Knob, Span } from '../core/schema.ts';
+import { type CuePatch, EaseName, type Knob, Span, Until } from '../core/schema.ts';
 import { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
 
@@ -495,6 +496,37 @@ const spanOf = (
     }),
   );
 
+/** An expression of literals only (numbers, strings, arrays, objects), as plain data. */
+const plain = (e: Expression): Option.Option<unknown> => {
+  const scalar = Option.orElse(numberOf(e), () => stringOf(e));
+  if (Option.isSome(scalar)) return scalar;
+  if (e.type === 'ArrayExpression')
+    return Option.all(e.elements.map((x) => Option.flatMap(expressionOf(Option.some(x)), plain)));
+  if (e.type !== 'ObjectExpression') return Option.none();
+  return Option.map(
+    Option.filter(
+      Option.all(
+        e.properties.map((p) => {
+          if (p.type === 'SpreadElement') return Option.none();
+          return Option.zipWith(
+            keyName(p),
+            Option.flatMap(valueOf(p), plain),
+            (k, v): readonly [string, unknown] => [k, v],
+          );
+        }),
+      ),
+      (entries) => new Set(entries.map(([key]) => key)).size === entries.length,
+    ),
+    Object.fromEntries,
+  );
+};
+
+const decodeUntil = Schema.decodeUnknownOption(Until, { onExcessProperty: 'error' });
+
+/** A mark or cue/landmark object with every value declared literally. */
+const isUntilLiteral = (e: Expression): boolean =>
+  Option.isSome(Option.flatMap(plain(e), decodeUntil));
+
 const fieldState = (prop: Option.Option<ObjectProperty>, literal: (e: Expression) => boolean) =>
   Option.match(prop, {
     onNone: (): FieldState => 'absent',
@@ -514,7 +546,7 @@ const editableCue = (file: string, cue: string, span: ObjectExpression): Editabl
     name: cue,
     offset: state('offset', isNumberLiteral),
     dur: state('dur', isNumberLiteral),
-    until: state('until', isStringLiteral),
+    until: state('until', isUntilLiteral),
     ease: state('ease', isStringLiteral),
     stagger: state('stagger', isNumberLiteral),
   };
@@ -582,7 +614,8 @@ const valueText = (key: TimingKey, patch: CuePatch): Option.Option<string> => {
 };
 
 const isLiteralFor = (key: TimingKey) => {
-  if (key === 'ease' || key === 'until') return isStringLiteral;
+  if (key === 'until') return isUntilLiteral;
+  if (key === 'ease') return isStringLiteral;
   return isNumberLiteral;
 };
 
@@ -781,28 +814,6 @@ export const readKnob = (
       ),
     ),
   );
-
-/** An expression of literals only (numbers, strings, arrays, objects), as plain data. */
-const plain = (e: Expression): Option.Option<unknown> => {
-  const scalar = Option.orElse(numberOf(e), () => stringOf(e));
-  if (Option.isSome(scalar)) return scalar;
-  if (e.type === 'ArrayExpression')
-    return Option.all(e.elements.map((x) => Option.flatMap(expressionOf(Option.some(x)), plain)));
-  if (e.type !== 'ObjectExpression') return Option.none();
-  return Option.map(
-    Option.all(
-      e.properties.map((p) => {
-        if (p.type === 'SpreadElement') return Option.none();
-        return Option.zipWith(
-          keyName(p),
-          Option.flatMap(valueOf(p), plain),
-          (k, v): readonly [string, unknown] => [k, v],
-        );
-      }),
-    ),
-    Object.fromEntries,
-  );
-};
 
 const decodeSpan = Schema.decodeUnknownOption(Span);
 

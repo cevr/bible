@@ -120,6 +120,45 @@ describe('scene source', () => {
     });
   });
 
+  it('replaces a literal cue or landmark end with dur, without changing the rest of the scene', () => {
+    for (const until of [
+      "{ cue: 'topple' }",
+      "{ cue: 'topple', edge: 'start' }",
+      "{ at: 'speechEnd' }",
+    ]) {
+      const before = scene.replace(
+        "bare: { at: 'speech' }",
+        `bare: { at: 'speech', until: ${until} }`,
+      );
+      expect(
+        ok(editable(FILE, before, 'hand')).cues.find((cue) => cue.name === 'bare')?.until,
+      ).toBe('literal');
+      const next = ok(editCue(FILE, before, 'hand', 'bare', { dur: 3 }));
+      expect(next).toBe(before.replace(`until: ${until}`, 'dur: 3'));
+      expect(readSpans(FILE, next, 'hand')['bare']).toEqual({ at: 'speech', dur: 3 });
+    }
+  });
+
+  it('preserves a computed or ambiguous object end when asked to replace it with dur', () => {
+    for (const until of [
+      '{ cue: PARENT }',
+      "{ ...end, cue: 'topple' }",
+      "{ cue: 'topple', cue: 'shine' }",
+      "{ cue: 'topple', edge: EDGE }",
+      "{ cue: 'topple', at: 'speechEnd' }",
+    ]) {
+      const before = scene.replace(
+        "bare: { at: 'speech' }",
+        `bare: { at: 'speech', until: ${until} }`,
+      );
+      const result = editCue(FILE, before, 'hand', 'bare', { dur: 3 });
+      expect(Result.isFailure(result)).toBe(true);
+      expect(
+        Result.match(result, { onFailure: (error) => error.message, onSuccess: () => 'written' }),
+      ).toContain('so dur cannot replace it');
+    }
+  });
+
   it('writes a stagger after the ease, and reads it back', () => {
     const spread = ok(editCue(FILE, scene, 'hand', 'shine', { stagger: 0.857 }));
     expect(spread).toContain(

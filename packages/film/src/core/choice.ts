@@ -198,11 +198,16 @@ const STALE = {
 } as const satisfies { readonly [K in ChoiceKind]: string };
 
 /** Why a render stale by `StaleBy` is, and how to make it current. */
-const STALE_BY = {
-  sources: 'its sources changed since it was made; render it again, then approve the new render',
-  sound:
-    "the film's sound changed since it was made; render it again (a re-mux), then approve that",
-} as const satisfies { readonly [S in StaleBy]: string };
+export const STALE_BY = {
+  sources: {
+    why: 'its sources changed since it was made',
+    fix: 'render it again, then approve the new render',
+  },
+  sound: {
+    why: "the film's sound changed since it was made",
+    fix: 'render it again (a re-mux), then approve that',
+  },
+} as const satisfies { readonly [S in StaleBy]: { readonly why: string; readonly fix: string } };
 
 /**
  * Why `variant` of a point of `kind` is no approval's subject, or none when it
@@ -223,7 +228,7 @@ export const approvalRefused = (
   return Option.some(
     `it is stale: ${Option.match(variant.staleBy, {
       onNone: () => STALE[kind],
-      onSome: (by) => STALE_BY[by],
+      onSome: (by) => `${STALE_BY[by].why}; ${STALE_BY[by].fix}`,
     })}`,
   );
 };
