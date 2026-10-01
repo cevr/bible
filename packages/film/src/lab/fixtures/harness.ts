@@ -148,12 +148,6 @@ const defaults: ReadonlyArray<FakeRoute> = [
  */
 export const bundleOf = (entry: string) => Effect.runSync(Effect.cached(bundled(entry)));
 
-/** A page's script (`entry`) as the asset `name` (`browsers.ts`): bundled and hashed once per file. */
-const scriptAsset = (entry: string, name: string): Effect.Effect<Asset> =>
-  Effect.runSync(
-    Effect.cached(Effect.map(bundled(entry), (js) => asset(name, respond(js, 'text/javascript')))),
-  );
-
 const bundled = (entry: string) =>
   Effect.promise(() =>
     Bun.build({
@@ -171,14 +165,26 @@ const bundled = (entry: string) =>
     ),
   );
 
-/** The lab page's script. */
-const labScript = scriptAsset('lab-page.ts', 'lab.js');
+/** A page's script (`entry`) as the asset `name` (`browsers.ts`). */
+const scriptAsset = (entry: string, name: string): Effect.Effect<Asset> =>
+  Effect.map(bundled(entry), (js) => asset(name, respond(js, 'text/javascript')));
 
-const css = Effect.runSync(
-  Effect.cached(
-    FileSystem.FileSystem.use((fs) =>
-      fs.readFileString(`${import.meta.dir}/../../player/player.css`),
-    ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
+/**
+ * The lab's and the review's scripts and the player's styles: bundled and
+ * read as the module loads, once per process, so no case's timeout counts
+ * them (on a loaded runner the first cases spent 1-2 s waiting on them).
+ */
+// oxlint-disable-next-line effect/noAsyncFunction -- the module's own load waits for its setup, so no case's timeout counts it
+const [labScript, reviewScript, css] = await Effect.runPromise(
+  Effect.all(
+    [
+      scriptAsset('lab-page.ts', 'lab.js'),
+      scriptAsset('review-page.ts', 'review.js'),
+      FileSystem.FileSystem.use((fs) =>
+        fs.readFileString(`${import.meta.dir}/../../player/player.css`),
+      ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
+    ],
+    { concurrency: 3 },
   ),
 );
 
@@ -316,7 +322,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   routes: ReadonlyArray<FakeRoute> = [],
   at: { readonly query?: string; readonly hash?: string; readonly mic?: FakeMic } = {},
 ) {
-  const [script, style] = yield* Effect.all([labScript, css], { concurrency: 2 });
+  const script = labScript;
   const mic = Option.fromUndefinedOr(at.mic);
   const asked: Array<Asked> = [];
   const page = yield* openTab({
@@ -334,7 +340,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     ],
     assets: [script],
     serve: fakeServer(
-      new Map([['/lab', respond(labPage(style, script), 'text/html')]]),
+      new Map([['/lab', respond(labPage(css, script), 'text/html')]]),
       API,
       [...routes, ...defaults],
       asked,
@@ -345,9 +351,6 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   const open: OpenLab = { page, asked, errors: page.errors };
   return open;
 });
-
-/** The review page's script. */
-const reviewScript = scriptAsset('review-page.ts', 'review.js');
 
 const reviewPage = (script: Asset) =>
   `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title></head><body>${scriptOf(script)}</body></html>`;
@@ -369,7 +372,7 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
   routes: ReadonlyArray<FakeRoute>,
   at: ReviewAt = {},
 ) {
-  const script = yield* reviewScript;
+  const script = reviewScript;
   const asked: Array<Asked> = [];
   const page = yield* openTab({
     ...(at.viewport ?? { width: 1400, height: 900 }),

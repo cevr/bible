@@ -62,35 +62,6 @@ const flags = Effect.runSync(
 /** The scope the pooled views live in: the process's, never closed (Chrome goes with the process). */
 const forever = Scope.makeUnsafe();
 
-/**
- * Lets an origin use the microphone. Chrome drops every permission it was
- * told of when the protocol session that told it closes, so it is told
- * through a view of its own, opened with the first tab that asks and left
- * open until the process ends.
- */
-const allowMicrophone = Effect.runSync(
-  Effect.cached(
-    Effect.gen(function* () {
-      const view = yield* openView(yield* flags, { width: 1, height: 1 }).pipe(
-        Effect.provideService(Scope.Scope, forever),
-        Effect.orDie,
-      );
-      yield* Effect.promise(() => view.navigate('about:blank'));
-      const one = yield* Semaphore.make(1);
-      return (origin: string) =>
-        one.withPermits(1)(
-          Effect.promise(() =>
-            view.cdp('Browser.setPermission', {
-              origin,
-              permission: { name: 'microphone' },
-              setting: 'granted',
-            }),
-          ),
-        );
-    }).pipe(Effect.provide(BunServices.layer)),
-  ),
-);
-
 /** The tests' site: every case's origin is under it, and the assets' origin is it. */
 const SITE = 'lab.test';
 
@@ -264,6 +235,22 @@ const lend = (lease: Lease, width: number, height: number) =>
       }).pipe(Effect.catch(() => Effect.sync(() => slot.view.close()))),
   );
 
+/**
+ * The views the pool opens as the module loads, one for each case the test
+ * script runs at once (`--max-concurrency=3`): Chrome's launch and its
+ * renderers' start are the process's setup, done before any case starts, so
+ * no case's timeout counts them. When the first three cases paid for them,
+ * four workers on one core took 4.6 s over them, a third of a case's 15 s.
+ */
+const WARM = 3;
+
+idle.push(
+  // oxlint-disable-next-line effect/noAsyncFunction -- the module's own load waits for its setup, so no case's timeout counts it
+  ...(await Effect.runPromise(
+    Effect.forEach(Array.from({ length: WARM }), () => makeSlot, { concurrency: WARM }),
+  )),
+);
+
 let tabs = 0;
 
 /** An object a page logged, as Chrome hands it over: its description. */
@@ -290,7 +277,6 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
     const errors: Array<string> = [];
     tabs += 1;
     const origin = `https://t${tabs}.${SITE}`;
-    if (options.microphone) yield* (yield* allowMicrophone)(origin);
     const events = new EventTarget();
     events.addEventListener('Runtime.exceptionThrown', (event: Event) => {
       Option.map(thrownBy(event), (thrown) => errors.push(thrown));
@@ -317,6 +303,17 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
       options.width,
       options.height,
     );
+    // Told through the view the case holds: Chrome drops what a protocol
+    // session told it when the session closes, and a pooled view's never
+    // closes while a case holds it.
+    if (options.microphone)
+      yield* Effect.promise(() =>
+        slot.lent.cdp('Browser.setPermission', {
+          origin,
+          permission: { name: 'microphone' },
+          setting: 'granted',
+        }),
+      );
     const assets = new Map(options.assets.map((a) => [a.url, a.response]));
     return yield* makeTab(slot.lent, {
       origin,
