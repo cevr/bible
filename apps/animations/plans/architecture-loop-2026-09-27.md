@@ -432,12 +432,24 @@ ci success run=36795676262 sha=76714126
 - Decision: an approval is of a current render; the CLI and the choices route refuse a stale one, as the page does (explicit over implicit).
 - Triage: `SP/film-pass9/triage.md`.
 
-| Wave | Batch    | Items                                                                                                                                        | Result |
-| ---- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| A    | p9-tools | `film notes` checks its film, exports guard over tools/canvas/player/lint, master decoded once per run, outputs under the app                |        |
-| A    | p9-core  | act names unique, refs never parsed back from ids, approving a stale render refused, narration reads the film set per request                |        |
-| A    | p9-films | declared instants follow their parent cue, cue-remap lint sees `Math.min`, one icon-row setup                                                |        |
-| A    | p9-guard | CI record covers every push, no `git stash` across worktrees, motion clock in one step, merge-audit sees branch merges, bound evaluate reads |        |
+| Wave | Batch    | Items                                                                                                                                        | Result                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ---- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A    | p9-tools | `film notes` checks its film, exports guard over tools/canvas/player/lint, master decoded once per run, outputs under the app                | merged 97eaacda (audit 0): `film notes` names its film first (FilmUnknown, no stray folder, `../` refused); the exports guard reads with oxc-parser and sweeps core, lab, tools, canvas, player, lint (190 unread exports private); tools entry and errors.ts re-export only what is read; renders and notes land under the app's folders; `project render` decodes the master once per run (20 → 1 after a mix change); `ci none sha=97eaacda (no run of its own: pushed inside a later push)`                                                         |
+| A    | p9-core  | act names unique, refs never parsed back from ids, approving a stale render refused, narration reads the film set per request                | merged 347d4bc8 (audit 0): two acts of one name refused; the address key's decoder beside its encoder; one `toMs`; "Heard" names one thing (Playing on the options page); a choice point carries its ref, decoded at the wire; only a current render or variant is approved, by every route (`VerbRefused` 409); narration reads the app's films per request; `ci none sha=347d4bc8 (no run of its own: pushed inside a later push)`                                                                                                                    |
+| A    | p9-films | declared instants follow their parent cue, cue-remap lint sees `Math.min`, one icon-row setup                                                | merged cbe9a54a (audit 0): word's card turn and spoke's book opening follow their cues under a drag (frames identical at today's lengths); no-cue-remap sees `Math.min(1, x*k)` (message's banner fade a declared cue); the icon row's scratch made once by the kit; hand.test reads floatingHand's declared grip; `ci success run=36801133213 sha=cbe9a54a`                                                                                                                                                                                            |
+| A    | p9-guard | CI record covers every push, no `git stash` across worktrees, motion clock in one step, merge-audit sees branch merges, bound evaluate reads | merged be8383d0 (audit 0): `ci --ledger` reads every commit the ledgers lack (a ledger-only head pending); merge-audit reads the branch's own merges of main; no-ffmpeg finds the CLI in any command form; the skill's `--scene`/ScenesApart clause back; no-read-once follows a kept evaluate answer (11 sites); motion `holdClock` pauses past the test's limit (the pass-8 flake, 3 of 5 gates, fixed c2587e1d); a repo guard refuses a stash entry while worktrees share it; `ci none sha=be8383d0 (no run of its own: pushed inside a later push)` |
+
+CI, pass 9 (`bun run ci --ledger`): all green; the pass-8 record and pass-9 triage pushes are carried here.
+
+```
+ci success run=36791330728 sha=32759f52
+ci success run=36795961630 sha=93cc51a5
+ci success run=36796899741 sha=b5492752
+ci none sha=be8383d0 (no run of its own: pushed inside a later push)
+ci none sha=347d4bc8 (no run of its own: pushed inside a later push)
+ci none sha=97eaacda (no run of its own: pushed inside a later push)
+ci success run=36801133213 sha=cbe9a54a
+```
 
 ## Close
 
