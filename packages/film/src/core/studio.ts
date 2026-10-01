@@ -107,7 +107,8 @@ export type KeepPost = typeof KeepPost.Type;
 export const StudioTake = Schema.Struct({
   beat: Schema.String,
   take: VoiceTiming,
-  heard: Schema.String,
+  /** What speech-to-text heard the take say. */
+  transcript: Schema.String,
   wer: Schema.Finite,
   timings: Timings,
   /** `narration/full.wav` was rebuilt with the take (false: the mix failed, and the log says why). */
@@ -118,7 +119,8 @@ export type StudioTake = typeof StudioTake.Type;
 /** One recording of a beat, as the studio lists it to hear or keep. */
 export const StudioAttempt = Schema.Struct({
   file: Schema.String,
-  heard: Schema.String,
+  /** What speech-to-text heard the attempt say. */
+  transcript: Schema.String,
   wer: Schema.Finite,
   /** When it was recorded, epoch milliseconds. */
   at: Schema.Finite,

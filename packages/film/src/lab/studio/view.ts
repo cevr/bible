@@ -173,7 +173,7 @@ export const statusOf = (state: RecorderState, level: Option.Option<Level>): str
           onNone: () => 'ready: R records this beat',
           onSome: (k) =>
             [
-              `kept ${k.file}: heard “${k.heard}” · ${percent(k.wer)} words differ`,
+              `kept ${k.file}: heard “${k.transcript}” · ${percent(k.wer)} words differ`,
               ...Match.value(k.mix).pipe(
                 Match.when('mixed', () => []),
                 Match.when('failed', () => ['the mix failed; the lab log says why']),
@@ -318,4 +318,4 @@ export const micOptions = (
 
 /** An attempt as its row reads: what was heard, how far off the line, how long. */
 export const attemptLine = (attempt: StudioAttempt): string =>
-  `“${attempt.heard}” · ${percent(attempt.wer)} · ${seconds(attempt.duration)}`;
+  `“${attempt.transcript}” · ${percent(attempt.wer)} · ${seconds(attempt.duration)}`;

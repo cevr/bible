@@ -28,7 +28,7 @@ export class LabUnreachable extends Schema.TaggedError<LabUnreachable>()('LabUnr
   message: Schema.String,
 }) {}
 
-/** A call that failed: the server said no (its own failure), or could not be heard. */
+/** A call that failed: the server said no (its own failure), or could not be reached. */
 export type LabFailure = Refusal | LabUnreachable;
 
 /**
@@ -36,7 +36,7 @@ export type LabFailure = Refusal | LabUnreachable;
  * as it is, anything else (the request failed, the answer did not decode)
  * LabUnreachable with its words.
  */
-export const heard = <A, E extends { readonly message: string }, R>(
+export const called = <A, E extends { readonly message: string }, R>(
   self: Effect.Effect<A, E, R>,
 ): Effect.Effect<A, LabFailure, R> =>
   Effect.mapError(self, (error): LabFailure => {
@@ -109,14 +109,14 @@ export const labClient = (origin: string) => HttpApiClient.make(LabHttpApi, { ba
 const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, film: string) {
   const client = yield* labClient(origin);
   const api: LabCalls = {
-    source: (scene) => heard(client.scenes.source({ params: { film, scene } })),
-    head: (scene) => heard(client.scenes.head({ params: { film, scene } })),
-    check: heard(client.steps.check({ params: { film } })),
+    source: (scene) => called(client.scenes.source({ params: { film, scene } })),
+    head: (scene) => called(client.scenes.head({ params: { film, scene } })),
+    check: called(client.steps.check({ params: { film } })),
     writeCue: (scene, cue, patch) =>
-      heard(client.scenes.cue({ params: { film, scene, cue }, payload: patch })),
+      called(client.scenes.cue({ params: { film, scene, cue }, payload: patch })),
     writeKnob: (scene, knob, value) =>
-      heard(client.scenes.knob({ params: { film, scene, knob }, payload: { value } })),
-    step: (verb) => heard(client.steps[verb]({ params: { film }, payload: {} })),
+      called(client.scenes.knob({ params: { film, scene, knob }, payload: { value } })),
+    step: (verb) => called(client.steps[verb]({ params: { film }, payload: {} })),
   };
   return api;
 });
@@ -125,12 +125,12 @@ const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, film: st
 const makeNotesApi = Effect.fn('lab.notes.make')(function* (origin: string, film: string) {
   const client = yield* labClient(origin);
   const api: NotesCalls = {
-    notes: heard(client.notes.list({ params: { film } })),
+    notes: called(client.notes.list({ params: { film } })),
     wait: (since) =>
-      heard(client.notes.wait({ params: { film }, query: { since, timeout: WAIT_S } })),
-    add: (note) => heard(client.notes.add({ params: { film }, payload: note })),
-    reply: (id, text) => heard(client.notes.reply({ params: { film, id }, payload: { text } })),
-    resolve: (id) => heard(client.notes.resolve({ params: { film, id }, payload: {} })),
+      called(client.notes.wait({ params: { film }, query: { since, timeout: WAIT_S } })),
+    add: (note) => called(client.notes.add({ params: { film }, payload: note })),
+    reply: (id, text) => called(client.notes.reply({ params: { film, id }, payload: { text } })),
+    resolve: (id) => called(client.notes.resolve({ params: { film, id }, payload: {} })),
   };
   return api;
 });

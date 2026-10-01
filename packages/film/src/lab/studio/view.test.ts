@@ -156,14 +156,14 @@ describe('statusOf', () => {
   test('a take kept says what was heard; a refusal is the server’s words', () => {
     const kept = RecorderState.Idle({
       beat: 'a',
-      kept: Option.some({ file: 'a.12.flac', heard: 'hello world', wer: 0.021, mix: 'mixed' }),
+      kept: Option.some({ file: 'a.12.flac', transcript: 'hello world', wer: 0.021, mix: 'mixed' }),
     });
     expect(statusOf(kept, Option.none())).toBe(
       'kept a.12.flac: heard “hello world” · 2.1% words differ',
     );
     const unmixed = RecorderState.Idle({
       beat: 'a',
-      kept: Option.some({ file: 'a.12.flac', heard: 'hello', wer: 0, mix: 'failed' }),
+      kept: Option.some({ file: 'a.12.flac', transcript: 'hello', wer: 0, mix: 'failed' }),
     });
     expect(statusOf(unmixed, Option.none())).toContain('the mix failed');
     // A mismatch says how the panel accepts it (the server's words say only what was heard).
@@ -238,7 +238,7 @@ describe('attemptLine', () => {
   test('what was heard, how far it is off the line, and how long it runs', () => {
     const a: StudioAttempt = {
       file: 'a.1.flac',
-      heard: 'hello world',
+      transcript: 'hello world',
       wer: 0.125,
       at: 0,
       duration: 3.456,

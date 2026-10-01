@@ -664,13 +664,13 @@ over the one reading the tools use too: a beat's `Line`s
 (`core/narration.ts`) and the sheet's `Part` and `SheetBeat`
 (`core/sheet.ts`):
 
-| Route                                               | Body → answer                                                                                                                                                            |
-| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GET /lab/<film>/studio/beats`                      | `StudioBeats`: per beat with a line, its sheet `parts`, the file name to record it as, `state` (`recorded`, `staging`, `stale`), its take, how many attempts             |
-| `POST /lab/<film>/studio/takes/:beat`               | `TakePost` (`audio` base64, `type` `audio/wav` or `audio/flac`, `acceptMismatch?`) → `StudioTake` (the take, what was heard, the word error, the new `timings`, `mixed`) |
-| `GET /lab/<film>/studio/takes/:beat/attempts`       | `StudioAttempts`, newest first: what each heard, its word error, when, whether it is the take and whether it reads the line as it is now                                 |
-| `GET /lab/<film>/studio/takes/:beat/attempts/:file` | the attempt's FLAC (`audio/flac`), to hear it again; a name the ledger does not hold is a 404 `AttemptUnknown`                                                           |
-| `POST /lab/<film>/studio/takes/:beat/keep`          | `KeepPost` (`file`, `acceptMismatch?`): an earlier attempt made the take → `StudioTake`                                                                                  |
+| Route                                               | Body → answer                                                                                                                                                              |
+| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /lab/<film>/studio/beats`                      | `StudioBeats`: per beat with a line, its sheet `parts`, the file name to record it as, `state` (`recorded`, `staging`, `stale`), its take, how many attempts               |
+| `POST /lab/<film>/studio/takes/:beat`               | `TakePost` (`audio` base64, `type` `audio/wav` or `audio/flac`, `acceptMismatch?`) → `StudioTake` (the take, its `transcript`, the word error, the new `timings`, `mixed`) |
+| `GET /lab/<film>/studio/takes/:beat/attempts`       | `StudioAttempts`, newest first: each `transcript`, its word error, when, whether it is the take and whether it reads the line as it is now                                 |
+| `GET /lab/<film>/studio/takes/:beat/attempts/:file` | the attempt's FLAC (`audio/flac`), to hear it again; a name the ledger does not hold is a 404 `AttemptUnknown`                                                             |
+| `POST /lab/<film>/studio/takes/:beat/keep`          | `KeepPost` (`file`, `acceptMismatch?`): an earlier attempt made the take → `StudioTake`                                                                                    |
 
 A take not kept answers its failure as the whole API does (below): a
 `TakeMismatch` carries the beat (`id`), the `script`, what was `heard`, the
@@ -763,7 +763,7 @@ answered(Effect.gen(…)))`, naming the film with `named(params.film)`.
    group's layer joins `labHandler` or `reviewHandler`, and a service its
    handlers need joins that handler's `Effect.context`.
 3. Call it from the page through the derived client
-   (`client.<group>.<name>({ params, payload })`, wrapped in `heard` for
+   (`client.<group>.<name>({ params, payload })`, wrapped in `called` for
    `LabFailure`), or put its URL in an element through `urlBuilder`.
 4. The foreign-Host test covers it by itself; add a test of what it answers.
 
