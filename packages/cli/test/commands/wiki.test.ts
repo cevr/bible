@@ -418,10 +418,7 @@ describe('bible wiki matches', () => {
 // the *same value* through it. What is left for this file, and what a helper
 // test could not see, is that the **command** still runs that encoder: the
 // section identities and the default-open flags a UI would key on have to be
-// the ones that actually reached stdout. The app's own
-// `packages/app/src/reading/wiki-page-identity.test.ts` closes the loop from
-// the other side, deriving the UI's rendered identities from the same encoded
-// page.
+// the ones that actually reached stdout.
 // ---------------------------------------------------------------------------
 
 /** The `2300-days` page as `content/topics/2300-days.md` declares it: the slug,
@@ -575,11 +572,8 @@ describe('bible wiki topic 2300-days --json', () => {
 // So this block runs the identical command over the shared non-empty fixture
 // (`@bible/core/wiki/testing`'s `wikiPageFixtureSources`, which is the
 // production `WikiSectionSources.Live` over test corpora), and asserts the item
-// identities section by section. The same fixture and the same identity table
-// are asserted from the UI side by
-// `packages/app/src/reading/wiki-page-identity.test.ts` and against the
-// rendered DOM by `apps/desktop/e2e/wiki-phrase.spec.ts`, so the three seams
-// agree about one page rather than about three empty ones.
+// identities section by section, so the command is checked against one
+// populated page rather than an empty one.
 // ---------------------------------------------------------------------------
 
 /** The fixture artifact, written through the DDL the fixture module owns and
@@ -644,12 +638,10 @@ describe('bible wiki topic --json over a populated page', () => {
         for (const identity of identities) expect(result.stdout).toContain(identity);
       }
 
-      // The app's own suite cannot open a SQLite artifact — `packages/app` has
-      // no SQL dependency and must not grow one to assert what its JSX draws —
-      // so it composes the same fixture one layer down, through
-      // `wikiPageFixturePage`. This pins the two paths together: the page the
-      // command printed and the page that suite renders from are the same six
-      // sections, item for item.
+      // `WIKI_PAGE_FIXTURE_PAGE` composes the same fixture one layer down,
+      // without a SQLite file. This pins the two paths together: the page the
+      // command printed and the composed page are the same six sections, item
+      // for item.
       expect(wikiSectionIdentities((yield* WIKI_PAGE_FIXTURE_PAGE).sections)).toEqual(
         wikiSectionIdentities(page.sections),
       );
@@ -690,9 +682,8 @@ describe('bible wiki topic --json over a populated page', () => {
 //
 //  1. **The portable input.** §10's adapter check is that the DOM selection on
 //     web and desktop builds the same `LookupInput` the CLI builds from its
-//     argument. No package imports both builders, so each asserts against
-//     `@bible/core/wiki/testing`'s `LOOKUP_ADAPTER_INPUT` — the CLI here, the
-//     app in `packages/app/src/reading/lookup-selection.test.ts`.
+//     argument. The CLI asserts against `@bible/core/wiki/testing`'s
+//     `LOOKUP_ADAPTER_INPUT` here; the DOM builders went with the readers.
 //  2. **The stdout seam.** `wiki/lookup-parity.test.ts` proves the RPC handler
 //     and `LookupService` encode one value through one codec. What it cannot
 //     prove is that the *command* still runs that codec, and that its human

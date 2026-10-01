@@ -8,8 +8,8 @@
  *  possibility: a case added here is a case both adapters must satisfy, and
  *  neither suite can quietly stop testing it.
  *
- *  Not a `.test.ts` file, so it imports cleanly from both `packages/core` and
- *  `apps/web` without either test runner trying to execute it as a suite. */
+ *  Not a `.test.ts` file, so another package's suite can import it without its
+ *  test runner trying to execute it as a suite. */
 
 import { TOPICS_VERIFY_MESSAGES } from './topics-verifier.js';
 

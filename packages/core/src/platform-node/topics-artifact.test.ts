@@ -197,9 +197,7 @@ describe('native Topics artifact', () => {
 });
 
 /** The shared contract matrix, run against the production verifier through a
- *  real on-disk artifact. `apps/web`'s suite runs the identical matrix through
- *  its own reader, so the two gates cannot drift: a case is either satisfied on
- *  both sides or it fails on one. */
+ *  real on-disk artifact. */
 describe('Topics semantic verifier — native adapter', () => {
   const it = itBase.scopedLive.layer(BunFileSystem.layer);
 

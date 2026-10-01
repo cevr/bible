@@ -495,7 +495,6 @@ export const composeSegments = (input: SegmentComposition): TextSegment[] => {
  *  One function rather than four calls at the call site, because "the order is
  *  fixed" has to be a property of the code and not of two hosts remembering to
  *  write the same four lines in the same sequence.
- *  `packages/app/src/reading/match-plan.ts` calls this and nothing else.
  *
  *  Omit `phrases` and this is `segmentVerseText` exactly — the same four layers
  *  the reader has always needed and never had, with the fourth simply empty. */

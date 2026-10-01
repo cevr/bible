@@ -15,9 +15,8 @@
  *
  *  The *count* of MessagePort crossings is not asserted here. `RpcTest` is an
  *  in-memory client/server pair with no port to count; the physical one-round-
- *  trip claim belongs to the two hosts that have real wires, and is asserted in
- *  `apps/web/src/workers/study-round-trip.test.ts` and
- *  `apps/desktop/tests/study-round-trip.test.ts`.
+ *  trip claim belonged to the web and desktop readers, which had real wires;
+ *  both have been removed.
  */
 
 import { Effect, Layer, Option, Schema } from 'effect';

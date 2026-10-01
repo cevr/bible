@@ -9,11 +9,11 @@
  *  - `packages/cli/test/commands/wiki.test.ts` ran the real command against
  *    `WikiSectionSources.NotWired`, so what it proved was six empty lists in the
  *    right order.
- *  - `packages/app/src/reading/wiki-page-identity.test.ts` built a page by hand
- *    and checked headings, postures and overlay text — never that the markup
- *    draws an item per item.
- *  - `apps/desktop/e2e/wiki-phrase.spec.ts` seeded a topic with no sources at
- *    all and checked the heading.
+ *  - the reader app's page-identity test built a page by hand and checked
+ *    headings, postures and overlay text — never that the markup draws an
+ *    item per item.
+ *  - the desktop reader's e2e suite seeded a topic with no sources at all and
+ *    checked the heading.
  *
  *  Six empty sections satisfy almost any projection, including a deleted one. So
  *  this module is the one fixture with content in **every** section, and the one
@@ -436,9 +436,8 @@ export const WIKI_PAGE_FIXTURE_SOURCES: Layer.Layer<WikiSectionSources> =
  *  without a SQLite file.
  *
  *  `WikiService` reaches the composer through an artifact; that path is what the
- *  CLI suite exercises, and it needs `bun:sqlite`. `packages/app` has no SQL
- *  dependency and must not grow one to assert what its own JSX draws — so this
- *  is the same composition one layer down: `composeSections` over
+ *  CLI suite exercises, and it needs `bun:sqlite`. This is the same
+ *  composition one layer down, with no SQL dependency: `composeSections` over
  *  `wikiPageFixtureSources`, with the two artifact reads the composer takes as
  *  closures (`titleOf`, `backlinksTo`) answered from the fixture's own rows.
  *

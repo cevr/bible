@@ -260,8 +260,8 @@ export type ContentUpdateJson = typeof ContentUpdateJson.Encoded;
 export const CONTENT_MANIFEST_URL =
   'https://github.com/cevr/bible/releases/download/content-manifest/manifest.json';
 
-/** Where the browser reads it: the same-origin route `apps/web/server/main.ts`
- *  proxies, mirroring `/api/assets/topics`. */
+/** Where a browser host reads it: a same-origin route that proxies the
+ *  manifest, mirroring `/api/assets/topics`. */
 export const CONTENT_MANIFEST_PROXY_PATH = '/api/content/manifest';
 
 /** Where the browser reads the *bytes* a manifest entry names.

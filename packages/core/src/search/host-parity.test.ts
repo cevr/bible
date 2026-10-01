@@ -149,9 +149,7 @@ describe('§9.7 search host parity', () => {
   it.scopedLive('every golden query agrees across both seams', () =>
     Effect.gen(function* () {
       // §9.7's whole set, at the one seam where "the same fixture in all three
-      // clients" is provable inside core. The host round-trip suites in
-      // `apps/web` and `apps/desktop` carry the same set over their real
-      // transports.
+      // clients" is provable inside core.
       for (const golden of GOLDEN_QUERIES) {
         const wire = yield* overRpc(golden.query);
         const direct = yield* overCli(golden.query);

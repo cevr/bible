@@ -1,45 +1,23 @@
 # Bible
 
-A monorepo for Bible study tools with CLI and web interfaces.
+A monorepo for Bible study tools: the `bible` CLI, EGW search, and narrated
+explainer films.
 
 ## Project Structure
 
 ```
 bible/
 ├── apps/
-│   ├── desktop/        # Desktop app
-│   ├── triedgold/      # triedgold.com (@bible/triedgold, React Router 8; brand tokens in src/brand.ts; Alchemy → Railway)
-│   └── web/            # Web application (@bible/web, shared Solid 2/Vite app)
+│   ├── animations/     # Narrated cut-paper explainer films (@bible/animations, built on @bible/film)
+│   ├── egw-search/     # EGW search: Solid 2 page over an Effect HttpApi server (@bible/egw-search; Railway, egw.cvr.im)
+│   └── triedgold/      # triedgold.com (@bible/triedgold, React Router 8; brand tokens in src/brand.ts; Alchemy → Railway)
 ├── packages/
-│   ├── core/           # Shared business logic (@bible/core)
-│   │   ├── adapters/   # Platform abstraction (storage, export)
-│   │   ├── ai/         # AI model providers and service
-│   │   └── sabbath-school/  # Sabbath School outline generation
-│   ├── cli/            # CLI application (@bible/cli)
-│   └── web/            # The Sure Word static site (@bible/site, Effect v4 + Bun.markdown)
+│   ├── core/           # Shared business logic: corpora, search, study data (@bible/core)
+│   ├── cli/            # The `bible` CLI (@bible/cli)
+│   ├── film/           # The film engine, tools and lab (@bible/film)
+│   ├── atom-solid/     # Solid 2 bindings for Effect atoms (@bible/atom-solid, used by the film lab)
+│   └── scripts/        # Corpus compilers and repo tooling (@bible/scripts)
 ```
-
-### The Sure Word site (packages/web)
-
-Static-site builder in Effect v4 (`effect@4.0.0`, opencode-style domain
-modules): `src/study.ts` + `src/comparison.ts` (Schema domain), `src/content.ts`
-(comparisons manifest + studies dir), `src/builder.ts` (Context.Service that
-discovers and renders studies), `src/build.ts` (BunRuntime entry), `src/render.ts`
-(pure Bun.markdown templates + design system), `src/server.ts` (dependency-free Bun
-static server — Effect is a devDependency only; the server must stay import-free
-because Railway runs it directly against the committed `dist/`).
-
-Studies are **discovered by frontmatter**: any markdown in
-`packages/cli/outputs/studies/*.md` whose YAML frontmatter carries a `site:` block
-(slug/title/subtitle/description/eyebrow/date — see `Study.Meta`) is published at
-`/<slug>/`; no site block means unpublished. The index orders newest-first by
-`site.date`. Old `/studies/<slug>/` URLs 301 to `/<slug>/`.
-
-Deployed on Railway (project `bible-studies`, service `studies`, rootDirectory
-`packages/web`, no build step — `dist/` ships prebuilt) at
-https://studies-production.up.railway.app (custom domain: studies.cvr.im). To
-publish content changes: `bun run build` in packages/web, commit dist, push (or
-`railway up` with the `packages/web/` subpath staged).
 
 ## Package Manager
 
@@ -58,12 +36,11 @@ bun run ci [<commit>]          # Wait for a commit's CI run on main and print it
 
 ## Runtime observability
 
-Development servers run through Agent Tail and keep one plain-text session in
-`tmp/logs/`. `tmp/logs/latest` points at the active session.
+The EGW search dev servers run through Agent Tail and keep one plain-text
+session in `tmp/logs/`. `tmp/logs/latest` points at the active session.
 
 ```bash
-bun run dev:desktop            # desktop.log + desktop-renderer.log
-bun run dev:web                # web.log + api.log + web-browser.log
+bun run dev:egw-search         # web.log + api.log
 bun run logs                   # last 200 lines from the active session
 bun run logs:errors            # scan the active session for likely failures
 bun run logs:follow            # follow every log in the active session
@@ -99,4 +76,4 @@ The project uses Effect's dependency injection pattern:
 - **Services** defined with `Context.Tag` in `@bible/core`
 - **Adapters** provide platform-specific implementations
 - CLI provides `FileSystemStorageLayer` and `AppleNotesExportLayer`
-- Web can provide its own adapter implementations
+- egw-search provides its own server layers over `@bible/core`

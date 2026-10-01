@@ -8,11 +8,8 @@
  *  transports, so the table has to reach at least one of them for real.
  *
  *  This is the Bun leg: the client the CLI composes, against a Bun HTTP server
- *  on loopback. Electron main's Node leg is
- *  `apps/desktop/tests/content-round-trip.test.ts`; the browser's leg, which
- *  reaches the manifest through the server's same-origin proxy, is
- *  `apps/web/src/workers/content-round-trip.test.ts`. All three compare against
- *  the one `ADAPTER_EXPECTATIONS`.
+ *  on loopback, compared against the one `ADAPTER_EXPECTATIONS`. The Electron
+ *  and browser legs went with the desktop and web readers.
  */
 
 import { Effect, Option } from 'effect';

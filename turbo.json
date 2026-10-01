@@ -10,14 +10,7 @@
     },
     "build": {
       "dependsOn": ["^build"],
-      "inputs": [
-        "src/**/*.ts",
-        "src/**/*.tsx",
-        "electron/**/*.ts",
-        "scripts/**/*.ts",
-        "tsconfig.json",
-        "package.json"
-      ],
+      "inputs": ["src/**/*.ts", "src/**/*.tsx", "scripts/**/*.ts", "tsconfig.json", "package.json"],
       "outputs": ["dist/**"]
     },
     "test": {

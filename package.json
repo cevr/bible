@@ -13,8 +13,7 @@
     "build": "turbo run build",
     "build:topics": "bun run --cwd packages/scripts build:topics",
     "build:vectors": "bun run --cwd packages/scripts build:vectors",
-    "dev:desktop": "agent-tail run --log-dir tmp/logs 'desktop: bun run --cwd apps/desktop vite:dev'",
-    "dev:web": "agent-tail run --log-dir tmp/logs 'web: bun run --cwd apps/web vite:dev' 'api: bun run --cwd apps/web server:dev'",
+    "dev:egw-search": "agent-tail run --log-dir tmp/logs 'web: bun run --cwd apps/egw-search vite:dev' 'api: bun run --cwd apps/egw-search server:dev'",
     "typecheck": "turbo run typecheck",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
@@ -25,7 +24,6 @@
     "fmt:check": "oxfmt --check",
     "test": "turbo run test",
     "test:perf": "turbo run test:perf --concurrency=1",
-    "checkpoint": "bun run --cwd packages/scripts checkpoint",
     "gate": "concurrently -n style,turbo -c yellow,cyan \"bun run guard\" \"turbo run gate\"",
     "guard": "bun run lint && bun run fmt:check",
     "ci": "bun packages/scripts/src/ci-verdict.ts",
@@ -33,9 +31,6 @@
     "gate:fix": "bun run lint:fix && bun run fmt && bun run gate",
     "clean": "rm -rf .turbo */.turbo */*/.turbo",
     "prepare": "(test -d .git && lefthook install || true) && effect-tsgo patch --force"
-  },
-  "dependencies": {
-    "@solid-primitives/refs": "^1.1.4"
   },
   "devDependencies": {
     "@effect/tsgo": "^0.47.0",
@@ -51,29 +46,20 @@
     "oxlint-plugin-effect": "0.18.0",
     "railway": "^3.12.0",
     "turbo": "^2.11.5",
-    "typescript": "^7.0.2",
-    "vite-plugin-agent-tail": "^0.4.0"
+    "typescript": "^7.0.2"
   },
   "overrides": {
-    "@effect/ai-anthropic": "4.0.0",
-    "@effect/ai-openai": "4.0.0",
     "@effect/platform-node-shared": "4.0.0",
     "effect": "4.0.0"
   },
   "packageManager": "bun@1.4.2",
   "catalog": {
-    "@effect/ai-anthropic": "4.0.0",
-    "@effect/ai-openai": "4.0.0",
-    "@effect/platform-browser": "4.0.0",
     "@effect/platform-bun": "4.0.0",
     "@effect/platform-node": "4.0.0",
     "@effect/sql-sqlite-bun": "4.0.0",
-    "@effect/sql-sqlite-node": "4.0.0",
     "@effect/vitest": "4.0.0",
     "@solidjs/compiler": "2.0.0-rc.11",
-    "@solidjs/router": "2.0.0-next.31",
     "@solidjs/web": "2.0.0-rc.11",
-    "@types/bun": "1.4.2",
     "drizzle-orm": "1.0.0-rc.4",
     "effect": "4.0.0",
     "effect-bun-test": "0.3.0",
