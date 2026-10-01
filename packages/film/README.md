@@ -1650,11 +1650,14 @@ today and why, and how it got here lives in the ledger and `git log`. It
 refuses the forms history takes on its face: a loop pass by number, a batch
 id, a commit hash, and "used to" said of what the code did (not "is used
 to"). History told in other words is the sweep's to find.
-The package's tests run with `bun test --timeout 20000` (its `test` script):
-the lab's browser tests open a page, bundle the lab and draw the probe film
-before they assert, which took 3–4.5 s at a load average of 50 beside
-sibling renders, where bun's 5 s default failed them in the gate. A test that
-hangs still fails, at 20 s.
+The package's tests run with `bun test --parallel --no-isolate --timeout
+20000` (its `test` script): one worker per core, each keeping its module
+registry and its Chromium across the files it runs, so the module graph
+loads once per worker rather than once per file. A test file therefore
+leaves no global behind it (a stand-in it sets, it puts back). The lab's
+browser tests open a page and draw the probe film before they assert, which
+took 3–4.5 s at a load average of 50 beside sibling renders, where bun's 5 s
+default failed them in the gate. A test that hangs still fails, at 20 s.
 
 ## Knobs
 
