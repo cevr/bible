@@ -22,7 +22,7 @@ import { rng } from '../core/random.ts';
 import { pendingOf, requestKey, soundState } from '../core/sfx.ts';
 import { ContentStore } from './content-store.ts';
 import { ElevenLabs, type SoundEffectRequest } from './elevenlabs.ts';
-import { ElevenLabsFailed } from './errors.ts';
+import { ElevenLabsFailed } from '../core/refusals.ts';
 import { TALLY_HEADER, SoundLibrary, channelsFor, pcmFromS16, talliedCredits } from './library.ts';
 import { Media } from './media.ts';
 import { PrivateStore } from './private-store.ts';

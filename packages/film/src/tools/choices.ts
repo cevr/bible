@@ -69,12 +69,12 @@ import { ContentStore, type StoreError } from './content-store.ts';
 import { cacheKey } from './digest.ts';
 import {
   ChoiceUnknown,
-  type FormatFailed,
   type ReviewToolFailed,
   type SourceRefused,
   VariantUnknown,
   VerbRefused,
-} from './errors.ts';
+} from '../core/refusals.ts';
+import { type FormatFailed } from './errors.ts';
 import { FilmFolder, type FilmName, Stamped, lockManifest } from './film-repo.ts';
 import { type FreshError, FreshFilm } from './fresh-film.ts';
 import { Review, keptWhenMade, once } from './review.ts';

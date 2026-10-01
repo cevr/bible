@@ -18,7 +18,7 @@ import {
   StudioTake,
 } from '../core/studio.ts';
 import { ContentStore } from './content-store.ts';
-import { TakeMismatch } from './errors.ts';
+import { TakeMismatch } from '../core/refusals.ts';
 import { FilmFolder, FilmRepo } from './film-repo.ts';
 import { labHandler } from './lab.ts';
 import { readingOf } from './read-cli.ts';

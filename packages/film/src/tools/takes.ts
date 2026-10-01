@@ -45,7 +45,7 @@ import {
   RecordingInvalid,
   type SttUntimed,
   TakeMismatch,
-} from './errors.ts';
+} from '../core/refusals.ts';
 import type { FilmPaths } from './film-repo.ts';
 import { Media } from './media.ts';
 import { MAX_WORD_ERROR, type VoicedFilm, contentHash, takeFile } from './narrator.ts';

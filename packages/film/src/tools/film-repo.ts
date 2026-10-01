@@ -36,7 +36,8 @@ import {
 } from '../core/schema.ts';
 import type { PlatformError } from 'effect/PlatformError';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
-import { FilmModuleInvalid, FilmUnknown } from './errors.ts';
+import { FilmUnknown } from '../core/refusals.ts';
+import { FilmModuleInvalid } from './errors.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
 /** Every path a tool touches for one film. */

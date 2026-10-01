@@ -7,7 +7,9 @@
 // prints a TakeMismatch with the flags that re-record or keep it.
 
 import { Array as Arr, Option, Result, Schema } from 'effect';
-import { AcceptMismatchUnnamed, TakeMismatch, UnknownScene } from './errors.ts';
+import { UnknownScene } from '../core/errors.ts';
+import { TakeMismatch } from '../core/refusals.ts';
+import { AcceptMismatchUnnamed } from './errors.ts';
 
 /** The flag's name on the command line. */
 const ACCEPT_MISMATCH = '--accept-mismatch';

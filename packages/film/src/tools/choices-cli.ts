@@ -27,7 +27,7 @@ import { hashText } from '../core/narration.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { type BeatAttempts, filmPoints } from './choice-points.ts';
 import { offered, verbFits } from './choices.ts';
-import { VerbRefused } from './errors.ts';
+import { VerbRefused } from '../core/refusals.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { staticLeg } from './film-check.ts';
 import { lineOf, report } from './findings.ts';

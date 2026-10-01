@@ -65,15 +65,15 @@ import { loopSeam, seamHeard } from '../core/synth/seam.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { sha256Hex, sha256OfFile } from './digest.ts';
 import { ElevenLabs } from './elevenlabs.ts';
+import { type UnknownSound } from '../core/errors.ts';
+import { ElevenLabsFailed, type MediaFailed, TakeUnknown } from '../core/refusals.ts';
 import {
   type ApiKeyMissing,
   CandidateMissing,
   CreditsOverCap,
-  ElevenLabsFailed,
   type FilmModuleInvalid,
   LibraryMissing,
   LoopSeam,
-  type MediaFailed,
   PaidUnconfirmed,
   SoundCorrupt,
   SoundFileMissing,
@@ -84,9 +84,7 @@ import {
   SoundUnmade,
   StoreCopyFailed,
   type StoreFailed,
-  TakeUnknown,
   TrialInvalid,
-  type UnknownSound,
   VariantMissing,
 } from './errors.ts';
 import { libraryModule, lockManifest } from './film-repo.ts';

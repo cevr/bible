@@ -67,7 +67,7 @@ import type {
   ReviewVideo,
 } from '../core/review.ts';
 import { ReviewManifestJson } from '../core/review.ts';
-import { type MediaFailed, ReviewFileUnknown, ReviewToolFailed } from './errors.ts';
+import { type MediaFailed, ReviewFileUnknown, ReviewToolFailed } from '../core/refusals.ts';
 import { CATALOGUE_FILE } from './catalogue.ts';
 import { writeWhole } from './content-store.ts';
 import { cacheKey } from './digest.ts';

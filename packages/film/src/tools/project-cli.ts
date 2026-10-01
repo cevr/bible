@@ -60,12 +60,12 @@ import {
 import { approvalRefused } from '../core/choice.ts';
 import { UnknownAct } from '../core/errors.ts';
 import { pointIdOf } from '../core/point.ts';
-import { VerbRefused } from '../core/refusals.ts';
+import { SceneNotRendered, VerbRefused } from '../core/refusals.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
 import { type Placed, everyTakeRecorded } from '../core/layout.ts';
 import { RenderCatalogue, renderRecord } from './catalogue.ts';
 import { ProjectRead, answering, printLine } from './fresh-film.ts';
-import { ApprovalUnnamed, SceneNotRendered } from './errors.ts';
+import { ApprovalUnnamed } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { type RenderJob, type RenderOutput, flagConflicts, jobOf } from './render-plan.ts';
 import { planKey } from './mixer.ts';

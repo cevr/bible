@@ -17,7 +17,7 @@
 import { Array as Arr, Match, Option, Predicate, Result } from 'effect';
 import type { ArrayExpression, Expression, ObjectExpression, Program } from 'oxc-parser';
 import { type LevelTarget, type SoundLayer, pointIdOf } from '../core/point.ts';
-import { SourceRefused } from './errors.ts';
+import { SourceRefused } from '../core/refusals.ts';
 import {
   declarations,
   objectOf,

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Cause, ConfigProvider, Effect, Exit, Layer, Option, Path } from 'effect';
 import { Command } from 'effect/cli';
 import { ContentStore } from './content-store.ts';
-import { FilmUnknown } from './errors.ts';
+import { FilmUnknown } from '../core/refusals.ts';
 import { FilmFolder } from './film-repo.ts';
 import { notes } from './notes-cli.ts';
 import { NotesStore } from './notes-store.ts';

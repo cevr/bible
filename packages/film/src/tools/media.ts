@@ -76,7 +76,7 @@ import { MPEGDecoder } from 'mpg123-decoder';
 import { type Pcm, concat, toInt16 } from '../core/audio.ts';
 import { isAiff, readAiff } from './aiff.ts';
 import { writeWhole } from './content-store.ts';
-import { MediaFailed } from './errors.ts';
+import { MediaFailed } from '../core/refusals.ts';
 import { jpegOf } from './jpeg.ts';
 import { resample } from './resample.ts';
 import { X264Encoder } from './x264.ts';

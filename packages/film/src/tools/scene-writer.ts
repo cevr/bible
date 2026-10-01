@@ -17,7 +17,7 @@ import {
   type SourceRefused,
   type SourceShared,
   TimelineUnresolved,
-} from './errors.ts';
+} from '../core/refusals.ts';
 import type { FilmName } from './film-repo.ts';
 import { CueRead, FreshFilm } from './fresh-film.ts';
 import { editCue, editKnob, readCue, readKnob, readSpans, roundValue } from './scene-source.ts';

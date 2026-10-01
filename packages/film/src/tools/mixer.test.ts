@@ -10,7 +10,7 @@ import { MIX_RATE, mixKey } from '../core/mix.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import type { Timed, Timings } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
-import { MediaFailed } from './errors.ts';
+import { MediaFailed } from '../core/refusals.ts';
 import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';
 import { MasterStampJson, Mixer, planOf, stampManifest } from './mixer.ts';

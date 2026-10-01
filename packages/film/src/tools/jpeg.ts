@@ -7,7 +7,7 @@ import { toAvFrame } from '@mediabunny/server';
 import { Array as Arr, Effect } from 'effect';
 import type { VideoSample } from 'mediabunny';
 import * as NodeAv from 'node-av';
-import { MediaFailed } from './errors.ts';
+import { MediaFailed } from '../core/refusals.ts';
 
 /** MJPEG's quantizer scale: 2 is near lossless, 31 the coarsest. */
 const JPEG_QUALITY = 3;

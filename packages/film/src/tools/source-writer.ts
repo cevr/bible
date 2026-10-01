@@ -43,13 +43,12 @@ import {
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { ContentStore, type StoreError } from './content-store.ts';
 import {
-  FormatFailed,
   RedoUnavailable,
   SourceChanged,
   type SourceRefused,
   UndoUnavailable,
-  WriteUnverified,
-} from './errors.ts';
+} from '../core/refusals.ts';
+import { FormatFailed, WriteUnverified } from './errors.ts';
 import { FilmFolder } from './film-repo.ts';
 import { collectWithin } from './process.ts';
 

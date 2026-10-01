@@ -20,7 +20,8 @@ import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import type { Line } from '../core/narration.ts';
 import { type Cast, MusicModel, Plan, type Reader, type Word } from '../core/schema.ts';
-import { ApiKeyMissing, ElevenLabsFailed, SttUntimed } from './errors.ts';
+import { ElevenLabsFailed, SttUntimed } from '../core/refusals.ts';
+import { ApiKeyMissing } from './errors.ts';
 import { type Finished, collect, isNotFound } from './process.ts';
 
 const OUTPUT_FORMAT = 'mp3_44100_192';

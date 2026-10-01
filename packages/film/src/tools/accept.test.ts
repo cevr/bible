@@ -5,7 +5,8 @@
 import { describe, expect, test } from 'bun:test';
 import { Cause, Option, Result } from 'effect';
 import { acceptedBeats, atTheCommandLine, bareAcceptMismatch } from './accept.ts';
-import { TakeMismatch, UnknownScene } from './errors.ts';
+import { UnknownScene } from '../core/errors.ts';
+import { TakeMismatch } from '../core/refusals.ts';
 
 const known = ['a', 'b', 'c'];
 const only = (...ids: ReadonlyArray<string>) => Option.some(new Set(ids));

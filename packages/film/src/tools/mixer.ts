@@ -36,15 +36,8 @@ import {
   writeWhole,
   writeWholeWith,
 } from './content-store.ts';
-import {
-  AudioMissing,
-  AudioStale,
-  type FilmModuleInvalid,
-  type FilmUnknown,
-  type MediaFailed,
-  SampleRateMismatch,
-  TakeUnknown,
-} from './errors.ts';
+import { type FilmUnknown, type MediaFailed, TakeUnknown } from '../core/refusals.ts';
+import { AudioMissing, AudioStale, type FilmModuleInvalid, SampleRateMismatch } from './errors.ts';
 import {
   type FilmPaths,
   FilmRepo,

@@ -24,7 +24,7 @@ import {
   parseSync,
 } from 'oxc-parser';
 import { type CuePatch, EaseName, type Knob, Span } from '../core/schema.ts';
-import { SourceRefused } from './errors.ts';
+import { SourceRefused } from '../core/refusals.ts';
 
 /** A `timeline` or `knobs` property: an object literal, something else, or not there. */
 export type Slot =
