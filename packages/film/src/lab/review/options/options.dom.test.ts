@@ -545,12 +545,14 @@ describe("a film's choices", () => {
         yield* until(page, `${MIX}.startsWith('/lab/toy/choices/mix?point=score&variant=strings')`);
         yield* until(page, "document.querySelector('audio.rv-mix').error !== null");
         yield* page.press('Space');
-        yield* until(page, "document.querySelector('.rv-picture video').paused === false");
-        // The retry's wait is run through on the page's clock.
-        yield* page.clock.runFor(5_000);
+        // The requested play is kept while the missing mix buffers.
+        yield* textIs(page, '.rv-transport [data-act="play"]', '❚❚');
+        // Fire the retry deadline once; intermediate picture frames aren't asserted.
+        yield* page.clock.fastForward(5_000);
         yield* until(page, "document.querySelector('audio.rv-mix').readyState >= 1");
         expect(asks).toBe(2);
         // The reload stalls the set (Buffering) until the mix can play, and the set resumes it.
+        yield* until(page, "document.querySelector('.rv-picture video').paused === false");
         yield* until(page, "document.querySelector('audio.rv-mix').paused === false");
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),

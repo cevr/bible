@@ -2,7 +2,8 @@
 # The browser tests run their cases at once: each holds a view lent from the
 # worker's one Chrome, on an origin of its own (src/lab/fixtures/browsers.ts). The test script's
 # --max-concurrency=3 (bunfig has no key for it) holds a worker to three cases
-# at a time; --parallel runs one worker a core, so three pages a core. Unbound,
+# at a time; the suite runner caps --parallel at eight workers (one per core
+# on smaller hosts), so at most 24 pages. Unbound,
 # every case in a file shares the cores with all its siblings and takes the
 # whole file's time: on a loaded 4-core runner a case that takes 0.5 s alone
 # took 13-15 s. A case waiting for its turn has not started, so its timeout

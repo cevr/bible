@@ -903,9 +903,11 @@ sees none of it). One fake microphone (a 440 Hz tone on input 1) every tab
 hears, allowed or refused per tab. The tab answers the page's requests itself (the
 protocol's `Fetch`), types and clicks with native input events, and waits in
 the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
-worker (`--max-concurrency=3` in the test script: one worker a core, so three
-pages a core, and a case's timeout counts its own work, not its siblings'),
-and the page's script is bundled once per process.
+worker (`--max-concurrency=3` in the test script: at most eight workers, one
+per core on smaller hosts, and a case's timeout counts its own work, not its
+siblings'). The suite runner compiles and minifies each page's script once
+per invocation, then workers read those immutable temporary files. The files
+are removed after the workers exit; a direct `bun test` builds its own scripts.
 
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
@@ -1680,9 +1682,11 @@ diagnostics for all eleven rules also assert the corrective message,
 including the distinct anchor-end and cue-part repairs, so a rule that
 fires but gives the wrong advice fails the fixture suite.
 
-The package's tests run with `bun test --parallel --no-isolate --timeout
-20000` (its `test` script): one worker per core, each keeping its module
-registry and its Chrome across the files it runs, so the module graph
+The package's `test` script uses `lab/fixtures/run-suite.ts` to prepare fresh
+browser bundles and run `bun test --parallel --no-isolate --max-concurrency=3
+--timeout 20000`. The runner caps workers at eight, or the host's core count
+when smaller, each keeping its module registry and its Chrome across the
+files it runs, so the module graph
 loads once per worker rather than once per file. A test file therefore
 leaves no global behind it (a stand-in it sets, it puts back). The lab's
 browser tests open a page and draw the probe film before they assert, which

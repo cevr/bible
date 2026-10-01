@@ -7,8 +7,8 @@
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effect';
 import { Refusal, statusOf } from '../../core/api.ts';
-import { solidPlugin } from '../../tools/solid-plugin.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
+import { bundled } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
 import { PROBE } from './probe-film.ts';
 import type { Request, Response, Tab } from './tab.ts';
@@ -144,34 +144,18 @@ const defaults: ReadonlyArray<FakeRoute> = [
 
 /**
  * A page's script (`entry`, beside this file), bundled for the browser with
- * Solid's compiler: once per test file, however many cases open the page.
+ * Solid's compiler: read from the suite's fresh bundles, or built once when
+ * running its test file directly, however many cases open the page.
  */
 export const bundleOf = (entry: string) => Effect.runSync(Effect.cached(bundled(entry)));
-
-const bundled = (entry: string) =>
-  Effect.promise(() =>
-    Bun.build({
-      entrypoints: [`${import.meta.dir}/${entry}`],
-      target: 'browser',
-      format: 'iife',
-      plugins: [solidPlugin],
-    }),
-  ).pipe(
-    Effect.flatMap((built) =>
-      Option.match(Option.fromUndefinedOr(built.outputs[0]), {
-        onNone: () => Effect.die(`${entry} did not bundle: ${built.logs.join('\n')}`),
-        onSome: (out) => Effect.promise(() => out.text()),
-      }),
-    ),
-  );
 
 /** A page's script (`entry`) as the asset `name` (`browsers.ts`). */
 const scriptAsset = (entry: string, name: string): Effect.Effect<Asset> =>
   Effect.map(bundled(entry), (js) => asset(name, respond(js, 'text/javascript')));
 
 /**
- * The lab's and the review's scripts and the player's styles: bundled and
- * read as the module loads, once per process, so no case's timeout counts
+ * The lab's and the review's scripts and the player's styles: read as the
+ * module loads, once per process, so no case's timeout counts
  * them (on a loaded runner the first cases spent 1-2 s waiting on them).
  */
 // oxlint-disable-next-line effect/noAsyncFunction -- the module's own load waits for its setup, so no case's timeout counts it
