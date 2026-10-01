@@ -110,7 +110,7 @@ export const contribution = (rank: number, weight: number): number => weight / (
  *  passed, which makes the output a function of the inputs alone. Sorting by
  *  score with an unstable comparator would let two runs over identical inputs
  *  produce two orders — and §9.7 requires ordered result identities to match
- *  across three clients, which a nondeterministic tiebreak makes untestable.
+ *  across clients, which a nondeterministic tiebreak makes untestable.
  */
 export const fuse = (lists: readonly FusionList[]): readonly FusedHit[] => {
   const scores = new Map<string, number>();

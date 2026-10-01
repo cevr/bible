@@ -16,8 +16,8 @@ import {
 } from '@bible/core/wiki';
 
 /** The authored subset of markdown the wiki compiles. Deliberately small: the
- *  §2.2 node union is the contract three clients render, and every construct
- *  admitted here is one all three must be able to draw. Anything outside the
+ *  §2.2 node union is the contract clients render, and every construct
+ *  admitted here is one every client must be able to draw. Anything outside the
  *  subset stays literal text rather than becoming a silently dropped node.
  *
  *  Block and inline structure come from `Bun.markdown`, the CommonMark parser

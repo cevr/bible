@@ -1,17 +1,11 @@
-/** The manifest read over HTTP, written once for all three hosts.
+/** The manifest read over HTTP.
  *
- *  §10 M9's adapter check asks that "web fetches the manifest through the
- *  same-origin proxy; Electron main fetches directly; CLI fetches under Bun.
- *  All three refuse the same schema-major overrun." The refusal is
- *  `decideUpdate`'s, in portable core, so it is one rule by construction. What
- *  is left for the adapters is the URL and the `HttpClient` implementation —
- *  and both are parameters here rather than three copies of a fetch.
+ *  The schema-major refusal is `decideUpdate`'s, in portable core, so it is one
+ *  rule by construction. What is left for the adapter is the URL and the
+ *  `HttpClient` implementation — and both are parameters here.
  *
  *  Portable: it takes `HttpClient.HttpClient` from context, which
- *  `BunHttpClient`, `NodeHttpClient` and `FetchHttpClient` all provide. The
- *  browser's *own* difference is the URL, not the client: it reads a
- *  same-origin proxy route because it cannot reach the release host directly
- *  (no CORS), exactly as `/api/assets/topics` already works.
+ *  `BunHttpClient`, `NodeHttpClient` and `FetchHttpClient` all provide.
  *
  *  **It never fails.** Every way a manifest can fail to arrive — no network, a
  *  non-2xx, bytes that are not a manifest this build can decode — becomes
@@ -41,8 +35,8 @@ import { ContentManifestSource } from './service.js';
 
 /** Where this host reads the manifest, as an overridable pin.
  *
- *  §3.6 fixes one stable URL; `Config` is what lets a test — and the desktop
- *  e2e — point a host at a local fixture without the adapter growing a
+ *  §3.6 fixes one stable URL; `Config` is what lets a test point a host at a
+ *  local fixture without the adapter growing a
  *  test-only branch, and what §12 leaves open ("the exact URL") without leaving
  *  the mechanism open. */
 export const contentManifestUrl: Config.Config<string> = Config.String(
@@ -58,14 +52,14 @@ const decodeManifest = Schema.decodeUnknownEffect(Schema.fromJsonString(ContentM
  *  redirect chain to any host in the world before this module saw a single
  *  response — the origin gate would have checked one address and the bytes
  *  would have come from another (round-4 F4). `undici` under `NodeHttpClient`
- *  does not follow at all, so the two hosts disagreed about the production
- *  GitHub URL as well: one followed it anywhere, the other refused the one hop
+ *  does not follow at all, so transports disagree about the production GitHub
+ *  URL as well: one follows it anywhere, the other refuses the one hop
  *  releases actually answer with.
  *
  *  Pinning `manual` on the fetch options makes the hop loop below the only
- *  follower on every host, which is what makes "one redirect, to an allowlisted
- *  origin" one rule rather than three transports' defaults. It is inert on a
- *  client that is not fetch-based. */
+ *  follower, which is what makes "one redirect, to an allowlisted origin" one
+ *  rule rather than each transport's default. It is inert on a client that is
+ *  not fetch-based. */
 const manualRedirects = Effect.provideService(FetchHttpClient.RequestInit, {
   redirect: 'manual',
 });
@@ -119,9 +113,8 @@ const boundedBody = (
  *
  *  - **Origin.** The address is checked against the caller's allowlist before
  *    the request is made, and again at **every redirect hop**. The URL is
- *    `Config`-resolved so a test and the desktop e2e can point a host at a
- *    fixture, and unguarded that made every host — the proxy most of all —
- *    fetch whatever that variable named (round-3 F4).
+ *    `Config`-resolved so a test can point a host at a fixture, and unguarded
+ *    that made every host fetch whatever that variable named (round-3 F4).
  *  - **Redirects.** Up to {@link CONTENT_MANIFEST_MAX_REDIRECTS} hops, each one
  *    re-checked against the same allowlist. GitHub releases answer with exactly
  *    one hop, so refusing all of them broke the production path; following them
@@ -205,13 +198,8 @@ export const readManifestOver = (
     Effect.scoped,
   );
 
-/** The HTTP manifest source at a URL the host already knows.
- *
- *  For the browser, where the URL is not configuration: a worker reads
- *  `/api/content/manifest` because that is the only address it *can* read (no
- *  CORS to the release host), the same way it reads `/api/assets/topics`. Going
- *  through `Config` there would mean seeding an environment a browser does not
- *  have, to re-derive a constant the host already holds. */
+/** The HTTP manifest source at a URL the caller already knows, rather than one
+ *  resolved through `Config`. */
 export const layerHttpContentManifestAt = (
   url: string,
   origins?: readonly string[],

@@ -49,5 +49,5 @@ _Avoid_: Init, setup, seed
 - Recipes own source priority. An unavailable Asset Source may fall through; a rejected Corpus Contribution fails closed.
 - Provenance is content identity, not a receipt decoration. Installed source, revision, and digest determine readiness.
 - Installation writes only to an inactive file or SQL transaction. Semantic verification completes before Activation.
-- File Corpus release Artifacts declare an exact size and SHA-256 digest. Both native and browser adapters reject other bytes.
+- File Corpus release Artifacts declare an exact size and SHA-256 digest. The installer rejects other bytes.
 - Platform adapters own transport and storage mechanics only. They do not choose completeness, fallback, or verification policy.

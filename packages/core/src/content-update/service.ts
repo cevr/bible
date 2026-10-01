@@ -1,9 +1,8 @@
 /** §3.6's update policy as one portable service.
  *
- *  `status` answers the four surfaces — the toast, the settings entry,
- *  `bible topics status` and `v1.content.status` — with one value and **no
- *  mutation**. `update` runs the decision and, only on an offer, installs
- *  through the File Corpus lifecycle every host already has.
+ *  `status` answers `bible topics status` with one value and **no mutation**.
+ *  `update` runs the decision and, only on an offer, installs through the File
+ *  Corpus lifecycle every host already has.
  *
  *  Nothing here fetches bytes, opens a database, or knows a transport. The
  *  manifest arrives through {@link ContentManifestSource}, which each host
@@ -35,10 +34,9 @@ import {
 
 /** How this host reads the runtime manifest.
  *
- *  A service rather than a parameter because it is the *only* thing that
- *  differs between the three hosts (§10 M9's adapter check), and because a
- *  `Config`-resolvable seam is what lets a test seed a fake manifest without
- *  the service growing a test-only branch. It cannot fail — see
+ *  A service rather than a parameter because it is the transport seam (§10 M9's
+ *  adapter check), and because a `Config`-resolvable seam is what lets a test
+ *  seed a fake manifest without the service growing a test-only branch. It cannot fail — see
  *  `ManifestFetchOutcome`. */
 export interface ContentManifestSourceService {
   readonly read: Effect.Effect<ManifestFetchOutcome>;
@@ -58,8 +56,7 @@ export class ContentManifestSource extends Context.Service<
     }),
   );
 
-  /** A fixed manifest outcome. The Config seam's landing point on every host,
-   *  and what the desktop e2e seeds. */
+  /** A fixed manifest outcome. The Config seam's landing point on every host. */
   static layerOf = (outcome: ManifestFetchOutcome): Layer.Layer<ContentManifestSource> =>
     Layer.succeed(
       ContentManifestSource,

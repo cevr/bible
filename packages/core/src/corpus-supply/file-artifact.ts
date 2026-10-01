@@ -1,13 +1,8 @@
 import { Context, Effect, Layer, Option, Schema, SchemaTransformation } from 'effect';
 import type { Stream } from 'effect';
 
-import { CorpusInstallationError, type CorpusSourceUnavailableError } from './errors.js';
-import {
-  registeredCorpusName,
-  type CorpusFileName,
-  type CorpusGeneration,
-  type CorpusProvenance,
-} from './model.js';
+import type { CorpusInstallationError, CorpusSourceUnavailableError } from './errors.js';
+import type { CorpusFileName, CorpusGeneration, CorpusProvenance } from './model.js';
 import { makeCorpusStorageIdentity, type CorpusStorageIdentity } from './storage-identity.js';
 
 /** Where one candidate File Corpus Artifact came from, in the order a Recipe
@@ -62,7 +57,7 @@ export const TOPICS_ARTIFACT_GENERATION: Option.Option<CorpusGeneration> = Optio
 /** The pinned Topics release as a source list: empty while no release exists,
  *  one entry once `TOPICS_ARTIFACT_RELEASE` is filled in. Every host spreads
  *  this after its local sources, so publishing the first content version wires
- *  the release leg into all three hosts without touching any of them. */
+ *  the release leg in without touching any host. */
 export interface ReleaseSourceDeclaration extends FileArtifactRelease {
   readonly kind: 'release';
   /** The release ordinal this pin was published under (§3.6), when the build
@@ -160,10 +155,9 @@ export interface FileArtifactInstallerService {
    *  path. A flat artifact has no `meta` table, so its provenance lives in a
    *  sidecar — and renaming an artifact and its sidecar is two operations with a
    *  window between them, in which the host had the *new* bytes described by
-   *  the *old* provenance, or the reverse (round-4 B2). The browser already
-   *  solved this with versioned generation files and one atomic registry
-   *  pointer; this is the same shape natively, and the address the pointer names
-   *  is what a host must open rather than a path it assumed. */
+   *  the *old* provenance, or the reverse (round-4 B2). Versioned generation
+   *  files and one atomic registry pointer close that window, and the address
+   *  the pointer names is what a host must open rather than a path it assumed. */
   readonly activeFile: Effect.Effect<Option.Option<string>, CorpusInstallationError>;
 }
 
@@ -185,7 +179,7 @@ export class BibleArtifactInstaller extends Context.Service<
 /** One File Corpus's whole identity: its name in receipts and errors, the
  *  label it uses in operator-facing causes, the storage names every host
  *  derives from that name, and its two service keys. Every step of the
- *  lifecycle — native and browser adapters, the `ensure` loop — is
+ *  lifecycle — the host adapter, the `ensure` loop — is
  *  parameterized by this value, so a new file corpus declares two keys and one
  *  `makeFileCorpusArtifact` call and inherits the lifecycle whole.
  *
@@ -205,24 +199,12 @@ export interface FileCorpusArtifact<Corpus extends string, RecipeId, InstallerId
   readonly layerRecipe: (recipe: {
     readonly sources: readonly FileArtifactSourceService[];
     /** How this host builds an Asset Source over a release it was handed.
-     *  Omitted by a host with no runtime install path — a test recipe, or the
-     *  browser before its proxy route exists — and `None` is what the supply
+     *  Omitted by a host with no runtime install path — a test recipe — and
+     *  `None` is what the supply
      *  pipeline then reports rather than silently installing something else. */
     readonly releaseSource?: (release: RuntimeArtifactRelease) => FileArtifactSourceService;
   }) => Layer.Layer<RecipeId>;
   readonly layerInstaller: (installer: FileArtifactInstallerService) => Layer.Layer<InstallerId>;
-  /** This corpus, declared present but holding nothing.
-   *
-   *  A host that wires no artifact at all leaves both tags unprovided, and
-   *  `wired` answers `None` — which is the right answer for a host that does
-   *  not have this corpus. But a *seam* that requires the tags (the web
-   *  worker's `ProcedureServerInput`, so §3.6's install can reach the reader's
-   *  own store) needs something to hand a fixture, and "no sources, nothing
-   *  installed, install refused" is a decision worth writing down rather than a
-   *  stub every suite re-invents. `install` fails rather than dies: a caller
-   *  that reaches it has asked a wired corpus to install, and the answer is the
-   *  same typed refusal an empty recipe already produces. */
-  readonly layerEmpty: Layer.Layer<InstallerId | RecipeId>;
 }
 
 /** Whichever keys a File Corpus was declared with, the pipeline only ever asks
@@ -275,20 +257,6 @@ export const makeUnregisteredFileCorpusArtifact = <
       releaseSource: Option.fromUndefinedOr(recipe.releaseSource),
     }),
   layerInstaller: (installer) => Layer.succeed(input.Installer, installer),
-  layerEmpty: Layer.merge(
-    Layer.succeed(input.Recipe, { sources: [], releaseSource: Option.none() }),
-    Layer.succeed(input.Installer, {
-      current: Effect.succeedNone,
-      activeFile: Effect.succeedNone,
-      install: () =>
-        Effect.fail(
-          CorpusInstallationError.make({
-            corpus: Option.getOrUndefined(registeredCorpusName(input.corpus)),
-            cause: `${input.label} Artifact is not wired on this host`,
-          }),
-        ),
-    }),
-  ),
 });
 
 /** Declares a File Corpus the supply pipeline can register: the corpus name
@@ -325,15 +293,15 @@ export const BibleArtifact = makeFileCorpusArtifact({
 export const TOPICS_SCHEMA_MAJOR = 1;
 export const TOPICS_SCHEMA_MINOR = 0;
 
-/** `meta.schema_major` as both verifiers must read it: the whole string is the
+/** `meta.schema_major` as the verifier must read it: the whole string is the
  *  number or the artifact is unreadable. `Number.parseInt` cannot express that
  *  — it stops at the first non-digit, so `'1junk'` reads as major 1 and an
  *  artifact whose version field is corrupt installs as if it were v1. The
  *  version gate is the only thing standing between this build and a file it
  *  cannot interpret, so it decodes strictly or not at all.
  *
- *  Both semantic verifiers call this so the native and browser gates stay one
- *  rule with one definition rather than two implementations that agree today. */
+ *  The semantic verifier calls this so the gate is one rule with one
+ *  definition. */
 export const TopicsSchemaMajor = Schema.String.check(Schema.isPattern(/^\d+$/)).pipe(
   Schema.decodeTo(
     Schema.Int.check(Schema.isBetween({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER })),

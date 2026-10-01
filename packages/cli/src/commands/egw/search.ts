@@ -24,8 +24,6 @@ import { WikiLayer } from '../wiki.js';
 
 /** The one wire codec §9 defines, encoded rather than re-projected.
  *
- *  M5-M7's host-parity rule: the CLI and the RPC handler must emit the *same*
- *  bytes for the same result, which is only true if they share the encoder.
  *  The hand-written projection this replaces was a second wire model — it could
  *  drift from `SearchResult` without anything failing.
  *
@@ -168,7 +166,7 @@ const scope = Flag.Literals('scope', ['egw', 'pioneer', 'all']).pipe(
  *
  *  **Excluded by default, like the web surface.** `NEVER_APPARATUS` argues that
  *  a search box over the writings has no use for a see-also stub, and adds that
- *  "the CLI and the desktop reader both have uses for the indexes" — which is
+ *  the CLI has uses for the indexes — which is
  *  true, and was the reason this command first shipped the exclusion as an
  *  opt-in `--no-apparatus`. Measuring it settled the question the other way: an
  *  index entry is short and made almost entirely of the query's own words, so
@@ -235,8 +233,8 @@ export const egwSearch = Command.make(
       }
 
       // Local path — §9's hybrid search. The scope, book and limit narrowings
-      // travel as one `SearchQuery` so the CLI, the RPC handler and the UI ask
-      // the same question in the same terms.
+      // travel as one `SearchQuery` so the CLI, the daemon and the web surface
+      // ask the same question in the same terms.
       const result = yield* searchService(
         Effect.flatMap(SearchService, (service) =>
           service.query(
@@ -255,9 +253,8 @@ export const egwSearch = Command.make(
 
       if (args.json) {
         // `--json` is the wire codec and nothing else: `SearchResultJson` is
-        // what `v1.search.query` returns, and adding a group the RPC handler
-        // does not send would break the byte parity that contract rests on. A
-        // script that wants topics asks `bible wiki topics` for them.
+        // the one wire encoding, and adding a group to it here would fork that
+        // contract. A script that wants topics asks `bible wiki topics` for them.
         yield* Console.log(yield* encodeSearchResult(result));
         return;
       }

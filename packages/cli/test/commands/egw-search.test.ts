@@ -1,23 +1,17 @@
-/** §10's CLI leg of the host-parity rule: "golden query set runs in
- *  `packages/cli/test` via `run-cli.ts` with byte-identical JSON parity against
- *  the RPC handler output."
+/** The CLI's `--json` is `SearchResultJson` over the service's own result.
  *
- *  `packages/core/src/search/host-parity.test.ts` already proves the RPC handler
- *  and `SearchService` encode one value through one codec. What it cannot see is
- *  the last hop: whether the *command* still runs that codec on the way to
- *  stdout. A hand-written projection reappearing in the printer would leave core
- *  parity green and break every script that pipes `--json`.
+ *  `--json` is a contract with every script that pipes it, so it must be the
+ *  one wire codec over the value `SearchService` returned — not a hand-written
+ *  projection that could drift from `SearchResult` without anything failing.
  *
  *  So these tests run the real command — argument parsing, the layer seam, the
- *  encoder, `Console.log` — and compare its captured stdout to the bytes the RPC
- *  client returns for the same query, over the same fixture corpus.
+ *  encoder, `Console.log` — and compare its captured stdout to the bytes the
+ *  same query produces when asked of the service directly, over the same
+ *  fixture corpus.
  */
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Layer, Option, Ref, Schema } from 'effect';
-import { RpcTest } from 'effect/rpc';
-import { BibleProcedureGroup, BibleProcedureHandlers } from '@bible/core/procedure';
-import { procedureDependencies } from '@bible/core/procedure/testing';
 import {
   MODEL_FINGERPRINT,
   QueryEmbedder,
@@ -82,27 +76,16 @@ const brokenWiki = WikiService.Broken({
 const cliJson = (args: readonly string[], layer = fixtureSearch) =>
   runCli(egwSearch, [...args, '--json'], {}).pipe(Effect.provideService(SearchLayer, layer));
 
-/** The same query over `v1.search.query`, encoded the way the CLI encodes it.
+/** The same query asked of the service directly, encoded the way the CLI
+ *  encodes it.
  *
  *  The codec is restated here rather than imported from the command, because
  *  what is under test is that the command produces *these* bytes. Importing the
  *  command's own helper would make the assertion true by construction. */
-const rpcJson = (query: SearchQuery, layer = fixtureSearch) =>
-  Effect.gen(function* () {
-    const client = yield* RpcTest.makeClient(BibleProcedureGroup);
-    const result = yield* client['v1.search.query']({
-      text: query.text,
-      scope: Option.getOrUndefined(query.scope),
-      bookCode: Option.getOrUndefined(query.bookCode),
-      limit: Option.getOrUndefined(query.limit),
-    });
-    return yield* Schema.encodeEffect(Schema.fromJsonString(SearchResultJson, { space: 2 }))(
-      result,
-    );
-  }).pipe(
-    Effect.provide(
-      BibleProcedureHandlers.pipe(Layer.provide(procedureDependencies({ search: layer }))),
-    ),
+const serviceJson = (query: SearchQuery, layer = fixtureSearch) =>
+  Effect.flatMap(SearchService, (service) => service.query(query)).pipe(
+    Effect.flatMap(Schema.encodeEffect(Schema.fromJsonString(SearchResultJson, { space: 2 }))),
+    Effect.provide(layer),
   );
 
 /** The result the command produced, read as a value rather than as text.
@@ -129,7 +112,7 @@ const argsFor = (query: SearchQuery): readonly string[] => {
 /** The same query, asked with the limit the CLI's flag default supplies.
  *
  *  Rebuilt through `SearchQuery.make` rather than spread-and-patched, so the
- *  RPC side is asked a value the schema has actually constructed. */
+ *  service is asked a value the schema has actually constructed. */
 const withCliLimit = (query: SearchQuery): SearchQuery =>
   SearchQuery.make({
     text: query.text,
@@ -140,10 +123,10 @@ const withCliLimit = (query: SearchQuery): SearchQuery =>
 
 describe('bible egw search — §9.7 golden query set', () => {
   for (const golden of GOLDEN_QUERIES) {
-    it.scopedLive(`emits the RPC bytes for "${golden.query.text}"`, () =>
+    it.scopedLive(`emits the service's bytes for "${golden.query.text}"`, () =>
       Effect.gen(function* () {
         const cli = yield* cliJson(argsFor(golden.query));
-        const wire = yield* rpcJson(withCliLimit(golden.query));
+        const wire = yield* serviceJson(withCliLimit(golden.query));
         expect(cli.success).toBe(true);
         // Byte-identical, not merely equivalent: `--json` is a contract with
         // the scripts that pipe it, and two encoders that agree on values but

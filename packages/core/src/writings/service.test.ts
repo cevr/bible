@@ -236,7 +236,7 @@ describe('WritingsService', () => {
 
   /** Punctuation alone names no term, and an empty MATCH is a second syntax
    *  error. It is the same unanswerable request as `""` and reuses that reason
-   *  rather than widening an error schema three hosts map over. */
+   *  rather than widening an error schema every caller maps over. */
   test('rejects a query that is punctuation only, as an empty query', () =>
     Effect.gen(function* () {
       const writings = yield* WritingsService;

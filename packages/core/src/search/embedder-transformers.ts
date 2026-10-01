@@ -1,23 +1,14 @@
-/** The one embedding implementation, shared by all three adapters (§9.5).
+/** The one embedding implementation (§9.5), shared by the CLI's query
+ *  embedder (`embedder-bun.ts`) and the vector compiler in `packages/scripts`.
  *
- *  §9.5 lists three adapters — transformers.js on WebGPU, native CPU under
- *  Electron main, native CPU under Bun — and §10 requires all three to "produce
- *  query vectors for the same pinned fingerprint that agree within the declared
- *  numeric tolerance". Three separate implementations of the same ONNX graph
- *  would make that agreement a coincidence to be measured; one implementation
- *  with a device parameter makes it a property of the code.
- *
- *  `@huggingface/transformers` is what allows that: it ships `onnxruntime-web`
- *  for the browser (WebGPU and WASM) and `onnxruntime-node` for Node and Bun, so
- *  the same graph runs on all three hosts and the *only* difference is the
- *  `device` string. That is why one library was chosen over pairing
- *  transformers.js with a separate `onnxruntime-node`: two libraries would be
- *  two graph executions to reconcile.
+ *  One implementation of the ONNX graph means a query vector and an indexed
+ *  vector cannot be computed two ways. `@huggingface/transformers` runs the
+ *  graph through `onnxruntime-node` under Bun.
  *
  *  **This file is `*-transformers.ts`, not `*-bun.ts`.** It imports no host
  *  builtin — `@huggingface/transformers` is a plain dependency — so the oxlint
- *  portability boundary permits it in core, and the three host entry points
- *  beside it are thin `device` choices rather than three copies.
+ *  portability boundary permits it in core, and the Bun entry point beside it
+ *  is a thin `device` choice.
  *
  *  ## Why `AutoModel` rather than the `feature-extraction` pipeline
  *
@@ -58,18 +49,16 @@ export const DOCUMENT_PREFIX = 'title: none | text: ';
 
 /** Which ONNX execution provider this adapter runs on.
  *
- *  `webgpu` for the browser worker; `cpu` for Electron main and Bun. §9.5 rules
- *  the WASM fallback out as a query path — a ~3-7 s embed for a 300M model is
- *  not a search — so a browser without WebGPU declines rather than falling back,
- *  and the client reports §9.6's `embedder` absence. */
-export type EmbedderDevice = 'webgpu' | 'cpu';
+ *  `cpu` under Bun: §9.5 measures the native CPU path at tens of milliseconds
+ *  with the model resident. */
+export type EmbedderDevice = 'cpu';
 
 /** The dtype the model card permits and this build pins.
  *
  *  "EmbeddingGemma activations do not support `fp16` or its derivatives. Please
  *  use `fp32`, `q8`, or `q4`." `fp32` is the choice the fingerprint implies:
- *  a quantized graph would move the float outputs by more than the one-int8-step
- *  tolerance `vectorsAgree` allows between adapters. */
+ *  a quantized graph would move the float outputs off the vectors the index
+ *  was compiled with. */
 const MODEL_DTYPE = 'fp32';
 
 /** EmbeddingGemma's context window, from the model's own
@@ -80,20 +69,17 @@ const MODEL_CONTEXT_TOKENS = 2048;
 /** Where the model files live, when the host does not use the default cache.
  *
  *  Config rather than a constant: §10 requires weights not to be committed, so
- *  every host resolves them at runtime — Electron from `userData`, the CLI from
- *  `~/.bible`, the browser from its own cache. Absent means "use the library's
- *  default cache", which is the browser's case. */
+ *  they are resolved at runtime (the CLI from `~/.bible`). Absent means "use
+ *  the library's default cache". */
 export const modelCacheDir: Config.Config<Option.Option<string>> = Config.option(
   Config.String('BIBLE_MODEL_CACHE'),
 );
 
-/** `~/.bible/models`, beside the corpora both native hosts already resolve
- *  there — the CLI directly, Electron as a local source. Defined once here so
- *  "where a native host looks when `BIBLE_MODEL_CACHE` is unset" is one fact,
- *  not a per-host convention that can drift (§10's parity is a property of
- *  shared code, not of two copies agreeing). A fallback, not a default cache
- *  move: the env override still wins, and a host with no `HOME` — the browser,
- *  a bare service — reads as "no fallback" rather than failing. */
+/** `~/.bible/models`, beside the corpora the CLI resolves there. Defined once
+ *  here so "where to look when `BIBLE_MODEL_CACHE` is unset" is one fact for
+ *  the CLI and the vector compiler. A fallback, not a default cache move: the
+ *  env override still wins, and a host with no `HOME` — a bare service — reads
+ *  as "no fallback" rather than failing. */
 export const bibleHomeModelsFallback: Config.Config<Option.Option<string>> = Config.option(
   Config.String('HOME'),
 ).pipe(Config.map(Option.map((home) => `${home}/.bible/models`)));
@@ -178,7 +164,7 @@ const loadTransformers = () => import('@huggingface/transformers');
 
 /** Loads the tokenizer and model once, on the given device.
  *
- *  Every failure — no WebGPU, no model files, a corrupt download — becomes
+ *  Every failure — no model files, a corrupt download — becomes
  *  `QueryEmbedderUnavailable`. §10 requires "missing model -> EmbedderUnavailable,
  *  never a crash", and a search box that takes the app down because an optional
  *  model is not downloaded is the failure that rule exists to prevent.
@@ -302,7 +288,7 @@ export const layerTransformersEmbedder = (input: {
   readonly device: EmbedderDevice;
   /** Where the model lives when `BIBLE_MODEL_CACHE` is not set — the host's
    *  own convention (the CLI's `~/.bible/models`). Absent means the library's
-   *  default cache, which is the browser's case. */
+   *  default cache. */
   readonly fallbackCacheDir?: Config.Config<Option.Option<string>>;
 }): Layer.Layer<QueryEmbedder> =>
   Layer.effect(

@@ -1,13 +1,12 @@
 /** The one Daniel 8 phrase-matching fixture, shared by every seam that has to
  *  prove it agrees with the others (§10, Milestone 4 adapter checks).
  *
- *  "Identical `PhraseSpan` output for the same input text in the web worker,
- *  Electron main, and the Bun CLI — **one shared fixture**, byte-identical
- *  offsets." A fixture copied into three test files is three fixtures, and the
- *  first time one of them gains a comma the parity claim quietly becomes a
- *  claim about two different inputs. This module is the single copy: the core
- *  suite matches against it, the RPC/CLI parity test round-trips it, and the
- *  CLI acceptance workflow feeds the same verse text in on the command line.
+ *  "Identical `PhraseSpan` output for the same input text — **one shared
+ *  fixture**, byte-identical offsets." A fixture copied into several test files
+ *  is several fixtures, and the first time one of them gains a comma the parity
+ *  claim quietly becomes a claim about two different inputs. This module is the
+ *  single copy: the core suite matches against it, and the CLI acceptance
+ *  workflow feeds the same verse text in on the command line.
  *
  *  It ships in `src/` rather than in a test file for exactly that reason — a
  *  `*.test.ts` is not importable from another package, and the CLI's test suite

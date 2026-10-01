@@ -1,14 +1,10 @@
-/** The one manifest-adapter fixture all three hosts run.
+/** The one manifest-adapter fixture every host runs.
  *
- *  §10 Milestone 9's adapter check is a *cross-host* claim: "web fetches the
- *  manifest through the same-origin proxy; Electron main fetches directly; CLI
- *  fetches under Bun. **All three refuse the same schema-major overrun.**" Three
- *  suites asserting three plausible refusals is not that claim — it is three
- *  claims that happen to agree today.
- *
- *  So the fixture is here, in portable core, and each host runs it against its
- *  own `HttpClient` layer. What a host supplies is the transport; what it is
- *  compared against is these bytes and these expectations.
+ *  §10 Milestone 9's adapter check is that every transport refuses the same
+ *  schema-major overrun. So the fixture is here, in portable core, and a host
+ *  runs it against its own `HttpClient` layer. What a host supplies is the
+ *  transport; what it is compared against is these bytes and these
+ *  expectations.
  *
  *  Exported from `@bible/core/content-update/testing` rather than from the
  *  feature barrel, for the reason `wiki/index.ts` and `search/index.ts` draw the

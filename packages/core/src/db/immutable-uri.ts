@@ -1,9 +1,9 @@
 /** The one `file:` URI builder every immutable SQLite open goes through.
  *
- *  Two artifacts open this way — `bible.db` and `topics.db` — on three hosts
- *  between them, and the escaping is the part that is easy to get wrong in the
- *  same way twice. One function is what keeps the two from drifting: fixing the
- *  encoding here fixes it for every driver at once.
+ *  Two artifacts open this way — `bible.db` and `topics.db` — and the escaping
+ *  is the part that is easy to get wrong in the same way twice. One function is
+ *  what keeps the two from drifting: fixing the encoding here fixes it for
+ *  every driver at once.
  */
 
 /** `file:` URI form of a filesystem path, with `immutable=1` appended.

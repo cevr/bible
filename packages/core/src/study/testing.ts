@@ -8,16 +8,8 @@
  *  What lives here is **study fixtures and nothing else**: `studyFixtureLayer`,
  *  a `StudyService` over a Daniel 8:13 whose five sections are all populated, so
  *  a bundle that arrived whole is distinguishable from one that arrived empty.
- *  The web worker's round-trip test, Electron main's, and core's own parity test
- *  compare counts and JSON against this one input; three hand-copied fixtures
- *  would let two hosts agree about a verse the third never saw.
- *
- *  The rest of `BibleProcedureHandlers`'s dependency graph used to live here
- *  too, which put a study file in the path of every *other* feature's new RPC —
- *  and the wiki parity suite had already written a second copy rather than
- *  import a study module for it. That graph now lives in
- *  `@bible/core/procedure/testing` as `procedureDependencies`, where it belongs,
- *  and `otherProcedureDependencies` below is the study-shaped call to it.
+ *  The CLI's `bible study` suite and core's own study tests read this one
+ *  input, so a fixture change reaches both at once.
  */
 
 import { Layer, Option } from 'effect';
@@ -34,7 +26,6 @@ import {
 import { EGWCommentaryService } from '../egw-commentary/service.js';
 import { EGWParagraphDatabase, type BibleRefRow, type BookRow } from '../egw-db/book-database.js';
 import type { Paragraph } from '../egw/schemas.js';
-import { procedureDependencies } from '../procedure/testing.js';
 import { StudyService } from './service.js';
 
 /** Wire-shape fields the EGW paragraph schema encodes as `null` when absent. */
@@ -44,9 +35,8 @@ const wireNull = Option.getOrNull(Option.none<never>());
  *  workflow both name.
  *
  *  Branded rather than left as plain numbers, because every consumer passes them
- *  into a branded position — a procedure payload or `Reference.verse` — and
- *  branding once here is what keeps four test files from each restating the
- *  constructor. */
+ *  into a branded position — `Reference.verse` — and branding once here is
+ *  what keeps each test file from restating the constructor. */
 export const FIXTURE_BOOK = bookNumber(27);
 export const FIXTURE_CHAPTER = chapterNumber(8);
 export const FIXTURE_VERSE = verseNumber(13);
@@ -132,11 +122,9 @@ const untitledBook: BookRow = {
  *
  *  The cited book has a blank `book_title`, and `StudyParallelWriting
  *  .bookTitle` is `NonEmptyString`, so the row cannot decode and
- *  `StudyService.verse` fails with `StudyCorpusDataError`. Shared rather than
- *  restated per suite because three seams have to agree about what a corpus
- *  fault *looks like* downstream — the RPC boundary must carry the tag and the
- *  row rather than flatten both into a `ProcedureError`, and the CLI must print
- *  the row rather than only the message. */
+ *  `StudyService.verse` fails with `StudyCorpusDataError`. Shared so the
+ *  service's tests and the CLI's agree about what a corpus fault *looks like*
+ *  downstream — the CLI must print the row rather than only the message. */
 const malformedWritingsDatabase = EGWParagraphDatabase.Test({
   books: [untitledBook],
   paragraphs: [paragraph('GC', 'GC 324.1', 'A citation whose book has no title.')],
@@ -229,25 +217,3 @@ export const malformedStudyFixtureLayer: Layer.Layer<StudyService> = StudyServic
  *  publication code and refcode, which is what an operator opens the corpus
  *  with. */
 export const FIXTURE_MALFORMED_ROW = 'GC 324.1';
-
-/** Everything `BibleProcedureHandlers` requires, with the study seam wired to
- *  {@link studyFixtureLayer}.
- *
- *  The study service is carried *inside* rather than merged alongside, and that
- *  is load-bearing: `Layer.mergeAll` resolves a duplicate tag in favour of the
- *  later layer, so `Layer.mergeAll(studyFixtureLayer, otherProcedureDependencies)`
- *  — which is how all four suites used to spell it — would silently hand the
- *  handler an empty `StudyService` and every round-trip assertion would compare
- *  one empty bundle to another. One layer with no duplicate tag cannot be
- *  ordered wrong. */
-export const studyProcedureDependencies = procedureDependencies({
-  generation: 'study-fixture',
-  study: studyFixtureLayer,
-});
-
-/** The same graph over {@link malformedStudyFixtureLayer}, for asking the RPC
- *  boundary what a corpus fault looks like on the far side. */
-export const malformedStudyProcedureDependencies = procedureDependencies({
-  generation: 'study-fixture-malformed',
-  study: malformedStudyFixtureLayer,
-});

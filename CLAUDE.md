@@ -74,6 +74,8 @@ repository for real implementations when docs aren't enough.
 The project uses Effect's dependency injection pattern:
 
 - **Services** defined with `Context.Tag` in `@bible/core`
-- **Adapters** provide platform-specific implementations
+- **Adapters** provide platform-specific implementations. Bun is the only
+  host: core's adapters are the `*-bun.ts` files and `src/platform-bun/`, and
+  oxlint keeps `bun:*` and platform imports out of every other core module
 - CLI provides `FileSystemStorageLayer` and `AppleNotesExportLayer`
 - egw-search provides its own server layers over `@bible/core`

@@ -1,14 +1,12 @@
 /** The one portable phrase matcher (§4.2).
  *
  *  Matching happens at **render time, in the client, over the text the client
- *  is about to draw** (§4.1). It is not an RPC: the automaton builds in ~1 ms
- *  from a dictionary the client already holds (`v1.wiki.dictionary.get`) and
- *  matches a 30-paragraph screenful in 0.38 ms, so a round trip per screenful
- *  would cost more than the work it delegates — and precomputed spans were
- *  rejected outright because their offsets still need re-projection onto the
- *  rendered AST. So the seam this module has to be portable across is *import*,
- *  not transport: the web worker, Electron main, and the Bun CLI all construct
- *  the same automaton from the same dictionary and get byte-identical offsets.
+ *  is about to draw** (§4.1). The automaton builds in ~1 ms from a dictionary
+ *  the client already holds and matches a 30-paragraph screenful in 0.38 ms —
+ *  and precomputed spans were rejected outright because their offsets still
+ *  need re-projection onto the rendered AST. So the seam this module has to be
+ *  portable across is *import*, not transport: every caller constructs the
+ *  same automaton from the same dictionary and gets byte-identical offsets.
  *  Nothing here imports a host runtime, an Effect service, or a database.
  *
  *  The three rules the matcher owes §4:
@@ -43,11 +41,10 @@ import { isBoundaryAt, normalizeScan, type NormalizedText } from './normalize.js
 /** One matched phrase, as §4.2 declares it: offsets into the supplied text run,
  *  the topic it links to, and the normalized alias that matched.
  *
- *  A schema class rather than a bare interface because the CLI's `--json` and
- *  (in Milestone 6) the renderer both serialize it, and the acceptance contract
- *  is that the three hosts emit byte-identical spans. Encoding through one
- *  schema is what makes "identical" a property of the model rather than of
- *  three serializers agreeing today. */
+ *  A schema class rather than a bare interface because the CLI's `--json`
+ *  serializes it, and the acceptance contract is byte-identical spans. Encoding
+ *  through one schema is what makes "identical" a property of the model rather
+ *  than of serializers agreeing today. */
 export class PhraseSpan extends Schema.Class<PhraseSpan>('Wiki/PhraseSpan')({
   /** Offset into the supplied run, in UTF-16 code units — the unit
    *  `String.prototype.slice` takes, so a renderer splits on these directly. */

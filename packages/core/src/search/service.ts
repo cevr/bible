@@ -18,7 +18,7 @@
  *  **The effect does not fail.** Search degrades: an absent index is
  *  lexical-only, an absent embedder is lexical-only. What it does *not* do is
  *  degrade silently — every degradation of the vector leg is reported as §9.6's
- *  typed absence on the result, and the same value reaches all three clients.
+ *  typed absence on the result, and the same value reaches every client.
  */
 
 import { Array as Arr, Context, Effect, Layer, Option, Stream } from 'effect';
@@ -595,7 +595,7 @@ const scanWith = (
       }) satisfies VectorLegStatus,
     };
   }).pipe(
-    // An adapter that declines at embed time — WebGPU lost, model file gone —
+    // An adapter that declines at embed time — model file gone —
     // is §9.6's `embedder` absence, the same value a host with no adapter
     // reports. One reason for one reader-visible state.
     Effect.orElseSucceed(() => ({
@@ -1047,7 +1047,7 @@ export class SearchService extends Context.Service<SearchService, SearchServiceA
    *
    *  `QueryEmbedder` is deliberately *not* in the requirements: it is read with
    *  `Effect.serviceOption`, because §9.5 makes a host with no embedder a legal
-   *  client — the no-WebGPU browser — rather than a broken composition.
+   *  client rather than a broken composition.
    *  `VectorIndexBytes` *is* required, and `VectorIndexBytes.None` is how a host
    *  says it ships no index. Absence-by-decision and absence-by-omission again.
    */
@@ -1069,7 +1069,7 @@ export class SearchService extends Context.Service<SearchService, SearchServiceA
         // whether it is one this build may scan, and before this seam existed it
         // then passed the *byte source* down and paid for a second full read and
         // parse at startup (round-2 F8). Absent means no host pre-resolved
-        // anything, and the bytes are read here — the desktop and browser path.
+        // anything, and the bytes are read here.
         //
         // It cannot fail: `loadVectorIndex` maps every fault onto §9.6's typed
         // absence, so a host whose index is missing, truncated or foreign still
@@ -1084,15 +1084,14 @@ export class SearchService extends Context.Service<SearchService, SearchServiceA
         );
         // Everything resolved while the layer builds, and passed as values
         // rather than read from context inside `query`.
-        // `SearchServiceApi.query` returns an `Effect` with no requirements —
-        // that is what lets the two visual hosts call it across a MessagePort —
-        // so everything the pipeline needs has to be closed over here.
+        // `SearchServiceApi.query` returns an `Effect` with no requirements, so
+        // everything the pipeline needs has to be closed over here.
         //
         // The embedder is an *option*, because §9.5 makes a host with no
-        // adapter a legal client (the no-WebGPU browser) rather than a broken
-        // composition. `Effect.serviceOption` is how that stays expressible
-        // without putting `QueryEmbedder` in the layer's requirements, where it
-        // would make every host wire one.
+        // adapter a legal client rather than a broken composition.
+        // `Effect.serviceOption` is how that stays expressible without putting
+        // `QueryEmbedder` in the layer's requirements, where it would make
+        // every host wire one.
         const embedder = yield* Effect.serviceOption(QueryEmbedder);
         // The SIMD dot product, resolved here for the same reason the index is:
         // loading it is host work — a `dlopen` or a `WebAssembly.instantiate` —

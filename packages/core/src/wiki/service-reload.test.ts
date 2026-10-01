@@ -4,9 +4,8 @@
  *  the path. A connection opened `immutable=1` holds the *inode* it opened, so
  *  a host that keeps one open goes on serving the previous content after a
  *  successful update — indefinitely, with nothing failing and nothing to see in
- *  any status. The desktop held exactly one such connection for the life of the
- *  process, which meant "the update installed" and "the reader serves the new
- *  content" were two different claims and only the first was true.
+ *  any status. "The update installed" and "the reader serves the new content"
+ *  are two different claims.
  *
  *  What is under test here is the second claim, over a real file, a real SQLite
  *  driver, and a real rename: content that exists **only** in the new artifact
@@ -169,8 +168,7 @@ describe('§3.6 the reader after an update', () => {
         yield* Effect.sync(() => writeArtifact(staged, 'investigative-judgment', 'The Judgment'));
         yield* fs.rename(staged, destination);
 
-        // The open connection still holds the old inode. This is the state the
-        // desktop was permanently stuck in.
+        // The open connection still holds the old inode.
         expect(yield* authoredSlugs()).toEqual(['sanctuary']);
 
         yield* Effect.flatMap(ReloadableArtifact, (artifact) => artifact.reload);

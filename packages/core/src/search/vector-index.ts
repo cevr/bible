@@ -2,14 +2,14 @@
  *
  *  One vector per paragraph, 256 dimensions, `Int8Array`, out of SQLite. A flat
  *  buffer scanned with dot products is the same performance class as sqlite-vec
- *  (itself brute-force KNN today), runs byte-identically in a browser worker and
- *  in Electron and under Bun, and needs zero native or WASM SQLite work — which
+ *  (itself brute-force KNN today), runs byte-identically on every host, and
+ *  needs zero native or WASM SQLite work — which
  *  is the whole reason §9.1 re-implements qmd's design rather than using it.
  *
  *  **Everything here is pure.** The parser takes an `ArrayBuffer` and the scanner
- *  takes a parsed index; neither reads a file. Hosts differ in how bytes arrive
- *  — `fs.readFile`, OPFS, a packaged asset — and nothing about the format does,
- *  so the format lives in portable core and the byte delivery lives in adapters.
+ *  takes a parsed index; neither reads a file. How bytes arrive is a host
+ *  concern and nothing about the format is, so the format lives in portable
+ *  core and the byte delivery lives in adapters.
  *
  *  ## Layout
  *

@@ -21,7 +21,7 @@ import {
 } from './fusion.js';
 
 /** §9.4's four constants, pinned. A silent change to any of them reorders every
- *  result the three clients show, so they are asserted rather than imported and
+ *  result a client shows, so they are asserted rather than imported and
  *  trusted. */
 describe('§9.4 the pinned constants', () => {
   it('is RRF with k = 60', () => {
@@ -185,8 +185,8 @@ describe('§9.4 the fusion fixture', () => {
 
 describe('§9.4 fusion is a function of its inputs', () => {
   it('breaks ties by first appearance, not by iteration order', () => {
-    // Two lists that rank two documents identically. §9.7 asks three clients to
-    // agree on ordered identities, which an unstable tiebreak makes untestable.
+    // Two lists that rank two documents identically. §9.7 asks clients to agree
+    // on ordered identities, which an unstable tiebreak makes untestable.
     const fused = fuse([
       { ids: ['x', 'y'], weight: 1 },
       { ids: ['y', 'x'], weight: 1 },

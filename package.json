@@ -60,7 +60,6 @@
     "@effect/vitest": "4.0.0",
     "@solidjs/compiler": "2.0.0-rc.11",
     "@solidjs/web": "2.0.0-rc.11",
-    "drizzle-orm": "1.0.0-rc.4",
     "effect": "4.0.0",
     "effect-bun-test": "0.3.0",
     "effect-machine": "0.27.0",

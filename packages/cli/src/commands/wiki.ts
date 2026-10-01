@@ -4,20 +4,17 @@
  * `bible wiki topics [--query <q>] [--json]` lists the authored flagship pages
  * the installed topics artifact carries. With no artifact the command still
  * succeeds and reports the typed absence — §3.5's degradation posture is a
- * domain value, not an error path, and the CLI proves it the same way the two
- * visual hosts do.
+ * domain value, not an error path.
  *
  * `bible wiki topic <slug> [--json]` prints the composed page: the authored
- * core plus the §6.1 section lineup. It calls `WikiService` directly, so the
- * page it prints is the value `v1.wiki.topic.get` returns — the same composer,
- * the same caps, the same result identities, with no second rendering path
- * that could drift from the two visual hosts.
+ * core plus the §6.1 section lineup. It calls `WikiService` directly — the same
+ * composer, the same caps, the same result identities, with no second
+ * rendering path.
  *
  * The `--json` payloads are produced by **the core schemas themselves**
- * (`WikiPageJson`, `WikiPageSummaryJson`), not by a hand-written projection.
- * That is the whole point: `v1.wiki.topic.get` encodes the same schema, so the
- * two seams cannot disagree, and a field added to the model reaches both at
- * once instead of silently missing from one.
+ * (`WikiPageJson`, `WikiPageSummaryJson`), not by a hand-written projection, so
+ * a field added to the model reaches the JSON at once instead of silently
+ * missing from it.
  */
 
 import { parseBibleQuery, type VerseReference } from '@bible/core/bible';
@@ -211,9 +208,8 @@ const missingMarker = (section: WikiSection): string => {
   return `  +${String(missing)} to get`;
 };
 
-/** The `--json` payload for one page: the core schema's own encoding, so the
- *  CLI emits the value `v1.wiki.topic.get` puts on the wire rather than a
- *  parallel projection of it. */
+/** The `--json` payload for one page: the core schema's own encoding rather
+ *  than a parallel projection of it. */
 export const topicJson = (page: WikiPage): Effect.Effect<WikiPageJson, Schema.SchemaError> =>
   encodePage(page);
 
@@ -266,14 +262,8 @@ export const matchesJson = (
 /** Matches one text run against the installed dictionary and reports the spans.
  *
  *  The whole command is `dictionary → automaton → match`, which is *exactly*
- *  what a client does at render time (§4.1). There is no `v1.wiki.matches` RPC
- *  and deliberately so: matching runs client-side over the text the client is
- *  about to draw, the automaton builds in ~1 ms from a dictionary already
- *  fetched through `v1.wiki.dictionary.get`, and a round trip per screenful
- *  would cost more than the work it delegates. So the three hosts agree by
- *  running the same core function over the same dictionary — which is a
- *  stronger claim than agreeing on one server's answer, and is what the parity
- *  test asserts.
+ *  what a client does at render time (§4.1): the same core function over the
+ *  same dictionary, which is what the parity test asserts.
  *
  *  The supplied text is treated as **one run and one section**: the caller
  *  passed a single string, so there is no segment structure to respect and no
@@ -341,10 +331,9 @@ export class LookupLayer extends Context.Reference<Layer.Layer<LookupService>>(
 const lookupService = <A, E>(use: Effect.Effect<A, E, LookupService>): Effect.Effect<A, E> =>
   Effect.flatMap(LookupLayer, (layer) => use.pipe(Effect.provide(layer)));
 
-/** The `--json` payload for one lookup: the core schema's own encoding, so the
- *  CLI emits the value `v1.wiki.lookup.resolve` puts on the wire rather than a
- *  parallel projection of it — the same `…Json` alias discipline the page and
- *  the study bundle follow. */
+/** The `--json` payload for one lookup: the core schema's own encoding rather
+ *  than a parallel projection of it — the same `…Json` alias discipline the
+ *  page and the study bundle follow. */
 export const lookupJson = (
   result: LookupResult,
 ): Effect.Effect<LookupResultJson, Schema.SchemaError> =>
@@ -402,19 +391,13 @@ class EmptySelectionError extends Schema.TaggedError<EmptySelectionError>()('Emp
 
 /** The portable lookup input (§7), built from this command's arguments.
  *
- *  Exported because it is one half of Milestone 7's adapter check: "DOM
- *  selection on web and desktop produces the same portable lookup input the CLI
- *  builds from its argument". No package can import both this builder and the
- *  app's, so each asserts against the shared `LOOKUP_ADAPTER_INPUT` fixture in
- *  core — the same way Milestone 4's span parity is held.
+ *  Exported because it is the CLI's half of Milestone 7's adapter check: it
+ *  asserts against the shared `LOOKUP_ADAPTER_INPUT` fixture in core — the same
+ *  way Milestone 4's span parity is held.
  *
- *  The *text* rule is `lookupInputOf`, in core, which the DOM builder calls too.
- *  It has to be one function rather than two that agree: a shell argument
- *  carries whatever the caller quoted and a DOM range carries the markup's own
- *  line breaks, and before Milestone 7's review this side kept its padding while
- *  the DOM side collapsed — one phrase, two `text` values on the wire. The
- *  argument that collapses to nothing is `None` there and a refusal here,
- *  because on this surface it was a request rather than a stray click. */
+ *  The *text* rule is `lookupInputOf`, in core. The argument that collapses to
+ *  nothing is `None` there and a refusal here, because on this surface it was a
+ *  request rather than a stray click. */
 export const lookupInput = (args: {
   readonly text: string;
   readonly context: Option.Option<string>;
@@ -442,8 +425,8 @@ export const wikiLookup = Command.make(
 
       yield* Console.log(result.text);
       // §7's peek-card case, reported rather than rendered differently: the CLI
-      // has no card, and a flag the two visual hosts act on is still a fact
-      // about this result that a caller comparing seams needs to see.
+      // has no card, and the flag is still a fact about this result that a
+      // caller comparing seams needs to see.
       if (result.lonePeek) yield* Console.log('(lone topic hit — peek card)');
       yield* Console.log(``);
 

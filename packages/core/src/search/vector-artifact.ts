@@ -56,8 +56,8 @@ export type VectorsReleaseSourceDeclaration = ReleaseSourceDeclaration;
 
 /** The pinned release as a source list: empty while none exists, one entry once
  *  the pin is filled in. Every host spreads this after its local sources, so
- *  publishing the first index wires the release leg into all three hosts
- *  without touching any of them — exactly as `topicsReleaseSource` does. */
+ *  publishing the first index wires the release leg in without touching any
+ *  host — exactly as `topicsReleaseSource` does. */
 export const vectorsReleaseSource = (): readonly VectorsReleaseSourceDeclaration[] =>
   Option.match(VECTORS_ARTIFACT_RELEASE, {
     onNone: (): readonly VectorsReleaseSourceDeclaration[] => [],
@@ -131,9 +131,8 @@ export class VectorArtifactRejected extends Schema.TaggedError<VectorArtifactRej
 
 /** How this host gets the installed index's bytes.
  *
- *  One method, because that is the only thing the three hosts do differently:
- *  Bun and Electron read a file, the worker reads OPFS or a fetched asset. The
- *  parse, the fingerprint check and the scan are all portable and all live in
+ *  One method, because that is the only host-specific part: the parse, the
+ *  fingerprint check and the scan are all portable and all live in
  *  `vector-index.ts`.
  *
  *  **`None` is the ordinary answer.** No index installed is the default state of
@@ -190,9 +189,8 @@ export type LoadedVectorIndex =
  *  the work it gated is not a gate.
  *
  *  A host that has nothing to hand over provides nothing, and
- *  `SearchService.Live` falls back to reading `VectorIndexBytes` itself — which
- *  is the desktop and browser path, where the bytes are resolved once inside the
- *  layer anyway.
+ *  `SearchService.Live` falls back to reading `VectorIndexBytes` itself, once,
+ *  inside the layer.
  */
 export class ResolvedVectorIndex extends Context.Service<ResolvedVectorIndex, LoadedVectorIndex>()(
   '@bible/core/search/ResolvedVectorIndex',

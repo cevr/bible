@@ -71,7 +71,7 @@ const covered = (
 
 // The Daniel 8 verses and the fixture dictionary live in `phrase-fixture.ts`,
 // not here: Milestone 4's adapter check is "one shared fixture, byte-identical
-// offsets" across the worker, Electron main, and the CLI, and a fixture defined
+// offsets", and a fixture defined
 // inside a `*.test.ts` cannot be imported by another package's suite.
 
 // ---------------------------------------------------------------------------
@@ -532,7 +532,7 @@ describe('the dictionary (§4.8, §3.5)', () => {
 
   it('the Daniel 8 fixture is reachable from the testing subpath, not the production barrel', () => {
     // The fixture has to be *one* module — §10's adapter check is "one shared
-    // fixture, byte-identical offsets" across three hosts — and it therefore
+    // fixture, byte-identical offsets" — and it therefore
     // cannot hide in a `*.test.ts` the CLI's suite could not import. But
     // importable is not shippable: exported from `./wiki`, a verse of Daniel 8
     // and a five-entry dictionary sit in the namespace an app imports

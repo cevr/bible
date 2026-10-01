@@ -72,8 +72,8 @@ export type BookSubtype = typeof BookSubtype.Type;
  *  A rule rather than a filter, deliberately. A filter the reader could switch
  *  off would still be off by default for the one person who did not know the
  *  distinction existed, which is exactly the person the misquote would catch.
- *  Applied in `searchFilters`, so every query through this corpus — CLI,
- *  desktop reader, the search app — inherits it without opting in. */
+ *  Applied in `searchFilters`, so every query through this corpus — CLI, the
+ *  search app — inherits it without opting in. */
 export const EXCLUDED_SUBTYPES: ReadonlySet<BookSubtype> = new Set<BookSubtype>(['ModernEnglish']);
 
 /** The subtypes a reader may actually filter *by*, which is the union minus

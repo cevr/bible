@@ -14,7 +14,7 @@
 import { describe, expect, it, test } from 'effect-bun-test';
 import { Effect, Layer, Match, Option } from 'effect';
 
-import { QueryEmbedder, QueryEmbedderUnavailable, vectorsAgree } from './embedder.js';
+import { QueryEmbedder, QueryEmbedderUnavailable } from './embedder.js';
 import {
   goldenSearchLayer,
   goldenVector,
@@ -263,7 +263,7 @@ describe('§9.6 an absent index yields lexical-only results carrying the typed a
 
   it.effect('reports `embedder` when the index is present but no adapter is wired', () =>
     Effect.gen(function* () {
-      // The no-WebGPU web client (§9.5). A legal composition, not a broken one —
+      // A host with no embedder (§9.5). A legal composition, not a broken one —
       // which is why `QueryEmbedder` is read with `Effect.serviceOption`.
       const result = yield* search(
         { text: 'what happens at the close of probation' },
@@ -278,7 +278,7 @@ describe('§9.6 an absent index yields lexical-only results carrying the typed a
 
   it.effect('reports `embedder` when the adapter declines at embed time', () =>
     Effect.gen(function* () {
-      // WebGPU lost, or the model file gone after the layer was built. The same
+      // The model file gone after the layer was built. The same
       // reader-visible state as no adapter at all: one reason, one state.
       const declining = Layer.succeed(
         QueryEmbedder,
@@ -653,8 +653,8 @@ describe('§9.3 the locate-jump', () => {
 describe('§9.7 the golden query set', () => {
   it.effect('routes every query the way §9.3 says, with the absence §9.6 says', () =>
     Effect.gen(function* () {
-      // The set that the three clients run. Here it pins routing and fallback;
-      // the CLI/RPC parity tests pin that the *identities* agree across seams.
+      // The set every client runs. Here it pins routing and fallback; the CLI
+      // and daemon tests pin that the *identities* agree across seams.
       const layer = withIndex();
       for (const golden of GOLDEN_QUERIES) {
         const result = yield* queryWith(golden.query, layer);
@@ -673,37 +673,4 @@ describe('§9.7 the golden query set', () => {
       }
     }),
   );
-});
-
-describe('§9.7 the declared adapter tolerance', () => {
-  test('accepts vectors that differ by at most one int8 step on a few axes', () => {
-    const base = goldenVector('close of probation');
-    const nudged = Int8Array.from(base);
-    nudged[0] = (nudged[0] ?? 0) + 1;
-    nudged[7] = (nudged[7] ?? 0) - 1;
-    expect(vectorsAgree(base, nudged)).toBe(true);
-  });
-
-  test('rejects a vector that differs by more than one step anywhere', () => {
-    const base = goldenVector('close of probation');
-    const off = Int8Array.from(base);
-    off[3] = (off[3] ?? 0) + 4;
-    expect(vectorsAgree(base, off)).toBe(false);
-  });
-
-  test('rejects two vectors that differ by one step almost everywhere', () => {
-    // The bound that makes the first one mean something: every component may
-    // legitimately move by one, so "no component moved by more than one" is
-    // satisfied by two vectors that agree nowhere.
-    const base = goldenVector('close of probation');
-    const drifted = Int8Array.from(base, (value, axis) => {
-      if (axis % 4 === 0) return value;
-      return Math.max(-127, Math.min(127, value + 1));
-    });
-    expect(vectorsAgree(base, drifted)).toBe(false);
-  });
-
-  test('rejects vectors of different lengths', () => {
-    expect(vectorsAgree(new Int8Array(4), new Int8Array(8))).toBe(false);
-  });
 });

@@ -1,7 +1,7 @@
 /** §10 Milestone 9's remaining Core-tests clause, over the *real* lifecycle:
  *  "digest or size mismatch aborts and leaves the installed version active".
  *
- *  `platform-node/file-corpus-lifecycle.test.ts` already proves the installer
+ *  `platform-bun/file-corpus-lifecycle.test.ts` already proves the installer
  *  refuses those bytes. What that suite cannot see is the claim this milestone
  *  actually makes: that a client which *acted on a runtime offer* and got bad
  *  bytes is left with its working content and an honest report — not a failure
@@ -10,7 +10,7 @@
  *  So these run `ContentUpdate.update` end to end, over `CorpusSupply` and
  *  `layerNativeTopicsArtifacts` — the shipped installer, the shipped atomic
  *  swap, a real file on disk — with only the manifest and the release bytes
- *  under the test's control. `platform-node` is a permitted host boundary, and
+ *  under the test's control. `platform-bun` is a permitted host boundary, and
  *  a fake installer would have made the whole guarantee vacuous.
  */
 
@@ -32,7 +32,7 @@ import {
   layerNativeFileArtifacts,
   type NativeFileArtifactProvenanceStore,
   type NativeFileArtifactSource,
-} from '../platform-node/bible-artifact.js';
+} from '../platform-bun/bible-artifact.js';
 import {
   ContentManifest,
   ContentManifestEntry,
@@ -49,9 +49,8 @@ import {
 /** The bytes the release actually serves. A stand-in for a `topics.db`: the
  *  semantic verifier and the provenance store are both substituted below,
  *  because what is under test is the *supply* guarantee — digest, size, swap —
- *  and opening SQLite through `better-sqlite3` hard-crashes the Bun canary this
- *  repo tests under (the same reason `nativeTopicsReader` is a parameter, and
- *  the same substitution `file-corpus-lifecycle.test.ts` makes). */
+ *  and these bytes are not a database (the same substitution
+ *  `file-corpus-lifecycle.test.ts` makes). */
 const RELEASE_BYTES = 'the newer topics artifact';
 const RELEASE_DIGEST = `sha256:${bytesToHex(sha256(new TextEncoder().encode(RELEASE_BYTES)))}`;
 const ACTIVE_BYTES = 'the installed topics artifact';
@@ -121,7 +120,7 @@ interface FetchLog {
   readonly urls: () => readonly string[];
 }
 
-/** One host, wired the way Electron main is: the native topics lifecycle over a
+/** One host, wired the way the CLI is: the native topics lifecycle over a
  *  temp destination and a manifest source the test controls.
  *
  *  **The recipe carries no release source.** That is the whole point (round-3

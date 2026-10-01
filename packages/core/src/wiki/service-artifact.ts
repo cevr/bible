@@ -2,9 +2,9 @@
  *
  *  The three §3.5 states a host must keep apart — absent, present-and-readable,
  *  present-but-broken — are decided here once rather than per host. Only the
- *  SQLite driver differs between Bun, Electron main and the worker, so only the
- *  driver is a parameter: the file-existence check, the read-only open, and the
- *  mapping from each outcome onto `Absent` / `Live` / `Broken` are shared.
+ *  SQLite driver is host-specific, so only the driver is a parameter: the
+ *  file-existence check, the read-only open, and the mapping from each outcome
+ *  onto `Absent` / `Live` / `Broken` are shared.
  *
  *  Sharing this matters because the states are easy to conflate in exactly one
  *  direction. Every Node/Bun SQLite driver **creates** a missing file unless
@@ -17,8 +17,6 @@ import type * as SqlClient from 'effect/sql/SqlClient';
 
 import type { TopicService } from '../topics/service.js';
 import type { WikiSectionSources } from './section-composer.js';
-import type { UpdatableCorpus } from '../content-update/model.js';
-import { ContentActivation } from '../content-update/service.js';
 import { WikiService, type WikiServiceApi } from './service.js';
 
 /** Opens the artifact **read-only and without creating it**, in this host's
@@ -93,8 +91,8 @@ export { immutableFileUri as immutableFilename } from '../db/immutable-uri.js';
  *
  *  The update swaps `topics.db` with an atomic `rename` over the path. A
  *  connection opened `immutable=1` holds the old *inode*: it keeps serving the
- *  file it opened, and no per-call read can see past that — so a desktop that
- *  accepted an offer went on serving the previous content until the app was
+ *  file it opened, and no per-call read can see past that — so a host that
+ *  accepted an offer went on serving the previous content until it was
  *  restarted (round-3 F3). Seeing the replacement requires reopening the
  *  handle, and reopening the handle requires a seam that owns the handle's
  *  lifetime.
@@ -153,11 +151,8 @@ const opens = (service: WikiServiceApi): Effect.Effect<boolean> =>
  *  `reload` in one of them would rebuild a graph the other was not reading.
  *
  *  The chooser's whole decision re-runs on **every** build, not only the first,
- *  so absent→live and live→broken are both reachable by reload. That is what
- *  each host was missing in its own dialect: Electron main held an
- *  `immutable=1` inode that a rename could not reach, and the web worker read
- *  `topicsDatabase` once at construction and stayed `Absent` for the life of
- *  the worker after a first install. One seam, two choosers.
+ *  so absent→live and live→broken are both reachable by reload — an
+ *  `immutable=1` inode that a rename cannot reach is otherwise stuck.
  *
  *  The dependencies are provided from the *outer* context rather than rebuilt:
  *  `TopicService` and `WikiSectionSources` read other corpora, and a topics
@@ -166,8 +161,7 @@ export const layerReloadableWiki = <R>(
   /** The whole three-state decision, re-run on every reload. A *thunk* rather
    *  than a layer value because the decision must be re-made against the world
    *  as it is now: a layer built once would freeze whichever branch was true at
-   *  startup, which is precisely the absent→live case the web worker was stuck
-   *  in. */
+   *  startup, which is precisely the absent→live case. */
   choose: () => Layer.Layer<WikiService, never, R>,
 ): Layer.Layer<WikiService | ReloadableArtifact, never, R> =>
   Layer.effectContext(
@@ -254,31 +248,8 @@ export const layerReloadableWiki = <R>(
     }),
   );
 
-/** The host wiring §3.6's activation onto this seam.
- *
- *  `ContentUpdate` says *when* a reader must reopen; `ReloadableArtifact` knows
- *  *how*. Neither should import the other — the update policy has no business
- *  knowing the wiki exists, and the wiki has no business knowing about
- *  manifests — so the join lives here, in one layer both hosts provide, rather
- *  than as two copies of the same `Layer.effect` in Electron main and the
- *  worker.
- *
- *  Only `topics` reloads because only `topics` has a runtime artifact behind
- *  this service; a future corpus adds its own arm rather than being reloaded by
- *  accident. */
-export const layerReloadOnActivation: Layer.Layer<ContentActivation, never, ReloadableArtifact> =
-  Layer.effect(
-    ContentActivation,
-    Effect.map(ReloadableArtifact, (artifact) => ({
-      onActivated: (corpus: UpdatableCorpus) => {
-        if (corpus === 'topics') return artifact.reload;
-        return Effect.void;
-      },
-    })),
-  );
-
-/** The file-backed host's reloadable wiki: Electron main, whose artifact is a
- *  path on disk that §3.6 renames over. The `immutable=1` connection holds the
+/** The file-backed host's reloadable wiki, whose artifact is a path on disk
+ *  that §3.6 renames over. The `immutable=1` connection holds the
  *  old inode, so seeing the swap means rebuilding — including the existence
  *  check, so a first install goes from `Absent` to `Live` too. */
 export const layerReloadableArtifact = (

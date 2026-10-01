@@ -20,8 +20,7 @@ import { CorpusSupply, topicsReleaseSource } from '@bible/core/corpus-supply';
 import {
   layerNativeTopicsArtifacts,
   type NativeFileArtifactSource,
-} from '@bible/core/corpus-supply/node';
-import { sqliteProvenanceStore, verifyTopicsDatabase } from '@bible/core/corpus-supply/bun';
+} from '@bible/core/corpus-supply/bun';
 import { BunServices } from '@effect/platform-bun';
 import { Config, Context, Effect, Layer, Path } from 'effect';
 import { FetchHttpClient } from 'effect/http';
@@ -58,10 +57,6 @@ const installedTopicsSupply: Layer.Layer<CorpusSupply> = Layer.unwrap(
             },
             ...topicsReleaseSource(),
           ],
-          // Bun's own SQLite driver: `better-sqlite3` panics the compiled
-          // binary's Bun at open time, and the rules are shared either way.
-          verify: verifyTopicsDatabase,
-          provenanceStore: sqliteProvenanceStore,
         }),
       ),
     );
@@ -69,9 +64,8 @@ const installedTopicsSupply: Layer.Layer<CorpusSupply> = Layer.unwrap(
 );
 
 /** §3.6 under Bun: the portable policy over the platform's `fetch`, reading the
- *  manifest directly. Like Electron main and unlike the browser, the CLI has no
- *  origin to be same as, so it reads the pinned release URL — resolved through
- *  the same `Config` seam every host reads. */
+ *  manifest directly. The CLI has no origin to be same as, so it reads the
+ *  pinned release URL — resolved through the `Config` seam. */
 const installedContentLayer: Layer.Layer<ContentUpdate> = ContentUpdate.Live.pipe(
   Layer.provide(installedTopicsSupply),
   Layer.provide(layerHttpContentManifest),

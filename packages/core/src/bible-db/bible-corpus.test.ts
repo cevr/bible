@@ -186,7 +186,7 @@ describe('BibleCorpus + BibleDatabase', () => {
 
         // The asset's order, unsorted and unreordered. Without `ORDER BY rowid`
         // SQLite makes no promise at all here — the sequence is whatever the
-        // scan happens to produce, and the three hosts have no shared contract.
+        // scan happens to produce.
         expect(yield* read).toEqual(expected);
         // Stable across repeated queries, which is the property a client caching
         // a page and a client re-fetching it both depend on.

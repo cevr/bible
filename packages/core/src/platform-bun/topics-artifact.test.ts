@@ -1,80 +1,16 @@
 import { BunFileSystem } from '@effect/platform-bun';
 import { Database } from 'bun:sqlite';
-import { Effect, FileSystem, Option, Schema, type Scope } from 'effect';
+import { Effect, FileSystem, Option, type Scope } from 'effect';
 import { describe, expect, it as itBase } from 'effect-bun-test';
 
 import { TopicsArtifact } from '../corpus-supply/file-artifact.js';
 import type { CorpusProvenance } from '../corpus-supply/model.js';
 import { TOPICS_VERIFIER_CASES } from '../corpus-supply/topics-verifier-contract.js';
 import {
-  verifyTopicsArtifact,
-  type TopicsArtifactReader,
-} from '../corpus-supply/topics-verifier.js';
-import {
   layerNativeTopicsArtifacts,
+  verifyTopicsDatabase,
   type NativeFileArtifactProvenanceStore,
 } from './bible-artifact.js';
-
-/** A `bun:sqlite` `TopicsArtifactReader` — the *driver* half only.
- *
- *  The shipped native reader is written against `better-sqlite3`, which is what
- *  Electron loads, and whose NAPI binding hard-crashes the Bun canary this repo
- *  tests under (reproducible with a two-line script, and the reason the
- *  pre-existing `bible-artifact.test.ts` injects its `verify` instead of using
- *  the real one). That crash is a property of the driver, not of the verifier —
- *  so only the driver is substituted here. The rules under test are
- *  `verifyTopicsArtifact`, the same production function `verifyTopicsDatabase`
- *  runs and the browser adapter runs, applied to the same shared case matrix. */
-class ReadError extends Schema.TaggedError<ReadError>()('ReadError', {
-  message: Schema.String,
-}) {}
-
-const IntegrityRow = Schema.Struct({ integrity_check: Schema.String });
-const CountRow = Schema.Struct({ count: Schema.Finite });
-const ValueRow = Schema.Struct({ value: Schema.String });
-
-const decodeIntegrity = Schema.decodeUnknownOption(IntegrityRow);
-const decodeCount = Schema.decodeUnknownOption(CountRow);
-const decodeValue = Schema.decodeUnknownOption(ValueRow);
-
-const readFailure = (message: string): Effect.Effect<never, ReadError> =>
-  ReadError.make({ message });
-
-const bunTopicsReader = (database: Database): TopicsArtifactReader => ({
-  integrity: Effect.suspend(() =>
-    Option.match(decodeIntegrity(database.query('PRAGMA integrity_check').get()), {
-      onNone: () => readFailure('integrity_check returned no row'),
-      onSome: (row) => Effect.succeed(row.integrity_check),
-    }),
-  ).pipe(Effect.catchDefect((cause) => readFailure(String(cause)))),
-  meta: (key) =>
-    Effect.suspend(() =>
-      Effect.succeed(
-        Option.map(
-          decodeValue(database.query('SELECT value FROM meta WHERE key = ?').get(key)),
-          (row) => row.value,
-        ),
-      ),
-    ).pipe(Effect.catchDefect((cause) => readFailure(String(cause)))),
-  // A missing table makes the query itself throw; that is a read failure the
-  // verifier turns into a refusal, not a defect.
-  count: (table) =>
-    Effect.suspend(() =>
-      Option.match(decodeCount(database.query(`SELECT COUNT(*) AS count FROM ${table}`).get()), {
-        onNone: () => readFailure(`Cannot count ${table}`),
-        onSome: (row) => Effect.succeed(row.count),
-      }),
-    ).pipe(Effect.catchDefect((cause) => readFailure(String(cause)))),
-});
-
-/** `verifyTopicsDatabase`'s shape, with only the driver swapped: open the file,
- *  run the production verifier, close. */
-const verifyTopicsFile = (filename: string): Effect.Effect<number, unknown> =>
-  Effect.acquireUseRelease(
-    Effect.sync(() => new Database(filename, { readonly: true })),
-    (database) => verifyTopicsArtifact(bunTopicsReader(database)),
-    (database) => Effect.sync(() => database.close()),
-  );
 
 /** Writes a topics artifact with the §2.2 tables at `file`. `schemaMajor` is a
  *  string because `meta.value` is a TEXT column: a corrupt version field is a
@@ -160,7 +96,7 @@ describe('native Topics artifact', () => {
           destination,
           sources: [{ kind: 'workspace', path: incoming, label: 'workspace' }],
           provenanceStore: makeProvenanceStore(),
-          verify: verifyTopicsFile,
+          verify: verifyTopicsDatabase,
         }),
       );
 
@@ -186,7 +122,7 @@ describe('native Topics artifact', () => {
           destination,
           sources: [{ kind: 'workspace', path: bad, label: 'workspace' }],
           provenanceStore: makeProvenanceStore(),
-          verify: verifyTopicsFile,
+          verify: verifyTopicsDatabase,
         }),
       ).pipe(Effect.exit);
 
@@ -207,18 +143,17 @@ describe('Topics semantic verifier — native adapter', () => {
         const file = `${yield* scratch()}/topics.db`;
         writeArtifact(file, testCase.fixture);
         if (testCase.outcome.kind === 'accepted') {
-          expect(yield* verifyTopicsFile(file)).toBe(testCase.outcome.installed);
+          expect(yield* verifyTopicsDatabase(file)).toBe(testCase.outcome.installed);
           return;
         }
-        expect(yield* Effect.flip(verifyTopicsFile(file))).toBe(testCase.outcome.message);
+        expect(yield* Effect.flip(verifyTopicsDatabase(file))).toBe(testCase.outcome.message);
       }),
     );
   }
 
-  /** Not in the shared matrix: a browser generation is an OPFS file the store
-   *  reserved, so "the tables were never created" is a state only the native
-   *  adapter can be handed. The rule it proves is shared — a read that fails is
-   *  a refusal, not a defect — but the fixture is not portable. */
+  /** Not in the shared matrix: "the tables were never created" is a state only
+   *  a native adapter can be handed. The rule it proves is shared — a read
+   *  that fails is a refusal, not a defect — but the fixture is not portable. */
   it('rejects a file missing the artifact tables', () =>
     Effect.gen(function* () {
       const file = `${yield* scratch()}/topics.db`;
@@ -226,7 +161,7 @@ describe('Topics semantic verifier — native adapter', () => {
       database.exec('CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
       database.prepare('INSERT INTO meta (key, value) VALUES (?, ?)').run('schema_major', '1');
       database.close();
-      const exit = yield* Effect.exit(verifyTopicsFile(file));
+      const exit = yield* Effect.exit(verifyTopicsDatabase(file));
       expect(exit._tag).toBe('Failure');
     }));
 });

@@ -1,11 +1,10 @@
 /** §9.7's golden query set, and the corpus it runs against.
  *
- *  "One golden query set runs on web, desktop, and CLI. Ordered result
- *  identities and fallback behavior must match within declared numeric
- *  tolerances." That is only checkable if there is *one* set, in one module, that
- *  all three clients import — a fixture copied into three suites is three
- *  fixtures whose agreement is a coincidence waiting to end, which is the
- *  argument `wiki/testing.ts` already makes for the Daniel 8 phrase fixture.
+ *  "Ordered result identities and fallback behavior must match within declared
+ *  numeric tolerances." That is only checkable if there is *one* set, in one
+ *  module, that every client imports — a fixture copied into several suites is
+ *  several fixtures whose agreement is a coincidence waiting to end, which is
+ *  the argument `wiki/testing.ts` already makes for the Daniel 8 phrase fixture.
  *
  *  Exported through `@bible/core/search/testing`, never through
  *  `@bible/core/search`: a synthetic ten-paragraph corpus sitting in the
@@ -247,8 +246,8 @@ export const goldenVectorIndexBytes = (fingerprint: string = MODEL_FINGERPRINT):
  *  asserts that this query names this slug.
  *
  *  With an empty catalog every assertion about the group is vacuously true —
- *  "topics is an array" passes, and so does "the two hosts' topic sets are
- *  equal", because both are empty. That is what this one entry exists to stop.
+ *  "topics is an array" passes, and so does "two topic sets are equal",
+ *  because both are empty. That is what this one entry exists to stop.
  *
  *  The name is the query text verbatim because `TopicService.Test` matches by
  *  substring on the name — the double's rule, not the corpus's. The slug is
@@ -294,7 +293,7 @@ export const goldenTopicCatalog: Layer.Layer<WikiService> = WikiService.Absent.p
 /** One golden query and what §9 says must happen to it.
  *
  *  The expectation is the *route* and the *vector absence*, not a result list.
- *  §9.7 asks the three clients to agree on "ordered result identities and
+ *  §9.7 asks clients to agree on "ordered result identities and
  *  fallback behavior", and the identities are compared client-to-client at run
  *  time — pinning them here would pin this fixture corpus into the acceptance
  *  rule, and the rule is about agreement rather than about these ten paragraphs.
@@ -322,8 +321,8 @@ const query = (input: {
 /** The set, when a valid index and a working embedder are both present.
  *
  *  Six queries, each the only one covering its branch. Anything a seventh would
- *  add is a variation on one of these, and §9.7's rule is that three clients
- *  agree — which a longer set makes slower to check and no stronger. */
+ *  add is a variation on one of these, and §9.7's rule is that clients agree —
+ *  which a longer set makes slower to check and no stronger. */
 export const GOLDEN_QUERIES: readonly GoldenQuery[] = [
   {
     label: 'quoted phrase routes lexical-only',
@@ -401,8 +400,8 @@ export const goldenSearchLayer = (input?: {
 
   const service = SearchService.Live.pipe(Layer.provide(goldenSearchSources), Layer.provide(bytes));
   // `QueryEmbedder` is read with `Effect.serviceOption`, so a fixture without
-  // one is the no-WebGPU host and a fixture with one is the two native
-  // adapters — the same composition difference the real hosts have.
+  // one is a host with no embedder and a fixture with one is a host that has
+  // one.
   return Option.match(Option.fromNullishOr(input?.embedder), {
     onNone: () => service,
     onSome: (embedder) => service.pipe(Layer.provide(embedder)),

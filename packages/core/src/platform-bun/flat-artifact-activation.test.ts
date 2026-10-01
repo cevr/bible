@@ -48,7 +48,7 @@ const generationPath = (destination: string, bytes: string): string =>
 
 const sidecarPath = (filename: string): string => `${filename}.provenance.json`;
 
-/** One host wired the way Electron main wires §9.2's index: the flat layout,
+/** One host wired for §9.2's index: the flat layout,
  *  the real sidecar store, and whichever sources the case declares. */
 const hostFor = (input: {
   readonly destination: string;

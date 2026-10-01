@@ -56,9 +56,8 @@ import { searchDaemonSocketPath } from './search-daemon-protocol.js';
  *  host has already turned its bytes into an index. Providing `None` says the
  *  bytes are not to be read again rather than leaving the requirement dangling.
  *
- *  The desktop host reaches the same guarantee through `CorpusSupply`, whose
- *  installer runs the same parser before the atomic swap. The CLI reads whatever
- *  is already on disk, so it applies the gate at read time instead. */
+ *  The CLI reads whatever is already on disk, so it applies the gate at read
+ *  time. */
 /** Read the gate's decision from the supplied byte source. The source layer is
  *  provided here, at this operation's own boundary. */
 const resolveVectorIndex = (source: Layer.Layer<VectorIndexBytes>) =>
@@ -138,8 +137,7 @@ export const installedSearchLayer: Layer.Layer<SearchService> = Layer.unwrap(
       Layer.provide(verifiedVectorIndex(at('vectors.bvi'))),
       // Provided rather than omitted so the CLI *can* run the vector leg. If
       // the model is not present locally the adapter declines and the result
-      // carries §9.6's `embedder` absence — the no-WebGPU browser's state,
-      // expressed on a different host.
+      // carries §9.6's `embedder` absence.
       Layer.provide(layerBunEmbedder),
     );
   }).pipe(Effect.provide(BunServices.layer), Effect.orDie),

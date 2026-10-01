@@ -1,11 +1,11 @@
 /** Test-only surface of `@bible/core/wiki`, behind its own subpath.
  *
  *  The Daniel 8 fixture has to be *one* module — §10's Milestone 4 adapter
- *  check is "identical `PhraseSpan` output for the same input text in the web
- *  worker, Electron main, and the Bun CLI — one shared fixture, byte-identical
- *  offsets", and a fixture copied into three suites is three fixtures whose
- *  agreement is a coincidence waiting to end. The CLI's suite lives in another
- *  package, so the fixture cannot live in a `*.test.ts`.
+ *  check is "identical `PhraseSpan` output for the same input text — one shared
+ *  fixture, byte-identical offsets", and a fixture copied into several suites
+ *  is several fixtures whose agreement is a coincidence waiting to end. The
+ *  CLI's suite lives in another package, so the fixture cannot live in a
+ *  `*.test.ts`.
  *
  *  But "importable across packages" is not "part of the product". Exported
  *  through `./wiki`, a verse of Daniel 8 and a five-entry dictionary sit in the

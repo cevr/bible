@@ -4,12 +4,11 @@
  *  proves the mapping from a response onto §3.6's outcomes, and nothing about
  *  the client that produces the response — a stub has no socket, no status
  *  line and no header parsing, so a host whose shipped `HttpClient` mishandled
- *  any of them passed anyway. Milestone 9's claim is about the three shipped
- *  transports, so the table has to reach at least one of them for real.
+ *  any of them passed anyway. Milestone 9's claim is about the shipped
+ *  transport, so the table has to reach it for real.
  *
  *  This is the Bun leg: the client the CLI composes, against a Bun HTTP server
- *  on loopback, compared against the one `ADAPTER_EXPECTATIONS`. The Electron
- *  and browser legs went with the desktop and web readers.
+ *  on loopback, compared against the one `ADAPTER_EXPECTATIONS`.
  */
 
 import { Effect, Option } from 'effect';

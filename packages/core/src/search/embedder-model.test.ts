@@ -1,33 +1,25 @@
-/** §10's adapter check: "transformers.js WebGPU adapter, native CPU adapter
- *  under Electron main, and native CPU adapter under Bun all produce query
- *  vectors for the same pinned fingerprint that agree within the declared
- *  numeric tolerance."
+/** The Bun query embedder against the real pinned model (§9.5, §10).
  *
  *  **This suite skips loudly.** Model weights are not committed (§10), so on a
- *  machine that has never downloaded EmbeddingGemma there is nothing to compare
- *  and the honest outcome is a *reported* skip — never a pass. A parity check
- *  that quietly succeeds when it ran nothing is worse than no parity check: it
- *  is the same green as a real one.
+ *  machine that has never downloaded EmbeddingGemma there is nothing to check
+ *  and the honest outcome is a *reported* skip — never a pass. A check that
+ *  quietly succeeds when it ran nothing is the same green as a real one.
  *
- *  What runs here is the Bun and Electron-main pair, which share this process's
- *  runtime. The WebGPU adapter cannot run under Bun at all — there is no GPU
- *  device outside a browser — and its host, the web reader, has been removed,
- *  so that leg no longer runs anywhere.
+ *  The Bun adapter is the only query embedder.
  */
 
 import { describe, expect, it } from 'bun:test';
 import { Array as Arr, Console, Effect, Option, Result } from 'effect';
 import type { Layer } from 'effect';
 
-import { QueryEmbedder, vectorsAgree } from './embedder.js';
+import { QueryEmbedder } from './embedder.js';
 import { layerBunEmbedder } from './embedder-bun.js';
-import { layerNodeEmbedder } from './embedder-node.js';
 import { DOCUMENT_PREFIX, QUERY_PREFIX, truncateToMrl } from './embedder-transformers.js';
 import { GOLDEN_QUERIES } from './golden-fixture.js';
 import { DIMENSIONS, MODEL_FINGERPRINT } from './vector-index.js';
 
-/** The queries the two adapters are compared on: §9.7's own set, so the parity
- *  check and the acceptance rule cannot drift apart. */
+/** The queries the adapter is exercised on: §9.7's own set, so this check and
+ *  the acceptance rule cannot drift apart. */
 const QUERIES = GOLDEN_QUERIES.map((golden) => golden.query.text);
 
 const embedWith = (layer: Layer.Layer<QueryEmbedder>, query: string) =>
@@ -59,7 +51,7 @@ const embedDocumentWith = (layer: Layer.Layer<QueryEmbedder>, text: string) =>
 const probe = await Effect.runPromise(embedWith(layerBunEmbedder, 'probe'));
 const modelAvailable = Result.isSuccess(probe);
 
-describe('§10 embedding adapter parity', () => {
+describe('§10 the Bun embedding adapter', () => {
   it('reports whether the model was available, so a skip is never silent', () =>
     // Deliberately always green, and deliberately loud. Its whole job is to put
     // the reason in the output when the substantive tests below skip, so a run
@@ -72,8 +64,8 @@ describe('§10 embedding adapter parity', () => {
             onSuccess: () => 'unknown',
           });
           yield* Console.warn(
-            `[search] adapter parity SKIPPED — ${MODEL_FINGERPRINT} is not loadable here: ${reason}\n` +
-              `[search] set BIBLE_MODEL_CACHE, or fetch the model, to run the real comparison.`,
+            `[search] embedder model checks SKIPPED — ${MODEL_FINGERPRINT} is not loadable here: ${reason}\n` +
+              `[search] set BIBLE_MODEL_CACHE, or fetch the model, to run the real checks.`,
           );
         }
         // The probe resolved one way or the other, which is what makes the
@@ -83,38 +75,15 @@ describe('§10 embedding adapter parity', () => {
     ));
 
   it.skipIf(!modelAvailable)(
-    'the Bun and Electron-main adapters agree within the declared tolerance',
-    () =>
-      Effect.runPromise(
-        Effect.gen(function* () {
-          for (const query of QUERIES) {
-            const bun = yield* embedWith(layerBunEmbedder, query);
-            const node = yield* embedWith(layerNodeEmbedder, query);
-            expect(Result.isSuccess(bun)).toBe(true);
-            expect(Result.isSuccess(node)).toBe(true);
-            if (Result.isFailure(bun) || Result.isFailure(node)) return;
-            expect({ query, agree: vectorsAgree(bun.success, node.success) }).toEqual({
-              query,
-              agree: true,
-            });
-          }
-        }),
-      ),
-    120_000,
-  );
-
-  it.skipIf(!modelAvailable)(
-    'both adapters declare the pinned fingerprint',
+    'the adapter declares the pinned fingerprint',
     () =>
       // The precondition the whole vector leg rests on: an adapter whose
       // fingerprint disagreed with the index's would be refused at query time,
-      // and §10's mismatch test only means something if the shipping adapters
-      // agree with the constant.
+      // and §10's mismatch test only means something if the shipping adapter
+      // agrees with the constant.
       Effect.runPromise(
         Effect.gen(function* () {
-          for (const layer of [layerBunEmbedder, layerNodeEmbedder]) {
-            expect(yield* fingerprintOf(layer)).toBe(MODEL_FINGERPRINT);
-          }
+          expect(yield* fingerprintOf(layerBunEmbedder)).toBe(MODEL_FINGERPRINT);
         }),
       ),
     120_000,
@@ -139,11 +108,9 @@ describe('§10 embedding adapter parity', () => {
 
 /** §9.5's retrieval contract, against the real weights.
  *
- *  These are the tests that would have caught the mean-pooling defect. The
- *  adapter parity checks above compare two adapters to *each other*, and two
- *  adapters running the same wrong graph agree perfectly — so parity alone is
- *  blind to the one failure that matters most: an embedding that is the right
- *  shape and the wrong geometry.
+ *  These are the tests that would have caught the mean-pooling defect. Shape
+ *  and fingerprint checks are blind to the one failure that matters most: an
+ *  embedding that is the right shape and the wrong geometry.
  *
  *  What is checked instead is a property of the *model*: a query must sit closer
  *  to the paragraph that answers it than to one that does not. That is the only
@@ -237,9 +204,10 @@ describe('§9.5 the retrieval embedding, against the real model', () => {
 
 /** The device-independent half of the adapter, which every machine can check.
  *
- *  §9.5's MRL truncation and §9.2's quantization are where two adapters would
- *  most plausibly diverge — they are arithmetic each host could have spelled
- *  itself — so they are shared code, and this is the test that says so. It runs
+ *  §9.5's MRL truncation and §9.2's quantization are where the query embedder
+ *  and the vector compiler would most plausibly diverge — they are arithmetic
+ *  each could have spelled itself — so they are shared code, and this is the
+ *  test that says so. It runs
  *  whether or not the model is present, because it needs no model. */
 describe('§9.5 the shared vector post-processing', () => {
   /** Unwraps a row this build accepts. A `None` here is the test's own premise

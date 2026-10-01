@@ -5,10 +5,9 @@
  *  the app's is refused; … offline yields the pinned floor with no error."
  *
  *  Every case here runs `decideUpdate` directly, because that is the *whole* of
- *  the policy: the three hosts differ only in how the manifest bytes arrive, so
- *  a policy test that went through a transport would be testing the transport.
- *  The transport's own claim — that all three refuse the same overrun — is
- *  `manifest-http.test.ts` plus the three host suites.
+ *  the policy: a policy test that went through a transport would be testing the
+ *  transport. The transport's own claim — that it refuses the same overrun — is
+ *  `manifest-http.test.ts` plus `manifest-live.test.ts`.
  */
 
 import { Effect, Option, Schema } from 'effect';

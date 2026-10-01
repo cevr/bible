@@ -1,12 +1,7 @@
-/** The Topics verifier's contract, as one matrix both adapters are run against.
+/** The Topics verifier's contract, as one matrix every adapter is run against.
  *
- *  The native and browser gates must refuse exactly the same candidates: a gate
- *  that holds on desktop and leaks in the browser is no gate. The two suites
- *  previously restated the cases separately and had already drifted — the native
- *  side asserted a "too new" message the browser side did not produce, and
- *  covered cases the browser matrix omitted. One shared matrix removes the
- *  possibility: a case added here is a case both adapters must satisfy, and
- *  neither suite can quietly stop testing it.
+ *  A case added here is a case an adapter must satisfy, and no suite can
+ *  quietly stop testing it.
  *
  *  Not a `.test.ts` file, so another package's suite can import it without its
  *  test runner trying to execute it as a suite. */

@@ -29,8 +29,8 @@
  *  **Every tier is optional and the fallback is the specification.** A checkout
  *  that never runs `scripts/build-native.sh` has no artifacts and answers from
  *  the TypeScript loop — correct, only slower. That is what keeps
- *  `vector-index.ts`'s promise that the scan "runs byte-identically in a
- *  browser worker and in Electron and under Bun": the *result* is identical
+ *  `vector-index.ts`'s promise that the scan "runs byte-identically on every
+ *  host": the *result* is identical
  *  everywhere, and only the speed is not.
  *
  *  **Identical rather than merely close.** The accelerators compute dot

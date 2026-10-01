@@ -2,25 +2,18 @@
  *  what the wire carries (§10 Milestone 6).
  *
  *  The acceptance is "`bible wiki topic <slug> --json` matches, section for
- *  section and identity for identity, what the UI renders". Three suites assert
- *  a piece of it, and until this module all three asserted it over pages whose
- *  sections were **empty**:
- *
- *  - `packages/cli/test/commands/wiki.test.ts` ran the real command against
- *    `WikiSectionSources.NotWired`, so what it proved was six empty lists in the
- *    right order.
- *  - the reader app's page-identity test built a page by hand and checked
- *    headings, postures and overlay text — never that the markup draws an
- *    item per item.
- *  - the desktop reader's e2e suite seeded a topic with no sources at all and
- *    checked the heading.
+ *  section and identity for identity, what the UI renders". Until this module
+ *  `packages/cli/test/commands/wiki.test.ts` asserted it over pages whose
+ *  sections were **empty**: it ran the real command against
+ *  `WikiSectionSources.NotWired`, so what it proved was six empty lists in the
+ *  right order.
  *
  *  Six empty sections satisfy almost any projection, including a deleted one. So
  *  this module is the one fixture with content in **every** section, and the one
  *  wiring that produces it: `wikiPageFixtureSources()` is a real
  *  `WikiSectionSources.Live` over test corpora, so the CLI runs the actual
  *  composer over actual rows rather than being handed a page. The identities
- *  below are what all three suites assert, and they are stated once.
+ *  below are what the suites assert, and they are stated once.
  *
  *  Test-only, and reached through `@bible/core/wiki/testing` for the reason
  *  `phrase-fixture.ts` is: importable across packages is not part of the
@@ -38,7 +31,6 @@ import { Reference, type VerseReference } from '../bible/model.js';
 import { EGWCommentaryService } from '../egw-commentary/service.js';
 import { EGWParagraphDatabase } from '../egw-db/book-database.js';
 import type * as EGWSchemas from '../egw/schemas.js';
-import { procedureDependencies } from '../procedure/testing.js';
 import { TopicDetail, TopicId, TopicReference, TopicSection } from '../topics/model.js';
 import { TopicService } from '../topics/service.js';
 import { EGW_SCOPE_AUTHORS } from '../writings/corpus-scope.js';
@@ -65,9 +57,8 @@ import { WikiService } from './service.js';
 
 /** The page under test, and the identities every seam asserts.
  *
- *  `sanctuary` because the phrase really occurs in the corpora the desktop e2e
- *  has installed, so the packaged app's FTS produces hits for sections 2 and 4
- *  rather than the e2e having to accept a gap there.
+ *  `sanctuary` because the phrase really occurs in the installed corpora, so
+ *  FTS produces hits for sections 2 and 4 rather than a gap there.
  *
  *  The key verses are John 11's, which is what the Nave's-shaped catalog entry
  *  below points at — the composer takes section 1 from the catalog, and the
@@ -277,20 +268,14 @@ const PARAGRAPHS = [
 ];
 
 /** The identities each section renders, in order — one line per item, the line
- *  the reader can point at. Asserted by the CLI suite over the encoded page, by
- *  the app suite over the JSX's own projection, and by the desktop e2e over the
- *  rendered DOM. Stated here so the three cannot drift into agreeing about
- *  different things. */
+ *  the reader can point at. Asserted by the CLI suite over the encoded page. */
 export type WikiPageFixtureIdentities = Readonly<Record<WikiSectionKind, readonly string[]>>;
 
 /** The identities one lineup carries, read straight off the model.
  *
- *  This is the *wire's* answer to "what does each section name". The app's
- *  `wiki-section-items.ts` derives the same strings from the projection its JSX
- *  maps over, and the desktop e2e reads them out of the rendered DOM — so the
- *  three seams compare their own answer against {@link WIKI_PAGE_FIXTURE_IDENTITIES}
- *  and, through it, against each other. A UI that drew a different field, or
- *  drew nothing, disagrees with this. */
+ *  This is the *wire's* answer to "what does each section name", compared
+ *  against {@link WIKI_PAGE_FIXTURE_IDENTITIES}. A UI that drew a different
+ *  field, or drew nothing, disagrees with this. */
 export const wikiSectionIdentities = (sections: WikiSectionLineup): WikiPageFixtureIdentities => ({
   'key-verses': sections[0].items.map((passage) => passage.label),
   'egw-statements': sections[1].items.map((hit) => hit.refcode),
@@ -400,19 +385,8 @@ export const WIKI_ARTIFACT_DDL = `
  *  not a stub of it — so a suite that provides this runs the real composer. The
  *  CLI suite provides it in place of `NotWired`, which is the whole of what made
  *  its assertions vacuous. */
-/** The fixture library, named rather than inlined.
- *
- *  It has to be nameable because a suite that provides *both* this fixture's
- *  `WikiSectionSources` and the rest of `BibleProcedureHandlers`'s graph would
- *  otherwise wire two `WritingsService.Live` builds into one layer build — and
- *  `WritingsService.Live` is one layer *object*, so the build memoizes it by
- *  identity and whichever of the two is constructed first wins for both. The
- *  handler's writings graph is built from `procedureDependencies`'s empty
- *  default, so the loser was this one: `v1.wiki.lookup.resolve` answered with an
- *  empty EGW group while the same service called directly answered with two
- *  hits, which is exactly the kind of drift `lookup-parity.test.ts` exists to
- *  catch. Passing this layer as that suite's `writings` override makes the two
- *  candidates the same library, so the memo has nothing to choose between. */
+/** The fixture library, named so the lookup fixture and the page sources
+ *  share one `WritingsService.Live` build rather than racing two. */
 export const WIKI_PAGE_FIXTURE_WRITINGS: Layer.Layer<WritingsService> = WritingsService.Live.pipe(
   Layer.provide(EGWParagraphDatabase.Test({ books: BOOKS, paragraphs: PARAGRAPHS })),
 );
@@ -532,8 +506,8 @@ export const WIKI_LOOKUP_FIXTURE_DICTIONARY: PhraseDictionary = PhraseDictionary
  *
  *  The real service over the real `WikiSectionSources` this module already
  *  builds, so all five groups are exercised by the same four corpora a topic
- *  page composes from — the CLI's stdout, the RPC handler and any host round
- *  trip then compare one input rather than three hand-copied ones.
+ *  page composes from, and every suite compares one input rather than
+ *  hand-copied ones.
  *
  *  The wiki half is a dictionary-only stand-in rather than the artifact layer:
  *  the artifact path needs `bun:sqlite` and a temp file, which is
@@ -553,17 +527,3 @@ export const WIKI_LOOKUP_FIXTURE_LAYER: Layer.Layer<LookupService> = LookupServi
   ),
   Layer.provide(WIKI_PAGE_FIXTURE_SOURCES),
 );
-
-/** Everything `BibleProcedureHandlers` requires, with the lookup seam wired to
- *  {@link WIKI_LOOKUP_FIXTURE_LAYER}.
- *
- *  The same shape `studyProcedureDependencies` has, and for the same reason:
- *  a suite proving `v1.wiki.lookup.resolve` against the CLI needs the whole
- *  handler graph, and only one corner of it is the subject. */
-export const wikiLookupProcedureDependencies = procedureDependencies({
-  lookup: WIKI_LOOKUP_FIXTURE_LAYER,
-  // The same library the lookup layer reads, so the one memoized
-  // `WritingsService.Live` build serves both — see
-  // {@link WIKI_PAGE_FIXTURE_WRITINGS}.
-  writings: WIKI_PAGE_FIXTURE_WRITINGS,
-});
