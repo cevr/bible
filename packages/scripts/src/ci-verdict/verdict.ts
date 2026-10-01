@@ -1,5 +1,5 @@
 // CI's verdict on one commit: the gate workflow's run for it, as `gh` reports
-// it, read into one line a ledger row can carry (the run id, the conclusion,
+// it, read into one line (the run id, the conclusion,
 // and the jobs that failed, each with the step it stopped in and how long that
 // step ran). A job cancelled by its time limit also names its own time and the
 // step that spent the most of it, which is not always the step the limit
@@ -105,27 +105,6 @@ export const failedJobs = (jobs: GateJobs): ReadonlyArray<string> =>
       }),
     );
 
-/** What `bun run ci` was asked about: one commit, or the first-parent commits of `base..head`. */
-export type Target =
-  | { readonly _tag: 'Commit'; readonly ref: string }
-  | { readonly _tag: 'Range'; readonly base: string; readonly head: string };
-
-/** `a..b` is a range (an empty side is HEAD, as git reads it); anything else one commit. */
-export const targetOf = (arg: string): Target => {
-  const at = arg.indexOf('..');
-  if (at < 0) return { _tag: 'Commit', ref: arg };
-  const side = (ref: string) =>
-    Option.getOrElse(
-      Option.liftPredicate(ref, (r) => r !== ''),
-      () => 'HEAD',
-    );
-  return { _tag: 'Range', base: side(arg.slice(0, at)), head: side(arg.slice(at + 2)) };
-};
-
-/** A commit in a range with no gate run of its own: it was pushed inside a later push. */
-export const noRunLine = (sha: string): string =>
-  `ci none sha=${sha.slice(0, 8)} (no run of its own: pushed inside a later push)`;
-
 /** The verdict as one line: `ci <conclusion> run=<id> sha=<short>`, the failed jobs when any, the URL. */
 export const verdictLine = (run: GateRun, failed: ReadonlyArray<string>): string =>
   [
@@ -141,71 +120,3 @@ export const verdictLine = (run: GateRun, failed: ReadonlyArray<string>): string
     }),
     run.url,
   ].join(' ');
-
-const short = (sha: string) => sha.slice(0, 8);
-
-/** A ci line as the loop pastes it: `ci <conclusion> run=<id> sha=<short>`, or `ci none sha=<short>`. */
-const CI_LINE = /\bci [a-z_]+ (?:run=\d+ )?sha=([0-9a-f]{8})/g;
-
-/** The short shas `ledger` holds a ci line for; a sha named in prose is not one. */
-const recordedIn = (ledger: string): ReadonlySet<string> =>
-  new Set(Array.from(ledger.matchAll(CI_LINE), (m) => m[1] ?? ''));
-
-/** The commits among `shas` whose ci line `ledger` lacks. */
-export const unrecorded = (ledger: string, shas: ReadonlyArray<string>): ReadonlyArray<string> => {
-  const recorded = recordedIn(ledger);
-  return shas.filter((sha) => !recorded.has(short(sha)));
-};
-
-/**
- * Of `history` (first-parent commits, newest first), the ones after the oldest
- * commit `ledger` records that it lacks a line for, oldest first: a gap behind
- * a recorded commit is still named. None when the ledger records none of them.
- */
-export const sinceRecording = (
-  ledger: string,
-  history: ReadonlyArray<string>,
-): Option.Option<ReadonlyArray<string>> => {
-  const recorded = recordedIn(ledger);
-  const oldest = history.findLastIndex((sha) => recorded.has(short(sha)));
-  if (oldest < 0) return Option.none();
-  return Option.some(unrecorded(ledger, history.slice(0, oldest).toReversed()));
-};
-
-/** The loop's ledgers: a commit that changes only these is the one that pastes ci lines. */
-const LEDGER = /^apps\/animations\/plans\/architecture-loop-[^/]*\.md$/;
-
-/** What the ledgers lack among `commits`, oldest first. */
-export interface LedgerAccount {
-  /** Commits with no ci line: each is pasted onto its row. */
-  readonly missing: ReadonlyArray<string>;
-  /**
-   * The last commit, when it lacks a line and changes only the ledgers (`headPaths`):
-   * it is the commit that records the others, and cannot hold its own line.
-   */
-  readonly pending: Option.Option<string>;
-}
-
-/** The ledgers' account of `commits`, given the paths the last of them changes. */
-export const ledgerAccount = (
-  ledger: string,
-  commits: ReadonlyArray<string>,
-  headPaths: ReadonlyArray<string>,
-): LedgerAccount => {
-  const lacking = unrecorded(ledger, commits);
-  const records = headPaths.length > 0 && headPaths.every((path) => LEDGER.test(path));
-  const pending = Option.filter(
-    Option.fromUndefinedOr(commits.at(-1)),
-    (head) => records && lacking.at(-1) === head,
-  );
-  if (Option.isNone(pending)) return { missing: lacking, pending };
-  return { missing: lacking.slice(0, -1), pending };
-};
-
-/** A commit with no line on the ledger, printed after the verdicts. */
-export const missingLine = (sha: string): string =>
-  `ledger missing sha=${short(sha)}: paste its ci line onto its row`;
-
-/** A last commit that changes only the ledgers, printed after the verdicts: the next record carries it. */
-export const pendingLine = (sha: string): string =>
-  `ledger pending sha=${short(sha)}: it changes only the ledgers; the next record carries its line`;
