@@ -1676,6 +1676,28 @@ scene); `layout()` carries them into `Placed.knobs`. With `drawing(...)`,
 stays `number`, a point `readonly [number, number]`). Promoting a constant to
 a knob draws the same frame; it is what lets the lab tweak it.
 
+## Painted plates
+
+A shot can be a moving painting rather than a cutout: plates at depth in a
+`multiplane`, each painted once, and a slow eased camera through them
+(`apps/animations/src/films/arcane-proto` is the worked example).
+
+- `canvas/paint.ts`: `drawPainting(ctx, painting, x, y)` paints a `Painting`
+  (a `guide` drawn flat, then brushed over by its `Brush`: stroke layers from
+  coarse to fine, laid along the guide's edges or the brush's `flow`, a
+  `hatch` in the deep shade). Seeded and cached per declaration, so a frame
+  only draws the finished plate. A flickering light is two paintings of one
+  guide (lit and dim) crossfaded by `flicker` (`core/random.ts`).
+- `canvas/atmosphere.ts`: `motes` (dust, embers: seeded, drifting, twinkling)
+  and `rays` (soft light shafts from a point).
+- `canvas/camera.ts`: `planeView` is the view a plane at `z` sees through the
+  shot; `planePoint` is where a point on that plane lands on screen, so a
+  shaft or a sun's rays can join planes at different depths. A `multiplane`'s
+  `haze` takes a sky of stops as well as one colour.
+- `canvas/grade.ts`, through `finish` in `createFilm`: `bloom` (bright parts
+  bleed light) and `grade` (an S curve, split toning of the shadows and the
+  highlights, and saturation), applied before the grain.
+
 ## The purity rule
 
 `src/core` never touches the DOM at runtime (type-only DOM references are

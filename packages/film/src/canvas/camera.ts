@@ -1,7 +1,10 @@
 // A camera over a scene's world: (x, y) is the world point at frame centre.
 
+import { Predicate } from 'effect';
 import { lerp } from '../core/time.ts';
+import type { Clear, Hex } from './colour.ts';
 import { raised } from './cutout.ts';
+import { sky } from './glow.ts';
 import { PLANE_FIBRE, planeFibre } from './fibre.ts';
 
 export interface Camera {
@@ -392,8 +395,12 @@ interface Depth {
    * planes drift apart as the camera leaves it. Defaults to the frame centre.
    */
   rest?: readonly [number, number];
-  /** Paper colour far planes fade into. */
-  haze?: string;
+  /**
+   * What far planes fade into: a colour over the whole frame, or a sky of
+   * stops top to bottom (`sky`'s [position 0..1, colour]), so the air can
+   * glow at the horizon and thin overhead.
+   */
+  haze?: string | ReadonlyArray<readonly [number, Hex | Clear]>;
   /** How fast they fade: one unit of z past the focal plane shows `1 - e^-haze`. Defaults to 0. */
   thickness?: number;
   /** Blur in px per unit of z away from the focal plane. Defaults to 0. */
@@ -410,6 +417,47 @@ interface Depth {
 
 /** The drifted camera of the multiplane shot drawing now, rewritten by each (a plane may hold a shot of its own). */
 const planing: Camera = { x: 0, y: 0 };
+
+/**
+ * The camera a plane at depth `z` is drawn through when the shot looks
+ * through `cam`, written into `out`: its pan from `rest` divided by `z` and
+ * its zoom the `z`-th root of the shot's, so the focal plane (`z` 1) moves
+ * with the shot, a far plane barely moves and a near one sweeps past. The
+ * turn is the shot's. Pure; `out` may be `cam`.
+ */
+export const planeView = (
+  out: Camera,
+  cam: Camera,
+  z: number,
+  rest: readonly [number, number],
+): Camera => {
+  const d = Math.max(z, 1e-3);
+  const [rx, ry] = rest;
+  out.x = rx + (cam.x - rx) / d;
+  out.y = ry + (cam.y - ry) / d;
+  out.zoom = (cam.zoom ?? 1) ** (1 / d);
+  out.rot = cam.rot ?? 0;
+  return out;
+};
+
+/**
+ * Where world point `p` on a plane at depth `z` lands in the `w` × `h` frame
+ * when the shot looks through `cam` (unturned): what joins planes on screen,
+ * a shaft of light from a far window to a near floor, a sun's rays from the
+ * sky plane drawn over the nearer ones.
+ */
+export const planePoint = (
+  cam: Camera,
+  z: number,
+  p: readonly [number, number],
+  w: number,
+  h: number,
+  rest: readonly [number, number] = [w / 2, h / 2],
+): readonly [number, number] => {
+  const view = planeView({ x: 0, y: 0 }, cam, z, rest);
+  const zoom = view.zoom ?? 1;
+  return [w / 2 + (p[0] - view.x) * zoom, h / 2 + (p[1] - view.y) * zoom];
+};
 
 /** How much of a plane at `z` shows through the haze in front of it. */
 const clearance = (z: number, thickness: number) => Math.exp(-thickness * Math.max(0, z - 1));
@@ -431,24 +479,16 @@ export const multiplane = (
 ) => {
   // The shot as it breathes now, in the module's scratch camera, read out
   // before any plane draws: a plane may hold a shot of its own, which rewrites it.
-  const cam = drifted(ctx, planing, framed, depth.drift ?? 1);
-  const camX = cam.x;
-  const camY = cam.y;
-  const zoom = cam.zoom ?? 1;
-  const rot = cam.rot ?? 0;
-  const [rx, ry] = depth.rest ?? [w / 2, h / 2];
+  const cam: Camera = { ...drifted(ctx, planing, framed, depth.drift ?? 1) };
+  const rest = depth.rest ?? [w / 2, h / 2];
+  const haze = depth.haze;
   const thickness = depth.thickness ?? 0;
   const ordered = [...planes].sort((a, b) => b.z - a.z);
   // The shot, as a listener hears it: the focal plane's camera, once.
   tell(ctx, cam, framed, w, h);
   ordered.forEach((plane, i) => {
     const z = Math.max(plane.z, 1e-3);
-    const view: Camera = {
-      x: rx + (camX - rx) / z,
-      y: ry + (camY - ry) / z,
-      zoom: zoom ** (1 / z),
-      rot,
-    };
+    const view = planeView({ x: 0, y: 0 }, cam, z, rest);
     const soft = (depth.blur ?? 0) * Math.abs(z - 1);
     ctx.save();
     if (soft > 0.05) ctx.filter = `blur(${soft.toFixed(2)}px)`;
@@ -460,12 +500,14 @@ export const multiplane = (
     // and the next nearer one, or the focal plane after the nearest.
     const nearer = ordered[i + 1]?.z ?? 1;
     const veil = 1 - clearance(z, thickness) / clearance(nearer, thickness);
-    if (depth.haze !== undefined && veil > 1e-3) {
+    if (haze !== undefined && veil > 1e-3) {
       ctx.save();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalAlpha *= veil;
-      ctx.fillStyle = depth.haze;
-      ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      if (Predicate.isString(haze)) {
+        ctx.fillStyle = haze;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+      } else sky(ctx, ctx.canvas.width, ctx.canvas.height, haze);
       ctx.restore();
     }
   });

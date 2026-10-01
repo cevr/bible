@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { fbm, hash, hash2, noise1, noise2, rng, seedOf } from './random.ts';
+import { fbm, flicker, hash, hash2, noise1, noise2, rng, seedOf } from './random.ts';
 
 // What a film relies on: the same input gives the same number on every run,
 // numbers stay in their range, and another seed gives other numbers. The
@@ -68,5 +68,15 @@ describe('random', () => {
       expect(Number.isInteger(seedOf(name))).toBe(true);
       expect(seedOf(name)).toBeGreaterThanOrEqual(0);
     }
+  });
+
+  test('flicker is a function of its time, in [0, 1], smooth, and seeded', () => {
+    for (const x of XS) {
+      expect(flicker(x, 3)).toBe(flicker(x, 3));
+      expect(flicker(x, 3)).toBeGreaterThanOrEqual(0);
+      expect(flicker(x, 3)).toBeLessThanOrEqual(1);
+      expect(Math.abs(flicker(x + 1e-4, 3) - flicker(x, 3))).toBeLessThan(1e-2);
+    }
+    expect(XS.some((x) => flicker(x, 3) !== flicker(x, 4))).toBe(true);
   });
 });

@@ -84,3 +84,16 @@ export const fbm = (x: number, y: number, seed = 0, octaves = 4): number => {
   }
   return sum / norm;
 };
+
+/**
+ * A flame's or a lamp's light at `t` seconds, 0..1: three octaves of smooth
+ * noise at `rate` changes a second, so it wavers and never repeats or jumps.
+ * Pure in `t`; `seed` sets which flame.
+ */
+export const flicker = (t: number, seed = 0, rate = 3): number => {
+  const n =
+    0.6 * noise1(t * rate, seed) +
+    0.3 * noise1(t * rate * 2.3, seed + 1) +
+    0.1 * noise1(t * rate * 5.1, seed + 2);
+  return 0.5 + 0.5 * n;
+};

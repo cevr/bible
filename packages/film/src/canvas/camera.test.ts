@@ -20,6 +20,8 @@ import {
   knobCamera,
   lerpCamera,
   multiplane,
+  planePoint,
+  planeView,
   pushInto,
   shotPath,
 } from './camera.ts';
@@ -149,6 +151,58 @@ const shoot = (
   return { seen, order };
 };
 
+describe('planeView', () => {
+  const REST = [960, 540] as const;
+  const SHOT: Camera = { x: 1160, y: 440, zoom: 1.44, rot: 0.02 };
+
+  test('the focal plane moves with the shot', () => {
+    expect(planeView({ x: 0, y: 0 }, SHOT, 1, REST)).toEqual({ ...SHOT });
+  });
+
+  test('a plane pans by 1 / z of the shot and zooms by its z-th root', () => {
+    const far = planeView({ x: 0, y: 0 }, SHOT, 2, REST);
+    expect(far.x).toBeCloseTo(1060);
+    expect(far.y).toBeCloseTo(490);
+    expect(far.zoom).toBeCloseTo(1.2);
+    expect(far.rot).toBe(0.02);
+    const near = planeView({ x: 0, y: 0 }, SHOT, 0.5, REST);
+    expect(near.x).toBeCloseTo(1360);
+    expect(near.zoom).toBeCloseTo(1.44 ** 2);
+    // The sky at the horizon all but holds still.
+    const sky = planeView({ x: 0, y: 0 }, SHOT, 1e6, REST);
+    expect(sky.x).toBeCloseTo(960);
+    expect(sky.zoom).toBeCloseTo(1);
+  });
+
+  test('is pure: the same shot and depth give the same view, and the shot is left alone', () => {
+    const before = { ...SHOT };
+    const a = planeView({ x: 0, y: 0 }, SHOT, 3, REST);
+    const b = planeView({ x: 9, y: 9, zoom: 9 }, SHOT, 3, REST);
+    expect(a).toEqual(b);
+    expect(SHOT).toEqual(before);
+    // It may write into the shot it reads.
+    const same: Camera = { ...SHOT };
+    expect(planeView(same, same, 3, REST)).toEqual(a);
+  });
+});
+
+describe('planePoint', () => {
+  test('lands where the plane is drawn: the multiplane shot puts the point there', () => {
+    const cam: Camera = { x: 1160, y: 440, zoom: 1.44 };
+    const p = [700, 300] as const;
+    const { seen } = shoot(recorder(), cam, { far: 3, focal: 1, near: 0.5 }, p);
+    for (const [name, z] of [
+      ['far', 3],
+      ['focal', 1],
+      ['near', 0.5],
+    ] as const) {
+      const [x, y] = planePoint(cam, z, p, 1920, 1080);
+      expect(x).toBeCloseTo(seen.get(name)?.[0] ?? Number.NaN);
+      expect(y).toBeCloseTo(seen.get(name)?.[1] ?? Number.NaN);
+    }
+  });
+});
+
 describe('multiplane', () => {
   test('a shot nested in a plane leaves the planes after it framed by the outer shot', () => {
     const p: readonly [number, number] = [1000, 500];
@@ -228,6 +282,20 @@ describe('multiplane', () => {
     const through = veilsOf(r).reduce((t, v) => t * (1 - v), 1);
     expect(through).toBeCloseTo(Math.exp(-1));
     expect(veilsOf(r).at(-1)).toBeCloseTo(1 - Math.exp(-0.5));
+  });
+
+  test('hazes with a sky of stops as with a colour, as thick', () => {
+    const flat = recorder();
+    shoot(flat, { x: 960, y: 540 }, { a: 3, b: 2 }, [0, 0], { haze: '#fff', thickness: 0.5 });
+    const graded = recorder();
+    shoot(graded, { x: 960, y: 540 }, { a: 3, b: 2 }, [0, 0], {
+      haze: [
+        [0, '#ffffff'],
+        [1, '#ff8800'],
+      ],
+      thickness: 0.5,
+    });
+    expect(veilsOf(graded)).toEqual(veilsOf(flat));
   });
 
   test('raises each plane by its nearness, 1 / z, unless it names its lift', () => {
