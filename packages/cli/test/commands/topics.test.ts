@@ -34,7 +34,7 @@ import {
   TOPICS_SCHEMA_MAJOR,
   TopicsArtifact,
 } from '@bible/core/corpus-supply';
-import { layerNativeFileArtifacts } from '@bible/core/corpus-supply/node';
+import { layerNativeFileArtifacts } from '@bible/core/corpus-supply/bun';
 import { BunFileSystem } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Layer, Option, Schema } from 'effect';
@@ -68,9 +68,8 @@ const serviceUpdateJson = Effect.flatMap(ContentUpdate, (content) => content.upd
 
 /** The bytes an offered release serves, and their true digest. A stand-in for
  *  a `topics.db`: what is under test is whether `status` reaches for the
- *  installer at all, and the semantic verifier is substituted below for the
- *  same reason `content-update/service.test.ts` substitutes it — opening SQLite
- *  through `better-sqlite3` hard-crashes the Bun canary this repo tests under. */
+ *  installer at all, so the bytes are not a database and the semantic verifier
+ *  is substituted below, as `content-update/service.test.ts` does. */
 const RELEASE_BYTES = 'the offered topics artifact';
 const RELEASE_URL = 'https://example.test/topics-v4.db';
 const OFFERED_REVISION = corpusRevision('content-v4');
@@ -94,10 +93,8 @@ const makeOfferingHost = (destination: string) => {
     destination,
     // A provenance store that actually remembers, so a second run over this
     // host reads the generation the first one installed. The shipped SQLite
-    // store cannot be used here: it opens the candidate with `better-sqlite3`,
-    // whose NAPI binding hard-crashes the Bun canary this repo tests under —
-    // the same substitution the fixture bytes and the semantic verifier make,
-    // and for the same reason.
+    // store cannot be used here: it writes `meta` rows into the candidate, and
+    // the fixture bytes are not a database.
     provenanceStore: {
       read: () =>
         // Absence is the store's failure channel, as it is for the shipped

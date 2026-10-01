@@ -1,12 +1,10 @@
-/** The Topics semantic verifier (§3.5), written once against a two-method
- *  reader rather than twice against two SQLite drivers.
+/** The Topics semantic verifier (§3.5), written against a three-read reader
+ *  rather than against a SQLite driver.
  *
- *  The native host runs `better-sqlite3` (what Electron loads) and the browser
- *  host runs `wa-sqlite`; nothing in the *rules* depends on which. Splitting the
- *  driver out means the gate a candidate must pass is one function with one
- *  definition, and the adapters carry only the part that genuinely differs — how
- *  to run a statement. Two implementations that agree today are not a gate; one
- *  implementation is.
+ *  The rules here are driver-free; `platform-bun/bible-artifact.ts` supplies
+ *  the `bun:sqlite` reader. Keeping the driver out means the gate a candidate
+ *  must pass is one portable function, and the adapter carries only how to run
+ *  a statement.
  *
  *  The rules are: SQLite integrity, a schema major this build can read, and the
  *  two positive counts the spec requires — pages, and the phrase dictionary that

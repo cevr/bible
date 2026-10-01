@@ -14,7 +14,6 @@
     "./search": "./src/search/index.ts",
     "./search/testing": "./src/search/testing.ts",
     "./search/bun": "./src/search/embedder-bun.ts",
-    "./search/node": "./src/search/embedder-node.ts",
     "./wiki": "./src/wiki/index.ts",
     "./wiki/bun": "./src/wiki/service-bun.ts",
     "./wiki/testing": "./src/wiki/testing.ts",
@@ -25,7 +24,6 @@
     "./content-update": "./src/content-update/index.ts",
     "./content-update/testing": "./src/content-update/testing.ts",
     "./corpus-supply": "./src/corpus-supply/index.ts",
-    "./corpus-supply/node": "./src/platform-node/bible-artifact.ts",
     "./corpus-supply/bun": "./src/platform-bun/bible-artifact.ts",
     "./sync": "./src/sync/index.ts",
     "./bible-db": "./src/bible-db/index.ts",
@@ -58,11 +56,6 @@
   },
   "devDependencies": {
     "@effect/vitest": "catalog:",
-    "@types/better-sqlite3": "^9.6.0",
     "vitest": "^5.0.2"
-  },
-  "optionalDependencies": {
-    "better-sqlite3": "^13.0.3"
-  },
-  "//optionalDependencies": "better-sqlite3 is the Electron host's driver, imported only by src/platform-node/. Bun hosts use bun:sqlite through src/platform-bun/ (its NAPI binding hard-crashes under Bun), and the browser uses wa-sqlite — three drivers on one seam. Optional so a Bun-only consumer neither compiles it via node-gyp nor needs a toolchain to install @bible/core."
+  }
 }

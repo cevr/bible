@@ -44,13 +44,13 @@ const ensure = (
   }).pipe(Effect.provide(supply));
 };
 
-describe('desktop Bible Artifact adapter', () => {
+describe('native Bible Artifact adapter', () => {
   const test = it.scopedLive.layer(BunFileSystem.layer);
 
   test('activates the first available source atomically and reuses exact Provenance', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-desktop-corpus-' });
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-native-corpus-' });
       const missing = `${directory}/missing.db`;
       const source = `${directory}/source.db`;
       const destination = `${directory}/user-data/bible.db`;
@@ -75,7 +75,7 @@ describe('desktop Bible Artifact adapter', () => {
   test('replaces the active Artifact when source revision changes', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-desktop-corpus-' });
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-native-corpus-' });
       const source = `${directory}/source.db`;
       const destination = `${directory}/bible.db`;
       const provenanceStore = makeProvenanceStore();
@@ -95,7 +95,7 @@ describe('desktop Bible Artifact adapter', () => {
   test('fails before runtime construction when every source is unavailable', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-desktop-corpus-' });
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-native-corpus-' });
       const failure = yield* Effect.flip(
         ensure(
           `${directory}/bible.db`,
@@ -110,7 +110,7 @@ describe('desktop Bible Artifact adapter', () => {
   test('rejects release bytes that do not match the pinned manifest', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-desktop-corpus-' });
+      const directory = yield* fs.makeTempDirectoryScoped({ prefix: 'bible-native-corpus-' });
       const destination = `${directory}/bible.db`;
       const failure = yield* Effect.flip(
         ensure(
