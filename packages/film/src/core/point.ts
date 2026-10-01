@@ -15,6 +15,7 @@
 
 import { Effect, Match, Option, Schema, SchemaIssue, SchemaTransformation } from 'effect';
 import { Address, addressKey, addressOfKey } from './address.ts';
+import { PartId } from './address-schema.ts';
 
 /** A name inside a point's id: never empty, so the id reads back as the point. */
 const Name = Schema.NonEmptyString;
@@ -57,7 +58,7 @@ export const PointRef = Schema.Union([
   Schema.TaggedStruct('Montage', { clip: Clip }),
   Schema.TaggedStruct('Score', {}),
   Schema.TaggedStruct('Take', { sound: Name }),
-  Schema.TaggedStruct('Voice', { beat: Name }),
+  Schema.TaggedStruct('Voice', { beat: PartId }),
   Schema.TaggedStruct('Look', { name: Name }),
   Schema.TaggedStruct('Level', { target: LevelTarget }),
 ]).pipe(Schema.toTaggedUnion('_tag'));
