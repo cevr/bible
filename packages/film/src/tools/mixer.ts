@@ -382,7 +382,9 @@ export class Mixer extends Context.Service<Mixer, MixerService>()('@bible/film/t
         // and its stamp land as one step under the stamp's lock: no other mix
         // between the two, and the stamp only once the track is whole (a track
         // with no stamp, or an old one, reads as stale). The lock is held for
-        // a rename, not for the write.
+        // a rename, not for the write. A film with no take yet (a silent one)
+        // has no narration folder until its first mix makes it.
+        yield* fs.makeDirectory(film.paths.narration, { recursive: true });
         yield* writeWholeWith(
           fs,
           master,
