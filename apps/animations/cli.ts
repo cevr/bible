@@ -87,12 +87,15 @@ const checkoutRoots = Effect.gen(function* () {
  * the entry at `self`. The player page imports this app's registry
  * (`src/films/index.ts`), so only the app's own films render or open in the
  * lab; the tests' fixture entry (`test/fixtures/cli.ts`) drives the legs that
- * need no page.
+ * need no page. Renders go under this app's `out/` and notes under its
+ * `lab/`, whatever directory the run starts in (FILMS_OUT and FILMS_LAB move
+ * them).
  */
 export const appCli = (films: string, sounds: string, self: string): void =>
   runFilmCli<Config.ConfigError | ReviewPageFailed>({
     films,
     sounds,
+    folders: { out: `${import.meta.dir}/out`, lab: `${import.meta.dir}/lab` },
     // Any free port: nobody opens it by hand.
     previewServer: player(Effect.succeed(0), false, films),
     // A port to keep open in a tab across runs.

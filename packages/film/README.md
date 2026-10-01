@@ -40,8 +40,10 @@ argument.
 ## Tools
 
 `film narrate|takes import|script|score|mix|cues|check|render|lookbook|project|chapters|lab|notes|options <film>` (and `film doctor`, `film review` (the review page), `film media …` over the private media store, and `film sfx …` over the app's sound library, `tools/sfx-cli.ts`) runs from the app that holds the
-films. The app owns the entry: it calls `runFilmCli({ films, sounds, previewServer, labServer, review, self })`
-with its films folder, its sound library folder, a scoped `PreviewServer` layer that serves its
+films. The app owns the entry: it calls `runFilmCli({ films, sounds, folders, previewServer, labServer, review, self })`
+with its films folder, its sound library folder, its own `out` and `lab` folders
+(where a run writes renders and notes, whatever directory it starts in; `FILMS_OUT` and
+`FILMS_LAB` win when set), a scoped `PreviewServer` layer that serves its
 player page, and `labServer`, which serves the same page in development
 mode with the lab's routes mounted, because only the app can bundle its HTML
 and films (see `apps/animations/cli.ts`). Logs (`Effect.log`, `event

@@ -3,7 +3,8 @@
 // generated data (timings, sound manifest) through the content store. The
 // films directory is the one the app passes in, the folder its player page
 // imports, so the tools and the page never read two different films; stems
-// and other outputs go under `FILMS_OUT` (default `<cwd>/out`).
+// and other outputs go under `FILMS_OUT`: the app's `out/` under `runFilmCli`
+// (`FilmApp.folders`), `<cwd>/out` where nothing sets it.
 
 import {
   Array as Arr,

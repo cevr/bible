@@ -102,7 +102,8 @@ with the private store `library.ts` declares (below), never a folder under
 `~/film-media`, whose index deletes files it did not mirror. A misspelt `--only` beat
 fails narrate before anything is planned with `UnknownScene`. The films are
 always `src/films`, the folder the player imports (`cli.ts` hands it and
-`sounds/` to the tools); `FILMS_OUT` overrides `out`.
+`sounds/` to the tools, with the app's `out/` and `lab/`, so a run writes there
+whatever directory it starts in); `FILMS_OUT` overrides `out` and `FILMS_LAB` `lab`.
 
 Check flags: `--static` (the files alone: no mix and no browser), `--sound`
 (the static leg and the mix, no browser), `--draw` (the static leg and every

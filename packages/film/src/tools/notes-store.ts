@@ -97,7 +97,7 @@ const STILL_NAME = /^n\d+(\.r\d+)?\.png$/;
 export class NotesStore extends Context.Service<NotesStore, NotesStoreService>()(
   '@bible/film/tools/NotesStore',
 ) {
-  /** Notes under `FILMS_LAB` (default `<cwd>/lab`), one folder per film. */
+  /** Notes under `FILMS_LAB` (the app's `lab/` under `runFilmCli`, else `<cwd>/lab`), one folder per film. */
   static readonly layer = Layer.effect(
     NotesStore,
     Effect.gen(function* () {
