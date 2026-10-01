@@ -65,11 +65,18 @@ const setup = (
   const layer = Renderer.layer.pipe(
     Layer.provide([fakeRenderHost(ledger, host), memoryFileSystem(files, folders), Path.layer]),
   );
-  /** `job` rendered on `platform`: the Mac, unless a test says otherwise. */
-  const render = (job: RenderJob, platform = 'darwin') =>
+  /**
+   * `job` rendered on `platform` with `cores`: a 16-core Mac unless a test
+   * says otherwise, never the cores of the machine the tests run on.
+   */
+  const render = (job: RenderJob, platform = 'darwin', cores = 16) =>
     Effect.gen(function* () {
       return yield* (yield* Renderer).render(rendered, job);
-    }).pipe(Effect.provideService(Platform, platform), Effect.provide(layer));
+    }).pipe(
+      Effect.provideService(Platform, platform),
+      Effect.provideService(Cores, cores),
+      Effect.provide(layer),
+    );
   /**
    * `videos`' sounds cut again from the master now, in one run, as `project
    * render` re-muxes them: with media and the disk alone, no browser to open.
@@ -88,7 +95,12 @@ const setup = (
     Effect.gen(function* () {
       const run = yield* (yield* Renderer).session;
       return yield* Effect.forEach(jobs, (job) => run.render(rendered, job));
-    }).pipe(Effect.scoped, Effect.provideService(Platform, 'darwin'), Effect.provide(layer));
+    }).pipe(
+      Effect.scoped,
+      Effect.provideService(Platform, 'darwin'),
+      Effect.provideService(Cores, 16),
+      Effect.provide(layer),
+    );
   return { ledger, files, folders, render, remux, remuxAll, session };
 };
 
@@ -266,9 +278,7 @@ describe('Renderer', () => {
       const { ledger, render } = setup();
       // Eight pages with a share copy are sixteen encoders: the hardware encoder hangs at sixteen.
       const exit = yield* Effect.exit(
-        render({ ...video, workers: Option.some(8), share: true }).pipe(
-          Effect.provideService(Cores, 64),
-        ),
+        render({ ...video, workers: Option.some(8), share: true }, 'darwin', 64),
       );
       expect(Exit.findErrorOption(exit).pipe(Option.map((e) => e.message))).toEqual(
         Option.some(
@@ -287,9 +297,7 @@ describe('Renderer', () => {
     () =>
       Effect.gen(function* () {
         const { ledger, render } = setup();
-        yield* render({ ...video, workers: Option.none(), share: true }).pipe(
-          Effect.provideService(Cores, 16),
-        );
+        yield* render({ ...video, workers: Option.none(), share: true });
         expect(ledger.encoderAsked).toEqual([['Hardware']]);
         expect(ledger.pages.opened).toBe(1 + HARDWARE_WORKERS);
         expect(new Set(ledger.encodedBy)).toEqual(new Set(['Hardware']));
@@ -328,9 +336,7 @@ describe('Renderer', () => {
     () =>
       Effect.gen(function* () {
         const { ledger, render } = setup({ encoders: ['Software'] });
-        yield* render({ ...video, workers: Option.none(), share: true }, 'linux').pipe(
-          Effect.provideService(Cores, 16),
-        );
+        yield* render({ ...video, workers: Option.none(), share: true }, 'linux');
         expect(ledger.encoderAsked).toEqual([['Software']]);
         expect(ledger.pages.opened).toBe(1 + SOFTWARE_WORKERS);
         expect(ledger.encodedBy.length).toBe(ledger.encoders.spawned);
@@ -345,9 +351,7 @@ describe('Renderer', () => {
         // One encoder a page, one a core: seventeen pages are too many for 16 cores.
         const over = setup({ encoders: ['Software'] });
         const error = yield* Effect.flip(
-          over
-            .render({ ...video, workers: Option.some(17), share: true }, 'linux')
-            .pipe(Effect.provideService(Cores, 16)),
+          over.render({ ...video, workers: Option.some(17), share: true }, 'linux'),
         );
         expect(error.message).toBe(
           '17 pages need 17 encoders at once, over the 16 software encoders a render may run; use --workers 16 or fewer',
