@@ -11,11 +11,8 @@
  *
  *  What runs here is the Bun and Electron-main pair, which share this process's
  *  runtime. The WebGPU adapter cannot run under Bun at all — there is no GPU
- *  device outside a browser — so its leg of the check lives in
- *  `apps/web/src/workers/search-round-trip.test.ts`, against the same fixture
- *  queries and the same `vectorsAgree` bound. Splitting it that way is what
- *  keeps each adapter checked *in the host it ships in*, which is the property
- *  §10's rule 3 is actually after.
+ *  device outside a browser — and its host, the web reader, has been removed,
+ *  so that leg no longer runs anywhere.
  */
 
 import { describe, expect, it } from 'bun:test';

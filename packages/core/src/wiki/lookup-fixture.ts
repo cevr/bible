@@ -2,8 +2,8 @@
  *
  *  §10's Milestone 7 adapter check is: "DOM selection on web and desktop
  *  produces the same portable lookup input the CLI builds from its argument."
- *  Three builders, three packages, and no package that can import all three —
- *  `packages/app` has no CLI and `packages/cli` has no DOM. So the agreement is
+ *  The DOM builders went with the desktop and web readers; the CLI's builder
+ *  remains, and `packages/cli` has no DOM. So the agreement is
  *  held the way Milestone 4's span parity is held: **one fixture in core**, and
  *  each adapter asserts its own output equals it.
  *

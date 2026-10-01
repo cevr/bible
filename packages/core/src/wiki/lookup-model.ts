@@ -48,10 +48,9 @@ export type LookupContext = typeof LookupContext.Type;
  *  **The portable input** §7 names. One schema, built identically from a DOM
  *  `Selection` on both visual hosts and from `bible wiki lookup`'s arguments,
  *  so "the same resolution everywhere" is a property of the type rather than a
- *  claim in a doc comment. The builder that turns a DOM selection into this
- *  value lives in `packages/app` — core cannot import a DOM — but the value it
- *  produces is this one, and the adapter test asserts the CLI builds an equal
- *  value from the equivalent argument.
+ *  claim in a doc comment. The adapter test asserts the CLI builds this value
+ *  from its arguments; core cannot import a DOM, so a visual host builds it in
+ *  its own package.
  *
  *  `text` is `NonEmptyString`: an empty selection is not a lookup, and refusing
  *  it at the boundary is what keeps every resolver below from restating the

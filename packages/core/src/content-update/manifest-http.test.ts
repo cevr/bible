@@ -4,9 +4,8 @@
  *  three hosts run it here — the CLI's Bun client and Electron main's Node
  *  client both resolve `HttpClient.HttpClient` from this runtime, so the
  *  adapter they share is exercised over both. The browser's leg cannot run
- *  under Bun (there is no same-origin proxy and no `fetch` against one), so it
- *  runs in `apps/web/src/workers/content-round-trip.test.ts` against
- *  the same table.
+ *  under Bun (there is no same-origin proxy and no `fetch` against one); its
+ *  host, the web reader, has been removed, so no suite runs that leg now.
  *
  *  What is being checked is not "does HTTP work" — it is that the *mapping*
  *  from a response onto §3.6's outcomes is one mapping. Every non-arrival
