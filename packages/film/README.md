@@ -1190,6 +1190,10 @@ look explored by hand) holds `review.json` (`ReviewManifest`), which names its
 files: `videos` and `images` (loose files to show), `docs`, and per set a title,
 order, start, moments, and each variant's label, tag, verdict, notes and
 `file` (by default `<clip>.<variant>.share.mp4`, then `<clip>.<variant>.mp4`).
+Montage images follow their manifest order so staged scenes read in sequence;
+missing images are skipped and each file path appears once. Videos and docs
+remain newest first. A folder's `blurb` renders as escaped Markdown, like its
+notes and docs, so scene lists and judging instructions stay readable.
 A file neither record names is not listed; nothing reads a file name back.
 A film's page plays its newest whole-film render as the catalogue records it.
 

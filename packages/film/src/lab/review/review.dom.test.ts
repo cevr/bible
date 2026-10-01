@@ -63,7 +63,8 @@ const index: Json = {
     {
       ref: 'out/art',
       title: 'Roofs at dusk',
-      blurb: 'three lights on one roof',
+      blurb:
+        '## Scenes\n1. Cold opening\n2. Message arrives\n3. Mirror answers\n\n**Judge:** Follow the staged order.\n\n<img src=x onerror=bad()>',
       mtime: 0,
       sets: [
         {
@@ -127,6 +128,14 @@ describe('the review page', () => {
         yield* page.click('a.rv-card[href="/?folder=out%2Fart"]');
         yield* until(page, "location.search === '?folder=out%2Fart'");
         yield* textHas(page, '.rv-crumbs', 'Roofs at dusk');
+        yield* textsAre(page, '[data-review-blurb] li', [
+          'Cold opening',
+          'Message arrives',
+          'Mirror answers',
+        ]);
+        yield* textIs(page, '[data-review-blurb] b', 'Judge:');
+        yield* textHas(page, '[data-review-blurb]', '<img src=x onerror=bad()>');
+        yield* countIs(page, '[data-review-blurb] img, [data-review-blurb] script', 0);
         yield* textHas(page, 'a.rv-card', 'compare 3');
         yield* textHas(page, '.rv-card', 'walk.mp4');
         yield* attributeIs(page, '.rv-tall track', 'src', '/review/files/out/art/walk.vtt');

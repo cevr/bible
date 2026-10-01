@@ -526,6 +526,26 @@ Decided by **redesign-from-first-principles** and **never-block-on-the-human**: 
 
 Validation: `/tmp/framework-contracts-gate.log` reports `GATE EXIT 0`, 18/18 successful tasks (9 cached), 40.013 s wall. This is a repository gate result, not a suite performance claim. The diagnostics/documentation unit's full gate receipt `/tmp/framework-docs-gate.log` reports `GATE EXIT 0`, 18/18 successful tasks (9 cached), 41.298 s wall. Its first run failed only the diagnostic dictionary's widened annotation; the inferred literal checked with `satisfies` repaired it, and the repeat passed. A separate reviewer checked the first repair's diff and reachable source flow and found no actionable blocker.
 
+## Review delivery followthrough (2026-10-01)
+
+The prototype's ordered image manifest exposed two framework delivery defects:
+`montageFolder` sorted staged images by modification time, and the folder blurb
+showed Markdown as one plain paragraph. Montage images now follow manifest order
+with the existing path deduplication and missing-file filtering. Project images,
+videos and docs retain their previous ordering. Blurbs use the review's existing
+escaped Markdown renderer and note styling.
+
+The pure owner regression varies image mtimes, includes a missing image and two
+references to the same path, and checks video/doc ordering. Baseline evidence is
+`/tmp/framework-montage-order-red.log`; `/tmp/framework-montage-order-green.log`
+passes all 20 review owner tests. The existing browser folder workflow now checks
+scene-list items, bold judging instructions and raw HTML remaining text.
+`/tmp/framework-montage-blurb-red.log` fails on the baseline's absent scene list;
+`/tmp/framework-montage-blurb-green.log` passes all six review browser workflows
+in 4.316 s wall. `/tmp/framework-montage-gate.log` reports `GATE EXIT 0`,
+18/18 successful tasks (9 cached), 37.516 s wall. Independent source review found
+no actionable blocker; this gate does not establish the suite performance target.
+
 ## Current loop state
 
 The assigned framework carried findings are repaired or explicitly rejected with a compatibility/scope receipt. The overall loop remains **open**: the under-5-s framework suite requirement still needs repeated matched timings and a green full gate from its performance owner. This followthrough has not performed a new sweep of canvas, browser scheduling or original films, and cannot certify their close state. Owner film reviews remain parked outside the framework scope. The old finish snapshot is historical and does not close these obligations.

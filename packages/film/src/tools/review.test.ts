@@ -156,6 +156,46 @@ const MANIFEST = `{
 describe('a montage', () => {
   const manifest = Schema.decodeSync(ReviewManifestJson)(MANIFEST);
 
+  test('keeps staged image order despite mtimes, skips missing images and shows each path once', () => {
+    const cold = found('cold.jpg', 1);
+    const files = new Map([
+      ['cold.jpg', cold],
+      ['cold-alias.jpg', cold],
+      ['message.jpg', found('message.jpg', 3)],
+      ['mirror.jpg', found('mirror.jpg', 9)],
+      ['old.mp4', found('old.mp4', 2)],
+      ['new.mp4', found('new.mp4', 8)],
+      ['old.md', found('old.md', 2)],
+      ['new.md', found('new.md', 8)],
+    ]);
+    const folder = montageFolder({
+      ref: 'out/art',
+      record: {
+        ...manifest,
+        images: [
+          'cold.jpg',
+          'missing.jpg',
+          'message.jpg',
+          'mirror.jpg',
+          'cold.jpg',
+          'cold-alias.jpg',
+        ],
+        videos: ['old.mp4', 'new.mp4'],
+        docs: ['old.md', 'new.md'],
+      },
+      look: (name) => Option.fromUndefinedOr(files.get(name)),
+      phone: () => 'none',
+      maxVideo: 1000,
+    });
+    expect(folder.images.map((image) => image.name)).toEqual([
+      'cold.jpg',
+      'message.jpg',
+      'mirror.jpg',
+    ]);
+    expect(folder.videos.map((video) => video.name)).toEqual(['new.mp4', 'old.mp4']);
+    expect(folder.docs.map((doc) => doc.name)).toEqual(['new.md', 'old.md']);
+  });
+
   test('a set named like an address is refused, so its id never reads as a film render', () => {
     for (const clip of ['film', 'act:valley', 'scenes:cold', 'short:hook', ''])
       expect(() => Schema.decodeSync(ReviewManifestJson)(`{"sets":{"${clip}":{}}}`)).toThrow(

@@ -1,5 +1,5 @@
-// A variant's notes and a folder's docs, markdown read as the review shows
-// it: headings, paragraphs, nested lists, tables, **bold**, *italic* and
+// A variant's notes and a folder's blurb and docs, markdown read as the
+// review shows it: headings, paragraphs, nested lists, tables, **bold**, *italic* and
 // `code`. Every character of the text is escaped before any tag is added, so
 // a doc can never put its own HTML (or a script) into the page; links stay
 // text.

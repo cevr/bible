@@ -317,7 +317,7 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
   return (
     <>
       <Show when={Option.getOrUndefined(props.folder.blurb)}>
-        {(blurb) => <p class="rv-hint">{blurb()}</p>}
+        {(blurb) => <div class="rv-note" data-review-blurb innerHTML={markdownHtml(blurb())} />}
       </Show>
       <Section title="Comparisons" count={props.folder.sets.length}>
         <div class="rv-grid rv-wide">
