@@ -316,8 +316,9 @@
       }
     },
     {
-      // A variadic logger handed point-free to a callback passed an index
-      // prints the index after each line (packages/film/lint/no-point-free-log.ts).
+      // Over all of packages/film and apps/animations: a variadic logger handed
+      // point-free to a callback passed an index prints the index after each
+      // line (packages/film/lint/no-point-free-log.ts).
       "files": [
         "**/packages/film/**/*.ts",
         "**/packages/film/**/*.tsx",
@@ -325,7 +326,10 @@
         "**/apps/animations/**/*.tsx"
       ],
       "rules": {
-        "film/no-point-free-log": "error"
+        "film/no-point-free-log": "error",
+        // A comment says today's behaviour and its reason, never how the code
+        // got here (packages/film/lint/no-history-comment.ts).
+        "film/no-history-comment": "error"
       }
     },
     {

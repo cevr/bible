@@ -71,7 +71,7 @@ describe('requestKey', () => {
     expect(requestKey({ ...court, influence: 0.3 })).toBe(requestKey(court));
   });
 
-  // The sweet-spot runs (p4-sfx2): a one-shot followed its prompt closely only
+  // The sweet-spot trials: a one-shot followed its prompt closely only
   // from 0.7 up (a gavel at 0.5 came out 20–30 dB quieter and boomy); a bed
   // keeps the model's own air. About a third of the takes were usable, so a
   // one-shot is made as 6 and a bed as 3.

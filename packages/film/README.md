@@ -1620,6 +1620,12 @@ the same file that does) gives its timeout as its last argument
 (`spawnBudget(n)` from `apps/animations/test/cli-run.ts`, or milliseconds): a
 cold start's time is the machine's, and bun's default 5 s fails a loaded one.
 A spawn inside a service the test provides is not seen.
+`film/no-history-comment` (`lint/no-history-comment.ts`) holds every comment
+in `packages/film` and `apps/animations`: a comment says what the code does
+today and why, and how it got here lives in the ledger and `git log`. It
+refuses the forms history takes on its face: a loop pass by number, a batch
+id, a commit hash, and "used to" said of what the code did (not "is used
+to"). History told in other words is the sweep's to find.
 The package's tests run with `bun test --timeout 20000` (its `test` script):
 the lab's browser tests open a page, bundle the lab and draw the probe film
 before they assert, which took 3–4.5 s at a load average of 50 beside

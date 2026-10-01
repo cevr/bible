@@ -1,8 +1,7 @@
 // `film/spawn-budget`: a test that spawns a process declares its timeout. A
 // spawn is a cold start whose time is the machine's, not the test's: the CLI
 // over the fixture film takes under a second idle and has taken over bun's
-// default 5 s while sibling renders loaded every core (passes 5 and 6 each
-// lost a gate to one such test). Give the test its budget as its last
+// default 5 s while sibling renders loaded every core. Give the test its budget as its last
 // argument: `spawnBudget(n)` from `apps/animations/test/cli-run.ts` for n CLI
 // spawns, or a number of milliseconds.
 //

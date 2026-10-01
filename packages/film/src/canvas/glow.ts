@@ -7,8 +7,8 @@
 // kept (`GRADIENTS_KEPT`) of each kind, so a light whose colour moves every
 // frame makes a gradient a frame but never holds more than a few.
 //
-// Counted over righteousness-by-faith's frames on one context (pass 6, each
-// unit gradient filled and made logged per frame): `message` fills 16.4 unit gradients a
+// Counted over righteousness-by-faith's frames on one context (each unit
+// gradient filled and made, logged per frame): `message` fills 16.4 unit gradients a
 // frame, 21,336 over its 1,304 frames, and makes 6; `within` 8,899 and makes
 // 6; `daily`, whose glow changes colour every frame, 4,794 and makes 258.
 
