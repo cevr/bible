@@ -405,7 +405,7 @@
     },
     {
       // A test that spawns a process declares its timeout (packages/film/lint/spawn-budget.ts).
-      "files": ["**/packages/film/**/*.test.ts", "**/apps/animations/test/**/*.test.ts"],
+      "files": ["**/packages/film/**/*.test.ts"],
       "rules": {
         "film/spawn-budget": "error"
       }

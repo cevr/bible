@@ -218,7 +218,7 @@ describe('planChunks', () => {
   });
 
   test('the last chunks the pages pull are the smallest, so the pages finish together', () => {
-    // The whole righteousness-by-faith film on 8 pages: 59 of 238–239, then eight each of 120, 60 and 30.
+    // A film of 15 776 frames (about nine minutes) on 8 pages: 59 of 238–239, then eight each of 120, 60 and 30.
     const all = sizes(0, 15_776, 8);
     expect(all.slice(-24)).toEqual([
       ...Array.from({ length: 8 }, () => 120),

@@ -530,7 +530,7 @@ export const playablesOf = (
 /** A generated or recorded one-shot's spread when it declares none; tonal and bed sounds have none. */
 export const DEFAULT_JITTER: Jitter = { pitch: 0.5, gain: 1 };
 /** The most a one-shot's start is nudged late, in seconds. */
-export const JITTER_DELAY = 0.015;
+const JITTER_DELAY = 0.015;
 
 /** A sound's spread: declared, else the default for a non-tonal one-shot, else none. */
 export const jitterOf = (entry: LibraryEntry): Option.Option<Jitter> => {

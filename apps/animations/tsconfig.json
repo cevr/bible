@@ -9,10 +9,10 @@
   },
   "include": [
     "src/**/*.ts",
-    "test/**/*.ts",
     "infra/**/*.ts",
     "server.ts",
     "cli.ts",
+    "studio-harness.ts",
     "alchemy.run.ts"
   ],
   "exclude": ["node_modules", "out"]

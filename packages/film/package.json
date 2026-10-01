@@ -12,8 +12,7 @@
     "./lab": "./src/lab/index.ts",
     "./review": "./src/lab/review/index.ts",
     "./solid-plugin": "./src/tools/solid-plugin.ts",
-    "./stand-in": "./src/canvas/fixtures/stand-in.ts",
-    "./testing": "./src/tools/testing.ts"
+    "./stand-in": "./src/canvas/fixtures/stand-in.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

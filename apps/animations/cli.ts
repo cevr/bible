@@ -86,8 +86,7 @@ const checkoutRoots = Effect.gen(function* () {
  * The CLI over the films in `films` and the sound library in `sounds`, run by
  * the entry at `self`. The player page imports this app's registry
  * (`src/films/index.ts`), so only the app's own films render or open in the
- * lab; the tests' fixture entry (`test/fixtures/cli.ts`) drives the legs that
- * need no page. Renders go under this app's `out/` and notes under its
+ * lab. Renders go under this app's `out/` and notes under its
  * `lab/`, whatever directory the run starts in (FILMS_OUT and FILMS_LAB move
  * them).
  */

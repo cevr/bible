@@ -6,7 +6,7 @@
 // timed evenly across the take, or, for a beat it is told to mis-hear,
 // something else. A fixture, not a product flag: `bun run lab` never runs it.
 //
-//   HARNESS_FILM=<film> bun test/fixtures/studio-harness.ts   (from apps/animations)
+//   HARNESS_FILM=<film> bun studio-harness.ts   (from apps/animations)
 //
 // The lab is at http://127.0.0.1:$HARNESS_PORT (4411) /lab?film=<film>. Its
 // control sits beside the lab's routes: `POST /lab/harness/mishear/<beat>`
@@ -35,7 +35,7 @@ import {
   labHandler,
 } from '@bible/film/tools';
 import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { serve } from '../../server.ts';
+import { serve } from './server.ts';
 
 /** What the fake hears for a beat it is told to mis-hear. */
 const MISHEARD = 'the quick brown fox jumps over the lazy dog';
@@ -123,7 +123,7 @@ const Harness = Layer.unwrap(
       Config.withDefault('righteousness-by-faith'),
     );
     const port = yield* Config.Int('HARNESS_PORT').pipe(Config.withDefault(4411));
-    const app = path.join(import.meta.dir, '..', '..');
+    const app = import.meta.dir;
     const out = path.join(app, 'out', 'studio-harness');
     yield* fs.makeDirectory(out, { recursive: true });
     const root = yield* fs.makeTempDirectoryScoped({ directory: out, prefix: 'films-' });
