@@ -965,10 +965,14 @@ interface IconScratch {
   readonly count: Posed<IconCount>;
 }
 
-/** A scene's icon-row scratch, made once at module scope: its glow from `lit` (none lit by default), no lead, no fade. */
-export const iconScratch = (lit: Three = [0, 0, 0]): IconScratch => {
-  const lead: [number, number, number] = [0, 0, 0];
-  return { lit: [lit[0], lit[1], lit[2]], lead, count: { lead, dim: 0 } };
+/**
+ * A scene's icon-row scratch, made once at module scope: its glow from `lit`
+ * (none lit by default), and the count it opens on (`from`: none leads and
+ * none fades by default), as the row stands when the scene takes it over.
+ */
+export const iconScratch = (lit: Three = [0, 0, 0], from: IconCount = NO_COUNT): IconScratch => {
+  const lead: [number, number, number] = [from.lead[0], from.lead[1], from.lead[2]];
+  return { lit: [lit[0], lit[1], lit[2]], lead, count: { lead, dim: from.dim } };
 };
 
 /**
