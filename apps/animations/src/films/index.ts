@@ -8,6 +8,7 @@ import { shorts as righteousnessByFaithShorts } from './righteousness-by-faith/s
 
 const righteousnessByFaith = () => import('./righteousness-by-faith/film.ts');
 const arcaneProto = () => import('./arcane-proto/film.ts');
+const rbfArcane = () => import('./rbf-arcane/film.ts');
 
 /**
  * The films, by folder: each key names a folder under `src/films`, and the
@@ -16,6 +17,7 @@ const arcaneProto = () => import('./arcane-proto/film.ts');
 export const films = narratedFilms({
   'righteousness-by-faith': righteousnessByFaith,
   'arcane-proto': arcaneProto,
+  'rbf-arcane': rbfArcane,
 });
 
 /** Every page the player serves: the films, then each film's shorts. */
