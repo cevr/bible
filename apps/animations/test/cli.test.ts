@@ -235,6 +235,8 @@ describe('film cli', () => {
             verb: 'approve',
             reason: expect.stringContaining('its sources changed since it was made'),
           });
+          // The render it names, run as printed, makes the very variant refused.
+          expect(run.stdout).toContain(`film project render ${film} --scene turn --variant main`);
           expect(yield* fs.readFileString(catalogue)).toBe(before);
         }),
       ),

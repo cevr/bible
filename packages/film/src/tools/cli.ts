@@ -66,12 +66,12 @@ import { Composer } from './composer.ts';
 import { ContentStore } from './content-store.ts';
 import { CUES_RULES, sceneReport, shortReport, soundReport } from './cues.ts';
 import { ElevenLabs } from './elevenlabs.ts';
+import { type ElevenLabsFailed } from '../core/refusals.ts';
 import {
   type BrowserFailed,
   type BrowserMissing,
   CheckFailed,
   CuesLate,
-  type ElevenLabsFailed,
   PreviewServerFailed,
   SoundMissing,
 } from './errors.ts';

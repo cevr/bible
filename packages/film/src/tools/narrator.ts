@@ -26,7 +26,7 @@ import {
   Result,
 } from 'effect';
 import { Base64 } from 'effect/encoding';
-import type { LineError, UnknownVoice } from '../core/errors.ts';
+import { type AlignmentMismatch, type LineError, type UnknownVoice } from '../core/errors.ts';
 import {
   hashText,
   heldInside,
@@ -53,12 +53,7 @@ import { voicedWords } from '../core/voiced.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
 import { sha256Hex } from './digest.ts';
 import { ElevenLabs } from './elevenlabs.ts';
-import {
-  type AlignmentMismatch,
-  ElevenLabsFailed,
-  type MediaFailed,
-  TakeMismatch,
-} from './errors.ts';
+import { ElevenLabsFailed, type MediaFailed, TakeMismatch } from '../core/refusals.ts';
 import type { FilmPaths, LoadedFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { settleAll } from './settle.ts';

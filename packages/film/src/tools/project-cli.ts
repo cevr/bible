@@ -60,12 +60,12 @@ import {
 import { approvalRefused } from '../core/choice.ts';
 import { UnknownAct } from '../core/errors.ts';
 import { pointIdOf } from '../core/point.ts';
-import { VerbRefused } from '../core/refusals.ts';
+import { SceneNotRendered, VerbRefused, renderCommand } from '../core/refusals.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
 import { type Placed, everyTakeRecorded } from '../core/layout.ts';
 import { RenderCatalogue, renderRecord } from './catalogue.ts';
 import { ProjectRead, answering, printLine } from './fresh-film.ts';
-import { ApprovalUnnamed, SceneNotRendered } from './errors.ts';
+import { ApprovalUnnamed } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { type RenderJob, type RenderOutput, flagConflicts, jobOf } from './render-plan.ts';
 import { planKey } from './mixer.ts';
@@ -266,7 +266,7 @@ const answeringIf = <A, E, R>(
   return effect;
 };
 
-/** The film's scenes named by `ids` (every one when none), each checked against the layout. */
+/** The film's scenes named by `ids` (every one when none), each checked against the layout and kept with its id. */
 const scenesNamed = (
   loaded: LoadedFilm,
   placed: ReadonlyArray<Placed>,
@@ -275,11 +275,14 @@ const scenesNamed = (
   Effect.forEach(
     Option.getOrElse(ids, () => placed.map((p) => p.spec.id)),
     (id) =>
-      Effect.fromResult(
-        resolveAddress(
-          { name: loaded.paths.name, placed, look: loaded.look, shorts: loaded.shorts },
-          sceneAddress(id),
+      Effect.map(
+        Effect.fromResult(
+          resolveAddress(
+            { name: loaded.paths.name, placed, look: loaded.look, shorts: loaded.shorts },
+            sceneAddress(id),
+          ),
         ),
+        (scope) => ({ ...scope, id }),
       ),
   );
 
@@ -330,7 +333,7 @@ const sceneRuns = (run: {
   readonly scopes: ReadonlyArray<SceneScope>;
 }): ReadonlyArray<SceneRun> =>
   run.scopes.map((scope) => {
-    const id = scope.scenes[0]?.spec.id ?? '';
+    const { id } = scope;
     const stamp = stampOf(run.keys, scope);
     const slot = sceneSlot(id, run.variant);
     const need = Match.value(run.force).pipe(
@@ -540,7 +543,7 @@ const approveScenes = Command.make(
           point: pointIdOf({ _tag: 'Render', address: sceneAddress(scene) }),
           variant: input.variant,
           verb: 'approve',
-          reason: `${refused.value} (film project render ${input.film} --scene ${scene})`,
+          reason: `${refused.value} (${renderCommand(input.film, scene, input.variant)})`,
         });
       });
     /** The scenes `ids` approved, each current, or none when any is not. */

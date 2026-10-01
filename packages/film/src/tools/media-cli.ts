@@ -13,10 +13,11 @@
 // A review page reads the same store through `PrivateStore` (`list`, and
 // `read` with a byte range), not through this command.
 
-import { Config, Console, Effect, FileSystem, Option, Path } from 'effect';
+import { Console, Effect, FileSystem, Option, Path } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
 import { StoreCopyFailed, StoreKeyTaken } from './errors.ts';
 import { sha256OfFile } from './digest.ts';
+import { filmsOut } from './film-repo.ts';
 import { RENDERS, renderKey } from './media-store.ts';
 import { PrivateStore } from './private-store.ts';
 
@@ -58,7 +59,7 @@ const push = Command.make(
     const store = yield* (yield* PrivateStore).store;
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
-    const outputs = yield* Config.String('FILMS_OUT').pipe(Config.withDefault(path.resolve('out')));
+    const outputs = yield* filmsOut;
     for (const file of input.files) {
       const key = renderKey(path, outputs, path.resolve(file), input.under);
       const sha = yield* sha256OfFile(fs, file);
@@ -97,7 +98,7 @@ const pull = Command.make(
   Effect.fn('film.media.pull')(function* (input) {
     const store = yield* (yield* PrivateStore).store;
     const path = yield* Path.Path;
-    const outputs = yield* Config.String('FILMS_OUT').pipe(Config.withDefault(path.resolve('out')));
+    const outputs = yield* filmsOut;
     const into = Option.getOrElse(input.to, () => path.join(outputs, 'renders'));
     for (const given of input.keys) {
       const key = underRenders(given);

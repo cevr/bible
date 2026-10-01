@@ -293,13 +293,17 @@ export class VerbRefused extends Schema.TaggedError<VerbRefused>()('VerbRefused'
 }
 
 /** An approval or comment on a scene the project holds no render of. */
+/** The command that renders `variant` of `scene`: what a refusal over a missing or stale render names. */
+export const renderCommand = (film: string, scene: string, variant: string) =>
+  `film project render ${film} --scene ${scene} --variant ${variant}`;
+
 export class SceneNotRendered extends Schema.TaggedError<SceneNotRendered>()('SceneNotRendered', {
   film: Schema.String,
   scene: Schema.String,
   variant: Schema.String,
 }) {
   override get message() {
-    return `${this.film} has no render of scene ${this.scene} (variant ${this.variant}) to review; run film project render ${this.film} first`;
+    return `${this.film} has no render of scene ${this.scene} (variant ${this.variant}) to review; run ${renderCommand(this.film, this.scene, this.variant)} first`;
   }
 }
 

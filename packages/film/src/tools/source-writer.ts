@@ -14,6 +14,11 @@
 // lock, rewritten by its store) is recorded `around` it: the file's text
 // before and after, the same way.
 //
+// Every write (a write, the formatting `around` leaves, an undo, a redo) is
+// a compare and swap under the file's store lock (`swap`): the comparison and
+// the write hold the lock other processes' store writes take (`sfx make` on
+// the library's lock, say), so none lands between them and is lost.
+//
 // Writes, undos and redos run one at a time. Each film keeps its own bounded
 // stack (UNDO_DEPTH): Undo puts back the newest change still on it, byte for
 // byte, and Redo makes the newest undone one again; each only while the file
@@ -31,20 +36,19 @@ import {
   Path,
   Ref,
   Result,
+  Schema,
   Semaphore,
   Stream,
 } from 'effect';
-import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
-import { ContentStore } from './content-store.ts';
+import { ContentStore, type StoreError } from './content-store.ts';
 import {
-  FormatFailed,
   RedoUnavailable,
   SourceChanged,
   type SourceRefused,
   UndoUnavailable,
-  WriteUnverified,
-} from './errors.ts';
+} from '../core/refusals.ts';
+import { FormatFailed, WriteUnverified } from './errors.ts';
 import { FilmFolder } from './film-repo.ts';
 import { collectWithin } from './process.ts';
 
@@ -79,7 +83,7 @@ export type RewriteError =
   | FormatFailed
   | WriteUnverified
   | SourceChanged
-  | PlatformError;
+  | StoreError;
 
 /** What a film's changes are: those Undo may put back, and those Redo may make again. */
 interface History {
@@ -115,11 +119,11 @@ interface SourceWriterService {
     file: string,
     target: string,
     act: Effect.Effect<A, E, R>,
-  ) => Effect.Effect<readonly [A, Option.Option<Change>], E | PlatformError | FormatFailed, R>;
+  ) => Effect.Effect<readonly [A, Option.Option<Change>], E | StoreError | FormatFailed, R>;
   /** Put `film`'s newest change back: its file as it was before it. */
-  readonly undo: (film: string) => Effect.Effect<Change, UndoUnavailable | PlatformError>;
+  readonly undo: (film: string) => Effect.Effect<Change, UndoUnavailable | StoreError>;
   /** Make `film`'s newest undone change again. */
-  readonly redo: (film: string) => Effect.Effect<Change, RedoUnavailable | PlatformError>;
+  readonly redo: (film: string) => Effect.Effect<Change, RedoUnavailable | StoreError>;
   /** What undo and redo would do now for `film`, and its latest change. */
   readonly history: (film: string) => Effect.Effect<WriteHistory>;
 }
@@ -178,9 +182,17 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
       const setHistory = (film: string, h: History) =>
         Ref.update(histories, (all) => new Map([...all, [film, h]]));
 
-      /** Write `text` as the file, whole. */
-      const put = (file: string, text: string) =>
-        store.writeFile(file, new TextEncoder().encode(text));
+      /**
+       * `next` as the file, whole, only while it is still `expected`: read and
+       * written under the file's store lock, so no other writer lands between.
+       * Fails as `SourceChanged` (`target` naming the write) and writes nothing
+       * when the file is not `expected`.
+       */
+      const swap = (file: string, expected: string, next: string, target: string) =>
+        store.modify({ file, codec: Schema.String, empty: '' }, (now) => {
+          if (now !== expected) return Result.fail(SourceChanged.make({ file, target }));
+          return Result.succeed(next);
+        });
 
       /** A change's file as the log names it: relative to its film's folder. */
       const shown = (c: Change) => path.relative(repo.paths(c.film).dir, c.file);
@@ -232,30 +244,47 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
             if (missed.length > 0)
               return yield* WriteUnverified.make({ file, target, reason: missed.join(', ') });
             const checked = yield* rewrite.check(after);
+            const change: Change = {
+              film: rewrite.film,
+              scene: rewrite.scene,
+              file,
+              target,
+              before,
+              after,
+            };
+            // Already so (a pick of the option playing): nothing to write, nothing to undo.
+            if (after === before) {
+              if ((yield* fs.readFileString(file)) !== before)
+                return yield* SourceChanged.make({ file, target });
+              return [change, checked] as const;
+            }
             // Uninterruptible: the write may reload the page, which drops its
             // request; the file and the history must still agree once it lands.
             return yield* Effect.uninterruptible(
               Effect.gen(function* () {
-                // Compare and swap: only over the very text the edit was made from.
-                if ((yield* fs.readFileString(file)) !== before)
-                  return yield* SourceChanged.make({ file, target });
-                const change: Change = {
-                  film: rewrite.film,
-                  scene: rewrite.scene,
-                  file,
-                  target,
-                  before,
-                  after,
-                };
-                // Already so (a pick of the option playing): nothing to write, nothing to undo.
-                if (after === before) return [change, checked] as const;
-                yield* put(file, after);
+                // Only over the very text the edit was made from.
+                yield* swap(file, before, after, target);
                 yield* record(change, 'lab.write');
                 return [change, checked] as const;
               }),
             );
           }),
         );
+
+      /**
+       * The file as oxfmt leaves `acted`, written only over `acted` itself: a
+       * write another process made since stays (unformatted), and the act's
+       * own text is what it left. Answers the text the act's change ends at.
+       */
+      const formattedOver = (file: string, acted: string, target: string) =>
+        Effect.gen(function* () {
+          const formatted = yield* format(file, acted);
+          if (formatted === acted) return acted;
+          return yield* swap(file, acted, formatted, target).pipe(
+            Effect.as(formatted),
+            Effect.catchTag('SourceChanged', () => Effect.succeed(acted)),
+          );
+        });
 
       const around = <A, E, R>(
         film: string,
@@ -271,8 +300,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               // Left as the formatter leaves it, as every lab write is: the act's own
               // writer (the library's lock) need not format as the repository does.
               const acted = yield* fs.readFileString(file);
-              const after = yield* format(file, acted);
-              if (after !== acted) yield* put(file, after);
+              const after = yield* formattedOver(file, acted, target);
               if (after === before) return [done, Option.none<Change>()] as const;
               const change: Change = { film, scene: Option.none(), file, target, before, after };
               yield* record(change, 'lab.write');
@@ -293,11 +321,15 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                     reason: `the lab has made no change to ${film} to undo`,
                   });
                 const c = top.value;
-                if ((yield* fs.readFileString(c.file)) !== c.after)
-                  return yield* UndoUnavailable.make({
-                    reason: `${c.file} has changed since the lab wrote ${c.target}`,
-                  });
-                yield* put(c.file, c.before);
+                yield* swap(c.file, c.after, c.before, c.target).pipe(
+                  Effect.catchTag('SourceChanged', () =>
+                    Effect.fail(
+                      UndoUnavailable.make({
+                        reason: `${c.file} has changed since the lab wrote ${c.target}`,
+                      }),
+                    ),
+                  ),
+                );
                 const undone = undoneOf(c);
                 yield* setHistory(film, {
                   undos: h.undos.slice(0, -1),
@@ -325,11 +357,15 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                     reason: `the lab has undone no change to ${film}`,
                   });
                 const c = top.value;
-                if ((yield* fs.readFileString(c.file)) !== c.before)
-                  return yield* RedoUnavailable.make({
-                    reason: `${c.file} has changed since the lab undid ${c.target}`,
-                  });
-                yield* put(c.file, c.after);
+                yield* swap(c.file, c.before, c.after, c.target).pipe(
+                  Effect.catchTag('SourceChanged', () =>
+                    Effect.fail(
+                      RedoUnavailable.make({
+                        reason: `${c.file} has changed since the lab undid ${c.target}`,
+                      }),
+                    ),
+                  ),
+                );
                 const redone = redoneOf(c);
                 yield* setHistory(film, {
                   undos: [...h.undos, c].slice(-UNDO_DEPTH),

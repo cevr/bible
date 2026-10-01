@@ -7,7 +7,7 @@
 import { Effect } from 'effect';
 import * as NodeAv from 'node-av';
 import type { Pcm } from '../core/audio.ts';
-import { MediaFailed } from './errors.ts';
+import { MediaFailed } from '../core/refusals.ts';
 
 /** Frames libswresample may still hold once every input frame is in: its filter, and room to spare. */
 const FLUSH = 4096;

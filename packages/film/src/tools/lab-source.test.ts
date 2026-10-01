@@ -214,8 +214,13 @@ describe('lab source routes', () => {
             yield* Effect.promise(() => res.json()),
           );
         });
-        // Not in a repository yet: nothing to compare with.
-        expect((yield* request()).status).toBe(404);
+        // Not in a repository yet: nothing to compare with, the file named as the film has it.
+        const unavailable = yield* request();
+        expect(unavailable.status).toBe(404);
+        expect(yield* Effect.promise(() => unavailable.json())).toMatchObject({
+          _tag: 'HeadUnavailable',
+          file: 'scenes/hand.ts',
+        });
         yield* git('init', '-q');
         yield* git('add', '.');
         yield* git('-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-qm', 'scenes');

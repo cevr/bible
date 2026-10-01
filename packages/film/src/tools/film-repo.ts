@@ -36,7 +36,8 @@ import {
 } from '../core/schema.ts';
 import type { PlatformError } from 'effect/PlatformError';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
-import { FilmModuleInvalid, FilmUnknown } from './errors.ts';
+import { FilmUnknown } from '../core/refusals.ts';
+import { FilmModuleInvalid } from './errors.ts';
 import { type PrivateFile, type Scores, scoreKey } from './media-store.ts';
 
 /** Every path a tool touches for one film. */
@@ -198,6 +199,23 @@ export class Stamped extends Data.Class<{ readonly film: FilmName; readonly stam
 /** What is under a film's folder that it is not made from: renders, installs, history. */
 const NOT_SOURCE: ReadonlyArray<string> = ['out', 'node_modules', '.git'];
 
+/**
+ * The file that makes `name` under `films` a film: its scene registry,
+ * `<films>/<name>/scenes/index.ts`. None for a name no folder of `films`
+ * has (`.`, `..`, a path). `FilmFolder.names` and the app's narration
+ * route both ask it.
+ */
+export const filmMark = (films: string, name: string): Option.Option<string> => {
+  if (name === '' || name === '.' || name === '..' || name.includes('/')) return Option.none();
+  return Option.some(`${films}/${name}/scenes/index.ts`);
+};
+
+/** The folder outputs go under: `FILMS_OUT` (the app's `out/` under `runFilmCli`), else `<cwd>/out`. */
+export const filmsOut = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  return yield* Config.String('FILMS_OUT').pipe(Config.withDefault(path.resolve('out')));
+});
+
 export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()(
   '@bible/film/tools/FilmFolder',
 ) {
@@ -211,9 +229,7 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const outputs = yield* Config.String('FILMS_OUT').pipe(
-          Config.withDefault(path.resolve('out')),
-        );
+        const outputs = yield* filmsOut;
 
         const paths = (name: string): FilmPaths => {
           const dir = path.join(films, name);
@@ -242,9 +258,10 @@ export class FilmFolder extends Context.Service<FilmFolder, FilmFolderService>()
           Effect.flatMap((entries) =>
             // A file beside the films (the registry's `index.ts`) is no film: its lookup fails, not errs.
             Effect.filter(entries, (name) =>
-              fs
-                .exists(path.join(films, name, 'scenes', 'index.ts'))
-                .pipe(Effect.orElseSucceed(() => false)),
+              Option.match(filmMark(films, name), {
+                onNone: () => Effect.succeed(false),
+                onSome: (mark) => fs.exists(mark).pipe(Effect.orElseSucceed(() => false)),
+              }),
             ),
           ),
           Effect.map((found) => [...found].sort()),

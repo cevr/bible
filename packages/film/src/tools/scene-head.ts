@@ -19,7 +19,8 @@ import {
 import type { PlatformError } from 'effect/PlatformError';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { type Knob, Knobs, type Span, Timeline } from '../core/schema.ts';
-import { HeadUnavailable, type ProcessTimedOut, type SceneNotLocated } from './errors.ts';
+import { HeadUnavailable, type SceneNotLocated } from '../core/refusals.ts';
+import { type ProcessTimedOut } from './errors.ts';
 import { collectWithin } from './process.ts';
 import { codeOf, readKnobs, readSpans } from './scene-source.ts';
 import { type Field, type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';

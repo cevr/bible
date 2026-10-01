@@ -33,12 +33,12 @@ import {
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import {
-  FilmModuleInvalid,
   FilmUnknown,
   SceneNotLocated,
   type SourceRefused,
   SourceShared,
-} from './errors.ts';
+} from '../core/refusals.ts';
+import { FilmModuleInvalid } from './errors.ts';
 import { FilmFolder, importFilmModule } from './film-repo.ts';
 import {
   type DrawingSite,

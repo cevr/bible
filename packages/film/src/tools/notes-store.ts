@@ -37,7 +37,7 @@ import {
   type NotesWait,
 } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
-import { NoteNotFound } from './errors.ts';
+import { NoteNotFound } from '../core/refusals.ts';
 import type { FilmName } from './film-repo.ts';
 
 /** Where one film's notes live. A film is named by `filmNamed`, so no unchecked name reaches a path. */

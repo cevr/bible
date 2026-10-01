@@ -24,7 +24,8 @@ import {
   parseSync,
 } from 'oxc-parser';
 import { type CuePatch, EaseName, type Knob, Span } from '../core/schema.ts';
-import { SourceRefused } from './errors.ts';
+import { SourceRefused } from '../core/refusals.ts';
+import { toMs } from '../core/time.ts';
 
 /** A `timeline` or `knobs` property: an object literal, something else, or not there. */
 export type Slot =
@@ -78,10 +79,8 @@ const TIMING = ['offset', 'dur', 'until', 'ease', 'stagger'] satisfies ReadonlyA
 >;
 type TimingKey = (typeof TIMING)[number];
 
-/** Seconds and pixels to the thousandth: what the lab writes (and never `-0`). */
-export const roundValue = (v: number): number => Math.round(v * 1000) / 1000 + 0;
-
-const numberText = (v: number) => String(roundValue(v));
+/** A number as the lab writes it: to the millisecond (`toMs`), never `-0`. */
+const numberText = (v: number) => String(toMs(v));
 
 /** A single-quoted string literal. */
 export const stringText = (v: string) => `'${v.replace(/[\\']/g, (c) => `\\${c}`)}'`;

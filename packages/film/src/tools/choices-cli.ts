@@ -22,12 +22,12 @@
 import { Effect, FileSystem, Match, Option, Path, Result } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
 import { ChoiceVerb } from '../core/choice.ts';
-import { PointRef, pointRefOf } from '../core/point.ts';
+import { PointRef } from '../core/point.ts';
 import { hashText } from '../core/narration.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { type BeatAttempts, filmPoints } from './choice-points.ts';
 import { offered, verbFits } from './choices.ts';
-import { VerbRefused } from './errors.ts';
+import { VerbRefused } from '../core/refusals.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { staticLeg } from './film-check.ts';
 import { lineOf, report } from './findings.ts';
@@ -130,8 +130,8 @@ const take = Command.make(
     );
     if (Result.isFailure(found)) return yield* found.failure;
     const { point, variant } = found.success;
-    const take = Option.filter(pointRefOf(point.id), PointRef.guards.Take);
-    if (Option.isNone(take))
+    const { ref } = point;
+    if (!PointRef.guards.Take(ref))
       return yield* VerbRefused.make({
         point: point.id,
         variant: variant.id,
@@ -139,7 +139,7 @@ const take = Command.make(
         reason: `a ${point.kind} is not a library take`,
       });
     const library = yield* SoundLibrary;
-    const sound = take.value.sound;
+    const { sound } = ref;
     yield* Match.value(input.verb).pipe(
       Match.when('pick', () => library.keep(sound, [variant.id])),
       Match.when('unpick', () => library.unkeep(sound, [variant.id])),
@@ -165,7 +165,7 @@ const mix = Command.make(
     const found = offered(input.film, yield* pointsOf(loaded), input.point, input.variant);
     if (Result.isFailure(found)) return yield* found.failure;
     const { point, variant } = found.success;
-    const ref = pointRefOf(point.id);
+    const ref = Option.some(point.ref);
     const score = Option.filter(ref, PointRef.guards.Score);
     const take = Option.map(Option.filter(ref, PointRef.guards.Take), (r) => ({
       sound: r.sound,

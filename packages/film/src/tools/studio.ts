@@ -44,13 +44,8 @@ import {
 import type { SheetBeat } from '../core/sheet.ts';
 import type { PlatformError } from 'effect/PlatformError';
 import { Connection, answered, named } from './api-server.ts';
-import {
-  AttemptUnknown,
-  AudioInvalid,
-  RecordingLossy,
-  TakeMismatch,
-  UnknownScene,
-} from './errors.ts';
+import { UnknownScene } from '../core/errors.ts';
+import { AttemptUnknown, AudioInvalid, RecordingLossy, TakeMismatch } from '../core/refusals.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmFolder, type FilmName, Stamped } from './film-repo.ts';
 import { type FreshError, FreshFilm } from './fresh-film.ts';

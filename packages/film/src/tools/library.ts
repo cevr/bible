@@ -62,18 +62,19 @@ import { describeSound } from '../core/synth/analyse.ts';
 import { loudness } from '../core/synth/loudness.ts';
 import { synthesize } from '../core/synth/recipes.ts';
 import { loopSeam, seamHeard } from '../core/synth/seam.ts';
+import { toMs } from '../core/time.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { sha256Hex, sha256OfFile } from './digest.ts';
 import { ElevenLabs } from './elevenlabs.ts';
+import { type UnknownSound } from '../core/errors.ts';
+import { ElevenLabsFailed, type MediaFailed, TakeUnknown } from '../core/refusals.ts';
 import {
   type ApiKeyMissing,
   CandidateMissing,
   CreditsOverCap,
-  ElevenLabsFailed,
   type FilmModuleInvalid,
   LibraryMissing,
   LoopSeam,
-  type MediaFailed,
   PaidUnconfirmed,
   SoundCorrupt,
   SoundFileMissing,
@@ -84,12 +85,10 @@ import {
   SoundUnmade,
   StoreCopyFailed,
   type StoreFailed,
-  TakeUnknown,
   TrialInvalid,
-  type UnknownSound,
   VariantMissing,
 } from './errors.ts';
-import { libraryModule, lockManifest } from './film-repo.ts';
+import { filmsOut, libraryModule, lockManifest } from './film-repo.ts';
 import { Media } from './media.ts';
 import { settleAll } from './settle.ts';
 import {
@@ -431,9 +430,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
         const media = yield* Media;
         const elevenLabs = yield* ElevenLabs;
         const privateStore = yield* PrivateStore;
-        const outputs = yield* Config.String('FILMS_OUT').pipe(
-          Config.withDefault(path.resolve('out')),
-        );
+        const outputs = yield* filmsOut;
         const home = yield* Config.String('HOME').pipe(Config.withDefault('~'));
 
         const paths: SoundsPaths = {
@@ -549,7 +546,7 @@ export class SoundLibrary extends Context.Service<SoundLibrary, SoundLibraryServ
               file,
               sha256: hash,
               made: yield* now,
-              secs: Math.round((pcm.frames / pcm.rate) * 1000) / 1000,
+              secs: toMs(pcm.frames / pcm.rate),
               loudness: lockLoudness(loudness(pcm)),
               ...lockTiming(describeSound(pcm)),
             };

@@ -47,6 +47,7 @@ import { ContentStore } from './content-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
 import { Browser, CallRefused, type Invoke, framePage } from './browser.ts';
 import { type Encoder, type EncoderChoice, sharesInPage } from '../core/encoder.ts';
+import { ElevenLabsFailed, FreshProcessFailed, MediaFailed } from '../core/refusals.ts';
 import {
   ApiKeyMissing,
   type EncodeFailed,
@@ -54,10 +55,8 @@ import {
   type FrameFailed,
   type PageCrashed,
   type PageError,
-  MediaFailed,
 } from './errors.ts';
 import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { ElevenLabsFailed, FreshProcessFailed } from '../core/refusals.ts';
 import { cueOf } from './read-cli.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
 import { StudioReadings } from './studio.ts';

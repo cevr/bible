@@ -3,7 +3,7 @@
 // with hot reload; `bun run lab` runs it in development mode with the lab's
 // page at /lab and its routes (the film framework's handler) at /lab/*.
 
-import { type LabBound, type LabHandler, ReviewPageFailed } from '@bible/film/tools';
+import { type LabBound, type LabHandler, ReviewPageFailed, filmMark } from '@bible/film/tools';
 import { Effect, Option } from 'effect';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -65,12 +65,12 @@ const NARRATION_URL = /^\/films\/([^/]+)\/narration\/([^/]+)$/;
 const NARRATION_FILE = /^[\w-][\w.-]*$/;
 
 /**
- * Whether `name` is one of the app's films now: a folder under `films` with
- * `scenes/index.ts`, as `FilmFolder.names` counts them. Asked per request, so
- * a film made while the review runs is served like the rest of its routes.
+ * Whether `name` is one of the app's films now: its `filmMark` exists, as
+ * `FilmFolder.names` counts them. Asked per request, so a film made while the
+ * review runs is served like the rest of its routes.
  */
 const isFilm = (films: string, name: string) =>
-  name !== '.' && name !== '..' && existsSync(join(films, name, 'scenes', 'index.ts'));
+  Option.exists(filmMark(films, name), (mark) => existsSync(mark));
 
 /** The file a narration URL names, when its name is a plain file's and its film one of the app's. */
 const narrationFile = (films: string, pathname: string) =>

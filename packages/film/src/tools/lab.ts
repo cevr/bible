@@ -29,7 +29,7 @@ import {
 import { HttpServerResponse } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
-import { StillUnknown } from '../core/refusals.ts';
+import { HeadUnavailable, StillUnknown } from '../core/refusals.ts';
 import { FilmScope, LOOPBACK_ONLY, answered, named, serveApi, withServices } from './api-server.ts';
 import type { ContentStore } from './content-store.ts';
 import { FilmFolder, FilmName } from './film-repo.ts';
@@ -161,11 +161,21 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
       answered(
         Effect.gen(function* () {
           const film = yield* named(params.film);
-          const head = yield* (yield* SceneHead).head(film, params.scene);
           const dir = (yield* FilmFolder).paths(film).dir;
+          const path = yield* Path.Path;
+          // The file named as the source route names it: relative to the film's folder.
+          const head = yield* (yield* SceneHead)
+            .head(film, params.scene)
+            .pipe(
+              Effect.catchTag('HeadUnavailable', (refused) =>
+                Effect.fail(
+                  HeadUnavailable.make({ ...refused, file: path.relative(dir, refused.file) }),
+                ),
+              ),
+            );
           return {
             scene: params.scene,
-            file: (yield* Path.Path).relative(dir, head.site.file),
+            file: path.relative(dir, head.site.file),
             timeline: head.timeline,
             knobs: head.knobs,
             codeChanged: head.codeChanged,

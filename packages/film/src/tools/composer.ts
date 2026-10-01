@@ -22,13 +22,9 @@ import {
 } from '../core/sound.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
 import { ElevenLabs } from './elevenlabs.ts';
-import {
-  type MovementLength,
-  CreditsOverCap,
-  type ElevenLabsFailed,
-  type ScoreUnknown,
-  SoundMissing,
-} from './errors.ts';
+import { type MovementLength, type ScoreUnknown } from '../core/errors.ts';
+import { type ElevenLabsFailed } from '../core/refusals.ts';
+import { CreditsOverCap, SoundMissing } from './errors.ts';
 import type { PartError } from '../core/acts.ts';
 import { sha256Hex } from './digest.ts';
 import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';

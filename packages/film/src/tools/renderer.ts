@@ -44,6 +44,7 @@ import {
 } from '../core/shorts.ts';
 import { FILM_FPS } from '../core/time.ts';
 import { type FramePage, type PageOpenError, makeBrowser } from './browser.ts';
+import { type MediaFailed } from '../core/refusals.ts';
 import {
   type AudioMissing,
   type AudioStale,
@@ -53,7 +54,6 @@ import {
   EncoderMissing,
   type FrameFailed,
   type LookbookFailed,
-  type MediaFailed,
   type PageCrashed,
   type PageError,
   RangeEmpty,

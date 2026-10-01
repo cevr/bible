@@ -1,49 +1,9 @@
-// The tools' typed failures, and the core errors and refusals the tools
-// raise, re-exported for the tools modules that import them from here. Each
-// re-export has a reader; a name no tools module raises is imported from the
-// core where it is declared.
+// The tools' own typed failures. The core errors and refusals the tools raise
+// are imported from the core where they are declared (`core/errors.ts`,
+// `core/refusals.ts`).
 
 import { Schema } from 'effect';
 import { EncoderName } from '../core/encoder.ts';
-
-export {
-  AlignmentMismatch,
-  type MovementLength,
-  ScoreUnknown,
-  UnknownScene,
-  UnknownSound,
-} from '../core/errors.ts';
-
-// The failures the lab's and review's routes answer with, declared in the
-// core so the page decodes them too (`core/refusals.ts`).
-export {
-  AttemptUnknown,
-  AudioInvalid,
-  CatalogueInvalid,
-  ChoiceUnknown,
-  ElevenLabsFailed,
-  FilmUnknown,
-  HeadUnavailable,
-  MediaFailed,
-  NoteNotFound,
-  RecordingInvalid,
-  RecordingLossy,
-  RedoUnavailable,
-  ReviewFileUnknown,
-  ReviewToolFailed,
-  SceneNotLocated,
-  SceneNotRendered,
-  SourceChanged,
-  SourceRefused,
-  SourceShared,
-  SttUntimed,
-  TakeMismatch,
-  TakeUnknown,
-  TimelineUnresolved,
-  UndoUnavailable,
-  VariantUnknown,
-  VerbRefused,
-} from '../core/refusals.ts';
 
 // ---------------------------------------------------------------------------
 // The sound library (`sounds/`): what `sfx check` and `film check` report.

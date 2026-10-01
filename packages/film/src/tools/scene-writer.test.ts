@@ -19,7 +19,7 @@ import {
 } from 'effect';
 import { TestClock } from 'effect/testing';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
-import { ContentStore } from './content-store.ts';
+import { ContentStore, type Manifest } from './content-store.ts';
 import { FilmName, FilmRepo } from './film-repo.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
@@ -109,6 +109,26 @@ const isOxfmt = (command: ChildProcess.Command) =>
 
 /** What an editor saves: its buffer (the file as it was before the lab's write) plus a new line. */
 const EDITOR_LINE = '// a line typed in the editor\n';
+
+/**
+ * A manifest beside the hand scene: names under `kept`, encoded compactly by
+ * the store's codec (not as oxfmt leaves it), as the library's lock is.
+ */
+const ledgerOf = (hand: string): Manifest<Readonly<Record<string, ReadonlyArray<string>>>> => ({
+  file: `${hand.slice(0, hand.lastIndexOf('/'))}/ledger.json`,
+  codec: Schema.fromJsonString(Schema.Record(Schema.String, Schema.Array(Schema.String))),
+  empty: {},
+});
+
+/** `name` appended under `kept` through a store of its own: another process holding the file's lock. */
+const appended = (hand: string, name: string) =>
+  Effect.gen(function* () {
+    const store = yield* ContentStore;
+    yield* store.update(ledgerOf(hand), (ledger) => ({
+      ...ledger,
+      kept: [...(ledger['kept'] ?? []), name],
+    }));
+  }).pipe(Effect.provide(ContentStore.layer.pipe(Layer.provide(BunServices.layer))), Effect.orDie);
 
 const read = Effect.fn('test.read')(function* () {
   return yield* (yield* FileSystem.FileSystem).readFileString(yield* HandFile);
@@ -392,6 +412,41 @@ describe('scene writer', () => {
         yield* writer.setKnob(F, 'hand', 'palm', [1, 2]);
         expect(yield* read()).toBe(before.replace('palm: [960, 800]', 'palm: [1, 2]'));
       }).pipe(Effect.provide(fixtureWith(keep, Option.some(OVERRIDDEN)))),
+  );
+
+  it.effect(
+    "a change recorded around another writer's: a store write landed while oxfmt runs is kept",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const hand = yield* HandFile;
+        const ledger = ledgerOf(hand);
+        yield* Effect.orDie(fs.writeFileString(ledger.file, '{"kept":["take"]}'));
+        const [, change] = yield* (yield* SourceWriter).around(
+          'f',
+          ledger.file,
+          'sound kept keep act',
+          appended(hand, 'act'),
+        );
+        // The other writer's entry stays: the formatted text lands only over the act's own.
+        const now = yield* Effect.orDie(fs.readFileString(ledger.file));
+        const decoded = Schema.decodeEffect(ledger.codec);
+        expect(yield* decoded(now)).toEqual({ kept: ['take', 'act', 'other'] });
+        // The change recorded is the act's: Undo then refuses, since the file has moved on.
+        const after = Option.map(change, (c) => c.after);
+        expect(Option.isSome(after)).toBe(true);
+        expect(yield* decoded(Option.getOrElse(after, () => ''))).toEqual({
+          kept: ['take', 'act'],
+        });
+      }).pipe(
+        Effect.provide(
+          fixtureWith((file, command) => {
+            if (!isOxfmt(command)) return Effect.succeed(command);
+            return Effect.as(appended(file, 'other'), command);
+          }),
+        ),
+      ),
+    SPAWNS_MS,
   );
 
   it.effect('two scenes that spread one drawing: its literals are refused, naming both', () =>

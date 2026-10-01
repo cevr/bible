@@ -23,7 +23,8 @@ import {
   recordRender,
 } from '../core/catalogue.ts';
 import { ContentStore, type Manifest } from './content-store.ts';
-import { CatalogueInvalid, type FileInvalid, type StoreLocked } from './errors.ts';
+import { CatalogueInvalid } from '../core/refusals.ts';
+import { type FileInvalid, type StoreLocked } from './errors.ts';
 import type { FilmPaths } from './film-repo.ts';
 import { RenderJob, type RenderOutput } from './render-plan.ts';
 

@@ -21,7 +21,7 @@
 // Pure: the tools' adapters (`tools/choices.ts`, `tools/review.ts`) build
 // the points, and the review page shows them.
 
-import { Array as Arr, Effect, Option, Schema, SchemaIssue, SchemaTransformation } from 'effect';
+import { Array as Arr, Effect, Option, Schema, SchemaTransformation } from 'effect';
 import { Address } from './address.ts';
 import {
   ApprovalState,
@@ -34,7 +34,7 @@ import {
   saidOn,
   topicAt,
 } from './catalogue.ts';
-import { PointRef, pointIdOf, pointRefOf } from './point.ts';
+import { PointId, PointRef, pointIdOf } from './point.ts';
 import { CheckLine, Seconds, maybe } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
@@ -121,26 +121,33 @@ const pointFields = {
   variants: Schema.Array(ChoiceVariant),
 };
 
+/** Each kind of point's kind: what it chooses between (a montage's set is a render set). */
+const KIND = {
+  Render: 'render',
+  Montage: 'render',
+  Score: 'score',
+  Take: 'take',
+  Voice: 'voice',
+  Look: 'look',
+  Level: 'level',
+} as const satisfies { readonly [Tag in PointRef['_tag']]: ChoiceKind };
+
 /**
  * A choice point: at an address, variants to compare, pick, comment on and
  * approve. Which point it is is data (`ref`): read from its id once, where
- * the point is decoded, and written back as the id alone, so the wire
- * carries one name for it and a verb reads the ref, never the id parsed back.
+ * the point is decoded (`PointId`), and written back as the id alone, so the
+ * wire carries one name for it and a verb reads the ref, never the id parsed
+ * back. Its kind is the ref's too: a `kind` on the wire is the page's to
+ * read, and the decoded point's is `KIND` of its ref.
  */
 export const ChoicePoint = Schema.Struct(pointFields).pipe(
   Schema.decodeTo(
     Schema.toType(Schema.Struct({ ...pointFields, ref: PointRef })),
     SchemaTransformation.transformEffect({
       decode: (point) =>
-        Effect.fromOption(pointRefOf(point.id)).pipe(
-          Effect.map((ref) => ({ ...point, ref })),
-          Effect.mapError(
-            () =>
-              new SchemaIssue.InvalidValue(
-                { message: `no choice point is "${point.id}"` },
-                point.id,
-              ),
-          ),
+        Schema.decodeEffect(PointId)(point.id).pipe(
+          Effect.map((ref) => ({ ...point, ref, kind: KIND[ref._tag] })),
+          Effect.mapError((error) => error.issue),
         ),
       encode: ({ ref: _ref, ...point }) => Effect.succeed(point),
     }),
@@ -153,17 +160,6 @@ export type VariantDraft = Omit<ChoiceVariant, 'approval' | 'comments' | 'notes'
   readonly notes?: Option.Option<ReviewFile>;
   readonly staleBy?: Option.Option<StaleBy>;
 };
-
-/** Each kind of point's kind: what it chooses between (a montage's set is a render set). */
-const KIND = {
-  Render: 'render',
-  Montage: 'render',
-  Score: 'score',
-  Take: 'take',
-  Voice: 'voice',
-  Look: 'look',
-  Level: 'level',
-} as const satisfies { readonly [Tag in PointRef['_tag']]: ChoiceKind };
 
 /** A point's ref, with its id and kind, both read off it. */
 export const pointHead = (ref: PointRef): Pick<ChoicePoint, 'id' | 'ref' | 'kind'> => ({

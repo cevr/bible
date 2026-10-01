@@ -384,7 +384,8 @@ a render as it is now, so only a current one is approved: `--act` and
 `--all` leave a stale or missing scene, and `--scene` naming one refuses it
 and approves nothing (`VerbRefused`, 409 on the review's route, naming why it
 is stale and the render that makes it current; `SceneNotRendered`, 404, for
-one never rendered). The rule is `approvalRefused` (`core/choice.ts`), which
+one never rendered). Both name that render as a command to run,
+`film project render <film> --scene id --variant v` (`renderCommand`). The rule is `approvalRefused` (`core/choice.ts`), which
 the choices' say keeps too; `film project withdraw
 <film> --scene id,id | --act name | --all` withdraws those scenes' approvals,
 whatever version they were given on. `film project comment
@@ -392,7 +393,7 @@ whatever version they were given on. `film project comment
 as it is now (on the scene itself when it has no render yet), on an act, or
 (with neither) on the whole film. With `--json`
 each prints the project (`ProjectRead`) as one line, or its refusal as
-itself (`SceneNotRendered`, `UnknownScene`, `UnknownAct`, `CatalogueInvalid`:
+itself (`SceneNotRendered`, `VerbRefused`, `UnknownScene`, `UnknownAct`, `CatalogueInvalid`:
 a `FreshRefusal`), which is how the review runs it. Approvals and comments are keyed by address,
 variant and the render's version (`renderVersion`: the stamp's key and the
 mix it carries): a re-render or a re-mux leaves an approval in place, stale,
@@ -1198,13 +1199,18 @@ makes no phone copies.
 (`source-writer.ts`), the lab's knob and cue writes included: it reads the
 file, makes the new text, formats it with oxfmt through stdin, verifies it
 (the edit reads back as meant), and swaps it in only if the file is still as
-it was read (compare and swap), then runs `check --static`. A score or look
+it was read (compare and swap, under the file's store lock, so another
+process's store write, `sfx make` on the library's lock say, never lands
+between the comparison and the write and is lost), then runs
+`check --static`. A score or look
 pick splices the one `play` string literal, and a knob its one level
 literal (`choice-source.ts`, through oxc); a
 take's act runs the library's own `keep`, `unkeep` or `reject` on the lock,
 the writer recording the lock's bytes before and after and leaving the lock
 as oxfmt does (the library's own JSON writer spreads short arrays the
-formatter keeps on one line), so the diff is only the pick. A write that
+formatter keeps on one line), so the diff is only the pick; when another
+writer changed the lock after the act, its write stays and the lock is left
+unformatted. A write that
 changes nothing answers `(already so)` and records nothing. Each film keeps
 its own undo and redo stacks (50 deep): Undo puts the newest change back byte
 for byte, only while the file is exactly as that change left it (else
