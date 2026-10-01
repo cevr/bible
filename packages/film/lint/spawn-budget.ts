@@ -6,8 +6,8 @@
 //
 // A test is a call to `it` or `test` (`it.effect`, `it.live`,
 // `it.effect.layer(…)`) with a name and a body. It spawns when its body calls
-// `ChildProcess.make`, `Bun.spawn`, `Bun.spawnSync` or `runCli`, or a function
-// of the same file that does, however deep. A test with a third argument has
+// `ChildProcess.make`, `Bun.spawn` or `Bun.spawnSync`, or a function of the
+// same file that does, however deep. A test with a third argument has
 // its budget.
 
 import { Effect, Option } from 'effect';
@@ -23,9 +23,8 @@ import { ancestors, memberName } from './nodes.ts';
 /** The name `SPAWN` stands for a call that spawns: its host spawns. */
 const SPAWN = '(spawn)';
 
-/** Calls that spawn a process, by `Owner.member`, and helpers that do, by name. */
+/** Calls that spawn a process, by `Owner.member`. */
 const SPAWNS = new Set(['ChildProcess.make', 'Bun.spawn', 'Bun.spawnSync']);
-const SPAWNING_IMPORTS = new Set(['runCli']);
 
 /** The identifier a callee chain starts at: `it` for `it.effect.layer(x)(…)`. */
 const rootName = (n: ESTree.Node): Option.Option<string> => {
@@ -47,10 +46,7 @@ const isTest = (n: ESTree.Node): n is ESTree.CallExpression =>
 /** What a call names: `SPAWN` for a spawn, a plain function's name, or nothing. */
 const calledName = (call: ESTree.CallExpression): Option.Option<string> => {
   const callee = call.callee;
-  if (callee.type === 'Identifier') {
-    if (SPAWNING_IMPORTS.has(callee.name)) return Option.some(SPAWN);
-    return Option.some(callee.name);
-  }
+  if (callee.type === 'Identifier') return Option.some(callee.name);
   if (callee.type !== 'MemberExpression' || callee.object.type !== 'Identifier')
     return Option.none();
   const owner = callee.object.name;
