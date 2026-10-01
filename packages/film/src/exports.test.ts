@@ -180,6 +180,43 @@ const isUser = (file: string) =>
   !/^apps\/[^/]+\/out\//.test(file) &&
   (file.startsWith('apps/') || /\.test\.tsx?$/.test(file) || file.includes('/fixtures/'));
 
+/** The original public-entry guard's directories; the internal sweep also reads lint's tools. */
+const inEntryScope = (file: string) =>
+  file.startsWith('apps/') ||
+  file.startsWith('packages/film/src/') ||
+  file.startsWith('packages/film/lint/fixtures/');
+
+/** Both entry guards read one fresh source graph for this test invocation. */
+const graph = Effect.runSync(
+  Effect.cached(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const root = path.resolve(import.meta.dir, '../../..');
+      const films = path.join(root, 'packages/film');
+      const read = (dir: string) =>
+        Effect.map(fs.readDirectory(path.join(root, dir), { recursive: true }), (found) =>
+          found.map((f) => `${dir}/${f}`),
+        );
+      const files = Arr.filter(
+        [
+          ...(yield* read('apps')),
+          ...(yield* read('packages/film/src')),
+          ...(yield* read('packages/film/lint')),
+        ],
+        (file) =>
+          /\.tsx?$/.test(file) &&
+          !file.includes('node_modules') &&
+          !/^apps\/[^/]+\/out\//.test(file),
+      );
+      const records = new Map<string, ModuleRecord>();
+      for (const file of files)
+        records.set(file, recordOf(file, yield* fs.readFileString(path.join(root, file))));
+      return { root, films, records };
+    }).pipe(Effect.provide(BunServices.layer)),
+  ),
+);
+
 describe('the package entries', () => {
   it.effect('a comment or a string that looks like code hides nothing and names nothing', () =>
     Effect.sync(() => {
@@ -207,33 +244,17 @@ describe('the package entries', () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = path.resolve(import.meta.dir, '../../..');
-      const films = path.join(root, 'packages/film');
-      const files = Arr.filter(
-        [
-          ...(yield* fs.readDirectory(path.join(root, 'apps'), { recursive: true })).map(
-            (f) => `apps/${f}`,
-          ),
-          ...(yield* fs.readDirectory(path.join(films, 'src'), { recursive: true })).map(
-            (f) => `packages/film/src/${f}`,
-          ),
-          // The lint rules' fixtures, each a film's code the rule reads.
-          ...(yield* fs.readDirectory(path.join(films, 'lint/fixtures'), { recursive: true })).map(
-            (f) => `packages/film/lint/fixtures/${f}`,
-          ),
-        ],
-        (file) => isUser(file) || TOOL_USERS.has(file),
+      const { root, films, records } = yield* graph;
+      const users = [...records].filter(
+        ([file]) => inEntryScope(file) && (isUser(file) || TOOL_USERS.has(file)),
       );
-      const records = new Map<string, ModuleRecord>();
-      for (const file of files)
-        records.set(file, recordOf(file, yield* fs.readFileString(path.join(root, file))));
 
       const found: Record<string, { readonly whole: boolean; readonly unused: string[] }> = {};
       for (const { entry, file } of ENTRIES) {
         const at = path.join(films, file);
         const own = recordOf(at, yield* fs.readFileString(at));
         const used = new Set<string>();
-        for (const [user, record] of records) {
+        for (const [user, record] of users) {
           if (path.join(root, user) === at) continue;
           for (const take of record.takes) {
             const fromEntry =
@@ -259,26 +280,7 @@ describe('the package entries', () => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const root = path.resolve(import.meta.dir, '../../..');
-      const films = path.join(root, 'packages/film');
-      const read = (dir: string) =>
-        Effect.map(fs.readDirectory(path.join(root, dir), { recursive: true }), (found) =>
-          found.map((f) => `${dir}/${f}`),
-        );
-      const files = Arr.filter(
-        [
-          ...(yield* read('apps')),
-          ...(yield* read('packages/film/src')),
-          ...(yield* read('packages/film/lint')),
-        ],
-        (file) =>
-          /\.tsx?$/.test(file) &&
-          !file.includes('node_modules') &&
-          !/^apps\/[^/]+\/out\//.test(file),
-      );
-      const records = new Map<string, ModuleRecord>();
-      for (const file of files)
-        records.set(file, recordOf(file, yield* fs.readFileString(path.join(root, file))));
+      const { root, films, records } = yield* graph;
       const specifiers = yield* Schema.decodeEffect(PackageExports)(
         yield* fs.readFileString(path.join(films, 'package.json')),
       );
