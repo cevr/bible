@@ -437,7 +437,6 @@ describe('SoundLibrary', () => {
                 sha256: createHash('sha256').update('a score').digest('hex'),
               },
             ],
-            dirs: [`${dir}/../films/f/sound`],
           };
           const sent = yield* library.push(scores, Option.none());
           expect(sent.sent).toEqual(['scores/f/piano-1.mp3']);
@@ -596,73 +595,6 @@ describe('SoundLibrary', () => {
         expect(check.filter((f) => f._tag === 'SoundLicence')).toEqual([]);
       }),
     ),
-  );
-
-  it.effect.layer(fixture)(
-    'the commit guard refuses generated audio anywhere and public audio that is no CC0 variant',
-    () =>
-      withLibrary(({ dir }) =>
-        Effect.gen(function* () {
-          const library = yield* SoundLibrary;
-          const media = yield* Media;
-          const fs = yield* FileSystem.FileSystem;
-          const path = yield* Path.Path;
-          yield* library.make({ ...all, names: Option.some(new Set(['paper.slide'])) });
-          const generated =
-            (yield* library.keep(
-              'paper.slide',
-              yield* library.takesAt('paper.slide', [1], 'candidates'),
-            )).variants[0]?.file ?? '';
-          const leak = path.join(dir, '..', 'leak.flac');
-          yield* fs.copyFile(path.join(dir, generated), leak);
-          const take = path.join(dir, '..', 'take.wav');
-          const plane = new Float32Array(4410).map((_, i) => 0.5 * Math.sin(i / 3));
-          yield* media.writeWav(take, { rate: 44100, frames: plane.length, channels: [plane] });
-          const recorded = (yield* library.importFile(take, 'wood.knock')).file;
-          const stray = path.join(dir, 'public', 'stray.wav');
-          yield* fs.copyFile(take, stray);
-          const notes = path.join(dir, 'notes.txt');
-          yield* fs.writeFileString(notes, 'not audio');
-          // A film's composed score, in its sound/ folder and copied out of it.
-          const soundDir = path.join(dir, '..', 'films', 'f', 'sound');
-          yield* fs.makeDirectory(soundDir, { recursive: true });
-          const composed = path.join(soundDir, 'piano-1.mp3');
-          yield* fs.writeFileString(composed, 'a score');
-          const copied = path.join(dir, '..', 'score-copy.mp3');
-          yield* fs.copyFile(composed, copied);
-          const scores: Scores = {
-            files: [
-              {
-                key: 'scores/f/piano-1.mp3',
-                file: composed,
-                sha256: createHash('sha256').update('a score').digest('hex'),
-              },
-            ],
-            dirs: [soundDir],
-          };
-
-          const staged = [
-            path.join(dir, generated),
-            leak,
-            path.join(dir, recorded),
-            stray,
-            take,
-            notes,
-            composed,
-            copied,
-          ];
-          const refused = yield* library.guard(staged, scores);
-          expect(refused.map((r) => [path.basename(r.file), r.licence])).toEqual([
-            [path.basename(generated), 'a generated sound (sounds/files is private)'],
-            ['leak.flac', 'elevenlabs-paid-sfx (a copy of paper.slide)'],
-            ['stray.wav', 'not a CC0 variant in the lock'],
-            ['piano-1.mp3', "a generated score (a film's sound/ is private)"],
-            ['score-copy.mp3', 'elevenlabs-music (a copy of a generated score)'],
-          ]);
-          // Without the films' scores, the guard judges the library's sounds alone.
-          expect(yield* library.guard([copied], NO_SCORES)).toEqual([]);
-        }),
-      ),
   );
 
   it.effect.layer(fixture)(

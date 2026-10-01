@@ -1,5 +1,5 @@
 // `film sfx`: the app's sound library from the command line. Every command
-// but `make` is free: `list`, `plan`, `check` and `guard` read the library and
+// but `make` is free: `list`, `plan` and `check` read the library and
 // its lock; `describe` records each variant's onset and hit from its file; `audition` and `render` write WAVs under `<FILMS_OUT>/sounds`;
 // `keep`, `reject` and `import` curate the lock; `pull` and `push` sync the
 // private `files/` (and the films' scores) with the store; `push --from` sends
@@ -18,7 +18,6 @@
 //   film sfx render <name> [--seed n]
 //   film sfx check [--json]      film sfx describe
 //   film sfx pull                  film sfx push [--from folder]
-//   film sfx guard <file…>         (the pre-commit hook: staged audio the repo may not take)
 
 import { Console, Effect, Option, Schema } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
@@ -30,7 +29,7 @@ import {
   levelOf,
   soundState,
 } from '../core/sfx.ts';
-import { LibraryCheckFailed, SoundsRefused } from './errors.ts';
+import { LibraryCheckFailed } from './errors.ts';
 import { FilmRepo } from './film-repo.ts';
 import { type LoadedLibrary, SoundLibrary, libraryLevel } from './library.ts';
 import { CheckLineJson } from './fresh-film.ts';
@@ -441,26 +440,6 @@ const push = Command.make(
   ),
 );
 
-const guard = Command.make(
-  'guard',
-  {
-    files: Argument.String('file').pipe(
-      Argument.variadic(),
-      Argument.withDescription('the staged files (the hook passes them)'),
-    ),
-  },
-  Effect.fn('film.sfx.guard')(function* (input) {
-    const scores = yield* (yield* FilmRepo).scores;
-    const refused = yield* (yield* SoundLibrary).guard(input.files, scores);
-    for (const r of refused) yield* Console.error(`refused  ${r.message}`);
-    if (refused.length > 0) return yield* SoundsRefused.make({ files: refused.map((r) => r.file) });
-  }),
-).pipe(
-  Command.withDescription(
-    "Refuse staged audio a public repo may not take: generated sounds and scores (or copies of them), anything in a film's sound/, and public audio that is no CC0 variant",
-  ),
-);
-
 /** `film sfx`, over the app's library (`SoundLibrary`). */
 export const sfx = Command.make('sfx').pipe(
   Command.withDescription("The app's sound library: list, plan, make, curate, check and sync it"),
@@ -479,6 +458,5 @@ export const sfx = Command.make('sfx').pipe(
     describe,
     pull,
     push,
-    guard,
   ]),
 );

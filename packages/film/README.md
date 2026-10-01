@@ -85,11 +85,7 @@ declaration is changed to say the same (`TrialInvalid` for settings no
 declaration could take). A sound that names no `influence` is made at its
 use's default (`DEFAULT_INFLUENCE`: 0.7 for a one-shot, 0.3 for a bed) and
 as `DEFAULT_CANDIDATES` (6 one-shots, 3 beds), both measured in the sweet-spot
-trials (`apps/animations/sounds/PROMPTING.md`). `guard` is the sound-licence
-pre-commit hook's: of the staged audio files it is given, it refuses any audio under `files/`,
-any copy of a variant or candidate that is not CC0 (by its sha256, wherever
-it is staged), and anything under `public/` the lock does not hold as a CC0
-variant (`SoundsRefused`).
+trials (`apps/animations/sounds/PROMPTING.md`).
 
 Preflights: `film doctor` checks headless Chromium (launched and closed;
 `BrowserMissing` carries the install command), the `elevenlabs` CLI and its
@@ -886,8 +882,10 @@ and `canvas.toBlob` encodes at once (Chromium's waits for idle time a busy
 page may not leave, up to 5 s). A test process launches one Chromium per way of launching it
 (`lab/fixtures/browsers.ts`: headless, or the full one with a fake
 microphone per tone) and each case opens its own context in it, so a file's
-cases run at once (`concurrentTestGlob` in `bunfig.toml`) and the page's
-script is bundled once per process.
+cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
+worker (`--max-concurrency=3` in the test script: one worker a core, so three
+pages a core, and a case's timeout counts its own work, not its siblings'),
+and the page's script is bundled once per process.
 
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand

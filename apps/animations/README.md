@@ -480,8 +480,8 @@ needs `mix`. The mix holds the score `under` dB against the voice wherever
 anyone speaks and lets it rise to `alone` where no one has for 3 s. Generated
 music, like generated effects, never enters the repo: each option's file sits
 git-ignored in the film's `sound/`, its manifest (committed) records its hash
-and sha256, `sfx pull`/`push` sync it with the private store under
-`scores/<film>/`, and the pre-commit guard refuses it and any copy of it.
+and sha256, and `sfx pull`/`push` sync it with the private store under
+`scores/<film>/`.
 Music works with the CLI's OAuth login; effects
 need an API key in `ELEVENLABS_API_KEY` or the Keychain (service
 `ELEVENLABS_API_KEY`) — without one they are skipped, not faked. Balance with

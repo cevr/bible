@@ -4,9 +4,9 @@
 //
 // Generated sounds (ElevenLabs) may never sit in this public repo: their files
 // live in the git-ignored `files/` and sync with the store below
-// (`sfx pull`/`push`); the pre-commit guard refuses them. Procedural sounds are
-// recipes, played from their seeds whenever they are needed. A recorded sound
-// is CC0 only, under `public/` (`sfx import`).
+// (`sfx pull`/`push`). Procedural sounds are recipes, played from their seeds
+// whenever they are needed. A recorded sound is CC0 only, under `public/`
+// (`sfx import`).
 //
 // The first library (audio-design §9): 30 generated one-shots, 9 generated
 // beds, 1 recorded one-shot, 6 procedural sounds. Prompts are concrete, close and dry: a film's cue

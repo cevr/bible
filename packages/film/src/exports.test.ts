@@ -14,15 +14,15 @@
 // an `export * as` take a module whole.
 //
 // The entries guarded, and who uses them:
-//   canvas    films, their kits and tests: the draw kit
+//   canvas    films, their kits and the framework's tests: the draw kit
 //   player    the app's page, its film registry, a film's `Narrated` type
-//   stand-in  the framework's and a film's tests, and `check --draw`'s leg
+//   stand-in  the framework's tests, and `check --draw`'s leg
 //             (tools/draw-check.ts), which draws every scene into it
-//   core      films, their kits, the app's sound library and tests: the
-//             clock, the script and sound schemas, the mix plan
-// `tools`, `lab`, `review` and `testing` (the tools' test doubles) are not
-// guarded here: the tooling entries are read by the CLI and the tests, and
-// the framework reads each core module by its path.
+//   core      films, their kits, the app's sound library and the framework's
+//             tests: the clock, the script and sound schemas, the mix plan
+// `tools`, `lab`, `review` and `solid-plugin` are not guarded here: the
+// tooling entries are read by the CLI, the app's build and the tests, and the
+// framework reads each core module by its path.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
