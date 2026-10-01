@@ -51,6 +51,9 @@ This project uses **Bun** as its package manager and runtime.
 bun install                    # Install dependencies
 bun run typecheck              # Type check all packages
 bun run fmt                    # Format code with oxfmt
+bun run gate                   # What CI runs: lint, format check, typecheck, build, tests
+bun run test:perf              # The CLI's performance budgets (local only; reads packages/core/data/bible.db)
+bun run ci [<commit>]          # Wait for a commit's CI run on main and print its verdict
 ```
 
 ## Runtime observability

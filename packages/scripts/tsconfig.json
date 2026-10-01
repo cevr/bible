@@ -4,8 +4,6 @@
     "src/checkpoint.ts",
     "src/ci-verdict.ts",
     "src/ci-verdict/**/*.ts",
-    "src/typecheck-inputs.ts",
-    "src/typecheck-inputs/**/*.ts",
     "src/checkpoint/**/*.ts",
     "src/topics-compiler/**/*.ts"
   ]

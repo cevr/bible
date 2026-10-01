@@ -833,7 +833,8 @@ separately: a milestone may add no UI at all and still owe full three-client
 domain parity.
 
 The gate is `bun run gate` — `oxlint` plus `oxfmt` in parallel with `turbo run
-gate` (per-package `typecheck`, `build`, `test`), then `bun run test:perf`.
+gate` (per-package `typecheck`, `build`, `test`). The CLI's performance budgets
+run locally with `bun run test:perf` (they read `packages/core/data/bible.db`).
 
 Every milestone runs the six acceptance rules from the compatibility contract:
 
