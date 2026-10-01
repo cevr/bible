@@ -10,7 +10,7 @@ import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { type Asked, json, openLab, route, sourceOne } from '../fixtures/harness.ts';
-import { attributeIs, textHas, valueIs } from '../fixtures/settled.ts';
+import { attributeIs, evaluates, textHas, valueIs } from '../fixtures/settled.ts';
 
 const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));
@@ -100,8 +100,7 @@ describe('the handles on the frame', () => {
       expect(writes).toHaveLength(1);
       expect(writes[0]?.path).toBe('/knobs/one/spot');
       expect(writes[0]?.body).toEqual(Option.some({ value: [360, 200] }));
-      const search = yield* Effect.promise(() => page.evaluate(() => location.search));
-      expect(search).toContain('sel=knob%3Aone%3Aspot');
+      yield* evaluates(page, "location.search.includes('sel=knob%3Aone%3Aspot')", true);
     }).pipe(Effect.scoped),
   );
 

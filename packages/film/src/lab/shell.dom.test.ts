@@ -8,7 +8,7 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { openLab } from './fixtures/harness.ts';
-import { attributeIs, textHas } from './fixtures/settled.ts';
+import { attributeIs, evaluates, textHas } from './fixtures/settled.ts';
 
 /** Each match's box as the page placed it: its rect, or for a pinned layer its inline box (a hidden layer has no rect). */
 const rects = (sel: string) =>
@@ -31,16 +31,25 @@ const resize = (page: Page, size: { readonly width: number; readonly height: num
     yield* Effect.promise(() => page.evaluate('window.labResized'));
   });
 
+/** The pinned layers over the film canvas. */
+const LAYERS = '.lab-overlay, .lab-onion, .lab-compare';
+
+/** Whether there are pinned layers, and each sits exactly on the film canvas's box. */
+const layersOnCanvas = `(() => { const c = JSON.stringify(${rects('.stage canvas')}[0]); const ls = ${rects(LAYERS)}; return ls.length > 0 && ls.every((l) => JSON.stringify(l) === c); })()`;
+
+/** The canvas's box, as JSON. */
+const canvasBox = `JSON.stringify(${rects('.stage canvas')}[0])`;
+
+/** The film seconds `#T` holds. */
+const T = 'Number(location.hash.slice(1))';
+
 describe('the lab shell', () => {
   it.live('mounts the panel with its header and the look-book link', () =>
     Effect.gen(function* () {
       const { page, errors } = yield* openLab();
       yield* textHas(page, '.lab-panel header', 'Lab');
       yield* attributeIs(page, '.lab-lookbook', 'href', '/?film=probe&lookbook');
-      const lab = yield* Effect.promise(() =>
-        page.evaluate(() => document.body.classList.contains('lab')),
-      );
-      expect(lab).toBe(true);
+      yield* evaluates(page, "document.body.classList.contains('lab')", true);
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
@@ -48,39 +57,26 @@ describe('the lab shell', () => {
   it.live('pins its layers over the film canvas, and keeps them there as the window resizes', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab();
-      const over = () =>
-        Effect.promise(() =>
-          page.evaluate(
-            `({ canvas: ${rects('.stage canvas')}[0], layers: ${rects('.lab-overlay, .lab-onion, .lab-compare')} })`,
-          ),
-        );
-      const before = (yield* over()) as { canvas: number[]; layers: number[][] };
-      expect(before.layers.length).toBeGreaterThan(0);
-      for (const layer of before.layers) expect(layer).toEqual(before.canvas);
+      yield* evaluates(page, layersOnCanvas, true);
+      // The canvas's box as it stands, kept in the page for the resize to move.
+      yield* Effect.promise(() => page.evaluate(`window.labCanvasBefore = ${canvasBox}; true`));
       yield* resize(page, { width: 1000, height: 800 });
-      const after = (yield* over()) as { canvas: number[]; layers: number[][] };
-      expect(after.canvas).not.toEqual(before.canvas);
-      for (const layer of after.layers) expect(layer).toEqual(after.canvas);
+      yield* evaluates(page, `${canvasBox} !== window.labCanvasBefore`, true);
+      yield* evaluates(page, layersOnCanvas, true);
     }).pipe(Effect.scoped),
   );
 
   it.live('keeps the film canvas, and so its layers, inside its row, off the bar', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab();
+      // The canvas ends above its row's end, the overlay above the bar, and the overlay on the canvas.
+      const placed = `(() => { const bottom = ([, top, , height]) => top + height; const stage = ${rects('.stage')}[0], canvas = ${rects('.stage canvas')}[0], overlay = ${rects('.lab-overlay')}[0], bar = ${rects('.bar')}[0]; return [bottom(canvas) <= bottom(stage), bottom(overlay) <= bar[1], JSON.stringify(overlay) === JSON.stringify(canvas)]; })()`;
       for (const size of [
         { width: 1400, height: 480 },
         { width: 1100, height: 420 },
       ]) {
         yield* resize(page, size);
-        const box = (yield* Effect.promise(() =>
-          page.evaluate(
-            `({ stage: ${rects('.stage')}[0], canvas: ${rects('.stage canvas')}[0], overlay: ${rects('.lab-overlay')}[0], bar: ${rects('.bar')}[0] })`,
-          ),
-        )) as Record<'stage' | 'canvas' | 'overlay' | 'bar', [number, number, number, number]>;
-        const bottom = ([, top, , height]: readonly number[]) => (top ?? 0) + (height ?? 0);
-        expect(bottom(box.canvas)).toBeLessThanOrEqual(bottom(box.stage));
-        expect(bottom(box.overlay)).toBeLessThanOrEqual(box.bar[1]);
-        expect(box.overlay).toEqual(box.canvas);
+        yield* evaluates(page, placed, [true, true, true]);
       }
     }).pipe(Effect.scoped),
   );
@@ -88,10 +84,11 @@ describe('the lab shell', () => {
   it.live("keeps the strip's slot right under the player's timeline", () =>
     Effect.gen(function* () {
       const { page } = yield* openLab();
-      const next = yield* Effect.promise(() =>
-        page.evaluate(() => document.querySelector('.bar .track')?.nextElementSibling?.className),
+      yield* evaluates(
+        page,
+        "document.querySelector('.bar .track')?.nextElementSibling?.className",
+        'lab-strip-slot',
       );
-      expect(next).toBe('lab-strip-slot');
     }).pipe(Effect.scoped),
   );
 
@@ -109,52 +106,37 @@ describe('the lab shell', () => {
             if (row) rows?.append(row.cloneNode(true));
         }),
       );
-      const width = (sel: string) =>
-        Effect.promise(() =>
-          page.evaluate(
-            (at) => document.querySelector(at)?.getBoundingClientRect().width ?? 0,
-            sel,
-          ),
-        );
-      const canvas = yield* width('.stage canvas');
-      const column = yield* width('.stage');
-      // Scrolled to its end, the strip still shows the words row at its top.
-      const strip = (yield* Effect.promise(() =>
-        page.evaluate(() => {
+      // The film keeps at least half its column; the strip scrolls, and scrolled
+      // to its end still shows the words row at its top.
+      yield* evaluates(
+        page,
+        `(() => {
+          const width = (at) => document.querySelector(at)?.getBoundingClientRect().width ?? 0;
           const scroller = document.querySelector('.lab-strip-scroll');
-          if (!(scroller instanceof HTMLElement)) return { scrolls: false, wordsAtTop: false };
+          if (!(scroller instanceof HTMLElement)) return [false, false, false];
           scroller.scrollTop = scroller.scrollHeight;
           const words = scroller.querySelector('.lab-strip-words')?.getBoundingClientRect().top;
-          return {
-            scrolls: scroller.scrollHeight > scroller.clientHeight,
-            wordsAtTop:
-              Math.round(words ?? -1) === Math.round(scroller.getBoundingClientRect().top),
-          };
-        }),
-      )) as { scrolls: boolean; wordsAtTop: boolean };
-      const box = { canvas, column, ...strip };
-      expect(box.canvas).toBeGreaterThanOrEqual(box.column / 2);
-      expect(box.scrolls).toBe(true);
-      expect(box.wordsAtTop).toBe(true);
+          return [
+            width('.stage canvas') >= width('.stage') / 2,
+            scroller.scrollHeight > scroller.clientHeight,
+            Math.round(words ?? -1) === Math.round(scroller.getBoundingClientRect().top),
+          ];
+        })()`,
+        [true, true, true],
+      );
     }).pipe(Effect.scoped),
   );
 
   it.live('Play at the end of the film starts it over', () =>
     Effect.gen(function* () {
-      // Past the end: the player shows the last frame.
+      // Past the end: the player shows the last frame, kept in the page.
       const { page } = yield* openLab([], { hash: '#999' });
-      const t = () =>
-        Effect.promise(() => page.evaluate(() => Number(location.hash.slice(1)))).pipe(
-          Effect.map((n) => Math.round(n * 10) / 10),
-        );
-      const end = yield* t();
-      expect(end).toBeGreaterThan(1);
+      yield* evaluates(page, `${T} > 1`, true);
+      yield* Effect.promise(() => page.evaluate(`window.labEnd = ${T}; true`));
       yield* Effect.promise(() => page.keyboard.press(' '));
       yield* Effect.promise(() => page.clock.runFor(500));
       yield* Effect.promise(() => page.keyboard.press(' '));
-      const played = yield* t();
-      expect(played).toBeGreaterThan(0);
-      expect(played).toBeLessThan(end);
+      yield* evaluates(page, `${T} > 0 && ${T} < window.labEnd`, true);
     }).pipe(Effect.scoped),
   );
 });

@@ -20,7 +20,7 @@ export const reads = [
 
 declare const expect: (value: unknown) => { toBe: (want: unknown) => void };
 declare const promise: <A>(run: () => Promise<A>) => A;
-const evaluate = <A>(script: string) => page.evaluate(script) as Promise<A>;
+const evaluate = <A>(script: string) => page.evaluate(script) as Promise<A>; // RED film/no-read-once
 
 // A value `evaluate` answers is a read once when a test asserts it.
 export async function evaluated() {
@@ -30,4 +30,20 @@ export async function evaluated() {
   // An evaluate run for what it does, not read: an action.
   await page.evaluate('window.clip = document.querySelector("video")');
   promise(() => page.evaluate('window.scrollTo(0, 0)'));
+}
+
+// An answer kept and asserted later: bound to a name, answered by a local
+// helper, read in part, held in a literal, or the value a matcher compares with.
+export async function kept() {
+  const title = await page.evaluate('document.title'); // RED film/no-read-once
+  expect(title).toBe('lab');
+  const shown = () => promise(() => page.evaluate('location.hash')); // RED film/no-read-once
+  const at = shown();
+  const box = { at, size: [at.length] };
+  expect(box.size[0]).toBe(2);
+  const rate = await page.evaluate('new AudioContext().sampleRate'); // RED film/no-read-once
+  expect({ rate: 48_000 }).toBe({ rate });
+  // A kept answer handed only to a wait, as its baseline: no read is asserted.
+  const before = await page.evaluate('document.title');
+  promise(() => page.waitForFunction(`document.title !== ${JSON.stringify(before)}`));
 }

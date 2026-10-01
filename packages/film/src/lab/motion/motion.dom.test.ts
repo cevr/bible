@@ -8,7 +8,7 @@ import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Page } from 'playwright-core';
 import { openLab } from '../fixtures/harness.ts';
-import { attributeIs, textIs } from '../fixtures/settled.ts';
+import { attributeIs, evaluates, textIs } from '../fixtures/settled.ts';
 
 const motionSays = (page: Page, part: string) => textIs(page, '.lab-motion-status', part);
 
@@ -26,11 +26,8 @@ const holdClock = (page: Page) =>
     (now) => Effect.promise(() => page.clock.pauseAt(now + 10)),
   );
 
-/** The film seconds the player shows, as its readout has them. */
-const shownT = (page: Page) =>
-  Effect.promise(() =>
-    page.evaluate(() => Number.parseFloat(location.hash.replace(/^#/, '').split('&')[0] ?? '')),
-  );
+/** The film seconds the player shows, as `#T` has them. */
+const T = "Number.parseFloat(location.hash.slice(1).split('&')[0])";
 
 describe('speed', () => {
   it.live('slows the clock, says the narration is muted, and a reload keeps it', () =>
@@ -63,9 +60,7 @@ describe('loops', () => {
       // Then a few frames more, past the quarter second `#T` is written at most once in.
       yield* Effect.promise(() => page.clock.fastForward(2500));
       yield* Effect.promise(() => page.clock.runFor(300));
-      const T = yield* shownT(page);
-      expect(T).toBeGreaterThan(1);
-      expect(T).toBeLessThanOrEqual(2);
+      yield* evaluates(page, `${T} > 1 && ${T} <= 2`, true);
       yield* click(page, '.lab-motion [data-act="loop-off"]');
       yield* motionSays(page, '');
     }).pipe(Effect.scoped),
