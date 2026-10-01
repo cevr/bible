@@ -8,7 +8,7 @@ import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effect';
 import { Refusal, statusOf } from '../../core/api.ts';
 import { solidPlugin } from '../../tools/solid-plugin.ts';
-import { openTab, respond } from './browsers.ts';
+import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
 import { PROBE } from './probe-film.ts';
 import type { Request, Response, Tab } from './tab.ts';
@@ -148,6 +148,12 @@ const defaults: ReadonlyArray<FakeRoute> = [
  */
 export const bundleOf = (entry: string) => Effect.runSync(Effect.cached(bundled(entry)));
 
+/** A page's script (`entry`) as the asset `name` (`browsers.ts`): bundled and hashed once per file. */
+const scriptAsset = (entry: string, name: string): Effect.Effect<Asset> =>
+  Effect.runSync(
+    Effect.cached(Effect.map(bundled(entry), (js) => asset(name, respond(js, 'text/javascript')))),
+  );
+
 const bundled = (entry: string) =>
   Effect.promise(() =>
     Bun.build({
@@ -166,7 +172,7 @@ const bundled = (entry: string) =>
   );
 
 /** The lab page's script. */
-const bundle = bundleOf('lab-page.ts');
+const labScript = scriptAsset('lab-page.ts', 'lab.js');
 
 const css = Effect.runSync(
   Effect.cached(
@@ -177,8 +183,8 @@ const css = Effect.runSync(
 );
 
 /** The lab page as `lab.html` has it, with the player's styles inline. */
-const labPage = (style: string) =>
-  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style></head><body class="lab"><script src="/lab.js"></script></body></html>`;
+const labPage = (style: string, script: Asset) =>
+  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style></head><body class="lab">${scriptOf(script)}</body></html>`;
 
 /** The page's JSON body, when it sent one. */
 const bodyOf = (request: Request): Option.Option<Json> =>
@@ -283,7 +289,7 @@ const HOT_MIC = `(() => {
 })()`;
 
 /**
- * A page open in a fresh tab: the tab, what it asked of its server, and any
+ * A page open in a tab of its own: the tab, what it asked of its server, and any
  * page errors, Solid's reactivity diagnostics among them (a `[STRICT_…]`
  * warning is a read or a write the page does not mean).
  */
@@ -305,13 +311,13 @@ interface FakeMic {
 /**
  * Open the lab on the probe film at `hash` (`#T`, `&sel=…` in `query`), with
  * `routes` answering the API before the defaults, and `mic` as its
- * microphone when given. The tab closes with the scope.
+ * microphone when given. The tab goes back to the pool with the scope.
  */
 export const openLab = Effect.fn('lab.fixture.open')(function* (
   routes: ReadonlyArray<FakeRoute> = [],
   at: { readonly query?: string; readonly hash?: string; readonly mic?: FakeMic } = {},
 ) {
-  const [script, style] = yield* Effect.all([bundle, css], { concurrency: 2 });
+  const [script, style] = yield* Effect.all([labScript, css], { concurrency: 2 });
   const mic = Option.fromUndefinedOr(at.mic);
   const asked: Array<Asked> = [];
   const page = yield* openTab({
@@ -327,11 +333,9 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
       TO_BLOB_AT_ONCE,
       ...Arr.filter([HOT_MIC], () => Option.exists(mic, (m) => m.hot === true)),
     ],
+    assets: [script],
     serve: fakeServer(
-      new Map([
-        ['/lab', respond(labPage(style), 'text/html')],
-        ['/lab.js', respond(script, 'text/javascript')],
-      ]),
+      new Map([['/lab', respond(labPage(style, script), 'text/html')]]),
       API,
       [...routes, ...defaults],
       asked,
@@ -344,9 +348,10 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
 });
 
 /** The review page's script. */
-const reviewBundle = bundleOf('review-page.ts');
+const reviewScript = scriptAsset('review-page.ts', 'review.js');
 
-const reviewPage = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title></head><body><script src="/review.js"></script></body></html>`;
+const reviewPage = (script: Asset) =>
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title></head><body>${scriptOf(script)}</body></html>`;
 
 /** Where the review opens, and how wide its window is (a phone's, or a desk's). */
 interface ReviewAt {
@@ -359,24 +364,22 @@ interface ReviewAt {
  * at `search`, with `routes` answering its requests by their whole path
  * (`/review/index`, `/review/files/…`): what none answers is a 404. The
  * browser plays media without a gesture, its clock is the test's, and the
- * tab closes with the scope.
+ * tab goes back to the pool with the scope.
  */
 export const openReview = Effect.fn('lab.fixture.review')(function* (
   routes: ReadonlyArray<FakeRoute>,
   at: ReviewAt = {},
 ) {
-  const script = yield* reviewBundle;
+  const script = yield* reviewScript;
   const asked: Array<Asked> = [];
   const page = yield* openTab({
     ...(at.viewport ?? { width: 1400, height: 900 }),
     microphone: false,
     // The page's clock is the test's, as the lab's is.
     init: [CLOCK_SCRIPT],
+    assets: [script],
     serve: fakeServer(
-      new Map([
-        ['/', respond(reviewPage, 'text/html')],
-        ['/review.js', respond(script, 'text/javascript')],
-      ]),
+      new Map([['/', respond(reviewPage(script), 'text/html')]]),
       '',
       routes,
       asked,

@@ -882,10 +882,17 @@ page over a probe film in headless Chrome with the lab API faked
 on with `page.clock`, not waited out, and `canvas.toBlob` encodes at once
 (Chromium's waits for idle time a busy page may not leave, up to 5 s). The
 page is a tab (`lab/fixtures/tab.ts`) of the one Chrome Bun.WebView spawns
-per test process (`lab/fixtures/browsers.ts`, with `tools/chrome.ts`): every
-tab on an origin of its own, so cases share no storage and no permission,
-and one fake microphone (a 440 Hz tone on input 1) every tab hears, allowed
-or refused per tab. The tab answers the page's requests itself (the
+per test process (`lab/fixtures/browsers.ts`, with `tools/chrome.ts`). A
+case's tab is a view lent from a pool and given back when the case ends, so
+a case pays for a page load, not for a new renderer process and a cold
+compile of the page's script (three to four times the CPU of the load): the
+scripts load from one origin for every case (`asset`), so a view's renderer
+compiles them once. Every tab is on an origin of its own, so cases share no
+storage and no permission; between cases the view waits on an empty page,
+its history, scripts for new pages and listeners dropped
+(`lab/fixtures/browsers.dom.test.ts` dirties each and proves the next case
+sees none of it). One fake microphone (a 440 Hz tone on input 1) every tab
+hears, allowed or refused per tab. The tab answers the page's requests itself (the
 protocol's `Fetch`), types and clicks with native input events, and waits in
 the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
 worker (`--max-concurrency=3` in the test script: one worker a core, so three

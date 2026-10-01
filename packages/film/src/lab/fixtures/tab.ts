@@ -1,13 +1,14 @@
-// A browser test's tab: a Bun.WebView of the process's Chrome (`browsers.ts`)
-// driven over the DevTools protocol, as Effects. Every request to the tab's
-// own origin is answered by the test (`serve`), never the network; what the
-// page throws is kept; input is native (trusted) mouse and key events; waits
-// run in the page on its real timers, so a stopped page clock (`clock.ts`)
-// never stops a wait. A wait or an action on an element waits for it to be
-// there and shown, up to `WAIT_MS`, and fails saying what it waited for.
+// A browser test's tab: a view of the process's Chrome, lent to the case by
+// the pool (`browsers.ts`), driven over the DevTools protocol, as Effects.
+// Every request to the tab's own origin is answered by the test (`serve`),
+// never the network; what the page throws is kept; input is native (trusted)
+// mouse and key events; waits run in the page on its real timers, so a
+// stopped page clock (`clock.ts`) never stops a wait. A wait or an action on
+// an element waits for it to be there and shown, up to `WAIT_MS`, and fails
+// saying what it waited for. Closed, the tab takes its scripts for new pages
+// off the view, which goes on to another case.
 
-import { Effect, FiberSet, Option, Schema, Semaphore } from 'effect';
-import { thrownBy } from '../../tools/chrome.ts';
+import { Effect, FiberSet, Option, Schema, type Scope } from 'effect';
 import { BrowserFailed } from '../../tools/errors.ts';
 import { CLOCK, REAL_TIMERS } from './clock.ts';
 
@@ -25,11 +26,12 @@ export interface Request {
   readonly body: string;
 }
 
-/** What the test's server answers: a status, the body's type, and the body. */
+/** What the test's server answers: a status, the body's type, the body, and any other headers. */
 export interface Response {
   readonly status: number;
   readonly type: string;
   readonly body: Uint8Array | string;
+  readonly headers?: Readonly<Record<string, string>>;
 }
 
 /** A request answered: its URL and the status it was given. */
@@ -240,31 +242,44 @@ const bodyOf = (request: typeof Paused.Type.request) =>
 type Wire = string | number | boolean | ReadonlyArray<Wire> | { readonly [key: string]: Wire };
 
 /**
- * The tab over `view`, once it has navigated (so its protocol session is
- * up): `serve` answers every request to `origin`; `init` are scripts run
- * before the page's own on every load.
+ * A view as a tab drives it. It takes protocol calls one at a time, in
+ * order, and scripts the same, the two beside each other: a script the page
+ * is still running (a wait) never holds up an answer to a request.
+ */
+export interface View {
+  readonly cdp: (method: string, params?: { readonly [key: string]: Wire }) => Promise<unknown>;
+  readonly evaluate: <A>(script: string) => Promise<A>;
+  readonly navigate: (url: string) => Promise<void>;
+  readonly reload: () => Promise<void>;
+  readonly resize: (width: number, height: number) => Promise<void>;
+}
+
+/** `Page.addScriptToEvaluateOnNewDocument`'s answer: the script's id, to remove it by. */
+const Added = Schema.Struct({ identifier: Schema.String });
+
+/**
+ * The tab over `view`, its protocol session up and its page's requests
+ * paused (`Fetch.requestPaused`) and throws dispatched to `events`: `serve`
+ * answers every request; `init` are scripts run before the page's own on
+ * every load while the scope is open.
  */
 export const makeTab = (
-  view: Bun.WebView,
+  view: View,
   page: {
     readonly origin: string;
+    readonly events: EventTarget;
     readonly serve: (request: Request) => Effect.Effect<Option.Option<Response>>;
     readonly init: ReadonlyArray<string>;
     /** The page's console, as the view hands it over. */
     readonly logged: ReadonlyArray<Logged>;
-    /** What the page has done wrong so far; what it throws is added. */
-    readonly errors: Array<string>;
+    /** What the page has done wrong so far. */
+    readonly errors: ReadonlyArray<string>;
   },
-) =>
+): Effect.Effect<Tab, never, Scope.Scope> =>
   Effect.gen(function* () {
-    const { origin, serve, init, logged, errors } = page;
-    // A view takes one protocol call and one script at a time (Bun refuses a
-    // second while one is out), but the two run beside each other: a script
-    // the page is still running (a wait) never holds up an answer to a request.
-    const protocol = yield* Semaphore.make(1);
-    const scripts = yield* Semaphore.make(1);
+    const { origin, events, serve, init, logged, errors } = page;
     const send = (method: string, params: { readonly [key: string]: Wire } = {}) =>
-      protocol.withPermits(1)(Effect.tryPromise(() => view.cdp(method, params)));
+      Effect.tryPromise(() => view.cdp(method, params));
     const call = (method: string, params: { readonly [key: string]: Wire } = {}) =>
       Effect.asVoid(Effect.orDie(send(method, params)));
     // The page's requests, answered while the tab is open: closing it drops the rest.
@@ -285,7 +300,10 @@ export const makeTab = (
             send('Fetch.fulfillRequest', {
               requestId: paused.requestId,
               responseCode: r.status,
-              responseHeaders: [{ name: 'content-type', value: r.type }],
+              responseHeaders: [
+                { name: 'content-type', value: r.type },
+                ...Object.entries(r.headers ?? {}).map(([name, value]) => ({ name, value })),
+              ],
               body: Buffer.from(r.body).toString('base64'),
             }).pipe(
               // A tab closed with requests still waiting.
@@ -300,31 +318,33 @@ export const makeTab = (
         }),
       );
 
-    view.addEventListener('Runtime.exceptionThrown', (event: Event) => {
-      Option.map(thrownBy(event), (thrown) => errors.push(thrown));
-    });
-    view.addEventListener('Fetch.requestPaused', (event: Event) => {
+    events.addEventListener('Fetch.requestPaused', (event: Event) => {
       Option.map(Schema.decodeUnknownOption(Paused)(Reflect.get(event, 'data')), (paused) =>
         answering(answer(paused)),
       );
     });
 
-    yield* call('Runtime.enable');
-    yield* call('Fetch.enable', { patterns: [{ urlPattern: `${origin}/*` }] });
-    for (const source of init) yield* call('Page.addScriptToEvaluateOnNewDocument', { source });
+    // The view's next case loads its pages without this case's scripts.
+    for (const source of init) {
+      const added = yield* Effect.flatMap(
+        Effect.orDie(send('Page.addScriptToEvaluateOnNewDocument', { source })),
+        Schema.decodeUnknownEffect(Added),
+      ).pipe(Effect.orDie);
+      yield* Effect.addFinalizer(() =>
+        Effect.exit(
+          call('Page.removeScriptToEvaluateOnNewDocument', { identifier: added.identifier }),
+        ),
+      );
+    }
 
     /** `expression` run in the page, its answer (awaited, as JSON); a throw is a defect naming it. */
     const run = <A>(expression: string): Effect.Effect<A> =>
-      scripts
-        .withPermits(1)(
-          Effect.tryPromise({
-            // Through `eval`, so a script may be statements (`window.x = 1; true`), its last one's value the answer.
-            try: () => view.evaluate<A>(`(0, eval)(${jsonOf(expression)})`),
-            catch: (cause) =>
-              BrowserFailed.make({ reason: `${expression.slice(0, 200)}: ${String(cause)}` }),
-          }),
-        )
-        .pipe(Effect.orDie);
+      Effect.tryPromise({
+        // Through `eval`, so a script may be statements (`window.x = 1; true`), its last one's value the answer.
+        try: () => view.evaluate<A>(`(0, eval)(${jsonOf(expression)})`),
+        catch: (cause) =>
+          BrowserFailed.make({ reason: `${expression.slice(0, 200)}: ${String(cause)}` }),
+      }).pipe(Effect.orDie);
 
     /** A page-side wait, once: a run whose page went answers `Gone` while there are runs left. */
     const waitOnce = <A>(ready: string, runs: number) => {

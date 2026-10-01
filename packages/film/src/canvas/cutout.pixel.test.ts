@@ -9,7 +9,7 @@
 
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { openTab, respond, servePaths } from '../lab/fixtures/browsers.ts';
+import { asset, openTab, respond, scriptOf, servePaths } from '../lab/fixtures/browsers.ts';
 import type { FaceCase, FaceDelta } from './fixtures/face-pixels.ts';
 
 /** The most a pre-blended face may drift from the look, per channel /255: 8-bit rounding. */
@@ -74,17 +74,15 @@ const fixture = Effect.cached(
 const deltas = (faces: ReadonlyArray<FaceCase>) =>
   Effect.gen(function* () {
     const script = yield* fixture;
+    const facesJs = asset('faces.js', respond(script, 'text/javascript'));
     const page = yield* openTab({
       width: 800,
       height: 600,
       microphone: false,
       init: [],
+      assets: [facesJs],
       serve: servePaths({
-        '/': respond(
-          '<!doctype html><html><body><script src="/faces.js"></script></body></html>',
-          'text/html',
-        ),
-        '/faces.js': respond(script, 'text/javascript'),
+        '/': respond(`<!doctype html><html><body>${scriptOf(facesJs)}</body></html>`, 'text/html'),
       }),
     });
     yield* page.goto('/');
