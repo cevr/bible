@@ -111,8 +111,8 @@ const timeline = {
   carry: { mark: 'take', word: 'him', offset: -0.1, dur: 2.75, ease: 'inOutSine' },
   specks: { with: 'carry', offset: 0.4, dur: 0.8 },
   speck: { mark: 'pass', dur: 1.17 },
-  // The speck on his cheek fades as it lifts.
-  cheekOff: { with: 'speck', offset: 0.49, dur: 0.68, ease: 'outCubic' },
+  // The speck on his cheek fades as it lifts, gone as it reaches the top.
+  cheekOff: { after: 'speck', dur: 0.68, ends: true, ease: 'outCubic' },
   reachOut: { mark: 'clothe', dur: 0.75 },
   loomIn: { mark: 'loom', offset: -0.33, dur: 0.67 },
   pushLoom: { mark: 'loom', offset: 0.33, dur: 1.17 },

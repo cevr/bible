@@ -73,7 +73,7 @@ const timeline = {
   wonder: { mark: 'arise', offset: 0.3, dur: 0.8 },
   roll: { mark: 'arise', word: 'bed', dur: 0.8, ease: 'inOutSine' },
   // His hand rises to meet the bed as it rolls up, and steadies it on his shoulder.
-  steady: { with: 'roll', dur: 0.8 },
+  steady: { with: 'roll', until: { cue: 'roll' } },
   walk: { mark: 'went', until: 'count', ease: 'linear' },
   follow: { mark: 'went', dur: 1.4, ease: 'inOutSine' },
   // The count: the band in along the top; each number cuts back to its moment

@@ -1566,7 +1566,12 @@ the clock or a helper hiding the subtraction pass; its doc comment lists the
 limits.
 `film/span-ends-on-anchor` (`lint/span-ends-on-anchor.ts`) refuses a span
 that lands on its anchor written as `offset: -0.5, dur: 0.5`: it is
-`{ mark: 'true', dur: 0.5, ends: true }`, its length written once.
+`{ mark: 'true', dur: 0.5, ends: true }`, its length written once. It refuses
+too a part that ends on another cue's end only because the numbers add up,
+`{ with: 'speck', offset: 0.49, dur: 0.68 }` beside a `speck` of `dur: 1.17`
+(a drag of `speck` leaves it behind): it is `{ after: 'speck', dur: 0.68,
+ends: true }` (it keeps its length) or `{ with: 'speck', until: { cue:
+'speck' } }` (it keeps its start).
 `film/no-ease-on-cue` (`lint/no-ease-on-cue.ts`) refuses `ease.X(f.at(cue))`
 (or a const bound to one): `f.at` is already eased by the span's `ease`, so a
 second curve is one the lab's picker cannot change, and a push whose zoom
@@ -1577,7 +1582,8 @@ fraction written in the draw, `clamp(x * 4)`, `Math.min(1, x * 4)`, `clamp(x / 0
 `clamp(3 * x - 2)` or `clamp((x - 0.75) / 0.25)` over a cue's progress `x`
 (`f.at(cue)` or a const bound to one): the part is a cue of its own,
 `{ with: 'answer', dur: 0.4 }` or `{ after: 'into', dur: 0.1, ends: true }`,
-which the lab can reach. It refuses a step part way through a cue the same
+which the lab can reach; a part that runs to the cue's end, `(x - a) / (1 -
+a)`, is told to land there, `{ after: cue, dur, ends: true }`. It refuses a step part way through a cue the same
 way, `x < k` (`<=`, `>`, `>=`, either way round) with `k` between 0.02 and
 0.98: the instant is a cue of no length, `{ with: 'sit', offset: 0.056, dur:
 0 }`, read as `f.at('colour') > 0`. A comparison nearer 0 or 1 asks whether

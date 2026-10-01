@@ -88,6 +88,56 @@ describe('a moment inside a cue follows the cue when it is dragged', () => {
       60_000,
     );
 
+  /** A cue `scene` declares, resolved with `timeline` in place of its own. */
+  const cueOf = (film: Film, scene: string, timeline: Timeline, name: string) =>
+    Option.getOrThrow(
+      Option.fromUndefinedOr(Result.getOrThrow(film.edit(scene, { timeline })).cues.get(name)),
+    );
+
+  /** `scene`'s own timeline, as the film declares it. */
+  const ownTimeline = (film: Film, scene: string): Timeline =>
+    Option.getOrThrow(
+      Option.fromUndefinedOr(
+        Option.getOrThrow(Arr.findFirst(film.placed, (p) => p.spec.id === scene)).spec.timeline,
+      ),
+    );
+
+  for (const [scene, parent, child, dur] of [
+    ['robe', 'speck', 'cheekOff', 0.8],
+    ['robe', 'speck', 'cheekOff', 2],
+    ['roof', 'roll', 'steady', 1.4],
+    ['centurion', 'settle', 'drop', 2.2],
+    ['look', 'slideDown', 'letGo', 0.9],
+  ] as const)
+    it.effect.layer(Repo)(
+      `${scene}: ${child} ends with ${parent}, ${parent} dragged to ${dur} s`,
+      () =>
+        Effect.gen(function* () {
+          const film = yield* built;
+          const own = ownTimeline(film, scene);
+          const timeline = { ...own, [parent]: { ...own[parent], dur } } as Timeline;
+          const end = cueOf(film, scene, timeline, parent).end;
+          expect(cueOf(film, scene, timeline, child).end).toBeCloseTo(end, 6);
+        }),
+      60_000,
+    );
+
+  it.effect.layer(Repo)(
+    'thesis: the city comes in as the court goes, however late it goes',
+    () =>
+      Effect.gen(function* () {
+        const film = yield* built;
+        const own = ownTimeline(film, 'thesis');
+        const courtOut = own['courtOut'];
+        const offset = (courtOut?.offset ?? 0) + 1;
+        const timeline = { ...own, courtOut: { ...courtOut, offset } } as Timeline;
+        const court = cueOf(film, 'thesis', timeline, 'courtOut');
+        // The city starts in the court's last 0.15 s, as it does at today's lengths.
+        expect(cueOf(film, 'thesis', timeline, 'cityIn').start).toBeCloseTo(court.end - 0.15, 6);
+      }),
+    60_000,
+  );
+
   for (const [cue, dur] of [
     ['pages', 0.9],
     ['unclasp', 0.8],

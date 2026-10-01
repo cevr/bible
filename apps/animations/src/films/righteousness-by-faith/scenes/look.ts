@@ -134,14 +134,14 @@ const timeline = {
   // Their hands take the pole as they start to climb, and let go as they slide down.
   grasp: { with: 'climb', dur: 0.6, ease: 'inOutSine' },
   slideDown: { mark: 'climb', dur: 0.5, ease: 'inCubic' },
-  letGo: { with: 'slideDown', dur: 0.5 },
+  letGo: { with: 'slideDown', until: { cue: 'slideDown' } },
   stepBack: { mark: 'climb', offset: 0.6, dur: 0.7, ease: 'inOutSine' },
   // Stepped back, he looks up and the camera pushes in.
   lookUp: { after: 'stepBack', offset: 0.1, dur: 0.6 },
   push: { with: 'lookUp', dur: 1.6, ease: 'inOutCubic' },
   // Healed on "I present Christ".
   heal: { mark: 'climb', word: 'christ', offset: 0.12, dur: 1.5 },
-  // Halfway through the healing, the bites are gone.
+  // 0.75 s into the healing, the bites are gone.
   bitesGone: { with: 'heal', offset: 0.75, dur: 0 },
   // After the last word: the face gives way to faith's icon close, pulled back
   // to the row, faith glowing; for a breath, under it, the four faces at the
