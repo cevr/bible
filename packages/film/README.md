@@ -86,9 +86,10 @@ candidates wait under their own request, and become keepable when the
 declaration is changed to say the same (`TrialInvalid` for settings no
 declaration could take). A sound that names no `influence` is made at its
 use's default (`DEFAULT_INFLUENCE`: 0.7 for a one-shot, 0.3 for a bed) and
-as `DEFAULT_CANDIDATES` (6 one-shots, 3 beds), both measured in the p4-sfx2
-sweet-spot runs. `guard` is the
-pre-commit hook's: of the staged files, it refuses any audio under `files/`,
+as `DEFAULT_CANDIDATES` (6 one-shots, 3 beds), both measured in the sweet-spot
+trials (`apps/animations/sounds/PROMPTING.md`). `guard` is the sound-licence
+repo guard's: of the files it is given (the staged ones at pre-commit, every
+tracked one under `bun run guard` and in CI), it refuses any audio under `files/`,
 any copy of a variant or candidate that is not CC0 (by its sha256, wherever
 it is staged), and anything under `public/` the lock does not hold as a CC0
 variant (`SoundsRefused`).
@@ -1664,5 +1665,5 @@ Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.
 
 ```sh
-bun run gate   # repo root, as CI: lint, format check, the repo guards, every package's typecheck, build and tests, then the perf tests
+bun run gate   # repo root, as CI: lint, format check, typecheck-inputs, the repo guards, every package's typecheck, build and tests, then the perf tests
 ```
