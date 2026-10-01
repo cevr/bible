@@ -362,6 +362,26 @@ const formed = (from: Grip, to: Grip, form: number) => {
   return form < 0.5 ? a.thumbOver : b.thumbOver;
 };
 
+/** How far a hand doing `g` has changed from `was` into `grip`: all the way when it names no `was`. */
+const changeOf = (g: Gesture | undefined) => (g?.was === undefined ? 1 : clamp(g.change ?? 0));
+
+/** How far a hand `s` of the way to its target has formed its grip from the open rest (over `FORMING`). */
+const arrivedAt = (s: number) => clamp((s - FORMING[0]) / (FORMING[1] - FORMING[0]));
+
+/**
+ * The grip a hand doing `g` works with, as shares of each grip: `grip`, or
+ * `was` changing into it. For a check probing hands (`HandJump`), so it is
+ * made only then.
+ */
+const gripShares = (g: Gesture | undefined): Record<Grip, number> => {
+  const grip = g?.grip ?? REST_GRIP;
+  const change = changeOf(g);
+  const shares = { open: 0, hold: 0, point: 0, palm: 0 };
+  shares[g?.was ?? grip] += 1 - change;
+  shares[grip] += change;
+  return shares;
+};
+
 /** How a hand's mitten is formed this frame (scratch, rewritten by `shaped`). */
 interface Shaped {
   thumbOver: boolean;
@@ -380,8 +400,8 @@ const SHAPED: Shaped = { thumbOver: false, pointing: 0 };
 const shaped = (g: Gesture | undefined, s: number): Shaped => {
   const grip = g?.grip ?? REST_GRIP;
   const was = g?.was ?? grip;
-  const change = g?.was === undefined ? 1 : clamp(g.change ?? 0);
-  const arrived = clamp((s - FORMING[0]) / (FORMING[1] - FORMING[0]));
+  const change = changeOf(g);
+  const arrived = arrivedAt(s);
   const working = formed(was, grip, change);
   const rest: Form = FORMS[REST_GRIP];
   blend(MORPH_UNIT.palm, rest.palm, MORPH_UNIT.palm, arrived);
@@ -583,7 +603,8 @@ export interface HandBody {
  *
  * Given its figure's `body`, it declares itself to a check probing hands
  * (`probeHand`: its side from `root.away`, its shoulder, where it is, where
- * it works, its size and reach), so `film check` follows it frame to frame
+ * it works, its size and reach, the grip it works with and how far that is
+ * formed), so `film check` follows it frame to frame
  * (`HandJump`), flags one sent past the reach (`HandFar`) and sees one lost
  * behind its body (`HandHidden`), whichever film draws it. It declares
  * itself even when the context's alpha hides it, and then draws nothing.
@@ -609,6 +630,8 @@ export const floatingHand = (
       size: style.mitten,
       radius: style.radius,
       reach,
+      grip: gripShares(g),
+      formed: arrivedAt(p.s),
       over: seen.over,
       body: seen.body,
     });

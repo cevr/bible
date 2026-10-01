@@ -38,6 +38,8 @@ const hand = (i: number): HandMark => ({
   size: 44,
   radius: 240,
   reach: Number(i >= POP_FRAME),
+  grip: { open: 0, hold: 1, point: 0, palm: 0 },
+  formed: Number(i >= POP_FRAME),
   inside: true,
   over: false,
   alpha: 1,

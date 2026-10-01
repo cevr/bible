@@ -9,7 +9,7 @@
 
 import { insidePolygon } from '../core/polygon.ts';
 import type { Point } from '../core/schema.ts';
-import type { FaceMark, HandMark, InkMark, TextBox } from '../core/export-handle.ts';
+import type { FaceMark, GripShares, HandMark, InkMark, TextBox } from '../core/export-handle.ts';
 
 /** What one probed frame collects: text and ink, in the order drawn, and faces and hands when asked. */
 export interface ProbeSink {
@@ -247,6 +247,10 @@ export interface HandSeen {
   readonly radius: number;
   /** How far it has travelled from its rest to its work, 0 to 1. */
   readonly reach: number;
+  /** The grip it works with: `grip`, or `was` changing into it. */
+  readonly grip: GripShares;
+  /** How far that grip is formed from the open hand at rest, 0 to 1. */
+  readonly formed: number;
   /** Whether the hand is drawn over its own body (after it), not behind it. */
   readonly over: boolean;
   /**
@@ -260,7 +264,7 @@ export interface HandSeen {
 /**
  * Declare a hand: a kit's person calls it for both of its hands every frame,
  * at work or at rest, so `film check` follows each hand frame to frame
- * (`HandJump`), sees one sent past its figure's reach (`HandFar`) and one lost
+ * (`HandJump`: its place, its size and its grip), sees one sent past its figure's reach (`HandFar`) and one lost
  * behind its own body (`HandHidden`) from the kit's own numbers rather than a
  * reader spotting any of them in a still. Records only when a probe that
  * collects hands is attached; draws nothing.
@@ -286,6 +290,8 @@ export const probeHand = (ctx: CanvasRenderingContext2D, hand: HandSeen) => {
     size: hand.size * scale,
     radius: hand.radius * scale,
     reach: Math.min(1, Math.max(0, hand.reach)),
+    grip: hand.grip,
+    formed: hand.formed,
     inside: hand.body().some((shape) => insidePolygon(shape, hand.at)),
     over: hand.over,
     alpha: ctx.globalAlpha * probe.alpha,

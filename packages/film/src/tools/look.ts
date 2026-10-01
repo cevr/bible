@@ -11,7 +11,7 @@ import { type Placed, filmEnd } from '../core/layout.ts';
 import type { Stretch } from '../core/acts.ts';
 import { type AddressError, resolveAddress } from '../core/address.ts';
 import type { Act } from '../core/schema.ts';
-import type { FaceMark, HandMark } from '../core/export-handle.ts';
+import type { FaceMark, GripShares, HandMark } from '../core/export-handle.ts';
 import { type FrameSize, seenFace } from './check.ts';
 import { ChaptersInvalid } from './errors.ts';
 import {
@@ -274,6 +274,13 @@ export const smallFaces = (
 export const HAND_JUMP = 1.5;
 /** The most a hand's size may change between adjacent frames, as a share of it (`HandJump`). */
 export const SIZE_JUMP = 0.25;
+/**
+ * The most a formed hand's grip may change between adjacent frames, as a
+ * share of its shape (`HandJump`): a change eased over a named cue of 0.2 s
+ * moves about a quarter a frame at most; a grip swapped outright moves all
+ * of it.
+ */
+export const GRIP_JUMP = 0.5;
 /** A hand is seen at this opacity or more. */
 export const HAND_SEEN = 0.5;
 /**
@@ -314,20 +321,30 @@ export const handSpans = (
   );
 };
 
-/**
- * How `now` jumped from `was`, a frame on, if it did: about its shoulder by
- * more than `HAND_JUMP` of its length, or in size against its figure's reach
- * by more than `SIZE_JUMP`. Both are measured in the hand's own terms, so a
- * camera's pan or zoom, or its whole figure scaled, is no jump.
- */
-const jumpOf = (
-  was: HandMark,
-  now: HandMark,
-): Option.Option<{
+/** How much of a grip's shape changed from `a` to `b`, 0 (the same) to 1 (another grip outright). */
+const gripMoved = (a: GripShares, b: GripShares) =>
+  (Math.abs(b.open - a.open) +
+    Math.abs(b.hold - a.hold) +
+    Math.abs(b.point - a.point) +
+    Math.abs(b.palm - a.palm)) /
+  2;
+
+/** One way a hand jumped: what, by how much, over what most. */
+interface Jump {
   readonly what: HandJump['what'];
   readonly by: number;
   readonly max: number;
-}> => {
+}
+
+/**
+ * How `now` jumped from `was`, a frame on, if it did: about its shoulder by
+ * more than `HAND_JUMP` of its length, in size against its figure's reach
+ * by more than `SIZE_JUMP`, or, formed, in grip by more than `GRIP_JUMP` of
+ * its shape. Each is measured in the hand's own terms, so a camera's pan or
+ * zoom, or its whole figure scaled, is no jump, and a grip swapped while
+ * the hand is still open at rest shows nothing.
+ */
+const jumpOf = (was: HandMark, now: HandMark): Option.Option<Jump> => {
   if (was.size <= 0 || now.size <= 0) return Option.none();
   // Each frame in its figure's own measure (its reach, always longer than its
   // hand; the hand's length when it declares none), so a zoom or the figure
@@ -340,22 +357,24 @@ const jumpOf = (
       (now.x - now.sx) / nowUnit - (was.x - was.sx) / wasUnit,
       (now.y - now.sy) / nowUnit - (was.y - was.sy) / wasUnit,
     ) / length;
-  if (moved > HAND_JUMP) return Option.some({ what: 'place', by: moved, max: HAND_JUMP });
   const was1 = was.size / wasUnit;
   const now1 = now.size / nowUnit;
   const grew = Math.abs(now1 - was1) / Math.max(was1, now1);
-  return Option.filter(
-    Option.some({ what: 'size' as const, by: grew, max: SIZE_JUMP }),
-    (jump) => jump.by > SIZE_JUMP,
-  );
+  const swapped = Math.min(was.formed, now.formed) * gripMoved(was.grip, now.grip);
+  const jumps: ReadonlyArray<Jump> = [
+    { what: 'place', by: moved, max: HAND_JUMP },
+    { what: 'size', by: grew, max: SIZE_JUMP },
+    { what: 'grip', by: swapped, max: GRIP_JUMP },
+  ];
+  return Arr.findFirst(jumps, (jump) => jump.by > jump.max);
 };
 
 /**
  * Each hand that jumps between two adjacent frames of its scene: moves about
- * its shoulder more than `HAND_JUMP` of its length, or changes size against
- * its figure's reach by more than `SIZE_JUMP`. A camera's pan or zoom, or
- * the whole figure scaled, carries hand, shoulder and reach together, so it
- * is no jump.
+ * its shoulder more than `HAND_JUMP` of its length, changes size against its
+ * figure's reach by more than `SIZE_JUMP`, or, formed, swaps more than
+ * `GRIP_JUMP` of its grip. A camera's pan or zoom, or the whole figure
+ * scaled, carries hand, shoulder and reach together, so it is no jump.
  */
 export const handJumps = (frames: ReadonlyArray<HandFrame>): ReadonlyArray<HandJump> =>
   pairs(frames)
@@ -449,12 +468,13 @@ const REACH_HELD = 1e-3;
 /** A target moved about its shoulder less than this share of its hand's length is held. */
 const TARGET_HELD = 0.1;
 
-/** Whether `h` has changed its work by `n`: travelled, or its target moved about its shoulder (a new target, what it holds moving). */
+/** Whether `h` has changed its work by `n`: travelled, its target moved about its shoulder (a new target, what it holds moving), or, at work, its grip changed. */
 const worksOn = (h: HandMark, n: HandMark) =>
   Math.abs(n.reach - h.reach) > REACH_HELD ||
   (Math.max(h.reach, n.reach) > 0 &&
-    Math.hypot(n.tx - n.sx - (h.tx - h.sx), n.ty - n.sy - (h.ty - h.sy)) >
-      TARGET_HELD * Math.max(h.size, n.size));
+    (Math.hypot(n.tx - n.sx - (h.tx - h.sx), n.ty - n.sy - (h.ty - h.sy)) >
+      TARGET_HELD * Math.max(h.size, n.size) ||
+      gripMoved(h.grip, n.grip) > REACH_HELD));
 
 /** Whether any hand travels or changes its work from `was` to `now`, or one comes or goes at work. */
 const handsTravel = (was: ReadonlyArray<HandMark>, now: ReadonlyArray<HandMark>) =>

@@ -111,12 +111,25 @@ export const FaceMark = Schema.Struct({
 export type FaceMark = typeof FaceMark.Type;
 
 /**
+ * A grip as shares of each grip's shape, summing to 1: one grip is all of
+ * one share; a hand changing grip (`was` into `grip` as `change` goes 0 to
+ * 1) splits the two.
+ */
+export const GripShares = Schema.Struct({
+  open: Schema.Finite,
+  hold: Schema.Finite,
+  point: Schema.Finite,
+  palm: Schema.Finite,
+});
+export type GripShares = typeof GripShares.Type;
+
+/**
  * A hand the probe saw (`probeHand`, called by a kit's person for each of its
  * hands every frame, at rest or at work): where the hand, its shoulder and
  * its target are on screen, how big it is drawn, how far it has travelled to
- * its work, the figure's reach, whether the hand sits inside its own body's
- * silhouette and whether it is drawn over it. What `HandJump`, `HandFar` and
- * `HandHidden` read.
+ * its work, the figure's reach, the grip it works with and how far that is
+ * formed, whether the hand sits inside its own body's silhouette and whether
+ * it is drawn over it. What `HandJump`, `HandFar` and `HandHidden` read.
  */
 export const HandMark = Schema.Struct({
   scene: Schema.String,
@@ -136,6 +149,10 @@ export const HandMark = Schema.Struct({
   radius: Schema.Finite,
   /** How far it has travelled from its rest to its work, 0 to 1. */
   reach: Schema.Finite,
+  /** The grip it works with: `grip`, or `was` changing into it. */
+  grip: GripShares,
+  /** How far that grip is formed from the open hand at rest, 0 to 1 (it forms as the hand arrives). */
+  formed: Schema.Finite,
   /** The hand lies inside the silhouette of its own body (garment and head). */
   inside: Schema.Boolean,
   /** The hand is drawn over that body, not behind it. */

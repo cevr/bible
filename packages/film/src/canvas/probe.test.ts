@@ -35,6 +35,10 @@ const drawable = (): CanvasRenderingContext2D =>
 
 const probe = (): Probe => ({ sink: { texts: [], inks: [] }, scene: 'a', dx: 0, alpha: 1 });
 
+/** A hand's grip as the hand declares it: all hold, or half way from hold to palm. */
+const HOLD = { open: 0, hold: 1, point: 0, palm: 0 } as const;
+const TURNING = { open: 0, hold: 0.5, point: 0, palm: 0.5 } as const;
+
 const boom = () => {
   throw new Error('the draw failed');
 };
@@ -147,7 +151,7 @@ describe('probeHand', () => {
     [-30, 0],
   ];
 
-  test('records each hand on screen: where it is, its shoulder, its work, its size and reach, and whether its body hides it', () => {
+  test('records each hand on screen: where it is, its shoulder, its work, its size and reach, its grip, and whether its body hides it', () => {
     const ctx = placed();
     const p: Probe = { sink: { texts: [], inks: [], hands: [] }, scene: 'a', dx: 10, alpha: 0.8 };
     let asked = 0;
@@ -164,6 +168,8 @@ describe('probeHand', () => {
         size: 20,
         radius: 100,
         reach: 1,
+        grip: HOLD,
+        formed: 1,
         over: false,
         body,
       });
@@ -175,6 +181,8 @@ describe('probeHand', () => {
         size: 20,
         radius: 100,
         reach: 1.4,
+        grip: TURNING,
+        formed: 0.5,
         over: true,
         body,
       });
@@ -192,6 +200,8 @@ describe('probeHand', () => {
         size: 40,
         radius: 200,
         reach: 1,
+        grip: HOLD,
+        formed: 1,
         inside: true,
         over: false,
         alpha: 0.4,
@@ -208,6 +218,8 @@ describe('probeHand', () => {
         size: 40,
         radius: 200,
         reach: 1,
+        grip: TURNING,
+        formed: 0.5,
         inside: false,
         over: true,
         alpha: 0.4,
@@ -231,6 +243,8 @@ describe('probeHand', () => {
       size: 20,
       radius: 100,
       reach: 1,
+      grip: HOLD,
+      formed: 1,
       over: false,
       body,
     } as const;
