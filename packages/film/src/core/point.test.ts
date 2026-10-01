@@ -1,7 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { Arbitrary, Effect, Option, Result, Schema } from 'effect';
 import { CatalogueJson } from './catalogue.ts';
-import { PointId, PointRef, pointIdOf, pointRefOf } from './point.ts';
+import { PointId, PointRef, pointIdOf } from './point.ts';
+
+/** The point an id names, when it names one: the id read as `PointId` decodes it. */
+const pointRefOf = Schema.decodeOption(PointId);
 
 /** Every kind of point, and the string it has always been written as. */
 const written: ReadonlyArray<readonly [PointRef, string]> = [
