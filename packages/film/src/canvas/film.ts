@@ -53,6 +53,15 @@ import {
   offscreen,
   shadeBy,
 } from './paper.ts';
+import {
+  type BloomSheets,
+  BloomStyle,
+  GradeStyle,
+  bloom,
+  grade,
+  gradeTables,
+  makeBloom,
+} from './grade.ts';
 import { type Probe, type ProbeSink, probeOf, probing, recordPlate, recordText } from './probe.ts';
 import { seedOf } from '../core/random.ts';
 import { FILM_FPS, type Key, clamp, ease } from '../core/time.ts';
@@ -271,6 +280,10 @@ export const FinishStyle = Schema.Struct({
   grainSize: Schema.optionalKey(Count),
   /** How many grain tiles cycle on the boil tick, at least 1. Defaults to 6. */
   grainTiles: Schema.optionalKey(Count),
+  /** The brightest light spilling soft into the air about it (`grade.ts`). None by default. */
+  bloom: Schema.optionalKey(BloomStyle),
+  /** Contrast, saturation and a split tone over the whole frame (`grade.ts`). None by default. */
+  grade: Schema.optionalKey(GradeStyle),
 });
 export type FinishStyle = typeof FinishStyle.Type;
 
@@ -433,11 +446,17 @@ export interface Film {
   edit(scene: string, edit: SceneEdit): Result.Result<ShownEdit, EditError>;
 }
 
+/** The finish's vignette and grain, each at its default where the film declares none. */
+type Finish = Required<Omit<FinishStyle, 'bloom' | 'grade'>> & {
+  readonly bloom: BloomStyle | undefined;
+  readonly grade: GradeStyle | undefined;
+};
+
 /** A film's paper, shade and finish, every finish value at its default where it declares none. */
 interface FilmLook {
   readonly paper: PaperStyle;
   readonly shade: string;
-  readonly finish: Required<FinishStyle>;
+  readonly finish: Finish;
   readonly short: ShortLook;
 }
 
@@ -447,13 +466,15 @@ const affineOf = (m: DOMMatrix): Affine => [m.a, m.b, m.c, m.d, m.e, m.f];
  * A film's finish, checked (a `SchemaError` naming the field when the canvas
  * could not draw it), each value it leaves out at its default.
  */
-const finishOf = (declared: FinishStyle = {}): Required<FinishStyle> => {
+const finishOf = (declared: FinishStyle = {}): Finish => {
   const f = Schema.decodeSync(FinishStyle)(declared);
   return {
     vignette: f.vignette ?? 0.28,
     grain: f.grain ?? 0.03,
     grainSize: f.grainSize ?? 256,
     grainTiles: f.grainTiles ?? 6,
+    bloom: f.bloom,
+    grade: f.grade,
   };
 };
 
@@ -553,6 +574,7 @@ export const createFilm = (spec: FilmSpec): Film => {
         vignette: HTMLCanvasElement;
         a: Offscreen;
         b: Offscreen;
+        bloom: BloomSheets | undefined;
       }
     | undefined;
   const getAssets = () =>
@@ -562,7 +584,10 @@ export const createFilm = (spec: FilmSpec): Film => {
       vignette: makeVignette(width, height, spec.shade, finish.vignette),
       a: offscreen(width, height),
       b: offscreen(width, height),
+      bloom: finish.bloom === undefined ? undefined : makeBloom(width, height),
     });
+  /** The grade's tables, built once (none for a film with no grade). */
+  const graded = finish.grade === undefined ? undefined : gradeTables(finish.grade);
 
   /** Each light's sheet, by `color` and `edge` (`makeLight`), the fewest kept (`SHEETS_KEPT`). */
   const lights = new Map<string, HTMLCanvasElement>();
@@ -840,6 +865,15 @@ export const createFilm = (spec: FilmSpec): Film => {
     return target.c;
   };
 
+  /** The finish over a drawn frame: the light spilling (bloom), then the grade, under the grain. */
+  const finishFrame = (ctx: CanvasRenderingContext2D, boil: number) => {
+    const sheets = getAssets().bloom;
+    if (finish.bloom !== undefined && sheets !== undefined)
+      bloom(ctx, sheets, finish.bloom, width, height);
+    if (graded !== undefined) grade(ctx, graded, width, height);
+    grain(ctx, getAssets().grain, boil, width, height, finish.grain);
+  };
+
   const render = (ctx: CanvasRenderingContext2D, T: number, opts: RenderOptions = {}) => {
     const { a, b } = getAssets();
     const boil = boilTick(T);
@@ -898,7 +932,7 @@ export const createFilm = (spec: FilmSpec): Film => {
       shadeBy(ctx, getAssets().vignette);
     }
 
-    grain(ctx, getAssets().grain, boil, width, height, finish.grain);
+    finishFrame(ctx, boil);
     if (opts.captions === true && captions !== undefined) {
       const style = captions;
       const voice = probe(cur, 0, 1);
