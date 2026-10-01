@@ -10,10 +10,11 @@
 // rate, or leaves a processing stage on, fails the capture in words. A page
 // not allowed the microphone gets MicDenied in the owner's words.
 
-import { Effect } from 'effect';
+import { Array as Arr, Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { asset, openTab, respond, scriptOf, servePaths } from '../fixtures/browsers.ts';
 import type { ProbeSetup, Probed } from '../fixtures/capture-page.ts';
+import { CLOCK_SCRIPT } from '../fixtures/clock.ts';
 import { bundleOf } from '../fixtures/harness.ts';
 import { jsonOf } from '../fixtures/tab.ts';
 
@@ -27,7 +28,7 @@ const probe = (microphone: boolean, setup: ProbeSetup) =>
       width: 800,
       height: 600,
       microphone,
-      init: [],
+      init: Arr.filter([CLOCK_SCRIPT], () => setup.dropFlush === true),
       assets: [capture],
       serve: servePaths({
         '/capture': respond(
@@ -38,6 +39,14 @@ const probe = (microphone: boolean, setup: ProbeSetup) =>
     });
     yield* page.goto('/capture');
     yield* page.until("'captureProbe' in window");
+    if (setup.dropFlush === true) {
+      // Let real PCM finish recording before advancing only the missing-flush deadline.
+      // Do not hold an evaluate call open: the view serializes calls to the page.
+      yield* page.evaluate(`globalThis.captureResult = captureProbe(${jsonOf(setup)}); undefined`);
+      yield* page.until('globalThis.captureFlushLost === true');
+      yield* page.clock.fastForward(1_000);
+      return yield* page.evaluate<Probed>('globalThis.captureResult');
+    }
     return yield* page.evaluate<Probed>(`captureProbe(${jsonOf(setup)})`);
   });
 
