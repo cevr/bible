@@ -1170,18 +1170,23 @@ export const inkMark = (
  * registry renames (`alpha` registered as `beta`) beside a decoy file that
  * exports a `beta` of its own, a scene whose timeline the registry builds in
  * code, and one with nothing to edit. Every file is as oxfmt leaves it, under
- * the repo's `.oxfmtrc.json`, copied to the root; `f/voice.ts` lets FilmRepo
- * load it. Returns the films folder.
+ * the repo's `.oxfmtrc.json`, copied to the root, and the root's
+ * `node_modules/.bin/oxfmt` is the repo's: the source writer's `bunx oxfmt`
+ * runs it, as it does in the repo, never fetching one from the registry
+ * (which, in a folder with none, it did on every write, parallel workers
+ * racing on its one install). `f/voice.ts` lets FilmRepo load it. Returns
+ * the films folder.
  */
 export const sceneFixture = Effect.fn('test.sceneFixture')(function* (root: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
+  const repo = path.join(import.meta.dir, '..', '..', '..', '..');
   const scenes = path.join(root, 'films', 'f', 'scenes');
   yield* fs.makeDirectory(scenes, { recursive: true });
-  yield* fs.copyFile(
-    path.join(import.meta.dir, '..', '..', '..', '..', '.oxfmtrc.json'),
-    path.join(root, '.oxfmtrc.json'),
-  );
+  yield* fs.copyFile(path.join(repo, '.oxfmtrc.json'), path.join(root, '.oxfmtrc.json'));
+  const bin = path.join(root, 'node_modules', '.bin');
+  yield* fs.makeDirectory(bin, { recursive: true });
+  yield* fs.symlink(path.join(repo, 'node_modules', '.bin', 'oxfmt'), path.join(bin, 'oxfmt'));
   const files = {
     'drawing.ts': 'export const drawing = <T>(d: T): T => d;\n',
     '../voice.ts': "export const voice = { voiceId: 'v', model: 'eleven_v3', settings: {} };\n",
