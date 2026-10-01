@@ -16,6 +16,11 @@ import { exchange } from './exchange.ts';
 import { accuser } from './accuser.ts';
 import { robe } from './robe.ts';
 import { within } from './within.ts';
+import { daily } from './daily.ts';
+import { rain } from './rain.ts';
+import { name } from './name.ts';
+import { thesis } from './thesis.ts';
+import { end } from './end.ts';
 export const scenes = scenesOf(script, {
   drawings: {
     cold,
@@ -33,6 +38,11 @@ export const scenes = scenesOf(script, {
     accuser,
     robe,
     within,
+    daily,
+    rain,
+    name,
+    thesis,
+    end,
   },
   card: { brief: fonts.display, label: fonts.body },
 });
