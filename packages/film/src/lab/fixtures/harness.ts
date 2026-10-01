@@ -8,7 +8,7 @@ import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effect';
 import { Refusal, statusOf } from '../../core/api.ts';
 import { solidPlugin } from '../../tools/solid-plugin.ts';
-import { openTab, respond } from './browsers.ts';
+import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
 import { PROBE } from './probe-film.ts';
 import type { Request, Response, Tab } from './tab.ts';
@@ -165,20 +165,32 @@ const bundled = (entry: string) =>
     ),
   );
 
-/** The lab page's script. */
-const bundle = bundleOf('lab-page.ts');
+/** A page's script (`entry`) as the asset `name` (`browsers.ts`). */
+const scriptAsset = (entry: string, name: string): Effect.Effect<Asset> =>
+  Effect.map(bundled(entry), (js) => asset(name, respond(js, 'text/javascript')));
 
-const css = Effect.runSync(
-  Effect.cached(
-    FileSystem.FileSystem.use((fs) =>
-      fs.readFileString(`${import.meta.dir}/../../player/player.css`),
-    ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
+/**
+ * The lab's and the review's scripts and the player's styles: bundled and
+ * read as the module loads, once per process, so no case's timeout counts
+ * them (on a loaded runner the first cases spent 1-2 s waiting on them).
+ */
+// oxlint-disable-next-line effect/noAsyncFunction -- the module's own load waits for its setup, so no case's timeout counts it
+const [labScript, reviewScript, css] = await Effect.runPromise(
+  Effect.all(
+    [
+      scriptAsset('lab-page.ts', 'lab.js'),
+      scriptAsset('review-page.ts', 'review.js'),
+      FileSystem.FileSystem.use((fs) =>
+        fs.readFileString(`${import.meta.dir}/../../player/player.css`),
+      ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
+    ],
+    { concurrency: 3 },
   ),
 );
 
 /** The lab page as `lab.html` has it, with the player's styles inline. */
-const labPage = (style: string) =>
-  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style></head><body class="lab"><script src="/lab.js"></script></body></html>`;
+const labPage = (style: string, script: Asset) =>
+  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style></head><body class="lab">${scriptOf(script)}</body></html>`;
 
 /** The page's JSON body, when it sent one. */
 const bodyOf = (request: Request): Option.Option<Json> =>
@@ -257,14 +269,13 @@ const fakeServer =
  * `canvas.toBlob` encoding at once, from `toDataURL`: the same image in the
  * same type. Chromium encodes a toBlob in the renderer's idle time and, when
  * a page animating on a loaded machine leaves none, only after its 5 s
- * fallback, so a note's still took 1 s or 7 s by chance. Answered after the
+ * fallback, so a note's still took 1 s or 7 s by chance. The data URL is
+ * read back as a blob by the browser (a 640×360 still's half-megabyte of
+ * base64 in a few ms, where a decode in script took 20), answered after the
  * call, as the real one is.
  */
 const TO_BLOB_AT_ONCE = `HTMLCanvasElement.prototype.toBlob = function (done, type, quality) {
-  const url = this.toDataURL(type, quality);
-  const bytes = Uint8Array.from(atob(url.slice(url.indexOf(',') + 1)), (c) => c.charCodeAt(0));
-  const blob = new Blob([bytes], { type: url.slice(5, url.indexOf(';')) });
-  queueMicrotask(() => done(blob));
+  fetch(this.toDataURL(type, quality)).then((r) => r.blob()).then(done);
 };`;
 
 /**
@@ -283,7 +294,7 @@ const HOT_MIC = `(() => {
 })()`;
 
 /**
- * A page open in a fresh tab: the tab, what it asked of its server, and any
+ * A page open in a tab of its own: the tab, what it asked of its server, and any
  * page errors, Solid's reactivity diagnostics among them (a `[STRICT_…]`
  * warning is a read or a write the page does not mean).
  */
@@ -305,13 +316,13 @@ interface FakeMic {
 /**
  * Open the lab on the probe film at `hash` (`#T`, `&sel=…` in `query`), with
  * `routes` answering the API before the defaults, and `mic` as its
- * microphone when given. The tab closes with the scope.
+ * microphone when given. The tab goes back to the pool with the scope.
  */
 export const openLab = Effect.fn('lab.fixture.open')(function* (
   routes: ReadonlyArray<FakeRoute> = [],
   at: { readonly query?: string; readonly hash?: string; readonly mic?: FakeMic } = {},
 ) {
-  const [script, style] = yield* Effect.all([bundle, css], { concurrency: 2 });
+  const script = labScript;
   const mic = Option.fromUndefinedOr(at.mic);
   const asked: Array<Asked> = [];
   const page = yield* openTab({
@@ -327,11 +338,9 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
       TO_BLOB_AT_ONCE,
       ...Arr.filter([HOT_MIC], () => Option.exists(mic, (m) => m.hot === true)),
     ],
+    assets: [script],
     serve: fakeServer(
-      new Map([
-        ['/lab', respond(labPage(style), 'text/html')],
-        ['/lab.js', respond(script, 'text/javascript')],
-      ]),
+      new Map([['/lab', respond(labPage(css, script), 'text/html')]]),
       API,
       [...routes, ...defaults],
       asked,
@@ -343,10 +352,8 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   return open;
 });
 
-/** The review page's script. */
-const reviewBundle = bundleOf('review-page.ts');
-
-const reviewPage = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title></head><body><script src="/review.js"></script></body></html>`;
+const reviewPage = (script: Asset) =>
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title></head><body>${scriptOf(script)}</body></html>`;
 
 /** Where the review opens, and how wide its window is (a phone's, or a desk's). */
 interface ReviewAt {
@@ -359,24 +366,22 @@ interface ReviewAt {
  * at `search`, with `routes` answering its requests by their whole path
  * (`/review/index`, `/review/files/…`): what none answers is a 404. The
  * browser plays media without a gesture, its clock is the test's, and the
- * tab closes with the scope.
+ * tab goes back to the pool with the scope.
  */
 export const openReview = Effect.fn('lab.fixture.review')(function* (
   routes: ReadonlyArray<FakeRoute>,
   at: ReviewAt = {},
 ) {
-  const script = yield* reviewBundle;
+  const script = reviewScript;
   const asked: Array<Asked> = [];
   const page = yield* openTab({
     ...(at.viewport ?? { width: 1400, height: 900 }),
     microphone: false,
     // The page's clock is the test's, as the lab's is.
     init: [CLOCK_SCRIPT],
+    assets: [script],
     serve: fakeServer(
-      new Map([
-        ['/', respond(reviewPage, 'text/html')],
-        ['/review.js', respond(script, 'text/javascript')],
-      ]),
+      new Map([['/', respond(reviewPage(script), 'text/html')]]),
       '',
       routes,
       asked,

@@ -12,27 +12,28 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { openTab, respond, servePaths } from '../fixtures/browsers.ts';
+import { asset, openTab, respond, scriptOf, servePaths } from '../fixtures/browsers.ts';
 import type { ProbeSetup, Probed } from '../fixtures/capture-page.ts';
 import { bundleOf } from '../fixtures/harness.ts';
 import { jsonOf } from '../fixtures/tab.ts';
 
 const script = bundleOf('capture-page.ts');
 
-/** The capture page in a fresh tab, allowed the microphone or not, probed as `setup` says. */
+/** The capture page in a tab of its own, allowed the microphone or not, probed as `setup` says. */
 const probe = (microphone: boolean, setup: ProbeSetup) =>
   Effect.gen(function* () {
+    const capture = asset('capture.js', respond(yield* script, 'text/javascript; charset=utf-8'));
     const page = yield* openTab({
       width: 800,
       height: 600,
       microphone,
       init: [],
+      assets: [capture],
       serve: servePaths({
         '/capture': respond(
-          '<!doctype html><html><body><script src="/capture.js"></script></body></html>',
+          `<!doctype html><html><body>${scriptOf(capture)}</body></html>`,
           'text/html',
         ),
-        '/capture.js': respond(yield* script, 'text/javascript; charset=utf-8'),
       }),
     });
     yield* page.goto('/capture');
