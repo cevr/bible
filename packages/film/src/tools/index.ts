@@ -31,26 +31,9 @@ export * from './notes-store.ts';
 export * from './lab.ts';
 export * from './choices.ts';
 export * from './fresh-film.ts';
-export {
-  type PickSite,
-  SCORE_PLAY,
-  editLevel,
-  editPick,
-  lookPlay,
-  readLevel,
-  readPick,
-} from './choice-source.ts';
 export * from './choice-points.ts';
-export { addressArgs } from './project-http.ts';
-export {
-  Review,
-  type ReviewConfig,
-  type ReviewRoot,
-  type ReviewService,
-  parseRoots,
-} from './review.ts';
-export { reviewAllowed, reviewHandler } from './review-http.ts';
-export { type Allowed, type LabBound, type LabHandler } from './api-server.ts';
+export { Review, type ReviewRoot } from './review.ts';
+export { type LabBound, type LabHandler } from './api-server.ts';
 export * from './notes-lines.ts';
 export * from './scene-source.ts';
 export * from './scene-head.ts';

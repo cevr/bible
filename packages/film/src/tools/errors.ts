@@ -1,27 +1,17 @@
-// The tools' typed failures. The core's authoring errors (unknown scene, cue,
-// mark or voice, a short act, a misaligned take) are re-exported so one import
-// names every way a run can fail.
+// The tools' typed failures, and the core errors and refusals the tools
+// raise, re-exported for the tools modules that import them from here. Each
+// re-export has a reader; a name no tools module raises is imported from the
+// core where it is declared.
 
 import { Schema } from 'effect';
 import { EncoderName } from '../core/encoder.ts';
 
 export {
   AlignmentMismatch,
-  CueInvalid,
   type MovementLength,
-  MovementTooLong,
-  MovementTooShort,
-  PartOutOfOrder,
   ScoreUnknown,
-  ShortSpanEmpty,
-  UnknownCue,
-  UnknownMark,
-  SoundUseMismatch,
   UnknownScene,
-  UnknownShort,
   UnknownSound,
-  UnknownVoice,
-  WordMissing,
 } from '../core/errors.ts';
 
 // The failures the lab's and review's routes answer with, declared in the
@@ -29,16 +19,13 @@ export {
 export {
   AttemptUnknown,
   AudioInvalid,
-  BodyTooLarge,
   CatalogueInvalid,
   ChoiceUnknown,
   ElevenLabsFailed,
   FilmUnknown,
-  FreshProcessFailed,
   HeadUnavailable,
   MediaFailed,
   NoteNotFound,
-  PhoneCopyUnmade,
   RecordingInvalid,
   RecordingLossy,
   RedoUnavailable,
@@ -49,7 +36,6 @@ export {
   SourceChanged,
   SourceRefused,
   SourceShared,
-  StillUnknown,
   SttUntimed,
   TakeMismatch,
   TakeUnknown,
