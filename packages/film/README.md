@@ -1701,7 +1701,17 @@ A shot can be a moving painting rather than a cutout: plates at depth in a
   only draws the finished plate. A flickering light is two paintings of one
   guide (lit and dim) crossfaded by `flicker` (`core/random.ts`).
 - `canvas/atmosphere.ts`: `motes` (dust, embers: seeded, drifting, twinkling)
-  and `rays` (soft light shafts from a point).
+  and `rays` (soft light shafts from a point), plus seeded `rain` streaks and
+  `stars`. Each is computed from the current time, with no frame history.
+- `canvas/figure.ts`: `figure` dresses a posed skeleton, shades it with a
+  warm key and cool shadow, and rims its silhouette on an isolated sheet.
+  Robe folds, head coverings, facial expressions and arm targets vary a
+  person; targets beyond the arm's reach are clamped. `figurePoint` locates
+  the head, chest or a local point. `crowd` scatters varied figures without
+  rows and returns them far to near for painting.
+- `canvas/build.ts`: `house` and `column` draw lit architecture; a column
+  casts its ground shadow away from the key. Both preserve caller state.
+  These volumes and figures can move live over the cached plates.
 - `canvas/camera.ts`: `planeView` is the view a plane at `z` sees through the
   shot; `planePoint` is where a point on that plane lands on screen, so a
   shaft or a sun's rays can join planes at different depths. A `multiplane`'s

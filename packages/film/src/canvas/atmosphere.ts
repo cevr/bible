@@ -142,3 +142,83 @@ export const rays = (ctx: CanvasRenderingContext2D, t: number, r: Rays) => {
   }
   ctx.restore();
 };
+
+/** Rain falling through a box of the world. */
+interface Rain {
+  readonly seed: number;
+  readonly count: number;
+  /** The box it falls through, wrapping: x, y, width, height. */
+  readonly box: readonly [number, number, number, number];
+  /** How far it slants from straight down, in radians (positive leans to the right). */
+  readonly slant: number;
+  /** How fast a drop falls, px a second. */
+  readonly speed: number;
+  /** A streak's length and width, in px. */
+  readonly length: number;
+  readonly width: number;
+  readonly color: Hex;
+  readonly alpha: number;
+}
+
+/**
+ * The rain at `t` seconds: thin streaks, each falling from a seeded place
+ * along the slant and wrapping in its box, nearer ones (by their seed)
+ * longer and brighter. Drawn with `screen`, so it lights what it falls past.
+ */
+export const rain = (ctx: CanvasRenderingContext2D, t: number, r: Rain) => {
+  const [bx, by, bw, bh] = r.box;
+  const dx = Math.sin(r.slant);
+  const dy = Math.cos(r.slant);
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.fillStyle = r.color;
+  for (let i = 0; i < r.count; i++) {
+    const near = 0.4 + 0.6 * hash2(i, r.seed + 2);
+    const fall = r.speed * near * t + hash2(i, r.seed + 1) * bh;
+    const y = by + wrap(fall, bh);
+    const x = bx + wrap(hash2(i, r.seed) * bw + dx * fall, bw);
+    const len = r.length * near;
+    const half = (r.width * near) / 2;
+    ctx.globalAlpha = r.alpha * near * Math.sin((Math.PI * (y - by)) / bh);
+    ctx.beginPath();
+    ctx.moveTo(x - dy * half, y + dx * half);
+    ctx.lineTo(x - dx * len, y - dy * len);
+    ctx.lineTo(x + dy * half, y - dx * half);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+};
+
+/** A night sky's stars, in a box of the world. */
+interface Stars {
+  readonly seed: number;
+  readonly count: number;
+  readonly box: readonly [number, number, number, number];
+  /** A star's radius, smallest and largest, in px. */
+  readonly size: readonly [number, number];
+  readonly color: Hex;
+  readonly alpha: number;
+}
+
+/** The stars at `t` seconds: each at a seeded place, the larger few haloed, all twinkling slowly. */
+export const stars = (ctx: CanvasRenderingContext2D, t: number, s: Stars) => {
+  const [bx, by, bw, bh] = s.box;
+  const [small, large] = s.size;
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  ctx.fillStyle = s.color;
+  for (let i = 0; i < s.count; i++) {
+    const big = hash2(i, s.seed + 2) ** 3;
+    const r = small + (large - small) * big;
+    const x = bx + hash2(i, s.seed) * bw;
+    const y = by + hash2(i, s.seed + 1) * bh;
+    const a = s.alpha * (0.55 + 0.45 * noise1(t * 0.8 + i * 1.3, s.seed + 3));
+    if (big > 0.4) glow(ctx, x, y, r * 6, s.color, a * 0.4);
+    ctx.globalAlpha = a;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+};
