@@ -14,14 +14,15 @@ const digest = (pcm: Pcm) =>
 /** Power at `hz` over `x` (Goertzel), for telling which note rang. */
 const powerAt = (x: Float32Array, hz: number) => {
   const k = (2 * Math.PI * hz) / SYNTH_RATE;
+  const coefficient = 2 * Math.cos(k);
   let s1 = 0;
   let s2 = 0;
   for (const v of x) {
-    const s = v + 2 * Math.cos(k) * s1 - s2;
+    const s = v + coefficient * s1 - s2;
     s2 = s1;
     s1 = s;
   }
-  return s1 * s1 + s2 * s2 - 2 * Math.cos(k) * s1 * s2;
+  return s1 * s1 + s2 * s2 - coefficient * s1 * s2;
 };
 
 const EVERY: ReadonlyArray<Recipe> = [
