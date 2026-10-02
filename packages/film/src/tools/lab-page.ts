@@ -10,15 +10,17 @@
 // watched (`FileSystem.watch`; a package's `node_modules` aside), with the
 // entries' folders from the start and, after a failed build, the folders of
 // the files the bundler named; a folder still read keeps its watch, and a
-// file read in a newly watched folder that changed while its watch started
-// is one more change. Each change to one of those files is numbered (the build), and an open page that waits on
+// file read in a newly watched folder, or new to the read set, that changed
+// from a second before its build began is one more change. Each change to
+// one of those files is numbered (the build), and an open page that waits on
 // `/api/review/build?since=` hears of it and reloads onto the new code, as
 // the development server's hot reload did. Each lab process draws its own
 // id (`server`): a page served by an earlier process hears at once that it
 // is old code.
 //
 // A build that fails answers its page as the failure, the bundler's words,
-// and reloads itself once a source changes; the lab itself keeps serving.
+// is tried again on each request, and the page reloads itself once a build
+// is made; the lab itself keeps serving.
 
 import {
   Array as Arr,
@@ -211,6 +213,8 @@ const SETTLE = Duration.millis(150);
 const MAX_WAIT = Duration.seconds(60);
 /** How long a new watch is given to start before the files it now watches are checked. */
 const ARMING = Duration.millis(250);
+/** How far a file's mtime may lag the clock: a save during a build is counted from this before it began. */
+const MTIME_LAG = Duration.seconds(1);
 
 /** What a page asks its wait with: the build it was served, and by which server when it knows. */
 interface Served {
@@ -374,18 +378,20 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   });
 
   /**
-   * A save the new watches may have missed: once they are armed, a file of
-   * `files` in a folder of `dirs` (newly watched) changed since `started`
-   * (the build began reading) is one more change.
+   * A save no watch counted: once new watches are armed, a file of
+   * `suspects` changed since `started` (the build began reading, less
+   * MTIME_LAG) is one more change. A suspect is a file the build read that a
+   * watch could not count: in a folder newly watched, or new to the read set
+   * (the watch judged its save against the build before).
    */
-  const missedIn = (dirs: ReadonlyArray<string>, files: ReadonlyArray<string>, started: number) =>
+  const missed = (suspects: ReadonlyArray<string>, started: number) =>
     Effect.gen(function* () {
-      const suspects = files.filter((file) => dirs.includes(path.dirname(file)));
       if (suspects.length === 0) return;
       yield* Effect.sleep(ARMING);
+      const since = started - Duration.toMillis(MTIME_LAG);
       const changed = yield* Effect.forEach(suspects, (file) =>
         fs.stat(file).pipe(
-          Effect.map((info) => Option.exists(info.mtime, (at) => at.getTime() >= started)),
+          Effect.map((info) => Option.exists(info.mtime, (at) => at.getTime() >= since)),
           // Gone since the build read it: changed.
           Effect.orElseSucceed(() => true),
         ),
@@ -403,9 +409,18 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     const outcome = yield* bundler.bundle(htmls, root).pipe(
       Effect.flatMap(({ outputs, inputs }) =>
         Effect.gen(function* () {
-          yield* Ref.set(read, Option.some(new Set(inputs)));
+          const before = yield* Ref.getAndSet(read, Option.some(new Set(inputs)));
           const added = yield* watchOnly(foldersOf([...htmls, ...inputs]));
-          yield* missedIn(added, inputs, started);
+          yield* missed(
+            inputs.filter(
+              (input) =>
+                !input.includes('/node_modules/') &&
+                (added.includes(path.dirname(input)) ||
+                  // With no read set before, the watch counted every save.
+                  Option.exists(before, (set) => !set.has(input))),
+            ),
+            started,
+          );
           const pages = new Map<PageName, BuiltFile>();
           const files = new Map<string, BuiltFile>();
           for (const { path: name, ...built } of outputs)
@@ -425,7 +440,10 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
           const added = yield* watchOnly(
             Arr.sort(Arr.dedupe([...kept, ...foldersOf(failed.files)]), Order.String),
           );
-          yield* missedIn(added, failed.files, started);
+          yield* missed(
+            failed.files.filter((file) => added.includes(path.dirname(file))),
+            started,
+          );
           return { _tag: 'Failed', reason: failed.reason } as const;
         }),
       ),
@@ -434,13 +452,21 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     return { build, outcome } satisfies Built;
   });
 
-  /** The build as the sources stand: the last one if nothing it read changed since, else a new one. */
+  /**
+   * The build as the sources stand: the last one if nothing it read changed
+   * since, else a new one. A failed build is tried again on each ask, since a
+   * fix may lie where no watch reaches (the bundler names the importer, not
+   * the file it missed); one that then builds takes a new number, so a failed
+   * page waiting past the old one reloads. Asks at once share one build.
+   */
   const current = building.withPermit(
     Effect.gen(function* () {
       const now = yield* SubscriptionRef.get(changes);
       const last = Arr.head(yield* Ref.get(builds)).pipe(Option.filter((b) => b.build === now));
-      if (Option.isSome(last)) return last.value;
-      const made = yield* bundle(now);
+      if (Option.isSome(last) && last.value.outcome._tag === 'Built') return last.value;
+      let made = yield* bundle(now);
+      if (Option.isSome(last) && made.outcome._tag === 'Built')
+        made = { ...made, build: yield* SubscriptionRef.updateAndGet(changes, (n) => n + 1) };
       yield* Ref.update(builds, (kept) => [made, ...kept].slice(0, KEPT));
       return made;
     }),

@@ -655,7 +655,8 @@ changed: the folder of every file the last build read (outside
 folders from the start, and after a failed build also the folders of the
 files the bundler named, so a first build that fails still hears its fix. A
 folder still read keeps its watch; a file read in a newly watched folder
-that changed while the watch started counts as a change. Each change to a
+or new to what it read, that changed from a second before the build began
+counts as a change. Each change to a
 file a build read is one more build (a render, a mix or a note is none). A page links its scripts and styles from the root (`/chunk-….js`,
 `publicPath: '/'`), so a page served under a film's path finds them; a
 request is answered as a narration file when it is one
@@ -670,7 +671,9 @@ another server answers
 with no hand on the page. The review does not reload itself (a playing set
 is not interrupted); its next load is the new code. A page that does not
 build answers 500 with the bundler's words and reloads once a later build
-or another server answers, pausing 2 s after every other answer; the server
+or another server answers, pausing 2 s after every other answer; a
+failed build is tried again on each request (a fix may land in a folder no
+build read), and one that then builds is a new build its page hears; the server
 keeps serving. The pages are not rendered on the server:
 the lab's preview draws the film's own scene code in the browser, so the
 scripts are the page. Only the lab's server bundles Solid; the render's

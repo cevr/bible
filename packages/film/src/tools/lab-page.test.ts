@@ -15,10 +15,12 @@ import {
   type Duration,
   Effect,
   Exit,
+  Fiber,
   FileSystem,
   Layer,
   Option,
   Path,
+  Ref,
   Schedule,
 } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
@@ -115,7 +117,7 @@ const app = Effect.gen(function* () {
   /** A wait past `since` after `name` is written as `text` once: one save, heard or not. */
   const waitOnce = (since: number, timeout: Duration.Input, name: string, text: string) =>
     Effect.andThen(write(name, text), page.wait({ since, server: Option.none() }, timeout));
-  return { ask, script, scriptOf, waitWriting, waitOnce, write };
+  return { ask, page, script, scriptOf, waitWriting, waitOnce, write };
 });
 
 const buildOf = (text: string) => Number(/name="lab-build" content="(\d+)"/.exec(text)?.[1]);
@@ -217,10 +219,12 @@ describe('lab pages', () => {
 
   it.live('a change to a file no build read wakes nothing', () =>
     Effect.gen(function* () {
-      const { ask, waitWriting } = yield* app;
+      const { ask, page, waitWriting } = yield* app;
       yield* ask('/');
-      const { build } = yield* waitWriting(0, '1 second', 'src/notes.json', '{"seq":1}');
-      expect(build).toBe(0);
+      // The first build may count once a save it read in the last second: the build once that is heard.
+      const settled = (yield* page.wait({ since: 0, server: Option.none() }, '1 second')).build;
+      const { build } = yield* waitWriting(settled, '1 second', 'src/notes.json', '{"seq":1}');
+      expect(build).toBe(settled);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
@@ -302,6 +306,82 @@ describe('lab pages', () => {
       );
       expect(heard.build).toBeGreaterThan(moved.build);
       expect(yield* script).toContain('shared three');
+    }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    'a page that failed for a file in a folder no build read serves once the file is made, and its wait hears it',
+    () =>
+      Effect.gen(function* () {
+        const { spec, write } = yield* appFolder;
+        // The bundler names the importer (src/p.ts), never lib/, where the fix lands.
+        yield* write('src/p.ts', "import { gone } from '../lib/missing.ts';\nconsole.log(gone);\n");
+        const { page, ask } = yield* served(spec, PageBundler.layer);
+        const broken = yield* ask('/');
+        expect(broken.status).toBe(500);
+        const since = buildOf(broken.text);
+        const waiting = yield* Effect.forkChild(
+          page.wait({ since, server: Option.none() }, '5 seconds'),
+        );
+        yield* write('lib/missing.ts', "export const gone = 'made';\n");
+        const fixed = yield* ask('/');
+        expect(fixed.status).toBe(200);
+        expect(buildOf(fixed.text)).toBeGreaterThan(since);
+        expect((yield* Fiber.join(waiting)).build).toBeGreaterThan(since);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live('a file the page newly reads, saved while it builds, is heard', () =>
+    Effect.gen(function* () {
+      const { spec, write } = yield* appFolder;
+      const path = yield* Path.Path;
+      const dir = path.dirname(spec.pages.review);
+      // A bundler whose reads are scripted: the entries and `graph`, and `during` once, mid-build.
+      const graph = yield* Ref.make<ReadonlyArray<string>>([path.join(dir, 'src', 'p.ts')]);
+      const during = yield* Ref.make<Effect.Effect<void>>(Effect.void);
+      const scripted = Layer.effect(
+        PageBundler,
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          return PageBundler.of({
+            bundle: (entries, root) =>
+              Effect.gen(function* () {
+                const outputs = yield* Effect.forEach(entries, (entry) =>
+                  Effect.map(fs.readFile(entry), (bytes) => ({
+                    path: path.relative(root, entry),
+                    bytes,
+                    type: 'text/html;charset=utf-8',
+                  })),
+                );
+                yield* Effect.flatten(Ref.getAndSet(during, Effect.void));
+                return { outputs, inputs: [...entries, ...(yield* Ref.get(graph))] };
+              }).pipe(Effect.mapError((error) => ({ reason: error.message, files: [] }))),
+          });
+        }),
+      );
+      const { page, ask } = yield* served(spec, scripted);
+      yield* ask('/');
+      // The first build may count once a save it read in the last second: the build once that is heard.
+      const settled = (yield* page.wait({ since: 0, server: Option.none() }, '1 second')).build;
+      // p.ts now imports src/new.ts, in a folder already watched; new.ts is saved as the
+      // next build reads it, and its save is judged against the build before, which did not read it.
+      yield* write('src/new.ts', 'export const v = 1;\n');
+      yield* Ref.set(graph, [path.join(dir, 'src', 'p.ts'), path.join(dir, 'src', 'new.ts')]);
+      const imports = yield* Effect.andThen(
+        write('src/p.ts', "import { v } from './new.ts';\nconsole.log(v);\n"),
+        page.wait({ since: settled, server: Option.none() }, '5 seconds'),
+      );
+      expect(imports.build).toBeGreaterThan(settled);
+      yield* Ref.set(
+        during,
+        Effect.andThen(
+          write('src/new.ts', 'export const v = 2;\n'),
+          Effect.sleep('300 millis'),
+        ).pipe(Effect.orDie),
+      );
+      const second = buildOf((yield* ask('/')).text);
+      const heard = yield* page.wait({ since: second, server: Option.none() }, '3 seconds');
+      expect(heard.build).toBeGreaterThan(second);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
