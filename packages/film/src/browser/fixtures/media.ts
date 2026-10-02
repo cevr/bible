@@ -3,8 +3,9 @@
 // pages do: it records what it was asked, plays at once or rejects each play
 // with the error named `refuse` (a `NotAllowedError` only while it is not
 // muted, as a browser refuses sound nobody asked for), and says `seeked` a
-// turn after a seek, as an element does. `answered` is done once every
-// play's answer is in.
+// turn after a seek, as an element does (unless it `holdsSeeks`). It counts
+// the listeners on it (`listening`). `answered` is done once every play's
+// answer is in.
 
 import { Effect, Option } from 'effect';
 import type { Context } from 'effect';
@@ -40,11 +41,37 @@ class FakeElement extends EventTarget implements MediaElement {
   set currentTime(t: number) {
     this.#time = t;
     this.asked.push(`seek ${t}`);
+    if (this.holdsSeeks) return;
     Effect.runFork(
       Effect.andThen(
         Effect.yieldNow,
         Effect.sync(() => this.fire('seeked')),
       ),
+    );
+  }
+
+  /** Its seeks never finish: no `seeked` comes, so each seek stays pending. */
+  holdsSeeks = false;
+  readonly #listening = new Map<string, number>();
+
+  /** How many listeners of `type` are on it now; one whose signal aborted is gone. */
+  listening(type: string): number {
+    return this.#listening.get(type) ?? 0;
+  }
+
+  /** The adapter listens to it only until a signal aborts. */
+  override addEventListener(
+    type: string,
+    listener: EventListener,
+    options: { readonly signal: AbortSignal },
+  ) {
+    super.addEventListener(type, listener, options);
+    if (options.signal.aborted) return;
+    this.#listening.set(type, this.listening(type) + 1);
+    options.signal.addEventListener(
+      'abort',
+      () => this.#listening.set(type, this.listening(type) - 1),
+      { once: true },
     );
   }
 

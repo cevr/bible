@@ -99,6 +99,30 @@ describe('the sync driver', () => {
       }),
   );
 
+  it.effect('a seek still pending ends when its video is replaced, detached or stopped', () =>
+    Effect.gen(function* () {
+      const { driver, a, b } = rig();
+      const c = fakeMedia();
+      c.el.load(10);
+      for (const v of [a, b, c]) v.el.holdsSeeks = true;
+      driver.attach('c', c.media);
+      driver.apply(SyncState.Paused(clock(3, 1)));
+      yield* Effect.yieldNow;
+      const waiting = () => [a, b, c].map((v) => v.el.listening('seeked'));
+      expect(waiting()).toEqual([1, 1, 1]);
+      // `a`'s card shows another video: the seek it began is no longer waited on.
+      driver.attach('a', fakeMedia().media);
+      yield* Effect.yieldNow;
+      expect(waiting()).toEqual([0, 1, 1]);
+      driver.detach('b');
+      yield* Effect.yieldNow;
+      expect(waiting()).toEqual([0, 0, 1]);
+      driver.stop();
+      yield* Effect.yieldNow;
+      expect(waiting()).toEqual([0, 0, 0]);
+    }),
+  );
+
   test('stopped, every video is paused and no frame is asked for', () => {
     const { frames, driver, a, b } = rig();
     driver.apply(SyncState.Playing(clock(0)));

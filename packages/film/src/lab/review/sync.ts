@@ -5,7 +5,9 @@
 // first variant's video is the clock (its time is the set's); every other
 // that drifts more than DRIFT_S from it is put back on it. Only the audible
 // one is unmuted. A seek moves every video; a stall pauses them all until
-// each has enough to play on (`Buffering`). The player's keys (space, ←/→)
+// each has enough to play on (`Buffering`). A seek or a play it sets going
+// on a video lasts only while that video is attached: replaced, detached or
+// stopped, it ends. The player's keys (space, ←/→)
 // are heard here too, for every page with a synced player.
 
 import { type Context, Data, Effect, Option } from 'effect';
@@ -42,7 +44,8 @@ export interface SyncDriver {
 
 interface Attached {
   readonly video: Playable;
-  readonly listening: AbortController;
+  /** Aborted when the video is let go: its listeners, and its seeks and plays, end. */
+  readonly held: AbortController;
 }
 
 /**
@@ -61,23 +64,30 @@ export const makeSync = (
   /** The stop of the clock's loop, while it runs. */
   let looping = Option.none<() => void>();
 
-  const all = () => [...videos.values()].map((a) => a.video);
+  const all = () => [...videos.values()];
   const clock = () =>
-    Option.orElse(
-      Option.map(Option.fromUndefinedOr(videos.get(first)), (a) => a.video),
-      () => Option.fromUndefinedOr(all()[0]),
+    Option.orElse(Option.fromUndefinedOr(videos.get(first)), () =>
+      Option.fromUndefinedOr(all()[0]),
     );
 
   /** Do `effect` on the host, without waiting for it. */
   const fork = (effect: Effect.Effect<unknown, never, Frames | Media>) => {
     Effect.runForkWith(host)(effect);
   };
+  /** Do `effect` on the host while `a` stays attached, without waiting for it. */
+  const forkOn = (a: Attached, effect: Effect.Effect<unknown, never, Frames | Media>) => {
+    Effect.runForkWith(host)(effect, { signal: a.held.signal });
+  };
   /**
-   * Play `video`; a browser that will not play sound unasked plays it muted
+   * Play `a`'s video; a browser that will not play sound unasked plays it muted
    * (any other refusal, a pause before it started, is left as it is).
    */
-  const play = (video: Playable) => fork(Media.use((media) => media.playOrMute(video)));
-  const seekTo = (video: Playable, t: number) => fork(video.seek(t));
+  const play = (a: Attached) =>
+    forkOn(
+      a,
+      Media.use((media) => media.playOrMute(a.video)),
+    );
+  const seekTo = (a: Attached, t: number) => forkOn(a, a.video.seek(t));
 
   const hear = (state: SyncState) => {
     for (const [id, a] of videos) {
@@ -93,18 +103,19 @@ export const makeSync = (
   const step = (): boolean =>
     Option.exists(current, (state) => {
       Option.map(clock(), (master) => {
-        const t = master.time();
+        const t = master.video.time();
         if (state._tag === 'Buffering') {
-          if (all().every((v) => v.ready())) send(Events.Resumed);
+          if (all().every((a) => a.video.ready())) send(Events.Resumed);
           return;
         }
         if (Math.abs(t - told) >= TICK_S) {
           told = t;
           send(Events.Ticked({ t }));
         }
-        for (const video of all()) {
-          if (video === master || video.seeking() || video.ended()) continue;
-          if (t < video.duration() && drifted(video.time(), t)) seekTo(video, t);
+        for (const a of all()) {
+          const video = a.video;
+          if (a === master || video.seeking() || video.ended()) continue;
+          if (t < video.duration() && drifted(video.time(), t)) seekTo(a, t);
         }
       });
       return Option.exists(current, (now) => runningOf(now) || now._tag === 'Buffering');
@@ -134,14 +145,14 @@ export const makeSync = (
     if (state.seek !== seek) {
       seek = state.seek;
       told = state.t;
-      for (const video of all()) seekTo(video, state.t);
+      for (const a of all()) seekTo(a, state.t);
     }
     if (runningOf(state)) {
-      for (const video of all()) if (!video.playing()) play(video);
+      for (const a of all()) if (!a.video.playing()) play(a);
       run();
       return;
     }
-    for (const video of all()) fork(video.pause);
+    for (const a of all()) fork(a.video.pause);
     if (state._tag === 'Buffering') {
       run();
       return;
@@ -150,16 +161,16 @@ export const makeSync = (
   };
 
   const attach = (id: string, video: Playable) => {
-    Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => old.listening.abort());
-    const listening = new AbortController();
-    const signal = listening.signal;
-    videos.set(id, { video, listening });
+    Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => old.held.abort());
+    const attached: Attached = { video, held: new AbortController() };
+    const signal = attached.held.signal;
+    videos.set(id, attached);
     video.on(
       'measured',
       () => {
         if (id === first && Number.isFinite(video.duration()))
           send(Events.Measured({ end: video.duration() }));
-        Option.map(current, (state) => seekTo(video, state.t));
+        Option.map(current, (state) => seekTo(attached, state.t));
       },
       signal,
     );
@@ -173,14 +184,14 @@ export const makeSync = (
     );
     Option.map(current, (state) => {
       hear(state);
-      seekTo(video, state.t);
-      if (runningOf(state)) play(video);
+      seekTo(attached, state.t);
+      if (runningOf(state)) play(attached);
     });
   };
 
   const detach = (id: string) => {
     Option.map(Option.fromUndefinedOr(videos.get(id)), (a) => {
-      a.listening.abort();
+      a.held.abort();
       fork(a.video.pause);
     });
     videos.delete(id);
