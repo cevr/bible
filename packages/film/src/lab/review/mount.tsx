@@ -15,6 +15,8 @@ import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, QualityToggle, SetPage } from './section.tsx';
 import { REVIEW_CSS } from './style.ts';
 import { labUrl } from '../../player/pages.ts';
+import { type Host, hostOf } from '../../browser/host.ts';
+import { BrowserHost } from '../../browser/host-browser.ts';
 
 /** The trail to `place`: each step's title, and where it goes (none for the page itself). */
 interface Crumb {
@@ -154,26 +156,27 @@ const Lightbox = () => {
 };
 
 /** The review: its header, the page it is on, and the lightbox. */
-const ReviewPage = (props: { readonly origin: string }) => (
-  <Root origin={props.origin}>
+const ReviewPage = (props: { readonly origin: string; readonly host: Host }) => (
+  <Root origin={props.origin} host={props.host}>
     <Header />
     <Page />
     <Lightbox />
   </Root>
 );
 
-/** Mount the review into the page, with its styles, over the page's own origin. */
+/** Mount the review into the page, with its styles, over the page's own origin and the page's host (`browser/host.ts`). */
 export const mountReview = (): void => {
   Effect.runSync(
     Effect.gen(function* () {
+      const host = hostOf(BrowserHost.layer);
       const style = document.createElement('style');
       style.textContent = REVIEW_CSS;
       document.head.append(style);
       document.body.classList.add('rv');
-      const host = document.createElement('div');
-      host.className = 'rv-root';
-      document.body.append(host);
-      render(() => <ReviewPage origin={location.origin} />, host);
+      const root = document.createElement('div');
+      root.className = 'rv-root';
+      document.body.append(root);
+      render(() => <ReviewPage origin={location.origin} host={host} />, root);
       yield* Effect.logInfo(`review.mounted search=${location.search}`);
     }),
   );

@@ -30,6 +30,7 @@ import {
 } from 'solid-js';
 import type { SeenPoint } from '../../core/choice.ts';
 import type { ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/review.ts';
+import { type BrowserServices, type Host, hostLayer } from '../../browser/host.ts';
 import type { LabFailure } from '../api.ts';
 import { localStore } from '../studio/mic-choice.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
@@ -82,7 +83,9 @@ interface ReviewMeta {
   readonly duration: (ref: string) => Loaded<number>;
   /** A doc's text, read once per ref. */
   readonly text: (ref: string) => Loaded<string>;
-  readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi>;
+  readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
+  /** The page's host (`browser/host.ts`): what the page's own effects run with. */
+  readonly host: Host;
   /** Now, in ms: what a card's age is counted from. */
   readonly now: () => number;
 }
@@ -126,9 +129,13 @@ const firstQuality = (): Quality =>
   );
 
 /** The review page: its runtime, place, index and choices, around `children`. */
-export const Root = (props: ParentProps<{ readonly origin: string }>) => {
+export const Root = (props: ParentProps<{ readonly origin: string; readonly host: Host }>) => {
   const runtime = Atom.runtime(
-    Layer.mergeAll(reviewApiLayer(props.origin), optionsApiLayer(props.origin)),
+    Layer.mergeAll(
+      reviewApiLayer(props.origin),
+      optionsApiLayer(props.origin),
+      hostLayer(props.host),
+    ),
   );
   const filmsAtom = runtime.atom(OptionsApi.use((api) => api.films));
   // A refresh asks the server to walk its roots again; a first read takes its cache.
@@ -188,7 +195,13 @@ export const Root = (props: ParentProps<{ readonly origin: string }>) => {
         },
         show: setLightbox,
       },
-      meta: { duration, text, runtime, now: () => Effect.runSync(Clock.currentTimeMillis) },
+      meta: {
+        duration,
+        text,
+        runtime,
+        host: props.host,
+        now: () => Effect.runSync(Clock.currentTimeMillis),
+      },
     };
     return <ReviewContext value={value}>{inner.children}</ReviewContext>;
   };

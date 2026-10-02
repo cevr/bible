@@ -1,9 +1,12 @@
-// The lab page's entry: stage the film, mount the framework-free preview
-// player (`mountPreview`), and render the lab's Solid panels around it. The
-// player page (`/`), which the renderer loads, never imports this.
+// The lab page's entry: build the page's host (`browser/host.ts`), stage the
+// film, mount the framework-free preview player (`mountPreview`), and render
+// the lab's Solid panels around it. The player page (`/`), which the
+// renderer loads, never imports this.
 
 import { render } from '@solidjs/web';
 import { Effect, Schema } from 'effect';
+import { type Host, hostOf } from '../browser/host.ts';
+import { BrowserHost } from '../browser/host-browser.ts';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
@@ -18,8 +21,12 @@ class LabStartFailed extends Schema.TaggedError<LabStartFailed>()('LabStartFaile
 }) {}
 
 /** The lab: the shell, and each tool in its place. */
-const LabPage = (props: { readonly name: string; readonly player: Player }) => (
-  <Lab.Root name={props.name} player={props.player}>
+const LabPage = (props: {
+  readonly name: string;
+  readonly player: Player;
+  readonly host: Host;
+}) => (
+  <Lab.Root name={props.name} player={props.player} host={props.host}>
     <Editor.Provider>
       <Motion.Provider>
         <Compare.Provider>
@@ -63,11 +70,12 @@ const start = Effect.fn('lab.start')(
       try: () => stageFilm(films),
       catch: (cause) => LabStartFailed.make({ reason: String(cause) }),
     });
+    const host = hostOf(BrowserHost.layer);
     const player = mountPreview(staged);
-    const host = document.createElement('div');
-    host.className = 'lab-root';
-    document.body.append(host);
-    render(() => <LabPage name={staged.name} player={player} />, host);
+    const root = document.createElement('div');
+    root.className = 'lab-root';
+    document.body.append(root);
+    render(() => <LabPage name={staged.name} player={player} host={host} />, root);
     yield* Effect.logInfo(`lab.mounted film=${staged.name}`);
   },
   Effect.catchTag('LabStartFailed', (e) => Effect.sync(() => showFailure(e.reason))),
