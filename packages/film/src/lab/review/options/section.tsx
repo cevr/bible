@@ -16,8 +16,8 @@ import type { ChoiceKind, ChoicePoint } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine } from '../../../core/schema.ts';
 import { useReview } from '../context.tsx';
-import { pressed, sizeText, videoUrl } from '../format.ts';
-import { Transport } from '../section.tsx';
+import { pressed, sizeText, videoSource } from '../format.ts';
+import { ProxyPending, Transport } from '../section.tsx';
 import { failedText, statusText } from '../loaded.tsx';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, HearButton } from './choice.tsx';
@@ -51,7 +51,7 @@ export const Player = () => {
     >
       {(video: Accessor<ReviewVideo>) => {
         // The same file answered again keeps its source, so nothing reloads.
-        const src = createMemo(() => videoUrl(video(), state.quality()));
+        const src = createMemo(() => Option.getOrUndefined(videoSource(video(), state.quality())));
         return (
           <>
             <Transport
@@ -78,13 +78,21 @@ export const Player = () => {
               </div>
             </Show>
             <div class="rv-card rv-picture" data-id={PICTURE}>
-              <video
-                preload="auto"
-                playsinline
-                muted
-                src={src()}
-                ref={(el: HTMLVideoElement) => driver.attach(PICTURE, el)}
-              />
+              <Show when={src()} fallback={<ProxyPending video={video()} />}>
+                {(source) => {
+                  // The clock holds only a video on the page: it lets go when the placeholder returns.
+                  onCleanup(() => driver.detach(PICTURE));
+                  return (
+                    <video
+                      preload="auto"
+                      playsinline
+                      muted
+                      src={source()}
+                      ref={(el: HTMLVideoElement) => driver.attach(PICTURE, el)}
+                    />
+                  );
+                }}
+              </Show>
               <div class="rv-cap">
                 <span class="rv-name">{video().name}</span>
                 <span class="rv-tag">{video().ref}</span>

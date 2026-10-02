@@ -112,6 +112,7 @@ a.rv-card:hover { border-color: var(--rv-dim); }
 .rv button:disabled { opacity: 0.45; cursor: default; }
 .rv-picture { margin-bottom: 14px; }
 .rv-picture video { max-height: 62vh; }
+.rv-pending .rv-row { padding: 8px 10px; justify-content: space-between; }
 .rv-option .rv-body { display: flex; flex-direction: column; gap: 8px; }
 .rv-option audio, .rv-take audio { width: 100%; max-width: 320px; height: 36px; }
 .rv-take { border-top: 1px solid var(--rv-line); padding-top: 8px; display: flex; flex-direction: column; gap: 6px; }
@@ -143,5 +144,7 @@ a.rv-card:hover { border-color: var(--rv-dim); }
   .rv-transport { top: 49px; padding: 8px 10px; gap: 8px; }
   .rv-keys { display: none; }
   .rv-filter { width: 100%; }
+  .rv-cap { flex-wrap: wrap; }
+  .rv-tag { white-space: normal; overflow-wrap: anywhere; }
 }
 `;

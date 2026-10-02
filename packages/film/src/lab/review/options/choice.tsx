@@ -24,7 +24,8 @@ import {
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import { useReview } from '../context.tsx';
-import { APPROVAL_TEXT, POSTER_W, pressed, stateText, videoUrl } from '../format.ts';
+import { APPROVAL_TEXT, POSTER_W, pressed, stateText, videoSource } from '../format.ts';
+import { ProxyPending } from '../section.tsx';
 import { SyncEvent, timeText } from '../machine.ts';
 import { ChoiceAct } from './api.ts';
 import { Playing, samePlaying, useAct, useFilm } from './context.tsx';
@@ -125,7 +126,7 @@ export const SayBox = (props: {
     >
       <input
         class="rv-comment-input"
-        placeholder="Say something of it"
+        placeholder="Add a comment"
         value={text()}
         onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
           setText(e.currentTarget.value)
@@ -137,7 +138,7 @@ export const SayBox = (props: {
         data-act="comment"
         disabled={text().trim() === '' || props.disabled === true}
       >
-        Say
+        Comment
       </button>
     </form>
   );
@@ -162,12 +163,19 @@ const ApproveButton = (props: {
   </button>
 );
 
-/** A render's video, kept in place while its file stays the same, showing a still of itself until it plays. */
+/**
+ * A render's video, kept in place while its file stays the same, showing a
+ * still of itself until it plays; while its proxy is being made, says so.
+ */
 const Seen = (props: { readonly video: ReviewVideo }) => {
   const { state } = useReview();
-  const src = createMemo(() => videoUrl(props.video, state.quality()));
+  const src = createMemo(() => Option.getOrUndefined(videoSource(props.video, state.quality())));
   const poster = createMemo(() => reviewFrameUrl(props.video.ref, Option.none(), POSTER_W));
-  return <video controls preload="none" playsinline poster={poster()} src={src()} />;
+  return (
+    <Show when={src()} fallback={<ProxyPending video={props.video} />}>
+      {(source) => <video controls preload="none" playsinline poster={poster()} src={source()} />}
+    </Show>
+  );
 };
 
 /** What a variant plays: its video, or its sound alone and in place. */

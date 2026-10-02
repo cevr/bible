@@ -382,12 +382,12 @@ describe("a film's project", () => {
         yield* textIs(
           page,
           `${render('close')} .rv-tag[data-state]`,
-          "stale: the film's sound changed since it was made",
+          "out of date: the film's sound changed since it was made",
         );
         yield* textIs(
           page,
           `${render('close')} .rv-badge[data-approval]`,
-          'approved an earlier version',
+          'needs review: an earlier version was approved',
         );
         // A stale scene is not approved until it is rendered again.
         yield* evaluates(
@@ -607,7 +607,7 @@ describe("a film's project", () => {
         yield* textIs(
           page,
           `${render('coda')} .rv-tag[data-state]`,
-          'stale: its sources changed since it was made',
+          'out of date: its sources changed since it was made',
         );
         yield* evaluates(
           page,

@@ -3,7 +3,14 @@
 import { Option } from 'effect';
 import { describe, expect, test } from 'bun:test';
 import type { ReviewFolder, ReviewVideo } from '../../core/review.ts';
-import { agoText, captionsFor, countsText, folderMatches, sizeText, videoUrl } from './format.ts';
+import {
+  agoText,
+  captionsFor,
+  countsText,
+  folderMatches,
+  sizeText,
+  videoSource,
+} from './format.ts';
 
 const file = (name: string, size = 10) => ({ ref: `out/f/${name}`, name, size, mtime: 0 });
 const video = (name: string, phone: ReviewVideo['phone']): ReviewVideo => ({
@@ -22,10 +29,20 @@ describe('what a card says', () => {
     expect(agoText(now - 2 * 86_400_000, now)).toBe('2 d ago');
   });
 
-  test('plays the phone copy only once it is made, and only when asked for', () => {
-    expect(videoUrl(video('a b.mp4', 'ready'), 'phone')).toBe('/review/phone/out/f/a%20b.mp4');
-    expect(videoUrl(video('a b.mp4', 'pending'), 'phone')).toBe('/review/files/out/f/a%20b.mp4');
-    expect(videoUrl(video('a b.mp4', 'ready'), 'full')).toBe('/review/files/out/f/a%20b.mp4');
+  test('plays the proxy once it is made, never the original in its place, and the original when asked for', () => {
+    expect(videoSource(video('a b.mp4', 'ready'), 'phone')).toEqual(
+      Option.some('/review/phone/out/f/a%20b.mp4'),
+    );
+    expect(videoSource(video('a b.mp4', 'pending'), 'phone')).toEqual(Option.none());
+    expect(videoSource(video('a b.mp4', 'none'), 'phone')).toEqual(
+      Option.some('/review/files/out/f/a%20b.mp4'),
+    );
+    expect(videoSource(video('a b.mp4', 'ready'), 'full')).toEqual(
+      Option.some('/review/files/out/f/a%20b.mp4'),
+    );
+    expect(videoSource(video('a b.mp4', 'pending'), 'full')).toEqual(
+      Option.some('/review/files/out/f/a%20b.mp4'),
+    );
   });
 
   test("finds a video's captions, a share copy's by its master", () => {

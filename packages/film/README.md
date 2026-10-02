@@ -1176,6 +1176,25 @@ scenes and choices. It is the lab's server's (`tools/review.ts`,
 `review-http.ts`, `choices.ts`, `choices-http.ts`) and one Solid 2 page (`lab/review/`, its
 options in `lab/review/options/`), dark and made for a phone first.
 
+**Terms.** The page uses the words of a film review room; the code keeps its
+own names, and the stored and wire words stay as they are.
+
+- **Versions** (a version stack): the renders of one address side by side on
+  one clock. The code calls it a set (`ChoicePoint` of kind `render`), each
+  version a variant.
+- **Side by side**: the first version against one other (the view `pair`),
+  offered only on a stack of two or more.
+- **Comment**: a note on a version, kept in the catalogue (a `say`).
+- **Out of date**: a version made for earlier sources or an earlier mix (the
+  state `stale`).
+- **Proxy / Original**: what a video plays. The proxy is a light 720p copy
+  of a big video (the quality `phone`); the original is the file itself
+  (`full`). While a proxy is still being made the page says so and offers
+  the original; it never streams the original unasked.
+- **Needs review / Approved**: a version's approval (`none` / `approved`);
+  "needs review: an earlier version was approved" is `stale`. There is no
+  "Needs changes" status yet: a comment carries it.
+
 **A choice point** (`ChoicePoint`, `core/choice.ts`) is the one shape:
 at an address in the film, variants to compare, pick, comment on and
 approve. Which point it is is data (`ref`, a `PointRef`): decoded from its
@@ -1210,7 +1229,7 @@ master), each with its stamp, the owner's approval, and its state as the
 record says it (`recordedNow`): stale by its `sources` when a newer render at
 its address drew other sources, by its `sound` when a newer video carries
 another mix (`ChoiceVariant.staleBy`; whether the newest is current against
-the sources now is `film project`'s). The set page ("compare its renders")
+the sources now is `film project`'s). The set page (Versions)
 says it in every view, beside the variant's label: why a variant is stale
 when its record proves it (`recordedStaleText`), and no state word
 otherwise, never "current". A montage folder (say a
@@ -1339,10 +1358,11 @@ recording is made on the box's own browser or through an HTTPS name.
 **The page** (`lab/review/`): `<Root>` holds the runtime (the review's
 routes and the options'), where the page is (`?folder=`, `&set=`, `&view=`,
 `?film=`, `?project=`; kept in the URL, so Back and a reload work), the index, the films,
-the quality (720p or the file) and the lightbox. A set's page holds two
+the quality (Proxy or Original) and the lightbox. A set's page holds two
 effect-machine actors: the synced player (`machine.ts`: `Paused`, `Playing`,
 `Scrubbing`, `Buffering`; one clock, the first variant's; one sound heard)
-and the view (`All`, `Pair`, `Moments`, `Notes`). `sync.ts` is the driver
+and the view (`All`, `Pair` shown as Side by side, `Moments`, `Notes`; a set of one
+version has no pair, and a link asking for one opens All). `sync.ts` is the driver
 that makes every media element (a `<video>` or an `<audio>`) follow the
 player: it puts drifters back on the clock, holds all while one stalls, and
 unmutes only the one heard. A film's page (`options/`, `<FilmProvider>`)
@@ -1377,7 +1397,7 @@ never another folder's of the same film), showing a still of itself
 (`/review/frame`, as a folder's cards do) until it is played, its state (current; stale by its
 sources, or by the film's sound alone; missing, with the command that renders
 it), its approval (approve a current render, withdraw an approval), its
-comments (a missing scene takes one too), a link to compare its renders, and
+comments (a missing scene takes one too), a link to its Versions, and
 the points placed at it. Each point sits once, at the narrowest part holding
 every scene it plays in (a scene, an act, else the film), folded under it; a
 scene links the layers that play in it but sit elsewhere, and a link opens

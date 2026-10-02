@@ -193,7 +193,7 @@ const PlaysHere = (props: { readonly points: ReadonlyArray<ChoicePoint> }) => (
   </Show>
 );
 
-/** The link to compare a scene's renders, when the review's roots hold its project folder. */
+/** The link to a scene's Versions (its renders side by side), when the review's roots hold its project folder. */
 const Compare = (props: { readonly folder: Option.Option<string>; readonly point: string }) => {
   const { actions } = useReview();
   return (
@@ -210,7 +210,7 @@ const Compare = (props: { readonly folder: Option.Option<string>; readonly point
               actions.go(place());
             }}
           >
-            compare its renders
+            Versions
           </a>
         );
       }}

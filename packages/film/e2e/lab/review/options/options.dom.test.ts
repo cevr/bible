@@ -643,6 +643,36 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'on a phone, a picture whose proxy is still being made says so and streams nothing',
+    () =>
+      Effect.gen(function* () {
+        const pending = route('GET', /^\/lab\/toy\/choices$/, () =>
+          json({
+            ...(choices(freshToy()) as Record<string, Json>),
+            pictures: [
+              {
+                ref: 'out/toy/toy.mp4',
+                name: 'toy.mp4',
+                size: 900_000_000,
+                mtime: 0,
+                phone: 'pending',
+              },
+            ],
+          }),
+        );
+        const { page, errors } = yield* openReview([pending, ...fakeFilm()], {
+          search: FILM,
+          viewport: { width: 390, height: 844 },
+        });
+        yield* waitFor(page, '.rv-picture [data-proxy="pending"]');
+        yield* textHas(page, '.rv-picture [data-proxy="pending"]', 'Proxy being made');
+        yield* countIs(page, '.rv-picture video', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "scrolls nothing sideways at a phone's width",
     () =>
       Effect.gen(function* () {

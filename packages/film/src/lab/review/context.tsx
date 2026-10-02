@@ -338,7 +338,7 @@ const SetReady = (
   );
 };
 
-/** One comparison set's player, view and moments, for its page. */
+/** One version stack's player, view and moments, for its page; a stack of one has no side by side. */
 export const SetProvider = (
   props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>,
 ) => {
@@ -346,7 +346,7 @@ export const SetProvider = (
   const ids = props.set.variants.map((v) => v.id);
   const first = Option.getOrElse(Option.fromUndefinedOr(ids[0]), () => '');
   const initial = viewOf(location.search, ids);
-  const other = Option.getOrElse(Option.fromUndefinedOr(ids[1]), () => first);
+  const other = Option.fromUndefinedOr(ids[1]);
   const actors = meta.runtime.atom(
     Machine.scoped(
       Effect.all({
