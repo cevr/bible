@@ -40,6 +40,8 @@ Remotion's renderer, Theatre.js, pmndrs, leva) is in
 
 ## To survey
 
+- Solid 2's built-in server rendering (`@solidjs/web` 2.0.0-rc.11: `renderToStream`, `hydrate`, and the experimental `frames` server components with client slots; owner asked 2026-10-02). New receipt against Rejected's "SSR of the lab pages", scoped to the pages that draw no scene (scenes, choices, project, sets): does a streamed first paint on a phone beat the client bundle, can it stay **Live from source** (built on request) and behind `admit`, and what would the compiler need from `LabPage`'s Bun.build? `server-functions` is out of scope: a second RPC path beside the HttpApi breaks **One gate**. Read the package's `types/frames/*.d.ts` and `solidjs/solid` (`next` branch).
+
 - Blender's area/editor system (one window split into editors that each show a different view of one shared selection): would a lab whose panels are views of one URL-held selection replace the separate review and lab pages? Read `blender/blender` `source/blender/editors/screen/`.
 - Motion Canvas editor (`motion-canvas/motion-canvas`, `packages/ui/src/`): how its timeline and scene list keep the selected scene and time across hot reload, against `packages/film/src/lab/rebuilt.ts` and `player/view-state.ts`.
 - Rive editor and Linear (product UI, no source): density, the command palette and keyboard-first navigation for a studio used daily; what a `⌘K` over films, scenes, cues and notes would need from the URL scheme.
