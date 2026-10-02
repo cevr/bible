@@ -255,7 +255,7 @@ const FilmBody = (
     (id) => send(SyncEvent.HeardChosen({ id })),
   );
 
-  const driver = makeSync(PICTURE, send);
+  const driver = makeSync(PICTURE, send, meta.host);
   onCleanup(driver.stop);
   createEffect(sync, (s) => driver.apply(s));
 

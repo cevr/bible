@@ -8,6 +8,8 @@ import { For, Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
 import type { Accessor } from 'solid-js';
 import { createEffect, onCleanup } from 'solid-js';
+import { Frames } from '../../browser/frames.ts';
+import { runScoped } from '../../browser/host.ts';
 import { Pointer } from '../../browser/pointer.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useCompare } from './context.tsx';
@@ -57,9 +59,7 @@ export const Layer = () => {
     readonly el: HTMLCanvasElement;
     readonly ctx: CanvasRenderingContext2D;
   }>();
-  let frame = Option.none<number>();
   const paint = () => {
-    frame = Option.none();
     Option.map(layer, (l) => {
       const shows = state.layer();
       const shown = Option.filter(state.edit(), () => shows !== 'hidden');
@@ -77,17 +77,16 @@ export const Layer = () => {
       });
     });
   };
+  // Painted once a frame, however often it is asked for; not after the layer goes.
+  const { value: repaint, close } = runScoped(meta.host)(Frames.use((f) => f.coalesce(paint)));
+  onCleanup(close);
   createEffect(
     () => {
       lab.drawn();
       return [state.layer(), state.split(), state.edit()] as const;
     },
-    () => {
-      if (Option.isSome(frame)) return;
-      frame = Option.some(requestAnimationFrame(paint));
-    },
+    () => repaint(),
   );
-  onCleanup(() => Option.map(frame, cancelAnimationFrame));
   return (
     <Lab.Layer
       class="lab-compare"

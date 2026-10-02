@@ -9,9 +9,11 @@ import type { ProbeSink } from '../canvas/probe.ts';
 import type { ExportHandle } from '../core/export-handle.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Effect, Option } from 'effect';
-import { hostOf } from '../browser/host.ts';
+import type { Fiber } from 'effect';
+import { hostOf, monotonicMs } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
+import { Frames } from '../browser/frames.ts';
 import { Keys, type KeyPress } from '../browser/keys.ts';
 import { Pointer } from '../browser/pointer.ts';
 import { composeContact } from './contact.ts';
@@ -21,6 +23,7 @@ import { composeLookbook, mountLookbook } from './lookbook.ts';
 import { narration, narrationNote } from './narration.ts';
 import { labUrl } from './pages.ts';
 import { tInHash, tInUrl } from './t-in-url.ts';
+import { timersOn } from './throttle.ts';
 import { lookFrames } from './look-frames.ts';
 
 /** The longest `#T` in the URL trails the frame shown while it plays. */
@@ -163,7 +166,7 @@ export const mountPlayer = (films: Films): void => {
 
     if (exporting) {
       document.body.classList.add('export');
-      window.__film = exportHandle({ name, film, canvas, ctx, captions });
+      window.__film = exportHandle({ name, film, canvas, ctx, captions }, host);
       return;
     }
     if (params.has('lookbook')) return mountLookbook(film, name, captions.on);
@@ -183,14 +186,16 @@ export const mountPlayer = (films: Films): void => {
  * the canvas's recorded drawing is paid for in the draw and not later by
  * whatever reads the canvas next (an encoder, `toBlob`).
  */
-const exportHandle = ({ film, canvas, ctx, captions }: Staged): ExportHandle => {
+const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): ExportHandle => {
+  /** The page clock in ms (`monotonicMs`): what every draw and encode is timed by. */
+  const nowMs = monotonicMs(host);
   const draw = (i: number) => film.render(ctx, i / film.fps, { captions: captions.on });
   /** Draw frame `i` and raster it: the ms it took. */
   const drawn = (i: number) => {
-    const began = performance.now();
+    const began = nowMs();
     draw(i);
     ctx.getImageData(0, 0, 1, 1);
-    return performance.now() - began;
+    return nowMs() - began;
   };
   return {
     info: {
@@ -215,7 +220,7 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged): ExportHandle => 
     encoder: (scale, share, candidates) =>
       encoderChoice(canvas, film.fps, scale, share, candidates),
     encode: async (from, to, scale, share, encoder) => {
-      const began = performance.now();
+      const began = nowMs();
       let drawing = 0;
       const chunk = await encodeChunk(
         (i) => {
@@ -231,7 +236,7 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged): ExportHandle => 
       );
       const master = bytesBase64(chunk.master);
       const copy = chunk.share === undefined ? {} : { share: bytesBase64(chunk.share) };
-      return { master, ...copy, timing: { draw: drawing, page: performance.now() - began } };
+      return { master, ...copy, timing: { draw: drawing, page: nowMs() - began } };
     },
     contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
     look: (frames, w, h) => {
@@ -322,6 +327,10 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
   let wallStart = 0;
   let tStart = 0;
   let rate = 1;
+  /** The play loop, while the film plays (`Frames.loop`). */
+  let running = Option.none<Fiber.Fiber<void>>();
+  /** The page clock's monotonic time in ms: the host's `Clock`. */
+  const nowMs = monotonicMs(host);
   let loop: LoopRange | undefined;
   const listeners: Array<(T: number) => void> = [];
   let reads: KnobRead[] = [];
@@ -335,6 +344,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
   const url = tInUrl(
     () => history.replaceState(null, '', `${location.search}#${tInHash(T)}`),
     HASH_MS,
+    timersOn(host),
   );
 
   /** The lab's edits, drawn over the film's own (`Player.showEdits`). */
@@ -360,7 +370,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
   const scrub = (t: number) => {
     T = Math.max(0, Math.min(film.duration, t));
     tStart = T;
-    wallStart = performance.now();
+    wallStart = nowMs();
     voice.seek(T);
     draw();
   };
@@ -378,7 +388,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
    */
   const rebase = () => {
     tStart = T;
-    wallStart = performance.now();
+    wallStart = nowMs();
     voice.seek(T);
     if (playing && rate === 1) voice.play(() => T);
     else voice.pause();
@@ -389,16 +399,19 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
     // Play at the film's last frame starts it over: from its loop's start, in a loop.
     if (playing && T >= film.duration - 1 / film.fps) T = loop === undefined ? 0 : loop.from;
     rebase();
-    if (playing) requestAnimationFrame(tick);
+    Option.map(running, (frames) => frames.interruptUnsafe());
+    running = Option.none();
+    if (playing) running = Option.some(Effect.runForkWith(host)(Frames.use((f) => f.loop(tick))));
     draw();
     url.settled();
   };
 
-  const tick = () => {
-    if (!playing) return;
+  /** One frame of play: the frame at the clock's time, and whether play goes on. */
+  const tick = (): boolean => {
+    if (!playing) return false;
     T =
       (rate === 1 ? voice.playingAt() : undefined) ??
-      tStart + ((performance.now() - wallStart) / 1000) * rate;
+      tStart + ((nowMs() - wallStart) / 1000) * rate;
     if (loop !== undefined && (T >= loop.to || T < loop.from - 1 / film.fps)) {
       T = loop.from;
       rebase();
@@ -409,7 +422,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
     }
     draw();
     if (!playing) url.settled();
-    if (playing) requestAnimationFrame(tick);
+    return playing;
   };
 
   // A drag on the track scrubs; it settles where it ends, lifted or taken by the browser (a page pan).

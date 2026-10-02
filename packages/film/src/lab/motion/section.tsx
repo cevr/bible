@@ -6,6 +6,8 @@
 import { For } from '@solidjs/web';
 import { Option } from 'effect';
 import { createEffect, onCleanup } from 'solid-js';
+import { Frames } from '../../browser/frames.ts';
+import { runScoped } from '../../browser/host.ts';
 import { ONION_SCALE, makeOnion, whole } from '../../player/onion.ts';
 import { RATES } from '../../player/view-state.ts';
 import { Lab, useLab } from '../shell.tsx';
@@ -118,26 +120,23 @@ export const Onion = () => {
     readonly el: HTMLCanvasElement;
     readonly ctx: CanvasRenderingContext2D;
   }>();
-  let frame = Option.none<number>();
   const paint = () => {
-    frame = Option.none();
     Option.map(layer, (l) => {
       const shown = state.onion().on && !player.playing();
       l.el.hidden = !shown;
       if (shown) painter.paint(l.ctx, state.onion());
     });
   };
+  // Painted once a frame, however often it is asked for; not after the layer goes.
+  const { value: repaint, close } = runScoped(meta.host)(Frames.use((f) => f.coalesce(paint)));
+  onCleanup(close);
   createEffect(
     () => {
       lab.drawn();
       return state.onion();
     },
-    () => {
-      if (Option.isSome(frame)) return;
-      frame = Option.some(requestAnimationFrame(paint));
-    },
+    () => repaint(),
   );
-  onCleanup(() => Option.map(frame, cancelAnimationFrame));
   return (
     <Lab.Layer
       class="lab-onion"

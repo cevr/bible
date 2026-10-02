@@ -6,7 +6,8 @@
 // each has enough to play on (`Buffering`). The player's keys (space, ←/→)
 // are heard here too, for every page with a synced player.
 
-import { type Cause, Data, Effect, Option } from 'effect';
+import { type Cause, type Context, Data, Effect, Option } from 'effect';
+import { Frames } from '../../browser/frames.ts';
 import { Keys, type KeyPress } from '../../browser/keys.ts';
 import {
   type SyncEvent,
@@ -52,12 +53,17 @@ interface Attached {
  * The driver of a set whose clock is the video of `first`, telling the
  * machine through `send`.
  */
-export const makeSync = (first: string, send: (event: SyncEvent) => void): SyncDriver => {
+export const makeSync = (
+  first: string,
+  send: (event: SyncEvent) => void,
+  host: Context.Context<Frames>,
+): SyncDriver => {
   const videos = new Map<string, Attached>();
   let current = Option.none<SyncState>();
   let seek = -1;
   let told = -1;
-  let frame = Option.none<number>();
+  /** The stop of the clock's loop, while it runs. */
+  let looping = Option.none<() => void>();
 
   const all = () => [...videos.values()].map((a) => a.video);
   const clock = () =>
@@ -88,10 +94,12 @@ export const makeSync = (first: string, send: (event: SyncEvent) => void): SyncD
     }
   };
 
-  /** Each frame while it runs: tell the machine the clock's time, and pull drifters back. */
-  const loop = () => {
-    frame = Option.none();
-    Option.map(current, (state) => {
+  /**
+   * Each frame while it runs: tell the machine the clock's time, and pull
+   * drifters back; on while the set plays or waits for its videos.
+   */
+  const step = (): boolean =>
+    Option.exists(current, (state) => {
       Option.map(clock(), (master) => {
         const t = master.currentTime;
         if (state._tag === 'Buffering') {
@@ -107,17 +115,25 @@ export const makeSync = (first: string, send: (event: SyncEvent) => void): SyncD
           if (t < video.duration && drifted(video.currentTime, t)) video.currentTime = t;
         }
       });
-      if (runningOf(state) || state._tag === 'Buffering')
-        frame = Option.some(requestAnimationFrame(loop));
+      return Option.exists(current, (now) => runningOf(now) || now._tag === 'Buffering');
     });
-  };
 
   const run = () => {
-    if (Option.isNone(frame)) frame = Option.some(requestAnimationFrame(loop));
+    if (Option.isSome(looping)) return;
+    // A loop that ends forgets its stop only while it is still the loop running.
+    const stop = Effect.runCallbackWith(host)(
+      Frames.use((frames) => frames.loop(step)),
+      {
+        onExit: () => {
+          if (Option.exists(looping, (running) => running === stop)) looping = Option.none();
+        },
+      },
+    );
+    looping = Option.some(stop);
   };
   const halt = () => {
-    Option.map(frame, cancelAnimationFrame);
-    frame = Option.none();
+    Option.map(looping, (stop) => stop());
+    looping = Option.none();
   };
 
   const apply = (state: SyncState) => {

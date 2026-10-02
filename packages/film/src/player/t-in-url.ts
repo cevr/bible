@@ -6,7 +6,7 @@
 // on the frame the write was made at. (`pagehide` cannot do this: a URL
 // written during it does not reach the reload.)
 
-import { type Throttled, browserTimers, throttled } from './throttle.ts';
+import { type Throttled, type Timers, throttled } from './throttle.ts';
 
 /**
  * `T` as `#T` writes it: to the millisecond, rounded up, so a reload reads it
@@ -26,7 +26,7 @@ interface TInUrl {
   held(): void;
 }
 
-export const tInUrl = (write: () => void, everyMs: number, timers = browserTimers): TInUrl => {
+export const tInUrl = (write: () => void, everyMs: number, timers: Timers): TInUrl => {
   const moving: Throttled = throttled(write, everyMs, timers);
   let holding = false;
   const now = () => {

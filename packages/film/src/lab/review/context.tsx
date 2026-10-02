@@ -88,7 +88,7 @@ interface ReviewMeta {
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's host (`browser/host.ts`): what the page's own effects run with. */
   readonly host: Host;
-  /** Now, in ms: what a card's age is counted from. */
+  /** Now, in ms, on the host's `Clock`: what a card's age is counted from. */
   readonly now: () => number;
 }
 
@@ -193,7 +193,7 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
         text,
         runtime,
         host: props.host,
-        now: () => Effect.runSync(Clock.currentTimeMillis),
+        now: () => Effect.runSyncWith(props.host)(Clock.currentTimeMillis),
       },
     };
     return <ReviewContext value={value}>{inner.children}</ReviewContext>;
@@ -254,7 +254,7 @@ const SetBody = (
   const ids = props.set.variants.map((v) => v.id);
   const first = Option.getOrElse(Option.fromUndefinedOr(ids[0]), () => '');
 
-  const driver = makeSync(first, sendSync);
+  const driver = makeSync(first, sendSync, meta.host);
   onCleanup(driver.stop);
   createEffect(sync, (state) => driver.apply(state));
 

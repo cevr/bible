@@ -1896,7 +1896,12 @@ wipe's divider, a note's mark) follows its press through `Pointer.drag`
 notes' `n` and Escape, the editor's undo and Escape, the review's players and
 its lightbox) goes through `Keys.listen` (`browser/keys.ts`), with one answer
 to whether a press is typing: into an input, a textarea, a select or editable
-text.
+text. Every animation frame (the player's play loop, the review's synced loop,
+the compare and onion paints) goes through `Frames` (`browser/frames.ts`):
+`loop` steps inside each frame's own callback, `coalesce` paints once a
+frame. Every time read goes through Effect's `Clock` on the host
+(`monotonicMs`, `timersOn` in `player/throttle.ts`), so a test's clock
+reaches it.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.

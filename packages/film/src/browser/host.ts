@@ -7,13 +7,14 @@
 // over test layers instead of stubbing a global. Framework-free: the player,
 // which the render page loads, imports it.
 
-import { Effect, Layer, Scope } from 'effect';
+import { Clock, Effect, Exit, Layer, Scope } from 'effect';
 import type { Context } from 'effect';
+import type { Frames } from './frames.ts';
 import type { Keys } from './keys.ts';
 import type { Pointer } from './pointer.ts';
 
 /** Every service the host gives a page. */
-export type BrowserServices = Keys | Pointer;
+export type BrowserServices = Frames | Keys | Pointer;
 
 /** The host's services, built: what a page's code runs its effects with. */
 export type Host = Context.Context<BrowserServices>;
@@ -28,3 +29,31 @@ export const hostOf = <S>(layer: Layer.Layer<S>): Context.Context<S> =>
 
 /** The host as a layer, for a runtime the page builds (the lab's, the studio's, the review's). */
 export const hostLayer = (host: Host): Layer.Layer<BrowserServices> => Layer.succeedContext(host);
+
+/** A scoped effect run: its value, and the close of its scope. */
+interface Scoped<A> {
+  readonly value: A;
+  readonly close: () => void;
+}
+
+/**
+ * Run a scoped `effect` on `host` now, in a scope of its own: its value, and
+ * the scope's close (a component's cleanup) to release what it holds.
+ */
+export const runScoped =
+  <S>(host: Context.Context<S>) =>
+  <A>(effect: Effect.Effect<A, never, S | Scope.Scope>): Scoped<A> => {
+    const scope = Scope.makeUnsafe();
+    const value = Effect.runSyncWith(host)(Scope.provide(scope)(effect));
+    return { value, close: () => Effect.runFork(Scope.close(scope, Exit.void)) };
+  };
+
+/**
+ * A reader of the monotonic time of `host`'s `Clock`, in ms (the page's
+ * `performance.now` live, a test's clock in a test): for a hot path, such as
+ * the play loop, that reads it every frame.
+ */
+export const monotonicMs = <S>(host: Context.Context<S>): (() => number) => {
+  const clock = Effect.runSyncWith(host)(Clock.clockWith(Effect.succeed));
+  return () => Number(clock.monotonicTimeNanosUnsafe()) / 1e6;
+};
