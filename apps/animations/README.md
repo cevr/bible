@@ -213,8 +213,8 @@ and a `TakeMismatch` offers Accept anyway (K). ←/→ step through the beats an
 Esc cancels; those keys are the Studio's only while it has focus. Each beat's
 attempts play again and Keep makes one the take. A kept take reloads the lab
 at the same time, on the same beat, playing the new take (`/films/*` is served
-uncached for that). Use Chrome or Firefox and allow the microphone
-for the lab's origin; a browser gives the microphone only to `https://` or
+uncached for that). Use Chrome or Firefox on a computer (every iPhone and
+iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to `https://` or
 `localhost`, so record on the box's own browser or through an HTTPS name
 (a tunnel to `127.0.0.1:8229`); pick the interface in the Studio's mic list
 (it is remembered in the browser). The capture is raw PCM (no echo cancelling,

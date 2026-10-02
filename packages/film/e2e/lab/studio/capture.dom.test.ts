@@ -139,7 +139,7 @@ describe('the AudioWorklet capture', () => {
       Effect.gen(function* () {
         const probed = yield* allowed({ seconds: 1, stuckRate: 48000 });
         expect(probed.refused).toBe(
-          'the recording stopped: the browser runs the audio at 48000 Hz, not the microphone’s 44100 Hz, and would resample every take; use Chrome or Firefox',
+          'the recording stopped: the browser runs the audio at 48000 Hz, not the microphone’s 44100 Hz, and would resample every take; use Chrome or Firefox on a computer (every iPhone and iPad browser is Safari underneath)',
         );
       }).pipe(Effect.scoped),
     30_000,
@@ -151,7 +151,7 @@ describe('the AudioWorklet capture', () => {
       Effect.gen(function* () {
         const probed = yield* allowed({ seconds: 1, processed: true });
         expect(probed.refused).toBe(
-          'the recording stopped: the browser kept echo cancellation on though asked not to; use Chrome or Firefox',
+          'the recording stopped: the browser kept echo cancellation on though asked not to; use Chrome or Firefox on a computer (every iPhone and iPad browser is Safari underneath)',
         );
       }).pipe(Effect.scoped),
     30_000,

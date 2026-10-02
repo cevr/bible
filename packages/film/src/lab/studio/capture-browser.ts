@@ -110,6 +110,14 @@ const joined = (mic: OpenMic): Pcm => {
 
 const failed = (reason: string) => CaptureFailed.make({ reason });
 
+/**
+ * Where a take can be recorded untouched: a desktop Chrome or Firefox. Every
+ * iPhone and iPad browser runs WebKit, whatever its name, so "Chrome" alone
+ * could send the owner to a phone browser with the same engine.
+ */
+const BROWSER_ADVICE =
+  'use Chrome or Firefox on a computer (every iPhone and iPad browser is Safari underneath)';
+
 const makeBrowserCapture = Effect.gen(function* () {
   const levels = yield* PubSub.sliding<Option.Option<Level>>(8);
   const lock = yield* Semaphore.make(1);
@@ -165,7 +173,7 @@ const makeBrowserCapture = Effect.gen(function* () {
       const leftOn = processingOn(settings);
       if (leftOn.length > 0)
         return yield* failed(
-          `the browser kept ${leftOn.join(', ')} on though asked not to; use Chrome or Firefox`,
+          `the browser kept ${leftOn.join(', ')} on though asked not to; ${BROWSER_ADVICE}`,
         );
       // The context runs at the microphone's own rate: made with none, it
       // would run at the output device's, and the browser would resample
@@ -193,7 +201,7 @@ const makeBrowserCapture = Effect.gen(function* () {
       const resampled = Option.filter(micRate, (rate) => rate !== context.sampleRate);
       if (Option.isSome(resampled))
         return yield* failed(
-          `the browser runs the audio at ${context.sampleRate} Hz, not the microphone’s ${resampled.value} Hz, and would resample every take; use Chrome or Firefox`,
+          `the browser runs the audio at ${context.sampleRate} Hz, not the microphone’s ${resampled.value} Hz, and would resample every take; ${BROWSER_ADVICE}`,
         );
       yield* Effect.tryPromise({
         try: () => context.audioWorklet.addModule(moduleUrl),

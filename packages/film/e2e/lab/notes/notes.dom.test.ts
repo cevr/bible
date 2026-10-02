@@ -187,6 +187,30 @@ describe('marking a frame', () => {
   );
 
   it.live(
+    'a cancelled gesture (an OS swipe, a call) drops the mark and writes nothing',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        yield* waitFor(page, '.lab-overlay');
+        const at = yield* onFrame(page, 520, 300);
+        yield* page.mouse.move(at.x, at.y);
+        yield* page.mouse.down;
+        yield* waitFor(page, '.lab-compose:not([hidden])');
+        yield* page.evaluate(
+          `document.querySelector('.lab-notes-surface').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true }))`,
+        );
+        yield* attached(page, '.lab-compose[hidden]');
+        // The next note opens as ever.
+        yield* page.mouse.up;
+        yield* page.press('n');
+        yield* waitFor(page, '.lab-compose:not([hidden])');
+        yield* textHas(page, '.lab-where', 'one · 1.00s');
+        expect(posted(asked, /^\/notes$/)).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'the marks and pins mount with no cleanup Solid cannot run',
     () =>
       Effect.gen(function* () {

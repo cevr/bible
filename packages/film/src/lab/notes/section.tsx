@@ -220,14 +220,24 @@ export const Marks = () => {
       const far = (ev: PointerEvent) =>
         Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) >= DRAG_PX;
       const move = (ev: PointerEvent) => actions.drag(at(ev), far(ev));
-      const up = (ev: PointerEvent) => {
+      const end = () => {
         surface.removeEventListener('pointermove', move);
         surface.removeEventListener('pointerup', up);
+        surface.removeEventListener('pointercancel', cancelled);
+      };
+      const up = (ev: PointerEvent) => {
+        end();
         actions.lift(at(ev), far(ev));
+      };
+      // The OS took the gesture (a swipe, a call): the mark goes, nothing is written.
+      const cancelled = () => {
+        end();
+        actions.cancel();
       };
       actions.press(at(e));
       surface.addEventListener('pointermove', move);
       surface.addEventListener('pointerup', up);
+      surface.addEventListener('pointercancel', cancelled);
     };
     // Native, as the handles' are; it lives and goes with the surface it is on.
     surface.addEventListener('pointerdown', down);
