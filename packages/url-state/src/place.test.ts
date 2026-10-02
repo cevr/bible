@@ -1,4 +1,4 @@
-import { test } from 'bun:test';
+import { expectTypeOf, test } from 'bun:test';
 import { Duration, Effect, Logger, Option, References, Schema } from 'effect';
 import * as Arbitrary from 'effect/Arbitrary';
 import { describe, expect, it } from 'effect-bun-test';
@@ -150,6 +150,12 @@ describe('Place', () => {
         hash: { t: start },
       }),
     ).toBe('/films/a/lab/b');
+  });
+
+  test("a key's type is its codec's, not its default's", () => {
+    type Pane = Place.Type<typeof Workspace>['query'][number];
+    expectTypeOf<Pane['scope']>().toEqualTypeOf<'all' | 'egw' | 'bible'>();
+    expectTypeOf<Pane['limit']>().toEqualTypeOf<number>();
   });
 
   test('is not the place when the path does not fit', () => {

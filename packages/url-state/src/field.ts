@@ -89,7 +89,7 @@ const Values = Schema.optionalKey(Schema.Array(Schema.String));
  */
 export const key = <A>(
   codec: Schema.Codec<A, string>,
-  options: PolicyOptions & { readonly default: A },
+  options: PolicyOptions & { readonly default: NoInfer<A> },
 ) => {
   const total = orDefault(codec, options.default);
   const written = Schema.encodeSync(codec)(options.default);
