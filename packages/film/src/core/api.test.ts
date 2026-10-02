@@ -38,17 +38,24 @@ const LINKS: ReadonlyArray<
   ['/sets/f/p?view=nonsense&m=-2', 'set', 'review', '/sets/f/p'],
   ['/films/rbf/choices', 'choices', 'review', '/films/rbf/choices'],
   [
-    '/films/rbf/choices?point=score&variant=strings&picture=out%2Frbf%2Fmain.mp4#t=12',
+    '/films/rbf/choices?heard=score&variant=strings&picture=out%2Frbf%2Fmain.mp4#t=12',
     'choices',
     'review',
-    '/films/rbf/choices?point=score&variant=strings&picture=out%2Frbf%2Fmain.mp4#t=12',
+    '/films/rbf/choices?heard=score&variant=strings&picture=out%2Frbf%2Fmain.mp4#t=12',
   ],
+  ['/films/rbf/choices?heard=own', 'choices', 'review', '/films/rbf/choices?heard=own'],
   ['/films/rbf/project', 'project', 'review', '/films/rbf/project'],
   [
     '/films/rbf/project?point=take%3Awood.gavel',
     'project',
     'review',
     '/films/rbf/project?point=take%3Awood.gavel',
+  ],
+  [
+    '/films/rbf/project?point=score&heard=own#t=3.5',
+    'project',
+    'review',
+    '/films/rbf/project?point=score&heard=own#t=3.5',
   ],
   ['/films/rbf/scenes', 'scenes', 'player', '/films/rbf/scenes'],
   ['/films/rbf/scenes/roof', 'scene', 'player', '/films/rbf/scenes/roof'],
@@ -68,6 +75,7 @@ const LINKS: ReadonlyArray<
   ['/films/rbf/lab/roof?knob=sway', 'labScene', 'lab', '/films/rbf/lab/roof?knob=sway'],
   ['/films/rbf/lab/roof?note=n-2#t=-0.5', 'labScene', 'lab', '/films/rbf/lab/roof?note=n-2#t=-0.5'],
   ['/films/rbf/lab/roof#t=nope', 'labScene', 'lab', '/films/rbf/lab/roof'],
+  ['/films/rbf/project#point-score', 'project', 'review', '/films/rbf/project'],
 ];
 
 describe('page places', () => {
@@ -154,6 +162,7 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/?folder=f&set=p&view=pair&other=light', '/sets/f/p?view=pair&other=light'],
   ['/films/rbf/play#12.5', '/films/rbf/play#t=12.5'],
   ['/films/rbf/lab#12.5', '/films/rbf/lab#t=12.5'],
+  ['/films/rbf/project#point-take%3Awood.gavel', '/films/rbf/project?point=take%3Awood.gavel'],
 ];
 
 describe('old links', () => {

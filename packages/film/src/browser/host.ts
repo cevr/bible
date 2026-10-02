@@ -7,6 +7,7 @@
 // over test layers instead of stubbing a global. Framework-free: the player,
 // which the render page loads, imports it.
 
+import type { Location, UrlState } from '@bible/url-state';
 import { Clock, Effect, Exit, Layer, Scope } from 'effect';
 import type { Context } from 'effect';
 import type { Frames } from './frames.ts';
@@ -14,8 +15,12 @@ import type { Keys } from './keys.ts';
 import type { Media } from './media.ts';
 import type { Pointer } from './pointer.ts';
 
-/** Every service the host gives a page. */
-export type BrowserServices = Frames | Keys | Media | Pointer;
+/**
+ * Every service the host gives a page: the address bar among them
+ * (`Location`, written through `UrlState` so writes in one tick make one
+ * history entry, `@bible/url-state`).
+ */
+export type BrowserServices = Frames | Keys | Location | Media | Pointer | UrlState.UrlState;
 
 /** The host's services, built: what a page's code runs its effects with. */
 export type Host = Context.Context<BrowserServices>;

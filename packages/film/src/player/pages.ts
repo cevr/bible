@@ -5,7 +5,3 @@
 
 /** The lab's page for `film`. */
 export const labUrl = (film: string): string => `/lab?film=${encodeURIComponent(film)}`;
-
-/** The player's look-book page for `film`: every scene's stills and the palette. */
-export const lookbookUrl = (film: string): string =>
-  `/player?film=${encodeURIComponent(film)}&lookbook`;

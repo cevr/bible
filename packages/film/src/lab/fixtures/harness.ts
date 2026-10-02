@@ -6,7 +6,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effect';
-import { Refusal, statusOf } from '../../core/api.ts';
+import { type PageName, Refusal, pageAt, statusOf } from '../../core/api.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
@@ -235,19 +235,28 @@ const apiAnswer =
     });
   };
 
-/** A page's fake server: `pages` by path (its HTML and its script), then the API (`apiAnswer`). */
+/** A page's fake server: the page a path serves (its HTML and its script), then the API (`apiAnswer`). */
 const fakeServer =
   (
-    pages: ReadonlyMap<string, Response>,
+    pageFor: (pathname: string) => Option.Option<Response>,
     prefix: string,
     routes: ReadonlyArray<FakeRoute>,
     asked: Array<Asked>,
   ) =>
   (request: Request): Effect.Effect<Option.Option<Response>> =>
-    Option.match(Option.fromUndefinedOr(pages.get(request.url.pathname)), {
+    Option.match(pageFor(request.url.pathname), {
       onSome: Effect.succeedSome,
       onNone: () => apiAnswer(prefix, routes, asked)(request),
     });
+
+/** `html` on every path the real server serves `name` on (`pageAt`, `core/api.ts`). */
+const servedAs =
+  (name: PageName, html: Response) =>
+  (pathname: string): Option.Option<Response> =>
+    Option.as(
+      Option.filter(pageAt(pathname), (page) => page === name),
+      html,
+    );
 
 /**
  * `canvas.toBlob` encoding at once, from `toDataURL`: the same image in the
@@ -324,7 +333,11 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     ],
     assets: [script],
     serve: fakeServer(
-      new Map([['/lab', respond(labPage(css, script), 'text/html')]]),
+      (pathname) =>
+        Option.as(
+          Option.liftPredicate(pathname, (p) => p === '/lab'),
+          respond(labPage(css, script), 'text/html'),
+        ),
       API,
       [...routes, ...defaults],
       asked,
@@ -341,16 +354,18 @@ const reviewPage = (script: Asset) =>
 
 /** Where the review opens, and how wide its window is (a phone's, or a desk's). */
 interface ReviewAt {
-  readonly search?: string;
+  /** The link opened (`pageHref`, `core/api.ts`): home when none. */
+  readonly href?: string;
   readonly viewport?: { readonly width: number; readonly height: number };
 }
 
 /**
  * Open the review page (`fixtures/review-page.ts`, the real `mountReview`)
- * at `search`, with `routes` answering its requests by their whole path
- * (`/api/review/index`, `/api/review/files/…`): what none answers is a 404. The
- * browser plays media without a gesture, its clock is the test's, and the
- * tab goes back to the pool with the scope.
+ * at `href`, served on every review place as the lab serves it, with
+ * `routes` answering its requests by their whole path (`/api/review/index`,
+ * `/api/review/files/…`): what none answers is a 404. The browser plays
+ * media without a gesture, its clock is the test's, and the tab goes back to
+ * the pool with the scope.
  */
 export const openReview = Effect.fn('lab.fixture.review')(function* (
   routes: ReadonlyArray<FakeRoute>,
@@ -365,13 +380,13 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
     init: [CLOCK_SCRIPT],
     assets: [script],
     serve: fakeServer(
-      new Map([['/', respond(reviewPage(script), 'text/html')]]),
+      servedAs('review', respond(reviewPage(script), 'text/html')),
       '',
       routes,
       asked,
     ),
   });
-  yield* page.goto(`/${at.search ?? ''}`);
+  yield* page.goto(at.href ?? '/');
   yield* page.waitFor('.rv-main');
   const open: OpenLab = { page, asked, errors: page.errors };
   return open;

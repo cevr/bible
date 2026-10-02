@@ -15,12 +15,11 @@ import { createContext, createSignal, onCleanup, onSettled, useContext } from 's
 import type { Film } from '../canvas/film.ts';
 import { type BrowserServices, type Host, hostLayer } from '../browser/host.ts';
 import type { Player } from '../player/main.ts';
-import { lookbookUrl } from '../player/pages.ts';
+import { pageHref } from '../core/api.ts';
 import { TabStore } from '../browser/storage-browser.ts';
 import { type ViewStore, viewStore } from '../player/view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
-import { ReviewPlace, searchOf } from './review/place.ts';
 import { type Selection, searchWithSelection, selectionFromSearch } from './selection.ts';
 import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
 
@@ -250,21 +249,21 @@ const Header = (props: ParentProps) => {
       {props.children}
       <a
         class="lab-lookbook"
-        href={`/${searchOf(ReviewPlace.Project({ film: meta.name }))}`}
+        href={pageHref.project(meta.name)}
         title="each scene's render, its approval and comments"
       >
         Scenes
       </a>
       <a
         class="lab-lookbook"
-        href={`/${searchOf(ReviewPlace.Film({ film: meta.name }))}`}
+        href={pageHref.choices(meta.name)}
         title="the film's choices: score, takes, voices, looks and levels, heard in the mix"
       >
         Choices
       </a>
       <a
         class="lab-lookbook"
-        href={lookbookUrl(meta.name)}
+        href={pageHref.scenes(meta.name)}
         title="every scene's stills at its cue edges and 60% point, with the palette"
       >
         Look-book

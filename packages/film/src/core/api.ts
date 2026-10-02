@@ -645,6 +645,17 @@ const MomentIndex = Codec.Int.check(Schema.isGreaterThanOrEqualTo(0));
 const LabSelection = Field.struct({ cue: cited, knob: cited, note: cited });
 
 /**
+ * A film's player on its choices and its project: the sound heard over the
+ * picture (`?heard=<point>&variant=<id>` for a variant in place, `heard=own`
+ * for the picture's own sound; none heard is the page's first) and the
+ * picture played (`?picture=<ref>`).
+ */
+const FILM_PLAYER = { heard: refined, variant: refined, picture: refined };
+
+/** `?heard=` for the picture's own sound. */
+export const OWN_SOUND = 'own';
+
+/**
  * Every place a page is at. Review: home `/`, a folder of renders
  * `/sets/<folder>`, a comparison set `/sets/<folder>/<point>` (its view,
  * pair, moment and time), a film's choices (the sound heard, the picture and
@@ -669,13 +680,14 @@ export const Places = {
   choices: Place.make({
     path: '/films/:film/choices',
     params: filmParams,
-    query: Field.struct({ point: refined, variant: refined, picture: refined }),
+    query: Field.struct(FILM_PLAYER),
     hash: At,
   }),
   project: Place.make({
     path: '/films/:film/project',
     params: filmParams,
-    query: Field.struct({ point: cited }),
+    query: Field.struct({ point: cited, ...FILM_PLAYER }),
+    hash: At,
   }),
   scenes: Place.make({ path: '/films/:film/scenes', params: filmParams }),
   scene: Place.make({
@@ -721,6 +733,9 @@ export const pageAt = (pathname: string): Option.Option<PageName> =>
 /** No time on the hash: the page opens at its own start. */
 const START = { t: Option.none<number>() };
 
+/** A film player's keys, at the page's defaults. */
+const NOTHING_HEARD = { heard: '', variant: '', picture: '' };
+
 /** The lab's selection keys, none set. */
 const NOTHING_SELECTED = { cue: '', knob: '', note: '' };
 
@@ -751,11 +766,16 @@ export const pageHref = {
   choices: (film: string): string =>
     Place.href(Places.choices, {
       path: { film },
-      query: { point: '', variant: '', picture: '' },
+      query: NOTHING_HEARD,
       hash: START,
     }),
+  /** A film's project, with the card of `point` in focus. */
   project: (film: string, point = ''): string =>
-    Place.href(Places.project, { path: { film }, query: { point }, hash: {} }),
+    Place.href(Places.project, {
+      path: { film },
+      query: { point, ...NOTHING_HEARD },
+      hash: START,
+    }),
   scenes: (film: string): string =>
     Place.href(Places.scenes, { path: { film }, query: {}, hash: {} }),
   play: (film: string, t: Option.Option<number> = Option.none()): string =>
@@ -871,12 +891,25 @@ const withFilmTime = (href: string, t: number): string =>
     () => href,
   );
 
+/** The card an old project anchor (`#point-<id>`) names. */
+const cardAnchor = (hash: string): Option.Option<string> =>
+  Option.map(
+    Option.liftPredicate(hash, (h) => h.startsWith('#point-') && h.length > '#point-'.length),
+    (h) => decodeURIComponent(h.slice('#point-'.length)),
+  );
+
+/** `href`, when it is a project, with the card of `point` in focus. */
+const withFocus = (href: string, point: string): Option.Option<string> =>
+  Option.map(Place.decode(Places.project, href), (value) =>
+    Place.href(Places.project, { ...value, query: { ...value.query, point }, hash: START }),
+  );
+
 /**
  * The place an old link names, if `href` is one: `/lab?film=<f>[&sel=…]`,
  * `/player?film=<f>[&lookbook|&lab]`, `/?project=<f>`,
- * `/?film=<f>[&lookbook|&lab]`, `/?folder=<ref>[&set=<point>…]`, and a bare
+ * `/?film=<f>[&lookbook|&lab]`, `/?folder=<ref>[&set=<point>…]`, a bare
  * `#<seconds>` on a place that reads film time (`/films/<f>/play`, a lab with
- * no scene). The server sends the browser on with a redirect (the browser
+ * no scene), and a project card's anchor (`#point-<id>`, now `?point=<id>`). The server sends the browser on with a redirect (the browser
  * keeps the hash, which the server never sees); a page already loaded
  * replaces its entry. A renderer's export page (`&export`) is not old. A
  * scene's lab reads a bare `#<seconds>` as film time itself.
@@ -886,14 +919,17 @@ export const legacyPlace = (href: string): Option.Option<string> => {
   const moved = legacyPath(url.pathname, url.searchParams);
   const at = Option.getOrElse(moved, () => `${url.pathname}${url.search}`);
   const hashKept = Option.map(moved, (to) => `${to}${url.hash}`);
-  return Option.match(bareTime(url.hash), {
-    onNone: () => hashKept,
-    onSome: (t) =>
-      Option.orElse(
-        Option.liftPredicate(withFilmTime(at, t), (next) => next !== at),
-        () => hashKept,
-      ),
-  });
+  const focused = Option.flatMap(cardAnchor(url.hash), (point) => withFocus(at, point));
+  return Option.orElse(focused, () =>
+    Option.match(bareTime(url.hash), {
+      onNone: () => hashKept,
+      onSome: (t) =>
+        Option.orElse(
+          Option.liftPredicate(withFilmTime(at, t), (next) => next !== at),
+          () => hashKept,
+        ),
+    }),
+  );
 };
 
 // ---------------------------------------------------------------------------

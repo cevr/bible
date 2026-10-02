@@ -20,8 +20,7 @@ import {
 } from '../../core/choice.ts';
 import { playableOf } from '../../browser/media-browser.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
-import { reviewFileUrl, reviewFrameUrl } from '../../core/api.ts';
-import { labUrl } from '../../player/pages.ts';
+import { pageHref, reviewFileUrl, reviewFrameUrl } from '../../core/api.ts';
 import { Go, SetProvider, useReview, useSet } from './context.tsx';
 import {
   agoText,
@@ -156,7 +155,7 @@ const Films = () => {
               <Go class="rv-chip" place={Place.Film({ film })}>
                 {film} · choices
               </Go>
-              <a class="rv-chip" href={labUrl(film)}>
+              <a class="rv-chip" href={pageHref.lab(film)}>
                 {film} · lab
               </a>
             </>

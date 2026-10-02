@@ -18,6 +18,7 @@
 
 import { Array as Arr, Deferred, Effect, Exit, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
+import { pageHref } from '../../../../src/core/api.ts';
 import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import { FreshProcessFailed, VerbRefused } from '../../../../src/core/refusals.ts';
 import { sceneAddress } from '../../../../src/core/address.ts';
@@ -367,7 +368,7 @@ const fakeProject = (
   return routes;
 };
 
-const PROJECT = '?project=toy';
+const PROJECT = pageHref.project('toy');
 
 const click = (page: Tab, selector: string) => page.click(selector);
 
@@ -390,8 +391,8 @@ describe("a film's project", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject());
-        yield* click(page, 'a.rv-chip[href="/?project=toy"]');
-        yield* until(page, "location.search === '?project=toy'");
+        yield* click(page, `a.rv-chip[href="${PROJECT}"]`);
+        yield* until(page, `location.pathname === '${PROJECT}'`);
         yield* waitFor(page, '[data-act-name="opening"]');
         // The act holds its scenes; the scenes in no act follow.
         yield* attributesAre(page, '[data-act-name="opening"] [data-scene]', 'data-scene', [
@@ -454,10 +455,18 @@ describe("a film's project", () => {
         ]);
         // A link opens the part its card is folded under.
         yield* click(page, `${scene('open')} [data-plays="take:paper.hum"]`);
-        yield* waitFor(
-          page,
-          '[data-act-name="opening"] > .rv-layers[open] [data-point="take:paper.hum"]',
-        );
+        const hum = '[data-act-name="opening"] > .rv-layers[open] [data-point="take:paper.hum"]';
+        yield* waitFor(page, hum);
+        // The card in focus is in the link, a step Back undoes.
+        yield* until(page, "location.search === '?point=take%3Apaper.hum'");
+        yield* page.back;
+        yield* until(page, `location.pathname + location.search === '${PROJECT}'`);
+        // A pasted link opens the card where it sits, as an old anchor does.
+        yield* page.goto(pageHref.project('toy', 'take:paper.hum'));
+        yield* waitFor(page, hum);
+        yield* page.goto(`${PROJECT}#point-take%3Apaper.hum`);
+        yield* until(page, "location.search === '?point=take%3Apaper.hum'");
+        yield* waitFor(page, hum);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -467,7 +476,7 @@ describe("a film's project", () => {
     'approves all current, one scene, an act; withdraws a scene, an act and the film; comments on a scene, a missing one, an act and the film',
     () =>
       Effect.gen(function* () {
-        const { page, asked, errors } = yield* openReview(fakeProject(), { search: PROJECT });
+        const { page, asked, errors } = yield* openReview(fakeProject(), { href: PROJECT });
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
         // One scene approved as it is rendered, and its approval withdrawn.
         yield* click(page, `${render('coda')} [data-act="approve"]`);
@@ -538,7 +547,7 @@ describe("a film's project", () => {
     'updates in place: a half-typed comment and the clip survive a say on another scene',
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openReview(fakeProject(), { search: PROJECT });
+        const { page, errors } = yield* openReview(fakeProject(), { href: PROJECT });
         yield* waitFor(page, `${scene('open')} video`);
         yield* page.fill(`${scene('open')} .rv-comment-input`, 'half a thought');
         yield* page.evaluate(`window.clip = document.querySelector('${scene('open')} video')`);
@@ -560,7 +569,7 @@ describe("a film's project", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject(false, [], ['open']), {
-          search: PROJECT,
+          href: PROJECT,
         });
         yield* waitFor(page, `${scene('open')} [data-compare]`);
         // The page's own handler runs at the document; a listener on the
@@ -577,7 +586,7 @@ describe("a film's project", () => {
         })()`);
         yield* evaluates(page, 'window.taken', [false, false, false]);
         yield* click(page, `${scene('open')} [data-compare]`);
-        yield* until(page, `new URLSearchParams(location.search).has('set')`);
+        yield* until(page, "location.pathname.startsWith('/sets/')");
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -609,7 +618,7 @@ describe("a film's project", () => {
             whileBroken(/^\/api\/films\/toy\/choices\/say$/),
             ...routes,
           ],
-          { search: PROJECT },
+          { href: PROJECT },
         );
         const box = (at: string) => `${at} .rv-comment-input`;
         /** Say `text` in the box at `at`, posted as the `n`th say to `path`; wait for `status` to fail it. */
@@ -658,7 +667,7 @@ describe("a film's project", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject(false, ['coda']), {
-          search: PROJECT,
+          href: PROJECT,
         });
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
         yield* click(page, `${render('coda')} [data-act="approve"]`);
@@ -686,7 +695,7 @@ describe("a film's project", () => {
     "plays this checkout's render of a scene, not another folder's of the same film",
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openReview(fakeProject(true), { search: PROJECT });
+        const { page, errors } = yield* openReview(fakeProject(true), { href: PROJECT });
         yield* waitFor(page, `${scene('open')} video`);
         yield* attributeIs(
           page,
@@ -719,7 +728,7 @@ describe("a film's project", () => {
           return later(land, then);
         });
         const { page, asked, errors } = yield* openReview([lateRead, ...routes], {
-          search: PROJECT,
+          href: PROJECT,
         });
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
         yield* click(
@@ -764,7 +773,7 @@ describe("a film's project", () => {
           return later(land, then);
         });
         const { page, asked, errors } = yield* openReview([lateSay, ...routes], {
-          search: PROJECT,
+          href: PROJECT,
         });
         const reads = () =>
           asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/project').length;
@@ -819,7 +828,7 @@ describe("a film's project", () => {
           return then;
         });
         const { page, asked, errors } = yield* openReview([heldFirst, ...routes], {
-          search: PROJECT,
+          href: PROJECT,
         });
         const film = '.rv-film > .rv-say';
         const act = '[data-act-name="opening"] > .rv-say';
@@ -864,7 +873,7 @@ describe("a film's project", () => {
     'a say and a pick are shown from their answers: nothing is read twice',
     () =>
       Effect.gen(function* () {
-        const { page, asked, errors } = yield* openReview(fakeProject(), { search: PROJECT });
+        const { page, asked, errors } = yield* openReview(fakeProject(), { href: PROJECT });
         const take = `${scene('open')} [data-point="take:paper.page"]`;
         yield* attached(page, take);
         const reads = (from: number) =>

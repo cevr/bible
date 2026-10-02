@@ -14,7 +14,7 @@ import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, QualityToggle, SetPage } from './section.tsx';
 import { REVIEW_CSS } from './style.ts';
-import { labUrl } from '../../player/pages.ts';
+import { pageHref } from '../../core/api.ts';
 import { type Host, hostOf } from '../../browser/host.ts';
 import { BrowserHost } from '../../browser/host-browser.ts';
 
@@ -88,7 +88,7 @@ const Header = () => {
       <div class="rv-row rv-tools">
         <Show when={Option.getOrUndefined(filmOf(state.place()))}>
           {(film) => (
-            <a class="rv-chip" href={labUrl(film())} data-act="lab">
+            <a class="rv-chip" href={pageHref.lab(film())} data-act="lab">
               Lab
             </a>
           )}

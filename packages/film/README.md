@@ -652,17 +652,17 @@ through `@bible/url-state` (`UrlState`: a selection is a history entry; a
 refinement and the playhead replace the entry), and every link is printed by
 `pageHref` over the same places.
 
-| Place                            | Page   | Query                                  | Hash                         |
-| -------------------------------- | ------ | -------------------------------------- | ---------------------------- |
-| `/`                              | review |                                        |                              |
-| `/sets/<folder>`                 | review |                                        |                              |
-| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`                   | `t` (the set's video)        |
-| `/films/<film>/choices`          | review | `point`, `variant` (heard), `picture`  | `t` (the picture)            |
-| `/films/<film>/project`          | review | `point` (the card in focus)            |                              |
-| `/films/<film>/scenes[/<scene>]` | player |                                        |                              |
-| `/films/<film>/play`             | player |                                        | `t` (film time)              |
-| `/films/<film>/lab`              | lab    | `note`                                 | `t` (film time)              |
-| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note` | `t` (from the scene's start) |
+| Place                            | Page   | Query                                                      | Hash                         |
+| -------------------------------- | ------ | ---------------------------------------------------------- | ---------------------------- |
+| `/`                              | review |                                                            |                              |
+| `/sets/<folder>`                 | review |                                                            |                              |
+| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`                                       | `t` (the set's video)        |
+| `/films/<film>/choices`          | review | `heard` (a point, or `own`), `variant`, `picture`          | `t` (the picture)            |
+| `/films/<film>/project`          | review | `point` (the card in focus), `heard`, `variant`, `picture` | `t` (the picture)            |
+| `/films/<film>/scenes[/<scene>]` | player |                                                            |                              |
+| `/films/<film>/play`             | player |                                                            | `t` (film time)              |
+| `/films/<film>/lab`              | lab    | `note`                                                     | `t` (film time)              |
+| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`                     | `t` (from the scene's start) |
 
 A folder ref is one path segment (`bible-tools%2Frighteousness-by-faith`), as
 is a short's name. Rate, onion, loop, compare, the microphone, quality and
@@ -1440,20 +1440,26 @@ studio's microphone needs a secure context (`https://` or `localhost`), so a
 recording is made on the box's own browser or through an HTTPS name.
 
 **The page** (`lab/review/`): `<Root>` holds the runtime (the review's
-routes and the options'), where the page is (`?folder=`, `&set=`, `&view=`,
-`?film=`, `?project=`; kept in the URL, so Back and a reload work), the index, the films,
-the quality (Proxy or Original) and the lightbox. A set's page holds two
-effect-machine actors: the synced player (`machine.ts`: `Paused`, `Playing`,
-`Scrubbing`, `Buffering`; one clock, the first variant's; one sound heard)
-and the view (`All`, `Pair` shown as Side by side, `Moments`, `Notes`; a set of one
-version has no pair, and a link asking for one opens All). `sync.ts` is the driver
+routes and the options'), where the page is (its place, read from the URL
+through the host's `UrlState`, so a link, Back and a reload work; see Pages
+and links), the index, the films, the quality (Proxy or Original) and the
+lightbox. A set's page holds one effect-machine actor, the synced player
+(`machine.ts`: `Paused`, `Playing`, `Scrubbing`, `Buffering`; one clock, the
+first variant's; one sound heard; opened at the URL's `#t=`, which follows
+it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
+`Moments`, `Notes`; a set of one version has no pair, and a link asking for
+one opens All): a view chosen runs through the view machine (`stepView`)
+and is written back, a new history entry for a view, a pair's other or a
+moment chosen, the same entry for a ←/→ step. `sync.ts` is the driver
 that makes every media element (a `<video>` or an `<audio>`) follow the
 player: it puts drifters back on the clock, holds all while one stalls, and
 unmutes only the one heard. A film's page (`options/`, `<FilmProvider>`)
 puts its newest render on that player, muted, and one `<audio>` of the mix
 heard over it: 🔊 on a variant heard in place (a score option, a take) swaps
-it, and it joins where the clock stands. A point's marks jump the clock
-there. Every point is one card (`options/choice.tsx`): its variants with
+it, and it joins where the clock stands. What plays is the URL's
+(`?heard= &variant= &picture= #t=`, each replacing the entry), so a link
+opens the same sound over the same picture at the same time. A point's
+marks jump the clock there. Every point is one card (`options/choice.tsx`): its variants with
 their verbs (Pick, Unpick, Reject as the state allows), a hear-alone player,
 approve (a current variant only: `Choices.say` refuses a stale or missing
 one with `VerbRefused`, 409), withdraw once approved, and a line to
@@ -1469,7 +1475,9 @@ answer updates the player in place: the picture's `<video>` stays the same
 element while the film has a picture, so a playing film plays on through a
 pick, a knob or a say; only a source write asks for the mix heard again.
 
-The project view (`?project=<film>`, `options/project.tsx`) is the film by its
+The project view (`/films/<film>/project`, `options/project.tsx`; the card
+in focus is its `?point=`, opened and brought into view on a link, and an
+"Also plays here" chip makes it a new history entry) is the film by its
 address tree, film → acts → scenes → layers, with the same card, the same
 say and the same words at every level: the film's comments, "Approve all
 current", "Withdraw every approval" and its choice points, then each act (its

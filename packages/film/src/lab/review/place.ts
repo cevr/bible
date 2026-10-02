@@ -1,12 +1,15 @@
-// Where the review page is, read from and written to its URL, so a link (or
-// a reload, or Back) opens the same place: every folder (`/`), one folder
-// (`?folder=<ref>`), one comparison set in it (`&set=<point id>`) and the view
-// it shows (`&view=pair&other=<id>`, `&view=moments&m=<n>`), one film's
-// choices (`?film=<film>`), or one film's project by its address tree
-// (`?project=<film>`).
+// Where the review page is, read from its URL's path and written back to it
+// (`Places`, `core/api.ts`), so a link, a reload or Back opens the same
+// place: every folder (`/`), one folder (`/sets/<folder>`), one comparison
+// set in it (`/sets/<folder>/<point>`, its view in the query:
+// `?view=pair&other=<id>`, `?view=moments&m=<n>`), one film's choices
+// (`/films/<film>/choices`), or one film's project by its address tree
+// (`/films/<film>/project`).
 
+import { Place } from '@bible/url-state';
 import { Data, Match, Option } from 'effect';
-import { type ViewName, ViewState, viewNameOf } from './machine.ts';
+import { Places, pageHref } from '../../core/api.ts';
+import { type ViewEvent, ViewState, viewNameOf } from './machine.ts';
 
 export type ReviewPlace = Data.TaggedEnum<{
   Home: {};
@@ -20,88 +23,78 @@ export type ReviewPlace = Data.TaggedEnum<{
 }>;
 export const ReviewPlace = Data.taggedEnum<ReviewPlace>();
 
-const param = (params: URLSearchParams, name: string): Option.Option<string> =>
-  Option.filter(Option.fromNullishOr(params.get(name)), (v) => v !== '');
+/** What a comparison set's URL keeps of its view: its name, a pair's other, the moment. */
+export type SetQuery = Place.Type<typeof Places.set>['query'];
 
-/** The place a search string (`?folder=…&set=…`, `?film=…`, `?project=…`) names; home when it names none. */
-export const placeOf = (search: string): ReviewPlace => {
-  const params = new URLSearchParams(search);
-  const project = param(params, 'project');
-  if (Option.isSome(project)) return ReviewPlace.Project({ film: project.value });
-  return Option.match(param(params, 'film'), {
-    onSome: (film) => ReviewPlace.Film({ film }),
-    onNone: () =>
-      Option.match(param(params, 'folder'), {
-        onNone: () => ReviewPlace.Home(),
-        onSome: (folder) =>
-          Option.match(param(params, 'set'), {
-            onNone: () => ReviewPlace.Folder({ folder }),
-            onSome: (point) => ReviewPlace.Set({ folder, point }),
-          }),
-      }),
-  });
-};
+/** The place `href` names; home when it names none of the review's. */
+export const placeOf = (href: string): ReviewPlace =>
+  Option.firstSomeOf<ReviewPlace>([
+    Option.map(Place.decode(Places.folder, href), (v) => ReviewPlace.Folder(v.path)),
+    Option.map(Place.decode(Places.set, href), (v) => ReviewPlace.Set(v.path)),
+    Option.map(Place.decode(Places.choices, href), (v) => ReviewPlace.Film(v.path)),
+    Option.map(Place.decode(Places.project, href), (v) => ReviewPlace.Project(v.path)),
+  ]).pipe(Option.getOrElse(() => ReviewPlace.Home()));
 
-/** The search string that opens `place` (empty for home). */
-export const searchOf = (place: ReviewPlace): string => {
-  const params = Match.value(place).pipe(
+/** The link that opens `place`, its view and selections at their defaults. */
+export const hrefOf = (place: ReviewPlace): string =>
+  Match.value(place).pipe(
     Match.tagsExhaustive({
-      Home: () => new URLSearchParams(),
-      Folder: (p) => new URLSearchParams({ folder: p.folder }),
-      Set: (p) => new URLSearchParams({ folder: p.folder, set: p.point }),
-      Film: (p) => new URLSearchParams({ film: p.film }),
-      Project: (p) => new URLSearchParams({ project: p.film }),
+      Home: () => pageHref.home(),
+      Folder: (p) => pageHref.folder(p.folder),
+      Set: (p) => pageHref.set(p.folder, p.point),
+      Film: (p) => pageHref.choices(p.film),
+      Project: (p) => pageHref.project(p.film),
     }),
   );
-  const text = params.toString();
-  if (text === '') return '';
-  return `?${text}`;
-};
-
-const VIEW_NAMES: ReadonlyArray<string> = ['all', 'pair', 'moments', 'notes'];
-
-const isView = (name: string): name is ViewName => VIEW_NAMES.includes(name);
 
 /**
- * The view a search string keeps: its `view`, a pair's `other` (when it is one
- * of `ids` past the first; the second otherwise), the moments' `m`. All when
- * it keeps none.
+ * The view a set's query keeps: its `view`, a pair's `other` (when it is one
+ * of `ids` past the first; the second otherwise; a set of one has no pair and
+ * shows all), the moments' `m`.
  */
-export const viewOf = (search: string, ids: ReadonlyArray<string>): ViewState => {
-  const params = new URLSearchParams(search);
-  const view = Option.getOrElse(
-    Option.filter(param(params, 'view'), isView),
-    (): ViewName => 'all',
-  );
+export const viewOf = (query: SetQuery, ids: ReadonlyArray<string>): ViewState => {
   const others = ids.slice(1);
-  const other = Option.getOrElse(
-    Option.filter(param(params, 'other'), (id) => others.includes(id)),
-    () => Option.getOrElse(Option.fromUndefinedOr(others[0]), () => ''),
+  const other = Option.orElse(
+    Option.liftPredicate(query.other, (id) => others.includes(id)),
+    () => Option.fromUndefinedOr(others[0]),
   );
-  const moment = Option.getOrElse(
-    Option.filter(
-      Option.map(param(params, 'm'), (m) => Number.parseInt(m, 10)),
-      (m) => Number.isInteger(m) && m >= 0,
+  return Match.value(query.view).pipe(
+    Match.when('pair', () =>
+      Option.match(other, {
+        onSome: (id) => ViewState.Pair({ other: id }),
+        onNone: () => ViewState.All,
+      }),
     ),
-    () => 0,
-  );
-  return Match.value(view).pipe(
-    Match.when('pair', () => ViewState.Pair({ other })),
-    Match.when('moments', () => ViewState.Moments({ index: moment })),
+    Match.when('moments', () => ViewState.Moments({ index: query.m })),
     Match.when('notes', () => ViewState.Notes),
     Match.orElse(() => ViewState.All),
   );
 };
 
-/** `search` with the view `state` shows kept in it (and nothing else of a view's). */
-export const searchWithView = (search: string, state: ViewState): string => {
-  const params = new URLSearchParams(search);
-  for (const key of ['view', 'other', 'm']) params.delete(key);
-  const view = viewNameOf(state);
-  if (view !== 'all') params.set('view', view);
-  if (state._tag === 'Pair') params.set('other', state.other);
-  if (state._tag === 'Moments') params.set('m', String(state.index));
-  const text = params.toString();
-  if (text === '') return '';
-  return `?${text}`;
-};
+/**
+ * How a view's `event` enters history: a view, a pair's other or a moment
+ * chosen is a step of its own (Back undoes it); a ←/→ step through the
+ * moments replaces the entry.
+ */
+export const historyOf = (event: ViewEvent): 'push' | 'replace' =>
+  Match.value(event).pipe(
+    Match.tag('MomentStepped', (): 'replace' => 'replace'),
+    Match.orElse((): 'push' => 'push'),
+  );
+
+/** The time a URL keeps for a player at `t`: none at its `start`, else to the ms. */
+export const keptTime = (t: number, start: number): Option.Option<number> =>
+  Option.liftPredicate(Math.round(t * 1000) / 1000, (ms) => ms !== start);
+
+/** The query that keeps the view `state` shows (and nothing else of a view's). */
+export const queryOfView = (state: ViewState): SetQuery => ({
+  view: viewNameOf(state),
+  other: Match.value(state).pipe(
+    Match.tag('Pair', (s) => s.other),
+    Match.orElse(() => ''),
+  ),
+  m: Match.value(state).pipe(
+    Match.tag('Moments', (s) => s.index),
+    Match.orElse(() => 0),
+  ),
+});

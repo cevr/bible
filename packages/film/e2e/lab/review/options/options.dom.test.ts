@@ -15,6 +15,7 @@
 import { Deferred, Effect, Exit, FileSystem, Option, Schedule, Schema } from 'effect';
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
+import { pageHref } from '../../../../src/core/api.ts';
 import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import {
   type FakeRoute,
@@ -271,7 +272,7 @@ const fakeFilm = (toy: Toy = freshToy()) => {
   return routes;
 };
 
-const FILM = '?film=toy';
+const FILM = pageHref.choices('toy');
 
 const click = (page: Tab, selector: string) => page.click(selector);
 
@@ -295,8 +296,8 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm());
-        yield* click(page, 'a.rv-chip[href="/?film=toy"]');
-        yield* until(page, "location.search === '?film=toy'");
+        yield* click(page, `a.rv-chip[href="${FILM}"]`);
+        yield* until(page, `location.pathname === '${FILM}'`);
         yield* waitFor(page, '.rv-transport');
         yield* waitFor(page, '.rv-picture video');
         // The picked option is heard first; the picture's own sound is muted.
@@ -338,10 +339,39 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'the sound heard and the time are in the link, which opens the player as it was',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
+        yield* waitFor(page, '.rv-picture video');
+        yield* click(page, `${at('score', 'piano')} [data-act="hear"]`);
+        yield* until(page, "location.search === '?heard=score&variant=piano'");
+        yield* click(page, '[data-point="take:paper.page"] button[data-at="2"]');
+        yield* until(page, "location.hash === '#t=2'");
+        const link = `${FILM}?heard=score&variant=piano#t=2`;
+        yield* evaluates(page, 'location.pathname + location.search + location.hash', link);
+        yield* page.goto(pageHref.home());
+        yield* page.goto(`${FILM}?heard=own#t=2`);
+        yield* waitFor(page, '.rv-picture [data-act="hear"][aria-pressed="true"]');
+        yield* until(page, "document.querySelector('audio.rv-mix') === null");
+        yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
+        yield* page.goto(link);
+        yield* waitFor(page, `${at('score', 'piano')} [data-act="hear"][aria-pressed="true"]`);
+        yield* until(
+          page,
+          `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=piano')`,
+        );
+        yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a pick is written and read back, the sound check shown after it, a take kept, and Undo sent',
     () =>
       Effect.gen(function* () {
-        const { page, asked, errors } = yield* openReview(fakeFilm(), { search: FILM });
+        const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
         yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
         yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === true');
         // No sound check before a pick.
@@ -413,7 +443,7 @@ describe("a film's choices", () => {
           return later(land, then);
         });
         const { page, asked, errors } = yield* openReview([lateRead, ...routes], {
-          search: FILM,
+          href: FILM,
         });
         yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
@@ -444,7 +474,7 @@ describe("a film's choices", () => {
     'the player lives through writes: a pick and a say keep the picture, a say the mix',
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openReview(fakeFilm(), { search: FILM });
+        const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
         yield* waitFor(page, '.rv-picture video');
         yield* until(
           page,
@@ -484,7 +514,7 @@ describe("a film's choices", () => {
           later(land, json(choices({ ...toy, said: [...toy.said, 'warmer in the close'] }))),
         );
         const { page, asked, errors } = yield* openReview([heldSay, ...routes], {
-          search: FILM,
+          href: FILM,
         });
         const box = `${at('score', 'strings')} .rv-comment-input`;
         const comment = `${at('score', 'strings')} [data-act="comment"]`;
@@ -547,7 +577,7 @@ describe("a film's choices", () => {
         );
         const { page, asked, errors } = yield* openReview(
           [heldPick, warnedKnob, ...fakeFilm(toy)],
-          { search: FILM },
+          { href: FILM },
         );
         const knob = '[data-knob="level:const:PAPER"]';
         const findings = '[data-check="check"] summary';
@@ -596,7 +626,7 @@ describe("a film's choices", () => {
         );
         const { page, asked, errors } = yield* openReview(
           [heldPick, refusedKnob, ...fakeFilm(toy)],
-          { search: FILM },
+          { href: FILM },
         );
         const knob = '[data-knob="level:const:PAPER"]';
         yield* waitFor(page, `${knob} input`);
@@ -629,7 +659,7 @@ describe("a film's choices", () => {
     "a look is picked, a level's knob set, and a variant approved and commented on",
     () =>
       Effect.gen(function* () {
-        const { page, asked, errors } = yield* openReview(fakeFilm(), { search: FILM });
+        const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
         yield* waitFor(page, `${at('look:ground', 'now')} .rv-badge`);
         yield* click(page, `${at('look:ground', 'light')} [data-act="pick"]`);
         yield* waitFor(page, `${at('look:ground', 'light')} .rv-badge`);
@@ -704,7 +734,7 @@ describe("a film's choices", () => {
             ),
             ...fakeFilm(),
           ],
-          { search: FILM },
+          { href: FILM },
         );
         const knob = '[data-knob="level:const:PAPER"]';
         yield* waitFor(page, `${knob} input`);
@@ -742,7 +772,7 @@ describe("a film's choices", () => {
           }),
           ...fakeFilm(),
         ];
-        const { page, errors } = yield* openReview(routes, { search: FILM });
+        const { page, errors } = yield* openReview(routes, { href: FILM });
         yield* waitFor(page, '.rv-picture video');
         yield* until(
           page,
@@ -783,7 +813,7 @@ describe("a film's choices", () => {
           }),
         );
         const { page, errors } = yield* openReview([pending, ...fakeFilm()], {
-          search: FILM,
+          href: FILM,
           viewport: { width: 390, height: 844 },
         });
         yield* waitFor(page, '.rv-picture [data-proxy="pending"]');
@@ -799,7 +829,7 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm(), {
-          search: FILM,
+          href: FILM,
           viewport: { width: 390, height: 844 },
         });
         yield* waitFor(page, '[data-point="take:paper.page"]');

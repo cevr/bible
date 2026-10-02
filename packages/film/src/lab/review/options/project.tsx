@@ -1,6 +1,6 @@
-// A film's project page (`?project=<film>`): the film by its address tree
-// (`core/catalogue.ts`'s Project, read in a fresh `film project --json` on
-// the server), film → acts → scenes → layers, with the same card, the same
+// A film's project page (`/films/<film>/project`, the card in focus in its
+// `?point=`): the film by its address tree (`core/catalogue.ts`'s Project,
+// read in a fresh `film project --json` on the server), film → acts → scenes → layers, with the same card, the same
 // say (approve, withdraw, comment) and the same words at every level. The
 // film's own comments, an approve of its current scenes and a withdraw of
 // its approvals; each act (its comments, the same approve and withdraw of
@@ -23,7 +23,9 @@ import { Array as Arr, Exit, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type Accessor, createEffect, createMemo, createSignal } from 'solid-js';
 import { type Address, type PartAddress, addressKey, sceneAddress } from '../../../core/address.ts';
-import type { ProjectView } from '../../../core/api.ts';
+import { Place } from '@bible/url-state';
+import * as UrlAtom from '@bible/url-state/atom';
+import { Places, type ProjectView } from '../../../core/api.ts';
 import {
   type ProjectAct as Act,
   type ProjectScene,
@@ -32,7 +34,7 @@ import {
 import { type ChoicePoint, type VariantMedia, pointHead } from '../../../core/choice.ts';
 import type { LabFailure } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
-import { Go, useReview } from '../context.tsx';
+import { Go, plainClick, useReview } from '../context.tsx';
 import { pressed } from '../format.ts';
 import { Loaded, statusText, useWrite, writeStatus } from '../loaded.tsx';
 import { ReviewPlace } from '../place.ts';
@@ -169,29 +171,48 @@ const reveal = (point: string) =>
     card.scrollIntoView({ block: 'center' });
   });
 
-/** The layers that play in a scene but sit elsewhere, each a link to its card. */
-const PlaysHere = (props: { readonly points: ReadonlyArray<ChoicePoint> }) => (
-  <Show when={props.points.length > 0}>
-    <div class="rv-row rv-plays">
-      <span class="rv-hint">Also plays here:</span>
-      <For each={props.points} keyed={(p) => p.id}>
-        {(point) => (
-          <a
-            class="rv-chip"
-            href={`#point-${point().id}`}
-            data-plays={point().id}
-            onClick={(e: MouseEvent) => {
-              e.preventDefault();
-              reveal(point().id);
-            }}
-          >
-            {point().title}
-          </a>
-        )}
-      </For>
-    </div>
-  </Show>
-);
+/** The project's place: the card in focus is its `?point=`. */
+const projectPlace = UrlAtom.place(Places.project);
+
+/**
+ * The layers that play in a scene but sit elsewhere, each a link to its card:
+ * a plain click brings the card into view and puts it in the URL's
+ * `?point=` (Back returns to the card before); a modified one opens the
+ * project there in a tab.
+ */
+const PlaysHere = (props: { readonly points: ReadonlyArray<ChoicePoint> }) => {
+  const at = useAtomValue(() => projectPlace);
+  const focus = useAtomSet(() => projectPlace);
+  const focused = (point: string) =>
+    Option.map(at(), (v) => ({ ...v, query: { ...v.query, point } }));
+  return (
+    <Show when={props.points.length > 0}>
+      <div class="rv-row rv-plays">
+        <span class="rv-hint">Also plays here:</span>
+        <For each={props.points} keyed={(p) => p.id}>
+          {(point) => (
+            <a
+              class="rv-chip"
+              href={Option.getOrElse(
+                Option.map(focused(point().id), (v) => Place.href(Places.project, v)),
+                () => '',
+              )}
+              data-plays={point().id}
+              onClick={(e: MouseEvent) => {
+                if (!plainClick(e)) return;
+                e.preventDefault();
+                reveal(point().id);
+                Option.map(focused(point().id), focus);
+              }}
+            >
+              {point().title}
+            </a>
+          )}
+        </For>
+      </div>
+    </Show>
+  );
+};
 
 /** The link to a scene's Versions (its renders side by side), when the review's roots hold its project folder. */
 const Compare = (props: { readonly folder: Option.Option<string>; readonly point: string }) => (
@@ -344,6 +365,19 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
   const project = () => props.at.view().project;
   const inActs = () => new Set(project().acts.flatMap((a) => a.scenes));
   const loose = () => project().scenes.filter((s) => !inActs().has(s.scene));
+  // The card the URL's `?point=` names is brought into view: on a link's
+  // first render, and each time Back or Forward lands on another.
+  const at = useAtomValue(() => projectPlace);
+  createEffect(
+    () =>
+      Option.filter(
+        Option.map(at(), (v) => v.query.point),
+        (point) => point !== '',
+      ),
+    (point) => {
+      Option.map(point, reveal);
+    },
+  );
   return (
     <>
       <section class="rv-film" data-film={props.at.film} data-reading={pressed(props.at.reading())}>

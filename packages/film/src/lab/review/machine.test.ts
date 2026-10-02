@@ -20,6 +20,7 @@ import {
   reachOf,
   runningOf,
   spreadMoments,
+  stepView,
   syncMachine,
   timeText,
   viewMachine,
@@ -57,6 +58,17 @@ describe('the synced player', () => {
         SyncEvent.Ticked({ t: 11 }),
       ]);
       expect(result.finalState).toEqual(SyncState.Playing({ ...clock, t: 10 }));
+    }),
+  );
+
+  it.effect("opens at a link's time, never before the start, and stands at the end past it", () =>
+    Effect.gen(function* () {
+      expect((yield* simulate(syncMachine('A', 1, 4.5), [])).finalState).toEqual(
+        SyncState.Paused({ ...clock, t: 4.5, end: UNKNOWN_END }),
+      );
+      expect((yield* simulate(syncMachine('A', 1, -3), [])).finalState.t).toBe(1);
+      const past = yield* simulate(syncMachine('A', 1, 30), [SyncEvent.Measured({ end: 10 })]);
+      expect(past.finalState).toEqual(SyncState.Paused({ ...clock, t: 10 }));
     }),
   );
 
@@ -262,6 +274,19 @@ describe('the view', () => {
       );
     }),
   );
+
+  test('one event steps the view the URL holds to the next', () => {
+    const b = Option.some('B');
+    expect(stepView(ViewState.All, b, ViewEvent.ViewChosen({ view: 'pair' }))).toEqual(
+      ViewState.Pair({ other: 'B' }),
+    );
+    expect(
+      stepView(ViewState.Moments({ index: 4 }), b, ViewEvent.MomentStepped({ by: 1, count: 5 })),
+    ).toEqual(ViewState.Moments({ index: 0 }));
+    expect(stepView(ViewState.All, Option.none(), ViewEvent.ViewChosen({ view: 'pair' }))).toEqual(
+      ViewState.All,
+    );
+  });
 
   test('plays videos in all and the pair only', () => {
     expect([playsIn('all'), playsIn('pair'), playsIn('moments'), playsIn('notes')]).toEqual([

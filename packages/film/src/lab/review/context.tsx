@@ -13,8 +13,10 @@ import {
   useAtomSuspense,
   useAtomValue,
 } from '@bible/atom-solid';
+import { Place, UrlState } from '@bible/url-state';
+import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, Loading, Show } from '@solidjs/web';
-import { Clock, Effect, Layer, Option } from 'effect';
+import { Clock, Effect, Equal, Layer, Option } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -39,20 +41,28 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
 import type { Quality } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
+import { Places, legacyPlace } from '../../core/api.ts';
 import {
   type SyncActor,
   SyncEvent,
   type SyncState,
-  type ViewActor,
   ViewEvent,
-  type ViewState,
+  ViewState,
   playsIn,
   spawnSync,
-  spawnView,
   spreadMoments,
+  stepView,
   viewNameOf,
 } from './machine.ts';
-import { type ReviewPlace, placeOf, searchOf, searchWithView, viewOf } from './place.ts';
+import {
+  type ReviewPlace,
+  historyOf,
+  hrefOf,
+  keptTime,
+  placeOf,
+  queryOfView,
+  viewOf,
+} from './place.ts';
 import { PlayerKey, type SyncDriver, playerKeys, makeSync, playerEvent } from './sync.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
@@ -104,8 +114,14 @@ const ReviewContext = createContext<ReviewContextValue>();
 /** The review's context: only inside `<Root>`. */
 export const useReview = (): ReviewContextValue => useContext(ReviewContext);
 
+/** Move the address bar of `host` to `href`: a new history entry (`push`) or this one (`replace`). */
+const navigateOn = (host: Host) => (href: string, history: 'push' | 'replace') =>
+  Effect.runSyncWith(host)(
+    UrlState.UrlState.use((url) => url.navigate(href, { history, throttle: Option.none() })),
+  );
+
 /** Whether a click is the page's to take: a plain primary click. A modified one (a new tab or window, a download) is the browser's. */
-const plainClick = (e: MouseEvent) =>
+export const plainClick = (e: MouseEvent) =>
   e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
 /**
@@ -125,7 +141,7 @@ export const Go = (
   return (
     <a
       {...attrs}
-      href={`${location.pathname}${searchOf(props.place)}`}
+      href={hrefOf(props.place)}
       onClick={(e) => {
         if (!plainClick(e)) return;
         e.preventDefault();
@@ -182,10 +198,7 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
   );
   const text = Atom.family((ref: string) => runtime.atom(ReviewApi.use((api) => api.text(ref))));
 
-  const [place, setPlace] = createSignal(placeOf(location.search));
-  const onPop = () => setPlace(placeOf(location.search));
-  window.addEventListener('popstate', onPop);
-  onCleanup(() => window.removeEventListener('popstate', onPop));
+  const navigate = navigateOn(props.host);
 
   const [lightbox, setLightbox] = createSignal(Option.none<string>());
   // Escape closes the lightbox, and leaves the key to whatever else hears it.
@@ -196,6 +209,21 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
   onCleanup(Effect.runCallbackWith(props.host)(Keys.use((keys) => keys.listen(closeOnEscape))));
 
   const Inner = (inner: ParentProps) => {
+    // Where the page is: its URL, as the host's `UrlState` leaves it (a
+    // write, or Back and Forward landing).
+    const href = useAtomValue(() => UrlAtom.href);
+    // A new href that names the same place (a view, a time) is the same
+    // place: the page under it stays, so its players play on.
+    const place = createMemo(() => placeOf(href()), { equals: Equal.equals });
+    // An old link (`/?folder=`, `/?project=`, …) the page lands on without a
+    // load (Back onto an entry the page wrote before places had paths) goes
+    // on to its place; the server sends a loaded one there itself.
+    createEffect(
+      () => legacyPlace(href()),
+      (moved) => {
+        Option.map(moved, (to) => navigate(to, 'replace'));
+      },
+    );
     const index = useAtomValue(() => indexAtom);
     const refreshIndex = useAtomRefresh(() => indexAtom);
     const films = useAtomValue(() => filmsAtom);
@@ -209,9 +237,7 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
       state: { place, index, films, quality, filter, lightbox },
       actions: {
         go: (next) => {
-          const search = searchOf(next);
-          history.pushState(history.state, '', `${location.pathname}${search}`);
-          setPlace(next);
+          navigate(hrefOf(next), 'push');
           window.scrollTo(0, 0);
         },
         refresh: () => {
@@ -233,8 +259,10 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
     return <ReviewContext value={value}>{inner.children}</ReviewContext>;
   };
 
+  // The registry's URL atoms read and write through the host's own `UrlState`,
+  // so they and the page's effects share one address bar.
   return (
-    <RegistryProvider>
+    <RegistryProvider initialValues={[[UrlAtom.services, props.host]]}>
       <Inner>{props.children}</Inner>
     </RegistryProvider>
   );
@@ -264,42 +292,66 @@ const SetContext = createContext<SetContextValue>();
 /** A set's context: only inside `<SetProvider>`. */
 export const useSet = (): SetContextValue => useContext(SetContext);
 
-interface SetActors {
-  readonly sync: SyncActor;
-  readonly view: ViewActor;
-}
-
 const unmeasured = Atom.make(AsyncResult.initial<number, LabFailure>());
+
+/** The set's place in the URL: its path, its view in the query, the player's time in the hash. */
+const setPlace = UrlAtom.place(Places.set);
 
 const SetBody = (
   props: ParentProps<{
     readonly folder: ReviewFolder;
     readonly set: SeenPoint;
-    readonly actors: SetActors;
+    readonly sync: SyncActor;
   }>,
 ) => {
   const { meta } = useReview();
-  const syncAtom = ActorAtom.make(props.actors.sync);
-  const viewAtom = ActorAtom.make(props.actors.view);
+  const syncAtom = ActorAtom.make(props.sync);
   const sync = useAtomValue(() => syncAtom);
   const sendSync = useAtomSet(() => syncAtom);
-  const view = useAtomValue(() => viewAtom);
-  const sendView = useAtomSet(() => viewAtom);
   const ids = props.set.variants.map((v) => v.id);
   const first = Option.getOrElse(Option.fromUndefinedOr(ids[0]), () => '');
+  const other = Option.fromUndefinedOr(ids[1]);
 
   const driver = makeSync(first, sendSync, meta.host);
   onCleanup(driver.stop);
   createEffect(sync, (state) => driver.apply(state));
 
-  // The view kept in the URL, so a reload or a link opens it again.
-  createEffect(view, (state) => {
-    history.replaceState(
-      history.state,
-      '',
-      `${location.pathname}${searchWithView(location.search, state)}${location.hash}`,
+  // The view is the URL's: a link, a reload, Back and Forward all show what
+  // it keeps. A choice of view, of the pair's other or of a moment is a new
+  // history entry (Back undoes it); a ←/→ step through the moments is not.
+  const at = useAtomValue(() => setPlace);
+  const view = createMemo(
+    () =>
+      viewOf(
+        Option.match(at(), { onSome: (v) => v.query, onNone: () => queryOfView(ViewState.All) }),
+        ids,
+      ),
+    // The time moving on is no new view.
+    { equals: Equal.equals },
+  );
+  const sendView = (event: ViewEvent) =>
+    Option.map(at(), (v) =>
+      navigateOn(meta.host)(
+        Place.href(Places.set, { ...v, query: queryOfView(stepView(view(), other, event)) }),
+        historyOf(event),
+      ),
     );
-  });
+  // A link asking for what the set cannot show (a pair on a set of one, an
+  // other it does not hold) shows what `viewOf` makes of it, and the URL is
+  // corrected to say so, in the same entry.
+  createEffect(
+    () => Option.map(at(), (v) => Place.href(Places.set, { ...v, query: queryOfView(view()) })),
+    (shown) => {
+      Option.map(shown, (href) => navigateOn(meta.host)(href, 'replace'));
+    },
+  );
+  // The player's time is kept in the hash (`#t=`, throttled), so a link
+  // opens the set where it was.
+  createEffect(
+    () => keptTime(sync().t, props.set.start),
+    (t) =>
+      Effect.runSyncWith(meta.host)(UrlState.update(Places.set, (v) => ({ ...v, hash: { t } }))),
+  );
   // Nothing plays behind the moments or the notes; a pair hears one of its two.
   createEffect(
     () => [view(), sync().audible] as const,
@@ -365,14 +417,14 @@ const SetReady = (
   props: ParentProps<{
     readonly folder: ReviewFolder;
     readonly set: SeenPoint;
-    readonly actors: Atom.Atom<AsyncResult.AsyncResult<SetActors, never>>;
+    readonly sync: Atom.Atom<AsyncResult.AsyncResult<SyncActor, never>>;
   }>,
 ) => {
-  const actors = useAtomSuspense(() => props.actors);
+  const sync = useAtomSuspense(() => props.sync);
   return (
-    <Show when={actors()} keyed>
-      {(a: SetActors) => (
-        <SetBody folder={props.folder} set={props.set} actors={a}>
+    <Show when={sync()} keyed>
+      {(actor: SyncActor) => (
+        <SetBody folder={props.folder} set={props.set} sync={actor}>
           {props.children}
         </SetBody>
       )}
@@ -385,21 +437,19 @@ export const SetProvider = (
   props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>,
 ) => {
   const { meta } = useReview();
-  const ids = props.set.variants.map((v) => v.id);
-  const first = Option.getOrElse(Option.fromUndefinedOr(ids[0]), () => '');
-  const initial = viewOf(location.search, ids);
-  const other = Option.fromUndefinedOr(ids[1]);
-  const actors = meta.runtime.atom(
-    Machine.scoped(
-      Effect.all({
-        sync: spawnSync(first, props.set.start),
-        view: spawnView(initial, other),
-      }),
-    ),
+  const first = Option.getOrElse(
+    Option.map(Option.fromUndefinedOr(props.set.variants[0]), (v) => v.id),
+    () => '',
   );
+  // The player opens where the URL's `#t=` says, else at the set's start.
+  const at = Option.getOrElse(
+    Option.flatMap(Effect.runSyncWith(meta.host)(UrlState.get(Places.set)), (v) => v.hash.t),
+    () => props.set.start,
+  );
+  const sync = meta.runtime.atom(Machine.scoped(spawnSync(first, props.set.start, at)));
   return (
     <Loading>
-      <SetReady folder={props.folder} set={props.set} actors={actors}>
+      <SetReady folder={props.folder} set={props.set} sync={sync}>
         {props.children}
       </SetReady>
     </Loading>
