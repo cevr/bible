@@ -254,7 +254,7 @@ const fakeProject = (elsewhere = false, goneStale: ReadonlyArray<string> = []) =
     return p.address.ids ?? [];
   };
   const routes: ReadonlyArray<FakeRoute> = [
-    route('GET', /^\/review\/index/, () =>
+    route('GET', /^\/api\/review\/index/, () =>
       json({
         folders: [
           ...Arr.filter([ELSEWHERE], () => elsewhere),
@@ -270,18 +270,18 @@ const fakeProject = (elsewhere = false, goneStale: ReadonlyArray<string> = []) =
         ],
       }),
     ),
-    route('GET', /^\/review\/films$/, () => json({ films: ['toy'] })),
-    route('GET', /^\/lab\/toy\/choices$/, () => json(choicesOf(takeSaid))),
-    route('GET', /^\/lab\/toy\/check$/, () => json({ findings: [] })),
-    route('GET', /^\/lab\/toy\/steps$/, () =>
+    route('GET', /^\/api\/films$/, () => json({ films: ['toy'] })),
+    route('GET', /^\/api\/films\/toy\/choices$/, () => json(choicesOf(takeSaid))),
+    route('GET', /^\/api\/films\/toy\/check$/, () => json({ findings: [] })),
+    route('GET', /^\/api\/films\/toy\/steps$/, () =>
       json({ undo: { file: 'sound.ts', target: 'score play brass' } }),
     ),
-    route('GET', /^\/lab\/toy\/choices\/check$/, () => json({ findings: [] })),
-    route('POST', /^\/lab\/toy\/choices\/say$/, () => {
+    route('GET', /^\/api\/films\/toy\/choices\/check$/, () => json({ findings: [] })),
+    route('POST', /^\/api\/films\/toy\/choices\/say$/, () => {
       takeSaid = [...takeSaid, 'the page is late'];
       return json(choicesOf(takeSaid));
     }),
-    route('POST', /^\/lab\/toy\/choices\/pick$/, () =>
+    route('POST', /^\/api\/films\/toy\/choices\/pick$/, () =>
       json({
         file: 'sound.ts',
         target: 'score play brass',
@@ -289,8 +289,8 @@ const fakeProject = (elsewhere = false, goneStale: ReadonlyArray<string> = []) =
         findings: [],
       }),
     ),
-    route('GET', /^\/review\/project\/toy$/, () => json(view())),
-    route('POST', /^\/review\/project\/toy\/say$/, (asked) => {
+    route('GET', /^\/api\/films\/toy\/project$/, () => json(view())),
+    route('POST', /^\/api\/films\/toy\/project\/say$/, (asked) => {
       const p = posted(asked);
       const ids = scenesOf(p);
       const gone = scenes.filter((s) => ids.includes(s.scene) && goneStale.includes(s.scene));
@@ -346,7 +346,7 @@ const saysPosted = (
   asked: ReadonlyArray<{ readonly path: string; readonly body: Option.Option<Json> }>,
 ) =>
   asked
-    .filter((a) => a.path === '/review/project/toy/say')
+    .filter((a) => a.path === '/api/films/toy/project/say')
     .map((a) => Option.getOrUndefined(a.body));
 
 describe("a film's project", () => {
@@ -368,7 +368,7 @@ describe("a film's project", () => {
         // A rendered scene plays its render; one with none recorded shows none.
         yield* until(
           page,
-          `document.querySelector('${render('open')} video')?.getAttribute('src') === '/review/files/out/toy/scenes/open/main.share.mp4'`,
+          `document.querySelector('${render('open')} video')?.getAttribute('src') === '/api/review/files/out/toy/scenes/open/main.share.mp4'`,
         );
         yield* countIs(page, `${render('close')} video`, 0);
         // A render stale by the film's sound alone says so, beside its approval of an earlier version.
@@ -535,8 +535,8 @@ describe("a film's project", () => {
           );
         const { page, asked, errors } = yield* openReview(
           [
-            whileBroken(/^\/review\/project\/toy\/say$/),
-            whileBroken(/^\/lab\/toy\/choices\/say$/),
+            whileBroken(/^\/api\/films\/toy\/project\/say$/),
+            whileBroken(/^\/api\/films\/toy\/choices\/say$/),
             ...routes,
           ],
           { search: PROJECT },
@@ -556,7 +556,7 @@ describe("a film's project", () => {
               `((s) => s.dataset.failed === 'true' && !s.textContent.endsWith('…'))(document.querySelector('${status}'))`,
             );
           });
-        const PROJECT_SAY = '/review/project/toy/say';
+        const PROJECT_SAY = '/api/films/toy/project/say';
         const take = `${scene('open')} [data-point="take:paper.page"]`;
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
         // A scene's comment, the film's, and a take's: each fails, and each keeps its text.
@@ -568,7 +568,7 @@ describe("a film's project", () => {
         yield* failedSay(
           take,
           'the page is late',
-          '/lab/toy/choices/say',
+          '/api/films/toy/choices/say',
           1,
           '.rv-writes .rv-status',
         );
@@ -622,7 +622,7 @@ describe("a film's project", () => {
           page,
           `${scene('open')} video`,
           'src',
-          '/review/files/out/toy/scenes/open/main.share.mp4',
+          '/api/review/files/out/toy/scenes/open/main.share.mp4',
         );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -636,13 +636,13 @@ describe("a film's project", () => {
         const routes = fakeProject();
         const plain = Option.getOrThrow(
           Option.fromUndefinedOr(
-            routes.find((r) => r.method === 'GET' && r.path.test('/review/project/toy')),
+            routes.find((r) => r.method === 'GET' && r.path.test('/api/films/toy/project')),
           ),
         );
         // The read after the pick answers the project as it stood when asked, once let land.
         const land = yield* Deferred.make<void>();
         let reads = 0;
-        const lateRead = route('GET', /^\/review\/project\/toy$/, (asked) => {
+        const lateRead = route('GET', /^\/api\/films\/toy\/project$/, (asked) => {
           reads += 1;
           const then = plain.answer(asked);
           if (reads === 1) return then;
@@ -657,7 +657,8 @@ describe("a film's project", () => {
           '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',
         );
         yield* Effect.sync(
-          () => asked.filter((a) => a.method === 'GET' && a.path === '/review/project/toy').length,
+          () =>
+            asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/project').length,
         ).pipe(
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 2 }),
           Effect.timeout('10 seconds'),
@@ -683,12 +684,12 @@ describe("a film's project", () => {
         const routes = fakeProject();
         const plainSay = Option.getOrThrow(
           Option.fromUndefinedOr(
-            routes.find((r) => r.method === 'POST' && r.path.test('/review/project/toy/say')),
+            routes.find((r) => r.method === 'POST' && r.path.test('/api/films/toy/project/say')),
           ),
         );
         // The say is taken when asked; its answer lands once let.
         const land = yield* Deferred.make<void>();
-        const lateSay = route('POST', /^\/review\/project\/toy\/say$/, (asked) => {
+        const lateSay = route('POST', /^\/api\/films\/toy\/project\/say$/, (asked) => {
           const then = plainSay.answer(asked);
           return later(land, then);
         });
@@ -696,7 +697,7 @@ describe("a film's project", () => {
           search: PROJECT,
         });
         const reads = () =>
-          asked.filter((a) => a.method === 'GET' && a.path === '/review/project/toy').length;
+          asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/project').length;
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
         yield* page.fill(`${render('open')} .rv-comment-input`, 'said before the pick');
         yield* click(page, `${render('open')} [data-act="comment"]`);
@@ -741,7 +742,7 @@ describe("a film's project", () => {
             .filter(
               (a) =>
                 a.method === 'GET' &&
-                /^\/(lab\/toy\/(choices|check)|review\/project\/toy)(\?|$)/.test(a.path),
+                /^\/api\/films\/toy\/(choices|check|project)(\?|$)/.test(a.path),
             )
             .map((a) => a.path);
         const before = asked.length;
@@ -757,11 +758,11 @@ describe("a film's project", () => {
         yield* Effect.sync(() => reads(before)).pipe(
           Effect.repeat({
             schedule: Schedule.spaced('25 millis'),
-            until: (paths) => paths.includes('/review/project/toy'),
+            until: (paths) => paths.includes('/api/films/toy/project'),
           }),
           Effect.timeout('10 seconds'),
         );
-        expect(reads(before)).toEqual(['/review/project/toy']);
+        expect(reads(before)).toEqual(['/api/films/toy/project']);
         // Undo names what it undoes.
         yield* until(
           page,

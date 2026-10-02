@@ -7,7 +7,7 @@
 // build step: the pages are built when first asked, and again when asked
 // after a file the last build read has changed. The lab runs for days, so the
 // change is watched (`FileSystem.watch` over `sources`), each one numbered
-// (the build), and an open page that waits on `/review/build?since=` hears of
+// (the build), and an open page that waits on `/api/review/build?since=` hears of
 // it and reloads onto the new code, as the development server's hot reload did.
 //
 // A build that fails answers its page as the failure, the bundler's words,
@@ -30,15 +30,15 @@ import {
   SubscriptionRef,
 } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { type PageBuild, labUrls } from '../core/api.ts';
+import { type PageBuild, type PageName, labUrls, pageAt } from '../core/api.ts';
 import type { PageAnswer } from './api-server.ts';
-import { narrationFile } from './narration-route.ts';
+import { isNarrationUrl, narrationFile } from './narration-route.ts';
 import { serveFile } from './review-file.ts';
 
 /** What the app builds its pages from. */
 export interface LabPageSpec {
-  /** Each page by the path it is served at (`/`, `/lab`): its HTML entry. */
-  readonly pages: Readonly<Record<string, string>>;
+  /** Each page's HTML entry; the paths each is served at are the framework's (`PAGE_PATHS`). */
+  readonly pages: Readonly<Record<PageName, string>>;
   /**
    * The folders the app's sources lie under: a change to a file a build read
    * rebuilds the pages. The framework's own source is watched beside them.
@@ -54,11 +54,18 @@ interface BuiltFile {
   readonly type: string;
 }
 
-/** One build: its number, and its files by the path they are asked for, or the bundler's words. */
+/**
+ * One build: its number, and its pages' HTML by page and its other files
+ * (scripts, styles, maps) by the path they are asked for, or the bundler's words.
+ */
 interface Built {
   readonly build: number;
   readonly outcome:
-    | { readonly _tag: 'Built'; readonly files: ReadonlyMap<string, BuiltFile> }
+    | {
+        readonly _tag: 'Built';
+        readonly pages: ReadonlyMap<PageName, BuiltFile>;
+        readonly files: ReadonlyMap<string, BuiltFile>;
+      }
     | { readonly _tag: 'Failed'; readonly reason: string };
 }
 
@@ -120,6 +127,17 @@ const filesOf = (built: Built): ReadonlyMap<string, BuiltFile> => {
   return new Map();
 };
 
+/** The deepest folder every one of `dirs` (absolute) lies under. */
+const commonDir = (dirs: ReadonlyArray<string>): string => {
+  const [first = [], ...rest] = dirs.map((dir) => dir.split('/'));
+  const common = rest.reduce((shared, parts) => {
+    const differs = shared.findIndex((part, i) => part !== parts[i]);
+    if (differs === -1) return shared;
+    return shared.slice(0, differs);
+  }, first);
+  return common.join('/') || '/';
+};
+
 const NOT_FOUND = HttpServerResponse.text('not found', { status: 404 });
 const HTML = 'text/html;charset=utf-8';
 
@@ -133,16 +151,22 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const read = yield* Ref.make(Option.none<ReadonlySet<string>>());
   const builds = yield* Ref.make<ReadonlyArray<Built>>([]);
   const building = yield* Semaphore.make(1);
-  const routeOf = new Map(
-    Object.entries(spec.pages).map(([route, html]) => [path.basename(html), route]),
-  );
+  // Bun names each output by its entry's path relative to the build's root: the
+  // entries' common folder, given to the build so the names cannot drift.
+  const entries = Record.toEntries(spec.pages);
+  const root = commonDir(entries.map(([, html]) => path.dirname(path.resolve(html))));
+  const pageOf = new Map(entries.map(([page, html]) => [path.relative(root, html), page]));
 
   const bundle = Effect.fnUntraced(function* (build: number) {
     const { solidPlugin } = yield* Effect.promise(() => import('./solid-plugin.ts'));
     const outcome = yield* Effect.tryPromise({
       try: () =>
         Bun.build({
-          entrypoints: Object.values(spec.pages),
+          entrypoints: entries.map(([, html]) => html),
+          root,
+          // Every page links its scripts and styles from the root (`/chunk-….js`), so a
+          // page served under a film's path (`/films/<film>/lab/<scene>`) finds them.
+          publicPath: '/',
           plugins: [solidPlugin],
           target: 'browser',
           splitting: true,
@@ -161,17 +185,18 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
             path.resolve(input),
           );
           yield* Ref.set(read, Option.some(new Set(inputs)));
+          const pages = new Map<PageName, BuiltFile>();
           const files = new Map<string, BuiltFile>();
           for (const file of out.outputs) {
             const name = file.path.replace(/^\.\//, '');
-            const served = Option.getOrElse(
-              Option.fromUndefinedOr(routeOf.get(name)),
-              () => `/${name}`,
-            );
             const bytes = new Uint8Array(yield* Effect.promise(() => file.arrayBuffer()));
-            files.set(served, { bytes, type: file.type });
+            const built = { bytes, type: file.type };
+            Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
+              onNone: () => files.set(`/${name}`, built),
+              onSome: (page) => pages.set(page, built),
+            });
           }
-          return { _tag: 'Built', files } as const;
+          return { _tag: 'Built', pages, files } as const;
         }),
       ),
       Effect.catch((reason) =>
@@ -236,36 +261,36 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       Effect.map((build) => ({ build })),
     );
 
-  /** A built file by its path, in the builds kept: HTML asked again each load, the rest named by hash. */
-  const file = (pathname: string) =>
+  /** A page's HTML as the sources stand, built now if they changed: asked again each load. */
+  const page = (name: PageName) =>
     Effect.gen(function* () {
-      if (Option.isSome(Record.get(spec.pages, pathname))) {
-        const built = yield* current;
-        if (built.outcome._tag === 'Failed')
-          return HttpServerResponse.text(failedPage(built.outcome.reason, built.build), {
-            status: 500,
-            contentType: HTML,
-            headers: { 'cache-control': 'no-store' },
-          });
-        const html = Option.fromUndefinedOr(built.outcome.files.get(pathname));
-        if (Option.isNone(html)) return NOT_FOUND;
-        return HttpServerResponse.text(
-          stamped(new TextDecoder().decode(html.value.bytes), built.build),
-          { contentType: HTML, headers: { 'cache-control': 'no-store' } },
-        );
-      }
-      const found = Arr.findFirst(yield* Ref.get(builds), (built) =>
-        Option.fromUndefinedOr(filesOf(built).get(pathname)),
+      const built = yield* current;
+      if (built.outcome._tag === 'Failed')
+        return HttpServerResponse.text(failedPage(built.outcome.reason, built.build), {
+          status: 500,
+          contentType: HTML,
+          headers: { 'cache-control': 'no-store' },
+        });
+      const html = Option.fromUndefinedOr(built.outcome.pages.get(name));
+      if (Option.isNone(html)) return NOT_FOUND;
+      return HttpServerResponse.text(
+        stamped(new TextDecoder().decode(html.value.bytes), built.build),
+        { contentType: HTML, headers: { 'cache-control': 'no-store' } },
       );
-      return Option.match(found, {
-        onNone: () => NOT_FOUND,
-        onSome: ({ bytes, type }) =>
+    });
+
+  /** A script, style or map by its path, in the builds kept: each named by its hash, so never changed. */
+  const asset = (pathname: string) =>
+    Effect.map(Ref.get(builds), (kept) =>
+      Option.map(
+        Arr.findFirst(kept, (built) => Option.fromUndefinedOr(filesOf(built).get(pathname))),
+        ({ bytes, type }) =>
           HttpServerResponse.uint8Array(bytes, {
             contentType: type,
             headers: { 'cache-control': 'max-age=31536000, immutable' },
           }),
-      });
-    });
+      ),
+    );
 
   /** The narration a page plays: the studio rewrites it in place (a take kept, the track remixed), so asked again each load. */
   const narration = (request: HttpServerRequest.HttpServerRequest, pathname: string) =>
@@ -283,11 +308,19 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       }),
     );
 
+  // A narration file by its exact URL, then a built file, then the page the
+  // path serves (`PAGE_PATHS`); anything else, a chunk of a build no longer
+  // kept among them, is a 404 and never a page's HTML.
   const answer = Effect.gen(function* () {
     const request = yield* HttpServerRequest.HttpServerRequest;
     const pathname = new URL(request.url, 'http://lab').pathname;
-    if (pathname.startsWith('/films/')) return yield* narration(request, pathname);
-    return yield* file(pathname);
+    if (isNarrationUrl(pathname)) return yield* narration(request, pathname);
+    const built = yield* asset(pathname);
+    if (Option.isSome(built)) return built.value;
+    return yield* Option.match(pageAt(pathname), {
+      onNone: () => Effect.succeed(NOT_FOUND),
+      onSome: page,
+    });
   });
 
   return LabPage.of({ answer, wait });

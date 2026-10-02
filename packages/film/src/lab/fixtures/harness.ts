@@ -13,7 +13,7 @@ import { CLOCK_SCRIPT } from './clock.ts';
 import { PROBE } from './probe-film.ts';
 import type { Request, Response, Tab } from './tab.ts';
 
-const API = `/lab/${PROBE}`;
+const API = `/api/films/${PROBE}`;
 
 /** A JSON value, as the fake server answers and the page posts. */
 export type Json = Schema.Json;
@@ -59,7 +59,7 @@ export const later = (gate: Deferred.Deferred<void>, then: Answer): Answer => ({
 /** A file on disk, its type read from its name (a fixture video). */
 export const file = (path: string): Answer => ({ _tag: 'File', path });
 
-/** A fake lab route: the method, the path under `/lab/probe` it matches, and its answer. */
+/** A fake lab route: the method, the path under `/api/films/probe` it matches, and its answer. */
 export interface FakeRoute {
   readonly method: 'GET' | 'POST';
   readonly path: RegExp;
@@ -348,7 +348,7 @@ interface ReviewAt {
 /**
  * Open the review page (`fixtures/review-page.ts`, the real `mountReview`)
  * at `search`, with `routes` answering its requests by their whole path
- * (`/review/index`, `/review/files/…`): what none answers is a 404. The
+ * (`/api/review/index`, `/api/review/files/…`): what none answers is a 404. The
  * browser plays media without a gesture, its clock is the test's, and the
  * tab goes back to the pool with the scope.
  */

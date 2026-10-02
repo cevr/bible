@@ -4,7 +4,10 @@
 // the server's own failure class (`SourceRefused`, `NoteNotFound`, …), its
 // message the words the panel shows; a request that never reached the
 // server, or an answer that does not decode, is LabUnreachable in its own
-// words. The scene source routes are `LabApi`; the notes routes `NotesApi`.
+// words. One client (`LabClient`) serves every page's calls: the scene
+// source routes are `LabApi`, the notes routes `NotesApi`, and the studio's,
+// the review's and the choices' build on it (`studio/api.ts`,
+// `review/api.ts`, `review/options/api.ts`).
 
 import { Cause, Context, Effect, Layer, Predicate, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
@@ -105,13 +108,17 @@ const WAIT_S = 55;
 /** The lab's client on `origin`: every group of `LabHttpApi`. */
 const labClient = (origin: string) => HttpApiClient.make(LabHttpApi, { baseUrl: origin });
 
-/** One derived client for the page, shared by its panel runtimes. */
+/**
+ * The page's one client of the lab's API, derived from `LabHttpApi`: every
+ * call a page makes goes through it. Its layer gives the `fetch` client
+ * beside it, for a file read by its URL (a review doc's text).
+ */
 export class LabClient extends Context.Service<
   LabClient,
   Effect.Success<ReturnType<typeof labClient>>
 >()('@bible/film/lab/Client') {
   static readonly layer = (origin: string) =>
-    Layer.effect(LabClient, labClient(origin)).pipe(Layer.provide(FetchHttpClient.layer));
+    Layer.effect(LabClient, labClient(origin)).pipe(Layer.provideMerge(FetchHttpClient.layer));
 }
 
 /** The scene source routes for `film`, over the page's derived client. */

@@ -99,9 +99,11 @@ describe('what a card says', () => {
   });
 
   test('plays the phone copy only once it is made, and only when asked for', () => {
-    expect(videoUrl(video('a b.mp4', 'ready'), 'phone')).toBe('/review/phone/out/f/a%20b.mp4');
-    expect(videoUrl(video('a b.mp4', 'pending'), 'phone')).toBe('/review/files/out/f/a%20b.mp4');
-    expect(videoUrl(video('a b.mp4', 'ready'), 'full')).toBe('/review/files/out/f/a%20b.mp4');
+    expect(videoUrl(video('a b.mp4', 'ready'), 'phone')).toBe('/api/review/phone/out/f/a%20b.mp4');
+    expect(videoUrl(video('a b.mp4', 'pending'), 'phone')).toBe(
+      '/api/review/files/out/f/a%20b.mp4',
+    );
+    expect(videoUrl(video('a b.mp4', 'ready'), 'full')).toBe('/api/review/files/out/f/a%20b.mp4');
   });
 
   test("finds a video's captions, a share copy's by its master", () => {

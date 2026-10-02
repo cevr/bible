@@ -106,12 +106,14 @@ const index: Json = {
 };
 
 const routes: ReadonlyArray<FakeRoute> = [
-  route('GET', /^\/review\/index/, () => json(index)),
-  route('GET', /^\/review\/duration/, () => json({ seconds: 20 })),
-  route('GET', /^\/review\/files\/out\/art\/why\.md$/, () =>
+  route('GET', /^\/api\/review\/index/, () => json(index)),
+  route('GET', /^\/api\/review\/duration/, () => json({ seconds: 20 })),
+  route('GET', /^\/api\/review\/files\/out\/art\/why\.md$/, () =>
     text('# Why\n- **warm** <script>bad()</script>', 200),
   ),
-  route('GET', /^\/review\/files\/out\/art\/roof\.A\.md$/, () => text('Warm reads *best*.', 200)),
+  route('GET', /^\/api\/review\/files\/out\/art\/roof\.A\.md$/, () =>
+    text('Warm reads *best*.', 200),
+  ),
 ];
 
 const SET = '?folder=out%2Fart&set=render%3Aroof';
@@ -141,13 +143,13 @@ describe('the review page', () => {
         yield* countIs(page, '[data-review-blurb] img, [data-review-blurb] script', 0);
         yield* textHas(page, 'a.rv-card', 'compare 3');
         yield* textHas(page, '.rv-card', 'walk.mp4');
-        yield* attributeIs(page, '.rv-tall track', 'src', '/review/files/out/art/walk.vtt');
+        yield* attributeIs(page, '.rv-tall track', 'src', '/api/review/files/out/art/walk.vtt');
         yield* textHas(page, '[data-review-download]', 'master #1.mp4');
         yield* attributeIs(
           page,
           '[data-review-download]',
           'href',
-          '/review/files/out/art/master%20%231.mp4',
+          '/api/review/files/out/art/master%20%231.mp4',
         );
         yield* attributeIs(page, '[data-review-download]', 'download', 'master #1.mp4');
         yield* countIs(page, 'video[src*="master"], img[src*="master"]', 0);
@@ -262,7 +264,7 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(
           [
-            route('GET', /^\/review\/files\/out\/art\/why\.md$/, () =>
+            route('GET', /^\/api\/review\/files\/out\/art\/why\.md$/, () =>
               refused(ReviewFileUnknown.make({ ref: 'out/art/<i>why</i>.md' })),
             ),
             ...routes,

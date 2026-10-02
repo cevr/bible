@@ -9,6 +9,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Context, Effect, FileSystem, Layer, Path, Schema } from 'effect';
 import { HttpPlatform } from 'effect/http';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { labUrls } from '../core/api.ts';
 import { HeadSource, LabWrite, SceneSource } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmModuleInvalid } from './errors.ts';
@@ -105,14 +106,23 @@ describe('lab source routes', () => {
         const lab = yield* labHandler({ hosts: [] });
         const before = yield* read();
         const source = yield* Effect.promise(() =>
-          lab(new Request(at('/lab/f/scenes/hand/source')), bound).then((r) => r.json()),
+          lab(
+            new Request(at(labUrls.scenes.source({ params: { film: 'f', scene: 'hand' } }))),
+            bound,
+          ).then((r) => r.json()),
         );
         expect(yield* Schema.decodeUnknownEffect(SceneSource)(source)).toMatchObject({
           file: 'scenes/hand.ts',
           knobs: [{ name: 'palm', state: 'literal' }],
         });
         const res = yield* Effect.promise(() =>
-          lab(post('/lab/f/cues/hand/topple', '{"offset":0.4}'), bound),
+          lab(
+            post(
+              labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } }),
+              '{"offset":0.4}',
+            ),
+            bound,
+          ),
         );
         expect(res.status).toBe(200);
         const written = yield* Schema.decodeUnknownEffect(LabWrite)(
@@ -136,12 +146,24 @@ describe('lab source routes', () => {
     Effect.gen(function* () {
       const lab = yield* labHandler({ hosts: [] });
       const knob = yield* Effect.promise(() =>
-        lab(post('/lab/f/knobs/hand/palm', '{"value":[1000,760]}'), bound).then((r) => r.json()),
+        lab(
+          post(
+            labUrls.scenes.knob({ params: { film: 'f', scene: 'hand', knob: 'palm' } }),
+            '{"value":[1000,760]}',
+          ),
+          bound,
+        ).then((r) => r.json()),
       );
       expect(knob).toMatchObject({ target: 'knob palm', knob: [1000, 760] });
       const after = yield* read();
       const refused = yield* Effect.promise(() =>
-        lab(post('/lab/f/cues/hand/late', '{"offset":1}'), bound),
+        lab(
+          post(
+            labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'late' } }),
+            '{"offset":1}',
+          ),
+          bound,
+        ),
       );
       expect(refused.status).toBe(422);
       const refusal = yield* Effect.promise(() => refused.json());
@@ -153,12 +175,36 @@ describe('lab source routes', () => {
       expect(refusal.reason).toContain('`GAP * 2`, not a literal');
       expect(yield* read()).toBe(after);
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
-      expect(yield* status(post('/lab/f/cues/nope/topple', '{"dur":1}'))).toBe(404);
-      expect(yield* status(post('/lab/f/cues/hand/topple', '{}'))).toBe(400);
-      expect(yield* status(post('/lab/f/cues/hand/topple', '{"ease":"bouncy"}'))).toBe(400);
+      expect(
+        yield* status(
+          post(
+            labUrls.scenes.cue({ params: { film: 'f', scene: 'nope', cue: 'topple' } }),
+            '{"dur":1}',
+          ),
+        ),
+      ).toBe(404);
+      expect(
+        yield* status(
+          post(labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } }), '{}'),
+        ),
+      ).toBe(400);
+      expect(
+        yield* status(
+          post(
+            labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } }),
+            '{"ease":"bouncy"}',
+          ),
+        ),
+      ).toBe(400);
       // A timing the timeline would not resolve with: refused as the panel shows it.
       const unresolved = yield* Effect.promise(() =>
-        lab(post('/lab/f/cues/hand/topple', '{"until":"earns"}'), bound),
+        lab(
+          post(
+            labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } }),
+            '{"until":"earns"}',
+          ),
+          bound,
+        ),
       );
       expect(unresolved.status).toBe(422);
       expect(yield* Effect.promise(() => unresolved.json())).toMatchObject({
@@ -175,25 +221,33 @@ describe('lab source routes', () => {
       const json = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.json()));
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
       const before = yield* read();
-      yield* Effect.promise(() => lab(post('/lab/f/cues/hand/topple', '{"ease":"inQuad"}'), bound));
+      yield* Effect.promise(() =>
+        lab(
+          post(
+            labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } }),
+            '{"ease":"inQuad"}',
+          ),
+          bound,
+        ),
+      );
       const written = yield* read();
       expect(written).not.toBe(before);
-      expect(yield* json(post('/lab/f/undo', '{}'))).toMatchObject({
+      expect(yield* json(post(labUrls.steps.undo({ params: { film: 'f' } }), '{}'))).toMatchObject({
         target: 'undo cue topple ease',
       });
       expect(yield* read()).toBe(before);
-      expect(yield* status(post('/lab/f/undo', '{}'))).toBe(409);
+      expect(yield* status(post(labUrls.steps.undo({ params: { film: 'f' } }), '{}'))).toBe(409);
       // The page the undo reloaded asks what happened, and what Redo would do.
-      expect(yield* json(get('/lab/f/check'))).toMatchObject({
+      expect(yield* json(get(labUrls.steps.check({ params: { film: 'f' } })))).toMatchObject({
         latest: { target: 'undo cue topple ease', file: 'scenes/hand.ts' },
         redo: { target: 'cue topple ease' },
       });
-      expect(yield* json(post('/lab/f/redo', '{}'))).toMatchObject({
+      expect(yield* json(post(labUrls.steps.redo({ params: { film: 'f' } }), '{}'))).toMatchObject({
         target: 'redo cue topple ease',
       });
       expect(yield* read()).toBe(written);
-      expect(yield* status(post('/lab/f/redo', '{}'))).toBe(409);
-      const report = yield* json(get('/lab/f/check'));
+      expect(yield* status(post(labUrls.steps.redo({ params: { film: 'f' } }), '{}'))).toBe(409);
+      const report = yield* json(get(labUrls.steps.check({ params: { film: 'f' } })));
       expect(report).toMatchObject({
         latest: { target: 'redo cue topple ease' },
         undo: { target: 'cue topple ease' },
@@ -214,7 +268,12 @@ describe('lab source routes', () => {
         const git = (...args: ReadonlyArray<string>) =>
           collect(spawner, ChildProcess.make('git', [...args], { cwd: dir }));
         const request = () =>
-          Effect.promise(() => lab(new Request(at('/lab/f/scenes/hand/head')), bound));
+          Effect.promise(() =>
+            lab(
+              new Request(at(labUrls.scenes.head({ params: { film: 'f', scene: 'hand' } }))),
+              bound,
+            ),
+          );
         const head = Effect.fn('test.head')(function* () {
           const res = yield* request();
           return yield* Schema.decodeUnknownEffect(HeadSource)(
@@ -238,7 +297,15 @@ describe('lab source routes', () => {
           knobs: { palm: [960, 800] },
         });
         // A lab write changes data only; HEAD still has the old offset, and the computed cue is left out.
-        yield* Effect.promise(() => lab(post('/lab/f/cues/hand/topple', '{"offset":0.4}'), bound));
+        yield* Effect.promise(() =>
+          lab(
+            post(
+              labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } }),
+              '{"offset":0.4}',
+            ),
+            bound,
+          ),
+        );
         const moved = yield* head();
         expect(moved).toMatchObject({
           codeChanged: false,
@@ -260,7 +327,13 @@ describe('lab source routes', () => {
       Effect.gen(function* () {
         const lab = yield* labHandler({ hosts: [] });
         const res = yield* Effect.promise(() =>
-          lab(post('/lab/f/cues/hand/topple', '{"offset":0.4}'), bound),
+          lab(
+            post(
+              labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } }),
+              '{"offset":0.4}',
+            ),
+            bound,
+          ),
         );
         expect(res.status).toBe(200);
         const written = yield* Schema.decodeUnknownEffect(LabWrite)(

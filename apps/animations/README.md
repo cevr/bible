@@ -79,7 +79,7 @@ the lab (`lab.html`, whose entry `src/lab.ts` mounts `@bible/film/lab`) at
 `/lab?film=<film>`, the player at `/player`. There is no build step and no
 restart after an edit: an open lab reloads itself onto the new code at the
 frame it shows, and a page that does not build shows the bundler's words
-until it does. The lab's routes are at `/lab/<film>/*` and `/review/*` (a name
+until it does. The lab's routes are under `/api/` (a film's at `/api/films/<film>/*`; a name
 that is not one of the app's films is answered 404 `FilmUnknown`). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print each beat `recorded`, `staging` or
@@ -220,9 +220,10 @@ for the lab's origin; a browser gives the microphone only to `https://` or
 (it is remembered in the browser). The capture is raw PCM (no echo cancelling,
 noise suppression or gain control) posted as a 24-bit WAV at the microphone's
 own rate. `bun studio-harness.ts` runs the same lab over a temp
-copy of a film with a fake speech-to-text (no paid call; `POST
-/lab/harness/mishear/<beat>` makes it mis-hear a beat, `POST
-/lab/harness/stop` stops it and removes the copy), for driving the panel
+copy of a film with a fake speech-to-text (no paid call; its control is behind
+the lab's gate, a write JSON as from a tool, `curl -H 'content-type: application/json' -d '{}'`: `POST
+/harness/mishear/<beat>` makes it mis-hear a beat, `POST
+/harness/stop` stops it and removes the copy), for driving the panel
 without touching the real films. A striped timeline segment means that beat's narration is
 estimated, not recorded. The track also marks every `{mark}` (a tick at its
 foot), every named cue (a bar as long as the cue), every sound effect (a dot

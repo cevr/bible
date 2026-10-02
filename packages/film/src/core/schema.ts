@@ -931,7 +931,7 @@ const LabStep = Schema.Struct({
 });
 
 /**
- * `GET /lab/<film>/check`: `film check --static` now; the lab's latest change
+ * `GET /api/films/<film>/check`: `film check --static` now; the lab's latest change
  * to a file (a write, `undo …` or `redo …`: a page that change reloaded
  * learns of it here); and the writes Undo would put back and Redo would make
  * again.

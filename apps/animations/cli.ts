@@ -6,7 +6,7 @@
 
 import { type LabHandler, PreviewServer, type ReviewRoot, runFilmCli } from '@bible/film/tools';
 import { Config, Effect, FileSystem, Layer, Path } from 'effect';
-import { FILMS, serve, serveLab } from './server.ts';
+import { FILMS, LAB_PAGES, LAB_SOURCES, serve, serveLab } from './server.ts';
 
 /** The app's sound library, shared by its films (`sounds/library.ts`). */
 export const SOUNDS = `${import.meta.dir}/sounds`;
@@ -81,16 +81,8 @@ export const appCli = (films: string, sounds: string, self: string): void =>
     previewServer: player(films),
     lab: {
       server: labServer,
-      // The lab's pages, built from this app's source: the review at `/`, the lab at `/lab`,
-      // the player (its look-book) at `/player`.
-      pages: {
-        pages: {
-          '/': `${import.meta.dir}/review.html`,
-          '/lab': `${import.meta.dir}/lab.html`,
-          '/player': `${import.meta.dir}/index.html`,
-        },
-        sources: [`${import.meta.dir}/src`, `${import.meta.dir}/assets`],
-      },
+      // The lab's pages, built from this app's source: its review, its lab and its player.
+      pages: { pages: LAB_PAGES, sources: LAB_SOURCES },
       roots: checkoutRoots,
     },
     // This CLI, for the lab's fresh `check --static` after each write.

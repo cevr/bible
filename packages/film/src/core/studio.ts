@@ -77,11 +77,11 @@ export const StudioBeat = Schema.Struct({
 });
 export type StudioBeat = typeof StudioBeat.Type;
 
-/** `GET /lab/<film>/studio/beats`. */
+/** `GET /api/films/<film>/studio/beats`. */
 export const StudioBeats = Schema.Struct({ film: Schema.String, beats: Schema.Array(StudioBeat) });
 export type StudioBeats = typeof StudioBeats.Type;
 
-/** `POST /lab/<film>/studio/takes/:beat`: one recording, as the browser made it. */
+/** `POST /api/films/<film>/studio/takes/:beat`: one recording, as the browser made it. */
 export const TakePost = Schema.Struct({
   /** The recording's bytes, base64. */
   audio: Schema.String,
@@ -96,7 +96,7 @@ export const TakePost = Schema.Struct({
 });
 export type TakePost = typeof TakePost.Type;
 
-/** `POST /lab/<film>/studio/takes/:beat/keep`: an earlier attempt, kept as the take. */
+/** `POST /api/films/<film>/studio/takes/:beat/keep`: an earlier attempt, kept as the take. */
 export const KeepPost = Schema.Struct({
   file: Schema.String,
   acceptMismatch: Schema.optionalKey(Schema.Boolean),
@@ -132,7 +132,7 @@ export const StudioAttempt = Schema.Struct({
 });
 export type StudioAttempt = typeof StudioAttempt.Type;
 
-/** `GET /lab/<film>/studio/takes/:beat/attempts`: newest first. */
+/** `GET /api/films/<film>/studio/takes/:beat/attempts`: newest first. */
 export const StudioAttempts = Schema.Struct({
   beat: Schema.String,
   attempts: Schema.Array(StudioAttempt),

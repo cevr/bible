@@ -213,7 +213,7 @@ describe('the studio', () => {
             page,
             '.studio-attempt audio',
             'src',
-            files.map((file) => `/lab/${PROBE}/studio/takes/thesis/attempts/${file}`),
+            files.map((file) => `/api/films/${PROBE}/studio/takes/thesis/attempts/${file}`),
           );
           expect(errors).toEqual([]);
         }),

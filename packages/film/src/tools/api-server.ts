@@ -317,15 +317,23 @@ type ApiRoutes = Layer.Layer<
   | HttpRouter.Request<'Requires', Connection>
 >;
 
+/** Routes beside an API's, outside its prefixes: a fixture's own (the studio harness's control). */
+export type BesideRoutes = Layer.Layer<never, never, HttpRouter.HttpRouter>;
+
 /**
  * `api`'s routes served as one web handler: the gate with `allowed` in
- * front of every path, then the routes, then `page` for the paths no route
- * takes outside the API's own. Closed when the scope closes.
+ * front of every path, then the routes (and any `beside` them), then `page`
+ * for the paths no route takes outside the API's own. Closed when the scope
+ * closes.
  */
 export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
   routes: ApiRoutes,
-  options: { readonly allowed: Allowed; readonly page: PageAnswer },
+  options: {
+    readonly allowed: Allowed;
+    readonly page: PageAnswer;
+    readonly beside: BesideRoutes;
+  },
 ) =>
   Effect.gen(function* () {
     const platform = yield* Effect.context<
@@ -333,6 +341,7 @@ export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constrai
     >();
     const app = Layer.mergeAll(
       routes,
+      options.beside,
       gate(options.allowed),
       pageRoute(options.page, prefixesOf(api), platform),
     ).pipe(Layer.provide(Etag.layerWeak), Layer.provide(Layer.succeedContext(platform)));

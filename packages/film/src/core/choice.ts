@@ -304,7 +304,7 @@ export const seenPoint = (point: ChoicePoint): SeenPoint => ({
 // ---------------------------------------------------------------------------
 // On the wire: the review's `choices` routes (`api.ts`).
 
-/** `GET /lab/<film>/choices`: the film's choice points, and the renders they are heard against. */
+/** `GET /api/films/<film>/choices`: the film's choice points, and the renders they are heard against. */
 export const FilmChoices = Schema.Struct({
   film: Schema.String,
   /**
@@ -318,7 +318,7 @@ export const FilmChoices = Schema.Struct({
 });
 export type FilmChoices = typeof FilmChoices.Type;
 
-/** `POST /lab/<film>/choices/pick`: a verb on one variant of one point. */
+/** `POST /api/films/<film>/choices/pick`: a verb on one variant of one point. */
 export const PickPost = Schema.Struct({
   point: Schema.String,
   variant: Schema.String,
@@ -326,7 +326,7 @@ export const PickPost = Schema.Struct({
 });
 export type PickPost = typeof PickPost.Type;
 
-/** `POST /lab/<film>/choices/level`: a level point's knob set. */
+/** `POST /api/films/<film>/choices/level`: a level point's knob set. */
 export const KnobPost = Schema.Struct({ point: Schema.String, value: Schema.Finite });
 export type KnobPost = typeof KnobPost.Type;
 
@@ -340,6 +340,6 @@ export const ChoiceWrite = Schema.Struct({
 });
 export type ChoiceWrite = typeof ChoiceWrite.Type;
 
-/** `GET /lab/<film>/choices/check`: `film check --sound` now (dead air, balance against the mix it makes). */
+/** `GET /api/films/<film>/choices/check`: `film check --sound` now (dead air, balance against the mix it makes). */
 export const SoundCheck = Schema.Struct({ findings: Schema.Array(CheckLine) });
 export type SoundCheck = typeof SoundCheck.Type;

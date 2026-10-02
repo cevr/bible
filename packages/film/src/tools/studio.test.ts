@@ -8,6 +8,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Effect, type FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
 import { HttpPlatform } from 'effect/http';
+import { labUrls } from '../core/api.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
 import {
@@ -190,7 +191,9 @@ describe('studio routes', () => {
     () => {
       const { layer } = setup(said);
       return Effect.gen(function* () {
-        const { status, body } = yield* call(get('/lab/test/studio/beats'));
+        const { status, body } = yield* call(
+          get(labUrls.studio.beats({ params: { film: 'test' } })),
+        );
         expect(status).toBe(200);
         const listed = yield* Schema.decodeUnknownEffect(StudioBeats)(body);
         expect(listed.beats.map((b) => [b.id, b.file, b.state, b.recorded, b.attempts])).toEqual([
@@ -213,8 +216,9 @@ describe('studio routes', () => {
     () => {
       const { reads, stamp, source, layer } = setup(new Map([...said, ['a', 'Hello there.']]));
       return Effect.gen(function* () {
-        const beats = Effect.flatMap(call(get('/lab/test/studio/beats')), (res) =>
-          Schema.decodeUnknownEffect(StudioBeats)(res.body),
+        const beats = Effect.flatMap(
+          call(get(labUrls.studio.beats({ params: { film: 'test' } }))),
+          (res) => Schema.decodeUnknownEffect(StudioBeats)(res.body),
         );
         expect((yield* beats).beats[0]).toMatchObject({ state: 'staging' });
         // The agent fixes the line; the lab keeps running, its own imports as they were.
@@ -227,7 +231,12 @@ describe('studio routes', () => {
         expect(fixed?.parts).toEqual([{ kind: 'line', text: 'Hello there.' }]);
         expect([fixed?.state, fixed?.staleReason]).toEqual(['stale', 'text changed']);
         // The owner reads the new line: it is kept as the take, current.
-        const { status } = yield* call(post('/lab/test/studio/takes/a', recording('Hello there.')));
+        const { status } = yield* call(
+          post(
+            labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
+            recording('Hello there.'),
+          ),
+        );
         expect(status).toBe(200);
         stamp.now += 1;
         expect((yield* beats).beats[0]).toMatchObject({ state: 'recorded', recorded: true });
@@ -241,7 +250,10 @@ describe('studio routes', () => {
     const { mixes, layer } = setup(said);
     return Effect.gen(function* () {
       const { status, body } = yield* call(
-        post('/lab/test/studio/takes/a', recording('Hello world.')),
+        post(
+          labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
+          recording('Hello world.'),
+        ),
       );
       expect(status).toBe(200);
       const kept = yield* Schema.decodeUnknownEffect(StudioTake)(body);
@@ -252,7 +264,7 @@ describe('studio routes', () => {
       expect(kept.mixed).toBe(true);
       expect(mixes).toEqual(['test']);
       const listed = yield* Schema.decodeUnknownEffect(StudioBeats)(
-        (yield* call(get('/lab/test/studio/beats'))).body,
+        (yield* call(get(labUrls.studio.beats({ params: { film: 'test' } })))).body,
       );
       expect(listed.beats[0]).toMatchObject({
         id: 'a',
@@ -269,7 +281,10 @@ describe('studio routes', () => {
       const { mixes, layer } = setup(new Map([...said, ['b', 'He said nothing at all today.']]));
       return Effect.gen(function* () {
         const refused = yield* call(
-          post('/lab/test/studio/takes/b', recording('He said be still to them.')),
+          post(
+            labUrls.studio.take({ params: { film: 'test', beat: 'b' } }),
+            recording('He said be still to them.'),
+          ),
         );
         expect(refused.status).toBe(422);
         const why = yield* Schema.decodeUnknownEffect(TakeMismatch)(refused.body);
@@ -283,15 +298,20 @@ describe('studio routes', () => {
         const attempt = Option.getOrThrow(Option.fromNullishOr(why.attempt));
         // Heard again and kept: the attempt is listed, then made the take.
         const listed = yield* Schema.decodeUnknownEffect(StudioAttempts)(
-          (yield* call(get('/lab/test/studio/takes/b/attempts'))).body,
+          (yield* call(get(labUrls.studio.attempts({ params: { film: 'test', beat: 'b' } })))).body,
         );
         expect(listed.attempts.map((a) => [a.file, a.kept, a.current])).toEqual([
           [attempt, false, true],
         ]);
-        const audio = yield* call(get(`/lab/test/studio/takes/b/attempts/${attempt}`));
+        const audio = yield* call(
+          get(labUrls.studio.attempt({ params: { film: 'test', beat: 'b', file: attempt } })),
+        );
         expect([audio.status, audio.type]).toEqual([200, 'audio/flac']);
         const kept = yield* call(
-          post('/lab/test/studio/takes/b/keep', `{"file":"${attempt}","acceptMismatch":true}`),
+          post(
+            labUrls.studio.keep({ params: { film: 'test', beat: 'b' } }),
+            `{"file":"${attempt}","acceptMismatch":true}`,
+          ),
         );
         expect(kept.status).toBe(200);
         expect(
@@ -310,23 +330,37 @@ describe('studio routes', () => {
     () => {
       const { layer } = setup(said);
       return Effect.gen(function* () {
-        const quiet = yield* call(post('/lab/test/studio/takes/quiet', recording('Hello.')));
+        const quiet = yield* call(
+          post(
+            labUrls.studio.take({ params: { film: 'test', beat: 'quiet' } }),
+            recording('Hello.'),
+          ),
+        );
         expect([quiet.status, (quiet.body as { _tag: string })._tag]).toEqual([
           422,
           'RecordingInvalid',
         ]);
         expect(
-          (yield* call(post('/lab/test/studio/takes/a', '{"audio":"*","type":"audio/wav"}')))
-            .status,
+          (yield* call(
+            post(
+              labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
+              '{"audio":"*","type":"audio/wav"}',
+            ),
+          )).status,
         ).toBe(400);
-        expect((yield* call(post('/lab/test/studio/takes/a', '{"type":"audio/wav"}'))).status).toBe(
-          400,
-        );
+        expect(
+          (yield* call(
+            post(
+              labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
+              '{"type":"audio/wav"}',
+            ),
+          )).status,
+        ).toBe(400);
         // The owner's take is the final voice: a lossy upload is refused, not made a master.
         for (const lossy of ['audio/webm;codecs=opus', 'audio/mp4', 'audio/mpeg', 'audio/ogg']) {
           const refused = yield* call(
             post(
-              '/lab/test/studio/takes/a',
+              labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
               `{"audio":"${Base64.encode('Hello world.')}","type":"${lossy}"}`,
             ),
           );
@@ -338,16 +372,20 @@ describe('studio routes', () => {
         expect(
           (yield* call(
             post(
-              '/lab/test/studio/takes/a',
+              labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
               `{"audio":"${Base64.encode('Hello world.')}","type":"audio/flac"}`,
             ),
           )).status,
         ).toBe(200);
         expect(
-          (yield* call(get('/lab/test/studio/takes/a/attempts/..%2F..%2Ftimings.json'))).status,
+          (yield* call(get('/api/films/test/studio/takes/a/attempts/..%2F..%2Ftimings.json')))
+            .status,
         ).toBe(404);
         const keep = yield* call(
-          post('/lab/test/studio/takes/a/keep', '{"file":"a.000000000000.mp3"}'),
+          post(
+            labUrls.studio.keep({ params: { film: 'test', beat: 'a' } }),
+            '{"file":"a.000000000000.mp3"}',
+          ),
         );
         expect([keep.status, (keep.body as { _tag: string })._tag]).toEqual([
           422,
@@ -369,7 +407,7 @@ describe('studio routes', () => {
         '%2E%2E%2F%2E%2E%2Fx',
       ]) {
         const posted = yield* call(
-          post(`/lab/test/studio/takes/${beat}`, recording('Hello world.')),
+          post(`/api/films/test/studio/takes/${beat}`, recording('Hello world.')),
         );
         expect([beat, posted.status, (posted.body as { _tag: string })._tag]).toEqual([
           beat,
@@ -377,12 +415,12 @@ describe('studio routes', () => {
           'UnknownScene',
         ]);
         const kept = yield* call(
-          post(`/lab/test/studio/takes/${beat}/keep`, '{"file":"a.000000000000.flac"}'),
+          post(`/api/films/test/studio/takes/${beat}/keep`, '{"file":"a.000000000000.flac"}'),
         );
         expect([beat, kept.status]).toEqual([beat, 404]);
         expect([
           beat,
-          (yield* call(get(`/lab/test/studio/takes/${beat}/attempts`))).status,
+          (yield* call(get(`/api/films/test/studio/takes/${beat}/attempts`))).status,
         ]).toEqual([beat, 404]);
       }
       // Nothing was written: no temporary recording, no attempt.
@@ -395,13 +433,15 @@ describe('studio routes', () => {
     const before = [...files.keys()];
     return Effect.gen(function* () {
       const huge = 'x'.repeat(STUDIO_MAX_BODY + 1);
-      const refused = yield* call(post('/lab/test/studio/takes/a', huge));
+      const refused = yield* call(
+        post(labUrls.studio.take({ params: { film: 'test', beat: 'a' } }), huge),
+      );
       expect([refused.status, (refused.body as { _tag: string })._tag]).toEqual([
         413,
         'BodyTooLarge',
       ]);
       // Said to be small, sent large: the stream is counted, not the header believed.
-      const lying = new Request(at('/lab/test/studio/takes/a'), {
+      const lying = new Request(at(labUrls.studio.take({ params: { film: 'test', beat: 'a' } })), {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'content-length': '10' },
         body: huge,
@@ -431,10 +471,20 @@ describe('studio routes', () => {
         const server = new Held();
         const studio = yield* labHandler({ hosts: [] });
         yield* Effect.promise(() =>
-          studio(post('/lab/test/studio/takes/a', recording('Hello world.')), server),
+          studio(
+            post(
+              labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
+              recording('Hello world.'),
+            ),
+            server,
+          ),
         );
-        yield* Effect.promise(() => studio(get('/lab/test/studio/beats'), server));
-        expect(raised).toEqual([['/lab/test/studio/takes/a', STUDIO_IMPORT_IDLE_S]]);
+        yield* Effect.promise(() =>
+          studio(get(labUrls.studio.beats({ params: { film: 'test' } })), server),
+        );
+        expect(raised).toEqual([
+          [labUrls.studio.take({ params: { film: 'test', beat: 'a' } }), STUDIO_IMPORT_IDLE_S],
+        ]);
         // The page stops waiting first, so the socket never closes under it.
         expect(STUDIO_IMPORT_IDLE_S).toBeGreaterThan(STUDIO_IMPORT_WAIT_S);
         expect(STUDIO_IMPORT_IDLE_S).toBeLessThanOrEqual(255);
@@ -457,8 +507,14 @@ describe('studio routes', () => {
       const studio = yield* labHandler({ hosts: [] });
       const answers = yield* Effect.forEach(
         [
-          post('/lab/test/studio/takes/a', recording('Hello world.')),
-          post('/lab/test/studio/takes/b', recording('He said be still to them.')),
+          post(
+            labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
+            recording('Hello world.'),
+          ),
+          post(
+            labUrls.studio.take({ params: { film: 'test', beat: 'b' } }),
+            recording('He said be still to them.'),
+          ),
         ],
         (request) => Effect.promise(() => studio(request, bound)),
         { concurrency: 2 },
@@ -467,7 +523,7 @@ describe('studio routes', () => {
       expect(events).toEqual(['mix', 'mixed', 'mix', 'mixed']);
       // Both takes are in the timings: neither write lost the other.
       const listed = yield* Schema.decodeUnknownEffect(StudioBeats)(
-        (yield* call(get('/lab/test/studio/beats'))).body,
+        (yield* call(get(labUrls.studio.beats({ params: { film: 'test' } })))).body,
       );
       expect(listed.beats.map((b) => b.recorded)).toEqual([true, true]);
     }).pipe(Effect.scoped, Effect.provide(layer));
@@ -476,12 +532,21 @@ describe('studio routes', () => {
   it.effect('answers only the lab page, for its film: another origin 403, another film 404', () => {
     const { files, layer } = setup(said);
     return Effect.gen(function* () {
-      const foreign = post('/lab/test/studio/takes/a', recording('Hello world.'), {
-        origin: 'http://evil.example',
-      });
+      const foreign = post(
+        labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
+        recording('Hello world.'),
+        {
+          origin: 'http://evil.example',
+        },
+      );
       expect((yield* call(foreign)).status).toBe(403);
       expect(
-        (yield* call(post('/lab/other/studio/takes/a', recording('Hello world.')))).status,
+        (yield* call(
+          post(
+            labUrls.studio.take({ params: { film: 'other', beat: 'a' } }),
+            recording('Hello world.'),
+          ),
+        )).status,
       ).toBe(404);
       expect([...files.keys()].some((f) => f.includes('/attempts/'))).toBe(false);
     }).pipe(Effect.scoped, Effect.provide(layer));

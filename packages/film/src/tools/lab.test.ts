@@ -9,7 +9,7 @@ import { ConfigProvider, Effect, FileSystem, Layer, Option, Path, Schema } from 
 import { Base64 } from 'effect/encoding';
 import { HttpPlatform } from 'effect/http';
 import { parseSync } from 'oxc-parser';
-import { LabHttpApi, Refusal, routesOf } from '../core/api.ts';
+import { LabHttpApi, Refusal, labUrls, reviewFileUrl, routesOf } from '../core/api.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler } from './lab.ts';
@@ -159,20 +159,27 @@ describe('lab routes', () => {
   it.effect('a posted note is listed, its still served, and a wait returns it', () =>
     Effect.gen(function* () {
       const lab = yield* labHandler(LOOPBACK);
-      const posted = yield* Effect.promise(() => lab(post('/lab/f/notes', draft), bound));
+      const posted = yield* Effect.promise(() =>
+        lab(post(labUrls.notes.add({ params: { film: 'f' } }), draft), bound),
+      );
       expect(posted.status).toBe(200);
       const listed = yield* Effect.promise(() =>
-        lab(get('/lab/f/notes'), bound).then((r) => r.json()),
+        lab(get(labUrls.notes.list({ params: { film: 'f' } })), bound).then((r) => r.json()),
       );
       const file = yield* Schema.decodeUnknownEffect(NotesFile)(listed);
       expect(file.notes.map((n) => [n.id, n.scene, n.cue?.name, n.still])).toEqual([
         ['n1', 'hand', 'topple', 'n1.png'],
       ]);
-      const still = yield* Effect.promise(() => lab(get('/lab/f/stills/n1.png'), bound));
+      const still = yield* Effect.promise(() =>
+        lab(get(labUrls.notes.still({ params: { film: 'f', name: 'n1.png' } })), bound),
+      );
       expect(still.headers.get('content-type')).toBe('image/png');
       expect(new Uint8Array(yield* Effect.promise(() => still.arrayBuffer()))).toEqual(png);
       const waited = yield* Effect.promise(() =>
-        lab(get('/lab/f/notes/wait?since=0&timeout=1'), bound).then((r) => r.json()),
+        lab(
+          get(labUrls.notes.wait({ params: { film: 'f' }, query: { since: 0, timeout: 1 } })),
+          bound,
+        ).then((r) => r.json()),
       );
       const wait = yield* Schema.decodeUnknownEffect(NotesWait)(waited);
       expect(wait.events.map((e) => e._tag)).toEqual(['NoteAdded']);
@@ -183,16 +190,23 @@ describe('lab routes', () => {
   it.effect('a user reply reopens the note; resolve closes it', () =>
     Effect.gen(function* () {
       const lab = yield* labHandler(LOOPBACK);
-      yield* Effect.promise(() => lab(post('/lab/f/notes', draft), bound));
+      yield* Effect.promise(() =>
+        lab(post(labUrls.notes.add({ params: { film: 'f' } }), draft), bound),
+      );
       const replied = yield* Effect.promise(() =>
-        lab(post('/lab/f/notes/n1/reply', '{"text":"lower still"}'), bound).then((r) => r.json()),
+        lab(
+          post(labUrls.notes.reply({ params: { film: 'f', id: 'n1' } }), '{"text":"lower still"}'),
+          bound,
+        ).then((r) => r.json()),
       );
       expect(replied).toMatchObject({
         status: 'open',
         thread: [{ by: 'user', text: 'lower still' }],
       });
       const resolved = yield* Effect.promise(() =>
-        lab(post('/lab/f/notes/n1/resolve', '{}'), bound).then((r) => r.json()),
+        lab(post(labUrls.notes.resolve({ params: { film: 'f', id: 'n1' } }), '{}'), bound).then(
+          (r) => r.json(),
+        ),
       );
       expect(resolved).toMatchObject({ status: 'resolved' });
     }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
@@ -202,9 +216,13 @@ describe('lab routes', () => {
     Effect.gen(function* () {
       const lab = yield* labHandler(LOOPBACK);
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
-      expect(yield* status(post('/lab/f/notes', '{"scene":"hand"}'))).toBe(400);
-      expect(yield* status(post('/lab/f/notes/n9/resolve', '{}'))).toBe(404);
-      expect(yield* status(get('/lab/f/stills/..%2Fnotes.json'))).toBe(404);
+      expect(
+        yield* status(post(labUrls.notes.add({ params: { film: 'f' } }), '{"scene":"hand"}')),
+      ).toBe(400);
+      expect(
+        yield* status(post(labUrls.notes.resolve({ params: { film: 'f', id: 'n9' } }), '{}')),
+      ).toBe(404);
+      expect(yield* status(get('/api/films/f/stills/..%2Fnotes.json'))).toBe(404);
     }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
   );
 
@@ -219,7 +237,7 @@ describe('lab routes', () => {
             return { status: res.status, body: yield* Effect.promise(() => res.text()) };
           });
         // A page for film g, which the app does not have.
-        const other = yield* answer(post('/lab/g/notes', draft));
+        const other = yield* answer(post(labUrls.notes.add({ params: { film: 'g' } }), draft));
         expect(other.status).toBe(404);
         expect(
           yield* Schema.decodeEffect(Schema.fromJsonString(Refusal))(other.body),
@@ -228,18 +246,24 @@ describe('lab routes', () => {
           film: 'g',
           known: ['f'],
         });
-        expect((yield* answer(get('/lab/g/check'))).status).toBe(404);
-        expect((yield* answer(post('/lab/g/undo', '{}'))).status).toBe(404);
-        expect((yield* answer(get('/lab/g/studio/beats'))).status).toBe(404);
+        expect((yield* answer(get(labUrls.steps.check({ params: { film: 'g' } })))).status).toBe(
+          404,
+        );
+        expect(
+          (yield* answer(post(labUrls.steps.undo({ params: { film: 'g' } }), '{}'))).status,
+        ).toBe(404);
+        expect((yield* answer(get(labUrls.studio.beats({ params: { film: 'g' } })))).status).toBe(
+          404,
+        );
         // A page from before the film was on the wire: no route takes it, and the answer says so.
-        const unrouted = yield* answer(get('/lab/notes'));
+        const unrouted = yield* answer(get('/api/films/f/nope'));
         expect(unrouted.status).toBe(404);
         expect(
           yield* Schema.decodeEffect(Schema.fromJsonString(Refusal))(unrouted.body),
-        ).toMatchObject({ _tag: 'RouteUnknown', path: '/lab/notes' });
+        ).toMatchObject({ _tag: 'RouteUnknown', path: '/api/films/f/nope' });
         // Nothing was written; the app's film still answers.
         const listed = yield* Effect.promise(() =>
-          lab(get('/lab/f/notes'), bound).then((r) => r.json()),
+          lab(get(labUrls.notes.list({ params: { film: 'f' } })), bound).then((r) => r.json()),
         );
         expect((yield* Schema.decodeUnknownEffect(NotesFile)(listed)).notes).toEqual([]);
       }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
@@ -257,7 +281,7 @@ describe('lab routes', () => {
         expect([route, res.status, refusal._tag]).toEqual([route, 403, 'RequestRefused']);
       }
       const listed = yield* Effect.promise(() =>
-        lab(get('/lab/f/notes'), bound).then((r) => r.json()),
+        lab(get(labUrls.notes.list({ params: { film: 'f' } })), bound).then((r) => r.json()),
       );
       expect((yield* Schema.decodeUnknownEffect(NotesFile)(listed)).notes).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
@@ -269,30 +293,69 @@ describe('lab routes', () => {
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
       // Another page the user has open (CSRF): its Origin is not the lab's.
       const foreign = { origin: 'http://evil.example' };
-      expect(yield* status(post('/lab/f/notes', draft, foreign))).toBe(403);
+      expect(
+        yield* status(post(labUrls.notes.add({ params: { film: 'f' } }), draft, foreign)),
+      ).toBe(403);
       // A simple cross-site form post: text/plain needs no preflight, so it is refused as such.
       const plain = { 'content-type': 'text/plain' };
-      expect(yield* status(post('/lab/f/notes', draft, plain))).toBe(415);
-      expect(yield* status(post('/lab/f/notes/n1/resolve', '{}', plain))).toBe(415);
+      expect(yield* status(post(labUrls.notes.add({ params: { film: 'f' } }), draft, plain))).toBe(
+        415,
+      );
+      expect(
+        yield* status(
+          post(labUrls.notes.resolve({ params: { film: 'f', id: 'n1' } }), '{}', plain),
+        ),
+      ).toBe(415);
       // DNS rebinding: the page's own origin, but a Host that is not the bound host:port.
       const rebound = { host: 'evil.example:4401', origin: 'http://evil.example:4401' };
-      expect(yield* status(post('/lab/f/notes', draft, rebound))).toBe(403);
-      expect(yield* status(get('/lab/f/notes', { host: 'evil.example:4401' }))).toBe(403);
+      expect(
+        yield* status(post(labUrls.notes.add({ params: { film: 'f' } }), draft, rebound)),
+      ).toBe(403);
+      expect(
+        yield* status(
+          get(labUrls.notes.list({ params: { film: 'f' } }), { host: 'evil.example:4401' }),
+        ),
+      ).toBe(403);
       // A cross-site GET (an <img> on another page) does not start a check.
-      expect(yield* status(get('/lab/f/check', { 'sec-fetch-site': 'cross-site' }))).toBe(403);
+      expect(
+        yield* status(
+          get(labUrls.steps.check({ params: { film: 'f' } }), { 'sec-fetch-site': 'cross-site' }),
+        ),
+      ).toBe(403);
       // Nothing was written.
       const listed = yield* Effect.promise(() =>
-        lab(get('/lab/f/notes'), bound).then((r) => r.json()),
+        lab(get(labUrls.notes.list({ params: { film: 'f' } })), bound).then((r) => r.json()),
       );
       expect((yield* Schema.decodeUnknownEffect(NotesFile)(listed)).notes).toEqual([]);
       // The lab's own page, by either name for the loopback host, still writes.
       for (const origin of ['http://127.0.0.1:4401', 'http://localhost:4401'])
-        expect(yield* status(post('/lab/f/notes', draft, { origin }))).toBe(200);
+        expect(
+          yield* status(post(labUrls.notes.add({ params: { film: 'f' } }), draft, { origin })),
+        ).toBe(200);
       expect(
         yield* status(
-          get('/lab/f/notes', { host: 'localhost:4401', 'sec-fetch-site': 'same-origin' }),
+          get(labUrls.notes.list({ params: { film: 'f' } }), {
+            host: 'localhost:4401',
+            'sec-fetch-site': 'same-origin',
+          }),
         ),
       ).toBe(200);
     }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+  );
+
+  it.effect("the API's paths, as the wire has them", () =>
+    Effect.sync(() => {
+      expect(labUrls.notes.list({ params: { film: 'f' } })).toBe('/api/films/f/notes');
+      expect(labUrls.scenes.cue({ params: { film: 'f', scene: 's', cue: 'c' } })).toBe(
+        '/api/films/f/scenes/s/cues/c',
+      );
+      expect(labUrls.choices.films()).toBe('/api/films');
+      expect(labUrls.project.get({ params: { film: 'f' }, query: {} })).toBe(
+        '/api/films/f/project',
+      );
+      expect(labUrls.review.index({ query: {} })).toBe('/api/review/index');
+      expect(labUrls.page.wait({ query: { since: 3 } })).toBe('/api/review/build?since=3');
+      expect(reviewFileUrl('out/a b.mp4')).toBe('/api/review/files/out/a%20b.mp4');
+    }),
   );
 });

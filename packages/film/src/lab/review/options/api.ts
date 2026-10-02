@@ -1,5 +1,5 @@
 // A film's choices and project as the review page calls them, through the
-// client derived from the review API (`ChoicesGroup`, `ProjectGroup` and
+// page's one client of the lab's API (`LabClient`; `ChoicesGroup`, `ProjectGroup` and
 // `StepsGroup` in `core/api.ts`): the films, a film's choice points, a verb
 // on a variant, a knob, a say on a variant (`Say`: approve, withdraw,
 // comment), the sound check, the film's project (its scenes by the address
@@ -9,14 +9,12 @@
 // check after it; a say the choices, or the project, it leaves.
 
 import { Context, Data, Effect, Layer, Match, Option, Predicate } from 'effect';
-import { FetchHttpClient } from 'effect/http';
-import { HttpApiClient } from 'effect/http-api';
 import type { PartAddress } from '../../../core/address.ts';
-import { type ProjectView, LabHttpApi, type Say, type Steps } from '../../../core/api.ts';
+import type { ProjectView, Say, Steps } from '../../../core/api.ts';
 import type { ChoiceVerb, ChoiceWrite, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewFilms } from '../../../core/review.ts';
 import type { CheckLine, CheckReport, LabWrite } from '../../../core/schema.ts';
-import { type LabFailure, called } from '../../api.ts';
+import { LabClient, type LabFailure, called } from '../../api.ts';
 
 /** What a page asks of a film: a verb on a variant, a knob set, a say on a variant, a step back or on. */
 export type ChoiceAct = Data.TaggedEnum<{
@@ -101,9 +99,9 @@ export class OptionsApi extends Context.Service<OptionsApi, OptionsCalls>()(
 const variantOf = (variant: Option.Option<string>) =>
   Option.match(variant, { onNone: () => ({}), onSome: (v) => ({ variant: v }) });
 
-/** A film's choice and project routes on `origin`. */
-const makeOptionsApi = Effect.fn('lab.options.api')(function* (origin: string) {
-  const client = yield* HttpApiClient.make(LabHttpApi, { baseUrl: origin });
+/** A film's choice and project routes, over the page's one client. */
+const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
+  const client = yield* LabClient;
   /** A pick or a knob: the change, the choices it leaves, and the check after it. */
   const picked =
     (act: ChoiceAct) =>
@@ -188,6 +186,6 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* (origin: string) {
   return api;
 });
 
-/** The choice and project routes on the page's own origin, over `fetch`. */
+/** The choice and project routes on the page's own origin, over the page's one client. */
 export const optionsApiLayer = (origin: string): Layer.Layer<OptionsApi> =>
-  Layer.effect(OptionsApi, makeOptionsApi(origin)).pipe(Layer.provide(FetchHttpClient.layer));
+  Layer.effect(OptionsApi, makeOptionsApi()).pipe(Layer.provide(LabClient.layer(origin)));

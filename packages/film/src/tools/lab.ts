@@ -30,7 +30,7 @@ import { HttpServerResponse } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
 import { StillUnknown } from '../core/refusals.ts';
-import { type Allowed, answered, serveApi, withServices } from './api-server.ts';
+import { type Allowed, type BesideRoutes, answered, serveApi, withServices } from './api-server.ts';
 import { choicesGroup } from './choices-http.ts';
 import type { Choices } from './choices.ts';
 import { LabPage } from './lab-page.ts';
@@ -260,9 +260,13 @@ export type LabContext =
  * runs with (`LabContext`): every request passes the gate with `allowed`
  * first, the pages included, so a foreign Host reads nothing; then the API's
  * routes answer theirs, for any film the app has, and the pages the rest.
+ * A fixture's own routes (`beside`, outside `/api/`) pass the same gate.
  * Closed when the scope closes.
  */
-export const labHandler = Effect.fn('film.lab.handler')(function* (allowed: Allowed) {
+export const labHandler = Effect.fn('film.lab.handler')(function* (
+  allowed: Allowed,
+  beside: BesideRoutes = Layer.empty,
+) {
   const services = yield* Effect.context<LabContext>();
   const routes = HttpApiBuilder.layer(LabHttpApi).pipe(
     Layer.provide(
@@ -280,5 +284,5 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (allowed: Allo
     withServices(services),
   );
   const page = (yield* LabPage).answer;
-  return yield* serveApi(LabHttpApi, routes, { allowed, page });
+  return yield* serveApi(LabHttpApi, routes, { allowed, page, beside });
 });

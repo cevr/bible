@@ -9,11 +9,12 @@
 //   HARNESS_FILM=<film> bun studio-harness.ts   (from apps/animations)
 //
 // The lab is at http://127.0.0.1:$HARNESS_PORT (4411) /lab?film=<film>. Its
-// control sits beside the lab's routes: `POST /lab/harness/mishear/<beat>`
-// (hear that beat as something else from now on), `POST
-// /lab/harness/hear/<beat>` (hear it right again) and `GET /lab/harness/root`
-// (the copy's films folder, to read what the studio wrote); `POST
-// /lab/harness/stop` stops it, removing the copy.
+// control sits beside the lab's routes, behind the lab's gate (a write is
+// JSON from the lab's own origin, or a tool's: `curl -H 'content-type:
+// application/json' -d '{}'`): `POST /harness/mishear/<beat>` (hear that beat
+// as something else from now on), `POST /harness/hear/<beat>` (hear it right
+// again) and `GET /harness/root` (the copy's films folder, to read what the
+// studio wrote); `POST /harness/stop` stops it, removing the copy.
 
 import { BunHttpPlatform, BunRuntime, BunServices } from '@effect/platform-bun';
 import {
@@ -23,7 +24,6 @@ import {
   ElevenLabs,
   FilmRepo,
   FreshFilm,
-  type LabHandler,
   LabPage,
   Media,
   NotesStore,
@@ -39,12 +39,14 @@ import {
   labHandler,
 } from '@bible/film/tools';
 import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { serveLab } from './server.ts';
+import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
+import { LAB_PAGES, LAB_SOURCES, serveLab } from './server.ts';
 
 /** What the fake hears for a beat it is told to mis-hear. */
 const MISHEARD = 'the quick brown fox jumps over the lazy dog';
 
-const CONTROL = '/lab/harness/';
+/** Where the control's routes sit: outside the lab's API and its pages. */
+const CONTROL = '/harness/';
 
 /** A beat's id from its take's file name (`<beat>.<hash>.flac`). */
 const beatOf = (file: string) => file.slice(file.lastIndexOf('/') + 1).split('.')[0] ?? '';
@@ -98,25 +100,31 @@ const harnessElevenLabs = (film: string, misheard: Set<string>) =>
     }),
   );
 
-/** Resolved by `POST /lab/harness/stop`: the harness then closes its server and its copy. */
+/** Resolved by `POST /harness/stop`: the harness then closes its server and its copy. */
 const stopped = Deferred.makeUnsafe<void>();
 
-/** The harness's control, in front of the lab: mis-hear a beat, hear it again, name the copy, or stop. */
-const withControl =
-  (misheard: Set<string>, root: string, lab: LabHandler): LabHandler =>
-  (request, server) => {
-    const path = new URL(request.url).pathname;
-    if (!path.startsWith(CONTROL)) return lab(request, server);
-    const [verb = '', beat = ''] = path.slice(CONTROL.length).split('/');
-    if (verb === 'mishear') misheard.add(beat);
-    if (verb === 'hear') misheard.delete(beat);
-    const stop = Effect.when(Deferred.done(stopped, Exit.void), Effect.succeed(verb === 'stop'));
-    return Effect.runPromise(
-      stop.pipe(
-        Effect.as(Response.json({ root, misheard: [...misheard], stopping: verb === 'stop' })),
-      ),
-    );
-  };
+/**
+ * The harness's control, a route beside the lab's behind its gate: mis-hear a
+ * beat, hear it again, name the copy, or stop.
+ */
+const control = (misheard: Set<string>, root: string) =>
+  HttpRouter.add(
+    '*',
+    `${CONTROL}*`,
+    Effect.gen(function* () {
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      const path = request.url.split('?')[0] ?? '';
+      const [verb = '', beat = ''] = path.slice(CONTROL.length).split('/');
+      if (verb === 'mishear') misheard.add(beat);
+      if (verb === 'hear') misheard.delete(beat);
+      yield* Effect.when(Deferred.done(stopped, Exit.void), Effect.succeed(verb === 'stop'));
+      return HttpServerResponse.jsonUnsafe({
+        root,
+        misheard: [...misheard],
+        stopping: verb === 'stop',
+      });
+    }),
+  );
 
 /** The lab over a copy of the film, served until the harness is stopped. */
 const Harness = Layer.unwrap(
@@ -163,15 +171,9 @@ const Harness = Layer.unwrap(
     // The lab reviews nothing here: no render roots, but its choices over the copy.
     const Reviewed = Review.layerConfig(Effect.succeed([])).pipe(Layer.provide([Heard, Platform]));
     const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
-    const Pages = LabPage.layer({
-      pages: {
-        '/': path.join(app, 'review.html'),
-        '/lab': path.join(app, 'lab.html'),
-        '/player': path.join(app, 'index.html'),
-      },
-      sources: [path.join(app, 'src')],
-      films: root,
-    }).pipe(Layer.provide(Platform));
+    const Pages = LabPage.layer({ pages: LAB_PAGES, sources: LAB_SOURCES, films: root }).pipe(
+      Layer.provide(Platform),
+    );
     const Services = Choices.layer.pipe(
       Layer.provideMerge(Layer.mergeAll(Takes.layer, StudioReadings.layer)),
       Layer.provideMerge(
@@ -193,9 +195,9 @@ const Harness = Layer.unwrap(
     const Server = Layer.effectDiscard(
       Effect.gen(function* () {
         yield* (yield* FilmRepo).load(film);
-        const lab = yield* labHandler({ hosts: [] });
+        const lab = yield* labHandler({ hosts: [] }, control(misheard, root));
         const server = yield* Effect.acquireRelease(
-          Effect.sync(() => serveLab(port, '127.0.0.1', withControl(misheard, root, lab))),
+          Effect.sync(() => serveLab(port, '127.0.0.1', lab)),
           (s) => Effect.promise(() => s.stop(true)),
         );
         yield* Effect.log(`harness.ready url=${server.url}lab?film=${film} root=${root}`);

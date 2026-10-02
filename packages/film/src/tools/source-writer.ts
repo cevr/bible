@@ -95,7 +95,7 @@ interface History {
   readonly latest: Option.Option<Change>;
 }
 
-/** The history as a page asks for it (`GET /lab/<film>/check`). */
+/** The history as a page asks for it (`GET /api/films/<film>/check`). */
 interface WriteHistory {
   /** The change Undo would put back. */
   readonly undo: Option.Option<Change>;

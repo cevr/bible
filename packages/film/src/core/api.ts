@@ -7,10 +7,11 @@
 //
 // One API, `LabHttpApi`, served by `film lab` for every film: what tweaks a
 // film (notes, scene source, steps, studio) and what reviews it (the renders,
-// choices, project). Every film route is under `/lab/<film>/`, but the
-// project's, under `/review/project/<film>`; the routes of no one film (the
-// renders' index and files, the films, the pages' build) are under
-// `/review/`. A film the app does not have is a 404 FilmUnknown.
+// choices, project). Every route is under `/api/` (`API`), where no page
+// path is: a film's under `/api/films/<film>/`, the films at `/api/films`,
+// and the routes of no one film (the renders' index and files, a frame, a
+// length, the pages' build) under `/api/review/`. A film the app does not
+// have is a 404 FilmUnknown.
 //
 // A failure crosses as its own class, JSON with its `_tag`, at the status
 // `Refusals` gives it: the one status table. Anything a handler fails with
@@ -219,7 +220,7 @@ export const statusOf = (refusal: Refusal): number => {
 /** A write with nothing to say (undo, redo, resolve) still sends JSON: the server takes no other write. */
 const NoBody = Schema.Struct({});
 
-/** `GET /lab/<film>/steps`: the film's history as `CheckReport` gives it, without the check. */
+/** `GET /api/films/<film>/steps`: the film's history as `CheckReport` gives it, without the check. */
 export const Steps = Schema.Struct({
   latest: CheckReport.fields.latest,
   undo: CheckReport.fields.undo,
@@ -239,7 +240,7 @@ export const Say = Schema.Union([
 ]).pipe(Schema.toTaggedUnion('_tag'));
 export type Say = typeof Say.Type;
 
-/** `POST /lab/<film>/choices/say`: a say on one variant of one point, as it is now. */
+/** `POST /api/films/<film>/choices/say`: a say on one variant of one point, as it is now. */
 export const SayPost = Schema.Struct({ point: Schema.String, variant: Schema.String, say: Say });
 export type SayPost = typeof SayPost.Type;
 
@@ -248,39 +249,46 @@ const FileBytes = Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array());
 
 const film = { film: Schema.String };
 
+/** Where every route of the API lives: no page path starts with it. */
+const API = '/api';
+/** One film's routes. */
+const FILM = `${API}/films/:film`;
+/** The routes of no one film: the renders under the roots, and the pages' build. */
+const REVIEW = `${API}/review`;
+
 /** The notes on a film's frames: the file (its `seq` the cursor), a long-polled wait, a still. */
 class NotesGroup extends HttpApiGroup.make('notes').add(
-  HttpApiEndpoint.get('list', '/lab/:film/notes', {
+  HttpApiEndpoint.get('list', `${FILM}/notes`, {
     params: film,
     success: NotesFile,
     error: Refusals,
   }),
-  HttpApiEndpoint.post('add', '/lab/:film/notes', {
+  HttpApiEndpoint.post('add', `${FILM}/notes`, {
     params: film,
     payload: NotePost,
     success: Note,
     error: Refusals,
   }),
-  HttpApiEndpoint.post('reply', '/lab/:film/notes/:id/reply', {
+  HttpApiEndpoint.post('reply', `${FILM}/notes/:id/reply`, {
     params: { ...film, id: Schema.String },
     payload: ReplyPost,
     success: Note,
     error: Refusals,
   }),
-  HttpApiEndpoint.post('resolve', '/lab/:film/notes/:id/resolve', {
+  HttpApiEndpoint.post('resolve', `${FILM}/notes/:id/resolve`, {
     params: { ...film, id: Schema.String },
     payload: NoBody,
     success: Note,
     error: Refusals,
   }),
   /** The changes past `since`, held open up to `timeout` s (at most 60). */
-  HttpApiEndpoint.get('wait', '/lab/:film/notes/wait', {
+  HttpApiEndpoint.get('wait', `${FILM}/notes/wait`, {
     params: film,
     query: { since: Schema.Finite, timeout: Schema.optionalKey(Schema.Finite) },
     success: NotesWait,
     error: Refusals,
   }),
-  HttpApiEndpoint.get('still', '/lab/:film/stills/:name', {
+  HttpApiEndpoint.get('still', `${FILM}/stills/:name`, {
     params: { ...film, name: Schema.String },
     success: FileBytes,
     error: Refusals,
@@ -289,23 +297,23 @@ class NotesGroup extends HttpApiGroup.make('notes').add(
 
 /** A scene's source as the lab edits it: what it may rewrite, HEAD's version, a cue or a knob written. */
 class ScenesGroup extends HttpApiGroup.make('scenes').add(
-  HttpApiEndpoint.get('source', '/lab/:film/scenes/:scene/source', {
+  HttpApiEndpoint.get('source', `${FILM}/scenes/:scene/source`, {
     params: { ...film, scene: Schema.String },
     success: SceneSource,
     error: Refusals,
   }),
-  HttpApiEndpoint.get('head', '/lab/:film/scenes/:scene/head', {
+  HttpApiEndpoint.get('head', `${FILM}/scenes/:scene/head`, {
     params: { ...film, scene: Schema.String },
     success: HeadSource,
     error: Refusals,
   }),
-  HttpApiEndpoint.post('cue', '/lab/:film/cues/:scene/:cue', {
+  HttpApiEndpoint.post('cue', `${FILM}/scenes/:scene/cues/:cue`, {
     params: { ...film, scene: Schema.String, cue: Schema.String },
     payload: CuePatch,
     success: LabWrite,
     error: Refusals,
   }),
-  HttpApiEndpoint.post('knob', '/lab/:film/knobs/:scene/:knob', {
+  HttpApiEndpoint.post('knob', `${FILM}/scenes/:scene/knobs/:knob`, {
     params: { ...film, scene: Schema.String, knob: Schema.String },
     payload: KnobPatch,
     success: LabWrite,
@@ -315,26 +323,26 @@ class ScenesGroup extends HttpApiGroup.make('scenes').add(
 
 /** The film's writes stepped back and on, and its check. */
 class StepsGroup extends HttpApiGroup.make('steps').add(
-  HttpApiEndpoint.post('undo', '/lab/:film/undo', {
+  HttpApiEndpoint.post('undo', `${FILM}/undo`, {
     params: film,
     payload: NoBody,
     success: LabWrite,
     error: Refusals,
   }),
-  HttpApiEndpoint.post('redo', '/lab/:film/redo', {
+  HttpApiEndpoint.post('redo', `${FILM}/redo`, {
     params: film,
     payload: NoBody,
     success: LabWrite,
     error: Refusals,
   }),
   /** `film check --static` now, the latest change, and what Undo and Redo would do. */
-  HttpApiEndpoint.get('check', '/lab/:film/check', {
+  HttpApiEndpoint.get('check', `${FILM}/check`, {
     params: film,
     success: CheckReport,
     error: Refusals,
   }),
   /** The latest change and what Undo and Redo would do, without the check: what a page reads after a write that answered its findings. */
-  HttpApiEndpoint.get('steps', '/lab/:film/steps', {
+  HttpApiEndpoint.get('steps', `${FILM}/steps`, {
     params: film,
     success: Steps,
     error: Refusals,
@@ -343,29 +351,29 @@ class StepsGroup extends HttpApiGroup.make('steps').add(
 
 /** The studio: the film's voice recorded in the browser, beat by beat. */
 class StudioGroup extends HttpApiGroup.make('studio').add(
-  HttpApiEndpoint.get('beats', '/lab/:film/studio/beats', {
+  HttpApiEndpoint.get('beats', `${FILM}/studio/beats`, {
     params: film,
     success: StudioBeats,
     error: Refusals,
   }),
   /** A recording made the beat's take; a take that says something else is a TakeMismatch naming the attempt it saved. */
-  HttpApiEndpoint.post('take', '/lab/:film/studio/takes/:beat', {
+  HttpApiEndpoint.post('take', `${FILM}/studio/takes/:beat`, {
     params: { ...film, beat: Schema.String },
     payload: TakePost,
     success: StudioTake,
     error: Refusals,
   }),
-  HttpApiEndpoint.get('attempts', '/lab/:film/studio/takes/:beat/attempts', {
+  HttpApiEndpoint.get('attempts', `${FILM}/studio/takes/:beat/attempts`, {
     params: { ...film, beat: Schema.String },
     success: StudioAttempts,
     error: Refusals,
   }),
-  HttpApiEndpoint.get('attempt', '/lab/:film/studio/takes/:beat/attempts/:file', {
+  HttpApiEndpoint.get('attempt', `${FILM}/studio/takes/:beat/attempts/:file`, {
     params: { ...film, beat: Schema.String, file: Schema.String },
     success: FileBytes,
     error: Refusals,
   }),
-  HttpApiEndpoint.post('keep', '/lab/:film/studio/takes/:beat/keep', {
+  HttpApiEndpoint.post('keep', `${FILM}/studio/takes/:beat/keep`, {
     params: { ...film, beat: Schema.String },
     payload: KeepPost,
     success: StudioTake,
@@ -374,12 +382,12 @@ class StudioGroup extends HttpApiGroup.make('studio').add(
 ) {}
 
 /** Where the review serves a file by its ref, and its phone copy: the rest of the path is the ref. */
-export const REVIEW_FILES = '/review/files/';
-export const REVIEW_PHONE = '/review/phone/';
+export const REVIEW_FILES = `${REVIEW}/files/`;
+export const REVIEW_PHONE = `${REVIEW}/phone/`;
 
 /** The review: every folder with something to review, each file where it lies, a frame, a length. */
 class ReviewGroup extends HttpApiGroup.make('review').add(
-  HttpApiEndpoint.get('index', '/review/index', {
+  HttpApiEndpoint.get('index', `${REVIEW}/index`, {
     query: { fresh: Schema.optionalKey(Schema.String) },
     success: ReviewIndex,
     error: Refusals,
@@ -389,7 +397,7 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
   /** Its 720p phone copy, once made (404 before). */
   HttpApiEndpoint.get('phone', `${REVIEW_PHONE}*`, { success: FileBytes, error: Refusals }),
   /** A JPEG of the video at `t` s (10% in without), `w` px wide. */
-  HttpApiEndpoint.get('frame', '/review/frame', {
+  HttpApiEndpoint.get('frame', `${REVIEW}/frame`, {
     query: {
       ref: Schema.String,
       t: Schema.optionalKey(Schema.Finite),
@@ -398,7 +406,7 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
     success: FileBytes,
     error: Refusals,
   }),
-  HttpApiEndpoint.get('duration', '/review/duration', {
+  HttpApiEndpoint.get('duration', `${REVIEW}/duration`, {
     query: { ref: Schema.String },
     success: ReviewDuration,
     error: Refusals,
@@ -412,49 +420,49 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
  * after a pick.
  */
 class ChoicesGroup extends HttpApiGroup.make('choices').add(
-  HttpApiEndpoint.get('films', '/review/films', { success: ReviewFilms, error: Refusals }),
-  HttpApiEndpoint.get('list', '/lab/:film/choices', {
+  HttpApiEndpoint.get('films', `${API}/films`, { success: ReviewFilms, error: Refusals }),
+  HttpApiEndpoint.get('list', `${FILM}/choices`, {
     params: film,
     success: FilmChoices,
     error: Refusals,
   }),
   /** A verb on a variant: the pick lands where the film declares it. */
-  HttpApiEndpoint.post('pick', '/lab/:film/choices/pick', {
+  HttpApiEndpoint.post('pick', `${FILM}/choices/pick`, {
     params: film,
     payload: PickPost,
     success: ChoiceWrite,
     error: Refusals,
   }),
   /** A level point's knob written into `sound.ts`. */
-  HttpApiEndpoint.post('knob', '/lab/:film/choices/knob', {
+  HttpApiEndpoint.post('knob', `${FILM}/choices/knob`, {
     params: film,
     payload: KnobPost,
     success: ChoiceWrite,
     error: Refusals,
   }),
   /** A variant approved, its approvals withdrawn, or commented on: the choices after it. */
-  HttpApiEndpoint.post('say', '/lab/:film/choices/say', {
+  HttpApiEndpoint.post('say', `${FILM}/choices/say`, {
     params: film,
     payload: SayPost,
     success: FilmChoices,
     error: Refusals,
   }),
   /** A variant's own file: a take, an attempt. */
-  HttpApiEndpoint.get('alone', '/lab/:film/choices/alone', {
+  HttpApiEndpoint.get('alone', `${FILM}/choices/alone`, {
     params: film,
     query: { point: Schema.String, variant: Schema.String },
     success: FileBytes,
     error: Refusals,
   }),
   /** The film's whole mix with the variant in place (m4a): a score option, a take. */
-  HttpApiEndpoint.get('mix', '/lab/:film/choices/mix', {
+  HttpApiEndpoint.get('mix', `${FILM}/choices/mix`, {
     params: film,
     query: { point: Schema.String, variant: Schema.String },
     success: FileBytes,
     error: Refusals,
   }),
   /** `film check --sound` now: dead air and balance in the mix the film makes as it stands. */
-  HttpApiEndpoint.get('soundCheck', '/lab/:film/choices/check', {
+  HttpApiEndpoint.get('soundCheck', `${FILM}/choices/check`, {
     params: film,
     success: SoundCheck,
     error: Refusals,
@@ -490,13 +498,13 @@ export type ProjectView = typeof ProjectView.Type;
  * `film project` in a fresh process and answers the project as it now stands.
  */
 class ProjectGroup extends HttpApiGroup.make('project').add(
-  HttpApiEndpoint.get('get', '/review/project/:film', {
+  HttpApiEndpoint.get('get', `${FILM}/project`, {
     params: film,
     query: variantField,
     success: ProjectView,
     error: Refusals,
   }),
-  HttpApiEndpoint.post('say', '/review/project/:film/say', {
+  HttpApiEndpoint.post('say', `${FILM}/project/say`, {
     params: film,
     payload: Schema.Struct({ address: PartAddress, say: Say, ...variantField }),
     success: ProjectView,
@@ -518,7 +526,7 @@ export type PageBuild = typeof PageBuild.Type;
  * reloads onto the new code.
  */
 class PageGroup extends HttpApiGroup.make('page').add(
-  HttpApiEndpoint.get('wait', '/review/build', {
+  HttpApiEndpoint.get('wait', `${REVIEW}/build`, {
     query: { since: Schema.Finite, timeout: Schema.optionalKey(Schema.Finite) },
     success: PageBuild,
     error: Refusals,
@@ -559,12 +567,57 @@ export const routesOf = <Id extends string, Groups extends HttpApiGroup.Constrai
   return routes;
 };
 
-/** The first segments `api`'s routes live under (`/lab/`, `/review/`): the API's own paths. */
+/** The first segments `api`'s routes live under (`/api/`): the API's own paths. */
 export const prefixesOf = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
 ): ReadonlyArray<string> => [
   ...new Set(routesOf(api).map((route) => `/${route.path.split('/')[1] ?? ''}/`)),
 ];
+
+// ---------------------------------------------------------------------------
+// The pages: which of the app's pages each path outside the API serves.
+
+/** The app's pages, each one HTML entry: its review, its lab, its player. */
+export type PageName = 'review' | 'lab' | 'player';
+
+/**
+ * Every path a page is served at, the first match winning: a `:name` is one
+ * segment, a trailing `*` one segment or more. A film's places (PA-1) and,
+ * after them, the paths before them (`/lab?film=`, `/player?film=`, `/?film=`),
+ * which keep opening the links already handed out. A film's scenes open the
+ * player, whose look-book is the film's scenes today.
+ */
+const PAGE_PATHS: ReadonlyArray<readonly [string, PageName]> = [
+  ['/', 'review'],
+  ['/sets/*', 'review'],
+  ['/films/:film/scenes', 'player'],
+  ['/films/:film/scenes/*', 'player'],
+  ['/films/:film/choices', 'review'],
+  ['/films/:film/project', 'review'],
+  ['/films/:film/lab', 'lab'],
+  ['/films/:film/lab/*', 'lab'],
+  ['/films/:film/play', 'player'],
+  ['/lab', 'lab'],
+  ['/player', 'player'],
+];
+
+/** Whether `pathname`'s segments are those `pattern` declares. */
+const matchesPath = (pattern: string, pathname: string): boolean => {
+  if (pattern === '/' || pathname === '/') return pattern === pathname;
+  const want = pattern.split('/').slice(1);
+  const have = pathname.split('/').slice(1);
+  if (have.includes('')) return false;
+  const same = (segment: string, i: number) => segment.startsWith(':') || segment === have[i];
+  if (want.at(-1) === '*') return have.length >= want.length && want.slice(0, -1).every(same);
+  return have.length === want.length && want.every(same);
+};
+
+/** The page `pathname` serves, if any: a path no page declares (a chunk, a typo) serves none. */
+export const pageAt = (pathname: string): Option.Option<PageName> =>
+  Option.map(
+    Option.fromUndefinedOr(PAGE_PATHS.find(([pattern]) => matchesPath(pattern, pathname))),
+    ([, page]) => page,
+  );
 
 // ---------------------------------------------------------------------------
 // The URLs a page puts in an <img>, <audio> or <video>, derived from the routes.
@@ -587,11 +640,19 @@ const refPath = (ref: string) =>
     .map((segment) => encodeURIComponent(segment))
     .join('/');
 
+/**
+ * A ref's URL under a route that takes the rest of its path as the ref
+ * (`REVIEW_FILES`, `REVIEW_PHONE`): the one way such a URL is written, since
+ * the URL builder fills `:param`s and not a `*`.
+ */
+const refUrl = (at: typeof REVIEW_FILES | typeof REVIEW_PHONE, ref: string): string =>
+  `${at}${refPath(ref)}`;
+
 /** The review's URL for a file, by its ref. */
-export const reviewFileUrl = (ref: string): string => `${REVIEW_FILES}${refPath(ref)}`;
+export const reviewFileUrl = (ref: string): string => refUrl(REVIEW_FILES, ref);
 
 /** The review's URL for a video's 720p phone copy, by its ref. */
-export const reviewPhoneUrl = (ref: string): string => `${REVIEW_PHONE}${refPath(ref)}`;
+export const reviewPhoneUrl = (ref: string): string => refUrl(REVIEW_PHONE, ref);
 
 /** A frame of a video, `w` px wide, at `t` s to the hundredth (10% in when none). */
 export const reviewFrameUrl = (ref: string, t: Option.Option<number>, w: number): string => {

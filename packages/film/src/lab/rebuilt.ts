@@ -1,6 +1,6 @@
 // The lab page onto new code: the server builds the pages itself and numbers
 // each build (`LabPage`); the page was served at one (`<meta
-// name="lab-build">`), and waits on `/review/build?since=` for a later one,
+// name="lab-build">`), and waits on `/api/review/build?since=` for a later one,
 // which a change to a file the pages are built from makes. Then the page
 // reloads at the frame it shows, as a write does (`StageOps.reload`), so a
 // scene edited in the editor or by an agent is on screen without a hand on

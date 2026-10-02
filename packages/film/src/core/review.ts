@@ -106,7 +106,7 @@ export const ReviewFolder = Schema.Struct({
 });
 export type ReviewFolder = typeof ReviewFolder.Type;
 
-/** `GET /review/index`: every folder under the roots with something to review, newest first. */
+/** `GET /api/review/index`: every folder under the roots with something to review, newest first. */
 export const ReviewIndex = Schema.Struct({ folders: Schema.Array(ReviewFolder) });
 export type ReviewIndex = typeof ReviewIndex.Type;
 
@@ -114,6 +114,6 @@ export type ReviewIndex = typeof ReviewIndex.Type;
 export const ReviewDuration = Schema.Struct({ seconds: Seconds });
 export type ReviewDuration = typeof ReviewDuration.Type;
 
-/** `GET /review/films`: the app's films, each with its choices at `?film=<film>`. */
+/** `GET /api/films`: the app's films, each with its choices at `?film=<film>`. */
 export const ReviewFilms = Schema.Struct({ films: Schema.Array(Schema.String) });
 export type ReviewFilms = typeof ReviewFilms.Type;

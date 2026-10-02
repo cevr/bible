@@ -14,7 +14,7 @@ const server = Effect.gen(function* () {
       const path = new URL((yield* HttpServerRequest.HttpServerRequest).url, 'http://localhost')
         .pathname;
       asked.push(path);
-      const film = path.split('/')[2];
+      const film = path.split('/')[3];
       if (path.endsWith('/check')) return HttpServerResponse.jsonUnsafe({ findings: [] });
       if (path.endsWith('/notes'))
         return HttpServerResponse.jsonUnsafe({ film, seq: 0, notes: [] });
@@ -70,10 +70,10 @@ it.live(
         yield* Scope.close(studioScope, Exit.void);
         expect(lifetime).toEqual(['acquired', 'released']);
         expect(host.asked).toEqual([
-          `/lab/${film}/check`,
-          `/lab/${film}/notes`,
-          `/lab/${film}/studio/beats`,
-          `/lab/${film}/studio/beats`,
+          `/api/films/${film}/check`,
+          `/api/films/${film}/notes`,
+          `/api/films/${film}/studio/beats`,
+          `/api/films/${film}/studio/beats`,
         ]);
       }
     }).pipe(Effect.scoped),

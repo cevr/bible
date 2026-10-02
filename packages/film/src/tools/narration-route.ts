@@ -13,6 +13,9 @@ import { filmMark } from './film-repo.ts';
 /** A narration URL: `/films/<film>/narration/<file>`, the file directly in the folder. */
 const NARRATION_URL = /^\/films\/([^/]+)\/narration\/([^/]+)$/;
 
+/** Whether `pathname` is a narration URL, the route's and no page's: `/films/<film>/narration/<file>`. */
+export const isNarrationUrl = (pathname: string): boolean => NARRATION_URL.test(pathname);
+
 /** A file name as it may sit in a narration folder: no path, no dotfile. */
 const NARRATION_FILE = /^[\w-][\w.-]*$/;
 

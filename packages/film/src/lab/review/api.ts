@@ -1,16 +1,15 @@
-// The review's routes as its page calls them, through the client derived
-// from the review API (`ReviewGroup` in `core/api.ts`): the index and a
+// The review's routes as its page calls them, through the page's one client
+// of the lab's API (`LabClient`, `ReviewGroup` in `core/api.ts`): the index and a
 // video's length decoded by their Schemas. A doc's text is the file itself,
 // fetched by its URL (the route's path is the ref, which the derived client
 // does not build). A refusal is the server's own failure; a request that
 // never arrived says so (`LabFailure`, as every lab call fails).
 
 import { Context, Effect, Layer } from 'effect';
-import { FetchHttpClient, HttpClient, HttpClientResponse } from 'effect/http';
-import { HttpApiClient } from 'effect/http-api';
-import { Refusal, LabHttpApi, reviewFileUrl } from '../../core/api.ts';
+import { HttpClient, HttpClientResponse } from 'effect/http';
+import { Refusal, reviewFileUrl } from '../../core/api.ts';
 import type { ReviewIndex } from '../../core/review.ts';
-import { type LabFailure, called } from '../api.ts';
+import { LabClient, type LabFailure, called } from '../api.ts';
 
 interface ReviewCalls {
   /** Every folder with something to review; `fresh` walks the roots again now. */
@@ -33,7 +32,7 @@ const fileText = (res: HttpClientResponse.HttpClientResponse) => {
 
 /** The review's routes on `origin`. */
 const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: string) {
-  const client = (yield* HttpApiClient.make(LabHttpApi, { baseUrl: origin })).review;
+  const client = (yield* LabClient).review;
   const http = yield* HttpClient.HttpClient;
   const api: ReviewCalls = {
     index: (fresh) => {
@@ -46,6 +45,6 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: string) {
   return api;
 });
 
-/** The review's routes on the page's own origin, over `fetch`. */
+/** The review's routes on the page's own origin, over the page's one client. */
 export const reviewApiLayer = (origin: string): Layer.Layer<ReviewApi> =>
-  Layer.effect(ReviewApi, makeReviewApi(origin)).pipe(Layer.provide(FetchHttpClient.layer));
+  Layer.effect(ReviewApi, makeReviewApi(origin)).pipe(Layer.provide(LabClient.layer(origin)));

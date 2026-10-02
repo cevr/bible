@@ -12,6 +12,20 @@ import index from './index.html';
 /** The films folder: the player imports its registry, and the film CLI reads each film here. */
 export const FILMS = join(import.meta.dir, 'src/films');
 
+/**
+ * The lab's pages, each this app's HTML entry: its review, its lab and its
+ * player, whose look-book is a film's scenes. The paths each is served at are
+ * the framework's (`PAGE_PATHS`); `film lab` and the studio harness serve these.
+ */
+export const LAB_PAGES = {
+  review: join(import.meta.dir, 'review.html'),
+  lab: join(import.meta.dir, 'lab.html'),
+  player: join(import.meta.dir, 'index.html'),
+};
+
+/** The folders the pages are built from, beside the framework's: a change in one rebuilds them. */
+export const LAB_SOURCES = [join(import.meta.dir, 'src'), join(import.meta.dir, 'assets')];
+
 /** The loopback interface: the only one the player listens on. */
 const HOST = '127.0.0.1';
 
@@ -57,7 +71,7 @@ const LAB_IDLE_SECONDS = 255;
 /**
  * The lab on `hostname`:`port`: every request goes to `lab`, the
  * framework's handler, which admits it (only the hosts it is told) before its
- * routes answer /review/* and /lab/* and its pages the rest (built from
+ * routes answer /api/* and its pages the rest (built from
  * `review.html`, `lab.html` and `index.html`, `LabPage`). No route here answers on its
  * own, so no path skips the Host check.
  */

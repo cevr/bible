@@ -12,23 +12,35 @@ import { LabPage } from './lab-page.ts';
 
 const Platform = Layer.provideMerge(BunHttpPlatform.layer, BunServices.layer);
 
-/** An app with one page (`/p`, `p.html` over `p.ts`) in a temp folder, and its pages over it. */
+/**
+ * An app in a temp folder: its review (`review.html` over `p.ts`), its lab
+ * and its player (`sub/player.html`, an entry below the others), and its
+ * pages over it.
+ */
 const app = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const dir = yield* fs.makeTempDirectoryScoped();
   const src = path.join(dir, 'src');
   yield* fs.makeDirectory(path.join(src, 'films'), { recursive: true });
-  yield* fs.writeFileString(
-    path.join(dir, 'p.html'),
-    '<!doctype html><html><head><title>p</title></head><body><script type="module" src="./src/p.ts"></script></body></html>',
-  );
+  yield* fs.makeDirectory(path.join(dir, 'sub'), { recursive: true });
+  const html = (title: string, script: string) =>
+    `<!doctype html><html><head><title>${title}</title></head><body><script type="module" src="${script}"></script></body></html>`;
+  yield* fs.writeFileString(path.join(dir, 'review.html'), html('review', './src/p.ts'));
+  yield* fs.writeFileString(path.join(dir, 'lab.html'), html('lab', './src/lab.ts'));
+  yield* fs.writeFileString(path.join(dir, 'sub', 'player.html'), html('player', '../src/play.ts'));
   const write = (name: string, text: string) => fs.writeFileString(path.join(src, name), text);
   yield* write('p.ts', "console.log('first');\n");
+  yield* write('lab.ts', "console.log('the lab');\n");
+  yield* write('play.ts', "console.log('the player');\n");
   yield* write('notes.json', '{}');
   const ctx = yield* Layer.build(
     LabPage.layer({
-      pages: { '/p': path.join(dir, 'p.html') },
+      pages: {
+        review: path.join(dir, 'review.html'),
+        lab: path.join(dir, 'lab.html'),
+        player: path.join(dir, 'sub', 'player.html'),
+      },
       sources: [src],
       films: path.join(src, 'films'),
     }),
@@ -44,12 +56,14 @@ const app = Effect.gen(function* () {
       );
       return { status: response.status, text: yield* Effect.promise(() => response.text()) };
     });
-  /** The page's script, as its HTML names it. */
-  const script = Effect.gen(function* () {
-    const html = (yield* ask('/p')).text;
-    const src = /src="\.?(\/[^"]+\.js)"/.exec(html)?.[1] ?? '';
-    return (yield* ask(src)).text;
-  });
+  /** The script of the page `pathname` serves, as its HTML names it. */
+  const scriptOf = (pathname: string) =>
+    Effect.gen(function* () {
+      const html = (yield* ask(pathname)).text;
+      const src = /src="\.?(\/[^"]+\.js)"/.exec(html)?.[1] ?? '';
+      return (yield* ask(src)).text;
+    });
+  const script = scriptOf('/');
   /**
    * A wait past `since`, while `name` is written as `text` until it answers:
    * the watch may start after the first write, and the same bytes again are
@@ -63,7 +77,7 @@ const app = Effect.gen(function* () {
         Effect.andThen(Effect.never),
       ),
     );
-  return { ask, script, waitWriting };
+  return { ask, script, scriptOf, waitWriting };
 });
 
 const buildOf = (html: string) => Number(/name="lab-build" content="(\d+)"/.exec(html)?.[1]);
@@ -74,10 +88,47 @@ describe('lab pages', () => {
     () =>
       Effect.gen(function* () {
         const { ask, script } = yield* app;
-        const html = yield* ask('/p');
+        const html = yield* ask('/');
         expect([html.status, buildOf(html.text)]).toEqual([200, 0]);
         expect(yield* script).toContain('first');
         expect((yield* ask('/nothing.js')).status).toBe(404);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    "each place serves its page, whose scripts load from the root; a film's other paths are no narration",
+    () =>
+      Effect.gen(function* () {
+        const { ask, scriptOf } = yield* app;
+        const titleOf = (pathname: string) =>
+          Effect.map(
+            ask(pathname),
+            (r) => [r.status, /<title>(\w+)</.exec(r.text)?.[1] ?? ''] as const,
+          );
+        const places = {
+          '/': 'review',
+          '/sets/root/folder': 'review',
+          '/films/f/scenes': 'player',
+          '/films/f/scenes/hand': 'player',
+          '/films/f/choices': 'review',
+          '/films/f/project': 'review',
+          '/films/f/lab': 'lab',
+          '/films/f/lab/hand': 'lab',
+          '/films/f/play': 'player',
+          // The paths before the films' own, as links already handed out name them.
+          '/lab': 'lab',
+          '/player': 'player',
+        };
+        for (const [pathname, page] of Object.entries(places))
+          expect([pathname, ...(yield* titleOf(pathname))]).toEqual([pathname, 200, page]);
+        // A page deep under a film's path finds its script: the HTML links it from the root.
+        const html = (yield* ask('/films/f/lab/hand')).text;
+        expect(html).toMatch(/src="\/[^"]+\.js"/);
+        expect(yield* scriptOf('/films/f/lab/hand')).toContain('the lab');
+        expect(yield* scriptOf('/films/f/play')).toContain('the player');
+        // No page at a path no place declares, nor a narration file of a film that has none.
+        for (const pathname of ['/films/f', '/films/f/lab/', '/films/f/narration/full.wav', '/p'])
+          expect([pathname, (yield* ask(pathname)).status]).toEqual([pathname, 404]);
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
@@ -86,10 +137,10 @@ describe('lab pages', () => {
     () =>
       Effect.gen(function* () {
         const { ask, script, waitWriting } = yield* app;
-        yield* ask('/p');
+        yield* ask('/');
         const { build } = yield* waitWriting(0, '10 seconds', 'p.ts', "console.log('second');\n");
         expect(build).toBeGreaterThan(0);
-        expect(buildOf((yield* ask('/p')).text)).toBeGreaterThanOrEqual(build);
+        expect(buildOf((yield* ask('/')).text)).toBeGreaterThanOrEqual(build);
         expect(yield* script).toContain('second');
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
@@ -97,7 +148,7 @@ describe('lab pages', () => {
   it.live('a change to a file no build read wakes nothing', () =>
     Effect.gen(function* () {
       const { ask, waitWriting } = yield* app;
-      yield* ask('/p');
+      yield* ask('/');
       const { build } = yield* waitWriting(0, '1 second', 'notes.json', '{"seq":1}');
       expect(build).toBe(0);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
@@ -106,15 +157,15 @@ describe('lab pages', () => {
   it.live('a page that does not build answers the bundler, and serves again once fixed', () =>
     Effect.gen(function* () {
       const { ask, script, waitWriting } = yield* app;
-      yield* ask('/p');
+      yield* ask('/');
       yield* waitWriting(0, '10 seconds', 'p.ts', "import './missing.ts';\n");
-      const broken = yield* ask('/p');
+      const broken = yield* ask('/');
       expect(broken.status).toBe(500);
       expect(broken.text).toContain('missing.ts');
       // The failed build read nothing new; a fix to the file it last read is still heard.
       const built = buildOf(broken.text);
       yield* waitWriting(built, '10 seconds', 'p.ts', "console.log('fixed');\n");
-      expect((yield* ask('/p')).status).toBe(200);
+      expect((yield* ask('/')).status).toBe(200);
       expect(yield* script).toContain('fixed');
     }).pipe(Effect.scoped, Effect.provide(Platform)),
   );

@@ -4,6 +4,8 @@
 
 import {
   Array as Arr,
+  ConfigProvider,
+  Context,
   Effect,
   Exit,
   FileSystem,
@@ -14,9 +16,12 @@ import {
   Result,
   Schema,
 } from 'effect';
+import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { Base64 } from 'effect/encoding';
 import * as PlatformError from 'effect/PlatformError';
-import { type Route, ServerFailed } from '../core/api.ts';
+import { Refusal, type Route, ServerFailed } from '../core/api.ts';
+import { type Project, emptyCatalogue, projectOf } from '../core/catalogue.ts';
+import { type FilmChoices, withSay } from '../core/choice.ts';
 import { type Pcm, silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
 import { NO_SOUNDS } from '../core/sfx.ts';
@@ -44,10 +49,18 @@ import {
   type LumaArea,
 } from '../core/export-handle.ts';
 import { ContentStore } from './content-store.ts';
+import { labHandler } from './lab.ts';
+import { NotesStore } from './notes-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
 import { Browser, CallRefused, type Invoke, framePage } from './browser.ts';
 import { type Encoder, type EncoderChoice, sharesInPage } from '../core/encoder.ts';
-import { FilmUnknown, FreshProcessFailed, MediaFailed } from '../core/refusals.ts';
+import {
+  FilmUnknown,
+  FreshProcessFailed,
+  MediaFailed,
+  SceneNotRendered,
+  VerbRefused,
+} from '../core/refusals.ts';
 import {
   ApiKeyMissing,
   type EncodeFailed,
@@ -56,7 +69,7 @@ import {
   type PageCrashed,
   type PageError,
 } from './errors.ts';
-import { type FilmFolder, FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { FilmFolder, FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { cueOf, locateHere } from './read-cli.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
 import { StudioReadings } from './studio.ts';
@@ -64,7 +77,7 @@ import { PreviewServer } from './preview-server.ts';
 import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
-import { SourceWriter } from './source-writer.ts';
+import { type Change, SourceWriter } from './source-writer.ts';
 import { FreshFilm, type FreshFilmService, SitesRead } from './fresh-film.ts';
 import { Takes } from './takes.ts';
 import { Review } from './review.ts';
@@ -1291,3 +1304,207 @@ export const scenes = [
     yield* fs.writeFileString(path.join(scenes, name), source);
   return path.join(root, 'films');
 });
+
+// ---------------------------------------------------------------------------
+// Shared review-HTTP fixture (review-http, choices-http, project-http)
+// ---------------------------------------------------------------------------
+
+/** A score option as film `f` offers it. */
+const reviewOption = (id: string, picked: boolean) => ({
+  id,
+  label: id,
+  lines: [],
+  state: 'current' as const,
+  picked,
+  verbs: Arr.filter(['pick'] as const, () => !picked),
+  media: { _tag: 'Heard' as const, alone: false, inPlace: true },
+  key: id,
+});
+
+/** Film `f`'s choices: one score of two options, `warm` playing. */
+export const REVIEW_CHOICES: FilmChoices = {
+  film: 'f',
+  pictures: [],
+  points: [
+    withSay(Option.none(), {
+      ref: { _tag: 'Score' },
+      address: Option.some({ _tag: 'Film' }),
+      title: 'score',
+      lines: [],
+      variants: [reviewOption('warm', true), reviewOption('bright', false)],
+    }),
+  ],
+};
+
+/** Film `f`'s project: one scene, `a`, not yet rendered. */
+export const REVIEW_PROJECT: Project = projectOf(
+  emptyCatalogue('f'),
+  { key: 'fk', sound: Option.none(), acts: [], scenes: [{ scene: 'a', key: 'k1' }] },
+  'main',
+);
+
+/** The `film project` args each fresh run was asked for. */
+export const reviewProjectRuns: Array<ReadonlyArray<string>> = [];
+
+/** The pick of `bright`, in `sound.ts` of film `f` under `films`. */
+const reviewPickIn = (films: string): Change => ({
+  film: 'f',
+  scene: Option.none(),
+  file: `${films}/f/sound.ts`,
+  target: 'score play bright',
+  before: "play: 'warm'",
+  after: "play: 'bright'",
+});
+
+const reviewUnused = Effect.die('not used by the review routes');
+
+/**
+ * Film `f`'s services, faked over a films folder that holds only `f`: its
+ * choices, a pick of `bright` that lands, an undo of it, and a check with
+ * nothing to say. Every other name is no film of the app's.
+ */
+const reviewFilmServices = (films: string, PICK = reviewPickIn(films)) =>
+  Layer.mergeAll(
+    Layer.succeed(
+      Choices,
+      Choices.of({
+        list: () => Effect.succeed(REVIEW_CHOICES),
+        checked: () => Effect.succeed({ choices: REVIEW_CHOICES, findings: [] }),
+        pick: (_, asked) =>
+          Effect.succeed({
+            file: PICK.file,
+            target: `${asked.point} play ${asked.variant}`,
+            change: Option.some(PICK),
+          }),
+        knob: () => reviewUnused,
+        say: () => Effect.succeed(REVIEW_CHOICES),
+        alone: () => reviewUnused,
+        inPlace: () => reviewUnused,
+      }),
+    ),
+    freshFilm({
+      project: (args) =>
+        Effect.suspend((): Effect.Effect<Project, SceneNotRendered | VerbRefused> => {
+          reviewProjectRuns.push(args);
+          if (args.includes('b'))
+            return Effect.fail(
+              VerbRefused.make({
+                point: 'render:scenes:b',
+                variant: 'main',
+                verb: 'approve',
+                reason: 'it is stale: its sources changed since it was made',
+              }),
+            );
+          if (args.includes('--scene'))
+            return Effect.fail(SceneNotRendered.make({ film: 'f', scene: 'a', variant: 'main' }));
+          return Effect.succeed(REVIEW_PROJECT);
+        }),
+      check: (_, leg) =>
+        Effect.succeed(
+          Arr.filter(
+            [{ level: 'warning', tag: 'DeadAir', message: 'no sound 3.0-4.2 s' }] as const,
+            () => leg === 'sound',
+          ),
+        ),
+    }),
+    Layer.succeed(
+      SourceWriter,
+      SourceWriter.of({
+        write: () => reviewUnused,
+        around: () => reviewUnused,
+        undo: () => Effect.succeed({ ...PICK, target: `undo ${PICK.target}` }),
+        redo: () => reviewUnused,
+        history: () =>
+          Effect.succeed({
+            undo: Option.none(),
+            redo: Option.some(PICK),
+            latest: Option.none(),
+          }),
+      }),
+    ),
+    FilmFolder.layer(films),
+  );
+
+export class ReviewTestRoot extends Context.Service<ReviewTestRoot, string>()('test/Root') {}
+
+/** The review over `out/art` (a set of two), its videos 12.5 s long and a frame the video copied. */
+export const reviewHttpFixture = Layer.unwrap(
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const dir = yield* fs.makeTempDirectoryScoped();
+    const out = path.join(dir, 'out');
+    yield* fs.makeDirectory(path.join(out, 'art'), { recursive: true });
+    yield* fs.writeFileString(path.join(out, 'art', 'roof.A.mp4'), '0123456789');
+    yield* fs.writeFileString(path.join(out, 'art', 'roof.B.mp4'), 'abcdefghij');
+    yield* fs.writeFileString(path.join(out, 'art', 'roof.vtt'), 'WEBVTT');
+    yield* fs.writeFileString(
+      path.join(out, 'art', 'review.json'),
+      '{ "title": "Art", "docs": ["roof.vtt"], "sets": { "roof": { "order": ["A", "B"] } } }',
+    );
+    yield* fs.writeFileString(path.join(dir, 'secret.mp4'), 'secret');
+    const films = path.join(dir, 'films');
+    yield* fs.makeDirectory(path.join(films, 'f', 'scenes'), { recursive: true });
+    yield* fs.writeFileString(path.join(films, 'f', 'scenes', 'index.ts'), 'export {};\n');
+    yield* fs.makeDirectory(path.join(dir, 'beside', 'scenes'), { recursive: true });
+    yield* fs.writeFileString(path.join(dir, 'beside', 'scenes', 'index.ts'), 'export {};\n');
+    return Review.layer({
+      roots: [{ label: 'out', path: out }],
+      cache: path.join(dir, 'cache'),
+      phoneOver: 1000,
+      maxVideo: 10_000,
+      phoneCopies: false,
+    }).pipe(
+      Layer.provide(reviewMedia([])),
+      Layer.merge(Layer.succeed(ReviewTestRoot, dir)),
+      Layer.merge(
+        Layer.mergeAll(
+          noSource,
+          noStudio,
+          echoPages,
+          NotesStore.layer.pipe(
+            Layer.provideMerge(ContentStore.layer),
+            Layer.provide(
+              ConfigProvider.layer(
+                ConfigProvider.fromUnknown({ FILMS_LAB: path.join(dir, 'lab') }),
+              ),
+            ),
+          ),
+        ),
+      ),
+      Layer.merge(reviewFilmServices(films)),
+    );
+  }),
+).pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, BunHttpPlatform.layer)));
+
+/** Where the lab listens: every interface, on 8229. */
+const reviewTestBound = { hostname: '0.0.0.0', port: 8229 } as const;
+const reviewTestAllowed = { hosts: ['box.example:8229'] };
+
+export const reviewTestGet = (path: string, headers: Record<string, string> = {}) =>
+  new Request(`http://127.0.0.1:8229${path}`, { method: 'GET', headers });
+
+export const reviewTestAsk = (request: Request) =>
+  Effect.gen(function* () {
+    const review = yield* labHandler(reviewTestAllowed);
+    return yield* Effect.promise(() => review(request, reviewTestBound));
+  });
+
+export const reviewTestBody = (response: Response) => Effect.promise(() => response.text());
+
+/** A refusal's JSON, decoded as the page decodes it. */
+export const reviewTestRefusalOf = Schema.decodeSync(Schema.fromJsonString(Refusal));
+
+export const reviewTestPost = (
+  route: string,
+  body: string,
+  origin: string,
+  type = 'application/json',
+) =>
+  new Request(`http://127.0.0.1:8229${route}`, {
+    method: 'POST',
+    headers: { host: 'box.example:8229', origin, 'content-type': type },
+    body,
+  });
+
+export const REVIEW_TEST_HOME = 'https://box.example:8229';

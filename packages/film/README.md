@@ -629,9 +629,17 @@ on port 8229). It prints its URL and runs until stopped, which stops the
 server and the routes with the command's scope. It serves three pages, the
 app's, cross-linked: the review at `/` (below), the lab at `/lab?film=<film>`
 (`lab.html`, whose entry calls `mountLab(films)`) and the player, its
-look-book, at `/player?film=<film>&lookbook`. `LAB_HOST` (loopback by
-default) and `LAB_PORT` (8229) say where it listens; a box binds `0.0.0.0`
-with the names it is reached by in `FILM_LAB_HOSTS`.
+look-book, at `/player?film=<film>&lookbook`. Its API is under `/api/` (The
+HTTP API, below), and every other path a page serves is the framework's one
+page table (`PAGE_PATHS` in `core/api.ts`; the app gives each page's HTML
+entry, `LabPageSpec.pages`): the review at `/` and `/sets/*` and a film's
+`/films/<film>/choices` and `/films/<film>/project`, the lab at
+`/films/<film>/lab` and `/films/<film>/lab/*`, the player at
+`/films/<film>/play` and a film's `/films/<film>/scenes[/*]` (its look-book),
+and `/lab` and `/player` as before. A path no page declares is a 404, never
+a page. `LAB_HOST` (loopback by default) and `LAB_PORT` (8229) say where it
+listens; a box binds `0.0.0.0` with the names it is reached by in
+`FILM_LAB_HOSTS`.
 
 **The pages are built in the lab's process** (`LabPage`, `tools/lab-page.ts`):
 `Bun.build` with `@bible/film/solid-plugin`, about a tenth of a second, so
@@ -639,8 +647,12 @@ there is no build step and nothing to rebuild by hand. A page is built when
 first asked and again when asked after a file the last build read has
 changed: the app's `sources` and the framework's own are watched, and each
 change to a file a build read is one more build (a render, a mix or a note
-is none). Every page is stamped with its build (`<meta name="lab-build">`)
-and waits on `GET /review/build?since=` (`PageBuild`, long-polled, at most
+is none). A page links its scripts and styles from the root (`/chunk-….js`,
+`publicPath: '/'`), so a page served under a film's path finds them; a
+request is answered as a narration file when it is one
+(`/films/<film>/narration/<file>`), then as a built file, then as the page
+its path serves. Every page is stamped with its build (`<meta name="lab-build">`)
+and waits on `GET /api/review/build?since=` (`PageBuild`, long-polled, at most
 60 s); the lab reloads at the frame it shows when a later build is made
 (`lab/rebuilt.ts`), so a scene edited by hand or by an agent is on screen
 with no hand on the page. The review does not reload itself (a playing set
@@ -655,14 +667,14 @@ The framework owns the routes (the lab API, below: `labHandler` in `lab.ts`,
 one web handler over NotesStore, the scene source, the studio, the review,
 the choices and the project, with the pages behind the same gate):
 
-| Route                                           | What it does                                                         |
-| ----------------------------------------------- | -------------------------------------------------------------------- |
-| `GET /lab/<film>/notes`                         | the film's notes file; its `seq` is the cursor                       |
-| `POST /lab/<film>/notes`                        | a new note: `NotePost`, a `NoteDraft` plus the frame as a base64 PNG |
-| `POST /lab/<film>/notes/:id/reply`              | the user replies (`ReplyPost`); the note opens again                 |
-| `POST /lab/<film>/notes/:id/resolve`            | resolves it (`{}`)                                                   |
-| `GET /lab/<film>/notes/wait?since=<n>&timeout=` | the changes past cursor `n`, long-polled (at most 60 s)              |
-| `GET /lab/<film>/stills/:name`                  | a still (`n3.png`, `n3.r5.png`); any other name is a 404             |
+| Route                                                 | What it does                                                         |
+| ----------------------------------------------------- | -------------------------------------------------------------------- |
+| `GET /api/films/<film>/notes`                         | the film's notes file; its `seq` is the cursor                       |
+| `POST /api/films/<film>/notes`                        | a new note: `NotePost`, a `NoteDraft` plus the frame as a base64 PNG |
+| `POST /api/films/<film>/notes/:id/reply`              | the user replies (`ReplyPost`); the note opens again                 |
+| `POST /api/films/<film>/notes/:id/resolve`            | resolves it (`{}`)                                                   |
+| `GET /api/films/<film>/notes/wait?since=<n>&timeout=` | the changes past cursor `n`, long-polled (at most 60 s)              |
+| `GET /api/films/<film>/stills/:name`                  | a still (`n3.png`, `n3.r5.png`); any other name is a 404             |
 
 A bad body is a 400, an unknown note a 404 `NoteNotFound`, an unknown still
 a 404 `StillUnknown`, and every failure is logged.
@@ -679,20 +691,20 @@ remixes with `film mix <film>`. A take is kept against that reading
 (`VoicedFilm`, `narrator.ts`: the film's paths, voice, `heardAs` and beats,
 which `takes import` makes with `voicedOf`), so a line fixed while the lab
 is open is on the sheet, and a take of it current, at the next read. Its
-routes are the lab API's `studio` group, under `/lab/<film>/studio/`, behind
+routes are the lab API's `studio` group, under `/api/films/<film>/studio/`, behind
 the same gate and for any of the app's films (another name is a 404
 `FilmUnknown`). Every body and answer is a Schema in `core/studio.ts`,
 over the one reading the tools use too: a beat's `Line`s
 (`core/narration.ts`) and the sheet's `Part` and `SheetBeat`
 (`core/sheet.ts`):
 
-| Route                                               | Body → answer                                                                                                                                                              |
-| --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /lab/<film>/studio/beats`                      | `StudioBeats`: per beat with a line, its sheet `parts`, the file name to record it as, `state` (`recorded`, `staging`, `stale`), its take, how many attempts               |
-| `POST /lab/<film>/studio/takes/:beat`               | `TakePost` (`audio` base64, `type` `audio/wav` or `audio/flac`, `acceptMismatch?`) → `StudioTake` (the take, its `transcript`, the word error, the new `timings`, `mixed`) |
-| `GET /lab/<film>/studio/takes/:beat/attempts`       | `StudioAttempts`, newest first: each `transcript`, its word error, when, whether it is the take and whether it reads the line as it is now                                 |
-| `GET /lab/<film>/studio/takes/:beat/attempts/:file` | the attempt's FLAC (`audio/flac`), to hear it again; a name the ledger does not hold is a 404 `AttemptUnknown`                                                             |
-| `POST /lab/<film>/studio/takes/:beat/keep`          | `KeepPost` (`file`, `acceptMismatch?`): an earlier attempt made the take → `StudioTake`                                                                                    |
+| Route                                                     | Body → answer                                                                                                                                                              |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/studio/beats`                      | `StudioBeats`: per beat with a line, its sheet `parts`, the file name to record it as, `state` (`recorded`, `staging`, `stale`), its take, how many attempts               |
+| `POST /api/films/<film>/studio/takes/:beat`               | `TakePost` (`audio` base64, `type` `audio/wav` or `audio/flac`, `acceptMismatch?`) → `StudioTake` (the take, its `transcript`, the word error, the new `timings`, `mixed`) |
+| `GET /api/films/<film>/studio/takes/:beat/attempts`       | `StudioAttempts`, newest first: each `transcript`, its word error, when, whether it is the take and whether it reads the line as it is now                                 |
+| `GET /api/films/<film>/studio/takes/:beat/attempts/:file` | the attempt's FLAC (`audio/flac`), to hear it again; a name the ledger does not hold is a 404 `AttemptUnknown`                                                             |
+| `POST /api/films/<film>/studio/takes/:beat/keep`          | `KeepPost` (`file`, `acceptMismatch?`): an earlier attempt made the take → `StudioTake`                                                                                    |
 
 A take not kept answers its failure as the whole API does (below): a
 `TakeMismatch` carries the beat (`id`), the `script`, what was `heard`, the
@@ -727,9 +739,9 @@ The lab's routes (the review's among them) are declared once, as one Effect
 failure with its status. Both ends derive from that declaration: the
 server's handlers (`HttpApiBuilder.group` in `tools/lab.ts`, `studio.ts`,
 `steps-http.ts`, `review-http.ts`, `choices-http.ts`, `project-http.ts`)
-and the pages'
-clients (`HttpApiClient` in `lab/api.ts`, `lab/studio/api.ts`,
-`lab/review/api.ts`, `lab/review/options/api.ts`) with the URLs a page puts
+and the pages' one client (`LabClient`, an `HttpApiClient` of `LabHttpApi`
+in `lab/api.ts`, which `lab/studio/api.ts`, `lab/review/api.ts` and
+`lab/review/options/api.ts` call through) with the URLs a page puts
 in an `<img>` or `<audio>` (`stillUrl`, `attemptUrl`, `reviewFileUrl`,
 `reviewPhoneUrl`, `reviewFrameUrl`, `choiceAloneUrl`, `choiceMixUrl`, from
 `urlBuilder`).
@@ -769,12 +781,13 @@ same-origin, a write's Origin one of those hosts' with a JSON body
 (`WriteNotJson`, 415) of at most `STUDIO_MAX_BODY` bytes, counted as it
 streams (`BodyTooLarge`, 413). Anything else is a 403 `RequestRefused`,
 logged `api.request.refused`. A new route is behind the gate by being a
-route; every route answers a foreign Host 403 (`lab.test.ts`,
-`review-http.test.ts` walk `routesOf(LabHttpApi)`). Every film route names
-its film, one of the app's films (`named`), and any other name is a 404
+route; every route answers a foreign Host 403 (`lab.test.ts` walks
+`routesOf(LabHttpApi)`). Every film route names
+its film, one of the app's films (`filmNamed`), and any other name is a 404
 `FilmUnknown` before a handler reads a thing. The pages (`LabPage`) answer
-every path outside the API's own prefixes (`/lab/`, `/review/`), behind the
-same gate.
+every path outside the API's own prefix (`/api/`), behind the same gate, and
+so do a fixture's own routes beside the API's (`labHandler`'s `beside`: the
+studio harness's control).
 
 **To add an endpoint:**
 
@@ -796,13 +809,13 @@ answered(Effect.gen(…)))`, naming the film with `named(params.film)`.
    `LabFailure`), or put its URL in an element through `urlBuilder`.
 4. The foreign-Host test covers it by itself; add a test of what it answers.
 
-For example, the review's project routes (`GET /review/project/<film>?variant=`
-and `POST /review/project/<film>/say` `{address, say, variant?}`, each
+For example, the review's project routes (`GET /api/films/<film>/project?variant=`
+and `POST /api/films/<film>/project/say` `{address, say, variant?}`, each
 answering a `ProjectView`: the fresh `Project`, the project folder's ref and
 the video this checkout's catalogue records for each rendered scene) are one
 group: `ProjectGroup`
-in `core/api.ts`, added to `LabHttpApi` (its `/review/project` paths fall
-under the API's prefixes by themselves). The address is a `PartAddress` (the
+in `core/api.ts`, added to `LabHttpApi` (its paths, under a film's
+`/api/films/<film>/`, fall under the API's prefix by themselves). The address is a `PartAddress` (the
 film, an act, scenes: a short is no branch of the tree, so it does not
 decode, 400). `projectGroup` (`tools/project-http.ts`) runs `film project …
 --json` in a fresh process (`FreshFilm.project`) and decodes its `Project`,
@@ -951,7 +964,7 @@ the state's task (`Stage.still`, then `NotesApi.add`), so one is out at a
 time, and a refusal comes back to the draft in the server's words. The feed
 (`lab/notes/feed.ts`), the page's live connection to its server:
 `Connecting | Live | Lost` on `Synced | Waited | Dropped | Retry | Refresh`;
-it reads the notes, then long-polls `/lab/<film>/notes/wait` past the
+it reads the notes, then long-polls `/api/films/<film>/notes/wait` past the
 cursor, so the list changes the moment the agent replies; a failed read or
 wait says so in the panel and connects again after 2 s (a state timeout);
 a note, reply or resolve made on the page reads the notes at once. (Scene
@@ -979,14 +992,14 @@ server rebuilds and reloads the page at the same `#T`, with the selection
 kept in the URL (`&sel=cue:hand:topple`, `&sel=knob:hand:palm`); review the
 change with `git diff`.
 
-| Route                                  | What it does                                                                                        |
-| -------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `GET /lab/<film>/scenes/:scene/source` | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`    |
-| `POST /lab/<film>/cues/:scene/:cue`    | `CuePatch` (`offset?`, `dur?`/`until?`, `ease?`, `stagger?`) → the span, the cue resolved, findings |
-| `POST /lab/<film>/knobs/:scene/:knob`  | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings           |
-| `POST /lab/<film>/undo`, `/redo`       | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{}`)     |
-| `GET /lab/<film>/check`                | `film check --static` now, the latest change, and what Undo and Redo would do                       |
-| `GET /lab/<film>/scenes/:scene/head`   | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                    |
+| Route                                              | What it does                                                                                        |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`    |
+| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `ease?`, `stagger?`) → the span, the cue resolved, findings |
+| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings           |
+| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{}`)     |
+| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, and what Undo and Redo would do                       |
+| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                    |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
@@ -1131,7 +1144,7 @@ at 1×. A cue loop follows the cue as it is edited; a cue under 0.2 s loops
 with 0.4 s either side. A–B loops any range. The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop`; a B not after A stays `Marked`, and a range plays from A as it is made. The provider plays the state through `rangeOf` each frame drawn.
 
 **Compare** (`lab/compare/`, Solid 2) reads the scene's file at HEAD
-(`GET /lab/<film>/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`
+(`GET /api/films/<film>/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`
 and parses it with the locator and parser the writer uses) and draws the
 frame with HEAD's timeline and knobs through today's code (`film.render(…,
 { edits })`, over whatever else the lab previews) on a layer over the film: wipe (HEAD left of a draggable
@@ -1250,22 +1263,22 @@ Derived files (frames, 720p phone copies of big videos, option mixes) are
 kept in `FILM_REVIEW_CACHE` (`~/.cache/film-review`); `FILM_REVIEW_PHONE=off`
 makes no phone copies.
 
-| Route                                                               | What it answers                                                     |
-| ------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `GET /review/index[?fresh]`                                         | `ReviewIndex`: every folder with something to review, newest first  |
-| `GET /review/files/<ref>`, `/review/phone/<ref>`                    | the file, or its phone copy, byte ranges answered 206               |
-| `GET /review/frame?ref=&t=&w=`, `/review/duration?ref=`             | a JPEG of a video at `t` s, `w` px wide; its length                 |
-| `GET /review/films`                                                 | `ReviewFilms`: the app's films                                      |
-| `GET /lab/<film>/choices`                                           | `FilmChoices`: the film's renders (the pictures) and its points     |
-| `POST /lab/<film>/choices/pick`                                     | `PickPost` `{point, variant, verb}` → `ChoiceWrite`                 |
-| `POST /lab/<film>/choices/knob`                                     | `KnobPost` `{point, value}` → `ChoiceWrite`: the level written      |
-| `POST /lab/<film>/choices/say`                                      | `SayPost` `{point, variant, say}` → `FilmChoices`, the say recorded |
-| `GET /lab/<film>/choices/alone?point=&variant=`                     | the variant's own file (a take, a voice attempt)                    |
-| `GET /lab/<film>/choices/mix?point=&variant=`                       | the film's whole mix with that variant in place (m4a)               |
-| `GET /lab/<film>/choices/check`                                     | `SoundCheck`: `film check --sound` as the film now stands           |
-| `GET /review/project/<film>`; `POST …/say`                          | `ProjectView`, read or written by a fresh `film project` (above)    |
-| `GET /review/build?since=&timeout=`                                 | `PageBuild`: the pages' build, once past `since` (at most 60 s)     |
-| `POST /lab/<film>/undo`, `/redo`; `GET /lab/<film>/check`, `/steps` | the lab's own, for the film named; `steps` its undo and redo alone  |
+| Route                                                                           | What it answers                                                     |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `GET /api/review/index[?fresh]`                                                 | `ReviewIndex`: every folder with something to review, newest first  |
+| `GET /api/review/files/<ref>`, `/api/review/phone/<ref>`                        | the file, or its phone copy, byte ranges answered 206               |
+| `GET /api/review/frame?ref=&t=&w=`, `/api/review/duration?ref=`                 | a JPEG of a video at `t` s, `w` px wide; its length                 |
+| `GET /api/films`                                                                | `ReviewFilms`: the app's films                                      |
+| `GET /api/films/<film>/choices`                                                 | `FilmChoices`: the film's renders (the pictures) and its points     |
+| `POST /api/films/<film>/choices/pick`                                           | `PickPost` `{point, variant, verb}` → `ChoiceWrite`                 |
+| `POST /api/films/<film>/choices/knob`                                           | `KnobPost` `{point, value}` → `ChoiceWrite`: the level written      |
+| `POST /api/films/<film>/choices/say`                                            | `SayPost` `{point, variant, say}` → `FilmChoices`, the say recorded |
+| `GET /api/films/<film>/choices/alone?point=&variant=`                           | the variant's own file (a take, a voice attempt)                    |
+| `GET /api/films/<film>/choices/mix?point=&variant=`                             | the film's whole mix with that variant in place (m4a)               |
+| `GET /api/films/<film>/choices/check`                                           | `SoundCheck`: `film check --sound` as the film now stands           |
+| `GET /api/films/<film>/project`; `POST …/say`                                   | `ProjectView`, read or written by a fresh `film project` (above)    |
+| `GET /api/review/build?since=&timeout=`                                         | `PageBuild`: the pages' build, once past `since` (at most 60 s)     |
+| `POST /api/films/<film>/undo`, `/redo`; `GET /api/films/<film>/check`, `/steps` | the lab's own, for the film named; `steps` its undo and redo alone  |
 
 **How a pick lands.** Every write goes through the one `SourceWriter`
 (`source-writer.ts`), the lab's knob and cue writes included: it reads the
@@ -1324,7 +1337,7 @@ a cache keyed by film and stamp), so a pick checks its point against them
 and a pick costs one fresh run, `options list --check` for the page's answer,
 not three. A film is named in a route as one of the
 app's films (`filmNamed`): any other name is a 404 listing the films, never
-a path. `/review/files/<ref>` answers only what the index lists (a video, an
+a path. `/api/review/files/<ref>` answers only what the index lists (a video, an
 image or a doc where a walk looks, or a file a manifest names). Lengths,
 frames and phone copies are the Media service's (`duration`, `still`,
 `phoneCopy`), and a mix is written as an m4a by `writeAac`.
@@ -1336,7 +1349,7 @@ a phone, so `LAB_HOST` defaults to loopback and a box's unit binds
 `bite-cristian.exe.xyz:8229`). Every request passes the API's one gate (The
 HTTP API, above), the pages and their scripts included: the app's server has
 no route of its own, only `labHandler`, which admits first and then hands what
-is not `/review/*` or `/lab/*` to the pages (`LabPage`, above). A Host
+is not `/api/*` to the pages (`LabPage`, above). A Host
 that is neither the server's own nor one of those is a 403 (DNS rebinding),
 and so is any request a browser marks cross-site (`Sec-Fetch-Site`). A write
 must also carry an `Origin` of one of those hosts (`http://` or `https://`)

@@ -18,7 +18,7 @@ const FRESH = 'no-cache';
 /** A derived file: named by its source's path and mtime, so it never changes. */
 const DERIVED = 'max-age=86400';
 
-/** The ref a `/review/files/<ref>` URL names: its path after `prefix`, each segment decoded. */
+/** The ref a `/api/review/files/<ref>` URL names: its path after `prefix`, each segment decoded. */
 export const refFromUrl = (url: string, prefix: string): Option.Option<string> => {
   const path = url.split('?')[0] ?? '';
   if (!path.startsWith(prefix)) return Option.none();
