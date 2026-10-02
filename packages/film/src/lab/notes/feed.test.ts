@@ -167,6 +167,40 @@ describe('the connection, through an actor', () => {
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
 
+  it.effect(
+    'a notes file reset below the cursor is read at its own cursor, and waited past',
+    () => {
+      const fresh = note('n1', 'after the reset');
+      const { asked, layer } = fake(
+        [Effect.succeed(file(5, [note('n5')])), Effect.succeed(file(1, [fresh]))],
+        [{ cursor: 1, events: [{ _tag: 'NoteAdded', seq: 1, note: fresh }] }],
+      );
+      return Effect.gen(function* () {
+        const actor = yield* started;
+        yield* TestClock.adjust('10 millis');
+        expect(yield* SubscriptionRef.get(actor.state)).toEqual(
+          FeedState.Live({ notes: [fresh], cursor: 1 }),
+        );
+        expect(asked).toEqual(['notes', 'wait 5', 'notes', 'wait 1']);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect('a notes file reset to an empty log drops the notes it had', () => {
+    const { asked, layer } = fake(
+      [Effect.succeed(file(5, [note('n5')])), Effect.succeed(file(0, []))],
+      [{ cursor: 0, events: [] }],
+    );
+    return Effect.gen(function* () {
+      const actor = yield* started;
+      yield* TestClock.adjust('10 millis');
+      expect(yield* SubscriptionRef.get(actor.state)).toEqual(
+        FeedState.Live({ notes: [], cursor: 0 }),
+      );
+      expect(asked).toEqual(['notes', 'wait 5', 'notes', 'wait 0']);
+    }).pipe(Effect.scoped, Effect.provide(layer));
+  });
+
   it.effect(`a failed read is lost, and connects again after ${RETRY_MS} ms`, () => {
     const { asked, layer } = fake([Effect.fail(refused), Effect.succeed(file(0, []))]);
     return Effect.gen(function* () {

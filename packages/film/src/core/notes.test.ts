@@ -6,6 +6,7 @@ import {
   emptyNotes,
   eventsSince,
   nearestMoment,
+  noteT,
   replyToNote,
   resolveNote,
   unresolved,
@@ -57,6 +58,69 @@ describe('nearestMoment', () => {
     expect(moment(5 + live + 0.05).mark).toEqual(Option.some('live'));
     expect(moment(1).cue).toEqual(Option.none());
     expect(moment(1).mark).toEqual(Option.none());
+  });
+
+  test('says how far into its scene T is', () => {
+    expect(moment(2).local).toBe(2);
+    expect(moment(5 + 1.25).local).toBeCloseTo(1.25, 9);
+  });
+
+  test('a T a float hair before a scene’s start is at its start, never before it', () => {
+    // Frame steps add up to a hair under 5 s, which the layout reads as scene b.
+    const hair = moment(5 - 1e-14);
+    expect(hair.scene).toBe('b');
+    expect(hair.local).toBe(0);
+  });
+});
+
+describe('where a note shows', () => {
+  const FPS = 30;
+  /** Scene a lasts `aSeconds`, then scene `next` (6 s). */
+  const film = (aSeconds: number, next = 'b') =>
+    Result.getOrThrow(
+      layout(
+        [
+          { id: 'a', min: aSeconds },
+          { id: next, min: 6 },
+        ],
+        { voice: '', scenes: {} },
+      ),
+    );
+  // Made 1.5 s into b while a lasted 5 s.
+  const made: NoteDraft = { scene: 'b', T: 6.5, local: 1.5, frame: 195, text: 'too early' };
+
+  test('a note follows its scene when an earlier beat is re-taken longer', () => {
+    expect(noteT(film(5), FPS, made)).toBeCloseTo(6.5, 9);
+    expect(noteT(film(7), FPS, made)).toBeCloseTo(8.5, 9);
+  });
+
+  test('a note made before scene-local times (no `local`) reads at its T', () => {
+    const { local: _, ...old } = made;
+    expect(noteT(film(7), FPS, old)).toBe(6.5);
+  });
+
+  test('a note whose scene is gone reads at its T', () => {
+    expect(noteT(film(7, 'c'), FPS, made)).toBe(6.5);
+  });
+
+  test('a note on a scene’s last frame stays there when the scene ends between frames', () => {
+    // Scene a lasts 3.04 s: frame 91 (3.0333 s) is its last.
+    const onLast: NoteDraft = { scene: 'a', T: 91 / FPS, local: 91 / FPS, frame: 91, text: 'x' };
+    expect(noteT(film(3.04), FPS, onLast)).toBe(91 / FPS);
+  });
+
+  test('a note past a scene that ends between frames holds on that scene’s last frame', () => {
+    // b runs from 3.04 s to 9.04 s: its last frame is 271 (9.0333 s).
+    const T = noteT(film(3.04), FPS, { ...made, local: 9 });
+    expect(T).toBeCloseTo(271 / FPS, 9);
+    expect(Option.map(nearestMoment(film(3.04), T), (m) => m.scene)).toEqual(Option.some('b'));
+  });
+
+  test('a scene re-taken shorter than the note holds it on its last frame', () => {
+    const late = { ...made, local: 9 };
+    const T = noteT(film(5), FPS, late);
+    expect(T).toBeCloseTo(5 + 6 - 1 / FPS, 9);
+    expect(Option.map(nearestMoment(film(5), T), (m) => m.scene)).toEqual(Option.some('b'));
   });
 });
 
@@ -131,5 +195,13 @@ describe('eventsSince', () => {
       at,
     );
     expect(eventsSince(file, 0).events.map((e) => e._tag)).toEqual(['NoteAdded', 'NoteReplied']);
+  });
+
+  test('a file reset below the cursor (trashed, restored) replays its log at its own cursor', () => {
+    const file = addNote(emptyNotes('f'), draft('after the reset'), at);
+    const waited = eventsSince(file, 5);
+    expect(waited.events.map((e) => [e._tag, e.seq])).toEqual([['NoteAdded', 1]]);
+    expect(waited.cursor).toBe(1);
+    expect(eventsSince(file, waited.cursor).events).toEqual([]);
   });
 });

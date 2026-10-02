@@ -834,7 +834,7 @@ quotation set apart with who said it, marks stripped), and records it:
   the owner's words.
 - **The recorder** (`machine.ts`) is one machine: `Idle | CountIn | Recording
 | Review | Importing | Checking | Failed` on `SelectBeat | Arm | Tick | CountDone |
-Cancel | Stop | MicLost | Retake | Submit | Discard | Imported | Refused |
+Cancel | Stop | MicLost | Submit | Discard | Imported | Refused |
 ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and opens the
   microphone; the 3 s count-in is a state timeout; Stop encodes the WAV to
   review (play it back before submitting); Submit posts it as the state's
@@ -870,12 +870,21 @@ Chrome with a fake microphone.
 in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in
 git). The file is the source of truth: the lab server and `film notes` both
 go through NotesStore, so either works without the other. A note is `{ id,
-film, scene, T, frame, cue?: { name, edge }, mark?, box?, ink?, text,
+film, scene, T, local?, frame, cue?: { name, edge }, mark?, box?, ink?, text,
 status, still, thread, createdAt }`, plus `seq` (the change that made it) and
-`changed` (the last change to touch it). A click saves a pin as a zero-size
+`changed` (the last change to touch it). `T` and `frame` are film time as
+the film was laid out when the note was made; `local` is scene-local time,
+how far into `scene` it was made. The lab seeks, marks, pins and labels a
+note at `local` into its scene while the film has that scene (`noteT`,
+`core/notes.ts`; held on the scene's last frame if a re-take made it
+shorter), so a re-take of an earlier beat does not move a later note off
+its frame. `local` is an additive, optional field: notes made before it
+have none and read at `T`. A click saves a pin as a zero-size
 box. Every change takes the file's next `seq`, so `eventsSince(file, n)`
 (`core/notes.ts`) returns each new note, reply and resolve exactly once past
-a cursor; `wait` polls the file for them (every 200 ms), so it sees a reply
+a cursor (a file reset below the cursor, trashed or restored, replays its
+log at its own `seq` and a wait over it answers at once, even when the log is
+empty, so an open page and `--watch` keep hearing); `wait` polls the file for them (every 200 ms), so it sees a reply
 the CLI wrote while the server was waiting. Each change is one
 `ContentStore.transact`, as every manifest's is: written whole, one writer at
 a time across processes (`notes.json.lock`, created only if there is none and
@@ -932,13 +941,14 @@ are removed after the workers exit; a direct `bun test` builds its own scripts.
 
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
-ink; `n` notes the whole frame, Escape drops the draft. The composer shows
+ink; `n` or the **Note frame** button beside the Pen (its touch path)
+notes the whole frame, Escape drops the draft. The composer shows
 the scene, time, frame and the nearest cue and mark, and pauses playback.
 Saving redraws the film canvas at that frame and sends it (`canvas.toBlob`)
 as the still. Every lab mark lives on an SVG layer over the canvas, never on
 the canvas, so a still, an export frame and a probe are the film's pixels
 alone. Notes appear as pins through the timeline (the tick machinery, hover
-for the text; a pin and the marks surface take native pointer listeners that go with their elements, never an `onCleanup` in a ref, which has no owner in Solid 2) and in a side list with their status, still and thread,
+for the text; a pin and the marks surface take native pointer listeners that go with their elements, never an `onCleanup` in a ref, which has no owner in Solid 2; a gesture the OS takes, `pointercancel`, drops the mark and writes nothing; one pointer marks at a time, a second finger is ignored until the first lifts) and in a side list with their status, still and thread,
 newest first; clicking one seeks to its frame and draws its box and ink
 there. The selected note takes a reply or a resolve. Two machines hold it. The
 composer (`lab/notes/composer.ts`): `Closed | Marking | Open | Saving` on
@@ -950,13 +960,14 @@ time, and a refusal comes back to the draft in the server's words. The feed
 it reads the notes, then long-polls `/lab/<film>/notes/wait` past the
 cursor, so the list changes the moment the agent replies; a failed read or
 wait says so in the panel and connects again after 2 s (a state timeout);
-a note, reply or resolve made on the page reads the notes at once. (Scene
-hot reload is Bun's own HMR client, not the lab's.)
+a note, reply or resolve made on the page reads the notes at once. (A
+scene edited on disk reloads the page at its frame through the lab's own
+build counter, `lab/rebuilt.ts`; there is no HMR client.)
 
 `film notes <film>` (`notes-cli.ts`) prints each unresolved note as one line:
 
 ```
-note id=n1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
+note id=n1 seq=1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
 ```
 
 `--watch` prints each new note, and each reply from the user (`reply id=…

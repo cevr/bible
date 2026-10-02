@@ -12,15 +12,7 @@ import { RecorderEvent, type RecorderState, mismatchAttempt } from './machine.ts
 import { wavSeconds } from './wav.ts';
 
 /** What a control does. */
-export type Act =
-  | 'arm'
-  | 'retake'
-  | 'stop'
-  | 'cancel'
-  | 'submit'
-  | 'discard'
-  | 'acceptAnyway'
-  | 'retry';
+export type Act = 'arm' | 'stop' | 'cancel' | 'submit' | 'discard' | 'acceptAnyway' | 'retry';
 
 /** The studio's keys, as the panel names them. */
 type StudioKey = 'R' | 'Space' | 'K' | 'Esc';
@@ -50,7 +42,7 @@ export const controlsOf = (state: RecorderState): ReadonlyArray<Control> =>
       Recording: () => [control('stop', 'Stop', 'Space'), CANCEL],
       Review: () => [
         control('submit', 'Submit', 'K'),
-        control('retake', 'Retake', 'R'),
+        control('arm', 'Retake', 'R'),
         control('discard', 'Discard', 'Esc'),
       ],
       Importing: () => [],
@@ -125,7 +117,6 @@ export const eventOf = (act: Act, device: Option.Option<string>): RecorderEvent 
   Match.value(act).pipe(
     Match.withReturnType<RecorderEvent>(),
     Match.when('arm', () => RecorderEvent.Arm({ device })),
-    Match.when('retake', () => RecorderEvent.Retake({ device })),
     Match.when('stop', () => RecorderEvent.Stop),
     Match.when('cancel', () => RecorderEvent.Cancel),
     Match.when('submit', () => RecorderEvent.Submit),
