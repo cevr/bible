@@ -1,4 +1,4 @@
-// The notes' pieces: the pen in the panel's header; the section (the
+// The notes' pieces: the pen and the Note frame button in the panel's header; the section (the
 // composer, the feed's status and the list of notes with their threads); the
 // marks on the frame (a surface under every other mark that takes a click,
 // a drag or the pen, the draft's marks, and the selected note's on its own
@@ -28,6 +28,21 @@ export const Pen = () => {
       onClick={actions.togglePen}
     >
       Pen
+    </button>
+  );
+};
+
+/** Note the whole frame shown: the touch path for `n`. */
+export const Frame = () => {
+  const { actions } = useNotes();
+  return (
+    <button
+      type="button"
+      data-act="note-frame"
+      title="note the whole frame shown (n)"
+      onClick={actions.noteFrame}
+    >
+      Note frame
     </button>
   );
 };

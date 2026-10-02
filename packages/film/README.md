@@ -933,7 +933,8 @@ are removed after the workers exit; a direct `bun test` builds its own scripts.
 
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
-ink; `n` notes the whole frame, Escape drops the draft. The composer shows
+ink; `n` or the **Note frame** button beside the Pen (its touch path)
+notes the whole frame, Escape drops the draft. The composer shows
 the scene, time, frame and the nearest cue and mark, and pauses playback.
 Saving redraws the film canvas at that frame and sends it (`canvas.toBlob`)
 as the still. Every lab mark lives on an SVG layer over the canvas, never on

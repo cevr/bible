@@ -241,6 +241,25 @@ describe('marking a frame', () => {
   );
 
   it.live(
+    'the Note frame button notes the whole frame, as `n` does, with no box',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        yield* waitFor(page, '[data-act="note-frame"]');
+        yield* textIs(page, '[data-act="note-frame"]', 'Note frame');
+        yield* click(page, '[data-act="note-frame"]');
+        yield* waitFor(page, '.lab-compose:not([hidden])');
+        yield* textHas(page, '.lab-where', 'one · 1.00s · f30');
+        yield* save(page, 'the whole frame is too dark');
+        yield* waitFor(page, '.lab-note-item[data-id="n1"]');
+        const body = theNote(asked);
+        expect(field(body, 'box')).toEqual(Option.none());
+        expect(field(body, 'ink')).toEqual(Option.none());
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a refused save says the server's reason and keeps the draft",
     () =>
       Effect.gen(function* () {
