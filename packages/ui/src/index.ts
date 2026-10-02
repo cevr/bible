@@ -10,3 +10,4 @@ export * from './dialog/index.ts';
 export * from './alert-dialog/index.ts';
 export * from './drawer/index.ts';
 export * from './toast/index.ts';
+export * from './number-field/index.ts';
