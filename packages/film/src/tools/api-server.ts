@@ -97,7 +97,12 @@ const SAFE_METHODS: ReadonlyArray<string> = ['GET', 'HEAD'];
 const header = (request: HttpServerRequest.HttpServerRequest, name: string) =>
   Option.fromUndefinedOr(request.headers[name]);
 
-/** The Host a request names: its header, else its URL's. */
+/**
+ * The Host a request names: its header, else its URL's. A request line in
+ * absolute form (`GET http://other/ HTTP/1.1`) names another authority than
+ * its header, but only a proxy client sends one; a browser on a rebound name
+ * sends origin form, so the header is the name it reached.
+ */
 const hostOf = (request: HttpServerRequest.HttpServerRequest) =>
   Option.getOrElse(
     Option.orElse(header(request, 'host'), () =>
