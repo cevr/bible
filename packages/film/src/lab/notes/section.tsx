@@ -1,4 +1,4 @@
-// The notes' pieces: the pen in the panel's header; the section (the
+// The notes' pieces: the pen and the Note frame button in the panel's header; the section (the
 // composer, the feed's status and the list of notes with their threads); the
 // marks on the frame (a surface under every other mark that takes a click,
 // a drag or the pen, the draft's marks, and the selected note's on its own
@@ -32,12 +32,28 @@ export const Pen = () => {
   );
 };
 
-const label = (note: Note) => {
+/** Note the whole frame shown: the touch path for `n`. */
+export const Frame = () => {
+  const { actions } = useNotes();
+  return (
+    <button
+      type="button"
+      data-act="note-frame"
+      title="note the whole frame shown (n)"
+      onClick={actions.noteFrame}
+    >
+      Note frame
+    </button>
+  );
+};
+
+/** A note in the list: its id, scene and the time it shows at now, with its nearest cue edge. */
+const label = (note: Note, T: number) => {
   const cue = Option.match(Option.fromUndefinedOr(note.cue), {
     onNone: () => '',
     onSome: (c) => ` · ${c.name}:${c.edge}`,
   });
-  return `${note.id} · ${note.scene} · ${note.T.toFixed(2)}s${cue}`;
+  return `${note.id} · ${note.scene} · ${T.toFixed(2)}s${cue}`;
 };
 
 const Still = (props: { readonly name: string }) => {
@@ -96,7 +112,7 @@ const Item = (props: { readonly note: Note }) => {
       }}
     >
       <div class="lab-note-head">
-        <span class="lab-note-label">{label(props.note)}</span>
+        <span class="lab-note-label">{label(props.note, state.timeOf(props.note))}</span>
         <span class={['lab-badge', props.note.status]}>{props.note.status}</span>
       </div>
       <p class="lab-note-text">{props.note.text}</p>
@@ -211,23 +227,43 @@ export const Marks = () => {
   const { film } = meta;
   const draft = () => state.draft();
   const shownNote = () =>
-    Option.filter(state.selected(), (n) => Math.abs(lab.T() - n.T) < 0.5 / film.fps);
+    Option.filter(state.selected(), (n) => Math.abs(lab.T() - state.timeOf(n)) < 0.5 / film.fps);
   const listen = (surface: SVGRectElement) => {
     const at = pointerAt(surface, film);
+    // One gesture at a time: the pointer that pressed first marks; a second
+    // finger is ignored until that one lifts or is cancelled.
+    let gesture = Option.none<number>();
     const down = (e: PointerEvent) => {
+      if (Option.isSome(gesture)) return;
+      gesture = Option.some(e.pointerId);
       e.preventDefault();
       surface.setPointerCapture(e.pointerId);
+      /** `f`, for this gesture's pointer only. */
+      const its = (f: (ev: PointerEvent) => void) => (ev: PointerEvent) => {
+        if (ev.pointerId === e.pointerId) f(ev);
+      };
       const far = (ev: PointerEvent) =>
         Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) >= DRAG_PX;
-      const move = (ev: PointerEvent) => actions.drag(at(ev), far(ev));
-      const up = (ev: PointerEvent) => {
+      const move = its((ev) => actions.drag(at(ev), far(ev)));
+      const end = () => {
+        gesture = Option.none();
         surface.removeEventListener('pointermove', move);
         surface.removeEventListener('pointerup', up);
-        actions.lift(at(ev), far(ev));
+        surface.removeEventListener('pointercancel', cancelled);
       };
+      const up = its((ev) => {
+        end();
+        actions.lift(at(ev), far(ev));
+      });
+      // The OS took the gesture (a swipe, a call): the mark goes, nothing is written.
+      const cancelled = its(() => {
+        end();
+        actions.cancel();
+      });
       actions.press(at(e));
       surface.addEventListener('pointermove', move);
       surface.addEventListener('pointerup', up);
+      surface.addEventListener('pointercancel', cancelled);
     };
     // Native, as the handles' are; it lives and goes with the surface it is on.
     surface.addEventListener('pointerdown', down);
@@ -269,7 +305,7 @@ export const Marks = () => {
 /** One note's pin on the timeline: a press selects it (and does not seek the track). */
 const Pin = (props: { readonly note: Note }) => {
   const { meta } = useLab();
-  const { actions } = useNotes();
+  const { state, actions } = useNotes();
   const listen = (el: HTMLDivElement) => {
     const down = (e: PointerEvent) => {
       e.stopPropagation();
@@ -282,7 +318,7 @@ const Pin = (props: { readonly note: Note }) => {
     <div
       class={['tick', 'note', props.note.status]}
       data-name={`${props.note.id} · ${props.note.status} · ${props.note.text}`}
-      style={{ left: `${(props.note.T / meta.film.duration) * 100}%` }}
+      style={{ left: `${(state.timeOf(props.note) / meta.film.duration) * 100}%` }}
       ref={listen}
     />
   );

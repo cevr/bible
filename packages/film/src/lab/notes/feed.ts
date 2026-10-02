@@ -2,7 +2,10 @@
 // machine: it reads the notes, then long-polls past the cursor, so a reply
 // the agent makes from `film notes` lands on the page as it is written. A
 // wait that brings changes reads the notes again; one that brings none (the
-// server answers empty after WAIT_S) waits again. A failed read or wait loses
+// server answers empty after WAIT_S) waits again. A read takes the file's own
+// cursor, and a wait whose cursor went back (a notes file trashed, moved or
+// restored, even to an empty log) reads again, so the page shows the file
+// as it is and waits past where it stands. A failed read or wait loses
 // the feed, keeping the notes it had and saying the server's words, and it
 // connects again after RETRY_MS: a state timeout, so the timer is the actor's
 // and stops with the state. A change this page made (a note, a reply, a
@@ -47,20 +50,19 @@ export const FeedEvent = Event({
 });
 export type FeedEvent = typeof FeedEvent.Type;
 
-const read = (cursor: number) =>
-  NotesApi.use((api) =>
-    Effect.map(api.notes, (file) =>
-      FeedEvent.Synced({ notes: file.notes, cursor: Math.max(cursor, file.seq) }),
-    ),
-  );
+/** Read the notes: the file's own cursor, even below the last one (a reset file). */
+const read = NotesApi.use((api) =>
+  Effect.map(api.notes, (file) => FeedEvent.Synced({ notes: file.notes, cursor: file.seq })),
+);
 
-/** Wait past `cursor`; read the notes again if the wait brought changes. */
+/** Wait past `cursor`; read the notes again if the wait brought changes or the cursor went back. */
 const follow = (cursor: number) =>
   NotesApi.use((api) =>
     Effect.flatMap(api.wait(cursor), (waited): Effect.Effect<FeedEvent, LabFailure, NotesApi> => {
-      const next = Math.max(cursor, waited.cursor);
-      if (waited.events.length === 0) return Effect.succeed(FeedEvent.Waited({ cursor: next }));
-      return read(next);
+      // A cursor gone back is a reset file, read again even when it has no events.
+      if (waited.events.length === 0 && waited.cursor >= cursor)
+        return Effect.succeed(FeedEvent.Waited({ cursor: waited.cursor }));
+      return read;
     }),
   );
 
@@ -71,7 +73,7 @@ export const feedMachine = Machine.make({
   event: FeedEvent,
   initial: FeedState.Connecting({ notes: [], cursor: 0 }),
 })
-  .task(FeedState.Connecting, ({ state }) => read(state.cursor), { onFailure: dropped })
+  .task(FeedState.Connecting, () => read, { onFailure: dropped })
   .on(FeedState.Connecting, FeedEvent.Synced, ({ event }) =>
     FeedState.Live({ notes: event.notes, cursor: event.cursor }),
   )

@@ -36,7 +36,6 @@ import { ReviewApi, reviewApiLayer } from './api.ts';
 import type { Quality } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
 import {
-  STEP_S,
   type SyncActor,
   SyncEvent,
   type SyncState,
@@ -50,7 +49,7 @@ import {
   viewNameOf,
 } from './machine.ts';
 import { type ReviewPlace, placeOf, searchOf, searchWithView, viewOf } from './place.ts';
-import { type SyncDriver, makeSync } from './sync.ts';
+import { PlayerKey, type SyncDriver, listenPlayerKeys, makeSync, playerEvent } from './sync.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 
@@ -232,18 +231,6 @@ interface SetActors {
 
 const unmeasured = Atom.make(AsyncResult.initial<number, LabFailure>());
 
-/** ←/→: a step back or on. */
-export const ARROWS = new Map([
-  ['ArrowRight', 1],
-  ['ArrowLeft', -1],
-]);
-
-/** Whether a key press belongs to a field (typing), not to the player. */
-export const typing = (target: EventTarget) =>
-  target instanceof HTMLInputElement ||
-  target instanceof HTMLTextAreaElement ||
-  target instanceof HTMLSelectElement;
-
 const SetBody = (
   props: ParentProps<{
     readonly folder: ReviewFolder;
@@ -298,34 +285,27 @@ const SetBody = (
     ),
   );
 
-  const onKey = (e: KeyboardEvent) => {
-    if (Option.exists(Option.fromNullishOr(e.target), typing) || e.metaKey || e.ctrlKey || e.altKey)
-      return;
-    const name = viewNameOf(view());
-    const by = Option.fromUndefinedOr(ARROWS.get(e.key));
-    if (name === 'moments') {
-      Option.map(
-        Option.zipWith(by, moments(), (b, m) => ({ b, m })),
-        ({ b, m }) => {
-          e.preventDefault();
-          sendView(ViewEvent.MomentStepped({ by: b, count: m.length }));
-        },
-      );
-      return;
-    }
-    if (!playsIn(name)) return;
-    if (e.key === ' ') {
-      e.preventDefault();
-      sendSync(SyncEvent.Toggled);
-      return;
-    }
-    Option.map(by, (b) => {
-      e.preventDefault();
-      sendSync(SyncEvent.Stepped({ by: b * STEP_S }));
-    });
-  };
-  document.addEventListener('keydown', onKey);
-  onCleanup(() => document.removeEventListener('keydown', onKey));
+  // The moments step on ←/→; the playing views hear the player's keys.
+  onCleanup(
+    listenPlayerKeys((key) => {
+      const name = viewNameOf(view());
+      if (name === 'moments')
+        return PlayerKey.$match(key, {
+          Toggle: () => false,
+          Step: ({ by }) =>
+            Option.match(moments(), {
+              onNone: () => false,
+              onSome: (m) => {
+                sendView(ViewEvent.MomentStepped({ by, count: m.length }));
+                return true;
+              },
+            }),
+        });
+      if (!playsIn(name)) return false;
+      sendSync(playerEvent(key));
+      return true;
+    }),
+  );
 
   const value: SetContextValue = {
     folder: props.folder,
@@ -358,7 +338,7 @@ const SetReady = (
   );
 };
 
-/** One comparison set's player, view and moments, for its page. */
+/** One version stack's player, view and moments, for its page; a stack of one has no side by side. */
 export const SetProvider = (
   props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>,
 ) => {
@@ -366,7 +346,7 @@ export const SetProvider = (
   const ids = props.set.variants.map((v) => v.id);
   const first = Option.getOrElse(Option.fromUndefinedOr(ids[0]), () => '');
   const initial = viewOf(location.search, ids);
-  const other = Option.getOrElse(Option.fromUndefinedOr(ids[1]), () => first);
+  const other = Option.fromUndefinedOr(ids[1]);
   const actors = meta.runtime.atom(
     Machine.scoped(
       Effect.all({

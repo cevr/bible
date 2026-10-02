@@ -3,10 +3,17 @@
 // first variant's video is the clock (its time is the set's); every other
 // that drifts more than DRIFT_S from it is put back on it. Only the audible
 // one is unmuted. A seek moves every video; a stall pauses them all until
-// each has enough to play on (`Buffering`).
+// each has enough to play on (`Buffering`). The player's keys (space, ←/→)
+// are heard here too, for every page with a synced player.
 
-import { type Cause, Effect, Option } from 'effect';
-import { type SyncEvent, SyncEvent as Events, type SyncState, runningOf } from './machine.ts';
+import { type Cause, Data, Effect, Option } from 'effect';
+import {
+  type SyncEvent,
+  SyncEvent as Events,
+  STEP_S,
+  type SyncState,
+  runningOf,
+} from './machine.ts';
 
 /** How far a video may drift from the clock before it is put back on it, in seconds. */
 const DRIFT_S = 0.2;
@@ -178,4 +185,53 @@ export const makeSync = (first: string, send: (event: SyncEvent) => void): SyncD
   };
 
   return { attach, detach, apply, stop };
+};
+
+/** What a key press asks of a synced player: play or pause (space), or a step back or on (←/→). */
+export type PlayerKey = Data.TaggedEnum<{
+  Toggle: {};
+  Step: { readonly by: number };
+}>;
+export const PlayerKey = Data.taggedEnum<PlayerKey>();
+
+/** ←/→: a step back or on. */
+const ARROWS = new Map([
+  ['ArrowRight', 1],
+  ['ArrowLeft', -1],
+]);
+
+/** Whether a key press belongs to a field (typing), not to the player. */
+const typing = (target: EventTarget) =>
+  target instanceof HTMLInputElement ||
+  target instanceof HTMLTextAreaElement ||
+  target instanceof HTMLSelectElement;
+
+/** The player's ask in a key press: none for a key typed into a field, held with a modifier, or not the player's. */
+const playerKey = (e: KeyboardEvent): Option.Option<PlayerKey> => {
+  if (Option.exists(Option.fromNullishOr(e.target), typing) || e.metaKey || e.ctrlKey || e.altKey)
+    return Option.none();
+  if (e.key === ' ') return Option.some(PlayerKey.Toggle());
+  return Option.map(Option.fromUndefinedOr(ARROWS.get(e.key)), (by) => PlayerKey.Step({ by }));
+};
+
+/** The machine's event for a player key: a toggle, or a step of STEP_S seconds. */
+export const playerEvent = (key: PlayerKey): SyncEvent =>
+  PlayerKey.$match(key, {
+    Toggle: () => Events.Toggled,
+    Step: ({ by }) => Events.Stepped({ by: by * STEP_S }),
+  });
+
+/**
+ * Hear the page's key presses for a synced player: `take` gets each of the
+ * player's keys and answers whether it took it (its default is then
+ * prevented). The one place the review's players listen to the keyboard;
+ * answers the stop.
+ */
+export const listenPlayerKeys = (take: (key: PlayerKey) => boolean): (() => void) => {
+  const onKey = (e: KeyboardEvent) =>
+    Option.map(playerKey(e), (key) => {
+      if (take(key)) e.preventDefault();
+    });
+  document.addEventListener('keydown', onKey);
+  return () => document.removeEventListener('keydown', onKey);
 };

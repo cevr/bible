@@ -4,8 +4,9 @@
 // the check after it, a say the choices; only an undo or a redo reads the
 // choices again, and each source write the steps Undo and Redo offer; the
 // answers land in any order, and the choices shown are the newest asked's), the
-// write itself (a verb on a variant, a knob, a say on a variant, an undo or
-// a redo), the sound check run after each write that changes what the film
+// writes (a verb on a variant, a knob, a say on a variant, an undo or a
+// redo: each control's its own, `useAct`, so one sent while another is in
+// flight cancels nothing), the sound check run after each write that changes what the film
 // plays (`film check --sound`: dead air, balance against the picked score),
 // and the synced player: the film's newest render
 // (its own sound muted) on the clock, and the sound heard over it, one
@@ -35,11 +36,11 @@ import type { FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine, CheckReport } from '../../../core/schema.ts';
 import type { LabFailure } from '../../api.ts';
-import { newestAsked } from '../asked.ts';
-import { ARROWS, typing, useReview } from '../context.tsx';
-import { Loaded } from '../loaded.tsx';
-import { STEP_S, type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
-import { type SyncDriver, makeSync } from '../sync.ts';
+import { type Asks, type Landed, newestAsked } from '../asked.ts';
+import { useReview } from '../context.tsx';
+import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
+import { type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
+import { type SyncDriver, listenPlayerKeys, makeSync, playerEvent } from '../sync.ts';
 import { type ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } from './api.ts';
 
 /** The player's clock: the film's render, its own sound muted unless it is the one heard. */
@@ -91,6 +92,9 @@ const firstPlaying = (choices: FilmChoices): Playing =>
 export const samePlaying = (a: Playing, b: Playing): boolean =>
   trackOf('', a, 0) === trackOf('', b, 0);
 
+/** What a film's write answers that the page shows, each in the order asked. */
+type FilmOrder = 'choices' | 'findings';
+
 interface FilmContextValue {
   readonly film: string;
   readonly choices: Accessor<FilmChoices>;
@@ -100,10 +104,15 @@ interface FilmContextValue {
   readonly findings: Accessor<Option.Option<ReadonlyArray<CheckLine>>>;
   /** What Undo and Redo would do now. */
   readonly steps: Accessor<Option.Option<Steps>>;
-  /** The last write, as it went. */
+  /** The film's writes as the status line says them: writing while any is in flight, else the last. */
   readonly wrote: Accessor<AsyncResult.AsyncResult<Wrote, LabFailure>>;
-  /** Write `act`: whether it was answered (a say's box empties only then). */
-  readonly write: (act: ChoiceAct) => Promise<boolean>;
+  /** How many source writes have been answered: a mix, or a project, is read again on each. */
+  readonly version: Accessor<number>;
+  /** Show what a control's write of `act` answers, in the order asked: whether it was answered. */
+  readonly written: (act: ChoiceAct, landed: Landed<Wrote, LabFailure, FilmOrder>) => boolean;
+  readonly status: WriteStatus<Wrote>;
+  /** What the film's writes answer, each in the order asked: the choices and the check. */
+  readonly orders: Readonly<Record<FilmOrder, Asks>>;
   /** The sound check after the last pick or knob (initial until one). */
   readonly soundCheck: Accessor<AsyncResult.AsyncResult<SoundCheck, LabFailure>>;
   /** The render the sound plays over, when the film has one. */
@@ -123,6 +132,32 @@ const FilmContext = createContext<FilmContextValue>();
 /** A film's context: only inside `<FilmProvider>`. */
 export const useFilm = (): FilmContextValue => useContext(FilmContext);
 
+/** A control's write of the film's acts: whether its own is in flight, and the write. */
+interface ActWrite {
+  readonly waiting: Accessor<boolean>;
+  /** Write `act`: whether it was answered (a say's box empties only then); refused while its own is in flight. */
+  readonly write: (act: ChoiceAct) => Promise<boolean>;
+}
+
+/** A control's own write of the film's acts (`useWrite`): made once, as the control is made. */
+export const useAct = (): ActWrite => {
+  const { film, written, status, orders } = useFilm();
+  const own = useWrite(
+    (act: ChoiceAct) => OptionsApi.use((api) => api.write(film, act)),
+    status,
+    orders,
+  );
+  return {
+    waiting: own.waiting,
+    write: (act) =>
+      own
+        .write(act)
+        .then((landed) =>
+          Option.match(landed, { onNone: () => false, onSome: (l) => written(act, l) }),
+        ),
+  };
+};
+
 type Read<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 
 interface FilmAtoms {
@@ -132,7 +167,6 @@ interface FilmAtoms {
   readonly again: Atom.Writable<AsyncResult.AsyncResult<FilmChoices, LabFailure>, void>;
   readonly check: Read<CheckReport>;
   readonly steps: Atom.Writable<AsyncResult.AsyncResult<Steps, LabFailure>, void>;
-  readonly write: Atom.Writable<AsyncResult.AsyncResult<Wrote, LabFailure>, ChoiceAct>;
   readonly soundCheck: Atom.Writable<AsyncResult.AsyncResult<SoundCheck, LabFailure>, void>;
 }
 
@@ -154,8 +188,7 @@ const FilmBody = (
   const check = useAtomValue(() => props.atoms.check);
   const stepsResult = useAtomValue(() => props.atoms.steps);
   const readSteps = useAtomSet(() => props.atoms.steps);
-  const wrote = useAtomValue(() => props.atoms.write);
-  const write = useAtomSet(() => props.atoms.write, { mode: 'promiseExit' });
+  const status = writeStatus<Wrote>();
   const soundCheck = useAtomValue(() => props.atoms.soundCheck);
   const runSoundCheck = useAtomSet(() => props.atoms.soundCheck);
 
@@ -169,20 +202,6 @@ const FilmBody = (
       if (Exit.isSuccess(exit)) ask.answer(() => setChoices(exit.value));
     });
   };
-  /** Write `act`, showing the choices it answers unless a newer ask's are shown; one overtaken reads them again. */
-  const writeAct = (act: ChoiceAct) => {
-    const ask = asks.ask();
-    return write(act).then((exit) => {
-      if (Exit.isFailure(exit)) return false;
-      Option.map(exit.value.choices, (c) => {
-        ask.answer(() => setChoices(c));
-        if (ask.overtaken()) readAgain();
-      });
-      // An undo or a redo answers no choices: they are read again.
-      if (Option.isNone(exit.value.choices)) readAgain();
-      return true;
-    });
-  };
   const [answered, setAnswered] = createSignal(Option.none<ReadonlyArray<CheckLine>>());
   const findings = createMemo(() =>
     Option.orElse(answered(), () =>
@@ -194,16 +213,31 @@ const FilmBody = (
   );
   // Each source write bumps the version: every mix is asked for again, mixed from the source as it now stands.
   const [version, setVersion] = createSignal(0);
-  createEffect(wrote, (result) => {
-    if (!AsyncResult.isSuccess(result) || result.waiting) return;
-    const done = result.value;
-    Option.map(done.findings, (f) => setAnswered(Option.some(f)));
-    if (!writesSource(done.act)) return;
-    setVersion((v) => v + 1);
-    readSteps();
-    // A pick or a knob changes the mix: the sound check hears it again.
-    if (changesSound(done.act)) runSoundCheck();
-  });
+  // The check as the newest write asked that answers one (a source write, an undo, a redo).
+  const orders = { choices: asks, findings: newestAsked() };
+  /**
+   * A write of `act` landed: show the choices it answers unless a newer
+   * ask's are shown, and the check after it unless a newer write's check is;
+   * one that answers no choices (an undo, a redo) or was overtaken reads them
+   * again. Every successful source write bumps the version and reads the
+   * steps, and a pick or a knob runs the sound check.
+   */
+  const written = (act: ChoiceAct, landed: Landed<Wrote, LabFailure, FilmOrder>) => {
+    if (!landed.succeeded) return false;
+    const shown = landed.show('choices', (done) => done.choices, setChoices);
+    if (!shown || landed.overtaken('choices')) readAgain();
+    landed.show(
+      'findings',
+      (done) => done.findings,
+      (f) => setAnswered(Option.some(f)),
+    );
+    if (writesSource(act)) {
+      setVersion((v) => v + 1);
+      readSteps();
+      if (changesSound(act)) runSoundCheck();
+    }
+    return true;
+  };
 
   const [pictureRef, setPictureRef] = createSignal(
     Option.map(Option.fromUndefinedOr(first.pictures[0]), (p) => p.ref),
@@ -224,22 +258,14 @@ const FilmBody = (
   onCleanup(driver.stop);
   createEffect(sync, (s) => driver.apply(s));
 
-  const onKey = (e: KeyboardEvent) => {
-    if (Option.exists(Option.fromNullishOr(e.target), typing) || e.metaKey || e.ctrlKey || e.altKey)
-      return;
-    if (Option.isNone(picture())) return;
-    if (e.key === ' ') {
-      e.preventDefault();
-      send(SyncEvent.Toggled);
-      return;
-    }
-    Option.map(Option.fromUndefinedOr(ARROWS.get(e.key)), (by) => {
-      e.preventDefault();
-      send(SyncEvent.Stepped({ by: by * STEP_S }));
-    });
-  };
-  document.addEventListener('keydown', onKey);
-  onCleanup(() => document.removeEventListener('keydown', onKey));
+  // The player's keys, once there is a picture to play.
+  onCleanup(
+    listenPlayerKeys((key) => {
+      if (Option.isNone(picture())) return false;
+      send(playerEvent(key));
+      return true;
+    }),
+  );
 
   const value: FilmContextValue = {
     film,
@@ -247,8 +273,11 @@ const FilmBody = (
     reading: () => again().waiting,
     findings,
     steps,
-    wrote,
-    write: writeAct,
+    wrote: status.status,
+    version,
+    written,
+    orders,
+    status,
     soundCheck,
     picture,
     choosePicture: (ref) => {
@@ -294,7 +323,6 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
     again: meta.runtime.fn(() => OptionsApi.use((api) => api.choices(film))),
     check: meta.runtime.atom(OptionsApi.use((api) => api.check(film))),
     steps: meta.runtime.fn(() => OptionsApi.use((api) => api.steps(film))),
-    write: meta.runtime.fn((act: ChoiceAct) => OptionsApi.use((api) => api.write(film, act))),
     soundCheck: meta.runtime.fn(() => OptionsApi.use((api) => api.soundCheck(film))),
   };
   const actor = meta.runtime.atom(Machine.scoped(spawnSync(PICTURE, 0)));

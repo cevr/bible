@@ -1,9 +1,10 @@
 // The review's pages. Home lists every folder with something to review,
-// comparisons first, filtered by name. A folder shows its comparison sets,
-// and whatever is in no set: its videos (with captions when a `.vtt` lies
-// beside them), its sheets and stills (a lightbox), its docs (markdown
-// inline). A set plays every variant on one clock: all of them, the first
-// against one other, every variant's frame at a few moments, or the notes.
+// version stacks first, filtered by name. A folder shows its version stacks
+// (Versions), and whatever is in no stack: its videos (with captions when a
+// `.vtt` lies beside them), its sheets and stills (a lightbox), its docs
+// (markdown inline). A stack plays every version on one clock: all of them,
+// the first side by side with one other (a stack of two or more), every
+// version's frame at a few moments, or the notes.
 
 import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
@@ -29,10 +30,12 @@ import {
   folderMatches,
   folderTitle,
   isMarkdown,
+  POSTER_W,
   pressed,
   recordedStaleText,
   sizeText,
-  videoUrl,
+  versionsText,
+  videoSource,
 } from './format.ts';
 import {
   Rate,
@@ -50,9 +53,8 @@ import { Loaded, failedText } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
 import { type ReviewPlace, ReviewPlace as Place, searchOf } from './place.ts';
 
-/** A strip's frames are this wide; a poster, a moment's frame and the lightbox wider. */
+/** A strip's frames are this wide; a poster (`POSTER_W`), a moment's frame and the lightbox wider. */
 const THUMB_W = 320;
-const POSTER_W = 960;
 const MOMENT_W = 1280;
 const LIGHTBOX_W = 1920;
 
@@ -188,7 +190,7 @@ const Films = () => {
   );
 };
 
-/** Every folder with something to review: comparisons first, then the rest; filtered by name. */
+/** Every folder with something to review: version stacks first, then the rest; filtered by name. */
 export const Home = () => {
   const { state } = useReview();
   return (
@@ -202,7 +204,7 @@ export const Home = () => {
         return (
           <>
             <Films />
-            <Section title="Comparisons" count={sets().length}>
+            <Section title="Versions" count={sets().length}>
               <div class="rv-grid">
                 <For each={sets()}>{(folder) => <FolderCard folder={folder} />}</For>
               </div>
@@ -270,23 +272,28 @@ const LooseVideo = (props: {
   const captions = captionsFor(props.video, props.docs);
   const ready = () =>
     Match.value(props.video.phone).pipe(
-      Match.when('ready', () => ' · 720p ready'),
-      Match.when('pending', () => ' · 720p coming'),
+      Match.when('ready', () => ' · proxy ready'),
+      Match.when('pending', () => ' · proxy coming'),
       Match.orElse(() => ''),
     );
+  const source = createMemo(() => videoSource(props.video, state.quality()));
   return (
     <div class="rv-card rv-tall">
-      <video
-        controls
-        preload="none"
-        playsinline
-        poster={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
-        src={videoUrl(props.video, state.quality())}
-      >
-        <Show when={Option.getOrUndefined(captions)} keyed>
-          {(vtt: ReviewFile) => <track kind="captions" src={reviewFileUrl(vtt.ref)} default />}
-        </Show>
-      </video>
+      <Show when={Option.getOrUndefined(source())} fallback={<ProxyPending video={props.video} />}>
+        {(src) => (
+          <video
+            controls
+            preload="none"
+            playsinline
+            poster={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
+            src={src()}
+          >
+            <Show when={Option.getOrUndefined(captions)} keyed>
+              {(vtt: ReviewFile) => <track kind="captions" src={reviewFileUrl(vtt.ref)} default />}
+            </Show>
+          </video>
+        )}
+      </Show>
       <div class="rv-cap">
         <span class="rv-name">{props.video.name}</span>
         <span class="rv-tag">
@@ -306,7 +313,7 @@ const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoi
     <Strip refs={seenVariants(props.set).map((v) => v.video.ref)} />
     <div class="rv-body">
       <b>{props.set.title}</b>
-      <span class="rv-badge">compare {props.set.variants.length}</span>
+      <span class="rv-badge">{versionsText(props.set.variants.length)}</span>
       <div class="rv-meta">{props.set.variants.map((v) => v.label).join(' · ')}</div>
     </div>
   </Go>
@@ -323,7 +330,7 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
       <Show when={Option.getOrUndefined(props.folder.blurb)}>
         {(blurb) => <div class="rv-note" data-review-blurb innerHTML={markdownHtml(blurb())} />}
       </Show>
-      <Section title="Comparisons" count={props.folder.sets.length}>
+      <Section title="Versions" count={props.folder.sets.length}>
         <div class="rv-grid rv-wide">
           <For each={props.folder.sets}>{(set) => <SetCard folder={props.folder} set={set} />}</For>
         </div>
@@ -416,18 +423,21 @@ export const FolderPage = (props: { readonly folder: string }) => (
 // ---------------------------------------------------------------------------
 // A set
 
-/** The copy each video plays: the phone's 720p (once made) or the file. */
+/** The copy each video plays: its Proxy (a 720p copy, once made) or the Original file. */
 export const QualityToggle = () => {
   const { state, actions } = useReview();
   return (
-    <div class="rv-seg" title="Phone copies are 720p, made for big videos">
+    <div
+      class="rv-seg"
+      title="Proxy: a 720p copy made for big videos, light on a phone. Original: the file itself."
+    >
       <button
         type="button"
         data-quality="phone"
         aria-pressed={pressed(state.quality() === 'phone')}
         onClick={() => actions.quality('phone')}
       >
-        720p
+        Proxy
       </button>
       <button
         type="button"
@@ -435,28 +445,51 @@ export const QualityToggle = () => {
         aria-pressed={pressed(state.quality() === 'full')}
         onClick={() => actions.quality('full')}
       >
-        Full
+        Original
       </button>
     </div>
   );
 };
 
-const VIEW_TITLES = { all: 'All', pair: 'vs one', moments: 'Moments', notes: 'Notes' } as const;
+/**
+ * In a video's place while its proxy is still being made, on Proxy: its
+ * still, what is happening, and the way to play the Original instead. The
+ * original is never streamed in its place unasked.
+ */
+export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
+  const { actions } = useReview();
+  return (
+    <div class="rv-pending" data-proxy="pending">
+      <img
+        class="rv-media"
+        loading="lazy"
+        alt=""
+        src={reviewFrameUrl(props.video.ref, Option.none(), POSTER_W)}
+      />
+      <p class="rv-row">
+        <span class="rv-hint">Proxy being made ({sizeText(props.video.size)} original)</span>
+        <button type="button" onClick={() => actions.quality('full')}>
+          Play the original
+        </button>
+      </p>
+    </div>
+  );
+};
 
-/** All, the first against one, the moments, the notes. */
+const VIEW_TITLES = {
+  all: 'All',
+  pair: 'Side by side',
+  moments: 'Moments',
+  notes: 'Notes',
+} as const;
+
+/** All, side by side (a stack of two or more), the moments, the notes. */
 const ViewTabs = () => {
   const { set, view, send } = useSet();
-  const first = Option.getOrElse(
-    Option.map(Option.fromUndefinedOr(set.variants[0]), (v) => v.label),
-    () => 'A',
-  );
-  const title = (name: ViewName) => {
-    if (name === 'pair') return `${first} ${VIEW_TITLES.pair}`;
-    return VIEW_TITLES[name];
-  };
+  const offered = ViewName.literals.filter((name) => name !== 'pair' || set.variants.length >= 2);
   return (
     <div class="rv-seg rv-views">
-      <For each={ViewName.literals}>
+      <For each={offered}>
         {(name) => (
           <button
             type="button"
@@ -464,7 +497,7 @@ const ViewTabs = () => {
             aria-pressed={pressed(viewNameOf(view()) === name)}
             onClick={() => send.view(ViewEvent.ViewChosen({ view: name }))}
           >
-            {title(name)}
+            {VIEW_TITLES[name]}
           </button>
         )}
       </For>
@@ -474,7 +507,6 @@ const ViewTabs = () => {
 
 const RATE_TITLES = { 0.5: '½×', 1: '1×' } as const;
 
-/** Play and pause, the time, one scrub bar for every video, and the rate. */
 /** The synced player's controls: play, the clock, a scrub over every track, the rate, and a line of keys. */
 export const Transport = (props: {
   readonly sync: Accessor<SyncState>;
@@ -548,16 +580,28 @@ const VariantCard = (props: { readonly variant: SeenVariant }) => {
   const { state } = useReview();
   const { set, sync, send, driver } = useSet();
   const audible = () => sync().audible === props.variant.id;
+  const source = createMemo(() => videoSource(props.variant.video, state.quality()));
   onCleanup(() => driver.detach(props.variant.id));
   return (
     <div class={['rv-card', { 'rv-audible': audible() }]} data-id={props.variant.id}>
-      <video
-        preload="auto"
-        playsinline
-        muted
-        src={videoUrl(props.variant.video, state.quality())}
-        ref={(el: HTMLVideoElement) => driver.attach(props.variant.id, el)}
-      />
+      <Show
+        when={Option.getOrUndefined(source())}
+        fallback={<ProxyPending video={props.variant.video} />}
+      >
+        {(src) => {
+          // The clock holds only a video on the page: it lets go when the placeholder returns.
+          onCleanup(() => driver.detach(props.variant.id));
+          return (
+            <video
+              preload="auto"
+              playsinline
+              muted
+              src={src()}
+              ref={(el: HTMLVideoElement) => driver.attach(props.variant.id, el)}
+            />
+          );
+        }}
+      </Show>
       <div class="rv-cap">
         <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
         <span class="rv-name">{props.variant.label}</span>
@@ -769,7 +813,7 @@ export const SetPage = (props: { readonly folder: string; readonly point: string
           <Show
             when={folder.sets.find((s) => s.id === props.point)}
             keyed
-            fallback={<Missing what="comparison" />}
+            fallback={<Missing what="version stack" />}
           >
             {(set: ChoicePoint) => (
               <SetProvider folder={folder} set={seenPoint(set)}>

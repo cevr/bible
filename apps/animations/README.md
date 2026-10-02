@@ -181,8 +181,8 @@ renamed only once written), so a failed or interrupted mix leaves the previous t
 player streams the same WAV. Ctrl-C stops
 a render cleanly: every page, the browser and the server close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
 `c` captions. In the lab (`bun run lab`, `/lab?film=<film>`) a click on the frame pins a
-note, a drag boxes one, the Pen draws on it and `n` notes the whole frame;
-notes show as pink pins on the track and in the side list, where the
+note, a drag boxes one, the Pen draws on it and `n` (or the Note frame button, on a phone)
+notes the whole frame; notes show as pink pins on the track and in the side list, where the
 agent's replies arrive with their after-stills (if the page loses the lab server, the notes say so and connect again on their own). The strip under the timeline shows the
 current scene's cues: drag one (body = offset, edges = start/end; a bar too short for edges is
 all body, alt-drag for its end; snaps to words and frames, shift for free; Esc puts it back) and the release writes the new value into
@@ -213,8 +213,8 @@ and a `TakeMismatch` offers Accept anyway (K). ←/→ step through the beats an
 Esc cancels; those keys are the Studio's only while it has focus. Each beat's
 attempts play again and Keep makes one the take. A kept take reloads the lab
 at the same time, on the same beat, playing the new take (`/films/*` is served
-uncached for that). Use Chrome or Firefox and allow the microphone
-for the lab's origin; a browser gives the microphone only to `https://` or
+uncached for that). Use Chrome or Firefox on a computer (every iPhone and
+iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to `https://` or
 `localhost`, so record on the box's own browser or through an HTTPS name
 (a tunnel to `127.0.0.1:8229`); pick the interface in the Studio's mic list
 (it is remembered in the browser). The capture is raw PCM (no echo cancelling,

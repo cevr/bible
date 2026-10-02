@@ -74,7 +74,9 @@ interface NotesStoreService {
   readonly resolve: (film: FilmName, id: string) => Effect.Effect<Note, NotesError | NoteNotFound>;
   /**
    * The changes after `since`, as soon as there is one, or none once `timeout`
-   * passes. Reads the file, so it sees every writer's changes.
+   * passes. A file reset below `since` (trashed or restored, even to an empty
+   * log) answers at once at its own cursor. Reads the file, so it sees every
+   * writer's changes.
    */
   readonly wait: (
     film: FilmName,
@@ -198,7 +200,10 @@ export class NotesStore extends Context.Service<NotesStore, NotesStoreService>()
       ) {
         const found = yield* read(film).pipe(
           Effect.map((file) => eventsSince(file, since)),
-          Effect.repeat({ until: (w) => w.events.length > 0, schedule: Schedule.spaced(POLL) }),
+          Effect.repeat({
+            until: (w) => w.events.length > 0 || w.cursor < since,
+            schedule: Schedule.spaced(POLL),
+          }),
           Effect.timeoutOption(timeout),
         );
         return Option.getOrElse(found, (): NotesWait => ({ cursor: since, events: [] }));

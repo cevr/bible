@@ -868,7 +868,7 @@ quotation set apart with who said it, marks stripped), and records it:
   the owner's words.
 - **The recorder** (`machine.ts`) is one machine: `Idle | CountIn | Recording
 | Review | Importing | Checking | Failed` on `SelectBeat | Arm | Tick | CountDone |
-Cancel | Stop | MicLost | Retake | Submit | Discard | Imported | Refused |
+Cancel | Stop | MicLost | Submit | Discard | Imported | Refused |
 ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and opens the
   microphone; the 3 s count-in is a state timeout; Stop encodes the WAV to
   review (play it back before submitting); Submit posts it as the state's
@@ -904,12 +904,21 @@ Chrome with a fake microphone.
 in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in
 git). The file is the source of truth: the lab server and `film notes` both
 go through NotesStore, so either works without the other. A note is `{ id,
-film, scene, T, frame, cue?: { name, edge }, mark?, box?, ink?, text,
+film, scene, T, local?, frame, cue?: { name, edge }, mark?, box?, ink?, text,
 status, still, thread, createdAt }`, plus `seq` (the change that made it) and
-`changed` (the last change to touch it). A click saves a pin as a zero-size
+`changed` (the last change to touch it). `T` and `frame` are film time as
+the film was laid out when the note was made; `local` is scene-local time,
+how far into `scene` it was made. The lab seeks, marks, pins and labels a
+note at `local` into its scene while the film has that scene (`noteT`,
+`core/notes.ts`; held on the scene's last frame if a re-take made it
+shorter), so a re-take of an earlier beat does not move a later note off
+its frame. `local` is an additive, optional field: notes made before it
+have none and read at `T`. A click saves a pin as a zero-size
 box. Every change takes the file's next `seq`, so `eventsSince(file, n)`
 (`core/notes.ts`) returns each new note, reply and resolve exactly once past
-a cursor; `wait` polls the file for them (every 200 ms), so it sees a reply
+a cursor (a file reset below the cursor, trashed or restored, replays its
+log at its own `seq` and a wait over it answers at once, even when the log is
+empty, so an open page and `--watch` keep hearing); `wait` polls the file for them (every 200 ms), so it sees a reply
 the CLI wrote while the server was waiting. Each change is one
 `ContentStore.transact`, as every manifest's is: written whole, one writer at
 a time across processes (`notes.json.lock`, created only if there is none and
@@ -966,13 +975,14 @@ are removed after the workers exit; a direct `bun test` builds its own scripts.
 
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
-ink; `n` notes the whole frame, Escape drops the draft. The composer shows
+ink; `n` or the **Note frame** button beside the Pen (its touch path)
+notes the whole frame, Escape drops the draft. The composer shows
 the scene, time, frame and the nearest cue and mark, and pauses playback.
 Saving redraws the film canvas at that frame and sends it (`canvas.toBlob`)
 as the still. Every lab mark lives on an SVG layer over the canvas, never on
 the canvas, so a still, an export frame and a probe are the film's pixels
 alone. Notes appear as pins through the timeline (the tick machinery, hover
-for the text; a pin and the marks surface take native pointer listeners that go with their elements, never an `onCleanup` in a ref, which has no owner in Solid 2) and in a side list with their status, still and thread,
+for the text; a pin and the marks surface take native pointer listeners that go with their elements, never an `onCleanup` in a ref, which has no owner in Solid 2; a gesture the OS takes, `pointercancel`, drops the mark and writes nothing; one pointer marks at a time, a second finger is ignored until the first lifts) and in a side list with their status, still and thread,
 newest first; clicking one seeks to its frame and draws its box and ink
 there. The selected note takes a reply or a resolve. Two machines hold it. The
 composer (`lab/notes/composer.ts`): `Closed | Marking | Open | Saving` on
@@ -984,13 +994,14 @@ time, and a refusal comes back to the draft in the server's words. The feed
 it reads the notes, then long-polls `/api/films/<film>/notes/wait` past the
 cursor, so the list changes the moment the agent replies; a failed read or
 wait says so in the panel and connects again after 2 s (a state timeout);
-a note, reply or resolve made on the page reads the notes at once. (Scene
-hot reload is Bun's own HMR client, not the lab's.)
+a note, reply or resolve made on the page reads the notes at once. (A
+scene edited on disk reloads the page at its frame through the lab's own
+build counter, `lab/rebuilt.ts`; there is no HMR client.)
 
 `film notes <film>` (`notes-cli.ts`) prints each unresolved note as one line:
 
 ```
-note id=n1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
+note id=n1 seq=1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
 ```
 
 `--watch` prints each new note, and each reply from the user (`reply id=…
@@ -1216,6 +1227,25 @@ scenes and choices. It is the lab's server's (`tools/review.ts`,
 `review-http.ts`, `choices.ts`, `choices-http.ts`) and one Solid 2 page (`lab/review/`, its
 options in `lab/review/options/`), dark and made for a phone first.
 
+**Terms.** The page uses the words of a film review room; the code keeps its
+own names, and the stored and wire words stay as they are.
+
+- **Versions** (a version stack): the renders of one address side by side on
+  one clock. The code calls it a set (`ChoicePoint` of kind `render`), each
+  version a variant.
+- **Side by side**: the first version against one other (the view `pair`),
+  offered only on a stack of two or more.
+- **Comment**: a note on a version, kept in the catalogue (a `say`).
+- **Out of date**: a version made for earlier sources or an earlier mix (the
+  state `stale`).
+- **Proxy / Original**: what a video plays. The proxy is a light 720p copy
+  of a big video (the quality `phone`); the original is the file itself
+  (`full`). While a proxy is still being made the page says so and offers
+  the original; it never streams the original unasked.
+- **Needs review / Approved**: a version's approval (`none` / `approved`);
+  "needs review: an earlier version was approved" is `stale`. There is no
+  "Needs changes" status yet: a comment carries it.
+
 **A choice point** (`ChoicePoint`, `core/choice.ts`) is the one shape:
 at an address in the film, variants to compare, pick, comment on and
 approve. Which point it is is data (`ref`, a `PointRef`): decoded from its
@@ -1250,7 +1280,7 @@ master), each with its stamp, the owner's approval, and its state as the
 record says it (`recordedNow`): stale by its `sources` when a newer render at
 its address drew other sources, by its `sound` when a newer video carries
 another mix (`ChoiceVariant.staleBy`; whether the newest is current against
-the sources now is `film project`'s). The set page ("compare its renders")
+the sources now is `film project`'s). The set page (Versions)
 says it in every view, beside the variant's label: why a variant is stale
 when its record proves it (`recordedStaleText`), and no state word
 otherwise, never "current". A montage folder (say a
@@ -1380,10 +1410,11 @@ recording is made on the box's own browser or through an HTTPS name.
 **The page** (`lab/review/`): `<Root>` holds the runtime (the review's
 routes and the options'), where the page is (`?folder=`, `&set=`, `&view=`,
 `?film=`, `?project=`; kept in the URL, so Back and a reload work), the index, the films,
-the quality (720p or the file) and the lightbox. A set's page holds two
+the quality (Proxy or Original) and the lightbox. A set's page holds two
 effect-machine actors: the synced player (`machine.ts`: `Paused`, `Playing`,
 `Scrubbing`, `Buffering`; one clock, the first variant's; one sound heard)
-and the view (`All`, `Pair`, `Moments`, `Notes`). `sync.ts` is the driver
+and the view (`All`, `Pair` shown as Side by side, `Moments`, `Notes`; a set of one
+version has no pair, and a link asking for one opens All). `sync.ts` is the driver
 that makes every media element (a `<video>` or an `<audio>`) follow the
 player: it puts drifters back on the clock, holds all while one stalls, and
 unmutes only the one heard. A film's page (`options/`, `<FilmProvider>`)
@@ -1401,7 +1432,10 @@ redo (`Undo score play brass`); the film's static check shows under them,
 the one the write answered, and after a pick or a knob `film check --sound`
 runs (`GET …/choices/check`) and its findings show beside it. A write is
 shown from its answer: the page reads nothing again but the undo and redo
-(`GET …/steps`, no check) and, after an undo or a redo, the choices.
+(`GET …/steps`, no check) and, after an undo or a redo, the choices. The
+answer updates the player in place: the picture's `<video>` stays the same
+element while the film has a picture, so a playing film plays on through a
+pick, a knob or a say; only a source write asks for the mix heard again.
 
 The project view (`?project=<film>`, `options/project.tsx`) is the film by its
 address tree, film → acts → scenes → layers, with the same card, the same
@@ -1411,10 +1445,11 @@ comments, "Approve the act's current scenes", "Withdraw the act's approvals",
 its points) and its scenes; a withdraw is offered while a scene of the part
 holds an approval (an earlier version's too). Each scene is a render
 card: the video this checkout's catalogue records for it (`ProjectView.videos`,
-never another folder's of the same film), its state (current; stale by its
+never another folder's of the same film), showing a still of itself
+(`/review/frame`, as a folder's cards do) until it is played, its state (current; stale by its
 sources, or by the film's sound alone; missing, with the command that renders
 it), its approval (approve a current render, withdraw an approval), its
-comments (a missing scene takes one too), a link to compare its renders, and
+comments (a missing scene takes one too), a link to its Versions, and
 the points placed at it. Each point sits once, at the narrowest part holding
 every scene it plays in (a scene, an act, else the film), folded under it; a
 scene links the layers that play in it but sit elsewhere, and a link opens
@@ -1425,8 +1460,17 @@ answers land in any order, so the page shows the newest asked
 (`lab/review/asked.ts`): a read asked before a say and answered after it is
 dropped, a say answered after a read asked later reads the project again, and
 so does an approve refused (`VerbRefused`) because a scene went stale since
-the page read it. The choices page keeps its choices the same way. A say box
-empties only once its say is said
+the page read it. The choices page keeps its choices the same way. Each control writes on a
+run of its own (`useWrite` in `lab/review/loaded.tsx`: a verb, a knob, an
+approve, a comment box, Undo, Redo): it waits, disabled, until its own
+answer lands, while every other control stays free, and a write sent
+meanwhile neither cancels it nor hands it its answer. A write's answer
+reaches the page only as `Landed` (`asked.ts`): what it says of the choices,
+the check or the project shows only where no write asked after it has shown
+its own, so a clean check landing late never hides a newer warning. The
+status line counts them all ("writing…" while any is out, else the newest
+asked of those answered, so an older success never hides a newer failure). A say box
+empties only once its own say is said
 (`SayBox`: each say answers whether it was): a comment whose say fails (the
 film mid-edit and not loading) stays in its box beside the failure.
 
