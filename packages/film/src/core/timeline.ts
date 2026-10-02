@@ -76,15 +76,27 @@ const endField = (span: Span, patch: CuePatch) => {
 /**
  * `span` with a lab edit applied. A span ends one way, so a `dur` replaces
  * its `until` and an `until` its `dur`; a span that `ends` on its anchor
- * keeps landing there as its `dur` changes.
+ * keeps landing there as its `dur` changes. A field neither has stays
+ * absent, never `undefined`, so the result decodes as a `Span`; a designed
+ * `silence` is kept.
  */
-export const patchSpan = (span: Span, patch: CuePatch): Span => ({
-  ...anchorField(span),
-  offset: patch.offset ?? span.offset,
-  ...endField(span, patch),
-  ease: patch.ease ?? span.ease,
-  stagger: patch.stagger ?? span.stagger,
-});
+export const patchSpan = (span: Span, patch: CuePatch): Span => {
+  const offset = patch.offset ?? span.offset;
+  const easeName = patch.ease ?? span.ease;
+  const stagger = patch.stagger ?? span.stagger;
+  const offsetField = offset === undefined ? {} : { offset };
+  const easeField = easeName === undefined ? {} : { ease: easeName };
+  const staggerField = stagger === undefined ? {} : { stagger };
+  const silenceField = span.silence === true ? { silence: true as const } : {};
+  return {
+    ...anchorField(span),
+    ...offsetField,
+    ...endField(span, patch),
+    ...easeField,
+    ...staggerField,
+    ...silenceField,
+  };
+};
 
 /** Where a lab drag grabs a cue's bar: its body, its left edge or its right edge. */
 export type DragEdge = 'move' | 'start' | 'end';

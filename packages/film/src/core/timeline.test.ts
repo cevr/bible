@@ -1,8 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import { Option, Result } from 'effect';
+import { Option, Predicate, Result, Schema } from 'effect';
 import { CueCycle, UnknownCue, UnknownMark, UntilBeforeStart, WordMissing } from './errors.ts';
 import { layout, sceneClock } from './layout.ts';
-import type { Span, Timeline, Timings } from './schema.ts';
+import {
+  type Span,
+  type Timeline,
+  type Timings,
+  Span as SpanSchema,
+  Timeline as TimelineSchema,
+} from './schema.ts';
 
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
@@ -423,6 +429,24 @@ describe('timeline', () => {
     );
     // Never said.
     expect(pin('fiction', 'faith')).toBeInstanceOf(WordMissing);
+  });
+
+  test('patchSpan writes only the fields the span or the patch has: the result decodes, and keeps a silence', () => {
+    const spans: ReadonlyArray<Span> = [
+      { mark: 'fiction', dur: 0.6 },
+      { after: 'slam', until: 'as' },
+      { with: 'slam', offset: 0.2, dur: 1, ends: true, silence: true },
+      { at: 'speechEnd', ease: 'linear', stagger: 0.4 },
+    ];
+    const patches = [{ offset: 0.1 }, { dur: 2 }, { until: 'as' }, { ease: 'inQuad' }] as const;
+    for (const span of spans)
+      for (const patch of patches) {
+        const patched = patchSpan(span, patch);
+        expect(Object.entries(patched).filter(([, v]) => Predicate.isUndefined(v))).toEqual([]);
+        expect(Schema.decodeExit(SpanSchema)(patched)._tag).toBe('Success');
+        expect(Schema.decodeExit(TimelineSchema)({ cue: patched })._tag).toBe('Success');
+        expect(patched.silence).toBe(span.silence);
+      }
   });
 
   test('patchSpan keeps a word pin’s word', () => {

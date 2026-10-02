@@ -227,7 +227,7 @@ describe('one write at a time', () => {
 
   it.live('a drag while a write is out is not taken', () =>
     Effect.gen(function* () {
-      const { page, asked } = yield* openLab(
+      const { page, asked, errors } = yield* openLab(
         [route('POST', /^\/scenes\/\w+\/cues\//, () => hold)],
         {
           hash: '#1',
@@ -240,7 +240,32 @@ describe('one write at a time', () => {
       yield* dragBar(page, 'fall', 0.5, 40);
       yield* runClock(page, 200);
       expect(posted(asked).map((p) => p.path)).toEqual(['/scenes/one/cues/rise']);
+      expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a press on another cue while the moved cue is still shown, its write out, throws nothing',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openLab(
+          [route('POST', /^\/scenes\/\w+\/cues\//, () => hold)],
+          { hash: '#1' },
+        );
+        yield* editable(page);
+        yield* dragBar(page, 'rise', 0.5, 60);
+        yield* postedReach(asked, 1);
+        yield* statusSays(page, 'writing…');
+        // One pointer: the drag of rise has ended, and its preview is still drawn.
+        const fall = yield* page.box('.lab-cue[data-cue="fall"]');
+        yield* page.mouse.move(fall.x + fall.width / 2, fall.y + fall.height / 2);
+        yield* page.mouse.down;
+        yield* runClock(page, 50);
+        yield* page.mouse.up;
+        yield* runClock(page, 200);
+        expect(errors).toEqual([]);
+        expect(posted(asked).map((p) => p.path)).toEqual(['/scenes/one/cues/rise']);
+      }).pipe(Effect.scoped),
   );
 });
 
