@@ -62,6 +62,10 @@ history. `Place.history(place, from, to)` says, for a move between two hrefs:
 - any other change replaces (a refinement, a filter, the playhead);
 - a move whose every changed key is throttled waits out the longest window.
 
+Keys are compared by what they mean, each href read as the place writes it:
+`?q=x&q=y` and `?q=x` are the same query, so a scope change beside it
+replaces.
+
 ## Codecs are Schema transformations
 
 Every codec is an Effect Schema from the URL's text to a value; encoding is
@@ -143,7 +147,9 @@ Entry keys (`<ms>-<n>`) name history entries, so anything remembered per entry
 Writes made in one tick (one microtask turn) see each other and flush as one
 history entry: a push if any of them pushes, else a replace. A batch whose
 keys are all throttled waits for its window; an unthrottled write takes it
-along at once. Back or Forward drops a write that has not flushed yet.
+along at once. Any entry that lands from elsewhere (Back, Forward, a push made
+around `UrlState`) drops a write that has not flushed yet, and shows. A batch
+whose writes end where the entry already is writes nothing.
 
 ## The atom binding
 
