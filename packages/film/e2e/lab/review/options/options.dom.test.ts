@@ -507,6 +507,113 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    "a write asked earlier and answered later leaves a newer write's check shown",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        // The pick is held, and answers a clean check once let land.
+        const land = yield* Deferred.make<void>();
+        const heldPick = route('POST', /^\/lab\/toy\/choices\/pick$/, () =>
+          later(
+            land,
+            json({
+              file: 'sound.ts',
+              target: 'score play piano',
+              choices: choices({ ...toy, picked: 'piano' }),
+              findings: [],
+            }),
+          ),
+        );
+        // The knob, sent after it, answers a warning at once.
+        const warnedKnob = route('POST', /^\/lab\/toy\/choices\/knob$/, () =>
+          json({
+            file: 'sound.ts',
+            target: 'level:const:PAPER -20',
+            choices: choices({ ...toy, level: -20 }),
+            findings: [{ level: 'warning', tag: 'Balance', message: 'the paper is loud' }],
+          }),
+        );
+        const { page, asked, errors } = yield* openReview(
+          [heldPick, warnedKnob, ...fakeFilm(toy)],
+          { search: FILM },
+        );
+        const knob = '[data-knob="level:const:PAPER"]';
+        const findings = '[data-check="check"] summary';
+        yield* waitFor(page, `${knob} input`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* Effect.sync(() => asked.some((a) => a.path === '/lab/toy/choices/pick')).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
+          Effect.timeout('10 seconds'),
+        );
+        yield* page.evaluate(`(() => {
+            const input = document.querySelector('${knob} input');
+            input.value = '-20';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          })()`);
+        yield* attributeIs(page, findings, 'data-findings', '1');
+        // The pick lands last (the status line stops writing): the knob's
+        // check, asked after it, stays.
+        yield* Deferred.done(land, Exit.void);
+        yield* until(page, "!document.querySelector('.rv-status').textContent.includes('writing')");
+        yield* attributeIs(page, findings, 'data-findings', '1');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a write that fails while an earlier one is in flight keeps its failure on the status line',
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const land = yield* Deferred.make<void>();
+        const heldPick = route('POST', /^\/lab\/toy\/choices\/pick$/, () =>
+          later(
+            land,
+            json({
+              file: 'sound.ts',
+              target: 'score play piano',
+              choices: choices({ ...toy, picked: 'piano' }),
+              findings: [],
+            }),
+          ),
+        );
+        const refusedKnob = route('POST', /^\/lab\/toy\/choices\/knob$/, () =>
+          refused(SourceRefused.make({ file: 'sound.ts', target: 'PAPER', reason: 'computed' })),
+        );
+        const { page, asked, errors } = yield* openReview(
+          [heldPick, refusedKnob, ...fakeFilm(toy)],
+          { search: FILM },
+        );
+        const knob = '[data-knob="level:const:PAPER"]';
+        yield* waitFor(page, `${knob} input`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* Effect.sync(() => asked.some((a) => a.path === '/lab/toy/choices/pick')).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
+          Effect.timeout('10 seconds'),
+        );
+        yield* page.evaluate(`(() => {
+            const input = document.querySelector('${knob} input');
+            input.value = '-20';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          })()`);
+        yield* Effect.sync(() => asked.some((a) => a.path === '/lab/toy/choices/knob')).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
+          Effect.timeout('10 seconds'),
+        );
+        yield* waitFor(page, `${knob} input:not([disabled])`);
+        // The pick, asked first, lands last: the knob's failure is the newest said.
+        yield* Deferred.done(land, Exit.void);
+        yield* until(page, "!document.querySelector('.rv-status').textContent.includes('writing')");
+        yield* attributeIs(page, '.rv-status', 'data-failed', 'true');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a look is picked, a level's knob set, and a variant approved and commented on",
     () =>
       Effect.gen(function* () {

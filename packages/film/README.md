@@ -1412,8 +1412,12 @@ the page read it. The choices page keeps its choices the same way. Each control 
 run of its own (`useWrite` in `lab/review/loaded.tsx`: a verb, a knob, an
 approve, a comment box, Undo, Redo): it waits, disabled, until its own
 answer lands, while every other control stays free, and a write sent
-meanwhile neither cancels it nor hands it its answer. The status line counts
-them all ("writing…" while any is out, else the last answered). A say box
+meanwhile neither cancels it nor hands it its answer. A write's answer
+reaches the page only as `Landed` (`asked.ts`): what it says of the choices,
+the check or the project shows only where no write asked after it has shown
+its own, so a clean check landing late never hides a newer warning. The
+status line counts them all ("writing…" while any is out, else the newest
+asked of those answered, so an older success never hides a newer failure). A say box
 empties only once its own say is said
 (`SayBox`: each say answers whether it was): a comment whose say fails (the
 film mid-edit and not loading) stays in its box beside the failure.

@@ -16,7 +16,7 @@
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Data, Effect, Exit, Match, Option } from 'effect';
+import { Data, Exit, Match, Option } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -36,7 +36,7 @@ import type { FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine, CheckReport } from '../../../core/schema.ts';
 import type { LabFailure } from '../../api.ts';
-import { newestAsked } from '../asked.ts';
+import { type Asks, type Landed, newestAsked } from '../asked.ts';
 import { useReview } from '../context.tsx';
 import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
 import { type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
@@ -92,6 +92,9 @@ const firstPlaying = (choices: FilmChoices): Playing =>
 export const samePlaying = (a: Playing, b: Playing): boolean =>
   trackOf('', a, 0) === trackOf('', b, 0);
 
+/** What a film's write answers that the page shows, each in the order asked. */
+type FilmOrder = 'choices' | 'findings';
+
 interface FilmContextValue {
   readonly film: string;
   readonly choices: Accessor<FilmChoices>;
@@ -105,12 +108,11 @@ interface FilmContextValue {
   readonly wrote: Accessor<AsyncResult.AsyncResult<Wrote, LabFailure>>;
   /** How many source writes have been answered: a mix, or a project, is read again on each. */
   readonly version: Accessor<number>;
-  /** Count a control's write of `act` in, and show what it answers: whether it was answered. */
-  readonly written: (
-    act: ChoiceAct,
-    answer: Promise<Exit.Exit<Wrote, LabFailure>>,
-  ) => Promise<boolean>;
+  /** Show what a control's write of `act` answers, in the order asked: whether it was answered. */
+  readonly written: (act: ChoiceAct, landed: Landed<Wrote, LabFailure, FilmOrder>) => boolean;
   readonly status: WriteStatus<Wrote>;
+  /** What the film's writes answer, each in the order asked: the choices and the check. */
+  readonly orders: Readonly<Record<FilmOrder, Asks>>;
   /** The sound check after the last pick or knob (initial until one). */
   readonly soundCheck: Accessor<AsyncResult.AsyncResult<SoundCheck, LabFailure>>;
   /** The render the sound plays over, when the film has one. */
@@ -139,14 +141,20 @@ interface ActWrite {
 
 /** A control's own write of the film's acts (`useWrite`): made once, as the control is made. */
 export const useAct = (): ActWrite => {
-  const { film, written, status } = useFilm();
-  const own = useWrite((act: ChoiceAct) => OptionsApi.use((api) => api.write(film, act)), status);
+  const { film, written, status, orders } = useFilm();
+  const own = useWrite(
+    (act: ChoiceAct) => OptionsApi.use((api) => api.write(film, act)),
+    status,
+    orders,
+  );
   return {
     waiting: own.waiting,
-    write: (act) => {
-      if (untrack(own.waiting)) return Effect.runPromise(Effect.succeed(false));
-      return written(act, own.write(act));
-    },
+    write: (act) =>
+      own
+        .write(act)
+        .then((landed) =>
+          Option.match(landed, { onNone: () => false, onSome: (l) => written(act, l) }),
+        ),
   };
 };
 
@@ -205,31 +213,30 @@ const FilmBody = (
   );
   // Each source write bumps the version: every mix is asked for again, mixed from the source as it now stands.
   const [version, setVersion] = createSignal(0);
+  // The check as the newest write asked that answers one (a source write, an undo, a redo).
+  const orders = { choices: asks, findings: newestAsked() };
   /**
-   * A write of `act` asked now: once `answer` lands, show the choices it
-   * answers unless a newer ask's are shown (one overtaken reads them again),
-   * and the check after it; a source write bumps the version and reads the
+   * A write of `act` landed: show the choices it answers unless a newer
+   * ask's are shown, and the check after it unless a newer write's check is;
+   * one that answers no choices (an undo, a redo) or was overtaken reads them
+   * again. Every successful source write bumps the version and reads the
    * steps, and a pick or a knob runs the sound check.
    */
-  const written = (act: ChoiceAct, answer: Promise<Exit.Exit<Wrote, LabFailure>>) => {
-    const ask = asks.ask();
-    return answer.then((exit) => {
-      if (Exit.isFailure(exit)) return false;
-      const done = exit.value;
-      Option.map(done.choices, (c) => {
-        ask.answer(() => setChoices(c));
-        if (ask.overtaken()) readAgain();
-      });
-      // An undo or a redo answers no choices: they are read again.
-      if (Option.isNone(done.choices)) readAgain();
-      Option.map(done.findings, (f) => setAnswered(Option.some(f)));
-      if (writesSource(act)) {
-        setVersion((v) => v + 1);
-        readSteps();
-        if (changesSound(act)) runSoundCheck();
-      }
-      return true;
-    });
+  const written = (act: ChoiceAct, landed: Landed<Wrote, LabFailure, FilmOrder>) => {
+    if (!landed.succeeded) return false;
+    const shown = landed.show('choices', (done) => done.choices, setChoices);
+    if (!shown || landed.overtaken('choices')) readAgain();
+    landed.show(
+      'findings',
+      (done) => done.findings,
+      (f) => setAnswered(Option.some(f)),
+    );
+    if (writesSource(act)) {
+      setVersion((v) => v + 1);
+      readSteps();
+      if (changesSound(act)) runSoundCheck();
+    }
+    return true;
   };
 
   const [pictureRef, setPictureRef] = createSignal(
@@ -269,6 +276,7 @@ const FilmBody = (
     wrote: status.status,
     version,
     written,
+    orders,
     status,
     soundCheck,
     picture,

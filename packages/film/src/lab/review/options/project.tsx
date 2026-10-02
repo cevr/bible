@@ -19,9 +19,9 @@
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, Show } from '@solidjs/web';
-import { Array as Arr, Effect, Exit, Match, Option } from 'effect';
+import { Array as Arr, Exit, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
+import { type Accessor, createEffect, createMemo, createSignal } from 'solid-js';
 import { type Address, type PartAddress, addressKey, sceneAddress } from '../../../core/address.ts';
 import type { ProjectView } from '../../../core/api.ts';
 import {
@@ -378,8 +378,8 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
 };
 
 /** Whether a say was refused for the state its scenes are in now (one drawn again since the page read it). */
-const staleSinceRead = (exit: Exit.Exit<ProjectView, LabFailure>): boolean =>
-  Option.exists(Exit.findErrorOption(exit), (e) => e._tag === 'VerbRefused');
+const staleSinceRead = (failure: Option.Option<LabFailure>): boolean =>
+  Option.exists(failure, (e) => e._tag === 'VerbRefused');
 
 /**
  * The project read, read again, and said: the page shows the answer to the
@@ -421,18 +421,21 @@ const ProjectReady = (props: { readonly film: string }) => {
     const own = useWrite(
       (s: ProjectSay) => OptionsApi.use((api) => api.sayOfProject(film, variant, s)),
       status,
+      { project: asks },
     );
     return {
       waiting: own.waiting,
-      say: (s) => {
-        if (untrack(own.waiting)) return Effect.runPromise(Effect.succeed(false));
-        const ask = asks.ask();
-        return own.write(s).then((exit) => {
-          const ok = answered(ask, exit);
-          if ((ok && ask.overtaken()) || staleSinceRead(exit)) readAgain();
-          return ok;
-        });
-      },
+      say: (s) =>
+        own.write(s).then((landed) =>
+          Option.match(landed, {
+            onNone: () => false,
+            onSome: (l) => {
+              l.show('project', Option.some, (v) => setShown(Option.some(v)));
+              if ((l.succeeded && l.overtaken('project')) || staleSinceRead(l.failure)) readAgain();
+              return l.succeeded;
+            },
+          }),
+        ),
     };
   };
   // A source write changes the film (a pick its sound, a kept voice a scene): its scenes are read again.
