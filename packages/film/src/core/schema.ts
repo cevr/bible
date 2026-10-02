@@ -797,8 +797,15 @@ export type NoteCue = typeof NoteCue.Type;
 /** What the lab sends for a new note: the frame, where it was marked, and what it says. */
 export const NoteDraft = Schema.Struct({
   scene: Schema.String,
-  /** Film seconds. */
+  /** Film seconds, as the film was laid out when the note was made. */
   T: Seconds,
+  /**
+   * Scene-local seconds: how far into `scene` the note was made. The lab reads
+   * a note here while its scene exists (`noteT`), so a note keeps its frame
+   * when an earlier beat is re-taken. Optional and additive: a note made
+   * before it reads at `T`.
+   */
+  local: Schema.optionalKey(Seconds),
   frame: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
   cue: Schema.optionalKey(NoteCue),
   /** The `{mark}` nearest the note's time, in its scene. */

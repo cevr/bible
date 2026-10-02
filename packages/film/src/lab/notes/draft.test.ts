@@ -60,6 +60,19 @@ describe('the draft', () => {
     );
   });
 
+  test('the draft says how far into its scene it was made', () => {
+    const two = film.placed[1];
+    const T = (two?.start ?? 0) + 0.4;
+    const draft = draftOf(film.placed, film.fps, {
+      T,
+      box: Option.none(),
+      ink: [],
+      text: 'later in two',
+    });
+    expect(Option.map(draft, (d) => [d.scene, d.T])).toEqual(Option.some(['two', T]));
+    expect(Option.getOrThrow(draft).local).toBeCloseTo(0.4, 9);
+  });
+
   test('an empty note is no draft', () => {
     expect(
       draftOf(film.placed, film.fps, { T: 1, box: Option.none(), ink: [], text: '   ' }),

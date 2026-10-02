@@ -47,12 +47,13 @@ export const Frame = () => {
   );
 };
 
-const label = (note: Note) => {
+/** A note in the list: its id, scene and the time it shows at now, with its nearest cue edge. */
+const label = (note: Note, T: number) => {
   const cue = Option.match(Option.fromUndefinedOr(note.cue), {
     onNone: () => '',
     onSome: (c) => ` · ${c.name}:${c.edge}`,
   });
-  return `${note.id} · ${note.scene} · ${note.T.toFixed(2)}s${cue}`;
+  return `${note.id} · ${note.scene} · ${T.toFixed(2)}s${cue}`;
 };
 
 const Still = (props: { readonly name: string }) => {
@@ -111,7 +112,7 @@ const Item = (props: { readonly note: Note }) => {
       }}
     >
       <div class="lab-note-head">
-        <span class="lab-note-label">{label(props.note)}</span>
+        <span class="lab-note-label">{label(props.note, state.timeOf(props.note))}</span>
         <span class={['lab-badge', props.note.status]}>{props.note.status}</span>
       </div>
       <p class="lab-note-text">{props.note.text}</p>
@@ -226,7 +227,7 @@ export const Marks = () => {
   const { film } = meta;
   const draft = () => state.draft();
   const shownNote = () =>
-    Option.filter(state.selected(), (n) => Math.abs(lab.T() - n.T) < 0.5 / film.fps);
+    Option.filter(state.selected(), (n) => Math.abs(lab.T() - state.timeOf(n)) < 0.5 / film.fps);
   const listen = (surface: SVGRectElement) => {
     const at = pointerAt(surface, film);
     const down = (e: PointerEvent) => {
@@ -294,7 +295,7 @@ export const Marks = () => {
 /** One note's pin on the timeline: a press selects it (and does not seek the track). */
 const Pin = (props: { readonly note: Note }) => {
   const { meta } = useLab();
-  const { actions } = useNotes();
+  const { state, actions } = useNotes();
   const listen = (el: HTMLDivElement) => {
     const down = (e: PointerEvent) => {
       e.stopPropagation();
@@ -307,7 +308,7 @@ const Pin = (props: { readonly note: Note }) => {
     <div
       class={['tick', 'note', props.note.status]}
       data-name={`${props.note.id} · ${props.note.status} · ${props.note.text}`}
-      style={{ left: `${(props.note.T / meta.film.duration) * 100}%` }}
+      style={{ left: `${(state.timeOf(props.note) / meta.film.duration) * 100}%` }}
       ref={listen}
     />
   );

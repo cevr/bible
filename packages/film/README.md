@@ -870,9 +870,16 @@ Chrome with a fake microphone.
 in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in
 git). The file is the source of truth: the lab server and `film notes` both
 go through NotesStore, so either works without the other. A note is `{ id,
-film, scene, T, frame, cue?: { name, edge }, mark?, box?, ink?, text,
+film, scene, T, local?, frame, cue?: { name, edge }, mark?, box?, ink?, text,
 status, still, thread, createdAt }`, plus `seq` (the change that made it) and
-`changed` (the last change to touch it). A click saves a pin as a zero-size
+`changed` (the last change to touch it). `T` and `frame` are film time as
+the film was laid out when the note was made; `local` is scene-local time,
+how far into `scene` it was made. The lab seeks, marks, pins and labels a
+note at `local` into its scene while the film has that scene (`noteT`,
+`core/notes.ts`; held on the scene's last frame if a re-take made it
+shorter), so a re-take of an earlier beat does not move a later note off
+its frame. `local` is an additive, optional field: notes made before it
+have none and read at `T`. A click saves a pin as a zero-size
 box. Every change takes the file's next `seq`, so `eventsSince(file, n)`
 (`core/notes.ts`) returns each new note, reply and resolve exactly once past
 a cursor (a file reset below the cursor, trashed or restored, replays its

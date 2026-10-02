@@ -6,6 +6,7 @@ import {
   emptyNotes,
   eventsSince,
   nearestMoment,
+  noteT,
   replyToNote,
   resolveNote,
   unresolved,
@@ -57,6 +58,49 @@ describe('nearestMoment', () => {
     expect(moment(5 + live + 0.05).mark).toEqual(Option.some('live'));
     expect(moment(1).cue).toEqual(Option.none());
     expect(moment(1).mark).toEqual(Option.none());
+  });
+
+  test('says how far into its scene T is', () => {
+    expect(moment(2).local).toBe(2);
+    expect(moment(5 + 1.25).local).toBeCloseTo(1.25, 9);
+  });
+});
+
+describe('where a note shows', () => {
+  const FPS = 30;
+  /** Scene a lasts `aSeconds`, then scene `next` (6 s). */
+  const film = (aSeconds: number, next = 'b') =>
+    Result.getOrThrow(
+      layout(
+        [
+          { id: 'a', min: aSeconds },
+          { id: next, min: 6 },
+        ],
+        { voice: '', scenes: {} },
+      ),
+    );
+  // Made 1.5 s into b while a lasted 5 s.
+  const made: NoteDraft = { scene: 'b', T: 6.5, local: 1.5, frame: 195, text: 'too early' };
+
+  test('a note follows its scene when an earlier beat is re-taken longer', () => {
+    expect(noteT(film(5), FPS, made)).toBeCloseTo(6.5, 9);
+    expect(noteT(film(7), FPS, made)).toBeCloseTo(8.5, 9);
+  });
+
+  test('a note made before scene-local times (no `local`) reads at its T', () => {
+    const { local: _, ...old } = made;
+    expect(noteT(film(7), FPS, old)).toBe(6.5);
+  });
+
+  test('a note whose scene is gone reads at its T', () => {
+    expect(noteT(film(7, 'c'), FPS, made)).toBe(6.5);
+  });
+
+  test('a scene re-taken shorter than the note holds it on its last frame', () => {
+    const late = { ...made, local: 9 };
+    const T = noteT(film(5), FPS, late);
+    expect(T).toBeCloseTo(5 + 6 - 1 / FPS, 9);
+    expect(Option.map(nearestMoment(film(5), T), (m) => m.scene)).toEqual(Option.some('b'));
   });
 });
 

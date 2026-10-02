@@ -19,8 +19,15 @@ import {
   route,
 } from '../../../src/lab/fixtures/harness.ts';
 import { ServerFailed } from '../../../src/core/api.ts';
-import { PROBE } from '../../../src/lab/fixtures/probe-film.ts';
-import { attached, textHas, textIs, valueIs, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
+import {
+  attached,
+  evaluates,
+  textHas,
+  textIs,
+  valueIs,
+  waitFor,
+} from '../../../src/lab/fixtures/settled.ts';
 import { RETRY_MS } from '../../../src/lab/notes/feed.ts';
 import type { Note, Reply } from '../../../src/core/schema.ts';
 
@@ -132,6 +139,7 @@ describe('marking a frame', () => {
         const body = theNote(asked);
         expect(field(body, 'scene')).toEqual(Option.some('one'));
         expect(field(body, 'T')).toEqual(Option.some(1));
+        expect(field(body, 'local')).toEqual(Option.some(1));
         expect(field(body, 'frame')).toEqual(Option.some(30));
         expect(field(body, 'text')).toEqual(Option.some('the ball rises too early'));
         expect(field(body, 'box')).toEqual(Option.some({ x: 520, y: 300, w: 0, h: 0 }));
@@ -279,6 +287,38 @@ describe('marking a frame', () => {
         yield* textIs(page, '.lab-status', 'the notes file is locked');
         yield* waitFor(page, '.lab-compose:not([hidden])');
         yield* valueIs(page, '.lab-compose textarea', 'hold longer');
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+describe("a note's place", () => {
+  it.live(
+    'a note seeks to its time in its scene, so an earlier re-take does not move it off its frame',
+    () =>
+      Effect.gen(function* () {
+        const film = probeFilm();
+        const two = film.placed[1];
+        const shown = (two?.start ?? 0) + 0.4;
+        // Its T is from before scene one was re-taken: it now falls in scene one.
+        const stale = noteJson('n1', {
+          scene: 'two',
+          T: 0.5,
+          local: 0.4,
+          box: { x: 100, y: 100, w: 50, h: 50 },
+        });
+        const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(1, [stale]))], {
+          hash: '#3',
+        });
+        yield* waitFor(page, '.lab-note-item[data-id="n1"]');
+        yield* textHas(page, '.lab-note-label', `two · ${shown.toFixed(2)}s`);
+        yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
+        yield* evaluates(
+          page,
+          `Math.round(Number.parseFloat(location.hash.slice(1).split('&')[0]) * ${film.fps})`,
+          Math.round(shown * film.fps),
+        );
+        yield* attached(page, '.lab-overlay rect.lab-note');
       }).pipe(Effect.scoped),
     SLOW,
   );

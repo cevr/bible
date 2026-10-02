@@ -18,9 +18,11 @@ import type {
   Reply,
 } from './schema.ts';
 
-/** Where a time falls on the film: its scene, and the cue edge and mark nearest it there. */
+/** Where a time falls on the film: its scene, how far into it, and the cue edge and mark nearest it there. */
 interface Moment {
   readonly scene: string;
+  /** Scene-local seconds. */
+  readonly local: number;
   readonly cue: Option.Option<NoteCue>;
   readonly mark: Option.Option<string>;
 }
@@ -60,8 +62,29 @@ export const nearestMoment = (placed: ReadonlyArray<Placed>, T: number): Option.
       value: name,
       at: p.speechStart + at,
     }));
-    return { scene: p.spec.id, cue: closest(local, edges), mark: closest(local, marks) };
+    return { scene: p.spec.id, local, cue: closest(local, edges), mark: closest(local, marks) };
   });
+
+/**
+ * The film time a note shows at now: `local` seconds into its scene while the
+ * film has that scene, so a re-take of an earlier beat does not move it off its
+ * frame (held on the scene's last frame if the scene got shorter than that);
+ * else, and for a note made before `local`, its `T`.
+ */
+export const noteT = (
+  placed: ReadonlyArray<Placed>,
+  fps: number,
+  note: Pick<NoteDraft, 'scene' | 'T' | 'local'>,
+): number =>
+  Option.getOrElse(
+    Option.flatMap(Option.fromUndefinedOr(note.local), (local) =>
+      Option.map(
+        Arr.findFirst(placed, (p) => p.spec.id === note.scene),
+        (p) => p.start + Math.min(local, Math.max(0, p.dur - 1 / fps)),
+      ),
+    ),
+    () => note.T,
+  );
 
 /** A film with no notes yet. */
 export const emptyNotes = (film: string): NotesFile => ({ film, seq: 0, notes: [] });
