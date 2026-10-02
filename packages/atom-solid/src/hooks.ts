@@ -53,16 +53,17 @@ import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import type * as AtomRef from 'effect/reactivity/AtomRef';
 import type { Accessor } from 'solid-js';
+import { isServer } from '@solidjs/web';
 import {
   createEffect,
   createMemo,
   createRenderEffect,
   createSignal,
+  sharedConfig,
   untrack,
-  useContext,
 } from 'solid-js';
 
-import { RegistryContext } from './registry-context.js';
+import { useRegistry } from './registry-context.js';
 
 /**
  * The `initialValues` element type accepted by `AtomRegistry.make`, reused so
@@ -88,7 +89,7 @@ const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<AtomInit
  * type cannot name every atom's value at once.
  */
 export const useAtomInitialValues = (initialValues: AtomRegistryInitialValues): void => {
-  const registry = useContext(RegistryContext);
+  const registry = useRegistry();
   let set = initialValuesSet.get(registry);
   if (set === undefined) {
     set = new WeakSet();
@@ -127,7 +128,7 @@ export const useAtomValue: {
   <A>(atom: () => Atom.Atom<A>): Accessor<A>;
   <A, B>(atom: () => Atom.Atom<A>, f: (_: A) => B): Accessor<B>;
 } = <A, B>(atom: () => Atom.Atom<A>, f?: (_: A) => B): Accessor<A | B> => {
-  const registry = useContext(RegistryContext);
+  const registry = useRegistry();
   if (f === undefined) return createAtomAccessor<A | B>(registry, atom);
   // `Atom.map` makes a new atom without the source's server value, so the
   // server value is projected through `f` here.
@@ -210,9 +211,15 @@ function createLiveAccessor<A>(
  *
  * Solid's own hydration contract does the switching: a memo with
  * `ssrSource: 'client'` and a `loadingValue` renders that value on the server
- * and holds it on the client until hydration completes, then computes. A
- * client render that is not hydrating computes at once. The server value is
- * read from the atom the hook was created with.
+ * and holds it on the client until hydration completes, then computes. The
+ * server value is read from the atom the hook was created with.
+ *
+ * Only those two passes get the memo. A client render that is not hydrating
+ * returns the live accessor itself: a memo's value waits for Solid's flush,
+ * so behind one a read right after a write would see the old value.
+ * `isServer` is Solid's build flag; `sharedConfig.hydrating` is Solid's own
+ * flag for a hydration pass, set by `hydrate` and by each boundary that
+ * hydrates later.
  */
 const serverAware = <S, A>(
   registry: AtomRegistry.AtomRegistry,
@@ -221,6 +228,7 @@ const serverAware = <S, A>(
   project: (value: S) => A,
 ): Accessor<A> => {
   if (!(Atom.ServerValueTypeId in source)) return live;
+  if (!isServer && !sharedConfig.hydrating) return live;
   return createMemo(() => live(), {
     ssrSource: 'client',
     loadingValue: project(Atom.getServerValue(source, registry)),
@@ -249,7 +257,7 @@ function mountAtom<A>(registry: AtomRegistry.AtomRegistry, atom: () => Atom.Atom
  * computation changes or the owner is disposed.
  */
 export const useAtomMount = <A>(atom: () => Atom.Atom<A>): void => {
-  const registry = useContext(RegistryContext);
+  const registry = useRegistry();
   mountAtom(registry, atom);
 };
 
@@ -352,7 +360,7 @@ export const useAtomSet = <R, W, Mode extends SetterMode = never>(
   atom: () => Atom.Writable<R, W>,
   options?: SetterOptions<R, Mode>,
 ): AtomSetter<R, W, Mode> => {
-  const registry = useContext(RegistryContext);
+  const registry = useRegistry();
   mountAtom(registry, atom);
   return setAtom(registry, atom, options);
 };
@@ -361,7 +369,7 @@ export const useAtomSet = <R, W, Mode extends SetterMode = never>(
  * Mounts an atom and returns a callback that refreshes the current atom.
  */
 export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): (() => void) => {
-  const registry = useContext(RegistryContext);
+  const registry = useRegistry();
   mountAtom(registry, atom);
   const memo = untrackedMemo(atom);
   return () => registry.refresh(memo());
@@ -377,7 +385,7 @@ export const useAtom = <R, W, const Mode extends SetterMode = never>(
   atom: () => Atom.Writable<R, W>,
   options?: SetterOptions<R, Mode>,
 ): readonly [value: Accessor<R>, write: AtomSetter<R, W, Mode>] => {
-  const registry = useContext(RegistryContext);
+  const registry = useRegistry();
   return [createAtomAccessor(registry, atom), setAtom(registry, atom, options)] as const;
 };
 
@@ -394,7 +402,7 @@ export const useAtomSubscribe = <A>(
   f: (_: A) => void,
   options?: { readonly immediate?: boolean },
 ): void => {
-  const registry = useContext(RegistryContext);
+  const registry = useRegistry();
   createEffect(atom, (current) => registry.subscribe(current, f, options));
 };
 

@@ -86,6 +86,7 @@
     "packages/atom-solid": {
       "name": "@bible/atom-solid",
       "dependencies": {
+        "@solidjs/web": "catalog:",
         "effect": "catalog:",
         "solid-js": "catalog:",
       },
@@ -93,7 +94,6 @@
         "@bible/url-state": "workspace:*",
         "@playwright/test": "1.63.0",
         "@solidjs/compiler": "catalog:",
-        "@solidjs/web": "catalog:",
       },
     },
     "packages/cli": {

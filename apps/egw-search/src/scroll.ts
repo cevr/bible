@@ -22,10 +22,10 @@
  * still finds the older entries' positions.
  */
 
-import { RegistryContext } from '@bible/atom-solid';
+import { useRegistry } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Option, Result, Schema as S } from 'effect';
-import { onCleanup, useContext } from 'solid-js';
+import { onCleanup } from 'solid-js';
 
 /** How long Back or Forward waits for the entry's reads before it scrolls. */
 const TRAVERSAL_READ_LIMIT = 3000;
@@ -99,7 +99,7 @@ const nextFrame = (): Promise<void> =>
  * atoms live in.
  */
 export const useScrollMemory = (): void => {
-  const registry = useContext(RegistryContext);
+  const registry = useRegistry();
   /** The key of the entry on screen. */
   let onScreen = registry.get(UrlAtom.entry).key;
   /** The number of traversals started; a later one supersedes an earlier. */

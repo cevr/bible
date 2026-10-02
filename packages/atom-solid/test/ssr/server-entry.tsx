@@ -32,6 +32,9 @@ export const render = (href: string): string =>
     </RegistryProvider>
   ));
 
+/** The App rendered with no `RegistryProvider`: a mistake on the server. */
+export const renderWithoutProvider = (): string => renderToString(() => <App />);
+
 /** The whole page: the App's markup, the hydration script, the client entry. */
 export const page = (href: string): string =>
   [

@@ -19,4 +19,11 @@ describe('server rendering a place', () => {
     // signal, which Solid reports as SERVER_WRITE.
     expect(codes).toEqual(Option.some([]));
   });
+
+  test('refuses a hook with no RegistryProvider: requests never share a registry', async () => {
+    const { renderWithoutProvider } = await build(
+      await mkdtemp(`${tmpdir()}/atom-solid-ssr-bare-`),
+    );
+    expect(renderWithoutProvider).toThrow(/RegistryProvider/);
+  });
 });

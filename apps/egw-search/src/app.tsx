@@ -19,7 +19,7 @@
  * re-search keeps the old results on screen, dimmed, because there is.
  */
 
-import { RegistryContext, useAtomValue } from '@bible/atom-solid';
+import { useAtomValue, useRegistry } from '@bible/atom-solid';
 import { parseHref } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Array as Arr, Effect, Option } from 'effect';
@@ -89,7 +89,7 @@ interface WorkspaceState {
 }
 
 const useWorkspace = (): WorkspaceState => {
-  const registry = useContext(RegistryContext);
+  const registry = useRegistry();
   const place = useAtomValue(
     () => workspace,
     Option.map((value) => value.query),

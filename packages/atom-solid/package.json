@@ -14,13 +14,13 @@
     "test:ssr": "bun test ./test/ssr/hydration.browser.ts --timeout 60000"
   },
   "dependencies": {
+    "@solidjs/web": "catalog:",
     "effect": "catalog:",
     "solid-js": "catalog:"
   },
   "devDependencies": {
     "@bible/url-state": "workspace:*",
     "@playwright/test": "1.63.0",
-    "@solidjs/compiler": "catalog:",
-    "@solidjs/web": "catalog:"
+    "@solidjs/compiler": "catalog:"
   }
 }
