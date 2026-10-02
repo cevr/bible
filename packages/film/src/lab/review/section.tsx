@@ -18,6 +18,7 @@ import {
   seenPoint,
   seenVariants,
 } from '../../core/choice.ts';
+import { playableOf } from '../../browser/media-browser.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { reviewFileUrl, reviewFrameUrl } from '../../core/api.ts';
 import { labUrl } from '../../player/pages.ts';
@@ -597,7 +598,7 @@ const VariantCard = (props: { readonly variant: SeenVariant }) => {
               playsinline
               muted
               src={src()}
-              ref={(el: HTMLVideoElement) => driver.attach(props.variant.id, el)}
+              ref={(el: HTMLVideoElement) => driver.attach(props.variant.id, playableOf(el))}
             />
           );
         }}

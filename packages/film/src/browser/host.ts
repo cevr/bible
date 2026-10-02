@@ -11,10 +11,11 @@ import { Clock, Effect, Exit, Layer, Scope } from 'effect';
 import type { Context } from 'effect';
 import type { Frames } from './frames.ts';
 import type { Keys } from './keys.ts';
+import type { Media } from './media.ts';
 import type { Pointer } from './pointer.ts';
 
 /** Every service the host gives a page. */
-export type BrowserServices = Frames | Keys | Pointer;
+export type BrowserServices = Frames | Keys | Media | Pointer;
 
 /** The host's services, built: what a page's code runs its effects with. */
 export type Host = Context.Context<BrowserServices>;

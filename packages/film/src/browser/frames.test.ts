@@ -6,27 +6,14 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Exit, Fiber, Scope } from 'effect';
 import { TestClock } from 'effect/testing';
-import { type Ask, Frames } from './frames.ts';
+import { manualFrames } from './fixtures/frames.ts';
+import { Frames } from './frames.ts';
 import { hostOf } from './host.ts';
 
-/** Frames a test runs by hand: `frame()` runs every callback asked for, at `at`. */
+/** Frames run by hand, on a host of their own. */
 const manual = () => {
-  let asked: Array<(at: number) => void> = [];
-  const ask: Ask = (run) => {
-    asked.push(run);
-    return () => {
-      asked = asked.filter((r) => r !== run);
-    };
-  };
-  return {
-    host: hostOf(Frames.layerOver(ask)),
-    pending: () => asked.length,
-    frame: (at: number) => {
-      const due = asked;
-      asked = [];
-      for (const run of due) run(at);
-    },
-  };
+  const frames = manualFrames();
+  return { ...frames, host: hostOf(frames.layer) };
 };
 
 describe('Frames', () => {

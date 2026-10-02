@@ -320,7 +320,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
 
   // The narration says what it can play once it knows (a missing master, a
   // play refused until a click), and the time line says it.
-  const voice = narration(film.audio, undefined, () => draw());
+  const voice = narration(film.audio, host, () => draw());
   const fromHash = Number.parseFloat(location.hash.slice(1));
   let T = Number.isFinite(fromHash) ? Math.min(fromHash, film.duration) : 0;
   let playing = false;

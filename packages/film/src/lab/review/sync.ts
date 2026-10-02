@@ -1,14 +1,17 @@
-// The synced player's driver: the `<video>`s (and `<audio>`s) of a set, made to do what the
-// machine's state says, and what they do told back to it as events. The
+// The synced player's driver: the media of a set (`Playable`s: live its
+// `<video>`s and `<audio>`s), made to do what the machine's state says, and
+// what they do told back to it as events. It reaches them only through the
+// port (`browser/media.ts`), and plays them through `Media.playOrMute`. The
 // first variant's video is the clock (its time is the set's); every other
 // that drifts more than DRIFT_S from it is put back on it. Only the audible
 // one is unmuted. A seek moves every video; a stall pauses them all until
 // each has enough to play on (`Buffering`). The player's keys (space, ←/→)
 // are heard here too, for every page with a synced player.
 
-import { type Cause, type Context, Data, Effect, Option } from 'effect';
+import { type Context, Data, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
 import { Keys, type KeyPress } from '../../browser/keys.ts';
+import { Media, type Playable } from '../../browser/media.ts';
 import {
   type SyncEvent,
   SyncEvent as Events,
@@ -23,19 +26,12 @@ const DRIFT_S = 0.2;
 /** How far the clock moves before the machine hears of it, in seconds. */
 const TICK_S = 0.05;
 
-/** A video that can play on without waiting: `HAVE_FUTURE_DATA` or more. */
-const READY = 3;
-
-/** Whether a refused `play()` was the browser's rule against sound nobody asked for. */
-const refusedSound = (error: Cause.UnknownError) =>
-  error.cause instanceof DOMException && error.cause.name === 'NotAllowedError';
-
 /** Whether `video` has drifted from the clock at `t` far enough to be put back. */
 export const drifted = (video: number, t: number): boolean => Math.abs(video - t) > DRIFT_S;
 
 export interface SyncDriver {
   /** A variant's video joins the set: it takes the clock, the rate and the sound as they are. */
-  readonly attach: (id: string, video: HTMLMediaElement) => void;
+  readonly attach: (id: string, video: Playable) => void;
   /** Its card is gone. */
   readonly detach: (id: string) => void;
   /** The machine's state, made so. */
@@ -45,7 +41,7 @@ export interface SyncDriver {
 }
 
 interface Attached {
-  readonly video: HTMLMediaElement;
+  readonly video: Playable;
   readonly listening: AbortController;
 }
 
@@ -56,7 +52,7 @@ interface Attached {
 export const makeSync = (
   first: string,
   send: (event: SyncEvent) => void,
-  host: Context.Context<Frames>,
+  host: Context.Context<Frames | Media>,
 ): SyncDriver => {
   const videos = new Map<string, Attached>();
   let current = Option.none<SyncState>();
@@ -72,25 +68,21 @@ export const makeSync = (
       () => Option.fromUndefinedOr(all()[0]),
     );
 
+  /** Do `effect` on the host, without waiting for it. */
+  const fork = (effect: Effect.Effect<unknown, never, Frames | Media>) => {
+    Effect.runForkWith(host)(effect);
+  };
   /**
    * Play `video`; a browser that will not play sound unasked plays it muted
    * (any other refusal, a pause before it started, is left as it is).
    */
-  const play = (video: HTMLMediaElement) =>
-    Effect.runFork(
-      Effect.tryPromise(() => video.play()).pipe(
-        Effect.catch((error) => {
-          if (!refusedSound(error)) return Effect.void;
-          video.muted = true;
-          return Effect.ignore(Effect.tryPromise(() => video.play()));
-        }),
-      ),
-    );
+  const play = (video: Playable) => fork(Media.use((media) => media.playOrMute(video)));
+  const seekTo = (video: Playable, t: number) => fork(video.seek(t));
 
   const hear = (state: SyncState) => {
     for (const [id, a] of videos) {
-      a.video.muted = id !== state.audible;
-      a.video.playbackRate = state.rate;
+      a.video.mute(id !== state.audible);
+      a.video.rate(state.rate);
     }
   };
 
@@ -101,9 +93,9 @@ export const makeSync = (
   const step = (): boolean =>
     Option.exists(current, (state) => {
       Option.map(clock(), (master) => {
-        const t = master.currentTime;
+        const t = master.time();
         if (state._tag === 'Buffering') {
-          if (all().every((v) => v.readyState >= READY)) send(Events.Resumed);
+          if (all().every((v) => v.ready())) send(Events.Resumed);
           return;
         }
         if (Math.abs(t - told) >= TICK_S) {
@@ -111,8 +103,8 @@ export const makeSync = (
           send(Events.Ticked({ t }));
         }
         for (const video of all()) {
-          if (video === master || video.seeking || video.ended) continue;
-          if (t < video.duration && drifted(video.currentTime, t)) video.currentTime = t;
+          if (video === master || video.seeking() || video.ended()) continue;
+          if (t < video.duration() && drifted(video.time(), t)) seekTo(video, t);
         }
       });
       return Option.exists(current, (now) => runningOf(now) || now._tag === 'Buffering');
@@ -142,14 +134,14 @@ export const makeSync = (
     if (state.seek !== seek) {
       seek = state.seek;
       told = state.t;
-      for (const video of all()) video.currentTime = state.t;
+      for (const video of all()) seekTo(video, state.t);
     }
     if (runningOf(state)) {
-      for (const video of all()) if (video.paused) play(video);
+      for (const video of all()) if (!video.playing()) play(video);
       run();
       return;
     }
-    for (const video of all()) video.pause();
+    for (const video of all()) fork(video.pause);
     if (state._tag === 'Buffering') {
       run();
       return;
@@ -157,33 +149,31 @@ export const makeSync = (
     halt();
   };
 
-  const attach = (id: string, video: HTMLMediaElement) => {
+  const attach = (id: string, video: Playable) => {
     Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => old.listening.abort());
     const listening = new AbortController();
     const signal = listening.signal;
     videos.set(id, { video, listening });
-    video.addEventListener(
-      'loadedmetadata',
+    video.on(
+      'measured',
       () => {
-        if (id === first && Number.isFinite(video.duration))
-          send(Events.Measured({ end: video.duration }));
-        Option.map(current, (state) => {
-          video.currentTime = state.t;
-        });
+        if (id === first && Number.isFinite(video.duration()))
+          send(Events.Measured({ end: video.duration() }));
+        Option.map(current, (state) => seekTo(video, state.t));
       },
-      { signal },
+      signal,
     );
-    video.addEventListener('waiting', () => send(Events.Stalled), { signal });
-    video.addEventListener(
+    video.on('stalled', () => send(Events.Stalled), signal);
+    video.on(
       'ended',
       () => {
         if (id === first) send(Events.Ended);
       },
-      { signal },
+      signal,
     );
     Option.map(current, (state) => {
       hear(state);
-      if (video.readyState > 0) video.currentTime = state.t;
+      seekTo(video, state.t);
       if (runningOf(state)) play(video);
     });
   };
@@ -191,7 +181,7 @@ export const makeSync = (
   const detach = (id: string) => {
     Option.map(Option.fromUndefinedOr(videos.get(id)), (a) => {
       a.listening.abort();
-      a.video.pause();
+      fork(a.video.pause);
     });
     videos.delete(id);
   };

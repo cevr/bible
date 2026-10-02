@@ -1,57 +1,39 @@
-// The preview's narration, with a stand-in audio element (bun has none): a
-// film with no master has nothing to play; a master that will not load is
-// missing, said once, and never asked to play again; one that loads plays;
-// a play the browser refuses until a click is blocked, and the next play
-// (a click) tries again; a play asked while it loads starts once it can,
-// from where the clock is then; a play a pause cut short is no failure.
+// The preview's narration, its audio a stand-in element (bun has none) seen
+// through the live adapter and the host's `Media`: a film with no master has
+// nothing to play; a master that will not load is missing, said once, and
+// never asked to play again; one that loads plays; a play the browser
+// refuses until a click is blocked, and the next play (a click) tries again;
+// a play asked while it loads starts once it can, from where the clock is
+// then; a play a pause cut short is no failure.
 
 import { describe, expect, test } from 'bun:test';
-import { type NarrationAudio, narration } from './narration.ts';
+import { Effect } from 'effect';
+import { fakeMedia, mediaHost } from '../browser/fixtures/media.ts';
+import { narration } from './narration.ts';
 
-/**
- * An audio element that records what it was asked, and rejects each play
- * with `refuse` when set. `answered` settles once the narration has heard
- * every play's answer: its reactions run after the narration's own.
- */
-const fakeAudio = (refuse?: string) => {
-  const asked: Array<string> = [];
-  const plays: Array<Promise<void>> = [];
-  const events = new EventTarget();
-  const el: NarrationAudio & { paused: boolean; fire: (type: string) => void } = {
-    currentTime: 0,
-    paused: true,
-    play: () => {
-      asked.push('play');
-      if (refuse === undefined) el.paused = false;
-      const play =
-        refuse === undefined
-          ? Promise.resolve()
-          : Promise.reject(new DOMException('refused', refuse));
-      plays.push(play);
-      return play;
-    },
-    pause: () => {
-      asked.push('pause');
-      el.paused = true;
-    },
-    addEventListener: (type, listener) => events.addEventListener(type, listener),
-    fire: (type) => events.dispatchEvent(new Event(type)),
+/** A narration over a stand-in audio that refuses each play with `refuse`, when set. */
+const narrated = (src: string | undefined, refuse?: string) => {
+  const audio = fakeMedia(refuse);
+  return {
+    ...audio,
+    n: narration(
+      src,
+      mediaHost(() => audio.media),
+    ),
   };
-  const answered = () => Promise.allSettled(plays);
-  return { el, asked, answered };
 };
 
 describe('the narration', () => {
   test('a film with no master has nothing to play', () => {
-    const n = narration(undefined, () => fakeAudio().el);
+    const { n, asked } = narrated(undefined);
     expect(n.state()._tag).toBe('None');
     n.play(() => 0);
     expect(n.ready()).toBe(false);
+    expect(asked).toEqual([]);
   });
 
   test('a master that will not load is missing, and is never asked to play', () => {
-    const { el, asked } = fakeAudio();
-    const n = narration('/films/f/narration/full.wav', () => el);
+    const { el, n, asked } = narrated('/films/f/narration/full.wav');
     el.fire('error');
     expect(n.state()).toEqual({
       _tag: 'Missing',
@@ -63,58 +45,52 @@ describe('the narration', () => {
   });
 
   test('a master the element cannot play goes missing on its first play, once', async () => {
-    const { el, asked, answered } = fakeAudio('NotSupportedError');
-    const n = narration('/a.wav', () => el);
-    el.fire('canplay');
+    const { el, n, asked, answered } = narrated('/a.wav', 'NotSupportedError');
+    el.load(3);
     expect(n.ready()).toBe(true);
     n.play(() => 0);
-    await answered();
+    await Effect.runPromise(answered);
     expect(n.state()._tag).toBe('Missing');
     n.play(() => 0);
-    expect(asked).toEqual(['play']);
+    expect(asked).toEqual(['seek 0', 'play']);
   });
 
   test('a play refused until a click is blocked, and the next play tries again', async () => {
-    const { el, asked, answered } = fakeAudio('NotAllowedError');
-    const n = narration('/a.wav', () => el);
-    el.fire('canplay');
+    const { el, n, asked, answered } = narrated('/a.wav', 'NotAllowedError');
+    el.load(3);
     n.play(() => 0);
-    await answered();
+    await Effect.runPromise(answered);
     expect(n.state()._tag).toBe('Blocked');
     expect(n.ready()).toBe(false);
     n.play(() => 0);
-    expect(asked).toEqual(['play', 'play']);
+    expect(asked).toEqual(['seek 0', 'play', 'seek 0', 'play']);
   });
 
   test('a play pressed while it loads starts once it can, from where the clock is then', () => {
-    const { el, asked } = fakeAudio();
-    const n = narration('/a.wav', () => el);
+    const { el, n, asked } = narrated('/a.wav');
     let T = 1;
     n.play(() => T);
     expect(asked).toEqual([]);
     // The picture ran on its own clock while the master loaded.
     T = 2.5;
-    el.fire('canplay');
-    expect(asked).toEqual(['play']);
-    expect(el.currentTime).toBe(2.5);
+    el.load(3);
+    expect(asked).toEqual(['seek 2.5', 'play']);
     expect(n.playingAt()).toBe(2.5);
   });
 
   test('a pause while it loads takes the wanted play back', () => {
-    const { el, asked } = fakeAudio();
-    const n = narration('/a.wav', () => el);
+    const { el, n, asked } = narrated('/a.wav');
     n.play(() => 1);
     n.pause();
-    el.fire('canplay');
+    el.load(3);
     expect(asked).toEqual(['pause']);
   });
 
   test('a play cut short by a pause is no failure', async () => {
-    const { el, answered } = fakeAudio('AbortError');
-    const n = narration('/a.wav', () => el);
-    el.fire('canplay');
+    const { el, n, answered } = narrated('/a.wav', 'AbortError');
+    el.load(3);
     n.play(() => 0);
-    await answered();
+    await Effect.runPromise(answered);
     expect(n.state()._tag).toBe('Ready');
   });
 });
