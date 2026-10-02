@@ -11,8 +11,8 @@
 
 import { For, Show } from '@solidjs/web';
 import { Option } from 'effect';
-import { createEffect, createMemo, createSignal } from 'solid-js';
-import { type Say, choiceAloneUrl } from '../../../core/api.ts';
+import { type Accessor, createEffect, createMemo, createSignal } from 'solid-js';
+import { type Say, choiceAloneUrl, reviewFrameUrl } from '../../../core/api.ts';
 import type { ApprovalState, SaidComment } from '../../../core/catalogue.ts';
 import {
   type ChoiceKind,
@@ -24,10 +24,11 @@ import {
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import { useReview } from '../context.tsx';
-import { APPROVAL_TEXT, pressed, stateText, videoUrl } from '../format.ts';
+import { APPROVAL_TEXT, POSTER_W, pressed, stateText, videoSource } from '../format.ts';
+import { ProxyPending } from '../section.tsx';
 import { SyncEvent, timeText } from '../machine.ts';
 import { ChoiceAct } from './api.ts';
-import { Playing, samePlaying, useFilm } from './context.tsx';
+import { Playing, samePlaying, useAct, useFilm } from './context.tsx';
 
 /** A verb's button, as a kind names it: a take is kept, anything else picked. */
 const verbTitle = (kind: ChoiceKind, verb: ChoiceVerb): string => {
@@ -45,14 +46,19 @@ const APPROVE_TITLE = {
   stale: 'Approve again',
 } as const satisfies Record<ApprovalState, string>;
 
+/** One control's say: whether its own is in flight, and the say, answering whether it was said. */
+interface OwnSay {
+  readonly waiting: Accessor<boolean>;
+  readonly say: (variant: ChoiceVariant, say: Say) => Promise<boolean>;
+}
+
 /**
- * Where a card's says go, whether each was said, and whether one is in
- * flight: a choice's to the film's choices (the default), a render's to its
- * project.
+ * Where a card's says go: a choice's to the film's choices (the default), a
+ * render's to its project. `use` makes a control's own say (`useWrite`),
+ * once, as the control is made.
  */
 export interface Sayer {
-  readonly say: (variant: ChoiceVariant, say: Say) => Promise<boolean>;
-  readonly busy: () => boolean;
+  readonly use: () => OwnSay;
 }
 
 /** The 🔊 that makes `playing` the sound over the picture. */
@@ -120,7 +126,7 @@ export const SayBox = (props: {
     >
       <input
         class="rv-comment-input"
-        placeholder="Say something of it"
+        placeholder="Add a comment"
         value={text()}
         onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
           setText(e.currentTarget.value)
@@ -132,7 +138,7 @@ export const SayBox = (props: {
         data-act="comment"
         disabled={text().trim() === '' || props.disabled === true}
       >
-        Say
+        Comment
       </button>
     </form>
   );
@@ -157,11 +163,19 @@ const ApproveButton = (props: {
   </button>
 );
 
-/** A render's video, kept in place while its file stays the same. */
+/**
+ * A render's video, kept in place while its file stays the same, showing a
+ * still of itself until it plays; while its proxy is being made, says so.
+ */
 const Seen = (props: { readonly video: ReviewVideo }) => {
   const { state } = useReview();
-  const src = createMemo(() => videoUrl(props.video, state.quality()));
-  return <video controls preload="none" playsinline src={src()} />;
+  const src = createMemo(() => Option.getOrUndefined(videoSource(props.video, state.quality())));
+  const poster = createMemo(() => reviewFrameUrl(props.video.ref, Option.none(), POSTER_W));
+  return (
+    <Show when={src()} fallback={<ProxyPending video={props.video} />}>
+      {(source) => <video controls preload="none" playsinline poster={poster()} src={source()} />}
+    </Show>
+  );
 };
 
 /** What a variant plays: its video, or its sound alone and in place. */
@@ -201,34 +215,79 @@ const Media = (props: { readonly point: ChoicePoint; readonly variant: ChoiceVar
   );
 };
 
+/** A variant's withdraw, waiting while its own is in flight. */
+const WithdrawButton = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
+  const withdrawing = props.sayer.use();
+  return (
+    <button
+      type="button"
+      class="rv-chip"
+      data-act="withdraw"
+      disabled={withdrawing.waiting()}
+      onClick={() => withdrawing.say(props.variant, { _tag: 'Withdraw' })}
+    >
+      Withdraw
+    </button>
+  );
+};
+
 /** A variant's approve and withdraw: only what is current is approved, as the version seen now. */
-const Approval = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => (
-  <>
-    <ApproveButton
-      approval={props.variant.approval}
-      disabled={props.variant.state !== 'current' || props.sayer.busy()}
-      approve={() => props.sayer.say(props.variant, { _tag: 'Approve' })}
+const Approval = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
+  const approving = props.sayer.use();
+  return (
+    <>
+      <ApproveButton
+        approval={props.variant.approval}
+        disabled={props.variant.state !== 'current' || approving.waiting()}
+        approve={() => approving.say(props.variant, { _tag: 'Approve' })}
+      />
+      <Show when={props.variant.approval !== 'none'}>
+        <WithdrawButton variant={props.variant} sayer={props.sayer} />
+      </Show>
+    </>
+  );
+};
+
+/** A verb's button on a variant, waiting while its own write is in flight. */
+const VerbButton = (props: {
+  readonly point: ChoicePoint;
+  readonly variant: ChoiceVariant;
+  readonly verb: ChoiceVerb;
+}) => {
+  const verbing = useAct();
+  return (
+    <button
+      type="button"
+      class="rv-chip"
+      data-act={props.verb}
+      disabled={verbing.waiting()}
+      onClick={() =>
+        verbing.write(
+          ChoiceAct.Verb({ point: props.point.id, variant: props.variant.id, verb: props.verb }),
+        )
+      }
+    >
+      {verbTitle(props.point.kind, props.verb)}
+    </button>
+  );
+};
+
+/** A variant's comment box, waiting while its own say is in flight. */
+const CommentBox = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
+  const commenting = props.sayer.use();
+  return (
+    <SayBox
+      disabled={commenting.waiting()}
+      say={(text) => commenting.say(props.variant, { _tag: 'Comment', text })}
     />
-    <Show when={props.variant.approval !== 'none'}>
-      <button
-        type="button"
-        class="rv-chip"
-        data-act="withdraw"
-        disabled={props.sayer.busy()}
-        onClick={() => props.sayer.say(props.variant, { _tag: 'Withdraw' })}
-      >
-        Withdraw
-      </button>
-    </Show>
-  </>
-);
+  );
+};
 
 const VariantRow = (props: {
   readonly point: ChoicePoint;
   readonly variant: ChoiceVariant;
   readonly sayer: Sayer;
 }) => {
-  const { write } = useFilm();
   const said = () => Option.isSome(props.point.address);
   return (
     <div
@@ -255,18 +314,7 @@ const VariantRow = (props: {
       <div class="rv-row">
         <Media point={props.point} variant={props.variant} />
         <For each={props.variant.verbs}>
-          {(verb) => (
-            <button
-              type="button"
-              class="rv-chip"
-              data-act={verb}
-              onClick={() =>
-                write(ChoiceAct.Verb({ point: props.point.id, variant: props.variant.id, verb }))
-              }
-            >
-              {verbTitle(props.point.kind, verb)}
-            </button>
-          )}
+          {(verb) => <VerbButton point={props.point} variant={props.variant} verb={verb} />}
         </For>
         <Show when={said()}>
           <Approval variant={props.variant} sayer={props.sayer} />
@@ -274,10 +322,7 @@ const VariantRow = (props: {
       </div>
       <Comments comments={props.variant.comments} />
       <Show when={said()}>
-        <SayBox
-          disabled={props.sayer.busy()}
-          say={(text) => props.sayer.say(props.variant, { _tag: 'Comment', text })}
-        />
+        <CommentBox variant={props.variant} sayer={props.sayer} />
       </Show>
     </div>
   );
@@ -289,7 +334,7 @@ const VariantRow = (props: {
  * that fails shows the film's value again (the failure is on the status line).
  */
 const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob }) => {
-  const { write } = useFilm();
+  const setting = useAct();
   const [dragged, setDragged] = createSignal(Option.none<number>());
   // The film's value moved (a write answered it): what was dragged is written.
   createEffect(
@@ -300,7 +345,7 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
   );
   const value = () => Option.getOrElse(dragged(), () => props.knob.value);
   const set = (to: number) =>
-    void write(ChoiceAct.Knob({ point: props.point.id, value: to })).then((ok) => {
+    void setting.write(ChoiceAct.Knob({ point: props.point.id, value: to })).then((ok) => {
       if (!ok) setDragged(Option.none());
     });
   return (
@@ -311,7 +356,7 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
         max={props.knob.max}
         step={props.knob.step}
         value={value()}
-        disabled={Option.isSome(props.knob.fixed)}
+        disabled={Option.isSome(props.knob.fixed) || setting.waiting()}
         title={Option.getOrElse(props.knob.fixed, () => '')}
         onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
           setDragged(Option.some(Number(e.currentTarget.value)))
@@ -365,16 +410,18 @@ const Marks = (props: { readonly point: ChoicePoint }) => {
  * go (`sayer`). Why a stale variant is stale is its own (`staleBy`).
  */
 export const ChoiceCard = (props: { readonly point: ChoicePoint; readonly sayer?: Sayer }) => {
-  const { write, wrote } = useFilm();
-  const given = () => Option.fromUndefinedOr(props.sayer);
-  const sayer: Sayer = {
-    say: (variant, say) =>
-      Option.match(given(), {
-        onSome: (s) => s.say(variant, say),
-        onNone: () => write(ChoiceAct.Say({ point: props.point.id, variant: variant.id, say })),
-      }),
-    busy: () => Option.match(given(), { onSome: (s) => s.busy(), onNone: () => wrote().waiting }),
+  /** A choice's says go to the film's choices. */
+  const ofChoices: Sayer = {
+    use: () => {
+      const saying = useAct();
+      return {
+        waiting: saying.waiting,
+        say: (variant, say) =>
+          saying.write(ChoiceAct.Say({ point: props.point.id, variant: variant.id, say })),
+      };
+    },
   };
+  const sayer: Sayer = { use: () => (props.sayer ?? ofChoices).use() };
   return (
     <div
       class="rv-card rv-option"

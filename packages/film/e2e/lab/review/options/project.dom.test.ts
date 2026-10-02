@@ -370,17 +370,24 @@ describe("a film's project", () => {
           page,
           `document.querySelector('${render('open')} video')?.getAttribute('src') === '/review/files/out/toy/scenes/open/main.share.mp4'`,
         );
+        // Each render shows a still of itself before it is played, as a folder's cards do.
+        yield* attributeIs(
+          page,
+          `${render('open')} video`,
+          'poster',
+          '/review/frame?ref=out%2Ftoy%2Fscenes%2Fopen%2Fmain.share.mp4&w=960',
+        );
         yield* countIs(page, `${render('close')} video`, 0);
         // A render stale by the film's sound alone says so, beside its approval of an earlier version.
         yield* textIs(
           page,
           `${render('close')} .rv-tag[data-state]`,
-          "stale: the film's sound changed since it was made",
+          "out of date: the film's sound changed since it was made",
         );
         yield* textIs(
           page,
           `${render('close')} .rv-badge[data-approval]`,
-          'approved an earlier version',
+          'needs review: an earlier version was approved',
         );
         // A stale scene is not approved until it is rendered again.
         yield* evaluates(
@@ -600,7 +607,7 @@ describe("a film's project", () => {
         yield* textIs(
           page,
           `${render('coda')} .rv-tag[data-state]`,
-          'stale: its sources changed since it was made',
+          'out of date: its sources changed since it was made',
         );
         yield* evaluates(
           page,
@@ -723,6 +730,67 @@ describe("a film's project", () => {
           Effect.timeout('10 seconds'),
         );
         expect(all).toBe(3);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a comment said while another is in flight goes at once, and each box empties on its own answer',
+    () =>
+      Effect.gen(function* () {
+        const routes = fakeProject();
+        const plainSay = Option.getOrThrow(
+          Option.fromUndefinedOr(
+            routes.find((r) => r.method === 'POST' && r.path.test('/review/project/toy/say')),
+          ),
+        );
+        // The first say (the film's comment) is held; the next answers at once.
+        const land = yield* Deferred.make<void>();
+        let says = 0;
+        const heldFirst = route('POST', /^\/review\/project\/toy\/say$/, (asked) => {
+          says += 1;
+          const then = plainSay.answer(asked);
+          if (says === 1) return later(land, then);
+          return then;
+        });
+        const { page, asked, errors } = yield* openReview([heldFirst, ...routes], {
+          search: PROJECT,
+        });
+        const film = '.rv-film > .rv-say';
+        const act = '[data-act-name="opening"] > .rv-say';
+        yield* waitFor(page, `${film} .rv-comment-input`);
+        yield* page.fill(`${film} .rv-comment-input`, 'of the whole film');
+        yield* click(page, `${film} [data-act="comment"]`);
+        yield* Effect.sync(() => saysPosted(asked).length).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 1 }),
+          Effect.timeout('10 seconds'),
+        );
+        // The film's box waits on its own say; the act's is free.
+        yield* evaluates(
+          page,
+          `document.querySelector('${film} [data-act="comment"]').disabled`,
+          true,
+        );
+        yield* page.fill(`${act} .rv-comment-input`, 'of the opening');
+        yield* click(page, `${act} [data-act="comment"]`);
+        yield* countIs(page, '[data-act-name="opening"] > .rv-comments li', 1);
+        yield* valueIs(page, `${act} .rv-comment-input`, '');
+        // The act's answer is not the film's: its box keeps the text until its own lands.
+        yield* evaluates(
+          page,
+          `document.querySelector('${film} .rv-comment-input').value`,
+          'of the whole film',
+        );
+        yield* Deferred.done(land, Exit.void);
+        yield* valueIs(page, `${film} .rv-comment-input`, '');
+        expect(saysPosted(asked)).toEqual([
+          { address: { _tag: 'Film' }, say: { _tag: 'Comment', text: 'of the whole film' } },
+          {
+            address: { _tag: 'Act', act: 'opening' },
+            say: { _tag: 'Comment', text: 'of the opening' },
+          },
+        ]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

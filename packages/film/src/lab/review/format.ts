@@ -29,13 +29,25 @@ export const agoText = (mtime: number, now: number): string => {
   return `${Math.round(seconds / 86_400)} d ago`;
 };
 
-/** Which copy a video plays: its 720p phone copy (when made) or the file itself. */
+/** How wide a video's poster still is: the frame a card shows before it plays. */
+export const POSTER_W = 960;
+
+/**
+ * Which copy a video plays: the Proxy (`phone`, its 720p copy, made for big
+ * videos) or the Original (`full`, the file itself). The stored words stay.
+ */
 export type Quality = 'phone' | 'full';
 
-/** The URL a video plays from at `quality`: the phone copy only once it is ready. */
-export const videoUrl = (video: ReviewVideo, quality: Quality): string => {
-  if (quality === 'phone' && video.phone === 'ready') return reviewPhoneUrl(video.ref);
-  return reviewFileUrl(video.ref);
+/**
+ * The URL a video plays from at `quality`: on Proxy its proxy once made, or
+ * the file when it is small enough to need none; none while its proxy is
+ * still being made, so a phone never streams the original in its place.
+ * On Original, the file.
+ */
+export const videoSource = (video: ReviewVideo, quality: Quality): Option.Option<string> => {
+  if (quality === 'full' || video.phone === 'none') return Option.some(reviewFileUrl(video.ref));
+  if (video.phone === 'ready') return Option.some(reviewPhoneUrl(video.ref));
+  return Option.none();
 };
 
 /** `n` things, named in the singular: `1 video`, `3 videos`, none for none. */
@@ -45,10 +57,14 @@ const counted = (n: number, thing: string): Option.Option<string> => {
   return Option.some(`${n} ${thing}s`);
 };
 
-/** What a folder holds: `2 comparisons · 3 videos · 1 doc`. */
+/** How many versions a stack holds: `1 version`, `3 versions`. */
+export const versionsText = (n: number): string =>
+  Option.getOrElse(counted(n, 'version'), () => '0 versions');
+
+/** What a folder holds: `2 version stacks · 3 videos · 1 doc`. */
 export const countsText = (folder: ReviewFolder): string =>
   Arr.getSomes([
-    counted(folder.sets.length, 'comparison'),
+    counted(folder.sets.length, 'version stack'),
     counted(folder.videos.length, 'video'),
     counted(folder.images.length, 'image'),
     counted(folder.docs.length, 'doc'),
@@ -77,7 +93,11 @@ export const captionsFor = (
   return Option.fromUndefinedOr(docs.find((doc) => names.includes(doc.name)));
 };
 
-/** A state as an ARIA attribute says it (`aria-pressed`, `aria-busy`). */
+/**
+ * A state as an ARIA attribute says it (`aria-pressed`, `aria-busy`, a
+ * `data-*` flag). A function, not an inline template: it types the value as
+ * `'true' | 'false'`.
+ */
 export const pressed = (on: boolean) => `${on}` as const;
 
 /** Whether a doc reads as markdown (shown inline); the rest are linked. */
@@ -85,9 +105,9 @@ export const isMarkdown = (doc: ReviewFile): boolean => doc.name.endsWith('.md')
 
 /** What each approval state says, wherever a page says it. */
 export const APPROVAL_TEXT = {
-  none: 'not approved',
+  none: 'needs review',
   approved: 'approved',
-  stale: 'approved an earlier version',
+  stale: 'needs review: an earlier version was approved',
 } as const satisfies Record<ApprovalState, string>;
 
 /** An approval as a variant's verdict says it, after its label: none said for none. */
@@ -100,7 +120,7 @@ export const approvalText = (approval: ApprovalState): string =>
 /** What a variant's state says: a render, a take, a score option alike. */
 const STATE_TEXT = {
   current: 'current',
-  stale: 'stale: made for an earlier version',
+  stale: 'out of date: made for an earlier version',
   missing: 'not made yet',
 } as const satisfies Record<VariantState, string>;
 
@@ -108,7 +128,7 @@ const STATE_TEXT = {
 export const stateText = (state: VariantState, staleBy: Option.Option<StaleBy>): string =>
   Option.match(
     Option.filter(staleBy, () => state === 'stale'),
-    { onNone: () => STATE_TEXT[state], onSome: (by) => `stale: ${STALE_BY[by].why}` },
+    { onNone: () => STATE_TEXT[state], onSome: (by) => `out of date: ${STALE_BY[by].why}` },
   );
 
 /**

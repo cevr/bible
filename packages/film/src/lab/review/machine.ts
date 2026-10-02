@@ -9,7 +9,8 @@
 //   Playing | Buffering ─Ended→ Paused (at the end)
 //   any ─Stepped | Measured | HeardChosen | RateChosen→ the same, changed
 //
-//   All | Pair | Moments | Notes ─ViewChosen→ any    Pair ─OtherChosen→ Pair
+//   All | Pair | Moments | Notes ─ViewChosen→ any (Pair only with a second version)
+//   Pair ─OtherChosen→ Pair
 //   Moments ─MomentChosen | MomentStepped→ Moments
 //
 // Events are facts (a button pressed, the clock moved on, a video stalled);
@@ -17,7 +18,7 @@
 // scrub, a step, a play from the end) bumps `seek`, so the driver moves the
 // videos only then, never for the clock's own ticks.
 
-import { Effect, Match, Schema } from 'effect';
+import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 
 /** Seconds a ←/→ step moves. */
@@ -263,16 +264,36 @@ export const wrapped = (index: number, by: number, count: number): number => {
   return (((index + by) % n) + n) % n;
 };
 
-/** The view machine, starting in `initial`; a pair's first other is `other`. */
-export const viewMachine = (initial: ViewState, other: string) =>
-  Machine.make({ state: ViewState, event: ViewEvent, initial })
+/**
+ * The view machine, starting in `initial`; a pair's first other is `other`.
+ * A set with no other (one version) has no side by side: it opens in All
+ * where a link asks for the pair, and choosing the pair leaves it as it is.
+ */
+export const viewMachine = (initial: ViewState, other: Option.Option<string>) =>
+  Machine.make({
+    state: ViewState,
+    event: ViewEvent,
+    initial: Match.value(initial).pipe(
+      Match.tag('Pair', (pair): ViewState =>
+        Option.match(other, { onSome: () => pair, onNone: () => ViewState.All }),
+      ),
+      Match.orElse((s) => s),
+    ),
+  })
     .on(VIEWS, ViewEvent.ViewChosen, ({ state, event }) => {
       // A pair keeps the other it had; the moments start from the first.
       const kept = Match.value(state).pipe(
-        Match.tag('Pair', (s) => s.other),
+        Match.tag('Pair', (s) => Option.some(s.other)),
         Match.orElse(() => other),
       );
-      return viewEntered(event.view, kept);
+      return Option.match(kept, {
+        onSome: (o) => viewEntered(event.view, o),
+        onNone: () =>
+          Match.value(event.view).pipe(
+            Match.when('pair', () => state),
+            Match.orElse((view) => viewEntered(view, '')),
+          ),
+      });
     })
     .on(ViewState.Pair, ViewEvent.OtherChosen, ({ event }) => ViewState.Pair({ other: event.id }))
     .on(ViewState.Moments, ViewEvent.MomentChosen, ({ event }) =>
@@ -283,7 +304,7 @@ export const viewMachine = (initial: ViewState, other: string) =>
     );
 
 /** The view's actor, started in `initial`. */
-export const spawnView = (initial: ViewState, other: string) =>
+export const spawnView = (initial: ViewState, other: Option.Option<string>) =>
   Machine.spawn(viewMachine(initial, other)).pipe(Effect.tap((actor) => actor.start));
 
 export type ViewActor = Effect.Success<ReturnType<typeof spawnView>>;

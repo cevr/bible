@@ -186,9 +186,17 @@ const choices = (toy: Toy): Json => ({
 const bodyText = (body: Option.Option<Json>): string =>
   Option.getOrElse(Option.map(body, jsonText), () => '');
 
-/** The fake film: its choices, its writes, its check and its sound check. */
-const fakeFilm = () => {
-  const toy: Toy = { picked: 'strings', look: 'now', level: -24, approved: false, said: [] };
+/** The fake film as it opens: strings picked, nothing said. */
+const freshToy = (): Toy => ({
+  picked: 'strings',
+  look: 'now',
+  level: -24,
+  approved: false,
+  said: [],
+});
+
+/** The fake film: its choices, its writes, its check and its sound check, over `toy`. */
+const fakeFilm = (toy: Toy = freshToy()) => {
   let undo = Option.none<string>();
   const wrote = (target: string, file: string): Json => ({
     file,
@@ -424,6 +432,188 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'the player lives through writes: a pick and a say keep the picture, a say the mix',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { search: FILM });
+        yield* waitFor(page, '.rv-picture video');
+        yield* until(page, `${MIX}.startsWith('/lab/toy/choices/mix?point=score&variant=strings')`);
+        yield* page.evaluate(`(() => {
+            window.__picture = document.querySelector('.rv-picture video');
+            window.__mix = document.querySelector('audio.rv-mix');
+          })()`);
+        const same = "document.querySelector('.rv-picture video') === window.__picture";
+        const sameMix = "document.querySelector('audio.rv-mix') === window.__mix";
+        // A say answers new choices; the picture and the mix heard stay the same elements.
+        yield* page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close');
+        yield* click(page, `${at('score', 'strings')} [data-act="comment"]`);
+        yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
+        yield* evaluates(page, same, true);
+        yield* evaluates(page, sameMix, true);
+        // A pick changes the source: the mix is asked for again, the picture plays on.
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        yield* evaluates(page, same, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a pick made while a comment is in flight leaves the comment its own answer',
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const routes = fakeFilm(toy);
+        // The comment is held: the server records it once the test lets it land.
+        const land = yield* Deferred.make<void>();
+        const heldSay = route('POST', /^\/lab\/toy\/choices\/say$/, () =>
+          later(land, json(choices({ ...toy, said: [...toy.said, 'warmer in the close'] }))),
+        );
+        const { page, asked, errors } = yield* openReview([heldSay, ...routes], {
+          search: FILM,
+        });
+        const box = `${at('score', 'strings')} .rv-comment-input`;
+        const comment = `${at('score', 'strings')} [data-act="comment"]`;
+        yield* waitFor(page, box);
+        yield* page.fill(box, 'warmer in the close');
+        yield* click(page, comment);
+        yield* Effect.sync(() => asked.some((a) => a.path === '/lab/toy/choices/say')).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
+          Effect.timeout('10 seconds'),
+        );
+        // The comment's own button waits; a pick on another option is free to go.
+        yield* evaluates(page, `document.querySelector('${comment}').disabled`, true);
+        yield* evaluates(
+          page,
+          `document.querySelector('${at('score', 'piano')} [data-act="pick"]').disabled`,
+          false,
+        );
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
+        // The pick's answer is not the comment's: its box keeps the text.
+        yield* evaluates(page, `document.querySelector('${box}').value`, 'warmer in the close');
+        // The comment lands: the page shows it, and its box empties.
+        yield* Effect.sync(() => {
+          toy.said = [...toy.said, 'warmer in the close'];
+        });
+        yield* Deferred.done(land, Exit.void);
+        yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
+        yield* valueIs(page, box, '');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a write asked earlier and answered later leaves a newer write's check shown",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        // The pick is held, and answers a clean check once let land.
+        const land = yield* Deferred.make<void>();
+        const heldPick = route('POST', /^\/lab\/toy\/choices\/pick$/, () =>
+          later(
+            land,
+            json({
+              file: 'sound.ts',
+              target: 'score play piano',
+              choices: choices({ ...toy, picked: 'piano' }),
+              findings: [],
+            }),
+          ),
+        );
+        // The knob, sent after it, answers a warning at once.
+        const warnedKnob = route('POST', /^\/lab\/toy\/choices\/knob$/, () =>
+          json({
+            file: 'sound.ts',
+            target: 'level:const:PAPER -20',
+            choices: choices({ ...toy, level: -20 }),
+            findings: [{ level: 'warning', tag: 'Balance', message: 'the paper is loud' }],
+          }),
+        );
+        const { page, asked, errors } = yield* openReview(
+          [heldPick, warnedKnob, ...fakeFilm(toy)],
+          { search: FILM },
+        );
+        const knob = '[data-knob="level:const:PAPER"]';
+        const findings = '[data-check="check"] summary';
+        yield* waitFor(page, `${knob} input`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* Effect.sync(() => asked.some((a) => a.path === '/lab/toy/choices/pick')).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
+          Effect.timeout('10 seconds'),
+        );
+        yield* page.evaluate(`(() => {
+            const input = document.querySelector('${knob} input');
+            input.value = '-20';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          })()`);
+        yield* attributeIs(page, findings, 'data-findings', '1');
+        // The pick lands last (the status line stops writing): the knob's
+        // check, asked after it, stays.
+        yield* Deferred.done(land, Exit.void);
+        yield* until(page, "!document.querySelector('.rv-status').textContent.includes('writing')");
+        yield* attributeIs(page, findings, 'data-findings', '1');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a write that fails while an earlier one is in flight keeps its failure on the status line',
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const land = yield* Deferred.make<void>();
+        const heldPick = route('POST', /^\/lab\/toy\/choices\/pick$/, () =>
+          later(
+            land,
+            json({
+              file: 'sound.ts',
+              target: 'score play piano',
+              choices: choices({ ...toy, picked: 'piano' }),
+              findings: [],
+            }),
+          ),
+        );
+        const refusedKnob = route('POST', /^\/lab\/toy\/choices\/knob$/, () =>
+          refused(SourceRefused.make({ file: 'sound.ts', target: 'PAPER', reason: 'computed' })),
+        );
+        const { page, asked, errors } = yield* openReview(
+          [heldPick, refusedKnob, ...fakeFilm(toy)],
+          { search: FILM },
+        );
+        const knob = '[data-knob="level:const:PAPER"]';
+        yield* waitFor(page, `${knob} input`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* Effect.sync(() => asked.some((a) => a.path === '/lab/toy/choices/pick')).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
+          Effect.timeout('10 seconds'),
+        );
+        yield* page.evaluate(`(() => {
+            const input = document.querySelector('${knob} input');
+            input.value = '-20';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          })()`);
+        yield* Effect.sync(() => asked.some((a) => a.path === '/lab/toy/choices/knob')).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
+          Effect.timeout('10 seconds'),
+        );
+        yield* waitFor(page, `${knob} input:not([disabled])`);
+        // The pick, asked first, lands last: the knob's failure is the newest said.
+        yield* Deferred.done(land, Exit.void);
+        yield* until(page, "!document.querySelector('.rv-status').textContent.includes('writing')");
+        yield* attributeIs(page, '.rv-status', 'data-failed', 'true');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a look is picked, a level's knob set, and a variant approved and commented on",
     () =>
       Effect.gen(function* () {
@@ -556,6 +746,36 @@ describe("a film's choices", () => {
         yield* until(page, "document.querySelector('audio.rv-mix').paused === false");
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    SLOW,
+  );
+
+  it.live(
+    'on a phone, a picture whose proxy is still being made says so and streams nothing',
+    () =>
+      Effect.gen(function* () {
+        const pending = route('GET', /^\/lab\/toy\/choices$/, () =>
+          json({
+            ...(choices(freshToy()) as Record<string, Json>),
+            pictures: [
+              {
+                ref: 'out/toy/toy.mp4',
+                name: 'toy.mp4',
+                size: 900_000_000,
+                mtime: 0,
+                phone: 'pending',
+              },
+            ],
+          }),
+        );
+        const { page, errors } = yield* openReview([pending, ...fakeFilm()], {
+          search: FILM,
+          viewport: { width: 390, height: 844 },
+        });
+        yield* waitFor(page, '.rv-picture [data-proxy="pending"]');
+        yield* textHas(page, '.rv-picture [data-proxy="pending"]', 'Proxy being made');
+        yield* countIs(page, '.rv-picture video', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
     SLOW,
   );
 

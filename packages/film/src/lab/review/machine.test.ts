@@ -5,7 +5,7 @@
 // not. The view moves between all, the pair, the moments and the notes, a
 // pair keeping its other and the moments wrapping round.
 
-import { Effect, Match } from 'effect';
+import { Effect, Match, Option } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { assertPath, simulate } from 'effect-machine';
 import {
@@ -185,7 +185,7 @@ describe('the synced player', () => {
   });
 });
 
-const views = viewMachine(ViewState.All, 'B');
+const views = viewMachine(ViewState.All, Option.some('B'));
 
 describe('the view', () => {
   it.effect('moves between all, the pair, the moments and the notes', () =>
@@ -235,6 +235,21 @@ describe('the view', () => {
           Match.orElse(() => -1),
         );
       expect(result.states.slice(1).map(index)).toEqual([0, 4, 0, 1, 3]);
+    }),
+  );
+
+  it.effect('a set of one version has no side by side: a link to it opens All', () =>
+    Effect.gen(function* () {
+      const one = viewMachine(ViewState.Pair({ other: '' }), Option.none());
+      yield* assertPath(
+        one,
+        [
+          ViewEvent.ViewChosen({ view: 'pair' }),
+          ViewEvent.ViewChosen({ view: 'moments' }),
+          ViewEvent.ViewChosen({ view: 'pair' }),
+        ],
+        ['All', 'All', 'Moments', 'Moments'],
+      );
     }),
   );
 

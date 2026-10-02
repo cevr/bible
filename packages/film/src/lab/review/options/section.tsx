@@ -9,19 +9,19 @@
 // score) and its findings are shown.
 
 import { For, Show } from '@solidjs/web';
-import { onCleanup } from 'solid-js';
+import { type Accessor, createMemo, onCleanup } from 'solid-js';
 import { Duration, Effect, Fiber, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { ChoiceKind, ChoicePoint } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine } from '../../../core/schema.ts';
 import { useReview } from '../context.tsx';
-import { pressed, sizeText, videoUrl } from '../format.ts';
-import { Transport } from '../section.tsx';
+import { pressed, sizeText, videoSource } from '../format.ts';
+import { ProxyPending, Transport } from '../section.tsx';
 import { failedText, statusText } from '../loaded.tsx';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, HearButton } from './choice.tsx';
-import { FilmProvider, PICTURE, Playing, useFilm } from './context.tsx';
+import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
 
 /** A picture's chip: where it lies (renders of one film share a name), and its size. */
 const pictureLabel = (p: ReviewVideo): string => {
@@ -30,7 +30,12 @@ const pictureLabel = (p: ReviewVideo): string => {
   return `${dir} · ${sizeText(p.size)}`;
 };
 
-/** The render the sound plays over, on the clock, and the one `<audio>` heard with it. */
+/**
+ * The render the sound plays over, on the clock, and the one `<audio>` heard
+ * with it. Made once while the film has a picture: a write's answer (new
+ * choices, the same picture) updates it in place, so a playing film plays on;
+ * choosing another picture changes the one `<video>`'s source.
+ */
 export const Player = () => {
   const { state } = useReview();
   const { choices, picture, choosePicture, mix, driver, sync, send } = useFilm();
@@ -38,55 +43,66 @@ export const Player = () => {
   return (
     <Show
       when={Option.getOrUndefined(picture())}
-      keyed
       fallback={
         <p class="rv-hint rv-note">
           No render of this film under the review's roots yet: each option plays alone below.
         </p>
       }
     >
-      {(video) => (
-        <>
-          <Transport
-            sync={sync}
-            send={send}
-            hint="space · ←/→ 2 s · 🔊 picks the sound heard over the picture"
-          />
-          <Show when={choices().pictures.length > 1}>
-            <div class="rv-row rv-pick">
-              <span class="rv-hint">Picture:</span>
-              <For each={choices().pictures}>
-                {(p) => (
-                  <button
-                    type="button"
-                    class="rv-chip"
-                    data-picture={p.ref}
-                    aria-pressed={pressed(p.ref === video.ref)}
-                    onClick={() => choosePicture(p.ref)}
-                  >
-                    {pictureLabel(p)}
-                  </button>
-                )}
-              </For>
-            </div>
-          </Show>
-          <div class="rv-card rv-picture" data-id={PICTURE}>
-            <video
-              preload="auto"
-              playsinline
-              muted
-              src={videoUrl(video, state.quality())}
-              ref={(el: HTMLVideoElement) => driver.attach(PICTURE, el)}
+      {(video: Accessor<ReviewVideo>) => {
+        // The same file answered again keeps its source, so nothing reloads.
+        const src = createMemo(() => Option.getOrUndefined(videoSource(video(), state.quality())));
+        return (
+          <>
+            <Transport
+              sync={sync}
+              send={send}
+              hint="space · ←/→ 2 s · 🔊 picks the sound heard over the picture"
             />
-            <div class="rv-cap">
-              <span class="rv-name">{video.name}</span>
-              <span class="rv-tag">{video.ref}</span>
-              <HearButton playing={Playing.Own()} />
+            <Show when={choices().pictures.length > 1}>
+              <div class="rv-row rv-pick">
+                <span class="rv-hint">Picture:</span>
+                <For each={choices().pictures}>
+                  {(p) => (
+                    <button
+                      type="button"
+                      class="rv-chip"
+                      data-picture={p.ref}
+                      aria-pressed={pressed(p.ref === video().ref)}
+                      onClick={() => choosePicture(p.ref)}
+                    >
+                      {pictureLabel(p)}
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
+            <div class="rv-card rv-picture" data-id={PICTURE}>
+              <Show when={src()} fallback={<ProxyPending video={video()} />}>
+                {(source) => {
+                  // The clock holds only a video on the page: it lets go when the placeholder returns.
+                  onCleanup(() => driver.detach(PICTURE));
+                  return (
+                    <video
+                      preload="auto"
+                      playsinline
+                      muted
+                      src={source()}
+                      ref={(el: HTMLVideoElement) => driver.attach(PICTURE, el)}
+                    />
+                  );
+                }}
+              </Show>
+              <div class="rv-cap">
+                <span class="rv-name">{video().name}</span>
+                <span class="rv-tag">{video().ref}</span>
+                <HearButton playing={Playing.Own()} />
+              </div>
             </div>
-          </div>
-          <For each={mixes()}>{(src) => <Mix src={src} />}</For>
-        </>
-      )}
+            <For each={mixes()}>{(mixSrc) => <Mix src={mixSrc} />}</For>
+          </>
+        );
+      }}
     </Show>
   );
 };
@@ -131,7 +147,8 @@ const STEP_WORD = { undo: 'Undo', redo: 'Redo' } as const;
 
 /** An undo's or a redo's button: it names what it would do, and is disabled when there is nothing to. */
 const StepButton = (props: { readonly which: 'undo' | 'redo'; readonly act: ChoiceAct }) => {
-  const { steps, write } = useFilm();
+  const { steps } = useFilm();
+  const stepping = useAct();
   const step = () => Option.flatMap(steps(), (s) => Option.fromUndefinedOr(s[props.which]));
   const word = () => STEP_WORD[props.which];
   return (
@@ -139,12 +156,12 @@ const StepButton = (props: { readonly which: 'undo' | 'redo'; readonly act: Choi
       type="button"
       class="rv-chip"
       data-act={props.which}
-      disabled={Option.isNone(step())}
+      disabled={Option.isNone(step()) || stepping.waiting()}
       title={Option.getOrElse(
         Option.map(step(), (s) => `${props.which} ${s.target} in ${s.file}`),
         () => `nothing to ${props.which}`,
       )}
-      onClick={() => write(props.act)}
+      onClick={() => stepping.write(props.act)}
     >
       {Option.match(step(), { onNone: word, onSome: (s) => `${word()} ${s.target}` })}
     </button>

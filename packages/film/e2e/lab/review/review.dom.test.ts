@@ -1,5 +1,5 @@
 // The review in a browser, its routes faked over a synthetic folder of three
-// variants: home lists the folder under Comparisons and filters it; the
+// variants: home lists the folder under Versions and filters it; the
 // folder shows its set, its loose video with captions, and a doc read as
 // escaped markdown; the set plays every variant on one clock (space plays
 // and pauses, ←/→ step, 🔊 moves the sound heard), shows the first against
@@ -58,6 +58,15 @@ const variant = (id: string, label: string, extra: Readonly<Record<string, Json>
   ...extra,
 });
 
+/** A big video whose proxy (the phone's 720p copy) is still being made. */
+const pendingSky: Json = {
+  ref: 'out/art/sky.D.mp4',
+  name: 'sky.D.mp4',
+  size: 900_000_000,
+  mtime: 0,
+  phone: 'pending',
+};
+
 const index: Json = {
   folders: [
     {
@@ -82,6 +91,16 @@ const index: Json = {
             // Drawn before a newer render at its address, of other sources.
             variant('C', 'Grey', { state: 'stale', staleBy: 'sources' }),
           ],
+        },
+        {
+          id: 'render:sky',
+          kind: 'render',
+          title: 'The sky',
+          lines: [],
+          start: 0,
+          marks: [],
+          // One version, big enough for a proxy that is still being made.
+          variants: [variant('D', 'Dusk', { media: { _tag: 'Seen', video: pendingSky } })],
         },
       ],
       videos: [{ ref: 'out/art/walk.mp4', name: 'walk.mp4', size: 4096, mtime: 0, phone: 'none' }],
@@ -115,6 +134,7 @@ const routes: ReadonlyArray<FakeRoute> = [
 ];
 
 const SET = '?folder=out%2Fart&set=render%3Aroof';
+const SKY = '?folder=out%2Fart&set=render%3Asky';
 
 describe('the review page', () => {
   it.live(
@@ -122,7 +142,7 @@ describe('the review page', () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes);
-        yield* textHas(page, '.rv-h', 'Comparisons');
+        yield* textHas(page, '.rv-h', 'Versions');
         yield* textHas(page, '.rv-h', 'Renders');
         yield* textHas(page, 'a.rv-card', 'Roofs at dusk');
         yield* page.fill('.rv-filter', 'sea');
@@ -139,7 +159,7 @@ describe('the review page', () => {
         yield* textIs(page, '[data-review-blurb] b', 'Judge:');
         yield* textHas(page, '[data-review-blurb]', '<img src=x onerror=bad()>');
         yield* countIs(page, '[data-review-blurb] img, [data-review-blurb] script', 0);
-        yield* textHas(page, 'a.rv-card', 'compare 3');
+        yield* textHas(page, 'a.rv-card', '3 versions');
         yield* textHas(page, '.rv-card', 'walk.mp4');
         yield* attributeIs(page, '.rv-tall track', 'src', '/review/files/out/art/walk.vtt');
         yield* textHas(page, '[data-review-download]', 'master #1.mp4');
@@ -286,7 +306,7 @@ describe('the review page', () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { search: SET });
-        const STALE = 'stale: its sources changed since it was made';
+        const STALE = 'out of date: its sources changed since it was made';
         /** The grid's one state word is C's, and says why it is stale. */
         const onlyCStale = Effect.andThen(
           textsAre(page, '.rv-grid [data-state]', [STALE]),
@@ -300,6 +320,59 @@ describe('the review page', () => {
         yield* page.click('.rv-views button[data-view="notes"]');
         yield* waitFor(page, '.rv-note[data-id="C"]');
         yield* onlyCStale;
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a set of one version offers no side by side, and a link asking for one opens All',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, {
+          search: `${SKY}&view=pair&other=nope`,
+        });
+        yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
+        yield* countIs(page, '.rv-views button[data-view="pair"]', 0);
+        // The URL keeps no empty other.
+        yield* until(page, `location.search === '${SKY}'`);
+        // A set of several offers it, by its industry name.
+        yield* page.goto(`/${SET}`);
+        yield* textIs(page, '.rv-views button[data-view="pair"]', 'Side by side');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "at a phone's width, a version's out-of-date reason and lines show in full, and a proxy still being made is said, never the original streamed",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, {
+          search: SET,
+          viewport: { width: 390, height: 844 },
+        });
+        const tag = '.rv-card[data-id="C"] .rv-tag[data-state="stale"]';
+        yield* waitFor(page, tag);
+        yield* evaluates(
+          page,
+          `Array.from(document.querySelectorAll('.rv-card[data-id] .rv-tag')).every((t) => t.scrollWidth <= t.clientWidth)`,
+          true,
+        );
+        // The phone plays proxies: the sky's is not made yet, so its card says so and streams nothing.
+        yield* page.goto(`/${SKY}`);
+        yield* waitFor(page, '.rv-card[data-id="D"] [data-proxy="pending"]');
+        yield* countIs(page, '.rv-card[data-id="D"] video', 0);
+        yield* textHas(page, '.rv-card[data-id="D"] [data-proxy="pending"]', 'Proxy being made');
+        // Its touch path: play the original instead.
+        yield* page.click('.rv-card[data-id="D"] [data-proxy="pending"] button');
+        yield* attributeIs(
+          page,
+          '.rv-card[data-id="D"] video',
+          'src',
+          '/review/files/out/art/sky.D.mp4',
+        );
+        yield* waitFor(page, 'button[data-quality="full"][aria-pressed="true"]');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

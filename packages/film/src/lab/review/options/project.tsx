@@ -34,9 +34,9 @@ import type { LabFailure } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { useReview } from '../context.tsx';
 import { pressed } from '../format.ts';
-import { Loaded, statusText } from '../loaded.tsx';
+import { Loaded, statusText, useWrite, writeStatus } from '../loaded.tsx';
 import { ReviewPlace, searchOf } from '../place.ts';
-import { OptionsApi, type ProjectSay, writesSource } from './api.ts';
+import { OptionsApi, type ProjectSay } from './api.ts';
 import { ChoiceCard, Comments, type Sayer, SayBox } from './choice.tsx';
 import { FilmProvider, useFilm } from './context.tsx';
 import { Player, WriteBar } from './section.tsx';
@@ -116,20 +116,27 @@ const renderPoint = (film: string, variant: string, scene: ProjectScene, view: P
   return point;
 };
 
+/** One control's say of the project: whether its own is in flight, and the say, answering whether it was said. */
+interface ProjectSayer {
+  readonly waiting: Accessor<boolean>;
+  readonly say: (said: ProjectSay) => Promise<boolean>;
+}
+
 interface ProjectValue {
   readonly film: string;
   readonly view: Accessor<ProjectView>;
-  /** Say `said` of the project: whether it was said. */
-  readonly say: (said: ProjectSay) => Promise<boolean>;
-  readonly saying: () => boolean;
+  /** A control's own say of the project (`useWrite`): made once, as the control is made. */
+  readonly useSay: () => ProjectSayer;
   /** Whether the project is being read again. */
   readonly reading: () => boolean;
 }
 
 /** The says of the project at `address`: a render card's, an act's, the film's. */
 const sayerAt = (at: ProjectValue, address: () => PartAddress): Sayer => ({
-  say: (_, say) => at.say({ address: address(), say }),
-  busy: at.saying,
+  use: () => {
+    const saying = at.useSay();
+    return { waiting: saying.waiting, say: (_, say) => saying.say({ address: address(), say }) };
+  },
 });
 
 /** `n` choices, said as a fold's summary says them. */
@@ -186,7 +193,7 @@ const PlaysHere = (props: { readonly points: ReadonlyArray<ChoicePoint> }) => (
   </Show>
 );
 
-/** The link to compare a scene's renders, when the review's roots hold its project folder. */
+/** The link to a scene's Versions (its renders side by side), when the review's roots hold its project folder. */
 const Compare = (props: { readonly folder: Option.Option<string>; readonly point: string }) => {
   const { actions } = useReview();
   return (
@@ -203,7 +210,7 @@ const Compare = (props: { readonly folder: Option.Option<string>; readonly point
               actions.go(place());
             }}
           >
-            compare its renders
+            Versions
           </a>
         );
       }}
@@ -256,30 +263,56 @@ const PartApproval = (props: {
   readonly address: PartAddress;
   readonly scenes: ReadonlyArray<ProjectScene>;
   readonly part: keyof typeof PART_WORDS;
-}) => (
-  <>
-    <button
-      type="button"
-      class="rv-chip"
-      data-act={`approve-${props.part}`}
-      disabled={!leftToApprove(props.scenes) || props.at.saying()}
-      onClick={() => props.at.say({ address: props.address, say: { _tag: 'Approve' } })}
-    >
-      {PART_WORDS[props.part].approve}
-    </button>
-    <Show when={props.scenes.some((s) => s.approval !== 'none')}>
+}) => {
+  const approving = props.at.useSay();
+  return (
+    <>
       <button
         type="button"
         class="rv-chip"
-        data-act={`withdraw-${props.part}`}
-        disabled={props.at.saying()}
-        onClick={() => props.at.say({ address: props.address, say: { _tag: 'Withdraw' } })}
+        data-act={`approve-${props.part}`}
+        disabled={!leftToApprove(props.scenes) || approving.waiting()}
+        onClick={() => approving.say({ address: props.address, say: { _tag: 'Approve' } })}
       >
-        {PART_WORDS[props.part].withdraw}
+        {PART_WORDS[props.part].approve}
       </button>
-    </Show>
-  </>
-);
+      <Show when={props.scenes.some((s) => s.approval !== 'none')}>
+        <PartWithdraw at={props.at} address={props.address} part={props.part} />
+      </Show>
+    </>
+  );
+};
+
+/** A part's withdraw of every approval of its scenes, waiting while its own is in flight. */
+const PartWithdraw = (props: {
+  readonly at: ProjectValue;
+  readonly address: PartAddress;
+  readonly part: keyof typeof PART_WORDS;
+}) => {
+  const withdrawing = props.at.useSay();
+  return (
+    <button
+      type="button"
+      class="rv-chip"
+      data-act={`withdraw-${props.part}`}
+      disabled={withdrawing.waiting()}
+      onClick={() => withdrawing.say({ address: props.address, say: { _tag: 'Withdraw' } })}
+    >
+      {PART_WORDS[props.part].withdraw}
+    </button>
+  );
+};
+
+/** A part's comment box, waiting while its own say is in flight. */
+const PartComment = (props: { readonly at: ProjectValue; readonly address: PartAddress }) => {
+  const commenting = props.at.useSay();
+  return (
+    <SayBox
+      disabled={commenting.waiting()}
+      say={(text) => commenting.say({ address: props.address, say: { _tag: 'Comment', text } })}
+    />
+  );
+};
 
 const Scenes = (props: {
   readonly at: ProjectValue;
@@ -306,10 +339,7 @@ const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
         <PartApproval at={props.at} address={address()} scenes={scenes()} part="act" />
       </div>
       <Comments comments={props.act.comments} />
-      <SayBox
-        disabled={props.at.saying()}
-        say={(text) => props.at.say({ address: address(), say: { _tag: 'Comment', text } })}
-      />
+      <PartComment at={props.at} address={address()} />
       <Layers
         points={placedAt(choices().points, props.at.view().project.acts, address())}
         open={false}
@@ -334,10 +364,7 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
           </span>
         </div>
         <Comments comments={project().comments} />
-        <SayBox
-          disabled={props.at.saying()}
-          say={(text) => props.at.say({ address: FILM, say: { _tag: 'Comment', text } })}
-        />
+        <PartComment at={props.at} address={FILM} />
         <Layers points={placedAt(choices().points, project().acts, FILM)} open={true} />
       </section>
       <For each={project().acts} keyed={(a) => a.name}>
@@ -351,8 +378,8 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
 };
 
 /** Whether a say was refused for the state its scenes are in now (one drawn again since the page read it). */
-const staleSinceRead = (exit: Exit.Exit<ProjectView, LabFailure>): boolean =>
-  Option.exists(Exit.findErrorOption(exit), (e) => e._tag === 'VerbRefused');
+const staleSinceRead = (failure: Option.Option<LabFailure>): boolean =>
+  Option.exists(failure, (e) => e._tag === 'VerbRefused');
 
 /**
  * The project read, read again, and said: the page shows the answer to the
@@ -362,19 +389,17 @@ const staleSinceRead = (exit: Exit.Exit<ProjectView, LabFailure>): boolean =>
  */
 const ProjectReady = (props: { readonly film: string }) => {
   const { meta } = useReview();
-  const { wrote } = useFilm();
+  const { version } = useFilm();
   const film = props.film;
+  // The page reads the `main` variant's project: no URL names another variant yet.
   const variant = Option.none<string>();
   const readAtom = meta.runtime.atom(OptionsApi.use((api) => api.project(film, variant)));
   const againAtom = meta.runtime.fn(() => OptionsApi.use((api) => api.project(film, variant)));
-  const sayAtom = meta.runtime.fn((said: ProjectSay) =>
-    OptionsApi.use((api) => api.sayOfProject(film, variant, said)),
-  );
   const read = useAtomValue(() => readAtom);
   const again = useAtomValue(() => againAtom);
   const askAgain = useAtomSet(() => againAtom, { mode: 'promiseExit' });
-  const said = useAtomValue(() => sayAtom);
-  const say = useAtomSet(() => sayAtom, { mode: 'promiseExit' });
+  const status = writeStatus<ProjectView>();
+  const said = status.status;
   const [shown, setShown] = createSignal(Option.none<ProjectView>());
   const asks = newestAsked();
   /** Show `exit`'s project when it answered and `ask` is still the newest: whether it answered. */
@@ -392,23 +417,35 @@ const ProjectReady = (props: { readonly film: string }) => {
     const ask = asks.ask();
     void askAgain().then((exit) => answered(ask, exit));
   };
-  const sayOf = (s: ProjectSay) => {
-    const ask = asks.ask();
-    return say(s).then((exit) => {
-      const ok = answered(ask, exit);
-      if ((ok && ask.overtaken()) || staleSinceRead(exit)) readAgain();
-      return ok;
-    });
+  const useSay = (): ProjectSayer => {
+    const own = useWrite(
+      (s: ProjectSay) => OptionsApi.use((api) => api.sayOfProject(film, variant, s)),
+      status,
+      { project: asks },
+    );
+    return {
+      waiting: own.waiting,
+      say: (s) =>
+        own.write(s).then((landed) =>
+          Option.match(landed, {
+            onNone: () => false,
+            onSome: (l) => {
+              l.show('project', Option.some, (v) => setShown(Option.some(v)));
+              if ((l.succeeded && l.overtaken('project')) || staleSinceRead(l.failure)) readAgain();
+              return l.succeeded;
+            },
+          }),
+        ),
+    };
   };
   // A source write changes the film (a pick its sound, a kept voice a scene): its scenes are read again.
-  createEffect(wrote, (r) => {
-    if (AsyncResult.isSuccess(r) && !r.waiting && writesSource(r.value.act)) readAgain();
+  createEffect(version, (v) => {
+    if (v > 0) readAgain();
   });
   const at = (view: Accessor<ProjectView>): ProjectValue => ({
     film,
     view,
-    say: sayOf,
-    saying: () => said().waiting,
+    useSay,
     reading: () => again().waiting,
   });
   return (
