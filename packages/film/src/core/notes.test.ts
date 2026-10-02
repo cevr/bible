@@ -64,6 +64,13 @@ describe('nearestMoment', () => {
     expect(moment(2).local).toBe(2);
     expect(moment(5 + 1.25).local).toBeCloseTo(1.25, 9);
   });
+
+  test('a T a float hair before a scene’s start is at its start, never before it', () => {
+    // Frame steps add up to a hair under 5 s, which the layout reads as scene b.
+    const hair = moment(5 - 1e-14);
+    expect(hair.scene).toBe('b');
+    expect(hair.local).toBe(0);
+  });
 });
 
 describe('where a note shows', () => {

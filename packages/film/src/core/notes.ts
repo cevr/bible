@@ -21,7 +21,7 @@ import type {
 /** Where a time falls on the film: its scene, how far into it, and the cue edge and mark nearest it there. */
 interface Moment {
   readonly scene: string;
-  /** Scene-local seconds. */
+  /** Scene-local seconds, never below 0. */
   readonly local: number;
   readonly cue: Option.Option<NoteCue>;
   readonly mark: Option.Option<string>;
@@ -51,7 +51,9 @@ const closest = <A>(local: number, candidates: ReadonlyArray<Candidate<A>>): Opt
 /** The scene at `T` and, in it, the nearest named-cue edge and the nearest `{mark}`. */
 export const nearestMoment = (placed: ReadonlyArray<Placed>, T: number): Option.Option<Moment> =>
   Option.map(sceneAt(placed, T), (p) => {
-    const local = T - p.start;
+    // Never before the scene: frame steps can add up to a hair under its start,
+    // which the layout already reads as this scene.
+    const local = Math.max(0, T - p.start);
     const edges = [...p.cues].flatMap(([name, c]): Array<Candidate<NoteCue>> => {
       const start: Candidate<NoteCue> = { value: { name, edge: 'start' }, at: c.start };
       // An instant has one edge.
