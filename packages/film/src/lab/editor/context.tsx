@@ -5,18 +5,21 @@
 // the machine events; none holds state of its own, nor reaches into another
 // panel's.
 //
-// A drag listens on the window while the machine is Pressed or Dragging, and
-// only then: the listeners come and go with the state.
+// A grip follows the press that grabbed it (`Pointer.drag`) until the press
+// ends: lifted it lands, ended by the browser it goes back. Escape lets it go
+// while the machine is Pressed or Dragging, and only then.
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Option, Result } from 'effect';
+import { Effect, Fiber, Option, Result } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createEffect, createMemo, onCleanup, useContext } from 'solid-js';
+import { Keys, type KeyPress } from '../../browser/keys.ts';
+import { Pointer } from '../../browser/pointer.ts';
 import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
@@ -63,7 +66,8 @@ interface Press {
   readonly scene: string;
   readonly cue: string;
   readonly edge: DragEdge;
-  readonly x: number;
+  /** The press itself: where it landed, and the drag it begins. */
+  readonly down: PointerEvent;
   /** Screen pixels per scene second on the strip. */
   readonly perSec: number;
 }
@@ -82,9 +86,8 @@ interface KnobPress {
   readonly knob: string;
   readonly handle: Handle;
   readonly box: Box;
-  /** The pointer, in screen pixels. */
-  readonly x: number;
-  readonly y: number;
+  /** The press itself: where it landed, and the drag it begins. */
+  readonly down: PointerEvent;
 }
 
 interface EditorActions {
@@ -139,7 +142,45 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   const checked = useAtomValue(() => checkAtom);
   const report = createMemo(() => AsyncResult.value(checked()));
 
+  /** The drag of the press that grabbed the grip held now, while it lasts. */
+  let following = Option.none<Fiber.Fiber<void>>();
+  /** Stop following the held grip's press. */
+  const letGo = () => {
+    Option.map(following, (drag) => Effect.runFork(Fiber.interrupt(drag)));
+    following = Option.none();
+  };
+  /**
+   * The grip just grabbed follows the press `down` began: each move moves it,
+   * a lift lands it (Release), and a press the browser ends (a page pan, a
+   * lost capture) puts it back (Cancel). The press owns the grip until it
+   * ends: a press of another pointer meanwhile grabs nothing (`followed`).
+   */
+  const follow = (down: PointerEvent) => {
+    following = Option.some(
+      Effect.runForkWith(meta.host)(
+        Pointer.use((pointer) =>
+          pointer.drag(down, {
+            move: (e) =>
+              send(EditEvent.Move({ pointer: { x: e.clientX, y: e.clientY, shift: e.shiftKey } })),
+            end: (lifted) => {
+              following = Option.none();
+              send(
+                Option.match(lifted, {
+                  onNone: () => EditEvent.Cancel,
+                  onSome: () => EditEvent.Release,
+                }),
+              );
+            },
+          }),
+        ),
+      ),
+    );
+  };
+  /** Whether a press's drag is still followed: then another pointer's press is not taken. */
+  const followed = () => Option.isSome(following);
+
   const press = (p: Press) => {
+    if (followed()) return;
     labActions.select(Option.some({ kind: 'cue', scene: p.scene, name: p.cue }));
     const refused = cueRefusal(stripSource().source, stripSource().error, p.cue, p.edge);
     if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
@@ -151,14 +192,14 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       span: Option.fromUndefinedOr(timeline[p.cue]),
       cue0: Option.fromUndefinedOr(cues.get(p.cue)),
     });
-    Option.map(grip, (g) =>
+    Option.map(grip, (g) => {
       send(
         EditEvent.Press({
           grip: CueGrip.make({
             scene: p.scene,
             cue: p.cue,
             edge: p.edge,
-            x0: p.x,
+            x0: p.down.clientX,
             perSec: p.perSec,
             fps: film.fps,
             span: g.span,
@@ -167,11 +208,13 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
             targets: snapTargets(g.placed, cues, p.cue),
           }),
         }),
-      ),
-    );
+      );
+      follow(p.down);
+    });
   };
 
   const grabKnob = (p: KnobPress) => {
+    if (followed()) return;
     labActions.select(Option.some({ kind: 'knob', scene: p.scene, name: p.knob }));
     const refused = knobRefusal(stripSource().source, stripSource().error, p.knob);
     if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
@@ -192,44 +235,31 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
           m: p.handle.m,
           inv: p.handle.inv,
           frame,
-          start: filmPoint(frame, { x: p.x, y: p.y, shift: false }),
+          start: filmPoint(frame, { x: p.down.clientX, y: p.down.clientY, shift: false }),
           knobs,
         }),
       }),
     );
+    follow(p.down);
   };
 
-  // A grip follows the pointer on the window while it is held, and Escape lets it go.
+  // A grip let go no longer follows its press.
   const holding = createMemo(() => edit()._tag === 'Pressed' || edit()._tag === 'Dragging');
   createEffect(holding, (held) => {
-    if (!held) return;
-    const move = (e: PointerEvent) =>
-      send(EditEvent.Move({ pointer: { x: e.clientX, y: e.clientY, shift: e.shiftKey } }));
-    const up = () => send(EditEvent.Release);
-    const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') send(EditEvent.Cancel);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('keydown', key);
-    return () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('keydown', key);
-    };
+    if (!held) letGo();
   });
+  onCleanup(letGo);
 
   const step = (verb: StepVerb) => send(EditEvent.Step({ verb }));
-  // ⌘Z undoes and ⇧⌘Z redoes, outside a field being typed in.
-  const undoKeys = (e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
-    e.preventDefault();
-    if (e.shiftKey) return step('redo');
-    step('undo');
+  // Escape lets a held grip go; ⌘Z undoes and ⇧⌘Z redoes, outside a field being typed in.
+  const editorKey = (e: KeyPress): boolean => {
+    if (e.key === 'Escape' && holding()) send(EditEvent.Cancel);
+    if (e.typing || !(e.meta || e.ctrl) || e.key.toLowerCase() !== 'z') return false;
+    if (e.shift) step('redo');
+    else step('undo');
+    return true;
   };
-  window.addEventListener('keydown', undoKeys);
-  onCleanup(() => window.removeEventListener('keydown', undoKeys));
+  onCleanup(Effect.runCallbackWith(meta.host)(Keys.use((keys) => keys.listen(editorKey))));
 
   const value: EditorContextValue = {
     state: {

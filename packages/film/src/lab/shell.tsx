@@ -13,9 +13,11 @@ import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createSignal, onCleanup, onSettled, useContext } from 'solid-js';
 import type { Film } from '../canvas/film.ts';
+import { type BrowserServices, type Host, hostLayer } from '../browser/host.ts';
 import type { Player } from '../player/main.ts';
 import { lookbookUrl } from '../player/pages.ts';
-import { type ViewStore, sessionStore, viewStore } from '../player/view-state.ts';
+import { TabStore } from '../browser/storage-browser.ts';
+import { type ViewStore, viewStore } from '../player/view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { ReviewPlace, searchOf } from './review/place.ts';
@@ -50,10 +52,12 @@ interface LabMeta {
   readonly view: ViewStore;
   /** The preview as the machines drive it: edits shown in memory, and `#T` held for a write. */
   readonly stage: StageOps;
-  /** What the panels' machines and atoms run with: the stage, the lab API and the notes API. */
-  readonly runtime: Atom.AtomRuntime<Stage | LabApi | NotesApi>;
+  /** What the panels' machines and atoms run with: the stage, the lab API, the notes API and the host. */
+  readonly runtime: Atom.AtomRuntime<Stage | LabApi | NotesApi | BrowserServices>;
   /** This page's client layer identity, reused by the studio's separate runtime. */
   readonly clientLayer: Layer.Layer<LabClient>;
+  /** The page's host (`browser/host.ts`), built once at the page's root: what a panel's effects run with. */
+  readonly host: Host;
 }
 
 interface LabContextValue {
@@ -73,6 +77,7 @@ const fromDraw = { ownedWrite: true, equals: false } as const;
 interface RootProps extends ParentProps {
   readonly name: string;
   readonly player: Player;
+  readonly host: Host;
 }
 
 const Root = (props: RootProps) => {
@@ -106,7 +111,7 @@ const Root = (props: RootProps) => {
     window.removeEventListener('resize', place);
   });
 
-  const view = viewStore(props.name, sessionStore(), player.film.duration);
+  const view = viewStore(props.name, player.film.duration, TabStore);
   // Whether it was playing: kept as the page goes (a write reloads it), and played again on load.
   const keepPlaying = () => view.patch({ playing: player.playing() });
   window.addEventListener('pagehide', keepPlaying);
@@ -125,7 +130,9 @@ const Root = (props: RootProps) => {
   const rebuilt = Effect.runFork(reloadOnRebuild(stage.reload).pipe(Effect.provide(clientLayer)));
   onCleanup(() => Effect.runFork(Fiber.interrupt(rebuilt)));
   const runtime = Atom.runtime(
-    Layer.merge(stageLayer(stage), labApiLayer(props.name)).pipe(Layer.provide(clientLayer)),
+    Layer.mergeAll(stageLayer(stage), labApiLayer(props.name), hostLayer(props.host)).pipe(
+      Layer.provide(clientLayer),
+    ),
   );
 
   const [selection, setSelection] = createSignal(selectionFromSearch(location.search));
@@ -145,7 +152,16 @@ const Root = (props: RootProps) => {
       },
       select,
     },
-    meta: { name: props.name, film: player.film, player, view, stage, runtime, clientLayer },
+    meta: {
+      name: props.name,
+      film: player.film,
+      player,
+      view,
+      stage,
+      runtime,
+      clientLayer,
+      host: props.host,
+    },
   };
   return (
     <RegistryProvider>

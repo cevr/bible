@@ -12,6 +12,7 @@ import { For, Show } from '@solidjs/web';
 import { type Accessor, createMemo, onCleanup } from 'solid-js';
 import { Duration, Effect, Fiber, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import { playableOf } from '../../../browser/media-browser.ts';
 import type { ChoiceKind, ChoicePoint } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine } from '../../../core/schema.ts';
@@ -88,7 +89,7 @@ export const Player = () => {
                       playsinline
                       muted
                       src={source()}
-                      ref={(el: HTMLVideoElement) => driver.attach(PICTURE, el)}
+                      ref={(el: HTMLVideoElement) => driver.attach(PICTURE, playableOf(el))}
                     />
                   );
                 }}
@@ -138,7 +139,7 @@ const Mix = (props: { readonly src: string }) => {
         ),
       );
     });
-    driver.attach(src, el);
+    driver.attach(src, playableOf(el));
   };
   return <audio class="rv-mix" preload="auto" src={src} ref={attach} />;
 };

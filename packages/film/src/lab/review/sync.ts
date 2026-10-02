@@ -1,12 +1,19 @@
-// The synced player's driver: the `<video>`s (and `<audio>`s) of a set, made to do what the
-// machine's state says, and what they do told back to it as events. The
+// The synced player's driver: the media of a set (`Playable`s: live its
+// `<video>`s and `<audio>`s), made to do what the machine's state says, and
+// what they do told back to it as events. It reaches them only through the
+// port (`browser/media.ts`), and plays them through `Media.playOrMute`. The
 // first variant's video is the clock (its time is the set's); every other
 // that drifts more than DRIFT_S from it is put back on it. Only the audible
 // one is unmuted. A seek moves every video; a stall pauses them all until
-// each has enough to play on (`Buffering`). The player's keys (space, ←/→)
+// each has enough to play on (`Buffering`). A seek or a play it sets going
+// on a video lasts only while that video is attached: replaced, detached or
+// stopped, it ends. The player's keys (space, ←/→)
 // are heard here too, for every page with a synced player.
 
-import { type Cause, Data, Effect, Option } from 'effect';
+import { type Context, Data, Effect, Option } from 'effect';
+import { Frames } from '../../browser/frames.ts';
+import { Keys, type KeyPress } from '../../browser/keys.ts';
+import { Media, type Playable } from '../../browser/media.ts';
 import {
   type SyncEvent,
   SyncEvent as Events,
@@ -21,19 +28,12 @@ const DRIFT_S = 0.2;
 /** How far the clock moves before the machine hears of it, in seconds. */
 const TICK_S = 0.05;
 
-/** A video that can play on without waiting: `HAVE_FUTURE_DATA` or more. */
-const READY = 3;
-
-/** Whether a refused `play()` was the browser's rule against sound nobody asked for. */
-const refusedSound = (error: Cause.UnknownError) =>
-  error.cause instanceof DOMException && error.cause.name === 'NotAllowedError';
-
 /** Whether `video` has drifted from the clock at `t` far enough to be put back. */
 export const drifted = (video: number, t: number): boolean => Math.abs(video - t) > DRIFT_S;
 
 export interface SyncDriver {
   /** A variant's video joins the set: it takes the clock, the rate and the sound as they are. */
-  readonly attach: (id: string, video: HTMLMediaElement) => void;
+  readonly attach: (id: string, video: Playable) => void;
   /** Its card is gone. */
   readonly detach: (id: string) => void;
   /** The machine's state, made so. */
@@ -43,80 +43,100 @@ export interface SyncDriver {
 }
 
 interface Attached {
-  readonly video: HTMLMediaElement;
-  readonly listening: AbortController;
+  readonly video: Playable;
+  /** Aborted when the video is let go: its listeners, and its seeks and plays, end. */
+  readonly held: AbortController;
 }
 
 /**
  * The driver of a set whose clock is the video of `first`, telling the
  * machine through `send`.
  */
-export const makeSync = (first: string, send: (event: SyncEvent) => void): SyncDriver => {
+export const makeSync = (
+  first: string,
+  send: (event: SyncEvent) => void,
+  host: Context.Context<Frames | Media>,
+): SyncDriver => {
   const videos = new Map<string, Attached>();
   let current = Option.none<SyncState>();
   let seek = -1;
   let told = -1;
-  let frame = Option.none<number>();
+  /** The stop of the clock's loop, while it runs. */
+  let looping = Option.none<() => void>();
 
-  const all = () => [...videos.values()].map((a) => a.video);
+  const all = () => [...videos.values()];
   const clock = () =>
-    Option.orElse(
-      Option.map(Option.fromUndefinedOr(videos.get(first)), (a) => a.video),
-      () => Option.fromUndefinedOr(all()[0]),
+    Option.orElse(Option.fromUndefinedOr(videos.get(first)), () =>
+      Option.fromUndefinedOr(all()[0]),
     );
 
+  /** Do `effect` on the host, without waiting for it. */
+  const fork = (effect: Effect.Effect<unknown, never, Frames | Media>) => {
+    Effect.runForkWith(host)(effect);
+  };
+  /** Do `effect` on the host while `a` stays attached, without waiting for it. */
+  const forkOn = (a: Attached, effect: Effect.Effect<unknown, never, Frames | Media>) => {
+    Effect.runForkWith(host)(effect, { signal: a.held.signal });
+  };
   /**
-   * Play `video`; a browser that will not play sound unasked plays it muted
+   * Play `a`'s video; a browser that will not play sound unasked plays it muted
    * (any other refusal, a pause before it started, is left as it is).
    */
-  const play = (video: HTMLMediaElement) =>
-    Effect.runFork(
-      Effect.tryPromise(() => video.play()).pipe(
-        Effect.catch((error) => {
-          if (!refusedSound(error)) return Effect.void;
-          video.muted = true;
-          return Effect.ignore(Effect.tryPromise(() => video.play()));
-        }),
-      ),
+  const play = (a: Attached) =>
+    forkOn(
+      a,
+      Media.use((media) => media.playOrMute(a.video)),
     );
+  const seekTo = (a: Attached, t: number) => forkOn(a, a.video.seek(t));
 
   const hear = (state: SyncState) => {
     for (const [id, a] of videos) {
-      a.video.muted = id !== state.audible;
-      a.video.playbackRate = state.rate;
+      a.video.mute(id !== state.audible);
+      a.video.rate(state.rate);
     }
   };
 
-  /** Each frame while it runs: tell the machine the clock's time, and pull drifters back. */
-  const loop = () => {
-    frame = Option.none();
-    Option.map(current, (state) => {
+  /**
+   * Each frame while it runs: tell the machine the clock's time, and pull
+   * drifters back; on while the set plays or waits for its videos.
+   */
+  const step = (): boolean =>
+    Option.exists(current, (state) => {
       Option.map(clock(), (master) => {
-        const t = master.currentTime;
+        const t = master.video.time();
         if (state._tag === 'Buffering') {
-          if (all().every((v) => v.readyState >= READY)) send(Events.Resumed);
+          if (all().every((a) => a.video.ready())) send(Events.Resumed);
           return;
         }
         if (Math.abs(t - told) >= TICK_S) {
           told = t;
           send(Events.Ticked({ t }));
         }
-        for (const video of all()) {
-          if (video === master || video.seeking || video.ended) continue;
-          if (t < video.duration && drifted(video.currentTime, t)) video.currentTime = t;
+        for (const a of all()) {
+          const video = a.video;
+          if (a === master || video.seeking() || video.ended()) continue;
+          if (t < video.duration() && drifted(video.time(), t)) seekTo(a, t);
         }
       });
-      if (runningOf(state) || state._tag === 'Buffering')
-        frame = Option.some(requestAnimationFrame(loop));
+      return Option.exists(current, (now) => runningOf(now) || now._tag === 'Buffering');
     });
-  };
 
   const run = () => {
-    if (Option.isNone(frame)) frame = Option.some(requestAnimationFrame(loop));
+    if (Option.isSome(looping)) return;
+    // A loop that ends forgets its stop only while it is still the loop running.
+    const stop = Effect.runCallbackWith(host)(
+      Frames.use((frames) => frames.loop(step)),
+      {
+        onExit: () => {
+          if (Option.exists(looping, (running) => running === stop)) looping = Option.none();
+        },
+      },
+    );
+    looping = Option.some(stop);
   };
   const halt = () => {
-    Option.map(frame, cancelAnimationFrame);
-    frame = Option.none();
+    Option.map(looping, (stop) => stop());
+    looping = Option.none();
   };
 
   const apply = (state: SyncState) => {
@@ -125,14 +145,14 @@ export const makeSync = (first: string, send: (event: SyncEvent) => void): SyncD
     if (state.seek !== seek) {
       seek = state.seek;
       told = state.t;
-      for (const video of all()) video.currentTime = state.t;
+      for (const a of all()) seekTo(a, state.t);
     }
     if (runningOf(state)) {
-      for (const video of all()) if (video.paused) play(video);
+      for (const a of all()) if (!a.video.playing()) play(a);
       run();
       return;
     }
-    for (const video of all()) video.pause();
+    for (const a of all()) fork(a.video.pause);
     if (state._tag === 'Buffering') {
       run();
       return;
@@ -140,41 +160,39 @@ export const makeSync = (first: string, send: (event: SyncEvent) => void): SyncD
     halt();
   };
 
-  const attach = (id: string, video: HTMLMediaElement) => {
-    Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => old.listening.abort());
-    const listening = new AbortController();
-    const signal = listening.signal;
-    videos.set(id, { video, listening });
-    video.addEventListener(
-      'loadedmetadata',
+  const attach = (id: string, video: Playable) => {
+    Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => old.held.abort());
+    const attached: Attached = { video, held: new AbortController() };
+    const signal = attached.held.signal;
+    videos.set(id, attached);
+    video.on(
+      'measured',
       () => {
-        if (id === first && Number.isFinite(video.duration))
-          send(Events.Measured({ end: video.duration }));
-        Option.map(current, (state) => {
-          video.currentTime = state.t;
-        });
+        if (id === first && Number.isFinite(video.duration()))
+          send(Events.Measured({ end: video.duration() }));
+        Option.map(current, (state) => seekTo(attached, state.t));
       },
-      { signal },
+      signal,
     );
-    video.addEventListener('waiting', () => send(Events.Stalled), { signal });
-    video.addEventListener(
+    video.on('stalled', () => send(Events.Stalled), signal);
+    video.on(
       'ended',
       () => {
         if (id === first) send(Events.Ended);
       },
-      { signal },
+      signal,
     );
     Option.map(current, (state) => {
       hear(state);
-      if (video.readyState > 0) video.currentTime = state.t;
-      if (runningOf(state)) play(video);
+      seekTo(attached, state.t);
+      if (runningOf(state)) play(attached);
     });
   };
 
   const detach = (id: string) => {
     Option.map(Option.fromUndefinedOr(videos.get(id)), (a) => {
-      a.listening.abort();
-      a.video.pause();
+      a.held.abort();
+      fork(a.video.pause);
     });
     videos.delete(id);
   };
@@ -200,16 +218,9 @@ const ARROWS = new Map([
   ['ArrowLeft', -1],
 ]);
 
-/** Whether a key press belongs to a field (typing), not to the player. */
-const typing = (target: EventTarget) =>
-  target instanceof HTMLInputElement ||
-  target instanceof HTMLTextAreaElement ||
-  target instanceof HTMLSelectElement;
-
 /** The player's ask in a key press: none for a key typed into a field, held with a modifier, or not the player's. */
-const playerKey = (e: KeyboardEvent): Option.Option<PlayerKey> => {
-  if (Option.exists(Option.fromNullishOr(e.target), typing) || e.metaKey || e.ctrlKey || e.altKey)
-    return Option.none();
+const playerKey = (e: KeyPress): Option.Option<PlayerKey> => {
+  if (e.typing || e.meta || e.ctrl || e.alt) return Option.none();
   if (e.key === ' ') return Option.some(PlayerKey.Toggle());
   return Option.map(Option.fromUndefinedOr(ARROWS.get(e.key)), (by) => PlayerKey.Step({ by }));
 };
@@ -222,16 +233,10 @@ export const playerEvent = (key: PlayerKey): SyncEvent =>
   });
 
 /**
- * Hear the page's key presses for a synced player: `take` gets each of the
- * player's keys and answers whether it took it (its default is then
- * prevented). The one place the review's players listen to the keyboard;
- * answers the stop.
+ * Hear the page's key presses for a synced player until interrupted: `take`
+ * gets each of the player's keys and answers whether it took it (its default
+ * is then prevented). The one place the review's players listen to the
+ * keyboard.
  */
-export const listenPlayerKeys = (take: (key: PlayerKey) => boolean): (() => void) => {
-  const onKey = (e: KeyboardEvent) =>
-    Option.map(playerKey(e), (key) => {
-      if (take(key)) e.preventDefault();
-    });
-  document.addEventListener('keydown', onKey);
-  return () => document.removeEventListener('keydown', onKey);
-};
+export const playerKeys = (take: (key: PlayerKey) => boolean): Effect.Effect<never, never, Keys> =>
+  Keys.use((keys) => keys.listen((press) => Option.exists(playerKey(press), take)));

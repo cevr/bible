@@ -10,6 +10,7 @@
 // It is set in the film's own type: its shorts' hook face for the title, their
 // caption face for the rest (`film.look.short`), so the engine names no family.
 
+import { Effect } from 'effect';
 import type { Film } from '../canvas/film.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
 import { labUrl } from './pages.ts';
@@ -184,7 +185,7 @@ export const composeLookbook = async (
     (before, tile, k) =>
       before.then(() => {
         draw(tile, k);
-        return new Promise<void>((resolve) => setTimeout(resolve, 0));
+        return Effect.runPromise(Effect.yieldNow);
       }),
     Promise.resolve(),
   );

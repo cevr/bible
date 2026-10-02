@@ -20,6 +20,8 @@ import { Array as Arr, Deferred, Effect, Exit, Option, Schedule, Schema } from '
 import { describe, expect, it } from 'effect-bun-test';
 import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import { FreshProcessFailed, VerbRefused } from '../../../../src/core/refusals.ts';
+import { sceneAddress } from '../../../../src/core/address.ts';
+import { Render } from '../../../../src/core/catalogue.ts';
 import {
   type FakeRoute,
   type Json,
@@ -65,7 +67,28 @@ const said = (address: Json, texts: ReadonlyArray<string>): ReadonlyArray<Json> 
     onThis: true,
   }));
 
-const sceneJson = (s: ToyScene): Json => ({
+/** Scene `id`'s main render as the catalogue records it, encoded. */
+const renderJson = (id: string): Json =>
+  Schema.encodeSync(Schema.toCodecJson(Render))({
+    address: sceneAddress(id),
+    variant: 'main',
+    kind: 'video',
+    settings: { scale: 1, captions: false },
+    stamp: { commit: Option.none(), key: 'k' },
+    span: Option.none(),
+    files: {
+      clip: Option.some(`scenes/${id}/main.mp4`),
+      share: Option.none(),
+      captions: Option.none(),
+      chapters: Option.none(),
+      images: [],
+    },
+    sound: Option.none(),
+    at: 0,
+  });
+
+/** A scene as the project encodes it; `rendered`, with its catalogue render. */
+const sceneJson = (s: ToyScene, rendered = false): Json => ({
   scene: s.scene,
   key: 'k',
   state: s.state,
@@ -73,6 +96,13 @@ const sceneJson = (s: ToyScene): Json => ({
     onNone: () => ({}),
     onSome: (by) => ({ staleBy: by }),
   }),
+  ...Option.match(
+    Option.liftPredicate(s.scene, () => rendered),
+    {
+      onNone: () => ({}),
+      onSome: (id) => ({ render: renderJson(id) }),
+    },
+  ),
   approval: s.approval,
   comments: said({ _tag: 'Scenes', ids: [s.scene] }, s.said),
 });
@@ -209,9 +239,14 @@ const PostedSay = Schema.decodeUnknownSync(
  * and the act. `elsewhere` adds another checkout's folder of the film to the
  * review's index, rendered since; the scenes in `goneStale` were drawn again
  * since the page read them, so an approve naming one is refused and leaves it
- * stale by its sources.
+ * stale by its sources. The scenes in `rendered` carry their catalogue
+ * render, so their rows link the scene's Versions.
  */
-const fakeProject = (elsewhere = false, goneStale: ReadonlyArray<string> = []) => {
+const fakeProject = (
+  elsewhere = false,
+  goneStale: ReadonlyArray<string> = [],
+  rendered: ReadonlyArray<string> = [],
+) => {
   const scenes: ReadonlyArray<ToyScene> = [
     { scene: 'open', state: 'current', approval: 'none', said: [] },
     { scene: 'close', state: 'stale', staleBy: 'sound', approval: 'stale', said: [] },
@@ -234,7 +269,7 @@ const fakeProject = (elsewhere = false, goneStale: ReadonlyArray<string> = []) =
           comments: said({ _tag: 'Act', act: 'opening' }, text.act),
         },
       ],
-      scenes: scenes.map(sceneJson),
+      scenes: scenes.map((s) => sceneJson(s, rendered.includes(s.scene))),
     },
     folder: 'out/toy',
     // This checkout's catalogue record of each rendered scene.
@@ -515,6 +550,34 @@ describe("a film's project", () => {
           `window.clip === document.querySelector('${scene('open')} video')`,
           true,
         );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a scene's Versions link leaves a modified click to the browser (a new tab); a plain one goes there in place",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject(false, [], ['open']), {
+          search: PROJECT,
+        });
+        yield* waitFor(page, `${scene('open')} [data-compare]`);
+        // The page's own handler runs at the document; a listener on the
+        // window hears each click after it, notes whether it was taken, and
+        // keeps the test's page where it is.
+        yield* page.evaluate(`(() => {
+          const link = document.querySelector('${scene('open')} [data-compare]');
+          window.taken = [];
+          const note = (e) => { window.taken.push(e.defaultPrevented); e.preventDefault(); };
+          window.addEventListener('click', note);
+          for (const mod of ['metaKey', 'ctrlKey', 'shiftKey'])
+            link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, button: 0, [mod]: true }));
+          window.removeEventListener('click', note);
+        })()`);
+        yield* evaluates(page, 'window.taken', [false, false, false]);
+        yield* click(page, `${scene('open')} [data-compare]`);
+        yield* until(page, `new URLSearchParams(location.search).has('set')`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

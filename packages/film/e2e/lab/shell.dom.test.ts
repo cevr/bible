@@ -135,4 +135,27 @@ describe('the lab shell', () => {
       yield* evaluates(page, `${T} > 0 && ${T} < window.labEnd`, true);
     }).pipe(Effect.scoped),
   );
+
+  for (const ended of ['pointercancel', 'lostpointercapture'])
+    it.live(
+      `a track drag the browser ends with ${ended} settles where it was: a later move does not scrub`,
+      () =>
+        Effect.gen(function* () {
+          const { page } = yield* openLab([], { hash: '#1' });
+          const track = yield* page.box('.bar .track');
+          const y = track.y + track.height / 2;
+          yield* page.mouse.move(track.x + track.width * 0.25, y);
+          yield* page.mouse.down;
+          // The browser takes the gesture (a page pan on a phone): the drag ends here.
+          yield* page.evaluate(
+            `document.querySelector('.bar .track').dispatchEvent(new PointerEvent('${ended}', { bubbles: true, pointerId: 1 })); true`,
+          );
+          yield* page.clock.runFor(300);
+          yield* page.evaluate(`window.labSettled = ${T}; true`);
+          yield* page.mouse.move(track.x + track.width * 0.75, y, 4);
+          yield* page.clock.runFor(300);
+          yield* evaluates(page, `${T} === window.labSettled && ${T} > 0`, true);
+          yield* page.mouse.up;
+        }).pipe(Effect.scoped),
+    );
 });

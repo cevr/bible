@@ -7,14 +7,16 @@ import { Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createEffect } from 'solid-js';
 import type { ReviewIndex } from '../../core/review.ts';
-import { Root, useReview } from './context.tsx';
+import { Go, Root, useReview } from './context.tsx';
 import { folderTitle, pressed } from './format.ts';
-import { type ReviewPlace, ReviewPlace as Place, searchOf } from './place.ts';
+import { type ReviewPlace, ReviewPlace as Place } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, QualityToggle, SetPage } from './section.tsx';
 import { REVIEW_CSS } from './style.ts';
 import { labUrl } from '../../player/pages.ts';
+import { type Host, hostOf } from '../../browser/host.ts';
+import { BrowserHost } from '../../browser/host-browser.ts';
 
 /** The trail to `place`: each step's title, and where it goes (none for the page itself). */
 interface Crumb {
@@ -64,28 +66,19 @@ const Header = () => {
   createEffect(crumbs, (trail) => {
     document.title = [...trail.map((c) => c.title).toReversed(), 'Lab'].join(' · ');
   });
-  const go = (place: ReviewPlace) => (e: MouseEvent) => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
-    e.preventDefault();
-    actions.go(place);
-  };
   return (
     <header class="rv-header">
       <nav class="rv-crumbs">
-        <a href={location.pathname} onClick={go(Place.Home())}>
+        <Go place={Place.Home()}>
           <b>Lab</b>
-        </a>
+        </Go>
         <For each={crumbs()}>
           {(crumb) => (
             <>
               <span class="rv-hint">/</span>
               {Option.match(crumb.place, {
                 onNone: () => <b>{crumb.title}</b>,
-                onSome: (place) => (
-                  <a href={`${location.pathname}${searchOf(place)}`} onClick={go(place)}>
-                    {crumb.title}
-                  </a>
-                ),
+                onSome: (place) => <Go place={place}>{crumb.title}</Go>,
               })}
             </>
           )}
@@ -154,26 +147,27 @@ const Lightbox = () => {
 };
 
 /** The review: its header, the page it is on, and the lightbox. */
-const ReviewPage = (props: { readonly origin: string }) => (
-  <Root origin={props.origin}>
+const ReviewPage = (props: { readonly origin: string; readonly host: Host }) => (
+  <Root origin={props.origin} host={props.host}>
     <Header />
     <Page />
     <Lightbox />
   </Root>
 );
 
-/** Mount the review into the page, with its styles, over the page's own origin. */
+/** Mount the review into the page, with its styles, over the page's own origin and the page's host (`browser/host.ts`). */
 export const mountReview = (): void => {
   Effect.runSync(
     Effect.gen(function* () {
+      const host = hostOf(BrowserHost.layer);
       const style = document.createElement('style');
       style.textContent = REVIEW_CSS;
       document.head.append(style);
       document.body.classList.add('rv');
-      const host = document.createElement('div');
-      host.className = 'rv-root';
-      document.body.append(host);
-      render(() => <ReviewPage origin={location.origin} />, host);
+      const root = document.createElement('div');
+      root.className = 'rv-root';
+      document.body.append(root);
+      render(() => <ReviewPage origin={location.origin} host={host} />, root);
       yield* Effect.logInfo(`review.mounted search=${location.search}`);
     }),
   );

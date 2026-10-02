@@ -156,9 +156,78 @@ describe('one write at a time', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live(
+    'a drag the browser ends (a page pan) puts the cue back, and a later move and lift write nothing',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab([], { hash: '#1' });
+        const bar = '.lab-cue[data-cue="rise"]';
+        yield* editable(page);
+        const box = yield* page.box(bar);
+        const y = box.y + box.height / 2;
+        const x = box.x + box.width / 2;
+        yield* page.mouse.move(x, y);
+        yield* page.mouse.down;
+        yield* page.mouse.move(x + 60, y, 4);
+        yield* page.evaluate(
+          `document.querySelector('${bar}').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 })); true`,
+        );
+        yield* page.mouse.move(x + 90, y, 4);
+        yield* page.mouse.up;
+        yield* runClock(page, 200);
+        expect(posted(asked)).toEqual([]);
+        const after = yield* page.box(bar);
+        expect(Math.round(after.x)).toBe(Math.round(box.x));
+      }).pipe(Effect.scoped),
+  );
+
+  for (const lifted of ['after', 'before'] as const)
+    it.live(
+      `a second pointer pressing a knob does not take the held cue: lifted ${lifted} the first is cancelled, it lands nothing, and the cancel puts the cue back`,
+      () =>
+        Effect.gen(function* () {
+          const { page, asked, errors } = yield* openLab([], { hash: '#1' });
+          const rise = '.lab-cue[data-cue="rise"]';
+          const spot = '.lab-handle[data-knob="spot"]';
+          yield* editable(page);
+          yield* page.waitFor(spot);
+          const box = yield* page.box(rise);
+          const handle = yield* page.box(spot);
+          const y = box.y + box.height / 2;
+          const x = box.x + box.width / 2;
+          // Pointer 1 (the mouse) grabs rise and moves it.
+          yield* page.mouse.move(x, y);
+          yield* page.mouse.down;
+          yield* page.mouse.move(x + 60, y, 4);
+          // Pointer 2 presses the spot knob's handle while rise is held, and
+          // lifts before or after the browser takes pointer 1 (a page pan).
+          // Each is its own task, as a browser sends them.
+          const second = `{ bubbles: true, pointerId: 2, isPrimary: false, pointerType: 'touch', button: 0, clientX: ${Math.round(handle.x + handle.width / 2)}, clientY: ${Math.round(handle.y + handle.height / 2)} }`;
+          const step = (script: string) =>
+            Effect.andThen(page.evaluate(`${script}; true`), runClock(page, 50));
+          const liftSecond = step(
+            `document.querySelector('${spot}').dispatchEvent(new PointerEvent('pointerup', ${second}))`,
+          );
+          yield* step(
+            `document.querySelector('${spot}').dispatchEvent(new PointerEvent('pointerdown', ${second}))`,
+          );
+          if (lifted === 'before') yield* liftSecond;
+          yield* step(
+            `document.querySelector('${rise}').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 }))`,
+          );
+          if (lifted === 'after') yield* liftSecond;
+          yield* page.mouse.up;
+          yield* runClock(page, 200);
+          expect(posted(asked)).toEqual([]);
+          const after = yield* page.box(rise);
+          expect(Math.round(after.x)).toBe(Math.round(box.x));
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+    );
+
   it.live('a drag while a write is out is not taken', () =>
     Effect.gen(function* () {
-      const { page, asked } = yield* openLab(
+      const { page, asked, errors } = yield* openLab(
         [route('POST', /^\/scenes\/\w+\/cues\//, () => hold)],
         {
           hash: '#1',
@@ -171,7 +240,32 @@ describe('one write at a time', () => {
       yield* dragBar(page, 'fall', 0.5, 40);
       yield* runClock(page, 200);
       expect(posted(asked).map((p) => p.path)).toEqual(['/scenes/one/cues/rise']);
+      expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a press on another cue while the moved cue is still shown, its write out, throws nothing',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openLab(
+          [route('POST', /^\/scenes\/\w+\/cues\//, () => hold)],
+          { hash: '#1' },
+        );
+        yield* editable(page);
+        yield* dragBar(page, 'rise', 0.5, 60);
+        yield* postedReach(asked, 1);
+        yield* statusSays(page, 'writing…');
+        // One pointer: the drag of rise has ended, and its preview is still drawn.
+        const fall = yield* page.box('.lab-cue[data-cue="fall"]');
+        yield* page.mouse.move(fall.x + fall.width / 2, fall.y + fall.height / 2);
+        yield* page.mouse.down;
+        yield* runClock(page, 50);
+        yield* page.mouse.up;
+        yield* runClock(page, 200);
+        expect(errors).toEqual([]);
+        expect(posted(asked).map((p) => p.path)).toEqual(['/scenes/one/cues/rise']);
+      }).pipe(Effect.scoped),
   );
 });
 

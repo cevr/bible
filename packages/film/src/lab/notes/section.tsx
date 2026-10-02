@@ -5,8 +5,9 @@
 // frame); and the notes' pins on the timeline. All read the notes' context.
 
 import { For, Portal, Show } from '@solidjs/web';
-import { Option } from 'effect';
+import { Effect, Option } from 'effect';
 import { createEffect } from 'solid-js';
+import { Pointer } from '../../browser/pointer.ts';
 import { stillUrl } from '../../core/api.ts';
 import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
 import { useLab } from '../shell.tsx';
@@ -237,33 +238,25 @@ export const Marks = () => {
       if (Option.isSome(gesture)) return;
       gesture = Option.some(e.pointerId);
       e.preventDefault();
-      surface.setPointerCapture(e.pointerId);
-      /** `f`, for this gesture's pointer only. */
-      const its = (f: (ev: PointerEvent) => void) => (ev: PointerEvent) => {
-        if (ev.pointerId === e.pointerId) f(ev);
-      };
       const far = (ev: PointerEvent) =>
         Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) >= DRAG_PX;
-      const move = its((ev) => actions.drag(at(ev), far(ev)));
-      const end = () => {
-        gesture = Option.none();
-        surface.removeEventListener('pointermove', move);
-        surface.removeEventListener('pointerup', up);
-        surface.removeEventListener('pointercancel', cancelled);
-      };
-      const up = its((ev) => {
-        end();
-        actions.lift(at(ev), far(ev));
-      });
-      // The OS took the gesture (a swipe, a call): the mark goes, nothing is written.
-      const cancelled = its(() => {
-        end();
-        actions.cancel();
-      });
       actions.press(at(e));
-      surface.addEventListener('pointermove', move);
-      surface.addEventListener('pointerup', up);
-      surface.addEventListener('pointercancel', cancelled);
+      Effect.runForkWith(meta.host)(
+        Pointer.use((pointer) =>
+          pointer.drag(e, {
+            move: (ev) => actions.drag(at(ev), far(ev)),
+            // Lifted, the mark is made; the OS took the gesture (a swipe, a call)
+            // or the capture was lost: the mark goes, nothing is written.
+            end: (lifted) => {
+              gesture = Option.none();
+              Option.match(lifted, {
+                onNone: () => actions.cancel(),
+                onSome: (ev) => actions.lift(at(ev), far(ev)),
+              });
+            },
+          }),
+        ),
+      );
     };
     // Native, as the handles' are; it lives and goes with the surface it is on.
     surface.addEventListener('pointerdown', down);

@@ -2,8 +2,13 @@
 // period: the first request runs at once, later ones within the period wait
 // for one trailing run that carries the latest state; `flush` runs a waiting
 // write now, and `ran` drops it after a write made outside (`tInUrl` writes
-// `#T` through this). The timers are injectable so the policy is tested on a
-// clock the test moves.
+// `#T` through this). The timers are injectable: live they are the page
+// host's `Clock` (`timersOn`), and the policy is tested on a clock the test
+// moves.
+
+import { Effect, Exit, Option } from 'effect';
+import type { Context } from 'effect';
+import { monotonicMs } from '../browser/host.ts';
 
 /** The clock and timer calls `throttled` uses. */
 export interface Timers {
@@ -21,13 +26,34 @@ export interface Throttled {
   ran(): void;
 }
 
-export const browserTimers: Timers = {
-  now: () => performance.now(),
-  set: (run, ms) => window.setTimeout(run, ms),
-  clear: (id) => window.clearTimeout(id),
+/** The timers of `host`'s `Clock`: its monotonic time, and a sleep on it per timer. */
+export const timersOn = <S>(host: Context.Context<S>): Timers => {
+  const now = monotonicMs(host);
+  const pending = new Map<number, () => void>();
+  let next = 1;
+  return {
+    now,
+    set: (run, ms) => {
+      const id = next++;
+      pending.set(
+        id,
+        Effect.runCallbackWith(host)(Effect.sleep(ms), {
+          onExit: (exit) => {
+            pending.delete(id);
+            if (Exit.isSuccess(exit)) run();
+          },
+        }),
+      );
+      return id;
+    },
+    clear: (id) => {
+      Option.map(Option.fromUndefinedOr(pending.get(id)), (stop) => stop());
+      pending.delete(id);
+    },
+  };
 };
 
-export const throttled = (run: () => void, everyMs: number, timers = browserTimers): Throttled => {
+export const throttled = (run: () => void, everyMs: number, timers: Timers): Throttled => {
   let last = Number.NEGATIVE_INFINITY;
   let waiting: number | undefined;
   const fire = () => {

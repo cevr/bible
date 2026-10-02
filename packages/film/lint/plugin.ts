@@ -6,6 +6,7 @@
 import { Plugin } from 'oxlint-plugin-effect/rule-bindings';
 import { drawingLiteral } from './drawing-literal.ts';
 import { framingIsAKnob } from './framing-is-a-knob.ts';
+import { hostEventsThroughAdapter } from './host-events-through-adapter.ts';
 import { noCueRemap } from './no-cue-remap.ts';
 import { noEaseOnCue } from './no-ease-on-cue.ts';
 import { noHandTimedSeconds } from './no-hand-timed-seconds.ts';
@@ -21,6 +22,7 @@ export default Plugin.define({
   rules: {
     'drawing-literal': drawingLiteral,
     'framing-is-a-knob': framingIsAKnob,
+    'host-events-through-adapter': hostEventsThroughAdapter,
     'no-cue-remap': noCueRemap,
     'no-ease-on-cue': noEaseOnCue,
     'no-hand-timed-seconds': noHandTimedSeconds,

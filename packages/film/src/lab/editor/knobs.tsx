@@ -148,8 +148,7 @@ const useGrab = (props: MarkProps) => {
           knob: props.handle().name,
           handle: props.handle(),
           box: { left: r.left, top: r.top, width: r.width, height: r.height },
-          x: e.clientX,
-          y: e.clientY,
+          down: e,
         });
       });
     });

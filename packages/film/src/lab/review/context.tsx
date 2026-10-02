@@ -13,8 +13,8 @@ import {
   useAtomSuspense,
   useAtomValue,
 } from '@bible/atom-solid';
-import { Loading, Show } from '@solidjs/web';
-import { Clock, Effect, Layer, Option, Result } from 'effect';
+import { type JSX, Loading, Show } from '@solidjs/web';
+import { Clock, Effect, Layer, Option } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -25,13 +25,17 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  omit,
   onCleanup,
   useContext,
 } from 'solid-js';
 import type { SeenPoint } from '../../core/choice.ts';
 import type { ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/review.ts';
-import type { LabFailure } from '../api.ts';
-import { localStore } from '../studio/mic-choice.ts';
+import { type BrowserServices, type Host, hostLayer } from '../../browser/host.ts';
+import { Keys, type KeyPress } from '../../browser/keys.ts';
+import { LabClient, type LabFailure } from '../api.ts';
+import { keptText } from '../../browser/storage.ts';
+import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
 import type { Quality } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
@@ -49,7 +53,7 @@ import {
   viewNameOf,
 } from './machine.ts';
 import { type ReviewPlace, placeOf, searchOf, searchWithView, viewOf } from './place.ts';
-import { PlayerKey, type SyncDriver, listenPlayerKeys, makeSync, playerEvent } from './sync.ts';
+import { PlayerKey, type SyncDriver, playerKeys, makeSync, playerEvent } from './sync.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 
@@ -82,8 +86,10 @@ interface ReviewMeta {
   readonly duration: (ref: string) => Loaded<number>;
   /** A doc's text, read once per ref. */
   readonly text: (ref: string) => Loaded<string>;
-  readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi>;
-  /** Now, in ms: what a card's age is counted from. */
+  readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
+  /** The page's host (`browser/host.ts`): what the page's own effects run with. */
+  readonly host: Host;
+  /** Now, in ms, on the host's `Clock`: what a card's age is counted from. */
   readonly now: () => number;
 }
 
@@ -98,27 +104,52 @@ const ReviewContext = createContext<ReviewContextValue>();
 /** The review's context: only inside `<Root>`. */
 export const useReview = (): ReviewContextValue => useContext(ReviewContext);
 
-/** Where the page keeps its choices between visits. */
-const KEPT = { quality: 'film-review.quality', filter: 'film-review.filter' } as const;
+/** Whether a click is the page's to take: a plain primary click. A modified one (a new tab or window, a download) is the browser's. */
+const plainClick = (e: MouseEvent) =>
+  e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
-/** `run`'s value, or none when it throws (storage a private window or a full quota refuses). */
-const attempt = <A,>(run: () => A): Option.Option<A> => Result.getSuccess(Result.try(run));
-
-/** A kept choice, when the browser keeps any. */
-const kept = (key: string): Option.Option<string> =>
-  Option.flatMap(
-    Option.flatMap(localStore(), (s) => attempt(() => s.getItem(key))),
-    Option.fromNullishOr,
+/**
+ * The review's one link to a place: a plain click goes there in the page
+ * itself (so the player's state lives); a modified click is left to the
+ * browser, which opens the place's URL in a tab. Any other attribute is the
+ * anchor's.
+ */
+export const Go = (
+  props: Omit<JSX.AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'onClick'> & {
+    readonly place: ReviewPlace;
+    readonly children: JSX.Element;
+  },
+) => {
+  const { actions } = useReview();
+  const attrs = omit(props, 'place', 'children');
+  return (
+    <a
+      {...attrs}
+      href={`${location.pathname}${searchOf(props.place)}`}
+      onClick={(e) => {
+        if (!plainClick(e)) return;
+        e.preventDefault();
+        actions.go(props.place);
+      }}
+    >
+      {props.children}
+    </a>
   );
+};
 
-/** Keep a choice; a browser that keeps nothing forgets it with the page. */
-const keep = (key: string, value: string) =>
-  Option.map(localStore(), (s) => attempt(() => s.setItem(key, value)));
+/**
+ * The page's choices kept between visits, as plain text in this browser's
+ * store (a browser that keeps nothing forgets them with the page).
+ */
+const kept = {
+  quality: keptText(ViewerStore, 'film-review.quality'),
+  filter: keptText(ViewerStore, 'film-review.filter'),
+};
 
-/** The copy the page plays first: the kept one, else 720p on a narrow screen. */
-const firstQuality = (): Quality =>
+/** The copy the page plays: the kept one, else 720p on a narrow screen. */
+const qualityOf = (stored: Option.Option<string>): Quality =>
   Option.getOrElse(
-    Option.filter(kept(KEPT.quality), (q): q is Quality => q === 'phone' || q === 'full'),
+    Option.filter(stored, (q): q is Quality => q === 'phone' || q === 'full'),
     (): Quality => {
       if (matchMedia('(max-width: 900px)').matches) return 'phone';
       return 'full';
@@ -126,9 +157,13 @@ const firstQuality = (): Quality =>
   );
 
 /** The review page: its runtime, place, index and choices, around `children`. */
-export const Root = (props: ParentProps<{ readonly origin: string }>) => {
+export const Root = (props: ParentProps<{ readonly origin: string; readonly host: Host }>) => {
+  // One client of the lab's API for the page: the review's and the choices'
+  // routes both go through it.
   const runtime = Atom.runtime(
-    Layer.mergeAll(reviewApiLayer(props.origin), optionsApiLayer(props.origin)),
+    Layer.mergeAll(reviewApiLayer(props.origin), optionsApiLayer, hostLayer(props.host)).pipe(
+      Layer.provide(LabClient.layer(props.origin)),
+    ),
   );
   const filmsAtom = runtime.atom(OptionsApi.use((api) => api.films));
   // A refresh asks the server to walk its roots again; a first read takes its cache.
@@ -152,19 +187,24 @@ export const Root = (props: ParentProps<{ readonly origin: string }>) => {
   window.addEventListener('popstate', onPop);
   onCleanup(() => window.removeEventListener('popstate', onPop));
 
-  const [quality, setQuality] = createSignal(firstQuality());
-  const [filter, setFilter] = createSignal(Option.getOrElse(kept(KEPT.filter), () => ''));
   const [lightbox, setLightbox] = createSignal(Option.none<string>());
-  const onKey = (e: KeyboardEvent) => {
+  // Escape closes the lightbox, and leaves the key to whatever else hears it.
+  const closeOnEscape = (e: KeyPress): boolean => {
     if (e.key === 'Escape') setLightbox(Option.none());
+    return false;
   };
-  document.addEventListener('keydown', onKey);
-  onCleanup(() => document.removeEventListener('keydown', onKey));
+  onCleanup(Effect.runCallbackWith(props.host)(Keys.use((keys) => keys.listen(closeOnEscape))));
 
   const Inner = (inner: ParentProps) => {
     const index = useAtomValue(() => indexAtom);
     const refreshIndex = useAtomRefresh(() => indexAtom);
     const films = useAtomValue(() => filmsAtom);
+    const keptQuality = useAtomValue(() => kept.quality);
+    const keepQuality = useAtomSet(() => kept.quality);
+    const quality = createMemo(() => qualityOf(keptQuality()));
+    const keptFilter = useAtomValue(() => kept.filter);
+    const filter = createMemo(() => Option.getOrElse(keptFilter(), () => ''));
+    const keepFilter = useAtomSet(() => kept.filter);
     const value: ReviewContextValue = {
       state: { place, index, films, quality, filter, lightbox },
       actions: {
@@ -178,17 +218,17 @@ export const Root = (props: ParentProps<{ readonly origin: string }>) => {
           fresh = true;
           refreshIndex();
         },
-        quality: (q) => {
-          keep(KEPT.quality, q);
-          setQuality(q);
-        },
-        filter: (t) => {
-          keep(KEPT.filter, t);
-          setFilter(t);
-        },
+        quality: keepQuality,
+        filter: keepFilter,
         show: setLightbox,
       },
-      meta: { duration, text, runtime, now: () => Effect.runSync(Clock.currentTimeMillis) },
+      meta: {
+        duration,
+        text,
+        runtime,
+        host: props.host,
+        now: () => Effect.runSyncWith(props.host)(Clock.currentTimeMillis),
+      },
     };
     return <ReviewContext value={value}>{inner.children}</ReviewContext>;
   };
@@ -248,7 +288,7 @@ const SetBody = (
   const ids = props.set.variants.map((v) => v.id);
   const first = Option.getOrElse(Option.fromUndefinedOr(ids[0]), () => '');
 
-  const driver = makeSync(first, sendSync);
+  const driver = makeSync(first, sendSync, meta.host);
   onCleanup(driver.stop);
   createEffect(sync, (state) => driver.apply(state));
 
@@ -287,24 +327,26 @@ const SetBody = (
 
   // The moments step on ←/→; the playing views hear the player's keys.
   onCleanup(
-    listenPlayerKeys((key) => {
-      const name = viewNameOf(view());
-      if (name === 'moments')
-        return PlayerKey.$match(key, {
-          Toggle: () => false,
-          Step: ({ by }) =>
-            Option.match(moments(), {
-              onNone: () => false,
-              onSome: (m) => {
-                sendView(ViewEvent.MomentStepped({ by, count: m.length }));
-                return true;
-              },
-            }),
-        });
-      if (!playsIn(name)) return false;
-      sendSync(playerEvent(key));
-      return true;
-    }),
+    Effect.runCallbackWith(meta.host)(
+      playerKeys((key) => {
+        const name = viewNameOf(view());
+        if (name === 'moments')
+          return PlayerKey.$match(key, {
+            Toggle: () => false,
+            Step: ({ by }) =>
+              Option.match(moments(), {
+                onNone: () => false,
+                onSome: (m) => {
+                  sendView(ViewEvent.MomentStepped({ by, count: m.length }));
+                  return true;
+                },
+              }),
+          });
+        if (!playsIn(name)) return false;
+        sendSync(playerEvent(key));
+        return true;
+      }),
+    ),
   );
 
   const value: SetContextValue = {

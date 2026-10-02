@@ -21,6 +21,8 @@ import {
   onCleanup,
   useContext,
 } from 'solid-js';
+import type { Host } from '../../browser/host.ts';
+import { Keys, type KeyPress } from '../../browser/keys.ts';
 import { noteT } from '../../core/notes.ts';
 import type { Note, Point } from '../../core/schema.ts';
 import { NotesApi, reasonOf } from '../api.ts';
@@ -110,17 +112,15 @@ const composingT = (state: ComposerState): Option.Option<number> =>
     Match.orElse((s) => Option.some(s.T)),
   );
 
-/** `n` notes the frame and Escape cancels, unless a field has the keys. */
-const useKeys = (actions: NotesActions) => {
-  const onKey = (e: KeyboardEvent) => {
-    const typing = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+/** `n` notes the frame unless a field has the keys; Escape cancels, wherever it is pressed. */
+const useKeys = (host: Host, actions: NotesActions) => {
+  const take = (e: KeyPress): boolean => {
     if (e.key === 'Escape') actions.cancel();
-    if (typing || e.key !== 'n' || e.metaKey || e.ctrlKey) return;
-    e.preventDefault();
+    if (e.typing || e.key !== 'n' || e.meta || e.ctrl) return false;
     actions.noteFrame();
+    return true;
   };
-  window.addEventListener('keydown', onKey);
-  onCleanup(() => window.removeEventListener('keydown', onKey));
+  onCleanup(Effect.runCallbackWith(host)(Keys.use((keys) => keys.listen(take))));
 };
 
 const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
@@ -198,7 +198,7 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
     },
     write: (w) => writeThread(w),
   };
-  useKeys(actions);
+  useKeys(meta.host, actions);
 
   const value: NotesContextValue = {
     state: {

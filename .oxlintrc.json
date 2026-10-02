@@ -364,6 +364,8 @@
     {
       // The purity rule (packages/film/README.md): core imports none of the
       // film's other layers, and the engine neither the player nor the tools.
+      // A block that keeps a folder out keeps out each package export that
+      // resolves into it (packages/film/lint/config.test.ts).
       "files": ["**/packages/film/src/core/**/*.ts"],
       "rules": {
         "no-restricted-imports": [
@@ -376,9 +378,10 @@
                   "**/player/**",
                   "**/tools/**",
                   "**/lab/**",
+                  "**/browser/**",
                   "@bible/film/*"
                 ],
-                "message": "core never imports canvas, player, tools or lab: they import it (packages/film/README.md, the purity rule)."
+                "message": "core never imports canvas, player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -397,11 +400,15 @@
                   "**/player/**",
                   "**/tools/**",
                   "**/lab/**",
+                  "**/browser/**",
                   "@bible/film/player",
+                  "@bible/film/player.css",
                   "@bible/film/tools",
-                  "@bible/film/lab"
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/review"
                 ],
-                "message": "the engine never imports the player, tools or lab: they import it (packages/film/README.md, the purity rule)."
+                "message": "the engine never imports the player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -424,8 +431,11 @@
                   "**/lab/**",
                   "!**/lab/fixtures/browsers.ts",
                   "@bible/film/player",
+                  "@bible/film/player.css",
                   "@bible/film/tools",
-                  "@bible/film/lab"
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/review"
                 ],
                 "message": "the engine never imports the player, tools or lab: they import it (packages/film/README.md, the purity rule)."
               }
@@ -442,8 +452,42 @@
           {
             "patterns": [
               {
-                "group": ["**/tools/**", "**/lab/**", "@bible/film/tools", "@bible/film/lab"],
+                "group": [
+                  "**/tools/**",
+                  "**/lab/**",
+                  "@bible/film/tools",
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/review"
+                ],
                 "message": "the player never imports the tools or the lab: the lab mounts the player (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // The host's adapters serve every page and import none of them.
+      "files": ["**/packages/film/src/browser/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/player/**",
+                  "**/tools/**",
+                  "**/lab/**",
+                  "@bible/film/player",
+                  "@bible/film/player.css",
+                  "@bible/film/tools",
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/review"
+                ],
+                "message": "the host's adapters never import the player, the tools or the lab: the pages import them (packages/film/README.md, the purity rule)."
               }
             ]
           }
@@ -473,18 +517,489 @@
       }
     },
     {
-      // The browser player: DOM, audio element and requestAnimationFrame, plus
-      // the `?export` handle the renderer drives through page.evaluate.
+      // The browser player: the `?export` handle the renderer drives through
+      // page.evaluate (a Promise API, async, throwing) and the DOM's nullable
+      // reads. Its host APIs go through the adapters, so `effect/noGlobals`
+      // holds here as everywhere (and the host bans below).
       "files": ["**/packages/film/src/player/**/*.ts"],
       "rules": {
         "effect/noAsyncFunction": "off",
-        "effect/noGlobals": "off",
         "effect/noNewError": "off",
         "effect/noNewPromise": "off",
         "effect/noNullish": "off",
         "effect/noTernary": "off",
         "effect/noThrowStatement": "off",
         "effect/noUnknownParameters": "off"
+      }
+    },
+    {
+      // A page reaches the host through its adapters (packages/film/README.md,
+      // "The host"): each restricted name says the service that owns it. The
+      // live adapters (`*-browser.ts`), the fixtures and the tests are the
+      // host's side and are exempt below. `effect/noGlobals` reads only bare
+      // names, so the `window.`/`globalThis.`/`self.` forms are named here too:
+      // each restricted global under each of the three, and each host object
+      // with a member banned bare (`performance.now`) under each, so
+      // `window.performance.now()` is red. packages/film/lint/config.test.ts
+      // lints every such form against these lists.
+      "files": [
+        "**/packages/film/src/lab/**/*.ts",
+        "**/packages/film/src/lab/**/*.tsx",
+        "**/packages/film/src/player/**/*.ts",
+        "**/packages/film/src/browser/**/*.ts",
+        "**/apps/animations/src/*.ts"
+      ],
+      "rules": {
+        "film/host-events-through-adapter": "error",
+        "no-restricted-globals": [
+          "error",
+          { "name": "history", "message": "Use @bible/url-state's Location." },
+          { "name": "location", "message": "Use @bible/url-state's Location." },
+          { "name": "onpopstate", "message": "Use @bible/url-state's Location." },
+          {
+            "name": "localStorage",
+            "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "name": "sessionStorage",
+            "message": "Use Effect's KeyValueStore: TabStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "name": "requestAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "name": "cancelAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "name": "fetch",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "name": "EventSource",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "name": "XMLHttpRequest",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "name": "Audio",
+            "message": "Use Media and a Playable (packages/film/src/browser/media.ts)."
+          },
+          {
+            "name": "AudioContext",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "name": "AudioWorkletNode",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "name": "MediaRecorder",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "name": "setTimeout",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "name": "setInterval",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          }
+        ],
+        "no-restricted-properties": [
+          "error",
+          {
+            "object": "document",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "navigator",
+            "property": "mediaDevices",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "Use the host's Clock (monotonicMs, packages/film/src/browser/host.ts)."
+          },
+          {
+            "object": "window",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "localStorage",
+            "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "localStorage",
+            "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "self",
+            "property": "localStorage",
+            "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "window",
+            "property": "sessionStorage",
+            "message": "Use Effect's KeyValueStore: TabStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "sessionStorage",
+            "message": "Use Effect's KeyValueStore: TabStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "self",
+            "property": "sessionStorage",
+            "message": "Use Effect's KeyValueStore: TabStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "window",
+            "property": "requestAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "requestAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "object": "self",
+            "property": "requestAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "object": "window",
+            "property": "cancelAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "cancelAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "object": "self",
+            "property": "cancelAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "object": "window",
+            "property": "fetch",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "globalThis",
+            "property": "fetch",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "self",
+            "property": "fetch",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "window",
+            "property": "EventSource",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "globalThis",
+            "property": "EventSource",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "self",
+            "property": "EventSource",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "window",
+            "property": "XMLHttpRequest",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "globalThis",
+            "property": "XMLHttpRequest",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "self",
+            "property": "XMLHttpRequest",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "window",
+            "property": "Audio",
+            "message": "Use Media and a Playable (packages/film/src/browser/media.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "Audio",
+            "message": "Use Media and a Playable (packages/film/src/browser/media.ts)."
+          },
+          {
+            "object": "self",
+            "property": "Audio",
+            "message": "Use Media and a Playable (packages/film/src/browser/media.ts)."
+          },
+          {
+            "object": "window",
+            "property": "AudioContext",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "AudioContext",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "self",
+            "property": "AudioContext",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "window",
+            "property": "AudioWorkletNode",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "AudioWorkletNode",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "self",
+            "property": "AudioWorkletNode",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "window",
+            "property": "MediaRecorder",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "MediaRecorder",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "self",
+            "property": "MediaRecorder",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "window",
+            "property": "setTimeout",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "setTimeout",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "self",
+            "property": "setTimeout",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "window",
+            "property": "setInterval",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "setInterval",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "self",
+            "property": "setInterval",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "window",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "globalThis",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "self",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "window",
+            "property": "navigator",
+            "message": "Reach `navigator` bare, where its host members (navigator.mediaDevices) are banned by name."
+          },
+          {
+            "object": "globalThis",
+            "property": "navigator",
+            "message": "Reach `navigator` bare, where its host members (navigator.mediaDevices) are banned by name."
+          },
+          {
+            "object": "self",
+            "property": "navigator",
+            "message": "Reach `navigator` bare, where its host members (navigator.mediaDevices) are banned by name."
+          },
+          {
+            "object": "window",
+            "property": "performance",
+            "message": "Reach `performance` bare, where its host members (performance.now) are banned by name."
+          },
+          {
+            "object": "globalThis",
+            "property": "performance",
+            "message": "Reach `performance` bare, where its host members (performance.now) are banned by name."
+          },
+          {
+            "object": "self",
+            "property": "performance",
+            "message": "Reach `performance` bare, where its host members (performance.now) are banned by name."
+          }
+        ]
+      }
+    },
+    {
+      // The allowlist of history and location: the files that still read
+      // and write the URL directly, until p1-places moves them onto
+      // `@bible/url-state`'s Location and deletes this block. It repeats the
+      // restricted globals above without the URL's three, and lets these
+      // files hear `popstate` and `hashchange` themselves; every other ban
+      // holds.
+      "files": [
+        "**/packages/film/src/lab/review/context.tsx",
+        "**/packages/film/src/lab/review/mount.tsx",
+        "**/packages/film/src/lab/shell.tsx",
+        "**/packages/film/src/lab/stage.ts",
+        "**/packages/film/src/player/lookbook.ts",
+        "**/packages/film/src/player/main.ts"
+      ],
+      "rules": {
+        "film/host-events-through-adapter": ["error", { "allow": ["popstate", "hashchange"] }],
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "localStorage",
+            "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "name": "sessionStorage",
+            "message": "Use Effect's KeyValueStore: TabStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "name": "requestAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "name": "cancelAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "name": "fetch",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "name": "EventSource",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "name": "XMLHttpRequest",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "name": "Audio",
+            "message": "Use Media and a Playable (packages/film/src/browser/media.ts)."
+          },
+          {
+            "name": "AudioContext",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "name": "AudioWorkletNode",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "name": "MediaRecorder",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "name": "setTimeout",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "name": "setInterval",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          }
+        ]
+      }
+    },
+    {
+      // The host's side: the live adapters, the test fixtures and the tests.
+      "files": [
+        "**/packages/film/src/**/*-browser.ts",
+        "**/packages/film/src/**/fixtures/**",
+        "**/packages/film/src/**/*.test.ts",
+        "**/packages/film/src/**/*.test.tsx"
+      ],
+      "rules": {
+        "film/host-events-through-adapter": "off",
+        "no-restricted-globals": "off",
+        "no-restricted-properties": "off"
       }
     },
     {

@@ -5,9 +5,12 @@
 // HEAD's side of a blink; the divider, on the overlay, drags the wipe.
 
 import { For, Show } from '@solidjs/web';
-import { Option } from 'effect';
+import { Effect, Option } from 'effect';
 import type { Accessor } from 'solid-js';
 import { createEffect, onCleanup } from 'solid-js';
+import { Frames } from '../../browser/frames.ts';
+import { runScoped } from '../../browser/host.ts';
+import { Pointer } from '../../browser/pointer.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useCompare } from './context.tsx';
 import { CompareMode } from './machine.ts';
@@ -56,9 +59,7 @@ export const Layer = () => {
     readonly el: HTMLCanvasElement;
     readonly ctx: CanvasRenderingContext2D;
   }>();
-  let frame = Option.none<number>();
   const paint = () => {
-    frame = Option.none();
     Option.map(layer, (l) => {
       const shows = state.layer();
       const shown = Option.filter(state.edit(), () => shows !== 'hidden');
@@ -76,17 +77,16 @@ export const Layer = () => {
       });
     });
   };
+  // Painted once a frame, however often it is asked for; not after the layer goes.
+  const { value: repaint, close } = runScoped(meta.host)(Frames.use((f) => f.coalesce(paint)));
+  onCleanup(close);
   createEffect(
     () => {
       lab.drawn();
       return [state.layer(), state.split(), state.edit()] as const;
     },
-    () => {
-      if (Option.isSome(frame)) return;
-      frame = Option.some(requestAnimationFrame(paint));
-    },
+    () => repaint(),
   );
-  onCleanup(() => Option.map(frame, cancelAnimationFrame));
   return (
     <Lab.Layer
       class="lab-compare"
@@ -114,12 +114,10 @@ export const Divider = () => {
       Option.map(Option.fromNullishOr(el.ownerSVGElement), (svg) => {
         const r = svg.getBoundingClientRect();
         const move = (ev: PointerEvent) => actions.split((ev.clientX - r.left) / r.width);
-        const up = () => {
-          window.removeEventListener('pointermove', move);
-          window.removeEventListener('pointerup', up);
-        };
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
+        // The divider stays where the drag ends, lifted or ended by the browser.
+        Effect.runForkWith(meta.host)(
+          Pointer.use((pointer) => pointer.drag(e, { move, end: () => {} })),
+        );
       });
     });
   return (
