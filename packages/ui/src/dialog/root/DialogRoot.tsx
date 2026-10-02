@@ -1,0 +1,221 @@
+// Upstream: packages/react/src/dialog/root/DialogRoot.tsx,
+// packages/react/src/dialog/root/useRenderDialogRoot.tsx,
+// packages/react/src/dialog/root/useDialogRoot.ts
+//
+// Groups a dialog's parts and owns its state. The same root serves dialogs,
+// alert dialogs (always modal, never dismissed by an outside press, role
+// `alertdialog`) and drawers. It wires what the parts share: Escape and
+// outside presses close the topmost dialog, page scroll locks while a modal
+// dialog is open, and how the dialog was opened is recorded for focus.
+//
+// An outside press on a modal dialog closes it only on its own backdrop (or
+// the viewport around it), so a press on another dialog's backdrop or a
+// nested popup's never does. A dialog opened inside another reports its open
+// state to its parent, which counts its open nested dialogs and drawers.
+import type { JSX } from '@solidjs/web';
+import { createEffect, createUniqueId, onCleanup, untrack } from 'solid-js';
+
+import { useFloatingParentNodeId } from '../../floating-ui-solid/FloatingTree.tsx';
+import { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
+import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
+import { contains, getTarget } from '../../floating-ui-solid/utils/element.ts';
+import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
+import { REASONS } from '../../internals/reasons.ts';
+import { mergeProps } from '../../merge-props/mergeProps.ts';
+import { useOpenInteractionType } from '../../utils/useOpenInteractionType.ts';
+import { useScrollLock } from '../../utils/useScrollLock.ts';
+import {
+  createDialogStore,
+  type DialogChangeEventDetails,
+  type DialogChangeEventReason,
+  type DialogModal,
+} from '../store/DialogStore.ts';
+import { DialogRootContext, useDialogRootContextOptional } from './DialogRootContext.ts';
+
+export type { DialogChangeEventDetails, DialogChangeEventReason };
+
+export interface DialogRootActions {
+  /** Ends a close kept mounted by `preventUnmountOnClose()`. */
+  unmount: () => void;
+  close: () => void;
+}
+
+export interface DialogRootState {}
+
+export interface DialogRootProps {
+  open?: boolean | undefined;
+  /** @default false */
+  defaultOpen?: boolean | undefined;
+  /**
+   * Whether the open dialog is modal.
+   * - `true`: focus is trapped, page scroll is locked, and outside pointer interaction is blocked.
+   * - `false`: the rest of the page stays interactive.
+   * - `'trap-focus'`: focus is trapped, but page scroll and outside pointer interaction are not blocked.
+   * @default true
+   */
+  modal?: DialogModal | undefined;
+  onOpenChange?: ((open: boolean, eventDetails: DialogChangeEventDetails) => void) | undefined;
+  /** Called after the open or close transition finishes. */
+  onOpenChangeComplete?: ((open: boolean) => void) | undefined;
+  /**
+   * Whether outside presses leave the dialog open (for a non-modal dialog,
+   * also focus moving outside). @default false
+   */
+  disablePointerDismissal?: boolean | undefined;
+  /** Receives the imperative actions. */
+  actionsRef?: { current: DialogRootActions | null } | undefined;
+  children?: JSX.Element;
+}
+
+export type DialogRootMode = 'dialog' | 'alert-dialog' | 'drawer';
+
+export interface DialogRootInternalProps extends DialogRootProps {
+  mode: DialogRootMode;
+}
+
+export function DialogRootInternal(props: DialogRootInternalProps): JSX.Element {
+  const mode = untrack(() => props.mode);
+  const isDrawer = mode === 'drawer';
+  const isAlertDialog = mode === 'alert-dialog';
+  const parent = useDialogRootContextOptional();
+  const floatingNested = useFloatingParentNodeId() != null;
+
+  const modal = (): DialogModal => (isAlertDialog ? true : (props.modal ?? true));
+  const disablePointerDismissal = () => isAlertDialog || (props.disablePointerDismissal ?? false);
+
+  // Nested dialogs join their parent's tree, so presses inside them are inside it.
+  const floatingTree = parent?.store.floatingTree ?? new FloatingTreeStore();
+  const floatingNodeId = createUniqueId();
+  const floatingNode = { id: floatingNodeId, parentId: parent?.store.floatingNodeId ?? null };
+  floatingTree.addNode(floatingNode);
+  onCleanup(() => floatingTree.removeNode(floatingNode));
+
+  let openRead = () => false;
+  const { openMethod, triggerProps: interactionTypeProps } = useOpenInteractionType(() =>
+    openRead(),
+  );
+
+  const store = createDialogStore({
+    openProp: () => props.open,
+    defaultOpen: untrack(() => props.defaultOpen ?? false),
+    modal,
+    disablePointerDismissal,
+    role: isAlertDialog ? 'alertdialog' : 'dialog',
+    nested: parent != null,
+    floatingNested,
+    floatingId: createUniqueId(),
+    openMethod,
+    floatingTree,
+    floatingNodeId,
+    onOpenChange: () => props.onOpenChange,
+    onOpenChangeComplete: () => props.onOpenChangeComplete,
+  });
+  openRead = store.open;
+
+  const isTopmost = () => store.nestedOpenDialogCount() === 0;
+
+  const dismiss = useDismiss(store.floatingRootContext, {
+    outsidePressEvent() {
+      if (store.internalBackdropRef.current || store.backdropRef.current) {
+        return 'intentional';
+      }
+      // A trap-focus dialog drops `aria-hidden` from the page at once on an outside press.
+      return {
+        mouse: untrack(modal) === 'trap-focus' ? 'sloppy' : 'intentional',
+        touch: 'sloppy',
+      };
+    },
+    outsidePress(event) {
+      if (!store.outsidePressEnabledRef.current) {
+        return false;
+      }
+      // Only the main button; a touch counts when it is a single finger.
+      if ('button' in event && event.button !== 0) {
+        return false;
+      }
+      if ('touches' in event) {
+        if (event.type === 'touchend') {
+          if (event.changedTouches.length !== 1 || event.touches.length !== 0) {
+            return false;
+          }
+        } else if (event.touches.length !== 1) {
+          return false;
+        }
+      }
+      const target = getTarget(event) as Element | null;
+      if (!untrack(isTopmost) || untrack(disablePointerDismissal)) {
+        return false;
+      }
+      if (untrack(modal)) {
+        // Only this dialog's own backdrop (or what contains the popup, its viewport) dismisses it,
+        // so dialogs open side by side close one at a time.
+        const internalBackdrop = store.internalBackdropRef.current;
+        const backdrop = store.backdropRef.current;
+        if (!internalBackdrop && !backdrop) {
+          return true;
+        }
+        return (
+          internalBackdrop === target ||
+          backdrop === target ||
+          (contains(target, untrack(store.popupElement)) &&
+            !target?.hasAttribute('data-base-ui-portal'))
+        );
+      }
+      return true;
+    },
+    get escapeKey() {
+      return isTopmost();
+    },
+    externalTree: floatingTree,
+  });
+
+  useScrollLock(() => store.open() && modal() === true, store.popupElement);
+
+  // A nested dialog reports to its parent how many dialogs (itself included) are open in it.
+  if (parent) {
+    createEffect(
+      () => [store.open(), store.nestedOpenDialogCount(), store.nestedOpenDrawerCount()] as const,
+      ([isOpen, dialogCount, drawerCount]) => {
+        if (!isOpen) {
+          parent.store.setNestedOpenCounts(0, 0);
+          return undefined;
+        }
+        parent.store.setNestedOpenCounts(dialogCount + 1, drawerCount + (isDrawer ? 1 : 0));
+        return () => {
+          parent.store.setNestedOpenCounts(0, 0);
+        };
+      },
+    );
+  }
+
+  if (props.actionsRef) {
+    props.actionsRef.current = {
+      unmount: store.forceUnmount,
+      close: () => store.setOpen(false, createChangeEventDetails(REASONS.imperativeAction)),
+    };
+  }
+  onCleanup(() => {
+    if (props.actionsRef) {
+      props.actionsRef.current = null;
+    }
+  });
+
+  const activeTriggerProps = mergeProps(dismiss.reference ?? {}, interactionTypeProps);
+  const inactiveTriggerProps = mergeProps(dismiss.trigger ?? {}, interactionTypeProps);
+
+  const context: DialogRootContext = {
+    store,
+    triggerProps: (active) => (active ? activeTriggerProps : inactiveTriggerProps),
+    popupProps: dismiss.floating ?? {},
+  };
+
+  return <DialogRootContext value={context}>{props.children}</DialogRootContext>;
+}
+
+/**
+ * Groups all parts of the dialog.
+ * Doesn't render its own HTML element.
+ */
+export function DialogRoot(props: DialogRootProps): JSX.Element {
+  return <DialogRootInternal {...props} mode="dialog" />;
+}
