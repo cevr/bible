@@ -6,9 +6,9 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Tab } from './fixtures/tab.ts';
-import { openLab } from './fixtures/harness.ts';
-import { attributeIs, evaluates, textHas } from './fixtures/settled.ts';
+import type { Tab } from '../../src/lab/fixtures/tab.ts';
+import { openLab } from '../../src/lab/fixtures/harness.ts';
+import { attributeIs, evaluates, textHas } from '../../src/lab/fixtures/settled.ts';
 
 /** Each match's box as the page placed it: its rect, or for a pinned layer its inline box (a hidden layer has no rect). */
 const rects = (sel: string) =>

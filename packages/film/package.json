@@ -16,7 +16,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun src/lab/fixtures/run-suite.ts --parallel --no-isolate --max-concurrency=3 --timeout 20000 src lint"
+    "test": "bun test --parallel --no-isolate --max-concurrency=3 --timeout 20000 src lint",
+    "test:e2e": "bun src/lab/fixtures/run-suite.ts --parallel --no-isolate --max-concurrency=3 --timeout 20000 e2e"
   },
   "dependencies": {
     "@bible/atom-solid": "workspace:*",

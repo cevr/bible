@@ -14,9 +14,9 @@
 import { BunServices } from '@effect/platform-bun';
 import { Effect, type FileSystem, Option, type Path, Result, Schedule, type Scope } from 'effect';
 import { Base64 } from 'effect/encoding';
-import { TakeMismatch } from '../../core/refusals.ts';
+import { TakeMismatch } from '../../../src/core/refusals.ts';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Tab } from '../fixtures/tab.ts';
+import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import {
   type Asked,
   type FakeRoute,
@@ -25,8 +25,8 @@ import {
   openLab,
   refused,
   route,
-} from '../fixtures/harness.ts';
-import { PROBE } from '../fixtures/probe-film.ts';
+} from '../../../src/lab/fixtures/harness.ts';
+import { PROBE } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
   attributeIs,
@@ -36,8 +36,8 @@ import {
   textIs,
   textsAre,
   until,
-} from '../fixtures/settled.ts';
-import { COUNT_IN } from './machine.ts';
+} from '../../../src/lab/fixtures/settled.ts';
+import { COUNT_IN } from '../../../src/lab/studio/machine.ts';
 
 const beat = (id: string, state: string, parts: Json, extra: Record<string, Json> = {}): Json => ({
   id,

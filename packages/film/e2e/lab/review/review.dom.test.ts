@@ -10,7 +10,7 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { ReviewFileUnknown } from '../../core/refusals.ts';
+import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import {
   type FakeRoute,
   type Json,
@@ -19,7 +19,7 @@ import {
   refused,
   route,
   text,
-} from '../fixtures/harness.ts';
+} from '../../../src/lab/fixtures/harness.ts';
 import {
   attributeIs,
   countIs,
@@ -29,7 +29,7 @@ import {
   textsAre,
   until,
   waitFor,
-} from '../fixtures/settled.ts';
+} from '../../../src/lab/fixtures/settled.ts';
 
 /** Long enough to open the page, walk to a set and play with it. */
 const SLOW = 30_000;

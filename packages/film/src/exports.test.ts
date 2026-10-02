@@ -184,6 +184,7 @@ const isUser = (file: string) =>
 const inEntryScope = (file: string) =>
   file.startsWith('apps/') ||
   file.startsWith('packages/film/src/') ||
+  file.startsWith('packages/film/e2e/') ||
   file.startsWith('packages/film/lint/fixtures/');
 
 /** Both entry guards read one fresh source graph for this test invocation. */
@@ -202,6 +203,7 @@ const graph = Effect.runSync(
         [
           ...(yield* read('apps')),
           ...(yield* read('packages/film/src')),
+          ...(yield* read('packages/film/e2e')),
           ...(yield* read('packages/film/lint')),
         ],
         (file) =>

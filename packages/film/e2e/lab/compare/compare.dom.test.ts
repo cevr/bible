@@ -6,11 +6,11 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { HeadUnavailable } from '../../core/refusals.ts';
-import { json, openLab, refused, route } from '../fixtures/harness.ts';
-import { evaluates, textHas } from '../fixtures/settled.ts';
-import { type Tab, jsonOf } from '../fixtures/tab.ts';
-import { BLINK_MS } from './machine.ts';
+import { HeadUnavailable } from '../../../src/core/refusals.ts';
+import { json, openLab, refused, route } from '../../../src/lab/fixtures/harness.ts';
+import { evaluates, textHas } from '../../../src/lab/fixtures/settled.ts';
+import { type Tab, jsonOf } from '../../../src/lab/fixtures/tab.ts';
+import { BLINK_MS } from '../../../src/lab/compare/machine.ts';
 
 const compareSays = (page: Tab, part: string) => textHas(page, '.lab-compare-status', part);
 

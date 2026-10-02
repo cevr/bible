@@ -9,8 +9,8 @@
 
 import { Effect, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { asset, openTab, respond, scriptOf, servePaths } from '../lab/fixtures/browsers.ts';
-import type { FaceCase, FaceDelta } from './fixtures/face-pixels.ts';
+import { asset, openTab, respond, scriptOf, servePaths } from '../../src/lab/fixtures/browsers.ts';
+import type { FaceCase, FaceDelta } from '../../src/canvas/fixtures/face-pixels.ts';
 
 /** The most a pre-blended face may drift from the look, per channel /255: 8-bit rounding. */
 const ROUNDING = 4;
@@ -55,7 +55,7 @@ const cases = (group: typeof flat) =>
 const fixture = Effect.cached(
   Effect.promise(() =>
     Bun.build({
-      entrypoints: [`${import.meta.dir}/fixtures/face-pixels.ts`],
+      entrypoints: [`${import.meta.dir}/../../src/canvas/fixtures/face-pixels.ts`],
       target: 'browser',
       format: 'iife',
     }),

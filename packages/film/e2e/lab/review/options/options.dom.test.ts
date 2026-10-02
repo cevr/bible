@@ -15,7 +15,7 @@
 import { Deferred, Effect, Exit, FileSystem, Option, Schedule, Schema } from 'effect';
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Tab } from '../../fixtures/tab.ts';
+import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import {
   type FakeRoute,
   type Json,
@@ -26,8 +26,8 @@ import {
   refused,
   route,
   text,
-} from '../../fixtures/harness.ts';
-import { SourceRefused } from '../../../core/refusals.ts';
+} from '../../../../src/lab/fixtures/harness.ts';
+import { SourceRefused } from '../../../../src/core/refusals.ts';
 import {
   attributeIs,
   attributesAre,
@@ -38,8 +38,8 @@ import {
   until,
   valueIs,
   waitFor,
-} from '../../fixtures/settled.ts';
-import { tone } from '../../fixtures/tone.ts';
+} from '../../../../src/lab/fixtures/settled.ts';
+import { tone } from '../../../../src/lab/fixtures/tone.ts';
 
 const SLOW = 30_000;
 

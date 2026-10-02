@@ -8,7 +8,7 @@
 
 import { Effect, Option, Predicate } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Tab } from '../fixtures/tab.ts';
+import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import {
   type Asked,
   type FakeRoute,
@@ -17,12 +17,12 @@ import {
   openLab,
   refused,
   route,
-} from '../fixtures/harness.ts';
-import { ServerFailed } from '../../core/api.ts';
-import { PROBE } from '../fixtures/probe-film.ts';
-import { attached, textHas, textIs, valueIs, waitFor } from '../fixtures/settled.ts';
-import { RETRY_MS } from './feed.ts';
-import type { Note, Reply } from '../../core/schema.ts';
+} from '../../../src/lab/fixtures/harness.ts';
+import { ServerFailed } from '../../../src/core/api.ts';
+import { PROBE } from '../../../src/lab/fixtures/probe-film.ts';
+import { attached, textHas, textIs, valueIs, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import { RETRY_MS } from '../../../src/lab/notes/feed.ts';
+import type { Note, Reply } from '../../../src/core/schema.ts';
 
 /** Long enough to open the lab, draw, save and read the list back. */
 const SLOW = 15_000;

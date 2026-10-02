@@ -8,9 +8,9 @@
 
 import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Tab } from '../fixtures/tab.ts';
-import { type Asked, json, openLab, route, sourceOne } from '../fixtures/harness.ts';
-import { attributeIs, evaluates, textHas, valueIs } from '../fixtures/settled.ts';
+import type { Tab } from '../../../src/lab/fixtures/tab.ts';
+import { type Asked, json, openLab, route, sourceOne } from '../../../src/lab/fixtures/harness.ts';
+import { attributeIs, evaluates, textHas, valueIs } from '../../../src/lab/fixtures/settled.ts';
 
 const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));

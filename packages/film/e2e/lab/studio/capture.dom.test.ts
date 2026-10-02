@@ -12,11 +12,17 @@
 
 import { Array as Arr, Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { asset, openTab, respond, scriptOf, servePaths } from '../fixtures/browsers.ts';
-import type { ProbeSetup, Probed } from '../fixtures/capture-page.ts';
-import { CLOCK_SCRIPT } from '../fixtures/clock.ts';
-import { bundleOf } from '../fixtures/harness.ts';
-import { jsonOf } from '../fixtures/tab.ts';
+import {
+  asset,
+  openTab,
+  respond,
+  scriptOf,
+  servePaths,
+} from '../../../src/lab/fixtures/browsers.ts';
+import type { ProbeSetup, Probed } from '../../../src/lab/fixtures/capture-page.ts';
+import { CLOCK_SCRIPT } from '../../../src/lab/fixtures/clock.ts';
+import { bundleOf } from '../../../src/lab/fixtures/harness.ts';
+import { jsonOf } from '../../../src/lab/fixtures/tab.ts';
 
 const script = bundleOf('capture-page.ts');
 

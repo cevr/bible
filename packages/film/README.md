@@ -842,7 +842,7 @@ The provider (`context.tsx`) builds the Studio's own runtime (the stage, the
 studio's routes, the capture), so the shell knows nothing of it, and hands
 the section derived values and actions (`view.ts`: the controls each state
 offers with their keys, the status line, the meter, the counts), never the
-machine's states. `lab/studio/studio.dom.test.ts` drives the whole panel in
+machine's states. `e2e/lab/studio/studio.dom.test.ts` drives the whole panel in
 Chrome with a fake microphone.
 
 **Notes** live in `lab/<film>/notes.json` (`NotesFileJson`) with their stills
@@ -883,7 +883,7 @@ machine and actions, never the machine's state: the editor's `status` and
 `findings`, Compare's `mode`, `layer` (`hidden`, `head` or `now`) and
 `split`, the notes' `composerOpen`, `composerTyping` and `draft`; so no
 component matches a state's tag, and a renamed state touches only its
-module. The browser tests (`lab/**/*.dom.test.ts`) open the real
+module. The browser E2E tests (`e2e/lab/**/*.dom.test.ts`) open the real
 page over a probe film in headless Chrome with the lab API faked
 (`lab/fixtures/harness.ts`) and the page's clock the test's
 (`lab/fixtures/clock.ts`): a count-in, a retry or a loop's playback is moved
@@ -898,14 +898,14 @@ scripts load from one origin for every case (`asset`), so a view's renderer
 compiles them once. Every tab is on an origin of its own, so cases share no
 storage and no permission; between cases the view waits on an empty page,
 its history, scripts for new pages and listeners dropped
-(`lab/fixtures/browsers.dom.test.ts` dirties each and proves the next case
+(`e2e/lab/fixtures/browsers.dom.test.ts` dirties each and proves the next case
 sees none of it). One fake microphone (a 440 Hz tone on input 1) every tab
 hears, allowed or refused per tab. The tab answers the page's requests itself (the
 protocol's `Fetch`), types and clicks with native input events, and waits in
 the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
-worker (`--max-concurrency=3` in the test script: at most eight workers, one
+worker (`--max-concurrency=3` in the E2E script: at most eight workers, one
 per core on smaller hosts, and a case's timeout counts its own work, not its
-siblings'). The suite runner compiles and minifies each page's script once
+siblings'). The E2E runner compiles and minifies each page's script once
 per invocation, then workers read those immutable temporary files. The files
 are removed after the workers exit; a direct `bun test` builds its own scripts.
 
@@ -1689,16 +1689,19 @@ diagnostics for all eleven rules also assert the corrective message,
 including the distinct anchor-end and cue-part repairs, so a rule that
 fires but gives the wrong advice fails the fixture suite.
 
-The package's `test` script uses `lab/fixtures/run-suite.ts` to prepare fresh
-browser bundles and run `bun test --parallel --no-isolate --max-concurrency=3
---timeout 20000`. The runner caps workers at eight, or the host's core count
-when smaller, each keeping its module registry and its Chrome across the
-files it runs, so the module graph
-loads once per worker rather than once per file. A test file therefore
-leaves no global behind it (a stand-in it sets, it puts back). The lab's
-browser tests open a page and draw the probe film before they assert, which
-took 3–4.5 s at a load average of 50 beside sibling renders, where bun's 5 s
-default failed them in the gate. A test that hangs still fails, at 20 s.
+The package's `test` script runs the unit tests under `src/` and `lint/`.
+The root `test` and `gate`, including the CI gate, run this browser-free
+suite. E2E files live separately under `e2e/`, so those paths do not discover
+or execute them. Their source remains linted and typechecked.
+
+Run `bun run test:e2e` from the repository root or this package to exercise
+the real browser workflows and canvas pixel checks. The E2E script uses
+`src/lab/fixtures/run-suite.ts` to compile fresh browser bundles and run
+`bun test --parallel --no-isolate --max-concurrency=3 --timeout 20000 e2e`.
+The runner caps workers at eight, or the host's core count when smaller;
+each keeps its module registry and Chrome across files. Test files restore
+the global state they change. E2E cases retain native input, actual browser
+recording and pixel assertions. This command is independent of the gate.
 
 ## Knobs
 

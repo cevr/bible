@@ -6,6 +6,6 @@
     "jsx": "preserve",
     "jsxImportSource": "@solidjs/web"
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "lint/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "lint/**/*.ts", "e2e/**/*.ts"],
   "exclude": ["node_modules", "lint/fixtures"]
 }

@@ -8,9 +8,15 @@
 
 import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { asset, openTab, respond, scriptOf, viewsMade } from './browsers.ts';
-import { evaluates } from './settled.ts';
-import { type Request, type Tab, jsonOf } from './tab.ts';
+import {
+  asset,
+  openTab,
+  respond,
+  scriptOf,
+  viewsMade,
+} from '../../../src/lab/fixtures/browsers.ts';
+import { evaluates } from '../../../src/lab/fixtures/settled.ts';
+import { type Request, type Tab, jsonOf } from '../../../src/lab/fixtures/tab.ts';
 
 /** A page whose script answers `window.served` from its server's `/probe`. */
 const page = (word: string) => {

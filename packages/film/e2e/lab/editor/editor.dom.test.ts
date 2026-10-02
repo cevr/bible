@@ -7,10 +7,24 @@
 
 import { Effect, Option, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Tab } from '../fixtures/tab.ts';
-import { SourceRefused } from '../../core/refusals.ts';
-import { type Asked, hold, json, openLab, refused, route, sourceOne } from '../fixtures/harness.ts';
-import { attributeIs, attributesAre, evaluates, textHas, textIs } from '../fixtures/settled.ts';
+import type { Tab } from '../../../src/lab/fixtures/tab.ts';
+import { SourceRefused } from '../../../src/core/refusals.ts';
+import {
+  type Asked,
+  hold,
+  json,
+  openLab,
+  refused,
+  route,
+  sourceOne,
+} from '../../../src/lab/fixtures/harness.ts';
+import {
+  attributeIs,
+  attributesAre,
+  evaluates,
+  textHas,
+  textIs,
+} from '../../../src/lab/fixtures/settled.ts';
 
 const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));

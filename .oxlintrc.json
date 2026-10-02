@@ -177,7 +177,11 @@
       // applies, `throw` included: a film never throws. The tools and the
       // Schema/data modules of packages/film are not listed here and get the
       // full rule set.
-      "files": ["**/packages/film/src/canvas/**/*.ts", "**/apps/animations/src/films/**/*.ts"],
+      "files": [
+        "**/packages/film/src/canvas/**/*.ts",
+        "**/packages/film/e2e/canvas/**/*.pixel.test.ts",
+        "**/apps/animations/src/films/**/*.ts"
+      ],
       "rules": {
         "effect/noNullish": "off",
         "effect/noShapeInSymbolNames": "off",
@@ -345,7 +349,7 @@
     {
       // An engine pixel test draws in the browser tests' Chrome: it may open
       // a tab (lab/fixtures/browsers.ts), and nothing else of the lab.
-      "files": ["**/packages/film/src/canvas/**/*.pixel.test.ts"],
+      "files": ["**/packages/film/e2e/canvas/**/*.pixel.test.ts"],
       "rules": {
         "no-restricted-imports": [
           "error",

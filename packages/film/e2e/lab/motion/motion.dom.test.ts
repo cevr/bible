@@ -6,9 +6,9 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Tab } from '../fixtures/tab.ts';
-import { openLab } from '../fixtures/harness.ts';
-import { attributeIs, evaluates, textIs } from '../fixtures/settled.ts';
+import type { Tab } from '../../../src/lab/fixtures/tab.ts';
+import { openLab } from '../../../src/lab/fixtures/harness.ts';
+import { attributeIs, evaluates, textIs } from '../../../src/lab/fixtures/settled.ts';
 
 const motionSays = (page: Tab, part: string) => textIs(page, '.lab-motion-status', part);
 

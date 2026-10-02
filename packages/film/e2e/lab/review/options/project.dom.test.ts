@@ -18,8 +18,8 @@
 
 import { Array as Arr, Deferred, Effect, Exit, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Tab } from '../../fixtures/tab.ts';
-import { FreshProcessFailed, VerbRefused } from '../../../core/refusals.ts';
+import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
+import { FreshProcessFailed, VerbRefused } from '../../../../src/core/refusals.ts';
 import {
   type FakeRoute,
   type Json,
@@ -28,7 +28,7 @@ import {
   openReview,
   refused,
   route,
-} from '../../fixtures/harness.ts';
+} from '../../../../src/lab/fixtures/harness.ts';
 import {
   attached,
   attributeIs,
@@ -39,7 +39,7 @@ import {
   until,
   valueIs,
   waitFor,
-} from '../../fixtures/settled.ts';
+} from '../../../../src/lab/fixtures/settled.ts';
 
 const SLOW = 30_000;
 
