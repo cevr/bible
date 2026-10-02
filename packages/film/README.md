@@ -864,7 +864,8 @@ quotation set apart with who said it, marks stripped), and records it:
 - **Capture** (`capture-browser.ts`, behind the `Capture` service in
   `capture.ts`): `getUserMedia` with echo cancelling, noise suppression and
   gain control off, one channel, the microphone picked (`enumerateDevices`;
-  the choice is remembered in this browser, `mic-choice.ts`), into an
+  the choice is remembered in this browser as `film-lab-mic`, a `keptText` in
+  `ViewerStore`, `browser/storage.ts`), into an
   `AudioWorklet` (`worklet.ts`) on an `AudioContext` at the device's own
   rate. The worklet hands each block of float PCM over untouched with its
   peak and RMS (the meter: dBFS, a clip warning at −1 dBFS); the page keeps
@@ -1882,7 +1883,12 @@ test layer beside it. A page's root (`mountLab`, `mountReview`) builds the
 page's host once from `BrowserHost.layer` (`browser/host-browser.ts`,
 `hostOf` in `browser/host.ts`) and hands it on: the lab's, the studio's and
 the review's runtimes take it as a layer (`hostLayer`). `browser/` is
-framework-free, so the player may import it.
+framework-free, so the player may import it. Per-viewer settings go through
+Effect's `KeyValueStore` (`browser/storage.ts`): `TabStore` over the tab's
+session (the lab's view, `film-lab-view:<film>`, an `Atom.kvs` of its JSON)
+and `ViewerStore` over local storage (`film-lab-mic`, `film-review.quality`,
+`film-review.filter`, each a `keptText` stored as plain text), each a store
+in memory when the page may not use its storage.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.

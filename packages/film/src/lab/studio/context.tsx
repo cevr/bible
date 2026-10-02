@@ -33,7 +33,8 @@ import { StudioApi, studioApiLayer } from './api.ts';
 import { Capture } from './capture.ts';
 import { browserCaptureLayer } from './capture-browser.ts';
 import { RecorderEvent, type RecorderActor, spawnRecorder } from './machine.ts';
-import { localStore, micChoice } from './mic-choice.ts';
+import { keptText } from '../../browser/storage.ts';
+import { ViewerStore } from '../../browser/storage-browser.ts';
 import {
   type Act,
   type Control,
@@ -139,6 +140,13 @@ const refusalText = (cause: Cause.Cause<LabFailure>): string =>
 /** A signal the recorder's effects write. */
 const written = { ownedWrite: true } as const;
 
+/**
+ * The microphone the viewer picked, kept in this browser as its device id
+ * (empty for the browser's default): one choice for every film, as it is the
+ * viewer's desk, not the film's.
+ */
+const micChosen = keptText(ViewerStore, 'film-lab-mic');
+
 /** Whether the recorder is learning what became of a take: the server's answer, or its attempts read back. */
 const settling = (tag: string) => tag === 'Importing' || tag === 'Checking';
 
@@ -188,8 +196,9 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   const devicesResult = useAtomValue(() => devicesAtom);
   const refreshDevices = useAtomRefresh(() => devicesAtom);
 
-  const choice = micChoice(localStore());
-  const [device, setDevice] = createSignal(choice.get());
+  const chosen = useAtomValue(() => micChosen);
+  const choose = useAtomSet(() => micChosen);
+  const device = createMemo(() => Option.filter(chosen(), (id) => id !== ''));
 
   // An import that settles (answered, or read back from the attempts) reads
   // the beats and the beat's attempts again;
@@ -251,10 +260,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     select,
     perform,
     keep: (file) => send(RecorderEvent.KeepAttempt({ file })),
-    pick: (next) => {
-      choice.set(next);
-      setDevice(next);
-    },
+    pick: (next) => choose(Option.getOrElse(next, () => '')),
     press: (key) =>
       Option.match(keyOf(recorder(), key), {
         onNone: () => false,

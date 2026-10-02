@@ -14,7 +14,7 @@ import {
   useAtomValue,
 } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Clock, Effect, Layer, Option, Result } from 'effect';
+import { Clock, Effect, Layer, Option } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -32,7 +32,8 @@ import type { SeenPoint } from '../../core/choice.ts';
 import type { ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { type BrowserServices, type Host, hostLayer } from '../../browser/host.ts';
 import type { LabFailure } from '../api.ts';
-import { localStore } from '../studio/mic-choice.ts';
+import { keptText } from '../../browser/storage.ts';
+import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
 import type { Quality } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
@@ -101,27 +102,19 @@ const ReviewContext = createContext<ReviewContextValue>();
 /** The review's context: only inside `<Root>`. */
 export const useReview = (): ReviewContextValue => useContext(ReviewContext);
 
-/** Where the page keeps its choices between visits. */
-const KEPT = { quality: 'film-review.quality', filter: 'film-review.filter' } as const;
+/**
+ * The page's choices kept between visits, as plain text in this browser's
+ * store (a browser that keeps nothing forgets them with the page).
+ */
+const kept = {
+  quality: keptText(ViewerStore, 'film-review.quality'),
+  filter: keptText(ViewerStore, 'film-review.filter'),
+};
 
-/** `run`'s value, or none when it throws (storage a private window or a full quota refuses). */
-const attempt = <A,>(run: () => A): Option.Option<A> => Result.getSuccess(Result.try(run));
-
-/** A kept choice, when the browser keeps any. */
-const kept = (key: string): Option.Option<string> =>
-  Option.flatMap(
-    Option.flatMap(localStore(), (s) => attempt(() => s.getItem(key))),
-    Option.fromNullishOr,
-  );
-
-/** Keep a choice; a browser that keeps nothing forgets it with the page. */
-const keep = (key: string, value: string) =>
-  Option.map(localStore(), (s) => attempt(() => s.setItem(key, value)));
-
-/** The copy the page plays first: the kept one, else 720p on a narrow screen. */
-const firstQuality = (): Quality =>
+/** The copy the page plays: the kept one, else 720p on a narrow screen. */
+const qualityOf = (stored: Option.Option<string>): Quality =>
   Option.getOrElse(
-    Option.filter(kept(KEPT.quality), (q): q is Quality => q === 'phone' || q === 'full'),
+    Option.filter(stored, (q): q is Quality => q === 'phone' || q === 'full'),
     (): Quality => {
       if (matchMedia('(max-width: 900px)').matches) return 'phone';
       return 'full';
@@ -159,8 +152,6 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
   window.addEventListener('popstate', onPop);
   onCleanup(() => window.removeEventListener('popstate', onPop));
 
-  const [quality, setQuality] = createSignal(firstQuality());
-  const [filter, setFilter] = createSignal(Option.getOrElse(kept(KEPT.filter), () => ''));
   const [lightbox, setLightbox] = createSignal(Option.none<string>());
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') setLightbox(Option.none());
@@ -172,6 +163,12 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
     const index = useAtomValue(() => indexAtom);
     const refreshIndex = useAtomRefresh(() => indexAtom);
     const films = useAtomValue(() => filmsAtom);
+    const keptQuality = useAtomValue(() => kept.quality);
+    const keepQuality = useAtomSet(() => kept.quality);
+    const quality = createMemo(() => qualityOf(keptQuality()));
+    const keptFilter = useAtomValue(() => kept.filter);
+    const filter = createMemo(() => Option.getOrElse(keptFilter(), () => ''));
+    const keepFilter = useAtomSet(() => kept.filter);
     const value: ReviewContextValue = {
       state: { place, index, films, quality, filter, lightbox },
       actions: {
@@ -185,14 +182,8 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
           fresh = true;
           refreshIndex();
         },
-        quality: (q) => {
-          keep(KEPT.quality, q);
-          setQuality(q);
-        },
-        filter: (t) => {
-          keep(KEPT.filter, t);
-          setFilter(t);
-        },
+        quality: keepQuality,
+        filter: keepFilter,
         show: setLightbox,
       },
       meta: {

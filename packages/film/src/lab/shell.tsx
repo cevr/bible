@@ -16,7 +16,8 @@ import type { Film } from '../canvas/film.ts';
 import { type BrowserServices, type Host, hostLayer } from '../browser/host.ts';
 import type { Player } from '../player/main.ts';
 import { lookbookUrl } from '../player/pages.ts';
-import { type ViewStore, sessionStore, viewStore } from '../player/view-state.ts';
+import { TabStore } from '../browser/storage-browser.ts';
+import { type ViewStore, viewStore } from '../player/view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { ReviewPlace, searchOf } from './review/place.ts';
@@ -110,7 +111,7 @@ const Root = (props: RootProps) => {
     window.removeEventListener('resize', place);
   });
 
-  const view = viewStore(props.name, sessionStore(), player.film.duration);
+  const view = viewStore(props.name, player.film.duration, TabStore);
   // Whether it was playing: kept as the page goes (a write reloads it), and played again on load.
   const keepPlaying = () => view.patch({ playing: player.playing() });
   window.addEventListener('pagehide', keepPlaying);
