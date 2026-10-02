@@ -165,6 +165,68 @@ describe('UrlState', () => {
     }).pipe(Effect.provide(memory('/films/f/lab/s'))),
   );
 
+  it.effect('an entry landing from outside while a batch waits drops it and shows', () =>
+    Effect.gen(function* () {
+      const location = yield* Location;
+      const seek = (seconds: number) =>
+        UrlState.update(Lab, (value) => ({ ...value, hash: { t: at(seconds) } }));
+      yield* seek(1);
+      yield* Effect.yieldNow;
+      yield* seek(2);
+      yield* location.push('/films/f/lab/other');
+      yield* TestClock.adjust('1 second');
+      const state = yield* UrlState.UrlState;
+      expect(yield* state.changes.pipe(Stream.take(1), Stream.runCollect)).toEqual([
+        '/films/f/lab/other',
+      ]);
+      expect(yield* state.href).toBe('/films/f/lab/other');
+      expect((yield* stackOf).entries).toEqual([
+        'replace /films/f/lab/s#t=1',
+        'push /films/f/lab/other',
+      ]);
+    }).pipe(Effect.provide(memory('/films/f/lab/s'))),
+  );
+
+  it.effect('a batch that ends where the entry is writes nothing', () =>
+    Effect.gen(function* () {
+      const cue = (value: string) =>
+        UrlState.update(Lab, (current) => ({
+          ...current,
+          query: { ...current.query, cue: value },
+        }));
+      yield* cue('b');
+      yield* cue('a');
+      yield* TestClock.adjust('1 second');
+      expect(yield* stackOf).toEqual({ entries: ['load /films/f/lab/s?cue=a'], index: 0 });
+    }).pipe(Effect.provide(memory('/films/f/lab/s?cue=a'))),
+  );
+
+  it.effect('a window that grows while the flush waits is waited out', () =>
+    Effect.gen(function* () {
+      const Scrub = Place.make({
+        path: '/scrub',
+        hash: Field.struct({
+          a: Field.key(Codec.Text, { default: '', throttle: '50 millis' }),
+          b: Field.key(Codec.Text, { default: '', throttle: '250 millis' }),
+        }),
+      });
+      const write = (key: 'a' | 'b', value: string) =>
+        UrlState.update(Scrub, (current) => ({
+          ...current,
+          hash: { ...current.hash, [key]: value },
+        }));
+      yield* write('a', '1');
+      yield* Effect.yieldNow;
+      yield* write('a', '2');
+      yield* Effect.yieldNow;
+      yield* write('b', '1');
+      yield* TestClock.adjust('50 millis');
+      expect((yield* stackOf).entries).toEqual(['replace /scrub#a=1']);
+      yield* TestClock.adjust('200 millis');
+      expect((yield* stackOf).entries).toEqual(['replace /scrub#a=2&b=1']);
+    }).pipe(Effect.provide(memory('/scrub'))),
+  );
+
   it.effect('update off the place writes nothing', () =>
     Effect.gen(function* () {
       yield* UrlState.update(Lab, (value) => ({ ...value, query: { ...value.query, cue: 'c' } }));

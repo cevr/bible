@@ -13,9 +13,11 @@
  *
  * A batch whose every key is throttled (`Field.key(…, { throttle })`) waits
  * until its window since the last flush has passed, on `Clock`; a write of an
- * unthrottled key flushes the batch at the next tick. Back and Forward
- * (a `traverse` entry from `Location`) drop writes that have not flushed: the
- * reader has moved, and the entry they land on is the URL.
+ * unthrottled key flushes the batch at the next tick; a window that grows
+ * while the flush waits is waited out. An entry that lands from anywhere else
+ * (Back, Forward, a push the program made around `UrlState`) drops writes that
+ * have not flushed: the reader has moved, and the entry they land on is the
+ * URL. A batch whose writes end where the entry already is writes nothing.
  *
  * The module functions read and write one place:
  *
@@ -102,22 +104,37 @@ export const layer: Layer.Layer<UrlState, never, Location> = Layer.effect(
         );
       });
 
+    /** Sleep until the waiting batch's window has passed. The window is read
+     *  again on waking: a write made during the sleep can lengthen it. */
+    const due: Effect.Effect<void> = Effect.suspend(() =>
+      Effect.gen(function* () {
+        const waiting = yield* Ref.get(pending);
+        if (Option.isNone(waiting)) return;
+        const wait = yield* waitFor(waiting.value);
+        if (wait <= 0) return;
+        yield* Effect.sleep(Duration.millis(wait));
+        yield* due;
+      }),
+    );
+
     const flush = Effect.gen(function* () {
       // The tick: every write made in this turn joins the batch first.
       yield* Effect.yieldNow;
-      const waiting = yield* Ref.get(pending);
-      if (Option.isNone(waiting)) return;
-      const wait = yield* waitFor(waiting.value);
-      if (wait > 0) yield* Effect.sleep(Duration.millis(wait));
+      yield* due;
       const batch = yield* Ref.getAndSet(pending, Option.none());
       if (Option.isNone(batch)) return;
       const { href, move, entry } = batch.value;
-      // Back or Forward landed after the batch was written: the reader has
-      // moved, and the batch belongs to an entry no longer on screen.
-      if ((yield* location.current).key !== entry) {
+      const current = yield* location.current;
+      // Another entry landed after the batch was written (Back, Forward, a
+      // push from outside): the batch belongs to an entry no longer on
+      // screen, and the entry that is shows.
+      if (current.key !== entry) {
         yield* Effect.logDebug(`url-state.flush.dropped href=${href}`);
+        yield* SubscriptionRef.set(view, current.href);
         return;
       }
+      // The batch's writes came back to where the entry is.
+      if (href === current.href) return;
       yield* Effect.logDebug(`url-state.flush history=${move.history} href=${href}`);
       if (move.history === 'push') yield* location.push(href);
       else yield* location.replace(href);
@@ -141,11 +158,18 @@ export const layer: Layer.Layer<UrlState, never, Location> = Layer.effect(
       yield* FiberHandle.run(flushing, flush, { onlyIfMissing: throttled });
     });
 
-    /** Entries landing from `Location`: a traversal drops what has not
-     *  flushed; any entry shows when nothing is waiting. */
+    /** Entries landing from `Location`. One that is not the entry a waiting
+     *  batch was written on (Back, Forward, a push from outside) drops the
+     *  batch; any entry shows when nothing is waiting. A flush's own write
+     *  lands after it took the batch, so it never drops one. */
     const land = (entry: Entry) =>
       Effect.gen(function* () {
-        if (entry.navigation === 'traverse') {
+        const elsewhere = Option.exists(
+          yield* Ref.get(pending),
+          (batch) => batch.entry !== entry.key,
+        );
+        if (elsewhere) {
+          yield* Effect.logDebug(`url-state.landed.dropped key=${entry.key}`);
           yield* FiberHandle.clear(flushing);
           yield* Ref.set(pending, Option.none());
         }
