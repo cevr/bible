@@ -13,3 +13,4 @@ export { layerMemory, LocationHistory, type LocationHistoryService } from './loc
 export { layerServer, SERVER_ENTRY_KEY } from './location-server.js';
 export * as Place from './place.js';
 export { printHref, Raw, readHref, UrlParts, UrlPartsFromHref } from './url-parts.js';
+export * as UrlState from './url-state.js';
