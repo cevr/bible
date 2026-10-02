@@ -96,6 +96,21 @@ describe('useRenderElement', () => {
     expect(await logOf(page)).toEqual(['user click', 'internal click']);
   });
 
+  it('renders without reading reactive props outside a tracking scope', async () => {
+    const page = await h.open('class-style');
+    const warnings: Array<string> = [];
+    page.on('console', (message) => {
+      if (message.text().includes('STRICT_READ_UNTRACKED')) {
+        warnings.push(message.text());
+      }
+    });
+    await page.reload();
+    await page.locator('#root[data-mounted]').waitFor({ state: 'attached' });
+    await page.click('#fn-class');
+    await see(page.locator('#fn-class')).toHaveClass(/\bon\b/);
+    expect(warnings).toEqual([]);
+  });
+
   it('calls render with the merged props and the live state', async () => {
     const page = await h.open('class-style');
     const part = page.locator('#render-part');

@@ -232,8 +232,13 @@ function createView(read: () => ReadonlyArray<HTMLProps>): HTMLProps {
       get: (_, key) => (typeof key === 'string' ? get(key) : undefined),
       has: (_, key) => typeof key === 'string' && read().some((source) => hasKey(source, key)),
       ownKeys: () => keys(),
+      // A descriptor answers presence once (Solid's spread asks for `children` while it
+      // creates the element); the key set itself is tracked through `ownKeys`.
       getOwnPropertyDescriptor: (_, key) => {
-        if (typeof key !== 'string' || !read().some((source) => hasKey(source, key))) {
+        if (
+          typeof key !== 'string' ||
+          !untrack(() => read().some((source) => hasKey(source, key)))
+        ) {
           return undefined;
         }
         return { configurable: true, enumerable: true, get: () => get(key) };
