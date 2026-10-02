@@ -4,3 +4,5 @@ export * from './use-render/index.ts';
 export * from './direction-provider/index.ts';
 export * from './menu/index.ts';
 export * from './context-menu/index.ts';
+export * from './popover/index.ts';
+export * from './tooltip/index.ts';

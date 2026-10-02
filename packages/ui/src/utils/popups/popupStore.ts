@@ -11,7 +11,7 @@
 //
 // Upstream's stores are external stores React subscribes to; here each field
 // is a signal and the selectors are plain functions over them.
-import { type Accessor, createEffect, createSignal, untrack } from 'solid-js';
+import { type Accessor, createEffect, createSignal, flush, untrack } from 'solid-js';
 
 import {
   createFloatingRootContext,
@@ -256,6 +256,9 @@ export function useTriggerFocusGuards(
     const guard = event.currentTarget as HTMLElement;
     const positionerElement = untrack(store.positionerElement);
     store.setOpen(false, createChangeEventDetails(REASONS.focusOut, event, guard));
+    // Upstream's flushSync: the close must reach the DOM (the portal's outside
+    // guards unmount) before the next tabbable element is looked up.
+    flush();
     // Resolved after the close, which may change the tab order; from the trigger if the guard left.
     getTabbableNearElement(
       guard.isConnected ? guard : triggerElement(),

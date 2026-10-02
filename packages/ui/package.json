@@ -10,7 +10,9 @@
     "./use-render": "./src/use-render/index.ts",
     "./direction-provider": "./src/direction-provider/index.ts",
     "./menu": "./src/menu/index.ts",
-    "./context-menu": "./src/context-menu/index.ts"
+    "./context-menu": "./src/context-menu/index.ts",
+    "./popover": "./src/popover/index.ts",
+    "./tooltip": "./src/tooltip/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
