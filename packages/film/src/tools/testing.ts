@@ -67,6 +67,10 @@ import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
 import { FreshFilm, type FreshFilmService } from './fresh-film.ts';
 import { Takes } from './takes.ts';
+import { Review } from './review.ts';
+import { Choices } from './choices.ts';
+import { HttpServerRequest, HttpServerResponse } from 'effect/http';
+import { LabPage } from './lab-page.ts';
 
 const notFound = (method: string, path: string) =>
   PlatformError.systemError({
@@ -334,6 +338,53 @@ export const noStudio = Layer.mergeAll(
     StudioReadings,
     StudioReadings.of({ reading: () => Effect.die('the studio is not called here') }),
   ),
+);
+
+const unreviewed = (op: string) => Effect.die(`the review is not called here (${op})`);
+
+/**
+ * The review's services where a test calls none of its routes (the renders,
+ * the choices): the lab's handler serves them too, so they only have to
+ * exist.
+ */
+export const noReview = Layer.mergeAll(
+  Layer.succeed(
+    Review,
+    Review.of({
+      roots: [],
+      index: () => unreviewed('index'),
+      pictures: () => unreviewed('pictures'),
+      renderVideo: () => unreviewed('renderVideo'),
+      resolve: () => unreviewed('resolve'),
+      duration: () => unreviewed('duration'),
+      frame: () => unreviewed('frame'),
+      phone: () => unreviewed('phone'),
+      derive: () => unreviewed('derive'),
+    }),
+  ),
+  Layer.succeed(
+    Choices,
+    Choices.of({
+      list: () => unreviewed('list'),
+      checked: () => unreviewed('checked'),
+      pick: () => unreviewed('pick'),
+      knob: () => unreviewed('knob'),
+      say: () => unreviewed('say'),
+      alone: () => unreviewed('alone'),
+      inPlace: () => unreviewed('inPlace'),
+    }),
+  ),
+);
+
+/** The lab's pages as a test sees them: each answers its path, and a wait the build it was asked past. */
+export const echoPages = Layer.succeed(
+  LabPage,
+  LabPage.of({
+    answer: Effect.map(HttpServerRequest.HttpServerRequest, (request) =>
+      HttpServerResponse.text(`page ${new URL(request.url, 'http://lab').pathname}`),
+    ),
+    wait: (since) => Effect.succeed({ build: since }),
+  }),
 );
 
 /**

@@ -18,13 +18,17 @@
 import { BunHttpPlatform, BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   ApiKeyMissing,
+  Choices,
   ContentStore,
   ElevenLabs,
   FilmRepo,
   FreshFilm,
   type LabHandler,
+  LabPage,
   Media,
   NotesStore,
+  RenderCatalogue,
+  Review,
   SceneHead,
   SceneSources,
   SceneWriter,
@@ -35,7 +39,7 @@ import {
   labHandler,
 } from '@bible/film/tools';
 import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { serve } from './server.ts';
+import { serveLab } from './server.ts';
 
 /** What the fake hears for a beat it is told to mis-hear. */
 const MISHEARD = 'the quick brown fox jumps over the lazy dog';
@@ -156,16 +160,42 @@ const Harness = Layer.unwrap(
       Layer.provideMerge(Media.layer),
       Layer.provide([Repo, Platform]),
     );
-    const Services = Layer.mergeAll(Takes.layer, StudioReadings.layer).pipe(
-      Layer.provideMerge(Layer.mergeAll(Repo, Notes, Source, Check, Store, Heard, Platform)),
+    // The lab reviews nothing here: no render roots, but its choices over the copy.
+    const Reviewed = Review.layerConfig(Effect.succeed([])).pipe(Layer.provide([Heard, Platform]));
+    const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
+    const Pages = LabPage.layer({
+      pages: {
+        '/': path.join(app, 'review.html'),
+        '/lab': path.join(app, 'lab.html'),
+        '/player': path.join(app, 'index.html'),
+      },
+      sources: [path.join(app, 'src')],
+      films: root,
+    }).pipe(Layer.provide(Platform));
+    const Services = Choices.layer.pipe(
+      Layer.provideMerge(Layer.mergeAll(Takes.layer, StudioReadings.layer)),
+      Layer.provideMerge(
+        Layer.mergeAll(
+          Repo,
+          Notes,
+          Source,
+          Check,
+          Store,
+          Heard,
+          Reviewed,
+          Catalogue,
+          Pages,
+          Platform,
+        ),
+      ),
     );
 
     const Server = Layer.effectDiscard(
       Effect.gen(function* () {
         yield* (yield* FilmRepo).load(film);
-        const lab = yield* labHandler(film);
+        const lab = yield* labHandler({ hosts: [] });
         const server = yield* Effect.acquireRelease(
-          Effect.sync(() => serve(port, true, withControl(misheard, root, lab), root)),
+          Effect.sync(() => serveLab(port, '127.0.0.1', withControl(misheard, root, lab))),
           (s) => Effect.promise(() => s.stop(true)),
         );
         yield* Effect.log(`harness.ready url=${server.url}lab?film=${film} root=${root}`);

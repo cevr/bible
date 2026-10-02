@@ -4,7 +4,7 @@
 // in the code fails here instead of waiting for a sweep to read it. Read:
 //
 // - the route tables in packages/film/README.md: each row is a route the lab's
-//   or the review's API declares (`routesOf`), and each declared route has a
+//   API declares (`routesOf`), and each declared route has a
 //   row. A cell may list more than one: `POST /lab/<film>/undo`, `/redo` (a
 //   sibling of the path before), `GET /review/project/<film>`; `POST …/say`
 //   (below it);
@@ -24,7 +24,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
-import { LabHttpApi, ReviewHttpApi, routesOf } from './core/api.ts';
+import { LabHttpApi, routesOf } from './core/api.ts';
 
 /** What the docs are read against. */
 interface Code {
@@ -183,9 +183,8 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
       ),
     ).pipe(Effect.map((all) => all.flat())),
   );
-  const [lab, review] = [routesOf(LabHttpApi), routesOf(ReviewHttpApi)];
   return {
-    routes: new Set([...lab, ...review].map((r) => `${r.method} ${r.path}`)),
+    routes: new Set(routesOf(LabHttpApi).map((r) => `${r.method} ${r.path}`)),
     registered: new Set(matches(plugin, /^ {4}'([a-z-]+)': /gm).map(firstGroup)),
     enabled: new Set(matches(oxlintrc, /"film\/([a-z-]+)": "error"/g).map(firstGroup)),
     scripts: new Set(scripts.map(([name]) => name)),

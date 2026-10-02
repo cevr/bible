@@ -1,9 +1,8 @@
-// Compile-time checks for the long-lived servers, run by the package
-// typecheck. The review runs for days and the lab for hours, and Bun keeps a
-// module as it first imported it, so neither the review's handlers
-// (`ReviewContext`, what `reviewHandler` runs them with), its choices
-// (`ChoicesNeeds`, what `Choices.layer` is built on), nor the lab's handlers
-// (`LabContext`, what `labHandler` runs them with) hold a service that
+// Compile-time checks for the long-lived server, run by the package
+// typecheck. The lab runs for days, and Bun keeps a module as it first
+// imported it, so neither the lab's handlers (`LabContext`, what
+// `labHandler` runs them with) nor its choices (`ChoicesNeeds`, what
+// `Choices.layer` is built on) hold a service that
 // imports a film module or the app's sound library, or mixes a film in
 // process: a handler or a choice that reached for one would not compile, and
 // reads the film through `FreshFilm` instead. The lab's scene writer and its
@@ -18,7 +17,6 @@ import type { FilmRepo } from './film-repo.ts';
 import type { LabContext } from './lab.ts';
 import type { SoundLibrary } from './library.ts';
 import type { Mixer } from './mixer.ts';
-import type { ReviewContext } from './review-http.ts';
 import type { SceneHead } from './scene-head.ts';
 import type { SceneWriter } from './scene-writer.ts';
 
@@ -32,8 +30,6 @@ type LoadsNothing<Context> = [Extract<Context, Loader>] extends [never]
 
 /** What a layer is built on. */
 type LayerNeeds<L> = L extends Layer.Layer<infer _Out, infer _E, infer In> ? In : never;
-
-export const reviewLoadsNothing: LoadsNothing<ReviewContext> = true;
 
 export const choicesLoadNothing: LoadsNothing<ChoicesNeeds> = true;
 

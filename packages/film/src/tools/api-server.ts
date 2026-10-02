@@ -1,19 +1,18 @@
-// Where a lab or review server is composed from its API (`core/api.ts`): the
+// Where the lab's server is composed from its API (`core/api.ts`): the
 // handlers its groups derive, behind one gate every request passes first,
-// then its routes (and, for the review, the app's page) as one web handler.
+// then its routes and the app's pages as one web handler.
 //
 // The gate is the only place a request is admitted (`admit`): the Host (or,
 // where no header is sent, the URL's host) must be the bound port on a
-// loopback name, or one the server is told (`FILM_REVIEW_HOSTS`); a
+// loopback name, or one the server is told (`FILM_LAB_HOSTS`); a
 // browser's `Sec-Fetch-Site` must be same-origin; a write must come from no
 // Origin (a tool, like curl) or one of those hosts', with a JSON body (a
 // cross-site form can post text/plain without a preflight; JSON cannot) of
 // at most `STUDIO_MAX_BODY` bytes, counted as it streams. A new route is
 // behind the gate by being a route.
 //
-// Every film route names its film; `FilmScope` says which films the server
-// answers for (the lab its own, the review the app's), and any other name is
-// a 404 FilmUnknown before anything reads it.
+// Every film route names its film (`named`): one of the app's films, and any
+// other name is a 404 FilmUnknown before anything reads it.
 
 import {
   Array as Arr,
@@ -46,9 +45,9 @@ import {
   statusOf,
 } from '../core/api.ts';
 import { type HttpApi, HttpApiError, type HttpApiGroup } from 'effect/http-api';
-import { BodyTooLarge, FilmUnknown } from '../core/refusals.ts';
+import { BodyTooLarge } from '../core/refusals.ts';
 import { STUDIO_MAX_BODY } from '../core/studio.ts';
-import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
+import { filmNamed } from './film-repo.ts';
 
 /** Where the server listens: Bun hands each request its server. */
 export interface LabBound {
@@ -64,15 +63,12 @@ export type LabHandler = (request: Request, server: LabBound) => Promise<Respons
 /**
  * Hosts a server answers to beyond the bound port's loopback names: each an
  * exact Host value (`bite-cristian.exe.xyz:8229`), whose page may write from
- * `http://` or `https://` it (a TLS proxy in front). The lab has none; the
- * review is told them (`FILM_REVIEW_HOSTS`).
+ * `http://` or `https://` it (a TLS proxy in front): the lab's
+ * `FILM_LAB_HOSTS`.
  */
 export interface Allowed {
   readonly hosts: ReadonlyArray<string>;
 }
-
-/** Loopback only: the lab's. */
-export const LOOPBACK_ONLY: Allowed = { hosts: [] };
 
 /** The connection a request came on: the server's bound name and port, and a way to hold it open. */
 interface ConnectionService {
@@ -94,36 +90,8 @@ const connectionOf = (request: Request, server: LabBound): ConnectionService => 
   hold: (seconds) => server.timeout?.(request, seconds),
 });
 
-/** The films a server answers for: a name is one of them, or a FilmUnknown naming them. */
-interface FilmScopeService {
-  readonly named: (film: string) => Effect.Effect<FilmName, FilmUnknown>;
-}
-
-export class FilmScope extends Context.Service<FilmScope, FilmScopeService>()(
-  '@bible/film/tools/FilmScope',
-) {
-  /** The lab's: the one film it serves. */
-  static only(served: FilmName): FilmScopeService {
-    return FilmScope.of({
-      named: (film) => {
-        if (film === served) return Effect.succeed(served);
-        return Effect.fail(FilmUnknown.make({ film, known: [served] }));
-      },
-    });
-  }
-
-  /** The review's: any film in the app's folder (`filmNamed`). */
-  static readonly repo: Effect.Effect<FilmScopeService, never, FilmFolder> = Effect.map(
-    FilmFolder,
-    (folder) =>
-      FilmScope.of({
-        named: (film) => filmNamed(film).pipe(Effect.provideService(FilmFolder, folder)),
-      }),
-  );
-}
-
-/** The film a route's `:film` names, when the server answers for it. */
-export const named = (film: string) => FilmScope.use((scope) => scope.named(film));
+/** The film a route's `:film` names: one of the app's films, else a 404 FilmUnknown naming them. */
+export const named = (film: string) => filmNamed(film);
 
 /** The names the loopback host answers to, beside the one the server was bound with. */
 const LOOPBACK: ReadonlyArray<string> = ['127.0.0.1', 'localhost'];
@@ -308,12 +276,26 @@ export const answered = <A, E extends { readonly _tag: string; readonly message:
     ).pipe(Effect.andThen(Effect.fail(refusal)));
   });
 
+/** The app's pages as a route answers them: the response for the request, never a failure. */
+export type PageAnswer = Effect.Effect<
+  HttpServerResponse.HttpServerResponse,
+  never,
+  | HttpServerRequest.HttpServerRequest
+  | FileSystem.FileSystem
+  | Path.Path
+  | HttpPlatform.HttpPlatform
+>;
+
 /**
- * What else the server answers, once admitted: the app's page, for every
+ * What else the server answers, once admitted: the app's pages, for every
  * path no route takes, except under the API's own prefixes (`own`), where a
- * path no route takes is a 404 and never the page.
+ * path no route takes is a 404 and never a page.
  */
-const pageRoute = (page: Option.Option<LabHandler>, own: ReadonlyArray<string>) =>
+const pageRoute = (
+  page: Option.Option<PageAnswer>,
+  own: ReadonlyArray<string>,
+  platform: Context.Context<FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform>,
+) =>
   Option.match(page, {
     onNone: () => Layer.empty,
     onSome: (answer) =>
@@ -324,18 +306,9 @@ const pageRoute = (page: Option.Option<LabHandler>, own: ReadonlyArray<string>) 
           const request = yield* HttpServerRequest.HttpServerRequest;
           if (own.some((prefix) => request.url.startsWith(prefix)))
             return HttpServerResponse.empty({ status: 404 });
-          const web = yield* HttpServerRequest.toWeb(request);
-          const connection = yield* Connection;
-          const bound: LabBound = {
-            ...Option.match(connection.hostname, {
-              onNone: () => ({}),
-              onSome: (hostname) => ({ hostname }),
-            }),
-            ...Option.match(connection.port, { onNone: () => ({}), onSome: (port) => ({ port }) }),
-          };
-          return HttpServerResponse.fromWeb(yield* Effect.promise(() => answer(web, bound)));
+          return yield* answer;
         }),
-      ),
+      ).pipe(HttpRouter.provideRequest(Layer.succeedContext(platform))),
   });
 
 /** An API's routes (`HttpApiBuilder.layer(api)` over its groups' handlers), their services provided. */
@@ -358,7 +331,7 @@ type ApiRoutes = Layer.Layer<
 export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
   routes: ApiRoutes,
-  options: { readonly allowed: Allowed; readonly page?: LabHandler },
+  options: { readonly allowed: Allowed; readonly page?: PageAnswer },
 ) =>
   Effect.gen(function* () {
     const platform = yield* Effect.context<
@@ -367,7 +340,7 @@ export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constrai
     const app = Layer.mergeAll(
       routes,
       gate(options.allowed),
-      pageRoute(Option.fromUndefinedOr(options.page), prefixesOf(api)),
+      pageRoute(Option.fromUndefinedOr(options.page), prefixesOf(api), platform),
     ).pipe(Layer.provide(Etag.layerWeak), Layer.provide(Layer.succeedContext(platform)));
     const { handler } = yield* Effect.acquireRelease(
       Effect.sync(() => HttpRouter.toWebHandler(app, { disableLogger: true })),
@@ -380,12 +353,9 @@ export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constrai
 
 /**
  * An API's routes (`HttpApiBuilder.layer(api)` over its groups) with the
- * services their handlers run with, for every request: the caller's, and the
- * films the server answers for.
+ * services their handlers run with, for every request: the caller's.
  */
 export const withServices =
-  <R>(services: Context.Context<R>, scope: FilmScopeService) =>
+  <R>(services: Context.Context<R>) =>
   <A, E, RIn>(groups: Layer.Layer<A, E, RIn>) =>
-    groups.pipe(
-      HttpRouter.provideRequest(Layer.succeedContext(Context.add(services, FilmScope, scope))),
-    );
+    groups.pipe(HttpRouter.provideRequest(Layer.succeedContext(services)));

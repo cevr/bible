@@ -1,21 +1,21 @@
-// The lab's routes, served beside the player by the app's server while
-// `film lab <film>` runs: the handlers of the lab's API (`LabHttpApi` in
-// `core/api.ts`, where every path, body and answer is declared). The app
-// mounts the handler at `/lab/*` (its server owns the port, the HTML bundle
-// and HMR). Every route names the film it is for (`/lab/<film>/…`); the lab
-// answers only its own (`FilmScope.only`), so a page for another film can
-// neither read nor write this one's notes or source.
+// The lab's server: one web handler for the lab's whole API (`LabHttpApi` in
+// `core/api.ts`, where every path, body and answer is declared), for every
+// film the app has, and its pages (`LabPage`). It tweaks a film (notes on
+// frames, the scene source the cues and knobs write back to, Undo and Redo,
+// the studio) and reviews it (the renders under the roots, the film's
+// choices and its project), and runs for days: `film lab`, the box's unit.
 //
 // The notes read and write through NotesStore, so the page and `film notes`
 // see the same file. The scene source routes write through SceneWriter: each
 // write lands in the scene's `.ts` file, then `film check --static` runs
 // fresh; Undo and Redo put the newest write back or make it again.
 //
-// The API rewrites source, so it answers only the lab's own page: the server
-// listens on the loopback interface, and every request passes the gate
-// (`api-server.ts`) with loopback only.
+// The API rewrites source and is reached from a phone, so every request, the
+// pages included, passes the one gate (`api-server.ts`): the bound port's
+// loopback names and the hosts it is told (`FILM_LAB_HOSTS`), nothing else.
 
 import {
+  Config,
   Duration,
   Effect,
   FileSystem,
@@ -24,15 +24,21 @@ import {
   Path,
   Record as Rec,
   Result,
-  Schema,
 } from 'effect';
+import type { HttpPlatform } from 'effect/http';
 import { HttpServerResponse } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
 import { HeadUnavailable, StillUnknown } from '../core/refusals.ts';
-import { FilmScope, LOOPBACK_ONLY, answered, named, serveApi, withServices } from './api-server.ts';
+import { type Allowed, answered, named, serveApi, withServices } from './api-server.ts';
+import { choicesGroup } from './choices-http.ts';
+import type { Choices } from './choices.ts';
+import { LabPage } from './lab-page.ts';
+import { projectGroup } from './project-http.ts';
+import { reviewGroup } from './review-http.ts';
+import type { Review } from './review.ts';
 import type { ContentStore } from './content-store.ts';
-import { FilmFolder, FilmName } from './film-repo.ts';
+import { FilmFolder, type FilmName } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import { readKnob, readSpans } from './scene-source.ts';
 import { SceneHead } from './scene-head.ts';
@@ -64,7 +70,7 @@ const cueWritten = Effect.fn('lab.cueWritten')(function* (
   return yield* writeAnswer(film, written, Effect.succeed({ ...span, ...where }));
 });
 
-/** The film's writes stepped back and on, and its check (the review serves the same three). */
+/** The film's writes stepped back and on, and its check. */
 const stepsGroup = HttpApiBuilder.group(LabHttpApi, 'steps', (handlers) =>
   handlers
     .handle('undo', stepHandlers.undo)
@@ -213,22 +219,49 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
     ),
 );
 
-const asFilmName = Schema.decodeSync(FilmName);
+/** The pages' build: a wait that answers once a source a build read changes. */
+const pageGroup = HttpApiBuilder.group(LabHttpApi, 'page', (handlers) =>
+  handlers.handle('wait', ({ query }) =>
+    answered(
+      Effect.flatMap(LabPage, (page) =>
+        page.wait(query.since, Duration.seconds(Math.max(0, query.timeout ?? 60))),
+      ),
+    ),
+  ),
+);
 
 /**
- * What the lab's handlers run with: the notes store, the film's folder,
- * its source (read, written, stepped), its takes, and `FreshFilm` for every
- * read of the film's modules. The lab runs for hours and keeps a module as it
- * first imported it, so nothing here loads the film (`FilmRepo`) or mixes it
- * in process (`Mixer`): the studio reads the script and voice fresh
- * (`StudioReadings`) and remixes fresh, and a cue write is judged and
- * resolved fresh (SceneWriter's check).
- * `review-context.types.ts` fails the typecheck if a loader joins.
+ * The hosts the lab answers to beside loopback: `FILM_LAB_HOSTS`,
+ * comma-separated Host values (`bite-cristian.exe.xyz:8229`); a page served
+ * through one may write from `http://` or `https://` it.
+ */
+export const labAllowed = Config.String('FILM_LAB_HOSTS').pipe(
+  Config.withDefault(''),
+  Config.map((text): Allowed => ({
+    hosts: text
+      .split(',')
+      .map((host) => host.trim())
+      .filter((host) => host.length > 0),
+  })),
+);
+
+/**
+ * What the lab's handlers run with: the notes store, the film's folder, its
+ * source (read, written, stepped), its takes, the renders' index, the
+ * choices, the pages, and `FreshFilm` for every read of a film's modules.
+ * The lab runs for days and keeps a module as it first imported it, so
+ * nothing here loads a film (`FilmRepo`), the sound library
+ * (`SoundLibrary`) or mixes in process (`Mixer`): the studio reads the
+ * script and voice fresh (`StudioReadings`) and remixes fresh, a cue write is
+ * judged and resolved fresh (SceneWriter's check), and a film's options are
+ * read and heard fresh (`Choices`). `lab-context.types.ts` fails the
+ * typecheck if a loader joins.
  */
 export type LabContext =
   | NotesStore
   | FileSystem.FileSystem
   | Path.Path
+  | HttpPlatform.HttpPlatform
   | ContentStore
   | FilmFolder
   | SceneSources
@@ -237,17 +270,35 @@ export type LabContext =
   | SceneHead
   | FreshFilm
   | Takes
-  | StudioReadings;
+  | StudioReadings
+  | Review
+  | Choices
+  | LabPage;
 
 /**
- * The lab's whole API for `film` as one web handler over the services the
- * caller runs with (`LabContext`), closed when the scope closes.
+ * The lab's whole server as one web handler over the services the caller
+ * runs with (`LabContext`): every request passes the gate with `allowed`
+ * first, the pages included, so a foreign Host reads nothing; then the API's
+ * routes answer theirs, for any film the app has, and the pages the rest.
+ * Closed when the scope closes.
  */
-export const labHandler = Effect.fn('film.lab.handler')(function* (film: string) {
+export const labHandler = Effect.fn('film.lab.handler')(function* (allowed: Allowed) {
   const services = yield* Effect.context<LabContext>();
   const routes = HttpApiBuilder.layer(LabHttpApi).pipe(
-    Layer.provide(Layer.mergeAll(notesGroup, scenesGroup, stepsGroup, studioGroup)),
-    withServices(services, FilmScope.only(asFilmName(film))),
+    Layer.provide(
+      Layer.mergeAll(
+        notesGroup,
+        scenesGroup,
+        stepsGroup,
+        studioGroup,
+        reviewGroup,
+        choicesGroup,
+        projectGroup,
+        pageGroup,
+      ),
+    ),
+    withServices(services),
   );
-  return yield* serveApi(LabHttpApi, routes, { allowed: LOOPBACK_ONLY });
+  const page = (yield* LabPage).answer;
+  return yield* serveApi(LabHttpApi, routes, { allowed, page });
 });

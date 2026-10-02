@@ -13,15 +13,19 @@ import { labHandler } from './lab.ts';
 import { FilmFolder } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import {
+  echoPages,
   foreignRequests,
   freshFilm,
   memoryFileSystem,
+  noReview,
   noSource,
   noStudio,
   text,
 } from './testing.ts';
 
-const files = () => new Map<string, Uint8Array>();
+/** The films folder with one film, `f`: a folder with its scenes' index. */
+const files = () =>
+  new Map<string, Uint8Array>([['/films/f/scenes/index.ts', text('export {};\n')]]);
 
 const labLayer = (store: Map<string, Uint8Array>) =>
   Layer.mergeAll(
@@ -29,6 +33,8 @@ const labLayer = (store: Map<string, Uint8Array>) =>
     FilmFolder.layer('/films'),
     noSource,
     noStudio,
+    noReview,
+    echoPages,
     freshFilm({}),
     HttpPlatform.layer,
   ).pipe(
@@ -41,6 +47,9 @@ const labLayer = (store: Map<string, Uint8Array>) =>
   );
 
 const png = text('frame');
+
+/** The lab told no hosts: loopback alone. */
+const LOOPBACK = { hosts: [] };
 
 /** Where the lab server listens: the only host the routes answer to. */
 const bound = { hostname: '127.0.0.1', port: 4401 } as const;
@@ -64,7 +73,7 @@ const draft = `{"scene":"hand","T":230.38,"frame":6911,"cue":{"name":"topple","e
 describe('lab routes', () => {
   it.effect('a posted note is listed, its still served, and a wait returns it', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler('f');
+      const lab = yield* labHandler(LOOPBACK);
       const posted = yield* Effect.promise(() => lab(post('/lab/f/notes', draft), bound));
       expect(posted.status).toBe(200);
       const listed = yield* Effect.promise(() =>
@@ -88,7 +97,7 @@ describe('lab routes', () => {
 
   it.effect('a user reply reopens the note; resolve closes it', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler('f');
+      const lab = yield* labHandler(LOOPBACK);
       yield* Effect.promise(() => lab(post('/lab/f/notes', draft), bound));
       const replied = yield* Effect.promise(() =>
         lab(post('/lab/f/notes/n1/reply', '{"text":"lower still"}'), bound).then((r) => r.json()),
@@ -106,7 +115,7 @@ describe('lab routes', () => {
 
   it.effect('a bad body is a 400, an unknown note a 404, a path for a still a 404', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler('f');
+      const lab = yield* labHandler(LOOPBACK);
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
       expect(yield* status(post('/lab/f/notes', '{"scene":"hand"}'))).toBe(400);
       expect(yield* status(post('/lab/f/notes/n9/resolve', '{}'))).toBe(404);
@@ -118,13 +127,13 @@ describe('lab routes', () => {
     'every route names its film: another film is a 404 FilmUnknown, none a 404; nothing is written',
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler('f');
+        const lab = yield* labHandler(LOOPBACK);
         const answer = (req: Request) =>
           Effect.gen(function* () {
             const res = yield* Effect.promise(() => lab(req, bound));
             return { status: res.status, body: yield* Effect.promise(() => res.text()) };
           });
-        // A page for film g, open on the lab that serves f.
+        // A page for film g, which the app does not have.
         const other = yield* answer(post('/lab/g/notes', draft));
         expect(other.status).toBe(404);
         expect(
@@ -139,7 +148,7 @@ describe('lab routes', () => {
         expect((yield* answer(get('/lab/g/studio/beats'))).status).toBe(404);
         // A page from before the film was on the wire: no route takes it.
         expect((yield* answer(get('/lab/notes'))).status).toBe(404);
-        // Nothing was written; the bound film still answers.
+        // Nothing was written; the app's film still answers.
         const listed = yield* Effect.promise(() =>
           lab(get('/lab/f/notes'), bound).then((r) => r.json()),
         );
@@ -149,7 +158,7 @@ describe('lab routes', () => {
 
   it.effect('every route the lab API declares answers a foreign Host 403, and runs nothing', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler('f');
+      const lab = yield* labHandler(LOOPBACK);
       const routes = routesOf(LabHttpApi);
       expect(routes.length).toBeGreaterThan(15);
       for (const request of foreignRequests(routes, 'http://127.0.0.1:4401', 'f')) {
@@ -167,7 +176,7 @@ describe('lab routes', () => {
 
   it.effect('refuses a write from another page, a body that is not JSON, and a foreign Host', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler('f');
+      const lab = yield* labHandler(LOOPBACK);
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
       // Another page the user has open (CSRF): its Origin is not the lab's.
       const foreign = { origin: 'http://evil.example' };

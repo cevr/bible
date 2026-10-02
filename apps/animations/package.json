@@ -4,7 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --hot server.ts",
     "narrate": "bun cli.ts narrate",
     "takes": "bun cli.ts takes",
     "script": "bun cli.ts script",
@@ -24,7 +23,6 @@
     "plan": "alchemy plan alchemy.run.ts --stage prod",
     "deploy": "alchemy deploy alchemy.run.ts --stage prod",
     "store:keys": "bun infra/keys.ts --stage prod",
-    "review": "bun cli.ts review",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

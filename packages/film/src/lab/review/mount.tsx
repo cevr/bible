@@ -1,4 +1,4 @@
-// The review page's entry (`/`, `film review`): the header (where the page is,
+// The review page's entry (`/`, served by `film lab`): the header (where the page is,
 // and its tools), the page itself, and the lightbox, in Solid 2 over the
 // review's routes on the page's own origin.
 
@@ -14,6 +14,7 @@ import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, QualityToggle, SetPage } from './section.tsx';
 import { REVIEW_CSS } from './style.ts';
+import { labUrl } from '../../player/pages.ts';
 
 /** The trail to `place`: each step's title, and where it goes (none for the page itself). */
 interface Crumb {
@@ -50,11 +51,18 @@ const crumbsOf = (place: ReviewPlace, index: Option.Option<ReviewIndex>): Readon
   );
 };
 
+/** The film a place is about (its choices or its project), for its lab link. */
+const filmOf = (place: ReviewPlace): Option.Option<string> =>
+  Match.value(place).pipe(
+    Match.tags({ Film: (p) => Option.some(p.film), Project: (p) => Option.some(p.film) }),
+    Match.orElse(() => Option.none()),
+  );
+
 const Header = () => {
   const { state, actions } = useReview();
   const crumbs = () => crumbsOf(state.place(), AsyncResult.value(state.index()));
   createEffect(crumbs, (trail) => {
-    document.title = [...trail.map((c) => c.title).toReversed(), 'Film review'].join(' · ');
+    document.title = [...trail.map((c) => c.title).toReversed(), 'Lab'].join(' · ');
   });
   const go = (place: ReviewPlace) => (e: MouseEvent) => {
     if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
@@ -65,7 +73,7 @@ const Header = () => {
     <header class="rv-header">
       <nav class="rv-crumbs">
         <a href={location.pathname} onClick={go(Place.Home())}>
-          <b>Film review</b>
+          <b>Lab</b>
         </a>
         <For each={crumbs()}>
           {(crumb) => (
@@ -85,6 +93,13 @@ const Header = () => {
       </nav>
       <span class="rv-spacer" />
       <div class="rv-row rv-tools">
+        <Show when={Option.getOrUndefined(filmOf(state.place()))}>
+          {(film) => (
+            <a class="rv-chip" href={labUrl(film())} data-act="lab">
+              Lab
+            </a>
+          )}
+        </Show>
         <Show when={state.place()._tag === 'Home'} fallback={<QualityToggle />}>
           <input
             type="search"

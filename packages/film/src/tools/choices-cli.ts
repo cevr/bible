@@ -217,7 +217,7 @@ const keepVoice = Command.make(
 
 export const options = Command.make('options').pipe(
   Command.withDescription(
-    "A film's choices, their mixes, a take or a voice kept, read fresh from disk (what `film review` asks)",
+    "A film's choices, their mixes, a take or a voice kept, read fresh from disk (what the lab's review asks)",
   ),
   Command.withSubcommands([list, mix, take, keepVoice]),
 );

@@ -93,5 +93,5 @@ const check = ({ params }: FilmParams) =>
 /** The film's steps without the check: what a page reads after a write that answered its findings. */
 const steps = ({ params }: FilmParams) => answered(Effect.flatMap(named(params.film), history));
 
-/** The `steps` group's handlers, for `HttpApiBuilder.group(api, 'steps', …)` in either API. */
+/** The `steps` group's handlers, for `HttpApiBuilder.group(LabHttpApi, 'steps', …)`. */
 export const stepHandlers = { undo, redo, check, steps } as const;

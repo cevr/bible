@@ -19,6 +19,7 @@ import {
 } from '../../core/choice.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { reviewFileUrl, reviewFrameUrl } from '../../core/api.ts';
+import { labUrl } from '../../player/pages.ts';
 import { SetProvider, useReview, useSet } from './context.tsx';
 import {
   agoText,
@@ -156,7 +157,7 @@ const Section = (props: {
   </Show>
 );
 
-/** The app's films, each a link to its choices and its project (none when the review serves no films). */
+/** The app's films, each a link to its project, its choices and its lab (none when the app has no films). */
 const Films = () => {
   const { state } = useReview();
   const films = () =>
@@ -176,6 +177,9 @@ const Films = () => {
               <Go class="rv-chip" place={Place.Film({ film })}>
                 {film} · choices
               </Go>
+              <a class="rv-chip" href={labUrl(film)}>
+                {film} · lab
+              </a>
             </>
           )}
         </For>

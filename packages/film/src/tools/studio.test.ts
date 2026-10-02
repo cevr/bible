@@ -32,6 +32,8 @@ import {
   fakeMedia,
   freshFilm,
   memoryFileSystem,
+  echoPages,
+  noReview,
   noSource,
   storeLayer,
   testFilm,
@@ -122,7 +124,7 @@ const setup = (
     fakeElevenLabs(files, emptyCalls(), { recorded }),
     fakeMedia(files),
   );
-  // The lab's handler serves the studio: its notes and source services only have to exist.
+  // The lab's handler serves the studio: its notes, source and review services only have to exist.
   const folder = Layer.succeed(
     FilmFolder,
     FilmFolder.of({
@@ -132,7 +134,14 @@ const setup = (
       stamp: () => Effect.sync(() => stamp.now),
     }),
   );
-  const layer = Layer.mergeAll(Takes.layer, NotesStore.layer, noSource, StudioReadings.layer).pipe(
+  const layer = Layer.mergeAll(
+    Takes.layer,
+    NotesStore.layer,
+    noSource,
+    noReview,
+    echoPages,
+    StudioReadings.layer,
+  ).pipe(
     Layer.provideMerge(Layer.mergeAll(folder, fresh)),
     Layer.provideMerge(repo),
     Layer.provideMerge(storeLayer(files)),
@@ -164,7 +173,7 @@ const said = new Map([
 
 const call = (request: Request) =>
   Effect.gen(function* () {
-    const studio = yield* labHandler('test');
+    const studio = yield* labHandler({ hosts: [] });
     const res = yield* Effect.promise(() => studio(request, bound));
     const type = res.headers.get('content-type');
     const raw = yield* Effect.promise(() => res.text());
@@ -419,7 +428,7 @@ describe('studio routes', () => {
           }
         }
         const server = new Held();
-        const studio = yield* labHandler('test');
+        const studio = yield* labHandler({ hosts: [] });
         yield* Effect.promise(() =>
           studio(post('/lab/test/studio/takes/a', recording('Hello world.')), server),
         );
@@ -444,7 +453,7 @@ describe('studio routes', () => {
     );
     return Effect.gen(function* () {
       // One studio, as the lab runs it, taking two posts at once.
-      const studio = yield* labHandler('test');
+      const studio = yield* labHandler({ hosts: [] });
       const answers = yield* Effect.forEach(
         [
           post('/lab/test/studio/takes/a', recording('Hello world.')),

@@ -8,7 +8,7 @@
 import { Context, Effect, Layer } from 'effect';
 import { FetchHttpClient, HttpClient, HttpClientResponse } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
-import { Refusal, ReviewHttpApi, reviewFileUrl } from '../../core/api.ts';
+import { Refusal, LabHttpApi, reviewFileUrl } from '../../core/api.ts';
 import type { ReviewIndex } from '../../core/review.ts';
 import { type LabFailure, called } from '../api.ts';
 
@@ -33,7 +33,7 @@ const fileText = (res: HttpClientResponse.HttpClientResponse) => {
 
 /** The review's routes on `origin`. */
 const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: string) {
-  const client = (yield* HttpApiClient.make(ReviewHttpApi, { baseUrl: origin })).review;
+  const client = (yield* HttpApiClient.make(LabHttpApi, { baseUrl: origin })).review;
   const http = yield* HttpClient.HttpClient;
   const api: ReviewCalls = {
     index: (fresh) => {

@@ -12,7 +12,7 @@ import { Context, Data, Effect, Layer, Match, Option, Predicate } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 import type { PartAddress } from '../../../core/address.ts';
-import { type ProjectView, ReviewHttpApi, type Say, type Steps } from '../../../core/api.ts';
+import { type ProjectView, LabHttpApi, type Say, type Steps } from '../../../core/api.ts';
 import type { ChoiceVerb, ChoiceWrite, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewFilms } from '../../../core/review.ts';
 import type { CheckLine, CheckReport, LabWrite } from '../../../core/schema.ts';
@@ -103,7 +103,7 @@ const variantOf = (variant: Option.Option<string>) =>
 
 /** A film's choice and project routes on `origin`. */
 const makeOptionsApi = Effect.fn('lab.options.api')(function* (origin: string) {
-  const client = yield* HttpApiClient.make(ReviewHttpApi, { baseUrl: origin });
+  const client = yield* HttpApiClient.make(LabHttpApi, { baseUrl: origin });
   /** A pick or a knob: the change, the choices it leaves, and the check after it. */
   const picked =
     (act: ChoiceAct) =>

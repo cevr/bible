@@ -8,7 +8,7 @@
 
 import { RegistryProvider } from '@bible/atom-solid';
 import { Portal } from '@solidjs/web';
-import { Layer, Option } from 'effect';
+import { Effect, Fiber, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createSignal, onCleanup, onSettled, useContext } from 'solid-js';
@@ -17,6 +17,8 @@ import type { Player } from '../player/main.ts';
 import { lookbookUrl } from '../player/pages.ts';
 import { type ViewStore, sessionStore, viewStore } from '../player/view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
+import { reloadOnRebuild } from './rebuilt.ts';
+import { ReviewPlace, searchOf } from './review/place.ts';
 import { type Selection, searchWithSelection, selectionFromSearch } from './selection.ts';
 import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
 
@@ -119,6 +121,9 @@ const Root = (props: RootProps) => {
   const [revision, setRevision] = createSignal(0, fromDraw);
   const stage = makeStage(player, () => setRevision((n) => n + 1));
   const clientLayer = LabClient.layer(location.origin);
+  // The server rebuilt the pages (a source changed): reload onto the new code at this frame.
+  const rebuilt = Effect.runFork(reloadOnRebuild(stage.reload).pipe(Effect.provide(clientLayer)));
+  onCleanup(() => Effect.runFork(Fiber.interrupt(rebuilt)));
   const runtime = Atom.runtime(
     Layer.merge(stageLayer(stage), labApiLayer(props.name)).pipe(Layer.provide(clientLayer)),
   );
@@ -217,7 +222,7 @@ const Strip = (props: ParentProps) => {
 /** The side panel: the header, then each tool's section. */
 const Panel = (props: ParentProps) => <aside class="lab-panel">{props.children}</aside>;
 
-/** The panel's header: its name, the hint, the header's tools, and the look-book link. */
+/** The panel's header: its name, the hint, the header's tools, and the film's review pages and look-book. */
 const Header = (props: ParentProps) => {
   const { meta } = useLab();
   return (
@@ -227,6 +232,20 @@ const Header = (props: ParentProps) => {
         click pin · drag box · <kbd>n</kbd> note this frame
       </span>
       {props.children}
+      <a
+        class="lab-lookbook"
+        href={`/${searchOf(ReviewPlace.Project({ film: meta.name }))}`}
+        title="each scene's render, its approval and comments"
+      >
+        Scenes
+      </a>
+      <a
+        class="lab-lookbook"
+        href={`/${searchOf(ReviewPlace.Film({ film: meta.name }))}`}
+        title="the film's choices: score, takes, voices, looks and levels, heard in the mix"
+      >
+        Choices
+      </a>
       <a
         class="lab-lookbook"
         href={lookbookUrl(meta.name)}

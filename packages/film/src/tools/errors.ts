@@ -321,15 +321,6 @@ export class PreviewServerFailed extends Schema.TaggedError<PreviewServerFailed>
   }
 }
 
-/** The app's review page did not build, so `review` does not start. */
-export class ReviewPageFailed extends Schema.TaggedError<ReviewPageFailed>()('ReviewPageFailed', {
-  reason: Schema.String,
-}) {
-  override get message() {
-    return `the review page did not build: ${this.reason}`;
-  }
-}
-
 /** The player page did not load, or loaded without an export handle. */
 export class PageLoadFailed extends Schema.TaggedError<PageLoadFailed>()('PageLoadFailed', {
   url: Schema.String,

@@ -1,5 +1,5 @@
 // A film's choices over HTTP: the handlers of the review API's `choices`
-// group (`core/api.ts`), served by `film review` for every film of the app.
+// group (`core/api.ts`), served by `film lab` for every film of the app.
 // A pick or a knob is a write: it lands in the film's source through the
 // SourceWriter and is answered like the lab's knob writes, with the film's
 // static check after it and the choices as they now stand, both from one
@@ -7,13 +7,13 @@
 // (`soundCheck`, dead air and balance in the mix the film now makes) after a
 // pick. A say (an approval, its withdrawal, a comment) lands in the film's
 // catalogue, and answers the choices it leaves.
-// A film is named as one of the films in the app's folder (`FilmScope.repo`)
+// A film is named as one of the films in the app's folder (`named`)
 // before anything reads it: any other name is a 404 that lists the films,
 // never a path.
 
 import { Effect, Option, Path } from 'effect';
 import { HttpApiBuilder } from 'effect/http-api';
-import { ReviewHttpApi } from '../core/api.ts';
+import { LabHttpApi } from '../core/api.ts';
 import type { ChoiceWrite } from '../core/choice.ts';
 import { answered, named } from './api-server.ts';
 import { Choices, type Picked } from './choices.ts';
@@ -48,7 +48,7 @@ const answer = Effect.fn('choices.answer')(function* (film: FilmName, picked: Pi
 });
 
 /** The choices' handlers. */
-export const choicesGroup = HttpApiBuilder.group(ReviewHttpApi, 'choices', (handlers) =>
+export const choicesGroup = HttpApiBuilder.group(LabHttpApi, 'choices', (handlers) =>
   handlers
     .handle('films', () =>
       answered(

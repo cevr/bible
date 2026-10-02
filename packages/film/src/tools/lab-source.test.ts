@@ -20,7 +20,7 @@ import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
-import { freshCue, noStudio, sceneFixture } from './testing.ts';
+import { echoPages, freshCue, noReview, noStudio, sceneFixture } from './testing.ts';
 
 /** The timeout of a test here that spawns (git): a cold start's time is the machine's (film/spawn-budget). */
 const SPAWNS_MS = 30_000;
@@ -70,6 +70,8 @@ const fixtureWith = (repoOver: (films: string) => ReturnType<typeof FilmRepo.lay
         ),
         NotesStore.layer,
         noStudio,
+        noReview,
+        echoPages,
         HttpPlatform.layer,
         Layer.succeed(HandFile, path.join(films, 'f', 'scenes', 'hand.ts')),
       ).pipe(Layer.provideMerge(ContentStore.layer));
@@ -100,7 +102,7 @@ describe('lab source routes', () => {
     'a cue write lands in the file and answers with the span, its timing and the check',
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler('f');
+        const lab = yield* labHandler({ hosts: [] });
         const before = yield* read();
         const source = yield* Effect.promise(() =>
           lab(new Request(at('/lab/f/scenes/hand/source')), bound).then((r) => r.json()),
@@ -132,7 +134,7 @@ describe('lab source routes', () => {
 
   it.effect('a knob write answers with the knob; a computed value is a 422, file untouched', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler('f');
+      const lab = yield* labHandler({ hosts: [] });
       const knob = yield* Effect.promise(() =>
         lab(post('/lab/f/knobs/hand/palm', '{"value":[1000,760]}'), bound).then((r) => r.json()),
       );
@@ -164,7 +166,7 @@ describe('lab source routes', () => {
 
   it.effect('undo and redo walk the writes back and forth; check answers the last of them', () =>
     Effect.gen(function* () {
-      const lab = yield* labHandler('f');
+      const lab = yield* labHandler({ hosts: [] });
       const json = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.json()));
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
       const before = yield* read();
@@ -199,7 +201,7 @@ describe('lab source routes', () => {
     "head answers HEAD's data, and says when the code changed since",
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler('f');
+        const lab = yield* labHandler({ hosts: [] });
         const fs = yield* FileSystem.FileSystem;
         const file = yield* HandFile;
         const dir = (yield* Path.Path).dirname(file);
@@ -251,7 +253,7 @@ describe('lab source routes', () => {
     'a cue that lands but does not resolve says why, instead of leaving it out silently',
     () =>
       Effect.gen(function* () {
-        const lab = yield* labHandler('f');
+        const lab = yield* labHandler({ hosts: [] });
         const res = yield* Effect.promise(() =>
           lab(post('/lab/f/cues/hand/topple', '{"offset":0.4}'), bound),
         );

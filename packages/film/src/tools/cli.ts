@@ -9,9 +9,9 @@
 //   film cues | check | doctor                                 read and check a film
 //   film render | lookbook | chapters                          pictures and video
 //   film project …    (project-cli.ts) a film's scenes rendered, approved, commented
-//   film options …    (choices-cli.ts) a film's choice points, read fresh for the review
+//   film options …    (choices-cli.ts) a film's choice points, read fresh for the lab
 //   film read …       (read-cli.ts)    the studio's reading and a cue, read fresh for the lab
-//   film lab | review                                          the servers (Ctrl-C stops them)
+//   film lab                                                   the lab's server, every film (Ctrl-C stops it)
 //   film notes …      (notes-cli.ts)   the lab's notes, from the terminal
 //
 // Each command's flags are its own `--help`.
@@ -75,16 +75,15 @@ import {
   PreviewServerFailed,
   SoundMissing,
 } from './errors.ts';
-import { FilmRepo, filmNamed, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { FilmFolder, FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
 import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
-import type { LabHandler } from './api-server.ts';
-import { labHandler } from './lab.ts';
+import { labAllowed, labHandler } from './lab.ts';
+import { LabPage, type LabPageSpec } from './lab-page.ts';
 import { Review, type ReviewRoot } from './review.ts';
-import { reviewAllowed, reviewHandler } from './review-http.ts';
 import { NotesStore } from './notes-store.ts';
 import { notes } from './notes-cli.ts';
 import { read } from './read-cli.ts';
@@ -819,42 +818,25 @@ const serveUntilInterrupted = <E>(
     return yield* Effect.never;
   });
 
-const lab = <E>(labServer: LabServer<E>) =>
+const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
   Command.make(
     'lab',
-    { film },
-    Effect.fn('film.lab')(function* (input) {
-      // An unknown film fails here, before a server starts.
-      yield* (yield* FilmRepo).load(input.film);
-      // The lab's whole API: notes, scene source, steps and the studio.
-      const handler = yield* labHandler(input.film);
-      const notes = (yield* NotesStore).paths(yield* filmNamed(input.film)).notes.file;
-      return yield* serveUntilInterrupted(labServer(handler), (server) => {
-        const url = `${server.url}lab?film=${encodeURIComponent(input.film)}`;
-        return [url, `lab.ready film=${input.film} url=${url} notes=${notes}`];
-      });
-    }, Effect.scoped),
-  ).pipe(
-    Command.withDescription(
-      'Open the film lab: the player in dev mode with notes on frames, and cues and knobs that write back to the scene files (Ctrl-C stops it)',
-    ),
-  );
-
-const review = <E>(reviewServer: LabServer<E>, reviewPage: Effect.Effect<LabHandler, E>) =>
-  Command.make(
-    'review',
     {},
-    Effect.fn('film.review')(function* () {
-      const handler = yield* reviewHandler(yield* reviewAllowed, yield* reviewPage);
+    Effect.fn('film.lab')(function* () {
+      // The lab's whole API, for every film: what tweaks it and what reviews it.
+      const handler = yield* labHandler(yield* labAllowed);
       const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
-      return yield* serveUntilInterrupted(reviewServer(handler), (server) => [
+      const known = yield* (yield* FilmFolder).names;
+      return yield* serveUntilInterrupted(app.server(handler), (server) => [
         server.url,
-        `review.ready url=${server.url} roots=${roots.join(',')}`,
+        `lab.ready url=${server.url} films=${known.join(',')} roots=${roots.join(',')}`,
       ]);
     }, Effect.scoped),
   ).pipe(
+    // The pages, built from the app's entries and watched while the lab runs.
+    Command.provide(LabPage.layer({ ...app.pages, films })),
     Command.withDescription(
-      "Serve the review: every render under the review roots, compared in sync, and each film's options to pick from (Ctrl-C stops it)",
+      "Serve the lab for every film: the player with notes on frames, cues and knobs that write back to the scene files and the studio, beside every render under the roots, compared in sync, and each film's choices and scenes to approve (Ctrl-C stops it)",
     ),
   );
 
@@ -877,18 +859,16 @@ interface FilmApp<E> {
   readonly folders: { readonly out: string; readonly lab: string };
   /** The player, served while `render` or `check` runs. */
   readonly previewServer: Layer.Layer<PreviewServer, E>;
-  /** The player in development mode with the lab's routes, served while `lab` runs. */
-  readonly labServer: LabServer<E>;
   /**
-   * The review, served while `review` runs: its server (on the host and port
-   * the app chooses, answering every request with the handler it is given),
-   * its page (made when `review` starts: a handler for the page, its assets
-   * and what else the app serves, asked only once the review admits the
-   * request), and the roots it reads when `FILM_REVIEW_ROOTS` names none.
+   * The lab, served while `lab` runs: its server (on the host and port the
+   * app chooses, answering every request with the handler it is given), its
+   * pages (the app's HTML entries and the folders they are built from:
+   * `LabPage`), and the roots of the renders it reviews when
+   * `FILM_REVIEW_ROOTS` names none.
    */
-  readonly review: {
+  readonly lab: {
     readonly server: LabServer<E>;
-    readonly page: Effect.Effect<LabHandler, E>;
+    readonly pages: Omit<LabPageSpec, 'films'>;
     readonly roots: Effect.Effect<
       ReadonlyArray<ReviewRoot>,
       never,
@@ -915,8 +895,7 @@ export const runFilmCli = <E>({
   sounds,
   folders,
   previewServer,
-  labServer,
-  review: reviewApp,
+  lab: labApp,
   self,
 }: FilmApp<E>): void => {
   // The app's folders under the environment's: FILMS_OUT and FILMS_LAB, when set, win.
@@ -937,7 +916,7 @@ export const runFilmCli = <E>({
   const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
   const Private = PrivateStore.layer(sounds).pipe(Layer.provide([FetchHttpClient.layer, Platform]));
   const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Private, Platform]));
-  const Reviewed = Review.layerConfig(reviewApp.roots).pipe(
+  const Reviewed = Review.layerConfig(labApp.roots).pipe(
     Layer.provideMerge(BunHttpPlatform.layer),
     // Its lengths, frames and phone copies are the Media service's.
     Layer.provide([Tools, Platform]),
@@ -991,8 +970,7 @@ export const runFilmCli = <E>({
       lookbook(lookLayer),
       chaptersCommand,
       doctor(previewServer),
-      lab(labServer),
-      review(reviewApp.server, reviewApp.page),
+      lab(labApp, films),
       notes,
     ]),
   );

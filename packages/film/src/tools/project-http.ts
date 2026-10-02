@@ -12,7 +12,7 @@
 import { Effect, Match, Option, Path } from 'effect';
 import { HttpApiBuilder } from 'effect/http-api';
 import type { PartAddress } from '../core/address.ts';
-import { type ProjectView, RequestInvalid, ReviewHttpApi, Say } from '../core/api.ts';
+import { type ProjectView, RequestInvalid, LabHttpApi, Say } from '../core/api.ts';
 import type { Project } from '../core/catalogue.ts';
 import { answered, named } from './api-server.ts';
 import { FilmFolder } from './film-repo.ts';
@@ -111,7 +111,7 @@ const project = (film: string, args: (film: string) => ReadonlyArray<string>) =>
   );
 
 /** The project's handlers. */
-export const projectGroup = HttpApiBuilder.group(ReviewHttpApi, 'project', (handlers) =>
+export const projectGroup = HttpApiBuilder.group(LabHttpApi, 'project', (handlers) =>
   handlers
     .handle('get', ({ params, query }) =>
       project(params.film, (film) => [film, ...variantArgs(query), '--json']),

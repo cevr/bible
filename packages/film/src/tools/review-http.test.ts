@@ -1,31 +1,44 @@
-// The review's routes as a phone calls them: the index, a file answered in
-// ranges (206, and 416 past its end), a frame, a length, a ref that leaves
-// its root refused as unknown; and the hosts it answers to, the allowlist's
-// beside loopback, a write from anywhere else refused.
+// The lab's review routes as a phone calls them: the index, a file answered
+// in ranges (206, and 416 past its end), a frame, a length, a ref that leaves
+// its root refused as unknown; and the hosts the lab answers to, the
+// allowlist's beside loopback, a write from anywhere else refused.
 
 import { BunServices, BunHttpPlatform } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
-import { CheckReport, LabWrite } from '../core/schema.ts';
 import {
-  ProjectView,
-  Refusal,
-  ReviewHttpApi,
-  Steps,
-  reviewFileUrl,
-  routesOf,
-} from '../core/api.ts';
+  Array as Arr,
+  ConfigProvider,
+  Context,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Schema,
+} from 'effect';
+import { CheckReport, LabWrite } from '../core/schema.ts';
+import { ProjectView, Refusal, LabHttpApi, Steps, reviewFileUrl, routesOf } from '../core/api.ts';
 import { type Project, emptyCatalogue, projectOf } from '../core/catalogue.ts';
 import { ChoiceWrite, FilmChoices, SoundCheck, withSay } from '../core/choice.ts';
 import { ReviewDuration, ReviewIndex } from '../core/review.ts';
 import { SceneNotRendered, VerbRefused } from '../core/refusals.ts';
 import { Choices } from './choices.ts';
 import { FilmFolder } from './film-repo.ts';
-import { reviewHandler, refFromUrl } from './review-http.ts';
+import { labHandler } from './lab.ts';
+import { NotesStore } from './notes-store.ts';
+import { refFromUrl } from './review-http.ts';
+import { ContentStore } from './content-store.ts';
 import { Review } from './review.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
-import { foreignRequests, freshFilm, reviewMedia } from './testing.ts';
+import {
+  echoPages,
+  foreignRequests,
+  freshFilm,
+  noSource,
+  noStudio,
+  reviewMedia,
+} from './testing.ts';
 
 class Root extends Context.Service<Root, string>()('test/Root') {}
 
@@ -172,25 +185,37 @@ const fixture = Layer.unwrap(
     }).pipe(
       Layer.provide(reviewMedia([])),
       Layer.merge(Layer.succeed(Root, dir)),
+      // The lab's own services (notes, scene source, studio) only have to exist; film `f`'s win.
+      Layer.merge(
+        Layer.mergeAll(
+          noSource,
+          noStudio,
+          echoPages,
+          NotesStore.layer.pipe(
+            Layer.provideMerge(ContentStore.layer),
+            Layer.provide(
+              ConfigProvider.layer(
+                ConfigProvider.fromUnknown({ FILMS_LAB: path.join(dir, 'lab') }),
+              ),
+            ),
+          ),
+        ),
+      ),
       Layer.merge(filmServices(films)),
     );
   }),
 ).pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, BunHttpPlatform.layer)));
 
-/** Where the review listens: every interface, on 8229. */
+/** Where the lab listens: every interface, on 8229. */
 const bound = { hostname: '0.0.0.0', port: 8229 } as const;
 const allowed = { hosts: ['box.example:8229'] };
 
 const get = (path: string, headers: Record<string, string> = {}) =>
   new Request(`http://127.0.0.1:8229${path}`, { method: 'GET', headers });
 
-/** The app's page: its path echoed, so a test sees the request reached it. */
-const page = (request: Request) =>
-  Effect.runPromise(Effect.sync(() => new Response(`page ${new URL(request.url).pathname}`)));
-
 const ask = (request: Request) =>
   Effect.gen(function* () {
-    const review = yield* reviewHandler(allowed, page);
+    const review = yield* labHandler(allowed);
     return yield* Effect.promise(() => review(request, bound));
   });
 
@@ -321,9 +346,9 @@ describe('review routes', () => {
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 
-  it.effect('every route the review API declares answers a foreign Host 403', () =>
+  it.effect('every route the lab API declares answers a foreign Host 403', () =>
     Effect.gen(function* () {
-      const routes = routesOf(ReviewHttpApi);
+      const routes = routesOf(LabHttpApi);
       expect(routes.length).toBeGreaterThan(10);
       for (const request of foreignRequests(routes, 'http://127.0.0.1:8229', 'f')) {
         const res = yield* ask(request);

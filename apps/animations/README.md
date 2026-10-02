@@ -8,7 +8,7 @@ scrubbable preview and a frame-exact MP4 export.
 ## Commands
 
 ```sh
-bun run dev                                    # player at http://127.0.0.1:4400
+bun run lab                                    # the lab at http://127.0.0.1:8229/: the review at /, a film's lab at /lab?film=<film>, its look-book at /player?film=<film>&lookbook (LAB_HOST, LAB_PORT, FILM_LAB_HOSTS)
 bun run narrate <film>                         # stage stale beats with ElevenLabs, verify, remix full.wav
 bun run script <film> [--sheet]                # the reading sheet; --sheet writes out/<film>/script-sheet.md + .html to print
 bun run takes import <film> <folder|file>      # the owner's recordings as takes (trimmed, levelled, timed), remix full.wav
@@ -57,8 +57,6 @@ bun run project approve <film> --scene id,id | --act name | --all  # approve sce
 bun run project withdraw <film> --scene id,id | --act name | --all  # withdraw those scenes' approvals
 bun run project comment <film> "text" [--scene id | --act name]  # a comment on a scene's render as it is now (or the scene, before its first render), an act, or (neither) the film
 bun run chapters <film>                        # the YouTube chapters film.ts's look.acts name, one `mm:ss title` a line
-bun run lab <film>                             # the lab at http://127.0.0.1:4401/lab?film=<film> (Ctrl-C stops it)
-bun run review                                 # the review at http://127.0.0.1:8229/: renders compared in sync; ?film=<film> its choices, ?project=<film> its scenes to approve (REVIEW_HOST, REVIEW_PORT, FILM_REVIEW_*)
 bun cli.ts options list <film> [--check]       # the film's choice points as the review reads them, fresh from disk (one line of JSON); --check adds the static check's findings
 bun cli.ts options take <film> --point p --variant v --verb pick|unpick|reject  # keep, unkeep or reject a sound's take in the library as it stands
 bun cli.ts options mix <film> --point p --variant v --to f.m4a  # the film's whole mix with a score option or a take in place
@@ -72,11 +70,17 @@ bun run notes resolve <film> <id>
 
 Every command is the `film` CLI from `@bible/film/tools`, run by this app's
 `cli.ts` (`bun cli.ts --help`), which hands it the player server that `render`
-loads and, for `lab`, the same server in development mode with the lab's own
-page at `/lab` (`lab.html`, whose entry `src/lab.ts` mounts `@bible/film/lab`;
-`bunfig.toml` compiles its Solid JSX; the render's server never serves it) and
-the lab's routes at `/lab/<film>/*` (`LAB_PORT`, default 4401; a page for any other film
-is answered 404 `FilmUnknown`, so it cannot touch this film's notes or source). Lab notes and their stills are
+loads (`index.html`, on a free loopback port; the render's server never serves
+Solid) and, for `lab`, the lab: one server for every film, meant to stay up
+(on the box, the `film-lab` user unit on port 8229). The lab builds its pages
+from this app's source in its own process when they are asked for, and again
+after a file they were built from changes: the review (`review.html`) at `/`,
+the lab (`lab.html`, whose entry `src/lab.ts` mounts `@bible/film/lab`) at
+`/lab?film=<film>`, the player at `/player`. There is no build step and no
+restart after an edit: an open lab reloads itself onto the new code at the
+frame it shows, and a page that does not build shows the bundler's words
+until it does. The lab's routes are at `/lab/<film>/*` and `/review/*` (a name
+that is not one of the app's films is answered 404 `FilmUnknown`). Lab notes and their stills are
 written to `lab/<film>/` (git-ignored; `FILMS_LAB` moves it). Narrate flags: `--only id,id` (record these, current or not),
 `--force` (every beat), `--dry-run` (print each beat `recorded`, `staging` or
 `stale` with why, record nothing), `--accept-mismatch id,id` (keep these
@@ -176,7 +180,7 @@ needs no other tool; it writes `full.wav` whole (a partial of its own,
 renamed only once written), so a failed or interrupted mix leaves the previous track as it was. The
 player streams the same WAV. Ctrl-C stops
 a render cleanly: every page, the browser and the server close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
-`c` captions. In the lab (`bun run lab <film>`) a click on the frame pins a
+`c` captions. In the lab (`bun run lab`, `/lab?film=<film>`) a click on the frame pins a
 note, a drag boxes one, the Pen draws on it and `n` notes the whole frame;
 notes show as pink pins on the track and in the side list, where the
 agent's replies arrive with their after-stills (if the page loses the lab server, the notes say so and connect again on their own). The strip under the timeline shows the
@@ -209,8 +213,10 @@ and a `TakeMismatch` offers Accept anyway (K). ←/→ step through the beats an
 Esc cancels; those keys are the Studio's only while it has focus. Each beat's
 attempts play again and Keep makes one the take. A kept take reloads the lab
 at the same time, on the same beat, playing the new take (`/films/*` is served
-uncached for that). Use Chrome or Firefox on the Mac and allow the
-microphone for `127.0.0.1:4401`; pick the interface in the Studio's mic list
+uncached for that). Use Chrome or Firefox and allow the microphone
+for the lab's origin; a browser gives the microphone only to `https://` or
+`localhost`, so record on the box's own browser or through an HTTPS name
+(a tunnel to `127.0.0.1:8229`); pick the interface in the Studio's mic list
 (it is remembered in the browser). The capture is raw PCM (no echo cancelling,
 noise suppression or gain control) posted as a 24-bit WAV at the microphone's
 own rate. `bun studio-harness.ts` runs the same lab over a temp
@@ -223,8 +229,9 @@ foot), every named cue (a bar as long as the cue), every sound effect (a dot
 along the top) and every score movement's start (a line through it), from the film's
 `sound` passed to `createFilm`; hover one for its name and time.
 
-**The review** (`bun run review`; on the box, the `film-review` user unit on
-port 8229) is where options are compared and picked. Its home lists the
+**The review** (the lab's home page, `/`) is where options are compared and
+picked; each film on it links to its lab, and the lab to the film's scenes and
+choices. Its home lists the
 films and every folder of renders under every checkout's `out/` (and any
 `FILM_REVIEW_EXTRA_ROOTS`). Videos named `<clip>.<variant>.mp4` in one
 folder are a comparison set, played on one clock (all of them, the first
@@ -248,16 +255,15 @@ controls at every level: each scene's render (this checkout's), its state
 renders it), approval and comments, with approve, withdraw and comment per
 scene, per act and for the film, "Approve all current", and each choice point
 once, at the scene, act or film it plays in (a scene links the layers placed
-elsewhere). The review answers loopback, and the names in
-`FILM_REVIEW_HOSTS` when `REVIEW_HOST=0.0.0.0`, on every path (the page too:
-`server.ts` builds it in process and serves it behind the check); writes are
-same-origin JSON.
-It never edits a scene: that stays in the lab. The player, the lab and the
-review serve a film's narration through the framework's one route
-(`narrationRoute`, `packages/film/src/tools/narration-route.ts`),
+elsewhere). The lab answers loopback, and the names in
+`FILM_LAB_HOSTS` when `LAB_HOST=0.0.0.0`, on every path (the pages too: built
+in process and served behind the check); writes are same-origin JSON. The
+review never edits a scene: the lab's own page does. The player and the lab
+serve a film's narration through the framework's one route
+(`packages/film/src/tools/narration-route.ts`),
 `/films/<film>/narration/<file>`: the film one of the app's films now (a
 folder with `scenes/index.ts`, read per request, so a film made while the
-review runs is served), the file one directly in its `narration/` (never
+lab runs is served), the file one directly in its `narration/` (never
 `attempts/`); any other name is a 404.
 
 ## How a film is built

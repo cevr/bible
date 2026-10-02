@@ -1,15 +1,16 @@
-// The lab's and the review's HTTP routes, declared once: every path, its
-// params, query, body and answer, and every failure with its status. The
-// servers derive their handlers from it (`tools/lab.ts`, `tools/studio.ts`,
-// `tools/review-http.ts`, `tools/choices-http.ts`, `tools/project-http.ts`,
-// composed in `tools/api-server.ts`), and the pages their clients and URLs
-// (`lab/api.ts` and its siblings), so a route cannot be written two ways.
+// The lab's HTTP routes, declared once: every path, its params, query, body
+// and answer, and every failure with its status. The server derives its
+// handlers from it (`tools/lab.ts`, `tools/studio.ts`, `tools/review-http.ts`,
+// `tools/choices-http.ts`, `tools/project-http.ts`, composed in
+// `tools/api-server.ts`), and the pages their clients and URLs (`lab/api.ts`
+// and its siblings), so a route cannot be written two ways.
 //
-// Two APIs share the groups: the lab (`film lab <film>`: notes, scene source,
-// steps, studio) and the review (`film review`: review, choices, project,
-// steps). Every film route is under `/lab/<film>/`, but the project's, under
-// `/review/project/<film>`; a film the server does not serve is a 404
-// FilmUnknown.
+// One API, `LabHttpApi`, served by `film lab` for every film: what tweaks a
+// film (notes, scene source, steps, studio) and what reviews it (the renders,
+// choices, project). Every film route is under `/lab/<film>/`, but the
+// project's, under `/review/project/<film>`; the routes of no one film (the
+// renders' index and files, the films, the pages' build) are under
+// `/review/`. A film the app does not have is a 404 FilmUnknown.
 //
 // A failure crosses as its own class, JSON with its `_tag`, at the status
 // `Refusals` gives it: the one status table. Anything a handler fails with
@@ -301,7 +302,7 @@ class ScenesGroup extends HttpApiGroup.make('scenes').add(
   }),
 ) {}
 
-/** The film's writes stepped back and on, and its check: the lab's and the review's alike. */
+/** The film's writes stepped back and on, and its check. */
 class StepsGroup extends HttpApiGroup.make('steps').add(
   HttpApiEndpoint.post('undo', '/lab/:film/undo', {
     params: film,
@@ -492,19 +493,41 @@ class ProjectGroup extends HttpApiGroup.make('project').add(
   }),
 ) {}
 
-/** The lab's API, served while `film lab <film>` runs. */
+/**
+ * The page's build: the number of the lab's pages as built now, past the
+ * `since` a page was built at once the sources change.
+ */
+export const PageBuild = Schema.Struct({ build: Schema.Finite });
+export type PageBuild = typeof PageBuild.Type;
+
+/**
+ * The lab's own pages: a wait, held open up to `timeout` s (at most 60),
+ * that answers once a file under the sources the pages are built from
+ * changed past the build the page was served (`since`), so an open lab
+ * reloads onto the new code.
+ */
+class PageGroup extends HttpApiGroup.make('page').add(
+  HttpApiEndpoint.get('wait', '/review/build', {
+    query: { since: Schema.Finite, timeout: Schema.optionalKey(Schema.Finite) },
+    success: PageBuild,
+    error: Refusals,
+  }),
+) {}
+
+/**
+ * The lab's API, served by `film lab`: every film's notes, scene source,
+ * steps and studio, the renders under the roots and each film's choices and
+ * project, and the pages' build.
+ */
 export class LabHttpApi extends HttpApi.make('lab')
   .add(NotesGroup)
   .add(ScenesGroup)
   .add(StepsGroup)
-  .add(StudioGroup) {}
-
-/** The review's API, served by `film review`. */
-export class ReviewHttpApi extends HttpApi.make('review')
+  .add(StudioGroup)
   .add(ReviewGroup)
   .add(ChoicesGroup)
   .add(ProjectGroup)
-  .add(StepsGroup) {}
+  .add(PageGroup) {}
 
 /** A route an API declares: its method and its path, `:param`s and a trailing `*` as declared. */
 export interface Route {
@@ -536,7 +559,6 @@ export const prefixesOf = <Id extends string, Groups extends HttpApiGroup.Constr
 // The URLs a page puts in an <img>, <audio> or <video>, derived from the routes.
 
 const labUrls = HttpApiClient.urlBuilder(LabHttpApi);
-const reviewUrls = HttpApiClient.urlBuilder(ReviewHttpApi);
 
 /** A note's still. */
 export const stillUrl = (film: string, name: string): string =>
@@ -562,13 +584,13 @@ export const reviewPhoneUrl = (ref: string): string => `${REVIEW_PHONE}${refPath
 /** A frame of a video, `w` px wide, at `t` s to the hundredth (10% in when none). */
 export const reviewFrameUrl = (ref: string, t: Option.Option<number>, w: number): string => {
   const at = Option.match(t, { onNone: () => ({}), onSome: (s) => ({ t: Number(s.toFixed(2)) }) });
-  return reviewUrls.review.frame({ query: { ref, w: Math.round(w), ...at } });
+  return labUrls.review.frame({ query: { ref, w: Math.round(w), ...at } });
 };
 
 /** A variant of a choice point heard alone: a take's file, an attempt's. */
 export const choiceAloneUrl = (film: string, point: string, variant: string): string =>
-  reviewUrls.choices.alone({ params: { film }, query: { point, variant } });
+  labUrls.choices.alone({ params: { film }, query: { point, variant } });
 
 /** The film's whole mix with a variant of a choice point in place (an m4a). */
 export const choiceMixUrl = (film: string, point: string, variant: string): string =>
-  reviewUrls.choices.mix({ params: { film }, query: { point, variant } });
+  labUrls.choices.mix({ params: { film }, query: { point, variant } });
