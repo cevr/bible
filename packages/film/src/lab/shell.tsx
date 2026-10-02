@@ -16,7 +16,7 @@ import type { Film } from '../canvas/film.ts';
 import type { Player } from '../player/main.ts';
 import { lookbookUrl } from '../player/pages.ts';
 import { type ViewStore, sessionStore, viewStore } from '../player/view-state.ts';
-import { type LabApi, type NotesApi, labApiLayer } from './api.ts';
+import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
 import { type Selection, searchWithSelection, selectionFromSearch } from './selection.ts';
 import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
 
@@ -50,6 +50,8 @@ interface LabMeta {
   readonly stage: StageOps;
   /** What the panels' machines and atoms run with: the stage, the lab API and the notes API. */
   readonly runtime: Atom.AtomRuntime<Stage | LabApi | NotesApi>;
+  /** This page's client layer identity, reused by the studio's separate runtime. */
+  readonly clientLayer: Layer.Layer<LabClient>;
 }
 
 interface LabContextValue {
@@ -116,8 +118,9 @@ const Root = (props: RootProps) => {
 
   const [revision, setRevision] = createSignal(0, fromDraw);
   const stage = makeStage(player, () => setRevision((n) => n + 1));
+  const clientLayer = LabClient.layer(location.origin);
   const runtime = Atom.runtime(
-    Layer.merge(stageLayer(stage), labApiLayer(location.origin, props.name)),
+    Layer.merge(stageLayer(stage), labApiLayer(props.name)).pipe(Layer.provide(clientLayer)),
   );
 
   const [selection, setSelection] = createSignal(selectionFromSearch(location.search));
@@ -137,7 +140,7 @@ const Root = (props: RootProps) => {
       },
       select,
     },
-    meta: { name: props.name, film: player.film, player, view, stage, runtime },
+    meta: { name: props.name, film: player.film, player, view, stage, runtime, clientLayer },
   };
   return (
     <RegistryProvider>

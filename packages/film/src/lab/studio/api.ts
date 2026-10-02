@@ -7,7 +7,6 @@
 
 import { Context, Effect, Layer, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
-import { FetchHttpClient } from 'effect/http';
 import {
   STUDIO_MAX_BODY,
   type StudioAttempts,
@@ -15,7 +14,7 @@ import {
   type StudioTake,
   TakePost,
 } from '../../core/studio.ts';
-import { type LabFailure, called, labClient } from '../api.ts';
+import { LabClient, type LabFailure, called } from '../api.ts';
 import { BYTES_PER_SAMPLE, WAV_HEADER_BYTES, wavBytes, wavRate, wavSeconds } from './wav.ts';
 
 /** A take the studio refused as too large, said in time rather than bytes. */
@@ -98,9 +97,9 @@ export const tooLong =
     return TakeTooLong.make({ seconds: wavSeconds(wav), rate: wavRate(wav) });
   };
 
-/** The studio's routes for `film` on `origin`. */
-const makeStudioApi = Effect.fn('lab.studio.make')(function* (origin: string, film: string) {
-  const client = (yield* labClient(origin)).studio;
+/** The studio's routes for `film`, over the page's derived client. */
+const makeStudioApi = Effect.fn('lab.studio.make')(function* (film: string) {
+  const client = (yield* LabClient).studio;
   const api: StudioCalls = {
     beats: called(client.beats({ params: { film } })),
     attempts: (beat) => called(client.attempts({ params: { film, beat } })),
@@ -117,6 +116,6 @@ const makeStudioApi = Effect.fn('lab.studio.make')(function* (origin: string, fi
   return api;
 });
 
-/** The studio's routes for `film`, on the page's own origin, over `fetch`. */
-export const studioApiLayer = (origin: string, film: string): Layer.Layer<StudioApi> =>
-  Layer.effect(StudioApi, makeStudioApi(origin, film)).pipe(Layer.provide(FetchHttpClient.layer));
+/** The studio's routes for `film`, over the page's derived client. */
+export const studioApiLayer = (film: string): Layer.Layer<StudioApi, never, LabClient> =>
+  Layer.effect(StudioApi, makeStudioApi(film));

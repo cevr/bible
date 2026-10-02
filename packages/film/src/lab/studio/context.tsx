@@ -357,10 +357,8 @@ const waitingText = (beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>) =>
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
   const runtime: StudioRuntime = Atom.runtime(
-    Layer.mergeAll(
-      stageLayer(meta.stage),
-      studioApiLayer(location.origin, meta.name),
-      browserCaptureLayer,
+    Layer.mergeAll(stageLayer(meta.stage), studioApiLayer(meta.name), browserCaptureLayer).pipe(
+      Layer.provide(meta.clientLayer),
     ),
   );
   const reads: Reads = {

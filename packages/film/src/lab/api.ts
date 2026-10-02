@@ -103,11 +103,20 @@ export class NotesApi extends Context.Service<NotesApi, NotesCalls>()('@bible/fi
 const WAIT_S = 55;
 
 /** The lab's client on `origin`: every group of `LabHttpApi`. */
-export const labClient = (origin: string) => HttpApiClient.make(LabHttpApi, { baseUrl: origin });
+const labClient = (origin: string) => HttpApiClient.make(LabHttpApi, { baseUrl: origin });
 
-/** The scene source routes for `film` on `origin`. */
-const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, film: string) {
-  const client = yield* labClient(origin);
+/** One derived client for the page, shared by its panel runtimes. */
+export class LabClient extends Context.Service<
+  LabClient,
+  Effect.Success<ReturnType<typeof labClient>>
+>()('@bible/film/lab/Client') {
+  static readonly layer = (origin: string) =>
+    Layer.effect(LabClient, labClient(origin)).pipe(Layer.provide(FetchHttpClient.layer));
+}
+
+/** The scene source routes for `film`, over the page's derived client. */
+const makeLabApi = Effect.fn('lab.api.make')(function* (film: string) {
+  const client = yield* LabClient;
   const api: LabCalls = {
     source: (scene) => called(client.scenes.source({ params: { film, scene } })),
     head: (scene) => called(client.scenes.head({ params: { film, scene } })),
@@ -121,9 +130,9 @@ const makeLabApi = Effect.fn('lab.api.make')(function* (origin: string, film: st
   return api;
 });
 
-/** The notes routes for `film` on `origin`. */
-const makeNotesApi = Effect.fn('lab.notes.make')(function* (origin: string, film: string) {
-  const client = yield* labClient(origin);
+/** The notes routes for `film`, over the page's derived client. */
+const makeNotesApi = Effect.fn('lab.notes.make')(function* (film: string) {
+  const client = yield* LabClient;
   const api: NotesCalls = {
     notes: called(client.notes.list({ params: { film } })),
     wait: (since) =>
@@ -135,9 +144,9 @@ const makeNotesApi = Effect.fn('lab.notes.make')(function* (origin: string, film
   return api;
 });
 
-/** The lab API for `film`, on the page's own origin, over `fetch`. */
-export const labApiLayer = (origin: string, film: string): Layer.Layer<LabApi | NotesApi> =>
+/** The lab API for `film`, over the page's derived client. */
+export const labApiLayer = (film: string): Layer.Layer<LabApi | NotesApi, never, LabClient> =>
   Layer.mergeAll(
-    Layer.effect(LabApi, makeLabApi(origin, film)),
-    Layer.effect(NotesApi, makeNotesApi(origin, film)),
-  ).pipe(Layer.provide(FetchHttpClient.layer));
+    Layer.effect(LabApi, makeLabApi(film)),
+    Layer.effect(NotesApi, makeNotesApi(film)),
+  );
