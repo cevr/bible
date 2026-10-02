@@ -103,6 +103,27 @@ describe('useAtomValue', () => {
       expect(owned.result()).toBe('count-3');
     }));
 
+  test('reads the live value of an atom with a server value when not hydrating', () =>
+    Effect.gen(function* () {
+      const counter = Atom.make(0);
+      const served = Atom.withServerValue(counter, () => -1);
+      const owned = mount(() => ({
+        value: useAtomValue(() => served),
+        mapped: useAtomValue(
+          () => served,
+          (n) => `count-${n}`,
+        ),
+      }));
+      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+
+      yield* settle;
+      expect([owned.result.value(), owned.result.mapped()]).toEqual([0, 'count-0']);
+
+      owned.registry.set(served, 1);
+      yield* settle;
+      expect([owned.result.value(), owned.result.mapped()]).toEqual([1, 'count-1']);
+    }));
+
   test('unsubscribes from the registry when the owner is disposed', () =>
     Effect.gen(function* () {
       const counter = Atom.make(0).pipe(Atom.keepAlive);

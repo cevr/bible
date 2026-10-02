@@ -10,10 +10,17 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "bun --conditions=browser --conditions=development test"
+    "test": "bun --conditions=browser --conditions=development test src test/ssr/server.test.ts",
+    "test:ssr": "bun test ./test/ssr/hydration.browser.ts --timeout 60000"
   },
   "dependencies": {
     "effect": "catalog:",
     "solid-js": "catalog:"
+  },
+  "devDependencies": {
+    "@bible/url-state": "workspace:*",
+    "@playwright/test": "1.63.0",
+    "@solidjs/compiler": "catalog:",
+    "@solidjs/web": "catalog:"
   }
 }

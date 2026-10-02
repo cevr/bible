@@ -129,7 +129,14 @@ export const useAtomValue: {
 } = <A, B>(atom: () => Atom.Atom<A>, f?: (_: A) => B): Accessor<A | B> => {
   const registry = useContext(RegistryContext);
   if (f === undefined) return createAtomAccessor<A | B>(registry, atom);
-  return createAtomAccessor<A | B>(registry, () => Atom.map(atom(), f));
+  // `Atom.map` makes a new atom without the source's server value, so the
+  // server value is projected through `f` here.
+  return serverAware(
+    registry,
+    untrack(atom),
+    createLiveAccessor<B>(registry, () => Atom.map(atom(), f)),
+    f,
+  );
 };
 
 const constImmediate = { immediate: true };
@@ -176,7 +183,7 @@ const createBridge = <A>(): Bridge<A> => {
   };
 };
 
-function createAtomAccessor<A>(
+function createLiveAccessor<A>(
   registry: AtomRegistry.AtomRegistry,
   atom: () => Atom.Atom<A>,
 ): Accessor<A> {
@@ -189,6 +196,39 @@ function createAtomAccessor<A>(
   // it returns, so the cell holds the atom's value by the time this returns.
   return bridge.accessor;
 }
+
+/**
+ * The accessor for an atom with a server value (`Atom.withServerValue`): the
+ * server value while the server renders and while the client hydrates, so
+ * both passes produce the same markup, then the live value.
+ *
+ * Solid's own hydration contract does the switching: a memo with
+ * `ssrSource: 'client'` and a `loadingValue` renders that value on the server
+ * and holds it on the client until hydration completes, then computes. A
+ * client render that is not hydrating computes at once. The server value is
+ * read from the atom the hook was created with.
+ */
+const serverAware = <S, A>(
+  registry: AtomRegistry.AtomRegistry,
+  source: Atom.Atom<S>,
+  live: Accessor<A>,
+  project: (value: S) => A,
+): Accessor<A> => {
+  if (!(Atom.ServerValueTypeId in source)) return live;
+  return createMemo(() => live(), {
+    ssrSource: 'client',
+    loadingValue: project(Atom.getServerValue(source, registry)),
+  });
+};
+
+function createAtomAccessor<A>(
+  registry: AtomRegistry.AtomRegistry,
+  atom: () => Atom.Atom<A>,
+): Accessor<A> {
+  return serverAware(registry, untrack(atom), createLiveAccessor(registry, atom), identity);
+}
+
+const identity = <A>(value: A): A => value;
 
 function mountAtom<A>(registry: AtomRegistry.AtomRegistry, atom: () => Atom.Atom<A>): void {
   createRenderEffect(atom, (current) => registry.mount(current));

@@ -87,6 +87,12 @@
         "effect": "catalog:",
         "solid-js": "catalog:",
       },
+      "devDependencies": {
+        "@bible/url-state": "workspace:*",
+        "@playwright/test": "1.63.0",
+        "@solidjs/compiler": "catalog:",
+        "@solidjs/web": "catalog:",
+      },
     },
     "packages/cli": {
       "name": "@bible/cli",
