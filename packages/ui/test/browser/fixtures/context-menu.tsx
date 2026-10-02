@@ -1,16 +1,18 @@
 // Fixtures for the context menu: a 300×200 area that opens a menu with
 // items and a submenu, a backdrop, and a context menu inside a menu's item
-// list (`nested`). URL params: `disabled=true` disables the root.
+// list (`nested`). URL params: `disabled=true` disables the root; `window.__setDisabled(bool)` changes it later.
 import type { JSX } from '@solidjs/web';
+import { createSignal } from 'solid-js';
 
 import { ContextMenu } from '../../../src/context-menu/index.ts';
 import { log, param } from './log.ts';
 
 function AreaMenu(): JSX.Element {
-  const disabled = param('disabled') === 'true';
+  const [disabled, setDisabled] = createSignal(param('disabled') === 'true');
+  (window as unknown as { __setDisabled: (next: boolean) => void }).__setDisabled = setDisabled;
   return (
     <ContextMenu.Root
-      disabled={disabled}
+      disabled={disabled()}
       onOpenChange={(open, details) => log(`open ${open} ${details.reason}`)}
     >
       <ContextMenu.Trigger

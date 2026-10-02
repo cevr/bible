@@ -130,7 +130,10 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     const position = { x: touch.clientX, y: touch.clientY };
     touchPosition = position;
     longPressTimeout.start(LONG_PRESS_DELAY, () => {
-      handleLongPress(position.x, position.y, event);
+      // The root may have been disabled while the finger was down.
+      if (!untrack(store.disabled)) {
+        handleLongPress(position.x, position.y, event);
+      }
     });
   }
 
@@ -154,10 +157,12 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
   });
 
   // The browser's context menu stays closed over the area and over the menu's backdrops.
+  // Disabling the root drops a pending long press.
   createEffect(
     () => store.disabled(),
     (disabled) => {
       if (disabled) {
+        cancelLongPress();
         return undefined;
       }
       return addEventListener(ownerDocument(triggerElement), 'contextmenu', (event) => {

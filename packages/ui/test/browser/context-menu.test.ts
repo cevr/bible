@@ -258,6 +258,21 @@ describe('ContextMenu.Root: outside press after a long press', () => {
 });
 
 describe('ContextMenu.Root: disabled', () => {
+  it('a press pending when the root becomes disabled does not open', async () => {
+    const page = await h.open('area', { touch: true });
+    await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 10_000);
+    const { x, y } = await areaCentre(page);
+    await touch(page, 'touchstart', x, y);
+    await page.clock.runFor(200);
+    await page.evaluate(() =>
+      (window as unknown as { __setDisabled: (next: boolean) => void }).__setDisabled(true),
+    );
+    await page.clock.runFor(600);
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).not.toContain('open true trigger-press');
+  });
+
   it('does not open on right click or long press, and leaves the native menu alone', async () => {
     const page = await h.open('area', { query: { disabled: 'true' }, touch: true });
     await page.clock.install();
