@@ -1,6 +1,7 @@
 // Fixtures for the number field: one field configured from the URL (bounds,
 // steps, format, wheel, read-only, a canceled reason), a controlled field
 // set from outside, a field committing on Enter, and a field in a form.
+// The field's `window.__set({ disabled, readOnly })` changes those later.
 // Every change and commit is logged as `change <value> <reason>` and
 // `commit <value> <reason>`.
 import type { JSX } from '@solidjs/web';
@@ -39,8 +40,23 @@ const onValueCommitted = (value: number | null, details: NumberFieldRootCommitEv
   log(`commit ${value} ${details.reason}`);
 };
 
+interface FieldFlags {
+  disabled?: boolean;
+  readOnly?: boolean;
+}
+
 function Field(): JSX.Element {
   const step = param('step');
+  const [disabled, setDisabled] = createSignal(flagParam('disabled'));
+  const [readOnly, setReadOnly] = createSignal(flagParam('readOnly'));
+  (window as unknown as { __set: (next: FieldFlags) => void }).__set = (next) => {
+    if (next.disabled !== undefined) {
+      setDisabled(next.disabled);
+    }
+    if (next.readOnly !== undefined) {
+      setReadOnly(next.readOnly);
+    }
+  };
   return (
     <NumberField.Root
       id="input"
@@ -54,8 +70,8 @@ function Field(): JSX.Element {
       snapOnStep={flagParam('snapOnStep')}
       allowWheelScrub={flagParam('allowWheelScrub')}
       allowOutOfRange={flagParam('allowOutOfRange')}
-      readOnly={flagParam('readOnly')}
-      disabled={flagParam('disabled')}
+      readOnly={readOnly()}
+      disabled={disabled()}
       required={flagParam('required')}
       name={param('name') ?? undefined}
       locale={param('locale') ?? undefined}

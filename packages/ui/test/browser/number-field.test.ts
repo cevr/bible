@@ -802,10 +802,33 @@ describe('NumberField.ScrubArea', () => {
     await page.mouse.move(x, y);
     await page.mouse.down();
     await page.mouse.up();
-    // Upstream's own click plus the browser's: with the lock refused, Chromium
-    // still sends its click to the target, so the target hears two.
-    expect(await logOf(page)).toEqual(['commit 0 scrub', 'scrub-area click', 'scrub-area click']);
+    // With the lock refused the browser's own click reaches the target, and only
+    // that one (upstream NumberFieldScrubArea.test.tsx:663 asserts one call).
+    expect(await logOf(page)).toEqual(['commit 0 scrub', 'scrub-area click']);
   });
+
+  for (const flag of ['disabled', 'readOnly'] as const) {
+    it(`stops scrubbing when it becomes ${flag} mid-scrub`, async () => {
+      const page = await open('field', { defaultValue: '0' });
+      const { x, y } = await centerOf(page, 'scrub-area');
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await see(page.getByTestId('cursor')).toHaveCount(1);
+      expect(await page.evaluate(() => document.pointerLockElement?.tagName)).toBe('BODY');
+      await page.evaluate((name) => {
+        (window as unknown as { __set: (next: Record<string, boolean>) => void }).__set({
+          [name]: true,
+        });
+      }, flag);
+      await see(page.getByTestId('root')).not.toHaveAttribute('data-scrubbing');
+      await see(page.getByTestId('cursor')).toHaveCount(0);
+      expect(await page.evaluate(() => document.pointerLockElement)).toBe(null);
+      await page.mouse.up();
+      // Canceled, not ended: no commit. (The release may still bring the browser's
+      // own click, as the lock is gone by then.)
+      expect((await logOf(page)).filter((line) => line.startsWith('commit'))).toEqual([]);
+    });
+  }
 
   it('does not start on a non-primary button or when read-only', async () => {
     const page = await open('field', { defaultValue: '0' });

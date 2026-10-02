@@ -150,6 +150,10 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
   };
 
   const endScrub = (event: PointerEvent) => {
+    // The locked body, or a touch press whose touchstart was prevented, kept the
+    // native click from the target; otherwise the browser clicks it itself.
+    const clickWithheld =
+      ownerDocument(untrack(scrubAreaElement)).pointerLockElement != null || untrack(isTouchInput);
     exitPointerLock();
     isScrubbingNow = false;
     onScrubbingChange(false, event);
@@ -157,10 +161,9 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
       ctx.lastChangedValueRef.current ?? ctx.valueRef.current,
       createGenericEventDetails(REASONS.scrub, event),
     );
-    // A press that did not move is a click (pointer lock sends the native
-    // one to the locked body instead).
+    // A press that did not move is a click, sent here only when the browser withheld its own.
     const input = untrack(ctx.inputElement);
-    if (!didMove && pointerDownTarget != null && input) {
+    if (clickWithheld && !didMove && pointerDownTarget != null && input) {
       pointerDownTarget.dispatchEvent(
         new (ownerWindow(input).MouseEvent)('click', { bubbles: true, cancelable: true }),
       );
@@ -226,14 +229,36 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
     },
   );
 
-  // Unmounted mid-scrub: release the lock and the root's scrubbing state (no commit).
-  onCleanup(() => {
-    if (isScrubbingNow) {
-      isScrubbingNow = false;
-      ctx.setScrubbing(false);
-      exitPointerLock();
+  // A scrub stopped without its release: the lock and the scrubbing state go, with no
+  // commit and no click. A later release finds no scrub to end.
+  const cancelScrub = (disposing: boolean) => {
+    if (!isScrubbingNow) {
+      return;
     }
-  });
+    isScrubbingNow = false;
+    didMove = false;
+    pointerDownTarget = null;
+    exitPointerLockTimeout.clear();
+    exitPointerLock();
+    if (!disposing) {
+      setIsScrubbing(false);
+    }
+    ctx.setScrubbing(false);
+  };
+
+  // Disabled or made read-only mid-scrub.
+  createEffect(
+    () => state.disabled || state.readOnly,
+    (blocked) => {
+      if (blocked) {
+        cancelScrub(false);
+      }
+      return undefined;
+    },
+  );
+
+  // Unmounted mid-scrub.
+  onCleanup(() => cancelScrub(true));
 
   // A one-finger scrub must not scroll the page; pinch-zoom still may.
   createEffect(
