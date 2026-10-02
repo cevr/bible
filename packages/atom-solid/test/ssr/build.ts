@@ -53,6 +53,7 @@ export const build = async (outdir: string) => {
   const server: typeof ServerEntry = await import(`${outdir}/server/server-entry.js`);
   return {
     render: server.render,
+    findings: server.findings,
     page: server.page,
     client: await Bun.file(`${outdir}/client/client.js`).text(),
   };

@@ -170,11 +170,17 @@ const createBridge = <A>(): Bridge<A> => {
   // subscription, or a direct `ref.value` read) before returning the accessor,
   // so the empty state is never observable through the public API.
   let current: A | undefined;
+  // The first publish is the seed, made before the accessor is returned, so
+  // no reader can be stale yet: it fills the cell without a signal write. A
+  // server render therefore writes no signal at all (Solid's server render is
+  // pure, and warns `SERVER_WRITE` on a write).
+  let seeded = false;
   const [version, setVersion] = createSignal(0, constOwnedWrite);
   return {
     publish: (value) => {
       current = value;
-      setVersion((n) => n + 1);
+      if (seeded) setVersion((n) => n + 1);
+      seeded = true;
     },
     accessor: () => {
       version();

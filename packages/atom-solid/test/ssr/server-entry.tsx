@@ -3,9 +3,26 @@
 import { layerServer } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { generateHydrationScript, renderToString } from '@solidjs/web';
+import { Option } from 'effect';
+import { OBSERVE } from 'solid-js';
 
 import { RegistryProvider } from '../../src/registry-context.ts';
 import { App } from './App.tsx';
+
+/**
+ * The codes Solid's development build reports on its diagnostics channel
+ * while `render` runs (a pure server render reports none); `None` when the
+ * build has no channel, so a test cannot pass by not listening.
+ */
+export const findings = (render: () => string) => {
+  const codes: Array<string> = [];
+  const stop = Option.map(Option.fromNullishOr(OBSERVE), (observe) =>
+    observe.diagnostics.subscribe((event) => codes.push(event.code)),
+  );
+  const html = render();
+  Option.map(stop, (unsubscribe) => unsubscribe());
+  return { html, codes: Option.as(stop, codes) };
+};
 
 /** The App's markup for a request to `href`. */
 export const render = (href: string): string =>
