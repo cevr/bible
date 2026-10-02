@@ -93,6 +93,8 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
   const [isScrubbing, setIsScrubbing] = createSignal(false, { ownedWrite: true });
   const scrubAreaCursorRef: { current: HTMLSpanElement | null } = { current: null };
   let isScrubbingNow = false;
+  // Counts scrubs ended or canceled: a lock request made during an earlier count is stale.
+  let scrubSession = 0;
   let didMove = false;
   let pointerDownTarget: EventTarget | null = null;
   let virtualCursorCoords = { x: 0, y: 0 };
@@ -156,6 +158,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
       ownerDocument(untrack(scrubAreaElement)).pointerLockElement != null || untrack(isTouchInput);
     exitPointerLock();
     isScrubbingNow = false;
+    scrubSession += 1;
     onScrubbingChange(false, event);
     ctx.onValueCommitted(
       ctx.lastChangedValueRef.current ?? ctx.valueRef.current,
@@ -236,6 +239,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
       return;
     }
     isScrubbingNow = false;
+    scrubSession += 1;
     didMove = false;
     pointerDownTarget = null;
     exitPointerLockTimeout.clear();
@@ -280,16 +284,36 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
     },
   );
 
+  // The request belongs to the scrub that made it. A scrub ended or canceled before the
+  // request runs makes none; one ended while the lock was pending releases what it gets.
   const requestPointerLock = (event: PointerEvent) => {
+    const session = scrubSession;
+    const current = () => session === scrubSession;
     Promise.resolve()
-      .then(() => ownerDocument(untrack(scrubAreaElement)).body.requestPointerLock())
+      .then(() => {
+        if (current()) {
+          return ownerDocument(untrack(scrubAreaElement)).body.requestPointerLock();
+        }
+        return undefined;
+      })
       .then(
-        () => setIsPointerLockDenied(false),
-        () => setIsPointerLockDenied(true),
+        () => {
+          if (current()) {
+            setIsPointerLockDenied(false);
+          } else if (!isScrubbingNow) {
+            // A later scrub keeps the lock it shares with this one.
+            exitPointerLock();
+          }
+        },
+        () => {
+          if (current()) {
+            setIsPointerLockDenied(true);
+          }
+        },
       )
       .finally(() => {
         // Show (or not) the cursor for the lock's outcome.
-        if (isScrubbingNow) {
+        if (current() && isScrubbingNow) {
           onScrubbingChange(true, event);
         }
       });

@@ -828,6 +828,61 @@ describe('NumberField.ScrubArea', () => {
       // own click, as the lock is gone by then.)
       expect((await logOf(page)).filter((line) => line.startsWith('commit'))).toEqual([]);
     });
+
+    it(`does not request the lock when it becomes ${flag} before the request runs`, async () => {
+      const page = await open('field', { defaultValue: '0' });
+      const requests = await page.evaluate((name) => {
+        let count = 0;
+        HTMLElement.prototype.requestPointerLock = () => {
+          count += 1;
+          return Promise.resolve();
+        };
+        // The press and the change in one task: the queued request has not run yet.
+        document.querySelector('[data-testid="scrub-area"]')?.dispatchEvent(
+          new PointerEvent('pointerdown', {
+            bubbles: true,
+            cancelable: true,
+            button: 0,
+            pointerType: 'mouse',
+          }),
+        );
+        (window as unknown as { __set: (next: Record<string, boolean>) => void }).__set({
+          [name]: true,
+        });
+        return new Promise<number>((resolve) => setTimeout(() => resolve(count), 50));
+      }, flag);
+      expect(requests).toBe(0);
+      await see(page.getByTestId('root')).not.toHaveAttribute('data-scrubbing');
+    });
+
+    it(`releases a lock granted after it became ${flag}`, async () => {
+      const page = await open('field', { defaultValue: '0' });
+      // The lock is granted only when the test says so.
+      await page.evaluate(() => {
+        const original = HTMLElement.prototype.requestPointerLock;
+        HTMLElement.prototype.requestPointerLock = function (this: HTMLElement) {
+          return new Promise<void>((resolve, reject) => {
+            (window as unknown as { __grant: () => Promise<void> }).__grant = () =>
+              original.call(this).then(resolve, reject);
+          });
+        };
+      });
+      const { x, y } = await centerOf(page, 'scrub-area');
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await see(page.getByTestId('root')).toHaveAttribute('data-scrubbing', '');
+      await page.evaluate((name) => {
+        (window as unknown as { __set: (next: Record<string, boolean>) => void }).__set({
+          [name]: true,
+        });
+      }, flag);
+      await see(page.getByTestId('root')).not.toHaveAttribute('data-scrubbing');
+      await page.evaluate(() => (window as unknown as { __grant: () => Promise<void> }).__grant());
+      await see.poll(() => page.evaluate(() => document.pointerLockElement)).toBe(null);
+      await see(page.getByTestId('cursor')).toHaveCount(0);
+      await page.mouse.up();
+      expect((await logOf(page)).filter((line) => line.startsWith('commit'))).toEqual([]);
+    });
   }
 
   it('does not start on a non-primary button or when read-only', async () => {

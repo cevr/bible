@@ -1,11 +1,12 @@
 // Fixtures for the number field: one field configured from the URL (bounds,
 // steps, format, wheel, read-only, a canceled reason), a controlled field
 // set from outside, a field committing on Enter, and a field in a form.
-// The field's `window.__set({ disabled, readOnly })` changes those later.
+// The field's `window.__set({ disabled, readOnly })` changes those later, applied
+// at once (flushed), so a test can change them inside a press's own task.
 // Every change and commit is logged as `change <value> <reason>` and
 // `commit <value> <reason>`.
 import type { JSX } from '@solidjs/web';
-import { createSignal, Show } from 'solid-js';
+import { createSignal, flush, Show } from 'solid-js';
 
 import { NumberField } from '../../../src/number-field/index.ts';
 import type {
@@ -56,6 +57,7 @@ function Field(): JSX.Element {
     if (next.readOnly !== undefined) {
       setReadOnly(next.readOnly);
     }
+    flush();
   };
   return (
     <NumberField.Root
