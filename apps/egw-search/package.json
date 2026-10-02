@@ -19,7 +19,9 @@
     "test": "bun test src server"
   },
   "dependencies": {
+    "@bible/atom-solid": "workspace:*",
     "@bible/core": "workspace:*",
+    "@bible/url-state": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "@effect/sql-sqlite-bun": "catalog:",
     "@solidjs/web": "catalog:",

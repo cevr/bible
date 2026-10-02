@@ -47,7 +47,7 @@ interface Mounted<A> {
 /**
  * Runs `body` inside a Solid root against a registry of its own.
  *
- * The hooks resolve their registry through `useContext(RegistryContext)`, which
+ * The hooks resolve their registry through `useRegistry()`, which
  * returns the context default when no provider is mounted. Pointing that
  * default at a fresh registry per test exercises the real lookup path while
  * keeping tests isolated — mounting `RegistryProvider` instead would need a JSX
@@ -55,7 +55,7 @@ interface Mounted<A> {
  */
 const mount = <A>(body: () => A): Mounted<A> => {
   const registry = AtomRegistry.make();
-  RegistryContext.defaultValue = registry;
+  RegistryContext.defaultValue = Option.some(registry);
   return createRoot((dispose) => ({
     registry,
     disposeOwner: dispose,
@@ -101,6 +101,45 @@ describe('useAtomValue', () => {
       owned.registry.set(counter, 3);
       yield* settle;
       expect(owned.result()).toBe('count-3');
+    }));
+
+  test('reads the live value of an atom with a server value when not hydrating', () =>
+    Effect.gen(function* () {
+      const counter = Atom.make(0);
+      const served = Atom.withServerValue(counter, () => -1);
+      const owned = mount(() => ({
+        value: useAtomValue(() => served),
+        mapped: useAtomValue(
+          () => served,
+          (n) => `count-${n}`,
+        ),
+      }));
+      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+
+      yield* settle;
+      expect([owned.result.value(), owned.result.mapped()]).toEqual([0, 'count-0']);
+
+      owned.registry.set(served, 1);
+      yield* settle;
+      expect([owned.result.value(), owned.result.mapped()]).toEqual([1, 'count-1']);
+    }));
+
+  test('reads a write to an atom with a server value at once when not hydrating', () =>
+    Effect.gen(function* () {
+      const served = Atom.withServerValue(Atom.make(0), () => -1);
+      const owned = mount(() => ({
+        value: useAtomValue(() => served),
+        mapped: useAtomValue(
+          () => served,
+          (n) => `count-${n}`,
+        ),
+      }));
+      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+
+      // No settle between the write and the read: read-after-write.
+      expect([owned.result.value(), owned.result.mapped()]).toEqual([0, 'count-0']);
+      owned.registry.set(served, 1);
+      expect([owned.result.value(), owned.result.mapped()]).toEqual([1, 'count-1']);
     }));
 
   test('unsubscribes from the registry when the owner is disposed', () =>
@@ -827,7 +866,7 @@ describe('RegistryProvider cleanup order', () => {
     Effect.gen(function* () {
       const counter = Atom.make(0).pipe(Atom.keepAlive);
       const registry = AtomRegistry.make({ defaultIdleTTL: 400 });
-      RegistryContext.defaultValue = registry;
+      RegistryContext.defaultValue = Option.some(registry);
 
       const owned = createRoot((dispose) => {
         const value = useAtomValue(() => counter);

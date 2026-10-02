@@ -1,0 +1,17 @@
+{
+  "name": "@bible/url-state",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./atom": "./src/atom.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "effect": "catalog:"
+  }
+}

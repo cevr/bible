@@ -12,6 +12,14 @@ beside `/api/search`, `/api/search/batch` and `/health`. For development,
 `bun run --cwd apps/egw-search dev` runs Vite on port 5273 with `/api`
 proxied to the server on port 3101.
 
+The URL is the search state. `src/url-state.ts` declares the workspace as a
+`@bible/url-state` place — each pane's keys, their defaults, and which changes
+push a history entry (a new query, a pane added or closed) or replace it (a
+filter, the limit) — and the page reads and writes it through the place atom.
+`src/scroll.ts` keeps each history entry's scroll position. Links keep the
+spelling they have always had (`?q=latter+rain&q2=loud+cry&section2=bible`);
+`src/url-state.test.ts` holds a corpus of them.
+
 Run the owned browser regression fixture with:
 
 ```sh

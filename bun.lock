@@ -38,7 +38,9 @@
       "name": "@bible/egw-search",
       "version": "0.1.0",
       "dependencies": {
+        "@bible/atom-solid": "workspace:*",
         "@bible/core": "workspace:*",
+        "@bible/url-state": "workspace:*",
         "@effect/platform-bun": "catalog:",
         "@effect/sql-sqlite-bun": "catalog:",
         "@solidjs/web": "catalog:",
@@ -84,8 +86,14 @@
     "packages/atom-solid": {
       "name": "@bible/atom-solid",
       "dependencies": {
+        "@solidjs/web": "catalog:",
         "effect": "catalog:",
         "solid-js": "catalog:",
+      },
+      "devDependencies": {
+        "@bible/url-state": "workspace:*",
+        "@playwright/test": "1.63.0",
+        "@solidjs/compiler": "catalog:",
       },
     },
     "packages/cli": {
@@ -157,6 +165,12 @@
         "@effect/platform-bun": "catalog:",
         "effect": "catalog:",
         "pdf-parse": "^2.4.5",
+      },
+    },
+    "packages/url-state": {
+      "name": "@bible/url-state",
+      "dependencies": {
+        "effect": "catalog:",
       },
     },
   },
@@ -250,6 +264,8 @@
     "@bible/scripts": ["@bible/scripts@workspace:packages/scripts"],
 
     "@bible/triedgold": ["@bible/triedgold@workspace:apps/triedgold"],
+
+    "@bible/url-state": ["@bible/url-state@workspace:packages/url-state"],
 
     "@chevrotain/cst-dts-gen": ["@chevrotain/cst-dts-gen@10.5.0", "", { "dependencies": { "@chevrotain/gast": "10.5.0", "@chevrotain/types": "10.5.0", "lodash": "4.17.21" } }, "sha512-lhmC/FyqQ2o7pGK4Om+hzuDrm9rhFYIJ/AXoQBeongmn870Xeb0L6oGEiuR8nohFNL5sMaQEJWCxr1oIVIVXrw=="],
 

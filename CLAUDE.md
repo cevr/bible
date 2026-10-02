@@ -16,6 +16,7 @@ bible/
 │   ├── cli/            # The `bible` CLI (@bible/cli)
 │   ├── film/           # The film engine, tools and lab (@bible/film)
 │   ├── atom-solid/     # Solid 2 bindings for Effect atoms (@bible/atom-solid, used by the film lab)
+│   ├── url-state/      # Typed URL state: Effect Schema codecs, a Location service, an atom binding (@bible/url-state)
 │   └── scripts/        # Corpus compilers and repo tooling (@bible/scripts)
 ```
 

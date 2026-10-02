@@ -6,11 +6,11 @@
  * EGW searcher — Solid 2 + Effect 4.
  *
  * **The URL is the state.** Each pane holds exactly one signal of its own —
- * the uncommitted text in its box — and reads everything else from
- * `currentPanes()`, which parses the address bar. Submitting a query or
- * toggling a filter is an `updateWorkspace` call, not a `setState`, so every
- * view the app can show has a link, and the back button works without any
- * code that knows what "back" means. See `./url-state.ts` and `./history.ts`.
+ * the uncommitted text in its box — and reads everything else from the
+ * workspace atom, which reads the address bar. Submitting a query or toggling
+ * a filter writes the workspace, not a `setState`, so every view the app can
+ * show has a link, and the back button works without any code that knows what
+ * "back" means. See `./url-state.ts` and `./scroll.ts`.
  *
  * **The async states are the framework's, not hand-rolled.** Solid 2 ships
  * `isPending` (a request is in flight) and `latest` (the previous settled
@@ -19,8 +19,11 @@
  * re-search keeps the old results on screen, dimmed, because there is.
  */
 
-import { Effect, Option } from 'effect';
-import type { Element } from 'solid-js';
+import { useAtomValue, useRegistry } from '@bible/atom-solid';
+import { parseHref } from '@bible/url-state';
+import * as UrlAtom from '@bible/url-state/atom';
+import { Array as Arr, Effect, Option } from 'effect';
+import type { Accessor, Element } from 'solid-js';
 import {
   createContext,
   createEffect,
@@ -45,7 +48,7 @@ import {
   type SearchResponse,
 } from '../server/api.js';
 import { contextSide } from './context-window.js';
-import { currentPanes, isHome, trackRead, updateWorkspace } from './history.js';
+import { trackRead, useScrollMemory } from './scroll.js';
 import { remembered, runQuery, search, type ContextParagraph, type Hit } from './search.js';
 import {
   EMPTY_PARAMS,
@@ -57,7 +60,49 @@ import {
   toggle,
   toRequest,
   toWorkspaceString,
+  Workspace as WorkspacePlace,
 } from './url-state.js';
+
+// ---------------------------------------------------------------------------
+// The workspace, as the URL holds it
+// ---------------------------------------------------------------------------
+
+const workspace = UrlAtom.place(WorkspacePlace);
+
+type Panes = Arr.NonEmptyReadonlyArray<SearchParams>;
+
+interface WorkspaceState {
+  /** Every pane, in order, as the URL names them; `None` off the app's one
+   *  address, which is the not-found page. */
+  readonly panes: Accessor<Option.Option<Panes>>;
+  /**
+   * Change the workspace.
+   *
+   * Functional: `update` receives the panes as the URL holds them *now* —
+   * writes made earlier in this tick included — not as some pane last read
+   * them, so two changes in one moment compose rather than the second
+   * overwriting the first, and they enter history as one entry. Whether that
+   * entry is pushed or replaced is the workspace's declaration
+   * (`./url-state.ts`): a new query pushes, a filter replaces.
+   */
+  readonly update: (update: (panes: Panes) => Panes) => void;
+}
+
+const useWorkspace = (): WorkspaceState => {
+  const registry = useRegistry();
+  const place = useAtomValue(
+    () => workspace,
+    Option.map((value) => value.query),
+  );
+  return {
+    panes: place,
+    update: (update) => {
+      Option.map(registry.get(workspace), (current) =>
+        registry.set(workspace, { ...current, query: update(current.query) }),
+      );
+    },
+  };
+};
 
 /** Paragraphs *fetched* on each side of a match, which is not the number shown.
  *
@@ -150,9 +195,9 @@ interface SearchStore {
   readonly pending: () => boolean;
   /** Commit a query — used by the form and by the example chips alike. */
   readonly search: (value: string) => void;
-  /** Change the filters, keeping the query. `replace` rather than `push` so
-   *  the back button returns to the previous *search* rather than walking back
-   *  through each toggle the reader tried. */
+  /** Change the filters, keeping the query. The URL replaces its entry rather
+   *  than pushing one, so the back button returns to the previous *search*
+   *  rather than walking back through each toggle the reader tried. */
   readonly refine: (update: (current: SearchParams) => SearchParams) => void;
   /** Ask again after a failure. */
   readonly retry: () => void;
@@ -166,20 +211,21 @@ const SearchContext = createContext<SearchStore>();
 const useSearch = (): SearchStore => useContext(SearchContext);
 
 const SearchProvider = (props: { readonly pane: number; readonly children: Element }) => {
+  const workspace = useWorkspace();
+
   /** This pane's slice of the workspace. Every read below goes through it, so
    *  a pane never sees another pane's query. */
-  const params = (): SearchParams => currentPanes()[props.pane] ?? EMPTY_PARAMS;
+  const params = (): SearchParams =>
+    Option.getOrElse(
+      Option.flatMap(workspace.panes(), (panes) => Arr.get(panes, props.pane)),
+      () => EMPTY_PARAMS,
+    );
 
   /** Replace this pane against the workspace as the URL holds it now, leaving
    *  the others exactly as they are. */
-  const put = (
-    update: (current: SearchParams) => SearchParams,
-    options?: { readonly replace?: boolean },
-  ): void => {
-    updateWorkspace(
-      (panes) =>
-        panes.map((existing, index) => (index === props.pane ? update(existing) : existing)),
-      options,
+  const put = (update: (current: SearchParams) => SearchParams): void => {
+    workspace.update((panes) =>
+      Arr.map(panes, (existing, index) => (index === props.pane ? update(existing) : existing)),
     );
   };
 
@@ -202,7 +248,7 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
 
   /** This pane's request, as a string.
    *
-   *  `currentPanes()` re-parses the URL on every navigation and hands back
+   *  The workspace re-reads the URL on every navigation and hands back
    *  fresh objects, so a memo that depends on `params()` would re-run whenever
    *  *any* pane changes: adding a fourth pane re-fetched the other three.
    *  Comparing the serialised request instead makes the dependency the request
@@ -272,7 +318,7 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
     search: (value) => {
       put((current) => ({ ...current, q: value.trim() }));
     },
-    refine: (update) => put(update, { replace: true }),
+    refine: put,
     retry: () => setAttempt((count) => count + 1),
   };
 
@@ -285,26 +331,36 @@ const SearchProvider = (props: { readonly pane: number; readonly children: Eleme
 // ---------------------------------------------------------------------------
 
 /** The page: the workspace on `/`, the not-found view anywhere else. */
-export const App = () => (
-  <Show when={isHome()} fallback={<NotFound />}>
-    <Workspace />
-  </Show>
-);
+export const App = () => {
+  useScrollMemory();
+  const workspace = useWorkspace();
+  return (
+    <Show when={Option.isSome(workspace.panes())} fallback={<NotFound />}>
+      <Workspace />
+    </Show>
+  );
+};
 
 /** The server answers every unknown path with the app, so the app is what
  *  says a path is nothing. */
-const NotFound = () => (
-  <div class="shell">
-    <header class="masthead">
-      <h1>EGW&nbsp;Search</h1>
-    </header>
-    <div class="status">
-      <span>
-        nothing at {window.location.pathname} — <a href="/">search</a>
-      </span>
+const NotFound = () => {
+  const path = useAtomValue(
+    () => UrlAtom.href,
+    (href) => parseHref(href).pathname,
+  );
+  return (
+    <div class="shell">
+      <header class="masthead">
+        <h1>EGW&nbsp;Search</h1>
+      </header>
+      <div class="status">
+        <span>
+          nothing at {path()} — <a href="/">search</a>
+        </span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /**
  * The workspace: one or more independent searches, side by side.
@@ -314,13 +370,15 @@ const NotFound = () => (
  * live in.
  *
  * `keyed={false}`, Solid 2's spelling of Solid 1's `<Index>`: the row is keyed
- * by *position* rather than by item identity. `currentPanes()` parses the URL
+ * by *position* rather than by item identity. The workspace reads the URL
  * afresh on every navigation, so every pane object is new on every filter
  * click; keyed by identity, all of them re-mounted and threw away each pane's
  * local UI state. A pane *is* its position.
  */
 const Workspace = () => {
-  const panes = (): readonly SearchParams[] => currentPanes();
+  const workspace = useWorkspace();
+  const panes = (): readonly SearchParams[] =>
+    Option.getOrElse(workspace.panes(), () => [EMPTY_PARAMS]);
 
   /** The pane whose search box takes the caret when it mounts: the one the
    *  reader just added, and no other — not the panes of a link, and not the
@@ -328,22 +386,24 @@ const Workspace = () => {
   let claim: number | undefined;
 
   const addPane = (): void => {
-    updateWorkspace((current) => {
+    workspace.update((current) => {
       if (current.length >= MAX_PANES) return current;
       // The new pane inherits the previous pane's filters but none of its
       // query: a second pane is almost always the same corpus asked a
       // different question.
-      const last = current[current.length - 1] ?? EMPTY_PARAMS;
       claim = current.length;
-      return [...current, { ...last, q: '' }];
+      return Arr.append(current, { ...Arr.lastNonEmpty(current), q: '' });
     });
   };
 
   const closePane = (index: number): void => {
-    updateWorkspace((current) => {
-      if (current.length <= 1) return current;
-      return current.filter((_, position) => position !== index);
-    });
+    // The last pane stays: a workspace is never empty.
+    workspace.update((current) =>
+      Arr.match(Arr.remove(current, index), {
+        onEmpty: () => current,
+        onNonEmpty: (rest) => rest,
+      }),
+    );
   };
 
   /** A new pane's box takes the caret and comes into view — once it is in

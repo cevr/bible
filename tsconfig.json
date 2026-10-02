@@ -153,7 +153,9 @@
       "@bible/atom-solid": ["./packages/atom-solid/src/index.ts"],
       "@bible/atom-solid/*": ["./packages/atom-solid/src/*"],
       "@bible/core": ["./packages/core/src/index.ts"],
-      "@bible/core/*": ["./packages/core/src/*"]
+      "@bible/core/*": ["./packages/core/src/*"],
+      "@bible/url-state": ["./packages/url-state/src/index.ts"],
+      "@bible/url-state/*": ["./packages/url-state/src/*"]
     }
   },
   "include": [],
