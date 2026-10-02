@@ -1450,7 +1450,7 @@ its points) and its scenes; a withdraw is offered while a scene of the part
 holds an approval (an earlier version's too). Each scene is a render
 card: the video this checkout's catalogue records for it (`ProjectView.videos`,
 never another folder's of the same film), showing a still of itself
-(`/review/frame`, as a folder's cards do) until it is played, its state (current; stale by its
+(`/api/review/frame`, as a folder's cards do) until it is played, its state (current; stale by its
 sources, or by the film's sound alone; missing, with the command that renders
 it), its approval (approve a current render, withdraw an approval), its
 comments (a missing scene takes one too), a link to its Versions, and

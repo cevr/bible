@@ -5,9 +5,13 @@
 //
 // - the route tables in packages/film/README.md: each row is a route the lab's
 //   API declares (`routesOf`), and each declared route has a
-//   row. A cell may list more than one: `POST /lab/<film>/undo`, `/redo` (a
-//   sibling of the path before), `GET /review/project/<film>`; `POST …/say`
+//   row. A cell may list more than one: `POST /api/films/<film>/undo`, `/redo` (a
+//   sibling of the path before), `GET /api/films/<film>/project`; `POST …/say`
 //   (below it);
+// - each route in running text, here and in NORTH_STAR.md and the app's
+//   README: a `GET /api/…` span is a declared route, and a bare API path
+//   (`/api/review/frame`, or an old `/review/…` or `/lab/<film>/…`) is the
+//   path of one, or a prefix of some (`/api/films/<film>/studio/*`);
 // - each `film/<rule>` named: registered in the `film` lint plugin, and each
 //   registered rule turned on in .oxlintrc.json;
 // - each `bun run <script>`: a script of the root, this package, or the app
@@ -49,7 +53,7 @@ const matches = (text: string, pattern: RegExp): ReadonlyArray<RegExpExecArray> 
 
 const firstGroup = (m: RegExpExecArray) => Option.getOrElse(Option.fromUndefinedOr(m[1]), () => '');
 
-/** `/lab/<film>/choices/alone?point=&variant=` as declared: `/lab/:film/choices/alone`. */
+/** `/api/films/<film>/choices/mix?point=&variant=` as declared: `/api/films/:film/choices/mix`. */
 const declaredPath = (written: string) =>
   written
     .replace(/\[?\?.*$/, '')
@@ -94,6 +98,38 @@ const routeDrift = (doc: Doc, code: Code) =>
     .filter((route) => !code.routes.has(route))
     .map((route) => `route ${route} is declared by no API`);
 
+/** A path the lab's API has or once had: under `/api/`, or the old `/review/…` and `/lab/<film>/…`. */
+const API_PATH = /^\/(?:api|review)\/|^\/lab\/(?:<film>|:film)\//;
+
+/**
+ * Each route written in running text: a span `GET /api/…` is a declared
+ * route, and a bare API path (`/api/review/frame`) is the path of one.
+ */
+const spanDrift = (doc: Doc, code: Code) => {
+  const paths = new Set(Array.from(code.routes).map((route) => route.replace(/^\S+ /, '')));
+  return matches(doc.text, /`([^`\n]+)`/g).flatMap((m) =>
+    Option.toArray(
+      Option.fromNullOr(/^(?:(GET|POST|PUT|DELETE) )?(\/\S+)$/.exec(firstGroup(m).trim())),
+    ).flatMap((parts) => {
+      const method = group(parts, 1);
+      const path = declaredPath(group(parts, 2));
+      if (!API_PATH.test(path)) return [];
+      if (method === '') {
+        // A prefix (`/api/`, `/api/films/<film>/studio/*`) names the routes under it.
+        const prefix = path.replace(/\*$/, '');
+        if (
+          paths.has(path) ||
+          (prefix.endsWith('/') && [...paths].some((p) => p.startsWith(prefix)))
+        )
+          return [];
+        return [`path ${path} is no route of the API`];
+      }
+      if (code.routes.has(`${method} ${path}`)) return [];
+      return [`route ${method} ${path} is declared by no API`];
+    }),
+  );
+};
+
 const ruleDrift = (doc: Doc, code: Code) =>
   matches(doc.text, /`film\/([a-z]+(?:-[a-z]+)+)`/g)
     .map(firstGroup)
@@ -136,6 +172,7 @@ const findingDrift = (line: string, code: Code) => {
 const drift = (doc: Doc, code: Code): ReadonlyArray<string> =>
   [
     ...routeDrift(doc, code),
+    ...spanDrift(doc, code),
     ...ruleDrift(doc, code),
     ...scriptDrift(doc, code),
     ...pathDrift(doc, code),
@@ -223,6 +260,16 @@ describe('the docs', () => {
         const root = yield* ROOT;
         const [code, docs] = yield* Effect.all([readCode(root), readDocs(root)]);
         expect(docs.flatMap((doc) => drift(doc, code))).toEqual([]);
+        // The owner's runbook and the app's README name routes too.
+        const fs = yield* FileSystem.FileSystem;
+        const others = yield* Effect.forEach(
+          ['NORTH_STAR.md', 'apps/animations/README.md'],
+          (file) =>
+            Effect.map(fs.readFileString(`${root}/${file}`), (text) => ({ path: file, text })),
+        );
+        expect(
+          others.flatMap((doc) => spanDrift(doc, code).map((what) => `${doc.path}: ${what}`)),
+        ).toEqual([]);
         expect(undocumented(docs, code)).toEqual([]);
         // Each registered rule is on for the paths it guards.
         expect(Array.from(code.registered).filter((rule) => !code.enabled.has(rule))).toEqual([]);
@@ -240,10 +287,13 @@ describe('the docs', () => {
           'See `packages/film/src/tools/gone.ts`.',
           'bun run render <film> --tag p7   # render a tagged variant',
           'bun run check <film>             # warns VoiceLevel, SeamLong',
+          'Its frame is `/review/frame`; say it with `POST /review/project/<film>/say`.',
         ].join('\n'),
       };
       expect(drift(stale, code)).toEqual([
         'stale.md: route GET /index.json is declared by no API',
+        'stale.md: path /review/frame is no route of the API',
+        'stale.md: route POST /review/project/:film/say is declared by no API',
         'stale.md: rule film/no-such-rule is not registered',
         'stale.md: bun run nothing: no such script',
         'stale.md: path packages/film/src/tools/gone.ts does not exist',

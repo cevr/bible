@@ -64,7 +64,7 @@ Run every loop pass beside the standard sweeps (architecture areas, package revi
 ## Live check
 
 - Drive: from `apps/animations`, `LAB_PORT=<free port> bun cli.ts lab` in the background (the box's unit holds 8229), then `agent-browser` on the changed pages at phone and laptop sizes; a write must leave a clean `git diff` after Undo. Over HTTPS: `https://bite-cristian.exe.xyz:8229/` (the exe proxy; needed for the studio's microphone).
-- State: the lab's log (`lab.ready`, `lab.page.build`, `api.request.refused|failed`), `journalctl --user -u film-lab -n 100` for the unit, `bun run notes <film>` for notes, `git diff` for writes, `GET /review/build?since=0&timeout=0` for the pages' build.
+- State: the lab's log (`lab.ready`, `lab.page.build`, `api.request.refused|failed`), `journalctl --user -u film-lab -n 100` for the unit, `bun run notes <film>` for notes, `git diff` for writes, `GET /api/review/build?since=0&timeout=0` for the pages' build.
 - Stop: kill the started process by its PID (never `pkill -f "bun cli.ts lab"` from a shell whose own command line matches); after a merge of server code, `systemctl --user restart film-lab`.
 
 ## Rejected

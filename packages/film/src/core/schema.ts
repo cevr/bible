@@ -857,13 +857,13 @@ export type NoteEvent = typeof NoteEvent.Type;
 export const NotesWait = Schema.Struct({ cursor: Seq, events: Schema.Array(NoteEvent) });
 export type NotesWait = typeof NotesWait.Type;
 
-/** The lab's `POST /lab/:film/notes` body: a draft and its still, a PNG in base64. */
+/** The lab's `POST /api/films/:film/notes` body: a draft and its still, a PNG in base64. */
 export const NotePost = Schema.Struct({
   ...NoteDraft.fields,
   still: Schema.Uint8ArrayFromBase64,
 });
 
-/** The lab's `POST /lab/:film/notes/:id/reply` body. */
+/** The lab's `POST /api/films/:film/notes/:id/reply` body. */
 export const ReplyPost = Schema.Struct({ text: Schema.String.check(Schema.isNonEmpty()) });
 
 // ---------------------------------------------------------------------------
