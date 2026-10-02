@@ -9,9 +9,10 @@
 
 import { Effect, Layer, Scope } from 'effect';
 import type { Context } from 'effect';
+import type { Pointer } from './pointer.ts';
 
 /** Every service the host gives a page. */
-export type BrowserServices = never;
+export type BrowserServices = Pointer;
 
 /** The host's services, built: what a page's code runs its effects with. */
 export type Host = Context.Context<BrowserServices>;

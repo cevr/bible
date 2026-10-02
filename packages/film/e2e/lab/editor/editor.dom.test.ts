@@ -156,6 +156,31 @@ describe('one write at a time', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live(
+    'a drag the browser ends (a page pan) puts the cue back, and a later move and lift write nothing',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab([], { hash: '#1' });
+        const bar = '.lab-cue[data-cue="rise"]';
+        yield* editable(page);
+        const box = yield* page.box(bar);
+        const y = box.y + box.height / 2;
+        const x = box.x + box.width / 2;
+        yield* page.mouse.move(x, y);
+        yield* page.mouse.down;
+        yield* page.mouse.move(x + 60, y, 4);
+        yield* page.evaluate(
+          `document.querySelector('${bar}').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 })); true`,
+        );
+        yield* page.mouse.move(x + 90, y, 4);
+        yield* page.mouse.up;
+        yield* runClock(page, 200);
+        expect(posted(asked)).toEqual([]);
+        const after = yield* page.box(bar);
+        expect(Math.round(after.x)).toBe(Math.round(box.x));
+      }).pipe(Effect.scoped),
+  );
+
   it.live('a drag while a write is out is not taken', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab(

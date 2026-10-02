@@ -8,7 +8,11 @@ import type { Film, KnobRead, ShownEdit } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
 import type { ExportHandle } from '../core/export-handle.ts';
 import { timelineTicks } from '../core/ticks.ts';
-import { Option } from 'effect';
+import { Effect, Option } from 'effect';
+import { hostOf } from '../browser/host.ts';
+import type { Host } from '../browser/host.ts';
+import { BrowserHost } from '../browser/host-browser.ts';
+import { Pointer } from '../browser/pointer.ts';
 import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
 import { encodeChunk, encoderChoice } from './encode.ts';
@@ -152,6 +156,7 @@ export const mountPlayer = (films: Films): void => {
     return;
   }
 
+  const host = hostOf(BrowserHost.layer);
   const main = async () => {
     const { name, film, canvas, ctx, captions } = await stageFilm(films);
 
@@ -161,7 +166,7 @@ export const mountPlayer = (films: Films): void => {
       return;
     }
     if (params.has('lookbook')) return mountLookbook(film, name, captions.on);
-    mountPreview({ name, film, canvas, ctx, captions });
+    mountPreview({ name, film, canvas, ctx, captions }, host);
   };
 
   main().catch((e: unknown) => {
@@ -247,7 +252,7 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged): ExportHandle => 
 };
 
 /** The scrubbable preview of a staged film: its bar and timeline, its clock, its keys. */
-export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player => {
+export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host): Player => {
   const bar = document.createElement('div');
   bar.className = 'bar';
   bar.innerHTML = `
@@ -406,18 +411,13 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged): Player =>
     if (playing) requestAnimationFrame(tick);
   };
 
+  // A drag on the track scrubs; it settles where it ends, lifted or taken by the browser (a page pan).
   track.addEventListener('pointerdown', (e) => {
     const r = track.getBoundingClientRect();
     const move = (ev: PointerEvent) => scrub(((ev.clientX - r.left) / r.width) * film.duration);
     move(e);
-    window.addEventListener('pointermove', move);
-    window.addEventListener(
-      'pointerup',
-      () => {
-        window.removeEventListener('pointermove', move);
-        url.settled();
-      },
-      { once: true },
+    Effect.runForkWith(host)(
+      Pointer.use((pointer) => pointer.drag(e, { move, end: () => url.settled() })),
     );
   });
   playBtn.addEventListener('click', toggle);

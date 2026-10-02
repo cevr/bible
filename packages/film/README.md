@@ -1879,7 +1879,7 @@ tests and the browser all read it; `tools` is Bun-only. `canvas` may import `cor
 
 **The host** (`src/browser/`): every browser API a page reaches goes through
 an Effect service there, each with its live adapter (`*-browser.ts`) and a
-test layer beside it. A page's root (`mountLab`, `mountReview`) builds the
+test layer beside it. A page's root (`mountPlayer`, `mountLab`, `mountReview`) builds the
 page's host once from `BrowserHost.layer` (`browser/host-browser.ts`,
 `hostOf` in `browser/host.ts`) and hands it on: the lab's, the studio's and
 the review's runtimes take it as a layer (`hostLayer`). `browser/` is
@@ -1888,7 +1888,11 @@ Effect's `KeyValueStore` (`browser/storage.ts`): `TabStore` over the tab's
 session (the lab's view, `film-lab-view:<film>`, an `Atom.kvs` of its JSON)
 and `ViewerStore` over local storage (`film-lab-mic`, `film-review.quality`,
 `film-review.filter`, each a `keptText` stored as plain text), each a store
-in memory when the page may not use its storage.
+in memory when the page may not use its storage. Every drag (the
+player's track, the strip's scrub and its cue bars, a knob's handle, the
+wipe's divider, a note's mark) follows its press through `Pointer.drag`
+(`browser/pointer.ts`), which ends it once: lifted, or ended by the browser
+(`pointercancel`, `lostpointercapture`).
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.

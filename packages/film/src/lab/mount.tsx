@@ -71,7 +71,7 @@ const start = Effect.fn('lab.start')(
       catch: (cause) => LabStartFailed.make({ reason: String(cause) }),
     });
     const host = hostOf(BrowserHost.layer);
-    const player = mountPreview(staged);
+    const player = mountPreview(staged, host);
     const root = document.createElement('div');
     root.className = 'lab-root';
     document.body.append(root);

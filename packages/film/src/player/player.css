@@ -93,6 +93,8 @@ body.export .stage canvas {
   border-radius: 6px;
   cursor: pointer;
   overflow: hidden;
+  /* A vertical swipe on the track scrolls the page; a sideways one scrubs. */
+  touch-action: pan-y;
 }
 .track .seg {
   position: absolute;

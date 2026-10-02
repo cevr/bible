@@ -5,9 +5,10 @@
 // HEAD's side of a blink; the divider, on the overlay, drags the wipe.
 
 import { For, Show } from '@solidjs/web';
-import { Option } from 'effect';
+import { Effect, Option } from 'effect';
 import type { Accessor } from 'solid-js';
 import { createEffect, onCleanup } from 'solid-js';
+import { Pointer } from '../../browser/pointer.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useCompare } from './context.tsx';
 import { CompareMode } from './machine.ts';
@@ -114,12 +115,10 @@ export const Divider = () => {
       Option.map(Option.fromNullishOr(el.ownerSVGElement), (svg) => {
         const r = svg.getBoundingClientRect();
         const move = (ev: PointerEvent) => actions.split((ev.clientX - r.left) / r.width);
-        const up = () => {
-          window.removeEventListener('pointermove', move);
-          window.removeEventListener('pointerup', up);
-        };
-        window.addEventListener('pointermove', move);
-        window.addEventListener('pointerup', up);
+        // The divider stays where the drag ends, lifted or ended by the browser.
+        Effect.runForkWith(meta.host)(
+          Pointer.use((pointer) => pointer.drag(e, { move, end: () => {} })),
+        );
       });
     });
   return (

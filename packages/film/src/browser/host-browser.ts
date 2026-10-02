@@ -4,8 +4,9 @@
 
 import { Layer } from 'effect';
 import type { BrowserServices } from './host.ts';
+import { pointerLayer } from './pointer-browser.ts';
 
 /** The page's host over the browser's own APIs. */
 export const BrowserHost = {
-  layer: Layer.empty satisfies Layer.Layer<BrowserServices>,
+  layer: Layer.mergeAll(pointerLayer) satisfies Layer.Layer<BrowserServices>,
 };

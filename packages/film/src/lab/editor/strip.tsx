@@ -4,8 +4,9 @@
 // press elsewhere on the strip scrubs within the scene.
 
 import { For, Show } from '@solidjs/web';
-import { Option, Result } from 'effect';
+import { Effect, Option, Result } from 'effect';
 import { createMemo } from 'solid-js';
+import { Pointer } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
@@ -75,7 +76,7 @@ const CueRow = (props: CueRowProps) => {
       scene: scene(),
       cue: props.name,
       edge: dragModeAt(e.clientX - bar.left, bar.width, e.altKey),
-      x: e.clientX,
+      down: e,
       perSec: width / props.placed.dur,
     });
   };
@@ -132,14 +133,11 @@ export const Strip = () => {
                 Math.max(0, Math.min(p().dur, ((ev.clientX - r.left) / r.width) * p().dur)),
             );
           at(e);
-          window.addEventListener('pointermove', at);
-          window.addEventListener(
-            'pointerup',
-            () => {
-              window.removeEventListener('pointermove', at);
-              meta.player.settle();
-            },
-            { once: true },
+          // The playhead settles where the drag ends, lifted or ended by the browser.
+          Effect.runForkWith(meta.host)(
+            Pointer.use((pointer) =>
+              pointer.drag(e, { move: at, end: () => meta.player.settle() }),
+            ),
           );
         };
         return (
