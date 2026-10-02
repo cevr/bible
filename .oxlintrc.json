@@ -519,7 +519,11 @@
       // "The host"): each restricted name says the service that owns it. The
       // live adapters (`*-browser.ts`), the fixtures and the tests are the
       // host's side and are exempt below. `effect/noGlobals` reads only bare
-      // names, so the `window.`/`globalThis.`/`self.` forms are named here too.
+      // names, so the `window.`/`globalThis.`/`self.` forms are named here too:
+      // each restricted global under each of the three, and each host object
+      // with a member banned bare (`performance.now`) under each, so
+      // `window.performance.now()` is red. packages/film/lint/config.test.ts
+      // lints every such form against these lists.
       "files": [
         "**/packages/film/src/lab/**/*.ts",
         "**/packages/film/src/lab/**/*.tsx",
@@ -590,32 +594,77 @@
         "no-restricted-properties": [
           "error",
           {
-            "object": "window",
-            "property": "location",
-            "message": "Use @bible/url-state's Location."
-          },
-          {
-            "object": "window",
-            "property": "history",
-            "message": "Use @bible/url-state's Location."
-          },
-          {
-            "object": "globalThis",
-            "property": "location",
-            "message": "Use @bible/url-state's Location."
-          },
-          {
-            "object": "globalThis",
-            "property": "history",
-            "message": "Use @bible/url-state's Location."
-          },
-          {
             "object": "document",
             "property": "location",
             "message": "Use @bible/url-state's Location."
           },
           {
+            "object": "navigator",
+            "property": "mediaDevices",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "performance",
+            "property": "now",
+            "message": "Use the host's Clock (monotonicMs, packages/film/src/browser/host.ts)."
+          },
+          {
             "object": "window",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "localStorage",
+            "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "localStorage",
+            "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
+          },
+          {
+            "object": "self",
             "property": "localStorage",
             "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
           },
@@ -626,16 +675,26 @@
           },
           {
             "object": "globalThis",
-            "property": "localStorage",
-            "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
+            "property": "sessionStorage",
+            "message": "Use Effect's KeyValueStore: TabStore (packages/film/src/browser/storage.ts)."
           },
           {
-            "object": "globalThis",
+            "object": "self",
             "property": "sessionStorage",
             "message": "Use Effect's KeyValueStore: TabStore (packages/film/src/browser/storage.ts)."
           },
           {
             "object": "window",
+            "property": "requestAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "requestAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "object": "self",
             "property": "requestAnimationFrame",
             "message": "Use Frames (packages/film/src/browser/frames.ts)."
           },
@@ -646,7 +705,12 @@
           },
           {
             "object": "globalThis",
-            "property": "requestAnimationFrame",
+            "property": "cancelAnimationFrame",
+            "message": "Use Frames (packages/film/src/browser/frames.ts)."
+          },
+          {
+            "object": "self",
+            "property": "cancelAnimationFrame",
             "message": "Use Frames (packages/film/src/browser/frames.ts)."
           },
           {
@@ -660,13 +724,103 @@
             "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
           },
           {
-            "object": "window",
-            "property": "setTimeout",
-            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+            "object": "self",
+            "property": "fetch",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
           },
           {
             "object": "window",
-            "property": "setInterval",
+            "property": "EventSource",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "globalThis",
+            "property": "EventSource",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "self",
+            "property": "EventSource",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "window",
+            "property": "XMLHttpRequest",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "globalThis",
+            "property": "XMLHttpRequest",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "self",
+            "property": "XMLHttpRequest",
+            "message": "Use the page's LabClient (packages/film/src/lab/api.ts) or Effect's HttpClient."
+          },
+          {
+            "object": "window",
+            "property": "Audio",
+            "message": "Use Media and a Playable (packages/film/src/browser/media.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "Audio",
+            "message": "Use Media and a Playable (packages/film/src/browser/media.ts)."
+          },
+          {
+            "object": "self",
+            "property": "Audio",
+            "message": "Use Media and a Playable (packages/film/src/browser/media.ts)."
+          },
+          {
+            "object": "window",
+            "property": "AudioContext",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "AudioContext",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "self",
+            "property": "AudioContext",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "window",
+            "property": "AudioWorkletNode",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "AudioWorkletNode",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "self",
+            "property": "AudioWorkletNode",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "window",
+            "property": "MediaRecorder",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "globalThis",
+            "property": "MediaRecorder",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "self",
+            "property": "MediaRecorder",
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "window",
+            "property": "setTimeout",
             "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
           },
           {
@@ -680,14 +834,64 @@
             "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
           },
           {
-            "object": "navigator",
-            "property": "mediaDevices",
-            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+            "object": "window",
+            "property": "setInterval",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
           },
           {
-            "object": "performance",
-            "property": "now",
-            "message": "Use the host's Clock (monotonicMs, packages/film/src/browser/host.ts)."
+            "object": "globalThis",
+            "property": "setInterval",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "self",
+            "property": "setInterval",
+            "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "object": "window",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "globalThis",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "self",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "window",
+            "property": "navigator",
+            "message": "Reach `navigator` bare, where its host members (navigator.mediaDevices) are banned by name."
+          },
+          {
+            "object": "globalThis",
+            "property": "navigator",
+            "message": "Reach `navigator` bare, where its host members (navigator.mediaDevices) are banned by name."
+          },
+          {
+            "object": "self",
+            "property": "navigator",
+            "message": "Reach `navigator` bare, where its host members (navigator.mediaDevices) are banned by name."
+          },
+          {
+            "object": "window",
+            "property": "performance",
+            "message": "Reach `performance` bare, where its host members (performance.now) are banned by name."
+          },
+          {
+            "object": "globalThis",
+            "property": "performance",
+            "message": "Reach `performance` bare, where its host members (performance.now) are banned by name."
+          },
+          {
+            "object": "self",
+            "property": "performance",
+            "message": "Reach `performance` bare, where its host members (performance.now) are banned by name."
           }
         ]
       }
