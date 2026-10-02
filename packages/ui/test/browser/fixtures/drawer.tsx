@@ -1,12 +1,14 @@
 // Fixtures for the drawer. URL params for `drawer`: `direction` (the root's
 // `swipeDirection`: `down` by default, or `right` for a side sheet), `snap=true`
 // for snap points `['100px', 1]`, `modal=false`, `area=true` for a swipe area
-// along the edge the drawer comes in from.
+// along the edge the drawer comes in from
+// (`window.__removeArea()` unmounts it).
 //
 // The bottom sheet is 300px tall on an 800x600 page (its top edge at y=300);
 // the side sheet is 300px wide (its left edge at x=500). Their transforms
 // read the drawer's CSS variables, as a styled drawer's do.
 import type { JSX } from '@solidjs/web';
+import { createSignal, Show } from 'solid-js';
 
 import { Drawer } from '../../../src/drawer/index.ts';
 import type { DrawerSwipeDirection } from '../../../src/drawer/index.ts';
@@ -33,6 +35,8 @@ function directionParam(): DrawerSwipeDirection {
 
 function BasicDrawer(): JSX.Element {
   const direction = directionParam();
+  const [areaShown, setAreaShown] = createSignal(param('area') === 'true');
+  (window as unknown as { __removeArea: () => void }).__removeArea = () => setAreaShown(false);
   return (
     <div>
       <style>{STYLES}</style>
@@ -47,12 +51,12 @@ function BasicDrawer(): JSX.Element {
         onSnapPointChange={(snapPoint, details) => log(`snap ${snapPoint} ${details.reason}`)}
       >
         <Drawer.Trigger id="trigger">Open</Drawer.Trigger>
-        {param('area') === 'true' ? (
+        <Show when={areaShown()}>
           <Drawer.SwipeArea
             id="area"
             class={direction === 'right' ? 'area-right' : 'area-bottom'}
           />
-        ) : null}
+        </Show>
         <Drawer.Portal>
           <Drawer.Backdrop id="backdrop" class="backdrop" />
           <Drawer.Viewport id="viewport" class="viewport">

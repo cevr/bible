@@ -382,9 +382,16 @@ export function DrawerSwipeArea(componentProps: DrawerSwipeAreaProps): JSX.Eleme
     resetSwipeInteractionState();
   });
 
+  // Removed mid-drag: the drawer settles where the gesture left it (open, if the drag
+  // opened it), without the drag's movement, transition override or swiping marks.
   onCleanup(() => {
     releaseGuardCleanup();
     store.outsidePressEnabledRef.current = true;
+    clearSwipeStyles();
+    resetDragDelta();
+    swipeStartEvent = null;
+    openedBySwipe = false;
+    closedOffset = null;
   });
 
   const state: DrawerSwipeAreaState = {

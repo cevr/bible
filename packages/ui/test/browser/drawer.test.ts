@@ -257,6 +257,21 @@ describe('swipe to dismiss', () => {
 });
 
 describe('Drawer.SwipeArea', () => {
+  it('removed mid-drag, leaves the drawer open with no drag styles behind', async () => {
+    const page = await h.open('drawer', { query: { area: 'true' } });
+    await pressAndMove(page, { x: 400, y: 590 }, { x: 400, y: 530 });
+    const popup = page.locator('#popup');
+    await see(popup).toHaveAttribute('data-swiping', '');
+    await page.evaluate(() => (window as unknown as { __removeArea: () => void }).__removeArea());
+    await see(page.locator('#area')).toHaveCount(0);
+    await see(popup).toBeVisible();
+    await see(popup).not.toHaveAttribute('data-swiping', '');
+    expect(await styleVar(page, '#popup', '--drawer-swipe-movement-y')).toBe('');
+    expect(await popup.evaluate((el) => (el as HTMLElement).style.transition)).not.toBe('none');
+    await page.click('#first');
+    await see(popup).toBeVisible();
+  });
+
   it('is hidden from assistive tech and pans across its axis', async () => {
     const page = await h.open('drawer', { query: { area: 'true' } });
     const area = page.locator('#area');
