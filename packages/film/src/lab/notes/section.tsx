@@ -230,26 +230,36 @@ export const Marks = () => {
     Option.filter(state.selected(), (n) => Math.abs(lab.T() - state.timeOf(n)) < 0.5 / film.fps);
   const listen = (surface: SVGRectElement) => {
     const at = pointerAt(surface, film);
+    // One gesture at a time: the pointer that pressed first marks; a second
+    // finger is ignored until that one lifts or is cancelled.
+    let gesture = Option.none<number>();
     const down = (e: PointerEvent) => {
+      if (Option.isSome(gesture)) return;
+      gesture = Option.some(e.pointerId);
       e.preventDefault();
       surface.setPointerCapture(e.pointerId);
+      /** `f`, for this gesture's pointer only. */
+      const its = (f: (ev: PointerEvent) => void) => (ev: PointerEvent) => {
+        if (ev.pointerId === e.pointerId) f(ev);
+      };
       const far = (ev: PointerEvent) =>
         Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) >= DRAG_PX;
-      const move = (ev: PointerEvent) => actions.drag(at(ev), far(ev));
+      const move = its((ev) => actions.drag(at(ev), far(ev)));
       const end = () => {
+        gesture = Option.none();
         surface.removeEventListener('pointermove', move);
         surface.removeEventListener('pointerup', up);
         surface.removeEventListener('pointercancel', cancelled);
       };
-      const up = (ev: PointerEvent) => {
+      const up = its((ev) => {
         end();
         actions.lift(at(ev), far(ev));
-      };
+      });
       // The OS took the gesture (a swipe, a call): the mark goes, nothing is written.
-      const cancelled = () => {
+      const cancelled = its(() => {
         end();
         actions.cancel();
-      };
+      });
       actions.press(at(e));
       surface.addEventListener('pointermove', move);
       surface.addEventListener('pointerup', up);

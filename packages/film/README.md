@@ -948,7 +948,7 @@ Saving redraws the film canvas at that frame and sends it (`canvas.toBlob`)
 as the still. Every lab mark lives on an SVG layer over the canvas, never on
 the canvas, so a still, an export frame and a probe are the film's pixels
 alone. Notes appear as pins through the timeline (the tick machinery, hover
-for the text; a pin and the marks surface take native pointer listeners that go with their elements, never an `onCleanup` in a ref, which has no owner in Solid 2; a gesture the OS takes, `pointercancel`, drops the mark and writes nothing) and in a side list with their status, still and thread,
+for the text; a pin and the marks surface take native pointer listeners that go with their elements, never an `onCleanup` in a ref, which has no owner in Solid 2; a gesture the OS takes, `pointercancel`, drops the mark and writes nothing; one pointer marks at a time, a second finger is ignored until the first lifts) and in a side list with their status, still and thread,
 newest first; clicking one seeks to its frame and draws its box and ink
 there. The selected note takes a reply or a resolve. Two machines hold it. The
 composer (`lab/notes/composer.ts`): `Closed | Marking | Open | Saving` on

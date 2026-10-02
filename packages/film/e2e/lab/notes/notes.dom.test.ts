@@ -205,7 +205,7 @@ describe('marking a frame', () => {
         yield* page.mouse.down;
         yield* waitFor(page, '.lab-compose:not([hidden])');
         yield* page.evaluate(
-          `document.querySelector('.lab-notes-surface').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true }))`,
+          `document.querySelector('.lab-notes-surface').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 }))`,
         );
         yield* attached(page, '.lab-compose[hidden]');
         // The next note opens as ever.
@@ -214,6 +214,47 @@ describe('marking a frame', () => {
         yield* waitFor(page, '.lab-compose:not([hidden])');
         yield* textHas(page, '.lab-where', 'one · 1.00s');
         expect(posted(asked, /^\/notes$/)).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a second finger neither cancels nor lifts the first one’s mark',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        yield* waitFor(page, '.lab-overlay');
+        const a = yield* onFrame(page, 420, 60);
+        const b = yield* onFrame(page, 600, 160);
+        const c = yield* onFrame(page, 300, 300);
+        // The mouse is pointer 1: it presses and drags a box.
+        yield* page.mouse.move(a.x, a.y);
+        yield* page.mouse.down;
+        yield* page.mouse.move(b.x, b.y, 5);
+        // Pointer 2 is a second finger. The browser cannot make one, so its
+        // events are dispatched, and its capture taken as a real touch's is.
+        yield* page.evaluate(`(() => {
+          const s = document.querySelector('.lab-notes-surface');
+          const capture = s.setPointerCapture.bind(s);
+          s.setPointerCapture = (id) => { try { capture(id); } catch {} };
+          const at = { bubbles: true, pointerId: 2, clientX: ${c.x}, clientY: ${c.y} };
+          s.dispatchEvent(new PointerEvent('pointerdown', at));
+          s.dispatchEvent(new PointerEvent('pointerup', at));
+          s.dispatchEvent(new PointerEvent('pointerdown', at));
+          s.dispatchEvent(new PointerEvent('pointercancel', at));
+          return true;
+        })()`);
+        yield* page.mouse.up;
+        yield* waitFor(page, '.lab-compose:not([hidden])');
+        yield* attached(page, '.lab-overlay rect.lab-draft');
+        yield* save(page, 'one finger at a time');
+        yield* waitFor(page, '.lab-note-item[data-id="n1"]');
+        const box = field(theNote(asked), 'box');
+        const n = (key: string) => Number(Option.getOrElse(field(box, key), () => Number.NaN));
+        expect(n('x')).toBeCloseTo(420, -1);
+        expect(n('y')).toBeCloseTo(60, -1);
+        expect(n('w')).toBeCloseTo(180, -1);
+        expect(n('h')).toBeCloseTo(100, -1);
       }).pipe(Effect.scoped),
     SLOW,
   );
