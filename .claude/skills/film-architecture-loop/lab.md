@@ -1,6 +1,6 @@
 # Lab sweep
 
-The lab (`bun run lab <film>`) is where the owner reviews a film and the agent answers: the owner annotates a frame, the agent changes data or code and replies with the after-still. Its design and history are in `apps/animations/plans/lab.md`; its workflow is the `film` skill's Lab loop. A great lab makes a note cheap to leave, cheap to answer and cheap to verify.
+The lab (`bun run lab`, `/lab?film=<film>`; always on as the box's `film-lab` unit) is where the owner reviews a film and the agent answers: the owner annotates a frame, the agent changes data or code and replies with the after-still. Its design and history are in `apps/animations/plans/lab.md`; its workflow is the `film` skill's Lab loop. A great lab makes a note cheap to leave, cheap to answer and cheap to verify.
 
 ## What the sweep checks
 

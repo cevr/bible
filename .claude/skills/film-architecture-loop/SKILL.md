@@ -36,7 +36,7 @@ The ledger is `apps/animations/plans/architecture-loop-<date>.md`: the single so
 
 11. **Live check.** After each merge, or a small group of merges, drive what the batch changed:
     - Films: none is checked, rendered, mixed or reviewed, and no still, clip or montage is made for the owner, until he asks for scene review (owner, 2026-10-01). The batch's diff is the review of what it draws.
-    - Lab: `bun run lab <film>` in the background, then drive the changed controls with `agent-browser` (load the `agent-browser` skill); a write-back must leave a clean `git diff` after undo.
+    - Lab: `bun run lab` in the background (`LAB_PORT=<free port>` so it does not meet the box's unit on 8229), open `/lab?film=<film>`, then drive the changed controls with `agent-browser` (load the `agent-browser` skill); a write-back must leave a clean `git diff` after undo.
     - Performance: rerun the rows in [`performance.md`](performance.md) the batch claimed to move. Note `uptime` before and after; a number taken at a load average over 4 claims neither a regression nor a win.
     - CI: after a push, `bun run ci` prints HEAD's verdict; a red or cancelled run is a finding on the ledger. Its `failed=` names the step a job stopped in, and for a cancelled job the job's time and the step that spent the most of it.
 
