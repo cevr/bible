@@ -96,6 +96,19 @@ describe('where a note shows', () => {
     expect(noteT(film(7, 'c'), FPS, made)).toBe(6.5);
   });
 
+  test('a note on a scene’s last frame stays there when the scene ends between frames', () => {
+    // Scene a lasts 3.04 s: frame 91 (3.0333 s) is its last.
+    const onLast: NoteDraft = { scene: 'a', T: 91 / FPS, local: 91 / FPS, frame: 91, text: 'x' };
+    expect(noteT(film(3.04), FPS, onLast)).toBe(91 / FPS);
+  });
+
+  test('a note past a scene that ends between frames holds on that scene’s last frame', () => {
+    // b runs from 3.04 s to 9.04 s: its last frame is 271 (9.0333 s).
+    const T = noteT(film(3.04), FPS, { ...made, local: 9 });
+    expect(T).toBeCloseTo(271 / FPS, 9);
+    expect(Option.map(nearestMoment(film(3.04), T), (m) => m.scene)).toEqual(Option.some('b'));
+  });
+
   test('a scene re-taken shorter than the note holds it on its last frame', () => {
     const late = { ...made, local: 9 };
     const T = noteT(film(5), FPS, late);

@@ -66,6 +66,17 @@ export const nearestMoment = (placed: ReadonlyArray<Placed>, T: number): Option.
   });
 
 /**
+ * Film seconds `local` into placed scene `p`: as it is while inside the scene;
+ * at or past its end (the scene got shorter), the scene's last frame, the last
+ * one that starts before its end (a hair of float error is not a frame).
+ */
+const inScene = (p: Placed, fps: number, local: number) => {
+  if (local < p.dur) return p.start + local;
+  const end = (p.start + p.dur) * fps;
+  return Math.max(p.start, (Math.ceil(end - 1e-9) - 1) / fps);
+};
+
+/**
  * The film time a note shows at now: `local` seconds into its scene while the
  * film has that scene, so a re-take of an earlier beat does not move it off its
  * frame (held on the scene's last frame if the scene got shorter than that);
@@ -80,7 +91,7 @@ export const noteT = (
     Option.flatMap(Option.fromUndefinedOr(note.local), (local) =>
       Option.map(
         Arr.findFirst(placed, (p) => p.spec.id === note.scene),
-        (p) => p.start + Math.min(local, Math.max(0, p.dur - 1 / fps)),
+        (p) => inScene(p, fps, local),
       ),
     ),
     () => note.T,
