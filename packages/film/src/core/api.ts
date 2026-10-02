@@ -711,24 +711,11 @@ const PAGES: ReadonlyArray<readonly [Place.Place<unknown>, PageName]> = [
   [Places.labScene, 'lab'],
 ];
 
-/** The paths before the places, which the pages still read (`?film=`). */
-const OLD_PAGES: ReadonlyArray<readonly [string, PageName]> = [
-  ['/lab', 'lab'],
-  ['/player', 'player'],
-];
-
-/** The page `pathname` serves, if any: a path no place declares (a chunk, a typo) serves none. */
+/** The page `pathname` serves, if any: a path no place declares (a chunk, a typo, an old `/lab`) serves none. */
 export const pageAt = (pathname: string): Option.Option<PageName> =>
-  Option.orElse(
-    Option.map(
-      Arr.findFirst(PAGES, ([place]) => Option.isSome(Place.decode(place, pathname))),
-      ([, page]) => page,
-    ),
-    () =>
-      Option.map(
-        Arr.findFirst(OLD_PAGES, ([path]) => path === pathname),
-        ([, page]) => page,
-      ),
+  Option.map(
+    Arr.findFirst(PAGES, ([place]) => Option.isSome(Place.decode(place, pathname))),
+    ([, page]) => page,
   );
 
 /** No time on the hash: the page opens at its own start. */

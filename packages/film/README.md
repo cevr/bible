@@ -631,19 +631,43 @@ stopped, which stops the server and the routes with the command's scope. The
 server is Effect's over `Bun.serve` (`labServer` and `serveLab`,
 `tools/api-server.ts`): no route or development server of Bun's, so every
 request reaches the gate. It serves three pages, the
-app's, cross-linked: the review at `/` (below), the lab at `/lab?film=<film>`
-(`lab.html`, whose entry calls `mountLab(films)`) and the player, its
-look-book, at `/player?film=<film>&lookbook`. Its API is under `/api/` (The
-HTTP API, below), and every other path a page serves is the framework's one
-page table (`PAGE_PATHS` in `core/api.ts`; the app gives each page's HTML
-entry, `LabPageSpec.pages`): the review at `/` and `/sets/*` and a film's
-`/films/<film>/choices` and `/films/<film>/project`, the lab at
-`/films/<film>/lab` and `/films/<film>/lab/*`, the player at
-`/films/<film>/play` and a film's `/films/<film>/scenes[/*]` (its look-book),
-and `/lab` and `/player` as before. A path no page declares is a 404, never
-a page. `LAB_HOST` (loopback by default) and `LAB_PORT` (8229) say where it
+app's, cross-linked: the review (below), the lab (`lab.html`, whose entry
+calls `mountLab(films)`) and the player with its look-book. Its API is under
+`/api/` (The HTTP API, below), and every other path a page serves is one of
+the framework's places (`Places` in `core/api.ts`, each a `@bible/url-state`
+Place; the app gives each page's HTML entry, `LabPageSpec.pages`), as
+**Pages and links** (below) lists them. An old link (`/lab?film=<film>`,
+`/player?film=<film>&lookbook`, `/?project=<film>`, `/?folder=…`) answers a
+302 to its place (`legacyPlace`, logged `lab.page.moved`), and the browser
+keeps its `#…` across. A path no place declares is a 404, never a page.
+`LAB_HOST` (loopback by default) and `LAB_PORT` (8229) say where it
 listens; a box binds `0.0.0.0` with the names it is reached by in
 `FILM_LAB_HOSTS`.
+
+**Pages and links.** Every view a reviewer would talk about is a URL, so a
+pasted link opens what the sender saw and Back walks the views: the path
+says what the view is about, the query what is selected in it or how it is
+shown, the hash when (`#t=`, seconds). Each page reads and writes its place
+through `@bible/url-state` (`UrlState`: a selection is a history entry; a
+refinement and the playhead replace the entry), and every link is printed by
+`pageHref` over the same places.
+
+| Place                            | Page   | Query                                  | Hash                         |
+| -------------------------------- | ------ | -------------------------------------- | ---------------------------- |
+| `/`                              | review |                                        |                              |
+| `/sets/<folder>`                 | review |                                        |                              |
+| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`                   | `t` (the set's video)        |
+| `/films/<film>/choices`          | review | `point`, `variant` (heard), `picture`  | `t` (the picture)            |
+| `/films/<film>/project`          | review | `point` (the card in focus)            |                              |
+| `/films/<film>/scenes[/<scene>]` | player |                                        |                              |
+| `/films/<film>/play`             | player |                                        | `t` (film time)              |
+| `/films/<film>/lab`              | lab    | `note`                                 | `t` (film time)              |
+| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note` | `t` (from the scene's start) |
+
+A folder ref is one path segment (`bible-tools%2Frighteousness-by-faith`), as
+is a short's name. Rate, onion, loop, compare, the microphone, quality and
+the home filter are this viewer's own settings and stay in the browser's
+storage, never in a link.
 
 **The pages are built in the lab's process** (`LabPage`, `tools/lab-page.ts`):
 `Bun.build` with `@bible/film/solid-plugin` (the `PageBundler` service, with a

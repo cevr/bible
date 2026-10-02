@@ -9,7 +9,7 @@ import { ConfigProvider, Effect, FileSystem, Layer, Option, Path, Schema } from 
 import { Base64 } from 'effect/encoding';
 import { FetchHttpClient, HttpClient, HttpPlatform } from 'effect/http';
 import { parseSync } from 'oxc-parser';
-import { LabHttpApi, Refusal, labUrls, reviewFileUrl, routesOf } from '../core/api.ts';
+import { LabHttpApi, Places, Refusal, labUrls, reviewFileUrl, routesOf } from '../core/api.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler, labLink } from './lab.ts';
@@ -297,12 +297,14 @@ describe('lab routes', () => {
             return [res.status, tag] as const;
           });
         /** `request`'s row: what it asks, and the status and refusal it gets. */
-        const row = (request: Request) =>
-          Effect.map(
+        const row = (request: Request) => {
+          const url = new URL(request.url);
+          return Effect.map(
             answer(request),
             ([status, tag]) =>
-              [`${request.method} ${new URL(request.url).pathname}`, status, tag] as const,
+              [`${request.method} ${url.pathname}${url.search}`, status, tag] as const,
           );
+        };
         const routes = routesOf(LabHttpApi);
         expect(routes.length).toBeGreaterThan(15);
         const foreign = { host: 'evil.example:4401' };
@@ -341,13 +343,15 @@ describe('lab routes', () => {
         }
         // The pages: a foreign Host never; a link opened on another site, yes (GET or
         // HEAD), but none of a page's files; a page is read, never written.
+        // Every place's path (its film `f`, each other part `x`), and old links
+        // the pages answer with a redirect to their place.
         const pages = [
-          '/',
-          '/sets/root/out',
-          '/films/f/lab/hand',
-          '/films/f/play',
-          '/lab',
-          '/player',
+          ...Object.values(Places).map((place) =>
+            place.pattern.replace(':film', 'f').replaceAll(/:\w+/g, 'x'),
+          ),
+          '/lab?film=f',
+          '/player?film=f&lookbook',
+          '/?project=f',
         ];
         const files = ['/chunk-a1.js', '/films/f/narration/s1.mp3', '/nothing'];
         for (const path of [...pages, ...files]) {

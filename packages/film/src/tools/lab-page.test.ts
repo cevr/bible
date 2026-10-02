@@ -84,7 +84,11 @@ const served = (
             Effect.provideService(HttpServerRequest.HttpServerRequest, request),
           ),
         );
-        return { status: response.status, text: yield* Effect.promise(() => response.text()) };
+        return {
+          status: response.status,
+          location: response.headers.get('location') ?? '',
+          text: yield* Effect.promise(() => response.text()),
+        };
       });
     return { page, ask };
   });
@@ -157,9 +161,6 @@ describe('lab pages', () => {
           '/films/f/lab': 'lab',
           '/films/f/lab/hand': 'lab',
           '/films/f/play': 'player',
-          // The paths before the films' own, as links already handed out name them.
-          '/lab': 'lab',
-          '/player': 'player',
         };
         for (const [pathname, page] of Object.entries(places))
           expect([pathname, ...(yield* titleOf(pathname))]).toEqual([pathname, 200, page]);
@@ -172,6 +173,29 @@ describe('lab pages', () => {
         for (const pathname of ['/films/f', '/films/f/lab/', '/films/f/narration/full.wav', '/p'])
           expect([pathname, (yield* ask(pathname)).status]).toEqual([pathname, 404]);
       }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live('an old link is sent on to its place', () =>
+    Effect.gen(function* () {
+      const { ask } = yield* app;
+      const old = {
+        '/lab?film=f': '/films/f/lab',
+        '/lab?film=f&sel=cue:hand:rise': '/films/f/lab/hand?cue=rise',
+        '/lab': '/',
+        '/player?film=f&lookbook': '/films/f/scenes',
+        '/player?film=f': '/films/f/play',
+        '/?project=f': '/films/f/project',
+        '/?film=f': '/films/f/choices',
+        '/?folder=root%2Fout&set=render%3Ascenes%3Ahand&view=moments&m=1':
+          '/sets/root%2Fout/render:scenes:hand?view=moments&m=1',
+      };
+      for (const [from, to] of Object.entries(old)) {
+        const answer = yield* ask(from);
+        expect([from, answer.status, answer.location]).toEqual([from, 302, to]);
+      }
+      // A renderer's export page is no old link.
+      expect((yield* ask('/?film=f&export')).status).toBe(200);
+    }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
   it.live(
