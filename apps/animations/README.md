@@ -8,7 +8,7 @@ scrubbable preview and a frame-exact MP4 export.
 ## Commands
 
 ```sh
-bun run lab                                    # the lab at http://127.0.0.1:8229/: the review at /, a film's lab at /lab?film=<film>, its look-book at /player?film=<film>&lookbook (LAB_HOST, LAB_PORT, FILM_LAB_HOSTS)
+bun run lab                                    # the lab at http://127.0.0.1:8229/: the review at /, a film's lab at /films/<film>/lab, its look-book at /films/<film>/scenes (LAB_HOST, LAB_PORT, FILM_LAB_HOSTS)
 bun run narrate <film>                         # stage stale beats with ElevenLabs, verify, remix full.wav
 bun run script <film> [--sheet]                # the reading sheet; --sheet writes out/<film>/script-sheet.md + .html to print
 bun run takes import <film> <folder|file>      # the owner's recordings as takes (trimmed, levelled, timed), remix full.wav
@@ -76,7 +76,8 @@ Solid) and, for `lab`, the lab: one server for every film, meant to stay up
 from this app's source in its own process when they are asked for, and again
 after a file they were built from changes: the review (`review.html`) at `/`,
 the lab (`lab.html`, whose entry `src/lab.ts` mounts `@bible/film/lab`) at
-`/lab?film=<film>`, the player at `/player`. There is no build step and no
+`/films/<film>/lab`, the player at `/films/<film>/play` (its look-book at
+`/films/<film>/scenes`). There is no build step and no
 restart after an edit: an open lab reloads itself onto the new code at the
 frame it shows, and a page that does not build shows the bundler's words
 until it does. The lab's routes are under `/api/` (a film's at `/api/films/<film>/*`; a name
@@ -180,7 +181,7 @@ needs no other tool; it writes `full.wav` whole (a partial of its own,
 renamed only once written), so a failed or interrupted mix leaves the previous track as it was. The
 player streams the same WAV. Ctrl-C stops
 a render cleanly: every page, the browser and the server close. Player keys: space play, ←/→ frame (shift = 1 s), `[` `]` scene,
-`c` captions. In the lab (`bun run lab`, `/lab?film=<film>`) a click on the frame pins a
+`c` captions. In the lab (`bun run lab`, `/films/<film>/lab`) a click on the frame pins a
 note, a drag boxes one, the Pen draws on it and `n` (or the Note frame button, on a phone)
 notes the whole frame; notes show as pink pins on the track and in the side list, where the
 agent's replies arrive with their after-stills (if the page loses the lab server, the notes say so and connect again on their own). The strip under the timeline shows the
@@ -203,8 +204,8 @@ Compare draws the same frame as HEAD declared the scene's timeline and
 knobs: wipe (HEAD left of a divider you drag) or blink; when HEAD cannot give the scene, the section says the server's reason. Speed, loop, onion,
 compare and play are kept through the reload a write causes (the tab's
 sessionStorage, per film). The panel's
-Look-book link (`?film=<film>&lookbook`) composes `bun run lookbook`'s
-sheet live; a click on a still opens that frame. The panel's **Studio**
+Look-book link (`/films/<film>/scenes`) composes `bun run lookbook`'s
+sheet live; a click on a still opens its scene in the lab at that frame. The panel's **Studio**
 section records the owner's voiceover beat by beat: pick a beat (its line is
 the teleprompter), click into the section, then R records after a 3 s
 count-in (the meter warns of clipping at −1 dBFS), Space stops, play it back,
@@ -238,7 +239,7 @@ films and every folder of renders under every checkout's `out/` (and any
 folder are a comparison set, played on one clock (all of them, the first
 against one other, every variant's frame at a few moments, or the notes;
 space plays, ←/→ step 2 s, 🔊 picks whose sound is heard), titled and
-annotated by an optional `review.json`. A film's page (`?film=<film>`) plays
+annotated by an optional `review.json`. A film's choices page (`/films/<film>/choices`) plays
 its newest render with the film's whole mix heard over it and lists its
 choice points: the score's options, each library sound's takes, each beat's
 voice attempts, each look's levels (`looks` in `palette.ts`) and each sound

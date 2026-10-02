@@ -1,4 +1,4 @@
-// The player owns `#T`, the one place a reload reads T from. While T moves
+// The player owns its time in the URL (`#t=`), the one place a reload reads T from. While T moves
 // (play, a drag) it is written at most once per period; when T settles (a
 // seek, the end of a drag, a pause) it is written at once; and when the lab
 // asks for a write, which reloads the page, it is written at once and held
@@ -7,7 +7,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import type { Timers } from './throttle.ts';
-import { tInHash, tInUrl } from './t-in-url.ts';
+import { onTheMs, tInUrl } from './t-in-url.ts';
 
 const fakeTimers = () => {
   let now = 0;
@@ -35,7 +35,7 @@ const fakeTimers = () => {
   return { timers, advance };
 };
 
-/** A player's T, and every `#T` written, driven on a fake clock. */
+/** A player's T, and every `#t=` written, driven on a fake clock. */
 const rig = () => {
   const clock = fakeTimers();
   let T = 0;
@@ -47,7 +47,7 @@ const rig = () => {
   return { clock, url, at, written };
 };
 
-describe('#T in the URL', () => {
+describe('the time in the URL', () => {
   test('a seek right after a moving write lands at once, not a period later', () => {
     const { url, at, written } = rig();
     at(1);
@@ -89,14 +89,14 @@ describe('#T in the URL', () => {
     expect(written).toEqual([10, 10.1, 20, 20.5]);
   });
 
-  test('a time written to #T reads back in its own frame, never before it', () => {
+  test('a time written to #t= reads back in its own frame, never before it', () => {
     // A scene that starts off the 10 ms grid: `]` seeks to its exact start.
     for (const T of [12.3333333, 4.5, 0, 7.12999, 99.0001]) {
-      const read = Number.parseFloat(tInHash(T));
+      const read = onTheMs(T);
       expect(read).toBeGreaterThanOrEqual(T);
       expect(read - T).toBeLessThan(0.001);
     }
     // A time already on the grid is written as itself, so reloads never creep.
-    expect(tInHash(12.33)).toBe('12.330');
+    expect(onTheMs(12.33)).toBe(12.33);
   });
 });

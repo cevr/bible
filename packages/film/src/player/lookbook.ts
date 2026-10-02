@@ -3,18 +3,24 @@
 // start and end and at its 60% point (`sceneMoments`, the moments `film
 // check` probes, less the marks), each labelled, under the film's palette as
 // swatches. The page composes it with `film.render`, so the lab shows it live
-// (`?film=…&lookbook`, linked from the lab) and `film lookbook` asks an export page for the
-// same sheet (`ExportHandle.lookbook`) and writes it to
-// `out/<film>/film/<variant>/lookbook.jpg`. A still's click opens the lab on
-// its time, written as `#T` is (`tInHash`).
+// (a film's scenes page, `/films/<film>/scenes`, linked from the lab) and
+// `film lookbook` asks an export page for the same sheet
+// (`ExportHandle.lookbook`) and writes it to
+// `out/<film>/film/<variant>/lookbook.jpg`. A still's click opens its scene in
+// the lab at its time (`stillHref`); a short's opens its play page, as the lab
+// opens films, not shorts.
 // It is set in the film's own type: its shorts' hook face for the title, their
 // caption face for the rest (`film.look.short`), so the engine names no family.
 
-import { Effect } from 'effect';
+import { Array as Arr, Effect, Option } from 'effect';
 import type { Film } from '../canvas/film.ts';
+import { pageHref } from '../core/api.ts';
+import type { Placed } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
-import { labUrl } from './pages.ts';
-import { tInHash } from './t-in-url.ts';
+import { isShortKey } from '../core/shorts.ts';
+import type { Host } from '../browser/host.ts';
+import { PageLoad } from '../browser/page-load.ts';
+import { onTheMs } from './t-in-url.ts';
 
 /** Stills across a row. */
 const COLS = 6;
@@ -202,16 +208,39 @@ export const composeLookbook = async (
 };
 
 /**
- * The lab's look-book page (`?film=…&lookbook`): the sheet, composed live
- * from the code as it is now; a still opens that frame in the lab.
+ * Where a still of page `name` (a film laid out as `placed`) opens: its scene
+ * in the lab, at the still's time in that scene; a short's, its play page at
+ * the still's time, as the lab opens films, not shorts.
  */
-export const mountLookbook = (film: Film, name: string, captions: boolean): void => {
+export const stillHref = (
+  name: string,
+  placed: ReadonlyArray<Placed>,
+  moment: SceneMoment,
+): string => {
+  const scene = Arr.findFirst(placed, (p) => p.spec.id === moment.scene);
+  if (isShortKey(name) || Option.isNone(scene))
+    return pageHref.play(name, Option.some(onTheMs(moment.time)));
+  return pageHref.labScene(
+    name,
+    moment.scene,
+    {},
+    Option.some(onTheMs(moment.time - scene.value.start)),
+  );
+};
+
+/**
+ * A film's scenes page (`/films/<film>/scenes`): the look-book sheet,
+ * composed live from the code as it is now; a still opens that frame
+ * (`stillHref`).
+ */
+export const mountLookbook = (film: Film, name: string, captions: boolean, host: Host): void => {
   document.body.classList.add('lookbook');
   const bar = document.createElement('header');
   bar.className = 'lookbook-bar';
-  const lab = labUrl(name);
+  const short = isShortKey(name);
+  const back = short ? pageHref.play(name) : pageHref.lab(name);
   bar.innerHTML = `<strong>Look-book</strong> <span class="lookbook-status">composing…</span>
-    <a href="${lab}">back to the lab</a>`;
+    <a href="${back}">back to the ${short ? 'short' : 'lab'}</a>`;
   const status = bar.querySelector<HTMLSpanElement>('.lookbook-status');
   const sheet = document.createElement('div');
   sheet.className = 'lookbook-sheet';
@@ -231,7 +260,10 @@ export const mountLookbook = (film: Film, name: string, captions: boolean): void
         const x = ((e.clientX - r.left) / r.width) * canvas.width;
         const y = ((e.clientY - r.top) / r.height) * canvas.height;
         const hit = tiles.find((t) => x >= t.x && x <= t.x + t.w && y >= t.y && y <= t.y + t.h);
-        if (hit !== undefined) location.href = `${lab}#${tInHash(hit.moment.time)}`;
+        if (hit !== undefined)
+          Effect.runSyncWith(host)(
+            PageLoad.use((load) => load.open(stillHref(name, film.placed, hit.moment))),
+          );
       });
     })
     .catch((e: unknown) => say(`failed: ${String(e)}`));

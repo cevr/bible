@@ -2,18 +2,20 @@
 // scene's timeline or knobs standing in for its drawing's until the write
 // lands and the page reloads), held here and handed to the player whole
 // (`Player.showEdits`), which draws every frame with it
-// (`RenderOptions.edits`); and the clock's `#T` held at the frame a write is
-// asked at, then let go. `#T` keeps its one
-// owner (`tInUrl`, behind `Player.holdT` and `Player.settle`); nothing here
-// writes the URL. A write the film's code does not import (a take's audio
-// and timings, which the player fetches once) reloads the page itself, at
-// the frame held.
+// (`RenderOptions.edits`); and the lab's place in the URL held at the frame a
+// write is asked at, then let go. The place keeps its one writer (the lab's
+// time in the URL, `tInUrl` behind `Player.holdT` and `Player.settle`);
+// nothing here writes the URL. A write the film's code does not import (a
+// take's audio and timings, which the player fetches once) reloads the page
+// itself, once the held place is on the address bar, so it lands on the
+// frame, the scene and the pick it left.
 
 import { Context, Effect, Layer, Option, Result, Schema } from 'effect';
 import type { SceneEdit, SceneSpec, ShownEdit } from '../canvas/film.ts';
 import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Knobs, ResolvedCue, Timeline } from '../core/schema.ts';
 import type { LoopRange, Player } from '../player/main.ts';
+import { type Host, reloadAtAddress } from '../browser/host.ts';
 
 /** An edit the scene's timeline cannot resolve with: shown nowhere, and why. */
 export class NotPreviewed extends Schema.TaggedError<NotPreviewed>()('NotPreviewed', {
@@ -39,7 +41,7 @@ export interface StageOps {
   readonly knobsOf: (scene: string) => Knobs;
   /** `scene`'s cues as the preview draws them: previewed, else laid out. */
   readonly cuesOf: (scene: string) => ReadonlyMap<string, ResolvedCue>;
-  /** A write is on its way: hold `#T` at this frame for the reload it causes. */
+  /** A write is on its way: hold `#t=` at this frame for the reload it causes. */
   readonly holdT: Effect.Effect<void>;
   /**
    * Load the page again at this frame: the film's timings and narration are
@@ -71,10 +73,11 @@ class NoStill extends Schema.TaggedError<NoStill>()('NoStill', {
 export class Stage extends Context.Service<Stage, StageOps>()('@bible/film/lab/Stage') {}
 
 /**
- * The stage over `player`'s film. `changed` is told after each preview, so
- * the panels that draw the edited timeline read it again.
+ * The stage over `player`'s film, on the page's `host` (its address bar and
+ * its loads). `changed` is told after each preview, so the panels that draw
+ * the edited timeline read it again.
  */
-export const makeStage = (player: Player, changed: () => void): StageOps => {
+export const makeStage = (player: Player, host: Host, changed: () => void): StageOps => {
   const { film } = player;
   const edits = new Map<string, ShownEdit>();
   const placed = (scene: string): Option.Option<Placed<SceneSpec>> =>
@@ -127,10 +130,10 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
     knobsOf,
     cuesOf,
     holdT: Effect.sync(() => player.holdT()),
-    reload: Effect.sync(() => {
-      player.holdT();
-      location.reload();
-    }),
+    reload: Effect.sync(() => player.holdT()).pipe(
+      Effect.andThen(reloadAtAddress),
+      Effect.provideContext(host),
+    ),
     settle: Effect.sync(() => player.settle()),
     pause: Effect.sync(() => player.pause()),
     duration: film.duration,
@@ -147,9 +150,7 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
         player.play();
       }),
     still: (T) =>
-      Effect.sync(() =>
-        film.render(player.ctx, T, { captions: player.captions.on, edits: player.edits() }),
-      ).pipe(
+      Effect.sync(() => player.renderShown(player.ctx, T)).pipe(
         Effect.flatMap(() =>
           Effect.callback<Blob, NoStill>((resume) =>
             player.canvas.toBlob((blob) =>

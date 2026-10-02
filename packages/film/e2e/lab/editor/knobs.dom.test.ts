@@ -9,7 +9,14 @@
 import { Effect, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
-import { type Asked, json, openLab, route, sourceOne } from '../../../src/lab/fixtures/harness.ts';
+import {
+  type Asked,
+  json,
+  labAt,
+  openLab,
+  route,
+  sourceOne,
+} from '../../../src/lab/fixtures/harness.ts';
 import { attributeIs, evaluates, textHas, valueIs } from '../../../src/lab/fixtures/settled.ts';
 
 const posted = (asked: ReadonlyArray<Asked>) =>
@@ -51,8 +58,7 @@ describe('the knob rows', () => {
   it.live("a number knob's field writes its value", () =>
     Effect.gen(function* () {
       const { page, asked, errors } = yield* openLab([], {
-        query: '&sel=knob:one:size',
-        hash: '#1',
+        href: labAt(1, { selection: { kind: 'knob', scene: 'one', name: 'size' } }),
       });
       const field = '.lab-knob[data-knob="size"] input';
       yield* page.waitFor(`${field}:not([disabled])`);
@@ -69,7 +75,9 @@ describe('the knob rows', () => {
 
   it.live('a knob whose value is 0 has its row, and its field writes', () =>
     Effect.gen(function* () {
-      const { page, asked } = yield* openLab([], { query: '&sel=knob:one:tilt', hash: '#1' });
+      const { page, asked } = yield* openLab([], {
+        href: labAt(1, { selection: { kind: 'knob', scene: 'one', name: 'tilt' } }),
+      });
       const field = '.lab-knob[data-knob="tilt"] input';
       yield* page.waitFor(`${field}:not([disabled])`);
       yield* valueIs(page, field, '0');
@@ -86,7 +94,7 @@ describe('the knob rows', () => {
 describe('the handles on the frame', () => {
   it.live("a point knob's handle dragged writes it once, on release, and selects it", () =>
     Effect.gen(function* () {
-      const { page, asked } = yield* openLab([], { hash: '#1' });
+      const { page, asked } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor('.lab-handle[data-knob="spot"]');
       yield* dragHandle(page, 'spot', 40, 0);
       yield* statusSays(page, 'wrote');
@@ -94,7 +102,11 @@ describe('the handles on the frame', () => {
       expect(writes).toHaveLength(1);
       expect(writes[0]?.path).toBe('/scenes/one/knobs/spot');
       expect(writes[0]?.body).toEqual(Option.some({ value: [360, 200] }));
-      yield* evaluates(page, "location.search.includes('sel=knob%3Aone%3Aspot')", true);
+      yield* evaluates(
+        page,
+        'location.pathname + location.search',
+        '/films/probe/lab/one?knob=spot',
+      );
     }).pipe(Effect.scoped),
   );
 
@@ -106,7 +118,7 @@ describe('the handles on the frame', () => {
       };
       const { page, asked } = yield* openLab(
         [route('GET', /^\/scenes\/one\/source$/, () => json(computed))],
-        { hash: '#1' },
+        { href: labAt(1) },
       );
       yield* page.waitFor('.lab-handle[data-knob="spot"]');
       yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
@@ -120,7 +132,7 @@ describe('the handles on the frame', () => {
 describe('a camera pushed in on its target', () => {
   it.live('a knob read before the camera sits where the camera draws it', () =>
     Effect.gen(function* () {
-      const { page, errors } = yield* openLab([], { hash: '#10' });
+      const { page, errors } = yield* openLab([], { href: labAt(10) });
       yield* page.waitFor('.lab-handle[data-knob="pole"]');
       const [x, y] = yield* handleAt(page, 'pole');
       expect(x).toBeCloseTo(120, 0);
@@ -131,7 +143,7 @@ describe('a camera pushed in on its target', () => {
 
   it.live('its target is a reticle at the centre; dragged right, the target moves left', () =>
     Effect.gen(function* () {
-      const { page, asked } = yield* openLab([], { hash: '#10' });
+      const { page, asked } = yield* openLab([], { href: labAt(10) });
       yield* page.waitFor('.lab-handle.reticle[data-knob="face"]');
       const [x, y] = yield* handleAt(page, 'face');
       expect(x).toBeCloseTo(320, 0);

@@ -1,55 +1,72 @@
 // The lab's shell as compound components: `<Lab.Root>` holds what every panel
 // shares (the staged film and its player, the lab API's base, the view kept
-// through a reload, the frame shown), and the pieces place themselves: layers
+// through a reload, the frame shown, and the lab's place: the pick and the
+// note the URL holds, `lab/place.ts`), and the pieces place themselves: layers
 // pinned over the film canvas (`<Lab.Overlay>`, `<Lab.Layer>`), the slot under
 // the player's timeline (`<Lab.Strip>`), and the side panel (`<Lab.Panel>`,
 // `<Lab.Header>`, `<Lab.Section>`). Each panel's own state lives in its own
 // provider; the shell knows none of it.
 
-import { RegistryProvider } from '@bible/atom-solid';
+import { RegistryProvider, useAtomValue } from '@bible/atom-solid';
+import * as UrlAtom from '@bible/url-state/atom';
 import { Portal } from '@solidjs/web';
-import { Effect, Fiber, Layer, Option } from 'effect';
+import { Effect, Equal, Fiber, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createSignal, onCleanup, onSettled, useContext } from 'solid-js';
+import {
+  createContext,
+  createMemo,
+  createSignal,
+  onCleanup,
+  onSettled,
+  useContext,
+} from 'solid-js';
 import type { Film } from '../canvas/film.ts';
-import { type BrowserServices, type Host, hostLayer } from '../browser/host.ts';
+import { type BrowserServices, type Host, addressOn, hostLayer } from '../browser/host.ts';
 import type { Player } from '../player/main.ts';
 import { pageHref } from '../core/api.ts';
 import { TabStore } from '../browser/storage-browser.ts';
-import { type ViewStore, viewStore } from '../player/view-state.ts';
+import { type ViewStore, viewStore } from './view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
+import { type Selection, labHref, labPlaceOf } from './place.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
-import { type Selection, searchWithSelection, selectionFromSearch } from './selection.ts';
 import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
 
-/** What every panel reads: the film on the stage and the frame it shows. */
+/** What every panel reads: the film on the stage, the frame it shows, and the lab's place. */
 interface LabState {
   /** Film seconds of the frame drawn last: follows every draw, a lab preview's included. */
   readonly T: Accessor<number>;
+  /** The scene under the playhead (`film.sceneAt(T)`): the editor's strip and compare read it. */
+  readonly scene: Accessor<string>;
   /** Counts the frames drawn: a panel that must follow each draw (not only T) reads it. */
   readonly drawn: Accessor<number>;
   /** Counts the edits previewed and put back: a panel that draws the edited timeline or knobs reads it. */
   readonly revision: Accessor<number>;
-  /** The cue or knob selected, kept in the URL as `sel`. */
+  /** The cue or knob selected: the URL's (`?cue=`, `?knob=` in the path's scene). */
   readonly selection: Accessor<Option.Option<Selection>>;
+  /** The note selected: the URL's (`?note=`). */
+  readonly note: Accessor<Option.Option<string>>;
 }
 
 interface LabActions {
   /** Keep `layer` exactly over the film canvas until the returned function is called. */
   readonly pin: (layer: HTMLElement | SVGElement) => () => void;
-  /** Select a cue or a knob, or nothing; the URL keeps it through a reload. */
+  /** Select a cue or a knob, or nothing: a new history entry, so Back undoes the pick. */
   readonly select: (selection: Option.Option<Selection>) => void;
+  /** Select a note, or none: a new history entry, so Back undoes the pick. */
+  readonly selectNote: (note: Option.Option<string>) => void;
+  /** Drop the note from the URL in place (it is gone from the feed): no entry to come back to. */
+  readonly forgetNote: () => void;
 }
 
 interface LabMeta {
-  /** The film's name (`?film=`), which every lab route names. */
+  /** The film's name (`/films/<film>/lab`), which every lab route names. */
   readonly name: string;
   readonly film: Film;
   readonly player: Player;
   /** Speed, loop, onion, compare and play, kept through the reload a write causes. */
   readonly view: ViewStore;
-  /** The preview as the machines drive it: edits shown in memory, and `#T` held for a write. */
+  /** The preview as the machines drive it: edits shown in memory, and `#t=` held for a write. */
   readonly stage: StageOps;
   /** What the panels' machines and atoms run with: the stage, the lab API, the notes API and the host. */
   readonly runtime: Atom.AtomRuntime<Stage | LabApi | NotesApi | BrowserServices>;
@@ -123,7 +140,7 @@ const Root = (props: RootProps) => {
   onCleanup(() => document.body.classList.remove('lab'));
 
   const [revision, setRevision] = createSignal(0, fromDraw);
-  const stage = makeStage(player, () => setRevision((n) => n + 1));
+  const stage = makeStage(player, props.host, () => setRevision((n) => n + 1));
   const clientLayer = LabClient.layer(location.origin);
   // The server rebuilt the pages (a source changed): reload onto the new code at this frame.
   const rebuilt = Effect.runFork(reloadOnRebuild(stage.reload).pipe(Effect.provide(clientLayer)));
@@ -134,39 +151,63 @@ const Root = (props: RootProps) => {
     ),
   );
 
-  const [selection, setSelection] = createSignal(selectionFromSearch(location.search));
-  const select = (next: Option.Option<Selection>) => {
-    setSelection(next);
-    const search = searchWithSelection(location.search, next);
-    history.replaceState(history.state, '', `${search}${location.hash}`);
+  const scene = createMemo(() => player.film.sceneAt(T()).spec.id);
+
+  // The lab's place is the URL's: a pick pushes an entry at the frame shown,
+  // and Back or Forward landing on one shows its pick again.
+  const address = addressOn(props.host);
+  const picked = (pick: Partial<ReturnType<typeof pickOf>>) =>
+    labHref(props.name, player.film.placed, { ...pickOf(address.href()), ...pick }, player.now());
+
+  const Inner = (inner: ParentProps) => {
+    const href = useAtomValue(() => UrlAtom.href);
+    const here = createMemo(() => pickOf(href()), { equals: Equal.equals });
+    const value: LabContextValue = {
+      state: {
+        T,
+        scene,
+        drawn,
+        revision,
+        selection: () => here().selection,
+        note: () => here().note,
+      },
+      actions: {
+        pin: (layer) => {
+          pinned.add(layer);
+          place();
+          return () => pinned.delete(layer);
+        },
+        select: (selection) => address.push(picked({ selection })),
+        selectNote: (note) => address.push(picked({ note })),
+        forgetNote: () => address.replace(picked({ note: Option.none() })),
+      },
+      meta: {
+        name: props.name,
+        film: player.film,
+        player,
+        view,
+        stage,
+        runtime,
+        clientLayer,
+        host: props.host,
+      },
+    };
+    return <LabContext value={value}>{inner.children}</LabContext>;
   };
 
-  const value: LabContextValue = {
-    state: { T, drawn, revision, selection },
-    actions: {
-      pin: (layer) => {
-        pinned.add(layer);
-        place();
-        return () => pinned.delete(layer);
-      },
-      select,
-    },
-    meta: {
-      name: props.name,
-      film: player.film,
-      player,
-      view,
-      stage,
-      runtime,
-      clientLayer,
-      host: props.host,
-    },
-  };
+  // The registry's URL atoms read and write through the host's own `UrlState`,
+  // so they and the time the player writes share one address bar.
   return (
-    <RegistryProvider>
-      <LabContext value={value}>{props.children}</LabContext>
+    <RegistryProvider initialValues={[[UrlAtom.services, props.host]]}>
+      <Inner>{props.children}</Inner>
     </RegistryProvider>
   );
+};
+
+/** What the lab has picked, as the URL at `href` holds it. */
+const pickOf = (href: string) => {
+  const { selection, note } = labPlaceOf(href);
+  return { selection, note };
 };
 
 /** Pin the element `ref` hands over for as long as the component lives. */
@@ -237,7 +278,11 @@ const Strip = (props: ParentProps) => {
 /** The side panel: the header, then each tool's section. */
 const Panel = (props: ParentProps) => <aside class="lab-panel">{props.children}</aside>;
 
-/** The panel's header: its name, the hint, the header's tools, and the film's review pages and look-book. */
+/**
+ * The panel's header: its name, the hint, the header's tools, and the film's
+ * other pages (its project, its choices, its look-book), each link named by
+ * its `data-link`.
+ */
 const Header = (props: ParentProps) => {
   const { meta } = useLab();
   return (
@@ -248,21 +293,24 @@ const Header = (props: ParentProps) => {
       </span>
       {props.children}
       <a
-        class="lab-lookbook"
+        class="lab-link"
+        data-link="project"
         href={pageHref.project(meta.name)}
         title="each scene's render, its approval and comments"
       >
-        Scenes
+        Project
       </a>
       <a
-        class="lab-lookbook"
+        class="lab-link"
+        data-link="choices"
         href={pageHref.choices(meta.name)}
         title="the film's choices: score, takes, voices, looks and levels, heard in the mix"
       >
         Choices
       </a>
       <a
-        class="lab-lookbook"
+        class="lab-link"
+        data-link="lookbook"
         href={pageHref.scenes(meta.name)}
         title="every scene's stills at its cue edges and 60% point, with the palette"
       >

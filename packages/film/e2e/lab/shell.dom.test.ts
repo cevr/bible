@@ -1,14 +1,20 @@
 // The lab's shell in a browser: the real lab page over the probe film. The
-// panel, its header and the look-book link are in place; every pinned layer
-// sits exactly over the film canvas and follows it as the window resizes; the
-// strip's slot sits right under the player's timeline; and the page starts
-// without an error.
+// panel, its header and the film's links are in place; the lab's place is
+// its URL (the scene under the playhead in the path, the time in that scene,
+// a pick Back undoes); every pinned layer sits exactly over the film canvas
+// and follows it as the window resizes; the strip's slot sits right under
+// the player's timeline; and the page starts without an error.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
+import { pageHref } from '../../src/core/api.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
-import { openLab } from '../../src/lab/fixtures/harness.ts';
-import { attributeIs, evaluates, textHas } from '../../src/lab/fixtures/settled.ts';
+import { URL_T, labAt, openLab } from '../../src/lab/fixtures/harness.ts';
+import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
+import { attached, attributeIs, evaluates, textHas } from '../../src/lab/fixtures/settled.ts';
+
+/** Where the probe film's second scene starts, in film seconds. */
+const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
 
 /** Each match's box as the page placed it: its rect, or for a pinned layer its inline box (a hidden layer has no rect). */
 const rects = (sel: string) =>
@@ -38,17 +44,69 @@ const layersOnCanvas = `(() => { const c = JSON.stringify(${rects('.stage canvas
 /** The canvas's box, as JSON. */
 const canvasBox = `JSON.stringify(${rects('.stage canvas')}[0])`;
 
-/** The film seconds `#T` holds. */
-const T = 'Number(location.hash.slice(1))';
+/** The film seconds the URL holds. */
+const T = URL_T;
 
 describe('the lab shell', () => {
-  it.live('mounts the panel with its header and the look-book link', () =>
+  it.live(
+    "mounts the panel with its header and the film's project, choices and look-book links",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab();
+        yield* textHas(page, '.lab-panel header', 'Lab');
+        yield* attributeIs(page, '[data-link="project"]', 'href', pageHref.project(PROBE));
+        yield* attributeIs(page, '[data-link="choices"]', 'href', pageHref.choices(PROBE));
+        yield* attributeIs(page, '[data-link="lookbook"]', 'href', pageHref.scenes(PROBE));
+        yield* evaluates(page, "document.body.classList.contains('lab')", true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live("names the scene under the playhead in its path, and the time in that scene's", () =>
     Effect.gen(function* () {
-      const { page, errors } = yield* openLab();
-      yield* textHas(page, '.lab-panel header', 'Lab');
-      yield* attributeIs(page, '.lab-lookbook', 'href', '/?film=probe&lookbook');
-      yield* evaluates(page, "document.body.classList.contains('lab')", true);
-      expect(errors).toEqual([]);
+      const { page } = yield* openLab([], { href: labAt(0.5) });
+      yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+      // A seek past a scene boundary moves the path and rebases the time in one write.
+      yield* page.press(']');
+      yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
+      yield* evaluates(page, `Math.abs(${T} - ${TWO}) < 0.002`, true);
+      yield* evaluates(page, "location.hash.startsWith('#t=0')", true);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a link with a bare film time (an old one) opens on that frame, written as its place',
+    () =>
+      Effect.gen(function* () {
+        const at = TWO + 0.5;
+        const { page } = yield* openLab([], { href: `${pageHref.lab(PROBE)}#${at}` });
+        yield* evaluates(page, "location.hash.startsWith('#t=')", true);
+        yield* evaluates(page, `Math.abs(${T} - ${at}) < 0.002`, true);
+        yield* textHas(page, '.bar .scene', 'two');
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('a time before the film opens on its first frame, and says so', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: `${pageHref.labScene(PROBE, 'one')}#t=-5` });
+      yield* evaluates(page, `${T}`, 0);
+      yield* textHas(page, '.bar .scene', 'one');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('Back undoes a pick, and Forward makes it again', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      for (const name of ['rise', 'fall']) {
+        yield* page.click(`.lab-cue[data-cue="${name}"]`);
+        yield* evaluates(page, 'location.search', `?cue=${name}`);
+      }
+      yield* page.back;
+      yield* evaluates(page, 'location.search', '?cue=rise');
+      yield* attached(page, '.lab-cue[data-cue="rise"].selected');
+      yield* page.evaluate('history.forward(); true');
+      yield* evaluates(page, 'location.search', '?cue=fall');
+      yield* attached(page, '.lab-cue[data-cue="fall"].selected');
     }).pipe(Effect.scoped),
   );
 
@@ -126,7 +184,7 @@ describe('the lab shell', () => {
   it.live('Play at the end of the film starts it over', () =>
     Effect.gen(function* () {
       // Past the end: the player shows the last frame, kept in the page.
-      const { page } = yield* openLab([], { hash: '#999' });
+      const { page } = yield* openLab([], { href: labAt(999) });
       yield* evaluates(page, `${T} > 1`, true);
       yield* page.evaluate(`window.labEnd = ${T}; true`);
       yield* page.press(' ');
@@ -141,7 +199,7 @@ describe('the lab shell', () => {
       `a track drag the browser ends with ${ended} settles where it was: a later move does not scrub`,
       () =>
         Effect.gen(function* () {
-          const { page } = yield* openLab([], { hash: '#1' });
+          const { page } = yield* openLab([], { href: labAt(1) });
           const track = yield* page.box('.bar .track');
           const y = track.y + track.height / 2;
           yield* page.mouse.move(track.x + track.width * 0.25, y);

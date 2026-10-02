@@ -8,17 +8,18 @@
 //   Idle | Written | Refused ─Press→ Pressed ─Move→ Dragging ─Release→ Writing
 //                   ─Commit | Step→ Writing ─Wrote→ Written | ─Failed | TimedOut→ Refused
 //
-// A write holds `#T` at the frame it is asked at (the file change reloads the
+// A write holds `#t=` at the frame it is asked at (the file change reloads the
 // page there); a refused one, or one with no answer in WRITE_TIMEOUT_S, lets
 // it go and puts the preview back. Nothing here touches the DOM: the stage
 // and the API are services, faked in tests.
 
 import { Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
+import { SceneEdit } from '../../canvas/film.ts';
 import { CheckLine, LabWrite } from '../../core/schema.ts';
 import { LabApi, StepVerb } from '../api.ts';
 import { Stage } from '../stage.ts';
-import { Edit, Grip, Pointer, StepWrite, Write, drag, wroteNote } from './grip.ts';
+import { Grip, Pointer, StepWrite, Write, drag, wroteNote } from './grip.ts';
 
 /**
  * How long a write may be out before the editor gives up on it: a server that
@@ -51,7 +52,7 @@ export const EditEvent = Event({
   Release: {},
   Cancel: {},
   /** A write asked for from rest (a field, an ease, a knob), shown first as `edit`. */
-  Commit: { write: Write, edit: Edit },
+  Commit: { write: Write, edit: SceneEdit },
   Step: { verb: StepVerb },
   Wrote: { result: LabWrite },
   Failed: { message: Schema.String },
@@ -92,11 +93,11 @@ const noteOf = (state: EditState): string =>
 const letGo = (scene: string, note: string) =>
   Stage.use((stage) => Effect.as(stage.unpreview(scene), EditState.Idle({ note })));
 
-/** Send `write`, holding `#T` for the reload it causes. */
+/** Send `write`, holding `#t=` for the reload it causes. */
 const writing = (write: Write) =>
   Stage.use((stage) => Effect.as(stage.holdT, EditState.Writing({ write })));
 
-/** A write that did not land: let `#T` go, put the preview back, and say `message`. */
+/** A write that did not land: let `#t=` go, put the preview back, and say `message`. */
 const refuse = (write: Write, message: string) =>
   Stage.use((stage) =>
     stage.settle.pipe(

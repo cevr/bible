@@ -94,8 +94,7 @@ export const makeOnion = (player: Player): OnionPainter => {
 
   /** The frame at `T` (the one shown when none), at the onion's size, as pixels. */
   const pixelsAt = (T: number | undefined) => {
-    if (T !== undefined)
-      film.render(ghost.ctx, T, { captions: player.captions.on, edits: player.edits() });
+    if (T !== undefined) player.renderShown(ghost.ctx, T);
     small.ctx.clearRect(0, 0, w, h);
     small.ctx.drawImage(T === undefined ? player.canvas : ghost.c, 0, 0, w, h);
     return small.ctx.getImageData(0, 0, w, h).data;

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Place } from '@bible/url-state';
 import { Option } from 'effect';
-import { type PageName, Places, legacyPlace, pageAt, pageHref } from './api.ts';
+import { type PageName, Places, filmOfPage, legacyPlace, pageAt, pageHref } from './api.ts';
 
 type PlaceName = keyof typeof Places;
 
@@ -122,6 +122,16 @@ describe('page places', () => {
     expect(pageHref.labScene('rbf', 'roof', { cue: 'lower' }, Option.some(0.25))).toBe(
       '/films/rbf/lab/roof?cue=lower#t=0.25',
     );
+  });
+
+  test("a film's page names its film in its path, a short's whole name too", () => {
+    expect(filmOfPage('/films/rbf/lab/roof?cue=lower#t=1')).toEqual(Option.some('rbf'));
+    expect(filmOfPage(pageHref.scenes('rbf/shorts/verdict'))).toEqual(
+      Option.some('rbf/shorts/verdict'),
+    );
+    expect(filmOfPage(pageHref.play('rbf'))).toEqual(Option.some('rbf'));
+    for (const href of ['/', '/sets/f/p', '/?film=rbf&export'])
+      expect(filmOfPage(href)).toEqual(Option.none());
   });
 });
 

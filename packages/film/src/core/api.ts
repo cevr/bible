@@ -730,6 +730,23 @@ export const pageAt = (pathname: string): Option.Option<PageName> =>
     ([, page]) => page,
   );
 
+/** The places that name a film in their path. */
+const FILM_PLACES: ReadonlyArray<Place.Place<{ readonly path: { readonly film: string } }>> = [
+  Places.choices,
+  Places.project,
+  Places.scenes,
+  Places.scene,
+  Places.play,
+  Places.lab,
+  Places.labScene,
+];
+
+/** The film `href`'s path names (`/films/<film>/…`), if it names one. */
+export const filmOfPage = (href: string): Option.Option<string> =>
+  Option.firstSomeOf(
+    FILM_PLACES.map((place) => Option.map(Place.decode(place, href), (v) => v.path.film)),
+  );
+
 /** No time on the hash: the page opens at its own start. */
 const START = { t: Option.none<number>() };
 

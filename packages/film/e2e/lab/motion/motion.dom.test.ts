@@ -7,7 +7,7 @@
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
-import { openLab } from '../../../src/lab/fixtures/harness.ts';
+import { URL_T, labAt, openLab } from '../../../src/lab/fixtures/harness.ts';
 import { attributeIs, evaluates, textIs } from '../../../src/lab/fixtures/settled.ts';
 
 const motionSays = (page: Tab, part: string) => textIs(page, '.lab-motion-status', part);
@@ -36,13 +36,13 @@ const holdClock = (page: Tab) =>
     (now) => page.clock.pauseAt(now + PAUSE_LEAD_MS),
   );
 
-/** The film seconds the player shows, as `#T` has them. */
-const T = "Number.parseFloat(location.hash.slice(1).split('&')[0])";
+/** The film seconds the player shows, as the URL has them. */
+const T = URL_T;
 
 describe('speed', () => {
   it.live('slows the clock, says the narration is muted, and a reload keeps it', () =>
     Effect.gen(function* () {
-      const { page, errors } = yield* openLab([], { hash: '#1' });
+      const { page, errors } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor('.lab-motion [data-rate="0.5"]');
       yield* click(page, '.lab-motion [data-rate="0.5"]');
       yield* motionSays(page, '0.5×: narration muted');
@@ -57,7 +57,7 @@ describe('speed', () => {
 describe('loops', () => {
   it.live('A then a later B loops the range and plays it; off stops', () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([], { hash: '#1' });
+      const { page } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor('.lab-motion [data-act="a"]');
       yield* holdClock(page);
       yield* click(page, '.lab-motion [data-act="a"]');
@@ -67,7 +67,7 @@ describe('loops', () => {
       yield* motionSays(page, 'looping A 1.00 – B 2.00');
       yield* textIs(page, '[data-act="play"]', '❚❚');
       // Played on past B by the page's clock: the loop has come round again inside the range.
-      // Then a few frames more, past the quarter second `#T` is written at most once in.
+      // Then a few frames more, past the quarter second `#t=` is written at most once in.
       yield* page.clock.fastForward(2500);
       yield* page.clock.runFor(300);
       yield* evaluates(page, `${T} > 1 && ${T} <= 2`, true);
@@ -78,7 +78,7 @@ describe('loops', () => {
 
   it.live('B with no A says to set A first', () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([], { hash: '#2' });
+      const { page } = yield* openLab([], { href: labAt(2) });
       yield* page.waitFor('.lab-motion [data-act="b"]');
       yield* click(page, '.lab-motion [data-act="b"]');
       yield* motionSays(page, 'B 2.00: set A before it');
@@ -89,10 +89,9 @@ describe('loops', () => {
     Effect.gen(function* () {
       // One browser: with no cue selected the button waits, then the same tab
       // opens with a cue selected.
-      const { page } = yield* openLab([], { hash: '#1' });
+      const { page } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor('.lab-motion [data-act="loop-cue"][disabled]');
-      const at = new URL(yield* page.url);
-      yield* page.goto(`${at.pathname}${at.search}&sel=cue:one:rise${at.hash}`);
+      yield* page.goto(labAt(1, { selection: { kind: 'cue', scene: 'one', name: 'rise' } }));
       yield* page.waitFor('.lab-motion [data-act="loop-cue"]:not([disabled])');
       yield* holdClock(page);
       yield* click(page, '.lab-motion [data-act="loop-cue"]');
@@ -104,7 +103,7 @@ describe('loops', () => {
 describe('the onion', () => {
   it.live('ghosts the frames around a paused one on its layer', () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([], { hash: '#1.2' });
+      const { page } = yield* openLab([], { href: labAt(1.2) });
       yield* page.waitFor('.lab-motion [data-act="onion"]');
       yield* click(page, '.lab-motion [data-act="onion"]');
       yield* page.waitFor('canvas.lab-onion:not([hidden])');

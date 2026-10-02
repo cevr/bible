@@ -130,12 +130,6 @@ export type StepWrite = typeof StepWrite.Type;
 export const Write = Schema.Union([CueWrite, KnobWrite, StepWrite]);
 export type Write = typeof Write.Type;
 
-/** An edit shown in memory: a scene's timeline, or its knobs, standing in for the drawing's. */
-export const Edit = Schema.Struct({
-  timeline: Schema.optionalKey(Timeline),
-  knobs: Schema.optionalKey(Knobs),
-});
-
 /** Where a drag has got to: the write its release makes (none when back where it began) and the edit it shows. */
 interface Dragged {
   readonly write: Option.Option<CueWrite | KnobWrite>;

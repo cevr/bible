@@ -93,7 +93,7 @@ export interface Tab {
     readonly up: Effect.Effect<void>;
     readonly click: (x: number, y: number) => Effect.Effect<void>;
   };
-  /** Go to `path` (`/lab?…`) on the tab's origin; done when it has loaded. */
+  /** Go to `path` (`/films/probe/lab`, a page's link) on the tab's origin; done when it has loaded. */
   readonly goto: (path: string) => Effect.Effect<void>;
   readonly reload: Effect.Effect<void>;
   /** Back a step in the tab's history: wait on what the page then shows. */
@@ -146,6 +146,8 @@ const NAMED = new Map<string, Key>([
   ['ArrowUp', named('ArrowUp', 'ArrowUp', 38)],
   ['ArrowRight', named('ArrowRight', 'ArrowRight', 39)],
   ['ArrowDown', named('ArrowDown', 'ArrowDown', 40)],
+  ['[', named('[', 'BracketLeft', 219, '[')],
+  [']', named(']', 'BracketRight', 221, ']')],
   ['Shift', named('Shift', 'ShiftLeft', 16)],
   ['Control', named('Control', 'ControlLeft', 17)],
   ['Alt', named('Alt', 'AltLeft', 18)],

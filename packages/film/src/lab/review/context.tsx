@@ -33,7 +33,7 @@ import {
 } from 'solid-js';
 import type { SeenPoint } from '../../core/choice.ts';
 import type { ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/review.ts';
-import { type BrowserServices, type Host, hostLayer } from '../../browser/host.ts';
+import { type BrowserServices, type Host, addressOn, hostLayer } from '../../browser/host.ts';
 import { Keys, type KeyPress } from '../../browser/keys.ts';
 import { LabClient, type LabFailure } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
@@ -114,12 +114,6 @@ const ReviewContext = createContext<ReviewContextValue>();
 /** The review's context: only inside `<Root>`. */
 export const useReview = (): ReviewContextValue => useContext(ReviewContext);
 
-/** Move the address bar of `host` to `href`: a new history entry (`push`) or this one (`replace`). */
-const navigateOn = (host: Host) => (href: string, history: 'push' | 'replace') =>
-  Effect.runSyncWith(host)(
-    UrlState.UrlState.use((url) => url.navigate(href, { history, throttle: Option.none() })),
-  );
-
 /** Whether a click is the page's to take: a plain primary click. A modified one (a new tab or window, a download) is the browser's. */
 export const plainClick = (e: MouseEvent) =>
   e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
@@ -198,7 +192,7 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
   );
   const text = Atom.family((ref: string) => runtime.atom(ReviewApi.use((api) => api.text(ref))));
 
-  const navigate = navigateOn(props.host);
+  const address = addressOn(props.host);
 
   const [lightbox, setLightbox] = createSignal(Option.none<string>());
   // Escape closes the lightbox, and leaves the key to whatever else hears it.
@@ -221,7 +215,7 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
     createEffect(
       () => legacyPlace(href()),
       (moved) => {
-        Option.map(moved, (to) => navigate(to, 'replace'));
+        Option.map(moved, address.replace);
       },
     );
     const index = useAtomValue(() => indexAtom);
@@ -237,7 +231,7 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
       state: { place, index, films, quality, filter, lightbox },
       actions: {
         go: (next) => {
-          navigate(hrefOf(next), 'push');
+          address.push(hrefOf(next));
           window.scrollTo(0, 0);
         },
         refresh: () => {
@@ -329,11 +323,11 @@ const SetBody = (
     // The time moving on is no new view.
     { equals: Equal.equals },
   );
+  const address = addressOn(meta.host);
   const sendView = (event: ViewEvent) =>
     Option.map(at(), (v) =>
-      navigateOn(meta.host)(
+      address[historyOf(event)](
         Place.href(Places.set, { ...v, query: queryOfView(stepView(view(), other, event)) }),
-        historyOf(event),
       ),
     );
   // A link asking for what the set cannot show (a pair on a set of one, an
@@ -342,7 +336,7 @@ const SetBody = (
   createEffect(
     () => Option.map(at(), (v) => Place.href(Places.set, { ...v, query: queryOfView(view()) })),
     (shown) => {
-      Option.map(shown, (href) => navigateOn(meta.host)(href, 'replace'));
+      Option.map(shown, address.replace);
     },
   );
   // The player's time is kept in the hash (`#t=`, throttled), so a link

@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
 import { createFilm } from '../canvas/film.ts';
 import { standInDom } from '../canvas/fixtures/stand-in.ts';
-import { composeLookbook, fontFamilyOf } from './lookbook.ts';
+import { composeLookbook, fontFamilyOf, stillHref } from './lookbook.ts';
 
 describe('fontFamilyOf', () => {
   test("what follows a CSS font's size", () => {
@@ -58,5 +58,17 @@ describe('composeLookbook', () => {
     const { canvas, tiles } = await compose(3);
     expect(canvas.width).toBe(2036);
     expect(tiles.map((t) => t.w)).toEqual([320, 320, 320]);
+  });
+
+  test("a still opens its scene in the lab at the still's time in that scene; a short's, its play page", () => {
+    const film = filmOf(3);
+    const second = film.placed[1];
+    expect(second).toBeDefined();
+    const start = second?.start ?? 0;
+    const moment = { scene: 's1', frame: 0, time: start + 0.25, at: '60%' };
+    expect(stillHref('long', film.placed, moment)).toBe('/films/long/lab/s1#t=0.25');
+    expect(stillHref('long/shorts/hook', film.placed, moment)).toBe(
+      `/films/long%2Fshorts%2Fhook/play#t=${Math.ceil((start + 0.25) * 1000 - 1e-6) / 1000}`,
+    );
   });
 });

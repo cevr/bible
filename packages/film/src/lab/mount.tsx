@@ -1,13 +1,18 @@
 // The lab page's entry: build the page's host (`browser/host.ts`), stage the
-// film, mount the framework-free preview player (`mountPreview`), and render
-// the lab's Solid panels around it. The player page (`/`), which the
-// renderer loads, never imports this.
+// film its path names, mount the framework-free preview player
+// (`mountPreview`) on the lab's time in the URL (`lab/place.ts`), and render
+// the lab's Solid panels around it. The player page (`/films/<film>/play`,
+// and the export page the renderer loads) never imports this.
 
 import { render } from '@solidjs/web';
-import { Effect, Schema } from 'effect';
-import { type Host, hostOf } from '../browser/host.ts';
+import { Effect, Option, Schema } from 'effect';
+import type { Film } from '../canvas/film.ts';
+import { legacyPlace } from '../core/api.ts';
+import { type Host, addressOn, hostOf } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
+import type { TimeInUrl } from '../player/t-in-url.ts';
+import { labHref, labOpensAt, labPlaceOf } from './place.ts';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
@@ -64,14 +69,34 @@ const LabPage = (props: {
   </Lab.Root>
 );
 
+/**
+ * The lab's time in the URL: it opens on the frame its place names
+ * (`labOpensAt`), and each write keeps the place's pick and note and puts
+ * the frame's scene in the path (`labHref`), so the path and `#t=` move
+ * together across a scene boundary.
+ */
+const labTime = (name: string, film: Film, host: Host): TimeInUrl => {
+  const address = addressOn(host);
+  return {
+    opened: labOpensAt(film.placed, address.href()),
+    write: (T) => {
+      const { selection, note } = labPlaceOf(address.href());
+      address.replace(labHref(name, film.placed, { selection, note }, T));
+    },
+  };
+};
+
 const start = Effect.fn('lab.start')(
   function* (films: Films) {
+    const host = hostOf(BrowserHost.layer);
+    const address = addressOn(host);
+    // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
+    Option.map(legacyPlace(address.href()), address.replace);
     const staged = yield* Effect.tryPromise({
-      try: () => stageFilm(films),
+      try: () => stageFilm(films, address.href()),
       catch: (cause) => LabStartFailed.make({ reason: String(cause) }),
     });
-    const host = hostOf(BrowserHost.layer);
-    const player = mountPreview(staged, host);
+    const player = mountPreview(staged, host, labTime(staged.name, staged.film, host));
     const root = document.createElement('div');
     root.className = 'lab-root';
     document.body.append(root);
@@ -81,7 +106,7 @@ const start = Effect.fn('lab.start')(
   Effect.catchTag('LabStartFailed', (e) => Effect.sync(() => showFailure(e.reason))),
 );
 
-/** Mount the lab for `films` into the page, on the film `?film=<name>` names. */
+/** Mount the lab for `films` into the page, on the film its path names (`/films/<film>/lab…`). */
 export const mountLab = (films: Films): void => {
   Effect.runFork(start(films));
 };

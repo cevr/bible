@@ -109,6 +109,9 @@ export const hookAlpha = (s: number): number => {
 /** The page a short is drawn on (`shortKey`), in the registry the player loads from. */
 export const shortKey = (film: string, id: string): string => `${film}/shorts/${id}`;
 
+/** Whether a page's name is a short's (`shortKey`): the lab opens films, not shorts. */
+export const isShortKey = (page: string): boolean => /^[^/]+\/shorts\/[^/]+$/.test(page);
+
 /**
  * The short's page for a film `width` px wide: 9:16 at the film's own density,
  * so its 16:9 band is the film's frame pixel for pixel, and the `scale` that

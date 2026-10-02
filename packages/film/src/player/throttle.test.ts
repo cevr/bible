@@ -1,4 +1,4 @@
-// `throttled`, which `#T` is written through while T moves: at most once per
+// `throttled`, which `#t=` is written through while T moves: at most once per
 // period, the last request always lands (trailing), and a flush lands a
 // waiting write at once.
 

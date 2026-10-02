@@ -2,7 +2,7 @@
 // period: the first request runs at once, later ones within the period wait
 // for one trailing run that carries the latest state; `flush` runs a waiting
 // write now, and `ran` drops it after a write made outside (`tInUrl` writes
-// `#T` through this). The timers are injectable: live they are the page
+// `#t=` through this). The timers are injectable: live they are the page
 // host's `Clock` (`timersOn`), and the policy is tested on a clock the test
 // moves.
 

@@ -1,10 +1,10 @@
 // The source-edit machine, with no DOM: a press on a cue grabs it and pauses
 // the film; moves preview the drag; a release that changed something writes,
-// holding `#T` for the reload, and one that did not puts the preview back.
+// holding `#t=` for the reload, and one that did not puts the preview back.
 // Fields and Undo commit straight from rest. One write at a time: a press or
 // a commit while a write is out is not taken. A write lands (Written, with
 // the server's findings) or is refused (Refused, the server's text), and a
-// refusal lets `#T` go and puts the preview back.
+// refusal lets `#t=` go and puts the preview back.
 
 import { Effect, Layer, Option, Predicate, SubscriptionRef } from 'effect';
 import { TestClock } from 'effect/testing';
@@ -95,7 +95,7 @@ describe('a drag on the strip', () => {
     }).pipe(Effect.provide(layer));
   });
 
-  it.effect('moves preview the drag; its release writes and holds #T', () => {
+  it.effect('moves preview the drag; its release writes and holds #t=', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
@@ -187,7 +187,7 @@ describe('a drag of a knob handle', () => {
   };
   const to = (x: number, y: number) => EditEvent.Move({ pointer: { x, y, shift: false } });
 
-  it.effect('moves preview the knobs; the release writes the knob and holds #T', () => {
+  it.effect('moves preview the knobs; the release writes the knob and holds #t=', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
@@ -219,7 +219,7 @@ describe('a drag of a knob handle', () => {
 });
 
 describe('writes', () => {
-  it.effect('a field commits from rest: previewed, #T held, written', () => {
+  it.effect('a field commits from rest: previewed, #t= held, written', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
       const edit = { timeline: { rise: { mark: 'rise', offset: 0.2, dur: 0.6 } } };
@@ -286,7 +286,7 @@ describe('writes', () => {
     }).pipe(Effect.provide(fakes().layer)),
   );
 
-  it.effect('a refused write lets #T go, puts the preview back, and shows the server text', () => {
+  it.effect('a refused write lets #t= go, puts the preview back, and shows the server text', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
       const message = 'SourceRefused: rise has a computed offset';

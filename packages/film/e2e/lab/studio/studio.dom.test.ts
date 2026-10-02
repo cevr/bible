@@ -21,7 +21,9 @@ import {
   type Asked,
   type FakeRoute,
   type Json,
+  URL_T,
   json,
+  labAt,
   openLab,
   refused,
   route,
@@ -170,11 +172,10 @@ const wavFormat = (base64: string) =>
 
 /** The lab with the studio's routes, and the fake microphone (`browsers.ts`): allowed or refused, and hot to clip. */
 const withMic = (mic: { readonly allowed: boolean; readonly hot?: boolean }) =>
-  openLab(studioRoutes, { hash: '#1', mic });
+  openLab(studioRoutes, { href: labAt(1), mic });
 
-/** Wait until `#T` holds `t` film seconds. */
-const shownAt = (page: Tab, t: number) =>
-  evaluates(page, "Number.parseFloat(location.hash.slice(1).split('&')[0])", t);
+/** Wait until the URL holds `t` film seconds. */
+const shownAt = (page: Tab, t: number) => evaluates(page, URL_T, t);
 
 const scoped = <A, E>(self: Effect.Effect<A, E, Scope.Scope | FileSystem.FileSystem | Path.Path>) =>
   self.pipe(Effect.scoped, Effect.provide(BunServices.layer));
@@ -326,7 +327,7 @@ describe('the studio', () => {
       scoped(
         Effect.gen(function* () {
           const { page } = yield* openLab(studioRoutes, {
-            hash: '#1',
+            href: labAt(1),
             mic: { allowed: true },
           });
           yield* page.waitFor('[data-beat="thesis"]');
@@ -345,9 +346,7 @@ describe('the studio', () => {
           // Out of the studio the lab's keys are the lab's again: → steps the film, not the beat.
           yield* page.evaluate('document.activeElement.blur()');
           yield* press(page, 'Shift+ArrowRight');
-          yield* page.until(
-            "Number.parseFloat(location.hash.replace(/^#/, '').split('&')[0] ?? '') === 2",
-          );
+          yield* page.until(`${URL_T} === 2`);
           yield* shownAt(page, 2);
           yield* countIs(page, '[data-beat="close"].selected', 1);
         }),

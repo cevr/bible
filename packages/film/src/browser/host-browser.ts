@@ -10,6 +10,7 @@ import type { BrowserServices } from './host.ts';
 import { framesLayer } from './frames-browser.ts';
 import { keysLayer } from './keys-browser.ts';
 import { mediaLayer } from './media-browser.ts';
+import { pageLoadLayer } from './page-load-browser.ts';
 import { pointerLayer } from './pointer-browser.ts';
 
 /** The page's host over the browser's own APIs. */
@@ -18,6 +19,7 @@ export const BrowserHost = {
     framesLayer,
     keysLayer,
     mediaLayer,
+    pageLoadLayer,
     pointerLayer,
     UrlState.layer.pipe(Layer.provideMerge(layerBrowser())),
   ) satisfies Layer.Layer<BrowserServices>,

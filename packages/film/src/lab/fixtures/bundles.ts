@@ -6,7 +6,7 @@ import { BunServices } from '@effect/platform-bun';
 import { Config, Effect, FileSystem, Option } from 'effect';
 import { solidPlugin } from '../../tools/solid-plugin.ts';
 
-export const ENTRIES = ['lab-page.ts', 'review-page.ts', 'capture-page.ts'];
+export const ENTRIES = ['lab-page.ts', 'review-page.ts', 'player-page.ts', 'capture-page.ts'];
 
 export const compile = (entry: string) =>
   Effect.promise(() =>

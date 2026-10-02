@@ -52,6 +52,9 @@ body.export .stage canvas {
   background: var(--panel);
   padding: 10px 16px 14px;
   display: grid;
+  /* One column no wider than the window: its rows (the keys' long line
+     among them) shrink into it, so the page does not scroll sideways. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
 .row {
@@ -204,7 +207,7 @@ body.export .stage canvas {
   font-size: 11px;
 }
 
-/* ── The lab (`/lab?film=…`): notes on frames. ─────────────────────────── */
+/* ── The lab (`/films/<film>/lab`): notes on frames. ─────────────────────────── */
 body.lab {
   grid-template-columns: minmax(0, 1fr) 360px;
 }
@@ -718,7 +721,7 @@ body.lab .stage {
   stroke-width: 6px;
 }
 
-/* The look-book page (`?film=…&lab&lookbook`). */
+/* The look-book: a film's scenes page (`/films/<film>/scenes`). */
 body.lookbook {
   display: block;
   height: auto;
@@ -750,7 +753,7 @@ body.lookbook {
   height: auto;
   cursor: pointer;
 }
-.lab-lookbook {
+.lab-link {
   color: var(--accent);
   font-size: 12px;
 }

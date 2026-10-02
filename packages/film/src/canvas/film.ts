@@ -19,17 +19,17 @@ import {
   transitionDur,
 } from '../core/layout.ts';
 import type { UnknownScene } from '../core/errors.ts';
-import type {
-  Knob,
+import {
+  type Knob,
   Knobs,
-  ResolvedCue,
-  Point,
-  Sound,
-  Span,
-  Timed,
+  type ResolvedCue,
+  type Point,
+  type Sound,
+  type Span,
+  type Timed,
   Timeline,
-  Timings,
-  Word,
+  type Timings,
+  type Word,
 } from '../core/schema.ts';
 import {
   cueKeys,
@@ -383,11 +383,16 @@ interface Reads {
   readonly direct: boolean;
 }
 
-/** A scene's timeline or knobs, standing in for its drawing's in a frame the lab draws with it. */
-export interface SceneEdit {
-  readonly timeline?: Timeline;
-  readonly knobs?: Knobs;
-}
+/**
+ * A scene's timeline or knobs, standing in for its drawing's in a frame the
+ * lab draws with it: a schema, as the editor's machine carries one in its
+ * events.
+ */
+export const SceneEdit = Schema.Struct({
+  timeline: Schema.optionalKey(Timeline),
+  knobs: Schema.optionalKey(Knobs),
+});
+export type SceneEdit = typeof SceneEdit.Type;
 
 /**
  * An edit resolved for its scene (`Film.edit`), on the scene's own clock as

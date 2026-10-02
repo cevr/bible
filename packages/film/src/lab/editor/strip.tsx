@@ -10,7 +10,7 @@ import { Pointer } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
-import { selectsCue } from '../selection.ts';
+import { selectsCue } from '../place.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { anchorText } from './format.ts';

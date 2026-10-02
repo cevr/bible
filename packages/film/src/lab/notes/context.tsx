@@ -19,6 +19,7 @@ import {
   createMemo,
   createSignal,
   onCleanup,
+  untrack,
   useContext,
 } from 'solid-js';
 import type { Host } from '../../browser/host.ts';
@@ -124,7 +125,7 @@ const useKeys = (host: Host, actions: NotesActions) => {
 };
 
 const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
-  const { meta } = useLab();
+  const { state: lab, actions: labActions, meta } = useLab();
   const { film, player, runtime } = meta;
   const feedAtom = ActorAtom.make(props.actors.feed);
   const composerAtom = ActorAtom.make(props.actors.composer);
@@ -134,7 +135,9 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
   const sendComposer = useAtomSet(() => composerAtom);
 
   const [pen, setPen] = createSignal(false);
-  const [selectedId, setSelectedId] = createSignal(Option.none<string>());
+  // The note selected is the URL's (`?note=`, `LabState.note`), so a link,
+  // a reload and Back all carry it.
+  const selectedId = lab.note;
   const notes = createMemo(() => feed().notes);
   const selected = createMemo(() =>
     Option.flatMap(selectedId(), (id) => Option.fromUndefinedOr(notes().find((n) => n.id === id))),
@@ -144,9 +147,22 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
   createEffect(composer, (s) => {
     if (s._tag !== 'Closed') return;
     Option.map(s.saved, (id) => {
-      setSelectedId(Option.some(id));
+      labActions.selectNote(Option.some(id));
       sendFeed(FeedEvent.Refresh);
     });
+  });
+
+  // A note the feed, read whole, no longer has (another tab deleted it, a
+  // link names one long gone) leaves the URL. Only a read decides (the note
+  // is read untracked): the note a save just selected waits for the read the
+  // save asked for.
+  createEffect(feed, (s) => {
+    if (s._tag !== 'Live') return;
+    const gone = Option.exists(
+      untrack(() => lab.note()),
+      (id) => !s.notes.some((n) => n.id === id),
+    );
+    if (gone) labActions.forgetNote();
   });
 
   const thread = runtime.fn((w: ThreadWrite) =>
@@ -193,7 +209,7 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
       );
     },
     select: (note) => {
-      setSelectedId(Option.some(note.id));
+      labActions.selectNote(Option.some(note.id));
       player.seek(timeOf(note));
     },
     write: (w) => writeThread(w),

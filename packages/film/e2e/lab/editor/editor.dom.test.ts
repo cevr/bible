@@ -13,6 +13,7 @@ import {
   type Asked,
   hold,
   json,
+  labAt,
   openLab,
   refused,
   route,
@@ -72,7 +73,7 @@ const dragBar = (page: Tab, name: string, at: number, dx: number) =>
 describe('the cue strip', () => {
   it.live('shows the scene under the playhead: its cues, by name', () =>
     Effect.gen(function* () {
-      const { page, errors } = yield* openLab([], { hash: '#1' });
+      const { page, errors } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor('.lab-cue[data-cue="fall"]');
       yield* attributesAre(page, '.lab-cue', 'data-cue', ['rise', 'fall']);
       yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
@@ -82,7 +83,7 @@ describe('the cue strip', () => {
 
   it.live('a drag of a cue body writes its offset once, on release, and selects it', () =>
     Effect.gen(function* () {
-      const { page, asked } = yield* openLab([], { hash: '#1' });
+      const { page, asked } = yield* openLab([], { href: labAt(1) });
       yield* editable(page);
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* statusSays(page, 'wrote scenes/one.ts');
@@ -92,7 +93,11 @@ describe('the cue strip', () => {
       expect(Option.getOrThrow(Option.fromUndefinedOr(writes[0])).body).toMatchObject(
         Option.some({ offset: expect.any(Number) }),
       );
-      yield* evaluates(page, "location.search.includes('sel=cue%3Aone%3Arise')", true);
+      yield* evaluates(
+        page,
+        'location.pathname + location.search',
+        '/films/probe/lab/one?cue=rise',
+      );
       yield* attributeIs(page, '.lab-cue[data-cue="rise"]', 'class', /\bselected\b/);
     }).pipe(Effect.scoped),
   );
@@ -108,7 +113,7 @@ describe('the cue strip', () => {
       const { page } = yield* openLab(
         [route('POST', /^\/scenes\/\w+\/cues\//, () => refused(failure))],
         {
-          hash: '#1',
+          href: labAt(1),
         },
       );
       yield* editable(page);
@@ -125,7 +130,7 @@ describe('the cue strip', () => {
       };
       const { page, asked } = yield* openLab(
         [route('GET', /^\/scenes\/one\/source$/, () => json(computed))],
-        { hash: '#1' },
+        { href: labAt(1) },
       );
       yield* editable(page);
       yield* dragBar(page, 'rise', 1, 30);
@@ -138,7 +143,7 @@ describe('the cue strip', () => {
 describe('one write at a time', () => {
   it.live('Escape during a drag puts the cue back and writes nothing', () =>
     Effect.gen(function* () {
-      const { page, asked } = yield* openLab([], { hash: '#1' });
+      const { page, asked } = yield* openLab([], { href: labAt(1) });
       const bar = '.lab-cue[data-cue="rise"]';
       yield* editable(page);
       const box = yield* page.box(bar);
@@ -160,7 +165,7 @@ describe('one write at a time', () => {
     'a drag the browser ends (a page pan) puts the cue back, and a later move and lift write nothing',
     () =>
       Effect.gen(function* () {
-        const { page, asked } = yield* openLab([], { hash: '#1' });
+        const { page, asked } = yield* openLab([], { href: labAt(1) });
         const bar = '.lab-cue[data-cue="rise"]';
         yield* editable(page);
         const box = yield* page.box(bar);
@@ -186,7 +191,7 @@ describe('one write at a time', () => {
       `a second pointer pressing a knob does not take the held cue: lifted ${lifted} the first is cancelled, it lands nothing, and the cancel puts the cue back`,
       () =>
         Effect.gen(function* () {
-          const { page, asked, errors } = yield* openLab([], { hash: '#1' });
+          const { page, asked, errors } = yield* openLab([], { href: labAt(1) });
           const rise = '.lab-cue[data-cue="rise"]';
           const spot = '.lab-handle[data-knob="spot"]';
           yield* editable(page);
@@ -230,7 +235,7 @@ describe('one write at a time', () => {
       const { page, asked, errors } = yield* openLab(
         [route('POST', /^\/scenes\/\w+\/cues\//, () => hold)],
         {
-          hash: '#1',
+          href: labAt(1),
         },
       );
       yield* editable(page);
@@ -250,7 +255,7 @@ describe('one write at a time', () => {
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openLab(
           [route('POST', /^\/scenes\/\w+\/cues\//, () => hold)],
-          { hash: '#1' },
+          { href: labAt(1) },
         );
         yield* editable(page);
         yield* dragBar(page, 'rise', 0.5, 60);
@@ -272,7 +277,9 @@ describe('one write at a time', () => {
 describe('the inspector', () => {
   it.live('its offset field and its eases write the selected cue', () =>
     Effect.gen(function* () {
-      const { page, asked } = yield* openLab([], { query: '&sel=cue:one:rise', hash: '#1' });
+      const { page, asked } = yield* openLab([], {
+        href: labAt(1, { selection: { kind: 'cue', scene: 'one', name: 'rise' } }),
+      });
       // Enabled once the scene's source has come.
       yield* page.waitFor('.lab-edit-cue input[data-field="offset"]:not([disabled])');
       yield* page.fill('.lab-edit-cue input[data-field="offset"]', '0.3');
@@ -305,7 +312,7 @@ describe('the inspector', () => {
             }),
           ),
         ],
-        { hash: '#1' },
+        { href: labAt(1) },
       );
       yield* page.waitFor('.lab-finding');
       yield* textIs(page, '.lab-finding', 'late rise ends after the scene');

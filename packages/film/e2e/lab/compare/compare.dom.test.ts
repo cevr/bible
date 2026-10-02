@@ -2,12 +2,13 @@
 // faked: a wipe shows HEAD's frame left of a divider the pointer drags, and
 // says which file it read; a blink flips HEAD's frame in and out; a scene
 // HEAD cannot give says the server's reason, and HEAD's timeline that does
-// not resolve on today's narration says why; a reload keeps the mode.
+// not resolve on today's narration says why; turned off and on, it reads
+// HEAD again; a reload keeps the mode.
 
-import { Effect } from 'effect';
+import { Effect, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { HeadUnavailable } from '../../../src/core/refusals.ts';
-import { json, openLab, refused, route } from '../../../src/lab/fixtures/harness.ts';
+import { json, labAt, openLab, refused, route } from '../../../src/lab/fixtures/harness.ts';
 import { evaluates, textHas } from '../../../src/lab/fixtures/settled.ts';
 import { type Tab, jsonOf } from '../../../src/lab/fixtures/tab.ts';
 import { BLINK_MS } from '../../../src/lab/compare/machine.ts';
@@ -23,7 +24,7 @@ const clipIs = (page: Tab, want: string) =>
 describe('compare with HEAD', () => {
   it.live('a wipe shows HEAD left of a divider the pointer drags', () =>
     Effect.gen(function* () {
-      const { page, asked, errors } = yield* openLab([], { hash: '#1' });
+      const { page, asked, errors } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, 'scenes/one.ts at HEAD');
@@ -44,9 +45,26 @@ describe('compare with HEAD', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live('turned off and on again, it reads HEAD again: a commit made since shows', () =>
+    Effect.gen(function* () {
+      const { page, asked } = yield* openLab([], { href: labAt(1) });
+      const headReads = () => asked.filter((a) => a.path === '/scenes/one/head').length;
+      yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
+      yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
+      yield* compareSays(page, 'at HEAD');
+      yield* click(page, '.lab-compare-tools [data-mode="off"]');
+      yield* page.attached('canvas.lab-compare[hidden]');
+      yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
+      yield* Effect.sync(headReads).pipe(
+        Effect.repeat({ until: (n) => n >= 2, schedule: Schedule.spaced('10 millis'), times: 500 }),
+      );
+      expect(headReads()).toBe(2);
+    }).pipe(Effect.scoped),
+  );
+
   it.live("a blink flips HEAD's frame in and out", () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([], { hash: '#1' });
+      const { page } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor('.lab-compare-tools [data-mode="blink"]');
       yield* click(page, '.lab-compare-tools [data-mode="blink"]');
       yield* page.waitFor('canvas.lab-compare:not([hidden])');
@@ -65,7 +83,7 @@ describe('compare with HEAD', () => {
             refused(HeadUnavailable.make({ file: 'scenes/one.ts', reason: 'not in git' })),
           ),
         ],
-        { hash: '#1' },
+        { href: labAt(1) },
       );
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
@@ -90,7 +108,7 @@ describe('compare with HEAD', () => {
             }),
           ),
         ],
-        { hash: '#1' },
+        { href: labAt(1) },
       );
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
@@ -103,7 +121,7 @@ describe('compare with HEAD', () => {
 
   it.live('a reload keeps the mode', () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([], { hash: '#1' });
+      const { page } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, 'at HEAD');

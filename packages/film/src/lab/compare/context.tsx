@@ -1,6 +1,7 @@
 // Compare's provider: its machine (one actor per lab page, on the shell's
 // runtime), the scene under the playhead, and that scene at HEAD (read from
-// the lab API only once a mode is on, and once per scene). The section, the
+// the lab API only once a mode is on, then once per scene until it is turned
+// off). The section, the
 // HEAD layer and the wipe's divider read this context and act through it.
 // The view keeps the mode and the divider through the reload a write causes.
 
@@ -39,7 +40,7 @@ interface CompareStateValue {
   readonly layer: Accessor<HeadLayer>;
   /** Where the wipe's divider sits, 0–1 across the frame: only while wiping. */
   readonly split: Accessor<Option.Option<number>>;
-  /** The scene under the playhead. */
+  /** The scene under the playhead (`LabState.scene`). */
   readonly scene: Accessor<string>;
   /** HEAD drawn through today's code, once HEAD has been read and resolves on today's narration. */
   readonly edit: Accessor<Option.Option<ShownEdit>>;
@@ -73,12 +74,18 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
   const compare = useAtomValue(() => stateAtom);
   const send = useAtomSet(() => stateAtom);
 
-  const heads = Atom.family((scene: string) => runtime.atom(LabApi.use((api) => api.head(scene))));
-  const scene = createMemo(() => film.sceneAt(lab.T()).spec.id);
+  const scene = lab.scene;
   const mode = createMemo(() => modeOf(compare()));
+  const on = createMemo(() => mode() !== 'off');
+  // HEAD as read since compare last turned on, once per scene: turning it
+  // off and on reads HEAD again, so a commit made since shows.
+  const heads = createMemo(() => {
+    on();
+    return Atom.family((s: string) => runtime.atom(LabApi.use((api) => api.head(s))));
+  });
   const head = useAtomValue(() => {
-    if (mode() === 'off') return unread;
-    return heads(scene());
+    if (!on()) return unread;
+    return heads()(scene());
   });
   // HEAD's edit, resolved once where it is made: a timeline that names what
   // today's narration lacks is a reason the status gives, and no layer.
