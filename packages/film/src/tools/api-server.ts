@@ -28,6 +28,7 @@ import {
 } from 'effect';
 import {
   Etag,
+  HttpServer,
   type HttpPlatform,
   HttpRouter,
   HttpServerRequest,
@@ -42,23 +43,24 @@ import {
   ServerFailed,
   WriteNotJson,
   isRefusal,
+  pageAt,
   prefixesOf,
   statusOf,
 } from '../core/api.ts';
 import { type HttpApi, HttpApiError, type HttpApiGroup } from 'effect/http-api';
+import { NetAddress } from 'effect/net';
+import { BunHttpServer } from '@effect/platform-bun';
 import { BodyTooLarge } from '../core/refusals.ts';
 import { STUDIO_MAX_BODY } from '../core/studio.ts';
 
-/** Where the server listens: Bun hands each request its server. */
-export interface LabBound {
+/** Where the server listens: the name and port it is bound to. */
+interface LabBound {
   readonly hostname?: string;
   readonly port?: number;
-  /** Hold `request`'s connection open for `seconds` with nothing sent (Bun's `server.timeout`). */
-  readonly timeout?: (request: Request, seconds: number) => void;
 }
 
 /** A web handler as a Bun server takes it: the request and its server. */
-export type LabHandler = (request: Request, server: LabBound) => Promise<Response>;
+type LabHandler = (request: Request, server: LabBound) => Promise<Response>;
 
 /**
  * Hosts a server answers to beyond the bound port's loopback names: each an
@@ -70,24 +72,20 @@ export interface Allowed {
   readonly hosts: ReadonlyArray<string>;
 }
 
-/** The connection a request came on: the server's bound name and port, and a way to hold it open. */
+/** The connection a request came on: the server's bound name and port. */
 interface ConnectionService {
   readonly hostname: Option.Option<string>;
   readonly port: Option.Option<number>;
-  /** Hold this request's connection open for `seconds` with nothing sent, past the server's idle limit. */
-  readonly hold: (seconds: number) => void;
 }
 
-export class Connection extends Context.Service<Connection, ConnectionService>()(
+class Connection extends Context.Service<Connection, ConnectionService>()(
   '@bible/film/tools/Connection',
 ) {}
 
-/** The connection `request` came on, as `server` (Bun's) holds it. */
-const connectionOf = (request: Request, server: LabBound): ConnectionService => ({
+/** The connection a request came on, as the server it reached is bound. */
+const connectionOf = (server: LabBound): ConnectionService => ({
   hostname: Option.fromUndefinedOr(server.hostname),
   port: Option.fromUndefinedOr(server.port),
-  // Called on the server, never detached: Bun's `timeout` reads its own server.
-  hold: (seconds) => server.timeout?.(request, seconds),
 });
 
 /** The names the loopback host answers to, beside the one the server was bound with. */
@@ -115,6 +113,22 @@ const hostOf = (request: HttpServerRequest.HttpServerRequest) =>
 
 const refused = (reason: string) => Option.some<Refusal>(RequestRefused.make({ reason }));
 
+/** The path a request asks for, without its query. */
+const pathOf = (request: HttpServerRequest.HttpServerRequest) => request.url.split('?')[0] ?? '';
+
+/**
+ * A link opened from another site (a chat, a mail): a GET or HEAD the
+ * browser makes for a new document (`Sec-Fetch-Mode: navigate`,
+ * `Sec-Fetch-Dest: document`) of one of the app's pages (`pageAt`). The site
+ * cannot read what it answers, and a page runs nothing; the API, a script, a
+ * file and a write stay the server's own.
+ */
+const isNavigation = (request: HttpServerRequest.HttpServerRequest) =>
+  SAFE_METHODS.includes(request.method) &&
+  Option.contains(header(request, 'sec-fetch-mode'), 'navigate') &&
+  Option.contains(header(request, 'sec-fetch-dest'), 'document') &&
+  Option.isSome(pageAt(pathOf(request)));
+
 /**
  * Whether the server answers `request` at all: `None` when it does, else the
  * refusal. Pure: see the gate above.
@@ -139,7 +153,7 @@ const admit = (
       if (!hosts.includes(host))
         return refused(`Host ${host} is not the server's (${hosts.join(', ')})`);
       const site = header(request, 'sec-fetch-site');
-      if (Option.exists(site, (s) => !OWN_FETCH.includes(s)))
+      if (Option.exists(site, (s) => !OWN_FETCH.includes(s)) && !isNavigation(request))
         return refused(`a ${Option.getOrElse(site, () => '')} request`);
       if (SAFE_METHODS.includes(request.method)) return Option.none();
       const origin = header(request, 'origin');
@@ -214,10 +228,14 @@ const answerRefused = (request: HttpServerRequest.HttpServerRequest, refusal: Re
     Effect.as(HttpServerResponse.jsonUnsafe(encodeRefusal(refusal), { status: statusOf(refusal) })),
   );
 
+/** The parts of a request HttpApi decodes; its other schema errors are of the answer. */
+const REQUEST_PARTS: ReadonlyArray<string> = ['Params', 'Headers', 'Query', 'Payload'];
+
 /**
- * `routes`, a request its route cannot decode (HttpApi dies with its schema
- * error, which would answer an empty 400) answered as `RequestInvalid`:
- * the part, and the schema's words for why.
+ * `routes`, a schema error answered (HttpApi dies with it, which would answer
+ * an empty 400): a request its route cannot decode as `RequestInvalid`, the
+ * part and the schema's words for why; an answer the server cannot encode
+ * (its body, its headers) as the server's own failure, `ServerFailed`.
  */
 const decodedOrRefused = <E, R>(
   request: HttpServerRequest.HttpServerRequest,
@@ -225,13 +243,18 @@ const decodedOrRefused = <E, R>(
 ) =>
   Effect.catchDefect(routes, (defect) => {
     if (!HttpApiError.HttpApiSchemaError.is(defect)) return Effect.die(defect);
-    return answerRefused(
-      request,
-      // The schema's words on one line: `Expected "pick" | … at ["verb"]`.
-      RequestInvalid.make({
-        part: defect.kind,
-        reason: defect.cause.message.replace(/\s*\n\s*/g, ' '),
-      }),
+    // The schema's words on one line: `Expected "pick" | … at ["verb"]`.
+    const reason = defect.cause.message.replace(/\s*\n\s*/g, ' ');
+    if (REQUEST_PARTS.includes(defect.kind))
+      return answerRefused(request, RequestInvalid.make({ part: defect.kind, reason }));
+    const failed = ServerFailed.make({
+      tag: 'AnswerUnencoded',
+      reason: `${defect.kind}: ${reason}`,
+    });
+    return Effect.logWarning(
+      `api.request.failed method=${request.method} path=${pathOf(request)} status=${statusOf(failed)} tag=${failed.tag} reason="${failed.reason}"`,
+    ).pipe(
+      Effect.as(HttpServerResponse.jsonUnsafe(encodeRefusal(failed), { status: statusOf(failed) })),
     );
   });
 
@@ -286,7 +309,8 @@ export type PageAnswer = Effect.Effect<
 /**
  * What else the server answers, once admitted: the app's pages, for every
  * path no route takes, except under the API's own prefixes (`own`), where a
- * path no route takes is a 404 RouteUnknown and never a page.
+ * path no route takes is a 404 RouteUnknown and never a page. A page is
+ * read, never written: any method but GET and HEAD is a 405.
  */
 const pageRoute = (
   page: PageAnswer,
@@ -298,9 +322,14 @@ const pageRoute = (
     '/*',
     Effect.gen(function* () {
       const request = yield* HttpServerRequest.HttpServerRequest;
-      const path = request.url.split('?')[0] ?? '';
+      const path = pathOf(request);
       if (own.some((prefix) => path.startsWith(prefix)))
         return yield* answerRefused(request, RouteUnknown.make({ path }));
+      if (!SAFE_METHODS.includes(request.method))
+        return HttpServerResponse.text('a page is only read', {
+          status: 405,
+          headers: { allow: SAFE_METHODS.join(', ') },
+        });
       return yield* page;
     }),
   ).pipe(HttpRouter.provideRequest(Layer.succeedContext(platform)));
@@ -314,7 +343,6 @@ type ApiRoutes = Layer.Layer<
   | FileSystem.FileSystem
   | Path.Path
   | HttpPlatform.HttpPlatform
-  | HttpRouter.Request<'Requires', Connection>
 >;
 
 /** Routes beside an API's, outside its prefixes: a fixture's own (the studio harness's control). */
@@ -350,7 +378,8 @@ export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constrai
       (web) => Effect.promise(() => web.dispose()),
     );
     const answer: LabHandler = (request, server) =>
-      handler(request, Context.make(Connection, connectionOf(request, server)));
+      handler(request, Context.make(Connection, connectionOf(server)));
+
     return answer;
   });
 
@@ -362,3 +391,63 @@ export const withServices =
   <R>(services: Context.Context<R>) =>
   <A, E, RIn>(groups: Layer.Layer<A, E, RIn>) =>
     groups.pipe(HttpRouter.provideRequest(Layer.succeedContext(services)));
+
+/**
+ * How long a connection stays open with nothing sent: Bun's longest. A
+ * film's first mix renders the whole film before it answers; a take's import
+ * answers within the studio's wait (`STUDIO_IMPORT_WAIT_S`), which is
+ * shorter, so the page stops waiting before the socket closes.
+ */
+export const LAB_IDLE_SECONDS = 255;
+
+/**
+ * The largest body Bun reads before the gate: the gate's own limit and a
+ * margin, so a body over `STUDIO_MAX_BODY` is the gate's 413 BodyTooLarge;
+ * one past this Bun refuses with its own 413 before any byte is held.
+ */
+const MAX_REQUEST_BODY = STUDIO_MAX_BODY + 1024 * 1024;
+
+/** Where a lab listens: the interface's name and the port (0: any free one). */
+export interface LabAt {
+  readonly hostname: string;
+  readonly port: number;
+}
+
+/**
+ * The lab's HTTP server on `at`: Effect's over `Bun.serve`, with no route or
+ * development server of Bun's (each would answer before the gate), its idle
+ * limit and its body limit. `serveLab` answers every request it takes.
+ */
+export const labServer = (at: LabAt) =>
+  BunHttpServer.layerServer({
+    hostname: at.hostname,
+    port: at.port,
+    development: false,
+    idleTimeout: LAB_IDLE_SECONDS,
+    maxRequestBodySize: MAX_REQUEST_BODY,
+  });
+
+/** The name and port a server is bound to; none for a socket file. */
+const boundOf = (address: NetAddress.SocketAddress): LabBound => {
+  if (address._tag === 'UnixPathAddress') return {};
+  return { hostname: address.address.toString(), port: address.port };
+};
+
+/**
+ * Every request the server (`HttpServer`, `labServer`) takes answered by
+ * `handler`, the lab's (`labHandler`), until the scope closes; the server's
+ * URL. The handler's response is sent as it is, a file's bytes included.
+ */
+export const serveLab = Effect.fn('lab.serve')(function* (handler: LabHandler) {
+  const server = yield* HttpServer.HttpServer;
+  const bound = boundOf(server.address);
+  yield* server.serve(
+    Effect.gen(function* () {
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      const web = yield* Effect.fromResult(HttpServerRequest.toWebResult(request));
+      const response = yield* Effect.promise(() => handler(web, bound));
+      return HttpServerResponse.raw(response);
+    }),
+  );
+  return `${NetAddress.formatUrlUnsafe(server.address)}/`;
+});

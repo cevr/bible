@@ -19,10 +19,8 @@ import { answered } from './api-server.ts';
 import { Choices, type Picked } from './choices.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
-import { serveFile } from './review-file.ts';
+import { IMMUTABLE, serveFile } from './review-file.ts';
 
-/** A take or an attempt: named by its sha256 or file, so it never changes under its URL. */
-const IMMUTABLE = 'max-age=86400';
 /**
  * A mix: its URL names the point and variant, not the source it was mixed
  * from, so a page asks again each time (a revalidation, answered 304 while the

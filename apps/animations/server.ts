@@ -1,9 +1,9 @@
-// The app's two servers. The player and each film's recorded narration, on
-// loopback, for as long as `render` or `check` runs (the film CLI's
-// PreviewServer, cli.ts); and the lab (`bun run lab`, the box's unit), whose
-// every request the film framework's handler answers.
+// The app's player, with each film's recorded narration, on loopback for as
+// long as `render` or `check` runs (the film CLI's PreviewServer, cli.ts), and
+// the pages the lab builds (`LAB_PAGES`). The lab's own server is the
+// framework's (`labServer`): `bun run lab`, the box's unit.
 
-import { type LabBound, narrationFile } from '@bible/film/tools';
+import { narrationFile } from '@bible/film/tools';
 import { BunServices } from '@effect/platform-bun';
 import { Effect, Option } from 'effect';
 import { join } from 'node:path';
@@ -23,13 +23,8 @@ export const LAB_PAGES = {
   player: join(import.meta.dir, 'index.html'),
 };
 
-/** The folders the pages are built from, beside the framework's: a change in one rebuilds them. */
-export const LAB_SOURCES = [join(import.meta.dir, 'src'), join(import.meta.dir, 'assets')];
-
 /** The loopback interface: the only one the player listens on. */
 const HOST = '127.0.0.1';
-
-type Handler = (req: Request, server: LabBound) => Response | Promise<Response>;
 
 /** The player on `HOST`:`port`, its narration served from `films`. */
 export const serve = (port: number, films: string = FILMS) => {
@@ -64,23 +59,3 @@ export const narration = (films: string) => (pathname: string) =>
       Effect.provide(BunServices.layer),
     ),
   );
-
-/** Bun's longest idle timeout. A mix a page stops waiting for runs on and is found made next time. */
-const LAB_IDLE_SECONDS = 255;
-
-/**
- * The lab on `hostname`:`port`: every request goes to `lab`, the
- * framework's handler, which admits it (only the hosts it is told) before its
- * routes answer /api/* and its pages the rest (built from
- * `review.html`, `lab.html` and `index.html`, `LabPage`). No route here answers on its
- * own, so no path skips the Host check.
- */
-export const serveLab = (port: number, hostname: string, lab: Handler) =>
-  Bun.serve({
-    hostname,
-    port,
-    development: false,
-    // A film's first mix renders the whole film before it answers: as long as Bun allows.
-    idleTimeout: LAB_IDLE_SECONDS,
-    fetch: (req, server) => lab(req, server),
-  });

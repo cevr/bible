@@ -28,27 +28,26 @@ import {
   String as Str,
 } from 'effect';
 import { Base64 } from 'effect/encoding';
-import { HttpServerResponse } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
 import { type TakeState, hashText, takeState, voiceKey } from '../core/narration.ts';
 import { type Timings, type Voice, type VoiceTiming } from '../core/schema.ts';
 import {
   type ReadBeat,
-  STUDIO_IMPORT_IDLE_S,
   type StudioBeat,
   type StudioReading,
   type StudioTake,
 } from '../core/studio.ts';
 import type { SheetBeat } from '../core/sheet.ts';
 import type { PlatformError } from 'effect/PlatformError';
-import { Connection, answered } from './api-server.ts';
+import { answered } from './api-server.ts';
 import { UnknownScene } from '../core/errors.ts';
 import { AttemptUnknown, AudioInvalid, RecordingLossy, TakeMismatch } from '../core/refusals.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmFolder, type FilmName, Stamped, filmNamed, keptWhenMade } from './film-repo.ts';
 import { type FreshError, FreshFilm } from './fresh-film.ts';
 import type { VoicedFilm } from './narrator.ts';
+import { IMMUTABLE, serveFile } from './review-file.ts';
 import { type Imported, Takes } from './takes.ts';
 
 /**
@@ -74,12 +73,6 @@ const extensionOf = (type: string): Result.Result<string, AudioInvalid | Recordi
     AudioInvalid.make({ reason: `a recording of type "${type}"` }),
   );
 };
-
-/** An attempt's audio as the page plays it back. */
-const AUDIO_TYPES = new Map([
-  ['.flac', 'audio/flac'],
-  ['.mp3', 'audio/mpeg'],
-]);
 
 /** A take's state as the panel names it. */
 const STATES = { Recorded: 'recorded', Staging: 'staging', Stale: 'stale' } as const;
@@ -225,16 +218,6 @@ const mismatch = Effect.fn('studio.mismatch')(function* (film: FilmName, error: 
 });
 
 /**
- * A take posted (made, heard, kept and remixed, or an attempt kept) sends
- * nothing until it answers: its connection is held open for
- * STUDIO_IMPORT_IDLE_S, past the page's wait, where the server's idle limit
- * would close it under a long import. Other routes keep the server's limit.
- */
-const holdOpen = Effect.gen(function* () {
-  (yield* Connection).hold(STUDIO_IMPORT_IDLE_S);
-});
-
-/**
  * The studio's handlers. One write at a time: a take kept (its attempt, the
  * timings) and the mix after it finish before the next begins, so two takes
  * posted at once never interleave their writes or mix over each other.
@@ -283,7 +266,6 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
       .handle('take', ({ params, payload }) =>
         answered(
           Effect.gen(function* () {
-            yield* holdOpen;
             const { film, beat } = yield* filmBeat(params);
             const bytes = yield* Effect.fromResult(Base64.decode(payload.audio)).pipe(
               Effect.mapError(() => AudioInvalid.make({ reason: 'the audio is not base64' })),
@@ -328,7 +310,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
           }),
         ),
       )
-      .handle('attempt', ({ params }) =>
+      .handle('attempt', ({ params, request }) =>
         answered(
           Effect.gen(function* () {
             const { film, beat } = yield* filmBeat(params);
@@ -339,19 +321,14 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
             );
             if (Option.isNone(found))
               return yield* AttemptUnknown.make({ beat, file: params.file });
-            const bytes = yield* (yield* FileSystem.FileSystem).readFile(found.value);
-            const contentType = Option.getOrElse(
-              Option.fromNullishOr(AUDIO_TYPES.get((yield* Path.Path).extname(found.value))),
-              () => 'application/octet-stream',
-            );
-            return HttpServerResponse.uint8Array(bytes, { contentType });
+            // A phone's Safari plays and seeks an <audio> by byte ranges.
+            return yield* serveFile(request, found.value, IMMUTABLE);
           }),
         ),
       )
       .handle('keep', ({ params, payload }) =>
         answered(
           Effect.gen(function* () {
-            yield* holdOpen;
             const { film, beat } = yield* filmBeat(params);
             return yield* keeping(
               film,

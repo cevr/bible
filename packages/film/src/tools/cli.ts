@@ -25,7 +25,6 @@ import {
   Cause,
   ConfigProvider,
   Console,
-  Context,
   Effect,
   Layer,
   Logger,
@@ -81,14 +80,15 @@ import { Mixer } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
-import { labAllowed, labHandler } from './lab.ts';
-import { LabPage, type LabPageSpec } from './lab-page.ts';
+import { labAllowed, labHandler, labLink } from './lab.ts';
+import { type LabAt, labServer, serveLab } from './api-server.ts';
+import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { Review, type ReviewRoot } from './review.ts';
 import { NotesStore } from './notes-store.ts';
 import { notes } from './notes-cli.ts';
 import { read, scenesLocatedHere } from './read-cli.ts';
 import { StudioReadings } from './studio.ts';
-import { type LabServer, PreviewServer, type PreviewServerService } from './preview-server.ts';
+import { PreviewServer } from './preview-server.ts';
 import {
   DRAW_WORKERS,
   HARDWARE_WORKERS,
@@ -802,39 +802,29 @@ const chaptersCommand = Command.make(
   ),
 );
 
-/**
- * A server built in the command's scope, its URL printed (the line a reader
- * opens) and its ready event logged, then held until Ctrl-C (or the unit
- * stops): the scope then stops the server and its handler.
- */
-const serveUntilInterrupted = <E>(
-  server: Layer.Layer<PreviewServer, E>,
-  lines: (server: PreviewServerService) => readonly [printed: string, ready: string],
-) =>
-  Effect.gen(function* () {
-    const [printed, ready] = lines(Context.get(yield* Layer.build(server), PreviewServer));
-    yield* Console.log(printed);
-    yield* Effect.log(ready);
-    return yield* Effect.never;
-  });
-
 const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
   Command.make(
     'lab',
     {},
     Effect.fn('film.lab')(function* () {
       // The lab's whole API, for every film: what tweaks it and what reviews it.
-      const handler = yield* labHandler(yield* labAllowed);
+      const allowed = yield* labAllowed;
+      const handler = yield* labHandler(allowed);
       const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
       const known = yield* (yield* FilmFolder).names;
-      return yield* serveUntilInterrupted(app.server(handler), (server) => [
-        server.url,
-        `lab.ready url=${server.url} films=${known.join(',')} roots=${roots.join(',')}`,
-      ]);
+      // The server lives in the command's scope: Ctrl-C (or the unit stopping) stops it.
+      const server = yield* Layer.build(labServer(yield* app.at));
+      const url = yield* serveLab(handler).pipe(Effect.provideContext(server));
+      const link = labLink(url, allowed);
+      yield* Console.log(link);
+      yield* Effect.log(
+        `lab.ready link=${link} url=${url} films=${known.join(',')} roots=${roots.join(',')}`,
+      );
+      return yield* Effect.never;
     }, Effect.scoped),
   ).pipe(
     // The pages, built from the app's entries and watched while the lab runs.
-    Command.provide(LabPage.layer({ ...app.pages, films })),
+    Command.provide(LabPage.layer({ ...app.pages, films }).pipe(Layer.provide(PageBundler.layer))),
     Command.withDescription(
       "Serve the lab for every film: the player with notes on frames, cues and knobs that write back to the scene files and the studio, beside every render under the roots, compared in sync, and each film's choices and scenes to approve (Ctrl-C stops it)",
     ),
@@ -860,14 +850,13 @@ interface FilmApp<E> {
   /** The player, served while `render` or `check` runs. */
   readonly previewServer: Layer.Layer<PreviewServer, E>;
   /**
-   * The lab, served while `lab` runs: its server (on the host and port the
-   * app chooses, answering every request with the handler it is given), its
-   * pages (the app's HTML entries and the folders they are built from:
-   * `LabPage`), and the roots of the renders it reviews when
-   * `FILM_REVIEW_ROOTS` names none.
+   * The lab, served while `lab` runs: where it listens (the host and port the
+   * app chooses; the framework's server, `labServer`, answers there), its
+   * pages (the app's HTML entries: `LabPage`), and the roots of the renders
+   * it reviews when `FILM_REVIEW_ROOTS` names none.
    */
   readonly lab: {
-    readonly server: LabServer<E>;
+    readonly at: Effect.Effect<LabAt, E>;
     readonly pages: Omit<LabPageSpec, 'films'>;
     readonly roots: Effect.Effect<
       ReadonlyArray<ReviewRoot>,

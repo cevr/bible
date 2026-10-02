@@ -1,6 +1,7 @@
 // A file on the box answered as a request asks for it: whole, or the byte
 // range it names (206, so a video seeks on a phone), with its cache policy.
-// The review's files and the options' mixes and takes are served this way.
+// The review's files, the options' mixes and takes, the studio's attempts
+// and the notes' stills are served this way.
 
 import { Effect } from 'effect';
 import { HttpServerRequest, HttpStaticServer } from 'effect/http';
@@ -12,6 +13,12 @@ import { ReviewFileUnknown } from '../core/refusals.ts';
  * a caption file.
  */
 const MIME_TYPES = { m4a: 'audio/mp4', vtt: 'text/vtt; charset=utf-8' };
+
+/**
+ * The cache policy of a file that never changes under its URL: a take or an
+ * attempt (named by its hash), a note's still (by its number).
+ */
+export const IMMUTABLE = 'max-age=86400';
 
 /**
  * The file at `file` as `request` asks for it. A file gone since it resolved

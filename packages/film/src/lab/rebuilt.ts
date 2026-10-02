@@ -1,7 +1,9 @@
 // The lab page onto new code: the server builds the pages itself and numbers
-// each build (`LabPage`); the page was served at one (`<meta
-// name="lab-build">`), and waits on `/api/review/build?since=` for a later one,
-// which a change to a file the pages are built from makes. Then the page
+// each build (`LabPage`); the page was served at one, by one server process
+// (`<meta name="lab-build">`, `<meta name="lab-server">`), and waits on
+// `/api/review/build?since=` for a later one, which a change to a file the
+// pages are built from makes, or for an answer from another server (the lab
+// restarted: the page is old code, whatever the numbers). Then the page
 // reloads at the frame it shows, as a write does (`StageOps.reload`), so a
 // scene edited in the editor or by an agent is on screen without a hand on
 // the page. A failed wait (the server restarting) is asked again after a
@@ -9,13 +11,23 @@
 // on its next reload); nothing else of the page waits on it.
 
 import { Effect, Option, Schedule } from 'effect';
+import type { PageBuild } from '../core/api.ts';
 import { LabClient } from './api.ts';
 
-/** The build this page was served at, from its `<meta name="lab-build">`; none outside the lab's server. */
-const servedBuild = (): Option.Option<number> =>
-  Option.flatMap(
-    Option.fromNullishOr(document.querySelector('meta[name="lab-build"]')?.getAttribute('content')),
-    (text) => Option.filter(Option.some(Number(text)), Number.isFinite),
+/** A `<meta>`'s content on this page. */
+const meta = (name: string) =>
+  Option.fromNullishOr(document.querySelector(`meta[name="${name}"]`)?.getAttribute('content'));
+
+/** The build this page was served at; none outside the lab's server. */
+const servedBuild = (): Option.Option<PageBuild> =>
+  Option.flatMap(meta('lab-server'), (server) =>
+    Option.map(
+      Option.filter(
+        Option.map(meta('lab-build'), (text) => Number(text)),
+        Number.isFinite,
+      ),
+      (build) => ({ build, server }),
+    ),
   );
 
 /** How long a wait is held at the server: under its 60 s cap. */
@@ -23,18 +35,36 @@ const WAIT_S = 50;
 /** A lost server is asked again every 2 s, for an hour. */
 const REASKED = { schedule: Schedule.spaced('2 seconds'), times: 1800 } as const;
 
-/** Wait for a build past the one served, then `reload`; a page with no build waits for none. */
+/** Whether `answer` is newer code than `served`: another server's, or a later build. */
+const newer = (served: PageBuild) => (answer: PageBuild) =>
+  answer.server !== served.server || answer.build > served.build;
+
+/**
+ * Wait (through `wait`, asked with the build served) for newer code than
+ * `served`, then `reload`. A failed wait is asked again after a pause.
+ */
+export const reloadPast = <E, R>(
+  served: PageBuild,
+  wait: (served: PageBuild) => Effect.Effect<PageBuild, E, R>,
+  reload: Effect.Effect<void>,
+) =>
+  Effect.gen(function* () {
+    yield* wait(served).pipe(Effect.retry(REASKED), Effect.repeat({ until: newer(served) }));
+    yield* Effect.logInfo(`lab.rebuilt since=${served.build} server=${served.server}`);
+    yield* reload;
+  });
+
+/** Wait for newer code than this page was served, then `reload`; a page with no build waits for none. */
 export const reloadOnRebuild = (reload: Effect.Effect<void>) =>
   Option.match(servedBuild(), {
     onNone: () => Effect.void,
-    onSome: (since) =>
-      Effect.gen(function* () {
-        const client = yield* LabClient;
-        const waited = client.page
-          .wait({ query: { since, timeout: WAIT_S } })
-          .pipe(Effect.retry(REASKED), Effect.repeat({ until: (answer) => answer.build > since }));
-        yield* waited;
-        yield* Effect.logInfo(`lab.rebuilt since=${since}`);
-        yield* reload;
-      }),
+    onSome: (served) =>
+      Effect.flatMap(LabClient, (client) =>
+        reloadPast(
+          served,
+          ({ build, server }) =>
+            client.page.wait({ query: { since: build, server, timeout: WAIT_S } }),
+          reload,
+        ),
+      ),
   });

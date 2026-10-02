@@ -41,13 +41,13 @@ argument. A short's id and an act's name are each declared once (`Shorts`,
 ## Tools
 
 `film narrate|takes import|script|score|mix|cues|check|render|lookbook|project|chapters|notes|options <film>` (and `film doctor`, `film lab` (the lab and the review, every film), `film media …` over the private media store, and `film sfx …` over the app's sound library, `tools/sfx-cli.ts`) runs from the app that holds the
-films. The app owns the entry: it calls `runFilmCli({ films, sounds, folders, previewServer, labServer, review, self })`
+films. The app owns the entry: it calls `runFilmCli({ films, sounds, folders, previewServer, lab, self })`
 with its films folder, its sound library folder, its own `out` and `lab` folders
 (where a run writes renders and notes, whatever directory it starts in; `FILMS_OUT` and
 `FILMS_LAB` win when set), a scoped `PreviewServer` layer that serves its
-player page, and `labServer`, which serves the same page in development
-mode with the lab's routes mounted, because only the app can bundle its HTML
-and films (see `apps/animations/cli.ts`). Logs (`Effect.log`, `event
+player page, and `lab`: where the lab listens (`at`, a `LabAt`), its pages
+(`pages`, the app's HTML entries) and the roots it reviews; the framework's
+server (`labServer`) answers there (see `apps/animations/cli.ts`). Logs (`Effect.log`, `event
 key=value`) go to stderr, a failed command's report too (logged under the
 same logger before the runtime exits, not by `runMain`'s own reporter, which
 would print to stdout; a typed failure as its tag and message, a defect with
@@ -625,8 +625,12 @@ same frames as a 16:9 render, measured against one contiguous range): the
 
 `film lab` is the one place a film is tweaked and reviewed: one server for
 every film of the app, meant to run for days (the box's `film-lab` user unit
-on port 8229). It prints its URL and runs until stopped, which stops the
-server and the routes with the command's scope. It serves three pages, the
+on port 8229). It prints its link (the first `FILM_LAB_HOSTS` name over
+`https://`, else where it is bound; logged `lab.ready`) and runs until
+stopped, which stops the server and the routes with the command's scope. The
+server is Effect's over `Bun.serve` (`labServer` and `serveLab`,
+`tools/api-server.ts`): no route or development server of Bun's, so every
+request reaches the gate. It serves three pages, the
 app's, cross-linked: the review at `/` (below), the lab at `/lab?film=<film>`
 (`lab.html`, whose entry calls `mountLab(films)`) and the player, its
 look-book, at `/player?film=<film>&lookbook`. Its API is under `/api/` (The
@@ -642,23 +646,28 @@ listens; a box binds `0.0.0.0` with the names it is reached by in
 `FILM_LAB_HOSTS`.
 
 **The pages are built in the lab's process** (`LabPage`, `tools/lab-page.ts`):
-`Bun.build` with `@bible/film/solid-plugin`, about a tenth of a second, so
+`Bun.build` with `@bible/film/solid-plugin` (the `PageBundler` service, with a
+test layer that reads each entry as its own page), about a tenth of a second, so
 there is no build step and nothing to rebuild by hand. A page is built when
 first asked and again when asked after a file the last build read has
-changed: the app's `sources` and the framework's own are watched, and each
-change to a file a build read is one more build (a render, a mix or a note
+changed: the folder of every file the last build read (outside
+`node_modules`) is watched, the set following each build, and each change to a file a build read is one more build (a render, a mix or a note
 is none). A page links its scripts and styles from the root (`/chunk-….js`,
 `publicPath: '/'`), so a page served under a film's path finds them; a
 request is answered as a narration file when it is one
 (`/films/<film>/narration/<file>`), then as a built file, then as the page
-its path serves. Every page is stamped with its build (`<meta name="lab-build">`)
-and waits on `GET /api/review/build?since=` (`PageBuild`, long-polled, at most
-60 s); the lab reloads at the frame it shows when a later build is made
+its path serves. Every page is stamped with its build and the server that
+built it (`<meta name="lab-build">`, `<meta name="lab-server">`, an id made at
+start) and waits on `GET /api/review/build?since=&server=` (`PageBuild`,
+long-polled, at most 60 s; another server answers at once, so a page outlives
+a restart); the lab reloads at the frame it shows when a later build or
+another server answers
 (`lab/rebuilt.ts`), so a scene edited by hand or by an agent is on screen
 with no hand on the page. The review does not reload itself (a playing set
 is not interrupted); its next load is the new code. A page that does not
-build answers 500 with the bundler's words and reloads once a source
-changes; the server keeps serving. The pages are not rendered on the server:
+build answers 500 with the bundler's words and reloads once a later build
+or another server answers, pausing 2 s after every other answer; the server
+keeps serving. The pages are not rendered on the server:
 the lab's preview draws the film's own scene code in the browser, so the
 scripts are the page. Only the lab's server bundles Solid; the render's
 server (`film render`, `check`) serves the player alone.
@@ -727,10 +736,12 @@ upload is written to a scoped temp file (`recording.wav` or `.flac`), removed
 when the request ends. Takes are kept one at a time (a semaphore per studio):
 the keep, the timings write and the mix after it finish before the next post
 begins. After a take is kept the film remixes; `mixed: false` says the mix
-failed (logged) and the take stands. A take posted, or an attempt kept,
-holds its connection open for `STUDIO_IMPORT_IDLE_S` past the server's idle
-limit (`Connection.hold`). The lab's **Studio** section records through
-these routes (below).
+failed (logged) and the take stands. The server keeps a connection open
+with nothing sent for `LAB_IDLE_SECONDS` (255 s, Bun's longest), past the
+page's wait for a take (`STUDIO_IMPORT_WAIT_S`), so the page stops waiting
+before the socket closes. An attempt plays back through `serveFile`, by byte
+ranges, as a phone's Safari asks. The lab's **Studio** section records
+through these routes (below).
 
 ### The HTTP API
 
@@ -765,7 +776,9 @@ A handler's failure that is not a Refusal answers 500 as
 query or a body that does not decode is a 400 `RequestInvalid` naming the
 part and the schema's words (`{"_tag":"RequestInvalid","part":"Payload",
 "reason":"Expected \"pick\" | \"unpick\" | \"reject\" at [\"verb\"]"}`),
-answered by the gate (HttpApi itself would answer an empty 400); a path under
+answered by the gate (HttpApi itself would answer an empty 400); an answer
+that does not encode (a handler's value its schema refuses) is the server's
+failure, a 500 `ServerFailed` tagged `AnswerUnencoded`; a path under
 the API's own prefixes that no route declares is a 404 `RouteUnknown` naming
 the path, so a page calling an endpoint the server does not have reads a
 refusal, not "no answer". A refusal names a film's file relative to the film's
@@ -785,9 +798,13 @@ route; every route answers a foreign Host 403 (`lab.test.ts` walks
 `routesOf(LabHttpApi)`). Every film route names
 its film, one of the app's films (`filmNamed`), and any other name is a 404
 `FilmUnknown` before a handler reads a thing. The pages (`LabPage`) answer
-every path outside the API's own prefix (`/api/`), behind the same gate, and
-so do a fixture's own routes beside the API's (`labHandler`'s `beside`: the
-studio harness's control).
+every path outside the API's own prefix (`/api/`), behind the same gate, to a
+GET or HEAD only (any other method is a 405, `Allow: GET, HEAD`). One
+cross-site request passes: a link opened on another site (a GET or HEAD with
+`Sec-Fetch-Mode: navigate` and `Sec-Fetch-Dest: document`) to a path of the
+page table; never the API, a script or a file. A fixture's own routes beside the API's
+(`labHandler`'s `beside`: the studio harness's control) sit behind the same
+gate.
 
 **To add an endpoint:**
 
@@ -1351,7 +1368,8 @@ HTTP API, above), the pages and their scripts included: the app's server has
 no route of its own, only `labHandler`, which admits first and then hands what
 is not `/api/*` to the pages (`LabPage`, above). A Host
 that is neither the server's own nor one of those is a 403 (DNS rebinding),
-and so is any request a browser marks cross-site (`Sec-Fetch-Site`). A write
+and so is any request a browser marks cross-site (`Sec-Fetch-Site`), but a
+link opened on another site to one of the pages. A write
 must also carry an `Origin` of one of those hosts (`http://` or `https://`)
 and a JSON body: another origin is a 403, a text/plain body a 415 (so a form
 on another site cannot post), a bad body a 400. The scene editor, the notes and the studio are behind the

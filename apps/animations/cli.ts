@@ -4,9 +4,9 @@
 // (`bun cli.ts --help`). A server starts with its command and stops when it
 // ends, fails or is interrupted.
 
-import { type LabHandler, PreviewServer, type ReviewRoot, runFilmCli } from '@bible/film/tools';
+import { PreviewServer, type ReviewRoot, runFilmCli } from '@bible/film/tools';
 import { Config, Effect, FileSystem, Layer, Path } from 'effect';
-import { FILMS, LAB_PAGES, LAB_SOURCES, serve, serveLab } from './server.ts';
+import { FILMS, LAB_PAGES, serve } from './server.ts';
 
 /** The app's sound library, shared by its films (`sounds/library.ts`). */
 export const SOUNDS = `${import.meta.dir}/sounds`;
@@ -28,19 +28,9 @@ const player = (films: string) =>
  */
 const labAt = Effect.gen(function* () {
   const port = yield* Config.Int('LAB_PORT').pipe(Config.withDefault(8229));
-  const host = yield* Config.String('LAB_HOST').pipe(Config.withDefault('127.0.0.1'));
-  return { port, host };
+  const hostname = yield* Config.String('LAB_HOST').pipe(Config.withDefault('127.0.0.1'));
+  return { port, hostname };
 });
-
-/** The lab, every request answered by `handler`, stopped with the command's scope. */
-const labServer = (handler: LabHandler) =>
-  Layer.effect(
-    PreviewServer,
-    Effect.acquireRelease(
-      Effect.map(labAt, ({ port, host }) => serveLab(port, host, handler)),
-      (server) => Effect.promise(() => server.stop(true)),
-    ).pipe(Effect.map((server) => PreviewServer.of({ url: server.url.href }))),
-  );
 
 /**
  * The lab's render roots when `FILM_REVIEW_ROOTS` names none: the renders of
@@ -80,9 +70,9 @@ export const appCli = (films: string, sounds: string, self: string): void =>
     folders: { out: `${import.meta.dir}/out`, lab: `${import.meta.dir}/lab` },
     previewServer: player(films),
     lab: {
-      server: labServer,
-      // The lab's pages, built from this app's source: its review, its lab and its player.
-      pages: { pages: LAB_PAGES, sources: LAB_SOURCES },
+      at: labAt,
+      // The lab's pages, this app's entries: its review, its lab and its player.
+      pages: { pages: LAB_PAGES },
       roots: checkoutRoots,
     },
     // This CLI, for the lab's fresh `check --static` after each write.

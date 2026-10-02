@@ -25,6 +25,7 @@ import {
   FilmRepo,
   FreshFilm,
   LabPage,
+  PageBundler,
   Media,
   NotesStore,
   RenderCatalogue,
@@ -37,10 +38,12 @@ import {
   Takes,
   beatsOf,
   labHandler,
+  labServer,
+  serveLab,
 } from '@bible/film/tools';
 import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { LAB_PAGES, LAB_SOURCES, serveLab } from './server.ts';
+import { LAB_PAGES } from './server.ts';
 
 /** What the fake hears for a beat it is told to mis-hear. */
 const MISHEARD = 'the quick brown fox jumps over the lazy dog';
@@ -171,7 +174,8 @@ const Harness = Layer.unwrap(
     // The lab reviews nothing here: no render roots, but its choices over the copy.
     const Reviewed = Review.layerConfig(Effect.succeed([])).pipe(Layer.provide([Heard, Platform]));
     const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
-    const Pages = LabPage.layer({ pages: LAB_PAGES, sources: LAB_SOURCES, films: root }).pipe(
+    const Pages = LabPage.layer({ pages: LAB_PAGES, films: root }).pipe(
+      Layer.provide(PageBundler.layer),
       Layer.provide(Platform),
     );
     const Services = Choices.layer.pipe(
@@ -196,11 +200,9 @@ const Harness = Layer.unwrap(
       Effect.gen(function* () {
         yield* (yield* FilmRepo).load(film);
         const lab = yield* labHandler({ hosts: [] }, control(misheard, root));
-        const server = yield* Effect.acquireRelease(
-          Effect.sync(() => serveLab(port, '127.0.0.1', lab)),
-          (s) => Effect.promise(() => s.stop(true)),
-        );
-        yield* Effect.log(`harness.ready url=${server.url}lab?film=${film} root=${root}`);
+        const server = yield* Layer.build(labServer({ hostname: '127.0.0.1', port }));
+        const url = yield* serveLab(lab).pipe(Effect.provideContext(server));
+        yield* Effect.log(`harness.ready url=${url}lab?film=${film} root=${root}`);
       }),
     );
     return Server.pipe(Layer.provide(Services));

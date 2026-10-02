@@ -15,10 +15,11 @@
 // loopback names and the hosts it is told (`FILM_LAB_HOSTS`), nothing else.
 
 import {
+  Array as Arr,
   Config,
   Duration,
   Effect,
-  FileSystem,
+  type FileSystem,
   Layer,
   Option,
   type Path,
@@ -26,7 +27,6 @@ import {
   Result,
 } from 'effect';
 import type { HttpPlatform } from 'effect/http';
-import { HttpServerResponse } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
 import { StillUnknown } from '../core/refusals.ts';
@@ -35,6 +35,7 @@ import { choicesGroup } from './choices-http.ts';
 import type { Choices } from './choices.ts';
 import { LabPage } from './lab-page.ts';
 import { projectGroup } from './project-http.ts';
+import { IMMUTABLE, serveFile } from './review-file.ts';
 import { reviewGroup } from './review-http.ts';
 import type { Review } from './review.ts';
 import type { ContentStore } from './content-store.ts';
@@ -122,14 +123,14 @@ const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
         }),
       ),
     )
-    .handle('still', ({ params }) =>
+    .handle('still', ({ params, request }) =>
       answered(
         Effect.gen(function* () {
           const film = yield* filmNamed(params.film);
           const file = yield* (yield* NotesStore).still(film, params.name);
           if (Option.isNone(file)) return yield* StillUnknown.make({ film, name: params.name });
-          const bytes = yield* (yield* FileSystem.FileSystem).readFile(file.value);
-          return HttpServerResponse.uint8Array(bytes, { contentType: 'image/png' });
+          // A still is named by its number, written once.
+          return yield* serveFile(request, file.value, IMMUTABLE);
         }),
       ),
     ),
@@ -198,12 +199,15 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
     ),
 );
 
-/** The pages' build: a wait that answers once a source a build read changes. */
+/** The pages' build: a wait that answers once a source a build read changes, or at once for a page another server served. */
 const pageGroup = HttpApiBuilder.group(LabHttpApi, 'page', (handlers) =>
   handlers.handle('wait', ({ query }) =>
     answered(
       Effect.flatMap(LabPage, (page) =>
-        page.wait(query.since, Duration.seconds(Math.max(0, query.timeout ?? 60))),
+        page.wait(
+          { since: query.since, server: Option.fromUndefinedOr(query.server) },
+          Duration.seconds(Math.max(0, query.timeout ?? 60)),
+        ),
       ),
     ),
   ),
@@ -223,6 +227,16 @@ export const labAllowed = Config.String('FILM_LAB_HOSTS').pipe(
       .filter((host) => host.length > 0),
   })),
 );
+
+/**
+ * The lab's address as a reader opens it: the first host it is told, over
+ * HTTPS (the box's proxy in front), else where it is bound (`bound`).
+ */
+export const labLink = (bound: string, allowed: Allowed): string =>
+  Option.match(Arr.head(allowed.hosts), {
+    onNone: () => bound,
+    onSome: (host) => `https://${host}/`,
+  });
 
 /**
  * What the lab's handlers run with: the notes store, the film's folder, its

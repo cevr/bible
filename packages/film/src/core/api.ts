@@ -514,20 +514,26 @@ class ProjectGroup extends HttpApiGroup.make('project').add(
 
 /**
  * The page's build: the number of the lab's pages as built now, past the
- * `since` a page was built at once the sources change.
+ * `since` a page was built at once the sources change, and the server that
+ * numbered it (an id each lab process draws at its start): a page served by
+ * another server is old code, whatever its number.
  */
-export const PageBuild = Schema.Struct({ build: Schema.Finite });
+export const PageBuild = Schema.Struct({ build: Schema.Finite, server: Schema.String });
 export type PageBuild = typeof PageBuild.Type;
 
 /**
  * The lab's own pages: a wait, held open up to `timeout` s (at most 60),
- * that answers once a file under the sources the pages are built from
- * changed past the build the page was served (`since`), so an open lab
- * reloads onto the new code.
+ * that answers once a file the pages were built from changed past the build
+ * the page was served (`since`), so an open lab reloads onto the new code;
+ * at once when the page names another `server` (the lab restarted).
  */
 class PageGroup extends HttpApiGroup.make('page').add(
   HttpApiEndpoint.get('wait', `${REVIEW}/build`, {
-    query: { since: Schema.Finite, timeout: Schema.optionalKey(Schema.Finite) },
+    query: {
+      since: Schema.Finite,
+      server: Schema.optionalKey(Schema.String),
+      timeout: Schema.optionalKey(Schema.Finite),
+    },
     success: PageBuild,
     error: Refusals,
   }),

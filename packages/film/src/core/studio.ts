@@ -25,13 +25,6 @@ export const STUDIO_MAX_BODY = 64 * 1024 * 1024;
  */
 export const STUDIO_IMPORT_WAIT_S = 210;
 
-/**
- * How long the server keeps a take's connection open with nothing sent: past
- * the page's wait, so the page is the one that stops waiting, never the
- * socket (Bun's idle limit is 255 s at most).
- */
-export const STUDIO_IMPORT_IDLE_S = 240;
-
 /** A beat as a take is kept against it: its words, the text a take is hashed under, and who reads what. */
 export const ReadBeat = Schema.Struct({
   id: Schema.String,

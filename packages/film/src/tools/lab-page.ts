@@ -1,30 +1,39 @@
 // The lab's pages, built in the lab's own process and answered behind its
 // gate: the app's HTML entries (its lab, its review and its player), bundled
 // with the framework's Solid plugin as Bun's page server would bundle them,
-// but by `Bun.build` here, so every file is answered by a route `admit` has
-// passed (Bun's own routes would answer before the gate, and its development
-// server has no Host check). A build takes about a tenth of a second, so there is no
-// build step: the pages are built when first asked, and again when asked
-// after a file the last build read has changed. The lab runs for days, so the
-// change is watched (`FileSystem.watch` over `sources`), each one numbered
-// (the build), and an open page that waits on `/api/review/build?since=` hears of
-// it and reloads onto the new code, as the development server's hot reload did.
+// but by `Bun.build` here (`PageBundler`), so every file is answered by a
+// route `admit` has passed (Bun's own routes would answer before the gate,
+// and its development server has no Host check). A build takes about a tenth
+// of a second, so there is no build step: the pages are built when first
+// asked, and again when asked after a file the last build read has changed.
+// The lab runs for days, so the folders of the files the last build read are
+// watched (`FileSystem.watch`; a package's `node_modules` aside), each change
+// to one of those files numbered (the build), and an open page that waits on
+// `/api/review/build?since=` hears of it and reloads onto the new code, as
+// the development server's hot reload did. Each lab process draws its own
+// id (`server`): a page served by an earlier process hears at once that it
+// is old code.
 //
 // A build that fails answers its page as the failure, the bundler's words,
 // and reloads itself once a source changes; the lab itself keeps serving.
 
 import {
   Array as Arr,
+  Clock,
   Context,
   Duration,
   Effect,
+  Equivalence,
   FileSystem,
   Layer,
   Option,
+  Order,
   Path,
   Predicate,
+  Random,
   Record,
   Ref,
+  Schema,
   Semaphore,
   Stream,
   SubscriptionRef,
@@ -39,11 +48,6 @@ import { serveFile } from './review-file.ts';
 export interface LabPageSpec {
   /** Each page's HTML entry; the paths each is served at are the framework's (`PAGE_PATHS`). */
   readonly pages: Readonly<Record<PageName, string>>;
-  /**
-   * The folders the app's sources lie under: a change to a file a build read
-   * rebuilds the pages. The framework's own source is watched beside them.
-   */
-  readonly sources: ReadonlyArray<string>;
   /** The films folder, whose narration the pages play (`/films/<film>/narration/<file>`). */
   readonly films: string;
 }
@@ -52,6 +56,102 @@ export interface LabPageSpec {
 interface BuiltFile {
   readonly bytes: Uint8Array;
   readonly type: string;
+}
+
+/**
+ * What a build made: each output by its path relative to the build's root
+ * (`lab.html`, `chunk-….js`), and the files it read, absolute.
+ */
+interface Bundled {
+  readonly outputs: ReadonlyArray<BuiltFile & { readonly path: string }>;
+  readonly inputs: ReadonlyArray<string>;
+}
+
+interface PageBundlerService {
+  /** The pages `entries` (HTML files under `root`) bundled for the browser, or the bundler's words. */
+  readonly bundle: (entries: ReadonlyArray<string>, root: string) => Effect.Effect<Bundled, string>;
+}
+
+/** What a bundler said of a build it threw for: each of its messages, a line each. */
+const bundlerWords = (cause: unknown): string => {
+  if (Predicate.hasProperty(cause, 'errors') && Array.isArray(cause.errors))
+    return cause.errors.map(String).join('\n');
+  return String(cause);
+};
+
+/** `Bun.build` over the pages with the framework's Solid plugin; `path` resolves what it read. */
+const bunBundle = (path: Path.Path) => (entries: ReadonlyArray<string>, root: string) =>
+  Effect.gen(function* () {
+    const { solidPlugin } = yield* Effect.promise(() => import('./solid-plugin.ts'));
+    const out = yield* Effect.tryPromise({
+      try: () =>
+        Bun.build({
+          entrypoints: [...entries],
+          root,
+          // Every page links its scripts and styles from the root (`/chunk-….js`), so a
+          // page served under a film's path (`/films/<film>/lab/<scene>`) finds them.
+          publicPath: '/',
+          plugins: [solidPlugin],
+          target: 'browser',
+          splitting: true,
+          minify: true,
+          sourcemap: 'linked',
+          metafile: true,
+          // A failed build throws its messages (an AggregateError), caught here.
+          throw: true,
+        }),
+      catch: bundlerWords,
+    });
+    const outputs = yield* Effect.forEach(out.outputs, (file) =>
+      Effect.map(
+        Effect.promise(() => file.arrayBuffer()),
+        (buffer) => ({
+          path: file.path.replace(/^\.\//, ''),
+          bytes: new Uint8Array(buffer),
+          type: file.type,
+        }),
+      ),
+    );
+    // The metafile names inputs relative to this process's directory.
+    const inputs = Object.keys(out.metafile?.inputs ?? {}).map((input) => path.resolve(input));
+    return { outputs, inputs } satisfies Bundled;
+  });
+
+/** The bundler the pages are built with. */
+export class PageBundler extends Context.Service<PageBundler, PageBundlerService>()(
+  '@bible/film/tools/PageBundler',
+) {
+  /** Bun's bundler with the framework's Solid plugin. */
+  static readonly layer = Layer.effect(
+    PageBundler,
+    Effect.map(Path.Path, (path) => PageBundler.of({ bundle: bunBundle(path) })),
+  );
+
+  /**
+   * A bundler for tests that need no browser code: each entry is its own
+   * page, its HTML as written, read from the file system, and the entries
+   * are all a build reads.
+   */
+  static readonly layerTest = Layer.effect(
+    PageBundler,
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      return PageBundler.of({
+        bundle: (entries, root) =>
+          Effect.forEach(entries, (entry) =>
+            Effect.map(fs.readFile(entry), (bytes) => ({
+              path: path.relative(root, entry),
+              bytes,
+              type: 'text/html;charset=utf-8',
+            })),
+          ).pipe(
+            Effect.map((outputs) => ({ outputs, inputs: [...entries] })),
+            Effect.mapError((error) => error.message),
+          ),
+      });
+    }),
+  );
 }
 
 /**
@@ -76,28 +176,33 @@ const SETTLE = Duration.millis(150);
 /** The longest a wait holds a request open. */
 const MAX_WAIT = Duration.seconds(60);
 
+/** What a page asks its wait with: the build it was served, and by which server when it knows. */
+interface Served {
+  readonly since: number;
+  readonly server: Option.Option<string>;
+}
+
 interface LabPageService {
   /** The page, script, style or narration the request asks for, or a 404. */
   readonly answer: PageAnswer;
-  /** The pages' build as the sources stand: past `since` once a source changes, held up to `timeout`. */
-  readonly wait: (since: number, timeout: Duration.Input) => Effect.Effect<PageBuild>;
+  /**
+   * The pages' build as the sources stand: past `since` once a source
+   * changes, held up to `timeout`; at once when the page was served by
+   * another server.
+   */
+  readonly wait: (served: Served, timeout: Duration.Input) => Effect.Effect<PageBuild>;
 }
 
 export class LabPage extends Context.Service<LabPage, LabPageService>()(
   '@bible/film/tools/LabPage',
 ) {
   /** The app's pages over `spec`, watched while the scope is open. */
-  static layer(spec: LabPageSpec): Layer.Layer<LabPage, never, FileSystem.FileSystem | Path.Path> {
+  static layer(
+    spec: LabPageSpec,
+  ): Layer.Layer<LabPage, never, FileSystem.FileSystem | Path.Path | PageBundler> {
     return Layer.effect(LabPage, make(spec));
   }
 }
-
-/** What the bundler said of a build it threw for: each of its messages, a line each. */
-const bundlerWords = (cause: unknown): string => {
-  if (Predicate.hasProperty(cause, 'errors') && Array.isArray(cause.errors))
-    return cause.errors.map(String).join('\n');
-  return String(cause);
-};
 
 const escapeHtml = (text: string) =>
   text.replace(
@@ -105,20 +210,35 @@ const escapeHtml = (text: string) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] ?? c,
   );
 
-/** The build a page was served from, for its wait: `<meta name="lab-build">`. */
-const stamped = (html: string, build: number) =>
-  html.replace('</head>', `<meta name="lab-build" content="${build}" /></head>`);
+/** The build a page was served from, for its wait: `<meta name="lab-build">` and `lab-server`. */
+const stamped = (html: string, build: PageBuild) =>
+  html.replace(
+    '</head>',
+    `<meta name="lab-build" content="${build.build}" /><meta name="lab-server" content="${escapeHtml(build.server)}" /></head>`,
+  );
 
-/** A failed build's page: the bundler's words, reloading itself once a source changes. */
-const failedPage = (reason: string, build: number) =>
+/** `text` as a script's string literal. */
+const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.String));
+
+/** How long the failed page waits before it asks again, on any answer that is not a newer build. */
+const FAILED_PAUSE_MS = 2000;
+
+/**
+ * A failed build's page: the bundler's words, reloading itself once a build
+ * past it answers, or one from another server; it pauses before asking
+ * again on every other answer (a refusal, a proxy's 502, no answer).
+ */
+const failedPage = (reason: string, build: PageBuild) =>
   stamped(
     `<!doctype html><html><head><meta charset="utf-8" /><title>Lab: the page did not build</title></head>`,
     build,
   ) +
   `<body style="font:14px/1.5 ui-monospace,monospace;background:#121110;color:#eee;padding:24px">` +
   `<h1 style="font-size:16px">The lab's page did not build</h1><pre style="white-space:pre-wrap">${escapeHtml(reason)}</pre>` +
-  `<script>(async()=>{for(;;){try{const r=await fetch('${labUrls.page.wait({ query: { since: build } })}');` +
-  `if(r.ok&&(await r.json()).build>${build})return location.reload()}catch{await new Promise(f=>setTimeout(f,2000))}}})()</script>` +
+  `<script>(async()=>{const S=${jsonText(build.server)},B=${build.build},` +
+  `u=${jsonText(labUrls.page.wait({ query: { since: build.build, server: build.server } }))};` +
+  `for(;;){try{const r=await fetch(u);if(r.ok){const b=await r.json();if(b.server!==S||b.build>B)return location.reload()}}catch{}` +
+  `await new Promise(f=>setTimeout(f,${FAILED_PAUSE_MS}))}})()</script>` +
   `</body></html>`;
 
 /** A build's files; a failed one has none. */
@@ -141,14 +261,28 @@ const commonDir = (dirs: ReadonlyArray<string>): string => {
 const NOT_FOUND = HttpServerResponse.text('not found', { status: 404 });
 const HTML = 'text/html;charset=utf-8';
 
+/** Two sorted lists of folders, the same. */
+const SAME_FOLDERS = Arr.makeEquivalence(Equivalence.String);
+
+/** An id for this process's builds, unlike any other process's: its start, and a draw. */
+const serverId = Effect.gen(function* () {
+  const started = yield* Clock.currentTimeMillis;
+  const draw = yield* Random.nextIntBetween(0, 36 ** 4);
+  return `${started.toString(36)}-${draw.toString(36)}`;
+});
+
 const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
+  const bundler = yield* PageBundler;
+  const server = yield* serverId;
   // The number of changes seen: a build is current while it was made at this number.
   const changes = yield* SubscriptionRef.make(0);
   // The files the last build read, absolute: only a change to one of them makes a new build.
   // None before a build has read any, or after one failed: then every change does.
   const read = yield* Ref.make(Option.none<ReadonlySet<string>>());
+  // The folders those files lie in, watched; a failed build keeps the last ones.
+  const folders = yield* SubscriptionRef.make<ReadonlyArray<string>>([]);
   const builds = yield* Ref.make<ReadonlyArray<Built>>([]);
   const building = yield* Semaphore.make(1);
   // Bun names each output by its entry's path relative to the build's root: the
@@ -158,51 +292,37 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const pageOf = new Map(entries.map(([page, html]) => [path.relative(root, html), page]));
 
   const bundle = Effect.fnUntraced(function* (build: number) {
-    const { solidPlugin } = yield* Effect.promise(() => import('./solid-plugin.ts'));
-    const outcome = yield* Effect.tryPromise({
-      try: () =>
-        Bun.build({
-          entrypoints: entries.map(([, html]) => html),
-          root,
-          // Every page links its scripts and styles from the root (`/chunk-….js`), so a
-          // page served under a film's path (`/films/<film>/lab/<scene>`) finds them.
-          publicPath: '/',
-          plugins: [solidPlugin],
-          target: 'browser',
-          splitting: true,
-          minify: true,
-          sourcemap: 'linked',
-          metafile: true,
-          // A failed build throws its messages (an AggregateError), caught below.
-          throw: true,
-        }),
-      catch: bundlerWords,
-    }).pipe(
-      Effect.flatMap((out) =>
-        Effect.gen(function* () {
-          // The metafile names inputs relative to this process's directory.
-          const inputs = Object.keys(out.metafile?.inputs ?? {}).map((input) =>
-            path.resolve(input),
-          );
-          yield* Ref.set(read, Option.some(new Set(inputs)));
-          const pages = new Map<PageName, BuiltFile>();
-          const files = new Map<string, BuiltFile>();
-          for (const file of out.outputs) {
-            const name = file.path.replace(/^\.\//, '');
-            const bytes = new Uint8Array(yield* Effect.promise(() => file.arrayBuffer()));
-            const built = { bytes, type: file.type };
-            Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
-              onNone: () => files.set(`/${name}`, built),
-              onSome: (page) => pages.set(page, built),
-            });
-          }
-          return { _tag: 'Built', pages, files } as const;
-        }),
-      ),
-      Effect.catch((reason) =>
-        Effect.as(Ref.set(read, Option.none()), { _tag: 'Failed', reason } as const),
-      ),
-    );
+    const outcome = yield* bundler
+      .bundle(
+        entries.map(([, html]) => html),
+        root,
+      )
+      .pipe(
+        Effect.flatMap(({ outputs, inputs }) =>
+          Effect.gen(function* () {
+            yield* Ref.set(read, Option.some(new Set(inputs)));
+            const watched = Arr.sort(
+              Arr.dedupe(
+                inputs.filter((input) => !input.includes('/node_modules/')).map(path.dirname),
+              ),
+              Order.String,
+            );
+            if (!SAME_FOLDERS(watched, yield* SubscriptionRef.get(folders)))
+              yield* SubscriptionRef.set(folders, watched);
+            const pages = new Map<PageName, BuiltFile>();
+            const files = new Map<string, BuiltFile>();
+            for (const { path: name, ...built } of outputs)
+              Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
+                onNone: () => files.set(`/${name}`, built),
+                onSome: (page) => pages.set(page, built),
+              });
+            return { _tag: 'Built', pages, files } as const;
+          }),
+        ),
+        Effect.catch((reason) =>
+          Effect.as(Ref.set(read, Option.none()), { _tag: 'Failed', reason } as const),
+        ),
+      );
     yield* Effect.log(`lab.page.build build=${build} outcome=${outcome._tag}`);
     return { build, outcome } satisfies Built;
   });
@@ -220,21 +340,18 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   );
 
   // Each change to a file the last build read is one more change; anything else (a mix, a render,
-  // a note) is not.
-  const watched = Stream.mergeAll(
-    [...spec.sources, path.resolve(import.meta.dir, '..')].map((dir) =>
-      fs.watch(dir, { recursive: true }).pipe(
-        Stream.map((event) => path.resolve(dir, event.path)),
-        Stream.catch((error) =>
-          Stream.fromEffect(
-            Effect.logWarning(`lab.page.watch.failed dir=${dir} ${error.message}`),
-          ).pipe(Stream.drain),
-        ),
+  // a note) is not. The folders watched follow what the last build read.
+  const watch = (dir: string) =>
+    fs.watch(dir).pipe(
+      Stream.map((event) => path.resolve(dir, event.path)),
+      Stream.catch((error) =>
+        Stream.fromEffect(
+          Effect.logWarning(`lab.page.watch.failed dir=${dir} ${error.message}`),
+        ).pipe(Stream.drain),
       ),
-    ),
-    { concurrency: 'unbounded' },
-  );
-  yield* watched.pipe(
+    );
+  yield* SubscriptionRef.changes(folders).pipe(
+    Stream.switchMap((dirs) => Stream.mergeAll(dirs.map(watch), { concurrency: 'unbounded' })),
     Stream.runForEach((file) =>
       Effect.flatMap(Ref.get(read), (inputs) =>
         Effect.when(
@@ -248,35 +365,36 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     Effect.forkScoped,
   );
 
-  const wait = (since: number, timeout: Duration.Input): Effect.Effect<PageBuild> =>
-    SubscriptionRef.changes(changes).pipe(
-      Stream.filter((n) => n > since),
+  const now = Effect.map(SubscriptionRef.get(changes), (build) => ({ build, server }));
+
+  const wait = (served: Served, timeout: Duration.Input): Effect.Effect<PageBuild> => {
+    if (Option.exists(served.server, (s) => s !== server)) return now;
+    return SubscriptionRef.changes(changes).pipe(
+      Stream.filter((n) => n > served.since),
       Stream.runHead,
       Effect.andThen(Effect.sleep(SETTLE)),
-      Effect.andThen(SubscriptionRef.get(changes)),
       Effect.timeoutOption(Duration.min(Duration.fromInputUnsafe(timeout), MAX_WAIT)),
-      Effect.flatMap(
-        Option.match({ onNone: () => SubscriptionRef.get(changes), onSome: Effect.succeed }),
-      ),
-      Effect.map((build) => ({ build })),
+      Effect.andThen(now),
     );
+  };
 
   /** A page's HTML as the sources stand, built now if they changed: asked again each load. */
   const page = (name: PageName) =>
     Effect.gen(function* () {
       const built = yield* current;
+      const stamp = { build: built.build, server };
       if (built.outcome._tag === 'Failed')
-        return HttpServerResponse.text(failedPage(built.outcome.reason, built.build), {
+        return HttpServerResponse.text(failedPage(built.outcome.reason, stamp), {
           status: 500,
           contentType: HTML,
           headers: { 'cache-control': 'no-store' },
         });
       const html = Option.fromUndefinedOr(built.outcome.pages.get(name));
       if (Option.isNone(html)) return NOT_FOUND;
-      return HttpServerResponse.text(
-        stamped(new TextDecoder().decode(html.value.bytes), built.build),
-        { contentType: HTML, headers: { 'cache-control': 'no-store' } },
-      );
+      return HttpServerResponse.text(stamped(new TextDecoder().decode(html.value.bytes), stamp), {
+        contentType: HTML,
+        headers: { 'cache-control': 'no-store' },
+      });
     });
 
   /** A script, style or map by its path, in the builds kept: each named by its hash, so never changed. */

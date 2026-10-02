@@ -4,6 +4,7 @@
 
 import {
   Array as Arr,
+  ByteSize,
   ConfigProvider,
   Context,
   Effect,
@@ -15,6 +16,7 @@ import {
   Redacted,
   Result,
   Schema,
+  Stream,
 } from 'effect';
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { Base64 } from 'effect/encoding';
@@ -123,6 +125,10 @@ const writeInto = (
  * folders made (a folder with files in it exists whether made or not), so a
  * test can see a folder left empty.
  */
+/** A byte count as a number. */
+const byteCount = (input: ByteSize.Input): number =>
+  Number(ByteSize.toBigInt(ByteSize.fromInputUnsafe(input)));
+
 const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) => {
   /** A folder under `/tmp` no other call has made: `<prefix><n>`. */
   const tempFolder = (prefix = 'tmp-') => {
@@ -209,6 +215,46 @@ const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) 
             .map((f) => f.slice(path.length + 1).split('/')[0] ?? ''),
         ),
       ]),
+    // A file's size and kind, as a file server reads them before it answers a range.
+    stat: (path) =>
+      Effect.fromOption(Option.fromNullishOr(files.get(path)), () => notFound('stat', path)).pipe(
+        Effect.map((bytes): FileSystem.File.Info => ({
+          type: 'File',
+          mtime: Option.none(),
+          atime: Option.none(),
+          birthtime: Option.none(),
+          dev: 0,
+          ino: Option.none(),
+          mode: 0o644,
+          nlink: Option.none(),
+          uid: Option.none(),
+          gid: Option.none(),
+          rdev: Option.none(),
+          size: ByteSize.bytes(bytes.byteLength),
+          blksize: Option.none(),
+          blocks: Option.none(),
+        })),
+      ),
+    // A file's bytes from `offset`, `bytesToRead` of them when given, as one chunk.
+    stream: (path, options) =>
+      Stream.fromEffect(
+        Effect.fromOption(Option.fromNullishOr(files.get(path)), () => notFound('stream', path)),
+      ).pipe(
+        Stream.map((bytes) => {
+          const from = Option.getOrElse(
+            Option.map(Option.fromNullishOr(options?.offset), byteCount),
+            () => 0,
+          );
+          const count = Option.map(Option.fromNullishOr(options?.bytesToRead), byteCount);
+          return bytes.slice(
+            from,
+            Option.getOrElse(
+              Option.map(count, (n) => from + n),
+              () => bytes.byteLength,
+            ),
+          );
+        }),
+      ),
   } satisfies Partial<FileSystem.FileSystem>;
 };
 
@@ -419,7 +465,7 @@ export const echoPages = Layer.succeed(
     answer: Effect.map(HttpServerRequest.HttpServerRequest, (request) =>
       HttpServerResponse.text(`page ${new URL(request.url, 'http://lab').pathname}`),
     ),
-    wait: (since) => Effect.succeed({ build: since }),
+    wait: (served) => Effect.succeed({ build: served.since, server: 'echo' }),
   }),
 );
 
@@ -1427,55 +1473,59 @@ const reviewFilmServices = (films: string, PICK = reviewPickIn(films)) =>
 
 export class ReviewTestRoot extends Context.Service<ReviewTestRoot, string>()('test/Root') {}
 
-/** The review over `out/art` (a set of two), its videos 12.5 s long and a frame the video copied. */
-export const reviewHttpFixture = Layer.unwrap(
-  Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    const dir = yield* fs.makeTempDirectoryScoped();
-    const out = path.join(dir, 'out');
-    yield* fs.makeDirectory(path.join(out, 'art'), { recursive: true });
-    yield* fs.writeFileString(path.join(out, 'art', 'roof.A.mp4'), '0123456789');
-    yield* fs.writeFileString(path.join(out, 'art', 'roof.B.mp4'), 'abcdefghij');
-    yield* fs.writeFileString(path.join(out, 'art', 'roof.vtt'), 'WEBVTT');
-    yield* fs.writeFileString(
-      path.join(out, 'art', 'review.json'),
-      '{ "title": "Art", "docs": ["roof.vtt"], "sets": { "roof": { "order": ["A", "B"] } } }',
-    );
-    yield* fs.writeFileString(path.join(dir, 'secret.mp4'), 'secret');
-    const films = path.join(dir, 'films');
-    yield* fs.makeDirectory(path.join(films, 'f', 'scenes'), { recursive: true });
-    yield* fs.writeFileString(path.join(films, 'f', 'scenes', 'index.ts'), 'export {};\n');
-    yield* fs.makeDirectory(path.join(dir, 'beside', 'scenes'), { recursive: true });
-    yield* fs.writeFileString(path.join(dir, 'beside', 'scenes', 'index.ts'), 'export {};\n');
-    return Review.layer({
-      roots: [{ label: 'out', path: out }],
-      cache: path.join(dir, 'cache'),
-      phoneOver: 1000,
-      maxVideo: 10_000,
-      phoneCopies: false,
-    }).pipe(
-      Layer.provide(reviewMedia([])),
-      Layer.merge(Layer.succeed(ReviewTestRoot, dir)),
-      Layer.merge(
-        Layer.mergeAll(
-          noSource,
-          noStudio,
-          echoPages,
-          NotesStore.layer.pipe(
-            Layer.provideMerge(ContentStore.layer),
-            Layer.provide(
-              ConfigProvider.layer(
-                ConfigProvider.fromUnknown({ FILMS_LAB: path.join(dir, 'lab') }),
+/** The review over `out/art` (a set of two), its videos `seconds` long and a frame the video copied. */
+export const reviewHttpFixtureLasting = (seconds: number) =>
+  Layer.unwrap(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const dir = yield* fs.makeTempDirectoryScoped();
+      const out = path.join(dir, 'out');
+      yield* fs.makeDirectory(path.join(out, 'art'), { recursive: true });
+      yield* fs.writeFileString(path.join(out, 'art', 'roof.A.mp4'), '0123456789');
+      yield* fs.writeFileString(path.join(out, 'art', 'roof.B.mp4'), 'abcdefghij');
+      yield* fs.writeFileString(path.join(out, 'art', 'roof.vtt'), 'WEBVTT');
+      yield* fs.writeFileString(
+        path.join(out, 'art', 'review.json'),
+        '{ "title": "Art", "docs": ["roof.vtt"], "sets": { "roof": { "order": ["A", "B"] } } }',
+      );
+      yield* fs.writeFileString(path.join(dir, 'secret.mp4'), 'secret');
+      const films = path.join(dir, 'films');
+      yield* fs.makeDirectory(path.join(films, 'f', 'scenes'), { recursive: true });
+      yield* fs.writeFileString(path.join(films, 'f', 'scenes', 'index.ts'), 'export {};\n');
+      yield* fs.makeDirectory(path.join(dir, 'beside', 'scenes'), { recursive: true });
+      yield* fs.writeFileString(path.join(dir, 'beside', 'scenes', 'index.ts'), 'export {};\n');
+      return Review.layer({
+        roots: [{ label: 'out', path: out }],
+        cache: path.join(dir, 'cache'),
+        phoneOver: 1000,
+        maxVideo: 10_000,
+        phoneCopies: false,
+      }).pipe(
+        Layer.provide(reviewMedia([], seconds)),
+        Layer.merge(Layer.succeed(ReviewTestRoot, dir)),
+        Layer.merge(
+          Layer.mergeAll(
+            noSource,
+            noStudio,
+            echoPages,
+            NotesStore.layer.pipe(
+              Layer.provideMerge(ContentStore.layer),
+              Layer.provide(
+                ConfigProvider.layer(
+                  ConfigProvider.fromUnknown({ FILMS_LAB: path.join(dir, 'lab') }),
+                ),
               ),
             ),
           ),
         ),
-      ),
-      Layer.merge(reviewFilmServices(films)),
-    );
-  }),
-).pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, BunHttpPlatform.layer)));
+        Layer.merge(reviewFilmServices(films)),
+      );
+    }),
+  ).pipe(Layer.provideMerge(Layer.mergeAll(BunServices.layer, BunHttpPlatform.layer)));
+
+/** The review fixture, its videos 12.5 s long. */
+export const reviewHttpFixture = reviewHttpFixtureLasting(12.5);
 
 /** Where the lab listens: every interface, on 8229. */
 const reviewTestBound = { hostname: '0.0.0.0', port: 8229 } as const;

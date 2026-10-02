@@ -11,14 +11,7 @@ import { HttpPlatform } from 'effect/http';
 import { labUrls } from '../core/api.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
-import {
-  STUDIO_IMPORT_IDLE_S,
-  STUDIO_IMPORT_WAIT_S,
-  STUDIO_MAX_BODY,
-  StudioAttempts,
-  StudioBeats,
-  StudioTake,
-} from '../core/studio.ts';
+import { STUDIO_MAX_BODY, StudioAttempts, StudioBeats, StudioTake } from '../core/studio.ts';
 import { ContentStore } from './content-store.ts';
 import { TakeMismatch } from '../core/refusals.ts';
 import { FilmFolder, FilmRepo } from './film-repo.ts';
@@ -162,7 +155,8 @@ const post = (path: string, body: string, headers: Record<string, string> = {}) 
     headers: { 'content-type': 'application/json', ...headers },
     body,
   });
-const get = (path: string) => new Request(at(path), { method: 'GET' });
+const get = (path: string, headers: Record<string, string> = {}) =>
+  new Request(at(path), { method: 'GET', headers });
 
 /** A recording as the page posts it: what it says is its bytes, as the fake media reads them. */
 const recording = (said: string, extra = '') =>
@@ -307,6 +301,13 @@ describe('studio routes', () => {
           get(labUrls.studio.attempt({ params: { film: 'test', beat: 'b', file: attempt } })),
         );
         expect([audio.status, audio.type]).toEqual([200, 'audio/flac']);
+        // A phone's Safari plays and seeks it by byte ranges.
+        const part = yield* call(
+          get(labUrls.studio.attempt({ params: { film: 'test', beat: 'b', file: attempt } }), {
+            range: 'bytes=0-1',
+          }),
+        );
+        expect([part.status, part.type, String(part.body).length]).toEqual([206, 'audio/flac', 2]);
         const kept = yield* call(
           post(
             labUrls.studio.keep({ params: { film: 'test', beat: 'b' } }),
@@ -451,47 +452,6 @@ describe('studio routes', () => {
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
 
-  it.effect(
-    'a take posted holds its connection open past the page’s wait, not the server’s idle limit',
-    () => {
-      const { layer } = setup(said);
-      return Effect.gen(function* () {
-        const raised: Array<readonly [string, number]> = [];
-        // As Bun's server does, `timeout` works on its own server: a call
-        // detached from it ("Expected this to be instanceof …" in Bun) is
-        // recorded as such.
-        class Held {
-          readonly hostname = bound.hostname;
-          readonly port = bound.port;
-          timeout(request: Request, seconds: number) {
-            if (!(this instanceof Held)) return void raised.push(['detached', seconds]);
-            raised.push([new URL(request.url).pathname, seconds]);
-          }
-        }
-        const server = new Held();
-        const studio = yield* labHandler({ hosts: [] });
-        yield* Effect.promise(() =>
-          studio(
-            post(
-              labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
-              recording('Hello world.'),
-            ),
-            server,
-          ),
-        );
-        yield* Effect.promise(() =>
-          studio(get(labUrls.studio.beats({ params: { film: 'test' } })), server),
-        );
-        expect(raised).toEqual([
-          [labUrls.studio.take({ params: { film: 'test', beat: 'a' } }), STUDIO_IMPORT_IDLE_S],
-        ]);
-        // The page stops waiting first, so the socket never closes under it.
-        expect(STUDIO_IMPORT_IDLE_S).toBeGreaterThan(STUDIO_IMPORT_WAIT_S);
-        expect(STUDIO_IMPORT_IDLE_S).toBeLessThanOrEqual(255);
-      }).pipe(Effect.scoped, Effect.provide(layer));
-    },
-  );
-
   it.effect('takes posted at once are kept and mixed one after the other', () => {
     const events: Array<string> = [];
     const { layer } = setup(
@@ -529,7 +489,7 @@ describe('studio routes', () => {
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
 
-  it.effect('answers only the lab page, for its film: another origin 403, another film 404', () => {
+  it.effect('a take refused at the gate, or for another film, leaves no attempt on disk', () => {
     const { files, layer } = setup(said);
     return Effect.gen(function* () {
       const foreign = post(

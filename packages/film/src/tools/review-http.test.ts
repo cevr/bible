@@ -7,11 +7,12 @@ import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { ReviewDuration, ReviewIndex } from '../core/review.ts';
-import { labUrls, reviewFileUrl, reviewPhoneUrl } from '../core/api.ts';
+import { labUrls, reviewFileUrl, reviewPhoneUrl, ServerFailed } from '../core/api.ts';
 import { refFromUrl } from './review-http.ts';
 import {
   ReviewTestRoot,
   reviewHttpFixture,
+  reviewHttpFixtureLasting,
   reviewTestAsk,
   reviewTestBody,
   reviewTestGet,
@@ -53,6 +54,21 @@ describe('review routes', () => {
       expect(frame.headers.get('content-type')).toBe('image/jpeg');
       expect(frame.headers.get('cache-control')).toBe('max-age=86400');
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
+  );
+
+  it.effect(
+    'a length the lab cannot answer is its own failure (500), not the request’s (400)',
+    () =>
+      Effect.gen(function* () {
+        const length = yield* reviewTestAsk(
+          reviewTestGet(labUrls.review.duration({ query: { ref: 'out/art/roof.A.mp4' } })),
+        );
+        expect(length.status).toBe(500);
+        const body = yield* Effect.promise(() => length.json());
+        expect(yield* Schema.decodeUnknownEffect(ServerFailed)(body)).toMatchObject({
+          tag: 'AnswerUnencoded',
+        });
+      }).pipe(Effect.scoped, Effect.provide(reviewHttpFixtureLasting(Number.NaN))),
   );
 
   it.effect(

@@ -7,12 +7,14 @@ import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
 import { ConfigProvider, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
-import { HttpPlatform } from 'effect/http';
+import { FetchHttpClient, HttpClient, HttpPlatform } from 'effect/http';
 import { parseSync } from 'oxc-parser';
 import { LabHttpApi, Refusal, labUrls, reviewFileUrl, routesOf } from '../core/api.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
-import { labHandler } from './lab.ts';
+import { labHandler, labLink } from './lab.ts';
+import { LAB_IDLE_SECONDS, labServer, serveLab } from './api-server.ts';
+import { STUDIO_IMPORT_WAIT_S, STUDIO_MAX_BODY } from '../core/studio.ts';
 import { FilmFolder } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import {
@@ -175,6 +177,19 @@ describe('lab routes', () => {
       );
       expect(still.headers.get('content-type')).toBe('image/png');
       expect(new Uint8Array(yield* Effect.promise(() => still.arrayBuffer()))).toEqual(png);
+      // Served as a file: by byte ranges, and kept by the browser (a still never changes).
+      const part = yield* Effect.promise(() =>
+        lab(
+          get(labUrls.notes.still({ params: { film: 'f', name: 'n1.png' } }), {
+            range: 'bytes=0-1',
+          }),
+          bound,
+        ),
+      );
+      expect([part.status, part.headers.get('cache-control')]).toEqual([206, 'max-age=86400']);
+      expect(new Uint8Array(yield* Effect.promise(() => part.arrayBuffer()))).toEqual(
+        png.slice(0, 2),
+      );
       const waited = yield* Effect.promise(() =>
         lab(
           get(labUrls.notes.wait({ params: { film: 'f' }, query: { since: 0, timeout: 1 } })),
@@ -269,78 +284,152 @@ describe('lab routes', () => {
       }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
   );
 
-  it.effect('every route the lab API declares answers a foreign Host 403, and runs nothing', () =>
-    Effect.gen(function* () {
-      const lab = yield* labHandler(LOOPBACK);
-      const routes = routesOf(LabHttpApi);
-      expect(routes.length).toBeGreaterThan(15);
-      for (const request of foreignRequests(routes, 'http://127.0.0.1:4401', 'f')) {
-        const res = yield* Effect.promise(() => lab(request, bound));
-        const refusal = yield* Effect.promise(() => res.json());
-        const route = `${request.method} ${new URL(request.url).pathname}`;
-        expect([route, res.status, refusal._tag]).toEqual([route, 403, 'RequestRefused']);
-      }
-      const listed = yield* Effect.promise(() =>
-        lab(get(labUrls.notes.list({ params: { film: 'f' } })), bound).then((r) => r.json()),
-      );
-      expect((yield* Schema.decodeUnknownEffect(NotesFile)(listed)).notes).toEqual([]);
-    }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+  it.effect(
+    'the gate: every route and every kind of page path, against every request it refuses, and what it lets in',
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        const answer = (request: Request) =>
+          Effect.gen(function* () {
+            const res = yield* Effect.promise(() => lab(request, bound));
+            const body = yield* Effect.promise(() => res.text());
+            const tag = /"_tag":"(\w+)"/.exec(body)?.[1] ?? '';
+            return [res.status, tag] as const;
+          });
+        /** `request`'s row: what it asks, and the status and refusal it gets. */
+        const row = (request: Request) =>
+          Effect.map(
+            answer(request),
+            ([status, tag]) =>
+              [`${request.method} ${new URL(request.url).pathname}`, status, tag] as const,
+          );
+        const routes = routesOf(LabHttpApi);
+        expect(routes.length).toBeGreaterThan(15);
+        const foreign = { host: 'evil.example:4401' };
+        const crossSite = { 'sec-fetch-site': 'cross-site' };
+        const navigation = {
+          'sec-fetch-site': 'cross-site',
+          'sec-fetch-mode': 'navigate',
+          'sec-fetch-dest': 'document',
+        };
+        const json = (path: string, method: string, headers: Record<string, string>) => {
+          const init = { method, headers: { 'content-type': 'application/json', ...headers } };
+          if (method === 'GET') return new Request(at(path), init);
+          return new Request(at(path), { ...init, body: '{}' });
+        };
+        // Every route: a foreign Host, a cross-site request (a link opened on another
+        // site included: a navigation reaches pages only), and for a write, a body
+        // that is not JSON and an Origin that is not the lab's.
+        for (const route of foreignRequests(routes, 'http://127.0.0.1:4401', 'f')) {
+          const path = new URL(route.url).pathname;
+          const refused = [`${route.method} ${path}`, 403, 'RequestRefused'] as const;
+          expect(yield* row(json(path, route.method, foreign))).toEqual(refused);
+          expect(yield* row(json(path, route.method, crossSite))).toEqual(refused);
+          expect(yield* row(json(path, route.method, navigation))).toEqual(refused);
+          if (route.method === 'GET') continue;
+          for (const type of [
+            'text/plain',
+            'application/x-www-form-urlencoded',
+            'multipart/form-data; boundary=x',
+          ])
+            expect(yield* row(post(path, '{}', { 'content-type': type }))).toEqual([
+              `${route.method} ${path}`,
+              415,
+              'WriteNotJson',
+            ]);
+          expect(yield* row(post(path, '{}', { origin: 'http://evil.example' }))).toEqual(refused);
+        }
+        // The pages: a foreign Host never; a link opened on another site, yes (GET or
+        // HEAD), but none of a page's files; a page is read, never written.
+        const pages = [
+          '/',
+          '/sets/root/out',
+          '/films/f/lab/hand',
+          '/films/f/play',
+          '/lab',
+          '/player',
+        ];
+        const files = ['/chunk-a1.js', '/films/f/narration/s1.mp3', '/nothing'];
+        for (const path of [...pages, ...files]) {
+          expect(yield* row(get(path, foreign))).toEqual([`GET ${path}`, 403, 'RequestRefused']);
+          expect(
+            yield* row(get(path, { 'sec-fetch-site': 'cross-site', 'sec-fetch-dest': 'script' })),
+          ).toEqual([`GET ${path}`, 403, 'RequestRefused']);
+          expect(yield* row(json(path, 'POST', {}))).toEqual([`POST ${path}`, 405, '']);
+        }
+        for (const path of pages) {
+          expect(yield* row(get(path, navigation))).toEqual([`GET ${path}`, 200, '']);
+          expect(
+            yield* row(new Request(at(path), { method: 'HEAD', headers: navigation })),
+          ).toEqual([`HEAD ${path}`, 200, '']);
+        }
+        for (const path of files)
+          expect(yield* row(get(path, navigation))).toEqual([`GET ${path}`, 403, 'RequestRefused']);
+        // A write past the body limit is refused as it streams.
+        expect(
+          yield* row(
+            post(labUrls.notes.add({ params: { film: 'f' } }), 'x'.repeat(STUDIO_MAX_BODY + 1)),
+          ),
+        ).toEqual([`POST ${labUrls.notes.add({ params: { film: 'f' } })}`, 413, 'BodyTooLarge']);
+        // DNS rebinding: the page's own origin, but a Host that is not the bound host:port.
+        const rebound = { host: 'evil.example:4401', origin: 'http://evil.example:4401' };
+        expect(
+          (yield* row(post(labUrls.notes.add({ params: { film: 'f' } }), draft, rebound)))[1],
+        ).toBe(403);
+        // Nothing was written.
+        const listed = yield* Effect.promise(() =>
+          lab(get(labUrls.notes.list({ params: { film: 'f' } })), bound).then((r) => r.json()),
+        );
+        expect((yield* Schema.decodeUnknownEffect(NotesFile)(listed)).notes).toEqual([]);
+        // The lab's own page, by either name for the loopback host, still writes and reads.
+        for (const origin of ['http://127.0.0.1:4401', 'http://localhost:4401'])
+          expect(
+            (yield* row(post(labUrls.notes.add({ params: { film: 'f' } }), draft, { origin })))[1],
+          ).toBe(200);
+        expect(
+          (yield* row(
+            get(labUrls.notes.list({ params: { film: 'f' } }), {
+              host: 'localhost:4401',
+              'sec-fetch-site': 'same-origin',
+            }),
+          ))[1],
+        ).toBe(200);
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
   );
 
-  it.effect('refuses a write from another page, a body that is not JSON, and a foreign Host', () =>
+  it.effect('the real server answers only behind the gate: no route of Bun answers first', () =>
     Effect.gen(function* () {
       const lab = yield* labHandler(LOOPBACK);
-      const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
-      // Another page the user has open (CSRF): its Origin is not the lab's.
-      const foreign = { origin: 'http://evil.example' };
-      expect(
-        yield* status(post(labUrls.notes.add({ params: { film: 'f' } }), draft, foreign)),
-      ).toBe(403);
-      // A simple cross-site form post: text/plain needs no preflight, so it is refused as such.
-      const plain = { 'content-type': 'text/plain' };
-      expect(yield* status(post(labUrls.notes.add({ params: { film: 'f' } }), draft, plain))).toBe(
-        415,
+      const server = yield* Layer.build(labServer({ hostname: '127.0.0.1', port: 0 }));
+      const url = yield* serveLab(lab).pipe(Effect.provideContext(server));
+      const client = yield* HttpClient.HttpClient;
+      const status = (path: string, headers: Record<string, string>) =>
+        Effect.map(
+          Effect.orDie(client.get(new URL(path, url), { headers })),
+          (response) => response.status,
+        );
+      for (const path of [
+        '/',
+        '/lab',
+        '/films/f/lab/hand',
+        '/films/f/narration/s1.mp3',
+        '/chunk-a1.js',
+      ])
+        expect([path, yield* status(path, { host: 'evil.example' })]).toEqual([path, 403]);
+      expect(yield* status('/', {})).toBe(200);
+      expect(yield* status(labUrls.notes.list({ params: { film: 'f' } }), {})).toBe(200);
+      // A take's import answers inside the studio's wait, which the server's idle limit outlasts.
+      expect(LAB_IDLE_SECONDS).toBeGreaterThan(STUDIO_IMPORT_WAIT_S);
+    }).pipe(Effect.scoped, Effect.provide([labLayer(files()), FetchHttpClient.layer])),
+  );
+
+  it.effect('the link the lab hands out: its first host over HTTPS, else where it is bound', () =>
+    Effect.sync(() => {
+      expect(labLink('http://0.0.0.0:8229/', { hosts: ['box.example:8229', 'other:8229'] })).toBe(
+        'https://box.example:8229/',
       );
-      expect(
-        yield* status(
-          post(labUrls.notes.resolve({ params: { film: 'f', id: 'n1' } }), '{}', plain),
-        ),
-      ).toBe(415);
-      // DNS rebinding: the page's own origin, but a Host that is not the bound host:port.
-      const rebound = { host: 'evil.example:4401', origin: 'http://evil.example:4401' };
-      expect(
-        yield* status(post(labUrls.notes.add({ params: { film: 'f' } }), draft, rebound)),
-      ).toBe(403);
-      expect(
-        yield* status(
-          get(labUrls.notes.list({ params: { film: 'f' } }), { host: 'evil.example:4401' }),
-        ),
-      ).toBe(403);
-      // A cross-site GET (an <img> on another page) does not start a check.
-      expect(
-        yield* status(
-          get(labUrls.steps.check({ params: { film: 'f' } }), { 'sec-fetch-site': 'cross-site' }),
-        ),
-      ).toBe(403);
-      // Nothing was written.
-      const listed = yield* Effect.promise(() =>
-        lab(get(labUrls.notes.list({ params: { film: 'f' } })), bound).then((r) => r.json()),
-      );
-      expect((yield* Schema.decodeUnknownEffect(NotesFile)(listed)).notes).toEqual([]);
-      // The lab's own page, by either name for the loopback host, still writes.
-      for (const origin of ['http://127.0.0.1:4401', 'http://localhost:4401'])
-        expect(
-          yield* status(post(labUrls.notes.add({ params: { film: 'f' } }), draft, { origin })),
-        ).toBe(200);
-      expect(
-        yield* status(
-          get(labUrls.notes.list({ params: { film: 'f' } }), {
-            host: 'localhost:4401',
-            'sec-fetch-site': 'same-origin',
-          }),
-        ),
-      ).toBe(200);
-    }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+      expect(labLink('http://127.0.0.1:8229/', { hosts: [] })).toBe('http://127.0.0.1:8229/');
+    }),
   );
 
   it.effect("the API's paths, as the wire has them", () =>
