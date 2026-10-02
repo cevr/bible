@@ -6,6 +6,9 @@
 //   (`window.performance.now`). oxlint lints a probe of every such form, built
 //   from the bans themselves, with the bans' own options: each line is red.
 //   The files still allowed the URL ban every other name the pages do.
+// - The purity rule: a block that keeps a layer's folder (`**/lab/**`) out
+//   also keeps out every package export that resolves into it
+//   (`@bible/film/review` is the lab's).
 
 import { BunServices } from '@effect/platform-bun';
 import { JSONC } from 'bun';
@@ -35,6 +38,9 @@ const Property = Schema.Struct({
   message: Schema.String,
 });
 type Property = typeof Property.Type;
+const Imports = Schema.Struct({
+  patterns: Schema.optionalKey(Schema.Array(Schema.Struct({ group: Schema.Array(Schema.String) }))),
+});
 
 const Override = Schema.Struct({
   files: Schema.Array(Schema.String),
@@ -42,6 +48,7 @@ const Override = Schema.Struct({
 });
 type Override = typeof Override.Type;
 const Config = Schema.Struct({ overrides: Schema.Array(Override) });
+const Package = Schema.Struct({ exports: Schema.Record(Schema.String, Schema.String) });
 
 /** The config oxlint runs the probe with: only the host bans. */
 const ProbeConfig = Schema.fromJsonString(
@@ -185,5 +192,34 @@ describe('the lint config', () => {
         );
       }),
     SPAWNS_MS,
+  );
+
+  it.effect.layer(BunServices.layer)(
+    'keeps out every package export that resolves into a folder a block keeps out',
+    () =>
+      Effect.gen(function* () {
+        const config = yield* readJson('.oxlintrc.json', Config);
+        const pkg = yield* readJson('packages/film/package.json', Package);
+        const aliases = Object.entries(pkg.exports).map(([key, target]) => ({
+          alias: `@bible/film/${key.replace(/^\.\//, '')}`,
+          folder: Option.fromNullishOr(/^\.\/src\/([\w-]+)\//.exec(target)?.[1]),
+        }));
+        expect(aliases.map((a) => a.alias)).toContain('@bible/film/review');
+        const missing = config.overrides.flatMap((o) =>
+          optionsIn(o, 'no-restricted-imports', Imports).flatMap((options) =>
+            (options.patterns ?? []).flatMap(({ group }) => {
+              if (group.includes('@bible/film/*')) return [];
+              const kept = group.flatMap((g) =>
+                Option.toArray(Option.fromNullishOr(/^\*\*\/([\w-]+)\/\*\*$/.exec(g)?.[1])),
+              );
+              return aliases
+                .filter((a) => Option.exists(a.folder, (f) => kept.includes(f)))
+                .filter((a) => !group.includes(a.alias))
+                .map((a) => `${o.files.join(', ')}: ${a.alias}`);
+            }),
+          ),
+        );
+        expect(missing).toEqual([]);
+      }),
   );
 });

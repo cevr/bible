@@ -364,6 +364,8 @@
     {
       // The purity rule (packages/film/README.md): core imports none of the
       // film's other layers, and the engine neither the player nor the tools.
+      // A block that keeps a folder out keeps out each package export that
+      // resolves into it (packages/film/lint/config.test.ts).
       "files": ["**/packages/film/src/core/**/*.ts"],
       "rules": {
         "no-restricted-imports": [
@@ -400,8 +402,11 @@
                   "**/lab/**",
                   "**/browser/**",
                   "@bible/film/player",
+                  "@bible/film/player.css",
                   "@bible/film/tools",
-                  "@bible/film/lab"
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/review"
                 ],
                 "message": "the engine never imports the player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
               }
@@ -426,8 +431,11 @@
                   "**/lab/**",
                   "!**/lab/fixtures/browsers.ts",
                   "@bible/film/player",
+                  "@bible/film/player.css",
                   "@bible/film/tools",
-                  "@bible/film/lab"
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/review"
                 ],
                 "message": "the engine never imports the player, tools or lab: they import it (packages/film/README.md, the purity rule)."
               }
@@ -444,7 +452,14 @@
           {
             "patterns": [
               {
-                "group": ["**/tools/**", "**/lab/**", "@bible/film/tools", "@bible/film/lab"],
+                "group": [
+                  "**/tools/**",
+                  "**/lab/**",
+                  "@bible/film/tools",
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/review"
+                ],
                 "message": "the player never imports the tools or the lab: the lab mounts the player (packages/film/README.md, the purity rule)."
               }
             ]
@@ -466,8 +481,11 @@
                   "**/tools/**",
                   "**/lab/**",
                   "@bible/film/player",
+                  "@bible/film/player.css",
                   "@bible/film/tools",
-                  "@bible/film/lab"
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/review"
                 ],
                 "message": "the host's adapters never import the player, the tools or the lab: the pages import them (packages/film/README.md, the purity rule)."
               }
