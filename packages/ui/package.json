@@ -1,0 +1,28 @@
+{
+  "name": "@bible/ui",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./merge-props": "./src/merge-props/index.ts",
+    "./use-render": "./src/use-render/index.ts",
+    "./direction-provider": "./src/direction-provider/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun --conditions=browser --conditions=development test src",
+    "test:browser": "bun test ./test/browser --timeout 30000"
+  },
+  "dependencies": {
+    "@floating-ui/dom": "1.8.0",
+    "@floating-ui/utils": "0.2.12",
+    "@solidjs/web": "catalog:",
+    "solid-js": "catalog:"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@solidjs/compiler": "catalog:"
+  }
+}
