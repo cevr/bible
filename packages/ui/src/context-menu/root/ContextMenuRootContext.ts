@@ -32,3 +32,14 @@ export const ContextMenuRootContext = createContext<ContextMenuRootContext | nul
 export function useContextMenuRootContext(): ContextMenuRootContext | null {
   return useContext(ContextMenuRootContext);
 }
+
+/** The context menu around a part that only works inside one; throws outside. */
+export function useContextMenuRootContextStrict(): ContextMenuRootContext {
+  const context = useContext(ContextMenuRootContext);
+  if (context === null) {
+    throw new Error(
+      'Base UI: ContextMenuRootContext is missing. ContextMenu parts must be placed within <ContextMenu.Root>.',
+    );
+  }
+  return context;
+}

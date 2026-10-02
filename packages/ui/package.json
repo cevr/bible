@@ -9,7 +9,8 @@
     "./merge-props": "./src/merge-props/index.ts",
     "./use-render": "./src/use-render/index.ts",
     "./direction-provider": "./src/direction-provider/index.ts",
-    "./menu": "./src/menu/index.ts"
+    "./menu": "./src/menu/index.ts",
+    "./context-menu": "./src/context-menu/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

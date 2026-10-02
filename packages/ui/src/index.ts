@@ -3,3 +3,4 @@ export * from './merge-props/index.ts';
 export * from './use-render/index.ts';
 export * from './direction-provider/index.ts';
 export * from './menu/index.ts';
+export * from './context-menu/index.ts';
