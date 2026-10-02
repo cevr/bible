@@ -39,7 +39,7 @@ const appFolder = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const dir = yield* fs.makeTempDirectoryScoped();
-  for (const folder of ['src/films', 'sub', 'lib'])
+  for (const folder of ['src/films', 'sub', 'lib', 'extra'])
     yield* fs.makeDirectory(path.join(dir, folder), { recursive: true });
   const write = (name: string, text: string) => fs.writeFileString(path.join(dir, name), text);
   yield* write('review.html', html('review', './src/p.ts'));
@@ -112,7 +112,10 @@ const app = Effect.gen(function* () {
         Effect.andThen(Effect.never),
       ),
     );
-  return { ask, script, scriptOf, waitWriting };
+  /** A wait past `since` after `name` is written as `text` once: one save, heard or not. */
+  const waitOnce = (since: number, timeout: Duration.Input, name: string, text: string) =>
+    Effect.andThen(write(name, text), page.wait({ since, server: Option.none() }, timeout));
+  return { ask, script, scriptOf, waitWriting, waitOnce, write };
 });
 
 const buildOf = (text: string) => Number(/name="lab-build" content="(\d+)"/.exec(text)?.[1]);
@@ -259,6 +262,46 @@ describe('lab pages', () => {
       yield* waitWriting(built, '10 seconds', 'src/p.ts', "console.log('fixed');\n");
       expect((yield* ask('/')).status).toBe(200);
       expect(yield* script).toContain('fixed');
+    }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live('a first build that fails hears one save of its fix, with no build before it', () =>
+    Effect.gen(function* () {
+      const { spec, write } = yield* appFolder;
+      yield* write('src/p.ts', "import './missing.ts';\n");
+      const { page, ask } = yield* served(spec, PageBundler.layer);
+      const broken = yield* ask('/');
+      expect(broken.status).toBe(500);
+      const since = buildOf(broken.text);
+      yield* write('src/p.ts', "console.log('fixed cold');\n");
+      const heard = yield* page.wait({ since, server: Option.none() }, '5 seconds');
+      expect(heard.build).toBeGreaterThan(since);
+      expect((yield* ask('/')).status).toBe(200);
+    }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live('one save, made as the watched folders change, is heard', () =>
+    Effect.gen(function* () {
+      const { ask, script, waitWriting, waitOnce, write } = yield* app;
+      yield* ask('/');
+      // The page now reads one more folder: the watches change with its next build.
+      yield* write('extra/x.ts', "export const x = 'x';\n");
+      const moved = yield* waitWriting(
+        0,
+        '10 seconds',
+        'src/p.ts',
+        "import { shared } from '../lib/shared.ts';\nimport { x } from '../extra/x.ts';\nconsole.log(shared, x);\n",
+      );
+      expect((yield* ask('/')).status).toBe(200);
+      // One save at once, to a folder watched before and after.
+      const heard = yield* waitOnce(
+        moved.build,
+        '5 seconds',
+        'lib/shared.ts',
+        "export const shared = 'shared three';\n",
+      );
+      expect(heard.build).toBeGreaterThan(moved.build);
+      expect(yield* script).toContain('shared three');
     }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 

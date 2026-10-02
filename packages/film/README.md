@@ -651,8 +651,12 @@ test layer that reads each entry as its own page), about a tenth of a second, so
 there is no build step and nothing to rebuild by hand. A page is built when
 first asked and again when asked after a file the last build read has
 changed: the folder of every file the last build read (outside
-`node_modules`) is watched, the set following each build, and each change to a file a build read is one more build (a render, a mix or a note
-is none). A page links its scripts and styles from the root (`/chunk-….js`,
+`node_modules`) is watched, the set following each build: the entries'
+folders from the start, and after a failed build also the folders of the
+files the bundler named, so a first build that fails still hears its fix. A
+folder still read keeps its watch; a file read in a newly watched folder
+that changed while the watch started counts as a change. Each change to a
+file a build read is one more build (a render, a mix or a note is none). A page links its scripts and styles from the root (`/chunk-….js`,
 `publicPath: '/'`), so a page served under a film's path finds them; a
 request is answered as a narration file when it is one
 (`/films/<film>/narration/<file>`), then as a built file, then as the page

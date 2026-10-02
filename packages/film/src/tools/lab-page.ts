@@ -7,8 +7,11 @@
 // of a second, so there is no build step: the pages are built when first
 // asked, and again when asked after a file the last build read has changed.
 // The lab runs for days, so the folders of the files the last build read are
-// watched (`FileSystem.watch`; a package's `node_modules` aside), each change
-// to one of those files numbered (the build), and an open page that waits on
+// watched (`FileSystem.watch`; a package's `node_modules` aside), with the
+// entries' folders from the start and, after a failed build, the folders of
+// the files the bundler named; a folder still read keeps its watch, and a
+// file read in a newly watched folder that changed while its watch started
+// is one more change. Each change to one of those files is numbered (the build), and an open page that waits on
 // `/api/review/build?since=` hears of it and reloads onto the new code, as
 // the development server's hot reload did. Each lab process draws its own
 // id (`server`): a page served by an earlier process hears at once that it
@@ -23,7 +26,7 @@ import {
   Context,
   Duration,
   Effect,
-  Equivalence,
+  Fiber,
   FileSystem,
   Layer,
   Option,
@@ -67,9 +70,18 @@ interface Bundled {
   readonly inputs: ReadonlyArray<string>;
 }
 
+/** A build the bundler refused: its words, and the files they name, absolute. */
+interface BundleFailed {
+  readonly reason: string;
+  readonly files: ReadonlyArray<string>;
+}
+
 interface PageBundlerService {
-  /** The pages `entries` (HTML files under `root`) bundled for the browser, or the bundler's words. */
-  readonly bundle: (entries: ReadonlyArray<string>, root: string) => Effect.Effect<Bundled, string>;
+  /** The pages `entries` (HTML files under `root`) bundled for the browser, or why not. */
+  readonly bundle: (
+    entries: ReadonlyArray<string>,
+    root: string,
+  ) => Effect.Effect<Bundled, BundleFailed>;
 }
 
 /** What a bundler said of a build it threw for: each of its messages, a line each. */
@@ -78,6 +90,25 @@ const bundlerWords = (cause: unknown): string => {
     return cause.errors.map(String).join('\n');
   return String(cause);
 };
+
+/** A bundler's thrown messages, each with where it is, when it says. */
+const BundlerMessages = Schema.Struct({
+  errors: Schema.Array(
+    Schema.Struct({ position: Schema.NullOr(Schema.Struct({ file: Schema.String })) }),
+  ),
+});
+
+/** The files a bundler's messages name, as it named them. */
+const bundlerFiles = (cause: unknown): ReadonlyArray<string> =>
+  Option.match(Schema.decodeUnknownOption(BundlerMessages)(cause), {
+    onNone: () => [],
+    onSome: ({ errors }) =>
+      errors.flatMap(({ position }) =>
+        Option.toArray(Option.filter(Option.fromNullOr(position), (at) => at.file.length > 0)).map(
+          (at) => at.file,
+        ),
+      ),
+  });
 
 /** `Bun.build` over the pages with the framework's Solid plugin; `path` resolves what it read. */
 const bunBundle = (path: Path.Path) => (entries: ReadonlyArray<string>, root: string) =>
@@ -100,7 +131,10 @@ const bunBundle = (path: Path.Path) => (entries: ReadonlyArray<string>, root: st
           // A failed build throws its messages (an AggregateError), caught here.
           throw: true,
         }),
-      catch: bundlerWords,
+      catch: (cause): BundleFailed => ({
+        reason: bundlerWords(cause),
+        files: bundlerFiles(cause).map((file) => path.resolve(file)),
+      }),
     });
     const outputs = yield* Effect.forEach(out.outputs, (file) =>
       Effect.map(
@@ -147,7 +181,7 @@ export class PageBundler extends Context.Service<PageBundler, PageBundlerService
             })),
           ).pipe(
             Effect.map((outputs) => ({ outputs, inputs: [...entries] })),
-            Effect.mapError((error) => error.message),
+            Effect.mapError((error): BundleFailed => ({ reason: error.message, files: [] })),
           ),
       });
     }),
@@ -175,6 +209,8 @@ const KEPT = 3;
 const SETTLE = Duration.millis(150);
 /** The longest a wait holds a request open. */
 const MAX_WAIT = Duration.seconds(60);
+/** How long a new watch is given to start before the files it now watches are checked. */
+const ARMING = Duration.millis(250);
 
 /** What a page asks its wait with: the build it was served, and by which server when it knows. */
 interface Served {
@@ -261,9 +297,6 @@ const commonDir = (dirs: ReadonlyArray<string>): string => {
 const NOT_FOUND = HttpServerResponse.text('not found', { status: 404 });
 const HTML = 'text/html;charset=utf-8';
 
-/** Two sorted lists of folders, the same. */
-const SAME_FOLDERS = Arr.makeEquivalence(Equivalence.String);
-
 /** An id for this process's builds, unlike any other process's: its start, and a draw. */
 const serverId = Effect.gen(function* () {
   const started = yield* Clock.currentTimeMillis;
@@ -275,54 +308,128 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const bundler = yield* PageBundler;
+  const scope = yield* Effect.scope;
   const server = yield* serverId;
   // The number of changes seen: a build is current while it was made at this number.
   const changes = yield* SubscriptionRef.make(0);
   // The files the last build read, absolute: only a change to one of them makes a new build.
   // None before a build has read any, or after one failed: then every change does.
   const read = yield* Ref.make(Option.none<ReadonlySet<string>>());
-  // The folders those files lie in, watched; a failed build keeps the last ones.
-  const folders = yield* SubscriptionRef.make<ReadonlyArray<string>>([]);
+  // Each folder watched, and the fiber watching it.
+  const watchers = yield* Ref.make<ReadonlyMap<string, Fiber.Fiber<void>>>(new Map());
   const builds = yield* Ref.make<ReadonlyArray<Built>>([]);
   const building = yield* Semaphore.make(1);
   // Bun names each output by its entry's path relative to the build's root: the
   // entries' common folder, given to the build so the names cannot drift.
   const entries = Record.toEntries(spec.pages);
-  const root = commonDir(entries.map(([, html]) => path.dirname(path.resolve(html))));
+  const htmls = entries.map(([, html]) => path.resolve(html));
+  const root = commonDir(htmls.map(path.dirname));
   const pageOf = new Map(entries.map(([page, html]) => [path.relative(root, html), page]));
 
-  const bundle = Effect.fnUntraced(function* (build: number) {
-    const outcome = yield* bundler
-      .bundle(
-        entries.map(([, html]) => html),
-        root,
-      )
-      .pipe(
-        Effect.flatMap(({ outputs, inputs }) =>
-          Effect.gen(function* () {
-            yield* Ref.set(read, Option.some(new Set(inputs)));
-            const watched = Arr.sort(
-              Arr.dedupe(
-                inputs.filter((input) => !input.includes('/node_modules/')).map(path.dirname),
-              ),
-              Order.String,
-            );
-            if (!SAME_FOLDERS(watched, yield* SubscriptionRef.get(folders)))
-              yield* SubscriptionRef.set(folders, watched);
-            const pages = new Map<PageName, BuiltFile>();
-            const files = new Map<string, BuiltFile>();
-            for (const { path: name, ...built } of outputs)
-              Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
-                onNone: () => files.set(`/${name}`, built),
-                onSome: (page) => pages.set(page, built),
-              });
-            return { _tag: 'Built', pages, files } as const;
-          }),
+  /** The folders `files` lie in, sorted, once each; a package's `node_modules` aside. */
+  const foldersOf = (files: ReadonlyArray<string>) =>
+    Arr.sort(
+      Arr.dedupe(files.filter((file) => !file.includes('/node_modules/')).map(path.dirname)),
+      Order.String,
+    );
+
+  // Each change to a file the last build read is one more change; anything else (a mix, a render,
+  // a note) is not.
+  const heard = (file: string) =>
+    Effect.flatMap(Ref.get(read), (inputs) =>
+      Effect.when(
+        SubscriptionRef.update(changes, (n) => n + 1),
+        Effect.succeed(
+          Option.match(inputs, { onNone: () => true, onSome: (set) => set.has(file) }),
         ),
-        Effect.catch((reason) =>
-          Effect.as(Ref.set(read, Option.none()), { _tag: 'Failed', reason } as const),
+      ),
+    );
+  const watch = (dir: string) =>
+    fs.watch(dir).pipe(
+      Stream.map((event) => path.resolve(dir, event.path)),
+      Stream.catch((error) =>
+        Stream.fromEffect(
+          Effect.logWarning(`lab.page.watch.failed dir=${dir} ${error.message}`),
+        ).pipe(Stream.drain),
+      ),
+      Stream.runForEach(heard),
+    );
+
+  /**
+   * Watch exactly `dirs`: a folder already watched keeps its watch (a save
+   * there is never between two watches), one no longer named is let go, and
+   * the folders newly watched are answered.
+   */
+  const watchOnly = Effect.fnUntraced(function* (dirs: ReadonlyArray<string>) {
+    const was = yield* Ref.get(watchers);
+    const next = new Map<string, Fiber.Fiber<void>>();
+    for (const [dir, fiber] of was) {
+      if (dirs.includes(dir)) next.set(dir, fiber);
+      else yield* Fiber.interrupt(fiber);
+    }
+    const added = dirs.filter((dir) => !was.has(dir));
+    for (const dir of added) next.set(dir, yield* Effect.forkIn(watch(dir), scope));
+    yield* Ref.set(watchers, next);
+    return added;
+  });
+
+  /**
+   * A save the new watches may have missed: once they are armed, a file of
+   * `files` in a folder of `dirs` (newly watched) changed since `started`
+   * (the build began reading) is one more change.
+   */
+  const missedIn = (dirs: ReadonlyArray<string>, files: ReadonlyArray<string>, started: number) =>
+    Effect.gen(function* () {
+      const suspects = files.filter((file) => dirs.includes(path.dirname(file)));
+      if (suspects.length === 0) return;
+      yield* Effect.sleep(ARMING);
+      const changed = yield* Effect.forEach(suspects, (file) =>
+        fs.stat(file).pipe(
+          Effect.map((info) => Option.exists(info.mtime, (at) => at.getTime() >= started)),
+          // Gone since the build read it: changed.
+          Effect.orElseSucceed(() => true),
         ),
       );
+      if (!changed.includes(true)) return;
+      yield* Effect.log(`lab.page.watch.missed files=${suspects.length}`);
+      yield* SubscriptionRef.update(changes, (n) => n + 1);
+    }).pipe(Effect.forkIn(scope));
+
+  // Before any build: the entries' folders, so a first build that fails still hears its fix.
+  yield* watchOnly(foldersOf(htmls));
+
+  const bundle = Effect.fnUntraced(function* (build: number) {
+    const started = yield* Clock.currentTimeMillis;
+    const outcome = yield* bundler.bundle(htmls, root).pipe(
+      Effect.flatMap(({ outputs, inputs }) =>
+        Effect.gen(function* () {
+          yield* Ref.set(read, Option.some(new Set(inputs)));
+          const added = yield* watchOnly(foldersOf([...htmls, ...inputs]));
+          yield* missedIn(added, inputs, started);
+          const pages = new Map<PageName, BuiltFile>();
+          const files = new Map<string, BuiltFile>();
+          for (const { path: name, ...built } of outputs)
+            Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
+              onNone: () => files.set(`/${name}`, built),
+              onSome: (page) => pages.set(page, built),
+            });
+          return { _tag: 'Built', pages, files } as const;
+        }),
+      ),
+      Effect.catch((failed) =>
+        Effect.gen(function* () {
+          // Every change makes a new build now; the folders kept, and those of the files
+          // the bundler named, so a fix to any of them is heard.
+          yield* Ref.set(read, Option.none());
+          const kept = [...(yield* Ref.get(watchers)).keys()];
+          const added = yield* watchOnly(
+            Arr.sort(Arr.dedupe([...kept, ...foldersOf(failed.files)]), Order.String),
+          );
+          yield* missedIn(added, failed.files, started);
+          return { _tag: 'Failed', reason: failed.reason } as const;
+        }),
+      ),
+    );
     yield* Effect.log(`lab.page.build build=${build} outcome=${outcome._tag}`);
     return { build, outcome } satisfies Built;
   });
@@ -337,32 +444,6 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       yield* Ref.update(builds, (kept) => [made, ...kept].slice(0, KEPT));
       return made;
     }),
-  );
-
-  // Each change to a file the last build read is one more change; anything else (a mix, a render,
-  // a note) is not. The folders watched follow what the last build read.
-  const watch = (dir: string) =>
-    fs.watch(dir).pipe(
-      Stream.map((event) => path.resolve(dir, event.path)),
-      Stream.catch((error) =>
-        Stream.fromEffect(
-          Effect.logWarning(`lab.page.watch.failed dir=${dir} ${error.message}`),
-        ).pipe(Stream.drain),
-      ),
-    );
-  yield* SubscriptionRef.changes(folders).pipe(
-    Stream.switchMap((dirs) => Stream.mergeAll(dirs.map(watch), { concurrency: 'unbounded' })),
-    Stream.runForEach((file) =>
-      Effect.flatMap(Ref.get(read), (inputs) =>
-        Effect.when(
-          SubscriptionRef.update(changes, (n) => n + 1),
-          Effect.succeed(
-            Option.match(inputs, { onNone: () => true, onSome: (set) => set.has(file) }),
-          ),
-        ),
-      ),
-    ),
-    Effect.forkScoped,
   );
 
   const now = Effect.map(SubscriptionRef.get(changes), (build) => ({ build, server }));
