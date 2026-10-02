@@ -15,7 +15,8 @@
     "./tooltip": "./src/tooltip/index.ts",
     "./dialog": "./src/dialog/index.ts",
     "./alert-dialog": "./src/alert-dialog/index.ts",
-    "./drawer": "./src/drawer/index.ts"
+    "./drawer": "./src/drawer/index.ts",
+    "./toast": "./src/toast/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
