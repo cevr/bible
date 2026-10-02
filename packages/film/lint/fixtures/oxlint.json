@@ -14,6 +14,15 @@
     "film/framing-is-a-knob": "error",
     "film/no-point-free-log": "error",
     "film/no-read-once": "error",
-    "film/spawn-budget": "error"
-  }
+    "film/spawn-budget": "error",
+    "film/host-events-through-adapter": "error"
+  },
+  "overrides": [
+    {
+      "files": ["host-events-allowed.ts"],
+      "rules": {
+        "film/host-events-through-adapter": ["error", { "allow": ["popstate"] }]
+      }
+    }
+  ]
 }

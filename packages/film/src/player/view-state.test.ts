@@ -4,12 +4,16 @@
 // default view, never an error.
 
 import { describe, expect, test } from 'bun:test';
+import { Schema } from 'effect';
 import { storeOver } from '../browser/storage.ts';
 import { deniedStorage, memoryStorage, refusingStorage } from '../browser/fixtures/storage.ts';
 import { DEFAULT_VIEW, viewStore } from './view-state.ts';
 
 /** The film the stored views are read against: 392.9 s long. */
 const DURATION = 392.9;
+
+/** A value as stored JSON text, the lab's view or not. */
+const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
 /** A tab: its storage, and a page's store over it (each page builds its own). */
 const tab = () => {
@@ -81,7 +85,7 @@ describe('lab view state', () => {
   test('a stored A–B loop is read against the film as it is now: clamped to it, or dropped', () => {
     const { storage, page } = tab();
     const stored = (loop: unknown) => {
-      storage.setItem('film-lab-view:f', JSON.stringify({ ...DEFAULT_VIEW, loop }));
+      storage.setItem('film-lab-view:f', jsonText({ ...DEFAULT_VIEW, loop }));
       return page().get().loop;
     };
     // Inside the film: kept as it is.
@@ -105,10 +109,10 @@ describe('lab view state', () => {
   test('a stored rate the lab does not offer is the default view', () => {
     const { storage, page } = tab();
     for (const rate of [0, -1, 2, 0.3]) {
-      storage.setItem('film-lab-view:f', JSON.stringify({ ...DEFAULT_VIEW, rate, playing: true }));
+      storage.setItem('film-lab-view:f', jsonText({ ...DEFAULT_VIEW, rate, playing: true }));
       expect(page().get()).toEqual(DEFAULT_VIEW);
     }
-    storage.setItem('film-lab-view:f', JSON.stringify({ ...DEFAULT_VIEW, rate: 0.25 }));
+    storage.setItem('film-lab-view:f', jsonText({ ...DEFAULT_VIEW, rate: 0.25 }));
     expect(page().get().rate).toBe(0.25);
   });
 });

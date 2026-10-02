@@ -71,6 +71,12 @@ const MESSAGES = {
     'evaluate reads the page once, whatever it had drawn at that instant: wait for the value instead (textIs, textHas, valueIs, attributeIs, countIs, evaluates or until in lab/fixtures/settled.ts).',
   'drawing-literal.ts:18 film/drawing-literal':
     "drawing's timeline is not an object literal or a module-level const literal: the lab cannot locate or edit it.",
+  'host-events-through-adapter.ts:8 film/host-events-through-adapter':
+    "window.addEventListener('keydown') hears the host directly: use Keys.listen (packages/film/src/browser/keys.ts).",
+  'host-events-through-adapter.ts:10 film/host-events-through-adapter':
+    "window.addEventListener('popstate') hears the host directly: use @bible/url-state's Location.",
+  'host-events-through-adapter.ts:13 film/host-events-through-adapter':
+    "self.addEventListener('pointercancel') hears the host directly: use Pointer.drag (packages/film/src/browser/pointer.ts).",
   'framing-is-a-knob.ts:9 film/framing-is-a-knob':
     'a framing written in the scene: make it knobs (a point and a zoom, read with knobCamera), a move between framings a shotPath of them, and a push that keeps going pushOn with a number knob, so the lab can reach it.',
   'no-history-comment.ts:4 film/no-history-comment':

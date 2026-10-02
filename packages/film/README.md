@@ -1875,7 +1875,7 @@ A shot can be a moving painting rather than a cutout: plates at depth in a
 
 `src/core` never touches the DOM at runtime (type-only DOM references are
 fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
-tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools` or `lab`, `canvas` no `player`, `tools` or `lab`, and `player` no `tools` or `lab`.
+tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools`, `lab` or `browser`, `canvas` no `player`, `tools`, `lab` or `browser`, `player` no `tools` or `lab`, and `browser` (the host's adapters) no `player`, `tools` or `lab`.
 
 **The host** (`src/browser/`): every browser API a page reaches goes through
 an Effect service there, each with its live adapter (`*-browser.ts`) and a
@@ -1913,6 +1913,18 @@ choices' share it), and a film's timings through `loadNarrated`
 (`narratedFilms` takes the client's layer, the page's `fetch` client unless
 given). Every link to a review place is the one `Go` (`review/context.tsx`):
 a plain click goes there in the page, a modified click is the browser's.
+
+The lint holds the host to its adapters in the lab, the player, `browser/`
+and the app's page entries (`.oxlintrc.json`): `no-restricted-globals` and
+`no-restricted-properties` refuse the host's storage, frames, requests,
+audio, timers, clock and URL, bare or through `window`/`globalThis`/`self`,
+each naming the service that owns it; `film/host-events-through-adapter`
+(`lint/`) refuses a window or document listener for a navigation, key or
+drag event; `effect/noGlobals` holds in the player as everywhere. The live
+adapters (`*-browser.ts`), fixtures and tests are the host's side and
+exempt. The files that still read and write the URL directly are a
+commented allowlist there, until they move onto `@bible/url-state`'s
+`Location`.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.

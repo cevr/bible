@@ -8,7 +8,7 @@ import { Effect, Layer } from 'effect';
 import { HttpClient, HttpClientError, HttpClientRequest, HttpClientResponse } from 'effect/http';
 import { NO_TAKES, loadNarrated, narrationUrls } from './narrated.ts';
 
-const TIMINGS = JSON.stringify({ voice: 'v', scenes: {} });
+const TIMINGS = '{"voice":"v","scenes":{}}';
 
 /**
  * A client on a stand-in page: bun has no `location`, so a page-relative URL
