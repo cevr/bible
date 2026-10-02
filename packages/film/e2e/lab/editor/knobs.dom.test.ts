@@ -60,7 +60,7 @@ describe('the knob rows', () => {
       yield* page.pressIn(field, 'Enter');
       yield* statusSays(page, 'wrote');
       expect(posted(asked)).toEqual([
-        { path: '/knobs/one/size', body: Option.some({ value: 30 }) },
+        { path: '/scenes/one/knobs/size', body: Option.some({ value: 30 }) },
       ]);
       yield* attributeIs(page, '.lab-knob[data-knob="size"]', 'class', /\bselected\b/);
       expect(errors).toEqual([]);
@@ -77,7 +77,7 @@ describe('the knob rows', () => {
       yield* page.pressIn(field, 'Enter');
       yield* statusSays(page, 'wrote');
       expect(posted(asked)).toEqual([
-        { path: '/knobs/one/tilt', body: Option.some({ value: 0.2 }) },
+        { path: '/scenes/one/knobs/tilt', body: Option.some({ value: 0.2 }) },
       ]);
     }).pipe(Effect.scoped),
   );
@@ -92,7 +92,7 @@ describe('the handles on the frame', () => {
       yield* statusSays(page, 'wrote');
       const writes = posted(asked);
       expect(writes).toHaveLength(1);
-      expect(writes[0]?.path).toBe('/knobs/one/spot');
+      expect(writes[0]?.path).toBe('/scenes/one/knobs/spot');
       expect(writes[0]?.body).toEqual(Option.some({ value: [360, 200] }));
       yield* evaluates(page, "location.search.includes('sel=knob%3Aone%3Aspot')", true);
     }).pipe(Effect.scoped),
@@ -140,7 +140,7 @@ describe('a camera pushed in on its target', () => {
       yield* dragHandle(page, 'face', 40, 0);
       yield* statusSays(page, 'wrote');
       expect(posted(asked)).toEqual([
-        { path: '/knobs/three/face', body: Option.some({ value: [380, 200] }) },
+        { path: '/scenes/three/knobs/face', body: Option.some({ value: [380, 200] }) },
       ]);
     }).pipe(Effect.scoped),
   );

@@ -88,7 +88,7 @@ describe('the cue strip', () => {
       yield* statusSays(page, 'wrote scenes/one.ts');
       const writes = posted(asked);
       expect(writes).toHaveLength(1);
-      expect(writes[0]?.path).toBe('/cues/one/rise');
+      expect(writes[0]?.path).toBe('/scenes/one/cues/rise');
       expect(Option.getOrThrow(Option.fromUndefinedOr(writes[0])).body).toMatchObject(
         Option.some({ offset: expect.any(Number) }),
       );
@@ -105,9 +105,12 @@ describe('the cue strip', () => {
         reason: 'rise has a computed offset',
       });
       const refusal = failure.message;
-      const { page } = yield* openLab([route('POST', /^\/cues\//, () => refused(failure))], {
-        hash: '#1',
-      });
+      const { page } = yield* openLab(
+        [route('POST', /^\/scenes\/\w+\/cues\//, () => refused(failure))],
+        {
+          hash: '#1',
+        },
+      );
       yield* editable(page);
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* textIs(page, '.lab-edit-status', refusal);
@@ -155,16 +158,19 @@ describe('one write at a time', () => {
 
   it.live('a drag while a write is out is not taken', () =>
     Effect.gen(function* () {
-      const { page, asked } = yield* openLab([route('POST', /^\/cues\//, () => hold)], {
-        hash: '#1',
-      });
+      const { page, asked } = yield* openLab(
+        [route('POST', /^\/scenes\/\w+\/cues\//, () => hold)],
+        {
+          hash: '#1',
+        },
+      );
       yield* editable(page);
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* postedReach(asked, 1);
       yield* statusSays(page, 'writing…');
       yield* dragBar(page, 'fall', 0.5, 40);
       yield* runClock(page, 200);
-      expect(posted(asked).map((p) => p.path)).toEqual(['/cues/one/rise']);
+      expect(posted(asked).map((p) => p.path)).toEqual(['/scenes/one/cues/rise']);
     }).pipe(Effect.scoped),
   );
 });
@@ -181,8 +187,8 @@ describe('the inspector', () => {
       yield* page.click('.lab-ease[data-ease="linear"]');
       yield* postedReach(asked, 2);
       expect(posted(asked)).toEqual([
-        { path: '/cues/one/rise', body: Option.some({ offset: 0.3 }) },
-        { path: '/cues/one/rise', body: Option.some({ ease: 'linear' }) },
+        { path: '/scenes/one/cues/rise', body: Option.some({ offset: 0.3 }) },
+        { path: '/scenes/one/cues/rise', body: Option.some({ ease: 'linear' }) },
       ]);
     }).pipe(Effect.scoped),
   );

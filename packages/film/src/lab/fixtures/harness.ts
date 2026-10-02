@@ -137,8 +137,8 @@ const defaults: ReadonlyArray<FakeRoute> = [
   }),
   route('GET', /^\/check$/, () => json({ findings: [] })),
   route('GET', /^\/studio\/beats$/, () => json({ film: PROBE, beats: [] })),
-  route('POST', /^\/cues\//, () => json(wrote('cue'))),
-  route('POST', /^\/knobs\//, () => json(wrote('knob'))),
+  route('POST', /^\/scenes\/\w+\/cues\//, () => json(wrote('cue'))),
+  route('POST', /^\/scenes\/\w+\/knobs\//, () => json(wrote('knob'))),
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
 ];
 
