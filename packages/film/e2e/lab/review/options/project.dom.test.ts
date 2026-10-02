@@ -370,6 +370,13 @@ describe("a film's project", () => {
           page,
           `document.querySelector('${render('open')} video')?.getAttribute('src') === '/review/files/out/toy/scenes/open/main.share.mp4'`,
         );
+        // Each render shows a still of itself before it is played, as a folder's cards do.
+        yield* attributeIs(
+          page,
+          `${render('open')} video`,
+          'poster',
+          '/review/frame?ref=out%2Ftoy%2Fscenes%2Fopen%2Fmain.share.mp4&w=960',
+        );
         yield* countIs(page, `${render('close')} video`, 0);
         // A render stale by the film's sound alone says so, beside its approval of an earlier version.
         yield* textIs(

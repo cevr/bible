@@ -29,6 +29,7 @@ import {
   folderMatches,
   folderTitle,
   isMarkdown,
+  POSTER_W,
   pressed,
   recordedStaleText,
   sizeText,
@@ -50,9 +51,8 @@ import { Loaded, failedText } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
 import { type ReviewPlace, ReviewPlace as Place, searchOf } from './place.ts';
 
-/** A strip's frames are this wide; a poster, a moment's frame and the lightbox wider. */
+/** A strip's frames are this wide; a poster (`POSTER_W`), a moment's frame and the lightbox wider. */
 const THUMB_W = 320;
-const POSTER_W = 960;
 const MOMENT_W = 1280;
 const LIGHTBOX_W = 1920;
 

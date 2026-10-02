@@ -29,6 +29,9 @@ export const agoText = (mtime: number, now: number): string => {
   return `${Math.round(seconds / 86_400)} d ago`;
 };
 
+/** How wide a video's poster still is: the frame a card shows before it plays. */
+export const POSTER_W = 960;
+
 /** Which copy a video plays: its 720p phone copy (when made) or the file itself. */
 export type Quality = 'phone' | 'full';
 

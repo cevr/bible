@@ -12,7 +12,7 @@
 import { For, Show } from '@solidjs/web';
 import { Option } from 'effect';
 import { type Accessor, createEffect, createMemo, createSignal } from 'solid-js';
-import { type Say, choiceAloneUrl } from '../../../core/api.ts';
+import { type Say, choiceAloneUrl, reviewFrameUrl } from '../../../core/api.ts';
 import type { ApprovalState, SaidComment } from '../../../core/catalogue.ts';
 import {
   type ChoiceKind,
@@ -24,7 +24,7 @@ import {
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import { useReview } from '../context.tsx';
-import { APPROVAL_TEXT, pressed, stateText, videoUrl } from '../format.ts';
+import { APPROVAL_TEXT, POSTER_W, pressed, stateText, videoUrl } from '../format.ts';
 import { SyncEvent, timeText } from '../machine.ts';
 import { ChoiceAct } from './api.ts';
 import { Playing, samePlaying, useAct, useFilm } from './context.tsx';
@@ -162,11 +162,12 @@ const ApproveButton = (props: {
   </button>
 );
 
-/** A render's video, kept in place while its file stays the same. */
+/** A render's video, kept in place while its file stays the same, showing a still of itself until it plays. */
 const Seen = (props: { readonly video: ReviewVideo }) => {
   const { state } = useReview();
   const src = createMemo(() => videoUrl(props.video, state.quality()));
-  return <video controls preload="none" playsinline src={src()} />;
+  const poster = createMemo(() => reviewFrameUrl(props.video.ref, Option.none(), POSTER_W));
+  return <video controls preload="none" playsinline poster={poster()} src={src()} />;
 };
 
 /** What a variant plays: its video, or its sound alone and in place. */
