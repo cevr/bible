@@ -51,11 +51,19 @@ export const literals = <const L extends ReadonlyArray<string>>(values: L) =>
     Schema.decodeTo(Schema.Literals(values), SchemaTransformation.passthroughSupertype()),
   );
 
+/** A whole number, at any size. `Schema.isInt` is the safe-integer check,
+ *  which would refuse `1e21`: a clamp after `truncate` must still see it. */
+const isWhole = Schema.makeFilter((n: number) => Number.isInteger(n), {
+  expected: 'a whole number',
+  arbitraryConstraint: { number: 'integer' },
+});
+
 /** A number with its fraction dropped (`Math.trunc`), keeping the checks the
- *  number already had. */
+ *  number already had. Every finite number truncates; past the safe range a
+ *  number is already whole. */
 export const truncate = <E>(self: Schema.Codec<number, E>) =>
   self.pipe(
-    Schema.decodeTo(Schema.toType(self).check(Schema.isInt()), {
+    Schema.decodeTo(Schema.toType(self).check(isWhole), {
       decode: SchemaGetter.transform(Math.trunc),
       encode: SchemaGetter.passthrough(),
     }),
@@ -84,13 +92,34 @@ export const clamp =
     );
   };
 
-/** Several values in one, joined by `separator`: `a,b,c`. The empty text is
- *  the empty list, so each value must write non-empty text without the
- *  separator. */
-export const delimited = <A>(item: Schema.Codec<A, string>, separator = ',') =>
+/** `S` when it is exactly one character, else `never`. A longer separator
+ *  cannot be told apart from an item that ends in its first character:
+ *  `['a:', 'b']` joined by `::` reads back as `['a', ':b']`. */
+export type OneCharacter<S extends string> = S extends `${string}${infer Rest}`
+  ? Rest extends ''
+    ? S extends ''
+      ? never
+      : S
+    : never
+  : never;
+
+/** Several values in one, joined by a one-character `separator`: `a,b,c`.
+ *  The empty text is the empty list, so each value writes non-empty text
+ *  without the separator; a value that does not fails to encode rather than
+ *  writing a list that reads back as another. */
+export const delimited = <A, const S extends string>(
+  item: Schema.Codec<A, string>,
+  separator: OneCharacter<S>,
+) =>
   Schema.String.pipe(
     Schema.decodeTo(
-      Schema.Array(Schema.String),
+      Schema.Array(
+        Schema.NonEmptyString.check(
+          Schema.makeFilter(
+            (part: string) => !part.includes(separator) || `no ${separator} in a value`,
+          ),
+        ),
+      ),
       SchemaTransformation.transform<ReadonlyArray<string>, string>({
         decode: (text) => {
           if (text === '') return [];
@@ -145,7 +174,7 @@ const RangeFromTimes = Schema.Tuple([Schema.Finite, Schema.Finite]).pipe(
 
 /** `#t=4.5` is a Point; `#t=1,4.5` an In/Out Range; any other count of
  *  times is neither. */
-export const MediaTime = delimited(Schema.FiniteFromString).pipe(
+export const MediaTime = delimited(Schema.FiniteFromString, ',').pipe(
   Schema.decodeTo(
     Schema.Union([PointFromTimes, RangeFromTimes]),
     SchemaTransformation.passthroughSupertype(),

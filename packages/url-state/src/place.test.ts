@@ -59,7 +59,7 @@ const Everything = Place.make({
     count: Field.key(Codec.Int, { default: 0 }),
     ratio: Field.key(Codec.Finite, { default: 1 }),
     on: Field.key(Codec.Flag, { default: false }),
-    tags: Field.key(Codec.delimited(Codec.literals(AXES)), { default: [] }),
+    tags: Field.key(Codec.delimited(Codec.literals(AXES), ','), { default: [] }),
     axis: Field.keys(Codec.selection(AXES)),
   }),
   hash: Field.struct({
@@ -79,6 +79,49 @@ const roundTrips = <A>(place: Place.Place<A>) =>
           onNone: () => false,
           onSome: (back) => equivalent(back, value),
         }),
+      { runs: 300 },
+    );
+    expect(Arbitrary.formatCheckFailure(result)).toBeUndefined();
+  });
+
+/** How a link can write a number: as JavaScript prints it, in exponent form,
+ *  with a fixed fraction, far past the safe range, or as `-0`. */
+const NumberText = Arbitrary.all({
+  n: Arbitrary.schema(Schema.Finite),
+  form: Arbitrary.schema(Schema.Literals(['plain', 'exponent', 'fraction', 'large', 'minus zero'])),
+}).pipe(
+  Arbitrary.map(({ n, form }) => {
+    const write = {
+      plain: () => String(n),
+      exponent: () => n.toExponential(),
+      fraction: () => n.toFixed(3),
+      large: () => String((Math.abs(n) + 1) * 1e21),
+      'minus zero': () => '-0',
+    };
+    return write[form]();
+  }),
+);
+
+/** A link written by hand reads to a value whose href reads back as itself
+ *  (the first write is the canonical one), and the value is `expected`. */
+const settlesOnce = <A>(
+  place: Place.Place<A>,
+  link: (text: string) => string,
+  expected: (text: string, value: A) => boolean,
+) =>
+  Effect.gen(function* () {
+    const canonical = (href: string) =>
+      Option.map(Place.decode(place, href), (value) => Place.href(place, value));
+    const result = yield* Arbitrary.checkEffect(
+      NumberText,
+      (text) => {
+        const href = link(encodeURIComponent(text));
+        const once = canonical(href);
+        return (
+          Option.exists(Place.decode(place, href), (value) => expected(text, value)) &&
+          Option.exists(once, (first) => Option.contains(canonical(first), first))
+        );
+      },
       { runs: 300 },
     );
     expect(Arbitrary.formatCheckFailure(result)).toBeUndefined();
@@ -179,6 +222,36 @@ describe('Place', () => {
         Effect.provideService(References.MinimumLogLevel, 'Debug'),
       );
     },
+  );
+
+  it.effect('a hand-written limit truncates, then clamps; else it is the default', () =>
+    settlesOnce(
+      Workspace,
+      (text) => `/?q=x&limit=${text}`,
+      (text, value) => {
+        const limit = Option.liftPredicate(
+          Math.trunc(Number(text)),
+          (n) => Number.isFinite(n) && n > 0,
+        ).pipe(
+          Option.map((n) => Math.min(n, 100)),
+          Option.getOrElse(() => 40),
+        );
+        return value.query[0].limit === limit;
+      },
+    ),
+  );
+
+  it.effect('a hand-written integer or number reads as written, or as the default', () =>
+    settlesOnce(
+      Everything,
+      (text) => `/sets/a/b?count=${text}&ratio=${text}`,
+      (text, value) => {
+        const n = Number(text);
+        const count = Option.getOrElse(Option.liftPredicate(n, Number.isSafeInteger), () => 0);
+        const ratio = Option.getOrElse(Option.liftPredicate(n, Number.isFinite), () => 1);
+        return value.query.count === count && value.query.ratio === ratio;
+      },
+    ),
   );
 
   it.effect('the lab place round-trips every value', () => roundTrips(Lab));
