@@ -186,6 +186,8 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
   return api;
 });
 
-/** The choice and project routes on the page's own origin, over the page's one client. */
-export const optionsApiLayer = (origin: string): Layer.Layer<OptionsApi> =>
-  Layer.effect(OptionsApi, makeOptionsApi()).pipe(Layer.provide(LabClient.layer(origin)));
+/** The choice and project routes, over the page's one client (given at its root). */
+export const optionsApiLayer: Layer.Layer<OptionsApi, never, LabClient> = Layer.effect(
+  OptionsApi,
+  makeOptionsApi(),
+);

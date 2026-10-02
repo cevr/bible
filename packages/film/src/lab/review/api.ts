@@ -45,6 +45,8 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: string) {
   return api;
 });
 
-/** The review's routes on the page's own origin, over the page's one client. */
-export const reviewApiLayer = (origin: string): Layer.Layer<ReviewApi> =>
-  Layer.effect(ReviewApi, makeReviewApi(origin)).pipe(Layer.provide(LabClient.layer(origin)));
+/** The review's routes on the page's own origin, over the page's one client (given at its root). */
+export const reviewApiLayer = (
+  origin: string,
+): Layer.Layer<ReviewApi, never, LabClient | HttpClient.HttpClient> =>
+  Layer.effect(ReviewApi, makeReviewApi(origin));

@@ -22,7 +22,7 @@ import { playableOf } from '../../browser/media-browser.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { reviewFileUrl, reviewFrameUrl } from '../../core/api.ts';
 import { labUrl } from '../../player/pages.ts';
-import { SetProvider, useReview, useSet } from './context.tsx';
+import { Go, SetProvider, useReview, useSet } from './context.tsx';
 import {
   agoText,
   approvalText,
@@ -52,7 +52,7 @@ import {
 } from './machine.ts';
 import { Loaded, failedText } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
-import { type ReviewPlace, ReviewPlace as Place, searchOf } from './place.ts';
+import { ReviewPlace as Place } from './place.ts';
 
 /** A strip's frames are this wide; a poster (`POSTER_W`), a moment's frame and the lightbox wider. */
 const THUMB_W = 320;
@@ -61,30 +61,6 @@ const LIGHTBOX_W = 1920;
 
 /** The most frames a card's strip shows. */
 const STRIP = 6;
-
-const clicked = (e: MouseEvent) => e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey;
-
-/** A link to `place`: the page goes there itself (so the player's state lives), a modified click opens a tab. */
-const Go = (props: {
-  readonly place: ReviewPlace;
-  readonly class?: string;
-  readonly children: JSX.Element;
-}) => {
-  const { actions } = useReview();
-  return (
-    <a
-      class={props.class}
-      href={`${location.pathname}${searchOf(props.place)}`}
-      onClick={(e) => {
-        if (!clicked(e)) return;
-        e.preventDefault();
-        actions.go(props.place);
-      }}
-    >
-      {props.children}
-    </a>
-  );
-};
 
 /** The index once read, kept in place as it is read again; else what it waits on or why it failed. */
 const WithIndex = (props: { readonly children: (index: Accessor<ReviewIndex>) => JSX.Element }) => {

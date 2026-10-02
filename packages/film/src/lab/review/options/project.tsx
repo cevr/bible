@@ -32,10 +32,10 @@ import {
 import { type ChoicePoint, type VariantMedia, pointHead } from '../../../core/choice.ts';
 import type { LabFailure } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
-import { useReview } from '../context.tsx';
+import { Go, useReview } from '../context.tsx';
 import { pressed } from '../format.ts';
 import { Loaded, statusText, useWrite, writeStatus } from '../loaded.tsx';
-import { ReviewPlace, searchOf } from '../place.ts';
+import { ReviewPlace } from '../place.ts';
 import { OptionsApi, type ProjectSay } from './api.ts';
 import { ChoiceCard, Comments, type Sayer, SayBox } from './choice.tsx';
 import { FilmProvider, useFilm } from './context.tsx';
@@ -194,29 +194,19 @@ const PlaysHere = (props: { readonly points: ReadonlyArray<ChoicePoint> }) => (
 );
 
 /** The link to a scene's Versions (its renders side by side), when the review's roots hold its project folder. */
-const Compare = (props: { readonly folder: Option.Option<string>; readonly point: string }) => {
-  const { actions } = useReview();
-  return (
-    <Show when={Option.getOrUndefined(props.folder)}>
-      {(folder) => {
-        const place = () => ReviewPlace.Set({ folder: folder(), point: props.point });
-        return (
-          <a
-            class="rv-hint"
-            data-compare={props.point}
-            href={`${location.pathname}${searchOf(place())}`}
-            onClick={(e: MouseEvent) => {
-              e.preventDefault();
-              actions.go(place());
-            }}
-          >
-            Versions
-          </a>
-        );
-      }}
-    </Show>
-  );
-};
+const Compare = (props: { readonly folder: Option.Option<string>; readonly point: string }) => (
+  <Show when={Option.getOrUndefined(props.folder)}>
+    {(folder) => (
+      <Go
+        class="rv-hint"
+        data-compare={props.point}
+        place={ReviewPlace.Set({ folder: folder(), point: props.point })}
+      >
+        Versions
+      </Go>
+    )}
+  </Show>
+);
 
 const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectScene }) => {
   const { choices } = useFilm();

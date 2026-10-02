@@ -7,9 +7,9 @@ import { Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createEffect } from 'solid-js';
 import type { ReviewIndex } from '../../core/review.ts';
-import { Root, useReview } from './context.tsx';
+import { Go, Root, useReview } from './context.tsx';
 import { folderTitle, pressed } from './format.ts';
-import { type ReviewPlace, ReviewPlace as Place, searchOf } from './place.ts';
+import { type ReviewPlace, ReviewPlace as Place } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, QualityToggle, SetPage } from './section.tsx';
@@ -66,28 +66,19 @@ const Header = () => {
   createEffect(crumbs, (trail) => {
     document.title = [...trail.map((c) => c.title).toReversed(), 'Lab'].join(' · ');
   });
-  const go = (place: ReviewPlace) => (e: MouseEvent) => {
-    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;
-    e.preventDefault();
-    actions.go(place);
-  };
   return (
     <header class="rv-header">
       <nav class="rv-crumbs">
-        <a href={location.pathname} onClick={go(Place.Home())}>
+        <Go place={Place.Home()}>
           <b>Lab</b>
-        </a>
+        </Go>
         <For each={crumbs()}>
           {(crumb) => (
             <>
               <span class="rv-hint">/</span>
               {Option.match(crumb.place, {
                 onNone: () => <b>{crumb.title}</b>,
-                onSome: (place) => (
-                  <a href={`${location.pathname}${searchOf(place)}`} onClick={go(place)}>
-                    {crumb.title}
-                  </a>
-                ),
+                onSome: (place) => <Go place={place}>{crumb.title}</Go>,
               })}
             </>
           )}

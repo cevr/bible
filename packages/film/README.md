@@ -1907,6 +1907,12 @@ reaches it. Every media element is driven through a `Playable` (`browser/media.t
 play and pause are effects. `Media` says what a refused play means
 (`Blocked`, `Aborted`, `Failed`), plays muted when the browser refuses
 sound (`playOrMute`, the review's players), and makes the narration's audio.
+Every request goes through Effect's `HttpClient`: a page's calls through its
+one `LabClient`, built once at its root (the review's routes and its
+choices' share it), and a film's timings through `loadNarrated`
+(`narratedFilms` takes the client's layer, the page's `fetch` client unless
+given). Every link to a review place is the one `Go` (`review/context.tsx`):
+a plain click goes there in the page, a modified click is the browser's.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.

@@ -13,7 +13,7 @@ import {
   useAtomSuspense,
   useAtomValue,
 } from '@bible/atom-solid';
-import { Loading, Show } from '@solidjs/web';
+import { type JSX, Loading, Show } from '@solidjs/web';
 import { Clock, Effect, Layer, Option } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
@@ -25,6 +25,7 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  omit,
   onCleanup,
   useContext,
 } from 'solid-js';
@@ -32,7 +33,7 @@ import type { SeenPoint } from '../../core/choice.ts';
 import type { ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { type BrowserServices, type Host, hostLayer } from '../../browser/host.ts';
 import { Keys, type KeyPress } from '../../browser/keys.ts';
-import type { LabFailure } from '../api.ts';
+import { LabClient, type LabFailure } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
@@ -103,6 +104,39 @@ const ReviewContext = createContext<ReviewContextValue>();
 /** The review's context: only inside `<Root>`. */
 export const useReview = (): ReviewContextValue => useContext(ReviewContext);
 
+/** Whether a click is the page's to take: a plain primary click. A modified one (a new tab or window, a download) is the browser's. */
+const plainClick = (e: MouseEvent) =>
+  e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+
+/**
+ * The review's one link to a place: a plain click goes there in the page
+ * itself (so the player's state lives); a modified click is left to the
+ * browser, which opens the place's URL in a tab. Any other attribute is the
+ * anchor's.
+ */
+export const Go = (
+  props: Omit<JSX.AnchorHTMLAttributes<HTMLAnchorElement>, 'href' | 'onClick'> & {
+    readonly place: ReviewPlace;
+    readonly children: JSX.Element;
+  },
+) => {
+  const { actions } = useReview();
+  const attrs = omit(props, 'place', 'children');
+  return (
+    <a
+      {...attrs}
+      href={`${location.pathname}${searchOf(props.place)}`}
+      onClick={(e) => {
+        if (!plainClick(e)) return;
+        e.preventDefault();
+        actions.go(props.place);
+      }}
+    >
+      {props.children}
+    </a>
+  );
+};
+
 /**
  * The page's choices kept between visits, as plain text in this browser's
  * store (a browser that keeps nothing forgets them with the page).
@@ -124,11 +158,11 @@ const qualityOf = (stored: Option.Option<string>): Quality =>
 
 /** The review page: its runtime, place, index and choices, around `children`. */
 export const Root = (props: ParentProps<{ readonly origin: string; readonly host: Host }>) => {
+  // One client of the lab's API for the page: the review's and the choices'
+  // routes both go through it.
   const runtime = Atom.runtime(
-    Layer.mergeAll(
-      reviewApiLayer(props.origin),
-      optionsApiLayer(props.origin),
-      hostLayer(props.host),
+    Layer.mergeAll(reviewApiLayer(props.origin), optionsApiLayer, hostLayer(props.host)).pipe(
+      Layer.provide(LabClient.layer(props.origin)),
     ),
   );
   const filmsAtom = runtime.atom(OptionsApi.use((api) => api.films));
