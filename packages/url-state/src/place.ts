@@ -18,7 +18,8 @@
  * a redirect and a history write all print the same text.
  *
  * `history(place, from, to)` says how moving between two hrefs enters
- * history: a changed path segment pushes; otherwise a changed key pushes if
+ * history, comparing keys by what they mean (each href as the place writes
+ * it): a changed path segment pushes; otherwise a changed key pushes if
  * its policy says so; otherwise the move replaces. A move that changes only
  * throttled keys is throttled by the longest of their windows.
  */
@@ -225,8 +226,17 @@ const changedKeys = (from: Raw, to: Raw): ReadonlyArray<string> =>
 
 /** How moving from one href to another (the second on `place`) enters history. */
 export const history = <A>(place: Place<A>, from: string, to: string): Move => {
-  const before = readHref(from);
-  const after = readHref(to);
+  // Keys are compared as the place writes them, so a key written another way
+  // (`?q=x&q=y`, an empty `?q=`, a default spelled out) is no change; an
+  // indexed copy writes its marker, so a pane's presence still counts. An
+  // href off the place is compared as it is.
+  const written = (link: string): string =>
+    Option.match(decode(place, link), {
+      onNone: () => link,
+      onSome: (value) => href(place, value),
+    });
+  const before = readHref(written(from));
+  const after = readHref(written(to));
   if (!sameValues(before.path, after.path)) {
     return { history: 'push', throttle: Option.none() };
   }

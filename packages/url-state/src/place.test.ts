@@ -290,4 +290,18 @@ describe('Place.history', () => {
     expect(panes('/?q=a&q2=b', '/?q=a&q2=b&scope2=egw')).toBe('replace');
     expect(panes('/?q=a', '/?q=a&q2=')).toBe('push');
   });
+
+  test('a key written another way, but meaning the same, is not a change', () => {
+    const panes = (from: string, to: string) => Place.history(Workspace, from, to);
+    expect(panes('/?q=x&q=y', '/?q=x&scope=egw')).toEqual({
+      history: 'replace',
+      throttle: Option.none(),
+    });
+    expect(panes('/?q=', '/?scope=egw').history).toBe('replace');
+    expect(panes('/?q=x&limit=40', '/?q=x&noref=1').history).toBe('replace');
+    expect(move('/films/a/lab/b?cue=', '/films/a/lab/b#t=2').history).toBe('replace');
+    // A pane's presence is its meaning: adding an empty one still pushes.
+    expect(panes('/?q=x&q2=', '/?q=x&q2=&scope=egw').history).toBe('replace');
+    expect(panes('/?q=x', '/?q=x&q2=&scope2=egw').history).toBe('push');
+  });
 });
