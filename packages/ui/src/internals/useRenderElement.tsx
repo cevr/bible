@@ -7,12 +7,13 @@
 // `params` may hold getters: `enabled`, `state` and `props` are read inside
 // a reactive scope, so a part passes live values without rebuilding the
 // element. `render` is called once per change of the `render` prop, with the
-// merged props (a live view: spread it) and the state.
+// merged props and the state (both live views: spread or read them in a reactive scope).
 import { type JSX, dynamic } from '@solidjs/web';
 import { createMemo, untrack } from 'solid-js';
 
 import {
   mergeClassNames,
+  mergePropsLive,
   mergePropsN,
   mergeStyles,
   type PropsInput,
@@ -78,10 +79,10 @@ export function useRenderElementProps<State extends object>(
   const stateAttributes = createMemo(() =>
     getStateAttributesProps(state(), params.stateAttributesMapping),
   );
-  const inputs = untrack(() => params.props);
-  const resolved = mergePropsN(
-    Array.isArray(inputs) ? (inputs as ReadonlyArray<PropsInput>) : [inputs as PropsInput],
-  );
+  const resolved = mergePropsLive(() => {
+    const inputs = params.props;
+    return Array.isArray(inputs) ? (inputs as ReadonlyArray<PropsInput>) : [inputs as PropsInput];
+  });
   const own: HTMLProps = {
     get class() {
       return mergeClassNames(resolved.class, resolveClass(componentProps.class, state()));
@@ -101,7 +102,7 @@ export function useRenderElement<State extends object>(
   params: UseRenderElementParameters<State> = {},
 ): JSX.Element {
   const props = useRenderElementProps(componentProps, params);
-  const state = (params.state ?? EMPTY_STATE) as State;
+  const state = propsFromAccessor(() => (params.state ?? EMPTY_STATE) as HTMLProps) as State;
   const tag = element ?? 'div';
   const Tag = dynamic(() => tag, { static: true });
   const defaults = tag === 'button' ? { type: 'button' } : tag === 'img' ? { alt: '' } : undefined;

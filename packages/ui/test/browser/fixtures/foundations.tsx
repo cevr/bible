@@ -1,11 +1,12 @@
 // Fixtures for the foundations: `useRender`, state attributes, the render
-// prop, refs, `enabled`, and the direction provider.
+// prop, refs, `enabled`, live params, a late `children` key, and the direction provider.
 import type { JSX } from '@solidjs/web';
-import { createSignal, omit } from 'solid-js';
+import { createSignal, createStore, omit } from 'solid-js';
 
 import { DirectionProvider, useDirection } from '../../../src/direction-provider/index.ts';
 import type { BaseUIEvent, HTMLProps } from '../../../src/internals/types.ts';
 import { useRenderElement } from '../../../src/internals/useRenderElement.tsx';
+import { mergeProps } from '../../../src/merge-props/index.ts';
 import { useRender } from '../../../src/use-render/index.ts';
 import { log } from './log.ts';
 
@@ -162,6 +163,61 @@ function Enabled() {
   );
 }
 
+/** `params.props` and `params.state` as getters returning a fresh record each time. */
+function LiveParams() {
+  const [count, setCount] = createSignal(0);
+  const params = (id: string) => ({
+    get state() {
+      return { value: count() };
+    },
+    get props() {
+      return { id, disabled: count() > 0 };
+    },
+  });
+  // Built once, outside the JSX, so only the views can bring the new values.
+  const plain = useRenderElement('button', {}, params('getter-props'));
+  const rendered = useRenderElement(
+    'button',
+    {
+      render: (props: HTMLProps, state: { value: number }) => (
+        <button {...props} data-render-value={String(state.value)} />
+      ),
+    },
+    params('getter-render'),
+  );
+  return (
+    <>
+      {plain}
+      {rendered}
+      <button id="bump" onClick={() => setCount((c) => c + 1)}>
+        bump
+      </button>
+    </>
+  );
+}
+
+/** A merged store whose `children` key is absent until the button adds it. */
+function LateChildren() {
+  const [store, setStore] = createStore<{ children?: string }>({});
+  // The spread alone, as a part spreads its merged props.
+  const merged = mergeProps({ id: 'late' }, store);
+  return (
+    <>
+      <div {...merged} />
+      <button
+        id="add"
+        onClick={() =>
+          setStore((draft) => {
+            draft.children = 'added';
+          })
+        }
+      >
+        add
+      </button>
+    </>
+  );
+}
+
 function DirectionProbe(props: { id: string }) {
   return <span id={props.id}>{useDirection()}</span>;
 }
@@ -188,4 +244,6 @@ export const fixtures: Record<string, () => JSX.Element> = {
   refs: () => <Refs />,
   enabled: () => <Enabled />,
   direction: () => <Direction />,
+  'live-params': () => <LiveParams />,
+  'late-children': () => <LateChildren />,
 };

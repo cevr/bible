@@ -120,6 +120,28 @@ describe('useRenderElement', () => {
     await see(part).toHaveAttribute('data-on', 'true');
     await see(part).toHaveAttribute('data-on', 'true');
   });
+
+  it('reads props and state given as getters live', async () => {
+    const page = await h.open('live-params');
+    const plain = page.locator('#getter-props');
+    const rendered = page.locator('#getter-render');
+    await see(plain).not.toHaveAttribute('disabled');
+    await see(rendered).toHaveAttribute('data-render-value', '0');
+    await page.click('#bump');
+    await see(plain).toHaveAttribute('data-value', '1');
+    await see(plain).toHaveAttribute('disabled', '');
+    await see(rendered).toHaveAttribute('disabled', '');
+    await see(rendered).toHaveAttribute('data-render-value', '1');
+  });
+});
+
+describe('mergeProps', () => {
+  it('renders a children key that appears after the element is created', async () => {
+    const page = await h.open('late-children');
+    await see(page.locator('#late')).toHaveText('');
+    await page.click('#add');
+    await see(page.locator('#late')).toHaveText('added');
+  });
 });
 
 describe('DirectionProvider', () => {

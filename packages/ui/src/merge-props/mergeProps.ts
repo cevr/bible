@@ -17,7 +17,7 @@
 // far and returns the props that replace them (Base UI's props getter).
 // Handlers it calls by hand are not stopped by prevention, so they read
 // `event.baseUIHandlerPrevented` themselves.
-import { untrack } from 'solid-js';
+import { $PROXY, createMemo, untrack } from 'solid-js';
 
 import type { BaseUIEvent, HTMLProps } from '../internals/types.ts';
 
@@ -151,6 +151,20 @@ function hasKey(source: HTMLProps, key: string): boolean {
 /** A merged, reactive view over the sources `read` returns. */
 function createView(read: () => ReadonlyArray<HTMLProps>): HTMLProps {
   const handlers = new Map<string, Handler>();
+  // The index of the source a key is read from (-1: none). The search runs from the
+  // right and stops at the first source that has the key, so a reader asking for a key
+  // does not track the sources it shadows (a state attributes view reruns on every
+  // state change).
+  const ownerOf = (key: string): number => {
+    const sources = read();
+    for (let i = sources.length - 1; i >= 0; i -= 1) {
+      const source = sources[i];
+      if (source !== undefined && hasKey(source, key)) {
+        return i;
+      }
+    }
+    return -1;
+  };
 
   const handlerFor = (key: string): Handler => {
     const cached = handlers.get(key);
@@ -207,13 +221,8 @@ function createView(read: () => ReadonlyArray<HTMLProps>): HTMLProps {
       const present = sources.some((source) => hasKey(source, key) && isHandlerValue(source[key]));
       return present ? handlerFor(key) : undefined;
     }
-    for (let i = sources.length - 1; i >= 0; i -= 1) {
-      const source = sources[i];
-      if (source !== undefined && hasKey(source, key)) {
-        return source[key];
-      }
-    }
-    return undefined;
+    const index = ownerOf(key);
+    return index === -1 ? undefined : sources[index]?.[key];
   };
 
   const keys = (): Array<string> => {
@@ -226,19 +235,24 @@ function createView(read: () => ReadonlyArray<HTMLProps>): HTMLProps {
     return [...seen];
   };
 
-  return new Proxy<HTMLProps>(
+  // The view carries Solid's $PROXY marker (and no record), as a store does: Solid's spread
+  // then treats its key set as dynamic, so a key that appears later (a store's `children`)
+  // still renders.
+  const view: HTMLProps = new Proxy<HTMLProps>(
     {},
     {
-      get: (_, key) => (typeof key === 'string' ? get(key) : undefined),
-      has: (_, key) => typeof key === 'string' && read().some((source) => hasKey(source, key)),
+      get: (_, key) => {
+        if (key === $PROXY) {
+          return view;
+        }
+        return typeof key === 'string' ? get(key) : undefined;
+      },
+      has: (_, key) => key === $PROXY || (typeof key === 'string' && ownerOf(key) !== -1),
       ownKeys: () => keys(),
-      // A descriptor answers presence once (Solid's spread asks for `children` while it
-      // creates the element); the key set itself is tracked through `ownKeys`.
+      // A descriptor answers presence without tracking it; the key set is tracked
+      // through `ownKeys`.
       getOwnPropertyDescriptor: (_, key) => {
-        if (
-          typeof key !== 'string' ||
-          !untrack(() => read().some((source) => hasKey(source, key)))
-        ) {
+        if (typeof key !== 'string' || untrack(() => ownerOf(key)) === -1) {
           return undefined;
         }
         return { configurable: true, enumerable: true, get: () => get(key) };
@@ -247,6 +261,7 @@ function createView(read: () => ReadonlyArray<HTMLProps>): HTMLProps {
       deleteProperty: () => false,
     },
   );
+  return view;
 }
 
 /** Calls a Solid ref (a callback, or an array of them) with `el`. */
@@ -275,4 +290,10 @@ export function mergeProps(...inputs: ReadonlyArray<PropsInput>): HTMLProps {
 export function mergePropsN(inputs: ReadonlyArray<PropsInput>): HTMLProps {
   const sources = resolveSources(inputs);
   return createView(() => sources);
+}
+
+/** `mergeProps` over the sources `read` returns, merged again when they change. */
+export function mergePropsLive(read: () => ReadonlyArray<PropsInput>): HTMLProps {
+  const sources = createMemo(() => resolveSources(read()));
+  return createView(sources);
 }
