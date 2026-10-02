@@ -18,7 +18,7 @@ import { type Harness, focused, harness, logOf } from './harness.ts';
 
 let h: Harness;
 beforeAll(async () => {
-  h = await harness();
+  h = await harness('floating.tsx');
 });
 afterAll(async () => {
   await h.close();

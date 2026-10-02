@@ -181,7 +181,7 @@ function Direction() {
   );
 }
 
-export const foundations: Record<string, () => JSX.Element> = {
+export const fixtures: Record<string, () => JSX.Element> = {
   defaults: () => <Defaults />,
   'state-attributes': () => <StateAttributes />,
   'class-style': () => <ClassStyle />,

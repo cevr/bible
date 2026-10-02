@@ -12,7 +12,7 @@ import { type Harness, harness, logOf } from './harness.ts';
 
 let h: Harness;
 beforeAll(async () => {
-  h = await harness();
+  h = await harness('foundations.tsx');
 });
 afterAll(async () => {
   await h.close();

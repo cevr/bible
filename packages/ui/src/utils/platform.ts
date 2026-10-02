@@ -40,4 +40,8 @@ export const platform = {
   env: {
     jsdom: /jsdom|happydom/.test(lowerUserAgent),
   },
+  // VoiceOver is the screen reader on Apple platforms.
+  screenReader: {
+    voiceOver: mac || ios,
+  },
 } as const;

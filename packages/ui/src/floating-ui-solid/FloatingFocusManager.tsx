@@ -213,6 +213,21 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   const getNodeId = () => dataRef.current.floatingContext?.nodeId;
 
   let preventReturnFocus = false;
+
+  // The return target as it stood while the manager was enabled. A popup derives it from
+  // state its own close clears (a menu returns focus only while its active trigger is
+  // known, and that reads null once unmounted), so the value read at close is the last
+  // one from before the manager was disabled. React gets the same from its unmounted
+  // manager keeping its last props.
+  let enabledReturnFocus = untrack(returnFocus);
+  createEffect(
+    () => [disabled(), returnFocus()] as const,
+    ([isDisabled, value]) => {
+      if (!isDisabled) {
+        enabledReturnFocus = value;
+      }
+    },
+  );
   let isPointerDown = false;
   let pointerDownOutside = false;
   let focusOutHandledByPortal = false;
@@ -669,7 +684,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
       events.on('openchange', onOpenChangeLocal);
 
       const getReturnElement = (type: InteractionType) => {
-        const value = untrack(returnFocus);
+        const value = enabledReturnFocus;
         let resolved = typeof value === 'function' ? value(type) : value;
         if (resolved === undefined || resolved === false) {
           return null;
@@ -706,7 +721,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
             getNodeChildren(tree.nodesRef.current, getNodeId(), false).some((node) =>
               contains(node.context?.elements.floating, activeEl),
             ));
-        const returnFocusValue = untrack(returnFocus);
+        const returnFocusValue = enabledReturnFocus;
         const returnElement = getReturnElement(closeType);
         const job = { cancelled: false };
         pendingReturnFocus = job;

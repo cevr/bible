@@ -197,7 +197,7 @@ function HoverCard(): JSX.Element {
   );
 }
 
-export const floating: Record<string, () => JSX.Element> = {
+export const fixtures: Record<string, () => JSX.Element> = {
   'list-popup': () => (
     <FloatingTree>
       <ListPopup />

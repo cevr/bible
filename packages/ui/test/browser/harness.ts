@@ -1,6 +1,6 @@
-// The browser tests' page: every fixture under `fixtures/` compiled once per
-// process by Solid's compiler (the DOM build, Solid's development runtime so
-// its diagnostics show), served by a Bun server on a free port, and opened
+// The browser tests' page: the fixture file a test file names, compiled once
+// per test file by Solid's compiler (the DOM build, Solid's development runtime
+// so its diagnostics show), served by a Bun server on a free port, and opened
 // in Playwright's Chromium. A case opens a fixture by name; the page mounts
 // it into `#root` and records what the fixture logs in `window.__log`.
 //
@@ -14,9 +14,11 @@ import { transform } from '@solidjs/compiler';
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import type { BunPlugin } from 'bun';
 
-const solid: BunPlugin = {
+/** Solid's DOM compiler, with `fixtures/index.ts` resolved to `fixtureFile`. */
+const solid = (fixtureFile: string): BunPlugin => ({
   name: 'solid-dom',
   setup(build) {
+    build.onResolve({ filter: /fixtures\/index\.ts$/ }, () => ({ path: fixtureFile }));
     build.onLoad({ filter: /\.tsx$/ }, async (args) => {
       const code = await Bun.file(args.path).text();
       const out = transform(code, {
@@ -27,27 +29,22 @@ const solid: BunPlugin = {
       return { contents: out.code, loader: 'ts' };
     });
   },
-};
+});
 
-let client: Promise<string> | undefined;
-
-/** The fixtures' bundle, built once per process. */
-const bundle = (): Promise<string> => {
-  client ??= (async () => {
-    const outdir = await mkdtemp(`${tmpdir()}/bible-ui-browser-`);
-    const output = await Bun.build({
-      entrypoints: [`${import.meta.dir}/client.tsx`],
-      plugins: [solid],
-      target: 'browser',
-      conditions: ['browser', 'development'],
-      outdir,
-    });
-    if (!output.success) {
-      throw new Error(output.logs.map(String).join('\n'));
-    }
-    return Bun.file(`${outdir}/client.js`).text();
-  })();
-  return client;
+/** The page script serving one fixture file's fixtures. */
+const bundle = async (fixtureFile: string): Promise<string> => {
+  const outdir = await mkdtemp(`${tmpdir()}/bible-ui-browser-`);
+  const output = await Bun.build({
+    entrypoints: [`${import.meta.dir}/client.tsx`],
+    plugins: [solid(fixtureFile)],
+    target: 'browser',
+    conditions: ['browser', 'development'],
+    outdir,
+  });
+  if (!output.success) {
+    throw new Error(output.logs.map(String).join('\n'));
+  }
+  return Bun.file(`${outdir}/client.js`).text();
 };
 
 const PAGE = `<!doctype html>
@@ -71,9 +68,12 @@ export interface OpenOptions {
   readonly viewport?: { width: number; height: number };
 }
 
-/** Starts the server and Chromium for one test file. */
-export const harness = async (): Promise<Harness> => {
-  const script = await bundle();
+/**
+ * Starts the server and Chromium for one test file, serving the fixtures
+ * `fixtureFile` (a file under `fixtures/`) exports as `fixtures`.
+ */
+export const harness = async (fixtureFile: string): Promise<Harness> => {
+  const script = await bundle(`${import.meta.dir}/fixtures/${fixtureFile}`);
   const server = Bun.serve({
     port: 0,
     fetch(request) {
