@@ -9,19 +9,21 @@
 
 import { Effect, Layer, Scope } from 'effect';
 import type { Context } from 'effect';
+import type { Keys } from './keys.ts';
 import type { Pointer } from './pointer.ts';
 
 /** Every service the host gives a page. */
-export type BrowserServices = Pointer;
+export type BrowserServices = Keys | Pointer;
 
 /** The host's services, built: what a page's code runs its effects with. */
 export type Host = Context.Context<BrowserServices>;
 
 /**
- * The host `layer` builds, for the life of the page: its scope is never
- * closed, as the page is the host's lifetime.
+ * The host `layer` builds (the page's, or a test's over its own layers), for
+ * the life of the page: its scope is never closed, as the page is the host's
+ * lifetime.
  */
-export const hostOf = (layer: Layer.Layer<BrowserServices>): Host =>
+export const hostOf = <S>(layer: Layer.Layer<S>): Context.Context<S> =>
   Effect.runSync(Effect.flatMap(Scope.make(), (scope) => Layer.buildWithScope(layer, scope)));
 
 /** The host as a layer, for a runtime the page builds (the lab's, the studio's, the review's). */

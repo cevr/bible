@@ -12,6 +12,7 @@ import { Effect, Option } from 'effect';
 import { hostOf } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
+import { Keys, type KeyPress } from '../browser/keys.ts';
 import { Pointer } from '../browser/pointer.ts';
 import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
@@ -426,10 +427,10 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
     draw();
   });
   canvas.addEventListener('click', toggle);
-  window.addEventListener('keydown', (e) => {
-    // Typing in a field (the lab's note composer) is not a player key.
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    const step = e.shiftKey ? 1 : 1 / film.fps;
+  // Typing in a field (the lab's note composer, the microphone picker) is not a player key.
+  const playerKey = (e: KeyPress): boolean => {
+    if (e.typing) return false;
+    const step = e.shift ? 1 : 1 / film.fps;
     const cur = film.sceneAt(T);
     if (e.key === ' ') toggle();
     else if (e.key === 'ArrowRight') seek(T + step);
@@ -440,9 +441,10 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
     else if (e.key === 'c') {
       captions.on = !captions.on;
       draw();
-    } else return;
-    e.preventDefault();
-  });
+    } else return false;
+    return true;
+  };
+  Effect.runForkWith(host)(Keys.use((keys) => keys.listen(playerKey)));
   draw();
   return {
     film,

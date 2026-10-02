@@ -356,6 +356,26 @@ describe('the studio', () => {
   );
 
   it.live(
+    'leaves ←/→ and n to the microphone picker while it has focus: the film holds, no note opens',
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const { page } = yield* withMic({ allowed: true });
+          yield* page.waitFor('[data-beat="thesis"]');
+          yield* page.focus('[data-field="mic"]');
+          yield* press(page, 'ArrowRight');
+          yield* press(page, 'Shift+ArrowRight');
+          yield* press(page, 'n');
+          yield* runClock(page, 300);
+          yield* shownAt(page, 1);
+          yield* attached(page, '.lab-compose[hidden]');
+          yield* evaluates(page, "document.activeElement?.getAttribute('data-field')", 'mic');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
     'keeps its keys when the button clicked goes: Record clicked, Space stops the take, not the film',
     () =>
       scoped(

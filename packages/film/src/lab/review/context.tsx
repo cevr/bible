@@ -31,6 +31,7 @@ import {
 import type { SeenPoint } from '../../core/choice.ts';
 import type { ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { type BrowserServices, type Host, hostLayer } from '../../browser/host.ts';
+import { Keys, type KeyPress } from '../../browser/keys.ts';
 import type { LabFailure } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
@@ -51,7 +52,7 @@ import {
   viewNameOf,
 } from './machine.ts';
 import { type ReviewPlace, placeOf, searchOf, searchWithView, viewOf } from './place.ts';
-import { PlayerKey, type SyncDriver, listenPlayerKeys, makeSync, playerEvent } from './sync.ts';
+import { PlayerKey, type SyncDriver, playerKeys, makeSync, playerEvent } from './sync.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 
@@ -153,11 +154,12 @@ export const Root = (props: ParentProps<{ readonly origin: string; readonly host
   onCleanup(() => window.removeEventListener('popstate', onPop));
 
   const [lightbox, setLightbox] = createSignal(Option.none<string>());
-  const onKey = (e: KeyboardEvent) => {
+  // Escape closes the lightbox, and leaves the key to whatever else hears it.
+  const closeOnEscape = (e: KeyPress): boolean => {
     if (e.key === 'Escape') setLightbox(Option.none());
+    return false;
   };
-  document.addEventListener('keydown', onKey);
-  onCleanup(() => document.removeEventListener('keydown', onKey));
+  onCleanup(Effect.runCallbackWith(props.host)(Keys.use((keys) => keys.listen(closeOnEscape))));
 
   const Inner = (inner: ParentProps) => {
     const index = useAtomValue(() => indexAtom);
@@ -291,24 +293,26 @@ const SetBody = (
 
   // The moments step on ←/→; the playing views hear the player's keys.
   onCleanup(
-    listenPlayerKeys((key) => {
-      const name = viewNameOf(view());
-      if (name === 'moments')
-        return PlayerKey.$match(key, {
-          Toggle: () => false,
-          Step: ({ by }) =>
-            Option.match(moments(), {
-              onNone: () => false,
-              onSome: (m) => {
-                sendView(ViewEvent.MomentStepped({ by, count: m.length }));
-                return true;
-              },
-            }),
-        });
-      if (!playsIn(name)) return false;
-      sendSync(playerEvent(key));
-      return true;
-    }),
+    Effect.runCallbackWith(meta.host)(
+      playerKeys((key) => {
+        const name = viewNameOf(view());
+        if (name === 'moments')
+          return PlayerKey.$match(key, {
+            Toggle: () => false,
+            Step: ({ by }) =>
+              Option.match(moments(), {
+                onNone: () => false,
+                onSome: (m) => {
+                  sendView(ViewEvent.MomentStepped({ by, count: m.length }));
+                  return true;
+                },
+              }),
+          });
+        if (!playsIn(name)) return false;
+        sendSync(playerEvent(key));
+        return true;
+      }),
+    ),
   );
 
   const value: SetContextValue = {

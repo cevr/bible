@@ -18,6 +18,7 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createEffect, createMemo, onCleanup, useContext } from 'solid-js';
+import { Keys, type KeyPress } from '../../browser/keys.ts';
 import { Pointer } from '../../browser/pointer.ts';
 import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
@@ -236,29 +237,23 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     follow(p.down);
   };
 
-  // While a grip is held, Escape lets it go, and a grip let go no longer follows its press.
+  // A grip let go no longer follows its press.
   const holding = createMemo(() => edit()._tag === 'Pressed' || edit()._tag === 'Dragging');
   createEffect(holding, (held) => {
-    if (!held) return letGo();
-    const key = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') send(EditEvent.Cancel);
-    };
-    window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
+    if (!held) letGo();
   });
   onCleanup(letGo);
 
   const step = (verb: StepVerb) => send(EditEvent.Step({ verb }));
-  // ⌘Z undoes and ⇧⌘Z redoes, outside a field being typed in.
-  const undoKeys = (e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-    if (!(e.metaKey || e.ctrlKey) || e.key.toLowerCase() !== 'z') return;
-    e.preventDefault();
-    if (e.shiftKey) return step('redo');
-    step('undo');
+  // Escape lets a held grip go; ⌘Z undoes and ⇧⌘Z redoes, outside a field being typed in.
+  const editorKey = (e: KeyPress): boolean => {
+    if (e.key === 'Escape' && holding()) send(EditEvent.Cancel);
+    if (e.typing || !(e.meta || e.ctrl) || e.key.toLowerCase() !== 'z') return false;
+    if (e.shift) step('redo');
+    else step('undo');
+    return true;
   };
-  window.addEventListener('keydown', undoKeys);
-  onCleanup(() => window.removeEventListener('keydown', undoKeys));
+  onCleanup(Effect.runCallbackWith(meta.host)(Keys.use((keys) => keys.listen(editorKey))));
 
   const value: EditorContextValue = {
     state: {

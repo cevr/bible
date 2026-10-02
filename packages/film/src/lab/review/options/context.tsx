@@ -16,7 +16,7 @@
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Data, Exit, Match, Option } from 'effect';
+import { Data, Effect, Exit, Match, Option } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -40,7 +40,7 @@ import { type Asks, type Landed, newestAsked } from '../asked.ts';
 import { useReview } from '../context.tsx';
 import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
 import { type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
-import { type SyncDriver, listenPlayerKeys, makeSync, playerEvent } from '../sync.ts';
+import { type SyncDriver, playerKeys, makeSync, playerEvent } from '../sync.ts';
 import { type ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } from './api.ts';
 
 /** The player's clock: the film's render, its own sound muted unless it is the one heard. */
@@ -177,6 +177,7 @@ const FilmBody = (
     readonly actor: SyncActor;
   }>,
 ) => {
+  const { meta } = useReview();
   const film = props.atoms.film;
   // The choices as first read seed the body once; each later answer updates `choices`.
   const first = untrack(() => props.first);
@@ -260,11 +261,13 @@ const FilmBody = (
 
   // The player's keys, once there is a picture to play.
   onCleanup(
-    listenPlayerKeys((key) => {
-      if (Option.isNone(picture())) return false;
-      send(playerEvent(key));
-      return true;
-    }),
+    Effect.runCallbackWith(meta.host)(
+      playerKeys((key) => {
+        if (Option.isNone(picture())) return false;
+        send(playerEvent(key));
+        return true;
+      }),
+    ),
   );
 
   const value: FilmContextValue = {

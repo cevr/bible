@@ -1892,7 +1892,11 @@ in memory when the page may not use its storage. Every drag (the
 player's track, the strip's scrub and its cue bars, a knob's handle, the
 wipe's divider, a note's mark) follows its press through `Pointer.drag`
 (`browser/pointer.ts`), which ends it once: lifted, or ended by the browser
-(`pointercancel`, `lostpointercapture`).
+(`pointercancel`, `lostpointercapture`). Every key listener (the player's, the
+notes' `n` and Escape, the editor's undo and Escape, the review's players and
+its lightbox) goes through `Keys.listen` (`browser/keys.ts`), with one answer
+to whether a press is typing: into an input, a textarea, a select or editable
+text.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
 frames. Seed randomness by key (`f.hand(key)`, `random.ts`); another scene's paper, torn as it tore it, by `f.handsOf(drawing)`. Another scene's framing, as that scene reads it (a lab edit included), by `f.knobsOf(drawing)(knob)`: a callback reads the knob where it lives, so a drag moves both scenes.

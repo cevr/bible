@@ -7,6 +7,7 @@
 // are heard here too, for every page with a synced player.
 
 import { type Cause, Data, Effect, Option } from 'effect';
+import { Keys, type KeyPress } from '../../browser/keys.ts';
 import {
   type SyncEvent,
   SyncEvent as Events,
@@ -200,16 +201,9 @@ const ARROWS = new Map([
   ['ArrowLeft', -1],
 ]);
 
-/** Whether a key press belongs to a field (typing), not to the player. */
-const typing = (target: EventTarget) =>
-  target instanceof HTMLInputElement ||
-  target instanceof HTMLTextAreaElement ||
-  target instanceof HTMLSelectElement;
-
 /** The player's ask in a key press: none for a key typed into a field, held with a modifier, or not the player's. */
-const playerKey = (e: KeyboardEvent): Option.Option<PlayerKey> => {
-  if (Option.exists(Option.fromNullishOr(e.target), typing) || e.metaKey || e.ctrlKey || e.altKey)
-    return Option.none();
+const playerKey = (e: KeyPress): Option.Option<PlayerKey> => {
+  if (e.typing || e.meta || e.ctrl || e.alt) return Option.none();
   if (e.key === ' ') return Option.some(PlayerKey.Toggle());
   return Option.map(Option.fromUndefinedOr(ARROWS.get(e.key)), (by) => PlayerKey.Step({ by }));
 };
@@ -222,16 +216,10 @@ export const playerEvent = (key: PlayerKey): SyncEvent =>
   });
 
 /**
- * Hear the page's key presses for a synced player: `take` gets each of the
- * player's keys and answers whether it took it (its default is then
- * prevented). The one place the review's players listen to the keyboard;
- * answers the stop.
+ * Hear the page's key presses for a synced player until interrupted: `take`
+ * gets each of the player's keys and answers whether it took it (its default
+ * is then prevented). The one place the review's players listen to the
+ * keyboard.
  */
-export const listenPlayerKeys = (take: (key: PlayerKey) => boolean): (() => void) => {
-  const onKey = (e: KeyboardEvent) =>
-    Option.map(playerKey(e), (key) => {
-      if (take(key)) e.preventDefault();
-    });
-  document.addEventListener('keydown', onKey);
-  return () => document.removeEventListener('keydown', onKey);
-};
+export const playerKeys = (take: (key: PlayerKey) => boolean): Effect.Effect<never, never, Keys> =>
+  Keys.use((keys) => keys.listen((press) => Option.exists(playerKey(press), take)));
