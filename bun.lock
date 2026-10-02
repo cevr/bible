@@ -38,7 +38,9 @@
       "name": "@bible/egw-search",
       "version": "0.1.0",
       "dependencies": {
+        "@bible/atom-solid": "workspace:*",
         "@bible/core": "workspace:*",
+        "@bible/url-state": "workspace:*",
         "@effect/platform-bun": "catalog:",
         "@effect/sql-sqlite-bun": "catalog:",
         "@solidjs/web": "catalog:",

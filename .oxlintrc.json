@@ -147,7 +147,12 @@
       // skip the batching, the entry keys or the history policy. A
       // `popstate` listener is not caught here: `addEventListener` takes the
       // event name as a string.
-      "files": ["**/packages/url-state/src/**/*.ts", "**/packages/url-state/src/**/*.tsx"],
+      "files": [
+        "**/packages/url-state/src/**/*.ts",
+        "**/packages/url-state/src/**/*.tsx",
+        "**/apps/egw-search/src/**/*.ts",
+        "**/apps/egw-search/src/**/*.tsx"
+      ],
       "rules": {
         "no-restricted-globals": [
           "error",

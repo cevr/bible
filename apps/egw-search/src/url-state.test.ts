@@ -63,6 +63,73 @@ describe('workspace URL', () => {
   });
 });
 
+/**
+ * Links as this app has written and read them, each with the href the app
+ * writes back for it: the canonical ones come back byte for byte, and the
+ * rest normalise the way they always have (defaults left out, unknown keys
+ * and values dropped, `limit` clamped, the walk stopping at a gap).
+ */
+const LINKS: ReadonlyArray<readonly [search: string, written: string]> = [
+  ['', '/'],
+  ['q=latter+rain', '/?q=latter+rain'],
+  ['q=latter%20rain', '/?q=latter+rain'],
+  ['q=latter+rain&subtype=-devotional', '/?q=latter+rain&subtype=-devotional'],
+  ['q=latter+rain&q2=loud+cry&section2=bible', '/?q=latter+rain&q2=loud+cry&section2=bible'],
+  [
+    'q=latter+rain&scope=egw&type=book&type=-periodical&noref=1&q2=&section2=bible',
+    '/?q=latter+rain&scope=egw&type=book&type=-periodical&noref=1&q2=&section2=bible',
+  ],
+  ['q=a&q2=', '/?q=a&q2='],
+  ['q=a&q2=&q3=&q4=', '/?q=a&q2=&q3=&q4='],
+  ['q=a&q2=b&q3=c&q4=d&q5=e', '/?q=a&q2=b&q3=c&q4=d'],
+  ['q=a&subtype2=commentary', '/?q=a&q2=&subtype2=commentary'],
+  ['q=a&q3=c', '/?q=a'],
+  ['q=x&scope=banana&type=book&type=nonsense&limit=-3', '/?q=x&type=book'],
+  ['q=x&scope=all', '/?q=x'],
+  ['q=x&limit=40', '/?q=x'],
+  ['q=x&limit=100', '/?q=x&limit=100'],
+  ['q=x&limit=200', '/?q=x&limit=100'],
+  ['q=x&limit=7.9', '/?q=x&limit=7'],
+  ['q=x&limit=1e1', '/?q=x&limit=10'],
+  ['q=x&limit=', '/?q=x'],
+  ['q=x&limit=abc', '/?q=x'],
+  ['q=x&limit=Infinity', '/?q=x'],
+  // A limit that truncates to nothing is the default: it once read as 0 and
+  // wrote `limit=0`, which read back as 40.
+  ['q=x&limit=0.5', '/?q=x'],
+  ['q=x&noref=0', '/?q=x'],
+  ['q=x&noref=true', '/?q=x'],
+  ['q=x&noref=1', '/?q=x&noref=1'],
+  ['q=x&q=y', '/?q=x'],
+  ['scope=egw&q=x', '/?q=x&scope=egw'],
+  ['q=x&section=-bible&section=egw&section=-pioneer', '/?q=x&section=-bible'],
+  ['q=x&type=-book&type=book', '/?q=x&type=book&type=-book'],
+  ['q=x&other=1&utm_source=mail', '/?q=x'],
+  ['q=caf%C3%A9+%26+cr%C3%A8me', '/?q=caf%C3%A9+%26+cr%C3%A8me'],
+  ['q=a%2Bb%3Dc', '/?q=a%2Bb%3Dc'],
+  ['q=%E1%BC%80%CE%B3%CE%AC%CF%80%CE%B7', '/?q=%E1%BC%80%CE%B3%CE%AC%CF%80%CE%B7'],
+  // The first pane is always there, so a link whose first pane is at its
+  // defaults keeps its later panes. It once read as one pane, so "+ pane" on
+  // an empty first pane wrote `/?q2=` and no second pane appeared.
+  ['q2=b', '/?q2=b'],
+  ['q2=', '/?q2='],
+  ['scope=bible', '/'],
+  ['q=a&scope2=egw&q2=', '/?q=a&q2=&scope2=egw'],
+  [
+    'q=a&q2=b&scope2=egw&type2=-book&noref2=1&limit2=20',
+    '/?q=a&q2=b&scope2=egw&type2=-book&noref2=1&limit2=20',
+  ],
+];
+
+describe("the links of today's app", () => {
+  test.each(LINKS)('%p writes %p, which reads back as itself', (search, written) => {
+    const panes = parseWorkspace(search);
+    expect(toWorkspaceString(panes)).toBe(written);
+    expect(parseWorkspace(written.slice(1))).toEqual(panes);
+    expect(toWorkspaceString(parseWorkspace(written.slice(1)))).toBe(written);
+  });
+});
+
 describe('cycle', () => {
   test('off → include → exclude → off', () => {
     const include = cycle({ include: [], exclude: [] }, 'a');

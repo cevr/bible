@@ -1,9 +1,3 @@
-/* oxlint-disable effect/noTernary -- parsing a URL is a chain of defaulting
-   decisions over a `string | null` API; `Option.match` per field triples the
-   length of a total parser without changing what it does. */
-/* oxlint-disable effect/noNullish -- `URLSearchParams.get` returns `string |
-   null`. That is the platform's signature, not a modelling choice. */
-
 /**
  * The URL *is* the search state.
  *
@@ -12,26 +6,27 @@
  * them, and the app reads them back out. That ordering is what makes every
  * state the app can be in reachable by pasting a link, and it is why the back
  * button works without any code that knows what "back" means: a history entry
- * restores a previous URL, the location signal changes (`./history.ts`), and
- * each pane's query re-runs.
+ * restores a previous URL, the workspace atom changes, and each pane's query
+ * re-runs.
  *
- * This module is pure: the two inverse functions between a query string and
- * a workspace, and the operations on one pane's state. `./history.ts` owns
- * the browser's location and the writes to it.
+ * This module declares the workspace as a `@bible/url-state` place: what each
+ * key means, its default, and how a change to it enters history. Reading and
+ * writing are that one declaration run in either direction, so a link this app
+ * writes is a link it reads, by construction. The operations on one pane's
+ * state live here too. `./app.tsx` reads and writes the place through its atom.
  */
 
+import { Codec, Field, Place } from '@bible/url-state';
+import { Array as Arr, Option, Schema } from 'effect';
+
 import {
-  type BookSubtype,
-  type BookType,
-  type CorpusScope,
-  type CorpusSection,
-  EXCLUDE_PREFIX,
-  isBookSubtype,
-  isBookType,
-  isCorpusScope,
-  isCorpusSection,
+  BookSubtype,
+  BookType,
+  CorpusScope,
+  CorpusSection,
   NO_SELECTION,
   type SearchRequest,
+  SignedFromStrings,
 } from '../server/api.js';
 
 /** One axis as the client holds it: the same `{ include, exclude }` the server
@@ -74,19 +69,49 @@ export const cycle = <A>(selection: Selection<A>, value: A): Selection<A> => {
   return { ...without, exclude: [...without.exclude, value] };
 };
 
-/** Everything a result page depends on. If it changes what is shown, it is
- *  here, and therefore in the link. */
-export interface SearchParams {
-  readonly q: string;
-  readonly scope: CorpusScope;
-  readonly section: Selection<CorpusSection>;
-  readonly type: Selection<BookType>;
-  readonly subtype: Selection<BookSubtype>;
-  readonly excludeApparatus: boolean;
-  readonly limit: number;
-}
-
 export const DEFAULT_LIMIT = 40;
+
+/** How many rows a pane asks for: a whole number from 1 to 100. A value that
+ *  is not a number, or truncates to below 1, reads as the default. */
+const Limit = Codec.Finite.pipe(
+  Codec.truncate,
+  (whole) => whole.check(Schema.isGreaterThan(0)),
+  Codec.clamp({ max: 100 }),
+);
+
+/**
+ * One pane: everything a result page depends on. If it changes what is shown,
+ * it is here, and therefore in the link.
+ *
+ * Each key is total: a hand-edited or truncated link degrades to the default
+ * for the key it broke rather than failing the page. `?scope=banana` searches
+ * everything, and `?type=book&type=nonsense` keeps `book` and drops the rest —
+ * the answer least likely to hide results from someone who does not know why
+ * their link was wrong. Defaults are left out, so the common case is
+ * `?q=latter+rain` rather than `?q=latter+rain&scope=all&limit=40`.
+ *
+ * A new query pushes a history entry, because it is a place the reader may
+ * want to come back to. A filter or the limit replaces it: a refinement of
+ * the same search, so Back returns to the previous *query* rather than
+ * walking back through each toggle the reader tried.
+ *
+ * The axes are repeated keys with a sign (`?type=book&type=-periodical`), the
+ * same codec the API's query parameters are declared with.
+ */
+const Pane = Field.struct(
+  {
+    q: Field.key(Codec.Text, { default: '', history: 'push' }),
+    scope: Field.key(Codec.literals(CorpusScope.literals), { default: 'all' }),
+    section: Field.keys(SignedFromStrings(CorpusSection)),
+    type: Field.keys(SignedFromStrings(BookType)),
+    subtype: Field.keys(SignedFromStrings(BookSubtype)),
+    excludeApparatus: Field.key(Codec.Flag, { default: false }),
+    limit: Field.key(Limit, { default: DEFAULT_LIMIT }),
+  },
+  { keys: { excludeApparatus: 'noref' } },
+);
+
+export type SearchParams = typeof Pane.Type;
 
 export const EMPTY_PARAMS: SearchParams = {
   q: '',
@@ -108,92 +133,47 @@ export const EMPTY_PARAMS: SearchParams = {
  * `section2`, `noref2`.
  */
 export const paneKey = (name: string, pane: number): string =>
-  pane === 0 ? name : `${name}${String(pane + 1)}`;
+  Option.match(
+    Option.liftPredicate(pane, (index) => index > 0),
+    { onNone: () => name, onSome: (index) => `${name}${String(index + 1)}` },
+  );
 
-/** A repeated key (`?type=book&type=periodical`) rather than one comma-joined
- *  value: it is what `URLSearchParams` produces natively, what a server reads
- *  without splitting, and what survives a value that ever contains a comma. */
-const multi = <A extends string>(
-  url: URLSearchParams,
-  key: string,
-  is: (value: string) => value is A,
-): Selection<A> => {
-  const include: A[] = [];
-  const exclude: A[] = [];
-  for (const raw of url.getAll(key)) {
-    const negated = raw.startsWith(EXCLUDE_PREFIX);
-    const bare = negated ? raw.slice(EXCLUDE_PREFIX.length) : raw;
-    if (!is(bare)) continue;
-    if (negated) exclude.push(bare);
-    else include.push(bare);
-  }
-  return { include, exclude };
-};
+/** The most panes a link opens: a guard against a hand-edited link asking for
+ *  hundreds of concurrent searches. */
+export const MAX_PANES = 4;
 
-/** One axis back onto the query string, signs and all. */
-const appendSelection = <A extends string>(
-  url: URLSearchParams,
-  key: string,
-  selection: Selection<A>,
-): void => {
-  for (const value of selection.include) url.append(key, value);
-  for (const value of selection.exclude) url.append(key, `${EXCLUDE_PREFIX}${value}`);
-};
-
-/** Read one pane's state out of a query string.
+/**
+ * The workspace: every pane, in order, on the app's one address.
  *
- *  Total: a hand-edited or truncated link degrades to the default for the field
- *  it broke rather than failing the page. `?scope=banana` searches everything,
- *  and `?type=book&type=nonsense` keeps `book` and drops the rest — the answer
- *  least likely to hide results from someone who does not know why their link
- *  was wrong. */
-export const parseParams = (search: string, pane = 0): SearchParams => {
-  const url = new URLSearchParams(search);
-  const key = (name: string): string => paneKey(name, pane);
-  const scope = url.get(key('scope')) ?? '';
-  const limit = Number(url.get(key('limit')));
-  return {
-    q: url.get(key('q')) ?? '',
-    scope: isCorpusScope(scope) ? scope : 'all',
-    section: multi(url, key('section'), isCorpusSection),
-    type: multi(url, key('type'), isBookType),
-    subtype: multi(url, key('subtype'), isBookSubtype),
-    excludeApparatus: url.get(key('noref')) === '1',
-    limit: Number.isFinite(limit) && limit > 0 ? Math.min(Math.trunc(limit), 100) : DEFAULT_LIMIT,
-  };
-};
-
-/** Write one pane's fields, omitting defaults, so the common case produces
- *  `?q=latter+rain` rather than `?q=latter+rain&scope=all&limit=40`.
+ * A pane exists if the URL carries *any* of its keys, not just its `q`; an
+ * added pane starts with an empty query and the previous pane's filters. Every
+ * pane after the first writes its `q`, empty or not (`?q=a&q2=`), so a pane
+ * at its defaults is still a pane when the link is re-read. The walk stops at
+ * the first gap, so a link carrying pane 3's keys but none of pane 2's opens
+ * two panes rather than three with a hole in the middle.
  *
- *  `force` marks a pane that is entirely at its defaults — a freshly added,
- *  unfiltered, unqueried pane writes no keys at all, and a pane the URL does
- *  not mention is a pane that does not exist when the link is re-read. Writing
- *  its empty `q` is the smallest thing that makes it real. Pane 0 never needs
- *  it: a single empty pane is the app's initial state. */
-const writeParams = (
-  url: URLSearchParams,
-  params: SearchParams,
-  pane: number,
-  force = false,
-): void => {
-  const key = (name: string): string => paneKey(name, pane);
-  if (params.q !== '') url.set(key('q'), params.q);
-  else if (force && pane > 0) url.set(key('q'), '');
-  if (params.scope !== 'all') url.set(key('scope'), params.scope);
-  appendSelection(url, key('section'), params.section);
-  appendSelection(url, key('type'), params.type);
-  appendSelection(url, key('subtype'), params.subtype);
-  if (params.excludeApparatus) url.set(key('noref'), '1');
-  if (params.limit !== DEFAULT_LIMIT) url.set(key('limit'), String(params.limit));
-};
+ * Any other path is not this place: the not-found page.
+ */
+export const Workspace = Place.make({
+  path: '/',
+  query: Field.indexed(Pane, { max: MAX_PANES, key: paneKey, marker: 'q' }),
+});
 
-export const toSearchString = (params: SearchParams): string => {
-  const url = new URLSearchParams();
-  writeParams(url, params, 0);
-  const query = url.toString();
-  return query === '' ? '/' : `/?${query}`;
-};
+/** Every pane's parameters, in order, from a query string (with or without
+ *  its `?`). */
+export const parseWorkspace = (search: string): readonly SearchParams[] =>
+  Option.match(Place.decode(Workspace, `/?${search.replace(/^\?/, '')}`), {
+    onNone: () => [EMPTY_PARAMS],
+    onSome: (workspace) => workspace.query,
+  });
+
+/** The whole workspace as an href — every pane, in order, up to
+ *  {@link MAX_PANES}. No panes is the empty workspace, `/`. */
+export const toWorkspaceString = (panes: readonly SearchParams[]): string =>
+  Arr.match(Arr.take(panes, MAX_PANES), {
+    onEmpty: () => '/',
+    onNonEmpty: (query) => Place.href(Workspace, { path: {}, query, hash: {} }),
+  });
 
 /**
  * The same state, as the query's arguments.
@@ -242,52 +222,3 @@ export const toggle = <K extends 'section' | 'type' | 'subtype'>(
   // uses. The caller's `K` still ties the key to the value it is given.
   [key]: cycle<string>(params[key], value),
 });
-
-/** How many panes the URL describes.
- *
- *  A pane exists if the URL carries *any* of its keys, not just its `q`. An
- *  added pane starts with an empty query and the previous pane's filters, so
- *  it is present as `subtype3=…` with no `q3` at all.
- *
- *  The walk still stops at the first gap, so a link carrying pane 3's keys but
- *  none of pane 2's opens two panes rather than three with a hole in the
- *  middle. `MAX_PANES` guards against a hand-edited link asking for hundreds
- *  of concurrent searches. */
-export const MAX_PANES = 4;
-
-/** Every key one pane can contribute. Kept beside `writeParams`, which is the
- *  only thing that writes them. */
-const PANE_FIELDS = [
-  'q',
-  'scope',
-  'section',
-  'type',
-  'subtype',
-  'noref',
-  'limit',
-] satisfies readonly string[];
-
-const countPanes = (url: URLSearchParams): number => {
-  const present = (pane: number): boolean =>
-    PANE_FIELDS.some((field) => url.has(paneKey(field, pane)));
-  let count = 0;
-  while (count < MAX_PANES && present(count)) count += 1;
-  return Math.max(count, 1);
-};
-
-/** Every pane's parameters, in order. The workspace is the unit of state; a
- *  single-pane workspace is the ordinary case rather than a special one. */
-export const parseWorkspace = (search: string): readonly SearchParams[] => {
-  const url = new URLSearchParams(search);
-  return Array.from({ length: countPanes(url) }, (_, pane) => parseParams(search, pane));
-};
-
-/** The whole workspace as an href — every pane, in order. */
-export const toWorkspaceString = (panes: readonly SearchParams[]): string => {
-  const url = new URLSearchParams();
-  panes.forEach((params, pane) => {
-    writeParams(url, params, pane, true);
-  });
-  const query = url.toString();
-  return query === '' ? '/' : `/?${query}`;
-};
