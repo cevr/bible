@@ -1728,15 +1728,13 @@ a knob draws the same frame; it is what lets the lab tweak it.
 ## Painted plates
 
 A shot can be a moving painting rather than a cutout: plates at depth in a
-`multiplane`, each painted once, and a slow eased camera through them
-(`apps/animations/src/films/arcane-proto` is the worked example).
+`multiplane`, each painted once, and a slow eased camera through them.
 
 - `canvas/paint.ts`: `drawPainting(ctx, painting, x, y)` paints a `Painting`
   (a `guide` drawn flat, then brushed over by its `Brush`: stroke layers from
   coarse to fine, laid along the guide's edges or the brush's `flow`, a
   `hatch` in the deep shade). Seeded and cached per declaration, so a frame
-  only draws the finished plate. A flickering light is two paintings of one
-  guide (lit and dim) crossfaded by `flicker` (`core/random.ts`).
+  only draws the finished plate.
 - `canvas/atmosphere.ts`: `motes` (dust, embers: seeded, drifting, twinkling)
   and `rays` (soft light shafts from a point), plus seeded `rain` streaks and
   `stars`. Each is computed from the current time, with no frame history.

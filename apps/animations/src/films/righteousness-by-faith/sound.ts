@@ -397,7 +397,7 @@ export const sound: Sound = {
     },
     tablets: {
       sound: 'tablet.set',
-      level: -15,
+      level: -19,
       sync: 'hit',
       at: [{ scene: 'word', cue: 'drop', edge: 'end' }],
     },
