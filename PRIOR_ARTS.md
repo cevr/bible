@@ -1,0 +1,47 @@
+# Prior arts
+
+What the film lab compares itself against (scope and north stars:
+`NORTH_STAR.md`). The film engine's own prior art (Motion Canvas timing,
+Remotion's renderer, Theatre.js, pmndrs, leva) is in
+`.claude/skills/film-architecture-loop/prior-art.md` and its lab sweep in
+`.claude/skills/film-architecture-loop/lab.md`; it is not repeated here.
+
+## Repos
+
+| Slug                    | Branch  | Sweep                   | Read it for                                                                                                                                                                                                     | Compare with                                                                 |
+| ----------------------- | ------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `cgwire/kitsu`          | default | url state, studio ui    | Path-per-resource routing with no query state: `src/router/routes.js` (`productions/:production_id/shots/:shot_id`, `…/sequences/:sequence_id`, `…/playlists/:playlist_id`, episode-nested variants)            | `packages/film/src/lab/review/place.ts`, `packages/film/src/player/pages.ts` |
+| `remotion-dev/remotion` | default | url state, architecture | Studio routing: the composition is the path (`/<composition>`, `/assets/<file>`), pushed with `pushState`, and a query-string fallback only when embedded read-only: `packages/studio/src/helpers/url-state.ts` | `packages/film/src/lab/shell.tsx`, `packages/film/src/lab/selection.ts`      |
+
+## Other sources
+
+| Source                                                                                                                                                                                       | Sweep                | Read it for                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| DaVinci Resolve Cut page: https://owc.com/blog/how-to-edit-b-roll-and-stock-faster-with-davinci-resolves-cut-page, https://www.tourboxtech.com/en/news/cut-page-davinci-resolve.html         | studio ui            | Source Tape (every clip as one continuous tape, boundaries as white bars, the clip under the playhead lit), Live Media Preview hover-scrub, Tape View equal widths |
+| Final Cut Pro browser: https://support.apple.com/guide/final-cut-pro/ver64e70ab3/mac                                                                                                         | studio ui            | skimming (S), skimmer info, coloured keyword bars on clips, smart collections as filters                                                                           |
+| Frame.io: https://help.frame.io/en/articles/9101068-versioning-in-frame-io, https://help.frame.io/en/articles/9952618-comparison-viewer                                                      | studio ui, url state | version stacks, the comparison viewer (linked playback, slider, diff), timestamped and range comments; `/player/<asset-id>` paths                                  |
+| Kitsu playlists: https://blog.cg-wire.com/cube-creative-studio-sponsors-enhanced-playlists-for-kitsu                                                                                         | studio ui            | shots played in a row with a frame-preview timeline, per-shot annotation and compare with an earlier task                                                          |
+| ShotGrid / RV: https://community.shotgridsoftware.com/t/screening-room-2x2-side-by-side-compare-edit/10038                                                                                   | studio ui            | review in context: notes, versions and status beside playback; side-by-side, 2×2 and wipe compare                                                                  |
+| SyncSketch: https://support.syncsketch.com/hc/en-us/articles/32393970791060-Ghosting-Onion-Skinning; ftrack Review: https://help.ftrack-review.backlight.co/hc/en-us/articles/13129337978519 | studio ui            | ghosting (onion) on review media, overlay-with-opacity and side-by-side compare                                                                                    |
+| Toon Boom Storyboard Pro Thumbnails view: https://docs.toonboom.com/help/storyboard-pro-24/storyboard/reference/views/thumbnails-view.html                                                   | studio ui            | every panel in order; selecting one drives the main view                                                                                                           |
+| Descript scenes and timeline: https://help.descript.com/getting-started/scenes.md, https://help.descript.com/timeline/timeline-overview                                                      | studio ui            | script-as-timeline with scene thumbnails inline, Storyboard View grid, fit scene / fit composition                                                                 |
+| Figma embeds: https://developers.figma.com/docs/embeds/embed-figma-prototype                                                                                                                 | url state            | the selection in the query (`?node-id=`), the document in the path                                                                                                 |
+| W3C Media Fragments: https://www.w3.org/TR/media-frags/                                                                                                                                      | url state            | `#t=` is resolved by the page against the same resource; `?t=` asks the server for another                                                                         |
+
+## Settled
+
+- **Identity in the path, selection and view in the query, time in the hash** (Kitsu, Frame.io, Linear for paths; Figma, Notion for the query; Media Fragments for `#t=`): adopted as the **Addressable** tiebreak in `NORTH_STAR.md`. The scheme to build is ledger row PA-1 (`plans/architecture-loop-2026-10-02.md`): `/films/<film>/{scenes,scenes/<scene>,choices,project,lab/<scene>,play}`, `/sets/<folder>/<point>`, `?cue=|knob=|note=`, `?view=&other=&m=`, `#t=`.
+- **The API under `/api/`** (every product above keeps pages and API apart): adopted, ledger row PA-2. A page addressed by film otherwise collides with `/lab/:film/notes`; the server dispatches `/api/*` → HttpApi, `/films/<film>/narration/*` → media, built chunks → the build, the rest → the pages.
+- **A scenes view that absorbs the look-book** (Resolve Source Tape + Tape View, Storyboard Pro thumbnails, Descript Storyboard View, Frame.io version stacks, FCP keyword bars): adopted, ledger row PA-3. One tape bar across the film with scene boundaries, a grid of scene cards (stills at cue edges, hover or drag scrub, state band, note dots, check count, version badge), a focus panel, phone rows with drag-scrub; `E` opens the lab at the scene and time.
+- **Live-drawing every card at once**: rejected on **Performant** (framework): about 25 canvases drawing per frame; cards show cue-edge stills and draw live on one shared canvas only for the card being scrubbed.
+- **Time in the path or `?t=`**: rejected on **Addressable**'s tiebreak (path names what, hash names when; `?t=` would make each frame a new resource).
+- **Scene-relative time in a scene's lab link** (`/films/<film>/lab/<scene>#t=` counts from the scene's start): adopted with PA-1, so a link survives an earlier scene's re-take; the player keeps film-absolute `#t=`.
+- **Values in a JSON store the studio edits** (Theatre.js, Remotion's props editor saving `defaultProps`): rejected on **Lab-first** (framework), as settled in the film loop.
+
+## To survey
+
+- Blender's area/editor system (one window split into editors that each show a different view of one shared selection): would a lab whose panels are views of one URL-held selection replace the separate review and lab pages? Read `blender/blender` `source/blender/editors/screen/`.
+- Motion Canvas editor (`motion-canvas/motion-canvas`, `packages/ui/src/`): how its timeline and scene list keep the selected scene and time across hot reload, against `packages/film/src/lab/rebuilt.ts` and `player/view-state.ts`.
+- Rive editor and Linear (product UI, no source): density, the command palette and keyboard-first navigation for a studio used daily; what a `⌘K` over films, scenes, cues and notes would need from the URL scheme.
+- Frame.io's deep links to a frame and a comment (not confirmed in its docs): how a shared comment link restores the frame and the thread; compare with the lab's notes (`?note=`).
+- OpenRV (`AcademySoftwareFoundation/OpenRV`): the compare modes (wipe, 2×2, difference) and how a session is serialised, against `packages/film/src/lab/compare/`.

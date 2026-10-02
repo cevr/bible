@@ -1,0 +1,77 @@
+# North star
+
+The film lab is becoming the one studio where every film is tweaked and
+reviewed: always on, served live from the source, addressable down to the
+scene, the frame and the note, and as easy to comb on a phone as on a laptop.
+
+Scope: the lab and the review it holds — `packages/film/src/lab/**`,
+`packages/film/src/player/**`, the lab's server (`packages/film/src/tools/`
+`lab*.ts`, `api-server.ts`, `review*.ts`, `choices*.ts`, `project-http.ts`,
+`studio*.ts`, `steps-http.ts`, `notes-*.ts`, `narration-route.ts`,
+`source-writer.ts`, `scene-*.ts`), `packages/film/src/core/api.ts`, and the
+app's entries (`apps/animations/*.html`, `apps/animations/src/*.ts`,
+`apps/animations/cli.ts`, `apps/animations/server.ts`). The framework's own
+north stars (`.claude/skills/film-architecture-loop/north-stars.md`: **Pure
+frames**, **Narration is the clock**, **Declared once**, **Effect-native
+tooling**, **Explicit over implicit**, **Lab-first**, …) hold underneath every
+row here; the film loop sweeps the engine, these sweep the studio.
+
+## North stars
+
+| North star                                                   | It holds when                                                                                                                                                                                                                                                                                                                                                                                                               | A candidate breaks it when                                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **One surface** (owner, 2026-10-02)                          | Every film is tweaked and reviewed in the one always-on lab (`film lab`, `packages/film/src/tools/cli.ts:821`), and every file a review needs (a render, a still, a take, a doc, a montage) is shown through it, linked from the page that talks about it.                                                                                                                                                                  | It adds a second server or page set, a page only one film can open, or a file handed out as a box path or opened locally instead of linked in the lab.                                                                                                                            |
+| **Live from source** (owner, 2026-10-02)                     | The page served is the code as it stands: `LabPage` builds on request and rebuilds after a file a build read changes (`packages/film/src/tools/lab-page.ts:186`, `:201`), and an open lab reloads itself at its frame (`packages/film/src/lab/rebuilt.ts:27`). No build step, no restart for a page, scene, kit or framework edit.                                                                                          | It adds a build step, a bundle checked in or cached across source changes, a page edit that needs the server restarted, or a reload that loses where the reviewer was.                                                                                                            |
+| **Addressable** (owner, 2026-10-02)                          | Every view and every selection a reviewer would talk about (a film, its scenes, a scene, a time, a cue or knob, a note, a set and its compared pair) is a URL path, with transient refinements in the query and the frame in the hash, so a pasted link opens exactly what the sender saw and Back walks the views. Holds: `#T` (`packages/film/src/player/main.ts:330`), `sel=` (`packages/film/src/lab/selection.ts:17`). | A view is named by a query param where a path would name it (`packages/film/src/lab/review/place.ts:46`, `/lab?film=`), a citable state lives only in a signal or sessionStorage (the selected note, `packages/film/src/lab/notes/context.tsx:129`), or a navigation breaks Back. |
+| **Comb at a glance** (owner, 2026-10-02; drafted 2026-10-02) | A film's scenes can be scanned, scrubbed, compared and judged in one view, each card showing the scene's look, state (rendered, stale, approved), notes and findings, and opening the lab at that scene's own time. Holds in part: the look-book (`packages/film/src/player/lookbook.ts`) and the project view (`packages/film/src/lab/review/options/project.tsx`).                                                        | Judging a scene needs a render, or opening the lab scene by scene, or the scene's state lives on a page that cannot show its picture.                                                                                                                                             |
+| **Phone-first review** (drafted 2026-10-02)                  | Every review action (watch, compare, pick, approve, comment, note) works on a phone over the box's names: touch has a path for every hover and key, heavy media has a phone copy (`packages/film/src/lab/review/section.tsx:419`), and pages fit a phone's width.                                                                                                                                                           | An action is reachable only by hover, keyboard or a wide layout, or a page streams the full master where a phone copy exists.                                                                                                                                                     |
+| **One gate** (drafted 2026-10-02)                            | Every request, pages and media included, passes `admit` (`packages/film/src/tools/api-server.ts:125`); a new route is behind the gate by being a route, and the foreign-Host tests walk `routesOf(LabHttpApi)`. Writes are same-origin JSON.                                                                                                                                                                                | A route is answered before the gate (Bun's own HTML routes, a second handler), a write accepts a form body, or a page reads a file outside the API's declared routes.                                                                                                             |
+| **Fresh reads** (drafted 2026-10-02)                         | The long-lived lab never imports a film's modules: every read of a film (options, takes, the project, a cue) runs in a fresh process (`FreshFilm`), and `packages/film/src/tools/lab-context.types.ts:24` fails the typecheck if a loader joins `LabContext`.                                                                                                                                                               | A handler imports `FilmRepo`, `SoundLibrary` or `Mixer`, or caches a film module across edits.                                                                                                                                                                                    |
+
+## Tiebreaks
+
+- **Framework north stars** beat every row here (drafted 2026-10-02): a studio feature never trades a pure frame, a declared-once cue or a literal in the scene file for a UI shortcut. Rejected candidates look like a sidecar of values the lab keeps, or a cache carried between frames to scrub faster.
+- **Addressable** beats **local convenience** (drafted 2026-10-02): a state a reviewer would cite goes in the URL even when it costs a history entry. Per-viewer settings stay local: playback speed, onion, the mic, quality, a filter (`film-lab-view:<film>` sessionStorage, localStorage). Rejected candidates look like a selection or a view mode kept only in memory "to keep the URL short".
+- **Path** beats **query** for what a view is about; **query** for how it is shown; **hash** for the frame (drafted 2026-10-02). Rejected: a resource named by a param (`?film=`, `?project=`), a time in the path.
+- **Phone-first review** beats **density** (drafted 2026-10-02): a laptop layout may show more, but never holds an action the phone lacks.
+- **Live from source** beats **cold-start speed** (drafted 2026-10-02): an on-demand build of about a tenth of a second per change is accepted over a prebuilt bundle that can go stale.
+
+## Owner rules
+
+Propose nothing against these.
+
+- The lab is the one place files are shown; hand out its links, never box paths (2026-10-02).
+- Films are not checked, rendered, mixed or reviewed by the loop until the owner asks for scene review (2026-10-01).
+- A recorded take is never overwritten; ElevenLabs stages only (owner voiceover).
+- Art direction beats performance: a change that moves pixels needs the owner's OK and stills identical to the eye (2026-09-27).
+- Paid runs (ElevenLabs voice, score, sounds) only with the owner's go-ahead; budgets are generous once approved.
+- Commit to `main` locally; push, publish and deploy only on the owner's ask. The box's units (`film-lab.service`) may be restarted to pick up merged server code.
+- No persisted-format change unless additive and optional: notes files, `catalogue.json`, timings, `library.lock.json`, `review.json`.
+- On a Sabbath pause (Friday sundown to Saturday sundown) stop every background agent, workflow and loop.
+
+## Sweeps
+
+Run every loop pass beside the standard sweeps (architecture areas, package review, prior art, guardrails).
+
+| Sweep     | Serves                        | Scope                                   | Method                                                                                                                                                                                                                            | Done when                                                                                            |
+| --------- | ----------------------------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| url state | Addressable                   | every page's signals, machines, storage | List each piece of UI state (signal, machine, session/local storage, hash, query, path) with file:line, classify it path / query / hash / local by the tiebreaks, and drive a pasted link of each citable one in a fresh browser. | every citable state round-trips through a pasted link and Back, and every local one is named as such |
+| studio ui | Comb at a glance, Phone-first | the rendered pages                      | Drive every page with `agent-browser` at 390×844 and 1440×900, screenshot each view, and compare against the `studio ui` sources in `PRIOR_ARTS.md` (one matrix row per view × reference).                                        | a matrix row per view × reference, every gap a ledger row or rejected with its north star            |
+| one gate  | One gate                      | the server                              | Walk `routesOf(LabHttpApi)` and every page and media path with a foreign Host, a cross-site `Sec-Fetch-Site` and a form-encoded write; read `journalctl --user -u film-lab` for `api.request.refused`.                            | every path answers 403/415 as the gate says, and the tests cover each class                          |
+
+## Live check
+
+- Drive: from `apps/animations`, `LAB_PORT=<free port> bun cli.ts lab` in the background (the box's unit holds 8229), then `agent-browser` on the changed pages at phone and laptop sizes; a write must leave a clean `git diff` after Undo. Over HTTPS: `https://bite-cristian.exe.xyz:8229/` (the exe proxy; needed for the studio's microphone).
+- State: the lab's log (`lab.ready`, `lab.page.build`, `api.request.refused|failed`), `journalctl --user -u film-lab -n 100` for the unit, `bun run notes <film>` for notes, `git diff` for writes, `GET /review/build?since=0&timeout=0` for the pages' build.
+- Stop: kill the started process by its PID (never `pkill -f "bun cli.ts lab"` from a shell whose own command line matches); after a merge of server code, `systemctl --user restart film-lab`.
+
+## Rejected
+
+A sweep re-proposes a row only with a new receipt. A row leaves when its subject leaves the tree.
+
+| Candidate                                                        | Why it stays                                                                                                                                                  |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Bun's dev server HTML routes (`development: true`) for the pages | **One gate**: they answer before `admit` and have no Host check (2026-10-02 session, `1b66db79`).                                                             |
+| Server-side rendering the lab's pages                            | **Live from source** is met by on-demand builds; the preview draws the film's scene code in the browser, so SSR would still ship it (2026-10-02, `1b66db79`). |
+| A second review server beside the lab                            | **One surface** (2026-10-02, `1b66db79` merged `film review` into `film lab`).                                                                                |
+| Values kept in a sidecar JSON the lab edits (Theatre.js)         | **Lab-first** (framework): a second copy of a value; the lab writes the scene's literal.                                                                      |
