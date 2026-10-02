@@ -186,9 +186,17 @@ const choices = (toy: Toy): Json => ({
 const bodyText = (body: Option.Option<Json>): string =>
   Option.getOrElse(Option.map(body, jsonText), () => '');
 
-/** The fake film: its choices, its writes, its check and its sound check. */
-const fakeFilm = () => {
-  const toy: Toy = { picked: 'strings', look: 'now', level: -24, approved: false, said: [] };
+/** The fake film as it opens: strings picked, nothing said. */
+const freshToy = (): Toy => ({
+  picked: 'strings',
+  look: 'now',
+  level: -24,
+  approved: false,
+  said: [],
+});
+
+/** The fake film: its choices, its writes, its check and its sound check, over `toy`. */
+const fakeFilm = (toy: Toy = freshToy()) => {
   let undo = Option.none<string>();
   const wrote = (target: string, file: string): Json => ({
     file,
@@ -418,6 +426,52 @@ describe("a film's choices", () => {
         yield* Deferred.done(land, Exit.void);
         yield* attributeIs(page, '.rv-writes', 'data-reading', 'false');
         yield* countIs(page, `${at('score', 'strings')} [data-comment="c1"]`, 1);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a pick made while a comment is in flight leaves the comment its own answer',
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const routes = fakeFilm(toy);
+        // The comment is held: the server records it once the test lets it land.
+        const land = yield* Deferred.make<void>();
+        const heldSay = route('POST', /^\/lab\/toy\/choices\/say$/, () =>
+          later(land, json(choices({ ...toy, said: [...toy.said, 'warmer in the close'] }))),
+        );
+        const { page, asked, errors } = yield* openReview([heldSay, ...routes], {
+          search: FILM,
+        });
+        const box = `${at('score', 'strings')} .rv-comment-input`;
+        const comment = `${at('score', 'strings')} [data-act="comment"]`;
+        yield* waitFor(page, box);
+        yield* page.fill(box, 'warmer in the close');
+        yield* click(page, comment);
+        yield* Effect.sync(() => asked.some((a) => a.path === '/lab/toy/choices/say')).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
+          Effect.timeout('10 seconds'),
+        );
+        // The comment's own button waits; a pick on another option is free to go.
+        yield* evaluates(page, `document.querySelector('${comment}').disabled`, true);
+        yield* evaluates(
+          page,
+          `document.querySelector('${at('score', 'piano')} [data-act="pick"]').disabled`,
+          false,
+        );
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
+        // The pick's answer is not the comment's: its box keeps the text.
+        yield* evaluates(page, `document.querySelector('${box}').value`, 'warmer in the close');
+        // The comment lands: the page shows it, and its box empties.
+        yield* Effect.sync(() => {
+          toy.said = [...toy.said, 'warmer in the close'];
+        });
+        yield* Deferred.done(land, Exit.void);
+        yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
+        yield* valueIs(page, box, '');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

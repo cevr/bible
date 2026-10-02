@@ -21,7 +21,7 @@ import { Transport } from '../section.tsx';
 import { failedText, statusText } from '../loaded.tsx';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, HearButton } from './choice.tsx';
-import { FilmProvider, PICTURE, Playing, useFilm } from './context.tsx';
+import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
 
 /** A picture's chip: where it lies (renders of one film share a name), and its size. */
 const pictureLabel = (p: ReviewVideo): string => {
@@ -131,7 +131,8 @@ const STEP_WORD = { undo: 'Undo', redo: 'Redo' } as const;
 
 /** An undo's or a redo's button: it names what it would do, and is disabled when there is nothing to. */
 const StepButton = (props: { readonly which: 'undo' | 'redo'; readonly act: ChoiceAct }) => {
-  const { steps, write } = useFilm();
+  const { steps } = useFilm();
+  const stepping = useAct();
   const step = () => Option.flatMap(steps(), (s) => Option.fromUndefinedOr(s[props.which]));
   const word = () => STEP_WORD[props.which];
   return (
@@ -139,12 +140,12 @@ const StepButton = (props: { readonly which: 'undo' | 'redo'; readonly act: Choi
       type="button"
       class="rv-chip"
       data-act={props.which}
-      disabled={Option.isNone(step())}
+      disabled={Option.isNone(step()) || stepping.waiting()}
       title={Option.getOrElse(
         Option.map(step(), (s) => `${props.which} ${s.target} in ${s.file}`),
         () => `nothing to ${props.which}`,
       )}
-      onClick={() => write(props.act)}
+      onClick={() => stepping.write(props.act)}
     >
       {Option.match(step(), { onNone: word, onSome: (s) => `${word()} ${s.target}` })}
     </button>

@@ -1384,8 +1384,13 @@ answers land in any order, so the page shows the newest asked
 (`lab/review/asked.ts`): a read asked before a say and answered after it is
 dropped, a say answered after a read asked later reads the project again, and
 so does an approve refused (`VerbRefused`) because a scene went stale since
-the page read it. The choices page keeps its choices the same way. A say box
-empties only once its say is said
+the page read it. The choices page keeps its choices the same way. Each control writes on a
+run of its own (`useWrite` in `lab/review/loaded.tsx`: a verb, a knob, an
+approve, a comment box, Undo, Redo): it waits, disabled, until its own
+answer lands, while every other control stays free, and a write sent
+meanwhile neither cancels it nor hands it its answer. The status line counts
+them all ("writing…" while any is out, else the last answered). A say box
+empties only once its own say is said
 (`SayBox`: each say answers whether it was): a comment whose say fails (the
 film mid-edit and not loading) stays in its box beside the failure.
 
