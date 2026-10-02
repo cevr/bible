@@ -474,7 +474,6 @@ const ViewTabs = () => {
 
 const RATE_TITLES = { 0.5: '½×', 1: '1×' } as const;
 
-/** Play and pause, the time, one scrub bar for every video, and the rate. */
 /** The synced player's controls: play, the clock, a scrub over every track, the rate, and a line of keys. */
 export const Transport = (props: {
   readonly sync: Accessor<SyncState>;

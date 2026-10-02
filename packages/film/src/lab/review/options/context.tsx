@@ -36,10 +36,10 @@ import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine, CheckReport } from '../../../core/schema.ts';
 import type { LabFailure } from '../../api.ts';
 import { newestAsked } from '../asked.ts';
-import { ARROWS, typing, useReview } from '../context.tsx';
+import { useReview } from '../context.tsx';
 import { Loaded } from '../loaded.tsx';
-import { STEP_S, type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
-import { type SyncDriver, makeSync } from '../sync.ts';
+import { type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
+import { type SyncDriver, listenPlayerKeys, makeSync, playerEvent } from '../sync.ts';
 import { type ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } from './api.ts';
 
 /** The player's clock: the film's render, its own sound muted unless it is the one heard. */
@@ -224,22 +224,14 @@ const FilmBody = (
   onCleanup(driver.stop);
   createEffect(sync, (s) => driver.apply(s));
 
-  const onKey = (e: KeyboardEvent) => {
-    if (Option.exists(Option.fromNullishOr(e.target), typing) || e.metaKey || e.ctrlKey || e.altKey)
-      return;
-    if (Option.isNone(picture())) return;
-    if (e.key === ' ') {
-      e.preventDefault();
-      send(SyncEvent.Toggled);
-      return;
-    }
-    Option.map(Option.fromUndefinedOr(ARROWS.get(e.key)), (by) => {
-      e.preventDefault();
-      send(SyncEvent.Stepped({ by: by * STEP_S }));
-    });
-  };
-  document.addEventListener('keydown', onKey);
-  onCleanup(() => document.removeEventListener('keydown', onKey));
+  // The player's keys, once there is a picture to play.
+  onCleanup(
+    listenPlayerKeys((key) => {
+      if (Option.isNone(picture())) return false;
+      send(playerEvent(key));
+      return true;
+    }),
+  );
 
   const value: FilmContextValue = {
     film,

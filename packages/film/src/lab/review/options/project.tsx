@@ -364,6 +364,7 @@ const ProjectReady = (props: { readonly film: string }) => {
   const { meta } = useReview();
   const { wrote } = useFilm();
   const film = props.film;
+  // The page reads the `main` variant's project: no URL names another variant yet.
   const variant = Option.none<string>();
   const readAtom = meta.runtime.atom(OptionsApi.use((api) => api.project(film, variant)));
   const againAtom = meta.runtime.fn(() => OptionsApi.use((api) => api.project(film, variant)));
