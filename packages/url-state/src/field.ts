@@ -189,16 +189,18 @@ export interface IndexedOptions {
   readonly max: number;
   /** The URL key of `name` in copy `index` (0-based). */
   readonly key: (name: string, index: number) => string;
-  /** The key a later copy writes, empty, when it would otherwise write none,
-   *  so a copy at its defaults still exists when the link is read back. */
+  /** The key every copy after the first writes, empty when its value is the
+   *  default (`?q=a&q2=`), so a copy at its defaults still exists when the
+   *  link is read back. */
   readonly marker: string;
 }
 
 /**
  * Copies of one struct, each under its own suffixed keys (`options.key`).
  *
- * A copy exists when the URL holds any of its keys. Copy 0 always exists;
- * the walk stops at the first copy with no keys, and at `options.max`.
+ * A later copy exists when the URL holds any of its keys. Copy 0 always
+ * exists, keys or not; the walk from copy 1 stops at the first copy with no
+ * keys, and at `options.max`.
  */
 export const indexed = <S extends Schema.Codec<unknown, unknown>>(
   section: S,
