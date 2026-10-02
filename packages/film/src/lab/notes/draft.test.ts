@@ -3,8 +3,9 @@
 // the box and the ink only when there are any; and a pointer's place on the
 // frame in film pixels.
 
-import { Option } from 'effect';
+import { Option, Schema } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
+import { NoteDraft } from '../../core/schema.ts';
 import { probeFilm } from '../fixtures/probe-film.ts';
 import { boxOf, draftOf, filmPixel, whereText } from './draft.ts';
 
@@ -58,6 +59,27 @@ describe('the draft', () => {
         ],
       ]),
     );
+  });
+
+  test('the draft says how far into its scene it was made', () => {
+    const two = film.placed[1];
+    const T = (two?.start ?? 0) + 0.4;
+    const draft = draftOf(film.placed, film.fps, {
+      T,
+      box: Option.none(),
+      ink: [],
+      text: 'later in two',
+    });
+    expect(Option.map(draft, (d) => [d.scene, d.T])).toEqual(Option.some(['two', T]));
+    expect(Option.getOrThrow(draft).local).toBeCloseTo(0.4, 9);
+  });
+
+  test('a draft at a scene start reached by frame steps is a draft the server takes', () => {
+    const T = (film.placed[1]?.start ?? 0) - 1e-14;
+    const draft = Option.getOrThrow(
+      draftOf(film.placed, film.fps, { T, box: Option.none(), ink: [], text: 'at the cut' }),
+    );
+    expect(Schema.is(NoteDraft)(draft)).toBe(true);
   });
 
   test('an empty note is no draft', () => {

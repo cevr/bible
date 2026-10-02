@@ -313,12 +313,12 @@ describe('review', () => {
     }).pipe(Effect.provide(layer));
   });
 
-  it.effect('Retake counts in again; Discard rests', () => {
+  it.effect('Arm from review (Retake) counts in again; Discard rests', () => {
     const { layer } = fakes();
     return Effect.gen(function* () {
       yield* assertPath(
         machine,
-        [...recorded, RecorderEvent.Retake({ device: Option.none() })],
+        [...recorded, RecorderEvent.Arm({ device: Option.none() })],
         [
           'Idle',
           ...Array.from({ length: COUNT_IN }, () => 'CountIn'),

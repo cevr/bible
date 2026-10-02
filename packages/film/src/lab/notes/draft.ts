@@ -1,5 +1,5 @@
-// A note's draft, pure: where the moment noted sits (its scene, time and
-// frame, and the cue edge and mark nearest it), the draft the composer posts
+// A note's draft, pure: where the moment noted sits (its scene, time, time
+// into the scene and frame, and the cue edge and mark nearest it), the draft the composer posts
 // (the box and the ink only when there are any), and the frame's pixels a
 // pointer is over.
 
@@ -42,6 +42,7 @@ export const draftOf = (
   return Option.map(nearestMoment(placed, T), (m): NoteDraft => ({
     scene: m.scene,
     T,
+    local: m.local,
     frame: Math.round(T * fps),
     text,
     ...Option.match(m.cue, { onNone: () => ({}), onSome: (cue) => ({ cue }) }),

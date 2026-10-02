@@ -38,6 +38,7 @@ const LabPage = (props: { readonly name: string; readonly player: Player }) => (
             <Lab.Panel>
               <Lab.Header>
                 <Notes.Pen />
+                <Notes.Frame />
               </Lab.Header>
               <Editor.Section>
                 <Editor.Knobs />

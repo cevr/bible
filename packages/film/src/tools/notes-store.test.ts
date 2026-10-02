@@ -140,6 +140,23 @@ describe('NotesStore', () => {
     }).pipe(Effect.provide(storeOver(memoryFileSystem(new Map())))),
   );
 
+  it.effect(
+    'a wait past a file reset to an empty log answers at once, at the file’s cursor',
+    () => {
+      const files = new Map<string, Uint8Array>();
+      return Effect.gen(function* () {
+        const notes = yield* NotesStore;
+        for (const t of ['a', 'b', 'c', 'd', 'e']) yield* notes.add(film, draft(t), png);
+        // The notes file is trashed: the film reads as an empty log again.
+        files.delete('/lab/f/notes.json');
+        const waiting = yield* Effect.forkChild(notes.wait(film, 5, '5 seconds'));
+        yield* TestClock.adjust('10 millis');
+        expect(Option.isSome(Option.fromUndefinedOr(waiting.pollUnsafe()))).toBe(true);
+        expect(yield* Fiber.join(waiting)).toEqual({ cursor: 0, events: [] });
+      }).pipe(Effect.provide(storeOver(memoryFileSystem(files))));
+    },
+  );
+
   it.live('two processes writing one film’s notes at once both land', () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;

@@ -21,6 +21,7 @@ import {
   onCleanup,
   useContext,
 } from 'solid-js';
+import { noteT } from '../../core/notes.ts';
 import type { Note, Point } from '../../core/schema.ts';
 import { NotesApi, reasonOf } from '../api.ts';
 import { useLab } from '../shell.tsx';
@@ -53,6 +54,12 @@ interface NotesState {
   /** The film's notes, as the feed last read them. */
   readonly notes: Accessor<ReadonlyArray<Note>>;
   readonly selected: Accessor<Option.Option<Note>>;
+  /**
+   * The film time `note` shows at now (`noteT`): its time in its scene, so a
+   * re-take of an earlier beat does not move it; the seek, its marks, its pin
+   * and its label all read it.
+   */
+  readonly timeOf: (note: Note) => number;
   /** Whether a drag on the frame draws ink rather than a box. */
   readonly pen: Accessor<boolean>;
   /** Where the note being made sits: scene, time, frame, nearest cue edge and mark. */
@@ -162,6 +169,8 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
     }),
   );
 
+  const timeOf = (note: Note) => noteT(film.placed, film.fps, note);
+
   const where = createMemo(() =>
     Option.match(composingT(composer()), {
       onNone: () => '',
@@ -185,7 +194,7 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
     },
     select: (note) => {
       setSelectedId(Option.some(note.id));
-      player.seek(note.T);
+      player.seek(timeOf(note));
     },
     write: (w) => writeThread(w),
   };
@@ -198,6 +207,7 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
       draft: () => draftMarks(composer()),
       notes,
       selected,
+      timeOf,
       pen,
       where,
       status: () => composerText(composer()),

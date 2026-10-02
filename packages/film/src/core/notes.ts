@@ -18,9 +18,11 @@ import type {
   Reply,
 } from './schema.ts';
 
-/** Where a time falls on the film: its scene, and the cue edge and mark nearest it there. */
+/** Where a time falls on the film: its scene, how far into it, and the cue edge and mark nearest it there. */
 interface Moment {
   readonly scene: string;
+  /** Scene-local seconds, never below 0. */
+  readonly local: number;
   readonly cue: Option.Option<NoteCue>;
   readonly mark: Option.Option<string>;
 }
@@ -49,7 +51,9 @@ const closest = <A>(local: number, candidates: ReadonlyArray<Candidate<A>>): Opt
 /** The scene at `T` and, in it, the nearest named-cue edge and the nearest `{mark}`. */
 export const nearestMoment = (placed: ReadonlyArray<Placed>, T: number): Option.Option<Moment> =>
   Option.map(sceneAt(placed, T), (p) => {
-    const local = T - p.start;
+    // Never before the scene: frame steps can add up to a hair under its start,
+    // which the layout already reads as this scene.
+    const local = Math.max(0, T - p.start);
     const edges = [...p.cues].flatMap(([name, c]): Array<Candidate<NoteCue>> => {
       const start: Candidate<NoteCue> = { value: { name, edge: 'start' }, at: c.start };
       // An instant has one edge.
@@ -60,8 +64,40 @@ export const nearestMoment = (placed: ReadonlyArray<Placed>, T: number): Option.
       value: name,
       at: p.speechStart + at,
     }));
-    return { scene: p.spec.id, cue: closest(local, edges), mark: closest(local, marks) };
+    return { scene: p.spec.id, local, cue: closest(local, edges), mark: closest(local, marks) };
   });
+
+/**
+ * Film seconds `local` into placed scene `p`: as it is while inside the scene;
+ * at or past its end (the scene got shorter), the scene's last frame, the last
+ * one that starts before its end (a hair of float error is not a frame).
+ */
+const inScene = (p: Placed, fps: number, local: number) => {
+  if (local < p.dur) return p.start + local;
+  const end = (p.start + p.dur) * fps;
+  return Math.max(p.start, (Math.ceil(end - 1e-9) - 1) / fps);
+};
+
+/**
+ * The film time a note shows at now: `local` seconds into its scene while the
+ * film has that scene, so a re-take of an earlier beat does not move it off its
+ * frame (held on the scene's last frame if the scene got shorter than that);
+ * else, and for a note made before `local`, its `T`.
+ */
+export const noteT = (
+  placed: ReadonlyArray<Placed>,
+  fps: number,
+  note: Pick<NoteDraft, 'scene' | 'T' | 'local'>,
+): number =>
+  Option.getOrElse(
+    Option.flatMap(Option.fromUndefinedOr(note.local), (local) =>
+      Option.map(
+        Arr.findFirst(placed, (p) => p.spec.id === note.scene),
+        (p) => inScene(p, fps, local),
+      ),
+    ),
+    () => note.T,
+  );
 
 /** A film with no notes yet. */
 export const emptyNotes = (film: string): NotesFile => ({ film, seq: 0, notes: [] });
@@ -145,23 +181,32 @@ export const replyToNote = (
 export const resolveNote = (file: NotesFile, id: string): NotesFile =>
   change(file, id, (note) => ({ ...note, status: 'resolved' }));
 
+/** Where to report from: `since`, or the start of a file reset below it. */
+const reportFrom = (file: NotesFile, since: number) => {
+  if (file.seq < since) return 0;
+  return since;
+};
+
 /**
  * Every change after `since`, in the order made, and the cursor to pass next.
  * A note or reply is reported once: its change number never moves. A note
- * whose last change was resolving it is reported as resolved.
+ * whose last change was resolving it is reported as resolved. A file whose
+ * own cursor is below `since` was reset (trashed, moved or restored), so its
+ * whole log is new to the watcher and the cursor is the file's.
  */
 export const eventsSince = (file: NotesFile, since: number): NotesWait => {
+  const from = reportFrom(file, since);
   const events = file.notes.flatMap((note): Array<NoteEvent> => {
     const out: Array<NoteEvent> = [];
-    if (note.seq > since) out.push({ _tag: 'NoteAdded', seq: note.seq, note });
+    if (note.seq > from) out.push({ _tag: 'NoteAdded', seq: note.seq, note });
     for (const reply of note.thread)
-      if (reply.seq > since) out.push({ _tag: 'NoteReplied', seq: reply.seq, note, reply });
-    if (note.status === 'resolved' && note.changed > since)
+      if (reply.seq > from) out.push({ _tag: 'NoteReplied', seq: reply.seq, note, reply });
+    if (note.status === 'resolved' && note.changed > from)
       out.push({ _tag: 'NoteResolved', seq: note.changed, note });
     return out;
   });
   return {
-    cursor: Math.max(since, file.seq),
+    cursor: file.seq,
     events: Arr.sort(
       events,
       Order.mapInput(Order.Number, (e: NoteEvent) => e.seq),

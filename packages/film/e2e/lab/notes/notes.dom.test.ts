@@ -19,8 +19,15 @@ import {
   route,
 } from '../../../src/lab/fixtures/harness.ts';
 import { ServerFailed } from '../../../src/core/api.ts';
-import { PROBE } from '../../../src/lab/fixtures/probe-film.ts';
-import { attached, textHas, textIs, valueIs, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
+import {
+  attached,
+  evaluates,
+  textHas,
+  textIs,
+  valueIs,
+  waitFor,
+} from '../../../src/lab/fixtures/settled.ts';
 import { RETRY_MS } from '../../../src/lab/notes/feed.ts';
 import type { Note, Reply } from '../../../src/core/schema.ts';
 
@@ -132,6 +139,7 @@ describe('marking a frame', () => {
         const body = theNote(asked);
         expect(field(body, 'scene')).toEqual(Option.some('one'));
         expect(field(body, 'T')).toEqual(Option.some(1));
+        expect(field(body, 'local')).toEqual(Option.some(1));
         expect(field(body, 'frame')).toEqual(Option.some(30));
         expect(field(body, 'text')).toEqual(Option.some('the ball rises too early'));
         expect(field(body, 'box')).toEqual(Option.some({ x: 520, y: 300, w: 0, h: 0 }));
@@ -187,6 +195,71 @@ describe('marking a frame', () => {
   );
 
   it.live(
+    'a cancelled gesture (an OS swipe, a call) drops the mark and writes nothing',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        yield* waitFor(page, '.lab-overlay');
+        const at = yield* onFrame(page, 520, 300);
+        yield* page.mouse.move(at.x, at.y);
+        yield* page.mouse.down;
+        yield* waitFor(page, '.lab-compose:not([hidden])');
+        yield* page.evaluate(
+          `document.querySelector('.lab-notes-surface').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 }))`,
+        );
+        yield* attached(page, '.lab-compose[hidden]');
+        // The next note opens as ever.
+        yield* page.mouse.up;
+        yield* page.press('n');
+        yield* waitFor(page, '.lab-compose:not([hidden])');
+        yield* textHas(page, '.lab-where', 'one · 1.00s');
+        expect(posted(asked, /^\/notes$/)).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a second finger neither cancels nor lifts the first one’s mark',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        yield* waitFor(page, '.lab-overlay');
+        const a = yield* onFrame(page, 420, 60);
+        const b = yield* onFrame(page, 600, 160);
+        const c = yield* onFrame(page, 300, 300);
+        // The mouse is pointer 1: it presses and drags a box.
+        yield* page.mouse.move(a.x, a.y);
+        yield* page.mouse.down;
+        yield* page.mouse.move(b.x, b.y, 5);
+        // Pointer 2 is a second finger. The browser cannot make one, so its
+        // events are dispatched, and its capture taken as a real touch's is.
+        yield* page.evaluate(`(() => {
+          const s = document.querySelector('.lab-notes-surface');
+          const capture = s.setPointerCapture.bind(s);
+          s.setPointerCapture = (id) => { try { capture(id); } catch {} };
+          const at = { bubbles: true, pointerId: 2, clientX: ${c.x}, clientY: ${c.y} };
+          s.dispatchEvent(new PointerEvent('pointerdown', at));
+          s.dispatchEvent(new PointerEvent('pointerup', at));
+          s.dispatchEvent(new PointerEvent('pointerdown', at));
+          s.dispatchEvent(new PointerEvent('pointercancel', at));
+          return true;
+        })()`);
+        yield* page.mouse.up;
+        yield* waitFor(page, '.lab-compose:not([hidden])');
+        yield* attached(page, '.lab-overlay rect.lab-draft');
+        yield* save(page, 'one finger at a time');
+        yield* waitFor(page, '.lab-note-item[data-id="n1"]');
+        const box = field(theNote(asked), 'box');
+        const n = (key: string) => Number(Option.getOrElse(field(box, key), () => Number.NaN));
+        expect(n('x')).toBeCloseTo(420, -1);
+        expect(n('y')).toBeCloseTo(60, -1);
+        expect(n('w')).toBeCloseTo(180, -1);
+        expect(n('h')).toBeCloseTo(100, -1);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'the marks and pins mount with no cleanup Solid cannot run',
     () =>
       Effect.gen(function* () {
@@ -217,6 +290,25 @@ describe('marking a frame', () => {
   );
 
   it.live(
+    'the Note frame button notes the whole frame, as `n` does, with no box',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        yield* waitFor(page, '[data-act="note-frame"]');
+        yield* textIs(page, '[data-act="note-frame"]', 'Note frame');
+        yield* click(page, '[data-act="note-frame"]');
+        yield* waitFor(page, '.lab-compose:not([hidden])');
+        yield* textHas(page, '.lab-where', 'one · 1.00s · f30');
+        yield* save(page, 'the whole frame is too dark');
+        yield* waitFor(page, '.lab-note-item[data-id="n1"]');
+        const body = theNote(asked);
+        expect(field(body, 'box')).toEqual(Option.none());
+        expect(field(body, 'ink')).toEqual(Option.none());
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a refused save says the server's reason and keeps the draft",
     () =>
       Effect.gen(function* () {
@@ -236,6 +328,38 @@ describe('marking a frame', () => {
         yield* textIs(page, '.lab-status', 'the notes file is locked');
         yield* waitFor(page, '.lab-compose:not([hidden])');
         yield* valueIs(page, '.lab-compose textarea', 'hold longer');
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+describe("a note's place", () => {
+  it.live(
+    'a note seeks to its time in its scene, so an earlier re-take does not move it off its frame',
+    () =>
+      Effect.gen(function* () {
+        const film = probeFilm();
+        const two = film.placed[1];
+        const shown = (two?.start ?? 0) + 0.4;
+        // Its T is from before scene one was re-taken: it now falls in scene one.
+        const stale = noteJson('n1', {
+          scene: 'two',
+          T: 0.5,
+          local: 0.4,
+          box: { x: 100, y: 100, w: 50, h: 50 },
+        });
+        const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(1, [stale]))], {
+          hash: '#3',
+        });
+        yield* waitFor(page, '.lab-note-item[data-id="n1"]');
+        yield* textHas(page, '.lab-note-label', `two · ${shown.toFixed(2)}s`);
+        yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
+        yield* evaluates(
+          page,
+          `Math.round(Number.parseFloat(location.hash.slice(1).split('&')[0]) * ${film.fps})`,
+          Math.round(shown * film.fps),
+        );
+        yield* attached(page, '.lab-overlay rect.lab-note');
       }).pipe(Effect.scoped),
     SLOW,
   );

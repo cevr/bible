@@ -46,7 +46,7 @@ describe('controlsOf', () => {
       'stop',
       'cancel',
     ]);
-    expect(acts(RecorderState.Review({ beat: 'a', wav }))).toEqual(['submit', 'retake', 'discard']);
+    expect(acts(RecorderState.Review({ beat: 'a', wav }))).toEqual(['submit', 'arm', 'discard']);
     expect(acts(RecorderState.Importing({ beat: 'a', work: { _tag: 'Upload', wav } }))).toEqual([]);
     expect(acts(failed(mismatch))).toEqual(['acceptAnyway', 'arm', 'retry']);
     expect(acts(failed(SttUntimed.make({ file: 'a.wav', heard: 2 })))).toEqual(['arm', 'retry']);
@@ -73,7 +73,7 @@ describe('keyOf', () => {
       Option.some({ _tag: 'Act', act: 'submit' }),
     );
     expect(key(RecorderState.Review({ beat: 'a', wav }), 'R')).toEqual(
-      Option.some({ _tag: 'Act', act: 'retake' }),
+      Option.some({ _tag: 'Act', act: 'arm' }),
     );
     expect(key(failed(mismatch), 'K')).toEqual(Option.some({ _tag: 'Act', act: 'acceptAnyway' }));
     expect(key(failed(mismatch), 'Escape')).toEqual(Option.some({ _tag: 'Act', act: 'retry' }));
@@ -106,10 +106,9 @@ describe('keyOf', () => {
 });
 
 describe('eventOf', () => {
-  test('arm and retake carry the microphone picked', () => {
+  test('arm carries the microphone picked', () => {
     const usb = Option.some('usb');
     expect(eventOf('arm', usb)).toEqual(RecorderEvent.Arm({ device: usb }));
-    expect(eventOf('retake', usb)).toEqual(RecorderEvent.Retake({ device: usb }));
     expect(eventOf('acceptAnyway', usb)).toEqual(RecorderEvent.AcceptAnyway);
   });
 });
