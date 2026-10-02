@@ -181,6 +181,50 @@ describe('one write at a time', () => {
       }).pipe(Effect.scoped),
   );
 
+  for (const lifted of ['after', 'before'] as const)
+    it.live(
+      `a second pointer pressing a knob does not take the held cue: lifted ${lifted} the first is cancelled, it lands nothing, and the cancel puts the cue back`,
+      () =>
+        Effect.gen(function* () {
+          const { page, asked, errors } = yield* openLab([], { hash: '#1' });
+          const rise = '.lab-cue[data-cue="rise"]';
+          const spot = '.lab-handle[data-knob="spot"]';
+          yield* editable(page);
+          yield* page.waitFor(spot);
+          const box = yield* page.box(rise);
+          const handle = yield* page.box(spot);
+          const y = box.y + box.height / 2;
+          const x = box.x + box.width / 2;
+          // Pointer 1 (the mouse) grabs rise and moves it.
+          yield* page.mouse.move(x, y);
+          yield* page.mouse.down;
+          yield* page.mouse.move(x + 60, y, 4);
+          // Pointer 2 presses the spot knob's handle while rise is held, and
+          // lifts before or after the browser takes pointer 1 (a page pan).
+          // Each is its own task, as a browser sends them.
+          const second = `{ bubbles: true, pointerId: 2, isPrimary: false, pointerType: 'touch', button: 0, clientX: ${Math.round(handle.x + handle.width / 2)}, clientY: ${Math.round(handle.y + handle.height / 2)} }`;
+          const step = (script: string) =>
+            Effect.andThen(page.evaluate(`${script}; true`), runClock(page, 50));
+          const liftSecond = step(
+            `document.querySelector('${spot}').dispatchEvent(new PointerEvent('pointerup', ${second}))`,
+          );
+          yield* step(
+            `document.querySelector('${spot}').dispatchEvent(new PointerEvent('pointerdown', ${second}))`,
+          );
+          if (lifted === 'before') yield* liftSecond;
+          yield* step(
+            `document.querySelector('${rise}').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 }))`,
+          );
+          if (lifted === 'after') yield* liftSecond;
+          yield* page.mouse.up;
+          yield* runClock(page, 200);
+          expect(posted(asked)).toEqual([]);
+          const after = yield* page.box(rise);
+          expect(Math.round(after.x)).toBe(Math.round(box.x));
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+    );
+
   it.live('a drag while a write is out is not taken', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab(

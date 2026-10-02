@@ -152,30 +152,35 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   /**
    * The grip just grabbed follows the press `down` began: each move moves it,
    * a lift lands it (Release), and a press the browser ends (a page pan, a
-   * lost capture) puts it back (Cancel).
+   * lost capture) puts it back (Cancel). The press owns the grip until it
+   * ends: a press of another pointer meanwhile grabs nothing (`followed`).
    */
   const follow = (down: PointerEvent) => {
-    letGo();
     following = Option.some(
       Effect.runForkWith(meta.host)(
         Pointer.use((pointer) =>
           pointer.drag(down, {
             move: (e) =>
               send(EditEvent.Move({ pointer: { x: e.clientX, y: e.clientY, shift: e.shiftKey } })),
-            end: (lifted) =>
+            end: (lifted) => {
+              following = Option.none();
               send(
                 Option.match(lifted, {
                   onNone: () => EditEvent.Cancel,
                   onSome: () => EditEvent.Release,
                 }),
-              ),
+              );
+            },
           }),
         ),
       ),
     );
   };
+  /** Whether a press's drag is still followed: then another pointer's press is not taken. */
+  const followed = () => Option.isSome(following);
 
   const press = (p: Press) => {
+    if (followed()) return;
     labActions.select(Option.some({ kind: 'cue', scene: p.scene, name: p.cue }));
     const refused = cueRefusal(stripSource().source, stripSource().error, p.cue, p.edge);
     if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
@@ -209,6 +214,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   };
 
   const grabKnob = (p: KnobPress) => {
+    if (followed()) return;
     labActions.select(Option.some({ kind: 'knob', scene: p.scene, name: p.knob }));
     const refused = knobRefusal(stripSource().source, stripSource().error, p.knob);
     if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
