@@ -37,13 +37,12 @@ Remotion's renderer, Theatre.js, pmndrs, leva) is in
 - **Time in the path or `?t=`**: rejected on **Addressable**'s tiebreak (path names what, hash names when; `?t=` would make each frame a new resource).
 - **Scene-relative time in a scene's lab link** (`/films/<film>/lab/<scene>#t=` counts from the scene's start): adopted with PA-1, so a link survives an earlier scene's re-take; the player keeps film-absolute `#t=`.
 - **Values in a JSON store the studio edits** (Theatre.js, Remotion's props editor saving `defaultProps`): rejected on **Lab-first** (framework), as settled in the film loop.
+- **One studio shell over a film's places** (Blender workspaces over one shared context; maximize an area and go back): adopted, ledger row PA-7; on a phone one section at a time, full screen, Back to leave. Free-form split and join of areas and layouts saved in a file: rejected (**Mobile-first**, **Addressable**: the link is the layout).
+- **Compare modes** (OpenRV wipe, difference, switch; `rvlink://` as the session): wipe and difference for the review's pair (PA-8), difference and hold-to-flip in the lab (PA-9), the compare in the link. Dissolve, add, N-way wipes and session files: rejected (**Mobile-first**, **Comb at a glance**, **Addressable**).
+- **Hot reload keeps the place by the URL, not by memory** (Motion Canvas swaps scene modules in place and keeps the frame in localStorage): rejected on **Addressable**; the lab reloads at the URL's place. Adopted from it: the film in the path with an index at `/`, the scene derived from the playhead, timecode display and a flash when new code lands (PA-11).
+- **One command registry for keys, `⌘K`, the `?` sheet and buttons** (Motion Canvas `makeShortcuts`, Linear, Rive): adopted, ledger row PA-10; every command also has a touch path.
+- **A comment link restores its frame and thread** (Frame.io): confirms PA-4's `?note=`; a note gains an optional scene-relative time (NS-1, additive).
 
 ## To survey
 
 - Solid 2's built-in server rendering (`@solidjs/web` 2.0.0-rc.11: `renderToStream`, `hydrate`, and the experimental `frames` server components with client slots; owner asked 2026-10-02). New receipt against Rejected's "SSR of the lab pages", scoped to the pages that draw no scene (scenes, choices, project, sets): does a streamed first paint on a phone beat the client bundle, can it stay **Live from source** (built on request) and behind `admit`, and what would the compiler need from `LabPage`'s Bun.build? `server-functions` is out of scope: a second RPC path beside the HttpApi breaks **One gate**. Read the package's `types/frames/*.d.ts` and `solidjs/solid` (`next` branch).
-
-- Blender's area/editor system (one window split into editors that each show a different view of one shared selection): would a lab whose panels are views of one URL-held selection replace the separate review and lab pages? Read `blender/blender` `source/blender/editors/screen/`.
-- Motion Canvas editor (`motion-canvas/motion-canvas`, `packages/ui/src/`): how its timeline and scene list keep the selected scene and time across hot reload, against `packages/film/src/lab/rebuilt.ts` and `player/view-state.ts`.
-- Rive editor and Linear (product UI, no source): density, the command palette and keyboard-first navigation for a studio used daily; what a `⌘K` over films, scenes, cues and notes would need from the URL scheme.
-- Frame.io's deep links to a frame and a comment (not confirmed in its docs): how a shared comment link restores the frame and the thread; compare with the lab's notes (`?note=`).
-- OpenRV (`AcademySoftwareFoundation/OpenRV`): the compare modes (wipe, 2×2, difference) and how a session is serialised, against `packages/film/src/lab/compare/`.
