@@ -227,6 +227,30 @@ describe('UrlState', () => {
     }).pipe(Effect.provide(memory('/scrub'))),
   );
 
+  it.effect('a write made while a flush commits is committed too', () =>
+    Effect.gen(function* () {
+      const location = yield* Location;
+      // An entry subscriber that answers the flush's own push with a write,
+      // as the push lands.
+      yield* location.changes.pipe(
+        Stream.filter((entry) => entry.navigation === 'push'),
+        Stream.take(1),
+        Stream.runForEach(() =>
+          UrlState.update(Lab, (value) => ({ ...value, hash: { t: at(2) } })),
+        ),
+        Effect.forkChild({ startImmediately: true }),
+      );
+      yield* UrlState.update(Lab, (value) => ({ ...value, query: { ...value.query, cue: 'c' } }));
+      yield* TestClock.adjust('1 second');
+      const state = yield* UrlState.UrlState;
+      expect(yield* state.href).toBe('/films/f/lab/s?cue=c#t=2');
+      expect(yield* stackOf).toEqual({
+        entries: ['load /films/f/lab/s', 'replace /films/f/lab/s?cue=c#t=2'],
+        index: 1,
+      });
+    }).pipe(Effect.provide(memory('/films/f/lab/s'))),
+  );
+
   it.effect('update off the place writes nothing', () =>
     Effect.gen(function* () {
       yield* UrlState.update(Lab, (value) => ({ ...value, query: { ...value.query, cue: 'c' } }));

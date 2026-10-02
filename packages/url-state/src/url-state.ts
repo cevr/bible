@@ -117,9 +117,8 @@ export const layer: Layer.Layer<UrlState, never, Location> = Layer.effect(
       }),
     );
 
-    const flush = Effect.gen(function* () {
-      // The tick: every write made in this turn joins the batch first.
-      yield* Effect.yieldNow;
+    /** Take the waiting batch and write it, once its window has passed. */
+    const commit = Effect.gen(function* () {
       yield* due;
       const batch = yield* Ref.getAndSet(pending, Option.none());
       if (Option.isNone(batch)) return;
@@ -139,6 +138,23 @@ export const layer: Layer.Layer<UrlState, never, Location> = Layer.effect(
       if (move.history === 'push') yield* location.push(href);
       else yield* location.replace(href);
       yield* Ref.set(lastFlush, Option.some(yield* Clock.currentTimeMillis));
+    });
+
+    /** Commit until nothing waits. A write made while a batch commits (an
+     *  entry subscriber answering this flush's own push) finds this flush
+     *  still running, so `navigate` schedules none for it: it is this
+     *  flush's to commit, after its own window. */
+    const drain: Effect.Effect<void> = Effect.suspend(() =>
+      Effect.gen(function* () {
+        yield* commit;
+        if (Option.isSome(yield* Ref.get(pending))) yield* drain;
+      }),
+    );
+
+    const flush = Effect.gen(function* () {
+      // The tick: every write made in this turn joins the batch first.
+      yield* Effect.yieldNow;
+      yield* drain;
     }).pipe(Effect.provideService(Scheduler.Scheduler, microtasks));
 
     const navigate = Effect.fn('UrlState.navigate')(function* (href: string, move: Place.Move) {
