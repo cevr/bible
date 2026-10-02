@@ -105,6 +105,24 @@ describe('sending', () => {
     expect(shown).toEqual(['pick warning', 'picked choices']);
   });
 
+  test('an overtaken answer runs nothing of its own, its projection included', () => {
+    const orders = { findings: newestAsked() };
+    const older = sending(orders);
+    const newer = sending(orders);
+    newer(Exit.succeed('newer warning')).show('findings', Option.some, () => {});
+    let seen = 'nothing';
+    const ran = older(Exit.succeed('older clean')).show(
+      'findings',
+      (v) => {
+        seen = v;
+        return Option.some(v);
+      },
+      () => {},
+    );
+    expect(ran).toBe(false);
+    expect(seen).toBe('nothing');
+  });
+
   test('a failed write shows nothing and says why', () => {
     const land = sending({ choices: newestAsked() });
     const landed = land(Exit.fail('refused'));

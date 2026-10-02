@@ -22,6 +22,8 @@ export interface Ask {
   readonly answer: (show: () => void) => boolean;
   /** Whether something was asked after this. */
   readonly overtaken: () => boolean;
+  /** Whether `answer` would run now: no answer asked after this one is shown. */
+  readonly newest: () => boolean;
 }
 
 /** A page's asks of one thing, numbered as they are made. */
@@ -61,7 +63,9 @@ export const sending = <K extends string>(orders: Readonly<Record<K, Asks>>) => 
   return <A, E>(exit: Exit.Exit<A, E>): Landed<A, E, K> => ({
     succeeded: Exit.isSuccess(exit),
     failure: Exit.findErrorOption(exit),
+    // Only the newest ask reads its answer: `said` never runs on an overtaken one.
     show: (order, said, show) =>
+      asked[order].newest() &&
       Option.match(Option.flatMap(Exit.getSuccess(exit), said), {
         onNone: () => false,
         onSome: (b) => asked[order].answer(() => show(b)),
@@ -86,6 +90,7 @@ export const newestAsked = (): Asks => {
           return true;
         },
         overtaken: () => asked > n,
+        newest: () => n >= shown,
       };
     },
   };
