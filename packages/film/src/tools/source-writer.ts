@@ -188,21 +188,25 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
        * Fails as `SourceChanged` (`target` naming the write) and writes nothing
        * when the file is not `expected`.
        */
-      const swap = (file: string, expected: string, next: string, target: string) =>
+      const swap = (film: string, file: string, expected: string, next: string, target: string) =>
         store.modify({ file, codec: Schema.String, empty: '' }, (now) => {
-          if (now !== expected) return Result.fail(SourceChanged.make({ file, target }));
+          if (now !== expected)
+            return Result.fail(SourceChanged.make({ file: shownIn(film, file), target }));
           return Result.succeed(next);
         });
 
-      /** A change's file as the log names it: relative to its film's folder. */
-      const shown = (c: Change) => path.relative(repo.paths(c.film).dir, c.file);
+      /** A file of `film`'s as a refusal, an answer and the log name it: relative to its folder, never a path on the box. */
+      const shownIn = (film: string, file: string) => path.relative(repo.paths(film).dir, file);
+
+      /** A change's file as the log names it. */
+      const shown = (c: Change) => shownIn(c.film, c.file);
 
       /**
        * `text` as oxfmt formats it for `file`, through its stdin: the file is
        * not touched. Run from the file's folder, so oxfmt finds the config the
        * file is formatted with.
        */
-      const format = (file: string, text: string) =>
+      const format = (film: string, file: string, text: string) =>
         collectWithin(
           spawner,
           'oxfmt',
@@ -212,11 +216,16 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
           }),
           FORMAT_LIMIT,
         ).pipe(
-          Effect.mapError((error) => FormatFailed.make({ file, reason: error.message })),
+          Effect.mapError((error) =>
+            FormatFailed.make({ file: shownIn(film, file), reason: error.message }),
+          ),
           Effect.flatMap((done) => {
             if (done.exitCode === 0) return Effect.succeed(done.stdout);
             return Effect.fail(
-              FormatFailed.make({ file, reason: `${done.stderr}${done.stdout}`.trim() }),
+              FormatFailed.make({
+                file: shownIn(film, file),
+                reason: `${done.stderr}${done.stdout}`.trim(),
+              }),
             );
           }),
         );
@@ -236,13 +245,17 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
             const { file, target } = rewrite;
             const before = yield* fs.readFileString(file);
             const next = yield* Effect.fromResult(rewrite.edit(before));
-            const after = yield* format(file, next);
+            const after = yield* format(rewrite.film, file, next);
             const missed = Result.match(rewrite.verify(after), {
               onFailure: (e) => [e.reason],
               onSuccess: (m) => m,
             });
             if (missed.length > 0)
-              return yield* WriteUnverified.make({ file, target, reason: missed.join(', ') });
+              return yield* WriteUnverified.make({
+                file: shownIn(rewrite.film, file),
+                target,
+                reason: missed.join(', '),
+              });
             const checked = yield* rewrite.check(after);
             const change: Change = {
               film: rewrite.film,
@@ -255,7 +268,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
             // Already so (a pick of the option playing): nothing to write, nothing to undo.
             if (after === before) {
               if ((yield* fs.readFileString(file)) !== before)
-                return yield* SourceChanged.make({ file, target });
+                return yield* SourceChanged.make({ file: shownIn(rewrite.film, file), target });
               return [change, checked] as const;
             }
             // Uninterruptible: the write may reload the page, which drops its
@@ -263,7 +276,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
             return yield* Effect.uninterruptible(
               Effect.gen(function* () {
                 // Only over the very text the edit was made from.
-                yield* swap(file, before, after, target);
+                yield* swap(rewrite.film, file, before, after, target);
                 yield* record(change, 'lab.write');
                 return [change, checked] as const;
               }),
@@ -276,11 +289,11 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
        * write another process made since stays (unformatted), and the act's
        * own text is what it left. Answers the text the act's change ends at.
        */
-      const formattedOver = (file: string, acted: string, target: string) =>
+      const formattedOver = (film: string, file: string, acted: string, target: string) =>
         Effect.gen(function* () {
-          const formatted = yield* format(file, acted);
+          const formatted = yield* format(film, file, acted);
           if (formatted === acted) return acted;
-          return yield* swap(file, acted, formatted, target).pipe(
+          return yield* swap(film, file, acted, formatted, target).pipe(
             Effect.as(formatted),
             Effect.catchTag('SourceChanged', () => Effect.succeed(acted)),
           );
@@ -300,7 +313,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               // Left as the formatter leaves it, as every lab write is: the act's own
               // writer (the library's lock) need not format as the repository does.
               const acted = yield* fs.readFileString(file);
-              const after = yield* formattedOver(file, acted, target);
+              const after = yield* formattedOver(film, file, acted, target);
               if (after === before) return [done, Option.none<Change>()] as const;
               const change: Change = { film, scene: Option.none(), file, target, before, after };
               yield* record(change, 'lab.write');
@@ -321,11 +334,11 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                     reason: `the lab has made no change to ${film} to undo`,
                   });
                 const c = top.value;
-                yield* swap(c.file, c.after, c.before, c.target).pipe(
+                yield* swap(film, c.file, c.after, c.before, c.target).pipe(
                   Effect.catchTag('SourceChanged', () =>
                     Effect.fail(
                       UndoUnavailable.make({
-                        reason: `${c.file} has changed since the lab wrote ${c.target}`,
+                        reason: `${shown(c)} has changed since the lab wrote ${c.target}`,
                       }),
                     ),
                   ),
@@ -357,11 +370,11 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                     reason: `the lab has undone no change to ${film}`,
                   });
                 const c = top.value;
-                yield* swap(c.file, c.before, c.after, c.target).pipe(
+                yield* swap(film, c.file, c.before, c.after, c.target).pipe(
                   Effect.catchTag('SourceChanged', () =>
                     Effect.fail(
                       RedoUnavailable.make({
-                        reason: `${c.file} has changed since the lab undid ${c.target}`,
+                        reason: `${shown(c)} has changed since the lab undid ${c.target}`,
                       }),
                     ),
                   ),

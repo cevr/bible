@@ -64,6 +64,8 @@ type FieldAccess =
 export interface SceneSite {
   readonly scene: string;
   readonly file: string;
+  /** The file as an answer or a refusal names it: relative to the film's folder, never a path on the box. */
+  readonly shown: string;
   readonly exportName: string;
   readonly access: { readonly [F in Field]: FieldAccess };
 }
@@ -270,6 +272,7 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
             sites.set(scene.id, {
               scene: scene.id,
               file,
+              shown: path.relative(dir, file),
               exportName,
               access: { timeline: accessOf('timeline'), knobs: accessOf('knobs') },
             });
@@ -329,7 +332,7 @@ export class SceneSources extends Context.Service<SceneSources, SceneSourcesServ
       ) {
         const at = yield* site(film, scene);
         const source = yield* fs.readFileString(at.file);
-        const found = yield* Effect.fromResult(editable(at.file, source, at.exportName));
+        const found = yield* Effect.fromResult(editable(at.shown, source, at.exportName));
         // Only the fields the lab may write: a refused one lists nothing, and says why.
         const refused = FIELDS.flatMap((field) => {
           const access = at.access[field];

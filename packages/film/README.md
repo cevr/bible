@@ -753,7 +753,11 @@ A handler's failure that is not a Refusal answers 500 as
 query or a body that does not decode is a 400 `RequestInvalid` naming the
 part and the schema's words (`{"_tag":"RequestInvalid","part":"Payload",
 "reason":"Expected \"pick\" | \"unpick\" | \"reject\" at [\"verb\"]"}`),
-answered by the gate (HttpApi itself would answer an empty 400). On the page a call
+answered by the gate (HttpApi itself would answer an empty 400); a path under
+the API's own prefixes that no route declares is a 404 `RouteUnknown` naming
+the path, so a page calling an endpoint the server does not have reads a
+refusal, not "no answer". A refusal names a film's file relative to the film's
+folder (`scenes/hand.ts`), never a path on the box. On the page a call
 fails with `LabFailure`: the server's Refusal, or `LabUnreachable` (no
 answer, or one that does not decode).
 

@@ -145,7 +145,11 @@ describe('lab source routes', () => {
       );
       expect(refused.status).toBe(422);
       const refusal = yield* Effect.promise(() => refused.json());
-      expect(refusal).toMatchObject({ _tag: 'SourceRefused', target: 'cue late offset' });
+      expect(refusal).toMatchObject({
+        _tag: 'SourceRefused',
+        file: 'scenes/hand.ts',
+        target: 'cue late offset',
+      });
       expect(refusal.reason).toContain('`GAP * 2`, not a literal');
       expect(yield* read()).toBe(after);
       const status = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.status));
@@ -159,6 +163,7 @@ describe('lab source routes', () => {
       expect(unresolved.status).toBe(422);
       expect(yield* Effect.promise(() => unresolved.json())).toMatchObject({
         _tag: 'TimelineUnresolved',
+        file: 'scenes/hand.ts',
       });
       expect(yield* read()).toBe(after);
     }).pipe(Effect.scoped, Effect.provide(fixture)),

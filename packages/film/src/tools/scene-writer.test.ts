@@ -327,7 +327,7 @@ describe.concurrent('scene writer', () => {
       const error = yield* Effect.flip(
         (yield* SceneWriter).setCue(F, 'hand', 'topple', { offset: 0.4 }),
       );
-      expect(error._tag).toBe('SourceChanged');
+      expect(error).toMatchObject({ _tag: 'SourceChanged', file: 'scenes/hand.ts' });
       // The editor's text survives, byte for byte: the lab neither overwrote nor "restored" it.
       expect(yield* read()).toBe(`${before}${EDITOR_LINE}`);
     }).pipe(

@@ -146,7 +146,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
         (film: FilmName, scene: string, cue: string, target: string) =>
         (at: SceneSite, after: string) =>
           Effect.gen(function* () {
-            const spans = readSpans(at.file, after, at.exportName);
+            const spans = readSpans(at.shown, after, at.exportName);
             const answered = yield* Effect.result(fresh.cue(film, scene, cue, Option.some(spans)));
             if (Result.isFailure(answered)) {
               const why = `${answered.failure._tag}: ${answered.failure.message}`;
@@ -158,7 +158,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
             const read = answered.success;
             if (Predicate.isString(read.unresolved))
               return yield* TimelineUnresolved.make({
-                file: at.file,
+                file: at.shown,
                 target,
                 reason: read.unresolved,
               });
@@ -177,9 +177,9 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
           scene,
           'timeline',
           target,
-          (at, source) => editCue(at.file, source, at.exportName, cue, patch),
+          (at, source) => editCue(at.shown, source, at.exportName, cue, patch),
           (at, after) =>
-            Result.map(readCue(at.file, after, at.exportName, cue), (read) =>
+            Result.map(readCue(at.shown, after, at.exportName, cue), (read) =>
               cueMismatches(patch, read),
             ),
           resolves(film, scene, cue, target),
@@ -199,9 +199,9 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
           scene,
           'knobs',
           `knob ${knob}`,
-          (at, source) => editKnob(at.file, source, at.exportName, knob, value),
+          (at, source) => editKnob(at.shown, source, at.exportName, knob, value),
           (at, after) =>
-            Result.map(readKnob(at.file, after, at.exportName, knob), (read) =>
+            Result.map(readKnob(at.shown, after, at.exportName, knob), (read) =>
               Arr.filter([knob], () => !Option.exists(read, (r) => sameKnob(r, value))),
             ),
           () => Effect.void,

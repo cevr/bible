@@ -30,7 +30,7 @@ import {
   SubscriptionRef,
 } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { type PageBuild } from '../core/api.ts';
+import { type PageBuild, labUrls } from '../core/api.ts';
 import type { PageAnswer } from './api-server.ts';
 import { narrationFile } from './narration-route.ts';
 import { serveFile } from './review-file.ts';
@@ -110,7 +110,7 @@ const failedPage = (reason: string, build: number) =>
   ) +
   `<body style="font:14px/1.5 ui-monospace,monospace;background:#121110;color:#eee;padding:24px">` +
   `<h1 style="font-size:16px">The lab's page did not build</h1><pre style="white-space:pre-wrap">${escapeHtml(reason)}</pre>` +
-  `<script>(async()=>{for(;;){try{const r=await fetch('/review/build?since=${build}');` +
+  `<script>(async()=>{for(;;){try{const r=await fetch('${labUrls.page.wait({ query: { since: build } })}');` +
   `if(r.ok&&(await r.json()).build>${build})return location.reload()}catch{await new Promise(f=>setTimeout(f,2000))}}})()</script>` +
   `</body></html>`;
 
@@ -149,13 +149,13 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
           minify: true,
           sourcemap: 'linked',
           metafile: true,
+          // A failed build throws its messages (an AggregateError), caught below.
+          throw: true,
         }),
       catch: bundlerWords,
     }).pipe(
       Effect.flatMap((out) =>
         Effect.gen(function* () {
-          if (!out.success)
-            return { _tag: 'Failed', reason: out.logs.map(String).join('\n') } as const;
           // The metafile names inputs relative to this process's directory.
           const inputs = Object.keys(out.metafile?.inputs ?? {}).map((input) =>
             path.resolve(input),

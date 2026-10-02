@@ -1,5 +1,5 @@
-// A film's choices over HTTP: the handlers of the review API's `choices`
-// group (`core/api.ts`), served by `film lab` for every film of the app.
+// A film's choices over HTTP: the handlers of the lab API's `choices` group
+// (`LabHttpApi` in `core/api.ts`), served by `film lab` for every film of the app.
 // A pick or a knob is a write: it lands in the film's source through the
 // SourceWriter and is answered like the lab's knob writes, with the film's
 // static check after it and the choices as they now stand, both from one
@@ -7,7 +7,7 @@
 // (`soundCheck`, dead air and balance in the mix the film now makes) after a
 // pick. A say (an approval, its withdrawal, a comment) lands in the film's
 // catalogue, and answers the choices it leaves.
-// A film is named as one of the films in the app's folder (`named`)
+// A film is named as one of the films in the app's folder (`filmNamed`)
 // before anything reads it: any other name is a 404 that lists the films,
 // never a path.
 
@@ -15,9 +15,9 @@ import { Effect, Option, Path } from 'effect';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
 import type { ChoiceWrite } from '../core/choice.ts';
-import { answered, named } from './api-server.ts';
+import { answered } from './api-server.ts';
 import { Choices, type Picked } from './choices.ts';
-import { FilmFolder, type FilmName } from './film-repo.ts';
+import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { serveFile } from './review-file.ts';
 
@@ -59,12 +59,12 @@ export const choicesGroup = HttpApiBuilder.group(LabHttpApi, 'choices', (handler
       ),
     )
     .handle('list', ({ params }) =>
-      answered(Effect.flatMap(named(params.film), (film) => Choices.use((c) => c.list(film)))),
+      answered(Effect.flatMap(filmNamed(params.film), (film) => Choices.use((c) => c.list(film)))),
     )
     .handle('pick', ({ params, payload }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           return yield* answer(film, yield* (yield* Choices).pick(film, payload));
         }),
       ),
@@ -72,20 +72,20 @@ export const choicesGroup = HttpApiBuilder.group(LabHttpApi, 'choices', (handler
     .handle('knob', ({ params, payload }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           return yield* answer(film, yield* (yield* Choices).knob(film, payload));
         }),
       ),
     )
     .handle('say', ({ params, payload }) =>
       answered(
-        Effect.flatMap(named(params.film), (film) => Choices.use((c) => c.say(film, payload))),
+        Effect.flatMap(filmNamed(params.film), (film) => Choices.use((c) => c.say(film, payload))),
       ),
     )
     .handle('alone', ({ params, query, request }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           const file = yield* (yield* Choices).alone(film, query.point, query.variant);
           return yield* serveFile(request, file, IMMUTABLE);
         }),
@@ -94,7 +94,7 @@ export const choicesGroup = HttpApiBuilder.group(LabHttpApi, 'choices', (handler
     .handle('mix', ({ params, query, request }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           const file = yield* (yield* Choices).inPlace(film, query.point, query.variant);
           return yield* serveFile(request, file, MIXED);
         }),
@@ -103,7 +103,7 @@ export const choicesGroup = HttpApiBuilder.group(LabHttpApi, 'choices', (handler
     .handle('soundCheck', ({ params }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           return { findings: yield* (yield* FreshFilm).check(film, 'sound') };
         }),
       ),

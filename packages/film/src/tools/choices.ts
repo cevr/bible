@@ -63,6 +63,7 @@ import {
 import { type Catalogue, said } from '../core/catalogue.ts';
 import { PointRef } from '../core/point.ts';
 import type { CheckLine } from '../core/schema.ts';
+import { clamp } from '../core/time.ts';
 import { type CatalogueError, RenderCatalogue } from './catalogue.ts';
 import { SCORE_PLAY, editLevel, editPick, lookPlay, readPick } from './choice-source.ts';
 import { ContentStore, type StoreError } from './content-store.ts';
@@ -75,9 +76,9 @@ import {
   VerbRefused,
 } from '../core/refusals.ts';
 import { type FormatFailed } from './errors.ts';
-import { FilmFolder, type FilmName, Stamped, lockManifest } from './film-repo.ts';
+import { FilmFolder, type FilmName, Stamped, keptWhenMade, lockManifest } from './film-repo.ts';
 import { type FreshError, FreshFilm } from './fresh-film.ts';
-import { Review, keptWhenMade, once } from './review.ts';
+import { Review, once } from './review.ts';
 import { type Change, type RewriteError, SourceWriter } from './source-writer.ts';
 import { Takes } from './takes.ts';
 
@@ -290,21 +291,23 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
       });
 
       /** `play` at `site` in `file` set to `option`, through the writer. */
+      /** `option` played at `site` in the film's file `name` (`sound.ts`), which a refusal names as is. */
       const writePick = (
         film: FilmName,
-        file: string,
+        name: string,
         site: Parameters<typeof editPick>[2],
         option: string,
-      ) =>
-        Effect.map(
+      ) => {
+        const file = fileIn(film, name);
+        return Effect.map(
           writer.write({
             film,
             scene: Option.none(),
             file,
             target: `${site.target} ${option}`,
-            edit: (source) => editPick(file, source, site, option),
+            edit: (source) => editPick(name, source, site, option),
             verify: (after) =>
-              Result.map(readPick(file, after, site), (read) =>
+              Result.map(readPick(name, after, site), (read) =>
                 Arr.filter(['play'], () => read !== option),
               ),
             check: () => Effect.void,
@@ -315,6 +318,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
             change: Option.liftPredicate(change, (c) => c.before !== c.after),
           }),
         );
+      };
 
       /** A take kept, unkept or rejected by its sha256 in a fresh process, recorded around the lock's rewrite. */
       const actOnTake = Effect.fn('Choices.actOnTake')(function* (
@@ -377,9 +381,8 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           });
         const noPick = () => Effect.fail(refusal());
         return yield* Match.valueTags(point.ref, {
-          Score: () => writePick(film, fileIn(film, 'sound.ts'), SCORE_PLAY, variant.id),
-          Look: ({ name }) =>
-            writePick(film, fileIn(film, 'palette.ts'), lookPlay(name), variant.id),
+          Score: () => writePick(film, 'sound.ts', SCORE_PLAY, variant.id),
+          Look: ({ name }) => writePick(film, 'palette.ts', lookPlay(name), variant.id),
           Take: ({ sound }) => actOnTake(film, point, sound, variant.id, asked.verb),
           Voice: ({ beat }) => keepVoice(film, beat, variant.id),
           Render: noPick,
@@ -398,14 +401,14 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         if (Option.isSome(knob.fixed)) return yield* refused(knob.fixed.value);
         if (!PointRef.guards.Level(point.ref)) return yield* refused('it is not a level');
         const { target } = point.ref;
-        const value = Math.min(knob.max, Math.max(knob.min, asked.value));
+        const value = clamp(asked.value, knob.min, knob.max);
         const file = fileIn(film, 'sound.ts');
         const [change] = yield* writer.write({
           film,
           scene: Option.none(),
           file,
           target: `${point.id} ${value}`,
-          edit: (source) => editLevel(file, source, target, value),
+          edit: (source) => editLevel('sound.ts', source, target, value),
           verify: () => Result.succeed([]),
           check: () => Effect.void,
         });
@@ -473,8 +476,8 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
             verb: 'hear alone',
             reason: 'it is not heard alone',
           });
-        if (!Option.exists(Option.some(found.variant.media), (m) => m._tag === 'Heard' && m.alone))
-          return yield* unheard();
+        const media = found.variant.media;
+        if (media._tag !== 'Heard' || !media.alone) return yield* unheard();
         const { ref } = found.point;
         if (ref._tag === 'Voice') {
           const at = yield* takes.attemptFile(folder.paths(film), ref.beat, variant);

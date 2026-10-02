@@ -1,13 +1,14 @@
-// A film's writes as the lab and the review answer them: each write with the
-// file it changed and `film check --static` after it, and the `steps`
-// group's handlers (undo, redo, check, and the steps alone, in this process),
-// which both APIs serve for the film their route names.
+// A film's writes as the lab answers them: each write with the file it
+// changed and `film check --static` after it (`writeAnswer`, which the scene
+// writes in `lab.ts` share), and the lab API's `steps` group (undo, redo,
+// check, and the steps alone, in this process) for the film its route names.
 
 import { Effect, Option, Path } from 'effect';
-import type { Steps } from '../core/api.ts';
+import { HttpApiBuilder } from 'effect/http-api';
+import { LabHttpApi, type Steps } from '../core/api.ts';
 import { type LabWrite } from '../core/schema.ts';
-import { answered, named } from './api-server.ts';
-import { FilmFolder, type FilmName } from './film-repo.ts';
+import { answered } from './api-server.ts';
+import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
 
@@ -41,26 +42,12 @@ export const writeAnswer = Effect.fn('lab.writeAnswer')(function* <R>(
   return wrote;
 });
 
-interface FilmParams {
-  readonly params: { readonly film: string };
-}
-
-/** Undo: put the film's newest change back, answered as a write is. */
-const undo = ({ params }: FilmParams) =>
+/** Undo or Redo: the film's newest change put back, or its newest undone one made again, answered as a write is. */
+const stepped = (name: string, verb: 'undo' | 'redo') =>
   answered(
     Effect.gen(function* () {
-      const film = yield* named(params.film);
-      const change = yield* (yield* SourceWriter).undo(film);
-      return yield* writeAnswer(film, change, Effect.succeed({}));
-    }),
-  );
-
-/** Redo: make the film's newest undone change again, answered as a write is. */
-const redo = ({ params }: FilmParams) =>
-  answered(
-    Effect.gen(function* () {
-      const film = yield* named(params.film);
-      const change = yield* (yield* SourceWriter).redo(film);
+      const film = yield* filmNamed(name);
+      const change = yield* (yield* SourceWriter)[verb](film);
       return yield* writeAnswer(film, change, Effect.succeed({}));
     }),
   );
@@ -81,17 +68,22 @@ const history = Effect.fn('lab.history')(function* (film: FilmName) {
   return steps;
 });
 
-/** The film's check now, its latest change, and what Undo and Redo would do. */
-const check = ({ params }: FilmParams) =>
-  answered(
-    Effect.gen(function* () {
-      const film = yield* named(params.film);
-      return { findings: yield* findings(film), ...(yield* history(film)) };
-    }),
-  );
-
-/** The film's steps without the check: what a page reads after a write that answered its findings. */
-const steps = ({ params }: FilmParams) => answered(Effect.flatMap(named(params.film), history));
-
-/** The `steps` group's handlers, for `HttpApiBuilder.group(LabHttpApi, 'steps', …)`. */
-export const stepHandlers = { undo, redo, check, steps } as const;
+/**
+ * The `steps` group's handlers: undo, redo, the film's check now with its
+ * latest change and what Undo and Redo would do, and the steps without the
+ * check (what a page reads after a write that answered its findings).
+ */
+export const stepsGroup = HttpApiBuilder.group(LabHttpApi, 'steps', (handlers) =>
+  handlers
+    .handle('undo', ({ params }) => stepped(params.film, 'undo'))
+    .handle('redo', ({ params }) => stepped(params.film, 'redo'))
+    .handle('check', ({ params }) =>
+      answered(
+        Effect.gen(function* () {
+          const film = yield* filmNamed(params.film);
+          return { findings: yield* findings(film), ...(yield* history(film)) };
+        }),
+      ),
+    )
+    .handle('steps', ({ params }) => answered(Effect.flatMap(filmNamed(params.film), history))),
+);

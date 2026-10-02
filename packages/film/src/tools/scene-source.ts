@@ -86,10 +86,15 @@ const numberText = (v: number) => String(toMs(v));
 /** A single-quoted string literal. */
 export const stringText = (v: string) => `'${v.replace(/[\\']/g, (c) => `\\${c}`)}'`;
 
-const refuse = <A>(file: string, target: string, reason: string): Result.Result<A, SourceRefused> =>
-  Result.fail(SourceRefused.make({ file, target, reason }));
+/** A refusal to edit `target` in `file`, and why. */
+export const refuse = <A>(
+  file: string,
+  target: string,
+  reason: string,
+): Result.Result<A, SourceRefused> => Result.fail(SourceRefused.make({ file, target, reason }));
 
-const textOf = (source: string, e: Expression) => source.slice(e.start, e.end);
+/** An expression's text as the source writes it. */
+export const textOf = (source: string, e: Expression) => source.slice(e.start, e.end);
 
 /** Parse a module, or say where it fails to. */
 export const parseModule = (
@@ -139,7 +144,7 @@ export const propertyOf = (
 };
 
 /** A number literal, negative ones included. */
-const numberOf = (e: Expression): Option.Option<number> => {
+export const numberOf = (e: Expression): Option.Option<number> => {
   if (e.type === 'Literal' && Predicate.isNumber(e.value)) return Option.some(e.value);
   if (
     e.type === 'UnaryExpression' &&
@@ -151,7 +156,8 @@ const numberOf = (e: Expression): Option.Option<number> => {
   return Option.none();
 };
 
-const stringOf = (e: Expression): Option.Option<string> => {
+/** A string literal's text. */
+export const stringOf = (e: Expression): Option.Option<string> => {
   if (e.type === 'Literal' && Predicate.isString(e.value)) return Option.some(e.value);
   return Option.none();
 };

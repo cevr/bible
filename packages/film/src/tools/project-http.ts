@@ -1,6 +1,6 @@
-// A film's project over HTTP: the handlers of the review API's `project`
-// group (`core/api.ts`). Each runs `film project … --json` in a fresh process
-// (`FreshFilm.project`): the review has run for days and its imports of the
+// A film's project over HTTP: the handlers of the lab API's `project` group
+// (`LabHttpApi` in `core/api.ts`). Each runs `film project … --json` in a fresh
+// process (`FreshFilm.project`): the lab runs for days and its imports of the
 // film are as they were at its start, so only a new process reads the scenes'
 // keys as the film now stands. A say (approve, withdraw, comment) answers
 // the project as it leaves it, with each rendered scene's video as this
@@ -14,8 +14,8 @@ import { HttpApiBuilder } from 'effect/http-api';
 import type { PartAddress } from '../core/address.ts';
 import { type ProjectView, RequestInvalid, LabHttpApi, Say } from '../core/api.ts';
 import type { Project } from '../core/catalogue.ts';
-import { answered, named } from './api-server.ts';
-import { FilmFolder } from './film-repo.ts';
+import { answered } from './api-server.ts';
+import { FilmFolder, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { Review, refOf } from './review.ts';
 
@@ -105,7 +105,7 @@ const sayable = (address: PartAddress, say: Say) => {
 const project = (film: string, args: (film: string) => ReadonlyArray<string>) =>
   answered(
     Effect.gen(function* () {
-      const name = yield* named(film);
+      const name = yield* filmNamed(film);
       return yield* viewOf(yield* (yield* FreshFilm).project(args(name)));
     }),
   );

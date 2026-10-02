@@ -1,6 +1,6 @@
 // The `film` CLI for this app's films: the framework's commands over
 // `src/films`, with this app's player served for `render` and `check`, and
-// the lab (its pages `lab.html` and `review.html`, every film) for `lab`
+// the lab (its pages `review.html`, `lab.html` and `index.html`, every film) for `lab`
 // (`bun cli.ts --help`). A server starts with its command and stops when it
 // ends, fails or is interrupted.
 

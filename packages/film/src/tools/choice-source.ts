@@ -17,22 +17,21 @@
 import { Array as Arr, Match, Option, Predicate, Result } from 'effect';
 import type { ArrayExpression, Expression, ObjectExpression, Program } from 'oxc-parser';
 import { type LevelTarget, type SoundLayer, pointIdOf } from '../core/point.ts';
-import { SourceRefused } from '../core/refusals.ts';
+import type { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
 import {
   declarations,
+  numberOf,
   objectOf,
   parseModule,
   propertyOf,
+  refuse,
   spliced,
+  stringOf,
   stringText,
+  textOf,
   valueOf,
 } from './scene-source.ts';
-
-const refuse = <A>(file: string, target: string, reason: string): Result.Result<A, SourceRefused> =>
-  Result.fail(SourceRefused.make({ file, target, reason }));
-
-const textOf = (source: string, e: Expression) => source.slice(e.start, e.end);
 
 /** The object literal `export const <name> = {...}` declares (through `satisfies` and `as`). */
 const exportedObject = (
@@ -156,25 +155,6 @@ export type LevelWritten =
 
 /** A level knob's point id: `level:bed:3:amb.hall`, `level:const:PAPER`. */
 const levelId = (target: LevelTarget): string => pointIdOf({ _tag: 'Level', target });
-
-/** A number literal, negative ones included. */
-const numberOf = (e: Expression): Option.Option<number> => {
-  if (e.type === 'Literal' && Predicate.isNumber(e.value)) return Option.some(e.value);
-  if (
-    e.type === 'UnaryExpression' &&
-    e.operator === '-' &&
-    e.argument.type === 'Literal' &&
-    Predicate.isNumber(e.argument.value)
-  )
-    return Option.some(-e.argument.value);
-  return Option.none();
-};
-
-/** A string literal's text. */
-const stringOf = (e: Expression): Option.Option<string> => {
-  if (e.type === 'Literal' && Predicate.isString(e.value)) return Option.some(e.value);
-  return Option.none();
-};
 
 /** An identifier's name. */
 const nameOf = (e: Expression): Option.Option<string> => {

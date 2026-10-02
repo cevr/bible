@@ -60,22 +60,22 @@ export class SceneHead extends Context.Service<SceneHead, SceneHeadService>()(
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 
       /** The file's text at HEAD, run where the file is so any repository root works. */
-      const atHead = (file: string) =>
+      const atHead = (site: SceneSite) =>
         collectWithin(
           spawner,
           'git show',
-          ChildProcess.make('git', ['show', `HEAD:./${path.basename(file)}`], {
-            cwd: path.dirname(file),
+          ChildProcess.make('git', ['show', `HEAD:./${path.basename(site.file)}`], {
+            cwd: path.dirname(site.file),
           }),
           GIT_LIMIT,
         ).pipe(
           Effect.mapError((error: PlatformError | ProcessTimedOut) =>
-            HeadUnavailable.make({ file, reason: error.message }),
+            HeadUnavailable.make({ file: site.shown, reason: error.message }),
           ),
           Effect.flatMap((done) => {
             if (done.exitCode === 0) return Effect.succeed(done.stdout);
             const reason = done.stderr.trim() || `exit ${done.exitCode}`;
-            return Effect.fail(HeadUnavailable.make({ file, reason }));
+            return Effect.fail(HeadUnavailable.make({ file: site.shown, reason }));
           }),
         );
 
@@ -85,20 +85,20 @@ export class SceneHead extends Context.Service<SceneHead, SceneHeadService>()(
           .readFileString(site.file)
           .pipe(
             Effect.mapError((error) =>
-              HeadUnavailable.make({ file: site.file, reason: error.message }),
+              HeadUnavailable.make({ file: site.shown, reason: error.message }),
             ),
           );
-        const then = yield* atHead(site.file);
-        const code = (source: string) => codeOf(site.file, source, site.exportName);
+        const then = yield* atHead(site);
+        const code = (source: string) => codeOf(site.shown, source, site.exportName);
         const thenCode = code(then);
         if (Result.isFailure(thenCode))
-          return yield* HeadUnavailable.make({ file: site.file, reason: thenCode.failure.reason });
+          return yield* HeadUnavailable.make({ file: site.shown, reason: thenCode.failure.reason });
         // Only a field the scene reads from this literal: another's data is not the scene's.
         const ours = (field: Field) => site.access[field]._tag === 'Writable';
         const spans = (source: string): Readonly<Record<string, Span>> =>
-          Rec.filter(readSpans(site.file, source, site.exportName), () => ours('timeline'));
+          Rec.filter(readSpans(site.shown, source, site.exportName), () => ours('timeline'));
         const knobsOf = (source: string): Readonly<Record<string, Knob>> =>
-          Rec.filter(readKnobs(site.file, source, site.exportName), () => ours('knobs'));
+          Rec.filter(readKnobs(site.shown, source, site.exportName), () => ours('knobs'));
         const timeline = spans(then);
         const knobs = knobsOf(then);
         const codeChanged = Result.match(code(now), {

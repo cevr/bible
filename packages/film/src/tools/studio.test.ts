@@ -13,6 +13,7 @@ import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
 import {
   STUDIO_IMPORT_IDLE_S,
   STUDIO_IMPORT_WAIT_S,
+  STUDIO_MAX_BODY,
   StudioAttempts,
   StudioBeats,
   StudioTake,
@@ -24,7 +25,7 @@ import { labHandler } from './lab.ts';
 import { readingOf } from './read-cli.ts';
 import { NO_SCORES } from './media-store.ts';
 import { NotesStore } from './notes-store.ts';
-import { STUDIO_MAX_BODY, StudioReadings } from './studio.ts';
+import { StudioReadings } from './studio.ts';
 import { Takes } from './takes.ts';
 import {
   emptyCalls,

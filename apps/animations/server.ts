@@ -58,7 +58,7 @@ const LAB_IDLE_SECONDS = 255;
  * The lab on `hostname`:`port`: every request goes to `lab`, the
  * framework's handler, which admits it (only the hosts it is told) before its
  * routes answer /review/* and /lab/* and its pages the rest (built from
- * `lab.html` and `review.html`, `LabPage`). No route here answers on its
+ * `review.html`, `lab.html` and `index.html`, `LabPage`). No route here answers on its
  * own, so no path skips the Host check.
  */
 export const serveLab = (port: number, hostname: string, lab: Handler) =>

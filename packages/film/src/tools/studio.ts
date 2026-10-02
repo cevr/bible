@@ -36,21 +36,19 @@ import { type Timings, type Voice, type VoiceTiming } from '../core/schema.ts';
 import {
   type ReadBeat,
   STUDIO_IMPORT_IDLE_S,
-  STUDIO_MAX_BODY,
   type StudioBeat,
   type StudioReading,
   type StudioTake,
 } from '../core/studio.ts';
 import type { SheetBeat } from '../core/sheet.ts';
 import type { PlatformError } from 'effect/PlatformError';
-import { Connection, answered, named } from './api-server.ts';
+import { Connection, answered } from './api-server.ts';
 import { UnknownScene } from '../core/errors.ts';
 import { AttemptUnknown, AudioInvalid, RecordingLossy, TakeMismatch } from '../core/refusals.ts';
 import { ContentStore } from './content-store.ts';
-import { FilmFolder, type FilmName, Stamped } from './film-repo.ts';
+import { FilmFolder, type FilmName, Stamped, filmNamed, keptWhenMade } from './film-repo.ts';
 import { type FreshError, FreshFilm } from './fresh-film.ts';
 import type { VoicedFilm } from './narrator.ts';
-import { keptWhenMade } from './review.ts';
 import { type Imported, Takes } from './takes.ts';
 
 /**
@@ -76,8 +74,6 @@ const extensionOf = (type: string): Result.Result<string, AudioInvalid | Recordi
     AudioInvalid.make({ reason: `a recording of type "${type}"` }),
   );
 };
-
-export { STUDIO_MAX_BODY };
 
 /** An attempt's audio as the page plays it back. */
 const AUDIO_TYPES = new Map([
@@ -188,7 +184,7 @@ const filmBeat = Effect.fn('studio.filmBeat')(function* (params: {
   readonly film: string;
   readonly beat: string;
 }) {
-  const film = yield* named(params.film);
+  const film = yield* filmNamed(params.film);
   const known = (yield* reading(film)).beats.map((b) => b.id);
   if (!known.includes(params.beat)) return yield* UnknownScene.make({ scene: params.beat, known });
   return { film, beat: params.beat };
@@ -263,7 +259,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
       .handle('beats', ({ params }) =>
         answered(
           Effect.gen(function* () {
-            const film = yield* named(params.film);
+            const film = yield* filmNamed(params.film);
             const { voice, beats, sheet } = yield* reading(film);
             const timings = yield* timingsOf(film);
             const spoken = beats.filter((b) => b.text.length > 0);

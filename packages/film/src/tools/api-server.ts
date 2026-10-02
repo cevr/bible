@@ -11,8 +11,8 @@
 // at most `STUDIO_MAX_BODY` bytes, counted as it streams. A new route is
 // behind the gate by being a route.
 //
-// Every film route names its film (`named`): one of the app's films, and any
-// other name is a 404 FilmUnknown before anything reads it.
+// Every film route names its film (`filmNamed`): one of the app's films, and
+// any other name is a 404 FilmUnknown before anything reads it.
 
 import {
   Array as Arr,
@@ -38,6 +38,7 @@ import {
   Refusal as RefusalSchema,
   RequestInvalid,
   RequestRefused,
+  RouteUnknown,
   ServerFailed,
   WriteNotJson,
   isRefusal,
@@ -47,7 +48,6 @@ import {
 import { type HttpApi, HttpApiError, type HttpApiGroup } from 'effect/http-api';
 import { BodyTooLarge } from '../core/refusals.ts';
 import { STUDIO_MAX_BODY } from '../core/studio.ts';
-import { filmNamed } from './film-repo.ts';
 
 /** Where the server listens: Bun hands each request its server. */
 export interface LabBound {
@@ -89,9 +89,6 @@ const connectionOf = (request: Request, server: LabBound): ConnectionService => 
   // Called on the server, never detached: Bun's `timeout` reads its own server.
   hold: (seconds) => server.timeout?.(request, seconds),
 });
-
-/** The film a route's `:film` names: one of the app's films, else a 404 FilmUnknown naming them. */
-export const named = (film: string) => filmNamed(film);
 
 /** The names the loopback host answers to, beside the one the server was bound with. */
 const LOOPBACK: ReadonlyArray<string> = ['127.0.0.1', 'localhost'];
@@ -289,27 +286,24 @@ export type PageAnswer = Effect.Effect<
 /**
  * What else the server answers, once admitted: the app's pages, for every
  * path no route takes, except under the API's own prefixes (`own`), where a
- * path no route takes is a 404 and never a page.
+ * path no route takes is a 404 RouteUnknown and never a page.
  */
 const pageRoute = (
-  page: Option.Option<PageAnswer>,
+  page: PageAnswer,
   own: ReadonlyArray<string>,
   platform: Context.Context<FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform>,
 ) =>
-  Option.match(page, {
-    onNone: () => Layer.empty,
-    onSome: (answer) =>
-      HttpRouter.add(
-        '*',
-        '/*',
-        Effect.gen(function* () {
-          const request = yield* HttpServerRequest.HttpServerRequest;
-          if (own.some((prefix) => request.url.startsWith(prefix)))
-            return HttpServerResponse.empty({ status: 404 });
-          return yield* answer;
-        }),
-      ).pipe(HttpRouter.provideRequest(Layer.succeedContext(platform))),
-  });
+  HttpRouter.add(
+    '*',
+    '/*',
+    Effect.gen(function* () {
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      const path = request.url.split('?')[0] ?? '';
+      if (own.some((prefix) => path.startsWith(prefix)))
+        return yield* answerRefused(request, RouteUnknown.make({ path }));
+      return yield* page;
+    }),
+  ).pipe(HttpRouter.provideRequest(Layer.succeedContext(platform)));
 
 /** An API's routes (`HttpApiBuilder.layer(api)` over its groups' handlers), their services provided. */
 type ApiRoutes = Layer.Layer<
@@ -331,7 +325,7 @@ type ApiRoutes = Layer.Layer<
 export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
   routes: ApiRoutes,
-  options: { readonly allowed: Allowed; readonly page?: PageAnswer },
+  options: { readonly allowed: Allowed; readonly page: PageAnswer },
 ) =>
   Effect.gen(function* () {
     const platform = yield* Effect.context<
@@ -340,7 +334,7 @@ export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constrai
     const app = Layer.mergeAll(
       routes,
       gate(options.allowed),
-      pageRoute(Option.fromUndefinedOr(options.page), prefixesOf(api), platform),
+      pageRoute(options.page, prefixesOf(api), platform),
     ).pipe(Layer.provide(Etag.layerWeak), Layer.provide(Layer.succeedContext(platform)));
     const { handler } = yield* Effect.acquireRelease(
       Effect.sync(() => HttpRouter.toWebHandler(app, { disableLogger: true })),

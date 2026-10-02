@@ -18,7 +18,7 @@ import {
   Schema,
 } from 'effect';
 import { CheckReport, LabWrite } from '../core/schema.ts';
-import { ProjectView, Refusal, LabHttpApi, Steps, reviewFileUrl, routesOf } from '../core/api.ts';
+import { ProjectView, Refusal, Steps, reviewFileUrl } from '../core/api.ts';
 import { type Project, emptyCatalogue, projectOf } from '../core/catalogue.ts';
 import { ChoiceWrite, FilmChoices, SoundCheck, withSay } from '../core/choice.ts';
 import { ReviewDuration, ReviewIndex } from '../core/review.ts';
@@ -31,14 +31,7 @@ import { refFromUrl } from './review-http.ts';
 import { ContentStore } from './content-store.ts';
 import { Review } from './review.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
-import {
-  echoPages,
-  foreignRequests,
-  freshFilm,
-  noSource,
-  noStudio,
-  reviewMedia,
-} from './testing.ts';
+import { echoPages, freshFilm, noSource, noStudio, reviewMedia } from './testing.ts';
 
 class Root extends Context.Service<Root, string>()('test/Root') {}
 
@@ -343,19 +336,6 @@ describe('review routes', () => {
         });
       expect((yield* ask(write('https://box.example:8229'))).status).toBe(404);
       expect((yield* ask(write('https://evil.example'))).status).toBe(403);
-    }).pipe(Effect.scoped, Effect.provide(fixture)),
-  );
-
-  it.effect('every route the lab API declares answers a foreign Host 403', () =>
-    Effect.gen(function* () {
-      const routes = routesOf(LabHttpApi);
-      expect(routes.length).toBeGreaterThan(10);
-      for (const request of foreignRequests(routes, 'http://127.0.0.1:8229', 'f')) {
-        const res = yield* ask(request);
-        const refusal = yield* Effect.promise(() => res.json());
-        const route = `${request.method} ${new URL(request.url).pathname}`;
-        expect([route, res.status, refusal._tag]).toEqual([route, 403, 'RequestRefused']);
-      }
     }).pipe(Effect.scoped, Effect.provide(fixture)),
   );
 

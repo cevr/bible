@@ -39,9 +39,21 @@ describe('scene sources', () => {
       const scenes = path.join(films, 'f', 'scenes');
       const located = yield* sources.locate('f');
       expect([...located.sites.values()]).toEqual([
-        { scene: 'hand', file: path.join(scenes, 'hand.ts'), exportName: 'hand_', access: open },
+        {
+          scene: 'hand',
+          file: path.join(scenes, 'hand.ts'),
+          shown: 'scenes/hand.ts',
+          exportName: 'hand_',
+          access: open,
+        },
         // Registered as `beta`: declared as `alpha` in a.ts, never decoy.ts's `beta`.
-        { scene: 'beta', file: path.join(scenes, 'a.ts'), exportName: 'alpha', access: open },
+        {
+          scene: 'beta',
+          file: path.join(scenes, 'a.ts'),
+          shown: 'scenes/a.ts',
+          exportName: 'alpha',
+          access: open,
+        },
       ]);
       expect(located.unlocated.map((u) => [u.scene, u.reason])).toEqual([
         [

@@ -31,7 +31,6 @@ import {
   Data,
   Duration,
   Effect,
-  Exit,
   Fiber,
   FiberMap,
   FileSystem,
@@ -72,6 +71,8 @@ import { clamp } from '../core/time.ts';
 import { CATALOGUE_FILE } from './catalogue.ts';
 import { writeWhole } from './content-store.ts';
 import { cacheKey } from './digest.ts';
+import { counted } from './choice-points.ts';
+import { keptWhenMade } from './film-repo.ts';
 import { Media } from './media.ts';
 
 /** A folder the review reads, and the label its refs start with. */
@@ -259,10 +260,6 @@ const addressTitle = (render: Render): string => {
   if (address.ids.length === 1) return `scene ${address.ids[0]}`;
   return `scenes ${address.ids.join(', ')}`;
 };
-
-/** `n` and `noun`, plural but for one. */
-const counted = (n: number, noun: string) =>
-  `${n} ${noun}${Arr.filter(['s'], () => n !== 1).join('')}`;
 
 /** What a render is, in a line: its size, its commit, and what was said of it. */
 const renderTag = (catalogue: Catalogue, render: Render): string => {
@@ -535,10 +532,6 @@ export const once = <K, A, E>(
       onNone: () => Effect.flatMap(FiberMap.run(running, key, effect), Fiber.join),
     }),
   );
-
-/** How long a cache keeps what it read: for good once it is read, a failed read not at all. */
-export const keptWhenMade = <A, E>(exit: Exit.Exit<A, E>): Duration.Duration =>
-  Exit.match(exit, { onFailure: () => Duration.zero, onSuccess: () => Duration.infinity });
 
 /** A file as it stands: its path and mtime, the key of what is read from it. */
 class AtMtime extends Data.Class<{ readonly file: string; readonly mtime: number }> {}

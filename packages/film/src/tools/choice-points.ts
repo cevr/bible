@@ -53,7 +53,7 @@ const SCORE_STATE: Record<ScoreOptionState['_tag'], VariantState> = {
 };
 
 /** `n` and `noun`, plural but for one. */
-const counted = (n: number, noun: string) =>
+export const counted = (n: number, noun: string) =>
   `${n} ${noun}${Arr.filter(['s'], () => n !== 1).join('')}`;
 
 /** The scenes `ids` name, as one address: the film when none. */

@@ -1,7 +1,7 @@
 // The lab's HTTP routes, declared once: every path, its params, query, body
 // and answer, and every failure with its status. The server derives its
-// handlers from it (`tools/lab.ts`, `tools/studio.ts`, `tools/review-http.ts`,
-// `tools/choices-http.ts`, `tools/project-http.ts`, composed in
+// handlers from it (`tools/lab.ts`, `tools/steps-http.ts`, `tools/studio.ts`,
+// `tools/review-http.ts`, `tools/choices-http.ts`, `tools/project-http.ts`, composed in
 // `tools/api-server.ts`), and the pages their clients and URLs (`lab/api.ts`
 // and its siblings), so a route cannot be written two ways.
 //
@@ -16,7 +16,8 @@
 // `Refusals` gives it: the one status table. Anything a handler fails with
 // that is not a Refusal answers 500 as ServerFailed, with its tag and words;
 // a request whose params, query or body does not decode answers 400 as
-// RequestInvalid, naming the part and why.
+// RequestInvalid, naming the part and why; a path under the API's own
+// prefixes that no route declares answers 404 as RouteUnknown.
 //
 // To add an endpoint: declare it in its group below with `error: Refusals`
 // (a new failure class goes into `Refusals` with its status), implement it
@@ -111,6 +112,15 @@ export class RequestInvalid extends Schema.TaggedError<RequestInvalid>()('Reques
   }
 }
 
+/** A path under the API's own prefix that no route declares: an endpoint the page calls that the server does not have. */
+export class RouteUnknown extends Schema.TaggedError<RouteUnknown>()('RouteUnknown', {
+  path: Schema.String,
+}) {
+  override get message() {
+    return `the lab has no route ${this.path}`;
+  }
+}
+
 /** A write whose body is not JSON: a cross-site form can post text/plain without a preflight. */
 export class WriteNotJson extends Schema.TaggedError<WriteNotJson>()('WriteNotJson', {
   type: Schema.String,
@@ -161,6 +171,7 @@ const Refusals = [
   StillUnknown.pipe(status(404)),
   AttemptUnknown.pipe(status(404)),
   UnknownScene.pipe(status(404)),
+  RouteUnknown.pipe(status(404)),
   AudioInvalid.pipe(status(400)),
   RequestInvalid.pipe(status(400)),
   RequestRefused.pipe(status(403)),
@@ -558,7 +569,8 @@ export const prefixesOf = <Id extends string, Groups extends HttpApiGroup.Constr
 // ---------------------------------------------------------------------------
 // The URLs a page puts in an <img>, <audio> or <video>, derived from the routes.
 
-const labUrls = HttpApiClient.urlBuilder(LabHttpApi);
+/** Every route's URL, built from its declaration: the one way server, page and tests write a path. */
+export const labUrls = HttpApiClient.urlBuilder(LabHttpApi);
 
 /** A note's still. */
 export const stillUrl = (film: string, name: string): string =>

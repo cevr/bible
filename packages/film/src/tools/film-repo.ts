@@ -11,7 +11,9 @@ import {
   Config,
   Context,
   Data,
+  Duration,
   Effect,
+  Exit,
   FileSystem,
   Layer,
   Option,
@@ -192,6 +194,10 @@ export const filmNamed = Effect.fn('FilmFolder.named')(function* (name: string) 
 
 /** A film's sources at one stamp (`FilmFolder.stamp`): the key what was read of them is kept under. */
 export class Stamped extends Data.Class<{ readonly film: FilmName; readonly stamp: number }> {}
+
+/** How long a cache keeps what it read under its key: for good once it is read, a failed read not at all. */
+export const keptWhenMade = <A, E>(exit: Exit.Exit<A, E>): Duration.Duration =>
+  Exit.match(exit, { onFailure: () => Duration.zero, onSuccess: () => Duration.infinity });
 
 /** What is under a film's folder that it is not made from: renders, installs, history. */
 const NOT_SOURCE: ReadonlyArray<string> = ['out', 'node_modules', '.git'];

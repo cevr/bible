@@ -21,7 +21,7 @@ import {
   FileSystem,
   Layer,
   Option,
-  Path,
+  type Path,
   Record as Rec,
   Result,
 } from 'effect';
@@ -29,8 +29,8 @@ import type { HttpPlatform } from 'effect/http';
 import { HttpServerResponse } from 'effect/http';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
-import { HeadUnavailable, StillUnknown } from '../core/refusals.ts';
-import { type Allowed, answered, named, serveApi, withServices } from './api-server.ts';
+import { StillUnknown } from '../core/refusals.ts';
+import { type Allowed, answered, serveApi, withServices } from './api-server.ts';
 import { choicesGroup } from './choices-http.ts';
 import type { Choices } from './choices.ts';
 import { LabPage } from './lab-page.ts';
@@ -38,7 +38,7 @@ import { projectGroup } from './project-http.ts';
 import { reviewGroup } from './review-http.ts';
 import type { Review } from './review.ts';
 import type { ContentStore } from './content-store.ts';
-import { FilmFolder, type FilmName } from './film-repo.ts';
+import { type FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
 import { readKnob, readSpans } from './scene-source.ts';
 import { SceneHead } from './scene-head.ts';
@@ -46,7 +46,7 @@ import { SceneSources } from './scene-sources.ts';
 import { type CueWritten, SceneWriter } from './scene-writer.ts';
 import type { SourceWriter } from './source-writer.ts';
 import type { FreshFilm } from './fresh-film.ts';
-import { stepHandlers, writeAnswer } from './steps-http.ts';
+import { stepsGroup, writeAnswer } from './steps-http.ts';
 import { type StudioReadings, studioGroup } from './studio.ts';
 import type { Takes } from './takes.ts';
 
@@ -70,22 +70,13 @@ const cueWritten = Effect.fn('lab.cueWritten')(function* (
   return yield* writeAnswer(film, written, Effect.succeed({ ...span, ...where }));
 });
 
-/** The film's writes stepped back and on, and its check. */
-const stepsGroup = HttpApiBuilder.group(LabHttpApi, 'steps', (handlers) =>
-  handlers
-    .handle('undo', stepHandlers.undo)
-    .handle('redo', stepHandlers.redo)
-    .handle('check', stepHandlers.check)
-    .handle('steps', stepHandlers.steps),
-);
-
 /** The notes on the film's frames. */
 const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
   handlers
     .handle('list', ({ params }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           return yield* (yield* NotesStore).read(film);
         }),
       ),
@@ -93,7 +84,7 @@ const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
     .handle('add', ({ params, payload }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           const { still, ...draft } = payload;
           return yield* (yield* NotesStore).add(film, draft, still);
         }),
@@ -102,7 +93,7 @@ const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
     .handle('reply', ({ params, payload }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           return yield* (yield* NotesStore).reply(film, params.id, {
             by: 'user',
             text: payload.text,
@@ -114,7 +105,7 @@ const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
     .handle('resolve', ({ params }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           return yield* (yield* NotesStore).resolve(film, params.id);
         }),
       ),
@@ -122,7 +113,7 @@ const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
     .handle('wait', ({ params, query }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           const timeout = Duration.min(
             Duration.seconds(Math.max(0, query.timeout ?? 60)),
             MAX_WAIT,
@@ -134,7 +125,7 @@ const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
     .handle('still', ({ params }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           const file = yield* (yield* NotesStore).still(film, params.name);
           if (Option.isNone(file)) return yield* StillUnknown.make({ film, name: params.name });
           const bytes = yield* (yield* FileSystem.FileSystem).readFile(file.value);
@@ -150,12 +141,11 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
     .handle('source', ({ params }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           const found = yield* (yield* SceneSources).editable(film, params.scene);
-          const dir = (yield* FilmFolder).paths(film).dir;
           return {
             scene: params.scene,
-            file: (yield* Path.Path).relative(dir, found.site.file),
+            file: found.site.shown,
             cues: found.cues,
             knobs: found.knobs,
             refused: found.refused,
@@ -166,22 +156,11 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
     .handle('head', ({ params }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
-          const dir = (yield* FilmFolder).paths(film).dir;
-          const path = yield* Path.Path;
-          // The file named as the source route names it: relative to the film's folder.
-          const head = yield* (yield* SceneHead)
-            .head(film, params.scene)
-            .pipe(
-              Effect.catchTag('HeadUnavailable', (refused) =>
-                Effect.fail(
-                  HeadUnavailable.make({ ...refused, file: path.relative(dir, refused.file) }),
-                ),
-              ),
-            );
+          const film = yield* filmNamed(params.film);
+          const head = yield* (yield* SceneHead).head(film, params.scene);
           return {
             scene: params.scene,
-            file: path.relative(dir, head.site.file),
+            file: head.site.shown,
             timeline: head.timeline,
             knobs: head.knobs,
             codeChanged: head.codeChanged,
@@ -193,7 +172,7 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
     .handle('cue', ({ params, payload }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           const { scene, cue } = params;
           const written = yield* (yield* SceneWriter).setCue(film, scene, cue, payload);
           return yield* cueWritten(film, cue, written);
@@ -203,7 +182,7 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
     .handle('knob', ({ params, payload }) =>
       answered(
         Effect.gen(function* () {
-          const film = yield* named(params.film);
+          const film = yield* filmNamed(params.film);
           const { scene, knob } = params;
           const written = yield* (yield* SceneWriter).setKnob(film, scene, knob, payload.value);
           const read = Effect.succeed(

@@ -15,8 +15,8 @@ export class PreviewServer extends Context.Service<PreviewServer, PreviewServerS
 ) {}
 
 /**
- * The app's lab server: its player in development mode (the bundle rebuilds
- * and hot-reloads as scenes change), with the lab's API mounted at `/lab/*`.
+ * The app's lab server: a Bun server whose every request `lab` answers (the
+ * gate, the lab's API, and its pages as `LabPage` builds them on request).
  * Its URL is the one `film lab` prints.
  */
 export type LabServer<E> = (lab: LabHandler) => Layer.Layer<PreviewServer, E>;

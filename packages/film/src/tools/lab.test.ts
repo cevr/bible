@@ -146,8 +146,12 @@ describe('lab routes', () => {
         expect((yield* answer(get('/lab/g/check'))).status).toBe(404);
         expect((yield* answer(post('/lab/g/undo', '{}'))).status).toBe(404);
         expect((yield* answer(get('/lab/g/studio/beats'))).status).toBe(404);
-        // A page from before the film was on the wire: no route takes it.
-        expect((yield* answer(get('/lab/notes'))).status).toBe(404);
+        // A page from before the film was on the wire: no route takes it, and the answer says so.
+        const unrouted = yield* answer(get('/lab/notes'));
+        expect(unrouted.status).toBe(404);
+        expect(
+          yield* Schema.decodeEffect(Schema.fromJsonString(Refusal))(unrouted.body),
+        ).toMatchObject({ _tag: 'RouteUnknown', path: '/lab/notes' });
         // Nothing was written; the app's film still answers.
         const listed = yield* Effect.promise(() =>
           lab(get('/lab/f/notes'), bound).then((r) => r.json()),
