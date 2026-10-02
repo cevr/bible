@@ -10,7 +10,7 @@
 //   film render | lookbook | chapters                          pictures and video
 //   film project …    (project-cli.ts) a film's scenes rendered, approved, commented
 //   film options …    (choices-cli.ts) a film's choice points, read fresh for the lab
-//   film read …       (read-cli.ts)    the studio's reading and a cue, read fresh for the lab
+//   film read …       (read-cli.ts)    the studio's reading, a cue, the scenes' sites, read fresh for the lab
 //   film lab                                                   the lab's server, every film (Ctrl-C stops it)
 //   film notes …      (notes-cli.ts)   the lab's notes, from the terminal
 //
@@ -86,7 +86,7 @@ import { LabPage, type LabPageSpec } from './lab-page.ts';
 import { Review, type ReviewRoot } from './review.ts';
 import { NotesStore } from './notes-store.ts';
 import { notes } from './notes-cli.ts';
-import { read } from './read-cli.ts';
+import { read, scenesLocatedHere } from './read-cli.ts';
 import { StudioReadings } from './studio.ts';
 import { type LabServer, PreviewServer, type PreviewServerService } from './preview-server.ts';
 import {
@@ -907,11 +907,12 @@ export const runFilmCli = <E>({
   // The lab checks each write, and the review reads a film's options, keeps its takes and
   // makes its mixes, through this CLI in a fresh process.
   const Fresh = FreshFilm.layer(self).pipe(Layer.provide(Platform));
-  const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer, Stamps.layer).pipe(
-    Layer.provideMerge(SourceWriter.layer),
-    Layer.provideMerge(SceneSources.layer),
-    Layer.provide([Repo, Store, Fresh, Platform]),
-  );
+  // The lab locates a scene's drawing fresh (`film read sites`); a command's
+  // stamps locate it in the command's own process, which imports the film as it stands.
+  const Source = Layer.mergeAll(
+    Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(Layer.provideMerge(SceneSources.layer)),
+    Stamps.layer.pipe(Layer.provide(scenesLocatedHere)),
+  ).pipe(Layer.provideMerge(SourceWriter.layer), Layer.provide([Repo, Store, Fresh, Platform]));
   // Each film's project folder: its renders, and the owner's approvals and comments on them.
   const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
   const Private = PrivateStore.layer(sounds).pipe(Layer.provide([FetchHttpClient.layer, Platform]));

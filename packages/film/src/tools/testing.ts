@@ -16,7 +16,7 @@ import {
 } from 'effect';
 import { Base64 } from 'effect/encoding';
 import * as PlatformError from 'effect/PlatformError';
-import type { Route } from '../core/api.ts';
+import { type Route, ServerFailed } from '../core/api.ts';
 import { type Pcm, silence } from '../core/audio.ts';
 import { MIX_RATE } from '../core/mix.ts';
 import { NO_SOUNDS } from '../core/sfx.ts';
@@ -47,7 +47,7 @@ import { ContentStore } from './content-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
 import { Browser, CallRefused, type Invoke, framePage } from './browser.ts';
 import { type Encoder, type EncoderChoice, sharesInPage } from '../core/encoder.ts';
-import { FreshProcessFailed, MediaFailed } from '../core/refusals.ts';
+import { FilmUnknown, FreshProcessFailed, MediaFailed } from '../core/refusals.ts';
 import {
   ApiKeyMissing,
   type EncodeFailed,
@@ -56,8 +56,8 @@ import {
   type PageCrashed,
   type PageError,
 } from './errors.ts';
-import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { cueOf } from './read-cli.ts';
+import { type FilmFolder, FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
+import { cueOf, locateHere } from './read-cli.ts';
 import { type JoinedFilm, Media, type MediaService } from './media.ts';
 import { StudioReadings } from './studio.ts';
 import { PreviewServer } from './preview-server.ts';
@@ -65,7 +65,7 @@ import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
-import { FreshFilm, type FreshFilmService } from './fresh-film.ts';
+import { FreshFilm, type FreshFilmService, SitesRead } from './fresh-film.ts';
 import { Takes } from './takes.ts';
 import { Review } from './review.ts';
 import { Choices } from './choices.ts';
@@ -247,6 +247,7 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
       take: unused('options take'),
       reading: unused('read voice'),
       cue: unused('read cue'),
+      sites: unused('read sites'),
       remix: unused('mix'),
       project: unused('project'),
       check: unused('check'),
@@ -255,36 +256,58 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
   );
 };
 
+const isFilmUnknown = Schema.is(FilmUnknown);
+
+/** A failure as a fresh run answers it: a film it cannot find as itself, any other as `ServerFailed`. */
+const freshFailure = (error: { readonly _tag: string; readonly message: string }) => {
+  if (isFilmUnknown(error)) return error;
+  return ServerFailed.make({ tag: error._tag, reason: error.message });
+};
+
 /**
- * `freshFilm(given)` whose `film read cue` runs in this process over the
- * test's `FilmRepo`, as the fresh run would over the same files: a film that
- * does not load fails the run.
+ * `freshFilm(given)` whose `film read cue` and `film read sites` run in this
+ * process over the test's `FilmRepo` and its folder, as the fresh run would
+ * over the same files: a film that does not load fails the run. A test's
+ * film is a fresh folder, so this process's imports of it are its files.
  */
-export const freshCue = (given: Partial<FreshFilmService>) =>
+export const freshHere = (given: Partial<FreshFilmService>) =>
   Layer.unwrap(
-    Effect.map(Effect.context<FilmRepo>(), (context) =>
-      freshFilm({
-        cue: (film, scene, cue, spans) =>
-          FilmRepo.use((repo) => repo.load(film)).pipe(
-            Effect.flatMap(placeFilm),
-            Effect.map((placed) =>
-              cueOf(
-                placed,
-                scene,
-                cue,
-                Option.getOrElse(spans, () => ({})),
+    Effect.map(
+      Effect.context<FilmRepo | FilmFolder | FileSystem.FileSystem | Path.Path>(),
+      (context) =>
+        freshFilm({
+          sites: (film) =>
+            locateHere(film).pipe(
+              Effect.map((located) =>
+                SitesRead.make({
+                  sites: [...located.sites.values()],
+                  unlocated: located.unlocated,
+                }),
               ),
+              Effect.mapError(freshFailure),
+              Effect.provideContext(context),
             ),
-            Effect.mapError((error) =>
-              FreshProcessFailed.make({
-                command: 'film read cue',
-                reason: `${error._tag}: ${error.message}`,
-              }),
+          cue: (film, scene, cue, spans) =>
+            FilmRepo.use((repo) => repo.load(film)).pipe(
+              Effect.flatMap(placeFilm),
+              Effect.map((placed) =>
+                cueOf(
+                  placed,
+                  scene,
+                  cue,
+                  Option.getOrElse(spans, () => ({})),
+                ),
+              ),
+              Effect.mapError((error) =>
+                FreshProcessFailed.make({
+                  command: 'film read cue',
+                  reason: `${error._tag}: ${error.message}`,
+                }),
+              ),
+              Effect.provideContext(context),
             ),
-            Effect.provideContext(context),
-          ),
-        ...given,
-      }),
+          ...given,
+        }),
     ),
   );
 

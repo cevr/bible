@@ -31,7 +31,7 @@ import {
   emptyHistory,
   recordChange,
 } from './source-writer.ts';
-import { freshCue, sceneFixture } from './testing.ts';
+import { freshHere, sceneFixture } from './testing.ts';
 
 /** The timeout of a test here that spawns (bunx oxfmt, sh, sleep): a cold start's time is the machine's (film/spawn-budget). */
 const SPAWNS_MS = 30_000;
@@ -75,7 +75,7 @@ const fixtureWith = (
       return SceneWriter.layer.pipe(
         Layer.provideMerge(SourceWriter.layer),
         Layer.provideMerge(SceneSources.layer),
-        Layer.provide(Layer.merge(repo, freshCue({}).pipe(Layer.provide(repo)))),
+        Layer.provide(Layer.merge(repo, freshHere({}).pipe(Layer.provide(repo)))),
         Layer.provide(ContentStore.layer),
         Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, spawner)),
         Layer.merge(Layer.succeed(HandFile, file)),

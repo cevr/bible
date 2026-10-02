@@ -1,11 +1,14 @@
 // The lab's routes as the page calls them: a note posted with its still is
 // listed and served, a wait hands back the change, a user reply reopens the
-// thread, and a bad body or an unknown note answers with its status.
+// thread, and a bad body or an unknown note answers with its status. And the
+// lab never imports a film: no module its handler runs reaches a loader.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { ConfigProvider, Effect, Layer, Path, Schema } from 'effect';
+import { BunServices } from '@effect/platform-bun';
+import { ConfigProvider, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
 import { HttpPlatform } from 'effect/http';
+import { parseSync } from 'oxc-parser';
 import { LabHttpApi, Refusal, routesOf } from '../core/api.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
@@ -68,7 +71,89 @@ const post = (path: string, body: string, headers: Record<string, string> = {}) 
 const get = (path: string, headers: Record<string, string> = {}) =>
   new Request(at(path), { method: 'GET', headers });
 
+/** The names that import a film's modules, or the app's sound library, in the process that calls them. */
+const LOADERS: ReadonlySet<string> = new Set(['importFilmModule', 'libraryModule']);
+
+/**
+ * Where the loaders are declared, beside the services that call them
+ * (`FilmRepo`): `lab-context.types.ts` holds those services out of the lab.
+ */
+const DECLARER = 'film-repo.ts';
+
+/** How the parser reads `file`: JSX only in a `.tsx`. */
+const langOf = (file: string): 'ts' | 'tsx' => {
+  if (file.endsWith('.tsx')) return 'tsx';
+  return 'ts';
+};
+
+/** An `import(…)`'s specifier when it is a string literal (a module of the framework's own), else none. */
+const literalOf = (source: string, request: { readonly start: number; readonly end: number }) =>
+  Option.fromNullishOr(/^['"]([^'"]*)['"]$/.exec(source.slice(request.start, request.end))?.[1]);
+
+/**
+ * Each module `labHandler` runs, followed from `lab.ts` through its relative
+ * value imports, re-exports and literal `import('./…')`s (an `import type` is
+ * gone at run time), with the loaders it imports and each `import()` of a
+ * path it computes (what a loader is). A loader reached through a function
+ * is in this list, where the typed guard sees only services.
+ */
+const loadersReached = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const reached = new Map<string, ReadonlyArray<string>>();
+  const next = [path.join(import.meta.dir, 'lab.ts')];
+  // A for-of over an array visits what is pushed onto it while it runs.
+  for (const file of next) {
+    if (reached.has(file)) continue;
+    const source = yield* fs.readFileString(file);
+    const { module } = parseSync(file, source, { lang: langOf(file), sourceType: 'module' });
+    const dynamic = module.dynamicImports.map((d) => literalOf(source, d.moduleRequest));
+    const takes = [
+      ...dynamic.flatMap((from) =>
+        Option.toArray(Option.map(from, (f) => ({ from: f, names: ['*'] }))),
+      ),
+      ...module.staticImports.map((i) => ({
+        from: i.moduleRequest.value,
+        names: i.entries.filter((e) => !e.isType).map((e) => e.importName.name ?? ''),
+      })),
+      ...module.staticExports
+        .flatMap((e) => e.entries)
+        .filter((e) => !e.isType)
+        .flatMap((e) =>
+          Option.toArray(
+            Option.map(Option.fromNullishOr(e.moduleRequest), (request) => ({
+              from: request.value,
+              names: [e.importName.name ?? ''],
+            })),
+          ),
+        ),
+    ].filter((take) => take.names.length > 0);
+    for (const take of takes)
+      if (take.from.startsWith('.')) next.push(path.resolve(path.dirname(file), take.from));
+    const loaders = takes.flatMap((take) => take.names.filter((name) => LOADERS.has(name)));
+    const computed = dynamic.filter(Option.isNone).map(() => 'import(<computed>)');
+    reached.set(file, [...loaders, ...computed]);
+  }
+  return new Map(
+    [...reached].map(([file, found]) => [path.relative(import.meta.dir, file), found]),
+  );
+});
+
 const draft = `{"scene":"hand","T":230.38,"frame":6911,"cue":{"name":"topple","edge":"end"},"box":{"x":860,"y":640,"w":200,"h":120},"text":"too low","still":"${Base64.encode(png)}"}`;
+
+describe('the lab loads no film', () => {
+  // The lab runs for days and Bun keeps a module as it first imported it: a
+  // module the lab runs that imports a film reads it as it was at the lab's
+  // start. Each read of a film's modules runs fresh (`FreshFilm`).
+  it.effect('no module the lab runs imports a loader or a computed import()', () =>
+    Effect.gen(function* () {
+      const reached = yield* loadersReached;
+      expect(reached.has(DECLARER)).toBe(true);
+      const loading = [...reached].filter(([file, found]) => file !== DECLARER && found.length);
+      expect(loading).toEqual([]);
+    }).pipe(Effect.provide(BunServices.layer)),
+  );
+});
 
 describe('lab routes', () => {
   it.effect('a posted note is listed, its still served, and a wait returns it', () =>

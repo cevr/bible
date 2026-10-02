@@ -5,11 +5,12 @@
 // `Choices.layer` is built on) hold a service that
 // imports a film module or the app's sound library, or mixes a film in
 // process: a handler or a choice that reached for one would not compile, and
-// reads the film through `FreshFilm` instead. The lab's scene writer and its
-// HEAD reader are held to the same by what their layers are built on
-// (`LayerNeeds`): a cue write is judged fresh, never on this process's first
-// import of the film. Each line below fails the typecheck if a loader joins
-// one of the lists.
+// reads the film through `FreshFilm` instead. The lab's scene writer, its
+// HEAD reader and its scene locator are held to the same by what their
+// layers are built on (`LayerNeeds`): a cue write is judged fresh, never on
+// this process's first import of the film. Each line below fails the
+// typecheck if a loader joins one of the lists. A loader reached through a
+// function is no service, so `lab.test.ts` follows the lab's imports for it.
 
 import type { Layer } from 'effect';
 import type { ChoicesNeeds } from './choices.ts';
@@ -18,6 +19,7 @@ import type { LabContext } from './lab.ts';
 import type { SoundLibrary } from './library.ts';
 import type { Mixer } from './mixer.ts';
 import type { SceneHead } from './scene-head.ts';
+import type { SceneSources } from './scene-sources.ts';
 import type { SceneWriter } from './scene-writer.ts';
 
 /** The services that import a film's modules or the app's `sounds/library.ts` in their own process. */
@@ -38,3 +40,5 @@ export const labLoadsNothing: LoadsNothing<LabContext> = true;
 export const sceneWriterLoadsNothing: LoadsNothing<LayerNeeds<typeof SceneWriter.layer>> = true;
 
 export const sceneHeadLoadsNothing: LoadsNothing<LayerNeeds<typeof SceneHead.layer>> = true;
+
+export const sceneSourcesLoadNothing: LoadsNothing<LayerNeeds<typeof SceneSources.layer>> = true;

@@ -20,7 +20,7 @@ import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { SourceWriter } from './source-writer.ts';
-import { echoPages, freshCue, noReview, noStudio, sceneFixture } from './testing.ts';
+import { echoPages, freshHere, noReview, noStudio, sceneFixture } from './testing.ts';
 
 /** The timeout of a test here that spawns (git): a cold start's time is the machine's (film/spawn-budget). */
 const SPAWNS_MS = 30_000;
@@ -30,7 +30,7 @@ class HandFile extends Context.Service<HandFile, string>()('test/HandFile') {}
 
 /** A check that reports one warning, and counts its runs. */
 const checks: Array<string> = [];
-const fakeCheck = freshCue({
+const fakeCheck = freshHere({
   check: (film) =>
     Effect.sync(() => {
       checks.push(film);

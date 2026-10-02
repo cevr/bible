@@ -13,18 +13,46 @@
 //       the cue on its scene's clock, as the scene file now declares it (or
 //       with `spans` in place of its own: a write the lab has not made yet),
 //       or why the scene's timeline does not resolve
+//   film read sites <film>
+//       where each scene's drawing is declared, and what of it the lab may
+//       write (`locateHere`), or why a scene is not located
+//
+// `locateHere` also serves the CLI's own commands (`scenesLocatedHere`):
+// each runs in a process of its own, which imports the film as it stands.
 
-import { Effect, Option, Result } from 'effect';
+import {
+  Array as Arr,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Predicate,
+  Result,
+  Schema,
+} from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
 import type { LineError, UnknownVoice } from '../core/errors.ts';
 import { type Placed, sceneClock, sceneOf } from '../core/layout.ts';
+import { FilmUnknown, SceneNotLocated, SourceShared } from '../core/refusals.ts';
 import type { Span } from '../core/schema.ts';
 import { type Quote, type ScriptLine, sheetBeats } from '../core/sheet.ts';
 import type { StudioReading } from '../core/studio.ts';
 import { resolveTimeline } from '../core/timeline.ts';
-import { FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { CueRead, TimelineJson, VoiceRead, answering, printLine } from './fresh-film.ts';
+import { FilmModuleInvalid } from './errors.ts';
+import { FilmFolder, FilmRepo, type LoadedFilm, importFilmModule, placeFilm } from './film-repo.ts';
+import {
+  CueRead,
+  type SceneSite,
+  SitesRead,
+  TimelineJson,
+  VoiceRead,
+  answering,
+  printLine,
+} from './fresh-film.ts';
 import { beatsOf } from './narrator.ts';
+import { type DrawingSite, drawingSites, parseModule } from './scene-source.ts';
+import { type Field, type Located, SceneSources } from './scene-sources.ts';
 import { quotesOf } from './script-sheet.ts';
 
 const film = Argument.String('film').pipe(
@@ -85,6 +113,209 @@ export const cueOf = (
       }),
   });
 
+/**
+ * What identifies a drawing: its `timeline` and `knobs` objects. Decoded with
+ * `Schema.Unknown`, which passes each value through as the same object, so
+ * the identity survives the decode.
+ */
+const Owner = Schema.Struct({
+  timeline: Schema.optionalKey(Schema.Unknown),
+  knobs: Schema.optionalKey(Schema.Unknown),
+});
+/** `scenes/index.ts`: the film's scenes, in order. */
+const Registry = Schema.Struct({
+  scenes: Schema.Array(Schema.Struct({ id: Schema.String, ...Owner.fields })),
+});
+const ModuleExports = Schema.Record(Schema.String, Schema.Unknown);
+
+const decodeOwner = Schema.decodeUnknownOption(Owner);
+const decodeExports = Schema.decodeUnknownOption(ModuleExports);
+
+const FIELDS: ReadonlyArray<Field> = ['timeline', 'knobs'];
+
+/** Whether the lab may write a field of a scene's drawing: only the literal the scene reads, alone. */
+type FieldAccess = SceneSite['access'][Field];
+
+const WRITABLE: FieldAccess = { _tag: 'Writable' };
+
+/** An exported drawing call: the file, one name it is exported under, and where the call starts. */
+interface Owned {
+  readonly file: string;
+  readonly exportName: string;
+  readonly at: number;
+}
+
+/** The object a drawing (or a scene spread from one) reads as `field`, when it has one. */
+const identity = (owner: typeof Owner.Type, field: Field): Option.Option<object> =>
+  Option.liftPredicate(owner[field], Predicate.isObject);
+
+/** Per field, the drawing calls that declare each object, keyed by the object itself. */
+type Owners = Record<Field, Map<object, Array<Owned>>>;
+
+/** Record under `owners` each drawing `file` exports: its calls, as `exports` evaluates them. */
+const addOwners = (
+  owners: Owners,
+  file: string,
+  sites: ReadonlyArray<DrawingSite>,
+  exports: Option.Option<typeof ModuleExports.Type>,
+): void => {
+  for (const site of sites)
+    for (const exportName of site.exports) {
+      const drawing = Option.flatMap(exports, (m) =>
+        Option.flatMap(Option.fromUndefinedOr(m[exportName]), decodeOwner),
+      );
+      for (const field of FIELDS)
+        for (const obj of Option.toArray(Option.flatMap(drawing, (d) => identity(d, field)))) {
+          const list = owners[field].get(obj) ?? [];
+          list.push({ file, exportName, at: site.at });
+          owners[field].set(obj, list);
+        }
+    }
+};
+
+/**
+ * Every scene's drawing in `film`'s source, located in this process: the
+ * parser lists every exported `drawing({...})` call in the film's folder, the
+ * film's modules and its scene registry (`scenes/index.ts`) are imported, and
+ * a scene belongs to the call whose exported `timeline` (or `knobs`) is the
+ * very object the scene reads. A registry that renames a drawing, or two
+ * files that export the same name, cannot point a scene at the wrong literal:
+ * either the object is the same, or the scene is not located. The files are
+ * parsed as they are now; the imports only prove which export is which
+ * scene, so this runs only in a process that imports the film as it stands.
+ */
+export const locateHere = Effect.fn('film.read.sites.locate')(function* (film: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const folder = yield* FilmFolder;
+  const importModule = (file: string) =>
+    Effect.tryPromise({
+      try: () => importFilmModule(file),
+      catch: (cause) =>
+        FilmModuleInvalid.make({ film, module: path.basename(file), reason: String(cause) }),
+    });
+  const dir = folder.paths(film).dir;
+  if (!(yield* fs.exists(dir)))
+    return yield* FilmUnknown.make({ film, known: yield* folder.names });
+  const files = (yield* fs.readDirectory(dir, { recursive: true }))
+    .filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts') && !f.endsWith('.d.ts'))
+    .map((f) => path.join(dir, f))
+    .sort();
+  // Every exported drawing({...}) call, by file, as the files read now.
+  const parsed = yield* Effect.forEach(
+    files,
+    (file) =>
+      Effect.map(fs.readFileString(file), (source) =>
+        Result.match(parseModule(file, source), {
+          onFailure: () => ({ file, sites: [] }),
+          onSuccess: (program) => ({ file, sites: drawingSites(source, program) }),
+        }),
+      ),
+    { concurrency: 8 },
+  );
+  const withSites = parsed.filter((p) => p.sites.length > 0);
+  // The object each exported name evaluates to as `timeline` and as
+  // `knobs`, as this process loaded it: one map per field.
+  const owners = {
+    timeline: new Map<object, Array<Owned>>(),
+    knobs: new Map<object, Array<Owned>>(),
+  } satisfies Owners;
+  for (const { file, sites } of withSites)
+    addOwners(owners, file, sites, decodeExports(yield* importModule(file)));
+  const registry = yield* Schema.decodeUnknownEffect(Registry)(
+    yield* importModule(path.join(dir, 'scenes', 'index.ts')),
+  ).pipe(
+    Effect.mapError((error) =>
+      FilmModuleInvalid.make({ film, module: 'scenes/index.ts', reason: error.message }),
+    ),
+  );
+  /** The scenes that read the same object as `field` as `scene` does, in registry order. */
+  const readers = (field: Field, scene: (typeof registry.scenes)[number]) =>
+    registry.scenes
+      .filter((s) =>
+        Option.exists(identity(scene, field), (obj) => Option.contains(identity(s, field), obj)),
+      )
+      .map((s) => s.id);
+  const sites = new Map<string, SceneSite>();
+  const unlocated: Array<SceneNotLocated> = [];
+  for (const scene of registry.scenes) {
+    const objects = FIELDS.flatMap((field) =>
+      Option.toArray(Option.map(identity(scene, field), (obj) => ({ field, obj }))),
+    );
+    if (objects.length === 0) continue;
+    // One drawing may be exported under several names: one call, one literal.
+    const calls = Arr.dedupeWith(
+      objects.flatMap(({ field, obj }) => owners[field].get(obj) ?? []),
+      (a, b) => a.file === b.file && a.at === b.at,
+    );
+    const found = Option.filter(Arr.head(calls), () => calls.length === 1);
+    if (Option.isSome(found)) {
+      const { file, exportName, at } = found.value;
+      const where = `${path.relative(dir, file)}#${exportName}`;
+      const accessOf = (field: Field): FieldAccess =>
+        Option.match(identity(scene, field), {
+          onNone: () => WRITABLE,
+          onSome: (obj): FieldAccess => {
+            const own = (owners[field].get(obj) ?? []).some((o) => o.file === file && o.at === at);
+            if (!own)
+              return {
+                _tag: 'Refused',
+                error: SceneNotLocated.make({
+                  film,
+                  scene: scene.id,
+                  reason: `the ${field} scene "${scene.id}" reads is not the one ${where} declares (the registry builds or overrides it), so no literal in source is what it plays`,
+                }),
+              };
+            const shared = readers(field, scene);
+            if (shared.length > 1)
+              return {
+                _tag: 'Refused',
+                error: SourceShared.make({ film, field, file: where, scenes: shared }),
+              };
+            return WRITABLE;
+          },
+        });
+      sites.set(scene.id, {
+        scene: scene.id,
+        file,
+        shown: path.relative(dir, file),
+        exportName,
+        access: { timeline: accessOf('timeline'), knobs: accessOf('knobs') },
+      });
+      continue;
+    }
+    const names = calls.map((c) => `${path.relative(dir, c.file)}#${c.exportName}`);
+    unlocated.push(
+      SceneNotLocated.make({
+        film,
+        scene: scene.id,
+        reason: Option.match(Arr.head(calls), {
+          onNone: () =>
+            'no exported drawing({...}) in the film folder declares the timeline or knobs it reads',
+          onSome: () => `more than one drawing declares it: ${names.join(', ')}`,
+        }),
+      }),
+    );
+  }
+  yield* Effect.logDebug(
+    `scene-sources.locate film=${film} located=${sites.size} unlocated=${unlocated.length}`,
+  );
+  return { sites, unlocated } satisfies Located;
+});
+
+/**
+ * SceneSources located in this process (`locateHere`): a CLI command's own,
+ * in a process that imports the film as it stands. The lab's is
+ * `SceneSources.layer`, which asks a fresh process.
+ */
+export const scenesLocatedHere = Layer.effect(
+  SceneSources,
+  Effect.gen(function* () {
+    const context = yield* Effect.context<FileSystem.FileSystem | Path.Path | FilmFolder>();
+    return yield* SceneSources.over((film) => Effect.provideContext(locateHere(film), context));
+  }),
+);
+
 const voice = Command.make(
   'voice',
   { film },
@@ -121,10 +352,25 @@ const cue = Command.make(
   ),
 );
 
+const sites = Command.make(
+  'sites',
+  { film },
+  Effect.fn('film.read.sites')(function* (input) {
+    const located = yield* locateHere(input.film);
+    yield* printLine(
+      SitesRead.make({ sites: [...located.sites.values()], unlocated: located.unlocated }),
+    );
+  }, answering),
+).pipe(
+  Command.withDescription(
+    "Where each scene's drawing is declared and what of it the lab may write, or why a scene is not located, as one line of JSON",
+  ),
+);
+
 /** `film read`, run fresh by the lab. */
 export const read = Command.make('read').pipe(
   Command.withDescription(
     'What the lab reads of a film, fresh from disk, as one line of JSON (the lab runs these)',
   ),
-  Command.withSubcommands([voice, cue]),
+  Command.withSubcommands([voice, cue, sites]),
 );

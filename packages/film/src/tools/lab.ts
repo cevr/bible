@@ -232,7 +232,8 @@ export const labAllowed = Config.String('FILM_LAB_HOSTS').pipe(
  * nothing here loads a film (`FilmRepo`), the sound library
  * (`SoundLibrary`) or mixes in process (`Mixer`): the studio reads the
  * script and voice fresh (`StudioReadings`) and remixes fresh, a cue write is
- * judged and resolved fresh (SceneWriter's check), and a film's options are
+ * judged and resolved fresh (SceneWriter's check), a scene's drawing is
+ * located fresh (`SceneSources`), and a film's options are
  * read and heard fresh (`Choices`). `lab-context.types.ts` fails the
  * typecheck if a loader joins.
  */

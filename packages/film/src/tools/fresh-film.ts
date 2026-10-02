@@ -24,8 +24,11 @@ import { UnknownAct, UnknownScene } from '../core/errors.ts';
 import {
   CatalogueInvalid,
   ChoiceUnknown,
+  FilmUnknown,
   FreshProcessFailed,
+  SceneNotLocated,
   SceneNotRendered,
+  SourceShared,
   TakeMismatch,
   TakeUnknown,
   VariantUnknown,
@@ -82,8 +85,36 @@ export class CueRead extends Schema.TaggedClass<CueRead>()('CueRead', {
   unresolved: Schema.optionalKey(Schema.String),
 }) {}
 
-/** What a fresh run refuses with: the choice, variant, scene or act it could not find, or the take it would not keep. */
+/** Whether the lab may write a field of a scene's drawing: only the literal the scene reads, alone. */
+const FieldAccess = Schema.Union([
+  Schema.TaggedStruct('Writable', {}),
+  Schema.TaggedStruct('Refused', { error: Schema.Union([SceneNotLocated, SourceShared]) }),
+]);
+
+/**
+ * Where a scene's drawing is declared (the file, and a name the file exports
+ * it under), and for each field whether that literal is the one the scene
+ * reads and no other scene does.
+ */
+export const SceneSite = Schema.Struct({
+  scene: Schema.String,
+  file: Schema.String,
+  /** The file as an answer or a refusal names it: relative to the film's folder, never a path on the box. */
+  shown: Schema.String,
+  exportName: Schema.String,
+  access: Schema.Struct({ timeline: FieldAccess, knobs: FieldAccess }),
+});
+export type SceneSite = typeof SceneSite.Type;
+
+/** `film read sites`'s answer: every scene with a timeline or knobs, located or why not. */
+export class SitesRead extends Schema.TaggedClass<SitesRead>()('SitesRead', {
+  sites: Schema.Array(SceneSite),
+  unlocated: Schema.Array(SceneNotLocated),
+}) {}
+
+/** What a fresh run refuses with: the film, choice, variant, scene or act it could not find, or the take it would not keep. */
 const FreshRefusal = Schema.Union([
+  FilmUnknown,
   ChoiceUnknown,
   VariantUnknown,
   VerbRefused,
@@ -106,6 +137,7 @@ const FreshLine = Schema.Union([
   ProjectRead,
   VoiceRead,
   CueRead,
+  SitesRead,
   FreshRefusal,
   ServerFailed,
 ]);
@@ -254,6 +286,8 @@ export interface FreshFilmService {
     cue: string,
     spans: Option.Option<Timeline>,
   ) => Effect.Effect<CueRead, FreshError>;
+  /** Where each scene's drawing is declared, as the film's files and modules now stand (`film read sites`). */
+  readonly sites: (film: FilmName) => Effect.Effect<SitesRead, FreshError>;
   /** `film mix <film>`: the track rebuilt from the takes and the sources as they stand. */
   readonly remix: (film: FilmName) => Effect.Effect<void, FreshProcessFailed>;
   /** `film project <args>` (its `--json` among them): the project as the run leaves it. */
@@ -399,6 +433,10 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           return yield* ask(['read', 'cue', film, scene, name, ...given], READ_LIMIT, CueRead);
         });
 
+        const sites = Effect.fn('FreshFilm.sites')(function* (film: FilmName) {
+          return yield* ask(['read', 'sites', film], READ_LIMIT, SitesRead);
+        });
+
         const remix = Effect.fn('FreshFilm.remix')(function* (film: FilmName) {
           const done = yield* run('film mix', ['mix', film], MIX_LIMIT);
           if (done.exitCode !== 0)
@@ -447,6 +485,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           take,
           reading,
           cue,
+          sites,
           remix,
           project,
           check,

@@ -996,9 +996,10 @@ clock, as the film's files now declare it with the new spans in place
 before the file is touched): a line that moved or renamed a mark while the
 lab runs moves the cue's answer and its judgement too. The lab's handlers run
 with `LabContext` (`lab.ts`), which holds no `FilmRepo`, `SoundLibrary` or
-`Mixer`, and SceneWriter's and SceneHead's layers are built on none
-(`lab-context.types.ts`). SceneSources still imports the film's registry
-in process to find a drawing by identity (below).
+`Mixer`, and SceneWriter's, SceneHead's and SceneSources' layers are built on
+none (`lab-context.types.ts`). No module the lab runs imports a film's module
+by a function either (`importFilmModule`, `libraryModule`, a computed
+`import()`): `lab.test.ts` follows `lab.ts`'s imports and fails on one.
 
 **SceneSources** (`scene-sources.ts`) finds each scene's drawing by identity,
 not by name: the parser (oxc) lists every exported `drawing({...})` call in
@@ -1007,6 +1008,11 @@ scene belongs to the call whose exported `timeline` or `knobs` is the very
 object the scene reads. A renamed registry entry or two files exporting the
 same name cannot point a scene at the wrong literal; a scene built without a
 literal (a spread, a function) is reported as not located, with the reason.
+The lab locates in a fresh process (`film read sites <film>`, `locateHere` in
+`read-cli.ts`), kept while the film's source stamp stands, so a scene added
+or made to share a drawing while the lab runs is located as the files now
+say; a CLI command, a process of its own, locates in itself
+(`scenesLocatedHere`).
 
 **SceneWriter** (`scene-writer.ts`, splices in `scene-source.ts`) re-reads the
 file, replaces only the value's text (missing timing fields are added after
