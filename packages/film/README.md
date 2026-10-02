@@ -883,7 +883,8 @@ have none and read at `T`. A click saves a pin as a zero-size
 box. Every change takes the file's next `seq`, so `eventsSince(file, n)`
 (`core/notes.ts`) returns each new note, reply and resolve exactly once past
 a cursor (a file reset below the cursor, trashed or restored, replays its
-log at its own `seq`, so an open page and `--watch` keep hearing); `wait` polls the file for them (every 200 ms), so it sees a reply
+log at its own `seq` and a wait over it answers at once, even when the log is
+empty, so an open page and `--watch` keep hearing); `wait` polls the file for them (every 200 ms), so it sees a reply
 the CLI wrote while the server was waiting. Each change is one
 `ContentStore.transact`, as every manifest's is: written whole, one writer at
 a time across processes (`notes.json.lock`, created only if there is none and

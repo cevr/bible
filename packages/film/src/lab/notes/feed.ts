@@ -3,8 +3,9 @@
 // the agent makes from `film notes` lands on the page as it is written. A
 // wait that brings changes reads the notes again; one that brings none (the
 // server answers empty after WAIT_S) waits again. A read takes the file's own
-// cursor, so a notes file reset below it (trashed, moved, restored) is
-// waited past from where it stands. A failed read or wait loses
+// cursor, and a wait whose cursor went back (a notes file trashed, moved or
+// restored, even to an empty log) reads again, so the page shows the file
+// as it is and waits past where it stands. A failed read or wait loses
 // the feed, keeping the notes it had and saying the server's words, and it
 // connects again after RETRY_MS: a state timeout, so the timer is the actor's
 // and stops with the state. A change this page made (a note, a reply, a
@@ -54,11 +55,12 @@ const read = NotesApi.use((api) =>
   Effect.map(api.notes, (file) => FeedEvent.Synced({ notes: file.notes, cursor: file.seq })),
 );
 
-/** Wait past `cursor`; read the notes again if the wait brought changes. */
+/** Wait past `cursor`; read the notes again if the wait brought changes or the cursor went back. */
 const follow = (cursor: number) =>
   NotesApi.use((api) =>
     Effect.flatMap(api.wait(cursor), (waited): Effect.Effect<FeedEvent, LabFailure, NotesApi> => {
-      if (waited.events.length === 0)
+      // A cursor gone back is a reset file, read again even when it has no events.
+      if (waited.events.length === 0 && waited.cursor >= cursor)
         return Effect.succeed(FeedEvent.Waited({ cursor: waited.cursor }));
       return read;
     }),
