@@ -132,4 +132,12 @@ describe('eventsSince', () => {
     );
     expect(eventsSince(file, 0).events.map((e) => e._tag)).toEqual(['NoteAdded', 'NoteReplied']);
   });
+
+  test('a file reset below the cursor (trashed, restored) replays its log at its own cursor', () => {
+    const file = addNote(emptyNotes('f'), draft('after the reset'), at);
+    const waited = eventsSince(file, 5);
+    expect(waited.events.map((e) => [e._tag, e.seq])).toEqual([['NoteAdded', 1]]);
+    expect(waited.cursor).toBe(1);
+    expect(eventsSince(file, waited.cursor).events).toEqual([]);
+  });
 });

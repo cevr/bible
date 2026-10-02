@@ -145,23 +145,32 @@ export const replyToNote = (
 export const resolveNote = (file: NotesFile, id: string): NotesFile =>
   change(file, id, (note) => ({ ...note, status: 'resolved' }));
 
+/** Where to report from: `since`, or the start of a file reset below it. */
+const reportFrom = (file: NotesFile, since: number) => {
+  if (file.seq < since) return 0;
+  return since;
+};
+
 /**
  * Every change after `since`, in the order made, and the cursor to pass next.
  * A note or reply is reported once: its change number never moves. A note
- * whose last change was resolving it is reported as resolved.
+ * whose last change was resolving it is reported as resolved. A file whose
+ * own cursor is below `since` was reset (trashed, moved or restored), so its
+ * whole log is new to the watcher and the cursor is the file's.
  */
 export const eventsSince = (file: NotesFile, since: number): NotesWait => {
+  const from = reportFrom(file, since);
   const events = file.notes.flatMap((note): Array<NoteEvent> => {
     const out: Array<NoteEvent> = [];
-    if (note.seq > since) out.push({ _tag: 'NoteAdded', seq: note.seq, note });
+    if (note.seq > from) out.push({ _tag: 'NoteAdded', seq: note.seq, note });
     for (const reply of note.thread)
-      if (reply.seq > since) out.push({ _tag: 'NoteReplied', seq: reply.seq, note, reply });
-    if (note.status === 'resolved' && note.changed > since)
+      if (reply.seq > from) out.push({ _tag: 'NoteReplied', seq: reply.seq, note, reply });
+    if (note.status === 'resolved' && note.changed > from)
       out.push({ _tag: 'NoteResolved', seq: note.changed, note });
     return out;
   });
   return {
-    cursor: Math.max(since, file.seq),
+    cursor: file.seq,
     events: Arr.sort(
       events,
       Order.mapInput(Order.Number, (e: NoteEvent) => e.seq),
