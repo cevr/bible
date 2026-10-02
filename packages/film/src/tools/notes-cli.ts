@@ -13,7 +13,7 @@
 
 import { Argument, Command, Flag } from 'effect/cli';
 import { Console, Effect, FileSystem, Option } from 'effect';
-import { eventsSince } from '../core/notes.ts';
+import { eventsSince, unresolved } from '../core/notes.ts';
 import type { StoreError } from './content-store.ts';
 import { filmNamed } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
@@ -110,7 +110,7 @@ export const notes = Command.make(
     const at = store.paths(name);
     const file = yield* store.read(name);
     if (!input.watch) {
-      const open = file.notes.filter((n) => n.status !== 'resolved');
+      const open = unresolved(file);
       for (const note of open) yield* Console.log(noteLine(at, note, note.changed));
       // The cursor this list saw: a watch started past it misses nothing made since.
       yield* Console.log(cursorLine(file.seq));

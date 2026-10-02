@@ -850,19 +850,19 @@ export type NoteEvent = typeof NoteEvent.Type;
 export const NotesWait = Schema.Struct({ cursor: Seq, events: Schema.Array(NoteEvent) });
 export type NotesWait = typeof NotesWait.Type;
 
-/** The lab's `POST /lab/notes` body: a draft and its still, a PNG in base64. */
+/** The lab's `POST /lab/:film/notes` body: a draft and its still, a PNG in base64. */
 export const NotePost = Schema.Struct({
   ...NoteDraft.fields,
   still: Schema.Uint8ArrayFromBase64,
 });
 
-/** The lab's `POST /lab/notes/:id/reply` body. */
+/** The lab's `POST /lab/:film/notes/:id/reply` body. */
 export const ReplyPost = Schema.Struct({ text: Schema.String.check(Schema.isNonEmpty()) });
 
 // ---------------------------------------------------------------------------
 // Lab write-back: the lab edits a scene's cues and knobs in its source file.
 
-/** `POST /lab/cues/:scene/:cue`: the fields to set; a field the span lacks is added. */
+/** `POST /lab/:film/cues/:scene/:cue`: the fields to set; a field the span lacks is added. */
 export const CuePatch = Schema.Struct({
   offset: Schema.optionalKey(Schema.Finite),
   dur: Schema.optionalKey(Seconds),
@@ -883,7 +883,7 @@ export const CuePatch = Schema.Struct({
   );
 export type CuePatch = typeof CuePatch.Type;
 
-/** `POST /lab/knobs/:scene/:knob`: the knob's new value. */
+/** `POST /lab/:film/knobs/:scene/:knob`: the knob's new value. */
 export const KnobPatch = Schema.Struct({ value: Knob });
 
 /** A cue on the scene clock, in scene-local seconds, with the ease `f.at` applies across it. */
@@ -946,7 +946,7 @@ export type CheckReport = typeof CheckReport.Type;
 
 const FieldState = Schema.Literals(['literal', 'absent', 'computed']);
 
-/** `GET /lab/scenes/:scene/source`: where the scene's drawing is, and what the lab may rewrite. */
+/** `GET /lab/:film/scenes/:scene/source`: where the scene's drawing is, and what the lab may rewrite. */
 export const SceneSource = Schema.Struct({
   scene: Schema.String,
   /** The scene file, relative to the film's folder. */
@@ -974,7 +974,7 @@ export const SceneSource = Schema.Struct({
 export type SceneSource = typeof SceneSource.Type;
 
 /**
- * `GET /lab/scenes/:scene/head`: the scene's timeline and knobs as the file
+ * `GET /lab/:film/scenes/:scene/head`: the scene's timeline and knobs as the file
  * declares them at HEAD (literals only), for the lab to draw beside now.
  */
 export const HeadSource = Schema.Struct({

@@ -834,7 +834,7 @@ quotation set apart with who said it, marks stripped), and records it:
   the owner's words.
 - **The recorder** (`machine.ts`) is one machine: `Idle | CountIn | Recording
 | Review | Importing | Checking | Failed` on `SelectBeat | Arm | Tick | CountDone |
-Cancel | Stop | MicLost | Retake | Submit | Discard | Imported | Refused |
+Cancel | Stop | MicLost | Submit | Discard | Imported | Refused |
 ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and opens the
   microphone; the 3 s count-in is a state timeout; Stop encodes the WAV to
   review (play it back before submitting); Submit posts it as the state's
@@ -950,13 +950,14 @@ time, and a refusal comes back to the draft in the server's words. The feed
 it reads the notes, then long-polls `/lab/<film>/notes/wait` past the
 cursor, so the list changes the moment the agent replies; a failed read or
 wait says so in the panel and connects again after 2 s (a state timeout);
-a note, reply or resolve made on the page reads the notes at once. (Scene
-hot reload is Bun's own HMR client, not the lab's.)
+a note, reply or resolve made on the page reads the notes at once. (A
+scene edited on disk reloads the page at its frame through the lab's own
+build counter, `lab/rebuilt.ts`; there is no HMR client.)
 
 `film notes <film>` (`notes-cli.ts`) prints each unresolved note as one line:
 
 ```
-note id=n1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
+note id=n1 seq=1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
 ```
 
 `--watch` prints each new note, and each reply from the user (`reply id=…

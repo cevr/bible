@@ -132,7 +132,6 @@ export const RecorderEvent = Event({
   Stop: {},
   /** The microphone went away mid-take. */
   MicLost: {},
-  Retake: { device: Device },
   Submit: {},
   Discard: {},
   Imported: { kept: Kept },
@@ -226,7 +225,12 @@ const keptOf = (take: StudioTake): Kept => ({
 /** How the wait reads in the owner's words. */
 const WAITED = minutes(STUDIO_IMPORT_WAIT_S);
 
-/** Attempts listed within this long before the wait began may be the upload's (the clocks are one machine's). */
+/**
+ * Attempts listed within this long before the wait began may be the upload's.
+ * `since` is the page's clock and an attempt's `at` the lab's: the lab runs on
+ * the box and the page on a laptop or phone, so this slack also covers the
+ * skew between the two machines (NTP keeps it to well under a second).
+ */
 const SLACK_MS = 10_000;
 
 /** An import that got no answer, in the owner's words. */
@@ -307,9 +311,6 @@ export const recorderMachine = (beat: string) =>
       [RecorderState.Idle, RecorderState.Review, RecorderState.Failed],
       RecorderEvent.Arm,
       ({ state, event }) => arm(state.beat, event.device, heldWav(state)),
-    )
-    .on(RecorderState.Review, RecorderEvent.Retake, ({ state, event }) =>
-      arm(state.beat, event.device, Option.some(state.wav)),
     )
     .timeout(RecorderState.CountIn, { duration: Duration.seconds(1), event: countStep })
     .reenter(RecorderState.CountIn, RecorderEvent.Tick, ({ state }) =>
