@@ -432,6 +432,35 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'the player lives through writes: a pick and a say keep the picture, a say the mix',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { search: FILM });
+        yield* waitFor(page, '.rv-picture video');
+        yield* until(page, `${MIX}.startsWith('/lab/toy/choices/mix?point=score&variant=strings')`);
+        yield* page.evaluate(`(() => {
+            window.__picture = document.querySelector('.rv-picture video');
+            window.__mix = document.querySelector('audio.rv-mix');
+          })()`);
+        const same = "document.querySelector('.rv-picture video') === window.__picture";
+        const sameMix = "document.querySelector('audio.rv-mix') === window.__mix";
+        // A say answers new choices; the picture and the mix heard stay the same elements.
+        yield* page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close');
+        yield* click(page, `${at('score', 'strings')} [data-act="comment"]`);
+        yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
+        yield* evaluates(page, same, true);
+        yield* evaluates(page, sameMix, true);
+        // A pick changes the source: the mix is asked for again, the picture plays on.
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        yield* evaluates(page, same, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a pick made while a comment is in flight leaves the comment its own answer',
     () =>
       Effect.gen(function* () {

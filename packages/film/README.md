@@ -1360,7 +1360,10 @@ redo (`Undo score play brass`); the film's static check shows under them,
 the one the write answered, and after a pick or a knob `film check --sound`
 runs (`GET …/choices/check`) and its findings show beside it. A write is
 shown from its answer: the page reads nothing again but the undo and redo
-(`GET …/steps`, no check) and, after an undo or a redo, the choices.
+(`GET …/steps`, no check) and, after an undo or a redo, the choices. The
+answer updates the player in place: the picture's `<video>` stays the same
+element while the film has a picture, so a playing film plays on through a
+pick, a knob or a say; only a source write asks for the mix heard again.
 
 The project view (`?project=<film>`, `options/project.tsx`) is the film by its
 address tree, film → acts → scenes → layers, with the same card, the same

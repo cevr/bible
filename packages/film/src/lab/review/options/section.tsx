@@ -9,7 +9,7 @@
 // score) and its findings are shown.
 
 import { For, Show } from '@solidjs/web';
-import { onCleanup } from 'solid-js';
+import { type Accessor, createMemo, onCleanup } from 'solid-js';
 import { Duration, Effect, Fiber, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { ChoiceKind, ChoicePoint } from '../../../core/choice.ts';
@@ -30,7 +30,12 @@ const pictureLabel = (p: ReviewVideo): string => {
   return `${dir} · ${sizeText(p.size)}`;
 };
 
-/** The render the sound plays over, on the clock, and the one `<audio>` heard with it. */
+/**
+ * The render the sound plays over, on the clock, and the one `<audio>` heard
+ * with it. Made once while the film has a picture: a write's answer (new
+ * choices, the same picture) updates it in place, so a playing film plays on;
+ * choosing another picture changes the one `<video>`'s source.
+ */
 export const Player = () => {
   const { state } = useReview();
   const { choices, picture, choosePicture, mix, driver, sync, send } = useFilm();
@@ -38,55 +43,58 @@ export const Player = () => {
   return (
     <Show
       when={Option.getOrUndefined(picture())}
-      keyed
       fallback={
         <p class="rv-hint rv-note">
           No render of this film under the review's roots yet: each option plays alone below.
         </p>
       }
     >
-      {(video) => (
-        <>
-          <Transport
-            sync={sync}
-            send={send}
-            hint="space · ←/→ 2 s · 🔊 picks the sound heard over the picture"
-          />
-          <Show when={choices().pictures.length > 1}>
-            <div class="rv-row rv-pick">
-              <span class="rv-hint">Picture:</span>
-              <For each={choices().pictures}>
-                {(p) => (
-                  <button
-                    type="button"
-                    class="rv-chip"
-                    data-picture={p.ref}
-                    aria-pressed={pressed(p.ref === video.ref)}
-                    onClick={() => choosePicture(p.ref)}
-                  >
-                    {pictureLabel(p)}
-                  </button>
-                )}
-              </For>
-            </div>
-          </Show>
-          <div class="rv-card rv-picture" data-id={PICTURE}>
-            <video
-              preload="auto"
-              playsinline
-              muted
-              src={videoUrl(video, state.quality())}
-              ref={(el: HTMLVideoElement) => driver.attach(PICTURE, el)}
+      {(video: Accessor<ReviewVideo>) => {
+        // The same file answered again keeps its source, so nothing reloads.
+        const src = createMemo(() => videoUrl(video(), state.quality()));
+        return (
+          <>
+            <Transport
+              sync={sync}
+              send={send}
+              hint="space · ←/→ 2 s · 🔊 picks the sound heard over the picture"
             />
-            <div class="rv-cap">
-              <span class="rv-name">{video.name}</span>
-              <span class="rv-tag">{video.ref}</span>
-              <HearButton playing={Playing.Own()} />
+            <Show when={choices().pictures.length > 1}>
+              <div class="rv-row rv-pick">
+                <span class="rv-hint">Picture:</span>
+                <For each={choices().pictures}>
+                  {(p) => (
+                    <button
+                      type="button"
+                      class="rv-chip"
+                      data-picture={p.ref}
+                      aria-pressed={pressed(p.ref === video().ref)}
+                      onClick={() => choosePicture(p.ref)}
+                    >
+                      {pictureLabel(p)}
+                    </button>
+                  )}
+                </For>
+              </div>
+            </Show>
+            <div class="rv-card rv-picture" data-id={PICTURE}>
+              <video
+                preload="auto"
+                playsinline
+                muted
+                src={src()}
+                ref={(el: HTMLVideoElement) => driver.attach(PICTURE, el)}
+              />
+              <div class="rv-cap">
+                <span class="rv-name">{video().name}</span>
+                <span class="rv-tag">{video().ref}</span>
+                <HearButton playing={Playing.Own()} />
+              </div>
             </div>
-          </div>
-          <For each={mixes()}>{(src) => <Mix src={src} />}</For>
-        </>
-      )}
+            <For each={mixes()}>{(mixSrc) => <Mix src={mixSrc} />}</For>
+          </>
+        );
+      }}
     </Show>
   );
 };
