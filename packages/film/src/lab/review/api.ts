@@ -30,8 +30,8 @@ const fileText = (res: HttpClientResponse.HttpClientResponse) => {
   return Effect.flatMap(HttpClientResponse.schemaBodyJson(Refusal)(res), Effect.fail);
 };
 
-/** The review's routes on `origin`. */
-const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: string) {
+/** The review's routes on the page's own origin: a doc's URL is a path, resolved against the page's address. */
+const makeReviewApi = Effect.fn('lab.review.api')(function* () {
   const client = (yield* LabClient).review;
   const http = yield* HttpClient.HttpClient;
   const api: ReviewCalls = {
@@ -40,13 +40,11 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* (origin: string) {
       return called(client.index({ query: {} }));
     },
     duration: (ref) => called(Effect.map(client.duration({ query: { ref } }), (d) => d.seconds)),
-    text: (ref) => called(Effect.flatMap(http.get(`${origin}${reviewFileUrl(ref)}`), fileText)),
+    text: (ref) => called(Effect.flatMap(http.get(reviewFileUrl(ref)), fileText)),
   };
   return api;
 });
 
 /** The review's routes on the page's own origin, over the page's one client (given at its root). */
-export const reviewApiLayer = (
-  origin: string,
-): Layer.Layer<ReviewApi, never, LabClient | HttpClient.HttpClient> =>
-  Layer.effect(ReviewApi, makeReviewApi(origin));
+export const reviewApiLayer: Layer.Layer<ReviewApi, never, LabClient | HttpClient.HttpClient> =
+  Layer.effect(ReviewApi, makeReviewApi());

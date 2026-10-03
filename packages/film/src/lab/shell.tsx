@@ -141,7 +141,7 @@ const Root = (props: RootProps) => {
 
   const [revision, setRevision] = createSignal(0, fromDraw);
   const stage = makeStage(player, props.host, () => setRevision((n) => n + 1));
-  const clientLayer = LabClient.layer(location.origin);
+  const clientLayer = LabClient.layer;
   // The server rebuilt the pages (a source changed): reload onto the new code at this frame.
   const rebuilt = Effect.runFork(reloadOnRebuild(stage.reload).pipe(Effect.provide(clientLayer)));
   onCleanup(() => Effect.runFork(Fiber.interrupt(rebuilt)));

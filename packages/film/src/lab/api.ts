@@ -105,20 +105,31 @@ export class NotesApi extends Context.Service<NotesApi, NotesCalls>()('@bible/fi
 /** How long one wait for the notes holds on the server, in seconds. */
 const WAIT_S = 55;
 
-/** The lab's client on `origin`: every group of `LabHttpApi`. */
-const labClient = (origin: string) => HttpApiClient.make(LabHttpApi, { baseUrl: origin });
+/**
+ * The page's client: every group of `LabHttpApi`. Its requests carry paths,
+ * which Effect's `HttpClient` resolves against the page's own address, so a
+ * page never names its origin.
+ */
+const pageClient = HttpApiClient.make(LabHttpApi);
+
+/** The client of the lab at `origin`. */
+const clientAt = (origin: string) => HttpApiClient.make(LabHttpApi, { baseUrl: origin });
 
 /**
  * The page's one client of the lab's API, derived from `LabHttpApi`: every
- * call a page makes goes through it. Its layer gives the `fetch` client
+ * call a page makes goes through it. Its layers give the `fetch` client
  * beside it, for a file read by its URL (a review doc's text).
  */
-export class LabClient extends Context.Service<
-  LabClient,
-  Effect.Success<ReturnType<typeof labClient>>
->()('@bible/film/lab/Client') {
-  static readonly layer = (origin: string) =>
-    Layer.effect(LabClient, labClient(origin)).pipe(Layer.provideMerge(FetchHttpClient.layer));
+export class LabClient extends Context.Service<LabClient, Effect.Success<typeof pageClient>>()(
+  '@bible/film/lab/Client',
+) {
+  /** The client of the lab that served the page. */
+  static readonly layer = Layer.effect(LabClient, pageClient).pipe(
+    Layer.provideMerge(FetchHttpClient.layer),
+  );
+  /** The client of the lab at `origin`: a process with no page (a test). */
+  static readonly layerAt = (origin: string) =>
+    Layer.effect(LabClient, clientAt(origin)).pipe(Layer.provideMerge(FetchHttpClient.layer));
 }
 
 /** The scene source routes for `film`, over the page's derived client. */

@@ -47,7 +47,7 @@ it.live(
             yield* Effect.addFinalizer(() => Effect.sync(() => lifetime.push('released')));
             return value;
           }),
-        ).pipe(Layer.provide(LabClient.layer(host.origin)));
+        ).pipe(Layer.provide(LabClient.layerAt(host.origin)));
         const labScope = yield* Scope.fork(parent);
         const studioScope = yield* Scope.fork(parent);
         const lab = yield* Layer.buildWithMemoMap(

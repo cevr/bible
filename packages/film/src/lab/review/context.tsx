@@ -167,12 +167,12 @@ const qualityOf = (stored: Option.Option<string>): Quality =>
   );
 
 /** The review page: its runtime, place, index and choices, around `children`. */
-export const Root = (props: ParentProps<{ readonly origin: string; readonly host: Host }>) => {
+export const Root = (props: ParentProps<{ readonly host: Host }>) => {
   // One client of the lab's API for the page: the review's and the choices'
   // routes both go through it.
   const runtime = Atom.runtime(
-    Layer.mergeAll(reviewApiLayer(props.origin), optionsApiLayer, hostLayer(props.host)).pipe(
-      Layer.provide(LabClient.layer(props.origin)),
+    Layer.mergeAll(reviewApiLayer, optionsApiLayer, hostLayer(props.host)).pipe(
+      Layer.provide(LabClient.layer),
     ),
   );
   const filmsAtom = runtime.atom(OptionsApi.use((api) => api.films));
