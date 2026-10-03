@@ -574,6 +574,26 @@ export const routesOf = <Id extends string, Groups extends HttpApiGroup.Constrai
   return routes;
 };
 
+/** A declared route's path as a matcher: a `:param` is one segment, a trailing `*` the rest. */
+const matcherOf = (path: string): RegExp =>
+  new RegExp(`^${path.replace(/:\w+/g, '[^/]+').replace(/\*$/, '.*')}$`);
+
+/**
+ * Whether `api` declares a route that `method pathname` reaches: what a fake
+ * server checks before it answers, so a test never vouches for a path the
+ * real server does not serve.
+ */
+export const declares = <Id extends string, Groups extends HttpApiGroup.Constraint>(
+  api: HttpApi.HttpApi<Id, Groups>,
+): ((method: string, pathname: string) => boolean) => {
+  const routes = routesOf(api).map((route) => ({
+    method: route.method,
+    path: matcherOf(route.path),
+  }));
+  return (method, pathname) =>
+    routes.some((route) => route.method === method && route.path.test(pathname));
+};
+
 /** The first segments `api`'s routes live under (`/api/`): the API's own paths. */
 export const prefixesOf = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,

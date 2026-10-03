@@ -8,7 +8,15 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effect';
-import { type PageName, Refusal, pageAt, pageHref, statusOf } from '../../core/api.ts';
+import {
+  LabHttpApi,
+  declares,
+  type PageName,
+  Refusal,
+  pageAt,
+  pageHref,
+  statusOf,
+} from '../../core/api.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
@@ -253,9 +261,14 @@ const answer = (found: Answer): Effect.Effect<Option.Option<Response>> => {
   );
 };
 
+/** Whether the lab's API declares a route a request reaches (`declares`, `core/api.ts`). */
+const declared = declares(LabHttpApi);
+
 /**
  * A request to the API: kept in `asked` (its path past `prefix`) and
- * answered by the first of `routes` that matches it, or a 404.
+ * answered by the first of `routes` that matches it, or a 404. A fake that
+ * matches a path `LabHttpApi` does not declare answers a 500 naming it: the
+ * test would otherwise pass over a route the real server never serves.
  */
 const apiAnswer =
   (prefix: string, routes: ReadonlyArray<FakeRoute>, asked: Array<Asked>) =>
@@ -269,7 +282,17 @@ const apiAnswer =
     const found = routes.find((f) => f.method === made.method && f.path.test(made.path));
     return Option.match(Option.fromUndefinedOr(found), {
       onNone: () => Effect.succeedSome(respond('no fake route', 'text/plain', 404)),
-      onSome: (f) => answer(f.answer(made)),
+      onSome: (f) => {
+        if (!declared(request.method, request.url.pathname))
+          return Effect.succeedSome(
+            respond(
+              `a fake route answers ${request.method} ${request.url.pathname}, which the lab's API does not declare`,
+              'text/plain',
+              500,
+            ),
+          );
+        return answer(f.answer(made));
+      },
     });
   };
 

@@ -1867,7 +1867,12 @@ the real browser workflows and canvas pixel checks. The E2E script uses
 The runner caps workers at eight, or the host's core count when smaller;
 each keeps its module registry and Chrome across files. Test files restore
 the global state they change. E2E cases retain native input, actual browser
-recording and pixel assertions. This command is independent of the gate.
+recording and pixel assertions. The gate does not run it; CI runs it in its
+own `e2e` job beside the gate (`.github/workflows/gate.yml`), over the
+runner's Google Chrome named by `BUN_CHROME_PATH`. The fake server answers
+only paths `LabHttpApi` declares (`declares`, `core/api.ts`): a fake matching
+any other path answers a 500 naming it, so no case passes over a route the
+real server does not serve.
 
 ## Knobs
 

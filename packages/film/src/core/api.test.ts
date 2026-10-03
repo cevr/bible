@@ -1,7 +1,16 @@
 import { describe, expect, test } from 'bun:test';
 import { Place } from '@bible/url-state';
 import { Option } from 'effect';
-import { type PageName, Places, filmOfPage, legacyPlace, pageAt, pageHref } from './api.ts';
+import {
+  LabHttpApi,
+  type PageName,
+  Places,
+  declares,
+  filmOfPage,
+  legacyPlace,
+  pageAt,
+  pageHref,
+} from './api.ts';
 
 type PlaceName = keyof typeof Places;
 
@@ -203,5 +212,27 @@ describe('old links', () => {
   test('every old link lands on a page', () => {
     for (const [, now] of OLD_LINKS)
       expect(Option.isSome(pageAt(now.split(/[?#]/)[0] ?? ''))).toBe(true);
+  });
+});
+
+describe('declared routes', () => {
+  const declared = declares(LabHttpApi);
+
+  test.each([
+    ['GET', '/api/films/rbf/notes'],
+    ['POST', '/api/films/rbf/notes/n-1/resolve'],
+    ['GET', '/api/films/rbf%2Fshorts%2Fverdict/choices/mix'],
+    ['GET', '/api/review/files/out/art/roof.A.md'],
+  ])('%s %s is declared', (method, pathname) => {
+    expect(declared(method, pathname)).toBe(true);
+  });
+
+  test.each([
+    ['POST', '/api/films/rbf/notes/n-1'],
+    ['GET', '/api/films/rbf/notes/n-1/resolve'],
+    ['GET', '/lab/rbf/choices'],
+    ['GET', '/api/films/rbf/notes/extra/segments/here'],
+  ])('%s %s is not', (method, pathname) => {
+    expect(declared(method, pathname)).toBe(false);
   });
 });
