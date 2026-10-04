@@ -37,7 +37,15 @@ import * as UrlAtom from '@bible/url-state/atom';
 import { OWN_SOUND, Places, type Steps, choiceMixUrl } from '../../../core/api.ts';
 import { type Host, addressOn, onTraverse } from '../../../browser/host.ts';
 import { keptTime } from '../place.ts';
-import type { FilmChoices, SoundCheck } from '../../../core/choice.ts';
+import {
+  type FilmChoices,
+  ONLY_TEXT,
+  SHOWN_ONLY,
+  type ShownOnly,
+  type SoundCheck,
+  onlyOf,
+} from '../../../core/choice.ts';
+import { type Command, quiet } from '../../../command/command.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine, CheckReport } from '../../../core/schema.ts';
 import type { LabFailure } from '../../api.ts';
@@ -178,9 +186,50 @@ interface FilmContextValue {
   readonly sync: Accessor<SyncState>;
   readonly send: (event: SyncEvent) => void;
   readonly driver: SyncDriver;
+  /** The one state the page shows its points in (`?only=`, AA-14), or none: every point. */
+  readonly only: Accessor<Option.Option<ShownOnly>>;
+  /** Show only the points in `only`, or every point. */
+  readonly showOnly: (only: Option.Option<ShownOnly>) => void;
 }
 
 const FilmContext = createContext<FilmContextValue>();
+
+/**
+ * The page's Show only… commands (AA-14), in ⌘K and the page's long-press
+ * menu: one per state the points are not already shown only in, and Show
+ * every point while they are.
+ */
+const onlyCommands = (
+  only: Accessor<Option.Option<ShownOnly>>,
+  showOnly: (only: Option.Option<ShownOnly>) => void,
+): ReadonlyArray<Command> => [
+  ...SHOWN_ONLY.map((state): Command => ({
+    id: `review.only-${state}`,
+    label: `Show only ${ONLY_TEXT[state]}`,
+    group: 'View',
+    about: ['Page'],
+    touch: `long-press the page, then Show only ${ONLY_TEXT[state]}`,
+    when: () => !Option.contains(only(), state),
+    run: () =>
+      Effect.sync(() => {
+        showOnly(Option.some(state));
+        return quiet;
+      }),
+  })),
+  {
+    id: 'review.only-all',
+    label: 'Show every point',
+    group: 'View',
+    about: ['Page'],
+    touch: 'long-press the page, then Show every point',
+    when: () => Option.isSome(only()),
+    run: () =>
+      Effect.sync(() => {
+        showOnly(Option.none());
+        return quiet;
+      }),
+  },
+];
 
 /** A film's context: only inside `<FilmProvider>`. */
 export const useFilm = (): FilmContextValue => useContext(FilmContext);
@@ -348,10 +397,26 @@ const FilmBody = (
   onCleanup(driver.stop);
   createEffect(sync, (s) => driver.apply(s));
 
-  // The player's transport, once there is a picture to play.
+  // The one state the points are shown in is the URL's (`?only=`), so a link carries it.
+  const only = createMemo(() =>
+    onlyOf(
+      Option.getOrElse(
+        Option.orElse(
+          Option.map(onChoices(), (v) => v.query.only),
+          () => Option.map(onProject(), (v) => v.query.only),
+        ),
+        () => '',
+      ),
+    ),
+  );
+  const showOnly = (next: Option.Option<ShownOnly>) =>
+    keep((v) => ({ ...v, query: { ...v.query, only: Option.getOrElse(next, () => '') } }));
+
+  // The player's transport, once there is a picture to play; Show only….
   onCleanup(
     meta.hub.commands.register(
       ...playerCommands((key) => Option.map(picture(), () => () => send(playerEvent(key)))),
+      ...onlyCommands(only, showOnly),
     ),
   );
 
@@ -377,6 +442,8 @@ const FilmBody = (
     sync,
     send,
     driver,
+    only,
+    showOnly,
   };
   return <FilmContext value={value}>{props.children}</FilmContext>;
 };

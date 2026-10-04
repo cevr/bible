@@ -9,16 +9,21 @@
 // Shift; and the walk through a scene: `.` and `,` go to the next or previous
 // cue edge of the strip's scene, Tab and ⇧Tab select the next or previous
 // cue while a cue is selected and focus is on the page (on a button, Tab
-// still moves focus). Every command answers quietly: a write's receipt is
+// still moves focus); F and ⇧F go to the next or previous finding of the
+// film's check that has a place on the time line (`findingTime`). Every
+// command answers quietly: a write's receipt is
 // the editor's own once it lands (what a nudge moved, before → after, with
 // Undo; what an Undo walked, with Redo: `context.tsx`), and a selection
-// shows in the URL and the strip.
+// shows in the URL and the strip. Each cue of the strip's scene is also a
+// place ⌘K goes to by its name (`cueDestinations`).
 
 import { Effect, Match, Option } from 'effect';
 import { type Command, type Invocation, quiet } from '../../command/command.ts';
 import { type Context, selected } from '../../command/context.ts';
 import { type LabSelection, cueOf, sameSelection, selectionText } from '../../command/selection.ts';
 import { type Inspected, nudged, refusalOf } from '../../core/field.ts';
+import type { Destination } from '../../command/go.ts';
+import { type Toward, walkFrom } from '../../command/walk.ts';
 import type { StepVerb } from '../api.ts';
 
 /** What the editor's commands drive. */
@@ -42,6 +47,8 @@ interface EditorVerbs {
   /** The film time shown. */
   readonly T: () => number;
   readonly seek: (T: number) => void;
+  /** Where the film shows each of the panel's findings that has a place on the time line. */
+  readonly findingTimes: () => ReadonlyArray<number>;
 }
 
 /** The cue or knob `ctx` is about. */
@@ -176,20 +183,9 @@ const nudgeCommand = (verbs: EditorVerbs, way: Way): Command => {
   };
 };
 
-/** Half a frame at 30 fps: an edge this close to the time shown is where the time is. */
-const AT_EDGE = 1 / 60;
-
-/** Which way a walk goes. */
-type Toward = 'next' | 'previous';
-
 /** The first edge past `T` toward `toward`, if there is one. */
 const edgeFrom = (edges: ReadonlyArray<number>, T: number, toward: Toward): Option.Option<number> =>
-  Option.fromUndefinedOr(
-    {
-      next: () => edges.find((e) => e > T + AT_EDGE),
-      previous: () => edges.findLast((e) => e < T - AT_EDGE),
-    }[toward](),
-  );
+  walkFrom(edges, (e) => e, T, toward);
 
 const edgeCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: string): Command => ({
   id: `edit.edge-${toward}`,
@@ -201,6 +197,26 @@ const edgeCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: str
   run: () =>
     Effect.sync(() => {
       Option.map(edgeFrom(verbs.edges(), verbs.T(), toward), verbs.seek);
+      return quiet;
+    }),
+});
+
+/** F and ⇧F (AA-7): the film shown where the next or previous finding is. */
+const findingCommand = (
+  verbs: EditorVerbs,
+  toward: Toward,
+  label: string,
+  key: string,
+): Command => ({
+  id: `check.finding-${toward}`,
+  label,
+  group: 'Check',
+  keys: [key],
+  touch: "tap a finding's time in the findings",
+  when: () => Option.isSome(edgeFrom(verbs.findingTimes(), verbs.T(), toward)),
+  run: () =>
+    Effect.sync(() => {
+      Option.map(edgeFrom(verbs.findingTimes(), verbs.T(), toward), verbs.seek);
       return quiet;
     }),
 });
@@ -243,6 +259,26 @@ const walkCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: str
     }),
 });
 
+/**
+ * Each cue of the strip's scene as a place ⌘K goes to by its name
+ * (`command/go.ts`): shown at its start (`startOf`, film seconds), then
+ * selected, so the URL's entry holds both.
+ */
+export const cueDestinations = (
+  strip: ReturnType<EditorVerbs['stripCues']>,
+  startOf: (name: string) => number,
+  verbs: Pick<EditorVerbs, 'select' | 'seek'>,
+): ReadonlyArray<Destination> =>
+  strip.names.map((name) => ({
+    kind: 'cue',
+    id: `${strip.scene}.${name}`,
+    name: `${name} in ${strip.scene}`,
+    go: () => {
+      verbs.seek(startOf(name));
+      verbs.select(cueOf(strip.scene, name));
+    },
+  }));
+
 /** The editor's commands over `verbs`. */
 export const editorCommands = (verbs: EditorVerbs): ReadonlyArray<Command> => [
   stepCommand(verbs, 'undo', 'Undo', 'mod+z'),
@@ -280,6 +316,8 @@ export const editorCommands = (verbs: EditorVerbs): ReadonlyArray<Command> => [
   },
   ...WAYS.map((way) => nudgeCommand(verbs, way)),
   edgeCommand(verbs, 'next', 'Next cue edge', '.'),
+  findingCommand(verbs, 'next', 'Next finding', 'f'),
+  findingCommand(verbs, 'previous', 'Previous finding', 'shift+f'),
   edgeCommand(verbs, 'previous', 'Previous cue edge', ','),
   walkCommand(verbs, 'next', 'Select the next cue', 'tab'),
   walkCommand(verbs, 'previous', 'Select the previous cue', 'shift+tab'),

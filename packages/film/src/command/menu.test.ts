@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'bun:test';
-import { Effect } from 'effect';
-import { type Command, quiet } from './command.ts';
+import { Effect, Option } from 'effect';
+import { BY_BUTTON, type Command, quiet } from './command.ts';
 import { contextAt } from './context.ts';
-import { byGroup, menuRows } from './menu.ts';
+import { GO_TO, goToCommands } from './go.ts';
+import { byGroup, contextRows, menuRows, sheetRows } from './menu.ts';
+import { walkFrom } from './walk.ts';
 
 const command = (id: string, group: string, label: string): Command => ({
   id,
@@ -39,5 +41,48 @@ describe('the command menu and the sheet', () => {
     ]);
     expect(menuRows(commands, ctx, 'edit.un').map((r) => r.command.id)).toEqual(['edit.undo']);
     expect(menuRows(commands, ctx, 'nothing')).toEqual([]);
+  });
+
+  test('a Go to entry is a row once a word is typed, and never in the sheet or a context menu', () => {
+    const goes = goToCommands([{ kind: 'scene', id: 'cold', name: 'cold', go: () => {} }]);
+    const all = [...commands, ...goes];
+    expect(menuRows(all, ctx, '').map((r) => r.command.id)).not.toContain('go.scene.cold');
+    expect(menuRows(all, ctx, 'cold').map((r) => r.label)).toEqual(['Go to scene cold']);
+    expect(sheetRows(all).map(([group]) => group)).toEqual(['Transport', 'Edit']);
+    expect(contextRows(all, ctx)).toEqual([]);
+  });
+});
+
+describe('Go to (AA-2)', () => {
+  test('each destination is a command named by its kind and id that goes there', () => {
+    const went: Array<string> = [];
+    const [go] = goToCommands([
+      { kind: 'folder', id: 'out/art', name: 'Roofs out/art', go: () => went.push('out/art') },
+    ]);
+    expect(go?.id).toBe('go.folder.out/art');
+    expect(go?.label).toBe('Go to folder Roofs out/art');
+    expect(go?.group).toBe(GO_TO);
+    Effect.runSync(go?.run(ctx, BY_BUTTON) ?? Effect.succeed(quiet));
+    expect(went).toEqual(['out/art']);
+  });
+});
+
+describe('a walk through time (`.`/`,`, ⇧N/⌥⇧N, F/⇧F)', () => {
+  const times = [3, 1, 2];
+  const at = (T: number, toward: 'next' | 'previous') => walkFrom(times, (t) => t, T, toward);
+
+  test('the next past the time shown, the previous before it, in time order', () => {
+    expect(at(1.5, 'next')).toEqual(Option.some(2));
+    expect(at(1.5, 'previous')).toEqual(Option.some(1));
+  });
+
+  test('a step from a thing never lands on the same thing', () => {
+    expect(at(2, 'next')).toEqual(Option.some(3));
+    expect(at(2 + 1 / 120, 'previous')).toEqual(Option.some(1));
+  });
+
+  test('past either end there is nothing', () => {
+    expect(at(3, 'next')).toEqual(Option.none());
+    expect(at(1, 'previous')).toEqual(Option.none());
   });
 });

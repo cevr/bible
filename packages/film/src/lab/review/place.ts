@@ -4,11 +4,15 @@
 // set in it (`/sets/<folder>/<point>`, its view in the query:
 // `?view=pair&other=<id>`, `?view=moments&m=<n>`), one film's choices
 // (`/films/<film>/choices`), or one film's project by its address tree
-// (`/films/<film>/project`).
+// (`/films/<film>/project`). Each of those is also a place ⌘K goes to by
+// its name (`destinationsOf`).
 
 import { Place } from '@bible/url-state';
 import { Data, Match, Option } from 'effect';
 import { Places, pageHref } from '../../core/api.ts';
+import type { Destination } from '../../command/go.ts';
+import type { ReviewFilms, ReviewIndex } from '../../core/review.ts';
+import { folderTitle } from './format.ts';
 import { type ViewEvent, ViewState, viewNameOf } from './machine.ts';
 
 export type ReviewPlace = Data.TaggedEnum<{
@@ -85,6 +89,45 @@ export const historyOf = (event: ViewEvent): 'push' | 'replace' =>
     }),
     Match.orElse((): 'push' => 'push'),
   );
+
+/**
+ * Every place the review can go to by its name, as read so far: each
+ * folder (by its title and its ref), each set in it, and each film's choices
+ * and project. `go` goes there as a link does.
+ */
+export const destinationsOf = (
+  index: Option.Option<ReviewIndex>,
+  films: Option.Option<ReviewFilms>,
+  go: (place: ReviewPlace) => void,
+): ReadonlyArray<Destination> => [
+  ...Option.match(index, { onNone: () => [], onSome: (i) => i.folders }).flatMap(
+    (folder): ReadonlyArray<Destination> => [
+      {
+        kind: 'folder',
+        id: folder.ref,
+        name: `${folderTitle(folder)} ${folder.ref}`,
+        go: () => go(ReviewPlace.Folder({ folder: folder.ref })),
+      },
+      ...folder.sets.map((set): Destination => ({
+        kind: 'set',
+        id: `${folder.ref}.${set.id}`,
+        name: `${set.title} in ${folderTitle(folder)}`,
+        go: () => go(ReviewPlace.Set({ folder: folder.ref, point: set.id })),
+      })),
+    ],
+  ),
+  ...Option.match(films, { onNone: () => [], onSome: (f) => f.films }).flatMap(
+    (film): ReadonlyArray<Destination> => [
+      { kind: 'choices', id: film, name: `of ${film}`, go: () => go(ReviewPlace.Film({ film })) },
+      {
+        kind: 'project',
+        id: film,
+        name: `of ${film}`,
+        go: () => go(ReviewPlace.Project({ film })),
+      },
+    ],
+  ),
+];
 
 /** The time a URL keeps for a player at `t`: none at its `start`, else to the ms. */
 export const keptTime = (t: number, start: number): Option.Option<number> =>

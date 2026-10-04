@@ -697,6 +697,13 @@ const LabSelection = Field.struct({ cue: cited, knob: cited, note: cited });
  */
 const FILM_PLAYER = { heard: refined, variant: refined, picture: refined };
 
+/**
+ * How a film's choices and its project are shown: only the points in one
+ * state (`?only=stale`, `unapproved`, `comments`: `SHOWN_ONLY`, AA-14), every
+ * point when it is empty.
+ */
+const FILM_SHOWN = { only: refined };
+
 /** `?heard=` for the picture's own sound. */
 export const OWN_SOUND = 'own';
 
@@ -725,13 +732,13 @@ export const Places = {
   choices: Place.make({
     path: '/films/:film/choices',
     params: filmParams,
-    query: Field.struct(FILM_PLAYER),
+    query: Field.struct({ ...FILM_PLAYER, ...FILM_SHOWN }),
     hash: At,
   }),
   project: Place.make({
     path: '/films/:film/project',
     params: filmParams,
-    query: Field.struct({ point: cited, ...FILM_PLAYER }),
+    query: Field.struct({ point: cited, ...FILM_PLAYER, ...FILM_SHOWN }),
     hash: At,
   }),
   scenes: Place.make({ path: '/films/:film/scenes', params: filmParams }),
@@ -795,8 +802,8 @@ export const filmOfPage = (href: string): Option.Option<string> =>
 /** No time on the hash: the page opens at its own start. */
 const START = { t: Option.none<number>() };
 
-/** A film player's keys, at the page's defaults. */
-const NOTHING_HEARD = { heard: '', variant: '', picture: '' };
+/** A film player's keys and how its points are shown, at the page's defaults. */
+const NOTHING_HEARD = { heard: '', variant: '', picture: '', only: '' };
 
 /** The lab's selection keys, none set. */
 const NOTHING_SELECTED = { cue: '', knob: '', note: '' };

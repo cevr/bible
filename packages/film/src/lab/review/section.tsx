@@ -50,7 +50,6 @@ import {
   captionsFor,
   countsText,
   failedText,
-  folderMatches,
   folderTitle,
   isMarkdown,
   POSTER_W,
@@ -178,7 +177,7 @@ const Films = () => {
     Option.getOrElse(
       Option.map(AsyncResult.value(state.films()), (f) => f.films),
       () => [],
-    ).filter((film) => film.toLowerCase().includes(state.filter().toLowerCase()));
+    );
   return (
     <Section title="Films" count={films().length}>
       <div class="rv-row rv-films">
@@ -220,39 +219,33 @@ const Films = () => {
   );
 };
 
-/** Every folder with something to review: version stacks first, then the rest; filtered by name. */
-export const Home = () => {
-  const { state } = useReview();
-  return (
-    <WithIndex>
-      {(index) => {
-        const shown = createMemo(() =>
-          index().folders.filter((f) => folderMatches(f, state.filter())),
-        );
-        const sets = createMemo(() => shown().filter((f) => f.sets.length > 0));
-        const rest = createMemo(() => shown().filter((f) => f.sets.length === 0));
-        return (
-          <>
-            <Films />
-            <Section title="Versions" count={sets().length}>
-              <div class="rv-grid">
-                <For each={sets()}>{(folder) => <FolderCard folder={folder} />}</For>
-              </div>
-            </Section>
-            <Section title="Renders" count={rest().length}>
-              <div class="rv-grid">
-                <For each={rest()}>{(folder) => <FolderCard folder={folder} />}</For>
-              </div>
-            </Section>
-            <Show when={shown().length === 0}>
-              <p class="empty">Nothing here yet.</p>
-            </Show>
-          </>
-        );
-      }}
-    </WithIndex>
-  );
-};
+/** Every folder with something to review: version stacks first, then the rest (⌘K finds one by name). */
+export const Home = () => (
+  <WithIndex>
+    {(index) => {
+      const sets = createMemo(() => index().folders.filter((f) => f.sets.length > 0));
+      const rest = createMemo(() => index().folders.filter((f) => f.sets.length === 0));
+      return (
+        <>
+          <Films />
+          <Section title="Versions" count={sets().length}>
+            <div class="rv-grid">
+              <For each={sets()}>{(folder) => <FolderCard folder={folder} />}</For>
+            </div>
+          </Section>
+          <Section title="Renders" count={rest().length}>
+            <div class="rv-grid">
+              <For each={rest()}>{(folder) => <FolderCard folder={folder} />}</For>
+            </div>
+          </Section>
+          <Show when={index().folders.length === 0}>
+            <p class="empty">Nothing here yet.</p>
+          </Show>
+        </>
+      );
+    }}
+  </WithIndex>
+);
 
 /** A doc, read when opened, its markdown shown inline. */
 const Doc = (props: { readonly doc: ReviewFile }) => {
@@ -458,34 +451,6 @@ export const FolderPage = (props: { readonly folder: string }) => (
 
 // ---------------------------------------------------------------------------
 // A set
-
-/** The copy each video plays: its Proxy (a 720p copy, once made) or the Original file. */
-export const QualityToggle = () => {
-  const { state, actions } = useReview();
-  return (
-    <div
-      class="rv-seg"
-      title="Proxy: a 720p copy made for big videos, light on a phone. Original: the file itself."
-    >
-      <button
-        type="button"
-        data-quality="phone"
-        aria-pressed={pressed(state.quality() === 'phone')}
-        onClick={() => actions.quality('phone')}
-      >
-        Proxy
-      </button>
-      <button
-        type="button"
-        data-quality="full"
-        aria-pressed={pressed(state.quality() === 'full')}
-        onClick={() => actions.quality('full')}
-      >
-        Original
-      </button>
-    </div>
-  );
-};
 
 /**
  * In a video's place while its proxy is still being made, on Proxy: its

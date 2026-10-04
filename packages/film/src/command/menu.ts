@@ -26,20 +26,32 @@ const matches = (query: string, text: string): boolean => {
     .every((word) => said.includes(word));
 };
 
+/** Whether a command is found only by typing (`Command.typed`). */
+const isTyped = (command: Command): boolean => command.typed === true;
+
 /**
  * The command menu's rows: the commands of `available` (those available in
  * `ctx`) that every word typed names (in the label, the group or the id),
- * grouped in the order their groups first come.
+ * grouped in the order their groups first come. A command found only by
+ * typing (a Go to entry) is a row once a word is typed.
  */
 export const menuRows = (
   available: ReadonlyArray<Command>,
   ctx: Context,
   query: string,
-): ReadonlyArray<MenuRow> =>
-  byGroup(available)
+): ReadonlyArray<MenuRow> => {
+  const typing = query.trim() !== '';
+  return byGroup(available.filter((command) => typing || !isTyped(command)))
     .flatMap(([, commands]) => commands)
     .map((command) => ({ command, label: labelOf(command, ctx) }))
     .filter((row) => matches(query, `${row.label} ${row.command.group} ${row.command.id}`));
+};
+
+/** The `?` sheet's rows: every command registered but those found only by typing, by group. */
+export const sheetRows = (
+  all: ReadonlyArray<Command>,
+): ReadonlyArray<readonly [string, ReadonlyArray<Command>]> =>
+  byGroup(all.filter((command) => !isTyped(command)));
 
 /**
  * A context menu's rows, by group: the commands of `available` (those

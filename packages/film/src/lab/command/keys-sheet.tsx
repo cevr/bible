@@ -13,7 +13,7 @@ import { createMemo, createSignal, onCleanup } from 'solid-js';
 import { type Command, type CommandId, quiet } from '../../command/command.ts';
 import type { Hub } from '../../command/hub.ts';
 import { chordLabel, chordOf, rebind, resetKeys } from '../../command/keymap.ts';
-import { byGroup } from '../../command/menu.ts';
+import { sheetRows } from '../../command/menu.ts';
 import { hubChanges } from './changes.ts';
 
 /** The keys a chord is not made of alone: a modifier waits for its key. */
@@ -34,7 +34,7 @@ export const KeysSheet = (props: { readonly hub: Hub }) => {
 
   const groups = createMemo(() => {
     changes();
-    return byGroup(hub.commands.all());
+    return sheetRows(hub.commands.all());
   });
   const overridden = (id: CommandId) => {
     changes();

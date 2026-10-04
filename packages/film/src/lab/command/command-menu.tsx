@@ -1,5 +1,6 @@
 // ⌘K, the command menu: every command available where the page is, found by
-// typing, run with Enter or a click, each with the keys bound to it now. It
+// typing, run with Enter or a click, each with the keys bound to it now (`/`
+// opens it too, to go somewhere by name: a Go to entry is found by typing). It
 // reads the page's hub and nothing else (the registry, the keymap), so a
 // command a tool registers is here while the tool is mounted, and a key the
 // viewer rebinds reads as rebound. The context is the one the page had when
@@ -21,6 +22,9 @@ import { hubChanges } from './changes.ts';
 
 /** The command that opens and closes the menu: it is not listed in itself. */
 const OPEN = 'app.command-menu';
+
+/** The command that opens it to go somewhere by name (`/`): not listed in it either. */
+export const GO_TO_COMMAND = 'app.go-to';
 
 /** An ARIA state's text, by whether it holds. */
 const PSEUDO = { true: 'true', false: 'false' } as const;
@@ -45,7 +49,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
     changes();
     const ctx = opened();
     return menuRows(
-      hub.commands.available(ctx).filter((c) => c.id !== OPEN),
+      hub.commands.available(ctx).filter((c) => c.id !== OPEN && c.id !== GO_TO_COMMAND),
       ctx,
       query(),
     );
@@ -60,22 +64,39 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
   };
 
   onCleanup(
-    hub.commands.register({
-      id: OPEN,
-      label: 'Command menu',
-      group: 'Help',
-      keys: ['mod+k'],
-      keysIn: ['page', 'field', 'studio'],
-      about: EVERYWHERE,
-      touch: 'long-press a cue, a card or a note, then Command menu',
-      when: () => true,
-      run: (ctx) =>
-        Effect.sync(() => {
-          if (open()) setOpen(false);
-          else show(ctx);
-          return quiet;
-        }),
-    }),
+    hub.commands.register(
+      {
+        id: OPEN,
+        label: 'Command menu',
+        group: 'Help',
+        keys: ['mod+k'],
+        keysIn: ['page', 'field', 'studio'],
+        about: EVERYWHERE,
+        touch: 'long-press a cue, a card or a note, then Command menu',
+        when: () => true,
+        run: (ctx) =>
+          Effect.sync(() => {
+            if (open()) setOpen(false);
+            else show(ctx);
+            return quiet;
+          }),
+      },
+      {
+        // `/` opens the same menu to type a name in (AA-2): its Go to entries
+        // are found by typing. Only from the page: in a field `/` is typed.
+        id: GO_TO_COMMAND,
+        label: 'Go to…',
+        group: 'Help',
+        keys: ['/'],
+        touch: 'the command menu, then type a name',
+        when: () => !open(),
+        run: (ctx) =>
+          Effect.sync(() => {
+            show(ctx);
+            return quiet;
+          }),
+      },
+    ),
   );
 
   const choose = (row: MenuRow) => {

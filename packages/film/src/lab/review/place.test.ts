@@ -1,14 +1,16 @@
 // The place and view the review page's URL keeps: every place read back as
 // it was written, and the view (a pair against one of the set, the moment
-// shown) kept in the set's query.
+// shown) kept in the set's query; and every place ⌘K's Go to reaches.
 
 import { describe, expect, test } from 'bun:test';
 import { Place } from '@bible/url-state';
-import { Equal, Option } from 'effect';
+import { Equal, Option, Schema } from 'effect';
 import { Places } from '../../core/api.ts';
+import { ReviewIndex } from '../../core/review.ts';
 import { ViewEvent, ViewState } from './machine.ts';
 import {
   ReviewPlace,
+  destinationsOf,
   type SetQuery,
   historyOf,
   hrefOf,
@@ -100,5 +102,55 @@ describe('the place in the URL', () => {
     expect(at(ViewState.All)).toBe('/sets/f/s');
     for (const state of [ViewState.Pair({ other: 'C' }), ViewState.Moments({ index: 2 })])
       expect(viewOf(queryAt(at(state).slice('/sets/f/s'.length)), ['A', 'B', 'C'])).toEqual(state);
+  });
+});
+
+describe('Go to on the review (AA-2)', () => {
+  const index = Schema.decodeSync(ReviewIndex)({
+    folders: [
+      {
+        ref: 'out/art',
+        title: 'Roofs at dusk',
+        mtime: 0,
+        sets: [
+          {
+            id: 'render:p6-onset-roof',
+            kind: 'render',
+            title: 'Onset',
+            lines: [],
+            start: 0,
+            marks: [],
+            variants: [],
+          },
+        ],
+        videos: [],
+        images: [],
+        docs: [],
+      },
+    ],
+  });
+
+  test('every folder, set and film, named as it is typed, going where its link goes', () => {
+    const went: Array<ReviewPlace> = [];
+    const destinations = destinationsOf(Option.some(index), Option.some({ films: ['cold'] }), (p) =>
+      went.push(p),
+    );
+    expect(destinations.map((d) => [d.kind, d.id, d.name])).toEqual([
+      ['folder', 'out/art', 'Roofs at dusk out/art'],
+      ['set', 'out/art.render:p6-onset-roof', 'Onset in Roofs at dusk'],
+      ['choices', 'cold', 'of cold'],
+      ['project', 'cold', 'of cold'],
+    ]);
+    for (const d of destinations) d.go();
+    expect(went).toEqual([
+      ReviewPlace.Folder({ folder: 'out/art' }),
+      ReviewPlace.Set({ folder: 'out/art', point: 'render:p6-onset-roof' }),
+      ReviewPlace.Film({ film: 'cold' }),
+      ReviewPlace.Project({ film: 'cold' }),
+    ]);
+  });
+
+  test('nothing to go to before the index and the films are read', () => {
+    expect(destinationsOf(Option.none(), Option.none(), () => {})).toEqual([]);
   });
 });

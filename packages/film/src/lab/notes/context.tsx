@@ -3,7 +3,9 @@
 // pen, and the note selected. The section, the marks on the frame, the pins
 // on the timeline and the pen button read this context and act through it;
 // none holds state of its own. A save that made a note selects it and reads
-// the notes at once; a reply or a resolve does too.
+// the notes at once; a reply or a resolve does too. ⇧N and ⌥⇧N step to the
+// next or previous open note by time (`command/walk.ts`), and each note is a
+// place ⌘K goes to by its id and words (`command/go.ts`).
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
@@ -22,7 +24,10 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
-import { quiet } from '../../command/command.ts';
+import { type Command, quiet } from '../../command/command.ts';
+import { goToCommands } from '../../command/go.ts';
+import { type Toward, walkFrom } from '../../command/walk.ts';
+import { registerWhile } from '../command/changes.ts';
 import type { Hub } from '../../command/hub.ts';
 import { type Context, selected as selectedOf } from '../../command/context.ts';
 import { noteT } from '../../core/notes.ts';
@@ -43,6 +48,9 @@ import {
 } from './composer.ts';
 import { draftOf, whereText } from './draft.ts';
 import { type FeedActor, FeedEvent, feedText, spawnFeed } from './feed.ts';
+
+/** How much of a note's words its Go to entry carries. */
+const NOTE_NAMED = 48;
 
 /** A reply to a note, or its resolve: what the thread writes. */
 type ThreadWrite =
@@ -115,19 +123,44 @@ const composingT = (state: ComposerState): Option.Option<number> =>
     Match.orElse((s) => Option.some(s.T)),
   );
 
+/** A walk's command: the open note it lands on, opened. */
+const walkCommand = (
+  actions: NotesActions,
+  walk: (toward: Toward) => Option.Option<Note>,
+  toward: Toward,
+  label: string,
+  key: string,
+): Command => ({
+  id: `notes.${toward}`,
+  label,
+  group: 'Notes',
+  keys: [key],
+  touch: 'tap it in the list',
+  when: () => Option.isSome(walk(toward)),
+  run: () =>
+    Effect.sync(() => {
+      Option.map(walk(toward), actions.select);
+      return quiet;
+    }),
+});
+
 /**
  * The notes' verbs on the page's hub, for as long as the notes are mounted:
  * `n` notes the frame unless a field has the keys; Escape cancels the note
- * being made, wherever it is pressed.
+ * being made, wherever it is pressed; ⇧N and ⌥⇧N open the next or previous
+ * open note in time (AA-7: `n` alone stays Note this frame).
  */
 const useCommands = (
   hub: Hub,
   actions: NotesActions,
   composing: () => boolean,
   noteOf: (ctx: Context) => Option.Option<Note>,
+  walk: (toward: Toward) => Option.Option<Note>,
 ) =>
   onCleanup(
     hub.commands.register(
+      walkCommand(actions, walk, 'next', 'Next open note', 'shift+n'),
+      walkCommand(actions, walk, 'previous', 'Previous open note', 'alt+shift+n'),
       {
         id: 'notes.open',
         label: 'Open the note',
@@ -277,7 +310,30 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
       ),
       (n) => !Option.contains(selectedId(), n.id),
     );
-  useCommands(meta.hub, actions, () => composerOpen(composer()), noteOf);
+  useCommands(
+    meta.hub,
+    actions,
+    () => composerOpen(composer()),
+    noteOf,
+    (toward) =>
+      walkFrom(
+        notes().filter((n) => n.status !== 'resolved'),
+        timeOf,
+        player.now(),
+        toward,
+      ),
+  );
+  // Every note is a place ⌘K goes to by its id and its words.
+  registerWhile(meta.hub, () =>
+    goToCommands(
+      notes().map((note) => ({
+        kind: 'note',
+        id: note.id,
+        name: `${note.id} ${note.text.slice(0, NOTE_NAMED)}`,
+        go: () => actions.select(note),
+      })),
+    ),
+  );
 
   const value: NotesContextValue = {
     state: {

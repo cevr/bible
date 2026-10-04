@@ -343,3 +343,45 @@ export type ChoiceWrite = typeof ChoiceWrite.Type;
 /** `GET /api/films/<film>/choices/check`: `film check --sound` now (dead air, balance against the mix it makes). */
 export const SoundCheck = Schema.Struct({ findings: Schema.Array(CheckLine) });
 export type SoundCheck = typeof SoundCheck.Type;
+
+/**
+ * The states a film's choices and project can be shown only in (`?only=`,
+ * AA-14): the points with a variant out of date, the points whose pick (or,
+ * with none picked, every variant) awaits approval, and the points someone
+ * commented on.
+ */
+export const SHOWN_ONLY = ['stale', 'unapproved', 'comments'] as const;
+export type ShownOnly = (typeof SHOWN_ONLY)[number];
+
+/** What a `?only=` says, none for the empty text or one not known (every point shows). */
+export const onlyOf = (text: string): Option.Option<ShownOnly> =>
+  Option.fromUndefinedOr(SHOWN_ONLY.find((only) => only === text));
+
+/** What each state says in its command's label: `Show only out of date`. */
+export const ONLY_TEXT: Readonly<Record<ShownOnly, string>> = {
+  stale: 'out of date',
+  unapproved: 'awaiting approval',
+  comments: 'with comments',
+};
+
+/** Whether `point` shows while only `only` does. */
+export const pointShows = (point: ChoicePoint, only: ShownOnly): boolean => {
+  const judged = Option.getOrElse(
+    Option.liftPredicate(
+      point.variants.filter((v) => v.picked),
+      (picked) => picked.length > 0,
+    ),
+    () => point.variants,
+  );
+  return {
+    stale: () => point.variants.some((v) => v.state === 'stale'),
+    unapproved: () => judged.some((v) => v.approval !== 'approved'),
+    comments: () => point.variants.some((v) => v.comments.length > 0),
+  }[only]();
+};
+
+/** Whether `point` shows while the page shows only `only` (every point for none). */
+export const shownIn =
+  (only: Option.Option<ShownOnly>) =>
+  (point: ChoicePoint): boolean =>
+    Option.match(only, { onNone: () => true, onSome: (state) => pointShows(point, state) });

@@ -3,14 +3,7 @@
 import { Option } from 'effect';
 import { describe, expect, test } from 'bun:test';
 import type { ReviewFolder, ReviewVideo } from '../../core/review.ts';
-import {
-  agoText,
-  captionsFor,
-  countsText,
-  folderMatches,
-  sizeText,
-  videoSource,
-} from './format.ts';
+import { agoText, captionsFor, countsText, sizeText, videoSource } from './format.ts';
 
 const file = (name: string, size = 10) => ({ ref: `out/f/${name}`, name, size, mtime: 0 });
 const video = (name: string, phone: ReviewVideo['phone']): ReviewVideo => ({
@@ -51,7 +44,7 @@ describe('what a card says', () => {
     expect(captionsFor(file('roof.B.mp4'), docs)).toEqual(Option.none());
   });
 
-  test("counts a folder's things and filters by its ref or its title", () => {
+  test("counts a folder's things", () => {
     const folder: ReviewFolder = {
       ref: 'art3/out',
       title: Option.some('Roofs at dusk'),
@@ -63,9 +56,5 @@ describe('what a card says', () => {
       docs: [file('notes.md')],
     };
     expect(countsText(folder)).toBe('2 videos · 1 doc');
-    expect(folderMatches(folder, '')).toBe(true);
-    expect(folderMatches(folder, 'DUSK')).toBe(true);
-    expect(folderMatches(folder, 'art3')).toBe(true);
-    expect(folderMatches(folder, 'sea')).toBe(false);
   });
 });

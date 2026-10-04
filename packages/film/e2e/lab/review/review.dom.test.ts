@@ -1,6 +1,7 @@
 // The review in a browser, its routes faked over a synthetic folder of three
-// variants: home lists the folder under Versions and filters it; the
-// folder shows its set, its loose video with captions, and a doc read as
+// variants: home lists the folder under Versions, and the header's Search
+// (⌘K) finds it by name, with Refresh; the folder shows its set, its loose
+// video with captions, and a doc read as
 // escaped markdown; the set plays every variant on one clock (space plays
 // and pauses, ←/→ step, 🔊 moves the sound heard), shows the first against
 // one other, every variant's frame at the moments (←/→ between them), and
@@ -31,6 +32,11 @@ import {
   until,
   waitFor,
 } from '../../../src/lab/fixtures/settled.ts';
+import {
+  closeCommandMenu,
+  menuEntry,
+  openCommandMenu,
+} from '../../../src/lab/fixtures/gestures.ts';
 
 /** Long enough to open the page, walk to a set and play with it. */
 const SLOW = 30_000;
@@ -142,16 +148,28 @@ const SKY = pageHref.set('out/art', 'render:sky');
 
 describe('the review page', () => {
   it.live(
-    'lists the folders, filters them, and opens one: its set, its loose video, its doc',
+    'lists the folders, finds one by name, and opens one: its set, its loose video, its doc',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes);
         yield* textHas(page, '.rv-h', 'Versions');
         yield* textHas(page, '.rv-h', 'Renders');
         yield* textHas(page, 'a.rv-card', 'Roofs at dusk');
-        yield* page.fill('.rv-filter', 'sea');
-        yield* until(page, "!document.body.textContent.includes('Roofs at dusk')");
-        yield* page.fill('.rv-filter', '');
+        // The header's Search opens ⌘K: a folder is found by its title, Refresh is a command.
+        yield* page.click('.rv-header [data-act="search"]');
+        yield* page.waitFor('.lab-command-query');
+        yield* page.fill('.lab-command-query', 'dusk');
+        yield* textHas(page, menuEntry('go.folder.out/art'), 'Go to folder Roofs at dusk');
+        yield* page.fill('.lab-command-query', 'refresh');
+        yield* waitFor(page, menuEntry('review.refresh'));
+        yield* closeCommandMenu(page);
+        // `/` opens it too, and its Go to goes there.
+        yield* page.press('/');
+        yield* page.waitFor('.lab-command-query');
+        yield* page.fill('.lab-command-query', 'roofs at dusk');
+        yield* page.click(menuEntry('go.folder.out/art'));
+        yield* until(page, `location.pathname === '${FOLDER}'`);
+        yield* page.goto('/');
         yield* page.click(`a.rv-card[href="${FOLDER}"]`);
         yield* until(page, `location.pathname === '${FOLDER}'`);
         yield* textHas(page, '.rv-crumbs', 'Roofs at dusk');
@@ -453,7 +471,10 @@ describe('the review page', () => {
           'src',
           '/api/review/files/out/art/sky.D.mp4',
         );
-        yield* waitFor(page, 'button[data-quality="full"][aria-pressed="true"]');
+        // The copy played is now the original: the menu's command offers the proxies back.
+        yield* openCommandMenu(page, 'play the');
+        yield* textHas(page, menuEntry('review.quality'), 'Play the proxies');
+        yield* closeCommandMenu(page);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

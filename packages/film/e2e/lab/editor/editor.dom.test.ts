@@ -5,7 +5,8 @@
 // server refuses shows the server's own text; a cue whose dragged field is
 // computed says so and writes nothing; the inspector's fields and eases
 // write the selected cue; Undo asks the server to undo, its receipt offering
-// Redo; and the findings of the film's check show under the inspector.
+// Redo; the findings of the film's check show under the inspector, and F
+// and ⇧F walk those with a place on the time line.
 
 import { Effect, Option, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -13,6 +14,7 @@ import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import { SourceRefused } from '../../../src/core/refusals.ts';
 import {
   type Asked,
+  type Json,
   hold,
   json,
   labAt,
@@ -407,6 +409,44 @@ describe('the inspector', () => {
       yield* page.until(`${URL_T} > ${riseStart} + 0.1`);
       yield* page.press(',');
       yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.01`);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('F and ⇧F walk the findings that have a place on the time line', () =>
+    Effect.gen(function* () {
+      const report: Json = {
+        findings: [
+          {
+            level: 'warning',
+            tag: 'whole',
+            message: 'the film runs long',
+            address: { part: { _tag: 'Film' } },
+          },
+          {
+            level: 'warning',
+            tag: 'scene',
+            message: 'two is quiet',
+            address: { part: { _tag: 'Scenes', ids: ['two'] } },
+          },
+          {
+            level: 'error',
+            tag: 'timed',
+            message: 'a pop',
+            address: { part: { _tag: 'Film' }, time: 0.8 },
+          },
+        ],
+      };
+      const { page } = yield* openLab([route('GET', /^\/check$/, () => json(report))], {
+        href: labAt(0.2),
+      });
+      yield* page.waitFor('.lab-finding');
+      yield* page.press('f');
+      yield* page.until(`Math.abs(${URL_T} - 0.8) < 0.01`);
+      // The finding about scene two is at its start; the one about the whole film is nowhere.
+      yield* page.press('f');
+      yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
+      yield* page.press('Shift+F');
+      yield* page.until(`Math.abs(${URL_T} - 0.8) < 0.01`);
     }).pipe(Effect.scoped),
   );
 

@@ -33,7 +33,7 @@ import {
   type SaidComment,
   renderVersion,
 } from '../../../core/catalogue.ts';
-import { type ChoicePoint, type VariantMedia, pointHead } from '../../../core/choice.ts';
+import { type ChoicePoint, type VariantMedia, pointHead, shownIn } from '../../../core/choice.ts';
 import type { LabFailure } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { Go, plainClick, useReview } from '../context.tsx';
@@ -54,7 +54,7 @@ import {
   useThing,
 } from '../inspector.tsx';
 import type { ThingVerb } from '../things.ts';
-import { Player, WriteBar } from './section.tsx';
+import { OnlyShown, Player, WriteBar } from './section.tsx';
 
 const FILM: PartAddress = { _tag: 'Film' };
 
@@ -79,6 +79,12 @@ const placeOf = (point: ChoicePoint, acts: ReadonlyArray<Act>): Address =>
         },
       }),
   });
+
+/** The film's points the page shows: every one, or only those in `?only=`'s state (AA-14). */
+const useShownPoints = (): Accessor<ReadonlyArray<ChoicePoint>> => {
+  const { choices, only } = useFilm();
+  return () => choices().points.filter(shownIn(only()));
+};
 
 /** The points placed at `address`. */
 const placedAt = (points: ReadonlyArray<ChoicePoint>, acts: ReadonlyArray<Act>, address: Address) =>
@@ -244,7 +250,7 @@ const Compare = (props: { readonly folder: Option.Option<string>; readonly point
 );
 
 const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectScene }) => {
-  const { choices } = useFilm();
+  const shownPoints = useShownPoints();
   const address = (): PartAddress => ({ _tag: 'Scenes', ids: [props.scene.scene] });
   const acts = () => props.at.view().project.acts;
   const point = createMemo(() =>
@@ -258,8 +264,8 @@ const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectSce
         more={() => (
           <SceneChoices
             points={[
-              ...placedAt(choices().points, acts(), address()),
-              ...playingIn(choices().points, acts(), props.scene.scene),
+              ...placedAt(shownPoints(), acts(), address()),
+              ...playingIn(shownPoints(), acts(), props.scene.scene),
             ]}
           />
         )}
@@ -267,7 +273,7 @@ const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectSce
       <Show when={Option.isSome(props.scene.render)}>
         <Compare folder={props.at.view().folder} point={point().id} />
       </Show>
-      <Layers points={placedAt(choices().points, acts(), address())} open={false} />
+      <Layers points={placedAt(shownPoints(), acts(), address())} open={false} />
     </div>
   );
 };
@@ -431,7 +437,7 @@ const Scenes = (props: {
 );
 
 const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
-  const { choices } = useFilm();
+  const shownPoints = useShownPoints();
   const address = (): PartAddress => ({ _tag: 'Act', act: props.act.name });
   const scenes = () =>
     props.at.view().project.scenes.filter((s) => props.act.scenes.includes(s.scene));
@@ -461,7 +467,7 @@ const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
         part="act"
       />
       <Layers
-        points={placedAt(choices().points, props.at.view().project.acts, address())}
+        points={placedAt(shownPoints(), props.at.view().project.acts, address())}
         open={false}
       />
       <Scenes at={props.at} scenes={scenes()} />
@@ -470,7 +476,7 @@ const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
 };
 
 const ProjectBody = (props: { readonly at: ProjectValue }) => {
-  const { choices } = useFilm();
+  const shownPoints = useShownPoints();
   const project = () => props.at.view().project;
   const inActs = () => new Set(project().acts.flatMap((a) => a.scenes));
   const loose = () => project().scenes.filter((s) => !inActs().has(s.scene));
@@ -514,7 +520,7 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
           comments={project().comments}
           part="all"
         />
-        <Layers points={placedAt(choices().points, project().acts, FILM)} open={true} />
+        <Layers points={placedAt(shownPoints(), project().acts, FILM)} open={true} />
       </Target>
       <For each={project().acts} keyed={(a) => a.name}>
         {(act) => <ActBlock at={props.at} act={act()} />}
@@ -612,6 +618,7 @@ export const ProjectPage = (props: { readonly film: string }) => (
   <FilmProvider film={props.film}>
     <WriteBar />
     <Player />
+    <OnlyShown />
     <ProjectReady film={props.film} />
   </FilmProvider>
 );

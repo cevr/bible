@@ -689,9 +689,10 @@ A still on a film's scenes page opens its scene in the lab at its time; a
 short's opens its play page, as the lab opens films.
 
 A folder ref is one path segment (`bible-tools%2Frighteousness-by-faith`), as
-is a short's name. Rate, onion, loop, compare, the microphone, quality and
-the home filter are this viewer's own settings and stay in the browser's
-storage, never in a link.
+is a short's name. Rate, onion, loop, compare, the microphone and quality
+are this viewer's own settings and stay in the browser's storage, never in
+a link. Which points a film's choices or project page shows (`?only=`) is
+in its link.
 
 **The pages are built in the lab's process** (`LabPage`, `tools/lab-page.ts`):
 `Bun.build` with `@bible/film/solid-plugin` (the `PageBundler` service, with a
@@ -874,6 +875,22 @@ set of CSS custom properties (`COMMAND_TOKENS` in `src/lab/command/style.ts`,
 today's values read from each page's palette); the rules read only those.
 The player's keys legend under the film is generated from the same keymap;
 the player's page has the keys alone (it never imports the lab).
+
+**Go to** (AA-2, `src/command/go.ts`): every place a page can go to by its
+name is a command found only by typing (`typed`): ⌘K lists it once a word
+is typed, the `?` sheet and the context menus never. `/` opens ⌘K from the
+page (a field keeps it for typing). In the lab the places are the film's
+scenes (`Go to scene cold`), the cues of the scene shown (`Go to cue rise in
+one`: the player goes to its start and the cue is selected) and the notes
+(by id and their first words); on the review, the folders (by title and
+ref), the sets (`Onset in Roofs at dusk`) and each film's choices and
+project (`Go to project of cold`). A page registers its places while they
+hold (`registerWhile`, `src/lab/command/changes.ts`). The walks through
+time (`src/command/walk.ts`, each the first thing a frame clear of the time
+shown) are keys too: `.`/`,` the strip's cue edges, F/⇧F the findings of
+the film's check that have a place on the time line (its own time, else the
+start of the first scene it names; `findingTime`), and ⇧N/⌥⇧N the open
+notes (`n` stays Note this frame).
 
 The **inspector**'s number fields (`Field` in `src/lab/command/inspector.tsx`,
 on @bible/ui's NumberField) read how they step from their schema: a number
@@ -1661,7 +1678,20 @@ recording is made on the box's own browser or through an HTTPS name.
 routes and the options'), where the page is (its place, read from the URL
 through the host's `UrlState`, so a link, Back and a reload work; see Pages
 and links), the index, the films, the quality (Proxy or Original) and the
-lightbox. A set's page holds one effect-machine actor, the synced player
+lightbox. The header keeps where the page is, the film's Lab link and one
+Search button, which opens ⌘K to type a name in (UR-4: Go to finds a
+folder, a set or a film; home lists every folder, with no filter field).
+Refresh (`review.refresh`) and the copy played (`review.quality`: Play the
+proxies, Play the originals) are the page's commands, in ⌘K and the page's
+long-press menu; a proxy still being made still offers its original in
+place. On a film's choices and its project, Show only… (`review.only-stale`,
+`review.only-unapproved`, `review.only-comments`, and `review.only-all` to
+show every point again; AA-14) keeps the points in one state: out of date (a
+stale variant), awaiting approval (its picked variant, or any while none is
+picked, not approved) or with comments. The state is the link's `?only=`,
+each choice replacing the entry, and while it holds a line over the points
+says so with Show every point. A point with a finding is not one of them:
+a finding names an address, not a point. A set's page holds one effect-machine actor, the synced player
 (`machine.ts`: `Paused`, `Playing`, `Scrubbing`, `Buffering`; one clock, the
 first variant's; one sound heard; opened at the URL's `#t=`, which follows
 it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
@@ -2148,7 +2178,7 @@ framework-free, so the player may import it. Per-viewer settings go through
 Effect's `KeyValueStore` (`browser/storage.ts`): `TabStore` over the tab's
 session (the lab's view, `film-lab-view:<film>`, an `Atom.kvs` of its JSON)
 and `ViewerStore` over local storage (`film-lab-mic`, `film-review.quality`,
-`film-review.filter`, each a `keptText` stored as plain text), each a store
+each a `keptText` stored as plain text), each a store
 in memory when the page may not use its storage. Every drag (the
 player's track, the strip's scrub and its cue bars, a knob's handle, the
 wipe's divider, a note's mark) follows its press through `Pointer.drag`

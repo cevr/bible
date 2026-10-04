@@ -14,14 +14,15 @@ import { folderTitle, pressed } from './format.ts';
 import { type ReviewPlace, ReviewPlace as Place } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
-import { FolderPage, Home, QualityToggle, SetPage } from './section.tsx';
+import { FolderPage, Home, SetPage } from './section.tsx';
 import { REVIEW_CSS } from './style.ts';
 import { pageHref } from '../../core/api.ts';
 import { type Host, addressOn, hostOf } from '../../browser/host.ts';
 import { BrowserHost } from '../../browser/host-browser.ts';
 import { TabStore, ViewerStore } from '../../browser/storage-browser.ts';
 import { type Hub, makeHub } from '../../command/hub.ts';
-import { CommandMenu } from '../command/command-menu.tsx';
+import { BY_BUTTON } from '../../command/command.ts';
+import { CommandMenu, GO_TO_COMMAND } from '../command/command-menu.tsx';
 import { KeysSheet } from '../command/keys-sheet.tsx';
 import { Receipts } from '../command/receipts.tsx';
 import { TargetMenu } from '../command/context-menu.tsx';
@@ -69,8 +70,13 @@ const filmOf = (place: ReviewPlace): Option.Option<string> =>
     Match.orElse(() => Option.none()),
   );
 
+/**
+ * The header: where the page is, the film's lab, and the one search button
+ * (UR-4): ⌘K opened to type a name in, where the folders, sets and films are
+ * found and Refresh and the copy played are commands (a phone's way to them).
+ */
 const Header = () => {
-  const { state, actions } = useReview();
+  const { state, meta } = useReview();
   const crumbs = () => crumbsOf(state.place(), AsyncResult.value(state.index()));
   createEffect(crumbs, (trail) => {
     document.title = [...trail.map((c) => c.title).toReversed(), 'Lab'].join(' · ');
@@ -102,24 +108,16 @@ const Header = () => {
             </a>
           )}
         </Show>
-        <Show when={state.place()._tag === 'Home'} fallback={<QualityToggle />}>
-          <input
-            type="search"
-            class="rv-filter"
-            placeholder="Filter folders"
-            value={state.filter()}
-            onInput={(e) => actions.filter(e.currentTarget.value)}
-          />
-          <button
-            type="button"
-            class="rv-chip"
-            data-act="refresh"
-            aria-busy={pressed(AsyncResult.isWaiting(state.index()))}
-            onClick={actions.refresh}
-          >
-            Refresh
-          </button>
-        </Show>
+        <button
+          type="button"
+          class="rv-chip"
+          data-act="search"
+          aria-busy={pressed(AsyncResult.isWaiting(state.index()))}
+          title="Go to a folder, a set or a film, or run a command (/ or ⌘K)"
+          onClick={() => meta.hub.invokeId(GO_TO_COMMAND, BY_BUTTON)}
+        >
+          Search
+        </button>
       </div>
     </header>
   );

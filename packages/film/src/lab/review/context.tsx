@@ -1,7 +1,8 @@
 // The review's providers. `<Root>` holds the page: its runtime (the
 // review's routes), where it is (read from and kept in the URL, so Back and a
 // reload work), the index, the copy its videos play (the phone's 720p or the
-// file), the home page's filter and the lightbox. `<SetProvider>`
+// file) and the lightbox; the page's own commands (Refresh, the copy played,
+// every place by its name for ⌘K). `<SetProvider>`
 // holds one comparison set: its two machines (the synced player and the
 // view, spawned on the runtime and stopped with the set), the driver that
 // makes its videos follow the player, and its moments.
@@ -40,7 +41,9 @@ import {
   hostLayer,
   onTraverse,
 } from '../../browser/host.ts';
-import { type Command, quiet } from '../../command/command.ts';
+import { type Command, quiet, said } from '../../command/command.ts';
+import { goToCommands } from '../../command/go.ts';
+import { registerWhile } from '../command/changes.ts';
 import { type Context, selected } from '../../command/context.ts';
 import { PageLoad } from '../../browser/page-load.ts';
 import type { Hub } from '../../command/hub.ts';
@@ -63,7 +66,16 @@ import {
   stepView,
   viewNameOf,
 } from './machine.ts';
-import { ReviewPlace, historyOf, hrefOf, keptTime, placeOf, queryOfView, viewOf } from './place.ts';
+import {
+  ReviewPlace,
+  destinationsOf,
+  historyOf,
+  hrefOf,
+  keptTime,
+  placeOf,
+  queryOfView,
+  viewOf,
+} from './place.ts';
 import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
@@ -75,8 +87,6 @@ interface ReviewStateValue {
   /** The app's films, each with options to pick from. */
   readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
   readonly quality: Accessor<Quality>;
-  /** What the home page's filter holds. */
-  readonly filter: Accessor<string>;
   /** The image the lightbox shows, when it is open. */
   readonly lightbox: Accessor<Option.Option<string>>;
 }
@@ -87,7 +97,6 @@ interface ReviewActions {
   /** Walk the roots again now. */
   readonly refresh: () => void;
   readonly quality: (quality: Quality) => void;
-  readonly filter: (text: string) => void;
   /** Open the lightbox on an image, or close it. */
   readonly show: (src: Option.Option<string>) => void;
 }
@@ -156,7 +165,6 @@ export const Go = (
  */
 const kept = {
   quality: keptText(ViewerStore, 'film-review.quality'),
-  filter: keptText(ViewerStore, 'film-review.filter'),
 };
 
 /** The copy the page plays: the kept one, else 720p on a narrow screen. */
@@ -238,11 +246,8 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
     const quality = createMemo(() => qualityOf(keptQuality()));
-    const keptFilter = useAtomValue(() => kept.filter);
-    const filter = createMemo(() => Option.getOrElse(keptFilter(), () => ''));
-    const keepFilter = useAtomSet(() => kept.filter);
     const value: ReviewContextValue = {
-      state: { place, index, films, quality, filter, lightbox },
+      state: { place, index, films, quality, lightbox },
       actions: {
         go: (next) => {
           address.push(hrefOf(next));
@@ -253,7 +258,6 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
           refreshIndex();
         },
         quality: keepQuality,
-        filter: keepFilter,
         show: setLightbox,
       },
       meta: {
@@ -265,7 +269,18 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
         now: () => Effect.runSyncWith(props.host)(Clock.currentTimeMillis),
       },
     };
-    onCleanup(props.hub.commands.register(...openCommands(value.actions.go, props.host)));
+    onCleanup(
+      props.hub.commands.register(
+        ...openCommands(value.actions.go, props.host),
+        ...pageCommands(value),
+      ),
+    );
+    // Every folder, set and film's page is a place ⌘K goes to by its name.
+    registerWhile(props.hub, () =>
+      goToCommands(
+        destinationsOf(AsyncResult.value(index()), AsyncResult.value(films()), value.actions.go),
+      ),
+    );
     return <ReviewContext value={value}>{inner.children}</ReviewContext>;
   };
 
@@ -330,6 +345,54 @@ const openCommands = (go: (place: ReviewPlace) => void, host: Host): ReadonlyArr
     ),
   ];
 };
+
+/** What the copy-played command does next, by the copy played now. */
+const OTHER_QUALITY: Readonly<Record<Quality, Quality>> = { phone: 'full', full: 'phone' };
+const QUALITY_LABEL: Readonly<Record<Quality, string>> = {
+  phone: 'Play the originals',
+  full: 'Play the proxies',
+};
+const QUALITY_SAID: Readonly<Record<Quality, string>> = {
+  phone: 'Playing the proxies (720p copies)',
+  full: 'Playing the originals',
+};
+
+/**
+ * The review's page-wide commands, in ⌘K and the page's long-press menu
+ * (UR-5, UR-6): Refresh walks the roots again; the copy played switches
+ * between the Proxy (a 720p copy, made for big videos) and the Original, a
+ * per-viewer setting kept in this browser.
+ */
+const pageCommands = (review: ReviewContextValue): ReadonlyArray<Command> => [
+  {
+    id: 'review.refresh',
+    label: 'Refresh',
+    group: 'Review',
+    about: ['Page'],
+    touch: 'long-press the page, then Refresh',
+    when: () => true,
+    run: () =>
+      Effect.sync(() => {
+        review.actions.refresh();
+        return quiet;
+      }),
+  },
+  {
+    id: 'review.quality',
+    label: 'Playback: Proxy or Original',
+    labelIn: () => QUALITY_LABEL[review.state.quality()],
+    group: 'View',
+    about: ['Page'],
+    touch: 'long-press the page, then Play the originals',
+    when: () => review.state.place()._tag !== 'Home',
+    run: () =>
+      Effect.sync(() => {
+        const next = OTHER_QUALITY[review.state.quality()];
+        review.actions.quality(next);
+        return said(QUALITY_SAID[next]);
+      }),
+  },
+];
 
 // ---------------------------------------------------------------------------
 // One comparison set

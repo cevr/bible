@@ -4,7 +4,8 @@
 // a save posts the note with its still and lists it, selected, with a pin on
 // the timeline; a refused save says the server's reason; a reply and a
 // resolve post to the note's thread; a change the long-poll brings in shows
-// as it lands; and a lost feed says so and connects again.
+// as it lands; a lost feed says so and connects again; and ⇧N/⌥⇧N step
+// through the open notes, Go to finding any by its words.
 
 import { Effect, Option, Predicate } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -480,6 +481,39 @@ describe('the feed', () => {
         yield* again;
         yield* textIs(page, '.lab-feed', '');
         expect(tries).toHaveLength(2);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
+describe('walking the notes', () => {
+  /** Three notes in time order, the middle one resolved. */
+  const three = [
+    noteJson('n1', { T: 1, frame: 30 }),
+    noteJson('n2', { T: 1.5, frame: 45, seq: 2, status: 'resolved' }),
+    noteJson('n3', { T: 2, frame: 60, seq: 3 }),
+  ];
+
+  it.live(
+    '⇧N and ⌥⇧N step through the open notes by time, and Go to finds one by its words',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(3, three))], {
+          href: labAt(0.2),
+        });
+        yield* waitFor(page, '.lab-note-item[data-id="n3"]');
+        yield* page.press('Shift+N');
+        yield* evaluates(page, NOTE_IN_URL, 'n1');
+        yield* page.until(`Math.abs(${URL_T} - 1) < 0.01`);
+        // The resolved note is passed over.
+        yield* page.press('Shift+N');
+        yield* evaluates(page, NOTE_IN_URL, 'n3');
+        yield* page.press('Alt+Shift+N');
+        yield* evaluates(page, NOTE_IN_URL, 'n1');
+        yield* page.press('/');
+        yield* page.fill('.lab-command-query', 'go to note n2');
+        yield* page.pressIn('.lab-command-query', 'Enter');
+        yield* evaluates(page, NOTE_IN_URL, 'n2');
       }).pipe(Effect.scoped),
     SLOW,
   );

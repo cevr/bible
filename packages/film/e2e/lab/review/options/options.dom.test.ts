@@ -10,7 +10,8 @@
 // or the menu's, naming what it
 // undoes) is sent to the film's own route, and the choices it reads again,
 // landing after a say asked later, leave the say shown; a mark
-// jumps the clock; a mix whose first load failed is heard once its retry
+// jumps the clock; Show only… keeps the points in one state (`?only=`); a
+// mix whose first load failed is heard once its retry
 // lands; and a phone's width scrolls nothing sideways. Every wait is on the
 // page (a selector, a condition) or its clock, never a fixed time.
 
@@ -409,6 +410,35 @@ describe("a film's choices", () => {
           `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=piano')`,
         );
         yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'Show only… in ⌘K keeps the points in one state, in the link, until Show every point',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
+        yield* waitFor(page, '[data-point="look:ground"]');
+        yield* openCommandMenu(page, 'show only out of date');
+        yield* click(page, menuEntry('review.only-stale'));
+        yield* until(page, "location.search === '?only=stale'");
+        // The score has a stale option; the look, the take and the level none.
+        yield* countIs(page, '[data-point="look:ground"]', 0);
+        yield* countIs(page, '[data-point="take:paper.page"]', 0);
+        yield* waitFor(page, '[data-point="score"]');
+        yield* textHas(page, '[data-only="stale"]', 'Showing only the points out of date');
+        yield* menuOffers(page, 'show only', 'review.only-stale', false);
+        yield* menuOffers(page, 'show every', 'review.only-all', true);
+        // The link opens the page as it was.
+        yield* page.reload;
+        yield* waitFor(page, '[data-only="stale"]');
+        yield* countIs(page, '[data-point="look:ground"]', 0);
+        yield* click(page, '[data-act="show-every-point"]');
+        yield* until(page, "location.search === ''");
+        yield* waitFor(page, '[data-point="look:ground"]');
+        yield* countIs(page, '[data-only]', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

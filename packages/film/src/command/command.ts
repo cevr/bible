@@ -91,6 +91,11 @@ export interface Command {
   readonly stepped?: boolean;
   /** How a phone reaches it, for the `?` sheet (`long-press a cue`). */
   readonly touch?: string;
+  /**
+   * Found only by typing (a Go to entry, one per thing on the page): ⌘K
+   * lists it once a word is typed; the `?` sheet and the context menus never.
+   */
+  readonly typed?: true;
   /** Whether it is available in `ctx`: shown in menus, run by its keys. */
   readonly when: (ctx: Context) => boolean;
   readonly run: (ctx: Context, how: Invocation) => Effect.Effect<Receipt>;

@@ -107,14 +107,6 @@ export const countsText = (folder: ReviewFolder): string =>
 export const folderTitle = (folder: ReviewFolder): string =>
   Option.getOrElse(folder.title, () => folder.ref);
 
-/** Whether `folder` matches what the filter holds (any case), by its ref or its title. */
-export const folderMatches = (folder: ReviewFolder, filter: string): boolean => {
-  const needle = filter.trim().toLowerCase();
-  if (needle === '') return true;
-  const title = Option.getOrElse(folder.title, () => '');
-  return `${folder.ref} ${title}`.toLowerCase().includes(needle);
-};
-
 /** A folder's captions for a video (`<name>.vtt`, or its master's for a share copy). */
 export const captionsFor = (
   video: ReviewFile,

@@ -42,6 +42,29 @@ export const findingsOf = (
     Match.orElse(() => Option.match(report, { onNone: () => [], onSome: (r) => r.findings })),
   );
 
+/**
+ * Where the film shows `finding`, in film seconds: its own time, else the
+ * start of the first scene it names; none for one about the whole film or
+ * an act (F walks only to a finding that has a place on the time line).
+ */
+export const findingTime = (
+  finding: CheckLine,
+  placed: ReadonlyArray<{ readonly spec: { readonly id: string }; readonly start: number }>,
+): Option.Option<number> =>
+  Option.flatMap(Option.fromUndefinedOr(finding.address), (at) =>
+    Option.orElse(Option.fromUndefinedOr(at.time), () =>
+      Match.value(at.part).pipe(
+        Match.tag('Scenes', (part) =>
+          Option.map(
+            Option.fromUndefinedOr(placed.find((p) => part.ids.includes(p.spec.id))),
+            (p) => p.start,
+          ),
+        ),
+        Match.orElse(() => Option.none<number>()),
+      ),
+    ),
+  );
+
 const DOING = { undo: 'undoing', redo: 'redoing' } as const;
 
 /**

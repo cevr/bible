@@ -28,6 +28,7 @@ import { pageHref } from '../core/api.ts';
 import { TabStore } from '../browser/storage-browser.ts';
 import { type ViewStore, viewStore } from './view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
+import { goToCommands } from '../command/go.ts';
 import type { Hub } from '../command/hub.ts';
 import type { LabSelection } from '../command/selection.ts';
 import { CommandMenu } from './command/command-menu.tsx';
@@ -173,6 +174,19 @@ const Root = (props: RootProps) => {
   );
 
   const scene = createMemo(() => player.film.sceneAt(T()).spec.id);
+  // Every scene is a place ⌘K goes to by its name, shown from its start.
+  onCleanup(
+    props.hub.commands.register(
+      ...goToCommands(
+        player.film.placed.map((p) => ({
+          kind: 'scene',
+          id: p.spec.id,
+          name: p.spec.id,
+          go: () => player.seek(p.start),
+        })),
+      ),
+    ),
+  );
 
   // The lab's place is the URL's: a pick pushes an entry at the frame shown,
   // and Back or Forward landing on one shows its pick again.

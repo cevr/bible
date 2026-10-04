@@ -16,7 +16,13 @@ import { Duration, Effect, Fiber, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { playableOf } from '../../../browser/media-browser.ts';
 import { type Command, type CommandId, quiet } from '../../../command/command.ts';
-import type { ChoiceKind, ChoicePoint } from '../../../core/choice.ts';
+import {
+  type ChoiceKind,
+  type ChoicePoint,
+  ONLY_TEXT,
+  type ShownOnly,
+  shownIn,
+} from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine } from '../../../core/schema.ts';
 import { useReview } from '../context.tsx';
@@ -261,17 +267,43 @@ const ChoiceSection = (props: {
   </Show>
 );
 
+/**
+ * While the page shows only the points in one state (`?only=`, AA-14), what
+ * it shows and the way back to every point; nothing while it shows them all.
+ */
+export const OnlyShown = () => {
+  const { only, showOnly } = useFilm();
+  return (
+    <Show when={Option.getOrUndefined(only())}>
+      {(state: Accessor<ShownOnly>) => (
+        <p class="rv-row rv-hint" data-only={state()}>
+          Showing only the points {ONLY_TEXT[state()]}.
+          <button
+            type="button"
+            class="rv-chip"
+            data-act="show-every-point"
+            onClick={() => showOnly(Option.none())}
+          >
+            Show every point
+          </button>
+        </p>
+      )}
+    </Show>
+  );
+};
+
 const FilmBody = () => {
-  const { choices } = useFilm();
+  const { choices, only } = useFilm();
   return (
     <>
       <WriteBar />
       <Player />
+      <OnlyShown />
       <For each={KINDS}>
         {(k) => (
           <ChoiceSection
             title={k.title}
-            points={choices().points.filter((p) => p.kind === k.kind)}
+            points={choices().points.filter((p) => p.kind === k.kind && shownIn(only())(p))}
           />
         )}
       </For>

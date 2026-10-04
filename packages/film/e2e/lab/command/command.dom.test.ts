@@ -2,16 +2,28 @@
 // available, filters by what is typed and runs the chosen command; the `?`
 // sheet rebinds a key, and the rebound key survives a reload; a cue's context
 // menu (a right-click, or a touch held still) lists its commands and runs
-// one, and a touch that moves (a drag) never opens it.
+// one, and a touch that moves (a drag) never opens it; `/` opens ⌘K to Go to
+// a scene or a cue by its name.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { MENU_ITEMS, rightClick, touch } from '../../../src/lab/fixtures/gestures.ts';
+import {
+  MENU_ITEMS,
+  closeCommandMenu,
+  rightClick,
+  touch,
+} from '../../../src/lab/fixtures/gestures.ts';
 import { URL_T, labAt, openLab } from '../../../src/lab/fixtures/harness.ts';
 import { attached, evaluates, textHas } from '../../../src/lab/fixtures/settled.ts';
 
 /** The probe's first cue's bar on the strip. */
 const RISE = '.lab-cue[data-cue="rise"]';
+
+/** A Go to entry, wherever it is listed. */
+const GO_ENTRY = '[data-command^="go."]';
+
+/** The ids of the Go to entries the command menu lists. */
+const GO_ENTRIES = `[...document.querySelectorAll('[data-role="command-menu"] ${GO_ENTRY}')].map((e) => e.dataset.command)`;
 
 describe('the command menu', () => {
   it.live('lists the commands available, filters by every word typed, and runs one', () =>
@@ -27,6 +39,39 @@ describe('the command menu', () => {
       );
       yield* page.pressIn('.lab-command-query', 'Enter');
       yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
+      expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('/ opens it to Go to: a scene or a cue found by its name, once a word is typed', () =>
+    Effect.gen(function* () {
+      const { page, errors } = yield* openLab([], { href: labAt(0.5) });
+      yield* page.waitFor(RISE);
+      yield* page.press('/');
+      yield* page.waitFor('[data-role="command-menu"] [data-command="play.scene-next"]');
+      // Blank, the menu lists commands, never a Go to entry.
+      yield* evaluates(page, `document.querySelectorAll('${GO_ENTRY}').length`, 0);
+      yield* page.fill('.lab-command-query', 'go to scene two');
+      yield* evaluates(page, GO_ENTRIES, ['go.scene.two']);
+      yield* page.pressIn('.lab-command-query', 'Enter');
+      yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
+      yield* closeCommandMenu(page);
+      yield* page.press('/');
+      yield* page.fill('.lab-command-query', 'go to scene one');
+      yield* page.pressIn('.lab-command-query', 'Enter');
+      yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+      yield* closeCommandMenu(page);
+      yield* page.waitFor(RISE);
+      yield* page.press('/');
+      yield* page.fill('.lab-command-query', 'go to cue fall');
+      yield* evaluates(page, GO_ENTRIES, ['go.cue.one.fall']);
+      yield* page.pressIn('.lab-command-query', 'Enter');
+      yield* evaluates(page, 'location.search', '?cue=fall');
+      // The `?` sheet lists no Go to entry.
+      yield* closeCommandMenu(page);
+      yield* page.press('?');
+      yield* page.waitFor('[data-role="keys-sheet"] [data-command="play.scene-next"]');
+      yield* evaluates(page, `document.querySelectorAll('${GO_ENTRY}').length`, 0);
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );

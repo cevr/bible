@@ -149,6 +149,7 @@ const NAMED = new Map<string, Key>([
   ['[', named('[', 'BracketLeft', 219, '[')],
   [']', named(']', 'BracketRight', 221, ']')],
   ['?', named('?', 'Slash', 191, '?')],
+  ['/', named('/', 'Slash', 191, '/')],
   ['.', named('.', 'Period', 190, '.')],
   [',', named(',', 'Comma', 188, ',')],
   ['Shift', named('Shift', 'ShiftLeft', 16)],

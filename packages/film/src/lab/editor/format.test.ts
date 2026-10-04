@@ -5,8 +5,8 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { busy, refused, said } from '../../command/command.ts';
-import type { CheckLine, CheckReport } from '../../core/schema.ts';
-import { findingsOf, receiptOf } from './format.ts';
+import type { CheckLine, CheckReport, FindingAddress } from '../../core/schema.ts';
+import { findingTime, findingsOf, receiptOf } from './format.ts';
 import { CueWrite, StepWrite } from './grip.ts';
 import { EditState } from './machine.ts';
 
@@ -24,6 +24,29 @@ describe('findingsOf', () => {
     ).toEqual([late]);
     expect(findingsOf(EditState.Idle({ note: '' }), Option.some(report))).toEqual([early]);
     expect(findingsOf(EditState.Refused({ message: 'no' }), Option.none())).toEqual([]);
+  });
+});
+
+describe('findingTime (F/⇧F)', () => {
+  const placed = [
+    { spec: { id: 'one' }, start: 0 },
+    { spec: { id: 'two' }, start: 4 },
+  ];
+  const at = (address: FindingAddress): CheckLine => ({ ...late, address });
+
+  test('its own time, else the start of the first scene it names', () => {
+    expect(findingTime(at({ part: { _tag: 'Film' }, time: 2.5 }), placed)).toEqual(
+      Option.some(2.5),
+    );
+    expect(findingTime(at({ part: { _tag: 'Scenes', ids: ['two', 'one'] } }), placed)).toEqual(
+      Option.some(0),
+    );
+  });
+
+  test('none for the whole film, an act, or no address', () => {
+    expect(findingTime(at({ part: { _tag: 'Film' } }), placed)).toEqual(Option.none());
+    expect(findingTime(at({ part: { _tag: 'Act', act: 'a' } }), placed)).toEqual(Option.none());
+    expect(findingTime(late, placed)).toEqual(Option.none());
   });
 });
 

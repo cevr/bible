@@ -30,10 +30,6 @@ body.rv {
 .rv-hint, .rv-meta { color: var(--rv-dim); font-size: 12px; }
 .rv-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .rv-pick { margin-bottom: 12px; }
-.rv-filter {
-  background: var(--rv-panel); border: 1px solid var(--rv-line); color: var(--rv-ink);
-  border-radius: 999px; padding: 6px 12px; font: inherit; min-width: 0; width: 220px; max-width: 100%;
-}
 .rv-seg { display: inline-flex; border: 1px solid var(--rv-line); border-radius: 999px; overflow: hidden; flex-wrap: wrap; }
 .rv-seg button { background: none; border: 0; color: var(--rv-dim); padding: 6px 13px; font: inherit; cursor: pointer; min-height: 34px; }
 .rv-seg button[aria-pressed="true"] { background: var(--rv-ink); color: var(--rv-bg); }
@@ -141,7 +137,6 @@ a.rv-card:hover { border-color: var(--rv-dim); }
   .rv-main { padding: 12px 10px 60px; }
   .rv-transport { top: 49px; padding: 8px 10px; gap: 8px; }
   .rv-keys { display: none; }
-  .rv-filter { width: 100%; }
   .rv-cap { flex-wrap: wrap; }
   .rv-tag { white-space: normal; overflow-wrap: anywhere; }
 }

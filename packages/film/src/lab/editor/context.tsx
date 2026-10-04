@@ -27,6 +27,8 @@ import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import type { DragEdge } from '../../core/timeline.ts';
 import { LabApi, type StepVerb, reasonOf } from '../api.ts';
 import type { Receipt } from '../../command/command.ts';
+import { goToCommands } from '../../command/go.ts';
+import { registerWhile } from '../command/changes.ts';
 import { type LabSelection, cueOf, knobOf } from '../../command/selection.ts';
 import type { Inspected } from '../../core/field.ts';
 import { useLab } from '../shell.tsx';
@@ -41,8 +43,8 @@ import {
   snapTargets,
 } from './grip.ts';
 import { type Handle, knobMode } from './handles.ts';
-import { editorCommands } from './commands.ts';
-import { findingsOf, receiptOf } from './format.ts';
+import { cueDestinations, editorCommands } from './commands.ts';
+import { findingTime, findingsOf, receiptOf } from './format.ts';
 import { type EditActor, EditEvent, spawnEditor, stepRequest } from './machine.ts';
 
 /** The editor's slot among the page's receipts (`Hub.announce`). */
@@ -315,20 +317,44 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     return { scene, names };
   };
 
+  /** Film seconds at which `scene` starts. */
+  const sceneStart = (scene: string): number =>
+    Option.match(Result.getSuccess(sceneOf(film.placed, scene)), {
+      onNone: () => 0,
+      onSome: (p) => p.start,
+    });
+
   /** The film times at which the strip scene's cues start or end, in order, each once. */
   const edges = (): ReadonlyArray<number> => {
     lab.revision();
     const scene = stripScene();
-    const start = Option.match(Result.getSuccess(sceneOf(film.placed, scene)), {
-      onNone: () => 0,
-      onSome: (p) => p.start,
-    });
+    const start = sceneStart(scene);
     const times = [...stage.cuesOf(scene).values()].flatMap((c) => [
       start + c.start,
       start + c.end,
     ]);
     return [...new Set(times)].toSorted((a, b) => a - b);
   };
+
+  // Each cue of the strip's scene is a place ⌘K goes to by its name; the
+  // list follows the strip's scene and its cues, not each frame an edit shows.
+  const stripNames = createMemo(stripCues, {
+    equals: (a, b) => a.scene === b.scene && a.names.join('\n') === b.names.join('\n'),
+  });
+  registerWhile(meta.hub, () =>
+    goToCommands(
+      cueDestinations(
+        stripNames(),
+        (name) =>
+          sceneStart(stripNames().scene) +
+          Option.match(Option.fromUndefinedOr(stage.cuesOf(stripNames().scene).get(name)), {
+            onNone: () => 0,
+            onSome: (cue) => cue.start,
+          }),
+        { select: (s) => labActions.select(Option.some(s)), seek: (T) => meta.player.seek(T) },
+      ),
+    ),
+  );
 
   // The editor's verbs on the page's hub: Undo (⌘Z) and Redo (⇧⌘Z) while the
   // server's stack has a step, Escape letting a held grip go (from a field
@@ -347,6 +373,8 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
         edges,
         T: lab.T,
         seek: (T) => meta.player.seek(T),
+        findingTimes: () =>
+          findingsOf(edit(), report()).flatMap((f) => Option.toArray(findingTime(f, film.placed))),
       }),
     ),
   );
