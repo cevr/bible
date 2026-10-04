@@ -156,3 +156,7 @@ export const PointId = Schema.String.pipe(
 
 /** A point's id: `take:paper.slide`, `render:scenes:cold`, `score`. */
 export const pointIdOf = (ref: PointRef): string => encode(ref);
+
+/** Whether `id` names a point the Choices tab holds: every choice but a render set's (the project's). */
+export const onChoicesTab = (id: string): boolean =>
+  Option.exists(decode(id), (ref) => !PointRef.isAnyOf(['Render', 'Montage'])(ref));

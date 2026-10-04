@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Arbitrary, Effect, Option, Result, Schema } from 'effect';
 import { CatalogueJson } from './catalogue.ts';
-import { PointId, PointRef, pointIdOf } from './point.ts';
+import { PointId, PointRef, onChoicesTab, pointIdOf } from './point.ts';
 
 /** The point an id names, when it names one: the id read as `PointId` decodes it. */
 const pointRefOf = Schema.decodeOption(PointId);
@@ -39,6 +39,18 @@ const written: ReadonlyArray<readonly [PointRef, string]> = [
 ];
 
 describe('the choice point id', () => {
+  test('names a point the Choices tab holds: every choice, not a render set, not a non-point', () => {
+    expect(
+      ['score', 'take:paper.page', 'voice:close', 'level:const:PAPER'].map(onChoicesTab),
+    ).toEqual([true, true, true, true]);
+    expect(['render:scenes:cold', 'render:film', 'level:bed:01:x', ''].map(onChoicesTab)).toEqual([
+      false,
+      false,
+      false,
+      false,
+    ]);
+  });
+
   test('each point is written as it always was, and reads back as itself', () => {
     for (const [ref, id] of written) {
       expect(pointIdOf(ref)).toBe(id);

@@ -386,6 +386,8 @@ const render = (id: string) => `${scene(id)} > [data-kind="render"]`;
 
 /** The open inspector: one at a time. */
 const INSPECTOR = '[data-role="inspector"]';
+/** The film's choices' fold, closed at rest (UR-65): open it to reach a card. */
+const FILM_CHOICES = '.rv-film > .rv-layers > summary';
 
 /** Where the film's and the act's names sit (their inspect button), above their cards. */
 const FILM_HEAD = '.rv-film > .rv-row';
@@ -532,7 +534,9 @@ describe("a film's project", () => {
           'not rendered yet: film project render toy --scene end',
         );
         // The score with the film; a layer of the act's scenes with the act; one across parts with the film.
-        yield* waitFor(page, '.rv-film [data-point="score"]');
+        yield* attached(page, '.rv-film [data-point="score"]');
+        // The film's choices fold away at rest (UR-65).
+        yield* evaluates(page, "document.querySelector('.rv-film > .rv-layers').open", false);
         yield* attached(
           page,
           '[data-act-name="opening"] > .rv-layers [data-point="take:paper.hum"]',
@@ -566,6 +570,25 @@ describe("a film's project", () => {
         yield* page.goto(`${PROJECT}#point-take%3Apaper.hum`);
         yield* until(page, "location.search === '?point=take%3Apaper.hum'");
         yield* waitFor(page, hum);
+        // Its Open on Choices lands on the Choices tab at the card (UR-65), brought into view on
+        // a phone, where the card starts well below the fold.
+        yield* page.resize(390, 600);
+        yield* inspect(page, render('open'));
+        yield* click(page, `${INSPECTOR} [data-act="on-choices"][data-point="take:paper.hum"]`);
+        yield* until(
+          page,
+          `location.pathname + location.search === '${pageHref.choices('toy', 'take:paper.hum')}'`,
+        );
+        yield* evaluates(
+          page,
+          `(() => {
+            const card = document.getElementById('point-take:paper.hum');
+            if (card === null) return false;
+            const r = card.getBoundingClientRect();
+            return r.top < innerHeight && r.bottom > 0;
+          })()`,
+          true,
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -853,6 +876,7 @@ describe("a film's project", () => {
           href: PROJECT,
         });
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
+        yield* click(page, FILM_CHOICES);
         yield* click(
           page,
           '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',
@@ -909,6 +933,7 @@ describe("a film's project", () => {
           Effect.timeout('10 seconds'),
         );
         // A pick while the say is out: its read answers first, without the comment.
+        yield* click(page, FILM_CHOICES);
         yield* click(
           page,
           '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',
@@ -1009,6 +1034,7 @@ describe("a film's project", () => {
         yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'the page is late');
         yield* click(page, `${INSPECTOR} [data-act="comment"]`);
         yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
+        yield* click(page, FILM_CHOICES);
         yield* click(
           page,
           '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',

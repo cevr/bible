@@ -568,6 +568,15 @@ const knobField = (
   write,
 });
 
+/** Open the card of `point` where it sits (a fold it is in opens), and bring it into view. */
+export const revealPoint = (point: string) =>
+  Option.map(Option.fromNullishOr(document.getElementById(`point-${point}`)), (card) => {
+    Option.map(Option.fromNullishOr(card.closest('details')), (d) => {
+      d.open = true;
+    });
+    card.scrollIntoView({ block: 'center' });
+  });
+
 /**
  * One choice point: its lines, its knob, its variants. A
  * choice's says go to the film's choices; a render's card is told where its

@@ -156,7 +156,7 @@ export const citeOf = (selection: Selection, href: string): string => {
     Set: (s) => pageHref.set(s.folder, s.point),
     Version: (s) => pageHref.set(s.folder, s.point),
     Point: (s) => pageHref.project(s.film, s.point),
-    Variant: (s) => pageHref.choices(s.film),
+    Variant: (s) => pageHref.choices(s.film, s.point),
     Beat: () => href,
   });
 };

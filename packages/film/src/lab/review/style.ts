@@ -140,6 +140,9 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-group h3 { display: flex; gap: var(--s-2); align-items: baseline; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-2); }
 .rv-at { font: inherit; font-variant-numeric: tabular-nums; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
 .rv-at:disabled { color: var(--text-3); cursor: default; }
+.rv-plays .rv-row { justify-content: space-between; margin-top: var(--s-2); }
+.rv-inline-link { color: var(--text-1); text-decoration: none; }
+.rv-inline-link:hover { color: var(--accent); }
 .rv-findings { margin: var(--s-2) 0 0; padding-left: var(--s-4); font-size: var(--fs-2); overflow-wrap: anywhere; }
 .rv-findings li[data-level="error"] b { color: var(--state-findings); }
 .rv-findings li[data-level="warning"] b { color: var(--state-warning); }

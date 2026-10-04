@@ -41,7 +41,7 @@ import {
   hostLayer,
   onTraverse,
 } from '../../browser/host.ts';
-import { type Command, quiet, said } from '../../command/command.ts';
+import { type Command, type CommandId, quiet, said } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type Context, selected } from '../../command/context.ts';
@@ -53,6 +53,7 @@ import { ReviewApi, reviewApiLayer } from './api.ts';
 import type { Quality } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
 import { Places, legacyPlace } from '../../core/api.ts';
+import { onChoicesTab } from '../../core/point.ts';
 import {
   type SyncActor,
   SyncEvent,
@@ -270,7 +271,7 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
       },
     };
     onCleanup(
-      props.hub.commands.register(...openCommands(value.actions.go), ...pageCommands(value)),
+      props.hub.commands.register(...openCommands(value.actions.go, place), ...pageCommands(value)),
     );
     // Every folder, set and film's page is a place ⌘K goes to by its name.
     registerWhile(props.hub, () =>
@@ -290,16 +291,24 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
   );
 };
 
+/** Open on Choices: a choice off the Choices tab, opened there at its card (UR-65). */
+export const OPEN_ON_CHOICES: CommandId = 'review.open-on-choices';
+
 /**
  * The review's ways into a thing from its context menu (and ⌘K, while the
  * page selects it): a folder or a set opens in the page; a film's parts
- * open from its card through the studio shell's `filmCommands`.
+ * open from its card through the studio shell's `filmCommands`; a choice
+ * off the Choices tab (a project's card, a scene's Choices in this scene)
+ * opens on Choices at its card (UR-65).
  */
-const openCommands = (go: (place: ReviewPlace) => void): ReadonlyArray<Command> => {
+const openCommands = (
+  go: (place: ReviewPlace) => void,
+  here: Accessor<ReviewPlace>,
+): ReadonlyArray<Command> => {
   const opening = (
     id: string,
     label: string,
-    about: ReadonlyArray<'Folder' | 'Set'>,
+    about: ReadonlyArray<'Folder' | 'Set' | 'Point'>,
     placeOfTarget: (ctx: Context) => Option.Option<() => void>,
   ): Command => ({
     id,
@@ -325,6 +334,15 @@ const openCommands = (go: (place: ReviewPlace) => void): ReadonlyArray<Command> 
       Option.map(
         selected(ctx, 'Set'),
         (s) => () => go(ReviewPlace.Set({ folder: s.folder, point: s.point })),
+      ),
+    ),
+    opening(OPEN_ON_CHOICES, 'Open on Choices', ['Point'], (ctx) =>
+      Option.map(
+        Option.filter(
+          selected(ctx, 'Point'),
+          (p) => onChoicesTab(p.point) && here()._tag !== 'Film',
+        ),
+        (p) => () => go(ReviewPlace.Film({ film: p.film, point: p.point })),
       ),
     ),
   ];

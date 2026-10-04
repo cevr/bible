@@ -11,7 +11,10 @@
 // are counts that open the Findings sheet (`findings.tsx`).
 
 import { For, Show } from '@solidjs/web';
-import { type Accessor, createMemo, onCleanup } from 'solid-js';
+import { type Accessor, createEffect, createMemo, onCleanup } from 'solid-js';
+import { useAtomValue } from '@bible/atom-solid';
+import * as UrlAtom from '@bible/url-state/atom';
+import { Places } from '../../../core/api.ts';
 import { Duration, Effect, Fiber, Option } from 'effect';
 import { playableOf } from '../../../browser/media-browser.ts';
 import { type Command, type CommandId, quiet } from '../../../command/command.ts';
@@ -29,7 +32,7 @@ import { useReview } from '../context.tsx';
 import { pressed, sizeText, videoSource } from '../format.ts';
 import { ProxyPending, Transport } from '../section.tsx';
 import { ChoiceAct } from './api.ts';
-import { ChoiceCard, HearButton } from './choice.tsx';
+import { ChoiceCard, HearButton, revealPoint } from './choice.tsx';
 import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
 import { REVIEW_REDO, REVIEW_UNDO } from './receipt.ts';
 
@@ -257,8 +260,24 @@ export const OnlyShown = () => {
   );
 };
 
+/** The choices' place: the card in focus is its `?point=`. */
+const choicesPlace = UrlAtom.place(Places.choices);
+
 const FilmBody = () => {
   const { choices, only } = useFilm();
+  // The card the URL's `?point=` names is brought into view, as on the project:
+  // a link's first render (Open on Choices), and each Back or Forward to another.
+  const at = useAtomValue(() => choicesPlace);
+  createEffect(
+    () =>
+      Option.filter(
+        Option.map(at(), (v) => v.query.point),
+        (point) => point !== '',
+      ),
+    (point) => {
+      Option.map(point, revealPoint);
+    },
+  );
   return (
     <>
       <WriteBar />

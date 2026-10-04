@@ -745,7 +745,8 @@ export const Places = {
   choices: Place.make({
     path: '/films/:film/choices',
     params: filmParams,
-    query: Field.struct({ ...FILM_PLAYER, ...FILM_SHOWN }),
+    // The card in focus (`?point=`), as on the project: a link lands on it.
+    query: Field.struct({ point: cited, ...FILM_PLAYER, ...FILM_SHOWN }),
     hash: At,
   }),
   project: Place.make({
@@ -845,10 +846,11 @@ export const pageHref = {
       query: { view: 'all', other: '', m: 0 },
       hash: START,
     }),
-  choices: (film: string): string =>
+  /** A film's choices, with the card of `point` in focus. */
+  choices: (film: string, point = ''): string =>
     Place.href(Places.choices, {
       path: { film },
-      query: NOTHING_HEARD,
+      query: { point, ...NOTHING_HEARD },
       hash: START,
     }),
   /** A film's project, with the card of `point` in focus. */

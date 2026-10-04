@@ -80,13 +80,13 @@ describe("a selection in the pages' URLs", () => {
     }
   });
 
-  test('cites a selection with no key of its own by the place it is on', () => {
+  test('cites a selection with no key of its own by the place it is on, a variant by its card', () => {
     const here = pageHref.home();
     expect(citeOf(Version.make({ folder: 'r', point: 'cold', version: 'b' }), here)).toBe(
       pageHref.set('r', 'cold'),
     );
     expect(citeOf(Variant.make({ film: 'f', point: 'score', variant: 'piano' }), here)).toBe(
-      pageHref.choices('f'),
+      pageHref.choices('f', 'score'),
     );
     expect(citeOf(Act.make({ film: 'f', act: 'one' }), here)).toBe(pageHref.project('f'));
     expect(citeOf(Film.make({ film: 'f' }), here)).toBe(pageHref.project('f'));
