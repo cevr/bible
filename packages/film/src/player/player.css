@@ -102,11 +102,16 @@ body.export .stage canvas {
   /* A vertical swipe on the track scrolls the page; a sideways one scrubs. */
   touch-action: pan-y;
 }
+/* A scene's name keeps to its scene: one too long shortens with an ellipsis,
+   and in a scene too narrow to keep a letter and the ellipsis it drops. */
 .track .seg {
   position: absolute;
   top: 0;
   bottom: 0;
   border-right: 1px solid var(--surface-0);
+  overflow: hidden;
+  container-type: inline-size;
+  font-size: var(--fs-1);
 }
 .track .seg.estimated {
   background: repeating-linear-gradient(45deg, transparent 0 6px, var(--hatch) 6px 12px);
@@ -114,10 +119,17 @@ body.export .stage canvas {
 .track .seg span {
   position: absolute;
   left: 4px;
+  right: 4px;
   top: 11px;
-  font-size: var(--fs-1);
   color: var(--text-2);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@container (width < 2.6em) {
+  .track .seg span {
+    display: none;
+  }
 }
 .track .tick {
   position: absolute;
@@ -588,17 +600,30 @@ body.lab .stage {
   background: var(--surface-2);
   border-bottom: 1px solid var(--line);
 }
-.lab-word {
+/* A word's room is the time it is spoken; the word keeps to it, shortened
+   with an ellipsis, and in a room too narrow to keep a letter and the
+   ellipsis it drops, leaving the room's mark. */
+.lab-word-room {
   position: absolute;
   top: 2px;
   height: 14px;
-  overflow: hidden;
-  white-space: nowrap;
   font-size: var(--fs-1);
-  line-height: 14px;
-  color: var(--text-1);
   background: var(--surface-3);
   border-left: 1px solid var(--line-strong);
+  container-type: inline-size;
+}
+.lab-word {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: 14px;
+  color: var(--text-1);
+}
+@container (width < 1.5em) {
+  .lab-word {
+    display: none;
+  }
 }
 .lab-strip-mark {
   position: absolute;

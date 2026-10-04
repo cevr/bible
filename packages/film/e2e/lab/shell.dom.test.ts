@@ -12,7 +12,13 @@ import { timecode } from '../../src/core/time.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { URL_T, labAt, openLab } from '../../src/lab/fixtures/harness.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
-import { attached, attributeIs, evaluates, textHas } from '../../src/lab/fixtures/settled.ts';
+import {
+  attached,
+  attributeIs,
+  evaluates,
+  labelsClash,
+  textHas,
+} from '../../src/lab/fixtures/settled.ts';
 
 /** Where the probe film's second scene starts, in film seconds. */
 const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
@@ -325,6 +331,24 @@ describe('the lab shell', () => {
         [true, true, true],
       );
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "at 390 the strip's words never run into each other or cut mid-letter: a word too long for its time shortens or drops",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab();
+        yield* resize(page, { width: 390, height: 844 });
+        yield* page.waitFor('.lab-strip-words .lab-word');
+        yield* evaluates(page, labelsClash('.lab-word', '.lab-word-room'), []);
+        // How many words show, and how many in full: the row is not emptied to pass.
+        const reads = `(() => { const ws = [...document.querySelectorAll('.lab-word')].filter((e) => getComputedStyle(e).display !== 'none'); return [ws.length > 0, ws.some((e) => e.scrollWidth <= e.clientWidth)]; })()`;
+        yield* evaluates(page, `${reads}[0]`, true);
+        // A wide window gives the words room: some read in full, and still none overlaps.
+        yield* resize(page, { width: 1440, height: 900 });
+        yield* evaluates(page, labelsClash('.lab-word', '.lab-word-room'), []);
+        yield* evaluates(page, reads, [true, true]);
+      }).pipe(Effect.scoped),
   );
 
   it.live('Play at the end of the film starts it over', () =>

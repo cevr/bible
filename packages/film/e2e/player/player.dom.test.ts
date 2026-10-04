@@ -9,9 +9,10 @@ import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
 import { openPlayer } from '../../src/lab/fixtures/harness.ts';
+import { CROWD } from '../../src/lab/fixtures/crowd-film.ts';
 import { touch } from '../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
-import { attributeIs, evaluates, textHas } from '../../src/lab/fixtures/settled.ts';
+import { attributeIs, evaluates, labelsClash, textHas } from '../../src/lab/fixtures/settled.ts';
 
 const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1440, height: 900 };
@@ -49,6 +50,22 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
     );
   }
+
+  it.live(
+    "on a phone the tape bar's scene names never run into each other: a name too long shortens or drops",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openPlayer(
+          { href: pageHref.play(CROWD), viewport: PHONE },
+          '.bar .track .seg',
+        );
+        yield* evaluates(page, "document.querySelectorAll('.bar .track .seg').length", 14);
+        yield* evaluates(page, labelsClash('.bar .track .seg span', '.seg'), []);
+        // A wide window has room to name each scene more fully, and still none overlaps.
+        yield* page.resize(DESK.width, DESK.height);
+        yield* evaluates(page, labelsClash('.bar .track .seg span', '.seg'), []);
+      }).pipe(Effect.scoped),
+  );
 
   it.live("the play page keeps its time as #t=, in the film's seconds", () =>
     Effect.gen(function* () {

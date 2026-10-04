@@ -30,19 +30,19 @@ const DRAG_PX = 6;
 
 const pct = (p: Placed<SceneSpec>, t: number) => `${(t / p.dur) * 100}%`;
 
-/** The words and marks of the scene's narration, where they fall. */
+/** The words and marks of the scene's narration, each word in the room its time gives it. */
 const Words = (props: { readonly placed: Placed<SceneSpec> }) => (
   <div class="lab-strip-words">
     <For each={props.placed.voice.words}>
       {(w) => (
         <span
-          class="lab-word"
+          class="lab-word-room"
           style={{
             left: pct(props.placed, props.placed.speechStart + w.start),
-            width: pct(props.placed, Math.max(0.02, w.end - w.start)),
+            width: pct(props.placed, Math.max(0, w.end - w.start)),
           }}
         >
-          {w.text}
+          <span class="lab-word">{w.text}</span>
         </span>
       )}
     </For>
