@@ -333,11 +333,18 @@ quoted with their paths (`JUDGE_RULES` in `cli.ts`: the look, the palette,
 the colour script, the paper and what we never do for every beat; human
 scale, figures and staging for a STORY beat; words off the picture,
 repetition and type for an IDEA beat). It never says which version is
-newer, which is picked or who made it; the key (`key.json`) stays beside it.
-`okra counsel --deep` answers with a ranking and, for each version, the
-still and the rule that decide it, or `no preference`. The judge unblinds
-that answer into `verdict.md`: the ranking in real names beside the owner's
-pick, the key, the reasons, and the counsel's answer by path. It prints three
+newer, which is picked or who made it. The counsel reads it from a folder
+of its own under the system's temp folder that holds the packet and the
+stills and nothing else; the key stays in the judge's memory until the
+counsel has answered. `okra counsel --deep` answers with a ranking (one
+whole line: labels and `>` or `=`, or exactly `no preference`) and, for
+each version, the still and the rule that decide it. The judge unblinds
+that answer into `verdict.md`, beside the stills, the packet and the key
+(`key.json`) in `out/<film>/judge/<scene>-<stamp>-<draw>/`: the ranking in
+real names beside the owner's pick, the key, the reasons, and the counsel's
+answer by path. The counsel can read the whole machine, so the blindness
+rests on nothing that names a version being reachable from the packet (an
+earlier run's folder unblinds its own stills). It prints three
 short lines (`verdict <path>`, `ranking <names> (point= pick=)`, `counsel
 <path>`), or one JSON line with `--json`. It writes no choice: a pick is still
 the owner's, in the Choices view.

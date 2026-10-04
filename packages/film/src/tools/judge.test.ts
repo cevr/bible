@@ -29,15 +29,55 @@ class Here extends Context.Service<
 >()('test/judge/Here') {}
 
 /**
+ * What the counsel could read as it was asked: the prompt's folder, every
+ * file in it by name (`names`, below the folder) and the words of each that
+ * is no image (`texts`), and the look's files still about the film's folder
+ * (`left`, the fake look's `look-<level>-<n>.jpg`).
+ */
+interface Seen {
+  readonly folder: string;
+  readonly names: ReadonlyArray<string>;
+  readonly texts: ReadonlyArray<string>;
+  readonly left: ReadonlyArray<string>;
+}
+
+/** `inner`, but noting first what the counsel could read (`Seen`) in `seen`, the film's folder at `root`. */
+const reading = (root: string, seen: Array<Seen>) =>
+  Layer.effect(
+    Counsel,
+    Effect.gen(function* () {
+      const inner = yield* Counsel;
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      return Counsel.of({
+        ask: (prompt, dir) =>
+          Effect.gen(function* () {
+            const folder = path.dirname(prompt);
+            const names = yield* fs.readDirectory(folder, { recursive: true });
+            const texts = yield* Effect.forEach(
+              names.filter((name) => !name.endsWith('.jpg')),
+              (name) =>
+                fs.readFileString(path.join(folder, name)).pipe(Effect.orElseSucceed(() => '')),
+            );
+            const left = (yield* fs.readDirectory(root)).filter((name) => name.startsWith('look-'));
+            seen.push({ folder, names, texts, left });
+          }).pipe(Effect.orDie, Effect.andThen(inner.ask(prompt, dir))),
+      });
+    }),
+  );
+
+/**
  * The sample film copied to a temp folder, with a palette whose look has
  * `options`, and a rule file; the judge's services over it, its counsel
- * answering `answer`, every prompt in `asked`, every media call in `calls`.
+ * answering `answer`, every prompt in `asked`, every media call in `calls`,
+ * what the counsel could read in `seen`.
  */
 const judging = (
   options: string,
   answer: (prompt: string) => string,
   asked: Array<string> = [],
   calls: Array<string> = [],
+  seen: Array<Seen> = [],
 ) =>
   Layer.unwrap(
     Effect.gen(function* () {
@@ -59,7 +99,7 @@ const judging = (
       return Layer.mergeAll(
         FilmRepo.layer(films),
         RenderCatalogue.layer,
-        Counsel.layerTest(answer, asked),
+        reading(root, seen).pipe(Layer.provide(Counsel.layerTest(answer, asked))),
         reviewMedia(calls),
         Layer.succeed(Here, Here.of({ root, rules, out })),
       ).pipe(
@@ -152,8 +192,11 @@ describe('film judge', () => {
           ).toBe(v.version);
 
         // The packet: the beat and the one rule that bears on an IDEA beat; no version named.
+        // Kept as the counsel read it, its stills' paths moved to the run's folder.
         const packet = yield* fs.readFileString(judged.packet);
-        expect(asked).toEqual([packet]);
+        const stillsAt = (text: string) => text.replace(/\S*\/stills\//g, 'stills/');
+        expect(asked.map(stillsAt)).toEqual([stillsAt(packet)]);
+        expect(packet).toContain(path.join(judged.dir, 'stills', 'A-01.jpg'));
         expect(packet).toContain('IDEA: a page, and a question on it.');
         expect(packet).toContain('keep the ground warm');
         expect(packet).not.toContain('faces at a third');
@@ -171,6 +214,44 @@ describe('film judge', () => {
         expect(verdict).toContain(`### ${first?.version} (${first?.label})`);
         expect(verdict).toContain(judged.counsel);
       }).pipe(Effect.scoped, Effect.provide(judging('{ dusk: 0, noon: 0.5 }', reversed, asked))),
+  );
+
+  const seen: Array<Seen> = [];
+  it.effect(
+    'the counsel reads a folder of the packet and the stills alone: no key, no version named, no look left',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const { out, root } = yield* Here;
+        const judged = yield* judgeOpen(Option.some('look:ground'));
+        expect(seen).toHaveLength(1);
+        const [asked = { folder: root, names: [], texts: [], left: [] }] = seen;
+        expect(asked.names.toSorted()).toEqual([
+          'packet.md',
+          'stills',
+          'stills/A-01.jpg',
+          'stills/B-01.jpg',
+        ]);
+        // Its own folder, away from the film's and the judge's earlier runs.
+        expect(asked.folder.startsWith(root)).toBe(false);
+        for (const name of asked.names)
+          for (const word of ['key', 'dusk', 'noon'])
+            expect([name, word, name.includes(word)]).toEqual([name, word, false]);
+        for (const text of asked.texts)
+          for (const word of ['dusk', 'noon']) expect(text).not.toContain(word);
+        // The look's files, named by level, were gone before the counsel was asked.
+        expect(asked.left).toEqual([]);
+        // The key is written once the counsel has answered, beside the verdict, with the stills.
+        expect((yield* keyOf(judged.dir)).versions).toHaveLength(2);
+        expect(yield* fs.readDirectory(path.join(judged.dir, 'stills'))).toHaveLength(2);
+        expect(judged.dir.startsWith(path.join(out, 'sample', 'judge'))).toBe(true);
+        // The folder the counsel read is gone.
+        expect(yield* fs.exists(asked.folder)).toBe(false);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(judging('{ dusk: 0, noon: 0.5 }', reversed, [], [], seen)),
+      ),
   );
 
   const calls: Array<string> = [];

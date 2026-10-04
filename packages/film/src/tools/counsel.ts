@@ -32,7 +32,7 @@ const tailOf = (text: string) => text.trim().split('\n').slice(-3).join(' | ');
 export class Counsel extends Context.Service<Counsel, CounselService>()(
   '@bible/film/tools/Counsel',
 ) {
-  /** `okra counsel --deep`, run in `dir`, its answer read from the run folder it makes there. */
+  /** `okra counsel --deep`, run beside its prompt, its answer read from the run folder it makes in `dir`. */
   static readonly layer = Layer.effect(
     Counsel,
     Effect.gen(function* () {
@@ -47,7 +47,10 @@ export class Counsel extends Context.Service<Counsel, CounselService>()(
         yield* Effect.log(`counsel.start prompt=${prompt} dir=${dir}`);
         const done = yield* collect(
           spawner,
-          ChildProcess.make('okra', ['counsel', '--deep', '-f', prompt, '-o', dir], { cwd: dir }),
+          // Run beside its prompt: the folder the asker made for the counsel to read.
+          ChildProcess.make('okra', ['counsel', '--deep', '-f', prompt, '-o', dir], {
+            cwd: path.dirname(prompt),
+          }),
         ).pipe(Effect.mapError(failed(dir)));
         if (done.exitCode !== 0)
           return yield* CounselFailed.make({

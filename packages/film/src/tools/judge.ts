@@ -9,11 +9,17 @@
 //   address that holds the scene): each one's frames, cut from its video.
 //
 // Every version is shown at the same moments (the scene's marks and its cues'
-// middles), labelled in an order drawn at random; the key goes to `key.json`
-// and never into the packet; the counsel (`tools/counsel.ts`) ranks them
-// against the app's rules that bear on the beat; the answer is unblinded into
-// `verdict.md`. All of it under `out/<film>/judge/<scene>-<stamp>-<draw>/`. The judge
-// writes no choice.
+// middles), labelled in an order drawn at random. The counsel
+// (`tools/counsel.ts`) is asked from a folder of its own under the system's
+// temp folder that holds the packet and the stills and nothing else (a
+// look's own level-named files are moved out of `out/<film>/look/` as they
+// are drawn); the key stays in memory until it has answered. It ranks the
+// versions against the app's rules that bear on the beat, and the answer is
+// unblinded into `verdict.md`, beside the stills, the packet and `key.json`,
+// under `out/<film>/judge/<scene>-<stamp>-<draw>/`. The counsel can read the
+// whole machine, so the blindness rests on nothing that names a version
+// being reachable from the packet: an earlier run's folder unblinds its own
+// stills. The judge writes no choice.
 
 import {
   Array as Arr,
@@ -201,8 +207,10 @@ export const judge = Effect.fn('judge')(function* <TE, TR>(ask: JudgeAsk<TE, TR>
             view,
             levels: { [name]: level },
           });
+          // Each still moved to its label's name: the look's own file, named by its
+          // level, is gone before the counsel is asked.
           yield* Effect.forEach(Arr.zip(taken.looks, files), ([one, file]) =>
-            fs.copyFile(one.file, file),
+            Effect.andThen(fs.copyFile(one.file, file), fs.remove(one.file)),
           );
         }),
     })),
@@ -389,11 +397,7 @@ export const judge = Effect.fn('judge')(function* <TE, TR>(ask: JudgeAsk<TE, TR>
       }),
   );
 
-  // The folder, the labels drawn at random, and every version's stills at the same moments.
   const now = yield* DateTime.now;
-  const dir = yield* runFolder(path.join(loaded.paths.out, 'judge'), scene.id, now);
-  const stills = path.join(dir, 'stills');
-  yield* fs.makeDirectory(stills, { recursive: true });
   const moments = judgeMoments(scene);
   const atLeastOne = yield* Effect.fromOption(
     Option.liftPredicate(moments, Arr.isReadonlyArrayNonEmpty),
@@ -407,14 +411,7 @@ export const judge = Effect.fn('judge')(function* <TE, TR>(ask: JudgeAsk<TE, TR>
     label: Option.getOrElse(Arr.get(LABELS, i), () => '?'),
     version,
   }));
-  const drawn = yield* Effect.forEach(labelled, ({ label, version }) =>
-    Effect.gen(function* () {
-      const files = moments.map((_, i) => path.join(stills, stillName(label, i)));
-      yield* version.draw(atLeastOne, files);
-      yield* Effect.log(`judge.drawn label=${label} stills=${files.length}`);
-      return { label, files };
-    }),
-  );
+  // The key, kept in memory until the counsel has answered.
   const key: JudgeKey = {
     film: ask.film,
     scene: scene.id,
@@ -427,42 +424,70 @@ export const judge = Effect.fn('judge')(function* <TE, TR>(ask: JudgeAsk<TE, TR>
       detail: version.detail,
     })),
   };
-  yield* fs.writeFileString(path.join(dir, 'key.json'), `${encodeKey(key)}\n`);
-  const packet = path.join(dir, 'packet.md');
-  yield* fs.writeFileString(
-    packet,
-    packetOf({
-      choice: choice.title,
-      scene: scene.id,
-      say,
-      picture,
-      registers,
-      act,
-      rules,
-      moments,
-      stills: drawn,
+
+  return yield* Effect.scoped(
+    Effect.gen(function* () {
+      // The packet and the stills, drawn straight to their labels' names in a folder of
+      // their own (`blind`, under the system's temp folder, its name a draw) that holds
+      // nothing else, and gone once the run is done: the counsel, reading about its packet,
+      // finds no key and no version's name.
+      const blind = yield* fs.makeTempDirectoryScoped();
+      const stills = path.join(blind, 'stills');
+      yield* fs.makeDirectory(stills);
+      const drawn = yield* Effect.forEach(labelled, ({ label, version }) =>
+        Effect.gen(function* () {
+          const files = moments.map((_, i) => path.join(stills, stillName(label, i)));
+          yield* version.draw(atLeastOne, files);
+          yield* Effect.log(`judge.drawn label=${label} stills=${files.length}`);
+          return { label, files };
+        }),
+      );
+      const asked = path.join(blind, 'packet.md');
+      yield* fs.writeFileString(
+        asked,
+        packetOf({
+          choice: choice.title,
+          scene: scene.id,
+          say,
+          picture,
+          registers,
+          act,
+          rules,
+          moments,
+          stills: drawn,
+        }),
+      );
+
+      // The run's folder holds only the counsel's own files while it answers.
+      const dir = yield* runFolder(path.join(loaded.paths.out, 'judge'), scene.id, now);
+      const answer = yield* counsel.ask(asked, path.join(dir, 'counsel'));
+      const ranking = yield* Effect.fromResult(
+        Result.mapError(
+          rankingOf(
+            answer.text,
+            labelled.map((l) => l.label),
+          ),
+          (reason) => CounselUnreadable.make({ file: answer.file, reason }),
+        ),
+      );
+
+      // Unblinded: the stills, the packet and the answer's paths moved to the run's
+      // folder, the key and the verdict beside them.
+      const moved = (text: string) => text.replaceAll(blind, dir);
+      yield* fs.copy(stills, path.join(dir, 'stills'));
+      const packet = path.join(dir, 'packet.md');
+      yield* fs.writeFileString(packet, moved(yield* fs.readFileString(asked)));
+      yield* fs.writeFileString(path.join(dir, 'key.json'), `${encodeKey(key)}\n`);
+      const verdict = path.join(dir, 'verdict.md');
+      yield* fs.writeFileString(
+        verdict,
+        verdictOf({ key, ranking, answer: moved(answer.text), counsel: answer.file, packet }),
+      );
+      const done = yield* Clock.currentTimeMillis;
+      yield* Effect.log(
+        `judge.done film=${ask.film} scene=${scene.id} point=${choice.point} versions=${labelled.length} stills=${moments.length} ranking=${ranking._tag} ms=${done - started}`,
+      );
+      return { dir, verdict, packet, counsel: answer.file, key, ranking } satisfies Judged;
     }),
   );
-
-  // The counsel's answer, read and unblinded.
-  const answer = yield* counsel.ask(packet, path.join(dir, 'counsel'));
-  const ranking = yield* Effect.fromResult(
-    Result.mapError(
-      rankingOf(
-        answer.text,
-        labelled.map((l) => l.label),
-      ),
-      (reason) => CounselUnreadable.make({ file: answer.file, reason }),
-    ),
-  );
-  const verdict = path.join(dir, 'verdict.md');
-  yield* fs.writeFileString(
-    verdict,
-    verdictOf({ key, ranking, answer: answer.text, counsel: answer.file, packet }),
-  );
-  const done = yield* Clock.currentTimeMillis;
-  yield* Effect.log(
-    `judge.done film=${ask.film} scene=${scene.id} point=${choice.point} versions=${labelled.length} stills=${moments.length} ranking=${ranking._tag} ms=${done - started}`,
-  );
-  return { dir, verdict, packet, counsel: answer.file, key, ranking } satisfies Judged;
 });

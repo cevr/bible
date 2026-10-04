@@ -1671,26 +1671,34 @@ scene, each cut by `Media.still` at the same film seconds). A sound point
 is `JudgePointUnjudged`; unnamed, the scene's one picture choice with two
 versions or more is judged, several are `JudgePointAmbiguous`, none
 `JudgeNothingToCompare`. The moments are the scene's marks and its cues'
-middles, one per frame, at most `JUDGE_MOMENTS` (12) spread evenly
-(`judgeMoments`); stills are 1280-pixel JPEGs, copied to
-`out/<film>/judge/<scene>-<stamp>-<draw>/stills/<label>-<nn>.jpg`. The labels are
-drawn by `Random.shuffle`; `key.json` (`JudgeKey`) holds which is which and
-is never in `packet.md` (`packetOf`): the beat's words, its picture's brief,
+middles, one per frame as a look resolves it (`momentOf` at the film's fps,
+counted from the film's start), at most `JUDGE_MOMENTS` (12) spread evenly
+(`judgeMoments`); stills are 1280-pixel JPEGs, drawn straight to
+`stills/<label>-<nn>.jpg` in a folder of their own under the system's temp
+folder, beside `packet.md` and nothing else (a look's own level-named files
+are moved out of `out/<film>/look/` as they are drawn). The labels are drawn
+by `Random.shuffle`; the key (`JudgeKey`) stays in memory until the counsel
+has answered, and is never in `packet.md` (`packetOf`): the beat's words, its picture's brief,
 its register (`registersOf`, the head of the brief) and act, the app's rules
 that bear on it (`FilmApp.judge.rules`, each a heading of a file, for every
 beat or for a register; a heading its file lacks is `JudgeRuleMissing`),
 the stills by label and moment, and the form of the answer. The counsel is
 a seam (`Counsel`, `tools/counsel.ts`) with two adapters: `Counsel.layer`
-runs `okra counsel --deep -f packet.md -o counsel/` in the judge's folder
-and reads the `codex.md` or `claude.md` it writes (a non-zero exit is
-`CounselFailed`, 124 its time out); `Counsel.layerTest` answers from a
-function of the packet. Its last `RANKING:` line is read (`rankingOf`:
-every label once, `>` between tiers, `=` a tie, or `no preference`; else
-`CounselUnreadable`) and unblinded into `verdict.md` (`verdictOf`): the
-ranking in real names beside the owner's pick (the level the look plays,
-the render set's approved variant), the key, the reasons with each label's
-heading named, and the counsel's answer and packet by path. The judge writes
-no choice. It logs `judge.drawn label= stills=` per version and `judge.done
+runs `okra counsel --deep -f packet.md -o <run>/counsel/` beside the
+packet and reads the `codex.md` or `claude.md` it writes (a non-zero exit
+is `CounselFailed`, 124 its time out); `Counsel.layerTest` answers from a
+function of the packet. Its last `RANKING:` line is read (`rankingOf`: a
+whole expression, every label once, `>` between tiers, `=` a tie, nothing
+after; or exactly `no preference`; else `CounselUnreadable`) and unblinded
+into `verdict.md` (`verdictOf`) in the run's own folder,
+`out/<film>/judge/<scene>-<stamp>-<draw>/` (made by an exclusive mkdir, so
+two runs never share one), beside the stills, the packet (its paths moved
+there) and `key.json`: the ranking in real names beside the owner's pick
+(the level the look plays, the render set's approved variant), the key, the
+reasons with each label's heading named, and the counsel's answer and
+packet by path. The counsel can read the whole machine, so the blindness
+rests on nothing that names a version being reachable from the packet: an
+earlier run's folder unblinds its own stills. The judge writes no choice. It logs `judge.drawn label= stills=` per version and `judge.done
 … ms=`.
 
 ## Review
