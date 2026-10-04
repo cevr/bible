@@ -253,6 +253,14 @@ body.lab .stage {
   color: var(--muted);
   font-size: 11px;
 }
+.lab-reload-waiting {
+  margin: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 11px;
+}
 .lab-panel button {
   background: none;
   border: 1px solid #3a342c;

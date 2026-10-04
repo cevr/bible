@@ -7,7 +7,7 @@
 // provider; the shell knows none of it.
 
 import { RegistryProvider } from '@bible/atom-solid';
-import { Portal } from '@solidjs/web';
+import { Portal, Show } from '@solidjs/web';
 import { Effect, Fiber, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
@@ -20,6 +20,7 @@ import { TabStore } from '../browser/storage-browser.ts';
 import { type ViewStore, viewStore } from '../player/view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
+import { type ReloadGate, makeReloadGate } from './reload-gate.ts';
 import { ReviewPlace, searchOf } from './review/place.ts';
 import { type Selection, searchWithSelection, selectionFromSearch } from './selection.ts';
 import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
@@ -34,6 +35,8 @@ interface LabState {
   readonly revision: Accessor<number>;
   /** The cue or knob selected, kept in the URL as `sel`. */
   readonly selection: Accessor<Option.Option<Selection>>;
+  /** What a reload held by the owner's unsaved work waits for (`ReloadGate`); empty while none waits. */
+  readonly reloadWaiting: Accessor<string>;
 }
 
 interface LabActions {
@@ -52,6 +55,8 @@ interface LabMeta {
   readonly view: ViewStore;
   /** The preview as the machines drive it: edits shown in memory, and `#T` held for a write. */
   readonly stage: StageOps;
+  /** The page's reloads, held while a panel holds work only the page has (a take under review, a note). */
+  readonly reloads: ReloadGate;
   /** What the panels' machines and atoms run with: the stage, the lab API, the notes API and the host. */
   readonly runtime: Atom.AtomRuntime<Stage | LabApi | NotesApi | BrowserServices>;
   /** This page's client layer identity, reused by the studio's separate runtime. */
@@ -124,7 +129,13 @@ const Root = (props: RootProps) => {
   onCleanup(() => document.body.classList.remove('lab'));
 
   const [revision, setRevision] = createSignal(0, fromDraw);
-  const stage = makeStage(player, () => setRevision((n) => n + 1));
+  // Every reload (a write's, a kept take's, the rebuild's) waits while a panel holds unsaved work.
+  const [reloadWaiting, setReloadWaiting] = createSignal('', { ownedWrite: true });
+  const reloads = makeReloadGate(() => {
+    player.holdT();
+    location.reload();
+  }, setReloadWaiting);
+  const stage = makeStage(player, () => setRevision((n) => n + 1), reloads.request);
   const clientLayer = LabClient.layer(location.origin);
   // The server rebuilt the pages (a source changed): reload onto the new code at this frame.
   const rebuilt = Effect.runFork(reloadOnRebuild(stage.reload).pipe(Effect.provide(clientLayer)));
@@ -143,7 +154,7 @@ const Root = (props: RootProps) => {
   };
 
   const value: LabContextValue = {
-    state: { T, drawn, revision, selection },
+    state: { T, drawn, revision, selection, reloadWaiting },
     actions: {
       pin: (layer) => {
         pinned.add(layer);
@@ -158,6 +169,7 @@ const Root = (props: RootProps) => {
       player,
       view,
       stage,
+      reloads,
       runtime,
       clientLayer,
       host: props.host,
@@ -235,8 +247,25 @@ const Strip = (props: ParentProps) => {
   return <Portal mount={slot}>{props.children}</Portal>;
 };
 
-/** The side panel: the header, then each tool's section. */
-const Panel = (props: ParentProps) => <aside class="lab-panel">{props.children}</aside>;
+/**
+ * The side panel: the header, then each tool's section; above them, while a
+ * reload waits on the owner's unsaved work, what it waits for.
+ */
+const Panel = (props: ParentProps) => {
+  const { state } = useLab();
+  return (
+    <aside class="lab-panel">
+      <Show when={state.reloadWaiting()}>
+        {(waiting) => (
+          <p class="lab-reload-waiting" role="status">
+            {waiting()}
+          </p>
+        )}
+      </Show>
+      {props.children}
+    </aside>
+  );
+};
 
 /** The panel's header: its name, the hint, the header's tools, and the film's review pages and look-book. */
 const Header = (props: ParentProps) => {

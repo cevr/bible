@@ -213,6 +213,23 @@ export const reviewWav = (state: RecorderState): Option.Option<Uint8Array> =>
     Match.orElse(() => Option.none()),
   );
 
+/**
+ * What the owner does before the page may reload (`ReloadGate`), while the
+ * recorder holds a recording only this page has: one being made, one under
+ * review or refused with it kept to retry, or one on its way to the lab
+ * (a refusal brings it back to retry). None at rest.
+ */
+export const unsubmitted = (state: RecorderState): Option.Option<string> =>
+  Match.value(state).pipe(
+    Match.tag('CountIn', 'Recording', () => Option.some('stop the take being recorded')),
+    Match.tag('Review', () => Option.some('submit or discard the take under review')),
+    Match.tag('Importing', 'Checking', () => Option.some('let the take being kept land')),
+    Match.tag('Failed', (s) =>
+      Option.map(s.wav, () => 'go Back to the refused take and submit or discard it'),
+    ),
+    Match.orElse(() => Option.none()),
+  );
+
 /** How many beats stand where: `1 recorded · 2 staging · 1 stale`. */
 export const beatCounts = (beats: ReadonlyArray<StudioBeat>): string =>
   (['recorded', 'staging', 'stale'] as const)

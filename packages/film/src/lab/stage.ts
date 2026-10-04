@@ -7,7 +7,9 @@
 // owner (`tInUrl`, behind `Player.holdT` and `Player.settle`); nothing here
 // writes the URL. A write the film's code does not import (a take's audio
 // and timings, which the player fetches once) reloads the page itself, at
-// the frame held.
+// the frame held. Every reload goes through the page's reload gate
+// (`ReloadGate`), which holds it while the owner has a recording or a note
+// only the page holds.
 
 import { Context, Effect, Layer, Option, Result, Schema } from 'effect';
 import type { SceneEdit, SceneSpec, ShownEdit } from '../canvas/film.ts';
@@ -72,9 +74,14 @@ export class Stage extends Context.Service<Stage, StageOps>()('@bible/film/lab/S
 
 /**
  * The stage over `player`'s film. `changed` is told after each preview, so
- * the panels that draw the edited timeline read it again.
+ * the panels that draw the edited timeline read it again; `reload` is the
+ * page's reload gate's (`ReloadGate.request`).
  */
-export const makeStage = (player: Player, changed: () => void): StageOps => {
+export const makeStage = (
+  player: Player,
+  changed: () => void,
+  reload: Effect.Effect<void>,
+): StageOps => {
   const { film } = player;
   const edits = new Map<string, ShownEdit>();
   const placed = (scene: string): Option.Option<Placed<SceneSpec>> =>
@@ -127,10 +134,7 @@ export const makeStage = (player: Player, changed: () => void): StageOps => {
     knobsOf,
     cuesOf,
     holdT: Effect.sync(() => player.holdT()),
-    reload: Effect.sync(() => {
-      player.holdT();
-      location.reload();
-    }),
+    reload,
     settle: Effect.sync(() => player.settle()),
     pause: Effect.sync(() => player.pause()),
     duration: film.duration,
