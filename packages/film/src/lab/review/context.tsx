@@ -77,6 +77,7 @@ import {
   viewOf,
 } from './place.ts';
 import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
+import { hearVersionCommands } from './hear.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 
@@ -535,6 +536,13 @@ const SetBody = (
       }),
     ),
   );
+  // Whether version `id` can be heard in the view shown: it plays, and a pair holds it.
+  const hearable = (id: string): boolean => {
+    const shown = view();
+    if (!playsIn(viewNameOf(shown))) return false;
+    if (shown._tag === 'Pair') return id === first || id === shown.other;
+    return true;
+  };
   // A version of this set heard alone, from its context menu (as its 🔊 does).
   const versionHere = (ctx: Context) =>
     Option.filter(
@@ -543,8 +551,18 @@ const SetBody = (
         v.folder === props.folder.ref &&
         v.point === props.set.id &&
         v.version !== sync().audible &&
-        playsIn(viewNameOf(view())),
+        hearable(v.version),
     );
+  onCleanup(
+    meta.hub.commands.register(
+      ...hearVersionCommands({
+        versions: props.set.variants,
+        heard: () => sync().audible,
+        hearable,
+        hear: (id) => sendSync(SyncEvent.HeardChosen({ id })),
+      }),
+    ),
+  );
   onCleanup(
     meta.hub.commands.register({
       id: 'set.hear',

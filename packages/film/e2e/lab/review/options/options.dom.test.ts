@@ -10,7 +10,9 @@
 // or the menu's, naming what it
 // undoes) is sent to the film's own route, and the choices it reads again,
 // landing after a say asked later, leave the say shown; a mark
-// jumps the clock; Show only… keeps the points in one state (`?only=`); a
+// jumps the clock from its card's menu or on `.`; ⌥→/⌥← audition a point's
+// variants and Enter picks the one heard; a level's value is typed into its
+// field; Show only… keeps the points in one state (`?only=`); a
 // mix whose first load failed is heard once its retry
 // lands; and a phone's width scrolls nothing sideways. Every wait is on the
 // page (a selector, a condition) or its clock, never a fixed time.
@@ -355,8 +357,13 @@ describe("a film's choices", () => {
         yield* click(page, '.rv-picture [data-act="hear"]');
         yield* until(page, "document.querySelector('audio.rv-mix') === null");
         yield* until(page, "document.querySelector('.rv-picture video').muted === false");
-        // A mark jumps the clock to it.
-        yield* click(page, '[data-point="take:paper.page"] button[data-at="2"]');
+        // A mark jumps the clock to it, from its card's menu (UR-45); none at rest.
+        yield* countIs(page, '[data-point="take:paper.page"] button[data-at]', 0);
+        yield* rightClick(page, '[data-point="take:paper.page"] > .rv-cap .rv-name');
+        yield* click(
+          page,
+          '[data-role="context-menu"] [data-command="review.mark.take:paper.page.0"]',
+        );
         yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -394,7 +401,9 @@ describe("a film's choices", () => {
         yield* waitFor(page, '.rv-picture video');
         yield* click(page, `${at('score', 'piano')} [data-act="hear"]`);
         yield* until(page, "location.search === '?heard=score&variant=piano'");
-        yield* click(page, '[data-point="take:paper.page"] button[data-at="2"]');
+        // `.` on the take's row jumps to the next place it plays.
+        yield* page.focus(`${at('take:paper.page', WAITING)} [data-act="pick"]`);
+        yield* page.press('.');
         yield* until(page, "location.hash === '#t=2'");
         const link = `${FILM}?heard=score&variant=piano#t=2`;
         yield* evaluates(page, 'location.pathname + location.search + location.hash', link);
@@ -952,6 +961,7 @@ describe("a film's choices", () => {
           'review.comment',
           'review.approve',
           'review.reject',
+          'review.mark.take:paper.page.0',
         ]);
         // Its menu's Inspect opens the inspector, which offers the reject too.
         yield* click(page, '[data-role="context-menu"] [data-command="review.inspect"]');
@@ -973,5 +983,62 @@ describe("a film's choices", () => {
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
+  );
+
+  it.live(
+    'audition: ⌥→ and ⌥← hear the selected point’s variants in place, and Enter picks the one heard',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
+        yield* waitFor(page, '.rv-picture video');
+        yield* until(
+          page,
+          `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=strings')`,
+        );
+        yield* page.focus(`${at('score', 'strings')} [data-act="hear"]`);
+        // The missing choir is skipped; the focus follows what is heard.
+        yield* page.press('Alt+ArrowRight');
+        yield* until(
+          page,
+          `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=piano')`,
+        );
+        yield* evaluates(
+          page,
+          "document.activeElement.closest('[data-variant]').dataset.variant",
+          'piano',
+        );
+        yield* page.press('Alt+ArrowLeft');
+        yield* until(
+          page,
+          `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=strings')`,
+        );
+        yield* page.press('Alt+ArrowRight');
+        yield* waitFor(page, `${at('score', 'piano')} [data-act="hear"][aria-pressed="true"]`);
+        yield* page.press('Enter');
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        expect(posted(asked, '/api/films/toy/choices/pick')).toEqual({
+          point: 'score',
+          variant: 'piano',
+          verb: 'pick',
+        });
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live("a level's value is a field: typed arithmetic commits on Enter", () =>
+    Effect.gen(function* () {
+      const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
+      const field = '[data-knob="level:const:PAPER"] .lab-num';
+      yield* valueIs(page, field, '-24');
+      yield* page.fill(field, '-24+4');
+      yield* page.press('Enter');
+      yield* receiptSays(page, 'level:const:PAPER: -24 → -20 dB');
+      expect(posted(asked, '/api/films/toy/choices/knob')).toEqual({
+        point: 'level:const:PAPER',
+        value: -20,
+      });
+      expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
   );
 });

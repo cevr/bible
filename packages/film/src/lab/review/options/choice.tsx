@@ -1,12 +1,14 @@
 // One choice point as the review shows it (`core/choice.ts`), the same card
-// for every kind and at every level of the film: its title and lines, the
-// instants it plays at (a jump on the clock), its knob (a sound layer's
-// level), and each variant with its state, what it is, how it is seen or
+// for every kind and at every level of the film: its title and lines, its
+// knob (a sound layer's level: a slider, and its value a field typed to the
+// step, nudged by its arrows), and each variant with its state, what it is, how it is seen or
 // heard (a render's video; a take alone, its own file; in place: 🔊 over the
 // picture), the verbs its state allows (pick, unpick, reject), its approval
 // (approve, unapprove) and what was said of it; at rest only what most
 // visits use, the rest in the variant's inspector, its menu and its keys
-// (`../inspector.tsx`, `../things.ts`). A say goes where the card is
+// (`../inspector.tsx`, `../things.ts`); the instants a point plays at are
+// jumps in its card's menu and on `.`/`,`, and ⌥←/→ audition its variants
+// (`keys.ts`). A say goes where the card is
 // told (`Sayer`): a choice's to the film's choices, a render's to its
 // project. Each part reads its props as they change, so a card updates in
 // place: a playing clip plays on and a half-typed comment stays.
@@ -17,7 +19,6 @@ import { type Accessor, createEffect, createMemo, createSignal, untrack } from '
 import { type Say, choiceAloneUrl, reviewFrameUrl } from '../../../core/api.ts';
 import type { ApprovalState, SaidComment } from '../../../core/catalogue.ts';
 import {
-  type ChoiceKind,
   type ChoiceKnob,
   type ChoicePoint,
   type ChoiceVariant,
@@ -28,7 +29,7 @@ import type { ReviewVideo } from '../../../core/review.ts';
 import { useReview } from '../context.tsx';
 import { APPROVAL_TEXT, POSTER_W, pressed, stateText, videoSource } from '../format.ts';
 import { ProxyPending } from '../section.tsx';
-import { SyncEvent, timeText } from '../machine.ts';
+import type { Inspected } from '../../../core/field.ts';
 import { ChoiceAct } from './api.ts';
 import { Playing, samePlaying, useAct, useFilm } from './context.tsx';
 import { Selection } from '../../../command/selection.ts';
@@ -41,15 +42,8 @@ import {
   useThing,
 } from '../inspector.tsx';
 import type { ThingVerb, VerbId } from '../things.ts';
-
-/** A verb's button, as a kind names it: a take is kept, anything else picked. */
-const verbTitle = (kind: ChoiceKind, verb: ChoiceVerb): string => {
-  if (verb === 'unpick') return 'Unkeep';
-  if (verb === 'reject') return 'Reject';
-  if (kind === 'take') return 'Keep';
-  if (kind === 'voice') return 'Keep as the take';
-  return 'Pick';
-};
+import { verbTitle } from './keys.ts';
+import { Field } from '../../command/inspector.tsx';
 
 /** The approve button's words for an approval. */
 const APPROVE_TITLE = {
@@ -506,9 +500,8 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
           set(Number(e.currentTarget.value))
         }
       />
-      <output class="rv-tag">
-        {value()} {props.knob.unit}
-      </output>
+      <Field field={knobField(props.point, props.knob, value(), setting.waiting(), set)} />
+      <span class="rv-tag">{props.knob.unit}</span>
       <Show when={Option.getOrUndefined(props.knob.fixed)}>
         {(why) => <span class="rv-hint">{why()}</span>}
       </Show>
@@ -516,37 +509,38 @@ const Knob = (props: { readonly point: ChoicePoint; readonly knob: ChoiceKnob })
   );
 };
 
-/** The instants a point plays at, each a jump on the clock. */
-const Marks = (props: { readonly point: ChoicePoint }) => {
-  const { send, picture } = useFilm();
-  const jump = (t: number) => {
-    send(SyncEvent.ScrubMoved({ t }));
-    send(SyncEvent.ScrubReleased);
-  };
-  return (
-    <Show when={props.point.marks.length > 0}>
-      <div class="rv-row rv-pick">
-        <span class="rv-hint">Plays at:</span>
-        <For each={props.point.marks}>
-          {(m) => (
-            <button
-              type="button"
-              class="rv-chip"
-              data-at={String(m.t)}
-              disabled={Option.isNone(picture())}
-              onClick={() => jump(m.t)}
-            >
-              {timeText(m.t)} · {m.label}
-            </button>
-          )}
-        </For>
-      </div>
-    </Show>
-  );
-};
+/**
+ * A knob's value as a field (UR-46): typed to any value its range holds
+ * (arithmetic too, committed on Enter), its arrows stepping the knob's step,
+ * Shift ten of them, Alt a tenth; refused while its value is computed or its
+ * own write is in flight.
+ */
+const knobField = (
+  point: ChoicePoint,
+  knob: ChoiceKnob,
+  value: number,
+  waiting: boolean,
+  write: (to: number) => void,
+): Inspected => ({
+  id: point.id,
+  label: `${point.title} (${knob.unit})`,
+  spec: {
+    unit: knob.unit,
+    step: knob.step,
+    coarse: knob.step * 10,
+    fine: knob.step / 10,
+    min: Option.some(knob.min),
+    max: Option.some(knob.max),
+    readOnly: false,
+    why: Option.none(),
+  },
+  value,
+  refusal: Option.orElse(knob.fixed, () => Option.liftPredicate('writing…', () => waiting)),
+  write,
+});
 
 /**
- * One choice point: its lines, where it plays, its knob, its variants. A
+ * One choice point: its lines, its knob, its variants. A
  * choice's says go to the film's choices; a render's card is told where its
  * go (`sayer`). Why a stale variant is stale is its own (`staleBy`).
  */
@@ -582,7 +576,6 @@ export const ChoiceCard = (props: {
         <span class="rv-tag">{props.point.lines.join(' · ')}</span>
       </div>
       <div class="rv-body">
-        <Marks point={props.point} />
         <Show when={Option.getOrUndefined(props.point.knob)}>
           {(knob) => <Knob point={props.point} knob={knob()} />}
         </Show>

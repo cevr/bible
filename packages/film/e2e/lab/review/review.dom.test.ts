@@ -3,7 +3,7 @@
 // (⌘K) finds it by name, with Refresh; the folder shows its set, its loose
 // video with captions, and a doc read as
 // escaped markdown; the set plays every variant on one clock (space plays
-// and pauses, ←/→ step, 🔊 moves the sound heard), shows the first against
+// and pauses, ←/→ step, 🔊 or `1`…`9` move the sound heard), shows the first against
 // one other, every variant's frame at the moments (←/→ between them), and
 // the notes; a variant the record proves stale says why in every view, and
 // the rest say no state; the view lives in the URL through a reload; and a
@@ -220,6 +220,9 @@ describe('the review page', () => {
           "Array.from(document.querySelectorAll('.rv-card[data-id]')).filter((c) => !c.querySelector('video').muted).map((c) => c.dataset.id).join()";
         yield* until(page, `${heard} === 'A'`);
         yield* attributeIs(page, '.rv-audible', 'data-id', 'A');
+        // `2` hears version 2, as its 🔊 would (UR-27).
+        yield* page.press('2');
+        yield* until(page, `${heard} === 'B'`);
         yield* page.click('.rv-card[data-id="C"] .rv-sound');
         yield* until(page, `${heard} === 'C'`);
         yield* waitFor(page, '.rv-card[data-id="C"].rv-audible');
@@ -269,6 +272,10 @@ describe('the review page', () => {
         yield* until(page, `${shown} === 'A,B'`);
         // C was heard; the pair hears one of its own.
         yield* waitFor(page, '.rv-card[data-id="A"].rv-audible');
+        // `3` is not the pair's to hear; `2` is.
+        yield* page.press('3');
+        yield* page.press('2');
+        yield* waitFor(page, '.rv-card[data-id="B"].rv-audible');
         yield* page.click('button[data-other="C"]');
         yield* until(page, `${shown} === 'A,C'`);
         yield* until(page, "location.search === '?view=pair&other=C'");

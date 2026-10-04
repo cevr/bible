@@ -93,7 +93,8 @@ export interface Command {
   readonly touch?: string;
   /**
    * Found only by typing (a Go to entry, one per thing on the page): ⌘K
-   * lists it once a word is typed; the `?` sheet and the context menus never.
+   * lists it once a word is typed; the `?` sheet never, and a context menu
+   * only when it is `about` the thing (a point's marks on its card).
    */
   readonly typed?: true;
   /** Whether it is available in `ctx`: shown in menus, run by its keys. */

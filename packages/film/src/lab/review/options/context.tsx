@@ -54,7 +54,9 @@ import { useReview } from '../context.tsx';
 import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
 import { type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
 import { type SyncDriver, playerCommands, makeSync, playerEvent } from '../sync.ts';
-import { type ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } from './api.ts';
+import { ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } from './api.ts';
+import { type Deck, type InPlace, markCommands, pointCommands } from './keys.ts';
+import { registerWhile } from '../../command/changes.ts';
 import { actWords, soundReceipt } from './receipt.ts';
 
 /** The player's clock: the film's render, its own sound muted unless it is the one heard. */
@@ -242,8 +244,16 @@ interface ActWrite {
 }
 
 /** A control's own write of the film's acts (`useWrite`): made once, as the control is made. */
-export const useAct = (): ActWrite => {
-  const { film, choices, written, status, orders } = useFilm();
+export const useAct = (): ActWrite => actWrite(useFilm());
+
+/** An own write of the film's acts over the film's writes (`useAct`, and the film's own keys). */
+const actWrite = ({
+  film,
+  choices,
+  written,
+  status,
+  orders,
+}: Pick<FilmContextValue, 'film' | 'choices' | 'written' | 'status' | 'orders'>): ActWrite => {
   const own = useWrite(
     (act: ChoiceAct) => OptionsApi.use((api) => api.write(film, act)),
     status,
@@ -445,7 +455,50 @@ const FilmBody = (
     only,
     showOnly,
   };
+
+  // The selected point's keys: audition, Enter's pick, its marks (`keys.ts`).
+  const picking = actWrite(value);
+  const deck: Deck = {
+    film,
+    points: () => choices().points,
+    heard: () =>
+      Playing.$match(playing(), {
+        Own: () => Option.none<InPlace>(),
+        InPlace: (p) => Option.some({ point: p.point, variant: p.variant }),
+      }),
+    audition: (next) => {
+      value.hear(Playing.InPlace(next));
+      focusVariant(next);
+    },
+    pick: (next) => picking.write(ChoiceAct.Verb({ ...next, verb: 'pick' })),
+    jump: () =>
+      Option.map(picture(), () => (t: number) => {
+        send(SyncEvent.ScrubMoved({ t }));
+        send(SyncEvent.ScrubReleased);
+      }),
+    now: () => sync().t,
+  };
+  onCleanup(meta.hub.commands.register(...pointCommands(deck)));
+  registerWhile(meta.hub, () => markCommands(deck));
+
   return <FilmContext value={value}>{props.children}</FilmContext>;
+};
+
+/**
+ * Put the focus on the row of `heard`'s variant (its 🔊), so the next key
+ * is about it: an audition step selects what it hears.
+ */
+const focusVariant = (heard: InPlace): void => {
+  Option.map(Option.fromNullishOr(document.getElementById(`point-${heard.point}`)), (card) =>
+    Option.map(
+      Option.fromNullishOr(
+        card.querySelector<HTMLElement>(
+          `[data-variant="${CSS.escape(heard.variant)}"] [data-act="hear"]`,
+        ),
+      ),
+      (button) => button.focus(),
+    ),
+  );
 };
 
 /** The time `film`'s choices or project entry at `href` keeps (`#t=`); none off them. */

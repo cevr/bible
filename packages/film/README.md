@@ -885,7 +885,8 @@ inspector's footer.
 
 **Go to** (AA-2, `src/command/go.ts`): every place a page can go to by its
 name is a command found only by typing (`typed`): ⌘K lists it once a word
-is typed, the `?` sheet and the context menus never. `/` opens ⌘K from the
+is typed, the `?` sheet never, and a context menu only when the command is
+`about` the thing it opened on (a point's marks, below). `/` opens ⌘K from the
 page (a field keeps it for typing). In the lab the places are the film's
 scenes (`Go to scene cold`), the cues of the scene shown (`Go to cue rise in
 one`: the player goes to its start and the cue is selected) and the notes
@@ -937,7 +938,18 @@ commands: Inspect (`i`) and Comment on (`m`) open the inspector, Approve
 and an act's or the film's approve of its current scenes is in its menu and
 ⌘K with no key. A tap on a thing's name or its comment dot opens it too. A
 key reads the thing the keyboard's focus is in (`withFocused`, after the
-URL's selection of its kind). A set's version says over
+URL's selection of its kind). On the choices and the project (`src/lab/review/options/keys.ts`)
+the selected point (a focused variant's, or `?point=`) auditions: ⌥→ and ⌥←
+hear its next or previous variant in place, as its 🔊 does, skipping one
+that cannot be heard, and move the focus to that row; Enter then picks it
+(only while the selected variant is the one heard, so a focused Pick on
+another row keeps its own Enter). The instants a point plays at are no
+longer chips at rest: each is a `Jump to 0:02.0 · hush · open` in its card's
+context menu (and in ⌘K once typed), and `.`/`,` jump to its next or
+previous one. A level's value is a field beside its slider (`Field`, typed
+arithmetic committed on Enter, its arrows the knob's step, Shift ten,
+Alt a tenth). On a version stack (`src/lab/review/hear.ts`) `1`…`9` hear
+version n, as its 🔊 does, while the view can play it. A set's version says over
 `POST /api/review/sets/<folder>/<point>/say` (UI-7), its answer shown in
 place.
 
