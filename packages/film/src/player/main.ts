@@ -27,7 +27,7 @@ import { Pointer } from '../browser/pointer.ts';
 import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
 import { encodeChunk, encoderChoice } from './encode.ts';
-import { composeLookbook } from './lookbook.ts';
+import { composeLookbook } from './lookbook-sheet.ts';
 import { narration, narrationNote } from './narration.ts';
 import { tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';

@@ -7,7 +7,8 @@ import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
 import { createFilm } from '../canvas/film.ts';
 import { standInDom } from '../canvas/fixtures/stand-in.ts';
-import { composeLookbook, fontFamilyOf, stillHref } from './lookbook.ts';
+import { composeLookbook, fontFamilyOf } from './lookbook-sheet.ts';
+import { stillHref } from './lookbook.ts';
 
 describe('fontFamilyOf', () => {
   test("what follows a CSS font's size", () => {

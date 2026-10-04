@@ -1586,7 +1586,7 @@ film: wipe (HEAD left of a draggable
 divider) or blink. The mode is one effect-machine (`lab/compare/machine.ts`): `Off | Wipe | Blink` on `Choose | Split | Flip`, a blink flipping itself every 450 ms by the machine's timeout. Only data can differ that way; when the file's code
 changed since HEAD the panel says so, and a HEAD the server cannot give shows the server's reason.
 
-**The look-book** (`player/lookbook.ts`) is one sheet of the whole film:
+**The look-book** (`player/lookbook-sheet.ts`, under its page `player/lookbook.ts`) is one sheet of the whole film:
 the palette (`createFilm({ palette })`) as swatches, then per scene a row of
 stills at every cue's start and end and its 60% point (`sceneMoments`, the
 moments `film check` samples, less the marks), each labelled with the cue
