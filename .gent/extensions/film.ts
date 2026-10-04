@@ -76,7 +76,10 @@ const FAR = 999_999_999;
 /** The most stills one look takes: each is an image the model reads, and a request keeps 20. */
 const LOOK_MAX_PLACES = 8;
 
-/** The longest side a still may ask: gent's image store refuses a side over 2,000 pixels. */
+/**
+ * The longest side a still may ask: gent scales a side over 2,000 pixels down
+ * before the model sees it, so a larger still costs render time and shows no more.
+ */
 const LOOK_MAX_SIZE = 2_000;
 
 /** The most findings a check result lists; the rest are counted. */
@@ -153,7 +156,7 @@ export class FilmFileFailed extends Schema.TaggedError<FilmFileFailed>()('FilmFi
   }
 }
 
-/** A still the lab wrote that gent's image store refuses (too large, unreadable). */
+/** A still the lab wrote that gent's image store refuses: bytes no decoder reads (a larger one is scaled, not refused). */
 export class FilmImageRefused extends Schema.TaggedError<FilmImageRefused>()('FilmImageRefused', {
   file: Schema.String,
   reason: Schema.String,
@@ -484,7 +487,7 @@ export const FilmLook = tool({
         Effect.mapError((error) =>
           FilmImageRefused.make({
             file: look.file,
-            reason: `${error.message} (ask a smaller size, or a smaller crop)`,
+            reason: `the lab wrote an unreadable still: ${error.message} (look again; if it repeats, the lab's easel is broken)`,
           }),
         ),
         Effect.map((image) => ({

@@ -5,6 +5,7 @@
 //
 // `bun run test:gent` runs this file under gent's test preload.
 
+import { deflateSync } from 'node:zlib';
 import { describe, expect, it } from 'effect-bun-test';
 import {
   Context,
@@ -45,6 +46,7 @@ import {
   ToolCallId,
 } from '@gent/core/protocol';
 import {
+  BunGentPlatformLive,
   ConfigService,
   createRpcHarness,
   freePort,
@@ -91,9 +93,16 @@ const be32 = (value: number) => [
   value & 0xff,
 ];
 
-/** A PNG whose header names `width` x `height`: what gent's image store reads. */
-const pngBytes = (width: number, height: number) =>
-  Uint8Array.from([
+/** A PNG of `width` x `height`, mid grey. */
+const pngBytes = (width: number, height: number) => {
+  // A real one, so gent's codec decodes and scales it: 8-bit grey, rows unfiltered.
+  const chunk = (type: string, data: Uint8Array) => {
+    const body = Uint8Array.from([...Array.from(type, (char) => char.charCodeAt(0)), ...data]);
+    return [...be32(data.length), ...body, ...be32(Bun.hash.crc32(body))];
+  };
+  const rows = new Uint8Array((width + 1) * height).fill(128);
+  for (let row = 0; row < height; row += 1) rows[row * (width + 1)] = 0;
+  return Uint8Array.from([
     0x89,
     0x50,
     0x4e,
@@ -102,17 +111,11 @@ const pngBytes = (width: number, height: number) =>
     0x0a,
     0x1a,
     0x0a,
-    ...be32(13),
-    ...Array.from('IHDR', (char) => char.charCodeAt(0)),
-    ...be32(width),
-    ...be32(height),
-    8,
-    6,
-    0,
-    0,
-    0,
-    ...Array.from({ length: 32 }, (_, index) => index),
+    ...chunk('IHDR', Uint8Array.from([...be32(width), ...be32(height), 8, 0, 0, 0, 0])),
+    ...chunk('IDAT', deflateSync(rows)),
+    ...chunk('IEND', new Uint8Array()),
   ]);
+};
 
 /**
  * A temp checkout: `apps/animations/cli.ts` runs this repo's film CLI over the
@@ -160,7 +163,8 @@ interface FakeLab {
 /**
  * A lab on a loopback port that answers `POST /api/films/<film>/looks` as the
  * real route does: `roof` with one 1x1 still per place, `huge` with a still
- * too large for gent's image store, `missing` UnknownScene (404), `broken`
+ * gent's image store scales down, `garbled` with bytes no decoder reads,
+ * `missing` UnknownScene (404), `broken`
  * PagesBroken (422), `invalid` LookInvalid (400).
  */
 const fakeLab = Effect.fn('test.fakeLab')(function* () {
@@ -169,6 +173,7 @@ const fakeLab = Effect.fn('test.fakeLab')(function* () {
   const stills = yield* makeTempDirectoryScoped('film-gent-stills-');
   yield* fs.writeFile(path.join(stills, 'small.png'), pngBytes(1, 1));
   yield* fs.writeFile(path.join(stills, 'huge.png'), pngBytes(3000, 10));
+  yield* fs.writeFileString(path.join(stills, 'garbled.png'), 'not a picture');
   const answer = (body: { readonly scene: string; readonly at: ReadonlyArray<string> }) => {
     const refuse = (
       status: number,
@@ -183,9 +188,9 @@ const fakeLab = Effect.fn('test.fakeLab')(function* () {
     const file = path.join(
       stills,
       Option.match(
-        Option.liftPredicate(body.scene, (scene) => scene === 'huge'),
+        Option.liftPredicate(body.scene, (scene) => scene === 'huge' || scene === 'garbled'),
         {
-          onSome: () => 'huge.png',
+          onSome: (scene) => `${scene}.png`,
           onNone: () => 'small.png',
         },
       ),
@@ -235,7 +240,14 @@ const live = <A, E>(
     E,
     FileSystem.FileSystem | Path.Path | ChildProcessSpawner | Scope.Scope
   >,
-) => effect.pipe(Effect.scoped, Effect.provide(BunServices.layer), Effect.timeout('25 seconds'));
+) =>
+  effect.pipe(
+    Effect.scoped,
+    // gent's platform, which a tool call has in production (`saveToolImage`
+    // decodes and scales on it) and `runToolWithCtx` does not provide.
+    Effect.provide(Layer.merge(BunServices.layer, BunGentPlatformLive)),
+    Effect.timeout('25 seconds'),
+  );
 
 /** The JSON text a result is sent to the model as: gent spills one over 8,000 characters. */
 const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Json));
@@ -772,9 +784,18 @@ describe('film.look', () => {
           text: expect.stringContaining('a crop wider than the canvas'),
         });
 
-        const huge = yield* refusal('huge');
-        expect(huge._tag).toBe('FilmImageRefused');
-        expect(huge.reason).toContain('smaller size');
+        // A still past gent's limits comes back scaled, its first size kept to map back by.
+        const huge = yield* runToolWithCtx(
+          FilmLook,
+          { film: 'easel', scene: 'huge', at: ['1'] },
+          ctx,
+        );
+        expect(huge.stills[0]?.image).toMatchObject({ width: 2000, originalWidth: 3000 });
+
+        // Only a still no decoder reads is refused.
+        const garbled = yield* refusal('garbled');
+        expect(garbled._tag).toBe('FilmImageRefused');
+        expect(garbled.reason).toContain('unreadable');
       }),
     ),
   );
