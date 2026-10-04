@@ -11,10 +11,11 @@
 // chord is bound to something itself. Where focus is decides which commands'
 // keys are live (`Focus`, `context.ts`): the page's on the page, only those
 // that also run in a field there (Escape), and in the studio its own keys
-// first, then the page's; the studio owns its keys, so one with nothing to
-// do in the studio's state is still not the page's. Of the commands a press
-// binds to, the last available one runs: a viewer's key, bound after the
-// defaults, wins over a default on the same key. Pure.
+// first, then the page's; on a control (a button, a link), the page's; the
+// studio owns its keys, so one with nothing to do in the studio's state is
+// still not the page's. Of the commands a press binds to, the last
+// available one runs: a viewer's key, bound after the defaults, wins over a
+// default on the same key. Pure.
 
 import { Data, Option, Schema } from 'effect';
 import type { KeyPress } from '../browser/keys.ts';
@@ -191,6 +192,8 @@ const SCOPES: Readonly<Record<Focus, ReadonlyArray<Focus>>> = {
   page: ['page'],
   field: ['field'],
   studio: ['studio', 'page'],
+  // A control hears the page's keys; only a command's `when` tells it from the page (Tab).
+  control: ['page'],
 };
 
 /** The scopes that own their keys: a key bound there is not the next scope's. */

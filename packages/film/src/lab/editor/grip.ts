@@ -5,22 +5,32 @@
 // body; alt grabs its end. A cue that runs `until` a mark keeps ending on it
 // (`dragPatch`). Edges snap to word starts and ends, marks and other cues'
 // edges within SNAP_PX, else move by whole frames; shift places them freely.
+// The inspector's fields of a cue or a knob (`fieldsOf`) write through the
+// same writes as a drag, and refuse as a drag of that part would.
 
 import { Array as Arr, Match, Option, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../../canvas/film.ts';
 import { applyAffine } from '../../core/affine.ts';
 import type { Placed } from '../../core/layout.ts';
+import { moved } from '../../command/command.ts';
+import type { LabSelection } from '../../command/selection.ts';
+import { type Inspected, fieldOf } from '../../core/field.ts';
 import {
+  CueDur,
+  CueOffset,
   CuePatch,
   Knob,
+  KnobNumber,
   Knobs,
   type LabWrite,
+  Pixel,
   Point,
   ResolvedCue,
   type SceneSource,
   Span,
   Timeline,
 } from '../../core/schema.ts';
+import { toMs } from '../../core/time.ts';
 import { type DragEdge, dragPatch, patchSpan } from '../../core/timeline.ts';
 import { StepVerb } from '../api.ts';
 
@@ -336,4 +346,129 @@ export const wroteNote = (write: Write, result: LabWrite): string =>
       });
       return `wrote ${result.file}: ${result.target}${unresolved}`;
     }),
+  );
+
+/**
+ * What the inspector's fields of a cue or knob read: its scene as the lab
+ * holds it (shown edits included), what the lab knows of the scene's source
+ * (or why it could not read it), the film's rate, and the editor's commit,
+ * which writes a write and shows its edit until the reload.
+ */
+interface FieldsIn {
+  readonly timeline: Timeline;
+  readonly cues: ReadonlyMap<string, ResolvedCue>;
+  readonly knobs: Knobs;
+  readonly source: Option.Option<SceneSource>;
+  readonly error: string;
+  readonly fps: number;
+  readonly commit: (write: Write, edit: SceneEdit) => void;
+}
+
+/** Seconds or a number as a receipt prints it: to the thousandth. */
+const printed = (v: number): string => String(toMs(v));
+
+/**
+ * Cue `name`'s fields: its offset and, unless it ends on a mark, its dur
+ * (seconds, stepped by frames). Each refuses as a drag of that part would.
+ */
+const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Inspected> =>
+  Option.match(
+    Option.all({
+      span: Option.fromUndefinedOr(at.timeline[name]),
+      cue: Option.fromUndefinedOr(at.cues.get(name)),
+    }),
+    {
+      onNone: () => [],
+      onSome: ({ span, cue }) => {
+        const write = (patch: CueWrite['patch'], edited: Span) =>
+          at.commit(CueWrite.make({ scene, cue: name, patch }), {
+            timeline: { ...at.timeline, [name]: edited },
+          });
+        const moves = (field: string, before: number) => (next: number) =>
+          moved(`cue ${name} ${field}`, printed(before), printed(next), 's');
+        const offset = Option.getOrElse(Option.fromUndefinedOr(span.offset), () => 0);
+        const offsetField: Inspected = {
+          id: 'offset',
+          label: 'offset',
+          spec: fieldOf(CueOffset, at.fps),
+          value: offset,
+          refusal: cueRefusal(at.source, at.error, name, 'move'),
+          write: (v) => write({ offset: toMs(v) }, { ...span, offset: v }),
+          moved: moves('offset', offset),
+        };
+        const durField: Inspected = {
+          id: 'dur',
+          label: 'dur',
+          spec: fieldOf(CueDur, at.fps),
+          value: cue.dur,
+          refusal: cueRefusal(at.source, at.error, name, 'end'),
+          write: (v) =>
+            write({ dur: toMs(Math.max(0, v)) }, patchSpan(span, { dur: Math.max(0, v) })),
+          moved: moves('dur', cue.dur),
+        };
+        // A cue that runs `until` a mark has no dur of its own to write.
+        return [
+          offsetField,
+          ...Option.match(Option.fromUndefinedOr(span.until), {
+            onNone: () => [durField],
+            onSome: () => [],
+          }),
+        ];
+      },
+    },
+  );
+
+/** A knob's value as a receipt prints it: a number, or a point as `[x, y]`. */
+const knobText = (value: Knob): string =>
+  Option.match(Option.liftPredicate(value, Schema.is(Point)), {
+    onNone: () => printed(Number(value)),
+    onSome: ([x, y]) => `[${printed(x)}, ${printed(y)}]`,
+  });
+
+/** Knob `name`'s fields: its number, or its point's x and y (canvas pixels). */
+const knobFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Inspected> => {
+  const refusal = knobRefusal(at.source, at.error, name);
+  const write = (value: Knob) =>
+    at.commit(KnobWrite.make({ scene, knob: name, value }), {
+      knobs: { ...at.knobs, [name]: value },
+    });
+  const moves = (before: Knob, after: Knob) =>
+    moved(`knob ${name}`, knobText(before), knobText(after));
+  return Option.match(Option.fromUndefinedOr(at.knobs[name]), {
+    onNone: () => [],
+    onSome: (value): ReadonlyArray<Inspected> =>
+      Option.match(Option.liftPredicate(value, Schema.is(Point)), {
+        onNone: () => [
+          {
+            id: 'value',
+            label: name,
+            spec: fieldOf(KnobNumber, at.fps),
+            value: Number(value),
+            refusal,
+            write: (v) => write(toMs(v)),
+            moved: (v) => moves(value, toMs(v)),
+          },
+        ],
+        onSome: ([x, y]) => {
+          const axis = (id: 'x' | 'y', now: number, to: (v: number) => Point): Inspected => ({
+            id,
+            label: `${name} ${id}`,
+            spec: fieldOf(Pixel, at.fps),
+            value: now,
+            refusal,
+            write: (v) => write(to(v)),
+            moved: (v) => moves(value, to(v)),
+          });
+          return [axis('x', x, (v) => [toMs(v), y]), axis('y', y, (v) => [x, toMs(v)])];
+        },
+      }),
+  });
+};
+
+/** The inspector's fields of a cue or a knob, read from `at`. */
+export const fieldsOf = (selection: LabSelection, at: FieldsIn): ReadonlyArray<Inspected> =>
+  Match.value(selection).pipe(
+    Match.tag('Cue', (s) => cueFields(s.scene, s.name, at)),
+    Match.tag('Knob', (s) => knobFields(s.scene, s.name, at)),
+    Match.exhaustive,
   );

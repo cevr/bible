@@ -11,7 +11,14 @@ import {
   runIfAvailable,
   said,
 } from './command.ts';
-import { type Context, contextAt, selected, selectedAll, withSelection } from './context.ts';
+import {
+  type Context,
+  contextAt,
+  focusOf,
+  selected,
+  selectedAll,
+  withSelection,
+} from './context.ts';
 import { cueOf, Selection } from './selection.ts';
 
 const command = (id: string, over: Partial<Command> = {}): Command => ({
@@ -139,5 +146,23 @@ describe('the context', () => {
     expect(Option.map(selected(many, 'Point'), (p) => p.point)).toEqual(Option.some('cold'));
     expect(Option.isNone(selected(many, 'Cue'))).toBe(true);
     expect(selectedAll(many, 'Point').map((p) => p.point)).toEqual(['cold', 'word']);
+  });
+
+  test('reads where a press puts the keyboard: a field, the studio, a control, the page', () => {
+    // An element as a key press's target is: its tag, and the ancestors `closest` finds.
+    const el = (tagName: string, within: ReadonlyArray<string> = []) =>
+      Option.some(
+        Object.assign(new EventTarget(), {
+          tagName,
+          closest: (selector: string) => within.find((w) => selector.includes(w)),
+        }),
+      );
+    expect(focusOf(el('INPUT'))).toBe('field');
+    expect(focusOf(el('DIV', ['[role="dialog"]']))).toBe('field');
+    expect(focusOf(el('BUTTON', ['.lab-studio']))).toBe('studio');
+    expect(focusOf(el('BUTTON'))).toBe('control');
+    expect(focusOf(el('A'))).toBe('control');
+    expect(focusOf(el('BODY'))).toBe('page');
+    expect(focusOf(Option.none())).toBe('page');
   });
 });

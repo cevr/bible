@@ -92,7 +92,16 @@ describe("a cue's context menu", () => {
       yield* page.waitFor(RISE);
       yield* rightClick(page, RISE);
       yield* page.waitFor('[data-role="context-menu"] [data-command="edit.select"]');
-      yield* evaluates(page, menuItems, ['edit.select', 'link.copy', 'app.command-menu']);
+      yield* evaluates(page, menuItems, [
+        'edit.select',
+        'edit.nudge-right',
+        'edit.nudge-left',
+        'edit.nudge-up',
+        'edit.nudge-down',
+        'edit.cue-next',
+        'link.copy',
+        'app.command-menu',
+      ]);
       yield* textHas(page, '[data-command="edit.select"]', 'Select cue rise in one');
       yield* page.click('[data-role="context-menu"] [data-command="edit.select"]');
       yield* evaluates(page, 'location.search', '?cue=rise');

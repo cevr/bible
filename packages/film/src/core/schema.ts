@@ -6,6 +6,7 @@
 
 import { Array as Arr, Option, Schema, SchemaTransformation } from 'effect';
 import { ActName, Address, PartId } from './address-schema.ts';
+import { inspected } from './field.ts';
 import type { ease } from './time.ts';
 
 /**
@@ -408,12 +409,22 @@ export type Span = typeof Span.Type;
 export const Timeline = Schema.Record(Schema.String, Span);
 export type Timeline = typeof Timeline.Type;
 
+/** One coordinate of a point, in canvas pixels: a pixel a step, ten with Shift, a hundredth with Alt. */
+export const Pixel = Schema.Finite.annotate(
+  inspected({ unit: 'px', step: 1, coarse: 10, fine: 0.01 }),
+);
+
 /** A point in canvas pixels. */
-export const Point = Schema.Tuple([Schema.Finite, Schema.Finite]);
+export const Point = Schema.Tuple([Pixel, Pixel]);
 export type Point = typeof Point.Type;
 
+/** A knob's number (a zoom, a turn, a share): a hundredth a step, a tenth with Shift, a thousandth with Alt. */
+export const KnobNumber = Schema.Finite.annotate(
+  inspected({ step: 0.01, coarse: 0.1, fine: 0.001 }),
+);
+
 /** A value a drawing reads by name (`f.knob`) instead of hard-coding: a number or a point. */
-export const Knob = Schema.Union([Schema.Finite, Point]);
+export const Knob = Schema.Union([KnobNumber, Point]);
 export type Knob = typeof Knob.Type;
 
 /** A drawing's knobs: name → value, the one place the value lives. */
@@ -869,10 +880,20 @@ export const ReplyPost = Schema.Struct({ text: Schema.String.check(Schema.isNonE
 // ---------------------------------------------------------------------------
 // Lab write-back: the lab edits a scene's cues and knobs in its source file.
 
+/** A cue's offset from its anchor, in seconds: a frame a step, ten with Shift, a millisecond with Alt. */
+export const CueOffset = Schema.Finite.annotate(
+  inspected({ unit: 's', step: { frames: 1 }, coarse: { frames: 10 }, fine: 0.001 }),
+);
+
+/** A cue's length, in seconds, never below 0: stepped as its offset is. */
+export const CueDur = Seconds.annotate(
+  inspected({ unit: 's', step: { frames: 1 }, coarse: { frames: 10 }, fine: 0.001, min: 0 }),
+);
+
 /** `POST /lab/:film/cues/:scene/:cue`: the fields to set; a field the span lacks is added. */
 export const CuePatch = Schema.Struct({
-  offset: Schema.optionalKey(Schema.Finite),
-  dur: Schema.optionalKey(Seconds),
+  offset: Schema.optionalKey(CueOffset),
+  dur: Schema.optionalKey(CueDur),
   /** End on this mark instead: it replaces the span's `dur`, as a `dur` replaces its `until`. */
   until: Schema.optionalKey(Schema.String),
   ease: Schema.optionalKey(EaseName),

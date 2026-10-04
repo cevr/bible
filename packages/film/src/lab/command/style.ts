@@ -1,12 +1,13 @@
 // The look of the pages' command surfaces (⌘K, the `?` sheet, the context
-// menu, and every primitive after them): one token set (`COMMAND_TOKENS`, CSS custom
-// properties with today's values, read from the page's own palette where it
-// has one: the lab's `player.css`, the review's `REVIEW_CSS`), and the rules,
-// which read only those properties: no colour, face, size, radius or
-// spacing is written in a rule or a component. Restyling the surfaces is
-// changing the tokens. Put in the page by its root (`mountLab`,
-// `mountReview`). Each surface fits a phone: no wider than the screen less
-// its gutters, scrolling inside itself.
+// menu, the inspector's fields and hint, and every primitive after them):
+// one token set (`COMMAND_TOKENS`, CSS custom properties with today's
+// values, read from the page's own palette where it has one: the lab's
+// `player.css`, the review's `REVIEW_CSS`), and the rules, which read only
+// those properties: no colour, face, size, radius or spacing is written in a
+// rule or a component. Restyling the surfaces is changing the tokens. Put in
+// the page by its root (`mountLab`, `mountReview`). Each surface fits a
+// phone: no wider than the screen less its gutters, scrolling inside itself.
+// An inspector field keeps the look of the lab's number fields (`.lab-num`).
 
 /** The command surfaces' tokens: the one place their look is set. */
 const COMMAND_TOKENS = `
@@ -109,6 +110,20 @@ const COMMAND_RULES = `
   border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-key);
 }
 .lab-context-menu kbd:empty { display: none; }
+.lab-field { display: contents; }
+.lab-field-scrub { cursor: ew-resize; }
+.lab-inspector-hint {
+  display: none; flex-wrap: wrap; gap: var(--cmd-gap-small) var(--cmd-gap); margin-top: var(--cmd-gap-small);
+  color: var(--cmd-dim); font-family: var(--cmd-font); font-size: var(--cmd-small); line-height: var(--cmd-leading);
+}
+.lab-inspector:hover .lab-inspector-hint, .lab-inspector:focus-within .lab-inspector-hint { display: flex; }
+@media (pointer: coarse) {
+  .lab-inspector:hover .lab-inspector-hint, .lab-inspector:focus-within .lab-inspector-hint { display: none; }
+}
+.lab-inspector-hint kbd {
+  font-family: var(--cmd-mono); font-size: var(--cmd-small); color: var(--cmd-ink); padding: var(--cmd-key-pad);
+  border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-key);
+}
 `;
 
 /** The command surfaces' stylesheet: the tokens, then the rules that read them. */

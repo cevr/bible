@@ -123,6 +123,14 @@ describe('the keymap', () => {
     expect(does(press(' '), [play, stop, scene])).toBe('play.toggle normal');
   });
 
+  test("a control hears the page's keys; a command's `when` can keep Tab moving focus there", () => {
+    const control = { ...page, focus: 'control' as const };
+    const walk = command('edit.cue-next', { keys: ['tab'], when: (ctx) => ctx.focus === 'page' });
+    expect(does(press('ArrowRight'), [frame], control)).toBe('play.frame-next normal');
+    expect(does(press('Tab'), [walk])).toBe('edit.cue-next normal');
+    expect(does(press('Tab'), [walk], control)).toBe('pass');
+  });
+
   test("the viewer's overrides add keys and take defaults away; Reset puts them back", () => {
     const commands = [undo, frame];
     const moved = rebind([], undo, 'mod+u');

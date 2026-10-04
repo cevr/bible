@@ -1,6 +1,8 @@
 // The editor's section of the panel: Undo and Redo, the selected cue's
-// fields and eases, the film's check findings, and the status line. Every
-// write goes to the editor's machine as a commit, shown first in memory.
+// fields (the inspector's, `lab/command/inspector.tsx`, stepped as the cue's
+// schema says) and eases, the selection's hint, the film's check findings,
+// and the status line. Every write goes to the editor's machine as a commit,
+// shown first in memory.
 
 import { For, Show } from '@solidjs/web';
 import { Array as Arr, Option, Result } from 'effect';
@@ -9,9 +11,10 @@ import { createMemo } from 'solid-js';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
-import { DEFAULT_EASE, toMs } from '../../core/time.ts';
-import { patchSpan, untilText } from '../../core/timeline.ts';
-import type { LabSelection } from '../../command/selection.ts';
+import { DEFAULT_EASE } from '../../core/time.ts';
+import { untilText } from '../../core/timeline.ts';
+import { type LabSelection, cueOf } from '../../command/selection.ts';
+import { Field, Hint } from '../command/inspector.tsx';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY } from './format.ts';
@@ -24,29 +27,6 @@ const Curve = (props: { readonly name: EaseName }) => (
     <line x1="2" y1={easeY(1)} x2={EASE_BOX.w - 2} y2={easeY(1)} class="lab-ease-axis" />
     <polyline points={easePoints(props.name)} class="lab-ease-curve" />
   </svg>
-);
-
-interface NumberFieldProps {
-  readonly field: string;
-  readonly value: number;
-  readonly writable: boolean;
-  readonly commit: (v: number) => void;
-}
-
-/** A number the inspector writes on change: seconds, to the thousandth. */
-export const NumberField = (props: NumberFieldProps) => (
-  <input
-    class="lab-num"
-    type="number"
-    step="0.01"
-    data-field={props.field}
-    value={String(toMs(props.value))}
-    disabled={!props.writable}
-    onChange={(e) => {
-      const v = Number.parseFloat(e.currentTarget.value);
-      if (Number.isFinite(v)) props.commit(v);
-    }}
-  />
 );
 
 const Key = (props: ParentProps) => <span class="lab-edit-key">{props.children}</span>;
@@ -64,7 +44,9 @@ const CueFields = (props: CueFieldsProps) => {
   const { meta } = useLab();
   const { state, actions } = useEditor();
   const scene = () => props.placed.spec.id;
-  const writable = (field: 'offset' | 'dur' | 'ease') =>
+  const fields = createMemo(() => state.fieldsOf(cueOf(scene(), props.name)));
+  const field = (id: string) => fields().find((f) => f.id === id);
+  const writable = (field: 'ease') =>
     Option.exists(state.inspectedSource().source, (s) =>
       Option.exists(
         Arr.findFirst(s.cues, (c) => c.name === props.name),
@@ -86,30 +68,11 @@ const CueFields = (props: CueFieldsProps) => {
       <div class="lab-edit-grid">
         <Key>anchor</Key>
         <Val>{anchorText(props.span)}</Val>
-        <Key>offset</Key>
-        <NumberField
-          field="offset"
-          value={props.span.offset ?? 0}
-          writable={writable('offset')}
-          commit={(v) => write({ offset: toMs(v) }, { ...props.span, offset: v })}
-        />
+        <Show when={field('offset')}>{(f) => <Field field={f()} label={<Key>offset</Key>} />}</Show>
         <Show
           when={props.span.until}
           fallback={
-            <>
-              <Key>dur</Key>
-              <NumberField
-                field="dur"
-                value={props.cue.dur}
-                writable={writable('dur')}
-                commit={(v) =>
-                  write(
-                    { dur: toMs(Math.max(0, v)) },
-                    patchSpan(props.span, { dur: Math.max(0, v) }),
-                  )
-                }
-              />
-            </>
+            <Show when={field('dur')}>{(f) => <Field field={f()} label={<Key>dur</Key>} />}</Show>
           }
         >
           {(until) => (
@@ -229,9 +192,24 @@ const Status = () => {
   return <div class="lab-edit-status">{state.status()}</div>;
 };
 
-/** The editor's section: its header, the inspector, and `children` (the knobs, until they move). */
+/** What a pointer does to a cue or a knob, for the inspector's hint (its keys come from the keymap). */
+const GESTURES: Readonly<Record<LabSelection['_tag'], ReadonlyArray<string>>> = {
+  Cue: [
+    'drag its bar to move it, an edge to trim it (⇧ free of the frames)',
+    'drag a label to scrub (⇧ coarse, ⌥ fine); type +0.1 or *2, then Enter',
+  ],
+  Knob: [
+    'drag its handle on the frame',
+    "drag a number knob's name to scrub (⇧ coarse, ⌥ fine); type +10 or *2, then Enter",
+  ],
+};
+
+/**
+ * The editor's section: its header, the inspector, `children` (the knobs,
+ * until they move), and the hint for the selection.
+ */
 export const Section = (props: ParentProps) => {
-  const { state: lab } = useLab();
+  const { state: lab, meta } = useLab();
   const { state } = useEditor();
   const file = () =>
     Option.match(state.inspectedSource().source, { onNone: () => '', onSome: (s) => s.file });
@@ -243,11 +221,14 @@ export const Section = (props: ParentProps) => {
         <span class="lab-edit-file">{file()}</span>
         <History />
       </header>
-      <div class="lab-edit-body">
+      <div class="lab-edit-body lab-inspector">
         <Show when={Option.getOrUndefined(cueSelected())} keyed>
           {(s: LabSelection) => <CueInspector selection={s} />}
         </Show>
         {props.children}
+        <Show when={Option.getOrUndefined(lab.selection())} keyed>
+          {(s: LabSelection) => <Hint hub={meta.hub} selection={s} gestures={GESTURES[s._tag]} />}
+        </Show>
       </div>
       <Findings />
       <Status />

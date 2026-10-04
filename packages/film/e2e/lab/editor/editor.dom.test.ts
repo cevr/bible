@@ -16,6 +16,7 @@ import {
   labAt,
   openLab,
   refused,
+  URL_T,
   route,
   sourceOne,
 } from '../../../src/lab/fixtures/harness.ts';
@@ -25,6 +26,7 @@ import {
   evaluates,
   textHas,
   textIs,
+  valueIs,
 } from '../../../src/lab/fixtures/settled.ts';
 
 const posted = (asked: ReadonlyArray<Asked>) =>
@@ -291,6 +293,82 @@ describe('the inspector', () => {
         { path: '/scenes/one/cues/rise', body: Option.some({ offset: 0.3 }) },
         { path: '/scenes/one/cues/rise', body: Option.some({ ease: 'linear' }) },
       ]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('⌥→ nudges the selected cue a frame later, and ⇧⌥→ ten frames', () =>
+    Effect.gen(function* () {
+      const { page, asked, errors } = yield* openLab([], {
+        href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }),
+      });
+      const offset = '.lab-edit-cue input[data-field="offset"]';
+      yield* page.waitFor(`${offset}:not([disabled])`);
+      yield* page.press('Alt+ArrowRight');
+      yield* postedReach(asked, 1);
+      // The field shows the nudged offset before the write is answered.
+      yield* valueIs(page, offset, '0.033');
+      yield* page.press('Shift+Alt+ArrowRight');
+      yield* postedReach(asked, 2);
+      expect(posted(asked)).toEqual([
+        { path: '/scenes/one/cues/rise', body: Option.some({ offset: 0.033 }) },
+        { path: '/scenes/one/cues/rise', body: Option.some({ offset: 0.366 }) },
+      ]);
+      expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a typed expression in a field commits on Enter', () =>
+    Effect.gen(function* () {
+      const { page, asked } = yield* openLab([], {
+        href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }),
+      });
+      const dur = '.lab-edit-cue input[data-field="dur"]';
+      yield* page.waitFor(`${dur}:not([disabled])`);
+      yield* valueIs(page, dur, '0.6');
+      yield* page.fill(dur, '*2');
+      yield* page.pressIn(dur, 'Enter');
+      yield* postedReach(asked, 1);
+      expect(posted(asked)).toEqual([
+        { path: '/scenes/one/cues/rise', body: Option.some({ dur: 1.2 }) },
+      ]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live("the hint names the selection's keys, only while the pointer is on the inspector", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], {
+        href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }),
+      });
+      const hint = '[data-role="inspector-hint"]';
+      yield* page.waitFor('.lab-edit-cue input[data-field="offset"]:not([disabled])');
+      yield* textHas(page, hint, 'Alt+→ Nudge cue rise in one later');
+      yield* textHas(page, hint, 'Tab Select cue fall in one');
+      const shown = `getComputedStyle(document.querySelector('${hint}')).display`;
+      yield* evaluates(page, shown, 'none');
+      const box = yield* page.box('.lab-edit-cue');
+      yield* page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      yield* evaluates(page, shown, 'flex');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('Tab and ⇧Tab walk the selection through the scene; . and , go by its cue edges', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], {
+        href: labAt(0, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }),
+      });
+      yield* editable(page);
+      yield* page.press('Tab');
+      yield* evaluates(page, 'location.search', '?cue=fall');
+      yield* page.press('Shift+Tab');
+      yield* evaluates(page, 'location.search', '?cue=rise');
+      // The first edge on from the scene's start is rise's start (its bar's title says it).
+      const riseStart = `Number(document.querySelector('.lab-cue[data-cue="rise"]').title.split(' · ')[1].split('–')[0])`;
+      yield* page.press('.');
+      yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.01`);
+      yield* page.press('.');
+      yield* page.until(`${URL_T} > ${riseStart} + 0.1`);
+      yield* page.press(',');
+      yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.01`);
     }).pipe(Effect.scoped),
   );
 

@@ -830,7 +830,8 @@ Every action a page offers past its at-rest buttons is a **command**
 `group`, a typed `when` over the **context** and a `run` that answers an
 `Effect<Receipt>`. A command that is not available is not shown: no dimmed
 rows. Each command names its keys (`keys`, `keysIn` the focus scopes it
-answers in: `page`, `field`, `studio`), whether a key is `stepped` (Shift
+answers in: `page`, `field`, `studio`; a focused button or link, `control`,
+hears the page's), whether a key is `stepped` (Shift
 coarse, Alt fine), and its `touch` path, so every key has a way in on a
 phone. The context (`src/command/context.ts`) is the page, its URL's
 selection (`selectionOf`: one `Selection` union over the places' query keys,
@@ -874,6 +875,28 @@ today's values read from each page's palette); the rules read only those.
 The player's keys legend under the film is generated from the same keymap;
 the player's page has the keys alone (it never imports the lab).
 
+The **inspector**'s number fields (`Field` in `src/lab/command/inspector.tsx`,
+on @bible/ui's NumberField) read how they step from their schema: a number
+schema carries a `field` annotation (`core/field.ts`: `unit`, `step`,
+`coarse`, `fine`, `min`, `max`, `readOnly`, `why`; a step in the unit or in
+`{ frames }` of the film), so a cue's `offset` and `dur` (`CueOffset`,
+`CueDur`) step a frame, ten with Shift and a millisecond with Alt, a point
+knob's x and y (`Pixel`) a pixel, ten and a hundredth, and a number knob
+(`KnobNumber`) a hundredth, a tenth and a thousandth; a bare number steps as
+every field did before (0.01), and no field's fine step is coarser. A
+field's arrows step it, a drag across its label scrubs it, and typed
+arithmetic (`+0.1`, `*2`, `0.42*2`) is read on Enter or on leaving it. The
+editor's fields of a cue or knob (`fieldsOf`, `lab/editor/grip.ts`) write
+through the same writes as a drag and refuse as a drag would. The nudges
+step the selected cue or knob through those fields (⌥←/⌥→ a cue's offset, a
+point's x or a number; ⌥↑/⌥↓ a cue's dur, a point's y or a number; Shift
+ten), and answer what moved, before → after; `.` and `,` go to the next or
+previous cue edge on the strip, Tab and ⇧Tab select the next or previous cue
+(a focused button or link keeps Tab for focus). The inspector's footer
+(`Hint`) names the keys of the commands about the selection and its
+gestures, only while the pointer or focus is in the inspector, never on a
+touch screen (`pointer: coarse`), where the long-press menu is the hint.
+
 `.oxlintrc.json` refuses a raw `keydown`, `keyup`, `keypress` or
 `contextmenu` listener (`film/keys-through-keymap`) outside the adapters and
 `src/lab/command/`: a key is a binding in the hub.
@@ -885,13 +908,14 @@ the player's page has the keys alone (it never imports the lab).
 - **HUD**: the readout laid over or beside the picture: the player's bar
   (scene, time, the keys legend).
 - **Inspector**: the panel that shows and edits the selected thing's fields
-  (the editor's section for a cue).
+  (the editor's section for a cue or a knob), each stepped as its schema says.
 - **Command menu**: the searchable list of every available command (⌘K).
 - **Context menu**: the commands for what is under the pointer, opened by a
   right-click or a touch long-press.
 - **Sheet**: a panel over the page that holds a surface (the keys sheet),
   not one fixed in the layout.
-- **Nudge**: moving a value by its step with a key (a frame; ten with Shift).
+- **Nudge**: moving a value by its step with a key (⌥← ⌥→: a frame; ten with
+  Shift).
 - **In/out points**: the start and end of a range (Motion's A and B).
 - **Receipt**: what a command answers when it runs: what moved, before →
   after, and Undo where it can be undone.
@@ -1284,9 +1308,9 @@ not resolve is not shown, and the status says why. Compare with HEAD resolves
 HEAD's literals over today's the same way: when they name what today's
 narration lacks, it draws no layer and its line says why. The release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
-inputs (for an `until` cue, `until {mark}`, `until speechEnd` or `until the end of cue "roll"` and its resolved end instead of
+fields (the inspector's, stepped by frames; for an `until` cue, `until {mark}`, `until speechEnd` or `until the end of cue "roll"` and its resolved end instead of
 `dur`), and an ease picker drawing each curve (the ease is only ever data:
-`f.at` takes none, so the picker always changes the frame). Knobs take number inputs; a point knob also gets a handle on the frame.
+`f.at` takes none, so the picker always changes the frame). Knobs take the inspector's fields (a number's name scrubs it, a point's x and y step by pixels); a point knob also gets a handle on the frame.
 `RenderOptions.knobs` records each read with the canvas transform at the
 read (`KnobRead.transform`, like the probe reads it), so the handle sits at
 `transform · value` and a drag maps the pointer back through the inverse

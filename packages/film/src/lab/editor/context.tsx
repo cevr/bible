@@ -25,13 +25,15 @@ import { sceneOf } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import type { DragEdge } from '../../core/timeline.ts';
 import { LabApi, type StepVerb, reasonOf } from '../api.ts';
-import { cueOf, knobOf } from '../../command/selection.ts';
+import { type LabSelection, cueOf, knobOf } from '../../command/selection.ts';
+import type { Inspected } from '../../core/field.ts';
 import { useLab } from '../shell.tsx';
 import {
   CueGrip,
   KnobGrip,
   type Write,
   cueRefusal,
+  fieldsOf,
   filmPoint,
   knobRefusal,
   snapTargets,
@@ -61,6 +63,8 @@ interface EditorState {
   readonly inspectedSource: Accessor<Known>;
   /** The film's check as the page loaded: findings, the latest change, what Undo and Redo would do. */
   readonly report: Accessor<Option.Option<CheckReport>>;
+  /** The inspector's fields of a cue or knob, as the lab holds it now (`grip.ts`). */
+  readonly fieldsOf: (selection: LabSelection) => ReadonlyArray<Inspected>;
 }
 
 /** Where on a cue's bar a press landed, and the strip's scale. */
@@ -255,8 +259,63 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   // Each step is its own request, with an id no other has: with no answer, the lab says by it whether it landed.
   const step = (verb: StepVerb) =>
     send(EditEvent.Step({ verb, request: Effect.runSync(stepRequest) }));
+  const commit = (write: Write, shown: SceneEdit) => send(EditEvent.Commit({ write, edit: shown }));
+
+  /** What the lab knows of `scene`'s source: the inspected scene's, else the strip's. */
+  const sourceOf = (scene: string): Known =>
+    Option.getOrElse(
+      Option.fromUndefinedOr(
+        [inspectedSource(), stripSource()][[inspected(), stripScene()].indexOf(scene)],
+      ),
+      (): Known => ({
+        source: Option.none(),
+        error: `${scene} is neither inspected nor on the strip`,
+      }),
+    );
+
+  /** The inspector's fields of `s`, read again with each reload. */
+  const fieldsAt = (s: LabSelection): ReadonlyArray<Inspected> => {
+    lab.revision();
+    const known = sourceOf(s.scene);
+    return fieldsOf(s, {
+      timeline: stage.timelineOf(s.scene),
+      cues: stage.cuesOf(s.scene),
+      knobs: stage.knobsOf(s.scene),
+      source: known.source,
+      error: known.error,
+      fps: film.fps,
+      commit,
+    });
+  };
+
+  /** The strip scene's cues, by when they start (then by name). */
+  const stripCues = () => {
+    lab.revision();
+    const scene = stripScene();
+    const names = [...stage.cuesOf(scene)]
+      .toSorted(([a, ca], [b, cb]) => ca.start - cb.start || a.localeCompare(b))
+      .map(([name]) => name);
+    return { scene, names };
+  };
+
+  /** The film times at which the strip scene's cues start or end, in order, each once. */
+  const edges = (): ReadonlyArray<number> => {
+    lab.revision();
+    const scene = stripScene();
+    const start = Option.match(Result.getSuccess(sceneOf(film.placed, scene)), {
+      onNone: () => 0,
+      onSome: (p) => p.start,
+    });
+    const times = [...stage.cuesOf(scene).values()].flatMap((c) => [
+      start + c.start,
+      start + c.end,
+    ]);
+    return [...new Set(times)].toSorted((a, b) => a - b);
+  };
+
   // The editor's verbs on the page's hub: Undo (⌘Z) and Redo (⇧⌘Z) while the
-  // server's stack has a step, and Escape letting a held grip go, from a field too.
+  // server's stack has a step, Escape letting a held grip go (from a field
+  // too), Select, the nudges and the walk through the strip's cues.
   onCleanup(
     meta.hub.commands.register(
       ...editorCommands({
@@ -266,6 +325,11 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
         cancel: () => send(EditEvent.Cancel),
         selected: lab.selection,
         select: (s) => labActions.select(Option.some(s)),
+        fieldsOf: fieldsAt,
+        stripCues,
+        edges,
+        T: lab.T,
+        seek: (T) => meta.player.seek(T),
       }),
     ),
   );
@@ -279,11 +343,12 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       stripSource,
       inspectedSource,
       report,
+      fieldsOf: fieldsAt,
     },
     actions: {
       press,
       grabKnob,
-      commit: (write, shown) => send(EditEvent.Commit({ write, edit: shown })),
+      commit,
       step,
       refuse: (message) => send(EditEvent.Refuse({ message })),
     },

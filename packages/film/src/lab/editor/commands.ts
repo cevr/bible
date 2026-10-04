@@ -1,14 +1,23 @@
 // The editor's verbs as the page's commands (`command/command.ts`): Undo and
 // Redo of the lab's writes, available while the server's stack has a step
-// that way (and labelled with what they would undo or redo), and Escape
-// letting a held grip go, from a field as well; and Select, from a cue's or a
-// knob's context menu. Each answers quietly: the write reloads the page, and
-// the status line says what it did; a selection shows in the URL and the strip.
+// that way (and labelled with what they would undo or redo); Escape letting
+// a held grip go, from a field as well; Select, from a cue's or a knob's
+// context menu; the nudges, which step the selected cue or knob through its
+// inspector's fields (`core/field.ts`): ⌥← and ⌥→ move a cue a frame earlier
+// or later (its offset), ⌥↑ and ⌥↓ lengthen or shorten it (its dur), and move
+// a point knob by a pixel or a number knob by its step, each ten times with
+// Shift; and the walk through a scene: `.` and `,` go to the next or previous
+// cue edge of the strip's scene, Tab and ⇧Tab select the next or previous
+// cue while a cue is selected and focus is on the page (on a button, Tab
+// still moves focus). Undo, Redo, Escape and Select answer quietly: the write
+// reloads the page and the status line says what it did, a selection shows
+// in the URL and the strip; a nudge says what it moved, before → after.
 
-import { Effect, Option } from 'effect';
-import { type Command, quiet } from '../../command/command.ts';
+import { Effect, Match, Option } from 'effect';
+import { type Command, type Invocation, quiet, said } from '../../command/command.ts';
 import { type Context, selected } from '../../command/context.ts';
-import { type LabSelection, sameSelection, selectionText } from '../../command/selection.ts';
+import { type LabSelection, cueOf, sameSelection, selectionText } from '../../command/selection.ts';
+import { type Inspected, nudged, refusalOf } from '../../core/field.ts';
 import type { StepVerb } from '../api.ts';
 
 /** What the editor's commands drive. */
@@ -23,12 +32,25 @@ interface EditorVerbs {
   /** What the lab selects now (the URL's cue or knob). */
   readonly selected: () => Option.Option<LabSelection>;
   readonly select: (selection: LabSelection) => void;
+  /** The inspector's fields of a cue or knob, as the lab holds it now. */
+  readonly fieldsOf: (selection: LabSelection) => ReadonlyArray<Inspected>;
+  /** The strip's scene and its cues, by when they start. */
+  readonly stripCues: () => { readonly scene: string; readonly names: ReadonlyArray<string> };
+  /** The film times at which the strip scene's cues start or end, in order. */
+  readonly edges: () => ReadonlyArray<number>;
+  /** The film time shown. */
+  readonly T: () => number;
+  readonly seek: (T: number) => void;
 }
+
+/** The cue or knob `ctx` is about. */
+const aboutOf = (ctx: Context): Option.Option<LabSelection> =>
+  Option.firstSomeOf<LabSelection>([selected(ctx, 'Cue'), selected(ctx, 'Knob')]);
 
 /** The cue or knob `ctx` is about, if it is not the one selected already. */
 const toSelect = (verbs: EditorVerbs, ctx: Context): Option.Option<LabSelection> =>
   Option.filter(
-    Option.firstSomeOf<LabSelection>([selected(ctx, 'Cue'), selected(ctx, 'Knob')]),
+    aboutOf(ctx),
     (s) => !Option.exists(verbs.selected(), (now) => sameSelection(now, s)),
   );
 
@@ -47,6 +69,179 @@ const stepCommand = (verbs: EditorVerbs, verb: StepVerb, label: string, key: str
   run: () =>
     Effect.sync(() => {
       verbs.step(verb);
+      return quiet;
+    }),
+});
+
+/**
+ * A nudge's way: its key, the cue field it moves and by how many steps, a
+ * point knob's (its y grows downward, as the canvas's does) and a number
+ * knob's, each with the label it reads as (`{}` the thing).
+ */
+interface Way {
+  readonly id: string;
+  readonly key: string;
+  readonly label: string;
+  readonly cue: { readonly field: 'offset' | 'dur'; readonly by: number; readonly verb: string };
+  readonly point: { readonly field: 'x' | 'y'; readonly by: number; readonly verb: string };
+  readonly number: { readonly by: number; readonly verb: string };
+}
+
+const WAYS: ReadonlyArray<Way> = [
+  {
+    id: 'edit.nudge-right',
+    key: 'alt+arrowright',
+    label: 'Nudge right',
+    cue: { field: 'offset', by: 1, verb: 'Nudge {} later' },
+    point: { field: 'x', by: 1, verb: 'Nudge {} right' },
+    number: { by: 1, verb: 'Raise {}' },
+  },
+  {
+    id: 'edit.nudge-left',
+    key: 'alt+arrowleft',
+    label: 'Nudge left',
+    cue: { field: 'offset', by: -1, verb: 'Nudge {} earlier' },
+    point: { field: 'x', by: -1, verb: 'Nudge {} left' },
+    number: { by: -1, verb: 'Lower {}' },
+  },
+  {
+    id: 'edit.nudge-up',
+    key: 'alt+arrowup',
+    label: 'Nudge up',
+    cue: { field: 'dur', by: 1, verb: 'Lengthen {}' },
+    point: { field: 'y', by: -1, verb: 'Nudge {} up' },
+    number: { by: 1, verb: 'Raise {}' },
+  },
+  {
+    id: 'edit.nudge-down',
+    key: 'alt+arrowdown',
+    label: 'Nudge down',
+    cue: { field: 'dur', by: -1, verb: 'Shorten {}' },
+    point: { field: 'y', by: 1, verb: 'Nudge {} down' },
+    number: { by: -1, verb: 'Lower {}' },
+  },
+];
+
+/** What a nudge moves: a field, by how many steps, and what the nudge reads as. */
+interface Nudge {
+  readonly field: Inspected;
+  readonly by: number;
+  readonly label: string;
+}
+
+/** The field nudge `way` moves on `s`, if `s` has it and it may be written now. */
+const nudgeOf = (verbs: EditorVerbs, way: Way, s: LabSelection): Option.Option<Nudge> => {
+  const fields = verbs.fieldsOf(s);
+  const named = (id: string) => Option.fromUndefinedOr(fields.find((f) => f.id === id));
+  const as =
+    (part: { readonly by: number; readonly verb: string }) =>
+    (field: Inspected): Nudge => ({
+      field,
+      by: part.by,
+      label: part.verb.replace('{}', selectionText(s)),
+    });
+  const found = Match.value(s).pipe(
+    Match.tag('Cue', () => Option.map(named(way.cue.field), as(way.cue))),
+    // A knob is a number (its `value` field) or a point (its `x` and `y`).
+    Match.tag('Knob', () =>
+      Option.orElse(Option.map(named('value'), as(way.number)), () =>
+        Option.map(named(way.point.field), as(way.point)),
+      ),
+    ),
+    Match.exhaustive,
+  );
+  return Option.filter(found, (n) => Option.isNone(refusalOf(n.field)));
+};
+
+const nudgeCommand = (verbs: EditorVerbs, way: Way): Command => {
+  const nudge = (ctx: Context) => Option.flatMap(aboutOf(ctx), (s) => nudgeOf(verbs, way, s));
+  return {
+    id: way.id,
+    label: way.label,
+    labelIn: (ctx) => Option.match(nudge(ctx), { onNone: () => way.label, onSome: (n) => n.label }),
+    group: 'Edit',
+    keys: [way.key],
+    stepped: true,
+    about: ['Cue', 'Knob'],
+    touch: 'select it, then type in its field',
+    when: (ctx) => Option.isSome(nudge(ctx)),
+    run: (ctx, how: Invocation) =>
+      Effect.sync(() =>
+        Option.match(nudge(ctx), {
+          onNone: () => quiet,
+          onSome: ({ field, by }) => {
+            const next = nudged(field.spec, field.value, how.step, by);
+            field.write(next);
+            return said(field.moved(next), Option.some('edit.undo'));
+          },
+        }),
+      ),
+  };
+};
+
+/** Half a frame at 30 fps: an edge this close to the time shown is where the time is. */
+const AT_EDGE = 1 / 60;
+
+/** Which way a walk goes. */
+type Toward = 'next' | 'previous';
+
+/** The first edge past `T` toward `toward`, if there is one. */
+const edgeFrom = (edges: ReadonlyArray<number>, T: number, toward: Toward): Option.Option<number> =>
+  Option.fromUndefinedOr(
+    {
+      next: () => edges.find((e) => e > T + AT_EDGE),
+      previous: () => edges.findLast((e) => e < T - AT_EDGE),
+    }[toward](),
+  );
+
+const edgeCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: string): Command => ({
+  id: `edit.edge-${toward}`,
+  label,
+  group: 'Edit',
+  keys: [key],
+  touch: 'drag the time line to a cue edge on the strip',
+  when: () => Option.isSome(edgeFrom(verbs.edges(), verbs.T(), toward)),
+  run: () =>
+    Effect.sync(() => {
+      Option.map(edgeFrom(verbs.edges(), verbs.T(), toward), verbs.seek);
+      return quiet;
+    }),
+});
+
+/** How far along the strip's cues a walk moves. */
+const STEP: Readonly<Record<Toward, number>> = { next: 1, previous: -1 };
+
+/** The strip scene's cue toward `toward` from the one `ctx` selects, if any. */
+const cueFrom = (verbs: EditorVerbs, ctx: Context, toward: Toward): Option.Option<LabSelection> =>
+  Option.flatMap(selected(ctx, 'Cue'), (cue) => {
+    const strip = verbs.stripCues();
+    const at = strip.names.indexOf(cue.name);
+    return Option.map(
+      Option.filter(
+        Option.fromUndefinedOr(strip.names[at + STEP[toward]]),
+        () => cue.scene === strip.scene && at >= 0,
+      ),
+      (name) => cueOf(strip.scene, name),
+    );
+  });
+
+const walkCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: string): Command => ({
+  id: `edit.cue-${toward}`,
+  label,
+  labelIn: (ctx) =>
+    Option.match(cueFrom(verbs, ctx, toward), {
+      onNone: () => label,
+      onSome: (s) => `Select ${selectionText(s)}`,
+    }),
+  group: 'Edit',
+  keys: [key],
+  about: ['Cue'],
+  touch: 'tap the cue on the strip, or long-press it',
+  // On a button or a link, Tab moves focus, as it always does.
+  when: (ctx) => ctx.focus === 'page' && Option.isSome(cueFrom(verbs, ctx, toward)),
+  run: (ctx) =>
+    Effect.sync(() => {
+      Option.map(cueFrom(verbs, ctx, toward), verbs.select);
       return quiet;
     }),
 });
@@ -86,4 +281,9 @@ export const editorCommands = (verbs: EditorVerbs): ReadonlyArray<Command> => [
         return quiet;
       }),
   },
+  ...WAYS.map((way) => nudgeCommand(verbs, way)),
+  edgeCommand(verbs, 'next', 'Next cue edge', '.'),
+  edgeCommand(verbs, 'previous', 'Previous cue edge', ','),
+  walkCommand(verbs, 'next', 'Select the next cue', 'tab'),
+  walkCommand(verbs, 'previous', 'Select the previous cue', 'shift+tab'),
 ];
