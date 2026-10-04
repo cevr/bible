@@ -64,11 +64,7 @@ export const Player = () => {
         const src = createMemo(() => Option.getOrUndefined(videoSource(video(), state.quality())));
         return (
           <>
-            <Transport
-              sync={sync}
-              send={send}
-              hint="space · ←/→ 2 s · 🔊 picks the sound heard over the picture"
-            />
+            <Transport sync={sync} send={send} />
             <Show when={choices().pictures.length > 1}>
               <div class="rv-row rv-pick">
                 <span class="rv-hint">Picture:</span>

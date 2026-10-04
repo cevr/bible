@@ -1,7 +1,8 @@
 // The player in a browser: the real player page over the probe film, on a
 // phone's window and a desk's. Neither the play page nor the look-book
-// scrolls sideways; the play page keeps its film time as `#t=`; a look-book still
-// opens its frame in the scene's lab.
+// scrolls sideways; the play page keeps its film time as `#t=`, and its legend
+// is hidden until `?` or the bar's ? button; a look-book still opens its frame
+// in the scene's lab.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -58,6 +59,27 @@ describe('the player', () => {
       yield* evaluates(page, 'location.hash', `#t=${TWO}`);
       yield* evaluates(page, 'location.pathname', pageHref.play(PROBE));
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'the legend is hidden at rest; ? or the bar’s ? button shows it, with the keys bound',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: PHONE },
+          '.bar .time',
+        );
+        const shown = "!document.querySelector('.bar .keys').hidden";
+        yield* evaluates(page, shown, false);
+        yield* page.press('?');
+        yield* evaluates(page, shown, true);
+        yield* textHas(page, '.bar .keys .bound', 'Space play');
+        yield* page.click('.bar [data-act="legend"]');
+        yield* evaluates(page, shown, false);
+        yield* attributeIs(page, '.bar [data-act="legend"]', 'aria-expanded', 'false');
+        yield* evaluates(page, NO_SIDEWAYS, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live("the look-book's way back is the film's lab, and a still opens its scene's lab", () =>

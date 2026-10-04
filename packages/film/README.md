@@ -874,7 +874,14 @@ its selection, its time), or from a thing's menu that thing's citation
 set of CSS custom properties (`COMMAND_TOKENS` in `src/lab/command/style.ts`,
 today's values read from each page's palette); the rules read only those.
 The player's keys legend under the film is generated from the same keymap;
-the player's page has the keys alone (it never imports the lab).
+the player's page has the keys alone (it never imports the lab). The legend
+is hidden at rest (UR-114, `legendCommand`): on the player's page `?` or the
+bar's ? button shows it, in the lab ⌘K or the page's long-press menu (Show
+the keys and the legend). No page keeps a line of key hints at rest (UR-26,
+UR-80, UR-98): the keys are the `?` sheet's, each with its touch path (Note
+this frame's names the click and the drag that mark a frame, and the notes'
+empty list says them too), and the gestures of the selection are the
+inspector's footer.
 
 **Go to** (AA-2, `src/command/go.ts`): every place a page can go to by its
 name is a command found only by typing (`typed`): ⌘K lists it once a word
@@ -968,7 +975,7 @@ writes the catalogue, not the source.
 - **Transport**: the play, pause, frame and scene controls, and their keys
   (Space, ←/→ a frame, Shift ten, `[` `]` a scene; `player/transport.ts`).
 - **HUD**: the readout laid over or beside the picture: the player's bar
-  (scene, time, the keys legend).
+  (scene, time; its keys legend hidden until asked for).
 - **Inspector**: the panel that shows and edits the selected thing: in the
   lab the editor's section for a cue or a knob, its fields stepped as their
   schema says; on the review a sheet beside the page with its Info, its
@@ -980,7 +987,8 @@ writes the catalogue, not the source.
   not one fixed in the layout.
 - **Nudge**: moving a value by its step with a key (⌥← ⌥→: a frame; ten with
   Shift).
-- **In/out points**: the start and end of a range (Motion's A and B).
+- **In/out points**: the start and end of a range (Motion's loop: I sets
+  the in point, O the out point).
 - **Receipt**: what a command answers when it runs: what moved, before →
   after, and Undo where it can be undone.
 
@@ -1429,8 +1437,19 @@ frame on a light page, lighter on a dark one) and paints them on a layer
 over the film, warm before and cool after, fainter the further away; it
 shows on a paused frame. Speed (0.25×, 0.5×, 1×) and loops drive the
 player's clock (`Player.setRate`, `Player.setLoop`); narration plays only
-at 1×. A cue loop follows the cue as it is edited; a cue under 0.2 s loops
-with 0.4 s either side. A–B loops any range. The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop`; a B not after A stays `Marked`, and a range plays from A as it is made. The provider plays the state through `rangeOf` each frame drawn.
+at 1×. Each is one chip in Motion's section that opens its commands
+(`CommandChip`, `lab/command/command-chip.tsx`, on @bible/ui's Menu: the
+commands it names that are available now, `chipRows`): the rate chip (`1×`)
+opens Play at each other rate (`rateCommands`, `player/transport.ts`; K plays
+at 1×, J and L a rate slower or faster: an editor's shuttle keys, stepping
+the rate, never playing backwards), and the loop chip opens Loop the
+selected cue (⇧L, and on the cue's long-press menu), Loop this scene, Set
+the in point here (I), Set the out point here (O) and Stop looping
+(`lab/motion/commands.ts`). A cue loop follows the cue as it is edited; a
+cue under 0.2 s loops with 0.4 s either side. The in and out points loop
+any range (the machine's A and B; the section says `looping in 1.00 – out
+2.00`). The review's synced player has the same rate chip over its rates
+(½×, 1×). The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop`; a B not after A stays `Marked`, and a range plays from A as it is made. The provider plays the state through `rangeOf` each frame drawn.
 
 **Compare** (`lab/compare/`, Solid 2) reads the scene's file at HEAD
 (`GET /api/films/<film>/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`

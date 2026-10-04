@@ -30,7 +30,7 @@ import { narration, narrationNote } from './narration.ts';
 import { onTheMs, tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
 import { lookFrames } from './look-frames.ts';
-import { transportCommands } from './transport.ts';
+import { legendCommand, transportCommands } from './transport.ts';
 
 /** The longest `#t=` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
@@ -303,7 +303,9 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
 /**
  * The scrubbable preview of a staged film: its bar and timeline, its clock,
  * and its transport, registered as commands with the page's `hub` (whose
- * keymap binds their keys; the bar's legend says the keys bound now).
+ * keymap binds their keys; the bar's legend says the keys bound now). The
+ * legend is hidden at rest (UR-114, `legendCommand`): on the player's own
+ * page `?` or the bar's ? button shows it, in the lab ⌘K or the page's menu.
  */
 export const mountPreview = (
   { film, canvas, ctx, captions }: Staged,
@@ -323,7 +325,7 @@ export const mountPreview = (
     </div>
     <div class="track"><div class="head"></div></div>
     <div class="tip" hidden></div>
-    <div class="keys"><span class="bound"></span> · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover for the name)</div>`;
+    <div class="keys" hidden><span class="bound"></span> · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover for the name)</div>`;
   document.body.append(bar);
   const q = <T extends Element>(sel: string) => required<T>(bar, sel);
   const track = q<HTMLDivElement>('.track');
@@ -539,6 +541,25 @@ export const mountPreview = (
   };
   legend();
   hub.subscribe(legend);
+  // The legend, hidden at rest; on the player's own page the bar's ? button is a phone's way to it.
+  const keysLine = q<HTMLDivElement>('.keys');
+  const page = hub.context().page;
+  const legendButton = document.createElement('button');
+  legendButton.dataset['act'] = 'legend';
+  legendButton.textContent = '?';
+  legendButton.title = 'Show or hide the keys and the legend';
+  const toggleLegend = () => {
+    keysLine.hidden = !keysLine.hidden;
+    legendButton.setAttribute('aria-expanded', String(!keysLine.hidden));
+  };
+  if (page === 'player') {
+    legendButton.setAttribute('aria-expanded', 'false');
+    legendButton.addEventListener('click', toggleLegend);
+    q<HTMLDivElement>('.row').append(legendButton);
+  }
+  hub.commands.register(
+    legendCommand(page, { shown: () => !keysLine.hidden, toggle: toggleLegend }),
+  );
   draw();
   return {
     film,

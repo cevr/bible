@@ -251,11 +251,6 @@ body.lab .stage {
   gap: 8px;
   align-items: center;
 }
-.lab-hint {
-  flex: 1;
-  color: var(--muted);
-  font-size: 11px;
-}
 .lab-reload-waiting {
   margin: 0;
   padding: 6px 9px;

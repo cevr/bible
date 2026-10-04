@@ -341,18 +341,16 @@ const Panel = (props: ParentProps) => {
 };
 
 /**
- * The panel's header: its name, the hint, the header's tools, and the film's
- * other pages (its project, its choices, its look-book), each link named by
- * its `data-link`.
+ * The panel's header: its name, the header's tools, and the film's other
+ * pages (its project, its choices, its look-book), each link named by its
+ * `data-link`. How to note a frame is in the `?` sheet (Note this frame's
+ * touch path) and the notes' empty list (UR-80).
  */
 const Header = (props: ParentProps) => {
   const { meta } = useLab();
   return (
     <header>
       <strong>Lab</strong>
-      <span class="lab-hint">
-        click pin · drag box · <kbd>n</kbd> note this frame
-      </span>
       {props.children}
       <a
         class="lab-link"

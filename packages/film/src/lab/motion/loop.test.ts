@@ -167,14 +167,14 @@ describe('what a loop plays', () => {
 describe('what the panel says', () => {
   test('each state in words', () => {
     expect(loopText(LoopState.Off)).toBe('');
-    expect(loopText(LoopState.Marked({ a: Option.some(1), b: Option.none() }))).toBe('A 1.00');
+    expect(loopText(LoopState.Marked({ a: Option.some(1), b: Option.none() }))).toBe('in 1.00');
     expect(loopText(LoopState.Marked({ a: Option.none(), b: Option.some(2) }))).toBe(
-      'B 2.00: set A before it',
+      'out 2.00: set the in point before it',
     );
     expect(loopText(LoopState.Marked({ a: Option.some(3), b: Option.some(2) }))).toBe(
-      'A 3.00 · B 2.00: set B after A',
+      'in 3.00 · out 2.00: set the out point after the in point',
     );
-    expect(loopText(LoopState.Range({ from: 1, to: 3 }))).toBe('looping A 1.00 – B 3.00');
+    expect(loopText(LoopState.Range({ from: 1, to: 3 }))).toBe('looping in 1.00 – out 3.00');
     expect(loopText(LoopState.Cue({ scene: 'one', name: 'rise' }))).toBe('looping rise');
   });
 });

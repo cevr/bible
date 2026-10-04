@@ -1,5 +1,6 @@
 // The notes' pieces: the pen and the Note frame button in the panel's header; the section (the
-// composer, the feed's status and the list of notes with their threads); the
+// composer, the feed's status and the list of notes with their threads, or
+// how to make one while there is none); the
 // marks on the frame (a surface under every other mark that takes a click,
 // a drag or the pen, the draft's marks, and the selected note's on its own
 // frame); and the notes' pins on the timeline. All read the notes' context.
@@ -13,6 +14,8 @@ import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
 import { useLab } from '../shell.tsx';
+import { chordLabel } from '../../command/keymap.ts';
+import { hubChanges } from '../command/changes.ts';
 import { useNotes } from './context.tsx';
 import { filmPixel } from './draft.ts';
 
@@ -141,9 +144,20 @@ const Item = (props: { readonly note: Note }) => {
   );
 };
 
-/** The composer, the feed's status, and the notes, newest first. */
+/** The composer, the feed's status, and the notes, newest first (how to make one while there is none). */
 export const Section = () => {
   const { state, actions } = useNotes();
+  const { meta } = useLab();
+  const changes = hubChanges(meta.hub);
+  // Note this frame's key as bound now: a rebound key reads as rebound.
+  const noteKey = () => {
+    changes();
+    return meta.hub
+      .keysOf('notes.frame')
+      .slice(0, 1)
+      .map((k) => chordLabel(k, meta.hub.mac))
+      .join('');
+  };
   let area = Option.none<HTMLTextAreaElement>();
   const open = () => state.composerOpen();
   // A note saved or cancelled leaves an empty composer; one opened takes the keys.
@@ -188,6 +202,12 @@ export const Section = () => {
           {(note) => <Item note={note()} />}
         </For>
       </ol>
+      <Show when={state.notes().length === 0 && !open()}>
+        <p class="lab-feed" data-role="notes-empty">
+          No notes yet: click the frame to pin a point, drag to draw a box, or press{' '}
+          <kbd>{noteKey()}</kbd> to note the whole frame.
+        </p>
+      </Show>
     </div>
   );
 };

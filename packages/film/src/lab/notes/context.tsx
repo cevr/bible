@@ -179,7 +179,8 @@ const useCommands = (
         label: 'Note this frame',
         group: 'Notes',
         keys: ['n'],
-        touch: 'the Note frame button in the header',
+        touch:
+          'the Note frame button in the header; click the frame to pin a point, drag to draw a box',
         when: () => true,
         run: () =>
           Effect.sync(() => {

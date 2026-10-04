@@ -77,6 +77,8 @@ import { escapeHtml, markdownHtml } from './markdown.ts';
 import { ReviewPlace as Place } from './place.ts';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
+import { CommandChip } from '../command/command-chip.tsx';
+import { rateCommands, rateId, rateText } from '../../player/transport.ts';
 
 /** A version of `set` in `folder`, as a selection: what a version's card is. */
 const versionOf = (folder: ReviewFolder, set: { readonly id: string }, version: string) =>
@@ -506,17 +508,28 @@ const ViewTabs = () => {
   );
 };
 
-const RATE_TITLES = { 0.5: '½×', 1: '1×' } as const;
-
-/** The synced player's controls: play, the clock, a scrub over every track, the rate, and a line of keys. */
+/**
+ * The synced player's controls: play, the clock, a scrub over every track,
+ * and the one rate chip (UR-25), whose rates are the page's commands while
+ * the transport is shown (J, K, L; ⌘K). Its keys are in the `?` sheet.
+ */
 export const Transport = (props: {
   readonly sync: Accessor<SyncState>;
   readonly send: (event: SyncEvent) => void;
-  readonly hint: string;
 }) => {
   const { sync } = props;
+  const { meta } = useReview();
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
+  onCleanup(
+    meta.hub.commands.register(
+      ...rateCommands({
+        all: Rate.literals,
+        now: () => sync().rate,
+        choose: (rate) => send.sync(SyncEvent.RateChosen({ rate })),
+      }),
+    ),
+  );
   return (
     <section class="rv-transport">
       <button
@@ -544,21 +557,15 @@ export const Transport = (props: {
         onInput={(e) => send.sync(SyncEvent.ScrubMoved({ t: Number(e.currentTarget.value) }))}
         onChange={() => send.sync(SyncEvent.ScrubReleased)}
       />
-      <div class="rv-seg">
-        <For each={Rate.literals}>
-          {(rate) => (
-            <button
-              type="button"
-              data-rate={String(rate)}
-              aria-pressed={pressed(sync().rate === rate)}
-              onClick={() => send.sync(SyncEvent.RateChosen({ rate }))}
-            >
-              {RATE_TITLES[rate]}
-            </button>
-          )}
-        </For>
-      </div>
-      <span class="rv-hint rv-keys">{props.hint}</span>
+      <CommandChip
+        hub={meta.hub}
+        ids={Rate.literals.map(rateId)}
+        act="rate"
+        class="rv-chip"
+        title="The speed: play slower (J), faster (L), or at 1× (K)"
+      >
+        <span data-rate={String(sync().rate)}>{rateText(sync().rate)}</span>
+      </CommandChip>
     </section>
   );
 };
@@ -971,11 +978,7 @@ const SetBody = () => {
   return (
     <>
       <Show when={playsIn(viewNameOf(view()))}>
-        <Transport
-          sync={sync}
-          send={send.sync}
-          hint="space · ←/→ 2 s · 🔊 picks whose sound you hear"
-        />
+        <Transport sync={sync} send={send.sync} />
       </Show>
       {Match.value(view()).pipe(
         Match.tagsExhaustive({

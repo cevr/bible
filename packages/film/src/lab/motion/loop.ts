@@ -1,4 +1,5 @@
-// The lab's loop, as one machine: A and B mark a range of film seconds, and
+// The lab's loop, as one machine: A and B (the in and out points, as the
+// panel says them) mark a range of film seconds, and
 // once B lies after A the range loops, played from A; the selected cue loops
 // its span as the timeline shows it now, played from its start (a cue edited
 // while it loops is followed: `rangeOf` reads its span afresh each frame).
@@ -127,14 +128,17 @@ export const loopText = (state: LoopState): string =>
       Marked: (s) =>
         Option.match(s.a, {
           onNone: () =>
-            Option.match(s.b, { onNone: () => '', onSome: (b) => `B ${at(b)}: set A before it` }),
+            Option.match(s.b, {
+              onNone: () => '',
+              onSome: (b) => `out ${at(b)}: set the in point before it`,
+            }),
           onSome: (a) =>
             Option.match(s.b, {
-              onNone: () => `A ${at(a)}`,
-              onSome: (b) => `A ${at(a)} · B ${at(b)}: set B after A`,
+              onNone: () => `in ${at(a)}`,
+              onSome: (b) => `in ${at(a)} · out ${at(b)}: set the out point after the in point`,
             }),
         }),
-      Range: (s) => `looping A ${at(s.from)} – B ${at(s.to)}`,
+      Range: (s) => `looping in ${at(s.from)} – out ${at(s.to)}`,
       Cue: (s) => `looping ${s.name}`,
     }),
   );

@@ -278,10 +278,6 @@ export const Section = () => {
       >
         <header>
           <strong>Studio</strong>
-          <span class="lab-hint">
-            <kbd>R</kbd> record · <kbd>Space</kbd> stop · <kbd>K</kbd> submit · <kbd>←</kbd>
-            <kbd>→</kbd> beat · <kbd>Esc</kbd> cancel
-          </span>
         </header>
         <Beats />
         <Prompter />

@@ -3,7 +3,8 @@
 // the view through the reload a write causes. The section and the onion
 // layer read this context and act through it; neither holds state of its
 // own. The loop the machine is in plays through the player's clock each
-// frame (`rangeOf`: a looped cue follows its edits).
+// frame (`rangeOf`: a looped cue follows its edits). The rate and the loop
+// are the page's commands too (`commands.ts`, `rateCommands`).
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
@@ -13,9 +14,18 @@ import * as ActorAtom from 'effect-machine/atom';
 import type * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createEffect, createMemo, createSignal, useContext } from 'solid-js';
+import {
+  createContext,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  useContext,
+} from 'solid-js';
 import type { LoopRange } from '../../player/main.ts';
-import type { LabView } from '../view-state.ts';
+import { type LabView, RATES } from '../view-state.ts';
+import { rateCommands } from '../../player/transport.ts';
+import { loopCommands, sceneSpan } from './commands.ts';
 import type { LabSelection } from '../../command/selection.ts';
 import { useLab } from '../shell.tsx';
 import {
@@ -102,18 +112,36 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
     return [loopText(loop()), ...Option.toArray(muted)].filter((s) => s !== '').join(' · ');
   });
 
-  const value: MotionContextValue = {
-    state: { rate, onion, cue, status },
-    actions: {
-      markA: () => send(LoopEvent.MarkA({ t: player.now() })),
-      markB: () => send(LoopEvent.MarkB({ t: player.now() })),
-      loopCue: () =>
-        Option.map(cue(), (c) => send(LoopEvent.LoopCue({ scene: c.scene, name: c.name }))),
-      stopLoop: () => send(LoopEvent.Stop),
-      setRate: (r) => setRateSignal(r),
-      setOnion: (change) => setOnionSignal((o) => ({ ...o, ...change })),
-    },
+  const actions: MotionActions = {
+    markA: () => send(LoopEvent.MarkA({ t: player.now() })),
+    markB: () => send(LoopEvent.MarkB({ t: player.now() })),
+    loopCue: () =>
+      Option.map(cue(), (c) => send(LoopEvent.LoopCue({ scene: c.scene, name: c.name }))),
+    stopLoop: () => send(LoopEvent.Stop),
+    setRate: (r) => setRateSignal(r),
+    setOnion: (change) => setOnionSignal((o) => ({ ...o, ...change })),
   };
+  // The rate and the loop as the page's commands: keys, ⌘K, the cue's menu and the section's chips.
+  onCleanup(
+    meta.hub.commands.register(
+      ...rateCommands({ all: RATES, now: rate, choose: actions.setRate }),
+      ...loopCommands({
+        cueSelected: () => Option.isSome(cue()),
+        looping: () => loop()._tag !== 'Off',
+        loopCue: actions.loopCue,
+        loopScene: () =>
+          Option.map(sceneSpan(meta.film.placed, player.now()), (span) => {
+            send(LoopEvent.MarkA({ t: span.from }));
+            send(LoopEvent.MarkB({ t: span.to }));
+          }),
+        markIn: actions.markA,
+        markOut: actions.markB,
+        stop: actions.stopLoop,
+      }),
+    ),
+  );
+
+  const value: MotionContextValue = { state: { rate, onion, cue, status }, actions };
   return <MotionContext value={value}>{props.children}</MotionContext>;
 };
 

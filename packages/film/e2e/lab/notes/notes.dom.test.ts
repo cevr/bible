@@ -135,6 +135,9 @@ describe('marking a frame', () => {
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openLab(store(), { href: labAt(1) });
         yield* waitFor(page, '.lab-overlay');
+        // With no notes yet, the list says how to make one (the panel's header no longer does).
+        yield* textHas(page, '[data-role="notes-empty"]', 'click the frame to pin a point');
+        yield* textHas(page, '[data-role="notes-empty"] kbd', 'N');
         const at = yield* onFrame(page, 520, 300);
         yield* page.mouse.click(at.x, at.y);
         yield* waitFor(page, '.lab-compose:not([hidden])');

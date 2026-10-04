@@ -1,15 +1,19 @@
 // Motion's section of the panel and its onion layer. The section sets the
 // onion skin (on, how many frames either side, how many frames apart), the
-// speed, and the loop (the selected cue, A, B, off); the layer paints the
+// speed and the loop, each one chip opening its commands (the rate chip:
+// ¼×, ½×, 1×; the loop chip: the selected cue, this scene, the in and out
+// points, off; `commands.ts`); the layer paints the
 // onion over the film on a paused frame. Both read Motion's context.
 
-import { For } from '@solidjs/web';
 import { Option } from 'effect';
 import { createEffect, onCleanup } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
 import { ONION_SCALE, makeOnion, whole } from '../../player/onion.ts';
 import { RATES } from '../view-state.ts';
+import { rateId, rateText } from '../../player/transport.ts';
+import { CommandChip } from '../command/command-chip.tsx';
+import { LOOP_IDS } from './commands.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useMotion } from './context.tsx';
 
@@ -41,6 +45,7 @@ const SpreadField = (props: SpreadFieldProps) => {
 /** The onion, the speed and the loop. */
 export const Section = () => {
   const { state, actions } = useMotion();
+  const { meta } = useLab();
   return (
     <Lab.Section class="lab-motion">
       <header>
@@ -64,44 +69,23 @@ export const Section = () => {
           every <SpreadField field="spacing" max={15} /> f
         </label>
       </div>
-      <div class="lab-motion-row" data-role="rates">
-        <span class="lab-edit-key">speed</span>
-        <For each={RATES}>
-          {(r) => (
-            <button
-              type="button"
-              data-rate={String(r)}
-              class={{ on: state.rate() === r }}
-              onClick={() => actions.setRate(r)}
-            >
-              {`${r}×`}
-            </button>
-          )}
-        </For>
-      </div>
       <div class="lab-motion-row">
-        <span class="lab-edit-key">loop</span>
-        <button
-          type="button"
-          data-act="loop-cue"
-          disabled={Option.isNone(state.cue())}
-          title={Option.match(state.cue(), {
-            onNone: () => 'select a cue on the strip first',
-            onSome: (c) => `loop ${c.name}'s span`,
-          })}
-          onClick={() => actions.loopCue()}
+        <CommandChip
+          hub={meta.hub}
+          ids={RATES.map(rateId)}
+          act="rate"
+          title="The speed: play slower (J), faster (L), or at 1× (K)"
         >
-          cue
-        </button>
-        <button type="button" data-act="a" title="set A to this frame" onClick={actions.markA}>
-          A
-        </button>
-        <button type="button" data-act="b" title="set B to this frame" onClick={actions.markB}>
-          B
-        </button>
-        <button type="button" data-act="loop-off" onClick={actions.stopLoop}>
-          off
-        </button>
+          <span data-rate={String(state.rate())}>{rateText(state.rate())}</span>
+        </CommandChip>
+        <CommandChip
+          hub={meta.hub}
+          ids={LOOP_IDS}
+          act="loop"
+          title="Loop the selected cue (⇧L), this scene, or in (I) to out (O)"
+        >
+          Loop…
+        </CommandChip>
       </div>
     </Lab.Section>
   );

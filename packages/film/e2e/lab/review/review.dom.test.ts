@@ -238,8 +238,13 @@ describe('the review page', () => {
           page,
           "Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - 2) < 0.01 || v.readyState === 0)",
         );
-        yield* page.click('.rv-seg button[data-rate="0.5"]');
-        yield* waitFor(page, '.rv-seg button[data-rate="0.5"][aria-pressed="true"]');
+        // The rate chip opens the rates but the one it plays at; J steps one slower.
+        yield* page.click('.rv-transport [data-act="rate"]');
+        yield* waitFor(page, '[data-role="chip-menu"] [data-command="play.rate-0.5"]');
+        yield* page.press('Escape');
+        yield* countIs(page, '[data-role="chip-menu"]', 0);
+        yield* page.press('j');
+        yield* waitFor(page, '.rv-transport [data-act="rate"] [data-rate="0.5"]');
         yield* evaluates(
           page,
           "Array.from(document.querySelectorAll('.rv-card video')).map((v) => v.playbackRate)",

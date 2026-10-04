@@ -2,13 +2,15 @@
 // pause, a frame back or on, a scene back or on, and the captions. Their
 // keys are the transport's usual ones: Space plays, ← and → step one frame
 // (with Shift, ten: the coarse step, as an editor's nudge; with Alt, one),
-// [ and ] go by scenes, C toggles the captions. Each answers quietly: the
+// [ and ] go by scenes, C toggles the captions; and the bar's legend, hidden
+// at rest (`legendCommand`). Each answers quietly: the
 // picture, the time line and the bar show what changed. The preview
 // registers them with its page's hub for as long as it lives, so the lab's
 // keys, ⌘K and the `?` sheet read them as they read the lab's own.
 
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 import { type Command, type Invocation, quiet } from '../command/command.ts';
+import type { PageName } from '../core/api.ts';
 
 /** The frames a step moves by: one, ten with the coarse modifier, one with the fine one. */
 const FRAMES_BY_STEP: Readonly<Record<Invocation['step'], number>> = {
@@ -101,3 +103,92 @@ export const transportCommands = (transport: Transport): ReadonlyArray<Command> 
     run: doing(transport.toggleCaptions),
   },
 ];
+
+/** The rates a transport plays at, slowest first; the one it plays at now; the choice. */
+interface Rates<R extends number> {
+  readonly all: ReadonlyArray<R>;
+  readonly now: () => R;
+  readonly choose: (rate: R) => void;
+}
+
+/** A rate as a chip says it: `¼×`, `½×`, `1×`. */
+export const rateText = (rate: number): string =>
+  Option.getOrElse(Option.fromUndefinedOr(RATE_NAMES.get(rate)), () => `${rate}×`);
+
+const RATE_NAMES: ReadonlyMap<number, string> = new Map([
+  [0.25, '¼×'],
+  [0.5, '½×'],
+]);
+
+/** The command that plays at `rate`. */
+export const rateId = (rate: number): string => `play.rate-${rate}`;
+
+/**
+ * A transport's rates as commands (UR-25, UR-94: the one rate chip opens
+ * them): Play at each rate but the one it plays at, K back to 1×, and J and
+ * L a rate slower or faster (an editor's shuttle keys, stepping the rate:
+ * the player never plays backwards).
+ */
+export const rateCommands = <R extends number>(rates: Rates<R>): ReadonlyArray<Command> => {
+  const at = () => rates.all.indexOf(rates.now());
+  const step = (by: number) => Option.fromUndefinedOr(rates.all[at() + by]);
+  const stepCommand = (id: string, label: string, key: string, by: number): Command => ({
+    id,
+    label,
+    group: 'Transport',
+    keys: [key],
+    touch: 'the rate chip',
+    when: () => Option.isSome(step(by)),
+    run: doing(() => Option.map(step(by), rates.choose)),
+  });
+  return [
+    ...rates.all.map((rate): Command => ({
+      id: rateId(rate),
+      label: `Play at ${rateText(rate)}`,
+      group: 'Transport',
+      keys: ['k'].filter(() => rate === 1),
+      touch: 'the rate chip',
+      when: () => rates.now() !== rate,
+      run: doing(() => rates.choose(rate)),
+    })),
+    stepCommand('play.slower', 'Slower', 'j', -1),
+    stepCommand('play.faster', 'Faster', 'l', 1),
+  ];
+};
+
+/** What the legend's command says, by whether the legend shows. */
+const LEGEND_LABEL: Readonly<Record<'true' | 'false', string>> = {
+  true: 'Hide the keys and the legend',
+  false: 'Show the keys and the legend',
+};
+
+/** Where a phone shows the legend, by page. */
+const TOUCH_LEGEND: Readonly<Record<PageName, string>> = {
+  player: 'the bar’s ? button',
+  lab: 'hold the page, or the command menu',
+  review: 'the command menu',
+};
+
+/** The bar's legend: whether it shows, and the toggle. */
+interface Legend {
+  readonly shown: () => boolean;
+  readonly toggle: () => void;
+}
+
+/**
+ * The bar's legend (the transport's keys, what the stripes and the ticks
+ * mean), hidden at rest (UR-114). On the player's own page, which has no
+ * `?` sheet, `?` and the bar's ? button show it; in the lab, where `?` opens
+ * the keys sheet, ⌘K and the page's long-press menu do.
+ */
+export const legendCommand = (page: PageName, legend: Legend): Command => ({
+  id: 'view.legend',
+  label: 'Show or hide the legend',
+  labelIn: () => LEGEND_LABEL[`${legend.shown()}`],
+  group: 'View',
+  keys: ['?'].filter(() => page === 'player'),
+  about: ['Page'],
+  touch: TOUCH_LEGEND[page],
+  when: always,
+  run: doing(legend.toggle),
+});

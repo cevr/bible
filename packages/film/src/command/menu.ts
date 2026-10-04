@@ -3,7 +3,8 @@
 // the commands available where the page is, matched by what was typed; a
 // context menu, the commands available about the thing it opened on
 // (`target.ts`); the sheet, every command registered, by group, with its
-// keys and how a phone reaches it. Pure.
+// keys and how a phone reaches it; a chip, the commands it names that are
+// available (`chipRows`). Pure.
 
 import { Array as Arr, Option } from 'effect';
 import { type Command, labelOf } from './command.ts';
@@ -52,6 +53,22 @@ export const sheetRows = (
   all: ReadonlyArray<Command>,
 ): ReadonlyArray<readonly [string, ReadonlyArray<Command>]> =>
   byGroup(all.filter((command) => !isTyped(command)));
+
+/**
+ * A chip's menu rows (the rate chip, the loop chip): the commands named by
+ * `ids` that are available in `ctx`, in the order `ids` gives (the rate the
+ * transport plays at now is not one of them: the chip says it).
+ */
+export const chipRows = (
+  available: ReadonlyArray<Command>,
+  ctx: Context,
+  ids: ReadonlyArray<string>,
+): ReadonlyArray<MenuRow> =>
+  ids.flatMap((id) =>
+    available
+      .filter((command) => command.id === id)
+      .map((command) => ({ command, label: labelOf(command, ctx) })),
+  );
 
 /**
  * A context menu's rows, by group: the commands of `available` (those

@@ -136,7 +136,6 @@ a.rv-card:hover { border-color: var(--rv-dim); }
   .rv-header { padding: 8px 12px; padding-top: max(8px, env(safe-area-inset-top)); }
   .rv-main { padding: 12px 10px 60px; }
   .rv-transport { top: 49px; padding: 8px 10px; gap: 8px; }
-  .rv-keys { display: none; }
   .rv-cap { flex-wrap: wrap; }
   .rv-tag { white-space: normal; overflow-wrap: anywhere; }
 }
