@@ -88,6 +88,6 @@ export const judge = (films: string, rules: ReadonlyArray<JudgeRule>) =>
   ).pipe(
     Command.provide(Layer.mergeAll(FetchHttpClient.layer, Counsel.layer)),
     Command.withDescription(
-      "A blind second opinion on one picture choice at a scene: each version's stills at the same moments (a look's levels drawn through the lab's easel, a render set's variants from their videos), labelled at random, ranked against the film's rules by okra counsel --deep; prints the verdict's path and the ranking. Writes no choice",
+      "A blind second opinion on one picture choice at a scene: each version's stills at the same moments (a look's levels drawn through the lab's easel, a render set's variants from their videos), labelled at random, ranked against the film's rules by okra counsel --deep in a sandbox that reads only the packet; prints the verdict's path and the ranking. Writes no choice",
     ),
   );

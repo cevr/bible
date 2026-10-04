@@ -9,6 +9,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import {
+  Config,
   ConfigProvider,
   Context,
   Deferred,
@@ -18,6 +19,7 @@ import {
   Layer,
   Option,
   Path,
+  Ref,
   Schema,
 } from 'effect';
 import { sceneAddress } from '../core/address.ts';
@@ -26,9 +28,12 @@ import type { LookPost, LookTaken } from '../core/easel.ts';
 import { JudgeKeyJson, type JudgeRule } from '../core/judge.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
-import { Counsel } from './counsel.ts';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import { Counsel, type SandboxedRun } from './counsel.ts';
 import { FilmRepo, type FilmName } from './film-repo.ts';
 import { judge } from './judge.ts';
+import { collect } from './process.ts';
+import { sandboxArgs } from './sandbox.ts';
 import { reviewMedia } from './testing.ts';
 
 const film = 'sample' as FilmName;
@@ -78,7 +83,7 @@ const reading = (root: string, seen: Array<Seen>) =>
  * The sample film copied to a temp folder, with a palette whose look has
  * `options`, and a rule file; the judge's services over it, its counsel
  * answering `answer`, every prompt in `asked`, every media call in `calls`,
- * what the counsel could read in `seen`.
+ * what the counsel could read in `seen`; or `counsel`, when given, in its place.
  */
 const judging = (
   options: string,
@@ -86,6 +91,11 @@ const judging = (
   asked: Array<string> = [],
   calls: Array<string> = [],
   seen: Array<Seen> = [],
+  counsel?: Layer.Layer<
+    Counsel,
+    never,
+    ChildProcessSpawner.ChildProcessSpawner | FileSystem.FileSystem | Path.Path
+  >,
 ) =>
   Layer.unwrap(
     Effect.gen(function* () {
@@ -107,7 +117,9 @@ const judging = (
       return Layer.mergeAll(
         FilmRepo.layer(films),
         RenderCatalogue.layer,
-        reading(root, seen).pipe(Layer.provide(Counsel.layerTest(answer, asked))),
+        Option.getOrElse(Option.fromUndefinedOr(counsel), () =>
+          reading(root, seen).pipe(Layer.provide(Counsel.layerTest(answer, asked))),
+        ),
         reviewMedia(calls),
         Layer.succeed(Here, Here.of({ root, rules, out })),
       ).pipe(
@@ -148,6 +160,50 @@ const reversed = (prompt: string) => {
 };
 
 const decodeKey = Schema.decodeSync(JudgeKeyJson);
+
+/**
+ * A counsel's run, in the sandbox, that answers no preference and writes
+ * what it could reach: whether it read the packet, each still it found
+ * beside it, and each of the paths it is given, `SEEN` or `ABSENT`. The
+ * packet's and the answer's folders are the sandbox's (`PACKET` and
+ * `ANSWER` name others, for a run outside it).
+ */
+const PROBE = [
+  'P=${PACKET:-/judge/packet} A=${ANSWER:-/judge/answer}',
+  'mkdir -p "$A/run"',
+  '{',
+  '  echo "RANKING: no preference"',
+  '  echo',
+  '  if head -c 1 "$P/packet.md" >/dev/null 2>&1; then echo "READ packet.md"; fi',
+  '  for still in "$P"/stills/*; do echo "STILL ${still##*/}"; done',
+  '  for p in "$@"; do',
+  '    if ls -a "$p" >/dev/null 2>&1; then echo "SEEN $p"; else echo "ABSENT $p"; fi',
+  '  done',
+  '} > "$A/run/codex.md"',
+].join('\n');
+
+/** The probe, run in the counsel's sandbox, given each of `paths` to try. */
+const probing = (paths: Ref.Ref<ReadonlyArray<string>>) =>
+  Counsel.sandboxed(
+    Effect.map(Ref.get(paths), (tried): SandboxedRun => ({
+      mounts: [],
+      env: { PATH: '/usr/bin:/bin' },
+      command: () => ['/usr/bin/sh', '-c', PROBE, 'probe', ...tried],
+    })),
+  );
+
+/** Whether bwrap can make a sandbox here: a runner may forbid an unprivileged user its namespaces. */
+const sandboxHere = Effect.scoped(
+  Effect.gen(function* () {
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const fs = yield* FileSystem.FileSystem;
+    const answer = yield* fs.makeTempDirectoryScoped();
+    const argv = sandboxArgs({ packet: answer, answer, mounts: [], env: {} }, ['/usr/bin/true']);
+    return yield* collect(spawner, ChildProcess.make('bwrap', [...argv])).pipe(
+      Effect.map((done) => done.exitCode === 0),
+    );
+  }),
+).pipe(Effect.orElseSucceed(() => false));
 
 /** The judge of scene `open` at `point`, quoting `rules` (the look's alone, unless given). */
 const judgeOpen = (point: Option.Option<string>, rules?: (file: string) => Array<JudgeRule>) =>
@@ -200,16 +256,21 @@ describe('film judge', () => {
           ).toBe(v.version);
 
         // The packet: the beat and the one rule that bears on an IDEA beat; no version named.
-        // Kept as the counsel read it, its stills' paths moved to the run's folder.
+        // Kept as the counsel read it. It says nothing of where anything lives: each still by
+        // its path beside the packet, each rule's file by its name alone.
         const packet = yield* fs.readFileString(judged.packet);
-        const stillsAt = (text: string) => text.replace(/\S*\/stills\//g, 'stills/');
-        expect(asked.map(stillsAt)).toEqual([stillsAt(packet)]);
-        expect(packet).toContain(path.join(judged.dir, 'stills', 'A-01.jpg'));
+        expect(asked).toEqual([packet]);
+        expect(packet).toContain('| stills/A-01.jpg |');
+        expect(yield* fs.exists(path.join(path.dirname(judged.packet), 'stills', 'A-01.jpg'))).toBe(
+          true,
+        );
         expect(packet).toContain('IDEA: a page, and a question on it.');
         expect(packet).toContain('keep the ground warm');
         expect(packet).not.toContain('faces at a third');
-        expect(packet).toContain(`From \`${rules}\``);
-        for (const word of ['dusk', 'noon', 'key.json']) expect(packet).not.toContain(word);
+        expect(packet).toContain('From `RULES.md`');
+        expect(rules.startsWith('/')).toBe(true);
+        for (const word of ['dusk', 'noon', 'key.json', path.dirname(rules), out, '/tmp/'])
+          expect(packet).not.toContain(word);
 
         // The stub ranked the labels in reverse: the verdict says so in names.
         const [first, second] = key.versions;
@@ -389,5 +450,52 @@ describe('film judge', () => {
       expect(yield* tagOf(Option.some('look:ground'))).toBe('JudgeNothingToCompare');
       expect(yield* tagOf(Option.some('render:scenes:open'))).toBe('JudgeNothingToCompare');
     }).pipe(Effect.scoped, Effect.provide(judging('{ dusk: 0 }', reversed))),
+  );
+
+  const tried = Ref.makeUnsafe<ReadonlyArray<string>>([]);
+  it.live(
+    "the counsel's sandbox reads the packet and its stills, and finds no earlier run, no repo and no cache",
+    () =>
+      Effect.gen(function* () {
+        if (!(yield* sandboxHere)) {
+          yield* Effect.logWarning('judge.test.sandbox skipped: bwrap cannot make a sandbox here');
+          return;
+        }
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const here = yield* Here;
+        const home = yield* Config.String('HOME');
+        const earlier = yield* judgeOpen(Option.some('look:ground'));
+        expect(yield* fs.exists(path.join(earlier.dir, 'key.json'))).toBe(true);
+        const repo = path.resolve(import.meta.dir, '..', '..', '..', '..');
+        const hidden = [
+          earlier.dir,
+          path.join(earlier.dir, 'key.json'),
+          path.join(here.root, 'films', 'sample'),
+          here.out,
+          here.root,
+          repo,
+          path.join(repo, 'packages', 'film', 'README.md'),
+          path.join(home, '.cache', 'film-harness'),
+          home,
+          '/workspaces',
+        ];
+        yield* Ref.set(tried, hidden);
+        const judged = yield* judgeOpen(Option.some('look:ground'));
+        const reached = (yield* fs.readFileString(judged.counsel)).split('\n');
+        expect(reached).toContain('READ packet.md');
+        expect(reached.filter((line) => line.startsWith('STILL '))).toEqual([
+          'STILL A-01.jpg',
+          'STILL B-01.jpg',
+        ]);
+        expect(reached.filter((line) => line.startsWith('SEEN '))).toEqual([]);
+        expect(reached.filter((line) => line.startsWith('ABSENT '))).toHaveLength(hidden.length);
+        // Its answer, written in the sandbox, is copied into the run's folder and read as a verdict.
+        expect(judged.counsel.startsWith(path.join(judged.dir, 'counsel'))).toBe(true);
+        expect(judged.ranking).toEqual({ _tag: 'NoPreference' });
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(judging('{ dusk: 0, noon: 0.5 }', reversed, [], [], [], probing(tried))),
+      ),
   );
 });

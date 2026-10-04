@@ -54,7 +54,7 @@ bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.j
 bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
 bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer, or its failure as the route answers it (`ToolFailure`), as one line
 bun run look <film> ... --level <look>=<level>  # a wedge: that look (palette.ts's looks) drawn at that level instead of the one it plays, the pick left unwritten
-bun run judge <film> --scene <id> [--point look:<name>|render:<address>] [--captions] [--json]  # a blind second opinion on one picture choice: every version's stills at the scene's marks and cue middles, labelled at random, ranked against CRAFT and the director's vision by okra counsel --deep; prints the verdict's path (out/<film>/judge/<scene>-<stamp>-<draw>/verdict.md) and the ranking; writes no choice
+bun run judge <film> --scene <id> [--point look:<name>|render:<address>] [--captions] [--json]  # a blind second opinion on one picture choice: every version's stills at the scene's marks and cue middles, labelled at random, ranked against CRAFT and the director's vision by okra counsel --deep in a bwrap sandbox that reads only the packet; prints the verdict's path (out/<film>/judge/<scene>-<stamp>-<draw>/verdict.md) and the ranking; writes no choice
 bun run journal <film> note "text" [--scene <id>]   # append an observation to src/films/<film>/journal.md (committed), dated and placed; an empty note is refused
 bun run journal <film> read [--scene <id>] [--last N]  # the newest N entries (20), oldest first, one line each, under 8,000 characters
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
@@ -329,22 +329,26 @@ Every version is shown at the same moments, the scene's marks and its cues'
 middles (at most 12, spread evenly), as 1280-pixel JPEGs, under labels A, B,
 C drawn at random. The packet (`packet.md`) gives the beat's words, its
 picture's brief and register, its act, and the rules that bear on it,
-quoted with their paths (`JUDGE_RULES` in `cli.ts`: the look, the palette,
+each named by its file's name alone (`JUDGE_RULES` in `cli.ts`: the look, the palette,
 the colour script, the paper and what we never do for every beat; human
 scale, figures and staging for a STORY beat; words off the picture,
 repetition and type for an IDEA beat). It never says which version is
-newer, which is picked or who made it. The counsel reads it from a folder
-of its own under the system's temp folder that holds the packet and the
-stills and nothing else; the key stays in the judge's memory until the
-counsel has answered. `okra counsel --deep` answers with a ranking (one
+newer, which is picked or who made it, nor where anything lives (each still
+is named by its path beside the packet). The counsel reads it in a sandbox
+(bubblewrap, `bwrap`, which must be installed) that shows it the packet's
+folder (the packet and the stills, under the system's temp folder) and what
+okra and Codex need to run, and no other file: no earlier judge's folder,
+no look file, no repo, no cache. The network is shared, since Codex needs
+the internet, so the lab stays reachable on this machine's loopback, though
+nothing in the sandbox says it is there. The key stays in the judge's
+memory until the counsel has answered. `okra counsel --deep` (Codex)
+answers with a ranking (one
 whole line: labels and `>` or `=`, or exactly `no preference`) and, for
 each version, the still and the rule that decide it. The judge unblinds
 that answer into `verdict.md`, beside the stills, the packet and the key
 (`key.json`) in `out/<film>/judge/<scene>-<stamp>-<draw>/`: the ranking in
 real names beside the owner's pick, the key, the reasons, and the counsel's
-answer by path. The counsel can read the whole machine, so the blindness
-rests on nothing that names a version being reachable from the packet (an
-earlier run's folder unblinds its own stills). It prints three
+answer by path. It prints three
 short lines (`verdict <path>`, `ranking <names> (point= pick=)`, `counsel
 <path>`), or one JSON line with `--json`. It writes no choice: a pick is still
 the owner's, in the Choices view.

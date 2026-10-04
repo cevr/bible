@@ -13,14 +13,14 @@
 // (`tools/counsel.ts`) is asked from a folder of its own under the system's
 // temp folder that holds the packet and the stills and nothing else (each
 // still copied there under its label; the lab's own look files stay the
-// lab's, for any other judge asking them); the key stays in memory until it
-// has answered. It ranks the
-// versions against the app's rules that bear on the beat, and the answer is
-// unblinded into `verdict.md`, beside the stills, the packet and `key.json`,
-// under `out/<film>/judge/<scene>-<stamp>-<draw>/`. The counsel can read the
-// whole machine, so the blindness rests on nothing that names a version
-// being reachable from the packet: an earlier run's folder unblinds its own
-// stills. The judge writes no choice.
+// lab's, for any other judge asking them), and reads it in a sandbox that
+// shows it that folder and nothing else of the machine's files: no earlier
+// run, no look file, no repo. The packet names no place: each still by its
+// path beside it, each rule's file by its name. The key stays in memory
+// until the counsel has answered. It ranks the versions against the app's
+// rules that bear on the beat, and the answer is unblinded into
+// `verdict.md`, beside the stills, the packet and `key.json`, under
+// `out/<film>/judge/<scene>-<stamp>-<draw>/`. The judge writes no choice.
 
 import {
   Array as Arr,
@@ -394,7 +394,12 @@ export const judge = Effect.fn('judge')(function* <TE, TR>(ask: JudgeAsk<TE, TR>
         const section = yield* Effect.fromOption(sectionOf(text, rule.heading)).pipe(
           Effect.mapError(() => JudgeRuleMissing.make({ file: rule.file, heading: rule.heading })),
         );
-        return { file: rule.file, heading: rule.heading, text: section } satisfies QuotedRule;
+        // Named by the file's name alone: the packet says nothing of where anything lives.
+        return {
+          file: path.basename(rule.file),
+          heading: rule.heading,
+          text: section,
+        } satisfies QuotedRule;
       }),
   );
 
@@ -430,8 +435,9 @@ export const judge = Effect.fn('judge')(function* <TE, TR>(ask: JudgeAsk<TE, TR>
     Effect.gen(function* () {
       // The packet and the stills, drawn straight to their labels' names in a folder of
       // their own (`blind`, under the system's temp folder, its name a draw) that holds
-      // nothing else, and gone once the run is done: the counsel, reading about its packet,
-      // finds no key and no version's name.
+      // nothing else, and gone once the run is done: the counsel's sandbox shows it this
+      // folder and nothing of the asker's besides. The packet names each still by its path
+      // beside it, so it reads the same wherever the folder is shown, and is kept as it was.
       const blind = yield* fs.makeTempDirectoryScoped();
       const stills = path.join(blind, 'stills');
       yield* fs.makeDirectory(stills);
@@ -455,7 +461,10 @@ export const judge = Effect.fn('judge')(function* <TE, TR>(ask: JudgeAsk<TE, TR>
           act,
           rules,
           moments,
-          stills: drawn,
+          stills: drawn.map(({ label, files }) => ({
+            label,
+            files: files.map((file) => path.relative(blind, file)),
+          })),
         }),
       );
 
@@ -472,12 +481,12 @@ export const judge = Effect.fn('judge')(function* <TE, TR>(ask: JudgeAsk<TE, TR>
         ),
       );
 
-      // Unblinded: the stills, the packet and the answer's paths moved to the run's
-      // folder, the key and the verdict beside them.
+      // Unblinded: the stills and the packet copied to the run's folder, the answer's paths
+      // moved there, the key and the verdict beside them.
       const moved = (text: string) => text.replaceAll(blind, dir);
       yield* fs.copy(stills, path.join(dir, 'stills'));
       const packet = path.join(dir, 'packet.md');
-      yield* fs.writeFileString(packet, moved(yield* fs.readFileString(asked)));
+      yield* fs.copyFile(asked, packet);
       yield* fs.writeFileString(path.join(dir, 'key.json'), `${encodeKey(key)}\n`);
       const verdict = path.join(dir, 'verdict.md');
       yield* fs.writeFileString(

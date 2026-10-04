@@ -1696,23 +1696,37 @@ has answered, and is never in `packet.md` (`packetOf`): the beat's words, its pi
 its register (`registersOf`, the head of the brief) and act, the app's rules
 that bear on it (`FilmApp.judge.rules`, each a heading of a file, for every
 beat or for a register; a heading its file lacks is `JudgeRuleMissing`),
-the stills by label and moment, and the form of the answer. The counsel is
-a seam (`Counsel`, `tools/counsel.ts`) with two adapters: `Counsel.layer`
-runs `okra counsel --deep -f packet.md -o <run>/counsel/` beside the
-packet and reads the `codex.md` or `claude.md` it writes (a non-zero exit
-is `CounselFailed`, 124 its time out); `Counsel.layerTest` answers from a
-function of the packet. Its last `RANKING:` line is read (`rankingOf`: a
+the stills by label and moment (each by its path beside the packet), and
+the form of the answer; it names no place (a rule's file by its name
+alone). The counsel is a seam (`Counsel`, `tools/counsel.ts`) with two
+adapters. `Counsel.layer` runs `okra counsel --deep --from claude -f
+/judge/packet/packet.md -o /judge/answer` (Codex) in the counsel's sandbox
+(`tools/sandbox.ts`, bubblewrap): a mount namespace that starts empty and
+shows only `/usr` and its merged links, `/etc`, the resolver's folder, a
+fresh `/proc`, `/dev` and `/tmp`, the packet's folder read-only at
+`/judge/packet` (the working folder), a temp folder written at
+`/judge/answer` (okra's prompt copy and run folder land there, copied into
+`<run>/counsel/` once it is done), okra's program, Codex's package and
+Node under `/judge/tools`, and a home of its own holding only Codex's
+sign-in (written, so a refreshed token lands in place), its settings and
+model lists (`okraRun`). The environment is cleared but for `PATH`, `HOME`
+and `LANG`. So no earlier run's folder, no look file, no repo, no cache
+and no home is there to read. The network is shared (Codex needs the
+internet), so the lab's loopback port stays reachable, though nothing in
+the sandbox names it. It reads the `codex.md` or `claude.md` written,
+its sandbox paths said as the host's (a non-zero exit is
+`CounselFailed`, 124 its time out); `Counsel.sandboxed` runs any command
+so (the tests probe the sandbox with one); `Counsel.layerTest` answers
+from a function of the packet. Its last `RANKING:` line is read (`rankingOf`: a
 whole expression, every label once, `>` between tiers, `=` a tie, nothing
 after; or exactly `no preference`; else `CounselUnreadable`) and unblinded
 into `verdict.md` (`verdictOf`) in the run's own folder,
 `out/<film>/judge/<scene>-<stamp>-<draw>/` (made by an exclusive mkdir, so
-two runs never share one), beside the stills, the packet (its paths moved
-there) and `key.json`: the ranking in real names beside the owner's pick
+two runs never share one), beside the stills, the packet (as it was read)
+and `key.json`: the ranking in real names beside the owner's pick
 (the level the look plays, the render set's approved variant), the key, the
 reasons with each label's heading named, and the counsel's answer and
-packet by path. The counsel can read the whole machine, so the blindness
-rests on nothing that names a version being reachable from the packet: an
-earlier run's folder unblinds its own stills. The judge writes no choice. It logs `judge.drawn label= stills=` per version and `judge.done
+packet by path. The judge writes no choice. It logs `judge.drawn label= stills=` per version and `judge.done
 … ms=`.
 
 ## Review
