@@ -8,7 +8,18 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { ConfigProvider, Context, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import {
+  ConfigProvider,
+  Context,
+  Deferred,
+  Effect,
+  Fiber,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Schema,
+} from 'effect';
 import { sceneAddress } from '../core/address.ts';
 import type { Render } from '../core/catalogue.ts';
 import type { LookPost, LookTaken } from '../core/easel.ts';
@@ -31,14 +42,12 @@ class Here extends Context.Service<
 /**
  * What the counsel could read as it was asked: the prompt's folder, every
  * file in it by name (`names`, below the folder) and the words of each that
- * is no image (`texts`), and the look's files still about the film's folder
- * (`left`, the fake look's `look-<level>-<n>.jpg`).
+ * is no image (`texts`).
  */
 interface Seen {
   readonly folder: string;
   readonly names: ReadonlyArray<string>;
   readonly texts: ReadonlyArray<string>;
-  readonly left: ReadonlyArray<string>;
 }
 
 /** `inner`, but noting first what the counsel could read (`Seen`) in `seen`, the film's folder at `root`. */
@@ -59,8 +68,7 @@ const reading = (root: string, seen: Array<Seen>) =>
               (name) =>
                 fs.readFileString(path.join(folder, name)).pipe(Effect.orElseSucceed(() => '')),
             );
-            const left = (yield* fs.readDirectory(root)).filter((name) => name.startsWith('look-'));
-            seen.push({ folder, names, texts, left });
+            seen.push({ folder, names, texts });
           }).pipe(Effect.orDie, Effect.andThen(inner.ask(prompt, dir))),
       });
     }),
@@ -218,7 +226,7 @@ describe('film judge', () => {
 
   const seen: Array<Seen> = [];
   it.effect(
-    'the counsel reads a folder of the packet and the stills alone: no key, no version named, no look left',
+    'the counsel reads a folder of the packet and the stills alone: no key, no version named',
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
@@ -226,7 +234,7 @@ describe('film judge', () => {
         const { out, root } = yield* Here;
         const judged = yield* judgeOpen(Option.some('look:ground'));
         expect(seen).toHaveLength(1);
-        const [asked = { folder: root, names: [], texts: [], left: [] }] = seen;
+        const [asked = { folder: root, names: [], texts: [] }] = seen;
         expect(asked.names.toSorted()).toEqual([
           'packet.md',
           'stills',
@@ -240,8 +248,6 @@ describe('film judge', () => {
             expect([name, word, name.includes(word)]).toEqual([name, word, false]);
         for (const text of asked.texts)
           for (const word of ['dusk', 'noon']) expect(text).not.toContain(word);
-        // The look's files, named by level, were gone before the counsel was asked.
-        expect(asked.left).toEqual([]);
         // The key is written once the counsel has answered, beside the verdict, with the stills.
         expect((yield* keyOf(judged.dir)).versions).toHaveLength(2);
         expect(yield* fs.readDirectory(path.join(judged.dir, 'stills'))).toHaveLength(2);
@@ -323,6 +329,53 @@ describe('film judge', () => {
         expect(yield* fs.readDirectory(path.join(run.dir, 'stills'))).toHaveLength(2);
       }
     }).pipe(Effect.scoped, Effect.provide(judging('{ dusk: 0, noon: 0.5 }', reversed))),
+  );
+
+  it.effect(
+    "two judges drawing the same look at once each copy the lab's stills, and leave them",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const here = yield* Here;
+        const wrote = yield* Deferred.make<boolean>();
+        const release = yield* Deferred.make<boolean>();
+        const judgeWith = (
+          take: (
+            post: LookPost,
+          ) => Effect.Effect<LookTaken, never, FileSystem.FileSystem | Path.Path>,
+        ) =>
+          judge({
+            film,
+            scene: 'open',
+            point: Option.some('look:ground'),
+            captions: false,
+            rules: [{ file: here.rules, heading: '## The look', registers: [] }],
+            take,
+          });
+        // The second judge's look is written, and answered once the first judge is done: the
+        // lab answers the same request with the same file to both.
+        const late = yield* Effect.forkChild(
+          judgeWith((post) =>
+            Effect.gen(function* () {
+              const taken = yield* fakeTake(here.root)(post);
+              yield* Deferred.succeed(wrote, true);
+              yield* Deferred.await(release);
+              return taken;
+            }),
+          ),
+        );
+        yield* Deferred.await(wrote);
+        const first = yield* judgeWith(fakeTake(here.root));
+        yield* Deferred.succeed(release, true);
+        const second = yield* Fiber.join(late);
+        for (const run of [first, second]) expect((yield* keyOf(run.dir)).versions).toHaveLength(2);
+        // The lab's own stills stay where the lab wrote them.
+        expect(
+          (yield* fs.readDirectory(here.root))
+            .filter((name) => name.startsWith('look-'))
+            .toSorted(),
+        ).toEqual(['look-dusk-0.jpg', 'look-noon-0.jpg']);
+      }).pipe(Effect.scoped, Effect.provide(judging('{ dusk: 0, noon: 0.5 }', reversed))),
   );
 
   it.effect('a sound choice, a look the film lacks, and one version alone are refused', () =>

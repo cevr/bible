@@ -1683,8 +1683,9 @@ middles, one per frame as a look resolves it (`momentOf` at the film's fps,
 counted from the film's start), at most `JUDGE_MOMENTS` (12) spread evenly
 (`judgeMoments`); stills are 1280-pixel JPEGs, drawn straight to
 `stills/<label>-<nn>.jpg` in a folder of their own under the system's temp
-folder, beside `packet.md` and nothing else (a look's own level-named files
-are moved out of `out/<film>/look/` as they are drawn). The labels are drawn
+folder, beside `packet.md` and nothing else (a look's stills are copied
+there from the lab's own files, which stay the lab's, so judges at once
+never take one another's). The labels are drawn
 by `Random.shuffle`; the key (`JudgeKey`) stays in memory until the counsel
 has answered, and is never in `packet.md` (`packetOf`): the beat's words, its picture's brief,
 its register (`registersOf`, the head of the brief) and act, the app's rules

@@ -11,9 +11,10 @@
 // Every version is shown at the same moments (the scene's marks and its cues'
 // middles), labelled in an order drawn at random. The counsel
 // (`tools/counsel.ts`) is asked from a folder of its own under the system's
-// temp folder that holds the packet and the stills and nothing else (a
-// look's own level-named files are moved out of `out/<film>/look/` as they
-// are drawn); the key stays in memory until it has answered. It ranks the
+// temp folder that holds the packet and the stills and nothing else (each
+// still copied there under its label; the lab's own look files stay the
+// lab's, for any other judge asking them); the key stays in memory until it
+// has answered. It ranks the
 // versions against the app's rules that bear on the beat, and the answer is
 // unblinded into `verdict.md`, beside the stills, the packet and `key.json`,
 // under `out/<film>/judge/<scene>-<stamp>-<draw>/`. The counsel can read the
@@ -207,10 +208,10 @@ export const judge = Effect.fn('judge')(function* <TE, TR>(ask: JudgeAsk<TE, TR>
             view,
             levels: { [name]: level },
           });
-          // Each still moved to its label's name: the look's own file, named by its
-          // level, is gone before the counsel is asked.
+          // Each still copied to its label's name in this run's own folder. The lab's
+          // file is the lab's: another judge asking the same look is answered it too.
           yield* Effect.forEach(Arr.zip(taken.looks, files), ([one, file]) =>
-            Effect.andThen(fs.copyFile(one.file, file), fs.remove(one.file)),
+            fs.copyFile(one.file, file),
           );
         }),
     })),
