@@ -772,6 +772,14 @@ export const ScenesView = (props: ScenesViewProps) => {
   onCleanup(() => document.body.classList.remove('scenes'));
   return (
     <div class="sc" data-selected={String(Option.isSome(chosen()))}>
+      {/* With no scene selected the tape takes the page: the picture waits here, unseen, for the focus panel. */}
+      <div
+        class="sc-park"
+        hidden
+        ref={(el: HTMLDivElement) => {
+          el.append(props.stage);
+        }}
+      />
       <div class="sc-main">
         <div class="sc-tapebar">
           <Show when={acts().length > 0}>

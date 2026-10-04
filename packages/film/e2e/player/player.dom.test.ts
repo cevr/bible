@@ -127,6 +127,25 @@ describe('the player', () => {
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     );
+
+    it.live(`on ${label} the Scenes show the picture only in a selected scene's panel`, () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport },
+          STILL_DRAWN,
+        );
+        // Nothing selected: the tape takes the page, no picture above it.
+        yield* evaluates(page, "document.querySelector('.stage').checkVisibility()", false);
+        yield* clickInScene(page, 'two');
+        yield* page.waitFor('.sc-focus');
+        yield* evaluates(
+          page,
+          "document.querySelector('.sc-focus .stage')?.checkVisibility() === true",
+          true,
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    );
   }
 
   it.live(

@@ -481,6 +481,40 @@ describe("a film's project", () => {
   );
 
   it.live(
+    "on a phone each scene is a row, its picture beside its name and marks, its Approve in the scene's sheet",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject(), {
+          href: PROJECT,
+          viewport: { width: 390, height: 844 },
+        });
+        yield* waitFor(page, render('open'));
+        // The picture sits left of the name, a thumbnail, not the row's width.
+        const beside = (selector: string) =>
+          `((p, n) => p.right <= n.left && p.width < innerWidth / 2)(document.querySelector('${selector} .sc-card-picture').getBoundingClientRect(), document.querySelector('${selector} .sc-card-name').getBoundingClientRect())`;
+        yield* evaluates(page, beside(render('open')), true);
+        // The row carries no verb; the scene's sheet does.
+        yield* evaluates(
+          page,
+          `document.querySelector('${render('open')} [data-act="approve"]').checkVisibility()`,
+          false,
+        );
+        yield* inspect(page, render('open'));
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+        // A laptop has room for the card whole: its picture over its name, and its Approve.
+        yield* page.resize(1440, 900);
+        yield* evaluates(page, beside(render('open')), false);
+        yield* evaluates(
+          page,
+          `document.querySelector('${render('open')} [data-act="approve"]').checkVisibility()`,
+          true,
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'lists the act and its scenes with their renders, states and approvals; each choice once, where it belongs',
     () =>
       Effect.gen(function* () {

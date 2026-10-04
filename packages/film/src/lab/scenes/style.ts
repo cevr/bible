@@ -144,5 +144,13 @@ body.scenes { display: block; height: auto; }
   .sc-focus[data-expanded="false"] .sc-verb:not([data-primary]) { display: none; }
   .sc-focus[data-expanded="false"] .sc-card-verb { grid-column: 1 / -1; }
   .sc[data-selected="true"] .sc-tape { padding-bottom: 40dvh; }
+  /* A tile on the phone is a row (design language §7, Project): its picture beside its name and marks;
+     its verb lives in the scene's sheet, and the picture's words (the command that renders it) in the sheet's card. */
+  .sc-card[data-size="tile"] { grid-template-columns: 7rem minmax(0, 1fr); column-gap: var(--s-3); align-items: center;
+    padding: var(--s-2); }
+  .sc-card[data-size="tile"] > :not(.sc-card-picture) { padding: 0; }
+  .sc-card[data-size="tile"] .sc-card-picture { grid-row: span 2; }
+  .sc-card[data-size="tile"] .sc-card-verb { display: none; }
+  .sc-card[data-size="tile"] .sc-card-blank { visibility: hidden; }
 }
 `;
