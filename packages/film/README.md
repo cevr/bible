@@ -1623,8 +1623,8 @@ shows HEAD until it lifts (a phone's way, where there are no keys). The mode
 is one effect-machine (`lab/compare/machine.ts`): `Off | Wipe | Blink | Held | Diff`
 on `Choose | Split | Flip | Hold`, a blink flipping itself every 450 ms by the
 machine's timeout and waiting while held. The mode is the link's (`?view=off|wipe|blink|diff`
-on `/films/<film>/lab[/<scene>]`, written in place, so Back walks picks, not
-modes); the divider is the viewer's, kept in `film-lab-view:<film>`. Only data can differ that way; when the file's code
+on `/films/<film>/lab[/<scene>]`: each mode the owner picks is an entry, so Back walks
+the views; the machine moving on its own is written in place); the divider is the viewer's, kept in `film-lab-view:<film>`. Only data can differ that way; when the file's code
 changed since HEAD the panel says so, and a HEAD the server cannot give shows the server's reason.
 
 **The look-book** (`player/lookbook-sheet.ts`) is one sheet of the whole film:

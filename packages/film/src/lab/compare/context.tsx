@@ -113,9 +113,10 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
   );
   createEffect(compare, (s) => view.patch({ compare: compareView(s) }));
   // The link and the machine agree on the mode: each follows the other only
-  // where they differ, so neither write echoes.
+  // where they differ, so neither write echoes. The owner's pick is an entry
+  // of its own (`choose`, below); the mode moving otherwise is written in place.
   createEffect(mode, (m) => {
-    if (m !== untrack(lab.view)) labActions.compareBy(m);
+    if (m !== untrack(lab.view)) labActions.keepCompare(m);
   });
   createEffect(lab.view, (v) => {
     if (v !== untrack(mode)) send(CompareEvent.Choose({ mode: v }));
@@ -132,7 +133,10 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
       status,
     },
     actions: {
-      choose: (m) => send(CompareEvent.Choose({ mode: m })),
+      choose: (m) => {
+        labActions.compareBy(m);
+        send(CompareEvent.Choose({ mode: m }));
+      },
       split: (split) => send(CompareEvent.Split({ split })),
       hold: (on) => send(CompareEvent.Hold({ on })),
     },

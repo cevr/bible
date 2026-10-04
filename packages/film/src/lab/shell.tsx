@@ -22,6 +22,7 @@ import {
   createSignal,
   onCleanup,
   onSettled,
+  untrack,
   useContext,
 } from 'solid-js';
 import type { Film } from '../canvas/film.ts';
@@ -76,8 +77,10 @@ interface LabActions {
   readonly selectNote: (note: Option.Option<string>) => void;
   /** Drop the note from the URL in place (it is gone from the feed): no entry to come back to. */
   readonly forgetNote: () => void;
-  /** Compare with HEAD by `view`, in place: the mode is the link's, with no entry of its own. */
+  /** Compare with HEAD by `view`, the owner's pick: a new history entry, so Back walks the views. */
   readonly compareBy: (view: CompareView) => void;
+  /** Write the compare's mode into the link in place, where it moved on its own: no entry of its own. */
+  readonly keepCompare: (view: CompareView) => void;
   /** Show `mode` in the inspector, and keep it for this viewer. */
   readonly showMode: (mode: LabMode) => void;
 }
@@ -269,7 +272,10 @@ const Root = (props: RootProps) => {
         select: (selection) => address.push(picked({ selection })),
         selectNote: (note) => address.push(picked({ note })),
         forgetNote: () => address.replace(picked({ note: Option.none() })),
-        compareBy: (view) => address.replace(picked({ view })),
+        compareBy: (view) => {
+          if (view !== untrack(() => here().view)) address.push(picked({ view }));
+        },
+        keepCompare: (view) => address.replace(picked({ view })),
         showMode,
       },
       meta: {

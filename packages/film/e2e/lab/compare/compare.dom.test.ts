@@ -4,8 +4,8 @@
 // HEAD cannot give says the server's reason, and HEAD's timeline that does
 // not resolve on today's narration says why; turned off and on, it reads
 // HEAD again; a reload keeps the mode. A diff lays HEAD over the frame in
-// the difference blend; the mode rides in the link (`?view=`) with no entry
-// of its own, and a link that names one opens in it; in a blink a press held
+// the difference blend; the mode rides in the link (`?view=`), each pick an
+// entry Back walks, and a link that names one opens in it; in a blink a press held
 // on the frame holds HEAD until it lifts (PA-9).
 
 import { Effect, Schedule } from 'effect';
@@ -123,28 +123,38 @@ describe('compare with HEAD', () => {
   );
 
   it.live(
-    'a diff lays HEAD over the frame in the difference blend, and the link says so in place',
+    'a diff lays HEAD over the frame in the difference blend; each mode picked is an entry, and Back walks them',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openLab([], { href: labAt(1), mode: 'compare' });
         yield* page.waitFor('.lab-compare-tools [data-mode="diff"]');
-        // The entries the page opened with, which a mode written in place leaves alone.
+        // The entries the page opened with: each mode the owner picks adds one.
         yield* page.until('(globalThis.openedWith = history.length) > 0');
+        const view = "new URLSearchParams(location.search).get('view')";
+        const blend = "document.querySelector('canvas.lab-compare')?.style.mixBlendMode";
         yield* click(page, '.lab-compare-tools [data-mode="diff"]');
         yield* compareSays(page, 'at HEAD');
         yield* page.waitFor('canvas.lab-compare:not([hidden])');
-        yield* page.until(
-          `document.querySelector('canvas.lab-compare')?.style.mixBlendMode === 'difference'`,
-        );
+        yield* page.until(`${blend} === 'difference'`);
         // Whole, not clipped to a divider.
         yield* clipIs(page, '');
-        yield* page.until(`new URLSearchParams(location.search).get('view') === 'diff'`);
-        yield* evaluates(page, 'history.length === globalThis.openedWith', true);
+        yield* page.until(`${view} === 'diff'`);
+        yield* evaluates(page, 'history.length - globalThis.openedWith', 1);
         yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
-        yield* page.until(
-          `document.querySelector('canvas.lab-compare')?.style.mixBlendMode === 'normal'`,
-        );
-        yield* page.until(`new URLSearchParams(location.search).get('view') === 'wipe'`);
+        yield* page.until(`${blend} === 'normal'`);
+        yield* page.until(`${view} === 'wipe'`);
+        yield* evaluates(page, 'history.length - globalThis.openedWith', 2);
+        // Back walks the views: the diff, then the lab as it opened.
+        yield* page.back;
+        yield* page.until(`${view} === 'diff'`);
+        yield* page.waitFor('.lab-compare-tools [data-mode="diff"].on');
+        yield* page.until(`${blend} === 'difference'`);
+        yield* page.back;
+        yield* page.until(`${view} === null`);
+        yield* page.waitFor('.lab-compare-tools [data-mode="off"].on');
+        // A mode picked again where the link already says it adds no entry.
+        yield* click(page, '.lab-compare-tools [data-mode="off"]');
+        yield* evaluates(page, 'history.length - globalThis.openedWith', 2);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
