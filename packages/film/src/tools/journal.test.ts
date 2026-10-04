@@ -37,34 +37,40 @@ const withFolder = <A, E, R>(films: string, effect: Effect.Effect<A, E, R>) =>
 const entry = (at: string, scene: string, text: string): JournalEntry => ({ at, scene, text });
 
 /**
- * The film's journal over `fs`, but each look at whether `file` is there
- * held in the order that loses a note when a journal is made by looking
- * first: both callers find it missing, the first goes on alone until the
- * test releases the second (`second`). Holds only while `holding` is set.
+ * The disk as `fs`, but the first note to make `file` held at the moment it
+ * has made it, until the test releases it (`release`); `made` is done then.
+ * Made by an exclusive open, as the operating system does it: the file is
+ * there, empty, before the writing that follows lands at its start, so a
+ * note appending in between is written over. Made by a link, the file is
+ * there whole, and the hold changes nothing.
  */
-const racing = (
+const holdingMaker = (
   fs: FileSystem.FileSystem,
   file: string,
-  holding: Ref.Ref<boolean>,
-  second: Deferred.Deferred<boolean>,
+  made: Deferred.Deferred<boolean>,
+  release: Deferred.Deferred<boolean>,
 ) =>
   Effect.gen(function* () {
-    const looked = yield* Ref.make(0);
-    const bothLooked = yield* Deferred.make<boolean>();
+    const makers = yield* Ref.make(0);
+    const hold = Effect.gen(function* () {
+      if ((yield* Ref.getAndUpdate(makers, (n) => n + 1)) > 0) return;
+      yield* Deferred.succeed(made, true);
+      yield* Deferred.await(release);
+    });
     return FileSystem.FileSystem.of({
       ...fs,
-      exists: (path) =>
-        Effect.gen(function* () {
-          const there = yield* fs.exists(path);
-          if (path !== file || !(yield* Ref.get(holding))) return there;
-          const n = yield* Ref.getAndUpdate(looked, (k) => k + 1);
-          if (n === 0) yield* Deferred.await(bothLooked);
-          if (n === 1) {
-            yield* Deferred.succeed(bothLooked, true);
-            yield* Deferred.await(second);
-          }
-          return there;
-        }),
+      writeFileString: (path, data, options) => {
+        if (path !== file || options?.flag !== 'wx') return fs.writeFileString(path, data, options);
+        return Effect.gen(function* () {
+          yield* fs.writeFileString(path, '', { flag: 'wx' });
+          yield* hold;
+          yield* fs.writeFileString(path, data, { flag: 'r+' });
+        });
+      },
+      link: (from, to) => {
+        if (to !== file) return fs.link(from, to);
+        return Effect.andThen(fs.link(from, to), hold);
+      },
     });
   });
 
@@ -107,28 +113,32 @@ describe('the journal', () => {
   );
 
   it.effect(
-    'two notes at once on a film with no journal both land, in the order that lost one',
+    'two notes at once on a film with no journal both land: one made it and went no further while the other wrote',
     () =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
         const { films, file } = yield* filmsHere;
-        const holding = yield* Ref.make(true);
-        const second = yield* Deferred.make<boolean>();
-        const raced = yield* racing(fs, file, holding, second);
+        const made = yield* Deferred.make<boolean>();
+        const release = yield* Deferred.make<boolean>();
+        const raced = yield* holdingMaker(fs, file, made, release);
         const first = yield* Effect.forkChild(
           withFileSystem(films, raced, note(film, 'first', Option.none())),
         );
-        const then = yield* Effect.forkChild(
-          withFileSystem(films, raced, note(film, 'second', Option.none())),
-        );
-        // The first note lands whole before the second, which found no journal too, goes on.
+        // The second note lands whole while the first has made the journal and gone no further.
+        yield* Deferred.await(made);
+        yield* withFileSystem(films, raced, note(film, 'second', Option.none()));
+        yield* Deferred.succeed(release, true);
         yield* Fiber.join(first);
-        yield* Deferred.succeed(second, true);
-        yield* Fiber.join(then);
-        yield* Ref.set(holding, false);
         const text = yield* fs.readFileString(file);
         expect(entriesOf(text).map((e) => e.text)).toEqual(['first', 'second']);
+        expect(text.startsWith(`# Journal: f\n\n${JOURNAL_RULE}\n`)).toBe(true);
         expect(text.split(JOURNAL_RULE)).toHaveLength(2);
+        // No draft is left beside it.
+        expect((yield* fs.readDirectory(path.dirname(file))).sort()).toEqual([
+          'journal.md',
+          'scenes',
+        ]);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 

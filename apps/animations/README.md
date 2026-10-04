@@ -360,7 +360,7 @@ robe lighter" is not (a decision lands in the source, a request is a lab
 note). `bun run journal <film> note "…" --scene <id>` appends one entry, its
 UTC time to the second and its scene (`film` without one), the words on one
 line; a scene the film lacks is refused (`UnknownScene`), and so is an empty
-note (`JournalEmpty`). `bun run journal <film> read [--scene <id>] [--last N]`
+note (`JournalEmpty`). Notes at once all land: a first note publishes its journal whole (written beside it, then linked into place, which fails if one is there), and every other appends. `bun run journal <film> read [--scene <id>] [--last N]`
 prints the newest entries, oldest first, as `<time> scene=<id> <text>`,
 never more than 8,000 characters, with a first line saying how many earlier
 entries it left out.

@@ -138,18 +138,31 @@ export const note = Effect.fn('journal.note')(function* (
   const text = oneLine(words);
   if (text === '') return yield* JournalEmpty.make({});
   const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
   const file = yield* fileOf(film);
   const at = DateTime.formatIso(yield* DateTime.now).replace(/\.\d+Z$/, 'Z');
   const entry: JournalEntry = { at, scene: Option.getOrElse(scene, () => FILM_WIDE), text };
-  // Made only if no one has made it (`wx`, one maker among notes at once), then appended,
-  // never rewritten: two notes at once both land, under one header.
-  yield* fs.writeFileString(file, header(film), { flag: 'wx' }).pipe(
-    Effect.catchIf(
-      (error) => error.reason._tag === 'AlreadyExists',
-      () => Effect.void,
-    ),
+  // A first note is published whole: its header and entry written beside the journal, then
+  // linked into place, which fails when a journal is there already, so no note ever finds a
+  // journal without its header, nor has its words written over. Else the entry is appended:
+  // two notes at once both land, under one header.
+  const made = yield* Effect.scoped(
+    Effect.gen(function* () {
+      const draft = yield* fs.makeTempFileScoped({
+        directory: path.dirname(file),
+        prefix: `.${JOURNAL_FILE}-`,
+      });
+      yield* fs.writeFileString(draft, `${header(film)}${entryBlock(entry)}`);
+      return yield* fs.link(draft, file).pipe(
+        Effect.as(true),
+        Effect.catchIf(
+          (error) => error.reason._tag === 'AlreadyExists',
+          () => Effect.succeed(false),
+        ),
+      );
+    }),
   );
-  yield* fs.writeFileString(file, entryBlock(entry), { flag: 'a' });
+  if (!made) yield* fs.writeFileString(file, entryBlock(entry), { flag: 'a' });
   yield* Effect.log(`journal.note film=${film} scene=${entry.scene} chars=${text.length}`);
   return { file, entry };
 });
