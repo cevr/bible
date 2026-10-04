@@ -81,5 +81,25 @@ export const playableOf = (el: MediaElement): Playable => {
   };
 };
 
-/** The page's media: its narration an `Audio` element. */
-export const mediaLayer = Media.layerOver((src) => playableOf(new Audio(src)));
+/** The page's one sound context, made on the first ask and woken on each. */
+const soundContext = () => {
+  let made = Option.none<AudioContext>();
+  return (): Option.Option<AudioContext> => {
+    if (Option.isNone(made)) {
+      // Safari's audio session (16.4+): `playback` plays through the silent switch, as a `<video>` does.
+      Option.map(Option.fromNullishOr(Reflect.get(navigator, 'audioSession')), (session) =>
+        Reflect.set(session, 'type', 'playback'),
+      );
+      made = Option.some(new AudioContext());
+    }
+    // A context the browser held suspended (no press yet) is woken by this one.
+    Option.map(
+      Option.filter(made, (ctx) => ctx.state === 'suspended'),
+      (ctx) => Effect.runFork(Effect.ignore(Effect.tryPromise(() => ctx.resume()))),
+    );
+    return made;
+  };
+};
+
+/** The page's media: its narration an `Audio` element, its panes' sound one `AudioContext`. */
+export const mediaLayer = Media.layerOver((src) => playableOf(new Audio(src)), soundContext());

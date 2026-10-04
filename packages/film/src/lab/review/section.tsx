@@ -17,9 +17,11 @@ import {
   type Accessor,
   type ParentProps,
   createContext,
+  createEffect,
   createMemo,
   createSignal,
   onCleanup,
+  onSettled,
   untrack,
   useContext,
 } from 'solid-js';
@@ -31,6 +33,7 @@ import {
   seenVariants,
 } from '../../core/choice.ts';
 import { playableOf } from '../../browser/media-browser.ts';
+import { type Chosen, chooseEngine, panesOver } from '../../browser/webcodecs-browser.ts';
 import { Pointer } from '../../browser/pointer.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
@@ -914,6 +917,52 @@ const PairView = (props: { readonly other: string }) => {
 /** Where a wipe opens: the frame halved. */
 const WIPE_AT = 0.5;
 
+/** The wipe's player as `data-engine` names it: `asking` until it is chosen (`media-choice.ts`). */
+const engineName = (chosen: Option.Option<Chosen>) =>
+  Option.match(chosen, { onNone: () => 'asking', onSome: (c) => c.engine.engine });
+
+/** Why the wipe plays on `<video>`, when it does. */
+const engineWhy = (chosen: Option.Option<Chosen>) =>
+  Option.flatMap(chosen, ({ engine }) => {
+    if (engine.engine === 'video') return Option.some(`Plays on <video>: ${engine.why}`);
+    return Option.none();
+  });
+
+/**
+ * The pair as WebCodecs panes (`webcodecs-browser.ts`): each master painted
+ * on a canvas, both on one clock, held by the set's clock in place of the
+ * videos; let go when the wipe closes.
+ */
+const WipePanes = (props: {
+  readonly chosen: Chosen;
+  readonly first: SeenVariant;
+  readonly other: SeenVariant;
+  readonly at: () => string;
+}) => {
+  const { meta } = useReview();
+  const { driver } = useSet();
+  const canvases: Array<HTMLCanvasElement> = [];
+  onSettled(() => {
+    const { panes, dispose } = panesOver(meta.host, props.chosen, canvases);
+    const ids = [props.first.id, props.other.id];
+    panes.forEach((pane, i) =>
+      Option.map(Option.fromUndefinedOr(ids[i]), (id) => driver.attach(id, pane)),
+    );
+    onCleanup(() => {
+      for (const id of ids) driver.detach(id);
+      dispose();
+    });
+  });
+  return (
+    <>
+      <canvas class="rv-wipe-first" data-id={props.first.id} ref={(el) => canvases.push(el)} />
+      <div class="rv-wipe-other" style={{ 'clip-path': `inset(0 0 0 ${props.at()})` }}>
+        <canvas data-id={props.other.id} ref={(el) => canvases.push(el)} />
+      </div>
+    </>
+  );
+};
+
 /**
  * The pair wiped (PA-8): both videos on the clock, stacked full width, the
  * first left of a divider and the other right of it; the divider dragged by
@@ -940,24 +989,64 @@ const WipeView = (props: { readonly other: string }) => {
     });
   };
   const at = () => `${split() * 100}%`;
+  // The player is chosen from the masters (the scrub preview reads their key
+  // frames); the videos play while it is asked, and stay if it is `<video>`.
+  const masters = createMemo(() =>
+    [pair().first, pair().other]
+      .flatMap(Option.toArray)
+      .flatMap((v) => Option.toArray(videoSource(v.video, 'full'))),
+  );
+  const [chosen, setChosen] = createSignal(Option.none<Chosen>(), { ownedWrite: true });
+  createEffect(
+    () => masters().join('\n'),
+    () => {
+      setChosen(Option.none());
+      const urls = untrack(masters);
+      if (urls.length < 2) return;
+      const asking = Effect.runForkWith(meta.host)(
+        Effect.map(chooseEngine(urls), (c) => setChosen(Option.some(c))),
+      );
+      return () => asking.interruptUnsafe();
+    },
+  );
+  const panes = () =>
+    Option.all({
+      chosen: Option.filter(chosen(), (c) => c.engine.engine === 'webcodecs'),
+      first: pair().first,
+      other: pair().other,
+    });
   return (
     <>
       <OtherPick other={props.other} />
       <div
         class="rv-wipe"
         data-split={split().toFixed(3)}
+        data-engine={engineName(chosen())}
+        title={Option.getOrUndefined(engineWhy(chosen()))}
         ref={(el: HTMLElement) => {
           frame = Option.some(el);
         }}
       >
-        <Show when={Option.getOrUndefined(pair().first)} keyed>
-          {(variant: SeenVariant) => <VariantVideo variant={variant} class="rv-wipe-first" />}
-        </Show>
-        <Show when={Option.getOrUndefined(pair().other)} keyed>
-          {(variant: SeenVariant) => (
-            <div class="rv-wipe-other" style={{ 'clip-path': `inset(0 0 0 ${at()})` }}>
-              <VariantVideo variant={variant} />
-            </div>
+        <Show
+          when={Option.getOrUndefined(panes())}
+          keyed
+          fallback={
+            <>
+              <Show when={Option.getOrUndefined(pair().first)} keyed>
+                {(variant: SeenVariant) => <VariantVideo variant={variant} class="rv-wipe-first" />}
+              </Show>
+              <Show when={Option.getOrUndefined(pair().other)} keyed>
+                {(variant: SeenVariant) => (
+                  <div class="rv-wipe-other" style={{ 'clip-path': `inset(0 0 0 ${at()})` }}>
+                    <VariantVideo variant={variant} />
+                  </div>
+                )}
+              </Show>
+            </>
+          }
+        >
+          {(p: { chosen: Chosen; first: SeenVariant; other: SeenVariant }) => (
+            <WipePanes chosen={p.chosen} first={p.first} other={p.other} at={at} />
           )}
         </Show>
         <div class="rv-wipe-line" style={{ left: at() }}>

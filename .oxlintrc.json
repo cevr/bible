@@ -645,7 +645,7 @@
           },
           {
             "name": "AudioContext",
-            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media.sound (packages/film/src/browser/media.ts) to play."
           },
           {
             "name": "AudioWorkletNode",
@@ -849,17 +849,17 @@
           {
             "object": "window",
             "property": "AudioContext",
-            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media.sound (packages/film/src/browser/media.ts) to play."
           },
           {
             "object": "globalThis",
             "property": "AudioContext",
-            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media.sound (packages/film/src/browser/media.ts) to play."
           },
           {
             "object": "self",
             "property": "AudioContext",
-            "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+            "message": "Use Capture (packages/film/src/lab/studio/capture.ts) to record, or Media.sound (packages/film/src/browser/media.ts) to play."
           },
           {
             "object": "window",

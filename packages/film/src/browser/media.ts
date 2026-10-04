@@ -7,10 +7,15 @@
 // shown, play and pause are effects. `Media` owns what is the host's rule:
 // what a refused play means (`play`: the browser's refusal of sound nobody
 // asked for is `Blocked`, a play a pause cut short is `Aborted`), the
-// fallback to muted play (`playOrMute`), and the audio a page makes
-// (`audio(src)`).
+// fallback to muted play (`playOrMute`), the audio a page makes
+// (`audio(src)`), and the one sound context the WebCodecs panes play
+// through (`sound`): made on the first ask, which a press makes, so the
+// browser lets it run; asked again on each play, so a context the browser
+// held suspended is woken by the next press; and made with the audio session
+// set to `playback`, so an iPhone's silent switch does not mute it, as it
+// does not a `<video>`.
 
-import { Context, Data, Effect, Layer } from 'effect';
+import { Context, Data, Effect, Layer, Option } from 'effect';
 
 /** A refused play, as the media said it: its error's name (`NotAllowedError`, `AbortError`, …). */
 export class PlayRefused extends Data.TaggedError('PlayRefused')<{ readonly name: string }> {}
@@ -75,16 +80,29 @@ interface MediaOps {
   readonly play: (media: Playable) => Effect.Effect<Played>;
   /** Play `media`; if the browser refuses its sound, play it muted. */
   readonly playOrMute: (media: Playable) => Effect.Effect<Played>;
+  /**
+   * The page's one sound context, woken: ask it in a press (a play is one).
+   * None where the page makes no sound of its own (a test).
+   */
+  readonly sound: Effect.Effect<Option.Option<AudioContext>>;
 }
 
 export class Media extends Context.Service<Media, MediaOps>()('@bible/film/browser/Media') {
-  /** The host's media, its audio made by `audio` (live an `Audio` element, a fake in a test). */
-  static readonly layerOver = (audio: (src: string) => Playable): Layer.Layer<Media> =>
+  /**
+   * The host's media, its audio made by `audio` (live an `Audio` element, a
+   * fake in a test), its sound context by `sound` (live the page's one
+   * `AudioContext`; none in a test).
+   */
+  static readonly layerOver = (
+    audio: (src: string) => Playable,
+    sound: () => Option.Option<AudioContext> = () => Option.none(),
+  ): Layer.Layer<Media> =>
     Layer.succeed(
       Media,
       Media.of({
         audio,
         play,
+        sound: Effect.sync(sound),
         playOrMute: (media) =>
           Effect.flatMap(play(media), (played) => {
             if (played._tag !== 'Blocked') return Effect.succeed(played);

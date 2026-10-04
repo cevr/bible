@@ -1825,7 +1825,20 @@ own names, and the stored and wire words stay as they are.
 - **Wipe**: the same two stacked full width on the one clock, the first left
   of a divider and the other right of it (`?view=wipe&other=<id>`). The
   divider is dragged by its grip; where it sits is the page's, not the
-  link's, since a different split shows the same comparison.
+  link's, since a different split shows the same comparison. Where the
+  browser can, the two play as **WebCodecs panes** (`browser/frame-pane.ts`
+  over mediabunny in `browser/webcodecs-browser.ts`): each master decoded to
+  a canvas, both read from one clock (`media-clock.ts`), so they are frame
+  for frame together rather than within the sync's 0.2 s, and a scrub shows
+  the key frame at once and then the exact frame. The player is chosen by
+  capability (`media-choice.ts`): `VideoDecoder`, the picture decodable, and
+  the sound decodable or PCM. A phone, a browser without WebCodecs, or a
+  master that will not open plays on `<video>`, which keeps every action;
+  the frame says which in `data-engine` (`asking`, `webcodecs`, `video`) and,
+  on `<video>`, why in its tooltip. The panes' sound plays through the page's
+  one sound context (`Media.sound`, set to `playback` on Safari so it plays
+  through the silent switch), only at 1× (another rate would change its
+  pitch), and a hidden page lets the decoders go.
 - **Difference** (a _difference matte_): the other's still laid over the
   first's at one moment in the `difference` blend, black where the two are
   the same and lit where they differ (`?view=diff&other=<id>&m=<n>`, ←/→

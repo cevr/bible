@@ -513,6 +513,27 @@ describe('the review page', () => {
   );
 
   it.live(
+    'a wipe whose masters will not open for WebCodecs plays on <video>, and says why',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: `${SET}?view=wipe&other=B` });
+        const stacked =
+          "Array.from(document.querySelectorAll('.rv-wipe video')).map((v) => v.dataset.id).join()";
+        // The videos play while the player is asked, and stay once it is <video>.
+        yield* until(page, `${stacked} === 'A,B'`);
+        yield* until(page, "document.querySelector('.rv-wipe').dataset.engine === 'video'");
+        yield* until(
+          page,
+          "document.querySelector('.rv-wipe').title.startsWith('Plays on <video>: ')",
+        );
+        yield* countIs(page, '.rv-wipe canvas', 0);
+        yield* until(page, `${stacked} === 'A,B'`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'the difference (PA-8) lays the other’s still over the first’s at one moment, in the difference blend, and nothing plays',
     () =>
       Effect.gen(function* () {
