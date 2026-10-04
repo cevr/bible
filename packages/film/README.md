@@ -985,7 +985,11 @@ editor's `Written` state names it, read from its step flow). A done receipt
 shows 5 s, a refusal 10 s, a busy one until replaced. The lab reloads after
 a scene write; the receipts showing as the page hides are kept in the tab
 (`film-receipts` in `TabStore`, for the same page) and shown again once it
-has loaded. A drag's write and a field's carry what they move in an
+has loaded. A receipt's Undo pressed while its command is not available
+(the reloaded page still reading the step) says `Undo is not available now`
+and is held: still offered and never expiring, it says again what it did
+once the command is available, unless a receipt in its slot supersedes it.
+A drag's write and a field's carry what they move in an
 optional `said` (`CueWrite`, `KnobWrite`: `cueSaid`, before → after). On
 the choices page and the project, Undo and Redo are commands
 (`review.undo` ⌘Z, `review.redo` ⇧⌘Z, in ⌘K, the `?` sheet and the page's

@@ -11,17 +11,20 @@
 // shown again on the page that loads in its place (`scope`: the same page,
 // the same film), so a write's receipt and its Undo outlive the reload it
 // causes. Its Undo pressed while its command is not available (the page that
-// loaded still reading the step it undoes) says so and stays offered.
+// loaded still reading the step it undoes) says so and is held: still
+// offered, it never expires, and once the command is available the receipt
+// says again what it did; a receipt in its slot after it supersedes it.
 
 import { Toast } from '@bible/ui/toast';
 import { For } from '@solidjs/web';
 import { Option, Schema } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
-import { onCleanup, onSettled } from 'solid-js';
+import { createEffect, createSignal, onCleanup, onSettled } from 'solid-js';
 import type { StoreRuntime } from '../../browser/storage.ts';
 import { BY_BUTTON, Receipt } from '../../command/command.ts';
 import type { Hub } from '../../command/hub.ts';
+import { hubChanges } from './changes.ts';
 
 /** How long a receipt shows, by its tone (ms; 0 until replaced). */
 const SHOWN_FOR = { done: 5000, refused: 10000, busy: 0 } as const;
@@ -32,6 +35,8 @@ const Kept = Schema.Struct({
   said: Schema.String,
   undo: Schema.OptionFromOptionalKey(Schema.String),
   tone: Schema.Literals(['done', 'refused', 'busy']),
+  /** Its Undo was pressed while not available: it says so, and waits for it. */
+  held: Schema.optionalKey(Schema.Literal(true)),
 });
 type Kept = typeof Kept.Type;
 
@@ -52,19 +57,34 @@ export const Receipts = (props: {
 }) => {
   const manager = Toast.createToastManager<Kept>();
   const showing = new Map<string, Kept>();
+  // The held receipts showing: each waits for its Undo's command.
+  const [held, setHeld] = createSignal<ReadonlyArray<Kept>>([], { ownedWrite: true });
+  const changes = hubChanges(props.hub);
   const undoLabel = (id: string) =>
     Option.match(props.hub.commands.byId(id), { onNone: () => 'Undo', onSome: (c) => c.label });
+  /** Whether command `id` is available now. */
+  const ready = (id: string) =>
+    Option.exists(props.hub.commands.byId(id), (c) => c.when(props.hub.context()));
   const show = (kept: Kept) => {
     showing.set(kept.slot, kept);
+    // A slot's next receipt supersedes the one held there.
+    setHeld((all) => [...all.filter((k) => k.slot !== kept.slot), ...[kept].filter((k) => k.held)]);
+    const undoing = Option.filter(kept.undo, () => kept.held === true);
     manager.add({
       id: kept.slot,
-      title: kept.said,
-      type: kept.tone,
-      timeout: SHOWN_FOR[kept.tone],
+      title: Option.match(undoing, {
+        onNone: () => kept.said,
+        onSome: (id) => `${undoLabel(id)} is not available now`,
+      }),
+      type: Option.match(undoing, { onNone: () => kept.tone, onSome: () => 'refused' }),
+      // Held, it stays until its Undo is available or a receipt supersedes it.
+      timeout: Option.match(undoing, { onNone: () => SHOWN_FOR[kept.tone], onSome: () => 0 }),
       priority: 'low',
       data: kept,
       onRemove: () => {
-        if (showing.get(kept.slot) === kept) showing.delete(kept.slot);
+        if (showing.get(kept.slot) !== kept) return;
+        showing.delete(kept.slot);
+        setHeld((all) => all.filter((k) => k !== kept));
       },
       // Always given, so a receipt with no Undo takes the button of the one it replaces away.
       actionProps: Option.getOrUndefined(
@@ -74,16 +94,8 @@ export const Receipts = (props: {
           'data-command': id,
           onClick: () => {
             // Not available now (a reloaded page still learning the step it undoes):
-            // said so, and still offered, never a press that silently does nothing.
-            const ready = Option.exists(props.hub.commands.byId(id), (c) =>
-              c.when(props.hub.context()),
-            );
-            if (!ready)
-              return show({
-                ...kept,
-                said: `${undoLabel(id)} is not available now`,
-                tone: 'refused',
-              });
+            // said so, and held, never a press that silently does nothing.
+            if (!ready(id)) return show({ ...kept, held: true });
             manager.close(kept.slot);
             props.hub.invokeId(id, BY_BUTTON);
           },
@@ -91,6 +103,19 @@ export const Receipts = (props: {
       ),
     });
   };
+  // A held receipt whose Undo is available again says what it did, as it did before.
+  createEffect(
+    () => {
+      changes();
+      return held().filter((k) => Option.exists(k.undo, ready));
+    },
+    (back) => {
+      for (const kept of back) {
+        const { held: _, ...was } = kept;
+        if (showing.get(kept.slot) === kept) show(was);
+      }
+    },
+  );
   onCleanup(
     props.hub.receipts((receipt, slot) =>
       Receipt.$match(receipt, {

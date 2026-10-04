@@ -173,9 +173,19 @@ describe('the cue strip', () => {
         yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
         yield* statusSays(page, 'Undo is not available now');
         yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
+        // Past a refusal's time, still offered: it waits for its Undo, never expires before it.
+        // (The pointer off the receipts, whose hover holds every toast's time.)
+        yield* page.mouse.move(5, 5);
+        yield* page.clock.runFor(12_000);
+        // A toast that expired is gone once its exit has run.
+        yield* page.clock.runFor(1_000);
+        yield* statusSays(page, 'Undo is not available now');
+        yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
         expect(posted(asked).map((a) => a.path)).toEqual(['/scenes/one/cues/rise']);
         yield* Deferred.done(known, Exit.void);
         yield* page.waitFor('[data-act="undo"]:not([disabled])');
+        // Available now: the receipt says again what it did.
+        yield* statusSays(page, 'cue rise offset 0 → ');
         yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
         yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
         expect(posted(asked).map((a) => a.path)).toEqual(['/scenes/one/cues/rise', '/undo']);
