@@ -26,8 +26,9 @@
 // is old code.
 //
 // A build that fails answers its page as the failure, the bundler's words,
-// is tried again on each request, and the page reloads itself once a build
-// is made; the lab itself keeps serving.
+// is tried again on each request and, while a page waits, by its wait every
+// half second (the failed page asks only its wait), and the page reloads
+// itself once a build is made; the lab itself keeps serving.
 
 import {
   Array as Arr,
@@ -224,6 +225,8 @@ const MAX_WAIT = Duration.seconds(60);
 const ARMING = Duration.millis(250);
 /** How far a file's mtime may lag the clock: a save during a build is counted from this before it began. */
 const MTIME_LAG = Duration.seconds(1);
+/** How often a wait builds again while the last build failed. */
+const RETRY = Duration.millis(500);
 
 /**
  * What a page asks its wait with: the build it was served, by which server
@@ -385,6 +388,8 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const asked = yield* Ref.make<ReadonlyArray<string>>([]);
   const builds = yield* Ref.make<ReadonlyArray<Built>>([]);
   const building = yield* Semaphore.make(1);
+  // One wait at a time builds again after a failure (`retryFailed`), however many pages wait.
+  const retrying = yield* Semaphore.make(1);
   // Bun names each output by its entry's path relative to the build's root: the
   // entries' common folder, given to the build so the names cannot drift.
   const entries = Record.toEntries(spec.pages);
@@ -609,8 +614,8 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
 
   /**
    * The build as the sources stand: the last one if nothing it read changed
-   * since, else a new one. A failed build is tried again on each ask, since a
-   * fix may lie where no watch reaches (the bundler names the importer, not
+   * since, else a new one. A failed build is tried again on each ask, and by
+   * a waiting page's wait (`retryFailed`), since a fix may lie where no watch reaches (the bundler names the importer, not
    * the file it missed); one that then builds takes a new number, so a failed
    * page waiting past the old one reloads. Asks at once share one build. The
    * last build answered again is stamped with the changes seen now, a mix
@@ -635,12 +640,33 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const now = (film: Option.Option<string>) =>
     Effect.map(SubscriptionRef.get(changes), (seen) => ({ build: heardBy(film)(seen), server }));
 
+  /**
+   * While the last build failed, build again every RETRY, for as long as a
+   * page waits: a fix may lie where no watch reaches, or the bundler may still
+   * hold what the failed build read a moment ago, and a failed page asks
+   * nothing but its wait. One that builds takes a new number (`current`),
+   * which the waiting pages hear. One wait at a time does it; it never ends.
+   */
+  const retryFailed = retrying.withPermit(
+    Effect.forever(
+      Effect.gen(function* () {
+        yield* Effect.sleep(RETRY);
+        const last = Arr.head(yield* Ref.get(builds));
+        if (Option.exists(last, (built) => built.outcome._tag === 'Failed')) yield* current;
+      }),
+    ),
+  );
+
   const wait = (served: Served, timeout: Duration.Input): Effect.Effect<PageBuild> => {
     if (Option.exists(served.server, (s) => s !== server)) return now(served.film);
-    return SubscriptionRef.changes(changes).pipe(
-      Stream.filter((seen) => heardBy(served.film)(seen) > served.since),
-      Stream.runHead,
-      Effect.andThen(Effect.sleep(SETTLE)),
+    return Effect.raceFirst(
+      SubscriptionRef.changes(changes).pipe(
+        Stream.filter((seen) => heardBy(served.film)(seen) > served.since),
+        Stream.runHead,
+        Effect.andThen(Effect.sleep(SETTLE)),
+      ),
+      retryFailed,
+    ).pipe(
       Effect.timeoutOption(Duration.min(Duration.fromInputUnsafe(timeout), MAX_WAIT)),
       Effect.andThen(now(served.film)),
     );

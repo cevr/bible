@@ -476,7 +476,7 @@ describe('lab pages', () => {
   );
 
   it.live(
-    'a page that failed for a file in a folder no build read serves once the file is made, and its wait hears it',
+    'a page that failed for a file in a folder no build read: its wait alone builds again, hears the fix, and the page then serves',
     () =>
       Effect.gen(function* () {
         const { spec, write } = yield* appFolder;
@@ -486,23 +486,55 @@ describe('lab pages', () => {
         const broken = yield* ask('/');
         expect(broken.status).toBe(500);
         const since = buildOf(broken.text);
+        // The failed page's wait, as its own script asks it; no page is asked meanwhile.
         const waiting = yield* Effect.forkChild(
           page.wait({ since, server: Option.none(), film: Option.none() }, '5 seconds'),
         );
         yield* write('lib/missing.ts', "export const gone = 'made';\n");
-        // Bun's resolver may still hold lib/ as the failed build listed it a moment ago (the
-        // build asked 5 ms after the save failed again, once in fifteen runs): a failed build
-        // is built again on each ask, so the page serves on an ask soon after.
-        const fixed = yield* ask('/').pipe(
-          Effect.repeat({
-            until: (answer) => answer.status === 200,
-            schedule: Schedule.spaced('100 millis'),
-            times: 20,
+        const heard = yield* Fiber.join(waiting);
+        expect(heard.build).toBeGreaterThan(since);
+        // The page it reloads onto, asked once: the build the wait made, served.
+        const fixed = yield* ask('/');
+        expect([fixed.status, buildOf(fixed.text)]).toEqual([200, heard.build]);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    'a failed page whose next build would build, with no save to hear, is woken by its wait building again',
+    () =>
+      Effect.gen(function* () {
+        const { spec } = yield* appFolder;
+        // The bundler fails its first two builds and builds the third, whatever the files:
+        // as Bun's resolver did, holding a folder as a failed build listed it a moment ago.
+        const bundles = yield* Ref.make(0);
+        const flaky = Layer.effect(
+          PageBundler,
+          Effect.gen(function* () {
+            const bundler = yield* PageBundler;
+            return PageBundler.of({
+              bundle: (entries, root) =>
+                Effect.flatMap(
+                  Ref.updateAndGet(bundles, (n) => n + 1),
+                  (n) => {
+                    if (n <= 2) return Effect.fail({ reason: `stale resolve ${n}`, files: [] });
+                    return bundler.bundle(entries, root);
+                  },
+                ),
+            });
           }),
+        ).pipe(Layer.provide(PageBundler.layerTest));
+        const { page, ask } = yield* served(spec, flaky);
+        const broken = yield* ask('/');
+        expect([broken.status, broken.text.includes('stale resolve 1')]).toEqual([500, true]);
+        const since = buildOf(broken.text);
+        // The failed page's wait, as its own script asks it; nothing is saved, no page asked.
+        const heard = yield* page.wait(
+          { since, server: Option.none(), film: Option.none() },
+          '5 seconds',
         );
-        expect(fixed.status).toBe(200);
-        expect(buildOf(fixed.text)).toBeGreaterThan(since);
-        expect((yield* Fiber.join(waiting)).build).toBeGreaterThan(since);
+        expect(heard.build).toBeGreaterThan(since);
+        const fixed = yield* ask('/');
+        expect([fixed.status, buildOf(fixed.text)]).toEqual([200, heard.build]);
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 

@@ -730,8 +730,10 @@ with no hand on the page. The review does not reload itself (a playing set
 is not interrupted); its next load is the new code. A page that does not
 build answers 500 with the bundler's words and reloads once a later build
 or another server answers, pausing 2 s after every other answer; a
-failed build is tried again on each request (a fix may land in a folder no
-build read), and one that then builds is a new build its page hears; the server
+failed build is tried again on each request and, while a page waits, by its
+wait every half second (a fix may land in a folder no build read, or the
+bundler may still hold what the failed build read; the failed page asks
+nothing but its wait), and one that then builds is a new build its page hears; the server
 keeps serving. The pages are not rendered on the server:
 the lab's preview draws the film's own scene code in the browser, so the
 scripts are the page. Only the lab's server bundles Solid; the render's
