@@ -126,7 +126,7 @@ const app = Effect.gen(function* () {
       write(name, text),
       page.wait({ since, server: Option.none(), film: Option.none() }, timeout),
     );
-  return { ask, page, script, scriptOf, waitWriting, waitOnce, write };
+  return { ask, page, script, scriptOf, spec, waitWriting, waitOnce, write };
 });
 
 const buildOf = (text: string) => Number(/name="lab-build" content="(\d+)"/.exec(text)?.[1]);
@@ -274,10 +274,10 @@ describe('lab pages', () => {
           Effect.gen(function* () {
             const bundler = yield* PageBundler;
             return PageBundler.of({
-              bundle: (entries, root) =>
+              bundle: (entries, root, how) =>
                 Effect.andThen(
                   Ref.update(bundles, (n) => n + 1),
-                  bundler.bundle(entries, root),
+                  bundler.bundle(entries, root, how),
                 ),
             });
           }),
@@ -451,6 +451,36 @@ describe('lab pages', () => {
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
+  it.live(
+    'a wedge builds the pages with a file read as other text, served by its id, the file unwritten',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const { ask, page, script, scriptOf, spec } = yield* app;
+        const shared = yield* fs.realPath(
+          path.join(path.dirname(spec.pages.review), 'lib', 'shared.ts'),
+        );
+        const swapped = new Map([[shared, "export const shared = 'shared swapped';\n"]]);
+        const wedged = yield* page.wedge(swapped);
+        expect(wedged.failed).toEqual(Option.none());
+        expect(wedged.wedge).not.toBe('');
+        const html = (yield* ask(`/?wedge=${wedged.wedge}`)).text;
+        expect(html).toContain(`src="/wedge/${wedged.wedge}/`);
+        expect(yield* scriptOf(`/?wedge=${wedged.wedge}`)).toContain('shared swapped');
+        // The pages as written, and the file, are as they were.
+        expect(yield* script).toContain('shared one');
+        expect(yield* fs.readFileString(shared)).toContain('shared one');
+        // The same swap again is the same wedge; one never built is no page.
+        expect((yield* page.wedge(swapped)).wedge).toBe(wedged.wedge);
+        expect((yield* ask('/?wedge=nope')).status).toBe(404);
+        // A swap no build reads is refused, not drawn as the source it was to replace.
+        const unread = yield* page.wedge(new Map([['/nonexistent/loop-probe-x.ts', '']]));
+        expect(unread.wedge).toBe('');
+        expect(Option.getOrElse(unread.failed, () => '')).toContain('read none of');
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
   it.live("a build that fails is the look's failure, in the bundler's words", () =>
     Effect.gen(function* () {
       const { ask, page, write } = yield* app;
@@ -541,12 +571,12 @@ describe('lab pages', () => {
           Effect.gen(function* () {
             const bundler = yield* PageBundler;
             return PageBundler.of({
-              bundle: (entries, root) =>
+              bundle: (entries, root, how) =>
                 Effect.flatMap(
                   Ref.updateAndGet(bundles, (n) => n + 1),
                   (n) => {
                     if (n <= 2) return Effect.fail({ reason: `stale resolve ${n}`, files: [] });
-                    return bundler.bundle(entries, root);
+                    return bundler.bundle(entries, root, how);
                   },
                 ),
             });

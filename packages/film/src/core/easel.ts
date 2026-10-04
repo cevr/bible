@@ -104,6 +104,20 @@ export class LabDown extends Schema.TaggedError<LabDown>()('LabDown', {
   }
 }
 
+/** A wedge naming a look `palette.ts` does not declare, or a level its look lacks. */
+export class LookLevelUnknown extends Schema.TaggedError<LookLevelUnknown>()('LookLevelUnknown', {
+  look: Schema.String,
+  level: Schema.String,
+  missing: Schema.Literals(['look', 'level']),
+  known: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    if (this.missing === 'look')
+      return `the film has no look "${this.look}" (its looks: ${this.known.join(', ') || 'none'})`;
+    return `look ${this.look} has no level "${this.level}" (its levels: ${this.known.join(', ')})`;
+  }
+}
+
 /** Why a place names no frame of a scene. */
 export type PlaceError = LookInvalid | LookPlaceUnknown | LookOutOfRange;
 
@@ -320,8 +334,21 @@ export const LookPost = Schema.Struct({
    * films refuses (`LabElsewhere`) rather than show their scene.
    */
   from: Schema.optionalKey(Schema.String),
+  /**
+   * A wedge: each look named drawn at the level given in place of the one it
+   * plays (`palette.ts`'s `looks`), the pick left unwritten, so the levels a
+   * choice offers are seen side by side before one is picked.
+   */
+  levels: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
 });
 export type LookPost = typeof LookPost.Type;
+
+/** A wedge's levels as one name, in look order: `ground-light`; empty for none. */
+export const wedgeName = (levels: Readonly<Record<string, string>>): string =>
+  Object.entries(levels)
+    .toSorted(([a], [b]) => a.localeCompare(b))
+    .map(([look, level]) => `${look}-${level}`)
+    .join('.');
 
 /** One still a look wrote: its file, and where it was taken. */
 export const Look = Schema.Struct({
@@ -356,13 +383,19 @@ const EXTENSION: Readonly<Record<StillView['format'], string>> = {
  * the build it was drawn from, so a still once written is never rewritten
  * with other pixels (frames are pure: one build and one view draw one image).
  */
-export const lookFileName = (moment: Moment, view: StillView, build: string): string => {
+export const lookFileName = (
+  moment: Moment,
+  view: StillView,
+  build: string,
+  wedge: string = '',
+): string => {
   const parts = [
     `t${moment.time.toFixed(2).padStart(7, '0')}`,
     ...Arr.filter([view.mode], (mode) => mode !== 'plain'),
     ...Option.toArray(Option.map(Option.fromUndefinedOr(view.crop), (c) => `crop${c.join('_')}`)),
     ...Option.toArray(Option.map(Option.fromUndefinedOr(view.size), (s) => `s${s}`)),
     ...Arr.filter(['captions'], () => view.captions),
+    ...Arr.filter([`w${wedge}`], () => wedge !== ''),
     `b${build}`,
   ];
   return `${parts.join('.')}.${EXTENSION[view.format]}`;

@@ -9,7 +9,10 @@
 //
 //   film look <film> --scene <id> --at <place> [--at <place> ...]
 //       [--crop x0,y0,x1,y1] [--size <long side>] [--mode plain|value|squint]
-//       [--captions] [--format png|jpeg] [--json]
+//       [--captions] [--format png|jpeg] [--level <look>=<level> ...] [--json]
+//
+// `--level` draws a wedge: the look at that level in place of the one the
+// film plays, its pick unwritten (`tools/easel.ts`).
 
 import { Argument, Command, Flag } from 'effect/cli';
 import { Array as Arr, Config, Console, Effect, Option, Path, Result, Schema } from 'effect';
@@ -30,7 +33,9 @@ import {
 } from '../core/easel.ts';
 
 /** The lab a look asks: the always-on one unless `FILM_LAB_URL` names another (a spare lab's port). */
-const labUrl = Config.String('FILM_LAB_URL').pipe(Config.withDefault('http://127.0.0.1:8229/'));
+export const labUrl = Config.String('FILM_LAB_URL').pipe(
+  Config.withDefault('http://127.0.0.1:8229/'),
+);
 
 const FORMATS = { png: 'image/png', jpeg: 'image/jpeg' } as const;
 
@@ -40,8 +45,39 @@ const jsonOf = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 const takenJson = Schema.encodeSync(Schema.fromJsonString(LookTaken));
 
 /** A failure as `--json` prints it: its tag, its message and its fields. */
-const failureJson = (error: { readonly _tag: string; readonly message: string }) =>
+export const failureJson = (error: { readonly _tag: string; readonly message: string }) =>
   jsonOf({ error: { ...error, _tag: error._tag, message: error.message } });
+
+/**
+ * The look `post` of `film` asked of the lab at `url` (`LooksGroup`): the
+ * stills it wrote and their build, its refusal as itself, or `LabDown` when
+ * no lab answered, or one answered with no look (a lab older than the asker).
+ */
+export const takeLook = (url: string, film: string, post: LookPost) =>
+  HttpApiClient.make(LabHttpApi, { baseUrl: url }).pipe(
+    Effect.flatMap((client) => client.looks.take({ params: { film }, payload: post })),
+    Effect.catchTags({
+      HttpClientError: (error) => Effect.fail(LabDown.make({ url, reason: error.message })),
+      SchemaError: (error) =>
+        Effect.fail(
+          LabDown.make({
+            url,
+            reason: `it answered no look (${error.message}); a lab older than this checkout needs a restart`,
+          }),
+        ),
+    }),
+  );
+
+/** `--level look=level` flags as a wedge's levels; a flag of another shape is `LookInvalid`. */
+const levelsOf = (flags: ReadonlyArray<string>) =>
+  Effect.forEach(flags, (flag) => {
+    const [look = '', level = '', ...rest] = flag.split('=');
+    if (look === '' || level === '' || rest.length > 0)
+      return Effect.fail(
+        LookInvalid.make({ reason: `--level ${flag}: a look and its level, look=level` }),
+      );
+    return Effect.succeed([look, level] as const);
+  }).pipe(Effect.map((pairs) => Object.fromEntries(pairs)));
 
 /** `film look`, its films folder `films` sent so a lab serving another checkout refuses. */
 export const look = (films: string) =>
@@ -82,6 +118,12 @@ export const look = (films: string) =>
           'png (lossless) or jpeg (0.95); unless told, a crop is png and a whole frame jpeg (a whole frame as png is about 4 MB)',
         ),
       ),
+      level: Flag.String('level').pipe(
+        Flag.atLeast(0),
+        Flag.withDescription(
+          "look=level: draw that look (palette.ts's looks) at that level, not the one it plays, the pick unwritten (a wedge); repeat for more looks",
+        ),
+      ),
       json: Flag.Boolean('json').pipe(
         Flag.withDefault(false),
         Flag.withDescription("print the lab's answer as one JSON line (a failure as {error})"),
@@ -111,22 +153,9 @@ export const look = (films: string) =>
             Effect.fail(LookInvalid.make({ reason: 'no --at: say where in the scene' })),
           onSome: (first) => Effect.succeed(Arr.prepend(Arr.drop(input.at, 1), first)),
         });
-        const post: LookPost = { scene: input.scene, at, view, from: path.resolve(films) };
-        const taken = yield* HttpApiClient.make(LabHttpApi, { baseUrl: url }).pipe(
-          Effect.flatMap((client) =>
-            client.looks.take({ params: { film: input.film }, payload: post }),
-          ),
-          Effect.catchTags({
-            HttpClientError: (error) => Effect.fail(LabDown.make({ url, reason: error.message })),
-            SchemaError: (error) =>
-              Effect.fail(
-                LabDown.make({
-                  url,
-                  reason: `it answered no look (${error.message}); a lab older than this checkout needs a restart`,
-                }),
-              ),
-          }),
-        );
+        const levels = yield* levelsOf(input.level);
+        const post: LookPost = { scene: input.scene, at, view, from: path.resolve(films), levels };
+        const taken = yield* takeLook(url, input.film, post);
         if (input.json) return yield* Console.log(takenJson(taken));
         for (const one of taken.looks) yield* Console.log(lookLine(one, taken.build));
       },

@@ -53,6 +53,8 @@ bun run render <film> ... --variant <name>     # another render of the same addr
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
 bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer (or {error}) as one line
+bun run look <film> ... --level <look>=<level>  # a wedge: that look (palette.ts's looks) drawn at that level instead of the one it plays, the pick left unwritten
+bun run judge <film> --scene <id> [--point look:<name>|render:<address>] [--captions] [--json]  # a blind second opinion on one picture choice: every version's stills at the scene's marks and cue middles, labelled at random, ranked against CRAFT and the director's vision by okra counsel --deep; prints the verdict's path (out/<film>/judge/<scene>-<stamp>/verdict.md) and the ranking; writes no choice
 bun run journal <film> note "text" [--scene <id>]   # append an observation to src/films/<film>/journal.md (committed), dated and placed; an empty note is refused
 bun run journal <film> read [--scene <id>] [--last N]  # the newest N entries (20), oldest first, one line each, under 8,000 characters
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
@@ -303,6 +305,42 @@ frame is a JPEG (0.95) unless `--format png` asks, since the paper's grain
 makes a 1920×1080 PNG about 4 MB. Stills are kept under
 `out/<film>/look/<scene>/`, named by time, view and build
 (`t0002.33.value.b<build>.jpg`), and never rewritten.
+
+A **wedge** (`--level ground=light`) is the printer's wedge: one strip printed
+at each of several grades so one can be chosen. It draws the scene with a
+look (`looks` in `palette.ts`) at another level than the one it plays,
+without writing the pick: the lab builds its pages once more with
+`palette.ts` read as a pick of that level would write it (the very edit the
+Choices view's **Pick** makes), serves that build beside its own, and draws
+from it. The file on disk never changes. A look or level the palette lacks
+is `LookLevelUnknown`; a wedge's stills carry its levels in their names
+(`….wground-light.b<build>.jpg`).
+
+### A second opinion: the judge
+
+`bun run judge <film> --scene <id>` asks another model family to rank the
+versions of one picture choice at a scene, blind. A version is what the
+Choices view picks between for the picture: a look's levels (`--point
+look:ground`, each drawn through the easel as a wedge) or a render set's
+variants (`--point render:scenes:<id>`, each cut from its video). Without
+`--point` it takes the scene's one picture choice that has two versions or
+more, and names them all when there are several (`JudgePointAmbiguous`).
+Every version is shown at the same moments, the scene's marks and its cues'
+middles (at most 12, spread evenly), as 1280-pixel JPEGs, under labels A, B,
+C drawn at random. The packet (`packet.md`) gives the beat's words, its
+picture's brief and register, its act, and the rules that bear on it,
+quoted with their paths (`JUDGE_RULES` in `cli.ts`: the look, the palette,
+the colour script, the paper and what we never do for every beat; human
+scale, figures and staging for a STORY beat; words off the picture,
+repetition and type for an IDEA beat). It never says which version is
+newer, which is picked or who made it; the key (`key.json`) stays beside it.
+`okra counsel --deep` answers with a ranking and, for each version, the
+still and the rule that decide it, or `no preference`. The judge unblinds
+that answer into `verdict.md`: the ranking in real names beside the owner's
+pick, the key, the reasons, and the counsel's answer by path. It prints three
+short lines (`verdict <path>`, `ranking <names> (point= pick=)`, `counsel
+<path>`), or one JSON line with `--json`. It writes no choice: a pick is still
+the owner's, in the Choices view.
 
 ### The journal
 

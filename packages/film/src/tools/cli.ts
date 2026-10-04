@@ -86,6 +86,8 @@ import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { Easel } from './easel.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
+import { judge } from './judge-cli.ts';
+import type { JudgeRule } from '../core/judge.ts';
 import { Review, type ReviewRoot } from './review.ts';
 import { NotesStore } from './notes-store.ts';
 import { notes } from './notes-cli.ts';
@@ -883,6 +885,13 @@ interface FilmApp<E> {
    * (`options`, `FreshFilm`).
    */
   readonly self: ReadonlyArray<string>;
+  /**
+   * What `film judge` quotes: sections of the app's rule files, each by its
+   * heading line, for every beat or only for a beat in one of its registers
+   * (`STORY`, `IDEA`). A section its file lacks fails the judge
+   * (`JudgeRuleMissing`).
+   */
+  readonly judge: { readonly rules: ReadonlyArray<JudgeRule> };
 }
 
 /**
@@ -897,6 +906,7 @@ export const runFilmCli = <E>({
   previewServer,
   lab: labApp,
   self,
+  judge: judging,
 }: FilmApp<E>): void => {
   // The app's folders under the environment's: FILMS_OUT and FILMS_LAB, when set, win.
   const Folders = ConfigProvider.layerAdd(
@@ -975,6 +985,7 @@ export const runFilmCli = <E>({
       lab(labApp, films),
       look(films),
       journal,
+      judge(films, judging.rules),
       notes,
     ]),
   );

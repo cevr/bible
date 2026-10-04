@@ -77,6 +77,34 @@ export const appCli = (films: string, sounds: string, self: string): void =>
     },
     // This CLI, for the lab's fresh `check --static` after each write.
     self: ['bun', self],
+    judge: { rules: JUDGE_RULES },
   });
+
+/** The film skill's rule files: the craft rules and the director's vision. */
+const SKILL = `${import.meta.dir}/../../.claude/skills/film`;
+const CRAFT = `${SKILL}/CRAFT.md`;
+const VISION = `${SKILL}/reference/director-vision.md`;
+
+/**
+ * What `film judge` quotes to its counsel: the rules that bear on a scene's
+ * picture. The look, the palette, the colour script, the paper and what we
+ * never do bear on every beat; a STORY beat adds human scale, figures and
+ * staging; an IDEA beat adds words off the picture, repetition as layout and
+ * type.
+ */
+const JUDGE_RULES = [
+  { file: CRAFT, heading: '## 3. Two registers', registers: [] },
+  { file: CRAFT, heading: '## 12. The look', registers: [] },
+  { file: VISION, heading: '### Palette logic', registers: [] },
+  { file: VISION, heading: '### Colour script per act', registers: [] },
+  { file: VISION, heading: '### Paper, light, texture', registers: [] },
+  { file: VISION, heading: '## What we never do', registers: [] },
+  { file: CRAFT, heading: '## 5. Human scale', registers: ['STORY'] },
+  { file: VISION, heading: '### Figures, scale, hands and faces', registers: ['STORY'] },
+  { file: VISION, heading: '## Camera and staging grammar', registers: ['STORY'] },
+  { file: CRAFT, heading: '## 1. Words off the picture', registers: ['IDEA'] },
+  { file: CRAFT, heading: '## 8. Repetition as layout', registers: ['IDEA'] },
+  { file: VISION, heading: '### Type', registers: ['IDEA'] },
+] as const;
 
 if (import.meta.main) appCli(FILMS, SOUNDS, import.meta.path);

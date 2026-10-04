@@ -1605,9 +1605,9 @@ client of the route (`tools/easel-cli.ts`, an `HttpApiClient` of
 `LabHttpApi` at `FILM_LAB_URL`, else `http://127.0.0.1:8229/`); an agent's
 tool calls the route the same way.
 
-| Route                          | What it does                                                                                                                                                              |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `POST /api/films/<film>/looks` | `LookPost` `{scene, at: [place, …], view: {crop?, size?, mode, captions, format}, from?}` → `LookTaken` `{build, looks: [{file, scene, at, frame, time, width, height}]}` |
+| Route                          | What it does                                                                                                                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/films/<film>/looks` | `LookPost` `{scene, at: [place, …], view: {crop?, size?, mode, captions, format}, from?, levels?}` → `LookTaken` `{build, looks: [{file, scene, at, frame, time, width, height}]}` |
 
 **Never stale.** Every look first asks the pages' build as it stands
 (`LabPage.built`): a file the last build read that changed since it
@@ -1644,6 +1644,54 @@ the page's words. The CLI adds `LabDown` (no lab answered, or one too old to
 know the route). Each look logs `easel.look … ms= built_ms= page_ms=
 draw_ms=`: the build asked, the page opened (0 when held), the frames drawn
 and written.
+
+**Wedges.** `levels` (`{ground: 'light'}`, `film look --level ground=light`)
+draws a wedge, the printer's strip at several grades: each look named at
+that level in place of the one it plays, the pick unwritten. The easel reads
+the film's `palette.ts`, checks each look and level against the ones it
+declares (`lookLevels`, `tools/choice-source.ts`; a 404 `LookLevelUnknown`
+names them), and edits `play` exactly as a pick would (`editPick`), in
+memory. `LabPage.wedge` builds the pages once more with that text in place
+of the file (`PageBundler`'s `swaps`, a Bun plugin that also refuses a swap
+the build never read), once per build and swap, the last few kept; the
+wedge's page is answered at its usual path with `?wedge=<id>` and its files
+under `/wedge/<id>/`. Its page is held beside the film's own (four at
+most), and its stills carry the levels in their names
+(`….wground-light.b<server>.<build>.<wedge>.jpg`).
+
+### The judge: `film judge`
+
+`film judge <film> --scene <id> [--point <id>]` (`tools/judge.ts`, its
+words pure in `core/judge.ts`) is a blind second opinion on one picture
+choice. A version is what the Choices view picks between for the picture:
+a look point's levels (`look:<name>`, each drawn as a wedge through the look
+route, so the lab at `FILM_LAB_URL` must run) and a render set's variants
+(`render:<address>`, the catalogue's videos at an address that holds the
+scene, each cut by `Media.still` at the same film seconds). A sound point
+is `JudgePointUnjudged`; unnamed, the scene's one picture choice with two
+versions or more is judged, several are `JudgePointAmbiguous`, none
+`JudgeNothingToCompare`. The moments are the scene's marks and its cues'
+middles, one per frame, at most `JUDGE_MOMENTS` (12) spread evenly
+(`judgeMoments`); stills are 1280-pixel JPEGs, copied to
+`out/<film>/judge/<scene>-<stamp>/stills/<label>-<nn>.jpg`. The labels are
+drawn by `Random.shuffle`; `key.json` (`JudgeKey`) holds which is which and
+is never in `packet.md` (`packetOf`): the beat's words, its picture's brief,
+its register (`registersOf`, the head of the brief) and act, the app's rules
+that bear on it (`FilmApp.judge.rules`, each a heading of a file, for every
+beat or for a register; a heading its file lacks is `JudgeRuleMissing`),
+the stills by label and moment, and the form of the answer. The counsel is
+a seam (`Counsel`, `tools/counsel.ts`) with two adapters: `Counsel.layer`
+runs `okra counsel --deep -f packet.md -o counsel/` in the judge's folder
+and reads the `codex.md` or `claude.md` it writes (a non-zero exit is
+`CounselFailed`, 124 its time out); `Counsel.layerTest` answers from a
+function of the packet. Its last `RANKING:` line is read (`rankingOf`:
+every label once, `>` between tiers, `=` a tie, or `no preference`; else
+`CounselUnreadable`) and unblinded into `verdict.md` (`verdictOf`): the
+ranking in real names beside the owner's pick (the level the look plays,
+the render set's approved variant), the key, the reasons with each label's
+heading named, and the counsel's answer and packet by path. The judge writes
+no choice. It logs `judge.drawn label= stills=` per version and `judge.done
+… ms=`.
 
 ## Review
 

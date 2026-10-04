@@ -161,4 +161,76 @@ describe('the easel', () => {
       expect(same.looks).toHaveLength(1);
     }).pipe(Effect.provide(easelLayer(new Map(), Ref.makeUnsafe(built(1))))),
   );
+
+  it.live(
+    'a wedge draws a look at the level asked, the palette read as a pick would write it, unwritten',
+    () => {
+      const palette =
+        "export const looks = { ground: { options: { now: 0, light: 0.5 }, play: 'now' } };\n";
+      const files = new Map([['/films/f/palette.ts', new TextEncoder().encode(palette)]]);
+      const ledger = emptyLedger();
+      const swapped: Array<ReadonlyArray<readonly [string, string]>> = [];
+      const wedging = Layer.effect(
+        LabPage,
+        Effect.map(Effect.service(LabPage), (echo) =>
+          LabPage.of({
+            ...echo,
+            built: Effect.succeed(built(4)),
+            wedge: (swaps) =>
+              Effect.sync(() => void swapped.push([...swaps.entries()])).pipe(
+                Effect.as({ ...built(4), wedge: '4-x' }),
+              ),
+          }),
+        ),
+      ).pipe(Layer.provide(echoPages));
+      const layer = Easel.layer.pipe(
+        Layer.provide([
+          fakeRenderHost(ledger, { scenes: [roof] }),
+          wedging,
+          FilmFolder.layer('/films'),
+        ]),
+        Layer.provideMerge([
+          memoryFileSystem(files),
+          Path.layer,
+          ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_OUT: '/out' })),
+        ]),
+      );
+      return Effect.gen(function* () {
+        const easel = yield* Easel;
+        yield* easel.serve('http://127.0.0.1:4401/');
+        const taken = yield* easel.look(film, {
+          scene: 'roof',
+          at: ['1'],
+          view,
+          levels: { ground: 'light' },
+        });
+        expect(swapped).toEqual([
+          [['/films/f/palette.ts', palette.replace("play: 'now'", "play: 'light'")]],
+        ]);
+        expect(taken.build).toBe('s.4.4-x');
+        expect(taken.looks[0]?.file).toBe(
+          '/out/f/look/roof/t0001.00.value.wground-light.bs.4.4-x.png',
+        );
+        expect(ledger.urls).toEqual(['http://127.0.0.1:4401/films/f/play?export&wedge=4-x']);
+        // The source is as it was: the pick is never written.
+        expect(new TextDecoder().decode(files.get('/films/f/palette.ts'))).toBe(palette);
+        const level = yield* Effect.flip(
+          easel.look(film, { scene: 'roof', at: ['1'], view, levels: { ground: 'dark' } }),
+        );
+        expect(level).toMatchObject({
+          _tag: 'LookLevelUnknown',
+          missing: 'level',
+          known: ['now', 'light'],
+        });
+        const look = yield* Effect.flip(
+          easel.look(film, { scene: 'roof', at: ['1'], view, levels: { sky: 'light' } }),
+        );
+        expect(look).toMatchObject({
+          _tag: 'LookLevelUnknown',
+          missing: 'look',
+          known: ['ground'],
+        });
+      }).pipe(Effect.provide(layer));
+    },
+  );
 });

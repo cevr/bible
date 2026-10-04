@@ -21,6 +21,7 @@ import type { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
 import {
   declarations,
+  keyName,
   numberOf,
   objectOf,
   parseModule,
@@ -138,6 +139,67 @@ export const editPick = (
   Result.flatMap(playLiteral(file, source, site), (literal) =>
     spliced(file, source, [{ start: literal.start, end: literal.end, text: stringText(option) }]),
   );
+
+/** The names of an object literal's keys, in order; refused when one is computed or spread. */
+const keysOf = (
+  file: string,
+  target: string,
+  obj: ObjectExpression,
+): Result.Result<ReadonlyArray<string>, SourceRefused> =>
+  Result.all(
+    obj.properties.map((p) => {
+      if (p.type === 'SpreadElement')
+        return refuse<string>(
+          file,
+          target,
+          'its object has a spread, so its keys are not provable',
+        );
+      return Option.match(keyName(p), {
+        onNone: () =>
+          refuse<string>(
+            file,
+            target,
+            'its object has a computed key, so its keys are not provable',
+          ),
+        onSome: (name) => Result.succeed(name),
+      });
+    }),
+  );
+
+/**
+ * Each look `palette.ts` declares (`export const looks`) and its levels (the
+ * keys of its `options`), as the file is written now: what a wedge
+ * (`tools/easel.ts`) may draw. A film with no `looks` export has none.
+ */
+export const lookLevels = (
+  file: string,
+  source: string,
+): Result.Result<ReadonlyMap<string, ReadonlyArray<string>>, SourceRefused> =>
+  Result.flatMap(parseModule(file, source), (program) => {
+    const target = 'looks';
+    const declared = declarations(program)
+      .filter(({ exported }) => exported)
+      .flatMap(({ decl }) => decl.declarations)
+      .some((d) => d.id.type === 'Identifier' && d.id.name === target);
+    if (!declared) return Result.succeed(new Map());
+    return Result.flatMap(exportedObject(file, program, target, target), (root) =>
+      Result.flatMap(keysOf(file, target, root), (looks) =>
+        Result.map(
+          Result.all(
+            looks.map((look) =>
+              Result.flatMap(objectAt(file, `look ${look}`, root, [look, 'options']), (options) =>
+                Result.map(
+                  keysOf(file, `look ${look}`, options),
+                  (levels) => [look, levels] as const,
+                ),
+              ),
+            ),
+          ),
+          (entries) => new Map(entries),
+        ),
+      ),
+    );
+  });
 
 // ---------------------------------------------------------------------------
 // A sound layer's level.

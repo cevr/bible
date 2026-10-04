@@ -589,6 +589,8 @@ export const echoPages = Layer.mergeAll(
       ),
       wait: (served) => Effect.succeed({ build: served.since, server: 'echo' }),
       built: Effect.succeed({ build: { build: 0, server: 'echo' }, failed: Option.none() }),
+      wedge: () =>
+        Effect.succeed({ build: { build: 0, server: 'echo' }, failed: Option.none(), wedge: 'w' }),
     }),
   ),
   Layer.succeed(

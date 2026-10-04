@@ -7,7 +7,15 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Result } from 'effect';
-import { SCORE_PLAY, editLevel, editPick, lookPlay, readLevel, readPick } from './choice-source.ts';
+import {
+  SCORE_PLAY,
+  editLevel,
+  editPick,
+  lookLevels,
+  lookPlay,
+  readLevel,
+  readPick,
+} from './choice-source.ts';
 
 const SOUND = `import type { Sound } from '@bible/film/core';
 
@@ -48,6 +56,15 @@ describe('a pick', () => {
     const after = ok(editPick('palette.ts', PALETTE, lookPlay('ground'), 'light'));
     expect(after).toBe(PALETTE.replace("play: 'now'", "play: 'light'"));
     expect(Result.isFailure(readPick('palette.ts', PALETTE, lookPlay('sky')))).toBe(true);
+  });
+
+  test("a palette's looks and their levels, as written; none without a looks export", () => {
+    expect([...ok(lookLevels('palette.ts', PALETTE)).entries()]).toEqual([
+      ['ground', ['now', 'light']],
+    ]);
+    expect(ok(lookLevels('palette.ts', 'export const palette = {};\n')).size).toBe(0);
+    const spread = 'export const looks = { ...others, ground: { options: {}, play: "x" } };\n';
+    expect(Result.isFailure(lookLevels('palette.ts', spread))).toBe(true);
   });
 });
 

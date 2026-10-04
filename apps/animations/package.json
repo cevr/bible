@@ -18,6 +18,7 @@
     "lookbook": "bun cli.ts lookbook",
     "look": "bun cli.ts look",
     "journal": "bun cli.ts journal",
+    "judge": "bun cli.ts judge",
     "chapters": "bun cli.ts chapters",
     "lab": "bun cli.ts lab",
     "notes": "bun cli.ts notes",
