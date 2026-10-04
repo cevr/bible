@@ -28,18 +28,33 @@ const named = (pathname: string) =>
     ),
   );
 
+const exists = (file: string) =>
+  Effect.flatMap(FileSystem.FileSystem, (fs) =>
+    fs.exists(file).pipe(Effect.orElseSucceed(() => false)),
+  );
+
+/**
+ * The file `pathname` names under the films folder `films`, of one of the
+ * films now, whether or not it is on disk yet (a film's track before its
+ * first mix): what a page asked for, to watch for.
+ */
+export const narrationPath = Effect.fn('narrationPath')(function* (
+  films: string,
+  pathname: string,
+) {
+  const path = yield* Path.Path;
+  for (const [film, name] of Option.toArray(named(pathname)))
+    for (const mark of Option.toArray(filmMark(films, film)))
+      if (yield* exists(mark)) return Option.some(path.join(films, film, 'narration', name));
+  return Option.none<string>();
+});
+
 /** The file `pathname` names under the films folder `films`, if it is one the route serves. */
 export const narrationFile = Effect.fn('narrationFile')(function* (
   films: string,
   pathname: string,
 ) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const exists = (file: string) => fs.exists(file).pipe(Effect.orElseSucceed(() => false));
-  for (const [film, name] of Option.toArray(named(pathname)))
-    for (const mark of Option.toArray(filmMark(films, film))) {
-      const file = path.join(films, film, 'narration', name);
-      if ((yield* exists(mark)) && (yield* exists(file))) return Option.some(file);
-    }
+  for (const file of Option.toArray(yield* narrationPath(films, pathname)))
+    if (yield* exists(file)) return Option.some(file);
   return Option.none<string>();
 });

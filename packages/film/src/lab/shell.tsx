@@ -165,7 +165,9 @@ const Root = (props: RootProps) => {
   const stage = makeStage(player, () => setRevision((n) => n + 1), reloads.request);
   const clientLayer = LabClient.layer;
   // The server rebuilt the pages (a source changed): reload onto the new code at this frame.
-  const rebuilt = Effect.runFork(reloadOnRebuild(stage.reload).pipe(Effect.provide(clientLayer)));
+  const rebuilt = Effect.runFork(
+    reloadOnRebuild(props.name, stage.reload).pipe(Effect.provide(clientLayer)),
+  );
   onCleanup(() => Effect.runFork(Fiber.interrupt(rebuilt)));
   const runtime = Atom.runtime(
     Layer.mergeAll(stageLayer(stage), labApiLayer(props.name), hostLayer(props.host)).pipe(

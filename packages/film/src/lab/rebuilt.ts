@@ -1,8 +1,9 @@
 // The lab page onto new code: the server builds the pages itself and numbers
 // each build (`LabPage`); the page was served at one, by one server process
 // (`<meta name="lab-build">`, `<meta name="lab-server">`), and waits on
-// `/api/review/build?since=` for a later one, which a change to a file the
-// pages are built from makes, or for an answer from another server (the lab
+// `/api/review/build?since=&film=` for a later one, which a change to a file
+// the pages are built from makes, or a new mix of its film's track, or for
+// an answer from another server (the lab
 // restarted: the page is old code, whatever the numbers). Then the page
 // reloads at the frame it shows, as a write does (`StageOps.reload`), so a
 // scene edited in the editor or by an agent is on screen without a hand on
@@ -54,8 +55,11 @@ export const reloadPast = <E, R>(
     yield* reload;
   });
 
-/** Wait for newer code than this page was served, then `reload`; a page with no build waits for none. */
-export const reloadOnRebuild = (reload: Effect.Effect<void>) =>
+/**
+ * Wait for newer code than this page was served, or a new mix of `film`,
+ * whose track it plays, then `reload`; a page with no build waits for none.
+ */
+export const reloadOnRebuild = (film: string, reload: Effect.Effect<void>) =>
   Option.match(servedBuild(), {
     onNone: () => Effect.void,
     onSome: (served) =>
@@ -63,7 +67,7 @@ export const reloadOnRebuild = (reload: Effect.Effect<void>) =>
         reloadPast(
           served,
           ({ build, server }) =>
-            client.page.wait({ query: { since: build, server, timeout: WAIT_S } }),
+            client.page.wait({ query: { since: build, server, film, timeout: WAIT_S } }),
           reload,
         ),
       ),

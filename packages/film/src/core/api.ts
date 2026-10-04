@@ -559,14 +559,17 @@ export type PageBuild = typeof PageBuild.Type;
 /**
  * The lab's own pages: a wait, held open up to `timeout` s (at most 60),
  * that answers once a file the pages were built from changed past the build
- * the page was served (`since`), so an open lab reloads onto the new code;
- * at once when the page names another `server` (the lab restarted).
+ * the page was served (`since`), so an open lab reloads onto the new code,
+ * or once the track of the `film` the page plays is mixed (another film's
+ * mix wakes it not); at once when the page names another `server` (the lab
+ * restarted).
  */
 class PageGroup extends HttpApiGroup.make('page').add(
   HttpApiEndpoint.get('wait', `${REVIEW}/build`, {
     query: {
       since: Schema.Finite,
       server: Schema.optionalKey(Schema.String),
+      film: Schema.optionalKey(Schema.String),
       timeout: Schema.optionalKey(Schema.Finite),
     },
     success: PageBuild,

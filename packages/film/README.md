@@ -708,17 +708,20 @@ or new to what it read, that changed from a second before the build began
 counts as a change. Each change to a
 file a build read is one more build (a render or a note is none). A film's
 mixed track (`narration/full.wav`) is no source, but the page plays the one
-it loaded: once a page is served one, its folder is watched too, and a mix
-landing it (last and whole, by a rename, so the mix has finished) is one more
-change the open lab hears, with no new build, so a score or level written on
-the review, a take kept, or a `film mix` run by hand reloads the lab once onto
-the new track; a take's timings, saved before its mix, wake nothing. A page links its scripts and styles from the root (`/chunk-….js`,
+it loaded: once a page asks for one, there or not (a film before its first
+mix gets a 404), its folder is watched too, or the nearest folder there on
+the way to it until the mix makes it, and a mix landing it (last and whole,
+by a rename, so the mix has finished) is one more change, with no new build,
+that the film's open lab hears and no other film's (it waits with `&film=`),
+so a score or level written on the review, a take kept, a first mix, or a
+`film mix` run by hand reloads that lab once onto the new track; a take's
+timings, saved before its mix, wake nothing. A page links its scripts and styles from the root (`/chunk-….js`,
 `publicPath: '/'`), so a page served under a film's path finds them; a
 request is answered as a narration file when it is one
 (`/films/<film>/narration/<file>`), then as a built file, then as the page
 its path serves. Every page is stamped with its build and the server that
 built it (`<meta name="lab-build">`, `<meta name="lab-server">`, an id made at
-start) and waits on `GET /api/review/build?since=&server=` (`PageBuild`,
+start) and waits on `GET /api/review/build?since=&server=&film=` (`PageBuild`,
 long-polled, at most 60 s; another server answers at once, so a page outlives
 a restart); the lab reloads at the frame it shows when a later build or
 another server answers
@@ -1696,7 +1699,7 @@ makes no phone copies.
 | `GET /api/films/<film>/choices/mix?point=&variant=`                             | the film's whole mix with that variant in place (m4a)                                                                                                                          |
 | `GET /api/films/<film>/choices/check`                                           | `SoundCheck`: `film check --sound` as the film now stands                                                                                                                      |
 | `GET /api/films/<film>/project`; `POST …/say`                                   | `ProjectView`, read or written by a fresh `film project` (above)                                                                                                               |
-| `GET /api/review/build?since=&timeout=`                                         | `PageBuild`: the pages' build, once past `since` (at most 60 s)                                                                                                                |
+| `GET /api/review/build?since=&server=&film=&timeout=`                           | `PageBuild`: the pages' build, once past `since`, a mix of `film` among the changes (at most 60 s)                                                                             |
 | `POST /api/films/<film>/undo`, `/redo`; `GET /api/films/<film>/check`, `/steps` | the lab's own, for the film named; `steps` its undo and redo alone                                                                                                             |
 
 **How a pick lands.** Every write goes through the one `SourceWriter`

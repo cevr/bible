@@ -4,7 +4,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path } from 'effect';
-import { narrationFile } from './narration-route.ts';
+import { narrationFile, narrationPath } from './narration-route.ts';
 
 /** A films folder with one film, `f`, its narration and an attempt; and `loose`, no film. */
 const films = Effect.gen(function* () {
@@ -51,6 +51,14 @@ describe('the narration route', () => {
         ]);
         expect(yield* narrationFile(root, '/films/f/narration/timings.json')).toEqual(
           Option.some(`${root}/f/narration/timings.json`),
+        );
+        // A film's track before its first mix: named, to watch for, but not served.
+        expect(yield* narrationPath(root, '/films/f/narration/full.wav')).toEqual(
+          Option.some(`${root}/f/narration/full.wav`),
+        );
+        expect(yield* narrationFile(root, '/films/f/narration/full.wav')).toEqual(Option.none());
+        expect(yield* narrationPath(root, '/films/loose/narration/full.wav')).toEqual(
+          Option.none(),
         );
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );

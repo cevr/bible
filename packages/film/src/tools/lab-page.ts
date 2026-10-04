@@ -16,9 +16,11 @@
 // `/api/review/build?since=` hears of it and reloads onto the new code, as
 // the development server's hot reload did. A film's mixed track
 // (`narration/full.wav`) is no source, but a page plays the one it loaded:
-// once one is served, its folder is watched too, and a mix landing it (last,
-// and whole, by a rename: the mix finished) is one more change a waiting page
-// hears, with no new build. A take's timings, saved before its mix, are none,
+// once one is asked for, there or not (a film before its first mix), its
+// folder is watched too, or the nearest one there on the way to it until the
+// mix makes it, and a mix landing it (last, and whole, by a rename: the mix
+// finished) is one more change, with no new build, that a page waiting with
+// that film (`&film=`) hears and no other. A take's timings, saved before its mix, are none,
 // so a page reloads once, onto the new track. Each lab process draws its own
 // id (`server`): a page served by an earlier process hears at once that it
 // is old code.
@@ -33,6 +35,7 @@ import {
   Context,
   Duration,
   Effect,
+  Equal,
   Fiber,
   FileSystem,
   Layer,
@@ -51,7 +54,7 @@ import {
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { type PageBuild, type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import type { PageAnswer } from './api-server.ts';
-import { isNarrationUrl, narrationFile } from './narration-route.ts';
+import { isNarrationUrl, narrationPath } from './narration-route.ts';
 import { narrationUrls } from '../player/narrated.ts';
 import { serveFile } from './review-file.ts';
 
@@ -222,11 +225,52 @@ const ARMING = Duration.millis(250);
 /** How far a file's mtime may lag the clock: a save during a build is counted from this before it began. */
 const MTIME_LAG = Duration.seconds(1);
 
-/** What a page asks its wait with: the build it was served, and by which server when it knows. */
+/**
+ * What a page asks its wait with: the build it was served, by which server
+ * when it knows, and the film whose track it plays, if any (only that
+ * film's mix wakes it).
+ */
 interface Served {
   readonly since: number;
   readonly server: Option.Option<string>;
+  readonly film: Option.Option<string>;
 }
+
+/**
+ * The changes seen: `n` numbers each one (a page is stamped with it), `all`
+ * is the number of the last one every page hears (a source changed, a
+ * failed build built), and `mixed` that of each film's last mix, which only
+ * a page playing that film hears.
+ */
+interface Changes {
+  readonly n: number;
+  readonly all: number;
+  readonly mixed: ReadonlyMap<string, number>;
+}
+
+/** One more change, which every page hears. */
+const forAll = (seen: Changes): Changes => ({ ...seen, n: seen.n + 1, all: seen.n + 1 });
+
+/** One more change: `film`'s mix, which only a page playing it hears. */
+const mixOf =
+  (film: string) =>
+  (seen: Changes): Changes => ({
+    ...seen,
+    n: seen.n + 1,
+    mixed: new Map([...seen.mixed, [film, seen.n + 1]]),
+  });
+
+/** The number of the last change a page playing `film` (or none) hears. */
+const heardBy =
+  (film: Option.Option<string>) =>
+  (seen: Changes): number =>
+    Math.max(
+      seen.all,
+      Option.getOrElse(
+        Option.flatMap(film, (name) => Option.fromUndefinedOr(seen.mixed.get(name))),
+        () => 0,
+      ),
+    );
 
 interface LabPageService {
   /** The page, script, style or narration the request asks for, or a 404. */
@@ -320,17 +364,20 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const bundler = yield* PageBundler;
   const scope = yield* Effect.scope;
   const server = yield* serverId;
-  // The number of changes seen, each one a page waiting past it hears: a page is stamped with it.
-  const changes = yield* SubscriptionRef.make(0);
+  // The changes seen, each one a page waiting past it hears (`heardBy`): a page is stamped with `n`.
+  const changes = yield* SubscriptionRef.make<Changes>({ n: 0, all: 0, mixed: new Map() });
   // The number of changes at the last change to a file a build reads: a build made at or past
-  // it is current. A track mixed since (`masters`) wakes the pages and needs no build.
+  // it is current. A track mixed since (`masters`) wakes its film's pages and needs no build.
   const sourced = yield* Ref.make(0);
   // The files the last build read, absolute: only a change to one of them makes a new build.
   // None before a build has read any, or after one failed: then every change does.
   const read = yield* Ref.make(Option.none<ReadonlySet<string>>());
-  // Each film's mixed track a page was served, absolute: the mix lands it last and whole (a
-  // rename), so a change to it is the mix finished, and a page loaded then plays the new track.
-  const masters = yield* Ref.make<ReadonlySet<string>>(new Set());
+  // Each film's mixed track a page asked for, absolute, whether it was there or not (a film
+  // before its first mix), and its mtime as last heard (none: not there). The mix lands it
+  // last and whole (a rename), so a new mtime is the mix finished, and a page loaded then
+  // plays the new track.
+  const masters = yield* Ref.make<ReadonlyMap<string, Option.Option<number>>>(new Map());
+  const films = path.resolve(spec.films);
   // Each folder watched, and the fiber watching it; changed by one at a time (a build, a track served).
   const watchers = yield* Ref.make<ReadonlyMap<string, Fiber.Fiber<void>>>(new Map());
   const watching = yield* Semaphore.make(1);
@@ -353,20 +400,67 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     );
 
   /** One more change, to a file a build reads: the next page asked is built again. */
-  const sourceChanged = Effect.flatMap(
-    SubscriptionRef.updateAndGet(changes, (n) => n + 1),
-    (n) => Ref.set(sourced, n),
+  const sourceChanged = Effect.flatMap(SubscriptionRef.updateAndGet(changes, forAll), (seen) =>
+    Ref.set(sourced, seen.n),
   );
 
+  /** `file`'s mtime, none when it is not there. */
+  const mtimeOf = (file: string) =>
+    fs.stat(file).pipe(
+      Effect.map((info) => Option.map(info.mtime, (at) => at.getTime())),
+      Effect.orElseSucceed(() => Option.none<number>()),
+    );
+
+  /** The film a track (`<films>/<film>/narration/full.wav`) is of. */
+  const filmOf = (master: string) => path.basename(path.dirname(path.dirname(master)));
+
+  /**
+   * Whether `master`, a track a page asked for, landed since last heard: a
+   * new mtime is one more change, which only its film's pages hear. The
+   * mix always lands the track by a rename (`writeWholeWith` in mixer.ts,
+   * then `fs.rename` onto it), never by writes in place, so one mix is one
+   * new mtime; a watch's event and a check after arming that both see it
+   * count it once.
+   */
+  const landed = (master: string) =>
+    Effect.gen(function* () {
+      const at = yield* mtimeOf(master);
+      if (Option.isNone(at)) return;
+      const fresh = yield* Ref.modify(
+        masters,
+        (known): readonly [boolean, ReadonlyMap<string, Option.Option<number>>] => {
+          const last = Option.fromUndefinedOr(known.get(master));
+          if (Option.isNone(last) || Equal.equals(last.value, at)) return [false, known];
+          return [true, new Map([...known, [master, at]])];
+        },
+      );
+      if (fresh) yield* SubscriptionRef.update(changes, mixOf(filmOf(master)));
+    });
+
+  /** Each of `tracks` that landed while no watch reached it, checked once new watches are armed. */
+  const landedUnwatched = (tracks: ReadonlyArray<string>) =>
+    Effect.andThen(Effect.sleep(ARMING), Effect.forEach(tracks, landed, { discard: true })).pipe(
+      Effect.forkIn(scope),
+    );
+
   // Each change to a file the last build read is one more change, and a new build; a mix
-  // landing a track a page was served is one more change alone; anything else (a take's
-  // timings before its mix, a render, a note) is none.
-  const heard = (file: string) =>
+  // landing a track a page asked for is one more change alone, for its film; a folder made
+  // on the way to such a track (a film's first mix makes `narration/`) moves the watch down
+  // to it; anything else (a take's timings before its mix, a render, a note) is none.
+  const heard = (file: string): Effect.Effect<void> =>
     Effect.gen(function* () {
       const inputs = yield* Ref.get(read);
       if (Option.match(inputs, { onNone: () => true, onSome: (set) => set.has(file) }))
         return yield* sourceChanged;
-      if ((yield* Ref.get(masters)).has(file)) yield* SubscriptionRef.update(changes, (n) => n + 1);
+      const tracks = [...(yield* Ref.get(masters)).keys()];
+      if (tracks.includes(file)) return yield* landed(file);
+      const below = tracks.filter((track) => track.startsWith(`${file}/`));
+      if (below.length === 0) return;
+      // Forked: the new watch may let go of the folder this one is heard in.
+      yield* Effect.forkIn(
+        Effect.andThen(watching.withPermit(rewatch), landedUnwatched(below)),
+        scope,
+      );
     });
   const watch = (dir: string) =>
     fs.watch(dir).pipe(
@@ -379,14 +473,27 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       Stream.runForEach(heard),
     );
 
+  /** The nearest folder on the way to `dir` that is there, no higher than the films folder. */
+  const nearest = (dir: string): Effect.Effect<string> =>
+    Effect.flatMap(
+      fs.exists(dir).pipe(Effect.orElseSucceed(() => false)),
+      (there): Effect.Effect<string> => {
+        if (there || !dir.startsWith(`${films}/`)) return Effect.succeed(dir);
+        return nearest(path.dirname(dir));
+      },
+    );
+
   /**
-   * Watch exactly the folders the builds ask for (`asked`) and those of the
-   * tracks served: a folder already watched keeps its watch (a save there is
-   * never between two watches), one no longer named is let go, and the
-   * folders newly watched are answered. Run under `watching`.
+   * Watch exactly the folders the builds ask for (`asked`) and, for each
+   * track asked for, its folder, or the nearest one there on the way to it:
+   * a folder already watched keeps its watch (a save there is never between
+   * two watches), one no longer named is let go, and the folders newly
+   * watched are answered. Run under `watching`.
    */
-  const rewatch = Effect.gen(function* () {
-    const tracks = [...(yield* Ref.get(masters))].map(path.dirname);
+  const rewatch: Effect.Effect<ReadonlyArray<string>> = Effect.gen(function* () {
+    const tracks = yield* Effect.forEach((yield* Ref.get(masters)).keys(), (track) =>
+      nearest(path.dirname(track)),
+    );
     const wanted = Arr.dedupe([...(yield* Ref.get(asked)), ...tracks]);
     const was = yield* Ref.get(watchers);
     const next = new Map<string, Fiber.Fiber<void>>();
@@ -405,20 +512,24 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     watching.withPermit(Effect.andThen(Ref.set(asked, dirs), rewatch));
 
   /**
-   * `file`, served at `pathname`: when it is its film's mixed track, its
-   * folder is watched from now on, so the next mix wakes the page.
+   * `file`, asked for at `pathname`, there or not: when it is its film's
+   * mixed track, it is watched for from now on (through the nearest folder
+   * there, before a film's first mix), so the next mix wakes the film's
+   * pages; one that landed before the watch was armed is heard after.
    */
-  const trackServed = (pathname: string, file: string) =>
+  const trackAsked = (pathname: string, file: string) =>
     Effect.gen(function* () {
-      const film = path.basename(path.dirname(path.dirname(file)));
-      if (pathname !== narrationUrls(film).audio) return;
-      if ((yield* Ref.get(masters)).has(file)) return;
+      const master = path.resolve(file);
+      if (pathname !== narrationUrls(filmOf(master)).audio) return;
+      if ((yield* Ref.get(masters)).has(master)) return;
+      const at = yield* mtimeOf(master);
       yield* watching.withPermit(
         Effect.andThen(
-          Ref.update(masters, (known) => new Set([...known, file])),
+          Ref.update(masters, (known) => new Map([...known, [master, at]])),
           rewatch,
         ),
       );
+      yield* landedUnwatched([master]);
     });
 
   /**
@@ -507,29 +618,31 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    */
   const current = building.withPermit(
     Effect.gen(function* () {
-      const now = yield* SubscriptionRef.get(changes);
+      const now = (yield* SubscriptionRef.get(changes)).n;
       const since = yield* Ref.get(sourced);
       const last = Arr.head(yield* Ref.get(builds)).pipe(Option.filter((b) => b.build >= since));
       if (Option.isSome(last) && last.value.outcome._tag === 'Built')
         return { ...last.value, build: now };
       let made = yield* bundle(now);
       if (Option.isSome(last) && made.outcome._tag === 'Built')
-        made = { ...made, build: yield* SubscriptionRef.updateAndGet(changes, (n) => n + 1) };
+        made = { ...made, build: (yield* SubscriptionRef.updateAndGet(changes, forAll)).n };
       yield* Ref.update(builds, (kept) => [made, ...kept].slice(0, KEPT));
       return made;
     }),
   );
 
-  const now = Effect.map(SubscriptionRef.get(changes), (build) => ({ build, server }));
+  /** The build a page playing `film` (or none) hears now. */
+  const now = (film: Option.Option<string>) =>
+    Effect.map(SubscriptionRef.get(changes), (seen) => ({ build: heardBy(film)(seen), server }));
 
   const wait = (served: Served, timeout: Duration.Input): Effect.Effect<PageBuild> => {
-    if (Option.exists(served.server, (s) => s !== server)) return now;
+    if (Option.exists(served.server, (s) => s !== server)) return now(served.film);
     return SubscriptionRef.changes(changes).pipe(
-      Stream.filter((n) => n > served.since),
+      Stream.filter((seen) => heardBy(served.film)(seen) > served.since),
       Stream.runHead,
       Effect.andThen(Effect.sleep(SETTLE)),
       Effect.timeoutOption(Duration.min(Duration.fromInputUnsafe(timeout), MAX_WAIT)),
-      Effect.andThen(now),
+      Effect.andThen(now(served.film)),
     );
   };
 
@@ -565,14 +678,24 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       ),
     );
 
-  /** The narration a page plays: the studio rewrites it in place (a take kept, the track remixed), so asked again each load. */
+  /**
+   * The narration a page plays: the studio rewrites it in place (a take
+   * kept, the track remixed), so asked again each load. A film's track is
+   * watched for once asked, there or not (a 404 before its first mix).
+   */
   const narration = (request: HttpServerRequest.HttpServerRequest, pathname: string) =>
-    narrationFile(spec.films, pathname).pipe(
+    narrationPath(spec.films, pathname).pipe(
       Effect.flatMap(
         Option.match({
           onNone: () => Effect.succeed(NOT_FOUND),
-          onSome: (found) =>
-            Effect.andThen(trackServed(pathname, found), serveFile(request, found, 'no-cache')),
+          onSome: (file) =>
+            Effect.andThen(
+              trackAsked(pathname, file),
+              Effect.flatMap(fs.exists(file), (there) => {
+                if (there) return serveFile(request, file, 'no-cache');
+                return Effect.succeed(NOT_FOUND);
+              }),
+            ),
         }),
       ),
       Effect.catchTags({

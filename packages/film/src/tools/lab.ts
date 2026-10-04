@@ -199,13 +199,17 @@ const scenesGroup = HttpApiBuilder.group(LabHttpApi, 'scenes', (handlers) =>
     ),
 );
 
-/** The pages' build: a wait that answers once a source a build read changes, or at once for a page another server served. */
+/** The pages' build: a wait that answers once a source a build read changes, or the page's film is mixed, or at once for a page another server served. */
 const pageGroup = HttpApiBuilder.group(LabHttpApi, 'page', (handlers) =>
   handlers.handle('wait', ({ query }) =>
     answered(
       Effect.flatMap(LabPage, (page) =>
         page.wait(
-          { since: query.since, server: Option.fromUndefinedOr(query.server) },
+          {
+            since: query.since,
+            server: Option.fromUndefinedOr(query.server),
+            film: Option.fromUndefinedOr(query.film),
+          },
           Duration.seconds(Math.max(0, query.timeout ?? 60)),
         ),
       ),

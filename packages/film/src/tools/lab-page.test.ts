@@ -2,7 +2,8 @@
 // first asked and stamped with its build and its server; a change to a file
 // it was built from (its source, its HTML entry, another package's source)
 // wakes a waiting page and the next ask is the new code; a mix landing the
-// track a page was served wakes it with no new build; a change to anything
+// track a page asked for (before its first mix too) wakes that film's pages,
+// and no other film's, with no new build; a change to anything
 // else (a render, a note, a take's timings) wakes nothing; a page another lab process served
 // hears at once that it is old; a page that does not build answers the
 // bundler's words, asks again with a pause, and serves again once fixed.
@@ -113,7 +114,7 @@ const app = Effect.gen(function* () {
    */
   const waitWriting = (since: number, timeout: Duration.Input, name: string, text: string) =>
     Effect.raceFirst(
-      page.wait({ since, server: Option.none() }, timeout),
+      page.wait({ since, server: Option.none(), film: Option.none() }, timeout),
       write(name, text).pipe(
         Effect.repeat(Schedule.spaced('200 millis')),
         Effect.andThen(Effect.never),
@@ -121,7 +122,10 @@ const app = Effect.gen(function* () {
     );
   /** A wait past `since` after `name` is written as `text` once: one save, heard or not. */
   const waitOnce = (since: number, timeout: Duration.Input, name: string, text: string) =>
-    Effect.andThen(write(name, text), page.wait({ since, server: Option.none() }, timeout));
+    Effect.andThen(
+      write(name, text),
+      page.wait({ since, server: Option.none(), film: Option.none() }, timeout),
+    );
   return { ask, page, script, scriptOf, waitWriting, waitOnce, write };
 });
 
@@ -247,7 +251,10 @@ describe('lab pages', () => {
       const { ask, page, waitWriting } = yield* app;
       yield* ask('/');
       // The first build may count once a save it read in the last second: the build once that is heard.
-      const settled = (yield* page.wait({ since: 0, server: Option.none() }, '1 second')).build;
+      const settled = (yield* page.wait(
+        { since: 0, server: Option.none(), film: Option.none() },
+        '1 second',
+      )).build;
       const { build } = yield* waitWriting(settled, '1 second', 'src/notes.json', '{"seq":1}');
       expect(build).toBe(settled);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
@@ -287,19 +294,20 @@ describe('lab pages', () => {
         // The lab's page loads, and plays the film's track.
         yield* ask('/films/f/lab');
         expect((yield* ask('/films/f/narration/full.wav')).text).toBe('mix one');
+        const f = { server: Option.none(), film: Option.some('f') };
         // The first build may count once a save it read in the last second: the build once that is heard.
-        const settled = (yield* page.wait({ since: 0, server: Option.none() }, '1 second')).build;
+        const settled = (yield* page.wait({ since: 0, ...f }, '1 second')).build;
         // A kept take's timings land before its mix: a page loaded then would play the old track.
         const timed = yield* Effect.andThen(
           fs.writeFileString(path.join(narration, 'timings.json'), '{"voice":""}'),
-          page.wait({ since: settled, server: Option.none() }, '1 second'),
+          page.wait({ since: settled, ...f }, '1 second'),
         );
         expect(timed.build).toBe(settled);
         // The mix lands its track whole, by a rename, as `film mix` does.
         yield* fs.writeFileString(path.join(narration, 'full.wav.partial'), 'mix two');
         const mixed = yield* Effect.andThen(
           fs.rename(path.join(narration, 'full.wav.partial'), path.join(narration, 'full.wav')),
-          page.wait({ since: settled, server: Option.none() }, '5 seconds'),
+          page.wait({ since: settled, ...f }, '5 seconds'),
         );
         expect(mixed.build).toBeGreaterThan(settled);
         // The page loaded again is stamped past the mix, so its own wait holds, and was not built again.
@@ -308,6 +316,75 @@ describe('lab pages', () => {
         expect(yield* Ref.get(bundles)).toBe(built);
         expect((yield* ask('/films/f/narration/full.wav')).text).toBe('mix two');
       }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    "a film's first mix, with no track and no narration folder when its page loaded, wakes that page's wait",
+    () =>
+      Effect.gen(function* () {
+        const { spec } = yield* appFolder;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        // Film `f` with no take yet: no `narration/` until its first mix makes it.
+        const film = path.join(spec.films, 'f');
+        yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
+        yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
+        const { page, ask } = yield* served(spec, PageBundler.layerTest);
+        yield* ask('/films/f/lab');
+        expect((yield* ask('/films/f/narration/full.wav')).status).toBe(404);
+        const f = { server: Option.none(), film: Option.some('f') };
+        // The first build may count once a save it read in the last second: the build once that is heard.
+        const settled = (yield* page.wait({ since: 0, ...f }, '1 second')).build;
+        // The mix makes the folder, writes beside the track and renames, as `film mix` does.
+        const narration = path.join(film, 'narration');
+        const mixed = yield* Effect.andThen(
+          Effect.gen(function* () {
+            yield* fs.makeDirectory(narration, { recursive: true });
+            yield* fs.writeFileString(path.join(narration, 'full.wav.partial'), 'mix one');
+            yield* fs.rename(
+              path.join(narration, 'full.wav.partial'),
+              path.join(narration, 'full.wav'),
+            );
+          }),
+          page.wait({ since: settled, ...f }, '5 seconds'),
+        );
+        expect(mixed.build).toBeGreaterThan(settled);
+        expect((yield* ask('/films/f/narration/full.wav')).text).toBe('mix one');
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live("one film's mix wakes its own page's wait, never another film's", () =>
+    Effect.gen(function* () {
+      const { spec } = yield* appFolder;
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      // Films `f` and `g`, each with a track, each played by a page.
+      for (const name of ['f', 'g']) {
+        const film = path.join(spec.films, name);
+        yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
+        yield* fs.makeDirectory(path.join(film, 'narration'), { recursive: true });
+        yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
+        yield* fs.writeFileString(path.join(film, 'narration', 'full.wav'), `${name} one`);
+      }
+      const { page, ask } = yield* served(spec, PageBundler.layerTest);
+      for (const name of ['f', 'g']) {
+        yield* ask(`/films/${name}/lab`);
+        expect((yield* ask(`/films/${name}/narration/full.wav`)).text).toBe(`${name} one`);
+      }
+      const of = (name: string) => ({ server: Option.none(), film: Option.some(name) });
+      // The first build may count once a save it read in the last second: the build once that is heard.
+      const settled = (yield* page.wait({ since: 0, ...of('f') }, '1 second')).build;
+      const narration = path.join(spec.films, 'g', 'narration');
+      yield* fs.writeFileString(path.join(narration, 'full.wav.partial'), 'g two');
+      const forG = yield* Effect.andThen(
+        fs.rename(path.join(narration, 'full.wav.partial'), path.join(narration, 'full.wav')),
+        page.wait({ since: settled, ...of('g') }, '5 seconds'),
+      );
+      expect(forG.build).toBeGreaterThan(settled);
+      // F's page, stamped before g's mix, still waits: its wait holds, and answers nothing newer.
+      const forF = yield* page.wait({ since: settled, ...of('f') }, '1 second');
+      expect(forF.build).toBe(settled);
+    }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
   it.live(
@@ -320,7 +397,11 @@ describe('lab pages', () => {
           Effect.flatMap(served(spec, PageBundler.layerTest), ({ ask }) => ask('/')),
         );
         const after = yield* served(spec, PageBundler.layerTest);
-        const page = { since: buildOf(before.text), server: Option.some(serverOf(before.text)) };
+        const page = {
+          since: buildOf(before.text),
+          server: Option.some(serverOf(before.text)),
+          film: Option.none(),
+        };
         // At once: well before the 10 s a wait may hold.
         const heard = yield* after.page
           .wait(page, '10 seconds')
@@ -328,7 +409,7 @@ describe('lab pages', () => {
         expect(heard.server).not.toBe(serverOf(before.text));
         // A page this lab served waits for a change, as before.
         const own = yield* after.page.wait(
-          { since: heard.build, server: Option.some(heard.server) },
+          { since: heard.build, server: Option.some(heard.server), film: Option.none() },
           '300 millis',
         );
         expect(own).toEqual(heard);
@@ -360,7 +441,10 @@ describe('lab pages', () => {
       expect(broken.status).toBe(500);
       const since = buildOf(broken.text);
       yield* write('src/p.ts', "console.log('fixed cold');\n");
-      const heard = yield* page.wait({ since, server: Option.none() }, '5 seconds');
+      const heard = yield* page.wait(
+        { since, server: Option.none(), film: Option.none() },
+        '5 seconds',
+      );
       expect(heard.build).toBeGreaterThan(since);
       expect((yield* ask('/')).status).toBe(200);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
@@ -403,7 +487,7 @@ describe('lab pages', () => {
         expect(broken.status).toBe(500);
         const since = buildOf(broken.text);
         const waiting = yield* Effect.forkChild(
-          page.wait({ since, server: Option.none() }, '5 seconds'),
+          page.wait({ since, server: Option.none(), film: Option.none() }, '5 seconds'),
         );
         yield* write('lib/missing.ts', "export const gone = 'made';\n");
         // Bun's resolver may still hold lib/ as the failed build listed it a moment ago (the
@@ -453,14 +537,17 @@ describe('lab pages', () => {
       const { page, ask } = yield* served(spec, scripted);
       yield* ask('/');
       // The first build may count once a save it read in the last second: the build once that is heard.
-      const settled = (yield* page.wait({ since: 0, server: Option.none() }, '1 second')).build;
+      const settled = (yield* page.wait(
+        { since: 0, server: Option.none(), film: Option.none() },
+        '1 second',
+      )).build;
       // p.ts now imports src/new.ts, in a folder already watched; new.ts is saved as the
       // next build reads it, and its save is judged against the build before, which did not read it.
       yield* write('src/new.ts', 'export const v = 1;\n');
       yield* Ref.set(graph, [path.join(dir, 'src', 'p.ts'), path.join(dir, 'src', 'new.ts')]);
       const imports = yield* Effect.andThen(
         write('src/p.ts', "import { v } from './new.ts';\nconsole.log(v);\n"),
-        page.wait({ since: settled, server: Option.none() }, '5 seconds'),
+        page.wait({ since: settled, server: Option.none(), film: Option.none() }, '5 seconds'),
       );
       expect(imports.build).toBeGreaterThan(settled);
       yield* Ref.set(
@@ -471,7 +558,10 @@ describe('lab pages', () => {
         ).pipe(Effect.orDie),
       );
       const second = buildOf((yield* ask('/')).text);
-      const heard = yield* page.wait({ since: second, server: Option.none() }, '3 seconds');
+      const heard = yield* page.wait(
+        { since: second, server: Option.none(), film: Option.none() },
+        '3 seconds',
+      );
       expect(heard.build).toBeGreaterThan(second);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
