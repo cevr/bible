@@ -16,6 +16,7 @@ import {
   loopFromView,
   loopMachine,
   loopText,
+  inOutOf,
   loopView,
   rangeOf,
 } from './loop.ts';
@@ -161,6 +162,13 @@ describe('what a loop plays', () => {
     expect(rangeOf(LoopState.Marked({ a: Option.some(1), b: Option.none() }), stage)).toEqual(
       Option.none(),
     );
+  });
+  test('the in and out points are a range only once both are marked; a looped cue is none', () => {
+    expect(inOutOf(LoopState.Range({ from: 1, to: 3 }))).toEqual(Option.some({ from: 1, to: 3 }));
+    expect(inOutOf(LoopState.Marked({ a: Option.some(1), b: Option.none() }))).toEqual(
+      Option.none(),
+    );
+    expect(inOutOf(LoopState.Cue({ scene: 'one', name: 'rise' }))).toEqual(Option.none());
   });
 });
 

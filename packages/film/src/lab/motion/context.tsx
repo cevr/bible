@@ -31,6 +31,7 @@ import { useLab } from '../shell.tsx';
 import {
   type LoopActor,
   LoopEvent,
+  inOutOf,
   loopFromView,
   loopText,
   loopView,
@@ -46,6 +47,8 @@ interface MotionState {
   readonly onion: Accessor<OnionView>;
   /** The cue a loop would play: the one selected, if a cue is. */
   readonly cue: Accessor<Option.Option<LabSelection>>;
+  /** The in and out points marked as a range, if they are: what a note written now is about. */
+  readonly inOut: Accessor<Option.Option<LoopRange>>;
   /** What the section says: the loop, and the speed when it mutes the narration. */
   readonly status: Accessor<string>;
 }
@@ -54,6 +57,8 @@ interface MotionActions {
   /** Mark A, or B, at the frame shown. */
   readonly markA: () => void;
   readonly markB: () => void;
+  /** Mark the in and out points at `from` and `to`, film seconds (a drag across a cue lane). */
+  readonly markRange: (from: number, to: number) => void;
   /** Loop the selected cue. */
   readonly loopCue: () => void;
   readonly stopLoop: () => void;
@@ -115,6 +120,10 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
   const actions: MotionActions = {
     markA: () => send(LoopEvent.MarkA({ t: player.now() })),
     markB: () => send(LoopEvent.MarkB({ t: player.now() })),
+    markRange: (from, to) => {
+      send(LoopEvent.MarkA({ t: from }));
+      send(LoopEvent.MarkB({ t: to }));
+    },
     loopCue: () =>
       Option.map(cue(), (c) => send(LoopEvent.LoopCue({ scene: c.scene, name: c.name }))),
     stopLoop: () => send(LoopEvent.Stop),
@@ -130,10 +139,9 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
         looping: () => loop()._tag !== 'Off',
         loopCue: actions.loopCue,
         loopScene: () =>
-          Option.map(sceneSpan(meta.film.placed, player.now()), (span) => {
-            send(LoopEvent.MarkA({ t: span.from }));
-            send(LoopEvent.MarkB({ t: span.to }));
-          }),
+          Option.map(sceneSpan(meta.film.placed, player.now()), (span) =>
+            actions.markRange(span.from, span.to),
+          ),
         markIn: actions.markA,
         markOut: actions.markB,
         stop: actions.stopLoop,
@@ -141,7 +149,10 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
     ),
   );
 
-  const value: MotionContextValue = { state: { rate, onion, cue, status }, actions };
+  const value: MotionContextValue = {
+    state: { rate, onion, cue, inOut: () => inOutOf(loop()), status },
+    actions,
+  };
   return <MotionContext value={value}>{props.children}</MotionContext>;
 };
 

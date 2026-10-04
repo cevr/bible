@@ -1,6 +1,7 @@
 // The look of the pages' command surfaces (⌘K, the `?` sheet, the context
 // menu, the inspector's fields and hint, the review's inspector sheet and
-// comment dot, the receipts' toasts, and every primitive after them):
+// comment dot, the receipts' toasts, a note's scope chip and the in and out
+// points' band on the cue strip, and every primitive after them):
 // one token set (`COMMAND_TOKENS`, CSS custom properties with today's
 // values, read from the page's own palette where it has one: the lab's
 // `player.css`, the review's `REVIEW_CSS`), and the rules, which read only
@@ -8,7 +9,8 @@
 // rule or a component. Restyling the surfaces is changing the tokens. Put in
 // the page by its root (`mountLab`, `mountReview`). Each surface fits a
 // phone: no wider than the screen less its gutters, scrolling inside itself.
-// An inspector field keeps the look of the lab's number fields (`.lab-num`).
+// An inspector field keeps the look of the lab's number fields (`.lab-num`);
+// on the review, which has no `player.css`, the tokens give it that look.
 
 /** The command surfaces' tokens: the one place their look is set. */
 const COMMAND_TOKENS = `
@@ -22,6 +24,8 @@ body {
   --cmd-hover: rgba(255, 255, 255, 0.08);
   --cmd-scrim: rgba(0, 0, 0, 0.45);
   --cmd-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
+  --cmd-range: rgba(224, 169, 58, 0.18);
+  --cmd-field-width: 72px;
   --cmd-font: system-ui, sans-serif;
   --cmd-mono: ui-monospace, monospace;
   --cmd-text: 13px;
@@ -181,6 +185,23 @@ const COMMAND_RULES = `
 }
 .lab-receipt-undo { border: 1px solid var(--cmd-accent); color: var(--cmd-accent); }
 .lab-receipt-close { border: 0; color: var(--cmd-dim); }
+.lab-scope {
+  display: inline-flex; align-items: center; gap: var(--cmd-gap-small); max-width: 100%;
+  padding: var(--cmd-key-pad); border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius);
+  color: var(--cmd-ink); font: var(--cmd-small)/var(--cmd-leading) var(--cmd-mono);
+}
+.lab-scope-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lab-scope button {
+  background: none; border: 0; color: var(--cmd-dim); cursor: pointer; font: inherit;
+  min-width: var(--cmd-count-size); min-height: var(--cmd-count-size);
+}
+.lab-scope button:hover { color: var(--cmd-ink); }
+.lab-strip-range { position: absolute; top: 0; bottom: 0; background: var(--cmd-range); pointer-events: none; }
+body.rv .lab-num {
+  width: var(--cmd-field-width); min-height: var(--cmd-button-height); padding: var(--cmd-button-pad);
+  background: var(--cmd-panel); color: var(--cmd-ink); border: 1px solid var(--cmd-line);
+  border-radius: var(--cmd-radius-small); font: inherit; font-variant-numeric: tabular-nums;
+}
 `;
 
 /** The command surfaces' stylesheet: the tokens, then the rules that read them. */

@@ -1000,7 +1000,8 @@ writes the catalogue, not the source.
 - **Nudge**: moving a value by its step with a key (⌥← ⌥→: a frame; ten with
   Shift).
 - **In/out points**: the start and end of a range (Motion's loop: I sets
-  the in point, O the out point).
+  the in point, O the out point, or a drag across a cue lane sets both); a
+  note written while they are marked is about that range.
 - **Receipt**: what a command answers when it runs: what moved, before →
   after, and Undo where it can be undone.
 
@@ -1169,8 +1170,8 @@ Chrome with a fake microphone.
 in `lab/<film>/stills/` (`FILMS_LAB` moves the root; the app ignores it in
 git). The file is the source of truth: the lab server and `film notes` both
 go through NotesStore, so either works without the other. A note is `{ id,
-film, scene, T, local?, frame, cue?: { name, edge }, mark?, box?, ink?, text,
-status, still, thread, createdAt }`, plus `seq` (the change that made it) and
+film, scene, T, local?, frame, cue?: { name, edge }, mark?, range?: { from, to },
+box?, ink?, text, status, still, thread, createdAt }`, plus `seq` (the change that made it) and
 `changed` (the last change to touch it). `T` and `frame` are film time as
 the film was laid out when the note was made; `local` is scene-local time,
 how far into `scene` it was made. The lab seeks, marks, pins and labels a
@@ -1178,7 +1179,11 @@ note at `local` into its scene while the film has that scene (`noteT`,
 `core/notes.ts`; held on the scene's last frame if a re-take made it
 shorter), so a re-take of an earlier beat does not move a later note off
 its frame. `local` is an additive, optional field: notes made before it
-have none and read at `T`. A click saves a pin as a zero-size
+have none and read at `T`. `range` (`NoteRange`, scene-local seconds, `to`
+after `from`) is the stretch of its scene the note is about: the in and out
+points marked as it was written, cut to its scene; additive and optional
+(a note without one is about its frame). `cue` is the edge nearest the
+note of the cue selected as it was written, else of any cue in its scene. A click saves a pin as a zero-size
 box. Every change takes the file's next `seq`, so `eventsSince(file, n)`
 (`core/notes.ts`) returns each new note, reply and resolve exactly once past
 a cursor (a file reset below the cursor, trashed or restored, replays its
@@ -1248,6 +1253,13 @@ click pins a point, a drag draws a box, and the Pen toggle draws freehand
 ink; `n` or the **Note frame** button beside the Pen (its touch path)
 notes the whole frame, Escape drops the draft. The composer shows
 the scene, time, frame and the nearest cue and mark, and pauses playback.
+A note written with a selection carries it as a **scope chip**
+(`one · rise · t 0.5–1.0 s`: the scene, the cue selected and the in and out
+points in scene seconds, the place the lab's link to it names), whose ×
+writes that note about its frame alone; the next note starts scoped again.
+A drag across a cue's lane on the strip (beside its bar) marks the in and
+out points, shown there as a band and looped as Motion's I and O loop them;
+a tap on a lane seeks.
 Saving redraws the film canvas at that frame and sends it (`canvas.toBlob`)
 as the still. Every lab mark lives on an SVG layer over the canvas, never on
 the canvas, so a still, an export frame and a probe are the film's pixels

@@ -120,7 +120,6 @@ a.rv-card:hover { border-color: var(--rv-dim); }
   border: 1px solid var(--rv-line); border-radius: 6px; padding: 6px 8px; font: inherit;
 }
 .rv-knob input[type="range"] { flex: 1; min-width: 0; max-width: 320px; }
-.rv-knob .lab-num { width: 72px; min-height: 32px; padding: 4px 8px; background: var(--rv-panel); color: var(--rv-ink); border: 1px solid var(--rv-line); border-radius: 6px; font: inherit; font-variant-numeric: tabular-nums; }
 .rv-film, .rv-act { margin-bottom: 18px; }
 .rv-scene video { max-height: 40vh; }
 .rv-tag[data-state="stale"] { color: var(--rv-gold); }

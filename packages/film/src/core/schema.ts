@@ -805,6 +805,16 @@ export const NoteCue = Schema.Struct({
 });
 export type NoteCue = typeof NoteCue.Type;
 
+/**
+ * A stretch of a note's scene the note is about, in scene-local seconds (as
+ * the lab's `#t=` and the note's `local` count them): the in and out points
+ * marked when it was written, cut to its scene.
+ */
+export const NoteRange = Schema.Struct({ from: Seconds, to: Seconds }).check(
+  Schema.makeFilter((r) => r.to > r.from || 'a range ends after it starts'),
+);
+export type NoteRange = typeof NoteRange.Type;
+
 /** What the lab sends for a new note: the frame, where it was marked, and what it says. */
 export const NoteDraft = Schema.Struct({
   scene: Schema.String,
@@ -818,9 +828,15 @@ export const NoteDraft = Schema.Struct({
    */
   local: Schema.optionalKey(Seconds),
   frame: Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)),
+  /** The edge of the cue selected as it was written nearest its time, else of any cue in its scene. */
   cue: Schema.optionalKey(NoteCue),
   /** The `{mark}` nearest the note's time, in its scene. */
   mark: Schema.optionalKey(Schema.String),
+  /**
+   * The stretch of its scene it is about (its scope chip's `t 3.2–4.0 s`).
+   * Optional and additive: a note without one is about its frame.
+   */
+  range: Schema.optionalKey(NoteRange),
   box: Schema.optionalKey(NoteBox),
   ink: Schema.optionalKey(Schema.Array(InkStroke)),
   text: Schema.String.check(Schema.isNonEmpty()),

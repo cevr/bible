@@ -1,11 +1,13 @@
 // The cue strip: the scene under the playhead, zoomed, under the film's
 // timeline: its narration's words and marks, a bar per cue, and the playhead.
 // A press on a bar grabs it (the editor's machine takes it from there); a
-// press elsewhere on the strip scrubs within the scene.
+// drag across a cue's lane beside its bar marks the in and out points, shown
+// as a band (a tap there seeks); a press elsewhere on the strip scrubs within
+// the scene.
 
 import { For, Show } from '@solidjs/web';
 import { Effect, Option, Result } from 'effect';
-import { createMemo } from 'solid-js';
+import { createMemo, createSignal } from 'solid-js';
 import { Pointer } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
@@ -17,6 +19,11 @@ import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
 import { dragModeAt } from './grip.ts';
+import { useMotion } from '../motion/context.tsx';
+import type { LoopRange } from '../../player/main.ts';
+
+/** A press on a lane that moves less than this many screen pixels is a tap (a seek); more marks a range. */
+const DRAG_PX = 6;
 
 const pct = (p: Placed<SceneSpec>, t: number) => `${(t / p.dur) * 100}%`;
 
@@ -54,6 +61,8 @@ interface CueRowProps {
   readonly cue: ResolvedCue;
   /** The strip's rows, whose width is the scene's length. */
   readonly rows: () => Option.Option<HTMLElement>;
+  /** A press on the lane beside the bar: a drag across it marks the in and out points. */
+  readonly lane: (e: PointerEvent) => void;
 }
 
 /** One cue's row: its name, and its bar where it plays. */
@@ -85,7 +94,7 @@ const CueRow = (props: CueRowProps) => {
     });
   };
   return (
-    <div class="lab-strip-row">
+    <div class="lab-strip-row" onPointerDown={props.lane}>
       <span class="lab-cue-label">{props.name}</span>
       <Target
         of={cueOf(scene(), props.name)}
@@ -122,6 +131,8 @@ export const Strip = () => {
     return [...meta.stage.cuesOf(state.stripScene())];
   });
   let rows = Option.none<HTMLElement>();
+  const { state: motionState, actions: motion } = useMotion();
+  const [marking, setMarking] = createSignal(Option.none<LoopRange>());
   const file = () =>
     Option.match(state.stripSource().source, {
       onNone: () => state.stripSource().error,
@@ -147,6 +158,49 @@ export const Strip = () => {
             ),
           );
         };
+        // A drag across a cue's lane marks the in and out points (what a note
+        // written next is about, looped meanwhile); a tap on it seeks there.
+        const lane = (e: PointerEvent) => {
+          if (e.button !== 0) return;
+          e.stopPropagation();
+          e.preventDefault();
+          const r = Option.getOrThrow(rows).getBoundingClientRect();
+          const timeAt = (ev: PointerEvent) =>
+            p().start + Math.max(0, Math.min(p().dur, ((ev.clientX - r.left) / r.width) * p().dur));
+          const from = timeAt(e);
+          const far = (ev: PointerEvent) => Math.abs(ev.clientX - e.clientX) >= DRAG_PX;
+          const spanTo = (ev: PointerEvent) => ({
+            from: Math.min(from, timeAt(ev)),
+            to: Math.max(from, timeAt(ev)),
+          });
+          Effect.runForkWith(meta.host)(
+            Pointer.use((pointer) =>
+              pointer.drag(e, {
+                move: (ev) => setMarking(Option.liftPredicate(spanTo(ev), () => far(ev))),
+                end: (lifted) => {
+                  setMarking(Option.none());
+                  Option.map(lifted, (ev) => {
+                    if (!far(ev)) return meta.player.seek(from);
+                    const span = spanTo(ev);
+                    return motion.markRange(span.from, span.to);
+                  });
+                },
+              }),
+            ),
+          );
+        };
+        // The in and out points over this scene: as a lane drag marks them, else as marked.
+        const band = () =>
+          Option.filter(
+            Option.map(
+              Option.orElse(marking(), () => motionState.inOut()),
+              (b) => ({
+                from: Math.max(0, b.from - p().start),
+                to: Math.min(p().dur, b.to - p().start),
+              }),
+            ),
+            (b) => b.to > b.from,
+          );
         return (
           <div class="lab-strip" onPointerDown={scrub}>
             <div class="lab-strip-head">
@@ -161,9 +215,24 @@ export const Strip = () => {
                 }}
               >
                 <Words placed={p()} />
+                <Show when={Option.getOrUndefined(band())}>
+                  {(b) => (
+                    <div
+                      class="lab-strip-range"
+                      data-role="in-out"
+                      style={{ left: pct(p(), b().from), width: pct(p(), b().to - b().from) }}
+                    />
+                  )}
+                </Show>
                 <For each={cues()} keyed={([name]) => name}>
                   {(entry) => (
-                    <CueRow placed={p()} name={entry()[0]} cue={entry()[1]} rows={() => rows} />
+                    <CueRow
+                      placed={p()}
+                      name={entry()[0]}
+                      cue={entry()[1]}
+                      rows={() => rows}
+                      lane={lane}
+                    />
                   )}
                 </For>
                 <div

@@ -1,12 +1,22 @@
 // A note's draft, pure: where the moment noted sits (its scene, time, time
-// into the scene and frame, and the cue edge and mark nearest it), the draft the composer posts
-// (the box and the ink only when there are any), and the frame's pixels a
-// pointer is over.
+// into the scene and frame, and the cue edge and mark nearest it), what it
+// is about beside its frame (its scope: the cue selected and the in and out
+// points, shown as a chip the owner can clear), the draft the composer posts
+// (the box, the ink and the range only when there are any), and the frame's
+// pixels a pointer is over.
 
 import { Option } from 'effect';
-import type { Placed } from '../../core/layout.ts';
+import { type Placed, sceneAt } from '../../core/layout.ts';
 import { nearestMoment } from '../../core/notes.ts';
-import type { InkStroke, NoteBox, NoteDraft, Point } from '../../core/schema.ts';
+import type {
+  InkStroke,
+  NoteBox,
+  NoteCue,
+  NoteDraft,
+  NoteRange,
+  Point,
+  ResolvedCue,
+} from '../../core/schema.ts';
 
 /** What the composer holds: the frame noted, what is marked on it, and the words. */
 interface Composed {
@@ -30,22 +40,116 @@ export const whereText = (placed: ReadonlyArray<Placed>, fps: number, T: number)
       ].join(' · '),
   });
 
-/** The draft `composed` posts: none when it says nothing, or sits past the film. */
+/**
+ * What the page has selected as a note is written, which the note is about
+ * beside its frame (its scope): the cue selected, and the in and out points
+ * marked (film seconds).
+ */
+export interface Scope {
+  readonly cue: Option.Option<{ readonly scene: string; readonly name: string }>;
+  readonly range: Option.Option<{ readonly from: number; readonly to: number }>;
+}
+
+/** No scope: a note about its frame alone (its chip's × clears to it). */
+export const NO_SCOPE: Scope = { cue: Option.none(), range: Option.none() };
+
+/** A scope as a note at `T` carries it: the cue if it is in the note's scene, the range cut to that scene. */
+interface Scoped {
+  readonly scene: string;
+  readonly cue: Option.Option<NoteCue>;
+  readonly range: Option.Option<NoteRange>;
+}
+
+/** The edge of `cue` nearest `local`: an instant has one. */
+const nearerEdge = (cue: ResolvedCue, local: number): NoteCue['edge'] =>
+  Option.getOrElse(
+    Option.liftPredicate(
+      'end' as const,
+      () => cue.dur > 0 && Math.abs(local - cue.end) < Math.abs(local - cue.start),
+    ),
+    () => 'start' as const,
+  );
+
+/** `scope` as a note at `T` carries it, in the scene under `T`; none past the film. */
+const scopedAt = (placed: ReadonlyArray<Placed>, scope: Scope, T: number): Option.Option<Scoped> =>
+  Option.map(sceneAt(placed, T), (p) => {
+    const local = Math.max(0, T - p.start);
+    return {
+      scene: p.spec.id,
+      cue: Option.flatMap(
+        Option.filter(scope.cue, (c) => c.scene === p.spec.id),
+        (c) =>
+          Option.map(Option.fromUndefinedOr(p.cues.get(c.name)), (cue): NoteCue => ({
+            name: c.name,
+            edge: nearerEdge(cue, local),
+          })),
+      ),
+      range: Option.filter(
+        Option.map(scope.range, (r): NoteRange => ({
+          from: Math.max(0, r.from - p.start),
+          to: Math.min(p.dur, r.to - p.start),
+        })),
+        (r) => r.to > r.from,
+      ),
+    };
+  });
+
+/**
+ * The scope chip a note at `T` shows (`scene · cue · t 3.2–4.0 s`), in the
+ * place the lab's link to it names (its scene, its cue, its scene-local
+ * time); none while the scope holds nothing in the note's scene.
+ */
+export const scopeText = (
+  placed: ReadonlyArray<Placed>,
+  scope: Scope,
+  T: number,
+): Option.Option<string> =>
+  Option.flatMap(
+    Option.filter(
+      scopedAt(placed, scope, T),
+      (s) => Option.isSome(s.cue) || Option.isSome(s.range),
+    ),
+    (s) =>
+      Option.some(
+        [
+          s.scene,
+          ...Option.toArray(Option.map(s.cue, (c) => c.name)),
+          ...Option.toArray(
+            Option.map(s.range, (r) => `t ${r.from.toFixed(1)}–${r.to.toFixed(1)} s`),
+          ),
+        ].join(' · '),
+      ),
+  );
+
+/** The draft `composed` posts, about `scope`: none when it says nothing, or sits past the film. */
 export const draftOf = (
   placed: ReadonlyArray<Placed>,
   fps: number,
   composed: Composed,
+  scope: Scope = NO_SCOPE,
 ): Option.Option<NoteDraft> => {
   const text = composed.text.trim();
   if (text === '') return Option.none();
   const { T } = composed;
+  const scoped = scopedAt(placed, scope, T);
+  const inScope = <A>(f: (s: Scoped) => Option.Option<A>) => Option.flatMap(scoped, f);
   return Option.map(nearestMoment(placed, T), (m): NoteDraft => ({
     scene: m.scene,
     T,
     local: m.local,
     frame: Math.round(T * fps),
     text,
-    ...Option.match(m.cue, { onNone: () => ({}), onSome: (cue) => ({ cue }) }),
+    ...Option.match(
+      Option.orElse(
+        inScope((s) => s.cue),
+        () => m.cue,
+      ),
+      { onNone: () => ({}), onSome: (cue) => ({ cue }) },
+    ),
+    ...Option.match(
+      inScope((s) => s.range),
+      { onNone: () => ({}), onSome: (range) => ({ range }) },
+    ),
     ...Option.match(m.mark, { onNone: () => ({}), onSome: (mark) => ({ mark }) }),
     ...Option.match(composed.box, { onNone: () => ({}), onSome: (box) => ({ box }) }),
     ...Option.match(

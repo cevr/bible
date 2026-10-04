@@ -70,6 +70,13 @@ const padCue = (span: LoopRange, duration: number): LoopRange => {
   };
 };
 
+/** The in and out points `state` has marked as a range (a note written now is about it), if any. */
+export const inOutOf = (state: LoopState): Option.Option<LoopRange> =>
+  Match.value(state).pipe(
+    Match.tag('Range', (s) => Option.some({ from: s.from, to: s.to })),
+    Match.orElse(() => Option.none()),
+  );
+
 /** What `state` loops now, if anything: a cue's span as the stage shows it. */
 export const rangeOf = (
   state: LoopState,

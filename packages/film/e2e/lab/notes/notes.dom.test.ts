@@ -5,9 +5,11 @@
 // the timeline; a refused save says the server's reason; a reply and a
 // resolve post to the note's thread; a change the long-poll brings in shows
 // as it lands; a lost feed says so and connects again; and ⇧N/⌥⇧N step
-// through the open notes, Go to finding any by its words.
+// through the open notes, Go to finding any by its words; a drag across a cue
+// lane marks a range, and a note carries it and the cue selected as a scope
+// chip whose × clears it.
 
-import { Effect, Option, Predicate } from 'effect';
+import { Effect, Option, Predicate, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import {
@@ -32,6 +34,7 @@ import {
   waitFor,
 } from '../../../src/lab/fixtures/settled.ts';
 import { RETRY_MS } from '../../../src/lab/notes/feed.ts';
+import { cueOf } from '../../../src/command/selection.ts';
 import type { Note, Reply } from '../../../src/core/schema.ts';
 
 /** Long enough to open the lab, draw, save and read the list back. */
@@ -389,6 +392,53 @@ describe("a note's place", () => {
         yield* page.goto(labAt(1, { note: 'gone' }));
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         yield* evaluates(page, NOTE_IN_URL, '');
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a drag across a cue lane marks a range; a note carries it and the cue selected as a chip one tap clears',
+    () =>
+      Effect.gen(function* () {
+        const dur = probeFilm().placed[0]?.dur ?? Number.NaN;
+        const { page, asked, errors } = yield* openLab(store(), {
+          href: labAt(1, { selection: cueOf('one', 'rise') }),
+        });
+        const lane = '.lab-strip-row:has([data-cue="fall"])';
+        yield* waitFor(page, lane);
+        const rows = yield* page.box('.lab-strip-rows');
+        const row = yield* page.box(lane);
+        const xAt = (local: number) => rows.x + (local / dur) * rows.width;
+        const y = row.y + row.height / 2;
+        yield* page.mouse.move(xAt(0.5), y);
+        yield* page.mouse.down;
+        yield* page.mouse.move(xAt(1), y, 5);
+        yield* page.mouse.up;
+        yield* waitFor(page, '[data-role="in-out"]');
+        yield* page.press('n');
+        yield* textIs(page, '[data-role="note-scope"] .lab-scope-text', 'one · rise · t 0.5–1.0 s');
+        yield* save(page, 'the rise starts too late');
+        yield* waitFor(page, '.lab-note-item[data-id="n1"]');
+        const body = theNote(asked);
+        expect(field(body, 'cue')).toEqual(Option.some({ name: 'rise', edge: 'start' }));
+        const range = field(body, 'range');
+        const at = (key: string) => Number(Option.getOrThrow(field(range, key)));
+        expect(Math.abs(at('from') - 0.5)).toBeLessThan(0.02);
+        expect(Math.abs(at('to') - 1)).toBeLessThan(0.02);
+        // The next note starts scoped again; its × writes it about the frame alone.
+        yield* page.press('n');
+        yield* waitFor(page, '[data-role="note-scope"]');
+        yield* click(page, '[data-role="note-scope"] [data-act="clear-scope"]');
+        yield* attached(page, '.lab-compose:not(:has([data-role="note-scope"]))');
+        yield* save(page, 'and the whole frame is dark');
+        // The fake store answers every save as n1: the second post is what is read.
+        yield* Effect.sync(() => posted(asked, /^\/notes$/).length).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 2 }),
+          Effect.timeout('10 seconds'),
+        );
+        const second = Option.flatten(Option.fromUndefinedOr(posted(asked, /^\/notes$/)[1]));
+        expect(field(second, 'range')).toEqual(Option.none());
+        expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );

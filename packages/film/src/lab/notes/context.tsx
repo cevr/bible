@@ -46,7 +46,8 @@ import {
   spawnComposer,
   unsaved,
 } from './composer.ts';
-import { draftOf, whereText } from './draft.ts';
+import { NO_SCOPE, type Scope, draftOf, scopeText, whereText } from './draft.ts';
+import { useMotion } from '../motion/context.tsx';
 import { type FeedActor, FeedEvent, feedText, spawnFeed } from './feed.ts';
 
 /** How much of a note's words its Go to entry carries. */
@@ -77,6 +78,12 @@ interface NotesState {
   readonly pen: Accessor<boolean>;
   /** Where the note being made sits: scene, time, frame, nearest cue edge and mark. */
   readonly where: Accessor<string>;
+  /**
+   * The scope chip of the note being made (`scene · cue · t 3.2–4.0 s`): the
+   * cue selected and the in and out points marked, while it has them and
+   * its × has not cleared them.
+   */
+  readonly scope: Accessor<Option.Option<string>>;
   /** What the composer's status line says. */
   readonly status: Accessor<string>;
   /** What the notes say of the feed: nothing while it holds. */
@@ -94,6 +101,8 @@ interface NotesActions {
   /** Note the frame shown, whole. */
   readonly noteFrame: () => void;
   readonly cancel: () => void;
+  /** Write the note being made about its frame alone: its scope chip's ×. */
+  readonly clearScope: () => void;
   /** Save the note being made, saying `text`. */
   readonly save: (text: string) => void;
   /** Select a note and show its frame. */
@@ -283,6 +292,28 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
     }),
   );
 
+  // What the note being made is about beside its frame: the cue selected and
+  // the in and out points, until its chip's × clears them; each note starts scoped.
+  const motion = useMotion();
+  const [scoped, setScoped] = createSignal(true);
+  createEffect(
+    () => composerOpen(composer()),
+    (shown) => {
+      if (!shown) setScoped(true);
+    },
+  );
+  const scope = (): Scope =>
+    Option.match(
+      Option.liftPredicate(scoped(), (on) => on),
+      {
+        onNone: () => NO_SCOPE,
+        onSome: (): Scope => ({ cue: motion.state.cue(), range: motion.state.inOut() }),
+      },
+    );
+  const scopeChip = createMemo(() =>
+    Option.flatMap(composingT(composer()), (T) => scopeText(film.placed, scope(), T)),
+  );
+
   const actions: NotesActions = {
     togglePen: () => setPen((on) => !on),
     press: (at) => sendComposer(ComposerEvent.Press({ T: player.now(), at, pen: pen() })),
@@ -290,10 +321,11 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
     lift: (at, far) => sendComposer(ComposerEvent.Lift({ at, far })),
     noteFrame: () => sendComposer(ComposerEvent.Note({ T: player.now() })),
     cancel: () => sendComposer(ComposerEvent.Cancel),
+    clearScope: () => setScoped(false),
     save: (text) => {
       const s = composer();
       if (s._tag !== 'Open') return;
-      Option.map(draftOf(film.placed, film.fps, { ...s, text }), (draft) =>
+      Option.map(draftOf(film.placed, film.fps, { ...s, text }, scope()), (draft) =>
         sendComposer(ComposerEvent.Save({ draft })),
       );
     },
@@ -346,6 +378,7 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
       timeOf,
       pen,
       where,
+      scope: scopeChip,
       status: () => composerText(composer()),
       feedStatus: () => feedText(feed()),
       threadStatus,

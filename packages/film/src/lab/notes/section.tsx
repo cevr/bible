@@ -181,6 +181,22 @@ export const Section = () => {
         }}
       >
         <div class="lab-where">{state.where()}</div>
+        <Show when={Option.getOrUndefined(state.scope())}>
+          {(scope) => (
+            <span class="lab-scope" data-role="note-scope">
+              <span class="lab-scope-text">{scope()}</span>
+              <button
+                type="button"
+                data-act="clear-scope"
+                aria-label="Write it about this frame alone"
+                title="Write it about this frame alone"
+                onClick={actions.clearScope}
+              >
+                ×
+              </button>
+            </span>
+          )}
+        </Show>
         <textarea
           rows="3"
           placeholder="What should change on this frame?"
