@@ -518,13 +518,13 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         // Nothing to undo yet: the menu offers no Undo.
         yield* menuOffers(page, 'undo', 'review.undo', false);
         // No sound check before a pick.
         expect(asked.some((a) => a.path === '/api/films/toy/choices/check')).toBe(false);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
-        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
         // The receipt says what the pick moved, before → after, and offers its Undo.
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         yield* textIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 'Undo');
@@ -573,7 +573,7 @@ describe("a film's choices", () => {
         yield* openCommandMenu(page, 'undo');
         yield* textHas(page, menuEntry('review.undo'), 'Undo score play piano');
         yield* closeCommandMenu(page);
-        yield* countIs(page, `${at('score', 'piano')} .rv-badge`, 1);
+        yield* countIs(page, `${at('score', 'piano')} .rv-picked`, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -589,7 +589,7 @@ describe("a film's choices", () => {
         });
         const undone = () =>
           asked.filter((a) => a.method === 'POST' && a.path === '/api/films/toy/undo');
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         // A second quick edit, from another page on the film (the lab's editor): a level.
@@ -622,7 +622,7 @@ describe("a film's choices", () => {
         expect(undone().map((a) => a.body)).toEqual([
           Option.some({ change: changeOf('score play piano') }),
         ]);
-        yield* countIs(page, `${at('score', 'piano')} .rv-badge`, 1);
+        yield* countIs(page, `${at('score', 'piano')} .rv-picked`, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -636,7 +636,7 @@ describe("a film's choices", () => {
         const { page, asked, errors } = yield* openReview(fakeFilm(freshToy(), undos), {
           href: FILM,
         });
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         // The lab restarts: its history, kept in memory, is gone.
@@ -734,11 +734,11 @@ describe("a film's choices", () => {
         ];
         const { page, asked } = yield* openReview([...tin, ...fakeFilm()], { href: FILM });
         const undone = () => asked.filter((a) => a.method === 'POST' && a.path.endsWith('/undo'));
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         yield* page.goto(pageHref.choices('tin'));
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         // Tin's own Undo is available, and names tin's change; the receipt is toy's.
         yield* menuOffers(page, 'undo', 'review.undo', true);
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
@@ -764,7 +764,7 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         // The clock held: the long press's delay passes only as the test runs it on.
@@ -802,7 +802,7 @@ describe("a film's choices", () => {
         const { page, asked, errors } = yield* openReview([lateRead, ...routes], {
           href: FILM,
         });
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* receiptSays(page, 'Picked piano');
         // Once the steps are read again, ⌘Z undoes it, as the menu's Undo would.
@@ -855,7 +855,7 @@ describe("a film's choices", () => {
         yield* evaluates(page, sameMix, true);
         // A pick changes the source: the mix is asked for again, the picture plays on.
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
-        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
         yield* until(page, `${MIX}.endsWith('&v=1')`);
         yield* evaluates(page, same, true);
         expect(errors).toEqual([]);
@@ -895,7 +895,7 @@ describe("a film's choices", () => {
           false,
         );
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
-        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
         // The pick's answer is not the comment's: its box keeps the text.
         yield* evaluates(page, `document.querySelector('${box}').value`, 'warmer in the close');
         // The comment lands: the page shows it, and its box empties.
@@ -1029,9 +1029,9 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
-        yield* waitFor(page, `${at('look:ground', 'now')} .rv-badge`);
+        yield* waitFor(page, `${at('look:ground', 'now')} .rv-picked`);
         yield* click(page, `${at('look:ground', 'light')} [data-act="pick"]`);
-        yield* waitFor(page, `${at('look:ground', 'light')} .rv-badge`);
+        yield* waitFor(page, `${at('look:ground', 'light')} .rv-picked`);
         expect(posted(asked, '/api/films/toy/choices/pick')).toEqual({
           point: 'look:ground',
           variant: 'light',

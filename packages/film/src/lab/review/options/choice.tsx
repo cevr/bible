@@ -358,9 +358,9 @@ const variantVerbs = (
 
 /**
  * One variant: at rest its name (a tap inspects it), its state, its first
- * line, how it is seen or heard, its pick, its approve where it is the
- * picked one (or a scene's render: approving is that page's goal), and a dot
- * counting what was said of it. The rest is in its inspector: every line,
+ * line, how it is seen or heard, its pick (picked: a filled check, not a
+ * colour), its approve where it is the picked one (or a scene's render:
+ * approving is that page's goal), and a dot counting what was said of it. The rest is in its inspector: every line,
  * unapprove, unkeep and reject, the comments and the comment box; and in
  * its context menu.
  */
@@ -389,7 +389,7 @@ const VariantRow = (props: {
   return (
     <Target
       of={selection}
-      class={['rv-take', { 'rv-audible': props.variant.picked }]}
+      class="rv-take"
       data-variant={props.variant.id}
       data-state={props.variant.state}
       data-picked={pressed(props.variant.picked)}
@@ -399,7 +399,13 @@ const VariantRow = (props: {
           <span class="rv-name">{props.variant.label}</span>
         </InspectName>
         <Show when={props.variant.picked}>
-          <span class="rv-badge">picked</span>
+          <span class="rv-picked">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <circle cx="8" cy="8" r="7" />
+              <path d="M4.8 8.3l2.1 2.1 4.3-4.6" />
+            </svg>
+            picked
+          </span>
         </Show>
         <StateTags variant={props.variant} />
         <CommentCount of={selection} count={props.variant.comments.length} />

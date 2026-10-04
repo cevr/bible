@@ -167,7 +167,7 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
 
 /** A page that could not start: the error, in place of the page. */
 export const showFailure = (e: unknown): void => {
-  document.body.innerHTML = `<pre style="color:#f88;padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
+  document.body.innerHTML = `<pre style="color:var(--state-findings);padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
 };
 
 /**
@@ -302,7 +302,7 @@ export const mountPreview = (
   const playBtn = q<HTMLButtonElement>('[data-act="play"]');
   const tip = q<HTMLDivElement>('.tip');
 
-  const hue = (i: number) => `hsl(${(i * 47) % 360} 30% 30%)`;
+  const hue = (i: number) => `hsl(${(i * 47) % 360} var(--scene-sat) var(--scene-light))`;
   for (const p of film.placed) {
     const seg = document.createElement('div');
     seg.className = `seg${p.voice.duration > 0 && !p.voice.recorded ? ' estimated' : ''}`;

@@ -2,51 +2,56 @@
 // menu, the inspector's fields and hint, the review's inspector sheet and
 // comment dot, the receipts' toasts, a note's scope chip and the in and out
 // points' band on the cue strip, and every primitive after them):
-// one token set (`COMMAND_TOKENS`, CSS custom properties with today's
-// values, read from the page's own palette where it has one: the lab's
-// `player.css`, the review's `REVIEW_CSS`), and the rules, which read only
-// those properties: no colour, face, size, radius or spacing is written in a
-// rule or a component. Restyling the surfaces is changing the tokens. Put in
-// the page by its root (`mountLab`, `mountReview`). Each surface fits a
-// phone: no wider than the screen less its gutters, scrolling inside itself.
-// An inspector field keeps the look of the lab's number fields (`.lab-num`);
-// on the review, which has no `player.css`, the tokens give it that look.
+// one set of names (`COMMAND_TOKENS`), each the studio's token for its role
+// (`player/tokens.css`, design language §3 and §5: menus and toasts on
+// `--surface-2` with `--line-strong` and `--shadow-pop`, rows `--row-h`,
+// keys in the Kbd part's look, the accent only for a selection or the one
+// verb), and the rules, which read only those names: no colour, face, size,
+// radius or spacing is written in a rule or a component. Restyling the
+// surfaces is changing the tokens. Only the surfaces' own geometry (widths,
+// heights, the layer) is set here. Put in the page by its root (`mountLab`,
+// `mountPlay`, `mountReview`). Each surface fits a phone: no wider than the
+// screen less its gutters, scrolling inside itself. An inspector field keeps
+// the look of the lab's number fields (`.lab-num`); on the review, which has
+// no `player.css`, the tokens give it that look.
 
-/** The command surfaces' tokens: the one place their look is set. */
+/** The command surfaces' names, each the studio's token for its role, and their geometry. */
 const COMMAND_TOKENS = `
 body {
-  --cmd-panel: var(--panel, var(--rv-panel, #1c1a18));
-  --cmd-ink: var(--text, var(--rv-ink, #ece7de));
-  --cmd-dim: var(--muted, var(--rv-dim, #9a9387));
-  --cmd-line: var(--rv-line, rgba(255, 255, 255, 0.12));
-  --cmd-accent: var(--accent, var(--rv-gold, #e0a93a));
-  --cmd-refused: #e0705a;
-  --cmd-hover: rgba(255, 255, 255, 0.08);
-  --cmd-scrim: rgba(0, 0, 0, 0.45);
-  --cmd-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
-  --cmd-range: rgba(224, 169, 58, 0.18);
+  --cmd-panel: var(--surface-2);
+  --cmd-ink: var(--text-1);
+  --cmd-dim: var(--text-2);
+  --cmd-line: var(--line-strong);
+  --cmd-accent: var(--accent);
+  --cmd-refused: var(--state-findings);
+  --cmd-hover: var(--surface-3);
+  --cmd-scrim: var(--backdrop);
+  --cmd-shadow: var(--shadow-pop);
+  --cmd-range: var(--accent-wash);
+  --cmd-font: var(--font);
+  --cmd-mono: var(--font);
+  --cmd-text: var(--body-fs);
+  --cmd-small: var(--fs-2);
+  --cmd-query: var(--fs-5);
+  --cmd-leading: var(--body-lh);
+  --cmd-weight: var(--w-3);
+  --cmd-caps: var(--track-caps);
+  --cmd-radius: var(--r-2);
+  --cmd-radius-small: var(--r-2);
+  --cmd-radius-key: var(--r-1);
+  --cmd-gutter: var(--gutter);
+  --cmd-pad: var(--s-3);
+  --cmd-gap: var(--s-2);
+  --cmd-gap-small: var(--s-1);
+  --cmd-row-pad: var(--s-2) var(--s-3);
+  --cmd-key-pad: 0 var(--s-1);
+  --cmd-button-pad: 0 var(--s-2);
+  --cmd-row-height: var(--row-h);
+  --cmd-button-height: var(--control-h);
+  --cmd-inspector-width: var(--inspector-w);
   --cmd-field-width: 72px;
-  --cmd-font: system-ui, sans-serif;
-  --cmd-mono: ui-monospace, monospace;
-  --cmd-text: 13px;
-  --cmd-small: 12px;
-  --cmd-query: 15px;
-  --cmd-leading: 1.4;
-  --cmd-radius: 10px;
-  --cmd-radius-small: 6px;
-  --cmd-radius-key: 4px;
-  --cmd-gutter: 16px;
-  --cmd-pad: 12px;
-  --cmd-gap: 10px;
-  --cmd-gap-small: 6px;
-  --cmd-row-pad: 8px 10px;
-  --cmd-key-pad: 1px 5px;
-  --cmd-button-pad: 4px 8px;
-  --cmd-row-height: 36px;
-  --cmd-button-height: 30px;
   --cmd-width: 560px;
   --cmd-menu-width: 200px;
-  --cmd-inspector-width: 360px;
   --cmd-count-size: 18px;
   --cmd-toast-width: 420px;
   --cmd-height: 72vh;
@@ -65,8 +70,8 @@ const COMMAND_RULES = `
   font-family: var(--cmd-font); font-size: var(--cmd-text); line-height: var(--cmd-leading);
 }
 .lab-sheet-title {
-  margin: 0 0 var(--cmd-gap-small); font-size: var(--cmd-text); font-weight: 600; color: var(--cmd-dim);
-  text-transform: uppercase; letter-spacing: 0.06em;
+  margin: 0 0 var(--cmd-gap-small); font-size: var(--cmd-small); font-weight: var(--cmd-weight); color: var(--cmd-dim);
+  text-transform: uppercase; letter-spacing: var(--cmd-caps);
 }
 .lab-sheet-about { margin: 0 0 var(--cmd-gap); color: var(--cmd-dim); }
 .lab-command-query {
@@ -86,7 +91,10 @@ const COMMAND_RULES = `
   border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-key);
 }
 .lab-command-row kbd:empty { display: none; }
-.lab-keys-group h3 { font-size: var(--cmd-small); margin: var(--cmd-pad) 0 var(--cmd-gap-small); color: var(--cmd-accent); font-weight: 600; }
+.lab-keys-group h3 {
+  font-size: var(--cmd-small); margin: var(--cmd-pad) 0 var(--cmd-gap-small); color: var(--cmd-dim); font-weight: var(--cmd-weight);
+  text-transform: uppercase; letter-spacing: var(--cmd-caps);
+}
 .lab-keys-row {
   display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--cmd-gap); align-items: center;
   padding: var(--cmd-gap-small) 0; border-top: 1px solid var(--cmd-line);
@@ -156,7 +164,7 @@ const COMMAND_RULES = `
 }
 .lab-count {
   min-width: var(--cmd-count-size); height: var(--cmd-count-size); padding: 0 var(--cmd-gap-small);
-  border: 0; border-radius: var(--cmd-count-size); background: var(--cmd-accent); color: var(--cmd-panel);
+  border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-key); background: none; color: var(--cmd-ink);
   line-height: var(--cmd-count-size);
 }
 /* Beside the page, not over it: on a wide screen the page makes room while an inspector is open. */
@@ -174,7 +182,7 @@ const COMMAND_RULES = `
   transform: translate(var(--toast-swipe-movement-x, 0px), var(--toast-swipe-movement-y, 0px));
 }
 .lab-receipt[data-limited] { display: none; }
-.lab-receipt[data-type="refused"] { border-color: var(--cmd-refused); }
+.lab-receipt[data-type="refused"] { border-left: 2px solid var(--cmd-refused); }
 .lab-receipt[data-type="refused"] .lab-receipt-said { color: var(--cmd-refused); }
 .lab-receipt[data-type="busy"] .lab-receipt-said { color: var(--cmd-dim); }
 .lab-receipt-content { display: flex; align-items: center; gap: var(--cmd-gap); }
@@ -183,7 +191,7 @@ const COMMAND_RULES = `
   font: inherit; font-size: var(--cmd-small); cursor: pointer; background: none; color: var(--cmd-ink);
   border-radius: var(--cmd-radius-small); padding: var(--cmd-button-pad); min-height: var(--cmd-button-height);
 }
-.lab-receipt-undo { border: 1px solid var(--cmd-accent); color: var(--cmd-accent); }
+.lab-receipt-undo { border: 1px solid var(--cmd-line); color: var(--cmd-ink); }
 .lab-receipt-close { border: 0; color: var(--cmd-dim); }
 .lab-scope {
   display: inline-flex; align-items: center; gap: var(--cmd-gap-small); max-width: 100%;
