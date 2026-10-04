@@ -413,6 +413,66 @@ describe('lab pages', () => {
   );
 
   it.live(
+    "a write's own mix is named by the build its film's pages hear it at, counted at once if no watch has; a later mix is a later build, and the earlier keeps its own",
+    () =>
+      Effect.gen(function* () {
+        const { spec } = yield* appFolder;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const film = path.join(spec.films, 'f');
+        const narration = path.join(film, 'narration');
+        const track = path.join(narration, 'full.wav');
+        yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
+        yield* fs.makeDirectory(narration, { recursive: true });
+        yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
+        yield* fs.writeFileString(track, 'mix one');
+        const { page, ask } = yield* served(spec, PageBundler.layerTest);
+        const mtime = Effect.map(fs.stat(track), (info) =>
+          Option.getOrElse(
+            Option.map(info.mtime, (at) => at.getTime()),
+            () => 0,
+          ),
+        );
+        /**
+         * The mix lands its track whole, by a rename, as `film mix` does, its
+         * file made at `at` (seconds): each mix its own mtime. Answers it.
+         */
+        const mix = (text: string, at: number) =>
+          Effect.gen(function* () {
+            const partial = path.join(narration, 'full.wav.partial');
+            yield* fs.writeFileString(partial, text);
+            yield* fs.utimes(partial, at, at);
+            yield* fs.rename(partial, track);
+            return yield* mtime;
+          });
+        // No page has asked for the track: no mix of it is heard.
+        expect(yield* page.heardAt('f', yield* mtime)).toEqual(Option.none());
+        yield* ask('/films/f/lab');
+        yield* ask('/films/f/narration/full.wav');
+        const f = { server: Option.none(), film: Option.some('f') };
+        const settled = (yield* page.wait({ since: 0, ...f }, '1 second')).build;
+        // The track as it was when asked for was never counted as a mix.
+        expect(yield* page.heardAt('f', yield* mtime)).toEqual(Option.none());
+        // A write asks at once after its mix, before any watch may have heard it.
+        const two = yield* mix('mix two', 1_900_000_000);
+        const ownTwo = yield* page.heardAt('f', two);
+        expect(Option.map(ownTwo, (b) => b.build > settled)).toEqual(Option.some(true));
+        // The page waiting hears that very build: nothing else changed since.
+        const heard = yield* page.wait({ since: settled, ...f }, '5 seconds');
+        expect(Option.some(heard)).toEqual(ownTwo);
+        // A later mix is a later build; the earlier mix keeps its own, not the track's now.
+        const three = yield* mix('mix three', 1_900_000_010);
+        const ownThree = yield* page.heardAt('f', three);
+        expect(
+          Option.exists(ownThree, (b) => Option.exists(ownTwo, (a) => b.build > a.build)),
+        ).toBe(true);
+        expect(yield* page.heardAt('f', two)).toEqual(ownTwo);
+        // Another film's page asked for nothing: none.
+        expect(yield* page.heardAt('g', three)).toEqual(Option.none());
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
     "a page that waits with its film hears the film's mix, though it never played the track",
     () =>
       Effect.gen(function* () {

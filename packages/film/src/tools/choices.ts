@@ -44,6 +44,7 @@ import {
   Context,
   Effect,
   FiberMap,
+  FileSystem,
   Layer,
   Match,
   Option,
@@ -82,18 +83,33 @@ import {
   VerbRefused,
 } from '../core/refusals.ts';
 import { type FormatFailed } from './errors.ts';
-import { FilmFolder, type FilmName, Stamped, keptWhenMade, lockManifest } from './film-repo.ts';
+import {
+  FilmFolder,
+  type FilmName,
+  Stamped,
+  keptWhenMade,
+  lockManifest,
+  masterFile,
+} from './film-repo.ts';
 import { type FreshError, FreshFilm, type OptionsKept } from './fresh-film.ts';
 import { Review, once } from './review.ts';
-import { type Change, type Follows, type RewriteError, SourceWriter } from './source-writer.ts';
+import {
+  type Change,
+  type Follows,
+  type Remade,
+  type RewriteError,
+  SourceWriter,
+} from './source-writer.ts';
 import { Takes } from './takes.ts';
 
-/** What a verb did: the change it made (none when it was already so). */
+/** What a verb did: the change it made (none when it was already so), and the mix it made. */
 export interface Picked {
   /** The file it rewrote. */
   readonly file: string;
   readonly target: string;
   readonly change: Option.Option<Change>;
+  /** When the track it mixed again landed; none when it mixed none. */
+  readonly mixed: Remade;
 }
 
 type ChoicesError = FreshError | SourceRefused | StoreError | PlatformError;
@@ -142,12 +158,14 @@ interface ChoicesService {
 }
 
 /**
- * What the choices run with in the review, which runs for days: paths, files,
- * the review's cache, the source writer and fresh runs of the film CLI. No
- * service here imports a film module or the sound library, so a read of a
- * film in this process does not compile; it goes through `FreshFilm`.
+ * What the choices run with in the review, which runs for days: paths, files
+ * (when a mixed track landed), the review's cache, the source writer and
+ * fresh runs of the film CLI. No service here imports a film module or the
+ * sound library, so a read of a film in this process does not compile; it
+ * goes through `FreshFilm`.
  */
 export type ChoicesNeeds =
+  | FileSystem.FileSystem
   | Path.Path
   | FilmFolder
   | ContentStore
@@ -254,16 +272,47 @@ export const keepVoice = Effect.fn('keepVoice')(function* (
   const fresh = yield* FreshFilm;
   const timings = paths.timings.file;
   const target = `voice ${beat} keep ${file}`;
-  const [kept, change] = yield* (yield* SourceWriter).around(
+  const landed = yield* trackLanded(film);
+  // The keep remixes the track itself: when it landed is read in the act, under the lock.
+  const [[kept, mixed], change] = yield* (yield* SourceWriter).around(
     film,
     timings,
     target,
-    fresh.keepVoice(film, beat, file, options),
-    { ...(yield* Takes).named(paths), remake: Option.some(fresh.remix(film)) },
+    Effect.flatMap(fresh.keepVoice(film, beat, file, options), (done) => {
+      // A keep whose mix failed landed no track.
+      if (!done.mixed) return Effect.succeed([done, Option.none<number>()] as const);
+      return Effect.map(landed, (at) => [done, at] as const);
+    }),
+    { ...(yield* Takes).named(paths), remake: Option.some(yield* trackRemake(film)) },
   );
   if (!kept.mixed) yield* Effect.logWarning(`choices.voice.unmixed film=${film} beat=${beat}`);
-  const voiced: VoiceKept = { picked: { file: timings, target, change }, kept };
+  const voiced: VoiceKept = { picked: { file: timings, target, change, mixed }, kept };
   return voiced;
+});
+
+/**
+ * What reads when `film`'s track landed (`Remade`): its mtime, asked under
+ * the writer's lock right after the mix that renamed it into place, so it
+ * names that mix and no later one; none when it is not there. The file is
+ * looked at each time it runs, never when it is made.
+ */
+const trackLanded = Effect.fn('trackLanded')(function* (film: FilmName) {
+  const fs = yield* FileSystem.FileSystem;
+  const file = masterFile((yield* FilmFolder).paths(film));
+  return Effect.suspend(() => fs.stat(file)).pipe(
+    Effect.map((info): Remade => Option.map(info.mtime, (at) => at.getTime())),
+    Effect.orElseSucceed((): Remade => Option.none()),
+  );
+});
+
+/**
+ * What follows `sound.ts` and the timings: `film`'s track mixed again
+ * (`film mix`, fresh), answering when it landed (`trackLanded`).
+ */
+const trackRemake = Effect.fn('trackRemake')(function* (film: FilmName) {
+  const fresh = yield* FreshFilm;
+  const landed = yield* trackLanded(film);
+  return Effect.suspend(() => fresh.remix(film)).pipe(Effect.andThen(landed));
 });
 
 export class Choices extends Context.Service<Choices, ChoicesService>()(
@@ -281,7 +330,9 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
       const catalogues = yield* RenderCatalogue;
       const takes = yield* Takes;
       /** What `keepVoice` runs with. */
-      const keeping = yield* Effect.context<FilmFolder | SourceWriter | FreshFilm | Takes>();
+      const keeping = yield* Effect.context<
+        FileSystem.FileSystem | FilmFolder | SourceWriter | FreshFilm | Takes
+      >();
 
       const fileIn = (film: FilmName, name: string) => path.join(folder.paths(film).dir, name);
 
@@ -339,14 +390,16 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
 
       /**
        * What follows `sound.ts`: the track mixed from it (`film mix`), mixed
-       * again once a write of it lands, and on its Undo and Redo. It names no
-       * file to bring back or put away.
+       * again once a write of it lands, and on its Undo and Redo, each
+       * answering when it landed (`trackRemake`). It names no file to bring
+       * back or put away.
        */
-      const mixedFrom = (film: FilmName): Follows => ({
-        bring: () => Effect.void,
-        putAway: () => Effect.void,
-        remake: Option.some(fresh.remix(film)),
-      });
+      const mixedFrom = (film: FilmName) =>
+        Effect.map(trackRemake(film), (remake): Follows => ({
+          bring: () => Effect.void,
+          putAway: () => Effect.void,
+          remake: Option.some(remake),
+        })).pipe(Effect.provideContext(keeping));
 
       /**
        * `option` played at `site` in the film's file `name` (`sound.ts`), which
@@ -375,10 +428,11 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
             check: () => Effect.void,
             follows,
           }),
-          ([change]): Picked => ({
+          ([change, , mixed]): Picked => ({
             file,
             target: `${site.target} ${option}`,
             change: Option.liftPredicate(change, (c) => c.before !== c.after),
+            mixed,
           }),
         );
       };
@@ -406,7 +460,8 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           target,
           fresh.take(film, point.id, take, verb),
         );
-        const picked: Picked = { file, target, change };
+        // The lock changes what the library offers, not the track: nothing is mixed.
+        const picked: Picked = { file, target, change, mixed: Option.none() };
         return picked;
       });
 
@@ -434,7 +489,10 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           });
         const noPick = () => Effect.fail(refusal());
         return yield* Match.valueTags(point.ref, {
-          Score: () => writePick(film, 'sound.ts', SCORE_PLAY, variant.id, mixedFrom(film)),
+          Score: () =>
+            Effect.flatMap(mixedFrom(film), (follows) =>
+              writePick(film, 'sound.ts', SCORE_PLAY, variant.id, follows),
+            ),
           Look: ({ name }) => writePick(film, 'palette.ts', lookPlay(name), variant.id),
           Take: ({ sound }) => actOnTake(film, point, sound, variant.id, asked.verb),
           Voice: ({ beat }) => voicePicked(film, beat, variant.id, asked.acceptMismatch === true),
@@ -456,7 +514,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         const { target } = point.ref;
         const value = clamp(asked.value, knob.min, knob.max);
         const file = fileIn(film, 'sound.ts');
-        const [change] = yield* writer.write({
+        const [change, , mixed] = yield* writer.write({
           film,
           scene: Option.none(),
           file,
@@ -464,12 +522,13 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           edit: (source) => editLevel('sound.ts', source, target, value),
           verify: () => Result.succeed([]),
           check: () => Effect.void,
-          follows: mixedFrom(film),
+          follows: yield* mixedFrom(film),
         });
         const picked: Picked = {
           file,
           target: `${point.id} ${value}`,
           change: Option.liftPredicate(change, (c) => c.before !== c.after),
+          mixed,
         };
         return picked;
       });

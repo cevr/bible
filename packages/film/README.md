@@ -718,8 +718,14 @@ so a score or level written on the review, a take kept, a first mix, or a
 timings, saved before its mix, wake nothing. A film's choices page waits
 with `&film=` too, from its first wait (it never plays the track, so the
 wait itself arms the watch, `filmWaited`), and hears each newer mix once
-(`hearMixes`): it reads the film's choices again and shows them if they
-changed, so a pick made in a second tab shows in the first. A page links its scripts and styles from the root (`/chunk-….js`,
+(`hearMixes`): it asks every mix again and reads the steps again at once,
+and reads the film's choices again and shows them if they changed (unless a
+newer answer, a comment's, is shown by then), so a pick made in a second tab
+shows in the first. A write that mixed answers the build its film's pages
+hear that very mix by (`mixed`, `LabPage.heardAt`, from the track's mtime
+read under the writer's lock); the page asks every mix again once per build,
+so the wake for its own mix asks nothing more, and one past it (another
+tab's fade remixed in the same settle) does, whatever the choices say. A page links its scripts and styles from the root (`/chunk-….js`,
 `publicPath: '/'`), so a page served under a film's path finds them; a
 request is answered as a narration file when it is one
 (`/films/<film>/narration/<file>`), then as a built file, then as the page
@@ -1687,8 +1693,9 @@ at 0 drawing today's film); a render of another level is a render variant
 A score's pick and a level's knob change what `full.wav` is mixed from, so
 once the write of `sound.ts` lands the track is mixed again (`film mix
 <film>`, fresh), and again on its Undo and Redo, as a kept voice's is (the
-rewrite's `follows`, `Follows.remake` in `tools/source-writer.ts`); a failed
-mix is logged `lab.remake.failed` and the write stands.
+rewrite's `follows`, `Follows.remake` in `tools/source-writer.ts`, which
+answers when its track landed, `Remade`); a failed mix is logged
+`lab.remake.failed` and the write stands, naming no mix.
 
 **Sets are found by record, never by name.** A folder is listed only when a
 record says what its files are. A film's project folder (`out/<film>`) holds

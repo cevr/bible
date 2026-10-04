@@ -19,6 +19,7 @@ import { answered } from './api-server.ts';
 import { Choices, type Picked } from './choices.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
+import { mixedAnswer } from './lab-page.ts';
 import { IMMUTABLE, serveFile } from './review-file.ts';
 
 /**
@@ -28,10 +29,15 @@ import { IMMUTABLE, serveFile } from './review-file.ts';
  */
 const MIXED = 'no-cache';
 
-/** What a write answers: the file it changed (relative to the film), the choices now, the check. */
+/**
+ * What a write answers: the file it changed (relative to the film), the
+ * choices now, the check, and the mix it made as a page hears it.
+ */
 const answer = Effect.fn('choices.answer')(function* (film: FilmName, picked: Picked) {
   const path = yield* Path.Path;
   const dir = (yield* FilmFolder).paths(film).dir;
+  // Named before the check runs: the mix by when this write landed it, never one landed since.
+  const mixed = yield* mixedAnswer(film, picked.mixed);
   const { choices, findings } = yield* (yield* Choices).checked(film);
   const wrote: ChoiceWrite = {
     file: path.relative(dir, picked.file),
@@ -43,6 +49,7 @@ const answer = Effect.fn('choices.answer')(function* (film: FilmName, picked: Pi
     ...Option.match(picked.change, { onNone: () => ({}), onSome: (c) => ({ change: c.id }) }),
     choices,
     findings,
+    ...mixed,
   };
   return wrote;
 });

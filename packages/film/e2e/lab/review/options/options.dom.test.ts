@@ -341,7 +341,8 @@ const FILM = pageHref.choices('toy');
 
 const click = (page: Tab, selector: string) => page.click(selector);
 
-const MIX = "document.querySelector('audio.rv-mix')?.getAttribute('src') ?? ''";
+// In parentheses: a check reads `${MIX}.endsWith(…)`, which must test the src, not the `''`.
+const MIX = "(document.querySelector('audio.rv-mix')?.getAttribute('src') ?? '')";
 
 /** A variant's element by its point and id. */
 const at = (point: string, id: string) => `[data-point="${point}"] [data-variant="${id}"]`;
@@ -367,6 +368,44 @@ const posted = (
 ) =>
   Option.getOrUndefined(
     Option.flatMap(Option.fromUndefinedOr(asked.find((a) => a.path === path)), (a) => a.body),
+  );
+
+/**
+ * The lab's wait for a film's mixes: the first wait answers `build` once
+ * `mixed` is done, every later one only once `never` is.
+ */
+const mixWait = (mixed: Deferred.Deferred<void>, never: Deferred.Deferred<void>, build: number) => {
+  let waits = 0;
+  return route('GET', /^\/api\/review\/build/, () => {
+    waits += 1;
+    if (waits === 1) return later(mixed, json({ build, server: 'lab' }));
+    return later(never, json({ build, server: 'lab' }));
+  });
+};
+
+/** A score pick of piano whose answer stamps the mix it made `build`, as the lab's does. */
+const stampedPick = (toy: Toy, build: number) =>
+  route('POST', /^\/api\/films\/toy\/choices\/pick$/, () => {
+    toy.picked = 'piano';
+    return json({
+      file: 'sound.ts',
+      target: 'score play piano',
+      change: changeOf('score play piano'),
+      choices: choices(toy),
+      findings: [],
+      mixed: { build, server: 'lab' },
+    });
+  });
+
+/** How many times the film's steps were read. */
+const stepsRead = (asked: ReadonlyArray<{ readonly method: string; readonly path: string }>) =>
+  asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/steps').length;
+
+/** Wait, on the test's side, until `done` holds. */
+const holds = (done: () => boolean) =>
+  Effect.void.pipe(
+    Effect.repeat({ until: done, schedule: Schedule.spaced('50 millis') }),
+    Effect.timeout('10 seconds'),
   );
 
 describe("a film's choices", () => {
@@ -514,6 +553,141 @@ describe("a film's choices", () => {
           Effect.timeout('10 seconds'),
         );
         expect(stepsRead()).toBeGreaterThan(before);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a mix heard past this tab's own (another tab's fade remixed in the same settle) is asked again, though the choices did not move",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        const { page, errors } = yield* openReview(
+          [mixWait(mixed, never, 2), stampedPick(toy, 1), ...fakeFilm(toy)],
+          { href: FILM, build: { build: 0, server: 'lab' } },
+        );
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=0')`);
+        // This tab's pick lands with the mix it made, stamped 1: its mix is asked again.
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        // One wake for that mix and another tab's fade remixed within the settle: stamped 2.
+        yield* Deferred.done(mixed, Exit.void);
+        yield* until(page, `${MIX}.endsWith('&v=2')`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a mix heard at this tab's own write's stamp asks nothing again: the mix it asked plays on",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        const { page, asked, errors } = yield* openReview(
+          [mixWait(mixed, never, 1), stampedPick(toy, 1), ...fakeFilm(toy)],
+          { href: FILM, build: { build: 0, server: 'lab' } },
+        );
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        const before = stepsRead(asked);
+        // The wake is the pick's own mix: heard (the steps read again), its mix not asked again.
+        yield* Deferred.done(mixed, Exit.void);
+        yield* holds(() => stepsRead(asked) > before);
+        yield* page.clock.runFor(100);
+        yield* evaluates(page, `${MIX}.endsWith('&v=1')`, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a mix made elsewhere after a write that mixed nothing and one refused is asked again',
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        const refusedPick = route('POST', /^\/api\/films\/toy\/choices\/pick$/, (asked) => {
+          if (bodyText(asked.body).includes('look:ground')) {
+            toy.look = 'light';
+            return json({
+              file: 'palette.ts',
+              target: 'look ground play light',
+              change: changeOf('look ground play light'),
+              choices: choices(toy),
+              findings: [],
+            });
+          }
+          return refused(
+            SourceRefused.make({ file: 'sound.ts', target: 'play', reason: 'computed' }),
+          );
+        });
+        const { page, errors } = yield* openReview(
+          [mixWait(mixed, never, 1), refusedPick, ...fakeFilm(toy)],
+          { href: FILM, build: { build: 0, server: 'lab' } },
+        );
+        yield* waitFor(page, `${at('look:ground', 'now')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=0')`);
+        // A look picked: a source write, its answer stamping no mix (it made none).
+        yield* click(page, `${at('look:ground', 'light')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('look:ground', 'light')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        // A score pick refused: it wrote nothing.
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* attributeIs(page, RECEIPT, 'data-type', 'refused');
+        // Another tab's fade remixed, the choices as they were: the mix is asked again.
+        yield* Deferred.done(mixed, Exit.void);
+        yield* until(page, `${MIX}.endsWith('&v=2')`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a comment answered before a mix's read of the choices leaves the mix asked again and the steps read, and the comment shown",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        const answer = yield* Deferred.make<void>();
+        let reads = 0;
+        // The first read answers at once; the read after the mix waits on the test.
+        const held = route('GET', /^\/api\/films\/toy\/choices$/, () => {
+          reads += 1;
+          if (reads === 1) return json(choices(toy));
+          return later(answer, json(choices(toy)));
+        });
+        const { page, asked, errors } = yield* openReview(
+          [mixWait(mixed, never, 1), held, ...fakeFilm(toy)],
+          { href: FILM, build: { build: 0, server: 'lab' } },
+        );
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=0')`);
+        yield* inspect(page, at('score', 'strings'));
+        const before = stepsRead(asked);
+        // The film is mixed elsewhere: its choices are read again, and the read is held…
+        yield* Deferred.done(mixed, Exit.void);
+        yield* holds(() => reads >= 2);
+        // …while a comment, asked after it, lands first: the read's choices are older.
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'warmer in the close');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
+        yield* Deferred.done(answer, Exit.void);
+        // The mix and the steps are the mix's to refresh, whoever's choices are shown.
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        yield* holds(() => stepsRead(asked) > before);
+        yield* page.clock.runFor(100);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

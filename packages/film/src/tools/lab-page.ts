@@ -53,11 +53,13 @@ import {
   SubscriptionRef,
 } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { type PageBuild, type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
+import { type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
+import type { PageBuild } from '../core/schema.ts';
 import type { PageAnswer } from './api-server.ts';
 import { isNarrationUrl, narrationPath } from './narration-route.ts';
 import { narrationUrls } from '../player/narrated.ts';
 import { serveFile } from './review-file.ts';
+import type { Remade } from './source-writer.ts';
 
 /** What the app builds its pages from. */
 export interface LabPageSpec {
@@ -227,6 +229,8 @@ const ARMING = Duration.millis(250);
 const MTIME_LAG = Duration.seconds(1);
 /** How often a wait builds again while the last build failed. */
 const RETRY = Duration.millis(500);
+/** How many of a track's counted mixes stay named (`heardAt`): a write's answer asks for its own soon after. */
+const COUNTED_KEPT = 8;
 
 /**
  * What a page asks its wait with: the build it was served, by which server
@@ -284,6 +288,14 @@ interface LabPageService {
    * another server.
    */
   readonly wait: (served: Served, timeout: Duration.Input) => Effect.Effect<PageBuild>;
+  /**
+   * The build a page playing `film` hears the mix that landed its track at
+   * mtime `at` by: the change that mix was counted as (counted now, when no
+   * watch has yet), so a write's answer names its own mix and no later one.
+   * None when no page listens for the film's mixes, or that mix was never
+   * counted (a later one landed before any watch saw it).
+   */
+  readonly heardAt: (film: string, at: number) => Effect.Effect<Option.Option<PageBuild>>;
 }
 
 export class LabPage extends Context.Service<LabPage, LabPageService>()(
@@ -296,6 +308,21 @@ export class LabPage extends Context.Service<LabPage, LabPageService>()(
     return Layer.effect(LabPage, make(spec));
   }
 }
+
+/**
+ * What a write's answer says of the mix it made of `film` (`mixedField`):
+ * the build a page hears that very mix by (`LabPage.heardAt`), from when it
+ * landed (`Remade`); nothing when it mixed nothing or no page hears it.
+ */
+export const mixedAnswer = (film: string, remade: Remade) =>
+  Effect.map(
+    Option.match(remade, {
+      onNone: () => Effect.succeedNone,
+      onSome: (at) => Effect.flatMap(LabPage, (page) => page.heardAt(film, at)),
+    }),
+    (heard): { readonly mixed?: PageBuild } =>
+      Option.match(heard, { onNone: () => ({}), onSome: (mixed) => ({ mixed }) }),
+  );
 
 const escapeHtml = (text: string) =>
   text.replace(
@@ -393,6 +420,13 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   // last and whole (a rename), so a new mtime is the mix finished, and a page loaded then
   // plays the new track.
   const masters = yield* Ref.make<ReadonlyMap<string, Option.Option<number>>>(new Map());
+  // Each track's mtimes as counted, newest last (COUNTED_KEPT of them), each with the change
+  // it was counted as: the build its film's pages hear that mix by (`heardAt`).
+  const counted = yield* Ref.make<ReadonlyMap<string, ReadonlyArray<readonly [number, number]>>>(
+    new Map(),
+  );
+  // One track's landing counted at a time, so a mtime is never seen before its count is kept.
+  const landing = yield* Semaphore.make(1);
   const films = path.resolve(spec.films);
   // Each folder watched, and the fiber watching it; changed by one at a time (a build, a track served).
   const watchers = yield* Ref.make<ReadonlyMap<string, Fiber.Fiber<void>>>(new Map());
@@ -437,22 +471,55 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * new mtime is one more change, which only its film's pages hear. The
    * mix always lands the track by a rename (`writeWholeWith` in mixer.ts,
    * then `fs.rename` onto it), never by writes in place, so one mix is one
-   * new mtime; a watch's event and a check after arming that both see it
-   * count it once.
+   * new mtime; a watch's event, a check after arming and a write asking
+   * for its own mix (`heardAt`) that all see it count it once, and keep the
+   * change it was counted as.
    */
   const landed = (master: string) =>
+    landing.withPermit(
+      Effect.gen(function* () {
+        const at = yield* mtimeOf(master);
+        if (Option.isNone(at)) return;
+        const fresh = yield* Ref.modify(
+          masters,
+          (known): readonly [boolean, ReadonlyMap<string, Option.Option<number>>] => {
+            const last = Option.fromUndefinedOr(known.get(master));
+            if (Option.isNone(last) || Equal.equals(last.value, at)) return [false, known];
+            return [true, new Map([...known, [master, at]])];
+          },
+        );
+        if (!fresh) return;
+        const seen = yield* SubscriptionRef.updateAndGet(changes, mixOf(filmOf(master)));
+        yield* Ref.update(counted, (kept) => {
+          const before = Option.getOrElse(Option.fromUndefinedOr(kept.get(master)), () => []);
+          const next = [...before, [at.value, seen.n] as const].slice(-COUNTED_KEPT);
+          return new Map([...kept, [master, next]]);
+        });
+      }),
+    );
+
+  /**
+   * The build `film`'s pages hear the mix that landed its track at `at` by:
+   * the track counted first, if no watch has yet (`landed`), then the change
+   * that mtime was counted as; none when no page asked for the track, or
+   * that mtime was never counted.
+   */
+  const heardAt = (film: string, at: number): Effect.Effect<Option.Option<PageBuild>> =>
     Effect.gen(function* () {
-      const at = yield* mtimeOf(master);
-      if (Option.isNone(at)) return;
-      const fresh = yield* Ref.modify(
-        masters,
-        (known): readonly [boolean, ReadonlyMap<string, Option.Option<number>>] => {
-          const last = Option.fromUndefinedOr(known.get(master));
-          if (Option.isNone(last) || Equal.equals(last.value, at)) return [false, known];
-          return [true, new Map([...known, [master, at]])];
-        },
+      const master = Arr.findFirst(
+        [...(yield* Ref.get(masters)).keys()],
+        (m) => filmOf(m) === film,
       );
-      if (fresh) yield* SubscriptionRef.update(changes, mixOf(filmOf(master)));
+      if (Option.isNone(master)) return Option.none();
+      yield* landed(master.value);
+      const kept = Option.getOrElse(
+        Option.fromUndefinedOr((yield* Ref.get(counted)).get(master.value)),
+        () => [],
+      );
+      return Option.map(
+        Arr.findFirst(kept, ([mtime]) => mtime === at),
+        ([, n]) => ({ build: n, server }),
+      );
     });
 
   /** Each of `tracks` that landed while no watch reached it, checked once new watches are armed. */
@@ -790,5 +857,5 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     });
   });
 
-  return LabPage.of({ answer, wait });
+  return LabPage.of({ answer, wait, heardAt });
 });

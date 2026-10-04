@@ -13,7 +13,8 @@ import type { Timed, Timings } from '../core/schema.ts';
 import { laidOut, staticLeg } from './film-check.ts';
 import { type StaticFinding, lineOf, report } from './findings.ts';
 import type { Media } from './media.ts';
-import { MasterStampJson, masterFile, planOf, stampFile } from './mixer.ts';
+import { masterFile } from './film-repo.ts';
+import { MasterStampJson, planOf, stampFile } from './mixer.ts';
 import { fakeMedia, memoryFileSystem, spokenTake, testFilm, testVoice, text } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [

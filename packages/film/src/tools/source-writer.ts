@@ -96,9 +96,20 @@ export interface Follows {
   ) => Effect.Effect<void, NamedFileMissing | TakeAmbiguous>;
   /** Every file `from` names and `to` does not, put away once `to` has landed. */
   readonly putAway: (from: string, to: string) => Effect.Effect<void, StoreError | PlatformError>;
-  /** What is made from the text, made again once a text has landed; none when nothing is. */
-  readonly remake: Option.Option<Effect.Effect<void, FreshProcessFailed>>;
+  /**
+   * What is made from the text, made again once a text has landed, answering
+   * when what it made landed (`Remade`); none when nothing is made.
+   */
+  readonly remake: Option.Option<Effect.Effect<Remade, FreshProcessFailed>>;
 }
+
+/**
+ * When what a remake made landed: the mtime its file took (the track a mix
+ * renames into place, a new mtime each mix), so whoever hears that file
+ * change can name this very landing and no later one. None when it landed
+ * nothing: no remake, one that failed, or a file not there after it.
+ */
+export type Remade = Option.Option<number>;
 
 /** One change to a film's source: its file's text before and after it. */
 export interface Change {
@@ -172,10 +183,14 @@ interface WriteHistory {
 }
 
 interface SourceWriterService {
-  /** Rewrite one file as `rewrite` says: formatted, read back, checked, and only over the text it read. */
+  /**
+   * Rewrite one file as `rewrite` says: formatted, read back, checked, and
+   * only over the text it read; with what follows it made again, and when
+   * that landed.
+   */
   readonly write: <E, A = void>(
     rewrite: Rewrite<E, A>,
-  ) => Effect.Effect<readonly [Change, A], E | RewriteError>;
+  ) => Effect.Effect<readonly [Change, A, Remade], E | RewriteError>;
   /**
    * `act`, which rewrites `file` its own way, recorded as one change of
    * `film`'s: the file's text before it and after it, and what follows that
@@ -193,17 +208,18 @@ interface SourceWriterService {
    * Put `film`'s newest change back: its file as it was before it. Asked
    * with a request's id, the step is recorded under it once it lands
    * (`WriteHistory.landed`); asked for one change, it is refused unless that
-   * change is the newest (`StepAsk`).
+   * change is the newest (`StepAsk`). Answers the step, and when what
+   * follows its text, made again, landed.
    */
   readonly undo: (
     film: string,
     ask?: StepAsk,
-  ) => Effect.Effect<Change, UndoUnavailable | StepNotNewest | StoreError>;
-  /** Make `film`'s newest undone change again; asked as `undo` is. */
+  ) => Effect.Effect<readonly [Change, Remade], UndoUnavailable | StepNotNewest | StoreError>;
+  /** Make `film`'s newest undone change again; asked and answered as `undo` is. */
   readonly redo: (
     film: string,
     ask?: StepAsk,
-  ) => Effect.Effect<Change, RedoUnavailable | StepNotNewest | StoreError>;
+  ) => Effect.Effect<readonly [Change, Remade], RedoUnavailable | StepNotNewest | StoreError>;
   /** What undo and redo would do now for `film`, and its latest change. */
   readonly history: (film: string) => Effect.Effect<WriteHistory>;
 }
@@ -404,7 +420,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
             if (after === before) {
               if ((yield* fs.readFileString(file)) !== before)
                 return yield* SourceChanged.make({ file: shownIn(rewrite.film, file), target });
-              return [change, checked] as const;
+              return [change, checked, Option.none<number>()] as const;
             }
             // Uninterruptible: the write may reload the page, which drops its
             // request; the file and the history must still agree once it lands.
@@ -414,8 +430,8 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                 yield* swap(rewrite.film, file, before, after, target);
                 yield* record(change, 'lab.write');
                 // Made again from the text that landed, once the history names it.
-                yield* remake(change);
-                return [change, checked] as const;
+                const remade = yield* remake(change);
+                return [change, checked, remade] as const;
               }),
             );
           }),
@@ -485,17 +501,24 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               ),
         });
 
-      /** What is made from `c`'s text made again once a text landed; a failure leaves it as it was made before, and is logged. */
-      const remake = (c: Change) =>
+      /**
+       * What is made from `c`'s text made again once a text landed, and when
+       * it landed; a failure leaves it as it was made before, landing nothing,
+       * and is logged.
+       */
+      const remake = (c: Change): Effect.Effect<Remade> =>
         Option.match(
           Option.flatMap(c.follows, (follows) => follows.remake),
           {
-            onNone: () => Effect.void,
+            onNone: () => Effect.succeedNone,
             onSome: (made) =>
               made.pipe(
                 Effect.catch((error) =>
-                  Effect.logWarning(
-                    `lab.remake.failed film=${c.film} target="${c.target}" reason=${error.message}`,
+                  Effect.as(
+                    Effect.logWarning(
+                      `lab.remake.failed film=${c.film} target="${c.target}" reason=${error.message}`,
+                    ),
+                    Option.none<number>(),
                   ),
                 ),
               ),
@@ -571,8 +594,8 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                 yield* Effect.log(
                   `lab.undo film=${film}${sceneLog(c)} target="${c.target}" file=${shown(c)}`,
                 );
-                yield* remake(c);
-                return undone;
+                const remade = yield* remake(c);
+                return [undone, remade] as const;
               }),
             ),
           )
@@ -610,8 +633,8 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                 yield* Effect.log(
                   `lab.redo film=${film}${sceneLog(c)} target="${c.target}" file=${shown(c)}`,
                 );
-                yield* remake(c);
-                return redone;
+                const remade = yield* remake(c);
+                return [redone, remade] as const;
               }),
             ),
           )

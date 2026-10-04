@@ -54,6 +54,9 @@ export interface FilmPaths {
   readonly manifest: Manifest<SoundManifest>;
 }
 
+/** The film's mixed track (16-bit WAV): the player streams it, the renderer encodes from it. */
+export const masterFile = (paths: FilmPaths): string => `${paths.narration}/full.wav`;
+
 /** A film as the tools see it: the clock's part of each scene, its voice, sound and data. */
 export interface LoadedFilm {
   readonly paths: FilmPaths;

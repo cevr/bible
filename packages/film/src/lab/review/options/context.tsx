@@ -49,9 +49,9 @@ import {
 } from '../../../core/choice.ts';
 import { type Command, quiet } from '../../../command/command.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
-import type { CheckLine, CheckReport } from '../../../core/schema.ts';
+import type { CheckLine, CheckReport, PageBuild } from '../../../core/schema.ts';
 import { LabClient, type LabFailure } from '../../api.ts';
-import { hearMixes } from '../../rebuilt.ts';
+import { hearMixes, newer } from '../../rebuilt.ts';
 import { type Asks, type Landed, newestAsked } from '../asked.ts';
 import { useReview } from '../context.tsx';
 import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
@@ -376,14 +376,29 @@ const FilmBody = (
   );
   // Each source write bumps the version: every mix is asked for again, mixed from the source as it now stands.
   const [version, setVersion] = createSignal(0);
+  // The build of the newest mix this tab asked every mix again for: a write's
+  // answer naming the mix it made, or a mix heard. A mix heard at it or before
+  // plays already; one past it does not, whatever the choices say.
+  let refreshedFor = Option.none<PageBuild>();
+  /**
+   * Ask every mix again for the mix `heard` names, unless this tab already
+   * asked for it or a later one. A source write that names no mix (it made
+   * none a page hears) asks again whatever: its source changed.
+   */
+  const refreshFor = (heard: Option.Option<PageBuild>) => {
+    if (Option.exists(heard, (h) => Option.exists(refreshedFor, (r) => !newer(r)(h)))) return;
+    setVersion((v) => v + 1);
+    if (Option.isSome(heard)) refreshedFor = heard;
+  };
   // The check as the newest write asked that answers one (a source write, an undo, a redo).
   const orders = { choices: asks, findings: newestAsked() };
   /**
    * A write of `act` landed: show the choices it answers unless a newer
    * ask's are shown, and the check after it unless a newer write's check is;
    * one that answers no choices (an undo, a redo) or was overtaken reads them
-   * again. Every successful source write bumps the version and reads the
-   * steps, and a pick or a knob runs the sound check.
+   * again. Every successful source write asks every mix again for the mix it
+   * made (`refreshFor`: whatever order the answers land in, the mix's build
+   * orders it) and reads the steps, and a pick or a knob runs the sound check.
    */
   const written = (act: ChoiceAct, landed: Landed<Wrote, LabFailure, FilmOrder>) => {
     if (!landed.succeeded) return false;
@@ -395,42 +410,37 @@ const FilmBody = (
       (f) => setAnswered(Option.some(f)),
     );
     if (writesSource(act)) {
-      ownMix = true;
-      setVersion((v) => v + 1);
+      refreshFor(Option.flatMap(landed.value, (done) => done.mixed));
       readSteps();
       if (changesSound(act)) runSoundCheck();
     }
     return true;
   };
 
-  // A source write of this tab's own asked its mix again as it landed: the
-  // next mix heard is that one, and moves nothing here (its mix plays on).
-  let ownMix = false;
-  // The film mixed again (`hearMixes`): another tab's pick, a kept take, a
-  // fade remixed, a change made and undone elsewhere. The choices are read
-  // again and shown if they moved; the steps are read again whatever they
-  // are (an undo elsewhere leaves a Redo); and every mix is asked for again
-  // unless this tab's own write already did. The read runs on the page's
-  // runtime, in the hearing atom this page holds with no idle time to live,
-  // so a page left for another stops it at once and nothing it asked lands.
-  const heardMix = (fresh: FilmChoices) => {
-    const moved = !sameChoices(untrack(choices), fresh);
-    if (moved) setChoices(fresh);
-    if (moved || !ownMix) setVersion((v) => v + 1);
-    ownMix = false;
-    readSteps();
-  };
+  // The film mixed again (`hearMixes`), at the build `heard`: another tab's
+  // pick, a kept take, a fade remixed, a change made and undone elsewhere,
+  // or this tab's own write. Every mix is asked again for it unless this
+  // tab already did (`refreshFor`), and the steps are read again whatever
+  // they are (an undo elsewhere leaves a Redo): both at once, the mix's own.
+  // The choices are read again and shown if they moved, unless a newer ask's
+  // are shown by then (a comment's answer that overtook the read). The read
+  // runs on the page's runtime, in the hearing atom this page holds with no
+  // idle time to live, so a page left for another stops it at once and
+  // nothing it asked lands.
+  const heardMix = (heard: PageBuild) =>
+    Effect.gen(function* () {
+      yield* Effect.sync(() => {
+        refreshFor(Option.some(heard));
+        readSteps();
+      });
+      const ask = asks.ask();
+      const fresh = yield* OptionsApi.use((api) => api.choices(film));
+      ask.answer(() => {
+        if (!sameChoices(untrack(choices), fresh)) setChoices(fresh);
+      });
+    }).pipe(Effect.ignore);
   const hearing = meta.runtime
-    .atom(
-      hearMixes(
-        film,
-        Effect.gen(function* () {
-          const ask = asks.ask();
-          const fresh = yield* OptionsApi.use((api) => api.choices(film));
-          ask.answer(() => heardMix(fresh));
-        }).pipe(Effect.ignore),
-      ).pipe(Effect.provide(LabClient.layer)),
-    )
+    .atom(hearMixes(film, heardMix).pipe(Effect.provide(LabClient.layer)))
     .pipe(Atom.setIdleTTL(0));
   useAtomValue(() => hearing);
 

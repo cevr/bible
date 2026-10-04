@@ -43,12 +43,10 @@ import {
   FilmRepo,
   type LoadedFilm,
   type PlaceError,
+  masterFile,
   placeFilm,
 } from './film-repo.ts';
 import { Media, type MediaService } from './media.ts';
-
-/** The film's mixed track (16-bit WAV): the player streams it, the renderer encodes from it. */
-export const masterFile = (paths: FilmPaths): string => `${paths.narration}/full.wav`;
 
 /** What the track was mixed from: `full.json`, written beside `full.wav` by the same mix. */
 export const stampFile = (paths: FilmPaths): string => `${paths.narration}/full.json`;

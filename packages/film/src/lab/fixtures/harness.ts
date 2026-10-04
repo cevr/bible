@@ -11,13 +11,13 @@ import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effe
 import {
   LabHttpApi,
   declares,
-  type PageBuild,
   type PageName,
   Refusal,
   pageAt,
   pageHref,
   statusOf,
 } from '../../core/api.ts';
+import type { PageBuild } from '../../core/schema.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';

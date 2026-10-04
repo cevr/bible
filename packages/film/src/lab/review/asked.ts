@@ -33,13 +33,18 @@ export interface Asks {
 
 /**
  * A write's answer as it landed, ordered against each thing (`K`) the page
- * shows from it: whether it succeeded and why not, and its value only
- * through `show`.
+ * shows from it: whether it succeeded and why not, and its value through
+ * `show`; or as is (`value`), for what carries its own order.
  */
 export interface Landed<A, E, K extends string> {
   readonly succeeded: boolean;
   /** Why it failed, when it failed with an error (none when it succeeded or was interrupted). */
   readonly failure: Option.Option<E>;
+  /**
+   * The answer, when it succeeded, whatever was asked after it: only for
+   * what is ordered by its own stamp (a mix by its build), never by the asks.
+   */
+  readonly value: Option.Option<A>;
   /**
    * Show what the answer says of `order` (`said`, when it says anything)
    * unless an answer asked after it has been shown there: whether it ran.
@@ -63,6 +68,7 @@ export const sending = <K extends string>(orders: Readonly<Record<K, Asks>>) => 
   return <A, E>(exit: Exit.Exit<A, E>): Landed<A, E, K> => ({
     succeeded: Exit.isSuccess(exit),
     failure: Exit.findErrorOption(exit),
+    value: Exit.getSuccess(exit),
     // Only the newest ask reads its answer: `said` never runs on an overtaken one.
     show: (order, said, show) =>
       asked[order].newest() &&
