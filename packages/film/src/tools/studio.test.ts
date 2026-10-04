@@ -14,26 +14,33 @@ import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
 import { STUDIO_MAX_BODY, StudioAttempts, StudioBeats, StudioTake } from '../core/studio.ts';
 import { ContentStore } from './content-store.ts';
 import { TakeMismatch } from '../core/refusals.ts';
-import { FilmFolder, FilmRepo } from './film-repo.ts';
+import { RenderCatalogue } from './catalogue.ts';
+import { Choices } from './choices.ts';
+import { FilmFolder, FilmName, FilmRepo } from './film-repo.ts';
+import { pointIdOf } from '../core/point.ts';
 import { labHandler } from './lab.ts';
 import { readingOf } from './read-cli.ts';
 import { NO_SCORES } from './media-store.ts';
 import { NotesStore } from './notes-store.ts';
+import { SourceWriter } from './source-writer.ts';
 import { StudioReadings } from './studio.ts';
 import { Takes } from './takes.ts';
 import {
   emptyCalls,
   fakeElevenLabs,
   fakeMedia,
+  formatAsIs,
   freshFilm,
+  keepVoiceHere,
   memoryFileSystem,
   echoPages,
-  noReview,
-  noSource,
+  noRenders,
+  noScenes,
   storeLayer,
   testFilm,
   testVoice,
   text,
+  voicesHere,
 } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [
@@ -56,11 +63,15 @@ const staged: Timings = {
 };
 
 const film = testFilm(scenes, staged);
+const FILM = Schema.decodeSync(FilmName)('test');
 
 const setup = (
   recorded: ReadonlyMap<string, string>,
   /** What `film mix` does beside being counted: a test that times the mixes slows it. */
   remixing: Effect.Effect<void> = Effect.void,
+  /** What stands around each fresh keep of `beat`: a test that times the keeps marks them. */
+  keeping: <A, E>(beat: string, keep: Effect.Effect<A, E>) => Effect.Effect<A, E> = (_, keep) =>
+    keep,
 ) => {
   const files = new Map<string, Uint8Array>([
     [film.paths.timings.file, text(Schema.encodeSync(TimingsJson)(staged))],
@@ -93,24 +104,31 @@ const setup = (
       });
     }),
   );
-  // The fresh process: `film read voice` over the film as it is stored now, and `film mix`.
+  // The fresh process, over the film as it is stored now: `film read voice`, `film options
+  // list` (its voices) and `keep-voice`, whose mix is counted, and `keeping` stands around.
   const fresh = Layer.unwrap(
     Effect.map(
-      Effect.context<FilmRepo | ContentStore | FileSystem.FileSystem | Path.Path>(),
-      (context) =>
-        freshFilm({
+      Effect.context<FilmRepo | Takes | ContentStore | FileSystem.FileSystem | Path.Path>(),
+      (context) => {
+        const keep = keepVoiceHere(
+          context,
+          Effect.andThen(
+            Effect.sync(() => void mixes.push(film.paths.name)),
+            Effect.as(remixing, true),
+          ),
+        );
+        return freshFilm({
           reading: (name) =>
             Effect.gen(function* () {
               reads.push(name);
               const loaded = yield* (yield* FilmRepo).load(name);
               return yield* readingOf(loaded);
             }).pipe(Effect.provideContext(context), Effect.orDie),
-          remix: (name) =>
-            Effect.andThen(
-              Effect.sync(() => void mixes.push(name)),
-              remixing,
-            ),
-        }),
+          choices: voicesHere(context),
+          keepVoice: (name, beat, file, options) => keeping(beat, keep(name, beat, file, options)),
+          check: () => Effect.succeed([]),
+        });
+      },
     ),
   );
   const base = Layer.mergeAll(
@@ -118,6 +136,7 @@ const setup = (
     Path.layer,
     fakeElevenLabs(files, emptyCalls(), { recorded }),
     fakeMedia(files),
+    formatAsIs,
   );
   // The lab's handler serves the studio: its notes, source and review services only have to exist.
   const folder = Layer.succeed(
@@ -129,15 +148,18 @@ const setup = (
       stamp: () => Effect.sync(() => stamp.now),
     }),
   );
+  // The lab's handler serves the studio: its notes, scenes and renders only have to exist; its
+  // writes and the Choices view's are real.
   const layer = Layer.mergeAll(
-    Takes.layer,
     NotesStore.layer,
-    noSource,
-    noReview,
+    noScenes,
     echoPages,
     StudioReadings.layer,
+    Choices.layer,
   ).pipe(
+    Layer.provideMerge(Layer.mergeAll(SourceWriter.layer, RenderCatalogue.layer, noRenders)),
     Layer.provideMerge(Layer.mergeAll(folder, fresh)),
+    Layer.provideMerge(Takes.layer),
     Layer.provideMerge(repo),
     Layer.provideMerge(storeLayer(files)),
     Layer.provideMerge(Layer.mergeAll(base, HttpPlatform.layer.pipe(Layer.provide(base)))),
@@ -511,4 +533,123 @@ describe('studio routes', () => {
       expect([...files.keys()].some((f) => f.includes('/attempts/'))).toBe(false);
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
+
+  it.effect(
+    "Keep of an earlier attempt is undone by the lab's Undo, and redone by Redo, each take's file in narration",
+    () => {
+      const { files, layer } = setup(said);
+      return Effect.gen(function* () {
+        const first = yield* posted('a', 'Hello world.');
+        const second = yield* posted('a', 'Hello world, again.');
+        const before = files.get(film.paths.timings.file);
+        const kept = yield* call(
+          post(labUrls.studio.keep({ params: { film: 'test', beat: 'a' } }), `{"file":"${first}"}`),
+        );
+        expect(kept.status).toBe(200);
+        expect(yield* takeOf('a')).toBe(first);
+        const undone = yield* call(post(labUrls.steps.undo({ params: { film: 'test' } }), '{}'));
+        expect([undone.status, (undone.body as { target: string }).target]).toEqual([
+          200,
+          `undo voice a keep ${first}`,
+        ]);
+        expect(yield* takeOf('a')).toBe(second);
+        expect(files.get(film.paths.timings.file)).toEqual(before);
+        expect(narrationOf(files, 'a')).toEqual([second]);
+        const redone = yield* call(post(labUrls.steps.redo({ params: { film: 'test' } }), '{}'));
+        expect(redone.status).toBe(200);
+        expect(yield* takeOf('a')).toBe(first);
+        expect(narrationOf(files, 'a')).toEqual([first]);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    'a studio Keep and a Choices voice pick at once write the timings one after the other, and Undo walks them back in order',
+    () => {
+      const marks: Array<string> = [];
+      const { files, layer } = setup(said, Effect.void, (beat, keep) =>
+        Effect.gen(function* () {
+          marks.push(`keep ${beat}`);
+          const kept = yield* keep;
+          for (let i = 0; i < 5; i++) yield* Effect.yieldNow;
+          marks.push(`kept ${beat}`);
+          return kept;
+        }),
+      );
+      return Effect.gen(function* () {
+        const a1 = yield* posted('a', 'Hello world.');
+        const a2 = yield* posted('a', 'Hello world, again.');
+        const b1 = yield* posted('b', 'He said be still to them.');
+        const b2 = yield* posted('b', 'He said be still to them, again.');
+        const start = files.get(film.paths.timings.file);
+        marks.length = 0;
+        // The owner keeps a1 in the Studio while a Choices tab picks b1.
+        const studio = yield* labHandler({ hosts: [] });
+        const point = pointIdOf({ _tag: 'Voice', beat: 'b' });
+        yield* Effect.all(
+          [
+            Effect.promise(() =>
+              studio(
+                post(
+                  labUrls.studio.keep({ params: { film: 'test', beat: 'a' } }),
+                  `{"file":"${a1}"}`,
+                ),
+                bound,
+              ),
+            ).pipe(Effect.tap((res) => Effect.sync(() => expect(res.status).toBe(200)))),
+            Choices.use((choices) => choices.pick(FILM, { point, variant: b1, verb: 'pick' })),
+          ],
+          { concurrency: 2 },
+        );
+        // Each keep landed whole before the next began.
+        const [firstBeat, secondBeat] = [marks[0]?.slice(5), marks[2]?.slice(5)];
+        expect(marks).toEqual([
+          `keep ${firstBeat}`,
+          `kept ${firstBeat}`,
+          `keep ${secondBeat}`,
+          `kept ${secondBeat}`,
+        ]);
+        expect([firstBeat, secondBeat].toSorted()).toEqual(['a', 'b']);
+        expect([yield* takeOf('a'), yield* takeOf('b')]).toEqual([a1, b1]);
+        // Undo walks back the later keep first, then the earlier, to the timings as they were.
+        const writer = yield* SourceWriter;
+        const before = new Map([
+          ['a', a2],
+          ['b', b2],
+        ]);
+        const kept = new Map([
+          ['a', a1],
+          ['b', b1],
+        ]);
+        yield* writer.undo(FILM);
+        expect(yield* takeOf(secondBeat ?? '')).toBe(before.get(secondBeat ?? '') ?? '');
+        expect(yield* takeOf(firstBeat ?? '')).toBe(kept.get(firstBeat ?? '') ?? '');
+        yield* writer.undo(FILM);
+        expect(files.get(film.paths.timings.file)).toEqual(start);
+        expect([narrationOf(files, 'a'), narrationOf(files, 'b')]).toEqual([[a2], [b2]]);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
 });
+
+/** A recording posted for `beat` and kept as its take: the take's file. */
+const posted = (beat: string, said: string) =>
+  Effect.gen(function* () {
+    const { status, body } = yield* call(
+      post(labUrls.studio.take({ params: { film: 'test', beat } }), recording(said)),
+    );
+    expect(status).toBe(200);
+    return (yield* Schema.decodeUnknownEffect(StudioTake)(body)).take.file;
+  });
+
+/** The file the timings name as `beat`'s take now. */
+const takeOf = (beat: string) =>
+  ContentStore.use((store) =>
+    Effect.map(store.read(film.paths.timings), (t) => t.scenes[beat]?.file ?? ''),
+  );
+
+/** `beat`'s take files in `narration/` itself (not its attempts), by name. */
+const narrationOf = (files: ReadonlyMap<string, Uint8Array>, beat: string) =>
+  [...files.keys()]
+    .filter((f) => f.startsWith(`${film.paths.narration}/${beat}.`))
+    .map((f) => f.slice(film.paths.narration.length + 1));

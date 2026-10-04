@@ -5,20 +5,16 @@
 // files. No network, no ffmpeg, no film CLI.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, type FileSystem, Layer, Option, Path, Schema } from 'effect';
+import { Effect, Layer, Option, Path, Schema } from 'effect';
 import { pointIdOf } from '../core/point.ts';
-import { withSay } from '../core/choice.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
 import { RenderCatalogue } from './catalogue.ts';
-import { voicePoints } from './choice-points.ts';
 import { Choices } from './choices.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmFolder, FilmName, FilmRepo } from './film-repo.ts';
-import { OptionsKept } from './fresh-film.ts';
 import { NO_SCORES } from './media-store.ts';
 import { voicedOf } from './narrator.ts';
-import { Review } from './review.ts';
 import { SourceWriter } from './source-writer.ts';
 import { Takes } from './takes.ts';
 import {
@@ -27,11 +23,14 @@ import {
   fakeMedia,
   formatAsIs,
   freshFilm,
+  keepVoiceHere,
   memoryFileSystem,
+  noRenders,
   storeLayer,
   testFilm,
   testVoice,
   text,
+  voicesHere,
 } from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [{ id: 'a', say: 'Hello {wave} world.' }];
@@ -54,8 +53,6 @@ const film = testFilm(scenes, staged);
 const F = Schema.decodeSync(FilmName)('test');
 const NARRATION = film.paths.narration;
 const TIMINGS = film.paths.timings.file;
-
-const unreviewed = (op: string) => () => Effect.die(`the review is not called here (${op})`);
 
 const setup = () => {
   const files = new Map<string, Uint8Array>([
@@ -92,47 +89,16 @@ const setup = () => {
       stamp: () => Effect.succeed(1),
     }),
   );
-  const review = Layer.succeed(
-    Review,
-    Review.of({
-      roots: [],
-      index: unreviewed('index'),
-      pictures: unreviewed('pictures'),
-      renderVideo: unreviewed('renderVideo'),
-      resolve: unreviewed('resolve'),
-      duration: unreviewed('duration'),
-      frame: unreviewed('frame'),
-      phone: unreviewed('phone'),
-      derive: unreviewed('derive'),
-    }),
-  );
   // The fresh process, run here over the same files: `film options list` and `keep-voice`.
   const fresh = Layer.unwrap(
-    Effect.map(
-      Effect.context<FilmRepo | Takes | ContentStore | FileSystem.FileSystem | Path.Path>(),
-      (context) =>
-        freshFilm({
-          choices: () =>
-            Effect.gen(function* () {
-              const loaded = yield* (yield* FilmRepo).load(F);
-              const attempts = yield* (yield* Takes).attempts(loaded.paths, 'a');
-              return voicePoints(loaded, [
-                { beat: 'a', hash: hashText('Hello world.'), attempts },
-              ]).map((draft) => withSay(Option.none(), draft));
-            }).pipe(Effect.provideContext(context), Effect.orDie),
-          keepVoice: (_, beat, file) =>
-            Effect.gen(function* () {
-              const voiced = yield* Effect.fromResult(voicedOf(yield* (yield* FilmRepo).load(F)));
-              yield* (yield* Takes).keepAttempt(voiced, beat, file, { acceptMismatch: false });
-              return OptionsKept.make({ mixed: true });
-            }).pipe(Effect.provideContext(context), Effect.orDie),
-        }),
+    Effect.map(Effect.context<FilmRepo | Takes>(), (context) =>
+      freshFilm({ choices: voicesHere(context), keepVoice: keepVoiceHere(context) }),
     ),
   );
   const layer = Choices.layer.pipe(
     Layer.provideMerge(fresh),
     Layer.provideMerge(
-      Layer.mergeAll(Takes.layer, SourceWriter.layer, RenderCatalogue.layer, review),
+      Layer.mergeAll(Takes.layer, SourceWriter.layer, RenderCatalogue.layer, noRenders),
     ),
     Layer.provideMerge(Layer.mergeAll(repo, folder)),
     Layer.provideMerge(storeLayer(files)),
@@ -149,8 +115,12 @@ const imported = (file: string) =>
   Effect.gen(function* () {
     const loaded = yield* (yield* FilmRepo).load(F);
     const voiced = yield* Effect.orDie(Effect.fromResult(voicedOf(loaded)));
-    return (yield* (yield* Takes).importBeat(voiced, 'a', file, { acceptMismatch: false })).take
-      .file;
+    const [made] = yield* (yield* Takes).importPath(voiced, file, {
+      only: Option.some(new Set(['a'])),
+      acceptMismatch: new Set(),
+      whole: false,
+    });
+    return made?.take.file ?? '';
   });
 
 describe('Choices: a voice picked', () => {

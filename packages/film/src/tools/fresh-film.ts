@@ -6,7 +6,7 @@
 // app's sound library, read in their own process, stay as they were at
 // start. Each call here runs the film CLI again (`film options …`,
 // `choices-cli.ts`; `film read …`, `read-cli.ts`; `film project … --json`,
-// `project-cli.ts`; `film check … --json`; `film mix`), which imports the
+// `project-cli.ts`; `film check … --json`), which imports the
 // film as it stands on disk.
 //
 // Two answers come back. A command answers with one line of JSON
@@ -15,7 +15,17 @@
 // as `ServerFailed`, its tag and its words. `film check --json` answers with one `CheckLine` per finding; a
 // check that cannot run is itself one error finding. Logs go to stderr.
 
-import { Console, Context, Duration, Effect, Layer, Option, Predicate, Schema } from 'effect';
+import {
+  Array as Arr,
+  Console,
+  Context,
+  Duration,
+  Effect,
+  Layer,
+  Option,
+  Predicate,
+  Schema,
+} from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { ServerFailed } from '../core/api.ts';
 import { Project } from '../core/catalogue.ts';
@@ -26,6 +36,7 @@ import {
   ChoiceUnknown,
   FilmUnknown,
   FreshProcessFailed,
+  RecordingInvalid,
   SceneNotLocated,
   SceneNotRendered,
   SourceShared,
@@ -34,7 +45,7 @@ import {
   VariantUnknown,
   VerbRefused,
 } from '../core/refusals.ts';
-import { CheckLine, ResolvedCue, Timeline } from '../core/schema.ts';
+import { CheckLine, ResolvedCue, Timeline, VoiceTiming } from '../core/schema.ts';
 import { StudioReading } from '../core/studio.ts';
 import type { FilmName } from './film-repo.ts';
 import { type Finished, collectWithin } from './process.ts';
@@ -55,6 +66,12 @@ export class OptionsMixed extends Schema.TaggedClass<OptionsMixed>()('OptionsMix
 
 /** `film options keep-voice`'s answer: the attempt is the beat's take, and the track remixed. */
 export class OptionsKept extends Schema.TaggedClass<OptionsKept>()('OptionsKept', {
+  /** The take as the timings now name it. */
+  take: VoiceTiming,
+  /** What the transcriber heard of it. */
+  heard: Schema.String,
+  /** Its word error against the line as it reads now, 0 to 1. */
+  wer: Schema.Finite,
   /** Whether `narration/full.wav` was rebuilt with the take (false: the log says why). */
   mixed: Schema.Boolean,
 }) {}
@@ -112,7 +129,11 @@ export class SitesRead extends Schema.TaggedClass<SitesRead>()('SitesRead', {
   unlocated: Schema.Array(SceneNotLocated),
 }) {}
 
-/** What a fresh run refuses with: the film, choice, variant, scene or act it could not find, or the take it would not keep. */
+/**
+ * What a fresh run refuses with: the film, choice, variant, scene or act it
+ * could not find, or the take it would not keep (one that says something
+ * else, or an attempt it has not, or one recorded for an earlier line).
+ */
 const FreshRefusal = Schema.Union([
   FilmUnknown,
   ChoiceUnknown,
@@ -120,6 +141,7 @@ const FreshRefusal = Schema.Union([
   VerbRefused,
   TakeUnknown,
   TakeMismatch,
+  RecordingInvalid,
   SceneNotRendered,
   UnknownScene,
   UnknownAct,
@@ -260,11 +282,12 @@ export interface FreshFilmService {
     variant: string,
     to: string,
   ) => Effect.Effect<void, FreshError>;
-  /** Keep `beat`'s attempt `file` as its take, and remix the track. */
+  /** Keep `beat`'s attempt `file` as its take (a mismatch only when accepted), and remix the track. */
   readonly keepVoice: (
     film: FilmName,
     beat: string,
     file: string,
+    options: { readonly acceptMismatch: boolean },
   ) => Effect.Effect<OptionsKept, FreshError>;
   /** `verb` on the take `take` (a sha256) of point `point`: kept, unkept or rejected in the lock. */
   readonly take: (
@@ -288,8 +311,6 @@ export interface FreshFilmService {
   ) => Effect.Effect<CueRead, FreshError>;
   /** Where each scene's drawing is declared, as the film's files and modules now stand (`film read sites`). */
   readonly sites: (film: FilmName) => Effect.Effect<SitesRead, FreshError>;
-  /** `film mix <film>`: the track rebuilt from the takes and the sources as they stand. */
-  readonly remix: (film: FilmName) => Effect.Effect<void, FreshProcessFailed>;
   /** `film project <args>` (its `--json` among them): the project as the run leaves it. */
   readonly project: (args: ReadonlyArray<string>) => Effect.Effect<Project, FreshError>;
   /**
@@ -398,8 +419,14 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           film: FilmName,
           beat: string,
           file: string,
+          options: { readonly acceptMismatch: boolean },
         ) {
-          return yield* ask(['options', 'keep-voice', film, beat, file], MIX_LIMIT, OptionsKept);
+          const accept = Arr.filter(['--accept-mismatch'], () => options.acceptMismatch);
+          return yield* ask(
+            ['options', 'keep-voice', film, beat, file, ...accept],
+            MIX_LIMIT,
+            OptionsKept,
+          );
         });
 
         const take = Effect.fn('FreshFilm.take')(function* (
@@ -435,15 +462,6 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
 
         const sites = Effect.fn('FreshFilm.sites')(function* (film: FilmName) {
           return yield* ask(['read', 'sites', film], READ_LIMIT, SitesRead);
-        });
-
-        const remix = Effect.fn('FreshFilm.remix')(function* (film: FilmName) {
-          const done = yield* run('film mix', ['mix', film], MIX_LIMIT);
-          if (done.exitCode !== 0)
-            return yield* FreshProcessFailed.make({
-              command: 'film mix',
-              reason: `exit ${done.exitCode}: ${tailOf(done)}`,
-            });
         });
 
         const project = Effect.fn('FreshFilm.project')(function* (args: ReadonlyArray<string>) {
@@ -486,7 +504,6 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           reading,
           cue,
           sites,
-          remix,
           project,
           check,
         });

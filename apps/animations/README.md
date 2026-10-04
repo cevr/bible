@@ -60,7 +60,7 @@ bun run chapters <film>                        # the YouTube chapters film.ts's 
 bun cli.ts options list <film> [--check]       # the film's choice points as the review reads them, fresh from disk (one line of JSON); --check adds the static check's findings
 bun cli.ts options take <film> --point p --variant v --verb pick|unpick|reject  # keep, unkeep or reject a sound's take in the library as it stands
 bun cli.ts options mix <film> --point p --variant v --to f.m4a  # the film's whole mix with a score option or a take in place
-bun cli.ts options keep-voice <film> <beat> <file>  # keep a beat's recorded attempt as its take, and remix
+bun cli.ts options keep-voice <film> <beat> <file> [--accept-mismatch]  # keep a beat's recorded attempt as its take, and remix
 bun cli.ts read voice <film>                   # what the lab's studio reads of the film, fresh from disk (one line of JSON)
 bun cli.ts read cue <film> <scene> <cue> [--spans <json>]  # a cue on its scene's clock as the files declare it (or with these spans), or why it does not resolve (one line of JSON)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
@@ -211,7 +211,8 @@ count-in (the meter warns of clipping at −1 dBFS), Space stops, play it back,
 K submits; what was heard and the word error show, or the server's refusal,
 and a `TakeMismatch` offers Accept anyway (K). ←/→ step through the beats and
 Esc cancels; those keys are the Studio's only while it has focus. Each beat's
-attempts play again and Keep makes one the take. A kept take reloads the lab
+attempts play again and Keep makes one the take; a keep, like every lab write,
+is undone by Undo (⌘Z) and redone by Redo, the take it replaced playing again. A kept take reloads the lab
 at the same time, on the same beat, playing the new take (`/films/*` is served
 uncached for that). Use Chrome or Firefox on a computer (every iPhone and
 iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to `https://` or

@@ -10,8 +10,12 @@
 //   fresh process (the library's prompts are its sources too), recorded
 //   around the lock's rewrite by the SourceWriter, so it is undone the same
 //   way;
-// - voice: an attempt kept as its beat's take by the film CLI in a fresh
-//   process (it reads the script), recorded around the timings' rewrite;
+// - voice: an attempt kept as its beat's take by `keepVoice`, the one way an
+//   attempt becomes a take, which the studio's keep and its posted take call
+//   too: by the film CLI in a fresh process (it reads the script, and
+//   remixes), recorded around the timings' rewrite with the takes they name,
+//   so it runs under the writer's lock and Undo brings back the take it
+//   replaced;
 // - level: a sound layer's level (or the constant layers share) written into
 //   `sound.ts` through the SourceWriter;
 // - a say (approve, withdraw, comment): the catalogue's records
@@ -77,7 +81,7 @@ import {
 } from '../core/refusals.ts';
 import { type FormatFailed } from './errors.ts';
 import { FilmFolder, type FilmName, Stamped, keptWhenMade, lockManifest } from './film-repo.ts';
-import { type FreshError, FreshFilm } from './fresh-film.ts';
+import { type FreshError, FreshFilm, type OptionsKept } from './fresh-film.ts';
 import { Review, once } from './review.ts';
 import { type Change, type RewriteError, SourceWriter } from './source-writer.ts';
 import { Takes } from './takes.ts';
@@ -221,6 +225,43 @@ const TAKE_ACT = { pick: 'keep', unpick: 'unkeep', reject: 'reject' } as const;
 /** The films whose points are kept at a time: the review's films, with room. */
 const POINTS_KEPT = 16;
 
+/** A voice kept: the change Undo walks back, and the take as the fresh run kept it. */
+interface VoiceKept {
+  readonly picked: Picked;
+  readonly kept: OptionsKept;
+}
+
+/**
+ * The one way an attempt becomes its beat's take, from the Choices view's
+ * pick and the studio's keep and posted take alike: kept by the film CLI in
+ * a fresh process (`film options keep-voice`: the script as it stands, the
+ * word error checked again, a mismatch kept only when `acceptMismatch`
+ * says so, and the track remixed), recorded around the timings' rewrite by
+ * the SourceWriter with the takes the timings name (`Takes.named`). So every
+ * keep runs under the writer's lock, one at a time with every other write,
+ * and Undo and Redo walk it back, the replaced take with it.
+ */
+export const keepVoice = Effect.fn('keepVoice')(function* (
+  film: FilmName,
+  beat: string,
+  file: string,
+  options: { readonly acceptMismatch: boolean },
+) {
+  const paths = (yield* FilmFolder).paths(film);
+  const timings = paths.timings.file;
+  const target = `voice ${beat} keep ${file}`;
+  const [kept, change] = yield* (yield* SourceWriter).around(
+    film,
+    timings,
+    target,
+    (yield* FreshFilm).keepVoice(film, beat, file, options),
+    (yield* Takes).named(paths),
+  );
+  if (!kept.mixed) yield* Effect.logWarning(`choices.voice.unmixed film=${film} beat=${beat}`);
+  const voiced: VoiceKept = { picked: { file: timings, target, change }, kept };
+  return voiced;
+});
+
 export class Choices extends Context.Service<Choices, ChoicesService>()(
   '@bible/film/tools/Choices',
 ) {
@@ -235,6 +276,8 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
       const fresh = yield* FreshFilm;
       const catalogues = yield* RenderCatalogue;
       const takes = yield* Takes;
+      /** What `keepVoice` runs with. */
+      const keeping = yield* Effect.context<FilmFolder | SourceWriter | FreshFilm | Takes>();
 
       const fileIn = (film: FilmName, name: string) => path.join(folder.paths(film).dir, name);
 
@@ -347,31 +390,12 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         return picked;
       });
 
-      /**
-       * A beat's attempt kept as its take in a fresh process, recorded around
-       * the timings' rewrite with the takes they name, so Undo brings back the
-       * take it replaced.
-       */
-      const keepVoice = Effect.fn('Choices.keepVoice')(function* (
-        film: FilmName,
-        beat: string,
-        file: string,
-      ) {
-        const paths = folder.paths(film);
-        const timings = paths.timings.file;
-        const target = `voice ${beat} keep ${file}`;
-        const [done, change] = yield* writer.around(
-          film,
-          timings,
-          target,
-          fresh.keepVoice(film, beat, file),
-          takes.named(paths),
+      /** A voice picked: its attempt kept (`keepVoice`); the pick posts no "accept anyway". */
+      const voicePicked = (film: FilmName, beat: string, file: string) =>
+        keepVoice(film, beat, file, { acceptMismatch: false }).pipe(
+          Effect.map((voiced) => voiced.picked),
+          Effect.provideContext(keeping),
         );
-        if (!done.mixed)
-          yield* Effect.logWarning(`choices.voice.unmixed film=${film} beat=${beat}`);
-        const picked: Picked = { file: timings, target, change };
-        return picked;
-      });
 
       const pick = Effect.fn('Choices.pick')(function* (film: FilmName, asked: PickPost) {
         const { point, variant } = yield* Effect.fromResult(
@@ -390,7 +414,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           Score: () => writePick(film, 'sound.ts', SCORE_PLAY, variant.id),
           Look: ({ name }) => writePick(film, 'palette.ts', lookPlay(name), variant.id),
           Take: ({ sound }) => actOnTake(film, point, sound, variant.id, asked.verb),
-          Voice: ({ beat }) => keepVoice(film, beat, variant.id),
+          Voice: ({ beat }) => voicePicked(film, beat, variant.id),
           Render: noPick,
           Montage: noPick,
           Level: noPick,

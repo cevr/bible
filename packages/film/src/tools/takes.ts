@@ -166,7 +166,7 @@ interface Source {
 }
 
 /** A take that was kept. */
-export interface Imported {
+interface Imported {
   readonly id: string;
   readonly take: VoiceTiming;
   readonly heard: string;
@@ -180,13 +180,15 @@ interface TakesService {
     path: string,
     options: ImportOptions,
   ) => Effect.Effect<ReadonlyArray<Imported>, TakesError>;
-  /** Import one recording as the take of `beat`. */
-  readonly importBeat: (
+  /**
+   * One recording made an attempt at `beat`'s take, not kept: the lab keeps
+   * it through `keepVoice` (`choices.ts`), so the keep is undoable.
+   */
+  readonly recordAttempt: (
     film: VoicedFilm,
     beat: string,
     file: string,
-    options: BeatOptions,
-  ) => Effect.Effect<Imported, TakesError>;
+  ) => Effect.Effect<Attempt, TakesError>;
   /** A beat's attempts, newest first. */
   readonly attempts: (
     film: FilmPaths,
@@ -412,26 +414,23 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         } satisfies Imported;
       });
 
-      const importOne = (film: VoicedFilm, beat: ReadBeat, file: string, options: BeatOptions) =>
+      /** One recording made an attempt at `beat`'s take, its original kept beside it. */
+      const attemptOne = (film: VoicedFilm, beat: ReadBeat, file: string) =>
         Effect.gen(function* () {
           const recording = yield* media.load(file, MIX_RATE);
           const original = yield* keepOriginal(film, beat.id, file);
-          const made = yield* attempt(
-            film,
-            beat,
-            { file, original, cut: Option.none() },
-            recording,
-          );
-          return yield* keep(film, beat, made, options);
+          return yield* attempt(film, beat, { file, original, cut: Option.none() }, recording);
         });
 
-      const importBeat = Effect.fn('Takes.importBeat')(function* (
+      const importOne = (film: VoicedFilm, beat: ReadBeat, file: string, options: BeatOptions) =>
+        Effect.flatMap(attemptOne(film, beat, file), (made) => keep(film, beat, made, options));
+
+      const recordAttempt = Effect.fn('Takes.recordAttempt')(function* (
         film: VoicedFilm,
         id: string,
         file: string,
-        options: BeatOptions,
       ) {
-        return yield* importOne(film, yield* beatFor(film, id, file), file, options);
+        return yield* attemptOne(film, yield* beatFor(film, id, file), file);
       });
 
       /** The recordings in a folder, each with its beat, in film order. */
@@ -586,7 +585,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
 
       return Takes.of({
         importPath,
-        importBeat,
+        recordAttempt,
         attempts,
         attemptFile,
         keepAttempt,

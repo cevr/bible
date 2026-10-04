@@ -709,8 +709,14 @@ imported it, so the studio never loads the film in its own process: it reads
 the voice, the script's `heardAs`, each beat's line and the reading sheet
 fresh (`film read voice <film>`, `StudioReading` in `core/studio.ts`), kept
 by `StudioReadings` under the film's source stamp (`FilmFolder.stamp`: one
-fresh process after any file under the film changed, none before), and
-remixes with `film mix <film>`. A take is kept against that reading
+fresh process after any file under the film changed, none before). A posted
+recording is made an attempt here (`Takes.recordAttempt`); every keep, of
+that attempt or an earlier one, is `keepVoice` (`choices.ts`), the one keep
+the Choices view's voice pick makes too: `film options keep-voice <film>
+<beat> <file> [--accept-mismatch]` in a fresh process (it keeps the take and
+remixes), recorded by `SourceWriter.around` with the take files the timings
+name, so it holds the writer's lock and the lab's Undo and Redo walk it back
+and forth. A take is kept against that reading
 (`VoicedFilm`, `narrator.ts`: the film's paths, voice, `heardAs` and beats,
 which `takes import` makes with `voicedOf`), so a line fixed while the lab
 is open is on the sheet, and a take of it current, at the next read. Its
@@ -747,9 +753,10 @@ encoded `/` or `..` included) is a 404 `UnknownScene`. A body over
 `STUDIO_MAX_BODY` (64 MiB) is a 413 `BodyTooLarge`, counted as it streams (a
 Content-Length over it is refused unread; one under it is not believed). The
 upload is written to a scoped temp file (`recording.wav` or `.flac`), removed
-when the request ends. Takes are kept one at a time (a semaphore per studio):
-the keep, the timings write and the mix after it finish before the next post
-begins. After a take is kept the film remixes; `mixed: false` says the mix
+when the request ends. Takes are kept one at a time with every other lab
+write (the writer's lock): the keep, the timings write and the mix after it
+finish before the next keep, pick or edit begins, and the keep is undoable
+(Undo names `voice <beat> keep <file>`). After a take is kept the film remixes; `mixed: false` says the mix
 failed (logged) and the take stands. The server keeps a connection open
 with nothing sent for `LAB_IDLE_SECONDS` (255 s, Bun's longest), past the
 page's wait for a take (`STUDIO_IMPORT_WAIT_S`), so the page stops waiting
