@@ -1265,6 +1265,33 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    "lists its points one under another across the page, each variant's verbs on its name's row",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), {
+          href: FILM,
+          viewport: { width: 1440, height: 900 },
+        });
+        const take = at('take:paper.page', WAITING);
+        yield* waitFor(page, `${take} [data-act="pick"]`);
+        // Every card is as wide as the page's column: no column of cards beside an empty two.
+        yield* evaluates(
+          page,
+          "(() => { const main = document.querySelector('.rv-main').getBoundingClientRect().width; return [...document.querySelectorAll('.rv-option')].every((c) => c.getBoundingClientRect().width >= main - 64); })()",
+          true,
+        );
+        // A row is one line of the list: its verb sits level with its name, at the row's end.
+        yield* evaluates(
+          page,
+          `(() => { const name = document.querySelector('${take} .rv-name').getBoundingClientRect(); const pick = document.querySelector('${take} [data-act="pick"]').getBoundingClientRect(); const row = document.querySelector('${take}').getBoundingClientRect(); return pick.top < name.bottom && row.right - pick.right < 48; })()`,
+          true,
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "scrolls nothing sideways at a phone's width",
     () =>
       Effect.gen(function* () {

@@ -119,8 +119,14 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-picture video { max-height: 62vh; }
 .rv-pending .rv-row { padding: var(--s-2) var(--s-3); justify-content: space-between; }
 .rv-option .rv-body { display: flex; flex-direction: column; gap: var(--s-2); }
-.rv-option audio, .rv-take audio { width: 100%; max-width: 320px; height: var(--control-h); }
 .rv-take { border-top: var(--border); padding-top: var(--s-2); display: flex; flex-direction: column; gap: var(--s-2); }
+/* The choices as a list (design language §6, Choices): each point a group across the column, each variant one row, its name and line at the start and its hear buttons and verbs at the end (wrapping there, the name keeping at least 10rem or half the row). */
+.rv-list { display: flex; flex-direction: column; gap: var(--s-3); }
+.rv-list .rv-take, .rv-layers .rv-take { display: grid; grid-template-columns: minmax(min(10rem, 50%), 1fr) minmax(0, auto); column-gap: var(--s-3); row-gap: var(--s-1); align-items: center; }
+.rv-list .rv-take > .rv-acts, .rv-layers .rv-take > .rv-acts { grid-column: 2; grid-row: 1 / span 2; justify-content: flex-end; }
+/* A long name wraps inside its column rather than running under the verbs. */
+.rv-list .rv-take .lab-inspect, .rv-layers .rv-take .lab-inspect { max-width: 100%; text-align: start; }
+.rv-list .rv-take .rv-name, .rv-layers .rv-take .rv-name { white-space: normal; overflow-wrap: anywhere; }
 .rv-comments { margin: var(--s-1) 0; padding-left: var(--s-4); font-size: var(--fs-2); overflow-wrap: anywhere; }
 .rv-say { flex-wrap: nowrap; }
 .rv-say .rv-comment-input {
@@ -153,5 +159,7 @@ a.rv-card:hover { background: var(--surface-2); }
   .rv-transport { padding: var(--s-2) var(--s-2); gap: var(--s-2); }
   .rv-cap { flex-wrap: wrap; }
   .rv-tag { white-space: normal; overflow-wrap: anywhere; }
+  /* A row's state word moves whole to the next line, never broken in two. */
+  .rv-take .rv-tag { overflow-wrap: normal; }
 }
 `;

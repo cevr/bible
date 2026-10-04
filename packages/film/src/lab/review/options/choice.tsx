@@ -440,7 +440,7 @@ const VariantRow = (props: {
           </div>
         )}
       </Show>
-      <div class="rv-row">
+      <div class="rv-row rv-acts">
         <Media point={props.point} variant={props.variant} />
         <For each={props.variant.verbs.filter((verb) => !isRare(verb))}>
           {(verb) => <VerbButton point={props.point} variant={props.variant} verb={verb} />}

@@ -227,7 +227,7 @@ const ChoiceSection = (props: {
     <h2 class="rv-h">
       {props.title} <small>{props.points.length}</small>
     </h2>
-    <div class="rv-grid rv-wide">
+    <div class="rv-list">
       <For each={props.points} keyed={(p) => p.id}>
         {(point) => <ChoiceCard point={point()} />}
       </For>
