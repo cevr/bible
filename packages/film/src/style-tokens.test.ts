@@ -1,13 +1,14 @@
 // The studio's look is read only through its tokens (`player/tokens.css`,
 // design language §3): no stylesheet, `*_CSS` string, Solid `style={{…}}`,
-// `.style.x =` or `setProperty`, SVG `fill=`/`stroke=` attribute or canvas
+// `.style.x =`, `.style['x'] =` or `setProperty`, SVG `fill=`/`stroke=` attribute or canvas
 // paint (`ctx.fillStyle =`) outside that file names a colour, a font family
 // or a font size of its own. A colour is a hex (`#e0ad45`), a colour function
 // of numbers (`rgb(255 255 255 / 0.2)`; one built from tokens or from data,
 // `hsl(${hue} var(--scene-sat) …)`, is not) or a named colour on a colour
 // property; a canvas in the chrome paints with a colour read from a token,
 // never a literal. A font family or size is any value but `var(…)` or
-// `inherit`, a `font` shorthand with a size in it, and any string named a
+// `inherit` (quoted or not, the value read whole from where it begins), a
+// `font` shorthand with a size in it, and any string named a
 // family (`FACE_FAMILY = '…'`). Canvas code draws film pixels, not the
 // studio's chrome, and keeps its own colours: `canvas/`, the look-book's
 // sheet and the contact sheet drawn on a canvas, and the fixture films (the
@@ -49,6 +50,26 @@ const NAMED = 'white|black|red|green|blue|gray|grey|yellow|orange|purple|pink|si
 const COLOUR_PROPERTY =
   'color|background(?:-?[cC]olor)?|border(?:-?[a-zA-Z]+)?-?[cC]olor|outline-?[cC]olor|fill|stroke|stop-?[cC]olor|flood-?[cC]olor';
 
+/**
+ * Where a property `name` (a CSS or style-object key, or a `.style` key) is
+ * set, up to where its value begins: `name:` or `'name':`, `.name =`, or
+ * `['name'] =` by its key in brackets.
+ */
+const setting = (name: string) => `${name}(?:['"\`]?\\s*:|['"\`]\\s*\\]\\s*=|\\s*=)`;
+
+/**
+ * As `setting`, for a CSS name (`font-size`): set by `:` or by its key in
+ * brackets, never by a bare `=` (an attribute's).
+ */
+const cssSetting = (name: string) => `${name}(?:['"\`]?\\s*:|['"\`]\\s*\\]\\s*=)`;
+
+/**
+ * Not a token: the value, from where it begins, is no `var(…)` and no
+ * `inherit`, quoted or not. Looked at once, from that one place: a quote
+ * skipped is never a place to look again from.
+ */
+const NOT_TOKEN = `(?!\\s*['"\`]?\\s*(?:var\\(|inherit))`;
+
 /** What a line may not hold: each with the reason a reader gets, and any file it spares. */
 const RULES: ReadonlyArray<{
   readonly why: string;
@@ -66,7 +87,7 @@ const RULES: ReadonlyArray<{
   {
     why: 'a named colour',
     pattern: new RegExp(
-      `(?<![\\w-])(?:${COLOUR_PROPERTY})['"]?\\s*[:=]\\s*\\{?\\s*['"\`]?(?:${NAMED})\\b`,
+      `(?<![\\w-])${setting(`(?:${COLOUR_PROPERTY})`)}\\s*\\{?\\s*['"\`]?(?:${NAMED})\\b`,
     ),
   },
   {
@@ -89,19 +110,20 @@ const RULES: ReadonlyArray<{
     pattern:
       /setProperty\(\s*['"`](?:color|background(?:-color)?|border(?:-[a-z]+)?-color|outline-color|fill|stroke|font|font-family|font-size)['"`]\s*,\s*['"`](?!\s*(?:var\(|inherit))/,
   },
-  { why: 'a font family', pattern: /font-family['"]?\s*:\s*['"`]?(?!\s*(?:var\(|inherit))/ },
+  { why: 'a font family', pattern: new RegExp(`${cssSetting('font-family')}${NOT_TOKEN}`) },
   {
     why: 'a font family',
-    pattern: /(?:family|Family|FAMILY)\s*[:=]\s*['"`](?!\s*(?:var\(|inherit))/,
+    pattern: new RegExp(`${setting('(?:family|Family|FAMILY)')}\\s*['"\`]${NOT_TOKEN}`),
     spares: [FACE],
   },
   { why: 'a font family', pattern: /new FontFace\(\s*['"`]/ },
-  { why: 'a font size', pattern: /font-size['"]?\s*:\s*['"`]?(?!\s*(?:var\(|inherit))/ },
-  { why: 'a font size', pattern: /fontSize\s*[:=]\s*['"`](?!\s*(?:var\(|inherit))/ },
+  { why: 'a font size', pattern: new RegExp(`${cssSetting('font-size')}${NOT_TOKEN}`) },
+  { why: 'a font size', pattern: new RegExp(`${setting('fontSize')}\\s*['"\`]${NOT_TOKEN}`) },
   {
     why: 'a font shorthand of its own',
-    pattern:
-      /(?<![\w-])font\s*[:=]\s*['"`]?(?!\s*(?:var\(|inherit))[^;'"`]*\d(?:px|r?em|pt|%|\s*\/)/,
+    pattern: new RegExp(
+      `(?<![\\w-])${setting('font')}${NOT_TOKEN}\\s*['"\`]?[^;'"\`]*\\d(?:px|r?em|pt|%|\\s*\\/)`,
+    ),
   },
 ];
 
@@ -171,7 +193,7 @@ describe('the studio reads its look only through its tokens', () => {
   it.effect('each rule refuses what it names, and lets a token through', () =>
     Effect.sync(() => {
       const refused = (line: string) => broken('lab/any.tsx', line).length > 0;
-      for (const line of [
+      const refusedLines = [
         'color: #e0ad45;',
         "seg.style.background = '#fff';",
         'border: 1px solid rgb(255 255 255 / 0.2);',
@@ -201,13 +223,19 @@ describe('the studio reads its look only through its tokens', () => {
         "tip.style.fontSize = '11px';",
         "tip.style.setProperty('color', 'white');",
         "tip.style.setProperty('font-size', '12px');",
+        // A `.style` assignment by its key in brackets.
+        "el.style['fontSize'] = '12px';",
+        "el.style['fontFamily'] = 'Inter';",
+        'el.style["font-size"] = "12px";',
+        "el.style['font'] = '12px Inter';",
+        "el.style['color'] = 'white';",
+        'el.style[`backgroundColor`] = `black`;',
         // A family named in a string.
         "const FACE_FAMILY = 'JetBrains Mono';",
         "new FontFace('Inter', url);",
         "{ family: 'Inter' }",
-      ])
-        expect([line, refused(line)]).toEqual([line, true]);
-      for (const line of [
+      ];
+      const allowedLines = [
         'color: var(--accent);',
         'font: inherit;',
         'font-size: var(--fs-2);',
@@ -217,6 +245,16 @@ describe('the studio reads its look only through its tokens', () => {
         'href="#t=2"',
         "style={{ left: pct(props.placed, at), width: '40%' }}",
         "style={{ color: 'var(--ink)' }}",
+        // A token quoted as a style object's value.
+        "style={{ 'font-size': 'var(--fs-2)' }}",
+        "style={{ 'font-family': 'var(--font)' }}",
+        "style={{ 'font-family': 'inherit', fontSize: 'var(--fs-1)' }}",
+        "style={{ fontFamily: 'var(--font)' }}",
+        'font-family: "var(--font)";',
+        // A token set by its key in brackets.
+        "el.style['fontSize'] = 'var(--fs-1)';",
+        "el.style['fontFamily'] = 'var(--font)';",
+        "el.style['color'] = 'var(--ink)';",
         '<path fill="none" stroke="currentColor" d="M0 0" />',
         '<path fill="var(--accent)" />',
         'seg.style.backgroundColor = hue(p.index);',
@@ -224,8 +262,13 @@ describe('the studio reads its look only through its tokens', () => {
         'ctx.fillStyle = ink;',
         "el.animate(frames, { fill: 'forwards' });",
         'new FontFace(FACE_FAMILY, url);',
-      ])
-        expect([line, refused(line)]).toEqual([line, false]);
+      ];
+      // Every line it names is refused, and every token (and all else a line may hold) let
+      // through: the lines each list gets wrong, both at once.
+      expect({
+        letThrough: refusedLines.filter((line) => !refused(line)),
+        refused: allowedLines.filter(refused),
+      }).toEqual({ letThrough: [], refused: [] });
       // The face's own family is spared only in its registration.
       expect(broken(FACE, "const FACE_FAMILY = 'JetBrains Mono';")).toEqual([]);
     }),
