@@ -21,6 +21,7 @@ const scene = (
   staleBy: Option.none(),
   approval,
   render: Option.none(),
+  span: Option.none(),
   comments: [],
 });
 
@@ -79,6 +80,24 @@ describe('marksOf', () => {
       '1 warning',
     ]);
     expect(bandState(marks('one'))).toEqual(Option.some('stale'));
+  });
+
+  test('each chip says in full why (a title over its word): why it is out of date, an approval of an earlier version', () => {
+    const bySound = marksOf(
+      Option.some({
+        ...VIEW,
+        project: {
+          ...VIEW.project,
+          scenes: [{ ...scene('one', 'stale', 'stale'), staleBy: Option.some('sound' as const) }],
+        },
+      }),
+      [],
+    )('one');
+    expect(chipsOf(bySound).map((c) => [c.text, c.why])).toEqual([
+      ['Out of date', "out of date: the film's sound changed since it was made"],
+      ['Approved earlier', 'needs review: an earlier version was approved'],
+    ]);
+    expect(chipsOf(marks('three'))[0]?.why).toBe('not made yet');
   });
 
   test("the legend counts the film's scenes out of date, approved and its findings, none left at 0", () => {

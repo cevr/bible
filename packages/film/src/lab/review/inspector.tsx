@@ -111,6 +111,13 @@ export const useThing = (thing: Thing): void => {
   onCleanup(inspecting.put(thing));
 };
 
+/** Whether `of`'s inspector is the one open: its card shows it selected. */
+export const useInspected = (of: Selection): Accessor<boolean> => {
+  const inspecting = useInspecting();
+  const key = targetAttr(of);
+  return () => Option.exists(inspecting.opened(), (o) => o.key === key);
+};
+
 /**
  * A thing's inspector, rendered in its row so it reads the row's providers;
  * shown while it is the one open. `children` gets its comment box's handle:

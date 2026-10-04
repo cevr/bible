@@ -71,6 +71,18 @@ describe('a scene render against its sources', () => {
     expect(project.scenes[0]?.approval).toBe('none');
   });
 
+  test('says where its scene sits in the film when the film was laid out, rendered or not', () => {
+    const span = { start: 12.5, dur: 4 };
+    const laidOut = projectOf(
+      emptyCatalogue('f'),
+      keyed([{ scene: 'a', key: 'k1', span }]),
+      'main',
+    );
+    const unplaced = projectOf(emptyCatalogue('f'), keyed([{ scene: 'a', key: 'k1' }]), 'main');
+    expect(laidOut.scenes[0]?.span).toEqual(Option.some(span));
+    expect(unplaced.scenes[0]?.span).toEqual(Option.none());
+  });
+
   test('needs a render when missing, stale or made at other settings; not when current', () => {
     const catalogue = withRenders(sceneRender('a', 'k1'));
     const slot = sceneSlot('a', 'main');

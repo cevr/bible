@@ -608,7 +608,6 @@ export const ScenesView = (props: ScenesViewProps) => {
   const [expanded, setExpanded] = createSignal(false, fromHost);
   const Focus = (focus: { readonly scene: string }) => {
     const scene = untrack(() => focus.scene);
-    const placed = Option.getOrUndefined(sceneById(scene));
     const [comment, setComment] = createSignal('', fromHost);
     const [saying, setSaying] = createSignal(false, fromHost);
     const sayComment = () => {
@@ -654,8 +653,7 @@ export const ScenesView = (props: ScenesViewProps) => {
           film={props.name}
           scene={scene}
           index={indexOf(scene)}
-          start={placed?.start ?? 0}
-          dur={placed?.dur ?? 0}
+          span={Option.map(sceneById(scene), (s) => ({ start: s.start, dur: s.dur }))}
           fps={film.fps}
           marks={marks()(scene)}
           size="focus"

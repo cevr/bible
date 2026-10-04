@@ -205,7 +205,11 @@ const keyed = Effect.fn('film.project.keyed')(function* (name: string) {
 
 /** Each scene with its own stamp's key: what the project compares its renders with. */
 const sceneKeys = (keys: SceneKeys, placed: ReadonlyArray<Placed>) =>
-  sceneStamps(keys, placed).map(({ scene, stamp }) => ({ scene, key: stamp.key }));
+  Arr.zipWith(sceneStamps(keys, placed), placed, ({ scene, stamp }, p) => ({
+    scene,
+    key: stamp.key,
+    span: { start: p.start, dur: p.dur },
+  }));
 
 /** What was said, a line each, marked when it was said of an earlier version. */
 const saidLines = (comments: ReadonlyArray<SaidComment>, indent: string): string =>

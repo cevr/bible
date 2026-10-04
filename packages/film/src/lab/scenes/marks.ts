@@ -1,8 +1,8 @@
 // What a scene's card and the tape say of each scene at a glance (design
 // language §6): its act, its render's state (out of date, not rendered) and
-// its approval from the film's project, and the check's findings about it
+// its approval (approved, or approved earlier) from the film's project, and the check's findings about it
 // (a finding whose address names the scene). Each mark is a chip: a word in
-// the state's colour (`MarkChip.state`, a `--state-*` token's name). The
+// the state's colour (`MarkChip.state`, a `--state-*` token's name), why in full its title. The
 // tape's legend counts them over the film. The project or the check may not
 // be read (yet, or at all: a short has no project): the scene then has no
 // such mark, never a wrong one. Pure.
@@ -11,6 +11,7 @@ import { Array as Arr, Boolean as Bool, Option } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import type { CheckLine } from '../../core/schema.ts';
+import { APPROVAL_TEXT, stateText } from '../review/format.ts';
 
 /** What is known of one scene: its act, its render and its approval, and the findings about it. */
 export interface SceneMarks {
@@ -19,10 +20,11 @@ export interface SceneMarks {
   readonly findings: ReadonlyArray<CheckLine>;
 }
 
-/** A mark's chip: its word and the `--state-*` token it is drawn in. */
+/** A mark's chip: its word, why in full (its title), and the `--state-*` token it is drawn in. */
 interface MarkChip {
-  readonly mark: 'stale' | 'missing' | 'approved' | 'findings' | 'warnings';
+  readonly mark: 'stale' | 'missing' | 'approved' | 'approved-earlier' | 'findings' | 'warnings';
   readonly text: string;
+  readonly why: string;
   readonly state: 'stale' | 'rendered' | 'approved' | 'findings' | 'warning';
 }
 
@@ -58,22 +60,60 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
   const errors = marks.findings.filter((l) => l.level === 'error').length;
   const warnings = marks.findings.length - errors;
   const render = Option.toArray(marks.render);
+  const lines = (level: CheckLine['level']) =>
+    marks.findings
+      .filter((l) => l.level === level)
+      .map((l) => `${l.tag}: ${l.message}`)
+      .join('\n');
   return [
     ...render
       .filter((r) => r.state === 'stale')
-      .map((): MarkChip => ({ mark: 'stale', text: 'Out of date', state: 'stale' })),
+      .map((r): MarkChip => ({
+        mark: 'stale',
+        text: 'Out of date',
+        why: stateText(r.state, r.staleBy),
+        state: 'stale',
+      })),
     ...render
       .filter((r) => r.state === 'missing')
-      .map((): MarkChip => ({ mark: 'missing', text: 'Not rendered', state: 'rendered' })),
+      .map((r): MarkChip => ({
+        mark: 'missing',
+        text: 'Not rendered',
+        why: stateText(r.state, r.staleBy),
+        state: 'rendered',
+      })),
     ...render
       .filter((r) => r.approval === 'approved')
-      .map((): MarkChip => ({ mark: 'approved', text: 'Approved', state: 'approved' })),
+      .map((): MarkChip => ({
+        mark: 'approved',
+        text: 'Approved',
+        why: APPROVAL_TEXT.approved,
+        state: 'approved',
+      })),
+    ...render
+      .filter((r) => r.approval === 'stale')
+      .map((): MarkChip => ({
+        mark: 'approved-earlier',
+        text: 'Approved earlier',
+        why: APPROVAL_TEXT.stale,
+        state: 'stale',
+      })),
     ...[errors]
       .filter((n) => n > 0)
-      .map((n): MarkChip => ({ mark: 'findings', text: count(n, 'finding'), state: 'findings' })),
+      .map((n): MarkChip => ({
+        mark: 'findings',
+        text: count(n, 'finding'),
+        why: lines('error'),
+        state: 'findings',
+      })),
     ...[warnings]
       .filter((n) => n > 0)
-      .map((n): MarkChip => ({ mark: 'warnings', text: count(n, 'warning'), state: 'warning' })),
+      .map((n): MarkChip => ({
+        mark: 'warnings',
+        text: count(n, 'warning'),
+        why: lines('warning'),
+        state: 'warning',
+      })),
   ];
 };
 

@@ -382,7 +382,7 @@ const click = (page: Tab, selector: string) => page.click(selector);
 const scene = (id: string) => `[data-scene="${id}"]`;
 
 /** A scene's render card. */
-const render = (id: string) => `${scene(id)} > [data-kind="render"]`;
+const render = (id: string) => `${scene(id)} > .sc-card[data-size="tile"]`;
 
 /** The open inspector: one at a time. */
 const INSPECTOR = '[data-role="inspector"]';
@@ -491,7 +491,7 @@ describe("a film's project", () => {
         yield* until(page, `location.pathname === '${PROJECT}'`);
         yield* waitFor(page, '[data-act-name="opening"]');
         // The act holds its scenes; the scenes in no act follow.
-        yield* attributesAre(page, '[data-act-name="opening"] [data-scene]', 'data-scene', [
+        yield* attributesAre(page, '[data-act-name="opening"] .rv-scene', 'data-scene', [
           'open',
           'close',
         ]);
@@ -510,17 +510,24 @@ describe("a film's project", () => {
           '/api/review/frame?ref=out%2Ftoy%2Fscenes%2Fopen%2Fmain.share.mp4&w=960',
         );
         yield* countIs(page, `${render('close')} video`, 0);
-        // A render stale by the film's sound alone says so, beside its approval of an earlier version.
-        yield* textIs(
+        // A render stale by the film's sound alone says so, beside its approval
+        // of an earlier version: each a chip, why in full its title.
+        yield* textIs(page, `${render('close')} .sc-chip[data-mark="stale"]`, 'Out of date');
+        yield* attributeIs(
           page,
-          `${render('close')} .rv-tag[data-state]`,
+          `${render('close')} .sc-chip[data-mark="stale"]`,
+          'title',
           "out of date: the film's sound changed since it was made",
         );
-        yield* textIs(
+        yield* attributeIs(
           page,
-          `${render('close')} .rv-badge[data-approval]`,
+          `${render('close')} .sc-chip[data-mark="approved-earlier"]`,
+          'title',
           'needs review: an earlier version was approved',
         );
+        // The card is the Scenes' card: the scene's name, its hue, its marks.
+        yield* textIs(page, `${render('open')} .sc-card-name`, 'open');
+        yield* countIs(page, `${render('open')} .sc-hue`, 1);
         // A stale scene is not approved until it is rendered again.
         yield* evaluates(
           page,
@@ -602,7 +609,7 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
         // One scene approved as it is rendered, and its approval withdrawn.
         yield* click(page, `${render('coda')} [data-act="approve"]`);
-        yield* waitFor(page, `${render('coda')} .rv-badge[data-approval="approved"]`);
+        yield* waitFor(page, `${render('coda')} .sc-chip[data-mark="approved"]`);
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
         // Unapprove is in the scene's inspector, not at rest.
         yield* countIs(page, `${render('coda')} [data-act="unapprove"]`, 0);
@@ -613,10 +620,10 @@ describe("a film's project", () => {
         yield* countIs(page, '[data-act="approve-all"]', 0);
         yield* inspect(page, FILM_HEAD);
         yield* click(page, `${INSPECTOR} [data-act="approve-all"]`);
-        yield* waitFor(page, `${render('open')} .rv-badge[data-approval="approved"]`);
-        yield* waitFor(page, `${render('coda')} .rv-badge[data-approval="approved"]`);
+        yield* waitFor(page, `${render('open')} .sc-chip[data-mark="approved"]`);
+        yield* waitFor(page, `${render('coda')} .sc-chip[data-mark="approved"]`);
         // The stale scene is left for a render.
-        yield* waitFor(page, `${render('close')} .rv-badge[data-approval="stale"]`);
+        yield* waitFor(page, `${render('close')} .sc-chip[data-mark="approved-earlier"]`);
         // Nothing current is left to approve, in the film or the act: no say would change a thing.
         yield* until(
           page,
@@ -644,10 +651,10 @@ describe("a film's project", () => {
         yield* click(page, `${INSPECTOR} [data-act="unapprove-act"]`);
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
         yield* waitFor(page, `${render('close')} [data-act="approve"][data-approval="none"]`);
-        yield* waitFor(page, `${render('coda')} .rv-badge[data-approval="approved"]`);
+        yield* waitFor(page, `${render('coda')} .sc-chip[data-mark="approved"]`);
         yield* countIs(page, `${INSPECTOR} [data-act="unapprove-act"]`, 0);
         yield* click(page, `${INSPECTOR} [data-act="approve-act"]`);
-        yield* waitFor(page, `${render('open')} .rv-badge[data-approval="approved"]`);
+        yield* waitFor(page, `${render('open')} .sc-chip[data-mark="approved"]`);
         yield* until(
           page,
           `document.querySelector('${INSPECTOR} [data-act="approve-act"]').disabled === true`,
@@ -700,7 +707,7 @@ describe("a film's project", () => {
         yield* page.evaluate(`window.clip = document.querySelector('${scene('open')} video')`);
         // The inspector sits beside the page: the page under it stays live.
         yield* click(page, `${scene('coda')} [data-act="approve"]`);
-        yield* waitFor(page, `${scene('coda')} .rv-badge[data-approval="approved"]`);
+        yield* waitFor(page, `${scene('coda')} .sc-chip[data-mark="approved"]`);
         yield* valueIs(page, `${INSPECTOR} .rv-comment-input`, 'half a thought');
         // Closed and opened again, it keeps the half-typed comment.
         yield* page.press('Escape');
@@ -724,12 +731,21 @@ describe("a film's project", () => {
         const { page, errors } = yield* openReview(fakeProject(false, [], ['open']), {
           href: PROJECT,
         });
-        yield* waitFor(page, `${scene('open')} [data-compare]`);
+        // Versions is in the scene's inspector, with Open in Lab.
+        yield* inspect(page, render('open'));
+        const versions = `${INSPECTOR} [data-compare]`;
+        yield* waitFor(page, versions);
+        yield* attributeIs(
+          page,
+          `${INSPECTOR} [data-act="open-lab"]`,
+          'href',
+          '/films/toy/lab/open',
+        );
         // The page's own handler runs at the document; a listener on the
         // window hears each click after it, notes whether it was taken, and
         // keeps the test's page where it is.
         yield* page.evaluate(`(() => {
-          const link = document.querySelector('${scene('open')} [data-compare]');
+          const link = document.querySelector('${versions}');
           window.taken = [];
           const note = (e) => { window.taken.push(e.defaultPrevented); e.preventDefault(); };
           window.addEventListener('click', note);
@@ -738,7 +754,7 @@ describe("a film's project", () => {
           window.removeEventListener('click', note);
         })()`);
         yield* evaluates(page, 'window.taken', [false, false, false]);
-        yield* click(page, `${scene('open')} [data-compare]`);
+        yield* click(page, versions);
         yield* until(page, "location.pathname.startsWith('/sets/')");
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -821,9 +837,10 @@ describe("a film's project", () => {
         yield* click(page, `${render('coda')} [data-act="approve"]`);
         yield* attributeIs(page, '[data-receipt="project"]', 'data-type', 'refused');
         yield* waitFor(page, `${scene('coda')}[data-state="stale"]`);
-        yield* textIs(
+        yield* attributeIs(
           page,
-          `${render('coda')} .rv-tag[data-state]`,
+          `${render('coda')} .sc-chip[data-mark="stale"]`,
+          'title',
           'out of date: its sources changed since it was made',
         );
         yield* evaluates(

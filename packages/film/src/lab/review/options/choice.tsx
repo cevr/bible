@@ -13,7 +13,7 @@
 // project. Each part reads its props as they change, so a card updates in
 // place: a playing clip plays on and a half-typed comment stays.
 
-import { For, type JSX, Show } from '@solidjs/web';
+import { For, Show } from '@solidjs/web';
 import { Option } from 'effect';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 import { type Say, reviewFrameUrl } from '../../../core/api.ts';
@@ -211,7 +211,7 @@ export const ApproveButton = (props: {
  * A render's video, kept in place while its file stays the same, showing a
  * still of itself until it plays; while its proxy is being made, says so.
  */
-const Seen = (props: { readonly video: ReviewVideo }) => {
+export const Seen = (props: { readonly video: ReviewVideo }) => {
   const { state } = useReview();
   const src = createMemo(() => Option.getOrUndefined(videoSource(props.video, state.quality())));
   const poster = createMemo(() => reviewFrameUrl(props.video.ref, Option.none(), POSTER_W));
@@ -271,7 +271,7 @@ const UnapproveButton = (props: { readonly variant: ChoiceVariant; readonly saye
 };
 
 /** A variant's approve: only what is current is approved, as the version seen now. */
-const Approve = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
+export const Approve = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
   const approving = props.sayer.use();
   return (
     <ApproveButton
@@ -283,7 +283,7 @@ const Approve = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer
 };
 
 /** A variant's approve and unapprove, as its inspector offers them. */
-const Approval = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => (
+export const Approval = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => (
   <>
     <Approve variant={props.variant} sayer={props.sayer} />
     <Show when={props.variant.approval !== 'none'}>
@@ -317,7 +317,7 @@ const VerbButton = (props: {
 };
 
 /** A variant's comment box, waiting while its own say is in flight. */
-const CommentBox = (props: {
+export const CommentBox = (props: {
   readonly variant: ChoiceVariant;
   readonly sayer: Sayer;
   readonly box: InspectorBox;
@@ -379,23 +379,28 @@ const variantVerbs = (
   ];
 };
 
+/** A variant as a thing of the page: what its row, its card and its inspector read of it. */
+interface VariantThing {
+  /** Its selection, fixed for as long as its row lives (a row is keyed by its variant). */
+  readonly selection: Selection;
+  readonly title: () => string;
+  /** Whether it is said of (approved, commented on): its point has an address. */
+  readonly said: () => boolean;
+}
+
 /**
- * One variant: at rest its name (a tap inspects it), its state, its first
- * line, how it is seen or heard, its pick (picked: a filled check, not a
- * colour), its approve where it is the picked one (or a scene's render:
- * approving is that page's goal), and a dot counting what was said of it. The rest is in its inspector: every line,
- * unapprove, unkeep and reject, the comments and the comment box; and in
- * its context menu.
+ * Register a point's variant as a thing of the page for as long as the
+ * calling row lives: its inspector's title, whether it takes comments, and
+ * the verbs its menu, ⌘K and keys run (`variantVerbs`). A project's scene
+ * card is such a row, as a choice's variant row is.
  */
-const VariantRow = (props: {
+export const useVariantThing = (props: {
   readonly point: ChoicePoint;
   readonly variant: ChoiceVariant;
   readonly sayer: Sayer;
-  readonly more?: () => JSX.Element;
-}) => {
+}): VariantThing => {
   const said = () => Option.isSome(props.point.address);
   const { film } = useFilm();
-  // A row is keyed by its variant: its selection is fixed for as long as it lives.
   const selection = untrack(() =>
     Selection.cases.Variant.make({ film, point: props.point.id, variant: props.variant.id }),
   );
@@ -408,6 +413,23 @@ const VariantRow = (props: {
     commentable: said,
     verbs: () => variantVerbs(props.point, props.variant, saying, verbing),
   });
+  return { selection, title, said };
+};
+
+/**
+ * One variant: at rest its name (a tap inspects it), its state, its first
+ * line, how it is seen or heard, its pick (picked: a filled check, not a
+ * colour), its approve where it is the picked one, and a dot counting what
+ * was said of it. The rest is in its inspector: every line, unapprove,
+ * unkeep and reject, the comments and the comment box; and in its context
+ * menu.
+ */
+const VariantRow = (props: {
+  readonly point: ChoicePoint;
+  readonly variant: ChoiceVariant;
+  readonly sayer: Sayer;
+}) => {
+  const { selection, title, said } = useVariantThing(props);
   const approveAtRest = () => said() && (props.variant.picked || props.point.kind === 'render');
   return (
     <Target
@@ -464,9 +486,6 @@ const VariantRow = (props: {
                 {(verb) => <VerbButton point={props.point} variant={props.variant} verb={verb} />}
               </For>
             </div>
-            {Option.getOrUndefined(
-              Option.map(Option.fromUndefinedOr(props.more), (more) => more()),
-            )}
             <Comments comments={props.variant.comments} />
             <Show when={said()}>
               <CommentBox variant={props.variant} sayer={props.sayer} box={box} />
@@ -579,17 +598,12 @@ export const revealPoint = (point: string) =>
 
 /**
  * One choice point: its lines, its knob, its variants. A
- * choice's says go to the film's choices; a render's card is told where its
- * go (`sayer`). Why a stale variant is stale is its own (`staleBy`).
+ * choice's says go to the film's choices. Why a stale variant is stale is
+ * its own (`staleBy`).
  */
-export const ChoiceCard = (props: {
-  readonly point: ChoicePoint;
-  readonly sayer?: Sayer;
-  /** More for its variants' inspectors (a scene's render: the choices that play in it). */
-  readonly more?: () => JSX.Element;
-}) => {
+export const ChoiceCard = (props: { readonly point: ChoicePoint }) => {
   /** A choice's says go to the film's choices. */
-  const ofChoices: Sayer = {
+  const sayer: Sayer = {
     use: () => {
       const saying = useAct();
       return {
@@ -599,7 +613,6 @@ export const ChoiceCard = (props: {
       };
     },
   };
-  const sayer: Sayer = { use: () => (props.sayer ?? ofChoices).use() };
   const { film } = useFilm();
   return (
     <Target
@@ -618,9 +631,7 @@ export const ChoiceCard = (props: {
           {(knob) => <Knob point={props.point} knob={knob()} />}
         </Show>
         <For each={props.point.variants} keyed={(v) => v.id}>
-          {(variant) => (
-            <VariantRow point={props.point} variant={variant()} sayer={sayer} more={props.more} />
-          )}
+          {(variant) => <VariantRow point={props.point} variant={variant()} sayer={sayer} />}
         </For>
         <Show when={props.point.variants.length === 0 && Option.isNone(props.point.knob)}>
           <p class="rv-hint">Nothing to choose between yet.</p>

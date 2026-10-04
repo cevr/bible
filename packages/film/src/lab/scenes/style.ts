@@ -85,6 +85,10 @@ body.scenes { display: block; height: auto; }
   background: var(--on-picture-shade); color: var(--on-picture); font-size: var(--fs-1); line-height: var(--lh-1); }
 .sc-card-head { display: flex; align-items: center; gap: var(--s-2); min-width: 0; font-size: var(--fs-4); font-weight: var(--w-3); }
 .sc-card-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.sc-card-name .lab-inspect { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font: inherit; color: inherit; }
+.sc-card-blank { display: grid; place-items: center; height: 100%; padding: var(--s-2); text-align: center; overflow-wrap: anywhere; }
+.sc-card-verb > .rv-chip { flex: 1; justify-content: center; min-height: var(--hit); }
+.sc-card .rv-layers { margin: 0 var(--s-2); }
 .sc-hue { flex: none; width: 8px; height: 8px; border-radius: var(--r-1); }
 .sc-card-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-1) var(--s-3); margin: 0;
   font-size: var(--fs-2); line-height: var(--lh-2); }

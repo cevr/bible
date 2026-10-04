@@ -406,6 +406,10 @@ export type SaidComment = typeof SaidComment.Type;
 export const saidOn = (catalogue: Catalogue, subject: Subject): ReadonlyArray<SaidComment> =>
   commentsOn(catalogue, subject).map((c) => ({ ...c, onThis: c.key === subject.key }));
 
+/** Where a scene sits in the film as it is laid out now, in film seconds: its start and how long it lasts. */
+export const SceneSpan = Schema.Struct({ start: Schema.Finite, dur: Schema.Finite });
+export type SceneSpan = typeof SceneSpan.Type;
+
 /** One scene of the project: its sources' key now, its render, and the owner's say. */
 export const ProjectScene = Schema.Struct({
   scene: Schema.String,
@@ -416,6 +420,8 @@ export const ProjectScene = Schema.Struct({
   staleBy: maybe(StaleBy),
   approval: ApprovalState,
   render: maybe(Render),
+  /** Where it sits in the film now (none from a project read before it said so). */
+  span: maybe(SceneSpan),
   comments: Schema.Array(SaidComment),
 });
 export type ProjectScene = typeof ProjectScene.Type;
@@ -452,6 +458,8 @@ export type Project = typeof Project.Type;
 export interface SceneKey {
   readonly scene: string;
   readonly key: string;
+  /** Where it sits in the film now, when the film was laid out. */
+  readonly span?: SceneSpan;
 }
 
 /** An act of the film: its scenes, with the key its sources have now. */
@@ -497,7 +505,7 @@ export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): 
     key: act.key,
     comments: saidOn(catalogue, partSubject({ _tag: 'Act', act: act.act }, variant, act.key)),
   })),
-  scenes: keyed.scenes.map(({ scene, key }): ProjectScene => {
+  scenes: keyed.scenes.map(({ scene, key, span }): ProjectScene => {
     const render = renderIn(catalogue, sceneSlot(scene, variant));
     return {
       scene,
@@ -508,6 +516,7 @@ export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): 
         onSome: (r) => approvalState(catalogue, subjectOf(r)),
       }),
       render,
+      span: Option.fromUndefinedOr(span),
       // A comment is on this render when it was said of the render shown.
       comments: saidOn(catalogue, {
         ...topicOf(sceneSlot(scene, variant)),

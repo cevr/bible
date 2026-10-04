@@ -43,6 +43,7 @@ body.rv {
 .rv-grid { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
 .rv-grid.rv-wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
 .rv-grid.rv-two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 640px), 1fr)); }
+.rv-grid.rv-scenes { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
 .rv-card { background: var(--surface-1); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
 a.rv-card { text-decoration: none; }
 a.rv-card:hover { background: var(--surface-2); }
@@ -136,7 +137,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-say .rv-comment-input::placeholder { color: var(--text-3); }
 .rv-knob input[type="range"] { flex: 1; min-width: 0; max-width: 320px; accent-color: var(--accent); }
 .rv-film, .rv-act { margin-bottom: var(--s-4); }
-.rv-scene video { max-height: 40vh; }
+.rv-scene .sc-card-picture video { max-height: none; }
 .rv-tag[data-state="stale"] { color: var(--state-stale); }
 .rv-writes { background: var(--surface-1); border: var(--border); border-radius: var(--r-2); padding: var(--s-2) var(--s-3); margin-bottom: var(--s-3); }
 .rv-writes { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }

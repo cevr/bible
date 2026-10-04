@@ -1,16 +1,17 @@
 // A scene's card (design language §6, One surface): the same card wherever a
-// scene is shown whole, the Scenes page's focus panel and the Project's grid.
-// Its picture (a slot: the live frame on Scenes, the render's frame on the
-// Project), the scene's hue and name, its act and its in, out and length as
-// timecode, its marks as chips (`marks.ts`), a slot for its verb (Open in
+// scene is shown whole, the Scenes page's focus panel and the Project's grid
+// and inspector. Its picture (a slot: the live frame on Scenes, the render on
+// the Project), the scene's hue and name, its act and its in, out and length
+// as timecode, its marks as chips (`marks.ts`), a slot for its verb (Open in
 // Lab, Approve) and, below, whatever the page shows of the scene in its
-// inspector. The card is the scene's `Target`: a right-click or a long press
-// on it opens the scene's commands. `tile` is the grid's size, `focus` the
-// inspector's.
+// inspector. The card is a `Target`: a right-click or a long press on it
+// opens the commands of what it stands for (the scene on Scenes, its render
+// on the Project). `tile` is the grid's size, `focus` the inspector's.
 
 import { For, type JSX, Show } from '@solidjs/web';
 import { Option } from 'effect';
 import { Selection } from '../../command/selection.ts';
+import type { SceneSpan } from '../../core/catalogue.ts';
 import { timecode } from '../../core/time.ts';
 import { Target } from '../command/context-menu.tsx';
 import { type SceneMarks, chipsOf } from './marks.ts';
@@ -22,16 +23,19 @@ export const sceneHue = (i: number): string =>
 interface SceneCardProps {
   readonly film: string;
   readonly scene: string;
+  /** What the card stands for, its menu's: the scene when none. */
+  readonly of?: Selection;
   /** The scene's place in the film, from 0: its hue. */
   readonly index: number;
-  /** Where it starts and how long it lasts, in film seconds, and the film's frame rate. */
-  readonly start: number;
-  readonly dur: number;
+  /** Where it sits in the film, in film seconds (none: not known, nothing shown), and the film's frame rate. */
+  readonly span: Option.Option<SceneSpan>;
   readonly fps: number;
   readonly marks: SceneMarks;
   readonly size: 'tile' | 'focus';
   /** The card's picture. */
   readonly picture: JSX.Element;
+  /** The scene's name as the card shows it (a page may make it a button): its plain name when none. */
+  readonly name?: JSX.Element;
   /** The card's verb (Open in Lab, Approve). */
   readonly verb?: JSX.Element;
   /** Whether it is the one selected. */
@@ -43,7 +47,9 @@ interface SceneCardProps {
 /** A scene's card. */
 export const SceneCard = (props: SceneCardProps) => (
   <Target
-    of={Selection.cases.Scene.make({ film: props.film, scene: props.scene })}
+    of={Option.getOrElse(Option.fromUndefinedOr(props.of), () =>
+      Selection.cases.Scene.make({ film: props.film, scene: props.scene }),
+    )}
     class="sc-card"
     data-size={props.size}
     data-scene={props.scene}
@@ -51,13 +57,15 @@ export const SceneCard = (props: SceneCardProps) => (
   >
     <div class="sc-card-picture">
       {props.picture}
-      <Show when={props.size === 'tile'}>
-        <span class="sc-card-length">{timecode(props.dur, props.fps)}</span>
+      <Show when={Option.getOrUndefined(Option.filter(props.span, () => props.size === 'tile'))}>
+        {(span) => <span class="sc-card-length">{timecode(span().dur, props.fps)}</span>}
       </Show>
     </div>
     <div class="sc-card-head">
       <span class="sc-hue" style={{ background: sceneHue(props.index) }} />
-      <span class="sc-card-name">{props.scene}</span>
+      <span class="sc-card-name">
+        {Option.getOrElse(Option.fromUndefinedOr(props.name), (): JSX.Element => props.scene)}
+      </span>
     </div>
     <Show when={props.size === 'focus'}>
       <dl class="sc-card-facts">
@@ -69,18 +77,29 @@ export const SceneCard = (props: SceneCardProps) => (
             </>
           )}
         </Show>
-        <dt>in</dt>
-        <dd data-fact="in">{timecode(props.start, props.fps)}</dd>
-        <dt>out</dt>
-        <dd data-fact="out">{timecode(props.start + props.dur, props.fps)}</dd>
-        <dt>length</dt>
-        <dd data-fact="length">{timecode(props.dur, props.fps)}</dd>
+        <Show when={Option.getOrUndefined(props.span)}>
+          {(span) => (
+            <>
+              <dt>in</dt>
+              <dd data-fact="in">{timecode(span().start, props.fps)}</dd>
+              <dt>out</dt>
+              <dd data-fact="out">{timecode(span().start + span().dur, props.fps)}</dd>
+              <dt>length</dt>
+              <dd data-fact="length">{timecode(span().dur, props.fps)}</dd>
+            </>
+          )}
+        </Show>
       </dl>
     </Show>
     <div class="sc-chips">
       <For each={chipsOf(props.marks)} keyed={(c) => c.mark}>
         {(chip) => (
-          <span class="sc-chip" data-mark={chip().mark} data-state={chip().state}>
+          <span
+            class="sc-chip"
+            data-mark={chip().mark}
+            data-state={chip().state}
+            title={chip().why}
+          >
             {chip().text}
           </span>
         )}

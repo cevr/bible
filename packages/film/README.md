@@ -2056,14 +2056,19 @@ current", "Unapprove every scene" (in its inspector and menu) and its choice
 points, then each act (its comments, "Approve the act's current scenes",
 "Unapprove the act's scenes", its points) and its scenes; an unapprove is
 offered while a scene of the part holds an approval (an earlier version's
-too). Each scene is a render
-card: the video this checkout's catalogue records for it (`ProjectView.videos`,
-never another folder's of the same film), showing a still of itself
-(`/api/review/frame`, as a folder's cards do) until it is played, its state (current; stale by its
-sources, or by the film's sound alone; missing, with the command that renders
-it), its approval (approve a current render, unapprove it), its
-comments (a missing scene takes one too), a link to its Versions, and
-the points placed at it. Each point sits once, at the narrowest part holding
+too). Each scene is the scene card a film's Scenes shows
+(`lab/scenes/card.tsx`, One surface): its picture is the video this
+checkout's catalogue records for it (`ProjectView.videos`, never another
+folder's of the same film), showing a still of itself (`/api/review/frame`,
+as a folder's cards do) until it is played, or, missing, the command that
+renders it; then its length (the project says where each scene sits,
+`ProjectScene.span`), its name (a tap inspects it), its marks as chips (out
+of date, not rendered, approved, approved earlier, its findings; each says
+in full why as its title: stale by its sources or by the film's sound alone)
+and Approve. Its inspector is the same card at full size (in, out and
+length in timecode, approve and unapprove), its findings, its comments (a
+missing scene takes one too), Open in Lab, a link to its Versions, and the
+choices that play in it; the points placed at it fold under the card. Each point sits once, at the narrowest part holding
 every scene it plays in (a scene, an act, else the film), folded under it; a
 scene's inspector links every choice that plays in it (its own, and the
 layers that sit elsewhere), and a link opens where the card is; beside it,

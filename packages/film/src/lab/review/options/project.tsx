@@ -6,10 +6,12 @@
 // approve of its current scenes and an unapprove of them; each act (its
 // comments, the same approve and unapprove of its scenes), both in the
 // part's inspector, menu and ⌘K, its name and a comment dot at rest; each
-// scene's render as a render card (`choice.tsx`): the video this checkout's catalogue records
-// for it (`ProjectView.videos`), its state (current, stale by its sources or
-// by the film's sound alone, missing with the command that renders it), its
-// approval and its comments. Each choice point sits once, at the narrowest
+// scene as the scene card a film's Scenes shows (`scenes/card.tsx`, One
+// surface): its render (the video this checkout's catalogue records for it,
+// `ProjectView.videos`, or the command that renders it), its length, its marks
+// (out of date by its sources or the film's sound alone, not rendered, its
+// approval, its findings) and Approve, the full card with its comments in its
+// inspector. Each choice point sits once, at the narrowest
 // part that holds every scene it plays in (a scene, an act, else the film),
 // folded under that part; a scene's inspector lists the choices that play
 // in it (its own and the layers placed elsewhere) as links to their cards. Every say answers the project as it
@@ -19,29 +21,50 @@
 // updates in place: a playing clip plays on and a half-typed comment stays.
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
-import { For, Show } from '@solidjs/web';
+import { For, type JSX, Show } from '@solidjs/web';
 import { Array as Arr, Exit, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 import { type Address, type PartAddress, addressKey, sceneAddress } from '../../../core/address.ts';
 import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
-import { Places, type ProjectView } from '../../../core/api.ts';
+import { Places, type ProjectView, pageHref, reviewFrameUrl } from '../../../core/api.ts';
 import {
   type ProjectAct as Act,
   type ProjectScene,
   type SaidComment,
   renderVersion,
 } from '../../../core/catalogue.ts';
-import { type ChoicePoint, type VariantMedia, pointHead, shownIn } from '../../../core/choice.ts';
+import {
+  type ChoicePoint,
+  type ChoiceVariant,
+  VariantMedia,
+  pointHead,
+  shownIn,
+} from '../../../core/choice.ts';
+import type { ReviewVideo } from '../../../core/review.ts';
+import { FILM_FPS } from '../../../core/time.ts';
+import { SceneCard } from '../../scenes/card.tsx';
+import { marksOf } from '../../scenes/marks.ts';
 import type { LabFailure } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { Go, OPEN_ON_CHOICES, plainClick, useReview } from '../context.tsx';
-import { pressed, sayText } from '../format.ts';
+import { POSTER_W, pressed, sayText } from '../format.ts';
 import { Loaded, useWrite, writeStatus } from '../loaded.tsx';
 import { ReviewPlace } from '../place.ts';
 import { OptionsApi, type ProjectSay } from './api.ts';
-import { ChoiceCard, Comments, type Sayer, SayBox, revealPoint } from './choice.tsx';
+import {
+  Approval,
+  Approve,
+  ChoiceCard,
+  CommentBox,
+  Comments,
+  type Sayer,
+  SayBox,
+  Seen,
+  revealPoint,
+  useVariantThing,
+} from './choice.tsx';
 import { FilmProvider, useFilm } from './context.tsx';
 import { partText } from './receipt.ts';
 import { Selection } from '../../../command/selection.ts';
@@ -54,6 +77,7 @@ import {
   InspectName,
   Inspector,
   type InspectorBox,
+  useInspected,
   useThing,
 } from '../inspector.tsx';
 import type { ThingVerb } from '../things.ts';
@@ -101,14 +125,37 @@ const playingIn = (points: ReadonlyArray<ChoicePoint>, acts: ReadonlyArray<Act>,
       addressKey(placeOf(p, acts)) !== addressKey(sceneAddress(scene)),
   );
 
-/** What a scene's render card shows: the project's say on it, its state, and the video recorded for it. */
-const renderPoint = (film: string, variant: string, scene: ProjectScene, view: ProjectView) => {
-  const address = sceneAddress(scene.scene);
-  const media = Option.match(Option.fromUndefinedOr(view.videos[scene.scene]), {
+/** A scene's render as its card shows it: the project's say on it, its state, and the video recorded for it. */
+const renderVariantOf = (
+  film: string,
+  variant: string,
+  scene: ProjectScene,
+  view: ProjectView,
+): ChoiceVariant => ({
+  id: variant,
+  label: variant,
+  lines: Arr.filter(
+    [`not rendered yet: film project render ${film} --scene ${scene.scene}`],
+    () => scene.state === 'missing',
+  ),
+  state: scene.state,
+  staleBy: scene.staleBy,
+  picked: false,
+  verbs: [],
+  media: Option.match(Option.fromUndefinedOr(view.videos[scene.scene]), {
     onNone: (): VariantMedia => ({ _tag: 'Unseen' }),
     onSome: (video): VariantMedia => ({ _tag: 'Seen', video }),
-  });
-  const point: ChoicePoint = {
+  }),
+  key: Option.match(scene.render, { onNone: () => scene.key, onSome: renderVersion }),
+  approval: scene.approval,
+  comments: scene.comments,
+  notes: Option.none(),
+});
+
+/** A scene's render as a point of the film (its say goes to its address), holding its one variant. */
+const renderPoint = (scene: ProjectScene, variant: ChoiceVariant): ChoicePoint => {
+  const address = sceneAddress(scene.scene);
+  return {
     ...pointHead({ _tag: 'Render', address }),
     address: Option.some(address),
     title: `scene ${scene.scene}`,
@@ -117,27 +164,8 @@ const renderPoint = (film: string, variant: string, scene: ProjectScene, view: P
     moments: Option.none(),
     marks: [],
     knob: Option.none(),
-    variants: [
-      {
-        id: variant,
-        label: variant,
-        lines: Arr.filter(
-          [`not rendered yet: film project render ${film} --scene ${scene.scene}`],
-          () => scene.state === 'missing',
-        ),
-        state: scene.state,
-        staleBy: scene.staleBy,
-        picked: false,
-        verbs: [],
-        media,
-        key: Option.match(scene.render, { onNone: () => scene.key, onSome: renderVersion }),
-        approval: scene.approval,
-        comments: scene.comments,
-        notes: Option.none(),
-      },
-    ],
+    variants: [variant],
   };
-  return point;
 };
 
 /** One control's say of the project: whether its own is in flight, and the say, answering whether it was said. */
@@ -273,31 +301,148 @@ const Compare = (props: { readonly folder: Option.Option<string>; readonly point
   </Show>
 );
 
-const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectScene }) => {
+/** The video this checkout records for a scene's render, when it records one. */
+const videoOf = (variant: ChoiceVariant): Option.Option<ReviewVideo> =>
+  VariantMedia.match(variant.media, {
+    Seen: ({ video }) => Option.some(video),
+    Heard: () => Option.none(),
+    Unseen: () => Option.none(),
+  });
+
+/** What a scene's card shows where no render is recorded: the command that renders it, when it is missing. */
+const NoRender = (props: { readonly variant: ChoiceVariant }) => (
+  <span class="rv-meta sc-card-blank">
+    {Option.getOrElse(Arr.head(props.variant.lines), () => 'no render yet')}
+  </span>
+);
+
+/** A scene's render as its card's picture in the grid: its video, a still of itself until it plays. */
+const RenderPicture = (props: { readonly variant: ChoiceVariant }) => (
+  <Show
+    when={Option.getOrUndefined(videoOf(props.variant))}
+    fallback={<NoRender variant={props.variant} />}
+  >
+    {(video) => <Seen video={video()} />}
+  </Show>
+);
+
+/** A scene's render as its inspector's picture: a still of it (the grid's card plays it). */
+const RenderStill = (props: { readonly variant: ChoiceVariant }) => (
+  <Show
+    when={Option.getOrUndefined(videoOf(props.variant))}
+    fallback={<NoRender variant={props.variant} />}
+  >
+    {(video) => <img src={reviewFrameUrl(video().ref, Option.none(), POSTER_W)} alt="" />}
+  </Show>
+);
+
+/**
+ * A scene of the project as its card (`scenes/card.tsx`, the card a film's
+ * Scenes shows): in the grid its render (a tap on the video plays it), its
+ * name (a tap inspects it), its length, its marks and Approve; in its
+ * inspector the same card at full size, with its in, out and length, its
+ * approve and unapprove, its findings, every line of what it is, what was
+ * said of it and the comment box, Open in Lab, its Versions and the choices
+ * that play in it. Its menu and keys are its render's (`useVariantThing`).
+ */
+const SceneRow = (props: {
+  readonly at: ProjectValue;
+  readonly scene: ProjectScene;
+  readonly index: number;
+}) => {
   const shownPoints = useShownPoints();
+  const { findings } = useFilm();
   const address = (): PartAddress => ({ _tag: 'Scenes', ids: [props.scene.scene] });
   const acts = () => props.at.view().project.acts;
-  const point = createMemo(() =>
-    renderPoint(props.at.film, props.at.view().project.variant, props.scene, props.at.view()),
+  const variant = createMemo(() =>
+    renderVariantOf(props.at.film, props.at.view().project.variant, props.scene, props.at.view()),
+  );
+  const point = createMemo(() => renderPoint(props.scene, variant()));
+  const sayer = sayerAt(props.at, address);
+  const thing = useVariantThing({
+    get point() {
+      return point();
+    },
+    get variant() {
+      return variant();
+    },
+    sayer,
+  });
+  const inspected = useInspected(thing.selection);
+  const marks = () =>
+    marksOf(
+      Option.some(props.at.view()),
+      Option.getOrElse(findings(), () => []),
+    )(props.scene.scene);
+  const card = (size: 'tile' | 'focus', picture: JSX.Element, verb: JSX.Element) => (
+    <SceneCard
+      film={props.at.film}
+      scene={props.scene.scene}
+      of={thing.selection}
+      index={props.index}
+      span={props.scene.span}
+      fps={FILM_FPS}
+      marks={marks()}
+      size={size}
+      picture={picture}
+      name={<InspectName of={thing.selection}>{props.scene.scene}</InspectName>}
+      verb={verb}
+      selected={size === 'tile' && inspected()}
+    />
   );
   return (
     <div class="rv-scene" data-scene={props.scene.scene} data-state={props.scene.state}>
-      <ChoiceCard
-        point={point()}
-        sayer={sayerAt(props.at, address)}
-        more={() => (
-          <SceneChoices
-            film={props.at.film}
-            points={[
-              ...placedAt(shownPoints(), acts(), address()),
-              ...playingIn(shownPoints(), acts(), props.scene.scene),
-            ]}
-          />
+      {card(
+        'tile',
+        <RenderPicture variant={variant()} />,
+        <Approve variant={variant()} sayer={sayer} />,
+      )}
+      <Inspector of={thing.selection} title={thing.title()}>
+        {(box) => (
+          <>
+            {card(
+              'focus',
+              <RenderStill variant={variant()} />,
+              <Approval variant={variant()} sayer={sayer} />,
+            )}
+            <Show when={marks().findings.length > 0}>
+              <section class="rv-group" data-section="findings">
+                <h3>
+                  Findings <span class="lab-count">{marks().findings.length}</span>
+                </h3>
+                <For each={marks().findings}>
+                  {(line) => (
+                    <p class="sc-finding" data-level={line.level}>
+                      <b>{line.tag}</b> {line.message}
+                    </p>
+                  )}
+                </For>
+              </section>
+            </Show>
+            <Comments comments={variant().comments} />
+            <CommentBox variant={variant()} sayer={sayer} box={box} />
+            <div class="rv-row">
+              <a
+                class="rv-chip"
+                data-act="open-lab"
+                href={pageHref.labScene(props.at.film, props.scene.scene)}
+              >
+                Open in Lab
+              </a>
+              <Show when={Option.isSome(props.scene.render)}>
+                <Compare folder={props.at.view().folder} point={point().id} />
+              </Show>
+            </div>
+            <SceneChoices
+              film={props.at.film}
+              points={[
+                ...placedAt(shownPoints(), acts(), address()),
+                ...playingIn(shownPoints(), acts(), props.scene.scene),
+              ]}
+            />
+          </>
         )}
-      />
-      <Show when={Option.isSome(props.scene.render)}>
-        <Compare folder={props.at.view().folder} point={point().id} />
-      </Show>
+      </Inspector>
       <Layers points={placedAt(shownPoints(), acts(), address())} />
     </div>
   );
@@ -454,9 +599,15 @@ const Scenes = (props: {
   readonly at: ProjectValue;
   readonly scenes: ReadonlyArray<ProjectScene>;
 }) => (
-  <div class="rv-grid rv-wide">
+  <div class="rv-grid rv-scenes">
     <For each={props.scenes} keyed={(s) => s.scene}>
-      {(scene) => <SceneRow at={props.at} scene={scene()} />}
+      {(scene) => (
+        <SceneRow
+          at={props.at}
+          scene={scene()}
+          index={props.at.view().project.scenes.findIndex((s) => s.scene === scene().scene)}
+        />
+      )}
     </For>
   </div>
 );
