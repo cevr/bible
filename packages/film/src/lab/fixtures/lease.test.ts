@@ -1,11 +1,12 @@
 // A lease on a fake view: an interrupt that lands while the phone's pointer
 // is being set waits for it and puts the mouse back before the view is given
 // back; a view whose reset fails is discarded, never given back; and one
-// that cannot be pointed is discarded and the case dies.
+// that cannot be pointed is discarded and the case dies; and a case
+// interrupted before its acquisition starts takes no view from the pool.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Exit, Fiber } from 'effect';
-import { type Leased, type Pool, lease } from './lease.ts';
+import { type Leased, type Pool, fromIdle, lease } from './lease.ts';
 import type { View } from './tab.ts';
 
 /** A fake view: the protocol calls it was sent, and whether it has touch on. */
@@ -136,5 +137,34 @@ describe('a lease on a pooled view', () => {
       expect(slot.calls).toEqual(['resize 1400×900']);
       expect(went).toEqual(['blanked', 'given back']);
     }),
+  );
+
+  it.effect(
+    'a case interrupted after its lease is made, before it is acquired, leaves the view idle',
+    () =>
+      Effect.gen(function* () {
+        const gate = yield* Deferred.make<void>();
+        const sent = yield* Deferred.make<void>();
+        const slot = fake(gate, sent);
+        const idle = [slot];
+        const { pool, went } = poolOf(slot);
+        // The lease is built (its take with it) while the case starts, then the case waits.
+        const leasing = lease(
+          { ...pool, take: fromIdle(idle, Effect.die('no view to make')) },
+          PHONE,
+        );
+        const started = yield* Deferred.make<void>();
+        const fiber = yield* Effect.forkChild(
+          Effect.andThen(
+            Deferred.done(started, Exit.void),
+            Effect.andThen(Effect.never, Effect.scoped(leasing)),
+          ),
+        );
+        yield* Deferred.await(started);
+        yield* Fiber.interrupt(fiber);
+        expect(idle).toEqual([slot]);
+        expect(slot.calls).toEqual([]);
+        expect(went).toEqual([]);
+      }),
   );
 });

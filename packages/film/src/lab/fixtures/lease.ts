@@ -5,7 +5,7 @@
 // as the pool lends it (the mouse's pointer, the idle page, no history),
 // discarded when any of that fails, and never quietly.
 
-import { Effect, type Scope } from 'effect';
+import { Effect, Option, type Scope } from 'effect';
 import type { View } from './tab.ts';
 
 /** What a lease holds of a pooled view: the view, as the protocol drives it. */
@@ -13,8 +13,23 @@ export interface Leased {
   readonly lent: View;
 }
 
+/**
+ * A pool's take over its `idle` views: the last one given back, or one
+ * `make` opens when none waits. Nothing leaves `idle` until the take runs,
+ * inside the lease's protected acquisition: a case interrupted before then
+ * leaves every view in the pool.
+ */
+export const fromIdle = <S>(idle: Array<S>, make: Effect.Effect<S>): Effect.Effect<S> =>
+  Effect.suspend(() =>
+    Option.match(Option.fromUndefinedOr(idle.pop()), {
+      onNone: () => make,
+      onSome: Effect.succeed,
+    }),
+  );
+
 /** How the pool keeps its views: one to lend, and where a view goes back, or goes when it cannot. */
 export interface Pool<S extends Leased> {
+  /** Run inside the lease's protected acquisition, never before: a view leaves the pool only there. */
   readonly take: Effect.Effect<S>;
   readonly giveBack: (slot: S) => void;
   readonly discard: (slot: S) => void;

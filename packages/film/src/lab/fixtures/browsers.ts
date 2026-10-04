@@ -17,7 +17,7 @@ import { BunServices } from '@effect/platform-bun';
 import { Config, Effect, FileSystem, Option, Path, Schema, Scope, Semaphore } from 'effect';
 import { openView, thrownBy } from '../../tools/chrome.ts';
 import { BrowserFailed } from '../../tools/errors.ts';
-import { type Ask, lease } from './lease.ts';
+import { type Ask, fromIdle, lease } from './lease.ts';
 import { type Logged, type Request, type Response, type Tab, type View, makeTab } from './tab.ts';
 import { tone } from './tone.ts';
 
@@ -225,16 +225,10 @@ const makeSlot = Effect.gen(function* () {
 const lend = (held: Lease, ask: Ask) =>
   lease<Slot>(
     {
-      take: Effect.map(
-        Option.match(Option.fromUndefinedOr(idle.pop()), {
-          onNone: () => makeSlot,
-          onSome: Effect.succeed,
-        }),
-        (slot) => {
-          slot.held.lease = Option.some(held);
-          return slot;
-        },
-      ),
+      take: Effect.map(fromIdle(idle, makeSlot), (slot) => {
+        slot.held.lease = Option.some(held);
+        return slot;
+      }),
       blank: (slot) =>
         Effect.gen(function* () {
           slot.held.lease = Option.none();
