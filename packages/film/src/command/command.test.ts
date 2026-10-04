@@ -162,6 +162,11 @@ describe('the context', () => {
         }),
       );
     expect(focusOf(el('INPUT'))).toBe('field');
+    // A picker's arrows pick, not scrub; an editable block is typed into (F5).
+    expect(focusOf(el('SELECT'))).toBe('field');
+    expect(
+      focusOf(Option.map(el('DIV'), (div) => Object.assign(div, { isContentEditable: true }))),
+    ).toBe('field');
     expect(focusOf(el('DIV', ['[role="dialog"]']))).toBe('field');
     expect(focusOf(el('BUTTON', ['.lab-studio']))).toBe('studio');
     expect(focusOf(el('BUTTON'))).toBe('control');
