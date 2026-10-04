@@ -49,7 +49,13 @@ export const writeStatus = <A,>(slot: string): WriteStatus<A> => {
         ask.answer(() =>
           meta.hub.announce(
             Exit.match(exit, {
-              onSuccess: (a) => said(words.done(a), words.undo),
+              onSuccess: (a) =>
+                said(
+                  words.done(a),
+                  words.undo,
+                  // Bound to the change it made, so its Undo steps that one, on its film.
+                  Option.flatMap(Option.fromUndefinedOr(words.bound), (bound) => bound(a)),
+                ),
               onFailure: () =>
                 refused(
                   failedText(AsyncResult.fromExit(exit)),

@@ -975,11 +975,21 @@ const LabStep = Schema.Struct({
 });
 
 /**
+ * A change in a film's history, by the id the lab gave it as it was made
+ * (`change`), unique to it: an undo or a redo of it carries its id, so a
+ * receipt's Undo or Redo asks for that change and no other.
+ */
+const HistoryStep = Schema.Struct({
+  ...LabStep.fields,
+  change: Schema.String,
+});
+
+/**
  * An Undo or a Redo that landed (`undo …`, `redo …`), with the id the page
  * that asked for it sent (`request`), unique to that request.
  */
 const LandedStep = Schema.Struct({
-  ...LabStep.fields,
+  ...HistoryStep.fields,
   request: Schema.String,
 });
 
@@ -993,9 +1003,9 @@ const LandedStep = Schema.Struct({
  */
 export const CheckReport = Schema.Struct({
   findings: Schema.Array(CheckLine),
-  latest: Schema.optionalKey(LabStep),
-  undo: Schema.optionalKey(LabStep),
-  redo: Schema.optionalKey(LabStep),
+  latest: Schema.optionalKey(HistoryStep),
+  undo: Schema.optionalKey(HistoryStep),
+  redo: Schema.optionalKey(HistoryStep),
   landed: Schema.optionalKey(Schema.Array(LandedStep)),
 });
 export type CheckReport = typeof CheckReport.Type;
@@ -1053,6 +1063,12 @@ export type HeadSource = typeof HeadSource.Type;
 export const LabWrite = Schema.Struct({
   /** The scene it changed (none for a film's own file: its score's pick, the library's lock), its file, and what changed: `cue topple offset`, `knob palm`, `undo cue topple offset`. */
   ...LabStep.fields,
+  /**
+   * The change it made, by its id (`HistoryStep.change`): an undo's or a
+   * redo's is the change it stepped. None when the write changed nothing (the
+   * file already said so), so there is nothing to undo.
+   */
+  change: Schema.optionalKey(Schema.String),
   /** The cue's span as the file now declares it, when every field of it is a literal. */
   span: Schema.optionalKey(Span),
   /** The cue resolved on the scene's clock, when its timeline resolves from the file alone. */

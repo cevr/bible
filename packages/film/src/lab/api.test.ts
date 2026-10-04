@@ -1,9 +1,35 @@
 import { BunHttpServer } from '@effect/platform-bun';
 import { HttpServer, HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { Context, Effect, Exit, Layer, Scope } from 'effect';
+import { test } from 'bun:test';
+import { Context, Effect, Exit, Layer, Option, Scope } from 'effect';
 import { expect, it } from 'effect-bun-test';
-import { LabApi, LabClient, NotesApi, labApiLayer } from './api.ts';
+import { LabApi, LabClient, NotesApi, labApiLayer, stepWhyNot } from './api.ts';
 import { StudioApi, studioApiLayer } from './studio/api.ts';
+
+test("a receipt's step takes its own change on its own film, or says why not", () => {
+  const steps = Option.some({
+    undo: { file: 'sound.ts', target: 'level RAIN -6', change: 'k2' },
+    redo: { file: 'sound.ts', target: 'score play piano', change: 'k0' },
+  });
+  const undo = stepWhyNot('undo', 'one', steps);
+  expect(undo({ film: 'one', change: 'k2' })).toEqual(Option.none());
+  // Two quick edits: the older one's Undo names the newer that stands before it.
+  expect(undo({ film: 'one', change: 'k1' })).toEqual(
+    Option.some('level RAIN -6 came after it: undo that first'),
+  );
+  expect(undo({ film: 'one', change: 'k0' })).toEqual(Option.some('it is undone already'));
+  // A receipt carried to another film's page never steps that film's history.
+  expect(undo({ film: 'two', change: 'k2' })).toEqual(
+    Option.some('that was a change to two: open two to undo it'),
+  );
+  expect(stepWhyNot('redo', 'one', steps)({ film: 'one', change: 'k2' })).toEqual(
+    Option.some('it is redone already'),
+  );
+  // No step that way known: the command is not available, and says that instead.
+  expect(stepWhyNot('undo', 'one', Option.none())({ film: 'one', change: 'k1' })).toEqual(
+    Option.none(),
+  );
+});
 
 /** Real typed responses at independent origins; every request records its destination. */
 const server = Effect.gen(function* () {

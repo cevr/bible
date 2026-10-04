@@ -9,10 +9,12 @@
 // the review's and the choices' build on it (`studio/api.ts`,
 // `review/api.ts`, `review/options/api.ts`).
 
-import { Cause, Context, Effect, Layer, Predicate, Schema } from 'effect';
+import { Cause, Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
+import type { Bound } from '../command/command.ts';
 import { LabHttpApi, type Refusal, isRefusal } from '../core/api.ts';
+import { newerFirst } from '../core/refusals.ts';
 import {
   type CheckReport,
   type CuePatch,
@@ -59,6 +61,35 @@ export const reasonOf = (cause: Cause.Cause<unknown>): string => {
 export const StepVerb = Schema.Literals(['undo', 'redo']);
 export type StepVerb = typeof StepVerb.Type;
 
+/** What a step's receipt's button does once it lands: Redo for an Undo, Undo for a Redo. */
+const OTHER: Readonly<Record<StepVerb, StepVerb>> = { undo: 'redo', redo: 'undo' };
+
+/**
+ * Why a step of `verb` on `film`, whose history the page knows as `steps`,
+ * cannot take the one change `bound` names (a receipt's): another film's,
+ * stepped that way already, or another change stands before it; none when
+ * it can, or when the page knows no step that way (the command is not
+ * available then, and says so). The lab refuses one it cannot take all the
+ * same (`StepNotNewest`), for a page that knew an older history.
+ */
+export const stepWhyNot =
+  (verb: StepVerb, film: string, steps: Option.Option<Pick<CheckReport, 'undo' | 'redo'>>) =>
+  (bound: Bound): Option.Option<string> => {
+    if (bound.film !== film)
+      return Option.some(`that was a change to ${bound.film}: open ${bound.film} to ${verb} it`);
+    return Option.flatMap(steps, (s) =>
+      Option.flatMap(
+        Option.filter(Option.fromUndefinedOr(s[verb]), (top) => top.change !== bound.change),
+        (top) => {
+          const stepped = s[OTHER[verb]]?.change === bound.change;
+          if (stepped)
+            return Option.some(`it is ${{ undo: 'undone', redo: 'redone' }[verb]} already`);
+          return Option.some(newerFirst(verb, top.target));
+        },
+      ),
+    );
+  };
+
 export interface LabCalls {
   /** A scene's file and what of it the lab may rewrite. */
   readonly source: (scene: string) => Effect.Effect<SceneSource, LabFailure>;
@@ -78,8 +109,16 @@ export interface LabCalls {
     knob: string,
     value: Knob,
   ) => Effect.Effect<LabWrite, LabFailure>;
-  /** Undo the newest write, or redo the newest undone one, as request `request` (the id the lab records on it). */
-  readonly step: (verb: StepVerb, request: string) => Effect.Effect<LabWrite, LabFailure>;
+  /**
+   * Undo the newest write, or redo the newest undone one, as request
+   * `request` (the id the lab records on it); asked for one change (a
+   * receipt's), that change only, or refused (`StepRequest.change`).
+   */
+  readonly step: (
+    verb: StepVerb,
+    request: string,
+    change: Option.Option<string>,
+  ) => Effect.Effect<LabWrite, LabFailure>;
 }
 
 export class LabApi extends Context.Service<LabApi, LabCalls>()('@bible/film/lab/LabApi') {}
@@ -143,7 +182,16 @@ const makeLabApi = Effect.fn('lab.api.make')(function* (film: string) {
       called(client.scenes.cue({ params: { film, scene, cue }, payload: patch })),
     writeKnob: (scene, knob, value) =>
       called(client.scenes.knob({ params: { film, scene, knob }, payload: { value } })),
-    step: (verb, request) => called(client.steps[verb]({ params: { film }, payload: { request } })),
+    step: (verb, request, change) =>
+      called(
+        client.steps[verb]({
+          params: { film },
+          payload: {
+            request,
+            ...Option.match(change, { onNone: () => ({}), onSome: (c) => ({ change: c }) }),
+          },
+        }),
+      ),
   };
   return api;
 });

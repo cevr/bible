@@ -62,6 +62,7 @@ import {
   SourceChanged,
   SourceRefused,
   SourceShared,
+  StepNotNewest,
   StillUnknown,
   SttUntimed,
   TakeMismatch,
@@ -180,6 +181,7 @@ const Refusals = [
   RequestRefused.pipe(status(403)),
   UndoUnavailable.pipe(status(409)),
   RedoUnavailable.pipe(status(409)),
+  StepNotNewest.pipe(status(409)),
   SourceChanged.pipe(status(409)),
   VerbRefused.pipe(status(409)),
   VersionChanged.pipe(status(409)),
@@ -227,8 +229,15 @@ const NoBody = Schema.Struct({});
  * An Undo or a Redo as a page asks for it: with an id unique to the request,
  * which the lab records on the step once it lands (`CheckReport.landed`);
  * one sent with none (`{}`) is made all the same, and recorded without one.
+ * A receipt's asks for its own change (`change`, the id its write answered):
+ * stepped only while that change is the one Undo would put back (Redo would
+ * make again), else refused (`StepNotNewest`) with nothing written. One with
+ * none steps whatever change is newest (⌘Z, the menus).
  */
-const StepRequest = Schema.Struct({ request: Schema.optionalKey(Schema.String) });
+const StepRequest = Schema.Struct({
+  request: Schema.optionalKey(Schema.String),
+  change: Schema.optionalKey(Schema.String),
+});
 
 /** `GET /api/films/<film>/steps`: the film's history as `CheckReport` gives it, without the check. */
 export const Steps = Schema.Struct({

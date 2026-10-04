@@ -39,6 +39,7 @@ const landed: LabWrite = {
   scene: 'one',
   file: 'scenes/one.ts',
   target: 'cue rise offset',
+  change: 'change-1',
   findings: [{ level: 'warning', tag: 'late', message: 'rise ends after the scene' }],
 };
 
@@ -265,10 +266,12 @@ describe('writes', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
-        EditEvent.Step({ verb: 'undo', request: 'undo-1' }),
+        EditEvent.Step({ verb: 'undo', request: 'undo-1', change: Option.none() }),
       ]);
       expect(result.finalState).toEqual(
-        EditState.Writing({ write: StepWrite.make({ verb: 'undo', request: 'undo-1' }) }),
+        EditState.Writing({
+          write: StepWrite.make({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+        }),
       );
       expect(log).toEqual(['holdT']);
     }).pipe(Effect.provide(layer));
@@ -277,13 +280,15 @@ describe('writes', () => {
   it.effect('one write at a time: a press or a commit while one is out is not taken', () =>
     Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
-        EditEvent.Step({ verb: 'undo', request: 'undo-1' }),
+        EditEvent.Step({ verb: 'undo', request: 'undo-1', change: Option.none() }),
         EditEvent.Press({ grip }),
         EditEvent.Commit({ write: cueWrite, edit: {} }),
-        EditEvent.Step({ verb: 'redo', request: 'redo-1' }),
+        EditEvent.Step({ verb: 'redo', request: 'redo-1', change: Option.none() }),
       ]);
       expect(result.finalState).toEqual(
-        EditState.Writing({ write: StepWrite.make({ verb: 'undo', request: 'undo-1' }) }),
+        EditState.Writing({
+          write: StepWrite.make({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+        }),
       );
     }).pipe(Effect.provide(fakes().layer)),
   );
@@ -299,6 +304,8 @@ describe('writes', () => {
           note: 'wrote scenes/one.ts: cue rise offset',
           findings: landed.findings,
           undo: 'undo',
+          // The change it made, by its id: what its receipt's Undo acts on.
+          change: Option.some('change-1'),
         }),
       );
     }).pipe(Effect.provide(fakes().layer)),
@@ -321,7 +328,7 @@ describe('writes', () => {
     Effect.gen(function* () {
       const stepped = (verb: 'undo' | 'redo') =>
         simulate(editMachine, [
-          EditEvent.Step({ verb, request: `${verb}-1` }),
+          EditEvent.Step({ verb, request: `${verb}-1`, change: Option.none() }),
           EditEvent.Wrote({ result: { ...landed, target: `${verb} cue rise offset` } }),
         ]);
       expect((yield* stepped('undo')).finalState).toMatchObject({
@@ -352,7 +359,7 @@ describe('writes', () => {
     };
     return Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
-        EditEvent.Step({ verb: 'undo', request: 'undo-1' }),
+        EditEvent.Step({ verb: 'undo', request: 'undo-1', change: Option.none() }),
         EditEvent.Wrote({ result: timings }),
       ]);
       expect(result.finalState._tag).toBe('Written');
@@ -445,15 +452,19 @@ describe('an Undo that remakes what follows its file', () => {
     landed: ReadonlyArray<{ readonly target: string; readonly request: string }> = [],
   ): CheckReport => ({
     findings: [],
-    latest: { file: 'narration/timings.json', target: latest },
-    landed: landed.map((step) => ({ file: 'narration/timings.json', ...step })),
+    latest: { file: 'narration/timings.json', target: latest, change: `change-${latest}` },
+    landed: landed.map((step) => ({
+      file: 'narration/timings.json',
+      change: `change-${step.target}`,
+      ...step,
+    })),
   });
   /** The editor's actor once it was asked to undo, as request `request`. */
   const undoingAs = (request: string) =>
     Effect.gen(function* () {
       const actor = yield* Machine.spawn(editMachine);
       yield* actor.start;
-      yield* actor.send(EditEvent.Step({ verb: 'undo', request }));
+      yield* actor.send(EditEvent.Step({ verb: 'undo', request, change: Option.none() }));
       yield* TestClock.adjust('10 millis');
       return actor;
     });

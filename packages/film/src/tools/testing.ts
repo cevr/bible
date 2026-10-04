@@ -1509,6 +1509,7 @@ export const reviewProjectRuns: Array<ReadonlyArray<string>> = [];
 
 /** The pick of `bright`, in `sound.ts` of film `f` under `films`. */
 const reviewPickIn = (films: string): Change => ({
+  id: 'pick-bright',
   film: 'f',
   scene: Option.none(),
   file: `${films}/f/sound.ts`,

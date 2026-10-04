@@ -149,6 +149,8 @@ export const StepWrite = Schema.TaggedStruct('StepWrite', {
    * by a name another change may share.
    */
   request: Schema.String,
+  /** The one change it steps, by its id, when a receipt's button asked for it; none: the newest. */
+  change: Schema.Option(Schema.String),
 });
 export type StepWrite = typeof StepWrite.Type;
 

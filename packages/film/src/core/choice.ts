@@ -341,6 +341,12 @@ export const ChoiceWrite = Schema.Struct({
   file: Schema.String,
   /** What changed: `score play piano`, `sound paper.slide keep 3f2a…`, `level PAPER -24`. */
   target: Schema.String,
+  /**
+   * The change it made, by the id the lab's history knows it by (what a
+   * receipt's Undo asks for); none when the source already said so, and
+   * there is nothing to undo.
+   */
+  change: Schema.optionalKey(Schema.String),
   choices: FilmChoices,
   findings: Schema.Array(CheckLine),
 });

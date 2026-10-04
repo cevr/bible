@@ -15,6 +15,7 @@ import { SourceRefused } from '../../../src/core/refusals.ts';
 import {
   type Asked,
   type Json,
+  changeOf,
   hold,
   json,
   labAt,
@@ -116,7 +117,12 @@ describe('the cue strip', () => {
     () =>
       Effect.gen(function* () {
         // The reloaded page learns the step to undo from the film's check, as the lab answers it.
-        const undo = { scene: 'one', file: 'scenes/one.ts', target: 'cue rise offset' };
+        const undo = {
+          scene: 'one',
+          file: 'scenes/one.ts',
+          target: 'cue rise offset',
+          change: changeOf('cue'),
+        };
         const { page, asked } = yield* openLab(
           [
             route('GET', /^\/check$/, () => json({ findings: [], undo })),
@@ -141,6 +147,58 @@ describe('the cue strip', () => {
         yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
         yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
         expect(posted(asked).map((a) => a.path)).toEqual(['/scenes/one/cues/rise', '/undo']);
+        // It asks for the change its write made, and no other.
+        expect(posted(asked)[1]?.body).toEqual(
+          Option.some({ request: expect.any(String), change: changeOf('cue') }),
+        );
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "an older receipt's Undo, a newer change before it, says why and posts nothing, until its change is the newest",
+    () =>
+      Effect.gen(function* () {
+        const mine = { scene: 'one', file: 'scenes/one.ts', target: 'cue rise offset' };
+        // A second quick edit, from another page on the film: the newest change, until undone.
+        const newer = { ...mine, target: 'cue fall offset', change: 'one:fall' };
+        let top = { ...mine, change: changeOf('cue') };
+        const { page, asked } = yield* openLab(
+          [
+            route('GET', /^\/check$/, () => json({ findings: [], undo: top })),
+            route('POST', /^\/undo$/, () =>
+              json({
+                ...mine,
+                target: 'undo cue rise offset',
+                change: changeOf('cue'),
+                findings: [],
+              }),
+            ),
+          ],
+          { href: labAt(1) },
+        );
+        yield* editable(page);
+        yield* dragBar(page, 'rise', 0.5, 60);
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        const was = top;
+        top = newer;
+        yield* page.reload;
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        yield* page.waitFor('.lab-edit button[data-act="undo"]:not([disabled])');
+        yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
+        yield* statusSays(page, 'cue fall offset came after it: undo that first');
+        yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
+        expect(posted(asked).map((a) => a.path)).toEqual(['/scenes/one/cues/rise']);
+        // The newer one undone, the page that reads that says again what it did, and steps it.
+        top = was;
+        yield* page.reload;
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        yield* page.waitFor('.lab-edit button[data-act="undo"]:not([disabled])');
+        yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
+        yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
+        expect(posted(asked).map((a) => a.body)).toEqual([
+          expect.anything(),
+          Option.some({ request: expect.any(String), change: changeOf('cue') }),
+        ]);
       }).pipe(Effect.scoped),
   );
 
@@ -148,7 +206,12 @@ describe('the cue strip', () => {
     "a receipt's Undo pressed before the reloaded page knows the step says so, and keeps its Undo",
     () =>
       Effect.gen(function* () {
-        const undo = { scene: 'one', file: 'scenes/one.ts', target: 'cue rise offset' };
+        const undo = {
+          scene: 'one',
+          file: 'scenes/one.ts',
+          target: 'cue rise offset',
+          change: changeOf('cue'),
+        };
         // The reloaded page's check, which names the step to undo, answers only once let.
         const known = Deferred.makeUnsafe<void>();
         let checks = 0;
@@ -196,7 +259,12 @@ describe('the cue strip', () => {
     'a rebuild while a write is out waits for its answer, so its receipt and its Undo outlive the reload',
     () =>
       Effect.gen(function* () {
-        const undo = { scene: 'one', file: 'scenes/one.ts', target: 'cue rise offset' };
+        const undo = {
+          scene: 'one',
+          file: 'scenes/one.ts',
+          target: 'cue rise offset',
+          change: changeOf('cue'),
+        };
         // The lab rebuilds the page as soon as the write is in (a scene file is page code),
         // and answers the write only later, once its check is done.
         const [posted, answer] = [Deferred.makeUnsafe<void>(), Deferred.makeUnsafe<void>()];
@@ -547,7 +615,7 @@ describe('the inspector', () => {
     Effect.gen(function* () {
       const report = {
         findings: [{ level: 'warning', tag: 'late', message: 'rise ends after the scene' }],
-        undo: { scene: 'one', file: 'scenes/one.ts', target: 'cue rise offset' },
+        undo: { scene: 'one', file: 'scenes/one.ts', target: 'cue rise offset', change: 'k1' },
       };
       const { page, asked } = yield* openLab(
         [

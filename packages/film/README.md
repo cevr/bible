@@ -981,14 +981,25 @@ never before (`cue rise offset 0 → 0.3 s`, `knob size 24 → 30`, `Picked
 piano · Score: strings → piano`, `Rain: -12 → -6 dB`), or why it was
 refused. A receipt that can be undone carries the command that undoes it as
 its button: Undo for a write, Redo for an Undo, Undo for a Redo (the
-editor's `Written` state names it, read from its step flow). A done receipt
+editor's `Written` state names it, read from its step flow), bound to the
+change its write made (`Bound`: the film, and the change by the id the
+lab's history gives it, `HistoryStep.change`). A bound receipt's button acts
+on that change alone: its command says whether it can (`Command.fits`;
+Undo and Redo through `stepWhyNot`) and sends the change's id with the step
+(`{change}`), which the lab steps only while it is the newest that way,
+else refuses (`StepNotNewest`, 409). A command with no `fits` acts on no
+single change, so a bound receipt never runs it. A done receipt
 shows 5 s, a refusal 10 s, a busy one until replaced. The lab reloads after
 a scene write; the receipts showing as the page hides are kept in the tab
-(`film-receipts` in `TabStore`, for the same page) and shown again once it
-has loaded. A receipt's Undo pressed while its command is not available
-(the reloaded page still reading the step) says `Undo is not available now`
-and is held: still offered and never expiring, it says again what it did
-once the command is available, unless a receipt in its slot supersedes it.
+(`film-receipts` in `TabStore`, for the same page: the lab's film, or the
+review, whose receipts follow it from film to film) and shown again once it
+has loaded. A receipt's Undo pressed when it cannot act says why and is
+held: its command not available (the reloaded page still reading the step:
+`Undo is not available now`), another film's change (`that was a change to
+toy: open toy to undo it`), or a newer change before it (`cue fall offset
+came after it: undo that first`). Still offered and never expiring, it says
+again what it did once it can act, unless a receipt in its slot supersedes
+it.
 A drag's write and a field's carry what they move in an
 optional `said` (`CueWrite`, `KnobWrite`: `cueSaid`, before → after). On
 the choices page and the project, Undo and Redo are commands
@@ -1328,14 +1339,14 @@ at the same frame and pick, kept in its place (`/films/<film>/lab/hand?cue=toppl
 `?knob=palm`); review the
 change with `git diff`.
 
-| Route                                              | What it does                                                                                                                              |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`                                          |
-| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                       |
-| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                 |
-| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under) |
-| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do, and the steps `landed` by request id                           |
-| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                          |
+| Route                                              | What it does                                                                                                                                                                                                                 |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`                                                                                                                             |
+| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                                                                                                          |
+| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                                                                                                    |
+| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`) |
+| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do (each with its `change` id), and the steps `landed` by request id                                                                                  |
+| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                                                                                                             |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.

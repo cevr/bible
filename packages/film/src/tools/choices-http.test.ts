@@ -83,6 +83,7 @@ describe("a film's choices", () => {
       expect(answer).toEqual({
         file: 'sound.ts',
         target: 'score play bright',
+        change: 'pick-bright',
         choices: REVIEW_CHOICES,
         findings: [],
       });
@@ -100,6 +101,7 @@ describe("a film's choices", () => {
       expect(undone).toEqual({
         file: 'sound.ts',
         target: 'undo score play bright',
+        change: 'pick-bright',
         findings: [],
       });
       const check = yield* Schema.decodeEffect(Schema.fromJsonString(CheckReport))(
@@ -109,7 +111,7 @@ describe("a film's choices", () => {
       );
       expect(check).toEqual({
         findings: [],
-        redo: { file: 'sound.ts', target: 'score play bright' },
+        redo: { file: 'sound.ts', target: 'score play bright', change: 'pick-bright' },
       });
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );
@@ -210,7 +212,7 @@ describe("a film's choices", () => {
       expect(
         yield* Schema.decodeEffect(Schema.fromJsonString(Steps))(yield* reviewTestBody(steps)),
       ).toEqual({
-        redo: { file: 'sound.ts', target: 'score play bright' },
+        redo: { file: 'sound.ts', target: 'score play bright', change: 'pick-bright' },
       });
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );

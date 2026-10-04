@@ -15,6 +15,7 @@ import {
   Layer,
   Option,
   Path,
+  Result,
   Schema,
 } from 'effect';
 import { TestClock } from 'effect/testing';
@@ -30,6 +31,7 @@ import {
   UNDO_DEPTH,
   emptyHistory,
   recordChange,
+  stepFits,
 } from './source-writer.ts';
 import { freshHere, sceneFixture } from './testing.ts';
 
@@ -307,6 +309,7 @@ describe.concurrent('scene writer', () => {
   it.effect('the undo stack keeps the newest writes, up to its depth', () =>
     Effect.sync(() => {
       const w = (n: number) => ({
+        id: `k${n}`,
         film: 'f',
         scene: Option.some('s'),
         file: 'f.ts',
@@ -319,6 +322,18 @@ describe.concurrent('scene writer', () => {
       for (const n of [1, 2, 3, 4, 5]) history = recordChange(history, w(n), 3);
       expect(history.undos.map((x) => x.target)).toEqual(['knob k3', 'knob k4', 'knob k5']);
       expect(UNDO_DEPTH).toBeGreaterThanOrEqual(20);
+      // A step asked for one change takes the newest only when it is that change.
+      const top = w(5);
+      expect(Result.isSuccess(stepFits('undo', history.undos, top, Option.none()))).toBe(true);
+      expect(Result.isSuccess(stepFits('undo', history.undos, top, Option.some('k5')))).toBe(true);
+      const later = stepFits('undo', history.undos, top, Option.some('k4'));
+      expect(Result.isFailure(later) && later.failure.message).toBe(
+        'cannot undo that change: knob k5 came after it: undo that first',
+      );
+      const gone = stepFits('undo', history.undos, top, Option.some('k1'));
+      expect(Result.isFailure(gone) && gone.failure.message).toBe(
+        "cannot undo that change: it is no longer in the film's changes",
+      );
     }),
   );
 

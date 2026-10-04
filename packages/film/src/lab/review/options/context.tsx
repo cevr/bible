@@ -174,7 +174,11 @@ interface FilmContextValue {
   readonly reading: Accessor<boolean>;
   /** The film's static check: as first read, then as the last source write answered it. */
   readonly findings: Accessor<Option.Option<ReadonlyArray<CheckLine>>>;
-  /** What Undo and Redo would do now. */
+  /**
+   * What Undo and Redo would do now; none while they are read again after a
+   * write, so no step is taken (nor a receipt's judged) on a history the
+   * write has just moved.
+   */
   readonly steps: Accessor<Option.Option<Steps>>;
   /** How many source writes have been answered: a mix, or a project, is read again on each. */
   readonly version: Accessor<number>;
@@ -358,7 +362,10 @@ const FilmBody = (
     ),
   );
   const steps = createMemo(() =>
-    Option.orElse(AsyncResult.value(stepsResult()), () => AsyncResult.value(check())),
+    Option.filter(
+      Option.orElse(AsyncResult.value(stepsResult()), () => AsyncResult.value(check())),
+      () => !stepsResult().waiting,
+    ),
   );
   // Each source write bumps the version: every mix is asked for again, mixed from the source as it now stands.
   const [version, setVersion] = createSignal(0);

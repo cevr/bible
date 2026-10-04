@@ -39,6 +39,8 @@ const answer = Effect.fn('choices.answer')(function* (film: FilmName, picked: Pi
       onNone: () => `${picked.target} (already so)`,
       onSome: (c) => c.target,
     }),
+    // The change it made, by its id: what its receipt's Undo asks for; none when already so.
+    ...Option.match(picked.change, { onNone: () => ({}), onSome: (c) => ({ change: c.id }) }),
     choices,
     findings,
   };

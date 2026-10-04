@@ -59,9 +59,10 @@ const choices = (playing: string, level: number): FilmChoices =>
 
 /** What a write answered: its target, and the choices it left (none for a step). */
 const wrote = (target: string, left: Option.Option<FilmChoices>): Wrote => ({
-  act: ChoiceAct.Undo(),
+  act: ChoiceAct.Undo({ change: Option.none() }),
   target,
   file: 'sound.ts',
+  change: Option.some('k1'),
   findings: Option.none(),
   choices: left,
 });
@@ -108,12 +109,31 @@ describe('actWords', () => {
 
   test('an Undo says what it walked, undone by Redo; a Redo by Undo', () => {
     const before = choices('strings', -12);
-    const undo = actWords(ChoiceAct.Undo(), before);
+    const undo = actWords(ChoiceAct.Undo({ change: Option.none() }), before);
     expect(undo.done(wrote('undo score play piano', Option.none()))).toBe(
       'Undid score play piano in sound.ts',
     );
     expect(undo.undo).toEqual(Option.some(REVIEW_REDO));
-    expect(actWords(ChoiceAct.Redo(), before).undo).toEqual(Option.some(REVIEW_UNDO));
+    expect(actWords(ChoiceAct.Redo({ change: Option.none() }), before).undo).toEqual(
+      Option.some(REVIEW_UNDO),
+    );
+  });
+
+  test("a source write's Undo is bound to the change it made, on its film; a say's to none", () => {
+    const before = choices('strings', -12);
+    const boundOf = (act: ChoiceAct) =>
+      Option.flatMap(Option.fromUndefinedOr(actWords(act, before).bound), (b) =>
+        b(wrote('score play piano', Option.none())),
+      );
+    const made = Option.some({ film: before.film, change: 'k1' });
+    expect(boundOf(ChoiceAct.Verb({ point: 'score', variant: 'piano', verb: 'pick' }))).toEqual(
+      made,
+    );
+    expect(boundOf(ChoiceAct.Knob({ point: 'level:const:RAIN', value: -6 }))).toEqual(made);
+    expect(boundOf(ChoiceAct.Undo({ change: Option.none() }))).toEqual(made);
+    expect(
+      boundOf(ChoiceAct.Say({ point: 'score', variant: 'piano', say: { _tag: 'Approve' } })),
+    ).toEqual(Option.none());
   });
 });
 

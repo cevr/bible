@@ -316,7 +316,7 @@ const fakeProject = (
     route('GET', /^\/api\/films\/toy\/choices$/, () => json(choicesOf(takeSaid))),
     route('GET', /^\/api\/films\/toy\/check$/, () => json({ findings: [] })),
     route('GET', /^\/api\/films\/toy\/steps$/, () =>
-      json({ undo: { file: 'sound.ts', target: 'score play brass' } }),
+      json({ undo: { file: 'sound.ts', target: 'score play brass', change: 'k-brass' } }),
     ),
     route('GET', /^\/api\/films\/toy\/choices\/check$/, () => json({ findings: [] })),
     route('POST', /^\/api\/films\/toy\/choices\/say$/, () => {

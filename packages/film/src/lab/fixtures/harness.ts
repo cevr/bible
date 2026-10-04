@@ -157,11 +157,15 @@ const sourceThree = {
   refused: [],
 };
 
-/** A write the server took, as it answers one. */
+/** The id the fake lab gives the change a write of `target` to `scene` makes (`HistoryStep.change`). */
+export const changeOf = (target: string, scene = 'one'): string => `${scene}:${target}`;
+
+/** A write the server took, as it answers one, with the change it made. */
 const wrote = (target: string, scene = 'one') => ({
   scene,
   file: `scenes/${scene}.ts`,
   target,
+  change: changeOf(target, scene),
   findings: [],
 });
 

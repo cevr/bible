@@ -157,11 +157,21 @@ describe('wroteNote', () => {
     );
   });
   test('an undo or redo names what it put back', () => {
-    const undo = { _tag: 'StepWrite' as const, verb: 'undo' as const, request: 'undo-1' };
+    const undo = {
+      _tag: 'StepWrite' as const,
+      verb: 'undo' as const,
+      request: 'undo-1',
+      change: Option.none(),
+    };
     expect(wroteNote(undo, { ...result, target: 'undo cue rise offset' })).toBe(
       'undid cue rise offset in scenes/one.ts',
     );
-    const redo = { _tag: 'StepWrite' as const, verb: 'redo' as const, request: 'redo-1' };
+    const redo = {
+      _tag: 'StepWrite' as const,
+      verb: 'redo' as const,
+      request: 'redo-1',
+      change: Option.none(),
+    };
     expect(wroteNote(redo, { ...result, target: 'redo cue rise offset' })).toBe(
       'redid cue rise offset in scenes/one.ts',
     );

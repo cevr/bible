@@ -10,19 +10,23 @@
 // the page goes (a write reloads the lab) are kept in the tab's store and
 // shown again on the page that loads in its place (`scope`: the same page,
 // the same film), so a write's receipt and its Undo outlive the reload it
-// causes. Its Undo pressed while its command is not available (the page that
-// loaded still reading the step it undoes) says so and is held: still
-// offered, it never expires, and once the command is available the receipt
-// says again what it did; a receipt in its slot after it supersedes it.
+// causes. A receipt bound to the change it made (`Bound`: its film, its
+// change's id) runs its Undo on that change alone (`how.bound`), so a receipt
+// carried to another film's page, or one a newer change stands before, never
+// steps a change it did not make. Its Undo pressed when it cannot act (its
+// command not available, the page that loaded still reading the step it
+// undoes; or its command says why it cannot take that change, `fits`) says
+// why and is held: still offered, it never expires, and once it can act the
+// receipt says again what it did; a receipt in its slot after it supersedes it.
 
 import { Toast } from '@bible/ui/toast';
 import { For } from '@solidjs/web';
-import { Option, Schema } from 'effect';
+import { Equal, Option, Schema } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import { createEffect, createSignal, onCleanup, onSettled } from 'solid-js';
 import type { StoreRuntime } from '../../browser/storage.ts';
-import { BY_BUTTON, Receipt } from '../../command/command.ts';
+import { BY_BUTTON, type Bound, Receipt, unfit } from '../../command/command.ts';
 import type { Hub } from '../../command/hub.ts';
 import { hubChanges } from './changes.ts';
 
@@ -34,9 +38,13 @@ const Kept = Schema.Struct({
   slot: Schema.String,
   said: Schema.String,
   undo: Schema.OptionFromOptionalKey(Schema.String),
+  /** The change its Undo acts on, when it names one (`Receipt.Said.bound`). */
+  bound: Schema.OptionFromOptionalKey(
+    Schema.Struct({ film: Schema.String, change: Schema.String }),
+  ),
   tone: Schema.Literals(['done', 'refused', 'busy']),
-  /** Its Undo was pressed while not available: it says so, and waits for it. */
-  held: Schema.optionalKey(Schema.Literal(true)),
+  /** Its Undo was pressed when it could not act: why, said until it can. */
+  held: Schema.OptionFromOptionalKey(Schema.String),
 });
 type Kept = typeof Kept.Type;
 
@@ -62,23 +70,34 @@ export const Receipts = (props: {
   const changes = hubChanges(props.hub);
   const undoLabel = (id: string) =>
     Option.match(props.hub.commands.byId(id), { onNone: () => 'Undo', onSome: (c) => c.label });
-  /** Whether command `id` is available now. */
-  const ready = (id: string) =>
-    Option.exists(props.hub.commands.byId(id), (c) => c.when(props.hub.context()));
+  /**
+   * Why command `id` cannot act now for a receipt bound to `bound`: not
+   * available, or it cannot take that change (`Command.fits`); none when it can.
+   */
+  const whyNot = (id: string, bound: Option.Option<Bound>): Option.Option<string> => {
+    const ctx = props.hub.context();
+    return Option.match(
+      Option.filter(props.hub.commands.byId(id), (c) => c.when(ctx)),
+      {
+        onNone: () => Option.some(`${undoLabel(id)} is not available now`),
+        onSome: (c) => Option.flatMap(bound, (b) => unfit(c, b, ctx)),
+      },
+    );
+  };
   const show = (kept: Kept) => {
     showing.set(kept.slot, kept);
     // A slot's next receipt supersedes the one held there.
-    setHeld((all) => [...all.filter((k) => k.slot !== kept.slot), ...[kept].filter((k) => k.held)]);
-    const undoing = Option.filter(kept.undo, () => kept.held === true);
+    setHeld((all) => [
+      ...all.filter((k) => k.slot !== kept.slot),
+      ...[kept].filter((k) => Option.isSome(k.held)),
+    ]);
+    const held = kept.held;
     manager.add({
       id: kept.slot,
-      title: Option.match(undoing, {
-        onNone: () => kept.said,
-        onSome: (id) => `${undoLabel(id)} is not available now`,
-      }),
-      type: Option.match(undoing, { onNone: () => kept.tone, onSome: () => 'refused' }),
-      // Held, it stays until its Undo is available or a receipt supersedes it.
-      timeout: Option.match(undoing, { onNone: () => SHOWN_FOR[kept.tone], onSome: () => 0 }),
+      title: Option.getOrElse(held, () => kept.said),
+      type: Option.match(held, { onNone: () => kept.tone, onSome: () => 'refused' }),
+      // Held, it stays until its Undo can act or a receipt supersedes it.
+      timeout: Option.match(held, { onNone: () => SHOWN_FOR[kept.tone], onSome: () => 0 }),
       priority: 'low',
       data: kept,
       onRemove: () => {
@@ -93,26 +112,38 @@ export const Receipts = (props: {
           'data-act': 'receipt-undo',
           'data-command': id,
           onClick: () => {
-            // Not available now (a reloaded page still learning the step it undoes):
-            // said so, and held, never a press that silently does nothing.
-            if (!ready(id)) return show({ ...kept, held: true });
+            // It cannot act now (a reloaded page still learning the step it undoes;
+            // another film's change, or one a newer change stands before): said why,
+            // and held, never a press that silently does nothing or steps another change.
+            const why = whyNot(id, kept.bound);
+            if (Option.isSome(why)) return show({ ...kept, held: why });
             manager.close(kept.slot);
-            props.hub.invokeId(id, BY_BUTTON);
+            props.hub.invokeId(
+              id,
+              Option.match(kept.bound, {
+                onNone: () => BY_BUTTON,
+                onSome: (bound) => ({ ...BY_BUTTON, bound }),
+              }),
+            );
           },
         })),
       ),
     });
   };
-  // A held receipt whose Undo is available again says what it did, as it did before.
+  // A held receipt says again what it did once its Undo can act, and why not
+  // in fresh words when the reason changes (not available → a newer change first).
   createEffect(
     () => {
       changes();
-      return held().filter((k) => Option.exists(k.undo, ready));
+      return held().map((kept) => ({
+        kept,
+        why: Option.flatMap(kept.undo, (id) => whyNot(id, kept.bound)),
+      }));
     },
-    (back) => {
-      for (const kept of back) {
-        const { held: _, ...was } = kept;
-        if (showing.get(kept.slot) === kept) show(was);
+    (now) => {
+      for (const { kept, why } of now) {
+        if (showing.get(kept.slot) !== kept || Equal.equals(why, kept.held)) continue;
+        show({ ...kept, held: why });
       }
     },
   );
@@ -120,7 +151,15 @@ export const Receipts = (props: {
     props.hub.receipts((receipt, slot) =>
       Receipt.$match(receipt, {
         Quiet: () => {},
-        Said: (s) => show({ slot, said: s.said, undo: s.undo, tone: s.tone }),
+        Said: (s) =>
+          show({
+            slot,
+            said: s.said,
+            undo: s.undo,
+            bound: s.bound,
+            tone: s.tone,
+            held: Option.none(),
+          }),
       }),
     ),
   );

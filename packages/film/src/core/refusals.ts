@@ -379,6 +379,28 @@ export class RedoUnavailable extends Schema.TaggedError<RedoUnavailable>()('Redo
   }
 }
 
+/**
+ * An Undo or a Redo asked for one change (a receipt's: `StepRequest.change`)
+ * that is not the one it would step now: another change came after it, or it
+ * is no longer in the film's history. Nothing is written.
+ */
+export class StepNotNewest extends Schema.TaggedError<StepNotNewest>()('StepNotNewest', {
+  verb: Schema.Literals(['undo', 'redo']),
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `cannot ${this.verb} that change: ${this.reason}`;
+  }
+}
+
+/**
+ * Why a step of `verb` cannot take a change while `top` (the change it
+ * would take, by its target) stands before it: the lab's refusal
+ * (`StepNotNewest`) and a page that knows the stack say it in these words.
+ */
+export const newerFirst = (verb: 'undo' | 'redo', top: string): string =>
+  `${top} ${{ undo: 'came after it', redo: 'was undone after it' }[verb]}: ${verb} that first`;
+
 /** A scene file with no version at HEAD the lab can compare with: new, or not in a git repository. */
 export class HeadUnavailable extends Schema.TaggedError<HeadUnavailable>()('HeadUnavailable', {
   file: Schema.String,

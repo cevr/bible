@@ -68,12 +68,12 @@ export const findingTime = (
 const DOING = { undo: 'undoing', redo: 'redoing' } as const;
 
 /**
- * The editor's receipt in `state`: a write on its way (busy), what a write
- * that landed did with the step that undoes it (Redo for an Undo), why it
- * was refused, or why a drag cannot be shown; none at rest or mid-drag,
- * where the last receipt stands.
+ * The editor's receipt in `state`, on `film`: a write on its way (busy),
+ * what a write that landed did with the step that undoes it (Redo for an
+ * Undo), bound to the change it made, why it was refused, or why a drag
+ * cannot be shown; none at rest or mid-drag, where the last receipt stands.
  */
-export const receiptOf = (state: EditState): Option.Option<Receipt> =>
+export const receiptOf = (state: EditState, film: string): Option.Option<Receipt> =>
   Match.value(state).pipe(
     Match.tag('Writing', (s) =>
       Option.some(
@@ -88,7 +88,15 @@ export const receiptOf = (state: EditState): Option.Option<Receipt> =>
     Match.tag('Checking', (s) =>
       Option.some(busy(`${DOING[s.write.verb]}: no answer yet, asking the lab whether it landed…`)),
     ),
-    Match.tag('Written', (s) => Option.some(said(s.note, Option.some(`edit.${s.undo}`)))),
+    Match.tag('Written', (s) =>
+      Option.some(
+        said(
+          s.note,
+          Option.some(`edit.${s.undo}`),
+          Option.map(s.change, (change) => ({ film, change })),
+        ),
+      ),
+    ),
     Match.tag('Refused', (s) => Option.some(refused(s.message))),
     Match.tag('Dragging', (s) =>
       Option.map(

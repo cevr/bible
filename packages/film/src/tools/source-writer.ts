@@ -32,6 +32,12 @@
 // bringing back, the write and the putting away all hold the file's store
 // lock (`land`), so a narrate's sweep in another process, which takes it too,
 // never puts away a take an Undo is naming, and a refused one touches nothing.
+//
+// Each change has an id no other has (`Change.id`), kept by its undo and its
+// redo. An Undo or a Redo asked for one change (a receipt's, by the id its
+// write answered) steps only that change: when another stands before it on
+// the stack, or it is gone from the history, it is refused (`StepNotNewest`)
+// and nothing is written. One asked for no change steps the newest.
 
 import {
   Array as Arr,
@@ -55,8 +61,11 @@ import {
   RedoUnavailable,
   SourceChanged,
   type SourceRefused,
+  StepNotNewest,
   UndoUnavailable,
+  newerFirst,
 } from '../core/refusals.ts';
+import { uniqueId } from '../core/unique.ts';
 import {
   FormatFailed,
   type NamedFileMissing,
@@ -93,6 +102,8 @@ export interface Follows {
 
 /** One change to a film's source: its file's text before and after it. */
 export interface Change {
+  /** An id no other change has, kept by its undo and its redo: what a receipt's Undo asks for. */
+  readonly id: string;
   readonly film: string;
   /** The scene it changed; none for a film's own file (its score's pick, the library's lock). */
   readonly scene: Option.Option<string>;
@@ -181,20 +192,38 @@ interface SourceWriterService {
   /**
    * Put `film`'s newest change back: its file as it was before it. Asked
    * with a request's id, the step is recorded under it once it lands
-   * (`WriteHistory.landed`).
+   * (`WriteHistory.landed`); asked for one change, it is refused unless that
+   * change is the newest (`StepAsk`).
    */
   readonly undo: (
     film: string,
-    request?: string,
-  ) => Effect.Effect<Change, UndoUnavailable | StoreError>;
-  /** Make `film`'s newest undone change again; recorded under `request` as `undo` is. */
+    ask?: StepAsk,
+  ) => Effect.Effect<Change, UndoUnavailable | StepNotNewest | StoreError>;
+  /** Make `film`'s newest undone change again; asked as `undo` is. */
   readonly redo: (
     film: string,
-    request?: string,
-  ) => Effect.Effect<Change, RedoUnavailable | StoreError>;
+    ask?: StepAsk,
+  ) => Effect.Effect<Change, RedoUnavailable | StepNotNewest | StoreError>;
   /** What undo and redo would do now for `film`, and its latest change. */
   readonly history: (film: string) => Effect.Effect<WriteHistory>;
 }
+
+/**
+ * How an Undo or a Redo is asked for: under a request's id (recorded once it
+ * lands), and for one change (`change`, its id: a receipt's), stepped only
+ * while it is the one the step would take; with none, the newest.
+ */
+export interface StepAsk {
+  readonly request?: string;
+  readonly change?: string;
+}
+
+/**
+ * The id of the change `c` made, as an answer gives it: none for a write
+ * that changed nothing (its text as it was), which is not in the history.
+ */
+export const madeChange = (c: Change): Option.Option<string> =>
+  Option.liftPredicate(c.id, () => c.before !== c.after);
 
 /** How many changes Undo can walk back, per film. Each holds its file's text before and after. */
 export const UNDO_DEPTH = 50;
@@ -224,6 +253,25 @@ const landedWith = (
     onNone: () => landed,
     onSome: (id) => [...landed, { request: id, step }].slice(-UNDO_DEPTH),
   });
+
+/**
+ * Whether a step of `verb` may take `top` (the newest of `stack`) when asked
+ * for change `asked`: yes when nothing was asked or it is `top`; else why not,
+ * as `StepNotNewest`: another change came after it, or it is not in `stack`.
+ */
+export const stepFits = (
+  verb: 'undo' | 'redo',
+  stack: ReadonlyArray<Change>,
+  top: Change,
+  asked: Option.Option<string>,
+): Result.Result<void, StepNotNewest> => {
+  if (Option.isNone(asked) || asked.value === top.id) return Result.void;
+  const standing = stack.some((c) => c.id === asked.value);
+  if (standing)
+    return Result.fail(StepNotNewest.make({ verb, reason: newerFirst(verb, top.target) }));
+  const gone = { undo: 'changes', redo: 'undone changes' }[verb];
+  return Result.fail(StepNotNewest.make({ verb, reason: `it is no longer in the film's ${gone}` }));
+};
 
 /** The undo of `c`: its file from `c.after` back to `c.before`, named `undo <target>`. */
 const undoneOf = (c: Change): Change => ({
@@ -343,6 +391,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               });
             const checked = yield* rewrite.check(after);
             const change: Change = {
+              id: yield* uniqueId,
               film: rewrite.film,
               scene: rewrite.scene,
               file,
@@ -405,6 +454,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               const after = yield* formattedOver(film, file, acted, target);
               if (after === before) return [done, Option.none<Change>()] as const;
               const change: Change = {
+                id: yield* uniqueId,
                 film,
                 scene: Option.none(),
                 file,
@@ -489,7 +539,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
           }),
         );
 
-      const undo = (film: string, request?: string) =>
+      const undo = (film: string, { request, change }: StepAsk = {}) =>
         writer
           .withPermits(1)(
             Effect.uninterruptible(
@@ -501,6 +551,9 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                     reason: `the lab has made no change to ${film} to undo`,
                   });
                 const c = top.value;
+                yield* Effect.fromResult(
+                  stepFits('undo', h.undos, c, Option.fromUndefinedOr(change)),
+                );
                 yield* land(
                   c,
                   c.after,
@@ -525,7 +578,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
           )
           .pipe(Effect.withSpan('SourceWriter.undo'));
 
-      const redo = (film: string, request?: string) =>
+      const redo = (film: string, { request, change }: StepAsk = {}) =>
         writer
           .withPermits(1)(
             Effect.uninterruptible(
@@ -537,6 +590,9 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                     reason: `the lab has undone no change to ${film}`,
                   });
                 const c = top.value;
+                yield* Effect.fromResult(
+                  stepFits('redo', h.redos, c, Option.fromUndefinedOr(change)),
+                );
                 yield* land(
                   c,
                   c.before,

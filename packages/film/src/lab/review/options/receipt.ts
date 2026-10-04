@@ -3,9 +3,9 @@
 // says what the point plays, before → after (`Score: piano → ensemble`), a
 // knob its level before → after (the level that landed, as the write left it),
 // a say what was said of which variant, and an Undo or a Redo what it walked. A source write is undone by Undo, an
-// Undo by Redo, a Redo by Undo; a say, which writes the catalogue and no
-// source, by none. The sound check after a pick says it is hearing the mix,
-// then what it found.
+// Undo by Redo, a Redo by Undo, each bound to the change it made on its film
+// (`Bound`); a say, which writes the catalogue and no source, by none. The
+// sound check after a pick says it is hearing the mix, then what it found.
 
 import { Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -84,13 +84,17 @@ export const soundReceipt = (
 const walked = (wrote: Wrote): string =>
   `${wrote.target.replace(/^(undo|redo) /, '')} in ${wrote.file}`;
 
-/** The receipt of `act`, as the choices `before` show the film as it is sent. */
+/**
+ * The receipt of `act`, as the choices `before` show the film as it is sent;
+ * a source write's Undo (or Redo) is bound to the change it made, on that film.
+ */
 export const actWords = (act: ChoiceAct, before: FilmChoices): Words<Wrote> => {
   const titleOf = (point: string) =>
     Option.getOrElse(
       Option.map(pointIn(before, point), (p) => p.title),
       () => point,
     );
+  const bound = (w: Wrote) => Option.map(w.change, (change) => ({ film: before.film, change }));
   return Match.value(act).pipe(
     Match.tagsExhaustive({
       Verb: (v): Words<Wrote> => ({
@@ -107,6 +111,7 @@ export const actWords = (act: ChoiceAct, before: FilmChoices): Words<Wrote> => {
           return `${VERB_PAST[v.verb]} ${labelIn(before, v.point, v.variant)} · ${titleOf(v.point)}: ${was} → ${now}`;
         },
         undo: Option.some(REVIEW_UNDO),
+        bound,
       }),
       Knob: (k): Words<Wrote> => {
         const knob = Option.flatMap(pointIn(before, k.point), (p) => p.knob);
@@ -135,6 +140,7 @@ export const actWords = (act: ChoiceAct, before: FilmChoices): Words<Wrote> => {
             return [`${titleOf(k.point)}: ${was} → ${now}`, unit].filter((s) => s !== '').join(' ');
           },
           undo: Option.some(REVIEW_UNDO),
+          bound,
         };
       },
       Say: (s): Words<Wrote> => ({
@@ -146,11 +152,13 @@ export const actWords = (act: ChoiceAct, before: FilmChoices): Words<Wrote> => {
         doing: 'undoing…',
         done: (w) => `Undid ${walked(w)}`,
         undo: Option.some(REVIEW_REDO),
+        bound,
       }),
       Redo: (): Words<Wrote> => ({
         doing: 'redoing…',
         done: (w) => `Redid ${walked(w)}`,
         undo: Option.some(REVIEW_UNDO),
+        bound,
       }),
     }),
   );

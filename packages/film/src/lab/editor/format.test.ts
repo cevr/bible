@@ -18,7 +18,7 @@ describe('findingsOf', () => {
   test("a landed write's findings, else the check the page loaded with", () => {
     expect(
       findingsOf(
-        EditState.Written({ note: 'wrote', findings: [late], undo: 'undo' }),
+        EditState.Written({ note: 'wrote', findings: [late], undo: 'undo', change: Option.none() }),
         Option.some(report),
       ),
     ).toEqual([late]);
@@ -51,20 +51,33 @@ describe('findingTime (F/⇧F)', () => {
 });
 
 describe('receiptOf', () => {
-  test('a write on its way is busy; one that landed says what it did, with what undoes it', () => {
+  test('a write on its way is busy; one that landed says what it did, with what undoes it, bound to its change', () => {
     const write = CueWrite.make({ scene: 'one', cue: 'rise', patch: { offset: 0.2 } });
-    expect(receiptOf(EditState.Writing({ write }))).toEqual(Option.some(busy('writing…')));
-    const undo = StepWrite.make({ verb: 'undo', request: 'r' });
-    expect(receiptOf(EditState.Writing({ write: undo }))).toEqual(Option.some(busy('undoing…')));
-    expect(
-      receiptOf(EditState.Written({ note: 'undid cue rise offset', findings: [], undo: 'redo' })),
-    ).toEqual(Option.some(said('undid cue rise offset', Option.some('edit.redo'))));
+    expect(receiptOf(EditState.Writing({ write }), 'f')).toEqual(Option.some(busy('writing…')));
+    const undo = StepWrite.make({ verb: 'undo', request: 'r', change: Option.none() });
+    expect(receiptOf(EditState.Writing({ write: undo }), 'f')).toEqual(
+      Option.some(busy('undoing…')),
+    );
+    const undid = { note: 'undid cue rise offset', findings: [], undo: 'redo' } as const;
+    expect(receiptOf(EditState.Written({ ...undid, change: Option.some('k1') }), 'f')).toEqual(
+      Option.some(
+        said(
+          'undid cue rise offset',
+          Option.some('edit.redo'),
+          Option.some({ film: 'f', change: 'k1' }),
+        ),
+      ),
+    );
+    // A write that changed nothing made no change to bind: its Undo steps whatever is newest.
+    expect(receiptOf(EditState.Written({ ...undid, change: Option.none() }), 'f')).toEqual(
+      Option.some(said('undid cue rise offset', Option.some('edit.redo'))),
+    );
   });
 
   test('a refusal says why; at rest and mid-drag the last receipt stands', () => {
-    expect(receiptOf(EditState.Refused({ message: 'SourceRefused: stale' }))).toEqual(
+    expect(receiptOf(EditState.Refused({ message: 'SourceRefused: stale' }), 'f')).toEqual(
       Option.some(refused('SourceRefused: stale')),
     );
-    expect(receiptOf(EditState.Idle({ note: 'wrote' }))).toEqual(Option.none());
+    expect(receiptOf(EditState.Idle({ note: 'wrote' }), 'f')).toEqual(Option.none());
   });
 });

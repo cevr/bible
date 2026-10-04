@@ -27,8 +27,9 @@ export type ChoiceAct = Data.TaggedEnum<{
   };
   Knob: { readonly point: string; readonly value: number };
   Say: { readonly point: string; readonly variant: string; readonly say: Say };
-  Undo: {};
-  Redo: {};
+  /** A step back or on: of one change (a receipt's, by its id), or of the newest with none. */
+  Undo: { readonly change: Option.Option<string> };
+  Redo: { readonly change: Option.Option<string> };
 }>;
 export const ChoiceAct = Data.taggedEnum<ChoiceAct>();
 
@@ -55,12 +56,14 @@ const sayTarget = (say: Say, subject: string): string =>
  * What a write did, as the page says it: its target (`score play warm`,
  * `undo …`, `approve score warm`), the file it wrote, and the act; the check
  * after a source write, and the choices it leaves, when its answer carries
- * them (an undo's does not: the page reads them again).
+ * them (an undo's does not: the page reads them again); the change a source
+ * write made, by its id, which its receipt's Undo acts on.
  */
 export interface Wrote {
   readonly act: ChoiceAct;
   readonly target: string;
   readonly file: string;
+  readonly change: Option.Option<string>;
   readonly findings: Option.Option<ReadonlyArray<CheckLine>>;
   readonly choices: Option.Option<FilmChoices>;
 }
@@ -94,6 +97,10 @@ export class OptionsApi extends Context.Service<OptionsApi, OptionsCalls>()(
   '@bible/film/lab/OptionsApi',
 ) {}
 
+/** An Undo's or a Redo's body: the one change it steps (a receipt's), or `{}` for the newest. */
+const stepAsk = (change: Option.Option<string>) =>
+  Option.match(change, { onNone: () => ({}), onSome: (c) => ({ change: c }) });
+
 /** A film's choice and project routes, over the page's one client. */
 const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
   const client = yield* LabClient;
@@ -104,6 +111,7 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
       act,
       target: w.target,
       file: w.file,
+      change: Option.fromUndefinedOr(w.change),
       findings: Option.some(w.findings),
       choices: Option.some(w.choices),
     });
@@ -114,6 +122,7 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
       act,
       target: w.target,
       file: w.file,
+      change: Option.fromUndefinedOr(w.change),
       findings: Option.some(w.findings),
       choices: Option.none(),
     });
@@ -124,6 +133,7 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
       act,
       target,
       file: 'catalogue.json',
+      change: Option.none(),
       findings: Option.none(),
       choices: Option.some(choices),
     });
@@ -170,10 +180,16 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
                 }),
                 said(act, sayTarget(s.say, `${s.point} ${s.variant}`)),
               ),
-            Undo: () =>
-              Effect.map(client.steps.undo({ params: { film }, payload: {} }), stepped(act)),
-            Redo: () =>
-              Effect.map(client.steps.redo({ params: { film }, payload: {} }), stepped(act)),
+            Undo: (u) =>
+              Effect.map(
+                client.steps.undo({ params: { film }, payload: stepAsk(u.change) }),
+                stepped(act),
+              ),
+            Redo: (r) =>
+              Effect.map(
+                client.steps.redo({ params: { film }, payload: stepAsk(r.change) }),
+                stepped(act),
+              ),
           }),
         ),
       ),

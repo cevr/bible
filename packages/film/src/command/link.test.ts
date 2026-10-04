@@ -32,6 +32,7 @@ describe('Copy link', () => {
       Receipt.Said({
         said: 'Copied the link to cue rise in one',
         undo: Option.none(),
+        bound: Option.none(),
         tone: 'done',
       }),
     );
@@ -61,6 +62,7 @@ describe('Copy link', () => {
         Receipt.Said({
           said: 'The browser kept the link off the clipboard: NotAllowedError',
           undo: Option.none(),
+          bound: Option.none(),
           tone: 'refused',
         }),
       ),

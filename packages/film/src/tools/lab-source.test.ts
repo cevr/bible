@@ -261,6 +261,58 @@ describe('lab source routes', () => {
   );
 
   it.effect(
+    'an undo or a redo asked for one change steps only that one: another standing on top is a 409, the file untouched',
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler({ hosts: [] });
+        const json = (req: Request) => Effect.promise(() => lab(req, bound).then((r) => r.json()));
+        const status = (req: Request) =>
+          Effect.promise(() => lab(req, bound).then((r) => r.status));
+        const cue = (body: string) =>
+          json(
+            post(labUrls.scenes.cue({ params: { film: 'f', scene: 'hand', cue: 'topple' } }), body),
+          );
+        const undo = (change: string) =>
+          post(labUrls.steps.undo({ params: { film: 'f' } }), `{"change":"${change}"}`);
+        const redo = (change: string) =>
+          post(labUrls.steps.redo({ params: { film: 'f' } }), `{"change":"${change}"}`);
+        // Each write answers the change it made, by an id no other change has.
+        const first = yield* Schema.decodeUnknownEffect(LabWrite)(yield* cue('{"ease":"inQuad"}'));
+        const middle = yield* read();
+        const second = yield* Schema.decodeUnknownEffect(LabWrite)(yield* cue('{"offset":0.4}'));
+        const last = yield* read();
+        expect(first.change).toBeString();
+        expect(second.change).toBeString();
+        expect(second.change).not.toBe(first.change);
+        // The page's steps name the change Undo would put back by its id.
+        expect(yield* json(get(labUrls.steps.check({ params: { film: 'f' } })))).toMatchObject({
+          undo: { target: 'cue topple offset', change: second.change },
+        });
+        // The older receipt's Undo: refused, naming the change on top; nothing written.
+        const older = yield* Effect.promise(() => lab(undo(first.change ?? ''), bound));
+        expect(older.status).toBe(409);
+        expect(yield* Effect.promise(() => older.json())).toMatchObject({
+          _tag: 'StepNotNewest',
+          reason: expect.stringContaining('cue topple offset'),
+        });
+        expect(yield* read()).toBe(last);
+        // Its own change on top: put back, and the redo it leaves is that change, by its id.
+        expect(yield* json(undo(second.change ?? ''))).toMatchObject({
+          target: 'undo cue topple offset',
+          change: second.change,
+        });
+        expect(yield* read()).toBe(middle);
+        expect(yield* status(redo(first.change ?? ''))).toBe(409);
+        expect(yield* read()).toBe(middle);
+        expect(yield* json(redo(second.change ?? ''))).toMatchObject({
+          target: 'redo cue topple offset',
+          change: second.change,
+        });
+        expect(yield* read()).toBe(last);
+      }).pipe(Effect.scoped, Effect.provide(fixture)),
+  );
+
+  it.effect(
     "head answers HEAD's data, and says when the code changed since",
     () =>
       Effect.gen(function* () {

@@ -21,10 +21,11 @@
 // once it lands, and the lab's check says by that id whether it did. Nothing
 // here touches the DOM: the stage and the API are services, faked in tests.
 
-import { Array as Arr, Clock, Duration, Effect, Match, Option, Random, Schema } from 'effect';
+import { Array as Arr, Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { SceneEdit } from '../../canvas/film.ts';
 import { CheckLine, type CheckReport, LabWrite } from '../../core/schema.ts';
+import { uniqueId } from '../../core/unique.ts';
 import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { readAtLoad } from '../../player/narrated.ts';
 import { LabApi, LabUnreachable, StepVerb } from '../api.ts';
@@ -45,14 +46,8 @@ export const WRITE_TIMEOUT_S = 20;
  */
 const STEP_TIMEOUT_S = STUDIO_IMPORT_WAIT_S;
 
-/**
- * An id for an Undo or Redo request that no other request has, from any
- * page: the time it was asked, and a random part.
- */
-export const stepRequest: Effect.Effect<string> = Effect.map(
-  Effect.all([Clock.currentTimeMillis, Random.nextIntBetween(0, 2 ** 52)]),
-  ([at, n]) => `${at.toString(36)}-${n.toString(36)}`,
-);
+/** An id for an Undo or Redo request that no other request has, from any page. */
+export const stepRequest: Effect.Effect<string> = uniqueId;
 
 /** How long reading the lab's steps may take once a step's wait is over. */
 const CHECK_WAIT = Duration.seconds(15);
@@ -68,8 +63,17 @@ export const EditState = State({
   Writing: { write: Write },
   /** An Undo or Redo had no answer in STEP_TIMEOUT_S: the lab is asked whether it landed, by its request's id. */
   Checking: { write: StepWrite },
-  /** The write landed; the page reloads with it. `undo` is the step that undoes it (Redo for an Undo). */
-  Written: { note: Schema.String, findings: Schema.Array(CheckLine), undo: StepVerb },
+  /**
+   * The write landed; the page reloads with it. `undo` is the step that
+   * undoes it (Redo for an Undo), and `change` the change it made, by its id
+   * (none when it changed nothing): what its receipt's button acts on.
+   */
+  Written: {
+    note: Schema.String,
+    findings: Schema.Array(CheckLine),
+    undo: StepVerb,
+    change: Schema.Option(Schema.String),
+  },
   /** The server, or the lab, said no: its words. */
   Refused: { message: Schema.String },
 });
@@ -84,8 +88,8 @@ export const EditEvent = Event({
   Cancel: {},
   /** A write asked for from rest (a field, an ease, a knob), shown first as `edit`. */
   Commit: { write: Write, edit: SceneEdit },
-  /** An Undo or Redo, with an id unique to this request (`StepWrite.request`). */
-  Step: { verb: StepVerb, request: Schema.String },
+  /** An Undo or Redo, with an id unique to this request (`StepWrite.request`), of one change or the newest. */
+  Step: { verb: StepVerb, request: Schema.String, change: Schema.Option(Schema.String) },
   Wrote: { result: LabWrite },
   Failed: { message: Schema.String },
   /** The write was out its wait (WRITE_TIMEOUT_S, a step STEP_TIMEOUT_S) with no answer. */
@@ -149,7 +153,7 @@ const send = (write: Write) =>
       Match.tagsExhaustive({
         CueWrite: (w) => api.writeCue(w.scene, w.cue, w.patch),
         KnobWrite: (w) => api.writeKnob(w.scene, w.knob, w.value),
-        StepWrite: (w) => api.step(w.verb, w.request),
+        StepWrite: (w) => api.step(w.verb, w.request, w.change),
       }),
     ),
   );
@@ -229,7 +233,7 @@ export const editMachine = Machine.make({
     }),
   )
   .on(AT_REST, EditEvent.Step, ({ event }) =>
-    writing(StepWrite.make({ verb: event.verb, request: event.request })),
+    writing(StepWrite.make({ verb: event.verb, request: event.request, change: event.change })),
   )
   .task(EditState.Writing, ({ state }) => send(state.write), {
     onSuccess: (result) => EditEvent.Wrote({ result }),
@@ -240,6 +244,7 @@ export const editMachine = Machine.make({
       note: wroteNote(state.write, event.result),
       findings: event.result.findings,
       undo: undoneBy(state.write),
+      change: Option.fromUndefinedOr(event.result.change),
     });
     // No rebuild follows a file the page reads at load (an Undo of a kept take): reload it here.
     if (!readAtLoad(event.result.file)) return written;
@@ -291,7 +296,12 @@ export const editMachine = Machine.make({
     return Stage.use((stage) =>
       Effect.as(
         stage.settle,
-        EditState.Written({ note, findings: event.result.findings, undo: undoneBy(state.write) }),
+        EditState.Written({
+          note,
+          findings: event.result.findings,
+          undo: undoneBy(state.write),
+          change: Option.fromUndefinedOr(event.result.change),
+        }),
       ),
     );
   })

@@ -10,7 +10,7 @@ import { type LabWrite } from '../core/schema.ts';
 import { answered } from './api-server.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
-import { type Change, SourceWriter } from './source-writer.ts';
+import { type Change, SourceWriter, type StepAsk, madeChange } from './source-writer.ts';
 
 /** `film check --static` as the lab shows it, in a fresh process: a check that cannot run is itself a finding. */
 const findings = (film: string) => FreshFilm.use((fresh) => fresh.check(film, 'static'));
@@ -36,6 +36,7 @@ export const writeAnswer = Effect.fn('lab.writeAnswer')(function* <R>(
     ...sceneField(written),
     file: path.relative(dir, written.file),
     target: written.target,
+    ...Option.match(madeChange(written), { onNone: () => ({}), onSome: (change) => ({ change }) }),
     ...(yield* read),
     findings: found,
   };
@@ -45,13 +46,13 @@ export const writeAnswer = Effect.fn('lab.writeAnswer')(function* <R>(
 /**
  * Undo or Redo: the film's newest change put back, or its newest undone one
  * made again, answered as a write is, and recorded under the request's id
- * when the page sent one.
+ * when the page sent one; asked for one change, only that one (`StepAsk`).
  */
-const stepped = (name: string, verb: 'undo' | 'redo', request: { readonly request?: string }) =>
+const stepped = (name: string, verb: 'undo' | 'redo', ask: StepAsk) =>
   answered(
     Effect.gen(function* () {
       const film = yield* filmNamed(name);
-      const change = yield* (yield* SourceWriter)[verb](film, request.request);
+      const change = yield* (yield* SourceWriter)[verb](film, ask);
       return yield* writeAnswer(film, change, Effect.succeed({}));
     }),
   );
@@ -68,6 +69,7 @@ const history = Effect.fn('lab.history')(function* (film: FilmName) {
     ...sceneField(c),
     file: path.relative(dir, c.file),
     target: c.target,
+    change: c.id,
   });
   const step = (key: 'latest' | 'undo' | 'redo') =>
     Option.match(kept[key], {

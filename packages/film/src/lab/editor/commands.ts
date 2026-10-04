@@ -18,7 +18,7 @@
 // place ⌘K goes to by its name (`cueDestinations`).
 
 import { Effect, Match, Option } from 'effect';
-import { type Command, type Invocation, quiet } from '../../command/command.ts';
+import { type Bound, type Command, type Invocation, quiet } from '../../command/command.ts';
 import { type Context, selected } from '../../command/context.ts';
 import { type LabSelection, cueOf, sameSelection, selectionText } from '../../command/selection.ts';
 import { type Inspected, nudged, refusalOf } from '../../core/field.ts';
@@ -30,7 +30,10 @@ import type { StepVerb } from '../api.ts';
 interface EditorVerbs {
   /** What the server's stack would undo or redo now (its target), if anything. */
   readonly undoable: (verb: StepVerb) => Option.Option<{ readonly target: string }>;
-  readonly step: (verb: StepVerb) => void;
+  /** Why a step of `verb` cannot take the change `bound` names (a receipt's), or none when it can. */
+  readonly whyNot: (verb: StepVerb, bound: Bound) => Option.Option<string>;
+  /** Undo or Redo `change` (a receipt's), or the newest with none. */
+  readonly step: (verb: StepVerb, change: Option.Option<string>) => void;
   /** Whether a grip is held: pressed on a cue or a handle, or dragging. */
   readonly holding: () => boolean;
   /** Let the held grip go: it goes back where it was. */
@@ -74,9 +77,14 @@ const stepCommand = (verbs: EditorVerbs, verb: StepVerb, label: string, key: str
   keys: [key],
   touch: `the ${label} button in the editor`,
   when: () => Option.isSome(verbs.undoable(verb)),
-  run: () =>
+  // A receipt's button steps the change it names, or says why it cannot (`stepWhyNot`).
+  fits: (bound) => verbs.whyNot(verb, bound),
+  run: (_, how) =>
     Effect.sync(() => {
-      verbs.step(verb);
+      verbs.step(
+        verb,
+        Option.map(Option.fromUndefinedOr(how.bound), (b) => b.change),
+      );
       return quiet;
     }),
 });

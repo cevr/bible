@@ -25,7 +25,7 @@ import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import type { DragEdge } from '../../core/timeline.ts';
-import { LabApi, type StepVerb, reasonOf } from '../api.ts';
+import { LabApi, type StepVerb, reasonOf, stepWhyNot } from '../api.ts';
 import type { Receipt } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
@@ -108,6 +108,7 @@ interface EditorActions {
   readonly grabKnob: (press: KnobPress) => void;
   /** Write `write`, showing `edit` until the reload. */
   readonly commit: (write: Write, edit: SceneEdit) => void;
+  /** Undo or Redo the newest change (the editor's buttons). */
   readonly step: (verb: StepVerb) => void;
   /** Say why something cannot be written. */
   readonly refuse: (message: string) => void;
@@ -280,7 +281,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   // each once, in one slot: `writing…` becomes what was moved, `undoing…` what was undone.
   let announced = Option.none<Receipt>();
   createEffect(
-    () => receiptOf(edit()),
+    () => receiptOf(edit(), meta.name),
     (receipt) => {
       const fresh = Option.filter(receipt, (r) => !Option.exists(announced, Equal.equals(r)));
       Option.map(fresh, (r) => {
@@ -290,9 +291,10 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     },
   );
 
-  // Each step is its own request, with an id no other has: with no answer, the lab says by it whether it landed.
-  const step = (verb: StepVerb) =>
-    send(EditEvent.Step({ verb, request: Effect.runSync(stepRequest) }));
+  // Each step is its own request, with an id no other has: with no answer, the lab says by it
+  // whether it landed. A receipt's names its change, so the lab steps that one or refuses.
+  const step = (verb: StepVerb, change: Option.Option<string>) =>
+    send(EditEvent.Step({ verb, request: Effect.runSync(stepRequest), change }));
   const commit = (write: Write, shown: SceneEdit) => send(EditEvent.Commit({ write, edit: shown }));
 
   /** What the lab knows of `scene`'s source: the inspected scene's, else the strip's. */
@@ -378,6 +380,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     meta.hub.commands.register(
       ...editorCommands({
         undoable: (verb) => Option.flatMap(report(), (r) => Option.fromUndefinedOr(r[verb])),
+        whyNot: (verb, bound) => stepWhyNot(verb, meta.name, report())(bound),
         step,
         holding,
         cancel: () => send(EditEvent.Cancel),
@@ -408,7 +411,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       press,
       grabKnob,
       commit,
-      step,
+      step: (verb) => step(verb, Option.none()),
       refuse: (message) => send(EditEvent.Refuse({ message })),
     },
   };

@@ -25,6 +25,7 @@ import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import {
   type FakeRoute,
   type Json,
+  changeOf,
   file,
   json,
   later,
@@ -33,7 +34,13 @@ import {
   route,
   text,
 } from '../../../../src/lab/fixtures/harness.ts';
-import { SourceRefused, TakeMismatch } from '../../../../src/core/refusals.ts';
+import {
+  SourceRefused,
+  StepNotNewest,
+  TakeMismatch,
+  UndoUnavailable,
+  newerFirst,
+} from '../../../../src/core/refusals.ts';
 import {
   MENU_ITEMS,
   closeCommandMenu,
@@ -211,15 +218,38 @@ const freshToy = (): Toy => ({
   said: [],
 });
 
-/** The fake film: its choices, its writes, its check and its sound check, over `toy`. */
-const fakeFilm = (toy: Toy = freshToy()) => {
-  let undo = Option.none<string>();
+/** One change in the fake film's history: what it changed, and how Undo puts it back. */
+interface FakeChange {
+  readonly target: string;
+  readonly file: string;
+  readonly back: () => void;
+}
+
+/**
+ * The fake film: its choices, its writes, its check and its sound check,
+ * over `toy`. Its source writes stack as the lab's do (`undos`, newest
+ * last): Undo puts the newest back, and one asked for another change (a
+ * receipt's) is refused as the lab refuses it.
+ */
+const fakeFilm = (toy: Toy = freshToy(), undos: Array<FakeChange> = []) => {
+  const top = () => Option.fromUndefinedOr(undos.at(-1));
+  const history = () =>
+    Option.match(top(), {
+      onNone: () => ({}),
+      onSome: (c) => ({ undo: { file: c.file, target: c.target, change: changeOf(c.target) } }),
+    });
   const wrote = (target: string, file: string): Json => ({
     file,
     target,
+    change: changeOf(target),
     choices: choices(toy),
     findings: [],
   });
+  /** A source write of `target` to `file`, which `back` puts back. */
+  const made = (target: string, file: string, back: () => void) => {
+    undos.push({ target, file, back });
+    return json(wrote(target, file));
+  };
   const routes: ReadonlyArray<FakeRoute> = [
     route('GET', /^\/api\/review\/index/, () => json({ folders: [] })),
     route('GET', /^\/api\/films$/, () => json({ films: ['toy'] })),
@@ -237,31 +267,40 @@ const fakeFilm = (toy: Toy = freshToy()) => {
     ),
     route('GET', /^\/api\/films\/toy\/check$/, () =>
       json({
-        findings: Option.match(undo, {
+        findings: Option.match(top(), {
           onNone: () => [],
           onSome: () => [{ level: 'warning', tag: 'score', message: 'piano is stale' }],
         }),
-        ...Option.match(undo, {
-          onNone: () => ({}),
-          onSome: (target) => ({ undo: { file: 'sound.ts', target } }),
-        }),
+        ...history(),
       }),
     ),
     route('POST', /^\/api\/films\/toy\/choices\/pick$/, (asked) => {
       const body = bodyText(asked.body);
       if (body.includes('look:ground')) {
+        const was = toy.look;
         toy.look = 'light';
-        return json(wrote('look ground play light', 'palette.ts'));
+        return made('look ground play light', 'palette.ts', () => {
+          toy.look = was;
+        });
       }
       if (body.includes('take:paper.page'))
-        return json(wrote('sound paper.page keep bbbbbbbbbbbb', '../../sounds/library.lock.json'));
+        return made(
+          'sound paper.page keep bbbbbbbbbbbb',
+          '../../sounds/library.lock.json',
+          () => {},
+        );
+      const was = toy.picked;
       toy.picked = 'piano';
-      undo = Option.some('score play piano');
-      return json(wrote('score play piano', 'sound.ts'));
+      return made('score play piano', 'sound.ts', () => {
+        toy.picked = was;
+      });
     }),
     route('POST', /^\/api\/films\/toy\/choices\/knob$/, () => {
+      const was = toy.level;
       toy.level = -20;
-      return json(wrote('level:const:PAPER -20', 'sound.ts'));
+      return made('level:const:PAPER -20', 'sound.ts', () => {
+        toy.level = was;
+      });
     }),
     route('POST', /^\/api\/films\/toy\/choices\/say$/, (asked) => {
       const body = bodyText(asked.body);
@@ -270,19 +309,29 @@ const fakeFilm = (toy: Toy = freshToy()) => {
       if (body.includes('"Comment"')) toy.said = [...toy.said, 'warmer in the close'];
       return json(choices(toy));
     }),
-    route('GET', /^\/api\/films\/toy\/steps$/, () =>
-      json(
-        Option.match(undo, {
-          onNone: () => ({}),
-          onSome: (target) => ({ undo: { file: 'sound.ts', target } }),
-        }),
-      ),
+    route('GET', /^\/api\/films\/toy\/steps$/, () => json(history())),
+    route('POST', /^\/api\/films\/toy\/undo$/, (asked) =>
+      Option.match(top(), {
+        onNone: () =>
+          refused(UndoUnavailable.make({ reason: 'the lab has made no change to toy to undo' })),
+        onSome: (c) => {
+          // Asked for one change (a receipt's): that one, while it is the newest; else refused.
+          const asks = bodyText(asked.body);
+          if (asks.includes('"change"') && !asks.includes(`"${changeOf(c.target)}"`))
+            return refused(
+              StepNotNewest.make({ verb: 'undo', reason: newerFirst('undo', c.target) }),
+            );
+          undos.pop();
+          c.back();
+          return json({
+            file: c.file,
+            target: `undo ${c.target}`,
+            change: changeOf(c.target),
+            findings: [],
+          });
+        },
+      }),
     ),
-    route('POST', /^\/api\/films\/toy\/undo$/, () => {
-      toy.picked = 'strings';
-      undo = Option.none();
-      return json({ file: 'sound.ts', target: 'undo score play piano', findings: [] });
-    }),
   ];
   return routes;
 };
@@ -504,16 +553,116 @@ describe("a film's choices", () => {
         yield* page.press('Escape');
         yield* countIs(page, INSPECTOR, 0);
 
-        // The receipt's Undo undoes the write it said; its own receipt offers Redo.
+        // The receipt's Undo undoes the write it said (the take, by its change), and no
+        // other; its own receipt offers Redo, and the pick before it is still to undo.
         yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
-        yield* receiptSays(page, 'Undid ');
+        yield* receiptSays(page, 'Undid sound paper.page keep bbbbbbbbbbbb');
         yield* textIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 'Redo');
-        yield* menuOffers(page, 'undo', 'review.undo', false);
-        expect(asked.some((a) => a.method === 'POST' && a.path === '/api/films/toy/undo')).toBe(
-          true,
-        );
+        expect(posted(asked, '/api/films/toy/undo')).toEqual({
+          change: changeOf('sound paper.page keep bbbbbbbbbbbb'),
+        });
+        yield* openCommandMenu(page, 'undo');
+        yield* textHas(page, menuEntry('review.undo'), 'Undo score play piano');
+        yield* closeCommandMenu(page);
+        yield* countIs(page, `${at('score', 'piano')} .rv-badge`, 1);
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "an older receipt's Undo, a newer change before it, says why and steps nothing, until its own change is the newest",
+    () =>
+      Effect.gen(function* () {
+        const undos: Array<FakeChange> = [];
+        const { page, asked, errors } = yield* openReview(fakeFilm(freshToy(), undos), {
+          href: FILM,
+        });
+        const undone = () =>
+          asked.filter((a) => a.method === 'POST' && a.path === '/api/films/toy/undo');
+        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        // A second quick edit, from another page on the film (the lab's editor): a level.
+        const level: FakeChange = {
+          target: 'level:const:PAPER -20',
+          file: 'sound.ts',
+          back: () => {},
+        };
+        undos.push(level);
+        // The receipt outlives the reload; the page reads the film's history as it now stands.
+        yield* page.reload;
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        yield* menuOffers(page, 'undo', 'review.undo', true);
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* receiptSays(page, 'level:const:PAPER -20 came after it: undo that first');
+        // Still offered, and nothing stepped: the newest change is not this receipt's.
+        yield* textIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 'Undo');
+        expect(undone()).toEqual([]);
+        // The editor undoes its level: once the page reads that, the receipt says again what it did.
+        undos.pop();
+        yield* page.reload;
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        // A page that knew an older history asks for its change all the same, and the lab refuses.
+        undos.push(level);
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* receiptSays(
+          page,
+          'cannot undo that change: level:const:PAPER -20 came after it: undo that first',
+        );
+        expect(undone().map((a) => a.body)).toEqual([
+          Option.some({ change: changeOf('score play piano') }),
+        ]);
+        yield* countIs(page, `${at('score', 'piano')} .rv-badge`, 1);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a receipt carried to another film's page says whose change it was and steps nothing there; back on its film it steps its own",
+    () =>
+      Effect.gen(function* () {
+        const choir = {
+          file: 'sound.ts',
+          target: 'score play choir',
+          change: changeOf('score play choir'),
+        };
+        // A second film whose own history has a change for its Undo.
+        const tin: ReadonlyArray<FakeRoute> = [
+          route('GET', /^\/api\/films$/, () => json({ films: ['toy', 'tin'] })),
+          route('GET', /^\/api\/films\/tin\/choices$/, () =>
+            json({ ...(choices(freshToy()) as Record<string, Json>), film: 'tin' }),
+          ),
+          route('GET', /^\/api\/films\/tin\/check$/, () => json({ findings: [], undo: choir })),
+          route('GET', /^\/api\/films\/tin\/steps$/, () => json({ undo: choir })),
+          route('POST', /^\/api\/films\/tin\/undo$/, () =>
+            json({ ...choir, target: `undo ${choir.target}`, findings: [] }),
+          ),
+        ];
+        const { page, asked } = yield* openReview([...tin, ...fakeFilm()], { href: FILM });
+        const undone = () => asked.filter((a) => a.method === 'POST' && a.path.endsWith('/undo'));
+        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        yield* page.goto(pageHref.choices('tin'));
+        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        // Tin's own Undo is available, and names tin's change; the receipt is toy's.
+        yield* menuOffers(page, 'undo', 'review.undo', true);
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* receiptSays(page, 'that was a change to toy: open toy to undo it');
+        yield* textIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 'Undo');
+        expect(undone()).toEqual([]);
+        // On its own film again, it says what it did, and its Undo steps that change.
+        yield* page.goto(FILM);
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        yield* menuOffers(page, 'undo', 'review.undo', true);
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* receiptSays(page, 'Undid score play piano in sound.ts');
+        expect(undone().map((a) => [a.path, a.body])).toEqual([
+          ['/api/films/toy/undo', Option.some({ change: changeOf('score play piano') })],
+        ]);
       }).pipe(Effect.scoped),
     SLOW,
   );

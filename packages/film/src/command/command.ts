@@ -6,7 +6,9 @@
 // `Context` (VS Code's `when` and Blender's `poll`, as a plain predicate: a
 // command not available is not shown in menus, and is not run by its key),
 // and a `run` that answers with a `Receipt`: what it did, and the command
-// that undoes it, for the toast. A page's registry lives as long as the
+// that undoes it, for the toast, bound to the change it made when it made
+// one (`Bound`: that command then acts on that change or says why not,
+// `fits`). A page's registry lives as long as the
 // page; a component registers its commands for as long as it is mounted
 // (`register` answers the unregister). A later registration of an id
 // replaces the earlier one until it is unregistered. Framework-free, outside
@@ -33,10 +35,25 @@ export type Receipt = Data.TaggedEnum<{
      * it, or for a refusal the way past it (Accept anyway).
      */
     readonly undo: Option.Option<CommandId>;
+    /**
+     * The one change its button acts on (`Bound`), when it names one: its
+     * command then acts on that change or says why not (`Command.fits`),
+     * never on whatever is newest, nor on another film's.
+     */
+    readonly bound: Option.Option<Bound>;
     readonly tone: Tone;
   };
 }>;
 export const Receipt = Data.taggedEnum<Receipt>();
+
+/**
+ * The change a receipt's button is about: its film, and the change by the id
+ * the lab's history knows it by (`HistoryStep.change`).
+ */
+export interface Bound {
+  readonly film: string;
+  readonly change: string;
+}
 
 /**
  * A receipt's tone: done, refused (in the refusal's words), or busy (a
@@ -47,17 +64,20 @@ type Tone = 'done' | 'refused' | 'busy';
 /** A receipt that says nothing. */
 export const quiet: Receipt = Receipt.Quiet();
 
-/** A receipt that says what was done, with the command that undoes it. */
-export const said = (text: string, undo: Option.Option<CommandId> = Option.none()): Receipt =>
-  Receipt.Said({ said: text, undo, tone: 'done' });
+/** A receipt that says what was done, with the command that undoes it, bound to the change it made. */
+export const said = (
+  text: string,
+  undo: Option.Option<CommandId> = Option.none(),
+  bound: Option.Option<Bound> = Option.none(),
+): Receipt => Receipt.Said({ said: text, undo, bound, tone: 'done' });
 
 /** A receipt that says why nothing was done, with the command that goes past it, if any. */
 export const refused = (text: string, past: Option.Option<CommandId> = Option.none()): Receipt =>
-  Receipt.Said({ said: text, undo: past, tone: 'refused' });
+  Receipt.Said({ said: text, undo: past, bound: Option.none(), tone: 'refused' });
 
 /** A receipt that says what is on its way (`undoing…`): its slot's next receipt replaces it. */
 export const busy = (text: string): Receipt =>
-  Receipt.Said({ said: text, undo: Option.none(), tone: 'busy' });
+  Receipt.Said({ said: text, undo: Option.none(), bound: Option.none(), tone: 'busy' });
 
 /** What moved, from before to after: `cue slam start 0.42 → 0.38 s`. */
 export const moved = (what: string, before: string, after: string, unit = ''): string =>
@@ -68,6 +88,8 @@ export interface Invocation {
   /** `coarse` with the keymap's coarse modifier (Shift: ×10), `fine` with its fine one. */
   readonly step: 'normal' | 'coarse' | 'fine';
   readonly via: 'key' | 'menu' | 'palette' | 'button';
+  /** The change a receipt's button asked it to act on (`Receipt.Said.bound`); absent from a key, a menu, ⌘K. */
+  readonly bound?: Bound;
 }
 
 /** A command asked for by a button: the normal step. */
@@ -103,8 +125,22 @@ export interface Command {
   readonly typed?: true;
   /** Whether it is available in `ctx`: shown in menus, run by its keys. */
   readonly when: (ctx: Context) => boolean;
+  /**
+   * Why it cannot act on the one change `bound` names now (another film's,
+   * or another change stands before it), or none when it can: then `run`
+   * hears it as `how.bound`. A command without one acts on no single change,
+   * so a receipt bound to one never runs it.
+   */
+  readonly fits?: (bound: Bound, ctx: Context) => Option.Option<string>;
   readonly run: (ctx: Context, how: Invocation) => Effect.Effect<Receipt>;
 }
+
+/** Why `command` cannot act on the change `bound` names in `ctx` (`Command.fits`); none when it can. */
+export const unfit = (command: Command, bound: Bound, ctx: Context): Option.Option<string> =>
+  Option.match(Option.fromUndefinedOr(command.fits), {
+    onNone: () => Option.some(`${command.label} acts on no single change`),
+    onSome: (fits) => fits(bound, ctx),
+  });
 
 /** A command's label in `ctx`. */
 export const labelOf = (command: Command, ctx: Context): string =>

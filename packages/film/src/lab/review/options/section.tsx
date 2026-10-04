@@ -25,6 +25,7 @@ import {
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine } from '../../../core/schema.ts';
+import { stepWhyNot } from '../../api.ts';
 import { useReview } from '../context.tsx';
 import { pressed, sizeText, videoSource } from '../format.ts';
 import { ProxyPending, Transport } from '../section.tsx';
@@ -153,11 +154,13 @@ const Mix = (props: { readonly src: string }) => {
  * Undo and Redo of the film's source as the page's commands (UR-35): ⌘Z and
  * ⇧⌘Z, ⌘K, the page's context menu and a receipt's Undo, each naming the
  * change it would step, available while the film's stack has one that way
- * and the last step has answered.
+ * and the last step has answered. A receipt's names the change it acts on:
+ * stepped only when it is this film's and the one the stack would step
+ * (`stepWhyNot`), else said why not, never another change.
  */
 const StepCommands = () => {
   const { meta } = useReview();
-  const { steps } = useFilm();
+  const { film, steps } = useFilm();
   const stepping = useAct();
   const step = (which: 'undo' | 'redo') =>
     Option.flatMap(steps(), (s) => Option.fromUndefinedOr(s[which]));
@@ -166,7 +169,7 @@ const StepCommands = () => {
     which: 'undo' | 'redo',
     label: string,
     key: string,
-    act: ChoiceAct,
+    act: (change: Option.Option<string>) => ChoiceAct,
   ): Command => ({
     id,
     label,
@@ -177,16 +180,17 @@ const StepCommands = () => {
     about: ['Page'],
     touch: `the receipt's ${label}, or long-press the page`,
     when: () => Option.isSome(step(which)) && !stepping.waiting(),
-    run: () =>
+    fits: (bound) => stepWhyNot(which, film, steps())(bound),
+    run: (_, how) =>
       Effect.sync(() => {
-        void stepping.write(act);
+        void stepping.write(act(Option.map(Option.fromUndefinedOr(how.bound), (b) => b.change)));
         return quiet;
       }),
   });
   onCleanup(
     meta.hub.commands.register(
-      command(REVIEW_UNDO, 'undo', 'Undo', 'mod+z', ChoiceAct.Undo()),
-      command(REVIEW_REDO, 'redo', 'Redo', 'mod+shift+z', ChoiceAct.Redo()),
+      command(REVIEW_UNDO, 'undo', 'Undo', 'mod+z', (change) => ChoiceAct.Undo({ change })),
+      command(REVIEW_REDO, 'redo', 'Redo', 'mod+shift+z', (change) => ChoiceAct.Redo({ change })),
     ),
   );
   return <></>;
