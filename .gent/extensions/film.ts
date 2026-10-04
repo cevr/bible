@@ -49,8 +49,17 @@ import {
 /** The longest any film CLI run may take: `check --draw` draws every scene in-process. */
 const CLI_TIMEOUT = Duration.minutes(5);
 
-/** A tool result's text budget: gent asks for under 8,000 characters. */
-const RESULT_CHARS = 7_000;
+/**
+ * The most characters a tool's result, or a failure's result, encodes to as
+ * JSON (escapes included). gent cuts a result over 8,000 and hands the model
+ * a `context.read` locator, a tool the painter does not hold; so every result
+ * fits under this budget, and one that stops early says how to read on with
+ * the film tools.
+ */
+const RESULT_BUDGET = 7_500;
+
+/** The most characters of a path a result or a failure repeats. */
+const PATH_CHARS = 300;
 
 /** The most stills one look takes: each is an image the model reads, and a request keeps 20. */
 const LOOK_MAX_PLACES = 8;
@@ -66,6 +75,24 @@ const FINDING_CHARS = 400;
 
 /** How many journal entries a condensed window carries. */
 const SUMMARY_JOURNAL_LAST = 12;
+
+/** The length `value` encodes to under `schema`, as the JSON text the model is sent. */
+const encodedLength = <T, E>(schema: Schema.Codec<T, E>) => {
+  const encode = Schema.encodeSync(Schema.fromJsonString(schema));
+  return (value: T): number => encode(value).length;
+};
+
+/** The largest size in `[0, high]` that `fits`, which holds for every size below one it holds for. */
+const largestFitting = (high: number, fits: (size: number) => boolean): number => {
+  let low = 0;
+  let top = high;
+  while (low < top) {
+    const mid = Math.ceil((low + top) / 2);
+    if (fits(mid)) low = mid;
+    else top = mid - 1;
+  }
+  return low;
+};
 
 // ---------------------------------------------------------------------------
 // Failures: each a tool's typed failure, its words what the model reads.
@@ -226,7 +253,7 @@ const boundedLines = (lines: ReadonlyArray<string>): ReadonlyArray<string> => {
   let chars = 0;
   for (const line of lines) {
     const clipped = clip(line, FINDING_CHARS * 2);
-    if (chars + clipped.length > RESULT_CHARS) {
+    if (chars + clipped.length > RESULT_BUDGET) {
       kept.push(`… ${lines.length - kept.length} more lines`);
       return kept;
     }
@@ -652,24 +679,101 @@ const ReadParams = Schema.Struct({
   ),
   from: Schema.optionalKey(
     Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
-      description: 'The first line to read (1)',
+      description: 'The line to start at (1)',
+    }),
+  ),
+  column: Schema.optionalKey(
+    Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
+      description: "The character of that line to start at (1): a previous answer's next.column",
     }),
   ),
 });
 
+/** Where a read starts, or goes on: a line, and a character in it (both from 1). */
+const ReadCursor = Schema.Struct({ from: Schema.Int, column: Schema.Int });
+
 const ReadOutput = Schema.Struct({
   path: Schema.String,
-  /** The first and last line shown, and the file's line count. */
+  /** Where `text` starts: its line and the character in that line. */
   from: Schema.Int,
+  column: Schema.Int,
+  /** The line `text` ends in, and the file's line count. */
   to: Schema.Int,
   total: Schema.Int,
+  /** The file's text from `from`/`column`, exactly: never cut inside, only where it stops. */
   text: Schema.String,
+  /** Present when the file goes on: the `from` and `column` that read the rest. */
+  next: Schema.optionalKey(ReadCursor),
 });
+type ReadOutput = typeof ReadOutput.Type;
+const readLength = encodedLength(ReadOutput);
+
+/** A cursor no file reaches: a read's size is measured with one, so the real one always fits. */
+const FAR = 999_999_999;
+
+/** A high surrogate: the first half of a character the window must not split. */
+const isHighSurrogate = (code: number) => code >= 0xd8_00 && code <= 0xdb_ff;
+
+/**
+ * The window of `text` a read starting at line `from`, character `column`
+ * returns: as much as encodes within the result budget, ending at a line's
+ * end when one falls in its second half, and `next` where the rest starts.
+ * The cursor moves over exactly the characters returned, so a line longer
+ * than one window comes back whole across reads.
+ */
+export const readWindow = (
+  shown: string,
+  text: string,
+  cursor: { readonly from?: number; readonly column?: number },
+): ReadOutput => {
+  const lines = text.split('\n');
+  const from = Math.min(cursor.from ?? 1, lines.length);
+  const lineStart = lines.slice(0, from - 1).reduce((sum, line) => sum + line.length + 1, 0);
+  const column = Math.min(cursor.column ?? 1, (lines[from - 1] ?? '').length + 1);
+  const rest = text.slice(lineStart + column - 1);
+  const sized = (size: number): ReadOutput => ({
+    path: shown,
+    from,
+    column,
+    to: FAR,
+    total: lines.length,
+    text: rest.slice(0, size),
+    next: { from: FAR, column: FAR },
+  });
+  const fits = (size: number) => readLength(sized(size)) <= RESULT_BUDGET;
+  let size = rest.length;
+  if (!fits(size)) {
+    size = largestFitting(Math.min(rest.length, RESULT_BUDGET), fits);
+    const lineEnd = rest.lastIndexOf('\n', size - 1) + 1;
+    if (lineEnd >= size / 2) size = lineEnd;
+    else if (isHighSurrogate(rest.charCodeAt(size - 1))) size -= 1;
+  }
+  const window = rest.slice(0, size);
+  const breaks = window.split('\n').length - 1;
+  const trailing = Number(window.endsWith('\n'));
+  const base: ReadOutput = {
+    path: shown,
+    from,
+    column,
+    to: from + breaks - trailing,
+    total: lines.length,
+    text: window,
+  };
+  if (size === rest.length) return base;
+  const nextColumn = Option.match(
+    Option.liftPredicate(breaks, (count) => count > 0),
+    {
+      onNone: () => column + size,
+      onSome: () => window.length - window.lastIndexOf('\n'),
+    },
+  );
+  return { ...base, next: { from: from + breaks, column: nextColumn } };
+};
 
 export const FilmRead = tool({
   id: 'film.read',
   description:
-    "Read a file of the film's folder (apps/animations/src/films/<film>/), or of the film skill's rules (within: skill), as it stands. Long files come a window at a time: read on from `to + 1`",
+    "Read a file of the film's folder (apps/animations/src/films/<film>/), or of the film skill's rules (within: skill), as it stands. A long file comes a window at a time: when the answer has `next`, read on with its `from` and `column`",
   readonly: true,
   params: ReadParams,
   output: ReadOutput,
@@ -686,22 +790,7 @@ export const FilmRead = tool({
           FilmFileFailed.make({ path: guarded.shown, reason: error.message }),
         ),
       );
-    const lines = text.split('\n');
-    const from = Math.min(params.from ?? 1, Math.max(lines.length, 1));
-    const shown: Array<string> = [];
-    let chars = 0;
-    for (const line of lines.slice(from - 1)) {
-      if (shown.length > 0 && chars + line.length + 1 > RESULT_CHARS) break;
-      shown.push(line);
-      chars += line.length + 1;
-    }
-    return {
-      path: guarded.shown,
-      from,
-      to: from + shown.length - 1,
-      total: lines.length,
-      text: clip(shown.join('\n'), RESULT_CHARS),
-    };
+    return readWindow(clip(guarded.shown, PATH_CHARS), text, params);
   }),
 });
 

@@ -367,7 +367,8 @@ describe('the film folder guard', () => {
         expect(read).toEqual({
           path: 'scenes/roof.ts',
           from: 2,
-          to: 3,
+          column: 1,
+          to: 2,
           total: 3,
           text: 'let b = 1;\n',
         });
@@ -398,6 +399,43 @@ describe('the film folder guard', () => {
       }),
     ),
   );
+
+  it.live(
+    'a line longer than one read comes back whole across reads: the cursor moves only over what was returned',
+    () =>
+      live(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const { root, ctx } = yield* world();
+          const long = `${'x'.repeat(8_989)}END-OF-LONG`;
+          expect(long).toHaveLength(9_000);
+          yield* fs.writeFileString(`${filmFolder(root)}/long.txt`, `${long}\nNEXT\n`);
+          const pieces = yield* readAll(ctx, 'long.txt');
+          expect(pieces.length).toBeGreaterThan(1);
+          expect(pieces.join('')).toBe(`${long}\nNEXT\n`);
+        }),
+      ),
+  );
+});
+
+/**
+ * Every window of `path` that `film.read` returns, following each answer's
+ * `next` as the painter would, until a read has no `next` (at most 40 reads).
+ */
+const readAll = Effect.fn('test.readAll')(function* (
+  ctx: ReturnType<typeof testToolContext>,
+  path: string,
+) {
+  const pieces: Array<string> = [];
+  let cursor = { from: 1, column: 1 };
+  for (let read = 0; read < 40; read += 1) {
+    const window = yield* runToolWithCtx(FilmRead, { film: 'easel', path, ...cursor }, ctx);
+    pieces.push(window.text);
+    const next = Option.fromUndefinedOr(window.next);
+    if (Option.isNone(next)) return pieces;
+    cursor = next.value;
+  }
+  return pieces;
 });
 
 // ── the CLI tools ───────────────────────────────────────────────────────────
