@@ -17,6 +17,7 @@ import { BunServices } from '@effect/platform-bun';
 import { Config, Effect, FileSystem, Option, Path, Schema, Scope, Semaphore } from 'effect';
 import { openView, thrownBy } from '../../tools/chrome.ts';
 import { BrowserFailed } from '../../tools/errors.ts';
+import { type Ask, lease } from './lease.ts';
 import { type Logged, type Request, type Response, type Tab, type View, makeTab } from './tab.ts';
 import { tone } from './tone.ts';
 
@@ -211,28 +212,39 @@ const makeSlot = Effect.gen(function* () {
 }).pipe(Effect.provide(BunServices.layer));
 
 /**
- * A case's hold on a view, `width` × `height`, until the scope closes. Then
- * the view waits on the idle page with no history behind it and goes back
- * to the pool; a view that cannot is closed instead.
+ * A case's hold on a view, sized and pointed as `ask` says, until the scope
+ * closes (`lease`). Then the view has the mouse's pointer again, waits on the
+ * idle page with no history behind it, and goes back to the pool; a view
+ * that cannot is closed instead.
  */
-const lend = (lease: Lease, width: number, height: number) =>
-  Effect.acquireRelease(
-    Effect.gen(function* () {
-      const slot = yield* Option.match(Option.fromUndefinedOr(idle.pop()), {
-        onNone: () => makeSlot,
-        onSome: Effect.succeed,
-      });
-      slot.held.lease = Option.some(lease);
-      yield* Effect.promise(() => slot.lent.resize(width, height));
-      return slot;
-    }),
-    (slot) =>
-      Effect.gen(function* () {
-        slot.held.lease = Option.none();
-        yield* Effect.tryPromise(() => slot.lent.navigate(IDLE));
-        yield* Effect.tryPromise(() => slot.lent.cdp('Page.resetNavigationHistory'));
+const lend = (held: Lease, ask: Ask) =>
+  lease<Slot>(
+    {
+      take: Effect.map(
+        Option.match(Option.fromUndefinedOr(idle.pop()), {
+          onNone: () => makeSlot,
+          onSome: Effect.succeed,
+        }),
+        (slot) => {
+          slot.held.lease = Option.some(held);
+          return slot;
+        },
+      ),
+      blank: (slot) =>
+        Effect.gen(function* () {
+          slot.held.lease = Option.none();
+          yield* Effect.tryPromise(() => slot.lent.navigate(IDLE));
+          yield* Effect.tryPromise(() => slot.lent.cdp('Page.resetNavigationHistory'));
+        }),
+      giveBack: (slot) => {
         idle.push(slot);
-      }).pipe(Effect.catch(() => Effect.sync(() => slot.view.close()))),
+      },
+      discard: (slot) => {
+        slot.held.lease = Option.none();
+        slot.view.close();
+      },
+    },
+    ask,
   );
 
 /**
@@ -306,8 +318,7 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
           if (type.startsWith('warn') && text.startsWith('[STRICT_')) errors.push(text);
         },
       },
-      options.width,
-      options.height,
+      { width: options.width, height: options.height, coarse: options.coarse === true },
     );
     // Told through the view the case holds: Chrome drops what a protocol
     // session told it when the session closes, and a pooled view's never
@@ -320,16 +331,6 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
           setting: 'granted',
         }),
       );
-    // A phone's pointer for this case only: put back to the mouse before the
-    // view goes back to the pool (this finalizer runs before the lend's).
-    if (options.coarse === true) {
-      const touch = (enabled: boolean) =>
-        Effect.tryPromise(() =>
-          slot.lent.cdp('Emulation.setTouchEmulationEnabled', { enabled, maxTouchPoints: 5 }),
-        );
-      yield* Effect.orDie(touch(true));
-      yield* Effect.addFinalizer(() => Effect.ignore(touch(false)));
-    }
     const assets = new Map(options.assets.map((a) => [a.url, a.response]));
     return yield* makeTab(slot.lent, {
       origin,
