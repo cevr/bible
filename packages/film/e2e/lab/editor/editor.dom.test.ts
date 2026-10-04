@@ -216,7 +216,7 @@ describe('the cue strip', () => {
         top = newer;
         yield* page.reload;
         yield* statusSays(page, 'cue rise offset 0 → ');
-        yield* page.waitFor('.lab-edit button[data-act="undo"]:not([disabled])');
+        yield* page.waitFor('.sh-header [data-act="undo"]:not([disabled])');
         yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
         yield* statusSays(page, 'cue fall offset came after it: undo that first');
         yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
@@ -225,7 +225,7 @@ describe('the cue strip', () => {
         top = was;
         yield* page.reload;
         yield* statusSays(page, 'cue rise offset 0 → ');
-        yield* page.waitFor('.lab-edit button[data-act="undo"]:not([disabled])');
+        yield* page.waitFor('.sh-header [data-act="undo"]:not([disabled])');
         yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
         yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
         expect(posted(asked).map((a) => a.body)).toEqual([
@@ -788,7 +788,7 @@ describe('the inspector', () => {
       );
       yield* page.waitFor('.lab-finding');
       yield* textIs(page, '.lab-finding', 'late rise ends after the scene');
-      yield* page.click('.lab-edit button[data-act="undo"]:not([disabled])');
+      yield* page.click('.sh-header [data-act="undo"]:not([disabled])');
       yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
       // An Undo is undone by Redo.
       yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Redo');

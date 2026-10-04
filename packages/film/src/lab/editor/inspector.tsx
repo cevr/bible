@@ -1,4 +1,5 @@
-// The editor's section of the panel: Undo and Redo, the selected cue's
+// The editor's section of the panel, and its Undo and Redo for the
+// studio's header (`History`, every mode's): the selected cue's
 // fields (the inspector's, `lab/command/inspector.tsx`, stepped as the cue's
 // schema says) and eases, the selection's hint, and the film's check
 // findings. Every write goes to the editor's machine as a commit, shown
@@ -16,6 +17,7 @@ import { DEFAULT_EASE, timecode } from '../../core/time.ts';
 import { untilText } from '../../core/timeline.ts';
 import { type LabSelection, cueOf } from '../../command/selection.ts';
 import { Field, Hint } from '../command/inspector.tsx';
+import { HeaderTool } from '../page-shell.tsx';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY, findingsIn } from './format.ts';
@@ -144,8 +146,11 @@ const CueInspector = (props: { readonly selection: LabSelection }) => {
   );
 };
 
-/** Undo and Redo: the server's bounded stack of the lab's writes. */
-const History = () => {
+/**
+ * Undo and Redo: the server's bounded stack of the lab's writes, in the
+ * studio's header (the shell's `tools`), so every mode keeps them (§4).
+ */
+export const History = () => {
   const { state, actions } = useEditor();
   const stepOf = (verb: 'undo' | 'redo') =>
     Option.flatMap(state.report(), (r) => Option.fromUndefinedOr(r[verb]));
@@ -156,24 +161,20 @@ const History = () => {
     });
   return (
     <>
-      <button
-        type="button"
-        data-act="undo"
+      <HeaderTool
+        act="undo"
+        label="Undo"
         title={title('undo', '⌘Z')}
         disabled={Option.isNone(stepOf('undo'))}
         onClick={() => actions.step('undo')}
-      >
-        Undo
-      </button>
-      <button
-        type="button"
-        data-act="redo"
+      />
+      <HeaderTool
+        act="redo"
+        label="Redo"
         title={title('redo', '⇧⌘Z')}
         disabled={Option.isNone(stepOf('redo'))}
         onClick={() => actions.step('redo')}
-      >
-        Redo
-      </button>
+      />
     </>
   );
 };
@@ -252,7 +253,6 @@ export const Section = (props: ParentProps) => {
       <header>
         <strong>Edit</strong>
         <span class="lab-edit-file">{file()}</span>
-        <History />
       </header>
       <div class="lab-edit-body lab-inspector">
         <Show when={Option.getOrUndefined(cueSelected())} keyed>

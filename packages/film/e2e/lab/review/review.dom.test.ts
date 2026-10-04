@@ -163,6 +163,15 @@ describe('the review page', () => {
         yield* page.fill('.lab-command-query', 'refresh');
         yield* waitFor(page, menuEntry('review.refresh'));
         yield* closeCommandMenu(page);
+        // The view menu ⋯ follows Go to…, and Refresh is one of its rows.
+        yield* evaluates(
+          page,
+          `document.querySelector('.sh-header [data-act="search"]').nextElementSibling?.dataset.act`,
+          'view-menu',
+        );
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* waitFor(page, '[data-role="view-menu"] [data-command="review.refresh"]');
+        yield* page.press('Escape');
         // `/` opens it too, and its Go to goes there.
         yield* page.press('/');
         yield* page.waitFor('.lab-command-query');

@@ -17,7 +17,7 @@ import { type Hub, makeHub } from '../command/hub.ts';
 import { COMMAND_CSS } from './command/style.ts';
 import { registerFace } from '../player/face.ts';
 import { labHref, labOpensAt, labPlaceOf } from './place.ts';
-import { PageShell, useShellTime } from './page-shell.tsx';
+import { PageShell, ShellTools, useShellTime } from './page-shell.tsx';
 import { SHELL_CSS } from './page-shell-style.ts';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
@@ -56,6 +56,9 @@ const LabPage = (props: {
     >
       <LabTime />
       <Editor.Provider>
+        <ShellTools>
+          <Editor.History />
+        </ShellTools>
         <Motion.Provider>
           <Compare.Provider>
             <Notes.Provider>

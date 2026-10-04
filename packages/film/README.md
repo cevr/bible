@@ -1080,6 +1080,11 @@ writes the catalogue, not the source.
   schema says; on the review a sheet beside the page with its Info, its
   approval and its comments.
 - **Command menu**: the searchable list of every available command (⌘K).
+- **View menu**: the header's `⋯`, after Go to… on every page: the page's
+  `View` commands available now (captions, quality, findings, a filter,
+  Refresh), then Keyboard shortcuts (`lab/command/view-menu.tsx`). The Lab's
+  Undo and Redo sit in the header before the timecode in every mode
+  (`ShellTools`).
 - **Context menu**: the commands for what is under the pointer, opened by a
   right-click or a touch long-press.
 - **Sheet**: a panel over the page that holds a surface (the keys sheet,

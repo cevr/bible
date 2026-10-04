@@ -193,6 +193,43 @@ describe('the lab shell', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live(
+    'Undo and Redo stay in the header in every mode, at 390 and 1440, and the view menu ⋯ follows Go to…',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab();
+        // Whether the header shows `act`: in it, and laid out with a box.
+        const inHeader = (act: string) =>
+          `(() => { const e = document.querySelector('.sh-header [data-act="${act}"]'); return e !== null && e.getBoundingClientRect().width > 0; })()`;
+        const tools = `[${inHeader('undo')}, ${inHeader('redo')}]`;
+        for (const size of [
+          { width: 390, height: 844 },
+          { width: 1440, height: 900 },
+        ]) {
+          yield* resize(page, size);
+          for (const mode of ['edit', 'note', 'motion', 'compare', 'record'] as const) {
+            yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
+            yield* attributeIs(page, '.lab-panel', 'data-mode', mode);
+            yield* evaluates(page, tools, [true, true]);
+          }
+          // The view menu sits right after Go to…, the header's last control.
+          yield* evaluates(
+            page,
+            `document.querySelector('.sh-header [data-act="search"]').nextElementSibling?.dataset.act`,
+            'view-menu',
+          );
+          yield* evaluates(page, inHeader('view-menu'), true);
+          yield* evaluates(page, NO_SIDEWAYS, true);
+        }
+        // Its rows are the page's view commands, and the keys sheet: Keyboard shortcuts opens it.
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* textHas(page, '[data-role="view-menu"]', 'Captions on or off');
+        yield* page.click('[data-role="view-menu"] [data-command="app.keys"]');
+        yield* page.waitFor('[data-role="keys-sheet"]');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('pins its layers over the film canvas, and keeps them there as the window resizes', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab();

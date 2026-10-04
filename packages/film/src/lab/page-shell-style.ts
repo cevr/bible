@@ -48,6 +48,12 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
   border: 0; border-radius: var(--r-2); background: none; color: var(--text-2); cursor: pointer; }
 .sh-goto > span, .sh-goto > kbd { display: none; }
 .sh-goto:hover { background: var(--surface-3); color: var(--text-1); }
+.sh-tools { display: contents; }
+.sh-tool { display: inline-grid; place-items: center; width: var(--hit); height: var(--hit); flex: none; padding: 0;
+  border: 0; border-radius: var(--r-2); background: none; color: var(--text-2); cursor: pointer; }
+.sh-tool:hover:not(:disabled), .sh-tool[data-popup-open] { background: var(--surface-3); color: var(--text-1); }
+.sh-tool:disabled { color: var(--text-3); cursor: default; }
+.sh-tool .sh-dots { fill: currentColor; stroke: none; }
 .sh kbd { font-family: var(--font); font-size: var(--fs-1); line-height: var(--lh-1); padding: 0 var(--s-1);
   border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--text-2); }
 .sh-header :focus-visible { outline: none; box-shadow: var(--focus-ring); }

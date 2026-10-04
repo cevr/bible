@@ -24,7 +24,7 @@ const ACT = { true: 'press', false: 'rebind' } as const;
 const LABEL = { true: 'Press a key…', false: 'Change' } as const;
 
 /** The command that opens and closes the sheet. */
-const OPEN = 'app.keys';
+export const KEYS_SHEET_COMMAND = 'app.keys';
 
 export const KeysSheet = (props: { readonly hub: Hub }) => {
   const hub = props.hub;
@@ -43,7 +43,7 @@ export const KeysSheet = (props: { readonly hub: Hub }) => {
 
   onCleanup(
     hub.commands.register({
-      id: OPEN,
+      id: KEYS_SHEET_COMMAND,
       label: 'Keyboard shortcuts',
       group: 'Help',
       keys: ['?'],

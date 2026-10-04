@@ -1,6 +1,7 @@
 // The studio's one shell (design language §4), on every page from Films to
 // the Lab: the header (Films, the film switcher, the page bar, the
-// drill-down crumb, the page's own tools, the timecode, Go to… ⌘K) over
+// drill-down crumb, the page's own tools, the timecode, Go to… ⌘K, the
+// view menu ⋯) over
 // the page. The page bar is Films · Scenes · Lab · Choices · Project ·
 // Play, each a link printed by its place (`partHref`) and each on its key
 // (⇧1-⇧6, `partCommands`); on a phone its five film tabs are a tab bar along
@@ -15,7 +16,7 @@
 
 import { Menu } from '@bible/ui/menu';
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
-import { For, type JSX, Show } from '@solidjs/web';
+import { For, type JSX, Portal, Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
 import {
   type Accessor,
@@ -23,6 +24,7 @@ import {
   createEffect,
   createSignal,
   onCleanup,
+  type ParentProps,
   useContext,
 } from 'solid-js';
 import { PARTS, PART_TITLE, type Part, hasPart, partHref } from '../core/api.ts';
@@ -36,6 +38,7 @@ import { BY_BUTTON } from '../command/command.ts';
 import { filmCommands, partCommands } from '../command/go.ts';
 import { chordLabel } from '../command/keymap.ts';
 import { GO_TO_COMMAND } from './command/command-menu.tsx';
+import { ViewMenu } from './command/view-menu.tsx';
 
 /** The film last opened in this browser: where the tabs lead from Films. */
 const lastFilm = keptText(ViewerStore, 'film-studio.film');
@@ -66,8 +69,22 @@ export const useShellTime = (at: Accessor<number>, fps: number = FILM_FPS): void
   });
 };
 
+/** The header's slot for a page's own tools, before the timecode. */
+const ToolsContext = createContext<Option.Option<HTMLElement>>(Option.none());
+
+/**
+ * Put `children` in the header, before the timecode, for as long as this is
+ * mounted: a page's own tools (the Lab's Undo and Redo), wherever in the
+ * page they are made, so they read the context they are made in.
+ */
+export const ShellTools = (props: ParentProps) => (
+  <Show when={Option.getOrUndefined(useContext(ToolsContext))}>
+    {(slot) => <Portal mount={slot()}>{props.children}</Portal>}
+  </Show>
+);
+
 /** A line icon of the shell's, 20 px in the tab bar and 16 px in the header. */
-const Icon = (props: { readonly of: Part | 'search' | 'chevron' }) => (
+const Icon = (props: { readonly of: Part | 'search' | 'chevron' | 'undo' | 'redo' }) => (
   <svg class="sh-icon" viewBox="0 0 24 24" aria-hidden="true">
     {
       {
@@ -107,9 +124,36 @@ const Icon = (props: { readonly of: Part | 'search' | 'chevron' }) => (
           </>
         ),
         chevron: <path d="M7 10l5 5 5-5" />,
+        undo: <path d="M9 6l-5 5 5 5M4 11h10a6 6 0 0 1 6 6v1" />,
+        redo: <path d="M15 6l5 5-5 5M20 11H10a6 6 0 0 0-6 6v1" />,
       }[props.of]
     }
   </svg>
+);
+
+/**
+ * One of a page's own tools in the header (`ShellTools`, the Lab's Undo and
+ * Redo): a square icon button, its name for a reader and its keys in its
+ * title; a step with nothing to take is disabled.
+ */
+export const HeaderTool = (props: {
+  readonly act: 'undo' | 'redo';
+  readonly label: string;
+  readonly title: string;
+  readonly disabled: boolean;
+  readonly onClick: () => void;
+}) => (
+  <button
+    type="button"
+    class="sh-tool"
+    data-act={props.act}
+    aria-label={props.label}
+    title={props.title}
+    disabled={props.disabled}
+    onClick={() => props.onClick()}
+  >
+    <Icon of={props.act} />
+  </button>
 );
 
 /** A timecode, `HH:MM:SS:FF`: separators dim, the frames field secondary. */
@@ -146,8 +190,6 @@ interface PageShellProps {
   readonly follow?: (href: string) => boolean;
   /** The page's depth below its part, after the page bar (`cold · versions`). */
   readonly crumb?: Accessor<Option.Option<string>>;
-  /** The page's own tools in the header, before the timecode (the Lab's Undo and Redo). */
-  readonly tools?: JSX.Element;
   readonly children: JSX.Element;
 }
 
@@ -178,6 +220,9 @@ export const PageShell = (props: PageShellProps) => {
   /** The film the tabs lead into: the page's, else the one last opened. */
   const film = () => Option.orElse(props.film(), kept);
   const [time, setTime] = createSignal(Option.none<ShellTime>(), { ownedWrite: true });
+  // The page's own tools land here (`ShellTools`), laid out as the header's own controls.
+  const tools = document.createElement('span');
+  tools.className = 'sh-tools';
   const go = (href: string) => {
     if (props.follow?.(href) === true) return;
     Effect.runForkWith(props.host)(PageLoad.use((load) => load.open(href)));
@@ -224,104 +269,107 @@ export const PageShell = (props: PageShellProps) => {
   );
   return (
     <ShellContext value={Option.some(setTime)}>
-      <div class="sh" data-part={props.part()} data-film={pressed(Option.isSome(film()))}>
-        <header class="sh-header">
-          <a
-            class="sh-films"
-            data-page="films"
-            href={partHref('films', '')}
-            data-active={pressed(props.part() === 'films')}
-            aria-current={CURRENT[pressed(props.part() === 'films')]}
-            aria-label="Films"
-            title={`Films (${keyOf('films')})`}
-            onClick={onLink(partHref('films', ''))}
-          >
-            <Icon of="films" />
-            <span>Films</span>
-          </a>
-          <span class="sh-vsep" />
-          <Menu.Root>
-            <Menu.Trigger class="sh-switcher" data-act="switch-film" title="Switch film">
-              <span>{Option.getOrElse(film(), () => 'Choose a film')}</span>
-              <Icon of="chevron" />
-            </Menu.Trigger>
-            <Menu.Portal>
-              <Menu.Positioner class="lab-context-positioner" sideOffset={4} align="start">
-                <Menu.Popup class="lab-context-menu" data-role="film-menu">
-                  <For each={props.films()}>
-                    {(name) => (
-                      <Menu.Item
-                        class="lab-context-item"
-                        data-film={name}
-                        label={name}
-                        onClick={() => {
-                          go(partHref(filmPart(props.part()), name));
-                        }}
-                      >
-                        <span>{name}</span>
-                        <Show when={Option.contains(film(), name)}>
-                          <kbd>✓</kbd>
-                        </Show>
-                      </Menu.Item>
-                    )}
-                  </For>
-                  <Menu.Separator class="lab-context-separator" />
-                  <Menu.Item
-                    class="lab-context-item"
-                    label="Copy link"
-                    onClick={() => props.hub.invokeId('link.copy', BY_BUTTON)}
-                  >
-                    <span>Copy link</span>
-                  </Menu.Item>
-                </Menu.Popup>
-              </Menu.Positioner>
-            </Menu.Portal>
-          </Menu.Root>
-          <nav class="sh-pagebar" aria-label="Pages">
-            <For each={PARTS.filter((p) => p !== 'films')}>{(part) => tab(part)}</For>
-          </nav>
-          <Show
-            when={Option.getOrUndefined(
-              Option.flatMap(Option.fromUndefinedOr(props.crumb), (crumb) => crumb()),
-            )}
-          >
-            {(text) => (
-              <span class="sh-crumb" data-role="crumb">
-                <i>›</i>
-                {text()}
-              </span>
-            )}
-          </Show>
-          <span class="sh-spacer" />
-          {props.tools}
-          <Show when={Option.getOrUndefined(time())}>
-            {(shown) => (
-              <button
-                type="button"
-                class="sh-tc"
-                data-act="timecode"
-                title="Copy the link to here"
-                onClick={() => props.hub.invokeId('link.copy', BY_BUTTON)}
-              >
-                <Timecode seconds={shown().t} fps={shown().fps} />
-              </button>
-            )}
-          </Show>
-          <button
-            type="button"
-            class="sh-goto"
-            data-act="search"
-            aria-label="Go to…"
-            title="Go to a film, a part or a thing by name, or run a command (/ or ⌘K)"
-            onClick={() => props.hub.invokeId(GO_TO_COMMAND, BY_BUTTON)}
-          >
-            <Icon of="search" />
-            <span>Go to…</span>
-            <kbd>{chordLabel('mod+k', props.hub.mac)}</kbd>
-          </button>
-        </header>
-        <div class="sh-body">{props.children}</div>
-      </div>
+      <ToolsContext value={Option.some(tools)}>
+        <div class="sh" data-part={props.part()} data-film={pressed(Option.isSome(film()))}>
+          <header class="sh-header">
+            <a
+              class="sh-films"
+              data-page="films"
+              href={partHref('films', '')}
+              data-active={pressed(props.part() === 'films')}
+              aria-current={CURRENT[pressed(props.part() === 'films')]}
+              aria-label="Films"
+              title={`Films (${keyOf('films')})`}
+              onClick={onLink(partHref('films', ''))}
+            >
+              <Icon of="films" />
+              <span>Films</span>
+            </a>
+            <span class="sh-vsep" />
+            <Menu.Root>
+              <Menu.Trigger class="sh-switcher" data-act="switch-film" title="Switch film">
+                <span>{Option.getOrElse(film(), () => 'Choose a film')}</span>
+                <Icon of="chevron" />
+              </Menu.Trigger>
+              <Menu.Portal>
+                <Menu.Positioner class="lab-context-positioner" sideOffset={4} align="start">
+                  <Menu.Popup class="lab-context-menu" data-role="film-menu">
+                    <For each={props.films()}>
+                      {(name) => (
+                        <Menu.Item
+                          class="lab-context-item"
+                          data-film={name}
+                          label={name}
+                          onClick={() => {
+                            go(partHref(filmPart(props.part()), name));
+                          }}
+                        >
+                          <span>{name}</span>
+                          <Show when={Option.contains(film(), name)}>
+                            <kbd>✓</kbd>
+                          </Show>
+                        </Menu.Item>
+                      )}
+                    </For>
+                    <Menu.Separator class="lab-context-separator" />
+                    <Menu.Item
+                      class="lab-context-item"
+                      label="Copy link"
+                      onClick={() => props.hub.invokeId('link.copy', BY_BUTTON)}
+                    >
+                      <span>Copy link</span>
+                    </Menu.Item>
+                  </Menu.Popup>
+                </Menu.Positioner>
+              </Menu.Portal>
+            </Menu.Root>
+            <nav class="sh-pagebar" aria-label="Pages">
+              <For each={PARTS.filter((p) => p !== 'films')}>{(part) => tab(part)}</For>
+            </nav>
+            <Show
+              when={Option.getOrUndefined(
+                Option.flatMap(Option.fromUndefinedOr(props.crumb), (crumb) => crumb()),
+              )}
+            >
+              {(text) => (
+                <span class="sh-crumb" data-role="crumb">
+                  <i>›</i>
+                  {text()}
+                </span>
+              )}
+            </Show>
+            <span class="sh-spacer" />
+            {tools}
+            <Show when={Option.getOrUndefined(time())}>
+              {(shown) => (
+                <button
+                  type="button"
+                  class="sh-tc"
+                  data-act="timecode"
+                  title="Copy the link to here"
+                  onClick={() => props.hub.invokeId('link.copy', BY_BUTTON)}
+                >
+                  <Timecode seconds={shown().t} fps={shown().fps} />
+                </button>
+              )}
+            </Show>
+            <button
+              type="button"
+              class="sh-goto"
+              data-act="search"
+              aria-label="Go to…"
+              title="Go to a film, a part or a thing by name, or run a command (/ or ⌘K)"
+              onClick={() => props.hub.invokeId(GO_TO_COMMAND, BY_BUTTON)}
+            >
+              <Icon of="search" />
+              <span>Go to…</span>
+              <kbd>{chordLabel('mod+k', props.hub.mac)}</kbd>
+            </button>
+            <ViewMenu hub={props.hub} />
+          </header>
+          <div class="sh-body">{props.children}</div>
+        </div>
+      </ToolsContext>
     </ShellContext>
   );
 };

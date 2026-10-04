@@ -369,7 +369,7 @@ const pageCommands = (review: ReviewContextValue): ReadonlyArray<Command> => [
   {
     id: 'review.refresh',
     label: 'Refresh',
-    group: 'Review',
+    group: 'View',
     about: ['Page'],
     touch: 'long-press the page, then Refresh',
     when: () => true,
