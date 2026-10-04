@@ -65,14 +65,14 @@ describe('receiptOf', () => {
       Option.some(
         said(
           'undid cue rise offset',
-          Option.some('edit.redo'),
-          Option.some({ film: 'f', change: 'k1' }),
+          Option.some({ command: 'edit.redo', bound: { film: 'f', change: 'k1' } }),
         ),
       ),
     );
-    // A write that changed nothing made no change to bind: its Undo steps whatever is newest.
+    // A write that changed nothing (a value already so) made no change: it offers no Undo,
+    // which would step whatever is newest, an earlier write's change.
     expect(receiptOf(EditState.Written({ ...undid, change: Option.none() }), 'f')).toEqual(
-      Option.some(said('undid cue rise offset', Option.some('edit.redo'))),
+      Option.some(said('undid cue rise offset')),
     );
   });
 

@@ -52,9 +52,9 @@ export const writeStatus = <A,>(slot: string): WriteStatus<A> => {
               onSuccess: (a) =>
                 said(
                   words.done(a),
-                  words.undo,
-                  // Bound to the change it made, so its Undo steps that one, on its film.
-                  Option.flatMap(Option.fromUndefinedOr(words.bound), (bound) => bound(a)),
+                  // Bound to the change it made, so its Undo steps that one, on its film; none
+                  // when it made none.
+                  Option.flatMap(Option.fromUndefinedOr(words.undo), (undo) => undo(a)),
                 ),
               onFailure: () =>
                 refused(

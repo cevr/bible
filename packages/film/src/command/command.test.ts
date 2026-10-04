@@ -127,12 +127,15 @@ describe('receipts', () => {
     );
   });
 
-  test('carry the command that undoes them, or none; a refusal never undoes', () => {
-    expect(said('picked', Option.some('edit.undo'))).toMatchObject({
+  test('carry the command that undoes them, bound to its change, or none; a refusal never undoes', () => {
+    const bound = { film: 'f', change: 'k1' };
+    expect(said('picked', Option.some({ command: 'edit.undo', bound }))).toMatchObject({
       _tag: 'Said',
       tone: 'done',
       undo: Option.some('edit.undo'),
+      bound: Option.some(bound),
     });
+    expect(said('picked')).toMatchObject({ undo: Option.none(), bound: Option.none() });
     expect(refused('no such cue')).toMatchObject({ tone: 'refused', undo: Option.none() });
   });
 });

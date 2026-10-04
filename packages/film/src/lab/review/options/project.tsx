@@ -578,7 +578,6 @@ const ProjectReady = (props: { readonly film: string }) => {
       (s) => ({
         doing: 'saying…',
         done: () => sayText(s.say, partText(s.address)),
-        undo: Option.none(),
       }),
     );
     return {

@@ -623,7 +623,6 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
         (asked) => ({
           doing: 'saying…',
           done: () => sayText(asked.say, versionText(asked.variant)),
-          undo: Option.none(),
         }),
       );
       return {

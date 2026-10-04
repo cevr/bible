@@ -10,6 +10,7 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { busy, refused, said } from '../../../command/command.ts';
 import { FilmChoices, type SoundCheck } from '../../../core/choice.ts';
 import { type LabFailure, LabUnreachable } from '../../api.ts';
+import type { Words } from '../format.ts';
 import { ChoiceAct, type Wrote } from './api.ts';
 import { REVIEW_REDO, REVIEW_UNDO, actWords, partText, soundReceipt } from './receipt.ts';
 
@@ -67,6 +68,10 @@ const wrote = (target: string, left: Option.Option<FilmChoices>): Wrote => ({
   choices: left,
 });
 
+/** The Undo `words` offer for the answer `w`. */
+const undoOf = (words: Words<Wrote>, w: Wrote) =>
+  Option.flatMap(Option.fromUndefinedOr(words.undo), (undo) => undo(w));
+
 describe('actWords', () => {
   test('a pick says what the point plays, before → after, undone by Undo', () => {
     const words = actWords(
@@ -77,7 +82,9 @@ describe('actWords', () => {
     expect(words.done(wrote('score play piano', Option.some(choices('piano', -12))))).toBe(
       'Picked piano · Score: strings → piano',
     );
-    expect(words.undo).toEqual(Option.some(REVIEW_UNDO));
+    expect(undoOf(words, wrote('score play piano', Option.none()))).toEqual(
+      Option.some({ command: REVIEW_UNDO, bound: { film: 'toy', change: 'k1' } }),
+    );
   });
 
   test('a knob says its level before → after, with its unit', () => {
@@ -104,7 +111,7 @@ describe('actWords', () => {
       choices('strings', -12),
     );
     expect(words.done(wrote('approve score piano', Option.none()))).toBe('Approved piano · Score');
-    expect(words.undo).toEqual(Option.none());
+    expect(undoOf(words, wrote('approve score piano', Option.none()))).toEqual(Option.none());
   });
 
   test('an Undo says what it walked, undone by Redo; a Redo by Undo', () => {
@@ -113,27 +120,36 @@ describe('actWords', () => {
     expect(undo.done(wrote('undo score play piano', Option.none()))).toBe(
       'Undid score play piano in sound.ts',
     );
-    expect(undo.undo).toEqual(Option.some(REVIEW_REDO));
-    expect(actWords(ChoiceAct.Redo({ change: Option.none() }), before).undo).toEqual(
-      Option.some(REVIEW_UNDO),
-    );
+    const step = wrote('undo score play piano', Option.none());
+    expect(Option.map(undoOf(undo, step), (u) => u.command)).toEqual(Option.some(REVIEW_REDO));
+    expect(
+      Option.map(
+        undoOf(actWords(ChoiceAct.Redo({ change: Option.none() }), before), step),
+        (u) => u.command,
+      ),
+    ).toEqual(Option.some(REVIEW_UNDO));
   });
 
-  test("a source write's Undo is bound to the change it made, on its film; a say's to none", () => {
+  test("a source write's Undo is bound to the change it made, on its film; a say has none, nor a write that made no change", () => {
     const before = choices('strings', -12);
-    const boundOf = (act: ChoiceAct) =>
-      Option.flatMap(Option.fromUndefinedOr(actWords(act, before).bound), (b) =>
-        b(wrote('score play piano', Option.none())),
-      );
+    const boundOf = (act: ChoiceAct, answer = wrote('score play piano', Option.none())) =>
+      Option.map(undoOf(actWords(act, before), answer), (u) => u.bound);
     const made = Option.some({ film: before.film, change: 'k1' });
-    expect(boundOf(ChoiceAct.Verb({ point: 'score', variant: 'piano', verb: 'pick' }))).toEqual(
-      made,
-    );
-    expect(boundOf(ChoiceAct.Knob({ point: 'level:const:RAIN', value: -6 }))).toEqual(made);
+    const pick = ChoiceAct.Verb({ point: 'score', variant: 'piano', verb: 'pick' });
+    const knob = ChoiceAct.Knob({ point: 'level:const:RAIN', value: -6 });
+    expect(boundOf(pick)).toEqual(made);
+    expect(boundOf(knob)).toEqual(made);
     expect(boundOf(ChoiceAct.Undo({ change: Option.none() }))).toEqual(made);
     expect(
       boundOf(ChoiceAct.Say({ point: 'score', variant: 'piano', say: { _tag: 'Approve' } })),
     ).toEqual(Option.none());
+    // Already so: the lab wrote nothing, and an Undo would step an earlier write's change.
+    const alreadySo: Wrote = {
+      ...wrote('level:const:RAIN -12 (already so)', Option.none()),
+      change: Option.none(),
+    };
+    expect(boundOf(knob, alreadySo)).toEqual(Option.none());
+    expect(boundOf(pick, alreadySo)).toEqual(Option.none());
   });
 });
 

@@ -280,7 +280,13 @@ describe('the cue strip', () => {
               Deferred.doneUnsafe(posted, Effect.void);
               return later(
                 answer,
-                json({ scene: 'one', file: 'scenes/one.ts', target: undo.target, findings: [] }),
+                json({
+                  scene: 'one',
+                  file: 'scenes/one.ts',
+                  target: undo.target,
+                  change: undo.change,
+                  findings: [],
+                }),
               );
             }),
             route('GET', /^\/check$/, () => json({ findings: [], undo })),
@@ -668,6 +674,7 @@ describe('the inspector', () => {
               scene: 'one',
               file: 'scenes/one.ts',
               target: 'undo cue rise offset',
+              change: 'k1',
               findings: [],
             }),
           ),

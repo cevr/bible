@@ -64,12 +64,25 @@ type Tone = 'done' | 'refused' | 'busy';
 /** A receipt that says nothing. */
 export const quiet: Receipt = Receipt.Quiet();
 
-/** A receipt that says what was done, with the command that undoes it, bound to the change it made. */
-export const said = (
-  text: string,
-  undo: Option.Option<CommandId> = Option.none(),
-  bound: Option.Option<Bound> = Option.none(),
-): Receipt => Receipt.Said({ said: text, undo, bound, tone: 'done' });
+/**
+ * A receipt's Undo: the command, and the change it acts on. There is no Undo
+ * without the change: a step that names none steps whatever is newest, which
+ * for a write that changed nothing (a value already so) is an earlier
+ * write's change, or another film's.
+ */
+export interface Undoing {
+  readonly command: CommandId;
+  readonly bound: Bound;
+}
+
+/** A receipt that says what was done, with its Undo when it made a change (`Undoing`). */
+export const said = (text: string, undo: Option.Option<Undoing> = Option.none()): Receipt =>
+  Receipt.Said({
+    said: text,
+    undo: Option.map(undo, (u) => u.command),
+    bound: Option.map(undo, (u) => u.bound),
+    tone: 'done',
+  });
 
 /** A receipt that says why nothing was done, with the command that goes past it, if any. */
 export const refused = (text: string, past: Option.Option<CommandId> = Option.none()): Receipt =>

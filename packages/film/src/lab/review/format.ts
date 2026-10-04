@@ -8,7 +8,7 @@ import { type ReviewFile, type ReviewFolder, type ReviewVideo } from '../../core
 import { STALE_BY } from '../../core/choice.ts';
 import { type Say, reviewFileUrl, reviewPhoneUrl } from '../../core/api.ts';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import type { Bound, CommandId } from '../../command/command.ts';
+import type { CommandId, Undoing } from '../../command/command.ts';
 import type { LabFailure } from '../api.ts';
 
 /** What a failed read or write says: its words, without its tag. */
@@ -20,15 +20,18 @@ export const failedText = (result: AsyncResult.AsyncResult<unknown, LabFailure>)
 
 /**
  * A write's receipt, in its control's words as it is sent (`writeStatus`):
- * what it says while it is out, what it did once it answered `A`, and the
- * command that undoes it, bound to the change the answer made.
+ * what it says while it is out, what it did once it answered `A`, and its
+ * Undo, bound to the change the answer made.
  */
 export interface Words<A> {
   readonly doing: string;
   readonly done: (answer: A) => string;
-  readonly undo: Option.Option<CommandId>;
-  /** The change `undo` acts on, from the answer (`Receipt.Said.bound`); none: whatever is newest. */
-  readonly bound?: (answer: A) => Option.Option<Bound>;
+  /**
+   * Its Undo from the answer: the command, bound to the change the answer
+   * made; none when it made none (a value already so), or for a write that
+   * nothing undoes (a say). Absent: nothing undoes it.
+   */
+  readonly undo?: (answer: A) => Option.Option<Undoing>;
   /**
    * The command a refusal's receipt offers past it (a voice heard as
    * something else: Accept anyway), asked once with the refusal it said;

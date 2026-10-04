@@ -620,6 +620,53 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'a write that changed nothing (a level already so) offers no Undo, and the change before it is still the one to undo',
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        // The level is already -24: the lab writes nothing and answers no change.
+        const alreadySo = route('POST', /^\/api\/films\/toy\/choices\/knob$/, () =>
+          json({
+            file: 'sound.ts',
+            target: 'level:const:PAPER -24 (already so)',
+            choices: choices(toy),
+            findings: [],
+          }),
+        );
+        const { page, asked, errors } = yield* openReview([alreadySo, ...fakeFilm(toy)], {
+          href: FILM,
+        });
+        const knob = '[data-knob="level:const:PAPER"]';
+        yield* waitFor(page, `${knob} input`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        yield* textIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 'Undo');
+        yield* page.evaluate(`(() => {
+            const input = document.querySelector('${knob} input');
+            input.value = '-24';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          })()`);
+        // Its receipt offers no Undo: one would step the pick, which this write did not make.
+        // Both read at once, so the toast expiring cannot pass it.
+        yield* until(
+          page,
+          `(() => {
+            const receipt = document.querySelector('${RECEIPT}');
+            return (receipt?.textContent ?? '').includes('level:const:PAPER: -24 → -24 dB') &&
+              receipt.querySelectorAll('[data-act="receipt-undo"]').length === 0;
+          })()`,
+        );
+        yield* openCommandMenu(page, 'undo');
+        yield* textHas(page, menuEntry('review.undo'), 'Undo score play piano');
+        yield* closeCommandMenu(page);
+        expect(asked.some((a) => a.path === '/api/films/toy/undo')).toBe(false);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a receipt carried to another film's page says whose change it was and steps nothing there; back on its film it steps its own",
     () =>
       Effect.gen(function* () {

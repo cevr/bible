@@ -70,7 +70,7 @@ const DOING = { undo: 'undoing', redo: 'redoing' } as const;
 /**
  * The editor's receipt in `state`, on `film`: a write on its way (busy),
  * what a write that landed did with the step that undoes it (Redo for an
- * Undo), bound to the change it made, why it was refused, or why a drag
+ * Undo), bound to the change it made (none when it made none), why it was refused, or why a drag
  * cannot be shown; none at rest or mid-drag, where the last receipt stands.
  */
 export const receiptOf = (state: EditState, film: string): Option.Option<Receipt> =>
@@ -92,8 +92,10 @@ export const receiptOf = (state: EditState, film: string): Option.Option<Receipt
       Option.some(
         said(
           s.note,
-          Option.some(`edit.${s.undo}`),
-          Option.map(s.change, (change) => ({ film, change })),
+          Option.map(s.change, (change) => ({
+            command: `edit.${s.undo}`,
+            bound: { film, change },
+          })),
         ),
       ),
     ),

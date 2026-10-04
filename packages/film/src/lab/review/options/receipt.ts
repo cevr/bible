@@ -2,7 +2,7 @@
 // words of the choices shown as it was sent: a pick, an unkeep or a reject
 // says what the point plays, before → after (`Score: piano → ensemble`), a
 // knob its level before → after (the level that landed, as the write left it),
-// a say what was said of which variant, and an Undo or a Redo what it walked. A source write is undone by Undo, an
+// a say what was said of which variant, and an Undo or a Redo what it walked. A source write that made a change is undone by Undo, an
 // Undo by Redo, a Redo by Undo, each bound to the change it made on its film
 // (`Bound`); a say, which writes the catalogue and no source, by none. The
 // sound check after a pick says it is hearing the mix, then what it found.
@@ -94,7 +94,9 @@ export const actWords = (act: ChoiceAct, before: FilmChoices): Words<Wrote> => {
       Option.map(pointIn(before, point), (p) => p.title),
       () => point,
     );
-  const bound = (w: Wrote) => Option.map(w.change, (change) => ({ film: before.film, change }));
+  /** Undone by `command`, bound to the change `w` made; none when it made none. */
+  const undoneBy = (command: CommandId) => (w: Wrote) =>
+    Option.map(w.change, (change) => ({ command, bound: { film: before.film, change } }));
   return Match.value(act).pipe(
     Match.tagsExhaustive({
       Verb: (v): Words<Wrote> => ({
@@ -110,8 +112,7 @@ export const actWords = (act: ChoiceAct, before: FilmChoices): Words<Wrote> => {
           );
           return `${VERB_PAST[v.verb]} ${labelIn(before, v.point, v.variant)} · ${titleOf(v.point)}: ${was} → ${now}`;
         },
-        undo: Option.some(REVIEW_UNDO),
-        bound,
+        undo: undoneBy(REVIEW_UNDO),
       }),
       Knob: (k): Words<Wrote> => {
         const knob = Option.flatMap(pointIn(before, k.point), (p) => p.knob);
@@ -139,26 +140,22 @@ export const actWords = (act: ChoiceAct, before: FilmChoices): Words<Wrote> => {
             );
             return [`${titleOf(k.point)}: ${was} → ${now}`, unit].filter((s) => s !== '').join(' ');
           },
-          undo: Option.some(REVIEW_UNDO),
-          bound,
+          undo: undoneBy(REVIEW_UNDO),
         };
       },
       Say: (s): Words<Wrote> => ({
         doing: 'saying…',
         done: () => sayText(s.say, `${labelIn(before, s.point, s.variant)} · ${titleOf(s.point)}`),
-        undo: Option.none(),
       }),
       Undo: (): Words<Wrote> => ({
         doing: 'undoing…',
         done: (w) => `Undid ${walked(w)}`,
-        undo: Option.some(REVIEW_REDO),
-        bound,
+        undo: undoneBy(REVIEW_REDO),
       }),
       Redo: (): Words<Wrote> => ({
         doing: 'redoing…',
         done: (w) => `Redid ${walked(w)}`,
-        undo: Option.some(REVIEW_UNDO),
-        bound,
+        undo: undoneBy(REVIEW_UNDO),
       }),
     }),
   );
