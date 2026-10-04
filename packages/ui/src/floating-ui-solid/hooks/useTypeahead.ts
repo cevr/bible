@@ -34,7 +34,7 @@ export function useTypeahead(
   const timeout = useTimeout();
   let typed = '';
   const selectedIndex = () => props.selectedIndex ?? null;
-  let prevIndex: number | null = untrack(selectedIndex) ?? props.activeIndex ?? -1;
+  let prevIndex: number | null = untrack(() => selectedIndex() ?? props.activeIndex ?? -1);
   let matchIndex: number | null = null;
 
   const onKeyDown = (event: KeyboardEvent) => {

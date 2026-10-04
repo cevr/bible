@@ -257,6 +257,24 @@ describe('ContextMenu.Root: outside press after a long press', () => {
   });
 });
 
+describe('ContextMenu.Root: reactivity', () => {
+  it('mounts and opens without reading reactive props outside a tracking scope', async () => {
+    const page = await h.open('area');
+    const warnings: Array<string> = [];
+    page.on('console', (message) => {
+      if (message.text().includes('STRICT_READ_UNTRACKED')) {
+        warnings.push(message.text());
+      }
+    });
+    await page.reload();
+    await page.locator('#root[data-mounted]').waitFor({ state: 'attached' });
+    const { x, y } = await areaCentre(page);
+    await page.mouse.click(x, y, { button: 'right' });
+    await see(page.locator('#popup')).toBeVisible();
+    expect(warnings).toEqual([]);
+  });
+});
+
 describe('ContextMenu.Root: disabled', () => {
   it('a press pending when the root becomes disabled does not open', async () => {
     const page = await h.open('area', { touch: true });

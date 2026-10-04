@@ -539,8 +539,9 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         portalContext?.afterOutsideRef.current,
         ...getResolvedInsideElements(),
         rootAncestorComboboxDomReference,
-        resolveRef(props.previousFocusableElement),
-        resolveRef(props.nextFocusableElement),
+        // Read as the effect runs, not tracked: the guards follow the popup's open state.
+        untrack(() => resolveRef(props.previousFocusableElement)),
+        untrack(() => resolveRef(props.nextFocusableElement)),
         untrapped ? domReference : null,
       ].filter((x): x is Element => x != null);
       const ariaHiddenCleanup = markOthers(insideElements, {
