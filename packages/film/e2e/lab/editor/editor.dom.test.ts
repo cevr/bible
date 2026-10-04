@@ -145,6 +145,44 @@ describe('the cue strip', () => {
   );
 
   it.live(
+    "a receipt's Undo pressed before the reloaded page knows the step says so, and keeps its Undo",
+    () =>
+      Effect.gen(function* () {
+        const undo = { scene: 'one', file: 'scenes/one.ts', target: 'cue rise offset' };
+        // The reloaded page's check, which names the step to undo, answers only once let.
+        const known = Deferred.makeUnsafe<void>();
+        let checks = 0;
+        const { page, asked } = yield* openLab(
+          [
+            route('GET', /^\/check$/, () => {
+              checks += 1;
+              if (checks === 1) return json({ findings: [] });
+              return later(known, json({ findings: [], undo }));
+            }),
+            route('POST', /^\/undo$/, () =>
+              json({ ...undo, target: `undo ${undo.target}`, findings: [] }),
+            ),
+          ],
+          { href: labAt(1) },
+        );
+        yield* editable(page);
+        yield* dragBar(page, 'rise', 0.5, 60);
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        yield* page.reload;
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
+        yield* statusSays(page, 'Undo is not available now');
+        yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
+        expect(posted(asked).map((a) => a.path)).toEqual(['/scenes/one/cues/rise']);
+        yield* Deferred.done(known, Exit.void);
+        yield* page.waitFor('[data-act="undo"]:not([disabled])');
+        yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
+        yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
+        expect(posted(asked).map((a) => a.path)).toEqual(['/scenes/one/cues/rise', '/undo']);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     'a rebuild while a write is out waits for its answer, so its receipt and its Undo outlive the reload',
     () =>
       Effect.gen(function* () {
@@ -390,6 +428,8 @@ describe('the inspector', () => {
       yield* postedReach(asked, 1);
       // The field shows the nudged offset before the write is answered.
       yield* valueIs(page, offset, '0.033');
+      // A write out takes no other: the next nudge goes once this one is answered.
+      yield* statusSays(page, 'cue rise offset 0 → 0.033');
       yield* page.press('Shift+Alt+ArrowRight');
       yield* postedReach(asked, 2);
       expect(posted(asked)).toEqual([

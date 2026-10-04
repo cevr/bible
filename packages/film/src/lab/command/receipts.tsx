@@ -10,7 +10,8 @@
 // the page goes (a write reloads the lab) are kept in the tab's store and
 // shown again on the page that loads in its place (`scope`: the same page,
 // the same film), so a write's receipt and its Undo outlive the reload it
-// causes.
+// causes. Its Undo pressed while its command is not available (the page that
+// loaded still reading the step it undoes) says so and stays offered.
 
 import { Toast } from '@bible/ui/toast';
 import { For } from '@solidjs/web';
@@ -72,6 +73,17 @@ export const Receipts = (props: {
           'data-act': 'receipt-undo',
           'data-command': id,
           onClick: () => {
+            // Not available now (a reloaded page still learning the step it undoes):
+            // said so, and still offered, never a press that silently does nothing.
+            const ready = Option.exists(props.hub.commands.byId(id), (c) =>
+              c.when(props.hub.context()),
+            );
+            if (!ready)
+              return show({
+                ...kept,
+                said: `${undoLabel(id)} is not available now`,
+                tone: 'refused',
+              });
             manager.close(kept.slot);
             props.hub.invokeId(id, BY_BUTTON);
           },
