@@ -14,8 +14,10 @@
 // to name it, source `recorded`. The take it replaces is put away into
 // `narration/attempts/<beat>/` (`putAwayTake`: a recorded take's attempt is
 // already there; a staging take, or a take with no attempt on this machine, is
-// copied there first), so a take is never deleted and git drops it from
-// `narration/` as before. An earlier attempt can be kept again at any time, and
+// copied there first, and kept beside an attempt of its name that holds other
+// bytes), so a take is never lost and git drops it from `narration/` as
+// before. Placing a take and naming it hold the timings' lock, and a take is
+// put away only while the timings, read under it, do not name it. An earlier attempt can be kept again at any time, and
 // an Undo of a keep brings the replaced take back (`named`). Staging never
 // replaces a recorded take (see narrator.ts).
 
@@ -27,6 +29,7 @@ import {
   FileSystem,
   Layer,
   Option,
+  Order,
   Path,
   Schema,
 } from 'effect';
@@ -54,7 +57,15 @@ import {
 } from '../core/refusals.ts';
 import type { FilmPaths } from './film-repo.ts';
 import { Media } from './media.ts';
-import { MAX_WORD_ERROR, type VoicedFilm, contentHash, putAwayTake, takeFile } from './narrator.ts';
+import {
+  MAX_WORD_ERROR,
+  type VoicedFilm,
+  contentHash,
+  isKeptAside,
+  putAwayTake,
+  putAwayUnnamed,
+  takeFile,
+} from './narrator.ts';
 
 /** The files a recording may be: what the owner's recorder saves. */
 const RECORDING_EXTENSIONS = ['.wav', '.m4a', '.mp3', '.aif', '.aiff', '.flac'] as const;
@@ -334,27 +345,58 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
       /** What putting a take away needs (`putAwayTake`). */
       const io = yield* Effect.context<FileSystem.FileSystem | Path.Path | ContentStore>();
 
-      /** Every take `before` named that `after` does not, put away into its beat's attempts. */
+      /**
+       * Every take `before` named that `after` does not, put away into its
+       * beat's attempts unless the timings name it again by then (a lab's
+       * Undo in another process: `putAwayUnnamed`).
+       */
       const putAwayReplaced = (film: FilmPaths, before: Timings, after: Timings) =>
         Effect.forEach(
           onlyIn(takesOf(before), takesOf(after)),
-          ([beat, file]) => putAwayTake(film, beat, file).pipe(Effect.provideContext(io)),
+          ([beat, file]) => putAwayUnnamed(film, beat, file).pipe(Effect.provideContext(io)),
           { discard: true },
         );
 
-      /** The take `file` of `beat` in `narration/`, copied back from its attempts when it is not. */
+      /**
+       * Where take `file` of `beat` was put away: the newest copy kept aside
+       * under its name (`keptAside`: it held other bytes than the attempt of
+       * that name, and was the take the timings named), else the attempt of
+       * that name; none when neither is there.
+       */
+      const putAwayAs = (film: FilmPaths, beat: string, file: string) =>
+        Effect.gen(function* () {
+          const dir = attemptsDir(film, beat);
+          if (!(yield* fs.exists(dir))) return Option.none<string>();
+          const aside = yield* Effect.forEach(
+            (yield* fs.readDirectory(dir)).filter((name) => isKeptAside(file, name)),
+            (name) =>
+              Effect.map(fs.stat(path.join(dir, name)), (info) => ({
+                name,
+                at: Option.match(info.mtime, { onNone: () => 0, onSome: (at) => at.getTime() }),
+              })),
+          );
+          const newest = Arr.last(Arr.sortWith(aside, (a) => a.at, Order.Number));
+          if (Option.isSome(newest)) return Option.some(path.join(dir, newest.value.name));
+          const attempt = path.join(dir, file);
+          if (!(yield* fs.exists(attempt))) return Option.none<string>();
+          return Option.some(attempt);
+        });
+
+      /** The take `file` of `beat` in `narration/`, copied back from where it was put away when it is not. */
       const bringTake = (film: FilmPaths, beat: string, file: string) =>
         Effect.gen(function* () {
           const take = path.join(film.narration, file);
           if (yield* fs.exists(take)) return;
-          const kept = path.join(attemptsDir(film, beat), file);
-          if (!(yield* fs.exists(kept)))
+          const kept = yield* putAwayAs(film, beat, file);
+          if (Option.isNone(kept))
             return yield* NamedFileMissing.make({
               file,
               reason: `is a take in neither narration/ nor narration/attempts/${beat}/`,
             });
-          yield* store.writeFile(take, yield* fs.readFile(kept));
-          yield* Effect.log(`takes.brought-back id=${beat} file=${file}`);
+          yield* store.writeFile(take, yield* fs.readFile(kept.value));
+          yield* Effect.log(
+            `takes.brought-back id=${beat} file=${file} from=${path.basename(kept.value)}`,
+          );
         }).pipe(
           Effect.catchTag('PlatformError', (error) =>
             Effect.fail(NamedFileMissing.make({ file, reason: error.message })),
@@ -398,14 +440,17 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
           yield* Effect.logWarning(`takes.mismatch accepted=true ${mismatch.message}`);
         }
         const bytes = yield* fs.readFile(path.join(attemptsDir(film.paths, beat.id), made.file));
-        yield* store.writeFile(path.join(film.paths.narration, made.file), bytes);
-        const before = yield* store.read(film.paths.timings);
-        // The commit: timings.json names the person's take.
-        const after = yield* store.update(
-          film.paths.timings,
-          withRecorded(film, beat.id, made.take),
+        // The commit: the take placed beside the others and timings.json
+        // naming it, under the timings' lock, so no sweep in another process
+        // takes it for a leftover between the two.
+        const [before, after] = yield* store.transact(film.paths.timings, (before) =>
+          Effect.gen(function* () {
+            yield* store.writeFile(path.join(film.paths.narration, made.file), bytes);
+            const after = withRecorded(film, beat.id, made.take)(before);
+            return [[before, after], after] as const;
+          }),
         );
-        // The take it replaced, put away unless another beat still names it.
+        // The take it replaced, put away unless the timings name it again by then.
         yield* putAwayReplaced(film.paths, before, after);
         yield* Effect.log(`takes.kept id=${beat.id} file=${made.file} source=recorded`);
         return {

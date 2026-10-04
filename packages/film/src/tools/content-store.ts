@@ -177,6 +177,17 @@ interface ContentStoreService {
     manifest: Manifest<A>,
     change: (current: A) => Effect.Effect<readonly [B, A], E, R>,
   ) => Effect.Effect<B, E | StoreError, R>;
+  /**
+   * `effect` holding `file`'s lock (the one its `transact` takes), in this
+   * process and across processes, without rewriting `file`: for what changes
+   * the files a manifest names (a take put away, or brought back with the
+   * text that names it) and must not interleave with a change of the
+   * manifest. Not reentrant: `effect` must not take the same lock again.
+   */
+  readonly holding: <A, E, R>(
+    file: string,
+    effect: Effect.Effect<A, E, R>,
+  ) => Effect.Effect<A, E | StoreLocked | PlatformError, R>;
   /** Write a file whole: a reader never sees half of it. */
   readonly writeFile: (file: string, bytes: Uint8Array) => Effect.Effect<void, PlatformError>;
   /** Produce the asset unless its stored hash is current, then record it. `None` when skipped. */
@@ -347,7 +358,15 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         return Option.some(made);
       });
 
-      return ContentStore.of({ read, update, modify, transact, writeFile, ensure });
+      return ContentStore.of({
+        read,
+        update,
+        modify,
+        transact,
+        holding: locked,
+        writeFile,
+        ensure,
+      });
     }),
   );
 }

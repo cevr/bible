@@ -28,7 +28,10 @@
 // mixed from them) carries them (`Follows`): Undo and Redo bring back what
 // the text they land names before it lands, and refuse when one cannot be,
 // then put away what only the text they replaced named (nothing is deleted)
-// and make again what is made from it (the track remixed).
+// and make again what is made from it (the track remixed). The check, the
+// bringing back, the write and the putting away all hold the file's store
+// lock (`land`), so a narrate's sweep in another process, which takes it too,
+// never puts away a take an Undo is naming, and a refused one touches nothing.
 
 import {
   Array as Arr,
@@ -395,11 +398,14 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
 
       /**
        * `c`'s file from `from` to `to` (an undo or a redo), only while it is
-       * `from` (else refused with `changed`), and what follows its text in
-       * step: what `to` names is brought in first, and when one cannot be,
-       * nothing lands; what only `from` named is put away after, and what is
-       * made from the text made again. A swap that fails puts away again what
-       * it brought.
+       * `from` (else refused with `changed`, and nothing is touched), and what
+       * follows its text in step: what `to` names is brought in first, and
+       * when one cannot be, nothing lands; what only `from` named is put away
+       * after. All of it holds the file's store lock, the one every change of
+       * it takes in any process (a narrate's timings, a sweep putting away a
+       * take they do not name), so the text it is checked against is the text
+       * it replaces, and nothing put away is a file a text landed meanwhile
+       * names. What is made from the text is made again after, outside it.
        */
       const land = <E>(
         c: Change,
@@ -409,19 +415,22 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
         refused: (reason: string) => E,
       ) =>
         Effect.gen(function* () {
-          yield* Option.match(c.follows, {
-            onNone: () => Effect.void,
-            onSome: (follows) =>
-              Effect.mapError(follows.bring(from, to), (missing) =>
-                refused(`${shown(c)} names ${missing.message}`),
-              ),
-          });
-          yield* swap(c.film, c.file, from, to, c.target).pipe(
-            Effect.catchTag('SourceChanged', () =>
-              Effect.andThen(putAway(c, to, from), Effect.fail(refused(changed))),
-            ),
+          yield* store.holding(
+            c.file,
+            Effect.gen(function* () {
+              const now = yield* store.read({ file: c.file, codec: Schema.String, empty: '' });
+              if (now !== from) return yield* Effect.fail(refused(changed));
+              yield* Option.match(c.follows, {
+                onNone: () => Effect.void,
+                onSome: (follows) =>
+                  Effect.mapError(follows.bring(from, to), (missing) =>
+                    refused(`${shown(c)} names ${missing.message}`),
+                  ),
+              });
+              yield* store.writeFile(c.file, new TextEncoder().encode(to));
+              yield* putAway(c, from, to);
+            }),
           );
-          yield* putAway(c, from, to);
           yield* remake(c);
         });
 

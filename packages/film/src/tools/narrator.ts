@@ -254,13 +254,41 @@ const beatOfTake = (name: string): string =>
     () => Arr.headNonEmpty(Str.split(name, '.')),
   );
 
+/** Whether two files hold the same bytes. */
+const sameBytes = (a: Uint8Array, b: Uint8Array): boolean =>
+  a.length === b.length && a.every((byte, i) => byte === b[i]);
+
+/** `file`'s extension, its dot with it (`.flac`); empty when it has none. */
+const extensionOf = (file: string): string =>
+  Option.getOrElse(
+    Option.map(Option.fromNullishOr(/\.[^.]+$/.exec(file)), (found) => found[0]),
+    () => '',
+  );
+
+/**
+ * The name a take `file` is put away under beside an attempt of the same name
+ * that holds other bytes: `<file>.<hash of its audio><ext>` (`a.mp3.<sha12>.mp3`).
+ * It names no other take or attempt, and the take it holds is the one the
+ * timings named as `file` (`isKeptAside`).
+ */
+const keptAside = (file: string, bytes: Uint8Array): string =>
+  `${file}.${contentHash(bytes)}${extensionOf(file)}`;
+
+/** Whether `name` is take `file` kept aside (`keptAside`). */
+export const isKeptAside = (file: string, name: string): boolean =>
+  name.startsWith(`${file}.`) &&
+  /^\.[0-9a-f]{12}$/.test(name.slice(file.length, name.length - extensionOf(file).length)) &&
+  name.endsWith(extensionOf(file));
+
 /**
  * A take the timings no longer name, put away: moved out of `narration/`
  * into `narration/attempts/<beat>/` (git-ignored), where every recorded
- * attempt already is. A take is never deleted: when the folder already
- * holds a file of that name (a person's attempt, which the take was copied
- * from; the name is the hash of its audio, so it holds the same bytes), the
- * copy in `narration/` is all that goes; else the take is copied there first.
+ * attempt already is. A take's bytes are never lost: it is copied there
+ * first, unless the folder holds a file of that name with the same bytes
+ * (the person's attempt it was kept from); one of that name with other bytes
+ * (a name from before takes were named by their audio) stays as it is, and
+ * the take is kept beside it (`keptAside`). The caller holds the timings'
+ * lock and has read that they do not name it (`putAwayUnnamed`).
  */
 export const putAwayTake = Effect.fn('putAwayTake')(function* (
   paths: FilmPaths,
@@ -269,13 +297,78 @@ export const putAwayTake = Effect.fn('putAwayTake')(function* (
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
+  const store = yield* ContentStore;
   const take = path.join(paths.narration, file);
   if (!(yield* fs.exists(take))) return;
-  const kept = path.join(paths.narration, 'attempts', beat, file);
-  if (!(yield* fs.exists(kept)))
-    yield* (yield* ContentStore).writeFile(kept, yield* fs.readFile(take));
+  const bytes = yield* fs.readFile(take);
+  const attempts = path.join(paths.narration, 'attempts', beat);
+  const attempt = path.join(attempts, file);
+  if (!(yield* fs.exists(attempt))) yield* store.writeFile(attempt, bytes);
+  else if (!sameBytes(yield* fs.readFile(attempt), bytes)) {
+    const aside = keptAside(file, bytes);
+    if (!(yield* fs.exists(path.join(attempts, aside))))
+      yield* store.writeFile(path.join(attempts, aside), bytes);
+    yield* Effect.logWarning(
+      `takes.put-away.kept-aside id=${beat} file=${file} as=${aside} reason="attempts/${beat}/${file} holds other bytes"`,
+    );
+  }
   yield* fs.remove(take);
   yield* Effect.log(`takes.put-away id=${beat} file=${file}`);
+});
+
+/**
+ * Take `file` of `beat` put away (`putAwayTake`) unless the timings name it:
+ * read under their lock, the one every change of them takes in any process,
+ * so a take another process has just made current (a lab's Undo) is never
+ * put away on a reading from before.
+ */
+export const putAwayUnnamed = Effect.fn('putAwayUnnamed')(function* (
+  paths: FilmPaths,
+  beat: string,
+  file: string,
+) {
+  const store = yield* ContentStore;
+  const unlessNamed = Effect.flatMap(store.read(paths.timings), (timings) => {
+    if (Object.values(timings.scenes).some((t) => t.file === file))
+      return Effect.log(`takes.put-away.skipped id=${beat} file=${file} reason=named`);
+    return putAwayTake(paths, beat, file);
+  });
+  yield* store.holding(paths.timings.file, unlessNamed);
+});
+
+/**
+ * Clear `narration/` of what the timings do not name: every partial write is
+ * removed, and every take file (what a crashed or failed run left, or a take
+ * since replaced) is put away into `attempts/<beat>/` (`putAwayTake`), never
+ * deleted, so a person's take whose attempt is not on this machine is still
+ * kept. All of it holds the timings' lock, which a lab's Undo holds while it
+ * brings a take back and names it, and a keep while it places one, so what
+ * is swept is decided from the timings as they are, in any process.
+ */
+export const sweepNarration = Effect.fn('Narrator.sweep')(function* (paths: FilmPaths) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const store = yield* ContentStore;
+  const dir = paths.narration;
+  if (!(yield* fs.exists(dir))) return;
+  const sweep = Effect.gen(function* () {
+    const timings = yield* store.read(paths.timings);
+    const named = new Set(Object.values(timings.scenes).map((t) => t.file));
+    const names = yield* fs.readDirectory(dir);
+    const partials = names.filter((name) => name.endsWith('.partial'));
+    const stray = names.filter(
+      (name) => TAKE_EXTENSIONS.some((ext) => name.endsWith(ext)) && !named.has(name),
+    );
+    yield* Effect.forEach(partials, (name) => fs.remove(path.join(dir, name)), {
+      discard: true,
+    });
+    yield* Effect.forEach(stray, (name) => putAwayTake(paths, beatOfTake(name), name), {
+      discard: true,
+    });
+    if (partials.length + stray.length > 0)
+      yield* Effect.log(`narrate.sweep removed=${partials.join(',')} put-away=${stray.join(',')}`);
+  });
+  yield* store.holding(paths.timings.file, sweep);
 });
 
 /** Put one take into the timings, dropping any recorded under another voice. */
@@ -316,12 +409,11 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
   static readonly layer = Layer.effect(
     Narrator,
     Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const store = yield* ContentStore;
       const elevenLabs = yield* ElevenLabs;
       const media = yield* Media;
-      /** What putting a take away needs (`putAwayTake`). */
+      /** What sweeping the narration needs (`sweepNarration`). */
       const io = yield* Effect.context<FileSystem.FileSystem | Path.Path | ContentStore>();
 
       /**
@@ -434,36 +526,8 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
         );
       });
 
-      /**
-       * Clear `narration/` of what the timings do not name: every partial
-       * write is removed, and every take file (what a crashed or failed run
-       * left, or a take since replaced) is put away into `attempts/<beat>/`
-       * (`putAwayTake`), never deleted, so a person's take whose attempt is
-       * not on this machine is still kept.
-       */
-      const sweep = Effect.fn('Narrator.sweep')(function* (film: LoadedFilm) {
-        const dir = film.paths.narration;
-        if (!(yield* fs.exists(dir))) return;
-        const timings = yield* store.read(film.paths.timings);
-        const named = new Set(Object.values(timings.scenes).map((t) => t.file));
-        const names = yield* fs.readDirectory(dir);
-        const partials = names.filter((name) => name.endsWith('.partial'));
-        const stray = names.filter(
-          (name) => TAKE_EXTENSIONS.some((ext) => name.endsWith(ext)) && !named.has(name),
-        );
-        yield* Effect.forEach(partials, (name) => fs.remove(path.join(dir, name)), {
-          discard: true,
-        });
-        yield* Effect.forEach(
-          stray,
-          (name) => putAwayTake(film.paths, beatOfTake(name), name).pipe(Effect.provideContext(io)),
-          { discard: true },
-        );
-        if (partials.length + stray.length > 0)
-          yield* Effect.log(
-            `narrate.sweep removed=${partials.join(',')} put-away=${stray.join(',')}`,
-          );
-      });
+      const sweep = (film: LoadedFilm) =>
+        sweepNarration(film.paths).pipe(Effect.provideContext(io));
 
       const record = Effect.fn('Narrator.record')(function* (
         film: LoadedFilm,

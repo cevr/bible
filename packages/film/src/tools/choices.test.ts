@@ -132,8 +132,11 @@ describe('Choices: a voice picked', () => {
     const { files, layer } = setup();
     return Effect.gen(function* () {
       const first = yield* imported('/rec/a1.wav');
+      const firstBytes = files.get(`${NARRATION}/${first}`);
       const second = yield* imported('/rec/a2.wav');
+      const secondBytes = files.get(`${NARRATION}/${second}`);
       expect(second).not.toBe(first);
+      expect(secondBytes).not.toEqual(firstBytes);
       expect((yield* timings).scenes['a']?.file).toBe(second);
       const before = files.get(TIMINGS);
       // The owner goes back to the first reading in the Choices view.
@@ -146,7 +149,7 @@ describe('Choices: a voice picked', () => {
       // Undo: the timings name the second reading again, and its file is there to play.
       yield* writer.undo(F);
       expect((yield* timings).scenes['a']?.file).toBe(second);
-      expect(files.has(`${NARRATION}/${second}`)).toBe(true);
+      expect(files.get(`${NARRATION}/${second}`)).toEqual(secondBytes);
       expect(files.get(TIMINGS)).toEqual(before);
       // narration/ holds just the take the timings name, as git had it; the other stays an attempt.
       expect(takesIn(files)).toEqual([second]);
@@ -155,8 +158,45 @@ describe('Choices: a voice picked', () => {
       yield* writer.redo(F);
       expect((yield* timings).scenes['a']?.file).toBe(first);
       expect(takesIn(files)).toEqual([first]);
+      expect(files.get(`${NARRATION}/${first}`)).toEqual(firstBytes);
     }).pipe(Effect.provide(layer));
   });
+
+  it.effect(
+    'an Undo refused because the timings changed since keeps every take the timings name now',
+    () => {
+      const { files, layer } = setup();
+      return Effect.gen(function* () {
+        const first = yield* imported('/rec/a1.wav');
+        const second = yield* imported('/rec/a2.wav');
+        const secondBytes = files.get(`${NARRATION}/attempts/a/${second}`);
+        const point = pointIdOf({ _tag: 'Voice', beat: 'a' });
+        yield* (yield* Choices).pick(F, { point, variant: first, verb: 'pick' });
+        // Outside the lab, the second reading is made the take again, timed otherwise.
+        const elsewhere: Timings = {
+          ...(yield* timings),
+          scenes: {
+            a: {
+              hash: hashText('Hello world.'),
+              file: second,
+              duration: 3,
+              words: [],
+              source: 'recorded',
+            },
+          },
+        };
+        files.set(TIMINGS, text(yield* Schema.encodeEffect(TimingsJson)(elsewhere)));
+        files.set(`${NARRATION}/${second}`, secondBytes ?? new Uint8Array());
+        files.delete(`${NARRATION}/${first}`);
+        const live = files.get(TIMINGS);
+        const refused = yield* Effect.flip((yield* SourceWriter).undo(F));
+        expect(refused._tag).toBe('UndoUnavailable');
+        // The take the live timings name stays in narration, byte for byte.
+        expect(files.get(TIMINGS)).toEqual(live);
+        expect(files.get(`${NARRATION}/${second}`)).toEqual(secondBytes);
+      }).pipe(Effect.provide(layer));
+    },
+  );
 
   it.effect('an Undo whose take is nowhere is refused, and the timings stay', () => {
     const { files, layer } = setup();

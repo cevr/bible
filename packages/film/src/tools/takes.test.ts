@@ -258,6 +258,31 @@ describe('Takes', () => {
     }).pipe(Effect.provide(layer));
   });
 
+  it.effect(
+    'a replaced take whose name an attempt already holds, with other bytes, is kept beside it, and brought back as its own bytes',
+    () => {
+      const { files, layer } = setup();
+      // An older file under the staging take's name (a name from before takes were named by their audio).
+      files.set(`${NARRATION}/attempts/a/a.mp3`, text('an older take'));
+      const staging = files.get(`${NARRATION}/a.mp3`);
+      const before = Schema.encodeSync(TimingsJson)(staged);
+      return Effect.gen(function* () {
+        yield* importing('/rec/a.wav', { ...defaults, only: Option.some(new Set(['a'])) });
+        expect(files.has(`${NARRATION}/a.mp3`)).toBe(false);
+        // Neither is lost: the attempt is as it was, and the take sits beside it under its own hash.
+        expect(files.get(`${NARRATION}/attempts/a/a.mp3`)).toEqual(text('an older take'));
+        const beside = [...files.keys()].filter((f) =>
+          /\/attempts\/a\/a\.mp3\.[0-9a-f]{12}\.mp3$/.test(f),
+        );
+        expect(beside.map((f) => files.get(f))).toEqual([staging]);
+        // An Undo of the keep brings back the take the timings named: its bytes, not the attempt's.
+        const after = new TextDecoder().decode(files.get(TIMINGS));
+        yield* (yield* Takes).named((yield* loaded).paths).bring(after, before);
+        expect(files.get(`${NARRATION}/a.mp3`)).toEqual(staging);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
   describe('one long take', () => {
     it.effect('is cut at the silence between beats and imported beat by beat', () => {
       const { files, layer } = setup();
