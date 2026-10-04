@@ -694,8 +694,11 @@ the middle of its step, drawn from the code as it stands by the one source
 of stills (`player/stills.ts`, the lines on screen first), each **cut** is a
 thin rule at its scene's exact time carrying the scene's name, and a band
 under each line says each scene's state. Over it the **tape bar** holds the
-acts ruler, the preview's track and Follow (the playhead's line stays in
-sight while it plays). A tap on a still selects its scene (the path; Back
+acts ruler, the preview's track (in two lanes: the scenes' names along its
+top, its ticks below them, so no name runs over a tick) and Follow (the
+playhead's line stays in sight while it plays; a scrub turns it off). A
+cut's name takes only its room: shortened with an ellipsis, set before the
+row's last rule where it fits there, or dropped. A tap on a still selects its scene (the path; Back
 steps through the selections) and moves the playhead there (`#t=`, film
 time); a drag along a line scrubs. The selected scene's card
 (`lab/scenes/card.tsx`, the card the Project shows) is the focus panel, a
@@ -1334,9 +1337,9 @@ edits shown in memory, the lab's place held for a write), and
 being the server's own text (`lab/api.ts`)); `<Lab.Overlay>` and
 `<Lab.Layer>` are pinned exactly over the film canvas and follow it as it
 resizes; `<Lab.Strip>` is a slot right under the player's timeline;
-`<Lab.Panel>`, `<Lab.Header>` (with the film's project, choices and
-look-book links, each named by its `data-link`) and `<Lab.Section>`
-lay out the side panel. Each tool's state lives in its own provider; the
+`<Lab.Panel>`, `<Lab.Header>` (the mode tray and the header's tools; the
+film's other pages are the studio shell's page bar, each tab named by its
+`data-page`) and `<Lab.Section>` lay out the side panel. Each tool's state lives in its own provider; the
 shell knows none of it. A provider's context gives values derived from its
 machine and actions, never the machine's state: the editor's receipt (said on the hub) and
 `findings`, Compare's `mode`, `layer` (`hidden`, `head` or `now`) and
@@ -1616,7 +1619,8 @@ commit made since shows) and draws the frame with HEAD's timeline and knobs
 through today's code (`player.renderShown`, the frame as the lab shows it,
 with HEAD's edit over whatever else the lab previews) on a layer over the
 film: wipe (HEAD left of a draggable
-divider), blink, or diff (a _difference matte_: HEAD laid over the frame in
+divider, its grip a finger's `--hit` across however small the frame shows,
+and a slider by the keyboard: `lab/wipe-keys.ts`), blink, or diff (a _difference matte_: HEAD laid over the frame in
 the `difference` blend, so what did not change is black and what an edit
 moved is lit). A blink is also flipped by hand: on the frame, a press held
 shows HEAD until it lifts (a phone's way, where there are no keys). The mode
@@ -1824,7 +1828,10 @@ own names, and the stored and wire words stay as they are.
   offered only on a stack of two or more.
 - **Wipe**: the same two stacked full width on the one clock, the first left
   of a divider and the other right of it (`?view=wipe&other=<id>`). The
-  divider is dragged by its grip; where it sits is the page's, not the
+  divider is dragged by its grip, or moved from the focused grip as a
+  slider is (`lab/wipe-keys.ts`: ←/→ a hundredth of the frame, ⇧ ten,
+  Home and End its edges, through the keymap's `slider` focus, which owns
+  those keys); where it sits is the page's, not the
   link's, since a different split shows the same comparison. Where the
   browser can, the two play as **WebCodecs panes** (`browser/frame-pane.ts`
   over mediabunny in `browser/webcodecs-browser.ts`): each master decoded to

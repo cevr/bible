@@ -22,6 +22,7 @@ import {
   evaluates,
   labelsClash,
   labelsInFull,
+  labelsOverMarks,
   textHas,
   textIs,
 } from '../../src/lab/fixtures/settled.ts';
@@ -181,6 +182,24 @@ describe('the player', () => {
         yield* page.resize(DESK.width, DESK.height);
         yield* evaluates(page, labelsClash('.sc-cut-name', '.sc-line-body'), []);
         yield* evaluates(page, `${labelsInFull('.sc-cut-name')} > 0`, true);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "the Scenes' tape bar names its scenes in a lane above its ticks: no name runs over a mark, a cue, a sound or an act",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openPlayer(
+          { href: pageHref.scenes(CROWD), viewport: DESK },
+          STILL_DRAWN,
+        );
+        const ticks = '.sc-track .track .tick';
+        // The crowd film's tape bar has a mark under its opening's name to run over.
+        yield* evaluates(page, `document.querySelectorAll('${ticks}').length > 0`, true);
+        yield* evaluates(page, `${labelsInFull('.sc-track .track .seg span')} > 0`, true);
+        yield* evaluates(page, labelsOverMarks('.sc-track .track .seg span', ticks), []);
+        yield* page.resize(PHONE.width, PHONE.height);
+        yield* evaluates(page, labelsOverMarks('.sc-track .track .seg span', ticks), []);
       }).pipe(Effect.scoped),
   );
 

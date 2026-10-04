@@ -19,8 +19,14 @@ body.scenes { display: block; height: auto; }
   overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .sc-track .bar { padding: 0; gap: 0; background: none; }
 .sc-track .bar > .row, .sc-track .bar > .keys { display: none; }
-.sc-track .track { height: 24px; }
-.sc-track .track .seg span { top: 5px; }
+/* The tape bar's track in two lanes: the scenes' names along the top, the
+   ticks (marks, cues, sounds, acts, notes) below them, so no name runs over
+   a tick and every tick still shows. */
+.sc-track .track { --name-lane: calc(var(--lh-1) + 3px); height: calc(var(--name-lane) + 15px); }
+.sc-track .track .seg span { top: 2px; line-height: var(--lh-1); }
+.sc-track .track .tick.mark { height: 7px; }
+.sc-track .track .tick.effect { top: var(--name-lane); }
+.sc-track .track .tick.movement, .sc-track .track .tick.note { top: var(--name-lane); }
 .sc-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-3); min-height: var(--hit);
   font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }
 .sc-legend-item { display: inline-flex; align-items: center; gap: var(--s-1); }

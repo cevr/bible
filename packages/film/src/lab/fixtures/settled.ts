@@ -179,6 +179,36 @@ export const labelsClash = (labels: string, room: string) =>
   })()`;
 
 /**
+ * An expression run in the page: every shown label (`labels`) whose text
+ * runs over a shown mark (`marks`), as `text: over mark`; none, `[]`. A
+ * label's text is measured as drawn (its glyphs, not its box), clipped to
+ * the label; a mark by its whole box, the room kept to hover it included.
+ */
+export const labelsOverMarks = (labels: string, marks: string) =>
+  `(() => {
+    const out = [];
+    const drawn = (e) => {
+      const s = getComputedStyle(e);
+      const r = e.getBoundingClientRect();
+      return s.display !== 'none' && s.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+    };
+    const ticks = [...document.querySelectorAll('${marks}')].filter(drawn).map((e) => ({ name: e.dataset.tick || e.className, r: e.getBoundingClientRect() }));
+    [...document.querySelectorAll('${labels}')].filter((e) => drawn(e) && e.textContent.trim() !== '').forEach((e) => {
+      const glyphs = document.createRange();
+      glyphs.selectNodeContents(e);
+      const g = glyphs.getBoundingClientRect();
+      const box = e.getBoundingClientRect();
+      const left = Math.max(g.left, box.left), right = Math.min(g.right, box.right);
+      const top = Math.max(g.top, box.top), bottom = Math.min(g.bottom, box.bottom);
+      ticks.forEach((t) => {
+        if (left < t.r.right - 0.5 && t.r.left < right - 0.5 && top < t.r.bottom - 0.5 && t.r.top < bottom - 0.5)
+          out.push(e.textContent.trim() + ': over ' + t.name);
+      });
+    });
+    return out;
+  })()`;
+
+/**
  * An expression run in the page: how many of the shown `labels` (as
  * `labelsClash` reads them) read their whole text, neither shortened nor
  * dropped. `labelsClash` passes a row with every label hidden; this says
