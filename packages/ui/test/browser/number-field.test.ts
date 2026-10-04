@@ -6,9 +6,10 @@
 // packages/react/src/number-field/scrub-area/NumberFieldScrubArea.test.tsx,
 // packages/react/src/number-field/scrub-area-cursor/NumberFieldScrubAreaCursor.test.tsx
 //
-// Dropped: the Field and Form integration cases (this package has no Field
-// or Form), React.Activity, the conformance suite, and cases that only
-// exercise React's event plumbing.
+// The Field cases this package's Field supports are in field.test.ts.
+// Dropped: the Form and field-validation cases (this package has no Form and
+// its Field does not validate), React.Activity, the conformance suite, and
+// cases that only exercise React's event plumbing.
 //
 // Scrubbing: headless Chromium grants pointer lock, but under the lock a
 // Playwright mouse move (absolute coordinates) is reported as a jump to the

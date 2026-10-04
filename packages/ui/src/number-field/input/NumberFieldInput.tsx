@@ -5,7 +5,9 @@
 // each parseable keystroke reports `input-change`, and the text is formatted
 // and committed on blur. ArrowUp/ArrowDown step (Shift: `largeStep`, Alt:
 // `smallStep`), Home/End jump to `min`/`max` when set, and each such key
-// commits at once. A paste is inserted at the caret.
+// commits at once. A paste is inserted at the caret. Inside a `Field.Root`,
+// the field's label names the input, its description and shown error
+// describe it, and an invalid field marks it `aria-invalid`.
 // Not in upstream: with the root's `commitOnEnter`, Enter commits typed text
 // as blur does; with `allowExpressions`, typed arithmetic (`0.42*2`, `+0.1`)
 // stays as text while typing and is read on commit (see `utils/expression.ts`),
@@ -14,6 +16,7 @@
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
 
+import { useFieldRootContext } from '../../field/root/FieldRootContext.ts';
 import {
   createChangeEventDetails,
   createGenericEventDetails,
@@ -129,7 +132,8 @@ function isAllowedSymbolKey(
 export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Element {
   const ctx = useNumberFieldRootContext();
   const state = ctx.state;
-  const elementProps = omit(componentProps, 'class', 'style', 'render');
+  const field = useFieldRootContext(true);
+  const elementProps = omit(componentProps, 'class', 'style', 'render', 'aria-describedby');
   // The value relative expressions apply to: the one held when typing began.
   let editBase: number | null = null;
 
@@ -400,6 +404,20 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     autocorrect: 'off',
     spellcheck: 'false',
     'aria-roledescription': 'Number field',
+    // Inside a field: named by its label (unless named here), described by
+    // its messages after any ids given here, invalid when the field is.
+    get 'aria-labelledby'() {
+      return componentProps['aria-label'] ? undefined : field?.labelId;
+    },
+    get 'aria-describedby'() {
+      const ids = [componentProps['aria-describedby'], ...(field?.messageIds ?? [])].filter(
+        (id) => id,
+      );
+      return ids.length > 0 ? ids.join(' ') : undefined;
+    },
+    get 'aria-invalid'() {
+      return field?.state.valid === false ? 'true' : undefined;
+    },
     ref: (element: HTMLInputElement) => ctx.setInputElement(element),
     onBlur(event: FocusEvent) {
       untrack(() => {

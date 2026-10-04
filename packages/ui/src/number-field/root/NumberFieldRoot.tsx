@@ -5,11 +5,14 @@
 // shown as formatted text in the input. Typed text stays as typed until it
 // is committed on blur; step changes (keys, buttons, wheel, scrub) rewrite it
 // at once. A visually hidden `<input type="number">` carries the value into
-// forms and native validation, and takes browser autofill.
+// forms and native validation, and takes browser autofill. Inside a
+// `Field.Root`, the field's `disabled` and `name` apply, and the input is the
+// control the field's label points at.
 // Renders a `<div>`.
 import type { JSX } from '@solidjs/web';
 import { createEffect, createSignal, createUniqueId, omit, untrack } from 'solid-js';
 
+import { useFieldRootContext } from '../../field/root/FieldRootContext.ts';
 import {
   createChangeEventDetails,
   createGenericEventDetails,
@@ -149,7 +152,17 @@ const ROOT_PROPS = [
 
 export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
   const generatedId = createUniqueId();
-  const disabled = () => props.disabled ?? false;
+  const field = useFieldRootContext(true);
+  const disabled = () => (props.disabled ?? false) || (field?.disabled ?? false);
+  const name = () => props.name ?? field?.name;
+  // The field's label points at this input.
+  createEffect(
+    () => props.id ?? generatedId,
+    (id) => {
+      field?.setControlId(id);
+      return () => field?.setControlId(undefined);
+    },
+  );
   const readOnly = () => props.readOnly ?? false;
   const required = () => props.required ?? false;
   const minWithDefault = () => props.min ?? Number.MIN_SAFE_INTEGER;
@@ -380,7 +393,7 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
       return maxWithDefault();
     },
     get name() {
-      return props.name;
+      return name();
     },
     get inputMode() {
       return inputMode();
@@ -448,7 +461,7 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
         ref={props.inputRef}
         type="number"
         form={props.form}
-        name={props.name}
+        name={name()}
         value={value() ?? ''}
         min={props.min}
         max={props.max}
@@ -458,7 +471,7 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
         required={required()}
         aria-hidden="true"
         tabindex={-1}
-        style={props.name ? visuallyHiddenInput : visuallyHidden}
+        style={name() ? visuallyHiddenInput : visuallyHidden}
         onFocus={focusInput}
         onInput={onHiddenInput}
       />
