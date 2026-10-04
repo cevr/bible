@@ -236,11 +236,17 @@ checks its word error again as the check reads now, then copies the FLAC
 beside the other takes and rewrites `timings.json` to name it; the take it
 replaced is put away into `narration/attempts/<beat>/` (`putAwayTake`: a
 recorded take's attempt is already there, and any other take, a staging one
-or a recorded one whose attempt this machine lacks, is copied there first),
-so no take is ever deleted and git drops it from `narration/` as before. A
+or a recorded one whose attempt this machine lacks, is copied there first;
+an attempt of the same name with other bytes stays as it is, and the take
+is kept beside it as `<file>.<sha12><ext>`, logged `takes.put-away.kept-aside`),
+so no take's bytes are ever lost and git drops it from `narration/` as
+before. Placing a take and naming it hold the timings' store lock, and a
+take is put away only while the timings, read under that lock, do not name
+it (`putAwayUnnamed`; narrate's sweep runs under it too), so a sweep in
+another process never puts away a take a lab's Undo is naming. A
 keep made in the lab is undoable: its change carries the takes the timings
 name (`Takes.named`), so Undo brings the replaced take back into
-`narration/` before the timings name it again, and refuses when it is in
+`narration/` (a kept-aside copy first) before the timings name it again, and refuses when it is in
 neither place. The check (`core/spoken.ts`
 `lineError`, for narrate and takes alike) reads both sides as said
 (`spokenWords`): a run of numbers is one token of digits however written or
@@ -720,7 +726,16 @@ lock and the lab's Undo and Redo walk it back and forth: each brings back
 the take it lands from `attempts/`, remixes (`film mix <film>`, fresh; a
 failed mix is logged `lab.remake.failed` and the step stands), and the lab
 page reloads at its frame to play it (`readAtLoad`: the timings and the
-track are read at load, so no rebuild would). A take is kept against that reading
+track are read at load, so no rebuild would). The editor waits for such a
+step as long as the studio waits for a keep (`STUDIO_IMPORT_WAIT_S`); with
+no answer even then it reads `GET …/check`, whose latest change the step
+records before it remixes, and says whether it landed. A keep answered by
+an older film CLI (`{"_tag":"OptionsKept","mixed":true}`, no take) is still
+recorded and answered from the timings. A reload never takes work only the
+page holds: a take being recorded, under review, refused with its recording
+or on its way, or a note being made, holds every reload (`lab/reload-gate.ts`),
+which runs once it is submitted, discarded or saved; the panel says what it
+waits for. A take is kept against that reading
 (`VoicedFilm`, `narrator.ts`: the film's paths, voice, `heardAs` and beats,
 which `takes import` makes with `voicedOf`), so a line fixed while the lab
 is open is on the sheet, and a take of it current, at the next read. Its
@@ -1172,11 +1187,14 @@ transition's layer, or under two different transforms in one frame, it is
 numbers only, and the inspector says why. A field computed in source is shown
 disabled. Undo write reverts the last write. Every write, a drag's, a
 field's, a knob's, Undo's and Redo's, goes through one effect-machine
-(`lab/editor/machine.ts`: `Idle`, `Pressed`, `Dragging`, `Writing`, `Written`,
+(`lab/editor/machine.ts`: `Idle`, `Pressed`, `Dragging`, `Writing`, `Checking`, `Written`,
 `Refused`), so a press or another write while one is out is not taken and
 two writes never race for a file; a write with no answer in 20 s
 (`WRITE_TIMEOUT_S`) is refused and says so, so a hung server never wedges
-the editor; Escape during a drag puts the cue back.
+the editor; an Undo or Redo, which may remix the track first, waits
+`STUDIO_IMPORT_WAIT_S`, then `Checking` reads the lab's latest change: the
+step the page's history named landed (written, with a note to reload once
+mixed) or did not (refused, naming the latest change); Escape during a drag puts the cue back.
 The pure parts (`lab/editor/grip.ts`: where a press grabs, snapping, the
 patch a drag makes, why a cue cannot be dragged) are shared by the machine
 and its tests, which run every transition with no DOM. The knobs' rows
@@ -1372,7 +1390,8 @@ unformatted. A write that
 changes nothing answers `(already so)` and records nothing. Each film keeps
 its own undo and redo stacks (50 deep): Undo puts the newest change back byte
 for byte, only while the file is exactly as that change left it (else
-`UndoUnavailable`, a 409); a new change drops what could be redone. The file a change
+`UndoUnavailable`, a 409, touching nothing: the check, the takes brought
+back, the write and the takes put away all hold the file's store lock); a new change drops what could be redone. The file a change
 touched is named relative to the film's folder (`sound.ts`,
 `../../../sounds/library.lock.json` in the app).
 

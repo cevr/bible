@@ -212,7 +212,7 @@ K submits; what was heard and the word error show, or the server's refusal,
 and a `TakeMismatch` offers Accept anyway (K). ←/→ step through the beats and
 Esc cancels; those keys are the Studio's only while it has focus. Each beat's
 attempts play again and Keep makes one the take; a keep, like every lab write,
-is undone by Undo (⌘Z) and redone by Redo: the track remixes and the lab reloads, the take it replaced playing again. A kept take reloads the lab
+is undone by Undo (⌘Z) and redone by Redo: the track remixes and the lab reloads, the take it replaced playing again (the editor waits as long as for a keep, then asks the lab whether the step landed). A reload never takes a take being recorded or under review, nor a note being written: it waits until you submit, discard or save it, and the panel says what it waits for. A kept take reloads the lab
 at the same time, on the same beat, playing the new take (`/films/*` is served
 uncached for that). Use Chrome or Firefox on a computer (every iPhone and
 iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to `https://` or
@@ -425,7 +425,9 @@ only when `timings.json` is rewritten to name it, so a crash at any step
 leaves every take the timings name on disk and matching them. The next
 `narrate` clears what a crash or a failed take left in `narration/`: it
 removes `*.partial` writes, and puts every take the timings no longer name
-away into `narration/attempts/<beat>/` (git-ignored), never deleting one.
+away into `narration/attempts/<beat>/` (git-ignored), never deleting one
+(beside an attempt of its name that holds other bytes, never over it), all
+under the timings' lock, so a lab's Undo naming a take in another process is never undercut.
 `timings.json` and `sound/manifest.json` are
 Schema-decoded (`@bible/film/core` `schema.ts`: durations and word times are
 non-negative, words run in order, and none ends after its take) and written
