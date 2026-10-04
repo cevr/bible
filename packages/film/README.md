@@ -754,7 +754,11 @@ long-polled, at most 60 s; another server answers at once, so a page outlives
 a restart); the lab reloads at the frame it shows when a later build or
 another server answers
 (`lab/rebuilt.ts`), so a scene edited by hand or by an agent is on screen
-with no hand on the page. The review does not reload itself (a playing set
+with no hand on the page. Every reload onto new code (the rebuild's, a
+write's, a kept take's) marks the view (`landed`, `film-lab-view:<film>`),
+and the page it lands on lights the picture's edge once and fades it
+(`.stage[data-landed]`, PA-11): the eye knows the frame is the new code, not
+the old one still standing. A page opened by hand does not flash. The review does not reload itself (a playing set
 is not interrupted); its next load is the new code. A page that does not
 build answers 500 with the bundler's words and reloads once a later build
 or another server answers, pausing 2 s after every other answer; a

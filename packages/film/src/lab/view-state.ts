@@ -29,6 +29,8 @@ export const LabView = Schema.Struct({
   /** The wipe's divider, this viewer's; the compare's mode is the link's (`?view=`). */
   compare: Schema.Struct({ split: Schema.Finite }),
   playing: Schema.Boolean,
+  /** The page reloaded itself onto new code (a write's, a kept take's, the rebuild's): it flashes once as it lands (PA-11). */
+  landed: Schema.optionalKey(Schema.Boolean),
   /**
    * The beat the studio records, and whether focus was in the studio (so its
    * keys still reach it), kept through the reload a take kept causes.

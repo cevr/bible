@@ -12,7 +12,7 @@ import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import * as UrlAtom from '@bible/url-state/atom';
 import { For, Portal, Show } from '@solidjs/web';
-import { Array as Arr, Effect, Equal, Fiber, Layer, Option } from 'effect';
+import { Array as Arr, Duration, Effect, Equal, Fiber, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
@@ -173,6 +173,11 @@ const Root = (props: RootProps) => {
   onSettled(() => {
     if (view.get().playing) player.play();
   });
+  // A page reloaded onto new code flashes its picture once as it lands; one opened by hand does not.
+  if (view.get().landed === true) {
+    view.patch({ landed: false });
+    onSettled(() => flashLanded(frame, props.host));
+  }
 
   document.body.classList.add('lab');
   onCleanup(() => document.body.classList.remove('lab'));
@@ -180,7 +185,14 @@ const Root = (props: RootProps) => {
   const [revision, setRevision] = createSignal(0, fromDraw);
   // Every reload (a write's, a kept take's, the rebuild's) waits while a panel holds unsaved work.
   const [reloadWaiting, setReloadWaiting] = createSignal('', { ownedWrite: true });
-  const reloads = makeReloadGate(reloadHere(player, props.host), setReloadWaiting);
+  // Each reload says it is onto new code, so the page it lands on flashes once (PA-11).
+  const reloads = makeReloadGate(
+    Effect.andThen(
+      Effect.sync(() => view.patch({ landed: true })),
+      reloadHere(player, props.host),
+    ),
+    setReloadWaiting,
+  );
   const stage = makeStage(player, () => setRevision((n) => n + 1), reloads.request);
   const clientLayer = LabClient.layer;
   // The server rebuilt the pages (a source changed): reload onto the new code at this frame.
@@ -299,6 +311,19 @@ const keptMode = keptText(ViewerStore, 'film-studio.lab-mode');
 const pickOf = (href: string) => {
   const { selection, note, view } = labPlaceOf(href);
   return { selection, note, view };
+};
+
+/** How long the picture flashes when new code lands. */
+const LANDED_MS = 900;
+
+/** Flash `frame` once (`[data-landed]`, styled in `player.css`), timed on `host`'s clock: new code landed. */
+const flashLanded = (frame: HTMLElement, host: Host) => {
+  frame.setAttribute('data-landed', '');
+  Effect.runForkWith(host)(
+    Effect.sleep(Duration.millis(LANDED_MS)).pipe(
+      Effect.andThen(Effect.sync(() => frame.removeAttribute('data-landed'))),
+    ),
+  );
 };
 
 /** The element the film canvas sits in (its stage): the pinned layers' frame. */

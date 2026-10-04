@@ -3,14 +3,15 @@
 // its URL (the scene under the playhead in the path, the time in that scene,
 // a pick Back undoes); every pinned layer sits exactly over the film canvas
 // and follows it as the window resizes; the strip's slot sits right under
-// the player's timeline; and the page starts without an error.
+// the player's timeline; a page reloaded onto new code flashes its picture
+// once and one opened by hand does not; and the page starts without an error.
 
-import { Effect } from 'effect';
+import { Deferred, Effect, Exit } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
-import { URL_T, labAt, openLab } from '../../src/lab/fixtures/harness.ts';
+import { URL_T, hold, json, labAt, later, openLab, route } from '../../src/lab/fixtures/harness.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
@@ -406,4 +407,42 @@ describe('the lab shell', () => {
           yield* page.mouse.up;
         }).pipe(Effect.scoped),
     );
+
+  it.live(
+    'new code landed (PA-11): the page reloaded onto a rebuild flashes the picture once',
+    () =>
+      Effect.gen(function* () {
+        // The rebuild answers once the page is marked, so the reload is seen.
+        const marked = Deferred.makeUnsafe<void>();
+        let waits = 0;
+        const { page, errors } = yield* openLab(
+          [
+            route('GET', /^\/api\/review\/build\?/, () => {
+              waits += 1;
+              if (waits > 1) return hold;
+              return later(marked, json({ build: 1, server: 'lab' }));
+            }),
+          ],
+          { href: labAt(1), build: { build: 0, server: 'lab' } },
+        );
+        yield* page.evaluate('window.loadedOnce = true');
+        yield* Deferred.done(marked, Exit.void);
+        // The rebuild answered: the page reloads onto the new code.
+        yield* evaluates(page, 'window.loadedOnce === true', false);
+        yield* attached(page, '.stage[data-landed]');
+        // A flash, not a state: it goes.
+        yield* page.clock.runFor(2000);
+        yield* evaluates(page, "document.querySelectorAll('[data-landed]').length", 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('a page opened by hand shows no flash', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      yield* page.waitFor('.bar .tc');
+      yield* page.clock.runFor(100);
+      yield* evaluates(page, "document.querySelectorAll('[data-landed]').length", 0);
+    }).pipe(Effect.scoped),
+  );
 });
