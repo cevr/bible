@@ -665,17 +665,17 @@ through `@bible/url-state` (`UrlState`: a selection is a history entry; a
 refinement and the playhead replace the entry), and every link is printed by
 `pageHref` over the same places.
 
-| Place                            | Page   | Query                                                      | Hash                         |
-| -------------------------------- | ------ | ---------------------------------------------------------- | ---------------------------- |
-| `/`                              | review |                                                            |                              |
-| `/sets/<folder>`                 | review |                                                            |                              |
-| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`                                       | `t` (the set's video)        |
-| `/films/<film>/choices`          | review | `heard` (a point, or `own`), `variant`, `picture`          | `t` (the picture)            |
-| `/films/<film>/project`          | review | `point` (the card in focus), `heard`, `variant`, `picture` | `t` (the picture)            |
-| `/films/<film>/scenes[/<scene>]` | player |                                                            |                              |
-| `/films/<film>/play`             | player |                                                            | `t` (film time)              |
-| `/films/<film>/lab`              | lab    | `note`                                                     | `t` (film time)              |
-| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`                     | `t` (from the scene's start) |
+| Place                            | Page   | Query                                                                          | Hash                         |
+| -------------------------------- | ------ | ------------------------------------------------------------------------------ | ---------------------------- |
+| `/`                              | review |                                                                                |                              |
+| `/sets/<folder>`                 | review |                                                                                |                              |
+| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`                                                           | `t` (the set's video)        |
+| `/films/<film>/choices`          | review | `point` (the card revealed), `heard` (a point, or `own`), `variant`, `picture` | `t` (the picture)            |
+| `/films/<film>/project`          | review | `point` (the card in focus), `heard`, `variant`, `picture`                     | `t` (the picture)            |
+| `/films/<film>/scenes[/<scene>]` | player |                                                                                |                              |
+| `/films/<film>/play`             | player |                                                                                | `t` (film time)              |
+| `/films/<film>/lab`              | lab    | `note`                                                                         | `t` (film time)              |
+| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`                                         | `t` (from the scene's start) |
 
 The lab writes a scene's place (`lab/place.ts`): the path names the
 selected cue's or knob's scene, else the scene under the playhead, so play
@@ -715,7 +715,11 @@ by a rename, so the mix has finished) is one more change, with no new build,
 that the film's open lab hears and no other film's (it waits with `&film=`),
 so a score or level written on the review, a take kept, a first mix, or a
 `film mix` run by hand reloads that lab once onto the new track; a take's
-timings, saved before its mix, wake nothing. A page links its scripts and styles from the root (`/chunk-….js`,
+timings, saved before its mix, wake nothing. A film's choices page waits
+with `&film=` too, from its first wait (it never plays the track, so the
+wait itself arms the watch, `filmWaited`), and hears each newer mix once
+(`hearMixes`): it reads the film's choices again and shows them if they
+changed, so a pick made in a second tab shows in the first. A page links its scripts and styles from the root (`/chunk-….js`,
 `publicPath: '/'`), so a page served under a film's path finds them; a
 request is answered as a narration file when it is one
 (`/films/<film>/narration/<file>`), then as a built file, then as the page
@@ -1041,8 +1045,34 @@ writes the catalogue, not the source.
 
 **Terms**, as editing software uses them:
 
+- **Page bar**: the row of the studio's parts, as Resolve's Media · Cut ·
+  Edit row: Films · Scenes · Lab · Choices · Project · Play, on ⇧1-⇧6
+  (`lab/page-shell.tsx`). On a laptop it sits in the header; on a phone the
+  five film parts are a tab bar along the bottom and Films is the header's
+  leading square. Every move between parts is the page bar, the film
+  switcher or a command that lands on a part.
+- **Project manager**: the studio's home, Films (`/`), named for Resolve's:
+  a card per film (a still, its length, a state band, its counts) and the
+  review's folders below.
+- **Timecode**: a time written `HH:MM:SS:FF`, hours, minutes, seconds and
+  frames (`timecode`, `core/time.ts`; 30 fps), in a monospaced face so the
+  digits never shift. The studio shows its times this way: the header's
+  (film time on every page with a playhead; a tap copies the link to that
+  frame), the lab's transport (scene time), a cue's start and length, a
+  note's or a finding's time. A `#t=` in a link stays in seconds, as does
+  a finding's message, the sentence `film check` prints too.
 - **Transport**: the play, pause, frame and scene controls, and their keys
   (Space, ←/→ a frame, Shift ten, `[` `]` a scene; `player/transport.ts`).
+  It belongs to the picture it drives, never to the header; on a phone it
+  docks above the tab bar (`.sh-dock`), where the thumb is.
+- **Timeline dock**: the lab's foot under the picture: the film's timeline
+  (its scenes end to end, the playhead) and the cue strip (the scene under
+  the playhead, zoomed: its words, a lane per cue). Not a dock of tabs: a
+  mode's tools live in the inspector.
+- **Mode tray**: the segmented toolbar at the head of the lab's inspector,
+  Edit · Note · Motion · Compare · Record (`lab/mode.ts`): one pressed, and
+  the inspector shows that tool only. Kept per viewer in the browser; a
+  cited note opens on Note.
 - **HUD**: the readout laid over or beside the picture: the player's bar
   (scene, time; its keys legend hidden until asked for).
 - **Inspector**: the panel that shows and edits the selected thing: in the
@@ -1052,8 +1082,9 @@ writes the catalogue, not the source.
 - **Command menu**: the searchable list of every available command (⌘K).
 - **Context menu**: the commands for what is under the pointer, opened by a
   right-click or a touch long-press.
-- **Sheet**: a panel over the page that holds a surface (the keys sheet),
-  not one fixed in the layout.
+- **Sheet**: a panel over the page that holds a surface (the keys sheet,
+  the Findings sheet, the review's inspector; /ui's Drawer), not one fixed
+  in the layout; swiped away or closed with Escape.
 - **Nudge**: moving a value by its step with a key (⌥← ⌥→: a frame; ten with
   Shift).
 - **In/out points**: the start and end of a range (Motion's loop: I sets
@@ -1444,7 +1475,10 @@ error finding, `FreshProcessFailed`, in its words.
 **The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
 current scene zoomed, its words and marks, and one row per cue. Drag a cue's
 body to move its offset, its left edge to move its start (offset and dur),
-its right edge to move its end (dur). A cue that runs `until` a mark (or a
+its right edge to move its end (dur): an edge is the bar's outer 6 px, 14 px
+under a finger (`edgeFor`, `lab/editor/grip.ts`). A finger has no
+Escape, so while a grip is held the strip's head shows **Cancel drag**,
+which lets it go as Escape does (`edit.cancel-grip`). A cue that runs `until` a mark (or a
 landmark, or another cue's edge) keeps ending on it (`dragPatch` in `core/timeline.ts`): its body and left edge move
 only its offset, its start held a frame before the mark, and its right edge
 sets a `dur` only when dropped off the mark. Edges snap to word starts and ends,
@@ -1823,17 +1857,22 @@ it, and it joins where the clock stands. What plays is the URL's
 opens the same sound over the same picture at the same time. A point's
 marks jump the clock there. Every point is one card (`options/choice.tsx`): its variants with
 their verbs (Pick at rest; Unkeep and Reject, as the state allows, in the
-variant's menu and inspector), a hear-alone player, approve (a current
+variant's menu and inspector), a hear-alone button (▶, ■ while it plays:
+the page's one alone player, `audio.rv-alone`; starting one pauses the
+film and stops any other, and playing the film stops it), approve (a current
 variant only: `Choices.say` refuses a stale or missing one with
 `VerbRefused`, 409; at rest on the picked one), unapprove once approved, and
 the comment box (both in the inspector); a level point's knob is a slider, written on release. Every say is
 one `POST …/choices/say`, answered by the film's choices with it recorded,
 which the page shows as they are. Undo and Redo are the page's commands
 (⌘Z, ⇧⌘Z, the receipt's button, the page's menu), naming what they would
-undo or redo (`Undo score play brass`); the film's static check folds under
+undo or redo (`Undo score play brass`); the film's static check is a count chip beside
 the page's writes, the one the write answered, and after a pick or a knob
 `film check --sound` runs (`GET …/choices/check`): its receipt says it is
-running, then its findings count, and the findings fold beside the check. A write is
+running, then its findings count, as a second chip. A chip opens the
+**Findings** sheet (`options/findings.tsx`, `review.findings`): each
+check's findings grouped, a timed one with its timecode, which seeks the
+picture there; F and ⇧F walk the timed findings forward and back. A write is
 shown from its answer: the page reads nothing again but the undo and redo
 (`GET …/steps`, no check) and, after an undo or a redo, the choices. The
 answer updates the player in place: the picture's `<video>` stays the same
@@ -1859,7 +1898,10 @@ comments (a missing scene takes one too), a link to its Versions, and
 the points placed at it. Each point sits once, at the narrowest part holding
 every scene it plays in (a scene, an act, else the film), folded under it; a
 scene's inspector links every choice that plays in it (its own, and the
-layers that sit elsewhere), and a link opens where the card is. Each say answers the fresh `ProjectView`, which the page
+layers that sit elsewhere), and a link opens where the card is; beside it,
+**Open on Choices** (`review.open-on-choices`, also in a point's menu and
+⌘K) opens the point on the choices page, its card revealed
+(`/films/<film>/choices?point=`). The layers fold closed. Each say answers the fresh `ProjectView`, which the page
 shows in place (a playing clip plays on, a half-typed comment stays); a
 source write reads it again (`data-reading` on the film while it does). The
 answers land in any order, so the page shows the newest asked
