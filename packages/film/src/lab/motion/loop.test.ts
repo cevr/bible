@@ -173,17 +173,20 @@ describe('what a loop plays', () => {
 });
 
 describe('what the panel says', () => {
-  test('each state in words', () => {
-    expect(loopText(LoopState.Off)).toBe('');
-    expect(loopText(LoopState.Marked({ a: Option.some(1), b: Option.none() }))).toBe('in 1.00');
-    expect(loopText(LoopState.Marked({ a: Option.none(), b: Option.some(2) }))).toBe(
-      'out 2.00: set the in point before it',
+  test('each state in words, each point in timecode', () => {
+    const said = (state: LoopState) => loopText(state, 30);
+    expect(said(LoopState.Off)).toBe('');
+    expect(said(LoopState.Marked({ a: Option.some(1), b: Option.none() }))).toBe('in 00:00:01:00');
+    expect(said(LoopState.Marked({ a: Option.none(), b: Option.some(2) }))).toBe(
+      'out 00:00:02:00: set the in point before it',
     );
-    expect(loopText(LoopState.Marked({ a: Option.some(3), b: Option.some(2) }))).toBe(
-      'in 3.00 · out 2.00: set the out point after the in point',
+    expect(said(LoopState.Marked({ a: Option.some(3), b: Option.some(2.5) }))).toBe(
+      'in 00:00:03:00 · out 00:00:02:15: set the out point after the in point',
     );
-    expect(loopText(LoopState.Range({ from: 1, to: 3 }))).toBe('looping in 1.00 – out 3.00');
-    expect(loopText(LoopState.Cue({ scene: 'one', name: 'rise' }))).toBe('looping rise');
+    expect(said(LoopState.Range({ from: 1, to: 3 }))).toBe(
+      'looping in 00:00:01:00 – out 00:00:03:00',
+    );
+    expect(said(LoopState.Cue({ scene: 'one', name: 'rise' }))).toBe('looping rise');
   });
 });
 

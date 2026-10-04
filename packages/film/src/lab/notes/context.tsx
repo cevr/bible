@@ -311,7 +311,7 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
       },
     );
   const scopeChip = createMemo(() =>
-    Option.flatMap(composingT(composer()), (T) => scopeText(film.placed, scope(), T)),
+    Option.flatMap(composingT(composer()), (T) => scopeText(film.placed, scope(), film.fps, T)),
   );
 
   const actions: NotesActions = {

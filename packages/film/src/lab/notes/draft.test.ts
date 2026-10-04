@@ -1,4 +1,4 @@
-// A note's draft and where it sits, pure: the scene, time and frame of the
+// A note's draft and where it sits, pure: the scene and timecode of the
 // moment noted, with the cue edge and mark nearest it; the draft carries
 // the box and the ink only when there are any; its scope (the cue selected,
 // the in and out points cut to its scene) as its chip says it and as the
@@ -14,9 +14,9 @@ import { NO_SCOPE, type Scope, boxOf, draftOf, filmPixel, scopeText, whereText }
 const film = probeFilm();
 
 describe('where a note sits', () => {
-  test('names the scene, the time and the frame, with the nearest cue edge', () => {
+  test('names the scene and the timecode, with the nearest cue edge', () => {
     const where = whereText(film.placed, film.fps, 1);
-    expect(where.startsWith('one · 1.00s · f30')).toBe(true);
+    expect(where.startsWith('one · 00:00:01:00 · ')).toBe(true);
     expect(where).toContain('cue ');
   });
 
@@ -98,12 +98,14 @@ describe('the scope', () => {
     range: Option.some({ from: 1.2, to: 6 }),
   };
 
-  test('its chip names the scene, the cue selected and the range in the scene’s seconds', () => {
-    expect(scopeText(film.placed, scope, 1.5)).toEqual(Option.some('one · fall · t 1.2–4.7 s'));
-    expect(scopeText(film.placed, { ...scope, range: Option.none() }, 1.5)).toEqual(
+  test('its chip names the scene, the cue selected and the range in timecode', () => {
+    expect(scopeText(film.placed, scope, film.fps, 1.5)).toEqual(
+      Option.some('one · fall · 00:00:01:06–00:00:04:21'),
+    );
+    expect(scopeText(film.placed, { ...scope, range: Option.none() }, film.fps, 1.5)).toEqual(
       Option.some('one · fall'),
     );
-    expect(scopeText(film.placed, NO_SCOPE, 1.5)).toEqual(Option.none());
+    expect(scopeText(film.placed, NO_SCOPE, film.fps, 1.5)).toEqual(Option.none());
   });
 
   test('a cue or a range of another scene is no scope of a note in this one', () => {
@@ -111,7 +113,7 @@ describe('the scope', () => {
       cue: Option.some({ scene: 'two', name: 'fall' }),
       range: Option.some({ from: 9, to: 10 }),
     };
-    expect(scopeText(film.placed, elsewhere, 1.5)).toEqual(Option.none());
+    expect(scopeText(film.placed, elsewhere, film.fps, 1.5)).toEqual(Option.none());
   });
 
   test('the draft carries the selected cue’s nearer edge and the range cut to its scene', () => {

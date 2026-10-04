@@ -643,14 +643,14 @@ describe('the inspector', () => {
       yield* evaluates(page, 'location.search', '?cue=fall');
       yield* page.press('Shift+Tab');
       yield* evaluates(page, 'location.search', '?cue=rise');
-      // The first edge on from the scene's start is rise's start (its bar's title says it).
-      const riseStart = `Number(document.querySelector('.lab-cue[data-cue="rise"]').title.split(' · ')[1].split('–')[0])`;
+      // The first edge on from the scene's start is rise's start (its bar's title says it, in timecode: to the frame).
+      const riseStart = `document.querySelector('.lab-cue[data-cue="rise"]').title.split(' · ')[1].split('–')[0].split(':').map(Number).reduce((s, n, i) => s + n * [3600, 60, 1, 1 / 30][i], 0)`;
       yield* page.press('.');
-      yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.01`);
+      yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.02`);
       yield* page.press('.');
       yield* page.until(`${URL_T} > ${riseStart} + 0.1`);
       yield* page.press(',');
-      yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.01`);
+      yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.02`);
     }).pipe(Effect.scoped),
   );
 

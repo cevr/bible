@@ -31,6 +31,7 @@ import {
 } from '../../core/choice.ts';
 import { playableOf } from '../../browser/media-browser.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
+import { timecode } from '../../core/time.ts';
 import {
   type Say,
   type SetSayPost,
@@ -914,7 +915,7 @@ const MomentsView = (props: { readonly index: number }) => {
                     <img
                       class="rv-media rv-zoom"
                       src={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
-                      alt={`${variant.label} at ${at()} s`}
+                      alt={`${variant.label} at ${timecode(at())}`}
                       onClick={() =>
                         actions.show(
                           Option.some(

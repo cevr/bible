@@ -14,6 +14,7 @@
 
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
+import { timecode } from '../../core/time.ts';
 import type { LoopRange } from '../../player/main.ts';
 import type { LabView } from '../view-state.ts';
 import { Stage, type StageOps } from '../stage.ts';
@@ -125,11 +126,10 @@ export const spawnLoop = (initial: LoopState) =>
 
 export type LoopActor = Effect.Success<ReturnType<typeof spawnLoop>>;
 
-const at = (t: number) => t.toFixed(2);
-
-/** What the panel says of `state`. */
-export const loopText = (state: LoopState): string =>
-  Match.value(state).pipe(
+/** What the panel says of `state`, each point in timecode at `fps`. */
+export const loopText = (state: LoopState, fps: number): string => {
+  const at = (t: number) => timecode(t, fps);
+  return Match.value(state).pipe(
     Match.tagsExhaustive({
       Off: () => '',
       Marked: (s) =>
@@ -149,6 +149,7 @@ export const loopText = (state: LoopState): string =>
       Cue: (s) => `looping ${s.name}`,
     }),
   );
+};
 
 type ViewLoop = NonNullable<LabView['loop']>;
 

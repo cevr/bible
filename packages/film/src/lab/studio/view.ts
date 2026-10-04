@@ -5,6 +5,7 @@
 // these to the components, so none of them reads the machine's states. Pure.
 
 import { Match, Option, Predicate } from 'effect';
+import { timecode } from '../../core/time.ts';
 import { STUDIO_IMPORT_WAIT_S, type StudioAttempt, type StudioBeat } from '../../core/studio.ts';
 import { minutes } from './api.ts';
 import { clipping, dbfs, type Level, type MicDevice } from './capture.ts';
@@ -129,7 +130,8 @@ export const eventOf = (act: Act, device: Option.Option<string>): RecorderEvent 
 /** A word error rate as the panel prints it. */
 const percent = (wer: number) => `${(wer * 100).toFixed(1)}%`;
 
-const seconds = (s: number) => `${s.toFixed(1)} s`;
+/** A take's length as every time the studio shows: timecode. */
+const seconds = (s: number) => timecode(s);
 
 /** Within this many seconds of the take limit, the recording warns. */
 const NEAR_LIMIT_S = 30;

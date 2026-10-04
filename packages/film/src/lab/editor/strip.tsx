@@ -11,6 +11,7 @@ import { createMemo, createSignal } from 'solid-js';
 import { Pointer } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
+import { timecode } from '../../core/time.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
 import { Target } from '../command/context-menu.tsx';
@@ -111,7 +112,7 @@ const CueRow = (props: CueRowProps) => {
           left: pct(props.placed, props.cue.start),
           width: pct(props.placed, props.cue.dur),
         }}
-        title={`${props.name}: ${title()} · ${props.cue.start.toFixed(2)}–${props.cue.end.toFixed(2)}s · ${props.cue.ease}`}
+        title={`${props.name}: ${title()} · ${timecode(props.cue.start, meta.film.fps)}–${timecode(props.cue.end, meta.film.fps)} · ${props.cue.ease}`}
         onPointerDown={press}
       />
     </div>
@@ -204,7 +205,7 @@ export const Strip = () => {
         return (
           <div class="lab-strip" onPointerDown={scrub}>
             <div class="lab-strip-head">
-              {`${p().spec.id} · ${p().dur.toFixed(2)}s · ${file()}`}
+              {`${p().spec.id} · ${timecode(p().dur, meta.film.fps)} · ${file()}`}
             </div>
             {/* The rows scroll in their own box, the words held at its top, so the film keeps its row. */}
             <div class="lab-strip-scroll">

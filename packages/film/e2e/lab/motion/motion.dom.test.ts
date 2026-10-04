@@ -65,7 +65,7 @@ describe('loops', () => {
         const { page } = yield* openLab([], { href: labAt(1) });
         yield* page.waitFor('.lab-motion [data-act="loop"]');
         yield* fromChip(page, 'loop', 'motion.in');
-        yield* motionSays(page, 'in 1.00');
+        yield* motionSays(page, 'in 00:00:01:00');
         // The player is paused, so the hold's jump leaves the film where it stands.
         yield* page.clock.hold;
         // Three coarse steps of ten frames: a second on, at 30 fps.
@@ -73,7 +73,7 @@ describe('loops', () => {
         yield* page.press('Shift+ArrowRight');
         yield* page.press('Shift+ArrowRight');
         yield* page.press('o');
-        yield* motionSays(page, 'looping in 1.00 – out 2.00');
+        yield* motionSays(page, 'looping in 00:00:01:00 – out 00:00:02:00');
         yield* textIs(page, '[data-act="play"]', '❚❚');
         // Played on past the out point by the page's clock: the loop has come round again inside the range.
         // Then a few frames more, past the quarter second `#t=` is written at most once in.
@@ -90,7 +90,7 @@ describe('loops', () => {
       const { page } = yield* openLab([], { href: labAt(2) });
       yield* page.waitFor('.lab-motion [data-act="loop"]');
       yield* page.press('o');
-      yield* motionSays(page, 'out 2.00: set the in point before it');
+      yield* motionSays(page, 'out 00:00:02:00: set the in point before it');
     }).pipe(Effect.scoped),
   );
 

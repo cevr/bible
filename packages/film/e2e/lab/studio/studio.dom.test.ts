@@ -130,7 +130,9 @@ const statusIs = (page: Tab, pattern: RegExp) => textIs(page, '[data-role="statu
 const recorded = (page: Tab, seconds: number) =>
   page.until(`(() => {
     const status = document.querySelector('[data-role="status"]')?.textContent ?? '';
-    return Number(/^recording · (\\d+(?:\\.\\d+)?) s/.exec(status)?.[1] ?? '-1') >= ${seconds};
+    const tc = /^recording · (\\d\\d):(\\d\\d):(\\d\\d):(\\d\\d)/.exec(status);
+    const kept = tc ? Number(tc[1]) * 3600 + Number(tc[2]) * 60 + Number(tc[3]) + Number(tc[4]) / 30 : -1;
+    return kept >= ${seconds};
   })()`);
 
 /**
@@ -205,7 +207,7 @@ describe('the studio', () => {
           yield* textsAre(
             page,
             '.studio-attempt .studio-attempt-line',
-            files.map(() => '“the law is holy” · 0.0% · 2.5 s'),
+            files.map(() => '“the law is holy” · 0.0% · 00:00:02:15'),
           );
           // Only an attempt that is not the take can be kept.
           yield* countIs(page, '.studio-attempt [data-act="keep"]:not([disabled])', 1);
@@ -237,7 +239,7 @@ describe('the studio', () => {
           yield* textIs(page, '[data-role="peak"]', /^peak −[5-7]\.\d dBFS$/);
           yield* recorded(page, 1.2);
           yield* press(page, ' ');
-          yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
+          yield* statusIs(page, /^review \d\d:\d\d:\d\d:\d\d: hear it, then submit$/);
           yield* attributeIs(page, '[data-role="review"]', 'src', /^blob:/);
           // The browser reads the recording back as audio it can play, over a second long.
           yield* page.until('document.querySelector(\'[data-role="review"]\').duration > 1');
@@ -386,7 +388,7 @@ describe('the studio', () => {
           yield* countedIn(page);
           yield* recorded(page, 0.6);
           yield* press(page, ' ');
-          yield* statusIs(page, /^review \d+\.\d s: hear it, then submit$/);
+          yield* statusIs(page, /^review \d\d:\d\d:\d\d:\d\d: hear it, then submit$/);
           yield* shownAt(page, 1);
           yield* textIs(page, '[data-act="play"]', PAUSED);
           expect(errors).toEqual([]);

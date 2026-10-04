@@ -10,6 +10,7 @@ import { Effect, Option } from 'effect';
 import { createEffect } from 'solid-js';
 import { Pointer } from '../../browser/pointer.ts';
 import { stillUrl } from '../../core/api.ts';
+import { timecode } from '../../core/time.ts';
 import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
@@ -53,13 +54,13 @@ export const Frame = () => {
   );
 };
 
-/** A note in the list: its id, scene and the time it shows at now, with its nearest cue edge. */
-const label = (note: Note, T: number) => {
+/** A note in the list: its id, scene and the time it shows at now (timecode at `fps`), with its nearest cue edge. */
+const label = (note: Note, T: number, fps: number) => {
   const cue = Option.match(Option.fromUndefinedOr(note.cue), {
     onNone: () => '',
     onSome: (c) => ` · ${c.name}:${c.edge}`,
   });
-  return `${note.id} · ${note.scene} · ${T.toFixed(2)}s${cue}`;
+  return `${note.id} · ${note.scene} · ${timecode(T, fps)}${cue}`;
 };
 
 const Still = (props: { readonly name: string }) => {
@@ -107,6 +108,7 @@ const ReplyForm = (props: { readonly note: Note }) => {
 /** One note in the list: its place, words, still and thread. */
 const Item = (props: { readonly note: Note }) => {
   const { state, actions } = useNotes();
+  const { meta } = useLab();
   const selected = () => Option.exists(state.selected(), (s) => s.id === props.note.id);
   return (
     <Target
@@ -120,7 +122,9 @@ const Item = (props: { readonly note: Note }) => {
       }}
     >
       <div class="lab-note-head">
-        <span class="lab-note-label">{label(props.note, state.timeOf(props.note))}</span>
+        <span class="lab-note-label">
+          {label(props.note, state.timeOf(props.note), meta.film.fps)}
+        </span>
         <span class={['lab-badge', props.note.status]}>{props.note.status}</span>
       </div>
       <p class="lab-note-text">{props.note.text}</p>

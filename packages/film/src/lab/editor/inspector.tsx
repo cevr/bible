@@ -12,7 +12,7 @@ import { createMemo } from 'solid-js';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
-import { DEFAULT_EASE } from '../../core/time.ts';
+import { DEFAULT_EASE, timecode } from '../../core/time.ts';
 import { untilText } from '../../core/timeline.ts';
 import { type LabSelection, cueOf } from '../../command/selection.ts';
 import { Field, Hint } from '../command/inspector.tsx';
@@ -85,12 +85,12 @@ const CueFields = (props: CueFieldsProps) => {
           {(until) => (
             <>
               <Key>end</Key>
-              <Val>{`until ${untilText(until())} · ${props.cue.end.toFixed(2)}s`}</Val>
+              <Val>{`until ${untilText(until())} · ${timecode(props.cue.end, meta.film.fps)}`}</Val>
             </>
           )}
         </Show>
         <Key>plays</Key>
-        <Val>{`${props.cue.start.toFixed(2)}–${props.cue.end.toFixed(2)}s in the scene`}</Val>
+        <Val>{`${timecode(props.cue.start, meta.film.fps)}–${timecode(props.cue.end, meta.film.fps)} in the scene`}</Val>
       </div>
       <div class="lab-edit-key">{`ease: ${props.cue.ease}${easeNote()}`}</div>
       <div class="lab-eases">

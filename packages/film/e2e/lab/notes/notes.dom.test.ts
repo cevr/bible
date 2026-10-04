@@ -24,6 +24,7 @@ import {
   route,
 } from '../../../src/lab/fixtures/harness.ts';
 import { ServerFailed } from '../../../src/core/api.ts';
+import { timecode } from '../../../src/core/time.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
@@ -144,7 +145,7 @@ describe('marking a frame', () => {
         const at = yield* onFrame(page, 520, 300);
         yield* page.mouse.click(at.x, at.y);
         yield* waitFor(page, '.lab-compose:not([hidden])');
-        yield* textHas(page, '.lab-where', 'one · 1.00s · f30');
+        yield* textHas(page, '.lab-where', 'one · 00:00:01:00 · ');
         yield* attached(page, '.lab-overlay circle.lab-draft');
         yield* save(page, 'the ball rises too early');
         yield* waitFor(page, '.lab-notes .lab-note-item.selected[data-id="n1"]');
@@ -224,7 +225,7 @@ describe('marking a frame', () => {
         yield* page.mouse.up;
         yield* page.press('n');
         yield* waitFor(page, '.lab-compose:not([hidden])');
-        yield* textHas(page, '.lab-where', 'one · 1.00s');
+        yield* textHas(page, '.lab-where', 'one · 00:00:01:00');
         expect(posted(asked, /^\/notes$/)).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -350,7 +351,7 @@ describe('marking a frame', () => {
         yield* textIs(page, '[data-act="note-frame"]', 'Note frame');
         yield* click(page, '[data-act="note-frame"]');
         yield* waitFor(page, '.lab-compose:not([hidden])');
-        yield* textHas(page, '.lab-where', 'one · 1.00s · f30');
+        yield* textHas(page, '.lab-where', 'one · 00:00:01:00 · ');
         yield* save(page, 'the whole frame is too dark');
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         const body = theNote(asked);
@@ -404,7 +405,7 @@ describe("a note's place", () => {
           href: labAt(3),
         });
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
-        yield* textHas(page, '.lab-note-label', `two · ${shown.toFixed(2)}s`);
+        yield* textHas(page, '.lab-note-label', `two · ${timecode(shown)}`);
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
         yield* evaluates(page, `Math.round(${URL_T} * ${film.fps})`, Math.round(shown * film.fps));
         yield* attached(page, '.lab-overlay rect.lab-note');
@@ -456,7 +457,11 @@ describe("a note's place", () => {
         yield* page.mouse.up;
         yield* waitFor(page, '[data-role="in-out"]');
         yield* page.press('n');
-        yield* textIs(page, '[data-role="note-scope"] .lab-scope-text', 'one · rise · t 0.5–1.0 s');
+        yield* textIs(
+          page,
+          '[data-role="note-scope"] .lab-scope-text',
+          'one · rise · 00:00:00:15–00:00:01:00',
+        );
         yield* save(page, 'the rise starts too late');
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         const body = theNote(asked);

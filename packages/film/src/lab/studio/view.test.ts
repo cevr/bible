@@ -123,15 +123,15 @@ describe('statusOf', () => {
         RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 }),
         Option.some({ peak: 0.5, rms: 0.1, kept: 3.25 }),
       ),
-    ).toBe('recording · 3.3 s of at most 5 min');
+    ).toBe('recording · 00:00:03:08 of at most 5 min');
     expect(
       statusOf(
         RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 379.4 }),
         Option.some({ peak: 0.5, rms: 0.1, kept: 61.25 }),
       ),
-    ).toBe('recording · 61.3 s of at most 6 min 19 s');
+    ).toBe('recording · 00:01:01:08 of at most 6 min 19 s');
     expect(statusOf(RecorderState.Review({ beat: 'a', wav }), Option.none())).toBe(
-      'review 2.5 s: hear it, then submit',
+      'review 00:00:02:15: hear it, then submit',
     );
     expect(
       statusOf(
@@ -244,7 +244,7 @@ describe('attemptLine', () => {
       kept: true,
       current: true,
     };
-    expect(attemptLine(a)).toBe('“hello world” · 12.5% · 3.5 s');
+    expect(attemptLine(a)).toBe('“hello world” · 12.5% · 00:00:03:14');
   });
 });
 
