@@ -6,7 +6,8 @@
 // The usable area is measured as a tap meets it, not as the element's box:
 // a grid of points every `STEP` px over the target's box and a margin of half
 // a target round it, each asked `document.elementFromPoint`; the points that
-// land on the target or inside it are its area. So padding and a
+// land on the target or a label of it, with no other control nearer (a link
+// inside a label is the link's), are its area. So padding and a
 // pseudo-element hit-slop (`::before` past the box) count, and a part another
 // element covers does not. The target passes when a square of `hit` px fits
 // in that area (the square in the middle of its largest box is asked first:
@@ -160,9 +161,13 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
       if (asked[k]) return grid[k];
       asked[k] = 1;
       const node = document.elementFromPoint(x0 + i * STEP, y0 + j * STEP);
-      if (inSet(set, node)) return (grid[k] = 1);
-      const other = node && node.closest(TARGETS);
-      return (grid[k] = other && !other.contains(el) && shown(other) ? 2 : 0);
+      if (node === null) return (grid[k] = 0);
+      // The point's owner is the nearest control holding it: a link inside a
+      // label is the link's, never the label's field's (HTML: a label's
+      // activation leaves out its interactive descendants).
+      const owner = node.closest(TARGETS);
+      if (inSet(set, node) && (owner === null || owner === el || owner.contains(el))) return (grid[k] = 1);
+      return (grid[k] = owner && !owner.contains(el) && shown(owner) ? 2 : 0);
     };
     // Most targets pass on the square in the middle of their largest box: asked first, it spares the rest.
     const n = Math.ceil(HIT / STEP), lb = boxOf(lead);

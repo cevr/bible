@@ -3,8 +3,9 @@
 // reaches (a target half under a neighbour fails; a target whose middle is
 // covered passes on the free part beside it), spacing looks at neighbours'
 // hit-slops, a backing input is left out only when nothing of it can be seen
-// or pressed, only a link on a line of text is inline, and a layer is
-// measured within itself, its menu items as targets.
+// or pressed, only a link on a line of text is inline, a link inside a label
+// is the link's area and never the label's field's, and a layer is measured
+// within itself, its menu items as targets.
 
 import { Effect } from 'effect';
 import { describe, it } from 'effect-bun-test';
@@ -89,6 +90,16 @@ describe('the touch-target measure', () => {
        <div style="position:absolute;top:300px;left:16px"><a href="#b">Versions</a><br>a later line of words</div>`,
       ['a "Versions" 64×16 □16'],
     ),
+  );
+
+  it.live(
+    "fails a field whose label is all another control's: a link in a label is the link's",
+    () =>
+      offenders(
+        `<input type="checkbox" id="agree" class="at" style="left:10px;top:400px;width:1px;height:1px;margin:0">
+       <label for="agree" class="at" style="left:100px;top:400px;width:44px;height:44px"><a href="#terms" style="display:block;width:44px;height:44px">terms</a></label>`,
+        ['input[type=checkbox].at "" 2×2 □2'],
+      ),
   );
 
   it.live("measures a layer's own targets, menu items among them, and not what lies under it", () =>
