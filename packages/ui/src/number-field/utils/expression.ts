@@ -6,9 +6,13 @@
 // work). Text that opens with `+`, `*` or `/` is relative to the value before
 // editing began: `+0.1` adds, `*2` doubles, `/2` halves. A leading `-` stays
 // a negative number, so `-0.1` is minus a tenth, and `+-0.1` subtracts it.
-// `×` and `÷` read as `*` and `/`. The parser is a small recursive descent
-// over + - * / and parentheses; nothing is evaluated as code.
+// `×` and `÷` read as `*` and `/`. A sign after a number's exponent (`1e-3`,
+// `2E+4`) is the exponent's, not a sum. The parser is a small recursive
+// descent over + - * / and parentheses; nothing is evaluated as code.
 import { ANY_MINUS_RE, ANY_PLUS_RE, FORMAT_CONTROL_DETECT_RE, parseNumber } from './parse.ts';
+
+/** A number's text that ends in its exponent's `e`: the sign that follows is the exponent's. */
+const EXPONENT_OPEN_RE = /\d[eE]$/;
 
 /** The keys an expression adds to what a number field accepts. */
 export const EXPRESSION_KEYS: ReadonlySet<string> = new Set([
@@ -46,7 +50,9 @@ function tokenize(text: string): Array<Token> {
     run = '';
   };
   for (const char of normalized) {
-    if (OPERATORS.has(char)) {
+    if ((char === '+' || char === '-') && EXPONENT_OPEN_RE.test(run)) {
+      run += char;
+    } else if (OPERATORS.has(char)) {
       endRun();
       tokens.push({ op: char as Operator });
     } else {

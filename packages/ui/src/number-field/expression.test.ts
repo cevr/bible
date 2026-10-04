@@ -53,6 +53,15 @@ describe('evaluateExpression', () => {
     expect(evaluateExpression('50%+10%', null, 'en-US', { style: 'percent' })).toBe(0.6);
   });
 
+  it('reads an exponent as part of its number, not as a sum', () => {
+    expect(isExpression('1e-3')).toBe(false);
+    expect(isExpression('1e+3')).toBe(false);
+    expect(evaluateExpression('1e-3', null)).toBe(0.001);
+    expect(evaluateExpression('1e+3', null)).toBe(1000);
+    expect(evaluateExpression('2E-1*10', null)).toBe(2);
+    expect(evaluateExpression('1e3-1', null)).toBe(999);
+  });
+
   it('returns null for text that does not read', () => {
     expect(evaluateExpression('1+', null)).toBeNull();
     expect(evaluateExpression('(1+2', null)).toBeNull();
