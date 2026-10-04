@@ -10,7 +10,7 @@
 //   Writing (a step) ─TimedOut (STEP_TIMEOUT_S)→ Checking (the lab's latest
 //     change read back) ─Landed→ Written | ─Failed→ Refused
 //
-// A write holds `#T` at the frame it is asked at (the file change reloads the
+// A write holds `#t=` at the frame it is asked at (the file change reloads the
 // page there; a file the page reads at load, as an Undo of a kept take
 // changes, rebuilds nothing, so the machine reloads the page itself); a
 // refused one, or one with no answer in WRITE_TIMEOUT_S, lets it go and puts
@@ -22,12 +22,13 @@
 
 import { Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
+import { SceneEdit } from '../../canvas/film.ts';
 import { CheckLine, type CheckReport, LabWrite } from '../../core/schema.ts';
 import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { readAtLoad } from '../../player/narrated.ts';
 import { LabApi, LabUnreachable, StepVerb } from '../api.ts';
 import { Stage } from '../stage.ts';
-import { Edit, Grip, Pointer, StepWrite, Write, drag, wroteNote } from './grip.ts';
+import { Grip, Pointer, StepWrite, Write, drag, wroteNote } from './grip.ts';
 
 /**
  * How long a write may be out before the editor gives up on it: a server that
@@ -72,7 +73,7 @@ export const EditEvent = Event({
   Release: {},
   Cancel: {},
   /** A write asked for from rest (a field, an ease, a knob), shown first as `edit`. */
-  Commit: { write: Write, edit: Edit },
+  Commit: { write: Write, edit: SceneEdit },
   /** An Undo or Redo, with the change the page's history said it walks (`StepWrite.expected`). */
   Step: { verb: StepVerb, expected: Schema.optionalKey(Schema.String) },
   Wrote: { result: LabWrite },
@@ -144,11 +145,11 @@ const noteOf = (state: EditState): string =>
 const letGo = (scene: string, note: string) =>
   Stage.use((stage) => Effect.as(stage.unpreview(scene), EditState.Idle({ note })));
 
-/** Send `write`, holding `#T` for the reload it causes. */
+/** Send `write`, holding `#t=` for the reload it causes. */
 const writing = (write: Write) =>
   Stage.use((stage) => Effect.as(stage.holdT, EditState.Writing({ write })));
 
-/** A write that did not land: let `#T` go, put the preview back, and say `message`. */
+/** A write that did not land: let `#t=` go, put the preview back, and say `message`. */
 const refuse = (write: Write, message: string) =>
   Stage.use((stage) =>
     stage.settle.pipe(

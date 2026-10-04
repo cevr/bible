@@ -27,9 +27,9 @@ const undoneTake: LabWrite = {
 const gated = () => {
   const page = { reloads: 0, waiting: '' };
   const gate = makeReloadGate(
-    () => {
+    Effect.sync(() => {
       page.reloads += 1;
-    },
+    }),
     (text) => {
       page.waiting = text;
     },

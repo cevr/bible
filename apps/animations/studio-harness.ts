@@ -8,7 +8,7 @@
 //
 //   HARNESS_FILM=<film> bun studio-harness.ts   (from apps/animations)
 //
-// The lab is at http://127.0.0.1:$HARNESS_PORT (4411) /lab?film=<film>. Its
+// The lab is at http://127.0.0.1:$HARNESS_PORT (4411) /films/<film>/lab. Its
 // control sits beside the lab's routes, behind the lab's gate (a write is
 // JSON from the lab's own origin, or a tool's: `curl -H 'content-type:
 // application/json' -d '{}'`): `POST /harness/mishear/<beat>` (hear that beat
@@ -39,6 +39,7 @@ import {
   beatsOf,
   labHandler,
   labServer,
+  pageHref,
   serveLab,
 } from '@bible/film/tools';
 import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path, Schema } from 'effect';
@@ -172,8 +173,10 @@ const Harness = Layer.unwrap(
       Layer.provide([Repo, Platform]),
     );
     // The lab reviews nothing here: no render roots, but its choices over the copy.
-    const Reviewed = Review.layerConfig(Effect.succeed([])).pipe(Layer.provide([Heard, Platform]));
     const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
+    const Reviewed = Review.layerConfig(Effect.succeed([])).pipe(
+      Layer.provide([Heard, Catalogue, Platform]),
+    );
     const Pages = LabPage.layer({ pages: LAB_PAGES, films: root }).pipe(
       Layer.provide(PageBundler.layer),
       Layer.provide(Platform),
@@ -202,7 +205,7 @@ const Harness = Layer.unwrap(
         const lab = yield* labHandler({ hosts: [] }, control(misheard, root));
         const server = yield* Layer.build(labServer({ hostname: '127.0.0.1', port }));
         const url = yield* serveLab(lab).pipe(Effect.provideContext(server));
-        yield* Effect.log(`harness.ready url=${url}lab?film=${film} root=${root}`);
+        yield* Effect.log(`harness.ready url=${new URL(pageHref.lab(film), url)} root=${root}`);
       }),
     );
     return Server.pipe(Layer.provide(Services));

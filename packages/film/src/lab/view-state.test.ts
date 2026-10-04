@@ -4,10 +4,10 @@
 // default view, never an error.
 
 import { describe, expect, test } from 'bun:test';
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import { storeOver } from '../browser/storage.ts';
 import { deniedStorage, memoryStorage, refusingStorage } from '../browser/fixtures/storage.ts';
-import { DEFAULT_VIEW, viewStore } from './view-state.ts';
+import { DEFAULT_VIEW, type LabView, viewStore } from './view-state.ts';
 
 /** The film the stored views are read against: 392.9 s long. */
 const DURATION = 392.9;
@@ -34,7 +34,7 @@ describe('lab view state', () => {
     const { page } = tab();
     const before = page();
     before.patch({ rate: 0.25 });
-    before.patch({ loop: { kind: 'cue', scene: 'hand', name: 'topple' } });
+    before.patch({ loop: Option.some({ kind: 'cue', scene: 'hand', name: 'topple' }) });
     before.patch({ onion: { on: true, count: 3, spacing: 2 } });
     before.patch({ compare: { mode: 'wipe', split: 0.3 } });
     before.patch({ playing: true });
@@ -54,7 +54,7 @@ describe('lab view state', () => {
 
   test('is kept as the JSON it always was, under the film’s key', () => {
     const { storage, page } = tab();
-    page().patch({ rate: 0.5, loop: { kind: 'ab', from: 1, to: 2 } });
+    page().patch({ rate: 0.5, loop: Option.some({ kind: 'ab', from: 1, to: 2 }) });
     expect(storage.items.get('film-lab-view:f')).toBe(
       '{"rate":0.5,"loop":{"kind":"ab","from":1,"to":2},"onion":{"on":false,"count":2,"spacing":3},"compare":{"mode":"off","split":0.5},"playing":false}',
     );
@@ -62,8 +62,8 @@ describe('lab view state', () => {
 
   test('a loop can be turned off', () => {
     const { page } = tab();
-    page().patch({ loop: { kind: 'ab', from: 1, to: 2 } });
-    page().patch({ loop: undefined });
+    page().patch({ loop: Option.some({ kind: 'ab', from: 1, to: 2 }) });
+    page().patch({ loop: Option.none() });
     expect(page().get().loop).toBeUndefined();
   });
 
@@ -84,7 +84,7 @@ describe('lab view state', () => {
 
   test('a stored A–B loop is read against the film as it is now: clamped to it, or dropped', () => {
     const { storage, page } = tab();
-    const stored = (loop: unknown) => {
+    const stored = (loop: NonNullable<LabView['loop']>) => {
       storage.setItem('film-lab-view:f', jsonText({ ...DEFAULT_VIEW, loop }));
       return page().get().loop;
     };

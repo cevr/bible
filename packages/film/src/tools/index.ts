@@ -35,6 +35,7 @@ export * from './fresh-film.ts';
 export * from './choice-points.ts';
 export { Review, type ReviewRoot } from './review.ts';
 export { labServer, serveLab } from './api-server.ts';
+export { pageHref } from '../core/api.ts';
 export * from './notes-lines.ts';
 export * from './scene-source.ts';
 export * from './scene-head.ts';

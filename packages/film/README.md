@@ -10,8 +10,8 @@ recorded words, and every frame is a pure function of that film and a time.
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@bible/film/core`         | The clock: easing and `progress` (`time`), seeded noise (`random`), `{mark}` narration timing, named cues (`timeline`), the sound plan, scene `layout`, a person's takes (`recording`, `align`, the reading `sheet`, the studio's wire `studio`), and the mix: `mixPlan` (what plays where) and `renderMix` over planar PCM (`audio`, `dsp`: the ffmpeg filters it replaced, ported), and the procedural synth (`synth/`: `synthesize(recipe, seed)` makes room tone, chimes, drones, drains, blooms, notes, wind and rain as pure seeded functions; `loudness` is an ITU-R BS.1770-4 meter, integrated, momentary max and peak), and the sound library's pure half (`sfx`: `family.thing` names, generated, procedural and recorded declarations, the lock's variants and the request hash that says a sound is current, which variant each placement plays and its seeded jitter, levels in dB relative to the voice). The entry names only what films, their kits, the app's sound library and tests import (the clock, `hash2`/`rng`, `defineScript` and the film schemas, `defineLibrary`, `defineStore`); the framework reads every other module by its path.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `@bible/film/canvas`       | The Canvas 2D draw kit (ink, cutout, paper by meaning (`piece`: a figure cut and outlined, its line crawling, scenery torn with no ink and held still; `stroke`'s `boil`: tick, crawl or none), the `ground` contact shadow, paper fibre fixed to the backdrop plane (`planeFibre`), paper under a faint film grain, type, the one floating mitten hand with no arm (`hand.ts`: `floatingHand(ctx, root, { to, reach, grip }, style, hand)`, at rest beside its figure bobbing with the breath (`breathOf`), travelling toward its target on a soft arc about the shoulder, eased, with a settle, its grip forming from the open rest as it arrives; a hand at work that changes grip names the grip it `was` and morphs into the new one by `change`, point for point, never swapping in a frame (`handShape` its outline, for tests); `handAt` where it is, pure and allocation-free; `closeHand` the same hand close up, an open hand held out palm up seen from above, the palm the biggest shape, its middle on the origin, whose round finger block bends up toward the eye and back over the palm to cup (`closeShape` its outline at any `open`, continuous), with a lifeline and two soft joint lines; `CLOSE_SPAN` its length, no forearm; a gesture's `turn` turns its mitten palm up into the same shape at the mitten's size (`palmUpFrame`), so a push from the figure's hand into the close-up is one shape at two scales), figure, multiplane camera; every drawn scene breathes once by `DRIFT` (a scene's own `drawing({ drift })` in its place, `0` held still): through its outermost `camera` or `multiplane` when it frames one (a shot's `drift` is its share, `0` held still, `driftHeld`), as the outermost transform over its whole draw when it frames none, `shotPath`/`lerpCamera` shots (a deep push by `pushInto`, its target held in frame), `inset` for a picture in picture whose shots never take the scene's breath and `knobCamera` framings from knobs, storyboard), `createFilm`, which composites any `T`, and the text probe (`probe.ts`) `film check` reads. The entry names only what films, their kits and their tests use, the credits roll (`creditRoll`), `glow`, `sky`, `wash`, `mix`, `clearOf`, the `Hex` a colour is written as (a palette `satisfies Record<string, Hex>`, `Light`'s colours) and `reset` among them; the engine's own parts (`handShape`, `closeShape`, `palmUpFrame`, `lerpCamera`, `planeFibre`, the paper's sheets) are exported from their files for the framework and its tests. |
-| `@bible/film/player`       | `mountPlayer(films)`: the scrubbable preview (`mountPreview`), drawn once every font face the page declares has loaded (`stageFilm`; the engine names no family), whose track marks marks, cues, sound effects and score movements (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, the narration as a typed state (`narration.ts`: `None`, `Loading` (a play asked then starts once it can, from the clock's time then), `Ready`, `Blocked` until a click, `Missing` when the master will not load or play, which the preview then never asks to play and says `no narration`), and the look-book (`?lookbook`, `lookbook.ts`), set in the film's own type (its shorts' hook and caption families). Framework-free, so the renderer's page never loads Solid; an old `?lab` link goes to the lab's page (`labUrl`). `player.css` styles it and the lab. The entry exports only `mountPlayer`, `narratedFilms` and the `Narrated` type; the lab reaches the rest of `main.ts` by path. `src/exports.test.ts` guards this entry, `canvas`, `stand-in` and `core`: each names its exports, and each name has a user; and every module under `core/`, `lab/`, `tools/`, `canvas/`, `player/`, `browser/` and `lint/` exports only names another file imports (read by the parser, so a comment hides nothing; a `.types.ts` check, a fixture film and a lint fixture are not swept).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
-| `@bible/film/lab`          | `mountLab(films)`: the lab's own page (`/lab?film=<film>`), Solid 2 components around the same preview. `lab/shell.tsx` is the shell as compound components (`<Lab.Root>`, `<Lab.Overlay>`, `<Lab.Layer>`, `<Lab.Strip>`, `<Lab.Panel>`, `<Lab.Header>`, `<Lab.Section>`); the editor (`lab/editor/`: `<Editor.Provider>`, `<Editor.Strip>`, `<Editor.Section>`) writes through its effect-machine; Motion (`lab/motion/`: `<Motion.Provider>`, `<Motion.Section>`, `<Motion.Onion>`) and Compare (`lab/compare/`: `<Compare.Provider>`, `<Compare.Section>`, `<Compare.Layer>`, `<Compare.Divider>`) each hold one machine; the notes (`lab/notes/`: `<Notes.Provider>`, `<Notes.Pen>`, `<Notes.Section>`, `<Notes.Marks>`, `<Notes.Pins>`) hold the feed and the composer machines. Every panel is Solid; none mounts plain DOM into the shell.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `@bible/film/player`       | `mountPlayer(films)`: the scrubbable preview (`mountPreview`), drawn once every font face the page declares has loaded (`stageFilm`; the engine names no family), whose track marks marks, cues, sound effects and score movements (`core/ticks.ts`), the `?export` handle (`ExportHandle`) a renderer drives, the narration as a typed state (`narration.ts`: `None`, `Loading` (a play asked then starts once it can, from the clock's time then), `Ready`, `Blocked` until a click, `Missing` when the master will not load or play, which the preview then never asks to play and says `no narration`), and the look-book (a film's scenes page, `lookbook.ts`), set in the film's own type (its shorts' hook and caption families). Framework-free, so the renderer's page never loads Solid; it reads its place from the URL (`/films/<film>/play#t=`, `/films/<film>/scenes`). `player.css` styles it and the lab. The entry exports only `mountPlayer`, `narratedFilms` and the `Narrated` type; the lab reaches the rest of `main.ts` by path. `src/exports.test.ts` guards this entry, `canvas`, `stand-in` and `core`: each names its exports, and each name has a user; and every module under `core/`, `lab/`, `tools/`, `canvas/`, `player/`, `browser/` and `lint/` exports only names another file imports (read by the parser, so a comment hides nothing; a `.types.ts` check, a fixture film and a lint fixture are not swept).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `@bible/film/lab`          | `mountLab(films)`: the lab's own page (`/films/<film>/lab[/<scene>]`), Solid 2 components around the same preview. `lab/shell.tsx` is the shell as compound components (`<Lab.Root>`, `<Lab.Overlay>`, `<Lab.Layer>`, `<Lab.Strip>`, `<Lab.Panel>`, `<Lab.Header>`, `<Lab.Section>`); the editor (`lab/editor/`: `<Editor.Provider>`, `<Editor.Strip>`, `<Editor.Section>`) writes through its effect-machine; Motion (`lab/motion/`: `<Motion.Provider>`, `<Motion.Section>`, `<Motion.Onion>`) and Compare (`lab/compare/`: `<Compare.Provider>`, `<Compare.Section>`, `<Compare.Layer>`, `<Compare.Divider>`) each hold one machine; the notes (`lab/notes/`: `<Notes.Provider>`, `<Notes.Pen>`, `<Notes.Section>`, `<Notes.Marks>`, `<Notes.Pins>`) hold the feed and the composer machines. Every panel is Solid; none mounts plain DOM into the shell.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `@bible/film/review`       | `mountReview`: the review page (served by `film lab` at `/`), `<Root>`, `<SetProvider>` and its pages mounted: renders compared in sync, a film's options and its project.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `@bible/film/solid-plugin` | The Bun plugin that compiles `.tsx` with Solid's compiler (`@solidjs/compiler`): the app's `bunfig.toml` (`[serve.static]`) and the lab's browser tests bundle with it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `@bible/film/stand-in`     | The one stand-in 2D context for tests (bun has no canvas): `recorder` holds a canvas's drawing state from a canvas's defaults, saved and restored whole (the transform, which `setTransform` takes as six numbers, a matrix or nothing; an alpha kept within 0..1; the shadow, font, line width and every other property set), records each fill and image, answers a pixel read with the last hex fill over it (so a face's opacity read takes the canvas's branch and `cutout` draws pre-blended faces as a render does), and with `onCall` tells a test of every call and property set (how `check --draw`'s leg, `tools/draw-check.ts`, logs a frame to check it is pure); with `measure` it sets text with a test's own advances in the context's font; each canvas it makes carries its number (`isStandInCanvas`, `made`); `withDom`/`standInDom` put up a document whose canvases are stand-ins; it refuses what a real canvas refuses (a negative radius, a colour stop off 0..1, a stop colour made of NaN or undefined, a non-finite gradient coordinate). The framework's canvas tests and `check --draw` draw into it.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -644,19 +644,54 @@ stopped, which stops the server and the routes with the command's scope. The
 server is Effect's over `Bun.serve` (`labServer` and `serveLab`,
 `tools/api-server.ts`): no route or development server of Bun's, so every
 request reaches the gate. It serves three pages, the
-app's, cross-linked: the review at `/` (below), the lab at `/lab?film=<film>`
-(`lab.html`, whose entry calls `mountLab(films)`) and the player, its
-look-book, at `/player?film=<film>&lookbook`. Its API is under `/api/` (The
-HTTP API, below), and every other path a page serves is the framework's one
-page table (`PAGE_PATHS` in `core/api.ts`; the app gives each page's HTML
-entry, `LabPageSpec.pages`): the review at `/` and `/sets/*` and a film's
-`/films/<film>/choices` and `/films/<film>/project`, the lab at
-`/films/<film>/lab` and `/films/<film>/lab/*`, the player at
-`/films/<film>/play` and a film's `/films/<film>/scenes[/*]` (its look-book),
-and `/lab` and `/player` as before. A path no page declares is a 404, never
-a page. `LAB_HOST` (loopback by default) and `LAB_PORT` (8229) say where it
+app's, cross-linked: the review (below), the lab (`lab.html`, whose entry
+calls `mountLab(films)`) and the player with its look-book. Its API is under
+`/api/` (The HTTP API, below), and every other path a page serves is one of
+the framework's places (`Places` in `core/api.ts`, each a `@bible/url-state`
+Place; the app gives each page's HTML entry, `LabPageSpec.pages`), as
+**Pages and links** (below) lists them. An old link (`/lab?film=<film>`,
+`/player?film=<film>&lookbook`, `/?project=<film>`, `/?folder=…`) answers a
+302 to its place (`legacyPlace`, logged `lab.page.moved`), and the browser
+keeps its `#…` across. A path no place declares is a 404, never a page.
+`LAB_HOST` (loopback by default) and `LAB_PORT` (8229) say where it
 listens; a box binds `0.0.0.0` with the names it is reached by in
 `FILM_LAB_HOSTS`.
+
+**Pages and links.** Every view a reviewer would talk about is a URL, so a
+pasted link opens what the sender saw and Back walks the views: the path
+says what the view is about, the query what is selected in it or how it is
+shown, the hash when (`#t=`, seconds). Each page reads and writes its place
+through `@bible/url-state` (`UrlState`: a selection is a history entry; a
+refinement and the playhead replace the entry), and every link is printed by
+`pageHref` over the same places.
+
+| Place                            | Page   | Query                                                      | Hash                         |
+| -------------------------------- | ------ | ---------------------------------------------------------- | ---------------------------- |
+| `/`                              | review |                                                            |                              |
+| `/sets/<folder>`                 | review |                                                            |                              |
+| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`                                       | `t` (the set's video)        |
+| `/films/<film>/choices`          | review | `heard` (a point, or `own`), `variant`, `picture`          | `t` (the picture)            |
+| `/films/<film>/project`          | review | `point` (the card in focus), `heard`, `variant`, `picture` | `t` (the picture)            |
+| `/films/<film>/scenes[/<scene>]` | player |                                                            |                              |
+| `/films/<film>/play`             | player |                                                            | `t` (film time)              |
+| `/films/<film>/lab`              | lab    | `note`                                                     | `t` (film time)              |
+| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`                     | `t` (from the scene's start) |
+
+The lab writes a scene's place (`lab/place.ts`): the path names the
+selected cue's or knob's scene, else the scene under the playhead, so play
+or a seek across a scene's end moves the path and rebases `#t=` in one
+write, and a write's reload comes back to the frame, the pick and the note.
+A pick and a note are history entries (Back undoes them); the time replaces
+the entry, and Back or Forward lands the player on the time the entry keeps
+(`onTraverse`, `browser/host.ts`; the review's players too), a time still
+waiting to be written for the entry left dropped. A bare `#<seconds>` (an old link's film time) opens on that frame.
+A still on a film's scenes page opens its scene in the lab at its time; a
+short's opens its play page, as the lab opens films.
+
+A folder ref is one path segment (`bible-tools%2Frighteousness-by-faith`), as
+is a short's name. Rate, onion, loop, compare, the microphone, quality and
+the home filter are this viewer's own settings and stay in the browser's
+storage, never in a link.
 
 **The pages are built in the lab's process** (`LabPage`, `tools/lab-page.ts`):
 `Bun.build` with `@bible/film/solid-plugin` (the `PageBundler` service, with a
@@ -920,7 +955,8 @@ ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and 
   length, kept, recorded for an earlier line) play from their audio route
   and **Keep** makes one the take.
 - **After a take is kept and mixed** the machine asks the stage to reload the
-  page (`Stage.reload`: `#T` held, then `location.reload()`): the player reads
+  page (`Stage.reload`: the lab's place held, written to the address bar,
+  then the page loaded again through `PageLoad`): the player reads
   the timings and the track once, at load, so the film then plays the new
   take at the same T, back on the same beat (the view keeps it). A mix that
   failed reloads nothing and the status says so. The app serves the
@@ -974,21 +1010,24 @@ layout it draws, so a note carries the cue the viewer saw.
 **The page** (`lab/`, Solid 2 around the framework-free preview): the shell
 (`lab/shell.tsx`) is compound components. `<Lab.Root>` holds what every panel
 shares (the film, its player, the lab API's base, the view kept through a
-reload, `T`, the frame drawn last, as a signal, the selection (kept in the URL as
-`sel`), and a runtime for the panels' machines: `Stage`, the preview as they
-drive it (`lab/stage.ts`: edits shown in memory, `#T` held for a write), and
+reload, `T`, the frame drawn last, as a signal, and `scene`, the scene under
+it, the selection and the note (the URL's, `lab/place.ts`), and a runtime for
+the panels' machines: `Stage`, the preview as they drive it (`lab/stage.ts`:
+edits shown in memory, the lab's place held for a write), and
 `LabApi`, every lab route through `HttpClient` with its Schema, a refusal
 being the server's own text (`lab/api.ts`)); `<Lab.Overlay>` and
 `<Lab.Layer>` are pinned exactly over the film canvas and follow it as it
 resizes; `<Lab.Strip>` is a slot right under the player's timeline;
-`<Lab.Panel>`, `<Lab.Header>` (with the look-book link) and `<Lab.Section>`
+`<Lab.Panel>`, `<Lab.Header>` (with the film's project, choices and
+look-book links, each named by its `data-link`) and `<Lab.Section>`
 lay out the side panel. Each tool's state lives in its own provider; the
 shell knows none of it. A provider's context gives values derived from its
 machine and actions, never the machine's state: the editor's `status` and
 `findings`, Compare's `mode`, `layer` (`hidden`, `head` or `now`) and
 `split`, the notes' `composerOpen`, `composerTyping` and `draft`; so no
 component matches a state's tag, and a renamed state touches only its
-module. The browser E2E tests (`e2e/lab/**/*.dom.test.ts`) open the real
+module. The browser E2E tests (`e2e/lab/**/*.dom.test.ts`, and
+`e2e/player/` for the play page and the look-book) open the real
 page over a probe film in headless Chrome with the lab API faked
 (`lab/fixtures/harness.ts`) and the page's clock the test's
 (`lab/fixtures/clock.ts`): a count-in, a retry or a loop's playback is moved
@@ -1042,8 +1081,13 @@ build counter, `lab/rebuilt.ts`; there is no HMR client.)
 `film notes <film>` (`notes-cli.ts`) prints each unresolved note as one line:
 
 ```
-note id=n1 seq=1 status=open scene=hand T=230.38 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
+note id=n1 seq=1 status=open scene=hand T=230.38 local=4.12 frame=6911 cue=topple:end mark=hand box=760,560,400x400 replies=0 still=/…/lab/<film>/stills/n1.png text="…"
 ```
+
+`T=` is film time when the note was made; `local=` (on a note that has it) is
+seconds into its scene, which an earlier scene's re-take does not move: the
+note's frame now is the scene's `start=` (`film cues <film> <scene>`) plus
+`local`.
 
 `--watch` prints each new note, and each reply from the user (`reply id=…
 by=user … still=… text="…"`), once per run, starting past the current cursor
@@ -1056,9 +1100,10 @@ An unknown id fails with `NoteNotFound`, listing the film's notes.
 ### Editing cues and knobs
 
 The lab also edits the scene source: a cue's `offset`, `dur` and `ease` and a
-knob's value, each written into the scene's `.ts` file on release. The dev
-server rebuilds and reloads the page at the same `#T`, with the selection
-kept in the URL (`&sel=cue:hand:topple`, `&sel=knob:hand:palm`); review the
+knob's value, each written into the scene's `.ts` file on release. The lab
+rebuilds its page (`LabPage`) and the open page reloads itself (`lab/rebuilt.ts`)
+at the same frame and pick, kept in its place (`/films/<film>/lab/hand?cue=topple#t=…`,
+`?knob=palm`); review the
 change with `git diff`.
 
 | Route                                              | What it does                                                                                        |
@@ -1217,9 +1262,12 @@ with 0.4 s either side. A–B loops any range. The loop is one effect-machine (`
 
 **Compare** (`lab/compare/`, Solid 2) reads the scene's file at HEAD
 (`GET /api/films/<film>/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`
-and parses it with the locator and parser the writer uses) and draws the
-frame with HEAD's timeline and knobs through today's code (`film.render(…,
-{ edits })`, over whatever else the lab previews) on a layer over the film: wipe (HEAD left of a draggable
+and parses it with the locator and parser the writer uses; read once per
+scene while a mode is on, and again after it is turned off and on, so a
+commit made since shows) and draws the frame with HEAD's timeline and knobs
+through today's code (`player.renderShown`, the frame as the lab shows it,
+with HEAD's edit over whatever else the lab previews) on a layer over the
+film: wipe (HEAD left of a draggable
 divider) or blink. The mode is one effect-machine (`lab/compare/machine.ts`): `Off | Wipe | Blink` on `Choose | Split | Flip`, a blink flipping itself every 450 ms by the machine's timeout. Only data can differ that way; when the file's code
 changed since HEAD the panel says so, and a HEAD the server cannot give shows the server's reason.
 
@@ -1228,7 +1276,8 @@ the palette (`createFilm({ palette })`) as swatches, then per scene a row of
 stills at every cue's start and end and its 60% point (`sceneMoments`, the
 moments `film check` samples, less the marks), each labelled with the cue
 and time. The page composes it with `film.render`, so the lab shows it live
-(`?film=<film>&lookbook`, a still opening that frame in the lab) and
+(a film's scenes page, `/films/<film>/scenes`, a still opening its scene in
+the lab at its time) and
 `film lookbook <film> [--captions] [--variant v]` asks one export page for the
 same sheet (`ExportHandle.lookbook`, `RenderJob.LookBook`), writes
 `out/<film>/film/<variant>/lookbook.jpg` and records it in the catalogue. A sheet
@@ -1354,22 +1403,23 @@ Derived files (frames, 720p phone copies of big videos, option mixes) are
 kept in `FILM_REVIEW_CACHE` (`~/.cache/film-review`); `FILM_REVIEW_PHONE=off`
 makes no phone copies.
 
-| Route                                                                           | What it answers                                                     |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `GET /api/review/index[?fresh]`                                                 | `ReviewIndex`: every folder with something to review, newest first  |
-| `GET /api/review/files/<ref>`, `/api/review/phone/<ref>`                        | the file, or its phone copy, byte ranges answered 206               |
-| `GET /api/review/frame?ref=&t=&w=`, `/api/review/duration?ref=`                 | a JPEG of a video at `t` s, `w` px wide; its length                 |
-| `GET /api/films`                                                                | `ReviewFilms`: the app's films                                      |
-| `GET /api/films/<film>/choices`                                                 | `FilmChoices`: the film's renders (the pictures) and its points     |
-| `POST /api/films/<film>/choices/pick`                                           | `PickPost` `{point, variant, verb}` → `ChoiceWrite`                 |
-| `POST /api/films/<film>/choices/knob`                                           | `KnobPost` `{point, value}` → `ChoiceWrite`: the level written      |
-| `POST /api/films/<film>/choices/say`                                            | `SayPost` `{point, variant, say}` → `FilmChoices`, the say recorded |
-| `GET /api/films/<film>/choices/alone?point=&variant=`                           | the variant's own file (a take, a voice attempt)                    |
-| `GET /api/films/<film>/choices/mix?point=&variant=`                             | the film's whole mix with that variant in place (m4a)               |
-| `GET /api/films/<film>/choices/check`                                           | `SoundCheck`: `film check --sound` as the film now stands           |
-| `GET /api/films/<film>/project`; `POST …/say`                                   | `ProjectView`, read or written by a fresh `film project` (above)    |
-| `GET /api/review/build?since=&timeout=`                                         | `PageBuild`: the pages' build, once past `since` (at most 60 s)     |
-| `POST /api/films/<film>/undo`, `/redo`; `GET /api/films/<film>/check`, `/steps` | the lab's own, for the film named; `steps` its undo and redo alone  |
+| Route                                                                           | What it answers                                                                                                                                                                |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GET /api/review/index[?fresh]`                                                 | `ReviewIndex`: every folder with something to review, newest first                                                                                                             |
+| `GET /api/review/files/<ref>`, `/api/review/phone/<ref>`                        | the file, or its phone copy, byte ranges answered 206                                                                                                                          |
+| `GET /api/review/frame?ref=&t=&w=`, `/api/review/duration?ref=`                 | a JPEG of a video at `t` s, `w` px wide; its length                                                                                                                            |
+| `POST /api/review/sets/<folder>/<point>/say`                                    | `SetSayPost` `{variant, say}` → `ReviewFolder`, written to the folder's `catalogue.json` (a montage refused; a version made again since it was shown is `VersionChanged`, 409) |
+| `GET /api/films`                                                                | `ReviewFilms`: the app's films                                                                                                                                                 |
+| `GET /api/films/<film>/choices`                                                 | `FilmChoices`: the film's renders (the pictures) and its points                                                                                                                |
+| `POST /api/films/<film>/choices/pick`                                           | `PickPost` `{point, variant, verb}` → `ChoiceWrite`                                                                                                                            |
+| `POST /api/films/<film>/choices/knob`                                           | `KnobPost` `{point, value}` → `ChoiceWrite`: the level written                                                                                                                 |
+| `POST /api/films/<film>/choices/say`                                            | `SayPost` `{point, variant, say}` → `FilmChoices`, the say recorded                                                                                                            |
+| `GET /api/films/<film>/choices/alone?point=&variant=`                           | the variant's own file (a take, a voice attempt)                                                                                                                               |
+| `GET /api/films/<film>/choices/mix?point=&variant=`                             | the film's whole mix with that variant in place (m4a)                                                                                                                          |
+| `GET /api/films/<film>/choices/check`                                           | `SoundCheck`: `film check --sound` as the film now stands                                                                                                                      |
+| `GET /api/films/<film>/project`; `POST …/say`                                   | `ProjectView`, read or written by a fresh `film project` (above)                                                                                                               |
+| `GET /api/review/build?since=&timeout=`                                         | `PageBuild`: the pages' build, once past `since` (at most 60 s)                                                                                                                |
+| `POST /api/films/<film>/undo`, `/redo`; `GET /api/films/<film>/check`, `/steps` | the lab's own, for the film named; `steps` its undo and redo alone                                                                                                             |
 
 **How a pick lands.** Every write goes through the one `SourceWriter`
 (`source-writer.ts`), the lab's knob and cue writes included: it reads the
@@ -1453,20 +1503,26 @@ studio's microphone needs a secure context (`https://` or `localhost`), so a
 recording is made on the box's own browser or through an HTTPS name.
 
 **The page** (`lab/review/`): `<Root>` holds the runtime (the review's
-routes and the options'), where the page is (`?folder=`, `&set=`, `&view=`,
-`?film=`, `?project=`; kept in the URL, so Back and a reload work), the index, the films,
-the quality (Proxy or Original) and the lightbox. A set's page holds two
-effect-machine actors: the synced player (`machine.ts`: `Paused`, `Playing`,
-`Scrubbing`, `Buffering`; one clock, the first variant's; one sound heard)
-and the view (`All`, `Pair` shown as Side by side, `Moments`, `Notes`; a set of one
-version has no pair, and a link asking for one opens All). `sync.ts` is the driver
+routes and the options'), where the page is (its place, read from the URL
+through the host's `UrlState`, so a link, Back and a reload work; see Pages
+and links), the index, the films, the quality (Proxy or Original) and the
+lightbox. A set's page holds one effect-machine actor, the synced player
+(`machine.ts`: `Paused`, `Playing`, `Scrubbing`, `Buffering`; one clock, the
+first variant's; one sound heard; opened at the URL's `#t=`, which follows
+it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
+`Moments`, `Notes`; a set of one version has no pair, and a link asking for
+one opens All): a view chosen runs through the view machine (`stepView`)
+and is written back, a new history entry for a view or a moment chosen,
+the same entry for a pair's other cycled or a ←/→ step. `sync.ts` is the driver
 that makes every media element (a `<video>` or an `<audio>`) follow the
 player: it puts drifters back on the clock, holds all while one stalls, and
 unmutes only the one heard. A film's page (`options/`, `<FilmProvider>`)
 puts its newest render on that player, muted, and one `<audio>` of the mix
 heard over it: 🔊 on a variant heard in place (a score option, a take) swaps
-it, and it joins where the clock stands. A point's marks jump the clock
-there. Every point is one card (`options/choice.tsx`): its variants with
+it, and it joins where the clock stands. What plays is the URL's
+(`?heard= &variant= &picture= #t=`, each replacing the entry), so a link
+opens the same sound over the same picture at the same time. A point's
+marks jump the clock there. Every point is one card (`options/choice.tsx`): its variants with
 their verbs (Pick, Unpick, Reject as the state allows), a hear-alone player,
 approve (a current variant only: `Choices.say` refuses a stale or missing
 one with `VerbRefused`, 409), withdraw once approved, and a line to
@@ -1482,7 +1538,9 @@ answer updates the player in place: the picture's `<video>` stays the same
 element while the film has a picture, so a playing film plays on through a
 pick, a knob or a say; only a source write asks for the mix heard again.
 
-The project view (`?project=<film>`, `options/project.tsx`) is the film by its
+The project view (`/films/<film>/project`, `options/project.tsx`; the card
+in focus is its `?point=`, opened and brought into view on a link, and an
+"Also plays here" chip makes it a new history entry) is the film by its
 address tree, film → acts → scenes → layers, with the same card, the same
 say and the same words at every level: the film's comments, "Approve all
 current", "Withdraw every approval" and its choice points, then each act (its
@@ -1854,7 +1912,12 @@ the real browser workflows and canvas pixel checks. The E2E script uses
 The runner caps workers at eight, or the host's core count when smaller;
 each keeps its module registry and Chrome across files. Test files restore
 the global state they change. E2E cases retain native input, actual browser
-recording and pixel assertions. This command is independent of the gate.
+recording and pixel assertions. The gate does not run it; CI runs it in its
+own `e2e` job beside the gate (`.github/workflows/gate.yml`), over the
+runner's Google Chrome named by `BUN_CHROME_PATH`. The fake server answers
+only paths `LabHttpApi` declares (`declares`, `core/api.ts`): a fake matching
+any other path answers a 500 naming it, so no case passes over a route the
+real server does not serve.
 
 ## Knobs
 

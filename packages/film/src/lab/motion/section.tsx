@@ -9,7 +9,7 @@ import { createEffect, onCleanup } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
 import { ONION_SCALE, makeOnion, whole } from '../../player/onion.ts';
-import { RATES } from '../../player/view-state.ts';
+import { RATES } from '../view-state.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useMotion } from './context.tsx';
 

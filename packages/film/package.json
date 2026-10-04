@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@bible/atom-solid": "workspace:*",
+    "@bible/url-state": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "@mediabunny/aac-encoder": "1.61.0",
     "@mediabunny/flac-encoder": "1.61.0",

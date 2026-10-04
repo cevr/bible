@@ -53,12 +53,12 @@ const matches = (text: string, pattern: RegExp): ReadonlyArray<RegExpExecArray> 
 
 const firstGroup = (m: RegExpExecArray) => Option.getOrElse(Option.fromUndefinedOr(m[1]), () => '');
 
-/** `/api/films/<film>/choices/mix?point=&variant=` as declared: `/api/films/:film/choices/mix`. */
+/** `/api/films/<film>/choices/mix?point=&variant=` as declared: `/api/films/:film/choices/mix`; a `<ref>` is the rest of the path. */
 const declaredPath = (written: string) =>
   written
     .replace(/\[?\?.*$/, '')
-    .replaceAll('<film>', ':film')
-    .replaceAll('<ref>', '*');
+    .replaceAll('<ref>', '*')
+    .replace(/<(\w+)>/g, ':$1');
 
 const group = (m: RegExpExecArray, n: number) =>
   Option.getOrElse(Option.fromUndefinedOr(m[n]), () => '');
@@ -260,10 +260,10 @@ describe('the docs', () => {
         const root = yield* ROOT;
         const [code, docs] = yield* Effect.all([readCode(root), readDocs(root)]);
         expect(docs.flatMap((doc) => drift(doc, code))).toEqual([]);
-        // The owner's runbook and the app's README name routes too.
+        // The owner's runbook, the prior arts and the app's README name routes too.
         const fs = yield* FileSystem.FileSystem;
         const others = yield* Effect.forEach(
-          ['NORTH_STAR.md', 'apps/animations/README.md'],
+          ['NORTH_STAR.md', 'PRIOR_ARTS.md', 'apps/animations/README.md'],
           (file) =>
             Effect.map(fs.readFileString(`${root}/${file}`), (text) => ({ path: file, text })),
         );

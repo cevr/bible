@@ -3,17 +3,62 @@
 // tab of the test process's Chrome (`browsers.ts`) at its own origin, with the
 // lab API answered by routes the test gives (then the defaults below). Every
 // request the page makes is kept, so a test can read what the lab wrote.
+// The review page (`openReview`) and the player's (`openPlayer`, the play
+// page and the look-book) are served the same way.
 
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effect';
-import { Refusal, statusOf } from '../../core/api.ts';
+import {
+  LabHttpApi,
+  declares,
+  type PageName,
+  Refusal,
+  pageAt,
+  pageHref,
+  statusOf,
+} from '../../core/api.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
-import { PROBE } from './probe-film.ts';
-import type { Request, Response, Tab } from './tab.ts';
+import { type Selection, labHref } from '../place.ts';
+import { PROBE, probeFilm } from './probe-film.ts';
+import { type Request, type Response, type Tab, jsonOf } from './tab.ts';
 
 const API = `/api/films/${PROBE}`;
+
+/** The probe film as the lab page lays it out: where each scene starts. */
+const probePlaced = probeFilm().placed;
+
+/** What a lab link picks: a cue or a knob of a scene, and a note. */
+interface LabPick {
+  readonly selection?: Selection;
+  readonly note?: string;
+}
+
+/** The probe film's lab at film seconds `T` with `pick`: the link the lab itself writes (`labHref`). */
+export const labAt = (T: number, pick: LabPick = {}): string =>
+  labHref(
+    PROBE,
+    probePlaced,
+    {
+      selection: Option.fromUndefinedOr(pick.selection),
+      note: Option.fromUndefinedOr(pick.note),
+    },
+    T,
+  );
+
+/**
+ * The film seconds the page's URL names, as a page-side expression: its
+ * path's scene's start (the probe film's) plus `#t=`, as `labOpensAt` reads
+ * a lab link; a play page's `#t=` is film time. The one reader of the time
+ * in the URL the browser tests poll.
+ */
+export const URL_T = `(() => {
+  const starts = ${jsonOf(Object.fromEntries(probePlaced.map((p) => [p.spec.id, p.start])))};
+  const url = new URL(location.href);
+  const scene = /^\\/films\\/[^/]+\\/lab\\/([^/]+)$/.exec(url.pathname)?.[1] ?? '';
+  return (starts[decodeURIComponent(scene)] ?? 0) + Number(new URLSearchParams(url.hash.slice(1)).get('t'));
+})()`;
 
 /** A JSON value, as the fake server answers and the page posts. */
 export type Json = Schema.Json;
@@ -159,16 +204,17 @@ const scriptAsset = (entry: string, name: string): Effect.Effect<Asset> =>
  * them (on a loaded runner the first cases spent 1-2 s waiting on them).
  */
 // oxlint-disable-next-line effect/noAsyncFunction -- the module's own load waits for its setup, so no case's timeout counts it
-const [labScript, reviewScript, css] = await Effect.runPromise(
+const [labScript, reviewScript, playerScript, css] = await Effect.runPromise(
   Effect.all(
     [
       scriptAsset('lab-page.ts', 'lab.js'),
       scriptAsset('review-page.ts', 'review.js'),
+      scriptAsset('player-page.ts', 'player.js'),
       FileSystem.FileSystem.use((fs) =>
         fs.readFileString(`${import.meta.dir}/../../player/player.css`),
       ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
     ],
-    { concurrency: 3 },
+    { concurrency: 4 },
   ),
 );
 
@@ -215,9 +261,14 @@ const answer = (found: Answer): Effect.Effect<Option.Option<Response>> => {
   );
 };
 
+/** Whether the lab's API declares a route a request reaches (`declares`, `core/api.ts`). */
+const declared = declares(LabHttpApi);
+
 /**
  * A request to the API: kept in `asked` (its path past `prefix`) and
- * answered by the first of `routes` that matches it, or a 404.
+ * answered by the first of `routes` that matches it, or a 404. A fake that
+ * matches a path `LabHttpApi` does not declare answers a 500 naming it: the
+ * test would otherwise pass over a route the real server never serves.
  */
 const apiAnswer =
   (prefix: string, routes: ReadonlyArray<FakeRoute>, asked: Array<Asked>) =>
@@ -231,23 +282,42 @@ const apiAnswer =
     const found = routes.find((f) => f.method === made.method && f.path.test(made.path));
     return Option.match(Option.fromUndefinedOr(found), {
       onNone: () => Effect.succeedSome(respond('no fake route', 'text/plain', 404)),
-      onSome: (f) => answer(f.answer(made)),
+      onSome: (f) => {
+        if (!declared(request.method, request.url.pathname))
+          return Effect.succeedSome(
+            respond(
+              `a fake route answers ${request.method} ${request.url.pathname}, which the lab's API does not declare`,
+              'text/plain',
+              500,
+            ),
+          );
+        return answer(f.answer(made));
+      },
     });
   };
 
-/** A page's fake server: `pages` by path (its HTML and its script), then the API (`apiAnswer`). */
+/** A page's fake server: the page a path serves (its HTML and its script), then the API (`apiAnswer`). */
 const fakeServer =
   (
-    pages: ReadonlyMap<string, Response>,
+    pageFor: (pathname: string) => Option.Option<Response>,
     prefix: string,
     routes: ReadonlyArray<FakeRoute>,
     asked: Array<Asked>,
   ) =>
   (request: Request): Effect.Effect<Option.Option<Response>> =>
-    Option.match(Option.fromUndefinedOr(pages.get(request.url.pathname)), {
+    Option.match(pageFor(request.url.pathname), {
       onSome: Effect.succeedSome,
       onNone: () => apiAnswer(prefix, routes, asked)(request),
     });
+
+/** `html` on every path the real server serves `name` on (`pageAt`, `core/api.ts`). */
+const servedAs =
+  (name: PageName, html: Response) =>
+  (pathname: string): Option.Option<Response> =>
+    Option.as(
+      Option.filter(pageAt(pathname), (page) => page === name),
+      html,
+    );
 
 /**
  * `canvas.toBlob` encoding at once, from `toDataURL`: the same image in the
@@ -298,13 +368,14 @@ interface FakeMic {
 }
 
 /**
- * Open the lab on the probe film at `hash` (`#T`, `&sel=…` in `query`), with
- * `routes` answering the API before the defaults, and `mic` as its
- * microphone when given. The tab goes back to the pool with the scope.
+ * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`, `core/api.ts`;
+ * the probe film's lab when none), served on every lab place as the server
+ * serves it, with `routes` answering the API before the defaults, and `mic`
+ * as its microphone when given. The tab goes back to the pool with the scope.
  */
 export const openLab = Effect.fn('lab.fixture.open')(function* (
   routes: ReadonlyArray<FakeRoute> = [],
-  at: { readonly query?: string; readonly hash?: string; readonly mic?: FakeMic } = {},
+  at: { readonly href?: string; readonly mic?: FakeMic } = {},
 ) {
   const script = labScript;
   const mic = Option.fromUndefinedOr(at.mic);
@@ -324,14 +395,51 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     ],
     assets: [script],
     serve: fakeServer(
-      new Map([['/lab', respond(labPage(css, script), 'text/html')]]),
+      servedAs('lab', respond(labPage(css, script), 'text/html')),
       API,
       [...routes, ...defaults],
       asked,
     ),
   });
-  yield* page.goto(`/lab?film=${PROBE}${at.query ?? ''}${at.hash ?? ''}`);
+  yield* page.goto(at.href ?? pageHref.lab(PROBE));
   yield* page.waitFor('.lab-panel');
+  const open: OpenLab = { page, asked, errors: page.errors };
+  return open;
+});
+
+/** The player's page as the app's `index.html` has it, with its styles inline. */
+const playerPage = (style: string, script: Asset) =>
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Player</title><style>${style}</style></head><body>${scriptOf(script)}</body></html>`;
+
+/** Where the player opens, and how wide its window is. */
+interface PlayerAt {
+  /** The link opened (`pageHref.play`, `pageHref.scenes`, `core/api.ts`). */
+  readonly href: string;
+  readonly viewport: { readonly width: number; readonly height: number };
+}
+
+/**
+ * Open the player (`fixtures/player-page.ts`, the real `mountPlayer` over the
+ * probe film) at `href`, served on every player place as the lab serves it,
+ * in a window `viewport` wide, and wait until `ready` is on the page. Its
+ * clock is the test's, and the tab goes back to the pool with the scope.
+ */
+export const openPlayer = Effect.fn('lab.fixture.player')(function* (at: PlayerAt, ready: string) {
+  const asked: Array<Asked> = [];
+  const page = yield* openTab({
+    ...at.viewport,
+    microphone: false,
+    init: [CLOCK_SCRIPT],
+    assets: [playerScript],
+    serve: fakeServer(
+      servedAs('player', respond(playerPage(css, playerScript), 'text/html')),
+      API,
+      defaults,
+      asked,
+    ),
+  });
+  yield* page.goto(at.href);
+  yield* page.waitFor(ready);
   const open: OpenLab = { page, asked, errors: page.errors };
   return open;
 });
@@ -341,16 +449,18 @@ const reviewPage = (script: Asset) =>
 
 /** Where the review opens, and how wide its window is (a phone's, or a desk's). */
 interface ReviewAt {
-  readonly search?: string;
+  /** The link opened (`pageHref`, `core/api.ts`): home when none. */
+  readonly href?: string;
   readonly viewport?: { readonly width: number; readonly height: number };
 }
 
 /**
  * Open the review page (`fixtures/review-page.ts`, the real `mountReview`)
- * at `search`, with `routes` answering its requests by their whole path
- * (`/api/review/index`, `/api/review/files/…`): what none answers is a 404. The
- * browser plays media without a gesture, its clock is the test's, and the
- * tab goes back to the pool with the scope.
+ * at `href`, served on every review place as the lab serves it, with
+ * `routes` answering its requests by their whole path (`/api/review/index`,
+ * `/api/review/files/…`): what none answers is a 404. The browser plays
+ * media without a gesture, its clock is the test's, and the tab goes back to
+ * the pool with the scope.
  */
 export const openReview = Effect.fn('lab.fixture.review')(function* (
   routes: ReadonlyArray<FakeRoute>,
@@ -365,13 +475,13 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
     init: [CLOCK_SCRIPT],
     assets: [script],
     serve: fakeServer(
-      new Map([['/', respond(reviewPage(script), 'text/html')]]),
+      servedAs('review', respond(reviewPage(script), 'text/html')),
       '',
       routes,
       asked,
     ),
   });
-  yield* page.goto(`/${at.search ?? ''}`);
+  yield* page.goto(at.href ?? '/');
   yield* page.waitFor('.rv-main');
   const open: OpenLab = { page, asked, errors: page.errors };
   return open;

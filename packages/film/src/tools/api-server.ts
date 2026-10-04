@@ -43,6 +43,7 @@ import {
   ServerFailed,
   WriteNotJson,
   isRefusal,
+  legacyPlace,
   pageAt,
   prefixesOf,
   statusOf,
@@ -124,7 +125,7 @@ const pathOf = (request: HttpServerRequest.HttpServerRequest) => request.url.spl
 /**
  * A link opened from another site (a chat, a mail): a GET or HEAD the
  * browser makes for a new document (`Sec-Fetch-Mode: navigate`,
- * `Sec-Fetch-Dest: document`) of one of the app's pages (`pageAt`). The site
+ * `Sec-Fetch-Dest: document`) of one of the app's pages (`pageAt`) or an old link to one (`legacyPlace`). The site
  * cannot read what it answers, and a page runs nothing; the API, a script, a
  * file and a write stay the server's own.
  */
@@ -132,7 +133,7 @@ const isNavigation = (request: HttpServerRequest.HttpServerRequest) =>
   SAFE_METHODS.includes(request.method) &&
   Option.contains(header(request, 'sec-fetch-mode'), 'navigate') &&
   Option.contains(header(request, 'sec-fetch-dest'), 'document') &&
-  Option.isSome(pageAt(pathOf(request)));
+  (Option.isSome(pageAt(pathOf(request))) || Option.isSome(legacyPlace(request.url)));
 
 /**
  * Whether the server answers `request` at all: `None` when it does, else the
@@ -408,9 +409,12 @@ export const LAB_IDLE_SECONDS = 255;
 /**
  * The largest body Bun reads before the gate: the gate's own limit and a
  * margin, so a body over `STUDIO_MAX_BODY` is the gate's 413 BodyTooLarge;
- * one past this Bun refuses with its own 413 before any byte is held.
+ * one past this Bun refuses with its own 413 before any byte is held. Bun
+ * calls neither the handler nor its error hook for that one (a declared
+ * length past the limit), so no line of the lab's can log it; a streamed
+ * body is counted by the gate first, which logs its refusal.
  */
-const MAX_REQUEST_BODY = STUDIO_MAX_BODY + 1024 * 1024;
+export const MAX_REQUEST_BODY = STUDIO_MAX_BODY + 1024 * 1024;
 
 /** Where a lab listens: the interface's name and the port (0: any free one). */
 export interface LabAt {

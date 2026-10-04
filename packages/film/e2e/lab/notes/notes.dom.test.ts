@@ -13,7 +13,9 @@ import {
   type Asked,
   type FakeRoute,
   type Json,
+  URL_T,
   json,
+  labAt,
   openLab,
   refused,
   route,
@@ -69,6 +71,9 @@ const noteJson = (id: string, over: Partial<Note> = {}): Note => ({
 
 /** A notes file with `notes`, at change `seq`. */
 const notesFile = (seq: number, notes: ReadonlyArray<Json>) => json({ film: PROBE, seq, notes });
+
+/** The note the URL selects (`?note=`), or '' for none. */
+const NOTE_IN_URL = "new URLSearchParams(location.search).get('note') ?? ''";
 
 /** A notes store: empty until a POST adds `n1`, which it then lists. */
 const store = (): ReadonlyArray<FakeRoute> => {
@@ -127,7 +132,7 @@ describe('marking a frame', () => {
     'a click pins a point, the composer says where, and a save posts and lists it',
     () =>
       Effect.gen(function* () {
-        const { page, asked, errors } = yield* openLab(store(), { hash: '#1' });
+        const { page, asked, errors } = yield* openLab(store(), { href: labAt(1) });
         yield* waitFor(page, '.lab-overlay');
         const at = yield* onFrame(page, 520, 300);
         yield* page.mouse.click(at.x, at.y);
@@ -156,7 +161,7 @@ describe('marking a frame', () => {
     'a drag draws a box',
     () =>
       Effect.gen(function* () {
-        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        const { page, asked } = yield* openLab(store(), { href: labAt(1) });
         yield* waitFor(page, '.lab-overlay');
         yield* drag(page, [420, 60], [600, 160]);
         yield* attached(page, '.lab-overlay rect.lab-draft');
@@ -176,7 +181,7 @@ describe('marking a frame', () => {
     'the pen draws ink',
     () =>
       Effect.gen(function* () {
-        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        const { page, asked } = yield* openLab(store(), { href: labAt(1) });
         yield* waitFor(page, '[data-act="pen"]');
         yield* click(page, '[data-act="pen"]');
         yield* waitFor(page, '[data-act="pen"].on');
@@ -198,7 +203,7 @@ describe('marking a frame', () => {
     'a cancelled gesture (an OS swipe, a call) drops the mark and writes nothing',
     () =>
       Effect.gen(function* () {
-        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        const { page, asked } = yield* openLab(store(), { href: labAt(1) });
         yield* waitFor(page, '.lab-overlay');
         const at = yield* onFrame(page, 520, 300);
         yield* page.mouse.move(at.x, at.y);
@@ -222,7 +227,7 @@ describe('marking a frame', () => {
     'a second finger neither cancels nor lifts the first one’s mark',
     () =>
       Effect.gen(function* () {
-        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        const { page, asked } = yield* openLab(store(), { href: labAt(1) });
         yield* waitFor(page, '.lab-overlay');
         const a = yield* onFrame(page, 420, 60);
         const b = yield* onFrame(page, 600, 160);
@@ -265,7 +270,7 @@ describe('marking a frame', () => {
       Effect.gen(function* () {
         const { page } = yield* openLab(
           [route('GET', /^\/notes$/, () => notesFile(1, [noteJson('n1')]))],
-          { hash: '#1' },
+          { href: labAt(1) },
         );
         yield* page.reload;
         yield* attached(page, '.track .tick.note');
@@ -279,7 +284,7 @@ describe('marking a frame', () => {
     'n notes the whole frame, and Escape closes the composer',
     () =>
       Effect.gen(function* () {
-        const { page } = yield* openLab(store(), { hash: '#1' });
+        const { page } = yield* openLab(store(), { href: labAt(1) });
         yield* waitFor(page, '.lab-overlay');
         yield* page.press('n');
         yield* waitFor(page, '.lab-compose:not([hidden])');
@@ -293,7 +298,7 @@ describe('marking a frame', () => {
     'the Note frame button notes the whole frame, as `n` does, with no box',
     () =>
       Effect.gen(function* () {
-        const { page, asked } = yield* openLab(store(), { hash: '#1' });
+        const { page, asked } = yield* openLab(store(), { href: labAt(1) });
         yield* waitFor(page, '[data-act="note-frame"]');
         yield* textIs(page, '[data-act="note-frame"]', 'Note frame');
         yield* click(page, '[data-act="note-frame"]');
@@ -320,7 +325,7 @@ describe('marking a frame', () => {
               ),
             ),
           ],
-          { hash: '#1' },
+          { href: labAt(1) },
         );
         yield* waitFor(page, '.lab-overlay');
         yield* page.press('n');
@@ -349,17 +354,37 @@ describe("a note's place", () => {
           box: { x: 100, y: 100, w: 50, h: 50 },
         });
         const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(1, [stale]))], {
-          hash: '#3',
+          href: labAt(3),
         });
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         yield* textHas(page, '.lab-note-label', `two · ${shown.toFixed(2)}s`);
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
-        yield* evaluates(
-          page,
-          `Math.round(Number.parseFloat(location.hash.slice(1).split('&')[0]) * ${film.fps})`,
-          Math.round(shown * film.fps),
-        );
+        yield* evaluates(page, `Math.round(${URL_T} * ${film.fps})`, Math.round(shown * film.fps));
         yield* attached(page, '.lab-overlay rect.lab-note');
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'the selected note is in the link: a reload keeps it, Back undoes it, and one gone from the feed leaves it',
+    () =>
+      Effect.gen(function* () {
+        const notes = [noteJson('n1'), noteJson('n2')];
+        const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(1, notes))], {
+          href: labAt(1),
+        });
+        for (const id of ['n1', 'n2']) {
+          yield* click(page, `.lab-note-item[data-id="${id}"] .lab-note-text`);
+          yield* evaluates(page, NOTE_IN_URL, id);
+        }
+        yield* page.reload;
+        yield* attached(page, '.lab-note-item[data-id="n2"].selected');
+        yield* page.back;
+        yield* attached(page, '.lab-note-item[data-id="n1"].selected');
+        // A link to a note the feed does not have: the URL lets it go, in place.
+        yield* page.goto(labAt(1, { note: 'gone' }));
+        yield* waitFor(page, '.lab-note-item[data-id="n1"]');
+        yield* evaluates(page, NOTE_IN_URL, '');
       }).pipe(Effect.scoped),
     SLOW,
   );
@@ -376,7 +401,7 @@ describe('the thread', () => {
             route('POST', /^\/notes\/n1\/reply$/, () => json(noteJson('n1'))),
             route('POST', /^\/notes\/n1\/resolve$/, () => json(noteJson('n1'))),
           ],
-          { hash: '#3' },
+          { href: labAt(3) },
         );
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
@@ -418,7 +443,7 @@ describe('the feed', () => {
               });
             }),
           ],
-          { hash: '#1' },
+          { href: labAt(1) },
         );
         yield* waitFor(page, '.lab-note-item[data-id="n1"] .lab-reply.agent');
         yield* textIs(page, '.lab-reply.agent .lab-reply-text', 'moved rise to {lift}');
@@ -442,7 +467,7 @@ describe('the feed', () => {
               return notesFile(0, []);
             }),
           ],
-          { hash: '#1' },
+          { href: labAt(1) },
         );
         // The feed says nothing while it connects again, before the read goes
         // out, so the test waits for the read that succeeds, not the quiet.

@@ -1,4 +1,4 @@
-// A film's choices page (`?film=<film>`): the film's newest render on the
+// A film's choices page (`/films/<film>/choices`): the film's newest render on the
 // synced player with the sound heard over it, and every choice point the
 // film has (`core/choice.ts`), a card each (`choice.tsx`), by kind: the
 // score's options (`play` in `sound.ts`), its looks (`looks` in

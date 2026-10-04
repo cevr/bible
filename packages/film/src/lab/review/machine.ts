@@ -7,7 +7,7 @@
 //   Paused ─Play→ Playing ─Pause→ Paused     Playing ─Stalled→ Buffering ─Resumed→ Playing
 //   any ─ScrubMoved→ Scrubbing ─ScrubReleased→ Playing | Paused (as it was)
 //   Playing | Buffering ─Ended→ Paused (at the end)
-//   any ─Stepped | Measured | HeardChosen | RateChosen→ the same, changed
+//   any ─Stepped | Landed | Measured | HeardChosen | RateChosen→ the same, changed
 //
 //   All | Pair | Moments | Notes ─ViewChosen→ any (Pair only with a second version)
 //   Pair ─OtherChosen→ Pair
@@ -15,11 +15,15 @@
 //
 // Events are facts (a button pressed, the clock moved on, a video stalled);
 // the driver (`sync.ts`) makes the videos do what each state says. A seek (a
-// scrub, a step, a play from the end) bumps `seek`, so the driver moves the
+// scrub, a step, Back landing on an entry's time, a play from the end) bumps `seek`, so the driver moves the
 // videos only then, never for the clock's own ticks.
+//
+// The view is kept in the set's URL (`?view= &other= &m=`), not in an actor:
+// the page reads it from there, and `stepView` runs one event through the
+// view machine to the state the page writes back.
 
 import { Effect, Match, Option, Schema } from 'effect';
-import { Event, Machine, State } from 'effect-machine';
+import { Event, Machine, State, simulate } from 'effect-machine';
 
 /** Seconds a ←/→ step moves. */
 export const STEP_S = 2;
@@ -65,6 +69,8 @@ export const SyncEvent = Event({
   ScrubMoved: { t: Schema.Finite },
   ScrubReleased: {},
   Stepped: { by: Schema.Finite },
+  /** Back or Forward landed on an entry whose `#t=` (or the set's start) is `t`. */
+  Landed: { t: Schema.Finite },
   Stalled: {},
   Resumed: {},
   Ended: {},
@@ -136,12 +142,19 @@ const ANY = [
 ] as const;
 const MOVING = [SyncState.Playing, SyncState.Buffering] as const;
 
-/** The synced player: `audible` heard first, paused at `start`. */
-export const syncMachine = (audible: string, start: number) =>
+/** The synced player: `audible` heard first, paused at `at` (never before `start`). */
+export const syncMachine = (audible: string, start: number, at: number = start) =>
   Machine.make({
     state: SyncState,
     event: SyncEvent,
-    initial: SyncState.Paused({ t: start, start, end: UNKNOWN_END, rate: 1, audible, seek: 0 }),
+    initial: SyncState.Paused({
+      t: Math.max(start, at),
+      start,
+      end: UNKNOWN_END,
+      rate: 1,
+      audible,
+      seek: 0,
+    }),
   })
     .on(SyncState.Paused, SyncEvent.PlayPressed, ({ state }) => played(state))
     .on(SyncState.Paused, SyncEvent.Toggled, ({ state }) => played(state))
@@ -176,9 +189,15 @@ export const syncMachine = (audible: string, start: number) =>
         seek: clock.seek + 1,
       });
     })
-    .on(ANY, SyncEvent.Measured, ({ state, event }) =>
-      withClock(state, { ...clockOf(state), end: Math.max(state.start, event.end) }),
-    )
+    .on(ANY, SyncEvent.Landed, ({ state, event }) => {
+      const clock = clockOf(state);
+      return withClock(state, { ...clock, t: clamp(clock, event.t), seek: clock.seek + 1 });
+    })
+    .on(ANY, SyncEvent.Measured, ({ state, event }) => {
+      // A time opened past the end (a link's `#t=`) stands at the end.
+      const end = Math.max(state.start, event.end);
+      return withClock(state, { ...clockOf(state), end, t: Math.min(state.t, end) });
+    })
     .on(ANY, SyncEvent.HeardChosen, ({ state, event }) =>
       withClock(state, { ...clockOf(state), audible: event.id }),
     )
@@ -187,8 +206,8 @@ export const syncMachine = (audible: string, start: number) =>
     );
 
 /** The synced player's actor, started. */
-export const spawnSync = (audible: string, start: number) =>
-  Machine.spawn(syncMachine(audible, start)).pipe(Effect.tap((actor) => actor.start));
+export const spawnSync = (audible: string, start: number, at: number = start) =>
+  Machine.spawn(syncMachine(audible, start, at)).pipe(Effect.tap((actor) => actor.start));
 
 export type SyncActor = Effect.Success<ReturnType<typeof spawnSync>>;
 
@@ -303,11 +322,12 @@ export const viewMachine = (initial: ViewState, other: Option.Option<string>) =>
       ViewState.Moments({ index: wrapped(state.index, event.by, event.count) }),
     );
 
-/** The view's actor, started in `initial`. */
-export const spawnView = (initial: ViewState, other: Option.Option<string>) =>
-  Machine.spawn(viewMachine(initial, other)).pipe(Effect.tap((actor) => actor.start));
-
-export type ViewActor = Effect.Success<ReturnType<typeof spawnView>>;
+/** The view `event` leaves `state` in, with `other` a pair's first other. */
+export const stepView = (
+  state: ViewState,
+  other: Option.Option<string>,
+  event: ViewEvent,
+): ViewState => Effect.runSync(simulate(viewMachine(state, other), [event])).finalState;
 
 /** The name of the view `state` shows. */
 export const viewNameOf = (state: ViewState): ViewName =>

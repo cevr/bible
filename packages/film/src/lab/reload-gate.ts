@@ -28,30 +28,31 @@ export const waitingText = (pending: boolean, holds: ReadonlyArray<string>): str
  * time that changes (`waitingText`).
  */
 export const makeReloadGate = (
-  reloadNow: () => void,
+  reloadNow: Effect.Effect<void>,
   waiting: (text: string) => void,
 ): ReloadGate => {
   const holds = new Map<string, string>();
   let pending = false;
+  /** The reload, when one is asked for and nothing holds it now; else nothing. */
   const settle = () => {
-    if (pending && holds.size === 0) {
-      pending = false;
-      reloadNow();
-    }
+    const due = pending && holds.size === 0;
+    if (due) pending = false;
     waiting(waitingText(pending, [...holds.values()]));
+    if (due) return reloadNow;
+    return Effect.void;
   };
   return {
-    request: Effect.sync(() => {
+    request: Effect.suspend(() => {
       pending = true;
-      settle();
+      return settle();
     }),
     hold: (holder, why) =>
-      Effect.sync(() => {
+      Effect.suspend(() => {
         Option.match(why, {
           onNone: () => holds.delete(holder),
           onSome: (text) => holds.set(holder, text),
         });
-        settle();
+        return settle();
       }),
   };
 };

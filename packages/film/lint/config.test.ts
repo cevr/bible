@@ -5,7 +5,8 @@
 //   object's banned member (`performance.now`) through a global
 //   (`window.performance.now`). oxlint lints a probe of every such form, built
 //   from the bans themselves, with the bans' own options: each line is red.
-//   The files still allowed the URL ban every other name the pages do.
+//   The URL's names are among them, and no page file is let off them: every
+//   page reaches the address bar through `@bible/url-state`'s Location.
 // - The purity rule: a block that keeps a layer's folder (`**/lab/**`) out
 //   also keeps out every package export that resolves into it
 //   (`@bible/film/review` is the lab's).
@@ -22,7 +23,7 @@ const SPAWNS_MS = 30_000;
 /** The globals a qualified host name is reached through. */
 const QUALIFIERS: ReadonlyArray<string> = ['window', 'globalThis', 'self'];
 
-/** The names the allowlisted files still reach: the URL's. */
+/** The URL's names: banned to every page, reached through Location. */
 const URL_NAMES: ReadonlyArray<string> = ['history', 'location', 'onpopstate'];
 
 const Severity = Schema.Literals(['error', 'warn', 'off']);
@@ -84,16 +85,15 @@ const readJson = Effect.fn('test.lintConfig.readJson')(function* <A>(
   return yield* Schema.decodeUnknownEffect(schema)(JSONC.parse(text));
 });
 
-/** The host bans' block, and the block of the files still allowed the URL. */
+/** The host bans' block, and the blocks that let files hear some host events themselves. */
 const hostBlocks = (config: typeof Config.Type) => {
   const adapterRule = (o: Override) => ruleIn(o, 'film/host-events-through-adapter');
   const banned = config.overrides.find((o) => Option.contains(adapterRule(o), 'error'));
-  const allowlisted = config.overrides.find((o) =>
+  const allowing = config.overrides.filter((o) =>
     Option.exists(adapterRule(o), (rule) => Array.isArray(rule)),
   );
   expect(banned).toBeDefined();
-  expect(allowlisted).toBeDefined();
-  return { banned: banned as Override, allowlisted: allowlisted as Override };
+  return { banned: banned as Override, allowing };
 };
 
 /** Every form a page could reach a banned host name in, one statement a line. */
@@ -175,21 +175,16 @@ describe('the lint config', () => {
     'bans every host name bare and under each global, and a host object through a global',
     () =>
       Effect.gen(function* () {
-        const { banned, allowlisted } = hostBlocks(yield* readJson('.oxlintrc.json', Config));
+        const { banned, allowing } = hostBlocks(yield* readJson('.oxlintrc.json', Config));
         const globals = optionsIn(banned, 'no-restricted-globals', Global);
         const properties = optionsIn(banned, 'no-restricted-properties', Property);
         expect(globals.length).toBeGreaterThan(0);
         const probe = probeOf(globals, properties);
         const reported = reportedLines(yield* lint(globals, properties, `${probe.join('\n')}\n`));
         expect(probe.filter((_, i) => !reported.has(i + 1))).toEqual([]);
-        // The allowlisted files ban every name the pages do but the URL's.
-        const allowed = optionsIn(allowlisted, 'no-restricted-globals', Global);
-        expect(allowed.map((g) => g.name).sort()).toEqual(
-          globals
-            .map((g) => g.name)
-            .filter((name) => !URL_NAMES.includes(name))
-            .sort(),
-        );
+        // The URL's names are banned, and no block lets a page file off them.
+        expect(globals.map((g) => g.name)).toEqual(expect.arrayContaining([...URL_NAMES]));
+        expect(allowing.map((o) => o.files)).toEqual([]);
       }),
     SPAWNS_MS,
   );

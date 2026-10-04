@@ -1,16 +1,20 @@
 // The browser player. An app's entry calls `mountPlayer(films)` with its film
-// registry. Preview mode is a scrubbable player; export mode (`?export`) hides
-// the chrome and hands `window.__film` to the renderer. Framework-free: the
+// registry. It reads its place from the URL (`Places`, core/api.ts): a film's
+// play page is a scrubbable player, its scenes page the look-book, and the
+// export page (`?film=<name>&export`) hides the chrome and hands
+// `window.__film` to the renderer. Framework-free: the
 // lab (`@bible/film/lab`) is its own page, which stages the film and mounts
 // this preview under its Solid panels, so the render page never loads Solid.
 
-import type { Film, KnobRead, ShownEdit } from '../canvas/film.ts';
+import type { Film, KnobRead, RenderOptions, ShownEdit } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
 import type { ExportHandle } from '../core/export-handle.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { Effect, Option } from 'effect';
 import type { Fiber } from 'effect';
-import { hostOf, monotonicMs } from '../browser/host.ts';
+import { Place, parseHref } from '@bible/url-state';
+import { Places, filmOfPage, legacyPlace, pageHref } from '../core/api.ts';
+import { addressOn, hostOf, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { Frames } from '../browser/frames.ts';
@@ -21,12 +25,11 @@ import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
 import { encodeChunk, encoderChoice } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
 import { narration, narrationNote } from './narration.ts';
-import { labUrl } from './pages.ts';
-import { tInHash, tInUrl } from './t-in-url.ts';
+import { onTheMs, tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
 import { lookFrames } from './look-frames.ts';
 
-/** The longest `#T` in the URL trails the frame shown while it plays. */
+/** The longest `#t=` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
 
 /**
@@ -61,14 +64,14 @@ export interface Player {
   readonly track: HTMLDivElement;
   /** Film seconds shown now. */
   now(): number;
-  /** Show `T` and settle there (`#T` written at once). */
+  /** Show `T` and settle there (`#t=` written at once). */
   seek(T: number): void;
   /** Show `T` as a drag passes through it; the drag ends with `settle`. */
   scrub(T: number): void;
-  /** T has settled where it is: `#T` is written at once. */
+  /** T has settled where it is: `#t=` is written at once. */
   settle(): void;
   /**
-   * A lab write is on its way, and its reload will follow: `#T` is written
+   * A lab write is on its way, and its reload will follow: `#t=` is written
    * now and held at this frame until T next settles, so the reload lands on
    * the frame the write was made at.
    */
@@ -86,11 +89,21 @@ export interface Player {
   /** Draw the frame shown now again. */
   redraw(): void;
   /**
-   * The edits the preview draws with (`RenderOptions.edits`): none until the
-   * lab shows some; the lab holds them, and hands over each change whole.
+   * Draw the frame at `T` into `ctx` as the preview shows it: its captions
+   * and the lab's edits, with `over` (an edit per scene) on top of them. The
+   * one spelling of "the frame as the lab shows it": a note's still, the
+   * onion and the HEAD layer draw through it.
    */
-  edits(): ReadonlyMap<string, ShownEdit>;
-  /** Draw with `edits` from now on, starting with the frame shown now. */
+  renderShown(
+    ctx: CanvasRenderingContext2D,
+    T: number,
+    over?: ReadonlyMap<string, ShownEdit>,
+  ): void;
+  /**
+   * Draw with `edits` (`RenderOptions.edits`) from now on, starting with the
+   * frame shown now: none until the lab shows some; the lab holds them, and
+   * hands over each change whole.
+   */
   showEdits(edits: ReadonlyMap<string, ShownEdit>): void;
   /** Every knob the last frame drawn read, and how (`KnobRead`). */
   knobReads(): ReadonlyArray<KnobRead>;
@@ -110,18 +123,26 @@ interface Staged {
   readonly captions: { on: boolean };
 }
 
-/** The film a page names (`?film=<name>`), else the registry's first. */
-const filmName = (films: Films): string =>
-  new URLSearchParams(location.search).get('film') ?? Object.keys(films)[0] ?? '';
+/**
+ * The film the page at `href` is on: its path's (`/films/<film>/…`), else an
+ * export page's `?film=<name>`, else the registry's first.
+ */
+const filmName = (href: string, films: Films): string =>
+  Option.getOrElse(
+    Option.orElse(filmOfPage(href), () =>
+      Option.fromNullishOr(parseHref(href).searchParams.get('film')),
+    ),
+    () => Object.keys(films)[0] ?? '',
+  );
 
 /**
- * Load the page's film (every font the page declares first, so text measures
- * true), title the page, and put the film's canvas on the stage.
+ * Load the film of the page at `href` (every font the page declares first,
+ * so text measures true), title the page, and put the film's canvas on the
+ * stage; its captions are on unless an export page says `captions=0`.
  */
-export const stageFilm = async (films: Films): Promise<Staged> => {
-  const params = new URLSearchParams(location.search);
-  const name = filmName(films);
-  const captions = { on: params.get('captions') !== '0' };
+export const stageFilm = async (films: Films, href: string): Promise<Staged> => {
+  const name = filmName(href, films);
+  const captions = { on: parseHref(href).searchParams.get('captions') !== '0' };
   const load = films[name];
   if (load === undefined)
     throw new Error(`unknown film "${name}"; have ${Object.keys(films).join(', ')}`);
@@ -146,31 +167,47 @@ export const showFailure = (e: unknown): void => {
   document.body.innerHTML = `<pre style="color:#f88;padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
 };
 
+/** The play page's time: `#t=`, in film seconds. */
+const playTime = (name: string, host: Host): TimeInUrl => {
+  const address = addressOn(host);
+  return {
+    at: (href) =>
+      Option.getOrElse(
+        Option.flatMap(Place.decode(Places.play, href), (v) => v.hash.t),
+        () => 0,
+      ),
+    write: (T) => address.replace(pageHref.play(name, Option.some(onTheMs(T)))),
+  };
+};
+
 /**
- * Mount the player for `films` into the page, choosing a film by
- * `?film=<name>`: the scrubbable preview, `&lookbook` the film's look-book,
- * `&export` the handle the renderer drives. The lab is its own page
- * (`labUrl`); an old `&lab` link goes there.
+ * Mount the player for `films` into the page: a film's scenes (its
+ * look-book, `/films/<film>/scenes`), its preview (`/films/<film>/play#t=`),
+ * or, with `?film=<name>&export`, the handle the renderer drives. A link
+ * whose old form the server could not see (a bare `#<seconds>`) is replaced
+ * by its place first.
  */
 export const mountPlayer = (films: Films): void => {
-  const params = new URLSearchParams(location.search);
-  const exporting = params.has('export');
-  if (params.has('lab') && !params.has('lookbook') && !exporting) {
-    location.replace(`${labUrl(filmName(films))}${location.hash}`);
-    return;
-  }
-
   const host = hostOf(BrowserHost.layer);
+  const address = addressOn(host);
+  Option.map(legacyPlace(address.href()), address.replace);
+  const href = address.href();
+  const exporting = parseHref(href).searchParams.has('export');
+  const lookbook = [Places.scenes, Places.scene].some((place) =>
+    Option.isSome(Place.decode(place, href)),
+  );
+
   const main = async () => {
-    const { name, film, canvas, ctx, captions } = await stageFilm(films);
+    const staged = await stageFilm(films, href);
+    const { name, film, captions } = staged;
 
     if (exporting) {
       document.body.classList.add('export');
-      window.__film = exportHandle({ name, film, canvas, ctx, captions }, host);
+      window.__film = exportHandle(staged, host);
       return;
     }
-    if (params.has('lookbook')) return mountLookbook(film, name, captions.on);
-    mountPreview({ name, film, canvas, ctx, captions }, host);
+    if (lookbook) return mountLookbook(film, name, captions.on, host);
+    mountPreview(staged, host, playTime(name, host));
   };
 
   main().catch((e: unknown) => {
@@ -258,7 +295,11 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
 };
 
 /** The scrubbable preview of a staged film: its bar and timeline, its clock, its keys. */
-export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host): Player => {
+export const mountPreview = (
+  { film, canvas, ctx, captions }: Staged,
+  host: Host,
+  time: TimeInUrl,
+): Player => {
   const bar = document.createElement('div');
   bar.className = 'bar';
   bar.innerHTML = `
@@ -321,8 +362,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
   // The narration says what it can play once it knows (a missing master, a
   // play refused until a click), and the time line says it.
   const voice = narration(film.audio, host, () => draw());
-  const fromHash = Number.parseFloat(location.hash.slice(1));
-  let T = Number.isFinite(fromHash) ? Math.min(fromHash, film.duration) : 0;
+  let T = Math.min(Math.max(time.at(addressOn(host).href()), 0), film.duration);
   let playing = false;
   let wallStart = 0;
   let tStart = 0;
@@ -335,24 +375,27 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
   const listeners: Array<(T: number) => void> = [];
   let reads: KnobRead[] = [];
   /**
-   * `#T` in the URL, so a reload lands on this frame (`tInUrl`): written at
-   * most every HASH_MS while T moves, at once when it settles (a seek, the end
-   * of a scrub, play or pause, the film's end), and held at the frame a lab
-   * write was asked at. A frame loop that wrote it every frame cost a history
-   * call per frame.
+   * T in the URL (`time`, the page's own place), so a reload lands on this
+   * frame (`tInUrl`): written at most every HASH_MS while T moves, at once
+   * when it settles (a seek, the end of a scrub, play or pause, the film's
+   * end), and held at the frame a lab write was asked at. A frame loop that
+   * wrote it every frame cost a history call per frame.
    */
-  const url = tInUrl(
-    () => history.replaceState(null, '', `${location.search}#${tInHash(T)}`),
-    HASH_MS,
-    timersOn(host),
-  );
+  const url = tInUrl(() => time.write(T), HASH_MS, timersOn(host));
 
   /** The lab's edits, drawn over the film's own (`Player.showEdits`). */
   let edits: ReadonlyMap<string, ShownEdit> = new Map();
 
+  /** How the preview draws a frame: its captions and the lab's edits, with `extra` options. */
+  const shownOptions = (extra: RenderOptions = {}): RenderOptions => ({
+    captions: captions.on,
+    edits,
+    ...extra,
+  });
+
   const draw = () => {
     reads = [];
-    film.render(ctx, T, { captions: captions.on, knobs: reads, edits });
+    film.render(ctx, T, shownOptions({ knobs: reads }));
     for (const listener of listeners) listener(T);
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
@@ -366,7 +409,7 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
     url.moved();
   };
 
-  /** Show `t`, as a drag passes through it: `#T` follows at most every HASH_MS. */
+  /** Show `t`, as a drag passes through it: `#t=` follows at most every HASH_MS. */
   const scrub = (t: number) => {
     T = Math.max(0, Math.min(film.duration, t));
     tStart = T;
@@ -375,11 +418,19 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
     draw();
   };
 
-  /** Show `t`, and settle there: `#T` is written at once. */
+  /** Show `t`, and settle there: `#t=` is written at once. */
   const seek = (t: number) => {
     scrub(t);
     url.settled();
   };
+
+  // Back or Forward shows the frame the entry landed on keeps, as the lab
+  // shows its pick: the URL is already there, so a write still waiting with
+  // the frame before is dropped rather than written over it.
+  onTraverse(host, (href) => {
+    scrub(time.at(href));
+    url.landed();
+  });
 
   /**
    * Restart the clock at `T`, and the narration with it at 1× (it follows the
@@ -488,7 +539,8 @@ export const mountPreview = ({ film, canvas, ctx, captions }: Staged, host: Host
       draw();
     },
     redraw: draw,
-    edits: () => edits,
+    renderShown: (into, at, over = new Map()) =>
+      film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]) })),
     showEdits: (next) => {
       edits = next;
       draw();

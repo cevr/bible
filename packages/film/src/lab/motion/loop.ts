@@ -14,7 +14,7 @@
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import type { LoopRange } from '../../player/main.ts';
-import type { LabView } from '../../player/view-state.ts';
+import type { LabView } from '../view-state.ts';
 import { Stage, type StageOps } from '../stage.ts';
 
 /** A cue shorter than this loops with CUE_PAD either side, or there is nothing to watch. */

@@ -131,7 +131,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   );
   const checkAtom = runtime.atom(LabApi.use((api) => api.check));
 
-  const stripScene = createMemo(() => film.sceneAt(lab.T()).spec.id);
+  const stripScene = lab.scene;
   const inspected = createMemo(() =>
     Option.match(lab.selection(), { onNone: stripScene, onSome: (s) => s.scene }),
   );

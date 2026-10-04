@@ -1,8 +1,9 @@
 # The gate, as `bun run gate` runs it locally: lint and the format check, then
 # every package's typecheck, build and tests through turbo. CI keeps no turbo
 # cache, so every task runs. The hooks run only the staged-file lint and
-# format. `bun run ci <commit>` waits for this workflow's run on a commit on
-# main and prints its verdict.
+# format. The film's browser tests run in the `e2e` job beside it. `bun run ci
+# <commit>` waits for this workflow's run on a commit on main and prints its
+# verdict.
 
 name: gate
 
@@ -64,3 +65,25 @@ jobs:
         run: echo "BIBLE_MODEL_CACHE=$HOME/.cache/bible-models" >> "$GITHUB_ENV"
 
       - run: bun run gate
+
+  # The film's browser tests (`bun run test:e2e`): the lab, review and player
+  # pages over Chrome through Bun.WebView. They need a Chrome, so they run in a
+  # job of their own beside the gate; the runner image carries Google Chrome,
+  # named to Bun by BUN_CHROME_PATH (packages/film/src/tools/chrome.ts).
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-
+      - run: bun install --frozen-lockfile
+      - name: Point Bun at the runner's Chrome
+        run: echo "BUN_CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+      - run: bun run test:e2e

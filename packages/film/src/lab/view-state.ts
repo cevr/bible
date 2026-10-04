@@ -9,13 +9,13 @@
 // since it was stored, so an A–B loop is clamped to the film, and dropped
 // when nothing of it is left.
 
-/** The rates the lab plays at: the only ones a stored view may hold. */
-export const RATES = [0.25, 0.5, 1] as const;
-
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import type { StoreRuntime } from '../browser/storage.ts';
+
+/** The rates the lab plays at: the only ones a stored view may hold. */
+export const RATES = [0.25, 0.5, 1] as const;
 
 export const LabView = Schema.Struct({
   rate: Schema.Literals(RATES),
@@ -48,9 +48,12 @@ export const DEFAULT_VIEW: LabView = {
   playing: false,
 };
 
-/** A change to the view: the keys it names; `loop: undefined` turns the loop off. */
+/** A loop the view keeps: a cue's, or an A–B span. */
+type ViewLoop = LabView extends { readonly loop?: infer L } ? L : never;
+
+/** A change to the view: the keys it names; `loop: Option.none()` turns the loop off. */
 type ViewPatch = Partial<Omit<LabView, 'loop'>> & {
-  readonly loop?: LabView['loop'] | undefined;
+  readonly loop?: Option.Option<ViewLoop>;
 };
 
 export interface ViewStore {
@@ -58,15 +61,26 @@ export interface ViewStore {
   patch(change: ViewPatch): void;
 }
 
-/** `view` against a film `duration` seconds long: its A–B loop inside the film, or none. */
-const fitView = (view: LabView, duration: number): LabView => {
-  const { loop, ...rest } = view;
-  if (loop === undefined || loop.kind === 'cue') return view;
-  const from = Math.max(0, loop.from);
-  const to = Math.min(duration, loop.to);
-  if (to <= from) return rest;
-  return { ...rest, loop: { kind: 'ab', from, to } };
+/** `view` with `loop`, or with none. */
+const withLoop = (view: LabView, loop: Option.Option<ViewLoop>): LabView => {
+  const { loop: _was, ...rest } = view;
+  return Option.match(loop, {
+    onNone: () => rest,
+    onSome: (kept) => ({ ...rest, loop: kept }),
+  });
 };
+
+/** `view` against a film `duration` seconds long: its A–B loop inside the film, or none. */
+const fitView = (view: LabView, duration: number): LabView =>
+  withLoop(
+    view,
+    Option.flatMap(Option.fromUndefinedOr(view.loop), (loop): Option.Option<ViewLoop> => {
+      if (loop.kind === 'cue') return Option.some(loop);
+      const from = Math.max(0, loop.from);
+      const to = Math.min(duration, loop.to);
+      return Option.liftPredicate({ kind: 'ab' as const, from, to }, () => to > from);
+    }),
+  );
 
 /**
  * The view of `film` (`duration` seconds long now) kept in `store` (the
@@ -86,10 +100,12 @@ export const viewStore = (film: string, duration: number, store: StoreRuntime): 
   let view = fitView(registry.get(kept), duration);
   return {
     get: () => view,
-    patch: (change) => {
-      const { loop, ...rest } = { ...view, ...change };
-      const next: LabView = { ...rest };
-      view = loop === undefined ? next : { ...next, loop };
+    patch: ({ loop, ...change }) => {
+      const next: LabView = { ...view, ...change };
+      view = Option.match(Option.fromUndefinedOr(loop), {
+        onNone: () => next,
+        onSome: (to) => withLoop(next, to),
+      });
       registry.set(kept, view);
     },
   };

@@ -9,7 +9,7 @@
 
 import { Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
-import type { LabView } from '../../player/view-state.ts';
+import type { LabView } from '../view-state.ts';
 
 /** How long each side of a blink shows. */
 export const BLINK_MS = 450;

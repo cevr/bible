@@ -15,8 +15,8 @@ import type * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createEffect, createMemo, createSignal, useContext } from 'solid-js';
 import type { LoopRange } from '../../player/main.ts';
-import type { LabView } from '../../player/view-state.ts';
-import type { Selection } from '../selection.ts';
+import type { LabView } from '../view-state.ts';
+import type { Selection } from '../place.ts';
 import { useLab } from '../shell.tsx';
 import {
   type LoopActor,
@@ -85,7 +85,7 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
       player.setLoop(Option.getOrUndefined(range));
     },
   );
-  createEffect(loop, (s) => view.patch({ loop: Option.getOrUndefined(loopView(s)) }));
+  createEffect(loop, (s) => view.patch({ loop: loopView(s) }));
 
   const [rate, setRateSignal] = createSignal<Rate>(view.get().rate);
   createEffect(rate, (r) => {

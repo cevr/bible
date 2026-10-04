@@ -54,7 +54,7 @@ export const Section = () => {
 export const Layer = () => {
   const { state: lab, meta } = useLab();
   const { state } = useCompare();
-  const { film, player } = meta;
+  const { player } = meta;
   let layer = Option.none<{
     readonly el: HTMLCanvasElement;
     readonly ctx: CanvasRenderingContext2D;
@@ -65,10 +65,7 @@ export const Layer = () => {
       const shown = Option.filter(state.edit(), () => shows !== 'hidden');
       l.el.hidden = Option.isNone(shown) || shows !== 'head';
       Option.map(shown, (edit) => {
-        film.render(l.ctx, player.now(), {
-          captions: player.captions.on,
-          edits: new Map([...player.edits(), [state.scene(), edit]]),
-        });
+        player.renderShown(l.ctx, player.now(), new Map([[state.scene(), edit]]));
         // Clipped left of the divider in a wipe; whole otherwise.
         l.el.style.clipPath = Option.match(state.split(), {
           onNone: () => '',

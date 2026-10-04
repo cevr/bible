@@ -31,7 +31,11 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
-import { type Steps, choiceMixUrl } from '../../../core/api.ts';
+import { Place, UrlState } from '@bible/url-state';
+import * as UrlAtom from '@bible/url-state/atom';
+import { OWN_SOUND, Places, type Steps, choiceMixUrl } from '../../../core/api.ts';
+import { type Host, addressOn, onTraverse } from '../../../browser/host.ts';
+import { keptTime } from '../place.ts';
 import type { FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine, CheckReport } from '../../../core/schema.ts';
@@ -87,6 +91,51 @@ const firstPlaying = (choices: FilmChoices): Playing =>
     ),
     (): Playing => Playing.Own(),
   );
+
+/** The film player's keys in the URL of its choices or its project. */
+interface Heard {
+  readonly heard: string;
+  readonly variant: string;
+  readonly picture: string;
+}
+
+const NOTHING_HEARD: Heard = { heard: '', variant: '', picture: '' };
+
+const choicesPlace = UrlAtom.place(Places.choices);
+const projectPlace = UrlAtom.place(Places.project);
+
+/** What `heard` names playing over the picture; `fallback` when it names nothing. */
+const playingOf = (heard: Heard, fallback: Playing): Playing =>
+  Match.value(heard.heard).pipe(
+    Match.when('', () => fallback),
+    Match.when(OWN_SOUND, () => Playing.Own()),
+    Match.orElse((point) => Playing.InPlace({ point, variant: heard.variant })),
+  );
+
+/** The `?heard= &variant=` that name `playing`. */
+const heardOf = (playing: Playing): Pick<Heard, 'heard' | 'variant'> =>
+  Playing.$match(playing, {
+    Own: () => ({ heard: OWN_SOUND, variant: '' }),
+    InPlace: (p) => ({ heard: p.point, variant: p.variant }),
+  });
+
+/** The value of the choices' or the project's place, as the film's player keeps it. */
+interface PlayerValue {
+  readonly query: Heard;
+  readonly hash: { readonly t: Option.Option<number> };
+}
+
+/**
+ * Change the URL of the page the film's player is on (its choices or its
+ * project) by `f`: the sound and the picture replace this entry, and the
+ * time follows the playhead at most every quarter second.
+ */
+const keepOn =
+  (host: Host) =>
+  (f: <V extends PlayerValue>(value: V) => V): void =>
+    Effect.runSyncWith(host)(
+      Effect.andThen(UrlState.update(Places.choices, f), UrlState.update(Places.project, f)),
+    );
 
 /** Whether two `Playing`s are the same sound. */
 export const samePlaying = (a: Playing, b: Playing): boolean =>
@@ -240,15 +289,42 @@ const FilmBody = (
     return true;
   };
 
-  const [pictureRef, setPictureRef] = createSignal(
-    Option.map(Option.fromUndefinedOr(first.pictures[0]), (p) => p.ref),
-  );
-  const picture = createMemo(() =>
-    Option.flatMap(pictureRef(), (ref) =>
-      Option.fromUndefinedOr(choices().pictures.find((p) => p.ref === ref)),
+  // What plays is the URL's (`?heard= &variant= &picture= #t=`), so a link
+  // opens the player as it was; none named is the film's first picture and
+  // its first score in place.
+  const onChoices = useAtomValue(() => choicesPlace);
+  const onProject = useAtomValue(() => projectPlace);
+  const heard = createMemo((): Heard =>
+    Option.getOrElse(
+      Option.orElse(
+        Option.map(onChoices(), (v) => v.query),
+        () => Option.map(onProject(), (v) => v.query),
+      ),
+      () => NOTHING_HEARD,
     ),
   );
-  const [playing, setPlaying] = createSignal<Playing>(firstPlaying(first));
+  const picture = createMemo(() =>
+    Option.fromUndefinedOr(
+      Match.value(heard().picture).pipe(
+        Match.when('', () => choices().pictures[0]),
+        Match.orElse((ref) => choices().pictures.find((p) => p.ref === ref)),
+      ),
+    ),
+  );
+  const playing = createMemo(() => playingOf(heard(), firstPlaying(first)));
+  const keep = keepOn(meta.host);
+  createEffect(
+    () => keptTime(sync().t, 0),
+    (t) => keep((v) => ({ ...v, hash: { t } })),
+  );
+  // Back or Forward landing on this film's entry moves the player to the time it keeps.
+  onCleanup(
+    onTraverse(meta.host, (href) =>
+      Option.map(keptAt(film, href), (t) =>
+        send(SyncEvent.Landed({ t: Option.getOrElse(t, () => 0) })),
+      ),
+    ),
+  );
   const mix = createMemo(() => mixOf(film, playing(), version()));
   createEffect(
     () => trackOf(film, playing(), version()),
@@ -285,10 +361,10 @@ const FilmBody = (
     picture,
     choosePicture: (ref) => {
       send(SyncEvent.PausePressed);
-      setPictureRef(Option.some(ref));
+      keep((v) => ({ ...v, query: { ...v.query, picture: ref } }));
     },
     playing,
-    hear: setPlaying,
+    hear: (next) => keep((v) => ({ ...v, query: { ...v.query, ...heardOf(next) } })),
     mix,
     sync,
     send,
@@ -296,6 +372,16 @@ const FilmBody = (
   };
   return <FilmContext value={value}>{props.children}</FilmContext>;
 };
+
+/** The time `film`'s choices or project entry at `href` keeps (`#t=`); none off them. */
+const keptAt = (film: string, href: string): Option.Option<Option.Option<number>> =>
+  Option.map(
+    Option.filter(
+      Option.orElse(Place.decode(Places.choices, href), () => Place.decode(Places.project, href)),
+      (v) => v.path.film === film,
+    ),
+    (v) => v.hash.t,
+  );
 
 const FilmReady = (
   props: ParentProps<{
@@ -328,7 +414,9 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
     steps: meta.runtime.fn(() => OptionsApi.use((api) => api.steps(film))),
     soundCheck: meta.runtime.fn(() => OptionsApi.use((api) => api.soundCheck(film))),
   };
-  const actor = meta.runtime.atom(Machine.scoped(spawnSync(PICTURE, 0)));
+  // The player opens where the URL's `#t=` says, else at the start.
+  const at = Option.getOrElse(Option.flatten(keptAt(film, addressOn(meta.host).href())), () => 0);
+  const actor = meta.runtime.atom(Machine.scoped(spawnSync(PICTURE, 0, at)));
   const first = useAtomValue(() => atoms.choices);
   // The page opens on the choices as first read; a later read (after a write) updates them in place.
   const [opened, setOpened] = createSignal(Option.none<FilmChoices>());

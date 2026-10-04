@@ -52,6 +52,7 @@ import {
   ExportAnswers,
   type LumaArea,
 } from '../core/export-handle.ts';
+import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler } from './lab.ts';
 import { NotesStore } from './notes-store.ts';
@@ -543,6 +544,7 @@ export const noRenders = Layer.succeed(
     pictures: () => unreviewed('pictures'),
     renderVideo: () => unreviewed('renderVideo'),
     resolve: () => unreviewed('resolve'),
+    say: () => unreviewed('say'),
     duration: () => unreviewed('duration'),
     frame: () => unreviewed('frame'),
     phone: () => unreviewed('phone'),
@@ -1617,6 +1619,7 @@ export const reviewHttpFixtureLasting = (seconds: number) =>
         phoneCopies: false,
       }).pipe(
         Layer.provide(reviewMedia([], seconds)),
+        Layer.provide(RenderCatalogue.layer.pipe(Layer.provide(ContentStore.layer))),
         Layer.merge(Layer.succeed(ReviewTestRoot, dir)),
         Layer.merge(
           Layer.mergeAll(

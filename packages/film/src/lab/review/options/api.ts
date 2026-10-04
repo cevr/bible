@@ -78,26 +78,15 @@ interface OptionsCalls {
   readonly soundCheck: (film: string) => Effect.Effect<SoundCheck, LabFailure>;
   /** Write `act` into the film's source or its catalogue. */
   readonly write: (film: string, act: ChoiceAct) => Effect.Effect<Wrote, LabFailure>;
-  /** The film's project for `variant` (`main` when none), read fresh. */
-  readonly project: (
-    film: string,
-    variant: Option.Option<string>,
-  ) => Effect.Effect<ProjectView, LabFailure>;
+  /** The film's project (its `main` variant's), read fresh. */
+  readonly project: (film: string) => Effect.Effect<ProjectView, LabFailure>;
   /** Say `said` of the film's project; the project as it leaves it. */
-  readonly sayOfProject: (
-    film: string,
-    variant: Option.Option<string>,
-    said: ProjectSay,
-  ) => Effect.Effect<ProjectView, LabFailure>;
+  readonly sayOfProject: (film: string, said: ProjectSay) => Effect.Effect<ProjectView, LabFailure>;
 }
 
 export class OptionsApi extends Context.Service<OptionsApi, OptionsCalls>()(
   '@bible/film/lab/OptionsApi',
 ) {}
-
-/** `{ variant }` when one is named. */
-const variantOf = (variant: Option.Option<string>) =>
-  Option.match(variant, { onNone: () => ({}), onSome: (v) => ({ variant: v }) });
 
 /** A film's choice and project routes, over the page's one client. */
 const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
@@ -173,13 +162,12 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
           }),
         ),
       ),
-    project: (film, variant) =>
-      called(client.project.get({ params: { film }, query: variantOf(variant) })),
-    sayOfProject: (film, variant, said) =>
+    project: (film) => called(client.project.get({ params: { film }, query: {} })),
+    sayOfProject: (film, said) =>
       called(
         client.project.say({
           params: { film },
-          payload: { address: said.address, say: said.say, ...variantOf(variant) },
+          payload: { address: said.address, say: said.say },
         }),
       ),
   };

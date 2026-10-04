@@ -44,7 +44,7 @@ import {
   SubscriptionRef,
 } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { type PageBuild, type PageName, labUrls, pageAt } from '../core/api.ts';
+import { type PageBuild, type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import type { PageAnswer } from './api-server.ts';
 import { isNarrationUrl, narrationFile } from './narration-route.ts';
 import { serveFile } from './review-file.ts';
@@ -533,15 +533,27 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       }),
     );
 
-  // A narration file by its exact URL, then a built file, then the page the
-  // path serves (`PAGE_PATHS`); anything else, a chunk of a build no longer
-  // kept among them, is a 404 and never a page's HTML.
+  /** An old link sent on to its place (`legacyPlace`); the browser keeps its hash across. */
+  const moved = (from: string, to: string) =>
+    Effect.as(
+      Effect.logInfo(`lab.page.moved from=${from} to=${to}`),
+      HttpServerResponse.redirect(to, { status: 302, headers: { 'cache-control': 'no-store' } }),
+    );
+
+  // A narration file by its exact URL, then a built file, then an old link
+  // sent on to its place, then the page the path serves (`pageAt`, the
+  // places); anything else, a chunk of a build no longer kept among them, is
+  // a 404 and never a page's HTML.
   const answer = Effect.gen(function* () {
     const request = yield* HttpServerRequest.HttpServerRequest;
-    const pathname = new URL(request.url, 'http://lab').pathname;
+    const url = new URL(request.url, 'http://lab');
+    const pathname = url.pathname;
     if (isNarrationUrl(pathname)) return yield* narration(request, pathname);
     const built = yield* asset(pathname);
     if (Option.isSome(built)) return built.value;
+    const old = `${pathname}${url.search}`;
+    const place = legacyPlace(old);
+    if (Option.isSome(place)) return yield* moved(old, place.value);
     return yield* Option.match(pageAt(pathname), {
       onNone: () => Effect.succeed(NOT_FOUND),
       onSome: page,
