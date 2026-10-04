@@ -46,7 +46,6 @@ import {
   ToolCallId,
 } from '@gent/core/protocol';
 import {
-  BunGentPlatformLive,
   ConfigService,
   createRpcHarness,
   freePort,
@@ -240,14 +239,7 @@ const live = <A, E>(
     E,
     FileSystem.FileSystem | Path.Path | ChildProcessSpawner | Scope.Scope
   >,
-) =>
-  effect.pipe(
-    Effect.scoped,
-    // gent's platform, which a tool call has in production (`saveToolImage`
-    // decodes and scales on it) and `runToolWithCtx` does not provide.
-    Effect.provide(Layer.merge(BunServices.layer, BunGentPlatformLive)),
-    Effect.timeout('25 seconds'),
-  );
+) => effect.pipe(Effect.scoped, Effect.provide(BunServices.layer), Effect.timeout('25 seconds'));
 
 /** The JSON text a result is sent to the model as: gent spills one over 8,000 characters. */
 const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Json));
