@@ -174,8 +174,14 @@ describe('the review page', () => {
         );
         yield* page.click('.sh-header [data-act="view-menu"]');
         yield* waitFor(page, '[data-role="view-menu"] [data-command="review.refresh"]');
+        // `/` opens it too, and its Go to goes there, even pressed while the menu
+        // ⋯ is still on its way out: a closing menu holds no keys. Its exit is
+        // held for 3 s, so the press always lands in it, focus still inside.
+        yield* page.evaluate(
+          `document.head.append(Object.assign(document.createElement('style'), { textContent: '[data-role="view-menu"] { transition: opacity 3s linear !important; } [data-role="view-menu"][data-ending-style] { opacity: 0 !important; }' }))`,
+        );
         yield* page.press('Escape');
-        // `/` opens it too, and its Go to goes there.
+        yield* waitFor(page, '[data-role="view-menu"][data-ending-style]');
         yield* page.press('/');
         yield* page.waitFor('.lab-command-query');
         yield* page.fill('.lab-command-query', 'roofs at dusk');

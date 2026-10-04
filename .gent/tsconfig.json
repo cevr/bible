@@ -1,0 +1,10 @@
+{
+  // The film extension and its tests, typechecked against a local gent
+  // checkout (`bun run test:gent` links `.gent/node_modules` to its modules
+  // and runs its compiler). Outside the gate: CI has no gent.
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true
+  },
+  "include": ["extensions", "tests/*.test.ts"]
+}

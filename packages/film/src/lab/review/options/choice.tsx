@@ -34,13 +34,7 @@ import { ChoiceAct } from './api.ts';
 import { Playing, samePlaying, useAct, useFilm } from './context.tsx';
 import { Selection } from '../../../command/selection.ts';
 import { Target } from '../../command/context-menu.tsx';
-import {
-  CommentCount,
-  InspectName,
-  Inspector,
-  type InspectorBox,
-  useThing,
-} from '../inspector.tsx';
+import { InspectName, Inspector, type InspectorBox, useThing } from '../inspector.tsx';
 import type { ThingVerb, VerbId } from '../things.ts';
 import { type InPlace, verbTitle } from './keys.ts';
 import { Field } from '../../command/inspector.tsx';
@@ -440,7 +434,7 @@ const VariantRow = (props: {
       data-picked={pressed(props.variant.picked)}
     >
       <div class="rv-row">
-        <InspectName of={selection}>
+        <InspectName of={selection} comments={props.variant.comments.length}>
           <span class="rv-name">{props.variant.label}</span>
         </InspectName>
         <Show when={props.variant.picked}>
@@ -453,7 +447,6 @@ const VariantRow = (props: {
           </span>
         </Show>
         <StateTags variant={props.variant} />
-        <CommentCount of={selection} count={props.variant.comments.length} />
       </div>
       <Show when={props.variant.lines[0]}>
         {(line) => (

@@ -41,6 +41,8 @@ build/Release
 
 # Dependency directories
 node_modules/
+# The film extension's link to a local gent checkout's modules (`bun run test:gent`).
+.gent/node_modules
 jspm_packages/
 
 # Snowpack dependency directory (https://snowpack.dev/)

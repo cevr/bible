@@ -55,11 +55,18 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-wipe video, .rv-wipe canvas { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
 .rv-wipe .rv-wipe-other { position: absolute; inset: 0; }
 .rv-wipe-line { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--on-picture); }
+/* The grip's target is its whole --hit square (a round button is hit only
+   inside its circle); the circle is drawn, the same size, by ::before. */
 .rv-wipe-grip {
   position: absolute; top: 50%; left: 50%; width: var(--hit); height: var(--hit); transform: translate(-50%, -50%);
-  border-radius: 50%; border: 2px solid var(--on-picture); background: var(--on-picture-shade);
-  cursor: ew-resize; touch-action: none; padding: 0;
+  border: 0; background: none; cursor: ew-resize; touch-action: none; padding: 0;
 }
+.rv-wipe-grip::before {
+  content: ''; position: absolute; inset: 0;
+  border-radius: 50%; border: 2px solid var(--on-picture); background: var(--on-picture-shade);
+}
+.rv .rv-wipe-grip:focus-visible { box-shadow: none; }
+.rv .rv-wipe-grip:focus-visible::before { box-shadow: var(--focus-ring); }
 .rv-wipe-caps { margin-top: var(--s-2); }
 /* The pair's difference at a moment: the other's still over the first's, in the difference blend. */
 .rv-diff { position: relative; background: var(--surface-0); isolation: isolate; }
@@ -73,7 +80,7 @@ a.rv-card:hover { background: var(--surface-2); }
 }
 .rv-sound {
   background: none; border: 0; color: var(--text-2); border-radius: var(--r-2); padding: 0 var(--s-2); cursor: pointer;
-  font: inherit; min-width: var(--control-h); min-height: var(--control-h); filter: grayscale(1);
+  font: inherit; min-width: var(--hit); min-height: var(--hit); filter: grayscale(1);
 }
 .rv-sound:hover { background: var(--surface-3); color: var(--text-1); }
 .rv-sound.on { color: var(--accent); filter: none; }
@@ -170,6 +177,25 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-findings li[data-level="warning"] b { color: var(--state-warning); }
 .rv-films { margin-bottom: var(--s-1); }
 .rv :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.rv .lab-count-hit:focus-visible { box-shadow: none; }
+.rv .lab-count-hit:focus-visible > .lab-count { box-shadow: var(--focus-ring); }
+/*
+ * Every target is the pointer's size, --hit each way (design language §3: a
+ * finger's 44 px on the phone, 28 px on the laptop), grown by padding, never
+ * by bigger text. A slider's box is --hit tall, its track centred in it; a
+ * segment, a sound button and a loose video's file link --hit square; a
+ * fold's summary, the Versions link, a row or head that holds a name, a
+ * finding's time and a scene's choice link full rows --hit tall (a name's own
+ * hit-slop, in the commands' sheet, then stays inside its row).
+ */
+.rv input[type="range"] { min-height: var(--hit); }
+.rv-seg button { min-height: var(--hit); min-width: var(--hit); }
+.rv-cap > a.rv-hint { display: inline-flex; align-items: center; justify-content: center; min-height: var(--hit); min-width: var(--hit); }
+.rv-layers > summary { padding-block: calc((var(--hit) - var(--lh-2)) / 2); }
+.rv-scene > [data-compare] { display: flex; align-items: center; min-height: var(--hit); }
+.rv-row:has(> .lab-named) { min-height: var(--hit); }
+.rv-act > .rv-h { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s-2); min-height: var(--hit); }
+.rv-at, .rv-plays .rv-inline-link { display: inline-flex; align-items: center; min-height: var(--hit); vertical-align: middle; }
 @media (max-width: 600px) {
   .rv-main { padding: var(--s-3) var(--gutter) var(--s-8); }
   .rv-transport { padding: var(--s-2) var(--s-2); gap: var(--s-2); }

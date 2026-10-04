@@ -738,6 +738,12 @@ body.lab .stage {
   border-radius: var(--r-1);
   padding: 2px 4px;
 }
+/* A field is the pointer's target tall (`--hit`: a finger's on the phone, the laptop's dense one). */
+.lab-num,
+.lab-motion-row button,
+.lab-motion-row input {
+  min-height: var(--hit);
+}
 .lab-eases {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));

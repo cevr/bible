@@ -73,7 +73,6 @@ import { withSelection } from '../../../command/context.ts';
 import { onChoicesTab } from '../../../core/point.ts';
 import { Target, type TargetElementProps } from '../../command/context-menu.tsx';
 import {
-  CommentCount,
   InspectName,
   Inspector,
   type InspectorBox,
@@ -385,7 +384,11 @@ const SceneRow = (props: {
       marks={marks()}
       size={size}
       picture={picture}
-      name={<InspectName of={thing.selection}>{props.scene.scene}</InspectName>}
+      name={
+        <InspectName of={thing.selection} comments={variant().comments.length}>
+          {props.scene.scene}
+        </InspectName>
+      }
       verb={verb}
       selected={size === 'tile' && inspected()}
     />
@@ -629,9 +632,10 @@ const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
       data-act-name={props.act.name}
     >
       <h2 class="rv-h">
-        <InspectName of={selection}>{props.act.name}</InspectName>{' '}
-        <small>{countsOf(scenes())}</small>{' '}
-        <CommentCount of={selection} count={props.act.comments.length} />
+        <InspectName of={selection} comments={props.act.comments.length}>
+          {props.act.name}
+        </InspectName>{' '}
+        <small>{countsOf(scenes())}</small>
       </h2>
       <PartInspector
         at={props.at}
@@ -677,12 +681,11 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
         data-reading={pressed(props.at.reading())}
       >
         <div class="rv-row">
-          <InspectName of={film}>
+          <InspectName of={film} comments={project().comments.length}>
             <span class="rv-hint" data-counts="">
               {countsOf(project().scenes)} · variant {project().variant}
             </span>
           </InspectName>
-          <CommentCount of={film} count={project().comments.length} />
         </div>
         <PartInspector
           at={props.at}

@@ -88,7 +88,7 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
   .sh-films[data-active="true"]::after { content: ""; position: absolute; left: var(--s-3); right: var(--s-3);
     bottom: -1px; height: 2px; background: var(--accent); }
   .sh-vsep { display: block; }
-  .sh-tc { display: inline-block; }
+  .sh-tc { display: inline-flex; align-items: center; min-height: var(--hit); }
   .sh-goto { display: inline-flex; gap: var(--s-2); width: auto; height: var(--control-h); padding: 0 var(--s-2);
     border: var(--border); background: var(--surface-2); color: var(--text-3); font-size: var(--fs-2); }
   .sh-goto .sh-icon { width: 14px; height: 14px; }

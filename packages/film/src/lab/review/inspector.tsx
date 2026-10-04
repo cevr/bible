@@ -5,7 +5,7 @@
 // (`useThing`, `things.ts`) and renders its inspector in place
 // (`<Inspector>`), so the sheet reads the row's own providers; one thing's
 // inspector is open at a time, opened by tapping the thing's name
-// (`<InspectName>`), its comment count (`<CommentCount>`), Inspect (`i`) or
+// (`<InspectName>`), its comment count beside it, Inspect (`i`) or
 // Comment on (`m`), from its context menu or ⌘K. Hosted in @bible/ui's
 // Drawer, beside the page (not over it: the page stays live, a tap outside
 // keeps it open), swiped away to the right or closed with Escape; its footer
@@ -185,39 +185,55 @@ export const Inspector = (props: {
   );
 };
 
-/** A thing's name that opens its inspector when tapped: its look is the name's own. */
-export const InspectName = (props: { readonly of: Selection; readonly children: JSX.Element }) => {
+/**
+ * A thing's name that opens its inspector when tapped, its look the name's
+ * own, and beside it the count of its `comments` (`<CommentCount>`): the two
+ * held on one line, so the count never wraps under the name into its hit
+ * area.
+ */
+export const InspectName = (props: {
+  readonly of: Selection;
+  readonly comments: number;
+  readonly children: JSX.Element;
+}) => {
   const inspecting = useInspecting();
   return (
-    <button
-      type="button"
-      class="lab-inspect"
-      data-act="inspect"
-      title="Inspect"
-      onClick={() => inspecting.open(props.of, 'info')}
-    >
-      {props.children}
-    </button>
+    <span class="lab-named">
+      <button
+        type="button"
+        class="lab-inspect"
+        data-act="inspect"
+        title="Inspect"
+        onClick={() => inspecting.open(props.of, 'info')}
+      >
+        {props.children}
+      </button>
+      <CommentCount of={props.of} count={props.comments} />
+    </span>
   );
 };
 
 /** `n` comments, said in full. */
 const commentsText = (n: number) => `${n} ${['comments', 'comment'][Number(n === 1)]}`;
 
-/** How many comments a thing has, a dot on its row that opens its inspector; nothing when none. */
-export const CommentCount = (props: { readonly of: Selection; readonly count: number }) => {
+/**
+ * How many comments a thing has, a dot that opens its inspector; nothing
+ * when none. The dot sits in a box the pointer's target each way (`--hit`),
+ * so it is reached beside its name without taking the name's.
+ */
+const CommentCount = (props: { readonly of: Selection; readonly count: number }) => {
   const inspecting = useInspecting();
   return (
     <Show when={props.count > 0}>
       <button
         type="button"
-        class="lab-count"
+        class="lab-count-hit"
         data-comments={String(props.count)}
         title={commentsText(props.count)}
         aria-label={commentsText(props.count)}
         onClick={() => inspecting.open(props.of, 'info')}
       >
-        {props.count}
+        <span class="lab-count">{props.count}</span>
       </button>
     </Show>
   );

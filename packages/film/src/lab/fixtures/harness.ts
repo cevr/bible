@@ -401,6 +401,19 @@ interface FakeMic {
 }
 
 /**
+ * A page's window: its size, and with `coarse` a phone's pointer (touch
+ * emulation, so `(pointer: coarse)` matches); none, a mouse.
+ */
+export interface Viewport {
+  readonly width: number;
+  readonly height: number;
+  readonly coarse?: boolean;
+}
+
+/** A desk's window: wide, with a mouse. */
+const DESK: Viewport = { width: 1400, height: 900 };
+
+/**
  * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`, `core/api.ts`;
  * the probe film's lab when none), served on every lab place as the server
  * serves it, with `routes` answering the API before the defaults, and `mic`
@@ -416,14 +429,15 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     readonly build?: PageBuild;
     /** The mode to show, picked on the mode tray as the owner would; none: the first (Edit). */
     readonly mode?: LabMode;
+    /** The window, and its pointer; none: a desk's, 1400 × 900 with a mouse. */
+    readonly viewport?: Viewport;
   } = {},
 ) {
   const script = labScript;
   const mic = Option.fromUndefinedOr(at.mic);
   const asked: Array<Asked> = [];
   const page = yield* openTab({
-    width: 1400,
-    height: 900,
+    ...(at.viewport ?? DESK),
     microphone: Option.exists(mic, (m) => m.allowed),
     // The page's clock (timers, animation frames, `Date`, `performance.now`) is
     // the test's: it runs on with real time, and a test moves it on with
@@ -460,7 +474,7 @@ const playerPage = (style: string, script: Asset) =>
 interface PlayerAt {
   /** The link opened (`pageHref.play`, `pageHref.scenes`, `core/api.ts`). */
   readonly href: string;
-  readonly viewport: { readonly width: number; readonly height: number };
+  readonly viewport: Viewport;
 }
 
 /**
@@ -502,7 +516,7 @@ const reviewPage = (script: Asset, build: Option.Option<PageBuild>) =>
 interface ReviewAt {
   /** The link opened (`pageHref`, `core/api.ts`): home when none. */
   readonly href?: string;
-  readonly viewport?: { readonly width: number; readonly height: number };
+  readonly viewport?: Viewport;
   /** The build the page was served at, as the lab stamps it; none: unstamped (it hears no mixes). */
   readonly build?: PageBuild;
 }
@@ -522,7 +536,7 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
   const script = reviewScript;
   const asked: Array<Asked> = [];
   const page = yield* openTab({
-    ...(at.viewport ?? { width: 1400, height: 900 }),
+    ...(at.viewport ?? DESK),
     microphone: false,
     // The page's clock is the test's, as the lab's is.
     init: [CLOCK_SCRIPT],
