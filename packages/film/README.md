@@ -999,8 +999,10 @@ empty, so an open page and `--watch` keep hearing); `wait` polls the file for th
 the CLI wrote while the server was waiting. Each change is one
 `ContentStore.transact`, as every manifest's is: written whole, one writer at
 a time across processes (`notes.json.lock`, created only if there is none and
-naming its holder; a lock whose holder is gone, or older than 30 s, is
-broken; one held past about 5 s fails with `StoreLocked`, naming it). A
+naming its holder's pid and host; a lock whose holder is gone, a pid on this
+host that no longer runs, is broken, and a running holder's never is, however
+long it holds it; one held past about 5 s fails with `StoreLocked`, and the
+log names who holds it, `store.lock.held`). A
 note's still is written under the same lock, before the note that names it.
 
 `nearestMoment(placed, T)` (`core/notes.ts`) names the scene at `T` and, in

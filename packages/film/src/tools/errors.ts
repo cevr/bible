@@ -490,7 +490,7 @@ export class StoreLocked extends Schema.TaggedError<StoreLocked>()('StoreLocked'
   lock: Schema.String,
 }) {
   override get message() {
-    return `${this.lock} is held by a running writer; it is broken once that writer exits or the lock is 30 s old`;
+    return `${this.lock} is held by a running writer; try again once it is done (the lab log names it: store.lock.held), and it is broken only once that writer has exited`;
   }
 }
 

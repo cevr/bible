@@ -9,9 +9,11 @@
 // One writer at a time: a change holds the manifest's lock, a file beside it
 // (`<file>.lock`) created only if there is none, for its read, its change and
 // its write; fibers of one process queue on a semaphore per file first. The
-// lock names its holder (pid, when taken, a token): a lock whose holder is
-// gone, or that is older than any change takes (30 s), was left by a crash,
-// and the next writer breaks it and says so.
+// lock names its holder (pid, host, when taken, a token): a lock whose holder
+// is gone (a pid on this host that no longer runs) was left by a crash, and
+// the next writer breaks it and says so. A running holder's lock is never
+// broken, however long it is held, nor one held on another host; a writer
+// that waits its whole wait for one fails as StoreLocked and logs who holds it.
 //
 // A file is written whole (`writeWhole`): beside it under a name of the
 // writer's own (`<file>.<pid>-<n>.partial`), then renamed over it (by the
@@ -36,6 +38,7 @@ import {
   Semaphore,
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
+import { hostname } from 'node:os';
 import { FileInvalid, StoreLocked } from './errors.ts';
 
 /** A manifest file, its codec, and what it holds before anything is generated. */
@@ -97,9 +100,14 @@ const isStale = (stored: Option.Option<string>, hash: string, force: boolean): b
 const LOCK_TRIES = 250;
 const LOCK_SPACING = Duration.millis(20);
 
-/** Who holds a manifest's lock: its process, when it took it (epoch ms), and a token of its own. */
+/**
+ * Who holds a manifest's lock: its process, the host it runs on, when it
+ * took it (epoch ms), and a token of its own. A lock from before the host was
+ * written names none, and is judged as this host's.
+ */
 const LockOwner = Schema.Struct({
   pid: Schema.Int,
+  host: Schema.optionalKey(Schema.String),
   created: Schema.Finite,
   token: Schema.String,
 });
@@ -109,11 +117,11 @@ const decodeOwner = Schema.decodeUnknownOption(LockOwnerJson);
 const encodeOwner = Schema.encodeSync(LockOwnerJson);
 
 /**
- * A lock older than this was left by a crash: a change holds it for
- * milliseconds (a read, a still and the file written), so no live writer
- * comes near it.
+ * A lock whose holder cannot be read (a lock directory of an older store,
+ * or a file left empty by a crash mid-write) and that is older than this was
+ * left by a crash: a holder writes itself into the lock as it creates it.
  */
-const LOCK_STALE = Duration.seconds(30);
+const UNREAD_LOCK_STALE = Duration.seconds(30);
 
 /** The lock of the manifest at `file`. */
 export const lockFile = (file: string): string => `${file}.lock`;
@@ -129,24 +137,53 @@ const isAlive = (pid: number) =>
     },
   );
 
+/** The processes a lock's holder is judged among: this host's name, and whether a pid on it runs. */
+interface ProcessesService {
+  readonly host: string;
+  readonly alive: (pid: number) => Effect.Effect<boolean>;
+}
+
 /**
- * Why a lock held by `owner` (none: it cannot be read, and `now` is measured
- * from the file's mtime by the caller) is stale at `now`, or none while it
- * holds. Pure: `alive` says whether a pid runs.
+ * This host's processes (`process.kill(pid, 0)`, `os.hostname()`): what
+ * says whether a lock's holder is gone. Tests set it.
+ */
+export const Processes = Context.Reference<ProcessesService>('@bible/film/tools/Processes', {
+  defaultValue: () => ({ host: hostname(), alive: (pid) => Effect.sync(() => isAlive(pid)) }),
+});
+
+/** Whether `owner` runs on host `here`: one that names no host is taken to. */
+const holdsOn = (owner: LockOwner, here: string): boolean =>
+  Option.getOrElse(Option.fromUndefinedOr(owner.host), () => here) === here;
+
+/**
+ * Why a lock held by `owner` is stale, or none while it holds. A lock is
+ * stale only when its holder is gone: a holder on this host (`here`) whose
+ * pid no longer runs (`alive`, asked of it alone). One held by a running
+ * process holds however long it is held (a slow or suspended change is
+ * still a change), and one held on another host is never judged, since its
+ * pid means nothing here. A holder that cannot be read (none) ages from
+ * `since`, its file's mtime, and is stale past UNREAD_LOCK_STALE. Pure.
  */
 export const lockVerdict = (
   owner: Option.Option<LockOwner>,
   now: number,
+  here: string,
   alive: (pid: number) => boolean,
-  since: number = Option.match(owner, { onNone: () => now, onSome: (o) => o.created }),
-): Option.Option<string> => {
-  if (Option.isSome(owner) && !alive(owner.value.pid))
-    return Option.some(`its holder, pid ${owner.value.pid}, is gone`);
-  const age = now - since;
-  if (age > Duration.toMillis(LOCK_STALE))
-    return Option.some(`it was taken ${Math.round(age / 1000)} s ago`);
-  return Option.none();
-};
+  since: number = now,
+): Option.Option<string> =>
+  Option.match(owner, {
+    onNone: () => {
+      const age = now - since;
+      if (age <= Duration.toMillis(UNREAD_LOCK_STALE)) return Option.none<string>();
+      return Option.some(
+        `its holder cannot be read, and it was made ${Math.round(age / 1000)} s ago`,
+      );
+    },
+    onSome: (o) => {
+      if (!holdsOn(o, here) || alive(o.pid)) return Option.none<string>();
+      return Option.some(`its holder, pid ${o.pid}, is gone`);
+    },
+  });
 
 const isAlreadyExists = (error: PlatformError) => error.reason._tag === 'AlreadyExists';
 
@@ -246,7 +283,13 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           onSome: (o) => Effect.succeed(o.created),
           onNone: () => mtime,
         });
-        const verdict = lockVerdict(owner, now, isAlive, since);
+        const processes = yield* Processes;
+        // Only a holder on this host is asked after: another's pid means nothing here.
+        const running = yield* Option.match(
+          Option.filter(owner, (o) => holdsOn(o, processes.host)),
+          { onNone: () => Effect.succeed(true), onSome: (o) => processes.alive(o.pid) },
+        );
+        const verdict = lockVerdict(owner, now, processes.host, () => running, since);
         if (Option.isNone(verdict)) return;
         const grave = `${lock}.stale-${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}`;
         const moved = yield* fs.rename(lock, grave).pipe(Effect.option);
@@ -263,6 +306,24 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         yield* Effect.logWarning(`store.lock.broken lock=${lock} reason="${verdict.value}"`);
       });
 
+      /** Who holds `lock`, as the log names them once a writer has waited its whole wait. */
+      const heldBy = (lock: string) =>
+        Effect.gen(function* () {
+          const owner = Option.flatMap(
+            yield* fs.readFileString(lock).pipe(Effect.option),
+            decodeOwner,
+          );
+          const now = yield* Clock.currentTimeMillis;
+          const holder = Option.match(owner, {
+            onNone: () => 'holder=unreadable',
+            onSome: (o) =>
+              `pid=${o.pid} host=${Option.getOrElse(Option.fromUndefinedOr(o.host), () => 'unnamed')} held=${Math.round((now - o.created) / 1000)}s`,
+          });
+          yield* Effect.logWarning(
+            `store.lock.held lock=${lock} ${holder} reason="a running writer holds it; it is broken only once that writer is gone"`,
+          );
+        });
+
       /** Take `lock` (a file created only if there is none) for one change. */
       const take = (lock: string, owner: LockOwner) =>
         fs.writeFileString(lock, encodeOwner(owner), { flag: 'wx' }).pipe(
@@ -274,7 +335,9 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
             times: LOCK_TRIES,
             schedule: Schedule.spaced(LOCK_SPACING),
           }),
-          Effect.catchIf(isAlreadyExists, () => Effect.fail(StoreLocked.make({ lock }))),
+          Effect.catchIf(isAlreadyExists, () =>
+            Effect.andThen(heldBy(lock), Effect.fail(StoreLocked.make({ lock }))),
+          ),
         );
 
       /** Give `lock` back, if it is still this writer's (a lock broken as stale is someone else's now). */
@@ -300,6 +363,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           const lock = lockFile(file);
           const owner: LockOwner = {
             pid: process.pid,
+            host: (yield* Processes).host,
             created: yield* Clock.currentTimeMillis,
             token: `${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}`,
           };

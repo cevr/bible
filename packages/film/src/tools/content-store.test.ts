@@ -4,16 +4,30 @@
 import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Array as Arr, Clock, Context, Effect, FileSystem, Layer, Option, Schema } from 'effect';
+import {
+  Array as Arr,
+  Clock,
+  Context,
+  Effect,
+  Fiber,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Schema,
+} from 'effect';
+import * as PlatformError from 'effect/PlatformError';
+import { TestClock } from 'effect/testing';
 import { type SoundManifest, SoundManifestJson } from '../core/schema.ts';
 import {
   ContentStore,
   LockOwnerJson,
   type Manifest,
+  Processes,
   lockFile,
   lockVerdict,
 } from './content-store.ts';
-import { storeLayer } from './testing.ts';
+import { memoryFileSystem, storeLayer, text } from './testing.ts';
 
 const manifest: Manifest<SoundManifest> = {
   file: '/films/test/sound/manifest.json',
@@ -31,6 +45,52 @@ const assets: Manifest<typeof Assets.Type> = {
   codec: Schema.fromJsonString(Assets),
   empty: { assets: {} },
 };
+
+/**
+ * A store over `files` whose file system refuses to create a file that is
+ * there (`wx`), as a disk does: another process, as far as any lock knows.
+ */
+const storeOn = (files: Map<string, Uint8Array>) =>
+  Effect.gen(function* () {
+    const memory = yield* Effect.map(
+      Layer.build(memoryFileSystem(files)),
+      Context.get(FileSystem.FileSystem),
+    );
+    const exclusive = FileSystem.FileSystem.of({
+      ...memory,
+      // Asked when run, as a disk is: a retry of the same call sees the file as it is then.
+      writeFileString: (file, data, options) =>
+        Effect.suspend(() => {
+          const wx = Option.exists(Option.fromUndefinedOr(options), (o) => o.flag === 'wx');
+          if (wx && files.has(file))
+            return Effect.fail(
+              PlatformError.systemError({
+                _tag: 'AlreadyExists',
+                module: 'FileSystem',
+                method: 'writeFileString',
+                pathOrDescriptor: file,
+              }),
+            );
+          return memory.writeFileString(file, data, options);
+        }),
+    });
+    return yield* Effect.map(
+      Layer.build(
+        ContentStore.layer.pipe(
+          Layer.provide([Layer.succeed(FileSystem.FileSystem, exclusive), Path.layer]),
+        ),
+      ),
+      Context.get(ContentStore),
+    );
+  });
+
+/** `effect` run while the test clock passes every wait a writer makes for another's lock. */
+const waited = <A, E>(effect: Effect.Effect<A, E>) =>
+  Effect.gen(function* () {
+    const running = yield* Effect.forkChild(effect);
+    for (let i = 0; i < 300; i += 1) yield* TestClock.adjust('20 millis');
+    return yield* Fiber.join(running);
+  });
 
 describe('ContentStore', () => {
   it.effect('keeps every entry when updates race', () =>
@@ -147,15 +207,73 @@ describe('ContentStore', () => {
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
-  test('a lock is stale when its holder is gone or it is past 30 s; a live, fresh one holds', () => {
-    const owner = { pid: 42, created: 1_000_000, token: 't' };
+  it.effect('a live holder keeps its lock however long it holds it', () => {
+    // Taken a minute ago by this very process, which still runs: a slow change, not a crash.
+    const held = Schema.encodeSync(LockOwnerJson)({ pid: process.pid, created: 0, token: 'slow' });
+    return Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const store = yield* storeOn(files);
+      const lock = lockFile(assets.file);
+      yield* TestClock.adjust('1 minute');
+      files.set(lock, text(held));
+      const refused = yield* waited(Effect.flip(store.update(assets, (m) => m)));
+      expect(refused._tag).toBe('StoreLocked');
+      expect(new TextDecoder().decode(files.get(lock))).toBe(held);
+    }).pipe(Effect.scoped);
+  });
+
+  it.effect("a dead holder's lock is recovered; a holder on another host is never judged", () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const store = yield* storeOn(files);
+      const lock = lockFile(assets.file);
+      const heldOn = (host: string) =>
+        Schema.encodeSync(LockOwnerJson)({ pid: 4242, created: 0, token: 'gone', host });
+      // No process on this host runs, as far as this probe says.
+      const noneRunning = Effect.provideService(Processes, {
+        host: 'here',
+        alive: () => Effect.succeed(false),
+      });
+      // Pid 4242 on another host: whether it runs cannot be known from here.
+      files.set(lock, text(heldOn('elsewhere')));
+      const refused = yield* waited(Effect.flip(noneRunning(store.update(assets, (m) => m))));
+      expect(refused._tag).toBe('StoreLocked');
+      expect(new TextDecoder().decode(files.get(lock))).toBe(heldOn('elsewhere'));
+      // Pid 4242 on this host, gone: its lock is broken and the change lands.
+      files.set(lock, text(heldOn('here')));
+      yield* waited(
+        noneRunning(
+          store.update(assets, (m) => ({
+            assets: { ...m.assets, x: { hash: 'x', file: 'x.flac' } },
+          })),
+        ),
+      );
+      expect(files.has(lock)).toBe(false);
+      expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['x']);
+    }).pipe(Effect.scoped),
+  );
+
+  test('a lock is stale only once its holder is gone; a running one holds however old, and another host is never judged', () => {
+    const owner = { pid: 42, host: 'here', created: 1_000_000, token: 't' };
     const alive = () => true;
-    expect(lockVerdict(Option.some(owner), 1_000_000 + 29_000, alive)).toEqual(Option.none());
-    expect(lockVerdict(Option.some(owner), 1_000_000 + 1_000, () => false)).toEqual(
+    const gone = () => false;
+    const hourLater = 1_000_000 + 3_600_000;
+    expect(lockVerdict(Option.some(owner), hourLater, 'here', alive)).toEqual(Option.none());
+    expect(lockVerdict(Option.some(owner), 1_000_000 + 1_000, 'here', gone)).toEqual(
       Option.some('its holder, pid 42, is gone'),
     );
-    expect(lockVerdict(Option.some(owner), 1_000_000 + 31_000, alive)).toEqual(
-      Option.some('it was taken 31 s ago'),
+    expect(lockVerdict(Option.some(owner), hourLater, 'there', gone)).toEqual(Option.none());
+    // A lock from before the host was written is judged as this host's.
+    const { host: _, ...unnamed } = owner;
+    expect(lockVerdict(Option.some(unnamed), hourLater, 'here', gone)).toEqual(
+      Option.some('its holder, pid 42, is gone'),
+    );
+    // One whose holder cannot be read ages from its file's mtime.
+    expect(lockVerdict(Option.none(), 1_000_000 + 29_000, 'here', gone, 1_000_000)).toEqual(
+      Option.none(),
+    );
+    expect(lockVerdict(Option.none(), 1_000_000 + 31_000, 'here', gone, 1_000_000)).toEqual(
+      Option.some('its holder cannot be read, and it was made 31 s ago'),
     );
   });
 });
