@@ -2,9 +2,10 @@
 // available, filters by what is typed and runs the chosen command; the `?`
 // sheet rebinds a key, and the rebound key survives a reload; a cue's context
 // menu (a right-click, or a touch held still) lists its commands and runs
-// one, and a touch that moves (a drag) never opens it; `/` opens ⌘K to Go to
-// a scene or a cue by its name; a row pressed while the film plays, in ⌘K
-// or a cue's menu, runs.
+// one; a touch that moves (a drag) never opens it, and a touch that opened
+// it starts no drag; a field inside a thing keeps the browser's own menu;
+// `/` opens ⌘K to Go to a scene or a cue by its name; a row pressed while
+// the film plays, in ⌘K or a cue's menu, runs.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -143,6 +144,34 @@ describe("a cue's context menu", () => {
       yield* evaluates(page, 'location.search', '?cue=rise');
       yield* attached(page, `${RISE}.selected`);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a right-click on a field inside a thing keeps the browser's own menu, and opens no menu of ours",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], {
+          href: labAt(1, { selection: { _tag: 'Knob', scene: 'one', name: 'size' } }),
+        });
+        const field = '.lab-knob[data-knob="size"] input';
+        yield* page.waitFor(field);
+        // The thing itself (its row, off the field) still opens ours, and the browser's stays shut.
+        expect(yield* rightClick(page, '.lab-knob[data-knob="size"] .lab-edit-key')).toBe(false);
+        yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
+        yield* page.press('Escape');
+        yield* evaluates(
+          page,
+          `document.querySelector('[data-role="context-menu"]') === null`,
+          true,
+        );
+        expect(yield* rightClick(page, field)).toBe(true);
+        yield* page.clock.runFor(100);
+        yield* evaluates(
+          page,
+          `document.querySelector('[data-role="context-menu"]') === null`,
+          true,
+        );
+      }).pipe(Effect.scoped),
   );
 
   it.live('a row pressed while the film plays is the row released on, and runs', () =>

@@ -128,6 +128,14 @@ describe('ContextMenu.Trigger: right click', () => {
     expect(await nativeMenuBlocked(page, '#backdrop')).toBe(true);
     expect(await nativeMenuBlocked(page, '#before-nothing, body')).toBe(false);
   });
+
+  it('an open the root declines leaves the native context menu alone', async () => {
+    const page = await h.open('area');
+    expect(await nativeMenuBlocked(page, '#field')).toBe(false);
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).toContain('open declined');
+    expect(await logOf(page)).not.toContain('open true');
+  });
 });
 
 describe('ContextMenu.Trigger: the mouseup after a right click', () => {

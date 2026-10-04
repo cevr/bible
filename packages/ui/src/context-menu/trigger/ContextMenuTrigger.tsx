@@ -13,7 +13,12 @@
 // film lab's `Pointer.drag` does, past `LONG_PRESS_MOVE_THRESHOLD`), and a
 // press another holds is no long press, nor opens on the browser's own long
 // press `contextmenu`; a long press claims the press as it opens the menu,
-// so no drag starts under the open menu.
+// so no drag starts under the open menu. Also not in upstream: the open is
+// decided before the browser's menu is prevented. A right click the root's
+// `onOpenChange` cancels (a field inside the area keeping its own menu)
+// leaves the event alone, so the browser's menu shows; over the area the
+// browser's menu is suppressed only by the open that went ahead, and the
+// document listener covers the backdrops alone.
 import type { JSX } from '@solidjs/web';
 import { createEffect, omit, onCleanup, untrack } from 'solid-js';
 
@@ -62,7 +67,8 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
   let allowMouseUp = false;
   let mouseUpAbortController: AbortController | null = null;
 
-  function handleLongPress(x: number, y: number, event: MouseEvent | TouchEvent) {
+  /** Open the menu at `x`, `y`: true when it opened, false when the root's `onOpenChange` cancelled. */
+  function handleLongPress(x: number, y: number, event: MouseEvent | TouchEvent): boolean {
     const isTouchEvent = event.type.startsWith('touch');
     contextMenu.initialCursorPointRef.current = { x, y };
     contextMenu.setAnchor({
@@ -76,13 +82,19 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
       },
     });
     allowMouseUp = false;
-    contextMenu.actionsRef.current?.setOpen(
-      true,
-      createChangeEventDetails(REASONS.triggerPress, event),
-    );
+    const details = createChangeEventDetails(REASONS.triggerPress, event);
+    contextMenu.actionsRef.current?.setOpen(true, details);
+    if (details.isCanceled) {
+      return false;
+    }
+    // The open menu holds the touch press, so no drag starts under it.
+    if (pressPointer !== null) {
+      claimPress(pressPointer, self, ownerDocument(triggerElement));
+    }
     allowMouseUpTimeout.start(LONG_PRESS_DELAY, () => {
       allowMouseUp = true;
     });
+    return true;
   }
 
   function handleContextMenu(event: MouseEvent) {
@@ -90,13 +102,17 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
       return;
     }
     // The browser's own long press on a touch a drag has taken: its menu stays shut, as ours does.
-    if (!mayTakePress()) {
+    if (pressTaken()) {
       stopEvent(event);
       return;
     }
     contextMenu.allowMouseUpTriggerRef.current = true;
+    // Declined (a field keeps its own menu): the event is left alone, and the browser's menu shows.
+    if (!handleLongPress(event.clientX, event.clientY, event)) {
+      contextMenu.allowMouseUpTriggerRef.current = false;
+      return;
+    }
     stopEvent(event);
-    handleLongPress(event.clientX, event.clientY, event);
     const doc = ownerDocument(triggerElement);
 
     // A listener from an earlier press that never saw its mouseup is dropped; this one is
@@ -150,7 +166,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     touchPosition = position;
     longPressTimeout.start(LONG_PRESS_DELAY, () => {
       // The root may have been disabled while the finger was down, or a drag taken the press.
-      if (!untrack(store.disabled) && mayTakePress()) {
+      if (!untrack(store.disabled) && !pressTaken()) {
         handleLongPress(position.x, position.y, event);
       }
     });
@@ -192,17 +208,17 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     cancelIfMoved(event.clientX, event.clientY);
   }
 
-  /** Whether the menu may have the touch press now: it claims it, unless another holds it. */
-  function mayTakePress(): boolean {
-    return pressPointer === null || claimPress(pressPointer, self, ownerDocument(triggerElement));
+  /** Whether another (a drag that started) holds the touch press: then the menu does not open on it. */
+  function pressTaken(): boolean {
+    return pressPointer !== null && pressHeldByOther(pressPointer, self);
   }
 
   onCleanup(() => {
     mouseUpAbortController?.abort();
   });
 
-  // The browser's context menu stays closed over the area and over the menu's backdrops.
-  // Disabling the root drops a pending long press.
+  // The browser's context menu stays closed over the menu's backdrops (over the area, the open
+  // that went ahead closes it). Disabling the root drops a pending long press.
   createEffect(
     () => store.disabled(),
     (disabled) => {
@@ -213,7 +229,6 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
       return addEventListener(ownerDocument(triggerElement), 'contextmenu', (event) => {
         const target = getTarget(event) as HTMLElement | null;
         if (
-          contains(triggerElement, target) ||
           contains(contextMenu.internalBackdropRef.current, target) ||
           contains(contextMenu.backdropRef.current, target)
         ) {

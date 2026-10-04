@@ -1,6 +1,6 @@
 // Fixtures for the context menu: a 300×200 area that opens a menu with
-// items and a submenu, a backdrop, and a context menu inside a menu's item
-// list (`nested`). URL params: `disabled=true` disables the root; `window.__setDisabled(bool)` changes it later.
+// items and a submenu, a backdrop, a field in the area whose open the root
+// declines, and a context menu inside a menu's item list (`nested`). URL params: `disabled=true` disables the root; `window.__setDisabled(bool)` changes it later.
 import type { JSX } from '@solidjs/web';
 import { createSignal } from 'solid-js';
 
@@ -13,13 +13,22 @@ function AreaMenu(): JSX.Element {
   return (
     <ContextMenu.Root
       disabled={disabled()}
-      onOpenChange={(open, details) => log(`open ${open} ${details.reason}`)}
+      onOpenChange={(open, details) => {
+        // The field inside the area keeps its own menu: the open on it is declined.
+        if (open && (details.event.target as Element | null)?.id === 'field') {
+          details.cancel();
+          log('open declined');
+          return;
+        }
+        log(`open ${open} ${details.reason}`);
+      }}
     >
       <ContextMenu.Trigger
         id="area"
         style={{ width: '300px', height: '200px', margin: '40px', background: '#eee' }}
       >
         Right click here
+        <input id="field" style={{ display: 'block', width: '80px' }} />
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Backdrop id="backdrop" />

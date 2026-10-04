@@ -8,23 +8,29 @@ import { Effect } from 'effect';
 import { countIs, evaluates, waitFor } from './settled.ts';
 import type { Tab } from './tab.ts';
 
-/** Run `script` with `el` (the element at `selector`) and `x`, `y` (its box's middle) in scope. */
-const fire = (page: Tab, selector: string, script: string) =>
-  page.evaluate(`(() => {
+/**
+ * Run `script` with `el` (the element at `selector`) and `x`, `y` (its box's
+ * middle) in scope: its answer is what the script returns.
+ */
+const fire = <A>(page: Tab, selector: string, script: string) =>
+  page.evaluate<A>(`(() => {
     const el = document.querySelector('${selector}');
     const r = el.getBoundingClientRect();
     const x = r.left + r.width / 2, y = r.top + r.height / 2;
     ${script}
-    return true;
   })()`);
 
-/** A right-click on `selector`'s middle: the press (button 2), then the menu's event. */
+/**
+ * A right-click on `selector`'s middle: the press (button 2), then the menu's
+ * event. Its answer is whether the browser's own menu would show: nothing
+ * prevented the event.
+ */
 export const rightClick = (page: Tab, selector: string) =>
-  fire(
+  fire<boolean>(
     page,
     selector,
     `el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 2, buttons: 2, pointerId: 1, isPrimary: true, clientX: x, clientY: y }));
-     el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: x, clientY: y }));`,
+     return el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: x, clientY: y }));`,
   );
 
 /**
