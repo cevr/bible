@@ -5,6 +5,8 @@
 // back to the trigger on close; a context menu traps focus. Leaving a
 // hover-opened menu with the pointer closes it, through the safe polygon
 // toward a submenu. An item press anywhere in the tree closes the menu.
+// Inside a toolbar, the composite navigation keys stop at the popup, so they
+// move through the menu and not the toolbar's focus.
 import type { JSX } from '@solidjs/web';
 import { omit, onCleanup, untrack } from 'solid-js';
 
@@ -13,11 +15,13 @@ import {
   type InteractionType,
 } from '../../floating-ui-solid/FloatingFocusManager.tsx';
 import { useHoverFloatingInteraction } from '../../floating-ui-solid/hooks/useHoverFloatingInteraction.ts';
+import { COMPOSITE_KEYS } from '../../internals/composite/composite.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { type TransitionStatus, useOpenChangeComplete } from '../../internals/transitions.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import type { Align, Side } from '../../internals/useAnchorPositioning.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
+import { useToolbarRootContext } from '../../toolbar/ToolbarRootContext.ts';
 import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
 import { useMenuPositionerContext } from '../positioner/MenuPositioner.tsx';
 import { useMenuRootContext } from '../root/MenuRootContext.ts';
@@ -50,6 +54,7 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
   const { side, align } = useMenuPositionerContext();
   const elementProps = omit(componentProps, 'class', 'style', 'render', 'finalFocus', 'id');
   const isContextMenu = parent.type === 'context-menu';
+  const insideToolbar = useToolbarRootContext(true) != null;
 
   useOpenChangeComplete({
     open: store.open,
@@ -119,6 +124,12 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
               return componentProps['aria-labelledby'];
             }
             return store.activeTriggerElement()?.id || store.activeTriggerId() || undefined;
+          },
+          onKeyDown(event: KeyboardEvent) {
+            // Arrow keys inside the popup stay there, not moving a toolbar's focus.
+            if (insideToolbar && COMPOSITE_KEYS.has(event.key)) {
+              event.stopPropagation();
+            }
           },
           get style() {
             return store.transitionStatus() === 'starting' ? { transition: 'none' } : undefined;

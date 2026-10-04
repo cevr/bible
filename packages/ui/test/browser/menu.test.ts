@@ -62,6 +62,20 @@ describe('Menu.Popup', () => {
     await see(page.locator('#copy')).toHaveAttribute('aria-disabled', 'true');
     await see(page.locator('#copy')).toHaveAttribute('data-disabled', '');
   });
+
+  it('stops toolbar navigation keys without blocking ordinary key events', async () => {
+    const page = await h.open('in-toolbar');
+    await page.click('#trigger');
+    await see(page.locator('#popup')).toBeVisible();
+    await page.keyboard.press('ArrowDown');
+    await see(page.locator('#cut')).toBeFocused();
+    await page.keyboard.press('ArrowRight');
+    await page.keyboard.press('End');
+    await see(page.locator('#paste')).toBeFocused();
+    await see(page.locator('#popup')).toBeVisible();
+    await page.keyboard.press('F1');
+    expect(await logOf(page)).toEqual(['toolbar key F1']);
+  });
 });
 
 describe('keyboard navigation', () => {

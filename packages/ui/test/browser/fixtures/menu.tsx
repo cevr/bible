@@ -1,10 +1,12 @@
 // Fixtures for the menu: one menu with plain items (one disabled), a group
 // with a label, checkbox and radio items with indicators, a separator and a
 // submenu. URL params: `modal=false` for a non-modal menu, `hover=true` for a
-// trigger that opens on hover, `loop=false` to stop focus wrapping.
+// trigger that opens on hover, `loop=false` to stop focus wrapping. Also a
+// menu inside a toolbar.
 import type { JSX } from '@solidjs/web';
 
 import { Menu } from '../../../src/menu/index.ts';
+import { Toolbar } from '../../../src/toolbar/index.ts';
 import { log, param } from './log.ts';
 
 function FullMenu(): JSX.Element {
@@ -87,6 +89,30 @@ function FullMenu(): JSX.Element {
   );
 }
 
+/** A menu inside a toolbar; the wrapper logs every keydown that reaches the toolbar. */
+function InToolbar(): JSX.Element {
+  return (
+    <div style={{ padding: '40px' }} onKeyDown={(event) => log(`toolbar key ${event.key}`)}>
+      <Toolbar.Root id="toolbar">
+        <Toolbar.Button id="first">first</Toolbar.Button>
+        <Menu.Root>
+          <Menu.Trigger id="trigger">Edit</Menu.Trigger>
+          <Menu.Portal>
+            <Menu.Positioner id="positioner" sideOffset={4} align="start">
+              <Menu.Popup id="popup">
+                <Menu.Item id="cut">Cut</Menu.Item>
+                <Menu.Item id="paste">Paste</Menu.Item>
+              </Menu.Popup>
+            </Menu.Positioner>
+          </Menu.Portal>
+        </Menu.Root>
+        <Toolbar.Button id="last">last</Toolbar.Button>
+      </Toolbar.Root>
+    </div>
+  );
+}
+
 export const fixtures: Record<string, () => JSX.Element> = {
   menu: () => <FullMenu />,
+  'in-toolbar': () => <InToolbar />,
 };
