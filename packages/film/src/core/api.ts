@@ -1075,20 +1075,25 @@ const legacyPath = (pathname: string, query: URLSearchParams): Option.Option<str
   );
 };
 
-/** `href` with its film time on the hash as `#t=`, where its place reads film time (the player, a lab with no scene). */
-const withFilmTime = (href: string, t: number): string =>
-  Option.getOrElse(
-    Option.orElse(
-      Option.map(Place.decode(Places.play, href), (value) =>
-        Place.href(Places.play, { ...value, hash: timeOf(Option.some(t)) }),
+/**
+ * `href` with its film time on the hash as `#t=`, where its place reads film
+ * time (the player, the Scenes' tape with a scene selected or not, a lab with
+ * no scene).
+ */
+const withFilmTime = (href: string, t: number): string => {
+  const hash = timeOf(Option.some(t));
+  return Option.getOrElse(
+    Option.firstSomeOf([
+      Option.map(Place.decode(Places.play, href), (v) => Place.href(Places.play, { ...v, hash })),
+      Option.map(Place.decode(Places.scenes, href), (v) =>
+        Place.href(Places.scenes, { ...v, hash }),
       ),
-      () =>
-        Option.map(Place.decode(Places.lab, href), (value) =>
-          Place.href(Places.lab, { ...value, hash: timeOf(Option.some(t)) }),
-        ),
-    ),
+      Option.map(Place.decode(Places.scene, href), (v) => Place.href(Places.scene, { ...v, hash })),
+      Option.map(Place.decode(Places.lab, href), (v) => Place.href(Places.lab, { ...v, hash })),
+    ]),
     () => href,
   );
+};
 
 /** The card an old project anchor (`#point-<id>`) names. */
 const cardAnchor = (hash: string): Option.Option<string> =>
@@ -1107,7 +1112,7 @@ const withFocus = (href: string, point: string): Option.Option<string> =>
  * The place an old link names, if `href` is one: `/lab?film=<f>[&sel=…]`,
  * `/player?film=<f>[&lookbook|&lab]`, `/?project=<f>`,
  * `/?film=<f>[&lookbook|&lab]`, `/?folder=<ref>[&set=<point>…]`, a bare
- * `#<seconds>` on a place that reads film time (`/films/<f>/play`, a lab with
+ * `#<seconds>` on a place that reads film time (`/films/<f>/play`, the Scenes, a lab with
  * no scene), and a project card's anchor (`#point-<id>`, now `?point=<id>`). The server sends the browser on with a redirect (the browser
  * keeps the hash, which the server never sees); a page already loaded
  * replaces its entry. A renderer's export page (`&export`) is not old. A

@@ -162,12 +162,14 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/player?film=rbf', '/films/rbf/play'],
   ['/player?film=rbf#42.000', '/films/rbf/play#t=42'],
   ['/player?film=rbf&lookbook', '/films/rbf/scenes'],
+  ['/player?film=rbf&lookbook#42.5', '/films/rbf/scenes#t=42.5'],
   ['/player?film=rbf&lab#3.5', '/films/rbf/lab#t=3.5'],
   ['/player?film=rbf%2Fshorts%2Fverdict&lookbook', '/films/rbf%2Fshorts%2Fverdict/scenes'],
   ['/player', '/'],
   ['/?project=rbf', '/films/rbf/project'],
   ['/?film=rbf', '/films/rbf/choices'],
   ['/?film=rbf&lookbook', '/films/rbf/scenes'],
+  ['/?film=rbf&lookbook#42.5', '/films/rbf/scenes#t=42.5'],
   ['/?film=rbf&lab', '/films/rbf/lab'],
   ['/?folder=bible-tools%2Frbf', '/sets/bible-tools%2Frbf'],
   [
@@ -181,6 +183,8 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/?folder=f&set=p&view=pair&other=light', '/sets/f/p?view=pair&other=light'],
   ['/films/rbf/play#12.5', '/films/rbf/play#t=12.5'],
   ['/films/rbf/lab#12.5', '/films/rbf/lab#t=12.5'],
+  ['/films/rbf/scenes#12.5', '/films/rbf/scenes#t=12.5'],
+  ['/films/rbf/scenes/roof#12.5', '/films/rbf/scenes/roof#t=12.5'],
   ['/films/rbf/project#point-take%3Awood.gavel', '/films/rbf/project?point=take%3Awood.gavel'],
 ];
 
