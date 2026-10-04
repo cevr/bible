@@ -149,6 +149,24 @@ describe('the synced player', () => {
     }),
   );
 
+  it.effect('Back landing on an entry seeks to its time, playing on as it was', () =>
+    Effect.gen(function* () {
+      const result = yield* simulate(player, [
+        SyncEvent.Measured({ end: 10 }),
+        SyncEvent.Landed({ t: 4 }),
+        SyncEvent.PlayPressed,
+        SyncEvent.Landed({ t: 20 }),
+      ]);
+      expect(result.states.map((s) => [s._tag, s.t, s.seek])).toEqual([
+        ['Paused', 1, 0],
+        ['Paused', 1, 0],
+        ['Paused', 4, 1],
+        ['Playing', 4, 1],
+        ['Playing', 10, 2],
+      ]);
+    }),
+  );
+
   it.effect('keeps the sound heard and the rate through play, scrub and pause', () =>
     Effect.gen(function* () {
       const result = yield* simulate(player, [

@@ -14,7 +14,7 @@ import { Effect, Option } from 'effect';
 import type { Fiber } from 'effect';
 import { Place, parseHref } from '@bible/url-state';
 import { Places, filmOfPage, legacyPlace, pageHref } from '../core/api.ts';
-import { addressOn, hostOf, monotonicMs } from '../browser/host.ts';
+import { addressOn, hostOf, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { Frames } from '../browser/frames.ts';
@@ -171,10 +171,11 @@ export const showFailure = (e: unknown): void => {
 const playTime = (name: string, host: Host): TimeInUrl => {
   const address = addressOn(host);
   return {
-    opened: Option.getOrElse(
-      Option.flatMap(Place.decode(Places.play, address.href()), (v) => v.hash.t),
-      () => 0,
-    ),
+    at: (href) =>
+      Option.getOrElse(
+        Option.flatMap(Place.decode(Places.play, href), (v) => v.hash.t),
+        () => 0,
+      ),
     write: (T) => address.replace(pageHref.play(name, Option.some(onTheMs(T)))),
   };
 };
@@ -361,7 +362,7 @@ export const mountPreview = (
   // The narration says what it can play once it knows (a missing master, a
   // play refused until a click), and the time line says it.
   const voice = narration(film.audio, host, () => draw());
-  let T = Math.min(Math.max(time.opened, 0), film.duration);
+  let T = Math.min(Math.max(time.at(addressOn(host).href()), 0), film.duration);
   let playing = false;
   let wallStart = 0;
   let tStart = 0;
@@ -422,6 +423,14 @@ export const mountPreview = (
     scrub(t);
     url.settled();
   };
+
+  // Back or Forward shows the frame the entry landed on keeps, as the lab
+  // shows its pick: the URL is already there, so a write still waiting with
+  // the frame before is dropped rather than written over it.
+  onTraverse(host, (href) => {
+    scrub(time.at(href));
+    url.landed();
+  });
 
   /**
    * Restart the clock at `T`, and the narration with it at 1× (it follows the

@@ -33,7 +33,13 @@ import {
 } from 'solid-js';
 import type { SeenPoint } from '../../core/choice.ts';
 import type { ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/review.ts';
-import { type BrowserServices, type Host, addressOn, hostLayer } from '../../browser/host.ts';
+import {
+  type BrowserServices,
+  type Host,
+  addressOn,
+  hostLayer,
+  onTraverse,
+} from '../../browser/host.ts';
 import { Keys, type KeyPress } from '../../browser/keys.ts';
 import { LabClient, type LabFailure } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
@@ -341,11 +347,23 @@ const SetBody = (
     },
   );
   // The player's time is kept in the hash (`#t=`, throttled), so a link
-  // opens the set where it was.
+  // opens the set where it was; Back or Forward landing on this set's entry
+  // moves the player to the time that entry keeps, as it shows its view.
   createEffect(
     () => keptTime(sync().t, props.set.start),
     (t) =>
       Effect.runSyncWith(meta.host)(UrlState.update(Places.set, (v) => ({ ...v, hash: { t } }))),
+  );
+  onCleanup(
+    onTraverse(meta.host, (href) =>
+      Option.map(
+        Option.filter(
+          Place.decode(Places.set, href),
+          (v) => v.path.folder === props.folder.ref && v.path.point === props.set.id,
+        ),
+        (v) => sendSync(SyncEvent.Landed({ t: Option.getOrElse(v.hash.t, () => props.set.start) })),
+      ),
+    ),
   );
   // Nothing plays behind the moments or the notes; a pair hears one of its two.
   createEffect(

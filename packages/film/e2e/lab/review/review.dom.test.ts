@@ -281,6 +281,33 @@ describe('the review page', () => {
   );
 
   it.live(
+    'Back lands the player on the time its entry keeps, and nothing writes the later time over it',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: SET });
+        yield* waitFor(page, '.rv-transport');
+        yield* page.press('ArrowRight');
+        yield* page.press('ArrowRight');
+        yield* until(page, "location.hash === '#t=4'");
+        yield* page.click('.rv-views button[data-view="pair"]');
+        yield* until(page, "location.search === '?view=pair&other=B'");
+        // The time moves on in the pair's entry; all's keeps 4.
+        yield* page.press('ArrowRight');
+        yield* textHas(page, '.rv-time', '0:06.0');
+        yield* until(page, "location.hash === '#t=6'");
+        yield* page.back;
+        yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
+        yield* textHas(page, '.rv-time', '0:04.0');
+        // Past the time's throttle, the entry still keeps its own time.
+        yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
+        yield* until(page, "location.search === '' && location.hash === '#t=4'");
+        yield* textHas(page, '.rv-time', '0:04.0');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'Back walks the views chosen, a ←/→ step none; the time is in the link, which opens there',
     () =>
       Effect.gen(function* () {

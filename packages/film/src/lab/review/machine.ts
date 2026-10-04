@@ -7,7 +7,7 @@
 //   Paused ─Play→ Playing ─Pause→ Paused     Playing ─Stalled→ Buffering ─Resumed→ Playing
 //   any ─ScrubMoved→ Scrubbing ─ScrubReleased→ Playing | Paused (as it was)
 //   Playing | Buffering ─Ended→ Paused (at the end)
-//   any ─Stepped | Measured | HeardChosen | RateChosen→ the same, changed
+//   any ─Stepped | Landed | Measured | HeardChosen | RateChosen→ the same, changed
 //
 //   All | Pair | Moments | Notes ─ViewChosen→ any (Pair only with a second version)
 //   Pair ─OtherChosen→ Pair
@@ -15,7 +15,7 @@
 //
 // Events are facts (a button pressed, the clock moved on, a video stalled);
 // the driver (`sync.ts`) makes the videos do what each state says. A seek (a
-// scrub, a step, a play from the end) bumps `seek`, so the driver moves the
+// scrub, a step, Back landing on an entry's time, a play from the end) bumps `seek`, so the driver moves the
 // videos only then, never for the clock's own ticks.
 //
 // The view is kept in the set's URL (`?view= &other= &m=`), not in an actor:
@@ -69,6 +69,8 @@ export const SyncEvent = Event({
   ScrubMoved: { t: Schema.Finite },
   ScrubReleased: {},
   Stepped: { by: Schema.Finite },
+  /** Back or Forward landed on an entry whose `#t=` (or the set's start) is `t`. */
+  Landed: { t: Schema.Finite },
   Stalled: {},
   Resumed: {},
   Ended: {},
@@ -186,6 +188,10 @@ export const syncMachine = (audible: string, start: number, at: number = start) 
         t: clamp(clock, clock.t + event.by),
         seek: clock.seek + 1,
       });
+    })
+    .on(ANY, SyncEvent.Landed, ({ state, event }) => {
+      const clock = clockOf(state);
+      return withClock(state, { ...clock, t: clamp(clock, event.t), seek: clock.seek + 1 });
     })
     .on(ANY, SyncEvent.Measured, ({ state, event }) => {
       // A time opened past the end (a link's `#t=`) stands at the end.

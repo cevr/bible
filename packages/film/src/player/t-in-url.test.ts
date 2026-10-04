@@ -48,6 +48,22 @@ const rig = () => {
 };
 
 describe('the time in the URL', () => {
+  test('Back or Forward landing drops a waiting write: the entry landed on keeps its own time', () => {
+    const { clock, url, at, written } = rig();
+    at(1);
+    url.moved();
+    at(2);
+    url.moved();
+    url.landed();
+    clock.advance(300);
+    expect(written).toEqual([1]);
+    // T moves on from the landing as before.
+    at(3);
+    url.moved();
+    clock.advance(300);
+    expect(written).toEqual([1, 3]);
+  });
+
   test('a seek right after a moving write lands at once, not a period later', () => {
     const { url, at, written } = rig();
     at(1);

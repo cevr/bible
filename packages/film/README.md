@@ -669,7 +669,9 @@ selected cue's or knob's scene, else the scene under the playhead, so play
 or a seek across a scene's end moves the path and rebases `#t=` in one
 write, and a write's reload comes back to the frame, the pick and the note.
 A pick and a note are history entries (Back undoes them); the time replaces
-the entry. A bare `#<seconds>` (an old link's film time) opens on that frame.
+the entry, and Back or Forward lands the player on the time the entry keeps
+(`onTraverse`, `browser/host.ts`; the review's players too), a time still
+waiting to be written for the entry left dropped. A bare `#<seconds>` (an old link's film time) opens on that frame.
 A still on a film's scenes page opens its scene in the lab at its time; a
 short's opens its play page, as the lab opens films.
 

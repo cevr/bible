@@ -31,10 +31,10 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
-import { UrlState } from '@bible/url-state';
+import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { OWN_SOUND, Places, type Steps, choiceMixUrl } from '../../../core/api.ts';
-import type { Host } from '../../../browser/host.ts';
+import { type Host, addressOn, onTraverse } from '../../../browser/host.ts';
 import { keptTime } from '../place.ts';
 import type { FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
@@ -317,6 +317,14 @@ const FilmBody = (
     () => keptTime(sync().t, 0),
     (t) => keep((v) => ({ ...v, hash: { t } })),
   );
+  // Back or Forward landing on this film's entry moves the player to the time it keeps.
+  onCleanup(
+    onTraverse(meta.host, (href) =>
+      Option.map(keptAt(film, href), (t) =>
+        send(SyncEvent.Landed({ t: Option.getOrElse(t, () => 0) })),
+      ),
+    ),
+  );
   const mix = createMemo(() => mixOf(film, playing(), version()));
   createEffect(
     () => trackOf(film, playing(), version()),
@@ -365,6 +373,16 @@ const FilmBody = (
   return <FilmContext value={value}>{props.children}</FilmContext>;
 };
 
+/** The time `film`'s choices or project entry at `href` keeps (`#t=`); none off them. */
+const keptAt = (film: string, href: string): Option.Option<Option.Option<number>> =>
+  Option.map(
+    Option.filter(
+      Option.orElse(Place.decode(Places.choices, href), () => Place.decode(Places.project, href)),
+      (v) => v.path.film === film,
+    ),
+    (v) => v.hash.t,
+  );
+
 const FilmReady = (
   props: ParentProps<{
     readonly atoms: FilmAtoms;
@@ -397,22 +415,7 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
     soundCheck: meta.runtime.fn(() => OptionsApi.use((api) => api.soundCheck(film))),
   };
   // The player opens where the URL's `#t=` says, else at the start.
-  const at = Option.getOrElse(
-    Option.flatMap(
-      Effect.runSyncWith(meta.host)(
-        Effect.map(
-          Effect.all([UrlState.get(Places.choices), UrlState.get(Places.project)]),
-          ([choicesAt, projectAt]) =>
-            Option.orElse(
-              Option.map(choicesAt, (v) => v.hash),
-              () => Option.map(projectAt, (v) => v.hash),
-            ),
-        ),
-      ),
-      (hash) => hash.t,
-    ),
-    () => 0,
-  );
+  const at = Option.getOrElse(Option.flatten(keptAt(film, addressOn(meta.host).href())), () => 0);
   const actor = meta.runtime.atom(Machine.scoped(spawnSync(PICTURE, 0, at)));
   const first = useAtomValue(() => atoms.choices);
   // The page opens on the choices as first read; a later read (after a write) updates them in place.

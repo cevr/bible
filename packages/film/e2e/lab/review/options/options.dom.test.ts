@@ -339,6 +339,29 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'a time typed in the address bar seeks the player, and Back lands it on the time its entry keeps',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { href: `${FILM}#t=2` });
+        const time = "(document.querySelector('.rv-time')?.textContent ?? '')";
+        yield* waitFor(page, '.rv-picture video');
+        yield* until(page, `${time}.startsWith('0:02.0')`);
+        // A new hash is an entry of its own (the browser's), landed on as Back lands.
+        yield* page.evaluate("location.hash = '#t=5'; true");
+        yield* until(page, `${time}.startsWith('0:05.0')`);
+        yield* page.back;
+        yield* until(page, "location.hash === '#t=2'");
+        yield* until(page, `${time}.startsWith('0:02.0')`);
+        // Past the time's throttle, the entry still keeps its own time.
+        yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
+        yield* until(page, "location.hash === '#t=2'");
+        yield* until(page, `${time}.startsWith('0:02.0')`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'the sound heard and the time are in the link, which opens the player as it was',
     () =>
       Effect.gen(function* () {

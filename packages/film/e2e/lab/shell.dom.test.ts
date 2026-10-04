@@ -110,6 +110,27 @@ describe('the lab shell', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live("Back lands on a pick's own frame, and its entry keeps that time", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      yield* page.click('.lab-cue[data-cue="rise"]');
+      yield* evaluates(page, 'location.search', '?cue=rise');
+      const first = Number(yield* page.evaluate(`${T}`));
+      yield* page.click('.lab-cue[data-cue="fall"]');
+      yield* evaluates(page, 'location.search', '?cue=fall');
+      // The frame moves on in fall's entry; rise's keeps the frame it was left at.
+      yield* page.press('Shift+ArrowRight');
+      yield* evaluates(page, `Math.abs(${T} - ${first + 1}) < 0.002`, true);
+      yield* page.back;
+      yield* evaluates(page, 'location.search', '?cue=rise');
+      yield* textHas(page, '.bar .time', `${first.toFixed(2)} /`);
+      // Past the time's throttle, nothing has written the later frame over it.
+      yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
+      yield* evaluates(page, `Math.abs(${T} - ${first}) < 0.002`, true);
+      yield* textHas(page, '.bar .time', `${first.toFixed(2)} /`);
+    }).pipe(Effect.scoped),
+  );
+
   it.live('pins its layers over the film canvas, and keeps them there as the window resizes', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab();

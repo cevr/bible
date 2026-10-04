@@ -9,7 +9,7 @@
 // which the render page loads, imports it.
 
 import { Location, UrlState } from '@bible/url-state';
-import { Clock, Duration, Effect, Exit, Layer, Option, Schedule, Scope } from 'effect';
+import { Clock, Duration, Effect, Exit, Layer, Option, Schedule, Scope, Stream } from 'effect';
 import type { Context } from 'effect';
 import type { Frames } from './frames.ts';
 import type { Keys } from './keys.ts';
@@ -65,6 +65,29 @@ export const addressOn = (host: Context.Context<UrlState.UrlState>): AddressBar 
     href: () => Effect.runSyncWith(host)(UrlState.UrlState.use((url) => url.href)),
     push: move('push'),
     replace: move('replace'),
+  };
+};
+
+/**
+ * Call `landed` with each entry Back or Forward lands on (a `traverse` from
+ * `Location`), until the returned stop: what a page reads its time from
+ * again, as it reads its pick from the URL. `UrlState` has already dropped
+ * the writes the page had not flushed for the entry it left.
+ */
+export const onTraverse = (
+  host: Context.Context<Location>,
+  landed: (href: string) => void,
+): (() => void) => {
+  const fiber = Effect.runForkWith(host)(
+    Location.use((bar) =>
+      bar.changes.pipe(
+        Stream.filter((entry) => entry.navigation === 'traverse'),
+        Stream.runForEach((entry) => Effect.sync(() => landed(entry.href))),
+      ),
+    ),
+  );
+  return () => {
+    fiber.interruptUnsafe();
   };
 };
 

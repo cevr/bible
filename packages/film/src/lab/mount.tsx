@@ -70,15 +70,15 @@ const LabPage = (props: {
 );
 
 /**
- * The lab's time in the URL: it opens on the frame its place names
- * (`labOpensAt`), and each write keeps the place's pick and note and puts
- * the frame's scene in the path (`labHref`), so the path and `#t=` move
- * together across a scene boundary.
+ * The lab's time in the URL: an entry names the frame its place does
+ * (`labOpensAt`), on opening and on Back, and each write keeps the place's
+ * pick and note and puts the frame's scene in the path (`labHref`), so the
+ * path and `#t=` move together across a scene boundary.
  */
 const labTime = (name: string, film: Film, host: Host): TimeInUrl => {
   const address = addressOn(host);
   return {
-    opened: labOpensAt(film.placed, address.href()),
+    at: (href) => labOpensAt(film.placed, href),
     write: (T) => {
       const { selection, note } = labPlaceOf(address.href());
       address.replace(labHref(name, film.placed, { selection, note }, T));

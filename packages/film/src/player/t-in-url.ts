@@ -5,8 +5,11 @@
 // When the lab asks for a write, which reloads the page, it is written at
 // once and held there until T next settles, so the reload lands on the frame
 // the write was made at. (`pagehide` cannot do this: a URL written during it
-// does not reach the reload.) What the URL holds beside the time (the play
-// page's film, the lab's scene and selection) is the page's own writer's.
+// does not reach the reload.) Back or Forward landing on an entry moves T to
+// the time that entry keeps, and a write still waiting for the entry left is
+// dropped, so the later frame is never written over the one landed on. What
+// the URL holds beside the time (the play page's film, the lab's scene and
+// selection) is the page's own writer's.
 
 import { type Throttled, type Timers, throttled } from './throttle.ts';
 
@@ -19,10 +22,10 @@ import { type Throttled, type Timers, throttled } from './throttle.ts';
  */
 export const onTheMs = (T: number): number => Math.ceil(T * 1000 - 1e-6) / 1000;
 
-/** Where a preview's time is kept: the film seconds it opens at, and the writer of `T` there. */
+/** Where a preview's time is kept: the film seconds an entry names, and the writer of `T` there. */
 export interface TimeInUrl {
-  /** The film seconds the URL names, if it names any. */
-  readonly opened: number;
+  /** The film seconds the entry at `href` names: the page's start when it names none. */
+  readonly at: (href: string) => number;
   /** Write `T` (film seconds) into the URL, replacing the entry. */
   readonly write: (T: number) => void;
 }
@@ -34,6 +37,8 @@ interface TInUrl {
   settled(): void;
   /** A write is on its way, and the page will reload: write T now, and keep it there. */
   held(): void;
+  /** Back or Forward landed, and T is the time its entry keeps: drop a waiting write of the T before. */
+  landed(): void;
 }
 
 export const tInUrl = (write: () => void, everyMs: number, timers: Timers): TInUrl => {
@@ -54,6 +59,10 @@ export const tInUrl = (write: () => void, everyMs: number, timers: Timers): TInU
     held() {
       holding = true;
       now();
+    },
+    landed() {
+      holding = false;
+      moving.ran();
     },
   };
 };
