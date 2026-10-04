@@ -4,13 +4,24 @@
 // `.vtt` lies beside them), its sheets and stills (a lightbox), its docs
 // (markdown inline). A stack plays every version on one clock: all of them,
 // the first side by side with one other (a stack of two or more), every
-// version's frame at a few moments, or the notes.
+// version's frame at a few moments, or the notes. A version's name opens its
+// inspector: its Info, its approve and unapprove, what was said of it and
+// the comment box, said over the set's route (UI-7).
 
 import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
 import { Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { type Accessor, createMemo, createSignal, onCleanup } from 'solid-js';
+import {
+  type Accessor,
+  type ParentProps,
+  createContext,
+  createMemo,
+  createSignal,
+  onCleanup,
+  untrack,
+  useContext,
+} from 'solid-js';
 import {
   type ChoicePoint,
   type SeenPoint,
@@ -20,7 +31,19 @@ import {
 } from '../../core/choice.ts';
 import { playableOf } from '../../browser/media-browser.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
-import { pageHref, reviewFileUrl, reviewFrameUrl } from '../../core/api.ts';
+import {
+  type Say,
+  type SetSayPost,
+  pageHref,
+  reviewFileUrl,
+  reviewFrameUrl,
+} from '../../core/api.ts';
+import type { LabFailure } from '../api.ts';
+import { ReviewApi } from './api.ts';
+import { newestAsked } from './asked.ts';
+import { CommentCount, InspectName, Inspector, useThing } from './inspector.tsx';
+import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
+import type { ThingVerb } from './things.ts';
 import { Go, SetProvider, useReview, useSet } from './context.tsx';
 import {
   agoText,
@@ -49,7 +72,7 @@ import {
   runningOf,
   viewNameOf,
 } from './machine.ts';
-import { Loaded, failedText } from './loaded.tsx';
+import { Loaded, failedText, statusText, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
 import { ReviewPlace as Place } from './place.ts';
 import { Selection } from '../../command/selection.ts';
@@ -576,6 +599,172 @@ export const Transport = (props: {
 
 const letterOf = (set: SeenPoint, id: string) => set.variants.findIndex((v) => v.id === id) + 1;
 
+/** What the set page's says hold: each version as the newest say left it, and a control's own say. */
+interface SetSays {
+  /** `version` as the newest say shown left it (its approval, its comments). */
+  readonly now: (version: SeenVariant) => SeenVariant;
+  /** A control's own say (`useWrite`): made once, as the control is made. */
+  readonly useSay: () => {
+    readonly waiting: Accessor<boolean>;
+    readonly say: (version: string, say: Say) => Promise<boolean>;
+  };
+  /** The page's says, as its status says them. */
+  readonly status: Accessor<AsyncResult.AsyncResult<ReviewFolder, LabFailure>>;
+}
+
+const SetSaysContext = createContext<SetSays>();
+
+/**
+ * The set's says (UI-7): approve, unapprove or comment on a version, over
+ * `POST /api/review/sets/<folder>/<point>/say`. A say answers the folder as
+ * it leaves it; the versions read the newest answer shown, so the page stays
+ * in place (its player plays on) instead of reading the index again.
+ */
+const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>) => {
+  const status = writeStatus<ReviewFolder>();
+  const asks = newestAsked();
+  const [said, setSaid] = createSignal(Option.none<SeenPoint>());
+  const pointIn = (folder: ReviewFolder) =>
+    Option.map(Option.fromUndefinedOr(folder.sets.find((s) => s.id === props.set.id)), seenPoint);
+  const value: SetSays = {
+    now: (version) =>
+      Option.getOrElse(
+        Option.flatMap(said(), (p) =>
+          Option.fromUndefinedOr(p.variants.find((v) => v.id === version.id)),
+        ),
+        () => version,
+      ),
+    useSay: () => {
+      const own = useWrite(
+        (asked: SetSayPost) =>
+          ReviewApi.use((api) => api.say(props.folder.ref, props.set.id, asked)),
+        status,
+        { set: asks },
+      );
+      return {
+        waiting: own.waiting,
+        say: (version, say) =>
+          own.write({ variant: version, say }).then((landed) =>
+            Option.match(landed, {
+              onNone: () => false,
+              onSome: (l) => {
+                l.show('set', pointIn, (p) => setSaid(Option.some(p)));
+                return l.succeeded;
+              },
+            }),
+          ),
+      };
+    },
+    status: status.status,
+  };
+  return <SetSaysContext value={value}>{props.children}</SetSaysContext>;
+};
+
+/**
+ * A version's inspector: its Info (its approval and why it is stale, its
+ * lines, its file, its notes), its approve and unapprove, what was said of
+ * it and the comment box (UI-7). Its say goes to the folder's catalogue
+ * where the set belongs to a film address; a montage keeps no say.
+ */
+const VersionInspector = (props: { readonly version: SeenVariant }) => {
+  const { folder, set } = useSet();
+  const says = useContext(SetSaysContext);
+  const now = useReview().meta.now();
+  const version = () => says.now(props.version);
+  // A card is keyed by its version: its selection is fixed for as long as it lives.
+  const selection = untrack(() => versionOf(folder, set, props.version.id));
+  const title = () => `${letterOf(set, props.version.id)} · ${props.version.label}`;
+  const sayable = Option.isSome(set.address);
+  const saying = says.useSay();
+  const approve: ThingVerb = {
+    id: 'approve',
+    label: 'Approve',
+    run: () => saying.say(props.version.id, { _tag: 'Approve' }),
+  };
+  const unapprove: ThingVerb = {
+    id: 'unapprove',
+    label: 'Unapprove',
+    run: () => saying.say(props.version.id, { _tag: 'Withdraw' }),
+  };
+  const free = () => sayable && !saying.waiting();
+  useThing({
+    selection,
+    title,
+    commentable: () => sayable,
+    verbs: () => [
+      ...[approve].filter(
+        () => free() && version().state === 'current' && version().approval !== 'approved',
+      ),
+      ...[unapprove].filter(() => free() && version().approval !== 'none'),
+    ],
+  });
+  return (
+    <Inspector of={selection} title={title()}>
+      {(box) => (
+        <>
+          <div class="rv-verdict">
+            {approvalText(version().approval)}
+            <StaleTag variant={version()} />
+            <For each={version().lines}>{(line) => <div class="rv-hint">{line}</div>}</For>
+          </div>
+          <p class="rv-hint">
+            {version().video.ref} · {sizeText(version().video.size)} ·{' '}
+            {agoText(version().video.mtime, now)}
+          </p>
+          <Show when={Option.getOrUndefined(version().notes)} keyed>
+            {(notes: ReviewFile) => <Markdown file={notes.ref} />}
+          </Show>
+          <Show when={sayable}>
+            <div class="rv-row">
+              <ApproveButton
+                approval={version().approval}
+                disabled={version().state !== 'current' || saying.waiting()}
+                approve={() => void saying.say(props.version.id, { _tag: 'Approve' })}
+              />
+              <Show when={version().approval !== 'none'}>
+                <button
+                  type="button"
+                  class="rv-chip"
+                  data-act="unapprove"
+                  disabled={saying.waiting()}
+                  onClick={() => void saying.say(props.version.id, { _tag: 'Withdraw' })}
+                >
+                  Unapprove
+                </button>
+              </Show>
+            </div>
+          </Show>
+          <Comments comments={version().comments} />
+          <Show when={sayable}>
+            <SayBox
+              disabled={saying.waiting()}
+              box={box}
+              say={(text) => saying.say(props.version.id, { _tag: 'Comment', text })}
+            />
+          </Show>
+          <p class="rv-hint rv-status">{statusText(says.status(), 'saying…', () => 'said')}</p>
+        </>
+      )}
+    </Inspector>
+  );
+};
+
+/** A version's name, a tap opening its inspector, and the dot counting what was said of it. */
+const VersionName = (props: { readonly version: SeenVariant }) => {
+  const { folder, set } = useSet();
+  const says = useContext(SetSaysContext);
+  // A card is keyed by its version: its selection is fixed for as long as it lives.
+  const selection = untrack(() => versionOf(folder, set, props.version.id));
+  return (
+    <>
+      <InspectName of={selection}>
+        <span class="rv-name">{props.version.label}</span>
+      </InspectName>
+      <CommentCount of={selection} count={says.now(props.version).comments.length} />
+    </>
+  );
+};
+
 /** Why a variant is stale, when its record proves it; nothing otherwise (`recordedStaleText`). */
 const StaleTag = (props: { readonly variant: SeenVariant }) => (
   <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
@@ -620,7 +809,7 @@ const VariantCard = (props: { readonly variant: SeenVariant }) => {
       </Show>
       <div class="rv-cap">
         <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
-        <span class="rv-name">{props.variant.label}</span>
+        <VersionName version={props.variant} />
         <StaleTag variant={props.variant} />
         <span class="rv-tag" title={props.variant.lines.join(' · ')}>
           {props.variant.lines.join(' · ')}
@@ -634,6 +823,7 @@ const VariantCard = (props: { readonly variant: SeenVariant }) => {
           🔊
         </button>
       </div>
+      <VersionInspector version={props.variant} />
     </Target>
   );
 };
@@ -747,10 +937,11 @@ const MomentsView = (props: { readonly index: number }) => {
                     />
                     <div class="rv-cap">
                       <span class="rv-letter">{letterOf(set, variant.id)}</span>
-                      <span class="rv-name">{variant.label}</span>
+                      <VersionName version={variant} />
                       <StaleTag variant={variant} />
                       <span class="rv-tag">{variant.lines.join(' · ')}</span>
                     </div>
+                    <VersionInspector version={variant} />
                   </Target>
                 )}
               </For>
@@ -790,6 +981,7 @@ const NotesView = () => {
             >
               {(notes: ReviewFile) => <Markdown file={notes.ref} />}
             </Show>
+            <VersionInspector version={variant} />
           </Target>
         )}
       </For>
@@ -837,10 +1029,12 @@ export const SetPage = (props: { readonly folder: string; readonly point: string
           >
             {(set: ChoicePoint) => (
               <SetProvider folder={folder} set={seenPoint(set)}>
-                <div class="rv-tools rv-set-tools">
-                  <ViewTabs />
-                </div>
-                <SetBody />
+                <Saying folder={folder} set={seenPoint(set)}>
+                  <div class="rv-tools rv-set-tools">
+                    <ViewTabs />
+                  </div>
+                  <SetBody />
+                </Saying>
               </SetProvider>
             )}
           </Show>

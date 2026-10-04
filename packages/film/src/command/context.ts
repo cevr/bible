@@ -68,6 +68,18 @@ export const withSelection = (ctx: Context, selection: ReadonlyArray<Selection>)
   selection,
 });
 
+/**
+ * `ctx` with the thing the keyboard's focus is in (`focused`: a version's
+ * card, a variant's row) selected first, unless the selection already holds
+ * a thing of its kind: the URL's cue wins over a focused cue, but a focused
+ * version joins the set the URL names. What a key press reads.
+ */
+export const withFocused = (ctx: Context, focused: Option.Option<Selection>): Context =>
+  Option.match(
+    Option.filter(focused, (f) => !ctx.selection.some((s) => s._tag === f._tag)),
+    { onNone: () => ctx, onSome: (f) => withSelection(ctx, [f, ...ctx.selection]) },
+  );
+
 /** The element-like a press's target is: its tag, its editability, its nearest ancestor. */
 interface Focusable {
   readonly tagName: string;

@@ -29,6 +29,7 @@ import {
   text,
 } from '../../../../src/lab/fixtures/harness.ts';
 import { SourceRefused } from '../../../../src/core/refusals.ts';
+import { MENU_ITEMS, rightClick } from '../../../../src/lab/fixtures/gestures.ts';
 import {
   attributeIs,
   attributesAre,
@@ -281,6 +282,13 @@ const MIX = "document.querySelector('audio.rv-mix')?.getAttribute('src') ?? ''";
 /** A variant's element by its point and id. */
 const at = (point: string, id: string) => `[data-point="${point}"] [data-variant="${id}"]`;
 
+/** The open inspector: one at a time. */
+const INSPECTOR = '[data-role="inspector"]';
+
+/** Open the inspector of the thing at `row` by a tap on its name. */
+const inspect = (page: Tab, row: string) =>
+  Effect.andThen(click(page, `${row} [data-act="inspect"]`), waitFor(page, INSPECTOR));
+
 /** The body a POST to `path` carried. */
 const posted = (
   asked: ReadonlyArray<{ readonly path: string; readonly body: Option.Option<Json> }>,
@@ -428,12 +436,18 @@ describe("a film's choices", () => {
           page,
           "document.querySelector('.rv-status').textContent.includes('sound paper.page keep')",
         );
-        // A kept take can only be unkept (and approved).
+        // A kept take can only be unkept (and approved): at rest its approve, the rest in its inspector.
         yield* attributesAre(page, `${at('take:paper.page', KEPT)} button.rv-chip`, 'data-act', [
-          'unpick',
           'approve',
+        ]);
+        yield* inspect(page, at('take:paper.page', KEPT));
+        yield* attributesAre(page, `${INSPECTOR} button.rv-chip`, 'data-act', [
+          'approve',
+          'unpick',
           'comment',
         ]);
+        yield* page.press('Escape');
+        yield* countIs(page, INSPECTOR, 0);
 
         yield* click(page, '[data-act="undo"]');
         yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
@@ -481,13 +495,14 @@ describe("a film's choices", () => {
         );
         yield* attributeIs(page, '.rv-writes', 'data-reading', 'true');
         // Said while the read is out: the say answers the choices with the comment.
-        yield* page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close');
-        yield* click(page, `${at('score', 'strings')} [data-act="comment"]`);
-        yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
+        yield* inspect(page, at('score', 'strings'));
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'warmer in the close');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         // The older read lands last: the page has read it, and the comment stays.
         yield* Deferred.done(land, Exit.void);
         yield* attributeIs(page, '.rv-writes', 'data-reading', 'false');
-        yield* countIs(page, `${at('score', 'strings')} [data-comment="c1"]`, 1);
+        yield* countIs(page, `${INSPECTOR} [data-comment="c1"]`, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -510,9 +525,10 @@ describe("a film's choices", () => {
         const same = "document.querySelector('.rv-picture video') === window.__picture";
         const sameMix = "document.querySelector('audio.rv-mix') === window.__mix";
         // A say answers new choices; the picture and the mix heard stay the same elements.
-        yield* page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close');
-        yield* click(page, `${at('score', 'strings')} [data-act="comment"]`);
-        yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
+        yield* inspect(page, at('score', 'strings'));
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'warmer in the close');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         yield* evaluates(page, same, true);
         yield* evaluates(page, sameMix, true);
         // A pick changes the source: the mix is asked for again, the picture plays on.
@@ -539,8 +555,9 @@ describe("a film's choices", () => {
         const { page, asked, errors } = yield* openReview([heldSay, ...routes], {
           href: FILM,
         });
-        const box = `${at('score', 'strings')} .rv-comment-input`;
-        const comment = `${at('score', 'strings')} [data-act="comment"]`;
+        const box = `${INSPECTOR} .rv-comment-input`;
+        const comment = `${INSPECTOR} [data-act="comment"]`;
+        yield* inspect(page, at('score', 'strings'));
         yield* waitFor(page, box);
         yield* page.fill(box, 'warmer in the close');
         yield* click(page, comment);
@@ -564,7 +581,7 @@ describe("a film's choices", () => {
           toy.said = [...toy.said, 'warmer in the close'];
         });
         yield* Deferred.done(land, Exit.void);
-        yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         yield* valueIs(page, box, '');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -718,9 +735,10 @@ describe("a film's choices", () => {
           variant: 'strings',
           say: { _tag: 'Approve' },
         });
-        yield* page.fill(`${at('score', 'strings')} .rv-comment-input`, 'warmer in the close');
-        yield* click(page, `${at('score', 'strings')} [data-act="comment"]`);
-        yield* waitFor(page, `${at('score', 'strings')} [data-comment="c1"]`);
+        yield* inspect(page, at('score', 'strings'));
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'warmer in the close');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         expect(
           asked
             .filter((a) => a.path === '/api/films/toy/choices/say')
@@ -733,12 +751,15 @@ describe("a film's choices", () => {
             say: { _tag: 'Comment', text: 'warmer in the close' },
           },
         ]);
-        // An approval is withdrawn from the same card.
-        yield* click(page, `${at('score', 'strings')} [data-act="withdraw"]`);
+        // An approval is unapproved from its inspector; the card's approve is back at rest.
+        yield* click(page, `${INSPECTOR} [data-act="unapprove"]`);
         yield* waitFor(
           page,
           `${at('score', 'strings')} [data-act="approve"][data-approval="none"]`,
         );
+        // The card counts the comment; the list is in the inspector, not on the card.
+        yield* textIs(page, `${at('score', 'strings')} .lab-count`, '1');
+        yield* countIs(page, `${at('score', 'strings')} [data-comment]`, 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -857,6 +878,45 @@ describe("a film's choices", () => {
         });
         yield* waitFor(page, '[data-point="take:paper.page"]');
         yield* evaluates(page, 'document.documentElement.scrollWidth <= innerWidth', true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a variant's rare verbs are one step away: in its context menu, its keys and its inspector",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
+        const waiting = at('take:paper.page', WAITING);
+        yield* waitFor(page, `${waiting} [data-act="pick"]`);
+        // At rest a waiting take offers its keep, never its reject or its approve (it is not the kept one).
+        yield* attributesAre(page, `${waiting} button.rv-chip`, 'data-act', ['pick']);
+        yield* rightClick(page, `${waiting} .rv-name`);
+        yield* waitFor(page, '[data-role="context-menu"] [data-command="review.reject"]');
+        yield* evaluates(page, `${MENU_ITEMS}.filter((id) => id.startsWith('review.'))`, [
+          'review.inspect',
+          'review.comment',
+          'review.approve',
+          'review.reject',
+        ]);
+        // Its menu's Inspect opens the inspector, which offers the reject too.
+        yield* click(page, '[data-role="context-menu"] [data-command="review.inspect"]');
+        yield* waitFor(page, `${INSPECTOR} [data-act="reject"]`);
+        yield* page.press('Escape');
+        yield* countIs(page, INSPECTOR, 0);
+        // `x` on the focused take rejects it, as its button does.
+        yield* page.focus(`${waiting} [data-act="pick"]`);
+        yield* page.press('x');
+        yield* Effect.sync(() => asked.some((a) => a.path === '/api/films/toy/choices/pick')).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
+          Effect.timeout('10 seconds'),
+        );
+        expect(posted(asked, '/api/films/toy/choices/pick')).toEqual({
+          point: 'take:paper.page',
+          variant: WAITING,
+          verb: 'reject',
+        });
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

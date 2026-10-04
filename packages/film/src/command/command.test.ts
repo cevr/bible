@@ -17,6 +17,7 @@ import {
   focusOf,
   selected,
   selectedAll,
+  withFocused,
   withSelection,
 } from './context.ts';
 import { cueOf, Selection } from './selection.ts';
@@ -164,5 +165,16 @@ describe('the context', () => {
     expect(focusOf(el('A'))).toBe('control');
     expect(focusOf(el('BODY'))).toBe('page');
     expect(focusOf(Option.none())).toBe('page');
+  });
+
+  test('puts the focused thing first, unless the selection holds one of its kind', () => {
+    const set = withSelection(lab, [Selection.cases.Set.make({ folder: 'a', point: 'p' })]);
+    const version = Selection.cases.Version.make({ folder: 'a', point: 'p', version: 'v2' });
+    expect(withFocused(set, Option.some(version)).selection).toEqual([version, ...set.selection]);
+    expect(withFocused(set, Option.none())).toBe(set);
+    const onCue = withSelection(lab, [cueOf('one', 'rise')]);
+    expect(withFocused(onCue, Option.some(cueOf('one', 'fall'))).selection).toEqual([
+      cueOf('one', 'rise'),
+    ]);
   });
 });

@@ -4,8 +4,9 @@
 // scene a render card with the video this checkout's catalogue records for
 // it (not another folder's of the same film), its state (a render stale by
 // the film's sound alone says so; a missing one names the command that
-// renders it) and its approval; "Approve all current" approves the current
-// scenes; a scene is approved, its approval withdrawn, and it is commented
+// renders it) and its approval; "Approve all current" (in the film's inspector)
+// approves the current scenes; a scene is approved, unapproved from its
+// inspector, and commented
 // on (a missing one too); an act's current scenes are approved and the act
 // commented on; each choice point sits once, where it belongs (the score
 // with the film, a layer across the act's scenes with the act, a take with
@@ -377,6 +378,17 @@ const scene = (id: string) => `[data-scene="${id}"]`;
 /** A scene's render card. */
 const render = (id: string) => `${scene(id)} > [data-kind="render"]`;
 
+/** The open inspector: one at a time. */
+const INSPECTOR = '[data-role="inspector"]';
+
+/** Where the film's and the act's names sit (their inspect button), above their cards. */
+const FILM_HEAD = '.rv-film > .rv-row';
+const ACT_HEAD = '[data-act-name="opening"] > .rv-h';
+
+/** Open the inspector of the thing at `at` by a tap on its name. */
+const inspect = (page: Tab, at: string) =>
+  Effect.andThen(click(page, `${at} [data-act="inspect"]`), waitFor(page, INSPECTOR));
+
 /** The says posted to the project, in order. */
 const saysPosted = (
   asked: ReadonlyArray<{ readonly path: string; readonly body: Option.Option<Json> }>,
@@ -447,14 +459,19 @@ describe("a film's project", () => {
         // The take with its scene, the voice with its beat.
         yield* attached(page, `${scene('open')} [data-point="take:paper.page"]`);
         yield* attached(page, `${scene('close')} [data-point="voice:close"]`);
-        // Each card once: a scene links the layers that play in it but sit elsewhere.
+        // Each card once: a scene's inspector links the choices that play in it, its own
+        // and the layers that sit elsewhere; none of the links is at rest.
         yield* countIs(page, '.rv-option:not([data-kind="render"])', 5);
-        yield* attributesAre(page, `${scene('close')} [data-plays]`, 'data-plays', [
+        yield* countIs(page, `${scene('close')} [data-plays]`, 0);
+        yield* inspect(page, render('close'));
+        yield* attributesAre(page, `${INSPECTOR} [data-plays]`, 'data-plays', [
+          'voice:close',
           'take:paper.hum',
           'take:room.tone',
         ]);
         // A link opens the part its card is folded under.
-        yield* click(page, `${scene('open')} [data-plays="take:paper.hum"]`);
+        yield* inspect(page, render('open'));
+        yield* click(page, `${INSPECTOR} [data-plays="take:paper.hum"]`);
         const hum = '[data-act-name="opening"] > .rv-layers[open] [data-point="take:paper.hum"]';
         yield* waitFor(page, hum);
         // The card in focus is in the link, a step Back undoes.
@@ -482,46 +499,70 @@ describe("a film's project", () => {
         yield* click(page, `${render('coda')} [data-act="approve"]`);
         yield* waitFor(page, `${render('coda')} .rv-badge[data-approval="approved"]`);
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
-        yield* click(page, `${render('coda')} [data-act="withdraw"]`);
+        // Unapprove is in the scene's inspector, not at rest.
+        yield* countIs(page, `${render('coda')} [data-act="unapprove"]`, 0);
+        yield* inspect(page, render('coda'));
+        yield* click(page, `${INSPECTOR} [data-act="unapprove"]`);
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
-        yield* click(page, '[data-act="approve-all"]');
+        // The film's and the act's approvals are in their inspectors, not at rest.
+        yield* countIs(page, '[data-act="approve-all"]', 0);
+        yield* inspect(page, FILM_HEAD);
+        yield* click(page, `${INSPECTOR} [data-act="approve-all"]`);
         yield* waitFor(page, `${render('open')} .rv-badge[data-approval="approved"]`);
         yield* waitFor(page, `${render('coda')} .rv-badge[data-approval="approved"]`);
         // The stale scene is left for a render.
         yield* waitFor(page, `${render('close')} .rv-badge[data-approval="stale"]`);
         // Nothing current is left to approve, in the film or the act: no say would change a thing.
-        yield* until(page, `document.querySelector('[data-act="approve-all"]').disabled === true`);
-        yield* until(page, `document.querySelector('[data-act="approve-act"]').disabled === true`);
+        yield* until(
+          page,
+          `document.querySelector('${INSPECTOR} [data-act="approve-all"]').disabled === true`,
+        );
+        yield* inspect(page, ACT_HEAD);
+        yield* until(
+          page,
+          `document.querySelector('${INSPECTOR} [data-act="approve-act"]').disabled === true`,
+        );
 
-        yield* page.fill(`${render('open')} .rv-comment-input`, 'the hand jumps');
-        yield* click(page, `${render('open')} [data-act="comment"]`);
-        yield* waitFor(page, `${render('open')} [data-comment="c1"]`);
+        yield* inspect(page, render('open'));
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'the hand jumps');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         // A scene not rendered yet is commented on too.
-        yield* page.fill(`${render('end')} .rv-comment-input`, 'render it warm');
-        yield* click(page, `${render('end')} [data-act="comment"]`);
-        yield* waitFor(page, `${render('end')} [data-comment="c1"]`);
+        yield* inspect(page, render('end'));
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'render it warm');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
 
         // An act's approvals withdrawn in one say (the stale one too), its current scenes
         // approved again in one, then the film's withdrawn.
-        yield* click(page, '[data-act="withdraw-act"]');
+        yield* inspect(page, ACT_HEAD);
+        yield* click(page, `${INSPECTOR} [data-act="unapprove-act"]`);
         yield* waitFor(page, `${render('open')} [data-act="approve"][data-approval="none"]`);
         yield* waitFor(page, `${render('close')} [data-act="approve"][data-approval="none"]`);
         yield* waitFor(page, `${render('coda')} .rv-badge[data-approval="approved"]`);
-        yield* countIs(page, '[data-act="withdraw-act"]', 0);
-        yield* click(page, '[data-act="approve-act"]');
+        yield* countIs(page, `${INSPECTOR} [data-act="unapprove-act"]`, 0);
+        yield* click(page, `${INSPECTOR} [data-act="approve-act"]`);
         yield* waitFor(page, `${render('open')} .rv-badge[data-approval="approved"]`);
-        yield* until(page, `document.querySelector('[data-act="approve-act"]').disabled === true`);
-        yield* click(page, '[data-act="withdraw-all"]');
+        yield* until(
+          page,
+          `document.querySelector('${INSPECTOR} [data-act="approve-act"]').disabled === true`,
+        );
+        yield* inspect(page, FILM_HEAD);
+        yield* click(page, `${INSPECTOR} [data-act="unapprove-all"]`);
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
-        yield* countIs(page, '[data-act="withdraw-all"]', 0);
+        yield* countIs(page, `${INSPECTOR} [data-act="unapprove-all"]`, 0);
 
-        yield* page.fill('[data-act-name="opening"] > .rv-say .rv-comment-input', 'the act drags');
-        yield* click(page, '[data-act-name="opening"] > .rv-say [data-act="comment"]');
-        yield* waitFor(page, '[data-act-name="opening"] > .rv-comments [data-comment="c1"]');
+        yield* inspect(page, ACT_HEAD);
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'the act drags');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
+        yield* textIs(page, `${ACT_HEAD} .lab-count`, '1');
 
-        yield* page.fill('.rv-film > .rv-say .rv-comment-input', 'a whole film note');
-        yield* click(page, '.rv-film > .rv-say [data-act="comment"]');
-        yield* waitFor(page, '.rv-film > .rv-comments [data-comment="c1"]');
+        yield* inspect(page, FILM_HEAD);
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'a whole film note');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
+        yield* textIs(page, `${FILM_HEAD} .lab-count`, '1');
         const scenes = (id: string) => ({ _tag: 'Scenes', ids: [id] });
         expect(saysPosted(asked)).toEqual([
           { address: scenes('coda'), say: { _tag: 'Approve' } },
@@ -549,11 +590,18 @@ describe("a film's project", () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject(), { href: PROJECT });
         yield* waitFor(page, `${scene('open')} video`);
-        yield* page.fill(`${scene('open')} .rv-comment-input`, 'half a thought');
+        yield* inspect(page, render('open'));
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'half a thought');
         yield* page.evaluate(`window.clip = document.querySelector('${scene('open')} video')`);
+        // The inspector sits beside the page: the page under it stays live.
         yield* click(page, `${scene('coda')} [data-act="approve"]`);
         yield* waitFor(page, `${scene('coda')} .rv-badge[data-approval="approved"]`);
-        yield* valueIs(page, `${scene('open')} .rv-comment-input`, 'half a thought');
+        yield* valueIs(page, `${INSPECTOR} .rv-comment-input`, 'half a thought');
+        // Closed and opened again, it keeps the half-typed comment.
+        yield* page.press('Escape');
+        yield* countIs(page, INSPECTOR, 0);
+        yield* inspect(page, render('open'));
+        yield* valueIs(page, `${INSPECTOR} .rv-comment-input`, 'half a thought');
         yield* evaluates(
           page,
           `window.clip === document.querySelector('${scene('open')} video')`,
@@ -620,12 +668,13 @@ describe("a film's project", () => {
           ],
           { href: PROJECT },
         );
-        const box = (at: string) => `${at} .rv-comment-input`;
-        /** Say `text` in the box at `at`, posted as the `n`th say to `path`; wait for `status` to fail it. */
+        const box = `${INSPECTOR} .rv-comment-input`;
+        /** Say `text` in the inspector of `at`, posted as the `n`th say to `path`; wait for `status` to fail it. */
         const failedSay = (at: string, text: string, path: string, n: number, status: string) =>
           Effect.gen(function* () {
-            yield* page.fill(box(at), text);
-            yield* click(page, `${at} [data-act="comment"]`);
+            yield* inspect(page, at);
+            yield* page.fill(box, text);
+            yield* click(page, `${INSPECTOR} [data-act="comment"]`);
             yield* Effect.sync(() => asked.filter((a) => a.path === path).length).pipe(
               Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (m) => m >= n }),
               Effect.timeout('10 seconds'),
@@ -640,9 +689,9 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
         // A scene's comment, the film's, and a take's: each fails, and each keeps its text.
         yield* failedSay(render('open'), 'a long thoughtful note', PROJECT_SAY, 1, 'p.rv-status');
-        yield* valueIs(page, box(render('open')), 'a long thoughtful note');
-        yield* failedSay('.rv-film > .rv-say', 'of the whole film', PROJECT_SAY, 2, 'p.rv-status');
-        yield* valueIs(page, box('.rv-film > .rv-say'), 'of the whole film');
+        yield* valueIs(page, box, 'a long thoughtful note');
+        yield* failedSay(FILM_HEAD, 'of the whole film', PROJECT_SAY, 2, 'p.rv-status');
+        yield* valueIs(page, box, 'of the whole film');
         yield* click(page, `${scene('open')} > .rv-layers > summary`);
         yield* failedSay(
           take,
@@ -651,12 +700,14 @@ describe("a film's project", () => {
           1,
           '.rv-writes .rv-status',
         );
-        yield* valueIs(page, box(take), 'the page is late');
-        // The film loads again: the kept comment is said, and its box empties.
+        yield* valueIs(page, box, 'the page is late');
+        // The film loads again: the kept comment, back in its box, is said, and its box empties.
         loads = true;
-        yield* click(page, `${render('open')} [data-act="comment"]`);
-        yield* waitFor(page, `${render('open')} [data-comment="c1"]`);
-        yield* valueIs(page, box(render('open')), '');
+        yield* inspect(page, render('open'));
+        yield* valueIs(page, box, 'a long thoughtful note');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
+        yield* valueIs(page, box, '');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -744,13 +795,14 @@ describe("a film's project", () => {
         );
         yield* attributeIs(page, '.rv-film', 'data-reading', 'true');
         // Said while the read is out: the say answers the project with the comment.
-        yield* page.fill(`${render('open')} .rv-comment-input`, 'said while it read');
-        yield* click(page, `${render('open')} [data-act="comment"]`);
-        yield* waitFor(page, `${render('open')} [data-comment="c1"]`);
+        yield* inspect(page, render('open'));
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'said while it read');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         // The older read lands last: the page has read it, and the comment stays.
         yield* Deferred.done(land, Exit.void);
         yield* attributeIs(page, '.rv-film', 'data-reading', 'false');
-        yield* countIs(page, `${render('open')} [data-comment="c1"]`, 1);
+        yield* countIs(page, `${INSPECTOR} [data-comment="c1"]`, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -778,8 +830,9 @@ describe("a film's project", () => {
         const reads = () =>
           asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/project').length;
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
-        yield* page.fill(`${render('open')} .rv-comment-input`, 'said before the pick');
-        yield* click(page, `${render('open')} [data-act="comment"]`);
+        yield* inspect(page, render('open'));
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'said before the pick');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
         yield* Effect.sync(() => saysPosted(asked).length).pipe(
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 1 }),
           Effect.timeout('10 seconds'),
@@ -796,7 +849,7 @@ describe("a film's project", () => {
         yield* attributeIs(page, '.rv-film', 'data-reading', 'false');
         // The say lands last: the project is read again, and the comment shows.
         yield* Deferred.done(land, Exit.void);
-        yield* waitFor(page, `${render('open')} [data-comment="c1"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         // The read again can reach the server after the comment shows: wait for it.
         const all = yield* Effect.sync(reads).pipe(
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 3 }),
@@ -830,33 +883,27 @@ describe("a film's project", () => {
         const { page, asked, errors } = yield* openReview([heldFirst, ...routes], {
           href: PROJECT,
         });
-        const film = '.rv-film > .rv-say';
-        const act = '[data-act-name="opening"] > .rv-say';
-        yield* waitFor(page, `${film} .rv-comment-input`);
-        yield* page.fill(`${film} .rv-comment-input`, 'of the whole film');
-        yield* click(page, `${film} [data-act="comment"]`);
+        const box = `${INSPECTOR} .rv-comment-input`;
+        const comment = `${INSPECTOR} [data-act="comment"]`;
+        yield* inspect(page, FILM_HEAD);
+        yield* page.fill(box, 'of the whole film');
+        yield* click(page, comment);
         yield* Effect.sync(() => saysPosted(asked).length).pipe(
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 1 }),
           Effect.timeout('10 seconds'),
         );
         // The film's box waits on its own say; the act's is free.
-        yield* evaluates(
-          page,
-          `document.querySelector('${film} [data-act="comment"]').disabled`,
-          true,
-        );
-        yield* page.fill(`${act} .rv-comment-input`, 'of the opening');
-        yield* click(page, `${act} [data-act="comment"]`);
-        yield* countIs(page, '[data-act-name="opening"] > .rv-comments li', 1);
-        yield* valueIs(page, `${act} .rv-comment-input`, '');
+        yield* evaluates(page, `document.querySelector('${comment}').disabled`, true);
+        yield* inspect(page, ACT_HEAD);
+        yield* page.fill(box, 'of the opening');
+        yield* click(page, comment);
+        yield* countIs(page, `${INSPECTOR} .rv-comments li`, 1);
+        yield* valueIs(page, box, '');
         // The act's answer is not the film's: its box keeps the text until its own lands.
-        yield* evaluates(
-          page,
-          `document.querySelector('${film} .rv-comment-input').value`,
-          'of the whole film',
-        );
+        yield* inspect(page, FILM_HEAD);
+        yield* valueIs(page, box, 'of the whole film');
         yield* Deferred.done(land, Exit.void);
-        yield* valueIs(page, `${film} .rv-comment-input`, '');
+        yield* valueIs(page, box, '');
         expect(saysPosted(asked)).toEqual([
           { address: { _tag: 'Film' }, say: { _tag: 'Comment', text: 'of the whole film' } },
           {
@@ -887,9 +934,10 @@ describe("a film's project", () => {
             .map((a) => a.path);
         const before = asked.length;
         yield* click(page, `${scene('open')} > .rv-layers > summary`);
-        yield* page.fill(`${take} .rv-comment-input`, 'the page is late');
-        yield* click(page, `${take} [data-act="comment"]`);
-        yield* waitFor(page, `${take} [data-comment="c1"]`);
+        yield* inspect(page, take);
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'the page is late');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         yield* click(
           page,
           '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',

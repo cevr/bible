@@ -9,6 +9,7 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createEffect } from 'solid-js';
 import type { ReviewIndex } from '../../core/review.ts';
 import { Go, Root, useReview } from './context.tsx';
+import { Inspecting } from './inspector.tsx';
 import { folderTitle, pressed } from './format.ts';
 import { type ReviewPlace, ReviewPlace as Place } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
@@ -153,13 +154,15 @@ const Lightbox = () => {
   );
 };
 
-/** The review: its header, the page it is on, the lightbox, its context menu, ⌘K and the `?` sheet. */
+/** The review: its header, the page it is on, the lightbox, its context menu, the inspector, ⌘K and the `?` sheet. */
 const ReviewPage = (props: { readonly host: Host; readonly hub: Hub }) => (
   <Root host={props.host} hub={props.hub}>
     <TargetMenu hub={props.hub}>
-      <Header />
-      <Page />
-      <Lightbox />
+      <Inspecting hub={props.hub}>
+        <Header />
+        <Page />
+        <Lightbox />
+      </Inspecting>
       <CommandMenu hub={props.hub} />
       <KeysSheet hub={props.hub} />
     </TargetMenu>

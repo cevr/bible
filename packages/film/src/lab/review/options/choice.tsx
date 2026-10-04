@@ -4,14 +4,16 @@
 // level), and each variant with its state, what it is, how it is seen or
 // heard (a render's video; a take alone, its own file; in place: 🔊 over the
 // picture), the verbs its state allows (pick, unpick, reject), its approval
-// (approve, withdraw) and what was said of it. A say goes where the card is
+// (approve, unapprove) and what was said of it; at rest only what most
+// visits use, the rest in the variant's inspector, its menu and its keys
+// (`../inspector.tsx`, `../things.ts`). A say goes where the card is
 // told (`Sayer`): a choice's to the film's choices, a render's to its
 // project. Each part reads its props as they change, so a card updates in
 // place: a playing clip plays on and a half-typed comment stays.
 
-import { For, Show } from '@solidjs/web';
+import { For, type JSX, Show } from '@solidjs/web';
 import { Option } from 'effect';
-import { type Accessor, createEffect, createMemo, createSignal } from 'solid-js';
+import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 import { type Say, choiceAloneUrl, reviewFrameUrl } from '../../../core/api.ts';
 import type { ApprovalState, SaidComment } from '../../../core/catalogue.ts';
 import {
@@ -31,6 +33,14 @@ import { ChoiceAct } from './api.ts';
 import { Playing, samePlaying, useAct, useFilm } from './context.tsx';
 import { Selection } from '../../../command/selection.ts';
 import { Target } from '../../command/context-menu.tsx';
+import {
+  CommentCount,
+  InspectName,
+  Inspector,
+  type InspectorBox,
+  useThing,
+} from '../inspector.tsx';
+import type { ThingVerb, VerbId } from '../things.ts';
 
 /** A verb's button, as a kind names it: a take is kept, anything else picked. */
 const verbTitle = (kind: ChoiceKind, verb: ChoiceVerb): string => {
@@ -109,8 +119,15 @@ export const Comments = (props: { readonly comments: ReadonlyArray<SaidComment> 
 export const SayBox = (props: {
   readonly say: (text: string) => Promise<boolean>;
   readonly disabled?: boolean;
+  /** The inspector's handle on the box: its field's ref (focused when it opened at the box) and its draft. */
+  readonly box?: InspectorBox;
 }) => {
-  const [text, setText] = createSignal('');
+  // In an inspector the line holds its draft, which outlives the box; elsewhere its own text.
+  const draft = Option.map(Option.fromUndefinedOr(untrack(() => props.box)), (b) => b.draft);
+  const [own, setOwn] = createSignal('');
+  const text = () => Option.match(draft, { onNone: own, onSome: (d) => d.get() });
+  const setText = (next: string) =>
+    Option.match(draft, { onNone: () => setOwn(next), onSome: (d) => d.set(next) });
   const send = () => {
     const said = text().trim();
     if (said === '' || props.disabled === true) return;
@@ -128,6 +145,9 @@ export const SayBox = (props: {
     >
       <input
         class="rv-comment-input"
+        ref={(el: HTMLInputElement) => {
+          Option.map(Option.fromUndefinedOr(props.box), (b) => b.input(el));
+        }}
         placeholder="Add a comment"
         value={text()}
         onInput={(e: InputEvent & { currentTarget: HTMLInputElement }) =>
@@ -147,7 +167,7 @@ export const SayBox = (props: {
 };
 
 /** An approve button: approved as it is now, or again once it has changed. */
-const ApproveButton = (props: {
+export const ApproveButton = (props: {
   readonly approval: ApprovalState;
   readonly approve: () => void;
   readonly disabled?: boolean;
@@ -217,38 +237,43 @@ const Media = (props: { readonly point: ChoicePoint; readonly variant: ChoiceVar
   );
 };
 
-/** A variant's withdraw, waiting while its own is in flight. */
-const WithdrawButton = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
+/** A variant's unapprove (it withdraws every approval of it), waiting while its own is in flight. */
+const UnapproveButton = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
   const withdrawing = props.sayer.use();
   return (
     <button
       type="button"
       class="rv-chip"
-      data-act="withdraw"
+      data-act="unapprove"
       disabled={withdrawing.waiting()}
       onClick={() => withdrawing.say(props.variant, { _tag: 'Withdraw' })}
     >
-      Withdraw
+      Unapprove
     </button>
   );
 };
 
-/** A variant's approve and withdraw: only what is current is approved, as the version seen now. */
-const Approval = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
+/** A variant's approve: only what is current is approved, as the version seen now. */
+const Approve = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
   const approving = props.sayer.use();
   return (
-    <>
-      <ApproveButton
-        approval={props.variant.approval}
-        disabled={props.variant.state !== 'current' || approving.waiting()}
-        approve={() => approving.say(props.variant, { _tag: 'Approve' })}
-      />
-      <Show when={props.variant.approval !== 'none'}>
-        <WithdrawButton variant={props.variant} sayer={props.sayer} />
-      </Show>
-    </>
+    <ApproveButton
+      approval={props.variant.approval}
+      disabled={props.variant.state !== 'current' || approving.waiting()}
+      approve={() => approving.say(props.variant, { _tag: 'Approve' })}
+    />
   );
 };
+
+/** A variant's approve and unapprove, as its inspector offers them. */
+const Approval = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => (
+  <>
+    <Approve variant={props.variant} sayer={props.sayer} />
+    <Show when={props.variant.approval !== 'none'}>
+      <UnapproveButton variant={props.variant} sayer={props.sayer} />
+    </Show>
+  </>
+);
 
 /** A verb's button on a variant, waiting while its own write is in flight. */
 const VerbButton = (props: {
@@ -275,62 +300,174 @@ const VerbButton = (props: {
 };
 
 /** A variant's comment box, waiting while its own say is in flight. */
-const CommentBox = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
+const CommentBox = (props: {
+  readonly variant: ChoiceVariant;
+  readonly sayer: Sayer;
+  readonly box: InspectorBox;
+}) => {
   const commenting = props.sayer.use();
   return (
     <SayBox
       disabled={commenting.waiting()}
+      box={props.box}
       say={(text) => commenting.say(props.variant, { _tag: 'Comment', text })}
     />
   );
 };
 
+/** The verbs a variant's row moves out of sight: into its menu, its inspector and its keys. */
+type RareVerb = Extract<ChoiceVerb, 'unpick' | 'reject'>;
+
+const isRare = (verb: ChoiceVerb): verb is RareVerb => verb === 'unpick' || verb === 'reject';
+
+/** A rare verb's id among the page's commands (`things.ts`). */
+const VERB_ID = { unpick: 'unkeep', reject: 'reject' } as const satisfies Record<RareVerb, VerbId>;
+
+/**
+ * The verbs a variant allows now, as its commands run them: approve and
+ * unapprove where it is said of, unkeep and reject where its state allows;
+ * none while the row's own write is in flight.
+ */
+const variantVerbs = (
+  point: ChoicePoint,
+  variant: ChoiceVariant,
+  saying: OwnSay,
+  verbing: ReturnType<typeof useAct>,
+): ReadonlyArray<ThingVerb> => {
+  const said = Option.isSome(point.address) && !saying.waiting();
+  const approve: ThingVerb = {
+    id: 'approve',
+    label: APPROVE_TITLE[variant.approval],
+    run: () => saying.say(variant, { _tag: 'Approve' }),
+  };
+  const unapprove: ThingVerb = {
+    id: 'unapprove',
+    label: 'Unapprove',
+    run: () => saying.say(variant, { _tag: 'Withdraw' }),
+  };
+  const rare = variant.verbs
+    .filter(isRare)
+    .filter(() => !verbing.waiting())
+    .map((verb): ThingVerb => ({
+      id: VERB_ID[verb],
+      label: verbTitle(point.kind, verb),
+      run: () => verbing.write(ChoiceAct.Verb({ point: point.id, variant: variant.id, verb })),
+    }));
+  return [
+    ...[approve].filter(
+      () => said && variant.state === 'current' && variant.approval !== 'approved',
+    ),
+    ...[unapprove].filter(() => said && variant.approval !== 'none'),
+    ...rare,
+  ];
+};
+
+/**
+ * One variant: at rest its name (a tap inspects it), its state, its first
+ * line, how it is seen or heard, its pick, its approve where it is the
+ * picked one (or a scene's render: approving is that page's goal), and a dot
+ * counting what was said of it. The rest is in its inspector: every line,
+ * unapprove, unkeep and reject, the comments and the comment box; and in
+ * its context menu.
+ */
 const VariantRow = (props: {
   readonly point: ChoicePoint;
   readonly variant: ChoiceVariant;
   readonly sayer: Sayer;
+  readonly more?: () => JSX.Element;
 }) => {
   const said = () => Option.isSome(props.point.address);
   const { film } = useFilm();
+  // A row is keyed by its variant: its selection is fixed for as long as it lives.
+  const selection = untrack(() =>
+    Selection.cases.Variant.make({ film, point: props.point.id, variant: props.variant.id }),
+  );
+  const title = () => `${props.variant.label} of ${props.point.title}`;
+  const saying = props.sayer.use();
+  const verbing = useAct();
+  useThing({
+    selection,
+    title,
+    commentable: said,
+    verbs: () => variantVerbs(props.point, props.variant, saying, verbing),
+  });
+  const approveAtRest = () => said() && (props.variant.picked || props.point.kind === 'render');
   return (
     <Target
-      of={Selection.cases.Variant.make({ film, point: props.point.id, variant: props.variant.id })}
+      of={selection}
       class={['rv-take', { 'rv-audible': props.variant.picked }]}
       data-variant={props.variant.id}
       data-state={props.variant.state}
       data-picked={pressed(props.variant.picked)}
     >
       <div class="rv-row">
-        <span class="rv-name">{props.variant.label}</span>
+        <InspectName of={selection}>
+          <span class="rv-name">{props.variant.label}</span>
+        </InspectName>
         <Show when={props.variant.picked}>
           <span class="rv-badge">picked</span>
         </Show>
-        <span class="rv-tag" data-state={props.variant.state}>
-          {stateText(props.variant.state, props.variant.staleBy)}
-        </span>
-        <Show when={props.variant.approval !== 'none'}>
-          <span class="rv-badge" data-approval={props.variant.approval}>
-            {APPROVAL_TEXT[props.variant.approval]}
-          </span>
-        </Show>
+        <StateTags variant={props.variant} />
+        <CommentCount of={selection} count={props.variant.comments.length} />
       </div>
-      <For each={props.variant.lines}>{(line) => <div class="rv-meta">{line}</div>}</For>
+      <Show when={props.variant.lines[0]}>
+        {(line) => (
+          <div class="rv-meta lab-clamp" title={props.variant.lines.join('\n')}>
+            {line()}
+          </div>
+        )}
+      </Show>
       <div class="rv-row">
         <Media point={props.point} variant={props.variant} />
-        <For each={props.variant.verbs}>
+        <For each={props.variant.verbs.filter((verb) => !isRare(verb))}>
           {(verb) => <VerbButton point={props.point} variant={props.variant} verb={verb} />}
         </For>
-        <Show when={said()}>
-          <Approval variant={props.variant} sayer={props.sayer} />
+        <Show when={approveAtRest()}>
+          <Approve variant={props.variant} sayer={props.sayer} />
         </Show>
       </div>
-      <Comments comments={props.variant.comments} />
-      <Show when={said()}>
-        <CommentBox variant={props.variant} sayer={props.sayer} />
-      </Show>
+      <Inspector of={selection} title={title()}>
+        {(box) => (
+          <>
+            <div class="rv-row">
+              <StateTags variant={props.variant} />
+            </div>
+            <For each={props.variant.lines}>{(line) => <div class="rv-meta">{line}</div>}</For>
+            <div class="rv-row">
+              <Show when={said()}>
+                <Approval variant={props.variant} sayer={props.sayer} />
+              </Show>
+              <For each={props.variant.verbs.filter(isRare)}>
+                {(verb) => <VerbButton point={props.point} variant={props.variant} verb={verb} />}
+              </For>
+            </div>
+            {Option.getOrUndefined(
+              Option.map(Option.fromUndefinedOr(props.more), (more) => more()),
+            )}
+            <Comments comments={props.variant.comments} />
+            <Show when={said()}>
+              <CommentBox variant={props.variant} sayer={props.sayer} box={box} />
+            </Show>
+          </>
+        )}
+      </Inspector>
     </Target>
   );
 };
+
+/** A variant's state, and its approval when it has one. */
+const StateTags = (props: { readonly variant: ChoiceVariant }) => (
+  <>
+    <span class="rv-tag" data-state={props.variant.state}>
+      {stateText(props.variant.state, props.variant.staleBy)}
+    </span>
+    <Show when={props.variant.approval !== 'none'}>
+      <span class="rv-badge" data-approval={props.variant.approval}>
+        {APPROVAL_TEXT[props.variant.approval]}
+      </span>
+    </Show>
+  </>
+);
 
 /**
  * A level's knob: set on release, written into `sound.ts`; a computed level
@@ -413,7 +550,12 @@ const Marks = (props: { readonly point: ChoicePoint }) => {
  * choice's says go to the film's choices; a render's card is told where its
  * go (`sayer`). Why a stale variant is stale is its own (`staleBy`).
  */
-export const ChoiceCard = (props: { readonly point: ChoicePoint; readonly sayer?: Sayer }) => {
+export const ChoiceCard = (props: {
+  readonly point: ChoicePoint;
+  readonly sayer?: Sayer;
+  /** More for its variants' inspectors (a scene's render: the choices that play in it). */
+  readonly more?: () => JSX.Element;
+}) => {
   /** A choice's says go to the film's choices. */
   const ofChoices: Sayer = {
     use: () => {
@@ -445,7 +587,9 @@ export const ChoiceCard = (props: { readonly point: ChoicePoint; readonly sayer?
           {(knob) => <Knob point={props.point} knob={knob()} />}
         </Show>
         <For each={props.point.variants} keyed={(v) => v.id}>
-          {(variant) => <VariantRow point={props.point} variant={variant()} sayer={sayer} />}
+          {(variant) => (
+            <VariantRow point={props.point} variant={variant()} sayer={sayer} more={props.more} />
+          )}
         </For>
         <Show when={props.point.variants.length === 0 && Option.isNone(props.point.knob)}>
           <p class="rv-hint">Nothing to choose between yet.</p>

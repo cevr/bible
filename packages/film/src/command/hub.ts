@@ -25,10 +25,11 @@ import {
   type Receipt,
   makeCommands,
 } from './command.ts';
-import { type Context, type Focus, contextAt, focusOf } from './context.ts';
+import { type Context, type Focus, contextAt, focusOf, withFocused } from './context.ts';
 import { type Binding, KeymapOverrides, Resolved, bindingsOf, keysOf, resolve } from './keymap.ts';
 import { linkCommands } from './link.ts';
 import { selectionOf } from './selection.ts';
+import { targetAt } from './target.ts';
 
 /** A page's commands, its keymap, its context and its receipts. */
 export interface Hub {
@@ -125,7 +126,8 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
   const bindings = () => bindingsOf(commands.all(), overrides);
 
   const press = (pressed: KeyPress): boolean => {
-    const ctx = context(focusOf(pressed.target));
+    // A press inside a marked thing (a version's card, a variant's row) is about it too.
+    const ctx = withFocused(context(focusOf(pressed.target)), targetAt(pressed.target));
     return Resolved.$match(resolve(pressed, ctx, commands.all(), bindings()), {
       Run: ({ command, how }) => {
         invoke(command, how, ctx);

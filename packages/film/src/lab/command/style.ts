@@ -1,5 +1,6 @@
 // The look of the pages' command surfaces (⌘K, the `?` sheet, the context
-// menu, the inspector's fields and hint, and every primitive after them):
+// menu, the inspector's fields and hint, the review's inspector sheet and
+// comment dot, and every primitive after them):
 // one token set (`COMMAND_TOKENS`, CSS custom properties with today's
 // values, read from the page's own palette where it has one: the lab's
 // `player.css`, the review's `REVIEW_CSS`), and the rules, which read only
@@ -40,6 +41,8 @@ body {
   --cmd-button-height: 30px;
   --cmd-width: 560px;
   --cmd-menu-width: 200px;
+  --cmd-inspector-width: 360px;
+  --cmd-count-size: 18px;
   --cmd-height: 72vh;
   --cmd-top: 12vh;
   --cmd-layer: 40;
@@ -124,6 +127,35 @@ const COMMAND_RULES = `
   font-family: var(--cmd-mono); font-size: var(--cmd-small); color: var(--cmd-ink); padding: var(--cmd-key-pad);
   border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-key);
 }
+.lab-inspector-viewport { position: fixed; inset: 0; z-index: var(--cmd-layer); pointer-events: none; }
+.lab-inspector-sheet {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(var(--cmd-inspector-width), 100vw); overflow: auto;
+  pointer-events: auto; display: flex; flex-direction: column; gap: var(--cmd-gap);
+  background: var(--cmd-panel); color: var(--cmd-ink); border-left: 1px solid var(--cmd-line);
+  padding: var(--cmd-pad); box-shadow: var(--cmd-shadow); outline: none;
+  font-family: var(--cmd-font); font-size: var(--cmd-text); line-height: var(--cmd-leading);
+  transform: translateX(var(--drawer-swipe-movement-x, 0px));
+}
+.lab-inspector-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--cmd-gap); }
+.lab-inspector-body { display: flex; flex-direction: column; gap: var(--cmd-gap-small); }
+.lab-inspector-close, .lab-count {
+  font: inherit; font-size: var(--cmd-small); cursor: pointer; border-radius: var(--cmd-radius-small);
+}
+.lab-inspector-close {
+  background: none; color: var(--cmd-ink); border: 1px solid var(--cmd-line);
+  padding: var(--cmd-button-pad); min-height: var(--cmd-button-height);
+}
+.lab-inspect {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit;
+}
+.lab-count {
+  min-width: var(--cmd-count-size); height: var(--cmd-count-size); padding: 0 var(--cmd-gap-small);
+  border: 0; border-radius: var(--cmd-count-size); background: var(--cmd-accent); color: var(--cmd-panel);
+  line-height: var(--cmd-count-size);
+}
+/* Beside the page, not over it: on a wide screen the page makes room while an inspector is open. */
+@media (min-width: 901px) { body:has(.lab-inspector-sheet) { padding-right: var(--cmd-inspector-width); } }
+.lab-clamp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 `;
 
 /** The command surfaces' stylesheet: the tokens, then the rules that read them. */

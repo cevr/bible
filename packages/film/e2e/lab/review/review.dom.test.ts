@@ -8,9 +8,9 @@
 // the rest say no state; the view lives in the URL through a reload; and a
 // phone's width folds the grid to one column without scrolling sideways.
 
-import { Effect } from 'effect';
+import { Effect, Match, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { pageHref } from '../../../src/core/api.ts';
+import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import {
   type FakeRoute,
@@ -475,6 +475,119 @@ describe('the review page', () => {
           1,
         );
         yield* evaluates(page, 'document.documentElement.scrollWidth <= innerWidth', true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a version's inspector holds its Info, its approve and its comments, said over the set's route",
+    () =>
+      Effect.gen(function* () {
+        // The roof's set belongs to a film address: its versions take a say.
+        const said = { approved: false, comments: new Array<string>() };
+        const at = { _tag: 'Scenes', ids: ['roof'] };
+        const folder = (): Json => ({
+          ref: 'out/art',
+          title: 'Roofs at dusk',
+          mtime: 0,
+          sets: [
+            {
+              id: 'render:roof',
+              kind: 'render',
+              title: 'The roof',
+              lines: [],
+              start: 0,
+              marks: [],
+              address: at,
+              variants: [
+                variant('A', 'Warm'),
+                variant('B', 'Cold', {
+                  approval: ['none', 'approved'][Number(said.approved)] ?? 'none',
+                  comments: said.comments.map((text, i) => ({
+                    id: `c${i + 1}`,
+                    address: at,
+                    point: 'render:roof',
+                    variant: 'B',
+                    key: 'out/art/roof.B.mp4',
+                    text,
+                    at: i,
+                    onThis: true,
+                  })),
+                }),
+              ],
+            },
+          ],
+          videos: [],
+          images: [],
+          docs: [],
+        });
+        const asked = new Array<SetSayPost>();
+        const sayRoutes: ReadonlyArray<FakeRoute> = [
+          route('GET', /^\/api\/review\/index/, () => json({ folders: [folder()] })),
+          route('POST', /^\/api\/review\/sets\/out%2Fart\/render%3Aroof\/say$/, (a) => {
+            Option.map(Option.flatMap(a.body, Schema.decodeUnknownOption(SetSayPost)), (post) => {
+              asked.push(post);
+              Match.value(post.say).pipe(
+                Match.tagsExhaustive({
+                  Approve: () => {
+                    said.approved = true;
+                  },
+                  Withdraw: () => {
+                    said.approved = false;
+                  },
+                  Comment: (c) => {
+                    said.comments.push(c.text);
+                  },
+                }),
+              );
+            });
+            return json(folder());
+          }),
+          ...routes.slice(1),
+        ];
+        const { page, errors } = yield* openReview(sayRoutes, { href: SET });
+        yield* waitFor(page, '.rv-transport');
+        const inspector = '[data-role="inspector"]';
+        // Nothing of it is at rest: no comment count while none is said, no inspector.
+        yield* countIs(page, '.lab-count', 0);
+        yield* countIs(page, inspector, 0);
+        // A tap on the version's name opens its inspector: its Info, its approve, its comment box.
+        yield* page.click('.rv-card[data-id="B"] [data-act="inspect"]');
+        yield* waitFor(page, inspector);
+        yield* textHas(page, `${inspector} .lab-sheet-title`, '2 · Cold');
+        yield* textHas(page, inspector, 'Cold look');
+        yield* textHas(page, inspector, 'out/art/roof.B.mp4');
+        yield* page.click(`${inspector} [data-act="approve"]`);
+        yield* waitFor(page, `${inspector} [data-act="approve"][data-approval="approved"]`);
+        expect(asked[0]).toEqual({ variant: 'B', say: { _tag: 'Approve' } });
+        yield* page.fill(`${inspector} .rv-comment-input`, 'colder at the edge');
+        yield* page.click(`${inspector} [data-act="comment"]`);
+        yield* waitFor(page, `${inspector} [data-comment="c1"]`);
+        // The comment counts on the card, and the page never read the index again: it stays in place.
+        yield* textIs(page, '.rv-card[data-id="B"] .lab-count', '1');
+        yield* page.click(`${inspector} [data-act="unapprove"]`);
+        yield* waitFor(page, `${inspector} [data-act="approve"][data-approval="none"]`);
+        // Escape closes it; `i` on a focused version opens it again, `m` at its comment box.
+        yield* page.press('Escape');
+        yield* countIs(page, inspector, 0);
+        yield* page.focus('.rv-card[data-id="A"] .rv-sound');
+        yield* page.press('i');
+        yield* textHas(page, `${inspector} .lab-sheet-title`, '1 · Warm');
+        yield* page.press('Escape');
+        yield* page.focus('.rv-card[data-id="B"] .rv-sound');
+        yield* page.press('m');
+        yield* until(
+          page,
+          `document.activeElement?.classList.contains('rv-comment-input') === true`,
+        );
+        // `a` approves the focused version, as its button does.
+        yield* page.press('Escape');
+        yield* page.focus('.rv-card[data-id="B"] .rv-sound');
+        yield* page.press('a');
+        yield* page.press('i');
+        yield* waitFor(page, `${inspector} [data-act="approve"][data-approval="approved"]`);
+        expect(asked.map((p) => p.say._tag)).toEqual(['Approve', 'Comment', 'Withdraw', 'Approve']);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

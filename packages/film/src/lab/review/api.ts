@@ -1,14 +1,15 @@
 // The review's routes as its page calls them, through the page's one client
-// of the lab's API (`LabClient`, `ReviewGroup` in `core/api.ts`): the index and a
-// video's length decoded by their Schemas. A doc's text is the file itself,
-// fetched by its URL (the route's path is the ref, which the derived client
-// does not build). A refusal is the server's own failure; a request that
-// never arrived says so (`LabFailure`, as every lab call fails).
+// of the lab's API (`LabClient`, `ReviewGroup` in `core/api.ts`): the index, a
+// video's length and a say on a set's version (UI-7) decoded by their
+// Schemas. A doc's text is the file itself, fetched by its URL (the route's
+// path is the ref, which the derived client does not build). A refusal is
+// the server's own failure; a request that never arrived says so
+// (`LabFailure`, as every lab call fails).
 
 import { Context, Effect, Layer } from 'effect';
 import { HttpClient, HttpClientResponse } from 'effect/http';
-import { Refusal, reviewFileUrl } from '../../core/api.ts';
-import type { ReviewIndex } from '../../core/review.ts';
+import { Refusal, type SetSayPost, reviewFileUrl } from '../../core/api.ts';
+import type { ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { LabClient, type LabFailure, called } from '../api.ts';
 
 interface ReviewCalls {
@@ -18,6 +19,12 @@ interface ReviewCalls {
   readonly duration: (ref: string) => Effect.Effect<number, LabFailure>;
   /** A doc's text (a variant's notes, a folder's markdown). */
   readonly text: (ref: string) => Effect.Effect<string, LabFailure>;
+  /** A say on a version of the set `point` in `folder`: the folder as the say leaves it. */
+  readonly say: (
+    folder: string,
+    point: string,
+    said: SetSayPost,
+  ) => Effect.Effect<ReviewFolder, LabFailure>;
 }
 
 export class ReviewApi extends Context.Service<ReviewApi, ReviewCalls>()(
@@ -41,6 +48,7 @@ const makeReviewApi = Effect.fn('lab.review.api')(function* () {
     },
     duration: (ref) => called(Effect.map(client.duration({ query: { ref } }), (d) => d.seconds)),
     text: (ref) => called(Effect.flatMap(http.get(reviewFileUrl(ref)), fileText)),
+    say: (folder, point, said) => called(client.say({ params: { folder, point }, payload: said })),
   };
   return api;
 });

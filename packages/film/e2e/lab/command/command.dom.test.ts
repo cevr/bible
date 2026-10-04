@@ -6,44 +6,12 @@
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import type { Tab } from '../../../src/lab/fixtures/tab.ts';
+import { MENU_ITEMS, rightClick, touch } from '../../../src/lab/fixtures/gestures.ts';
 import { URL_T, labAt, openLab } from '../../../src/lab/fixtures/harness.ts';
 import { attached, evaluates, textHas } from '../../../src/lab/fixtures/settled.ts';
 
 /** The probe's first cue's bar on the strip. */
 const RISE = '.lab-cue[data-cue="rise"]';
-
-/** Fire `type` on the middle of `selector`'s box, as the browser fires a right-click's or a touch's. */
-const fire = (page: Tab, selector: string, script: string) =>
-  page.evaluate(`(() => {
-    const el = document.querySelector('${selector}');
-    const r = el.getBoundingClientRect();
-    const x = r.left + r.width / 2, y = r.top + r.height / 2;
-    ${script}
-    return true;
-  })()`);
-
-const rightClick = (page: Tab, selector: string) =>
-  fire(
-    page,
-    selector,
-    // As a browser fires a right-click: the press (button 2), then the menu's event.
-    `el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 2, buttons: 2, pointerId: 1, isPrimary: true, clientX: x, clientY: y }));
-     el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: x, clientY: y }));`,
-  );
-
-/** A touch on `selector`'s middle, moved `dx` px along, still held. */
-const touch = (page: Tab, selector: string, dx: number) =>
-  fire(
-    page,
-    selector,
-    `const at = (cx) => [new Touch({ identifier: 1, target: el, clientX: cx, clientY: y })];
-     el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true, touches: at(x) }));
-     if (${dx} !== 0) el.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, cancelable: true, touches: at(x + ${dx}) }));
-     if (${dx} !== 0) el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [] }));`,
-  );
-
-const menuItems = `[...document.querySelectorAll('[data-role="context-menu"] [data-command]')].map((e) => e.dataset.command)`;
 
 describe('the command menu', () => {
   it.live('lists the commands available, filters by every word typed, and runs one', () =>
@@ -92,7 +60,7 @@ describe("a cue's context menu", () => {
       yield* page.waitFor(RISE);
       yield* rightClick(page, RISE);
       yield* page.waitFor('[data-role="context-menu"] [data-command="edit.select"]');
-      yield* evaluates(page, menuItems, [
+      yield* evaluates(page, MENU_ITEMS, [
         'edit.select',
         'edit.nudge-right',
         'edit.nudge-left',

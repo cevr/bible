@@ -897,6 +897,26 @@ previous cue edge on the strip, Tab and ⇧Tab select the next or previous cue
 gestures, only while the pointer or focus is in the inspector, never on a
 touch screen (`pointer: coarse`), where the long-press menu is the hint.
 
+On the review's pages the **inspector** is a sheet beside the page
+(`src/lab/review/inspector.tsx`, on /ui's Drawer: the page stays live
+under it, making room on a wide screen; swiped away or closed with Escape)
+for the selected variant, set version, act or film, one at a time: its Info
+(every line of what it is; a version's file and notes), Approve and
+Unapprove, what was said of it and the one comment box, whose unsent text
+is kept per thing while the page lives. A row keeps at rest only what most
+visits use: a variant's name, state, first line, Pick and 🔊, Approve on the
+picked one (and on a scene's render, the project's goal), and a dot counting
+its comments; the rest is one step away. Each thing registers itself while
+it is shown (`src/lab/review/things.ts`), and its verbs are the page's
+commands: Inspect (`i`) and Comment on (`m`) open the inspector, Approve
+(`a`), Unapprove, Reject (`x`) and Unkeep (`u`) say what its buttons say,
+and an act's or the film's approve of its current scenes is in its menu and
+⌘K with no key. A tap on a thing's name or its comment dot opens it too. A
+key reads the thing the keyboard's focus is in (`withFocused`, after the
+URL's selection of its kind). A set's version says over
+`POST /api/review/sets/<folder>/<point>/say` (UI-7), its answer shown in
+place.
+
 `.oxlintrc.json` refuses a raw `keydown`, `keyup`, `keypress` or
 `contextmenu` listener (`film/keys-through-keymap`) outside the adapters and
 `src/lab/command/`: a key is a binding in the hub.
@@ -907,8 +927,10 @@ touch screen (`pointer: coarse`), where the long-press menu is the hint.
   (Space, ←/→ a frame, Shift ten, `[` `]` a scene; `player/transport.ts`).
 - **HUD**: the readout laid over or beside the picture: the player's bar
   (scene, time, the keys legend).
-- **Inspector**: the panel that shows and edits the selected thing's fields
-  (the editor's section for a cue or a knob), each stepped as its schema says.
+- **Inspector**: the panel that shows and edits the selected thing: in the
+  lab the editor's section for a cue or a knob, its fields stepped as their
+  schema says; on the review a sheet beside the page with its Info, its
+  approval and its comments.
 - **Command menu**: the searchable list of every available command (⌘K).
 - **Context menu**: the commands for what is under the pointer, opened by a
   right-click or a touch long-press.
@@ -1631,10 +1653,11 @@ it, and it joins where the clock stands. What plays is the URL's
 (`?heard= &variant= &picture= #t=`, each replacing the entry), so a link
 opens the same sound over the same picture at the same time. A point's
 marks jump the clock there. Every point is one card (`options/choice.tsx`): its variants with
-their verbs (Pick, Unpick, Reject as the state allows), a hear-alone player,
-approve (a current variant only: `Choices.say` refuses a stale or missing
-one with `VerbRefused`, 409), withdraw once approved, and a line to
-comment; a level point's knob is a slider, written on release. Every say is
+their verbs (Pick at rest; Unkeep and Reject, as the state allows, in the
+variant's menu and inspector), a hear-alone player, approve (a current
+variant only: `Choices.say` refuses a stale or missing one with
+`VerbRefused`, 409; at rest on the picked one), unapprove once approved, and
+the comment box (both in the inspector); a level point's knob is a slider, written on release. Every say is
 one `POST …/choices/say`, answered by the film's choices with it recorded,
 which the page shows as they are. Undo and Redo say what they would undo or
 redo (`Undo score play brass`); the film's static check shows under them,
@@ -1647,24 +1670,25 @@ element while the film has a picture, so a playing film plays on through a
 pick, a knob or a say; only a source write asks for the mix heard again.
 
 The project view (`/films/<film>/project`, `options/project.tsx`; the card
-in focus is its `?point=`, opened and brought into view on a link, and an
-"Also plays here" chip makes it a new history entry) is the film by its
+in focus is its `?point=`, opened and brought into view on a link, and a
+link in a scene's "Choices in this scene" makes it a new history entry) is the film by its
 address tree, film → acts → scenes → layers, with the same card, the same
 say and the same words at every level: the film's comments, "Approve all
-current", "Withdraw every approval" and its choice points, then each act (its
-comments, "Approve the act's current scenes", "Withdraw the act's approvals",
-its points) and its scenes; a withdraw is offered while a scene of the part
-holds an approval (an earlier version's too). Each scene is a render
+current", "Unapprove every scene" (in its inspector and menu) and its choice
+points, then each act (its comments, "Approve the act's current scenes",
+"Unapprove the act's scenes", its points) and its scenes; an unapprove is
+offered while a scene of the part holds an approval (an earlier version's
+too). Each scene is a render
 card: the video this checkout's catalogue records for it (`ProjectView.videos`,
 never another folder's of the same film), showing a still of itself
 (`/api/review/frame`, as a folder's cards do) until it is played, its state (current; stale by its
 sources, or by the film's sound alone; missing, with the command that renders
-it), its approval (approve a current render, withdraw an approval), its
+it), its approval (approve a current render, unapprove it), its
 comments (a missing scene takes one too), a link to its Versions, and
 the points placed at it. Each point sits once, at the narrowest part holding
 every scene it plays in (a scene, an act, else the film), folded under it; a
-scene links the layers that play in it but sit elsewhere, and a link opens
-where the card is. Each say answers the fresh `ProjectView`, which the page
+scene's inspector links every choice that plays in it (its own, and the
+layers that sit elsewhere), and a link opens where the card is. Each say answers the fresh `ProjectView`, which the page
 shows in place (a playing clip plays on, a half-typed comment stays); a
 source write reads it again (`data-reading` on the film while it does). The
 answers land in any order, so the page shows the newest asked
