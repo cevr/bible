@@ -120,16 +120,27 @@ export const Pointer = Schema.Struct({ x: Schema.Finite, y: Schema.Finite, shift
 export type Pointer = typeof Pointer.Type;
 
 /**
- * What a write moves, before → after (`cue slam offset 0.4 → 0.367 s`): its
- * receipt once it lands. The page's own words, never sent.
+ * What a knob write moves, before → after (`knob face [400, 200] → [380,
+ * 200]`): its receipt once it lands. The page's own words, never sent.
  */
 const Said = Schema.optionalKey(Schema.String);
+
+/** One field a cue write moves: what it read before and after, and its unit (`s`, or none). */
+const Moved = Schema.Struct({ before: Schema.String, after: Schema.String, unit: Schema.String });
+
+/**
+ * What a cue write moves, field by field (`offset: 0.4 → 0.367 s`), kept as
+ * a record so two writes of one cue join field by field (`joined`): its
+ * receipt's words once it lands (`cueSaidText`). The page's own, never sent.
+ */
+const CueSaid = Schema.Record(Schema.String, Moved);
+type CueSaid = typeof CueSaid.Type;
 
 export const CueWrite = Schema.TaggedStruct('CueWrite', {
   scene: Schema.String,
   cue: Schema.String,
   patch: CuePatch,
-  said: Said,
+  said: Schema.optionalKey(CueSaid),
 });
 export type CueWrite = typeof CueWrite.Type;
 
@@ -165,28 +176,48 @@ const patchOver = (a: CuePatch, b: CuePatch): CuePatch => {
   return { ...fields, ...b };
 };
 
-/** What a write's words say, a part per field (`cue rise offset 0 → 0.033 s`). */
-const saidParts = (write: Pick<CueWrite, 'said'>): ReadonlyArray<string> =>
-  Option.match(Option.fromUndefinedOr(write.said), {
-    onNone: () => [],
-    onSome: (text) => text.split('; ').filter((part) => part !== ''),
-  });
+/** A cue write's moves, none when it carries none. */
+const movesOf = (write: Pick<CueWrite, 'said'>): CueSaid =>
+  Option.getOrElse(Option.fromUndefinedOr(write.said), (): CueSaid => ({}));
 
-/** The field a part of a cue write's words is about: `cue rise offset`. */
-const partField = (part: string) => part.split(' ').slice(0, 3).join(' ');
+/**
+ * What cue write `write` moved, in words, a part per field: `cue rise
+ * offset 0 → 0.033 s; cue rise dur 0.6 → 1 s`.
+ */
+export const cueSaidText = (write: Pick<CueWrite, 'cue' | 'said'>): string =>
+  Object.entries(movesOf(write))
+    .map(([field, m]) => moved(`cue ${write.cue} ${field}`, m.before, m.after, m.unit))
+    .join('; ');
 
-/** `b`'s words over `a`'s: `a`'s parts for the fields `b` leaves, then `b`'s. */
+/** A span's two ends: a dur replaces an until and an until a dur (`patchOver`). */
+const ENDS: ReadonlyArray<string> = ['dur', 'until'];
+
+/**
+ * `b`'s moves over `a`'s, field by field: a field both move goes from `a`'s
+ * before to `b`'s after; one only `a` moves stays, unless `b` ends the span
+ * the other way (`patchOver` drops it too); one only `b` moves is `b`'s.
+ */
 const saidOver = (a: Pick<CueWrite, 'said'>, b: Pick<CueWrite, 'said'>) => {
-  const later = saidParts(b);
-  const fields = new Set(later.map(partField));
-  const text = [...saidParts(a).filter((part) => !fields.has(partField(part))), ...later].join(
-    '; ',
-  );
+  const earlier = movesOf(a);
+  const later = movesOf(b);
+  const ends = Object.keys(later).some((f) => ENDS.includes(f));
+  // In the order first said: `a`'s fields (each moved on by `b`'s, or kept), then `b`'s new ones.
+  const kept = Object.entries(earlier)
+    .filter(([field]) => field in later || !(ends && ENDS.includes(field)))
+    .map(([field, e]): [string, CueSaid[string]] => [
+      field,
+      Option.match(Option.fromUndefinedOr(later[field]), {
+        onNone: () => e,
+        onSome: (m) => ({ ...m, before: e.before }),
+      }),
+    ]);
+  const added = Object.entries(later).filter(([field]) => !(field in earlier));
+  const said: CueSaid = Object.fromEntries([...kept, ...added]);
   return Option.match(
-    Option.liftPredicate(text, (t) => t !== ''),
+    Option.liftPredicate(said, (s) => Object.keys(s).length > 0),
     {
       onNone: () => ({}),
-      onSome: (said) => ({ said }),
+      onSome: (s) => ({ said: s }),
     },
   );
 };
@@ -250,7 +281,7 @@ export const dragCue = (grip: CueGrip, pointer: Pointer): Dragged => {
         scene: grip.scene,
         cue: grip.cue,
         patch: q,
-        said: cueSaid(grip.cue, grip.span, grip.cue0, q),
+        said: cueSaid(grip.span, grip.cue0, q),
       }),
     ),
     scene: grip.scene,
@@ -413,6 +444,14 @@ export const cueRefusal = (
     },
   });
 
+/** What a cue or knob write moved, in words: none when the page did not say. */
+const writeSaid = (w: CueWrite | KnobWrite): string =>
+  Match.value(w).pipe(
+    Match.tag('CueWrite', cueSaidText),
+    Match.tag('KnobWrite', (k) => Option.getOrElse(Option.fromUndefinedOr(k.said), () => '')),
+    Match.exhaustive,
+  );
+
 /**
  * What the receipt says once `write` has landed as `result`: what it moved,
  * before → after, when the page knew (else what the lab wrote), or what an
@@ -430,7 +469,7 @@ export const wroteNote = (write: Write, result: LabWrite): string =>
         onSome: (why) => ` (not resolved: ${why})`,
       });
       const said = Option.getOrElse(
-        Option.filter(Option.fromUndefinedOr(w.said), (s) => s !== ''),
+        Option.filter(Option.some(writeSaid(w)), (s) => s !== ''),
         () => `wrote ${result.file}: ${result.target}`,
       );
       return `${said}${unresolved}`;
@@ -457,23 +496,26 @@ interface FieldsIn {
 const printed = (v: number): string => String(toMs(v));
 
 /**
- * What `patch` moves of cue `name` (its span `span`, resolved as `cue`),
- * before → after, a part for each field it sets: `cue slam offset 0.4 →
- * 0.367 s; cue slam dur 1 → 1.033 s`.
+ * What `patch` moves of a cue (its span `span`, resolved as `cue`), before
+ * → after, for each field it sets: `{ offset: 0.4 → 0.367 s, dur: 1 →
+ * 1.033 s }` (`cueSaidText` words it).
  */
-export const cueSaid = (name: string, span: Span, cue: ResolvedCue, patch: CuePatch): string => {
+export const cueSaid = (span: Span, cue: ResolvedCue, patch: CuePatch): CueSaid => {
   const part = (field: string, before: string, after: Option.Option<string>, unit = '') =>
-    Option.toArray(Option.map(after, (a) => moved(`cue ${name} ${field}`, before, a, unit)));
+    Option.toArray(
+      Option.map(after, (a): [string, CueSaid[string]] => [field, { before, after: a, unit }]),
+    );
   const has = Option.fromUndefinedOr;
   const offset = Option.getOrElse(has(span.offset), () => 0);
   const until = Option.match(has(span.until), { onNone: () => 'its dur', onSome: untilText });
-  return [
+  const parts = [
     ...part('offset', printed(offset), Option.map(has(patch.offset), printed), 's'),
     ...part('dur', printed(cue.dur), Option.map(has(patch.dur), printed), 's'),
     ...part('until', until, Option.map(has(patch.until), untilText)),
     ...part('ease', cue.ease, has(patch.ease)),
     ...part('stagger', printed(cue.stagger), Option.map(has(patch.stagger), printed)),
-  ].join('; ');
+  ];
+  return Object.fromEntries(parts);
 };
 
 /**
@@ -490,12 +532,9 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
       onNone: () => [],
       onSome: ({ span, cue }) => {
         const write = (patch: CueWrite['patch'], edited: Span) =>
-          at.commit(
-            CueWrite.make({ scene, cue: name, patch, said: cueSaid(name, span, cue, patch) }),
-            {
-              timeline: { ...at.timeline, [name]: edited },
-            },
-          );
+          at.commit(CueWrite.make({ scene, cue: name, patch, said: cueSaid(span, cue, patch) }), {
+            timeline: { ...at.timeline, [name]: edited },
+          });
         const offset = Option.getOrElse(Option.fromUndefinedOr(span.offset), () => 0);
         const offsetField: Inspected = {
           id: 'offset',

@@ -62,7 +62,7 @@ const CueFields = (props: CueFieldsProps) => {
         scene: scene(),
         cue: props.name,
         patch,
-        said: cueSaid(props.name, props.span, props.cue, patch),
+        said: cueSaid(props.span, props.cue, patch),
       }),
       { timeline: { ...meta.stage.timelineOf(scene()), [props.name]: span } },
     );

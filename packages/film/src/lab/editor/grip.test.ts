@@ -10,6 +10,7 @@ import { Option } from 'effect';
 import type { ResolvedCue, SceneSource } from '../../core/schema.ts';
 import {
   type CueGrip,
+  CueWrite,
   EDGE_PX,
   type KnobGrip,
   cueRefusal,
@@ -17,9 +18,39 @@ import {
   dragKnob,
   dragModeAt,
   knobRefusal,
+  cueSaidText,
+  joined,
   snapEdge,
   wroteNote,
 } from './grip.ts';
+
+describe('joined', () => {
+  const write = (patch: CueWrite['patch'], said: NonNullable<CueWrite['said']>) =>
+    CueWrite.make({ scene: 'one', cue: 'rise', patch, said });
+  const saidOf = (earlier: CueWrite, later: CueWrite) =>
+    Option.map(
+      Option.filter(joined(earlier, later), (w): w is CueWrite => w._tag === 'CueWrite'),
+      cueSaidText,
+    );
+
+  test('a field moved twice says its move from the first before to the last after', () => {
+    expect(
+      saidOf(
+        write({ offset: 0.1 }, { offset: { before: '0', after: '0.1', unit: 's' } }),
+        write({ offset: 0.2 }, { offset: { before: '0.1', after: '0.2', unit: 's' } }),
+      ),
+    ).toEqual(Option.some('cue rise offset 0 → 0.2 s'));
+  });
+
+  test('a dur after an until says the dur alone, as the patch writes it alone', () => {
+    expect(
+      saidOf(
+        write({ until: 'fall' }, { until: { before: 'its dur', after: 'mark {fall}', unit: '' } }),
+        write({ dur: 1 }, { dur: { before: '0.6', after: '1', unit: 's' } }),
+      ),
+    ).toEqual(Option.some('cue rise dur 0.6 → 1 s'));
+  });
+});
 
 describe('dragModeAt', () => {
   test('a long bar: left edge, body, right edge', () => {
@@ -76,7 +107,7 @@ describe('dragCue', () => {
         scene: 'one',
         cue: 'rise',
         patch: { offset: 0.2 },
-        said: 'cue rise offset 0 → 0.2 s',
+        said: { offset: { before: '0', after: '0.2', unit: 's' } },
       }),
     );
     expect(dragged.scene).toBe('one');
@@ -92,7 +123,7 @@ describe('dragCue', () => {
         scene: 'one',
         cue: 'rise',
         patch: { dur: 0.7 },
-        said: 'cue rise dur 0.6 → 0.7 s',
+        said: { dur: { before: '0.6', after: '0.7', unit: 's' } },
       }),
     );
   });

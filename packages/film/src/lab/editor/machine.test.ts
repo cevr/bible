@@ -14,6 +14,7 @@ import {
   Effect,
   Exit,
   Layer,
+  Match,
   Option,
   Predicate,
   SubscriptionRef,
@@ -27,7 +28,14 @@ import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { SourceChanged } from '../../core/refusals.ts';
 import { LabApi, type LabCalls, type LabFailure } from '../api.ts';
 import { NotPreviewed, Stage, type StageOps } from '../stage.ts';
-import { type CueGrip, CueWrite, type KnobGrip, KnobWrite, StepWrite } from './grip.ts';
+import {
+  type CueGrip,
+  CueWrite,
+  type KnobGrip,
+  KnobWrite,
+  StepWrite,
+  cueSaidText,
+} from './grip.ts';
 import { EditEvent, EditState, WRITE_TIMEOUT_S, editMachine } from './machine.ts';
 
 const grip: CueGrip = {
@@ -138,7 +146,7 @@ describe('a drag on the strip', () => {
             scene: 'one',
             cue: 'rise',
             patch: { offset: 0.3 },
-            said: 'cue rise offset 0 → 0.3 s',
+            said: { offset: { before: '0', after: '0.3', unit: 's' } },
           }),
           next: [],
         }),
@@ -350,25 +358,42 @@ describe('writes', () => {
     'a commit to another field of the cue that waits joins it: both fields are written, each as last asked',
     () =>
       Effect.gen(function* () {
-        const cue = (patch: CueWrite['patch'], said: string) => ({
-          write: CueWrite.make({ scene: 'one', cue: 'rise', patch, said }),
+        const cue = (patch: CueWrite['patch'], field: string, before: string, after: string) => ({
+          write: CueWrite.make({
+            scene: 'one',
+            cue: 'rise',
+            patch,
+            said: { [field]: { before, after, unit: 's' } },
+          }),
           edit: { timeline: { rise: { mark: 'rise', dur: 0.6 } } },
         });
         const result = yield* simulate(editMachine, [
-          EditEvent.Commit(cue({ offset: 0.033 }, 'cue rise offset 0 → 0.033 s')),
-          EditEvent.Commit(cue({ offset: 0.066 }, 'cue rise offset 0.033 → 0.066 s')),
-          EditEvent.Commit(cue({ dur: 1.033 }, 'cue rise dur 0.6 → 1.033 s')),
+          EditEvent.Commit(cue({ offset: 0.033 }, 'offset', '0', '0.033')),
+          EditEvent.Commit(cue({ offset: 0.066 }, 'offset', '0.033', '0.066')),
+          EditEvent.Commit(cue({ dur: 1.033 }, 'dur', '0.6', '1.033')),
+          EditEvent.Commit(cue({ offset: 0.1 }, 'offset', '0.066', '0.1')),
           EditEvent.Wrote({ result: landed }),
         ]);
-        // The offset shown (0.066) is written, with the dur: neither replaces the other.
+        // The offset last shown (0.1) is written, with the dur: neither replaces the other;
+        // the offset waiting says its move from where it began waiting (0.033), not its last step's.
         expect(result.finalState).toMatchObject({
           _tag: 'Writing',
           write: {
             _tag: 'CueWrite',
-            patch: { offset: 0.066, dur: 1.033 },
-            said: 'cue rise offset 0.033 → 0.066 s; cue rise dur 0.6 → 1.033 s',
+            patch: { offset: 0.1, dur: 1.033 },
           },
         });
+        expect(
+          Match.value(result.finalState).pipe(
+            Match.tag('Writing', (s) =>
+              Match.value(s.write).pipe(
+                Match.tag('CueWrite', cueSaidText),
+                Match.orElse(() => ''),
+              ),
+            ),
+            Match.orElse(() => ''),
+          ),
+        ).toBe('cue rise offset 0.033 → 0.1 s; cue rise dur 0.6 → 1.033 s');
       }).pipe(Effect.provide(fakes().layer)),
   );
 
@@ -454,7 +479,7 @@ describe('writes', () => {
     Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
         EditEvent.Commit({
-          write: { ...cueWrite, said: 'cue rise offset 0.4 → 0.367 s' },
+          write: { ...cueWrite, said: { offset: { before: '0.4', after: '0.367', unit: 's' } } },
           edit: {},
         }),
         EditEvent.Wrote({ result: landed }),
