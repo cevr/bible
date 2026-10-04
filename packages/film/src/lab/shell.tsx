@@ -126,19 +126,25 @@ const Root = (props: RootProps) => {
   );
 
   // Layers kept exactly over the film canvas, placed again as it resizes.
+  // They live in the canvas's own frame (the stage), placed from its
+  // corner: as the page scrolls (a phone's lab is one long page) they move
+  // with the picture, never left where it was (LS-7).
+  const frame = pictureFrame(player);
   const pinned = new Set<HTMLElement | SVGElement>();
   const place = () => {
     const r = player.canvas.getBoundingClientRect();
+    const f = frame.getBoundingClientRect();
     for (const layer of pinned)
       Object.assign(layer.style, {
-        left: `${r.left}px`,
-        top: `${r.top}px`,
+        left: `${r.left - f.left - frame.clientLeft}px`,
+        top: `${r.top - f.top - frame.clientTop}px`,
         width: `${r.width}px`,
         height: `${r.height}px`,
       });
   };
   const watch = new ResizeObserver(place);
   watch.observe(player.canvas);
+  watch.observe(frame);
   window.addEventListener('resize', place);
   onCleanup(() => {
     watch.disconnect();
@@ -256,6 +262,16 @@ const pickOf = (href: string) => {
   return { selection, note };
 };
 
+/** The element the film canvas sits in (its stage): the pinned layers' frame. */
+const pictureFrame = (player: Player): HTMLElement =>
+  Option.getOrElse(Option.fromNullishOr(player.canvas.parentElement), () => document.body);
+
+/** `children` inside the picture's frame, where they scroll with the canvas. */
+const OnPicture = (props: ParentProps) => {
+  const { meta } = useLab();
+  return <Portal mount={pictureFrame(meta.player)}>{props.children}</Portal>;
+};
+
 /** Pin the element `ref` hands over for as long as the component lives. */
 const usePinned = (): ((el: HTMLElement | SVGElement) => void) => {
   const { actions } = useLab();
@@ -274,14 +290,16 @@ const Overlay = (props: ParentProps) => {
   const { meta } = useLab();
   const pin = usePinned();
   return (
-    <svg
-      class="lab-overlay"
-      viewBox={`0 0 ${meta.film.width} ${meta.film.height}`}
-      preserveAspectRatio="none"
-      ref={pin}
-    >
-      {props.children}
-    </svg>
+    <OnPicture>
+      <svg
+        class="lab-overlay"
+        viewBox={`0 0 ${meta.film.width} ${meta.film.height}`}
+        preserveAspectRatio="none"
+        ref={pin}
+      >
+        {props.children}
+      </svg>
+    </OnPicture>
   );
 };
 
@@ -298,16 +316,18 @@ const PinnedLayer = (props: LayerProps) => {
   const { meta } = useLab();
   const pin = usePinned();
   return (
-    <canvas
-      class={props.class}
-      width={Math.round(meta.film.width * (props.scale ?? 1))}
-      height={Math.round(meta.film.height * (props.scale ?? 1))}
-      hidden={props.hidden}
-      ref={(el: HTMLCanvasElement) => {
-        pin(el);
-        props.ref?.(el);
-      }}
-    />
+    <OnPicture>
+      <canvas
+        class={props.class}
+        width={Math.round(meta.film.width * (props.scale ?? 1))}
+        height={Math.round(meta.film.height * (props.scale ?? 1))}
+        hidden={props.hidden}
+        ref={(el: HTMLCanvasElement) => {
+          pin(el);
+          props.ref?.(el);
+        }}
+      />
+    </OnPicture>
   );
 };
 

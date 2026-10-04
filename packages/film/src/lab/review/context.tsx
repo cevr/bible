@@ -45,7 +45,6 @@ import { type Command, quiet, said } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type Context, selected } from '../../command/context.ts';
-import { PageLoad } from '../../browser/page-load.ts';
 import type { Hub } from '../../command/hub.ts';
 import { LabClient, type LabFailure } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
@@ -53,7 +52,7 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
 import type { Quality } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
-import { Places, legacyPlace, pageHref } from '../../core/api.ts';
+import { Places, legacyPlace } from '../../core/api.ts';
 import {
   type SyncActor,
   SyncEvent,
@@ -271,10 +270,7 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
       },
     };
     onCleanup(
-      props.hub.commands.register(
-        ...openCommands(value.actions.go, props.host),
-        ...pageCommands(value),
-      ),
+      props.hub.commands.register(...openCommands(value.actions.go), ...pageCommands(value)),
     );
     // Every folder, set and film's page is a place ⌘K goes to by its name.
     registerWhile(props.hub, () =>
@@ -296,14 +292,14 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
 
 /**
  * The review's ways into a thing from its context menu (and ⌘K, while the
- * page selects it): a folder or a set opens in the page; a film opens its
- * project, its choices, or its lab (another page, loaded).
+ * page selects it): a folder or a set opens in the page; a film's parts
+ * open from its card through the studio shell's `filmCommands`.
  */
-const openCommands = (go: (place: ReviewPlace) => void, host: Host): ReadonlyArray<Command> => {
+const openCommands = (go: (place: ReviewPlace) => void): ReadonlyArray<Command> => {
   const opening = (
     id: string,
     label: string,
-    about: ReadonlyArray<'Folder' | 'Set' | 'Film'>,
+    about: ReadonlyArray<'Folder' | 'Set'>,
     placeOfTarget: (ctx: Context) => Option.Option<() => void>,
   ): Command => ({
     id,
@@ -318,7 +314,6 @@ const openCommands = (go: (place: ReviewPlace) => void, host: Host): ReadonlyArr
         return quiet;
       }),
   });
-  const film = (ctx: Context) => Option.map(selected(ctx, 'Film'), (f) => f.film);
   return [
     opening('review.open-folder', 'Open the folder', ['Folder'], (ctx) =>
       Option.map(
@@ -330,18 +325,6 @@ const openCommands = (go: (place: ReviewPlace) => void, host: Host): ReadonlyArr
       Option.map(
         selected(ctx, 'Set'),
         (s) => () => go(ReviewPlace.Set({ folder: s.folder, point: s.point })),
-      ),
-    ),
-    opening('review.open-project', 'Open the project', ['Film'], (ctx) =>
-      Option.map(film(ctx), (f) => () => go(ReviewPlace.Project({ film: f }))),
-    ),
-    opening('review.open-choices', 'Open the choices', ['Film'], (ctx) =>
-      Option.map(film(ctx), (f) => () => go(ReviewPlace.Film({ film: f }))),
-    ),
-    opening('review.open-lab', 'Open the lab', ['Film'], (ctx) =>
-      Option.map(
-        film(ctx),
-        (f) => () => Effect.runForkWith(host)(PageLoad.use((load) => load.open(pageHref.lab(f)))),
       ),
     ),
   ];

@@ -4,11 +4,14 @@
 // (`Command.typed`): `Go to scene cold`. A page lists its destinations as
 // they stand and registers them while they hold. The studio's parts are
 // commands too, each on its key (⇧1 Films … ⇧6 Play, Resolve's page keys):
-// the page bar's tabs, from the keyboard. Pure.
+// the page bar's tabs, from the keyboard; and a film card's context menu
+// opens each part of its film (`filmCommands`). Pure.
 
 import { Effect, Option } from 'effect';
 import { PARTS, PART_TITLE, type Part, hasPart, partHref } from '../core/api.ts';
 import { type Command, quiet } from './command.ts';
+import type { Context } from './context.ts';
+import type { Selection } from './selection.ts';
 
 /** A thing a page can go to. */
 export interface Destination {
@@ -72,6 +75,36 @@ export const partCommands = (
             Option.getOrElse(film(), () => ''),
           ),
         );
+        return quiet;
+      }),
+  }));
+
+/** The film a context is about: its first selection, when that is a film (a card on Films). */
+const filmAbout = (ctx: Context): Option.Option<string> =>
+  Option.map(
+    Option.filter(
+      Option.fromUndefinedOr(ctx.selection[0]),
+      (s): s is Extract<Selection, { readonly _tag: 'Film' }> => s._tag === 'Film',
+    ),
+    (s) => s.film,
+  );
+
+/**
+ * The film card's moves (`film.<part>`, in its context menu): Open in Scenes,
+ * Lab, Choices, Project or Play, each landing on that part's tab of the film
+ * the card is, through `go`. A short offers only its parts.
+ */
+export const filmCommands = (go: (href: string) => void): ReadonlyArray<Command> =>
+  PARTS.filter((part) => part !== 'films').map((part): Command => ({
+    id: `film.${part}`,
+    label: `Open in ${PART_TITLE[part]}`,
+    group: 'Open',
+    about: ['Film'],
+    touch: 'long-press a film',
+    when: (ctx) => Option.exists(filmAbout(ctx), (f) => hasPart(f, part)),
+    run: (ctx) =>
+      Effect.sync(() => {
+        Option.map(filmAbout(ctx), (f) => go(partHref(part, f)));
         return quiet;
       }),
   }));

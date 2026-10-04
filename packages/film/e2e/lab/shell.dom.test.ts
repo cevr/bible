@@ -17,9 +17,9 @@ import { attached, attributeIs, evaluates, textHas } from '../../src/lab/fixture
 /** Where the probe film's second scene starts, in film seconds. */
 const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
 
-/** Each match's box as the page placed it: its rect, or for a pinned layer its inline box (a hidden layer has no rect). */
+/** Each match's box as the page placed it: its rect, or for a pinned layer its inline box from its frame's corner (a hidden layer has no rect). */
 const rects = (sel: string) =>
-  `[...document.querySelectorAll('${sel}')].map((e) => { const r = e.getBoundingClientRect(); const s = e.style; return (s.left === '' ? [r.left, r.top, r.width, r.height] : [s.left, s.top, s.width, s.height].map(parseFloat)).map(Math.round); })`;
+  `[...document.querySelectorAll('${sel}')].map((e) => { const r = e.getBoundingClientRect(); const s = e.style; const f = e.parentElement.getBoundingClientRect(); return (s.left === '' ? [r.left, r.top, r.width, r.height] : [f.left + parseFloat(s.left), f.top + parseFloat(s.top), parseFloat(s.width), parseFloat(s.height)]).map(Math.round); })`;
 
 /**
  * Resize the window, and wait until the page has handled it: its `resize`
@@ -162,6 +162,31 @@ describe('the lab shell', () => {
       yield* evaluates(page, `${canvasBox} !== window.labCanvasBefore`, true);
       yield* evaluates(page, layersOnCanvas, true);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'on a phone, the lab is one page: the picture fills the width, nothing scrolls sideways, and the layers ride the picture as it scrolls',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab();
+        yield* resize(page, { width: 390, height: 844 });
+        yield* evaluates(page, layersOnCanvas, true);
+        // The picture spans the phone's width; no part of the page (and no control) runs off its side.
+        yield* evaluates(
+          page,
+          `(() => { const c = document.querySelector('.stage canvas').getBoundingClientRect(); const acts = [...document.querySelectorAll('[data-act]')].filter((e) => e.getClientRects().length > 0); return [c.width > 300, document.documentElement.scrollWidth <= innerWidth, acts.every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; })]; })()`,
+          [true, true, true],
+        );
+        // Scrolled down the page, the overlay's box as drawn is still the canvas's.
+        const drawn = (sel: string) =>
+          `(() => { const r = document.querySelector('${sel}').getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); })()`;
+        yield* page.evaluate('window.scrollTo(0, 240); true');
+        yield* evaluates(
+          page,
+          `[scrollY > 0, JSON.stringify(${drawn('.lab-overlay')}) === JSON.stringify(${drawn('.stage canvas')})]`,
+          [true, true],
+        );
+      }).pipe(Effect.scoped),
   );
 
   it.live('keeps the film canvas, and so its layers, inside its row, off the bar', () =>

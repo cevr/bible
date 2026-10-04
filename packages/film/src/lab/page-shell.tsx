@@ -33,7 +33,7 @@ import { keptText } from '../browser/storage.ts';
 import { ViewerStore } from '../browser/storage-browser.ts';
 import type { Hub } from '../command/hub.ts';
 import { BY_BUTTON } from '../command/command.ts';
-import { partCommands } from '../command/go.ts';
+import { filmCommands, partCommands } from '../command/go.ts';
 import { chordLabel } from '../command/keymap.ts';
 import { GO_TO_COMMAND } from './command/command-menu.tsx';
 
@@ -187,7 +187,9 @@ export const PageShell = (props: PageShellProps) => {
     if (!plainClick(e) || props.follow?.(href) !== true) return;
     e.preventDefault();
   };
-  onCleanup(props.hub.commands.register(...partCommands(film, props.part, go)));
+  onCleanup(
+    props.hub.commands.register(...partCommands(film, props.part, go), ...filmCommands(go)),
+  );
   const keyOf = (part: Part) => `${chordLabel(`shift+${PARTS.indexOf(part) + 1}`, props.hub.mac)}`;
   const tab = (part: Part) => (
     <Show

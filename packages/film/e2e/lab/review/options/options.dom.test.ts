@@ -370,11 +370,20 @@ const posted = (
 
 describe("a film's choices", () => {
   it.live(
-    'home links the film; its page hears the picked option over the render, and 🔊 swaps it',
+    "home's film card opens its choices; its page hears the picked option over the render, and 🔊 swaps it",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm());
-        yield* click(page, `a.rv-chip[href="${FILM}"]`);
+        // A film card opens its choices from its context menu, which offers each of its parts.
+        yield* rightClick(page, '.rv-film-card[data-film="toy"]');
+        yield* evaluates(page, `${MENU_ITEMS}.filter((id) => id.startsWith('film.'))`, [
+          'film.scenes',
+          'film.lab',
+          'film.choices',
+          'film.project',
+          'film.play',
+        ]);
+        yield* click(page, '[data-role="context-menu"] [data-command="film.choices"]');
         yield* until(page, `location.pathname === '${FILM}'`);
         yield* waitFor(page, '.rv-transport');
         yield* waitFor(page, '.rv-picture video');

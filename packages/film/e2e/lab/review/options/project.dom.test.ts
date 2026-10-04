@@ -27,6 +27,7 @@ import {
   closeCommandMenu,
   menuEntry,
   openCommandMenu,
+  rightClick,
 } from '../../../../src/lab/fixtures/gestures.ts';
 import { Render } from '../../../../src/core/catalogue.ts';
 import {
@@ -482,7 +483,9 @@ describe("a film's project", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject());
-        yield* click(page, `a.rv-chip[href="${PROJECT}"]`);
+        // A film card opens its project from its context menu.
+        yield* rightClick(page, '.rv-film-card[data-film="toy"]');
+        yield* click(page, '[data-role="context-menu"] [data-command="film.project"]');
         yield* until(page, `location.pathname === '${PROJECT}'`);
         yield* waitFor(page, '[data-act-name="opening"]');
         // The act holds its scenes; the scenes in no act follow.
