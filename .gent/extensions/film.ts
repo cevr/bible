@@ -1035,12 +1035,31 @@ export const scenePainter = AgentDefinition.make({
 // ---------------------------------------------------------------------------
 // The painter's compactor: the window condensed from the files.
 
-/** A film tool call in the window: its tool, input and, once answered, its result. */
-interface FilmCall {
-  readonly name: string;
-  readonly params: typeof CallParams.Type;
-  readonly result: Option.Option<{ readonly value: unknown; readonly failed: boolean }>;
+/** Where a painter paints: a film and one of its scenes. */
+interface Place {
+  readonly film: string;
+  readonly scene: string;
 }
+
+/** A file a painter wrote: its film, and its path in the film's folder. */
+interface Written {
+  readonly film: string;
+  readonly path: string;
+}
+
+/**
+ * What a painter's window says of its work, read oldest first: the scene it
+ * paints, the files it wrote, and the lines of its last look. An earlier
+ * painter notice in the window (a handoff) carries all three forward; a film
+ * call after it updates them.
+ */
+interface Trail {
+  readonly place: Option.Option<Place>;
+  readonly written: ReadonlyArray<Written>;
+  readonly look: Option.Option<ReadonlyArray<string>>;
+}
+
+const NO_TRAIL: Trail = { place: Option.none(), written: [], look: Option.none() };
 
 /**
  * What the compactor reads of a film call's input, held to the tools' own
@@ -1056,8 +1075,98 @@ const decodeCallParams = Schema.decodeUnknownOption(CallParams);
 const LookLines = Schema.Struct({ stills: Schema.Array(Schema.Struct({ line: Schema.String })) });
 const decodeLookLines = Schema.decodeUnknownOption(LookLines);
 
-/** Every film tool call in `messages`, oldest first, with its result when the window holds one. */
-const filmCalls = (messages: ReadonlyArray<Message>): ReadonlyArray<FilmCall> => {
+/** The first words of a painter notice: how a later compaction finds an earlier one. */
+const NOTICE_HEADER =
+  'Earlier parts of this session were condensed. What follows is read from the files as they stand now.';
+
+/** A painter notice's scene line. */
+const SCENE_LINE = /^film ([a-z0-9][a-z0-9-]*), scene ([a-z0-9][a-z0-9-]*)$/m;
+
+/** A painter notice's line for a file written: its film and path, then its size or absence. */
+const WRITTEN_LINE =
+  /^apps\/animations\/src\/films\/([a-z0-9][a-z0-9-]*)\/(.+) \((?:\d+ bytes|not there now)\)$/;
+
+/** The body of section `heading` of a painter notice, up to the next section. */
+const sectionOf = (notice: string, heading: string): Option.Option<string> => {
+  const opening = `\n\n## ${heading}\n`;
+  const at = notice.indexOf(opening);
+  if (at < 0) return Option.none();
+  const body = notice.slice(at + opening.length);
+  const end = body.indexOf('\n\n## ');
+  if (end < 0) return Option.some(body);
+  return Option.some(body.slice(0, end));
+};
+
+/** The trail an earlier painter notice carried forward, when `text` is one that names a scene. */
+const noticeTrail = (text: string): Option.Option<Trail> => {
+  if (!text.includes(NOTICE_HEADER)) return Option.none();
+  return Option.map(
+    Option.flatMap(Option.fromNullishOr(SCENE_LINE.exec(text)), (match) =>
+      Option.all({
+        film: Option.fromUndefinedOr(match[1]),
+        scene: Option.fromUndefinedOr(match[2]),
+      }),
+    ),
+    (place) => ({
+      place: Option.some(place),
+      written: Option.match(sectionOf(text, 'Files written'), {
+        onNone: () => [],
+        onSome: (body) =>
+          body.split('\n').flatMap((line) => {
+            const match = WRITTEN_LINE.exec(line);
+            return Option.toArray(
+              Option.all({
+                film: Option.fromUndefinedOr(match?.[1]),
+                path: Option.fromUndefinedOr(match?.[2]),
+              }),
+            );
+          }),
+      }),
+      look: Option.filter(
+        Option.map(sectionOf(text, 'Last look'), (body) => body.split('\n')),
+        (lines) => !(lines[0] ?? '(').startsWith('('),
+      ),
+    }),
+  );
+};
+
+/** The place a film call names: its film and its scene (a check's first scene). */
+const callPlace = (params: typeof CallParams.Type): Option.Option<Place> =>
+  Option.all({
+    film: Option.fromUndefinedOr(params.film),
+    scene: Option.orElse(Option.fromUndefinedOr(params.scene), () =>
+      Option.map(Option.fromUndefinedOr(params.scenes), (scenes) => scenes[0]),
+    ),
+  });
+
+/** `trail` after one film call: its place, the file it wrote, the stills it answered with. */
+const afterCall = (
+  trail: Trail,
+  name: string,
+  params: typeof CallParams.Type,
+  result: Option.Option<{ readonly value: unknown; readonly failed: boolean }>,
+): Trail => {
+  const wrote = Option.filter(
+    Option.all({
+      film: Option.fromUndefinedOr(params.film),
+      path: Option.fromUndefinedOr(params.path),
+    }),
+    () => name === 'film.write' || name === 'film.edit',
+  );
+  const saw = Option.flatMap(
+    Option.filter(result, (answer) => name === 'film.look' && !answer.failed),
+    (answer) =>
+      Option.map(decodeLookLines(answer.value), ({ stills }) => stills.map((still) => still.line)),
+  );
+  return {
+    place: Option.orElse(callPlace(params), () => trail.place),
+    written: [...trail.written, ...Option.toArray(wrote)],
+    look: Option.orElse(saw, () => trail.look),
+  };
+};
+
+/** The trail of `messages`, oldest first. */
+const trailOf = (messages: ReadonlyArray<Message>): Trail => {
   const parts = messages.flatMap((message) => message.parts);
   const results = new Map(
     parts.flatMap((part) => {
@@ -1065,30 +1174,17 @@ const filmCalls = (messages: ReadonlyArray<Message>): ReadonlyArray<FilmCall> =>
       return [[part.id, { value: part.result, failed: part.isFailure }] as const];
     }),
   );
-  return parts.flatMap((part) => {
-    if (part.type !== 'tool-call' || !part.name.startsWith('film.')) return [];
-    return [
-      {
-        name: part.name,
-        params: Option.getOrElse(decodeCallParams(part.params), () => ({})),
-        result: Option.fromUndefinedOr(results.get(part.id)),
-      },
-    ];
-  });
+  return parts.reduce((trail: Trail, part) => {
+    if (part.type === 'text') return Option.getOrElse(noticeTrail(part.text), () => trail);
+    if (part.type !== 'tool-call' || !part.name.startsWith('film.')) return trail;
+    return afterCall(
+      trail,
+      part.name,
+      Option.getOrElse(decodeCallParams(part.params), () => ({})),
+      Option.fromUndefinedOr(results.get(part.id)),
+    );
+  }, NO_TRAIL);
 };
-
-/** The film and scene the painter last worked on: the newest call that names both. */
-const placeOf = (calls: ReadonlyArray<FilmCall>) =>
-  Option.firstSomeOf(
-    calls.toReversed().map((call) =>
-      Option.all({
-        film: Option.fromUndefinedOr(call.params.film),
-        scene: Option.orElse(Option.fromUndefinedOr(call.params.scene), () =>
-          Option.map(Option.fromUndefinedOr(call.params.scenes), (scenes) => scenes[0]),
-        ),
-      }),
-    ),
-  );
 
 /** A Markdown quote of `lines`, so none of them reads as a heading of the notice. */
 const quoted = (lines: ReadonlyArray<string>): string =>
@@ -1130,20 +1226,12 @@ export const painterNotice = Effect.fn('film.compact.notice')(function* (
   root: string,
   request: Pick<CompactionRequest, 'history' | 'kept'>,
 ) {
-  const calls = filmCalls([...request.history, ...request.kept]);
-  const header =
-    'Earlier parts of this session were condensed. What follows is read from the files as they stand now.';
-  const place = placeOf(calls);
-  if (Option.isNone(place))
-    return `${header}\n\nNo film tool named a film and a scene in the condensed part.`;
-  const { film, scene } = place.value;
+  const trail = trailOf([...request.history, ...request.kept]);
+  if (Option.isNone(trail.place))
+    return `${NOTICE_HEADER}\n\nNo film tool named a film and a scene in the condensed part.`;
+  const { film, scene } = trail.place.value;
   const written = [
-    ...new Set(
-      calls
-        .filter((call) => call.name === 'film.write' || call.name === 'film.edit')
-        .filter((call) => call.params.film === film)
-        .flatMap((call) => Option.toArray(Option.fromUndefinedOr(call.params.path))),
-    ),
+    ...new Set(trail.written.filter((wrote) => wrote.film === film).map((wrote) => wrote.path)),
   ];
   const sceneFile = yield* fileLine(root, film, `scenes/${scene}.ts`);
   const files = yield* Effect.forEach(written, (given) => fileLine(root, film, given));
@@ -1157,26 +1245,15 @@ export const painterNotice = Effect.fn('film.compact.notice')(function* (
     String(SUMMARY_JOURNAL_LAST),
   ]);
   const cues = yield* cliLines(root, ['cues', film, scene]);
-  const look = Option.firstSomeOf(
-    calls
-      .filter((call) => call.name === 'film.look')
-      .toReversed()
-      .map((call) =>
-        Option.flatMap(
-          Option.filter(call.result, (result) => !result.failed),
-          (result) => decodeLookLines(result.value),
-        ),
-      ),
-  );
   return [
-    header,
+    NOTICE_HEADER,
     `## Scene\nfilm ${film}, scene ${scene}\n${sceneFile}`,
-    `## Files written in the condensed part\n${files.join('\n') || '(none)'}`,
+    `## Files written\n${files.join('\n') || '(none)'}`,
     `## Journal: the newest entries for the scene, as written\n${quoted(journal)}`,
     `## Cues\n${cues.join('\n')}`,
-    `## Last look\n${Option.match(look, {
-      onNone: () => '(no look in the condensed part)',
-      onSome: ({ stills }) => stills.map((still) => still.line).join('\n'),
+    `## Last look\n${Option.match(trail.look, {
+      onNone: () => '(no look this session)',
+      onSome: (lines) => lines.join('\n'),
     })}`,
   ].join('\n\n');
 });

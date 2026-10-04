@@ -762,7 +762,11 @@ describe('film.journal', () => {
 const sessionId = SessionId.make('film-session');
 const branchId = BranchId.make('film-branch');
 
-const message = (id: string, role: 'assistant' | 'tool', parts: ReadonlyArray<Prompt.Part>) =>
+const message = (
+  id: string,
+  role: 'user' | 'assistant' | 'tool',
+  parts: ReadonlyArray<Prompt.Part>,
+) =>
   Message.cases.regular.make({
     id: MessageId.make(id),
     sessionId,
@@ -846,6 +850,77 @@ describe('the painter compactor', () => {
           expect(summary.notice).toMatch(/> \S+ scene=roof the figure sits too low/);
           expect(summary.notice).toContain('roof@');
           expect(summary.notice).toContain('/x/1.png at=mark:roof t=1.66 build=s.7');
+        }),
+      ),
+  );
+
+  it.live(
+    'compacting again after file-only work keeps the scene and the last look, and reads the files afresh',
+    () =>
+      live(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const { root, ctx } = yield* world();
+          const roof = `${filmFolder(root)}/scenes/roof.ts`;
+          yield* fs.writeFileString(roof, 'export const roof = 1;\n');
+          yield* runToolWithCtx(
+            FilmJournal,
+            { film: 'easel', op: 'note', scene: 'roof', text: 'the figure sits too low' },
+            ctx,
+          );
+          const compactor = Context.get(
+            yield* Layer.build(painterCompactor(root)),
+            ModelContextCompactor,
+          );
+          const first = yield* compactor.compact(
+            request(PAINTER, [
+              message('m1', 'assistant', [
+                call('c1', 'film.look', { film: 'easel', scene: 'roof', at: ['mark:roof'] }),
+              ]),
+              message('m2', 'tool', [
+                result('c1', 'film.look', {
+                  build: 's.7',
+                  stills: [{ line: '/x/1.png at=mark:roof t=1.66 build=s.7' }],
+                }),
+              ]),
+            ]),
+          );
+
+          // After the handoff: only file tools, which name a film but no scene.
+          yield* fs.writeFileString(roof, 'export const roof = 2; // raised\n');
+          yield* runToolWithCtx(
+            FilmJournal,
+            { film: 'easel', op: 'note', scene: 'roof', text: 'raised, the figure reads' },
+            ctx,
+          );
+          const second = yield* compactor.compact(
+            request(PAINTER, [
+              message('marker', 'user', [Prompt.textPart({ text: first.notice })]),
+              message('m3', 'assistant', [
+                call('c2', 'film.read', { film: 'easel', path: 'scenes/roof.ts' }),
+                call('c3', 'film.write', {
+                  film: 'easel',
+                  path: 'scenes/roof.ts',
+                  content: 'x',
+                }),
+              ]),
+              message('m4', 'tool', [
+                result('c2', 'film.read', { path: 'scenes/roof.ts', text: 'x' }),
+                result('c3', 'film.write', { path: 'scenes/roof.ts', bytes: 1 }),
+              ]),
+              message('m5', 'user', [Prompt.textPart({ text: 'Continue painting.' })]),
+            ]),
+          );
+          expect(second.notice).toContain('film easel, scene roof');
+          // Read from the files now, not copied from the first summary.
+          expect(second.notice).toContain(
+            'apps/animations/src/films/easel/scenes/roof.ts (33 bytes)',
+          );
+          expect(second.notice).toMatch(/> \S+ scene=roof the figure sits too low/);
+          expect(second.notice).toMatch(/> \S+ scene=roof raised, the figure reads/);
+          expect(second.notice).toContain('roof@');
+          // The last look is the one before the first handoff: no look came since.
+          expect(second.notice).toContain('/x/1.png at=mark:roof t=1.66 build=s.7');
         }),
       ),
   );
