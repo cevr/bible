@@ -11,18 +11,19 @@ import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effe
 import {
   LabHttpApi,
   declares,
-  type PageBuild,
   type PageName,
   Refusal,
   pageAt,
   pageHref,
   statusOf,
 } from '../../core/api.ts';
+import type { PageBuild } from '../../core/schema.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
 import type { LabSelection } from '../../command/selection.ts';
 import { labHref } from '../place.ts';
+import type { LabMode } from '../mode.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
 import { type Request, type Response, type Tab, jsonOf } from './tab.ts';
 
@@ -205,24 +206,38 @@ const scriptAsset = (entry: string, name: string): Effect.Effect<Asset> =>
   Effect.map(bundled(entry), (js) => asset(name, respond(js, 'text/javascript')));
 
 /**
- * The lab's and the review's scripts and the player's styles: read as the
+ * The lab's and the review's scripts, the tokens and the player's styles: read as the
  * module loads, once per process, so no case's timeout counts
  * them (on a loaded runner the first cases spent 1-2 s waiting on them).
  */
 // oxlint-disable-next-line effect/noAsyncFunction -- the module's own load waits for its setup, so no case's timeout counts it
-const [labScript, reviewScript, playerScript, css] = await Effect.runPromise(
+const [labScript, reviewScript, playerScript, tokens, playerCss] = await Effect.runPromise(
   Effect.all(
     [
       scriptAsset('lab-page.ts', 'lab.js'),
       scriptAsset('review-page.ts', 'review.js'),
       scriptAsset('player-page.ts', 'player.js'),
       FileSystem.FileSystem.use((fs) =>
+        fs.readFileString(`${import.meta.dir}/../../player/tokens.css`),
+      ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
+      FileSystem.FileSystem.use((fs) =>
         fs.readFileString(`${import.meta.dir}/../../player/player.css`),
       ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
     ],
-    { concurrency: 4 },
+    { concurrency: 5 },
   ),
 );
+
+/** The styles `lab.html` and `index.html` link: the tokens, then the player's. */
+const css = `${tokens}${playerCss}`;
+
+/** The `<meta>`s a page served at `build` carries (`lab-build`, `lab-server`); none unstamped. */
+const stampOf = (build: Option.Option<PageBuild>) =>
+  Option.match(build, {
+    onNone: () => '',
+    onSome: (b) =>
+      `<meta name="lab-build" content="${b.build}"><meta name="lab-server" content="${b.server}">`,
+  });
 
 /**
  * The lab page as `lab.html` has it, with the player's styles inline, and
@@ -230,14 +245,7 @@ const [labScript, reviewScript, playerScript, css] = await Effect.runPromise(
  * `lab-server`) when the test gives one: then it waits on the rebuild.
  */
 const labPage = (style: string, script: Asset, build: Option.Option<PageBuild>) =>
-  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style>${Option.match(
-    build,
-    {
-      onNone: () => '',
-      onSome: (b) =>
-        `<meta name="lab-build" content="${b.build}"><meta name="lab-server" content="${b.server}">`,
-    },
-  )}</head><body class="lab">${scriptOf(script)}</body></html>`;
+  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style>${stampOf(build)}</head><body class="lab">${scriptOf(script)}</body></html>`;
 
 /** The page's JSON body, when it sent one. */
 const bodyOf = (request: Request): Option.Option<Json> =>
@@ -393,7 +401,8 @@ interface FakeMic {
  * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`, `core/api.ts`;
  * the probe film's lab when none), served on every lab place as the server
  * serves it, with `routes` answering the API before the defaults, and `mic`
- * as its microphone when given. The tab goes back to the pool with the scope.
+ * as its microphone when given, in `mode` when given. The tab goes back to
+ * the pool with the scope.
  */
 export const openLab = Effect.fn('lab.fixture.open')(function* (
   routes: ReadonlyArray<FakeRoute> = [],
@@ -402,6 +411,8 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     readonly mic?: FakeMic;
     /** The build the page is served at, as the lab's server stamps it; none: it waits on no rebuild. */
     readonly build?: PageBuild;
+    /** The mode to show, picked on the mode tray as the owner would; none: the first (Edit). */
+    readonly mode?: LabMode;
   } = {},
 ) {
   const script = labScript;
@@ -430,6 +441,10 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   });
   yield* page.goto(at.href ?? pageHref.lab(PROBE));
   yield* page.waitFor('.lab-panel');
+  for (const mode of Option.toArray(Option.fromUndefinedOr(at.mode))) {
+    yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
+    yield* page.waitFor(`.lab-panel[data-mode="${mode}"]`);
+  }
   const open: OpenLab = { page, asked, errors: page.errors };
   return open;
 });
@@ -446,7 +461,7 @@ interface PlayerAt {
 }
 
 /**
- * Open the player (`fixtures/player-page.ts`, the real `mountPlayer` over the
+ * Open the player (`fixtures/player-page.ts`, the real `mountPlay` over the
  * probe film) at `href`, served on every player place as the lab serves it,
  * in a window `viewport` wide, and wait until `ready` is on the page. Its
  * clock is the test's, and the tab goes back to the pool with the scope.
@@ -471,14 +486,17 @@ export const openPlayer = Effect.fn('lab.fixture.player')(function* (at: PlayerA
   return open;
 });
 
-const reviewPage = (script: Asset) =>
-  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title></head><body>${scriptOf(script)}</body></html>`;
+/** The review page, stamped with the build it was served at when the test gives one: then a film's choices hear its mixes. */
+const reviewPage = (script: Asset, build: Option.Option<PageBuild>) =>
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title><style>${tokens}</style>${stampOf(build)}</head><body>${scriptOf(script)}</body></html>`;
 
 /** Where the review opens, and how wide its window is (a phone's, or a desk's). */
 interface ReviewAt {
   /** The link opened (`pageHref`, `core/api.ts`): home when none. */
   readonly href?: string;
   readonly viewport?: { readonly width: number; readonly height: number };
+  /** The build the page was served at, as the lab stamps it; none: unstamped (it hears no mixes). */
+  readonly build?: PageBuild;
 }
 
 /**
@@ -502,7 +520,10 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
     init: [CLOCK_SCRIPT],
     assets: [script],
     serve: fakeServer(
-      servedAs('review', respond(reviewPage(script), 'text/html')),
+      servedAs(
+        'review',
+        respond(reviewPage(script, Option.fromUndefinedOr(at.build)), 'text/html'),
+      ),
       '',
       routes,
       asked,

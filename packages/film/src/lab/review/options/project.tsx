@@ -36,15 +36,18 @@ import {
 import { type ChoicePoint, type VariantMedia, pointHead, shownIn } from '../../../core/choice.ts';
 import type { LabFailure } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
-import { Go, plainClick, useReview } from '../context.tsx';
+import { Go, OPEN_ON_CHOICES, plainClick, useReview } from '../context.tsx';
 import { pressed, sayText } from '../format.ts';
 import { Loaded, useWrite, writeStatus } from '../loaded.tsx';
 import { ReviewPlace } from '../place.ts';
 import { OptionsApi, type ProjectSay } from './api.ts';
-import { ChoiceCard, Comments, type Sayer, SayBox } from './choice.tsx';
+import { ChoiceCard, Comments, type Sayer, SayBox, revealPoint } from './choice.tsx';
 import { FilmProvider, useFilm } from './context.tsx';
 import { partText } from './receipt.ts';
 import { Selection } from '../../../command/selection.ts';
+import { BY_BUTTON } from '../../../command/command.ts';
+import { withSelection } from '../../../command/context.ts';
+import { onChoicesTab } from '../../../core/point.ts';
 import { Target, type TargetElementProps } from '../../command/context-menu.tsx';
 import {
   CommentCount,
@@ -167,10 +170,10 @@ const choicesText = (n: number) =>
     Match.orElse(() => `${n} choices`),
   );
 
-/** Choice cards folded under a part: open at the film, closed below it. */
-const Layers = (props: { readonly points: ReadonlyArray<ChoicePoint>; readonly open: boolean }) => (
+/** Choice cards folded under a part, closed at rest (UR-65): the scene inspector and Choices hold them too. */
+const Layers = (props: { readonly points: ReadonlyArray<ChoicePoint> }) => (
   <Show when={props.points.length > 0}>
-    <details class="rv-layers" open={props.open}>
+    <details class="rv-layers">
       <summary class="rv-hint" data-layers={String(props.points.length)}>
         {choicesText(props.points.length)}
       </summary>
@@ -181,55 +184,76 @@ const Layers = (props: { readonly points: ReadonlyArray<ChoicePoint>; readonly o
   </Show>
 );
 
-/** Open the card of `point` where it sits, and bring it into view. */
-const reveal = (point: string) =>
-  Option.map(Option.fromNullishOr(document.getElementById(`point-${point}`)), (card) => {
-    Option.map(Option.fromNullishOr(card.closest('details')), (d) => {
-      d.open = true;
-    });
-    card.scrollIntoView({ block: 'center' });
-  });
-
 /** The project's place: the card in focus is its `?point=`. */
 const projectPlace = UrlAtom.place(Places.project);
 
 /**
- * The choices that play in a scene (placed in it, or elsewhere: a layer
- * across scenes), each a link to its card, in the scene's inspector:
- * a plain click brings the card into view and puts it in the URL's
- * `?point=` (Back returns to the card before); a modified one opens the
- * project there in a tab.
+ * The scene inspector's Choices in this scene (UR-65/69): the choices that
+ * play in the scene (placed in it, or elsewhere: a layer across scenes), a
+ * row each. Its name is a link to its card here: a plain click brings the
+ * card into view and puts it in the URL's `?point=` (Back returns to the card
+ * before); a modified one opens the project there in a tab. Its Choices
+ * button runs Open on Choices for it, landing on the Choices tab at its card.
  */
-const SceneChoices = (props: { readonly points: ReadonlyArray<ChoicePoint> }) => {
+const SceneChoices = (props: {
+  readonly film: string;
+  readonly points: ReadonlyArray<ChoicePoint>;
+}) => {
+  const { meta } = useReview();
   const at = useAtomValue(() => projectPlace);
   const focus = useAtomSet(() => projectPlace);
   const focused = (point: string) =>
     Option.map(at(), (v) => ({ ...v, query: { ...v.query, point } }));
+  const onChoices = (point: string) =>
+    Option.map(meta.hub.commands.byId(OPEN_ON_CHOICES), (command) =>
+      meta.hub.invoke(
+        command,
+        BY_BUTTON,
+        withSelection(meta.hub.context('page'), [
+          Selection.cases.Point.make({ film: props.film, point }),
+        ]),
+      ),
+    );
   return (
     <Show when={props.points.length > 0}>
-      <div class="rv-row rv-plays">
-        <span class="rv-hint">Choices in this scene:</span>
+      <section class="rv-group rv-plays">
+        <h3>
+          Choices in this scene <span class="lab-count">{props.points.length}</span>
+        </h3>
         <For each={props.points} keyed={(p) => p.id}>
           {(point) => (
-            <a
-              class="rv-chip"
-              href={Option.getOrElse(
-                Option.map(focused(point().id), (v) => Place.href(Places.project, v)),
-                () => '',
-              )}
-              data-plays={point().id}
-              onClick={(e: MouseEvent) => {
-                if (!plainClick(e)) return;
-                e.preventDefault();
-                reveal(point().id);
-                Option.map(focused(point().id), focus);
-              }}
-            >
-              {point().title}
-            </a>
+            <div class="rv-row">
+              <a
+                class="rv-inline-link"
+                href={Option.getOrElse(
+                  Option.map(focused(point().id), (v) => Place.href(Places.project, v)),
+                  () => '',
+                )}
+                data-plays={point().id}
+                onClick={(e: MouseEvent) => {
+                  if (!plainClick(e)) return;
+                  e.preventDefault();
+                  revealPoint(point().id);
+                  Option.map(focused(point().id), focus);
+                }}
+              >
+                {point().title}
+              </a>
+              <Show when={onChoicesTab(point().id)}>
+                <button
+                  type="button"
+                  class="rv-chip"
+                  data-act="on-choices"
+                  data-point={point().id}
+                  onClick={() => onChoices(point().id)}
+                >
+                  Open on Choices
+                </button>
+              </Show>
+            </div>
           )}
         </For>
-      </div>
+      </section>
     </Show>
   );
 };
@@ -263,6 +287,7 @@ const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectSce
         sayer={sayerAt(props.at, address)}
         more={() => (
           <SceneChoices
+            film={props.at.film}
             points={[
               ...placedAt(shownPoints(), acts(), address()),
               ...playingIn(shownPoints(), acts(), props.scene.scene),
@@ -273,7 +298,7 @@ const SceneRow = (props: { readonly at: ProjectValue; readonly scene: ProjectSce
       <Show when={Option.isSome(props.scene.render)}>
         <Compare folder={props.at.view().folder} point={point().id} />
       </Show>
-      <Layers points={placedAt(shownPoints(), acts(), address())} open={false} />
+      <Layers points={placedAt(shownPoints(), acts(), address())} />
     </div>
   );
 };
@@ -466,10 +491,7 @@ const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
         comments={props.act.comments}
         part="act"
       />
-      <Layers
-        points={placedAt(shownPoints(), props.at.view().project.acts, address())}
-        open={false}
-      />
+      <Layers points={placedAt(shownPoints(), props.at.view().project.acts, address())} />
       <Scenes at={props.at} scenes={scenes()} />
     </Target>
   );
@@ -490,7 +512,7 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
         (point) => point !== '',
       ),
     (point) => {
-      Option.map(point, reveal);
+      Option.map(point, revealPoint);
     },
   );
   const film = untrack(() => Selection.cases.Film.make({ film: props.at.film }));
@@ -520,7 +542,7 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
           comments={project().comments}
           part="all"
         />
-        <Layers points={placedAt(shownPoints(), project().acts, FILM)} open={true} />
+        <Layers points={placedAt(shownPoints(), project().acts, FILM)} />
       </Target>
       <For each={project().acts} keyed={(a) => a.name}>
         {(act) => <ActBlock at={props.at} act={act()} />}

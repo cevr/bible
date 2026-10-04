@@ -14,13 +14,13 @@ export const FILMS = join(import.meta.dir, 'src/films');
 
 /**
  * The lab's pages, each this app's HTML entry: its review, its lab and its
- * player, whose look-book is a film's scenes. The paths each is served at are
+ * play page, whose look-book is a film's scenes (`index.html` is the render page). The paths each is served at are
  * the framework's (`PAGE_PATHS`); `film lab` and the studio harness serve these.
  */
 export const LAB_PAGES = {
   review: join(import.meta.dir, 'review.html'),
   lab: join(import.meta.dir, 'lab.html'),
-  player: join(import.meta.dir, 'index.html'),
+  player: join(import.meta.dir, 'play.html'),
 };
 
 /** The loopback interface: the only one the player listens on. */

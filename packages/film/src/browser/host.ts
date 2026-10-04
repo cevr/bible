@@ -1,7 +1,7 @@
 // The page's host: the browser APIs a page reaches (animation frames, the
 // pointer, the keyboard, the clipboard, media elements, the address bar and
 // a page load) as Effect services, built once at each page's root
-// (`mountPlayer`, `mountLab`, `mountReview`) from `BrowserHost.layer`
+// (`mountRender`, `mountPlay`, `mountLab`, `mountReview`) from `BrowserHost.layer`
 // (`host-browser.ts`) and handed to everything on the page: the player's own
 // code runs its effects with it, and the lab's and review's runtimes are
 // given it as a layer, so a test builds the same pages over test layers

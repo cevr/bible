@@ -12,7 +12,7 @@
 // on its next reload); nothing else of the page waits on it.
 
 import { Effect, Option, Schedule } from 'effect';
-import type { PageBuild } from '../core/api.ts';
+import type { PageBuild } from '../core/schema.ts';
 import { LabClient } from './api.ts';
 
 /** A `<meta>`'s content on this page. */
@@ -36,8 +36,11 @@ const WAIT_S = 50;
 /** A lost server is asked again every 2 s, for an hour. */
 const REASKED = { schedule: Schedule.spaced('2 seconds'), times: 1800 } as const;
 
-/** Whether `answer` is newer code than `served`: another server's, or a later build. */
-const newer = (served: PageBuild) => (answer: PageBuild) =>
+/**
+ * Whether `answer` is newer than `served`: another server's, or a later
+ * build (a later mix among them, numbered on the same count).
+ */
+export const newer = (served: PageBuild) => (answer: PageBuild) =>
   answer.server !== served.server || answer.build > served.build;
 
 /**
@@ -69,6 +72,51 @@ export const reloadOnRebuild = (film: string, reload: Effect.Effect<void>) =>
           ({ build, server }) =>
             client.page.wait({ query: { since: build, server, film, timeout: WAIT_S } }),
           reload,
+        ),
+      ),
+  });
+
+/**
+ * Each newer answer than the last (through `wait`, asked first with `served`),
+ * then `heard` with it, for as long as it runs: a page that keeps its place
+ * rather than reloading. A failed wait is asked again after a pause.
+ */
+export const hearEach = <E, R, H = never>(
+  served: PageBuild,
+  wait: (served: PageBuild) => Effect.Effect<PageBuild, E, R>,
+  heard: (answer: PageBuild) => Effect.Effect<void, never, H>,
+) =>
+  Effect.gen(function* () {
+    let last = served;
+    while (true) {
+      const answer = yield* wait(last).pipe(Effect.retry(REASKED));
+      if (newer(last)(answer)) {
+        yield* Effect.logInfo(`lab.heard since=${last.build} build=${answer.build}`);
+        yield* heard(answer);
+      }
+      last = answer;
+    }
+  });
+
+/**
+ * A review tab of `film` hears each new mix of it (another tab's write
+ * mixed it again: `LabPage` watches the track once a page waits with its
+ * film), and each newer build, then `heard` with the build it heard, in
+ * place: a half-typed comment stays. A page with no build hears none.
+ */
+export const hearMixes = <H = never>(
+  film: string,
+  heard: (answer: PageBuild) => Effect.Effect<void, never, H>,
+) =>
+  Option.match(servedBuild(), {
+    onNone: () => Effect.void,
+    onSome: (served) =>
+      Effect.flatMap(LabClient, (client) =>
+        hearEach(
+          served,
+          ({ build, server }) =>
+            client.page.wait({ query: { since: build, server, film, timeout: WAIT_S } }),
+          heard,
         ),
       ),
   });

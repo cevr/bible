@@ -27,6 +27,7 @@ import {
   closeCommandMenu,
   menuEntry,
   openCommandMenu,
+  rightClick,
 } from '../../../../src/lab/fixtures/gestures.ts';
 import { Render } from '../../../../src/core/catalogue.ts';
 import {
@@ -385,6 +386,8 @@ const render = (id: string) => `${scene(id)} > [data-kind="render"]`;
 
 /** The open inspector: one at a time. */
 const INSPECTOR = '[data-role="inspector"]';
+/** The film's choices' fold, closed at rest (UR-65): open it to reach a card. */
+const FILM_CHOICES = '.rv-film > .rv-layers > summary';
 
 /** Where the film's and the act's names sit (their inspect button), above their cards. */
 const FILM_HEAD = '.rv-film > .rv-row';
@@ -402,13 +405,89 @@ const saysPosted = (
     .filter((a) => a.path === '/api/films/toy/project/say')
     .map((a) => Option.getOrUndefined(a.body));
 
+/** Where the page bar's tab of `part` lands on the film `toy`. */
+const TABS = [
+  ['scenes', pageHref.scenes('toy')],
+  ['lab', pageHref.lab('toy')],
+  ['choices', pageHref.choices('toy')],
+  ['project', pageHref.project('toy')],
+  ['play', pageHref.play('toy')],
+] as const;
+
 describe("a film's project", () => {
+  it.live(
+    "sits in the studio's shell: the page bar in the header on a laptop, a tab bar along the bottom on a phone; ⇧-number keys move between parts",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject(), {
+          href: PROJECT,
+          viewport: { width: 1440, height: 900 },
+        });
+        yield* waitFor(page, '[data-act-name="opening"]');
+        // Every part of the film is a tab, each at its place; Project is the one shown.
+        yield* attributesAre(
+          page,
+          '.sh-pagebar .sh-tab',
+          'data-page',
+          TABS.map(([part]) => part),
+        );
+        yield* attributesAre(
+          page,
+          '.sh-pagebar .sh-tab',
+          'href',
+          TABS.map(([, href]) => href),
+        );
+        yield* attributesAre(page, '.sh-tab[data-active="true"]', 'data-page', ['project']);
+        yield* textIs(page, '.sh-switcher > span', 'toy');
+        // On the laptop the page bar sits in the header, Films its first tab, by name.
+        const header = yield* page.box('.sh-header');
+        const bar = yield* page.box('.sh-pagebar');
+        expect(bar.y).toBeGreaterThanOrEqual(header.y);
+        expect(bar.y + bar.height).toBeLessThanOrEqual(header.y + header.height + 1);
+        yield* textIs(page, '.sh-films > span', 'Films');
+        yield* attributeIs(page, '.sh-films', 'href', pageHref.home());
+        // No text link between parts is left in the page.
+        yield* countIs(page, `.sh-body a[href="${pageHref.lab('toy')}"]`, 0);
+        // On a phone the five tabs are a bar along the bottom, 56 px tall; Films the header's square.
+        yield* page.resize(390, 844);
+        yield* until(
+          page,
+          "Math.round(document.querySelector('.sh-pagebar').getBoundingClientRect().bottom) === innerHeight",
+        );
+        yield* evaluates(
+          page,
+          "((r) => [r.x, r.width, r.height])(document.querySelector('.sh-pagebar').getBoundingClientRect()).join() === [0, document.documentElement.clientWidth, 56].join()",
+          true,
+        );
+        const square = yield* page.box('.sh-films');
+        expect(square.y + square.height).toBeLessThanOrEqual(header.y + 44 + 1);
+        yield* evaluates(page, 'document.documentElement.scrollWidth <= innerWidth', true);
+        // A tab of another of the review's places moves there in the page; ⇧5 comes back to Project.
+        yield* page.click('.sh-pagebar [data-page="choices"]');
+        yield* until(page, `location.pathname === '${pageHref.choices('toy').split('?')[0]}'`);
+        yield* attributesAre(page, '.sh-tab[data-active="true"]', 'data-page', ['choices']);
+        yield* page.press('Shift+5');
+        yield* until(page, `location.pathname === '${PROJECT.split('?')[0]}'`);
+        yield* attributesAre(page, '.sh-tab[data-active="true"]', 'data-page', ['project']);
+        // ⇧1 goes to Films, where the tabs still lead into the film last opened.
+        yield* page.press('Shift+1');
+        yield* until(page, "location.pathname === '/'");
+        yield* attributeIs(page, '.sh-films', 'data-active', 'true');
+        yield* textIs(page, '.sh-switcher > span', 'toy');
+        yield* attributeIs(page, '.sh-pagebar [data-page="lab"]', 'href', pageHref.lab('toy'));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
   it.live(
     'lists the act and its scenes with their renders, states and approvals; each choice once, where it belongs',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject());
-        yield* click(page, `a.rv-chip[href="${PROJECT}"]`);
+        // A film card opens its project from its context menu.
+        yield* rightClick(page, '.rv-film-card[data-film="toy"]');
+        yield* click(page, '[data-role="context-menu"] [data-command="film.project"]');
         yield* until(page, `location.pathname === '${PROJECT}'`);
         yield* waitFor(page, '[data-act-name="opening"]');
         // The act holds its scenes; the scenes in no act follow.
@@ -455,7 +534,9 @@ describe("a film's project", () => {
           'not rendered yet: film project render toy --scene end',
         );
         // The score with the film; a layer of the act's scenes with the act; one across parts with the film.
-        yield* waitFor(page, '.rv-film [data-point="score"]');
+        yield* attached(page, '.rv-film [data-point="score"]');
+        // The film's choices fold away at rest (UR-65).
+        yield* evaluates(page, "document.querySelector('.rv-film > .rv-layers').open", false);
         yield* attached(
           page,
           '[data-act-name="opening"] > .rv-layers [data-point="take:paper.hum"]',
@@ -489,6 +570,25 @@ describe("a film's project", () => {
         yield* page.goto(`${PROJECT}#point-take%3Apaper.hum`);
         yield* until(page, "location.search === '?point=take%3Apaper.hum'");
         yield* waitFor(page, hum);
+        // Its Open on Choices lands on the Choices tab at the card (UR-65), brought into view on
+        // a phone, where the card starts well below the fold.
+        yield* page.resize(390, 600);
+        yield* inspect(page, render('open'));
+        yield* click(page, `${INSPECTOR} [data-act="on-choices"][data-point="take:paper.hum"]`);
+        yield* until(
+          page,
+          `location.pathname + location.search === '${pageHref.choices('toy', 'take:paper.hum')}'`,
+        );
+        yield* evaluates(
+          page,
+          `(() => {
+            const card = document.getElementById('point-take:paper.hum');
+            if (card === null) return false;
+            const r = card.getBoundingClientRect();
+            return r.top < innerHeight && r.bottom > 0;
+          })()`,
+          true,
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -776,6 +876,7 @@ describe("a film's project", () => {
           href: PROJECT,
         });
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
+        yield* click(page, FILM_CHOICES);
         yield* click(
           page,
           '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',
@@ -832,6 +933,7 @@ describe("a film's project", () => {
           Effect.timeout('10 seconds'),
         );
         // A pick while the say is out: its read answers first, without the comment.
+        yield* click(page, FILM_CHOICES);
         yield* click(
           page,
           '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',
@@ -932,6 +1034,7 @@ describe("a film's project", () => {
         yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'the page is late');
         yield* click(page, `${INSPECTOR} [data-act="comment"]`);
         yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
+        yield* click(page, FILM_CHOICES);
         yield* click(
           page,
           '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',

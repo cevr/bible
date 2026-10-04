@@ -11,14 +11,17 @@ import { createMemo, createSignal } from 'solid-js';
 import { Pointer } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
+import { timecode } from '../../core/time.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
+import { BY_BUTTON } from '../../command/command.ts';
+import { CANCEL_GRIP } from './commands.ts';
 import { Target } from '../command/context-menu.tsx';
 import { selectsCue } from '../place.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
-import { dragModeAt } from './grip.ts';
+import { dragModeAt, edgeFor } from './grip.ts';
 import { useMotion } from '../motion/context.tsx';
 import type { LoopRange } from '../../player/main.ts';
 
@@ -27,19 +30,19 @@ const DRAG_PX = 6;
 
 const pct = (p: Placed<SceneSpec>, t: number) => `${(t / p.dur) * 100}%`;
 
-/** The words and marks of the scene's narration, where they fall. */
+/** The words and marks of the scene's narration, each word in the room its time gives it. */
 const Words = (props: { readonly placed: Placed<SceneSpec> }) => (
   <div class="lab-strip-words">
     <For each={props.placed.voice.words}>
       {(w) => (
         <span
-          class="lab-word"
+          class="lab-word-room"
           style={{
             left: pct(props.placed, props.placed.speechStart + w.start),
-            width: pct(props.placed, Math.max(0.02, w.end - w.start)),
+            width: pct(props.placed, Math.max(0, w.end - w.start)),
           }}
         >
-          {w.text}
+          <span class="lab-word">{w.text}</span>
         </span>
       )}
     </For>
@@ -88,7 +91,7 @@ const CueRow = (props: CueRowProps) => {
     actions.press({
       scene: scene(),
       cue: props.name,
-      edge: dragModeAt(e.clientX - bar.left, bar.width, e.altKey),
+      edge: dragModeAt(e.clientX - bar.left, bar.width, e.altKey, edgeFor(e.pointerType)),
       down: e,
       perSec: width / props.placed.dur,
     });
@@ -111,7 +114,7 @@ const CueRow = (props: CueRowProps) => {
           left: pct(props.placed, props.cue.start),
           width: pct(props.placed, props.cue.dur),
         }}
-        title={`${props.name}: ${title()} · ${props.cue.start.toFixed(2)}–${props.cue.end.toFixed(2)}s · ${props.cue.ease}`}
+        title={`${props.name}: ${title()} · ${timecode(props.cue.start, meta.film.fps)}–${timecode(props.cue.end, meta.film.fps)} · ${props.cue.ease}`}
         onPointerDown={press}
       />
     </div>
@@ -142,8 +145,8 @@ export const Strip = () => {
     <Show when={placed()}>
       {(p) => {
         const scrub = (e: PointerEvent) => {
-          // A right-click is the context menu's, never a scrub.
-          if (e.button !== 0) return;
+          // A right-click is the context menu's, never a scrub; a lane's press is the lane's.
+          if (e.button !== 0 || e.defaultPrevented) return;
           const r = Option.getOrThrow(rows).getBoundingClientRect();
           const at = (ev: PointerEvent) =>
             meta.player.scrub(
@@ -162,7 +165,9 @@ export const Strip = () => {
         // written next is about, looped meanwhile); a tap on it seeks there.
         const lane = (e: PointerEvent) => {
           if (e.button !== 0) return;
-          e.stopPropagation();
+          // Handled here (the strip's scrub leaves it), yet still heard above: the
+          // page's context menu must see the press to hold it once its long press
+          // opens, so no range starts under the open menu.
           e.preventDefault();
           const r = Option.getOrThrow(rows).getBoundingClientRect();
           const timeAt = (ev: PointerEvent) =>
@@ -204,7 +209,21 @@ export const Strip = () => {
         return (
           <div class="lab-strip" onPointerDown={scrub}>
             <div class="lab-strip-head">
-              {`${p().spec.id} · ${p().dur.toFixed(2)}s · ${file()}`}
+              <span class="lab-strip-name">
+                {`${p().spec.id} · ${timecode(p().dur, meta.film.fps)} · ${file()}`}
+              </span>
+              {/* A finger has no Escape: while a grip is held, a tap here lets it go (LS-5). */}
+              <Show when={state.holding()}>
+                <button
+                  type="button"
+                  class="lab-strip-cancel"
+                  data-act="cancel-grip"
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={() => meta.hub.invokeId(CANCEL_GRIP, BY_BUTTON)}
+                >
+                  Cancel drag
+                </button>
+              </Show>
             </div>
             {/* The rows scroll in their own box, the words held at its top, so the film keeps its row. */}
             <div class="lab-strip-scroll">

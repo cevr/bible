@@ -91,8 +91,8 @@ import {
   InkOverFace,
   WordPinFar,
 } from './findings.ts';
-import type { LoadedFilm } from './film-repo.ts';
-import { type Master, masterFile, masterFinding } from './mixer.ts';
+import { type LoadedFilm, masterFile } from './film-repo.ts';
+import { type Master, masterFinding } from './mixer.ts';
 
 // ---------------------------------------------------------------------------
 // Static

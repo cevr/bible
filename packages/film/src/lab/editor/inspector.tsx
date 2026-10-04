@@ -1,4 +1,5 @@
-// The editor's section of the panel: Undo and Redo, the selected cue's
+// The editor's section of the panel, and its Undo and Redo for the
+// studio's header (`History`, every mode's): the selected cue's
 // fields (the inspector's, `lab/command/inspector.tsx`, stepped as the cue's
 // schema says) and eases, the selection's hint, and the film's check
 // findings. Every write goes to the editor's machine as a commit, shown
@@ -12,13 +13,16 @@ import { createMemo } from 'solid-js';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
-import { DEFAULT_EASE } from '../../core/time.ts';
+import { DEFAULT_EASE, timecode } from '../../core/time.ts';
 import { untilText } from '../../core/timeline.ts';
 import { type LabSelection, cueOf } from '../../command/selection.ts';
 import { Field, Hint } from '../command/inspector.tsx';
+import { HeaderTool } from '../page-shell.tsx';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
-import { EASE_BOX, anchorText, easePoints, easeY } from './format.ts';
+import { EASE_BOX, anchorText, easePoints, easeY, findingsIn } from './format.ts';
+import { chordLabel } from '../../command/keymap.ts';
+import { hubChanges } from '../command/changes.ts';
 import { CueWrite, cueSaid } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
@@ -60,7 +64,7 @@ const CueFields = (props: CueFieldsProps) => {
         scene: scene(),
         cue: props.name,
         patch,
-        said: cueSaid(props.name, props.span, props.cue, patch),
+        said: cueSaid(props.span, props.cue, patch),
       }),
       { timeline: { ...meta.stage.timelineOf(scene()), [props.name]: span } },
     );
@@ -85,12 +89,12 @@ const CueFields = (props: CueFieldsProps) => {
           {(until) => (
             <>
               <Key>end</Key>
-              <Val>{`until ${untilText(until())} · ${props.cue.end.toFixed(2)}s`}</Val>
+              <Val>{`until ${untilText(until())} · ${timecode(props.cue.end, meta.film.fps)}`}</Val>
             </>
           )}
         </Show>
         <Key>plays</Key>
-        <Val>{`${props.cue.start.toFixed(2)}–${props.cue.end.toFixed(2)}s in the scene`}</Val>
+        <Val>{`${timecode(props.cue.start, meta.film.fps)}–${timecode(props.cue.end, meta.film.fps)} in the scene`}</Val>
       </div>
       <div class="lab-edit-key">{`ease: ${props.cue.ease}${easeNote()}`}</div>
       <div class="lab-eases">
@@ -142,8 +146,11 @@ const CueInspector = (props: { readonly selection: LabSelection }) => {
   );
 };
 
-/** Undo and Redo: the server's bounded stack of the lab's writes. */
-const History = () => {
+/**
+ * Undo and Redo: the server's bounded stack of the lab's writes, in the
+ * studio's header (the shell's `tools`), so every mode keeps them (§4).
+ */
+export const History = () => {
   const { state, actions } = useEditor();
   const stepOf = (verb: 'undo' | 'redo') =>
     Option.flatMap(state.report(), (r) => Option.fromUndefinedOr(r[verb]));
@@ -154,42 +161,68 @@ const History = () => {
     });
   return (
     <>
-      <button
-        type="button"
-        data-act="undo"
+      <HeaderTool
+        act="undo"
+        label="Undo"
         title={title('undo', '⌘Z')}
         disabled={Option.isNone(stepOf('undo'))}
         onClick={() => actions.step('undo')}
-      >
-        Undo
-      </button>
-      <button
-        type="button"
-        data-act="redo"
+      />
+      <HeaderTool
+        act="redo"
+        label="Redo"
         title={title('redo', '⇧⌘Z')}
         disabled={Option.isNone(stepOf('redo'))}
         onClick={() => actions.step('redo')}
-      >
-        Redo
-      </button>
+      />
     </>
   );
 };
 
-/** The film's check: the findings of the last write, else of the check as the page loaded. */
+/**
+ * The inspector's Findings group (UI-6): the film's check (the last write's,
+ * else the page's) as it bears on the scene shown, its own and the film's
+ * placeless ones; the other scenes' are a count, and F walks to them.
+ */
 const Findings = () => {
+  const { state: lab, meta } = useLab();
   const { state } = useEditor();
+  const changes = hubChanges(meta.hub);
+  const shown = createMemo(() => findingsIn(state.findings(), meta.film.placed, lab.scene()));
+  // F as bound now: a rebound key reads as rebound.
+  const walkKey = () => {
+    changes();
+    return meta.hub
+      .keysOf('check.finding-next')
+      .slice(0, 1)
+      .map((k) => chordLabel(k, meta.hub.mac))
+      .join('');
+  };
   return (
-    <ul class="lab-findings">
-      <For each={state.findings()}>
-        {(f) => (
-          <li class={['lab-finding', f.level]}>
-            <b>{f.tag}</b>
-            {` ${f.message}`}
-          </li>
-        )}
-      </For>
-    </ul>
+    <section
+      class="lab-group lab-findings-group"
+      data-empty={shown().here.length + shown().elsewhere === 0}
+    >
+      <h3>
+        {`Findings in ${lab.scene()}`}
+        <span class="lab-count">{shown().here.length}</span>
+      </h3>
+      <ul class="lab-findings">
+        <For each={shown().here}>
+          {(f) => (
+            <li class={['lab-finding', f.level]}>
+              <b>{f.tag}</b>
+              {` ${f.message}`}
+            </li>
+          )}
+        </For>
+      </ul>
+      <Show when={shown().elsewhere > 0}>
+        <p class="lab-findings-elsewhere">
+          {`${shown().elsewhere} in other scenes · ${walkKey()} walks to them`}
+        </p>
+      </Show>
+    </section>
   );
 };
 
@@ -216,11 +249,10 @@ export const Section = (props: ParentProps) => {
     Option.match(state.inspectedSource().source, { onNone: () => '', onSome: (s) => s.file });
   const cueSelected = () => Option.filter(lab.selection(), (s) => s._tag === 'Cue');
   return (
-    <section class="lab-edit">
+    <section class="lab-edit" data-mode-of="edit">
       <header>
         <strong>Edit</strong>
         <span class="lab-edit-file">{file()}</span>
-        <History />
       </header>
       <div class="lab-edit-body lab-inspector">
         <Show when={Option.getOrUndefined(cueSelected())} keyed>

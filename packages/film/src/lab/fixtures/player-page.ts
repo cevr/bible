@@ -1,9 +1,14 @@
-// The browser tests' player page: the real entry (`mountPlayer`) over a
-// registry holding only the probe film. The harness serves it on the play
-// and look-book places.
+// The browser tests' player page: the real entry of a film's Scenes and Play
+// pages (`mountPlay`) over a registry holding the probe film and the crowd
+// film (many short scenes, for the tape bar on a phone). The harness serves
+// it on the play and look-book places.
 
 import { Effect } from 'effect';
-import { mountPlayer } from '../../player/main.ts';
+import { mountPlay } from '../play-mount.tsx';
+import { CROWD, crowdFilm } from './crowd-film.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
 
-mountPlayer({ [PROBE]: () => Effect.runPromise(Effect.sync(probeFilm)) });
+mountPlay({
+  [PROBE]: () => Effect.runPromise(Effect.sync(probeFilm)),
+  [CROWD]: () => Effect.runPromise(Effect.sync(crowdFilm)),
+});

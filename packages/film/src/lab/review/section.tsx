@@ -31,6 +31,7 @@ import {
 } from '../../core/choice.ts';
 import { playableOf } from '../../browser/media-browser.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
+import { timecode } from '../../core/time.ts';
 import {
   type Say,
   type SetSayPost,
@@ -78,6 +79,7 @@ import { ReviewPlace as Place } from './place.ts';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
 import { CommandChip } from '../command/command-chip.tsx';
+import { useShellTime } from '../page-shell.tsx';
 import { rateCommands, rateId, rateText } from '../../player/transport.ts';
 
 /** A version of `set` in `folder`, as a selection: what a version's card is. */
@@ -172,48 +174,51 @@ const Section = (props: {
   </Show>
 );
 
-/** The app's films, each a link to its project, its choices and its lab (none when the app has no films). */
-const Films = () => {
+/**
+ * The app's films (none when the app has no films), each a card that opens
+ * its Scenes, with the stills of the folder its renders sit in when the
+ * review holds one; its context menu opens its other parts (`filmCommands`).
+ * The page bar and the switcher are the other ways into a film: no card
+ * links to a part in its text.
+ */
+const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
   const { state } = useReview();
   const films = () =>
     Option.getOrElse(
       Option.map(AsyncResult.value(state.films()), (f) => f.films),
       () => [],
     );
+  /** The folder a film's renders sit in: the one named for it. */
+  const folderOf = (film: string) =>
+    Option.fromUndefinedOr(props.folders.find((f) => f.ref === film || f.ref.endsWith(`/${film}`)));
   return (
     <Section title="Films" count={films().length}>
-      <div class="rv-row rv-films">
+      <div class="rv-grid rv-films">
         <For each={films()}>
           {(film) => (
-            <>
-              <Target
-                of={Selection.cases.Film.make({ film })}
-                class="rv-chip"
-                render={(p: TargetElementProps) => (
-                  <Go {...p} place={Place.Project({ film })}>
-                    {film} · project
-                  </Go>
-                )}
-              />
-              <Target
-                of={Selection.cases.Film.make({ film })}
-                class="rv-chip"
-                render={(p: TargetElementProps) => (
-                  <Go {...p} place={Place.Film({ film })}>
-                    {film} · choices
-                  </Go>
-                )}
-              />
-              <Target
-                of={Selection.cases.Film.make({ film })}
-                class="rv-chip"
-                render={(p: TargetElementProps) => (
-                  <a {...p} href={pageHref.lab(film)}>
-                    {film} · lab
-                  </a>
-                )}
-              />
-            </>
+            <Target
+              of={Selection.cases.Film.make({ film })}
+              class="rv-card rv-film-card"
+              data-film={film}
+              render={(p: TargetElementProps) => (
+                <a {...p} href={pageHref.scenes(film)}>
+                  <Show
+                    when={Option.getOrUndefined(
+                      Option.filter(
+                        Option.map(folderOf(film), posterRefs),
+                        (refs) => refs.length > 0,
+                      ),
+                    )}
+                  >
+                    {(refs) => <Strip refs={refs()} />}
+                  </Show>
+                  <div class="rv-body">
+                    <b>{film}</b>
+                    <div class="rv-meta">Scenes · long-press for its other parts</div>
+                  </div>
+                </a>
+              )}
+            />
           )}
         </For>
       </div>
@@ -229,7 +234,7 @@ export const Home = () => (
       const rest = createMemo(() => index().folders.filter((f) => f.sets.length === 0));
       return (
         <>
-          <Films />
+          <Films folders={index().folders} />
           <Section title="Versions" count={sets().length}>
             <div class="rv-grid">
               <For each={sets()}>{(folder) => <FolderCard folder={folder} />}</For>
@@ -521,6 +526,8 @@ export const Transport = (props: {
   const { meta } = useReview();
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
+  // The header's timecode is this transport's clock.
+  useShellTime(() => sync().t);
   onCleanup(
     meta.hub.commands.register(
       ...rateCommands({
@@ -908,7 +915,7 @@ const MomentsView = (props: { readonly index: number }) => {
                     <img
                       class="rv-media rv-zoom"
                       src={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
-                      alt={`${variant.label} at ${at()} s`}
+                      alt={`${variant.label} at ${timecode(at())}`}
                       onClick={() =>
                         actions.show(
                           Option.some(

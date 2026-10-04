@@ -208,7 +208,7 @@ describe('the marks', () => {
       marks.filter((c) => c.when(onCard)),
       onCard,
     ).flatMap(([, r]) => r.map((row) => row.label));
-    expect(rows).toEqual(['Jump to 0:04.0 · cold', 'Jump to 0:01.0 · open']);
+    expect(rows).toEqual(['Jump to 00:00:04:00 · cold', 'Jump to 00:00:01:00 · open']);
     expect(marks.every((c) => c.typed === true)).toBe(true);
     expect(markCommands(deck(Option.none(), true).d).some((c) => c.when(onCard))).toBe(false);
   });

@@ -7,15 +7,18 @@
 // `<Lab.Header>`, `<Lab.Section>`). Each panel's own state lives in its own
 // provider; the shell knows none of it.
 
-import { RegistryProvider, useAtomValue } from '@bible/atom-solid';
+import { RegistryProvider, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { Toggle } from '@bible/ui/toggle';
+import { ToggleGroup } from '@bible/ui/toggle-group';
 import * as UrlAtom from '@bible/url-state/atom';
-import { Portal, Show } from '@solidjs/web';
-import { Effect, Equal, Fiber, Layer, Option } from 'effect';
+import { For, Portal, Show } from '@solidjs/web';
+import { Array as Arr, Effect, Equal, Fiber, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
   createContext,
   createMemo,
+  createEffect,
   createSignal,
   onCleanup,
   onSettled,
@@ -24,8 +27,9 @@ import {
 import type { Film } from '../canvas/film.ts';
 import { type BrowserServices, type Host, addressOn, hostLayer } from '../browser/host.ts';
 import type { Player } from '../player/main.ts';
-import { pageHref } from '../core/api.ts';
-import { TabStore } from '../browser/storage-browser.ts';
+import { keptText } from '../browser/storage.ts';
+import { TabStore, ViewerStore } from '../browser/storage-browser.ts';
+import { LAB_MODES, type LabMode, MODE_TITLE, modeCommands, modeOf } from './mode.ts';
 import { type ViewStore, viewStore } from './view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
 import { goToCommands } from '../command/go.ts';
@@ -56,6 +60,8 @@ interface LabState {
   readonly note: Accessor<Option.Option<string>>;
   /** What a reload held by the owner's unsaved work waits for (`ReloadGate`); empty while none waits. */
   readonly reloadWaiting: Accessor<string>;
+  /** The tool the inspector shows (`lab/mode.ts`): one at a time. */
+  readonly mode: Accessor<LabMode>;
 }
 
 interface LabActions {
@@ -67,6 +73,8 @@ interface LabActions {
   readonly selectNote: (note: Option.Option<string>) => void;
   /** Drop the note from the URL in place (it is gone from the feed): no entry to come back to. */
   readonly forgetNote: () => void;
+  /** Show `mode` in the inspector, and keep it for this viewer. */
+  readonly showMode: (mode: LabMode) => void;
 }
 
 interface LabMeta {
@@ -127,19 +135,25 @@ const Root = (props: RootProps) => {
   );
 
   // Layers kept exactly over the film canvas, placed again as it resizes.
+  // They live in the canvas's own frame (the stage), placed from its
+  // corner: as the page scrolls (a phone's lab is one long page) they move
+  // with the picture, never left where it was (LS-7).
+  const frame = pictureFrame(player);
   const pinned = new Set<HTMLElement | SVGElement>();
   const place = () => {
     const r = player.canvas.getBoundingClientRect();
+    const f = frame.getBoundingClientRect();
     for (const layer of pinned)
       Object.assign(layer.style, {
-        left: `${r.left}px`,
-        top: `${r.top}px`,
+        left: `${r.left - f.left - frame.clientLeft}px`,
+        top: `${r.top - f.top - frame.clientTop}px`,
         width: `${r.width}px`,
         height: `${r.height}px`,
       });
   };
   const watch = new ResizeObserver(place);
   watch.observe(player.canvas);
+  watch.observe(frame);
   window.addEventListener('resize', place);
   onCleanup(() => {
     watch.disconnect();
@@ -199,6 +213,24 @@ const Root = (props: RootProps) => {
   const Inner = (inner: ParentProps) => {
     const href = useAtomValue(() => UrlAtom.href);
     const here = createMemo(() => pickOf(href()), { equals: Equal.equals });
+    // The mode: the one picked on this page, else the viewer's kept one.
+    const kept = useAtomValue(() => keptMode);
+    const keep = useAtomSet(() => keptMode);
+    const [chosen, setChosen] = createSignal(Option.none<LabMode>(), { ownedWrite: true });
+    const mode = createMemo(() => Option.getOrElse(chosen(), () => modeOf(kept())));
+    const showMode = (m: LabMode) => {
+      setChosen(Option.some(m));
+      keep(m);
+    };
+    // A note picked (a link, a pin, Back) shows the Note mode, the only one
+    // that shows notes; a cue or a knob shows on the strip in every mode.
+    createEffect(
+      () => here().note,
+      (note) => {
+        Option.map(note, () => showMode('note'));
+      },
+    );
+    onCleanup(props.hub.commands.register(...modeCommands(mode, showMode)));
     const value: LabContextValue = {
       state: {
         T,
@@ -208,6 +240,7 @@ const Root = (props: RootProps) => {
         selection: () => here().selection,
         note: () => here().note,
         reloadWaiting,
+        mode,
       },
       actions: {
         pin: (layer) => {
@@ -218,6 +251,7 @@ const Root = (props: RootProps) => {
         select: (selection) => address.push(picked({ selection })),
         selectNote: (note) => address.push(picked({ note })),
         forgetNote: () => address.replace(picked({ note: Option.none() })),
+        showMode,
       },
       meta: {
         name: props.name,
@@ -251,10 +285,23 @@ const Root = (props: RootProps) => {
   );
 };
 
+/** The viewer's mode, kept in the browser: a convenience, safe to lose. */
+const keptMode = keptText(ViewerStore, 'film-studio.lab-mode');
+
 /** What the lab has picked, as the URL at `href` holds it. */
 const pickOf = (href: string) => {
   const { selection, note } = labPlaceOf(href);
   return { selection, note };
+};
+
+/** The element the film canvas sits in (its stage): the pinned layers' frame. */
+const pictureFrame = (player: Player): HTMLElement =>
+  Option.getOrElse(Option.fromNullishOr(player.canvas.parentElement), () => document.body);
+
+/** `children` inside the picture's frame, where they scroll with the canvas. */
+const OnPicture = (props: ParentProps) => {
+  const { meta } = useLab();
+  return <Portal mount={pictureFrame(meta.player)}>{props.children}</Portal>;
 };
 
 /** Pin the element `ref` hands over for as long as the component lives. */
@@ -275,14 +322,16 @@ const Overlay = (props: ParentProps) => {
   const { meta } = useLab();
   const pin = usePinned();
   return (
-    <svg
-      class="lab-overlay"
-      viewBox={`0 0 ${meta.film.width} ${meta.film.height}`}
-      preserveAspectRatio="none"
-      ref={pin}
-    >
-      {props.children}
-    </svg>
+    <OnPicture>
+      <svg
+        class="lab-overlay"
+        viewBox={`0 0 ${meta.film.width} ${meta.film.height}`}
+        preserveAspectRatio="none"
+        ref={pin}
+      >
+        {props.children}
+      </svg>
+    </OnPicture>
   );
 };
 
@@ -299,16 +348,18 @@ const PinnedLayer = (props: LayerProps) => {
   const { meta } = useLab();
   const pin = usePinned();
   return (
-    <canvas
-      class={props.class}
-      width={Math.round(meta.film.width * (props.scale ?? 1))}
-      height={Math.round(meta.film.height * (props.scale ?? 1))}
-      hidden={props.hidden}
-      ref={(el: HTMLCanvasElement) => {
-        pin(el);
-        props.ref?.(el);
-      }}
-    />
+    <OnPicture>
+      <canvas
+        class={props.class}
+        width={Math.round(meta.film.width * (props.scale ?? 1))}
+        height={Math.round(meta.film.height * (props.scale ?? 1))}
+        hidden={props.hidden}
+        ref={(el: HTMLCanvasElement) => {
+          pin(el);
+          props.ref?.(el);
+        }}
+      />
+    </OnPicture>
   );
 };
 
@@ -329,7 +380,7 @@ const Strip = (props: ParentProps) => {
 const Panel = (props: ParentProps) => {
   const { state } = useLab();
   return (
-    <aside class="lab-panel">
+    <aside class="lab-panel" data-mode={state.mode()}>
       <Show when={state.reloadWaiting()}>
         {(waiting) => (
           <p class="lab-reload-waiting" role="status">
@@ -343,52 +394,55 @@ const Panel = (props: ParentProps) => {
 };
 
 /**
- * The panel's header: its name, the header's tools, and the film's other
- * pages (its project, its choices, its look-book), each link named by its
- * `data-link`. How to note a frame is in the `?` sheet (Note this frame's
- * touch path) and the notes' empty list (UR-80).
+ * The panel's header: the mode tray (which tool the inspector shows), then
+ * the header's tools. The film's other parts are the studio shell's page
+ * bar (`page-shell.tsx`), not links here.
+ * How to note a frame is in the `?` sheet (Note this frame's touch path) and
+ * the notes' empty list (UR-80).
  */
-const Header = (props: ParentProps) => {
-  const { meta } = useLab();
+const Header = (props: ParentProps) => (
+  <header>
+    <ModeTray />
+    {props.children}
+  </header>
+);
+
+/** The mode tray: a segmented toolbar, one mode pressed (pressing it again keeps it). */
+const ModeTray = () => {
+  const { state, actions } = useLab();
   return (
-    <header>
-      <strong>Lab</strong>
-      {props.children}
-      <a
-        class="lab-link"
-        data-link="project"
-        href={pageHref.project(meta.name)}
-        title="each scene's render, its approval and comments"
-      >
-        Project
-      </a>
-      <a
-        class="lab-link"
-        data-link="choices"
-        href={pageHref.choices(meta.name)}
-        title="the film's choices: score, takes, voices, looks and levels, heard in the mix"
-      >
-        Choices
-      </a>
-      <a
-        class="lab-link"
-        data-link="lookbook"
-        href={pageHref.scenes(meta.name)}
-        title="every scene's stills at its cue edges and 60% point, with the palette"
-      >
-        Look-book
-      </a>
-    </header>
+    <ToggleGroup<LabMode>
+      class="lab-modes"
+      aria-label="Mode"
+      value={[state.mode()]}
+      onValueChange={(pressed) => {
+        Option.map(Arr.head(pressed), actions.showMode);
+      }}
+    >
+      <For each={LAB_MODES}>
+        {(m) => (
+          <Toggle<LabMode> value={m} class="lab-mode" data-mode-pick={m}>
+            {MODE_TITLE[m]}
+          </Toggle>
+        )}
+      </For>
+    </ToggleGroup>
   );
 };
 
 interface SectionProps extends ParentProps {
   /** The section's class: the tool it holds (`lab-edit`, `lab-motion`, …). */
   readonly class: string;
+  /** The mode it shows in: the panel shows only the mode tray's pressed one. */
+  readonly mode: LabMode;
 }
 
-/** One tool's section of the panel. */
-const Section = (props: SectionProps) => <section class={props.class}>{props.children}</section>;
+/** One tool's section of the panel, shown in its mode. */
+const Section = (props: SectionProps) => (
+  <section class={props.class} data-mode-of={props.mode}>
+    {props.children}
+  </section>
+);
 
 /** The lab's shell: `<Lab.Root>` and the pieces it places. */
 export const Lab = { Root, Overlay, Layer: PinnedLayer, Strip, Panel, Header, Section };

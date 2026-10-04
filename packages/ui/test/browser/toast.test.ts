@@ -36,6 +36,19 @@ const openReceipt = async (query: Record<string, string> = {}) => {
   return page;
 };
 
+/**
+ * Holds the page's clock: from here only `runFor` moves it, so the wall time a
+ * click, a hover or a slow machine takes spends none of a toast's timeout and
+ * a margin of 100 ms is exact. A second ahead of the page's time, so the jump
+ * is never into the past; nothing is pending before a toast is raised. The
+ * exits still run: each `runFor` past a dismissal fires the frames the exit
+ * waits on, and the exit's own animation runs on the browser's time.
+ */
+const hold = async (page: Page) => {
+  const now = await page.evaluate(() => Date.now());
+  await page.clock.pauseAt(now + 1000);
+};
+
 /** Drags with the mouse from the element's centre by (dx, dy), in steps. */
 const drag = async (page: Page, selector: string, dx: number, dy: number, steps = 10) => {
   const box = await page.locator(selector).first().boundingBox();
@@ -153,6 +166,7 @@ describe('useToastManager', () => {
 describe('timeout', () => {
   it('auto-dismisses after the timeout', async () => {
     const page = await openReceipt();
+    await hold(page);
     await page.click('#raise');
     await see(roots(page)).toHaveCount(1);
     await page.clock.runFor(4900);
@@ -171,6 +185,7 @@ describe('timeout', () => {
 
   it('pauses while the viewport is hovered and resumes with the time left', async () => {
     const page = await openReceipt();
+    await hold(page);
     await page.click('#raise');
     await see(roots(page)).toHaveCount(1);
     await page.clock.runFor(3000);
@@ -189,6 +204,7 @@ describe('timeout', () => {
 
   it('pauses while the window is blurred', async () => {
     const page = await openReceipt();
+    await hold(page);
     await page.click('#raise');
     await see(roots(page)).toHaveCount(1);
     await page.evaluate(() => window.dispatchEvent(new FocusEvent('blur')));

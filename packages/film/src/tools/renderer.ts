@@ -60,10 +60,10 @@ import {
   type TooManyEncoders,
 } from './errors.ts';
 import { writeWhole } from './content-store.ts';
-import { type LoadedFilm, type PlaceError, placeFilm } from './film-repo.ts';
+import { type LoadedFilm, type PlaceError, masterFile, placeFilm } from './film-repo.ts';
 import { filmChapters } from './look.ts';
 import { Media, type MediaService } from './media.ts';
-import { masterFile, masterFinding, planKey, readMaster } from './mixer.ts';
+import { masterFinding, planKey, readMaster } from './mixer.ts';
 import { type ExportPages, Pages } from './pages.ts';
 import { PreviewServer } from './preview-server.ts';
 import {

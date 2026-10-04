@@ -29,6 +29,7 @@ import {
 import {
   attributeIs,
   attributesAre,
+  countIs,
   evaluates,
   textHas,
   textIs,
@@ -89,6 +90,37 @@ describe('the cue strip', () => {
       yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a finger held on a cue lane past the long press, then slid 30 px, marks no range; slid at once, it does',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(1) });
+        const lane = '.lab-strip-row:has([data-cue="fall"])';
+        yield* page.waitFor(lane);
+        const rows = yield* page.box('.lab-strip-rows');
+        const row = yield* page.box(lane);
+        // A point on the lane clear of fall's bar: near its scene's start.
+        const x = rows.x + 4;
+        const y = row.y + row.height / 2;
+        const marked = `document.querySelector('[data-role="in-out"]') !== null`;
+        // The clock held: the long press's delay passes only as the test runs it on.
+        yield* page.clock.hold;
+        yield* page.finger.down(x, y);
+        yield* page.clock.runFor(700);
+        yield* page.finger.move(x + 30, y, 15);
+        yield* page.finger.up;
+        yield* page.clock.runFor(100);
+        yield* evaluates(page, marked, false);
+        yield* page.press('Escape');
+        // The same slide made at once marks the range.
+        yield* page.finger.down(x, y);
+        yield* page.finger.move(x + 30, y, 15);
+        yield* page.finger.up;
+        yield* page.clock.runFor(100);
+        yield* evaluates(page, marked, true);
+      }).pipe(Effect.scoped),
   );
 
   it.live('a drag of a cue body writes its offset once, on release, and selects it', () =>
@@ -184,7 +216,7 @@ describe('the cue strip', () => {
         top = newer;
         yield* page.reload;
         yield* statusSays(page, 'cue rise offset 0 → ');
-        yield* page.waitFor('.lab-edit button[data-act="undo"]:not([disabled])');
+        yield* page.waitFor('.sh-header [data-act="undo"]:not([disabled])');
         yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
         yield* statusSays(page, 'cue fall offset came after it: undo that first');
         yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
@@ -193,7 +225,7 @@ describe('the cue strip', () => {
         top = was;
         yield* page.reload;
         yield* statusSays(page, 'cue rise offset 0 → ');
-        yield* page.waitFor('.lab-edit button[data-act="undo"]:not([disabled])');
+        yield* page.waitFor('.sh-header [data-act="undo"]:not([disabled])');
         yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
         yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
         expect(posted(asked).map((a) => a.body)).toEqual([
@@ -397,6 +429,42 @@ describe('one write at a time', () => {
       const after = yield* page.box(bar);
       expect(Math.round(after.x)).toBe(Math.round(box.x));
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a finger's drag has Cancel drag at hand, which puts the cue back; a finger grabs an edge a mouse would miss",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab([], { href: labAt(1) });
+        const bar = '.lab-cue[data-cue="rise"]';
+        yield* editable(page);
+        const box = yield* page.box(bar);
+        const y = box.y + box.height / 2;
+        const x = box.x + box.width / 2;
+        // The clock held: a slow machine's slide never outlasts the long press, which a held
+        // press would rightly open (a menu, not a drag).
+        yield* page.clock.hold;
+        // No Cancel at rest; held and slid, the strip offers it, and its tap lets the cue go.
+        yield* countIs(page, '[data-act="cancel-grip"]', 0);
+        yield* page.finger.down(x, y);
+        yield* page.finger.move(x + 40, y, 8);
+        yield* page.click('[data-act="cancel-grip"]');
+        yield* page.finger.up;
+        yield* runClock(page, 200);
+        expect(posted(asked)).toEqual([]);
+        yield* countIs(page, '[data-act="cancel-grip"]', 0);
+        expect(Math.round((yield* page.box(bar)).x)).toBe(Math.round(box.x));
+        // 10 px in is the body to a mouse (6 px edges) and the start to a finger (14 px): its
+        // drag writes the start, offset and dur together.
+        expect(box.width).toBeGreaterThan(14 * 3);
+        yield* page.finger.down(box.x + 10, y);
+        yield* page.finger.move(box.x + 40, y, 8);
+        yield* page.finger.up;
+        yield* postedReach(asked, 1);
+        expect(Option.getOrThrow(Option.fromUndefinedOr(posted(asked)[0])).body).toMatchObject(
+          Option.some({ offset: expect.any(Number), dur: expect.any(Number) }),
+        );
+      }).pipe(Effect.scoped),
   );
 
   it.live(
@@ -643,14 +711,14 @@ describe('the inspector', () => {
       yield* evaluates(page, 'location.search', '?cue=fall');
       yield* page.press('Shift+Tab');
       yield* evaluates(page, 'location.search', '?cue=rise');
-      // The first edge on from the scene's start is rise's start (its bar's title says it).
-      const riseStart = `Number(document.querySelector('.lab-cue[data-cue="rise"]').title.split(' · ')[1].split('–')[0])`;
+      // The first edge on from the scene's start is rise's start (its bar's title says it, in timecode: to the frame).
+      const riseStart = `document.querySelector('.lab-cue[data-cue="rise"]').title.split(' · ')[1].split('–')[0].split(':').map(Number).reduce((s, n, i) => s + n * [3600, 60, 1, 1 / 30][i], 0)`;
       yield* page.press('.');
-      yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.01`);
+      yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.02`);
       yield* page.press('.');
       yield* page.until(`${URL_T} > ${riseStart} + 0.1`);
       yield* page.press(',');
-      yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.01`);
+      yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.02`);
     }).pipe(Effect.scoped),
   );
 
@@ -682,11 +750,16 @@ describe('the inspector', () => {
         href: labAt(0.2),
       });
       yield* page.waitFor('.lab-finding');
+      // The inspector lists the scene shown's findings and the film's placeless one; the rest are counted.
+      const listed = "[...document.querySelectorAll('.lab-finding b')].map((b) => b.textContent)";
+      yield* evaluates(page, listed, ['whole', 'timed']);
+      yield* textIs(page, '.lab-findings-elsewhere', '1 in other scenes · F walks to them');
       yield* page.press('f');
       yield* page.until(`Math.abs(${URL_T} - 0.8) < 0.01`);
       // The finding about scene two is at its start; the one about the whole film is nowhere.
       yield* page.press('f');
       yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
+      yield* evaluates(page, listed, ['whole', 'scene']);
       yield* page.press('Shift+F');
       yield* page.until(`Math.abs(${URL_T} - 0.8) < 0.01`);
     }).pipe(Effect.scoped),
@@ -715,7 +788,7 @@ describe('the inspector', () => {
       );
       yield* page.waitFor('.lab-finding');
       yield* textIs(page, '.lab-finding', 'late rise ends after the scene');
-      yield* page.click('.lab-edit button[data-act="undo"]:not([disabled])');
+      yield* page.click('.sh-header [data-act="undo"]:not([disabled])');
       yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
       // An Undo is undone by Redo.
       yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Redo');

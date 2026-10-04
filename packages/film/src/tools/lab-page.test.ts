@@ -92,6 +92,7 @@ const served = (
         return {
           status: response.status,
           location: response.headers.get('location') ?? '',
+          type: response.headers.get('content-type') ?? '',
           text: yield* Effect.promise(() => response.text()),
         };
       });
@@ -146,6 +147,30 @@ describe('lab pages', () => {
         expect(serverOf(page.text)).not.toBe('');
         expect(yield* script).toContain('first');
         expect((yield* ask('/nothing.js')).status).toBe(404);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    "the UI face's files are a page's own assets: each at an absolute URL, answered as a woff2",
+    () =>
+      Effect.gen(function* () {
+        const { ask, script, write } = yield* app;
+        // The review imports the framework's face, as every page with chrome does.
+        yield* write(
+          'src/p.ts',
+          `import { registerFace } from '${import.meta.dir}/../player/face.ts';\nconsole.log(registerFace);\n`,
+        );
+        const urls = Array.from(
+          (yield* script).matchAll(/["'`]([^"'`]*\.woff2)["'`]/g),
+          (m) => m[1] ?? '',
+        );
+        expect(urls).toHaveLength(3);
+        for (const url of urls) {
+          expect(url).toMatch(/^\/jetbrains-mono-(latin|latin-ext|greek)-wght-normal-\w+\.woff2$/);
+          const font = yield* ask(url);
+          expect([url, font.status, font.type]).toEqual([url, 200, 'font/woff2']);
+          expect(font.text.length).toBeGreaterThan(1000);
+        }
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
@@ -391,6 +416,94 @@ describe('lab pages', () => {
   );
 
   it.live(
+    "a write's own mix is named by the build its film's pages hear it at, counted at once if no watch has; a later mix is a later build, and the earlier keeps its own",
+    () =>
+      Effect.gen(function* () {
+        const { spec } = yield* appFolder;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const film = path.join(spec.films, 'f');
+        const narration = path.join(film, 'narration');
+        const track = path.join(narration, 'full.wav');
+        yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
+        yield* fs.makeDirectory(narration, { recursive: true });
+        yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
+        yield* fs.writeFileString(track, 'mix one');
+        const { page, ask } = yield* served(spec, PageBundler.layerTest);
+        const mtime = Effect.map(fs.stat(track), (info) =>
+          Option.getOrElse(
+            Option.map(info.mtime, (at) => at.getTime()),
+            () => 0,
+          ),
+        );
+        /**
+         * The mix lands its track whole, by a rename, as `film mix` does, its
+         * file made at `at` (seconds): each mix its own mtime. Answers it.
+         */
+        const mix = (text: string, at: number) =>
+          Effect.gen(function* () {
+            const partial = path.join(narration, 'full.wav.partial');
+            yield* fs.writeFileString(partial, text);
+            yield* fs.utimes(partial, at, at);
+            yield* fs.rename(partial, track);
+            return yield* mtime;
+          });
+        // No page has asked for the track: no mix of it is heard.
+        expect(yield* page.heardAt('f', yield* mtime)).toEqual(Option.none());
+        yield* ask('/films/f/lab');
+        yield* ask('/films/f/narration/full.wav');
+        const f = { server: Option.none(), film: Option.some('f') };
+        const settled = (yield* page.wait({ since: 0, ...f }, '1 second')).build;
+        // The track as it was when asked for was never counted as a mix.
+        expect(yield* page.heardAt('f', yield* mtime)).toEqual(Option.none());
+        // A write asks at once after its mix, before any watch may have heard it.
+        const two = yield* mix('mix two', 1_900_000_000);
+        const ownTwo = yield* page.heardAt('f', two);
+        expect(Option.map(ownTwo, (b) => b.build > settled)).toEqual(Option.some(true));
+        // The page waiting hears that very build: nothing else changed since.
+        const heard = yield* page.wait({ since: settled, ...f }, '5 seconds');
+        expect(Option.some(heard)).toEqual(ownTwo);
+        // A later mix is a later build; the earlier mix keeps its own, not the track's now.
+        const three = yield* mix('mix three', 1_900_000_010);
+        const ownThree = yield* page.heardAt('f', three);
+        expect(
+          Option.exists(ownThree, (b) => Option.exists(ownTwo, (a) => b.build > a.build)),
+        ).toBe(true);
+        expect(yield* page.heardAt('f', two)).toEqual(ownTwo);
+        // Another film's page asked for nothing: none.
+        expect(yield* page.heardAt('g', three)).toEqual(Option.none());
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    "a page that waits with its film hears the film's mix, though it never played the track",
+    () =>
+      Effect.gen(function* () {
+        const { spec } = yield* appFolder;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const film = path.join(spec.films, 'f');
+        const narration = path.join(film, 'narration');
+        yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
+        yield* fs.makeDirectory(narration, { recursive: true });
+        yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
+        yield* fs.writeFileString(path.join(narration, 'full.wav'), 'mix one');
+        // A review tab of f's choices: its page loads, its track is never asked for.
+        const { page, ask } = yield* served(spec, PageBundler.layerTest);
+        yield* ask('/films/f/choices');
+        const f = { server: Option.none(), film: Option.some('f') };
+        // Its first wait arms the track's watch; the build once a save it read is heard.
+        const settled = (yield* page.wait({ since: 0, ...f }, '1 second')).build;
+        yield* fs.writeFileString(path.join(narration, 'full.wav.partial'), 'mix two');
+        const mixed = yield* Effect.andThen(
+          fs.rename(path.join(narration, 'full.wav.partial'), path.join(narration, 'full.wav')),
+          page.wait({ since: settled, ...f }, '5 seconds'),
+        );
+        expect(mixed.build).toBeGreaterThan(settled);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
     "a page another lab process served hears at once that it is old; its own server's waits",
     () =>
       Effect.gen(function* () {
@@ -427,6 +540,9 @@ describe('lab pages', () => {
       const broken = yield* ask('/');
       expect(broken.status).toBe(500);
       expect(broken.text).toContain('missing.ts');
+      // In the studio's look: its tokens, no colour of its own.
+      expect(broken.text).toContain('--surface-0:');
+      expect(broken.text).toContain('background:var(--surface-0)');
       // The failed build read nothing new; a fix to the file it last read is still heard.
       const built = buildOf(broken.text);
       yield* waitWriting(built, '10 seconds', 'src/p.ts', "console.log('fixed');\n");

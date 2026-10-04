@@ -30,7 +30,8 @@ describe('the place in the URL', () => {
       ReviewPlace.Home(),
       ReviewPlace.Folder({ folder: 'out/art 3' }),
       ReviewPlace.Set({ folder: 'out/art 3', point: 'render:scenes:roof&sky' }),
-      ReviewPlace.Film({ film: 'righteousness-by-faith' }),
+      ReviewPlace.Film({ film: 'righteousness-by-faith', point: '' }),
+      ReviewPlace.Film({ film: 'righteousness-by-faith', point: 'take:paper.page' }),
       ReviewPlace.Project({ film: 'righteousness-by-faith' }),
     ])
       expect(placeOf(hrefOf(place))).toEqual(place);
@@ -145,7 +146,7 @@ describe('Go to on the review (AA-2)', () => {
     expect(went).toEqual([
       ReviewPlace.Folder({ folder: 'out/art' }),
       ReviewPlace.Set({ folder: 'out/art', point: 'render:p6-onset-roof' }),
-      ReviewPlace.Film({ film: 'cold' }),
+      ReviewPlace.Film({ film: 'cold', point: '' }),
       ReviewPlace.Project({ film: 'cold' }),
     ]);
   });

@@ -1,25 +1,27 @@
-// The browser player. An app's entry calls `mountPlayer(films)` with its film
-// registry. It reads its place from the URL (`Places`, core/api.ts): a film's
-// play page is a scrubbable player, its scenes page the look-book, and the
-// export page (`?film=<name>&export`) hides the chrome and hands
-// `window.__film` to the renderer. Framework-free: the
-// lab (`@bible/film/lab`) is its own page, which stages the film and mounts
-// this preview under its Solid panels, so the render page never loads Solid.
+// The browser player, framework-free. The render page (an app's `index.html`,
+// `?film=<name>&export`) calls `mountRender(films)`: the film with no chrome,
+// and `window.__film` for the renderer. The studio's pages with a film on
+// them stage it here (`stageFilm`) and mount the scrubbable preview
+// (`mountPreview`) in their Solid shell: the lab (`@bible/film/lab`), and a
+// film's Scenes and Play pages (`mountPlay`, lab/play-mount.tsx). So the
+// render page never loads Solid.
 
 import type { Film, KnobRead, RenderOptions, ShownEdit } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
 import type { ExportHandle } from '../core/export-handle.ts';
 import { timelineTicks } from '../core/ticks.ts';
+import { timecode } from '../core/time.ts';
 import { Effect, Option } from 'effect';
 import type { Fiber } from 'effect';
-import { Place, parseHref } from '@bible/url-state';
-import { Places, filmOfPage, legacyPlace, pageHref } from '../core/api.ts';
+import { parseHref } from '@bible/url-state';
+import { filmOfPage } from '../core/api.ts';
 import { addressOn, hostOf, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { Frames } from '../browser/frames.ts';
-import { ViewerStore } from '../browser/storage-browser.ts';
-import { type Hub, makeHub } from '../command/hub.ts';
+import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
+import { BY_BUTTON } from '../command/command.ts';
+import type { Hub } from '../command/hub.ts';
 import { chordLabel } from '../command/keymap.ts';
 import { Pointer } from '../browser/pointer.ts';
 import { composeContact } from './contact.ts';
@@ -27,15 +29,18 @@ import { sceneTimesOf } from '../core/easel.ts';
 import { composeStill } from './still.ts';
 import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
 import { encodeChunk, encoderChoice } from './encode.ts';
-import { composeLookbook, mountLookbook } from './lookbook.ts';
+import { composeLookbook } from './lookbook-sheet.ts';
 import { narration, narrationNote } from './narration.ts';
-import { onTheMs, tInUrl, type TimeInUrl } from './t-in-url.ts';
+import { tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
 import { lookFrames } from './look-frames.ts';
 import { legendCommand, transportCommands } from './transport.ts';
 
 /** The longest `#t=` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
+
+/** How long a tick's name stays after the finger that held it lifts, in ms. */
+const TIP_READ_MS = 1500;
 
 /**
  * Every face the page declares (its stylesheets' `@font-face` rules, each
@@ -169,59 +174,25 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
 
 /** A page that could not start: the error, in place of the page. */
 export const showFailure = (e: unknown): void => {
-  document.body.innerHTML = `<pre style="color:#f88;padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
-};
-
-/** The play page's time: `#t=`, in film seconds. */
-const playTime = (name: string, host: Host): TimeInUrl => {
-  const address = addressOn(host);
-  return {
-    at: (href) =>
-      Option.getOrElse(
-        Option.flatMap(Place.decode(Places.play, href), (v) => v.hash.t),
-        () => 0,
-      ),
-    write: (T) => address.replace(pageHref.play(name, Option.some(onTheMs(T)))),
-  };
+  document.body.innerHTML = `<pre style="color:var(--state-findings);padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
 };
 
 /**
- * Mount the player for `films` into the page: a film's scenes (its
- * look-book, `/films/<film>/scenes`), its preview (`/films/<film>/play#t=`),
- * or, with `?film=<name>&export`, the handle the renderer drives. A link
- * whose old form the server could not see (a bare `#<seconds>`) is replaced
- * by its place first.
+ * Mount the render page for `films` (`?film=<name>&export`): the film
+ * staged with no chrome and no UI face, drawing only the film's own faces,
+ * and the handle the renderer drives on `window.__film`.
  */
-export const mountPlayer = (films: Films): void => {
+export const mountRender = (films: Films): void => {
   const host = hostOf(BrowserHost.layer);
-  const address = addressOn(host);
-  Option.map(legacyPlace(address.href()), address.replace);
-  const href = address.href();
-  const exporting = parseHref(href).searchParams.has('export');
-  const lookbook = [Places.scenes, Places.scene].some((place) =>
-    Option.isSome(Place.decode(place, href)),
-  );
-
-  const main = async () => {
-    const staged = await stageFilm(films, href);
-    const { name, film, captions } = staged;
-
-    if (exporting) {
+  stageFilm(films, addressOn(host).href())
+    .then((staged) => {
       document.body.classList.add('export');
       window.__film = exportHandle(staged, host);
-      return;
-    }
-    if (lookbook) return mountLookbook(film, name, captions.on, host);
-    // The preview's page has its own commands: the transport, and its keys.
-    const hub = Effect.runSyncWith(host)(makeHub('player', address.href, ViewerStore));
-    Effect.runForkWith(host)(hub.listen);
-    mountPreview(staged, host, playTime(name, host), hub);
-  };
-
-  main().catch((e: unknown) => {
-    showFailure(e);
-    throw e;
-  });
+    })
+    .catch((e: unknown) => {
+      showFailure(e);
+      throw e;
+    });
 };
 
 /**
@@ -325,25 +296,26 @@ export const mountPreview = (
   bar.innerHTML = `
     <div class="row">
       <button data-act="play">▶︎</button>
-      <span class="time"></span>
+      <span class="time"><span class="tc"></span><span class="of"></span></span>
       <span class="scene"></span>
       <span class="say"></span>
       <button data-act="captions">CC</button>
     </div>
     <div class="track"><div class="head"></div></div>
     <div class="tip" hidden></div>
-    <div class="keys" hidden><span class="bound"></span> · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover for the name)</div>`;
+    <div class="keys" hidden><span class="bound"></span> · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover or long-press for the name)</div>`;
   document.body.append(bar);
   const q = <T extends Element>(sel: string) => required<T>(bar, sel);
   const track = q<HTMLDivElement>('.track');
   const head = q<HTMLDivElement>('.head');
-  const timeEl = q<HTMLSpanElement>('.time');
+  const timecodeEl = q<HTMLSpanElement>('.tc');
+  const lengthEl = q<HTMLSpanElement>('.of');
   const sceneEl = q<HTMLSpanElement>('.scene');
   const sayEl = q<HTMLSpanElement>('.say');
   const playBtn = q<HTMLButtonElement>('[data-act="play"]');
   const tip = q<HTMLDivElement>('.tip');
 
-  const hue = (i: number) => `hsl(${(i * 47) % 360} 30% 30%)`;
+  const hue = (i: number) => `hsl(${(i * 47) % 360} var(--scene-sat) var(--scene-light))`;
   for (const p of film.placed) {
     const seg = document.createElement('div');
     seg.className = `seg${p.voice.duration > 0 && !p.voice.recorded ? ' estimated' : ''}`;
@@ -359,25 +331,58 @@ export const mountPreview = (
   for (const tick of timelineTicks(film.placed, Option.fromNullishOr(film.sound))) {
     const el = document.createElement('div');
     el.className = `tick ${tick.kind}`;
-    el.dataset['name'] = `${tick.name} · ${tick.at.toFixed(2)}s`;
+    el.dataset['name'] = `${tick.name} · ${timecode(tick.at, film.fps)}`;
     el.dataset['tick'] = tick.name;
     el.style.left = pct(tick.at);
     if (tick.kind === 'cue') el.style.width = pct(tick.dur);
     track.insertBefore(el, head);
   }
-  track.addEventListener('pointerover', (e) => {
-    const name = e.target instanceof HTMLElement ? e.target.dataset['name'] : undefined;
+  // A tick's name: shown while a mouse is over it, or once a finger has held
+  // it (UR-115) as long as a long press takes, without moving off into a
+  // scrub (the press stays free until a drag claims it, `@bible/ui/press`).
+  // A lifted finger's name lingers on one hide timer: a name shown since
+  // drops it, so an older linger never hides a newer name.
+  const tipTimers = timersOn(host);
+  let lingering = Option.none<number>();
+  const hideLater = () => {
+    lingering = Option.some(tipTimers.set(() => (tip.hidden = true), TIP_READ_MS));
+  };
+  const showTip = (target: EventTarget | null) => {
+    const name = target instanceof HTMLElement ? target.dataset['name'] : undefined;
     if (name === undefined) return;
-    const t = e.target instanceof HTMLElement ? e.target.getBoundingClientRect() : undefined;
+    Option.map(lingering, tipTimers.clear);
+    lingering = Option.none();
+    const t = target instanceof HTMLElement ? target.getBoundingClientRect() : undefined;
     const b = bar.getBoundingClientRect();
     tip.textContent = name;
     tip.hidden = false;
     tip.style.left = `${(t?.left ?? 0) + (t?.width ?? 0) / 2 - b.left}px`;
     tip.style.top = `${track.offsetTop - 26}px`;
+  };
+  track.addEventListener('pointerover', (e) => {
+    if (e.pointerType === 'mouse') showTip(e.target);
   });
-  track.addEventListener('pointerout', () => {
-    tip.hidden = true;
+  track.addEventListener('pointerout', (e) => {
+    if (e.pointerType === 'mouse') tip.hidden = true;
   });
+  // A finger held on a tick (not a mouse, which hovers) names it as the
+  // long press would open a menu: the press is claimed for the name, so it
+  // scrubs no further; lifted, the name stays a moment to be read.
+  const TICK_NAME = Symbol('tick-name');
+  const holdTick = (e: PointerEvent): (() => void) => {
+    const held = e.target;
+    const named = held instanceof HTMLElement && held.dataset['name'] !== undefined;
+    if (e.pointerType === 'mouse' || !named) return () => undefined;
+    let shown = false;
+    const timer = tipTimers.set(() => {
+      shown = claimPress(e.pointerId, TICK_NAME, document);
+      if (shown) showTip(held);
+    }, LONG_PRESS_DELAY);
+    return () => {
+      tipTimers.clear(timer);
+      if (shown) hideLater();
+    };
+  };
 
   // The narration says what it can play once it knows (a missing master, a
   // play refused until a click), and the time line says it.
@@ -421,8 +426,11 @@ export const mountPreview = (
     head.style.left = `${(T / film.duration) * 100}%`;
     const shownRate = rate === 1 ? '' : ` · ${rate}× muted`;
     const shownLoop =
-      loop === undefined ? '' : ` · loop ${loop.from.toFixed(2)}–${loop.to.toFixed(2)}`;
-    timeEl.textContent = `${T.toFixed(2)} / ${film.duration.toFixed(1)}s · f${Math.round(T * film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
+      loop === undefined
+        ? ''
+        : ` · loop ${timecode(loop.from, film.fps)}–${timecode(loop.to, film.fps)}`;
+    timecodeEl.textContent = timecode(T, film.fps);
+    lengthEl.textContent = ` / ${timecode(film.duration, film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
@@ -501,8 +509,17 @@ export const mountPreview = (
     const r = track.getBoundingClientRect();
     const move = (ev: PointerEvent) => scrub(((ev.clientX - r.left) / r.width) * film.duration);
     move(e);
+    const letGo = holdTick(e);
     Effect.runForkWith(host)(
-      Pointer.use((pointer) => pointer.drag(e, { move, end: () => url.settled() })),
+      Pointer.use((pointer) =>
+        pointer.drag(e, {
+          move,
+          end: () => {
+            letGo();
+            url.settled();
+          },
+        }),
+      ),
     );
   });
   playBtn.addEventListener('click', toggle);
@@ -559,6 +576,23 @@ export const mountPreview = (
     keysLine.hidden = !keysLine.hidden;
     legendButton.setAttribute('aria-expanded', String(!keysLine.hidden));
   };
+  // The lab's transport steps a frame at a time by touch too (AA-8): the
+  // frame keys' own commands, as a pair beside play.
+  if (page === 'lab') {
+    const step = (id: string, glyph: string, label: string) => {
+      const button = document.createElement('button');
+      button.dataset['act'] = id;
+      button.textContent = glyph;
+      button.setAttribute('aria-label', label);
+      button.title = `${label} (${keyOf(id)})`;
+      button.addEventListener('click', () => hub.invokeId(id, BY_BUTTON));
+      return button;
+    };
+    playBtn.after(
+      step('play.frame-previous', '◀', 'Previous frame'),
+      step('play.frame-next', '▶', 'Next frame'),
+    );
+  }
   if (page === 'player') {
     legendButton.setAttribute('aria-expanded', 'false');
     legendButton.addEventListener('click', toggleLegend);

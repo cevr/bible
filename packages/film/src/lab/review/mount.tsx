@@ -1,125 +1,143 @@
-// The review page's entry (`/`, served by `film lab`): the header (where the page is,
-// and its tools), the page itself, and the lightbox, in Solid 2 over the
-// review's routes on the page's own origin.
+// The review page's entry (`/`, served by `film lab`): the studio's shell
+// (`PageShell`: the film switcher, the page bar, a drill-down crumb, Go
+// to…), the page itself, and the lightbox, in Solid 2 over the review's
+// routes on the page's own origin.
 
-import { For, Show, render } from '@solidjs/web';
-import { Location } from '@bible/url-state';
+import { type JSX, Show, render } from '@solidjs/web';
+import { Location, parseHref } from '@bible/url-state';
 import { Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createEffect } from 'solid-js';
 import type { ReviewIndex } from '../../core/review.ts';
-import { Go, Root, useReview } from './context.tsx';
+import { Root, useReview } from './context.tsx';
 import { Inspecting } from './inspector.tsx';
-import { folderTitle, pressed } from './format.ts';
-import { type ReviewPlace, ReviewPlace as Place } from './place.ts';
+import { folderTitle } from './format.ts';
+import { type ReviewPlace, placeOf } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, SetPage } from './section.tsx';
 import { REVIEW_CSS } from './style.ts';
-import { pageHref } from '../../core/api.ts';
+import { type Part, pageAt } from '../../core/api.ts';
 import { type Host, addressOn, hostOf } from '../../browser/host.ts';
 import { BrowserHost } from '../../browser/host-browser.ts';
 import { TabStore, ViewerStore } from '../../browser/storage-browser.ts';
 import { type Hub, makeHub } from '../../command/hub.ts';
-import { BY_BUTTON } from '../../command/command.ts';
-import { CommandMenu, GO_TO_COMMAND } from '../command/command-menu.tsx';
+import { CommandMenu } from '../command/command-menu.tsx';
 import { KeysSheet } from '../command/keys-sheet.tsx';
 import { Receipts } from '../command/receipts.tsx';
 import { TargetMenu } from '../command/context-menu.tsx';
 import { COMMAND_CSS } from '../command/style.ts';
+import { PageShell } from '../page-shell.tsx';
+import { SHELL_CSS } from '../page-shell-style.ts';
+import { registerFace } from '../../player/face.ts';
 
-/** The trail to `place`: each step's title, and where it goes (none for the page itself). */
-interface Crumb {
-  readonly title: string;
-  readonly place: Option.Option<ReviewPlace>;
-}
+/** A folder's title from the index once read, else its ref. */
+const folderName = (index: Option.Option<ReviewIndex>, ref: string): string =>
+  Option.getOrElse(
+    Option.map(
+      Option.flatMap(index, (i) => Option.fromUndefinedOr(i.folders.find((f) => f.ref === ref))),
+      folderTitle,
+    ),
+    () => ref,
+  );
 
-/** The trail to `place`, titled from the index once read. */
-const crumbsOf = (place: ReviewPlace, index: Option.Option<ReviewIndex>): ReadonlyArray<Crumb> => {
-  const folderAt = (ref: string) =>
-    Option.flatMap(index, (i) => Option.fromUndefinedOr(i.folders.find((f) => f.ref === ref)));
-  const folder = (ref: string) =>
-    Option.getOrElse(Option.map(folderAt(ref), folderTitle), () => ref);
-  const set = (ref: string, point: string) =>
-    Option.getOrElse(
-      Option.flatMap(folderAt(ref), (f) =>
+/** A set's title from the index once read, else its point's id. */
+const setName = (index: Option.Option<ReviewIndex>, ref: string, point: string): string =>
+  Option.getOrElse(
+    Option.flatMap(index, (i) =>
+      Option.flatMap(Option.fromUndefinedOr(i.folders.find((f) => f.ref === ref)), (f) =>
         Option.map(Option.fromUndefinedOr(f.sets.find((s) => s.id === point)), (s) => s.title),
       ),
-      () => point,
-    );
-  return Match.value(place).pipe(
-    Match.tagsExhaustive({
-      Home: (): ReadonlyArray<Crumb> => [],
-      Folder: (p): ReadonlyArray<Crumb> => [{ title: folder(p.folder), place: Option.none() }],
-      Set: (p): ReadonlyArray<Crumb> => [
-        { title: folder(p.folder), place: Option.some(Place.Folder({ folder: p.folder })) },
-        { title: set(p.folder, p.point), place: Option.none() },
-      ],
-      Film: (p): ReadonlyArray<Crumb> => [{ title: `${p.film} · choices`, place: Option.none() }],
-      Project: (p): ReadonlyArray<Crumb> => [
-        { title: `${p.film} · project`, place: Option.none() },
-      ],
-    }),
-  );
-};
-
-/** The film a place is about (its choices or its project), for its lab link. */
-const filmOf = (place: ReviewPlace): Option.Option<string> =>
-  Match.value(place).pipe(
-    Match.tags({ Film: (p) => Option.some(p.film), Project: (p) => Option.some(p.film) }),
-    Match.orElse(() => Option.none()),
+    ),
+    () => point,
   );
 
 /**
- * The header: where the page is, the film's lab, and the one search button
- * (UR-4): ⌘K opened to type a name in, where the folders, sets and films are
- * found and Refresh and the copy played are commands (a phone's way to them).
+ * The film a folder of renders is of: the film its ref names in its last
+ * segment (`bible-tools/righteousness-by-faith`), when there is one.
  */
-const Header = () => {
-  const { state, meta } = useReview();
-  const crumbs = () => crumbsOf(state.place(), AsyncResult.value(state.index()));
-  createEffect(crumbs, (trail) => {
-    document.title = [...trail.map((c) => c.title).toReversed(), 'Lab'].join(' · ');
-  });
+const filmOfFolder = (ref: string, films: ReadonlyArray<string>): Option.Option<string> =>
+  Option.fromUndefinedOr(films.find((film) => ref === film || ref.endsWith(`/${film}`)));
+
+/** The film a place is about: a film's choices or project, or a set in that film's folder. */
+const filmOf = (place: ReviewPlace, films: ReadonlyArray<string>): Option.Option<string> =>
+  Match.value(place).pipe(
+    Match.tagsExhaustive({
+      Home: () => Option.none<string>(),
+      Folder: (p) => filmOfFolder(p.folder, films),
+      Set: (p) => filmOfFolder(p.folder, films),
+      Film: (p) => Option.some(p.film),
+      Project: (p) => Option.some(p.film),
+    }),
+  );
+
+/**
+ * The part a place sits under: a film's choices and project are theirs; a
+ * set sits under its film's Project when its folder names one (Frame.io's
+ * version stack on its asset), under Films otherwise, as a folder does.
+ */
+const partOf = (place: ReviewPlace, films: ReadonlyArray<string>): Part =>
+  Match.value(place).pipe(
+    Match.tagsExhaustive({
+      Home: (): Part => 'films',
+      Folder: (): Part => 'films',
+      Set: (p): Part =>
+        Option.match(filmOfFolder(p.folder, films), {
+          onNone: () => 'films',
+          onSome: () => 'project',
+        }),
+      Film: (): Part => 'choices',
+      Project: (): Part => 'project',
+    }),
+  );
+
+/** A place's depth below its part, for the crumb and the tab's title: a folder, a set's versions. */
+const depthOf = (place: ReviewPlace, index: Option.Option<ReviewIndex>): Option.Option<string> =>
+  Match.value(place).pipe(
+    Match.tags({
+      Folder: (p) => Option.some(folderName(index, p.folder)),
+      Set: (p) => Option.some(`${setName(index, p.folder, p.point)} · versions`),
+    }),
+    Match.orElse(() => Option.none<string>()),
+  );
+
+/**
+ * The review in the studio's shell: the part its place sits under, the film
+ * it is of, the films the switcher offers; a move to another of the review's
+ * places stays on the page (its players play on), any other part loads.
+ */
+const Shell = (props: { readonly children: JSX.Element }) => {
+  const { state, actions, meta } = useReview();
+  const films = () =>
+    Option.getOrElse(
+      Option.map(AsyncResult.value(state.films()), (f) => f.films),
+      (): ReadonlyArray<string> => [],
+    );
+  const index = () => AsyncResult.value(state.index());
+  const film = () => filmOf(state.place(), films());
+  const depth = () => depthOf(state.place(), index());
+  createEffect(
+    () => [...Option.toArray(depth()), ...Option.toArray(film()), 'Lab'],
+    (trail) => {
+      document.title = trail.join(' · ');
+    },
+  );
   return (
-    <header class="rv-header">
-      <nav class="rv-crumbs">
-        <Go place={Place.Home()}>
-          <b>Lab</b>
-        </Go>
-        <For each={crumbs()}>
-          {(crumb) => (
-            <>
-              <span class="rv-hint">/</span>
-              {Option.match(crumb.place, {
-                onNone: () => <b>{crumb.title}</b>,
-                onSome: (place) => <Go place={place}>{crumb.title}</Go>,
-              })}
-            </>
-          )}
-        </For>
-      </nav>
-      <span class="rv-spacer" />
-      <div class="rv-row rv-tools">
-        <Show when={Option.getOrUndefined(filmOf(state.place()))}>
-          {(film) => (
-            <a class="rv-chip" href={pageHref.lab(film())} data-act="lab">
-              Lab
-            </a>
-          )}
-        </Show>
-        <button
-          type="button"
-          class="rv-chip"
-          data-act="search"
-          aria-busy={pressed(AsyncResult.isWaiting(state.index()))}
-          title="Go to a folder, a set or a film, or run a command (/ or ⌘K)"
-          onClick={() => meta.hub.invokeId(GO_TO_COMMAND, BY_BUTTON)}
-        >
-          Search
-        </button>
-      </div>
-    </header>
+    <PageShell
+      part={() => partOf(state.place(), films())}
+      film={film}
+      crumb={depth}
+      films={films}
+      hub={meta.hub}
+      host={meta.host}
+      follow={(href) => {
+        if (!Option.contains(pageAt(parseHref(href).pathname), 'review')) return false;
+        actions.go(placeOf(href));
+        return true;
+      }}
+    >
+      {props.children}
+    </PageShell>
   );
 };
 
@@ -153,13 +171,14 @@ const Lightbox = () => {
   );
 };
 
-/** The review: its header, the page it is on, the lightbox, its context menu, the inspector, ⌘K, the `?` sheet and the receipts. */
+/** The review: its shell, the page it is on, the lightbox, its context menu, the inspector, ⌘K, the `?` sheet and the receipts. */
 const ReviewPage = (props: { readonly host: Host; readonly hub: Hub }) => (
   <Root host={props.host} hub={props.hub}>
     <TargetMenu hub={props.hub}>
       <Inspecting hub={props.hub}>
-        <Header />
-        <Page />
+        <Shell>
+          <Page />
+        </Shell>
         <Lightbox />
       </Inspecting>
       <CommandMenu hub={props.hub} />
@@ -179,8 +198,9 @@ export const mountReview = (): void => {
   Effect.runSyncWith(host)(
     Effect.gen(function* () {
       const style = document.createElement('style');
-      style.textContent = `${REVIEW_CSS}${COMMAND_CSS}`;
+      style.textContent = `${SHELL_CSS}${REVIEW_CSS}${COMMAND_CSS}`;
       document.head.append(style);
+      registerFace(document.fonts);
       document.body.classList.add('rv');
       const address = addressOn(host);
       const hub = yield* makeHub('review', address.href, ViewerStore);

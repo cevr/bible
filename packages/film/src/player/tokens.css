@@ -1,0 +1,148 @@
+/*
+ * The studio's design tokens: the one place a colour, a font family or a
+ * font size is written (design language §3). Every page links this sheet
+ * first; `player.css`, the review's and the commands' sheets and every
+ * component's inline style read only these names (`var(--…)`). Names are by
+ * role, never by colour. The UI face, JetBrains Mono, is registered from
+ * `face.ts`, so the lab's own routes answer its files.
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surface: dark warm grey, four steps. The picture sits on --surface-0. */
+  --surface-0: #0e0d0c; /* ground: the viewer, the gaps between panels */
+  --surface-1: #161513; /* panel */
+  --surface-2: #1e1c1a; /* header, field, raised row, tab bar */
+  --surface-3: #292724; /* hover, pressed, selected row */
+  --line: #2f2c29; /* hairline */
+  --line-strong: #45413b; /* field edge, focusable outline at rest */
+  --backdrop: rgb(0 0 0 / 0.5); /* behind a sheet */
+  --backdrop-deep: rgb(0 0 0 / 0.9); /* behind a lightbox */
+  --hatch: rgb(255 255 255 / 0.05); /* stripes over a band: narration estimated, not recorded */
+
+  /* Text: three steps. Never brighter than the picture's paper. */
+  --text-1: #e4dfd6; /* primary */
+  --text-2: #a19b91; /* secondary, labels */
+  --text-3: #6b665f; /* disabled, separators, hints */
+
+  /* One accent: playhead, selection, focus, the view's one primary verb. */
+  --accent: #e0ad45;
+  --accent-ink: #17120a;
+  --accent-wash: rgb(224 173 69 / 0.14);
+  --accent-wash-strong: rgb(224 173 69 / 0.4); /* a selected handle's fill */
+
+  /* Drawn over the picture: must read on any frame (the compare divider, marks' halo). */
+  --on-picture: #fff;
+  --on-picture-shade: rgb(0 0 0 / 0.55);
+  --fs-on-picture: 30px; /* a label drawn in the picture's own units (the compare divider's) */
+
+  /* State: each one meaning. */
+  --state-rendered: #8aa9c8; /* a render exists and is current */
+  --state-stale: #d9874a; /* Out of date */
+  --state-approved: #76c09a; /* approved, kept, recorded */
+  --state-findings: #e0705a; /* an error finding, refused, failed */
+  --state-warning: #d9b56a; /* a warning finding */
+  --state-recording: #e5484d; /* record armed / recording, clip */
+  --state-note: #f0609a; /* a note pin and its ink */
+  --state-agent: #7fc4c0; /* the agent's reply, a sound tick */
+  --state-scratch: var(--text-3); /* a staging take: Scratch */
+
+  /* Content colour: each scene's hue on bands, like a DAW's track colours. */
+  --scene-sat: 30%;
+  --scene-light: 32%;
+
+  /* Type: one monospace family, five sizes and one reading size. */
+  --font: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-features: 'calt' 0;
+  --fs-1: 10px;
+  --lh-1: 14px; /* tape and ruler labels, units, kbd */
+  --fs-2: 11px;
+  --lh-2: 16px; /* meta, panel titles, tab labels */
+  --fs-3: 12px;
+  --lh-3: 18px; /* laptop body, fields */
+  --fs-4: 13px;
+  --lh-4: 20px; /* phone body, fields */
+  --fs-5: 16px;
+  --lh-5: 22px; /* timecode, page title */
+  --fs-read: 18px;
+  --lh-read: 28px; /* the prompter only: text read aloud */
+  --w-1: 400;
+  --w-2: 500;
+  --w-3: 650;
+  --track-caps: 0.06em; /* letter-spacing for uppercase panel titles */
+
+  /* Space: a 4 px grid. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+
+  /* Shape. */
+  --r-1: 2px; /* fields, chips, stills, cue bars */
+  --r-2: 4px; /* buttons, menus, toasts */
+  --r-sheet: 12px; /* a phone sheet's top corners */
+  --border: 1px solid var(--line);
+  --shadow-pop: 0 8px 28px rgb(0 0 0 / 0.55); /* menus, sheets, toasts only; panels have none */
+  --focus-ring: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--accent);
+
+  /* Motion. */
+  --t-fast: 80ms;
+  --t-base: 140ms;
+  --t-sheet: 220ms;
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Density: comfortable on the phone (the default). */
+  --control-h: 36px;
+  --hit: 44px;
+  --row-h: 40px;
+  --header-h: 44px;
+  --tabbar-h: 56px;
+  --panel-head-h: 32px;
+  --inspector-w: 320px;
+  --gutter: 16px;
+  --body-fs: var(--fs-4);
+  --body-lh: var(--lh-4);
+}
+/* Compact on the laptop: a fine pointer and room. */
+@media (min-width: 900px) and (pointer: fine) {
+  :root {
+    --control-h: 24px;
+    --hit: 28px;
+    --row-h: 28px;
+    --header-h: 40px;
+    --panel-head-h: 28px;
+    --gutter: 12px;
+    --body-fs: var(--fs-3);
+    --body-lh: var(--lh-3);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --t-fast: 0ms;
+    --t-base: 0ms;
+    --t-sheet: 0ms;
+  }
+}
+
+/* The ground every page stands on: the face, ligatures off, tabular figures for every time and value. */
+html,
+body {
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: var(--font);
+  font-size: var(--body-fs);
+  line-height: var(--body-lh);
+  font-feature-settings: var(--font-features);
+  font-variant-numeric: tabular-nums;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  font-feature-settings: inherit;
+  font-variant-numeric: inherit;
+}

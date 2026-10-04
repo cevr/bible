@@ -261,6 +261,7 @@ const fakeFilm = (toy: Toy = freshToy(), undos: Array<FakeChange> = []) => {
             level: 'warning',
             tag: 'Balance',
             message: `the score sits under the voice at ${toy.picked}`,
+            address: { part: { _tag: 'Film' }, time: 2 },
           },
         ],
       }),
@@ -340,7 +341,8 @@ const FILM = pageHref.choices('toy');
 
 const click = (page: Tab, selector: string) => page.click(selector);
 
-const MIX = "document.querySelector('audio.rv-mix')?.getAttribute('src') ?? ''";
+// In parentheses: a check reads `${MIX}.endsWith(…)`, which must test the src, not the `''`.
+const MIX = "(document.querySelector('audio.rv-mix')?.getAttribute('src') ?? '')";
 
 /** A variant's element by its point and id. */
 const at = (point: string, id: string) => `[data-point="${point}"] [data-variant="${id}"]`;
@@ -368,13 +370,60 @@ const posted = (
     Option.flatMap(Option.fromUndefinedOr(asked.find((a) => a.path === path)), (a) => a.body),
   );
 
+/**
+ * The lab's wait for a film's mixes: the first wait answers `build` once
+ * `mixed` is done, every later one only once `never` is.
+ */
+const mixWait = (mixed: Deferred.Deferred<void>, never: Deferred.Deferred<void>, build: number) => {
+  let waits = 0;
+  return route('GET', /^\/api\/review\/build/, () => {
+    waits += 1;
+    if (waits === 1) return later(mixed, json({ build, server: 'lab' }));
+    return later(never, json({ build, server: 'lab' }));
+  });
+};
+
+/** A score pick of piano whose answer stamps the mix it made `build`, as the lab's does. */
+const stampedPick = (toy: Toy, build: number) =>
+  route('POST', /^\/api\/films\/toy\/choices\/pick$/, () => {
+    toy.picked = 'piano';
+    return json({
+      file: 'sound.ts',
+      target: 'score play piano',
+      change: changeOf('score play piano'),
+      choices: choices(toy),
+      findings: [],
+      mixed: { build, server: 'lab' },
+    });
+  });
+
+/** How many times the film's steps were read. */
+const stepsRead = (asked: ReadonlyArray<{ readonly method: string; readonly path: string }>) =>
+  asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/steps').length;
+
+/** Wait, on the test's side, until `done` holds. */
+const holds = (done: () => boolean) =>
+  Effect.void.pipe(
+    Effect.repeat({ until: done, schedule: Schedule.spaced('50 millis') }),
+    Effect.timeout('10 seconds'),
+  );
+
 describe("a film's choices", () => {
   it.live(
-    'home links the film; its page hears the picked option over the render, and 🔊 swaps it',
+    "home's film card opens its choices; its page hears the picked option over the render, and 🔊 swaps it",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm());
-        yield* click(page, `a.rv-chip[href="${FILM}"]`);
+        // A film card opens its choices from its context menu, which offers each of its parts.
+        yield* rightClick(page, '.rv-film-card[data-film="toy"]');
+        yield* evaluates(page, `${MENU_ITEMS}.filter((id) => id.startsWith('film.'))`, [
+          'film.scenes',
+          'film.lab',
+          'film.choices',
+          'film.project',
+          'film.play',
+        ]);
+        yield* click(page, '[data-role="context-menu"] [data-command="film.choices"]');
         yield* until(page, `location.pathname === '${FILM}'`);
         yield* waitFor(page, '.rv-transport');
         yield* waitFor(page, '.rv-picture video');
@@ -398,12 +447,27 @@ describe("a film's choices", () => {
           page,
           `${MIX}.startsWith('/api/films/toy/choices/mix?point=take%3Apaper.page&variant=${WAITING}')`,
         );
+        // Alone: no player bar per take, one ▶ on the film's one alone player (UR-52).
+        yield* countIs(page, 'audio[controls]', 0);
+        yield* click(page, `${at('take:paper.page', WAITING)} [data-act="hear-alone"]`);
         yield* attributeIs(
           page,
-          `${at('take:paper.page', WAITING)} audio`,
+          'audio.rv-alone',
           'src',
           `/api/films/toy/choices/alone?point=take%3Apaper.page&variant=${WAITING}`,
         );
+        yield* waitFor(
+          page,
+          `${at('take:paper.page', WAITING)} [data-act="hear-alone"][aria-pressed="true"]`,
+        );
+        // Pressed again it stops; the clock played, it stops too.
+        yield* click(page, `${at('take:paper.page', WAITING)} [data-act="hear-alone"]`);
+        yield* countIs(page, 'audio.rv-alone', 0);
+        yield* click(page, `${at('take:paper.page', WAITING)} [data-act="hear-alone"]`);
+        yield* countIs(page, 'audio.rv-alone', 1);
+        yield* click(page, '.rv-transport [data-act="play"]');
+        yield* countIs(page, 'audio.rv-alone', 0);
+        yield* click(page, '.rv-transport [data-act="play"]');
         // The picture's own sound: no mix, the picture heard.
         yield* click(page, '.rv-picture [data-act="hear"]');
         yield* until(page, "document.querySelector('audio.rv-mix') === null");
@@ -415,7 +479,261 @@ describe("a film's choices", () => {
           page,
           '[data-role="context-menu"] [data-command="review.mark.take:paper.page.0"]',
         );
-        yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
+        yield* until(
+          page,
+          "document.querySelector('.rv-time').textContent.startsWith('00:00:02:00')",
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a second tab hears another tab's pick: the film mixed again, it reads its choices again and asks its mix again",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        // The lab's wait: the film's track mixed again once the other tab's pick lands, then nothing.
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        let waits = 0;
+        const build = route('GET', /^\/api\/review\/build/, () => {
+          waits += 1;
+          if (waits === 1) return later(mixed, json({ build: 1, server: 'lab' }));
+          return later(never, json({ build: 1, server: 'lab' }));
+        });
+        const { page, errors } = yield* openReview([build, ...fakeFilm(toy)], {
+          href: FILM,
+          build: { build: 0, server: 'lab' },
+        });
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=0')`);
+        // Another tab picks piano: the source changes and the lab mixes the track again.
+        toy.picked = 'piano';
+        yield* Deferred.done(mixed, Exit.void);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a mix made elsewhere with the same choices (a fade remixed, a change another tab made and undid) is asked again, and the steps read again',
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const undos: Array<FakeChange> = [];
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        let waits = 0;
+        const build = route('GET', /^\/api\/review\/build/, () => {
+          waits += 1;
+          if (waits === 1) return later(mixed, json({ build: 1, server: 'lab' }));
+          return later(never, json({ build: 1, server: 'lab' }));
+        });
+        const { page, asked, errors } = yield* openReview([build, ...fakeFilm(toy, undos)], {
+          href: FILM,
+          build: { build: 0, server: 'lab' },
+        });
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=0')`);
+        const stepsRead = () =>
+          asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/steps').length;
+        const before = stepsRead();
+        // Elsewhere the film is remixed and a change is left to undo, the choices as they were.
+        undos.push({ target: 'bed amb.hall fade 2', file: 'sound.ts', back: () => {} });
+        yield* Deferred.done(mixed, Exit.void);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        yield* Effect.void.pipe(
+          Effect.repeat({
+            until: () => stepsRead() > before,
+            schedule: Schedule.spaced('50 millis'),
+          }),
+          Effect.timeout('10 seconds'),
+        );
+        expect(stepsRead()).toBeGreaterThan(before);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a mix heard past this tab's own (another tab's fade remixed in the same settle) is asked again, though the choices did not move",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        const { page, errors } = yield* openReview(
+          [mixWait(mixed, never, 2), stampedPick(toy, 1), ...fakeFilm(toy)],
+          { href: FILM, build: { build: 0, server: 'lab' } },
+        );
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=0')`);
+        // This tab's pick lands with the mix it made, stamped 1: its mix is asked again.
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        // One wake for that mix and another tab's fade remixed within the settle: stamped 2.
+        yield* Deferred.done(mixed, Exit.void);
+        yield* until(page, `${MIX}.endsWith('&v=2')`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a mix heard at this tab's own write's stamp asks nothing again: the mix it asked plays on",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        const { page, asked, errors } = yield* openReview(
+          [mixWait(mixed, never, 1), stampedPick(toy, 1), ...fakeFilm(toy)],
+          { href: FILM, build: { build: 0, server: 'lab' } },
+        );
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        const before = stepsRead(asked);
+        // The wake is the pick's own mix: heard (the steps read again), its mix not asked again.
+        yield* Deferred.done(mixed, Exit.void);
+        yield* holds(() => stepsRead(asked) > before);
+        yield* page.clock.runFor(100);
+        yield* evaluates(page, `${MIX}.endsWith('&v=1')`, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a mix made elsewhere after a write that mixed nothing and one refused is asked again',
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        const refusedPick = route('POST', /^\/api\/films\/toy\/choices\/pick$/, (asked) => {
+          if (bodyText(asked.body).includes('look:ground')) {
+            toy.look = 'light';
+            return json({
+              file: 'palette.ts',
+              target: 'look ground play light',
+              change: changeOf('look ground play light'),
+              choices: choices(toy),
+              findings: [],
+            });
+          }
+          return refused(
+            SourceRefused.make({ file: 'sound.ts', target: 'play', reason: 'computed' }),
+          );
+        });
+        const { page, errors } = yield* openReview(
+          [mixWait(mixed, never, 1), refusedPick, ...fakeFilm(toy)],
+          { href: FILM, build: { build: 0, server: 'lab' } },
+        );
+        yield* waitFor(page, `${at('look:ground', 'now')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=0')`);
+        // A look picked: a source write, its answer stamping no mix (it made none).
+        yield* click(page, `${at('look:ground', 'light')} [data-act="pick"]`);
+        yield* waitFor(page, `${at('look:ground', 'light')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        // A score pick refused: it wrote nothing.
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* attributeIs(page, RECEIPT, 'data-type', 'refused');
+        // Another tab's fade remixed, the choices as they were: the mix is asked again.
+        yield* Deferred.done(mixed, Exit.void);
+        yield* until(page, `${MIX}.endsWith('&v=2')`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a comment answered before a mix's read of the choices leaves the mix asked again and the steps read, and the comment shown",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        const answer = yield* Deferred.make<void>();
+        let reads = 0;
+        // The first read answers at once; the read after the mix waits on the test.
+        const held = route('GET', /^\/api\/films\/toy\/choices$/, () => {
+          reads += 1;
+          if (reads === 1) return json(choices(toy));
+          return later(answer, json(choices(toy)));
+        });
+        const { page, asked, errors } = yield* openReview(
+          [mixWait(mixed, never, 1), held, ...fakeFilm(toy)],
+          { href: FILM, build: { build: 0, server: 'lab' } },
+        );
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=0')`);
+        yield* inspect(page, at('score', 'strings'));
+        const before = stepsRead(asked);
+        // The film is mixed elsewhere: its choices are read again, and the read is held…
+        yield* Deferred.done(mixed, Exit.void);
+        yield* holds(() => reads >= 2);
+        // …while a comment, asked after it, lands first: the read's choices are older.
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'warmer in the close');
+        yield* click(page, `${INSPECTOR} [data-act="comment"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
+        yield* Deferred.done(answer, Exit.void);
+        // The mix and the steps are the mix's to refresh, whoever's choices are shown.
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        yield* holds(() => stepsRead(asked) > before);
+        yield* page.clock.runFor(100);
+        yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a film's read again after a mix elsewhere stops with its page: left for another, nothing it asked lands",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        const answer = yield* Deferred.make<void>();
+        let waits = 0;
+        let reads = 0;
+        const build = route('GET', /^\/api\/review\/build/, () => {
+          waits += 1;
+          if (waits === 1) return later(mixed, json({ build: 1, server: 'lab' }));
+          return later(never, json({ build: 1, server: 'lab' }));
+        });
+        // The first read answers at once; the read after the mix waits on the test.
+        const held = route('GET', /^\/api\/films\/toy\/choices$/, () => {
+          reads += 1;
+          if (reads === 1) return json(choices(toy));
+          return later(answer, json(choices(toy)));
+        });
+        const { page, asked, errors } = yield* openReview([build, held, ...fakeFilm(toy)], {
+          href: FILM,
+          build: { build: 0, server: 'lab' },
+        });
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        // Another tab picks piano and the film is mixed again: this page reads its choices again…
+        toy.picked = 'piano';
+        yield* Deferred.done(mixed, Exit.void);
+        yield* Effect.void.pipe(
+          Effect.repeat({ until: () => reads >= 2, schedule: Schedule.spaced('50 millis') }),
+          Effect.timeout('10 seconds'),
+        );
+        // …and is left for Films, in the page (the shell's link), before the read answers.
+        yield* click(page, '.sh-films');
+        yield* until(page, `location.pathname === '${pageHref.home()}'`);
+        yield* countIs(page, '[data-point]', 0);
+        const left = asked.length;
+        yield* Deferred.done(answer, Exit.void);
+        yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 800))');
+        expect(asked.slice(left).filter((a) => a.path.startsWith('/api/films/toy/'))).toEqual([]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -428,17 +746,17 @@ describe("a film's choices", () => {
         const { page, errors } = yield* openReview(fakeFilm(), { href: `${FILM}#t=2` });
         const time = "(document.querySelector('.rv-time')?.textContent ?? '')";
         yield* waitFor(page, '.rv-picture video');
-        yield* until(page, `${time}.startsWith('0:02.0')`);
+        yield* until(page, `${time}.startsWith('00:00:02:00')`);
         // A new hash is an entry of its own (the browser's), landed on as Back lands.
         yield* page.evaluate("location.hash = '#t=5'; true");
-        yield* until(page, `${time}.startsWith('0:05.0')`);
+        yield* until(page, `${time}.startsWith('00:00:05:00')`);
         yield* page.back;
         yield* until(page, "location.hash === '#t=2'");
-        yield* until(page, `${time}.startsWith('0:02.0')`);
+        yield* until(page, `${time}.startsWith('00:00:02:00')`);
         // Past the time's throttle, the entry still keeps its own time.
         yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
         yield* until(page, "location.hash === '#t=2'");
-        yield* until(page, `${time}.startsWith('0:02.0')`);
+        yield* until(page, `${time}.startsWith('00:00:02:00')`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -462,14 +780,20 @@ describe("a film's choices", () => {
         yield* page.goto(`${FILM}?heard=own#t=2`);
         yield* waitFor(page, '.rv-picture [data-act="hear"][aria-pressed="true"]');
         yield* until(page, "document.querySelector('audio.rv-mix') === null");
-        yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
+        yield* until(
+          page,
+          "document.querySelector('.rv-time').textContent.startsWith('00:00:02:00')",
+        );
         yield* page.goto(link);
         yield* waitFor(page, `${at('score', 'piano')} [data-act="hear"][aria-pressed="true"]`);
         yield* until(
           page,
           `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=piano')`,
         );
-        yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
+        yield* until(
+          page,
+          "document.querySelector('.rv-time').textContent.startsWith('00:00:02:00')",
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -509,13 +833,13 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         // Nothing to undo yet: the menu offers no Undo.
         yield* menuOffers(page, 'undo', 'review.undo', false);
         // No sound check before a pick.
         expect(asked.some((a) => a.path === '/api/films/toy/choices/check')).toBe(false);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
-        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
         // The receipt says what the pick moved, before → after, and offers its Undo.
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         yield* textIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 'Undo');
@@ -528,13 +852,26 @@ describe("a film's choices", () => {
           variant: 'piano',
           verb: 'pick',
         });
-        // The sound check runs after the pick, and its findings are shown.
-        yield* waitFor(page, '[data-check="sound check"] summary[data-findings="1"]');
+        // The sound check runs after the pick: its count at rest, F walks the clock to its
+        // finding's time (UR-37/38), and the count opens the Findings sheet that lists it.
+        const soundCount = '[data-act="findings"][data-check="sound check"]';
+        yield* waitFor(page, `${soundCount}[data-findings="1"]`);
+        yield* countIs(page, '[data-role="findings"]', 0);
+        yield* page.press('f');
+        yield* until(page, "location.hash === '#t=2'");
+        yield* click(page, soundCount);
         yield* textHas(
           page,
-          '[data-check="sound check"] li',
+          '[data-role="findings"] [data-check="sound check"] li',
           'the score sits under the voice at piano',
         );
+        yield* textIs(
+          page,
+          '[data-role="findings"] [data-check="sound check"] .rv-at',
+          '00:00:02:00',
+        );
+        yield* click(page, '[data-act="close-findings"]');
+        yield* countIs(page, '[data-role="findings"]', 0);
         // Every mix is asked for again once the source has changed.
         yield* until(page, `${MIX}.endsWith('&v=1')`);
 
@@ -564,7 +901,7 @@ describe("a film's choices", () => {
         yield* openCommandMenu(page, 'undo');
         yield* textHas(page, menuEntry('review.undo'), 'Undo score play piano');
         yield* closeCommandMenu(page);
-        yield* countIs(page, `${at('score', 'piano')} .rv-badge`, 1);
+        yield* countIs(page, `${at('score', 'piano')} .rv-picked`, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -580,7 +917,7 @@ describe("a film's choices", () => {
         });
         const undone = () =>
           asked.filter((a) => a.method === 'POST' && a.path === '/api/films/toy/undo');
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         // A second quick edit, from another page on the film (the lab's editor): a level.
@@ -613,7 +950,7 @@ describe("a film's choices", () => {
         expect(undone().map((a) => a.body)).toEqual([
           Option.some({ change: changeOf('score play piano') }),
         ]);
-        yield* countIs(page, `${at('score', 'piano')} .rv-badge`, 1);
+        yield* countIs(page, `${at('score', 'piano')} .rv-picked`, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -627,7 +964,7 @@ describe("a film's choices", () => {
         const { page, asked, errors } = yield* openReview(fakeFilm(freshToy(), undos), {
           href: FILM,
         });
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         // The lab restarts: its history, kept in memory, is gone.
@@ -725,11 +1062,11 @@ describe("a film's choices", () => {
         ];
         const { page, asked } = yield* openReview([...tin, ...fakeFilm()], { href: FILM });
         const undone = () => asked.filter((a) => a.method === 'POST' && a.path.endsWith('/undo'));
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         yield* page.goto(pageHref.choices('tin'));
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         // Tin's own Undo is available, and names tin's change; the receipt is toy's.
         yield* menuOffers(page, 'undo', 'review.undo', true);
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
@@ -755,12 +1092,12 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         // The clock held: the long press's delay passes only as the test runs it on.
         yield* page.clock.hold;
-        yield* touch(page, '.rv-header', 0);
+        yield* touch(page, '.sh-header', 0);
         yield* page.clock.runFor(700);
         yield* waitFor(page, '[data-role="context-menu"] [data-command="review.undo"]');
         yield* textHas(page, '[data-role="context-menu"] [data-command="review.undo"]', 'Undo');
@@ -793,7 +1130,7 @@ describe("a film's choices", () => {
         const { page, asked, errors } = yield* openReview([lateRead, ...routes], {
           href: FILM,
         });
-        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* receiptSays(page, 'Picked piano');
         // Once the steps are read again, ⌘Z undoes it, as the menu's Undo would.
@@ -846,7 +1183,7 @@ describe("a film's choices", () => {
         yield* evaluates(page, sameMix, true);
         // A pick changes the source: the mix is asked for again, the picture plays on.
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
-        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
         yield* until(page, `${MIX}.endsWith('&v=1')`);
         yield* evaluates(page, same, true);
         expect(errors).toEqual([]);
@@ -886,7 +1223,7 @@ describe("a film's choices", () => {
           false,
         );
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
-        yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
         // The pick's answer is not the comment's: its box keeps the text.
         yield* evaluates(page, `document.querySelector('${box}').value`, 'warmer in the close');
         // The comment lands: the page shows it, and its box empties.
@@ -933,7 +1270,7 @@ describe("a film's choices", () => {
           { href: FILM },
         );
         const knob = '[data-knob="level:const:PAPER"]';
-        const findings = '[data-check="check"] summary';
+        const findings = '[data-act="findings"][data-check="check"]';
         yield* waitFor(page, `${knob} input`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* Effect.sync(() => asked.some((a) => a.path === '/api/films/toy/choices/pick')).pipe(
@@ -1020,9 +1357,9 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
-        yield* waitFor(page, `${at('look:ground', 'now')} .rv-badge`);
+        yield* waitFor(page, `${at('look:ground', 'now')} .rv-picked`);
         yield* click(page, `${at('look:ground', 'light')} [data-act="pick"]`);
-        yield* waitFor(page, `${at('look:ground', 'light')} .rv-badge`);
+        yield* waitFor(page, `${at('look:ground', 'light')} .rv-picked`);
         expect(posted(asked, '/api/films/toy/choices/pick')).toEqual({
           point: 'look:ground',
           variant: 'light',
@@ -1182,6 +1519,33 @@ describe("a film's choices", () => {
         yield* waitFor(page, '.rv-picture [data-proxy="pending"]');
         yield* textHas(page, '.rv-picture [data-proxy="pending"]', 'Proxy being made');
         yield* countIs(page, '.rv-picture video', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "lists its points one under another across the page, each variant's verbs on its name's row",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), {
+          href: FILM,
+          viewport: { width: 1440, height: 900 },
+        });
+        const take = at('take:paper.page', WAITING);
+        yield* waitFor(page, `${take} [data-act="pick"]`);
+        // Every card is as wide as the page's column: no column of cards beside an empty two.
+        yield* evaluates(
+          page,
+          "(() => { const main = document.querySelector('.rv-main').getBoundingClientRect().width; return [...document.querySelectorAll('.rv-option')].every((c) => c.getBoundingClientRect().width >= main - 64); })()",
+          true,
+        );
+        // A row is one line of the list: its verb sits level with its name, at the row's end.
+        yield* evaluates(
+          page,
+          `(() => { const name = document.querySelector('${take} .rv-name').getBoundingClientRect(); const pick = document.querySelector('${take} [data-act="pick"]').getBoundingClientRect(); const row = document.querySelector('${take}').getBoundingClientRect(); return pick.top < name.bottom && row.right - pick.right < 48; })()`,
+          true,
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

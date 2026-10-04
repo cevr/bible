@@ -35,7 +35,7 @@ import {
   topicAt,
 } from './catalogue.ts';
 import { PointId, PointRef, pointIdOf } from './point.ts';
-import { CheckLine, Seconds, maybe } from './schema.ts';
+import { CheckLine, Seconds, maybe, mixedField } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
 /** What a choice point chooses between; each kind has one adapter. */
@@ -349,6 +349,7 @@ export const ChoiceWrite = Schema.Struct({
   change: Schema.optionalKey(Schema.String),
   choices: FilmChoices,
   findings: Schema.Array(CheckLine),
+  ...mixedField,
 });
 export type ChoiceWrite = typeof ChoiceWrite.Type;
 

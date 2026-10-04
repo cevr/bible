@@ -24,6 +24,7 @@ import {
   route,
 } from '../../../src/lab/fixtures/harness.ts';
 import { ServerFailed } from '../../../src/core/api.ts';
+import { timecode } from '../../../src/core/time.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
@@ -144,7 +145,7 @@ describe('marking a frame', () => {
         const at = yield* onFrame(page, 520, 300);
         yield* page.mouse.click(at.x, at.y);
         yield* waitFor(page, '.lab-compose:not([hidden])');
-        yield* textHas(page, '.lab-where', 'one · 1.00s · f30');
+        yield* textHas(page, '.lab-where', 'one · 00:00:01:00 · ');
         yield* attached(page, '.lab-overlay circle.lab-draft');
         yield* save(page, 'the ball rises too early');
         yield* waitFor(page, '.lab-notes .lab-note-item.selected[data-id="n1"]');
@@ -224,7 +225,7 @@ describe('marking a frame', () => {
         yield* page.mouse.up;
         yield* page.press('n');
         yield* waitFor(page, '.lab-compose:not([hidden])');
-        yield* textHas(page, '.lab-where', 'one · 1.00s');
+        yield* textHas(page, '.lab-where', 'one · 00:00:01:00');
         expect(posted(asked, /^\/notes$/)).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -350,7 +351,7 @@ describe('marking a frame', () => {
         yield* textIs(page, '[data-act="note-frame"]', 'Note frame');
         yield* click(page, '[data-act="note-frame"]');
         yield* waitFor(page, '.lab-compose:not([hidden])');
-        yield* textHas(page, '.lab-where', 'one · 1.00s · f30');
+        yield* textHas(page, '.lab-where', 'one · 00:00:01:00 · ');
         yield* save(page, 'the whole frame is too dark');
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         const body = theNote(asked);
@@ -402,9 +403,10 @@ describe("a note's place", () => {
         });
         const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(1, [stale]))], {
           href: labAt(3),
+          mode: 'note',
         });
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
-        yield* textHas(page, '.lab-note-label', `two · ${shown.toFixed(2)}s`);
+        yield* textHas(page, '.lab-note-label', `two · ${timecode(shown)}`);
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
         yield* evaluates(page, `Math.round(${URL_T} * ${film.fps})`, Math.round(shown * film.fps));
         yield* attached(page, '.lab-overlay rect.lab-note');
@@ -419,6 +421,7 @@ describe("a note's place", () => {
         const notes = [noteJson('n1'), noteJson('n2')];
         const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(1, notes))], {
           href: labAt(1),
+          mode: 'note',
         });
         for (const id of ['n1', 'n2']) {
           yield* click(page, `.lab-note-item[data-id="${id}"] .lab-note-text`);
@@ -456,7 +459,11 @@ describe("a note's place", () => {
         yield* page.mouse.up;
         yield* waitFor(page, '[data-role="in-out"]');
         yield* page.press('n');
-        yield* textIs(page, '[data-role="note-scope"] .lab-scope-text', 'one · rise · t 0.5–1.0 s');
+        yield* textIs(
+          page,
+          '[data-role="note-scope"] .lab-scope-text',
+          'one · rise · 00:00:00:15–00:00:01:00',
+        );
         yield* save(page, 'the rise starts too late');
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         const body = theNote(asked);
@@ -495,7 +502,7 @@ describe('the thread', () => {
             route('POST', /^\/notes\/n1\/reply$/, () => json(noteJson('n1'))),
             route('POST', /^\/notes\/n1\/resolve$/, () => json(noteJson('n1'))),
           ],
-          { href: labAt(3) },
+          { href: labAt(3), mode: 'note' },
         );
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
@@ -537,7 +544,7 @@ describe('the feed', () => {
               });
             }),
           ],
-          { href: labAt(1) },
+          { href: labAt(1), mode: 'note' },
         );
         yield* waitFor(page, '.lab-note-item[data-id="n1"] .lab-reply.agent');
         yield* textIs(page, '.lab-reply.agent .lab-reply-text', 'moved rise to {lift}');
@@ -561,7 +568,7 @@ describe('the feed', () => {
               return notesFile(0, []);
             }),
           ],
-          { href: labAt(1) },
+          { href: labAt(1), mode: 'note' },
         );
         // The feed says nothing while it connects again, before the read goes
         // out, so the test waits for the read that succeeds, not the quiet.
@@ -593,6 +600,7 @@ describe('walking the notes', () => {
       Effect.gen(function* () {
         const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(3, three))], {
           href: labAt(0.2),
+          mode: 'note',
         });
         yield* waitFor(page, '.lab-note-item[data-id="n3"]');
         yield* page.press('Shift+N');

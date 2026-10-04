@@ -262,9 +262,9 @@ describe.concurrent('scene writer', () => {
         latest: Option.some('knob palm'),
       });
       // Undo twice: the knob, then the ease.
-      expect((yield* source.undo('f')).target).toBe('undo knob palm');
+      expect((yield* source.undo('f'))[0].target).toBe('undo knob palm');
       expect(yield* read()).toBe(afterEase);
-      expect((yield* source.undo('f')).target).toBe('undo cue topple ease');
+      expect((yield* source.undo('f'))[0].target).toBe('undo cue topple ease');
       expect(yield* read()).toBe(before);
       // A page reloaded by the undo learns what it did here.
       expect(yield* targets).toEqual({
@@ -274,9 +274,9 @@ describe.concurrent('scene writer', () => {
       });
       expect((yield* Effect.flip(source.undo('f')))._tag).toBe('UndoUnavailable');
       // Redo twice: the ease, then the knob.
-      expect((yield* source.redo('f')).target).toBe('redo cue topple ease');
+      expect((yield* source.redo('f'))[0].target).toBe('redo cue topple ease');
       expect(yield* read()).toBe(afterEase);
-      expect((yield* source.redo('f')).target).toBe('redo knob palm');
+      expect((yield* source.redo('f'))[0].target).toBe('redo knob palm');
       expect(yield* read()).toBe(afterKnob);
       expect((yield* Effect.flip(source.redo('f')))._tag).toBe('RedoUnavailable');
       // A new write after an undo drops what could be redone.

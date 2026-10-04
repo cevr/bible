@@ -262,7 +262,7 @@ export const Section = () => {
     actions.focused(true);
   };
   return (
-    <Lab.Section class="lab-studio">
+    <Lab.Section class="lab-studio" mode="record">
       <div
         class="studio"
         tabindex="0"

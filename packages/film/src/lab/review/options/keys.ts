@@ -5,7 +5,7 @@
 // picks the variant heard while it is the one selected (a focused Pick on
 // another row keeps its own Enter). The instants the point plays at (UR-45):
 // `.` and `,` jump the clock to its next or previous one past the time
-// shown, and each is a `Jump to 0:04 · evidence in cold` in the card's
+// shown, and each is a `Jump to 00:00:04:00 · evidence in cold` in the card's
 // context menu and in ⌘K once typed, never at rest. A voice's pick refused
 // as heard as something else (`TakeMismatch`) offers Accept anyway: on its
 // receipt's button, in its row's context menu and in ⌘K, while that refusal
@@ -18,7 +18,7 @@ import { type Context, selectedAll } from '../../../command/context.ts';
 import { type Toward, walkFrom } from '../../../command/walk.ts';
 import type { ChoiceKind, ChoicePoint, ChoiceVariant, ChoiceVerb } from '../../../core/choice.ts';
 import type { LabFailure } from '../../api.ts';
-import { timeText } from '../machine.ts';
+import { timecode } from '../../../core/time.ts';
 import type { ChoiceAct } from './api.ts';
 
 /** A verb's button, as a kind names it: a take is kept, anything else picked. */
@@ -257,14 +257,14 @@ const acceptedOf = (deck: Deck, ctx: Context): Option.Option<InPlace> =>
 
 /**
  * Each instant every point plays at, as a jump in its card's context menu
- * (and in ⌘K once typed): `Jump to 0:04 · evidence in cold`, offered while
+ * (and in ⌘K once typed): `Jump to 00:00:04:00 · evidence in cold`, offered while
  * its point is the one selected and there is a picture to jump.
  */
 export const markCommands = (deck: Deck): ReadonlyArray<Command> =>
   deck.points().flatMap((point) =>
     point.marks.map((mark, i): Command => ({
       id: `review.mark.${point.id}.${i}`,
-      label: `Jump to ${timeText(mark.t)} · ${mark.label}`,
+      label: `Jump to ${timecode(mark.t)} · ${mark.label}`,
       group: 'Review',
       typed: true,
       about: ['Point', 'Variant'],

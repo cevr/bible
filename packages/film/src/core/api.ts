@@ -35,6 +35,7 @@ import {
   HttpApiSchema,
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
+import { isShortKey } from './shorts.ts';
 import { Project, RenderVariantName } from './catalogue.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
@@ -104,6 +105,7 @@ import {
   NotePost,
   NotesFile,
   NotesWait,
+  PageBuild,
   ReplyPost,
   SceneSource,
 } from './schema.ts';
@@ -596,15 +598,6 @@ class ProjectGroup extends HttpApiGroup.make('project').add(
 ) {}
 
 /**
- * The page's build: the number of the lab's pages as built now, past the
- * `since` a page was built at once the sources change, and the server that
- * numbered it (an id each lab process draws at its start): a page served by
- * another server is old code, whatever its number.
- */
-export const PageBuild = Schema.Struct({ build: Schema.Finite, server: Schema.String });
-export type PageBuild = typeof PageBuild.Type;
-
-/**
  * A look (`core/easel.ts`): stills of a scene as its sources stand, drawn by
  * a page the lab holds warm, written under the film's `out/<film>/look/` and
  * answered by their paths. A tool's call (`film look`), not a page's: it
@@ -809,7 +802,8 @@ export const Places = {
   choices: Place.make({
     path: '/films/:film/choices',
     params: filmParams,
-    query: Field.struct({ ...FILM_PLAYER, ...FILM_SHOWN }),
+    // The card in focus (`?point=`), as on the project: a link lands on it.
+    query: Field.struct({ point: cited, ...FILM_PLAYER, ...FILM_SHOWN }),
     hash: At,
   }),
   project: Place.make({
@@ -909,10 +903,11 @@ export const pageHref = {
       query: { view: 'all', other: '', m: 0 },
       hash: START,
     }),
-  choices: (film: string): string =>
+  /** A film's choices, with the card of `point` in focus. */
+  choices: (film: string, point = ''): string =>
     Place.href(Places.choices, {
       path: { film },
-      query: NOTHING_HEARD,
+      query: { point, ...NOTHING_HEARD },
       hash: START,
     }),
   /** A film's project, with the card of `point` in focus. */
@@ -942,6 +937,42 @@ export const pageHref = {
       hash: timeOf(t),
     }),
 };
+
+/**
+ * The studio's parts, in the page bar's order: Films (the home, every
+ * film's), then a film's Scenes, Lab, Choices, Project and Play. ⇧1-⇧6 go
+ * to them in this order.
+ */
+export const PARTS = ['films', 'scenes', 'lab', 'choices', 'project', 'play'] as const;
+export type Part = (typeof PARTS)[number];
+
+/** Each part's name, as the page bar prints it. */
+export const PART_TITLE: Readonly<Record<Part, string>> = {
+  films: 'Films',
+  scenes: 'Scenes',
+  lab: 'Lab',
+  choices: 'Choices',
+  project: 'Project',
+  play: 'Play',
+};
+
+/**
+ * Whether `film` has `part`: a film has every part; a short (`<film>/shorts/<id>`)
+ * is only played and seen as scenes, with no lab, choices or project of its own.
+ */
+export const hasPart = (film: string, part: Part): boolean =>
+  !isShortKey(film) || part === 'films' || part === 'scenes' || part === 'play';
+
+/** The page of `part` on `film`, at its defaults (Films names no film). */
+export const partHref = (part: Part, film: string): string =>
+  ({
+    films: () => pageHref.home(),
+    scenes: () => pageHref.scenes(film),
+    lab: () => pageHref.lab(film),
+    choices: () => pageHref.choices(film),
+    project: () => pageHref.project(film),
+    play: () => pageHref.play(film),
+  })[part]();
 
 /** A hash that is only a number (`#42.000`): the film time an old lab or player link carried. */
 const bareTime = (hash: string): Option.Option<number> =>

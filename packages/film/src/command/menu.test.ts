@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { Effect, Option } from 'effect';
 import { BY_BUTTON, type Command, quiet } from './command.ts';
 import { contextAt } from './context.ts';
-import { GO_TO, goToCommands } from './go.ts';
+import { pageHref } from '../core/api.ts';
+import { GO_TO, goToCommands, partCommands } from './go.ts';
 import { byGroup, contextRows, menuRows, sheetRows } from './menu.ts';
 import { walkFrom } from './walk.ts';
 
@@ -64,6 +65,40 @@ describe('Go to (AA-2)', () => {
     expect(go?.group).toBe(GO_TO);
     Effect.runSync(go?.run(ctx, BY_BUTTON) ?? Effect.succeed(quiet));
     expect(went).toEqual(['out/art']);
+  });
+
+  test("the studio's parts are commands on ⇧1-⇧6; a short has only Films, Scenes and Play", () => {
+    const went: Array<string> = [];
+    const parts = (film: string) =>
+      partCommands(
+        () => Option.some(film),
+        () => 'films',
+        (href) => went.push(href),
+      );
+    const open = (film: string) =>
+      parts(film)
+        .filter((c) => c.when(ctx))
+        .map((c) => c.id);
+    expect(parts('roofs').map((c) => [c.id, c.keys])).toEqual([
+      ['page.films', ['shift+1']],
+      ['page.scenes', ['shift+2']],
+      ['page.lab', ['shift+3']],
+      ['page.choices', ['shift+4']],
+      ['page.project', ['shift+5']],
+      ['page.play', ['shift+6']],
+    ]);
+    // The part the page is on is no move.
+    expect(open('roofs')).toEqual([
+      'page.scenes',
+      'page.lab',
+      'page.choices',
+      'page.project',
+      'page.play',
+    ]);
+    expect(open('roofs/shorts/hook')).toEqual(['page.scenes', 'page.play']);
+    const play = parts('roofs/shorts/hook').find((c) => c.id === 'page.play');
+    Effect.runSync(play?.run(ctx, BY_BUTTON) ?? Effect.succeed(quiet));
+    expect(went).toEqual([pageHref.play('roofs/shorts/hook')]);
   });
 });
 

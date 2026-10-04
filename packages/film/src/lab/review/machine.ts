@@ -24,6 +24,7 @@
 
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State, simulate } from 'effect-machine';
+import { timecode } from '../../core/time.ts';
 
 /** Seconds a ←/→ step moves. */
 export const STEP_S = 2;
@@ -214,25 +215,17 @@ export type SyncActor = Effect.Success<ReturnType<typeof spawnSync>>;
 /** Whether the videos should be running: only while playing (a stall holds them all). */
 export const runningOf = (state: SyncState): boolean => state._tag === 'Playing';
 
-/** Seconds as the transport shows them: `1:05.2`. */
-export const timeText = (seconds: number): string => {
-  const whole = Math.max(0, seconds);
-  const minutes = Math.floor(whole / 60);
-  const rest = (whole - minutes * 60).toFixed(1).padStart(4, '0');
-  return `${minutes}:${rest}`;
-};
-
-/** What the transport says of the clock: `0:12.3 / 0:25.0`, and when it waits on a video. */
+/** What the transport says of the clock, in timecode: `00:00:12:09 / 00:00:25:00`, and when it waits on a video. */
 export const clockText = (state: SyncState): string => {
   const end = Match.value(state.end >= UNKNOWN_END).pipe(
     Match.when(true, () => '…'),
-    Match.orElse(() => timeText(state.end)),
+    Match.orElse(() => timecode(state.end)),
   );
   const waiting = Match.value(state._tag).pipe(
     Match.when('Buffering', () => ' · waiting'),
     Match.orElse(() => ''),
   );
-  return `${timeText(state.t)} / ${end}${waiting}`;
+  return `${timecode(Math.max(0, state.t))} / ${end}${waiting}`;
 };
 
 /** The scrub bar's reach: the first video's end once known, else where the clock is. */

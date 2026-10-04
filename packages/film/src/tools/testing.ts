@@ -7,6 +7,7 @@ import {
   ByteSize,
   ConfigProvider,
   Context,
+  DateTime,
   Effect,
   Exit,
   FileSystem,
@@ -138,7 +139,11 @@ const writeInto = (
 const byteCount = (input: ByteSize.Input): number =>
   Number(ByteSize.toBigInt(ByteSize.fromInputUnsafe(input)));
 
-const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) => {
+const memoryOps = (
+  files: Map<string, Uint8Array>,
+  folders = new Set<string>(),
+  mtimes: ReadonlyMap<string, number> = new Map(),
+) => {
   /** A folder under `/tmp` no other call has made: `<prefix><n>`. */
   const tempFolder = (prefix = 'tmp-') => {
     let n = 1;
@@ -224,12 +229,15 @@ const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) 
             .map((f) => f.slice(path.length + 1).split('/')[0] ?? ''),
         ),
       ]),
-    // A file's size and kind, as a file server reads them before it answers a range.
+    // A file's size and kind, as a file server reads them before it answers a range,
+    // and its mtime when the test keeps one (`mtimes`).
     stat: (path) =>
       Effect.fromOption(Option.fromNullishOr(files.get(path)), () => notFound('stat', path)).pipe(
         Effect.map((bytes): FileSystem.File.Info => ({
           type: 'File',
-          mtime: Option.none(),
+          mtime: Option.map(Option.fromUndefinedOr(mtimes.get(path)), (at) =>
+            DateTime.toDate(DateTime.makeUnsafe(at)),
+          ),
           atime: Option.none(),
           birthtime: Option.none(),
           dev: 0,
@@ -267,11 +275,15 @@ const memoryOps = (files: Map<string, Uint8Array>, folders = new Set<string>()) 
   } satisfies Partial<FileSystem.FileSystem>;
 };
 
-/** A file system over a map of path → bytes, and the set of folders made in it. */
+/**
+ * A file system over a map of path → bytes, the set of folders made in it,
+ * and the mtimes the test keeps (none for a file it keeps none for).
+ */
 export const memoryFileSystem = (
   files: Map<string, Uint8Array>,
   folders: Set<string> = new Set(),
-) => FileSystem.layerNoop(memoryOps(files, folders));
+  mtimes: ReadonlyMap<string, number> = new Map(),
+) => FileSystem.layerNoop(memoryOps(files, folders, mtimes));
 
 /**
  * A request for each of `routes` as a page on a foreign Host would send it:
@@ -576,9 +588,9 @@ export const noReview = Layer.mergeAll(
 );
 
 /**
- * The lab's pages as a test sees them: each answers its path, and a wait the
- * build it was asked past; the easel draws nothing (a look fails
- * `LookFailed`), since no browser runs.
+ * The lab's pages as a test sees them: each answers its path, a wait the
+ * build it was asked past, and no page hears a mix; the easel draws nothing
+ * (a look fails `LookFailed`), since no browser runs.
  */
 export const echoPages = Layer.mergeAll(
   Layer.succeed(
@@ -588,6 +600,7 @@ export const echoPages = Layer.mergeAll(
         HttpServerResponse.text(`page ${new URL(request.url, 'http://lab').pathname}`),
       ),
       wait: (served) => Effect.succeed({ build: served.since, server: 'echo' }),
+      heardAt: () => Effect.succeedNone,
       built: Effect.succeed({
         build: { build: 0, server: 'echo' },
         kept: 0,
@@ -1583,6 +1596,7 @@ const reviewFilmServices = (films: string, PICK = reviewPickIn(films)) =>
             file: PICK.file,
             target: `${asked.point} play ${asked.variant}`,
             change: Option.some(PICK),
+            mixed: Option.none(),
           }),
         knob: () => reviewUnused,
         say: () => Effect.succeed(REVIEW_CHOICES),
@@ -1620,7 +1634,11 @@ const reviewFilmServices = (films: string, PICK = reviewPickIn(films)) =>
       SourceWriter.of({
         write: () => reviewUnused,
         around: () => reviewUnused,
-        undo: () => Effect.succeed({ ...PICK, target: `undo ${PICK.target}` }),
+        undo: () =>
+          Effect.succeed([
+            { ...PICK, target: `undo ${PICK.target}` },
+            Option.none<number>(),
+          ] as const),
         redo: () => reviewUnused,
         history: () =>
           Effect.succeed({

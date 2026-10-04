@@ -1059,6 +1059,24 @@ export const HeadSource = Schema.Struct({
 });
 export type HeadSource = typeof HeadSource.Type;
 
+/**
+ * The page's build: the number of the lab's pages as built now, past the
+ * `since` a page was built at once the sources change, and the server that
+ * numbered it (an id each lab process draws at its start): a page served by
+ * another server is old code, whatever its number. A film's mix landing is
+ * numbered on the same count, so a page playing the film hears it as later.
+ */
+export const PageBuild = Schema.Struct({ build: Schema.Finite, server: Schema.String });
+export type PageBuild = typeof PageBuild.Type;
+
+/**
+ * The number the lab's pages hear the mix a write made by (a `PageBuild`),
+ * the mix that write landed and no later one: a page that asked its mix
+ * again once the write answered need not again when it hears that number.
+ * None when the write mixed nothing, or no page listens for the film's mixes.
+ */
+export const mixedField = { mixed: Schema.optionalKey(PageBuild) } as const;
+
 /** What a lab write (or its undo) answers: what the file now declares, and the check after it. */
 export const LabWrite = Schema.Struct({
   /** The scene it changed (none for a film's own file: its score's pick, the library's lock), its file, and what changed: `cue topple offset`, `knob palm`, `undo cue topple offset`. */
@@ -1079,5 +1097,6 @@ export const LabWrite = Schema.Struct({
   knob: Schema.optionalKey(Knob),
   /** `film check --static`, run fresh after the write. */
   findings: Schema.Array(CheckLine),
+  ...mixedField,
 });
 export type LabWrite = typeof LabWrite.Type;

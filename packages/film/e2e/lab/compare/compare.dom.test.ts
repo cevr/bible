@@ -24,7 +24,7 @@ const clipIs = (page: Tab, want: string) =>
 describe('compare with HEAD', () => {
   it.live('a wipe shows HEAD left of a divider the pointer drags', () =>
     Effect.gen(function* () {
-      const { page, asked, errors } = yield* openLab([], { href: labAt(1) });
+      const { page, asked, errors } = yield* openLab([], { href: labAt(1), mode: 'compare' });
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, 'scenes/one.ts at HEAD');
@@ -47,7 +47,7 @@ describe('compare with HEAD', () => {
 
   it.live('turned off and on again, it reads HEAD again: a commit made since shows', () =>
     Effect.gen(function* () {
-      const { page, asked } = yield* openLab([], { href: labAt(1) });
+      const { page, asked } = yield* openLab([], { href: labAt(1), mode: 'compare' });
       const headReads = () => asked.filter((a) => a.path === '/scenes/one/head').length;
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
@@ -64,7 +64,7 @@ describe('compare with HEAD', () => {
 
   it.live("a blink flips HEAD's frame in and out", () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([], { href: labAt(1) });
+      const { page } = yield* openLab([], { href: labAt(1), mode: 'compare' });
       yield* page.waitFor('.lab-compare-tools [data-mode="blink"]');
       yield* click(page, '.lab-compare-tools [data-mode="blink"]');
       yield* page.waitFor('canvas.lab-compare:not([hidden])');
@@ -83,7 +83,7 @@ describe('compare with HEAD', () => {
             refused(HeadUnavailable.make({ file: 'scenes/one.ts', reason: 'not in git' })),
           ),
         ],
-        { href: labAt(1) },
+        { href: labAt(1), mode: 'compare' },
       );
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
@@ -108,7 +108,7 @@ describe('compare with HEAD', () => {
             }),
           ),
         ],
-        { href: labAt(1) },
+        { href: labAt(1), mode: 'compare' },
       );
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
@@ -121,7 +121,7 @@ describe('compare with HEAD', () => {
 
   it.live('a reload keeps the mode', () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([], { href: labAt(1) });
+      const { page } = yield* openLab([], { href: labAt(1), mode: 'compare' });
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, 'at HEAD');

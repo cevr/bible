@@ -10,6 +10,7 @@ import { type LabWrite } from '../core/schema.ts';
 import { answered } from './api-server.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
+import { mixedAnswer } from './lab-page.ts';
 import { type Change, SourceWriter, type StepAsk, madeChange } from './source-writer.ts';
 
 /** `film check --static` as the lab shows it, in a fresh process: a check that cannot run is itself a finding. */
@@ -19,12 +20,15 @@ const findings = (film: string) => FreshFilm.use((fresh) => fresh.check(film, 's
 const sceneField = (change: Change) =>
   Option.match(change.scene, { onNone: () => ({}), onSome: (scene) => ({ scene }) });
 
-/** What a write answers: the file relative to the film, the value as the file now reads, the check. */
+/**
+ * What a write answers: the file relative to the film, the value as the
+ * file now reads, the mix it made as a page hears it (`read`), the check.
+ */
 export const writeAnswer = Effect.fn('lab.writeAnswer')(function* <R>(
   film: string,
   written: Change,
   read: Effect.Effect<
-    Partial<Pick<LabWrite, 'span' | 'resolved' | 'unresolved' | 'knob'>>,
+    Partial<Pick<LabWrite, 'span' | 'resolved' | 'unresolved' | 'knob' | 'mixed'>>,
     never,
     R
   >,
@@ -45,15 +49,16 @@ export const writeAnswer = Effect.fn('lab.writeAnswer')(function* <R>(
 
 /**
  * Undo or Redo: the film's newest change put back, or its newest undone one
- * made again, answered as a write is, and recorded under the request's id
- * when the page sent one; asked for one change, only that one (`StepAsk`).
+ * made again, answered as a write is (the mix it made again among it), and
+ * recorded under the request's id when the page sent one; asked for one
+ * change, only that one (`StepAsk`).
  */
 const stepped = (name: string, verb: 'undo' | 'redo', ask: StepAsk) =>
   answered(
     Effect.gen(function* () {
       const film = yield* filmNamed(name);
-      const change = yield* (yield* SourceWriter)[verb](film, ask);
-      return yield* writeAnswer(film, change, Effect.succeed({}));
+      const [change, remade] = yield* (yield* SourceWriter)[verb](film, ask);
+      return yield* writeAnswer(film, change, mixedAnswer(film, remade));
     }),
   );
 

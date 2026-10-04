@@ -60,11 +60,13 @@ import {
 } from 'effect';
 import type { BunPlugin } from 'bun';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { type PageBuild, type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
+import { type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
+import type { PageBuild } from '../core/schema.ts';
 import type { PageAnswer } from './api-server.ts';
 import { isNarrationUrl, narrationPath } from './narration-route.ts';
 import { narrationUrls } from '../player/narrated.ts';
 import { serveFile } from './review-file.ts';
+import type { Remade } from './source-writer.ts';
 
 /** What the app builds its pages from. */
 export interface LabPageSpec {
@@ -315,6 +317,8 @@ const ARMING = Duration.millis(250);
 const MTIME_LAG = Duration.seconds(1);
 /** How often a wait builds again while the last build failed. */
 const RETRY = Duration.millis(500);
+/** How many of a track's counted mixes stay named (`heardAt`): a write's answer asks for its own soon after. */
+const COUNTED_KEPT = 8;
 
 /**
  * What a page asks its wait with: the build it was served, by which server
@@ -372,6 +376,14 @@ interface LabPageService {
    * another server.
    */
   readonly wait: (served: Served, timeout: Duration.Input) => Effect.Effect<PageBuild>;
+  /**
+   * The build a page playing `film` hears the mix that landed its track at
+   * mtime `at` by: the change that mix was counted as (counted now, when no
+   * watch has yet), so a write's answer names its own mix and no later one.
+   * None when no page listens for the film's mixes, or that mix was never
+   * counted (a later one landed before any watch saw it).
+   */
+  readonly heardAt: (film: string, at: number) => Effect.Effect<Option.Option<PageBuild>>;
   /**
    * The pages as the sources stand now, every save made before the call in
    * them, judged by content and not by mtime: the build answered, after any
@@ -437,6 +449,21 @@ export class LabPage extends Context.Service<LabPage, LabPageService>()(
   }
 }
 
+/**
+ * What a write's answer says of the mix it made of `film` (`mixedField`):
+ * the build a page hears that very mix by (`LabPage.heardAt`), from when it
+ * landed (`Remade`); nothing when it mixed nothing or no page hears it.
+ */
+export const mixedAnswer = (film: string, remade: Remade) =>
+  Effect.map(
+    Option.match(remade, {
+      onNone: () => Effect.succeedNone,
+      onSome: (at) => Effect.flatMap(LabPage, (page) => page.heardAt(film, at)),
+    }),
+    (heard): { readonly mixed?: PageBuild } =>
+      Option.match(heard, { onNone: () => ({}), onSome: (mixed) => ({ mixed }) }),
+  );
+
 const escapeHtml = (text: string) =>
   text.replace(
     /[&<>"]/g,
@@ -456,18 +483,29 @@ const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.String));
 /** How long the failed page waits before it asks again, on any answer that is not a newer build. */
 const FAILED_PAUSE_MS = 2000;
 
+/** The studio's tokens (`player/tokens.css`), which the failed page reads: it has no bundle to link. */
+const TOKENS_FILE = `${import.meta.dir}/../player/tokens.css`;
+
+/** The failed page's look over the studio's `tokens`: its words in the studio's face and colours. */
+const failedStyle = (tokens: string) =>
+  `${tokens}` +
+  'body{margin:0;padding:var(--s-6);background:var(--surface-0);color:var(--text-1);' +
+  'font-family:var(--font);font-size:var(--fs-3);line-height:var(--lh-3)}' +
+  'h1{font-size:var(--fs-5);line-height:var(--lh-5);font-weight:var(--w-3)}pre{white-space:pre-wrap}';
+
 /**
- * A failed build's page: the bundler's words, reloading itself once a build
- * past it answers, or one from another server; it pauses before asking
- * again on every other answer (a refusal, a proxy's 502, no answer).
+ * A failed build's page, in the studio's `tokens`: the bundler's words,
+ * reloading itself once a build past it answers, or one from another
+ * server; it pauses before asking again on every other answer (a refusal,
+ * a proxy's 502, no answer).
  */
-const failedPage = (reason: string, build: PageBuild) =>
+const failedPage = (reason: string, build: PageBuild, tokens: string) =>
   stamped(
-    `<!doctype html><html><head><meta charset="utf-8" /><title>Lab: the page did not build</title></head>`,
+    `<!doctype html><html><head><meta charset="utf-8" /><title>Lab: the page did not build</title><style>${failedStyle(tokens)}</style></head>`,
     build,
   ) +
-  `<body style="font:14px/1.5 ui-monospace,monospace;background:#121110;color:#eee;padding:24px">` +
-  `<h1 style="font-size:16px">The lab's page did not build</h1><pre style="white-space:pre-wrap">${escapeHtml(reason)}</pre>` +
+  `<body>` +
+  `<h1>The lab's page did not build</h1><pre>${escapeHtml(reason)}</pre>` +
   `<script>(async()=>{const S=${jsonText(build.server)},B=${build.build},` +
   `u=${jsonText(labUrls.page.wait({ query: { since: build.build, server: build.server } }))};` +
   `for(;;){try{const r=await fetch(u);if(r.ok){const b=await r.json();if(b.server!==S||b.build>B)return location.reload()}}catch{}` +
@@ -519,6 +557,8 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const bundler = yield* PageBundler;
   const scope = yield* Effect.scope;
   const server = yield* serverId;
+  // The tokens the failed page reads; a lab without them answers that page unstyled.
+  const tokens = yield* fs.readFileString(TOKENS_FILE).pipe(Effect.orElseSucceed(() => ''));
   // The changes seen, each one a page waiting past it hears (`heardBy`): a page is stamped with `n`.
   const changes = yield* SubscriptionRef.make<Changes>({ n: 0, all: 0, mixed: new Map() });
   // The number of changes at the last change to a file a build reads: a build made at or past
@@ -532,6 +572,13 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   // last and whole (a rename), so a new mtime is the mix finished, and a page loaded then
   // plays the new track.
   const masters = yield* Ref.make<ReadonlyMap<string, Option.Option<number>>>(new Map());
+  // Each track's mtimes as counted, newest last (COUNTED_KEPT of them), each with the change
+  // it was counted as: the build its film's pages hear that mix by (`heardAt`).
+  const counted = yield* Ref.make<ReadonlyMap<string, ReadonlyArray<readonly [number, number]>>>(
+    new Map(),
+  );
+  // One track's landing counted at a time, so a mtime is never seen before its count is kept.
+  const landing = yield* Semaphore.make(1);
   const films = path.resolve(spec.films);
   // Each folder watched, and the fiber watching it; changed by one at a time (a build, a track served).
   const watchers = yield* Ref.make<ReadonlyMap<string, Fiber.Fiber<void>>>(new Map());
@@ -611,22 +658,55 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * new mtime is one more change, which only its film's pages hear. The
    * mix always lands the track by a rename (`writeWholeWith` in mixer.ts,
    * then `fs.rename` onto it), never by writes in place, so one mix is one
-   * new mtime; a watch's event and a check after arming that both see it
-   * count it once.
+   * new mtime; a watch's event, a check after arming and a write asking
+   * for its own mix (`heardAt`) that all see it count it once, and keep the
+   * change it was counted as.
    */
   const landed = (master: string) =>
+    landing.withPermit(
+      Effect.gen(function* () {
+        const at = yield* mtimeOf(master);
+        if (Option.isNone(at)) return;
+        const fresh = yield* Ref.modify(
+          masters,
+          (known): readonly [boolean, ReadonlyMap<string, Option.Option<number>>] => {
+            const last = Option.fromUndefinedOr(known.get(master));
+            if (Option.isNone(last) || Equal.equals(last.value, at)) return [false, known];
+            return [true, new Map([...known, [master, at]])];
+          },
+        );
+        if (!fresh) return;
+        const seen = yield* SubscriptionRef.updateAndGet(changes, mixOf(filmOf(master)));
+        yield* Ref.update(counted, (kept) => {
+          const before = Option.getOrElse(Option.fromUndefinedOr(kept.get(master)), () => []);
+          const next = [...before, [at.value, seen.n] as const].slice(-COUNTED_KEPT);
+          return new Map([...kept, [master, next]]);
+        });
+      }),
+    );
+
+  /**
+   * The build `film`'s pages hear the mix that landed its track at `at` by:
+   * the track counted first, if no watch has yet (`landed`), then the change
+   * that mtime was counted as; none when no page asked for the track, or
+   * that mtime was never counted.
+   */
+  const heardAt = (film: string, at: number): Effect.Effect<Option.Option<PageBuild>> =>
     Effect.gen(function* () {
-      const at = yield* mtimeOf(master);
-      if (Option.isNone(at)) return;
-      const fresh = yield* Ref.modify(
-        masters,
-        (known): readonly [boolean, ReadonlyMap<string, Option.Option<number>>] => {
-          const last = Option.fromUndefinedOr(known.get(master));
-          if (Option.isNone(last) || Equal.equals(last.value, at)) return [false, known];
-          return [true, new Map([...known, [master, at]])];
-        },
+      const master = Arr.findFirst(
+        [...(yield* Ref.get(masters)).keys()],
+        (m) => filmOf(m) === film,
       );
-      if (fresh) yield* SubscriptionRef.update(changes, mixOf(filmOf(master)));
+      if (Option.isNone(master)) return Option.none();
+      yield* landed(master.value);
+      const kept = Option.getOrElse(
+        Option.fromUndefinedOr((yield* Ref.get(counted)).get(master.value)),
+        () => [],
+      );
+      return Option.map(
+        Arr.findFirst(kept, ([mtime]) => mtime === at),
+        ([, n]) => ({ build: n, server }),
+      );
     });
 
   /** Each of `tracks` that landed while no watch reached it, checked once new watches are armed. */
@@ -901,18 +981,37 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     ),
   );
 
+  /**
+   * A page waiting with `film` hears its mixes though it never played the
+   * track (a review tab of the film's choices): the track is watched from
+   * the wait on, as a page that loaded it does.
+   */
+  const filmWaited = (film: string): Effect.Effect<void> =>
+    Effect.gen(function* () {
+      const pathname = narrationUrls(film).audio;
+      const file = yield* narrationPath(spec.films, pathname);
+      for (const track of Option.toArray(file)) yield* trackAsked(pathname, track);
+    }).pipe(
+      Effect.provideService(FileSystem.FileSystem, fs),
+      Effect.provideService(Path.Path, path),
+    );
+
   const wait = (served: Served, timeout: Duration.Input): Effect.Effect<PageBuild> => {
     if (Option.exists(served.server, (s) => s !== server)) return now(served.film);
-    return Effect.raceFirst(
-      SubscriptionRef.changes(changes).pipe(
-        Stream.filter((seen) => heardBy(served.film)(seen) > served.since),
-        Stream.runHead,
-        Effect.andThen(Effect.sleep(SETTLE)),
+    const heardFrom = Effect.forEach(Option.toArray(served.film), filmWaited, { discard: true });
+    return Effect.andThen(
+      heardFrom,
+      Effect.raceFirst(
+        SubscriptionRef.changes(changes).pipe(
+          Stream.filter((seen) => heardBy(served.film)(seen) > served.since),
+          Stream.runHead,
+          Effect.andThen(Effect.sleep(SETTLE)),
+        ),
+        retryFailed,
+      ).pipe(
+        Effect.timeoutOption(Duration.min(Duration.fromInputUnsafe(timeout), MAX_WAIT)),
+        Effect.andThen(now(served.film)),
       ),
-      retryFailed,
-    ).pipe(
-      Effect.timeoutOption(Duration.min(Duration.fromInputUnsafe(timeout), MAX_WAIT)),
-      Effect.andThen(now(served.film)),
     );
   };
 
@@ -922,7 +1021,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       const built = yield* current;
       const stamp = { build: built.build, server };
       if (built.outcome._tag === 'Failed')
-        return HttpServerResponse.text(failedPage(built.outcome.reason, stamp), {
+        return HttpServerResponse.text(failedPage(built.outcome.reason, stamp, tokens), {
           status: 500,
           contentType: HTML,
           headers: { 'cache-control': 'no-store' },
@@ -1132,5 +1231,5 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       }),
     );
 
-  return LabPage.of({ answer, wait, built, wedge });
+  return LabPage.of({ answer, wait, heardAt, built, wedge });
 });

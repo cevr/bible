@@ -6,8 +6,8 @@
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Fiber } from 'effect';
 import { TestClock } from 'effect/testing';
-import type { PageBuild } from '../core/api.ts';
-import { reloadPast } from './rebuilt.ts';
+import type { PageBuild } from '../core/schema.ts';
+import { hearEach, reloadPast } from './rebuilt.ts';
 
 /** A wait whose answers are scripted: a build, or a failure (the server unreachable). */
 type Answer = PageBuild | 'unreachable';
@@ -81,5 +81,38 @@ describe('a page onto new code', () => {
       expect(asked.length).toBeGreaterThan(10);
       yield* Fiber.interrupt(fiber);
     }),
+  );
+});
+
+describe('a review tab hearing its film', () => {
+  it.effect(
+    'hears each newer answer once, with its build, and asks on from the build it heard',
+    () =>
+      Effect.gen(function* () {
+        const answers: ReadonlyArray<PageBuild> = [
+          { build: 4, server: 'a' },
+          { build: 5, server: 'a' },
+          { build: 5, server: 'a' },
+          { build: 9, server: 'a' },
+        ];
+        const asked: Array<number> = [];
+        const heard: Array<number> = [];
+        const wait = (at: PageBuild) =>
+          Effect.suspend(() => {
+            const answer = answers[Math.min(asked.length, answers.length - 1)] ?? at;
+            asked.push(at.build);
+            return Effect.as(Effect.sleep('1 second'), answer);
+          });
+        const fiber = yield* hearEach({ build: 4, server: 'a' }, wait, (answer) =>
+          Effect.sync(() => {
+            heard.push(answer.build);
+          }),
+        ).pipe(Effect.forkChild);
+        for (let i = 0; i < 4; i += 1) yield* TestClock.adjust('1 second');
+        yield* Fiber.interrupt(fiber);
+        // 5 and 9 are news, each heard with its build; 4 again and 5 again are not.
+        expect(heard).toEqual([5, 9]);
+        expect(asked.slice(0, 4)).toEqual([4, 4, 5, 5]);
+      }),
   );
 });

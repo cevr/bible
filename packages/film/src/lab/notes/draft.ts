@@ -8,6 +8,7 @@
 import { Option } from 'effect';
 import { type Placed, sceneAt } from '../../core/layout.ts';
 import { nearestMoment } from '../../core/notes.ts';
+import { timecode } from '../../core/time.ts';
 import type {
   InkStroke,
   NoteBox,
@@ -33,8 +34,7 @@ export const whereText = (placed: ReadonlyArray<Placed>, fps: number, T: number)
     onSome: (m) =>
       [
         m.scene,
-        `${T.toFixed(2)}s`,
-        `f${Math.round(T * fps)}`,
+        timecode(T, fps),
         ...Option.toArray(Option.map(m.cue, (c) => `cue ${c.name}:${c.edge}`)),
         ...Option.toArray(Option.map(m.mark, (k) => `{${k}}`)),
       ].join(' · '),
@@ -95,13 +95,14 @@ const scopedAt = (placed: ReadonlyArray<Placed>, scope: Scope, T: number): Optio
   });
 
 /**
- * The scope chip a note at `T` shows (`scene · cue · t 3.2–4.0 s`), in the
+ * The scope chip a note at `T` shows (`scene · cue · 00:00:03:06–00:00:04:00`, timecode at `fps`), in the
  * place the lab's link to it names (its scene, its cue, its scene-local
  * time); none while the scope holds nothing in the note's scene.
  */
 export const scopeText = (
   placed: ReadonlyArray<Placed>,
   scope: Scope,
+  fps: number,
   T: number,
 ): Option.Option<string> =>
   Option.flatMap(
@@ -115,7 +116,7 @@ export const scopeText = (
           s.scene,
           ...Option.toArray(Option.map(s.cue, (c) => c.name)),
           ...Option.toArray(
-            Option.map(s.range, (r) => `t ${r.from.toFixed(1)}–${r.to.toFixed(1)} s`),
+            Option.map(s.range, (r) => `${timecode(r.from, fps)}–${timecode(r.to, fps)}`),
           ),
         ].join(' · '),
       ),

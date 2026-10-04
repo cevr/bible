@@ -1,5 +1,5 @@
 // The lab's shell in a browser: the real lab page over the probe film. The
-// panel, its header and the film's links are in place; the lab's place is
+// panel and its header are in place in the studio's shell; the lab's place is
 // its URL (the scene under the playhead in the path, the time in that scene,
 // a pick Back undoes); every pinned layer sits exactly over the film canvas
 // and follows it as the window resizes; the strip's slot sits right under
@@ -8,17 +8,24 @@
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
+import { timecode } from '../../src/core/time.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { URL_T, labAt, openLab } from '../../src/lab/fixtures/harness.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
-import { attached, attributeIs, evaluates, textHas } from '../../src/lab/fixtures/settled.ts';
+import {
+  attached,
+  attributeIs,
+  evaluates,
+  labelsClash,
+  textHas,
+} from '../../src/lab/fixtures/settled.ts';
 
 /** Where the probe film's second scene starts, in film seconds. */
 const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
 
-/** Each match's box as the page placed it: its rect, or for a pinned layer its inline box (a hidden layer has no rect). */
+/** Each match's box as the page placed it: its rect, or for a pinned layer its inline box from its frame's corner (a hidden layer has no rect). */
 const rects = (sel: string) =>
-  `[...document.querySelectorAll('${sel}')].map((e) => { const r = e.getBoundingClientRect(); const s = e.style; return (s.left === '' ? [r.left, r.top, r.width, r.height] : [s.left, s.top, s.width, s.height].map(parseFloat)).map(Math.round); })`;
+  `[...document.querySelectorAll('${sel}')].map((e) => { const r = e.getBoundingClientRect(); const s = e.style; const f = e.parentElement.getBoundingClientRect(); return (s.left === '' ? [r.left, r.top, r.width, r.height] : [f.left + parseFloat(s.left), f.top + parseFloat(s.top), parseFloat(s.width), parseFloat(s.height)]).map(Math.round); })`;
 
 /**
  * Resize the window, and wait until the page has handled it: its `resize`
@@ -47,16 +54,43 @@ const canvasBox = `JSON.stringify(${rects('.stage canvas')}[0])`;
 /** The film seconds the URL holds. */
 const T = URL_T;
 
+/** Whether the page does not scroll sideways. */
+const NO_SIDEWAYS = 'document.documentElement.scrollWidth <= document.documentElement.clientWidth';
+
+/** The vertical middle of the bar's `sel`, in whole pixels. */
+const middle = (sel: string) =>
+  `(() => { const r = document.querySelector('.bar ${sel}').getBoundingClientRect(); return Math.round(r.top + r.height / 2); })()`;
+
 describe('the lab shell', () => {
   it.live(
-    "mounts the panel with its header and the film's project, choices and look-book links",
+    "mounts the panel with its header in the studio's shell, whose page bar leads to the film's other parts",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openLab();
-        yield* textHas(page, '.lab-panel header', 'Lab');
-        yield* attributeIs(page, '[data-link="project"]', 'href', pageHref.project(PROBE));
-        yield* attributeIs(page, '[data-link="choices"]', 'href', pageHref.choices(PROBE));
-        yield* attributeIs(page, '[data-link="lookbook"]', 'href', pageHref.scenes(PROBE));
+        yield* textHas(page, '.lab-panel header .lab-modes', 'Edit');
+        yield* attributeIs(page, '.sh-pagebar [data-page="lab"]', 'data-active', 'true');
+        yield* attributeIs(
+          page,
+          '.sh-pagebar [data-page="project"]',
+          'href',
+          pageHref.project(PROBE),
+        );
+        yield* attributeIs(
+          page,
+          '.sh-pagebar [data-page="choices"]',
+          'href',
+          pageHref.choices(PROBE),
+        );
+        yield* attributeIs(
+          page,
+          '.sh-pagebar [data-page="scenes"]',
+          'href',
+          pageHref.scenes(PROBE),
+        );
+        // No text link to another part: the page bar is the way.
+        yield* evaluates(page, "document.querySelectorAll('.lab-panel a[href]').length", 0);
+        // The header's timecode is the playhead's.
+        yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(0));
         yield* evaluates(page, "document.body.classList.contains('lab')", true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -123,12 +157,83 @@ describe('the lab shell', () => {
       yield* evaluates(page, `Math.abs(${T} - ${first + 10 / 30}) < 0.002`, true);
       yield* page.back;
       yield* evaluates(page, 'location.search', '?cue=rise');
-      yield* textHas(page, '.bar .time', `${first.toFixed(2)} /`);
+      yield* textHas(page, '.bar .time', `${timecode(first)} /`);
       // Past the time's throttle, nothing has written the later frame over it.
       yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
       yield* evaluates(page, `Math.abs(${T} - ${first}) < 0.002`, true);
-      yield* textHas(page, '.bar .time', `${first.toFixed(2)} /`);
+      yield* textHas(page, '.bar .time', `${timecode(first)} /`);
     }).pipe(Effect.scoped),
+  );
+
+  it.live("the transport's frame pair steps a frame at a time by touch", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      yield* page.click('.bar [data-act="play.frame-next"]');
+      yield* evaluates(page, `Math.round(${T} * 30)`, 31);
+      yield* page.click('.bar [data-act="play.frame-previous"]');
+      yield* page.click('.bar [data-act="play.frame-previous"]');
+      yield* evaluates(page, `Math.round(${T} * 30)`, 29);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "shows one tool at a time, the mode tray's: a mode picked shows its section alone, a reload keeps it, and a note picked shows Note",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab();
+        // Which of the five sections show, in the tray's order.
+        const shown = `['.lab-edit', '.lab-notes-box', '.lab-motion', '.lab-compare-tools', '.lab-studio'].map((s) => document.querySelector(s)).map((e) => e !== null && getComputedStyle(e).display !== 'none')`;
+        yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
+        yield* evaluates(page, shown, [true, false, false, false, false]);
+        yield* page.click('.lab-modes [data-mode-pick="motion"]');
+        yield* evaluates(page, shown, [false, false, true, false, false]);
+        yield* attributeIs(page, '.lab-modes [data-mode-pick="motion"]', 'aria-pressed', 'true');
+        yield* page.reload;
+        yield* page.waitFor('.lab-panel');
+        yield* attributeIs(page, '.lab-panel', 'data-mode', 'motion');
+        // Note this frame, from any mode, shows Note with its composer open.
+        yield* page.press('n');
+        yield* attributeIs(page, '.lab-panel', 'data-mode', 'note');
+        yield* evaluates(page, shown, [false, true, false, false, false]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'Undo and Redo stay in the header in every mode, at 390 and 1440, and the view menu ⋯ follows Go to…',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab();
+        // Whether the header shows `act`: in it, and laid out with a box.
+        const inHeader = (act: string) =>
+          `(() => { const e = document.querySelector('.sh-header [data-act="${act}"]'); return e !== null && e.getBoundingClientRect().width > 0; })()`;
+        const tools = `[${inHeader('undo')}, ${inHeader('redo')}]`;
+        for (const size of [
+          { width: 390, height: 844 },
+          { width: 1440, height: 900 },
+        ]) {
+          yield* resize(page, size);
+          for (const mode of ['edit', 'note', 'motion', 'compare', 'record'] as const) {
+            yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
+            yield* attributeIs(page, '.lab-panel', 'data-mode', mode);
+            yield* evaluates(page, tools, [true, true]);
+          }
+          // The view menu sits right after Go to…, the header's last control.
+          yield* evaluates(
+            page,
+            `document.querySelector('.sh-header [data-act="search"]').nextElementSibling?.dataset.act`,
+            'view-menu',
+          );
+          yield* evaluates(page, inHeader('view-menu'), true);
+          yield* evaluates(page, NO_SIDEWAYS, true);
+        }
+        // Its rows are the page's view commands, and the keys sheet: Keyboard shortcuts opens it.
+        yield* page.click('.sh-header [data-act="view-menu"]');
+        yield* textHas(page, '[data-role="view-menu"]', 'Captions on or off');
+        yield* page.click('[data-role="view-menu"] [data-command="app.keys"]');
+        yield* page.waitFor('[data-role="keys-sheet"]');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live('pins its layers over the film canvas, and keeps them there as the window resizes', () =>
@@ -141,6 +246,32 @@ describe('the lab shell', () => {
       yield* evaluates(page, `${canvasBox} !== window.labCanvasBefore`, true);
       yield* evaluates(page, layersOnCanvas, true);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'on a phone, the lab is one page: the picture fills the width, nothing scrolls sideways, and the layers ride the picture as it scrolls',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab();
+        yield* resize(page, { width: 390, height: 844 });
+        yield* evaluates(page, layersOnCanvas, true);
+        // The picture spans the phone's width; no part of the page (and no control) runs off its side.
+        yield* evaluates(
+          page,
+          `(() => { const c = document.querySelector('.stage canvas').getBoundingClientRect(); const acts = [...document.querySelectorAll('[data-act]')].filter((e) => e.getClientRects().length > 0); return [c.width > 300, document.documentElement.scrollWidth <= innerWidth, acts.every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; })]; })()`,
+          [true, true, true],
+        );
+        // Scrolled down the page (a short phone, so the page runs past it), the overlay's box as drawn is still the canvas's.
+        yield* resize(page, { width: 390, height: 480 });
+        const drawn = (sel: string) =>
+          `(() => { const r = document.querySelector('${sel}').getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); })()`;
+        yield* page.evaluate('window.scrollTo(0, 240); true');
+        yield* evaluates(
+          page,
+          `[scrollY > 0, JSON.stringify(${drawn('.lab-overlay')}) === JSON.stringify(${drawn('.stage canvas')})]`,
+          [true, true],
+        );
+      }).pipe(Effect.scoped),
   );
 
   it.live('keeps the film canvas, and so its layers, inside its row, off the bar', () =>
@@ -202,6 +333,24 @@ describe('the lab shell', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live(
+    "at 390 the strip's words never run into each other or cut mid-letter: a word too long for its time shortens or drops",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab();
+        yield* resize(page, { width: 390, height: 844 });
+        yield* page.waitFor('.lab-strip-words .lab-word');
+        yield* evaluates(page, labelsClash('.lab-word', '.lab-word-room'), []);
+        // How many words show, and how many in full: the row is not emptied to pass.
+        const reads = `(() => { const ws = [...document.querySelectorAll('.lab-word')].filter((e) => getComputedStyle(e).display !== 'none'); return [ws.length > 0, ws.some((e) => e.scrollWidth <= e.clientWidth)]; })()`;
+        yield* evaluates(page, `${reads}[0]`, true);
+        // A wide window gives the words room: some read in full, and still none overlaps.
+        yield* resize(page, { width: 1440, height: 900 });
+        yield* evaluates(page, labelsClash('.lab-word', '.lab-word-room'), []);
+        yield* evaluates(page, reads, [true, true]);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('Play at the end of the film starts it over', () =>
     Effect.gen(function* () {
       // Past the end: the player shows the last frame, kept in the page.
@@ -213,6 +362,26 @@ describe('the lab shell', () => {
       yield* page.press(' ');
       yield* evaluates(page, `${T} > 0 && ${T} < window.labEnd`, true);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a phone the transport's controls and its timecode keep one row; the film's length and state wrap below",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(1) });
+        yield* resize(page, { width: 390, height: 844 });
+        // A slower rate says so after the length: more than the first row holds.
+        yield* page.press('j');
+        yield* textHas(page, '.bar .of', ` / ${timecode(probeFilm().duration)} · 0.5× muted`);
+        const play = Number(yield* page.evaluate(middle('[data-act="play"]')));
+        yield* evaluates(
+          page,
+          `[${middle('[data-act="play.frame-next"]')}, ${middle('.tc')}, ${middle('[data-act="captions"]')}].every((m) => Math.abs(m - ${play}) <= 2)`,
+          true,
+        );
+        yield* evaluates(page, "document.querySelector('.bar .tc').getClientRects().length", 1);
+        yield* evaluates(page, NO_SIDEWAYS, true);
+      }).pipe(Effect.scoped),
   );
 
   for (const ended of ['pointercancel', 'lostpointercapture'])

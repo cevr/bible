@@ -13,7 +13,7 @@ import type { PartAddress } from '../../../core/address.ts';
 import type { ProjectView, Say, Steps } from '../../../core/api.ts';
 import type { ChoiceVerb, ChoiceWrite, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewFilms } from '../../../core/review.ts';
-import type { CheckLine, CheckReport, LabWrite } from '../../../core/schema.ts';
+import type { CheckLine, CheckReport, LabWrite, PageBuild } from '../../../core/schema.ts';
 import { LabClient, type LabFailure, called } from '../../api.ts';
 
 /** What a page asks of a film: a verb on a variant, a knob set, a say on a variant, a step back or on. */
@@ -57,7 +57,8 @@ const sayTarget = (say: Say, subject: string): string =>
  * `undo …`, `approve score warm`), the file it wrote, and the act; the check
  * after a source write, and the choices it leaves, when its answer carries
  * them (an undo's does not: the page reads them again); the change a source
- * write made, by its id, which its receipt's Undo acts on.
+ * write made, by its id, which its receipt's Undo acts on; and the build the
+ * page hears the mix it made by, when it made one a page hears.
  */
 export interface Wrote {
   readonly act: ChoiceAct;
@@ -66,6 +67,7 @@ export interface Wrote {
   readonly change: Option.Option<string>;
   readonly findings: Option.Option<ReadonlyArray<CheckLine>>;
   readonly choices: Option.Option<FilmChoices>;
+  readonly mixed: Option.Option<PageBuild>;
 }
 
 /** What is said of a film's project: a say at an address (a scene's render, an act, the film). */
@@ -104,7 +106,7 @@ const stepAsk = (change: Option.Option<string>) =>
 /** A film's choice and project routes, over the page's one client. */
 const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
   const client = yield* LabClient;
-  /** A pick or a knob: the change, the choices it leaves, and the check after it. */
+  /** A pick or a knob: the change, the choices it leaves, the check after it, and its mix. */
   const picked =
     (act: ChoiceAct) =>
     (w: ChoiceWrite): Wrote => ({
@@ -114,8 +116,9 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
       change: Option.fromUndefinedOr(w.change),
       findings: Option.some(w.findings),
       choices: Option.some(w.choices),
+      mixed: Option.fromUndefinedOr(w.mixed),
     });
-  /** An undo or a redo: the change, and the check after it (the choices are read again). */
+  /** An undo or a redo: the change, the check after it (the choices are read again), and its mix. */
   const stepped =
     (act: ChoiceAct) =>
     (w: LabWrite): Wrote => ({
@@ -125,6 +128,7 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
       change: Option.fromUndefinedOr(w.change),
       findings: Option.some(w.findings),
       choices: Option.none(),
+      mixed: Option.fromUndefinedOr(w.mixed),
     });
   /** A say answers the choices it leaves: it wrote the catalogue, not a source. */
   const said =
@@ -136,6 +140,7 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
       change: Option.none(),
       findings: Option.none(),
       choices: Option.some(choices),
+      mixed: Option.none(),
     });
   const api: OptionsCalls = {
     films: called(client.choices.films()),

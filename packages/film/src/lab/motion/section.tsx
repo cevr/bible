@@ -47,7 +47,7 @@ export const Section = () => {
   const { state, actions } = useMotion();
   const { meta } = useLab();
   return (
-    <Lab.Section class="lab-motion">
+    <Lab.Section class="lab-motion" mode="motion">
       <header>
         <strong>Motion</strong>
         <span class="lab-motion-status">{state.status()}</span>

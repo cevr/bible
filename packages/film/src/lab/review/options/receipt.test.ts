@@ -66,6 +66,7 @@ const wrote = (target: string, left: Option.Option<FilmChoices>): Wrote => ({
   change: Option.some('k1'),
   findings: Option.none(),
   choices: left,
+  mixed: Option.none(),
 });
 
 /** The Undo `words` offer for the answer `w`. */

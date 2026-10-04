@@ -41,11 +41,10 @@ import {
   hostLayer,
   onTraverse,
 } from '../../browser/host.ts';
-import { type Command, quiet, said } from '../../command/command.ts';
+import { type Command, type CommandId, quiet, said } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type Context, selected } from '../../command/context.ts';
-import { PageLoad } from '../../browser/page-load.ts';
 import type { Hub } from '../../command/hub.ts';
 import { LabClient, type LabFailure } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
@@ -53,7 +52,8 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
 import type { Quality } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
-import { Places, legacyPlace, pageHref } from '../../core/api.ts';
+import { Places, legacyPlace } from '../../core/api.ts';
+import { onChoicesTab } from '../../core/point.ts';
 import {
   type SyncActor,
   SyncEvent,
@@ -271,10 +271,7 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
       },
     };
     onCleanup(
-      props.hub.commands.register(
-        ...openCommands(value.actions.go, props.host),
-        ...pageCommands(value),
-      ),
+      props.hub.commands.register(...openCommands(value.actions.go, place), ...pageCommands(value)),
     );
     // Every folder, set and film's page is a place ⌘K goes to by its name.
     registerWhile(props.hub, () =>
@@ -294,16 +291,24 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
   );
 };
 
+/** Open on Choices: a choice off the Choices tab, opened there at its card (UR-65). */
+export const OPEN_ON_CHOICES: CommandId = 'review.open-on-choices';
+
 /**
  * The review's ways into a thing from its context menu (and ⌘K, while the
- * page selects it): a folder or a set opens in the page; a film opens its
- * project, its choices, or its lab (another page, loaded).
+ * page selects it): a folder or a set opens in the page; a film's parts
+ * open from its card through the studio shell's `filmCommands`; a choice
+ * off the Choices tab (a project's card, a scene's Choices in this scene)
+ * opens on Choices at its card (UR-65).
  */
-const openCommands = (go: (place: ReviewPlace) => void, host: Host): ReadonlyArray<Command> => {
+const openCommands = (
+  go: (place: ReviewPlace) => void,
+  here: Accessor<ReviewPlace>,
+): ReadonlyArray<Command> => {
   const opening = (
     id: string,
     label: string,
-    about: ReadonlyArray<'Folder' | 'Set' | 'Film'>,
+    about: ReadonlyArray<'Folder' | 'Set' | 'Point'>,
     placeOfTarget: (ctx: Context) => Option.Option<() => void>,
   ): Command => ({
     id,
@@ -318,7 +323,6 @@ const openCommands = (go: (place: ReviewPlace) => void, host: Host): ReadonlyArr
         return quiet;
       }),
   });
-  const film = (ctx: Context) => Option.map(selected(ctx, 'Film'), (f) => f.film);
   return [
     opening('review.open-folder', 'Open the folder', ['Folder'], (ctx) =>
       Option.map(
@@ -332,16 +336,13 @@ const openCommands = (go: (place: ReviewPlace) => void, host: Host): ReadonlyArr
         (s) => () => go(ReviewPlace.Set({ folder: s.folder, point: s.point })),
       ),
     ),
-    opening('review.open-project', 'Open the project', ['Film'], (ctx) =>
-      Option.map(film(ctx), (f) => () => go(ReviewPlace.Project({ film: f }))),
-    ),
-    opening('review.open-choices', 'Open the choices', ['Film'], (ctx) =>
-      Option.map(film(ctx), (f) => () => go(ReviewPlace.Film({ film: f }))),
-    ),
-    opening('review.open-lab', 'Open the lab', ['Film'], (ctx) =>
+    opening(OPEN_ON_CHOICES, 'Open on Choices', ['Point'], (ctx) =>
       Option.map(
-        film(ctx),
-        (f) => () => Effect.runForkWith(host)(PageLoad.use((load) => load.open(pageHref.lab(f)))),
+        Option.filter(
+          selected(ctx, 'Point'),
+          (p) => onChoicesTab(p.point) && here()._tag !== 'Film',
+        ),
+        (p) => () => go(ReviewPlace.Film({ film: p.film, point: p.point })),
       ),
     ),
   ];
@@ -368,7 +369,7 @@ const pageCommands = (review: ReviewContextValue): ReadonlyArray<Command> => [
   {
     id: 'review.refresh',
     label: 'Refresh',
-    group: 'Review',
+    group: 'View',
     about: ['Page'],
     touch: 'long-press the page, then Refresh',
     when: () => true,

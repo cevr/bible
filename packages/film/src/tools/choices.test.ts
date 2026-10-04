@@ -13,7 +13,7 @@ import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { Choices } from './choices.ts';
 import { ContentStore } from './content-store.ts';
-import { FilmFolder, FilmName, FilmRepo } from './film-repo.ts';
+import { FilmFolder, FilmName, FilmRepo, masterFile } from './film-repo.ts';
 import type { FreshFilmService } from './fresh-film.ts';
 import { NO_SCORES } from './media-store.ts';
 import { voicedOf } from './narrator.ts';
@@ -55,6 +55,7 @@ const film = testFilm(scenes, staged);
 const F = Schema.decodeSync(FilmName)('test');
 const NARRATION = film.paths.narration;
 const TIMINGS = film.paths.timings.file;
+const MASTER = masterFile(film.paths);
 
 /** The film's `sound.ts`: a score of two options, `piano` playing, under the voice at -18 dB. */
 const SOUND_FILE = `${film.paths.dir}/sound.ts`;
@@ -103,8 +104,14 @@ const setup = (
     ['/rec/a1.wav', text('Hello world.')],
     ['/rec/a2.wav', text('Hello world, again.')],
   ]);
+  // Each mix lands the track anew: its mtime is the number of mixes made.
+  const mtimes = new Map<string, number>();
+  const landTrack = Effect.sync(() => {
+    files.set(MASTER, text('mixed'));
+    mtimes.set(MASTER, (mtimes.get(MASTER) ?? 0) + 1);
+  });
   const base = Layer.mergeAll(
-    memoryFileSystem(files),
+    memoryFileSystem(files, new Set(), mtimes),
     Path.layer,
     fakeElevenLabs(files, emptyCalls(), {
       recorded: new Map([['a', 'Hello world.']]),
@@ -139,7 +146,7 @@ const setup = (
       freshFilm({
         choices: Option.getOrElse(points, () => voicesHere(context)),
         keepVoice: keepVoiceHere(context),
-        remix: () => remixing,
+        remix: () => Effect.andThen(remixing, landTrack),
       }),
     ),
   );
@@ -313,24 +320,33 @@ describe('Choices: a voice picked', () => {
 });
 
 describe('Choices: a score picked', () => {
-  it.effect('mixes the track again once sound.ts plays it, and again on its Undo and Redo', () => {
-    const mixes: Array<string> = [];
-    const { files, layer } = setup(
-      Effect.sync(() => mixes.push(new TextDecoder().decode(files.get(SOUND_FILE)))),
-      Option.some(scorePoints),
-    );
-    return Effect.gen(function* () {
-      const point = pointIdOf({ _tag: 'Score' });
-      const picked = yield* (yield* Choices).pick(F, { point, variant: 'strings', verb: 'pick' });
-      expect(Option.isSome(picked.change)).toBe(true);
-      // The track is mixed from the text that plays strings, once it has landed.
-      expect(mixes.map((m) => m.includes("play: 'strings'"))).toEqual([true]);
-      const writer = yield* SourceWriter;
-      yield* writer.undo(F);
-      yield* writer.redo(F);
-      expect(mixes.map((m) => m.includes("play: 'strings'"))).toEqual([true, false, true]);
-    }).pipe(Effect.provide(layer));
-  });
+  it.effect(
+    'mixes the track again once sound.ts plays it, and again on its Undo and Redo, each answering when its own mix landed',
+    () => {
+      const mixes: Array<string> = [];
+      const { files, layer } = setup(
+        Effect.sync(() => mixes.push(new TextDecoder().decode(files.get(SOUND_FILE)))),
+        Option.some(scorePoints),
+      );
+      return Effect.gen(function* () {
+        const point = pointIdOf({ _tag: 'Score' });
+        const picked = yield* (yield* Choices).pick(F, { point, variant: 'strings', verb: 'pick' });
+        expect(Option.isSome(picked.change)).toBe(true);
+        // The track is mixed from the text that plays strings, once it has landed.
+        expect(mixes.map((m) => m.includes("play: 'strings'"))).toEqual([true]);
+        // The track's mtime as that mix landed it: the first mix.
+        expect(picked.mixed).toEqual(Option.some(1));
+        const writer = yield* SourceWriter;
+        const [, undone] = yield* writer.undo(F);
+        const [, redone] = yield* writer.redo(F);
+        expect(mixes.map((m) => m.includes("play: 'strings'"))).toEqual([true, false, true]);
+        expect([undone, redone]).toEqual([Option.some(2), Option.some(3)]);
+        // A pick of what already plays writes nothing, and mixes nothing.
+        const again = yield* (yield* Choices).pick(F, { point, variant: 'strings', verb: 'pick' });
+        expect(again.mixed).toEqual(Option.none());
+      }).pipe(Effect.provide(layer));
+    },
+  );
 
   it.effect("a level's knob mixes the track again at its new level", () => {
     const mixes: Array<string> = [];
@@ -365,8 +381,9 @@ describe('Choices: a score picked', () => {
         _tag: 'Level',
         target: { _tag: 'Layer', layer: { _tag: 'Score', which: 'under' } },
       });
-      yield* (yield* Choices).knob(F, { point, value: -12 });
+      const set = yield* (yield* Choices).knob(F, { point, value: -12 });
       expect(mixes.map((m) => m.includes('under: -12'))).toEqual([true]);
+      expect(set.mixed).toEqual(Option.some(1));
     }).pipe(Effect.provide(layer));
   });
 });

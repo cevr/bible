@@ -65,6 +65,51 @@ export const findingTime = (
     ),
   );
 
+/** The findings the inspector lists for one scene, and how many sit elsewhere (UI-6). */
+interface SceneFindings {
+  /** The scene's own, and those with no place on the film (about the whole film): listed. */
+  readonly here: ReadonlyArray<CheckLine>;
+  /** How many belong to other scenes: counted, and F walks to them. */
+  readonly elsewhere: number;
+}
+
+/**
+ * `findings` as the inspector shows them in `scene`: one whose address names
+ * the scene, or whose time falls in it, is the scene's; one with no place
+ * (no address, or the whole film or an act with no time) belongs to every
+ * scene, having no other; the rest are counted as elsewhere.
+ */
+export const findingsIn = (
+  findings: ReadonlyArray<CheckLine>,
+  placed: ReadonlyArray<{
+    readonly spec: { readonly id: string };
+    readonly start: number;
+    readonly dur: number;
+  }>,
+  scene: string,
+): SceneFindings => {
+  const last = placed.length - 1;
+  const sceneAt = (t: number): ReadonlyArray<string> =>
+    placed
+      .filter((p, i) => t >= p.start && (t < p.start + p.dur || i === last))
+      .map((p) => p.spec.id);
+  const named = (f: CheckLine): Option.Option<ReadonlyArray<string>> =>
+    Option.flatMap(Option.fromUndefinedOr(f.address), (at) =>
+      Option.orElse(Option.map(Option.fromUndefinedOr(at.time), sceneAt), () =>
+        Match.value(at.part).pipe(
+          Match.tag('Scenes', (part): Option.Option<ReadonlyArray<string>> =>
+            Option.some(part.ids),
+          ),
+          Match.orElse(() => Option.none<ReadonlyArray<string>>()),
+        ),
+      ),
+    );
+  const here = findings.filter((f) =>
+    Option.match(named(f), { onNone: () => true, onSome: (ids) => ids.includes(scene) }),
+  );
+  return { here, elsewhere: findings.length - here.length };
+};
+
 const DOING = { undo: 'undoing', redo: 'redoing' } as const;
 
 /**

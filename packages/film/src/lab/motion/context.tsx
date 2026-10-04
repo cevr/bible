@@ -114,7 +114,9 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
   const status = createMemo(() => {
     const r = rate();
     const muted = Option.liftPredicate(`${r}×: narration muted`, () => r !== 1);
-    return [loopText(loop()), ...Option.toArray(muted)].filter((s) => s !== '').join(' · ');
+    return [loopText(loop(), meta.film.fps), ...Option.toArray(muted)]
+      .filter((s) => s !== '')
+      .join(' · ');
   });
 
   const actions: MotionActions = {

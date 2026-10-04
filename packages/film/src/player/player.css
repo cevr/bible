@@ -1,11 +1,4 @@
-:root {
-  color-scheme: dark;
-  --bg: #16130f;
-  --panel: #211d18;
-  --text: #efe6d4;
-  --muted: #9d927f;
-  --accent: #e2b04a;
-}
+/* The player's and the lab's look, read only through the studio's tokens (`tokens.css`, linked first). */
 * {
   box-sizing: border-box;
 }
@@ -13,12 +6,11 @@ html,
 body {
   margin: 0;
   height: 100%;
-  background: var(--bg);
-  color: var(--text);
-  font:
-    13px/1.4 Inter,
-    system-ui,
-    sans-serif;
+  background: var(--surface-0);
+  color: var(--text-1);
+  font-family: var(--font);
+  font-size: var(--body-fs);
+  line-height: var(--body-lh);
 }
 body {
   display: grid;
@@ -37,7 +29,6 @@ body.export {
   max-width: 100%;
   max-height: 100%;
   aspect-ratio: 16 / 9;
-  box-shadow: 0 10px 40px rgb(0 0 0 / 0.5);
 }
 body.export .stage {
   padding: 0;
@@ -49,7 +40,7 @@ body.export .stage canvas {
 }
 .bar {
   position: relative;
-  background: var(--panel);
+  background: var(--surface-1);
   padding: 10px 16px 14px;
   display: grid;
   /* One column no wider than the window: its rows (the keys' long line
@@ -57,33 +48,45 @@ body.export .stage canvas {
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
+/* The transport row; what does not fit wraps below whole, never mid-timecode. */
 .row {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: var(--s-1) 12px;
   align-items: center;
 }
 .row button {
   background: none;
-  border: 1px solid #3a342c;
-  color: var(--text);
-  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  color: var(--text-1);
+  border-radius: var(--r-2);
   padding: 4px 10px;
   cursor: pointer;
   font: inherit;
 }
 .row button:hover {
-  border-color: var(--accent);
+  background: var(--surface-3);
 }
+/* The playhead's timecode, then the film's length and state (rate, loop, narration): two pieces the row lays out. */
 .time {
+  display: contents;
   font-variant-numeric: tabular-nums;
-  color: var(--muted);
+  color: var(--text-1);
+}
+/* A phone keeps the controls and the timecode on the first row, under the thumb; the length, the scene and the line go after them, wrapping below. */
+@media (max-width: 899px) {
+  .row .of,
+  .row .scene,
+  .row .say {
+    order: 1;
+  }
 }
 .scene {
   color: var(--accent);
   font-weight: 600;
 }
 .say {
-  color: var(--muted);
+  color: var(--text-2);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -92,29 +95,41 @@ body.export .stage canvas {
 .track {
   position: relative;
   height: 34px;
-  background: #2b261f;
-  border-radius: 6px;
+  background: var(--surface-2);
+  border-radius: var(--r-2);
   cursor: pointer;
   overflow: hidden;
   /* A vertical swipe on the track scrolls the page; a sideways one scrubs. */
   touch-action: pan-y;
 }
+/* A scene's name keeps to its scene: one too long shortens with an ellipsis,
+   and in a scene too narrow to keep a letter and the ellipsis it drops. */
 .track .seg {
   position: absolute;
   top: 0;
   bottom: 0;
-  border-right: 1px solid #16130f;
+  border-right: 1px solid var(--surface-0);
+  overflow: hidden;
+  container-type: inline-size;
+  font-size: var(--fs-1);
 }
 .track .seg.estimated {
-  background: repeating-linear-gradient(45deg, transparent 0 6px, rgb(255 255 255 / 0.04) 6px 12px);
+  background: repeating-linear-gradient(45deg, transparent 0 6px, var(--hatch) 6px 12px);
 }
 .track .seg span {
   position: absolute;
   left: 4px;
+  right: 4px;
   top: 11px;
-  font-size: 10px;
-  color: var(--muted);
+  color: var(--text-2);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@container (width < 2.6em) {
+  .track .seg span {
+    display: none;
+  }
 }
 .track .tick {
   position: absolute;
@@ -128,7 +143,7 @@ body.export .stage canvas {
   margin-left: -3.5px;
   /* One pixel of tick, with room either side to hover it. */
   border-inline: 3px solid transparent;
-  background: rgb(239 230 212 / 0.55);
+  background: var(--text-2);
   background-clip: padding-box;
 }
 /* A named cue: a bar along the foot, as long as the cue. */
@@ -137,7 +152,7 @@ body.export .stage canvas {
   height: 4px;
   min-width: 3px;
   background: var(--accent);
-  border-radius: 2px;
+  border-radius: var(--r-1);
 }
 /* A sound effect: a dot along the top. */
 .track .tick.effect {
@@ -146,7 +161,7 @@ body.export .stage canvas {
   height: 7px;
   margin-left: -3.5px;
   border-radius: 50%;
-  background: #7fc4c0;
+  background: var(--state-agent);
 }
 /* A movement of the score starts: a line through the whole track. */
 .track .tick.movement {
@@ -154,16 +169,16 @@ body.export .stage canvas {
   bottom: 0;
   width: 2px;
   margin-left: -1px;
-  background: #d9826a;
+  background: var(--text-2);
 }
 .tip {
   position: absolute;
   transform: translateX(-50%);
   padding: 2px 8px;
-  border-radius: 4px;
-  background: #0d0b09;
-  color: var(--text);
-  font-size: 11px;
+  border-radius: var(--r-1);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-size: var(--fs-2);
   white-space: nowrap;
   pointer-events: none;
   z-index: 2;
@@ -173,12 +188,12 @@ body.export .stage canvas {
   width: 8px;
   height: 8px;
   margin: 0 3px 0 6px;
-  border-radius: 2px;
+  border-radius: var(--r-1);
   vertical-align: -1px;
 }
 .keys .k-mark {
   width: 1px;
-  background: rgb(239 230 212 / 0.55);
+  background: var(--text-2);
 }
 .keys .k-cue {
   height: 4px;
@@ -187,11 +202,11 @@ body.export .stage canvas {
 }
 .keys .k-effect {
   border-radius: 50%;
-  background: #7fc4c0;
+  background: var(--state-agent);
 }
 .keys .k-act {
   width: 2px;
-  background: #d9826a;
+  background: var(--text-2);
 }
 .track .head {
   position: absolute;
@@ -203,19 +218,27 @@ body.export .stage canvas {
   background: var(--accent);
 }
 .keys {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--text-2);
+  font-size: var(--fs-2);
 }
 
 /* ── The lab (`/films/<film>/lab`): notes on frames. ─────────────────────────── */
+/* The studio's header across the top, the picture and its transport under it, the inspector at the side. */
 body.lab {
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) var(--inspector-w);
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
-/* The lab's own wrappers: the Solid root, its pinned layers and its panel sections lay out as their children. */
+/* The lab's own wrappers (the Solid root, the studio's shell and its body, its pinned layers and its panel sections) lay out as their children. */
 .lab-root,
+body.lab .sh,
+body.lab .sh-body,
 .lab-layers,
 .lab-notes-box {
   display: contents;
+}
+body.lab .sh-header {
+  grid-column: 1 / -1;
+  grid-row: 1;
 }
 body.lab .stage,
 body.lab .bar {
@@ -223,7 +246,13 @@ body.lab .bar {
   /* A grid item may not grow past its column: the long narration line clips instead. */
   min-width: 0;
 }
+body.lab .stage {
+  grid-row: 2;
+  /* The pinned layers' frame: they sit in it, over the canvas (LS-7). */
+  position: relative;
+}
 body.lab .bar {
+  grid-row: 3;
   grid-template-columns: minmax(0, 1fr);
 }
 /*
@@ -236,64 +265,135 @@ body.lab .stage {
 }
 .lab-panel {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 2 / span 2;
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-height: 0;
   overflow: auto;
   padding: 12px;
-  background: var(--panel);
-  border-left: 1px solid #3a342c;
+  background: var(--surface-1);
+  border-left: 1px solid var(--line);
+}
+/*
+ * The phone: one column that scrolls as a page, the picture full width with
+ * its transport and strip right under it (no row stretched below the
+ * picture), then the inspector; the page clears the shell's tab bar.
+ */
+@media (max-width: 899px) {
+  html:has(body.lab),
+  body.lab {
+    height: auto;
+  }
+  body.lab {
+    min-height: 100dvh;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    align-content: start;
+    padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  }
+  body.lab .stage {
+    grid-template: auto / minmax(0, 1fr);
+    padding: 0;
+  }
+  body.lab .stage canvas {
+    width: 100%;
+    height: auto;
+    max-height: none;
+  }
+  body.lab .bar {
+    padding: var(--s-2) var(--gutter) var(--s-3);
+  }
+  .lab-panel {
+    grid-column: 1;
+    grid-row: 4;
+    overflow: visible;
+    padding: var(--s-3) var(--gutter);
+    border-left: 0;
+    border-top: var(--border);
+  }
 }
 .lab-panel header {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+}
+/* The mode tray (PA-7): a segmented toolbar; the panel shows the pressed mode's section only. */
+.lab-modes {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  overflow: hidden;
+}
+.lab-panel .lab-modes .lab-mode {
+  border: 0;
+  border-radius: 0;
+  min-height: var(--control-h);
+  padding: 0 var(--s-3);
+  color: var(--text-2);
+  font-size: var(--fs-2);
+  font-weight: var(--w-2);
+}
+.lab-panel .lab-modes .lab-mode + .lab-mode {
+  border-left: 1px solid var(--line);
+}
+.lab-panel .lab-modes .lab-mode[data-pressed] {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+.lab-panel[data-mode='edit'] [data-mode-of]:not([data-mode-of='edit']),
+.lab-panel[data-mode='note'] [data-mode-of]:not([data-mode-of='note']),
+.lab-panel[data-mode='motion'] [data-mode-of]:not([data-mode-of='motion']),
+.lab-panel[data-mode='compare'] [data-mode-of]:not([data-mode-of='compare']),
+.lab-panel[data-mode='record'] [data-mode-of]:not([data-mode-of='record']) {
+  display: none;
 }
 .lab-reload-waiting {
   margin: 0;
   padding: 6px 9px;
   border: 1px solid var(--accent);
-  border-radius: 6px;
-  color: var(--text);
-  font-size: 11px;
+  border-radius: var(--r-2);
+  color: var(--text-1);
+  font-size: var(--fs-2);
 }
 .lab-panel button {
   background: none;
-  border: 1px solid #3a342c;
-  color: var(--text);
-  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  color: var(--text-1);
+  border-radius: var(--r-2);
   padding: 3px 9px;
   cursor: pointer;
   font: inherit;
 }
-.lab-panel button:hover,
+.lab-panel button:hover {
+  background: var(--surface-3);
+}
 .lab-panel button.on {
   border-color: var(--accent);
-  color: var(--accent);
+  background: var(--surface-3);
 }
 .lab-compose {
   display: grid;
   gap: 6px;
   padding: 10px;
   border: 1px solid var(--accent);
-  border-radius: 8px;
+  border-radius: var(--r-2);
 }
 .lab-compose[hidden] {
   display: none;
 }
 .lab-where {
   color: var(--accent);
-  font-size: 12px;
+  font-size: var(--fs-3);
 }
 .lab-panel textarea,
 .lab-reply-input {
   width: 100%;
-  background: #16130f;
-  color: var(--text);
-  border: 1px solid #3a342c;
-  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--text-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
   padding: 6px 8px;
   font: inherit;
   resize: vertical;
@@ -305,8 +405,8 @@ body.lab .stage {
   align-items: center;
 }
 .lab-status {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--text-2);
+  font-size: var(--fs-2);
 }
 .lab-notes,
 .lab-thread {
@@ -318,8 +418,8 @@ body.lab .stage {
 }
 .lab-note-item {
   padding: 8px;
-  border: 1px solid #3a342c;
-  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
   cursor: pointer;
   display: grid;
   gap: 6px;
@@ -334,21 +434,22 @@ body.lab .stage {
   display: flex;
   justify-content: space-between;
   gap: 6px;
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--fs-2);
+  color: var(--text-2);
 }
+/* A chip: its state's colour in its text and its edge, no fill. */
 .lab-badge {
-  padding: 0 6px;
-  border-radius: 4px;
-  background: #3a342c;
+  padding: 0 var(--s-1);
+  border: 1px solid currentColor;
+  border-radius: var(--r-1);
+  color: var(--text-2);
+  background: none;
 }
 .lab-badge.open {
-  background: #7a3b2e;
-  color: var(--text);
+  color: var(--state-note);
 }
 .lab-badge.replied {
-  background: #2e5a57;
-  color: var(--text);
+  color: var(--state-agent);
 }
 .lab-note-text,
 .lab-reply-text {
@@ -356,26 +457,26 @@ body.lab .stage {
 }
 .lab-still {
   width: 100%;
-  border-radius: 4px;
+  border-radius: var(--r-1);
   display: block;
 }
 .lab-reply {
   padding-left: 8px;
-  border-left: 2px solid #3a342c;
+  border-left: 2px solid var(--line-strong);
   display: grid;
   gap: 4px;
 }
 .lab-reply.agent {
-  border-left-color: #7fc4c0;
+  border-left-color: var(--state-agent);
 }
 .lab-by {
-  font-size: 10px;
+  font-size: var(--fs-1);
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--text-2);
 }
 /* The layer over the canvas: the lab's marks, never drawn into the film. */
 .lab-overlay {
-  position: fixed;
+  position: absolute;
   z-index: 3;
   cursor: crosshair;
   touch-action: none;
@@ -394,8 +495,11 @@ body.lab .stage {
 }
 /* The notes' connection to the server, said only once lost. */
 .lab-feed {
-  color: #e2b04a;
-  font-size: 11px;
+  color: var(--accent);
+  font-size: var(--fs-2);
+}
+.lab-feed[data-role='notes-empty'] {
+  color: var(--text-2);
 }
 .lab-feed:empty {
   display: none;
@@ -411,13 +515,13 @@ body.lab .stage {
 }
 .lab-overlay .lab-draft,
 .lab-overlay .lab-draft-ink {
-  stroke: #e2b04a;
+  stroke: var(--accent);
   stroke-dasharray: 8 6;
   stroke-width: 2;
 }
 .lab-overlay .lab-note,
 .lab-overlay .lab-note-ink {
-  stroke: #ff5d8f;
+  stroke: var(--state-note);
   stroke-width: 2.5;
 }
 .lab-overlay .lab-draft-ink,
@@ -431,29 +535,46 @@ body.lab .stage {
   width: 9px;
   margin-left: -4.5px;
   border-inline: 3px solid transparent;
-  background: #ff5d8f;
+  background: var(--state-note);
   background-clip: padding-box;
   cursor: pointer;
   z-index: 2;
 }
 .track .tick.note.resolved {
-  background-color: #6b6259;
+  background-color: var(--text-3);
 }
 
 /* ── The lab's editor: the current scene's cues, draggable, and the inspector. ── */
 .lab-strip {
   position: relative;
   margin-top: 6px;
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--fs-2);
+  color: var(--text-2);
   user-select: none;
   touch-action: none;
 }
 .lab-strip-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
   margin-bottom: 2px;
+}
+.lab-strip-name {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.lab-strip-cancel {
+  flex: none;
+  font: inherit;
+  color: var(--text-1);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-1);
+  padding: 0 var(--s-2);
+  min-height: 32px;
 }
 /*
  * The cue rows scroll in their own box, so a scene of many cues (roof has 35)
@@ -467,8 +588,8 @@ body.lab .stage {
 }
 .lab-strip-rows {
   position: relative;
-  background: #1c1915;
-  border-radius: 3px;
+  background: var(--surface-2);
+  border-radius: var(--r-1);
 }
 /* The words stay at the top of the strip while its cues scroll under them. */
 .lab-strip-words {
@@ -476,20 +597,33 @@ body.lab .stage {
   top: 0;
   z-index: 1;
   height: 18px;
-  background: #1c1915;
-  border-bottom: 1px solid #3a342c;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--line);
 }
-.lab-word {
+/* A word's room is the time it is spoken; the word keeps to it, shortened
+   with an ellipsis, and in a room too narrow to keep a letter and the
+   ellipsis it drops, leaving the room's mark. */
+.lab-word-room {
   position: absolute;
   top: 2px;
   height: 14px;
+  font-size: var(--fs-1);
+  background: var(--surface-3);
+  border-left: 1px solid var(--line-strong);
+  container-type: inline-size;
+}
+.lab-word {
+  display: block;
   overflow: hidden;
   white-space: nowrap;
-  font-size: 10px;
+  text-overflow: ellipsis;
   line-height: 14px;
-  color: var(--text);
-  background: #2c2720;
-  border-left: 1px solid #5a5043;
+  color: var(--text-1);
+}
+@container (width < 1.5em) {
+  .lab-word {
+    display: none;
+  }
 }
 .lab-strip-mark {
   position: absolute;
@@ -501,6 +635,8 @@ body.lab .stage {
 .lab-strip-row {
   position: relative;
   height: 16px;
+  /* Inside the rows' scroll box: a sideways finger marks a range, an upright one scrolls (the browser took both). */
+  touch-action: pan-y;
 }
 .lab-cue-label {
   position: absolute;
@@ -518,20 +654,20 @@ body.lab .stage {
   height: 10px;
   min-width: 3px;
   box-sizing: border-box;
-  background: #6d8fb8;
-  border-left: 5px solid #a8c3e3;
-  border-right: 5px solid #a8c3e3;
-  border-radius: 2px;
+  background: var(--state-rendered);
+  border-left: 5px solid var(--text-2);
+  border-right: 5px solid var(--text-2);
+  border-radius: var(--r-1);
   cursor: grab;
   /* Inside the rows' scroll box: a sideways finger drags the cue, an upright one scrolls. */
   touch-action: pan-y;
 }
 .lab-cue.selected {
   background: var(--accent);
-  border-color: #f6d690;
+  border-color: var(--accent);
 }
 .lab-cue.late {
-  outline: 1px solid #d0644c;
+  outline: 1px solid var(--state-findings);
 }
 .lab-strip-playhead {
   position: absolute;
@@ -539,7 +675,7 @@ body.lab .stage {
   top: 0;
   bottom: 0;
   width: 1px;
-  background: #fff;
+  background: var(--accent);
   pointer-events: none;
 }
 .lab-edit {
@@ -547,12 +683,12 @@ body.lab .stage {
   flex-direction: column;
   gap: 6px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #3a342c;
-  font-size: 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-3);
 }
 .lab-edit-file {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--text-2);
+  font-size: var(--fs-2);
 }
 .lab-edit-title {
   font-weight: 600;
@@ -566,17 +702,17 @@ body.lab .stage {
 }
 .lab-edit-key,
 .lab-edit-note {
-  color: var(--muted);
+  color: var(--text-2);
 }
 .lab-edit-note {
-  font-size: 11px;
+  font-size: var(--fs-2);
 }
 .lab-num {
   width: 80px;
-  background: #16130f;
-  color: var(--text);
-  border: 1px solid #3a342c;
-  border-radius: 3px;
+  background: var(--surface-2);
+  color: var(--text-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-1);
   padding: 2px 4px;
 }
 .lab-eases {
@@ -589,15 +725,15 @@ body.lab .stage {
   flex-direction: column;
   align-items: center;
   padding: 2px;
-  font-size: 9px;
+  font-size: var(--fs-1);
 }
 .lab-ease-axis {
-  stroke: #3a342c;
+  stroke: var(--line-strong);
   stroke-width: 1;
 }
 .lab-ease-curve {
   fill: none;
-  stroke: var(--text);
+  stroke: var(--text-1);
   stroke-width: 1.5;
 }
 .lab-ease.on .lab-ease-curve {
@@ -612,23 +748,54 @@ body.lab .stage {
 .lab-knob.selected .lab-edit-key {
   color: var(--accent);
 }
+/* An inspector group: a caps title with its count, then its rows; an empty one is not shown. */
+.lab-group {
+  display: grid;
+  gap: var(--s-1);
+}
+.lab-group[data-empty='true'] {
+  display: none;
+}
+.lab-group h3 {
+  margin: 0;
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  color: var(--text-2);
+  font-size: var(--fs-2);
+  font-weight: var(--w-2);
+  text-transform: uppercase;
+  letter-spacing: var(--track-caps);
+}
+.lab-count {
+  padding: 0 var(--s-1);
+  border: 1px solid var(--state-findings);
+  border-radius: var(--r-1);
+  color: var(--state-findings);
+  font-size: var(--fs-1);
+}
+.lab-findings-elsewhere {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-2);
+}
 .lab-findings {
   margin: 0;
   padding-left: 16px;
-  font-size: 11px;
+  font-size: var(--fs-2);
 }
 .lab-finding.error {
-  color: #e0806b;
+  color: var(--state-findings);
 }
 .lab-finding.warning {
-  color: #d9b56a;
+  color: var(--state-warning);
 }
 .lab-handle {
   cursor: move;
   pointer-events: all;
 }
 .lab-handle circle {
-  fill: rgb(226 176 74 / 0.18);
+  fill: var(--accent-wash);
   stroke: var(--accent);
   stroke-width: 3;
 }
@@ -637,7 +804,7 @@ body.lab .stage {
   stroke-width: 2;
 }
 .lab-handle.selected circle {
-  fill: rgb(226 176 74 / 0.4);
+  fill: var(--accent-wash-strong);
 }
 /* A camera's target: a reticle, the framing the camera keeps on it. */
 .lab-handle.reticle rect {
@@ -653,13 +820,13 @@ body.lab .stage {
   stroke: none;
 }
 .lab-handle.reticle.selected rect {
-  fill: rgb(226 176 74 / 0.18);
+  fill: var(--accent-wash);
 }
 
 /* ── Motion tools: onion skin, speed, loops. ────────────────────────────── */
 .lab-onion,
 .lab-compare {
-  position: fixed;
+  position: absolute;
   z-index: 2;
   pointer-events: none;
 }
@@ -668,7 +835,7 @@ body.lab .stage {
   flex-direction: column;
   gap: 6px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #3a342c;
+  border-bottom: 1px solid var(--line);
 }
 .lab-motion header {
   display: flex;
@@ -676,8 +843,8 @@ body.lab .stage {
   align-items: baseline;
 }
 .lab-motion-status {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--text-2);
+  font-size: var(--fs-2);
 }
 .lab-motion-row {
   display: flex;
@@ -693,7 +860,7 @@ body.lab .stage {
   flex-direction: column;
   gap: 6px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #3a342c;
+  border-bottom: 1px solid var(--line);
 }
 .lab-compare-tools header {
   display: flex;
@@ -701,25 +868,44 @@ body.lab .stage {
   align-items: baseline;
 }
 .lab-divider line {
-  stroke: #fff;
+  stroke: var(--on-picture);
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
 .lab-divider circle {
-  fill: rgb(20 18 16 / 0.6);
-  stroke: #fff;
+  fill: var(--on-picture-shade);
+  stroke: var(--on-picture);
   stroke-width: 3;
   cursor: ew-resize;
   pointer-events: all;
 }
 .lab-divider text {
-  fill: #fff;
-  font:
-    600 30px Inter,
-    sans-serif;
+  fill: var(--on-picture);
+  /* In the picture's own units, as the divider's geometry is. */
+  font-family: var(--font);
+  font-size: var(--fs-on-picture);
+  font-weight: var(--w-3);
   paint-order: stroke;
-  stroke: rgb(20 18 16 / 0.7);
+  stroke: var(--on-picture-shade);
   stroke-width: 6px;
+}
+
+/* A film's Play page (`/films/<film>/play`): the shell as tall as the window, the picture filling it over the transport. */
+body.play .sh {
+  height: 100dvh;
+}
+body.play .sh-body {
+  display: grid;
+  min-height: 0;
+}
+.play-body {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  min-width: 0;
+}
+.play-body .stage {
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
 }
 
 /* The look-book: a film's scenes page (`/films/<film>/scenes`). */
@@ -728,22 +914,11 @@ body.lookbook {
   height: auto;
 }
 .lookbook-bar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  gap: 16px;
-  align-items: baseline;
-  padding: 10px 16px;
-  background: var(--panel);
-  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  margin: 0;
+  padding: 10px 16px 0;
 }
 .lookbook-status {
-  color: var(--muted);
-}
-.lookbook-bar a {
-  margin-left: auto;
-  color: var(--accent);
+  color: var(--text-2);
 }
 .lookbook-sheet {
   padding: 16px;
@@ -754,18 +929,14 @@ body.lookbook {
   height: auto;
   cursor: pointer;
 }
-.lab-link {
-  color: var(--accent);
-  font-size: 12px;
-}
 
 /* The studio: record the voiceover beat by beat. */
 .studio {
   display: grid;
   gap: 10px;
   padding: 8px;
-  border: 1px solid #3a342c;
-  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
   outline: none;
 }
 .studio:focus-within {
@@ -774,8 +945,8 @@ body.lookbook {
 .studio-counts,
 .studio-waiting {
   margin: 0;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--text-2);
+  font-size: var(--fs-2);
 }
 .studio-beats ol,
 .studio-attempts ol {
@@ -794,7 +965,7 @@ body.lookbook {
   display: flex;
   gap: 6px;
   align-items: center;
-  font-size: 11px;
+  font-size: var(--fs-2);
   padding: 2px 6px;
 }
 .lab-panel .studio-beats button.selected {
@@ -802,18 +973,16 @@ body.lookbook {
   color: var(--accent);
 }
 .lab-badge.recorded {
-  background: #2e5a3a;
-  color: var(--text);
+  color: var(--state-approved);
 }
 .lab-badge.stale {
-  background: #7a3b2e;
-  color: var(--text);
+  color: var(--state-stale);
 }
 .studio-prompter {
   padding: 10px 12px;
-  background: var(--bg);
-  border-radius: 6px;
-  font-size: 17px;
+  background: var(--surface-0);
+  border-radius: var(--r-2);
+  font-size: var(--fs-read);
   line-height: 1.5;
   max-height: 260px;
   overflow: auto;
@@ -822,8 +991,8 @@ body.lookbook {
   margin: 0 0 8px;
 }
 .studio-voice {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--text-2);
+  font-size: var(--fs-3);
   text-transform: uppercase;
 }
 .studio-quotation {
@@ -837,8 +1006,8 @@ body.lookbook {
 }
 .studio-quotation cite {
   display: block;
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--text-2);
+  font-size: var(--fs-3);
   font-style: normal;
 }
 .studio-mic {
@@ -853,10 +1022,10 @@ body.lookbook {
 .studio-mic select {
   flex: 1;
   min-width: 0;
-  background: var(--bg);
-  color: var(--text);
-  border: 1px solid #3a342c;
-  border-radius: 6px;
+  background: var(--surface-0);
+  color: var(--text-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
   font: inherit;
 }
 .studio-meter {
@@ -865,25 +1034,25 @@ body.lookbook {
   gap: 4px 10px;
   align-items: center;
   min-height: 18px;
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--fs-2);
+  color: var(--text-2);
 }
 .studio-meter-bar {
   flex-basis: 100%;
   height: 6px;
-  background: var(--bg);
-  border-radius: 3px;
+  background: var(--surface-0);
+  border-radius: var(--r-1);
   overflow: hidden;
 }
 .studio-meter-fill {
   height: 100%;
-  background: #7fc4a0;
+  background: var(--state-approved);
 }
 .studio-meter-fill.clip {
-  background: #d9534f;
+  background: var(--state-recording);
 }
 .studio-clip {
-  color: #d9534f;
+  color: var(--state-recording);
   font-weight: 600;
 }
 .studio-buttons {
@@ -894,21 +1063,21 @@ body.lookbook {
 .studio-status {
   margin: 6px 0 0;
   white-space: pre-line;
-  font-size: 12px;
-  color: var(--muted);
+  font-size: var(--fs-3);
+  color: var(--text-2);
 }
 .studio-status[data-tone='busy'] {
   color: var(--accent);
 }
 .studio-status[data-tone='kept'] {
-  color: #7fc4a0;
+  color: var(--state-approved);
 }
 .studio-status[data-tone='warn'] {
-  color: #e8c46f;
+  color: var(--state-warning);
   font-weight: 600;
 }
 .studio-status[data-tone='refused'] {
-  color: #e8836f;
+  color: var(--state-findings);
 }
 .studio-review,
 .studio-attempt audio {
@@ -923,17 +1092,17 @@ body.lookbook {
   display: grid;
   gap: 4px;
   padding: 6px;
-  border: 1px solid #3a342c;
-  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-2);
 }
 .studio-attempt.kept {
-  border-color: #2e5a3a;
+  border-color: var(--state-approved);
 }
 .studio-attempt-head {
   display: flex;
   gap: 6px;
   align-items: center;
-  font-size: 11px;
+  font-size: var(--fs-2);
 }
 .studio-attempt-line {
   flex: 1;
