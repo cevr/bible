@@ -8,7 +8,7 @@
 // Redo; the findings of the film's check show under the inspector, and F
 // and ⇧F walk those with a place on the time line.
 
-import { Effect, Option, Schedule } from 'effect';
+import { Deferred, Effect, Exit, Option, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import { SourceRefused } from '../../../src/core/refusals.ts';
@@ -18,6 +18,7 @@ import {
   hold,
   json,
   labAt,
+  later,
   openLab,
   refused,
   URL_T,
@@ -140,6 +141,48 @@ describe('the cue strip', () => {
         yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
         yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
         expect(posted(asked).map((a) => a.path)).toEqual(['/scenes/one/cues/rise', '/undo']);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a rebuild while a write is out waits for its answer, so its receipt and its Undo outlive the reload',
+    () =>
+      Effect.gen(function* () {
+        const undo = { scene: 'one', file: 'scenes/one.ts', target: 'cue rise offset' };
+        // The lab rebuilds the page as soon as the write is in (a scene file is page code),
+        // and answers the write only later, once its check is done.
+        const [posted, answer] = [Deferred.makeUnsafe<void>(), Deferred.makeUnsafe<void>()];
+        let waits = 0;
+        const { page } = yield* openLab(
+          [
+            route('GET', /^\/api\/review\/build\?/, () => {
+              waits += 1;
+              if (waits > 1) return hold;
+              return later(posted, json({ build: 1, server: 'lab' }));
+            }),
+            route('POST', /^\/scenes\/one\/cues\/rise$/, () => {
+              Deferred.doneUnsafe(posted, Effect.void);
+              return later(
+                answer,
+                json({ scene: 'one', file: 'scenes/one.ts', target: undo.target, findings: [] }),
+              );
+            }),
+            route('GET', /^\/check$/, () => json({ findings: [], undo })),
+          ],
+          { href: labAt(1), build: { build: 0, server: 'lab' } },
+        );
+        yield* editable(page);
+        yield* page.evaluate('window.loadedOnce = true');
+        const rebuilt = yield* page.nextAnswer((a) => a.url.includes('/api/review/build'));
+        yield* dragBar(page, 'rise', 0.5, 60);
+        yield* rebuilt;
+        yield* runClock(page, 300);
+        // The page holds its reload while the write is out: the write's answer reaches it.
+        yield* evaluates(page, 'window.loadedOnce === true', true);
+        yield* Deferred.done(answer, Exit.void);
+        yield* evaluates(page, 'window.loadedOnce === true', false);
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
       }).pipe(Effect.scoped),
   );
 

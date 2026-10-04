@@ -261,6 +261,21 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   });
   onCleanup(letGo);
 
+  // A write out holds every reload (the rebuild its own scene file starts) until it is
+  // answered, so its receipt and its Undo are said before the page goes, and outlive it.
+  const out = createMemo(() => edit()._tag === 'Writing' || edit()._tag === 'Checking');
+  createEffect(out, (writing) => {
+    Effect.runFork(
+      meta.reloads.hold(
+        'edit',
+        Option.liftPredicate('wait for the write’s answer', () => writing),
+      ),
+    );
+  });
+  onCleanup(() => {
+    Effect.runFork(meta.reloads.hold('edit', Option.none()));
+  });
+
   // The editor's receipts, on the page's hub as its machine moves (`receiptOf`),
   // each once, in one slot: `writing…` becomes what was moved, `undoing…` what was undone.
   let announced = Option.none<Receipt>();

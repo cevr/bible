@@ -776,7 +776,11 @@ recorded and answered from the timings. A reload never takes work only the
 page holds: a take being recorded, under review, refused with its recording
 or on its way, or a note being made, holds every reload (`lab/reload-gate.ts`),
 which runs once it is submitted, discarded or saved; the panel says what it
-waits for. A take is kept against that reading
+waits for. An editor write on its way holds it too: a scene file is page
+code, so the lab rebuilds the page as soon as the write is in, before it
+answers (its check comes first), and the reload waits for that answer, so
+the write's receipt and its Undo are said before the page goes and come back
+with it. A take is kept against that reading
 (`VoicedFilm`, `narrator.ts`: the film's paths, voice, `heardAs` and beats,
 which `takes import` makes with `voicedOf`), so a line fixed while the lab
 is open is on the sheet, and a take of it current, at the next read. Its

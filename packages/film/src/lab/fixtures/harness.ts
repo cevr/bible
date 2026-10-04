@@ -11,6 +11,7 @@ import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effe
 import {
   LabHttpApi,
   declares,
+  type PageBuild,
   type PageName,
   Refusal,
   pageAt,
@@ -219,9 +220,20 @@ const [labScript, reviewScript, playerScript, css] = await Effect.runPromise(
   ),
 );
 
-/** The lab page as `lab.html` has it, with the player's styles inline. */
-const labPage = (style: string, script: Asset) =>
-  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style></head><body class="lab">${scriptOf(script)}</body></html>`;
+/**
+ * The lab page as `lab.html` has it, with the player's styles inline, and
+ * the build it was served at as the lab's server stamps it (`lab-build`,
+ * `lab-server`) when the test gives one: then it waits on the rebuild.
+ */
+const labPage = (style: string, script: Asset, build: Option.Option<PageBuild>) =>
+  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style>${Option.match(
+    build,
+    {
+      onNone: () => '',
+      onSome: (b) =>
+        `<meta name="lab-build" content="${b.build}"><meta name="lab-server" content="${b.server}">`,
+    },
+  )}</head><body class="lab">${scriptOf(script)}</body></html>`;
 
 /** The page's JSON body, when it sent one. */
 const bodyOf = (request: Request): Option.Option<Json> =>
@@ -274,9 +286,14 @@ const declared = declares(LabHttpApi);
 const apiAnswer =
   (prefix: string, routes: ReadonlyArray<FakeRoute>, asked: Array<Asked>) =>
   (request: Request): Effect.Effect<Option.Option<Response>> => {
+    // Past `prefix` when under it (`/scenes/one/source`), else whole (`/api/review/build`).
+    const under = Option.liftPredicate(request.url.pathname, (p) => p.startsWith(`${prefix}/`));
     const made: Asked = {
       method: request.method,
-      path: `${request.url.pathname.slice(prefix.length)}${request.url.search}`,
+      path: `${Option.getOrElse(
+        Option.map(under, (p) => p.slice(prefix.length)),
+        () => request.url.pathname,
+      )}${request.url.search}`,
       body: bodyOf(request),
     };
     asked.push(made);
@@ -376,7 +393,12 @@ interface FakeMic {
  */
 export const openLab = Effect.fn('lab.fixture.open')(function* (
   routes: ReadonlyArray<FakeRoute> = [],
-  at: { readonly href?: string; readonly mic?: FakeMic } = {},
+  at: {
+    readonly href?: string;
+    readonly mic?: FakeMic;
+    /** The build the page is served at, as the lab's server stamps it; none: it waits on no rebuild. */
+    readonly build?: PageBuild;
+  } = {},
 ) {
   const script = labScript;
   const mic = Option.fromUndefinedOr(at.mic);
@@ -396,7 +418,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     ],
     assets: [script],
     serve: fakeServer(
-      servedAs('lab', respond(labPage(css, script), 'text/html')),
+      servedAs('lab', respond(labPage(css, script, Option.fromUndefinedOr(at.build)), 'text/html')),
       API,
       [...routes, ...defaults],
       asked,
