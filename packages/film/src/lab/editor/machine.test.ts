@@ -254,9 +254,11 @@ describe('writes', () => {
   it.effect('undo writes with no preview', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
-      const result = yield* simulate(editMachine, [EditEvent.Step({ verb: 'undo' })]);
+      const result = yield* simulate(editMachine, [
+        EditEvent.Step({ verb: 'undo', request: 'undo-1' }),
+      ]);
       expect(result.finalState).toEqual(
-        EditState.Writing({ write: StepWrite.make({ verb: 'undo' }) }),
+        EditState.Writing({ write: StepWrite.make({ verb: 'undo', request: 'undo-1' }) }),
       );
       expect(log).toEqual(['holdT']);
     }).pipe(Effect.provide(layer));
@@ -265,13 +267,13 @@ describe('writes', () => {
   it.effect('one write at a time: a press or a commit while one is out is not taken', () =>
     Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
-        EditEvent.Step({ verb: 'undo' }),
+        EditEvent.Step({ verb: 'undo', request: 'undo-1' }),
         EditEvent.Press({ grip }),
         EditEvent.Commit({ write: cueWrite, edit: {} }),
-        EditEvent.Step({ verb: 'redo' }),
+        EditEvent.Step({ verb: 'redo', request: 'redo-1' }),
       ]);
       expect(result.finalState).toEqual(
-        EditState.Writing({ write: StepWrite.make({ verb: 'undo' }) }),
+        EditState.Writing({ write: StepWrite.make({ verb: 'undo', request: 'undo-1' }) }),
       );
     }).pipe(Effect.provide(fakes().layer)),
   );
@@ -311,7 +313,7 @@ describe('writes', () => {
     };
     return Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
-        EditEvent.Step({ verb: 'undo' }),
+        EditEvent.Step({ verb: 'undo', request: 'undo-1' }),
         EditEvent.Wrote({ result: timings }),
       ]);
       expect(result.finalState._tag).toBe('Written');
@@ -398,18 +400,25 @@ describe('an Undo that remakes what follows its file', () => {
     target: `undo ${kept}`,
     findings: [],
   };
-  const reported = (target: string): CheckReport => ({
+  /** The lab's check: its latest change, and the steps that landed with the ids their pages sent. */
+  const reported = (
+    latest: string,
+    landed: ReadonlyArray<{ readonly target: string; readonly request: string }> = [],
+  ): CheckReport => ({
     findings: [],
-    latest: { file: 'narration/timings.json', target },
+    latest: { file: 'narration/timings.json', target: latest },
+    landed: landed.map((step) => ({ file: 'narration/timings.json', ...step })),
   });
-  /** The editor's actor once it was asked to undo the keep the page's history named. */
-  const undoing = Effect.gen(function* () {
-    const actor = yield* Machine.spawn(editMachine);
-    yield* actor.start;
-    yield* actor.send(EditEvent.Step({ verb: 'undo', expected: kept }));
-    yield* TestClock.adjust('10 millis');
-    return actor;
-  });
+  /** The editor's actor once it was asked to undo, as request `request`. */
+  const undoingAs = (request: string) =>
+    Effect.gen(function* () {
+      const actor = yield* Machine.spawn(editMachine);
+      yield* actor.start;
+      yield* actor.send(EditEvent.Step({ verb: 'undo', request }));
+      yield* TestClock.adjust('10 millis');
+      return actor;
+    });
+  const undoing = undoingAs('undo-1');
 
   it.effect('an Undo answered after a slow remake lands, past the scene write wait', () => {
     const { log, layer } = fakes(Effect.as(Effect.sleep('2 minutes'), timings));
@@ -426,7 +435,10 @@ describe('an Undo that remakes what follows its file', () => {
   it.effect(
     `an Undo with no answer in ${STUDIO_IMPORT_WAIT_S} s that the lab's check says landed is written, and says the track may still be mixing`,
     () => {
-      const { log, layer } = fakes(Effect.never, Effect.succeed(reported(`undo ${kept}`)));
+      const { log, layer } = fakes(
+        Effect.never,
+        Effect.succeed(reported(`undo ${kept}`, [{ target: `undo ${kept}`, request: 'undo-1' }])),
+      );
       return Effect.gen(function* () {
         const actor = yield* undoing;
         yield* TestClock.adjust(`${STUDIO_IMPORT_WAIT_S} seconds`);
@@ -453,6 +465,44 @@ describe('an Undo that remakes what follows its file', () => {
         const state = yield* SubscriptionRef.get(actor.state);
         expect(state._tag).toBe('Refused');
         expect(state).toMatchObject({ message: expect.stringContaining('cue rise offset') });
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    'a second Undo that never reached the lab is not taken for an earlier one of the same name',
+    () => {
+      // The first Undo of `cue rise offset` landed; this one, of another change by that name, did not.
+      const first = { target: 'undo cue rise offset', request: 'undo-1' };
+      const { layer } = fakes(
+        Effect.never,
+        Effect.succeed(reported('undo cue rise offset', [first])),
+      );
+      return Effect.gen(function* () {
+        const actor = yield* undoingAs('undo-2');
+        yield* TestClock.adjust(`${STUDIO_IMPORT_WAIT_S} seconds`);
+        yield* TestClock.adjust('10 millis');
+        const state = yield* SubscriptionRef.get(actor.state);
+        expect(state._tag).toBe('Refused');
+        expect(state).toMatchObject({ message: expect.stringContaining('did not land') });
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    "an Undo that landed is written though it walked another change than the page's history named, and a later change landed after it",
+    () => {
+      // The page's history named `cue rise offset`; another tab's change made the Undo walk
+      // `cue rise dur`, and a write landed after it.
+      const mine = { target: 'undo cue rise dur', request: 'undo-1' };
+      const { layer } = fakes(Effect.never, Effect.succeed(reported('cue rise ease', [mine])));
+      return Effect.gen(function* () {
+        const actor = yield* undoingAs('undo-1');
+        yield* TestClock.adjust(`${STUDIO_IMPORT_WAIT_S} seconds`);
+        yield* TestClock.adjust('10 millis');
+        const state = yield* SubscriptionRef.get(actor.state);
+        expect(state._tag).toBe('Written');
+        expect(state).toMatchObject({ note: expect.stringContaining('cue rise dur') });
       }).pipe(Effect.scoped, Effect.provide(layer));
     },
   );

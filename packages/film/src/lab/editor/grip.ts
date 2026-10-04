@@ -126,11 +126,11 @@ export type KnobWrite = typeof KnobWrite.Type;
 export const StepWrite = Schema.TaggedStruct('StepWrite', {
   verb: StepVerb,
   /**
-   * The change the page's history said this step walks (`cue rise offset`),
-   * when it said one: with no answer, the lab's latest change says whether
-   * it landed (`undo cue rise offset`).
+   * The id this page gave the request, unique to it: the lab records it on
+   * the step once it lands, so a step with no answer is known by it, never
+   * by a name another change may share.
    */
-  expected: Schema.optionalKey(Schema.String),
+  request: Schema.String,
 });
 export type StepWrite = typeof StepWrite.Type;
 

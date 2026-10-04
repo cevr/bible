@@ -763,8 +763,13 @@ failed mix is logged `lab.remake.failed` and the step stands), and the lab
 page reloads at its frame to play it (`readAtLoad`: the timings and the
 track are read at load, so no rebuild would). The editor waits for such a
 step as long as the studio waits for a keep (`STUDIO_IMPORT_WAIT_S`); with
-no answer even then it reads `GET …/check`, whose latest change the step
-records before it remixes, and says whether it landed. A keep answered by
+no answer even then it reads `GET …/check`, whose `landed` the step is
+recorded in, under the id its request carried, before it remixes, and says
+whether it landed. Undo and Redo are stepped back and on only with the
+timings' takes brought back as the very files they name: a take's copy is
+picked by the hash of its audio its name carries, and a name from before
+takes were named by their audio, whose copies differ, is refused
+(`TakeAmbiguous`) rather than guessed at. A keep answered by
 an older film CLI (`{"_tag":"OptionsKept","mixed":true}`, no take) is still
 recorded and answered from the timings. A reload never takes work only the
 page holds: a take being recorded, under review, refused with its recording
@@ -1108,14 +1113,14 @@ at the same frame and pick, kept in its place (`/films/<film>/lab/hand?cue=toppl
 `?knob=palm`); review the
 change with `git diff`.
 
-| Route                                              | What it does                                                                                        |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`    |
-| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `ease?`, `stagger?`) → the span, the cue resolved, findings |
-| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings           |
-| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{}`)     |
-| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, and what Undo and Redo would do                       |
-| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                    |
+| Route                                              | What it does                                                                                                                              |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`                                          |
+| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                       |
+| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                 |
+| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under) |
+| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do, and the steps `landed` by request id                           |
+| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                          |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
@@ -1239,9 +1244,11 @@ field's, a knob's, Undo's and Redo's, goes through one effect-machine
 two writes never race for a file; a write with no answer in 20 s
 (`WRITE_TIMEOUT_S`) is refused and says so, so a hung server never wedges
 the editor; an Undo or Redo, which may remix the track first, waits
-`STUDIO_IMPORT_WAIT_S`, then `Checking` reads the lab's latest change: the
-step the page's history named landed (written, with a note to reload once
-mixed) or did not (refused, naming the latest change); Escape during a drag puts the cue back.
+`STUDIO_IMPORT_WAIT_S`, then `Checking` asks the lab by the id the step's
+request carried (`stepRequest`, unique to it): the lab recorded a step
+under it (written, with a note to reload once mixed), or did not (refused,
+naming the latest change), never judged by a name two changes may share;
+Escape during a drag puts the cue back.
 The pure parts (`lab/editor/grip.ts`: where a press grabs, snapping, the
 patch a drag makes, why a cue cannot be dragged) are shared by the machine
 and its tests, which run every transition with no DOM. The knobs' rows

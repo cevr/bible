@@ -127,6 +127,12 @@ export type RewriteError =
   | StoreError;
 
 /** What a film's changes are: those Undo may put back, and those Redo may make again. */
+/** An Undo or a Redo that landed (`undo …`, `redo …`), and the id of the request that asked for it. */
+interface LandedStep {
+  readonly request: string;
+  readonly step: Change;
+}
+
 interface History {
   /** Oldest first; Undo takes the last. */
   readonly undos: ReadonlyArray<Change>;
@@ -134,6 +140,8 @@ interface History {
   readonly redos: ReadonlyArray<Change>;
   /** The latest change: a write, an undo (`undo …`) or a redo (`redo …`). */
   readonly latest: Option.Option<Change>;
+  /** The Undos and Redos asked for with a request's id that landed, oldest first (UNDO_DEPTH of them). */
+  readonly landed: ReadonlyArray<LandedStep>;
 }
 
 /** The history as a page asks for it (`GET /api/films/<film>/check`). */
@@ -143,6 +151,7 @@ interface WriteHistory {
   /** The change Redo would make again. */
   readonly redo: Option.Option<Change>;
   readonly latest: Option.Option<Change>;
+  readonly landed: ReadonlyArray<LandedStep>;
 }
 
 interface SourceWriterService {
@@ -163,10 +172,20 @@ interface SourceWriterService {
     act: Effect.Effect<A, E, R>,
     follows?: Follows,
   ) => Effect.Effect<readonly [A, Option.Option<Change>], E | StoreError | FormatFailed, R>;
-  /** Put `film`'s newest change back: its file as it was before it. */
-  readonly undo: (film: string) => Effect.Effect<Change, UndoUnavailable | StoreError>;
-  /** Make `film`'s newest undone change again. */
-  readonly redo: (film: string) => Effect.Effect<Change, RedoUnavailable | StoreError>;
+  /**
+   * Put `film`'s newest change back: its file as it was before it. Asked
+   * with a request's id, the step is recorded under it once it lands
+   * (`WriteHistory.landed`).
+   */
+  readonly undo: (
+    film: string,
+    request?: string,
+  ) => Effect.Effect<Change, UndoUnavailable | StoreError>;
+  /** Make `film`'s newest undone change again; recorded under `request` as `undo` is. */
+  readonly redo: (
+    film: string,
+    request?: string,
+  ) => Effect.Effect<Change, RedoUnavailable | StoreError>;
   /** What undo and redo would do now for `film`, and its latest change. */
   readonly history: (film: string) => Effect.Effect<WriteHistory>;
 }
@@ -174,14 +193,31 @@ interface SourceWriterService {
 /** How many changes Undo can walk back, per film. Each holds its file's text before and after. */
 export const UNDO_DEPTH = 50;
 
-export const emptyHistory: History = { undos: [], redos: [], latest: Option.none() };
+export const emptyHistory: History = {
+  undos: [],
+  redos: [],
+  latest: Option.none(),
+  landed: [],
+};
 
 /** `h` after the change `c`: on top of the stack (the oldest past `depth` dropped), nothing to redo. */
 export const recordChange = (h: History, c: Change, depth = UNDO_DEPTH): History => ({
+  ...h,
   undos: [...h.undos, c].slice(-depth),
   redos: [],
   latest: Option.some(c),
 });
+
+/** `landed` with `step` recorded under `request`, when it was asked with one (the oldest past UNDO_DEPTH dropped). */
+const landedWith = (
+  landed: ReadonlyArray<LandedStep>,
+  request: Option.Option<string>,
+  step: Change,
+): ReadonlyArray<LandedStep> =>
+  Option.match(request, {
+    onNone: () => landed,
+    onSome: (id) => [...landed, { request: id, step }].slice(-UNDO_DEPTH),
+  });
 
 /** The undo of `c`: its file from `c.after` back to `c.before`, named `undo <target>`. */
 const undoneOf = (c: Change): Change => ({
@@ -445,7 +481,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
           }),
         );
 
-      const undo = (film: string) =>
+      const undo = (film: string, request?: string) =>
         writer
           .withPermits(1)(
             Effect.uninterruptible(
@@ -469,6 +505,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                   undos: h.undos.slice(0, -1),
                   redos: [...h.redos, c],
                   latest: Option.some(undone),
+                  landed: landedWith(h.landed, Option.fromUndefinedOr(request), undone),
                 });
                 yield* Effect.log(
                   `lab.undo film=${film}${sceneLog(c)} target="${c.target}" file=${shown(c)}`,
@@ -480,7 +517,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
           )
           .pipe(Effect.withSpan('SourceWriter.undo'));
 
-      const redo = (film: string) =>
+      const redo = (film: string, request?: string) =>
         writer
           .withPermits(1)(
             Effect.uninterruptible(
@@ -504,6 +541,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                   undos: [...h.undos, c].slice(-UNDO_DEPTH),
                   redos: h.redos.slice(0, -1),
                   latest: Option.some(redone),
+                  landed: landedWith(h.landed, Option.fromUndefinedOr(request), redone),
                 });
                 yield* Effect.log(
                   `lab.redo film=${film}${sceneLog(c)} target="${c.target}" file=${shown(c)}`,
@@ -520,6 +558,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
           undo: Arr.last(h.undos),
           redo: Arr.last(h.redos),
           latest: h.latest,
+          landed: h.landed,
         }));
 
       return SourceWriter.of({ write, around, undo, redo, history });

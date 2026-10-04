@@ -238,19 +238,23 @@ describe('lab source routes', () => {
       expect(yield* read()).toBe(before);
       expect(yield* status(post(labUrls.steps.undo({ params: { film: 'f' } }), '{}'))).toBe(409);
       // The page the undo reloaded asks what happened, and what Redo would do.
-      expect(yield* json(get(labUrls.steps.check({ params: { film: 'f' } })))).toMatchObject({
+      const undone = yield* json(get(labUrls.steps.check({ params: { film: 'f' } })));
+      expect(undone).toMatchObject({
         latest: { target: 'undo cue topple ease', file: 'scenes/hand.ts' },
         redo: { target: 'cue topple ease' },
       });
-      expect(yield* json(post(labUrls.steps.redo({ params: { film: 'f' } }), '{}'))).toMatchObject({
-        target: 'redo cue topple ease',
-      });
+      // An undo asked with no id is made all the same, and recorded under none.
+      expect(undone).not.toHaveProperty('landed');
+      const redo = post(labUrls.steps.redo({ params: { film: 'f' } }), '{"request":"redo-1"}');
+      expect(yield* json(redo)).toMatchObject({ target: 'redo cue topple ease' });
       expect(yield* read()).toBe(written);
       expect(yield* status(post(labUrls.steps.redo({ params: { film: 'f' } }), '{}'))).toBe(409);
       const report = yield* json(get(labUrls.steps.check({ params: { film: 'f' } })));
       expect(report).toMatchObject({
         latest: { target: 'redo cue topple ease' },
         undo: { target: 'cue topple ease' },
+        // The redo, by the id its page sent: what a page whose redo had no answer asks after.
+        landed: [{ target: 'redo cue topple ease', file: 'scenes/hand.ts', request: 'redo-1' }],
       });
       expect(report).not.toHaveProperty('redo');
     }).pipe(Effect.scoped, Effect.provide(fixture)),

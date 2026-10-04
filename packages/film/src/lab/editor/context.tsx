@@ -37,7 +37,7 @@ import {
 } from './grip.ts';
 import { type Handle, knobMode } from './handles.ts';
 import { findingsOf, statusText } from './format.ts';
-import { type EditActor, EditEvent, spawnEditor } from './machine.ts';
+import { type EditActor, EditEvent, spawnEditor, stepRequest } from './machine.ts';
 
 /** What the lab knows of a scene's source: it, or why it could not be read. */
 interface Known {
@@ -250,17 +250,9 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   });
   onCleanup(letGo);
 
-  // The change the page's history says the step walks: with no answer, the lab's latest change says whether it landed.
+  // Each step is its own request, with an id no other has: with no answer, the lab says by it whether it landed.
   const step = (verb: StepVerb) =>
-    send(
-      EditEvent.Step({
-        verb,
-        ...Option.match(
-          Option.flatMap(report(), (r) => Option.fromUndefinedOr(r[verb])),
-          { onNone: () => ({}), onSome: (s) => ({ expected: s.target }) },
-        ),
-      }),
-    );
+    send(EditEvent.Step({ verb, request: Effect.runSync(stepRequest) }));
   // Escape lets a held grip go; ⌘Z undoes and ⇧⌘Z redoes, outside a field being typed in.
   const editorKey = (e: KeyPress): boolean => {
     if (e.key === 'Escape' && holding()) send(EditEvent.Cancel);

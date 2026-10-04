@@ -220,14 +220,22 @@ export const statusOf = (refusal: Refusal): number => {
 // ---------------------------------------------------------------------------
 // The groups.
 
-/** A write with nothing to say (undo, redo, resolve) still sends JSON: the server takes no other write. */
+/** A write with nothing to say (a resolve) still sends JSON: the server takes no other write. */
 const NoBody = Schema.Struct({});
+
+/**
+ * An Undo or a Redo as a page asks for it: with an id unique to the request,
+ * which the lab records on the step once it lands (`CheckReport.landed`);
+ * one sent with none (`{}`) is made all the same, and recorded without one.
+ */
+const StepRequest = Schema.Struct({ request: Schema.optionalKey(Schema.String) });
 
 /** `GET /api/films/<film>/steps`: the film's history as `CheckReport` gives it, without the check. */
 export const Steps = Schema.Struct({
   latest: CheckReport.fields.latest,
   undo: CheckReport.fields.undo,
   redo: CheckReport.fields.redo,
+  landed: CheckReport.fields.landed,
 });
 export type Steps = typeof Steps.Type;
 
@@ -332,13 +340,13 @@ class ScenesGroup extends HttpApiGroup.make('scenes').add(
 class StepsGroup extends HttpApiGroup.make('steps').add(
   HttpApiEndpoint.post('undo', `${FILM}/undo`, {
     params: film,
-    payload: NoBody,
+    payload: StepRequest,
     success: LabWrite,
     error: Refusals,
   }),
   HttpApiEndpoint.post('redo', `${FILM}/redo`, {
     params: film,
-    payload: NoBody,
+    payload: StepRequest,
     success: LabWrite,
     error: Refusals,
   }),

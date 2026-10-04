@@ -7,8 +7,8 @@
 //
 //   Idle | Written | Refused ─Press→ Pressed ─Move→ Dragging ─Release→ Writing
 //                   ─Commit | Step→ Writing ─Wrote→ Written | ─Failed | TimedOut→ Refused
-//   Writing (a step) ─TimedOut (STEP_TIMEOUT_S)→ Checking (the lab's latest
-//     change read back) ─Landed→ Written | ─Failed→ Refused
+//   Writing (a step) ─TimedOut (STEP_TIMEOUT_S)→ Checking (the lab's steps
+//     read back) ─Landed→ Written | ─Failed→ Refused
 //
 // A write holds `#t=` at the frame it is asked at (the file change reloads the
 // page there; a file the page reads at load, as an Undo of a kept take
@@ -17,10 +17,11 @@
 // the preview back. An Undo or Redo remakes what follows its file before it
 // answers (a kept take's track, mixed again), so it waits as long as a
 // studio keep does, and one with no answer even then is never guessed at:
-// the lab's latest change says whether it landed. Nothing here touches the
-// DOM: the stage and the API are services, faked in tests.
+// each step carries an id unique to its request, which the lab records on it
+// once it lands, and the lab's check says by that id whether it did. Nothing
+// here touches the DOM: the stage and the API are services, faked in tests.
 
-import { Duration, Effect, Match, Option, Schema } from 'effect';
+import { Array as Arr, Clock, Duration, Effect, Match, Option, Random, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { SceneEdit } from '../../canvas/film.ts';
 import { CheckLine, type CheckReport, LabWrite } from '../../core/schema.ts';
@@ -44,7 +45,16 @@ export const WRITE_TIMEOUT_S = 20;
  */
 const STEP_TIMEOUT_S = STUDIO_IMPORT_WAIT_S;
 
-/** How long reading the lab's latest change may take once a step's wait is over. */
+/**
+ * An id for an Undo or Redo request that no other request has, from any
+ * page: the time it was asked, and a random part.
+ */
+export const stepRequest: Effect.Effect<string> = Effect.map(
+  Effect.all([Clock.currentTimeMillis, Random.nextIntBetween(0, 2 ** 52)]),
+  ([at, n]) => `${at.toString(36)}-${n.toString(36)}`,
+);
+
+/** How long reading the lab's steps may take once a step's wait is over. */
 const CHECK_WAIT = Duration.seconds(15);
 
 export const EditState = State({
@@ -56,7 +66,7 @@ export const EditState = State({
   Dragging: { grip: Grip, write: Schema.Option(Write), note: Schema.String },
   /** A write is out: the server is changing a scene file. */
   Writing: { write: Write },
-  /** An Undo or Redo had no answer in STEP_TIMEOUT_S: the lab's latest change is being read. */
+  /** An Undo or Redo had no answer in STEP_TIMEOUT_S: the lab is asked whether it landed, by its request's id. */
   Checking: { write: StepWrite },
   /** The write landed; the page reloads with it. */
   Written: { note: Schema.String, findings: Schema.Array(CheckLine) },
@@ -74,13 +84,13 @@ export const EditEvent = Event({
   Cancel: {},
   /** A write asked for from rest (a field, an ease, a knob), shown first as `edit`. */
   Commit: { write: Write, edit: SceneEdit },
-  /** An Undo or Redo, with the change the page's history said it walks (`StepWrite.expected`). */
-  Step: { verb: StepVerb, expected: Schema.optionalKey(Schema.String) },
+  /** An Undo or Redo, with an id unique to this request (`StepWrite.request`). */
+  Step: { verb: StepVerb, request: Schema.String },
   Wrote: { result: LabWrite },
   Failed: { message: Schema.String },
   /** The write was out its wait (WRITE_TIMEOUT_S, a step STEP_TIMEOUT_S) with no answer. */
   TimedOut: {},
-  /** The lab's latest change is the step that had no answer: it landed, as `result`. */
+  /** The lab recorded the step that had no answer, by its request's id: it landed, as `result`. */
   Landed: { result: LabWrite },
 });
 export type EditEvent = typeof EditEvent.Type;
@@ -103,22 +113,24 @@ const waitFor = (write: Write): Duration.Duration =>
 
 /**
  * What became of `step`, which had no answer, from the lab's check now: it
- * landed when the lab's latest change is it (`undo <the change the page's
- * history named>`); else it did not, or has not yet, and the latest change
- * is named.
+ * landed when the lab recorded a step under its request's id (whatever
+ * change it walked, and whatever landed after it); else it did not, or has
+ * not yet, and the latest change is named.
  */
 const settleStep = (step: StepWrite, report: CheckReport): EditEvent => {
-  const latest = Option.fromUndefinedOr(report.latest);
-  const landedAs = Option.map(Option.fromUndefinedOr(step.expected), (e) => `${step.verb} ${e}`);
-  const landed = Option.filter(latest, (l) => Option.contains(landedAs, l.target));
-  if (Option.isSome(landed))
-    return EditEvent.Landed({ result: { ...landed.value, findings: report.findings } });
-  const named = Option.match(latest, {
+  const landed = Option.flatMap(Option.fromUndefinedOr(report.landed), (steps) =>
+    Arr.findFirst(steps, (l) => l.request === step.request),
+  );
+  if (Option.isSome(landed)) {
+    const { request: _, ...walked } = landed.value;
+    return EditEvent.Landed({ result: { ...walked, findings: report.findings } });
+  }
+  const named = Option.match(Option.fromUndefinedOr(report.latest), {
     onNone: () => 'none',
     onSome: (l) => `${l.target} in ${l.file}`,
   });
   return EditEvent.Failed({
-    message: `the ${step.verb} had no answer in ${STEP_TIMEOUT_S} s, and the lab's latest change is ${named}: it did not land, or is still landing; see the lab log before stepping again`,
+    message: `the ${step.verb} had no answer in ${STEP_TIMEOUT_S} s, and the lab has no record of it (its latest change is ${named}): it did not land, or is still landing; see the lab log before stepping again`,
   });
 };
 
@@ -129,7 +141,7 @@ const send = (write: Write) =>
       Match.tagsExhaustive({
         CueWrite: (w) => api.writeCue(w.scene, w.cue, w.patch),
         KnobWrite: (w) => api.writeKnob(w.scene, w.knob, w.value),
-        StepWrite: (w) => api.step(w.verb),
+        StepWrite: (w) => api.step(w.verb, w.request),
       }),
     ),
   );
@@ -209,15 +221,7 @@ export const editMachine = Machine.make({
     }),
   )
   .on(AT_REST, EditEvent.Step, ({ event }) =>
-    writing(
-      StepWrite.make({
-        verb: event.verb,
-        ...Option.match(Option.fromUndefinedOr(event.expected), {
-          onNone: () => ({}),
-          onSome: (expected) => ({ expected }),
-        }),
-      }),
-    ),
+    writing(StepWrite.make({ verb: event.verb, request: event.request })),
   )
   .task(EditState.Writing, ({ state }) => send(state.write), {
     onSuccess: (result) => EditEvent.Wrote({ result }),
@@ -239,7 +243,7 @@ export const editMachine = Machine.make({
   })
   .on(EditState.Writing, EditEvent.TimedOut, ({ state }) =>
     Match.value(state.write).pipe(
-      // A step with no answer is never guessed at: the lab's latest change says.
+      // A step with no answer is never guessed at: the lab says, by its request's id.
       Match.tag('StepWrite', (write) => Effect.succeed(EditState.Checking({ write }))),
       Match.orElse((write) =>
         refuse(

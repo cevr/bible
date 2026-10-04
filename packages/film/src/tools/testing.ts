@@ -1581,6 +1581,7 @@ const reviewFilmServices = (films: string, PICK = reviewPickIn(films)) =>
             undo: Option.none(),
             redo: Option.some(PICK),
             latest: Option.none(),
+            landed: [],
           }),
       }),
     ),

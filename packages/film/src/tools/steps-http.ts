@@ -42,29 +42,43 @@ export const writeAnswer = Effect.fn('lab.writeAnswer')(function* <R>(
   return wrote;
 });
 
-/** Undo or Redo: the film's newest change put back, or its newest undone one made again, answered as a write is. */
-const stepped = (name: string, verb: 'undo' | 'redo') =>
+/**
+ * Undo or Redo: the film's newest change put back, or its newest undone one
+ * made again, answered as a write is, and recorded under the request's id
+ * when the page sent one.
+ */
+const stepped = (name: string, verb: 'undo' | 'redo', request: { readonly request?: string }) =>
   answered(
     Effect.gen(function* () {
       const film = yield* filmNamed(name);
-      const change = yield* (yield* SourceWriter)[verb](film);
+      const change = yield* (yield* SourceWriter)[verb](film, request.request);
       return yield* writeAnswer(film, change, Effect.succeed({}));
     }),
   );
 
-/** The film's latest change, and what Undo and Redo would do, each named by its file and target. */
+/**
+ * The film's latest change, what Undo and Redo would do, each named by its
+ * file and target, and the steps that landed under a request's id, when any did.
+ */
 const history = Effect.fn('lab.history')(function* (film: FilmName) {
   const path = yield* Path.Path;
   const dir = (yield* FilmFolder).paths(film).dir;
   const kept = yield* (yield* SourceWriter).history(film);
+  const named = (c: Change) => ({
+    ...sceneField(c),
+    file: path.relative(dir, c.file),
+    target: c.target,
+  });
   const step = (key: 'latest' | 'undo' | 'redo') =>
     Option.match(kept[key], {
       onNone: () => ({}),
-      onSome: (c) => ({
-        [key]: { ...sceneField(c), file: path.relative(dir, c.file), target: c.target },
-      }),
+      onSome: (c) => ({ [key]: named(c) }),
     });
-  const steps: Steps = { ...step('latest'), ...step('undo'), ...step('redo') };
+  const landed = () => {
+    if (kept.landed.length === 0) return {};
+    return { landed: kept.landed.map((l) => ({ ...named(l.step), request: l.request })) };
+  };
+  const steps: Steps = { ...step('latest'), ...step('undo'), ...step('redo'), ...landed() };
   return steps;
 });
 
@@ -75,8 +89,8 @@ const history = Effect.fn('lab.history')(function* (film: FilmName) {
  */
 export const stepsGroup = HttpApiBuilder.group(LabHttpApi, 'steps', (handlers) =>
   handlers
-    .handle('undo', ({ params }) => stepped(params.film, 'undo'))
-    .handle('redo', ({ params }) => stepped(params.film, 'redo'))
+    .handle('undo', ({ params, payload }) => stepped(params.film, 'undo', payload))
+    .handle('redo', ({ params, payload }) => stepped(params.film, 'redo', payload))
     .handle('check', ({ params }) =>
       answered(
         Effect.gen(function* () {

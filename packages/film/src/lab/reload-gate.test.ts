@@ -73,7 +73,7 @@ describe('the reload gate', () => {
         yield* gate.hold('studio', unsubmitted(RecorderState.Review({ beat: 'a', wav })));
         // An Undo of a kept take lands, and asks for the reload.
         const result = yield* simulate(editMachine, [
-          EditEvent.Step({ verb: 'undo' }),
+          EditEvent.Step({ verb: 'undo', request: 'undo-1' }),
           EditEvent.Wrote({ result: undoneTake }),
         ]);
         expect(result.finalState._tag).toBe('Written');

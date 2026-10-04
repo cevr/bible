@@ -78,8 +78,8 @@ export interface LabCalls {
     knob: string,
     value: Knob,
   ) => Effect.Effect<LabWrite, LabFailure>;
-  /** Undo the newest write, or redo the newest undone one. */
-  readonly step: (verb: StepVerb) => Effect.Effect<LabWrite, LabFailure>;
+  /** Undo the newest write, or redo the newest undone one, as request `request` (the id the lab records on it). */
+  readonly step: (verb: StepVerb, request: string) => Effect.Effect<LabWrite, LabFailure>;
 }
 
 export class LabApi extends Context.Service<LabApi, LabCalls>()('@bible/film/lab/LabApi') {}
@@ -143,7 +143,7 @@ const makeLabApi = Effect.fn('lab.api.make')(function* (film: string) {
       called(client.scenes.cue({ params: { film, scene, cue }, payload: patch })),
     writeKnob: (scene, knob, value) =>
       called(client.scenes.knob({ params: { film, scene, knob }, payload: { value } })),
-    step: (verb) => called(client.steps[verb]({ params: { film }, payload: {} })),
+    step: (verb, request) => called(client.steps[verb]({ params: { film }, payload: { request } })),
   };
   return api;
 });
