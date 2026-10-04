@@ -852,9 +852,8 @@ export const ScenesView = (props: ScenesViewProps) => {
             () => '',
           )}
         >
-          <For each={tape().rows} keyed={(r) => `${tape().step}:${tape().perRow}:${r.index}`}>
-            {(row) => <Line row={row()} />}
-          </For>
+          {/* A line is its own tape's row: a new step or a new width lays the tape out afresh. */}
+          <For each={tape().rows}>{(row) => <Line row={row} />}</For>
         </div>
       </div>
       <Show when={Option.getOrUndefined(chosen())} keyed>

@@ -36,12 +36,13 @@ const NAMES = [
 /**
  * The opening's longer line: it pushes the short scenes after it late into a
  * phone's half-minute line of the Scenes' tape, where the last few crowd its
- * end (a name there has no room after its rule, and little before it).
+ * end (a name there has no room after its rule, and little before it). Its
+ * mark, a word in, ticks the tape bar under the opening's name.
  */
 const SAYS = new Map([
   [
     'opening-question',
-    'A longer opening line that runs on for a while, so that the short scenes after it sit late in the first line of the tape.',
+    'A {first}longer opening line that runs on for a while, so that the short scenes after it sit late in the first line of the tape.',
   ],
 ]);
 
