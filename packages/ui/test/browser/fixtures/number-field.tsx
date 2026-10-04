@@ -70,6 +70,8 @@ function Field(): JSX.Element {
       smallStep={numberParam('smallStep')}
       largeStep={numberParam('largeStep')}
       snapOnStep={flagParam('snapOnStep')}
+      allowExpressions={flagParam('allowExpressions')}
+      commitOnEnter={flagParam('commitOnEnter')}
       allowWheelScrub={flagParam('allowWheelScrub')}
       allowOutOfRange={flagParam('allowOutOfRange')}
       readOnly={readOnly()}

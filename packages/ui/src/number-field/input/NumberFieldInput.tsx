@@ -6,6 +6,10 @@
 // and committed on blur. ArrowUp/ArrowDown step (Shift: `largeStep`, Alt:
 // `smallStep`), Home/End jump to `min`/`max` when set, and each such key
 // commits at once. A paste is inserted at the caret.
+// Not in upstream: with the root's `commitOnEnter`, Enter commits typed text
+// as blur does; with `allowExpressions`, typed arithmetic (`0.42*2`, `+0.1`)
+// stays as text while typing and is read on commit (see `utils/expression.ts`),
+// relative to the value the field held when typing began.
 // Renders an `<input>`.
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
@@ -33,6 +37,7 @@ import {
   isNumeralChar,
   parseNumber,
 } from '../utils/parse.ts';
+import { EXPRESSION_KEYS, evaluateExpression, isExpression } from '../utils/expression.ts';
 import { stateAttributesMapping } from '../utils/stateAttributesMapping.ts';
 import { hasNumberFormatRoundingOptions, removeFloatingPointErrors } from '../utils/validate.ts';
 
@@ -125,8 +130,33 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
   const ctx = useNumberFieldRootContext();
   const state = ctx.state;
   const elementProps = omit(componentProps, 'class', 'style', 'render');
+  // The value relative expressions apply to: the one held when typing began.
+  let editBase: number | null = null;
 
-  const commitOnBlur = (event: FocusEvent) => {
+  /** Marks the text as typed, keeping the value it was typed over. */
+  const startTyping = () => {
+    if (ctx.allowInputSyncRef.current) {
+      editBase = state.value;
+    }
+    ctx.allowInputSyncRef.current = false;
+  };
+
+  const typedExpression = (text: string) => ctx.allowExpressions && isExpression(text);
+
+  /**
+   * The number typed text reads as: arithmetic when allowed, else one number.
+   * Arithmetic that does not read is `null` (the text stays for fixing), not
+   * the number its first digits make.
+   */
+  const readTyped = (text: string): number | null =>
+    typedExpression(text)
+      ? evaluateExpression(text, editBase, ctx.locale, ctx.format)
+      : parseNumber(text, ctx.locale, ctx.format);
+
+  const commitTyped = (
+    event: Event,
+    changeReason: typeof REASONS.inputBlur | typeof REASONS.keyboard,
+  ) => {
     const hadManualInput = !ctx.allowInputSyncRef.current;
     const hadPendingProgrammaticChange = ctx.hasPendingCommitRef.current;
     const value = state.value;
@@ -147,7 +177,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     }
 
     const formatOptions = ctx.format;
-    const parsedValue = parseNumber(inputValue, ctx.locale, formatOptions);
+    const parsedValue = readTyped(inputValue);
     if (parsedValue === null) {
       return;
     }
@@ -170,7 +200,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     // Commit what `setValue` stored (clamped), not the raw text.
     let committedValue = committed;
     if (shouldUpdateValue) {
-      const changeDetails = createChangeEventDetails(REASONS.inputBlur, event);
+      const changeDetails = createChangeEventDetails(changeReason, event);
       ctx.setValue(committed, changeDetails);
       if (changeDetails.isCanceled) {
         return;
@@ -178,7 +208,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
       committedValue = ctx.lastChangedValueRef.current;
     }
     if (shouldCommit) {
-      ctx.onValueCommitted(committedValue, createGenericEventDetails(REASONS.inputBlur, event));
+      ctx.onValueCommitted(committedValue, createGenericEventDetails(changeReason, event));
     }
 
     const canonicalText = formatNumber(committedValue, ctx.locale, formatOptions);
@@ -191,7 +221,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     const input = event.currentTarget;
     const targetValue = input.value;
     const previous = state.inputValue;
-    ctx.allowInputSyncRef.current = false;
+    startTyping();
 
     if (targetValue.trim() === '') {
       ctx.setInputValue(targetValue);
@@ -201,7 +231,13 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
 
     // Text that is not yet a number (a lone sign, an IME partial) is kept;
     // a parseable keystroke also reports its number.
-    if (!isValidCharacterString(targetValue, ctx.getAllowedNonNumericKeys())) {
+    const allowed = ctx.getAllowedNonNumericKeys();
+    if (ctx.allowExpressions) {
+      for (const key of EXPRESSION_KEYS) {
+        allowed.add(key);
+      }
+    }
+    if (!isValidCharacterString(targetValue, allowed)) {
       // Rejected: put back the text the field holds, the caret where it was.
       const caret =
         (input.selectionStart ?? targetValue.length) - (targetValue.length - previous.length);
@@ -210,6 +246,11 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
       return;
     }
 
+    // An expression waits for its commit to be read.
+    if (typedExpression(targetValue)) {
+      ctx.setInputValue(targetValue);
+      return;
+    }
     const parsedValue = parseNumber(targetValue, ctx.locale, ctx.format);
     ctx.setInputValue(targetValue);
     if (parsedValue !== null) {
@@ -225,14 +266,23 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     const inputValue = state.inputValue;
     // Alt + ArrowUp/ArrowDown picks `smallStep`, so Alt does not bypass them.
     const isStepKey = event.key === 'ArrowUp' || event.key === 'ArrowDown';
+    const isComposing = event.isComposing || event.keyCode === 229;
+
+    // Enter commits without stopping the event, so a form still submits.
+    if (event.key === 'Enter' && ctx.commitOnEnter && !isComposing) {
+      commitTyped(event, REASONS.keyboard);
+      return;
+    }
 
     if (
       // Composition (pinyin and the like); `isComposing` misses it in Safari.
-      event.isComposing ||
-      event.keyCode === 229 ||
+      isComposing ||
       (event.altKey && !isStepKey) ||
       event.ctrlKey ||
       event.metaKey ||
+      // An expression may repeat signs and separators across its numbers.
+      (ctx.allowExpressions &&
+        (EXPRESSION_KEYS.has(event.key) || ctx.getAllowedNonNumericKeys().has(event.key))) ||
       isAllowedSymbolKey(ctx, event, input, inputValue) ||
       isNumeralChar(event.key) ||
       NAVIGATE_KEYS.has(event.key)
@@ -255,7 +305,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     }
 
     // Unsaved typed text is the base of a step; otherwise the exact value is.
-    const currentValue = hadManualInput ? parseNumber(inputValue, ctx.locale, ctx.format) : null;
+    const currentValue = hadManualInput ? readTyped(inputValue) : null;
     const amount = ctx.getStepAmount(event);
 
     // No text inserted, no caret moved.
@@ -309,12 +359,16 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     const nextText =
       inputValue.slice(0, selectionStart) + pastedData + inputValue.slice(selectionEnd);
 
-    const parsedValue = parseNumber(nextText, ctx.locale, ctx.format);
-    if (parsedValue === null) {
+    // A pasted expression is kept as text, like a typed one.
+    const isTypedExpression = typedExpression(nextText);
+    const parsedValue = isTypedExpression ? null : parseNumber(nextText, ctx.locale, ctx.format);
+    if (parsedValue === null && !isTypedExpression) {
       return;
     }
-    ctx.allowInputSyncRef.current = false;
-    ctx.setValue(parsedValue, createChangeEventDetails(REASONS.inputPaste, event));
+    startTyping();
+    if (parsedValue !== null) {
+      ctx.setValue(parsedValue, createChangeEventDetails(REASONS.inputPaste, event));
+    }
     ctx.setInputValue(nextText);
     // The caret goes just after the inserted text.
     input.value = nextText;
@@ -352,7 +406,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
         if (event.defaultPrevented || state.disabled || state.readOnly) {
           return;
         }
-        commitOnBlur(event);
+        commitTyped(event, REASONS.inputBlur);
       });
     },
     onInput(event: InputEvent<Event>) {

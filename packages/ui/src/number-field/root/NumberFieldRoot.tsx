@@ -84,6 +84,17 @@ export interface NumberFieldRootProps extends Omit<
   allowWheelScrub?: boolean | undefined;
   /** Whether stepping snaps to the nearest multiple of the step. @default false */
   snapOnStep?: boolean | undefined;
+  /**
+   * Whether typed arithmetic is read on commit: `0.42*2`, `(1+2)/4`, and text
+   * opening with `+`, `*` or `/` applied to the value before editing (`+0.1`,
+   * `*2`). Not in upstream. @default false
+   */
+  allowExpressions?: boolean | undefined;
+  /**
+   * Whether Enter commits typed text as blur does (reported as `keyboard`); a
+   * form still submits. Not in upstream. @default false
+   */
+  commitOnEnter?: boolean | undefined;
   /** The options the value is formatted with. */
   format?: Intl.NumberFormatOptions | undefined;
   /** The locale the value is formatted and parsed in; the runtime's by default. */
@@ -127,6 +138,8 @@ const ROOT_PROPS = [
   'defaultValue',
   'allowWheelScrub',
   'snapOnStep',
+  'allowExpressions',
+  'commitOnEnter',
   'format',
   'locale',
   'onValueChange',
@@ -377,6 +390,12 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     },
     get format() {
       return props.format;
+    },
+    get allowExpressions() {
+      return props.allowExpressions ?? false;
+    },
+    get commitOnEnter() {
+      return props.commitOnEnter ?? false;
     },
     setValue,
     incrementValue,

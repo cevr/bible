@@ -32,6 +32,10 @@ export interface NumberFieldRootContextValue {
   readonly inputMode: InputMode;
   readonly locale: Intl.LocalesArgument | undefined;
   readonly format: Intl.NumberFormatOptions | undefined;
+  /** Whether typed arithmetic is read on commit (not in upstream). */
+  readonly allowExpressions: boolean;
+  /** Whether Enter commits typed text (not in upstream). */
+  readonly commitOnEnter: boolean;
   /** Validates and stores a value; whether a change was reported (and not canceled). */
   setValue: (value: number | null, details: NumberFieldRootChangeEventDetails) => boolean;
   /** Steps the value by `amount` in `direction`; an empty field is seeded instead. */

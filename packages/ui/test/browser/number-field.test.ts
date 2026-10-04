@@ -339,6 +339,66 @@ describe('NumberField.Input: typing', () => {
     ]);
   });
 
+  // Not in upstream: `commitOnEnter`.
+  it('commits typed text on Enter when commitOnEnter is set, keeping focus', async () => {
+    const page = await open('field', { commitOnEnter: 'true', locale: 'en-US' });
+    await input(page).click();
+    await page.keyboard.type('1234.5');
+    await page.keyboard.press('Enter');
+    await see(input(page)).toBeFocused();
+    await see(input(page)).toHaveValue('1,234.5');
+    const lines = await logOf(page);
+    expect(lines.at(-1)).toBe('commit 1234.5 keyboard');
+    await page.keyboard.press('Enter');
+    expect(await logOf(page)).toEqual(lines);
+  });
+
+  // Not in upstream: `allowExpressions`.
+  it('reads typed arithmetic on commit, relative text from the value before editing', async () => {
+    const page = await open('field', {
+      allowExpressions: 'true',
+      commitOnEnter: 'true',
+      defaultValue: '0.42',
+      step: 'any',
+    });
+    await input(page).click();
+    await input(page).selectText();
+    await page.keyboard.type('*2');
+    await see(input(page)).toHaveValue('*2');
+    expect(await logOf(page)).toEqual([]);
+    await page.keyboard.press('Enter');
+    await see(input(page)).toHaveValue('0.84');
+    expect(await logOf(page)).toEqual(['change 0.84 keyboard', 'commit 0.84 keyboard']);
+
+    await input(page).selectText();
+    await page.keyboard.type('+0.1');
+    await input(page).blur();
+    await see(input(page)).toHaveValue('0.94');
+
+    await input(page).selectText();
+    await page.keyboard.type('(1+2)/4');
+    await page.keyboard.press('Enter');
+    await see(input(page)).toHaveValue('0.75');
+
+    // A leading minus is a negative number, not a subtraction.
+    await input(page).selectText();
+    await page.keyboard.type('-0.5');
+    await page.keyboard.press('Enter');
+    await see(input(page)).toHaveValue('-0.5');
+  });
+
+  it('keeps text that does not read as arithmetic, and blocks no operator', async () => {
+    const page = await open('field', { allowExpressions: 'true', defaultValue: '3' });
+    await input(page).click();
+    await input(page).selectText();
+    await page.keyboard.type('2*(1+');
+    await see(input(page)).toHaveValue('2*(1+');
+    await input(page).blur();
+    await see(input(page)).toHaveValue('2*(1+');
+    // Only the `2` read as a number while typing; nothing was committed.
+    expect(await logOf(page)).toEqual(['change 2 input-change']);
+  });
+
   it('blocks characters that are not part of a number', async () => {
     const page = await open('field', { defaultValue: '5' });
     await input(page).click();
