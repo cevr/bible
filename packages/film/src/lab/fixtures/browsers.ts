@@ -56,6 +56,11 @@ const flags = Effect.runSync(
       '--autoplay-policy=no-user-gesture-required',
       '--use-fake-device-for-media-stream',
       `--use-file-for-fake-audio-capture=${wav}`,
+      // A desk's mouse: headless Chrome has no pointer, so `(pointer: none)`
+      // matched and every page took the phone's density. Fine (4) and hover
+      // (2), as Blink numbers them; touch emulation (a phone's lease) stands
+      // over them, and a view's next page has them again once it is off.
+      '--blink-settings=primaryPointerType=4,availablePointerTypes=4,primaryHoverType=2,availableHoverTypes=2',
     ]),
   ),
 );

@@ -57,7 +57,7 @@ a.rv-card:hover { background: var(--surface-2); }
 }
 .rv-sound {
   background: none; border: 0; color: var(--text-2); border-radius: var(--r-2); padding: 0 var(--s-2); cursor: pointer;
-  font: inherit; min-width: var(--control-h); min-height: var(--control-h); filter: grayscale(1);
+  font: inherit; min-width: var(--hit); min-height: var(--hit); filter: grayscale(1);
 }
 .rv-sound:hover { background: var(--surface-3); color: var(--text-1); }
 .rv-sound.on { color: var(--accent); filter: none; }
@@ -160,7 +160,7 @@ a.rv-card:hover { background: var(--surface-2); }
  * Every target is the pointer's size, --hit each way (design language §3: a
  * finger's 44 px on the phone, 28 px on the laptop), grown by padding, never
  * by bigger text. A slider's box is --hit tall, its track centred in it; a
- * segment --hit square; a fold's summary, the Versions link, a row or head
+ * segment and a sound button --hit square; a fold's summary, the Versions link, a row or head
  * that holds a name, a finding's time and a scene's choice link full rows
  * --hit tall (a name's own hit-slop, in the commands' sheet, then stays
  * inside its row).

@@ -41,19 +41,26 @@ import { DESK_HIT, PHONE_HIT, undersizedTargets } from '../../src/lab/fixtures/t
 
 const SLOW = 30_000;
 
-/** A device the studio is used on: its window and pointer, and the target its pointer needs. */
+/** A device the studio is used on: its window and pointer, the media query its pointer matches, and the target it needs. */
 interface Device {
   readonly name: string;
   readonly viewport: Viewport;
+  readonly pointer: string;
   readonly hit: number;
 }
 
 const PHONE: Device = {
   name: 'a phone',
   viewport: { width: 390, height: 844, coarse: true },
+  pointer: '(pointer: coarse)',
   hit: PHONE_HIT,
 };
-const LAPTOP: Device = { name: 'a laptop', viewport: { width: 1440, height: 900 }, hit: DESK_HIT };
+const LAPTOP: Device = {
+  name: 'a laptop',
+  viewport: { width: 1440, height: 900 },
+  pointer: '(pointer: fine)',
+  hit: DESK_HIT,
+};
 const DEVICES: ReadonlyArray<Device> = [PHONE, LAPTOP];
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
@@ -219,6 +226,8 @@ for (const device of DEVICES) {
         () =>
           Effect.gen(function* () {
             const page = yield* state.open(device.viewport);
+            // The page has the device's pointer, so its density tokens are the device's.
+            yield* page.until(`matchMedia('${device.pointer}').matches`);
             yield* state.disclose(page);
             yield* sized(page, device, state.layer);
           }).pipe(Effect.scoped),
