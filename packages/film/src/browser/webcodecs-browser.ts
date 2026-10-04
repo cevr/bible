@@ -230,7 +230,7 @@ const soundOf = (track: InputAudioTrack, host: Context.Context<Media>): AudioOut
 };
 
 /** The panes of a compare, and the letting go of them all. */
-interface ComparePanes {
+export interface ComparePanes {
   readonly panes: ReadonlyArray<Pane>;
   readonly dispose: () => void;
 }

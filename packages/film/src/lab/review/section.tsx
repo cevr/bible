@@ -33,7 +33,12 @@ import {
   seenVariants,
 } from '../../core/choice.ts';
 import { playableOf } from '../../browser/media-browser.ts';
-import { type Chosen, chooseEngine, panesOver } from '../../browser/webcodecs-browser.ts';
+import {
+  type Chosen,
+  type ComparePanes,
+  chooseEngine,
+  panesOver,
+} from '../../browser/webcodecs-browser.ts';
 import { Pointer } from '../../browser/pointer.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
@@ -942,17 +947,22 @@ const WipePanes = (props: {
   const { meta } = useReview();
   const { driver } = useSet();
   const canvases: Array<HTMLCanvasElement> = [];
+  const ids = [props.first.id, props.other.id];
+  let made = Option.none<ComparePanes>();
+  // Once both canvases are in the page; let go with the wipe (a cleanup inside `onSettled` is refused).
   onSettled(() => {
-    const { panes, dispose } = panesOver(meta.host, props.chosen, canvases);
-    const ids = [props.first.id, props.other.id];
-    panes.forEach((pane, i) =>
+    const compare = panesOver(meta.host, props.chosen, canvases);
+    made = Option.some(compare);
+    compare.panes.forEach((pane, i) =>
       Option.map(Option.fromUndefinedOr(ids[i]), (id) => driver.attach(id, pane)),
     );
-    onCleanup(() => {
+  });
+  onCleanup(() =>
+    Option.map(made, ({ dispose }) => {
       for (const id of ids) driver.detach(id);
       dispose();
-    });
-  });
+    }),
+  );
   return (
     <>
       <canvas class="rv-wipe-first" data-id={props.first.id} ref={(el) => canvases.push(el)} />

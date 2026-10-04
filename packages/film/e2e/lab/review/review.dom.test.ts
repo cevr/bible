@@ -18,6 +18,7 @@ import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import {
   type FakeRoute,
   type Json,
+  file,
   json,
   openReview,
   refused,
@@ -507,6 +508,45 @@ describe('the review page', () => {
         yield* page.click('button[data-other="C"]');
         yield* until(page, `${stacked} === 'A,C'`);
         yield* until(page, "location.search === '?view=wipe&other=C'");
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a wipe whose masters the browser can decode plays them as WebCodecs panes on the set’s clock, in place of the videos',
+    () =>
+      Effect.gen(function* () {
+        const fixture = (name: string) => `${import.meta.dir}/../../../src/tools/fixtures/${name}`;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/files\/out\/art\/roof\.A\.mp4/, () =>
+              file(fixture('segment-a.mp4')),
+            ),
+            route('GET', /^\/api\/review\/files\/out\/art\/roof\.B\.mp4/, () =>
+              file(fixture('segment-b.mp4')),
+            ),
+            ...routes,
+          ],
+          { href: `${SET}?view=wipe&other=B` },
+        );
+        yield* until(page, "document.querySelector('.rv-wipe').dataset.engine === 'webcodecs'");
+        const panes =
+          "Array.from(document.querySelectorAll('.rv-wipe canvas')).map((c) => `${c.dataset.id}:${c.width}x${c.height}`).join()";
+        yield* until(page, `${panes} === 'A:64x64,B:64x64'`);
+        yield* countIs(page, '.rv-wipe video', 0);
+        // The other pane is the one clipped right of the divider.
+        yield* waitFor(page, '.rv-wipe-other canvas[data-id="B"]');
+        // The set's clock holds the panes: it is measured from the first, and plays.
+        yield* until(
+          page,
+          "document.querySelector('.rv-transport').innerText.includes('/ 00:00:00:15')",
+        );
+        yield* page.click('.rv-transport button');
+        yield* until(
+          page,
+          "document.querySelector('.rv-transport').innerText.includes('00:00:00:15 /')",
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
