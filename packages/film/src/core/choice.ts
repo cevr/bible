@@ -323,6 +323,12 @@ export const PickPost = Schema.Struct({
   point: Schema.String,
   variant: Schema.String,
   verb: ChoiceVerb,
+  /**
+   * A voice's attempt kept though it is heard as something else ("Accept
+   * anyway" on its refusal, `TakeMismatch`); a pick without it is refused
+   * so. Every other kind ignores it.
+   */
+  acceptMismatch: Schema.optionalKey(Schema.Boolean),
 });
 export type PickPost = typeof PickPost.Type;
 

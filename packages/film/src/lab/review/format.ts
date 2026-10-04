@@ -27,6 +27,12 @@ export interface Words<A> {
   readonly doing: string;
   readonly done: (answer: A) => string;
   readonly undo: Option.Option<CommandId>;
+  /**
+   * The command a refusal's receipt offers past it (a voice heard as
+   * something else: Accept anyway), asked once with the refusal it said;
+   * none offers nothing.
+   */
+  readonly past?: (failure: LabFailure) => Option.Option<CommandId>;
 }
 
 /** What a say did, of `subject`, as its receipt says: `Approved B · warm · Score`. */

@@ -18,7 +18,13 @@ import { LabClient, type LabFailure, called } from '../../api.ts';
 
 /** What a page asks of a film: a verb on a variant, a knob set, a say on a variant, a step back or on. */
 export type ChoiceAct = Data.TaggedEnum<{
-  Verb: { readonly point: string; readonly variant: string; readonly verb: ChoiceVerb };
+  Verb: {
+    readonly point: string;
+    readonly variant: string;
+    readonly verb: ChoiceVerb;
+    /** A voice's attempt kept though it is heard as something else (Accept anyway). */
+    readonly acceptMismatch?: true;
+  };
   Knob: { readonly point: string; readonly value: number };
   Say: { readonly point: string; readonly variant: string; readonly say: Say };
   Undo: {};
@@ -135,7 +141,16 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
               Effect.map(
                 client.choices.pick({
                   params: { film },
-                  payload: { point: v.point, variant: v.variant, verb: v.verb },
+                  // `acceptMismatch` only when accepted: a plain pick posts as it always has.
+                  payload: {
+                    point: v.point,
+                    variant: v.variant,
+                    verb: v.verb,
+                    ...Option.match(Option.fromUndefinedOr(v.acceptMismatch), {
+                      onNone: () => ({}),
+                      onSome: (acceptMismatch) => ({ acceptMismatch }),
+                    }),
+                  },
                 }),
                 picked(act),
               ),

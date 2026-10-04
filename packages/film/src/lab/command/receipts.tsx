@@ -1,7 +1,8 @@
 // The page's receipts: a toast for each thing that just happened, in the
 // words its command or its write gave (`command/command.ts`: before → after
 // where something moved), with its Undo when it has one (the button runs
-// the undoing command through the hub, as its key would), on @bible/ui's
+// the undoing command through the hub, as its key would, labelled as that
+// command is; a refusal's is its way past, Accept anyway), on @bible/ui's
 // Toast. One toast per slot (`Hub.announce`): a slot's next receipt replaces
 // its last, so `undoing…` becomes what was undone and a run of nudges reads
 // as one. Done goes after a few seconds, a refusal stays longer, a write on
@@ -69,6 +70,7 @@ export const Receipts = (props: {
         Option.map(kept.undo, (id) => ({
           children: undoLabel(id),
           'data-act': 'receipt-undo',
+          'data-command': id,
           onClick: () => {
             manager.close(kept.slot);
             props.hub.invokeId(id, BY_BUTTON);

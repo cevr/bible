@@ -9,7 +9,8 @@
 // the words its control gave as it was sent (what it moves, before →
 // after), is said on the page's hub in the page's slot: busy while it is
 // out, then what it did (with the command that undoes it) or why it was
-// refused, for the newest asked of those landed (`writeStatus`).
+// refused (with the command its words offer past the refusal: Accept
+// anyway), for the newest asked of those landed (`writeStatus`).
 
 import { useAtomMount, useAtomSet } from '@bible/atom-solid';
 import { type JSX, Show } from '@solidjs/web';
@@ -49,7 +50,14 @@ export const writeStatus = <A,>(slot: string): WriteStatus<A> => {
           meta.hub.announce(
             Exit.match(exit, {
               onSuccess: (a) => said(words.done(a), words.undo),
-              onFailure: () => refused(failedText(AsyncResult.fromExit(exit))),
+              onFailure: () =>
+                refused(
+                  failedText(AsyncResult.fromExit(exit)),
+                  // The way past it its words offer for this refusal (Accept anyway), if any.
+                  Option.flatMap(Exit.findErrorOption(exit), (failure) =>
+                    Option.flatMap(Option.fromUndefinedOr(words.past), (past) => past(failure)),
+                  ),
+                ),
             }),
             slot,
           ),

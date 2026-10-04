@@ -91,7 +91,9 @@ const setup = (
   /** What `film mix` does: a test that watches a remake holds it. */
   remixing: Effect.Effect<void> = Effect.void,
   /** What `film options list` answers; the voice points read from the files when not given. */
-  points?: FreshFilmService['choices'],
+  points: Option.Option<FreshFilmService['choices']> = Option.none(),
+  /** What the transcriber hears a reading of the line as; the line itself when none. */
+  heardAs: Option.Option<string> = Option.none(),
 ) => {
   const files = new Map<string, Uint8Array>([
     [TIMINGS, text(Schema.encodeSync(TimingsJson)(staged))],
@@ -104,7 +106,10 @@ const setup = (
   const base = Layer.mergeAll(
     memoryFileSystem(files),
     Path.layer,
-    fakeElevenLabs(files, emptyCalls(), { recorded: new Map([['a', 'Hello world.']]) }),
+    fakeElevenLabs(files, emptyCalls(), {
+      recorded: new Map([['a', 'Hello world.']]),
+      heard: new Map(Option.toArray(Option.map(heardAs, (h) => ['Hello world.', h] as const))),
+    }),
     fakeMedia(files),
     formatAsIs,
   );
@@ -132,7 +137,7 @@ const setup = (
   const fresh = Layer.unwrap(
     Effect.map(Effect.context<FilmRepo | Takes>(), (context) =>
       freshFilm({
-        choices: points ?? voicesHere(context),
+        choices: Option.getOrElse(points, () => voicesHere(context)),
         keepVoice: keepVoiceHere(context),
         remix: () => remixing,
       }),
@@ -153,14 +158,14 @@ const setup = (
 /** The film's timings as they are stored now. */
 const timings = ContentStore.use((store) => store.read(film.paths.timings));
 
-/** `file` imported as beat `a`'s take, outside the lab (as `takes import` would): its take's file. */
-const imported = (file: string) =>
+/** `file` imported as beat `a`'s take, outside the lab (as `takes import` would, `--accept-mismatch` when `accepted`): its take's file. */
+const imported = (file: string, accepted = false) =>
   Effect.gen(function* () {
     const loaded = yield* (yield* FilmRepo).load(F);
     const voiced = yield* Effect.orDie(Effect.fromResult(voicedOf(loaded)));
     const [made] = yield* (yield* Takes).importPath(voiced, file, {
       only: Option.some(new Set(['a'])),
-      acceptMismatch: new Set(),
+      acceptMismatch: new Set(Arr.filter(['a'], () => accepted)),
       whole: false,
     });
     return made?.take.file ?? '';
@@ -262,6 +267,32 @@ describe('Choices: a voice picked', () => {
     },
   );
 
+  it.effect(
+    'a reading heard as something else is refused, and kept when the pick accepts it anyway',
+    () => {
+      const { layer } = setup(Effect.void, Option.none(), Option.some('Goodbye cruel moon.'));
+      return Effect.gen(function* () {
+        const first = yield* imported('/rec/a1.wav', true);
+        const second = yield* imported('/rec/a2.wav', true);
+        const point = pointIdOf({ _tag: 'Voice', beat: 'a' });
+        const choices = yield* Choices;
+        const refused = yield* Effect.flip(
+          choices.pick(F, { point, variant: first, verb: 'pick' }),
+        );
+        expect(refused._tag).toBe('TakeMismatch');
+        expect((yield* timings).scenes['a']?.file).toBe(second);
+        const picked = yield* choices.pick(F, {
+          point,
+          variant: first,
+          verb: 'pick',
+          acceptMismatch: true,
+        });
+        expect(Option.isSome(picked.change)).toBe(true);
+        expect((yield* timings).scenes['a']?.file).toBe(first);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
   it.effect('an Undo whose take is nowhere is refused, and the timings stay', () => {
     const { files, layer } = setup();
     return Effect.gen(function* () {
@@ -286,7 +317,7 @@ describe('Choices: a score picked', () => {
     const mixes: Array<string> = [];
     const { files, layer } = setup(
       Effect.sync(() => mixes.push(new TextDecoder().decode(files.get(SOUND_FILE)))),
-      scorePoints,
+      Option.some(scorePoints),
     );
     return Effect.gen(function* () {
       const point = pointIdOf({ _tag: 'Score' });
@@ -305,7 +336,7 @@ describe('Choices: a score picked', () => {
     const mixes: Array<string> = [];
     const { files, layer } = setup(
       Effect.sync(() => mixes.push(new TextDecoder().decode(files.get(SOUND_FILE)))),
-      () =>
+      Option.some(() =>
         Effect.map(scorePoints(), (score) => [
           ...score,
           withSay(Option.none(), {
@@ -327,6 +358,7 @@ describe('Choices: a score picked', () => {
             }),
           }),
         ]),
+      ),
     );
     return Effect.gen(function* () {
       const point = pointIdOf({

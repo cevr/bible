@@ -6,16 +6,20 @@
 // another row keeps its own Enter). The instants the point plays at (UR-45):
 // `.` and `,` jump the clock to its next or previous one past the time
 // shown, and each is a `Jump to 0:04 · evidence in cold` in the card's
-// context menu and in ⌘K once typed, never at rest. The words a verb's
-// button says (`verbTitle`) are here too, so a key and a button say one
-// thing. Pure.
+// context menu and in ⌘K once typed, never at rest. A voice's pick refused
+// as heard as something else (`TakeMismatch`) offers Accept anyway: on its
+// receipt's button, in its row's context menu and in ⌘K, while that refusal
+// stands, never at rest. The words a verb's button says (`verbTitle`) are
+// here too, so a key and a button say one thing. Pure.
 
 import { Effect, Option } from 'effect';
 import { type Command, quiet } from '../../../command/command.ts';
 import { type Context, selectedAll } from '../../../command/context.ts';
 import { type Toward, walkFrom } from '../../../command/walk.ts';
 import type { ChoiceKind, ChoicePoint, ChoiceVariant, ChoiceVerb } from '../../../core/choice.ts';
+import type { LabFailure } from '../../api.ts';
 import { timeText } from '../machine.ts';
+import type { ChoiceAct } from './api.ts';
 
 /** A verb's button, as a kind names it: a take is kept, anything else picked. */
 export const verbTitle = (kind: ChoiceKind, verb: ChoiceVerb): string => {
@@ -42,6 +46,10 @@ export interface Deck {
   readonly audition: (heard: InPlace) => void;
   /** Pick `heard`, answering whether it landed. */
   readonly pick: (heard: InPlace) => Promise<boolean>;
+  /** The voice's attempt whose pick was refused as heard as something else, while that stands. */
+  readonly mismatched: () => Option.Option<InPlace>;
+  /** Keep `refused` though it is heard as something else (its pick, accepted anyway). */
+  readonly accept: (refused: InPlace) => Promise<boolean>;
   /** Jump the clock to a time, while there is a picture to jump. */
   readonly jump: () => Option.Option<(t: number) => void>;
   /** The time shown, in the film's seconds. */
@@ -197,7 +205,55 @@ export const pointCommands = (deck: Deck): ReadonlyArray<Command> => [
   },
   markWalk(deck, 'next', 'Jump to the next place it plays', '.'),
   markWalk(deck, 'previous', 'Jump to the previous place it plays', ','),
+  {
+    id: ACCEPT_ANYWAY,
+    label: 'Accept anyway',
+    labelIn: (ctx) =>
+      Option.match(acceptedOf(deck, ctx), {
+        onNone: () => 'Accept anyway',
+        onSome: (m) => `Accept anyway · ${m.variant.slice(0, 12)} as ${m.point}`,
+      }),
+    group: 'Review',
+    about: ['Variant'],
+    touch: 'tap Accept anyway on its refusal, or long-press its row',
+    when: (ctx) => Option.isSome(acceptedOf(deck, ctx)),
+    run: (ctx) =>
+      Option.match(acceptedOf(deck, ctx), {
+        onNone: () => Effect.succeed(quiet),
+        onSome: (m) =>
+          Effect.as(
+            Effect.promise(() => deck.accept(m)),
+            quiet,
+          ),
+      }),
+  },
 ];
+
+/** The command a voice's refused pick offers: keep the attempt though it is heard as something else. */
+export const ACCEPT_ANYWAY = 'review.accept-anyway';
+
+/**
+ * The variant whose pick `failure` refused as heard as something else (a
+ * voice's attempt, `TakeMismatch`): what Accept anyway keeps. None for any
+ * other act or refusal.
+ */
+export const mismatchOf = (act: ChoiceAct, failure: LabFailure): Option.Option<InPlace> => {
+  if (act._tag !== 'Verb' || act.verb !== 'pick' || failure._tag !== 'TakeMismatch')
+    return Option.none();
+  return Option.some({ point: act.point, variant: act.variant });
+};
+
+/**
+ * The refused pick Accept anyway keeps: the one standing, while no other
+ * variant is selected (on its own row, its context menu offers it; a
+ * receipt's button, with nothing selected, keeps it too).
+ */
+const acceptedOf = (deck: Deck, ctx: Context): Option.Option<InPlace> =>
+  Option.filter(deck.mismatched(), (m) =>
+    selectedAll(ctx, 'Variant')
+      .filter((s) => s.film === deck.film)
+      .every((s) => s.point === m.point && s.variant === m.variant),
+  );
 
 /**
  * Each instant every point plays at, as a jump in its card's context menu

@@ -33,7 +33,7 @@ import {
   route,
   text,
 } from '../../../../src/lab/fixtures/harness.ts';
-import { SourceRefused } from '../../../../src/core/refusals.ts';
+import { SourceRefused, TakeMismatch } from '../../../../src/core/refusals.ts';
 import {
   MENU_ITEMS,
   closeCommandMenu,
@@ -151,7 +151,7 @@ const scoreOption = (toy: Toy, id: string): Json => {
   });
 };
 
-const choices = (toy: Toy): Json => ({
+const choices = (toy: Toy, more: ReadonlyArray<Json> = []): Json => ({
   film: 'toy',
   pictures: [{ ref: 'out/toy/toy.mp4', name: 'toy.mp4', size: 2048, mtime: 0, phone: 'none' }],
   points: [
@@ -193,6 +193,7 @@ const choices = (toy: Toy): Json => ({
     point('level:const:PAPER', 'level', OPEN_AT, [], {
       knob: { value: toy.level, min: -40, max: 0, step: 0.5, unit: 'dB' },
     }),
+    ...more,
   ],
 });
 
@@ -980,6 +981,83 @@ describe("a film's choices", () => {
           variant: WAITING,
           verb: 'reject',
         });
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a voice heard as something else is refused with Accept anyway, on its receipt and its menu, which keeps it',
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        // Beat `a`'s two readings: the take, and an attempt heard as something else.
+        const voice = point('voice:a', 'voice', OPEN_AT, [
+          variant('a.take.flac', { picked: true }),
+          variant('a.other.flac', {
+            verbs: ['pick'],
+            media: { _tag: 'Heard', alone: true, inPlace: false },
+          }),
+        ]);
+        const voiced = route('GET', /^\/api\/films\/toy\/choices$/, () =>
+          json(choices(toy, [voice])),
+        );
+        // Refused as heard as something else, unless the pick accepts it anyway.
+        const picks = route('POST', /^\/api\/films\/toy\/choices\/pick$/, (asked) => {
+          if (bodyText(asked.body).includes('"acceptMismatch":true'))
+            return json({
+              file: 'narration/timings.json',
+              target: 'voice a keep a.other.flac',
+              choices: choices(toy, [voice]),
+              findings: [],
+            });
+          return refused(
+            TakeMismatch.make({
+              id: 'a',
+              script: 'Hello world.',
+              heard: 'Goodbye moon.',
+              wer: 1.5,
+            }),
+          );
+        });
+        const { page, asked, errors } = yield* openReview([voiced, picks, ...fakeFilm(toy)], {
+          href: FILM,
+        });
+        const other = at('voice:a', 'a.other.flac');
+        const ACCEPT = `${RECEIPT} [data-command="review.accept-anyway"]`;
+        yield* waitFor(page, `${other} [data-act="pick"]`);
+        // At rest nothing offers it.
+        yield* countIs(page, '[data-command="review.accept-anyway"]', 0);
+        yield* click(page, `${other} [data-act="pick"]`);
+        yield* attributeIs(page, RECEIPT, 'data-type', 'refused');
+        yield* receiptSays(page, 'says something else');
+        yield* textIs(page, ACCEPT, 'Accept anyway');
+        // Its row's context menu offers it too, while the refusal stands.
+        yield* rightClick(page, `${other} .rv-name`);
+        yield* waitFor(page, '[data-role="context-menu"] [data-command="review.accept-anyway"]');
+        yield* page.press('Escape');
+        yield* countIs(page, '[data-role="context-menu"]', 0);
+        yield* click(page, ACCEPT);
+        const accepted = () =>
+          asked.filter((a) => a.path === '/api/films/toy/choices/pick').map((a) => a.body);
+        yield* Effect.sync(() => accepted().length).pipe(
+          Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n === 2 }),
+          Effect.timeout('10 seconds'),
+        );
+        expect(accepted()).toEqual([
+          Option.some({ point: 'voice:a', variant: 'a.other.flac', verb: 'pick' }),
+          Option.some({
+            point: 'voice:a',
+            variant: 'a.other.flac',
+            verb: 'pick',
+            acceptMismatch: true,
+          }),
+        ]);
+        yield* attributeIs(page, RECEIPT, 'data-type', 'done');
+        // Kept, nothing is left to accept.
+        yield* rightClick(page, `${other} .rv-name`);
+        yield* waitFor(page, '[data-role="context-menu"] [data-command="review.inspect"]');
+        yield* countIs(page, '[data-role="context-menu"] [data-command="review.accept-anyway"]', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

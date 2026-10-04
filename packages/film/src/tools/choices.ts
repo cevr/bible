@@ -410,9 +410,12 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         return picked;
       });
 
-      /** A voice picked: its attempt kept (`keepVoice`); the pick posts no "accept anyway". */
-      const voicePicked = (film: FilmName, beat: string, file: string) =>
-        keepVoice(film, beat, file, { acceptMismatch: false }).pipe(
+      /**
+       * A voice picked: its attempt kept (`keepVoice`), one heard as something
+       * else only when the pick accepts it anyway (`PickPost.acceptMismatch`).
+       */
+      const voicePicked = (film: FilmName, beat: string, file: string, acceptMismatch: boolean) =>
+        keepVoice(film, beat, file, { acceptMismatch }).pipe(
           Effect.map((voiced) => voiced.picked),
           Effect.provideContext(keeping),
         );
@@ -434,7 +437,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           Score: () => writePick(film, 'sound.ts', SCORE_PLAY, variant.id, mixedFrom(film)),
           Look: ({ name }) => writePick(film, 'palette.ts', lookPlay(name), variant.id),
           Take: ({ sound }) => actOnTake(film, point, sound, variant.id, asked.verb),
-          Voice: ({ beat }) => voicePicked(film, beat, variant.id),
+          Voice: ({ beat }) => voicePicked(film, beat, variant.id, asked.acceptMismatch === true),
           Render: noPick,
           Montage: noPick,
           Level: noPick,

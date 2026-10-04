@@ -28,6 +28,10 @@ export type Receipt = Data.TaggedEnum<{
   /** What it did (or why it did not), and the command that undoes it, if any. */
   Said: {
     readonly said: string;
+    /**
+     * The command its button runs, labelled as that command is: what undoes
+     * it, or for a refusal the way past it (Accept anyway).
+     */
     readonly undo: Option.Option<CommandId>;
     readonly tone: Tone;
   };
@@ -47,9 +51,9 @@ export const quiet: Receipt = Receipt.Quiet();
 export const said = (text: string, undo: Option.Option<CommandId> = Option.none()): Receipt =>
   Receipt.Said({ said: text, undo, tone: 'done' });
 
-/** A receipt that says why nothing was done. */
-export const refused = (text: string): Receipt =>
-  Receipt.Said({ said: text, undo: Option.none(), tone: 'refused' });
+/** A receipt that says why nothing was done, with the command that goes past it, if any. */
+export const refused = (text: string, past: Option.Option<CommandId> = Option.none()): Receipt =>
+  Receipt.Said({ said: text, undo: past, tone: 'refused' });
 
 /** A receipt that says what is on its way (`undoing…`): its slot's next receipt replaces it. */
 export const busy = (text: string): Receipt =>

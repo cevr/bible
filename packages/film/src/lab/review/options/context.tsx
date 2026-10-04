@@ -55,7 +55,14 @@ import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
 import { type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
 import { type SyncDriver, playerCommands, makeSync, playerEvent } from '../sync.ts';
 import { ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } from './api.ts';
-import { type Deck, type InPlace, markCommands, pointCommands } from './keys.ts';
+import {
+  ACCEPT_ANYWAY,
+  type Deck,
+  type InPlace,
+  markCommands,
+  mismatchOf,
+  pointCommands,
+} from './keys.ts';
 import { registerWhile } from '../../command/changes.ts';
 import { actWords, soundReceipt } from './receipt.ts';
 
@@ -192,6 +199,9 @@ interface FilmContextValue {
   readonly only: Accessor<Option.Option<ShownOnly>>;
   /** Show only the points in `only`, or every point. */
   readonly showOnly: (only: Option.Option<ShownOnly>) => void;
+  /** The voice's attempt whose pick was refused as heard as something else, until a pick lands (Accept anyway keeps it). */
+  readonly mismatched: Accessor<Option.Option<InPlace>>;
+  readonly setMismatched: (refused: Option.Option<InPlace>) => void;
 }
 
 const FilmContext = createContext<FilmContextValue>();
@@ -253,22 +263,39 @@ const actWrite = ({
   written,
   status,
   orders,
-}: Pick<FilmContextValue, 'film' | 'choices' | 'written' | 'status' | 'orders'>): ActWrite => {
+  setMismatched,
+}: Pick<
+  FilmContextValue,
+  'film' | 'choices' | 'written' | 'status' | 'orders' | 'setMismatched'
+>): ActWrite => {
   const own = useWrite(
     (act: ChoiceAct) => OptionsApi.use((api) => api.write(film, act)),
     status,
     orders,
-    // Said in the words of the choices shown as it is sent: what it moves, before → after.
-    (act) => actWords(act, untrack(choices)),
+    // Said in the words of the choices shown as it is sent: what it moves, before → after;
+    // a voice's pick refused as heard as something else offers Accept anyway, which keeps it.
+    (act) => ({
+      ...actWords(act, untrack(choices)),
+      past: (failure) =>
+        Option.map(mismatchOf(act, failure), (refused) => {
+          setMismatched(Option.some(refused));
+          return ACCEPT_ANYWAY;
+        }),
+    }),
   );
   return {
     waiting: own.waiting,
     write: (act) =>
-      own
-        .write(act)
-        .then((landed) =>
-          Option.match(landed, { onNone: () => false, onSome: (l) => written(act, l) }),
-        ),
+      own.write(act).then((landed) =>
+        Option.match(landed, {
+          onNone: () => false,
+          onSome: (l) => {
+            // A pick that lands leaves no refusal standing to accept.
+            if (l.succeeded && act._tag === 'Verb') setMismatched(Option.none());
+            return written(act, l);
+          },
+        }),
+      ),
   };
 };
 
@@ -421,6 +448,8 @@ const FilmBody = (
   );
   const showOnly = (next: Option.Option<ShownOnly>) =>
     keep((v) => ({ ...v, query: { ...v.query, only: Option.getOrElse(next, () => '') } }));
+  // A voice's pick refused as heard as something else, which Accept anyway keeps, until a pick lands.
+  const [mismatched, setMismatched] = createSignal(Option.none<InPlace>());
 
   // The player's transport, once there is a picture to play; Show only….
   onCleanup(
@@ -454,6 +483,8 @@ const FilmBody = (
     driver,
     only,
     showOnly,
+    mismatched,
+    setMismatched,
   };
 
   // The selected point's keys: audition, Enter's pick, its marks (`keys.ts`).
@@ -471,6 +502,9 @@ const FilmBody = (
       focusVariant(next);
     },
     pick: (next) => picking.write(ChoiceAct.Verb({ ...next, verb: 'pick' })),
+    mismatched,
+    accept: (refused) =>
+      picking.write(ChoiceAct.Verb({ ...refused, verb: 'pick', acceptMismatch: true })),
     jump: () =>
       Option.map(picture(), () => (t: number) => {
         send(SyncEvent.ScrubMoved({ t }));

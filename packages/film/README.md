@@ -946,7 +946,11 @@ that cannot be heard, and move the focus to that row; Enter then picks it
 another row keeps its own Enter). The instants a point plays at are no
 longer chips at rest: each is a `Jump to 0:02.0 · hush · open` in its card's
 context menu (and in ⌘K once typed), and `.`/`,` jump to its next or
-previous one. A level's value is a field beside its slider (`Field`, typed
+previous one. A voice's pick refused as heard as something else
+(`TakeMismatch`) offers **Accept anyway** as its receipt's button, in its
+row's context menu and in ⌘K, while that refusal stands and never at rest:
+it sends the pick again with `acceptMismatch: true`, which `keepVoice` keeps
+(`--accept-mismatch`, as the studio's Accept anyway does). A level's value is a field beside its slider (`Field`, typed
 arithmetic committed on Enter, its arrows the knob's step, Shift ten,
 Alt a tenth). On a version stack (`src/lab/review/hear.ts`) `1`…`9` hear
 version n, as its 🔊 does, while the view can play it. A set's version says over
@@ -1631,7 +1635,7 @@ makes no phone copies.
 | `POST /api/review/sets/<folder>/<point>/say`                                    | `SetSayPost` `{variant, say}` → `ReviewFolder`, written to the folder's `catalogue.json` (a montage refused; a version made again since it was shown is `VersionChanged`, 409) |
 | `GET /api/films`                                                                | `ReviewFilms`: the app's films                                                                                                                                                 |
 | `GET /api/films/<film>/choices`                                                 | `FilmChoices`: the film's renders (the pictures) and its points                                                                                                                |
-| `POST /api/films/<film>/choices/pick`                                           | `PickPost` `{point, variant, verb}` → `ChoiceWrite`                                                                                                                            |
+| `POST /api/films/<film>/choices/pick`                                           | `PickPost` `{point, variant, verb, acceptMismatch?}` → `ChoiceWrite`                                                                                                           |
 | `POST /api/films/<film>/choices/knob`                                           | `KnobPost` `{point, value}` → `ChoiceWrite`: the level written                                                                                                                 |
 | `POST /api/films/<film>/choices/say`                                            | `SayPost` `{point, variant, say}` → `FilmChoices`, the say recorded                                                                                                            |
 | `GET /api/films/<film>/choices/alone?point=&variant=`                           | the variant's own file (a take, a voice attempt)                                                                                                                               |

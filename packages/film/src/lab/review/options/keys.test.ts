@@ -2,7 +2,9 @@
 // place round from the one heard (else the picked one), skipping what cannot
 // be heard; Enter picks the selected variant only while it is the one heard
 // and is not picked; `.`/`,` walk its marks past the time shown, and each
-// mark is a jump on its card's menu while there is a picture.
+// mark is a jump on its card's menu while there is a picture; Accept anyway
+// keeps a voice's pick refused as heard as something else, offered only
+// while that refusal stands.
 
 import { describe, expect, test } from 'bun:test';
 import { Effect, Option, Schema } from 'effect';
@@ -11,12 +13,16 @@ import { type Context, contextAt, withSelection } from '../../../command/context
 import { contextRows } from '../../../command/menu.ts';
 import { Selection } from '../../../command/selection.ts';
 import { FilmChoices } from '../../../core/choice.ts';
+import { SourceRefused, TakeMismatch } from '../../../core/refusals.ts';
+import { ChoiceAct } from './api.ts';
 import {
+  ACCEPT_ANYWAY,
   type Deck,
   type InPlace,
   auditionOf,
   heardSelectedOf,
   markCommands,
+  mismatchOf,
   pointCommands,
   verbTitle,
 } from './keys.ts';
@@ -60,10 +66,18 @@ const points = Schema.decodeUnknownSync(FilmChoices)({
   ],
 }).points;
 
-/** A deck over the toy's score, `heard` playing, with a picture unless `still`. */
-const deck = (heard: Option.Option<InPlace>, still = false) => {
+/**
+ * A deck over the toy's score, `heard` playing, with a picture unless
+ * `still`, and `mismatched` the pick refused as heard as something else.
+ */
+const deck = (
+  heard: Option.Option<InPlace>,
+  still = false,
+  mismatched: Option.Option<InPlace> = Option.none(),
+) => {
   const auditioned: Array<InPlace> = [];
   const picked: Array<InPlace> = [];
+  const accepted: Array<InPlace> = [];
   const jumped: Array<number> = [];
   const d: Deck = {
     film: 'toy',
@@ -74,6 +88,11 @@ const deck = (heard: Option.Option<InPlace>, still = false) => {
       picked.push(h);
       return Effect.runPromise(Effect.succeed(true));
     },
+    mismatched: () => mismatched,
+    accept: (m) => {
+      accepted.push(m);
+      return Effect.runPromise(Effect.succeed(true));
+    },
     jump: () =>
       Option.liftPredicate(
         (t: number) => jumped.push(t),
@@ -81,7 +100,7 @@ const deck = (heard: Option.Option<InPlace>, still = false) => {
       ),
     now: () => 2,
   };
-  return { d, auditioned, picked, jumped };
+  return { d, auditioned, picked, accepted, jumped };
 };
 
 const page = contextAt('review', '/review/films/toy/choices');
@@ -133,6 +152,39 @@ describe("Enter's pick", () => {
       true,
     );
     expect(verbTitle('take', 'pick')).toBe('Keep');
+  });
+});
+
+describe('Accept anyway', () => {
+  const mismatch = TakeMismatch.make({ id: 'a', script: 'Hello.', heard: 'Goodbye.', wer: 1 });
+
+  test('a pick refused as heard as something else is what it keeps; nothing else is', () => {
+    const pick = ChoiceAct.Verb({ point: 'voice:a', variant: 'a.1.flac', verb: 'pick' });
+    expect(mismatchOf(pick, mismatch)).toEqual(
+      Option.some({ point: 'voice:a', variant: 'a.1.flac' }),
+    );
+    expect(
+      mismatchOf(pick, SourceRefused.make({ file: 'sound.ts', target: 'x', reason: 'no' })),
+    ).toEqual(Option.none());
+    expect(mismatchOf(ChoiceAct.Verb({ ...pick, verb: 'reject' }), mismatch)).toEqual(
+      Option.none(),
+    );
+  });
+
+  test('offered while the refusal stands, on its own row or with nothing selected, never at rest', () => {
+    const refused = { point: 'score', variant: 'piano' };
+    const { d, accepted } = deck(Option.none(), false, Option.some(refused));
+    const accept = byId(pointCommands(d), ACCEPT_ANYWAY);
+    expect(accept.when(onVariant('piano'))).toBe(true);
+    expect(accept.when(page)).toBe(true);
+    expect(accept.when(onVariant('brass'))).toBe(false);
+    expect(accept.keys).toBeUndefined();
+    expect(
+      contextRows([accept], onVariant('piano')).flatMap(([, r]) => r.map((x) => x.label)),
+    ).toEqual(['Accept anyway · piano as score']);
+    Effect.runFork(accept.run(page, BY_BUTTON));
+    expect(accepted).toEqual([refused]);
+    expect(byId(pointCommands(deck(Option.none()).d), ACCEPT_ANYWAY).when(page)).toBe(false);
   });
 });
 
