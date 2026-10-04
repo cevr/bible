@@ -18,8 +18,9 @@
 // bytes), so a take is never lost and git drops it from `narration/` as
 // before. Placing a take and naming it hold the timings' lock, and a take is
 // put away only while the timings, read under it, do not name it. An earlier attempt can be kept again at any time, and
-// an Undo of a keep brings the replaced take back (`named`). Staging never
-// replaces a recorded take (see narrator.ts).
+// an Undo of a keep brings the replaced take back (`named`): the copy whose
+// audio hashes to what its name carries, never a guess between copies.
+// Staging never replaces a recorded take (see narrator.ts).
 
 import {
   Array as Arr,
@@ -29,7 +30,6 @@ import {
   FileSystem,
   Layer,
   Option,
-  Order,
   Path,
   Schema,
 } from 'effect';
@@ -46,7 +46,7 @@ import { voicedWords } from '../core/voiced.ts';
 import { type Timings, TimingsJson, VoiceTiming } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { ElevenLabs, heardWords } from './elevenlabs.ts';
-import { NamedFileMissing } from './errors.ts';
+import { NamedFileMissing, TakeAmbiguous } from './errors.ts';
 import type { Follows } from './source-writer.ts';
 import {
   type ElevenLabsFailed,
@@ -61,9 +61,11 @@ import {
   MAX_WORD_ERROR,
   type VoicedFilm,
   contentHash,
+  hashOfTake,
   isKeptAside,
   putAwayTake,
   putAwayUnnamed,
+  sameBytes,
   takeFile,
 } from './narrator.ts';
 
@@ -358,28 +360,38 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         );
 
       /**
-       * Where take `file` of `beat` was put away: the newest copy kept aside
-       * under its name (`keptAside`: it held other bytes than the attempt of
-       * that name, and was the take the timings named), else the attempt of
-       * that name; none when neither is there.
+       * Which copy put away in `beat`'s attempts is take `file`: of the
+       * attempt of its name and the copies kept aside under it (`isKeptAside`),
+       * the one whose audio hashes to what its name carries (`hashOfTake`).
+       * A name from before takes were named by their audio carries no hash:
+       * its copy when every copy holds the same bytes, and `TakeAmbiguous`
+       * when they differ, rather than a guess. None when no copy is there.
        */
       const putAwayAs = (film: FilmPaths, beat: string, file: string) =>
         Effect.gen(function* () {
           const dir = attemptsDir(film, beat);
           if (!(yield* fs.exists(dir))) return Option.none<string>();
-          const aside = yield* Effect.forEach(
-            (yield* fs.readDirectory(dir)).filter((name) => isKeptAside(file, name)),
-            (name) =>
-              Effect.map(fs.stat(path.join(dir, name)), (info) => ({
-                name,
-                at: Option.match(info.mtime, { onNone: () => 0, onSome: (at) => at.getTime() }),
-              })),
+          const names = (yield* fs.readDirectory(dir))
+            .filter((name) => name === file || isKeptAside(file, name))
+            .toSorted();
+          const copies = yield* Effect.forEach(names, (name) =>
+            Effect.map(fs.readFile(path.join(dir, name)), (bytes) => ({ name, bytes })),
           );
-          const newest = Arr.last(Arr.sortWith(aside, (a) => a.at, Order.Number));
-          if (Option.isSome(newest)) return Option.some(path.join(dir, newest.value.name));
-          const attempt = path.join(dir, file);
-          if (!(yield* fs.exists(attempt))) return Option.none<string>();
-          return Option.some(attempt);
+          const named = hashOfTake(file);
+          if (Option.isSome(named)) {
+            const take = Arr.findFirst(copies, (c) => contentHash(c.bytes) === named.value);
+            if (Option.isNone(take) && copies.length > 0)
+              return yield* NamedFileMissing.make({
+                file,
+                reason: `has copies in narration/attempts/${beat}/ (${names.join(', ')}), none holding the audio its name hashes`,
+              });
+            return Option.map(take, (c) => path.join(dir, c.name));
+          }
+          const distinct = copies.filter(
+            (c, i) => copies.findIndex((d) => sameBytes(d.bytes, c.bytes)) === i,
+          );
+          if (distinct.length > 1) return yield* TakeAmbiguous.make({ file, copies: names });
+          return Option.map(Arr.head(copies), (c) => path.join(dir, c.name));
         });
 
       /** The take `file` of `beat` in `narration/`, copied back from where it was put away when it is not. */

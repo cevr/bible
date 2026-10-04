@@ -9,7 +9,7 @@ import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import type { LoadedFilm } from './film-repo.ts';
-import { voicedOf } from './narrator.ts';
+import { contentHash, putAwayTake, voicedOf } from './narrator.ts';
 import { type ImportOptions, Takes } from './takes.ts';
 import {
   type ElevenLabsCalls,
@@ -259,7 +259,7 @@ describe('Takes', () => {
   });
 
   it.effect(
-    'a replaced take whose name an attempt already holds, with other bytes, is kept beside it, and brought back as its own bytes',
+    'a replaced take whose name an attempt already holds, with other bytes, is kept beside it, and an Undo that cannot tell the two apart refuses',
     () => {
       const { files, layer } = setup();
       // An older file under the staging take's name (a name from before takes were named by their audio).
@@ -275,11 +275,108 @@ describe('Takes', () => {
           /\/attempts\/a\/a\.mp3\.[0-9a-f]{12}\.mp3$/.test(f),
         );
         expect(beside.map((f) => files.get(f))).toEqual([staging]);
-        // An Undo of the keep brings back the take the timings named: its bytes, not the attempt's.
+        // An Undo of the keep cannot tell which of the two the timings named
+        // (`a.mp3` carries no hash of its audio): it refuses, and guesses at neither.
         const after = new TextDecoder().decode(files.get(TIMINGS));
-        yield* (yield* Takes).named((yield* loaded).paths).bring(after, before);
-        expect(files.get(`${NARRATION}/a.mp3`)).toEqual(staging);
+        const refused = yield* Effect.flip(
+          (yield* Takes).named((yield* loaded).paths).bring(after, before),
+        );
+        expect(refused._tag).toBe('TakeAmbiguous');
+        expect(refused.message).toContain('a.mp3, a.mp3.');
+        expect(files.has(`${NARRATION}/a.mp3`)).toBe(false);
+        expect(files.get(`${NARRATION}/attempts/a/a.mp3`)).toEqual(text('an older take'));
+        expect(beside.map((f) => files.get(f))).toEqual([staging]);
       }).pipe(Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    'a take whose every name in its attempts holds other bytes is put away under one more, and nothing there is overwritten',
+    () => {
+      const { files, layer } = setup();
+      const staging = Option.getOrThrow(Option.fromUndefinedOr(files.get(`${NARRATION}/a.mp3`)));
+      const older = text('an older take');
+      const occupant = text('another take under the name the staging take would be kept as');
+      const attempts = `${NARRATION}/attempts/a`;
+      const secondary = `${attempts}/a.mp3.${contentHash(staging)}.mp3`;
+      files.set(`${attempts}/a.mp3`, older);
+      files.set(secondary, occupant);
+      return Effect.gen(function* () {
+        yield* importing('/rec/a.wav', { ...defaults, only: Option.some(new Set(['a'])) });
+        expect(files.has(`${NARRATION}/a.mp3`)).toBe(false);
+        // Both earlier files are as they were, byte for byte.
+        expect(files.get(`${attempts}/a.mp3`)).toEqual(older);
+        expect(files.get(secondary)).toEqual(occupant);
+        // And the staging take is kept under a name of its own, byte for byte.
+        const kept = [...files.entries()].filter(
+          ([f]) => f.startsWith(`${attempts}/a.mp3.`) && f !== secondary,
+        );
+        expect(kept.map(([, bytes]) => bytes)).toEqual([staging]);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    'a take with no name left in its attempts that holds its bytes is not put away: it stays where it is',
+    () => {
+      const { files, layer } = setup();
+      const staging = Option.getOrThrow(Option.fromUndefinedOr(files.get(`${NARRATION}/a.mp3`)));
+      const attempts = `${NARRATION}/attempts/a`;
+      const hash = contentHash(staging);
+      const taken = [
+        `${attempts}/a.mp3`,
+        `${attempts}/a.mp3.${hash}.mp3`,
+        ...[1, 2, 3, 4, 5, 6, 7].map((n) => `${attempts}/a.mp3.${hash}.${n}.mp3`),
+      ];
+      for (const [i, f] of taken.entries()) files.set(f, text(`another take ${i}`));
+      return Effect.gen(function* () {
+        yield* importing('/rec/a.wav', { ...defaults, only: Option.some(new Set(['a'])) });
+        expect(files.get(`${NARRATION}/a.mp3`)).toEqual(staging);
+        expect(taken.map((f) => files.get(f))).toEqual(
+          taken.map((_, i) => text(`another take ${i}`)),
+        );
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    "an Undo brings back the copy whose audio the take's name hashes, not the one put away last",
+    () => {
+      const { files, layer } = setup();
+      const paths = testFilm(scenes, staged).paths;
+      const c = text('take C');
+      const a = text('take A');
+      const file = `a.${contentHash(c)}.mp3`;
+      const attempts = `${NARRATION}/attempts/a`;
+      /** Timings naming `take` as a's take. */
+      const naming = (take: string) =>
+        Schema.encodeSync(TimingsJson)({
+          ...staged,
+          scenes: {
+            a: {
+              hash: hashText('Hello world.'),
+              file: take,
+              duration: 1,
+              words: [],
+              source: 'elevenlabs',
+            },
+          },
+        });
+      files.set(`${attempts}/${file}`, c);
+      return Effect.gen(function* () {
+        // A put away beside the attempt holding C (their names clash), then C placed and put away.
+        files.set(`${NARRATION}/${file}`, a);
+        yield* putAwayTake(paths, 'a', file);
+        files.set(`${NARRATION}/${file}`, c);
+        yield* putAwayTake(paths, 'a', file);
+        expect(files.has(`${NARRATION}/${file}`)).toBe(false);
+        // An Undo back to the timings naming C brings back C's bytes.
+        yield* (yield* Takes).named(paths).bring(naming('a.mp3'), naming(file));
+        expect(files.get(`${NARRATION}/${file}`)).toEqual(c);
+        // A, put away, is still there.
+        const aside = [...files.entries()].filter(([f]) => f.startsWith(`${attempts}/${file}.`));
+        expect(aside.map(([, bytes]) => bytes)).toEqual([a]);
+      }).pipe(Effect.provide(Layer.mergeAll(layer, memoryFileSystem(files), Path.layer)));
     },
   );
 

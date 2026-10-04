@@ -255,7 +255,7 @@ const beatOfTake = (name: string): string =>
   );
 
 /** Whether two files hold the same bytes. */
-const sameBytes = (a: Uint8Array, b: Uint8Array): boolean =>
+export const sameBytes = (a: Uint8Array, b: Uint8Array): boolean =>
   a.length === b.length && a.every((byte, i) => byte === b[i]);
 
 /** `file`'s extension, its dot with it (`.flac`); empty when it has none. */
@@ -265,30 +265,46 @@ const extensionOf = (file: string): string =>
     () => '',
   );
 
+/** The hash of its audio a take's name carries (`takeFile`); none for a name from before takes were named by it. */
+export const hashOfTake = (file: string): Option.Option<string> =>
+  Option.flatMap(Option.fromNullishOr(/\.([0-9a-f]{12})\.[^.]+$/.exec(file)), (named) =>
+    Arr.get(named, 1),
+  );
+
+/** How many names a take may be kept aside under (`keptAside`) before it is not put away at all. */
+const KEPT_ASIDE_NAMES = 8;
+
 /**
- * The name a take `file` is put away under beside an attempt of the same name
- * that holds other bytes: `<file>.<hash of its audio><ext>` (`a.mp3.<sha12>.mp3`).
- * It names no other take or attempt, and the take it holds is the one the
- * timings named as `file` (`isKeptAside`).
+ * The `n`th name a take `file` is put away under beside an attempt of the
+ * same name that holds other bytes: `<file>.<hash of its audio><ext>`
+ * (`a.mp3.<sha12>.mp3`), then `<file>.<hash>.<n><ext>` while that name too
+ * holds other bytes. It names no other take or attempt (`isKeptAside`).
  */
-const keptAside = (file: string, bytes: Uint8Array): string =>
-  `${file}.${contentHash(bytes)}${extensionOf(file)}`;
+const keptAside = (file: string, bytes: Uint8Array, n: number): string => {
+  const named = `${file}.${contentHash(bytes)}`;
+  if (n === 0) return `${named}${extensionOf(file)}`;
+  return `${named}.${n}${extensionOf(file)}`;
+};
 
 /** Whether `name` is take `file` kept aside (`keptAside`). */
 export const isKeptAside = (file: string, name: string): boolean =>
   name.startsWith(`${file}.`) &&
-  /^\.[0-9a-f]{12}$/.test(name.slice(file.length, name.length - extensionOf(file).length)) &&
-  name.endsWith(extensionOf(file));
+  name.endsWith(extensionOf(file)) &&
+  /^\.[0-9a-f]{12}(\.[1-9][0-9]*)?$/.test(
+    name.slice(file.length, name.length - extensionOf(file).length),
+  );
 
 /**
  * A take the timings no longer name, put away: moved out of `narration/`
  * into `narration/attempts/<beat>/` (git-ignored), where every recorded
- * attempt already is. A take's bytes are never lost: it is copied there
- * first, unless the folder holds a file of that name with the same bytes
- * (the person's attempt it was kept from); one of that name with other bytes
- * (a name from before takes were named by their audio) stays as it is, and
- * the take is kept beside it (`keptAside`). The caller holds the timings'
- * lock and has read that they do not name it (`putAwayUnnamed`).
+ * attempt already is. A take's bytes are never lost: it leaves `narration/`
+ * only once a file in its attempts holds them, read back and compared byte
+ * for byte. That is the attempt of its name (the person's attempt it was
+ * kept from, or a copy made now); when that holds other bytes (a name from
+ * before takes were named by their audio), the first name kept aside
+ * (`keptAside`) that is free or holds the same bytes. A take with no such
+ * name stays where it is, and the refusal is logged. The caller holds the
+ * timings' lock and has read that they do not name it (`putAwayUnnamed`).
  */
 export const putAwayTake = Effect.fn('putAwayTake')(function* (
   paths: FilmPaths,
@@ -302,16 +318,23 @@ export const putAwayTake = Effect.fn('putAwayTake')(function* (
   if (!(yield* fs.exists(take))) return;
   const bytes = yield* fs.readFile(take);
   const attempts = path.join(paths.narration, 'attempts', beat);
-  const attempt = path.join(attempts, file);
-  if (!(yield* fs.exists(attempt))) yield* store.writeFile(attempt, bytes);
-  else if (!sameBytes(yield* fs.readFile(attempt), bytes)) {
-    const aside = keptAside(file, bytes);
-    if (!(yield* fs.exists(path.join(attempts, aside))))
-      yield* store.writeFile(path.join(attempts, aside), bytes);
-    yield* Effect.logWarning(
-      `takes.put-away.kept-aside id=${beat} file=${file} as=${aside} reason="attempts/${beat}/${file} holds other bytes"`,
+  const names = [file, ...Arr.makeBy(KEPT_ASIDE_NAMES, (n) => keptAside(file, bytes, n))];
+  // A name holds the take once its file reads back as the take: written first when free.
+  const holds = (name: string) =>
+    Effect.gen(function* () {
+      const home = path.join(attempts, name);
+      if (!(yield* fs.exists(home))) yield* store.writeFile(home, bytes);
+      return sameBytes(yield* fs.readFile(home), bytes);
+    });
+  const home = yield* Effect.findFirst(names, holds);
+  if (Option.isNone(home))
+    return yield* Effect.logError(
+      `takes.put-away.refused id=${beat} file=${file} reason="attempts/${beat}/ has no name for it that holds its bytes; it stays in narration/"`,
     );
-  }
+  if (home.value !== file)
+    yield* Effect.logWarning(
+      `takes.put-away.kept-aside id=${beat} file=${file} as=${home.value} reason="attempts/${beat}/${file} holds other bytes"`,
+    );
   yield* fs.remove(take);
   yield* Effect.log(`takes.put-away id=${beat} file=${file}`);
 });

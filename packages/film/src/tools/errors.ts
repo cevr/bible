@@ -528,6 +528,20 @@ export class NamedFileMissing extends Schema.TaggedError<NamedFileMissing>()('Na
   }
 }
 
+/**
+ * A take a recorded text names whose put-away copies differ, when its name
+ * carries no hash of its audio to say which is it: nothing is brought back
+ * rather than a guess.
+ */
+export class TakeAmbiguous extends Schema.TaggedError<TakeAmbiguous>()('TakeAmbiguous', {
+  file: Schema.String,
+  copies: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `${this.file}, whose put-away copies hold different audio (${this.copies.join(', ')}) and whose name carries no hash to say which it is; restore the one you mean to narration/${this.file} by hand`;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Review: the box's renders, served where they lie.
 

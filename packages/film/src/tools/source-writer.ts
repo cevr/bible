@@ -57,7 +57,12 @@ import {
   type SourceRefused,
   UndoUnavailable,
 } from '../core/refusals.ts';
-import { FormatFailed, type NamedFileMissing, WriteUnverified } from './errors.ts';
+import {
+  FormatFailed,
+  type NamedFileMissing,
+  type TakeAmbiguous,
+  WriteUnverified,
+} from './errors.ts';
 import type { PlatformError } from 'effect/PlatformError';
 import { FilmFolder } from './film-repo.ts';
 import { collectWithin } from './process.ts';
@@ -71,8 +76,15 @@ import { collectWithin } from './process.ts';
  * Nothing is deleted on either side.
  */
 export interface Follows {
-  /** Every file `to` names and `from` does not, in place before `to` lands; why not, when one cannot be. */
-  readonly bring: (from: string, to: string) => Effect.Effect<void, NamedFileMissing>;
+  /**
+   * Every file `to` names and `from` does not, in place before `to` lands, as
+   * the very file it named (a take by the audio its name hashes); why not,
+   * when one cannot be, or which copies it might be when that is not known.
+   */
+  readonly bring: (
+    from: string,
+    to: string,
+  ) => Effect.Effect<void, NamedFileMissing | TakeAmbiguous>;
   /** Every file `from` names and `to` does not, put away once `to` has landed. */
   readonly putAway: (from: string, to: string) => Effect.Effect<void, StoreError | PlatformError>;
   /** What is made from the text, made again once a text has landed; none when nothing is. */
