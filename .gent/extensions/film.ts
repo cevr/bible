@@ -94,6 +94,9 @@ const encodedLength = <T, E>(schema: Schema.Codec<T, E>) => {
   return (value: T): number => encode(value).length;
 };
 
+/** A high surrogate: the first half of a character a cut must not split. */
+const isHighSurrogate = (code: number) => code >= 0xd8_00 && code <= 0xdb_ff;
+
 /** The largest size in `[0, high]` that `fits`, which holds for every size below one it holds for. */
 const largestFitting = (high: number, fits: (size: number) => boolean): number => {
   let low = 0;
@@ -676,48 +679,116 @@ export const FilmCheck = tool({
 // ---------------------------------------------------------------------------
 // film.cues
 
+/** Where a cues result starts, or goes on: a line of the CLI's output, and a character in it (both from 1). */
+const CuesCursor = Schema.Struct({ from: Schema.Int, column: Schema.Int });
+
 const CuesOutput = Schema.Struct({
+  /**
+   * Where `lines` starts: the line of the CLI's output and the character in
+   * it. A column past 1 goes on inside the line the last result stopped in.
+   */
+  from: Schema.Int,
+  column: Schema.Int,
+  /** How many lines the CLI printed. */
+  total: Schema.Int,
+  /** The lines from `from`/`column`, whole: the last is cut only when it alone is longer than a result. */
   lines: Schema.Array(Schema.String),
   /** The CLI's words when a cue ends after its scene (`CuesLate`): the lines still stand. */
   late: Schema.optionalKey(Schema.String),
-  /** Present when lines were left out to fit: how many, and how to read them. */
+  /** Present with `next`: what was left out to fit, and how to read it. */
   rest: Schema.optionalKey(Schema.String),
+  /** Present when the lines go on: the `from` and `column` that read the rest. */
+  next: Schema.optionalKey(CuesCursor),
 });
 type CuesOutput = typeof CuesOutput.Type;
 const cuesLength = encodedLength(CuesOutput);
 
-/** The longest one line of the CLI's output a result keeps. */
-const LINE_CHARS = 800;
-
 /**
- * How many of `lines` a result holds: the most whose result, with its note
- * of the rest, `sizeWith` measures within the budget.
+ * The cues result for the CLI's `stdout` from line `from`, character
+ * `column`: every whole line that fits, or, when the first alone is longer
+ * than a result, as much of it as fits; and `next` where the rest starts. No
+ * line is cut and dropped: what a result leaves out the next one reads.
  */
-const linesThatFit = (lines: ReadonlyArray<string>, sizeWith: (count: number) => number) =>
-  largestFitting(lines.length, (count) => sizeWith(count) <= RESULT_BUDGET);
-
-/** The cues result for the CLI's `stdout`: the first lines that fit, and how to read the rest. */
-export const cuesReport = (stdout: string, late: Option.Option<string>): CuesOutput => {
-  const lines = linesOf(stdout).map((line) => clip(line, LINE_CHARS));
-  const base = Option.match(late, {
-    onNone: () => ({}),
-    onSome: (text) => ({ late: clip(text, REFUSAL_CHARS) }),
-  });
-  const restOf = (count: number) =>
-    `${lines.length - count} more lines left out to fit: ask film.cues for one scene at a time`;
-  const count = linesThatFit(lines, (size) =>
-    cuesLength({ ...base, lines: lines.slice(0, size), rest: restOf(0) }),
+export const cuesReport = (
+  stdout: string,
+  late: Option.Option<string>,
+  cursor: { readonly from?: number; readonly column?: number },
+): CuesOutput => {
+  const all = linesOf(stdout);
+  const from = Math.max(1, Math.min(cursor.from ?? 1, all.length));
+  const column = Math.max(1, Math.min(cursor.column ?? 1, (all[from - 1] ?? '').length + 1));
+  const lines = [
+    ...all.slice(from - 1, from).map((first) => first.slice(column - 1)),
+    ...all.slice(from),
+  ];
+  const base = {
+    from,
+    column,
+    total: all.length,
+    ...Option.match(late, {
+      onNone: () => ({}),
+      onSome: (text) => ({ late: clip(text, REFUSAL_CHARS) }),
+    }),
+  };
+  const restOf = (left: number) =>
+    `${left} more lines left out to fit: call film.cues again with next.from and next.column`;
+  const fits = (output: CuesOutput) => cuesLength(output) <= RESULT_BUDGET;
+  const count = largestFitting(lines.length, (size) =>
+    fits({
+      ...base,
+      lines: lines.slice(0, size),
+      rest: restOf(FAR),
+      next: { from: FAR, column: 1 },
+    }),
   );
   if (count === lines.length) return { ...base, lines };
-  return { ...base, lines: lines.slice(0, count), rest: restOf(count) };
+  if (count > 0)
+    return {
+      ...base,
+      lines: lines.slice(0, count),
+      rest: restOf(lines.length - count),
+      next: { from: from + count, column: 1 },
+    };
+  // The first line alone is longer than a result: as much of it as fits.
+  const first = lines[0] ?? '';
+  const rest = `line ${from} goes on past this result: call film.cues again with next.from and next.column`;
+  let size = largestFitting(first.length, (chars) =>
+    fits({
+      ...base,
+      lines: [first.slice(0, chars)],
+      rest,
+      next: { from: FAR, column: FAR },
+    }),
+  );
+  if (size > 1 && isHighSurrogate(first.charCodeAt(size - 1))) size -= 1;
+  size = Math.max(1, size);
+  return {
+    ...base,
+    lines: [first.slice(0, size)],
+    rest,
+    next: { from, column: column + size },
+  };
 };
 
 export const FilmCues = tool({
   id: 'film.cues',
   description:
-    "A scene's placement and its marks and named cues with their times (film cues): start=, dur=, speech=, seam= to the next voice, and each {mark} at its film second. Without a scene, every scene",
+    "A scene's placement and its marks and named cues with their times (film cues): start=, dur=, speech=, seam= to the next voice, and each {mark} at its film second. Without a scene, every scene. Lines come whole: when the answer has `next`, ask again with its `from` and `column` for the rest (a column past 1 goes on inside a line)",
   readonly: true,
-  params: Schema.Struct({ film: FilmName, scene: Schema.optionalKey(SceneId) }),
+  params: Schema.Struct({
+    film: FilmName,
+    scene: Schema.optionalKey(SceneId),
+    from: Schema.optionalKey(
+      Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
+        description: "The line to start at (1): a previous answer's next.from",
+      }),
+    ),
+    column: Schema.optionalKey(
+      Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
+        description: "The character of that line to start at (1): a previous answer's next.column",
+      }),
+    ),
+  }),
   output: CuesOutput,
   summary: (_input, output) => `${output.lines.length} line(s)`,
   execute: Effect.fn('film.cues')(function* (params) {
@@ -732,6 +803,7 @@ export const FilmCues = tool({
     return cuesReport(
       answer.stdout,
       Option.map(answer.refusal, (refusal) => refusal.text),
+      params,
     );
   }, Effect.mapError(modelFailure)),
 });
@@ -760,6 +832,9 @@ const JournalParams = Schema.Struct({
   ),
 });
 
+/** The longest one journal line a result keeps: the whole journal reads with film.read. */
+const LINE_CHARS = 800;
+
 const JournalOutput = Schema.Struct({
   lines: Schema.Array(Schema.String),
   /** Present when older lines were left out to fit: how many, and how to read them. */
@@ -773,8 +848,11 @@ export const journalReport = (stdout: string): JournalOutput => {
   const lines = linesOf(stdout).map((line) => clip(line, LINE_CHARS));
   const earlierOf = (count: number) =>
     `${lines.length - count} earlier lines left out to fit: film.read path journal.md reads the whole journal`;
-  const count = linesThatFit(lines, (size) =>
-    journalLength({ lines: lines.slice(lines.length - size), earlier: earlierOf(0) }),
+  const count = largestFitting(
+    lines.length,
+    (size) =>
+      journalLength({ lines: lines.slice(lines.length - size), earlier: earlierOf(0) }) <=
+      RESULT_BUDGET,
   );
   if (count === lines.length) return { lines };
   return { lines: lines.slice(lines.length - count), earlier: earlierOf(count) };
@@ -927,9 +1005,6 @@ const ReadOutput = Schema.Struct({
 });
 type ReadOutput = typeof ReadOutput.Type;
 const readLength = encodedLength(ReadOutput);
-
-/** A high surrogate: the first half of a character the window must not split. */
-const isHighSurrogate = (code: number) => code >= 0xd8_00 && code <= 0xdb_ff;
 
 /**
  * The window of `text` a read starting at line `from`, character `column`

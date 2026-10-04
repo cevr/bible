@@ -53,6 +53,7 @@ import {
 } from '@gent/core/test-utils';
 import FilmExtension, {
   checkReport,
+  cuesReport,
   FILM_TOOL_IDS,
   FilmCheck,
   FilmCues,
@@ -545,6 +546,45 @@ describe("every result fits gent's budget, and says how to read on", () => {
       expect(same.from).toBe(next.from);
       expect(same.findings[0]?.tag).toBe(`Finding${next.from}`);
     }),
+  );
+
+  it.effect(
+    'a scene of 80 marks comes whole; a line longer than one result comes back whole across calls',
+    () =>
+      Effect.sync(() => {
+        // A scene's line as `film cues` prints it: placement, then each mark.
+        const sceneLine = (id: string, marks: number) =>
+          `${id.padEnd(11)} start=   0.00 dur=  9.00 speech=0.00–8.00 ${Array.from(
+            { length: marks },
+            (_, index) => `mark${index}@${(index / 100).toFixed(2)}`,
+          ).join(' ')}`;
+        const eighty = sceneLine('roof', 80);
+        expect(eighty.length).toBeGreaterThan(1_000);
+        const one = cuesReport(eighty, Option.none(), {});
+        expect(one.lines).toEqual([eighty]);
+        expect(one.lines[0]).toContain('mark79@0.79');
+        expect(one.next).toBeUndefined();
+
+        const lines = [sceneLine('gate', 3), sceneLine('roof', 900), sceneLine('end', 2)];
+        const got: Array<string> = [];
+        const rests: Array<string> = [];
+        let cursor: Parameters<typeof cuesReport>[2] = {};
+        for (let call = 0; call < 10; call += 1) {
+          const report = cuesReport(lines.join('\n'), Option.none(), cursor);
+          expect(encodeAny(report).length).toBeLessThan(8_000);
+          rests.push(...Option.toArray(Option.fromUndefinedOr(report.rest)));
+          const [first = '', ...after] = report.lines;
+          // A window that starts inside a line goes on with that line.
+          if (report.column > 1) got.push(`${got.pop() ?? ''}${first}`, ...after);
+          else got.push(first, ...after);
+          const next = Option.fromUndefinedOr(report.next);
+          if (Option.isNone(next)) break;
+          cursor = next.value;
+        }
+        expect(got).toEqual(lines);
+        expect(rests.length).toBeGreaterThan(0);
+        expect(got[1]).toContain('mark899@8.99');
+      }),
   );
 
   it.live('a file full of quotes reads back whole, each window under 8,000 characters', () =>
