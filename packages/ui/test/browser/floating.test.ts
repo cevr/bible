@@ -67,7 +67,11 @@ describe('FloatingPortal + useAnchorPositioning', () => {
         el.style.getPropertyValue('--available-height'),
         el.style.getPropertyValue('--transform-origin'),
       ]);
-    expect(vars[0]).toBe(`${trigger!.width}px`);
+    // The width snaps to device pixels, as Base UI does, so a fractional text width reads whole.
+    const dpr = await page.evaluate(() => window.devicePixelRatio || 1);
+    const snapped =
+      (Math.round((trigger!.x + trigger!.width) * dpr) - Math.round(trigger!.x * dpr)) / dpr;
+    expect(vars[0]).toBe(`${snapped}px`);
     expect(vars[1]).toMatch(/px$/);
     expect(vars[2]).toBe('0% -4px');
   });
@@ -172,6 +176,8 @@ describe('useTypeahead', () => {
   it('wraps the search past the highlighted item', async () => {
     const page = await h.open('list-popup');
     await page.click('#trigger');
+    // The open popup takes focus a frame after the click; a key before that reaches the trigger.
+    await see.poll(() => focused(page)).toBe('popup');
     await page.keyboard.press('End');
     await see.poll(() => focused(page)).toBe('item-cherry');
     await page.keyboard.press('a');
