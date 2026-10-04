@@ -1301,7 +1301,8 @@ note id=n1 seq=1 status=open scene=hand T=230.38 local=4.12 frame=6911 cue=toppl
 `T=` is film time when the note was made; `local=` (on a note that has it) is
 seconds into its scene, which an earlier scene's re-take does not move: the
 note's frame now is the scene's `start=` (`film cues <film> <scene>`) plus
-`local`.
+`local`. `range=3.20-4.00` (on a note that has one, its scope chip's range)
+is the stretch of its scene the note is about, in the same scene seconds.
 
 `--watch` prints each new note, and each reply from the user (`reply id=…
 by=user … still=… text="…"`), once per run, starting past the current cursor

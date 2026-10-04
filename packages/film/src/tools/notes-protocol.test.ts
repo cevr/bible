@@ -147,6 +147,25 @@ describe('film notes, as an agent reads it', () => {
     }).pipe(Effect.provide(Fresh)),
   );
 
+  it.live('prints the stretch of its scene a note is about, its scope chip’s range', () =>
+    Effect.gen(function* () {
+      yield* (yield* NotesStore).add(
+        film,
+        {
+          scene: 'turn',
+          T: 5.35,
+          frame: 160,
+          range: { from: 3.2, to: 4 },
+          text: 'the turn drags here',
+        },
+        png,
+      );
+      expect((yield* cli('tiny')).lines[0]).toBe(
+        `note id=n1 seq=1 status=open scene=turn T=5.35 frame=160 range=3.20-4.00 replies=0 still=${LAB}/tiny/stills/n1.png text="the turn drags here"`,
+      );
+    }).pipe(Effect.provide(Fresh)),
+  );
+
   it.live(
     'a reply prints what the user said since the agent last replied: new notes and user replies',
     () =>
