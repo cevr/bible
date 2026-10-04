@@ -167,6 +167,23 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live(
+    "on a phone the tape's cut names never run into each other or off their line: a name too long shortens or drops",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openPlayer(
+          { href: pageHref.scenes(CROWD), viewport: PHONE },
+          STILL_DRAWN,
+        );
+        yield* evaluates(page, "document.querySelectorAll('.sc-cut').length", 14);
+        yield* evaluates(page, labelsClash('.sc-cut-name', '.sc-line-body'), []);
+        yield* evaluates(page, `${labelsInFull('.sc-cut-name')} > 0`, true);
+        yield* page.resize(DESK.width, DESK.height);
+        yield* evaluates(page, labelsClash('.sc-cut-name', '.sc-line-body'), []);
+        yield* evaluates(page, `${labelsInFull('.sc-cut-name')} > 0`, true);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('on a phone a film with room in each scene names every scene in full', () =>
     Effect.gen(function* () {
       const { page } = yield* openPlayer(
@@ -177,6 +194,29 @@ describe('the player', () => {
       yield* evaluates(page, "document.querySelectorAll('.bar .track .seg').length", scenes);
       yield* evaluates(page, labelsClash('.bar .track .seg span', '.seg'), []);
       yield* evaluates(page, labelsInFull('.bar .track .seg span'), scenes);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a drag along the tape scrubs away from the playhead and turns Follow off', () =>
+    Effect.gen(function* () {
+      const { page, errors } = yield* openPlayer(
+        { href: pageHref.scenes(PROBE), viewport: DESK },
+        STILL_DRAWN,
+      );
+      yield* attributeIs(page, '[data-act="follow"]', 'aria-pressed', 'true');
+      const p = yield* pointInScene(page, 'two');
+      yield* page.mouse.move(p.x, p.y);
+      yield* page.mouse.down;
+      yield* page.mouse.move(p.x + 40, p.y, 4);
+      yield* page.mouse.up;
+      yield* attributeIs(page, '[data-act="follow"]', 'aria-pressed', 'false');
+      // Followed again, a press on the tape bar's track scrubs away too.
+      yield* page.click('[data-act="follow"]');
+      yield* attributeIs(page, '[data-act="follow"]', 'aria-pressed', 'true');
+      const track = yield* page.box('.bar .track');
+      yield* page.mouse.click(track.x + track.width * 0.7, track.y + track.height / 2);
+      yield* attributeIs(page, '[data-act="follow"]', 'aria-pressed', 'false');
+      expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
 

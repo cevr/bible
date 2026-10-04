@@ -33,7 +33,19 @@ const NAMES = [
   'end',
 ];
 
-/** The crowd film, laid out afresh: each scene one short line. */
+/**
+ * The opening's longer line: it pushes the short scenes after it late into a
+ * phone's half-minute line of the Scenes' tape, where the last few crowd its
+ * end (a name there has no room after its rule, and little before it).
+ */
+const SAYS = new Map([
+  [
+    'opening-question',
+    'A longer opening line that runs on for a while, so that the short scenes after it sit late in the first line of the tape.',
+  ],
+]);
+
+/** The crowd film, laid out afresh: each scene one short line, the opening a long one. */
 export const crowdFilm = (): Film =>
   createFilm({
     title: 'Crowd',
@@ -42,5 +54,10 @@ export const crowdFilm = (): Film =>
     fps: 30,
     paper: { base: '#f4ecd8', tone: '#2a2520', seed: 1 },
     shade: '#000',
-    scenes: NAMES.map((id) => ({ id, say: 'One short line.', ...plain, drift: 0 })),
+    scenes: NAMES.map((id) => ({
+      id,
+      say: SAYS.get(id) ?? 'One short line.',
+      ...plain,
+      drift: 0,
+    })),
   });

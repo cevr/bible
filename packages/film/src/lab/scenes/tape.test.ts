@@ -8,6 +8,7 @@ import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import {
   type TapeScene,
+  cutNames,
   perRowAt,
   placeOf,
   rowAt,
@@ -62,6 +63,66 @@ describe('tapeOf', () => {
     // A scene that runs on into the next row has no cut there, only its band.
     expect(tape.rows[1]?.cuts).toEqual([]);
     expect(tape.rows[1]?.bands.map((b) => [b.scene, b.x0, b.x1])).toEqual([['word', 0, 1]]);
+  });
+
+  test("a cut's name takes the room after its rule, shortened to it, or none; the row's last may sit before its rule", () => {
+    // A phone's row (30 s over 360 px, a letter 6 px): cold at 0, a 3 s title at 25, word at 28.
+    const scenes: ReadonlyArray<TapeScene> = [
+      { id: 'cold', start: 0, dur: 25 },
+      { id: 'title', start: 25, dur: 3 },
+      { id: 'word', start: 28, dur: 60 },
+    ];
+    const cuts = tapeOf(scenes, 88, 5, 6).rows[0]?.cuts ?? [];
+    expect(cuts.map((c) => [c.scene, c.last])).toEqual([
+      ['cold', false],
+      ['title', false],
+      ['word', true],
+    ]);
+    expect(cuts[0]?.before).toBe(0);
+    expect(cuts[2]?.before).toBeCloseTo(3 / 30);
+    // A name starts 12 px past its rule and stops 4 px short of the next: cold has 284 px;
+    // title's 3 s (36 px) leaves 20, under the 30 its five letters take, so it is shortened
+    // (a letter and the ellipsis take 12); word, the row's last, has 8 px after it (not a
+    // letter) and nothing free before it (title's name fills that), so it has no name.
+    expect(cutNames(cuts, 360, 6)).toEqual([
+      { side: 'after', width: 284 },
+      { side: 'after', width: 20 },
+      { side: 'none', width: 0 },
+    ]);
+    // A row twice as wide has room for all three whole.
+    expect(cutNames(cuts, 720, 6)).toEqual([
+      { side: 'after', width: 584 },
+      { side: 'after', width: 56 },
+      { side: 'after', width: 32 },
+    ]);
+    // The row's last cut, short of room after it, sits its name before its rule where the
+    // stretch back to the cut before is free of that cut's name: 354 px less cold's 12 + 24
+    // and the 16 either side.
+    const late = tapeOf(
+      [
+        { id: 'cold', start: 0, dur: 29.5 },
+        { id: 'word', start: 29.5, dur: 60 },
+      ],
+      90,
+      5,
+      6,
+    ).rows[0]?.cuts;
+    expect(cutNames(late ?? [], 360, 6)).toEqual([
+      { side: 'after', width: 338 },
+      { side: 'before', width: 302 },
+    ]);
+    // Two cuts a frame apart: neither name overruns the other's rule.
+    const close = tapeOf(
+      [
+        { id: 'a', start: 0, dur: 10 },
+        { id: 'b', start: 10, dur: 0.1 },
+        { id: 'c', start: 10.1, dur: 50 },
+      ],
+      60,
+      5,
+      6,
+    ).rows[0]?.cuts;
+    expect(cutNames(close ?? [], 360, 6).map((n) => n.side)).toEqual(['after', 'none', 'after']);
   });
 
   test("the bands cover a row scene by scene, the last row's up to the film's end", () => {

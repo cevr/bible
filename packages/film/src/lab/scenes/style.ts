@@ -45,7 +45,7 @@ body.scenes { display: block; height: auto; }
 .sc-cut { position: absolute; top: 0; bottom: 0; z-index: 1; border-left: 1px solid var(--text-2); }
 .sc-cut > .sc-dot { position: absolute; top: 4px; left: 3px; }
 .sc-cut-name { position: absolute; top: 0; left: 12px; font-size: var(--fs-1); line-height: var(--lh-1);
-  color: var(--text-1); white-space: nowrap; }
+  color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sc-cut[data-flip="true"] > .sc-dot { left: -9px; }
 .sc-cut[data-flip="true"] .sc-cut-name { left: auto; right: 12px; }
 .sc-cut[data-named="false"] .sc-cut-name { display: none; }

@@ -24,7 +24,11 @@ interface TapeStill {
   readonly scene: string;
 }
 
-/** A scene's cut inside a row: at film second `at`, `x` of the way along it, `room` to the next cut or the row's end. */
+/**
+ * A scene's cut inside a row: at film second `at`, `x` of the way along it,
+ * `room` to the next cut or the row's end, `before` back to the cut before
+ * or the row's start; `last` when no cut follows it in the row.
+ */
 interface TapeCut {
   readonly scene: string;
   /** The scene's place in the film, from 0: its hue. */
@@ -32,7 +36,22 @@ interface TapeCut {
   readonly at: number;
   readonly x: number;
   readonly room: number;
+  readonly before: number;
+  readonly last: boolean;
 }
+
+/** Where a cut's name sits, and the most px it may take (shortened with an ellipsis past that). */
+interface CutName {
+  readonly side: 'after' | 'before' | 'none';
+  readonly width: number;
+}
+
+/** How far a name starts from its rule (past the dot), and the gap it keeps short of the next rule. */
+const NAME_INSET = 12;
+const NAME_GAP = 4;
+export const NO_CUT_NAME: CutName = { side: 'none', width: 0 };
+/** A width in whole px, rounding a hair of float error up rather than losing a px to it. */
+const wholePx = (px: number): number => Math.floor(px + 1e-6);
 
 /** A stretch of a row in one scene, `x0` to `x1` of the way along it. */
 interface TapeBand {
@@ -59,9 +78,6 @@ interface Tape {
   readonly duration: number;
   readonly rows: ReadonlyArray<TapeRow>;
 }
-
-/** Past this much of a row, a cut's name sits to the left of its rule, so it never runs off the row. */
-export const NAME_FLIP = 0.78;
 
 /** The tape's steps, finest first: what ⌘+ and ⌘− step between. */
 export const STEPS = [2.5, 5, 10] as const;
@@ -113,7 +129,19 @@ export const tapeOf = (
         onNone: () => 1,
         onSome: (n) => along(from, n.start),
       });
-      return { scene: s.id, index: indexOf(s.id), at: s.start, x, room: next - x };
+      const back = Option.match(Arr.get(inRow, k - 1), {
+        onNone: () => x,
+        onSome: (p) => x - along(from, p.start),
+      });
+      return {
+        scene: s.id,
+        index: indexOf(s.id),
+        at: s.start,
+        x,
+        room: next - x,
+        before: back,
+        last: k === inRow.length - 1,
+      };
     });
     const bands = scenes
       .filter((s) => s.start < end && s.start + s.dur > from)
@@ -126,6 +154,50 @@ export const tapeOf = (
     return { index: r, from, stills, cuts, bands };
   });
   return { step, perRow, span, duration, rows };
+};
+
+/**
+ * The names of a row's `cuts` on a row `rowPx` wide, a letter `charPx`: each
+ * after its rule, in the room to the next cut, whole where it fits and else
+ * shortened to a letter and an ellipsis at least, or none. The row's last
+ * cut, without room for its whole name after its rule, sits it before the
+ * rule instead where the stretch back to the cut before is free of that
+ * cut's name and dot. No two names meet and none runs off the row.
+ */
+export const cutNames = (
+  cuts: ReadonlyArray<TapeCut>,
+  rowPx: number,
+  charPx: number,
+): ReadonlyArray<CutName> => {
+  const least = 2 * charPx;
+  const named: Array<CutName> = [];
+  cuts.forEach((cut, k) => {
+    const whole = cut.scene.length * charPx;
+    const after = wholePx(cut.room * rowPx - NAME_INSET - NAME_GAP);
+    /** What the cut before takes past its own rule: its name's start and length where that name follows it, else its dot. */
+    const taken = Option.match(Arr.get(named, k - 1), {
+      onNone: () => 0,
+      onSome: (n) =>
+        Bool.match(n.side === 'after', {
+          onTrue: () => NAME_INSET + Math.min(n.width, (cuts[k - 1]?.scene.length ?? 0) * charPx),
+          onFalse: () => NAME_INSET,
+        }),
+    });
+    const free = wholePx(cut.before * rowPx - taken - NAME_GAP - NAME_INSET);
+    const name = Option.getOrElse(
+      Option.firstSomeOf([
+        Option.liftPredicate({ side: 'after', width: after } as const, () => after >= whole),
+        Option.liftPredicate(
+          { side: 'before', width: free } as const,
+          () => cut.last && free >= whole,
+        ),
+        Option.liftPredicate({ side: 'after', width: after } as const, () => after >= least),
+      ]),
+      () => NO_CUT_NAME,
+    );
+    named.push(name);
+  });
+  return named;
 };
 
 /** The row film second `t` sits in. */

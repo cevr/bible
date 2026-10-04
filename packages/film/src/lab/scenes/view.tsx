@@ -47,10 +47,11 @@ import { type Said, type ScenesRead, scenesCalls } from './data.ts';
 import { bandState, legendOf, marksOf } from './marks.ts';
 import { scenesPlaceOf, withScene } from './place.ts';
 import {
-  NAME_FLIP,
+  NO_CUT_NAME,
   STEPS,
   type TapeRow,
   type TapeScene,
+  cutNames,
   perRowAt,
   placeOf,
   sceneAt,
@@ -216,6 +217,10 @@ export const ScenesView = (props: ScenesViewProps) => {
   onCleanup(() => window.removeEventListener('resize', resized));
   const tape = createMemo(() => tapeOf(scenes, film.duration, stepOf(step()), perRowAt(wide())));
   const [follow, setFollow] = createSignal(true, fromHost);
+  // A press on the tape bar's track scrubs or seeks away from the playhead: Follow turns off (design §6).
+  const unfollow = () => setFollow(false);
+  player.track.addEventListener('pointerdown', unfollow);
+  onCleanup(() => player.track.removeEventListener('pointerdown', unfollow));
 
   // The stills: one at a time, a frame apart, the lines on screen first.
   const nowMs = monotonicMs(props.host);
@@ -488,6 +493,12 @@ export const ScenesView = (props: ScenesViewProps) => {
       for (const entry of entries) setPx(entry.contentRect.width);
     });
     onCleanup(() => sized.disconnect());
+    /** Each cut's name, by scene: which side of its rule, and the most px it takes. */
+    const names = createMemo(() => {
+      const placed = cutNames(row.cuts, px(), CHAR_PX);
+      return new Map(row.cuts.map((c, k) => [c.scene, placed[k] ?? NO_CUT_NAME]));
+    });
+    const nameOf = (scene: string) => names().get(scene) ?? NO_CUT_NAME;
     const at = (e: PointerEvent | MouseEvent, body: HTMLElement) => {
       const r = body.getBoundingClientRect();
       return timeAt(tape(), row.index, (e.clientX - r.left) / Math.max(r.width, 1));
@@ -517,7 +528,11 @@ export const ScenesView = (props: ScenesViewProps) => {
             Effect.runForkWith(props.host)(
               Pointer.use((pointer) =>
                 pointer.drag(e, {
-                  move: (ev) => player.scrub(at(ev, body)),
+                  // Scrubbing away from the playhead stops following it (design §6).
+                  move: (ev) => {
+                    setFollow(false);
+                    player.scrub(at(ev, body));
+                  },
                   end: () => player.settle(),
                 }),
               ),
@@ -538,17 +553,20 @@ export const ScenesView = (props: ScenesViewProps) => {
                 <span
                   class="sc-cut"
                   data-scene={cut().scene}
-                  data-flip={String(cut().x > NAME_FLIP)}
-                  data-named={String(
-                    cut().room * px() >= (cut().scene.length + 3) * CHAR_PX || cut().x > NAME_FLIP,
-                  )}
+                  data-flip={String(nameOf(cut().scene).side === 'before')}
+                  data-named={String(nameOf(cut().scene).side !== 'none')}
                   style={{ left: x(cut().at) }}
                 >
                   <i
                     class="sc-dot"
                     data-state={Option.getOrElse(bandState(marks()(cut().scene)), () => 'none')}
                   />
-                  <span class="sc-cut-name">{cut().scene}</span>
+                  <span
+                    class="sc-cut-name"
+                    style={{ 'max-width': `${nameOf(cut().scene).width}px` }}
+                  >
+                    {cut().scene}
+                  </span>
                 </span>
               )}
             </For>
