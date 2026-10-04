@@ -10,7 +10,7 @@
 // model.
 
 import { Array as Arr, Option, Result, Schema } from 'effect';
-import type { SceneTimes } from './easel.ts';
+import { type SceneTimes, momentOf } from './easel.ts';
 import { FILM_FPS } from './time.ts';
 
 /** The most moments a judge shows of each version: the scene's places spread evenly beyond it. */
@@ -92,7 +92,10 @@ export class CounselUnreadable extends Schema.TaggedError<CounselUnreadable>()(
 // ---------------------------------------------------------------------------
 // Moments
 
-/** A moment a judge shows: where in the scene (a look's place) and its scene-local second. */
+/**
+ * A moment a judge shows: where in the scene (a look's place) and the
+ * scene-local second of the frame a look draws there.
+ */
 export interface JudgeMoment {
   readonly at: string;
   readonly second: number;
@@ -100,9 +103,10 @@ export interface JudgeMoment {
 
 /**
  * The moments a judge shows of `scene`: each mark's word and each cue's
- * middle, in time order, one per frame, and at most `cap`, spread evenly
- * from the first to the last when there are more. A scene with neither
- * shows its middle.
+ * middle, in time order, one per frame as a look resolves it (`momentOf`:
+ * the film's frame, counted from the film's start), and at most `cap`,
+ * spread evenly from the first to the last when there are more. A scene
+ * with neither shows its middle.
  */
 export const judgeMoments = (
   scene: SceneTimes,
@@ -116,11 +120,12 @@ export const judgeMoments = (
     })),
   ]
     .filter((m) => m.second >= 0 && m.second <= scene.dur)
-    .toSorted((a, b) => a.second - b.second || a.at.localeCompare(b.at));
-  const once = Arr.dedupeWith(
-    places,
-    (a, b) => Math.round(a.second * FILM_FPS) === Math.round(b.second * FILM_FPS),
-  );
+    .flatMap((m) => Option.toArray(Result.getSuccess(momentOf(scene, FILM_FPS, m.at))))
+    .toSorted((a, b) => a.frame - b.frame || a.at.localeCompare(b.at));
+  const once = Arr.dedupeWith(places, (a, b) => a.frame === b.frame).map((m): JudgeMoment => ({
+    at: m.at,
+    second: m.time,
+  }));
   if (once.length === 0) return [{ at: (scene.dur / 2).toFixed(2), second: scene.dur / 2 }];
   if (once.length <= cap) return once;
   const picks = Arr.dedupe(
@@ -292,7 +297,7 @@ export const packetOf = (input: PacketInput): string => {
     '4. When no version earns a preference over another, say so: a tie (`=`) or `no preference` is a sound answer, better than a guess.',
     '5. Judge only what the stills show against the rules: nothing else about the versions is given, and nothing else counts.',
     '',
-    'Answer in exactly this form, the ranking line first:',
+    'Answer in exactly this form, the ranking line first and nothing else on it:',
     '',
     '```',
     `RANKING: <labels best first, ">" between, "=" for a tie>   (or: RANKING: no preference)`,
@@ -312,11 +317,18 @@ const RANKING_LINE = /^[\s>*_`-]*RANKING[*_`]*\s*:\s*(.+)$/i;
 /** A heading that is one label alone: `### B`, `## Version B`. */
 const LABEL_HEADING = /^(#{2,4})\s*(?:Version\s+)?([A-H])\s*$/i;
 
+/** A whole ranking: one letter, then `>` or `=` and one letter, as many times, and nothing else. */
+const RANKING_EXPRESSION = /^[A-Za-z](?:\s*[>=]\s*[A-Za-z])*$/;
+
+/** No preference, said exactly. */
+const NO_PREFERENCE = /^no preference$/i;
+
 /**
- * The ranking in a counsel's `answer`: its last `RANKING:` line, read as
- * labels best first (`B > A = C`) or `no preference`. Every label of
- * `labels` must be named exactly once; anything else is the reason it is
- * unreadable.
+ * The ranking in a counsel's `answer`: its last `RANKING:` line (markdown
+ * emphasis aside), read as labels best first (`B > A = C`) or `no
+ * preference`, each whole: an empty tier or label, or words after it, is
+ * unreadable. Every label of `labels` must be named exactly once; anything
+ * else is the reason it is unreadable.
  */
 export const rankingOf = (
   answer: string,
@@ -331,15 +343,15 @@ export const rankingOf = (
     () => '',
   )
     .replace(/[*_`]/g, '')
-    .replace(/\(.*\)\s*$/, '')
     .trim();
-  if (/^no preference\b/i.test(said)) return Result.succeed({ _tag: 'NoPreference' });
-  const tiers = said.split('>').map((tier) =>
-    tier
-      .split('=')
-      .map((label) => label.trim().toUpperCase())
-      .filter((label) => label !== ''),
-  );
+  if (NO_PREFERENCE.test(said)) return Result.succeed({ _tag: 'NoPreference' });
+  if (!RANKING_EXPRESSION.test(said))
+    return Result.fail(
+      `"${said}" is no whole ranking: labels best first, ">" or "=" between, and nothing else (or: no preference)`,
+    );
+  const tiers = said
+    .split('>')
+    .map((tier) => tier.split('=').map((label) => label.trim().toUpperCase()));
   const named = tiers.flat();
   const strange = named.filter((label) => !labels.includes(label));
   if (strange.length > 0) return Result.fail(`"${said}" names ${strange.join(', ')}, no label`);

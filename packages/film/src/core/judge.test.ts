@@ -38,6 +38,14 @@ describe('the moments a judge shows', () => {
     ]);
   });
 
+  test("one per frame as the look draws them: the film's frames, counted from its start", () => {
+    // At 30 fps from 4.01 s, 1 s and 1.01 s in are frames 150 and 151: two stills.
+    const off = (marks: Record<string, number>): SceneTimes => ({ ...scene(marks), start: 4.01 });
+    expect(judgeMoments(off({ a: 1, b: 1.01 })).map((m) => m.at)).toEqual(['mark:a', 'mark:b']);
+    // 1.01 s and 1.02 s in are both frame 151: one still.
+    expect(judgeMoments(off({ a: 1.01, b: 1.02 })).map((m) => m.at)).toEqual(['mark:a']);
+  });
+
   test('past the cap, spread from the first to the last', () => {
     const marks = Object.fromEntries(Array.from({ length: 30 }, (_, i) => [`m${i}`, i * 0.25]));
     const moments = judgeMoments(scene(marks), 4);
@@ -89,9 +97,26 @@ describe('the ranking in an answer', () => {
     expect(rankingOf('RANKING: A > B > C\nthinking...\n**RANKING:** `B > A = C`', labels)).toEqual(
       Result.succeed({ _tag: 'Ranked', tiers: [['B'], ['A', 'C']] }),
     );
-    expect(rankingOf('RANKING: no preference (all read alike)', labels)).toEqual(
+    expect(rankingOf('RANKING: no preference', labels)).toEqual(
       Result.succeed({ _tag: 'NoPreference' }),
     );
+    expect(rankingOf('**RANKING:** No Preference', labels)).toEqual(
+      Result.succeed({ _tag: 'NoPreference' }),
+    );
+  });
+
+  test('only a whole ranking reads: an empty tier, an empty label or words after it do not', () => {
+    for (const line of [
+      'RANKING: > A > B = C',
+      'RANKING: A > B = C >',
+      'RANKING: A > B == C',
+      'RANKING: A > B = C (B close)',
+      'RANKING: A > B = C, then D',
+      'RANKING: AB > C',
+      'RANKING: no preference between A and B; C wins',
+      'RANKING: no preference (all read alike)',
+    ])
+      expect([line, Result.isFailure(rankingOf(line, labels))]).toEqual([line, true]);
   });
 
   test('a ranking that leaves a label out, names another, or none, is unreadable', () => {
