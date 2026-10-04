@@ -75,9 +75,9 @@ describe('the place in the URL', () => {
     expect(viewOf(queryAt('?view=pair&other=nope'), ['A'])).toEqual(ViewState.All);
   });
 
-  test('a view, an other or a moment chosen is a step Back undoes; a ←/→ step is not', () => {
+  test('a view or a moment chosen is a step Back undoes; a pair cycled or a ←/→ step is not', () => {
     expect(historyOf(ViewEvent.ViewChosen({ view: 'moments' }))).toBe('push');
-    expect(historyOf(ViewEvent.OtherChosen({ id: 'C' }))).toBe('push');
+    expect(historyOf(ViewEvent.OtherChosen({ id: 'C' }))).toBe('replace');
     expect(historyOf(ViewEvent.MomentChosen({ index: 3 }))).toBe('push');
     expect(historyOf(ViewEvent.MomentStepped({ by: 1, count: 5 }))).toBe('replace');
   });

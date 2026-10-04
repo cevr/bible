@@ -1473,8 +1473,8 @@ first variant's; one sound heard; opened at the URL's `#t=`, which follows
 it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
 `Moments`, `Notes`; a set of one version has no pair, and a link asking for
 one opens All): a view chosen runs through the view machine (`stepView`)
-and is written back, a new history entry for a view, a pair's other or a
-moment chosen, the same entry for a ←/→ step. `sync.ts` is the driver
+and is written back, a new history entry for a view or a moment chosen,
+the same entry for a pair's other cycled or a ←/→ step. `sync.ts` is the driver
 that makes every media element (a `<video>` or an `<audio>`) follow the
 player: it puts drifters back on the clock, holds all while one stalls, and
 unmutes only the one heard. A film's page (`options/`, `<FilmProvider>`)

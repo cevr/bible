@@ -72,13 +72,17 @@ export const viewOf = (query: SetQuery, ids: ReadonlyArray<string>): ViewState =
 };
 
 /**
- * How a view's `event` enters history: a view, a pair's other or a moment
- * chosen is a step of its own (Back undoes it); a ←/→ step through the
- * moments replaces the entry.
+ * How a view's `event` enters history: a view or a moment chosen is a step
+ * of its own (Back undoes it); a pair's other cycled (a refinement, as
+ * `other`'s replace policy in `Places.set` says) and a ←/→ step through the
+ * moments replace the entry.
  */
 export const historyOf = (event: ViewEvent): 'push' | 'replace' =>
   Match.value(event).pipe(
-    Match.tag('MomentStepped', (): 'replace' => 'replace'),
+    Match.tags({
+      OtherChosen: (): 'replace' => 'replace',
+      MomentStepped: (): 'replace' => 'replace',
+    }),
     Match.orElse((): 'push' => 'push'),
   );
 

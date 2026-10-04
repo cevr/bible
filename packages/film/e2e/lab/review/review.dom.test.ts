@@ -300,6 +300,9 @@ describe('the review page', () => {
         const at = 'location.pathname + location.search';
         yield* page.click('.rv-views button[data-view="pair"]');
         yield* until(page, `${at} === '${SET}?view=pair&other=B'`);
+        // Cycling the pair refines the view in its own entry.
+        yield* page.click('button[data-other="C"]');
+        yield* until(page, `${at} === '${SET}?view=pair&other=C'`);
         yield* page.click('.rv-views button[data-view="moments"]');
         yield* waitFor(page, 'button[data-moment="0"][aria-pressed="true"]');
         yield* page.click('button[data-moment="3"]');
@@ -311,6 +314,7 @@ describe('the review page', () => {
         yield* until(page, `${at} === '${SET}?view=moments'`);
         yield* page.back;
         yield* waitFor(page, '.rv-views button[data-view="pair"][aria-pressed="true"]');
+        yield* until(page, `${at} === '${SET}?view=pair&other=C'`);
         yield* page.back;
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
         yield* until(page, `${at} === '${SET}'`);

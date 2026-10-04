@@ -311,8 +311,9 @@ const SetBody = (
   createEffect(sync, (state) => driver.apply(state));
 
   // The view is the URL's: a link, a reload, Back and Forward all show what
-  // it keeps. A choice of view, of the pair's other or of a moment is a new
-  // history entry (Back undoes it); a ←/→ step through the moments is not.
+  // it keeps. A choice of view or of a moment is a new history entry (Back
+  // undoes it); cycling the pair's other and a ←/→ step through the moments
+  // are not.
   const at = useAtomValue(() => setPlace);
   const view = createMemo(
     () =>
