@@ -291,7 +291,7 @@ const Compare = (props: { readonly folder: Option.Option<string>; readonly point
   <Show when={Option.getOrUndefined(props.folder)}>
     {(folder) => (
       <Go
-        class="rv-hint"
+        class="rv-chip"
         data-compare={props.point}
         place={ReviewPlace.Set({ folder: folder(), point: props.point })}
       >
