@@ -36,7 +36,7 @@ describe('speed', () => {
     'the rate chip slows the clock, says the narration is muted, a reload keeps it, K undoes it',
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openLab([], { href: labAt(1) });
+        const { page, errors } = yield* openLab([], { href: labAt(1), mode: 'motion' });
         yield* page.waitFor('.lab-motion [data-act="rate"] [data-rate="1"]');
         // The chip offers every rate but the one it plays at.
         yield* click(page, '.lab-motion [data-act="rate"]');
@@ -62,7 +62,7 @@ describe('loops', () => {
     'an in point then a later out point loops the range and plays it; Stop looping stops',
     () =>
       Effect.gen(function* () {
-        const { page } = yield* openLab([], { href: labAt(1) });
+        const { page } = yield* openLab([], { href: labAt(1), mode: 'motion' });
         yield* page.waitFor('.lab-motion [data-act="loop"]');
         yield* fromChip(page, 'loop', 'motion.in');
         yield* motionSays(page, 'in 00:00:01:00');
@@ -87,7 +87,7 @@ describe('loops', () => {
 
   it.live('an out point with no in point says to set one first', () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([], { href: labAt(2) });
+      const { page } = yield* openLab([], { href: labAt(2), mode: 'motion' });
       yield* page.waitFor('.lab-motion [data-act="loop"]');
       yield* page.press('o');
       yield* motionSays(page, 'out 00:00:02:00: set the in point before it');
@@ -98,7 +98,7 @@ describe('loops', () => {
     Effect.gen(function* () {
       // One browser: with no cue selected the chip does not offer it, then the
       // same tab opens with a cue selected.
-      const { page } = yield* openLab([], { href: labAt(1) });
+      const { page } = yield* openLab([], { href: labAt(1), mode: 'motion' });
       yield* click(page, '.lab-motion [data-act="loop"]');
       yield* page.waitFor('[data-role="chip-menu"] [data-command="motion.loop-scene"]');
       yield* countIs(page, '[data-role="chip-menu"] [data-command="motion.loop-cue"]', 0);
@@ -121,6 +121,7 @@ describe('loops', () => {
     Effect.gen(function* () {
       const { page } = yield* openLab([], {
         href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }),
+        mode: 'motion',
       });
       yield* page.waitFor('.lab-cue[data-cue="rise"]');
       yield* page.press('Shift+L');
@@ -142,7 +143,7 @@ describe('loops', () => {
 describe('the onion', () => {
   it.live('ghosts the frames around a paused one on its layer', () =>
     Effect.gen(function* () {
-      const { page } = yield* openLab([], { href: labAt(1.2) });
+      const { page } = yield* openLab([], { href: labAt(1.2), mode: 'motion' });
       yield* page.waitFor('.lab-motion [data-act="onion"]');
       yield* click(page, '.lab-motion [data-act="onion"]');
       yield* page.waitFor('canvas.lab-onion:not([hidden])');

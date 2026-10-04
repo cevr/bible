@@ -293,6 +293,37 @@ body.lab .stage {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+}
+/* The mode tray (PA-7): a segmented toolbar; the panel shows the pressed mode's section only. */
+.lab-modes {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: var(--r-2);
+  overflow: hidden;
+}
+.lab-panel .lab-modes .lab-mode {
+  border: 0;
+  border-radius: 0;
+  min-height: var(--control-h);
+  padding: 0 var(--s-3);
+  color: var(--text-2);
+  font-size: var(--fs-2);
+  font-weight: var(--w-2);
+}
+.lab-panel .lab-modes .lab-mode + .lab-mode {
+  border-left: 1px solid var(--line);
+}
+.lab-panel .lab-modes .lab-mode[data-pressed] {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+.lab-panel[data-mode='edit'] [data-mode-of]:not([data-mode-of='edit']),
+.lab-panel[data-mode='note'] [data-mode-of]:not([data-mode-of='note']),
+.lab-panel[data-mode='motion'] [data-mode-of]:not([data-mode-of='motion']),
+.lab-panel[data-mode='compare'] [data-mode-of]:not([data-mode-of='compare']),
+.lab-panel[data-mode='record'] [data-mode-of]:not([data-mode-of='record']) {
+  display: none;
 }
 .lab-reload-waiting {
   margin: 0;
@@ -660,6 +691,37 @@ body.lab .stage {
 }
 .lab-knob.selected .lab-edit-key {
   color: var(--accent);
+}
+/* An inspector group: a caps title with its count, then its rows; an empty one is not shown. */
+.lab-group {
+  display: grid;
+  gap: var(--s-1);
+}
+.lab-group[data-empty='true'] {
+  display: none;
+}
+.lab-group h3 {
+  margin: 0;
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+  color: var(--text-2);
+  font-size: var(--fs-2);
+  font-weight: var(--w-2);
+  text-transform: uppercase;
+  letter-spacing: var(--track-caps);
+}
+.lab-count {
+  padding: 0 var(--s-1);
+  border: 1px solid var(--state-findings);
+  border-radius: var(--r-1);
+  color: var(--state-findings);
+  font-size: var(--fs-1);
+}
+.lab-findings-elsewhere {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-2);
 }
 .lab-findings {
   margin: 0;

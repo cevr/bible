@@ -403,6 +403,7 @@ describe("a note's place", () => {
         });
         const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(1, [stale]))], {
           href: labAt(3),
+          mode: 'note',
         });
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         yield* textHas(page, '.lab-note-label', `two · ${timecode(shown)}`);
@@ -420,6 +421,7 @@ describe("a note's place", () => {
         const notes = [noteJson('n1'), noteJson('n2')];
         const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(1, notes))], {
           href: labAt(1),
+          mode: 'note',
         });
         for (const id of ['n1', 'n2']) {
           yield* click(page, `.lab-note-item[data-id="${id}"] .lab-note-text`);
@@ -500,7 +502,7 @@ describe('the thread', () => {
             route('POST', /^\/notes\/n1\/reply$/, () => json(noteJson('n1'))),
             route('POST', /^\/notes\/n1\/resolve$/, () => json(noteJson('n1'))),
           ],
-          { href: labAt(3) },
+          { href: labAt(3), mode: 'note' },
         );
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
@@ -542,7 +544,7 @@ describe('the feed', () => {
               });
             }),
           ],
-          { href: labAt(1) },
+          { href: labAt(1), mode: 'note' },
         );
         yield* waitFor(page, '.lab-note-item[data-id="n1"] .lab-reply.agent');
         yield* textIs(page, '.lab-reply.agent .lab-reply-text', 'moved rise to {lift}');
@@ -566,7 +568,7 @@ describe('the feed', () => {
               return notesFile(0, []);
             }),
           ],
-          { href: labAt(1) },
+          { href: labAt(1), mode: 'note' },
         );
         // The feed says nothing while it connects again, before the read goes
         // out, so the test waits for the read that succeeds, not the quiet.
@@ -598,6 +600,7 @@ describe('walking the notes', () => {
       Effect.gen(function* () {
         const { page } = yield* openLab([route('GET', /^\/notes$/, () => notesFile(3, three))], {
           href: labAt(0.2),
+          mode: 'note',
         });
         yield* waitFor(page, '.lab-note-item[data-id="n3"]');
         yield* page.press('Shift+N');

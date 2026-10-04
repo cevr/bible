@@ -25,7 +25,7 @@ const TITLES = {
 export const Section = () => {
   const { state, actions } = useCompare();
   return (
-    <Lab.Section class="lab-compare-tools">
+    <Lab.Section class="lab-compare-tools" mode="compare">
       <header>
         <strong>Compare</strong>
         <span class="lab-edit-key">with HEAD</span>

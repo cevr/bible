@@ -151,7 +151,11 @@ const Item = (props: { readonly note: Note }) => {
 /** The composer, the feed's status, and the notes, newest first (how to make one while there is none). */
 export const Section = () => {
   const { state, actions } = useNotes();
-  const { meta } = useLab();
+  const { meta, actions: lab } = useLab();
+  // A note begun (Note frame, its key, a pin) shows the Note mode, where it is written.
+  createEffect(state.composerOpen, (shown) => {
+    if (shown) lab.showMode('note');
+  });
   const changes = hubChanges(meta.hub);
   // Note this frame's key as bound now: a rebound key reads as rebound.
   const noteKey = () => {
@@ -175,7 +179,7 @@ export const Section = () => {
     },
   );
   return (
-    <div class="lab-notes-box">
+    <div class="lab-notes-box" data-mode-of="note">
       <form
         class="lab-compose"
         hidden={!open()}

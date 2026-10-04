@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { busy, refused, said } from '../../command/command.ts';
 import type { CheckLine, CheckReport, FindingAddress } from '../../core/schema.ts';
-import { findingTime, findingsOf, receiptOf } from './format.ts';
+import { findingTime, findingsIn, findingsOf, receiptOf } from './format.ts';
 import { CueWrite, StepWrite } from './grip.ts';
 import { EditState } from './machine.ts';
 
@@ -47,6 +47,30 @@ describe('findingTime (F/⇧F)', () => {
     expect(findingTime(at({ part: { _tag: 'Film' } }), placed)).toEqual(Option.none());
     expect(findingTime(at({ part: { _tag: 'Act', act: 'a' } }), placed)).toEqual(Option.none());
     expect(findingTime(late, placed)).toEqual(Option.none());
+  });
+});
+
+describe('findingsIn (the inspector lists the scene shown, UI-6)', () => {
+  const placed = [
+    { spec: { id: 'one' }, start: 0, dur: 4 },
+    { spec: { id: 'two' }, start: 4, dur: 3 },
+  ];
+  const at = (address: FindingAddress, tag: string): CheckLine => ({ ...late, tag, address });
+  const findings = [
+    at({ part: { _tag: 'Scenes', ids: ['two'] } }, 'named-two'),
+    at({ part: { _tag: 'Film' }, time: 2.5 }, 'timed-one'),
+    at({ part: { _tag: 'Film' }, time: 9 }, 'timed-past-the-end'),
+    at({ part: { _tag: 'Film' } }, 'the-film'),
+    { ...late, tag: 'no-place' },
+  ];
+  const tags = (scene: string) => {
+    const { here, elsewhere } = findingsIn(findings, placed, scene);
+    return [here.map((f) => f.tag), elsewhere];
+  };
+
+  test("a scene lists its own and those with no place; the others' are counted", () => {
+    expect(tags('one')).toEqual([['timed-one', 'the-film', 'no-place'], 2]);
+    expect(tags('two')).toEqual([['named-two', 'timed-past-the-end', 'the-film', 'no-place'], 1]);
   });
 });
 

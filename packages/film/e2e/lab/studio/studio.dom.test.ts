@@ -174,7 +174,7 @@ const wavFormat = (base64: string) =>
 
 /** The lab with the studio's routes, and the fake microphone (`browsers.ts`): allowed or refused, and hot to clip. */
 const withMic = (mic: { readonly allowed: boolean; readonly hot?: boolean }) =>
-  openLab(studioRoutes, { href: labAt(1), mic });
+  openLab(studioRoutes, { href: labAt(1), mic, mode: 'record' });
 
 /** Wait until the URL holds `t` film seconds. */
 const shownAt = (page: Tab, t: number) => evaluates(page, URL_T, t);
@@ -331,6 +331,7 @@ describe('the studio', () => {
           const { page } = yield* openLab(studioRoutes, {
             href: labAt(1),
             mic: { allowed: true },
+            mode: 'record',
           });
           yield* page.waitFor('[data-beat="thesis"]');
           yield* focusStudio(page);

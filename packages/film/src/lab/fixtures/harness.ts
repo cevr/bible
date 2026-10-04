@@ -23,6 +23,7 @@ import { bundled } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
 import type { LabSelection } from '../../command/selection.ts';
 import { labHref } from '../place.ts';
+import type { LabMode } from '../mode.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
 import { type Request, type Response, type Tab, jsonOf } from './tab.ts';
 
@@ -399,7 +400,8 @@ interface FakeMic {
  * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`, `core/api.ts`;
  * the probe film's lab when none), served on every lab place as the server
  * serves it, with `routes` answering the API before the defaults, and `mic`
- * as its microphone when given. The tab goes back to the pool with the scope.
+ * as its microphone when given, in `mode` when given. The tab goes back to
+ * the pool with the scope.
  */
 export const openLab = Effect.fn('lab.fixture.open')(function* (
   routes: ReadonlyArray<FakeRoute> = [],
@@ -408,6 +410,8 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     readonly mic?: FakeMic;
     /** The build the page is served at, as the lab's server stamps it; none: it waits on no rebuild. */
     readonly build?: PageBuild;
+    /** The mode to show, picked on the mode tray as the owner would; none: the first (Edit). */
+    readonly mode?: LabMode;
   } = {},
 ) {
   const script = labScript;
@@ -436,6 +440,10 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   });
   yield* page.goto(at.href ?? pageHref.lab(PROBE));
   yield* page.waitFor('.lab-panel');
+  for (const mode of Option.toArray(Option.fromUndefinedOr(at.mode))) {
+    yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
+    yield* page.waitFor(`.lab-panel[data-mode="${mode}"]`);
+  }
   const open: OpenLab = { page, asked, errors: page.errors };
   return open;
 });

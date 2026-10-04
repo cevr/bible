@@ -54,7 +54,7 @@ describe('the lab shell', () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openLab();
-        yield* textHas(page, '.lab-panel header', 'Lab');
+        yield* textHas(page, '.lab-panel header .lab-modes', 'Edit');
         yield* attributeIs(page, '.sh-pagebar [data-page="lab"]', 'data-active', 'true');
         yield* attributeIs(
           page,
@@ -152,6 +152,29 @@ describe('the lab shell', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live(
+    "shows one tool at a time, the mode tray's: a mode picked shows its section alone, a reload keeps it, and a note picked shows Note",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab();
+        // Which of the five sections show, in the tray's order.
+        const shown = `['.lab-edit', '.lab-notes-box', '.lab-motion', '.lab-compare-tools', '.lab-studio'].map((s) => document.querySelector(s)).map((e) => e !== null && getComputedStyle(e).display !== 'none')`;
+        yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
+        yield* evaluates(page, shown, [true, false, false, false, false]);
+        yield* page.click('.lab-modes [data-mode-pick="motion"]');
+        yield* evaluates(page, shown, [false, false, true, false, false]);
+        yield* attributeIs(page, '.lab-modes [data-mode-pick="motion"]', 'aria-pressed', 'true');
+        yield* page.reload;
+        yield* page.waitFor('.lab-panel');
+        yield* attributeIs(page, '.lab-panel', 'data-mode', 'motion');
+        // Note this frame, from any mode, shows Note with its composer open.
+        yield* page.press('n');
+        yield* attributeIs(page, '.lab-panel', 'data-mode', 'note');
+        yield* evaluates(page, shown, [false, true, false, false, false]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('pins its layers over the film canvas, and keeps them there as the window resizes', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab();
@@ -177,7 +200,8 @@ describe('the lab shell', () => {
           `(() => { const c = document.querySelector('.stage canvas').getBoundingClientRect(); const acts = [...document.querySelectorAll('[data-act]')].filter((e) => e.getClientRects().length > 0); return [c.width > 300, document.documentElement.scrollWidth <= innerWidth, acts.every((e) => { const r = e.getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth; })]; })()`,
           [true, true, true],
         );
-        // Scrolled down the page, the overlay's box as drawn is still the canvas's.
+        // Scrolled down the page (a short phone, so the page runs past it), the overlay's box as drawn is still the canvas's.
+        yield* resize(page, { width: 390, height: 480 });
         const drawn = (sel: string) =>
           `(() => { const r = document.querySelector('${sel}').getBoundingClientRect(); return [r.left, r.top, r.width, r.height].map(Math.round); })()`;
         yield* page.evaluate('window.scrollTo(0, 240); true');

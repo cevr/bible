@@ -18,7 +18,9 @@ import { type LabSelection, cueOf } from '../../command/selection.ts';
 import { Field, Hint } from '../command/inspector.tsx';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
-import { EASE_BOX, anchorText, easePoints, easeY } from './format.ts';
+import { EASE_BOX, anchorText, easePoints, easeY, findingsIn } from './format.ts';
+import { chordLabel } from '../../command/keymap.ts';
+import { hubChanges } from '../command/changes.ts';
 import { CueWrite, cueSaid } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
@@ -176,20 +178,50 @@ const History = () => {
   );
 };
 
-/** The film's check: the findings of the last write, else of the check as the page loaded. */
+/**
+ * The inspector's Findings group (UI-6): the film's check (the last write's,
+ * else the page's) as it bears on the scene shown, its own and the film's
+ * placeless ones; the other scenes' are a count, and F walks to them.
+ */
 const Findings = () => {
+  const { state: lab, meta } = useLab();
   const { state } = useEditor();
+  const changes = hubChanges(meta.hub);
+  const shown = createMemo(() => findingsIn(state.findings(), meta.film.placed, lab.scene()));
+  // F as bound now: a rebound key reads as rebound.
+  const walkKey = () => {
+    changes();
+    return meta.hub
+      .keysOf('check.finding-next')
+      .slice(0, 1)
+      .map((k) => chordLabel(k, meta.hub.mac))
+      .join('');
+  };
   return (
-    <ul class="lab-findings">
-      <For each={state.findings()}>
-        {(f) => (
-          <li class={['lab-finding', f.level]}>
-            <b>{f.tag}</b>
-            {` ${f.message}`}
-          </li>
-        )}
-      </For>
-    </ul>
+    <section
+      class="lab-group lab-findings-group"
+      data-empty={shown().here.length + shown().elsewhere === 0}
+    >
+      <h3>
+        {`Findings in ${lab.scene()}`}
+        <span class="lab-count">{shown().here.length}</span>
+      </h3>
+      <ul class="lab-findings">
+        <For each={shown().here}>
+          {(f) => (
+            <li class={['lab-finding', f.level]}>
+              <b>{f.tag}</b>
+              {` ${f.message}`}
+            </li>
+          )}
+        </For>
+      </ul>
+      <Show when={shown().elsewhere > 0}>
+        <p class="lab-findings-elsewhere">
+          {`${shown().elsewhere} in other scenes · ${walkKey()} walks to them`}
+        </p>
+      </Show>
+    </section>
   );
 };
 
@@ -216,7 +248,7 @@ export const Section = (props: ParentProps) => {
     Option.match(state.inspectedSource().source, { onNone: () => '', onSome: (s) => s.file });
   const cueSelected = () => Option.filter(lab.selection(), (s) => s._tag === 'Cue');
   return (
-    <section class="lab-edit">
+    <section class="lab-edit" data-mode-of="edit">
       <header>
         <strong>Edit</strong>
         <span class="lab-edit-file">{file()}</span>
