@@ -237,9 +237,10 @@ interface VoiceKept {
  * a fresh process (`film options keep-voice`: the script as it stands, the
  * word error checked again, a mismatch kept only when `acceptMismatch`
  * says so, and the track remixed), recorded around the timings' rewrite by
- * the SourceWriter with the takes the timings name (`Takes.named`). So every
- * keep runs under the writer's lock, one at a time with every other write,
- * and Undo and Redo walk it back, the replaced take with it.
+ * the SourceWriter with the takes the timings name (`Takes.named`) and the
+ * track mixed from them (`film mix`). So every keep runs under the writer's
+ * lock, one at a time with every other write, and Undo and Redo walk it
+ * back, the replaced take with it and the track remixed to play it.
  */
 export const keepVoice = Effect.fn('keepVoice')(function* (
   film: FilmName,
@@ -248,14 +249,15 @@ export const keepVoice = Effect.fn('keepVoice')(function* (
   options: { readonly acceptMismatch: boolean },
 ) {
   const paths = (yield* FilmFolder).paths(film);
+  const fresh = yield* FreshFilm;
   const timings = paths.timings.file;
   const target = `voice ${beat} keep ${file}`;
   const [kept, change] = yield* (yield* SourceWriter).around(
     film,
     timings,
     target,
-    (yield* FreshFilm).keepVoice(film, beat, file, options),
-    (yield* Takes).named(paths),
+    fresh.keepVoice(film, beat, file, options),
+    { ...(yield* Takes).named(paths), remake: Option.some(fresh.remix(film)) },
   );
   if (!kept.mixed) yield* Effect.logWarning(`choices.voice.unmixed film=${film} beat=${beat}`);
   const voiced: VoiceKept = { picked: { file: timings, target, change }, kept };

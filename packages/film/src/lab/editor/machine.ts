@@ -9,13 +9,16 @@
 //                   ─Commit | Step→ Writing ─Wrote→ Written | ─Failed | TimedOut→ Refused
 //
 // A write holds `#T` at the frame it is asked at (the file change reloads the
-// page there); a refused one, or one with no answer in WRITE_TIMEOUT_S, lets
-// it go and puts the preview back. Nothing here touches the DOM: the stage
-// and the API are services, faked in tests.
+// page there; a file the page reads at load, as an Undo of a kept take
+// changes, rebuilds nothing, so the machine reloads the page itself); a
+// refused one, or one with no answer in WRITE_TIMEOUT_S, lets it go and puts
+// the preview back. Nothing here touches the DOM: the stage and the API are
+// services, faked in tests.
 
 import { Duration, Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { CheckLine, LabWrite } from '../../core/schema.ts';
+import { readAtLoad } from '../../player/narrated.ts';
 import { LabApi, StepVerb } from '../api.ts';
 import { Stage } from '../stage.ts';
 import { Edit, Grip, Pointer, StepWrite, Write, drag, wroteNote } from './grip.ts';
@@ -160,12 +163,15 @@ export const editMachine = Machine.make({
     onSuccess: (result) => EditEvent.Wrote({ result }),
     onFailure: (e) => EditEvent.Failed({ message: e.message }),
   })
-  .on(EditState.Writing, EditEvent.Wrote, ({ state, event }) =>
-    EditState.Written({
+  .on(EditState.Writing, EditEvent.Wrote, ({ state, event }) => {
+    const written = EditState.Written({
       note: wroteNote(state.write, event.result),
       findings: event.result.findings,
-    }),
-  )
+    });
+    // No rebuild follows a file the page reads at load (an Undo of a kept take): reload it here.
+    if (!readAtLoad(event.result.file)) return written;
+    return Stage.use((stage) => Effect.as(stage.reload, written));
+  })
   .on(EditState.Writing, EditEvent.Failed, ({ state, event }) => refuse(state.write, event.message))
   .timeout(EditState.Writing, {
     duration: Duration.seconds(WRITE_TIMEOUT_S),

@@ -32,6 +32,14 @@ export const narrationUrls = (id: string) => ({
   audio: `/films/${id}/narration/full.wav`,
 });
 
+/**
+ * Whether a film's `file` (named from its folder, `narration/timings.json`)
+ * is one its page reads once, at load, beside its code: a change to it
+ * reaches the page only when the page loads again.
+ */
+export const readAtLoad = (file: string): boolean =>
+  Object.values(narrationUrls('')).includes(`/films//${file}`);
+
 /** Film `id`'s narration: its timings (none yet on a 404) and its master's URL. */
 export const loadNarrated = (
   id: string,

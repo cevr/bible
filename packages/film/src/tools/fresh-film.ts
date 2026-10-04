@@ -6,8 +6,8 @@
 // app's sound library, read in their own process, stay as they were at
 // start. Each call here runs the film CLI again (`film options …`,
 // `choices-cli.ts`; `film read …`, `read-cli.ts`; `film project … --json`,
-// `project-cli.ts`; `film check … --json`), which imports the
-// film as it stands on disk.
+// `project-cli.ts`; `film check … --json`; `film mix`, which an Undo of a
+// kept take asks), which imports the film as it stands on disk.
 //
 // Two answers come back. A command answers with one line of JSON
 // (`FreshLine`): its answer, or the refusal it failed with, raised here again
@@ -311,6 +311,8 @@ export interface FreshFilmService {
   ) => Effect.Effect<CueRead, FreshError>;
   /** Where each scene's drawing is declared, as the film's files and modules now stand (`film read sites`). */
   readonly sites: (film: FilmName) => Effect.Effect<SitesRead, FreshError>;
+  /** `film mix <film>`: the track rebuilt from the takes and the sources as they stand. */
+  readonly remix: (film: FilmName) => Effect.Effect<void, FreshProcessFailed>;
   /** `film project <args>` (its `--json` among them): the project as the run leaves it. */
   readonly project: (args: ReadonlyArray<string>) => Effect.Effect<Project, FreshError>;
   /**
@@ -464,6 +466,16 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           return yield* ask(['read', 'sites', film], READ_LIMIT, SitesRead);
         });
 
+        const remix = Effect.fn('FreshFilm.remix')(function* (film: FilmName) {
+          const done = yield* run('film mix', ['mix', film], MIX_LIMIT);
+          if (done.exitCode !== 0)
+            return yield* FreshProcessFailed.make({
+              command: 'film mix',
+              reason: `exit ${done.exitCode}: ${tailOf(done)}`,
+            });
+          yield* Effect.log(`fresh.remix film=${film}`);
+        });
+
         const project = Effect.fn('FreshFilm.project')(function* (args: ReadonlyArray<string>) {
           return (yield* ask(['project', ...args], READ_LIMIT, ProjectRead)).project;
         });
@@ -504,6 +516,7 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           reading,
           cue,
           sites,
+          remix,
           project,
           check,
         });

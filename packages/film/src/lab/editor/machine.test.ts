@@ -61,7 +61,7 @@ const fakes = (write: Effect.Effect<LabWrite, LabFailure> = Effect.succeed(lande
     knobsOf: () => ({}),
     cuesOf: () => new Map(),
     holdT: Effect.sync(() => log.push('holdT')),
-    reload: Effect.die('not asked'),
+    reload: Effect.sync(() => log.push('reload')),
     settle: Effect.sync(() => log.push('settle')),
     pause: Effect.sync(() => log.push('pause')),
     duration: 10,
@@ -285,6 +285,34 @@ describe('writes', () => {
       );
     }).pipe(Effect.provide(fakes().layer)),
   );
+
+  it.effect('a scene write waits for the rebuild to reload the page', () => {
+    const { log, layer } = fakes();
+    return Effect.gen(function* () {
+      yield* simulate(editMachine, [
+        EditEvent.Commit({ write: cueWrite, edit: {} }),
+        EditEvent.Wrote({ result: landed }),
+      ]);
+      expect(log).not.toContain('reload');
+    }).pipe(Effect.provide(layer));
+  });
+
+  it.effect('an Undo of a file the page reads once at load (a kept take) reloads it', () => {
+    const { log, layer } = fakes();
+    const timings: LabWrite = {
+      file: 'narration/timings.json',
+      target: 'undo voice a keep a.0123456789ab.flac',
+      findings: [],
+    };
+    return Effect.gen(function* () {
+      const result = yield* simulate(editMachine, [
+        EditEvent.Step({ verb: 'undo' }),
+        EditEvent.Wrote({ result: timings }),
+      ]);
+      expect(result.finalState._tag).toBe('Written');
+      expect(log).toEqual(['holdT', 'reload']);
+    }).pipe(Effect.provide(layer));
+  });
 
   it.effect('a refused write lets #T go, puts the preview back, and shows the server text', () => {
     const { log, layer } = fakes();

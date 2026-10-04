@@ -212,7 +212,7 @@ K submits; what was heard and the word error show, or the server's refusal,
 and a `TakeMismatch` offers Accept anyway (K). ←/→ step through the beats and
 Esc cancels; those keys are the Studio's only while it has focus. Each beat's
 attempts play again and Keep makes one the take; a keep, like every lab write,
-is undone by Undo (⌘Z) and redone by Redo, the take it replaced playing again. A kept take reloads the lab
+is undone by Undo (⌘Z) and redone by Redo: the track remixes and the lab reloads, the take it replaced playing again. A kept take reloads the lab
 at the same time, on the same beat, playing the new take (`/films/*` is served
 uncached for that). Use Chrome or Firefox on a computer (every iPhone and
 iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to `https://` or

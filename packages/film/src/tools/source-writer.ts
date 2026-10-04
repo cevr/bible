@@ -23,11 +23,12 @@
 // stack (UNDO_DEPTH): Undo puts back the newest change still on it, byte for
 // byte, and Redo makes the newest undone one again; each only while the file
 // is exactly as the step it reverses left it. A new change drops what could
-// be redone. A change whose text names files (the timings name each beat's
-// take, which lives beside them in `narration/`) carries them (`NamedFiles`):
-// Undo and Redo bring back what the text they land names before it lands,
-// and refuse when one cannot be, then put away what only the text they
-// replaced named; nothing is deleted.
+// be redone. A change whose text other files follow (the timings name each
+// beat's take, which lives beside them in `narration/`, and the track is
+// mixed from them) carries them (`Follows`): Undo and Redo bring back what
+// the text they land names before it lands, and refuse when one cannot be,
+// then put away what only the text they replaced named (nothing is deleted)
+// and make again what is made from it (the track remixed).
 
 import {
   Array as Arr,
@@ -47,6 +48,7 @@ import {
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { ContentStore, type StoreError } from './content-store.ts';
 import {
+  type FreshProcessFailed,
   RedoUnavailable,
   SourceChanged,
   type SourceRefused,
@@ -58,16 +60,20 @@ import { FilmFolder } from './film-repo.ts';
 import { collectWithin } from './process.ts';
 
 /**
- * The files a recorded file's text names (a take the timings name), kept in
- * step with it: before Undo or Redo lands a text, what it names is brought
- * back beside it; once it has landed, what only the text it replaced named is
- * put away. Nothing is deleted on either side.
+ * What follows a recorded file's text, kept in step with it by Undo and Redo:
+ * the files it names (a take the timings name) and what is made from it (the
+ * track mixed from the takes). Before Undo or Redo lands a text, what it names
+ * is brought back beside it; once it has landed, what only the text it
+ * replaced named is put away, and what is made from it is made again.
+ * Nothing is deleted on either side.
  */
-export interface NamedFiles {
+export interface Follows {
   /** Every file `to` names and `from` does not, in place before `to` lands; why not, when one cannot be. */
   readonly bring: (from: string, to: string) => Effect.Effect<void, NamedFileMissing>;
   /** Every file `from` names and `to` does not, put away once `to` has landed. */
   readonly putAway: (from: string, to: string) => Effect.Effect<void, StoreError | PlatformError>;
+  /** What is made from the text, made again once a text has landed; none when nothing is. */
+  readonly remake: Option.Option<Effect.Effect<void, FreshProcessFailed>>;
 }
 
 /** One change to a film's source: its file's text before and after it. */
@@ -80,8 +86,8 @@ export interface Change {
   readonly target: string;
   readonly before: string;
   readonly after: string;
-  /** The files the text names, which Undo and Redo keep in step with it; none for a text that names no file. */
-  readonly named: Option.Option<NamedFiles>;
+  /** What follows the text, which Undo and Redo keep in step with it; none for a text nothing follows. */
+  readonly follows: Option.Option<Follows>;
 }
 
 /** A rewrite of one file, as a writer asks for it. */
@@ -131,16 +137,16 @@ interface SourceWriterService {
   ) => Effect.Effect<readonly [Change, A], E | RewriteError>;
   /**
    * `act`, which rewrites `file` its own way, recorded as one change of
-   * `film`'s: the file's text before it and after it, and the files that
-   * text names (`named`: the act keeps them in step itself; Undo and Redo do
-   * it after). Nothing is recorded when the file is as it was.
+   * `film`'s: the file's text before it and after it, and what follows that
+   * text (`follows`: the act keeps it in step itself; Undo and Redo do it
+   * after). Nothing is recorded when the file is as it was.
    */
   readonly around: <A, E, R>(
     film: string,
     file: string,
     target: string,
     act: Effect.Effect<A, E, R>,
-    named?: NamedFiles,
+    follows?: Follows,
   ) => Effect.Effect<readonly [A, Option.Option<Change>], E | StoreError | FormatFailed, R>;
   /** Put `film`'s newest change back: its file as it was before it. */
   readonly undo: (film: string) => Effect.Effect<Change, UndoUnavailable | StoreError>;
@@ -286,7 +292,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               target,
               before,
               after,
-              named: Option.none(),
+              follows: Option.none(),
             };
             // Already so (a pick of the option playing): nothing to write, nothing to undo.
             if (after === before) {
@@ -327,7 +333,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
         file: string,
         target: string,
         act: Effect.Effect<A, E, R>,
-        named?: NamedFiles,
+        follows?: Follows,
       ) =>
         writer.withPermits(1)(
           Effect.uninterruptible(
@@ -346,7 +352,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                 target,
                 before,
                 after,
-                named: Option.fromUndefinedOr(named),
+                follows: Option.fromUndefinedOr(follows),
               };
               yield* record(change, 'lab.write');
               return [done, Option.some(change)] as const;
@@ -356,10 +362,10 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
 
       /** What only `from` named put away once `to` landed; a failure leaves a file the text no longer names, and is logged. */
       const putAway = (c: Change, from: string, to: string) =>
-        Option.match(c.named, {
+        Option.match(c.follows, {
           onNone: () => Effect.void,
-          onSome: (named) =>
-            named
+          onSome: (follows) =>
+            follows
               .putAway(from, to)
               .pipe(
                 Effect.catch((error) =>
@@ -370,12 +376,30 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               ),
         });
 
+      /** What is made from `c`'s text made again once a text landed; a failure leaves it as it was made before, and is logged. */
+      const remake = (c: Change) =>
+        Option.match(
+          Option.flatMap(c.follows, (follows) => follows.remake),
+          {
+            onNone: () => Effect.void,
+            onSome: (made) =>
+              made.pipe(
+                Effect.catch((error) =>
+                  Effect.logWarning(
+                    `lab.remake.failed film=${c.film} target="${c.target}" reason=${error.message}`,
+                  ),
+                ),
+              ),
+          },
+        );
+
       /**
        * `c`'s file from `from` to `to` (an undo or a redo), only while it is
-       * `from` (else refused with `changed`), and the files its text names in
+       * `from` (else refused with `changed`), and what follows its text in
        * step: what `to` names is brought in first, and when one cannot be,
-       * nothing lands; what only `from` named is put away after. A swap that
-       * fails puts away again what it brought.
+       * nothing lands; what only `from` named is put away after, and what is
+       * made from the text made again. A swap that fails puts away again what
+       * it brought.
        */
       const land = <E>(
         c: Change,
@@ -385,10 +409,10 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
         refused: (reason: string) => E,
       ) =>
         Effect.gen(function* () {
-          yield* Option.match(c.named, {
+          yield* Option.match(c.follows, {
             onNone: () => Effect.void,
-            onSome: (named) =>
-              Effect.mapError(named.bring(from, to), (missing) =>
+            onSome: (follows) =>
+              Effect.mapError(follows.bring(from, to), (missing) =>
                 refused(`${shown(c)} names ${missing.message}`),
               ),
           });
@@ -398,6 +422,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
             ),
           );
           yield* putAway(c, from, to);
+          yield* remake(c);
         });
 
       const undo = (film: string) =>

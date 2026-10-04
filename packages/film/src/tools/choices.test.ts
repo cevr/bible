@@ -92,7 +92,11 @@ const setup = () => {
   // The fresh process, run here over the same files: `film options list` and `keep-voice`.
   const fresh = Layer.unwrap(
     Effect.map(Effect.context<FilmRepo | Takes>(), (context) =>
-      freshFilm({ choices: voicesHere(context), keepVoice: keepVoiceHere(context) }),
+      freshFilm({
+        choices: voicesHere(context),
+        keepVoice: keepVoiceHere(context),
+        remix: () => Effect.void,
+      }),
     ),
   );
   const layer = Choices.layer.pipe(

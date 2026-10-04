@@ -313,6 +313,7 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
       reading: unused('read voice'),
       cue: unused('read cue'),
       sites: unused('read sites'),
+      remix: unused('mix'),
       project: unused('project'),
       check: unused('check'),
       ...given,
@@ -517,6 +518,7 @@ export const noStudio = Layer.mergeAll(
       named: () => ({
         bring: () => Effect.die('the studio is not called here'),
         putAway: () => Effect.die('the studio is not called here'),
+        remake: Option.none(),
       }),
     }),
   ),
@@ -1511,7 +1513,7 @@ const reviewPickIn = (films: string): Change => ({
   target: 'score play bright',
   before: "play: 'warm'",
   after: "play: 'bright'",
-  named: Option.none(),
+  follows: Option.none(),
 });
 
 const reviewUnused = Effect.die('not used by the review routes');

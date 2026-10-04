@@ -44,7 +44,7 @@ import { type Timings, TimingsJson, VoiceTiming } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { ElevenLabs, heardWords } from './elevenlabs.ts';
 import { NamedFileMissing } from './errors.ts';
-import type { NamedFiles } from './source-writer.ts';
+import type { Follows } from './source-writer.ts';
 import {
   type ElevenLabsFailed,
   type MediaFailed,
@@ -210,9 +210,10 @@ interface TakesService {
   /**
    * The takes the film's timings name, kept in step with a text of them by
    * the SourceWriter's Undo and Redo: brought back into `narration/` from
-   * `narration/attempts/<beat>/`, and put away there.
+   * `narration/attempts/<beat>/`, and put away there. They make nothing (`remake`
+   * none): a keep that mixes the track says so itself (`keepVoice`).
    */
-  readonly named: (film: FilmPaths) => NamedFiles;
+  readonly named: (film: FilmPaths) => Follows;
 }
 
 /** Each take the timings name, by its beat. */
@@ -360,7 +361,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
           ),
         );
 
-      const named = (film: FilmPaths): NamedFiles => ({
+      const named = (film: FilmPaths): Follows => ({
         bring: (from, to) =>
           Effect.forEach(
             onlyIn(takesIn(to), takesIn(from)),
@@ -373,6 +374,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
             ([beat, file]) => putAwayTake(film, beat, file).pipe(Effect.provideContext(io)),
             { discard: true },
           ),
+        remake: Option.none(),
       });
 
       /** Make an attempt the beat's take: beside the others, named by the timings. */

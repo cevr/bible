@@ -126,6 +126,11 @@ const setup = (
             }).pipe(Effect.provideContext(context), Effect.orDie),
           choices: voicesHere(context),
           keepVoice: (name, beat, file, options) => keeping(beat, keep(name, beat, file, options)),
+          remix: () =>
+            Effect.andThen(
+              Effect.sync(() => void mixes.push(film.paths.name)),
+              remixing,
+            ),
           check: () => Effect.succeed([]),
         });
       },
@@ -535,9 +540,9 @@ describe('studio routes', () => {
   });
 
   it.effect(
-    "Keep of an earlier attempt is undone by the lab's Undo, and redone by Redo, each take's file in narration",
+    "Keep of an earlier attempt is undone by the lab's Undo, and redone by Redo, each take's file in narration and the track remixed with it",
     () => {
-      const { files, layer } = setup(said);
+      const { files, mixes, layer } = setup(said);
       return Effect.gen(function* () {
         const first = yield* posted('a', 'Hello world.');
         const second = yield* posted('a', 'Hello world, again.');
@@ -547,6 +552,7 @@ describe('studio routes', () => {
         );
         expect(kept.status).toBe(200);
         expect(yield* takeOf('a')).toBe(first);
+        mixes.length = 0;
         const undone = yield* call(post(labUrls.steps.undo({ params: { film: 'test' } }), '{}'));
         expect([undone.status, (undone.body as { target: string }).target]).toEqual([
           200,
@@ -555,10 +561,13 @@ describe('studio routes', () => {
         expect(yield* takeOf('a')).toBe(second);
         expect(files.get(film.paths.timings.file)).toEqual(before);
         expect(narrationOf(files, 'a')).toEqual([second]);
+        // The track plays what the timings name: remixed once the Undo landed.
+        expect(mixes).toEqual(['test']);
         const redone = yield* call(post(labUrls.steps.redo({ params: { film: 'test' } }), '{}'));
         expect(redone.status).toBe(200);
         expect(yield* takeOf('a')).toBe(first);
         expect(narrationOf(files, 'a')).toEqual([first]);
+        expect(mixes).toEqual(['test', 'test']);
       }).pipe(Effect.scoped, Effect.provide(layer));
     },
   );

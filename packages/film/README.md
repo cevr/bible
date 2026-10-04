@@ -715,8 +715,12 @@ that attempt or an earlier one, is `keepVoice` (`choices.ts`), the one keep
 the Choices view's voice pick makes too: `film options keep-voice <film>
 <beat> <file> [--accept-mismatch]` in a fresh process (it keeps the take and
 remixes), recorded by `SourceWriter.around` with the take files the timings
-name, so it holds the writer's lock and the lab's Undo and Redo walk it back
-and forth. A take is kept against that reading
+name and the track mixed from them (`Follows`), so it holds the writer's
+lock and the lab's Undo and Redo walk it back and forth: each brings back
+the take it lands from `attempts/`, remixes (`film mix <film>`, fresh; a
+failed mix is logged `lab.remake.failed` and the step stands), and the lab
+page reloads at its frame to play it (`readAtLoad`: the timings and the
+track are read at load, so no rebuild would). A take is kept against that reading
 (`VoicedFilm`, `narrator.ts`: the film's paths, voice, `heardAs` and beats,
 which `takes import` makes with `voicedOf`), so a line fixed while the lab
 is open is on the sheet, and a take of it current, at the next read. Its
