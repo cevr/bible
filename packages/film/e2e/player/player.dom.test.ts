@@ -9,6 +9,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
 import { openPlayer } from '../../src/lab/fixtures/harness.ts';
+import { touch } from '../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
 import { attributeIs, evaluates, textHas } from '../../src/lab/fixtures/settled.ts';
 
@@ -64,6 +65,25 @@ describe('the player', () => {
       // The header's timecode follows the playhead.
       yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(TWO));
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a tick held by a finger says its name, which stays a moment once it lifts (UR-115)',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: PHONE },
+          '.bar .time',
+        );
+        const tick = '.bar .track .tick.cue';
+        const name = String(yield* page.evaluate(`document.querySelector('${tick}').dataset.name`));
+        yield* touch(page, tick, 0);
+        yield* evaluates(page, "document.querySelector('.bar .tip').hidden", false);
+        yield* textHas(page, '.bar .tip', name);
+        yield* page.finger.up;
+        yield* evaluates(page, "document.querySelector('.bar .tip').hidden", false);
+        yield* evaluates(page, "document.querySelector('.bar .tip').hidden", true);
+      }).pipe(Effect.scoped),
   );
 
   it.live(

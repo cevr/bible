@@ -152,6 +152,17 @@ describe('the lab shell', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live("the transport's frame pair steps a frame at a time by touch", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      yield* page.click('.bar [data-act="play.frame-next"]');
+      yield* evaluates(page, `Math.round(${T} * 30)`, 31);
+      yield* page.click('.bar [data-act="play.frame-previous"]');
+      yield* page.click('.bar [data-act="play.frame-previous"]');
+      yield* evaluates(page, `Math.round(${T} * 30)`, 29);
+    }).pipe(Effect.scoped),
+  );
+
   it.live(
     "shows one tool at a time, the mode tray's: a mode picked shows its section alone, a reload keeps it, and a note picked shows Note",
     () =>

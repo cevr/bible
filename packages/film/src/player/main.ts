@@ -19,6 +19,8 @@ import { addressOn, hostOf, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { Frames } from '../browser/frames.ts';
+import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
+import { BY_BUTTON } from '../command/command.ts';
 import type { Hub } from '../command/hub.ts';
 import { chordLabel } from '../command/keymap.ts';
 import { Pointer } from '../browser/pointer.ts';
@@ -34,6 +36,9 @@ import { legendCommand, transportCommands } from './transport.ts';
 
 /** The longest `#t=` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
+
+/** How long a tick's name stays after the finger that held it lifts, in ms. */
+const TIP_READ_MS = 1500;
 
 /**
  * Every face the page declares (its stylesheets' `@font-face` rules, each
@@ -291,7 +296,7 @@ export const mountPreview = (
     </div>
     <div class="track"><div class="head"></div></div>
     <div class="tip" hidden></div>
-    <div class="keys" hidden><span class="bound"></span> · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover for the name)</div>`;
+    <div class="keys" hidden><span class="bound"></span> · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover or long-press for the name)</div>`;
   document.body.append(bar);
   const q = <T extends Element>(sel: string) => required<T>(bar, sel);
   const track = q<HTMLDivElement>('.track');
@@ -324,19 +329,44 @@ export const mountPreview = (
     if (tick.kind === 'cue') el.style.width = pct(tick.dur);
     track.insertBefore(el, head);
   }
-  track.addEventListener('pointerover', (e) => {
-    const name = e.target instanceof HTMLElement ? e.target.dataset['name'] : undefined;
+  // A tick's name: shown while a mouse is over it, or once a finger has held
+  // it (UR-115) as long as a long press takes, without moving off into a
+  // scrub (the press stays free until a drag claims it, `@bible/ui/press`).
+  const showTip = (target: EventTarget | null) => {
+    const name = target instanceof HTMLElement ? target.dataset['name'] : undefined;
     if (name === undefined) return;
-    const t = e.target instanceof HTMLElement ? e.target.getBoundingClientRect() : undefined;
+    const t = target instanceof HTMLElement ? target.getBoundingClientRect() : undefined;
     const b = bar.getBoundingClientRect();
     tip.textContent = name;
     tip.hidden = false;
     tip.style.left = `${(t?.left ?? 0) + (t?.width ?? 0) / 2 - b.left}px`;
     tip.style.top = `${track.offsetTop - 26}px`;
+  };
+  track.addEventListener('pointerover', (e) => {
+    if (e.pointerType === 'mouse') showTip(e.target);
   });
-  track.addEventListener('pointerout', () => {
-    tip.hidden = true;
+  track.addEventListener('pointerout', (e) => {
+    if (e.pointerType === 'mouse') tip.hidden = true;
   });
+  // A finger held on a tick (not a mouse, which hovers) names it as the
+  // long press would open a menu: the press is claimed for the name, so it
+  // scrubs no further; lifted, the name stays a moment to be read.
+  const TICK_NAME = Symbol('tick-name');
+  const tipTimers = timersOn(host);
+  const holdTick = (e: PointerEvent): (() => void) => {
+    const held = e.target;
+    const named = held instanceof HTMLElement && held.dataset['name'] !== undefined;
+    if (e.pointerType === 'mouse' || !named) return () => undefined;
+    let shown = false;
+    const timer = tipTimers.set(() => {
+      shown = claimPress(e.pointerId, TICK_NAME, document);
+      if (shown) showTip(held);
+    }, LONG_PRESS_DELAY);
+    return () => {
+      tipTimers.clear(timer);
+      if (shown) tipTimers.set(() => (tip.hidden = true), TIP_READ_MS);
+    };
+  };
 
   // The narration says what it can play once it knows (a missing master, a
   // play refused until a click), and the time line says it.
@@ -462,8 +492,17 @@ export const mountPreview = (
     const r = track.getBoundingClientRect();
     const move = (ev: PointerEvent) => scrub(((ev.clientX - r.left) / r.width) * film.duration);
     move(e);
+    const letGo = holdTick(e);
     Effect.runForkWith(host)(
-      Pointer.use((pointer) => pointer.drag(e, { move, end: () => url.settled() })),
+      Pointer.use((pointer) =>
+        pointer.drag(e, {
+          move,
+          end: () => {
+            letGo();
+            url.settled();
+          },
+        }),
+      ),
     );
   });
   playBtn.addEventListener('click', toggle);
@@ -520,6 +559,23 @@ export const mountPreview = (
     keysLine.hidden = !keysLine.hidden;
     legendButton.setAttribute('aria-expanded', String(!keysLine.hidden));
   };
+  // The lab's transport steps a frame at a time by touch too (AA-8): the
+  // frame keys' own commands, as a pair beside play.
+  if (page === 'lab') {
+    const step = (id: string, glyph: string, label: string) => {
+      const button = document.createElement('button');
+      button.dataset['act'] = id;
+      button.textContent = glyph;
+      button.setAttribute('aria-label', label);
+      button.title = `${label} (${keyOf(id)})`;
+      button.addEventListener('click', () => hub.invokeId(id, BY_BUTTON));
+      return button;
+    };
+    playBtn.after(
+      step('play.frame-previous', '◀', 'Previous frame'),
+      step('play.frame-next', '▶', 'Next frame'),
+    );
+  }
   if (page === 'player') {
     legendButton.setAttribute('aria-expanded', 'false');
     legendButton.addEventListener('click', toggleLegend);
