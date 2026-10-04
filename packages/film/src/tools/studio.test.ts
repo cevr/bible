@@ -17,6 +17,7 @@ import { TakeMismatch } from '../core/refusals.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { Choices } from './choices.ts';
 import { FilmFolder, FilmName, FilmRepo } from './film-repo.ts';
+import { OptionsKept } from './fresh-film.ts';
 import { pointIdOf } from '../core/point.ts';
 import { labHandler } from './lab.ts';
 import { readingOf } from './read-cli.ts';
@@ -72,6 +73,8 @@ const setup = (
   /** What stands around each fresh keep of `beat`: a test that times the keeps marks them. */
   keeping: <A, E>(beat: string, keep: Effect.Effect<A, E>) => Effect.Effect<A, E> = (_, keep) =>
     keep,
+  /** What `keep-voice` answers of what it kept: a test of an older film CLI says less. */
+  answering: (kept: OptionsKept) => OptionsKept = (kept) => kept,
 ) => {
   const files = new Map<string, Uint8Array>([
     [film.paths.timings.file, text(Schema.encodeSync(TimingsJson)(staged))],
@@ -125,7 +128,8 @@ const setup = (
               return yield* readingOf(loaded);
             }).pipe(Effect.provideContext(context), Effect.orDie),
           choices: voicesHere(context),
-          keepVoice: (name, beat, file, options) => keeping(beat, keep(name, beat, file, options)),
+          keepVoice: (name, beat, file, options) =>
+            keeping(beat, Effect.map(keep(name, beat, file, options), answering)),
           remix: () =>
             Effect.andThen(
               Effect.sync(() => void mixes.push(film.paths.name)),
@@ -545,7 +549,10 @@ describe('studio routes', () => {
       const { files, mixes, layer } = setup(said);
       return Effect.gen(function* () {
         const first = yield* posted('a', 'Hello world.');
+        const firstBytes = files.get(`${film.paths.narration}/attempts/a/${first}`);
         const second = yield* posted('a', 'Hello world, again.');
+        const secondBytes = files.get(`${film.paths.narration}/${second}`);
+        expect(secondBytes).not.toEqual(firstBytes);
         const before = files.get(film.paths.timings.file);
         const kept = yield* call(
           post(labUrls.studio.keep({ params: { film: 'test', beat: 'a' } }), `{"file":"${first}"}`),
@@ -561,13 +568,48 @@ describe('studio routes', () => {
         expect(yield* takeOf('a')).toBe(second);
         expect(files.get(film.paths.timings.file)).toEqual(before);
         expect(narrationOf(files, 'a')).toEqual([second]);
+        // The take brought back is the FLAC it was, byte for byte.
+        expect(files.get(`${film.paths.narration}/${second}`)).toEqual(secondBytes);
         // The track plays what the timings name: remixed once the Undo landed.
         expect(mixes).toEqual(['test']);
         const redone = yield* call(post(labUrls.steps.redo({ params: { film: 'test' } }), '{}'));
         expect(redone.status).toBe(200);
         expect(yield* takeOf('a')).toBe(first);
         expect(narrationOf(files, 'a')).toEqual([first]);
+        expect(files.get(`${film.paths.narration}/${first}`)).toEqual(firstBytes);
         expect(mixes).toEqual(['test', 'test']);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    'a take kept by an older film CLI, whose answer says only whether it mixed, is answered from the timings and can be undone',
+    () => {
+      const { files, layer } = setup(
+        said,
+        Effect.void,
+        (_, keep) => keep,
+        (kept) => OptionsKept.make({ mixed: kept.mixed }),
+      );
+      return Effect.gen(function* () {
+        const before = files.get(film.paths.timings.file);
+        const { status, body } = yield* call(
+          post(
+            labUrls.studio.take({ params: { film: 'test', beat: 'a' } }),
+            recording('Hello world.'),
+          ),
+        );
+        expect(status).toBe(200);
+        const kept = yield* Schema.decodeUnknownEffect(StudioTake)(body);
+        expect(kept.timings.scenes['a']).toEqual(kept.take);
+        expect(kept.take.source).toBe('recorded');
+        expect(kept.transcript).toBe('Hello world.');
+        expect(kept.mixed).toBe(true);
+        // The keep was recorded around the timings' rewrite: Undo walks it back.
+        const undone = yield* call(post(labUrls.steps.undo({ params: { film: 'test' } }), '{}'));
+        expect(undone.status).toBe(200);
+        expect(files.get(film.paths.timings.file)).toEqual(before);
+        expect(yield* takeOf('a')).toBe('a.mp3');
       }).pipe(Effect.scoped, Effect.provide(layer));
     },
   );

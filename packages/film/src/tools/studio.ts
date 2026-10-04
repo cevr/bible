@@ -210,15 +210,36 @@ const keeping = Effect.fn('studio.keeping')(function* (
   const { kept } = yield* keepVoice(film, beat, attempt, { acceptMismatch }).pipe(
     Effect.catchTag('TakeMismatch', (error) => mismatch(error, attempt)),
   );
-  const take: StudioTake = {
+  const timings = yield* timingsOf(film);
+  // An older film CLI answers whether it mixed alone: the take is the one the
+  // timings name now, and what was heard of it is in its attempt's ledger.
+  const take = yield* Option.match(
+    Option.orElse(Option.fromUndefinedOr(kept.take), () =>
+      Option.fromUndefinedOr(timings.scenes[beat]),
+    ),
+    {
+      onSome: Effect.succeed,
+      onNone: () =>
+        Effect.die(`keep-voice kept ${attempt}, and the timings name no take of ${beat}`),
+    },
+  );
+  const heard = Arr.findFirst(
+    yield* (yield* Takes).attempts(yield* pathsOf(film), beat),
+    (a) => a.file === attempt,
+  );
+  const answer: StudioTake = {
     beat,
-    take: kept.take,
-    transcript: kept.heard,
-    wer: kept.wer,
-    timings: yield* timingsOf(film),
+    take,
+    transcript: Option.getOrElse(Option.fromUndefinedOr(kept.heard), () =>
+      Option.match(heard, { onNone: () => '', onSome: (a) => a.heard }),
+    ),
+    wer: Option.getOrElse(Option.fromUndefinedOr(kept.wer), () =>
+      Option.match(heard, { onNone: () => 1, onSome: (a) => a.wer }),
+    ),
+    timings,
     mixed: kept.mixed,
   };
-  return take;
+  return answer;
 });
 
 /**

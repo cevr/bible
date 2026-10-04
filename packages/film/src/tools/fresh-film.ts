@@ -64,14 +64,18 @@ export class OptionsChecked extends Schema.TaggedClass<OptionsChecked>()('Option
 /** `film options mix`'s answer: the mix is written where it was asked. */
 export class OptionsMixed extends Schema.TaggedClass<OptionsMixed>()('OptionsMixed', {}) {}
 
-/** `film options keep-voice`'s answer: the attempt is the beat's take, and the track remixed. */
+/**
+ * `film options keep-voice`'s answer: the attempt is the beat's take, and the
+ * track remixed. A film CLI older than this lab answers `mixed` alone; the
+ * keep has landed all the same, and the take is read from the timings.
+ */
 export class OptionsKept extends Schema.TaggedClass<OptionsKept>()('OptionsKept', {
   /** The take as the timings now name it. */
-  take: VoiceTiming,
+  take: Schema.optionalKey(VoiceTiming),
   /** What the transcriber heard of it. */
-  heard: Schema.String,
+  heard: Schema.optionalKey(Schema.String),
   /** Its word error against the line as it reads now, 0 to 1. */
-  wer: Schema.Finite,
+  wer: Schema.optionalKey(Schema.Finite),
   /** Whether `narration/full.wav` was rebuilt with the take (false: the log says why). */
   mixed: Schema.Boolean,
 }) {}
