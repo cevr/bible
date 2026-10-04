@@ -7,7 +7,7 @@
 // as it lands; a lost feed says so and connects again; and ⇧N/⌥⇧N step
 // through the open notes, Go to finding any by its words; a drag across a cue
 // lane marks a range, and a note carries it and the cue selected as a scope
-// chip whose × clears it.
+// chip whose × clears it; a finger the frame's menu took marks nothing.
 
 import { Effect, Option, Predicate, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -267,6 +267,46 @@ describe('marking a frame', () => {
         expect(n('y')).toBeCloseTo(60, -1);
         expect(n('w')).toBeCloseTo(180, -1);
         expect(n('h')).toBeCloseTo(100, -1);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a finger held still owns the press as the frame's menu: slid 30 px and lifted, it draws no box and opens no composer",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab(store(), { href: labAt(1) });
+        yield* waitFor(page, '.lab-overlay');
+        const a = yield* onFrame(page, 400, 240);
+        // The clock held: the long press's delay passes only as the test runs it on.
+        yield* page.clock.hold;
+        yield* page.finger.down(a.x, a.y);
+        yield* page.clock.runFor(700);
+        yield* waitFor(page, '[data-role="context-menu"]');
+        // Away from the menu, which opens below and right of the finger.
+        yield* page.finger.move(a.x - 30, a.y - 30, 10);
+        yield* page.finger.up;
+        yield* page.clock.runFor(100);
+        // The press was the menu's: its release is no lift, so the composer closes with no mark.
+        yield* evaluates(
+          page,
+          `document.querySelector('.lab-compose').hidden && document.querySelector('.lab-overlay .lab-draft') === null`,
+          true,
+        );
+        // The menu shut (its close runs on the clock), a plain tap of a finger, its own press and
+        // no one's, pins a point.
+        yield* page.press('Escape');
+        yield* page.clock.runFor(500);
+        yield* evaluates(
+          page,
+          `document.querySelector('[data-role="context-menu"]') === null`,
+          true,
+        );
+        yield* page.finger.down(a.x, a.y);
+        yield* page.finger.up;
+        yield* page.clock.runFor(100);
+        yield* waitFor(page, '.lab-compose:not([hidden])');
+        yield* attached(page, '.lab-overlay circle.lab-draft');
       }).pipe(Effect.scoped),
     SLOW,
   );

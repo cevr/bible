@@ -1,9 +1,11 @@
 // A drag follows its press: it captures the pointer on the pressed element,
 // hears that pointer's moves (not another finger's), and ends once, lifted
 // or ended by the browser (a cancel, a lost capture); after its end, and once
-// interrupted, it hears nothing more.
+// interrupted, it hears nothing more. A finger's press another holds (an open
+// menu's long press) tells neither its moves nor its lift; a plain tap lifts.
 
 import { describe, expect, test } from 'bun:test';
+import { claimPress } from '@bible/ui/press';
 import { Effect, Fiber, Option } from 'effect';
 import { hostOf } from './host.ts';
 import { Pointer } from './pointer.ts';
@@ -16,10 +18,15 @@ class Pressable extends EventTarget {
   }
 }
 
-/** A pointer event of `type`, for pointer `id` at `x`. */
-const pointer = (type: string, id: number, x = 0) =>
+/** A pointer event of `type`, for pointer `id` at `x`, of a mouse unless said. */
+const pointer = (type: string, id: number, x = 0, pointerType = 'mouse') =>
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Bun has no PointerEvent; the drag reads only these fields
-  Object.assign(new Event(type, { bubbles: true }), { pointerId: id, clientX: x }) as PointerEvent;
+  Object.assign(new Event(type, { bubbles: true }), {
+    pointerId: id,
+    clientX: x,
+    clientY: 0,
+    pointerType,
+  }) as PointerEvent;
 
 /**
  * A page with one pressable element: pressing it begins a drag, as a page's
@@ -47,10 +54,13 @@ const page = () => {
     );
   });
   return {
+    window,
     element,
     moves,
     ends,
     press: (id: number) => element.dispatchEvent(pointer('pointerdown', id)),
+    /** A finger presses the element, at x 0. */
+    touch: (id: number) => element.dispatchEvent(pointer('pointerdown', id, 0, 'touch')),
     /** The browser sends `type` for pointer `id` at `x`: to the window, where a drag hears it. */
     send: (type: string, id: number, x = 0) => window.dispatchEvent(pointer(type, id, x)),
     done: () =>
@@ -102,5 +112,31 @@ describe('Pointer.drag', () => {
     p.send('pointerup', 1, 10);
     expect(p.moves).toEqual([]);
     expect(p.ends).toEqual([]);
+  });
+
+  test("a finger's press the long press holds (its menu open) tells neither its moves nor its lift", () => {
+    const p = page();
+    p.touch(21);
+    // The long press's delay ends: it claims the press and its menu opens.
+    expect(claimPress(21, Symbol('menu'), p.window)).toBe(true);
+    // The finger slides 30 px and lifts, over the menu.
+    p.send('pointermove', 21, 30);
+    p.send('pointerup', 21, 30);
+    expect(p.moves).toEqual([]);
+    expect(p.ends).toEqual([Option.none()]);
+    expect(p.done()).toBe(true);
+  });
+
+  test("a finger's plain tap is lifted, and its drag past the threshold is told whole", () => {
+    const tap = page();
+    tap.touch(22);
+    tap.send('pointermove', 22, 4);
+    tap.send('pointerup', 22, 4);
+    expect([tap.moves, tap.ends]).toEqual([[], [Option.some(4)]]);
+    const drag = page();
+    drag.touch(23);
+    drag.send('pointermove', 23, 30);
+    drag.send('pointerup', 23, 40);
+    expect([drag.moves, drag.ends]).toEqual([[30], [Option.some(40)]]);
   });
 });

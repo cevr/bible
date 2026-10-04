@@ -12,11 +12,13 @@
 // long press (a context menu's) until it moves past `LONG_PRESS_MOVE_THRESHOLD`,
 // the number the long press gives way at. Only then does the drag claim the
 // press and start, and a long press can no longer open; a press the long
-// press claimed first (its menu is open) never starts a drag, though its
-// lift still ends this one. A mouse's drag starts at its first move: a mouse
-// has no long press.
+// press claimed first (its menu is open) never starts a drag, and its lift
+// ends this one as the browser ends one (`end(none)`): ownership governs
+// the completion as it does the moves, so nothing acts on that release. A
+// press no one claimed (a plain tap) is lifted as before. A mouse's drag
+// starts at its first move: a mouse has no long press.
 
-import { LONG_PRESS_MOVE_THRESHOLD, claimPress } from '@bible/ui/press';
+import { LONG_PRESS_MOVE_THRESHOLD, claimPress, liftHeldByOther } from '@bible/ui/press';
 import { Context, Effect, Layer, Option, Result } from 'effect';
 
 /** What a drag tells its owner. */
@@ -81,9 +83,11 @@ const pointerOn = (page: EventTarget): PointerOps => ({
         }),
         options,
       );
+      // A lift completes the drag only when no one else held the press (an open menu's is
+      // the menu's): then it ends as one the browser took, and nothing is made of it.
       page.addEventListener(
         'pointerup',
-        its((e) => ended(Option.some(e))),
+        its((e) => ended(Option.filter(Option.some(e), () => !liftHeldByOther(id, self)))),
         options,
       );
       page.addEventListener(

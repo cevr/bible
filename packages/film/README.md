@@ -885,6 +885,9 @@ has. The page itself is a target too: a press on no thing opens the page's
 commands (`about: ['Page']`: Undo, Redo, Show only…, Loop this scene). A
 touch that moves past @bible/ui's threshold first (a scrub, a drag) never
 opens it, and starts the drag instead (one owner per press, `claimPress`);
+a touch the menu took first is the menu's to its end: no drag starts
+under it, and its release completes none (`liftHeldByOther`), so a finger
+that slides after the menu opens draws no note and moves no cue;
 a field keeps the browser's own menu. The menus' rows
 (and a chip's) are keyed by their command (`rowKey`, `src/command/menu.ts`):
 they are made again whenever what they read moves (a command's `when` and
