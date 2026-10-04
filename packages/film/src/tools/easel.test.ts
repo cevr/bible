@@ -6,7 +6,7 @@
 // checkout's films refuses. Live clock: the fake page sleeps a millisecond a frame.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { ConfigProvider, Effect, Layer, Option, Path, Ref } from 'effect';
+import { ConfigProvider, Effect, Fiber, Layer, Option, Path, Ref, Schedule } from 'effect';
 import type { SceneTimes, StillView } from '../core/easel.ts';
 import { FrameFailed } from './errors.ts';
 import { Easel } from './easel.ts';
@@ -38,16 +38,20 @@ const built = (build: number): PagesNow => ({
   failed: Option.none(),
 });
 
-/** An easel over a fake browser whose page draws `frame`, with the build in `now`. */
+/**
+ * An easel over a fake browser whose page draws `frame`, and answers its
+ * scenes once `opening` is done, with the build in `now`.
+ */
 const easelLayer = (
   files: Map<string, Uint8Array>,
   now: Ref.Ref<PagesNow>,
   ledger = emptyLedger(),
   frame: (i: number, page: number) => Effect.Effect<void, FrameFailed> = () => Effect.void,
+  opening: (page: number) => Effect.Effect<void> = () => Effect.void,
 ) =>
   Easel.layer.pipe(
     Layer.provide([
-      fakeRenderHost(ledger, { scenes: [roof], frame }),
+      fakeRenderHost(ledger, { scenes: [roof], frame, opening }),
       pagesAt(now),
       FilmFolder.layer('/films'),
     ]),
@@ -144,6 +148,42 @@ describe('the easel', () => {
       expect(ledger.pages).toEqual({ opened: 2, closed: 1 });
     }).pipe(Effect.provide(easelLayer(new Map(), Ref.makeUnsafe(built(1)), ledger, frame)));
   });
+
+  it.live(
+    'a look cancelled while its page opens closes that page: cancels never hold more pages',
+    () => {
+      const ledger = emptyLedger();
+      return Effect.gen(function* () {
+        const easel = yield* Easel;
+        yield* easel.serve('http://127.0.0.1:4401/');
+        // More cancels than the pages the easel holds at most.
+        for (const n of [1, 2, 3, 4, 5, 6]) {
+          const looking = yield* Effect.forkChild(
+            easel.look(film, { scene: 'roof', at: ['1'], view }),
+          );
+          // The page is open, its scenes not yet answered: the look is cancelled there.
+          yield* Effect.sync(() => ledger.pages.opened).pipe(
+            Effect.repeat({
+              until: (opened) => opened >= n,
+              schedule: Schedule.spaced('1 millis'),
+            }),
+          );
+          yield* Fiber.interrupt(looking);
+          expect(ledger.pages).toEqual({ opened: n, closed: n });
+        }
+      }).pipe(
+        Effect.provide(
+          easelLayer(
+            new Map(),
+            Ref.makeUnsafe(built(1)),
+            ledger,
+            () => Effect.void,
+            () => Effect.never,
+          ),
+        ),
+      );
+    },
+  );
 
   it.live("a lab serving another checkout's films refuses", () =>
     Effect.gen(function* () {

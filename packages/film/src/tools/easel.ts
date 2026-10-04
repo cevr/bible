@@ -172,16 +172,25 @@ export class Easel extends Context.Service<Easel, EaselService>()('@bible/film/t
         // The oldest page goes first when the easel holds its most.
         for (const old of [...held.keys()].slice(0, Math.max(0, held.size - HELD_MAX + 1)))
           yield* drop(old);
-        const own = yield* Scope.fork(scope);
-        const opened = yield* Effect.gen(function* () {
-          const page = yield* Scope.provide(own)(browser.open(url));
-          const scenes = yield* page.call('scenes');
-          return { build, page, scenes, scope: own } satisfies Held;
-        }).pipe(
-          Effect.tapError(() => Scope.close(own, Exit.void)),
-          Effect.mapError(failedLook),
-        );
-        held.set(key, opened);
+        // The page's own scope closes on every exit but a page held: a failure, and a look
+        // cancelled while the page opens, close it, so no page lives on unheld.
+        const opened = yield* Effect.uninterruptibleMask((restore) =>
+          Effect.gen(function* () {
+            const own = yield* Scope.fork(scope);
+            return yield* restore(
+              Effect.gen(function* () {
+                const page = yield* Scope.provide(own)(browser.open(url));
+                const scenes = yield* page.call('scenes');
+                return { build, page, scenes, scope: own } satisfies Held;
+              }),
+            ).pipe(
+              Effect.onExit((exit) => {
+                if (Exit.isSuccess(exit)) return Effect.sync(() => void held.set(key, exit.value));
+                return Scope.close(own, Exit.void);
+              }),
+            );
+          }),
+        ).pipe(Effect.mapError(failedLook));
         yield* Effect.log(
           `easel.page.opened page=${key} build=${build} scenes=${opened.scenes.length}`,
         );

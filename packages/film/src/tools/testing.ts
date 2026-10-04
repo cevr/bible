@@ -1016,6 +1016,8 @@ export interface FakeRenderHost {
   readonly luma?: (i: number, area: LumaArea) => number;
   /** The scenes the page reports (`scenes`, a look's clocks; none by default). */
   readonly scenes?: ReadonlyArray<SceneTimes>;
+  /** What page `page`'s `scenes` waits on before it answers (nothing by default): a page still opening. */
+  readonly opening?: (page: number) => Effect.Effect<void>;
 }
 
 /**
@@ -1052,6 +1054,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
     Option.fromNullishOr(host.scenes),
     (): ReadonlyArray<SceneTimes> => [],
   );
+  const opening = Option.getOrElse(Option.fromNullishOr(host.opening), () => () => Effect.void);
   const probe = Option.getOrElse(
     Option.fromNullishOr(host.probe),
     () => (): Effect.Effect<Probed> => Effect.succeed({ texts: [], inks: [] }),
@@ -1144,7 +1147,7 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
           Array.from({ length: area.cols * area.rows }, () => luma(i, area)),
         ),
       drawTimes: (frames) => Effect.forEach(frames, (i) => Effect.as(frame(i), 1)),
-      scenes: () => Effect.succeed(scenes),
+      scenes: () => Effect.as(opening(page), scenes),
       still: (i, view) =>
         Effect.map(frame(i), (bytes) => {
           ledger.stills.push({ frame: i, view });
