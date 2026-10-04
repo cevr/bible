@@ -77,6 +77,7 @@ import { ContentStore, type StoreError } from './content-store.ts';
 import { cacheKey } from './digest.ts';
 import {
   ChoiceUnknown,
+  type FreshProcessFailed,
   type ReviewToolFailed,
   type SourceRefused,
   VariantUnknown,
@@ -272,7 +273,7 @@ export const keepVoice = Effect.fn('keepVoice')(function* (
   const fresh = yield* FreshFilm;
   const timings = paths.timings.file;
   const target = `voice ${beat} keep ${file}`;
-  const landed = yield* trackLanded(film);
+  const track = yield* trackOf(film);
   // The keep remixes the track itself: when it landed is read in the act, under the lock.
   const [[kept, mixed], change] = yield* (yield* SourceWriter).around(
     film,
@@ -281,38 +282,41 @@ export const keepVoice = Effect.fn('keepVoice')(function* (
     Effect.flatMap(fresh.keepVoice(film, beat, file, options), (done) => {
       // A keep whose mix failed landed no track.
       if (!done.mixed) return Effect.succeed([done, Option.none<number>()] as const);
-      return Effect.map(landed, (at) => [done, at] as const);
+      return Effect.map(track.landed, (at) => [done, at] as const);
     }),
-    { ...(yield* Takes).named(paths), remake: Option.some(yield* trackRemake(film)) },
+    { ...(yield* Takes).named(paths), remake: Option.some(track.remake) },
   );
   if (!kept.mixed) yield* Effect.logWarning(`choices.voice.unmixed film=${film} beat=${beat}`);
   const voiced: VoiceKept = { picked: { file: timings, target, change, mixed }, kept };
   return voiced;
 });
 
-/**
- * What reads when `film`'s track landed (`Remade`): its mtime, asked under
- * the writer's lock right after the mix that renamed it into place, so it
- * names that mix and no later one; none when it is not there. The file is
- * looked at each time it runs, never when it is made.
- */
-const trackLanded = Effect.fn('trackLanded')(function* (film: FilmName) {
+/** A film's track, as the writes that mix it read it; each looks at the file each time it runs, never when it is made. */
+interface Track {
+  /**
+   * When the track landed (`Remade`): its mtime, asked under the writer's
+   * lock right after the mix that renamed it into place, so it names that
+   * mix and no later one; none when it is not there.
+   */
+  readonly landed: Effect.Effect<Remade>;
+  /** What follows `sound.ts` and the timings: the track mixed again (`film mix`, fresh), answering when it landed. */
+  readonly remake: Effect.Effect<Remade, FreshProcessFailed>;
+}
+
+/** `film`'s track (`Track`). */
+const trackOf = Effect.fn('trackOf')(function* (film: FilmName) {
   const fs = yield* FileSystem.FileSystem;
+  const fresh = yield* FreshFilm;
   const file = masterFile((yield* FilmFolder).paths(film));
-  return Effect.suspend(() => fs.stat(file)).pipe(
+  const landed = Effect.suspend(() => fs.stat(file)).pipe(
     Effect.map((info): Remade => Option.map(info.mtime, (at) => at.getTime())),
     Effect.orElseSucceed((): Remade => Option.none()),
   );
-});
-
-/**
- * What follows `sound.ts` and the timings: `film`'s track mixed again
- * (`film mix`, fresh), answering when it landed (`trackLanded`).
- */
-const trackRemake = Effect.fn('trackRemake')(function* (film: FilmName) {
-  const fresh = yield* FreshFilm;
-  const landed = yield* trackLanded(film);
-  return Effect.suspend(() => fresh.remix(film)).pipe(Effect.andThen(landed));
+  const track: Track = {
+    landed,
+    remake: Effect.suspend(() => fresh.remix(film)).pipe(Effect.andThen(landed)),
+  };
+  return track;
 });
 
 export class Choices extends Context.Service<Choices, ChoicesService>()(
@@ -391,14 +395,14 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
       /**
        * What follows `sound.ts`: the track mixed from it (`film mix`), mixed
        * again once a write of it lands, and on its Undo and Redo, each
-       * answering when it landed (`trackRemake`). It names no file to bring
+       * answering when it landed (`Track.remake`). It names no file to bring
        * back or put away.
        */
       const mixedFrom = (film: FilmName) =>
-        Effect.map(trackRemake(film), (remake): Follows => ({
+        Effect.map(trackOf(film), (track): Follows => ({
           bring: () => Effect.void,
           putAway: () => Effect.void,
-          remake: Option.some(remake),
+          remake: Option.some(track.remake),
         })).pipe(Effect.provideContext(keeping));
 
       /**
