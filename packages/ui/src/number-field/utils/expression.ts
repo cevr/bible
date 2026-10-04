@@ -8,8 +8,13 @@
 // a negative number, so `-0.1` is minus a tenth, and `+-0.1` subtracts it.
 // `×` and `÷` read as `*` and `/`. A sign after a number's exponent (`1e-3`,
 // `2E+4`) is the exponent's, not a sum. The parser is a small recursive
-// descent over + - * / and parentheses; nothing is evaluated as code.
+// descent over + - * / and parentheses, nested at most `MAX_DEPTH` deep (text
+// nested deeper does not read, rather than overflowing the stack); nothing is
+// evaluated as code.
 import { ANY_MINUS_RE, ANY_PLUS_RE, FORMAT_CONTROL_DETECT_RE, parseNumber } from './parse.ts';
+
+/** How deep parentheses and signs nest before the text no longer reads. */
+const MAX_DEPTH = 64;
 
 /** A number's text that ends in its exponent's `e`: the sign that follows is the exponent's. */
 const EXPONENT_OPEN_RE = /\d[eE]$/;
@@ -107,9 +112,21 @@ export function evaluateExpression(
 
   let index = 0;
   let failed = false;
+  let depth = 0;
   const peek = () => tokens[index];
 
   const factor = (): number => {
+    if (depth >= MAX_DEPTH) {
+      failed = true;
+      return Number.NaN;
+    }
+    depth += 1;
+    const value = nested();
+    depth -= 1;
+    return value;
+  };
+
+  const nested = (): number => {
     const token = tokens[index];
     if (token === undefined) {
       failed = true;

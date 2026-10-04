@@ -62,6 +62,13 @@ describe('evaluateExpression', () => {
     expect(evaluateExpression('1e3-1', null)).toBe(999);
   });
 
+  it('refuses nesting deeper than it reads, rather than throwing', () => {
+    expect(evaluateExpression(`${'('.repeat(500_000)}1`, null)).toBeNull();
+    expect(evaluateExpression(`${'('.repeat(10_000)}1${')'.repeat(10_000)}`, null)).toBeNull();
+    expect(evaluateExpression(`${'-'.repeat(10_000)}1`, null)).toBeNull();
+    expect(evaluateExpression(`${'('.repeat(20)}1${')'.repeat(20)}`, null)).toBe(1);
+  });
+
   it('returns null for text that does not read', () => {
     expect(evaluateExpression('1+', null)).toBeNull();
     expect(evaluateExpression('(1+2', null)).toBeNull();
