@@ -1,20 +1,23 @@
 // The look-book's sheet: one canvas that shows a whole film's look before (or
 // while) its scenes are built. Each scene is a row of stills at every named
 // cue's start and end and at its 60% point (`sceneMoments`, the moments
-// `film check` probes, less the marks), each labelled, under the film's
-// palette as swatches. The page composes it with `film.render`, so the lab
-// shows it live (`lookbook.ts`, a film's scenes page) and `film lookbook`
-// asks an export page for the same sheet (`ExportHandle.lookbook`) and writes
-// it to `out/<film>/film/<variant>/lookbook.jpg`.
+// `film check` probes, less the marks), each labelled with its timecode, under
+// the film's palette as swatches. Its stills come from the one source of
+// stills (`stills.ts`, the Scenes tape's too), and `film lookbook` asks an
+// export page for the sheet (`ExportHandle.lookbook`) and writes it to
+// `out/<film>/film/<variant>/lookbook.jpg`.
 // It is a picture of the film, not the studio's chrome: drawn on its own
 // dark page in the film's own type, its shorts' hook face for the title and
 // their caption face for the rest (`film.look.short`), so the engine names no
 // family and the sheet keeps its own colours (the token guard leaves this
-// file alone; the page around it, `lookbook.ts`, reads the tokens).
+// file alone).
 
 import { Effect } from 'effect';
 import type { Film } from '../canvas/film.ts';
+import type { Placed } from '../core/layout.ts';
 import { type SceneMoment, sceneMoments } from '../core/moments.ts';
+import { timecode } from '../core/time.ts';
+import { makeStills } from './stills.ts';
 
 /** Stills across a row. */
 const COLS = 6;
@@ -70,10 +73,20 @@ const labelOf = (at: string) =>
     .map((part) => part.replace(/^cue (.+) start$/, '$1 ▸').replace(/^cue (.+) end$/, '$1 ◂'))
     .join(' · ');
 
+/** A scene's head on the sheet: its number, id and span in timecode. */
+export const sceneHead = (p: Placed, fps: number) =>
+  `${p.index + 1}. ${p.spec.id} · ${timecode(p.start, fps)}–${timecode(p.start + p.dur, fps)}`;
+
+/** A still's time on the sheet: its timecode. */
+export const stillTime = (time: number, fps: number) => timecode(time, fps);
+
+/** How wide a still's timecode is set, in the sheet's px: what its cue label leaves room for. */
+const TIME_W = 104;
+
 /**
- * Compose the look-book of `film`. Draws every still with `film.render` into
- * one full-size frame, then scales it onto the sheet; `onProgress` hears each
- * still as it lands, and the page gets a turn between stills. A sheet laid
+ * Compose the look-book of `film`. Its stills are drawn by the one source of
+ * stills (`makeStills`), a still's width, one at a time with a turn for the
+ * page between them; `onProgress` hears each still as it lands. A sheet laid
  * out taller or wider than `CANVAS_SIDE` is drawn scaled down to fit it, so a
  * long film's sheet is smaller rather than blank.
  */
@@ -94,10 +107,7 @@ export const composeLookbook = async (
   let y = top;
   for (const p of film.placed) {
     const mine = moments.filter((m) => m.scene === p.spec.id);
-    heads.push({
-      y,
-      text: `${p.index + 1}. ${p.spec.id} · ${p.start.toFixed(2)}–${(p.start + p.dur).toFixed(2)} s`,
-    });
+    heads.push({ y, text: sceneHead(p, film.fps) });
     y += SCENE_H;
     mine.forEach((moment, k) => {
       const col = k % COLS;
@@ -134,7 +144,7 @@ export const composeLookbook = async (
   ctx.fillStyle = MUTED;
   ctx.font = `400 16px ${body}`;
   ctx.fillText(
-    `Look-book · ${film.placed.length} scenes · ${tiles.length} stills at each cue's start (▸) and end (◂) and each scene's 60% point · ${film.duration.toFixed(1)} s`,
+    `Look-book · ${film.placed.length} scenes · ${tiles.length} stills at each cue's start (▸) and end (◂) and each scene's 60% point · ${timecode(film.duration, film.fps)}`,
     PAD,
     PAD + 58,
   );
@@ -161,34 +171,34 @@ export const composeLookbook = async (
     ctx.fillText(head.text, PAD, head.y + 26);
   }
 
-  // The stills: each drawn full size, then scaled onto its tile.
-  const frame = document.createElement('canvas');
-  frame.width = film.width;
-  frame.height = film.height;
-  const fctx = frame.getContext('2d');
-  if (fctx === null) throw new Error('2d context unavailable');
-  const draw = (tile: Tile, k: number) => {
-    film.render(fctx, tile.moment.time, { captions: options.captions });
-    ctx.drawImage(frame, tile.x, tile.y, tile.w, tile.h);
+  // The stills, from the one source, each set on its tile under its label.
+  const stills = makeStills(film, {
+    width: TILE_W,
+    captions: options.captions,
+    turn: () => Effect.runPromise(Effect.yieldNow),
+    // The sheet is not timed: its stills' cost is the page's to read.
+    now: () => 0,
+  });
+  const drawn = await stills.all(
+    tiles.map((tile) => tile.moment.time),
+    options.onProgress,
+  );
+  tiles.forEach((tile, k) => {
+    const still = drawn[k];
+    if (still !== undefined) ctx.drawImage(still, tile.x, tile.y, tile.w, tile.h);
     ctx.fillStyle = INK;
     ctx.font = `500 15px ${body}`;
-    ctx.fillText(fit(ctx, labelOf(tile.moment.at), tile.w - 70), tile.x, tile.y + tile.h + 21);
+    ctx.fillText(
+      fit(ctx, labelOf(tile.moment.at), tile.w - TIME_W - 8),
+      tile.x,
+      tile.y + tile.h + 21,
+    );
     ctx.fillStyle = MUTED;
     ctx.font = `400 14px ${body}`;
     ctx.textAlign = 'right';
-    ctx.fillText(`${tile.moment.time.toFixed(2)} s`, tile.x + tile.w, tile.y + tile.h + 21);
+    ctx.fillText(stillTime(tile.moment.time, film.fps), tile.x + tile.w, tile.y + tile.h + 21);
     ctx.textAlign = 'left';
-    options.onProgress?.(k + 1, tiles.length);
-  };
-  // One still at a time, the page getting a turn between them.
-  await tiles.reduce(
-    (before, tile, k) =>
-      before.then(() => {
-        draw(tile, k);
-        return Effect.runPromise(Effect.yieldNow);
-      }),
-    Promise.resolve(),
-  );
+  });
   return {
     canvas,
     tiles: tiles.map((t) => ({

@@ -7,7 +7,8 @@ import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
 import { createFilm } from '../canvas/film.ts';
 import { standInDom } from '../canvas/fixtures/stand-in.ts';
-import { composeLookbook, fontFamilyOf } from './lookbook-sheet.ts';
+import { timecode } from '../core/time.ts';
+import { composeLookbook, fontFamilyOf, sceneHead, stillTime } from './lookbook-sheet.ts';
 import { stillHref } from './lookbook.ts';
 
 describe('fontFamilyOf', () => {
@@ -53,6 +54,17 @@ describe('composeLookbook', () => {
     expect(last).toBeDefined();
     expect((last?.y ?? 0) + (last?.h ?? 0)).toBeLessThanOrEqual(canvas.height);
     expect((last?.x ?? 0) + (last?.w ?? 0)).toBeLessThanOrEqual(canvas.width);
+  });
+
+  test("every time on the sheet is the film's timecode, a scene's head and each still's label", () => {
+    const film = filmOf(3);
+    const second = film.placed[1];
+    expect(second).toBeDefined();
+    if (second === undefined) return;
+    expect(sceneHead(second, 30)).toBe(
+      `2. s1 · ${timecode(second.start, 30)}–${timecode(second.start + second.dur, 30)}`,
+    );
+    expect(stillTime(65.4, 30)).toBe('00:01:05:12');
   });
 
   test('a film that fits is laid out at full size', async () => {
