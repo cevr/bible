@@ -34,6 +34,7 @@ import {
   saveToolImage,
   tool,
   ToolImage,
+  ToolResultFailure,
   writeFileAtomic,
 } from '@gent/core/extensions/api';
 import {
@@ -60,6 +61,12 @@ const RESULT_BUDGET = 7_500;
 
 /** The most characters of a path a result or a failure repeats. */
 const PATH_CHARS = 300;
+
+/**
+ * A count or cursor no result reaches: a result is measured with it where
+ * its real one goes, so the real one always fits.
+ */
+const FAR = 999_999_999;
 
 /** The most stills one look takes: each is an image the model reads, and a request keeps 20. */
 const LOOK_MAX_PLACES = 8;
@@ -144,9 +151,20 @@ export class FilmImageRefused extends Schema.TaggedError<FilmImageRefused>()('Fi
   reason: Schema.String,
 }) {
   override get message() {
-    return `${this.file}: ${this.reason} (ask a smaller --size, or a smaller crop)`;
+    return `${this.file}: ${this.reason}`;
   }
 }
+
+/** Every failure a film tool has. */
+const FilmFailure = Schema.Union([
+  FilmRefused,
+  FilmCliFailed,
+  FilmPathRefused,
+  FilmFileFailed,
+  FilmImageRefused,
+]);
+type FilmFailure = typeof FilmFailure.Type;
+const encodeFailure = Schema.encodeSync(FilmFailure);
 
 // ---------------------------------------------------------------------------
 // The film CLI: the one adapter.
@@ -183,6 +201,32 @@ const clip = (text: string, chars: number): string => {
 /** The output's lines, empty ones dropped. */
 const linesOf = (text: string): ReadonlyArray<string> =>
   text.split('\n').filter((line) => line.trim() !== '');
+
+const FailureFields = Schema.Record(Schema.String, Schema.String);
+type FailureFields = typeof FailureFields.Type;
+const failureLength = encodedLength(FailureFields);
+
+/** `fields` with each value cut to `cap` characters, saying so. */
+const capFields = (fields: FailureFields, cap: number): FailureFields =>
+  Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, clip(value, cap)]));
+
+/**
+ * A film tool's failure as the model receives it: a `ToolResultFailure`
+ * whose result is the failure's tag and fields (`{_tag: 'FilmRefused',
+ * tool, tag, text}`), each value cut so the whole encodes within the result
+ * budget.
+ */
+export const modelFailure = (error: FilmFailure): ToolResultFailure => {
+  const fields: FailureFields = encodeFailure(error);
+  const cap = largestFitting(
+    RESULT_BUDGET,
+    (size) => failureLength(capFields(fields, size)) <= RESULT_BUDGET,
+  );
+  return ToolResultFailure.make({
+    message: clip(error.message, REFUSAL_CHARS),
+    result: capFields(fields, cap),
+  });
+};
 
 /**
  * What a failed run of the film CLI said: its failure's tag and words, read
@@ -383,16 +427,22 @@ export const FilmLook = tool({
         source: `${params.film}/${look.scene} ${look.at} t=${look.time.toFixed(2)}`,
       }).pipe(
         Effect.mapError((error) =>
-          FilmImageRefused.make({ file: look.file, reason: error.message }),
+          FilmImageRefused.make({
+            file: look.file,
+            reason: `${error.message} (ask a smaller size, or a smaller crop)`,
+          }),
         ),
         Effect.map((image) => ({
           image,
-          line: `${look.file} at=${look.at} t=${look.time.toFixed(2)} frame=${look.frame} size=${look.width}x${look.height} build=${taken.build}`,
+          line: clip(
+            `${look.file} at=${look.at} t=${look.time.toFixed(2)} frame=${look.frame} size=${look.width}x${look.height} build=${taken.build}`,
+            LINE_CHARS,
+          ),
         })),
       ),
     );
     return { build: taken.build, stills };
-  }),
+  }, Effect.mapError(modelFailure)),
 });
 
 // ---------------------------------------------------------------------------
@@ -443,44 +493,64 @@ const Finding = Schema.Struct({
 const CheckOutput = Schema.Struct({
   errors: Schema.Int,
   warnings: Schema.Int,
+  /** The place of the first finding listed among all of them, errors first (0: the first). */
+  from: Schema.Int,
   findings: Schema.Array(Finding),
-  /** Findings left out of the list, past the result's budget. */
-  more: Schema.Int,
+  /** Present when findings remain past this page: the `from` that lists them. */
+  next: Schema.optionalKey(Schema.Int),
 });
+type CheckOutput = typeof CheckOutput.Type;
+const checkLength = encodedLength(CheckOutput);
 
-/** The findings `film check --json` printed, errors first, as a bounded result. */
-export const checkReport = (stdout: string): typeof CheckOutput.Type => {
+/**
+ * The findings `film check --json` printed, errors first, from the `from`th
+ * on: as many as encode within the result budget (at most 24), and `next`
+ * when more remain.
+ */
+export const checkReport = (stdout: string, from: number): CheckOutput => {
   const lines = linesOf(stdout).flatMap((line) => Option.toArray(decodeCheckLine(line)));
   const errors = lines.filter((line) => line.level === 'error');
   const warnings = lines.filter((line) => line.level === 'warning');
-  const listed = [...errors, ...warnings].slice(0, CHECK_MAX_FINDINGS).map((line) => ({
+  const findings = [...errors, ...warnings].map((line) => ({
     level: line.level,
     tag: line.tag,
-    where: whereOf(line),
+    where: clip(whereOf(line), FINDING_CHARS),
     ...Option.match(Option.fromUndefinedOr(line.address?.time), {
       onNone: () => ({}),
       onSome: (time) => ({ time }),
     }),
     message: clip(line.message, FINDING_CHARS),
   }));
-  return {
+  const start = Math.min(from, findings.length);
+  const page = (count: number): CheckOutput => ({
     errors: errors.length,
     warnings: warnings.length,
-    findings: listed,
-    more: lines.length - listed.length,
-  };
+    from: start,
+    findings: findings.slice(start, start + count),
+  });
+  const count = largestFitting(
+    Math.min(CHECK_MAX_FINDINGS, findings.length - start),
+    (size) => checkLength({ ...page(size), next: FAR }) <= RESULT_BUDGET,
+  );
+  if (start + count >= findings.length) return page(count);
+  return { ...page(count), next: start + count };
 };
 
 export const FilmCheck = tool({
   id: 'film.check',
   description:
-    'Check scenes as their files stand (film check --draw): the static leg (cues, sounds) and each scene drawn in-process (a throw, a frame that is not pure, ink over a face), no browser. Stale takes count as warnings: a painter never narrates. Lists each finding, errors first',
+    'Check scenes as their files stand (film check --draw): the static leg (cues, sounds) and each scene drawn in-process (a throw, a frame that is not pure, ink over a face), no browser. Stale takes count as warnings: a painter never narrates. Lists the findings a page at a time, errors first: when the answer has `next`, check again with `from: next` for the rest',
   readonly: true,
   params: Schema.Struct({
     film: FilmName,
     scenes: Schema.NonEmptyArray(SceneId).annotate({
       description: 'The scenes to probe; adjacent scenes play one after another',
     }),
+    from: Schema.optionalKey(
+      Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).annotate({
+        description: "The first finding to list: a previous answer's next (0)",
+      }),
+    ),
   }),
   output: CheckOutput,
   summary: (_input, output) => `${output.errors} error(s), ${output.warnings} warning(s)`,
@@ -496,8 +566,8 @@ export const FilmCheck = tool({
       '--json',
     ];
     const answer = yield* filmCli('film.check', ctx.cwd, args, ['CheckFailed']);
-    return checkReport(answer.stdout);
-  }),
+    return checkReport(answer.stdout, params.from ?? 0);
+  }, Effect.mapError(modelFailure)),
 });
 
 // ---------------------------------------------------------------------------
@@ -507,7 +577,37 @@ const CuesOutput = Schema.Struct({
   lines: Schema.Array(Schema.String),
   /** The CLI's words when a cue ends after its scene (`CuesLate`): the lines still stand. */
   late: Schema.optionalKey(Schema.String),
+  /** Present when lines were left out to fit: how many, and how to read them. */
+  rest: Schema.optionalKey(Schema.String),
 });
+type CuesOutput = typeof CuesOutput.Type;
+const cuesLength = encodedLength(CuesOutput);
+
+/** The longest one line of the CLI's output a result keeps. */
+const LINE_CHARS = 800;
+
+/**
+ * How many of `lines` a result holds: the most whose result, with its note
+ * of the rest, `sizeWith` measures within the budget.
+ */
+const linesThatFit = (lines: ReadonlyArray<string>, sizeWith: (count: number) => number) =>
+  largestFitting(lines.length, (count) => sizeWith(count) <= RESULT_BUDGET);
+
+/** The cues result for the CLI's `stdout`: the first lines that fit, and how to read the rest. */
+export const cuesReport = (stdout: string, late: Option.Option<string>): CuesOutput => {
+  const lines = linesOf(stdout).map((line) => clip(line, LINE_CHARS));
+  const base = Option.match(late, {
+    onNone: () => ({}),
+    onSome: (text) => ({ late: clip(text, REFUSAL_CHARS) }),
+  });
+  const restOf = (count: number) =>
+    `${lines.length - count} more lines left out to fit: ask film.cues for one scene at a time`;
+  const count = linesThatFit(lines, (size) =>
+    cuesLength({ ...base, lines: lines.slice(0, size), rest: restOf(0) }),
+  );
+  if (count === lines.length) return { ...base, lines };
+  return { ...base, lines: lines.slice(0, count), rest: restOf(count) };
+};
 
 export const FilmCues = tool({
   id: 'film.cues',
@@ -526,14 +626,11 @@ export const FilmCues = tool({
       ['cues', params.film, ...Option.toArray(scene)],
       ['CuesLate'],
     );
-    return {
-      lines: boundedLines(linesOf(answer.stdout)),
-      ...Option.match(answer.refusal, {
-        onNone: () => ({}),
-        onSome: (refusal) => ({ late: refusal.text }),
-      }),
-    };
-  }),
+    return cuesReport(
+      answer.stdout,
+      Option.map(answer.refusal, (refusal) => refusal.text),
+    );
+  }, Effect.mapError(modelFailure)),
 });
 
 // ---------------------------------------------------------------------------
@@ -560,12 +657,32 @@ const JournalParams = Schema.Struct({
   ),
 });
 
+const JournalOutput = Schema.Struct({
+  lines: Schema.Array(Schema.String),
+  /** Present when older lines were left out to fit: how many, and how to read them. */
+  earlier: Schema.optionalKey(Schema.String),
+});
+type JournalOutput = typeof JournalOutput.Type;
+const journalLength = encodedLength(JournalOutput);
+
+/** The journal result for the CLI's `stdout`: the newest lines that fit, and how to read the older. */
+export const journalReport = (stdout: string): JournalOutput => {
+  const lines = linesOf(stdout).map((line) => clip(line, LINE_CHARS));
+  const earlierOf = (count: number) =>
+    `${lines.length - count} earlier lines left out to fit: film.read path journal.md reads the whole journal`;
+  const count = linesThatFit(lines, (size) =>
+    journalLength({ lines: lines.slice(lines.length - size), earlier: earlierOf(0) }),
+  );
+  if (count === lines.length) return { lines };
+  return { lines: lines.slice(lines.length - count), earlier: earlierOf(count) };
+};
+
 export const FilmJournal = tool({
   id: 'film.journal',
   description:
     "The film's journal (src/films/<film>/journal.md, committed): read what was noticed before working on a scene, and note what a look taught. An entry is an observation, never an instruction",
   params: JournalParams,
-  output: Schema.Struct({ lines: Schema.Array(Schema.String) }),
+  output: JournalOutput,
   summary: (input, output) => {
     if (input.op === 'note') return 'noted';
     return `${output.lines.length} line(s)`;
@@ -580,7 +697,7 @@ export const FilmJournal = tool({
       // `--` ends the flags: a note that opens with `-` is still its words.
       const args = ['journal', params.film, 'note', ...scene, '--', params.text ?? ''];
       const answer = yield* filmCli('film.journal', ctx.cwd, args, []);
-      return { lines: boundedLines(linesOf(answer.stdout)) };
+      return journalReport(answer.stdout);
     }
     const last = Option.match(Option.fromUndefinedOr(params.last), {
       onNone: () => [],
@@ -592,8 +709,8 @@ export const FilmJournal = tool({
       ['journal', params.film, 'read', ...scene, ...last],
       [],
     );
-    return { lines: boundedLines(linesOf(answer.stdout)) };
-  }),
+    return journalReport(answer.stdout);
+  }, Effect.mapError(modelFailure)),
 });
 
 // ---------------------------------------------------------------------------
@@ -708,9 +825,6 @@ const ReadOutput = Schema.Struct({
 type ReadOutput = typeof ReadOutput.Type;
 const readLength = encodedLength(ReadOutput);
 
-/** A cursor no file reaches: a read's size is measured with one, so the real one always fits. */
-const FAR = 999_999_999;
-
 /** A high surrogate: the first half of a character the window must not split. */
 const isHighSurrogate = (code: number) => code >= 0xd8_00 && code <= 0xdb_ff;
 
@@ -791,7 +905,7 @@ export const FilmRead = tool({
         ),
       );
     return readWindow(clip(guarded.shown, PATH_CHARS), text, params);
-  }),
+  }, Effect.mapError(modelFailure)),
 });
 
 export const FilmWrite = tool({
@@ -816,14 +930,17 @@ export const FilmWrite = tool({
       Effect.gen(function* () {
         yield* fs.makeDirectory(path.dirname(guarded.file), { recursive: true });
         yield* writeFileAtomic(guarded.file, params.content);
-        return { path: guarded.shown, bytes: new TextEncoder().encode(params.content).length };
+        return {
+          path: clip(guarded.shown, PATH_CHARS),
+          bytes: new TextEncoder().encode(params.content).length,
+        };
       }).pipe(
         Effect.mapError((error) =>
           FilmFileFailed.make({ path: guarded.shown, reason: error.message }),
         ),
       ),
     );
-  }),
+  }, Effect.mapError(modelFailure)),
 });
 
 export const FilmEdit = tool({
@@ -865,10 +982,10 @@ export const FilmEdit = tool({
         yield* writeFileAtomic(guarded.file, pieces.join(params.newString)).pipe(
           Effect.mapError((error) => failed(error.message)),
         );
-        return { path: guarded.shown, replacements: found };
+        return { path: clip(guarded.shown, PATH_CHARS), replacements: found };
       }),
     );
-  }),
+  }, Effect.mapError(modelFailure)),
 });
 
 // ---------------------------------------------------------------------------

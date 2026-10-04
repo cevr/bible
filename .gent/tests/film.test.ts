@@ -21,7 +21,7 @@ import {
 import { BunServices } from '@effect/platform-bun';
 import * as Prompt from 'effect/ai/Prompt';
 import type { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
-import { AgentName, ModelId } from '@gent/core/extensions/api';
+import { AgentName, ModelId, type ToolResultFailure } from '@gent/core/extensions/api';
 import {
   type CompactionRequest,
   ModelContextBudget,
@@ -52,6 +52,7 @@ import {
   turnRequestText,
 } from '@gent/core/test-utils';
 import FilmExtension, {
+  checkReport,
   FILM_TOOL_IDS,
   FilmCheck,
   FilmCues,
@@ -226,6 +227,36 @@ const live = <A, E>(
   >,
 ) => effect.pipe(Effect.scoped, Effect.provide(BunServices.layer), Effect.timeout('25 seconds'));
 
+/** The JSON text a result is sent to the model as: gent spills one over 8,000 characters. */
+const encodeJson = Schema.encodeSync(Schema.fromJsonString(Schema.Json));
+
+/** Any value as the JSON text the model would be sent. */
+const encodeAny = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
+
+/** A failed film tool's result as the model reads it: the failure's tag and its fields. */
+const ModelFailure = Schema.Struct({
+  _tag: Schema.String,
+  tool: Schema.optionalKey(Schema.String),
+  tag: Schema.optionalKey(Schema.String),
+  text: Schema.optionalKey(Schema.String),
+  path: Schema.optionalKey(Schema.String),
+  file: Schema.optionalKey(Schema.String),
+  reason: Schema.optionalKey(Schema.String),
+});
+
+/**
+ * The failure a film tool sends the model: a `ToolResultFailure`, whose
+ * result fits gent's budget, decoded to its fields.
+ */
+const failure = (effect: Effect.Effect<unknown, ToolResultFailure>) =>
+  Effect.flip(effect).pipe(
+    Effect.flatMap((error) => {
+      expect(error._tag).toBe('ToolResultFailure');
+      expect(encodeJson(error.result).length).toBeLessThan(8_000);
+      return Schema.decodeUnknownEffect(ModelFailure)(error.result);
+    }),
+  );
+
 // ── the guard ───────────────────────────────────────────────────────────────
 
 describe('the film folder guard', () => {
@@ -242,44 +273,48 @@ describe('the film folder guard', () => {
           yield* fs.symlink(secret, `${filmFolder(root)}/link.ts`);
           yield* fs.symlink(outside, `${filmFolder(root)}/linked`);
 
-          const refused = (
-            effect: Effect.Effect<unknown, { readonly _tag: string; readonly message: string }>,
-          ) => Effect.map(Effect.flip(effect), (error) => [error._tag, error.message] as const);
-
-          const dots = yield* refused(
+          const dots = yield* failure(
             runToolWithCtx(FilmRead, { film: 'easel', path: '../easel/script.ts' }, ctx),
           );
-          expect(dots[0]).toBe('FilmPathRefused');
-          expect(dots[1]).toContain('".."');
+          expect(dots).toMatchObject({
+            _tag: 'FilmPathRefused',
+            reason: expect.stringContaining('".."'),
+          });
 
-          const absolute = yield* refused(
+          const absolute = yield* failure(
             runToolWithCtx(
               FilmWrite,
               { film: 'easel', path: '/nonexistent/loop-probe-x', content: 'x' },
               ctx,
             ),
           );
-          expect(absolute[0]).toBe('FilmPathRefused');
-          expect(absolute[1]).toContain('outside');
+          expect(absolute).toMatchObject({
+            _tag: 'FilmPathRefused',
+            reason: expect.stringContaining('outside'),
+          });
 
-          const fileLink = yield* refused(
+          const fileLink = yield* failure(
             runToolWithCtx(
               FilmWrite,
               { film: 'easel', path: 'link.ts', content: 'overwritten\n' },
               ctx,
             ),
           );
-          expect(fileLink).toEqual(['FilmPathRefused', 'link.ts: link.ts is a symbolic link']);
+          expect(fileLink).toEqual({
+            _tag: 'FilmPathRefused',
+            path: 'link.ts',
+            reason: 'link.ts is a symbolic link',
+          });
 
-          const folderLink = yield* refused(
+          const folderLink = yield* failure(
             runToolWithCtx(FilmWrite, { film: 'easel', path: 'linked/new.ts', content: 'x' }, ctx),
           );
-          expect(folderLink[1]).toContain('linked is a symbolic link');
+          expect(folderLink.reason).toContain('linked is a symbolic link');
 
-          const readLink = yield* refused(
+          const readLink = yield* failure(
             runToolWithCtx(FilmRead, { film: 'easel', path: 'link.ts' }, ctx),
           );
-          expect(readLink[0]).toBe('FilmPathRefused');
+          expect(readLink._tag).toBe('FilmPathRefused');
 
           expect(yield* fs.readFileString(secret)).toBe('outside\n');
           expect(yield* fs.exists(`${outside}/new.ts`)).toBe(false);
@@ -294,11 +329,11 @@ describe('the film folder guard', () => {
         const fs = yield* FileSystem.FileSystem;
         const { root, ctx } = yield* world();
         yield* fs.symlink(filmFolder(root), `${root}/apps/animations/src/films/alias`);
-        const error = yield* Effect.flip(
+        const error = yield* failure(
           runToolWithCtx(FilmRead, { film: 'alias', path: 'script.ts' }, ctx),
         );
         expect(error._tag).toBe('FilmPathRefused');
-        expect(error.message).toContain('the folder is a symbolic link');
+        expect(error.reason).toBe('the folder is a symbolic link');
       }),
     ),
   );
@@ -314,15 +349,15 @@ describe('the film folder guard', () => {
         );
         expect(written).toEqual({ path: 'scenes/roof.ts', bytes: 26 });
 
-        const once = yield* Effect.flip(
+        const once = yield* failure(
           runToolWithCtx(
             FilmEdit,
             { film: 'easel', path: 'scenes/roof.ts', oldString: '= 1', newString: '= 2' },
             ctx,
           ),
         );
-        expect(once.message).toContain('found 2 times');
-        const missing = yield* Effect.flip(
+        expect(once.reason).toContain('found 2 times');
+        const missing = yield* failure(
           runToolWithCtx(
             FilmEdit,
             { film: 'easel', path: 'scenes/roof.ts', oldString: '$&', newString: 'x' },
@@ -330,7 +365,7 @@ describe('the film folder guard', () => {
           ),
         );
         expect(missing).toMatchObject({ _tag: 'FilmFileFailed', reason: 'oldString not found' });
-        const empty = yield* Effect.flip(
+        const empty = yield* failure(
           runToolWithCtx(
             FilmEdit,
             { film: 'easel', path: 'scenes/roof.ts', oldString: '', newString: 'x' },
@@ -392,7 +427,7 @@ describe('the film folder guard', () => {
           ctx,
         );
         expect(rules.text).toContain('Step 4');
-        const error = yield* Effect.flip(
+        const error = yield* failure(
           runToolWithCtx(FilmRead, { film: 'easel', path: 'SKILL.md' }, ctx),
         );
         expect(error).toMatchObject({ _tag: 'FilmFileFailed', path: 'SKILL.md' });
@@ -430,6 +465,7 @@ const readAll = Effect.fn('test.readAll')(function* (
   let cursor = { from: 1, column: 1 };
   for (let read = 0; read < 40; read += 1) {
     const window = yield* runToolWithCtx(FilmRead, { film: 'easel', path, ...cursor }, ctx);
+    expect(encodeAny(window).length).toBeLessThan(8_000);
     pieces.push(window.text);
     const next = Option.fromUndefinedOr(window.next);
     if (Option.isNone(next)) return pieces;
@@ -439,6 +475,72 @@ const readAll = Effect.fn('test.readAll')(function* (
 });
 
 // ── the CLI tools ───────────────────────────────────────────────────────────
+
+describe("every result fits gent's budget, and says how to read on", () => {
+  it.effect('24 long findings come a page at a time, each page under 8,000 characters', () =>
+    Effect.sync(() => {
+      const stdout = Array.from({ length: 24 }, (_, index) =>
+        encodeAny({
+          level: Option.match(
+            Option.liftPredicate(index, (at) => at % 2 === 0),
+            {
+              onSome: () => 'error',
+              onNone: () => 'warning',
+            },
+          ),
+          tag: `Finding${index}`,
+          message: `"${'q"'.repeat(600)}"`,
+          address: { part: { _tag: 'Scenes', ids: ['roof'] }, time: index },
+        }),
+      ).join('\n');
+      const tags: Array<string> = [];
+      let from = 0;
+      for (let page = 0; page < 30; page += 1) {
+        const report = checkReport(stdout, from);
+        expect(encodeAny(report).length).toBeLessThan(8_000);
+        expect(report.errors).toBe(12);
+        tags.push(...report.findings.map((finding) => finding.tag));
+        const next = Option.fromUndefinedOr(report.next);
+        if (Option.isNone(next)) break;
+        from = next.value;
+      }
+      expect(tags).toHaveLength(24);
+      expect(new Set(tags).size).toBe(24);
+      // Errors first, in the order the check printed them.
+      expect(tags.slice(0, 3)).toEqual(['Finding0', 'Finding2', 'Finding4']);
+    }),
+  );
+
+  it.live('a file full of quotes reads back whole, each window under 8,000 characters', () =>
+    live(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const { root, ctx } = yield* world();
+        const quotes = `${'"'.repeat(99)}\n`.repeat(200);
+        yield* fs.writeFileString(`${filmFolder(root)}/quotes.txt`, quotes);
+        const pieces = yield* readAll(ctx, 'quotes.txt');
+        expect(pieces.length).toBeGreaterThan(2);
+        expect(pieces.join('')).toBe(quotes);
+      }),
+    ),
+  );
+
+  it.live('a refusal of a very long path stays under 8,000 characters', () =>
+    live(
+      Effect.gen(function* () {
+        const { ctx } = yield* world();
+        const refused = yield* failure(
+          runToolWithCtx(
+            FilmRead,
+            { film: 'easel', path: `/nonexistent/loop-probe-x/${'"'.repeat(9_000)}` },
+            ctx,
+          ),
+        );
+        expect(refused._tag).toBe('FilmPathRefused');
+      }),
+    ),
+  );
+});
 
 describe('refusalOf', () => {
   it.effect(
@@ -509,7 +611,7 @@ describe('film.look', () => {
       Effect.gen(function* () {
         const { ctx } = yield* world();
         const refusal = (scene: string) =>
-          Effect.flip(runToolWithCtx(FilmLook, { film: 'easel', scene, at: ['1'] }, ctx));
+          failure(runToolWithCtx(FilmLook, { film: 'easel', scene, at: ['1'] }, ctx));
         const [missing, broken, invalid] = yield* Effect.all(
           [refusal('missing'), refusal('broken'), refusal('invalid')],
           { concurrency: 3 },
@@ -518,16 +620,22 @@ describe('film.look', () => {
           _tag: 'FilmRefused',
           tool: 'film.look',
           tag: 'UnknownScene',
+          text: expect.stringContaining('missing'),
         });
-        expect(missing.message).toContain('missing');
-        expect(broken).toMatchObject({ _tag: 'FilmRefused', tag: 'PagesBroken' });
-        expect(broken.message).toContain('scenes/broken.ts failed to build');
-        expect(invalid).toMatchObject({ _tag: 'FilmRefused', tag: 'LookInvalid' });
-        expect(invalid.message).toContain('a crop wider than the canvas');
+        expect(broken).toMatchObject({
+          _tag: 'FilmRefused',
+          tag: 'PagesBroken',
+          text: expect.stringContaining('scenes/broken.ts failed to build'),
+        });
+        expect(invalid).toMatchObject({
+          _tag: 'FilmRefused',
+          tag: 'LookInvalid',
+          text: expect.stringContaining('a crop wider than the canvas'),
+        });
 
         const huge = yield* refusal('huge');
         expect(huge._tag).toBe('FilmImageRefused');
-        expect(huge.message).toContain('smaller --size');
+        expect(huge.reason).toContain('smaller size');
       }),
     ),
   );
@@ -538,15 +646,18 @@ describe('film.look', () => {
         const port = yield* freePort;
         const root = yield* checkout(`http://127.0.0.1:${port}/`);
         const home = yield* makeTempDirectoryScoped('film-gent-home-');
-        const down = yield* Effect.flip(
+        const down = yield* failure(
           runToolWithCtx(
             FilmLook,
             { film: 'easel', scene: 'roof', at: ['1'] },
             testToolContext({ cwd: root, home }),
           ),
         );
-        expect(down).toMatchObject({ _tag: 'FilmRefused', tag: 'LabDown' });
-        expect(down.message).toContain(`127.0.0.1:${port}`);
+        expect(down).toMatchObject({
+          _tag: 'FilmRefused',
+          tag: 'LabDown',
+          text: expect.stringContaining(`127.0.0.1:${port}`),
+        });
       }),
     ),
   );
@@ -559,7 +670,7 @@ describe('film.check', () => {
         const { ctx } = yield* world();
         const report = yield* runToolWithCtx(FilmCheck, { film: 'easel', scenes: ['roof'] }, ctx);
         expect(report.findings.length).toBe(report.errors + report.warnings);
-        expect(report.more).toBe(0);
+        expect(report.next).toBeUndefined();
         // The fixture has no takes: stale takes are warnings, never errors, to a painter.
         expect(
           report.findings.some(
@@ -575,7 +686,7 @@ describe('film.check', () => {
         );
         expect(unknownScene.findings[0]).toMatchObject({ level: 'error', tag: 'UnknownScene' });
 
-        const unknownFilm = yield* Effect.flip(
+        const unknownFilm = yield* failure(
           runToolWithCtx(FilmCheck, { film: 'nofilm', scenes: ['roof'] }, ctx),
         );
         expect(unknownFilm).toMatchObject({
@@ -598,7 +709,7 @@ describe('film.cues', () => {
         expect(cues.lines[0]).toContain('roof@');
         const every = yield* runToolWithCtx(FilmCues, { film: 'easel' }, ctx);
         expect(every.lines.length).toBeGreaterThanOrEqual(2);
-        const error = yield* Effect.flip(
+        const error = yield* failure(
           runToolWithCtx(FilmCues, { film: 'easel', scene: 'nope' }, ctx),
         );
         expect(error).toMatchObject({
@@ -633,11 +744,11 @@ describe('film.journal', () => {
           'the roof line reads',
         );
 
-        const empty = yield* Effect.flip(
+        const empty = yield* failure(
           runToolWithCtx(FilmJournal, { film: 'easel', op: 'note', scene: 'roof', text: '' }, ctx),
         );
         expect(empty).toMatchObject({ _tag: 'FilmRefused', tool: 'film.journal' });
-        const unknown = yield* Effect.flip(
+        const unknown = yield* failure(
           runToolWithCtx(FilmJournal, { film: 'easel', op: 'note', scene: 'nope', text: 'x' }, ctx),
         );
         expect(unknown).toMatchObject({ _tag: 'FilmRefused', tag: 'UnknownScene' });
