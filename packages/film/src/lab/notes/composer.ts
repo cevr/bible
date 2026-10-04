@@ -164,6 +164,13 @@ export const composerOpen = (state: ComposerState): boolean =>
     Match.orElse(() => true),
   );
 
+/**
+ * What the owner does before the page may reload (`ReloadGate`), while a
+ * note is being made: its marks and words are only on this page.
+ */
+export const unsaved = (state: ComposerState): Option.Option<string> =>
+  Option.liftPredicate('save or cancel the note being written', () => composerOpen(state));
+
 /** Whether the composer waits for the note's words, and so takes the keys. */
 export const composerTyping = (state: ComposerState): boolean =>
   Match.value(state).pipe(

@@ -16,8 +16,10 @@ import {
   Redacted,
   Result,
   Schema,
+  Sink,
   Stream,
 } from 'effect';
+import { type ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { Base64 } from 'effect/encoding';
 import * as PlatformError from 'effect/PlatformError';
@@ -61,7 +63,9 @@ import {
   FilmUnknown,
   FreshProcessFailed,
   MediaFailed,
+  RecordingInvalid,
   SceneNotRendered,
+  TakeMismatch,
   VerbRefused,
 } from '../core/refusals.ts';
 import {
@@ -81,7 +85,9 @@ import { SceneHead } from './scene-head.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import { type Change, SourceWriter } from './source-writer.ts';
-import { FreshFilm, type FreshFilmService, SitesRead } from './fresh-film.ts';
+import { FreshFilm, type FreshFilmService, OptionsKept, SitesRead } from './fresh-film.ts';
+import { beatsOf, voicedOf } from './narrator.ts';
+import { voicePoints } from './choice-points.ts';
 import { Takes } from './takes.ts';
 import { Review } from './review.ts';
 import { Choices } from './choices.ts';
@@ -316,6 +322,44 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
   );
 };
 
+/** What a command is given on stdin, when it is given a stream. */
+const stdinOf = (
+  command: ChildProcess.Command,
+): Stream.Stream<Uint8Array, PlatformError.PlatformError> => {
+  if (command._tag !== 'StandardCommand') return Stream.empty;
+  const given = command.options.stdin;
+  if (Stream.isStream(given)) return given;
+  return Stream.empty;
+};
+
+/**
+ * A child process spawner whose every run prints back what it was given on
+ * stdin and exits 0: oxfmt that leaves a text as it is. The SourceWriter
+ * formats what it writes through oxfmt; over an in-memory film there is no
+ * folder to run it from, and the text it formats is not what a test checks.
+ */
+export const formatAsIs = Layer.succeed(
+  ChildProcessSpawner.ChildProcessSpawner,
+  ChildProcessSpawner.make((command) => {
+    const stdout = stdinOf(command);
+    return Effect.succeed(
+      ChildProcessSpawner.makeHandle({
+        pid: ChildProcessSpawner.ProcessId(0),
+        exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(0)),
+        isRunning: Effect.succeed(false),
+        kill: () => Effect.void,
+        stdin: Sink.drain,
+        stdout,
+        stderr: Stream.empty,
+        all: stdout,
+        getInputFd: () => Sink.drain,
+        getOutputFd: () => Stream.empty,
+        unref: Effect.succeed(Effect.void),
+      }),
+    );
+  }),
+);
+
 const isFilmUnknown = Schema.is(FilmUnknown);
 
 /** A failure as a fresh run answers it: a film it cannot find as itself, any other as `ServerFailed`. */
@@ -323,6 +367,54 @@ const freshFailure = (error: { readonly _tag: string; readonly message: string }
   if (isFilmUnknown(error)) return error;
   return ServerFailed.make({ tag: error._tag, reason: error.message });
 };
+
+const isKeepRefusal = Schema.is(Schema.Union([TakeMismatch, RecordingInvalid]));
+
+/**
+ * `film options list` run in this process over the test's `FilmRepo` and
+ * `Takes` (in `context`), for a film whose only points are its voices: each
+ * beat's attempts, as `film options list` lists them.
+ */
+export const voicesHere = (context: Context.Context<FilmRepo | Takes>) => (film: string) =>
+  Effect.gen(function* () {
+    const loaded = yield* (yield* FilmRepo).load(film);
+    const beats = yield* Effect.fromResult(beatsOf(loaded));
+    const takes = yield* Takes;
+    const attempts = yield* Effect.forEach(beats, (beat) =>
+      Effect.map(takes.attempts(loaded.paths, beat.id), (made) => ({
+        beat: beat.id,
+        hash: hashText(beat.script),
+        attempts: made,
+      })),
+    );
+    return voicePoints(loaded, attempts).map((draft) => withSay(Option.none(), draft));
+  }).pipe(Effect.provideContext(context), Effect.orDie);
+
+/**
+ * `film options keep-voice` run in this process over the test's `FilmRepo`
+ * and `Takes` (in `context`), as the fresh run would over the same files:
+ * the attempt kept, `mixing` standing in for its mix (answering whether it
+ * mixed), a take it will not keep refused as itself, any other failure as
+ * `ServerFailed`.
+ */
+export const keepVoiceHere =
+  (
+    context: Context.Context<FilmRepo | Takes>,
+    mixing: Effect.Effect<boolean> = Effect.succeed(true),
+  ) =>
+  (film: string, beat: string, file: string, options: { readonly acceptMismatch: boolean }) =>
+    Effect.gen(function* () {
+      const voiced = yield* Effect.fromResult(voicedOf(yield* (yield* FilmRepo).load(film)));
+      const kept = yield* (yield* Takes).keepAttempt(voiced, beat, file, options);
+      const mixed = yield* mixing;
+      return OptionsKept.make({ take: kept.take, heard: kept.heard, wer: kept.wer, mixed });
+    }).pipe(
+      Effect.provideContext(context),
+      Effect.mapError((error) => {
+        if (isKeepRefusal(error)) return error;
+        return ServerFailed.make({ tag: error._tag, reason: error.message });
+      }),
+    );
 
 /**
  * `freshFilm(given)` whose `film read cue` and `film read sites` run in this
@@ -372,10 +464,11 @@ export const freshHere = (given: Partial<FreshFilmService>) =>
   );
 
 /**
- * The scene source's services where a test calls none of its routes: the
- * lab's handler serves them too, so they only have to exist.
+ * The scenes' source services where a test calls none of their routes (it
+ * may still write through a real SourceWriter): the lab's handler serves
+ * them too, so they only have to exist.
  */
-export const noSource = Layer.mergeAll(
+export const noScenes = Layer.mergeAll(
   Layer.succeed(
     SceneSources,
     SceneSources.of({
@@ -389,6 +482,15 @@ export const noSource = Layer.mergeAll(
     SceneWriter,
     SceneWriter.of({ setCue: () => unusedSource, setKnob: () => unusedSource }),
   ),
+  Layer.succeed(SceneHead, SceneHead.of({ head: () => unusedSource })),
+);
+
+/**
+ * The scene source's services where a test calls none of its routes: the
+ * lab's handler serves them too, so they only have to exist.
+ */
+export const noSource = Layer.mergeAll(
+  noScenes,
   Layer.succeed(
     SourceWriter,
     SourceWriter.of({
@@ -399,7 +501,6 @@ export const noSource = Layer.mergeAll(
       history: () => unusedSource,
     }),
   ),
-  Layer.succeed(SceneHead, SceneHead.of({ head: () => unusedSource })),
 );
 
 /**
@@ -411,10 +512,15 @@ export const noStudio = Layer.mergeAll(
     Takes,
     Takes.of({
       importPath: () => Effect.die('the studio is not called here'),
-      importBeat: () => Effect.die('the studio is not called here'),
+      recordAttempt: () => Effect.die('the studio is not called here'),
       attempts: () => Effect.die('the studio is not called here'),
       attemptFile: () => Effect.die('the studio is not called here'),
       keepAttempt: () => Effect.die('the studio is not called here'),
+      named: () => ({
+        bring: () => Effect.die('the studio is not called here'),
+        putAway: () => Effect.die('the studio is not called here'),
+        remake: Option.none(),
+      }),
     }),
   ),
   Layer.succeed(
@@ -426,26 +532,33 @@ export const noStudio = Layer.mergeAll(
 const unreviewed = (op: string) => Effect.die(`the review is not called here (${op})`);
 
 /**
+ * The review's renders where a test calls none of their routes (it may still
+ * pick through a real Choices): the lab's handler serves them too, so they
+ * only have to exist.
+ */
+export const noRenders = Layer.succeed(
+  Review,
+  Review.of({
+    roots: [],
+    index: () => unreviewed('index'),
+    pictures: () => unreviewed('pictures'),
+    renderVideo: () => unreviewed('renderVideo'),
+    resolve: () => unreviewed('resolve'),
+    say: () => unreviewed('say'),
+    duration: () => unreviewed('duration'),
+    frame: () => unreviewed('frame'),
+    phone: () => unreviewed('phone'),
+    derive: () => unreviewed('derive'),
+  }),
+);
+
+/**
  * The review's services where a test calls none of its routes (the renders,
  * the choices): the lab's handler serves them too, so they only have to
  * exist.
  */
 export const noReview = Layer.mergeAll(
-  Layer.succeed(
-    Review,
-    Review.of({
-      roots: [],
-      index: () => unreviewed('index'),
-      pictures: () => unreviewed('pictures'),
-      renderVideo: () => unreviewed('renderVideo'),
-      resolve: () => unreviewed('resolve'),
-      say: () => unreviewed('say'),
-      duration: () => unreviewed('duration'),
-      frame: () => unreviewed('frame'),
-      phone: () => unreviewed('phone'),
-      derive: () => unreviewed('derive'),
-    }),
-  ),
+  noRenders,
   Layer.succeed(
     Choices,
     Choices.of({
@@ -1402,6 +1515,7 @@ const reviewPickIn = (films: string): Change => ({
   target: 'score play bright',
   before: "play: 'warm'",
   after: "play: 'bright'",
+  follows: Option.none(),
 });
 
 const reviewUnused = Effect.die('not used by the review routes');
@@ -1467,6 +1581,7 @@ const reviewFilmServices = (films: string, PICK = reviewPickIn(films)) =>
             undo: Option.none(),
             redo: Option.some(PICK),
             latest: Option.none(),
+            landed: [],
           }),
       }),
     ),

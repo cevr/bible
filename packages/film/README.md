@@ -234,7 +234,20 @@ attempt naming the stretch it was cut from), its FLAC, and its
 `attempts.json` ledger (what was heard, the word error, when). Keeping one
 checks its word error again as the check reads now, then copies the FLAC
 beside the other takes and rewrites `timings.json` to name it; the take it
-replaced is removed from `narration/`. The check (`core/spoken.ts`
+replaced is put away into `narration/attempts/<beat>/` (`putAwayTake`: a
+recorded take's attempt is already there, and any other take, a staging one
+or a recorded one whose attempt this machine lacks, is copied there first;
+an attempt of the same name with other bytes stays as it is, and the take
+is kept beside it as `<file>.<sha12><ext>`, logged `takes.put-away.kept-aside`),
+so no take's bytes are ever lost and git drops it from `narration/` as
+before. Placing a take and naming it hold the timings' store lock, and a
+take is put away only while the timings, read under that lock, do not name
+it (`putAwayUnnamed`; narrate's sweep runs under it too), so a sweep in
+another process never puts away a take a lab's Undo is naming. A
+keep made in the lab is undoable: its change carries the takes the timings
+name (`Takes.named`), so Undo brings the replaced take back into
+`narration/` (a kept-aside copy first) before the timings name it again, and refuses when it is in
+neither place. The check (`core/spoken.ts`
 `lineError`, for narrate and takes alike) reads both sides as said
 (`spokenWords`): a run of numbers is one token of digits however written or
 spoken (`144,000`, "one hundred and forty-four thousand", a year in pairs),
@@ -737,8 +750,32 @@ imported it, so the studio never loads the film in its own process: it reads
 the voice, the script's `heardAs`, each beat's line and the reading sheet
 fresh (`film read voice <film>`, `StudioReading` in `core/studio.ts`), kept
 by `StudioReadings` under the film's source stamp (`FilmFolder.stamp`: one
-fresh process after any file under the film changed, none before), and
-remixes with `film mix <film>`. A take is kept against that reading
+fresh process after any file under the film changed, none before). A posted
+recording is made an attempt here (`Takes.recordAttempt`); every keep, of
+that attempt or an earlier one, is `keepVoice` (`choices.ts`), the one keep
+the Choices view's voice pick makes too: `film options keep-voice <film>
+<beat> <file> [--accept-mismatch]` in a fresh process (it keeps the take and
+remixes), recorded by `SourceWriter.around` with the take files the timings
+name and the track mixed from them (`Follows`), so it holds the writer's
+lock and the lab's Undo and Redo walk it back and forth: each brings back
+the take it lands from `attempts/`, remixes (`film mix <film>`, fresh; a
+failed mix is logged `lab.remake.failed` and the step stands), and the lab
+page reloads at its frame to play it (`readAtLoad`: the timings and the
+track are read at load, so no rebuild would). The editor waits for such a
+step as long as the studio waits for a keep (`STUDIO_IMPORT_WAIT_S`); with
+no answer even then it reads `GET …/check`, whose `landed` the step is
+recorded in, under the id its request carried, before it remixes, and says
+whether it landed. Undo and Redo are stepped back and on only with the
+timings' takes brought back as the very files they name: a take's copy is
+picked by the hash of its audio its name carries, and a name from before
+takes were named by their audio, whose copies differ, is refused
+(`TakeAmbiguous`) rather than guessed at. A keep answered by
+an older film CLI (`{"_tag":"OptionsKept","mixed":true}`, no take) is still
+recorded and answered from the timings. A reload never takes work only the
+page holds: a take being recorded, under review, refused with its recording
+or on its way, or a note being made, holds every reload (`lab/reload-gate.ts`),
+which runs once it is submitted, discarded or saved; the panel says what it
+waits for. A take is kept against that reading
 (`VoicedFilm`, `narrator.ts`: the film's paths, voice, `heardAs` and beats,
 which `takes import` makes with `voicedOf`), so a line fixed while the lab
 is open is on the sheet, and a take of it current, at the next read. Its
@@ -775,9 +812,10 @@ encoded `/` or `..` included) is a 404 `UnknownScene`. A body over
 `STUDIO_MAX_BODY` (64 MiB) is a 413 `BodyTooLarge`, counted as it streams (a
 Content-Length over it is refused unread; one under it is not believed). The
 upload is written to a scoped temp file (`recording.wav` or `.flac`), removed
-when the request ends. Takes are kept one at a time (a semaphore per studio):
-the keep, the timings write and the mix after it finish before the next post
-begins. After a take is kept the film remixes; `mixed: false` says the mix
+when the request ends. Takes are kept one at a time with every other lab
+write (the writer's lock): the keep, the timings write and the mix after it
+finish before the next keep, pick or edit begins, and the keep is undoable
+(Undo names `voice <beat> keep <file>`). After a take is kept the film remixes; `mixed: false` says the mix
 failed (logged) and the take stands. The server keeps a connection open
 with nothing sent for `LAB_IDLE_SECONDS` (255 s, Bun's longest), past the
 page's wait for a take (`STUDIO_IMPORT_WAIT_S`), so the page stops waiting
@@ -1029,8 +1067,10 @@ empty, so an open page and `--watch` keep hearing); `wait` polls the file for th
 the CLI wrote while the server was waiting. Each change is one
 `ContentStore.transact`, as every manifest's is: written whole, one writer at
 a time across processes (`notes.json.lock`, created only if there is none and
-naming its holder; a lock whose holder is gone, or older than 30 s, is
-broken; one held past about 5 s fails with `StoreLocked`, naming it). A
+naming its holder's pid and host; a lock whose holder is gone, a pid on this
+host that no longer runs, is broken, and a running holder's never is, however
+long it holds it; one held past about 5 s fails with `StoreLocked`, and the
+log names who holds it, `store.lock.held`). A
 note's still is written under the same lock, before the note that names it.
 
 `nearestMoment(placed, T)` (`core/notes.ts`) names the scene at `T` and, in
@@ -1136,14 +1176,14 @@ at the same frame and pick, kept in its place (`/films/<film>/lab/hand?cue=toppl
 `?knob=palm`); review the
 change with `git diff`.
 
-| Route                                              | What it does                                                                                        |
-| -------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`    |
-| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `ease?`, `stagger?`) → the span, the cue resolved, findings |
-| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings           |
-| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{}`)     |
-| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, and what Undo and Redo would do                       |
-| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                    |
+| Route                                              | What it does                                                                                                                              |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`                                          |
+| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                       |
+| `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                 |
+| `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under) |
+| `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do, and the steps `landed` by request id                           |
+| `GET /api/films/<film>/scenes/:scene/head`         | the scene's timeline and knobs at HEAD (`HeadSource`), `codeChanged`, `sameData`                                                          |
 
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
@@ -1262,11 +1302,16 @@ transition's layer, or under two different transforms in one frame, it is
 numbers only, and the inspector says why. A field computed in source is shown
 disabled. Undo write reverts the last write. Every write, a drag's, a
 field's, a knob's, Undo's and Redo's, goes through one effect-machine
-(`lab/editor/machine.ts`: `Idle`, `Pressed`, `Dragging`, `Writing`, `Written`,
+(`lab/editor/machine.ts`: `Idle`, `Pressed`, `Dragging`, `Writing`, `Checking`, `Written`,
 `Refused`), so a press or another write while one is out is not taken and
 two writes never race for a file; a write with no answer in 20 s
 (`WRITE_TIMEOUT_S`) is refused and says so, so a hung server never wedges
-the editor; Escape during a drag puts the cue back.
+the editor; an Undo or Redo, which may remix the track first, waits
+`STUDIO_IMPORT_WAIT_S`, then `Checking` asks the lab by the id the step's
+request carried (`stepRequest`, unique to it): the lab recorded a step
+under it (written, with a note to reload once mixed), or did not (refused,
+naming the latest change), never judged by a name two changes may share;
+Escape during a drag puts the cue back.
 The pure parts (`lab/editor/grip.ts`: where a press grabs, snapping, the
 patch a drag makes, why a cue cannot be dragged) are shared by the machine
 and its tests, which run every transition with no DOM. The knobs' rows
@@ -1467,7 +1512,8 @@ unformatted. A write that
 changes nothing answers `(already so)` and records nothing. Each film keeps
 its own undo and redo stacks (50 deep): Undo puts the newest change back byte
 for byte, only while the file is exactly as that change left it (else
-`UndoUnavailable`, a 409); a new change drops what could be redone. The file a change
+`UndoUnavailable`, a 409, touching nothing: the check, the takes brought
+back, the write and the takes put away all hold the file's store lock); a new change drops what could be redone. The file a change
 touched is named relative to the film's folder (`sound.ts`,
 `../../../sounds/library.lock.json` in the app).
 

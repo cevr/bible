@@ -11,7 +11,8 @@ import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
 import type { SceneEdit } from '../../canvas/film.ts';
-import type { LabWrite } from '../../core/schema.ts';
+import type { CheckReport, LabWrite } from '../../core/schema.ts';
+import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { SourceChanged } from '../../core/refusals.ts';
 import { LabApi, type LabCalls, type LabFailure } from '../api.ts';
 import { NotPreviewed, Stage, type StageOps } from '../stage.ts';
@@ -45,7 +46,11 @@ const landed: LabWrite = {
  * A stage that says what was asked of it (scene `bad` cannot be previewed),
  * and an API whose every write answers `write`.
  */
-const fakes = (write: Effect.Effect<LabWrite, LabFailure> = Effect.succeed(landed)) => {
+const fakes = (
+  write: Effect.Effect<LabWrite, LabFailure> = Effect.succeed(landed),
+  /** What the lab's check reports: its latest change, and what Undo and Redo would do. */
+  check: Effect.Effect<CheckReport, LabFailure> = Effect.die('not asked'),
+) => {
   const log: Array<string> = [];
   const keys = (edit: SceneEdit) => Object.keys({ ...edit.timeline, ...edit.knobs }).join(',');
   const stage: StageOps = {
@@ -61,7 +66,7 @@ const fakes = (write: Effect.Effect<LabWrite, LabFailure> = Effect.succeed(lande
     knobsOf: () => ({}),
     cuesOf: () => new Map(),
     holdT: Effect.sync(() => log.push('holdT')),
-    reload: Effect.die('not asked'),
+    reload: Effect.sync(() => log.push('reload')),
     settle: Effect.sync(() => log.push('settle')),
     pause: Effect.sync(() => log.push('pause')),
     duration: 10,
@@ -72,7 +77,7 @@ const fakes = (write: Effect.Effect<LabWrite, LabFailure> = Effect.succeed(lande
   const api: LabCalls = {
     source: () => Effect.die('not asked'),
     head: () => Effect.die('not asked'),
-    check: Effect.die('not asked'),
+    check,
     writeCue: () => write,
     writeKnob: () => write,
     step: () => write,
@@ -249,9 +254,11 @@ describe('writes', () => {
   it.effect('undo writes with no preview', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
-      const result = yield* simulate(editMachine, [EditEvent.Step({ verb: 'undo' })]);
+      const result = yield* simulate(editMachine, [
+        EditEvent.Step({ verb: 'undo', request: 'undo-1' }),
+      ]);
       expect(result.finalState).toEqual(
-        EditState.Writing({ write: StepWrite.make({ verb: 'undo' }) }),
+        EditState.Writing({ write: StepWrite.make({ verb: 'undo', request: 'undo-1' }) }),
       );
       expect(log).toEqual(['holdT']);
     }).pipe(Effect.provide(layer));
@@ -260,13 +267,13 @@ describe('writes', () => {
   it.effect('one write at a time: a press or a commit while one is out is not taken', () =>
     Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
-        EditEvent.Step({ verb: 'undo' }),
+        EditEvent.Step({ verb: 'undo', request: 'undo-1' }),
         EditEvent.Press({ grip }),
         EditEvent.Commit({ write: cueWrite, edit: {} }),
-        EditEvent.Step({ verb: 'redo' }),
+        EditEvent.Step({ verb: 'redo', request: 'redo-1' }),
       ]);
       expect(result.finalState).toEqual(
-        EditState.Writing({ write: StepWrite.make({ verb: 'undo' }) }),
+        EditState.Writing({ write: StepWrite.make({ verb: 'undo', request: 'undo-1' }) }),
       );
     }).pipe(Effect.provide(fakes().layer)),
   );
@@ -285,6 +292,34 @@ describe('writes', () => {
       );
     }).pipe(Effect.provide(fakes().layer)),
   );
+
+  it.effect('a scene write waits for the rebuild to reload the page', () => {
+    const { log, layer } = fakes();
+    return Effect.gen(function* () {
+      yield* simulate(editMachine, [
+        EditEvent.Commit({ write: cueWrite, edit: {} }),
+        EditEvent.Wrote({ result: landed }),
+      ]);
+      expect(log).not.toContain('reload');
+    }).pipe(Effect.provide(layer));
+  });
+
+  it.effect('an Undo of a file the page reads once at load (a kept take) reloads it', () => {
+    const { log, layer } = fakes();
+    const timings: LabWrite = {
+      file: 'narration/timings.json',
+      target: 'undo voice a keep a.0123456789ab.flac',
+      findings: [],
+    };
+    return Effect.gen(function* () {
+      const result = yield* simulate(editMachine, [
+        EditEvent.Step({ verb: 'undo', request: 'undo-1' }),
+        EditEvent.Wrote({ result: timings }),
+      ]);
+      expect(result.finalState._tag).toBe('Written');
+      expect(log).toEqual(['holdT', 'reload']);
+    }).pipe(Effect.provide(layer));
+  });
 
   it.effect('a refused write lets #t= go, puts the preview back, and shows the server text', () => {
     const { log, layer } = fakes();
@@ -350,6 +385,124 @@ describe('the write task, through an actor', () => {
         yield* actor.send(EditEvent.Press({ grip }));
         yield* TestClock.adjust('10 millis');
         expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Pressed');
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+});
+
+// An Undo or Redo of a kept take remixes the track before it answers, which
+// takes as long as a keep's mix: it gets the studio's wait, and with no answer
+// even then, the lab's check says whether it landed.
+describe('an Undo that remakes what follows its file', () => {
+  const kept = 'voice a keep a.0123456789ab.flac';
+  const timings: LabWrite = {
+    file: 'narration/timings.json',
+    target: `undo ${kept}`,
+    findings: [],
+  };
+  /** The lab's check: its latest change, and the steps that landed with the ids their pages sent. */
+  const reported = (
+    latest: string,
+    landed: ReadonlyArray<{ readonly target: string; readonly request: string }> = [],
+  ): CheckReport => ({
+    findings: [],
+    latest: { file: 'narration/timings.json', target: latest },
+    landed: landed.map((step) => ({ file: 'narration/timings.json', ...step })),
+  });
+  /** The editor's actor once it was asked to undo, as request `request`. */
+  const undoingAs = (request: string) =>
+    Effect.gen(function* () {
+      const actor = yield* Machine.spawn(editMachine);
+      yield* actor.start;
+      yield* actor.send(EditEvent.Step({ verb: 'undo', request }));
+      yield* TestClock.adjust('10 millis');
+      return actor;
+    });
+  const undoing = undoingAs('undo-1');
+
+  it.effect('an Undo answered after a slow remake lands, past the scene write wait', () => {
+    const { log, layer } = fakes(Effect.as(Effect.sleep('2 minutes'), timings));
+    return Effect.gen(function* () {
+      const actor = yield* undoing;
+      yield* TestClock.adjust(`${WRITE_TIMEOUT_S + 1} seconds`);
+      expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Writing');
+      yield* TestClock.adjust('2 minutes');
+      expect((yield* SubscriptionRef.get(actor.state))._tag).toBe('Written');
+      expect(log).toEqual(['holdT', 'reload']);
+    }).pipe(Effect.scoped, Effect.provide(layer));
+  });
+
+  it.effect(
+    `an Undo with no answer in ${STUDIO_IMPORT_WAIT_S} s that the lab's check says landed is written, and says the track may still be mixing`,
+    () => {
+      const { log, layer } = fakes(
+        Effect.never,
+        Effect.succeed(reported(`undo ${kept}`, [{ target: `undo ${kept}`, request: 'undo-1' }])),
+      );
+      return Effect.gen(function* () {
+        const actor = yield* undoing;
+        yield* TestClock.adjust(`${STUDIO_IMPORT_WAIT_S} seconds`);
+        yield* TestClock.adjust('10 millis');
+        const state = yield* SubscriptionRef.get(actor.state);
+        expect(state._tag).toBe('Written');
+        expect(state).toMatchObject({
+          note: expect.stringContaining('reload the page once the lab log says it mixed'),
+        });
+        // The mix did not answer: nothing reloads, as a studio keep whose mix did not answer.
+        expect(log).toEqual(['holdT', 'settle']);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    "an Undo with no answer that the lab's check says did not land is refused, naming the latest change",
+    () => {
+      const { layer } = fakes(Effect.never, Effect.succeed(reported('cue rise offset')));
+      return Effect.gen(function* () {
+        const actor = yield* undoing;
+        yield* TestClock.adjust(`${STUDIO_IMPORT_WAIT_S} seconds`);
+        yield* TestClock.adjust('10 millis');
+        const state = yield* SubscriptionRef.get(actor.state);
+        expect(state._tag).toBe('Refused');
+        expect(state).toMatchObject({ message: expect.stringContaining('cue rise offset') });
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    'a second Undo that never reached the lab is not taken for an earlier one of the same name',
+    () => {
+      // The first Undo of `cue rise offset` landed; this one, of another change by that name, did not.
+      const first = { target: 'undo cue rise offset', request: 'undo-1' };
+      const { layer } = fakes(
+        Effect.never,
+        Effect.succeed(reported('undo cue rise offset', [first])),
+      );
+      return Effect.gen(function* () {
+        const actor = yield* undoingAs('undo-2');
+        yield* TestClock.adjust(`${STUDIO_IMPORT_WAIT_S} seconds`);
+        yield* TestClock.adjust('10 millis');
+        const state = yield* SubscriptionRef.get(actor.state);
+        expect(state._tag).toBe('Refused');
+        expect(state).toMatchObject({ message: expect.stringContaining('did not land') });
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    "an Undo that landed is written though it walked another change than the page's history named, and a later change landed after it",
+    () => {
+      // The page's history named `cue rise offset`; another tab's change made the Undo walk
+      // `cue rise dur`, and a write landed after it.
+      const mine = { target: 'undo cue rise dur', request: 'undo-1' };
+      const { layer } = fakes(Effect.never, Effect.succeed(reported('cue rise ease', [mine])));
+      return Effect.gen(function* () {
+        const actor = yield* undoingAs('undo-1');
+        yield* TestClock.adjust(`${STUDIO_IMPORT_WAIT_S} seconds`);
+        yield* TestClock.adjust('10 millis');
+        const state = yield* SubscriptionRef.get(actor.state);
+        expect(state._tag).toBe('Written');
+        expect(state).toMatchObject({ note: expect.stringContaining('cue rise dur') });
       }).pipe(Effect.scoped, Effect.provide(layer));
     },
   );

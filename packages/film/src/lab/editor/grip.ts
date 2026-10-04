@@ -123,7 +123,15 @@ export const KnobWrite = Schema.TaggedStruct('KnobWrite', {
 });
 export type KnobWrite = typeof KnobWrite.Type;
 
-export const StepWrite = Schema.TaggedStruct('StepWrite', { verb: StepVerb });
+export const StepWrite = Schema.TaggedStruct('StepWrite', {
+  verb: StepVerb,
+  /**
+   * The id this page gave the request, unique to it: the lab records it on
+   * the step once it lands, so a step with no answer is known by it, never
+   * by a name another change may share.
+   */
+  request: Schema.String,
+});
 export type StepWrite = typeof StepWrite.Type;
 
 /** One write to a scene file: a cue's fields, a knob's value, or an undo or redo. */

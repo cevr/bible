@@ -294,7 +294,7 @@ describe('the inspector', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live('Undo asks the server to undo, and says what it undid', () =>
+  it.live('Undo asks the server to undo, as a request of its own, and says what it undid', () =>
     Effect.gen(function* () {
       const report = {
         findings: [{ level: 'warning', tag: 'late', message: 'rise ends after the scene' }],
@@ -318,7 +318,13 @@ describe('the inspector', () => {
       yield* textIs(page, '.lab-finding', 'late rise ends after the scene');
       yield* page.click('.lab-edit button[data-act="undo"]:not([disabled])');
       yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
-      expect(posted(asked)).toEqual([{ path: '/undo', body: Option.some({}) }]);
+      // With an id unique to the request: the one a check asks after when it has no answer.
+      expect(posted(asked)).toEqual([
+        {
+          path: '/undo',
+          body: Option.some({ request: expect.stringMatching(/^[0-9a-z]+-[0-9a-z]+$/) }),
+        },
+      ]);
     }).pipe(Effect.scoped),
   );
 });

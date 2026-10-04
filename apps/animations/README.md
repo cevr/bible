@@ -60,7 +60,7 @@ bun run chapters <film>                        # the YouTube chapters film.ts's 
 bun cli.ts options list <film> [--check]       # the film's choice points as the review reads them, fresh from disk (one line of JSON); --check adds the static check's findings
 bun cli.ts options take <film> --point p --variant v --verb pick|unpick|reject  # keep, unkeep or reject a sound's take in the library as it stands
 bun cli.ts options mix <film> --point p --variant v --to f.m4a  # the film's whole mix with a score option or a take in place
-bun cli.ts options keep-voice <film> <beat> <file>  # keep a beat's recorded attempt as its take, and remix
+bun cli.ts options keep-voice <film> <beat> <file> [--accept-mismatch]  # keep a beat's recorded attempt as its take, and remix
 bun cli.ts read voice <film>                   # what the lab's studio reads of the film, fresh from disk (one line of JSON)
 bun cli.ts read cue <film> <scene> <cue> [--spans <json>]  # a cue on its scene's clock as the files declare it (or with these spans), or why it does not resolve (one line of JSON)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
@@ -212,7 +212,8 @@ count-in (the meter warns of clipping at −1 dBFS), Space stops, play it back,
 K submits; what was heard and the word error show, or the server's refusal,
 and a `TakeMismatch` offers Accept anyway (K). ←/→ step through the beats and
 Esc cancels; those keys are the Studio's only while it has focus. Each beat's
-attempts play again and Keep makes one the take. A kept take reloads the lab
+attempts play again and Keep makes one the take; a keep, like every lab write,
+is undone by Undo (⌘Z) and redone by Redo: the track remixes and the lab reloads, the take it replaced playing again (the editor waits as long as for a keep, then asks the lab whether the step landed). A reload never takes a take being recorded or under review, nor a note being written: it waits until you submit, discard or save it, and the panel says what it waits for. A kept take reloads the lab
 at the same time, on the same beat, playing the new take (`/films/*` is served
 uncached for that). Use Chrome or Firefox on a computer (every iPhone and
 iPad browser is Safari underneath) and allow the microphone for the lab's origin; a browser gives the microphone only to `https://` or
@@ -423,8 +424,12 @@ with a warning. A new take is saved
 as `<id>.<audio hash>.mp3` (a person's, `.flac`), beside the take it replaces, and becomes current
 only when `timings.json` is rewritten to name it, so a crash at any step
 leaves every take the timings name on disk and matching them. The next
-`narrate` removes what a crash or a failed take left (takes the timings no
-longer name, `*.partial` writes). `timings.json` and `sound/manifest.json` are
+`narrate` clears what a crash or a failed take left in `narration/`: it
+removes `*.partial` writes, and puts every take the timings no longer name
+away into `narration/attempts/<beat>/` (git-ignored), never deleting one
+(beside an attempt of its name that holds other bytes, never over it), all
+under the timings' lock, so a lab's Undo naming a take in another process is never undercut.
+`timings.json` and `sound/manifest.json` are
 Schema-decoded (`@bible/film/core` `schema.ts`: durations and word times are
 non-negative, words run in order, and none ends after its take) and written
 one writer at a time across processes (`ContentStore`: a `<file>.lock` held
@@ -447,7 +452,9 @@ ElevenLabs (`narrate`), then read by a person beat by beat:
    `TakeMismatch` and `--accept-mismatch` work as for `narrate`. Every
    recording stays in `narration/attempts/<beat>/` (git-ignored), the original
    file byte for byte beside its FLAC; the kept FLAC is committed, with
-   `source: "recorded"` in `timings.json`.
+   `source: "recorded"` in `timings.json`. The take it replaces moves out of
+   `narration/` into the same attempts folder (a staging take too), so git
+   drops it from the commit and no take is ever deleted.
 4. `bun run check`, `bun run cues` and `bun run mix` as for any take, then
    tighten each scene's `lead` and `tail` at the seams.
 

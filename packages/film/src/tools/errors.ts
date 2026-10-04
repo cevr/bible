@@ -490,7 +490,7 @@ export class StoreLocked extends Schema.TaggedError<StoreLocked>()('StoreLocked'
   lock: Schema.String,
 }) {
   override get message() {
-    return `${this.lock} is held by a running writer; it is broken once that writer exits or the lock is 30 s old`;
+    return `${this.lock} is held by a running writer; try again once it is done (the lab log names it: store.lock.held), and it is broken only once that writer has exited`;
   }
 }
 
@@ -515,6 +515,30 @@ export class WriteUnverified extends Schema.TaggedError<WriteUnverified>()('Writ
 }) {
   override get message() {
     return `${this.file}: ${this.target} did not read back once formatted (${this.reason}); the file was left as it was`;
+  }
+}
+
+/** A file a recorded text names (a take the timings name) that cannot be brought back beside it. */
+export class NamedFileMissing extends Schema.TaggedError<NamedFileMissing>()('NamedFileMissing', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file} ${this.reason}`;
+  }
+}
+
+/**
+ * A take a recorded text names whose put-away copies differ, when its name
+ * carries no hash of its audio to say which is it: nothing is brought back
+ * rather than a guess.
+ */
+export class TakeAmbiguous extends Schema.TaggedError<TakeAmbiguous>()('TakeAmbiguous', {
+  file: Schema.String,
+  copies: Schema.Array(Schema.String),
+}) {
+  override get message() {
+    return `${this.file}, whose put-away copies hold different audio (${this.copies.join(', ')}) and whose name carries no hash to say which it is; restore the one you mean to narration/${this.file} by hand`;
   }
 }
 

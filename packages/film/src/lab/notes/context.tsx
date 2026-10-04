@@ -38,6 +38,7 @@ import {
   composerTyping,
   draftMarks,
   spawnComposer,
+  unsaved,
 } from './composer.ts';
 import { draftOf, whereText } from './draft.ts';
 import { type FeedActor, FeedEvent, feedText, spawnFeed } from './feed.ts';
@@ -169,6 +170,14 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
   const selected = createMemo(() =>
     Option.flatMap(selectedId(), (id) => Option.fromUndefinedOr(notes().find((n) => n.id === id))),
   );
+
+  // A note being made holds every reload (an Undo's, a rebuild's) until it is saved or cancelled.
+  createEffect(composer, (s) => {
+    Effect.runFork(meta.reloads.hold('notes', unsaved(s)));
+  });
+  onCleanup(() => {
+    Effect.runFork(meta.reloads.hold('notes', Option.none()));
+  });
 
   // A save that made a note selects it, and the notes are read at once.
   createEffect(composer, (s) => {

@@ -16,8 +16,9 @@
 //       take at every placement of its sound), written as an m4a
 //   film options take <film> --point take:<sound> --variant <sha256> --verb pick|unpick|reject
 //       the take kept, unkept or rejected through the library, as it stands
-//   film options keep-voice <film> <beat> <file>
-//       the beat's attempt `file` kept as its take, and the track remixed
+//   film options keep-voice <film> <beat> <file> [--accept-mismatch]
+//       the beat's attempt `file` kept as its take (one that says something
+//       else only with --accept-mismatch), and the track remixed
 
 import { Effect, FileSystem, Match, Option, Path, Result } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
@@ -196,10 +197,16 @@ const keepVoice = Command.make(
     file: Argument.String('file').pipe(
       Argument.withDescription('the attempt to keep, as its beat lists it'),
     ),
+    acceptMismatch: Flag.Boolean('accept-mismatch').pipe(
+      Flag.withDefault(false),
+      Flag.withDescription('keep it even when its transcript does not match its line'),
+    ),
   },
   Effect.fn('film.options.keepVoice')(function* (input) {
     const voiced = yield* Effect.fromResult(voicedOf(yield* (yield* FilmRepo).load(input.film)));
-    yield* (yield* Takes).keepAttempt(voiced, input.beat, input.file, { acceptMismatch: false });
+    const kept = yield* (yield* Takes).keepAttempt(voiced, input.beat, input.file, {
+      acceptMismatch: input.acceptMismatch,
+    });
     // The track is remixed with the take; a failed mix leaves the take kept and says why.
     const mixed = yield* (yield* Mixer)
       .mix(input.film, { stems: false, score: Option.none() })
@@ -211,7 +218,9 @@ const keepVoice = Command.make(
           ).pipe(Effect.as(false)),
         ),
       );
-    yield* printLine(OptionsKept.make({ mixed }));
+    yield* printLine(
+      OptionsKept.make({ take: kept.take, heard: kept.heard, wer: kept.wer, mixed }),
+    );
   }, answering),
 ).pipe(Command.withDescription("Keep a beat's attempt as its take, and remix the track"));
 

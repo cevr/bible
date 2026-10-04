@@ -8,7 +8,9 @@
 // nothing here writes the URL. A write the film's code does not import (a
 // take's audio and timings, which the player fetches once) reloads the page
 // itself, once the held place is on the address bar, so it lands on the
-// frame, the scene and the pick it left.
+// frame, the scene and the pick it left (`reloadHere`). Every reload goes
+// through the page's reload gate (`ReloadGate`), which holds it while the
+// owner has a recording or a note only the page holds.
 
 import { Context, Effect, Layer, Option, Result, Schema } from 'effect';
 import type { SceneEdit, SceneSpec, ShownEdit } from '../canvas/film.ts';
@@ -73,11 +75,26 @@ class NoStill extends Schema.TaggedError<NoStill>()('NoStill', {
 export class Stage extends Context.Service<Stage, StageOps>()('@bible/film/lab/Stage') {}
 
 /**
- * The stage over `player`'s film, on the page's `host` (its address bar and
- * its loads). `changed` is told after each preview, so the panels that draw
- * the edited timeline read it again.
+ * The page loaded again at the frame `player` shows, on the page's `host`
+ * (its address bar and its loads): the time held there, then the reload once
+ * the address bar has it (`reloadAtAddress`). The reload gate runs it.
  */
-export const makeStage = (player: Player, host: Host, changed: () => void): StageOps => {
+export const reloadHere = (player: Player, host: Host): Effect.Effect<void> =>
+  Effect.sync(() => player.holdT()).pipe(
+    Effect.andThen(reloadAtAddress),
+    Effect.provideContext(host),
+  );
+
+/**
+ * The stage over `player`'s film. `changed` is told after each preview, so
+ * the panels that draw the edited timeline read it again; `reload` is the
+ * page's reload gate's (`ReloadGate.request`).
+ */
+export const makeStage = (
+  player: Player,
+  changed: () => void,
+  reload: Effect.Effect<void>,
+): StageOps => {
   const { film } = player;
   const edits = new Map<string, ShownEdit>();
   const placed = (scene: string): Option.Option<Placed<SceneSpec>> =>
@@ -130,10 +147,7 @@ export const makeStage = (player: Player, host: Host, changed: () => void): Stag
     knobsOf,
     cuesOf,
     holdT: Effect.sync(() => player.holdT()),
-    reload: Effect.sync(() => player.holdT()).pipe(
-      Effect.andThen(reloadAtAddress),
-      Effect.provideContext(host),
-    ),
+    reload,
     settle: Effect.sync(() => player.settle()),
     pause: Effect.sync(() => player.pause()),
     duration: film.duration,

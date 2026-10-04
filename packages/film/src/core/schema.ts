@@ -938,16 +938,28 @@ const LabStep = Schema.Struct({
 });
 
 /**
+ * An Undo or a Redo that landed (`undo …`, `redo …`), with the id the page
+ * that asked for it sent (`request`), unique to that request.
+ */
+const LandedStep = Schema.Struct({
+  ...LabStep.fields,
+  request: Schema.String,
+});
+
+/**
  * `GET /api/films/<film>/check`: `film check --static` now; the lab's latest change
  * to a file (a write, `undo …` or `redo …`: a page that change reloaded
- * learns of it here); and the writes Undo would put back and Redo would make
- * again.
+ * learns of it here); the writes Undo would put back and Redo would make
+ * again; and the Undos and Redos that landed with a request's id, oldest
+ * first (as many as Undo can walk back), so a page whose step had no answer
+ * learns by its id whether it landed.
  */
 export const CheckReport = Schema.Struct({
   findings: Schema.Array(CheckLine),
   latest: Schema.optionalKey(LabStep),
   undo: Schema.optionalKey(LabStep),
   redo: Schema.optionalKey(LabStep),
+  landed: Schema.optionalKey(Schema.Array(LandedStep)),
 });
 export type CheckReport = typeof CheckReport.Type;
 

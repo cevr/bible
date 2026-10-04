@@ -39,7 +39,7 @@ import {
 import { type Handle, knobMode } from './handles.ts';
 import { editorCommands } from './commands.ts';
 import { findingsOf, statusText } from './format.ts';
-import { type EditActor, EditEvent, spawnEditor } from './machine.ts';
+import { type EditActor, EditEvent, spawnEditor, stepRequest } from './machine.ts';
 
 /** What the lab knows of a scene's source: it, or why it could not be read. */
 interface Known {
@@ -252,7 +252,9 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   });
   onCleanup(letGo);
 
-  const step = (verb: StepVerb) => send(EditEvent.Step({ verb }));
+  // Each step is its own request, with an id no other has: with no answer, the lab says by it whether it landed.
+  const step = (verb: StepVerb) =>
+    send(EditEvent.Step({ verb, request: Effect.runSync(stepRequest) }));
   // The editor's verbs on the page's hub: Undo (⌘Z) and Redo (⇧⌘Z) while the
   // server's stack has a step, and Escape letting a held grip go, from a field too.
   onCleanup(

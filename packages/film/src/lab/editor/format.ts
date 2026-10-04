@@ -55,6 +55,10 @@ export const statusText = (state: EditState, report: Option.Option<CheckReport>)
         Match.orElse(() => 'writing…'),
       ),
     ),
+    Match.tag(
+      'Checking',
+      (s) => `${DOING[s.write.verb]}: no answer yet, asking the lab whether it landed…`,
+    ),
     Match.tag('Refused', (s) => s.message),
     Match.orElse((s) => s.note),
   );

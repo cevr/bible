@@ -1,14 +1,26 @@
 // Narrator with fakes: which beats are recorded, and what a take that says
 // something else does. No network, no media files.
 
+import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, type FileSystem, Layer, Option, Path, Result, Schema } from 'effect';
+import {
+  Context,
+  Deferred,
+  Effect,
+  Fiber,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Result,
+  Schema,
+} from 'effect';
 import type { Pcm } from '../core/audio.ts';
 import { captionCues } from '../core/captions.ts';
 import { hashText, parse, takeScript, voiceFor, voiceKey } from '../core/narration.ts';
 import { type Cast, type Timed, type Timings, TimingsJson, type Voice } from '../core/schema.ts';
-import { ContentStore } from './content-store.ts';
+import { ContentStore, lockFile } from './content-store.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import {
   type NarrateOptions,
@@ -16,6 +28,7 @@ import {
   Narrator,
   planNarration,
   stateLine,
+  sweepNarration,
 } from './narrator.ts';
 import {
   type ElevenLabsCalls,
@@ -492,12 +505,12 @@ describe('Narrator', () => {
       }),
     );
 
-    it.effect('the next run removes what a crashed run left behind', () =>
+    it.effect('the next run clears what a crashed run left behind, putting every take away', () =>
       Effect.gen(function* () {
         const files = agreed();
         files.set(`${DIR}/b.take.mp3`, text('stray'));
         files.set(`${DIR}/a.0123456789ab.mp3`, text('orphan'));
-        // A replaced recorded take's committed FLAC goes the same way (its master stays in attempts/).
+        // A replaced recorded take's committed FLAC, whose attempt this machine does not have.
         files.set(`${DIR}/b.0123456789ab.flac`, text('replaced master'));
         files.set(`${TIMINGS}.partial`, text('{'));
         const layer = Narrator.layer.pipe(
@@ -510,13 +523,92 @@ describe('Narrator', () => {
           ]),
         );
         yield* narrate(layer);
-        const left = [...files.keys()].filter((f) => f.startsWith(`${DIR}/`)).toSorted();
+        const left = [...files.keys()]
+          .filter((f) => f.startsWith(`${DIR}/`) && !f.startsWith(`${DIR}/attempts/`))
+          .toSorted();
         const takes = yield* Schema.decodeEffect(TimingsJson)(
           new TextDecoder().decode(files.get(TIMINGS)),
         );
         const current = Object.values(takes.scenes).map((t) => `${DIR}/${t.file}`);
         expect(left).toEqual([`${DIR}/full.wav`, TIMINGS, ...current].toSorted());
+        // No take is deleted: each is put away under its beat's attempts, byte for byte.
+        expect(
+          [
+            `${DIR}/attempts/b/b.take.mp3`,
+            `${DIR}/attempts/a/a.0123456789ab.mp3`,
+            `${DIR}/attempts/b/b.0123456789ab.flac`,
+          ].map((f) => new TextDecoder().decode(files.get(f))),
+        ).toEqual(['stray', 'orphan', 'replaced master']);
       }),
     );
   });
+
+  it.live("a sweep in another process never puts away the take a lab's Undo is bringing back", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const dir = yield* fs.makeTempDirectoryScoped();
+      const base = testFilm(scenes, recorded).paths;
+      const paths = {
+        ...base,
+        dir,
+        narration: `${dir}/narration`,
+        timings: { ...base.timings, file: `${dir}/narration/timings.json` },
+      };
+      const naming = (file: string) =>
+        Schema.encodeEffect(TimingsJson)({
+          ...recorded,
+          scenes: { a: take('Hello world.', file) },
+        });
+      const [now, back] = ['a.0123456789ab.flac', 'a.ba9876543210.flac'];
+      yield* fs.makeDirectory(`${paths.narration}/attempts/a`, { recursive: true });
+      yield* fs.writeFileString(paths.timings.file, yield* naming(now));
+      yield* fs.writeFileString(`${paths.narration}/${now}`, 'the take now');
+      yield* fs.writeFileString(`${paths.narration}/attempts/a/${back}`, 'the take before');
+      const [brought, asked, swept] = [
+        yield* Deferred.make<boolean>(),
+        yield* Deferred.make<boolean>(),
+        yield* Deferred.make<boolean>(),
+      ];
+      // The narrate's file system says when it asks for the timings' lock.
+      const lock = lockFile(paths.timings.file);
+      const watched = FileSystem.FileSystem.of({
+        ...fs,
+        writeFileString: (file, data, options) => {
+          if (file !== lock) return fs.writeFileString(file, data, options);
+          return Effect.andThen(
+            Deferred.succeed(asked, true),
+            fs.writeFileString(file, data, options),
+          );
+        },
+      });
+      // Each store is its own layer: another process, as far as any lock knows.
+      const own = Effect.map(Layer.build(ContentStore.layer), Context.get(ContentStore));
+      const lab = yield* own;
+      const narrate = yield* own.pipe(Effect.provideService(FileSystem.FileSystem, watched));
+      // The lab's Undo, as `land` makes it: under the timings' lock, the take
+      // brought back first, then the timings that name it, once the sweep
+      // has asked for the lock (or, holding none, swept).
+      const undo = lab.holding(
+        paths.timings.file,
+        Effect.gen(function* () {
+          yield* fs.copyFile(`${paths.narration}/attempts/a/${back}`, `${paths.narration}/${back}`);
+          yield* Deferred.succeed(brought, true);
+          yield* Effect.raceFirst(Deferred.await(asked), Deferred.await(swept));
+          yield* fs.writeFileString(paths.timings.file, yield* naming(back));
+        }),
+      );
+      const undoing = yield* Effect.forkChild(undo);
+      yield* Deferred.await(brought);
+      // `film narrate` sweeps the narration while the Undo holds the lock.
+      yield* sweepNarration(paths).pipe(
+        Effect.provideService(ContentStore, narrate),
+        Effect.provideService(FileSystem.FileSystem, watched),
+        Effect.ensuring(Deferred.succeed(swept, true)),
+      );
+      yield* Fiber.join(undoing);
+      expect(yield* fs.readFileString(`${paths.narration}/${back}`)).toBe('the take before');
+      expect(yield* fs.exists(`${paths.narration}/${now}`)).toBe(false);
+      expect(yield* fs.readFileString(`${paths.narration}/attempts/a/${now}`)).toBe('the take now');
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
 });

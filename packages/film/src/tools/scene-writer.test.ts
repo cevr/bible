@@ -313,6 +313,7 @@ describe.concurrent('scene writer', () => {
         target: `knob k${n}`,
         before: `${n - 1}`,
         after: `${n}`,
+        follows: Option.none(),
       });
       let history = emptyHistory;
       for (const n of [1, 2, 3, 4, 5]) history = recordChange(history, w(n), 3);

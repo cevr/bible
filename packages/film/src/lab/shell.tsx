@@ -9,7 +9,7 @@
 
 import { RegistryProvider, useAtomValue } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
-import { Portal } from '@solidjs/web';
+import { Portal, Show } from '@solidjs/web';
 import { Effect, Equal, Fiber, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
@@ -34,7 +34,8 @@ import { CommandMenu } from './command/command-menu.tsx';
 import { KeysSheet } from './command/keys-sheet.tsx';
 import { labHref, labPlaceOf } from './place.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
-import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
+import { type ReloadGate, makeReloadGate } from './reload-gate.ts';
+import { type Stage, type StageOps, makeStage, reloadHere, stageLayer } from './stage.ts';
 
 /** What every panel reads: the film on the stage, the frame it shows, and the lab's place. */
 interface LabState {
@@ -50,6 +51,8 @@ interface LabState {
   readonly selection: Accessor<Option.Option<LabSelection>>;
   /** The note selected: the URL's (`?note=`). */
   readonly note: Accessor<Option.Option<string>>;
+  /** What a reload held by the owner's unsaved work waits for (`ReloadGate`); empty while none waits. */
+  readonly reloadWaiting: Accessor<string>;
 }
 
 interface LabActions {
@@ -72,6 +75,8 @@ interface LabMeta {
   readonly view: ViewStore;
   /** The preview as the machines drive it: edits shown in memory, and `#t=` held for a write. */
   readonly stage: StageOps;
+  /** The page's reloads, held while a panel holds work only the page has (a take under review, a note). */
+  readonly reloads: ReloadGate;
   /** What the panels' machines and atoms run with: the stage, the lab API, the notes API and the host. */
   readonly runtime: Atom.AtomRuntime<Stage | LabApi | NotesApi | BrowserServices>;
   /** This page's client layer identity, reused by the studio's separate runtime. */
@@ -151,7 +156,10 @@ const Root = (props: RootProps) => {
   onCleanup(() => document.body.classList.remove('lab'));
 
   const [revision, setRevision] = createSignal(0, fromDraw);
-  const stage = makeStage(player, props.host, () => setRevision((n) => n + 1));
+  // Every reload (a write's, a kept take's, the rebuild's) waits while a panel holds unsaved work.
+  const [reloadWaiting, setReloadWaiting] = createSignal('', { ownedWrite: true });
+  const reloads = makeReloadGate(reloadHere(player, props.host), setReloadWaiting);
+  const stage = makeStage(player, () => setRevision((n) => n + 1), reloads.request);
   const clientLayer = LabClient.layer;
   // The server rebuilt the pages (a source changed): reload onto the new code at this frame.
   const rebuilt = Effect.runFork(reloadOnRebuild(stage.reload).pipe(Effect.provide(clientLayer)));
@@ -181,6 +189,7 @@ const Root = (props: RootProps) => {
         revision,
         selection: () => here().selection,
         note: () => here().note,
+        reloadWaiting,
       },
       actions: {
         pin: (layer) => {
@@ -198,6 +207,7 @@ const Root = (props: RootProps) => {
         player,
         view,
         stage,
+        reloads,
         runtime,
         clientLayer,
         host: props.host,
@@ -291,8 +301,25 @@ const Strip = (props: ParentProps) => {
   return <Portal mount={slot}>{props.children}</Portal>;
 };
 
-/** The side panel: the header, then each tool's section. */
-const Panel = (props: ParentProps) => <aside class="lab-panel">{props.children}</aside>;
+/**
+ * The side panel: the header, then each tool's section; above them, while a
+ * reload waits on the owner's unsaved work, what it waits for.
+ */
+const Panel = (props: ParentProps) => {
+  const { state } = useLab();
+  return (
+    <aside class="lab-panel">
+      <Show when={state.reloadWaiting()}>
+        {(waiting) => (
+          <p class="lab-reload-waiting" role="status">
+            {waiting()}
+          </p>
+        )}
+      </Show>
+      {props.children}
+    </aside>
+  );
+};
 
 /**
  * The panel's header: its name, the hint, the header's tools, and the film's

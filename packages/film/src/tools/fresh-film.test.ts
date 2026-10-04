@@ -2,13 +2,17 @@
 // --json` prints one Schema-encoded CheckLine per line of stdout (logs go to
 // stderr): a line that does not decode is the check and its reader
 // disagreeing about the format, so it fails the run by name instead of being
-// skipped, and a check that fails to run is itself one error finding.
+// skipped, and a check that fails to run is itself one error finding. A keep
+// is asked of `film options keep-voice`, which refuses a take that says
+// something else unless it is passed `--accept-mismatch`.
 
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Schema } from 'effect';
-import { FreshProcessFailed } from '../core/refusals.ts';
-import { CheckLineJson, checkLines, failedCheck } from './fresh-film.ts';
+import { Effect, Layer, Schema, Sink, Stream } from 'effect';
+import { ChildProcessSpawner } from 'effect/process';
+import { FreshProcessFailed, TakeMismatch } from '../core/refusals.ts';
+import { FilmName } from './film-repo.ts';
+import { CheckLineJson, FreshFilm, OptionsKept, checkLines, failedCheck } from './fresh-film.ts';
 
 const warning = {
   level: 'warning',
@@ -54,5 +58,88 @@ describe('check lines', () => {
     expect(failedCheck(failed)).toEqual([
       { level: 'error', tag: 'FreshProcessFailed', message: 'film check --sound failed: exit 2' },
     ]);
+  });
+});
+
+const ATTEMPT = 'a.0123456789ab.flac';
+const kept = OptionsKept.make({
+  take: { hash: 'h', file: ATTEMPT, duration: 1, words: [], source: 'recorded' },
+  heard: 'Hello there.',
+  wer: 0.5,
+  mixed: true,
+});
+const mismatch = TakeMismatch.make({
+  id: 'a',
+  script: 'Hello world.',
+  heard: 'Hello there.',
+  wer: 0.5,
+});
+
+/**
+ * The film CLI as `film options keep-voice` answers: the take kept when it is
+ * passed `--accept-mismatch`, else refused for saying something else. Each
+ * run's arguments are pushed to `runs`. `answer` is the line it answers
+ * with when it keeps the take.
+ */
+const keepVoiceCli = (
+  runs: Array<ReadonlyArray<string>>,
+  answer = Schema.encodeSync(Schema.fromJsonString(OptionsKept))(kept),
+) =>
+  Layer.succeed(
+    ChildProcessSpawner.ChildProcessSpawner,
+    ChildProcessSpawner.make((command) => {
+      if (command._tag !== 'StandardCommand') return Effect.die('a piped command is not run here');
+      const args = command.args;
+      runs.push(args);
+      let line = Schema.encodeSync(Schema.fromJsonString(TakeMismatch))(mismatch);
+      if (args.includes('--accept-mismatch')) line = answer;
+      const stdout = Stream.make(new TextEncoder().encode(`${line}\n`));
+      return Effect.succeed(
+        ChildProcessSpawner.makeHandle({
+          pid: ChildProcessSpawner.ProcessId(0),
+          exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(0)),
+          isRunning: Effect.succeed(false),
+          kill: () => Effect.void,
+          stdin: Sink.drain,
+          stdout,
+          stderr: Stream.empty,
+          all: stdout,
+          getInputFd: () => Sink.drain,
+          getOutputFd: () => Stream.empty,
+          unref: Effect.succeed(Effect.void),
+        }),
+      );
+    }),
+  );
+
+describe('keep-voice', () => {
+  it.effect('asks the CLI to accept a mismatch only when told to, and answers what it says', () => {
+    const runs: Array<ReadonlyArray<string>> = [];
+    const film = Schema.decodeSync(FilmName)('test');
+    return Effect.gen(function* () {
+      const fresh = yield* FreshFilm;
+      const refused = yield* Effect.flip(
+        fresh.keepVoice(film, 'a', ATTEMPT, { acceptMismatch: false }),
+      );
+      expect(refused._tag).toBe('TakeMismatch');
+      expect(yield* fresh.keepVoice(film, 'a', ATTEMPT, { acceptMismatch: true })).toEqual(kept);
+      expect(runs).toEqual([
+        ['cli.ts', 'options', 'keep-voice', 'test', 'a', ATTEMPT],
+        ['cli.ts', 'options', 'keep-voice', 'test', 'a', ATTEMPT, '--accept-mismatch'],
+      ]);
+    }).pipe(
+      Effect.provide(FreshFilm.layer(['bun', 'cli.ts']).pipe(Layer.provide(keepVoiceCli(runs)))),
+    );
+  });
+
+  it.effect("reads an older film CLI's answer, which says only whether it mixed", () => {
+    const film = Schema.decodeSync(FilmName)('test');
+    const legacy = keepVoiceCli([], '{"_tag":"OptionsKept","mixed":true}');
+    return Effect.gen(function* () {
+      const answer = yield* (yield* FreshFilm).keepVoice(film, 'a', ATTEMPT, {
+        acceptMismatch: true,
+      });
+      expect(answer).toEqual(OptionsKept.make({ mixed: true }));
+    }).pipe(Effect.provide(FreshFilm.layer(['bun', 'cli.ts']).pipe(Layer.provide(legacy))));
   });
 });

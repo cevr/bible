@@ -20,6 +20,7 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  onCleanup,
   untrack,
   useContext,
 } from 'solid-js';
@@ -51,6 +52,7 @@ import {
   neighbour,
   reviewWav,
   statusOf,
+  unsubmitted,
 } from './view.ts';
 
 /** One recording of the selected beat, as its row shows it. */
@@ -217,6 +219,17 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
       was = tag;
     },
   );
+
+  // A recording only this page has holds every reload (an Undo's, a rebuild's) until it is kept or discarded.
+  createEffect(
+    () => unsubmitted(recorder()),
+    (why) => {
+      Effect.runFork(meta.reloads.hold('studio', why));
+    },
+  );
+  onCleanup(() => {
+    Effect.runFork(meta.reloads.hold('studio', Option.none()));
+  });
 
   // The recording under review, as a URL the page's audio plays; let go when it changes.
   const [review, setReview] = createSignal(Option.none<string>(), written);
