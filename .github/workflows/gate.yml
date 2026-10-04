@@ -1,9 +1,9 @@
 # The gate, as `bun run gate` runs it locally: lint and the format check, then
 # every package's typecheck, build and tests through turbo. CI keeps no turbo
 # cache, so every task runs. The hooks run only the staged-file lint and
-# format. The film's browser tests run in the `e2e` job beside it. `bun run ci
-# <commit>` waits for this workflow's run on a commit on main and prints its
-# verdict.
+# format. The browser tests (the film's and @bible/ui's) run in the `e2e` job
+# beside it. `bun run ci <commit>` waits for this workflow's run on a commit on
+# main and prints its verdict.
 
 name: gate
 
@@ -66,10 +66,12 @@ jobs:
 
       - run: bun run gate
 
-  # The film's browser tests (`bun run test:e2e`): the lab, review and player
-  # pages over Chrome through Bun.WebView. They need a Chrome, so they run in a
-  # job of their own beside the gate; the runner image carries Google Chrome,
-  # named to Bun by BUN_CHROME_PATH (packages/film/src/tools/chrome.ts).
+  # The browser tests: the film's (`bun run test:e2e`: the lab, review and
+  # player pages over Chrome through Bun.WebView) and @bible/ui's (`bun run
+  # test:browser`: its parts in Playwright's Chromium). They need a browser, so
+  # they run in a job of their own beside the gate; the runner image carries
+  # Google Chrome, named to Bun by BUN_CHROME_PATH
+  # (packages/film/src/tools/chrome.ts), and Playwright installs its Chromium.
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -87,3 +89,9 @@ jobs:
       - name: Point Bun at the runner's Chrome
         run: echo "BUN_CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
       - run: bun run test:e2e
+      - name: Install Playwright's Chromium
+        working-directory: packages/ui
+        run: bunx playwright install --with-deps chromium
+      - name: '@bible/ui browser tests'
+        working-directory: packages/ui
+        run: bun run test:browser
