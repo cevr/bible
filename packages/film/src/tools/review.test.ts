@@ -611,23 +611,34 @@ describe('the review service', () => {
           ...videoRender({ _tag: 'Film' }, 'film', 'main', 'k2'),
           at: 9,
         });
-        yield* fs.writeFileString(file, yield* Schema.encodeEffect(CatalogueJson)(again));
+        // Spaced as no encoder writes it: a rewrite of the same catalogue shows in its bytes.
+        yield* fs.writeFileString(
+          file,
+          `  ${yield* Schema.encodeEffect(CatalogueJson)(again)}\n\n`,
+        );
+        /** The file's bytes and inode: a refusal leaves both, a write replaces the file. */
+        const asItIs = Effect.all([
+          fs.readFileString(file),
+          Effect.map(fs.stat(file), (info) => Option.getOrUndefined(info.ino)),
+        ]);
+        const before = yield* asItIs;
         const refused = yield* Effect.flip(
           review.say('out/f', film, { variant: 'main', say: { _tag: 'Approve' } }),
         );
         expect(refused._tag).toBe('VersionChanged');
-        const onDisk = yield* Schema.decodeEffect(CatalogueJson)(yield* fs.readFileString(file));
-        expect(onDisk.approvals).toEqual([]);
+        expect(yield* asItIs).toEqual(before);
         // Read again, the version now shown is approved as it is.
         const now = yield* review.say('out/f', film, { variant: 'main', say: { _tag: 'Approve' } });
         const main = now.sets.find((s) => s.id === film)?.variants.find((v) => v.id === 'main');
         expect([main?.key, main?.approval]).toEqual(['k2', 'approved']);
-        // wide, drawn from k1, is stale beside main's k2: its approval is refused.
+        // wide, drawn from k1, is stale beside main's k2: its approval is refused, the file untouched.
+        const approved = yield* asItIs;
         const wide = yield* Effect.flip(
           review.say('out/f', film, { variant: 'wide', say: { _tag: 'Approve' } }),
         );
         expect(wide._tag).toBe('VerbRefused');
         expect(wide.message).toContain('stale');
+        expect(yield* asItIs).toEqual(approved);
       }).pipe(Effect.provide(fixture(false))),
   );
 

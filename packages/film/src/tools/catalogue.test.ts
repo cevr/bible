@@ -5,7 +5,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Array as Arr, Context, Effect, FileSystem, Layer } from 'effect';
+import { Array as Arr, Context, Effect, FileSystem, Layer, Result } from 'effect';
 import { sceneAddress } from '../core/address.ts';
 import { approvalState, comment, emptyCatalogue, partSubject, said } from '../core/catalogue.ts';
 import { RenderCatalogue } from './catalogue.ts';
@@ -37,6 +37,31 @@ describe('RenderCatalogue', () => {
       expect(new Set(catalogue.comments.map((c) => c.id)).size).toBe(30);
       expect(yield* fs.readDirectory(out)).toEqual(['catalogue.json']);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  it.live(
+    "a change that refuses writes nothing, its refusal as it was; a catalogue that will not read is the catalogue's",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const out = yield* fs.makeTempDirectoryScoped();
+        const project = { name: 'f', out };
+        const file = `${out}/catalogue.json`;
+        const catalogues = yield* ownCatalogue;
+        yield* catalogues.update(project, (c) => [0, c] as const);
+        yield* fs.writeFileString(file, `  ${yield* fs.readFileString(file)}\n`);
+        const before = yield* fs.readFileString(file);
+        const refused = yield* Effect.flip(
+          catalogues.attempt(project, () => Result.fail('no' as const)),
+        );
+        expect(refused).toBe('no');
+        expect(yield* fs.readFileString(file)).toBe(before);
+        yield* fs.writeFileString(file, 'not json');
+        const unread = yield* Effect.flip(
+          catalogues.attempt(project, (c) => Result.succeed([0, c] as const)),
+        );
+        expect(unread).toMatchObject({ _tag: 'CatalogueInvalid' });
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 });
 

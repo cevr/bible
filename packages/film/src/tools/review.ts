@@ -981,44 +981,41 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           const { film } = yield* catalogues.read({ name: ref, out: dir.value });
           // The index may be up to INDEX_FRESH old: the version is checked
           // against the catalogue as the write reads it, and the say written
-          // only of the version that was shown.
-          const written = yield* catalogues.update<
-            Result.Result<string, VersionChanged | VerbRefused>
-          >({ name: film, out: dir.value }, (catalogue) => {
-            const render = Arr.findFirst(
-              catalogue.renders,
-              (r) =>
-                r.kind === 'video' &&
-                r.variant === variant.id &&
-                addressKey(r.address) === addressKey(address),
-            );
-            const now = Option.map(render, (r) => subjectOf(r).key);
-            if (!Option.contains(now, variant.key))
-              return [
-                Result.fail(
+          // only of the version that was shown. A refusal fails the write before
+          // anything is encoded, so the file stays as it was, byte for byte.
+          yield* catalogues
+            .attempt({ name: film, out: dir.value }, (catalogue) => {
+              const render = Arr.findFirst(
+                catalogue.renders,
+                (r) =>
+                  r.kind === 'video' &&
+                  r.variant === variant.id &&
+                  addressKey(r.address) === addressKey(address),
+              );
+              const now = Option.map(render, (r) => subjectOf(r).key);
+              if (!Option.contains(now, variant.key))
+                return Result.fail<VersionChanged | VerbRefused>(
                   VersionChanged.make({ point, variant: variant.id, shown: variant.key, now }),
-                ),
-                catalogue,
-              ] as const;
-            const stale = Option.flatMap(
-              Option.liftPredicate(asked.say, (s) => s._tag === 'Approve'),
-              () =>
-                approvalRefused(
-                  set.kind,
-                  Option.match(recordedNow(catalogue, address), {
-                    onNone: () => ({ state: 'current' as const, staleBy: Option.none() }),
-                    onSome: (latest) => renderState(render, latest),
-                  }),
-                ),
+                );
+              const stale = Option.flatMap(
+                Option.liftPredicate(asked.say, (s) => s._tag === 'Approve'),
+                () =>
+                  approvalRefused(
+                    set.kind,
+                    Option.match(recordedNow(catalogue, address), {
+                      onNone: () => ({ state: 'current' as const, staleBy: Option.none() }),
+                      onSome: (latest) => renderState(render, latest),
+                    }),
+                  ),
+              );
+              if (Option.isSome(stale)) return Result.fail(refused('approve', stale.value));
+              return Result.succeed([variant.id, said(catalogue, subject, asked.say, at)] as const);
+            })
+            .pipe(
+              // The index reads the folder again on its next ask: it changed, or
+              // the index was found behind it.
+              Effect.ensuring(Ref.set(cached, Option.none())),
             );
-            if (Option.isSome(stale))
-              return [Result.fail(refused('approve', stale.value)), catalogue] as const;
-            return [Result.succeed(variant.id), said(catalogue, subject, asked.say, at)] as const;
-          });
-          // The index reads the folder again on its next ask: it changed, or the
-          // index was found behind it.
-          yield* Ref.set(cached, Option.none());
-          yield* Effect.fromResult(written);
           yield* Effect.log(
             `review.say folder=${ref} point=${point} variant=${variant.id} say=${asked.say._tag}`,
           );
