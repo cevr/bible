@@ -4,7 +4,7 @@
 // its Versions; its choices are a score of three options, a look of two, a
 // sound's kept take and two candidates in open, a layer across the act and a
 // level's knob; and the review's index holds the film's project folder with
-// open's render set. What the disclosed states need is there too: two
+// open's render set and two loose videos (one with its phone proxy ready). What the disclosed states need is there too: two
 // pictures under the Choices transport, a comment on the film, the act, scene open and
 // the score's strings and the set's main version (their counts), and the check's two findings, one at a
 // time. Each route answers as the lab's server encodes it.
@@ -155,6 +155,15 @@ const videoOf = (scene: string): Json => ({
   phone: 'none',
 });
 
+/** A loose video in the folder (no set holds it), its phone proxy as `phone` says. */
+const looseOf = (name: string, phone: string): Json => ({
+  ref: `${STUDIO_FOLDER}/${name}`,
+  name,
+  size: 2048,
+  mtime: 0,
+  phone,
+});
+
 /** A scene as the project encodes it, unrendered; open has a comment. */
 const scene = (id: string, state: string) => ({
   scene: id,
@@ -221,7 +230,7 @@ const index: Json = {
       title: STUDIO_FILM,
       mtime: 0,
       sets: [renderSet],
-      videos: [],
+      videos: [looseOf('take-1.mp4', 'ready'), looseOf('take-2.mp4', 'pending')],
       images: [],
       docs: [],
     },

@@ -1342,8 +1342,13 @@ hears, allowed or refused per tab. A tab opened `coarse` has a phone's pointer
 (touch emulation, so `(pointer: coarse)` matches), set in the same
 uninterruptible step that lends the view and put back before the view is
 given back; a view whose pointer cannot be put back is discarded, never lent
-again (`lab/fixtures/lease.ts`, its own test over a fake view). The
-touch-target guard (`e2e/lab/touch.dom.test.ts`) opens every studio page,
+again (`lab/fixtures/lease.ts`, its own test over a fake view); a view
+leaves the pool only inside that step, so a case interrupted before it
+takes none. Every other tab has a mouse's pointer (Blink's fine pointer and
+hover, set as Chrome starts: headless Chrome has none, and `(pointer: none)`
+would give a desk the phone's density). The
+touch-target guard (`e2e/lab/touch.dom.test.ts`) opens every studio page
+(the Folder with its loose videos among them),
 at rest and with what it discloses open (Project's choices unfolded, an
 inspector, the Findings sheet, the command menu, the context menu, the keys
 dialog, the lab's modes, comment counts, the Choices transport over a
@@ -1352,7 +1357,9 @@ picture), over a synthetic film (`lab/fixtures/studio-film.ts`), on a phone
 `--hit` 28 px), and fails naming each control whose usable hit area holds
 no `--hit` square. The area is what a tap reaches (`lab/fixtures/touch-targets.ts`:
 a 2 px grid of `elementFromPoint` over the control and a margin round it,
-so padding and a hit-slop count and a covered part does not); a layer is
+so padding and a hit-slop count and a covered part does not; a point is the
+control's only when no other control is nearer, so a link inside a label is
+the link's, never the label's field's); a layer is
 measured within itself. The exceptions are WCAG 2.5.8's: a backing input
 nothing of which can be seen or pressed, a link on a line of text, and a
 target 24 px or more whose `--hit` circle reaches no neighbour's area

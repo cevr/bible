@@ -168,10 +168,12 @@ const COMMAND_RULES = `
  * finger's on the phone, the laptop's dense one): a hit-slop past it each
  * way, the row laid out as before. A comment count's dot sits in a box that
  * size, in the row's flow, held on the name's line, so a name and its count
- * never share a hit area; a short name beside it is that wide too.
+ * never share a hit area: a short name with a count beside it is that wide
+ * too. With no count, the hit-slop alone is its target, and it is as wide as
+ * its words.
  */
 .lab-named { display: inline-flex; align-items: center; gap: var(--cmd-gap-small); min-width: 0; max-width: 100%; vertical-align: middle; }
-.lab-named > .lab-inspect { min-width: var(--cmd-hit); }
+.lab-named:has(> .lab-count-hit) > .lab-inspect { min-width: var(--cmd-hit); }
 .lab-inspect { position: relative; }
 .lab-inspect::before {
   content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);

@@ -11,7 +11,9 @@
 // The disclosed states are the fixture film's (`fixtures/studio-film.ts`):
 // Project's choices unfolded, an inspector, the Findings sheet, the command
 // menu (⌘K, its Go to…), the context menu, the keys dialog, the lab's modes,
-// comment counts on their rows and the Choices transport over a picture. A
+// comment counts on their rows, the Choices transport over a picture and the
+// Folder's loose videos. A short name with no count beside it is as wide as
+// its words (its hit-slop is its target). A
 // layer (a sheet, a menu, a dialog) is measured within itself; what lies
 // under it was measured with it closed.
 //
@@ -172,6 +174,11 @@ const STATES: ReadonlyArray<State> = [
     open: review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video', '[data-comments]'),
     disclose: AT_REST,
   },
+  {
+    name: 'a Folder, with its set and loose videos',
+    open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]'),
+    disclose: AT_REST,
+  },
   { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST },
   { name: 'Lab, Note', open: lab('note'), disclose: AT_REST },
   { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST },
@@ -234,6 +241,27 @@ for (const device of DEVICES) {
         SLOW,
       );
     }
+  });
+}
+
+/** How far `selector`'s box is wider than its words, in px. */
+const slack = (selector: string) =>
+  `(() => { const b = document.querySelector('${selector}'); const words = document.createRange(); words.selectNodeContents(b); return b.getBoundingClientRect().width - words.getBoundingClientRect().width; })()`;
+
+for (const device of DEVICES) {
+  describe(`a short name on ${device.name}`, () => {
+    it.live(
+      'with no comment count beside it, is as wide as its words: its hit-slop is its target, no gap after it',
+      () =>
+        Effect.gen(function* () {
+          const page = yield* review(CHOICES, ...CHOICES_READY)(device.viewport);
+          yield* page.until(`matchMedia('${device.pointer}').matches`);
+          yield* page.until(
+            `${slack('[data-point="look:ground"] [data-variant="now"] .lab-inspect')} < 1`,
+          );
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
   });
 }
 
