@@ -133,7 +133,13 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-scene video { max-height: 40vh; }
 .rv-tag[data-state="stale"] { color: var(--state-stale); }
 .rv-writes { background: var(--surface-1); border: var(--border); border-radius: var(--r-2); padding: var(--s-2) var(--s-3); margin-bottom: var(--s-3); }
-.rv-check summary { cursor: pointer; margin-top: var(--s-2); }
+.rv-writes { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.rv-check[data-state="findings"] { color: var(--state-findings); border-color: var(--state-findings); }
+.rv-check[data-state="warning"] { color: var(--state-warning); border-color: var(--state-warning); }
+.rv-group + .rv-group { margin-top: var(--s-4); }
+.rv-group h3 { display: flex; gap: var(--s-2); align-items: baseline; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-2); }
+.rv-at { font: inherit; font-variant-numeric: tabular-nums; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
+.rv-at:disabled { color: var(--text-3); cursor: default; }
 .rv-findings { margin: var(--s-2) 0 0; padding-left: var(--s-4); font-size: var(--fs-2); overflow-wrap: anywhere; }
 .rv-findings li[data-level="error"] b { color: var(--state-findings); }
 .rv-findings li[data-level="warning"] b { color: var(--state-warning); }

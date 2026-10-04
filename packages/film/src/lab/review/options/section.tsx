@@ -7,13 +7,12 @@
 // Redo are the page's commands, each naming the source change it steps, and
 // every write says what it did in a receipt; the film's check is the one the
 // last write answered; after a pick or a knob the sound check runs (`film
-// check --sound`: dead air, balance against the picked score) and its
-// findings are shown.
+// check --sound`: dead air, balance against the picked score); both checks
+// are counts that open the Findings sheet (`findings.tsx`).
 
 import { For, Show } from '@solidjs/web';
 import { type Accessor, createMemo, onCleanup } from 'solid-js';
 import { Duration, Effect, Fiber, Option } from 'effect';
-import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { playableOf } from '../../../browser/media-browser.ts';
 import { type Command, type CommandId, quiet } from '../../../command/command.ts';
 import {
@@ -24,7 +23,7 @@ import {
   shownIn,
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
-import type { CheckLine } from '../../../core/schema.ts';
+import { Findings } from './findings.tsx';
 import { stepWhyNot } from '../../api.ts';
 import { useReview } from '../context.tsx';
 import { pressed, sizeText, videoSource } from '../format.ts';
@@ -32,7 +31,7 @@ import { ProxyPending, Transport } from '../section.tsx';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, HearButton } from './choice.tsx';
 import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
-import { REVIEW_REDO, REVIEW_UNDO, findingsText } from './receipt.ts';
+import { REVIEW_REDO, REVIEW_UNDO } from './receipt.ts';
 
 /** A picture's chip: where it lies (renders of one film share a name), and its size. */
 const pictureLabel = (p: ReviewVideo): string => {
@@ -196,48 +195,14 @@ const StepCommands = () => {
   return <></>;
 };
 
-/** The film's check after the last write, and the sound check after it; Undo and Redo as commands. */
+/** The film's checks as counts that open the Findings sheet (`findings.tsx`); Undo and Redo as commands. */
 export const WriteBar = () => {
-  const { findings, reading } = useFilm();
+  const { reading } = useFilm();
   return (
     <section class="rv-writes" data-reading={pressed(reading())}>
       <StepCommands />
-      {/* The check folds away: its findings are read when asked for, not over the player. */}
-      <Findings name="check" findings={Option.getOrElse(findings(), () => [])} />
-      <SoundFindings />
+      <Findings />
     </section>
-  );
-};
-
-/** A check's findings, folded away under their count. */
-const Findings = (props: {
-  readonly name: string;
-  readonly findings: ReadonlyArray<CheckLine>;
-}) => (
-  <details class="rv-check" data-check={props.name}>
-    <summary class="rv-hint" data-findings={String(props.findings.length)}>
-      {findingsText(props.name, props.findings.length)}
-    </summary>
-    <ul class="rv-findings">
-      <For each={props.findings}>
-        {(f) => (
-          <li data-level={f.level}>
-            <b>{f.tag}</b> {f.message}
-          </li>
-        )}
-      </For>
-    </ul>
-  </details>
-);
-
-/** The sound check after the last pick or knob: running, its findings, or why it could not run. */
-const SoundFindings = () => {
-  const { soundCheck } = useFilm();
-  // While it runs, and why it could not, the receipt says (`soundReceipt`).
-  return (
-    <Show when={Option.getOrUndefined(AsyncResult.value(soundCheck()))}>
-      {(check) => <Findings name="sound check" findings={check().findings} />}
-    </Show>
   );
 };
 
