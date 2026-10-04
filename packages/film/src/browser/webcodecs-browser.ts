@@ -114,17 +114,19 @@ interface Owned {
 
 /**
  * The renders at `urls`, opened at once (a compare holds two), each input
- * owned from the moment it is made: a render that will not open, or the
- * opening cut short, disposes every input (aborting its requests). Opened,
- * the inputs pass to the caller's keeping with the scope that owns them.
+ * owned from the moment it is made by a scope inside the caller's: a render
+ * that will not open, or the opening cut short, disposes every input
+ * (aborting its requests). Opened, nothing passes hands: the inputs are the
+ * caller's scope's all along, so closing it lets them go however far the
+ * opening got, and `inputs` lets them go sooner.
  */
 export const openRenders = (
   urls: ReadonlyArray<string>,
   inputOf: (url: string) => Input = urlInput,
-): Effect.Effect<Owned, NotOpened> =>
+): Effect.Effect<Owned, NotOpened, Scope.Scope> =>
   Effect.uninterruptibleMask((restore) =>
     Effect.gen(function* () {
-      const inputs = yield* Scope.make();
+      const inputs = yield* Scope.fork(yield* Effect.scope);
       const opened = yield* restore(
         Effect.forEach(urls, (url) => Scope.provide(open(url, inputOf), inputs), {
           concurrency: 2,
@@ -143,8 +145,13 @@ export interface Chosen {
   readonly release: Effect.Effect<void>;
 }
 
-/** The engine a compare of the renders at `urls` plays on, and the renders opened for it. */
-export const chooseEngine = (urls: ReadonlyArray<string>): Effect.Effect<Chosen> => {
+/**
+ * The engine a compare of the renders at `urls` plays on, and the renders
+ * opened for it, their inputs the scope's from the moment each is made.
+ */
+export const chooseEngine = (
+  urls: ReadonlyArray<string>,
+): Effect.Effect<Chosen, never, Scope.Scope> => {
   const browser = browserCodecs();
   // A browser that cannot play the panes opens nothing.
   const early = engineFor(browser, { video: true, audio: 'none', audioDecodable: false });
@@ -279,6 +286,30 @@ const soundOf = (track: InputAudioTrack, host: Context.Context<Media>): AudioOut
   };
 };
 
+/** The page as the panes see it: whether it is shown, and word when that changes. */
+type Page = Pick<Document, 'visibilityState' | 'addEventListener'>;
+
+/**
+ * `panes` stand while `page` is hidden and play on once it is shown, until
+ * `signal` aborts: hidden as they are made, if the page already is.
+ */
+export const standWhileHidden = (
+  panes: ReadonlyArray<Pick<Pane, 'hide' | 'show'>>,
+  page: Page,
+  signal: AbortSignal,
+) => {
+  const hidden = () => page.visibilityState === 'hidden';
+  const follow = () => {
+    for (const pane of panes) {
+      if (hidden()) pane.hide();
+      else pane.show();
+    }
+  };
+  // Opened while the page was hidden: they stand before they ever play.
+  if (hidden()) follow();
+  page.addEventListener('visibilitychange', follow, { signal });
+};
+
 /** The panes of a compare, and the letting go of them all. */
 export interface ComparePanes {
   readonly panes: ReadonlyArray<Pane>;
@@ -320,17 +351,7 @@ export const panesOver = (
     ),
   );
   const listening = new AbortController();
-  document.addEventListener(
-    'visibilitychange',
-    () => {
-      const hidden = document.visibilityState === 'hidden';
-      for (const pane of panes) {
-        if (hidden) pane.hide();
-        else pane.show();
-      }
-    },
-    { signal: listening.signal },
-  );
+  standWhileHidden(panes, document, listening.signal);
   return {
     panes,
     dispose: () => {
