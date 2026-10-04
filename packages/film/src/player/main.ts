@@ -333,9 +333,18 @@ export const mountPreview = (
   // A tick's name: shown while a mouse is over it, or once a finger has held
   // it (UR-115) as long as a long press takes, without moving off into a
   // scrub (the press stays free until a drag claims it, `@bible/ui/press`).
+  // A lifted finger's name lingers on one hide timer: a name shown since
+  // drops it, so an older linger never hides a newer name.
+  const tipTimers = timersOn(host);
+  let lingering = Option.none<number>();
+  const hideLater = () => {
+    lingering = Option.some(tipTimers.set(() => (tip.hidden = true), TIP_READ_MS));
+  };
   const showTip = (target: EventTarget | null) => {
     const name = target instanceof HTMLElement ? target.dataset['name'] : undefined;
     if (name === undefined) return;
+    Option.map(lingering, tipTimers.clear);
+    lingering = Option.none();
     const t = target instanceof HTMLElement ? target.getBoundingClientRect() : undefined;
     const b = bar.getBoundingClientRect();
     tip.textContent = name;
@@ -353,7 +362,6 @@ export const mountPreview = (
   // long press would open a menu: the press is claimed for the name, so it
   // scrubs no further; lifted, the name stays a moment to be read.
   const TICK_NAME = Symbol('tick-name');
-  const tipTimers = timersOn(host);
   const holdTick = (e: PointerEvent): (() => void) => {
     const held = e.target;
     const named = held instanceof HTMLElement && held.dataset['name'] !== undefined;
@@ -365,7 +373,7 @@ export const mountPreview = (
     }, LONG_PRESS_DELAY);
     return () => {
       tipTimers.clear(timer);
-      if (shown) tipTimers.set(() => (tip.hidden = true), TIP_READ_MS);
+      if (shown) hideLater();
     };
   };
 

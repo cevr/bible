@@ -86,6 +86,45 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live("a name still held stays: the last tick's lingering name never hides the next", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openPlayer(
+        { href: pageHref.play(PROBE), viewport: PHONE },
+        '.bar .tc',
+      );
+      // A cue's tick and a mark's: two names, apart along the track.
+      const middle = (box: { x: number; y: number; width: number; height: number }) => ({
+        x: box.x + box.width / 2,
+        y: box.y + box.height / 2,
+      });
+      const a = middle(yield* page.box('.bar .track .tick.cue'));
+      const b = middle(yield* page.box('.bar .track .tick.mark'));
+      const nameAt = (p: { x: number; y: number }) =>
+        `document.elementFromPoint(${p.x}, ${p.y}).dataset.name`;
+      yield* evaluates(page, `${nameAt(a)} !== ${nameAt(b)}`, true);
+      // Whether the tip shows the name under `p`.
+      const tipNames = (p: { x: number; y: number }) =>
+        `!document.querySelector('.bar .tip').hidden && document.querySelector('.bar .tip').textContent === ${nameAt(p)}`;
+      yield* page.clock.hold;
+      // A is held to its name, then lifted: its name lingers 1.5 s, to 2000.
+      yield* page.finger.down(a.x, a.y);
+      yield* page.clock.runFor(500);
+      yield* evaluates(page, tipNames(a), true);
+      yield* page.finger.up;
+      // B is held at 1400: named at 1900, and still held past 2000.
+      yield* page.clock.runFor(900);
+      yield* page.finger.down(b.x, b.y);
+      yield* page.clock.runFor(500);
+      yield* evaluates(page, tipNames(b), true);
+      yield* page.clock.runFor(300);
+      yield* evaluates(page, tipNames(b), true);
+      // Lifted, B's own name lingers its 1.5 s, then goes.
+      yield* page.finger.up;
+      yield* page.clock.runFor(1600);
+      yield* evaluates(page, "document.querySelector('.bar .tip').hidden", true);
+    }).pipe(Effect.scoped),
+  );
+
   it.live(
     'the legend is hidden at rest; the bar’s ? button shows it, with the keys bound, and ? opens the keys sheet',
     () =>
