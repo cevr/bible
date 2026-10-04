@@ -715,11 +715,11 @@ body.lab .stage {
   border-radius: var(--r-1);
   padding: 2px 4px;
 }
-/* On touch a field is a finger tall (`--hit`); the mouse keeps the dense one. */
-@media (pointer: coarse) {
-  .lab-num {
-    min-height: var(--hit);
-  }
+/* A field is the pointer's target tall (`--hit`: a finger's on the phone, the laptop's dense one). */
+.lab-num,
+.lab-motion-row button,
+.lab-motion-row input {
+  min-height: var(--hit);
 }
 .lab-eases {
   display: grid;

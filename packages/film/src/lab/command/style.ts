@@ -46,7 +46,7 @@ body {
   --cmd-row-pad: var(--s-2) var(--s-3);
   --cmd-key-pad: 0 var(--s-1);
   --cmd-button-pad: 0 var(--s-2);
-  --cmd-row-height: var(--row-h);
+  --cmd-row-height: max(var(--row-h), var(--hit));
   --cmd-button-height: var(--control-h);
   --cmd-hit: var(--hit);
   --cmd-inspector-width: var(--inspector-w);
@@ -163,13 +163,23 @@ const COMMAND_RULES = `
 .lab-inspect {
   font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit;
 }
-/* On touch a name reads as text and is tapped as a finger's target: a hit-slop past it, a touch target each way, the row laid out as before. */
-@media (pointer: coarse) {
-  .lab-inspect { position: relative; }
-  .lab-inspect::before {
-    content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    width: max(100%, var(--cmd-hit)); height: max(100%, var(--cmd-hit));
-  }
+/*
+ * A name reads as text, yet is a target of the pointer's size (\`--hit\`: a
+ * finger's on the phone, the laptop's dense one): a hit-slop past it each
+ * way, the row laid out as before. A comment count's dot sits in a box that
+ * size, in the row's flow, held on the name's line, so a name and its count
+ * never share a hit area; a short name beside it is that wide too.
+ */
+.lab-named { display: inline-flex; align-items: center; gap: var(--cmd-gap-small); min-width: 0; max-width: 100%; vertical-align: middle; }
+.lab-named > .lab-inspect { min-width: var(--cmd-hit); }
+.lab-inspect { position: relative; }
+.lab-inspect::before {
+  content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: max(100%, var(--cmd-hit)); height: max(100%, var(--cmd-hit));
+}
+.lab-count-hit {
+  display: inline-grid; place-items: center; flex: none; min-width: var(--cmd-hit); min-height: var(--cmd-hit);
+  padding: 0; margin: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; vertical-align: middle;
 }
 .lab-count {
   min-width: var(--cmd-count-size); height: var(--cmd-count-size); padding: 0 var(--cmd-gap-small);

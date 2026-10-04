@@ -41,7 +41,7 @@ import {
 } from '../../core/api.ts';
 import { ReviewApi } from './api.ts';
 import { newestAsked } from './asked.ts';
-import { CommentCount, InspectName, Inspector, useThing } from './inspector.tsx';
+import { InspectName, Inspector, useThing } from './inspector.tsx';
 import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
 import type { ThingVerb } from './things.ts';
 import { Go, SetProvider, useReview, useSet } from './context.tsx';
@@ -745,12 +745,9 @@ const VersionName = (props: { readonly version: SeenVariant }) => {
   // A card is keyed by its version: its selection is fixed for as long as it lives.
   const selection = untrack(() => versionOf(folder, set, props.version.id));
   return (
-    <>
-      <InspectName of={selection}>
-        <span class="rv-name">{props.version.label}</span>
-      </InspectName>
-      <CommentCount of={selection} count={says.now(props.version).comments.length} />
-    </>
+    <InspectName of={selection} comments={says.now(props.version).comments.length}>
+      <span class="rv-name">{props.version.label}</span>
+    </InspectName>
   );
 };
 

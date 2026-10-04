@@ -154,21 +154,24 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-findings li[data-level="warning"] b { color: var(--state-warning); }
 .rv-films { margin-bottom: var(--s-1); }
 .rv :focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.rv .lab-count-hit:focus-visible { box-shadow: none; }
+.rv .lab-count-hit:focus-visible > .lab-count { box-shadow: var(--focus-ring); }
 /*
- * On touch every target is a finger's size, --hit each way (design language
- * §3), grown by padding, never by bigger text; the laptop's mouse keeps the
- * dense sizes. A slider's box is a finger tall, its track centred in it; a
- * segment a finger square; a fold's summary, the Versions link and a part's
- * head line full rows a finger tall (a name's own hit-slop, in the
- * commands' sheet, then stays inside its row).
+ * Every target is the pointer's size, --hit each way (design language §3: a
+ * finger's 44 px on the phone, 28 px on the laptop), grown by padding, never
+ * by bigger text. A slider's box is --hit tall, its track centred in it; a
+ * segment --hit square; a fold's summary, the Versions link, a row or head
+ * that holds a name, a finding's time and a scene's choice link full rows
+ * --hit tall (a name's own hit-slop, in the commands' sheet, then stays
+ * inside its row).
  */
-@media (pointer: coarse) {
-  .rv input[type="range"] { min-height: var(--hit); }
-  .rv-seg button { min-height: var(--hit); min-width: var(--hit); }
-  .rv-layers > summary, .rv-act > .rv-h { padding-block: calc((var(--hit) - var(--lh-2)) / 2); }
-  .rv-scene > [data-compare] { display: flex; align-items: center; min-height: var(--hit); }
-  .rv-film > .rv-row { min-height: var(--hit); }
-}
+.rv input[type="range"] { min-height: var(--hit); }
+.rv-seg button { min-height: var(--hit); min-width: var(--hit); }
+.rv-layers > summary { padding-block: calc((var(--hit) - var(--lh-2)) / 2); }
+.rv-scene > [data-compare] { display: flex; align-items: center; min-height: var(--hit); }
+.rv-row:has(> .lab-named) { min-height: var(--hit); }
+.rv-act > .rv-h { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s-2); min-height: var(--hit); }
+.rv-at, .rv-plays .rv-inline-link { display: inline-flex; align-items: center; min-height: var(--hit); vertical-align: middle; }
 @media (max-width: 600px) {
   .rv-main { padding: var(--s-3) var(--gutter) var(--s-8); }
   .rv-transport { padding: var(--s-2) var(--s-2); gap: var(--s-2); }

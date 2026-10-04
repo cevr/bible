@@ -1339,12 +1339,25 @@ its history, scripts for new pages and listeners dropped
 (`e2e/lab/fixtures/browsers.dom.test.ts` dirties each and proves the next case
 sees none of it). One fake microphone (a 440 Hz tone on input 1) every tab
 hears, allowed or refused per tab. A tab opened `coarse` has a phone's pointer
-(touch emulation, so `(pointer: coarse)` matches): the touch-target guard
-(`e2e/lab/touch.dom.test.ts`) opens every studio page so at 390 × 844 over a
-synthetic film (`lab/fixtures/studio-film.ts`) and fails naming each control
-whose hit area, as a tap reaches it (`lab/fixtures/touch-targets.ts`: padding
-and a `::before` hit-slop count), is under the phone's `--hit` of 44 px,
-save by WCAG 2.5.8's inline and spacing principles. The tab answers the page's requests itself (the
+(touch emulation, so `(pointer: coarse)` matches), set in the same
+uninterruptible step that lends the view and put back before the view is
+given back; a view whose pointer cannot be put back is discarded, never lent
+again (`lab/fixtures/lease.ts`, its own test over a fake view). The
+touch-target guard (`e2e/lab/touch.dom.test.ts`) opens every studio page,
+at rest and with what it discloses open (Project's choices unfolded, an
+inspector, the Findings sheet, the command menu, the context menu, the keys
+dialog, the lab's modes, comment counts, the Choices transport over a
+picture), over a synthetic film (`lab/fixtures/studio-film.ts`), on a phone
+(390 × 844, a finger, `--hit` 44 px) and on a laptop (1440 × 900, a mouse,
+`--hit` 28 px), and fails naming each control whose usable hit area holds
+no `--hit` square. The area is what a tap reaches (`lab/fixtures/touch-targets.ts`:
+a 2 px grid of `elementFromPoint` over the control and a margin round it,
+so padding and a hit-slop count and a covered part does not); a layer is
+measured within itself. The exceptions are WCAG 2.5.8's: a backing input
+nothing of which can be seen or pressed, a link on a line of text, and a
+target 24 px or more whose `--hit` circle reaches no neighbour's area
+(`e2e/lab/fixtures/touch-targets.dom.test.ts` holds the measure to synthetic
+shapes). The tab answers the page's requests itself (the
 protocol's `Fetch`), types and clicks with native input events, and waits in
 the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
 worker (`--max-concurrency=3` in the E2E script: at most eight workers, one
