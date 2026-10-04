@@ -852,8 +852,10 @@ describe("a film's choices", () => {
             input.dispatchEvent(new Event('change', { bubbles: true }));
           })()`);
         yield* attributeIs(page, RECEIPT, 'data-type', 'refused');
-        yield* textIs(page, `${knob} output`, '-24 dB');
-        yield* valueIs(page, `${knob} input`, '-24');
+        // Its value's field and its slider both read the film's value again, in its unit.
+        yield* valueIs(page, `${knob} .lab-num`, '-24');
+        yield* textIs(page, `${knob} .rv-tag`, 'dB');
+        yield* valueIs(page, `${knob} input[type="range"]`, '-24');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
