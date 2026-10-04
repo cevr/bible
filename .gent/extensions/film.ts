@@ -26,7 +26,7 @@
 // `ToolResultFailure` whose result is its tag and fields: a CLI refusal is
 // `{_tag: 'FilmRefused', tool, tag, text}`, the film's own tag and words.
 
-import { Duration, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import { Duration, Effect, FileSystem, Hash, Layer, Option, Path, Schema } from 'effect';
 import type { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 import {
   AgentDefinition,
@@ -539,56 +539,105 @@ const Finding = Schema.Struct({
   message: Schema.String,
 });
 
+/**
+ * Where a check's next page starts: the place of its first finding, and the
+ * report it is a place in (a fingerprint of every finding, in order).
+ */
+const CheckCursor = Schema.Struct({ from: Schema.Int, report: Schema.String });
+
 const CheckOutput = Schema.Struct({
   errors: Schema.Int,
   warnings: Schema.Int,
   /** The place of the first finding listed among all of them, errors first (0: the first). */
   from: Schema.Int,
   findings: Schema.Array(Finding),
-  /** Present when findings remain past this page: the `from` that lists them. */
-  next: Schema.optionalKey(Schema.Int),
+  /**
+   * Present when the check asked for was a later page of a report whose
+   * findings have changed since: this page starts again from the first.
+   */
+  restarted: Schema.optionalKey(Schema.String),
+  /** Present when findings remain past this page: the `from` and `report` that list them. */
+  next: Schema.optionalKey(CheckCursor),
 });
 type CheckOutput = typeof CheckOutput.Type;
 const checkLength = encodedLength(CheckOutput);
+const encodeFinding = Schema.encodeSync(Schema.fromJsonString(Finding));
 
 /**
- * The findings `film check --json` printed, errors first, from the `from`th
- * on: as many as encode within the result budget (at most 24), and `next`
- * when more remain.
+ * A report's fingerprint: its count and a hash of every finding, whole and in
+ * order. A finding fixed, added or reworded between pages changes it.
  */
-export const checkReport = (stdout: string, from: number): CheckOutput => {
+const reportOf = (findings: ReadonlyArray<typeof Finding.Type>): string => {
+  const hash = Hash.string(findings.map((finding) => encodeFinding(finding)).join('\n'));
+  return `${findings.length}.${(hash >>> 0).toString(16)}`;
+};
+
+/**
+ * The findings `film check --json` printed, errors first, from the cursor's
+ * `from`th on: as many as encode within the result budget (at most 24), and
+ * `next` when more remain. A cursor from another report (findings fixed or
+ * added since its page) starts again from the first, and says so, so no
+ * finding is skipped unseen.
+ */
+export const checkReport = (
+  stdout: string,
+  cursor: { readonly from?: number; readonly report?: string },
+): CheckOutput => {
   const lines = linesOf(stdout).flatMap((line) => Option.toArray(decodeCheckLine(line)));
   const errors = lines.filter((line) => line.level === 'error');
   const warnings = lines.filter((line) => line.level === 'warning');
-  const findings = [...errors, ...warnings].map((line) => ({
+  const whole = [...errors, ...warnings].map((line) => ({
     level: line.level,
     tag: line.tag,
-    where: clip(whereOf(line), FINDING_CHARS),
+    where: whereOf(line),
     ...Option.match(Option.fromUndefinedOr(line.address?.time), {
       onNone: () => ({}),
       onSome: (time) => ({ time }),
     }),
-    message: clip(line.message, FINDING_CHARS),
+    message: line.message,
   }));
-  const start = Math.min(from, findings.length);
+  const report = reportOf(whole);
+  const findings = whole.map((finding) => ({
+    ...finding,
+    where: clip(finding.where, FINDING_CHARS),
+    message: clip(finding.message, FINDING_CHARS),
+  }));
+  // A later page is read only in the report it was given for: a `from` of
+  // another report, or of none, would skip findings that moved up.
+  const changed = Option.liftPredicate(
+    cursor,
+    (asked) => (asked.from ?? 0) > 0 && asked.report !== report,
+  );
+  const restarted = Option.match(changed, {
+    onNone: () => ({}),
+    onSome: () => ({
+      restarted:
+        'the findings changed since the page asked for (some fixed, or new), or no report was given: listed again from the first',
+    }),
+  });
+  const start = Option.match(changed, {
+    onNone: () => Math.min(cursor.from ?? 0, findings.length),
+    onSome: () => 0,
+  });
   const page = (count: number): CheckOutput => ({
     errors: errors.length,
     warnings: warnings.length,
     from: start,
     findings: findings.slice(start, start + count),
+    ...restarted,
   });
   const count = largestFitting(
     Math.min(CHECK_MAX_FINDINGS, findings.length - start),
-    (size) => checkLength({ ...page(size), next: FAR }) <= RESULT_BUDGET,
+    (size) => checkLength({ ...page(size), next: { from: FAR, report } }) <= RESULT_BUDGET,
   );
   if (start + count >= findings.length) return page(count);
-  return { ...page(count), next: start + count };
+  return { ...page(count), next: { from: start + count, report } };
 };
 
 export const FilmCheck = tool({
   id: 'film.check',
   description:
-    'Check scenes as their files stand (film check --draw): the static leg (cues, sounds) and each scene drawn in-process (a throw, a frame that is not pure, ink over a face), no browser. Stale takes count as warnings: a painter never narrates. Lists the findings a page at a time, errors first: when the answer has `next`, check again with `from: next` for the rest',
+    'Check scenes as their files stand (film check --draw): the static leg (cues, sounds) and each scene drawn in-process (a throw, a frame that is not pure, ink over a face), no browser. Stale takes count as warnings: a painter never narrates. Lists the findings a page at a time, errors first: when the answer has `next`, check again with its `from` and `report` for the rest. When the findings changed in between, the answer says `restarted` and lists them again from the first',
   readonly: true,
   params: Schema.Struct({
     film: FilmName,
@@ -597,7 +646,12 @@ export const FilmCheck = tool({
     }),
     from: Schema.optionalKey(
       Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)).annotate({
-        description: "The first finding to list: a previous answer's next (0)",
+        description: "The first finding to list: a previous answer's next.from (0)",
+      }),
+    ),
+    report: Schema.optionalKey(
+      Schema.String.annotate({
+        description: "The report that from is a place in: a previous answer's next.report",
       }),
     ),
   }),
@@ -615,7 +669,7 @@ export const FilmCheck = tool({
       '--json',
     ];
     const answer = yield* filmCli('film.check', ctx.cwd, args, ['CheckFailed']);
-    return checkReport(answer.stdout, params.from ?? 0);
+    return checkReport(answer.stdout, params);
   }, Effect.mapError(modelFailure)),
 });
 

@@ -494,20 +494,56 @@ describe("every result fits gent's budget, and says how to read on", () => {
         }),
       ).join('\n');
       const tags: Array<string> = [];
-      let from = 0;
+      let cursor: Parameters<typeof checkReport>[1] = {};
       for (let page = 0; page < 30; page += 1) {
-        const report = checkReport(stdout, from);
+        const report = checkReport(stdout, cursor);
         expect(encodeAny(report).length).toBeLessThan(8_000);
         expect(report.errors).toBe(12);
+        expect(report.restarted).toBeUndefined();
         tags.push(...report.findings.map((finding) => finding.tag));
         const next = Option.fromUndefinedOr(report.next);
         if (Option.isNone(next)) break;
-        from = next.value;
+        cursor = next.value;
       }
       expect(tags).toHaveLength(24);
       expect(new Set(tags).size).toBe(24);
       // Errors first, in the order the check printed them.
       expect(tags.slice(0, 3)).toEqual(['Finding0', 'Finding2', 'Finding4']);
+    }),
+  );
+
+  it.effect('a check whose findings changed between pages starts again, and says so', () =>
+    Effect.sync(() => {
+      const finding = (index: number) =>
+        encodeAny({
+          level: 'error',
+          tag: `Finding${index}`,
+          message: 'm'.repeat(370),
+          address: { part: { _tag: 'Scenes', ids: ['roof'] }, time: index },
+        });
+      const before = Array.from({ length: 24 }, (_, index) => finding(index)).join('\n');
+      const first = checkReport(before, {});
+      expect(first.restarted).toBeUndefined();
+      const next = Option.getOrThrow(Option.fromUndefinedOr(first.next));
+      expect(next.from).toBe(16);
+      expect(first.findings.map((found) => found.tag).at(-1)).toBe('Finding15');
+
+      // Findings 0 and 1 are fixed before the painter asks for the next page:
+      // the old offset would now skip Findings16-17, still there.
+      const after = Array.from({ length: 22 }, (_, index) => finding(index + 2)).join('\n');
+      const second = checkReport(after, next);
+      expect(second.restarted).toContain('changed');
+      expect(second.from).toBe(0);
+      const tags = second.findings.map((found) => found.tag);
+      expect(tags[0]).toBe('Finding2');
+      expect(tags).toContain('Finding16');
+      expect(tags).toContain('Finding17');
+
+      // The same report pages on from where it stopped.
+      const same = checkReport(before, next);
+      expect(same.restarted).toBeUndefined();
+      expect(same.from).toBe(next.from);
+      expect(same.findings[0]?.tag).toBe(`Finding${next.from}`);
     }),
   );
 

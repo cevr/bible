@@ -387,9 +387,10 @@ entries it left out.
 
 Every result fits whole in gent's 8,000-character tool result. A result that
 stops early says how to read on with the same tools: `film.read` gives the
-`next` line and column, `film.check` the `next` finding to pass as `from`.
-`film.cues` and the journal name the narrower call that reads the lines they
-left out.
+`next` line and column, `film.check` the `next` finding and the report it
+belongs to. When the findings change between pages, the check says
+`restarted` and lists them again from the first, so none is skipped. The
+journal names the narrower call that reads the lines it left out.
 
 The agent's brief, in the extension, has it work in passages: read the scene,
 its cues and its journal; paint one passage; look; note what it saw; and run
