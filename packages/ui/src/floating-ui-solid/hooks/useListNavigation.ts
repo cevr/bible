@@ -235,7 +235,7 @@ export function useListNavigation(
   };
 
   createEffect(orientation, (value) => {
-    dataRef.current.orientation = value;
+    dataRef.current['orientation'] = value;
   });
 
   createEffect(
@@ -372,8 +372,9 @@ export function useListNavigation(
 
   const getParentOrientation = (): ListOrientation | undefined =>
     props.parentOrientation ??
-    (tree?.nodesRef.current.find((node) => node.id === parentId)?.context?.dataRef?.current
-      .orientation as ListOrientation | undefined);
+    (tree?.nodesRef.current.find((node) => node.id === parentId)?.context?.dataRef?.current[
+      'orientation'
+    ] as ListOrientation | undefined);
 
   const commonOnKeyDown = (event: KeyboardEvent) => {
     isPointerModality = false;

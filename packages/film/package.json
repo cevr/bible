@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@bible/atom-solid": "workspace:*",
+    "@bible/ui": "workspace:*",
     "@bible/url-state": "workspace:*",
     "@effect/platform-bun": "catalog:",
     "@mediabunny/aac-encoder": "1.61.0",

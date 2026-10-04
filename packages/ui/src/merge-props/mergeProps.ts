@@ -185,7 +185,7 @@ function createView(read: () => ReadonlyArray<HTMLProps>): HTMLProps {
   };
 
   const refFn = (el: unknown) => {
-    const all = untrack(() => read().map((source) => source.ref));
+    const all = untrack(() => read().map((source) => source['ref']));
     for (const ref of all) {
       applyRef(ref, el);
     }
@@ -198,7 +198,7 @@ function createView(read: () => ReadonlyArray<HTMLProps>): HTMLProps {
         let merged: unknown;
         for (const source of sources) {
           if (hasKey(source, 'class')) {
-            merged = mergeClassNames(merged, source.class);
+            merged = mergeClassNames(merged, source['class']);
           }
         }
         return merged;
@@ -207,13 +207,13 @@ function createView(read: () => ReadonlyArray<HTMLProps>): HTMLProps {
         let merged: unknown;
         for (const source of sources) {
           if (hasKey(source, 'style')) {
-            merged = mergeStyles(merged, source.style);
+            merged = mergeStyles(merged, source['style']);
           }
         }
         return merged;
       }
       case 'ref':
-        return sources.some((source) => source.ref != null) ? refFn : undefined;
+        return sources.some((source) => source['ref'] != null) ? refFn : undefined;
       default:
         break;
     }

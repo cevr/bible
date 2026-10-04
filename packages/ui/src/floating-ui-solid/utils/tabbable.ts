@@ -246,7 +246,7 @@ export function isOutsideEvent(event: FocusEvent, container?: Element | null) {
 /** Takes every tabbable element inside `container` out of the tab order, remembering its tabindex. */
 export function disableFocusInside(container: HTMLElement) {
   for (const element of tabbable(container)) {
-    (element as HTMLElement).dataset.tabindex = element.getAttribute('tabindex') || '';
+    (element as HTMLElement).dataset['tabindex'] = element.getAttribute('tabindex') || '';
     element.setAttribute('tabindex', '-1');
   }
 }
@@ -256,8 +256,8 @@ export function enableFocusInside(container: HTMLElement) {
   const elements: HTMLElement[] = [];
   appendMatchingElements(container, '[data-tabindex]', elements);
   for (const element of elements) {
-    const tabindex = element.dataset.tabindex;
-    delete element.dataset.tabindex;
+    const tabindex = element.dataset['tabindex'];
+    delete element.dataset['tabindex'];
     if (tabindex) {
       element.setAttribute('tabindex', tabindex);
     } else {

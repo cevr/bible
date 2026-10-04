@@ -85,10 +85,10 @@ export function useRenderElementProps<State extends object>(
   });
   const own: HTMLProps = {
     get class() {
-      return mergeClassNames(resolved.class, resolveClass(componentProps.class, state()));
+      return mergeClassNames(resolved['class'], resolveClass(componentProps.class, state()));
     },
     get style() {
-      return mergeStyles(resolved.style, resolveStyle(componentProps.style, state()));
+      return mergeStyles(resolved['style'], resolveStyle(componentProps.style, state()));
     },
     ref: untrack(() => params.ref),
   };

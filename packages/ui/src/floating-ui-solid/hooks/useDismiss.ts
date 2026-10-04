@@ -196,8 +196,8 @@ export function useDismiss(
         return undefined;
       }
 
-      dataRef.current.__escapeKeyBubbles = deps.bubbles.escapeKey;
-      dataRef.current.__outsidePressBubbles = deps.bubbles.outsidePress;
+      dataRef.current['__escapeKeyBubbles'] = deps.bubbles.escapeKey;
+      dataRef.current['__outsidePressBubbles'] = deps.bubbles.outsidePress;
 
       const compositionTimeout = new Timeout();
       const preventedPressSuppressionTimeout = new Timeout();

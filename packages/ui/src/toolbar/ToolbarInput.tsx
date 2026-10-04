@@ -80,7 +80,7 @@ export function ToolbarInput(props: ToolbarInputProps): JSX.Element {
         { onClick: preventWhenDisabled, onPointerDown: preventWhenDisabled },
         elementProps as HTMLProps,
         {
-          onKeyDown: focusableProps.onKeyDown,
+          onKeyDown: focusableProps['onKeyDown'],
           get 'aria-disabled'() {
             return focusableProps['aria-disabled'];
           },

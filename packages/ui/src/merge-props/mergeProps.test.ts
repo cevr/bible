@@ -89,30 +89,30 @@ describe('mergeProps', () => {
       { style: { color: 'blue', 'background-color': 'blue' } },
       { style: { color: 'red' } },
     );
-    expect(merged.style).toEqual({ color: 'red', 'background-color': 'blue' });
+    expect(merged['style']).toEqual({ color: 'red', 'background-color': 'blue' });
   });
 
   it('merges a style string into an object', () => {
     const merged = mergeProps({ style: 'color: blue; margin: 0' }, { style: { color: 'red' } });
-    expect(merged.style).toEqual({ color: 'red', margin: '0' });
+    expect(merged['style']).toEqual({ color: 'red', margin: '0' });
   });
 
   it('keeps one style when the other is missing, none when both are', () => {
-    expect(mergeProps({}, { style: { color: 'red' } }).style).toEqual({ color: 'red' });
-    expect(mergeProps({}, {}).style).toBe(undefined);
+    expect(mergeProps({}, { style: { color: 'red' } })['style']).toEqual({ color: 'red' });
+    expect(mergeProps({}, {})['style']).toBe(undefined);
   });
 
   it('merges classes with the rightmost first', () => {
-    expect(mergeProps({ class: 'internal' }, { class: 'external' }).class).toEqual([
+    expect(mergeProps({ class: 'internal' }, { class: 'external' })['class']).toEqual([
       'external',
       'internal',
     ]);
-    expect(mergeProps({ class: 'c1' }, { class: 'c2' }, { class: 'c3' }).class).toEqual([
+    expect(mergeProps({ class: 'c1' }, { class: 'c2' }, { class: 'c3' })['class']).toEqual([
       'c3',
       ['c2', 'c1'],
     ]);
-    expect(mergeProps({}, { class: 'external' }).class).toBe('external');
-    expect(mergeProps({}, {}).class).toBe(undefined);
+    expect(mergeProps({}, { class: 'external' })['class']).toBe('external');
+    expect(mergeProps({}, {})['class']).toBe(undefined);
   });
 
   it('runs the internal handler when the external one does not prevent it', () => {
@@ -172,13 +172,13 @@ describe('mergeProps', () => {
   });
 
   it('lets the source merged first win for plain props only when nothing overrides it', () => {
-    expect(mergeProps({ title: 'internal 2' }, { title: 'internal 1' }, {}).title).toBe(
+    expect(mergeProps({ title: 'internal 2' }, { title: 'internal 1' }, {})['title']).toBe(
       'internal 1',
     );
   });
 
   it('lets an explicit undefined override', () => {
-    expect(mergeProps({ title: 'x' }, { title: undefined }).title).toBe(undefined);
+    expect(mergeProps({ title: 'x' }, { title: undefined })['title']).toBe(undefined);
   });
 
   it('calls every merged ref', () => {
@@ -200,7 +200,7 @@ describe('mergeProps', () => {
 
   it('keeps a handler the same function across reads', () => {
     const merged = mergeProps({ onClick() {} }, { onClick() {} });
-    expect(merged.onClick).toBe(merged.onClick);
+    expect(merged['onClick']).toBe(merged['onClick']);
   });
 
   it('stays live over a reactive source', () => {
@@ -210,10 +210,10 @@ describe('mergeProps', () => {
         return title();
       },
     });
-    expect(merged.title).toBe('first');
+    expect(merged['title']).toBe('first');
     setTitle('second');
     flush();
-    expect(merged.title).toBe('second');
+    expect(merged['title']).toBe('second');
   });
 
   describe('props getters', () => {

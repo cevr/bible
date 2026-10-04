@@ -4,10 +4,11 @@
     "jsx": "preserve",
     "jsxImportSource": "@solidjs/web",
     "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "allowImportingTsExtensions": true,
-    // The parts pass props as open bags (`HTMLProps`, a record of any
-    // attribute, handler or ref), read by name as Base UI reads them.
-    "noPropertyAccessFromIndexSignature": false
+    // The repo's own options, unchanged: the film's lab imports these sources,
+    // and its typecheck reads them under its options. A prop read off an open
+    // bag (`HTMLProps`, a record of any attribute, handler or ref) is read by
+    // key (`props['class']`).
+    "allowImportingTsExtensions": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "test/**/*.tsx"]
 }

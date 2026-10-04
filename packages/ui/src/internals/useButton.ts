@@ -148,7 +148,7 @@ export function useButton(params: UseButtonParameters = {}): UseButtonReturnValu
   // A disabled composite button rendering another button (a toolbar button
   // rendering a menu trigger) stays focusable: the inner `disabled` is removed.
   createEffect(
-    () => [element(), disabled(), focusableProps.disabled, isCompositeItem()] as const,
+    () => [element(), disabled(), focusableProps['disabled'], isCompositeItem()] as const,
     ([el, isDisabled, focusableDisabled, composite]) => {
       if (
         isButtonElement(el) &&

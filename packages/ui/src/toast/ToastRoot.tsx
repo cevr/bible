@@ -529,8 +529,9 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
       if (swiping) {
         // While swiping, freeze the element at its current visual transform
         // so it doesn't snap to the end position.
-        style.transition = 'none';
-        style.transform = `translateX(${offset.x}px) translateY(${offset.y}px) scale(${initial.scale})`;
+        style['transition'] = 'none';
+        style['transform'] =
+          `translateX(${offset.x}px) translateY(${offset.y}px) scale(${initial.scale})`;
       }
       return style;
     },

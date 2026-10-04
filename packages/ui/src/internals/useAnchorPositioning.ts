@@ -524,23 +524,23 @@ export function useAnchorPositioning(
     const position = positioned ? strategy() || method : 'fixed';
     const base: Record<string, string | number | undefined> = {};
     if (!positioned) {
-      base.position = position;
-      base.top = '0px';
-      base.left = '0px';
+      base['position'] = position;
+      base['top'] = '0px';
+      base['left'] = '0px';
     } else if (params.adaptiveOrigin) {
       const { sideX, sideY } =
-        (middlewareData().adaptiveOrigin as typeof DEFAULT_SIDES | undefined) ?? DEFAULT_SIDES;
-      base.position = position;
+        (middlewareData()['adaptiveOrigin'] as typeof DEFAULT_SIDES | undefined) ?? DEFAULT_SIDES;
+      base['position'] = position;
       base[sideX] = `${x()}px`;
       base[sideY] = `${y()}px`;
     } else {
       const floating = untrack(rootContext.floatingElement);
       const rx = floating ? roundByDPR(floating, x()) : x();
       const ry = floating ? roundByDPR(floating, y()) : y();
-      base.position = position;
-      base.left = '0px';
-      base.top = '0px';
-      base.transform = `translate(${rx}px, ${ry}px)`;
+      base['position'] = position;
+      base['left'] = '0px';
+      base['top'] = '0px';
+      base['transform'] = `translate(${rx}px, ${ry}px)`;
       if (floating && (ownerWindow(floating).devicePixelRatio || 1) >= 1.5) {
         base['will-change'] = 'transform';
       }
@@ -549,7 +549,7 @@ export function useAnchorPositioning(
     base[CommonPositionerCssVars.availableWidth] = '100vw';
     base[CommonPositionerCssVars.availableHeight] = '100vh';
     if (!positioned) {
-      base.opacity = '0';
+      base['opacity'] = '0';
     }
     return base as JSX.CSSProperties;
   });
