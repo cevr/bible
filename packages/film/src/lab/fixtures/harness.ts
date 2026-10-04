@@ -205,24 +205,30 @@ const scriptAsset = (entry: string, name: string): Effect.Effect<Asset> =>
   Effect.map(bundled(entry), (js) => asset(name, respond(js, 'text/javascript')));
 
 /**
- * The lab's and the review's scripts and the player's styles: read as the
+ * The lab's and the review's scripts, the tokens and the player's styles: read as the
  * module loads, once per process, so no case's timeout counts
  * them (on a loaded runner the first cases spent 1-2 s waiting on them).
  */
 // oxlint-disable-next-line effect/noAsyncFunction -- the module's own load waits for its setup, so no case's timeout counts it
-const [labScript, reviewScript, playerScript, css] = await Effect.runPromise(
+const [labScript, reviewScript, playerScript, tokens, playerCss] = await Effect.runPromise(
   Effect.all(
     [
       scriptAsset('lab-page.ts', 'lab.js'),
       scriptAsset('review-page.ts', 'review.js'),
       scriptAsset('player-page.ts', 'player.js'),
       FileSystem.FileSystem.use((fs) =>
+        fs.readFileString(`${import.meta.dir}/../../player/tokens.css`),
+      ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
+      FileSystem.FileSystem.use((fs) =>
         fs.readFileString(`${import.meta.dir}/../../player/player.css`),
       ).pipe(Effect.orDie, Effect.provide(BunServices.layer)),
     ],
-    { concurrency: 4 },
+    { concurrency: 5 },
   ),
 );
+
+/** The styles `lab.html` and `index.html` link: the tokens, then the player's. */
+const css = `${tokens}${playerCss}`;
 
 /**
  * The lab page as `lab.html` has it, with the player's styles inline, and
@@ -472,7 +478,7 @@ export const openPlayer = Effect.fn('lab.fixture.player')(function* (at: PlayerA
 });
 
 const reviewPage = (script: Asset) =>
-  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title></head><body>${scriptOf(script)}</body></html>`;
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title><style>${tokens}</style></head><body>${scriptOf(script)}</body></html>`;
 
 /** Where the review opens, and how wide its window is (a phone's, or a desk's). */
 interface ReviewAt {

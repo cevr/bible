@@ -89,6 +89,7 @@ const served = (
         return {
           status: response.status,
           location: response.headers.get('location') ?? '',
+          type: response.headers.get('content-type') ?? '',
           text: yield* Effect.promise(() => response.text()),
         };
       });
@@ -143,6 +144,30 @@ describe('lab pages', () => {
         expect(serverOf(page.text)).not.toBe('');
         expect(yield* script).toContain('first');
         expect((yield* ask('/nothing.js')).status).toBe(404);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    "the UI face's files are a page's own assets: each at an absolute URL, answered as a woff2",
+    () =>
+      Effect.gen(function* () {
+        const { ask, script, write } = yield* app;
+        // The review imports the framework's face, as every page with chrome does.
+        yield* write(
+          'src/p.ts',
+          `import { registerFace } from '${import.meta.dir}/../player/face.ts';\nconsole.log(registerFace);\n`,
+        );
+        const urls = Array.from(
+          (yield* script).matchAll(/["'`]([^"'`]*\.woff2)["'`]/g),
+          (m) => m[1] ?? '',
+        );
+        expect(urls).toHaveLength(3);
+        for (const url of urls) {
+          expect(url).toMatch(/^\/jetbrains-mono-(latin|latin-ext|greek)-wght-normal-\w+\.woff2$/);
+          const font = yield* ask(url);
+          expect([url, font.status, font.type]).toEqual([url, 200, 'font/woff2']);
+          expect(font.text.length).toBeGreaterThan(1000);
+        }
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 

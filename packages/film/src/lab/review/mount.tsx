@@ -27,6 +27,7 @@ import { KeysSheet } from '../command/keys-sheet.tsx';
 import { Receipts } from '../command/receipts.tsx';
 import { TargetMenu } from '../command/context-menu.tsx';
 import { COMMAND_CSS } from '../command/style.ts';
+import { registerFace } from '../../player/face.ts';
 
 /** The trail to `place`: each step's title, and where it goes (none for the page itself). */
 interface Crumb {
@@ -181,6 +182,7 @@ export const mountReview = (): void => {
       const style = document.createElement('style');
       style.textContent = `${REVIEW_CSS}${COMMAND_CSS}`;
       document.head.append(style);
+      registerFace(document.fonts);
       document.body.classList.add('rv');
       const address = addressOn(host);
       const hub = yield* makeHub('review', address.href, ViewerStore);

@@ -15,6 +15,7 @@ import type { TimeInUrl } from '../player/t-in-url.ts';
 import { ViewerStore } from '../browser/storage-browser.ts';
 import { type Hub, makeHub } from '../command/hub.ts';
 import { COMMAND_CSS } from './command/style.ts';
+import { registerFace } from '../player/face.ts';
 import { labHref, labOpensAt, labPlaceOf } from './place.ts';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
@@ -95,6 +96,8 @@ const start = Effect.fn('lab.start')(
     const address = addressOn(host);
     // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
     Option.map(legacyPlace(address.href()), address.replace);
+    // The UI face first, so the fonts the film waits on include it.
+    registerFace(document.fonts);
     const staged = yield* Effect.tryPromise({
       try: () => stageFilm(films, address.href()),
       catch: (cause) => LabStartFailed.make({ reason: String(cause) }),

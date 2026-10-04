@@ -25,6 +25,7 @@ import { Pointer } from '../browser/pointer.ts';
 import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
 import { encodeChunk, encoderChoice } from './encode.ts';
+import { registerFace } from './face.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
 import { narration, narrationNote } from './narration.ts';
 import { onTheMs, tInUrl, type TimeInUrl } from './t-in-url.ts';
@@ -200,6 +201,8 @@ export const mountPlayer = (films: Films): void => {
     Option.isSome(Place.decode(place, href)),
   );
 
+  // The UI face for the pages with chrome; the render page draws only the film's faces.
+  if (!exporting) registerFace(document.fonts);
   const main = async () => {
     const staged = await stageFilm(films, href);
     const { name, film, captions } = staged;
