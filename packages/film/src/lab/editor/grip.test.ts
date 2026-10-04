@@ -68,10 +68,16 @@ const grip = (edge: CueGrip['edge']): CueGrip => ({
 });
 
 describe('dragCue', () => {
-  test('its body moves the offset, and the edit shows it', () => {
+  test('its body moves the offset, and the edit shows it; the write says it, before → after', () => {
     const dragged = dragCue(grip('move'), { x: 520, y: 0, shift: false });
     expect(dragged.write).toEqual(
-      Option.some({ _tag: 'CueWrite', scene: 'one', cue: 'rise', patch: { offset: 0.2 } }),
+      Option.some({
+        _tag: 'CueWrite',
+        scene: 'one',
+        cue: 'rise',
+        patch: { offset: 0.2 },
+        said: 'cue rise offset 0 → 0.2 s',
+      }),
     );
     expect(dragged.scene).toBe('one');
     expect(dragged.edit.timeline?.['rise']).toEqual({ mark: 'rise', offset: 0.2, dur: 0.6 });
@@ -81,7 +87,13 @@ describe('dragCue', () => {
   test('its right edge sets the dur', () => {
     const dragged = dragCue(grip('end'), { x: 510, y: 0, shift: false });
     expect(dragged.write).toEqual(
-      Option.some({ _tag: 'CueWrite', scene: 'one', cue: 'rise', patch: { dur: 0.7 } }),
+      Option.some({
+        _tag: 'CueWrite',
+        scene: 'one',
+        cue: 'rise',
+        patch: { dur: 0.7 },
+        said: 'cue rise dur 0.6 → 0.7 s',
+      }),
     );
   });
 
@@ -179,7 +191,13 @@ describe('dragKnob', () => {
     const grip = knobGrip('point', [1, 0, 0, 1, 0, 0], [1, 0, 0, 1, 0, 0]);
     const dragged = dragKnob(grip, { x: 10 + 215.2, y: 20 + 95, shift: false });
     expect(dragged.write).toEqual(
-      Option.some({ _tag: 'KnobWrite', scene: 'three', knob: 'face', value: [430, 190] }),
+      Option.some({
+        _tag: 'KnobWrite',
+        scene: 'three',
+        knob: 'face',
+        value: [430, 190],
+        said: 'knob face [400, 200] → [430, 190]',
+      }),
     );
     expect(dragged.edit.knobs).toEqual({ face: [430, 190], faceZoom: 2 });
   });
@@ -189,7 +207,13 @@ describe('dragKnob', () => {
     // 40 frame pixels right: the target moves 20 world units left.
     const dragged = dragKnob(grip, { x: 10 + 220, y: 20 + 100, shift: false });
     expect(dragged.write).toEqual(
-      Option.some({ _tag: 'KnobWrite', scene: 'three', knob: 'face', value: [380, 200] }),
+      Option.some({
+        _tag: 'KnobWrite',
+        scene: 'three',
+        knob: 'face',
+        value: [380, 200],
+        said: 'knob face [400, 200] → [380, 200]',
+      }),
     );
   });
 

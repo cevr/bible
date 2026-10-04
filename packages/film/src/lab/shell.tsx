@@ -32,6 +32,7 @@ import type { Hub } from '../command/hub.ts';
 import type { LabSelection } from '../command/selection.ts';
 import { CommandMenu } from './command/command-menu.tsx';
 import { KeysSheet } from './command/keys-sheet.tsx';
+import { Receipts } from './command/receipts.tsx';
 import { TargetMenu } from './command/context-menu.tsx';
 import { labHref, labPlaceOf } from './place.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
@@ -227,6 +228,7 @@ const Root = (props: RootProps) => {
           {props.children}
           <CommandMenu hub={props.hub} />
           <KeysSheet hub={props.hub} />
+          <Receipts hub={props.hub} tab={TabStore} scope={`lab:${props.name}`} />
         </TargetMenu>
       </Inner>
     </RegistryProvider>

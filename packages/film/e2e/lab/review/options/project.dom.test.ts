@@ -23,6 +23,11 @@ import { pageHref } from '../../../../src/core/api.ts';
 import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import { FreshProcessFailed, VerbRefused } from '../../../../src/core/refusals.ts';
 import { sceneAddress } from '../../../../src/core/address.ts';
+import {
+  closeCommandMenu,
+  menuEntry,
+  openCommandMenu,
+} from '../../../../src/lab/fixtures/gestures.ts';
 import { Render } from '../../../../src/core/catalogue.ts';
 import {
   type FakeRoute,
@@ -669,8 +674,8 @@ describe("a film's project", () => {
           { href: PROJECT },
         );
         const box = `${INSPECTOR} .rv-comment-input`;
-        /** Say `text` in the inspector of `at`, posted as the `n`th say to `path`; wait for `status` to fail it. */
-        const failedSay = (at: string, text: string, path: string, n: number, status: string) =>
+        /** Say `text` in the inspector of `at`, posted as the `n`th say to `path`; wait for its receipt in `slot` to refuse it. */
+        const failedSay = (at: string, text: string, path: string, n: number, slot: string) =>
           Effect.gen(function* () {
             yield* inspect(page, at);
             yield* page.fill(box, text);
@@ -679,27 +684,19 @@ describe("a film's project", () => {
               Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (m) => m >= n }),
               Effect.timeout('10 seconds'),
             );
-            yield* until(
-              page,
-              `((s) => s.dataset.failed === 'true' && !s.textContent.endsWith('…'))(document.querySelector('${status}'))`,
-            );
+            // Its receipt, in its page's slot, says why it was refused.
+            yield* attributeIs(page, `[data-receipt="${slot}"]`, 'data-type', 'refused');
           });
         const PROJECT_SAY = '/api/films/toy/project/say';
         const take = `${scene('open')} [data-point="take:paper.page"]`;
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
         // A scene's comment, the film's, and a take's: each fails, and each keeps its text.
-        yield* failedSay(render('open'), 'a long thoughtful note', PROJECT_SAY, 1, 'p.rv-status');
+        yield* failedSay(render('open'), 'a long thoughtful note', PROJECT_SAY, 1, 'project');
         yield* valueIs(page, box, 'a long thoughtful note');
-        yield* failedSay(FILM_HEAD, 'of the whole film', PROJECT_SAY, 2, 'p.rv-status');
+        yield* failedSay(FILM_HEAD, 'of the whole film', PROJECT_SAY, 2, 'project');
         yield* valueIs(page, box, 'of the whole film');
         yield* click(page, `${scene('open')} > .rv-layers > summary`);
-        yield* failedSay(
-          take,
-          'the page is late',
-          '/api/films/toy/choices/say',
-          1,
-          '.rv-writes .rv-status',
-        );
+        yield* failedSay(take, 'the page is late', '/api/films/toy/choices/say', 1, 'film');
         yield* valueIs(page, box, 'the page is late');
         // The film loads again: the kept comment, back in its box, is said, and its box empties.
         loads = true;
@@ -722,10 +719,7 @@ describe("a film's project", () => {
         });
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
         yield* click(page, `${render('coda')} [data-act="approve"]`);
-        yield* until(
-          page,
-          `document.querySelector('p.rv-status').dataset.failed === 'true' && !document.querySelector('p.rv-status').textContent.endsWith('…')`,
-        );
+        yield* attributeIs(page, '[data-receipt="project"]', 'data-type', 'refused');
         yield* waitFor(page, `${scene('coda')}[data-state="stale"]`);
         yield* textIs(
           page,
@@ -951,11 +945,10 @@ describe("a film's project", () => {
           Effect.timeout('10 seconds'),
         );
         expect(reads(before)).toEqual(['/api/films/toy/project']);
-        // Undo names what it undoes.
-        yield* until(
-          page,
-          `document.querySelector('[data-act="undo"]').textContent === 'Undo score play brass'`,
-        );
+        // The menu's Undo names what it undoes.
+        yield* openCommandMenu(page, 'undo');
+        yield* textIs(page, menuEntry('review.undo'), /^Undo score play brass/);
+        yield* closeCommandMenu(page);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

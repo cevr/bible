@@ -1,6 +1,6 @@
 // The look of the pages' command surfaces (⌘K, the `?` sheet, the context
 // menu, the inspector's fields and hint, the review's inspector sheet and
-// comment dot, and every primitive after them):
+// comment dot, the receipts' toasts, and every primitive after them):
 // one token set (`COMMAND_TOKENS`, CSS custom properties with today's
 // values, read from the page's own palette where it has one: the lab's
 // `player.css`, the review's `REVIEW_CSS`), and the rules, which read only
@@ -18,6 +18,7 @@ body {
   --cmd-dim: var(--muted, var(--rv-dim, #9a9387));
   --cmd-line: var(--rv-line, rgba(255, 255, 255, 0.12));
   --cmd-accent: var(--accent, var(--rv-gold, #e0a93a));
+  --cmd-refused: #e0705a;
   --cmd-hover: rgba(255, 255, 255, 0.08);
   --cmd-scrim: rgba(0, 0, 0, 0.45);
   --cmd-shadow: 0 18px 48px rgba(0, 0, 0, 0.5);
@@ -43,6 +44,7 @@ body {
   --cmd-menu-width: 200px;
   --cmd-inspector-width: 360px;
   --cmd-count-size: 18px;
+  --cmd-toast-width: 420px;
   --cmd-height: 72vh;
   --cmd-top: 12vh;
   --cmd-layer: 40;
@@ -156,6 +158,29 @@ const COMMAND_RULES = `
 /* Beside the page, not over it: on a wide screen the page makes room while an inspector is open. */
 @media (min-width: 901px) { body:has(.lab-inspector-sheet) { padding-right: var(--cmd-inspector-width); } }
 .lab-clamp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lab-receipts {
+  position: fixed; z-index: calc(var(--cmd-layer) + 2); left: 50%; bottom: var(--cmd-gutter); transform: translateX(-50%);
+  width: min(var(--cmd-toast-width), calc(100vw - 2 * var(--cmd-gutter)));
+  display: flex; flex-direction: column; gap: var(--cmd-gap-small); outline: none;
+}
+.lab-receipt {
+  background: var(--cmd-panel); color: var(--cmd-ink); border: 1px solid var(--cmd-line);
+  border-radius: var(--cmd-radius-small); padding: var(--cmd-row-pad); box-shadow: var(--cmd-shadow);
+  font-family: var(--cmd-font); font-size: var(--cmd-text); line-height: var(--cmd-leading);
+  transform: translate(var(--toast-swipe-movement-x, 0px), var(--toast-swipe-movement-y, 0px));
+}
+.lab-receipt[data-limited] { display: none; }
+.lab-receipt[data-type="refused"] { border-color: var(--cmd-refused); }
+.lab-receipt[data-type="refused"] .lab-receipt-said { color: var(--cmd-refused); }
+.lab-receipt[data-type="busy"] .lab-receipt-said { color: var(--cmd-dim); }
+.lab-receipt-content { display: flex; align-items: center; gap: var(--cmd-gap); }
+.lab-receipt-said { flex: 1; min-width: 0; margin: 0; font-size: var(--cmd-text); font-weight: normal; overflow-wrap: anywhere; }
+.lab-receipt-undo, .lab-receipt-close {
+  font: inherit; font-size: var(--cmd-small); cursor: pointer; background: none; color: var(--cmd-ink);
+  border-radius: var(--cmd-radius-small); padding: var(--cmd-button-pad); min-height: var(--cmd-button-height);
+}
+.lab-receipt-undo { border: 1px solid var(--cmd-accent); color: var(--cmd-accent); }
+.lab-receipt-close { border: 0; color: var(--cmd-dim); }
 `;
 
 /** The command surfaces' stylesheet: the tokens, then the rules that read them. */

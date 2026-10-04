@@ -34,8 +34,11 @@ export type Receipt = Data.TaggedEnum<{
 }>;
 export const Receipt = Data.taggedEnum<Receipt>();
 
-/** A receipt's tone: done, or refused (in the refusal's words). */
-type Tone = 'done' | 'refused';
+/**
+ * A receipt's tone: done, refused (in the refusal's words), or busy (a
+ * write on its way, said until its own receipt replaces it).
+ */
+type Tone = 'done' | 'refused' | 'busy';
 
 /** A receipt that says nothing. */
 export const quiet: Receipt = Receipt.Quiet();
@@ -47,6 +50,10 @@ export const said = (text: string, undo: Option.Option<CommandId> = Option.none(
 /** A receipt that says why nothing was done. */
 export const refused = (text: string): Receipt =>
   Receipt.Said({ said: text, undo: Option.none(), tone: 'refused' });
+
+/** A receipt that says what is on its way (`undoing…`): its slot's next receipt replaces it. */
+export const busy = (text: string): Receipt =>
+  Receipt.Said({ said: text, undo: Option.none(), tone: 'busy' });
 
 /** What moved, from before to after: `cue slam start 0.42 → 0.38 s`. */
 export const moved = (what: string, before: string, after: string, unit = ''): string =>

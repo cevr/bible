@@ -37,12 +37,13 @@ import { type ChoicePoint, type VariantMedia, pointHead } from '../../../core/ch
 import type { LabFailure } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { Go, plainClick, useReview } from '../context.tsx';
-import { pressed } from '../format.ts';
-import { Loaded, statusText, useWrite, writeStatus } from '../loaded.tsx';
+import { pressed, sayText } from '../format.ts';
+import { Loaded, useWrite, writeStatus } from '../loaded.tsx';
 import { ReviewPlace } from '../place.ts';
 import { OptionsApi, type ProjectSay } from './api.ts';
 import { ChoiceCard, Comments, type Sayer, SayBox } from './choice.tsx';
 import { FilmProvider, useFilm } from './context.tsx';
+import { partText } from './receipt.ts';
 import { Selection } from '../../../command/selection.ts';
 import { Target, type TargetElementProps } from '../../command/context-menu.tsx';
 import {
@@ -545,8 +546,7 @@ const ProjectReady = (props: { readonly film: string }) => {
   const read = useAtomValue(() => readAtom);
   const again = useAtomValue(() => againAtom);
   const askAgain = useAtomSet(() => againAtom, { mode: 'promiseExit' });
-  const status = writeStatus<ProjectView>();
-  const said = status.status;
+  const status = writeStatus<ProjectView>('project');
   const [shown, setShown] = createSignal(Option.none<ProjectView>());
   const asks = newestAsked();
   /** Show `exit`'s project when it answered and `ask` is still the newest: whether it answered. */
@@ -569,6 +569,11 @@ const ProjectReady = (props: { readonly film: string }) => {
       (s: ProjectSay) => OptionsApi.use((api) => api.sayOfProject(film, s)),
       status,
       { project: asks },
+      (s) => ({
+        doing: 'saying…',
+        done: () => sayText(s.say, partText(s.address)),
+        undo: Option.none(),
+      }),
     );
     return {
       waiting: own.waiting,
@@ -597,18 +602,7 @@ const ProjectReady = (props: { readonly film: string }) => {
   });
   return (
     <Loaded value={shown()} result={read()} reading={`Reading ${film}'s project…`}>
-      {(view) => (
-        <>
-          <p
-            class="rv-hint rv-status"
-            data-said={pressed(AsyncResult.isSuccess(said()))}
-            data-failed={pressed(AsyncResult.isFailure(said()))}
-          >
-            {statusText(said(), 'saying…', () => 'said')}
-          </p>
-          <ProjectBody at={at(view)} />
-        </>
-      )}
+      {(view) => <ProjectBody at={at(view)} />}
     </Loaded>
   );
 };

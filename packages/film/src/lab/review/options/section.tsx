@@ -4,25 +4,28 @@
 // score's options (`play` in `sound.ts`), its looks (`looks` in
 // `palette.ts`), each library sound's takes (the library's lock), each
 // beat's recorded voice, and each sound layer's level (a knob). Undo and
-// redo name the source change they step, and the film's check is the one the
-// last write answered; after a pick or a knob the sound check runs (`film check --sound`: dead air, balance against the picked
-// score) and its findings are shown.
+// Redo are the page's commands, each naming the source change it steps, and
+// every write says what it did in a receipt; the film's check is the one the
+// last write answered; after a pick or a knob the sound check runs (`film
+// check --sound`: dead air, balance against the picked score) and its
+// findings are shown.
 
 import { For, Show } from '@solidjs/web';
 import { type Accessor, createMemo, onCleanup } from 'solid-js';
-import { Duration, Effect, Fiber, Match, Option } from 'effect';
+import { Duration, Effect, Fiber, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { playableOf } from '../../../browser/media-browser.ts';
+import { type Command, type CommandId, quiet } from '../../../command/command.ts';
 import type { ChoiceKind, ChoicePoint } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine } from '../../../core/schema.ts';
 import { useReview } from '../context.tsx';
 import { pressed, sizeText, videoSource } from '../format.ts';
 import { ProxyPending, Transport } from '../section.tsx';
-import { failedText, statusText } from '../loaded.tsx';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, HearButton } from './choice.tsx';
 import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
+import { REVIEW_REDO, REVIEW_UNDO, findingsText } from './receipt.ts';
 
 /** A picture's chip: where it lies (renders of one film share a name), and its size. */
 const pictureLabel = (p: ReviewVideo): string => {
@@ -144,57 +147,61 @@ const Mix = (props: { readonly src: string }) => {
   return <audio class="rv-mix" preload="auto" src={src} ref={attach} />;
 };
 
-const STEP_WORD = { undo: 'Undo', redo: 'Redo' } as const;
-
-/** An undo's or a redo's button: it names what it would do, and is disabled when there is nothing to. */
-const StepButton = (props: { readonly which: 'undo' | 'redo'; readonly act: ChoiceAct }) => {
+/**
+ * Undo and Redo of the film's source as the page's commands (UR-35): ⌘Z and
+ * ⇧⌘Z, ⌘K, the page's context menu and a receipt's Undo, each naming the
+ * change it would step, available while the film's stack has one that way
+ * and the last step has answered.
+ */
+const StepCommands = () => {
+  const { meta } = useReview();
   const { steps } = useFilm();
   const stepping = useAct();
-  const step = () => Option.flatMap(steps(), (s) => Option.fromUndefinedOr(s[props.which]));
-  const word = () => STEP_WORD[props.which];
-  return (
-    <button
-      type="button"
-      class="rv-chip"
-      data-act={props.which}
-      disabled={Option.isNone(step()) || stepping.waiting()}
-      title={Option.getOrElse(
-        Option.map(step(), (s) => `${props.which} ${s.target} in ${s.file}`),
-        () => `nothing to ${props.which}`,
-      )}
-      onClick={() => stepping.write(props.act)}
-    >
-      {Option.match(step(), { onNone: word, onSome: (s) => `${word()} ${s.target}` })}
-    </button>
+  const step = (which: 'undo' | 'redo') =>
+    Option.flatMap(steps(), (s) => Option.fromUndefinedOr(s[which]));
+  const command = (
+    id: CommandId,
+    which: 'undo' | 'redo',
+    label: string,
+    key: string,
+    act: ChoiceAct,
+  ): Command => ({
+    id,
+    label,
+    labelIn: () =>
+      Option.match(step(which), { onNone: () => label, onSome: (s) => `${label} ${s.target}` }),
+    group: 'Edit',
+    keys: [key],
+    about: ['Page'],
+    touch: `the receipt's ${label}, or long-press the page`,
+    when: () => Option.isSome(step(which)) && !stepping.waiting(),
+    run: () =>
+      Effect.sync(() => {
+        void stepping.write(act);
+        return quiet;
+      }),
+  });
+  onCleanup(
+    meta.hub.commands.register(
+      command(REVIEW_UNDO, 'undo', 'Undo', 'mod+z', ChoiceAct.Undo()),
+      command(REVIEW_REDO, 'redo', 'Redo', 'mod+shift+z', ChoiceAct.Redo()),
+    ),
   );
+  return <></>;
 };
 
-/** Undo and redo, each naming the source change it steps; what the last write did; the film's check after it. */
+/** The film's check after the last write, and the sound check after it; Undo and Redo as commands. */
 export const WriteBar = () => {
-  const { findings, wrote, reading } = useFilm();
+  const { findings, reading } = useFilm();
   return (
     <section class="rv-writes" data-reading={pressed(reading())}>
-      <div class="rv-row">
-        <StepButton which="undo" act={ChoiceAct.Undo()} />
-        <StepButton which="redo" act={ChoiceAct.Redo()} />
-        <span class="rv-hint rv-status" data-failed={pressed(AsyncResult.isFailure(wrote()))}>
-          {statusText(wrote(), 'writing…', (w) => `wrote ${w.target} · ${w.file}`)}
-        </span>
-      </div>
+      <StepCommands />
       {/* The check folds away: its findings are read when asked for, not over the player. */}
       <Findings name="check" findings={Option.getOrElse(findings(), () => [])} />
       <SoundFindings />
     </section>
   );
 };
-
-/** `n` findings as a summary says them. */
-const findingsText = (name: string, n: number) =>
-  Match.value(n).pipe(
-    Match.when(0, () => `${name}: clean`),
-    Match.when(1, () => `${name}: 1 finding`),
-    Match.orElse((count) => `${name}: ${count} findings`),
-  );
 
 /** A check's findings, folded away under their count. */
 const Findings = (props: {
@@ -220,30 +227,12 @@ const Findings = (props: {
 /** The sound check after the last pick or knob: running, its findings, or why it could not run. */
 const SoundFindings = () => {
   const { soundCheck } = useFilm();
-  // Read again as the check runs and answers.
-  const shown = () =>
-    Match.value(soundCheck()).pipe(
-      Match.when(
-        (r) => r.waiting,
-        () => (
-          <p class="rv-hint" data-check="sound" aria-busy="true">
-            sound check: hearing the mix…
-          </p>
-        ),
-      ),
-      Match.orElse((r) =>
-        AsyncResult.match(r, {
-          onInitial: () => <></>,
-          onSuccess: (s) => <Findings name="sound check" findings={s.value.findings} />,
-          onFailure: () => (
-            <p class="rv-hint" data-check="sound" data-failed="true">
-              sound check: {failedText(r)}
-            </p>
-          ),
-        }),
-      ),
-    );
-  return <>{shown()}</>;
+  // While it runs, and why it could not, the receipt says (`soundReceipt`).
+  return (
+    <Show when={Option.getOrUndefined(AsyncResult.value(soundCheck()))}>
+      {(check) => <Findings name="sound check" findings={check().findings} />}
+    </Show>
+  );
 };
 
 /** Each kind's heading, in the order the page shows them. */

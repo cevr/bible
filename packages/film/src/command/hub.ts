@@ -4,8 +4,11 @@
 // context its commands read (`context.ts`: the page's URL and what is
 // selected there, refined by whatever on the page knows more, such as
 // whether the film plays), the one key listener on the page (`listen`,
-// through `Keys`), and the receipts every command answers with, handed to
-// whoever shows them. Built once at each page's root (`mountPlayer`,
+// through `Keys`), and the receipts every command answers with, and those a
+// page's writes announce as they land (`announce`: a drag's, a field's, a
+// say's), handed to whoever shows them, each in its slot (the command's id,
+// or the writer's name: a slot's next receipt replaces its last, so
+// `undoing…` becomes what was undone). Built once at each page's root (`mountPlayer`,
 // `mountLab`, `mountReview`) and handed to everything on the page, as the
 // host is. A command runs only where its `when` holds, whether its key, a
 // menu, ⌘K or a button asked for it. Framework-free.
@@ -44,8 +47,10 @@ export interface Hub {
   readonly invoke: (command: Command, how: Invocation, ctx?: Context) => void;
   /** Run the command registered as `id` (a receipt's Undo), if it is registered and available. */
   readonly invokeId: (id: CommandId, how: Invocation) => void;
-  /** Hand every receipt to `sink`, with the command that answered it, until the returned stop. */
-  readonly receipts: (sink: (receipt: Receipt, command: Command) => void) => () => void;
+  /** Hand every receipt to `sink`, with its slot, until the returned stop. */
+  readonly receipts: (sink: (receipt: Receipt, slot: string) => void) => () => void;
+  /** Say `receipt` in `slot`: what a write no command ran said as it landed, or while it is out. */
+  readonly announce: (receipt: Receipt, slot: string) => void;
   /** The viewer's keymap overrides, as kept. */
   readonly overrides: () => KeymapOverrides;
   /** Keep `next` as the viewer's overrides: a reload keeps them too. */
@@ -112,14 +117,15 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
       focus,
     });
 
-  const sinks = new Set<(receipt: Receipt, command: Command) => void>();
+  const sinks = new Set<(receipt: Receipt, slot: string) => void>();
+  const announce = (receipt: Receipt, slot: string) => {
+    for (const sink of sinks) sink(receipt, slot);
+  };
   const invoke = (command: Command, how: Invocation, ctx: Context = context()) => {
     if (!command.when(ctx)) return;
     Effect.runFork(
       Effect.tap(command.run(ctx, how), (receipt) =>
-        Effect.sync(() => {
-          for (const sink of sinks) sink(receipt, command);
-        }),
+        Effect.sync(() => announce(receipt, command.id)),
       ),
     );
   };
@@ -157,6 +163,7 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
       sinks.add(sink);
       return () => sinks.delete(sink);
     },
+    announce,
     overrides: () => overrides,
     setOverrides: (next) => {
       overrides = next;

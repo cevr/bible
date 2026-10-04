@@ -119,7 +119,12 @@ describe('a drag on the strip', () => {
       expect(result.states[2]).toMatchObject({ write: Option.some(cueWrite) });
       expect(result.finalState).toEqual(
         EditState.Writing({
-          write: CueWrite.make({ scene: 'one', cue: 'rise', patch: { offset: 0.3 } }),
+          write: CueWrite.make({
+            scene: 'one',
+            cue: 'rise',
+            patch: { offset: 0.3 },
+            said: 'cue rise offset 0 → 0.3 s',
+          }),
         }),
       );
       expect(log).toEqual(['pause', 'preview one rise', 'preview one rise', 'holdT']);
@@ -203,7 +208,12 @@ describe('a drag of a knob handle', () => {
       expect(result.states.map((s) => s._tag)).toEqual(['Idle', 'Pressed', 'Dragging', 'Writing']);
       expect(result.finalState).toEqual(
         EditState.Writing({
-          write: KnobWrite.make({ scene: 'three', knob: 'face', value: [380, 200] }),
+          write: KnobWrite.make({
+            scene: 'three',
+            knob: 'face',
+            value: [380, 200],
+            said: 'knob face [400, 200] → [380, 200]',
+          }),
         }),
       );
       expect(log).toEqual(['pause', 'preview three face,faceZoom', 'holdT']);
@@ -278,7 +288,7 @@ describe('writes', () => {
     }).pipe(Effect.provide(fakes().layer)),
   );
 
-  it.effect('a write that lands says what it wrote, with its findings', () =>
+  it.effect('a write that lands says what it wrote, with its findings, undone by Undo', () =>
     Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
         EditEvent.Commit({ write: cueWrite, edit: {} }),
@@ -288,8 +298,37 @@ describe('writes', () => {
         EditState.Written({
           note: 'wrote scenes/one.ts: cue rise offset',
           findings: landed.findings,
+          undo: 'undo',
         }),
       );
+    }).pipe(Effect.provide(fakes().layer)),
+  );
+
+  it.effect('a write that knows what it moves says it, before → after, as it lands', () =>
+    Effect.gen(function* () {
+      const result = yield* simulate(editMachine, [
+        EditEvent.Commit({
+          write: { ...cueWrite, said: 'cue rise offset 0.4 → 0.367 s' },
+          edit: {},
+        }),
+        EditEvent.Wrote({ result: landed }),
+      ]);
+      expect(result.finalState).toMatchObject({ note: 'cue rise offset 0.4 → 0.367 s' });
+    }).pipe(Effect.provide(fakes().layer)),
+  );
+
+  it.effect('an Undo that lands is undone by Redo, and a Redo by Undo', () =>
+    Effect.gen(function* () {
+      const stepped = (verb: 'undo' | 'redo') =>
+        simulate(editMachine, [
+          EditEvent.Step({ verb, request: `${verb}-1` }),
+          EditEvent.Wrote({ result: { ...landed, target: `${verb} cue rise offset` } }),
+        ]);
+      expect((yield* stepped('undo')).finalState).toMatchObject({
+        note: 'undid cue rise offset in scenes/one.ts',
+        undo: 'redo',
+      });
+      expect((yield* stepped('redo')).finalState).toMatchObject({ undo: 'undo' });
     }).pipe(Effect.provide(fakes().layer)),
   );
 

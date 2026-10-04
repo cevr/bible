@@ -131,8 +131,6 @@ a.rv-card:hover { border-color: var(--rv-dim); }
   background: var(--rv-panel); border: 1px solid var(--rv-line); border-radius: var(--rv-radius);
   padding: 8px 12px; margin-bottom: 14px;
 }
-.rv-status { min-width: 0; overflow-wrap: anywhere; }
-.rv-status[data-failed="true"] { color: #e0705a; }
 .rv-check summary { cursor: pointer; margin-top: 6px; }
 .rv-findings { margin: 8px 0 0; padding-left: 18px; font-size: 12px; overflow-wrap: anywhere; }
 .rv-findings li[data-level="error"] b { color: #e0705a; }

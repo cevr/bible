@@ -68,8 +68,8 @@ export const EditState = State({
   Writing: { write: Write },
   /** An Undo or Redo had no answer in STEP_TIMEOUT_S: the lab is asked whether it landed, by its request's id. */
   Checking: { write: StepWrite },
-  /** The write landed; the page reloads with it. */
-  Written: { note: Schema.String, findings: Schema.Array(CheckLine) },
+  /** The write landed; the page reloads with it. `undo` is the step that undoes it (Redo for an Undo). */
+  Written: { note: Schema.String, findings: Schema.Array(CheckLine), undo: StepVerb },
   /** The server, or the lab, said no: its words. */
   Refused: { message: Schema.String },
 });
@@ -102,6 +102,14 @@ const sceneOfWrite = (write: Write): Option.Option<string> =>
   Match.value(write).pipe(
     Match.tag('StepWrite', () => Option.none<string>()),
     Match.orElse((w) => Option.some(w.scene)),
+  );
+
+/** The step that undoes `write` once it lands: Redo for an Undo, else Undo. */
+const UNDONE_BY = { undo: 'redo', redo: 'undo' } as const satisfies Record<StepVerb, StepVerb>;
+const undoneBy = (write: Write): StepVerb =>
+  Match.value(write).pipe(
+    Match.tag('StepWrite', (s): StepVerb => UNDONE_BY[s.verb]),
+    Match.orElse((): StepVerb => 'undo'),
   );
 
 /** How long `write` may be out with no answer: a step remakes what follows its file first. */
@@ -231,6 +239,7 @@ export const editMachine = Machine.make({
     const written = EditState.Written({
       note: wroteNote(state.write, event.result),
       findings: event.result.findings,
+      undo: undoneBy(state.write),
     });
     // No rebuild follows a file the page reads at load (an Undo of a kept take): reload it here.
     if (!readAtLoad(event.result.file)) return written;
@@ -280,7 +289,10 @@ export const editMachine = Machine.make({
     if (readAtLoad(event.result.file))
       note = `${wrote}; the lab had not finished remaking what follows it after ${STEP_TIMEOUT_S} s: reload the page once the lab log says it mixed`;
     return Stage.use((stage) =>
-      Effect.as(stage.settle, EditState.Written({ note, findings: event.result.findings })),
+      Effect.as(
+        stage.settle,
+        EditState.Written({ note, findings: event.result.findings, undo: undoneBy(state.write) }),
+      ),
     );
   })
   .on(EditState.Checking, EditEvent.Failed, ({ state, event }) =>

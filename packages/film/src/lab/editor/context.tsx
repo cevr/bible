@@ -8,11 +8,12 @@
 // A grip follows the press that grabbed it (`Pointer.drag`) until the press
 // ends: lifted it lands, ended by the browser it goes back. Escape lets it go
 // while the machine is Pressed or Dragging, and only then. The editor's verbs
-// (Undo, Redo, that Escape) are commands on the page's hub (`commands.ts`).
+// (Undo, Redo, that Escape) are commands on the page's hub (`commands.ts`),
+// and what its writes did is said there as they land: the page's receipts.
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Effect, Fiber, Option, Result } from 'effect';
+import { Effect, Equal, Fiber, Option, Result } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -25,6 +26,7 @@ import { sceneOf } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import type { DragEdge } from '../../core/timeline.ts';
 import { LabApi, type StepVerb, reasonOf } from '../api.ts';
+import type { Receipt } from '../../command/command.ts';
 import { type LabSelection, cueOf, knobOf } from '../../command/selection.ts';
 import type { Inspected } from '../../core/field.ts';
 import { useLab } from '../shell.tsx';
@@ -40,8 +42,11 @@ import {
 } from './grip.ts';
 import { type Handle, knobMode } from './handles.ts';
 import { editorCommands } from './commands.ts';
-import { findingsOf, statusText } from './format.ts';
+import { findingsOf, receiptOf } from './format.ts';
 import { type EditActor, EditEvent, spawnEditor, stepRequest } from './machine.ts';
+
+/** The editor's slot among the page's receipts (`Hub.announce`). */
+const EDIT_SLOT = 'edit';
 
 /** What the lab knows of a scene's source: it, or why it could not be read. */
 interface Known {
@@ -51,8 +56,6 @@ interface Known {
 }
 
 interface EditorState {
-  /** What the editor last did, or is doing: the status line. */
-  readonly status: Accessor<string>;
   /** The findings to list: the landed write's, else the check the page loaded with. */
   readonly findings: Accessor<ReadonlyArray<CheckLine>>;
   /** The scene the strip shows: the one under the playhead. */
@@ -256,6 +259,20 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   });
   onCleanup(letGo);
 
+  // The editor's receipts, on the page's hub as its machine moves (`receiptOf`),
+  // each once, in one slot: `writing…` becomes what was moved, `undoing…` what was undone.
+  let announced = Option.none<Receipt>();
+  createEffect(
+    () => receiptOf(edit()),
+    (receipt) => {
+      const fresh = Option.filter(receipt, (r) => !Option.exists(announced, Equal.equals(r)));
+      Option.map(fresh, (r) => {
+        announced = Option.some(r);
+        meta.hub.announce(r, EDIT_SLOT);
+      });
+    },
+  );
+
   // Each step is its own request, with an id no other has: with no answer, the lab says by it whether it landed.
   const step = (verb: StepVerb) =>
     send(EditEvent.Step({ verb, request: Effect.runSync(stepRequest) }));
@@ -336,7 +353,6 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
 
   const value: EditorContextValue = {
     state: {
-      status: () => statusText(edit(), report()),
       findings: () => findingsOf(edit(), report()),
       stripScene,
       inspected,

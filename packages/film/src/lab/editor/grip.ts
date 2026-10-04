@@ -31,7 +31,7 @@ import {
   Timeline,
 } from '../../core/schema.ts';
 import { toMs } from '../../core/time.ts';
-import { type DragEdge, dragPatch, patchSpan } from '../../core/timeline.ts';
+import { type DragEdge, dragPatch, patchSpan, untilText } from '../../core/timeline.ts';
 import { StepVerb } from '../api.ts';
 
 /** How near (screen pixels) an edge must come to a word, mark or cue edge to snap to it. */
@@ -119,10 +119,17 @@ export type CueGrip = typeof CueGrip.Type;
 export const Pointer = Schema.Struct({ x: Schema.Finite, y: Schema.Finite, shift: Schema.Boolean });
 export type Pointer = typeof Pointer.Type;
 
+/**
+ * What a write moves, before → after (`cue slam offset 0.4 → 0.367 s`): its
+ * receipt once it lands. The page's own words, never sent.
+ */
+const Said = Schema.optionalKey(Schema.String);
+
 export const CueWrite = Schema.TaggedStruct('CueWrite', {
   scene: Schema.String,
   cue: Schema.String,
   patch: CuePatch,
+  said: Said,
 });
 export type CueWrite = typeof CueWrite.Type;
 
@@ -130,6 +137,7 @@ export const KnobWrite = Schema.TaggedStruct('KnobWrite', {
   scene: Schema.String,
   knob: Schema.String,
   value: Knob,
+  said: Said,
 });
 export type KnobWrite = typeof KnobWrite.Type;
 
@@ -177,7 +185,14 @@ export const dragCue = (grip: CueGrip, pointer: Pointer): Dragged => {
     onSome: (q) => patchSpan(grip.span, q),
   });
   return {
-    write: Option.map(patch, (q) => CueWrite.make({ scene: grip.scene, cue: grip.cue, patch: q })),
+    write: Option.map(patch, (q) =>
+      CueWrite.make({
+        scene: grip.scene,
+        cue: grip.cue,
+        patch: q,
+        said: cueSaid(grip.cue, grip.span, grip.cue0, q),
+      }),
+    ),
     scene: grip.scene,
     edit: { timeline: { ...grip.timeline, [grip.cue]: span } },
   };
@@ -251,11 +266,17 @@ const knobAt = (grip: KnobGrip, pointer: Pointer): Point => {
 /** A knob grabbed by `grip`, dragged to `pointer`. */
 export const dragKnob = (grip: KnobGrip, pointer: Pointer): Dragged => {
   const value = knobAt(grip, pointer);
-  const moved = value[0] !== grip.from[0] || value[1] !== grip.from[1];
+  const went = value[0] !== grip.from[0] || value[1] !== grip.from[1];
   return {
     write: Option.map(
-      Option.liftPredicate(value, () => moved),
-      (v) => KnobWrite.make({ scene: grip.scene, knob: grip.knob, value: v }),
+      Option.liftPredicate(value, () => went),
+      (v) =>
+        KnobWrite.make({
+          scene: grip.scene,
+          knob: grip.knob,
+          value: v,
+          said: moved(`knob ${grip.knob}`, knobText(grip.from), knobText(v)),
+        }),
     ),
     scene: grip.scene,
     edit: { knobs: { ...grip.knobs, [grip.knob]: value } },
@@ -332,19 +353,27 @@ export const cueRefusal = (
     },
   });
 
-/** What the status line says once `write` has landed as `result`. */
+/**
+ * What the receipt says once `write` has landed as `result`: what it moved,
+ * before → after, when the page knew (else what the lab wrote), or what an
+ * Undo or Redo walked.
+ */
 export const wroteNote = (write: Write, result: LabWrite): string =>
   Match.value(write).pipe(
     Match.tag(
       'StepWrite',
       (s) => `${PAST[s.verb]} ${result.target.replace(/^(undo|redo) /, '')} in ${result.file}`,
     ),
-    Match.orElse(() => {
+    Match.orElse((w) => {
       const unresolved = Option.match(Option.fromUndefinedOr(result.unresolved), {
         onNone: () => '',
         onSome: (why) => ` (not resolved: ${why})`,
       });
-      return `wrote ${result.file}: ${result.target}${unresolved}`;
+      const said = Option.getOrElse(
+        Option.filter(Option.fromUndefinedOr(w.said), (s) => s !== ''),
+        () => `wrote ${result.file}: ${result.target}`,
+      );
+      return `${said}${unresolved}`;
     }),
   );
 
@@ -368,6 +397,26 @@ interface FieldsIn {
 const printed = (v: number): string => String(toMs(v));
 
 /**
+ * What `patch` moves of cue `name` (its span `span`, resolved as `cue`),
+ * before → after, a part for each field it sets: `cue slam offset 0.4 →
+ * 0.367 s; cue slam dur 1 → 1.033 s`.
+ */
+export const cueSaid = (name: string, span: Span, cue: ResolvedCue, patch: CuePatch): string => {
+  const part = (field: string, before: string, after: Option.Option<string>, unit = '') =>
+    Option.toArray(Option.map(after, (a) => moved(`cue ${name} ${field}`, before, a, unit)));
+  const has = Option.fromUndefinedOr;
+  const offset = Option.getOrElse(has(span.offset), () => 0);
+  const until = Option.match(has(span.until), { onNone: () => 'its dur', onSome: untilText });
+  return [
+    ...part('offset', printed(offset), Option.map(has(patch.offset), printed), 's'),
+    ...part('dur', printed(cue.dur), Option.map(has(patch.dur), printed), 's'),
+    ...part('until', until, Option.map(has(patch.until), untilText)),
+    ...part('ease', cue.ease, has(patch.ease)),
+    ...part('stagger', printed(cue.stagger), Option.map(has(patch.stagger), printed)),
+  ].join('; ');
+};
+
+/**
  * Cue `name`'s fields: its offset and, unless it ends on a mark, its dur
  * (seconds, stepped by frames). Each refuses as a drag of that part would.
  */
@@ -381,11 +430,12 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
       onNone: () => [],
       onSome: ({ span, cue }) => {
         const write = (patch: CueWrite['patch'], edited: Span) =>
-          at.commit(CueWrite.make({ scene, cue: name, patch }), {
-            timeline: { ...at.timeline, [name]: edited },
-          });
-        const moves = (field: string, before: number) => (next: number) =>
-          moved(`cue ${name} ${field}`, printed(before), printed(next), 's');
+          at.commit(
+            CueWrite.make({ scene, cue: name, patch, said: cueSaid(name, span, cue, patch) }),
+            {
+              timeline: { ...at.timeline, [name]: edited },
+            },
+          );
         const offset = Option.getOrElse(Option.fromUndefinedOr(span.offset), () => 0);
         const offsetField: Inspected = {
           id: 'offset',
@@ -394,7 +444,6 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
           value: offset,
           refusal: cueRefusal(at.source, at.error, name, 'move'),
           write: (v) => write({ offset: toMs(v) }, { ...span, offset: v }),
-          moved: moves('offset', offset),
         };
         const durField: Inspected = {
           id: 'dur',
@@ -404,7 +453,6 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
           refusal: cueRefusal(at.source, at.error, name, 'end'),
           write: (v) =>
             write({ dur: toMs(Math.max(0, v)) }, patchSpan(span, { dur: Math.max(0, v) })),
-          moved: moves('dur', cue.dur),
         };
         // A cue that runs `until` a mark has no dur of its own to write.
         return [
@@ -428,12 +476,16 @@ const knobText = (value: Knob): string =>
 /** Knob `name`'s fields: its number, or its point's x and y (canvas pixels). */
 const knobFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Inspected> => {
   const refusal = knobRefusal(at.source, at.error, name);
-  const write = (value: Knob) =>
-    at.commit(KnobWrite.make({ scene, knob: name, value }), {
-      knobs: { ...at.knobs, [name]: value },
-    });
-  const moves = (before: Knob, after: Knob) =>
-    moved(`knob ${name}`, knobText(before), knobText(after));
+  const write = (before: Knob, value: Knob) =>
+    at.commit(
+      KnobWrite.make({
+        scene,
+        knob: name,
+        value,
+        said: moved(`knob ${name}`, knobText(before), knobText(value)),
+      }),
+      { knobs: { ...at.knobs, [name]: value } },
+    );
   return Option.match(Option.fromUndefinedOr(at.knobs[name]), {
     onNone: () => [],
     onSome: (value): ReadonlyArray<Inspected> =>
@@ -445,8 +497,7 @@ const knobFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<In
             spec: fieldOf(KnobNumber, at.fps),
             value: Number(value),
             refusal,
-            write: (v) => write(toMs(v)),
-            moved: (v) => moves(value, toMs(v)),
+            write: (v) => write(value, toMs(v)),
           },
         ],
         onSome: ([x, y]) => {
@@ -456,8 +507,7 @@ const knobFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<In
             spec: fieldOf(Pixel, at.fps),
             value: now,
             refusal,
-            write: (v) => write(to(v)),
-            moved: (v) => moves(value, to(v)),
+            write: (v) => write(value, to(v)),
           });
           return [axis('x', x, (v) => [toMs(v), y]), axis('y', y, (v) => [x, toMs(v)])];
         },

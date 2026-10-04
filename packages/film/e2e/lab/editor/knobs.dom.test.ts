@@ -22,7 +22,9 @@ import { attributeIs, evaluates, textHas, valueIs } from '../../../src/lab/fixtu
 const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));
 
-const statusSays = (page: Tab, part: string) => textHas(page, '.lab-edit-status', part);
+/** Wait until the editor's receipt reads something containing `part`: what moved, before → after. */
+const statusSays = (page: Tab, part: string) =>
+  textHas(page, '[data-receipt="edit"] .lab-receipt-said', part);
 
 const boxOf = (page: Tab, selector: string) => page.box(selector);
 
@@ -64,7 +66,7 @@ describe('the knob rows', () => {
       yield* page.waitFor(`${field}:not([disabled])`);
       yield* page.fill(field, '30');
       yield* page.pressIn(field, 'Enter');
-      yield* statusSays(page, 'wrote');
+      yield* statusSays(page, 'knob size 24 → 30');
       expect(posted(asked)).toEqual([
         { path: '/scenes/one/knobs/size', body: Option.some({ value: 30 }) },
       ]);
@@ -83,7 +85,7 @@ describe('the knob rows', () => {
       yield* valueIs(page, field, '0');
       yield* page.fill(field, '0.2');
       yield* page.pressIn(field, 'Enter');
-      yield* statusSays(page, 'wrote');
+      yield* statusSays(page, 'knob tilt 0 → 0.2');
       expect(posted(asked)).toEqual([
         { path: '/scenes/one/knobs/tilt', body: Option.some({ value: 0.2 }) },
       ]);
@@ -97,7 +99,7 @@ describe('the handles on the frame', () => {
       const { page, asked } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor('.lab-handle[data-knob="spot"]');
       yield* dragHandle(page, 'spot', 40, 0);
-      yield* statusSays(page, 'wrote');
+      yield* statusSays(page, '→ [360, 200]');
       const writes = posted(asked);
       expect(writes).toHaveLength(1);
       expect(writes[0]?.path).toBe('/scenes/one/knobs/spot');
@@ -150,7 +152,7 @@ describe('a camera pushed in on its target', () => {
       expect(y).toBeCloseTo(180, 0);
       yield* textHas(page, '.lab-strip-head', 'scenes/three.ts');
       yield* dragHandle(page, 'face', 40, 0);
-      yield* statusSays(page, 'wrote');
+      yield* statusSays(page, 'knob face [400, 200] → [380, 200]');
       expect(posted(asked)).toEqual([
         { path: '/scenes/three/knobs/face', body: Option.some({ value: [380, 200] }) },
       ]);

@@ -6,9 +6,10 @@
 // answers land in any order, and the choices shown are the newest asked's), the
 // writes (a verb on a variant, a knob, a say on a variant, an undo or a
 // redo: each control's its own, `useAct`, so one sent while another is in
-// flight cancels nothing), the sound check run after each write that changes what the film
-// plays (`film check --sound`: dead air, balance against the picked score),
-// and the synced player: the film's newest render
+// flight cancels nothing; each says what it did as a receipt, `receipt.ts`),
+// the sound check run after each write that changes what the film plays
+// (`film check --sound`: dead air, balance against the picked score; its
+// receipt says while it runs), and the synced player: the film's newest render
 // (its own sound muted) on the clock, and the sound heard over it, one
 // `<audio>` of the film's whole mix with a variant in place (a score option,
 // a take). Choosing what is heard swaps that one `<audio>`; it joins the
@@ -46,6 +47,7 @@ import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
 import { type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
 import { type SyncDriver, playerCommands, makeSync, playerEvent } from '../sync.ts';
 import { type ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } from './api.ts';
+import { actWords, soundReceipt } from './receipt.ts';
 
 /** The player's clock: the film's render, its own sound muted unless it is the one heard. */
 export const PICTURE = 'picture';
@@ -141,6 +143,10 @@ const keepOn =
 export const samePlaying = (a: Playing, b: Playing): boolean =>
   trackOf('', a, 0) === trackOf('', b, 0);
 
+/** The film's writes' slot, and its sound check's, among the page's receipts (`Hub.announce`). */
+const FILM_SLOT = 'film';
+const SOUND_SLOT = 'sound-check';
+
 /** What a film's write answers that the page shows, each in the order asked. */
 type FilmOrder = 'choices' | 'findings';
 
@@ -153,8 +159,6 @@ interface FilmContextValue {
   readonly findings: Accessor<Option.Option<ReadonlyArray<CheckLine>>>;
   /** What Undo and Redo would do now. */
   readonly steps: Accessor<Option.Option<Steps>>;
-  /** The film's writes as the status line says them: writing while any is in flight, else the last. */
-  readonly wrote: Accessor<AsyncResult.AsyncResult<Wrote, LabFailure>>;
   /** How many source writes have been answered: a mix, or a project, is read again on each. */
   readonly version: Accessor<number>;
   /** Show what a control's write of `act` answers, in the order asked: whether it was answered. */
@@ -190,11 +194,13 @@ interface ActWrite {
 
 /** A control's own write of the film's acts (`useWrite`): made once, as the control is made. */
 export const useAct = (): ActWrite => {
-  const { film, written, status, orders } = useFilm();
+  const { film, choices, written, status, orders } = useFilm();
   const own = useWrite(
     (act: ChoiceAct) => OptionsApi.use((api) => api.write(film, act)),
     status,
     orders,
+    // Said in the words of the choices shown as it is sent: what it moves, before → after.
+    (act) => actWords(act, untrack(choices)),
   );
   return {
     waiting: own.waiting,
@@ -238,9 +244,16 @@ const FilmBody = (
   const check = useAtomValue(() => props.atoms.check);
   const stepsResult = useAtomValue(() => props.atoms.steps);
   const readSteps = useAtomSet(() => props.atoms.steps);
-  const status = writeStatus<Wrote>();
+  const status = writeStatus<Wrote>(FILM_SLOT);
   const soundCheck = useAtomValue(() => props.atoms.soundCheck);
   const runSoundCheck = useAtomSet(() => props.atoms.soundCheck);
+  // The sound check says it is hearing the mix, then what it found, as a receipt of its own.
+  createEffect(
+    () => soundReceipt(soundCheck()),
+    (receipt) => {
+      Option.map(receipt, (r) => meta.hub.announce(r, SOUND_SLOT));
+    },
+  );
 
   // The choices as the newest asked answered them (`asked.ts`): the first read, a
   // read again after an undo or a redo, or a write's answer.
@@ -348,7 +361,6 @@ const FilmBody = (
     reading: () => again().waiting,
     findings,
     steps,
-    wrote: status.status,
     version,
     written,
     orders,

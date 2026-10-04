@@ -1,7 +1,8 @@
 // How the editor words and draws what it shows: a cue's anchor,
-// an ease as a small curve, and the status line.
+// an ease as a small curve, and its receipts.
 
 import { Match, Option } from 'effect';
+import { type Receipt, busy, refused, said } from '../../command/command.ts';
 import type { CheckLine, CheckReport, EaseName, Span } from '../../core/schema.ts';
 import { ease } from '../../core/time.ts';
 import type { EditState } from './machine.ts';
@@ -44,27 +45,33 @@ export const findingsOf = (
 const DOING = { undo: 'undoing', redo: 'redoing' } as const;
 
 /**
- * The editor's status line: a write on its way, what the last thing done
- * said, or else what the change that reloaded this page was.
+ * The editor's receipt in `state`: a write on its way (busy), what a write
+ * that landed did with the step that undoes it (Redo for an Undo), why it
+ * was refused, or why a drag cannot be shown; none at rest or mid-drag,
+ * where the last receipt stands.
  */
-export const statusText = (state: EditState, report: Option.Option<CheckReport>): string => {
-  const said = Match.value(state).pipe(
+export const receiptOf = (state: EditState): Option.Option<Receipt> =>
+  Match.value(state).pipe(
     Match.tag('Writing', (s) =>
-      Match.value(s.write).pipe(
-        Match.tag('StepWrite', (w) => `${DOING[w.verb]}…`),
-        Match.orElse(() => 'writing…'),
+      Option.some(
+        busy(
+          Match.value(s.write).pipe(
+            Match.tag('StepWrite', (w) => `${DOING[w.verb]}…`),
+            Match.orElse(() => 'writing…'),
+          ),
+        ),
       ),
     ),
-    Match.tag(
-      'Checking',
-      (s) => `${DOING[s.write.verb]}: no answer yet, asking the lab whether it landed…`,
+    Match.tag('Checking', (s) =>
+      Option.some(busy(`${DOING[s.write.verb]}: no answer yet, asking the lab whether it landed…`)),
     ),
-    Match.tag('Refused', (s) => s.message),
-    Match.orElse((s) => s.note),
+    Match.tag('Written', (s) => Option.some(said(s.note, Option.some(`edit.${s.undo}`)))),
+    Match.tag('Refused', (s) => Option.some(refused(s.message))),
+    Match.tag('Dragging', (s) =>
+      Option.map(
+        Option.liftPredicate(s.note, (n) => n !== ''),
+        refused,
+      ),
+    ),
+    Match.orElse(() => Option.none()),
   );
-  if (said !== '') return said;
-  return Option.match(
-    Option.flatMap(report, (r) => Option.fromUndefinedOr(r.latest)),
-    { onNone: () => '', onSome: (l) => `${l.file}: ${l.target}` },
-  );
-};

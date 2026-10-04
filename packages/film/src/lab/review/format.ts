@@ -1,11 +1,43 @@
-// What the review's cards say of a file, and which copy of a video it
-// plays: pure, so each reads the same in a test as on the page.
+// What the review's cards say of a file, what a say's receipt says, and
+// which copy of a video it plays: pure, so each reads the same in a test as
+// on the page.
 
 import { Array as Arr, Match, Option } from 'effect';
 import type { ApprovalState, StaleBy, VariantState } from '../../core/catalogue.ts';
 import { type ReviewFile, type ReviewFolder, type ReviewVideo } from '../../core/review.ts';
 import { STALE_BY } from '../../core/choice.ts';
-import { reviewFileUrl, reviewPhoneUrl } from '../../core/api.ts';
+import { type Say, reviewFileUrl, reviewPhoneUrl } from '../../core/api.ts';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import type { CommandId } from '../../command/command.ts';
+import type { LabFailure } from '../api.ts';
+
+/** What a failed read or write says: its words, without its tag. */
+export const failedText = (result: AsyncResult.AsyncResult<unknown, LabFailure>): string =>
+  Option.getOrElse(
+    Option.map(AsyncResult.error(result), (e) => e.message.replace(/^\w+: /, '')),
+    () => '',
+  );
+
+/**
+ * A write's receipt, in its control's words as it is sent (`writeStatus`):
+ * what it says while it is out, what it did once it answered `A`, and the
+ * command that undoes it.
+ */
+export interface Words<A> {
+  readonly doing: string;
+  readonly done: (answer: A) => string;
+  readonly undo: Option.Option<CommandId>;
+}
+
+/** What a say did, of `subject`, as its receipt says: `Approved B · warm · Score`. */
+export const sayText = (say: Say, subject: string): string =>
+  Match.value(say).pipe(
+    Match.tagsExhaustive({
+      Approve: () => `Approved ${subject}`,
+      Withdraw: () => `Unapproved ${subject}`,
+      Comment: () => `Commented on ${subject}`,
+    }),
+  );
 
 /** A size in bytes as a card says it: `812 KB`, `2.4 GB`. */
 export const sizeText = (bytes: number): string => {

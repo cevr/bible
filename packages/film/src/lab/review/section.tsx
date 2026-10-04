@@ -38,7 +38,6 @@ import {
   reviewFileUrl,
   reviewFrameUrl,
 } from '../../core/api.ts';
-import type { LabFailure } from '../api.ts';
 import { ReviewApi } from './api.ts';
 import { newestAsked } from './asked.ts';
 import { CommentCount, InspectName, Inspector, useThing } from './inspector.tsx';
@@ -50,12 +49,14 @@ import {
   approvalText,
   captionsFor,
   countsText,
+  failedText,
   folderMatches,
   folderTitle,
   isMarkdown,
   POSTER_W,
   pressed,
   recordedStaleText,
+  sayText,
   sizeText,
   versionsText,
   videoSource,
@@ -72,7 +73,7 @@ import {
   runningOf,
   viewNameOf,
 } from './machine.ts';
-import { Loaded, failedText, statusText, useWrite, writeStatus } from './loaded.tsx';
+import { Loaded, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
 import { ReviewPlace as Place } from './place.ts';
 import { Selection } from '../../command/selection.ts';
@@ -608,8 +609,6 @@ interface SetSays {
     readonly waiting: Accessor<boolean>;
     readonly say: (version: string, say: Say) => Promise<boolean>;
   };
-  /** The page's says, as its status says them. */
-  readonly status: Accessor<AsyncResult.AsyncResult<ReviewFolder, LabFailure>>;
 }
 
 const SetSaysContext = createContext<SetSays>();
@@ -621,8 +620,17 @@ const SetSaysContext = createContext<SetSays>();
  * in place (its player plays on) instead of reading the index again.
  */
 const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>) => {
-  const status = writeStatus<ReviewFolder>();
+  const status = writeStatus<ReviewFolder>('set');
   const asks = newestAsked();
+  /** Version `id` as a receipt names it: its letter, its label, and the set's title. */
+  const versionText = (id: string) =>
+    Option.getOrElse(
+      Option.map(
+        Option.fromUndefinedOr(props.set.variants.find((v) => v.id === id)),
+        (v) => `${letterOf(props.set, id)} · ${v.label} · ${props.set.title}`,
+      ),
+      () => id,
+    );
   const [said, setSaid] = createSignal(Option.none<SeenPoint>());
   const pointIn = (folder: ReviewFolder) =>
     Option.map(Option.fromUndefinedOr(folder.sets.find((s) => s.id === props.set.id)), seenPoint);
@@ -640,6 +648,11 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
           ReviewApi.use((api) => api.say(props.folder.ref, props.set.id, asked)),
         status,
         { set: asks },
+        (asked) => ({
+          doing: 'saying…',
+          done: () => sayText(asked.say, versionText(asked.variant)),
+          undo: Option.none(),
+        }),
       );
       return {
         waiting: own.waiting,
@@ -655,7 +668,6 @@ const Saying = (props: ParentProps<{ readonly folder: ReviewFolder; readonly set
           ),
       };
     },
-    status: status.status,
   };
   return <SetSaysContext value={value}>{props.children}</SetSaysContext>;
 };
@@ -742,7 +754,6 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
               say={(text) => saying.say(props.version.id, { _tag: 'Comment', text })}
             />
           </Show>
-          <p class="rv-hint rv-status">{statusText(says.status(), 'saying…', () => 'said')}</p>
         </>
       )}
     </Inspector>

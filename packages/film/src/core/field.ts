@@ -121,9 +121,9 @@ export const fieldText = (spec: FieldSpec, value: number): string =>
 /**
  * One field as the inspector shows it: which (`id`, its `data-field`), its
  * label, how it steps, its value now, why it cannot be written now if it
- * cannot (its schema's `why` when read only), the write of a new value,
- * and what that write moved, before → after, for its receipt
- * (`cue rise offset 0.42 → 0.38 s`, `knob face [960, 800] → [940, 800]`).
+ * cannot (its schema's `why` when read only), and the write of a new value
+ * (which carries what it moves, before → after, for its receipt once it
+ * lands: `cue rise offset 0.42 → 0.38 s`, `knob face [960, 800] → [940, 800]`).
  */
 export interface Inspected {
   readonly id: string;
@@ -132,7 +132,6 @@ export interface Inspected {
   readonly value: number;
   readonly refusal: Option.Option<string>;
   readonly write: (next: number) => void;
-  readonly moved: (next: number) => string;
 }
 
 /** Why `field` cannot be written: its own refusal, else its schema's read-only reason. */

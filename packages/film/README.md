@@ -890,7 +890,7 @@ editor's fields of a cue or knob (`fieldsOf`, `lab/editor/grip.ts`) write
 through the same writes as a drag and refuse as a drag would. The nudges
 step the selected cue or knob through those fields (⌥←/⌥→ a cue's offset, a
 point's x or a number; ⌥↑/⌥↓ a cue's dur, a point's y or a number; Shift
-ten), and answer what moved, before → after; `.` and `,` go to the next or
+ten), and their write's receipt says what moved, before → after; `.` and `,` go to the next or
 previous cue edge on the strip, Tab and ⇧Tab select the next or previous cue
 (a focused button or link keeps Tab for focus). The inspector's footer
 (`Hint`) names the keys of the commands about the selection and its
@@ -916,6 +916,31 @@ key reads the thing the keyboard's focus is in (`withFocused`, after the
 URL's selection of its kind). A set's version says over
 `POST /api/review/sets/<folder>/<point>/say` (UI-7), its answer shown in
 place.
+
+A **receipt** is one toast (`Receipts`, `src/lab/command/receipts.tsx`, on
+@bible/ui's Toast) over the lab's and the review's pages, in place of the
+status lines they had (the editor's, the choices' writes, the project's
+and a version's says, the sound check while it runs). The hub hears every
+receipt (`hub.receipts`) in its slot: a command's own id when it runs
+(`hub.invoke`), or a page's slot when a write says one (`hub.announce`:
+`edit` for the editor, `film`, `project`, `set` and `sound-check` on the
+review). A slot shows one toast, replaced in place: `busy` (`writing…`)
+while its write is out, then what it did, said once the write lands and
+never before (`cue rise offset 0 → 0.3 s`, `knob size 24 → 30`, `Picked
+piano · Score: strings → piano`, `Rain: -12 → -6 dB`), or why it was
+refused. A receipt that can be undone carries the command that undoes it as
+its button: Undo for a write, Redo for an Undo, Undo for a Redo (the
+editor's `Written` state names it, read from its step flow). A done receipt
+shows 5 s, a refusal 10 s, a busy one until replaced. The lab reloads after
+a scene write; the receipts showing as the page hides are kept in the tab
+(`film-receipts` in `TabStore`, for the same page) and shown again once it
+has loaded. A drag's write and a field's carry what they move in an
+optional `said` (`CueWrite`, `KnobWrite`: `cueSaid`, before → after). On
+the choices page and the project, Undo and Redo are commands
+(`review.undo` ⌘Z, `review.redo` ⇧⌘Z, in ⌘K, the `?` sheet and the page's
+long-press menu, named for what they would undo: `Undo score play brass`),
+shown only while there is a step to take. A say's receipt has no Undo: it
+writes the catalogue, not the source.
 
 `.oxlintrc.json` refuses a raw `keydown`, `keyup`, `keypress` or
 `contextmenu` listener (`film/keys-through-keymap`) outside the adapters and
@@ -1150,7 +1175,7 @@ resizes; `<Lab.Strip>` is a slot right under the player's timeline;
 look-book links, each named by its `data-link`) and `<Lab.Section>`
 lay out the side panel. Each tool's state lives in its own provider; the
 shell knows none of it. A provider's context gives values derived from its
-machine and actions, never the machine's state: the editor's `status` and
+machine and actions, never the machine's state: the editor's receipt (said on the hub) and
 `findings`, Compare's `mode`, `layer` (`hidden`, `head` or `now`) and
 `split`, the notes' `composerOpen`, `composerTyping` and `draft`; so no
 component matches a state's tag, and a renamed state touches only its
@@ -1659,10 +1684,12 @@ variant only: `Choices.say` refuses a stale or missing one with
 `VerbRefused`, 409; at rest on the picked one), unapprove once approved, and
 the comment box (both in the inspector); a level point's knob is a slider, written on release. Every say is
 one `POST …/choices/say`, answered by the film's choices with it recorded,
-which the page shows as they are. Undo and Redo say what they would undo or
-redo (`Undo score play brass`); the film's static check shows under them,
-the one the write answered, and after a pick or a knob `film check --sound`
-runs (`GET …/choices/check`) and its findings show beside it. A write is
+which the page shows as they are. Undo and Redo are the page's commands
+(⌘Z, ⇧⌘Z, the receipt's button, the page's menu), naming what they would
+undo or redo (`Undo score play brass`); the film's static check folds under
+the page's writes, the one the write answered, and after a pick or a knob
+`film check --sound` runs (`GET …/choices/check`): its receipt says it is
+running, then its findings count, and the findings fold beside the check. A write is
 shown from its answer: the page reads nothing again but the undo and redo
 (`GET …/steps`, no check) and, after an undo or a redo, the choices. The
 answer updates the player in place: the picture's `<video>` stays the same
@@ -1697,14 +1724,16 @@ dropped, a say answered after a read asked later reads the project again, and
 so does an approve refused (`VerbRefused`) because a scene went stale since
 the page read it. The choices page keeps its choices the same way. Each control writes on a
 run of its own (`useWrite` in `lab/review/loaded.tsx`: a verb, a knob, an
-approve, a comment box, Undo, Redo): it waits, disabled, until its own
+approve, a comment box, the Undo and Redo commands): it waits, disabled, until its own
 answer lands, while every other control stays free, and a write sent
 meanwhile neither cancels it nor hands it its answer. A write's answer
 reaches the page only as `Landed` (`asked.ts`): what it says of the choices,
 the check or the project shows only where no write asked after it has shown
 its own, so a clean check landing late never hides a newer warning. The
-status line counts them all ("writing…" while any is out, else the newest
-asked of those answered, so an older success never hides a newer failure). A say box
+page's receipt (`writeStatus`) says each write busy as it is sent, in the
+words its control gave then (what it moves, before → after), and once
+answered says the newest asked of those answered, so an older success never
+hides a newer failure. A say box
 empties only once its own say is said
 (`SayBox`: each say answers whether it was): a comment whose say fails (the
 film mid-edit and not loading) stays in its box beside the failure.

@@ -109,8 +109,8 @@ describe('the hub', () => {
     expect(hub.context().playing).toBe(true);
     stopRefining();
     expect(hub.context().playing).toBe(false);
-    const heard: Array<Receipt> = [];
-    hub.receipts((receipt) => heard.push(receipt));
+    const heard: Array<readonly [Receipt, string]> = [];
+    hub.receipts((receipt, slot) => heard.push([receipt, slot]));
     hub.commands.register({
       id: 'x',
       label: 'x',
@@ -119,7 +119,12 @@ describe('the hub', () => {
       run: () => Effect.succeed(said('done')),
     });
     hub.invokeId('x', { step: 'normal', via: 'menu' });
-    expect(heard).toEqual([said('done')]);
+    // A write no command ran says its own, in its writer's slot.
+    hub.announce(said('wrote'), 'edit');
+    expect(heard).toEqual([
+      [said('done'), 'x'],
+      [said('wrote'), 'edit'],
+    ]);
   });
 
   test('says how chords read on its keyboard', () => {

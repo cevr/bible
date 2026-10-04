@@ -19,10 +19,11 @@ import { REVIEW_CSS } from './style.ts';
 import { pageHref } from '../../core/api.ts';
 import { type Host, addressOn, hostOf } from '../../browser/host.ts';
 import { BrowserHost } from '../../browser/host-browser.ts';
-import { ViewerStore } from '../../browser/storage-browser.ts';
+import { TabStore, ViewerStore } from '../../browser/storage-browser.ts';
 import { type Hub, makeHub } from '../../command/hub.ts';
 import { CommandMenu } from '../command/command-menu.tsx';
 import { KeysSheet } from '../command/keys-sheet.tsx';
+import { Receipts } from '../command/receipts.tsx';
 import { TargetMenu } from '../command/context-menu.tsx';
 import { COMMAND_CSS } from '../command/style.ts';
 
@@ -154,7 +155,7 @@ const Lightbox = () => {
   );
 };
 
-/** The review: its header, the page it is on, the lightbox, its context menu, the inspector, ⌘K and the `?` sheet. */
+/** The review: its header, the page it is on, the lightbox, its context menu, the inspector, ⌘K, the `?` sheet and the receipts. */
 const ReviewPage = (props: { readonly host: Host; readonly hub: Hub }) => (
   <Root host={props.host} hub={props.hub}>
     <TargetMenu hub={props.hub}>
@@ -165,6 +166,7 @@ const ReviewPage = (props: { readonly host: Host; readonly hub: Hub }) => (
       </Inspecting>
       <CommandMenu hub={props.hub} />
       <KeysSheet hub={props.hub} />
+      <Receipts hub={props.hub} tab={TabStore} scope="review" />
     </TargetMenu>
   </Root>
 );

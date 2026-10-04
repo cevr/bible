@@ -9,12 +9,13 @@
 // Shift; and the walk through a scene: `.` and `,` go to the next or previous
 // cue edge of the strip's scene, Tab and ⇧Tab select the next or previous
 // cue while a cue is selected and focus is on the page (on a button, Tab
-// still moves focus). Undo, Redo, Escape and Select answer quietly: the write
-// reloads the page and the status line says what it did, a selection shows
-// in the URL and the strip; a nudge says what it moved, before → after.
+// still moves focus). Every command answers quietly: a write's receipt is
+// the editor's own once it lands (what a nudge moved, before → after, with
+// Undo; what an Undo walked, with Redo: `context.tsx`), and a selection
+// shows in the URL and the strip.
 
 import { Effect, Match, Option } from 'effect';
-import { type Command, type Invocation, quiet, said } from '../../command/command.ts';
+import { type Command, type Invocation, quiet } from '../../command/command.ts';
 import { type Context, selected } from '../../command/context.ts';
 import { type LabSelection, cueOf, sameSelection, selectionText } from '../../command/selection.ts';
 import { type Inspected, nudged, refusalOf } from '../../core/field.ts';
@@ -166,16 +167,12 @@ const nudgeCommand = (verbs: EditorVerbs, way: Way): Command => {
     touch: 'select it, then type in its field',
     when: (ctx) => Option.isSome(nudge(ctx)),
     run: (ctx, how: Invocation) =>
-      Effect.sync(() =>
-        Option.match(nudge(ctx), {
-          onNone: () => quiet,
-          onSome: ({ field, by }) => {
-            const next = nudged(field.spec, field.value, how.step, by);
-            field.write(next);
-            return said(field.moved(next), Option.some('edit.undo'));
-          },
-        }),
-      ),
+      Effect.sync(() => {
+        Option.map(nudge(ctx), ({ field, by }) =>
+          field.write(nudged(field.spec, field.value, how.step, by)),
+        );
+        return quiet;
+      }),
   };
 };
 

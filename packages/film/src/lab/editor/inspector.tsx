@@ -1,8 +1,9 @@
 // The editor's section of the panel: Undo and Redo, the selected cue's
 // fields (the inspector's, `lab/command/inspector.tsx`, stepped as the cue's
-// schema says) and eases, the selection's hint, the film's check findings,
-// and the status line. Every write goes to the editor's machine as a commit,
-// shown first in memory.
+// schema says) and eases, the selection's hint, and the film's check
+// findings. Every write goes to the editor's machine as a commit, shown
+// first in memory and carrying what it moves, before → after, for the
+// receipt it lands with (the page's toast, `lab/command/receipts.tsx`).
 
 import { For, Show } from '@solidjs/web';
 import { Array as Arr, Option, Result } from 'effect';
@@ -18,7 +19,7 @@ import { Field, Hint } from '../command/inspector.tsx';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY } from './format.ts';
-import { CueWrite } from './grip.ts';
+import { CueWrite, cueSaid } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
 const Curve = (props: { readonly name: EaseName }) => (
@@ -54,9 +55,15 @@ const CueFields = (props: CueFieldsProps) => {
       ),
     );
   const write = (patch: CueWrite['patch'], span: Span) =>
-    actions.commit(CueWrite.make({ scene: scene(), cue: props.name, patch }), {
-      timeline: { ...meta.stage.timelineOf(scene()), [props.name]: span },
-    });
+    actions.commit(
+      CueWrite.make({
+        scene: scene(),
+        cue: props.name,
+        patch,
+        said: cueSaid(props.name, props.span, props.cue, patch),
+      }),
+      { timeline: { ...meta.stage.timelineOf(scene()), [props.name]: span } },
+    );
   const easeNote = () =>
     Option.match(Option.fromUndefinedOr(props.span.ease), {
       onNone: () => ` (default, ${DEFAULT_EASE})`,
@@ -186,12 +193,6 @@ const Findings = () => {
   );
 };
 
-/** What the editor last did, or is doing. */
-const Status = () => {
-  const { state } = useEditor();
-  return <div class="lab-edit-status">{state.status()}</div>;
-};
-
 /** What a pointer does to a cue or a knob, for the inspector's hint (its keys come from the keymap). */
 const GESTURES: Readonly<Record<LabSelection['_tag'], ReadonlyArray<string>>> = {
   Cue: [
@@ -231,7 +232,6 @@ export const Section = (props: ParentProps) => {
         </Show>
       </div>
       <Findings />
-      <Status />
     </section>
   );
 };

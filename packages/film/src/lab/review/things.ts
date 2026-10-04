@@ -8,7 +8,9 @@
 // inspector, Comment (`m`) opens it at its comment box, Approve (`a`),
 // Unapprove, Reject (`x`) and Unkeep (`u`) say what their buttons say, and
 // an act's or the film's approve of its current scenes is in its menu and in
-// ⌘K, with no key: a batch is never one stray press away. Framework-free.
+// ⌘K, with no key: a batch is never one stray press away. A verb answers
+// quietly: its write says what it did as it lands, in the page's receipts
+// (`loaded.tsx`), whichever way it was asked. Framework-free.
 
 import { Effect, Option } from 'effect';
 import { type Command, quiet } from '../../command/command.ts';

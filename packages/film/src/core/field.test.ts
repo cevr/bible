@@ -76,7 +76,6 @@ describe('fieldText and refusalOf', () => {
       value: 1,
       refusal: Option.none<string>(),
       write: () => {},
-      moved: () => '',
     };
     expect(refusalOf(field)).toEqual(Option.some('computed'));
     expect(refusalOf({ ...field, refusal: Option.some('no source') })).toEqual(

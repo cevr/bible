@@ -2,11 +2,13 @@
 // a score of three options, one library sound's takes, a look and a level:
 // home links the film; its page puts the render on the clock and one mix
 // heard over it (🔊 swaps it: a score option's, a take's in place); Pick
-// writes `play`, the page reads the film again (the pick shown, Undo
-// offered, the check after it) and runs the sound check, showing its
+// writes `play`, the page reads the film again (the pick shown, its receipt
+// saying it before → after with an Undo, the check after it) and runs the
+// sound check, showing its
 // findings; a take is kept; a look picked; a level's knob set; a variant
-// approved, commented on and its approval withdrawn; Undo, naming what it
-// undoes, is sent to the film's own route, and the choices it reads again,
+// approved, commented on and its approval withdrawn; Undo (the receipt's, ⌘Z,
+// or the menu's, naming what it
+// undoes) is sent to the film's own route, and the choices it reads again,
 // landing after a say asked later, leave the say shown; a mark
 // jumps the clock; a mix whose first load failed is heard once its retry
 // lands; and a phone's width scrolls nothing sideways. Every wait is on the
@@ -29,7 +31,14 @@ import {
   text,
 } from '../../../../src/lab/fixtures/harness.ts';
 import { SourceRefused } from '../../../../src/core/refusals.ts';
-import { MENU_ITEMS, rightClick } from '../../../../src/lab/fixtures/gestures.ts';
+import {
+  MENU_ITEMS,
+  closeCommandMenu,
+  menuEntry,
+  menuOffers,
+  openCommandMenu,
+  rightClick,
+} from '../../../../src/lab/fixtures/gestures.ts';
 import {
   attributeIs,
   attributesAre,
@@ -289,6 +298,13 @@ const INSPECTOR = '[data-role="inspector"]';
 const inspect = (page: Tab, row: string) =>
   Effect.andThen(click(page, `${row} [data-act="inspect"]`), waitFor(page, INSPECTOR));
 
+/** The film's receipt: what its newest write did, before → after, or why it was refused. */
+const RECEIPT = '[data-receipt="film"]';
+
+/** Wait until the film's receipt reads something containing `part`. */
+const receiptSays = (page: Tab, part: string) =>
+  textHas(page, `${RECEIPT} .lab-receipt-said`, part);
+
 /** The body a POST to `path` carried. */
 const posted = (
   asked: ReadonlyArray<{ readonly path: string; readonly body: Option.Option<Json> }>,
@@ -404,18 +420,19 @@ describe("a film's choices", () => {
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
         yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
-        yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === true');
+        // Nothing to undo yet: the menu offers no Undo.
+        yield* menuOffers(page, 'undo', 'review.undo', false);
         // No sound check before a pick.
         expect(asked.some((a) => a.path === '/api/films/toy/choices/check')).toBe(false);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* waitFor(page, `${at('score', 'piano')} .rv-badge`);
-        yield* until(
-          page,
-          "document.querySelector('.rv-status').textContent.includes('score play piano')",
-        );
-        yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === false');
-        // Undo says what it would undo.
-        yield* textIs(page, '[data-act="undo"]', 'Undo score play piano');
+        // The receipt says what the pick moved, before → after, and offers its Undo.
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        yield* textIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 'Undo');
+        // The menu's Undo says what it would undo.
+        yield* openCommandMenu(page, 'undo');
+        yield* textHas(page, menuEntry('review.undo'), 'Undo score play piano');
+        yield* closeCommandMenu(page);
         expect(posted(asked, '/api/films/toy/choices/pick')).toEqual({
           point: 'score',
           variant: 'piano',
@@ -432,10 +449,7 @@ describe("a film's choices", () => {
         yield* until(page, `${MIX}.endsWith('&v=1')`);
 
         yield* click(page, `${at('take:paper.page', WAITING)} [data-act="pick"]`);
-        yield* until(
-          page,
-          "document.querySelector('.rv-status').textContent.includes('sound paper.page keep')",
-        );
+        yield* receiptSays(page, `Picked ${WAITING.slice(0, 12)}`);
         // A kept take can only be unkept (and approved): at rest its approve, the rest in its inspector.
         yield* attributesAre(page, `${at('take:paper.page', KEPT)} button.rv-chip`, 'data-act', [
           'approve',
@@ -449,9 +463,12 @@ describe("a film's choices", () => {
         yield* page.press('Escape');
         yield* countIs(page, INSPECTOR, 0);
 
-        yield* click(page, '[data-act="undo"]');
+        // The receipt's Undo undoes the write it said; its own receipt offers Redo.
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
         yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
-        yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === true');
+        yield* receiptSays(page, 'Undid ');
+        yield* textIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 'Redo');
+        yield* menuOffers(page, 'undo', 'review.undo', false);
         expect(asked.some((a) => a.method === 'POST' && a.path === '/api/films/toy/undo')).toBe(
           true,
         );
@@ -484,8 +501,10 @@ describe("a film's choices", () => {
         });
         yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
-        yield* until(page, 'document.querySelector(\'[data-act="undo"]\').disabled === false');
-        yield* click(page, '[data-act="undo"]');
+        yield* receiptSays(page, 'Picked piano');
+        // Once the steps are read again, ⌘Z undoes it, as the menu's Undo would.
+        yield* menuOffers(page, 'undo', 'review.undo', true);
+        yield* page.press('Control+z');
         yield* Effect.sync(
           () =>
             asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/choices').length,
@@ -634,18 +653,22 @@ describe("a film's choices", () => {
             input.dispatchEvent(new Event('change', { bubbles: true }));
           })()`);
         yield* attributeIs(page, findings, 'data-findings', '1');
-        // The pick lands last (the status line stops writing): the knob's
-        // check, asked after it, stays.
+        yield* receiptSays(page, 'level:const:PAPER: -24 → -20 dB');
+        // The pick lands last: the knob's check, asked after it, stays, and
+        // so does the knob's receipt.
+        const pickLanded = yield* page.nextAnswer((a) => a.url.endsWith('/choices/pick'));
         yield* Deferred.done(land, Exit.void);
-        yield* until(page, "!document.querySelector('.rv-status').textContent.includes('writing')");
+        yield* pickLanded;
+        yield* page.clock.runFor(100);
         yield* attributeIs(page, findings, 'data-findings', '1');
+        yield* textIs(page, `${RECEIPT} .lab-receipt-said`, 'level:const:PAPER: -24 → -20 dB');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );
 
   it.live(
-    'a write that fails while an earlier one is in flight keeps its failure on the status line',
+    'a write that fails while an earlier one is in flight keeps its failure on the receipt',
     () =>
       Effect.gen(function* () {
         const toy = freshToy();
@@ -686,10 +709,13 @@ describe("a film's choices", () => {
           Effect.timeout('10 seconds'),
         );
         yield* waitFor(page, `${knob} input:not([disabled])`);
+        yield* attributeIs(page, RECEIPT, 'data-type', 'refused');
         // The pick, asked first, lands last: the knob's failure is the newest said.
+        const pickLanded = yield* page.nextAnswer((a) => a.url.endsWith('/choices/pick'));
         yield* Deferred.done(land, Exit.void);
-        yield* until(page, "!document.querySelector('.rv-status').textContent.includes('writing')");
-        yield* attributeIs(page, '.rv-status', 'data-failed', 'true');
+        yield* pickLanded;
+        yield* page.clock.runFor(100);
+        yield* attributeIs(page, RECEIPT, 'data-type', 'refused');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -716,10 +742,7 @@ describe("a film's choices", () => {
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
           })()`);
-        yield* until(
-          page,
-          "document.querySelector('.rv-status').textContent.includes('level:const:PAPER -20')",
-        );
+        yield* receiptSays(page, 'level:const:PAPER: -24 → -20 dB');
         expect(posted(asked, '/api/films/toy/choices/knob')).toEqual({
           point: 'level:const:PAPER',
           value: -20,
@@ -788,7 +811,7 @@ describe("a film's choices", () => {
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
           })()`);
-        yield* attributeIs(page, '.rv-status', 'data-failed', 'true');
+        yield* attributeIs(page, RECEIPT, 'data-type', 'refused');
         yield* textIs(page, `${knob} output`, '-24 dB');
         yield* valueIs(page, `${knob} input`, '-24');
         expect(errors).toEqual([]);

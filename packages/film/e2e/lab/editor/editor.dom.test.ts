@@ -1,9 +1,11 @@
 // The cue strip and the inspector in a browser, over the probe film with the
 // lab API faked: a cue's body dragged writes its offset once, on release, and
-// selects it in the URL; a write the server refuses shows the server's own
-// text; a cue whose dragged field is computed says so and writes nothing; the
-// inspector's fields and eases write the selected cue; Undo asks the server
-// to undo; and the findings of the film's check show under the inspector.
+// selects it in the URL, its receipt saying what moved, before → after, and
+// outliving the reload, its Undo asking the server to undo; a write the
+// server refuses shows the server's own text; a cue whose dragged field is
+// computed says so and writes nothing; the inspector's fields and eases
+// write the selected cue; Undo asks the server to undo, its receipt offering
+// Redo; and the findings of the film's check show under the inspector.
 
 import { Effect, Option, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -32,8 +34,9 @@ import {
 const posted = (asked: ReadonlyArray<Asked>) =>
   asked.filter((a) => a.method === 'POST').map((a) => ({ path: a.path, body: a.body }));
 
-/** Wait until the status line reads something containing `part`. */
-const statusSays = (page: Tab, part: string) => textHas(page, '.lab-edit-status', part);
+/** Wait until the editor's receipt reads something containing `part`. */
+const statusSays = (page: Tab, part: string) =>
+  textHas(page, '[data-receipt="edit"] .lab-receipt-said', part);
 
 /** Wait until the lab has posted `n` writes. */
 const postedReach = (asked: ReadonlyArray<Asked>, n: number) =>
@@ -88,7 +91,8 @@ describe('the cue strip', () => {
       const { page, asked } = yield* openLab([], { href: labAt(1) });
       yield* editable(page);
       yield* dragBar(page, 'rise', 0.5, 60);
-      yield* statusSays(page, 'wrote scenes/one.ts');
+      // Its receipt says what moved, before → after, once the write lands.
+      yield* statusSays(page, 'cue rise offset 0 → ');
       const writes = posted(asked);
       expect(writes).toHaveLength(1);
       expect(writes[0]?.path).toBe('/scenes/one/cues/rise');
@@ -102,6 +106,39 @@ describe('the cue strip', () => {
       );
       yield* attributeIs(page, '.lab-cue[data-cue="rise"]', 'class', /\bselected\b/);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a write's receipt outlives the reload it causes, and its Undo asks the server to undo",
+    () =>
+      Effect.gen(function* () {
+        // The reloaded page learns the step to undo from the film's check, as the lab answers it.
+        const undo = { scene: 'one', file: 'scenes/one.ts', target: 'cue rise offset' };
+        const { page, asked } = yield* openLab(
+          [
+            route('GET', /^\/check$/, () => json({ findings: [], undo })),
+            route('POST', /^\/undo$/, () =>
+              json({
+                scene: 'one',
+                file: 'scenes/one.ts',
+                target: 'undo cue rise offset',
+                findings: [],
+              }),
+            ),
+          ],
+          { href: labAt(1) },
+        );
+        yield* editable(page);
+        yield* dragBar(page, 'rise', 0.5, 60);
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        // The receipts showing as a page hides come back with it.
+        yield* page.reload;
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
+        yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
+        yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
+        expect(posted(asked).map((a) => a.path)).toEqual(['/scenes/one/cues/rise', '/undo']);
+      }).pipe(Effect.scoped),
   );
 
   it.live('a write the server refuses shows its text', () =>
@@ -120,7 +157,7 @@ describe('the cue strip', () => {
       );
       yield* editable(page);
       yield* dragBar(page, 'rise', 0.5, 60);
-      yield* textIs(page, '.lab-edit-status', refusal);
+      yield* textIs(page, '[data-receipt="edit"] .lab-receipt-said', refusal);
     }).pipe(Effect.scoped),
   );
 
@@ -286,9 +323,10 @@ describe('the inspector', () => {
       yield* page.waitFor('.lab-edit-cue input[data-field="offset"]:not([disabled])');
       yield* page.fill('.lab-edit-cue input[data-field="offset"]', '0.3');
       yield* page.pressIn('.lab-edit-cue input[data-field="offset"]', 'Enter');
-      yield* statusSays(page, 'wrote');
+      yield* statusSays(page, 'cue rise offset 0 → 0.3 s');
       yield* page.click('.lab-ease[data-ease="linear"]');
       yield* postedReach(asked, 2);
+      yield* statusSays(page, ' → linear');
       expect(posted(asked)).toEqual([
         { path: '/scenes/one/cues/rise', body: Option.some({ offset: 0.3 }) },
         { path: '/scenes/one/cues/rise', body: Option.some({ ease: 'linear' }) },
@@ -396,6 +434,8 @@ describe('the inspector', () => {
       yield* textIs(page, '.lab-finding', 'late rise ends after the scene');
       yield* page.click('.lab-edit button[data-act="undo"]:not([disabled])');
       yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
+      // An Undo is undone by Redo.
+      yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Redo');
       // With an id unique to the request: the one a check asks after when it has no answer.
       expect(posted(asked)).toEqual([
         {

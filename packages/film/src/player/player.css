@@ -626,10 +626,6 @@ body.lab .stage {
 .lab-finding.warning {
   color: #d9b56a;
 }
-.lab-edit-status {
-  font-size: 11px;
-  color: var(--muted);
-}
 .lab-handle {
   cursor: move;
   pointer-events: all;
