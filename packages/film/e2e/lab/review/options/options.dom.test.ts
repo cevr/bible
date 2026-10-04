@@ -480,6 +480,92 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'a mix made elsewhere with the same choices (a fade remixed, a change another tab made and undid) is asked again, and the steps read again',
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const undos: Array<FakeChange> = [];
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        let waits = 0;
+        const build = route('GET', /^\/api\/review\/build/, () => {
+          waits += 1;
+          if (waits === 1) return later(mixed, json({ build: 1, server: 'lab' }));
+          return later(never, json({ build: 1, server: 'lab' }));
+        });
+        const { page, asked, errors } = yield* openReview([build, ...fakeFilm(toy, undos)], {
+          href: FILM,
+          build: { build: 0, server: 'lab' },
+        });
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=0')`);
+        const stepsRead = () =>
+          asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/steps').length;
+        const before = stepsRead();
+        // Elsewhere the film is remixed and a change is left to undo, the choices as they were.
+        undos.push({ target: 'bed amb.hall fade 2', file: 'sound.ts', back: () => {} });
+        yield* Deferred.done(mixed, Exit.void);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        yield* Effect.void.pipe(
+          Effect.repeat({
+            until: () => stepsRead() > before,
+            schedule: Schedule.spaced('50 millis'),
+          }),
+          Effect.timeout('10 seconds'),
+        );
+        expect(stepsRead()).toBeGreaterThan(before);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a film's read again after a mix elsewhere stops with its page: left for another, nothing it asked lands",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        const answer = yield* Deferred.make<void>();
+        let waits = 0;
+        let reads = 0;
+        const build = route('GET', /^\/api\/review\/build/, () => {
+          waits += 1;
+          if (waits === 1) return later(mixed, json({ build: 1, server: 'lab' }));
+          return later(never, json({ build: 1, server: 'lab' }));
+        });
+        // The first read answers at once; the read after the mix waits on the test.
+        const held = route('GET', /^\/api\/films\/toy\/choices$/, () => {
+          reads += 1;
+          if (reads === 1) return json(choices(toy));
+          return later(answer, json(choices(toy)));
+        });
+        const { page, asked, errors } = yield* openReview([build, held, ...fakeFilm(toy)], {
+          href: FILM,
+          build: { build: 0, server: 'lab' },
+        });
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        // Another tab picks piano and the film is mixed again: this page reads its choices again…
+        toy.picked = 'piano';
+        yield* Deferred.done(mixed, Exit.void);
+        yield* Effect.void.pipe(
+          Effect.repeat({ until: () => reads >= 2, schedule: Schedule.spaced('50 millis') }),
+          Effect.timeout('10 seconds'),
+        );
+        // …and is left for Films, in the page (the shell's link), before the read answers.
+        yield* click(page, '.sh-films');
+        yield* until(page, `location.pathname === '${pageHref.home()}'`);
+        yield* countIs(page, '[data-point]', 0);
+        const left = asked.length;
+        yield* Deferred.done(answer, Exit.void);
+        yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 800))');
+        expect(asked.slice(left).filter((a) => a.path.startsWith('/api/films/toy/'))).toEqual([]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a time typed in the address bar seeks the player, and Back lands it on the time its entry keeps',
     () =>
       Effect.gen(function* () {

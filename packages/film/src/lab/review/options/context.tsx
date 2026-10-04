@@ -19,11 +19,11 @@
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Data, Effect, Exit, Fiber, Match, Option, Schema } from 'effect';
+import { Data, Effect, Exit, Match, Option, Schema } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import type * as Atom from 'effect/reactivity/Atom';
+import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
   createContext,
@@ -395,6 +395,7 @@ const FilmBody = (
       (f) => setAnswered(Option.some(f)),
     );
     if (writesSource(act)) {
+      ownMix = true;
       setVersion((v) => v + 1);
       readSteps();
       if (changesSound(act)) runSoundCheck();
@@ -402,26 +403,36 @@ const FilmBody = (
     return true;
   };
 
-  // The film mixed again by a write elsewhere (another tab's pick, the lab's kept take:
-  // `hearMixes`): the choices read again, and when they moved, shown, every mix asked
-  // for again and the steps read again. This tab's own write already showed its answer,
-  // so the mix it lands moves nothing here and its mix plays on.
-  const heardElsewhere = () => {
-    const ask = asks.ask();
-    void askAgain().then((exit) => {
-      if (!Exit.isSuccess(exit)) return;
-      ask.answer(() => {
-        if (sameChoices(untrack(choices), exit.value)) return;
-        setChoices(exit.value);
-        setVersion((v) => v + 1);
-        readSteps();
-      });
-    });
+  // A source write of this tab's own asked its mix again as it landed: the
+  // next mix heard is that one, and moves nothing here (its mix plays on).
+  let ownMix = false;
+  // The film mixed again (`hearMixes`): another tab's pick, a kept take, a
+  // fade remixed, a change made and undone elsewhere. The choices are read
+  // again and shown if they moved; the steps are read again whatever they
+  // are (an undo elsewhere leaves a Redo); and every mix is asked for again
+  // unless this tab's own write already did. The read runs on the page's
+  // runtime, in the hearing atom this page holds with no idle time to live,
+  // so a page left for another stops it at once and nothing it asked lands.
+  const heardMix = (fresh: FilmChoices) => {
+    const moved = !sameChoices(untrack(choices), fresh);
+    if (moved) setChoices(fresh);
+    if (moved || !ownMix) setVersion((v) => v + 1);
+    ownMix = false;
+    readSteps();
   };
-  const hearing = Effect.runFork(
-    hearMixes(film, Effect.sync(heardElsewhere)).pipe(Effect.provide(LabClient.layer)),
-  );
-  onCleanup(() => Effect.runFork(Fiber.interrupt(hearing)));
+  const hearing = meta.runtime
+    .atom(
+      hearMixes(
+        film,
+        Effect.gen(function* () {
+          const ask = asks.ask();
+          const fresh = yield* OptionsApi.use((api) => api.choices(film));
+          ask.answer(() => heardMix(fresh));
+        }).pipe(Effect.ignore),
+      ).pipe(Effect.provide(LabClient.layer)),
+    )
+    .pipe(Atom.setIdleTTL(0));
+  useAtomValue(() => hearing);
 
   // What plays is the URL's (`?heard= &variant= &picture= #t=`), so a link
   // opens the player as it was; none named is the film's first picture and

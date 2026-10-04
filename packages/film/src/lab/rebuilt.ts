@@ -78,10 +78,10 @@ export const reloadOnRebuild = (film: string, reload: Effect.Effect<void>) =>
  * then `heard`, for as long as it runs: a page that keeps its place rather
  * than reloading. A failed wait is asked again after a pause.
  */
-export const hearEach = <E, R>(
+export const hearEach = <E, R, H = never>(
   served: PageBuild,
   wait: (served: PageBuild) => Effect.Effect<PageBuild, E, R>,
-  heard: Effect.Effect<void>,
+  heard: Effect.Effect<void, never, H>,
 ) =>
   Effect.gen(function* () {
     let last = served;
@@ -101,7 +101,7 @@ export const hearEach = <E, R>(
  * film), and each newer build, then `heard`, in place: a half-typed comment
  * stays. A page with no build hears none.
  */
-export const hearMixes = (film: string, heard: Effect.Effect<void>) =>
+export const hearMixes = <H = never>(film: string, heard: Effect.Effect<void, never, H>) =>
   Option.match(servedBuild(), {
     onNone: () => Effect.void,
     onSome: (served) =>
