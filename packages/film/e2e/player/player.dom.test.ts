@@ -2,7 +2,8 @@
 // phone's window and a desk's, each in the studio's shell. Neither the play page nor the look-book
 // scrolls sideways; the play page keeps its film time as `#t=`, and its legend
 // is hidden until `?` or the bar's ? button; a look-book still opens its frame
-// in the scene's lab, and the shell's page bar leads there.
+// in the scene's lab, and the shell's page bar leads there. The tape bar's
+// scene names never overlap, and where a scene has room its name reads whole.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -12,7 +13,13 @@ import { openPlayer } from '../../src/lab/fixtures/harness.ts';
 import { CROWD } from '../../src/lab/fixtures/crowd-film.ts';
 import { touch } from '../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
-import { attributeIs, evaluates, labelsClash, textHas } from '../../src/lab/fixtures/settled.ts';
+import {
+  attributeIs,
+  evaluates,
+  labelsClash,
+  labelsInFull,
+  textHas,
+} from '../../src/lab/fixtures/settled.ts';
 
 const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1440, height: 900 };
@@ -61,10 +68,26 @@ describe('the player', () => {
         );
         yield* evaluates(page, "document.querySelectorAll('.bar .track .seg').length", 14);
         yield* evaluates(page, labelsClash('.bar .track .seg span', '.seg'), []);
-        // A wide window has room to name each scene more fully, and still none overlaps.
+        // A wide window has room to name each scene more fully, and still none
+        // overlaps: some names are shown and read whole, so the row was not
+        // emptied to pass.
         yield* page.resize(DESK.width, DESK.height);
         yield* evaluates(page, labelsClash('.bar .track .seg span', '.seg'), []);
+        yield* evaluates(page, `${labelsInFull('.bar .track .seg span')} > 0`, true);
       }).pipe(Effect.scoped),
+  );
+
+  it.live('on a phone a film with room in each scene names every scene in full', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openPlayer(
+        { href: pageHref.play(PROBE), viewport: PHONE },
+        '.bar .track .seg',
+      );
+      const scenes = probeFilm().placed.length;
+      yield* evaluates(page, "document.querySelectorAll('.bar .track .seg').length", scenes);
+      yield* evaluates(page, labelsClash('.bar .track .seg span', '.seg'), []);
+      yield* evaluates(page, labelsInFull('.bar .track .seg span'), scenes);
+    }).pipe(Effect.scoped),
   );
 
   it.live("the play page keeps its time as #t=, in the film's seconds", () =>

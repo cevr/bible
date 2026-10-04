@@ -177,3 +177,15 @@ export const labelsClash = (labels: string, room: string) =>
     }));
     return out;
   })()`;
+
+/**
+ * An expression run in the page: how many of the shown `labels` (as
+ * `labelsClash` reads them) read their whole text, neither shortened nor
+ * dropped. `labelsClash` passes a row with every label hidden; this says
+ * the row was not emptied to pass.
+ */
+export const labelsInFull = (labels: string) =>
+  `[...document.querySelectorAll('${labels}')].filter((e) => {
+    const s = getComputedStyle(e);
+    return s.display !== 'none' && s.visibility !== 'hidden' && e.textContent.trim() !== '' && e.getBoundingClientRect().width > 0 && e.scrollWidth <= e.clientWidth + 0.5;
+  }).length`;
