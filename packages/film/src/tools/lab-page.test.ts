@@ -13,6 +13,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import {
   Array as Arr,
   Context,
+  DateTime,
   Deferred,
   type Duration,
   Effect,
@@ -26,7 +27,9 @@ import {
   Schedule,
 } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
+import { TestClock } from 'effect/testing';
 import { LabPage, PageBundler } from './lab-page.ts';
+import { memoryFileSystem, text } from './testing.ts';
 
 const Platform = Layer.provideMerge(BunHttpPlatform.layer, BunServices.layer);
 
@@ -443,7 +446,18 @@ describe('lab pages', () => {
         const now = yield* page.built;
         expect(now.build.build).toBeGreaterThan(0);
         expect(Option.isNone(now.failed)).toBe(true);
+        // The build the look was answered is the one the page serves, and it holds the save:
+        // the watch hearing the save later builds nothing new.
+        const served = yield* ask('/');
+        expect(buildOf(served.text)).toBe(now.build.build);
         expect(yield* script).toContain('saved just now');
+        // A page on the receipt waits on: no watch, nor the first build's check, counts the save.
+        const after = yield* page.wait(
+          { since: now.build.build, server: Option.some(now.build.server), film: Option.none() },
+          '600 millis',
+        );
+        expect(after.build).toBe(now.build.build);
+        expect(buildOf((yield* ask('/')).text)).toBe(now.build.build);
         // Asked again with nothing saved: the same build (once past a save in the build's own
         // millisecond, which is built again rather than risked).
         const settled = (yield* page.built).build.build;
@@ -726,5 +740,110 @@ describe('lab pages', () => {
           'reload',
         ]);
       }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+});
+
+/**
+ * The app's three pages in a file system in memory (no watch hears a save
+ * there), each page its HTML as written (`PageBundler.layerTest`); `mtimes`
+ * says each file's mtime as its stat reports it (0 unless set).
+ */
+const memoryApp = (mtimes: Map<string, number> = new Map()) => {
+  const files = new Map<string, Uint8Array>([
+    ['/app/review.html', text(html('review old', './src/p.ts'))],
+    ['/app/lab.html', text(html('lab', './src/lab.ts'))],
+    ['/app/sub/player.html', text(html('player', '../src/play.ts'))],
+  ]);
+  const spec = {
+    pages: {
+      review: '/app/review.html',
+      lab: '/app/lab.html',
+      player: '/app/sub/player.html',
+    },
+    films: '/app/src/films',
+  };
+  const fileSystem = Layer.effect(
+    FileSystem.FileSystem,
+    Effect.map(FileSystem.FileSystem, (fs) =>
+      FileSystem.FileSystem.of({
+        ...fs,
+        stat: (file) =>
+          Effect.map(fs.stat(file), (info) => ({
+            ...info,
+            mtime: Option.some(DateTime.toDateUtc(DateTime.makeUnsafe(mtimes.get(file) ?? 0))),
+          })),
+      }),
+    ),
+  ).pipe(Layer.provide(memoryFileSystem(files)));
+  return {
+    files,
+    spec,
+    layer: BunHttpPlatform.layer.pipe(Layer.provideMerge(Layer.mergeAll(fileSystem, Path.layer))),
+  };
+};
+
+/**
+ * The test bundler, whose first build waits once it has read its pages:
+ * `reading` is done then, and the build goes on once `release` is.
+ */
+const holdingFirst = (reading: Deferred.Deferred<boolean>, release: Deferred.Deferred<boolean>) =>
+  Layer.effect(
+    PageBundler,
+    Effect.gen(function* () {
+      const inner = yield* PageBundler;
+      const builds = yield* Ref.make(0);
+      return PageBundler.of({
+        bundle: (entries, root, how) =>
+          Effect.tap(inner.bundle(entries, root, how), () =>
+            Effect.gen(function* () {
+              if ((yield* Ref.getAndUpdate(builds, (n) => n + 1)) > 0) return;
+              yield* Deferred.succeed(reading, true);
+              yield* Deferred.await(release);
+            }),
+          ),
+      });
+    }),
+  ).pipe(Layer.provide(PageBundler.layerTest));
+
+describe("a look's build, against saves no watch hears", () => {
+  const app = memoryApp();
+  it.live('a save made while a build reads is never answered as fresh', () =>
+    Effect.gen(function* () {
+      const reading = yield* Deferred.make<boolean>();
+      const release = yield* Deferred.make<boolean>();
+      const { page, ask } = yield* served(app.spec, holdingFirst(reading, release));
+      const first = yield* Effect.forkChild(page.built);
+      // The build has read the page; it is saved anew while the build is under way, and a
+      // look asks then.
+      yield* Deferred.await(reading);
+      app.files.set('/app/review.html', text(html('review new', './src/p.ts')));
+      const second = yield* Effect.forkChild(page.built);
+      yield* Deferred.succeed(release, true);
+      yield* Fiber.join(first);
+      const receipt = yield* Fiber.join(second);
+      const now = yield* ask('/');
+      expect(now.text).toContain('review new');
+      expect(buildOf(now.text)).toBe(receipt.build.build);
+    }).pipe(Effect.scoped, Effect.provide(app.layer)),
+  );
+
+  const coarse = new Map<string, number>();
+  const later = memoryApp(coarse);
+  it.effect("a save whose mtime reads before its build began is the look's still", () =>
+    Effect.gen(function* () {
+      // The build begins half a second into a second whose files' mtimes the file system
+      // keeps to the whole second.
+      yield* TestClock.setTime(1500);
+      const { page, ask } = yield* served(later.spec, PageBundler.layerTest);
+      const before = yield* page.built;
+      expect((yield* ask('/')).text).toContain('review old');
+      later.files.set('/app/review.html', text(html('review new', './src/p.ts')));
+      coarse.set('/app/review.html', 1000);
+      const receipt = yield* page.built;
+      const now = yield* ask('/');
+      expect(now.text).toContain('review new');
+      expect(buildOf(now.text)).toBe(receipt.build.build);
+      expect(receipt.build.build).toBeGreaterThan(before.build.build);
+    }).pipe(Effect.scoped, Effect.provide(later.layer)),
   );
 });

@@ -1610,9 +1610,12 @@ tool calls the route the same way.
 | `POST /api/films/<film>/looks` | `LookPost` `{scene, at: [place, …], view: {crop?, size?, mode, captions, format}, from?, levels?}` → `LookTaken` `{build, looks: [{file, scene, at, frame, time, width, height}]}` |
 
 **Never stale.** Every look first asks the pages' build as it stands
-(`LabPage.built`): a file the last build read that changed since it
-started, saved or gone, whether or not the watch has heard it yet, is built
-first, and a build under way is waited out. A failed build is a 422
+(`LabPage.built`), judged by content, never by mtime: a build under way is
+waited out, then the build answered is one whose files printed alike
+before and after it read them and print so still (length and hash). A save
+no watch has heard yet, one in the build's own second, or one made while
+the build read is built first; files that keep moving through three builds
+are a `PagesBroken` asking to look again once the saves settle. A failed build is a 422
 `PagesBroken` with the bundler's words and no still. The page is held per
 build (`<server>.<build>`, the `LabPage` stamp): a new build closes it and
 opens a fresh one, so the page always runs the code on disk; a page that
