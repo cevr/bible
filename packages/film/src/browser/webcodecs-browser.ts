@@ -331,8 +331,10 @@ export const panesOver = (
   // The page's monotonic time: never the wall clock (set on or back by a sync), nor the
   // sound context's (held suspended until a press).
   const clock = makeClock(monotonicNow(Effect.runSync(Clock.clockWith(Effect.succeed))));
-  const together = lockstep((step: () => boolean) =>
-    Effect.runCallbackWith(host)(Frames.use((frames) => frames.loop(() => step()))),
+  const together = lockstep(
+    (step: () => boolean) =>
+      Effect.runCallbackWith(host)(Frames.use((frames) => frames.loop(() => step()))),
+    clock,
   );
   const panes = chosen.opened.flatMap((opened, i) =>
     Option.toArray(

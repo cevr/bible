@@ -90,7 +90,7 @@ const rig = () => {
     now += s;
     for (const step of [...steps]) if (!step()) steps.delete(step);
   };
-  return { clock, together: lockstep(loop), frame, looping: () => steps.size };
+  return { clock, together: lockstep(loop, clock), frame, looping: () => steps.size };
 };
 
 /** Let every decode already answered land. */
@@ -218,6 +218,86 @@ describe('a frame pane', () => {
         expect(slow.drawn.length).toBeGreaterThan(2);
         expect(shown.filter(([a, b]) => a !== b)).toEqual([]);
       }),
+  );
+
+  it.effect(
+    'a seek of a playing pair waits for the slower: neither shows the new moment alone, the clock and the sound hold until both have it',
+    () =>
+      Effect.gen(function* () {
+        const said: Array<string> = [];
+        const audio: AudioOut = {
+          start: (t, rate) => said.push(`start ${t.toFixed(2)} @${rate}`),
+          stop: () => said.push('stop'),
+        };
+        const fast = fakeSource();
+        const slow = fakeSource();
+        const { clock, together, frame } = rig();
+        const one = paneOver({ source: fast.source, clock, together, audio: Option.some(audio) });
+        const two = paneOver({ source: slow.source, clock, together, audio: Option.none() });
+        one.mute(false);
+        yield* Effect.all([one.seek(0), two.seek(0)], { concurrency: 2 });
+        yield* settle;
+        yield* Effect.all([one.play, two.play]);
+        yield* frames(frame, 3, 1 / FPS);
+        const last = (drawn: ReadonlyArray<number>) => Option.getOrElse(Arr.last(drawn), () => -1);
+        // The slow one's decodes held: a seek to 1 s asked of both while they play.
+        yield* slow.hold;
+        said.length = 0;
+        const seeking = yield* Effect.forkChild(
+          Effect.all([one.seek(1), two.seek(1)], { concurrency: 2 }),
+        );
+        yield* settle;
+        yield* frames(frame, 5, 1 / FPS);
+        expect(last(fast.drawn)).toBe(last(slow.drawn));
+        expect(one.time()).toBeCloseTo(1, 9);
+        expect(said).toEqual(['stop']);
+        // Both have it: the new moment shows on both, and the pair plays on from it with its sound.
+        yield* slow.release;
+        yield* Fiber.join(seeking);
+        yield* settle;
+        expect([last(fast.drawn), last(slow.drawn)]).toEqual([30, 30]);
+        expect(said).toEqual(['stop', 'start 1.00 @1']);
+        yield* frames(frame, 3, 1 / FPS);
+        expect(one.time()).toBeGreaterThan(1);
+        expect(last(fast.drawn)).toBe(last(slow.drawn));
+      }),
+  );
+
+  it.effect('a scrub across a pair shows its preview on both or on neither', () =>
+    Effect.gen(function* () {
+      const a = fakeSource();
+      const b = fakeSource();
+      const { clock, together } = rig();
+      const one = paneOver({ source: a.source, clock, together, audio: Option.none() });
+      const two = paneOver({ source: b.source, clock, together, audio: Option.none() });
+      yield* Effect.all([one.seek(0), two.seek(0)], { concurrency: 2 });
+      yield* settle;
+      // Both decodes held, so the next seek finds the last still in flight: a scrub.
+      yield* Effect.all([a.hold, b.hold]);
+      const first = yield* Effect.forkChild(
+        Effect.all([one.seek(at(40)), two.seek(at(40))], { concurrency: 2 }),
+      );
+      yield* settle;
+      const scrub = yield* Effect.forkChild(
+        Effect.all([one.seek(at(50)), two.seek(at(50))], { concurrency: 2 }),
+      );
+      yield* settle;
+      expect([a.drawn, b.drawn]).toEqual([
+        [0, 30],
+        [0, 30],
+      ]);
+      // One has its frame, the other not yet: neither moves on alone.
+      yield* a.release;
+      yield* settle;
+      expect(a.drawn).toEqual([0, 30]);
+      yield* b.release;
+      yield* Fiber.joinAll([first, scrub]);
+      yield* settle;
+      expect([a.drawn, b.drawn]).toEqual([
+        [0, 30, 50],
+        [0, 30, 50],
+      ]);
+    }),
   );
 
   it.effect(
