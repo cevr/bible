@@ -93,8 +93,14 @@ const focusable = (target: EventTarget): target is EventTarget & Focusable =>
 /** The elements that take their own keys: what is typed into, and media's own controls. */
 const FIELDS = new Set(['INPUT', 'TEXTAREA', 'SELECT', 'AUDIO', 'VIDEO']);
 
-/** Open menus and dialogs: their own keys move through them and close them. */
-const OVERLAYS = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]';
+/**
+ * Open menus and dialogs: their own keys move through them and close them.
+ * One closing (@bible/ui marks its exit `data-ending-style`, then
+ * `data-closed`) holds no keys: the focus it still has goes back to the page
+ * as it leaves, so a key pressed then is the page's.
+ */
+const OVERLAYS =
+  ':is([role="dialog"], [role="alertdialog"], [role="menu"], [role="listbox"]):not([data-ending-style], [data-closed])';
 
 /** The studio's section: it takes its own keys while focus is in it (`lab/studio/section.tsx`). */
 const STUDIO = '.lab-studio';
