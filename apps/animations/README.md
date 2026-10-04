@@ -369,6 +369,44 @@ prints the newest entries, oldest first, as `<time> scene=<id> <text>`,
 never more than 8,000 characters, with a first line saying how many earlier
 entries it left out.
 
+### A painter agent: the gent extension
+
+`.gent/extensions/film.ts`, at the repo root, is a project extension for
+[gent](https://github.com/cevr/gent). It gives gent the
+`scene-painter` agent. The agent holds the film tools and no others:
+
+- `film.look`, `film.check`, `film.cues` and `film.journal` run this
+  checkout's own film CLI (`bun cli.ts …` in `apps/animations`). The stills
+  come back as images the model reads. A refusal (`UnknownScene`,
+  `PagesBroken`, `LabDown`, …) comes back as a failure that carries the
+  film's tag and words.
+- `film.read`, `film.write` and `film.edit` reach only
+  `apps/animations/src/films/<film>/`, and refuse `..`, a path outside and
+  a symbolic link. `film.read` with `within: skill` also reads the film
+  skill's rules.
+
+The agent's brief, in the extension, has it work in passages: read the scene,
+its cues and its journal; paint one passage; look; note what it saw; and run
+the check before it stops. When a painter's context window fills, the agent
+condenses it from the files (the scene file, the newest journal entries for
+the scene, its cues and the last look's stills) and asks no model to do it.
+
+To run a painter:
+
+1. Trust the checkout once. Add its canonical root (`realpath .` at the repo
+   root) to `trustedProjects` in `~/.gent/config.json`. gent runs no project
+   code otherwise, and its extension status says "Project code is not
+   trusted".
+2. Start the server: `gent server start`.
+3. With the repo root as the working directory, run
+   `gent -H -a scene-painter "Paint the roof scene of <film>: …"`.
+
+A look asks the lab named by `FILM_LAB_URL` in the gent server's environment,
+or the always-on lab on 8229 when that is unset. `bun run test:gent`
+typechecks and tests the extension against a local gent checkout:
+`~/Developer/personal/gent`, or the one named in `GENT_CHECKOUT`. It runs
+only on your machine, like `test:perf`, and the gate never runs it.
+
 ## How a film is built
 
 ```
