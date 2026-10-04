@@ -985,6 +985,62 @@
         "effect/noChainedTypeAssertions": "off",
         "effect/noWidenThenAssert": "off"
       }
+    },
+    {
+      // @bible/ui is a host boundary: Base UI's parts ported to Solid 2, plain
+      // DOM code with no Effect runtime. It keeps upstream's shape (nullable
+      // elements, ternaries, `typeof` checks, DOM casts, long key handlers) so
+      // a diff against Base UI stays readable; the Effect style rules would
+      // rewrite every line of the port for nothing. It is a leaf: it never
+      // imports Effect, the film engine or the lab.
+      "files": ["**/packages/ui/**/*.ts", "**/packages/ui/**/*.tsx"],
+      "rules": {
+        "complexity": "off",
+        "typescript/no-unsafe-type-assertion": "off",
+        "effect/maxCognitiveComplexity": "off",
+        "effect/maxHalsteadDifficulty": "off",
+        "effect/noAs": "off",
+        "effect/noAsyncFunction": "off",
+        "effect/noChainedTypeAssertions": "off",
+        "effect/noConditionalEmptyObjectSpread": "off",
+        "effect/noGlobals": "off",
+        "effect/noKnownValueWidening": "off",
+        "effect/noModuleMocks": "off",
+        "effect/noNewError": "off",
+        "effect/noNewPromise": "off",
+        "effect/noNodeBuiltinImport": "off",
+        "effect/noNullish": "off",
+        "effect/noObjectParameters": "off",
+        "effect/noRuntimeTypeof": "off",
+        "effect/noShapeInSymbolNames": "off",
+        "effect/noTernary": "off",
+        "effect/noTestLifecycleHooks": "off",
+        "effect/noThrowStatement": "off",
+        "effect/noTryCatch": "off",
+        "effect/noUnknownParameters": "off",
+        "effect/noUnknownTypeAliases": "off",
+        "effect/noUnsafeDictionaryType": "off",
+        "effect/noWidenThenAssert": "off",
+        "effect/preferEffectFn": "off",
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "effect",
+                  "effect/*",
+                  "@effect/*",
+                  "@bible/film",
+                  "@bible/film/*",
+                  "**/lab/**"
+                ],
+                "message": "@bible/ui is a leaf of plain DOM primitives: no Effect, no film engine, no lab."
+              }
+            ]
+          }
+        ]
+      }
     }
   ]
 }

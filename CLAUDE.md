@@ -17,6 +17,7 @@ bible/
 │   ├── film/           # The film engine, tools and lab (@bible/film)
 │   ├── atom-solid/     # Solid 2 bindings for Effect atoms (@bible/atom-solid, used by the film lab)
 │   ├── url-state/      # Typed URL state: Effect Schema codecs, a Location service, an atom binding (@bible/url-state)
+│   ├── ui/             # Base UI's unstyled parts ported to Solid 2 (@bible/ui; browser tests via its test:browser)
 │   └── scripts/        # Corpus compilers and repo tooling (@bible/scripts)
 ```
 
