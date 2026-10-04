@@ -13,17 +13,6 @@ body.rv {
 }
 .rv *, .rv *::before, .rv *::after { box-sizing: border-box; }
 .rv a { color: inherit; }
-.rv-header {
-  position: sticky; top: 0; z-index: 5; background: rgba(18, 17, 16, 0.94);
-  backdrop-filter: blur(6px); border-bottom: 1px solid var(--rv-line);
-  padding: 10px 18px; padding-top: max(10px, env(safe-area-inset-top));
-  display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center;
-}
-.rv-crumbs { display: flex; gap: 6px; align-items: baseline; font-size: 15px; min-width: 0; flex-wrap: wrap; }
-.rv-crumbs a { text-decoration: none; color: var(--rv-dim); }
-.rv-crumbs a:hover { color: var(--rv-ink); }
-.rv-crumbs b { font-weight: 600; }
-.rv-spacer { flex: 1; }
 .rv-main { padding: 16px 18px 60px; padding-bottom: max(60px, env(safe-area-inset-bottom)); max-width: 1900px; margin: 0 auto; }
 .rv-h { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--rv-dim); margin: 26px 0 10px; font-weight: 600; }
 .rv-h small { text-transform: none; letter-spacing: 0; font-weight: 400; }

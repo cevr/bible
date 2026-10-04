@@ -12,6 +12,41 @@ type Ease = (t: number) => number;
  */
 export const FILM_FPS = 30;
 
+/** A timecode's fields: hours, minutes, seconds and the frame within the second, and its sign. */
+interface TimecodeParts {
+  readonly negative: boolean;
+  readonly hh: string;
+  readonly mm: string;
+  readonly ss: string;
+  readonly ff: string;
+}
+
+/**
+ * Seconds as a timecode's fields at `fps`: the nearest frame to that time (a
+ * clock a hair short of a frame, as a video's reads, says that frame), each
+ * field two digits.
+ */
+export const timecodeParts = (seconds: number, fps: number = FILM_FPS): TimecodeParts => {
+  const frames = Math.round(Math.abs(seconds) * fps);
+  const perSecond = Math.max(1, Math.round(fps));
+  const whole = Math.floor(frames / perSecond);
+  const two = (n: number) => String(n).padStart(2, '0');
+  return {
+    negative: seconds < 0 && frames > 0,
+    hh: two(Math.floor(whole / 3600)),
+    mm: two(Math.floor((whole % 3600) / 60)),
+    ss: two(whole % 60),
+    ff: two(frames % perSecond),
+  };
+};
+
+/** Seconds as every time the studio shows them: `HH:MM:SS:FF` at `fps` (`00:01:05:12`), `−` before zero. */
+export const timecode = (seconds: number, fps: number = FILM_FPS): string => {
+  const p = timecodeParts(seconds, fps);
+  const sign = ['−'].filter(() => p.negative).join('');
+  return `${sign}${p.hh}:${p.mm}:${p.ss}:${p.ff}`;
+};
+
 /** A stretch of time, `from` to `to`, in seconds on whatever clock it is read against. */
 export interface Interval {
   readonly from: number;

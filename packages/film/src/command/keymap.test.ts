@@ -69,6 +69,13 @@ describe('chords', () => {
     expect(chordOf(press('¡', { alt: true, code: 'Digit1' }))).toBe('alt+1');
   });
 
+  test("a digit held with Shift reads by its physical key, Shift and all: the pages' ⇧1-⇧6", () => {
+    expect(chordOf(press('!', { shift: true, code: 'Digit1' }))).toBe('shift+1');
+    expect(chordOf(press('&', { shift: true, code: 'Digit6' }))).toBe('shift+6');
+    expect(parseChord('Shift+1')).toEqual(Option.some('shift+1'));
+    expect(chordLabel('shift+1', true)).toBe('⇧1');
+  });
+
   test('read as each platform writes them', () => {
     expect(chordLabel('mod+shift+z', true)).toBe('⇧⌘Z');
     expect(chordLabel('mod+shift+z', false)).toBe('Shift+Ctrl+Z');

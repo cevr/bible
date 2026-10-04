@@ -9,9 +9,23 @@ import {
   lerp,
   progress,
   staggered,
+  timecode,
 } from './time.ts';
 
 describe('time', () => {
+  test('a time reads as the timecode of its nearest frame: HH:MM:SS:FF', () => {
+    expect(timecode(0)).toBe('00:00:00:00');
+    expect(timecode(65.4)).toBe('00:01:05:12');
+    expect(timecode(525.9)).toBe('00:08:45:27');
+    expect(timecode(3600 + 1 / 30)).toBe('01:00:00:01');
+    // Between frames, the nearest: a video's clock a hair short of 4 s says 4 s; at 24 fps, frames count to 23.
+    expect(timecode(3.99999)).toBe('00:00:04:00');
+    expect(timecode(0.4 / 30)).toBe('00:00:00:00');
+    expect(timecode(1.97, 24)).toBe('00:00:01:23');
+    // Before a scene's start, signed.
+    expect(timecode(-0.5)).toBe('−00:00:00:15');
+  });
+
   test("a set's stagger spreads its items' starts over a share of the progress", () => {
     // Three tiles over the first 2/7: the middle one starts at 1/7 and lasts 5/7,
     // what `clamp(p * 1.4 - i * 0.2)` drew by hand.

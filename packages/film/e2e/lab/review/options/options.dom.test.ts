@@ -415,7 +415,10 @@ describe("a film's choices", () => {
           page,
           '[data-role="context-menu"] [data-command="review.mark.take:paper.page.0"]',
         );
-        yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
+        yield* until(
+          page,
+          "document.querySelector('.rv-time').textContent.startsWith('00:00:02:00')",
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -428,17 +431,17 @@ describe("a film's choices", () => {
         const { page, errors } = yield* openReview(fakeFilm(), { href: `${FILM}#t=2` });
         const time = "(document.querySelector('.rv-time')?.textContent ?? '')";
         yield* waitFor(page, '.rv-picture video');
-        yield* until(page, `${time}.startsWith('0:02.0')`);
+        yield* until(page, `${time}.startsWith('00:00:02:00')`);
         // A new hash is an entry of its own (the browser's), landed on as Back lands.
         yield* page.evaluate("location.hash = '#t=5'; true");
-        yield* until(page, `${time}.startsWith('0:05.0')`);
+        yield* until(page, `${time}.startsWith('00:00:05:00')`);
         yield* page.back;
         yield* until(page, "location.hash === '#t=2'");
-        yield* until(page, `${time}.startsWith('0:02.0')`);
+        yield* until(page, `${time}.startsWith('00:00:02:00')`);
         // Past the time's throttle, the entry still keeps its own time.
         yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
         yield* until(page, "location.hash === '#t=2'");
-        yield* until(page, `${time}.startsWith('0:02.0')`);
+        yield* until(page, `${time}.startsWith('00:00:02:00')`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -462,14 +465,20 @@ describe("a film's choices", () => {
         yield* page.goto(`${FILM}?heard=own#t=2`);
         yield* waitFor(page, '.rv-picture [data-act="hear"][aria-pressed="true"]');
         yield* until(page, "document.querySelector('audio.rv-mix') === null");
-        yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
+        yield* until(
+          page,
+          "document.querySelector('.rv-time').textContent.startsWith('00:00:02:00')",
+        );
         yield* page.goto(link);
         yield* waitFor(page, `${at('score', 'piano')} [data-act="hear"][aria-pressed="true"]`);
         yield* until(
           page,
           `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=piano')`,
         );
-        yield* until(page, "document.querySelector('.rv-time').textContent.startsWith('0:02.0')");
+        yield* until(
+          page,
+          "document.querySelector('.rv-time').textContent.startsWith('00:00:02:00')",
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -760,7 +769,7 @@ describe("a film's choices", () => {
         yield* receiptSays(page, 'Picked piano · score: strings → piano');
         // The clock held: the long press's delay passes only as the test runs it on.
         yield* page.clock.hold;
-        yield* touch(page, '.rv-header', 0);
+        yield* touch(page, '.sh-header', 0);
         yield* page.clock.runFor(700);
         yield* waitFor(page, '[data-role="context-menu"] [data-command="review.undo"]');
         yield* textHas(page, '[data-role="context-menu"] [data-command="review.undo"]', 'Undo');

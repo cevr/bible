@@ -878,6 +878,35 @@ export const pageHref = {
     }),
 };
 
+/**
+ * The studio's parts, in the page bar's order: Films (the home, every
+ * film's), then a film's Scenes, Lab, Choices, Project and Play. ⇧1-⇧6 go
+ * to them in this order.
+ */
+export const PARTS = ['films', 'scenes', 'lab', 'choices', 'project', 'play'] as const;
+export type Part = (typeof PARTS)[number];
+
+/** Each part's name, as the page bar prints it. */
+export const PART_TITLE: Readonly<Record<Part, string>> = {
+  films: 'Films',
+  scenes: 'Scenes',
+  lab: 'Lab',
+  choices: 'Choices',
+  project: 'Project',
+  play: 'Play',
+};
+
+/** The page of `part` on `film`, at its defaults (Films names no film). */
+export const partHref = (part: Part, film: string): string =>
+  ({
+    films: () => pageHref.home(),
+    scenes: () => pageHref.scenes(film),
+    lab: () => pageHref.lab(film),
+    choices: () => pageHref.choices(film),
+    project: () => pageHref.project(film),
+    play: () => pageHref.play(film),
+  })[part]();
+
 /** A hash that is only a number (`#42.000`): the film time an old lab or player link carried. */
 const bareTime = (hash: string): Option.Option<number> =>
   Option.filter(

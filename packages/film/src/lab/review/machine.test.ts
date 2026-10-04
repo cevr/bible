@@ -22,7 +22,6 @@ import {
   spreadMoments,
   stepView,
   syncMachine,
-  timeText,
   viewMachine,
   wrapped,
 } from './machine.ts';
@@ -200,9 +199,13 @@ describe('the synced player', () => {
   });
 
   test('says where the clock is, the end once known, and when it waits', () => {
-    expect(timeText(65.24)).toBe('1:05.2');
-    expect(clockText(SyncState.Paused({ ...clock, end: UNKNOWN_END }))).toBe('0:01.0 / …');
-    expect(clockText(SyncState.Buffering({ ...clock, t: 4 }))).toBe('0:04.0 / 0:10.0 · waiting');
+    expect(clockText(SyncState.Paused({ ...clock, end: UNKNOWN_END }))).toBe('00:00:01:00 / …');
+    expect(clockText(SyncState.Buffering({ ...clock, t: 4 }))).toBe(
+      '00:00:04:00 / 00:00:10:00 · waiting',
+    );
+    expect(clockText(SyncState.Paused({ ...clock, t: 65.24, end: 70 }))).toBe(
+      '00:01:05:07 / 00:01:10:00',
+    );
     expect(reachOf(SyncState.Paused({ ...clock, end: UNKNOWN_END }))).toBe(1);
     expect(reachOf(SyncState.Paused(clock))).toBe(10);
   });

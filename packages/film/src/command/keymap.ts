@@ -4,9 +4,10 @@
 // (`-<id>`, as VS Code's keybindings write a removal), so a rebound key is
 // a default taken away and a key added. A press binds to a chord by its key
 // and modifiers: `mod` is ⌘ or Ctrl, a letter reads the same with Caps Lock,
-// Shift counts on a letter or a named key but not on a symbol (`?` is
-// already shifted), and a letter held with Alt reads by its physical key (⌥O
-// types `ø`). A command marked `stepped` also answers its keys held with
+// Shift counts on a letter, a digit or a named key but not on a symbol (`?`
+// is already shifted), a letter held with Alt reads by its physical key (⌥O
+// types `ø`), and so does a digit held with Shift or Alt (⇧1 is `shift+1`
+// whatever the layout types: the pages' ⇧1-⇧6). A command marked `stepped` also answers its keys held with
 // Shift (its coarse step, ×10) and with Alt (its fine step), unless that
 // chord is bound to something itself. Where focus is decides which commands'
 // keys are live (`Focus`, `context.ts`): the page's on the page, only those
@@ -67,8 +68,10 @@ const keyName = (key: string): string =>
 
 const isLetter = (name: string): boolean => name.toUpperCase() !== name.toLowerCase();
 
+const isDigit = (name: string): boolean => name.length === 1 && name >= '0' && name <= '9';
+
 /** Whether Shift is part of a chord on `name`: not on a symbol, which is already shifted. */
-const shiftCounts = (name: string): boolean => name.length !== 1 || isLetter(name);
+const shiftCounts = (name: string): boolean => name.length !== 1 || isLetter(name) || isDigit(name);
 
 const chordText = (key: string, held: ReadonlySet<Modifier>): string =>
   [...MODIFIERS.filter((m) => held.has(m) && (m !== 'shift' || shiftCounts(key))), key].join('+');
@@ -98,10 +101,10 @@ export const parseChord = (text: string): Option.Option<string> => {
   );
 };
 
-/** The key a press names: by its physical key when Alt is held on a letter or digit. */
+/** The key a press names: by its physical key when Alt is held on a letter or digit, or Shift on a digit. */
 const pressedKey = (press: KeyPress): string =>
   Option.getOrElse(
-    Option.filter(physical(press.code), () => press.alt),
+    Option.filter(physical(press.code), (key) => press.alt || (press.shift && isDigit(key))),
     () => keyName(press.key),
   );
 

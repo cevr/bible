@@ -155,8 +155,8 @@ describe('the review page', () => {
         yield* textHas(page, '.rv-h', 'Versions');
         yield* textHas(page, '.rv-h', 'Renders');
         yield* textHas(page, 'a.rv-card', 'Roofs at dusk');
-        // The header's Search opens ⌘K: a folder is found by its title, Refresh is a command.
-        yield* page.click('.rv-header [data-act="search"]');
+        // The header's Go to… opens ⌘K: a folder is found by its title, Refresh is a command.
+        yield* page.click('.sh-header [data-act="search"]');
         yield* page.waitFor('.lab-command-query');
         yield* page.fill('.lab-command-query', 'dusk');
         yield* textHas(page, menuEntry('go.folder.out/art'), 'Go to folder Roofs at dusk');
@@ -172,7 +172,7 @@ describe('the review page', () => {
         yield* page.goto('/');
         yield* page.click(`a.rv-card[href="${FOLDER}"]`);
         yield* until(page, `location.pathname === '${FOLDER}'`);
-        yield* textHas(page, '.rv-crumbs', 'Roofs at dusk');
+        yield* textHas(page, '.sh-header [data-role="crumb"]', 'Roofs at dusk');
         yield* textsAre(page, '[data-review-blurb] li', [
           'Cold opening',
           'Message arrives',
@@ -233,9 +233,9 @@ describe('the review page', () => {
         yield* textHas(page, '.rv-big', '▶');
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', '0:04.0');
+        yield* textHas(page, '.rv-time', '00:00:04:00');
         yield* page.press('ArrowLeft');
-        yield* textHas(page, '.rv-time', '0:02.0');
+        yield* textHas(page, '.rv-time', '00:00:02:00');
         // Every video stands where the clock does.
         yield* until(
           page,
@@ -323,15 +323,15 @@ describe('the review page', () => {
         yield* until(page, "location.search === '?view=pair&other=B'");
         // The time moves on in the pair's entry; all's keeps 4.
         yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', '0:06.0');
+        yield* textHas(page, '.rv-time', '00:00:06:00');
         yield* until(page, "location.hash === '#t=6'");
         yield* page.back;
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
-        yield* textHas(page, '.rv-time', '0:04.0');
+        yield* textHas(page, '.rv-time', '00:00:04:00');
         // Past the time's throttle, the entry still keeps its own time.
         yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
         yield* until(page, "location.search === '' && location.hash === '#t=4'");
-        yield* textHas(page, '.rv-time', '0:04.0');
+        yield* textHas(page, '.rv-time', '00:00:04:00');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -350,7 +350,7 @@ describe('the review page', () => {
         );
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
-        yield* textHas(page, '.rv-time', '0:04.0');
+        yield* textHas(page, '.rv-time', '00:00:04:00');
         yield* until(page, "location.hash === '#t=4'");
         // The time in the URL is the set's own: the set and its videos stay as they are.
         yield* evaluates(page, "document.querySelector('.rv-card video') === window.first", true);
@@ -377,7 +377,7 @@ describe('the review page', () => {
         yield* until(page, `${at} === '${SET}'`);
         // A pasted link opens the set in its view, at its time.
         yield* page.goto(`${SET}?view=pair&other=C#t=7`);
-        yield* textHas(page, '.rv-time', '0:07.0');
+        yield* textHas(page, '.rv-time', '00:00:07:00');
         yield* until(
           page,
           "Array.from(document.querySelectorAll('.rv-card[data-id]')).map((c) => c.dataset.id).join() === 'A,C'",

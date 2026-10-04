@@ -78,6 +78,7 @@ import { ReviewPlace as Place } from './place.ts';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
 import { CommandChip } from '../command/command-chip.tsx';
+import { useShellTime } from '../page-shell.tsx';
 import { rateCommands, rateId, rateText } from '../../player/transport.ts';
 
 /** A version of `set` in `folder`, as a selection: what a version's card is. */
@@ -521,6 +522,8 @@ export const Transport = (props: {
   const { meta } = useReview();
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
+  // The header's timecode is this transport's clock.
+  useShellTime(() => sync().t);
   onCleanup(
     meta.hub.commands.register(
       ...rateCommands({
