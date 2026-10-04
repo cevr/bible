@@ -1828,7 +1828,9 @@ own names, and the stored and wire words stay as they are.
   link's, since a different split shows the same comparison. Where the
   browser can, the two play as **WebCodecs panes** (`browser/frame-pane.ts`
   over mediabunny in `browser/webcodecs-browser.ts`): each master decoded to
-  a canvas, both read from one clock (`media-clock.ts`), so they are frame
+  a canvas, both read from one monotonic clock (`media-clock.ts`) and drawn
+  in lockstep (each frame, both show the frame their time asks for or
+  neither moves on, so a slow decoder holds the pair), so they are frame
   for frame together rather than within the sync's 0.2 s, and a scrub shows
   the key frame at once and then the exact frame. The player is chosen by
   capability (`media-choice.ts`): `VideoDecoder`, the picture decodable, and
@@ -1838,7 +1840,10 @@ own names, and the stored and wire words stay as they are.
   on `<video>`, why in its tooltip. The panes' sound plays through the page's
   one sound context (`Media.sound`, set to `playback` on Safari so it plays
   through the silent switch), only at 1× (another rate would change its
-  pitch), and a hidden page lets the decoders go.
+  pitch). A hidden page stands the panes (clock and sound stopped, decoders
+  and frames still decoding let go) and, shown again, they draw afresh and
+  play on as they were; the masters' inputs are the wipe's from the moment
+  they open, so an opening that fails or is cut short lets every one go.
 - **Difference** (a _difference matte_): the other's still laid over the
   first's at one moment in the `difference` blend, black where the two are
   the same and lit where they differ (`?view=diff&other=<id>&m=<n>`, ←/→

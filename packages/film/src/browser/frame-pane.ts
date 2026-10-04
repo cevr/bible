@@ -10,10 +10,15 @@
 // is drawn, or once a later seek takes its place (its frames are let go
 // undrawn). While one seek still decodes, the next shows the key frame at
 // its time at once, a scrub's preview, then its exact frame: the masters'
-// key frames are 2 s apart. Hidden (`release`), it lets its decoder go and
-// opens again at the clock's time when it plays. Its sound (`AudioOut`) is
-// heard only unmuted, playing, at 1×: a buffer played at another rate
-// changes pitch, as the narration's rule has it.
+// key frames are 2 s apart. The panes of a compare play in lockstep
+// (`lockstep`): each frame drawn, either every pane shows the frame its time
+// asks for or none does, so a slow decoder holds the set and the panes never
+// show different frames. Hidden (`hide`), a pane stands: its clock stops,
+// its sound stops, its decoder and any frame still decoding are let go;
+// shown again (`show`), it draws the frame at the clock's time afresh and
+// plays on if it was playing. Its sound (`AudioOut`) is heard only unmuted,
+// playing, at 1×: a buffer played at another rate changes pitch, as the
+// narration's rule has it.
 
 import { Effect, Option } from 'effect';
 import type { MediaClock } from './media-clock.ts';
@@ -53,18 +58,71 @@ export interface AudioOut {
   readonly stop: () => void;
 }
 
-/** A pane: a `Playable`, and its decoder let go while it is hidden or gone. */
+/** A pane: a `Playable`, which stands while the page is hidden. */
 export interface Pane extends Playable {
-  /** Hidden: its decoder and its frames are let go until it plays again. */
-  readonly release: () => void;
+  /** Hidden: it stands, silent, its decoder and its frames let go. */
+  readonly hide: () => void;
+  /** Shown again: the frame at the clock's time drawn afresh, playing on if it was. */
+  readonly show: () => void;
 }
+
+/** A pane as the lockstep it plays in sees it, each frame drawn. */
+interface Member {
+  /** Playing and shown: held to the others. */
+  readonly live: () => boolean;
+  /** It has what its time asks for: the frame due decoded, or no frame due. */
+  readonly inStep: () => boolean;
+  /** Show the frame due when `together` (every live pane is in step); say if it ended or stalled. */
+  readonly step: (together: boolean) => void;
+}
+
+/** The panes of one compare, drawn frame for frame together. */
+interface Lockstep {
+  readonly join: (member: Member) => void;
+  /** A pane started or stopped playing, or hid or showed: run the frames while any is live. */
+  readonly wake: () => void;
+}
+
+/**
+ * The lockstep of a compare's panes over `loop` (each animation frame, until
+ * its step answers false): each frame, if every live pane has the frame its
+ * time asks for, each shows it; if any lacks it, none moves on.
+ */
+export const lockstep = (loop: (step: () => boolean) => () => void): Lockstep => {
+  const members = new Set<Member>();
+  let stop = Option.none<() => void>();
+  const live = () => [...members].filter((m) => m.live());
+  const step = (): boolean => {
+    const playing = live();
+    if (playing.length === 0) {
+      stop = Option.none();
+      return false;
+    }
+    const together = playing.every((m) => m.inStep());
+    for (const m of playing) m.step(together);
+    return true;
+  };
+  return {
+    join: (member) => {
+      members.add(member);
+    },
+    wake: () => {
+      if (live().length === 0) {
+        Option.map(stop, (halt) => halt());
+        stop = Option.none();
+        return;
+      }
+      if (Option.isNone(stop)) stop = Option.some(loop(step));
+    },
+  };
+};
 
 interface PaneOptions {
   readonly source: FrameSource;
   /** The clock every pane of the compare reads. */
   readonly clock: MediaClock;
-  /** Run `step` on each animation frame until it answers false; the answer stops it. */
-  readonly loop: (step: () => boolean) => () => void;
+  /** The lockstep every pane of the compare plays in. */
+  readonly together: Lockstep;
   readonly audio: Option.Option<AudioOut>;
 }
 
@@ -78,8 +136,8 @@ const run = (effect: Effect.Effect<void>) => {
   Effect.runFork(effect);
 };
 
-/** A pane over `source`, on `clock`. */
-export const paneOver = ({ source, clock, loop, audio }: PaneOptions): Pane => {
+/** A pane over `source`, on `clock`, in `together`. */
+export const paneOver = ({ source, clock, together, audio }: PaneOptions): Pane => {
   const events = new EventTarget();
   const say = (event: MediaEvent) => events.dispatchEvent(new Event(event));
 
@@ -102,7 +160,8 @@ export const paneOver = ({ source, clock, loop, audio }: PaneOptions): Pane => {
   let muted = true;
   let speed = 1;
   let heard = false;
-  let stopLoop = Option.none<() => void>();
+  /** The page is hidden: the pane stands until it is shown. */
+  let hidden = false;
 
   const time = () => {
     const t = clock.time();
@@ -194,10 +253,10 @@ export const paneOver = ({ source, clock, loop, audio }: PaneOptions): Pane => {
       ),
     );
 
-  /** The sound heard only unmuted, playing, at 1×; heard again from here after a seek. */
+  /** The sound heard only shown, unmuted, playing, at 1×; heard again from here after a seek. */
   const hear = (again = false) =>
     Option.map(audio, (out) => {
-      const want = playing && !muted && speed === 1;
+      const want = playing && !hidden && !muted && speed === 1;
       if (heard && (!want || again)) {
         out.stop();
         heard = false;
@@ -208,12 +267,29 @@ export const paneOver = ({ source, clock, loop, audio }: PaneOptions): Pane => {
       }
     });
 
-  /** Each frame while playing: draw the frame the clock has reached; say when it ends or stalls. */
-  const step = (): boolean => {
-    if (!playing) return false;
+  /** The frame decoded and due at `t`, if any. */
+  const dueAt = (t: number) => Option.filter(next, (f) => f.timestamp <= t + DUE_S);
+
+  /**
+   * Whether it has what its time asks for: done seeking, and the frame due
+   * decoded, or the one shown still showing (or its frames run out).
+   */
+  const inStep = () => {
+    const t = time();
+    const wants =
+      !exhausted &&
+      Option.match(shown, {
+        onNone: () => true,
+        onSome: (f) => t + DUE_S >= f.timestamp + f.duration,
+      });
+    return settled === asked && (Option.isSome(dueAt(t)) || !wants);
+  };
+
+  /** Each frame while live: show the frame due when every pane can (`together`); say when it ends or stalls. */
+  const step = (together: boolean) => {
     const t = time();
     Option.map(
-      Option.filter(next, (f) => f.timestamp <= t + DUE_S),
+      Option.filter(dueAt(t), () => together),
       (due) => {
         next = Option.none();
         show(due);
@@ -230,22 +306,18 @@ export const paneOver = ({ source, clock, loop, audio }: PaneOptions): Pane => {
       stalled = true;
       say('stalled');
     }
-    return true;
   };
 
-  const startLoop = () => {
-    if (Option.isSome(stopLoop)) return;
-    stopLoop = Option.some(
-      loop(() => {
-        const more = step();
-        if (!more) stopLoop = Option.none();
-        return more;
-      }),
-    );
-  };
-  const haltLoop = () => {
-    Option.map(stopLoop, (stop) => stop());
-    stopLoop = Option.none();
+  together.join({ live: () => playing && !hidden, inStep, step });
+
+  /** Every frame shown or decoding let go, and every seek waiting done: a decode that lands later is never drawn. */
+  const letGo = () => {
+    asked += 1;
+    settled = asked;
+    drop();
+    Option.map(shown, (f) => f.close());
+    shown = Option.none();
+    for (const resume of waiting.splice(0)) resume();
   };
 
   run(
@@ -267,30 +339,38 @@ export const paneOver = ({ source, clock, loop, audio }: PaneOptions): Pane => {
         const inFlight = settled !== asked;
         // A later seek takes the place of any still waiting.
         for (const earlier of waiting.splice(0)) earlier();
+        clock.seek(t);
+        ended = false;
+        // Hidden, it decodes nothing: the frame at the clock's time is drawn once it is shown.
+        if (hidden) {
+          asked += 1;
+          settled = asked;
+          resume(Effect.void);
+          return;
+        }
         asked += 1;
         const seek = asked;
         waiting.push(() => resume(Effect.void));
-        clock.seek(t);
-        ended = false;
         if (inFlight) preview(t, seek);
         open(t, seek);
         hear(true);
       }),
     play: Effect.sync(() => {
       playing = true;
-      // Let go while hidden, it opens again at the clock's time.
+      if (hidden) return;
+      // Never opened yet, it opens at the clock's time.
       if (Option.isNone(frames)) {
         asked += 1;
         open(time(), asked);
       }
       clock.play();
-      startLoop();
+      together.wake();
       hear();
     }),
     pause: Effect.sync(() => {
       playing = false;
       clock.pause();
-      haltLoop();
+      together.wake();
       hear();
     }),
     mute: (quiet) => {
@@ -303,13 +383,21 @@ export const paneOver = ({ source, clock, loop, audio }: PaneOptions): Pane => {
       hear();
     },
     on: (event, listener, signal) => events.addEventListener(event, listener, { signal }),
-    release: () => {
-      haltLoop();
-      drop();
-      Option.map(shown, (f) => f.close());
-      shown = Option.none();
-      // A seek still waiting is done: nothing shows for it until the pane plays again.
-      for (const resume of waiting.splice(0)) resume();
+    hide: () => {
+      hidden = true;
+      clock.pause();
+      together.wake();
+      hear();
+      letGo();
+    },
+    show: () => {
+      if (!hidden) return;
+      hidden = false;
+      asked += 1;
+      open(time(), asked);
+      if (playing) clock.play();
+      together.wake();
+      hear();
     },
   };
 };

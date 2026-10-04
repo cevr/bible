@@ -8,10 +8,12 @@
 // over the page's monotonic time (`media-clock.ts`), so the pair is never
 // apart. Which engine a compare plays on is chosen here from what the
 // browser and the files allow (`media-choice.ts`); `<video>` is the
-// fallback, and a file that will not open falls back too. Hidden, the panes
-// let their decoders go (the spike's memory was 2.5–4× `<video>`'s).
+// fallback, and a file that will not open falls back too; every input is
+// owned from the moment it is made, so an opening that fails or is cut short
+// lets them all go. Hidden, the panes stand and let their decoders go (the
+// spike's memory was 2.5–4× `<video>`'s); shown, they draw afresh and play on.
 
-import { Clock, type Context, Data, Duration, Effect, Option } from 'effect';
+import { Clock, type Context, Data, Duration, Effect, Exit, Option, Scope } from 'effect';
 import {
   ALL_FORMATS,
   AudioBufferSink,
@@ -24,9 +26,16 @@ import {
   VideoSampleSink,
 } from 'mediabunny';
 import { Frames } from './frames.ts';
-import { type AudioOut, type Frame, type FrameSource, type Pane, paneOver } from './frame-pane.ts';
+import {
+  type AudioOut,
+  type Frame,
+  type FrameSource,
+  type Pane,
+  lockstep,
+  paneOver,
+} from './frame-pane.ts';
 import { type BrowserCodecs, type Engine, type TrackCodecs, engineFor } from './media-choice.ts';
-import { makeClock } from './media-clock.ts';
+import { makeClock, monotonicNow } from './media-clock.ts';
 import { Media } from './media.ts';
 
 /** What this browser can decode, and whether it is a phone (a coarse pointer). */
@@ -51,10 +60,20 @@ class NotOpened extends Data.TaggedError('NotOpened')<{ readonly why: string }> 
 const ask = <A>(promise: () => Promise<A>) =>
   Effect.mapError(Effect.tryPromise(promise), (e) => new NotOpened({ why: String(e.cause) }));
 
-/** The render at `url`, opened: its picture's and its sound's codecs asked of this browser. */
-const open = (url: string) =>
+/** The render at `url` as a mediabunny input, over ranged requests. */
+const urlInput = (url: string) => new Input({ source: new UrlSource(url), formats: ALL_FORMATS });
+
+/**
+ * The render at `url`, opened: its picture's and its sound's codecs asked of
+ * this browser. Its input is `scope`'s from the moment it is made: closing
+ * the scope disposes it, and mediabunny aborts its requests in flight.
+ */
+const open = (url: string, inputOf: (url: string) => Input) =>
   Effect.gen(function* () {
-    const input = new Input({ source: new UrlSource(url), formats: ALL_FORMATS });
+    const input = yield* Effect.acquireRelease(
+      Effect.sync(() => inputOf(url)),
+      (made) => Effect.sync(() => made.dispose()),
+    );
     const video = yield* Effect.flatMap(
       Effect.map(
         ask(() => input.getPrimaryVideoTrack()),
@@ -87,10 +106,41 @@ const open = (url: string) =>
     return opened;
   });
 
-/** The engine a compare plays on, and the renders opened for it (none on `<video>`). */
+/** Renders opened for a compare, and the scope that owns their inputs: closing it disposes every one. */
+interface Owned {
+  readonly opened: ReadonlyArray<Opened>;
+  readonly inputs: Scope.Closeable;
+}
+
+/**
+ * The renders at `urls`, opened at once (a compare holds two), each input
+ * owned from the moment it is made: a render that will not open, or the
+ * opening cut short, disposes every input (aborting its requests). Opened,
+ * the inputs pass to the caller's keeping with the scope that owns them.
+ */
+export const openRenders = (
+  urls: ReadonlyArray<string>,
+  inputOf: (url: string) => Input = urlInput,
+): Effect.Effect<Owned, NotOpened> =>
+  Effect.uninterruptibleMask((restore) =>
+    Effect.gen(function* () {
+      const inputs = yield* Scope.make();
+      const opened = yield* restore(
+        Effect.forEach(urls, (url) => Scope.provide(open(url, inputOf), inputs), {
+          concurrency: 2,
+        }),
+      ).pipe(Effect.onError((cause) => Scope.close(inputs, Exit.failCause(cause))));
+      const owned: Owned = { opened, inputs };
+      return owned;
+    }),
+  );
+
+/** The engine a compare plays on, the renders opened for it (none on `<video>`), and the letting go of them. */
 export interface Chosen {
   readonly engine: Engine;
   readonly opened: ReadonlyArray<Opened>;
+  /** Dispose every input opened for it. */
+  readonly release: Effect.Effect<void>;
 }
 
 /** The engine a compare of the renders at `urls` plays on, and the renders opened for it. */
@@ -98,25 +148,25 @@ export const chooseEngine = (urls: ReadonlyArray<string>): Effect.Effect<Chosen>
   const browser = browserCodecs();
   // A browser that cannot play the panes opens nothing.
   const early = engineFor(browser, { video: true, audio: 'none', audioDecodable: false });
-  if (early.engine === 'video') return Effect.succeed({ engine: early, opened: [] });
-  // A compare holds two renders: both open at once.
-  return Effect.forEach(urls, open, { concurrency: 2 }).pipe(
-    Effect.map((opened): Chosen => {
+  if (early.engine === 'video')
+    return Effect.succeed({ engine: early, opened: [], release: Effect.void });
+  return openRenders(urls).pipe(
+    Effect.flatMap(({ opened, inputs }) => {
       const refused = Option.fromUndefinedOr(
         opened.map((o) => engineFor(browser, o.codecs)).find((e) => e.engine === 'video'),
       );
+      const release = Scope.close(inputs, Exit.void);
       return Option.match(refused, {
-        onNone: () => ({ engine: { engine: 'webcodecs' }, opened }),
-        onSome: (engine) => {
-          for (const o of opened) o.input.dispose();
-          return { engine, opened: [] };
-        },
+        onNone: () => Effect.succeed<Chosen>({ engine: { engine: 'webcodecs' }, opened, release }),
+        onSome: (engine) =>
+          Effect.as(release, { engine, opened: [], release: Effect.void } satisfies Chosen),
       });
     }),
     Effect.catch((failure) =>
       Effect.succeed<Chosen>({
         engine: { engine: 'video', why: `a render did not open: ${failure.why}` },
         opened: [],
+        release: Effect.void,
       }),
     ),
   );
@@ -237,18 +287,22 @@ export interface ComparePanes {
 
 /**
  * Panes over the renders `chosen` opened, each painted on its canvas (sized
- * to its picture), on one clock, their frames run on the host's `Frames`.
- * Hidden, every pane lets its decoder go; `dispose` lets everything go.
+ * to its picture), on one clock, in lockstep, their frames run on the
+ * host's `Frames`. The page hidden, every pane stands (silent, its decoder
+ * let go); shown, each draws afresh and plays on as it was. `dispose` lets
+ * everything go.
  */
 export const panesOver = (
   host: Context.Context<Frames | Media>,
   chosen: Chosen,
   canvases: ReadonlyArray<HTMLCanvasElement>,
 ): ComparePanes => {
-  // The page's monotonic time, never the sound context's (held suspended until a press).
-  const clock = makeClock(() => Number(Effect.runSync(Clock.currentTimeNanos)) / 1e9);
-  const loop = (step: () => boolean) =>
-    Effect.runCallbackWith(host)(Frames.use((frames) => frames.loop(() => step())));
+  // The page's monotonic time: never the wall clock (set on or back by a sync), nor the
+  // sound context's (held suspended until a press).
+  const clock = makeClock(monotonicNow(Effect.runSync(Clock.clockWith(Effect.succeed))));
+  const together = lockstep((step: () => boolean) =>
+    Effect.runCallbackWith(host)(Frames.use((frames) => frames.loop(() => step()))),
+  );
   const panes = chosen.opened.flatMap((opened, i) =>
     Option.toArray(
       Option.flatMap(Option.fromUndefinedOr(canvases[i]), (canvas) => {
@@ -258,7 +312,7 @@ export const panesOver = (
           paneOver({
             source,
             clock,
-            loop,
+            together,
             audio: Option.map(opened.audio, (track) => soundOf(track, host)),
           }),
         );
@@ -269,7 +323,11 @@ export const panesOver = (
   document.addEventListener(
     'visibilitychange',
     () => {
-      if (document.visibilityState === 'hidden') for (const pane of panes) pane.release();
+      const hidden = document.visibilityState === 'hidden';
+      for (const pane of panes) {
+        if (hidden) pane.hide();
+        else pane.show();
+      }
     },
     { signal: listening.signal },
   );
@@ -277,8 +335,8 @@ export const panesOver = (
     panes,
     dispose: () => {
       listening.abort();
-      for (const pane of panes) pane.release();
-      for (const opened of chosen.opened) opened.input.dispose();
+      for (const pane of panes) pane.hide();
+      Effect.runFork(chosen.release);
     },
   };
 };

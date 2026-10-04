@@ -1013,10 +1013,20 @@ const WipeView = (props: { readonly other: string }) => {
       setChosen(Option.none());
       const urls = untrack(masters);
       if (urls.length < 2) return;
+      let made = Option.none<Chosen>();
       const asking = Effect.runForkWith(meta.host)(
-        Effect.map(chooseEngine(urls), (c) => setChosen(Option.some(c))),
+        Effect.map(chooseEngine(urls), (c) => {
+          made = Option.some(c);
+          setChosen(made);
+        }),
       );
-      return () => asking.interruptUnsafe();
+      // The renders opened are the wipe's until it goes or its masters change: still
+      // opening, the opening is cut short (every input let go); opened, they are let go
+      // (the panes' own letting go of them is then a no-op).
+      return () => {
+        asking.interruptUnsafe();
+        Option.map(made, (c) => Effect.runFork(c.release));
+      };
     },
   );
   const panes = () =>

@@ -7,8 +7,8 @@
 // back at the clock's time; its sound is heard only unmuted at 1×.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Effect, Exit, Fiber, Option } from 'effect';
-import { type AudioOut, type Frame, type FrameSource, paneOver } from './frame-pane.ts';
+import { Array as Arr, Deferred, Effect, Exit, Fiber, Option } from 'effect';
+import { type AudioOut, type Frame, type FrameSource, lockstep, paneOver } from './frame-pane.ts';
 import { makeClock } from './media-clock.ts';
 
 const FPS = 30;
@@ -18,16 +18,18 @@ const at = (n: number) => n / FPS;
 /**
  * A source of `count` frames at 30 fps, a key frame every `gop`, recording
  * what was drawn, closed, opened and let go. `hold` holds each decode until
- * `release`.
+ * `release`; `lag` makes each decode take that many turns of the scheduler
+ * (a slow decoder).
  */
-const fakeSource = (count = 90, gop = 30) => {
+const fakeSource = (count = 90, gop = 30, lag = 0) => {
   const drawn: Array<number> = [];
   const closed: Array<number> = [];
   const opened: Array<number> = [];
   const returned: Array<number> = [];
   let gate = Option.none<Deferred.Deferred<void>>();
-  const decoded = Effect.suspend(() =>
-    Option.match(gate, { onNone: () => Effect.void, onSome: Deferred.await }),
+  const decoded = Effect.andThen(
+    Effect.repeat(Effect.yieldNow, { times: lag }),
+    Effect.suspend(() => Option.match(gate, { onNone: () => Effect.void, onSome: Deferred.await })),
   );
   const frame = (n: number): Frame => ({
     timestamp: at(n),
@@ -88,7 +90,7 @@ const rig = () => {
     now += s;
     for (const step of [...steps]) if (!step()) steps.delete(step);
   };
-  return { clock, loop, frame, looping: () => steps.size };
+  return { clock, together: lockstep(loop), frame, looping: () => steps.size };
 };
 
 /** Let every decode already answered land. */
@@ -112,8 +114,8 @@ describe('a frame pane', () => {
   it.effect('a seek shows the frame holding its time, done once drawn; then it can play on', () =>
     Effect.gen(function* () {
       const { source, drawn } = fakeSource();
-      const { clock, loop } = rig();
-      const pane = paneOver({ source, clock, loop, audio: Option.none() });
+      const { clock, together } = rig();
+      const pane = paneOver({ source, clock, together, audio: Option.none() });
       yield* pane.seek(at(10) + 0.01);
       expect(drawn).toEqual([10]);
       expect(pane.time()).toBeCloseTo(at(10) + 0.01, 9);
@@ -126,12 +128,12 @@ describe('a frame pane', () => {
   it.effect('it is measured once the source knows its length, and says so', () =>
     Effect.gen(function* () {
       const { source } = fakeSource(60);
-      const { clock, loop } = rig();
+      const { clock, together } = rig();
       const held = yield* Deferred.make<void>();
       const pane = paneOver({
         source: { ...source, duration: Effect.andThen(Deferred.await(held), source.duration) },
         clock,
-        loop,
+        together,
         audio: Option.none(),
       });
       let measured = 0;
@@ -149,8 +151,8 @@ describe('a frame pane', () => {
     () =>
       Effect.gen(function* () {
         const { source, drawn, closed } = fakeSource(6);
-        const { clock, loop, frame, looping } = rig();
-        const pane = paneOver({ source, clock, loop, audio: Option.none() });
+        const { clock, together, frame, looping } = rig();
+        const pane = paneOver({ source, clock, together, audio: Option.none() });
         let ended = 0;
         pane.on('ended', () => (ended += 1), new AbortController().signal);
         yield* pane.seek(0);
@@ -172,9 +174,9 @@ describe('a frame pane', () => {
     Effect.gen(function* () {
       const a = fakeSource();
       const b = fakeSource();
-      const { clock, loop, frame } = rig();
-      const one = paneOver({ source: a.source, clock, loop, audio: Option.none() });
-      const two = paneOver({ source: b.source, clock, loop, audio: Option.none() });
+      const { clock, together, frame } = rig();
+      const one = paneOver({ source: a.source, clock, together, audio: Option.none() });
+      const two = paneOver({ source: b.source, clock, together, audio: Option.none() });
       yield* Effect.all([one.seek(1), two.seek(1)]);
       yield* settle;
       yield* Effect.all([one.play, two.play]);
@@ -186,12 +188,45 @@ describe('a frame pane', () => {
   );
 
   it.effect(
+    'two panes show corresponding frames though one decodes slower: the slow one holds the set',
+    () =>
+      Effect.gen(function* () {
+        const fast = fakeSource();
+        // Each of its decodes takes about three of the frames drawn below.
+        const slow = fakeSource(90, 30, 20);
+        const { clock, together, frame } = rig();
+        const one = paneOver({ source: fast.source, clock, together, audio: Option.none() });
+        const two = paneOver({ source: slow.source, clock, together, audio: Option.none() });
+        yield* Effect.all([one.seek(1), two.seek(1)], { concurrency: 2 });
+        yield* settle;
+        yield* Effect.all([one.play, two.play]);
+        const shown: Array<readonly [number, number]> = [];
+        const last = (drawn: ReadonlyArray<number>) => Option.getOrElse(Arr.last(drawn), () => -1);
+        yield* Effect.forEach(
+          Array.from({ length: 12 }),
+          () =>
+            Effect.andThen(
+              Effect.andThen(
+                Effect.sync(() => frame(1 / FPS)),
+                settle,
+              ),
+              Effect.sync(() => shown.push([last(fast.drawn), last(slow.drawn)])),
+            ),
+          { discard: true },
+        );
+        // The slow one moved on (so this is no stand-still), and at every frame drawn both show the same frame.
+        expect(slow.drawn.length).toBeGreaterThan(2);
+        expect(shown.filter(([a, b]) => a !== b)).toEqual([]);
+      }),
+  );
+
+  it.effect(
     "a later seek takes an earlier one's place: both done, only the later frame shown",
     () =>
       Effect.gen(function* () {
         const { source, drawn, returned, hold, release } = fakeSource();
-        const { clock, loop } = rig();
-        const pane = paneOver({ source, clock, loop, audio: Option.none() });
+        const { clock, together } = rig();
+        const pane = paneOver({ source, clock, together, audio: Option.none() });
         yield* pane.seek(0);
         drawn.length = 0;
         yield* hold;
@@ -208,20 +243,90 @@ describe('a frame pane', () => {
       }),
   );
 
-  it.effect("hidden, it lets its decoder go; played again, it opens at the clock's time", () =>
+  it.effect(
+    "hidden, it lets its decoder go and opens nothing though played; shown, it opens at the clock's time",
+    () =>
+      Effect.gen(function* () {
+        const { source, opened, returned } = fakeSource();
+        const { clock, together } = rig();
+        const pane = paneOver({ source, clock, together, audio: Option.none() });
+        yield* pane.seek(at(12));
+        yield* settle;
+        pane.hide();
+        yield* settle;
+        expect(returned).toEqual([12]);
+        clock.seek(at(20));
+        yield* pane.play;
+        yield* settle;
+        expect(opened).toEqual([12]);
+        pane.show();
+        yield* settle;
+        expect(opened).toEqual([12, 20]);
+        expect(pane.playing()).toBe(true);
+      }),
+  );
+
+  it.effect(
+    'hidden while playing, its sound stops, its clock stands and a decode in flight is never drawn; shown, it draws afresh and plays on',
+    () =>
+      Effect.gen(function* () {
+        const said: Array<string> = [];
+        const audio: AudioOut = {
+          start: (t, rate) => said.push(`start ${t.toFixed(2)} @${rate}`),
+          stop: () => said.push('stop'),
+        };
+        const { source, drawn, opened, hold, release } = fakeSource();
+        const { clock, together, frame, looping } = rig();
+        const pane = paneOver({ source, clock, together, audio: Option.some(audio) });
+        pane.mute(false);
+        yield* pane.seek(1);
+        yield* settle;
+        yield* pane.play;
+        yield* frames(frame, 3, 1 / FPS);
+        // A decode still in flight when the page hides.
+        yield* hold;
+        yield* frames(frame, 2, 1 / FPS);
+        const before = [...drawn];
+        said.length = 0;
+        pane.hide();
+        yield* release;
+        yield* settle;
+        expect(said).toEqual(['stop']);
+        expect(drawn).toEqual(before);
+        expect(looping()).toBe(0);
+        // Hidden a while: its clock stands.
+        const stood = pane.time();
+        yield* frames(frame, 30, 1 / FPS);
+        expect(pane.time()).toBe(stood);
+        // Shown again: a fresh frame at its time, and playing on with its sound, as the driver left it.
+        const at0 = drawn.length;
+        pane.show();
+        yield* settle;
+        expect(opened.at(-1)).toBe(Math.floor(stood * FPS + 1e-9));
+        expect(drawn.length).toBe(at0 + 1);
+        expect(pane.playing()).toBe(true);
+        expect(said).toEqual(['stop', `start ${stood.toFixed(2)} @1`]);
+        yield* frames(frame, 3, 1 / FPS);
+        expect(pane.time()).toBeGreaterThan(stood);
+        expect(drawn.length).toBeGreaterThan(at0 + 1);
+      }),
+  );
+
+  it.effect('hidden while paused, shown it draws its frame afresh and stays paused', () =>
     Effect.gen(function* () {
-      const { source, opened, returned } = fakeSource();
-      const { clock, loop } = rig();
-      const pane = paneOver({ source, clock, loop, audio: Option.none() });
+      const { source, drawn } = fakeSource();
+      const { clock, together, looping } = rig();
+      const pane = paneOver({ source, clock, together, audio: Option.none() });
       yield* pane.seek(at(12));
       yield* settle;
-      pane.release();
+      pane.hide();
       yield* settle;
-      expect(returned).toEqual([12]);
-      clock.seek(at(20));
-      yield* pane.play;
+      const at0 = drawn.length;
+      pane.show();
       yield* settle;
-      expect(opened).toEqual([12, 20]);
+      expect(drawn.slice(at0)).toEqual([12]);
+      expect(pane.playing()).toBe(false);
+      expect(looping()).toBe(0);
     }),
   );
 
@@ -233,8 +338,8 @@ describe('a frame pane', () => {
         stop: () => said.push('stop'),
       };
       const { source } = fakeSource();
-      const { clock, loop } = rig();
-      const pane = paneOver({ source, clock, loop, audio: Option.some(audio) });
+      const { clock, together } = rig();
+      const pane = paneOver({ source, clock, together, audio: Option.some(audio) });
       pane.mute(false);
       yield* pane.seek(1);
       yield* settle;
