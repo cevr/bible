@@ -10,6 +10,8 @@ import { Pointer } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
+import { cueOf } from '../../command/selection.ts';
+import { Target } from '../command/context-menu.tsx';
 import { selectsCue } from '../place.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
@@ -65,6 +67,8 @@ const CueRow = (props: CueRowProps) => {
       onSome: anchorText,
     });
   const press = (e: PointerEvent & { currentTarget: HTMLElement }) => {
+    // A right-click is the context menu's, never a grip.
+    if (e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
     const bar = e.currentTarget.getBoundingClientRect();
@@ -83,7 +87,8 @@ const CueRow = (props: CueRowProps) => {
   return (
     <div class="lab-strip-row">
       <span class="lab-cue-label">{props.name}</span>
-      <div
+      <Target
+        of={cueOf(scene(), props.name)}
         class={[
           'lab-cue',
           {
@@ -126,6 +131,8 @@ export const Strip = () => {
     <Show when={placed()}>
       {(p) => {
         const scrub = (e: PointerEvent) => {
+          // A right-click is the context menu's, never a scrub.
+          if (e.button !== 0) return;
           const r = Option.getOrThrow(rows).getBoundingClientRect();
           const at = (ev: PointerEvent) =>
             meta.player.scrub(

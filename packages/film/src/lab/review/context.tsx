@@ -40,7 +40,9 @@ import {
   hostLayer,
   onTraverse,
 } from '../../browser/host.ts';
-import { quiet } from '../../command/command.ts';
+import { type Command, quiet } from '../../command/command.ts';
+import { type Context, selected } from '../../command/context.ts';
+import { PageLoad } from '../../browser/page-load.ts';
 import type { Hub } from '../../command/hub.ts';
 import { LabClient, type LabFailure } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
@@ -48,7 +50,7 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
 import type { Quality } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
-import { Places, legacyPlace } from '../../core/api.ts';
+import { Places, legacyPlace, pageHref } from '../../core/api.ts';
 import {
   type SyncActor,
   SyncEvent,
@@ -61,15 +63,7 @@ import {
   stepView,
   viewNameOf,
 } from './machine.ts';
-import {
-  type ReviewPlace,
-  historyOf,
-  hrefOf,
-  keptTime,
-  placeOf,
-  queryOfView,
-  viewOf,
-} from './place.ts';
+import { ReviewPlace, historyOf, hrefOf, keptTime, placeOf, queryOfView, viewOf } from './place.ts';
 import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
@@ -271,6 +265,7 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
         now: () => Effect.runSyncWith(props.host)(Clock.currentTimeMillis),
       },
     };
+    onCleanup(props.hub.commands.register(...openCommands(value.actions.go, props.host)));
     return <ReviewContext value={value}>{inner.children}</ReviewContext>;
   };
 
@@ -281,6 +276,59 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
       <Inner>{props.children}</Inner>
     </RegistryProvider>
   );
+};
+
+/**
+ * The review's ways into a thing from its context menu (and ⌘K, while the
+ * page selects it): a folder or a set opens in the page; a film opens its
+ * project, its choices, or its lab (another page, loaded).
+ */
+const openCommands = (go: (place: ReviewPlace) => void, host: Host): ReadonlyArray<Command> => {
+  const opening = (
+    id: string,
+    label: string,
+    about: ReadonlyArray<'Folder' | 'Set' | 'Film'>,
+    placeOfTarget: (ctx: Context) => Option.Option<() => void>,
+  ): Command => ({
+    id,
+    label,
+    group: 'Open',
+    about,
+    touch: `long-press it, then ${label}`,
+    when: (ctx) => Option.isSome(placeOfTarget(ctx)),
+    run: (ctx) =>
+      Effect.sync(() => {
+        Option.map(placeOfTarget(ctx), (open) => open());
+        return quiet;
+      }),
+  });
+  const film = (ctx: Context) => Option.map(selected(ctx, 'Film'), (f) => f.film);
+  return [
+    opening('review.open-folder', 'Open the folder', ['Folder'], (ctx) =>
+      Option.map(
+        selected(ctx, 'Folder'),
+        (f) => () => go(ReviewPlace.Folder({ folder: f.folder })),
+      ),
+    ),
+    opening('review.open-set', 'Open the set', ['Set'], (ctx) =>
+      Option.map(
+        selected(ctx, 'Set'),
+        (s) => () => go(ReviewPlace.Set({ folder: s.folder, point: s.point })),
+      ),
+    ),
+    opening('review.open-project', 'Open the project', ['Film'], (ctx) =>
+      Option.map(film(ctx), (f) => () => go(ReviewPlace.Project({ film: f }))),
+    ),
+    opening('review.open-choices', 'Open the choices', ['Film'], (ctx) =>
+      Option.map(film(ctx), (f) => () => go(ReviewPlace.Film({ film: f }))),
+    ),
+    opening('review.open-lab', 'Open the lab', ['Film'], (ctx) =>
+      Option.map(
+        film(ctx),
+        (f) => () => Effect.runForkWith(host)(PageLoad.use((load) => load.open(pageHref.lab(f)))),
+      ),
+    ),
+  ];
 };
 
 // ---------------------------------------------------------------------------
@@ -423,6 +471,31 @@ const SetBody = (
         return Option.some(() => sendSync(playerEvent(key)));
       }),
     ),
+  );
+  // A version of this set heard alone, from its context menu (as its 🔊 does).
+  const versionHere = (ctx: Context) =>
+    Option.filter(
+      selected(ctx, 'Version'),
+      (v) =>
+        v.folder === props.folder.ref &&
+        v.point === props.set.id &&
+        v.version !== sync().audible &&
+        playsIn(viewNameOf(view())),
+    );
+  onCleanup(
+    meta.hub.commands.register({
+      id: 'set.hear',
+      label: 'Hear this version',
+      group: 'Review',
+      about: ['Version'],
+      touch: 'long-press a version, then Hear this version (or tap its 🔊)',
+      when: (ctx) => Option.isSome(versionHere(ctx)),
+      run: (ctx) =>
+        Effect.sync(() => {
+          Option.map(versionHere(ctx), (v) => sendSync(SyncEvent.HeardChosen({ id: v.version })));
+          return quiet;
+        }),
+    }),
   );
 
   const value: SetContextValue = {

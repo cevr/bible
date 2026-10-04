@@ -13,6 +13,7 @@
 import { Effect, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
+import type { Clipboard } from '../browser/clipboard.ts';
 import { type KeyPress, Keys } from '../browser/keys.ts';
 import type { StoreRuntime } from '../browser/storage.ts';
 import type { PageName } from '../core/api.ts';
@@ -26,6 +27,7 @@ import {
 } from './command.ts';
 import { type Context, type Focus, contextAt, focusOf } from './context.ts';
 import { type Binding, KeymapOverrides, Resolved, bindingsOf, keysOf, resolve } from './keymap.ts';
+import { linkCommands } from './link.ts';
 import { selectionOf } from './selection.ts';
 
 /** A page's commands, its keymap, its context and its receipts. */
@@ -64,14 +66,22 @@ const KEPT_AS = 'film-keymap';
 
 /**
  * The hub of `page`, whose URL `href` reads, keeping the viewer's overrides
- * in `store`: built with the page's `Keys` (whose keyboard says how chords read).
+ * in `store`: built with the page's `Keys` (whose keyboard says how chords
+ * read) and its `Clipboard` (where Copy link, every page's command, writes).
  */
 export const makeHub = (
   page: PageName,
   href: () => string,
   store: StoreRuntime,
-): Effect.Effect<Hub, never, Keys> =>
-  Keys.use((keys) => Effect.succeed(hubOf(page, href, store, keys.mac)));
+): Effect.Effect<Hub, never, Keys | Clipboard> =>
+  Effect.gen(function* () {
+    const keys = yield* Keys;
+    const clipboard = yield* Effect.context<Clipboard>();
+    const hub = hubOf(page, href, store, keys.mac);
+    // Copy link is every page's, for as long as the page lives.
+    hub.commands.register(...linkCommands(clipboard));
+    return hub;
+  });
 
 /** The hub of `page`, chords read as a Mac's when `mac`. */
 const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boolean): Hub => {

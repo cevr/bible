@@ -264,6 +264,8 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
         step,
         holding,
         cancel: () => send(EditEvent.Cancel),
+        selected: lab.selection,
+        select: (s) => labActions.select(Option.some(s)),
       }),
     ),
   );

@@ -148,6 +148,7 @@ const NAMED = new Map<string, Key>([
   ['ArrowDown', named('ArrowDown', 'ArrowDown', 40)],
   ['[', named('[', 'BracketLeft', 219, '[')],
   [']', named(']', 'BracketRight', 221, ']')],
+  ['?', named('?', 'Slash', 191, '?')],
   ['Shift', named('Shift', 'ShiftLeft', 16)],
   ['Control', named('Control', 'ControlLeft', 17)],
   ['Alt', named('Alt', 'AltLeft', 18)],

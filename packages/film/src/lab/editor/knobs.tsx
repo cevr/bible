@@ -20,6 +20,8 @@ import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { KnobWrite, knobRefusal } from './grip.ts';
 import { type Handle, handleOf, handlesOf, isCameraTarget } from './handles.ts';
+import { knobOf } from '../../command/selection.ts';
+import { Target } from '../command/context-menu.tsx';
 import { NumberField } from './inspector.tsx';
 
 const pointOf = (value: Knob): Option.Option<Point> =>
@@ -70,7 +72,8 @@ const Row = (props: { readonly scene: string; readonly name: string; readonly va
       knobs: { ...knobs(), [props.name]: value },
     });
   return (
-    <div
+    <Target
+      of={knobOf(props.scene, props.name)}
       class={['lab-knob', { selected: selected(props.scene, props.name) }]}
       data-knob={props.name}
     >
@@ -107,7 +110,7 @@ const Row = (props: { readonly scene: string; readonly name: string; readonly va
       <Show when={Option.getOrUndefined(refusal())}>
         {(why: Accessor<string>) => <span class="lab-edit-note">{why()}</span>}
       </Show>
-    </div>
+    </Target>
   );
 };
 

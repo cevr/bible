@@ -29,6 +29,8 @@ import { ProxyPending } from '../section.tsx';
 import { SyncEvent, timeText } from '../machine.ts';
 import { ChoiceAct } from './api.ts';
 import { Playing, samePlaying, useAct, useFilm } from './context.tsx';
+import { Selection } from '../../../command/selection.ts';
+import { Target } from '../../command/context-menu.tsx';
 
 /** A verb's button, as a kind names it: a take is kept, anything else picked. */
 const verbTitle = (kind: ChoiceKind, verb: ChoiceVerb): string => {
@@ -289,8 +291,10 @@ const VariantRow = (props: {
   readonly sayer: Sayer;
 }) => {
   const said = () => Option.isSome(props.point.address);
+  const { film } = useFilm();
   return (
-    <div
+    <Target
+      of={Selection.cases.Variant.make({ film, point: props.point.id, variant: props.variant.id })}
       class={['rv-take', { 'rv-audible': props.variant.picked }]}
       data-variant={props.variant.id}
       data-state={props.variant.state}
@@ -324,7 +328,7 @@ const VariantRow = (props: {
       <Show when={said()}>
         <CommentBox variant={props.variant} sayer={props.sayer} />
       </Show>
-    </div>
+    </Target>
   );
 };
 
@@ -422,8 +426,10 @@ export const ChoiceCard = (props: { readonly point: ChoicePoint; readonly sayer?
     },
   };
   const sayer: Sayer = { use: () => (props.sayer ?? ofChoices).use() };
+  const { film } = useFilm();
   return (
-    <div
+    <Target
+      of={Selection.cases.Point.make({ film, point: props.point.id })}
       class="rv-card rv-option"
       id={`point-${props.point.id}`}
       data-point={props.point.id}
@@ -445,6 +451,6 @@ export const ChoiceCard = (props: { readonly point: ChoicePoint; readonly sayer?
           <p class="rv-hint">Nothing to choose between yet.</p>
         </Show>
       </div>
-    </div>
+    </Target>
   );
 };

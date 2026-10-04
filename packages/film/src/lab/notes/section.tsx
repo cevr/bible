@@ -10,6 +10,8 @@ import { createEffect } from 'solid-js';
 import { Pointer } from '../../browser/pointer.ts';
 import { stillUrl } from '../../core/api.ts';
 import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
+import { Selection } from '../../command/selection.ts';
+import { Target, type TargetElementProps } from '../command/context-menu.tsx';
 import { useLab } from '../shell.tsx';
 import { useNotes } from './context.tsx';
 import { filmPixel } from './draft.ts';
@@ -104,7 +106,9 @@ const Item = (props: { readonly note: Note }) => {
   const { state, actions } = useNotes();
   const selected = () => Option.exists(state.selected(), (s) => s.id === props.note.id);
   return (
-    <li
+    <Target
+      of={Selection.cases.Note.make({ id: props.note.id })}
+      render={(p: TargetElementProps) => <li {...p} />}
       class={['lab-note-item', props.note.status, { selected: selected() }]}
       data-id={props.note.id}
       onClick={(e) => {
@@ -133,7 +137,7 @@ const Item = (props: { readonly note: Note }) => {
         <ReplyForm note={props.note} />
         <span class="lab-status">{state.threadStatus()}</span>
       </Show>
-    </li>
+    </Target>
   );
 };
 

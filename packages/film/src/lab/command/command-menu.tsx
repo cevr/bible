@@ -16,6 +16,7 @@ import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { chordLabel } from '../../command/keymap.ts';
 import { type MenuRow, menuRows } from '../../command/menu.ts';
+import { EVERYWHERE } from '../../command/target.ts';
 import { hubChanges } from './changes.ts';
 
 /** The command that opens and closes the menu: it is not listed in itself. */
@@ -65,7 +66,8 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
       group: 'Help',
       keys: ['mod+k'],
       keysIn: ['page', 'field', 'studio'],
-      touch: 'long-press the film, then Command menu',
+      about: EVERYWHERE,
+      touch: 'long-press a cue, a card or a note, then Command menu',
       when: () => true,
       run: (ctx) =>
         Effect.sync(() => {

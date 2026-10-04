@@ -1,16 +1,17 @@
 // The page's host: the browser APIs a page reaches (animation frames, the
-// pointer, the keyboard, media elements, the address bar and a page load)
-// as Effect services, built once at
-// each page's root (`mountPlayer`, `mountLab`, `mountReview`) from
-// `BrowserHost.layer` (`host-browser.ts`) and handed to everything on the
-// page: the player's own code runs its effects with it, and the lab's and
-// review's runtimes are given it as a layer, so a test builds the same pages
-// over test layers instead of stubbing a global. Framework-free: the player,
+// pointer, the keyboard, the clipboard, media elements, the address bar and
+// a page load) as Effect services, built once at each page's root
+// (`mountPlayer`, `mountLab`, `mountReview`) from `BrowserHost.layer`
+// (`host-browser.ts`) and handed to everything on the page: the player's own
+// code runs its effects with it, and the lab's and review's runtimes are
+// given it as a layer, so a test builds the same pages over test layers
+// instead of stubbing a global. Framework-free: the player,
 // which the render page loads, imports it.
 
 import { Location, UrlState } from '@bible/url-state';
 import { Clock, Duration, Effect, Exit, Layer, Option, Schedule, Scope, Stream } from 'effect';
 import type { Context } from 'effect';
+import type { Clipboard } from './clipboard.ts';
 import type { Frames } from './frames.ts';
 import type { Keys } from './keys.ts';
 import type { Media } from './media.ts';
@@ -23,6 +24,7 @@ import type { Pointer } from './pointer.ts';
  * history entry, `@bible/url-state`).
  */
 export type BrowserServices =
+  | Clipboard
   | Frames
   | Keys
   | Location

@@ -1,5 +1,5 @@
-// The look of the pages' command surfaces (⌘K, the `?` sheet, and every
-// primitive after them): one token set (`COMMAND_TOKENS`, CSS custom
+// The look of the pages' command surfaces (⌘K, the `?` sheet, the context
+// menu, and every primitive after them): one token set (`COMMAND_TOKENS`, CSS custom
 // properties with today's values, read from the page's own palette where it
 // has one: the lab's `player.css`, the review's `REVIEW_CSS`), and the rules,
 // which read only those properties: no colour, face, size, radius or
@@ -38,6 +38,7 @@ body {
   --cmd-row-height: 36px;
   --cmd-button-height: 30px;
   --cmd-width: 560px;
+  --cmd-menu-width: 200px;
   --cmd-height: 72vh;
   --cmd-top: 12vh;
   --cmd-layer: 40;
@@ -88,6 +89,26 @@ const COMMAND_RULES = `
   min-height: var(--cmd-button-height);
 }
 .lab-keys-actions button[data-act="press"] { border-color: var(--cmd-accent); color: var(--cmd-accent); }
+.lab-context-positioner { z-index: calc(var(--cmd-layer) + 1); }
+.lab-context-menu {
+  min-width: var(--cmd-menu-width); max-width: calc(100vw - 2 * var(--cmd-gutter)); max-height: var(--cmd-height); overflow: auto;
+  background: var(--cmd-panel); color: var(--cmd-ink); border: 1px solid var(--cmd-line);
+  border-radius: var(--cmd-radius-small); padding: var(--cmd-gap-small); box-shadow: var(--cmd-shadow);
+  font-family: var(--cmd-font); font-size: var(--cmd-text); line-height: var(--cmd-leading); outline: none;
+}
+.lab-context-label { padding: var(--cmd-gap-small) var(--cmd-gap) 0; color: var(--cmd-dim); font-size: var(--cmd-small); }
+.lab-context-separator { height: 1px; margin: var(--cmd-gap-small) 0; background: var(--cmd-line); }
+.lab-context-item {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--cmd-gap);
+  padding: var(--cmd-row-pad); border-radius: var(--cmd-radius-small); cursor: pointer; min-height: var(--cmd-row-height);
+  outline: none;
+}
+.lab-context-item[data-highlighted] { background: var(--cmd-hover); }
+.lab-context-menu kbd {
+  font-family: var(--cmd-mono); font-size: var(--cmd-small); color: var(--cmd-dim); padding: var(--cmd-key-pad);
+  border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-key);
+}
+.lab-context-menu kbd:empty { display: none; }
 `;
 
 /** The command surfaces' stylesheet: the tokens, then the rules that read them. */

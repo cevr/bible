@@ -853,14 +853,26 @@ any layout. A viewer's rebindings are kept locally (`film-keymap` in
 `ViewerStore`, a list of `{ key, command }`, `-<id>` removing a default) and
 survive a reload; the `?` sheet changes and resets them.
 
-The lab's and the review's pages host two generated surfaces
+The lab's and the review's pages host three generated surfaces
 (`src/lab/command/`): the **command menu** (⌘K) lists the commands
 available here, filtered by every word typed, with their keys; the keys
 **sheet** (`?`) lists every command by group with its keys, its touch path,
-and Change and Reset. Their look is one set of CSS custom properties
-(`COMMAND_TOKENS` in `src/lab/command/style.ts`, today's values read from
-each page's palette); the rules read only those. The player's keys legend
-under the film is generated from the same keymap.
+and Change and Reset; the **context menu** (`TargetMenu`, one per page) opens
+on a right-click, or a touch held still for half a second, on a thing the
+page marks as a `Target` (a cue's bar, a knob's row, a note, a folder's,
+set's or version's card, a film's links, a choice, a variant, an act, the
+project's film): its commands about that thing (a command's `about`, in
+`src/command/target.ts`: the kinds of thing whose menu shows it), the
+thing's own first, then Copy link and the command menu, which every menu
+has. A touch that moves past @bible/ui's threshold first (a scrub, a drag)
+never opens it, and a field keeps the browser's own menu. Every page has
+**Copy link** (⇧⌘C, AA-1, `src/command/link.ts`): the page's URL (its place,
+its selection, its time), or from a thing's menu that thing's citation
+(`citeOf`), written whole through the host's `Clipboard`. Their look is one
+set of CSS custom properties (`COMMAND_TOKENS` in `src/lab/command/style.ts`,
+today's values read from each page's palette); the rules read only those.
+The player's keys legend under the film is generated from the same keymap;
+the player's page has the keys alone (it never imports the lab).
 
 `.oxlintrc.json` refuses a raw `keydown`, `keyup`, `keypress` or
 `contextmenu` listener (`film/keys-through-keymap`) outside the adapters and
@@ -2079,6 +2091,9 @@ reaches it. Every media element is driven through a `Playable` (`browser/media.t
 play and pause are effects. `Media` says what a refused play means
 (`Blocked`, `Aborted`, `Failed`), plays muted when the browser refuses
 sound (`playOrMute`, the review's players), and makes the narration's audio.
+Every copy goes through `Clipboard` (`browser/clipboard.ts`; the browser's in
+`clipboard-browser.ts`): a link written whole, against the page's origin, and
+a refusal (`ClipboardRefused`) in the browser's words.
 Every request goes through Effect's `HttpClient`: a page's calls through its
 one `LabClient`, built once at its root (the review's routes and its
 choices' share it), and a film's timings through `loadNarrated`

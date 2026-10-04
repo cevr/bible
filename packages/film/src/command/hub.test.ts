@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { Effect, Option } from 'effect';
+import { Effect, Layer, Option } from 'effect';
+import { Clipboard } from '../browser/clipboard.ts';
 import { hostOf } from '../browser/host.ts';
 import { Keys } from '../browser/keys.ts';
 import { storeOver } from '../browser/storage.ts';
@@ -30,7 +31,9 @@ const memoryStorage = (): Storage => {
 /** A page whose presses go to `target`, with a hub over `storage` at `href`. */
 const pageWith = (storage: Storage, href = pageHref.labScene('f', 'one', { cue: 'rise' })) => {
   const target = new EventTarget();
-  const host = hostOf(Keys.layerOn(target, true));
+  const host = hostOf(
+    Layer.mergeAll(Keys.layerOn(target, true), Clipboard.memory([], 'https://lab.test')),
+  );
   const hub = Effect.runSyncWith(host)(
     makeHub(
       'lab',

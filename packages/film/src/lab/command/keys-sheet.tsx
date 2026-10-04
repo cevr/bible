@@ -19,6 +19,10 @@ import { hubChanges } from './changes.ts';
 /** The keys a chord is not made of alone: a modifier waits for its key. */
 const MODIFIER_KEYS = new Set(['Shift', 'Meta', 'Control', 'Alt', 'AltGraph', 'CapsLock']);
 
+/** A rebind button's act and words, by whether it waits for its chord. */
+const ACT = { true: 'press', false: 'rebind' } as const;
+const LABEL = { true: 'Press a key…', false: 'Change' } as const;
+
 /** The command that opens and closes the sheet. */
 const OPEN = 'app.keys';
 
@@ -44,7 +48,7 @@ export const KeysSheet = (props: { readonly hub: Hub }) => {
       group: 'Help',
       keys: ['?'],
       keysIn: ['page', 'studio'],
-      touch: 'long-press the film, then Keyboard shortcuts',
+      touch: 'the command menu, then Keyboard shortcuts',
       when: () => true,
       run: () =>
         Effect.sync(() => {
@@ -110,28 +114,20 @@ export const KeysSheet = (props: { readonly hub: Hub }) => {
                         {(touch) => <span class="lab-keys-touch">{touch()}</span>}
                       </Show>
                       <span class="lab-keys-actions">
-                        <Show
-                          when={Option.contains(waiting(), command.id)}
-                          fallback={
-                            <button
-                              type="button"
-                              data-act="rebind"
-                              onClick={() => setWaiting(Option.some(command.id))}
-                            >
-                              Change
-                            </button>
-                          }
+                        {/* One button, so the focus the click gave it stays while it waits for the chord. */}
+                        <button
+                          type="button"
+                          data-act={ACT[`${Option.contains(waiting(), command.id)}`]}
+                          onClick={() => setWaiting(Option.some(command.id))}
+                          onKeyDown={(e) => {
+                            if (Option.contains(waiting(), command.id)) capture(command)(e);
+                          }}
+                          onBlur={() => {
+                            if (Option.contains(waiting(), command.id)) setWaiting(Option.none());
+                          }}
                         >
-                          <button
-                            type="button"
-                            data-act="press"
-                            ref={(el) => queueFocus(el)}
-                            onKeyDown={capture(command)}
-                            onBlur={() => setWaiting(Option.none())}
-                          >
-                            Press a key…
-                          </button>
-                        </Show>
+                          {LABEL[`${Option.contains(waiting(), command.id)}`]}
+                        </button>
                         <Show when={overridden(command.id)}>
                           <button
                             type="button"
@@ -152,9 +148,4 @@ export const KeysSheet = (props: { readonly hub: Hub }) => {
       </Dialog.Portal>
     </Dialog.Root>
   );
-};
-
-/** Focus `el` once it is in the page: the button waiting for a chord takes the next press. */
-const queueFocus = (el: HTMLElement) => {
-  Effect.runFork(Effect.sync(() => el.focus()).pipe(Effect.delay('0 millis')));
 };

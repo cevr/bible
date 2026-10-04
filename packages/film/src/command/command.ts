@@ -16,7 +16,7 @@
 import { Array as Arr, Data, Option } from 'effect';
 import type { Effect } from 'effect';
 import type { Context, Focus } from './context.ts';
-import type { SelectionTag } from './selection.ts';
+import type { Target } from './target.ts';
 
 /** A command's id: `group.verb` by convention (`edit.undo`, `play.toggle`). */
 export type CommandId = string;
@@ -73,8 +73,8 @@ export interface Command {
   readonly group: string;
   /** Its default keys (`keymap.ts` chords: `mod+z`, `shift+arrowleft`, `g s`, `?`). */
   readonly keys?: ReadonlyArray<string>;
-  /** The selections whose context menu shows it; none: ⌘K and keys only. */
-  readonly about?: ReadonlyArray<SelectionTag>;
+  /** The targets whose context menu shows it (a kind of thing, or `Page`: `target.ts`); none: ⌘K and keys only. */
+  readonly about?: ReadonlyArray<Target>;
   /**
    * Where focus may be for its keys to run it (`Focus`): the page by
    * default; Escape also in a field; the studio's own keys only there.

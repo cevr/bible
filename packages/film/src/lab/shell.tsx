@@ -32,6 +32,7 @@ import type { Hub } from '../command/hub.ts';
 import type { LabSelection } from '../command/selection.ts';
 import { CommandMenu } from './command/command-menu.tsx';
 import { KeysSheet } from './command/keys-sheet.tsx';
+import { TargetMenu } from './command/context-menu.tsx';
 import { labHref, labPlaceOf } from './place.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { type ReloadGate, makeReloadGate } from './reload-gate.ts';
@@ -222,9 +223,11 @@ const Root = (props: RootProps) => {
   return (
     <RegistryProvider initialValues={[[UrlAtom.services, props.host]]}>
       <Inner>
-        {props.children}
-        <CommandMenu hub={props.hub} />
-        <KeysSheet hub={props.hub} />
+        <TargetMenu hub={props.hub}>
+          {props.children}
+          <CommandMenu hub={props.hub} />
+          <KeysSheet hub={props.hub} />
+        </TargetMenu>
       </Inner>
     </RegistryProvider>
   );

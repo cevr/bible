@@ -7,6 +7,7 @@
 import { UrlState, layerBrowser } from '@bible/url-state';
 import { Layer } from 'effect';
 import type { BrowserServices } from './host.ts';
+import { clipboardLayer } from './clipboard-browser.ts';
 import { framesLayer } from './frames-browser.ts';
 import { keysLayer } from './keys-browser.ts';
 import { mediaLayer } from './media-browser.ts';
@@ -16,6 +17,7 @@ import { pointerLayer } from './pointer-browser.ts';
 /** The page's host over the browser's own APIs. */
 export const BrowserHost = {
   layer: Layer.mergeAll(
+    clipboardLayer,
     framesLayer,
     keysLayer,
     mediaLayer,

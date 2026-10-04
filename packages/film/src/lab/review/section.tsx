@@ -52,6 +52,12 @@ import {
 import { Loaded, failedText } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
 import { ReviewPlace as Place } from './place.ts';
+import { Selection } from '../../command/selection.ts';
+import { Target, type TargetElementProps } from '../command/context-menu.tsx';
+
+/** A version of `set` in `folder`, as a selection: what a version's card is. */
+const versionOf = (folder: ReviewFolder, set: { readonly id: string }, version: string) =>
+  Selection.cases.Version.make({ folder: folder.ref, point: set.id, version });
 
 /** A strip's frames are this wide; a poster (`POSTER_W`), a moment's frame and the lightbox wider. */
 const THUMB_W = 320;
@@ -98,27 +104,33 @@ const FolderCard = (props: { readonly folder: ReviewFolder }) => {
   const refs = posterRefs(props.folder);
   const image = Option.fromUndefinedOr(props.folder.images[0]);
   return (
-    <Go class="rv-card" place={Place.Folder({ folder: props.folder.ref })}>
-      <Show when={refs.length > 0}>
-        <Strip refs={refs} />
-      </Show>
-      <Show when={refs.length === 0 && Option.getOrUndefined(image)} keyed>
-        {(img: ReviewFile) => (
-          <div class="rv-strip">
-            <img loading="lazy" src={reviewFileUrl(img.ref)} alt="" />
+    <Target
+      of={Selection.cases.Folder.make({ folder: props.folder.ref })}
+      class="rv-card"
+      render={(p: TargetElementProps) => (
+        <Go {...p} place={Place.Folder({ folder: props.folder.ref })}>
+          <Show when={refs.length > 0}>
+            <Strip refs={refs} />
+          </Show>
+          <Show when={refs.length === 0 && Option.getOrUndefined(image)} keyed>
+            {(img: ReviewFile) => (
+              <div class="rv-strip">
+                <img loading="lazy" src={reviewFileUrl(img.ref)} alt="" />
+              </div>
+            )}
+          </Show>
+          <div class="rv-body">
+            <b>{folderTitle(props.folder)}</b>
+            <Show when={Option.isSome(props.folder.title)}>
+              <div class="rv-hint">{props.folder.ref}</div>
+            </Show>
+            <div class="rv-meta">
+              {countsText(props.folder)} · {agoText(props.folder.mtime, now)}
+            </div>
           </div>
-        )}
-      </Show>
-      <div class="rv-body">
-        <b>{folderTitle(props.folder)}</b>
-        <Show when={Option.isSome(props.folder.title)}>
-          <div class="rv-hint">{props.folder.ref}</div>
-        </Show>
-        <div class="rv-meta">
-          {countsText(props.folder)} · {agoText(props.folder.mtime, now)}
-        </div>
-      </div>
-    </Go>
+        </Go>
+      )}
+    />
   );
 };
 
@@ -149,15 +161,33 @@ const Films = () => {
         <For each={films()}>
           {(film) => (
             <>
-              <Go class="rv-chip" place={Place.Project({ film })}>
-                {film} · project
-              </Go>
-              <Go class="rv-chip" place={Place.Film({ film })}>
-                {film} · choices
-              </Go>
-              <a class="rv-chip" href={pageHref.lab(film)}>
-                {film} · lab
-              </a>
+              <Target
+                of={Selection.cases.Film.make({ film })}
+                class="rv-chip"
+                render={(p: TargetElementProps) => (
+                  <Go {...p} place={Place.Project({ film })}>
+                    {film} · project
+                  </Go>
+                )}
+              />
+              <Target
+                of={Selection.cases.Film.make({ film })}
+                class="rv-chip"
+                render={(p: TargetElementProps) => (
+                  <Go {...p} place={Place.Film({ film })}>
+                    {film} · choices
+                  </Go>
+                )}
+              />
+              <Target
+                of={Selection.cases.Film.make({ film })}
+                class="rv-chip"
+                render={(p: TargetElementProps) => (
+                  <a {...p} href={pageHref.lab(film)}>
+                    {film} · lab
+                  </a>
+                )}
+              />
             </>
           )}
         </For>
@@ -285,14 +315,20 @@ const LooseVideo = (props: {
 };
 
 const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoint }) => (
-  <Go class="rv-card" place={Place.Set({ folder: props.folder.ref, point: props.set.id })}>
-    <Strip refs={seenVariants(props.set).map((v) => v.video.ref)} />
-    <div class="rv-body">
-      <b>{props.set.title}</b>
-      <span class="rv-badge">{versionsText(props.set.variants.length)}</span>
-      <div class="rv-meta">{props.set.variants.map((v) => v.label).join(' · ')}</div>
-    </div>
-  </Go>
+  <Target
+    of={Selection.cases.Set.make({ folder: props.folder.ref, point: props.set.id })}
+    class="rv-card"
+    render={(p: TargetElementProps) => (
+      <Go {...p} place={Place.Set({ folder: props.folder.ref, point: props.set.id })}>
+        <Strip refs={seenVariants(props.set).map((v) => v.video.ref)} />
+        <div class="rv-body">
+          <b>{props.set.title}</b>
+          <span class="rv-badge">{versionsText(props.set.variants.length)}</span>
+          <div class="rv-meta">{props.set.variants.map((v) => v.label).join(' · ')}</div>
+        </div>
+      </Go>
+    )}
+  />
 );
 
 /** A folder: its sets, then whatever is in none of them. */
@@ -554,12 +590,16 @@ const StaleTag = (props: { readonly variant: SeenVariant }) => (
 /** A variant's video on the set's clock, and the 🔊 that makes it the one heard. */
 const VariantCard = (props: { readonly variant: SeenVariant }) => {
   const { state } = useReview();
-  const { set, sync, send, driver } = useSet();
+  const { folder, set, sync, send, driver } = useSet();
   const audible = () => sync().audible === props.variant.id;
   const source = createMemo(() => videoSource(props.variant.video, state.quality()));
   onCleanup(() => driver.detach(props.variant.id));
   return (
-    <div class={['rv-card', { 'rv-audible': audible() }]} data-id={props.variant.id}>
+    <Target
+      of={versionOf(folder, set, props.variant.id)}
+      class={['rv-card', { 'rv-audible': audible() }]}
+      data-id={props.variant.id}
+    >
       <Show
         when={Option.getOrUndefined(source())}
         fallback={<ProxyPending video={props.variant.video} />}
@@ -594,7 +634,7 @@ const VariantCard = (props: { readonly variant: SeenVariant }) => {
           🔊
         </button>
       </div>
-    </div>
+    </Target>
   );
 };
 
@@ -654,7 +694,7 @@ const PairView = (props: { readonly other: string }) => {
 
 const MomentsView = (props: { readonly index: number }) => {
   const { actions } = useReview();
-  const { set, moments, send } = useSet();
+  const { folder, set, moments, send } = useSet();
   return (
     <Show
       when={Option.getOrUndefined(moments())}
@@ -688,7 +728,11 @@ const MomentsView = (props: { readonly index: number }) => {
             <div class={gridClass(set.variants.length)}>
               <For each={set.variants}>
                 {(variant) => (
-                  <div class="rv-card" data-id={variant.id}>
+                  <Target
+                    of={versionOf(folder, set, variant.id)}
+                    class="rv-card"
+                    data-id={variant.id}
+                  >
                     <img
                       class="rv-media rv-zoom"
                       src={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
@@ -707,7 +751,7 @@ const MomentsView = (props: { readonly index: number }) => {
                       <StaleTag variant={variant} />
                       <span class="rv-tag">{variant.lines.join(' · ')}</span>
                     </div>
-                  </div>
+                  </Target>
                 )}
               </For>
             </div>
@@ -719,13 +763,13 @@ const MomentsView = (props: { readonly index: number }) => {
 };
 
 const NotesView = () => {
-  const { set } = useSet();
+  const { folder, set } = useSet();
   const now = useReview().meta.now();
   return (
     <div class="rv-grid rv-wide">
       <For each={set.variants}>
         {(variant) => (
-          <div class="rv-note" data-id={variant.id}>
+          <Target of={versionOf(folder, set, variant.id)} class="rv-note" data-id={variant.id}>
             <div class="rv-verdict">
               <b>
                 {letterOf(set, variant.id)} · {variant.label}
@@ -746,7 +790,7 @@ const NotesView = () => {
             >
               {(notes: ReviewFile) => <Markdown file={notes.ref} />}
             </Show>
-          </div>
+          </Target>
         )}
       </For>
     </div>

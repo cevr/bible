@@ -24,6 +24,7 @@ import {
 } from 'solid-js';
 import { quiet } from '../../command/command.ts';
 import type { Hub } from '../../command/hub.ts';
+import { type Context, selected as selectedOf } from '../../command/context.ts';
 import { noteT } from '../../core/notes.ts';
 import type { Note, Point } from '../../core/schema.ts';
 import { NotesApi, reasonOf } from '../api.ts';
@@ -119,9 +120,27 @@ const composingT = (state: ComposerState): Option.Option<number> =>
  * `n` notes the frame unless a field has the keys; Escape cancels the note
  * being made, wherever it is pressed.
  */
-const useCommands = (hub: Hub, actions: NotesActions, composing: () => boolean) =>
+const useCommands = (
+  hub: Hub,
+  actions: NotesActions,
+  composing: () => boolean,
+  noteOf: (ctx: Context) => Option.Option<Note>,
+) =>
   onCleanup(
     hub.commands.register(
+      {
+        id: 'notes.open',
+        label: 'Open the note',
+        group: 'Notes',
+        about: ['Note'],
+        touch: 'tap it in the list, or long-press it, then Open the note',
+        when: (ctx) => Option.isSome(noteOf(ctx)),
+        run: (ctx) =>
+          Effect.sync(() => {
+            Option.map(noteOf(ctx), actions.select);
+            return quiet;
+          }),
+      },
       {
         id: 'notes.frame',
         label: 'Note this frame',
@@ -250,7 +269,15 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
     },
     write: (w) => writeThread(w),
   };
-  useCommands(meta.hub, actions, () => composerOpen(composer()));
+  // A note a context menu opened on, when it is not the one open already.
+  const noteOf = (ctx: Context) =>
+    Option.filter(
+      Option.flatMap(selectedOf(ctx, 'Note'), (s) =>
+        Option.fromUndefinedOr(notes().find((n) => n.id === s.id)),
+      ),
+      (n) => !Option.contains(selectedId(), n.id),
+    );
+  useCommands(meta.hub, actions, () => composerOpen(composer()), noteOf);
 
   const value: NotesContextValue = {
     state: {

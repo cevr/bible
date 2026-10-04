@@ -4,7 +4,7 @@
 // written in the URL only where the pages' places already have a key for it
 // (`Places`, core/api.ts; PA-1/PA-4): the lab's cue, knob and note
 // (`?cue=`, `?knob=`, `?note=` in a scene's path), a project's card
-// (`?point=`), a comparison set (its path). The rest (a version of a set, a
+// (`?point=`), a folder and a comparison set (their paths). The rest (a version of a set, a
 // variant, an act, a beat) is the page's own and dies with it: no key is
 // added for them. A multi-select is a list of the same union; only its first
 // item is citable (a batch is an action, not a place). Pure.
@@ -27,6 +27,8 @@ export const Selection = Schema.TaggedUnion({
   Knob: { scene: Schema.String, name: Schema.String },
   /** A note of the lab's feed, by its id. */
   Note: { id: Schema.String },
+  /** A folder of renders (its card on the index). */
+  Folder: { folder: Schema.String },
   /** A comparison set of a folder of renders. */
   Set: { folder: Schema.String, point: Schema.String },
   /** One version of a comparison set. */
@@ -68,7 +70,7 @@ export const sameSelection = (a: Selection, b: Selection): boolean => Equal.equa
 
 /**
  * The selection a page's URL names: a lab scene's cue, knob or note, a
- * project's card, a comparison set. None where the URL names none.
+ * project's card, a folder, a comparison set. None where the URL names none.
  */
 export const selectionOf = (href: string): Option.Option<Selection> =>
   Option.firstSomeOf<Selection>([
@@ -92,6 +94,7 @@ export const selectionOf = (href: string): Option.Option<Selection> =>
       ),
     ),
     Option.map(Place.decode(Places.set, href), ({ path }) => Selection.cases.Set.make(path)),
+    Option.map(Place.decode(Places.folder, href), ({ path }) => Selection.cases.Folder.make(path)),
   ]);
 
 const named = (value: string): Option.Option<string> =>
@@ -149,6 +152,7 @@ export const citeOf = (selection: Selection, href: string): string => {
             onSome: (scene) => pageHref.labScene(l.film, scene, { note: s.id }, l.t),
           }),
       }),
+    Folder: (s) => pageHref.folder(s.folder),
     Set: (s) => pageHref.set(s.folder, s.point),
     Version: (s) => pageHref.set(s.folder, s.point),
     Point: (s) => pageHref.project(s.film, s.point),
@@ -166,6 +170,7 @@ export const selectionText = (selection: Selection): string =>
     Cue: (s) => `cue ${s.name} in ${s.scene}`,
     Knob: (s) => `knob ${s.name} in ${s.scene}`,
     Note: (s) => `note ${s.id}`,
+    Folder: (s) => `folder ${s.folder}`,
     Set: (s) => `set ${s.point}`,
     Version: (s) => `version ${s.version} of ${s.point}`,
     Point: (s) => s.point,

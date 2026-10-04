@@ -41,6 +41,8 @@ import { ReviewPlace } from '../place.ts';
 import { OptionsApi, type ProjectSay } from './api.ts';
 import { ChoiceCard, Comments, type Sayer, SayBox } from './choice.tsx';
 import { FilmProvider, useFilm } from './context.tsx';
+import { Selection } from '../../../command/selection.ts';
+import { Target, type TargetElementProps } from '../../command/context-menu.tsx';
 import { Player, WriteBar } from './section.tsx';
 
 const FILM: PartAddress = { _tag: 'Film' };
@@ -342,7 +344,12 @@ const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
   const scenes = () =>
     props.at.view().project.scenes.filter((s) => props.act.scenes.includes(s.scene));
   return (
-    <section class="rv-act" data-act-name={props.act.name}>
+    <Target
+      of={Selection.cases.Act.make({ film: props.at.film, act: props.act.name })}
+      render={(p: TargetElementProps) => <section {...p} />}
+      class="rv-act"
+      data-act-name={props.act.name}
+    >
       <h2 class="rv-h">
         {props.act.name} <small>{countsOf(scenes())}</small>
       </h2>
@@ -356,7 +363,7 @@ const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
         open={false}
       />
       <Scenes at={props.at} scenes={scenes()} />
-    </section>
+    </Target>
   );
 };
 
@@ -380,7 +387,13 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
   );
   return (
     <>
-      <section class="rv-film" data-film={props.at.film} data-reading={pressed(props.at.reading())}>
+      <Target
+        of={Selection.cases.Film.make({ film: props.at.film })}
+        render={(p: TargetElementProps) => <section {...p} />}
+        class="rv-film"
+        data-film={props.at.film}
+        data-reading={pressed(props.at.reading())}
+      >
         <div class="rv-row">
           <PartApproval at={props.at} address={FILM} scenes={project().scenes} part="all" />
           <span class="rv-hint" data-counts="">
@@ -390,7 +403,7 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
         <Comments comments={project().comments} />
         <PartComment at={props.at} address={FILM} />
         <Layers points={placedAt(choices().points, project().acts, FILM)} open={true} />
-      </section>
+      </Target>
       <For each={project().acts} keyed={(a) => a.name}>
         {(act) => <ActBlock at={props.at} act={act()} />}
       </For>

@@ -22,6 +22,7 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import { type Hub, makeHub } from '../../command/hub.ts';
 import { CommandMenu } from '../command/command-menu.tsx';
 import { KeysSheet } from '../command/keys-sheet.tsx';
+import { TargetMenu } from '../command/context-menu.tsx';
 import { COMMAND_CSS } from '../command/style.ts';
 
 /** The trail to `place`: each step's title, and where it goes (none for the page itself). */
@@ -152,14 +153,16 @@ const Lightbox = () => {
   );
 };
 
-/** The review: its header, the page it is on, the lightbox, ⌘K and the `?` sheet. */
+/** The review: its header, the page it is on, the lightbox, its context menu, ⌘K and the `?` sheet. */
 const ReviewPage = (props: { readonly host: Host; readonly hub: Hub }) => (
   <Root host={props.host} hub={props.hub}>
-    <Header />
-    <Page />
-    <Lightbox />
-    <CommandMenu hub={props.hub} />
-    <KeysSheet hub={props.hub} />
+    <TargetMenu hub={props.hub}>
+      <Header />
+      <Page />
+      <Lightbox />
+      <CommandMenu hub={props.hub} />
+      <KeysSheet hub={props.hub} />
+    </TargetMenu>
   </Root>
 );
 

@@ -13,7 +13,7 @@ import {
   selectionText,
 } from './selection.ts';
 
-const { Cue, Knob, Note, Point, Set, Version, Variant, Act, Film, Beat } = Selection.cases;
+const { Cue, Knob, Note, Point, Folder, Set, Version, Variant, Act, Film, Beat } = Selection.cases;
 
 describe("a selection in the pages' URLs", () => {
   test('reads the lab scene keys as a cue, a knob or a note, cue first', () => {
@@ -32,13 +32,16 @@ describe("a selection in the pages' URLs", () => {
     expect(selectionOf(pageHref.labScene('f', 'one'))).toEqual(Option.none());
   });
 
-  test("reads a project's card and a comparison set", () => {
+  test("reads a project's card, a folder and a comparison set", () => {
     expect(selectionOf(pageHref.project('f', 'cold'))).toEqual(
       Option.some(Point.make({ film: 'f', point: 'cold' })),
     );
     expect(selectionOf(pageHref.project('f'))).toEqual(Option.none());
     expect(selectionOf(pageHref.set('renders', 'cold'))).toEqual(
       Option.some(Set.make({ folder: 'renders', point: 'cold' })),
+    );
+    expect(selectionOf(pageHref.folder('renders'))).toEqual(
+      Option.some(Folder.make({ folder: 'renders' })),
     );
     expect(selectionOf(pageHref.home())).toEqual(Option.none());
   });
@@ -70,6 +73,7 @@ describe("a selection in the pages' URLs", () => {
       Knob.make({ scene: 'one', name: 'size' }),
       Note.make({ id: 'n7' }),
       Point.make({ film: 'f', point: 'cold' }),
+      Folder.make({ folder: 'renders' }),
       Set.make({ folder: 'renders', point: 'cold' }),
     ]) {
       expect(selectionOf(citeOf(s, here))).toEqual(Option.some(s));
