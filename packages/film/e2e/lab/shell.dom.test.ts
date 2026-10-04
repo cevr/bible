@@ -48,6 +48,13 @@ const canvasBox = `JSON.stringify(${rects('.stage canvas')}[0])`;
 /** The film seconds the URL holds. */
 const T = URL_T;
 
+/** Whether the page does not scroll sideways. */
+const NO_SIDEWAYS = 'document.documentElement.scrollWidth <= document.documentElement.clientWidth';
+
+/** The vertical middle of the bar's `sel`, in whole pixels. */
+const middle = (sel: string) =>
+  `(() => { const r = document.querySelector('.bar ${sel}').getBoundingClientRect(); return Math.round(r.top + r.height / 2); })()`;
+
 describe('the lab shell', () => {
   it.live(
     "mounts the panel with its header in the studio's shell, whose page bar leads to the film's other parts",
@@ -294,6 +301,26 @@ describe('the lab shell', () => {
       yield* page.press(' ');
       yield* evaluates(page, `${T} > 0 && ${T} < window.labEnd`, true);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a phone the transport's controls and its timecode keep one row; the film's length and state wrap below",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(1) });
+        yield* resize(page, { width: 390, height: 844 });
+        // A slower rate says so after the length: more than the first row holds.
+        yield* page.press('j');
+        yield* textHas(page, '.bar .of', ` / ${timecode(probeFilm().duration)} · 0.5× muted`);
+        const play = Number(yield* page.evaluate(middle('[data-act="play"]')));
+        yield* evaluates(
+          page,
+          `[${middle('[data-act="play.frame-next"]')}, ${middle('.tc')}, ${middle('[data-act="captions"]')}].every((m) => Math.abs(m - ${play}) <= 2)`,
+          true,
+        );
+        yield* evaluates(page, "document.querySelector('.bar .tc').getClientRects().length", 1);
+        yield* evaluates(page, NO_SIDEWAYS, true);
+      }).pipe(Effect.scoped),
   );
 
   for (const ended of ['pointercancel', 'lostpointercapture'])

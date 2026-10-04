@@ -31,7 +31,7 @@ describe('the player', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
           { href: pageHref.play(PROBE), viewport },
-          '.bar .time',
+          '.bar .tc',
         );
         yield* evaluates(page, NO_SIDEWAYS, true);
         expect(errors).toEqual([]);
@@ -54,7 +54,7 @@ describe('the player', () => {
     Effect.gen(function* () {
       const { page } = yield* openPlayer(
         { href: `${pageHref.play(PROBE)}#t=0.5`, viewport: DESK },
-        '.bar .time',
+        '.bar .tc',
       );
       yield* textHas(page, '.bar .scene', 'one');
       yield* attributeIs(page, '.sh-pagebar [data-page="play"]', 'data-active', 'true');
@@ -73,7 +73,7 @@ describe('the player', () => {
       Effect.gen(function* () {
         const { page } = yield* openPlayer(
           { href: pageHref.play(PROBE), viewport: PHONE },
-          '.bar .time',
+          '.bar .tc',
         );
         const tick = '.bar .track .tick.cue';
         const name = String(yield* page.evaluate(`document.querySelector('${tick}').dataset.name`));
@@ -92,7 +92,7 @@ describe('the player', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
           { href: pageHref.play(PROBE), viewport: PHONE },
-          '.bar .time',
+          '.bar .tc',
         );
         const shown = "!document.querySelector('.bar .keys').hidden";
         yield* evaluates(page, shown, false);

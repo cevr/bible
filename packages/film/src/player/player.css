@@ -48,9 +48,11 @@ body.export .stage canvas {
   grid-template-columns: minmax(0, 1fr);
   gap: 8px;
 }
+/* The transport row; what does not fit wraps below whole, never mid-timecode. */
 .row {
   display: flex;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: var(--s-1) 12px;
   align-items: center;
 }
 .row button {
@@ -65,9 +67,19 @@ body.export .stage canvas {
 .row button:hover {
   background: var(--surface-3);
 }
+/* The playhead's timecode, then the film's length and state (rate, loop, narration): two pieces the row lays out. */
 .time {
+  display: contents;
   font-variant-numeric: tabular-nums;
   color: var(--text-1);
+}
+/* A phone keeps the controls and the timecode on the first row, under the thumb; the length, the scene and the line go after them, wrapping below. */
+@media (max-width: 899px) {
+  .row .of,
+  .row .scene,
+  .row .say {
+    order: 1;
+  }
 }
 .scene {
   color: var(--accent);

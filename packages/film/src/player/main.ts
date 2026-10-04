@@ -289,7 +289,7 @@ export const mountPreview = (
   bar.innerHTML = `
     <div class="row">
       <button data-act="play">▶︎</button>
-      <span class="time"></span>
+      <span class="time"><span class="tc"></span><span class="of"></span></span>
       <span class="scene"></span>
       <span class="say"></span>
       <button data-act="captions">CC</button>
@@ -301,7 +301,8 @@ export const mountPreview = (
   const q = <T extends Element>(sel: string) => required<T>(bar, sel);
   const track = q<HTMLDivElement>('.track');
   const head = q<HTMLDivElement>('.head');
-  const timeEl = q<HTMLSpanElement>('.time');
+  const timecodeEl = q<HTMLSpanElement>('.tc');
+  const lengthEl = q<HTMLSpanElement>('.of');
   const sceneEl = q<HTMLSpanElement>('.scene');
   const sayEl = q<HTMLSpanElement>('.say');
   const playBtn = q<HTMLButtonElement>('[data-act="play"]');
@@ -413,7 +414,8 @@ export const mountPreview = (
       loop === undefined
         ? ''
         : ` · loop ${timecode(loop.from, film.fps)}–${timecode(loop.to, film.fps)}`;
-    timeEl.textContent = `${timecode(T, film.fps)} / ${timecode(film.duration, film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
+    timecodeEl.textContent = timecode(T, film.fps);
+    lengthEl.textContent = ` / ${timecode(film.duration, film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
