@@ -17,6 +17,15 @@ export interface MenuRow {
   readonly label: string;
 }
 
+/**
+ * A row's identity in a rendered list: its command's id. A menu's rows are
+ * made again whenever what they read moves (a command's `when` and its label
+ * read the player, so each frame a film plays; a command registered again);
+ * a list keyed by it keeps each row's element, so a press on a row and its
+ * release are on one element, and the click is that row's.
+ */
+export const rowKey = (row: MenuRow): string => row.command.id;
+
 /** Whether every word of `query` is in `text`, ignoring case. */
 const matches = (query: string, text: string): boolean => {
   const said = text.toLowerCase();

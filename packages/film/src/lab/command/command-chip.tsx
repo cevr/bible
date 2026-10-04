@@ -4,7 +4,9 @@
 // cue, Set the in point here, …). The chip names its commands by id; its
 // menu lists those available now (`chipRows`), each with its keys, so a
 // rate the transport plays at already is not offered: the chip says it. A
-// command runs once the menu has closed, as the context menu's do. Built on
+// command runs once the menu has closed, as the context menu's do. Its rows
+// are keyed by their command (`rowKey`): made again each frame a film plays,
+// a row keeps its element under the pointer. Built on
 // @bible/ui's Menu, styled as the context menu (`COMMAND_TOKENS`).
 
 import { For, type JSX } from '@solidjs/web';
@@ -14,7 +16,7 @@ import { createMemo, createSignal } from 'solid-js';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { chordLabel } from '../../command/keymap.ts';
-import { type MenuRow, chipRows } from '../../command/menu.ts';
+import { type MenuRow, chipRows, rowKey } from '../../command/menu.ts';
 import { hubChanges } from './changes.ts';
 
 /** What a chip shows and the commands it opens. */
@@ -67,18 +69,18 @@ export const CommandChip = (props: CommandChipProps) => {
       <Menu.Portal>
         <Menu.Positioner class="lab-context-positioner" sideOffset={4} align="start">
           <Menu.Popup class="lab-context-menu" data-role="chip-menu" data-chip={props.act}>
-            <For each={rows()}>
+            <For each={rows()} keyed={rowKey}>
               {(row) => (
                 <Menu.Item
                   class="lab-context-item"
-                  data-command={row.command.id}
-                  label={row.label}
+                  data-command={row().command.id}
+                  label={row().label}
                   onClick={() => {
-                    chosen = Option.some(row);
+                    chosen = Option.some(row());
                   }}
                 >
-                  <span>{row.label}</span>
-                  <kbd>{keysText(row)}</kbd>
+                  <span>{row().label}</span>
+                  <kbd>{keysText(row())}</kbd>
                 </Menu.Item>
               )}
             </For>

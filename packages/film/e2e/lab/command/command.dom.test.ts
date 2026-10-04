@@ -3,7 +3,8 @@
 // sheet rebinds a key, and the rebound key survives a reload; a cue's context
 // menu (a right-click, or a touch held still) lists its commands and runs
 // one, and a touch that moves (a drag) never opens it; `/` opens ⌘K to Go to
-// a scene or a cue by its name.
+// a scene or a cue by its name; a row pressed while the film plays, in ⌘K
+// or a cue's menu, runs.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -14,7 +15,7 @@ import {
   touch,
 } from '../../../src/lab/fixtures/gestures.ts';
 import { URL_T, labAt, openLab } from '../../../src/lab/fixtures/harness.ts';
-import { attached, evaluates, textHas } from '../../../src/lab/fixtures/settled.ts';
+import { attached, evaluates, textHas, textIs } from '../../../src/lab/fixtures/settled.ts';
 
 /** The probe's first cue's bar on the strip. */
 const RISE = '.lab-cue[data-cue="rise"]';
@@ -75,6 +76,24 @@ describe('the command menu', () => {
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
+
+  it.live('a row pressed while the film plays is the row released on, and runs', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(0.5) });
+      yield* page.waitFor(RISE);
+      yield* page.click('[data-act="play"]');
+      yield* textIs(page, '[data-act="play"]', '❚❚');
+      yield* page.press('/');
+      yield* page.fill('.lab-command-query', 'go to cue fall');
+      const at = yield* page.box('[data-role="command-menu"] [data-command="go.cue.one.fall"]');
+      yield* page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+      // Frames play between the press and the release, as a hand's click takes them.
+      yield* page.mouse.down;
+      yield* page.clock.runFor(200);
+      yield* page.mouse.up;
+      yield* evaluates(page, 'location.search', '?cue=fall');
+    }).pipe(Effect.scoped),
+  );
 });
 
 describe('the keys sheet', () => {
@@ -119,6 +138,23 @@ describe("a cue's context menu", () => {
       yield* page.click('[data-role="context-menu"] [data-command="edit.select"]');
       yield* evaluates(page, 'location.search', '?cue=rise');
       yield* attached(page, `${RISE}.selected`);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a row pressed while the film plays is the row released on, and runs', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      yield* page.waitFor(RISE);
+      yield* page.click('[data-act="play"]');
+      yield* textIs(page, '[data-act="play"]', '❚❚');
+      yield* rightClick(page, RISE);
+      const at = yield* page.box('[data-role="context-menu"] [data-command="edit.select"]');
+      yield* page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+      // Frames play between the press and the release, as a hand's click takes them.
+      yield* page.mouse.down;
+      yield* page.clock.runFor(200);
+      yield* page.mouse.up;
+      yield* evaluates(page, 'location.search', '?cue=rise');
     }).pipe(Effect.scoped),
   );
 

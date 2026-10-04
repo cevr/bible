@@ -6,7 +6,9 @@
 // viewer rebinds reads as rebound. The context is the one the page had when
 // the menu opened (what was selected, whether the film played). A command
 // runs once the menu has closed and focus is back on the page, so what it
-// focuses (a note's composer) keeps focus. Hosted in @bible/ui's Dialog.
+// focuses (a note's composer) keeps focus. Its rows are keyed by their
+// command (`rowKey`): made again each frame a film plays, a row keeps its
+// element under the pointer. Hosted in @bible/ui's Dialog.
 
 import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
@@ -16,7 +18,7 @@ import { type Command, quiet } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { chordLabel } from '../../command/keymap.ts';
-import { type MenuRow, menuRows } from '../../command/menu.ts';
+import { type MenuRow, menuRows, rowKey } from '../../command/menu.ts';
 import { EVERYWHERE } from '../../command/target.ts';
 import { hubChanges } from './changes.ts';
 
@@ -143,20 +145,20 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
             onKeyDown={onKey}
           />
           <div class="lab-command-rows" id="lab-command-rows" role="listbox" aria-label="Commands">
-            <For each={rows()}>
+            <For each={rows()} keyed={rowKey}>
               {(row, i) => (
                 <div
                   class="lab-command-row"
                   id={`lab-command-${i()}`}
                   role="option"
                   aria-selected={PSEUDO[`${i() === at()}`]}
-                  data-command={row.command.id}
+                  data-command={row().command.id}
                   onPointerMove={() => setAt(i())}
-                  onClick={() => choose(row)}
+                  onClick={() => choose(row())}
                 >
-                  <span class="lab-command-label">{row.label}</span>
-                  <span class="lab-command-group">{row.command.group}</span>
-                  <kbd>{keysText(hub, row.command)}</kbd>
+                  <span class="lab-command-label">{row().label}</span>
+                  <span class="lab-command-group">{row().command.group}</span>
+                  <kbd>{keysText(hub, row().command)}</kbd>
                 </div>
               )}
             </For>

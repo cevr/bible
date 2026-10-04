@@ -6,7 +6,9 @@
 // landed (`targetAt`: the nearest `data-target`), so one menu serves every
 // target on the page, a nested one winning over its container. The commands
 // run once the menu has closed and focus is back on the page, as ⌘K's do.
-// Built on @bible/ui's ContextMenu: `TargetMenu` is the page's one root
+// Its groups and rows are keyed by name and command (`rowKey`): made again
+// each frame a film plays, a row keeps its element under the pointer, and a
+// press and its release are one click. Built on @bible/ui's ContextMenu: `TargetMenu` is the page's one root
 // (`Lab.Root`, the review's page), `Target` a thing's trigger, rendered as
 // the thing's own element (a `div` unless `render` names another).
 
@@ -24,7 +26,7 @@ import {
 import { type Context, focusOf, withSelection } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { chordLabel } from '../../command/keymap.ts';
-import { type MenuRow, contextRows } from '../../command/menu.ts';
+import { type MenuRow, contextRows, rowKey } from '../../command/menu.ts';
 import type { Selection } from '../../command/selection.ts';
 import { targetAt, targetAttr } from '../../command/target.ts';
 import { hubChanges } from './changes.ts';
@@ -75,25 +77,27 @@ export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
       <ContextMenu.Portal>
         <ContextMenu.Positioner class="lab-context-positioner">
           <ContextMenu.Popup class="lab-context-menu" data-role="context-menu">
-            <For each={groups()}>
-              {([group, rows], i: Accessor<number>) => (
+            <For each={groups()} keyed={([group]) => group}>
+              {(entry, i: Accessor<number>) => (
                 <ContextMenu.Group class="lab-context-group">
                   <Show when={i() > 0}>
                     <ContextMenu.Separator class="lab-context-separator" />
                   </Show>
-                  <ContextMenu.GroupLabel class="lab-context-label">{group}</ContextMenu.GroupLabel>
-                  <For each={rows}>
+                  <ContextMenu.GroupLabel class="lab-context-label">
+                    {entry()[0]}
+                  </ContextMenu.GroupLabel>
+                  <For each={entry()[1]} keyed={rowKey}>
                     {(row) => (
                       <ContextMenu.Item
                         class="lab-context-item"
-                        data-command={row.command.id}
-                        label={row.label}
+                        data-command={row().command.id}
+                        label={row().label}
                         onClick={() => {
-                          chosen = Option.some(row);
+                          chosen = Option.some(row());
                         }}
                       >
-                        <span>{row.label}</span>
-                        <kbd>{keysText(row)}</kbd>
+                        <span>{row().label}</span>
+                        <kbd>{keysText(row())}</kbd>
                       </ContextMenu.Item>
                     )}
                   </For>

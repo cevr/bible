@@ -3,7 +3,8 @@
 // at 1× again; the in point (I, or the loop chip) then a later out point (O)
 // loops that range and plays it; an out point before any in point says to
 // set one; Loop the selected cue (⇧L, or the cue's menu) is offered once a
-// cue is selected; Stop looping stops; the onion ghosts the frames around a
+// cue is selected; Stop looping stops, its chip row pressed while the film
+// loops as it runs from a click; the onion ghosts the frames around a
 // paused one on its layer.
 
 import { Effect } from 'effect';
@@ -134,6 +135,27 @@ describe('loops', () => {
       yield* motionSays(page, '');
       yield* page.press('Shift+L');
       yield* motionSays(page, 'looping rise');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a chip’s row pressed while the film loops is the row released on, and runs', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], {
+        href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }),
+      });
+      yield* page.waitFor('.lab-cue[data-cue="rise"]');
+      yield* page.press('Shift+L');
+      yield* motionSays(page, 'looping rise');
+      yield* click(page, '.lab-motion [data-act="loop"]');
+      const off = '[data-role="chip-menu"] [data-command="motion.loop-off"]';
+      const at = yield* page.box(off);
+      yield* page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+      // Frames play between the press and the release, as a hand's click takes them.
+      yield* page.mouse.down;
+      yield* page.clock.runFor(200);
+      yield* page.mouse.up;
+      yield* countIs(page, '[data-role="chip-menu"]', 0);
+      yield* motionSays(page, '');
     }).pipe(Effect.scoped),
   );
 });

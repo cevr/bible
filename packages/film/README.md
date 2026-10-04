@@ -871,7 +871,11 @@ project's film): its commands about that thing (a command's `about`, in
 `src/command/target.ts`: the kinds of thing whose menu shows it), the
 thing's own first, then Copy link and the command menu, which every menu
 has. A touch that moves past @bible/ui's threshold first (a scrub, a drag)
-never opens it, and a field keeps the browser's own menu. Every page has
+never opens it, and a field keeps the browser's own menu. The menus' rows
+(and a chip's) are keyed by their command (`rowKey`, `src/command/menu.ts`):
+they are made again whenever what they read moves (a command's `when` and
+its label read the player, so each frame a film plays), and a row keeps its
+element, so a press and its release on it are one click. Every page has
 **Copy link** (⇧⌘C, AA-1, `src/command/link.ts`): the page's URL (its place,
 its selection, its time), or from a thing's menu that thing's citation
 (`citeOf`), written whole through the host's `Clipboard`. Their look is one
