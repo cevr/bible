@@ -231,20 +231,21 @@ const [labScript, reviewScript, playerScript, tokens, playerCss] = await Effect.
 /** The styles `lab.html` and `index.html` link: the tokens, then the player's. */
 const css = `${tokens}${playerCss}`;
 
+/** The `<meta>`s a page served at `build` carries (`lab-build`, `lab-server`); none unstamped. */
+const stampOf = (build: Option.Option<PageBuild>) =>
+  Option.match(build, {
+    onNone: () => '',
+    onSome: (b) =>
+      `<meta name="lab-build" content="${b.build}"><meta name="lab-server" content="${b.server}">`,
+  });
+
 /**
  * The lab page as `lab.html` has it, with the player's styles inline, and
  * the build it was served at as the lab's server stamps it (`lab-build`,
  * `lab-server`) when the test gives one: then it waits on the rebuild.
  */
 const labPage = (style: string, script: Asset, build: Option.Option<PageBuild>) =>
-  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style>${Option.match(
-    build,
-    {
-      onNone: () => '',
-      onSome: (b) =>
-        `<meta name="lab-build" content="${b.build}"><meta name="lab-server" content="${b.server}">`,
-    },
-  )}</head><body class="lab">${scriptOf(script)}</body></html>`;
+  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style>${stampOf(build)}</head><body class="lab">${scriptOf(script)}</body></html>`;
 
 /** The page's JSON body, when it sent one. */
 const bodyOf = (request: Request): Option.Option<Json> =>
@@ -485,14 +486,17 @@ export const openPlayer = Effect.fn('lab.fixture.player')(function* (at: PlayerA
   return open;
 });
 
-const reviewPage = (script: Asset) =>
-  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title><style>${tokens}</style></head><body>${scriptOf(script)}</body></html>`;
+/** The review page, stamped with the build it was served at when the test gives one: then a film's choices hear its mixes. */
+const reviewPage = (script: Asset, build: Option.Option<PageBuild>) =>
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title><style>${tokens}</style>${stampOf(build)}</head><body>${scriptOf(script)}</body></html>`;
 
 /** Where the review opens, and how wide its window is (a phone's, or a desk's). */
 interface ReviewAt {
   /** The link opened (`pageHref`, `core/api.ts`): home when none. */
   readonly href?: string;
   readonly viewport?: { readonly width: number; readonly height: number };
+  /** The build the page was served at, as the lab stamps it; none: unstamped (it hears no mixes). */
+  readonly build?: PageBuild;
 }
 
 /**
@@ -516,7 +520,10 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
     init: [CLOCK_SCRIPT],
     assets: [script],
     serve: fakeServer(
-      servedAs('review', respond(reviewPage(script), 'text/html')),
+      servedAs(
+        'review',
+        respond(reviewPage(script, Option.fromUndefinedOr(at.build)), 'text/html'),
+      ),
       '',
       routes,
       asked,

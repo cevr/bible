@@ -19,7 +19,7 @@
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Data, Effect, Exit, Match, Option } from 'effect';
+import { Data, Effect, Exit, Fiber, Match, Option, Schema } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -40,7 +40,7 @@ import { OWN_SOUND, Places, type Steps, choiceAloneUrl, choiceMixUrl } from '../
 import { type Host, addressOn, onTraverse } from '../../../browser/host.ts';
 import { keptTime } from '../place.ts';
 import {
-  type FilmChoices,
+  FilmChoices,
   ONLY_TEXT,
   SHOWN_ONLY,
   type ShownOnly,
@@ -50,7 +50,8 @@ import {
 import { type Command, quiet } from '../../../command/command.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine, CheckReport } from '../../../core/schema.ts';
-import type { LabFailure } from '../../api.ts';
+import { LabClient, type LabFailure } from '../../api.ts';
+import { hearMixes } from '../../rebuilt.ts';
 import { type Asks, type Landed, newestAsked } from '../asked.ts';
 import { useReview } from '../context.tsx';
 import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
@@ -401,6 +402,27 @@ const FilmBody = (
     return true;
   };
 
+  // The film mixed again by a write elsewhere (another tab's pick, the lab's kept take:
+  // `hearMixes`): the choices read again, and when they moved, shown, every mix asked
+  // for again and the steps read again. This tab's own write already showed its answer,
+  // so the mix it lands moves nothing here and its mix plays on.
+  const heardElsewhere = () => {
+    const ask = asks.ask();
+    void askAgain().then((exit) => {
+      if (!Exit.isSuccess(exit)) return;
+      ask.answer(() => {
+        if (sameChoices(untrack(choices), exit.value)) return;
+        setChoices(exit.value);
+        setVersion((v) => v + 1);
+        readSteps();
+      });
+    });
+  };
+  const hearing = Effect.runFork(
+    hearMixes(film, Effect.sync(heardElsewhere)).pipe(Effect.provide(LabClient.layer)),
+  );
+  onCleanup(() => Effect.runFork(Fiber.interrupt(hearing)));
+
   // What plays is the URL's (`?heard= &variant= &picture= #t=`), so a link
   // opens the player as it was; none named is the film's first picture and
   // its first score in place.
@@ -566,6 +588,9 @@ const FilmBody = (
     </FilmContext>
   );
 };
+
+/** Whether two reads of a film's choices say the same. */
+const sameChoices = Schema.toEquivalence(FilmChoices);
 
 /** Whether two variants are the same variant of the same point. */
 const sameVariant = (a: InPlace, b: InPlace): boolean =>

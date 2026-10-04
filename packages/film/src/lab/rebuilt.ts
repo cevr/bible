@@ -72,3 +72,45 @@ export const reloadOnRebuild = (film: string, reload: Effect.Effect<void>) =>
         ),
       ),
   });
+
+/**
+ * Each newer answer than the last (through `wait`, asked first with `served`),
+ * then `heard`, for as long as it runs: a page that keeps its place rather
+ * than reloading. A failed wait is asked again after a pause.
+ */
+export const hearEach = <E, R>(
+  served: PageBuild,
+  wait: (served: PageBuild) => Effect.Effect<PageBuild, E, R>,
+  heard: Effect.Effect<void>,
+) =>
+  Effect.gen(function* () {
+    let last = served;
+    while (true) {
+      const answer = yield* wait(last).pipe(Effect.retry(REASKED));
+      if (newer(last)(answer)) {
+        yield* Effect.logInfo(`lab.heard since=${last.build} build=${answer.build}`);
+        yield* heard;
+      }
+      last = answer;
+    }
+  });
+
+/**
+ * A review tab of `film` hears each new mix of it (another tab's write
+ * mixed it again: `LabPage` watches the track once a page waits with its
+ * film), and each newer build, then `heard`, in place: a half-typed comment
+ * stays. A page with no build hears none.
+ */
+export const hearMixes = (film: string, heard: Effect.Effect<void>) =>
+  Option.match(servedBuild(), {
+    onNone: () => Effect.void,
+    onSome: (served) =>
+      Effect.flatMap(LabClient, (client) =>
+        hearEach(
+          served,
+          ({ build, server }) =>
+            client.page.wait({ query: { since: build, server, film, timeout: WAIT_S } }),
+          heard,
+        ),
+      ),
+  });

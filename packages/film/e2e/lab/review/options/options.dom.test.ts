@@ -450,6 +450,36 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    "a second tab hears another tab's pick: the film mixed again, it reads its choices again and asks its mix again",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        // The lab's wait: the film's track mixed again once the other tab's pick lands, then nothing.
+        const mixed = yield* Deferred.make<void>();
+        const never = yield* Deferred.make<void>();
+        let waits = 0;
+        const build = route('GET', /^\/api\/review\/build/, () => {
+          waits += 1;
+          if (waits === 1) return later(mixed, json({ build: 1, server: 'lab' }));
+          return later(never, json({ build: 1, server: 'lab' }));
+        });
+        const { page, errors } = yield* openReview([build, ...fakeFilm(toy)], {
+          href: FILM,
+          build: { build: 0, server: 'lab' },
+        });
+        yield* waitFor(page, `${at('score', 'strings')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=0')`);
+        // Another tab picks piano: the source changes and the lab mixes the track again.
+        toy.picked = 'piano';
+        yield* Deferred.done(mixed, Exit.void);
+        yield* waitFor(page, `${at('score', 'piano')} .rv-picked`);
+        yield* until(page, `${MIX}.endsWith('&v=1')`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a time typed in the address bar seeks the player, and Back lands it on the time its entry keeps',
     () =>
       Effect.gen(function* () {

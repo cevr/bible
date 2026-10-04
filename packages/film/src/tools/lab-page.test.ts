@@ -413,6 +413,34 @@ describe('lab pages', () => {
   );
 
   it.live(
+    "a page that waits with its film hears the film's mix, though it never played the track",
+    () =>
+      Effect.gen(function* () {
+        const { spec } = yield* appFolder;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const film = path.join(spec.films, 'f');
+        const narration = path.join(film, 'narration');
+        yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
+        yield* fs.makeDirectory(narration, { recursive: true });
+        yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
+        yield* fs.writeFileString(path.join(narration, 'full.wav'), 'mix one');
+        // A review tab of f's choices: its page loads, its track is never asked for.
+        const { page, ask } = yield* served(spec, PageBundler.layerTest);
+        yield* ask('/films/f/choices');
+        const f = { server: Option.none(), film: Option.some('f') };
+        // Its first wait arms the track's watch; the build once a save it read is heard.
+        const settled = (yield* page.wait({ since: 0, ...f }, '1 second')).build;
+        yield* fs.writeFileString(path.join(narration, 'full.wav.partial'), 'mix two');
+        const mixed = yield* Effect.andThen(
+          fs.rename(path.join(narration, 'full.wav.partial'), path.join(narration, 'full.wav')),
+          page.wait({ since: settled, ...f }, '5 seconds'),
+        );
+        expect(mixed.build).toBeGreaterThan(settled);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
     "a page another lab process served hears at once that it is old; its own server's waits",
     () =>
       Effect.gen(function* () {

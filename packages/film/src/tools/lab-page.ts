@@ -657,18 +657,37 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     ),
   );
 
+  /**
+   * A page waiting with `film` hears its mixes though it never played the
+   * track (a review tab of the film's choices): the track is watched from
+   * the wait on, as a page that loaded it does.
+   */
+  const filmWaited = (film: string): Effect.Effect<void> =>
+    Effect.gen(function* () {
+      const pathname = narrationUrls(film).audio;
+      const file = yield* narrationPath(spec.films, pathname);
+      for (const track of Option.toArray(file)) yield* trackAsked(pathname, track);
+    }).pipe(
+      Effect.provideService(FileSystem.FileSystem, fs),
+      Effect.provideService(Path.Path, path),
+    );
+
   const wait = (served: Served, timeout: Duration.Input): Effect.Effect<PageBuild> => {
     if (Option.exists(served.server, (s) => s !== server)) return now(served.film);
-    return Effect.raceFirst(
-      SubscriptionRef.changes(changes).pipe(
-        Stream.filter((seen) => heardBy(served.film)(seen) > served.since),
-        Stream.runHead,
-        Effect.andThen(Effect.sleep(SETTLE)),
+    const heardFrom = Effect.forEach(Option.toArray(served.film), filmWaited, { discard: true });
+    return Effect.andThen(
+      heardFrom,
+      Effect.raceFirst(
+        SubscriptionRef.changes(changes).pipe(
+          Stream.filter((seen) => heardBy(served.film)(seen) > served.since),
+          Stream.runHead,
+          Effect.andThen(Effect.sleep(SETTLE)),
+        ),
+        retryFailed,
+      ).pipe(
+        Effect.timeoutOption(Duration.min(Duration.fromInputUnsafe(timeout), MAX_WAIT)),
+        Effect.andThen(now(served.film)),
       ),
-      retryFailed,
-    ).pipe(
-      Effect.timeoutOption(Duration.min(Duration.fromInputUnsafe(timeout), MAX_WAIT)),
-      Effect.andThen(now(served.film)),
     );
   };
 
