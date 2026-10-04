@@ -1487,11 +1487,14 @@ field's, a knob's, Undo's and Redo's, goes through one effect-machine
 (`lab/editor/machine.ts`: `Idle`, `Pressed`, `Dragging`, `Writing`, `Checking`, `Written`,
 `Refused`), so two writes never race for a file: a press or a step while
 one is out is not taken, and a commit (a nudge, a field) waits as the
-`Writing` state's `next`, shown at once (the next nudge moves on from it),
-the last asked replacing the one before, and is written once the write
-lands, so the last value asked is the one that lands (one that waited on a
-step, or on a write that did not land, is not written, and the receipt
-says so); a write with no answer in 20 s
+`Writing` state's `next`, shown at once (the next nudge moves on from it).
+One to the same cue or knob as one waiting joins it (`joined`: a cue's
+fields merged, the last asked value of each winning, so an offset nudge
+and then a dur field write both); one to another thing waits after it.
+Each is written in turn once the write before it lands, so the last value
+asked of every field is the one that lands (those that waited on a step,
+or on a write that did not land, are not written, and the receipt says
+so); a write with no answer in 20 s
 (`WRITE_TIMEOUT_S`) is refused and says so, so a hung server never wedges
 the editor; an Undo or Redo, which may remix the track first, waits
 `STUDIO_IMPORT_WAIT_S`, then `Checking` asks the lab by the id the step's

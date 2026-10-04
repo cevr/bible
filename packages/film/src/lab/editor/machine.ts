@@ -3,11 +3,12 @@
 // film, moves preview it in memory, the release writes what changed), a field
 // or an ease set in the inspector, and Undo or Redo. One machine serializes
 // them all, so two writes never race for one file: while a write is out, a
-// press or a step is not taken, and a commit (a nudge, a field) waits as
-// `next`, shown at once and written once the write lands, the last asked
-// replacing the one before, so the last value asked is the one that lands;
-// one that waited on a step, or on a write that did not land, is not
-// written, and the receipt says so.
+// press or a step is not taken, and a commit (a nudge, a field) waits in
+// `next`, shown at once: joined onto one waiting for the same cue or knob
+// (its fields merged, the last asked of each winning), else after the rest,
+// each written in turn once the write before it lands, so the last value
+// asked of every field is the one that lands; those that waited on a step,
+// or on a write that did not land, are not written, and the receipt says so.
 //
 //   Idle | Written | Refused ─Press→ Pressed ─Move→ Dragging ─Release→ Writing
 //                   ─Commit | Step→ Writing ─Wrote→ Written | ─Failed | TimedOut→ Refused
@@ -26,7 +27,7 @@
 // once it lands, and the lab's check says by that id whether it did. Nothing
 // here touches the DOM: the stage and the API are services, faked in tests.
 
-import { Array as Arr, Duration, Effect, Match, Option, Schema } from 'effect';
+import { Array as Arr, Duration, Effect, Equal, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { SceneEdit } from '../../canvas/film.ts';
 import { CheckLine, type CheckReport, LabWrite } from '../../core/schema.ts';
@@ -35,7 +36,7 @@ import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { readAtLoad } from '../../player/narrated.ts';
 import { LabApi, LabUnreachable, StepVerb } from '../api.ts';
 import { Stage } from '../stage.ts';
-import { Grip, Pointer, StepWrite, Write, drag, wroteNote } from './grip.ts';
+import { Grip, Pointer, StepWrite, Write, drag, joined, wroteNote } from './grip.ts';
 
 /**
  * How long a write may be out before the editor gives up on it: a server that
@@ -59,11 +60,15 @@ const CHECK_WAIT = Duration.seconds(15);
 
 /**
  * A commit asked while a write is out (a nudge, a field): shown at once, so
- * the next one moves on from it, and written once that write lands; a later
- * one replaces it, so the last asked is the one written.
+ * the next one moves on from it, and written once that write lands. One to
+ * the same thing as one waiting joins it (`joined`: the fields merged, the
+ * last asked value of each winning); one to another thing waits after it.
+ * `edit` is what its scene shows now, the latest of its scene's commits.
  */
 const Queued = Schema.Struct({ write: Write, edit: SceneEdit });
 type Queued = typeof Queued.Type;
+const Waiting = Schema.Array(Queued);
+type Waiting = typeof Waiting.Type;
 
 export const EditState = State({
   /** At rest: `note` is what the last thing done said, if anything. */
@@ -73,13 +78,13 @@ export const EditState = State({
   /** A cue or a knob handle is being dragged: `write` is what its release sends, none when back where it began. */
   Dragging: { grip: Grip, write: Schema.Option(Write), note: Schema.String },
   /**
-   * A write is out: the server is changing a scene file. `next` is the
-   * commit asked while it is out (the last asked), shown already and
-   * written once this one lands.
+   * A write is out: the server is changing a scene file. `next` is what was
+   * asked while it is out, one write per thing in the order first asked
+   * (`Queued`), shown already and written in turn once this one lands.
    */
-  Writing: { write: Write, next: Schema.Option(Queued) },
+  Writing: { write: Write, next: Waiting },
   /** An Undo or Redo had no answer in STEP_TIMEOUT_S: the lab is asked whether it landed, by its request's id. */
-  Checking: { write: StepWrite, next: Schema.Option(Queued) },
+  Checking: { write: StepWrite, next: Waiting },
   /**
    * The write landed; the page reloads with it. `undo` is the step that
    * undoes it (Redo for an Undo), and `change` the change it made, by its id
@@ -186,51 +191,77 @@ const noteOf = (state: EditState): string =>
 const letGo = (scene: string, note: string) =>
   Stage.use((stage) => Effect.as(stage.unpreview(scene), EditState.Idle({ note })));
 
-/** Send `write`, holding `#t=` for the reload it causes. */
-const writing = (write: Write) =>
-  Stage.use((stage) => Effect.as(stage.holdT, EditState.Writing({ write, next: Option.none() })));
+/** Send `write`, holding `#t=` for the reload it causes; `next` waits on it. */
+const writing = (write: Write, next: Waiting = []) =>
+  Stage.use((stage) => Effect.as(stage.holdT, EditState.Writing({ write, next })));
 
-/** Show `edit` of `write`'s scene, then send `write`; one the timeline cannot show is refused. */
-const commit = (write: Write, edit: SceneEdit) =>
+/** What a waiting commit says when it is not written: `n` of them. */
+const notWritten = (n: number) => {
+  if (n === 1) return 'the edit asked while it was out was not written';
+  return `the ${n} edits asked while it was out were not written`;
+};
+
+/** `said`, with why the commits waiting as `next`, if any, were not written (`why`). */
+const sayDropped = (said: string, next: Waiting, why = ''): string => {
+  if (next.length === 0) return said;
+  return `${said}; ${notWritten(next.length)}${why}`;
+};
+
+/** Put back what the commits waiting as `next` showed: they will not be written. */
+const dropNext = (next: Waiting) =>
+  Stage.use((stage) =>
+    Effect.forEach(Arr.dedupe(next.flatMap((q) => Option.toArray(sceneOfWrite(q.write)))), (s) =>
+      stage.unpreview(s),
+    ),
+  );
+
+/**
+ * Show `edit` of `write`'s scene, then send `write`, `next` waiting on it;
+ * one the timeline cannot show is refused, and what waited with it put back.
+ */
+const commit = (write: Write, edit: SceneEdit, next: Waiting = []) =>
   Option.match(sceneOfWrite(write), {
-    onNone: () => writing(write),
+    onNone: () => writing(write, next),
     onSome: (scene) =>
       Stage.use((stage) =>
         stage.preview(scene, edit).pipe(
-          Effect.flatMap(() => writing(write)),
+          Effect.flatMap(() => writing(write, next)),
           Effect.catchTag('NotPreviewed', (e) =>
-            Effect.succeed(EditState.Refused({ message: e.message })),
+            Effect.as(dropNext(next), EditState.Refused({ message: sayDropped(e.message, next) })),
           ),
         ),
       ),
   });
 
 /**
- * A commit asked while a write is out, waiting as `next`: shown now (so a
- * nudge after it moves on from it; one the timeline cannot show is shown
- * when it is written, and refused then), replacing any that waited.
+ * `next` with a commit asked while a write is out: shown now (so a nudge
+ * after it moves on from it; one the timeline cannot show is shown when it
+ * is written, and refused then), joined onto the one waiting for the same
+ * thing (`joined`), else waiting after the rest; every waiting commit of its
+ * scene now shows its edit, the latest.
  */
-const queued = (write: Write, edit: SceneEdit) =>
+const queued = (next: Waiting, write: Write, edit: SceneEdit) =>
   Stage.use((stage) =>
     Option.match(sceneOfWrite(write), {
       onNone: () => Effect.void,
       onSome: (scene) => Effect.ignore(stage.preview(scene, edit)),
     }),
-  ).pipe(Effect.as(Option.some<Queued>({ write, edit })));
-
-/** What a waiting commit says when it is not written. */
-const NOT_WRITTEN = 'the edit asked while it was out was not written';
-
-/** `said`, with why the commit waiting as `next`, if one does, was not written (`why`). */
-const sayDropped = (said: string, next: Option.Option<Queued>, why = ''): string =>
-  Option.match(next, { onNone: () => said, onSome: () => `${said}; ${NOT_WRITTEN}${why}` });
-
-/** Put back what the commit waiting as `next` showed, if one does: it will not be written. */
-const dropNext = (next: Option.Option<Queued>) =>
-  Stage.use((stage) =>
-    Option.match(
-      Option.flatMap(next, (q) => sceneOfWrite(q.write)),
-      { onNone: () => Effect.void, onSome: stage.unpreview },
+  ).pipe(
+    Effect.as(
+      Option.match(
+        Arr.findFirst(next, (q) => joined(q.write, write)),
+        {
+          onNone: () => [...next, { write, edit }],
+          onSome: (both) =>
+            next.map((q) => {
+              if (Option.isSome(joined(q.write, write))) return { write: both, edit };
+              return q;
+            }),
+        },
+      ).map((q) => {
+        if (Equal.equals(sceneOfWrite(q.write), sceneOfWrite(write))) return { ...q, edit };
+        return q;
+      }),
     ),
   );
 
@@ -238,7 +269,7 @@ const dropNext = (next: Option.Option<Queued>) =>
 const beforeStep = (step: StepWrite) => `: it was asked of the film before the ${step.verb}`;
 
 /** A write that did not land: let `#t=` go, put the preview back, and say `message`. */
-const refuse = (write: Write, message: string, next: Option.Option<Queued> = Option.none()) =>
+const refuse = (write: Write, message: string, next: Waiting = []) =>
   Stage.use((stage) =>
     stage.settle.pipe(
       Effect.andThen(
@@ -254,10 +285,11 @@ const refuse = (write: Write, message: string, next: Option.Option<Queued> = Opt
 
 /**
  * `write` landed as `result`: Written, reloading the page itself for a file
- * it reads at load (no rebuild follows one). A commit waiting on it is
- * written next (a step's is not: it was asked of the film before the step).
+ * it reads at load (no rebuild follows one). The commits waiting on it are
+ * written next, in turn (a step's are not: they were asked of the film
+ * before the step).
  */
-const landedAs = (write: Write, result: LabWrite, next: Option.Option<Queued>) => {
+const landedAs = (write: Write, result: LabWrite, next: Waiting) => {
   const written = (note: string) =>
     EditState.Written({
       note,
@@ -277,9 +309,9 @@ const landedAs = (write: Write, result: LabWrite, next: Option.Option<Queued>) =
       ),
     ),
     Match.orElse(() =>
-      Option.match(next, {
+      Option.match(Arr.head(next), {
         onNone: () => rest(wroteNote(write, result)),
-        onSome: (q) => commit(q.write, q.edit),
+        onSome: (q) => commit(q.write, q.edit, next.slice(1)),
       }),
     ),
   );
@@ -317,13 +349,17 @@ export const editMachine = Machine.make({
     letGo(state.grip.scene, state.note),
   )
   .on(AT_REST, EditEvent.Commit, ({ event }) => commit(event.write, event.edit))
-  // A commit while a write is out waits (shown now), the last asked replacing the one before:
-  // never dropped. The same state, so the write out and its wait go on (no reentry).
+  // A commit while a write is out waits (shown now), joined onto one waiting for the same thing,
+  // else after the rest: never dropped. The same state, so the write out and its wait go on (no reentry).
   .on(EditState.Writing, EditEvent.Commit, ({ state, event }) =>
-    Effect.map(queued(event.write, event.edit), (next) => EditState.Writing({ ...state, next })),
+    Effect.map(queued(state.next, event.write, event.edit), (next) =>
+      EditState.Writing({ ...state, next }),
+    ),
   )
   .on(EditState.Checking, EditEvent.Commit, ({ state, event }) =>
-    Effect.map(queued(event.write, event.edit), (next) => EditState.Checking({ ...state, next })),
+    Effect.map(queued(state.next, event.write, event.edit), (next) =>
+      EditState.Checking({ ...state, next }),
+    ),
   )
   .on(AT_REST, EditEvent.Step, ({ event }) =>
     writing(StepWrite.make({ verb: event.verb, request: event.request, change: event.change })),

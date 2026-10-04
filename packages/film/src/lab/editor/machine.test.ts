@@ -2,12 +2,22 @@
 // the film; moves preview the drag; a release that changed something writes,
 // holding `#t=` for the reload, and one that did not puts the preview back.
 // Fields and Undo commit straight from rest. One write at a time: a press or
-// a step while a write is out is not taken, and a commit waits (shown), the
-// last asked written once the write lands. A write lands (Written, with
+// a step while a write is out is not taken, and a commit waits (shown),
+// joined onto one for the same thing (its fields merged) or after the rest,
+// each written in turn once the write before it lands. A write lands (Written, with
 // the server's findings) or is refused (Refused, the server's text), and a
 // refusal lets `#t=` go and puts the preview back.
 
-import { Deferred, Effect, Exit, Layer, Option, Predicate, SubscriptionRef } from 'effect';
+import {
+  Array as Arr,
+  Deferred,
+  Effect,
+  Exit,
+  Layer,
+  Option,
+  Predicate,
+  SubscriptionRef,
+} from 'effect';
 import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
@@ -130,7 +140,7 @@ describe('a drag on the strip', () => {
             patch: { offset: 0.3 },
             said: 'cue rise offset 0 → 0.3 s',
           }),
-          next: Option.none(),
+          next: [],
         }),
       );
       expect(log).toEqual(['pause', 'preview one rise', 'preview one rise', 'holdT']);
@@ -220,7 +230,7 @@ describe('a drag of a knob handle', () => {
             value: [380, 200],
             said: 'knob face [400, 200] → [380, 200]',
           }),
-          next: Option.none(),
+          next: [],
         }),
       );
       expect(log).toEqual(['pause', 'preview three face,faceZoom', 'holdT']);
@@ -277,7 +287,7 @@ describe('writes', () => {
       expect(result.finalState).toEqual(
         EditState.Writing({
           write: StepWrite.make({ verb: 'undo', request: 'undo-1', change: Option.none() }),
-          next: Option.none(),
+          next: [],
         }),
       );
       expect(log).toEqual(['holdT']);
@@ -292,12 +302,12 @@ describe('writes', () => {
         EditEvent.Press({ grip }),
         EditEvent.Step({ verb: 'redo', request: 'redo-1', change: Option.none() }),
       ]);
-      expect(result.finalState).toEqual(EditState.Writing({ write: undo, next: Option.none() }));
+      expect(result.finalState).toEqual(EditState.Writing({ write: undo, next: [] }));
     }).pipe(Effect.provide(fakes().layer)),
   );
 
   it.effect(
-    'a commit while a write is out is shown and waits, the last one asked replacing the one before; it is written once the write lands',
+    'a commit while a write is out is shown and waits, the last one asked of its field joining the one before; it is written once the write lands',
     () => {
       const { log, layer } = fakes();
       return Effect.gen(function* () {
@@ -320,11 +330,9 @@ describe('writes', () => {
         ]);
         // The last asked is the one that waits, and the one written once the first lands.
         expect(result.states[3]).toEqual(
-          EditState.Writing({ write: nudge(0.033).write, next: Option.some(nudge(0.1)) }),
+          EditState.Writing({ write: nudge(0.033).write, next: [nudge(0.1)] }),
         );
-        expect(result.finalState).toEqual(
-          EditState.Writing({ write: nudge(0.1).write, next: Option.none() }),
-        );
+        expect(result.finalState).toEqual(EditState.Writing({ write: nudge(0.1).write, next: [] }));
         // Each is shown as it is asked, so the next nudge moves on from it.
         expect(log).toEqual([
           'preview one rise',
@@ -336,6 +344,55 @@ describe('writes', () => {
         ]);
       }).pipe(Effect.provide(layer));
     },
+  );
+
+  it.effect(
+    'a commit to another field of the cue that waits joins it: both fields are written, each as last asked',
+    () =>
+      Effect.gen(function* () {
+        const cue = (patch: CueWrite['patch'], said: string) => ({
+          write: CueWrite.make({ scene: 'one', cue: 'rise', patch, said }),
+          edit: { timeline: { rise: { mark: 'rise', dur: 0.6 } } },
+        });
+        const result = yield* simulate(editMachine, [
+          EditEvent.Commit(cue({ offset: 0.033 }, 'cue rise offset 0 → 0.033 s')),
+          EditEvent.Commit(cue({ offset: 0.066 }, 'cue rise offset 0.033 → 0.066 s')),
+          EditEvent.Commit(cue({ dur: 1.033 }, 'cue rise dur 0.6 → 1.033 s')),
+          EditEvent.Wrote({ result: landed }),
+        ]);
+        // The offset shown (0.066) is written, with the dur: neither replaces the other.
+        expect(result.finalState).toMatchObject({
+          _tag: 'Writing',
+          write: {
+            _tag: 'CueWrite',
+            patch: { offset: 0.066, dur: 1.033 },
+            said: 'cue rise offset 0.033 → 0.066 s; cue rise dur 0.6 → 1.033 s',
+          },
+        });
+      }).pipe(Effect.provide(fakes().layer)),
+  );
+
+  it.effect(
+    'a commit to another thing (a knob) while one waits waits after it: each is written in turn, none dropped',
+    () =>
+      Effect.gen(function* () {
+        const offset = CueWrite.make({ scene: 'one', cue: 'rise', patch: { offset: 0.066 } });
+        const palm = KnobWrite.make({ scene: 'one', knob: 'palm', value: 0.5 });
+        const result = yield* simulate(editMachine, [
+          EditEvent.Commit({ write: cueWrite, edit: {} }),
+          EditEvent.Commit({ write: offset, edit: {} }),
+          EditEvent.Commit({ write: palm, edit: {} }),
+          EditEvent.Wrote({ result: landed }),
+          EditEvent.Wrote({ result: landed }),
+          EditEvent.Wrote({ result: landed }),
+        ]);
+        const sent = result.states.flatMap((s) => {
+          if (s._tag !== 'Writing') return [];
+          return [s.write];
+        });
+        expect(Arr.dedupeWith(sent, (a, b) => a === b)).toEqual([cueWrite, offset, palm]);
+        expect(result.finalState._tag).toBe('Written');
+      }).pipe(Effect.provide(fakes().layer)),
   );
 
   it.effect(

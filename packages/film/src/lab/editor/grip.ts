@@ -158,6 +158,64 @@ export type StepWrite = typeof StepWrite.Type;
 export const Write = Schema.Union([CueWrite, KnobWrite, StepWrite]);
 export type Write = typeof Write.Type;
 
+/** `b`'s fields over `a`'s: a dur replaces an until and an until a dur, as a span ends one way. */
+const patchOver = (a: CuePatch, b: CuePatch): CuePatch => {
+  if (!('dur' in b) && !('until' in b)) return { ...a, ...b };
+  const { dur: _dur, until: _until, ...fields } = a;
+  return { ...fields, ...b };
+};
+
+/** What a write's words say, a part per field (`cue rise offset 0 → 0.033 s`). */
+const saidParts = (write: Pick<CueWrite, 'said'>): ReadonlyArray<string> =>
+  Option.match(Option.fromUndefinedOr(write.said), {
+    onNone: () => [],
+    onSome: (text) => text.split('; ').filter((part) => part !== ''),
+  });
+
+/** The field a part of a cue write's words is about: `cue rise offset`. */
+const partField = (part: string) => part.split(' ').slice(0, 3).join(' ');
+
+/** `b`'s words over `a`'s: `a`'s parts for the fields `b` leaves, then `b`'s. */
+const saidOver = (a: Pick<CueWrite, 'said'>, b: Pick<CueWrite, 'said'>) => {
+  const later = saidParts(b);
+  const fields = new Set(later.map(partField));
+  const text = [...saidParts(a).filter((part) => !fields.has(partField(part))), ...later].join(
+    '; ',
+  );
+  return Option.match(
+    Option.liftPredicate(text, (t) => t !== ''),
+    {
+      onNone: () => ({}),
+      onSome: (said) => ({ said }),
+    },
+  );
+};
+
+/**
+ * `later` joined onto `earlier` when both write the same thing, as one
+ * write: a cue's fields merged, the later value of a field winning, its
+ * words a part per field; a knob's later value. None for two different
+ * things (another cue, a knob, a step), which are written each in turn.
+ */
+export const joined = (earlier: Write, later: Write): Option.Option<Write> =>
+  Match.value([earlier, later] as const).pipe(
+    Match.when([{ _tag: 'CueWrite' }, { _tag: 'CueWrite' }], ([a, b]): Option.Option<Write> =>
+      Option.liftPredicate(
+        CueWrite.make({
+          scene: b.scene,
+          cue: b.cue,
+          patch: patchOver(a.patch, b.patch),
+          ...saidOver(a, b),
+        }),
+        () => a.scene === b.scene && a.cue === b.cue,
+      ),
+    ),
+    Match.when([{ _tag: 'KnobWrite' }, { _tag: 'KnobWrite' }], ([a, b]): Option.Option<Write> =>
+      Option.liftPredicate(b, () => a.scene === b.scene && a.knob === b.knob),
+    ),
+    Match.orElse(() => Option.none()),
+  );
+
 /** Where a drag has got to: the write its release makes (none when back where it began) and the edit it shows. */
 interface Dragged {
   readonly write: Option.Option<CueWrite | KnobWrite>;
