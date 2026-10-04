@@ -1673,7 +1673,7 @@ versions or more is judged, several are `JudgePointAmbiguous`, none
 `JudgeNothingToCompare`. The moments are the scene's marks and its cues'
 middles, one per frame, at most `JUDGE_MOMENTS` (12) spread evenly
 (`judgeMoments`); stills are 1280-pixel JPEGs, copied to
-`out/<film>/judge/<scene>-<stamp>/stills/<label>-<nn>.jpg`. The labels are
+`out/<film>/judge/<scene>-<stamp>-<draw>/stills/<label>-<nn>.jpg`. The labels are
 drawn by `Random.shuffle`; `key.json` (`JudgeKey`) holds which is which and
 is never in `packet.md` (`packetOf`): the beat's words, its picture's brief,
 its register (`registersOf`, the head of the brief) and act, the app's rules

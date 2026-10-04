@@ -12,7 +12,7 @@
 // middles), labelled in an order drawn at random; the key goes to `key.json`
 // and never into the packet; the counsel (`tools/counsel.ts`) ranks them
 // against the app's rules that bear on the beat; the answer is unblinded into
-// `verdict.md`. All of it under `out/<film>/judge/<scene>-<stamp>/`. The judge
+// `verdict.md`. All of it under `out/<film>/judge/<scene>-<stamp>-<draw>/`. The judge
 // writes no choice.
 
 import {
@@ -107,11 +107,33 @@ interface Judged {
   readonly ranking: Ranking;
 }
 
-/** The judge's folder's name for now: `20261004T151200Z`. */
+/** The judge's folder's stamp for now: `20261004T151200Z`. */
 const stampOf = (now: DateTime.Utc) =>
   DateTime.formatIso(now)
     .replace(/\.\d+Z$/, 'Z')
     .replace(/[-:]/g, '');
+
+/** The most draws a judge makes for a folder of its own before it gives up. */
+const FOLDER_TRIES = 8;
+
+const isAlreadyExists = (error: PlatformError) => error.reason._tag === 'AlreadyExists';
+
+/**
+ * A folder of this run's own under `under`: `<scene>-<stamp>-<draw>`, made
+ * by this run alone (a folder made only if there is none), drawn again on
+ * the rare clash, so two judges in one second never share one.
+ */
+const runFolder = Effect.fnUntraced(function* (under: string, scene: string, now: DateTime.Utc) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  yield* fs.makeDirectory(under, { recursive: true });
+  return yield* Effect.gen(function* () {
+    const draw = (yield* Random.nextIntBetween(0, 36 ** 4)).toString(36).padStart(4, '0');
+    const dir = path.join(under, `${scene}-${stampOf(now)}-${draw}`);
+    yield* fs.makeDirectory(dir);
+    return dir;
+  }).pipe(Effect.retry({ while: isAlreadyExists, times: FOLDER_TRIES }));
+});
 
 const encodeKey = Schema.encodeSync(JudgeKeyJson);
 
@@ -369,7 +391,7 @@ export const judge = Effect.fn('judge')(function* <TE, TR>(ask: JudgeAsk<TE, TR>
 
   // The folder, the labels drawn at random, and every version's stills at the same moments.
   const now = yield* DateTime.now;
-  const dir = path.join(loaded.paths.out, 'judge', `${scene.id}-${stampOf(now)}`);
+  const dir = yield* runFolder(path.join(loaded.paths.out, 'judge'), scene.id, now);
   const stills = path.join(dir, 'stills');
   yield* fs.makeDirectory(stills, { recursive: true });
   const moments = judgeMoments(scene);

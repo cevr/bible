@@ -228,6 +228,22 @@ describe('film judge', () => {
       ),
   );
 
+  it.effect('two judges in the same second keep a folder each', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      // The test clock stands still: both runs share their stamp to the second.
+      const one = yield* judgeOpen(Option.some('look:ground'));
+      const two = yield* judgeOpen(Option.some('look:ground'));
+      expect(two.dir).not.toBe(one.dir);
+      for (const run of [one, two]) {
+        expect((yield* keyOf(run.dir)).point).toBe('look:ground');
+        expect(yield* fs.exists(run.verdict)).toBe(true);
+        expect(yield* fs.readDirectory(path.join(run.dir, 'stills'))).toHaveLength(2);
+      }
+    }).pipe(Effect.scoped, Effect.provide(judging('{ dusk: 0, noon: 0.5 }', reversed))),
+  );
+
   it.effect('a sound choice, a look the film lacks, and one version alone are refused', () =>
     Effect.gen(function* () {
       const tagOf = (point: Option.Option<string>) =>
