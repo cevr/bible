@@ -93,6 +93,16 @@ export interface Tab {
     readonly up: Effect.Effect<void>;
     readonly click: (x: number, y: number) => Effect.Effect<void>;
   };
+  /**
+   * One finger, as the browser's touch input sends it (its touch events and
+   * the pointer events it makes, `pointerType: 'touch'`): put down at `x`,
+   * `y`, moved there in `steps` moves, lifted where it is.
+   */
+  readonly finger: {
+    readonly down: (x: number, y: number) => Effect.Effect<void>;
+    readonly move: (x: number, y: number, steps?: number) => Effect.Effect<void>;
+    readonly up: Effect.Effect<void>;
+  };
   /** Go to `path` (`/films/probe/lab`, a page's link) on the tab's origin; done when it has loaded. */
   readonly goto: (path: string) => Effect.Effect<void>;
   readonly reload: Effect.Effect<void>;
@@ -496,6 +506,32 @@ export const makeTab = (
     );
     const clickAt = (x: number, y: number) => Effect.andThen(move(x, y), Effect.andThen(down, up));
 
+    let fingerAt = { x: 0, y: 0 };
+    const touchEvent = (type: string, points: ReadonlyArray<{ x: number; y: number }>) =>
+      call('Input.dispatchTouchEvent', {
+        type,
+        touchPoints: points.map((p) => ({ x: p.x, y: p.y, id: 1, radiusX: 1, radiusY: 1 })),
+      });
+    const finger: Tab['finger'] = {
+      down: (x, y) =>
+        Effect.andThen(
+          Effect.sync(() => {
+            fingerAt = { x, y };
+          }),
+          touchEvent('touchStart', [{ x, y }]),
+        ),
+      move: (x, y, steps = 1) =>
+        Effect.gen(function* () {
+          const from = fingerAt;
+          for (let i = 1; i <= steps; i++)
+            yield* touchEvent('touchMove', [
+              { x: from.x + ((x - from.x) * i) / steps, y: from.y + ((y - from.y) * i) / steps },
+            ]);
+          fingerAt = { x, y };
+        }),
+      up: Effect.suspend(() => touchEvent('touchEnd', [])),
+    };
+
     const press = (combo: string) =>
       Effect.gen(function* () {
         const names = combo.split('+');
@@ -568,6 +604,7 @@ export const makeTab = (
       press,
       pressIn: (selector, key) => Effect.andThen(focus(selector), press(key)),
       mouse: { move, down, up, click: clickAt },
+      finger,
       goto: (path) => Effect.promise(() => view.navigate(`${origin}${path}`)),
       reload: Effect.promise(() => view.reload()),
       // Bun's `back` is typed but not there at run time (1.4.2): the page goes back itself.

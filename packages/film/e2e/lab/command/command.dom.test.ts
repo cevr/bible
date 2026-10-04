@@ -163,9 +163,12 @@ describe("a cue's context menu", () => {
       const { page } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor(RISE);
       yield* evaluates(page, URL_T, 1);
+      // The browser's own finger (its touch and pointer events), still held past
+      // the long press: the move, never a lift, keeps the menu shut.
       yield* touch(page, RISE, 40);
       yield* page.clock.runFor(700);
       yield* evaluates(page, `document.querySelector('[data-role="context-menu"]') === null`, true);
+      yield* page.finger.up;
       yield* touch(page, RISE, 0);
       yield* page.clock.runFor(700);
       yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');

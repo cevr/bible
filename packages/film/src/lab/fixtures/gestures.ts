@@ -1,6 +1,6 @@
 // The gestures the browser tests make on a page as the browser fires them:
-// a right-click (the press, then the menu's event) and a touch held or
-// moved, each on the middle of an element's box; the commands an open
+// a right-click (the press, then the menu's event) and a finger held or
+// moved (the browser's own touch input), each on the middle of an element's box; the commands an open
 // context menu lists; and the command menu (⌘K) opened on what is typed,
 // and closed. Shared by every page's tests.
 
@@ -27,16 +27,20 @@ export const rightClick = (page: Tab, selector: string) =>
      el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, button: 2, clientX: x, clientY: y }));`,
   );
 
-/** A touch on `selector`'s middle, moved `dx` px along, still held. */
+/**
+ * A finger put down on `selector`'s middle and moved `dx` px along, a pixel
+ * or two a move, and still held: the browser's own touch input, so the page
+ * hears its touch events and the pointer events it makes (a drag follows
+ * it). Lift it with `page.finger.up`.
+ */
 export const touch = (page: Tab, selector: string, dx: number) =>
-  fire(
-    page,
-    selector,
-    `const at = (cx) => [new Touch({ identifier: 1, target: el, clientX: cx, clientY: y })];
-     el.dispatchEvent(new TouchEvent('touchstart', { bubbles: true, cancelable: true, touches: at(x) }));
-     if (${dx} !== 0) el.dispatchEvent(new TouchEvent('touchmove', { bubbles: true, cancelable: true, touches: at(x + ${dx}) }));
-     if (${dx} !== 0) el.dispatchEvent(new TouchEvent('touchend', { bubbles: true, cancelable: true, touches: [] }));`,
-  );
+  Effect.gen(function* () {
+    const at = yield* page.box(selector);
+    const x = at.x + at.width / 2;
+    const y = at.y + at.height / 2;
+    yield* page.finger.down(x, y);
+    if (dx !== 0) yield* page.finger.move(x + dx, y, Math.ceil(Math.abs(dx) / 2));
+  });
 
 /** The ids of the commands the open context menu lists, in order (a script `evaluates` reads). */
 export const MENU_ITEMS = `[...document.querySelectorAll('[data-role="context-menu"] [data-command]')].map((e) => e.dataset.command)`;
