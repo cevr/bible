@@ -535,6 +535,19 @@ describe('the review page', () => {
           "Array.from(document.querySelectorAll('.rv-wipe canvas')).map((c) => `${c.dataset.id}:${c.width}x${c.height}`).join()";
         yield* until(page, `${panes} === 'A:64x64,B:64x64'`);
         yield* countIs(page, '.rv-wipe video', 0);
+        // Shown as the videos are, whatever their picture's size: each pane the wipe's
+        // full width at 16:9, the two over each other, the frame no taller than they are.
+        const shown = `(() => {
+          const frame = document.querySelector('.rv-wipe').getBoundingClientRect();
+          return Array.from(document.querySelectorAll('.rv-wipe canvas')).map((c) => {
+            const r = c.getBoundingClientRect();
+            return [Math.round(r.left - frame.left), Math.round(r.top - frame.top), Math.round(r.width - frame.width), Math.round(r.height - (frame.width * 9) / 16), Math.round(frame.height - r.height)].join(' ');
+          });
+        })()`;
+        yield* evaluates(page, shown, ['0 0 0 0 0', '0 0 0 0 0']);
+        yield* page.resize(390, 844);
+        yield* evaluates(page, shown, ['0 0 0 0 0', '0 0 0 0 0']);
+        yield* page.resize(1400, 900);
         // The other pane is the one clipped right of the divider.
         yield* waitFor(page, '.rv-wipe-other canvas[data-id="B"]');
         // The set's clock holds the panes: it is measured from the first, and plays.

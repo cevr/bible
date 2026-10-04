@@ -52,7 +52,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-zoom { cursor: zoom-in; }
 /* The pair wiped (PA-8): both videos stacked full width, the other right of the divider. */
 .rv-wipe { position: relative; background: var(--surface-0); overflow: hidden; touch-action: pan-y; }
-.rv-wipe video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
+.rv-wipe video, .rv-wipe canvas { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
 .rv-wipe .rv-wipe-other { position: absolute; inset: 0; }
 .rv-wipe-line { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--on-picture); }
 .rv-wipe-grip {
