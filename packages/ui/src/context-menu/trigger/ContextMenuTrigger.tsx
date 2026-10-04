@@ -6,6 +6,10 @@
 // suppressed over the area and the menu's backdrops. After a right click,
 // releasing the button over nothing in the menu more than 500ms later closes
 // it again, so a press-drag-release gesture works like a native menu.
+// The long press reads the trigger's own touch events, as upstream does:
+// this package is a leaf with no Effect, and a consumer's drag (the film
+// lab's `Pointer` scrub) moves past the 10px threshold, which cancels the
+// press, so the two do not need one owner.
 import type { JSX } from '@solidjs/web';
 import { createEffect, omit, onCleanup, untrack } from 'solid-js';
 
