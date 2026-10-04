@@ -8,6 +8,7 @@
 // each of those three places until it is written there.
 
 import { Schema } from 'effect';
+import { SceneTimes, type StillView } from './easel.ts';
 import { type Encoder, EncoderChoice } from './encoder.ts';
 import { Point } from './schema.ts';
 
@@ -257,6 +258,10 @@ export interface CallArgs {
    * ms each took: the draw alone, with no encoder or transfer in it.
    */
   readonly drawTimes: readonly [frames: ReadonlyArray<number>];
+  /** Every scene's clock (`SceneTimes`): where a look's place falls (`core/easel.ts`). */
+  readonly scenes: readonly [];
+  /** Frame `i` drawn and shown as `view` asks (a crop, a size, a mode, its captions), encoded: a look. */
+  readonly still: readonly [i: number, view: StillView];
 }
 
 /** A call's name. */
@@ -273,6 +278,8 @@ const Answers = {
   look: LookedFrames,
   luma: Schema.Array(Schema.Finite),
   drawTimes: Schema.Array(Schema.Finite),
+  scenes: Schema.Array(SceneTimes),
+  still: Schema.Uint8ArrayFromBase64,
 } satisfies { readonly [K in ExportCall]: Schema.Top };
 
 /** Each call's answer as the page hands it back (bytes as base64). */

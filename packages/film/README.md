@@ -1076,9 +1076,9 @@ in an `<img>` or `<audio>` (`stillUrl`, `attemptUrl`, `reviewFileUrl`,
 `reviewPhoneUrl`, `reviewFrameUrl`, `choiceAloneUrl`, `choiceMixUrl`, from
 `urlBuilder`).
 
-| API          | Served by                 | Groups                                                                                                                                                                   |
-| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `LabHttpApi` | `film lab` (`labHandler`) | `notes`, `scenes` (source, head, cue, knob), `steps` (undo, redo, check), `studio`, `review` (index, file, phone, frame, duration), `choices`, `project`, `page` (build) |
+| API          | Served by                 | Groups                                                                                                                                                                                   |
+| ------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LabHttpApi` | `film lab` (`labHandler`) | `notes`, `scenes` (source, head, cue, knob), `steps` (undo, redo, check), `studio`, `review` (index, file, phone, frame, duration), `choices`, `project`, `looks` (take), `page` (build) |
 
 **Failures cross as themselves.** A failure a route answers is one of
 `Refusals` (`core/api.ts`; the classes are `core/refusals.ts` and
@@ -1591,6 +1591,59 @@ first scene. `film chapters <film>` prints them, `mm:ss title` a line, and a
 whole-film `render` writes them beside the video as `main.chapters.txt`.
 Fewer than three, a first past 00:00, or one under 10 s fail with
 `ChaptersInvalid` (a render logs the reason and writes none).
+
+### The easel: `film look`
+
+A look is a still of a scene as its sources stand, drawn in about a second
+with no render: the painter's step back from the easel after a passage. The
+lab holds one export page per film open in its own process's Chrome
+(`Easel`, `tools/easel.ts`, over the `Browser` a render uses: no second
+launcher), at `/films/<film>/play?export` on the lab's own address, and a
+look seeks it to the frame and takes the canvas through the view
+(`ExportHandle.still`, composed by `player/still.ts`). `film look` is a thin
+client of the route (`tools/easel-cli.ts`, an `HttpApiClient` of
+`LabHttpApi` at `FILM_LAB_URL`, else `http://127.0.0.1:8229/`); an agent's
+tool calls the route the same way.
+
+| Route                          | What it does                                                                                                                                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/films/<film>/looks` | `LookPost` `{scene, at: [place, …], view: {crop?, size?, mode, captions, format}, from?}` → `LookTaken` `{build, looks: [{file, scene, at, frame, time, width, height}]}` |
+
+**Never stale.** Every look first asks the pages' build as it stands
+(`LabPage.built`): a file the last build read that changed since it
+started, saved or gone, whether or not the watch has heard it yet, is built
+first, and a build under way is waited out. A failed build is a 422
+`PagesBroken` with the bundler's words and no still. The page is held per
+build (`<server>.<build>`, the `LabPage` stamp): a new build closes it and
+opens a fresh one, so the page always runs the code on disk; a page that
+fails a frame is closed too, and the next look opens another. Looks run one
+at a time.
+
+**Places and views** (`core/easel.ts`, pure). A place is seconds into the
+scene (`2.5`), `mark:<name>` (the mark's word, as `scenesOf` places it) or
+`cue:<name>[@<share>]` (0 the cue's start, 1 its end); it resolves to the
+nearest frame inside the scene's own frames (`momentOf`) and answers that
+frame's time. A mark or cue the scene lacks is a 404 `LookPlaceUnknown`
+naming the ones it has, seconds past the scene's end a 422
+`LookOutOfRange`, a scene the film lacks a 404 `UnknownScene`, words that
+name no place or a crop off the frame a 400 `LookInvalid`. The view crops
+(corners in canvas pixels, held to the frame, shown at 1:1), scales the long
+side (`size`, 16 to 4096), and draws `plain`, `value` (greys) or `squint`
+(greys blurred by 1.2% of the long side, at least 2 px, over the region's
+edges stretched outward so the frame's border blurs into itself). A crop is
+PNG and a whole frame JPEG at 0.95 unless the format is named
+(`formatFor`): a 1920×1080 PNG of the paper is about 4 MB.
+
+**Files.** Each still is written once, under `out/<film>/look/<scene>/`,
+named by its time, mode, crop, size, captions and build
+(`t0002.33.squint.crop0_0_700_500.b<build>.png`), so a path an agent was
+handed keeps its pixels. `from`, the asker's films folder, guards a lab
+serving another checkout: it refuses with a 409 `LabElsewhere` instead of
+showing its own files. A look whose page fails is a 502 `LookFailed` with
+the page's words. The CLI adds `LabDown` (no lab answered, or one too old to
+know the route). Each look logs `easel.look … ms= built_ms= page_ms=
+draw_ms=`: the build asked, the page opened (0 when held), the frames drawn
+and written.
 
 ## Review
 

@@ -23,6 +23,8 @@ import { type Hub, makeHub } from '../command/hub.ts';
 import { chordLabel } from '../command/keymap.ts';
 import { Pointer } from '../browser/pointer.ts';
 import { composeContact } from './contact.ts';
+import { sceneTimesOf } from '../core/easel.ts';
+import { composeStill } from './still.ts';
 import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
 import { encodeChunk, encoderChoice } from './encode.ts';
 import { composeLookbook, mountLookbook } from './lookbook.ts';
@@ -297,6 +299,11 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
       return canvasLuma(canvas, area);
     },
     drawTimes: (frames) => frames.map(drawn),
+    scenes: () => film.placed.map(sceneTimesOf),
+    still: (i, view) => {
+      film.render(ctx, i / film.fps, { captions: view.captions });
+      return canvasBase64(composeStill(canvas, view), view.format);
+    },
   };
 };
 

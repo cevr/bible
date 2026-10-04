@@ -38,6 +38,16 @@ import { PartAddress } from './address.ts';
 import { Project, RenderVariantName } from './catalogue.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
+import {
+  LabElsewhere,
+  LookFailed,
+  LookInvalid,
+  LookOutOfRange,
+  LookPlaceUnknown,
+  LookPost,
+  LookTaken,
+  PagesBroken,
+} from './easel.ts';
 import { ReviewDuration, ReviewFilms, ReviewFolder, ReviewIndex, ReviewVideo } from './review.ts';
 import {
   AttemptUnknown,
@@ -176,8 +186,10 @@ const Refusals = [
   AttemptUnknown.pipe(status(404)),
   UnknownScene.pipe(status(404)),
   RouteUnknown.pipe(status(404)),
+  LookPlaceUnknown.pipe(status(404)),
   AudioInvalid.pipe(status(400)),
   RequestInvalid.pipe(status(400)),
+  LookInvalid.pipe(status(400)),
   RequestRefused.pipe(status(403)),
   UndoUnavailable.pipe(status(409)),
   RedoUnavailable.pipe(status(409)),
@@ -185,6 +197,7 @@ const Refusals = [
   SourceChanged.pipe(status(409)),
   VerbRefused.pipe(status(409)),
   VersionChanged.pipe(status(409)),
+  LabElsewhere.pipe(status(409)),
   BodyTooLarge.pipe(status(413)),
   WriteNotJson.pipe(status(415)),
   RecordingLossy.pipe(status(415)),
@@ -194,11 +207,14 @@ const Refusals = [
   TakeMismatch.pipe(status(422)),
   RecordingInvalid.pipe(status(422)),
   UnknownVoice.pipe(status(422)),
+  LookOutOfRange.pipe(status(422)),
+  PagesBroken.pipe(status(422)),
   ReviewToolFailed.pipe(status(502)),
   MediaFailed.pipe(status(502)),
   FreshProcessFailed.pipe(status(502)),
   ElevenLabsFailed.pipe(status(502)),
   SttUntimed.pipe(status(502)),
+  LookFailed.pipe(status(502)),
   CatalogueInvalid.pipe(status(500)),
   ServerFailed.pipe(status(500)),
 ] as const;
@@ -557,6 +573,22 @@ export const PageBuild = Schema.Struct({ build: Schema.Finite, server: Schema.St
 export type PageBuild = typeof PageBuild.Type;
 
 /**
+ * A look (`core/easel.ts`): stills of a scene as its sources stand, drawn by
+ * a page the lab holds warm, written under the film's `out/<film>/look/` and
+ * answered by their paths. A tool's call (`film look`), not a page's: it
+ * writes files, never source, and waits for the pages' build of every save
+ * made before it; a build that fails is answered as `PagesBroken`, its words.
+ */
+class LooksGroup extends HttpApiGroup.make('looks').add(
+  HttpApiEndpoint.post('take', `${FILM}/looks`, {
+    params: film,
+    payload: LookPost,
+    success: LookTaken,
+    error: Refusals,
+  }),
+) {}
+
+/**
  * The lab's own pages: a wait, held open up to `timeout` s (at most 60),
  * that answers once a file the pages were built from changed past the build
  * the page was served (`since`), so an open lab reloads onto the new code,
@@ -590,6 +622,7 @@ export class LabHttpApi extends HttpApi.make('lab')
   .add(ReviewGroup)
   .add(ChoicesGroup)
   .add(ProjectGroup)
+  .add(LooksGroup)
   .add(PageGroup) {}
 
 /** A route an API declares: its method and its path, `:param`s and a trailing `*` as declared. */

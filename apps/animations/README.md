@@ -51,6 +51,8 @@ bun run render <film> --scene id[,id] ...      # a video or contact sheet over t
 bun run render <film> --short <id> ...         # out/<film>/shorts/<id>/main.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run render <film> ... --variant <name>     # another render of the same address beside main (<name>.mp4, <name>/stills/…): a look or score option, lab-<id>
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
+bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
+bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer (or {error}) as one line
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
 bun run project render <film> [--scene id,id] [--scale 0.33]  # render each scene on its own into out/<film>/scenes/<id>/; a current one is skipped (--force), a stale:sound one re-muxed (nothing drawn)
 bun run project approve <film> --scene id,id | --act name | --all  # approve scenes' renders (a stale or missing one named is refused), an act's current scenes, or every current one; a re-render leaves the approval stale
@@ -268,6 +270,37 @@ serve a film's narration through the framework's one route
 folder with `scenes/index.ts`, read per request, so a film made while the
 lab runs is served), the file one directly in its `narration/` (never
 `attempts/`); any other name is a 404.
+
+### Looking at a scene: the easel
+
+A painter steps back from the easel after every passage; `bun run look` is
+that step back. It asks the running lab (`FILM_LAB_URL`, else the always-on
+one on 8229) for stills of a scene as its files stand now, and prints one
+line per still: its file, the scene, the place asked, its time in the scene,
+its frame, its pixel size and the lab's build. The lab draws them on an
+export page it keeps open per film (no render, no encode), so a look takes
+about a second once that page is open; the first look after a save rebuilds
+the pages and opens a fresh one first (a few seconds). A look never shows
+stale code: a save the lab's watch has not heard yet is built before the
+still is drawn, a page that does not build answers `PagesBroken` with the
+bundler's words and draws nothing, and a scene, mark or cue the film lacks,
+or a time past the scene's end, is its own refusal (`UnknownScene`,
+`LookPlaceUnknown`, `LookOutOfRange`). No lab answering is `LabDown`: a look
+starts no browser of its own. A lab started from another checkout refuses
+(`LabElsewhere`) rather than show its own files; start a spare one from this
+checkout (`LAB_PORT=8264 bun cli.ts lab`) and point `FILM_LAB_URL` at it.
+
+Two painter's views read the picture apart from its colour. **Value**
+(`--mode value`) is the frame in greys: the light and dark alone, the way a
+value study checks that the subject reads before colour helps it. **Squint**
+(`--mode squint`) is the greys blurred (1.2% of the still's long side): the
+detail goes and the big masses stay, the squint test for where the eye lands
+first. `--crop` shows a region at 1:1 to read faces, hands and lettering;
+`--size` scales the still's long side. A crop is a lossless PNG; a whole
+frame is a JPEG (0.95) unless `--format png` asks, since the paper's grain
+makes a 1920×1080 PNG about 4 MB. Stills are kept under
+`out/<film>/look/<scene>/`, named by time, view and build
+(`t0002.33.value.b<build>.jpg`), and never rewritten.
 
 ## How a film is built
 

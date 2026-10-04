@@ -45,3 +45,4 @@ export * from './source-writer.ts';
 export * from './takes.ts';
 export * from './studio.ts';
 export * from './lab-page.ts';
+export * from './easel.ts';

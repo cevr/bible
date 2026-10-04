@@ -242,6 +242,25 @@ describe('lab routes', () => {
   );
 
   it.effect(
+    'a look reaches the easel: its failure answers with its status and tag, a bad body 400',
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        const url = labUrls.looks.take({ params: { film: 'f' } });
+        const look =
+          '{"scene":"roof","at":["1"],"view":{"mode":"plain","captions":false,"format":"image/png"}}';
+        const failed = yield* Effect.promise(() => lab(post(url, look), bound));
+        expect(failed.status).toBe(502);
+        expect(yield* Effect.promise(() => failed.json())).toMatchObject({
+          _tag: 'LookFailed',
+          reason: 'no easel in this test',
+        });
+        const bad = yield* Effect.promise(() => lab(post(url, '{"scene":"roof","at":[]}'), bound));
+        expect(bad.status).toBe(400);
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+  );
+
+  it.effect(
     'every route names its film: another film is a 404 FilmUnknown, none a 404; nothing is written',
     () =>
       Effect.gen(function* () {

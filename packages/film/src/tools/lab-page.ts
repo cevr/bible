@@ -206,6 +206,8 @@ export class PageBundler extends Context.Service<PageBundler, PageBundlerService
  */
 interface Built {
   readonly build: number;
+  /** When it began reading its sources, ms since the epoch: a file saved since may not be in it. */
+  readonly started: number;
   readonly outcome:
     | {
         readonly _tag: 'Built';
@@ -284,7 +286,24 @@ interface LabPageService {
    * another server.
    */
   readonly wait: (served: Served, timeout: Duration.Input) => Effect.Effect<PageBuild>;
+  /**
+   * The pages as the sources stand now, every save made before the call in
+   * them: a file the last build read that changed since it began counts as a
+   * change even when no watch has heard it yet. The build a page loaded now
+   * is served, and the bundler's words when it failed (a look's freshness,
+   * `tools/easel.ts`).
+   */
+  readonly built: Effect.Effect<PagesNow>;
 }
+
+/** The pages' build now, and why it failed when it did. */
+export interface PagesNow {
+  readonly build: PageBuild;
+  readonly failed: Option.Option<string>;
+}
+
+/** How many of a build's files are checked at once for a save no watch heard. */
+const STATS_AT_ONCE = 32;
 
 export class LabPage extends Context.Service<LabPage, LabPageService>()(
   '@bible/film/tools/LabPage',
@@ -333,6 +352,12 @@ const failedPage = (reason: string, build: PageBuild) =>
   `for(;;){try{const r=await fetch(u);if(r.ok){const b=await r.json();if(b.server!==S||b.build>B)return location.reload()}}catch{}` +
   `await new Promise(f=>setTimeout(f,${FAILED_PAUSE_MS}))}})()</script>` +
   `</body></html>`;
+
+/** Why a build failed: the bundler's words; none for one that built. */
+const failureOf = (built: Built): Option.Option<string> => {
+  if (built.outcome._tag === 'Failed') return Option.some(built.outcome.reason);
+  return Option.none();
+};
 
 /** A build's files; a failed one has none. */
 const filesOf = (built: Built): ReadonlyMap<string, BuiltFile> => {
@@ -609,7 +634,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       ),
     );
     yield* Effect.log(`lab.page.build build=${build} outcome=${outcome._tag}`);
-    return { build, outcome } satisfies Built;
+    return { build, started, outcome } satisfies Built;
   });
 
   /**
@@ -758,5 +783,37 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     });
   });
 
-  return LabPage.of({ answer, wait });
+  /**
+   * A save no watch has heard yet: a file the last good build read, changed
+   * since it began (its mtime at or past `started`), is one more change, so
+   * the next build reads it. A failed build reads everything again anyway.
+   */
+  const unheard = Effect.gen(function* () {
+    const inputs = yield* Ref.get(read);
+    const last = Arr.head(yield* Ref.get(builds));
+    if (Option.isNone(inputs) || Option.isNone(last)) return;
+    const since = last.value.started;
+    const files = [...inputs.value].filter((file) => !file.includes('/node_modules/'));
+    const changed = yield* Effect.forEach(
+      files,
+      (file) =>
+        fs.stat(file).pipe(
+          Effect.map((info) => Option.exists(info.mtime, (at) => at.getTime() >= since)),
+          // Gone since the build read it: changed.
+          Effect.orElseSucceed(() => true),
+        ),
+      { concurrency: STATS_AT_ONCE },
+    );
+    if (!changed.includes(true)) return;
+    yield* Effect.log(`lab.page.unheard files=${changed.filter(Boolean).length}`);
+    yield* sourceChanged;
+  });
+
+  const built = Effect.gen(function* () {
+    yield* unheard;
+    const made = yield* current;
+    return { build: { build: made.build, server }, failed: failureOf(made) } satisfies PagesNow;
+  });
+
+  return LabPage.of({ answer, wait, built });
 });

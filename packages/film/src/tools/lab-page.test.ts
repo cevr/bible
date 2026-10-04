@@ -432,6 +432,35 @@ describe('lab pages', () => {
     }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
+  it.live(
+    "the build a look asks is the files' as they stand: a save just made is built first",
+    () =>
+      Effect.gen(function* () {
+        const { ask, page, script, write } = yield* app;
+        yield* ask('/');
+        // Asked at once after the save, before any watch need have heard it.
+        yield* write('src/p.ts', "console.log('saved just now');\n");
+        const now = yield* page.built;
+        expect(now.build.build).toBeGreaterThan(0);
+        expect(Option.isNone(now.failed)).toBe(true);
+        expect(yield* script).toContain('saved just now');
+        // Asked again with nothing saved: the same build (once past a save in the build's own
+        // millisecond, which is built again rather than risked).
+        const settled = (yield* page.built).build.build;
+        expect((yield* page.built).build.build).toBe(settled);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live("a build that fails is the look's failure, in the bundler's words", () =>
+    Effect.gen(function* () {
+      const { ask, page, write } = yield* app;
+      yield* ask('/');
+      yield* write('src/p.ts', "import './missing.ts';\n");
+      const now = yield* page.built;
+      expect(Option.getOrElse(now.failed, () => '')).toContain('missing.ts');
+    }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
   it.live('a first build that fails hears one save of its fix, with no build before it', () =>
     Effect.gen(function* () {
       const { spec, write } = yield* appFolder;

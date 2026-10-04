@@ -16,6 +16,7 @@
     "render": "bun cli.ts render",
     "project": "bun cli.ts project",
     "lookbook": "bun cli.ts lookbook",
+    "look": "bun cli.ts look",
     "chapters": "bun cli.ts chapters",
     "lab": "bun cli.ts lab",
     "notes": "bun cli.ts notes",
