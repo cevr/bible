@@ -13,7 +13,9 @@
 // (its own sound muted) on the clock, and the sound heard over it, one
 // `<audio>` of the film's whole mix with a variant in place (a score option,
 // a take). Choosing what is heard swaps that one `<audio>`; it joins the
-// clock where it stands.
+// clock where it stands. A variant heard alone (its sound with nothing under
+// it, from its own start) plays on one more `<audio>` the film shares (UR-52):
+// one at a time, the clock paused while it plays, gone when the clock plays.
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
@@ -34,7 +36,7 @@ import {
 } from 'solid-js';
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
-import { OWN_SOUND, Places, type Steps, choiceMixUrl } from '../../../core/api.ts';
+import { OWN_SOUND, Places, type Steps, choiceAloneUrl, choiceMixUrl } from '../../../core/api.ts';
 import { type Host, addressOn, onTraverse } from '../../../browser/host.ts';
 import { keptTime } from '../place.ts';
 import {
@@ -196,6 +198,10 @@ interface FilmContextValue {
   readonly hear: (playing: Playing) => void;
   /** The mix heard now, when it is not the picture's own. */
   readonly mix: Accessor<Option.Option<string>>;
+  /** The variant heard alone on the film's one alone player, while one is. */
+  readonly alone: Accessor<Option.Option<InPlace>>;
+  /** Hear `variant` alone (pausing the clock), or stop it when it is the one heard. */
+  readonly hearAlone: (variant: InPlace) => void;
   readonly sync: Accessor<SyncState>;
   readonly send: (event: SyncEvent) => void;
   readonly driver: SyncDriver;
@@ -457,6 +463,23 @@ const FilmBody = (
     keep((v) => ({ ...v, query: { ...v.query, only: Option.getOrElse(next, () => '') } }));
   // A voice's pick refused as heard as something else, which Accept anyway keeps, until a pick lands.
   const [mismatched, setMismatched] = createSignal(Option.none<InPlace>());
+  // The variant heard alone: one at a time, so the film's one alone player plays it.
+  const [alone, setAlone] = createSignal(Option.none<InPlace>());
+  // The clock playing takes the sound back: what is heard alone stops.
+  createEffect(
+    () => sync()._tag === 'Playing',
+    (moving) => {
+      if (moving) setAlone(Option.none());
+    },
+  );
+  const hearAlone = (variant: InPlace) => {
+    if (Option.exists(untrack(alone), (a) => sameVariant(a, variant))) {
+      setAlone(Option.none());
+      return;
+    }
+    send(SyncEvent.PausePressed);
+    setAlone(Option.some(variant));
+  };
 
   // The player's transport, once there is a picture to play; Show only….
   onCleanup(
@@ -485,6 +508,8 @@ const FilmBody = (
     playing,
     hear: (next) => keep((v) => ({ ...v, query: { ...v.query, ...heardOf(next) } })),
     mix,
+    alone,
+    hearAlone,
     sync,
     send,
     driver,
@@ -522,8 +547,29 @@ const FilmBody = (
   onCleanup(meta.hub.commands.register(...pointCommands(deck)));
   registerWhile(meta.hub, () => markCommands(deck));
 
-  return <FilmContext value={value}>{props.children}</FilmContext>;
+  return (
+    <FilmContext value={value}>
+      {props.children}
+      <Show when={Option.getOrUndefined(alone())} keyed>
+        {(heard: InPlace) => (
+          <audio
+            class="rv-alone"
+            data-point={heard.point}
+            data-variant={heard.variant}
+            preload="auto"
+            autoplay
+            src={choiceAloneUrl(film, heard.point, heard.variant)}
+            onEnded={() => setAlone(Option.none())}
+          />
+        )}
+      </Show>
+    </FilmContext>
+  );
 };
+
+/** Whether two variants are the same variant of the same point. */
+const sameVariant = (a: InPlace, b: InPlace): boolean =>
+  a.point === b.point && a.variant === b.variant;
 
 /**
  * Put the focus on the row of `heard`'s variant (its 🔊), so the next key

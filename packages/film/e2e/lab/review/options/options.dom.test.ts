@@ -261,6 +261,7 @@ const fakeFilm = (toy: Toy = freshToy(), undos: Array<FakeChange> = []) => {
             level: 'warning',
             tag: 'Balance',
             message: `the score sits under the voice at ${toy.picked}`,
+            address: { part: { _tag: 'Film' }, time: 2 },
           },
         ],
       }),
@@ -407,12 +408,27 @@ describe("a film's choices", () => {
           page,
           `${MIX}.startsWith('/api/films/toy/choices/mix?point=take%3Apaper.page&variant=${WAITING}')`,
         );
+        // Alone: no player bar per take, one ▶ on the film's one alone player (UR-52).
+        yield* countIs(page, 'audio[controls]', 0);
+        yield* click(page, `${at('take:paper.page', WAITING)} [data-act="hear-alone"]`);
         yield* attributeIs(
           page,
-          `${at('take:paper.page', WAITING)} audio`,
+          'audio.rv-alone',
           'src',
           `/api/films/toy/choices/alone?point=take%3Apaper.page&variant=${WAITING}`,
         );
+        yield* waitFor(
+          page,
+          `${at('take:paper.page', WAITING)} [data-act="hear-alone"][aria-pressed="true"]`,
+        );
+        // Pressed again it stops; the clock played, it stops too.
+        yield* click(page, `${at('take:paper.page', WAITING)} [data-act="hear-alone"]`);
+        yield* countIs(page, 'audio.rv-alone', 0);
+        yield* click(page, `${at('take:paper.page', WAITING)} [data-act="hear-alone"]`);
+        yield* countIs(page, 'audio.rv-alone', 1);
+        yield* click(page, '.rv-transport [data-act="play"]');
+        yield* countIs(page, 'audio.rv-alone', 0);
+        yield* click(page, '.rv-transport [data-act="play"]');
         // The picture's own sound: no mix, the picture heard.
         yield* click(page, '.rv-picture [data-act="hear"]');
         yield* until(page, "document.querySelector('audio.rv-mix') === null");
@@ -546,13 +562,26 @@ describe("a film's choices", () => {
           variant: 'piano',
           verb: 'pick',
         });
-        // The sound check runs after the pick, and its findings are shown.
-        yield* waitFor(page, '[data-check="sound check"] summary[data-findings="1"]');
+        // The sound check runs after the pick: its count at rest, F walks the clock to its
+        // finding's time (UR-37/38), and the count opens the Findings sheet that lists it.
+        const soundCount = '[data-act="findings"][data-check="sound check"]';
+        yield* waitFor(page, `${soundCount}[data-findings="1"]`);
+        yield* countIs(page, '[data-role="findings"]', 0);
+        yield* page.press('f');
+        yield* until(page, "location.hash === '#t=2'");
+        yield* click(page, soundCount);
         yield* textHas(
           page,
-          '[data-check="sound check"] li',
+          '[data-role="findings"] [data-check="sound check"] li',
           'the score sits under the voice at piano',
         );
+        yield* textIs(
+          page,
+          '[data-role="findings"] [data-check="sound check"] .rv-at',
+          '00:00:02:00',
+        );
+        yield* click(page, '[data-act="close-findings"]');
+        yield* countIs(page, '[data-role="findings"]', 0);
         // Every mix is asked for again once the source has changed.
         yield* until(page, `${MIX}.endsWith('&v=1')`);
 
@@ -951,7 +980,7 @@ describe("a film's choices", () => {
           { href: FILM },
         );
         const knob = '[data-knob="level:const:PAPER"]';
-        const findings = '[data-check="check"] summary';
+        const findings = '[data-act="findings"][data-check="check"]';
         yield* waitFor(page, `${knob} input`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* Effect.sync(() => asked.some((a) => a.path === '/api/films/toy/choices/pick')).pipe(

@@ -16,7 +16,7 @@
 import { For, type JSX, Show } from '@solidjs/web';
 import { Option } from 'effect';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
-import { type Say, choiceAloneUrl, reviewFrameUrl } from '../../../core/api.ts';
+import { type Say, reviewFrameUrl } from '../../../core/api.ts';
 import type { ApprovalState, SaidComment } from '../../../core/catalogue.ts';
 import {
   type ChoiceKnob,
@@ -42,7 +42,7 @@ import {
   useThing,
 } from '../inspector.tsx';
 import type { ThingVerb, VerbId } from '../things.ts';
-import { verbTitle } from './keys.ts';
+import { type InPlace, verbTitle } from './keys.ts';
 import { Field } from '../../command/inspector.tsx';
 
 /** The approve button's words for an approval. */
@@ -85,6 +85,34 @@ export const HearButton = (props: { readonly playing: Playing; readonly disabled
     </button>
   );
 };
+
+/**
+ * A variant's ▶ hear alone (UR-52): its sound with nothing under it, on the
+ * film's one alone player; pressed again, or the clock played, it stops.
+ */
+const AloneButton = (props: { readonly variant: InPlace }) => {
+  const { alone, hearAlone } = useFilm();
+  const on = () =>
+    Option.exists(
+      alone(),
+      (a) => a.point === props.variant.point && a.variant === props.variant.variant,
+    );
+  return (
+    <button
+      type="button"
+      class={['rv-sound', { on: on() }]}
+      data-act="hear-alone"
+      aria-label="Hear alone"
+      aria-pressed={pressed(on())}
+      onClick={() => hearAlone(props.variant)}
+    >
+      {ALONE_GLYPH[Number(on())]}
+    </button>
+  );
+};
+
+/** ▶ to hear a variant alone, ■ to stop it. */
+const ALONE_GLYPH = ['▶', '■'] as const;
 
 /** What was said, each marked when it was said of an earlier version. */
 export const Comments = (props: { readonly comments: ReadonlyArray<SaidComment> }) => (
@@ -196,7 +224,6 @@ const Seen = (props: { readonly video: ReviewVideo }) => {
 
 /** What a variant plays: its video, or its sound alone and in place. */
 const Media = (props: { readonly point: ChoicePoint; readonly variant: ChoiceVariant }) => {
-  const { film } = useFilm();
   const seen = () =>
     VariantMedia.match(props.variant.media, {
       Seen: ({ video }) => Option.some(video),
@@ -214,11 +241,7 @@ const Media = (props: { readonly point: ChoicePoint; readonly variant: ChoiceVar
     <>
       <Show when={Option.getOrUndefined(seen())}>{(video) => <Seen video={video()} />}</Show>
       <Show when={Option.exists(heard(), (h) => h.alone) && !missing()}>
-        <audio
-          controls
-          preload="none"
-          src={choiceAloneUrl(film, props.point.id, props.variant.id)}
-        />
+        <AloneButton variant={{ point: props.point.id, variant: props.variant.id }} />
       </Show>
       <Show when={Option.exists(heard(), (h) => h.inPlace)}>
         <span class="rv-hint">in place</span>
