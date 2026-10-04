@@ -1,34 +1,102 @@
 // The player in a browser: the real player page over the probe film, on a
-// phone's window and a desk's, each in the studio's shell. Neither the play page nor the look-book
-// scrolls sideways; the play page keeps its film time as `#t=`, and its legend
-// is hidden until `?` or the bar's ? button; a look-book still opens its frame
-// in the scene's lab, and the shell's page bar leads there. The tape bar's
-// scene names never overlap, and where a scene has room its name reads whole.
+// phone's window and a desk's, each in the studio's shell. Neither the play
+// page nor the Scenes' tape scrolls sideways; the play page keeps its film
+// time as `#t=`, and its legend is hidden until `?` or the bar's ? button.
+// The Scenes are the film's tape: a tap selects its scene (the path) and
+// moves the playhead there (`#t=`), Back deselects, the scene's card opens
+// its lab, a phone's card is a sheet, and ⇧-click and ⇧A approve a batch.
+// The tape bar's scene names never overlap, and where a scene has room its
+// name reads whole.
 
-import { Effect } from 'effect';
+import { Boolean as Bool, Effect, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
-import { openPlayer } from '../../src/lab/fixtures/harness.ts';
+import { type FakeRoute, json, openPlayer, route } from '../../src/lab/fixtures/harness.ts';
 import { CROWD } from '../../src/lab/fixtures/crowd-film.ts';
 import { touch } from '../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
 import {
   attributeIs,
+  countIs,
   evaluates,
   labelsClash,
   labelsInFull,
   textHas,
+  textIs,
 } from '../../src/lab/fixtures/settled.ts';
+import type { Tab } from '../../src/lab/fixtures/tab.ts';
 
 const PHONE = { width: 390, height: 844 };
 const DESK = { width: 1440, height: 900 };
 
-/** Where the probe film's second scene starts, in film seconds. */
+/** Where the probe film's second and third scenes start, in film seconds. */
 const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
+const THREE = probeFilm().placed[2]?.start ?? Number.NaN;
 
 /** Whether the page is no wider than its window. */
 const NO_SIDEWAYS = 'document.documentElement.scrollWidth <= document.documentElement.clientWidth';
+
+/** A still of the tape, drawn. */
+const STILL_DRAWN = '.sc-still[data-drawn="true"] canvas';
+
+/** The tape's point just past `scene`'s cut, on its line: inside the scene. */
+const pointInScene = (page: Tab, scene: string) =>
+  Effect.map(
+    Effect.all([page.box(`.sc-cut[data-scene="${scene}"]`), page.box('.sc-stills')]),
+    ([cut, stills]) => ({ x: cut.x + 6, y: stills.y + stills.height / 2 }),
+  );
+
+/** Click the tape inside `scene`. */
+const clickInScene = (page: Tab, scene: string) =>
+  Effect.flatMap(pointInScene(page, scene), (p) => page.mouse.click(p.x, p.y));
+
+/** ⇧-click the tape inside `scene`: added to the selection (the tab's mouse holds no keys). */
+const shiftClickInScene = (page: Tab, scene: string) =>
+  Effect.flatMap(pointInScene(page, scene), (p) =>
+    page.evaluate(
+      `document.elementFromPoint(${p.x}, ${p.y}).dispatchEvent(new MouseEvent('click', { bubbles: true, clientX: ${p.x}, clientY: ${p.y}, shiftKey: true }))`,
+    ),
+  );
+
+/** The probe film's project: each scene rendered as it stands, approved when `approved` holds it. */
+const projectOf = (approved: ReadonlyArray<string>) => ({
+  project: {
+    film: PROBE,
+    variant: 'main',
+    key: 'fk',
+    comments: [],
+    acts: [{ name: 'opening', scenes: ['one', 'two', 'three'], key: 'ak', comments: [] }],
+    scenes: ['one', 'two', 'three'].map((scene) => ({
+      scene,
+      key: 'k',
+      state: 'current',
+      approval: Bool.match(approved.includes(scene), {
+        onTrue: () => 'approved',
+        onFalse: () => 'none',
+      }),
+      comments: [],
+    })),
+  },
+  videos: {},
+});
+
+/** What a project say names: its scenes. */
+const SaidOf = Schema.decodeUnknownSync(
+  Schema.Struct({ address: Schema.Struct({ ids: Schema.Array(Schema.String) }) }),
+);
+
+/** The project's routes: a read, and an approval that approves the scenes it names. */
+const projectRoutes = (): ReadonlyArray<FakeRoute> => {
+  const approved: Array<string> = [];
+  return [
+    route('GET', /^\/project$/, () => json(projectOf(approved))),
+    route('POST', /^\/project\/say$/, (asked) => {
+      approved.push(...SaidOf(Option.getOrElse(asked.body, () => ({}))).address.ids);
+      return json(projectOf(approved));
+    }),
+  ];
+};
 
 describe('the player', () => {
   for (const [label, viewport] of [
@@ -46,12 +114,15 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
     );
 
-    it.live(`the look-book does not scroll sideways on ${label}`, () =>
+    it.live(`the Scenes' tape does not scroll sideways on ${label}, a scene selected or not`, () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
           { href: pageHref.scenes(PROBE), viewport },
-          '.lookbook-sheet canvas',
+          STILL_DRAWN,
         );
+        yield* evaluates(page, NO_SIDEWAYS, true);
+        yield* clickInScene(page, 'two');
+        yield* page.waitFor('.sc-focus');
         yield* evaluates(page, NO_SIDEWAYS, true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -193,25 +264,124 @@ describe('the player', () => {
   );
 
   it.live(
-    "the look-book is the shell's Scenes, its page bar leads to the lab, and a still opens its scene's lab",
+    "the Scenes are the film's tape: a cut per scene, every time a timecode, each still a frame of the film",
     () =>
       Effect.gen(function* () {
-        const { page } = yield* openPlayer(
+        const { page, errors } = yield* openPlayer(
           { href: pageHref.scenes(PROBE), viewport: DESK },
-          '.lookbook-sheet canvas',
+          STILL_DRAWN,
         );
         yield* attributeIs(page, '.sh-pagebar [data-page="scenes"]', 'data-active', 'true');
         yield* attributeIs(page, '.sh-pagebar [data-page="lab"]', 'href', pageHref.lab(PROBE));
-        // The stills sit below the title and the palette: down the sheet's
-        // first column, the first click on a still opens it.
-        const sheet = yield* page.box('.lookbook-sheet canvas');
-        for (let k = 1; k < 20; k += 1) {
-          const left = yield* page.evaluate('location.pathname');
-          if (left !== pageHref.scenes(PROBE)) break;
-          yield* page.mouse.click(sheet.x + sheet.width * 0.15, sheet.y + (sheet.height * k) / 20);
-        }
-        yield* evaluates(page, "location.pathname.startsWith('/films/probe/lab/')", true);
+        // A cut per scene, in film order.
+        yield* evaluates(
+          page,
+          "[...document.querySelectorAll('.sc-cut')].map((c) => c.dataset.scene)",
+          ['one', 'two', 'three'],
+        );
+        // A laptop's line is a minute: the probe film is one line, a still every 5 s.
+        yield* countIs(page, '.sc-line', 1);
+        yield* textIs(page, '.sc-line-tc', '00:00');
+        yield* textHas(page, '[data-role="step"]', '5 s a still · a line a minute');
+        yield* evaluates(
+          page,
+          `(() => { const c = document.querySelector('${STILL_DRAWN}'); return c.width > 0 && c.height > 0; })()`,
+          true,
+        );
+        // The preview's track is the tape bar; its transport row is the header's.
+        yield* page.waitFor('.sc-tapebar .sc-track .bar .track');
+        yield* evaluates(
+          page,
+          "getComputedStyle(document.querySelector('.sc-track .bar .row')).display",
+          'none',
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a tap on the tape selects its scene and moves the playhead there; Back deselects; Open in Lab opens the scene's lab",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+        );
+        yield* clickInScene(page, 'two');
+        yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'two'));
+        yield* textIs(page, '.sc-focus .sc-card-name', 'two');
+        yield* textHas(page, '.sc-focus .sc-panel-title', '2 of 3');
+        // In, out and length are the film's timecode.
+        yield* textHas(page, '.sc-focus .sc-card-facts', timecode(TWO));
+        // The playhead is in the scene, and the URL's `#t=` says so.
+        yield* evaluates(
+          page,
+          `(() => { const t = Number(location.hash.slice(3)); return location.hash.startsWith('#t=') && t >= ${TWO} && t < ${THREE}; })()`,
+          true,
+        );
+        // Back steps out of the selection.
+        yield* page.evaluate('history.back()');
+        yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
+        yield* evaluates(page, "document.querySelector('.sc-focus') === null", true);
+        // Selected again, Open in Lab goes to the scene's lab at the playhead.
+        yield* clickInScene(page, 'three');
+        yield* page.click('.sc-focus [data-act="open-lab"]');
+        yield* evaluates(page, 'location.pathname', pageHref.labScene(PROBE, 'three'));
         yield* evaluates(page, "location.hash.startsWith('#t=')", true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a phone the selected scene's card is a sheet over the tab bar, its verbs a finger's size",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: PHONE },
+          STILL_DRAWN,
+        );
+        // A phone's line is half a minute.
+        yield* textHas(page, '[data-role="step"]', 'a line 30 s');
+        yield* clickInScene(page, 'one');
+        yield* page.waitFor('.sc-focus');
+        const sheet = yield* page.box('.sc-focus');
+        expect(sheet.y + sheet.height).toBeLessThanOrEqual(PHONE.height);
+        expect(sheet.width).toBe(PHONE.width);
+        const open = yield* page.box('.sc-focus [data-act="open-lab"]');
+        expect(open.height).toBeGreaterThanOrEqual(44);
+        yield* attributeIs(page, '.sc-focus', 'data-expanded', 'false');
+        yield* page.click('.sc-focus [data-act="sheet"]');
+        yield* attributeIs(page, '.sc-focus', 'data-expanded', 'true');
+        yield* evaluates(page, NO_SIDEWAYS, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    '⇧-click adds scenes to the selection, and ⇧A approves them all, a run of neighbours at a time (AA-12)',
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          projectRoutes(),
+        );
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        yield* clickInScene(page, 'one');
+        yield* shiftClickInScene(page, 'three');
+        yield* textIs(page, '.sc-focus [data-role="picked"]', '2 scenes selected');
+        // The path names the first scene picked; the batch is never in the URL.
+        yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
+        yield* page.press('Shift+A');
+        yield* textHas(page, '[data-role="receipt"]', 'approved 2 scenes');
+        // One and three are not neighbours: two says, each naming its run.
+        expect(
+          asked
+            .filter((a) => a.method === 'POST' && a.path === '/project/say')
+            .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
+        ).toEqual([['one'], ['three']]);
+        yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
+        expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
 });

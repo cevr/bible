@@ -4,7 +4,8 @@
 // written in the URL only where the pages' places already have a key for it
 // (`Places`, core/api.ts; PA-1/PA-4): the lab's cue, knob and note
 // (`?cue=`, `?knob=`, `?note=` in a scene's path), a project's card
-// (`?point=`), a folder and a comparison set (their paths). The rest (a version of a set, a
+// (`?point=`), a scene on a film's Scenes, a folder and a comparison set
+// (their paths). The rest (a version of a set, a
 // variant, an act, a beat) is the page's own and dies with it: no key is
 // added for them. A multi-select is a list of the same union; only its first
 // item is citable (a batch is an action, not a place). Pure.
@@ -88,6 +89,9 @@ export const selectionOf = (href: string): Option.Option<Selection> =>
     Option.flatMap(Place.decode(Places.lab, href), ({ query }) =>
       Option.map(named(query.note), (id) => Selection.cases.Note.make({ id })),
     ),
+    Option.map(Place.decode(Places.scene, href), ({ path }) =>
+      Selection.cases.Scene.make({ film: path.film, scene: path.scene }),
+    ),
     Option.flatMap(Place.decode(Places.project, href), ({ path, query }) =>
       Option.map(named(query.point), (point) =>
         Selection.cases.Point.make({ film: path.film, point }),
@@ -135,7 +139,18 @@ export const citeOf = (selection: Selection, href: string): string => {
   return Selection.match(selection, {
     Film: (s) => pageHref.project(s.film),
     Act: (s) => pageHref.project(s.film),
-    Scene: (s) => pageHref.labScene(s.film, s.scene),
+    // On a film's Scenes a scene is cited on the tape, at the playhead; elsewhere, as its lab.
+    Scene: (s) =>
+      Option.match(
+        Option.orElse(
+          Option.map(Place.decode(Places.scene, href), (v) => v.hash.t),
+          () => Option.map(Place.decode(Places.scenes, href), (v) => v.hash.t),
+        ),
+        {
+          onNone: () => pageHref.labScene(s.film, s.scene),
+          onSome: (t) => pageHref.scene(s.film, s.scene, t),
+        },
+      ),
     Cue: (s) => inLab(s.scene, { cue: s.name }),
     Knob: (s) => inLab(s.scene, { knob: s.name }),
     Note: (s) =>

@@ -50,7 +50,7 @@ interface StillsOptions {
   /** Whether the stills carry the film's captions. */
   readonly captions: boolean;
   /** The page's turn between two stills: resolves once the page has had it. */
-  readonly turn: () => Promise<void>;
+  readonly turn: () => Promise<unknown>;
   /** The page clock, in ms: what the drawing is timed by. */
   readonly now: () => number;
 }

@@ -908,28 +908,6 @@ body.play .sh-body {
   grid-template: minmax(0, 1fr) / minmax(0, 1fr);
 }
 
-/* The look-book: a film's scenes page (`/films/<film>/scenes`). */
-body.lookbook {
-  display: block;
-  height: auto;
-}
-.lookbook-bar {
-  margin: 0;
-  padding: 10px 16px 0;
-}
-.lookbook-status {
-  color: var(--text-2);
-}
-.lookbook-sheet {
-  padding: 16px;
-}
-.lookbook-sheet canvas {
-  display: block;
-  width: 100%;
-  height: auto;
-  cursor: pointer;
-}
-
 /* The studio: record the voiceover beat by beat. */
 .studio {
   display: grid;

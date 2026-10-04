@@ -4,7 +4,7 @@
 // lab API answered by routes the test gives (then the defaults below). Every
 // request the page makes is kept, so a test can read what the lab wrote.
 // The review page (`openReview`) and the player's (`openPlayer`, the play
-// page and the look-book) are served the same way.
+// page and the Scenes) are served the same way, the player's routes too.
 
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effect';
@@ -463,10 +463,15 @@ interface PlayerAt {
 /**
  * Open the player (`fixtures/player-page.ts`, the real `mountPlay` over the
  * probe film) at `href`, served on every player place as the lab serves it,
- * in a window `viewport` wide, and wait until `ready` is on the page. Its
+ * in a window `viewport` wide, with `routes` answering its API requests
+ * (then the defaults), and wait until `ready` is on the page. Its
  * clock is the test's, and the tab goes back to the pool with the scope.
  */
-export const openPlayer = Effect.fn('lab.fixture.player')(function* (at: PlayerAt, ready: string) {
+export const openPlayer = Effect.fn('lab.fixture.player')(function* (
+  at: PlayerAt,
+  ready: string,
+  routes: ReadonlyArray<FakeRoute> = [],
+) {
   const asked: Array<Asked> = [];
   const page = yield* openTab({
     ...at.viewport,
@@ -476,7 +481,7 @@ export const openPlayer = Effect.fn('lab.fixture.player')(function* (at: PlayerA
     serve: fakeServer(
       servedAs('player', respond(playerPage(css, playerScript), 'text/html')),
       API,
-      defaults,
+      [...routes, ...defaults],
       asked,
     ),
   });

@@ -782,7 +782,9 @@ export const OWN_SOUND = 'own';
  * `/sets/<folder>`, a comparison set `/sets/<folder>/<point>` (its view,
  * pair, moment and time), a film's choices (the sound heard, the picture and
  * its time) and its project (the card in focus). Player: a film's scenes
- * (the look-book) and its plain preview `/films/<film>/play#t=`. Lab: a film
+ * (the tape) `/films/<film>/scenes[/<scene>]#t=`, the path's scene the one
+ * selected and `#t=` the playhead in film time on both, and its plain preview
+ * `/films/<film>/play#t=`. Lab: a film
  * `/films/<film>/lab#t=` (film time) or one of its scenes
  * `/films/<film>/lab/<scene>?cue=#t=` (scene time), with the selection.
  */
@@ -812,10 +814,11 @@ export const Places = {
     query: Field.struct({ point: cited, ...FILM_PLAYER, ...FILM_SHOWN }),
     hash: At,
   }),
-  scenes: Place.make({ path: '/films/:film/scenes', params: filmParams }),
+  scenes: Place.make({ path: '/films/:film/scenes', params: filmParams, hash: At }),
   scene: Place.make({
     path: '/films/:film/scenes/:scene',
     params: { film: Codec.Segment, scene: Codec.Segment },
+    hash: At,
   }),
   play: Place.make({ path: '/films/:film/play', params: filmParams, hash: At }),
   lab: Place.make({
@@ -917,8 +920,12 @@ export const pageHref = {
       query: { point, ...NOTHING_HEARD },
       hash: START,
     }),
-  scenes: (film: string): string =>
-    Place.href(Places.scenes, { path: { film }, query: {}, hash: {} }),
+  /** A film's Scenes, at film time `t`. */
+  scenes: (film: string, t: Option.Option<number> = Option.none()): string =>
+    Place.href(Places.scenes, { path: { film }, query: {}, hash: timeOf(t) }),
+  /** A film's Scenes with `scene` selected, at film time `t`. */
+  scene: (film: string, scene: string, t: Option.Option<number> = Option.none()): string =>
+    Place.href(Places.scene, { path: { film, scene }, query: {}, hash: timeOf(t) }),
   play: (film: string, t: Option.Option<number> = Option.none()): string =>
     Place.href(Places.play, { path: { film }, query: {}, hash: timeOf(t) }),
   /** The lab on `film`, at film time `t`. */

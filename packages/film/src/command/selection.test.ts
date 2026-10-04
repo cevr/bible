@@ -13,7 +13,8 @@ import {
   selectionText,
 } from './selection.ts';
 
-const { Cue, Knob, Note, Point, Folder, Set, Version, Variant, Act, Film, Beat } = Selection.cases;
+const { Cue, Knob, Note, Point, Folder, Set, Version, Variant, Act, Film, Beat, Scene } =
+  Selection.cases;
 
 describe("a selection in the pages' URLs", () => {
   test('reads the lab scene keys as a cue, a knob or a note, cue first', () => {
@@ -44,6 +45,20 @@ describe("a selection in the pages' URLs", () => {
       Option.some(Folder.make({ folder: 'renders' })),
     );
     expect(selectionOf(pageHref.home())).toEqual(Option.none());
+  });
+
+  test("reads a film's Scenes path's scene as the scene selected, and cites it there at the playhead", () => {
+    const at = pageHref.scene('f', 'two', Option.some(42));
+    expect(selectionOf(at)).toEqual(Option.some(Scene.make({ film: 'f', scene: 'two' })));
+    expect(selectionOf(pageHref.scenes('f'))).toEqual(Option.none());
+    // On the Scenes, another scene is cited on the tape, at the same film time.
+    expect(citeOf(Scene.make({ film: 'f', scene: 'one' }), at)).toBe(
+      pageHref.scene('f', 'one', Option.some(42)),
+    );
+    // Elsewhere a scene is cited as its lab.
+    expect(citeOf(Scene.make({ film: 'f', scene: 'one' }), pageHref.project('f'))).toBe(
+      pageHref.labScene('f', 'one'),
+    );
   });
 
   test('cites a lab selection on the page it is on, keeping the time in the same scene', () => {

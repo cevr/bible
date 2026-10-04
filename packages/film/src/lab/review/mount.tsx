@@ -29,6 +29,7 @@ import { TargetMenu } from '../command/context-menu.tsx';
 import { COMMAND_CSS } from '../command/style.ts';
 import { PageShell } from '../page-shell.tsx';
 import { SHELL_CSS } from '../page-shell-style.ts';
+import { SCENES_CSS } from '../scenes/style.ts';
 import { registerFace } from '../../player/face.ts';
 
 /** A folder's title from the index once read, else its ref. */
@@ -198,7 +199,7 @@ export const mountReview = (): void => {
   Effect.runSyncWith(host)(
     Effect.gen(function* () {
       const style = document.createElement('style');
-      style.textContent = `${SHELL_CSS}${REVIEW_CSS}${COMMAND_CSS}`;
+      style.textContent = `${SHELL_CSS}${REVIEW_CSS}${COMMAND_CSS}${SCENES_CSS}`;
       document.head.append(style);
       registerFace(document.fonts);
       document.body.classList.add('rv');
