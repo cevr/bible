@@ -152,7 +152,7 @@ describe('the context', () => {
     expect(selectedAll(many, 'Point').map((p) => p.point)).toEqual(['cold', 'word']);
   });
 
-  test('reads where a press puts the keyboard: a field, the studio, a control, the page', () => {
+  test('reads where a press puts the keyboard: a field, the studio, a slider, a control, the page', () => {
     // An element as a key press's target is: its tag, and the ancestors `closest` finds.
     const el = (tagName: string, within: ReadonlyArray<string> = []) =>
       Option.some(
@@ -169,6 +169,9 @@ describe('the context', () => {
     ).toBe('field');
     expect(focusOf(el('DIV', ['[role="dialog"]']))).toBe('field');
     expect(focusOf(el('BUTTON', ['.lab-studio']))).toBe('studio');
+    // A slider (a wipe's grip) takes its own arrows, Home and End.
+    expect(focusOf(el('BUTTON', ['[role="slider"]']))).toBe('slider');
+    expect(focusOf(el('circle', ['[role="slider"]']))).toBe('slider');
     expect(focusOf(el('BUTTON'))).toBe('control');
     expect(focusOf(el('A'))).toBe('control');
     expect(focusOf(el('BODY'))).toBe('page');

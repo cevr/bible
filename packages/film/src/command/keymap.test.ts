@@ -130,6 +130,26 @@ describe('the keymap', () => {
     expect(does(press(' '), [play, stop, scene])).toBe('play.toggle normal');
   });
 
+  test("a slider's keys come first on a slider, and it owns them; the page's others still run", () => {
+    const slider = { ...page, focus: 'slider' as const };
+    const nudge = command('wipe.right', {
+      keys: ['arrowright'],
+      keysIn: ['slider'],
+      stepped: true,
+    });
+    const idle = command('wipe.end', { keys: ['end'], keysIn: ['slider'], when: () => false });
+    const play = command('play.toggle', { keys: ['space'] });
+    expect(does(press('ArrowRight'), [frame, nudge], slider)).toBe('wipe.right normal');
+    expect(does(press('ArrowRight', { shift: true }), [frame, nudge], slider)).toBe(
+      'wipe.right coarse',
+    );
+    // Its own key with nothing to do is still not the page's.
+    expect(does(press('End'), [idle], slider)).toBe('owned');
+    expect(does(press(' '), [play, nudge], slider)).toBe('play.toggle normal');
+    // Off the slider the arrows are the page's again.
+    expect(does(press('ArrowRight'), [frame, nudge])).toBe('play.frame-next normal');
+  });
+
   test("a control hears the page's keys; a command's `when` can keep Tab moving focus there", () => {
     const control = { ...page, focus: 'control' as const };
     const walk = command('edit.cue-next', { keys: ['tab'], when: (ctx) => ctx.focus === 'page' });

@@ -173,6 +173,8 @@ const NAMED = new Map<string, Key>([
   ['ArrowUp', named('ArrowUp', 'ArrowUp', 38)],
   ['ArrowRight', named('ArrowRight', 'ArrowRight', 39)],
   ['ArrowDown', named('ArrowDown', 'ArrowDown', 40)],
+  ['Home', named('Home', 'Home', 36)],
+  ['End', named('End', 'End', 35)],
   ['[', named('[', 'BracketLeft', 219, '[')],
   [']', named(']', 'BracketRight', 221, ']')],
   ['?', named('?', 'Slash', 191, '?')],

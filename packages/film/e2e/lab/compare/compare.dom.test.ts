@@ -12,7 +12,7 @@ import { Effect, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { HeadUnavailable } from '../../../src/core/refusals.ts';
 import { json, labAt, openLab, refused, route } from '../../../src/lab/fixtures/harness.ts';
-import { evaluates, textHas } from '../../../src/lab/fixtures/settled.ts';
+import { attributeIs, evaluates, textHas } from '../../../src/lab/fixtures/settled.ts';
 import { type Tab, jsonOf } from '../../../src/lab/fixtures/tab.ts';
 import { BLINK_MS } from '../../../src/lab/compare/machine.ts';
 
@@ -46,6 +46,44 @@ describe('compare with HEAD', () => {
       expect(asked.filter((a) => a.path === '/notes' && a.method === 'POST')).toEqual([]);
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "the wipe's grip is a finger's target however small the frame shows, and a slider by the keyboard",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], { href: labAt(1), mode: 'compare' });
+        yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
+        yield* page.waitFor('.lab-divider .lab-divider-hit');
+        // `--hit` across: the laptop's 28 px, the phone's 44 (the frame a third as wide).
+        const reach = (hit: number) =>
+          page.until(
+            `(() => { const r = document.querySelector('.lab-divider-hit').getBoundingClientRect(); return r.width >= ${hit} - 0.5 && r.height >= ${hit} - 0.5; })()`,
+          );
+        yield* reach(28);
+        yield* page.resize(390, 844);
+        yield* reach(44);
+        yield* page.resize(1400, 900);
+        yield* attributeIs(page, '.lab-divider-hit', 'role', 'slider');
+        yield* attributeIs(page, '.lab-divider-hit', 'aria-label', 'Wipe');
+        yield* attributeIs(page, '.lab-divider-hit', 'aria-valuenow', '50');
+        // Its keys are the grip's while it has focus, not the film's step.
+        const t = 'location.hash';
+        const before = yield* page.evaluate<string>(t);
+        yield* page.pressIn('.lab-divider-hit', 'ArrowRight');
+        yield* attributeIs(page, '.lab-divider-hit', 'aria-valuenow', '51');
+        yield* page.press('Shift+ArrowRight');
+        yield* attributeIs(page, '.lab-divider-hit', 'aria-valuenow', '61');
+        yield* page.press('ArrowLeft');
+        yield* attributeIs(page, '.lab-divider-hit', 'aria-valuenow', '60');
+        yield* clipIs(page, 'inset(0px 40% 0px 0px)');
+        yield* page.press('Home');
+        yield* attributeIs(page, '.lab-divider-hit', 'aria-valuenow', '0');
+        yield* page.press('End');
+        yield* attributeIs(page, '.lab-divider-hit', 'aria-valuenow', '100');
+        yield* evaluates(page, t, before);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live('turned off and on again, it reads HEAD again: a commit made since shows', () =>

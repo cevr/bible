@@ -895,12 +895,24 @@ body.lab .stage {
   stroke-width: 2;
   vector-effect: non-scaling-stroke;
 }
-.lab-divider circle {
+.lab-divider .lab-divider-grip {
   fill: var(--on-picture-shade);
   stroke: var(--on-picture);
   stroke-width: 3;
+  pointer-events: none;
+}
+/* The grip's reach: a finger's target (`--hit`) however small the picture shows, drawn as nothing. */
+.lab-divider .lab-divider-hit {
+  fill: transparent;
+  stroke: none;
   cursor: ew-resize;
   pointer-events: all;
+  outline: none;
+}
+.lab-divider .lab-divider-hit:focus-visible {
+  stroke: var(--accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
 }
 /* The blink by hand: the whole frame takes the press, and shows nothing of its own. */
 .lab-overlay .lab-hold {

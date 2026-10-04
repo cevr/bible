@@ -505,6 +505,23 @@ describe('the review page', () => {
         yield* until(page, "location.search === '?view=wipe&other=B'");
         // At a phone's width the grip is a thumb's target.
         expect(grip.width).toBeGreaterThanOrEqual(28);
+        // The grip is a slider by the keyboard too: named, it says where it is; ←/→ a
+        // hundredth of the frame, ⇧ ten, Home and End its edges; the set's keys stay out of it.
+        yield* attributeIs(page, '.rv-wipe-grip', 'role', 'slider');
+        yield* attributeIs(page, '.rv-wipe-grip', 'aria-label', 'Wipe');
+        yield* attributeIs(page, '.rv-wipe-grip', 'aria-valuenow', '25');
+        yield* page.pressIn('.rv-wipe-grip', 'ArrowRight');
+        yield* until(page, `${clip} === 'inset(0px 0px 0px 26%)'`);
+        yield* page.press('Shift+ArrowRight');
+        yield* until(page, `${clip} === 'inset(0px 0px 0px 36%)'`);
+        yield* page.press('ArrowLeft');
+        yield* until(page, `${clip} === 'inset(0px 0px 0px 35%)'`);
+        yield* attributeIs(page, '.rv-wipe-grip', 'aria-valuenow', '35');
+        yield* page.press('Home');
+        yield* until(page, `${clip} === 'inset(0px 0px 0px 0%)'`);
+        yield* page.press('End');
+        yield* until(page, `${clip} === 'inset(0px 0px 0px 100%)'`);
+        yield* until(page, "location.search === '?view=wipe&other=B'");
         yield* page.click('button[data-other="C"]');
         yield* until(page, `${stacked} === 'A,C'`);
         yield* until(page, "location.search === '?view=wipe&other=C'");

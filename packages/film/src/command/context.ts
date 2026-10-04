@@ -16,11 +16,12 @@ type LabMode = 'edit' | 'note' | 'motion' | 'compare' | 'record';
 /**
  * Where the keyboard's focus is: on the page; in a control that takes its
  * own keys (a field, a media element's controls, an open menu or dialog);
- * in the studio, which takes its own keys and passes the rest on; or on a
- * control (a button, a link), which hears the page's keys but keeps Tab
- * moving focus.
+ * in the studio, which takes its own keys and passes the rest on; on a
+ * slider (a wipe's grip), which takes its arrows, Home and End and passes
+ * the rest on; or on a control (a button, a link), which hears the page's
+ * keys but keeps Tab moving focus.
  */
-export type Focus = 'page' | 'field' | 'studio' | 'control';
+export type Focus = 'page' | 'field' | 'studio' | 'slider' | 'control';
 
 /** What a command's `when` reads. */
 export interface Context {
@@ -99,13 +100,16 @@ const OVERLAYS = '[role="dialog"], [role="alertdialog"], [role="menu"], [role="l
 /** The studio's section: it takes its own keys while focus is in it (`lab/studio/section.tsx`). */
 const STUDIO = '.lab-studio';
 
+/** A slider that is no field (a wipe's grip): it takes its own arrows, Home and End while focused. */
+const SLIDER = '[role="slider"]';
+
 /** The controls focus stops on that take no typing: the page's keys reach them, but not Tab. */
 const CONTROLS = new Set(['BUTTON', 'A', 'SUMMARY']);
 
 const within = (el: Focusable, selector: string): boolean =>
   Option.isSome(Option.fromNullishOr(el.closest(selector)));
 
-/** Where a press aimed at `target` puts the keyboard: in a field, in the studio, on a control, or on the page. */
+/** Where a press aimed at `target` puts the keyboard: in a field, in the studio, on a slider, on a control, or on the page. */
 export const focusOf = (target: Option.Option<EventTarget>): Focus =>
   Option.match(Option.filter(target, focusable), {
     onNone: (): Focus => 'page',
@@ -118,6 +122,10 @@ export const focusOf = (target: Option.Option<EventTarget>): Focus =>
         Match.when(
           (e) => within(e, STUDIO),
           (): Focus => 'studio',
+        ),
+        Match.when(
+          (e) => within(e, SLIDER),
+          (): Focus => 'slider',
         ),
         Match.when(
           (e) => CONTROLS.has(e.tagName),

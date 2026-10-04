@@ -10,11 +10,12 @@
 import { For, Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
 import type { Accessor } from 'solid-js';
-import { createEffect, onCleanup } from 'solid-js';
+import { createEffect, createSignal, onCleanup, onSettled, untrack } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
 import { Pointer } from '../../browser/pointer.ts';
 import { Lab, useLab } from '../shell.tsx';
+import { wipeCommands } from '../wipe-keys.ts';
 import { useCompare } from './context.tsx';
 import { CompareMode } from './machine.ts';
 
@@ -131,7 +132,15 @@ export const Hold = () => {
   );
 };
 
-/** The wipe's divider on the overlay: a line through the frame, and a grip to drag it by. */
+/** The grip's radius as it is drawn, in the picture's units. */
+const GRIP_R = 22;
+
+/**
+ * The wipe's divider on the overlay: a line through the frame, and a grip to
+ * drag it by. The grip is a slider: dragged, or ←/→ a hundredth of the frame
+ * (⇧ ten), Home and End to its edges. Drawn at the picture's size, it takes
+ * a finger's press (`--hit`) however small the picture shows.
+ */
 export const Divider = () => {
   const { meta } = useLab();
   const { state, actions } = useCompare();
@@ -139,7 +148,64 @@ export const Divider = () => {
   // The wipe, as an object: a divider at 0 is still shown.
   const wipe = () =>
     Option.getOrUndefined(Option.map(state.split(), (split) => ({ x: split * film.width })));
-  const grab = (el: SVGCircleElement) =>
+  // The grip by the keyboard, while it has focus: ←/→ (⇧ ten, ⌥ a thousandth), Home and End.
+  onCleanup(
+    meta.hub.commands.register(
+      ...wipeCommands(
+        'compare',
+        () => Option.getOrElse(untrack(state.split), () => 0.5),
+        actions.split,
+      ),
+    ),
+  );
+  return (
+    <Show when={wipe()}>
+      {(w: Accessor<{ readonly x: number }>) => (
+        <g class="lab-divider">
+          <line x1={w().x} x2={w().x} y1="0" y2={film.height} />
+          <Grip x={w().x} />
+          <text x={w().x - 16} y="44" text-anchor="end">
+            HEAD
+          </text>
+          <text x={w().x + 16} y="44">
+            now
+          </text>
+        </g>
+      )}
+    </Show>
+  );
+};
+
+/** The divider's grip at `x`: drawn at the picture's size, reaching `--hit` px across on screen. */
+const Grip = (props: { readonly x: number }) => {
+  const { meta } = useLab();
+  const { state, actions } = useCompare();
+  const { film } = meta;
+  /** The grip's reach, in the picture's units: `--hit` px across on screen, never less than it is drawn. */
+  const [reach, setReach] = createSignal(GRIP_R, { ownedWrite: true });
+  let hitArea = Option.none<SVGCircleElement>();
+  const fit = (svg: SVGSVGElement) => {
+    const shown = svg.getBoundingClientRect().width;
+    const hit = Number.parseFloat(getComputedStyle(svg).getPropertyValue('--hit'));
+    if (shown > 0 && Number.isFinite(hit))
+      setReach(Math.max(GRIP_R, (hit / 2) * (film.width / shown)));
+  };
+  // Once the grip is on the overlay, its reach follows the overlay's size on screen.
+  onSettled(() =>
+    Option.getOrUndefined(
+      Option.map(
+        Option.flatMap(hitArea, (el) => Option.fromNullishOr(el.ownerSVGElement)),
+        (svg) => {
+          fit(svg);
+          const sized = new ResizeObserver(() => fit(svg));
+          sized.observe(svg);
+          return () => sized.disconnect();
+        },
+      ),
+    ),
+  );
+  const grab = (el: SVGCircleElement) => {
+    hitArea = Option.some(el);
     el.addEventListener('pointerdown', (e) => {
       // The divider, not a note: the overlay never sees this press.
       e.stopPropagation();
@@ -153,20 +219,28 @@ export const Divider = () => {
         );
       });
     });
+  };
+  const percent = () => Math.round(Option.getOrElse(state.split(), () => 0.5) * 100);
   return (
-    <Show when={wipe()}>
-      {(w: Accessor<{ readonly x: number }>) => (
-        <g class="lab-divider">
-          <line x1={w().x} x2={w().x} y1="0" y2={film.height} />
-          <circle cx={w().x} cy={film.height / 2} r="22" ref={grab} />
-          <text x={w().x - 16} y="44" text-anchor="end">
-            HEAD
-          </text>
-          <text x={w().x + 16} y="44">
-            now
-          </text>
-        </g>
-      )}
-    </Show>
+    <>
+      <circle class="lab-divider-grip" cx={props.x} cy={film.height / 2} r={GRIP_R} />
+      <circle
+        class="lab-divider-hit"
+        cx={props.x}
+        cy={film.height / 2}
+        r={reach()}
+        role="slider"
+        tabindex="0"
+        aria-label="Wipe"
+        aria-orientation="horizontal"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent()}
+        aria-valuetext={`${percent()}% of the frame shows HEAD`}
+        ref={grab}
+      >
+        <title>Drag the wipe, or move it with ←/→ (⇧ ten), Home and End</title>
+      </circle>
+    </>
   );
 };

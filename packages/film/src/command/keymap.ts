@@ -195,12 +195,13 @@ const SCOPES: Readonly<Record<Focus, ReadonlyArray<Focus>>> = {
   page: ['page'],
   field: ['field'],
   studio: ['studio', 'page'],
+  slider: ['slider', 'page'],
   // A control hears the page's keys; only a command's `when` tells it from the page (Tab).
   control: ['page'],
 };
 
 /** The scopes that own their keys: a key bound there is not the next scope's. */
-const OWNS: ReadonlySet<Focus> = new Set<Focus>(['studio']);
+const OWNS: ReadonlySet<Focus> = new Set<Focus>(['studio', 'slider']);
 
 const PAGE_ONLY: ReadonlyArray<Focus> = ['page'];
 

@@ -90,6 +90,7 @@ import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
 import { CommandChip } from '../command/command-chip.tsx';
 import { useShellTime } from '../page-shell.tsx';
+import { wipeCommands } from '../wipe-keys.ts';
 import { rateCommands, rateId, rateText } from '../../player/transport.ts';
 
 /** A version of `set` in `folder`, as a selection: what a version's card is. */
@@ -999,6 +1000,8 @@ const WipeView = (props: { readonly other: string }) => {
     });
   };
   const at = () => `${split() * 100}%`;
+  // The grip by the keyboard, while it has focus: ←/→ (⇧ ten, ⌥ a thousandth), Home and End.
+  onCleanup(meta.hub.commands.register(...wipeCommands('review', () => untrack(split), setSplit)));
   // The player is chosen from the masters (the scrub preview reads their key
   // frames); the videos play while it is asked, and stay if it is `<video>`.
   const masters = createMemo(() =>
@@ -1070,11 +1073,21 @@ const WipeView = (props: { readonly other: string }) => {
           )}
         </Show>
         <div class="rv-wipe-line" style={{ left: at() }}>
+          {/* A slider: dragged, or ←/→ a hundredth of the frame (⇧ ten), Home and End to its edges. */}
           <button
             type="button"
+            role="slider"
             class="rv-wipe-grip"
-            aria-label="Drag the wipe"
-            title="Drag the wipe"
+            aria-label="Wipe"
+            aria-orientation="horizontal"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(split() * 100)}
+            aria-valuetext={`${Math.round(split() * 100)}% of the frame shows ${pair().first.pipe(
+              Option.map((v) => v.id),
+              Option.getOrElse(() => 'the first'),
+            )}`}
+            title="Drag the wipe, or move it with ←/→ (⇧ ten), Home and End"
             ref={(el: HTMLButtonElement) => el.addEventListener('pointerdown', grab)}
           />
         </div>
