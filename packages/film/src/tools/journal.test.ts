@@ -6,7 +6,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, FileSystem, Layer, Option, Path } from 'effect';
+import { Deferred, Effect, Fiber, FileSystem, Layer, Option, Path, Ref } from 'effect';
 import { TestClock } from 'effect/testing';
 import { FilmFolder, type FilmName } from './film-repo.ts';
 import {
@@ -36,6 +36,48 @@ const withFolder = <A, E, R>(films: string, effect: Effect.Effect<A, E, R>) =>
 
 const entry = (at: string, scene: string, text: string): JournalEntry => ({ at, scene, text });
 
+/**
+ * The film's journal over `fs`, but each look at whether `file` is there
+ * held in the order that loses a note when a journal is made by looking
+ * first: both callers find it missing, the first goes on alone until the
+ * test releases the second (`second`). Holds only while `holding` is set.
+ */
+const racing = (
+  fs: FileSystem.FileSystem,
+  file: string,
+  holding: Ref.Ref<boolean>,
+  second: Deferred.Deferred<boolean>,
+) =>
+  Effect.gen(function* () {
+    const looked = yield* Ref.make(0);
+    const bothLooked = yield* Deferred.make<boolean>();
+    return FileSystem.FileSystem.of({
+      ...fs,
+      exists: (path) =>
+        Effect.gen(function* () {
+          const there = yield* fs.exists(path);
+          if (path !== file || !(yield* Ref.get(holding))) return there;
+          const n = yield* Ref.getAndUpdate(looked, (k) => k + 1);
+          if (n === 0) yield* Deferred.await(bothLooked);
+          if (n === 1) {
+            yield* Deferred.succeed(bothLooked, true);
+            yield* Deferred.await(second);
+          }
+          return there;
+        }),
+    });
+  });
+
+const withFileSystem = <A, E, R>(
+  films: string,
+  fs: FileSystem.FileSystem,
+  effect: Effect.Effect<A, E, R>,
+) =>
+  Effect.provide(
+    effect,
+    FilmFolder.layer(films).pipe(Layer.provideMerge(Layer.succeed(FileSystem.FileSystem, fs))),
+  );
+
 describe('the journal', () => {
   it.effect(
     'a first note makes the file under its rule; each note is one dated, placed entry',
@@ -61,6 +103,32 @@ describe('the journal', () => {
           entry('2026-10-04T14:50:12Z', 'roof', 'the four faces read as one mass'),
           entry('2026-10-04T14:50:12Z', 'film', '# the title lands late'),
         ]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  it.effect(
+    'two notes at once on a film with no journal both land, in the order that lost one',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const { films, file } = yield* filmsHere;
+        const holding = yield* Ref.make(true);
+        const second = yield* Deferred.make<boolean>();
+        const raced = yield* racing(fs, file, holding, second);
+        const first = yield* Effect.forkChild(
+          withFileSystem(films, raced, note(film, 'first', Option.none())),
+        );
+        const then = yield* Effect.forkChild(
+          withFileSystem(films, raced, note(film, 'second', Option.none())),
+        );
+        // The first note lands whole before the second, which found no journal too, goes on.
+        yield* Fiber.join(first);
+        yield* Deferred.succeed(second, true);
+        yield* Fiber.join(then);
+        yield* Ref.set(holding, false);
+        const text = yield* fs.readFileString(file);
+        expect(entriesOf(text).map((e) => e.text)).toEqual(['first', 'second']);
+        expect(text.split(JOURNAL_RULE)).toHaveLength(2);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 

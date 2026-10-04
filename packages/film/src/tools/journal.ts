@@ -141,8 +141,14 @@ export const note = Effect.fn('journal.note')(function* (
   const file = yield* fileOf(film);
   const at = DateTime.formatIso(yield* DateTime.now).replace(/\.\d+Z$/, 'Z');
   const entry: JournalEntry = { at, scene: Option.getOrElse(scene, () => FILM_WIDE), text };
-  if (!(yield* fs.exists(file))) yield* fs.writeFileString(file, header(film));
-  // Appended, never rewritten: two notes at once both land.
+  // Made only if no one has made it (`wx`, one maker among notes at once), then appended,
+  // never rewritten: two notes at once both land, under one header.
+  yield* fs.writeFileString(file, header(film), { flag: 'wx' }).pipe(
+    Effect.catchIf(
+      (error) => error.reason._tag === 'AlreadyExists',
+      () => Effect.void,
+    ),
+  );
   yield* fs.writeFileString(file, entryBlock(entry), { flag: 'a' });
   yield* Effect.log(`journal.note film=${film} scene=${entry.scene} chars=${text.length}`);
   return { file, entry };
