@@ -378,12 +378,18 @@ entries it left out.
 - `film.look`, `film.check`, `film.cues` and `film.journal` run this
   checkout's own film CLI (`bun cli.ts …` in `apps/animations`). The stills
   come back as images the model reads. A refusal (`UnknownScene`,
-  `PagesBroken`, `LabDown`, …) comes back as a failure that carries the
+  `PagesBroken`, `LabDown`, …) comes back as a failure whose fields are the
   film's tag and words.
 - `film.read`, `film.write` and `film.edit` reach only
   `apps/animations/src/films/<film>/`, and refuse `..`, a path outside and
   a symbolic link. `film.read` with `within: skill` also reads the film
   skill's rules.
+
+Every result fits whole in gent's 8,000-character tool result. A result that
+stops early says how to read on with the same tools: `film.read` gives the
+`next` line and column, `film.check` the `next` finding to pass as `from`.
+`film.cues` and the journal name the narrower call that reads the lines they
+left out.
 
 The agent's brief, in the extension, has it work in passages: read the scene,
 its cues and its journal; paint one passage; look; note what it saw; and run

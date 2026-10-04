@@ -8,18 +8,23 @@
 // holds exactly those, and a compactor that condenses a painter's window from
 // the files, with no model call.
 //
-// One file, importing only `effect`, `@gent/core/extensions/api` and
-// `@gent/core/extensions/branch-tools`: gent binds those specifiers to the
-// modules it runs, so the file needs no `node_modules` of its own (a compiled
-// gent has none). The `effect/process` import is a type only, erased by the
-// build.
+// One file, since its parts change together, importing only `effect`,
+// `@gent/core/extensions/api` and `@gent/core/extensions/branch-tools`: gent
+// binds those specifiers to the modules it runs, so the file needs no
+// `node_modules` of its own (a compiled gent has none). The `effect/process`
+// import is a type only, erased by the build.
 //
 // One adapter reaches the film: the checkout's own `film` CLI
 // (`apps/animations/cli.ts`), run per call as a process. The look route's
 // request, its `FILM_LAB_URL` default (the always-on lab on 8229), the
 // `LabElsewhere` guard and `LabDown` live in that CLI; check, cues and the
-// journal have no route at all. Each failure the CLI prints comes back as a
-// typed tool failure (`FilmRefused`) naming the film's own tag and words.
+// journal have no route at all.
+//
+// Every result and every failure fits gent's 8,000-character tool result
+// whole (`RESULT_BUDGET`): a result that stops early says how to read on with
+// the painter's own tools. A failure reaches the model as a
+// `ToolResultFailure` whose result is its tag and fields: a CLI refusal is
+// `{_tag: 'FilmRefused', tool, tag, text}`, the film's own tag and words.
 
 import { Duration, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import type { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
