@@ -39,6 +39,7 @@ import { Project, RenderVariantName } from './catalogue.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
 import {
+  LabDown,
   LabElsewhere,
   LookFailed,
   LookInvalid,
@@ -48,7 +49,16 @@ import {
   LookPost,
   LookTaken,
   PagesBroken,
+  ToolFailed,
 } from './easel.ts';
+import {
+  CounselFailed,
+  CounselUnreadable,
+  JudgeNothingToCompare,
+  JudgePointAmbiguous,
+  JudgePointUnjudged,
+  JudgeRuleMissing,
+} from './judge.ts';
 import { ReviewDuration, ReviewFilms, ReviewFolder, ReviewIndex, ReviewVideo } from './review.ts';
 import {
   AttemptUnknown,
@@ -224,6 +234,26 @@ const Refusals = [
 /** Any failure a route answers with. */
 export const Refusal = Schema.Union(Refusals);
 export type Refusal = typeof Refusal.Type;
+
+/**
+ * A failure as a film tool prints it (`film look --json`, `film judge
+ * --json`): a route's refusal exactly as the route answers it (tagged, its
+ * fields), or the tool's own (no lab answering, the judge's), or
+ * `ToolFailed` for any other. One shape for a tool to decode, whichever
+ * side failed.
+ */
+export const ToolFailure = Schema.Union([
+  ...Refusals,
+  LabDown,
+  ToolFailed,
+  JudgePointUnjudged,
+  JudgeNothingToCompare,
+  JudgePointAmbiguous,
+  JudgeRuleMissing,
+  CounselFailed,
+  CounselUnreadable,
+]);
+export type ToolFailure = typeof ToolFailure.Type;
 
 /** Whether `u` is a failure a route answers with (else it answers ServerFailed). */
 export const isRefusal = Schema.is(Refusal);

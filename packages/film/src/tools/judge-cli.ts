@@ -41,7 +41,9 @@ export const judge = (films: string, rules: ReadonlyArray<JudgeRule>) =>
       ),
       json: Flag.Boolean('json').pipe(
         Flag.withDefault(false),
-        Flag.withDescription('print the verdict as one JSON line (a failure as {error})'),
+        Flag.withDescription(
+          'print the verdict as one JSON line (a failure as a ToolFailure, the shape the look route answers with)',
+        ),
       ),
     },
     Effect.fn('film.judge')(

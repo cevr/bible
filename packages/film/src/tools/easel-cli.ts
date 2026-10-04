@@ -18,15 +18,16 @@ import { Argument, Command, Flag } from 'effect/cli';
 import { Array as Arr, Config, Console, Effect, Option, Path, Result, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
-import { LabHttpApi } from '../core/api.ts';
+import { LabHttpApi, ToolFailure } from '../core/api.ts';
 import {
   LOOK_MAX_SIZE,
   LabDown,
   LookInvalid,
   LookMode,
-  type LookPost,
+  LookPost,
   LookTaken,
   type StillView,
+  ToolFailed,
   cropOf,
   formatFor,
   lookLine,
@@ -39,22 +40,40 @@ export const labUrl = Config.String('FILM_LAB_URL').pipe(
 
 const FORMATS = { png: 'image/png', jpeg: 'image/jpeg' } as const;
 
-/** A value as one JSON line. */
-const jsonOf = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 /** The lab's answer as one JSON line (`--json`). */
 const takenJson = Schema.encodeSync(Schema.fromJsonString(LookTaken));
 
-/** A failure as `--json` prints it: its tag, its message and its fields. */
-export const failureJson = (error: { readonly _tag: string; readonly message: string }) =>
-  jsonOf({ error: { ...error, _tag: error._tag, message: error.message } });
+const encodeFailure = Schema.encodeUnknownOption(Schema.fromJsonString(ToolFailure));
+
+/**
+ * A failure as `--json` prints it, one JSON line in the one shape a tool
+ * decodes (`ToolFailure`): a route's refusal exactly as the route answered
+ * it, a tool's own as itself, and any other as `ToolFailed` (its tag and
+ * its words).
+ */
+export const failureJson = (error: { readonly _tag: string; readonly message: string }): string =>
+  Option.getOrElse(encodeFailure(error), () =>
+    Option.getOrElse(
+      encodeFailure(ToolFailed.make({ failed: error._tag, reason: error.message })),
+      () => '',
+    ),
+  );
+
+/** A look as it will be sent, or why it cannot be: a request the route would refuse unread. */
+const sendable = (post: LookPost) =>
+  Schema.encodeEffect(LookPost)(post).pipe(
+    Effect.mapError((error) => LookInvalid.make({ reason: error.message })),
+  );
 
 /**
  * The look `post` of `film` asked of the lab at `url` (`LooksGroup`): the
- * stills it wrote and their build, its refusal as itself, or `LabDown` when
- * no lab answered, or one answered with no look (a lab older than the asker).
+ * stills it wrote and their build, its refusal as itself, `LookInvalid` when
+ * the request cannot be sent at all (no lab is asked), or `LabDown` when no
+ * lab answered, or one answered with no look (a lab older than the asker).
  */
 export const takeLook = (url: string, film: string, post: LookPost) =>
-  HttpApiClient.make(LabHttpApi, { baseUrl: url }).pipe(
+  sendable(post).pipe(
+    Effect.andThen(HttpApiClient.make(LabHttpApi, { baseUrl: url })),
     Effect.flatMap((client) => client.looks.take({ params: { film }, payload: post })),
     Effect.catchTags({
       HttpClientError: (error) => Effect.fail(LabDown.make({ url, reason: error.message })),
@@ -126,7 +145,9 @@ export const look = (films: string) =>
       ),
       json: Flag.Boolean('json').pipe(
         Flag.withDefault(false),
-        Flag.withDescription("print the lab's answer as one JSON line (a failure as {error})"),
+        Flag.withDescription(
+          "print the lab's answer as one JSON line (a failure as the route answers it: ToolFailure in core/api.ts)",
+        ),
       ),
     },
     Effect.fn('film.look')(

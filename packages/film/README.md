@@ -1641,7 +1641,12 @@ handed keeps its pixels. `from`, the asker's films folder, guards a lab
 serving another checkout: it refuses with a 409 `LabElsewhere` instead of
 showing its own files. A look whose page fails is a 502 `LookFailed` with
 the page's words. The CLI adds `LabDown` (no lab answered, or one too old to
-know the route). Each look logs `easel.look … ms= built_ms= page_ms=
+know the route) and checks the request before sending it: one the route
+would refuse unread (a `--size` under 16) is `LookInvalid`, asked of no
+lab. A failure prints (`--json`, and `film judge --json`) exactly as the
+route answers it, decoded by one schema, `ToolFailure` in `core/api.ts`:
+the route's refusals, `LabDown`, the judge's own, and `ToolFailed`
+(`{failed, reason}`) for any other. Each look logs `easel.look … ms= built_ms= page_ms=
 draw_ms=`: the build asked, the page opened (0 when held), the frames drawn
 and written.
 

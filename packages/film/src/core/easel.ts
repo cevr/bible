@@ -104,6 +104,20 @@ export class LabDown extends Schema.TaggedError<LabDown>()('LabDown', {
   }
 }
 
+/**
+ * A tool's failure that no other tag names (a file it could not read, a
+ * film that would not load), as the tool prints it: the tag it failed with,
+ * and its words.
+ */
+export class ToolFailed extends Schema.TaggedError<ToolFailed>()('ToolFailed', {
+  failed: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.failed}: ${this.reason}`;
+  }
+}
+
 /** A wedge naming a look `palette.ts` does not declare, or a level its look lacks. */
 export class LookLevelUnknown extends Schema.TaggedError<LookLevelUnknown>()('LookLevelUnknown', {
   look: Schema.String,
