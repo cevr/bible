@@ -398,6 +398,8 @@ its cues and its journal; paint one passage; look; note what it saw; and run
 the check before it stops. When a painter's context window fills, the agent
 condenses it from the files (the scene file, the newest journal entries for
 the scene, its cues and the last look's stills) and asks no model to do it.
+A later condensing carries the scene and the last look forward from gent's
+own handoff marker, never from a summary copied into a message.
 
 To run a painter:
 

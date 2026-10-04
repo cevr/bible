@@ -1227,9 +1227,10 @@ interface Written {
 
 /**
  * What a painter's window says of its work, read oldest first: the scene it
- * paints, the files it wrote, and the lines of its last look. An earlier
- * painter notice in the window (a handoff) carries all three forward; a film
- * call after it updates them.
+ * paints, the files it wrote, and the lines of its last look. gent's handoff
+ * marker, holding an earlier painter notice, carries all three forward (a
+ * copy of a notice in any other message carries nothing); a film call after
+ * it updates them.
  */
 interface Trail {
   readonly place: Option.Option<Place>;
@@ -1343,25 +1344,71 @@ const afterCall = (
   };
 };
 
-/** The trail of `messages`, oldest first. */
-const trailOf = (messages: ReadonlyArray<Message>): Trail => {
-  const parts = messages.flatMap((message) => message.parts);
-  const results = new Map(
-    parts.flatMap((part) => {
-      if (part.type !== 'tool-result') return [];
-      return [[part.id, { value: part.result, failed: part.isFailure }] as const];
+/**
+ * `metadata.customType` of gent's window marker (core's runtime user message
+ * type "context-window", which gent's own compactor also names by value: no
+ * authoring entry exports it). Only the runtime writes it: an extension's
+ * send and a client's message have it removed.
+ */
+const WINDOW_MARKER_TYPE = 'context-window';
+
+/**
+ * A handoff marker's details as gent writes them (`windowMarkerMessage`):
+ * tagged with the marker's type, and `summarized` present, the summary of
+ * the history it replaced. A bare window marker carries no summary.
+ */
+const HandoffDetails = Schema.Struct({
+  _tag: Schema.Literal(WINDOW_MARKER_TYPE),
+  summarized: Schema.Struct({ firstMessageId: Schema.String, lastMessageId: Schema.String }),
+});
+const isHandoffDetails = Schema.is(HandoffDetails);
+
+/**
+ * The trail an earlier compaction handed over, when `message` is gent's
+ * handoff marker carrying a painter notice. Its words alone prove nothing:
+ * a summary copied into a user's or the model's message is no handoff.
+ */
+const handoffTrail = (message: Message): Option.Option<Trail> => {
+  if (message.role !== 'user' || message.metadata?.customType !== WINDOW_MARKER_TYPE)
+    return Option.none();
+  if (!isHandoffDetails(message.metadata.details)) return Option.none();
+  return Option.firstSomeOf(
+    message.parts.flatMap((part) => {
+      if (part.type !== 'text') return [];
+      return [noticeTrail(part.text)];
     }),
   );
-  return parts.reduce((trail: Trail, part) => {
-    if (part.type === 'text') return Option.getOrElse(noticeTrail(part.text), () => trail);
-    if (part.type !== 'tool-call' || !part.name.startsWith('film.')) return trail;
-    return afterCall(
-      trail,
-      part.name,
-      Option.getOrElse(decodeCallParams(part.params), () => ({})),
-      Option.fromUndefinedOr(results.get(part.id)),
-    );
-  }, NO_TRAIL);
+};
+
+/**
+ * The trail of `messages`, oldest first: gent's handoff marker seeds it with
+ * what the earlier notice carried, and each film call after updates it.
+ */
+const trailOf = (messages: ReadonlyArray<Message>): Trail => {
+  const results = new Map(
+    messages.flatMap((message) =>
+      message.parts.flatMap((part) => {
+        if (part.type !== 'tool-result') return [];
+        return [[part.id, { value: part.result, failed: part.isFailure }] as const];
+      }),
+    ),
+  );
+  return messages.reduce(
+    (seeded: Trail, message) =>
+      message.parts.reduce(
+        (trail: Trail, part) => {
+          if (part.type !== 'tool-call' || !part.name.startsWith('film.')) return trail;
+          return afterCall(
+            trail,
+            part.name,
+            Option.getOrElse(decodeCallParams(part.params), () => ({})),
+            Option.fromUndefinedOr(results.get(part.id)),
+          );
+        },
+        Option.getOrElse(handoffTrail(message), () => seeded),
+      ),
+    NO_TRAIL,
+  );
 };
 
 /** A Markdown quote of `lines`, so none of them reads as a heading of the notice. */
