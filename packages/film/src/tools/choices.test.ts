@@ -5,7 +5,8 @@
 // files. No network, no ffmpeg, no film CLI.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Effect, Fiber, Layer, Option, Path, Schema } from 'effect';
+import { Array as Arr, Deferred, Effect, Fiber, Layer, Option, Path, Schema } from 'effect';
+import { withSay } from '../core/choice.ts';
 import { pointIdOf } from '../core/point.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
@@ -13,6 +14,7 @@ import { RenderCatalogue } from './catalogue.ts';
 import { Choices } from './choices.ts';
 import { ContentStore } from './content-store.ts';
 import { FilmFolder, FilmName, FilmRepo } from './film-repo.ts';
+import type { FreshFilmService } from './fresh-film.ts';
 import { NO_SCORES } from './media-store.ts';
 import { voicedOf } from './narrator.ts';
 import { SourceWriter } from './source-writer.ts';
@@ -54,12 +56,46 @@ const F = Schema.decodeSync(FilmName)('test');
 const NARRATION = film.paths.narration;
 const TIMINGS = film.paths.timings.file;
 
+/** The film's `sound.ts`: a score of two options, `piano` playing, under the voice at -18 dB. */
+const SOUND_FILE = `${film.paths.dir}/sound.ts`;
+const SOUND = `export const sound = {
+  score: { play: 'piano', under: -18, options: { piano: {}, strings: {} } },
+};
+`;
+
+/** A score option as `film options list` offers it. */
+const scoreOption = (id: string, picked: boolean) => ({
+  id,
+  label: id,
+  lines: [],
+  state: 'current' as const,
+  picked,
+  verbs: Arr.filter(['pick'] as const, () => !picked),
+  media: { _tag: 'Heard' as const, alone: false, inPlace: true },
+  key: id,
+});
+
+/** The film's points as `film options list` reads `SOUND`: its score, `piano` playing. */
+const scorePoints = () =>
+  Effect.succeed([
+    withSay(Option.none(), {
+      ref: { _tag: 'Score' },
+      address: Option.some({ _tag: 'Film' }),
+      title: 'score',
+      lines: [],
+      variants: [scoreOption('piano', true), scoreOption('strings', false)],
+    }),
+  ]);
+
 const setup = (
   /** What `film mix` does: a test that watches a remake holds it. */
   remixing: Effect.Effect<void> = Effect.void,
+  /** What `film options list` answers; the voice points read from the files when not given. */
+  points?: FreshFilmService['choices'],
 ) => {
   const files = new Map<string, Uint8Array>([
     [TIMINGS, text(Schema.encodeSync(TimingsJson)(staged))],
+    [SOUND_FILE, text(SOUND)],
     [`${NARRATION}/a.mp3`, text('Hello world.')],
     // Two readings of the line: other audio, the same words heard.
     ['/rec/a1.wav', text('Hello world.')],
@@ -96,7 +132,7 @@ const setup = (
   const fresh = Layer.unwrap(
     Effect.map(Effect.context<FilmRepo | Takes>(), (context) =>
       freshFilm({
-        choices: voicesHere(context),
+        choices: points ?? voicesHere(context),
         keepVoice: keepVoiceHere(context),
         remix: () => remixing,
       }),
@@ -241,6 +277,64 @@ describe('Choices: a voice picked', () => {
       expect(refused.message).toContain(second);
       expect(files.get(TIMINGS)).toEqual(after);
       expect(takesIn(files)).toEqual([first]);
+    }).pipe(Effect.provide(layer));
+  });
+});
+
+describe('Choices: a score picked', () => {
+  it.effect('mixes the track again once sound.ts plays it, and again on its Undo and Redo', () => {
+    const mixes: Array<string> = [];
+    const { files, layer } = setup(
+      Effect.sync(() => mixes.push(new TextDecoder().decode(files.get(SOUND_FILE)))),
+      scorePoints,
+    );
+    return Effect.gen(function* () {
+      const point = pointIdOf({ _tag: 'Score' });
+      const picked = yield* (yield* Choices).pick(F, { point, variant: 'strings', verb: 'pick' });
+      expect(Option.isSome(picked.change)).toBe(true);
+      // The track is mixed from the text that plays strings, once it has landed.
+      expect(mixes.map((m) => m.includes("play: 'strings'"))).toEqual([true]);
+      const writer = yield* SourceWriter;
+      yield* writer.undo(F);
+      yield* writer.redo(F);
+      expect(mixes.map((m) => m.includes("play: 'strings'"))).toEqual([true, false, true]);
+    }).pipe(Effect.provide(layer));
+  });
+
+  it.effect("a level's knob mixes the track again at its new level", () => {
+    const mixes: Array<string> = [];
+    const { files, layer } = setup(
+      Effect.sync(() => mixes.push(new TextDecoder().decode(files.get(SOUND_FILE)))),
+      () =>
+        Effect.map(scorePoints(), (score) => [
+          ...score,
+          withSay(Option.none(), {
+            ref: {
+              _tag: 'Level',
+              target: { _tag: 'Layer', layer: { _tag: 'Score', which: 'under' } },
+            },
+            address: Option.some({ _tag: 'Film' }),
+            title: 'score under',
+            lines: [],
+            variants: [],
+            knob: Option.some({
+              value: -18,
+              min: -40,
+              max: 0,
+              step: 1,
+              unit: 'dB',
+              fixed: Option.none(),
+            }),
+          }),
+        ]),
+    );
+    return Effect.gen(function* () {
+      const point = pointIdOf({
+        _tag: 'Level',
+        target: { _tag: 'Layer', layer: { _tag: 'Score', which: 'under' } },
+      });
+      yield* (yield* Choices).knob(F, { point, value: -12 });
+      expect(mixes.map((m) => m.includes('under: -12'))).toEqual([true]);
     }).pipe(Effect.provide(layer));
   });
 });

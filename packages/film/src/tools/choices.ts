@@ -4,7 +4,8 @@
 //
 // - score: `play` in `sound.ts`, and look: `play` of a look in `palette.ts`,
 //   each the one string spliced by the parser (`choice-source.ts`) through
-//   the SourceWriter;
+//   the SourceWriter (a score's pick mixes the track again once it lands,
+//   and on its Undo and Redo);
 // - take: kept, unkept or rejected by its sha256 through the library's own
 //   operations (`SoundLibrary.keep`/`unkeep`/`reject`) by the film CLI in a
 //   fresh process (the library's prompts are its sources too), recorded
@@ -17,7 +18,8 @@
 //   so it runs under the writer's lock and Undo brings back the take it
 //   replaced;
 // - level: a sound layer's level (or the constant layers share) written into
-//   `sound.ts` through the SourceWriter;
+//   `sound.ts` through the SourceWriter, the track mixed again as a score's
+//   pick mixes it;
 // - a say (approve, withdraw, comment): the catalogue's records
 //   (`RenderCatalogue`), on the variant as it is now; the points last read
 //   are said of again from the catalogue it leaves, in this process.
@@ -83,7 +85,7 @@ import { type FormatFailed } from './errors.ts';
 import { FilmFolder, type FilmName, Stamped, keptWhenMade, lockManifest } from './film-repo.ts';
 import { type FreshError, FreshFilm, type OptionsKept } from './fresh-film.ts';
 import { Review, once } from './review.ts';
-import { type Change, type RewriteError, SourceWriter } from './source-writer.ts';
+import { type Change, type Follows, type RewriteError, SourceWriter } from './source-writer.ts';
 import { Takes } from './takes.ts';
 
 /** What a verb did: the change it made (none when it was already so). */
@@ -335,13 +337,28 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         return result;
       });
 
-      /** `play` at `site` in `file` set to `option`, through the writer. */
-      /** `option` played at `site` in the film's file `name` (`sound.ts`), which a refusal names as is. */
+      /**
+       * What follows `sound.ts`: the track mixed from it (`film mix`), mixed
+       * again once a write of it lands, and on its Undo and Redo. It names no
+       * file to bring back or put away.
+       */
+      const mixedFrom = (film: FilmName): Follows => ({
+        bring: () => Effect.void,
+        putAway: () => Effect.void,
+        remake: Option.some(fresh.remix(film)),
+      });
+
+      /**
+       * `option` played at `site` in the film's file `name` (`sound.ts`), which
+       * a refusal names as is, through the writer; what follows the file
+       * (`follows`) made again once it lands.
+       */
       const writePick = (
         film: FilmName,
         name: string,
         site: Parameters<typeof editPick>[2],
         option: string,
+        follows?: Follows,
       ) => {
         const file = fileIn(film, name);
         return Effect.map(
@@ -356,6 +373,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
                 Arr.filter(['play'], () => read !== option),
               ),
             check: () => Effect.void,
+            follows,
           }),
           ([change]): Picked => ({
             file,
@@ -413,7 +431,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           });
         const noPick = () => Effect.fail(refusal());
         return yield* Match.valueTags(point.ref, {
-          Score: () => writePick(film, 'sound.ts', SCORE_PLAY, variant.id),
+          Score: () => writePick(film, 'sound.ts', SCORE_PLAY, variant.id, mixedFrom(film)),
           Look: ({ name }) => writePick(film, 'palette.ts', lookPlay(name), variant.id),
           Take: ({ sound }) => actOnTake(film, point, sound, variant.id, asked.verb),
           Voice: ({ beat }) => voicePicked(film, beat, variant.id),
@@ -443,6 +461,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           edit: (source) => editLevel('sound.ts', source, target, value),
           verify: () => Result.succeed([]),
           check: () => Effect.void,
+          follows: mixedFrom(film),
         });
         const picked: Picked = {
           file,

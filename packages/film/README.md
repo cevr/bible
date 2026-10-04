@@ -1579,6 +1579,11 @@ sets in `tools/review.ts`), and one dispatch lands each verb
 A look's options are levels a scene reads (`ground`: the paper's ground, `now`
 at 0 drawing today's film); a render of another level is a render variant
 (`--variant light`). A computed level (`PAPER - 2`) is a fixed knob, named why.
+A score's pick and a level's knob change what `full.wav` is mixed from, so
+once the write of `sound.ts` lands the track is mixed again (`film mix
+<film>`, fresh), and again on its Undo and Redo, as a kept voice's is (the
+rewrite's `follows`, `Follows.remake` in `tools/source-writer.ts`); a failed
+mix is logged `lab.remake.failed` and the write stands.
 
 **Sets are found by record, never by name.** A folder is listed only when a
 record says what its files are. A film's project folder (`out/<film>`) holds

@@ -117,6 +117,12 @@ interface Rewrite<E, A = void> {
   readonly verify: (after: string) => Result.Result<ReadonlyArray<string>, SourceRefused>;
   /** Refuse a text the film cannot play, or answer what the check found of it. */
   readonly check: (after: string) => Effect.Effect<A, E>;
+  /**
+   * What follows the text (the track mixed from `sound.ts`): made again once
+   * the write lands, as Undo and Redo make it again once theirs do. None
+   * when nothing does.
+   */
+  readonly follows?: Follows;
 }
 
 export type RewriteError =
@@ -343,7 +349,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               target,
               before,
               after,
-              follows: Option.none(),
+              follows: Option.fromUndefinedOr(rewrite.follows),
             };
             // Already so (a pick of the option playing): nothing to write, nothing to undo.
             if (after === before) {
@@ -358,6 +364,8 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                 // Only over the very text the edit was made from.
                 yield* swap(rewrite.film, file, before, after, target);
                 yield* record(change, 'lab.write');
+                // Made again from the text that landed, once the history names it.
+                yield* remake(change);
                 return [change, checked] as const;
               }),
             );
