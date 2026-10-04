@@ -50,6 +50,21 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-card video, .rv-media { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--surface-0); object-fit: contain; }
 .rv-card.rv-tall video { aspect-ratio: auto; max-height: 70vh; }
 .rv-zoom { cursor: zoom-in; }
+/* The pair wiped (PA-8): both videos stacked full width, the other right of the divider. */
+.rv-wipe { position: relative; background: var(--surface-0); overflow: hidden; touch-action: pan-y; }
+.rv-wipe video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
+.rv-wipe .rv-wipe-other { position: absolute; inset: 0; }
+.rv-wipe-line { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--on-picture); }
+.rv-wipe-grip {
+  position: absolute; top: 50%; left: 50%; width: var(--hit); height: var(--hit); transform: translate(-50%, -50%);
+  border-radius: 50%; border: 2px solid var(--on-picture); background: var(--on-picture-shade);
+  cursor: ew-resize; touch-action: none; padding: 0;
+}
+.rv-wipe-caps { margin-top: var(--s-2); }
+/* The pair's difference at a moment: the other's still over the first's, in the difference blend. */
+.rv-diff { position: relative; background: var(--surface-0); isolation: isolate; }
+.rv-diff img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
+.rv-diff .rv-diff-other { position: absolute; inset: 0; height: 100%; mix-blend-mode: difference; }
 .rv-cap { display: flex; align-items: center; gap: var(--s-2); padding: var(--s-2) var(--s-3); min-width: 0; }
 .rv-name { font-weight: var(--w-2); white-space: nowrap; }
 .rv-tag {

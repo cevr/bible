@@ -1818,6 +1818,15 @@ own names, and the stored and wire words stay as they are.
   version a variant.
 - **Side by side**: the first version against one other (the view `pair`),
   offered only on a stack of two or more.
+- **Wipe**: the same two stacked full width on the one clock, the first left
+  of a divider and the other right of it (`?view=wipe&other=<id>`). The
+  divider is dragged by its grip; where it sits is the page's, not the
+  link's, since a different split shows the same comparison.
+- **Difference** (a _difference matte_): the other's still laid over the
+  first's at one moment in the `difference` blend, black where the two are
+  the same and lit where they differ (`?view=diff&other=<id>&m=<n>`, ←/→
+  between moments). It stands on stills the server cuts at the same instant,
+  never on the playing videos, which the sync keeps only within 0.2 s.
 - **Comment**: a note on a version, kept in the catalogue (a `say`).
 - **Out of date**: a version made for earlier sources or an earlier mix (the
   state `stale`).
@@ -2019,8 +2028,10 @@ a finding names an address, not a point. A set's page holds one effect-machine a
 (`machine.ts`: `Paused`, `Playing`, `Scrubbing`, `Buffering`; one clock, the
 first variant's; one sound heard; opened at the URL's `#t=`, which follows
 it), and shows the view its URL keeps (`All`, `Pair` shown as Side by side,
-`Moments`, `Notes`; a set of one version has no pair, and a link asking for
-one opens All): a view chosen runs through the view machine (`stepView`)
+`Wipe`, `Moments`, `Diff` shown as Difference, `Notes`; a set of one version has
+no pair, wipe or difference, and a link asking for one opens All; the pair,
+its wipe and its difference share the other chosen, and the moments and the
+difference share the moment): a view chosen runs through the view machine (`stepView`)
 and is written back, a new history entry for a view or a moment chosen,
 the same entry for a pair's other cycled or a ←/→ step. `sync.ts` is the driver
 that makes every media element (a `<video>` or an `<audio>`) follow the

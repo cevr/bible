@@ -60,6 +60,7 @@ import {
   type SyncState,
   ViewEvent,
   ViewState,
+  otherOf,
   playsIn,
   spawnSync,
   spreadMoments,
@@ -493,12 +494,13 @@ const SetBody = (
       ),
     ),
   );
-  // Nothing plays behind the moments or the notes; a pair hears one of its two.
+  // Nothing plays behind the moments, the difference or the notes; a pair (or
+  // its wipe) hears one of its two.
   createEffect(
     () => [view(), sync().audible] as const,
     ([state, audible]) => {
       if (!playsIn(viewNameOf(state))) sendSync(SyncEvent.PausePressed);
-      if (state._tag === 'Pair' && audible !== first && audible !== state.other)
+      if (Option.exists(otherOf(state), (o) => audible !== first && audible !== o))
         sendSync(SyncEvent.HeardChosen({ id: first }));
     },
   );
@@ -518,12 +520,12 @@ const SetBody = (
     ),
   );
 
-  // The moments step on ←/→; the playing views take the player's transport.
+  // The moments (and the difference at a moment) step on ←/→; the playing views take the player's transport.
   onCleanup(
     meta.hub.commands.register(
       ...playerCommands((key) => {
         const name = viewNameOf(view());
-        if (name === 'moments')
+        if (name === 'moments' || name === 'diff')
           return PlayerKey.$match(key, {
             Toggle: () => Option.none<() => void>(),
             Step: ({ by }) =>
@@ -537,12 +539,14 @@ const SetBody = (
       }),
     ),
   );
-  // Whether version `id` can be heard in the view shown: it plays, and a pair holds it.
+  // Whether version `id` can be heard in the view shown: it plays, and a pair (or its wipe) holds it.
   const hearable = (id: string): boolean => {
     const shown = view();
     if (!playsIn(viewNameOf(shown))) return false;
-    if (shown._tag === 'Pair') return id === first || id === shown.other;
-    return true;
+    return Option.match(otherOf(shown), {
+      onNone: () => true,
+      onSome: (o) => id === first || id === o,
+    });
   };
   // A version of this set heard alone, from its context menu (as its 🔊 does).
   const versionHere = (ctx: Context) =>

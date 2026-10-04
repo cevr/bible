@@ -78,6 +78,30 @@ describe('the place in the URL', () => {
     expect(viewOf(queryAt('?view=pair&other=nope'), ['A'])).toEqual(ViewState.All);
   });
 
+  test('keeps the wipe and the difference (PA-8): an other of the set, and the moment the difference is at', () => {
+    const ids = ['A', 'B', 'C'];
+    expect(viewOf(queryAt('?view=wipe&other=C'), ids)).toEqual(ViewState.Wipe({ other: 'C' }));
+    expect(viewOf(queryAt('?view=wipe&other=Z'), ids)).toEqual(ViewState.Wipe({ other: 'B' }));
+    expect(viewOf(queryAt('?view=diff&other=C&m=3'), ids)).toEqual(
+      ViewState.Diff({ other: 'C', index: 3 }),
+    );
+    expect(viewOf(queryAt('?view=diff&other=C&m=-1'), ids)).toEqual(
+      ViewState.Diff({ other: 'C', index: 0 }),
+    );
+    expect(viewOf(queryAt('?view=wipe'), ['A'])).toEqual(ViewState.All);
+    expect(viewOf(queryAt('?view=diff'), ['A'])).toEqual(ViewState.All);
+    const at = (state: ViewState) =>
+      Place.href(Places.set, {
+        path: { folder: 'f', point: 's' },
+        query: queryOfView(state),
+        hash: { t: Option.none() },
+      });
+    expect(at(ViewState.Wipe({ other: 'C' }))).toBe('/sets/f/s?view=wipe&other=C');
+    expect(at(ViewState.Diff({ other: 'C', index: 2 }))).toBe('/sets/f/s?view=diff&other=C&m=2');
+    for (const state of [ViewState.Wipe({ other: 'C' }), ViewState.Diff({ other: 'B', index: 1 })])
+      expect(viewOf(queryAt(at(state).slice('/sets/f/s'.length)), ids)).toEqual(state);
+  });
+
   test('a view or a moment chosen is a step Back undoes; a pair cycled or a ←/→ step is not', () => {
     expect(historyOf(ViewEvent.ViewChosen({ view: 'moments' }))).toBe('push');
     expect(historyOf(ViewEvent.OtherChosen({ id: 'C' }))).toBe('replace');

@@ -1,15 +1,19 @@
 // The review's two machines. The synced player: every video of a set on one
 // clock (the first variant's), paused, playing, scrubbed or waiting on a
 // stalled video, at ½× or 1×, with one card's sound heard. The view: all the
-// variants, the first against one other, the moments (every variant's frame
-// at a few instants), or the notes.
+// variants, the first against one other (side by side, or wiped: stacked
+// full width, the other right of a divider), the moments (every variant's
+// frame at a few instants), the first and one other's difference at a moment
+// (PA-8: stills cut at the same instant, so the blend is exact), or the notes.
 //
 //   Paused ─Play→ Playing ─Pause→ Paused     Playing ─Stalled→ Buffering ─Resumed→ Playing
 //   any ─ScrubMoved→ Scrubbing ─ScrubReleased→ Playing | Paused (as it was)
 //   Playing | Buffering ─Ended→ Paused (at the end)
 //   any ─Stepped | Landed | Measured | HeardChosen | RateChosen→ the same, changed
 //
-//   All | Pair | Moments | Notes ─ViewChosen→ any (Pair only with a second version)
+//   All | Pair | Wipe | Moments | Diff | Notes ─ViewChosen→ any (Pair, Wipe, Diff only with a second version)
+//   Pair | Wipe | Diff ─OtherChosen→ the same, against that other
+//   Moments | Diff ─MomentChosen | MomentStepped→ the same, at that moment| Pair | Moments | Notes ─ViewChosen→ any (Pair only with a second version)
 //   Pair ─OtherChosen→ Pair
 //   Moments ─MomentChosen | MomentStepped→ Moments
 //
@@ -24,6 +28,7 @@
 
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State, simulate } from 'effect-machine';
+import { SET_VIEWS } from '../../core/api.ts';
 import { timecode } from '../../core/time.ts';
 
 /** Seconds a ←/→ step moves. */
@@ -237,15 +242,19 @@ export const reachOf = (state: SyncState): number => {
 // ---------------------------------------------------------------------------
 // The view
 
-export const ViewName = Schema.Literals(['all', 'pair', 'moments', 'notes']);
+export const ViewName = Schema.Literals(SET_VIEWS);
 export type ViewName = typeof ViewName.Type;
 
 export const ViewState = State({
   All: {},
-  /** The first variant against `other`. */
+  /** The first variant against `other`, side by side. */
   Pair: { other: Schema.String },
+  /** The first variant against `other`, stacked full width: the first left of a divider, `other` right of it. */
+  Wipe: { other: Schema.String },
   /** Every variant's frame at the `index`th moment. */
   Moments: { index: Schema.Int },
+  /** The first variant's frame and `other`'s at the `index`th moment, in the difference blend. */
+  Diff: { other: Schema.String, index: Schema.Int },
   Notes: {},
 });
 export type ViewState = typeof ViewState.Type;
@@ -259,15 +268,41 @@ export const ViewEvent = Event({
 });
 export type ViewEvent = typeof ViewEvent.Type;
 
-const VIEWS = [ViewState.All, ViewState.Pair, ViewState.Moments, ViewState.Notes] as const;
+const VIEWS = [
+  ViewState.All,
+  ViewState.Pair,
+  ViewState.Wipe,
+  ViewState.Moments,
+  ViewState.Diff,
+  ViewState.Notes,
+] as const;
 
-/** The state `view` shows: a pair against `other`, the moments from the first. */
-const viewEntered = (view: ViewName, other: string): ViewState =>
+/** The views of the first against one other: a set of one has none of them. */
+const PAIRED: ReadonlyArray<ViewName> = ['pair', 'wipe', 'diff'];
+
+/** The state `view` shows: a pair, its wipe or its difference against `other`, the moments at `index`. */
+const viewEntered = (view: ViewName, other: string, index: number): ViewState =>
   Match.value(view).pipe(
     Match.when('all', () => ViewState.All),
     Match.when('pair', () => ViewState.Pair({ other })),
-    Match.when('moments', () => ViewState.Moments({ index: 0 })),
+    Match.when('wipe', () => ViewState.Wipe({ other })),
+    Match.when('moments', () => ViewState.Moments({ index })),
+    Match.when('diff', () => ViewState.Diff({ other, index })),
     Match.orElse(() => ViewState.Notes),
+  );
+
+/** The other `state` is against: a pair's, its wipe's or its difference's. */
+export const otherOf = (state: ViewState): Option.Option<string> =>
+  Match.value(state).pipe(
+    Match.tag('Pair', 'Wipe', 'Diff', (s) => Option.some(s.other)),
+    Match.orElse(() => Option.none()),
+  );
+
+/** The moment `state` is at: the moments' or the difference's. */
+const indexOf = (state: ViewState): number =>
+  Match.value(state).pipe(
+    Match.tag('Moments', 'Diff', (s) => s.index),
+    Match.orElse(() => 0),
   );
 
 /** `index + by`, wrapped round `count` (0 when there are none). */
@@ -276,43 +311,53 @@ export const wrapped = (index: number, by: number, count: number): number => {
   return (((index + by) % n) + n) % n;
 };
 
+/** `state` at moment `index`: the moments, or the difference against the same other. */
+const atMoment = (state: ViewState, index: number): ViewState =>
+  Match.value(state).pipe(
+    Match.tag('Diff', (s) => ViewState.Diff({ other: s.other, index })),
+    Match.orElse(() => ViewState.Moments({ index })),
+  );
+
 /**
  * The view machine, starting in `initial`; a pair's first other is `other`.
- * A set with no other (one version) has no side by side: it opens in All
- * where a link asks for the pair, and choosing the pair leaves it as it is.
+ * A set with no other (one version) has no side by side, no wipe and no
+ * difference: it opens in All where a link asks for one, and choosing one
+ * leaves it as it is. The pair, its wipe and its difference share the other
+ * chosen; the moments and the difference share the moment.
  */
 export const viewMachine = (initial: ViewState, other: Option.Option<string>) =>
   Machine.make({
     state: ViewState,
     event: ViewEvent,
-    initial: Match.value(initial).pipe(
-      Match.tag('Pair', (pair): ViewState =>
-        Option.match(other, { onSome: () => pair, onNone: () => ViewState.All }),
-      ),
-      Match.orElse((s) => s),
-    ),
+    initial: Option.match(otherOf(initial), {
+      onNone: () => initial,
+      onSome: (): ViewState =>
+        Option.match(other, { onSome: () => initial, onNone: () => ViewState.All }),
+    }),
   })
-    .on(VIEWS, ViewEvent.ViewChosen, ({ state, event }) => {
-      // A pair keeps the other it had; the moments start from the first.
-      const kept = Match.value(state).pipe(
-        Match.tag('Pair', (s) => Option.some(s.other)),
-        Match.orElse(() => other),
-      );
-      return Option.match(kept, {
-        onSome: (o) => viewEntered(event.view, o),
-        onNone: () =>
-          Match.value(event.view).pipe(
-            Match.when('pair', () => state),
-            Match.orElse((view) => viewEntered(view, '')),
-          ),
-      });
-    })
-    .on(ViewState.Pair, ViewEvent.OtherChosen, ({ event }) => ViewState.Pair({ other: event.id }))
-    .on(ViewState.Moments, ViewEvent.MomentChosen, ({ event }) =>
-      ViewState.Moments({ index: Math.max(0, event.index) }),
+    .on(VIEWS, ViewEvent.ViewChosen, ({ state, event }) =>
+      Option.match(
+        Option.orElse(otherOf(state), () => other),
+        {
+          onSome: (o) => viewEntered(event.view, o, indexOf(state)),
+          onNone: () =>
+            Match.value(PAIRED.includes(event.view)).pipe(
+              Match.when(true, () => state),
+              Match.orElse(() => viewEntered(event.view, '', indexOf(state))),
+            ),
+        },
+      ),
     )
-    .on(ViewState.Moments, ViewEvent.MomentStepped, ({ state, event }) =>
-      ViewState.Moments({ index: wrapped(state.index, event.by, event.count) }),
+    .on(ViewState.Pair, ViewEvent.OtherChosen, ({ event }) => ViewState.Pair({ other: event.id }))
+    .on(ViewState.Wipe, ViewEvent.OtherChosen, ({ event }) => ViewState.Wipe({ other: event.id }))
+    .on(ViewState.Diff, ViewEvent.OtherChosen, ({ state, event }) =>
+      ViewState.Diff({ other: event.id, index: state.index }),
+    )
+    .on([ViewState.Moments, ViewState.Diff], ViewEvent.MomentChosen, ({ state, event }) =>
+      atMoment(state, Math.max(0, event.index)),
+    )
+    .on([ViewState.Moments, ViewState.Diff], ViewEvent.MomentStepped, ({ state, event }) =>
+      atMoment(state, wrapped(state.index, event.by, event.count)),
     );
 
 /** The view `event` leaves `state` in, with `other` a pair's first other. */
@@ -328,13 +373,20 @@ export const viewNameOf = (state: ViewState): ViewName =>
     Match.tagsExhaustive({
       All: (): ViewName => 'all',
       Pair: (): ViewName => 'pair',
+      Wipe: (): ViewName => 'wipe',
       Moments: (): ViewName => 'moments',
+      Diff: (): ViewName => 'diff',
       Notes: (): ViewName => 'notes',
     }),
   );
 
-/** Whether a view plays the videos (so shows the transport): all, and the pair. */
-export const playsIn = (view: ViewName): boolean => view === 'all' || view === 'pair';
+/**
+ * Whether a view plays the videos (so shows the transport): all, the pair
+ * and its wipe. The difference stands on stills: two videos kept within the
+ * sync's drift would still differ by a frame, and light false edges.
+ */
+export const playsIn = (view: ViewName): boolean =>
+  view === 'all' || view === 'pair' || view === 'wipe';
 
 /** The instants the moments show when the set names none: 5, 25, 50, 75 and 95% in. */
 const MOMENT_SPREAD = [0.05, 0.25, 0.5, 0.75, 0.95] as const;

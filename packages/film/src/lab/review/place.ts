@@ -2,7 +2,7 @@
 // (`Places`, `core/api.ts`), so a link, a reload or Back opens the same
 // place: every folder (`/`), one folder (`/sets/<folder>`), one comparison
 // set in it (`/sets/<folder>/<point>`, its view in the query:
-// `?view=pair&other=<id>`, `?view=moments&m=<n>`), one film's choices
+// `?view=pair|wipe&other=<id>`, `?view=moments&m=<n>`, `?view=diff&other=<id>&m=<n>`), one film's choices
 // (`/films/<film>/choices`), or one film's project by its address tree
 // (`/films/<film>/project`). Each of those is also a place ⌘K goes to by
 // its name (`destinationsOf`).
@@ -13,7 +13,7 @@ import { Places, pageHref } from '../../core/api.ts';
 import type { Destination } from '../../command/go.ts';
 import type { ReviewFilms, ReviewIndex } from '../../core/review.ts';
 import { folderTitle } from './format.ts';
-import { type ViewEvent, ViewState, viewNameOf } from './machine.ts';
+import { type ViewEvent, ViewState, otherOf, viewNameOf } from './machine.ts';
 
 export type ReviewPlace = Data.TaggedEnum<{
   Home: {};
@@ -54,9 +54,10 @@ export const hrefOf = (place: ReviewPlace): string =>
   );
 
 /**
- * The view a set's query keeps: its `view`, a pair's `other` (when it is one
- * of `ids` past the first; the second otherwise; a set of one has no pair and
- * shows all), the moments' `m`.
+ * The view a set's query keeps: its `view`, the `other` a pair, its wipe or
+ * its difference is against (when it is one of `ids` past the first; the
+ * second otherwise; a set of one has none of them and shows all), the
+ * moment `m` of the moments or the difference.
  */
 export const viewOf = (query: SetQuery, ids: ReadonlyArray<string>): ViewState => {
   const others = ids.slice(1);
@@ -64,13 +65,13 @@ export const viewOf = (query: SetQuery, ids: ReadonlyArray<string>): ViewState =
     Option.liftPredicate(query.other, (id) => others.includes(id)),
     () => Option.fromUndefinedOr(others[0]),
   );
+  /** A view against an other, or All where the set has none. */
+  const against = (paired: (id: string) => ViewState) =>
+    Option.match(other, { onSome: paired, onNone: () => ViewState.All });
   return Match.value(query.view).pipe(
-    Match.when('pair', () =>
-      Option.match(other, {
-        onSome: (id) => ViewState.Pair({ other: id }),
-        onNone: () => ViewState.All,
-      }),
-    ),
+    Match.when('pair', () => against((id) => ViewState.Pair({ other: id }))),
+    Match.when('wipe', () => against((id) => ViewState.Wipe({ other: id }))),
+    Match.when('diff', () => against((id) => ViewState.Diff({ other: id, index: query.m }))),
     Match.when('moments', () => ViewState.Moments({ index: query.m })),
     Match.when('notes', () => ViewState.Notes),
     Match.orElse(() => ViewState.All),
@@ -143,12 +144,9 @@ export const keptTime = (t: number, start: number): Option.Option<number> =>
 /** The query that keeps the view `state` shows (and nothing else of a view's). */
 export const queryOfView = (state: ViewState): SetQuery => ({
   view: viewNameOf(state),
-  other: Match.value(state).pipe(
-    Match.tag('Pair', (s) => s.other),
-    Match.orElse(() => ''),
-  ),
+  other: Option.getOrElse(otherOf(state), () => ''),
   m: Match.value(state).pipe(
-    Match.tag('Moments', (s) => s.index),
+    Match.tag('Moments', 'Diff', (s) => s.index),
     Match.orElse(() => 0),
   ),
 });

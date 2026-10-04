@@ -4,7 +4,9 @@
 // video with captions, and a doc read as
 // escaped markdown; the set plays every variant on one clock (space plays
 // and pauses, ←/→ step, 🔊 or `1`…`9` move the sound heard), shows the first against
-// one other, every variant's frame at the moments (←/→ between them), and
+// one other side by side or wiped (a divider the pointer drags), every
+// variant's frame at the moments (←/→ between them), the first and one
+// other's difference at a moment (stills in the difference blend), and
 // the notes; a variant the record proves stale says why in every view, and
 // the rest say no state; the view lives in the URL through a reload; and a
 // phone's width folds the grid to one column without scrolling sideways.
@@ -454,11 +456,92 @@ describe('the review page', () => {
         });
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
         yield* countIs(page, '.rv-views button[data-view="pair"]', 0);
+        yield* countIs(page, '.rv-views button[data-view="wipe"]', 0);
+        yield* countIs(page, '.rv-views button[data-view="diff"]', 0);
         // The URL keeps no empty other.
         yield* until(page, `location.pathname + location.search === '${SKY}'`);
-        // A set of several offers it, by its industry name.
+        // Nor does a wipe or a difference: neither has an other here.
+        yield* page.goto(`${SKY}?view=diff&m=2`);
+        yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
+        yield* until(page, `location.pathname + location.search === '${SKY}'`);
+        // A set of several offers them, by their industry names.
         yield* page.goto(SET);
         yield* textIs(page, '.rv-views button[data-view="pair"]', 'Side by side');
+        yield* textIs(page, '.rv-views button[data-view="wipe"]', 'Wipe');
+        yield* textIs(page, '.rv-views button[data-view="diff"]', 'Difference');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a wipe (PA-8) stacks the pair full width on the clock, the other right of a divider the pointer drags',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: SET });
+        yield* waitFor(page, '.rv-transport');
+        yield* page.click('.rv-views button[data-view="wipe"]');
+        yield* until(page, "location.search === '?view=wipe&other=B'");
+        const stacked =
+          "Array.from(document.querySelectorAll('.rv-wipe video')).map((v) => v.dataset.id).join()";
+        yield* until(page, `${stacked} === 'A,B'`);
+        // It plays: the transport stays, and only the pair is heard.
+        yield* waitFor(page, '.rv-transport');
+        yield* page.press('3');
+        yield* page.press('2');
+        yield* waitFor(page, '.rv-wipe-caps .rv-card[data-id="B"].rv-audible');
+        const clip = "document.querySelector('.rv-wipe-other').style.clipPath";
+        yield* until(page, `${clip} === 'inset(0px 0px 0px 50%)'`);
+        const grip = yield* page.box('.rv-wipe-grip');
+        const frame = yield* page.box('.rv-wipe');
+        const y = grip.y + grip.height / 2;
+        yield* page.mouse.move(grip.x + grip.width / 2, y);
+        yield* page.mouse.down;
+        yield* page.mouse.move(frame.x + frame.width * 0.25, y, 4);
+        yield* page.mouse.up;
+        yield* until(page, `${clip} === 'inset(0px 0px 0px 25%)'`);
+        // The divider is this page's: the link is the same comparison.
+        yield* until(page, "location.search === '?view=wipe&other=B'");
+        // At a phone's width the grip is a thumb's target.
+        expect(grip.width).toBeGreaterThanOrEqual(28);
+        yield* page.click('button[data-other="C"]');
+        yield* until(page, `${stacked} === 'A,C'`);
+        yield* until(page, "location.search === '?view=wipe&other=C'");
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'the difference (PA-8) lays the other’s still over the first’s at one moment, in the difference blend, and nothing plays',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: SET });
+        yield* waitFor(page, '.rv-transport');
+        yield* page.click('.rv-views button[data-view="diff"]');
+        yield* until(page, "location.search === '?view=diff&other=B'");
+        yield* countIs(page, '.rv-transport', 0);
+        const stills =
+          "Array.from(document.querySelectorAll('.rv-diff img')).map((i) => i.dataset.id + '@' + new URL(i.src).searchParams.get('t')).join()";
+        yield* until(page, `${stills} === 'A@1,B@1'`);
+        yield* evaluates(
+          page,
+          "getComputedStyle(document.querySelector('.rv-diff-other')).mixBlendMode",
+          'difference',
+        );
+        // ←/→ step its moment, as in the moments, keeping the other.
+        yield* page.press('ArrowRight');
+        yield* until(page, `${stills} === 'A@5,B@5'`);
+        yield* until(page, "location.search === '?view=diff&other=B&m=1'");
+        yield* page.click('button[data-other="C"]');
+        yield* until(page, `${stills} === 'A@5,C@5'`);
+        yield* until(page, "location.search === '?view=diff&other=C&m=1'");
+        // The moments keep the moment the difference was at.
+        yield* page.click('.rv-views button[data-view="moments"]');
+        yield* waitFor(page, 'button[data-moment="1"][aria-pressed="true"]');
+        // A link opens it as it was.
+        yield* page.goto(`${SET}?view=diff&other=C&m=4`);
+        yield* until(page, `${stills} === 'A@19,C@19'`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

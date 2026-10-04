@@ -750,8 +750,11 @@ const cited = Field.key(Codec.Text, { default: '', history: 'push' });
 /** A key refining how a view is shown (a pair's other side, the sound heard): no step of its own. */
 const refined = Field.key(Codec.Text, { default: '' });
 
-/** The views of a comparison set (`?view=`): side by side, a pair, the moments, the notes. */
-const SET_VIEWS = ['all', 'pair', 'moments', 'notes'] as const;
+/**
+ * The views of a comparison set (`?view=`): all side by side, a pair, the
+ * pair's wipe, the moments, the pair's difference at a moment (PA-8), the notes.
+ */
+export const SET_VIEWS = ['all', 'pair', 'wipe', 'moments', 'diff', 'notes'] as const;
 
 /** A moment's index (`?m=`): a whole number from 0. */
 const MomentIndex = Codec.Int.check(Schema.isGreaterThanOrEqualTo(0));

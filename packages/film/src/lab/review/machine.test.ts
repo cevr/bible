@@ -309,14 +309,69 @@ describe('the view', () => {
     );
   });
 
-  test('plays videos in all and the pair only', () => {
-    expect([playsIn('all'), playsIn('pair'), playsIn('moments'), playsIn('notes')]).toEqual([
-      true,
-      true,
-      false,
-      false,
-    ]);
+  test('plays videos in all, the pair and its wipe; the moments, the difference and the notes stand still', () => {
+    expect([
+      playsIn('all'),
+      playsIn('pair'),
+      playsIn('wipe'),
+      playsIn('moments'),
+      playsIn('diff'),
+      playsIn('notes'),
+    ]).toEqual([true, true, true, false, false, false]);
   });
+});
+
+describe('the wipe and the difference (PA-8)', () => {
+  it.effect('the pair, its wipe and its difference share the other chosen', () =>
+    Effect.gen(function* () {
+      const result = yield* simulate(views, [
+        ViewEvent.ViewChosen({ view: 'wipe' }),
+        ViewEvent.OtherChosen({ id: 'C' }),
+        ViewEvent.ViewChosen({ view: 'diff' }),
+        ViewEvent.OtherChosen({ id: 'D' }),
+        ViewEvent.ViewChosen({ view: 'pair' }),
+      ]);
+      expect(result.states.slice(1)).toEqual([
+        ViewState.Wipe({ other: 'B' }),
+        ViewState.Wipe({ other: 'C' }),
+        ViewState.Diff({ other: 'C', index: 0 }),
+        ViewState.Diff({ other: 'D', index: 0 }),
+        ViewState.Pair({ other: 'D' }),
+      ]);
+    }),
+  );
+
+  it.effect(
+    'the difference is of the moments: ←/→ and a moment chosen move it, keeping the other',
+    () =>
+      Effect.gen(function* () {
+        const result = yield* simulate(views, [
+          ViewEvent.ViewChosen({ view: 'diff' }),
+          ViewEvent.MomentStepped({ by: -1, count: 5 }),
+          ViewEvent.MomentChosen({ index: 2 }),
+          ViewEvent.OtherChosen({ id: 'C' }),
+        ]);
+        expect(result.states.slice(2)).toEqual([
+          ViewState.Diff({ other: 'B', index: 4 }),
+          ViewState.Diff({ other: 'B', index: 2 }),
+          ViewState.Diff({ other: 'C', index: 2 }),
+        ]);
+      }),
+  );
+
+  it.effect('a set of one version has neither: a link to either opens All', () =>
+    Effect.gen(function* () {
+      for (const initial of [
+        ViewState.Wipe({ other: '' }),
+        ViewState.Diff({ other: '', index: 1 }),
+      ])
+        yield* assertPath(
+          viewMachine(initial, Option.none()),
+          [ViewEvent.ViewChosen({ view: 'wipe' }), ViewEvent.ViewChosen({ view: 'diff' })],
+          ['All', 'All', 'All'],
+        );
+    }),
+  );
 
   test('five moments spread over the first video, none before the start', () => {
     expect(spreadMoments(20, 0)).toEqual([1, 5, 10, 15, 19]);

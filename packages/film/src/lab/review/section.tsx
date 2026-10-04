@@ -3,14 +3,15 @@
 // (Versions), and whatever is in no stack: its videos (with captions when a
 // `.vtt` lies beside them), its sheets and stills (a lightbox), its docs
 // (markdown inline). A stack plays every version on one clock: all of them,
-// the first side by side with one other (a stack of two or more), every
-// version's frame at a few moments, or the notes. A version's name opens its
+// the first side by side with one other or wiped against it (a stack of two
+// or more), every version's frame at a few moments, the first and one
+// other's difference at a moment, or the notes. A version's name opens its
 // inspector: its Info, its approve and unapprove, what was said of it and
 // the comment box, said over the set's route (UI-7).
 
 import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Match, Option } from 'effect';
+import { Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
   type Accessor,
@@ -30,6 +31,7 @@ import {
   seenVariants,
 } from '../../core/choice.ts';
 import { playableOf } from '../../browser/media-browser.ts';
+import { Pointer } from '../../browser/pointer.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
 import {
@@ -487,14 +489,21 @@ export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
 const VIEW_TITLES = {
   all: 'All',
   pair: 'Side by side',
+  wipe: 'Wipe',
   moments: 'Moments',
+  diff: 'Difference',
   notes: 'Notes',
-} as const;
+} as const satisfies Record<ViewName, string>;
 
-/** All, side by side (a stack of two or more), the moments, the notes. */
+/** The views of the first against one other: a stack of one has none of them. */
+const PAIRED: ReadonlyArray<ViewName> = ['pair', 'wipe', 'diff'];
+
+/** All, side by side, its wipe (a stack of two or more), the moments, the difference (two or more), the notes. */
 const ViewTabs = () => {
   const { set, view, send } = useSet();
-  const offered = ViewName.literals.filter((name) => name !== 'pair' || set.variants.length >= 2);
+  const offered = ViewName.literals.filter(
+    (name) => !PAIRED.includes(name) || set.variants.length >= 2,
+  );
   return (
     <div class="rv-seg rv-views">
       <For each={offered}>
@@ -765,53 +774,71 @@ const StaleTag = (props: { readonly variant: SeenVariant }) => (
   </Show>
 );
 
-/** A variant's video on the set's clock, and the 🔊 that makes it the one heard. */
-const VariantCard = (props: { readonly variant: SeenVariant }) => {
+/** A variant's video on the set's clock (its proxy's placeholder until there is one). */
+const VariantVideo = (props: { readonly variant: SeenVariant; readonly class?: string }) => {
   const { state } = useReview();
-  const { folder, set, sync, send, driver } = useSet();
-  const audible = () => sync().audible === props.variant.id;
+  const { driver } = useSet();
   const source = createMemo(() => videoSource(props.variant.video, state.quality()));
   onCleanup(() => driver.detach(props.variant.id));
   return (
+    <Show
+      when={Option.getOrUndefined(source())}
+      fallback={<ProxyPending video={props.variant.video} />}
+    >
+      {(src) => {
+        // The clock holds only a video on the page: it lets go when the placeholder returns.
+        onCleanup(() => driver.detach(props.variant.id));
+        return (
+          <video
+            class={props.class}
+            data-id={props.variant.id}
+            preload="auto"
+            playsinline
+            muted
+            src={src()}
+            ref={(el: HTMLVideoElement) => driver.attach(props.variant.id, playableOf(el))}
+          />
+        );
+      }}
+    </Show>
+  );
+};
+
+/** A variant's caption: its letter, its name, why it is stale, its lines, and the 🔊 that makes it the one heard. */
+const VariantCap = (props: { readonly variant: SeenVariant }) => {
+  const { set, sync, send } = useSet();
+  const audible = () => sync().audible === props.variant.id;
+  return (
+    <div class="rv-cap">
+      <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
+      <VersionName version={props.variant} />
+      <StaleTag variant={props.variant} />
+      <span class="rv-tag" title={props.variant.lines.join(' · ')}>
+        {props.variant.lines.join(' · ')}
+      </span>
+      <button
+        type="button"
+        class={['rv-sound', { on: audible() }]}
+        title="Hear this one"
+        onClick={() => send.sync(SyncEvent.HeardChosen({ id: props.variant.id }))}
+      >
+        🔊
+      </button>
+    </div>
+  );
+};
+
+/** A variant's video on the set's clock, and its caption. */
+const VariantCard = (props: { readonly variant: SeenVariant }) => {
+  const { folder, set, sync } = useSet();
+  return (
     <Target
       of={versionOf(folder, set, props.variant.id)}
-      class={['rv-card', { 'rv-audible': audible() }]}
+      class={['rv-card', { 'rv-audible': sync().audible === props.variant.id }]}
       data-id={props.variant.id}
     >
-      <Show
-        when={Option.getOrUndefined(source())}
-        fallback={<ProxyPending video={props.variant.video} />}
-      >
-        {(src) => {
-          // The clock holds only a video on the page: it lets go when the placeholder returns.
-          onCleanup(() => driver.detach(props.variant.id));
-          return (
-            <video
-              preload="auto"
-              playsinline
-              muted
-              src={src()}
-              ref={(el: HTMLVideoElement) => driver.attach(props.variant.id, playableOf(el))}
-            />
-          );
-        }}
-      </Show>
-      <div class="rv-cap">
-        <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
-        <VersionName version={props.variant} />
-        <StaleTag variant={props.variant} />
-        <span class="rv-tag" title={props.variant.lines.join(' · ')}>
-          {props.variant.lines.join(' · ')}
-        </span>
-        <button
-          type="button"
-          class={['rv-sound', { on: audible() }]}
-          title="Hear this one"
-          onClick={() => send.sync(SyncEvent.HeardChosen({ id: props.variant.id }))}
-        >
-          🔊
-        </button>
-      </div>
+      <VariantVideo variant={props.variant} />
+      <VariantCap variant={props.variant} />
       <VersionInspector version={props.variant} />
     </Target>
   );
@@ -831,39 +858,52 @@ const AllView = () => {
   );
 };
 
-const PairView = (props: { readonly other: string }) => {
+/** The first variant and the one it is against, as the pair, its wipe and its difference show them. */
+const pairOf = (set: SeenPoint, other: string) => ({
+  first: Option.fromUndefinedOr(set.variants[0]),
+  other: Option.fromUndefinedOr(set.variants.find((v) => v.id === other)),
+});
+
+/** The first variant's name, and a chip for each other it can be against. */
+const OtherPick = (props: { readonly other: string }) => {
   const { set, send } = useSet();
-  const first = set.variants[0];
-  const other = () => Option.fromUndefinedOr(set.variants.find((v) => v.id === props.other));
+  return (
+    <div class="rv-row rv-pick">
+      <span class="rv-hint">
+        {Option.getOrElse(
+          Option.map(Option.fromUndefinedOr(set.variants[0]), (v) => v.label),
+          () => '',
+        )}{' '}
+        against:
+      </span>
+      <For each={set.variants.slice(1)}>
+        {(variant) => (
+          <button
+            type="button"
+            class="rv-chip"
+            data-other={variant.id}
+            aria-pressed={pressed(variant.id === props.other)}
+            onClick={() => send.view(ViewEvent.OtherChosen({ id: variant.id }))}
+          >
+            {variant.label}
+          </button>
+        )}
+      </For>
+    </div>
+  );
+};
+
+const PairView = (props: { readonly other: string }) => {
+  const { set } = useSet();
+  const pair = () => pairOf(set, props.other);
   return (
     <>
-      <div class="rv-row rv-pick">
-        <span class="rv-hint">
-          {Option.getOrElse(
-            Option.map(Option.fromUndefinedOr(first), (v) => v.label),
-            () => '',
-          )}{' '}
-          against:
-        </span>
-        <For each={set.variants.slice(1)}>
-          {(variant) => (
-            <button
-              type="button"
-              class="rv-chip"
-              data-other={variant.id}
-              aria-pressed={pressed(variant.id === props.other)}
-              onClick={() => send.view(ViewEvent.OtherChosen({ id: variant.id }))}
-            >
-              {variant.label}
-            </button>
-          )}
-        </For>
-      </div>
+      <OtherPick other={props.other} />
       <div class="rv-grid rv-two">
-        <Show when={first} keyed>
+        <Show when={Option.getOrUndefined(pair().first)} keyed>
           {(variant: SeenVariant) => <VariantCard variant={variant} />}
         </Show>
-        <Show when={Option.getOrUndefined(other())} keyed>
+        <Show when={Option.getOrUndefined(pair().other)} keyed>
           {(variant: SeenVariant) => <VariantCard variant={variant} />}
         </Show>
       </div>
@@ -871,74 +911,240 @@ const PairView = (props: { readonly other: string }) => {
   );
 };
 
-const MomentsView = (props: { readonly index: number }) => {
-  const { actions } = useReview();
-  const { folder, set, moments, send } = useSet();
+/** Where a wipe opens: the frame halved. */
+const WIPE_AT = 0.5;
+
+/**
+ * The pair wiped (PA-8): both videos on the clock, stacked full width, the
+ * first left of a divider and the other right of it; the divider dragged by
+ * its grip, clamped to the frame. The divider is this page's, not the
+ * link's: a different split shows the same comparison. Each one's caption
+ * (its 🔊, its inspector) sits under the frame.
+ */
+const WipeView = (props: { readonly other: string }) => {
+  const { meta } = useReview();
+  const { folder, set, sync } = useSet();
+  const pair = () => pairOf(set, props.other);
+  const [split, setSplit] = createSignal(WIPE_AT, { ownedWrite: true });
+  let frame = Option.none<HTMLElement>();
+  const grab = (e: PointerEvent) => {
+    e.preventDefault();
+    Option.map(frame, (el) => {
+      const r = el.getBoundingClientRect();
+      const move = (ev: PointerEvent) =>
+        setSplit(Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width))));
+      // The divider stays where the drag ends, lifted or ended by the browser.
+      Effect.runForkWith(meta.host)(
+        Pointer.use((pointer) => pointer.drag(e, { move, end: () => {} })),
+      );
+    });
+  };
+  const at = () => `${split() * 100}%`;
+  return (
+    <>
+      <OtherPick other={props.other} />
+      <div
+        class="rv-wipe"
+        data-split={split().toFixed(3)}
+        ref={(el: HTMLElement) => {
+          frame = Option.some(el);
+        }}
+      >
+        <Show when={Option.getOrUndefined(pair().first)} keyed>
+          {(variant: SeenVariant) => <VariantVideo variant={variant} class="rv-wipe-first" />}
+        </Show>
+        <Show when={Option.getOrUndefined(pair().other)} keyed>
+          {(variant: SeenVariant) => (
+            <div class="rv-wipe-other" style={{ 'clip-path': `inset(0 0 0 ${at()})` }}>
+              <VariantVideo variant={variant} />
+            </div>
+          )}
+        </Show>
+        <div class="rv-wipe-line" style={{ left: at() }}>
+          <button
+            type="button"
+            class="rv-wipe-grip"
+            aria-label="Drag the wipe"
+            title="Drag the wipe"
+            ref={(el: HTMLButtonElement) => el.addEventListener('pointerdown', grab)}
+          />
+        </div>
+      </div>
+      <div class="rv-grid rv-two rv-wipe-caps">
+        <For each={[pair().first, pair().other].flatMap(Option.toArray)}>
+          {(variant) => (
+            <Target
+              of={versionOf(folder, set, variant.id)}
+              class={['rv-card', { 'rv-audible': sync().audible === variant.id }]}
+              data-id={variant.id}
+            >
+              <VariantCap variant={variant} />
+              <VersionInspector version={variant} />
+            </Target>
+          )}
+        </For>
+      </div>
+    </>
+  );
+};
+
+/** The moments' chips, the one shown pressed; ←/→ step through them. */
+const MomentPick = (props: { readonly moments: ReadonlyArray<number>; readonly index: number }) => {
+  const { send } = useSet();
+  return (
+    <div class="rv-row rv-pick">
+      <span class="rv-hint">Moment (←/→):</span>
+      <For each={props.moments.map((t, i) => ({ t, i }))}>
+        {(m) => (
+          <button
+            type="button"
+            class="rv-chip"
+            data-moment={String(m.i)}
+            aria-pressed={pressed(m.i === props.index)}
+            onClick={() => send.view(ViewEvent.MomentChosen({ index: m.i }))}
+          >
+            {timecode(m.t)}
+          </button>
+        )}
+      </For>
+    </div>
+  );
+};
+
+/** A still's caption: the variant's letter, its name, why it is stale and its lines (no 🔊: nothing plays). */
+const StillCap = (props: { readonly variant: SeenVariant }) => {
+  const { set } = useSet();
+  return (
+    <div class="rv-cap">
+      <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
+      <VersionName version={props.variant} />
+      <StaleTag variant={props.variant} />
+      <span class="rv-tag">{props.variant.lines.join(' · ')}</span>
+    </div>
+  );
+};
+
+/** The set's moments once known (the first video measured when the set names none), and the one at `index`. */
+const WithMoments = (props: {
+  readonly index: number;
+  readonly children: (moments: ReadonlyArray<number>, at: Accessor<number>) => JSX.Element;
+}) => {
+  const { set, moments } = useSet();
   return (
     <Show
       when={Option.getOrUndefined(moments())}
       keyed
       fallback={<p class="empty">Measuring the first video…</p>}
     >
-      {(ms: ReadonlyArray<number>) => {
-        const at = () =>
+      {(ms: ReadonlyArray<number>) =>
+        props.children(ms, () =>
           Option.getOrElse(
             Option.fromUndefinedOr(ms[Math.min(props.index, ms.length - 1)]),
             () => set.start,
-          );
-        return (
-          <>
-            <div class="rv-row rv-pick">
-              <span class="rv-hint">Moment (←/→):</span>
-              <For each={ms.map((t, i) => ({ t, i }))}>
-                {(m) => (
-                  <button
-                    type="button"
-                    class="rv-chip"
-                    data-moment={String(m.i)}
-                    aria-pressed={pressed(m.i === props.index)}
-                    onClick={() => send.view(ViewEvent.MomentChosen({ index: m.i }))}
-                  >
-                    {m.t} s
-                  </button>
-                )}
-              </For>
-            </div>
-            <div class={gridClass(set.variants.length)}>
-              <For each={set.variants}>
-                {(variant) => (
-                  <Target
-                    of={versionOf(folder, set, variant.id)}
-                    class="rv-card"
-                    data-id={variant.id}
-                  >
-                    <img
-                      class="rv-media rv-zoom"
-                      src={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
-                      alt={`${variant.label} at ${timecode(at())}`}
-                      onClick={() =>
-                        actions.show(
-                          Option.some(
-                            reviewFrameUrl(variant.video.ref, Option.some(at()), LIGHTBOX_W),
-                          ),
-                        )
-                      }
-                    />
-                    <div class="rv-cap">
-                      <span class="rv-letter">{letterOf(set, variant.id)}</span>
-                      <VersionName version={variant} />
-                      <StaleTag variant={variant} />
-                      <span class="rv-tag">{variant.lines.join(' · ')}</span>
-                    </div>
-                    <VersionInspector version={variant} />
-                  </Target>
-                )}
-              </For>
-            </div>
-          </>
-        );
-      }}
+          ),
+        )
+      }
     </Show>
+  );
+};
+
+const MomentsView = (props: { readonly index: number }) => {
+  const { actions } = useReview();
+  const { folder, set } = useSet();
+  return (
+    <WithMoments index={props.index}>
+      {(ms, at) => (
+        <>
+          <MomentPick moments={ms} index={props.index} />
+          <div class={gridClass(set.variants.length)}>
+            <For each={set.variants}>
+              {(variant) => (
+                <Target
+                  of={versionOf(folder, set, variant.id)}
+                  class="rv-card"
+                  data-id={variant.id}
+                >
+                  <img
+                    class="rv-media rv-zoom"
+                    src={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
+                    alt={`${variant.label} at ${timecode(at())}`}
+                    onClick={() =>
+                      actions.show(
+                        Option.some(
+                          reviewFrameUrl(variant.video.ref, Option.some(at()), LIGHTBOX_W),
+                        ),
+                      )
+                    }
+                  />
+                  <StillCap variant={variant} />
+                  <VersionInspector version={variant} />
+                </Target>
+              )}
+            </For>
+          </div>
+        </>
+      )}
+    </WithMoments>
+  );
+};
+
+/**
+ * The pair's difference at a moment (PA-8): the first variant's frame, and
+ * the other's cut at the same instant laid over it in the difference blend,
+ * so what is the same is black and what differs is lit. Stills, never the
+ * playing videos: the server cuts both at the one `t`, so the blend is exact.
+ */
+const DiffView = (props: { readonly other: string; readonly index: number }) => {
+  const { folder, set } = useSet();
+  const pair = () => pairOf(set, props.other);
+  const frameOf = (variant: SeenVariant, t: number) =>
+    reviewFrameUrl(variant.video.ref, Option.some(t), MOMENT_W);
+  return (
+    <WithMoments index={props.index}>
+      {(ms, at) => (
+        <>
+          <OtherPick other={props.other} />
+          <MomentPick moments={ms} index={props.index} />
+          <div class="rv-diff">
+            <Show when={Option.getOrUndefined(pair().first)} keyed>
+              {(variant: SeenVariant) => (
+                <img
+                  class="rv-diff-first"
+                  data-id={variant.id}
+                  src={frameOf(variant, at())}
+                  alt={`${variant.label} at ${timecode(at())}`}
+                />
+              )}
+            </Show>
+            <Show when={Option.getOrUndefined(pair().other)} keyed>
+              {(variant: SeenVariant) => (
+                <img
+                  class="rv-diff-other"
+                  data-id={variant.id}
+                  src={frameOf(variant, at())}
+                  alt={`the difference from ${variant.label}`}
+                />
+              )}
+            </Show>
+          </div>
+          <p class="rv-hint">Black where the two are the same; lit where they differ.</p>
+          <div class="rv-grid rv-two rv-wipe-caps">
+            <For each={[pair().first, pair().other].flatMap(Option.toArray)}>
+              {(variant) => (
+                <Target
+                  of={versionOf(folder, set, variant.id)}
+                  class="rv-card"
+                  data-id={variant.id}
+                >
+                  <StillCap variant={variant} />
+                  <VersionInspector version={variant} />
+                </Target>
+              )}
+            </For>
+          </div>
+        </>
+      )}
+    </WithMoments>
   );
 };
 
@@ -990,7 +1196,9 @@ const SetBody = () => {
         Match.tagsExhaustive({
           All: () => <AllView />,
           Pair: (s) => <PairView other={s.other} />,
+          Wipe: (s) => <WipeView other={s.other} />,
           Moments: (s) => <MomentsView index={s.index} />,
+          Diff: (s) => <DiffView other={s.other} index={s.index} />,
           Notes: () => <NotesView />,
         }),
       )}
