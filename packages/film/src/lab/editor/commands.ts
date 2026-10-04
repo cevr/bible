@@ -293,12 +293,15 @@ export const cueDestinations = (
     },
   }));
 
+/** Cancel the drag: Escape, or the strip's Cancel drag while a grip is held (a finger has no Escape). */
+export const CANCEL_GRIP = 'edit.cancel-grip';
+
 /** The editor's commands over `verbs`. */
 export const editorCommands = (verbs: EditorVerbs): ReadonlyArray<Command> => [
   stepCommand(verbs, 'undo', 'Undo', 'mod+z'),
   stepCommand(verbs, 'redo', 'Redo', 'mod+shift+z'),
   {
-    id: 'edit.cancel-grip',
+    id: CANCEL_GRIP,
     label: 'Cancel the drag',
     group: 'Edit',
     keys: ['escape'],

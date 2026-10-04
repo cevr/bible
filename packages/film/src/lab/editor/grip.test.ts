@@ -12,11 +12,13 @@ import {
   type CueGrip,
   CueWrite,
   EDGE_PX,
+  EDGE_TOUCH_PX,
   type KnobGrip,
   cueRefusal,
   dragCue,
   dragKnob,
   dragModeAt,
+  edgeFor,
   knobRefusal,
   cueSaidText,
   joined,
@@ -66,6 +68,16 @@ describe('dragModeAt', () => {
 
   test('alt on a short bar grabs its end', () => {
     expect(dragModeAt(EDGE_PX, EDGE_PX * 2, true)).toBe('end');
+  });
+
+  test("a finger's edges are wider than a mouse's", () => {
+    expect(edgeFor('mouse')).toBe(EDGE_PX);
+    expect(edgeFor('pen')).toBe(EDGE_PX);
+    expect(edgeFor('touch')).toBe(EDGE_TOUCH_PX);
+    // 10 px in: the body to a mouse, the start to a finger.
+    expect(dragModeAt(10, 100, false, edgeFor('mouse'))).toBe('move');
+    expect(dragModeAt(10, 100, false, edgeFor('touch'))).toBe('start');
+    expect(dragModeAt(90, 100, false, edgeFor('touch'))).toBe('end');
   });
 });
 

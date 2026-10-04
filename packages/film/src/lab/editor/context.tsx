@@ -68,6 +68,8 @@ interface EditorState {
   readonly inspectedSource: Accessor<Known>;
   /** The film's check as the page loaded: findings, the latest change, what Undo and Redo would do. */
   readonly report: Accessor<Option.Option<CheckReport>>;
+  /** Whether a grip follows a press now (Pressed or Dragging): the strip offers Cancel while it does. */
+  readonly holding: Accessor<boolean>;
   /** The inspector's fields of a cue or knob, as the lab holds it now (`grip.ts`). */
   readonly fieldsOf: (selection: LabSelection) => ReadonlyArray<Inspected>;
 }
@@ -421,6 +423,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       stripSource,
       inspectedSource,
       report,
+      holding,
       fieldsOf: fieldsAt,
     },
     actions: {

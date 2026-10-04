@@ -36,21 +36,30 @@ import { StepVerb } from '../api.ts';
 
 /** How near (screen pixels) an edge must come to a word, mark or cue edge to snap to it. */
 const SNAP_PX = 8;
-/** How wide (screen pixels) a cue's edge is to grab. */
+/** How wide (screen pixels) a cue's edge is to grab with a mouse or a pen. */
 export const EDGE_PX = 6;
+/** How wide a cue's edge is to grab with a finger, which covers more than 6 px (LS-5). */
+export const EDGE_TOUCH_PX = 14;
+
+/** How wide a cue's edge is to the pointer of `pointerType` (a PointerEvent's). */
+export const edgeFor = (pointerType: string): number =>
+  Match.value(pointerType).pipe(
+    Match.when('touch', () => EDGE_TOUCH_PX),
+    Match.orElse(() => EDGE_PX),
+  );
 
 /**
- * What a press `x` pixels into a cue's bar `width` wide grabs. A bar under
- * 3 × EDGE_PX has no room for two edges and a body, so it is all body (its
- * offset), or its end (dur) with alt held.
+ * What a press `x` pixels into a cue's bar `width` wide grabs, its edges
+ * `edge` pixels wide. A bar under 3 edges has no room for two edges and a
+ * body, so it is all body (its offset), or its end (dur) with alt held.
  */
-export const dragModeAt = (x: number, width: number, alt: boolean): DragEdge => {
-  if (width < EDGE_PX * 3) {
+export const dragModeAt = (x: number, width: number, alt: boolean, edge = EDGE_PX): DragEdge => {
+  if (width < edge * 3) {
     if (alt) return 'end';
     return 'move';
   }
-  if (x < EDGE_PX) return 'start';
-  if (width - x < EDGE_PX) return 'end';
+  if (x < edge) return 'start';
+  if (width - x < edge) return 'end';
   return 'move';
 };
 

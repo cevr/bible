@@ -29,6 +29,7 @@ import {
 import {
   attributeIs,
   attributesAre,
+  countIs,
   evaluates,
   textHas,
   textIs,
@@ -428,6 +429,42 @@ describe('one write at a time', () => {
       const after = yield* page.box(bar);
       expect(Math.round(after.x)).toBe(Math.round(box.x));
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a finger's drag has Cancel drag at hand, which puts the cue back; a finger grabs an edge a mouse would miss",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab([], { href: labAt(1) });
+        const bar = '.lab-cue[data-cue="rise"]';
+        yield* editable(page);
+        const box = yield* page.box(bar);
+        const y = box.y + box.height / 2;
+        const x = box.x + box.width / 2;
+        // The clock held: a slow machine's slide never outlasts the long press, which a held
+        // press would rightly open (a menu, not a drag).
+        yield* page.clock.hold;
+        // No Cancel at rest; held and slid, the strip offers it, and its tap lets the cue go.
+        yield* countIs(page, '[data-act="cancel-grip"]', 0);
+        yield* page.finger.down(x, y);
+        yield* page.finger.move(x + 40, y, 8);
+        yield* page.click('[data-act="cancel-grip"]');
+        yield* page.finger.up;
+        yield* runClock(page, 200);
+        expect(posted(asked)).toEqual([]);
+        yield* countIs(page, '[data-act="cancel-grip"]', 0);
+        expect(Math.round((yield* page.box(bar)).x)).toBe(Math.round(box.x));
+        // 10 px in is the body to a mouse (6 px edges) and the start to a finger (14 px): its
+        // drag writes the start, offset and dur together.
+        expect(box.width).toBeGreaterThan(14 * 3);
+        yield* page.finger.down(box.x + 10, y);
+        yield* page.finger.move(box.x + 40, y, 8);
+        yield* page.finger.up;
+        yield* postedReach(asked, 1);
+        expect(Option.getOrThrow(Option.fromUndefinedOr(posted(asked)[0])).body).toMatchObject(
+          Option.some({ offset: expect.any(Number), dur: expect.any(Number) }),
+        );
+      }).pipe(Effect.scoped),
   );
 
   it.live(

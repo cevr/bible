@@ -530,10 +530,27 @@ body.lab .stage {
   touch-action: none;
 }
 .lab-strip-head {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
   margin-bottom: 2px;
+}
+.lab-strip-name {
+  flex: 1;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.lab-strip-cancel {
+  flex: none;
+  font: inherit;
+  color: var(--text-1);
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-1);
+  padding: 0 var(--s-2);
+  min-height: 32px;
 }
 /*
  * The cue rows scroll in their own box, so a scene of many cues (roof has 35)

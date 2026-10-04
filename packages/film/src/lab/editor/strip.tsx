@@ -14,12 +14,14 @@ import { type Placed, sceneOf } from '../../core/layout.ts';
 import { timecode } from '../../core/time.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
+import { BY_BUTTON } from '../../command/command.ts';
+import { CANCEL_GRIP } from './commands.ts';
 import { Target } from '../command/context-menu.tsx';
 import { selectsCue } from '../place.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
-import { dragModeAt } from './grip.ts';
+import { dragModeAt, edgeFor } from './grip.ts';
 import { useMotion } from '../motion/context.tsx';
 import type { LoopRange } from '../../player/main.ts';
 
@@ -89,7 +91,7 @@ const CueRow = (props: CueRowProps) => {
     actions.press({
       scene: scene(),
       cue: props.name,
-      edge: dragModeAt(e.clientX - bar.left, bar.width, e.altKey),
+      edge: dragModeAt(e.clientX - bar.left, bar.width, e.altKey, edgeFor(e.pointerType)),
       down: e,
       perSec: width / props.placed.dur,
     });
@@ -207,7 +209,21 @@ export const Strip = () => {
         return (
           <div class="lab-strip" onPointerDown={scrub}>
             <div class="lab-strip-head">
-              {`${p().spec.id} · ${timecode(p().dur, meta.film.fps)} · ${file()}`}
+              <span class="lab-strip-name">
+                {`${p().spec.id} · ${timecode(p().dur, meta.film.fps)} · ${file()}`}
+              </span>
+              {/* A finger has no Escape: while a grip is held, a tap here lets it go (LS-5). */}
+              <Show when={state.holding()}>
+                <button
+                  type="button"
+                  class="lab-strip-cancel"
+                  data-act="cancel-grip"
+                  onPointerDown={(e) => e.preventDefault()}
+                  onClick={() => meta.hub.invokeId(CANCEL_GRIP, BY_BUTTON)}
+                >
+                  Cancel drag
+                </button>
+              </Show>
             </div>
             {/* The rows scroll in their own box, the words held at its top, so the film keeps its row. */}
             <div class="lab-strip-scroll">
