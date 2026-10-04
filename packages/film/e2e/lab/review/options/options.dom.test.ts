@@ -41,6 +41,7 @@ import {
   menuOffers,
   openCommandMenu,
   rightClick,
+  touch,
 } from '../../../../src/lab/fixtures/gestures.ts';
 import {
   attributeIs,
@@ -512,6 +513,27 @@ describe("a film's choices", () => {
         expect(asked.some((a) => a.method === 'POST' && a.path === '/api/films/toy/undo')).toBe(
           true,
         );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a long press on the page itself (on no thing) opens the page's menu: Undo, Show only…",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
+        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        // The clock held: the long press's delay passes only as the test runs it on.
+        yield* page.clock.hold;
+        yield* touch(page, '.rv-header', 0);
+        yield* page.clock.runFor(700);
+        yield* waitFor(page, '[data-role="context-menu"] [data-command="review.undo"]');
+        yield* textHas(page, '[data-role="context-menu"] [data-command="review.undo"]', 'Undo');
+        yield* waitFor(page, '[data-role="context-menu"] [data-command="review.only-stale"]');
+        yield* page.finger.up;
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

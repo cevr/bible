@@ -1,6 +1,7 @@
 // The lab's commands in a browser, over the probe film: ⌘K lists what is
 // available, filters by what is typed and runs the chosen command; the `?`
-// sheet rebinds a key, and the rebound key survives a reload; a cue's context
+// sheet rebinds a key, and the rebound key survives a reload; a right-click
+// on no thing opens the page's own context menu; a cue's context
 // menu (a right-click, or a touch held still) lists its commands and runs
 // one; a touch that moves (a drag) never opens it, and a touch that opened
 // it starts no drag; a field inside a thing keeps the browser's own menu;
@@ -118,6 +119,23 @@ describe('the keys sheet', () => {
       yield* page.press('?');
       yield* page.click(`${row} [data-act="reset"]`);
       yield* textHas(page, `${row} .lab-keys-bound`, ']');
+    }).pipe(Effect.scoped),
+  );
+});
+
+describe("the page's context menu", () => {
+  it.live("a right-click on no thing lists the page's commands, and none of a thing's", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      yield* page.waitFor(RISE);
+      expect(yield* rightClick(page, '.lab-panel')).toBe(false);
+      yield* page.waitFor('[data-role="context-menu"] [data-command="view.legend"]');
+      yield* attached(page, '[data-role="context-menu"] [data-command="motion.loop-scene"]');
+      yield* evaluates(
+        page,
+        `document.querySelector('[data-role="context-menu"] [data-command="edit.select"]') === null`,
+        true,
+      );
     }).pipe(Effect.scoped),
   );
 });

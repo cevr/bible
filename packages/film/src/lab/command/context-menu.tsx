@@ -4,8 +4,12 @@
 // about that thing (`contextRows`): Copy link and the command menu on every
 // one, and each thing's own verbs. The thing is read from where the press
 // landed (`targetAt`: the nearest `data-target`), so one menu serves every
-// target on the page, a nested one winning over its container. The commands
-// run once the menu has closed and focus is back on the page, as ⌘K's do.
+// target on the page, a nested one winning over its container. The page
+// itself is the outermost target: its children sit in one trigger that lays
+// out as they do (`display: contents`), so a press on no thing opens the
+// commands about the page (`Page`: Undo, Redo, Show only…), and a field
+// anywhere keeps the browser's own menu. The commands run once the menu has
+// closed and focus is back on the page, as ⌘K's do.
 // Its groups and rows are keyed by name and command (`rowKey`): made again
 // each frame a film plays, a row keeps its element under the pointer, and a
 // press and its release are one click. Built on @bible/ui's ContextMenu: `TargetMenu` is the page's one root
@@ -33,7 +37,8 @@ import { hubChanges } from './changes.ts';
 
 /**
  * The page's one context menu, over `children`: every `Target` inside opens
- * it. Renders no element of its own.
+ * it, and so does a press on no thing (the page's own commands). Its one
+ * element, the page's trigger, lays out as its children do.
  */
 export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
   const hub = props.hub;
@@ -73,7 +78,10 @@ export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
         Option.map(row, (r) => hub.invoke(r.command, { step: 'normal', via: 'menu' }, opened()));
       }}
     >
-      {props.children}
+      {/* The page itself is a target: a press on no thing opens the page's commands (`Page`). */}
+      <ContextMenu.Trigger class="lab-page-target" style={{ display: 'contents' }}>
+        {props.children}
+      </ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Positioner class="lab-context-positioner">
           <ContextMenu.Popup class="lab-context-menu" data-role="context-menu">

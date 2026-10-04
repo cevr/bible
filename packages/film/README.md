@@ -870,8 +870,11 @@ set's or version's card, a film's links, a choice, a variant, an act, the
 project's film): its commands about that thing (a command's `about`, in
 `src/command/target.ts`: the kinds of thing whose menu shows it), the
 thing's own first, then Copy link and the command menu, which every menu
-has. A touch that moves past @bible/ui's threshold first (a scrub, a drag)
-never opens it, and a field keeps the browser's own menu. The menus' rows
+has. The page itself is a target too: a press on no thing opens the page's
+commands (`about: ['Page']`: Undo, Redo, Show only…, Loop this scene). A
+touch that moves past @bible/ui's threshold first (a scrub, a drag) never
+opens it, and starts the drag instead (one owner per press, `claimPress`);
+a field keeps the browser's own menu. The menus' rows
 (and a chip's) are keyed by their command (`rowKey`, `src/command/menu.ts`):
 they are made again whenever what they read moves (a command's `when` and
 its label read the player, so each frame a film plays), and a row keeps its
