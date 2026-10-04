@@ -588,9 +588,18 @@ export const echoPages = Layer.mergeAll(
         HttpServerResponse.text(`page ${new URL(request.url, 'http://lab').pathname}`),
       ),
       wait: (served) => Effect.succeed({ build: served.since, server: 'echo' }),
-      built: Effect.succeed({ build: { build: 0, server: 'echo' }, failed: Option.none() }),
+      built: Effect.succeed({
+        build: { build: 0, server: 'echo' },
+        kept: 0,
+        failed: Option.none(),
+      }),
       wedge: () =>
-        Effect.succeed({ build: { build: 0, server: 'echo' }, failed: Option.none(), wedge: 'w' }),
+        Effect.succeed({
+          build: { build: 0, server: 'echo' },
+          kept: 0,
+          failed: Option.none(),
+          wedge: 'w',
+        }),
     }),
   ),
   Layer.succeed(

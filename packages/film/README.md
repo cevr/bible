@@ -1611,16 +1611,21 @@ tool calls the route the same way.
 
 **Never stale.** Every look first asks the pages' build as it stands
 (`LabPage.built`), judged by content, never by mtime: a build under way is
-waited out, then the build answered is one whose files printed alike
-before and after it read them and print so still (length and hash). A save
-no watch has heard yet, one in the build's own second, or one made while
-the build read is built first; files that keep moving through three builds
-are a `PagesBroken` asking to look again once the saves settle. A failed build is a 422
-`PagesBroken` with the bundler's words and no still. The page is held per
-build (`<server>.<build>`, the `LabPage` stamp): a new build closes it and
-opens a fresh one, so the page always runs the code on disk; a page that
-fails a frame is closed too, and the next look opens another. Looks run one
-at a time.
+waited out, then the build about to be answered, kept or just made (its
+watches and checks set), is judged last, at the moment it is answered: its
+files must have printed alike before and after it read them, and print so
+still (length and hash). A save no watch has heard yet, one in the build's
+own second, one made while the build read, or one landing after it printed
+what it read, is built first; files that keep moving through three builds
+are a `PagesBroken` asking to look again once the saves settle. A failed
+build is a 422 `PagesBroken` with the bundler's words and no still. The
+answer names the build by its own number among those kept
+(`PagesNow.kept`), and the look opens that build's export page
+(`?export&build=<kept>`, served as it was made, unstamped, so it never
+reloads itself), never one built after. The page is held per build
+(`<server>.<kept>`): a new build closes it and opens a fresh one, so the
+page always runs the code on disk; a page that fails a frame is closed too,
+and the next look opens another. Looks run one at a time.
 
 **Places and views** (`core/easel.ts`, pure). A place is seconds into the
 scene (`2.5`), `mark:<name>` (the mark's word, as `scenesOf` places it) or

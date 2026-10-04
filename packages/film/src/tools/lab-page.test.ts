@@ -746,9 +746,13 @@ describe('lab pages', () => {
 /**
  * The app's three pages in a file system in memory (no watch hears a save
  * there), each page its HTML as written (`PageBundler.layerTest`); `mtimes`
- * says each file's mtime as its stat reports it (0 unless set).
+ * says each file's mtime as its stat reports it (0 unless set), and
+ * `afterRead` runs once each read of a file has been answered.
  */
-const memoryApp = (mtimes: Map<string, number> = new Map()) => {
+const memoryApp = (
+  mtimes: Map<string, number> = new Map(),
+  afterRead: (file: string) => Effect.Effect<void> = () => Effect.void,
+) => {
   const files = new Map<string, Uint8Array>([
     ['/app/review.html', text(html('review old', './src/p.ts'))],
     ['/app/lab.html', text(html('lab', './src/lab.ts'))],
@@ -772,6 +776,7 @@ const memoryApp = (mtimes: Map<string, number> = new Map()) => {
             ...info,
             mtime: Option.some(DateTime.toDateUtc(DateTime.makeUnsafe(mtimes.get(file) ?? 0))),
           })),
+        readFile: (file) => Effect.tap(fs.readFile(file), () => afterRead(file)),
       }),
     ),
   ).pipe(Layer.provide(memoryFileSystem(files)));
@@ -805,7 +810,63 @@ const holdingFirst = (reading: Deferred.Deferred<boolean>, release: Deferred.Def
     }),
   ).pipe(Layer.provide(PageBundler.layerTest));
 
+/** The test bundler, setting `bundled` once a build has read its pages while `armed` is. */
+const noting = (armed: Ref.Ref<boolean>, bundled: Ref.Ref<boolean>) =>
+  Layer.effect(
+    PageBundler,
+    Effect.gen(function* () {
+      const inner = yield* PageBundler;
+      return PageBundler.of({
+        bundle: (entries, root, how) =>
+          Effect.tap(inner.bundle(entries, root, how), () =>
+            Effect.flatMap(Ref.get(armed), (on) => Ref.set(bundled, on)),
+          ),
+      });
+    }),
+  ).pipe(Layer.provide(PageBundler.layerTest));
+
 describe("a look's build, against saves no watch hears", () => {
+  // A save that lands once a build has read the page and printed it as read: the first read
+  // of the page after the bundler's (the build's own print of it) lands it, unheard.
+  const armed = Ref.makeUnsafe(false);
+  const bundled = Ref.makeUnsafe(false);
+  const landing = memoryApp(new Map(), (file) =>
+    Effect.gen(function* () {
+      if (file !== '/app/review.html' || !(yield* Ref.get(bundled))) return;
+      yield* Ref.set(bundled, false);
+      yield* Ref.set(armed, false);
+      landing.files.set(file, text(html('review new', './src/p.ts')));
+    }),
+  );
+  it.effect(
+    'a save landing after a build printed what it read is never answered as that build',
+    () =>
+      Effect.gen(function* () {
+        const { page, ask } = yield* served(landing.spec, noting(armed, bundled));
+        yield* page.built;
+        landing.files.set('/app/review.html', text(html('review middle', './src/p.ts')));
+        yield* Ref.set(armed, true);
+        // The look's build reads the middle save; the new one lands as soon as it has printed it.
+        const receipt = yield* page.built;
+        expect(yield* Ref.get(armed)).toBe(false);
+        const now = yield* ask('/');
+        expect(now.text).toContain('review new');
+        expect(buildOf(now.text)).toBe(receipt.build.build);
+        // The look's page is the build it was answered, by its own number, whatever is built after.
+        const pinned = `/?build=${receipt.kept}`;
+        expect((yield* ask(pinned)).text).toContain('review new');
+        landing.files.set('/app/review.html', text(html('review newer', './src/p.ts')));
+        const after = yield* page.built;
+        expect(after.kept).toBeGreaterThan(receipt.kept);
+        expect((yield* ask('/')).text).toContain('review newer');
+        const still = yield* ask(pinned);
+        expect(still.text).toContain('review new<');
+        // Served as made: it waits on no build, so it never reloads itself off the look's build.
+        expect(still.text).not.toContain('lab-build');
+        expect((yield* ask('/?build=999')).status).toBe(404);
+      }).pipe(Effect.scoped, Effect.provide(landing.layer)),
+  );
+
   const app = memoryApp();
   it.live('a save made while a build reads is never answered as fresh', () =>
     Effect.gen(function* () {

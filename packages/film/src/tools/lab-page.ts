@@ -264,7 +264,10 @@ export class PageBundler extends Context.Service<PageBundler, PageBundlerService
  * (scripts, styles, maps) by the path they are asked for, or the bundler's words.
  */
 interface Built {
+  /** The changes it is stamped with: a page waits past it. Answered again, the changes seen then. */
   readonly build: number;
+  /** Its own number among the builds kept, the one it was made as: its pages at `?build=<kept>`. */
+  readonly kept: number;
   /** When it began reading its sources, ms since the epoch: a file saved since may not be in it. */
   readonly started: number;
   /** How far it holds the bytes it read (`Freshness`); a failed build is `Unsure`. */
@@ -372,12 +375,14 @@ interface LabPageService {
   /**
    * The pages as the sources stand now, every save made before the call in
    * them, judged by content and not by mtime: the build answered, after any
-   * build under way is waited out, is one whose files printed alike before
-   * and after it read them (`Steady`) and print so still. A save no watch has
-   * heard yet, or one in the build's own second, is built first; a build a
-   * save moved while it read is never answered. The build a page loaded now
-   * is served, and the bundler's words when it failed (a look's freshness,
-   * `tools/easel.ts`).
+   * build under way is waited out, is judged at the moment it is answered,
+   * once made and published: its files printed alike before and after it
+   * read them (`Steady`) and print so still. A save no watch has heard yet,
+   * one in the build's own second, or one landing after the build printed
+   * what it read, is built first; a build a save moved is never answered.
+   * The answer names the build (`kept`), whose pages `?build=<kept>` serve
+   * as it was made, and the bundler's words when it failed (a look's
+   * freshness, `tools/easel.ts`).
    */
   readonly built: Effect.Effect<PagesNow>;
   /**
@@ -394,6 +399,12 @@ interface LabPageService {
 /** The pages' build now, and why it failed when it did. */
 export interface PagesNow {
   readonly build: PageBuild;
+  /**
+   * The build answered, by its number among the builds kept: its pages,
+   * asked with `?build=<kept>`, are served as it was made and judged, never
+   * a build made after (a look's page).
+   */
+  readonly kept: number;
   readonly failed: Option.Option<string>;
 }
 
@@ -467,6 +478,12 @@ const failedPage = (reason: string, build: PageBuild) =>
 const failureOf = (built: Built): Option.Option<string> => {
   if (built.outcome._tag === 'Failed') return Option.some(built.outcome.reason);
   return Option.none();
+};
+
+/** A build's pages' HTML; a failed one has none. */
+const pagesOf = (built: Built): ReadonlyMap<PageName, BuiltFile> => {
+  if (built.outcome._tag === 'Built') return built.outcome.pages;
+  return new Map();
 };
 
 /** A build's files; a failed one has none. */
@@ -829,7 +846,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     yield* Effect.log(
       `lab.page.build build=${build} outcome=${outcome._tag} fresh=${fresh} files=${prints.size}`,
     );
-    return { build, started, fresh, prints, outcome } satisfies Built;
+    return { build, kept: build, started, fresh, prints, outcome } satisfies Built;
   });
 
   /**
@@ -850,8 +867,10 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     if (Option.isSome(last) && last.value.outcome._tag === 'Built' && last.value.fresh !== 'Moved')
       return { ...last.value, build: now };
     let made = yield* bundle(now);
-    if (Option.isSome(last) && made.outcome._tag === 'Built')
-      made = { ...made, build: (yield* SubscriptionRef.updateAndGet(changes, forAll)).n };
+    if (Option.isSome(last) && made.outcome._tag === 'Built') {
+      const n = (yield* SubscriptionRef.updateAndGet(changes, forAll)).n;
+      made = { ...made, build: n, kept: n };
+    }
     yield* Ref.update(builds, (kept) => [made, ...kept].slice(0, KEPT));
     if (made.fresh === 'Moved') {
       yield* Effect.log(`lab.page.build.moved build=${made.build}`);
@@ -933,22 +952,40 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       );
     });
 
+  /** A page as one build made it, unstamped (it waits on no build); none is a 404. */
+  const asMade = (html: Option.Option<BuiltFile>) =>
+    Option.match(html, {
+      onNone: () => NOT_FOUND,
+      onSome: (file) =>
+        HttpServerResponse.uint8Array(file.bytes, {
+          contentType: HTML,
+          headers: { 'cache-control': 'no-store' },
+        }),
+    });
+
   /** A wedge's page (`?wedge=<id>`) as it was built; a wedge no longer kept is a 404. */
   const wedgePage = (name: PageName, id: string) =>
     Effect.map(Ref.get(wedges), (kept) =>
-      Option.match(
+      asMade(
         Option.flatMap(
           Arr.findFirst(kept, (w) => w.id === id),
           (w) => Option.fromUndefinedOr(w.pages.get(name)),
         ),
-        {
-          onNone: () => NOT_FOUND,
-          onSome: (html) =>
-            HttpServerResponse.uint8Array(html.bytes, {
-              contentType: HTML,
-              headers: { 'cache-control': 'no-store' },
-            }),
-        },
+      ),
+    );
+
+  /**
+   * A kept build's page (`?build=<kept>`, `PagesNow.kept`) as it was made:
+   * the build a look was answered, whatever was built since; a build no
+   * longer kept, or one that failed, is a 404.
+   */
+  const keptPage = (name: PageName, id: string) =>
+    Effect.map(Ref.get(builds), (kept) =>
+      asMade(
+        Option.flatMap(
+          Arr.findFirst(kept, (b) => String(b.kept) === id),
+          (b) => Option.fromUndefinedOr(pagesOf(b).get(name)),
+        ),
       ),
     );
 
@@ -1001,10 +1038,14 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     const place = legacyPlace(old);
     if (Option.isSome(place)) return yield* moved(old, place.value);
     const wedgeId = Option.fromNullishOr(url.searchParams.get('wedge'));
+    const keptId = Option.fromNullishOr(url.searchParams.get('build'));
     return yield* Option.match(pageAt(pathname), {
       onNone: () => Effect.succeed(NOT_FOUND),
-      onSome: (name) =>
-        Option.match(wedgeId, { onNone: () => page(name), onSome: (id) => wedgePage(name, id) }),
+      onSome: (name) => {
+        if (Option.isSome(wedgeId)) return wedgePage(name, wedgeId.value);
+        if (Option.isSome(keptId)) return keptPage(name, keptId.value);
+        return page(name);
+      },
     });
   });
 
@@ -1022,24 +1063,18 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
 
   /**
    * The build a look is answered, under `building`, so a build under way is
-   * waited out and then judged like any other: the one `current` answers
-   * again if it holds its files as they stand (`holds`), else one more
-   * change and a new build, until one is `Steady`; a build whose files keep
-   * moving `BUILD_TRIES` times is answered as failed.
+   * waited out: the one `current` answers (kept, or made now, its watches
+   * and checks set), judged last, at the moment it is answered, by whether
+   * it holds its files as they stand (`holds`). One that does not is one
+   * more change and a new build; a build whose files keep moving
+   * `BUILD_TRIES` times is answered as failed.
    */
   const freshHeld = (tries: number): Effect.Effect<Built> =>
     Effect.gen(function* () {
-      const since = yield* Ref.get(sourced);
-      const last = Option.filter(
-        Arr.head(yield* Ref.get(builds)),
-        (b) => b.build >= since && b.outcome._tag === 'Built',
-      );
-      if (Option.isSome(last) && !(yield* holds(last.value))) {
-        yield* Effect.log(`lab.page.unheard build=${last.value.build} fresh=${last.value.fresh}`);
-        yield* sourceChanged;
-      }
       const made = yield* currentHeld;
-      if (made.outcome._tag === 'Failed' || made.fresh === 'Steady') return made;
+      if (made.outcome._tag === 'Failed' || (yield* holds(made))) return made;
+      yield* Effect.log(`lab.page.unheard build=${made.kept} fresh=${made.fresh} tries=${tries}`);
+      yield* sourceChanged;
       if (tries >= BUILD_TRIES)
         return {
           ...made,
@@ -1053,6 +1088,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
 
   const built = Effect.map(building.withPermit(freshHeld(1)), (made) => ({
     build: { build: made.build, server },
+    kept: made.kept,
     failed: failureOf(made),
   })) satisfies Effect.Effect<PagesNow>;
 

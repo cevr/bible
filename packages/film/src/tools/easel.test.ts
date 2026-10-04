@@ -35,6 +35,7 @@ const pagesAt = (now: Ref.Ref<PagesNow>) =>
 
 const built = (build: number): PagesNow => ({
   build: { build, server: 's' },
+  kept: build,
   failed: Option.none(),
 });
 
@@ -83,7 +84,7 @@ describe('the easel', () => {
       expect(files.get('/out/f/look/roof/t0003.00.value.bs.1.png')).toEqual(
         new Uint8Array([150 % 256]),
       );
-      expect(ledger.urls).toEqual(['http://127.0.0.1:4401/films/f/play?export']);
+      expect(ledger.urls).toEqual(['http://127.0.0.1:4401/films/f/play?export&build=1']);
       expect(ledger.stills).toEqual([
         { frame: 150, view },
         { frame: 150, view },

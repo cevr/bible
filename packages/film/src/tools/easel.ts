@@ -5,8 +5,8 @@
 // handle's call). Never a stale image: every look first asks the pages'
 // build as it stands (`LabPage.built`, which hears a save the watch missed
 // and waits out a build under way), refuses a failed build with its words,
-// and reopens the page when the build moved, so the page always runs the
-// code on disk. Each still is written once, under the film's
+// and opens the export page of that very build (`?build=<kept>`), reopening
+// it when the build moved, so the page always runs the code on disk. Each still is written once, under the film's
 // `out/<film>/look/<scene>/`, named by its time, view and build.
 //
 // A wedge (a printer's term: one strip printed at each of several grades,
@@ -87,12 +87,21 @@ const PALETTE_FILE = 'palette.ts';
 const reachable = (origin: string): string =>
   origin.replace('//0.0.0.0', '//127.0.0.1').replace('//[::]', '//127.0.0.1');
 
-/** `film`'s export page on the lab at `origin`, of the wedge `wedge` when there is one. */
-const easelUrl = (origin: string, film: string, wedge: string): string =>
-  new URL(
-    `films/${encodeURIComponent(film)}/play?${['export', ...Arr.filter([`wedge=${encodeURIComponent(wedge)}`], () => wedge !== '')].join('&')}`,
-    reachable(origin),
-  ).href;
+/**
+ * `film`'s export page on the lab at `origin`, as the build `kept` made it
+ * (`PagesNow.kept`), or of the wedge `wedge` when there is one: never a
+ * build made after the one the look was answered.
+ */
+const easelUrl = (origin: string, film: string, kept: number, wedge: string): string => {
+  const pinned = Arr.match(
+    Arr.filter([wedge], (w) => w !== ''),
+    {
+      onEmpty: () => `build=${kept}`,
+      onNonEmpty: ([w]) => `wedge=${encodeURIComponent(w)}`,
+    },
+  );
+  return new URL(`films/${encodeURIComponent(film)}/play?export&${pinned}`, reachable(origin)).href;
+};
 
 /** A page's failure, said as the look's. */
 const failedLook = (error: { readonly message: string }) =>
@@ -234,13 +243,14 @@ export class Easel extends Context.Service<Easel, EaselService>()('@bible/film/t
         const wedge = wedgeName(levels);
         const now = yield* buildFor(film, levels);
         if (Option.isSome(now.failed)) return yield* PagesBroken.make({ reason: now.failed.value });
-        const build = [now.build.server, now.build.build, ...[now.wedge].filter(Boolean)].join('.');
+        // The build's own number, not its stamp: a build answered again (a mix since) is the same code.
+        const build = [now.build.server, now.kept, ...[now.wedge].filter(Boolean)].join('.');
         const builtAt = yield* Clock.currentTimeMillis;
         const key = [film, ...[wedge].filter(Boolean)].join('?');
         const page = yield* pageOn(
           key,
           build,
-          easelUrl(yield* Deferred.await(origin), film, now.wedge),
+          easelUrl(yield* Deferred.await(origin), film, now.kept, now.wedge),
         );
         const pageAt = yield* Clock.currentTimeMillis;
         const scene = yield* Effect.fromOption(
