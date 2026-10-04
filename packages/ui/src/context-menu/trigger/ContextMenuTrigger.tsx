@@ -6,10 +6,14 @@
 // suppressed over the area and the menu's backdrops. After a right click,
 // releasing the button over nothing in the menu more than 500ms later closes
 // it again, so a press-drag-release gesture works like a native menu.
-// The long press reads the trigger's own touch events, as upstream does:
-// this package is a leaf with no Effect, and a consumer's drag (the film
-// lab's `Pointer` scrub) moves past the 10px threshold, which cancels the
-// press, so the two do not need one owner.
+// Not in upstream: one owner per press (`claimPress`, `utils/press.ts`). The
+// long press also reads the press's pointer moves, since a browser holds
+// back the touch's own moves within its slop (wider than 10px) while its
+// pointer moves arrive. A consumer's drag that starts claims the press (the
+// film lab's `Pointer.drag` does, past `LONG_PRESS_MOVE_THRESHOLD`), and a
+// press another holds is no long press, nor opens on the browser's own long
+// press `contextmenu`; a long press claims the press as it opens the menu,
+// so no drag starts under the open menu.
 import type { JSX } from '@solidjs/web';
 import { createEffect, omit, onCleanup, untrack } from 'solid-js';
 
@@ -22,13 +26,16 @@ import { useMenuRootContext } from '../../menu/root/MenuRootContext.ts';
 import { findRootOwnerId } from '../../menu/utils/isKeyboardOpen.ts';
 import { addEventListener, contains, getTarget, ownerDocument } from '../../utils/dom.ts';
 import { pressableTriggerOpenStateMapping } from '../../utils/popupStateMapping.ts';
+import {
+  LONG_PRESS_DELAY,
+  LONG_PRESS_MOVE_THRESHOLD,
+  claimPress,
+  pressHeldByOther,
+} from '../../utils/press.ts';
 import { useTimeout } from '../../utils/timers.ts';
 import { useContextMenuRootContextStrict } from '../root/ContextMenuRootContext.ts';
 
-/** How long a touch is held before the menu opens, and the mouseup grace after a right click. */
-export const LONG_PRESS_DELAY = 500;
-/** How far a held touch may move, in px, before the long press is cancelled. */
-export const LONG_PRESS_MOVE_THRESHOLD = 10;
+export { LONG_PRESS_DELAY, LONG_PRESS_MOVE_THRESHOLD };
 
 export interface ContextMenuTriggerState {
   /** Whether the context menu is open. */
@@ -47,6 +54,9 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
 
   let triggerElement: HTMLElement | null = null;
   let touchPosition: { x: number; y: number } | null = null;
+  // The touch press's pointer, while one is down on the area, and who the long press claims it as.
+  let pressPointer: number | null = null;
+  const self = Symbol('context-menu long press');
   const longPressTimeout = useTimeout();
   const allowMouseUpTimeout = useTimeout();
   let allowMouseUp = false;
@@ -77,6 +87,11 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
 
   function handleContextMenu(event: MouseEvent) {
     if (untrack(store.disabled)) {
+      return;
+    }
+    // The browser's own long press on a touch a drag has taken: its menu stays shut, as ours does.
+    if (!mayTakePress()) {
+      stopEvent(event);
       return;
     }
     contextMenu.allowMouseUpTriggerRef.current = true;
@@ -134,11 +149,22 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     const position = { x: touch.clientX, y: touch.clientY };
     touchPosition = position;
     longPressTimeout.start(LONG_PRESS_DELAY, () => {
-      // The root may have been disabled while the finger was down.
-      if (!untrack(store.disabled)) {
+      // The root may have been disabled while the finger was down, or a drag taken the press.
+      if (!untrack(store.disabled) && mayTakePress()) {
         handleLongPress(position.x, position.y, event);
       }
     });
+  }
+
+  /** A pending long press whose touch has moved past the threshold to `x`, `y` is cancelled. */
+  function cancelIfMoved(x: number, y: number) {
+    if (longPressTimeout.isStarted() && touchPosition) {
+      const deltaX = Math.abs(x - touchPosition.x);
+      const deltaY = Math.abs(y - touchPosition.y);
+      if (deltaX > LONG_PRESS_MOVE_THRESHOLD || deltaY > LONG_PRESS_MOVE_THRESHOLD) {
+        cancelLongPress();
+      }
+    }
   }
 
   function handleTouchMove(event: TouchEvent) {
@@ -147,13 +173,28 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
       cancelLongPress();
       return;
     }
-    if (longPressTimeout.isStarted() && touchPosition) {
-      const deltaX = Math.abs(touch.clientX - touchPosition.x);
-      const deltaY = Math.abs(touch.clientY - touchPosition.y);
-      if (deltaX > LONG_PRESS_MOVE_THRESHOLD || deltaY > LONG_PRESS_MOVE_THRESHOLD) {
-        cancelLongPress();
-      }
+    cancelIfMoved(touch.clientX, touch.clientY);
+  }
+
+  function handlePointerDown(event: PointerEvent) {
+    pressPointer = event.pointerType === 'touch' ? event.pointerId : null;
+  }
+
+  // The press's pointer moves: a drag that claimed it, or a move past the threshold, ends the long press.
+  function handlePointerMove(event: PointerEvent) {
+    if (pressPointer === null || event.pointerId !== pressPointer) {
+      return;
     }
+    if (pressHeldByOther(pressPointer, self)) {
+      cancelLongPress();
+      return;
+    }
+    cancelIfMoved(event.clientX, event.clientY);
+  }
+
+  /** Whether the menu may have the touch press now: it claims it, unless another holds it. */
+  function mayTakePress(): boolean {
+    return pressPointer === null || claimPress(pressPointer, self, ownerDocument(triggerElement));
   }
 
   onCleanup(() => {
@@ -199,6 +240,8 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
         onContextMenu: handleContextMenu,
         onTouchStart: handleTouchStart,
         onTouchMove: handleTouchMove,
+        onPointerDown: handlePointerDown,
+        onPointerMove: handlePointerMove,
         onTouchEnd: cancelLongPress,
         onTouchCancel: cancelLongPress,
         style: { '-webkit-touch-callout': 'none' },

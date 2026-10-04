@@ -28,28 +28,6 @@ const fromChip = (page: Tab, act: string, id: string) =>
     yield* countIs(page, '[data-role="chip-menu"]', 0);
   });
 
-/**
- * How far ahead of the page's clock it is paused: the test's own time limit
- * (`bun test --timeout 20000`). The clock runs on in real time between the
- * read and the pause, and `pauseAt` refuses a time already past ("Cannot
- * fast-forward to the past", which a lead of 10 ms met under load); no
- * test lives long enough to pass this one. The jump fires each timer due in
- * it once; the player is paused, so the film stays where it stands.
- */
-const PAUSE_LEAD_MS = 20_000;
-
-/**
- * Stop the page's clock: from here the page moves only as the test runs it
- * on (`page.clock.runFor`), so what a loop has played never depends on how
- * long a loaded machine took between two clicks.
- */
-const holdClock = (page: Tab) =>
-  Effect.flatMap(
-    // The page's own (installed) clock, read in the page: not this process's.
-    page.evaluate<number>('Date.now()'),
-    (now) => page.clock.pauseAt(now + PAUSE_LEAD_MS),
-  );
-
 /** The film seconds the player shows, as the URL has them. */
 const T = URL_T;
 
@@ -88,7 +66,8 @@ describe('loops', () => {
         yield* page.waitFor('.lab-motion [data-act="loop"]');
         yield* fromChip(page, 'loop', 'motion.in');
         yield* motionSays(page, 'in 1.00');
-        yield* holdClock(page);
+        // The player is paused, so the hold's jump leaves the film where it stands.
+        yield* page.clock.hold;
         // Three coarse steps of ten frames: a second on, at 30 fps.
         yield* page.press('Shift+ArrowRight');
         yield* page.press('Shift+ArrowRight');

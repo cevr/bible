@@ -7,7 +7,16 @@
 // (`lostpointercapture`), so a drag the browser ends never keeps scrubbing.
 // The page it listens on is the adapter's (`pointerOn`): the window live
 // (`pointer-browser.ts`), a test's own `EventTarget` in a test.
+//
+// One owner per press (`claimPress`, @bible/ui): a finger's press may be a
+// long press (a context menu's) until it moves past `LONG_PRESS_MOVE_THRESHOLD`,
+// the number the long press gives way at. Only then does the drag claim the
+// press and start, and a long press can no longer open; a press the long
+// press claimed first (its menu is open) never starts a drag, though its
+// lift still ends this one. A mouse's drag starts at its first move: a mouse
+// has no long press.
 
+import { LONG_PRESS_MOVE_THRESHOLD, claimPress } from '@bible/ui/press';
 import { Context, Effect, Layer, Option, Result } from 'effect';
 
 /** What a drag tells its owner. */
@@ -58,7 +67,20 @@ const pointerOn = (page: EventTarget): PointerOps => ({
         steps.end(lifted);
         resume(Effect.void);
       };
-      page.addEventListener('pointermove', its(steps.move), options);
+      // A finger's drag starts once it has moved past the long press's threshold and holds the press.
+      const self = Symbol('drag');
+      let started = down.pointerType !== 'touch';
+      const past = (e: PointerEvent) =>
+        Math.abs(e.clientX - down.clientX) > LONG_PRESS_MOVE_THRESHOLD ||
+        Math.abs(e.clientY - down.clientY) > LONG_PRESS_MOVE_THRESHOLD;
+      page.addEventListener(
+        'pointermove',
+        its((e) => {
+          started = started || (past(e) && claimPress(id, self, page));
+          if (started) steps.move(e);
+        }),
+        options,
+      );
       page.addEventListener(
         'pointerup',
         its((e) => ended(Option.some(e))),

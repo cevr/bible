@@ -11,6 +11,7 @@
     "./direction-provider": "./src/direction-provider/index.ts",
     "./menu": "./src/menu/index.ts",
     "./context-menu": "./src/context-menu/index.ts",
+    "./press": "./src/press/index.ts",
     "./popover": "./src/popover/index.ts",
     "./tooltip": "./src/tooltip/index.ts",
     "./dialog": "./src/dialog/index.ts",

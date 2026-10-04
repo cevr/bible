@@ -120,11 +120,28 @@ export interface Tab {
     readonly runFor: (ms: number) => Effect.Effect<void>;
     readonly fastForward: (ms: number) => Effect.Effect<void>;
     readonly pauseAt: (epochMs: number) => Effect.Effect<void>;
+    /**
+     * Stop the clock where it stands, give or take `HOLD_LEAD_MS`: from here
+     * the page moves only as the test runs it on (`runFor`), so what a timer
+     * does (a loop's playback, a long press's delay) never depends on how long
+     * a loaded machine took between two steps.
+     */
+    readonly hold: Effect.Effect<void>;
   };
 }
 
 /** Any value as JSON text, to write into a script the page runs. */
 export const jsonOf = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
+
+/**
+ * How far ahead of the page's clock `clock.hold` pauses it: the test's own
+ * time limit (`bun test --timeout 20000`). The clock runs on in real time
+ * between the read and the pause, and `pauseAt` refuses a time already past
+ * ("Cannot fast-forward to the past", which a lead of 10 ms met under load);
+ * no test lives long enough to pass this one. The jump fires each timer due
+ * in it once.
+ */
+const HOLD_LEAD_MS = 20_000;
 
 /** A key as the DevTools protocol dispatches it: `text` is what it types, empty for none. */
 interface Key {
@@ -507,16 +524,25 @@ export const makeTab = (
     const clickAt = (x: number, y: number) => Effect.andThen(move(x, y), Effect.andThen(down, up));
 
     let fingerAt = { x: 0, y: 0 };
+    let fingerDown = false;
     const touchEvent = (type: string, points: ReadonlyArray<{ x: number; y: number }>) =>
       call('Input.dispatchTouchEvent', {
         type,
         touchPoints: points.map((p) => ({ x: p.x, y: p.y, id: 1, radiusX: 1, radiusY: 1 })),
       });
+    // The view outlives the case: a finger the case left down is lifted, so the next case's press is its own.
+    yield* Effect.addFinalizer(() =>
+      Effect.when(
+        Effect.exit(touchEvent('touchEnd', [])),
+        Effect.sync(() => fingerDown),
+      ),
+    );
     const finger: Tab['finger'] = {
       down: (x, y) =>
         Effect.andThen(
           Effect.sync(() => {
             fingerAt = { x, y };
+            fingerDown = true;
           }),
           touchEvent('touchStart', [{ x, y }]),
         ),
@@ -529,7 +555,10 @@ export const makeTab = (
             ]);
           fingerAt = { x, y };
         }),
-      up: Effect.suspend(() => touchEvent('touchEnd', [])),
+      up: Effect.suspend(() => {
+        fingerDown = false;
+        return touchEvent('touchEnd', []);
+      }),
     };
 
     const press = (combo: string) =>
@@ -642,6 +671,10 @@ export const makeTab = (
         runFor: (ms) => clock(`runFor(${ms})`),
         fastForward: (ms) => clock(`fastForward(${ms})`),
         pauseAt: (t) => clock(`pauseAt(${t})`),
+        // The page's own (installed) clock, read in the page: not this process's.
+        hold: Effect.flatMap(run<number>('Date.now()'), (now) =>
+          clock(`pauseAt(${now + HOLD_LEAD_MS})`),
+        ),
       },
     };
     return tab;

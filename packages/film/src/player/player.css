@@ -523,6 +523,8 @@ body.lab .stage {
   border-right: 5px solid #a8c3e3;
   border-radius: 2px;
   cursor: grab;
+  /* Inside the rows' scroll box: a sideways finger drags the cue, an upright one scrolls. */
+  touch-action: pan-y;
 }
 .lab-cue.selected {
   background: var(--accent);

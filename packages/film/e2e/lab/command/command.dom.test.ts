@@ -16,9 +16,13 @@ import {
 } from '../../../src/lab/fixtures/gestures.ts';
 import { URL_T, labAt, openLab } from '../../../src/lab/fixtures/harness.ts';
 import { attached, evaluates, textHas, textIs } from '../../../src/lab/fixtures/settled.ts';
+import { jsonOf } from '../../../src/lab/fixtures/tab.ts';
 
 /** The probe's first cue's bar on the strip. */
 const RISE = '.lab-cue[data-cue="rise"]';
+
+/** Where that bar sits on the strip, as the page reads it (a drag's preview moves it). */
+const BAR_LEFT = `document.querySelector('${RISE}').style.left`;
 
 /** A Go to entry, wherever it is listed. */
 const GO_ENTRY = '[data-command^="go."]';
@@ -163,6 +167,8 @@ describe("a cue's context menu", () => {
       const { page } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor(RISE);
       yield* evaluates(page, URL_T, 1);
+      // The clock held: the long press's delay passes only as the test runs it on, however slow the gesture.
+      yield* page.clock.hold;
       // The browser's own finger (its touch and pointer events), still held past
       // the long press: the move, never a lift, keeps the menu shut.
       yield* touch(page, RISE, 40);
@@ -174,5 +180,49 @@ describe("a cue's context menu", () => {
       yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
       yield* evaluates(page, URL_T, 1);
     }).pipe(Effect.scoped),
+  );
+
+  it.live('a finger that drags a cue owns the press: the bar follows it, and no menu opens', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      yield* page.waitFor(RISE);
+      const before = yield* page.evaluate<string>(BAR_LEFT);
+      const at = yield* page.box(RISE);
+      const x = at.x + at.width / 2;
+      const y = at.y + at.height / 2;
+      yield* page.clock.hold;
+      // Past the press's slop, short of the browser's own: the drag has it.
+      yield* page.finger.down(x, y);
+      yield* page.finger.move(x + 14, y, 7);
+      yield* page.clock.runFor(700);
+      yield* evaluates(page, `${BAR_LEFT} !== ${jsonOf(before)}`, true);
+      yield* evaluates(page, `document.querySelector('[data-role="context-menu"]') === null`, true);
+      // Further, past the browser's slop: still the drag's, never a pan's.
+      const near = yield* page.evaluate<string>(BAR_LEFT);
+      yield* page.finger.move(x + 40, y, 13);
+      yield* page.clock.runFor(100);
+      yield* evaluates(page, `${BAR_LEFT} !== ${jsonOf(near)}`, true);
+      yield* evaluates(page, `document.querySelector('[data-role="context-menu"]') === null`, true);
+      yield* page.finger.up;
+    }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a finger held still owns the press as the menu: moved once it opens, the bar stays',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(1) });
+        yield* page.waitFor(RISE);
+        const before = yield* page.evaluate<string>(BAR_LEFT);
+        yield* page.clock.hold;
+        yield* touch(page, RISE, 0);
+        yield* page.clock.runFor(700);
+        yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
+        const at = yield* page.box(RISE);
+        yield* page.finger.move(at.x + at.width / 2 + 40, at.y + at.height / 2, 20);
+        yield* page.clock.runFor(100);
+        yield* evaluates(page, BAR_LEFT, before);
+        yield* page.finger.up;
+      }).pipe(Effect.scoped),
   );
 });
