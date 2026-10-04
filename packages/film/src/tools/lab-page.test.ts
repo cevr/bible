@@ -477,6 +477,9 @@ describe('lab pages', () => {
       const broken = yield* ask('/');
       expect(broken.status).toBe(500);
       expect(broken.text).toContain('missing.ts');
+      // In the studio's look: its tokens, no colour of its own.
+      expect(broken.text).toContain('--surface-0:');
+      expect(broken.text).toContain('background:var(--surface-0)');
       // The failed build read nothing new; a fix to the file it last read is still heard.
       const built = buildOf(broken.text);
       yield* waitWriting(built, '10 seconds', 'src/p.ts', "console.log('fixed');\n");

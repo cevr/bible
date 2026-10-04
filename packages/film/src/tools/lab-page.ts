@@ -316,18 +316,29 @@ const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.String));
 /** How long the failed page waits before it asks again, on any answer that is not a newer build. */
 const FAILED_PAUSE_MS = 2000;
 
+/** The studio's tokens (`player/tokens.css`), which the failed page reads: it has no bundle to link. */
+const TOKENS_FILE = `${import.meta.dir}/../player/tokens.css`;
+
+/** The failed page's look over the studio's `tokens`: its words in the studio's face and colours. */
+const failedStyle = (tokens: string) =>
+  `${tokens}` +
+  'body{margin:0;padding:var(--s-6);background:var(--surface-0);color:var(--text-1);' +
+  'font-family:var(--font);font-size:var(--fs-3);line-height:var(--lh-3)}' +
+  'h1{font-size:var(--fs-5);line-height:var(--lh-5);font-weight:var(--w-3)}pre{white-space:pre-wrap}';
+
 /**
- * A failed build's page: the bundler's words, reloading itself once a build
- * past it answers, or one from another server; it pauses before asking
- * again on every other answer (a refusal, a proxy's 502, no answer).
+ * A failed build's page, in the studio's `tokens`: the bundler's words,
+ * reloading itself once a build past it answers, or one from another
+ * server; it pauses before asking again on every other answer (a refusal,
+ * a proxy's 502, no answer).
  */
-const failedPage = (reason: string, build: PageBuild) =>
+const failedPage = (reason: string, build: PageBuild, tokens: string) =>
   stamped(
-    `<!doctype html><html><head><meta charset="utf-8" /><title>Lab: the page did not build</title></head>`,
+    `<!doctype html><html><head><meta charset="utf-8" /><title>Lab: the page did not build</title><style>${failedStyle(tokens)}</style></head>`,
     build,
   ) +
-  `<body style="font:14px/1.5 ui-monospace,monospace;background:#121110;color:#eee;padding:24px">` +
-  `<h1 style="font-size:16px">The lab's page did not build</h1><pre style="white-space:pre-wrap">${escapeHtml(reason)}</pre>` +
+  `<body>` +
+  `<h1>The lab's page did not build</h1><pre>${escapeHtml(reason)}</pre>` +
   `<script>(async()=>{const S=${jsonText(build.server)},B=${build.build},` +
   `u=${jsonText(labUrls.page.wait({ query: { since: build.build, server: build.server } }))};` +
   `for(;;){try{const r=await fetch(u);if(r.ok){const b=await r.json();if(b.server!==S||b.build>B)return location.reload()}}catch{}` +
@@ -367,6 +378,8 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const bundler = yield* PageBundler;
   const scope = yield* Effect.scope;
   const server = yield* serverId;
+  // The tokens the failed page reads; a lab without them answers that page unstyled.
+  const tokens = yield* fs.readFileString(TOKENS_FILE).pipe(Effect.orElseSucceed(() => ''));
   // The changes seen, each one a page waiting past it hears (`heardBy`): a page is stamped with `n`.
   const changes = yield* SubscriptionRef.make<Changes>({ n: 0, all: 0, mixed: new Map() });
   // The number of changes at the last change to a file a build reads: a build made at or past
@@ -697,7 +710,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       const built = yield* current;
       const stamp = { build: built.build, server };
       if (built.outcome._tag === 'Failed')
-        return HttpServerResponse.text(failedPage(built.outcome.reason, stamp), {
+        return HttpServerResponse.text(failedPage(built.outcome.reason, stamp, tokens), {
           status: 500,
           contentType: HTML,
           headers: { 'cache-control': 'no-store' },
