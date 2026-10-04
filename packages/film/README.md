@@ -706,7 +706,13 @@ files the bundler named, so a first build that fails still hears its fix. A
 folder still read keeps its watch; a file read in a newly watched folder
 or new to what it read, that changed from a second before the build began
 counts as a change. Each change to a
-file a build read is one more build (a render, a mix or a note is none). A page links its scripts and styles from the root (`/chunk-….js`,
+file a build read is one more build (a render or a note is none). A film's
+mixed track (`narration/full.wav`) is no source, but the page plays the one
+it loaded: once a page is served one, its folder is watched too, and a mix
+landing it (last and whole, by a rename, so the mix has finished) is one more
+change the open lab hears, with no new build, so a score or level written on
+the review, a take kept, or a `film mix` run by hand reloads the lab once onto
+the new track; a take's timings, saved before its mix, wake nothing. A page links its scripts and styles from the root (`/chunk-….js`,
 `publicPath: '/'`), so a page served under a film's path finds them; a
 request is answered as a narration file when it is one
 (`/films/<film>/narration/<file>`), then as a built file, then as the page

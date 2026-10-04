@@ -1,8 +1,9 @@
 // The lab's pages as a browser and an editor meet them: a page is built when
 // first asked and stamped with its build and its server; a change to a file
 // it was built from (its source, its HTML entry, another package's source)
-// wakes a waiting page and the next ask is the new code; a change to anything
-// else (a render, a note) wakes nothing; a page another lab process served
+// wakes a waiting page and the next ask is the new code; a mix landing the
+// track a page was served wakes it with no new build; a change to anything
+// else (a render, a note, a take's timings) wakes nothing; a page another lab process served
 // hears at once that it is old; a page that does not build answers the
 // bundler's words, asks again with a pause, and serves again once fixed.
 
@@ -250,6 +251,63 @@ describe('lab pages', () => {
       const { build } = yield* waitWriting(settled, '1 second', 'src/notes.json', '{"seq":1}');
       expect(build).toBe(settled);
     }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    "a mix that lands the track a page was served wakes its wait and builds nothing; the take's timings saved before the mix wake nothing",
+    () =>
+      Effect.gen(function* () {
+        const { spec } = yield* appFolder;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        // The test bundler, counted: a page asked again after a mix is not built again.
+        const bundles = yield* Ref.make(0);
+        const counted = Layer.effect(
+          PageBundler,
+          Effect.gen(function* () {
+            const bundler = yield* PageBundler;
+            return PageBundler.of({
+              bundle: (entries, root) =>
+                Effect.andThen(
+                  Ref.update(bundles, (n) => n + 1),
+                  bundler.bundle(entries, root),
+                ),
+            });
+          }),
+        ).pipe(Layer.provide(PageBundler.layerTest));
+        // Film `f`, its track mixed and its timings.
+        const film = path.join(spec.films, 'f');
+        const narration = path.join(film, 'narration');
+        yield* fs.makeDirectory(path.join(film, 'scenes'), { recursive: true });
+        yield* fs.makeDirectory(narration, { recursive: true });
+        yield* fs.writeFileString(path.join(film, 'scenes', 'index.ts'), 'export {};\n');
+        yield* fs.writeFileString(path.join(narration, 'full.wav'), 'mix one');
+        yield* fs.writeFileString(path.join(narration, 'timings.json'), '{}');
+        const { page, ask } = yield* served(spec, counted);
+        // The lab's page loads, and plays the film's track.
+        yield* ask('/films/f/lab');
+        expect((yield* ask('/films/f/narration/full.wav')).text).toBe('mix one');
+        // The first build may count once a save it read in the last second: the build once that is heard.
+        const settled = (yield* page.wait({ since: 0, server: Option.none() }, '1 second')).build;
+        // A kept take's timings land before its mix: a page loaded then would play the old track.
+        const timed = yield* Effect.andThen(
+          fs.writeFileString(path.join(narration, 'timings.json'), '{"voice":""}'),
+          page.wait({ since: settled, server: Option.none() }, '1 second'),
+        );
+        expect(timed.build).toBe(settled);
+        // The mix lands its track whole, by a rename, as `film mix` does.
+        yield* fs.writeFileString(path.join(narration, 'full.wav.partial'), 'mix two');
+        const mixed = yield* Effect.andThen(
+          fs.rename(path.join(narration, 'full.wav.partial'), path.join(narration, 'full.wav')),
+          page.wait({ since: settled, server: Option.none() }, '5 seconds'),
+        );
+        expect(mixed.build).toBeGreaterThan(settled);
+        // The page loaded again is stamped past the mix, so its own wait holds, and was not built again.
+        const built = yield* Ref.get(bundles);
+        expect(buildOf((yield* ask('/films/f/lab')).text)).toBeGreaterThanOrEqual(mixed.build);
+        expect(yield* Ref.get(bundles)).toBe(built);
+        expect((yield* ask('/films/f/narration/full.wav')).text).toBe('mix two');
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
   it.live(
