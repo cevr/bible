@@ -250,7 +250,17 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   });
   onCleanup(letGo);
 
-  const step = (verb: StepVerb) => send(EditEvent.Step({ verb }));
+  // The change the page's history says the step walks: with no answer, the lab's latest change says whether it landed.
+  const step = (verb: StepVerb) =>
+    send(
+      EditEvent.Step({
+        verb,
+        ...Option.match(
+          Option.flatMap(report(), (r) => Option.fromUndefinedOr(r[verb])),
+          { onNone: () => ({}), onSome: (s) => ({ expected: s.target }) },
+        ),
+      }),
+    );
   // Escape lets a held grip go; ⌘Z undoes and ⇧⌘Z redoes, outside a field being typed in.
   const editorKey = (e: KeyPress): boolean => {
     if (e.key === 'Escape' && holding()) send(EditEvent.Cancel);

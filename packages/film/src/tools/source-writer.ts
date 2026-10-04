@@ -405,7 +405,9 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
        * it takes in any process (a narrate's timings, a sweep putting away a
        * take they do not name), so the text it is checked against is the text
        * it replaces, and nothing put away is a file a text landed meanwhile
-       * names. What is made from the text is made again after, outside it.
+       * names. What is made from the text is made again after (`remake`),
+       * outside it, once the history says the step landed: a page that had
+       * no answer by then asks the history whether it did.
        */
       const land = <E>(
         c: Change,
@@ -414,25 +416,22 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
         changed: string,
         refused: (reason: string) => E,
       ) =>
-        Effect.gen(function* () {
-          yield* store.holding(
-            c.file,
-            Effect.gen(function* () {
-              const now = yield* store.read({ file: c.file, codec: Schema.String, empty: '' });
-              if (now !== from) return yield* Effect.fail(refused(changed));
-              yield* Option.match(c.follows, {
-                onNone: () => Effect.void,
-                onSome: (follows) =>
-                  Effect.mapError(follows.bring(from, to), (missing) =>
-                    refused(`${shown(c)} names ${missing.message}`),
-                  ),
-              });
-              yield* store.writeFile(c.file, new TextEncoder().encode(to));
-              yield* putAway(c, from, to);
-            }),
-          );
-          yield* remake(c);
-        });
+        store.holding(
+          c.file,
+          Effect.gen(function* () {
+            const now = yield* store.read({ file: c.file, codec: Schema.String, empty: '' });
+            if (now !== from) return yield* Effect.fail(refused(changed));
+            yield* Option.match(c.follows, {
+              onNone: () => Effect.void,
+              onSome: (follows) =>
+                Effect.mapError(follows.bring(from, to), (missing) =>
+                  refused(`${shown(c)} names ${missing.message}`),
+                ),
+            });
+            yield* store.writeFile(c.file, new TextEncoder().encode(to));
+            yield* putAway(c, from, to);
+          }),
+        );
 
       const undo = (film: string) =>
         writer
@@ -462,6 +461,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                 yield* Effect.log(
                   `lab.undo film=${film}${sceneLog(c)} target="${c.target}" file=${shown(c)}`,
                 );
+                yield* remake(c);
                 return undone;
               }),
             ),
@@ -496,6 +496,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                 yield* Effect.log(
                   `lab.redo film=${film}${sceneLog(c)} target="${c.target}" file=${shown(c)}`,
                 );
+                yield* remake(c);
                 return redone;
               }),
             ),

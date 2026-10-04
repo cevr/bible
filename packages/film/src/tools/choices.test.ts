@@ -5,7 +5,7 @@
 // files. No network, no ffmpeg, no film CLI.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer, Option, Path, Schema } from 'effect';
+import { Deferred, Effect, Fiber, Layer, Option, Path, Schema } from 'effect';
 import { pointIdOf } from '../core/point.ts';
 import { hashText, voiceKey } from '../core/narration.ts';
 import { type Timed, type Timings, TimingsJson } from '../core/schema.ts';
@@ -54,7 +54,10 @@ const F = Schema.decodeSync(FilmName)('test');
 const NARRATION = film.paths.narration;
 const TIMINGS = film.paths.timings.file;
 
-const setup = () => {
+const setup = (
+  /** What `film mix` does: a test that watches a remake holds it. */
+  remixing: Effect.Effect<void> = Effect.void,
+) => {
   const files = new Map<string, Uint8Array>([
     [TIMINGS, text(Schema.encodeSync(TimingsJson)(staged))],
     [`${NARRATION}/a.mp3`, text('Hello world.')],
@@ -95,7 +98,7 @@ const setup = () => {
       freshFilm({
         choices: voicesHere(context),
         keepVoice: keepVoiceHere(context),
-        remix: () => Effect.void,
+        remix: () => remixing,
       }),
     ),
   );
@@ -194,6 +197,31 @@ describe('Choices: a voice picked', () => {
         // The take the live timings name stays in narration, byte for byte.
         expect(files.get(TIMINGS)).toEqual(live);
         expect(files.get(`${NARRATION}/${second}`)).toEqual(secondBytes);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    "an Undo's history names it once its file lands, while the track is still being mixed again",
+    () => {
+      // The Undo's mix (the pick's is the fresh keep's own) is held until the test lets it go.
+      const [mixing, mixed] = [Deferred.makeUnsafe<boolean>(), Deferred.makeUnsafe<boolean>()];
+      const { layer } = setup(
+        Effect.andThen(Deferred.succeed(mixing, true), Deferred.await(mixed)),
+      );
+      return Effect.gen(function* () {
+        const first = yield* imported('/rec/a1.wav');
+        yield* imported('/rec/a2.wav');
+        const point = pointIdOf({ _tag: 'Voice', beat: 'a' });
+        yield* (yield* Choices).pick(F, { point, variant: first, verb: 'pick' });
+        const writer = yield* SourceWriter;
+        const undoing = yield* Effect.forkChild(writer.undo(F));
+        yield* Deferred.await(mixing);
+        // The lab's check, asked now, says the Undo landed.
+        const latest = Option.map((yield* writer.history(F)).latest, (c) => c.target);
+        yield* Deferred.succeed(mixed, true);
+        yield* Fiber.join(undoing);
+        expect(latest).toEqual(Option.some(`undo voice a keep ${first}`));
       }).pipe(Effect.provide(layer));
     },
   );

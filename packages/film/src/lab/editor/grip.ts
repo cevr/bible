@@ -123,7 +123,15 @@ export const KnobWrite = Schema.TaggedStruct('KnobWrite', {
 });
 export type KnobWrite = typeof KnobWrite.Type;
 
-export const StepWrite = Schema.TaggedStruct('StepWrite', { verb: StepVerb });
+export const StepWrite = Schema.TaggedStruct('StepWrite', {
+  verb: StepVerb,
+  /**
+   * The change the page's history said this step walks (`cue rise offset`),
+   * when it said one: with no answer, the lab's latest change says whether
+   * it landed (`undo cue rise offset`).
+   */
+  expected: Schema.optionalKey(Schema.String),
+});
 export type StepWrite = typeof StepWrite.Type;
 
 /** One write to a scene file: a cue's fields, a knob's value, or an undo or redo. */
