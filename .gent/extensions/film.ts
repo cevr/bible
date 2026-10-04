@@ -382,6 +382,53 @@ const LookOutput = Schema.Struct({
   build: Schema.String,
   stills: Schema.Array(Schema.Struct({ image: ToolImage, line: Schema.String })),
 });
+type LookOutput = typeof LookOutput.Type;
+const lookLength = encodedLength(LookOutput);
+
+/** Seconds as a place writes them, and as the film CLI reads them (`Number`). */
+const SECONDS = /^\d+(?:\.\d+)?$/;
+
+/**
+ * Seconds written as the CLI reads them: the number printed (`0002.50` is
+ * `2.5`). A number JavaScript prints with an exponent keeps its digits, its
+ * idle zeroes dropped, so the CLI still reads it as seconds.
+ */
+const plainSeconds = (text: string): string => {
+  const printed = String(Number(text));
+  if (SECONDS.test(printed)) return printed;
+  return text
+    .replace(/^0+(?=\d)/, '')
+    .replace(/(\.\d*?)0+$/, '$1')
+    .replace(/\.$/, '');
+};
+
+/** A place as the CLI reads it: its seconds, or its cue's share, as the number printed. */
+const plainPlace = (place: string): string => {
+  if (SECONDS.test(place)) return plainSeconds(place);
+  return Option.match(Option.fromNullishOr(/^(cue:[^@]+)@(\d+(?:\.\d+)?)$/.exec(place)), {
+    onNone: () => place,
+    onSome: ([, cue, share]) => `${cue}@${plainSeconds(share ?? '')}`,
+  });
+};
+
+/**
+ * The look's result within the budget, measured whole (each image's record,
+ * its source included): every string the lab echoed cut to the longest
+ * length that fits.
+ */
+const lookWithin = (output: LookOutput): LookOutput => {
+  const capped = (cap: number): LookOutput => ({
+    build: clip(output.build, cap),
+    stills: output.stills.map(({ image, line }) => ({
+      image: Option.match(Option.fromUndefinedOr(image.source), {
+        onNone: () => image,
+        onSome: (source) => ({ ...image, source: clip(source, cap) }),
+      }),
+      line: clip(line, cap),
+    })),
+  });
+  return capped(largestFitting(RESULT_BUDGET, (size) => lookLength(capped(size)) <= RESULT_BUDGET));
+};
 
 export const FilmLook = tool({
   id: 'film.look',
@@ -398,7 +445,7 @@ export const FilmLook = tool({
       params.film,
       '--scene',
       params.scene,
-      ...params.at.flatMap((place) => ['--at', place]),
+      ...params.at.flatMap((place) => ['--at', plainPlace(place)]),
       ...Option.match(Option.fromUndefinedOr(params.crop), {
         onNone: () => [],
         onSome: (crop) => ['--crop', crop.join(',')],
@@ -439,14 +486,11 @@ export const FilmLook = tool({
         ),
         Effect.map((image) => ({
           image,
-          line: clip(
-            `${look.file} at=${look.at} t=${look.time.toFixed(2)} frame=${look.frame} size=${look.width}x${look.height} build=${taken.build}`,
-            LINE_CHARS,
-          ),
+          line: `${look.file} at=${look.at} t=${look.time.toFixed(2)} frame=${look.frame} size=${look.width}x${look.height} build=${taken.build}`,
         })),
       ),
     );
-    return { build: taken.build, stills };
+    return lookWithin({ build: taken.build, stills });
   }, Effect.mapError(modelFailure)),
 });
 

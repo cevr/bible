@@ -606,6 +606,60 @@ describe('film.look', () => {
     ),
   );
 
+  it.live('eight padded places, or eight long ones, stay under 8,000 characters whole', () =>
+    live(
+      Effect.gen(function* () {
+        const { ctx } = yield* world();
+        const padded = yield* runToolWithCtx(
+          FilmLook,
+          {
+            film: 'easel',
+            scene: 'roof',
+            at: [
+              `${'0'.repeat(900)}1`,
+              `${'0'.repeat(900)}2.5`,
+              `${'0'.repeat(900)}3.000`,
+              `cue:roof@${'0'.repeat(900)}0.5`,
+              `${'0'.repeat(900)}4`,
+              `${'0'.repeat(900)}5`,
+              `${'0'.repeat(900)}6`,
+              `${'0'.repeat(900)}7`,
+            ],
+          },
+          ctx,
+        );
+        expect(encodeAny(padded).length).toBeLessThan(8_000);
+        // Each place as the CLI reads it: the number, not the zeroes typed.
+        expect(padded.stills.map((still) => still.line.split(' ')[1])).toEqual([
+          'at=1',
+          'at=2.5',
+          'at=3',
+          'at=cue:roof@0.5',
+          'at=4',
+          'at=5',
+          'at=6',
+          'at=7',
+        ]);
+        expect(padded.stills[0]?.image.source).toBe('easel/roof 1 t=0.00');
+
+        const long = yield* runToolWithCtx(
+          FilmLook,
+          {
+            film: 'easel',
+            scene: 'roof',
+            at: [
+              'mark:0',
+              ...Array.from({ length: 7 }, (_, index) => `mark:${'"'.repeat(900)}${index}`),
+            ],
+          },
+          ctx,
+        );
+        expect(encodeAny(long).length).toBeLessThan(8_000);
+        expect(long.stills).toHaveLength(8);
+      }),
+    ),
+  );
+
   it.live("each lab refusal is a typed failure carrying the lab's words", () =>
     live(
       Effect.gen(function* () {
