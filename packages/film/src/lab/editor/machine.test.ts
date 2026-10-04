@@ -2,11 +2,12 @@
 // the film; moves preview the drag; a release that changed something writes,
 // holding `#t=` for the reload, and one that did not puts the preview back.
 // Fields and Undo commit straight from rest. One write at a time: a press or
-// a commit while a write is out is not taken. A write lands (Written, with
+// a step while a write is out is not taken, and a commit waits (shown), the
+// last asked written once the write lands. A write lands (Written, with
 // the server's findings) or is refused (Refused, the server's text), and a
 // refusal lets `#t=` go and puts the preview back.
 
-import { Effect, Layer, Option, Predicate, SubscriptionRef } from 'effect';
+import { Deferred, Effect, Exit, Layer, Option, Predicate, SubscriptionRef } from 'effect';
 import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
@@ -51,6 +52,8 @@ const fakes = (
   write: Effect.Effect<LabWrite, LabFailure> = Effect.succeed(landed),
   /** What the lab's check reports: its latest change, and what Undo and Redo would do. */
   check: Effect.Effect<CheckReport, LabFailure> = Effect.die('not asked'),
+  /** Calls answered otherwise. */
+  more: Partial<LabCalls> = {},
 ) => {
   const log: Array<string> = [];
   const keys = (edit: SceneEdit) => Object.keys({ ...edit.timeline, ...edit.knobs }).join(',');
@@ -82,6 +85,7 @@ const fakes = (
     writeCue: () => write,
     writeKnob: () => write,
     step: () => write,
+    ...more,
   };
   return { log, layer: Layer.merge(Layer.succeed(Stage, stage), Layer.succeed(LabApi, api)) };
 };
@@ -126,6 +130,7 @@ describe('a drag on the strip', () => {
             patch: { offset: 0.3 },
             said: 'cue rise offset 0 → 0.3 s',
           }),
+          next: Option.none(),
         }),
       );
       expect(log).toEqual(['pause', 'preview one rise', 'preview one rise', 'holdT']);
@@ -215,6 +220,7 @@ describe('a drag of a knob handle', () => {
             value: [380, 200],
             said: 'knob face [400, 200] → [380, 200]',
           }),
+          next: Option.none(),
         }),
       );
       expect(log).toEqual(['pause', 'preview three face,faceZoom', 'holdT']);
@@ -271,26 +277,102 @@ describe('writes', () => {
       expect(result.finalState).toEqual(
         EditState.Writing({
           write: StepWrite.make({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+          next: Option.none(),
         }),
       );
       expect(log).toEqual(['holdT']);
     }).pipe(Effect.provide(layer));
   });
 
-  it.effect('one write at a time: a press or a commit while one is out is not taken', () =>
+  it.effect('one write at a time: a press or a step while one is out is not taken', () =>
     Effect.gen(function* () {
+      const undo = StepWrite.make({ verb: 'undo', request: 'undo-1', change: Option.none() });
       const result = yield* simulate(editMachine, [
         EditEvent.Step({ verb: 'undo', request: 'undo-1', change: Option.none() }),
         EditEvent.Press({ grip }),
-        EditEvent.Commit({ write: cueWrite, edit: {} }),
         EditEvent.Step({ verb: 'redo', request: 'redo-1', change: Option.none() }),
       ]);
-      expect(result.finalState).toEqual(
-        EditState.Writing({
-          write: StepWrite.make({ verb: 'undo', request: 'undo-1', change: Option.none() }),
-        }),
-      );
+      expect(result.finalState).toEqual(EditState.Writing({ write: undo, next: Option.none() }));
     }).pipe(Effect.provide(fakes().layer)),
+  );
+
+  it.effect(
+    'a commit while a write is out is shown and waits, the last one asked replacing the one before; it is written once the write lands',
+    () => {
+      const { log, layer } = fakes();
+      return Effect.gen(function* () {
+        const nudge = (offset: number) => ({
+          write: CueWrite.make({ scene: 'one', cue: 'rise', patch: { offset } }),
+          edit: { timeline: { rise: { mark: 'rise', offset, dur: 0.6 } } },
+        });
+        const result = yield* simulate(editMachine, [
+          EditEvent.Commit(nudge(0.033)),
+          EditEvent.Commit(nudge(0.066)),
+          EditEvent.Commit(nudge(0.1)),
+          EditEvent.Wrote({ result: landed }),
+        ]);
+        expect(result.states.map((s) => s._tag)).toEqual([
+          'Idle',
+          'Writing',
+          'Writing',
+          'Writing',
+          'Writing',
+        ]);
+        // The last asked is the one that waits, and the one written once the first lands.
+        expect(result.states[3]).toEqual(
+          EditState.Writing({ write: nudge(0.033).write, next: Option.some(nudge(0.1)) }),
+        );
+        expect(result.finalState).toEqual(
+          EditState.Writing({ write: nudge(0.1).write, next: Option.none() }),
+        );
+        // Each is shown as it is asked, so the next nudge moves on from it.
+        expect(log).toEqual([
+          'preview one rise',
+          'holdT',
+          'preview one rise',
+          'preview one rise',
+          'preview one rise',
+          'holdT',
+        ]);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    'a commit waiting on a write that is refused is not written, and the refusal says so',
+    () =>
+      Effect.gen(function* () {
+        const result = yield* simulate(editMachine, [
+          EditEvent.Commit({ write: cueWrite, edit: {} }),
+          EditEvent.Commit({ write: cueWrite, edit: {} }),
+          EditEvent.Failed({ message: 'SourceChanged: stale' }),
+        ]);
+        expect(result.finalState).toEqual(
+          EditState.Refused({
+            message: 'SourceChanged: stale; the edit asked while it was out was not written',
+          }),
+        );
+      }).pipe(Effect.provide(fakes().layer)),
+  );
+
+  it.effect(
+    'a commit waiting on an Undo is not written once it lands (it was asked of the film before the undo), and the receipt says so',
+    () => {
+      const { log, layer } = fakes();
+      return Effect.gen(function* () {
+        const result = yield* simulate(editMachine, [
+          EditEvent.Step({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+          EditEvent.Commit({ write: cueWrite, edit: {} }),
+          EditEvent.Wrote({ result: { ...landed, target: 'undo cue rise offset' } }),
+        ]);
+        expect(result.finalState).toMatchObject({
+          _tag: 'Written',
+          note: 'undid cue rise offset in scenes/one.ts; the edit asked while it was out was not written: it was asked of the film before the undo',
+        });
+        // What it showed is put back.
+        expect(log).toEqual(['holdT', 'preview one ', 'unpreview one']);
+      }).pipe(Effect.provide(layer));
+    },
   );
 
   it.effect('a write that lands says what it wrote, with its findings, undone by Undo', () =>
@@ -401,6 +483,41 @@ describe('the write task, through an actor', () => {
       const state = yield* settled(Effect.succeed(landed));
       expect(state._tag).toBe('Written');
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'two nudges, the second asked while the first is out: the lab hears both, the last one last',
+    () => {
+      // The first write answers only once let; what each write asked is heard in order.
+      const first = Deferred.makeUnsafe<void>();
+      const heard: Array<Option.Option<number>> = [];
+      const writeCue: LabCalls['writeCue'] = (_, __, patch) =>
+        Effect.sync(() => heard.push(Option.fromUndefinedOr(patch.offset))).pipe(
+          Effect.andThen((n) => Effect.when(Deferred.await(first), Effect.succeed(n === 1))),
+          Effect.as(landed),
+        );
+      const nudge = (offset: number) =>
+        EditEvent.Commit({
+          write: CueWrite.make({ scene: 'one', cue: 'rise', patch: { offset } }),
+          edit: {},
+        });
+      return Effect.gen(function* () {
+        const actor = yield* Machine.spawn(editMachine);
+        yield* actor.start;
+        yield* actor.send(nudge(0.033));
+        yield* actor.send(nudge(0.066));
+        yield* Deferred.done(first, Exit.void);
+        const state = yield* SubscriptionRef.get(actor.state).pipe(
+          Effect.delay('1 millis'),
+          Effect.repeat({ until: settledTag }),
+        );
+        expect(state._tag).toBe('Written');
+        expect(heard).toEqual([Option.some(0.033), Option.some(0.066)]);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(fakes(Effect.succeed(landed), Effect.die('not asked'), { writeCue }).layer),
+      );
+    },
   );
 
   it.live('a write the server refuses shows its text', () =>

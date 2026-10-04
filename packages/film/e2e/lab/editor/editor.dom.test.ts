@@ -506,7 +506,7 @@ describe('the inspector', () => {
       yield* postedReach(asked, 1);
       // The field shows the nudged offset before the write is answered.
       yield* valueIs(page, offset, '0.033');
-      // A write out takes no other: the next nudge goes once this one is answered.
+      // Answered: the next nudge moves on from what landed.
       yield* statusSays(page, 'cue rise offset 0 → 0.033');
       yield* page.press('Shift+Alt+ArrowRight');
       yield* postedReach(asked, 2);
@@ -516,6 +516,49 @@ describe('the inspector', () => {
       ]);
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a nudge while the last one is out is shown at once and written once that one answers: the last asked lands',
+    () =>
+      Effect.gen(function* () {
+        // The first write answers only once let.
+        const first = Deferred.makeUnsafe<void>();
+        let writes = 0;
+        const { page, asked, errors } = yield* openLab(
+          [
+            route('POST', /^\/scenes\/one\/cues\/rise$/, () => {
+              writes += 1;
+              const answer = json({
+                scene: 'one',
+                file: 'scenes/one.ts',
+                target: 'cue rise offset',
+                change: changeOf(`cue ${writes}`),
+                findings: [],
+              });
+              if (writes === 1) return later(first, answer);
+              return answer;
+            }),
+          ],
+          { href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }) },
+        );
+        const offset = '.lab-edit-cue input[data-field="offset"]';
+        yield* page.waitFor(`${offset}:not([disabled])`);
+        yield* page.press('Alt+ArrowRight');
+        yield* postedReach(asked, 1);
+        yield* page.press('Alt+ArrowRight');
+        // Shown as asked, so a third would move on from it; written once the first answers.
+        yield* valueIs(page, offset, '0.066');
+        expect(posted(asked)).toHaveLength(1);
+        yield* Deferred.done(first, Exit.void);
+        yield* postedReach(asked, 2);
+        expect(posted(asked)).toEqual([
+          { path: '/scenes/one/cues/rise', body: Option.some({ offset: 0.033 }) },
+          { path: '/scenes/one/cues/rise', body: Option.some({ offset: 0.066 }) },
+        ]);
+        yield* statusSays(page, 'cue rise offset 0.033 → 0.066');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live('a typed expression in a field commits on Enter', () =>

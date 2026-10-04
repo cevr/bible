@@ -53,9 +53,11 @@ describe('findingTime (F/⇧F)', () => {
 describe('receiptOf', () => {
   test('a write on its way is busy; one that landed says what it did, with what undoes it, bound to its change', () => {
     const write = CueWrite.make({ scene: 'one', cue: 'rise', patch: { offset: 0.2 } });
-    expect(receiptOf(EditState.Writing({ write }), 'f')).toEqual(Option.some(busy('writing…')));
+    expect(receiptOf(EditState.Writing({ write, next: Option.none() }), 'f')).toEqual(
+      Option.some(busy('writing…')),
+    );
     const undo = StepWrite.make({ verb: 'undo', request: 'r', change: Option.none() });
-    expect(receiptOf(EditState.Writing({ write: undo }), 'f')).toEqual(
+    expect(receiptOf(EditState.Writing({ write: undo, next: Option.none() }), 'f')).toEqual(
       Option.some(busy('undoing…')),
     );
     const undid = { note: 'undid cue rise offset', findings: [], undo: 'redo' } as const;

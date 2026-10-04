@@ -2,11 +2,16 @@
 // a knob's handle on the frame (a press grabs a cue or a knob and pauses the
 // film, moves preview it in memory, the release writes what changed), a field
 // or an ease set in the inspector, and Undo or Redo. One machine serializes
-// them all: while a write is out, a press or another write is not taken, so
-// two writes never race for one file.
+// them all, so two writes never race for one file: while a write is out, a
+// press or a step is not taken, and a commit (a nudge, a field) waits as
+// `next`, shown at once and written once the write lands, the last asked
+// replacing the one before, so the last value asked is the one that lands;
+// one that waited on a step, or on a write that did not land, is not
+// written, and the receipt says so.
 //
 //   Idle | Written | Refused ─Press→ Pressed ─Move→ Dragging ─Release→ Writing
 //                   ─Commit | Step→ Writing ─Wrote→ Written | ─Failed | TimedOut→ Refused
+//   Writing ─Commit→ Writing (next) ─Wrote→ Writing (next, reentered)
 //   Writing (a step) ─TimedOut (STEP_TIMEOUT_S)→ Checking (the lab's steps
 //     read back) ─Landed→ Written | ─Failed→ Refused
 //
@@ -52,6 +57,14 @@ export const stepRequest: Effect.Effect<string> = uniqueId;
 /** How long reading the lab's steps may take once a step's wait is over. */
 const CHECK_WAIT = Duration.seconds(15);
 
+/**
+ * A commit asked while a write is out (a nudge, a field): shown at once, so
+ * the next one moves on from it, and written once that write lands; a later
+ * one replaces it, so the last asked is the one written.
+ */
+const Queued = Schema.Struct({ write: Write, edit: SceneEdit });
+type Queued = typeof Queued.Type;
+
 export const EditState = State({
   /** At rest: `note` is what the last thing done said, if anything. */
   Idle: { note: Schema.String },
@@ -59,10 +72,14 @@ export const EditState = State({
   Pressed: { grip: Grip, note: Schema.String },
   /** A cue or a knob handle is being dragged: `write` is what its release sends, none when back where it began. */
   Dragging: { grip: Grip, write: Schema.Option(Write), note: Schema.String },
-  /** A write is out: the server is changing a scene file. */
-  Writing: { write: Write },
+  /**
+   * A write is out: the server is changing a scene file. `next` is the
+   * commit asked while it is out (the last asked), shown already and
+   * written once this one lands.
+   */
+  Writing: { write: Write, next: Schema.Option(Queued) },
   /** An Undo or Redo had no answer in STEP_TIMEOUT_S: the lab is asked whether it landed, by its request's id. */
-  Checking: { write: StepWrite },
+  Checking: { write: StepWrite, next: Schema.Option(Queued) },
   /**
    * The write landed; the page reloads with it. `undo` is the step that
    * undoes it (Redo for an Undo), and `change` the change it made, by its id
@@ -171,10 +188,57 @@ const letGo = (scene: string, note: string) =>
 
 /** Send `write`, holding `#t=` for the reload it causes. */
 const writing = (write: Write) =>
-  Stage.use((stage) => Effect.as(stage.holdT, EditState.Writing({ write })));
+  Stage.use((stage) => Effect.as(stage.holdT, EditState.Writing({ write, next: Option.none() })));
+
+/** Show `edit` of `write`'s scene, then send `write`; one the timeline cannot show is refused. */
+const commit = (write: Write, edit: SceneEdit) =>
+  Option.match(sceneOfWrite(write), {
+    onNone: () => writing(write),
+    onSome: (scene) =>
+      Stage.use((stage) =>
+        stage.preview(scene, edit).pipe(
+          Effect.flatMap(() => writing(write)),
+          Effect.catchTag('NotPreviewed', (e) =>
+            Effect.succeed(EditState.Refused({ message: e.message })),
+          ),
+        ),
+      ),
+  });
+
+/**
+ * A commit asked while a write is out, waiting as `next`: shown now (so a
+ * nudge after it moves on from it; one the timeline cannot show is shown
+ * when it is written, and refused then), replacing any that waited.
+ */
+const queued = (write: Write, edit: SceneEdit) =>
+  Stage.use((stage) =>
+    Option.match(sceneOfWrite(write), {
+      onNone: () => Effect.void,
+      onSome: (scene) => Effect.ignore(stage.preview(scene, edit)),
+    }),
+  ).pipe(Effect.as(Option.some<Queued>({ write, edit })));
+
+/** What a waiting commit says when it is not written. */
+const NOT_WRITTEN = 'the edit asked while it was out was not written';
+
+/** `said`, with why the commit waiting as `next`, if one does, was not written (`why`). */
+const sayDropped = (said: string, next: Option.Option<Queued>, why = ''): string =>
+  Option.match(next, { onNone: () => said, onSome: () => `${said}; ${NOT_WRITTEN}${why}` });
+
+/** Put back what the commit waiting as `next` showed, if one does: it will not be written. */
+const dropNext = (next: Option.Option<Queued>) =>
+  Stage.use((stage) =>
+    Option.match(
+      Option.flatMap(next, (q) => sceneOfWrite(q.write)),
+      { onNone: () => Effect.void, onSome: stage.unpreview },
+    ),
+  );
+
+/** Why a commit waiting on a step is not written once it lands. */
+const beforeStep = (step: StepWrite) => `: it was asked of the film before the ${step.verb}`;
 
 /** A write that did not land: let `#t=` go, put the preview back, and say `message`. */
-const refuse = (write: Write, message: string) =>
+const refuse = (write: Write, message: string, next: Option.Option<Queued> = Option.none()) =>
   Stage.use((stage) =>
     stage.settle.pipe(
       Effect.andThen(
@@ -183,9 +247,43 @@ const refuse = (write: Write, message: string) =>
           onSome: stage.unpreview,
         }),
       ),
-      Effect.as(EditState.Refused({ message })),
+      Effect.andThen(dropNext(next)),
+      Effect.as(EditState.Refused({ message: sayDropped(message, next) })),
     ),
   );
+
+/**
+ * `write` landed as `result`: Written, reloading the page itself for a file
+ * it reads at load (no rebuild follows one). A commit waiting on it is
+ * written next (a step's is not: it was asked of the film before the step).
+ */
+const landedAs = (write: Write, result: LabWrite, next: Option.Option<Queued>) => {
+  const written = (note: string) =>
+    EditState.Written({
+      note,
+      findings: result.findings,
+      undo: undoneBy(write),
+      change: Option.fromUndefinedOr(result.change),
+    });
+  const rest = (note: string) =>
+    Stage.use((stage) =>
+      Effect.as(Effect.when(stage.reload, Effect.succeed(readAtLoad(result.file))), written(note)),
+    );
+  return Match.value(write).pipe(
+    Match.tag('StepWrite', (step) =>
+      Effect.andThen(
+        dropNext(next),
+        rest(sayDropped(wroteNote(write, result), next, beforeStep(step))),
+      ),
+    ),
+    Match.orElse(() =>
+      Option.match(next, {
+        onNone: () => rest(wroteNote(write, result)),
+        onSome: (q) => commit(q.write, q.edit),
+      }),
+    ),
+  );
+};
 
 export const editMachine = Machine.make({
   state: EditState,
@@ -218,19 +316,14 @@ export const editMachine = Machine.make({
   .on([EditState.Pressed, EditState.Dragging], EditEvent.Cancel, ({ state }) =>
     letGo(state.grip.scene, state.note),
   )
-  .on(AT_REST, EditEvent.Commit, ({ event }) =>
-    Option.match(sceneOfWrite(event.write), {
-      onNone: () => writing(event.write),
-      onSome: (scene) =>
-        Stage.use((stage) =>
-          stage.preview(scene, event.edit).pipe(
-            Effect.flatMap(() => writing(event.write)),
-            Effect.catchTag('NotPreviewed', (e) =>
-              Effect.succeed(EditState.Refused({ message: e.message })),
-            ),
-          ),
-        ),
-    }),
+  .on(AT_REST, EditEvent.Commit, ({ event }) => commit(event.write, event.edit))
+  // A commit while a write is out waits (shown now), the last asked replacing the one before:
+  // never dropped. The same state, so the write out and its wait go on (no reentry).
+  .on(EditState.Writing, EditEvent.Commit, ({ state, event }) =>
+    Effect.map(queued(event.write, event.edit), (next) => EditState.Writing({ ...state, next })),
+  )
+  .on(EditState.Checking, EditEvent.Commit, ({ state, event }) =>
+    Effect.map(queued(event.write, event.edit), (next) => EditState.Checking({ ...state, next })),
   )
   .on(AT_REST, EditEvent.Step, ({ event }) =>
     writing(StepWrite.make({ verb: event.verb, request: event.request, change: event.change })),
@@ -239,18 +332,13 @@ export const editMachine = Machine.make({
     onSuccess: (result) => EditEvent.Wrote({ result }),
     onFailure: (e) => EditEvent.Failed({ message: e.message }),
   })
-  .on(EditState.Writing, EditEvent.Wrote, ({ state, event }) => {
-    const written = EditState.Written({
-      note: wroteNote(state.write, event.result),
-      findings: event.result.findings,
-      undo: undoneBy(state.write),
-      change: Option.fromUndefinedOr(event.result.change),
-    });
-    // No rebuild follows a file the page reads at load (an Undo of a kept take): reload it here.
-    if (!readAtLoad(event.result.file)) return written;
-    return Stage.use((stage) => Effect.as(stage.reload, written));
-  })
-  .on(EditState.Writing, EditEvent.Failed, ({ state, event }) => refuse(state.write, event.message))
+  // Reentered: the commit that waited is the next write out, with a task and a wait of its own.
+  .reenter(EditState.Writing, EditEvent.Wrote, ({ state, event }) =>
+    landedAs(state.write, event.result, state.next),
+  )
+  .on(EditState.Writing, EditEvent.Failed, ({ state, event }) =>
+    refuse(state.write, event.message, state.next),
+  )
   .timeout(EditState.Writing, {
     duration: (state) => waitFor(state.write),
     event: EditEvent.TimedOut,
@@ -258,11 +346,14 @@ export const editMachine = Machine.make({
   .on(EditState.Writing, EditEvent.TimedOut, ({ state }) =>
     Match.value(state.write).pipe(
       // A step with no answer is never guessed at: the lab says, by its request's id.
-      Match.tag('StepWrite', (write) => Effect.succeed(EditState.Checking({ write }))),
+      Match.tag('StepWrite', (write) =>
+        Effect.succeed(EditState.Checking({ write, next: state.next })),
+      ),
       Match.orElse((write) =>
         refuse(
           write,
           `the write had no answer in ${WRITE_TIMEOUT_S} s; see whether it changed the scene file (git diff) before writing again`,
+          state.next,
         ),
       ),
     ),
@@ -294,19 +385,21 @@ export const editMachine = Machine.make({
     if (readAtLoad(event.result.file))
       note = `${wrote}; the lab had not finished remaking what follows it after ${STEP_TIMEOUT_S} s: reload the page once the lab log says it mixed`;
     return Stage.use((stage) =>
-      Effect.as(
-        stage.settle,
-        EditState.Written({
-          note,
-          findings: event.result.findings,
-          undo: undoneBy(state.write),
-          change: Option.fromUndefinedOr(event.result.change),
-        }),
+      stage.settle.pipe(
+        Effect.andThen(dropNext(state.next)),
+        Effect.as(
+          EditState.Written({
+            note: sayDropped(note, state.next, beforeStep(state.write)),
+            findings: event.result.findings,
+            undo: undoneBy(state.write),
+            change: Option.fromUndefinedOr(event.result.change),
+          }),
+        ),
       ),
     );
   })
   .on(EditState.Checking, EditEvent.Failed, ({ state, event }) =>
-    refuse(state.write, event.message),
+    refuse(state.write, event.message, state.next),
   );
 
 /** The editor's actor, started. */
