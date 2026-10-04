@@ -452,7 +452,7 @@ interface PlayerAt {
 }
 
 /**
- * Open the player (`fixtures/player-page.ts`, the real `mountPlayer` over the
+ * Open the player (`fixtures/player-page.ts`, the real `mountPlay` over the
  * probe film) at `href`, served on every player place as the lab serves it,
  * in a window `viewport` wide, and wait until `ready` is on the page. Its
  * clock is the test's, and the tab goes back to the pool with the scope.

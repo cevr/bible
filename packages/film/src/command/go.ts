@@ -7,7 +7,7 @@
 // the page bar's tabs, from the keyboard. Pure.
 
 import { Effect, Option } from 'effect';
-import { PARTS, PART_TITLE, type Part, partHref } from '../core/api.ts';
+import { PARTS, PART_TITLE, type Part, hasPart, partHref } from '../core/api.ts';
 import { type Command, quiet } from './command.ts';
 
 /** A thing a page can go to. */
@@ -47,8 +47,9 @@ const PAGES_GROUP = 'Pages';
 /**
  * The command for each of the studio's parts (`page.<part>`, on ⇧1-⇧6 in
  * the page bar's order): it goes to that part of `film` (the film the page
- * bar leads into), through `go`. A film's part waits for a film; the part
- * the page is on is no move.
+ * bar leads into), through `go`. A film's part waits for a film that has it
+ * (a short has no lab, choices or project); the part the page is on is no
+ * move.
  */
 export const partCommands = (
   film: () => Option.Option<string>,
@@ -61,7 +62,8 @@ export const partCommands = (
     group: PAGES_GROUP,
     keys: [`shift+${i + 1}`],
     touch: 'the page bar',
-    when: () => here() !== part && (part === 'films' || Option.isSome(film())),
+    when: () =>
+      here() !== part && (part === 'films' || Option.exists(film(), (f) => hasPart(f, part))),
     run: () =>
       Effect.sync(() => {
         go(

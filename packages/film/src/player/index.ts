@@ -1,4 +1,4 @@
-// The browser player: preview scrubber and the export handle the renderer drives.
+// The browser player: the render page the renderer drives, and the narrated films.
 
-export { mountPlayer } from './main.ts';
+export { mountRender } from './main.ts';
 export { type Narrated, narratedFilms } from './narrated.ts';

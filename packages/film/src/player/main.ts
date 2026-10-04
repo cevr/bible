@@ -1,34 +1,33 @@
-// The browser player. An app's entry calls `mountPlayer(films)` with its film
-// registry. It reads its place from the URL (`Places`, core/api.ts): a film's
-// play page is a scrubbable player, its scenes page the look-book, and the
-// export page (`?film=<name>&export`) hides the chrome and hands
-// `window.__film` to the renderer. Framework-free: the
-// lab (`@bible/film/lab`) is its own page, which stages the film and mounts
-// this preview under its Solid panels, so the render page never loads Solid.
+// The browser player, framework-free. The render page (an app's `index.html`,
+// `?film=<name>&export`) calls `mountRender(films)`: the film with no chrome,
+// and `window.__film` for the renderer. The studio's pages with a film on
+// them stage it here (`stageFilm`) and mount the scrubbable preview
+// (`mountPreview`) in their Solid shell: the lab (`@bible/film/lab`), and a
+// film's Scenes and Play pages (`mountPlay`, lab/play-mount.tsx). So the
+// render page never loads Solid.
 
 import type { Film, KnobRead, RenderOptions, ShownEdit } from '../canvas/film.ts';
 import type { ProbeSink } from '../canvas/probe.ts';
 import type { ExportHandle } from '../core/export-handle.ts';
 import { timelineTicks } from '../core/ticks.ts';
+import { timecode } from '../core/time.ts';
 import { Effect, Option } from 'effect';
 import type { Fiber } from 'effect';
-import { Place, parseHref } from '@bible/url-state';
-import { Places, filmOfPage, legacyPlace, pageHref } from '../core/api.ts';
+import { parseHref } from '@bible/url-state';
+import { filmOfPage } from '../core/api.ts';
 import { addressOn, hostOf, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { Frames } from '../browser/frames.ts';
-import { ViewerStore } from '../browser/storage-browser.ts';
-import { type Hub, makeHub } from '../command/hub.ts';
+import type { Hub } from '../command/hub.ts';
 import { chordLabel } from '../command/keymap.ts';
 import { Pointer } from '../browser/pointer.ts';
 import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
 import { encodeChunk, encoderChoice } from './encode.ts';
-import { registerFace } from './face.ts';
-import { composeLookbook, mountLookbook } from './lookbook.ts';
+import { composeLookbook } from './lookbook.ts';
 import { narration, narrationNote } from './narration.ts';
-import { onTheMs, tInUrl, type TimeInUrl } from './t-in-url.ts';
+import { tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
 import { lookFrames } from './look-frames.ts';
 import { legendCommand, transportCommands } from './transport.ts';
@@ -171,58 +170,22 @@ export const showFailure = (e: unknown): void => {
   document.body.innerHTML = `<pre style="color:#f88;padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
 };
 
-/** The play page's time: `#t=`, in film seconds. */
-const playTime = (name: string, host: Host): TimeInUrl => {
-  const address = addressOn(host);
-  return {
-    at: (href) =>
-      Option.getOrElse(
-        Option.flatMap(Place.decode(Places.play, href), (v) => v.hash.t),
-        () => 0,
-      ),
-    write: (T) => address.replace(pageHref.play(name, Option.some(onTheMs(T)))),
-  };
-};
-
 /**
- * Mount the player for `films` into the page: a film's scenes (its
- * look-book, `/films/<film>/scenes`), its preview (`/films/<film>/play#t=`),
- * or, with `?film=<name>&export`, the handle the renderer drives. A link
- * whose old form the server could not see (a bare `#<seconds>`) is replaced
- * by its place first.
+ * Mount the render page for `films` (`?film=<name>&export`): the film
+ * staged with no chrome and no UI face, drawing only the film's own faces,
+ * and the handle the renderer drives on `window.__film`.
  */
-export const mountPlayer = (films: Films): void => {
+export const mountRender = (films: Films): void => {
   const host = hostOf(BrowserHost.layer);
-  const address = addressOn(host);
-  Option.map(legacyPlace(address.href()), address.replace);
-  const href = address.href();
-  const exporting = parseHref(href).searchParams.has('export');
-  const lookbook = [Places.scenes, Places.scene].some((place) =>
-    Option.isSome(Place.decode(place, href)),
-  );
-
-  // The UI face for the pages with chrome; the render page draws only the film's faces.
-  if (!exporting) registerFace(document.fonts);
-  const main = async () => {
-    const staged = await stageFilm(films, href);
-    const { name, film, captions } = staged;
-
-    if (exporting) {
+  stageFilm(films, addressOn(host).href())
+    .then((staged) => {
       document.body.classList.add('export');
       window.__film = exportHandle(staged, host);
-      return;
-    }
-    if (lookbook) return mountLookbook(film, name, captions.on, host);
-    // The preview's page has its own commands: the transport, and its keys.
-    const hub = Effect.runSyncWith(host)(makeHub('player', address.href, ViewerStore));
-    Effect.runForkWith(host)(hub.listen);
-    mountPreview(staged, host, playTime(name, host), hub);
-  };
-
-  main().catch((e: unknown) => {
-    showFailure(e);
-    throw e;
-  });
+    })
+    .catch((e: unknown) => {
+      showFailure(e);
+      throw e;
+    });
 };
 
 /**
@@ -355,7 +318,7 @@ export const mountPreview = (
   for (const tick of timelineTicks(film.placed, Option.fromNullishOr(film.sound))) {
     const el = document.createElement('div');
     el.className = `tick ${tick.kind}`;
-    el.dataset['name'] = `${tick.name} · ${tick.at.toFixed(2)}s`;
+    el.dataset['name'] = `${tick.name} · ${timecode(tick.at, film.fps)}`;
     el.dataset['tick'] = tick.name;
     el.style.left = pct(tick.at);
     if (tick.kind === 'cue') el.style.width = pct(tick.dur);
@@ -417,8 +380,10 @@ export const mountPreview = (
     head.style.left = `${(T / film.duration) * 100}%`;
     const shownRate = rate === 1 ? '' : ` · ${rate}× muted`;
     const shownLoop =
-      loop === undefined ? '' : ` · loop ${loop.from.toFixed(2)}–${loop.to.toFixed(2)}`;
-    timeEl.textContent = `${T.toFixed(2)} / ${film.duration.toFixed(1)}s · f${Math.round(T * film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
+      loop === undefined
+        ? ''
+        : ` · loop ${timecode(loop.from, film.fps)}–${timecode(loop.to, film.fps)}`;
+    timeEl.textContent = `${timecode(T, film.fps)} / ${timecode(film.duration, film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';

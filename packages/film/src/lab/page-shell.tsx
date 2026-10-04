@@ -25,7 +25,7 @@ import {
   onCleanup,
   useContext,
 } from 'solid-js';
-import { PARTS, PART_TITLE, type Part, partHref } from '../core/api.ts';
+import { PARTS, PART_TITLE, type Part, hasPart, partHref } from '../core/api.ts';
 import { FILM_FPS, timecodeParts } from '../core/time.ts';
 import type { Host } from '../browser/host.ts';
 import { PageLoad } from '../browser/page-load.ts';
@@ -191,7 +191,12 @@ export const PageShell = (props: PageShellProps) => {
   const keyOf = (part: Part) => `${chordLabel(`shift+${PARTS.indexOf(part) + 1}`, props.hub.mac)}`;
   const tab = (part: Part) => (
     <Show
-      when={Option.getOrUndefined(Option.map(film(), (f) => partHref(part, f)))}
+      when={Option.getOrUndefined(
+        Option.map(
+          Option.filter(film(), (f) => hasPart(f, part)),
+          (f) => partHref(part, f),
+        ),
+      )}
       fallback={
         <span class="sh-tab" data-page={part} data-disabled="">
           <Icon of={part} />

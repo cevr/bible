@@ -177,16 +177,16 @@ interface Legend {
 
 /**
  * The bar's legend (the transport's keys, what the stripes and the ticks
- * mean), hidden at rest (UR-114). On the player's own page, which has no
- * `?` sheet, `?` and the bar's ? button show it; in the lab, where `?` opens
- * the keys sheet, ⌘K and the page's long-press menu do.
+ * mean), hidden at rest (UR-114). It has no key: on every page in the
+ * studio's shell `?` opens the keys sheet. On the play page the bar's ?
+ * button shows it; in the lab ⌘K and the page's long-press menu do.
  */
 export const legendCommand = (page: PageName, legend: Legend): Command => ({
   id: 'view.legend',
   label: 'Show or hide the legend',
   labelIn: () => LEGEND_LABEL[`${legend.shown()}`],
   group: 'View',
-  keys: ['?'].filter(() => page === 'player'),
+  keys: [],
   about: ['Page'],
   touch: TOUCH_LEGEND[page],
   when: always,

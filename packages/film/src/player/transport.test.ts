@@ -58,10 +58,10 @@ describe('the rate chip', () => {
 });
 
 describe('the legend', () => {
-  test('`?` shows it on the player page alone, and its label says what it would do', () => {
+  test('it has no key on any page (`?` is the keys sheet), and its label says what it would do', () => {
     let shown = false;
     const legend = { shown: () => shown, toggle: () => (shown = !shown) };
-    expect(legendCommand('player', legend).keys).toEqual(['?']);
+    expect(legendCommand('player', legend).keys).toEqual([]);
     expect(legendCommand('lab', legend).keys).toEqual([]);
     const command = legendCommand('player', legend);
     expect(labelOf(command, ctx)).toBe('Show the keys and the legend');

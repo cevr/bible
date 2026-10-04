@@ -3,7 +3,7 @@
 // start and end and at its 60% point (`sceneMoments`, the moments `film
 // check` probes, less the marks), each labelled, under the film's palette as
 // swatches. The page composes it with `film.render`, so the lab shows it live
-// (a film's scenes page, `/films/<film>/scenes`, linked from the lab) and
+// (a film's scenes page, `/films/<film>/scenes`, the Scenes tab) and
 // `film lookbook` asks an export page for the same sheet
 // (`ExportHandle.lookbook`) and writes it to
 // `out/<film>/film/<variant>/lookbook.jpg`. A still's click opens its scene in
@@ -231,20 +231,24 @@ export const stillHref = (
 /**
  * A film's scenes page (`/films/<film>/scenes`): the look-book sheet,
  * composed live from the code as it is now; a still opens that frame
- * (`stillHref`).
+ * (`stillHref`). It fills `into`, the page's body under the studio's shell,
+ * whose page bar is the way to the film's other parts.
  */
-export const mountLookbook = (film: Film, name: string, captions: boolean, host: Host): void => {
+export const mountLookbook = (
+  film: Film,
+  name: string,
+  captions: boolean,
+  host: Host,
+  into: HTMLElement,
+): void => {
   document.body.classList.add('lookbook');
-  const bar = document.createElement('header');
+  const bar = document.createElement('p');
   bar.className = 'lookbook-bar';
-  const short = isShortKey(name);
-  const back = short ? pageHref.play(name) : pageHref.lab(name);
-  bar.innerHTML = `<strong>Look-book</strong> <span class="lookbook-status">composing…</span>
-    <a href="${back}">back to the ${short ? 'short' : 'lab'}</a>`;
+  bar.innerHTML = `<span class="lookbook-status">composing…</span>`;
   const status = bar.querySelector<HTMLSpanElement>('.lookbook-status');
   const sheet = document.createElement('div');
   sheet.className = 'lookbook-sheet';
-  document.body.replaceChildren(bar, sheet);
+  into.replaceChildren(bar, sheet);
   const say = (text: string) => {
     if (status !== null) status.textContent = text;
   };

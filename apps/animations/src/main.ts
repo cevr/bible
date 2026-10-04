@@ -1,7 +1,8 @@
-// The browser entry: the film player over this app's pages (its films and
+// The render page's entry (`index.html`, `?film=<name>&export`): the film
+// with no chrome, for the renderer, over this app's pages (its films and
 // their shorts).
 
-import { mountPlayer } from '@bible/film/player';
+import { mountRender } from '@bible/film/player';
 import { pages } from './films/index.ts';
 
-mountPlayer(pages);
+mountRender(pages);

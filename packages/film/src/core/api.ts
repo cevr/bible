@@ -35,6 +35,7 @@ import {
   HttpApiSchema,
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
+import { isShortKey } from './shorts.ts';
 import { Project, RenderVariantName } from './catalogue.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
@@ -895,6 +896,13 @@ export const PART_TITLE: Readonly<Record<Part, string>> = {
   project: 'Project',
   play: 'Play',
 };
+
+/**
+ * Whether `film` has `part`: a film has every part; a short (`<film>/shorts/<id>`)
+ * is only played and seen as scenes, with no lab, choices or project of its own.
+ */
+export const hasPart = (film: string, part: Part): boolean =>
+  !isShortKey(film) || part === 'films' || part === 'scenes' || part === 'play';
 
 /** The page of `part` on `film`, at its defaults (Films names no film). */
 export const partHref = (part: Part, film: string): string =>

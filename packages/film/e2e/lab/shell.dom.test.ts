@@ -1,5 +1,5 @@
 // The lab's shell in a browser: the real lab page over the probe film. The
-// panel, its header and the film's links are in place; the lab's place is
+// panel and its header are in place in the studio's shell; the lab's place is
 // its URL (the scene under the playhead in the path, the time in that scene,
 // a pick Back undoes); every pinned layer sits exactly over the film canvas
 // and follows it as the window resizes; the strip's slot sits right under
@@ -8,6 +8,7 @@
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
+import { timecode } from '../../src/core/time.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import { URL_T, labAt, openLab } from '../../src/lab/fixtures/harness.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
@@ -49,14 +50,34 @@ const T = URL_T;
 
 describe('the lab shell', () => {
   it.live(
-    "mounts the panel with its header and the film's project, choices and look-book links",
+    "mounts the panel with its header in the studio's shell, whose page bar leads to the film's other parts",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openLab();
         yield* textHas(page, '.lab-panel header', 'Lab');
-        yield* attributeIs(page, '[data-link="project"]', 'href', pageHref.project(PROBE));
-        yield* attributeIs(page, '[data-link="choices"]', 'href', pageHref.choices(PROBE));
-        yield* attributeIs(page, '[data-link="lookbook"]', 'href', pageHref.scenes(PROBE));
+        yield* attributeIs(page, '.sh-pagebar [data-page="lab"]', 'data-active', 'true');
+        yield* attributeIs(
+          page,
+          '.sh-pagebar [data-page="project"]',
+          'href',
+          pageHref.project(PROBE),
+        );
+        yield* attributeIs(
+          page,
+          '.sh-pagebar [data-page="choices"]',
+          'href',
+          pageHref.choices(PROBE),
+        );
+        yield* attributeIs(
+          page,
+          '.sh-pagebar [data-page="scenes"]',
+          'href',
+          pageHref.scenes(PROBE),
+        );
+        // No text link to another part: the page bar is the way.
+        yield* evaluates(page, "document.querySelectorAll('.lab-panel a[href]').length", 0);
+        // The header's timecode is the playhead's.
+        yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(0));
         yield* evaluates(page, "document.body.classList.contains('lab')", true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -123,11 +144,11 @@ describe('the lab shell', () => {
       yield* evaluates(page, `Math.abs(${T} - ${first + 10 / 30}) < 0.002`, true);
       yield* page.back;
       yield* evaluates(page, 'location.search', '?cue=rise');
-      yield* textHas(page, '.bar .time', `${first.toFixed(2)} /`);
+      yield* textHas(page, '.bar .time', `${timecode(first)} /`);
       // Past the time's throttle, nothing has written the later frame over it.
       yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
       yield* evaluates(page, `Math.abs(${T} - ${first}) < 0.002`, true);
-      yield* textHas(page, '.bar .time', `${first.toFixed(2)} /`);
+      yield* textHas(page, '.bar .time', `${timecode(first)} /`);
     }).pipe(Effect.scoped),
   );
 

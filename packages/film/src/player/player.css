@@ -208,14 +208,22 @@ body.export .stage canvas {
 }
 
 /* ── The lab (`/films/<film>/lab`): notes on frames. ─────────────────────────── */
+/* The studio's header across the top, the picture and its transport under it, the inspector at the side. */
 body.lab {
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 1fr) var(--inspector-w);
+  grid-template-rows: auto minmax(0, 1fr) auto;
 }
-/* The lab's own wrappers: the Solid root, its pinned layers and its panel sections lay out as their children. */
+/* The lab's own wrappers (the Solid root, the studio's shell and its body, its pinned layers and its panel sections) lay out as their children. */
 .lab-root,
+body.lab .sh,
+body.lab .sh-body,
 .lab-layers,
 .lab-notes-box {
   display: contents;
+}
+body.lab .sh-header {
+  grid-column: 1 / -1;
+  grid-row: 1;
 }
 body.lab .stage,
 body.lab .bar {
@@ -223,8 +231,18 @@ body.lab .bar {
   /* A grid item may not grow past its column: the long narration line clips instead. */
   min-width: 0;
 }
+body.lab .stage {
+  grid-row: 2;
+}
 body.lab .bar {
+  grid-row: 3;
   grid-template-columns: minmax(0, 1fr);
+}
+/* The phone: the page clears the shell's tab bar along the bottom. */
+@media (max-width: 899px) {
+  body.lab {
+    padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  }
 }
 /*
  * The stage's one cell is as tall as its row, not as its content: the
@@ -236,7 +254,7 @@ body.lab .stage {
 }
 .lab-panel {
   grid-column: 2;
-  grid-row: 1 / span 2;
+  grid-row: 2 / span 2;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -722,28 +740,35 @@ body.lab .stage {
   stroke-width: 6px;
 }
 
+/* A film's Play page (`/films/<film>/play`): the shell as tall as the window, the picture filling it over the transport. */
+body.play .sh {
+  height: 100dvh;
+}
+body.play .sh-body {
+  display: grid;
+  min-height: 0;
+}
+.play-body {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  min-height: 0;
+  min-width: 0;
+}
+.play-body .stage {
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+}
+
 /* The look-book: a film's scenes page (`/films/<film>/scenes`). */
 body.lookbook {
   display: block;
   height: auto;
 }
 .lookbook-bar {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  display: flex;
-  gap: 16px;
-  align-items: baseline;
-  padding: 10px 16px;
-  background: var(--panel);
-  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  margin: 0;
+  padding: 10px 16px 0;
 }
 .lookbook-status {
   color: var(--muted);
-}
-.lookbook-bar a {
-  margin-left: auto;
-  color: var(--accent);
 }
 .lookbook-sheet {
   padding: 16px;
@@ -753,10 +778,6 @@ body.lookbook {
   width: 100%;
   height: auto;
   cursor: pointer;
-}
-.lab-link {
-  color: var(--accent);
-  font-size: 12px;
 }
 
 /* The studio: record the voiceover beat by beat. */
