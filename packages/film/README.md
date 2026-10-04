@@ -785,6 +785,67 @@ before the socket closes. An attempt plays back through `serveFile`, by byte
 ranges, as a phone's Safari asks. The lab's **Studio** section records
 through these routes (below).
 
+### Commands and keys
+
+Every action a page offers past its at-rest buttons is a **command**
+(`src/command/command.ts`): an `id`, a `label` (or `labelIn` the context), a
+`group`, a typed `when` over the **context** and a `run` that answers an
+`Effect<Receipt>`. A command that is not available is not shown: no dimmed
+rows. Each command names its keys (`keys`, `keysIn` the focus scopes it
+answers in: `page`, `field`, `studio`), whether a key is `stepped` (Shift
+coarse, Alt fine), and its `touch` path, so every key has a way in on a
+phone. The context (`src/command/context.ts`) is the page, its URL's
+selection (`selectionOf`: one `Selection` union over the places' query keys,
+`src/command/selection.ts`), what has focus, and what each section adds
+(`refine`: the player's `playing`).
+
+One **hub** per page (`makeHub`, `src/command/hub.ts`, built at each page's
+root: the player, the lab, the review) holds the registry, the context and
+the **keymap**, and listens once through `Keys` (`browser/keys.ts`). A press
+already handled, or inside an IME composition, is never read. The press's
+focus picks the scopes: a field (an input, a select, a player, an open
+dialog or menu) reads only commands that answer there, the Studio reads its
+own keys first and owns them (a Studio key never reaches the page), and
+anywhere else is the page. The last available command bound to a chord
+runs; a key with no available command passes to the browser (⌘Z with
+nothing to undo). Chords are written `mod+shift+z` (`mod` is ⌘ on a Mac,
+Ctrl elsewhere); a letter is read by its key in any case, Alt+letter by its
+physical key, and a symbol by the character it types, so `?` and `]` work on
+any layout. A viewer's rebindings are kept locally (`film-keymap` in
+`ViewerStore`, a list of `{ key, command }`, `-<id>` removing a default) and
+survive a reload; the `?` sheet changes and resets them.
+
+The lab's and the review's pages host two generated surfaces
+(`src/lab/command/`): the **command menu** (⌘K) lists the commands
+available here, filtered by every word typed, with their keys; the keys
+**sheet** (`?`) lists every command by group with its keys, its touch path,
+and Change and Reset. Their look is one set of CSS custom properties
+(`COMMAND_TOKENS` in `src/lab/command/style.ts`, today's values read from
+each page's palette); the rules read only those. The player's keys legend
+under the film is generated from the same keymap.
+
+`.oxlintrc.json` refuses a raw `keydown`, `keyup`, `keypress` or
+`contextmenu` listener (`film/keys-through-keymap`) outside the adapters and
+`src/lab/command/`: a key is a binding in the hub.
+
+**Terms**, as editing software uses them:
+
+- **Transport**: the play, pause, frame and scene controls, and their keys
+  (Space, ←/→ a frame, Shift ten, `[` `]` a scene; `player/transport.ts`).
+- **HUD**: the readout laid over or beside the picture: the player's bar
+  (scene, time, the keys legend).
+- **Inspector**: the panel that shows and edits the selected thing's fields
+  (the editor's section for a cue).
+- **Command menu**: the searchable list of every available command (⌘K).
+- **Context menu**: the commands for what is under the pointer, opened by a
+  right-click or a touch long-press.
+- **Sheet**: a panel over the page that holds a surface (the keys sheet),
+  not one fixed in the layout.
+- **Nudge**: moving a value by its step with a key (a frame; ten with Shift).
+- **In/out points**: the start and end of a range (Motion's A and B).
+- **Receipt**: what a command answers when it runs: what moved, before →
+  after, and Undo where it can be undone.
+
 ### The HTTP API
 
 The lab's routes (the review's among them) are declared once, as one Effect
@@ -931,11 +992,13 @@ ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and 
   the browser cached.
 - **Keys**, only while focus is in the Studio: R record (and retake), Space
   stop, K submit (or accept anyway), ←/→ the previous or next beat (at rest
-  or after a refusal, never mid-take), Esc cancel, discard or back. There
-  they are the Studio's alone, so the lab's own keys (Space play, ←/→ frame,
-  `[` `]` scene, `c` captions, `n` note, Esc, ⌘Z/⇧⌘Z) never fire from it;
-  with focus anywhere else the lab's keys work as before. Keys with ⌘, Ctrl
-  or Alt pass through, and a focused picker or player keeps its own keys.
+  or after a refusal, never mid-take), Esc cancel, discard or back: the
+  `studio.*` commands (`studio/commands.ts`), bound in the `studio` scope
+  (Commands and keys, above). There they are the Studio's alone, so the
+  lab's own keys (Space play, ←/→ frame, `[` `]` scene, `c` captions, `n`
+  note, Esc, ⌘Z/⇧⌘Z) never fire from it; with focus anywhere else the lab's
+  keys work as before. A key with a modifier is another chord and passes
+  through, and a focused picker or player keeps its own keys.
 
 The provider (`context.tsx`) builds the Studio's own runtime (the stage, the
 studio's routes, the capture), so the shell knows nothing of it, and hands
@@ -1938,7 +2001,7 @@ A shot can be a moving painting rather than a cutout: plates at depth in a
 
 `src/core` never touches the DOM at runtime (type-only DOM references are
 fine) and never imports from `canvas`, `player` or `tools`. Bun scripts,
-tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools`, `lab` or `browser`, `canvas` no `player`, `tools`, `lab` or `browser`, `player` no `tools` or `lab`, and `browser` (the host's adapters) no `player`, `tools` or `lab`.
+tests and the browser all read it; `tools` is Bun-only. `canvas` may import `core`; `player` may import both. `.oxlintrc.json` holds the import direction with `no-restricted-imports`: `core` imports no `canvas`, `player`, `tools`, `lab` or `browser`, `canvas` no `player`, `tools`, `lab` or `browser`, `player` no `tools` or `lab`, `browser` (the host's adapters) no `player`, `tools` or `lab`, and `command` (the commands, the keymap and the selection, shared by the player and the lab) no `player`, `tools` or `lab`.
 
 **The host** (`src/browser/`): every browser API a page reaches goes through
 an Effect service there, each with its live adapter (`*-browser.ts`) and a
@@ -1955,11 +2018,11 @@ in memory when the page may not use its storage. Every drag (the
 player's track, the strip's scrub and its cue bars, a knob's handle, the
 wipe's divider, a note's mark) follows its press through `Pointer.drag`
 (`browser/pointer.ts`), which ends it once: lifted, or ended by the browser
-(`pointercancel`, `lostpointercapture`). Every key listener (the player's, the
-notes' `n` and Escape, the editor's undo and Escape, the review's players and
-its lightbox) goes through `Keys.listen` (`browser/keys.ts`), with one answer
-to whether a press is typing: into an input, a textarea, a select or editable
-text. Every animation frame (the player's play loop, the review's synced loop,
+(`pointercancel`, `lostpointercapture`). Every key goes through one listener
+per page, the hub's (Commands and keys, above), over `Keys.listen`
+(`browser/keys.ts`), which hands each press with its key, its physical code
+and its target, and drops one already handled or still composing. Every
+animation frame (the player's play loop, the review's synced loop,
 the compare and onion paints) goes through `Frames` (`browser/frames.ts`):
 `loop` steps inside each frame's own callback, `coalesce` paints once a
 frame. Every time read goes through Effect's `Clock` on the host

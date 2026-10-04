@@ -20,7 +20,7 @@ import {
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
-import type { LabSelection } from '../command/selection.ts';
+import type { LabSelection } from '../../command/selection.ts';
 import { labHref } from '../place.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
 import { type Request, type Response, type Tab, jsonOf } from './tab.ts';

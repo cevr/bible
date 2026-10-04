@@ -16,7 +16,7 @@ import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createEffect, createMemo, createSignal, useContext } from 'solid-js';
 import type { LoopRange } from '../../player/main.ts';
 import type { LabView } from '../view-state.ts';
-import type { LabSelection } from '../command/selection.ts';
+import type { LabSelection } from '../../command/selection.ts';
 import { useLab } from '../shell.tsx';
 import {
   type LoopActor,

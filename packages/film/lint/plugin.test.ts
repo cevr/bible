@@ -77,6 +77,10 @@ const MESSAGES = {
     "window.addEventListener('popstate') hears the host directly: use @bible/url-state's Location.",
   'host-events-through-adapter.ts:13 film/host-events-through-adapter':
     "self.addEventListener('pointercancel') hears the host directly: use Pointer.drag (packages/film/src/browser/pointer.ts).",
+  'keys-through-keymap.tsx:10 film/keys-through-keymap':
+    'a JSX handler hears keydown on its own: declare a command with its keys (packages/film/src/command/command.ts), registered with the page hub.',
+  'keys-through-keymap.tsx:18 film/keys-through-keymap':
+    'addEventListener hears contextmenu on its own: open a context menu through @bible/ui ContextMenu over the selection’s commands (packages/film/src/lab/command/).',
   'framing-is-a-knob.ts:9 film/framing-is-a-knob':
     'a framing written in the scene: make it knobs (a point and a zoom, read with knobCamera), a move between framings a shotPath of them, and a push that keeps going pushOn with a number knob, so the lab can reach it.',
   'no-history-comment.ts:4 film/no-history-comment':
@@ -113,7 +117,7 @@ describe('film oxlint plugin', () => {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const dir = path.join(import.meta.dir, 'fixtures');
-        const files = (yield* fs.readDirectory(dir)).filter((f) => f.endsWith('.ts'));
+        const files = (yield* fs.readDirectory(dir)).filter((f) => /\.tsx?$/.test(f));
         const expected = (yield* Effect.forEach(files, (file) =>
           Effect.map(fs.readFileString(path.join(dir, file)), (source) => marked(file, source)),
         ))

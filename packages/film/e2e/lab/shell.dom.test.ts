@@ -118,9 +118,9 @@ describe('the lab shell', () => {
       const first = Number(yield* page.evaluate(`${T}`));
       yield* page.click('.lab-cue[data-cue="fall"]');
       yield* evaluates(page, 'location.search', '?cue=fall');
-      // The frame moves on in fall's entry; rise's keeps the frame it was left at.
+      // The frame moves on (ten frames with Shift) in fall's entry; rise's keeps the frame it was left at.
       yield* page.press('Shift+ArrowRight');
-      yield* evaluates(page, `Math.abs(${T} - ${first + 1}) < 0.002`, true);
+      yield* evaluates(page, `Math.abs(${T} - ${first + 10 / 30}) < 0.002`, true);
       yield* page.back;
       yield* evaluates(page, 'location.search', '?cue=rise');
       yield* textHas(page, '.bar .time', `${first.toFixed(2)} /`);

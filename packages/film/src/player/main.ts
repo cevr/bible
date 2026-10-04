@@ -18,7 +18,9 @@ import { addressOn, hostOf, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { Frames } from '../browser/frames.ts';
-import { Keys, type KeyPress } from '../browser/keys.ts';
+import { ViewerStore } from '../browser/storage-browser.ts';
+import { type Hub, makeHub } from '../command/hub.ts';
+import { chordLabel } from '../command/keymap.ts';
 import { Pointer } from '../browser/pointer.ts';
 import { composeContact } from './contact.ts';
 import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
@@ -28,6 +30,7 @@ import { narration, narrationNote } from './narration.ts';
 import { onTheMs, tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
 import { lookFrames } from './look-frames.ts';
+import { transportCommands } from './transport.ts';
 
 /** The longest `#t=` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
@@ -207,7 +210,10 @@ export const mountPlayer = (films: Films): void => {
       return;
     }
     if (lookbook) return mountLookbook(film, name, captions.on, host);
-    mountPreview(staged, host, playTime(name, host));
+    // The preview's page has its own commands: the transport, and its keys.
+    const hub = Effect.runSyncWith(host)(makeHub('player', address.href, ViewerStore));
+    Effect.runForkWith(host)(hub.listen);
+    mountPreview(staged, host, playTime(name, host), hub);
   };
 
   main().catch((e: unknown) => {
@@ -294,11 +300,16 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
   };
 };
 
-/** The scrubbable preview of a staged film: its bar and timeline, its clock, its keys. */
+/**
+ * The scrubbable preview of a staged film: its bar and timeline, its clock,
+ * and its transport, registered as commands with the page's `hub` (whose
+ * keymap binds their keys; the bar's legend says the keys bound now).
+ */
 export const mountPreview = (
   { film, canvas, ctx, captions }: Staged,
   host: Host,
   time: TimeInUrl,
+  hub: Hub,
 ): Player => {
   const bar = document.createElement('div');
   bar.className = 'bar';
@@ -312,7 +323,7 @@ export const mountPreview = (
     </div>
     <div class="track"><div class="head"></div></div>
     <div class="tip" hidden></div>
-    <div class="keys">space play · ←/→ frame (shift: 1s) · [ ] scene · c captions · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover for the name)</div>`;
+    <div class="keys"><span class="bound"></span> · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover for the name)</div>`;
   document.body.append(bar);
   const q = <T extends Element>(sel: string) => required<T>(bar, sel);
   const track = q<HTMLDivElement>('.track');
@@ -491,24 +502,43 @@ export const mountPreview = (
     draw();
   });
   canvas.addEventListener('click', toggle);
-  // Typing in a field (the lab's note composer, the microphone picker) is not a player key.
-  const playerKey = (e: KeyPress): boolean => {
-    if (e.typing) return false;
-    const step = e.shift ? 1 : 1 / film.fps;
-    const cur = film.sceneAt(T);
-    if (e.key === ' ') toggle();
-    else if (e.key === 'ArrowRight') seek(T + step);
-    else if (e.key === 'ArrowLeft') seek(T - step);
-    else if (e.key === ']') seek((film.placed[cur.index + 1] ?? cur).start);
-    else if (e.key === '[')
-      seek(T - cur.start > 0.5 ? cur.start : (film.placed[cur.index - 1] ?? cur).start);
-    else if (e.key === 'c') {
-      captions.on = !captions.on;
-      draw();
-    } else return false;
-    return true;
+  // The transport, as the page's commands: its keys are the page's keymap's.
+  hub.commands.register(
+    ...transportCommands({
+      toggle,
+      stepFrames: (frames) => seek(T + frames / film.fps),
+      nextScene: () => {
+        const cur = film.sceneAt(T);
+        seek((film.placed[cur.index + 1] ?? cur).start);
+      },
+      previousScene: () => {
+        const cur = film.sceneAt(T);
+        seek(T - cur.start > 0.5 ? cur.start : (film.placed[cur.index - 1] ?? cur).start);
+      },
+      toggleCaptions: () => {
+        captions.on = !captions.on;
+        draw();
+      },
+    }),
+  );
+  hub.refine((now) => ({ ...now, playing }));
+  // The legend says the keys bound now: a rebound key reads as rebound.
+  const bound = q<HTMLSpanElement>('.bound');
+  const keyOf = (id: string) =>
+    hub
+      .keysOf(id)
+      .slice(0, 1)
+      .map((k) => chordLabel(k, hub.mac))[0] ?? '—';
+  const legend = () => {
+    bound.textContent = [
+      `${keyOf('play.toggle')} play`,
+      `${keyOf('play.frame-previous')}/${keyOf('play.frame-next')} frame (shift: 10)`,
+      `${keyOf('play.scene-previous')} ${keyOf('play.scene-next')} scene`,
+      `${keyOf('view.captions')} captions`,
+    ].join(' · ');
   };
-  Effect.runForkWith(host)(Keys.use((keys) => keys.listen(playerKey)));
+  legend();
+  hub.subscribe(legend);
   draw();
   return {
     film,

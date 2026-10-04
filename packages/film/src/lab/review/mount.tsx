@@ -16,8 +16,13 @@ import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, QualityToggle, SetPage } from './section.tsx';
 import { REVIEW_CSS } from './style.ts';
 import { pageHref } from '../../core/api.ts';
-import { type Host, hostOf } from '../../browser/host.ts';
+import { type Host, addressOn, hostOf } from '../../browser/host.ts';
 import { BrowserHost } from '../../browser/host-browser.ts';
+import { ViewerStore } from '../../browser/storage-browser.ts';
+import { type Hub, makeHub } from '../../command/hub.ts';
+import { CommandMenu } from '../command/command-menu.tsx';
+import { KeysSheet } from '../command/keys-sheet.tsx';
+import { COMMAND_CSS } from '../command/style.ts';
 
 /** The trail to `place`: each step's title, and where it goes (none for the page itself). */
 interface Crumb {
@@ -147,28 +152,37 @@ const Lightbox = () => {
   );
 };
 
-/** The review: its header, the page it is on, and the lightbox. */
-const ReviewPage = (props: { readonly host: Host }) => (
-  <Root host={props.host}>
+/** The review: its header, the page it is on, the lightbox, ⌘K and the `?` sheet. */
+const ReviewPage = (props: { readonly host: Host; readonly hub: Hub }) => (
+  <Root host={props.host} hub={props.hub}>
     <Header />
     <Page />
     <Lightbox />
+    <CommandMenu hub={props.hub} />
+    <KeysSheet hub={props.hub} />
   </Root>
 );
 
-/** Mount the review into the page, with its styles, over the page's host (`browser/host.ts`). */
+/**
+ * Mount the review into the page, with its styles, over the page's host
+ * (`browser/host.ts`), with its commands and their one key listener
+ * (`command/hub.ts`).
+ */
 export const mountReview = (): void => {
   const host = hostOf(BrowserHost.layer);
   Effect.runSyncWith(host)(
     Effect.gen(function* () {
       const style = document.createElement('style');
-      style.textContent = REVIEW_CSS;
+      style.textContent = `${REVIEW_CSS}${COMMAND_CSS}`;
       document.head.append(style);
       document.body.classList.add('rv');
+      const address = addressOn(host);
+      const hub = yield* makeHub('review', address.href, ViewerStore);
+      yield* Effect.forkDetach(hub.listen);
       const root = document.createElement('div');
       root.className = 'rv-root';
       document.body.append(root);
-      render(() => <ReviewPage host={host} />, root);
+      render(() => <ReviewPage host={host} hub={hub} />, root);
       const { href } = yield* Location.use((bar) => bar.current);
       yield* Effect.logInfo(`review.mounted href=${href}`);
     }),

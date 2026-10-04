@@ -11,7 +11,7 @@ import { type Placed, sceneOf } from '../../core/layout.ts';
 import { EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
 import { DEFAULT_EASE, toMs } from '../../core/time.ts';
 import { patchSpan, untilText } from '../../core/timeline.ts';
-import type { LabSelection } from '../command/selection.ts';
+import type { LabSelection } from '../../command/selection.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY } from './format.ts';

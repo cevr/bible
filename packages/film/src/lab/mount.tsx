@@ -12,6 +12,9 @@ import { type Host, addressOn, hostOf } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
 import type { TimeInUrl } from '../player/t-in-url.ts';
+import { ViewerStore } from '../browser/storage-browser.ts';
+import { type Hub, makeHub } from '../command/hub.ts';
+import { COMMAND_CSS } from './command/style.ts';
 import { labHref, labOpensAt, labPlaceOf } from './place.ts';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
@@ -30,8 +33,9 @@ const LabPage = (props: {
   readonly name: string;
   readonly player: Player;
   readonly host: Host;
+  readonly hub: Hub;
 }) => (
-  <Lab.Root name={props.name} player={props.player} host={props.host}>
+  <Lab.Root name={props.name} player={props.player} host={props.host} hub={props.hub}>
     <Editor.Provider>
       <Motion.Provider>
         <Compare.Provider>
@@ -87,8 +91,7 @@ const labTime = (name: string, film: Film, host: Host): TimeInUrl => {
 };
 
 const start = Effect.fn('lab.start')(
-  function* (films: Films) {
-    const host = hostOf(BrowserHost.layer);
+  function* (films: Films, host: Host) {
     const address = addressOn(host);
     // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
     Option.map(legacyPlace(address.href()), address.replace);
@@ -96,11 +99,17 @@ const start = Effect.fn('lab.start')(
       try: () => stageFilm(films, address.href()),
       catch: (cause) => LabStartFailed.make({ reason: String(cause) }),
     });
-    const player = mountPreview(staged, host, labTime(staged.name, staged.film, host));
+    // The page's commands and its one key listener: the player's transport and every tool's verbs.
+    const hub = yield* makeHub('lab', address.href, ViewerStore);
+    yield* Effect.forkDetach(hub.listen);
+    const player = mountPreview(staged, host, labTime(staged.name, staged.film, host), hub);
+    const style = document.createElement('style');
+    style.textContent = COMMAND_CSS;
+    document.head.append(style);
     const root = document.createElement('div');
     root.className = 'lab-root';
     document.body.append(root);
-    render(() => <LabPage name={staged.name} player={player} host={host} />, root);
+    render(() => <LabPage name={staged.name} player={player} host={host} hub={hub} />, root);
     yield* Effect.logInfo(`lab.mounted film=${staged.name}`);
   },
   Effect.catchTag('LabStartFailed', (e) => Effect.sync(() => showFailure(e.reason))),
@@ -108,5 +117,6 @@ const start = Effect.fn('lab.start')(
 
 /** Mount the lab for `films` into the page, on the film its path names (`/films/<film>/lab…`). */
 export const mountLab = (films: Films): void => {
-  Effect.runFork(start(films));
+  const host = hostOf(BrowserHost.layer);
+  Effect.runForkWith(host)(start(films, host));
 };

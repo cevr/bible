@@ -11,7 +11,7 @@
 
 import { Place } from '@bible/url-state';
 import { Equal, Match, Option, Schema } from 'effect';
-import { Places, pageHref } from '../../core/api.ts';
+import { Places, pageHref } from '../core/api.ts';
 
 /** One selected thing. */
 export const Selection = Schema.TaggedUnion({
@@ -39,6 +39,9 @@ export const Selection = Schema.TaggedUnion({
   Beat: { beat: Schema.String },
 });
 export type Selection = typeof Selection.Type;
+
+/** A selection's kind: its tag. */
+export type SelectionTag = Selection['_tag'];
 
 /** What the lab's URL selects in a scene: a cue or a knob. */
 export type LabSelection = typeof Selection.cases.Cue.Type | typeof Selection.cases.Knob.Type;

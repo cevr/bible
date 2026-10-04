@@ -1,0 +1,125 @@
+import { describe, expect, test } from 'bun:test';
+import { Effect, Option } from 'effect';
+import { hostOf } from '../browser/host.ts';
+import { Keys } from '../browser/keys.ts';
+import { storeOver } from '../browser/storage.ts';
+import { type Command, type Receipt, quiet, said } from './command.ts';
+import { makeHub } from './hub.ts';
+import { cueOf } from './selection.ts';
+import { pageHref } from '../core/api.ts';
+
+/** A browser storage of the test's own. */
+const memoryStorage = (): Storage => {
+  const kept = new Map<string, string>();
+  return {
+    get length() {
+      return kept.size;
+    },
+    clear: () => kept.clear(),
+    getItem: (k) => Option.getOrNull(Option.fromUndefinedOr(kept.get(k))),
+    key: (i) => Option.getOrNull(Option.fromUndefinedOr([...kept.keys()][i])),
+    removeItem: (k) => {
+      kept.delete(k);
+    },
+    setItem: (k, v) => {
+      kept.set(k, v);
+    },
+  };
+};
+
+/** A page whose presses go to `target`, with a hub over `storage` at `href`. */
+const pageWith = (storage: Storage, href = pageHref.labScene('f', 'one', { cue: 'rise' })) => {
+  const target = new EventTarget();
+  const host = hostOf(Keys.layerOn(target, true));
+  const hub = Effect.runSyncWith(host)(
+    makeHub(
+      'lab',
+      () => href,
+      storeOver(() => storage),
+    ),
+  );
+  const stop = Effect.runCallbackWith(host)(hub.listen);
+  const keydown = (key: string, held: Record<string, boolean> = {}) => {
+    const e = Object.assign(new Event('keydown', { cancelable: true }), { key, ...held });
+    target.dispatchEvent(e);
+    return e.defaultPrevented;
+  };
+  return { hub, stop, keydown };
+};
+
+const counter = (id: string, over: Partial<Command> = {}) => {
+  const ran: Array<string> = [];
+  const command: Command = {
+    id,
+    label: id,
+    group: 'test',
+    when: () => true,
+    run: (_ctx, how) =>
+      Effect.sync(() => {
+        ran.push(how.step);
+        return quiet;
+      }),
+    ...over,
+  };
+  return { command, ran };
+};
+
+describe('the hub', () => {
+  test("is the page's one key listener: a bound press runs its command and is taken", () => {
+    const { hub, stop, keydown } = pageWith(memoryStorage());
+    const frame = counter('play.frame-next', { keys: ['arrowright'], stepped: true });
+    hub.commands.register(frame.command);
+    expect([
+      keydown('ArrowRight'),
+      keydown('ArrowRight', { shiftKey: true }),
+      keydown('q'),
+    ]).toEqual([true, true, false]);
+    expect(frame.ran).toEqual(['normal', 'coarse']);
+    stop();
+    keydown('ArrowRight');
+    expect(frame.ran).toEqual(['normal', 'coarse']);
+  });
+
+  test('a rebound key survives the page: a new hub over the same storage reads it', () => {
+    const storage = memoryStorage();
+    const first = pageWith(storage);
+    const undo = counter('edit.undo', { keys: ['mod+z'] });
+    first.hub.commands.register(undo.command);
+    first.hub.setOverrides([
+      { key: 'mod+z', command: '-edit.undo' },
+      { key: 'u', command: 'edit.undo' },
+    ]);
+    first.stop();
+    const again = pageWith(storage);
+    const undoAgain = counter('edit.undo', { keys: ['mod+z'] });
+    again.hub.commands.register(undoAgain.command);
+    expect(again.hub.keysOf('edit.undo')).toEqual(['u']);
+    expect(again.keydown('z', { metaKey: true })).toBe(false);
+    expect(again.keydown('u')).toBe(true);
+    expect(undoAgain.ran).toEqual(['normal']);
+  });
+
+  test("reads the URL's selection and what the page refines it with; receipts reach their sinks", () => {
+    const { hub } = pageWith(memoryStorage());
+    expect(hub.context().selection).toEqual([cueOf('one', 'rise')]);
+    const stopRefining = hub.refine((ctx) => ({ ...ctx, playing: true }));
+    expect(hub.context().playing).toBe(true);
+    stopRefining();
+    expect(hub.context().playing).toBe(false);
+    const heard: Array<Receipt> = [];
+    hub.receipts((receipt) => heard.push(receipt));
+    hub.commands.register({
+      id: 'x',
+      label: 'x',
+      group: 'test',
+      when: () => true,
+      run: () => Effect.succeed(said('done')),
+    });
+    hub.invokeId('x', { step: 'normal', via: 'menu' });
+    expect(heard).toEqual([said('done')]);
+  });
+
+  test('says how chords read on its keyboard', () => {
+    expect(pageWith(memoryStorage()).hub.mac).toBe(true);
+  });
+});

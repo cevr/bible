@@ -109,6 +109,8 @@ interface StudioActions {
   readonly pick: (device: Option.Option<string>) => void;
   /** A key pressed in the studio: whether it was the studio's (and so done here). */
   readonly press: (key: string) => boolean;
+  /** Whether `key` has something to do in the recorder's state now (`keyOf`, `view.ts`). */
+  readonly canPress: (key: string) => boolean;
   /** Focus came into the studio, or left it. */
   readonly focused: (inside: boolean) => void;
 }
@@ -270,6 +272,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
           return true;
         },
       }),
+    canPress: (key) => Option.exists(keyOf(recorder(), key), (k) => k._tag !== 'None'),
     focused: setFocused,
   };
 

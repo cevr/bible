@@ -40,7 +40,8 @@ import {
   hostLayer,
   onTraverse,
 } from '../../browser/host.ts';
-import { Keys, type KeyPress } from '../../browser/keys.ts';
+import { quiet } from '../../command/command.ts';
+import type { Hub } from '../../command/hub.ts';
 import { LabClient, type LabFailure } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
@@ -69,7 +70,7 @@ import {
   queryOfView,
   viewOf,
 } from './place.ts';
-import { PlayerKey, type SyncDriver, playerKeys, makeSync, playerEvent } from './sync.ts';
+import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
 
 type Loaded<A> = Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>;
 
@@ -105,6 +106,8 @@ interface ReviewMeta {
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
   /** The page's host (`browser/host.ts`): what the page's own effects run with. */
   readonly host: Host;
+  /** The page's commands (`command/hub.ts`): each player registers its transport here while it is mounted. */
+  readonly hub: Hub;
   /** Now, in ms, on the host's `Clock`: what a card's age is counted from. */
   readonly now: () => number;
 }
@@ -173,7 +176,7 @@ const qualityOf = (stored: Option.Option<string>): Quality =>
   );
 
 /** The review page: its runtime, place, index and choices, around `children`. */
-export const Root = (props: ParentProps<{ readonly host: Host }>) => {
+export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub }>) => {
   // One client of the lab's API for the page: the review's and the choices'
   // routes both go through it.
   const runtime = Atom.runtime(
@@ -201,12 +204,23 @@ export const Root = (props: ParentProps<{ readonly host: Host }>) => {
   const address = addressOn(props.host);
 
   const [lightbox, setLightbox] = createSignal(Option.none<string>());
-  // Escape closes the lightbox, and leaves the key to whatever else hears it.
-  const closeOnEscape = (e: KeyPress): boolean => {
-    if (e.key === 'Escape') setLightbox(Option.none());
-    return false;
-  };
-  onCleanup(Effect.runCallbackWith(props.host)(Keys.use((keys) => keys.listen(closeOnEscape))));
+  // Escape closes the lightbox while it is open, from a field too.
+  onCleanup(
+    props.hub.commands.register({
+      id: 'review.close-image',
+      label: 'Close the image',
+      group: 'Review',
+      keys: ['escape'],
+      keysIn: ['page', 'field'],
+      touch: 'tap the image',
+      when: () => Option.isSome(lightbox()),
+      run: () =>
+        Effect.sync(() => {
+          setLightbox(Option.none());
+          return quiet;
+        }),
+    }),
+  );
 
   const Inner = (inner: ParentProps) => {
     // Where the page is: its URL, as the host's `UrlState` leaves it (a
@@ -253,6 +267,7 @@ export const Root = (props: ParentProps<{ readonly host: Host }>) => {
         text,
         runtime,
         host: props.host,
+        hub: props.hub,
         now: () => Effect.runSyncWith(props.host)(Clock.currentTimeMillis),
       },
     };
@@ -390,26 +405,22 @@ const SetBody = (
     ),
   );
 
-  // The moments step on ←/→; the playing views hear the player's keys.
+  // The moments step on ←/→; the playing views take the player's transport.
   onCleanup(
-    Effect.runCallbackWith(meta.host)(
-      playerKeys((key) => {
+    meta.hub.commands.register(
+      ...playerCommands((key) => {
         const name = viewNameOf(view());
         if (name === 'moments')
           return PlayerKey.$match(key, {
-            Toggle: () => false,
+            Toggle: () => Option.none<() => void>(),
             Step: ({ by }) =>
-              Option.match(moments(), {
-                onNone: () => false,
-                onSome: (m) => {
-                  sendView(ViewEvent.MomentStepped({ by, count: m.length }));
-                  return true;
-                },
-              }),
+              Option.map(
+                moments(),
+                (m) => () => sendView(ViewEvent.MomentStepped({ by, count: m.length })),
+              ),
           });
-        if (!playsIn(name)) return false;
-        sendSync(playerEvent(key));
-        return true;
+        if (!playsIn(name)) return Option.none();
+        return Option.some(() => sendSync(playerEvent(key)));
       }),
     ),
   );

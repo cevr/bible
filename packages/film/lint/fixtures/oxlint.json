@@ -15,13 +15,20 @@
     "film/no-point-free-log": "error",
     "film/no-read-once": "error",
     "film/spawn-budget": "error",
-    "film/host-events-through-adapter": "error"
+    "film/host-events-through-adapter": "error",
+    "film/keys-through-keymap": "error"
   },
   "overrides": [
     {
       "files": ["host-events-allowed.ts"],
       "rules": {
         "film/host-events-through-adapter": ["error", { "allow": ["popstate"] }]
+      }
+    },
+    {
+      "files": ["host-events-through-adapter.ts"],
+      "rules": {
+        "film/keys-through-keymap": "off"
       }
     }
   ]

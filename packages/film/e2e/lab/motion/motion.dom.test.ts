@@ -62,6 +62,9 @@ describe('loops', () => {
       yield* holdClock(page);
       yield* click(page, '.lab-motion [data-act="a"]');
       yield* motionSays(page, 'A 1.00');
+      // Three coarse steps of ten frames: a second on, at 30 fps.
+      yield* page.press('Shift+ArrowRight');
+      yield* page.press('Shift+ArrowRight');
       yield* page.press('Shift+ArrowRight');
       yield* click(page, '.lab-motion [data-act="b"]');
       yield* motionSays(page, 'looping A 1.00 – B 2.00');

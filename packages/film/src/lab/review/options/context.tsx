@@ -44,7 +44,7 @@ import { type Asks, type Landed, newestAsked } from '../asked.ts';
 import { useReview } from '../context.tsx';
 import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
 import { type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
-import { type SyncDriver, playerKeys, makeSync, playerEvent } from '../sync.ts';
+import { type SyncDriver, playerCommands, makeSync, playerEvent } from '../sync.ts';
 import { type ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } from './api.ts';
 
 /** The player's clock: the film's render, its own sound muted unless it is the one heard. */
@@ -335,14 +335,10 @@ const FilmBody = (
   onCleanup(driver.stop);
   createEffect(sync, (s) => driver.apply(s));
 
-  // The player's keys, once there is a picture to play.
+  // The player's transport, once there is a picture to play.
   onCleanup(
-    Effect.runCallbackWith(meta.host)(
-      playerKeys((key) => {
-        if (Option.isNone(picture())) return false;
-        send(playerEvent(key));
-        return true;
-      }),
+    meta.hub.commands.register(
+      ...playerCommands((key) => Option.map(picture(), () => () => send(playerEvent(key)))),
     ),
   );
 

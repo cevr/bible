@@ -22,8 +22,8 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
-import type { Host } from '../../browser/host.ts';
-import { Keys, type KeyPress } from '../../browser/keys.ts';
+import { quiet } from '../../command/command.ts';
+import type { Hub } from '../../command/hub.ts';
 import { noteT } from '../../core/notes.ts';
 import type { Note, Point } from '../../core/schema.ts';
 import { NotesApi, reasonOf } from '../api.ts';
@@ -113,16 +113,43 @@ const composingT = (state: ComposerState): Option.Option<number> =>
     Match.orElse((s) => Option.some(s.T)),
   );
 
-/** `n` notes the frame unless a field has the keys; Escape cancels, wherever it is pressed. */
-const useKeys = (host: Host, actions: NotesActions) => {
-  const take = (e: KeyPress): boolean => {
-    if (e.key === 'Escape') actions.cancel();
-    if (e.typing || e.key !== 'n' || e.meta || e.ctrl) return false;
-    actions.noteFrame();
-    return true;
-  };
-  onCleanup(Effect.runCallbackWith(host)(Keys.use((keys) => keys.listen(take))));
-};
+/**
+ * The notes' verbs on the page's hub, for as long as the notes are mounted:
+ * `n` notes the frame unless a field has the keys; Escape cancels the note
+ * being made, wherever it is pressed.
+ */
+const useCommands = (hub: Hub, actions: NotesActions, composing: () => boolean) =>
+  onCleanup(
+    hub.commands.register(
+      {
+        id: 'notes.frame',
+        label: 'Note this frame',
+        group: 'Notes',
+        keys: ['n'],
+        touch: 'the Note frame button in the header',
+        when: () => true,
+        run: () =>
+          Effect.sync(() => {
+            actions.noteFrame();
+            return quiet;
+          }),
+      },
+      {
+        id: 'notes.cancel',
+        label: 'Cancel the note',
+        group: 'Notes',
+        keys: ['escape'],
+        keysIn: ['page', 'field'],
+        touch: "the composer's Cancel button",
+        when: composing,
+        run: () =>
+          Effect.sync(() => {
+            actions.cancel();
+            return quiet;
+          }),
+      },
+    ),
+  );
 
 const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
   const { state: lab, actions: labActions, meta } = useLab();
@@ -214,7 +241,7 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
     },
     write: (w) => writeThread(w),
   };
-  useKeys(meta.host, actions);
+  useCommands(meta.hub, actions, () => composerOpen(composer()));
 
   const value: NotesContextValue = {
     state: {

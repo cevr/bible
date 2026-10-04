@@ -7,13 +7,14 @@
 // one is unmuted. A seek moves every video; a stall pauses them all until
 // each has enough to play on (`Buffering`). A seek or a play it sets going
 // on a video lasts only while that video is attached: replaced, detached or
-// stopped, it ends. The player's keys (space, ←/→)
-// are heard here too, for every page with a synced player.
+// stopped, it ends. The player's transport (space, ←/→) is declared here
+// too, as the page's commands, for every page with a synced player.
 
 import { type Context, Data, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
-import { Keys, type KeyPress } from '../../browser/keys.ts';
 import { Media, type Playable } from '../../browser/media.ts';
+import { type Command, type Invocation, quiet } from '../../command/command.ts';
+import type { Context as CommandContext } from '../../command/context.ts';
 import {
   type SyncEvent,
   SyncEvent as Events,
@@ -205,38 +206,67 @@ export const makeSync = (
   return { attach, detach, apply, stop };
 };
 
-/** What a key press asks of a synced player: play or pause (space), or a step back or on (←/→). */
+/** What a synced player is asked: play or pause, or a step back or on (`by` steps). */
 export type PlayerKey = Data.TaggedEnum<{
   Toggle: {};
   Step: { readonly by: number };
 }>;
 export const PlayerKey = Data.taggedEnum<PlayerKey>();
 
-/** ←/→: a step back or on. */
-const ARROWS = new Map([
-  ['ArrowRight', 1],
-  ['ArrowLeft', -1],
-]);
-
-/** The player's ask in a key press: none for a key typed into a field, held with a modifier, or not the player's. */
-const playerKey = (e: KeyPress): Option.Option<PlayerKey> => {
-  if (e.typing || e.meta || e.ctrl || e.alt) return Option.none();
-  if (e.key === ' ') return Option.some(PlayerKey.Toggle());
-  return Option.map(Option.fromUndefinedOr(ARROWS.get(e.key)), (by) => PlayerKey.Step({ by }));
-};
-
-/** The machine's event for a player key: a toggle, or a step of STEP_S seconds. */
+/** The machine's event for a player's ask: a toggle, or a step of `by` × STEP_S seconds. */
 export const playerEvent = (key: PlayerKey): SyncEvent =>
   PlayerKey.$match(key, {
     Toggle: () => Events.Toggled,
     Step: ({ by }) => Events.Stepped({ by: by * STEP_S }),
   });
 
+/** The steps a ←/→ moves by: one, ten with Shift (the coarse step), one with Alt. */
+const STEPS_BY: Readonly<Record<Invocation['step'], number>> = { normal: 1, coarse: 10, fine: 1 };
+
 /**
- * Hear the page's key presses for a synced player until interrupted: `take`
- * gets each of the player's keys and answers whether it took it (its default
- * is then prevented). The one place the review's players listen to the
- * keyboard.
+ * A synced player's transport as the page's commands: Space plays or
+ * pauses, ← and → step back or on (ten steps with Shift). `heed` says what
+ * the page does with an ask now, or none when it has nothing to do with it
+ * (a page whose view does not play): the command is available only then.
+ * Every page with a synced player registers these while it is mounted.
  */
-export const playerKeys = (take: (key: PlayerKey) => boolean): Effect.Effect<never, never, Keys> =>
-  Keys.use((keys) => keys.listen((press) => Option.exists(playerKey(press), take)));
+export const playerCommands = (
+  heed: (key: PlayerKey) => Option.Option<() => void>,
+): ReadonlyArray<Command> => {
+  const asked = (key: (how: Invocation) => PlayerKey) => ({
+    when: () => Option.isSome(heed(key({ step: 'normal', via: 'key' }))),
+    run: (_ctx: CommandContext, how: Invocation) =>
+      Effect.sync(() => {
+        Option.map(heed(key(how)), (act) => act());
+        return quiet;
+      }),
+  });
+  return [
+    {
+      id: 'review.play',
+      label: 'Play or pause',
+      group: 'Player',
+      keys: ['space'],
+      touch: 'the play button',
+      ...asked(() => PlayerKey.Toggle()),
+    },
+    {
+      id: 'review.step-next',
+      label: 'Step on',
+      group: 'Player',
+      keys: ['arrowright'],
+      stepped: true,
+      touch: 'drag the time line',
+      ...asked((how) => PlayerKey.Step({ by: STEPS_BY[how.step] })),
+    },
+    {
+      id: 'review.step-previous',
+      label: 'Step back',
+      group: 'Player',
+      keys: ['arrowleft'],
+      stepped: true,
+      touch: 'drag the time line',
+      ...asked((how) => PlayerKey.Step({ by: -STEPS_BY[how.step] })),
+    },
+  ];
+};

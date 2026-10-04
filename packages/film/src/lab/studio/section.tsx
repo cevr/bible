@@ -5,16 +5,18 @@
 // earlier attempts to hear and keep. Every piece reads the studio's context.
 //
 // The studio's keys (R record, Space stop, K submit or accept, ←/→ beat,
-// Esc cancel) work only while focus is in the section; there they are the
-// studio's alone, so the lab's own (Space play, ←/→ frame, [ ] scene,
-// c captions, n note, Esc, ⌘Z) never fire from here. Keys with ⌘, Ctrl or
-// Alt pass through; a focused picker or player keeps its own keys.
+// Esc cancel) are commands on the page's hub that run only while focus is
+// in the section (`commands.ts`); there they are the studio's alone, so the
+// lab's keys bound to the same chords (Space play, ←/→ frame, Esc) never
+// fire from here, while its others ([ ] scene, c captions, n note, ⌘Z) do.
+// A focused picker or player keeps its own keys.
 
 import { For, Show } from '@solidjs/web';
-import { type Accessor, createEffect, onSettled } from 'solid-js';
+import { type Accessor, createEffect, onCleanup, onSettled } from 'solid-js';
 import { Option } from 'effect';
 import type { Part } from '../../core/sheet.ts';
-import { Lab } from '../shell.tsx';
+import { Lab, useLab } from '../shell.tsx';
+import { studioCommands } from './commands.ts';
 import { type AttemptRow, useStudio } from './context.tsx';
 import { beatBadge } from './view.ts';
 
@@ -209,12 +211,6 @@ const Attempts = () => {
   );
 };
 
-/** Whether a focused element keeps its own keys (a picker, a player, a field). */
-const ownsKeys = (target: EventTarget) =>
-  target instanceof HTMLSelectElement ||
-  target instanceof HTMLMediaElement ||
-  target instanceof HTMLInputElement;
-
 /** Focus moved to the section leaves the page where it is (a click lands where it was aimed). */
 const STAY: FocusOptions = { preventScroll: true };
 
@@ -254,13 +250,8 @@ export const Section = () => {
   onSettled(() => {
     if (state.hadFocus) Option.map(held.root, (r) => r.focus(STAY));
   });
-  const onKey = (e: KeyboardEvent) => {
-    if (e.metaKey || e.ctrlKey || e.altKey) return;
-    if (Option.exists(Option.fromNullishOr(e.target), ownsKeys)) return e.stopPropagation();
-    if (!actions.press(e.key)) return;
-    e.preventDefault();
-    e.stopPropagation();
-  };
+  const { meta } = useLab();
+  onCleanup(meta.hub.commands.register(...studioCommands(actions)));
   const onMouseDown = (e: MouseEvent) => {
     if (!Option.exists(Option.fromNullishOr(e.target), onButton)) return;
     e.preventDefault();
@@ -279,7 +270,6 @@ export const Section = () => {
         ref={(el) => {
           held.root = Option.some(el);
         }}
-        onKeyDown={onKey}
         onMouseDown={onMouseDown}
         onFocusIn={onFocusIn}
         onFocusOut={(e) =>

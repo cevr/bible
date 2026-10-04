@@ -12,7 +12,7 @@ import { Array as Arr, Option } from 'effect';
 import { Places, pageHref } from '../core/api.ts';
 import { type Placed, sceneAt } from '../core/layout.ts';
 import { onTheMs } from '../player/t-in-url.ts';
-import { type LabSelection as Selection, cueOf, knobOf, labKeysOf } from './command/selection.ts';
+import { type LabSelection as Selection, cueOf, knobOf, labKeysOf } from '../command/selection.ts';
 
 /** What the lab's URL holds beside its film. */
 interface LabPlace {

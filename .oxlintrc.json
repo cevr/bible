@@ -468,6 +468,57 @@
       }
     },
     {
+      // The pages' commands (src/command/) serve the player and the lab both.
+      "files": ["**/packages/film/src/command/**/*.ts"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/player/**",
+                  "**/tools/**",
+                  "**/lab/**",
+                  "@bible/film/player",
+                  "@bible/film/player.css",
+                  "@bible/film/tools",
+                  "@bible/film/solid-plugin",
+                  "@bible/film/lab",
+                  "@bible/film/review"
+                ],
+                "message": "the pages' commands never import the player, the tools or the lab: they register their commands with it (packages/film/README.md, the purity rule)."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // A page's keys and context menus are its commands', never a listener of
+      // its own (packages/film/lint/keys-through-keymap.ts). The `Keys` adapter
+      // and the command surfaces (src/lab/command/) are where they are made.
+      "files": [
+        "**/packages/film/src/lab/**/*.ts",
+        "**/packages/film/src/lab/**/*.tsx",
+        "**/packages/film/src/player/**/*.ts",
+        "**/packages/film/src/command/**/*.ts"
+      ],
+      "rules": {
+        "film/keys-through-keymap": "error"
+      }
+    },
+    {
+      "files": [
+        "**/packages/film/src/lab/command/**",
+        "**/packages/film/src/**/fixtures/**",
+        "**/packages/film/src/**/*.test.ts"
+      ],
+      "rules": {
+        "film/keys-through-keymap": "off"
+      }
+    },
+    {
       // The host's adapters serve every page and import none of them.
       "files": ["**/packages/film/src/browser/**/*.ts"],
       "rules": {

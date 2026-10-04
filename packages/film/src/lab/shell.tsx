@@ -28,7 +28,10 @@ import { pageHref } from '../core/api.ts';
 import { TabStore } from '../browser/storage-browser.ts';
 import { type ViewStore, viewStore } from './view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
-import type { LabSelection } from './command/selection.ts';
+import type { Hub } from '../command/hub.ts';
+import type { LabSelection } from '../command/selection.ts';
+import { CommandMenu } from './command/command-menu.tsx';
+import { KeysSheet } from './command/keys-sheet.tsx';
 import { labHref, labPlaceOf } from './place.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
@@ -75,6 +78,12 @@ interface LabMeta {
   readonly clientLayer: Layer.Layer<LabClient>;
   /** The page's host (`browser/host.ts`), built once at the page's root: what a panel's effects run with. */
   readonly host: Host;
+  /**
+   * The page's commands (`command/hub.ts`), built once at the page's root:
+   * each tool registers its verbs here for as long as it is mounted, and the
+   * keymap, ⌘K, the `?` sheet and the context menus read them.
+   */
+  readonly hub: Hub;
 }
 
 interface LabContextValue {
@@ -95,6 +104,7 @@ interface RootProps extends ParentProps {
   readonly name: string;
   readonly player: Player;
   readonly host: Host;
+  readonly hub: Hub;
 }
 
 const Root = (props: RootProps) => {
@@ -191,6 +201,7 @@ const Root = (props: RootProps) => {
         runtime,
         clientLayer,
         host: props.host,
+        hub: props.hub,
       },
     };
     return <LabContext value={value}>{inner.children}</LabContext>;
@@ -200,7 +211,11 @@ const Root = (props: RootProps) => {
   // so they and the time the player writes share one address bar.
   return (
     <RegistryProvider initialValues={[[UrlAtom.services, props.host]]}>
-      <Inner>{props.children}</Inner>
+      <Inner>
+        {props.children}
+        <CommandMenu hub={props.hub} />
+        <KeysSheet hub={props.hub} />
+      </Inner>
     </RegistryProvider>
   );
 };

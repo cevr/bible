@@ -49,6 +49,7 @@ const SWEPT = [
   'packages/film/src/canvas/',
   'packages/film/src/player/',
   'packages/film/src/browser/',
+  'packages/film/src/command/',
   'packages/film/lint/',
 ] as const;
 

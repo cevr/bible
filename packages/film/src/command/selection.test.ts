@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
-import { pageHref } from '../../core/api.ts';
-import { labPlaceOf } from '../place.ts';
+import { Places, pageHref } from '../core/api.ts';
+import { Place } from '@bible/url-state';
 import {
   Selection,
   citeOf,
@@ -48,7 +48,9 @@ describe("a selection in the pages' URLs", () => {
     const rise = citeOf(Cue.make({ scene: 'one', name: 'rise' }), here);
     expect(rise).toBe(pageHref.labScene('f', 'one', { cue: 'rise' }, Option.some(1.5)));
     expect(selectionOf(rise)).toEqual(Option.some(Cue.make({ scene: 'one', name: 'rise' })));
-    expect(labPlaceOf(rise).t).toEqual(Option.some(1.5));
+    expect(Option.map(Place.decode(Places.labScene, rise), (v) => v.hash.t)).toEqual(
+      Option.some(Option.some(1.5)),
+    );
     // Another scene's knob drops this scene's time.
     expect(citeOf(Knob.make({ scene: 'two', name: 'size' }), here)).toBe(
       pageHref.labScene('f', 'two', { knob: 'size' }),

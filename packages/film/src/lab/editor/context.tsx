@@ -7,7 +7,8 @@
 //
 // A grip follows the press that grabbed it (`Pointer.drag`) until the press
 // ends: lifted it lands, ended by the browser it goes back. Escape lets it go
-// while the machine is Pressed or Dragging, and only then.
+// while the machine is Pressed or Dragging, and only then. The editor's verbs
+// (Undo, Redo, that Escape) are commands on the page's hub (`commands.ts`).
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
@@ -18,14 +19,13 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createEffect, createMemo, onCleanup, useContext } from 'solid-js';
-import { Keys, type KeyPress } from '../../browser/keys.ts';
 import { Pointer } from '../../browser/pointer.ts';
 import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import type { DragEdge } from '../../core/timeline.ts';
 import { LabApi, type StepVerb, reasonOf } from '../api.ts';
-import { cueOf, knobOf } from '../command/selection.ts';
+import { cueOf, knobOf } from '../../command/selection.ts';
 import { useLab } from '../shell.tsx';
 import {
   CueGrip,
@@ -37,6 +37,7 @@ import {
   snapTargets,
 } from './grip.ts';
 import { type Handle, knobMode } from './handles.ts';
+import { editorCommands } from './commands.ts';
 import { findingsOf, statusText } from './format.ts';
 import { type EditActor, EditEvent, spawnEditor } from './machine.ts';
 
@@ -252,15 +253,18 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   onCleanup(letGo);
 
   const step = (verb: StepVerb) => send(EditEvent.Step({ verb }));
-  // Escape lets a held grip go; ⌘Z undoes and ⇧⌘Z redoes, outside a field being typed in.
-  const editorKey = (e: KeyPress): boolean => {
-    if (e.key === 'Escape' && holding()) send(EditEvent.Cancel);
-    if (e.typing || !(e.meta || e.ctrl) || e.key.toLowerCase() !== 'z') return false;
-    if (e.shift) step('redo');
-    else step('undo');
-    return true;
-  };
-  onCleanup(Effect.runCallbackWith(meta.host)(Keys.use((keys) => keys.listen(editorKey))));
+  // The editor's verbs on the page's hub: Undo (⌘Z) and Redo (⇧⌘Z) while the
+  // server's stack has a step, and Escape letting a held grip go, from a field too.
+  onCleanup(
+    meta.hub.commands.register(
+      ...editorCommands({
+        undoable: (verb) => Option.flatMap(report(), (r) => Option.fromUndefinedOr(r[verb])),
+        step,
+        holding,
+        cancel: () => send(EditEvent.Cancel),
+      }),
+    ),
+  );
 
   const value: EditorContextValue = {
     state: {
