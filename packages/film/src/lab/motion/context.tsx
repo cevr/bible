@@ -16,7 +16,7 @@ import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createEffect, createMemo, createSignal, useContext } from 'solid-js';
 import type { LoopRange } from '../../player/main.ts';
 import type { LabView } from '../view-state.ts';
-import type { Selection } from '../place.ts';
+import type { LabSelection } from '../command/selection.ts';
 import { useLab } from '../shell.tsx';
 import {
   type LoopActor,
@@ -35,7 +35,7 @@ interface MotionState {
   readonly rate: Accessor<Rate>;
   readonly onion: Accessor<OnionView>;
   /** The cue a loop would play: the one selected, if a cue is. */
-  readonly cue: Accessor<Option.Option<Selection>>;
+  readonly cue: Accessor<Option.Option<LabSelection>>;
   /** What the section says: the loop, and the speed when it mutes the narration. */
   readonly status: Accessor<string>;
 }
@@ -95,7 +95,7 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
   const [onion, setOnionSignal] = createSignal<OnionView>(view.get().onion);
   createEffect(onion, (o) => view.patch({ onion: o }));
 
-  const cue = createMemo(() => Option.filter(lab.selection(), (s) => s.kind === 'cue'));
+  const cue = createMemo(() => Option.filter(lab.selection(), (s) => s._tag === 'Cue'));
   const status = createMemo(() => {
     const r = rate();
     const muted = Option.liftPredicate(`${r}×: narration muted`, () => r !== 1);

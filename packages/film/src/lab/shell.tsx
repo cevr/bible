@@ -28,7 +28,8 @@ import { pageHref } from '../core/api.ts';
 import { TabStore } from '../browser/storage-browser.ts';
 import { type ViewStore, viewStore } from './view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
-import { type Selection, labHref, labPlaceOf } from './place.ts';
+import type { LabSelection } from './command/selection.ts';
+import { labHref, labPlaceOf } from './place.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { type Stage, type StageOps, makeStage, stageLayer } from './stage.ts';
 
@@ -43,7 +44,7 @@ interface LabState {
   /** Counts the edits previewed and put back: a panel that draws the edited timeline or knobs reads it. */
   readonly revision: Accessor<number>;
   /** The cue or knob selected: the URL's (`?cue=`, `?knob=` in the path's scene). */
-  readonly selection: Accessor<Option.Option<Selection>>;
+  readonly selection: Accessor<Option.Option<LabSelection>>;
   /** The note selected: the URL's (`?note=`). */
   readonly note: Accessor<Option.Option<string>>;
 }
@@ -52,7 +53,7 @@ interface LabActions {
   /** Keep `layer` exactly over the film canvas until the returned function is called. */
   readonly pin: (layer: HTMLElement | SVGElement) => () => void;
   /** Select a cue or a knob, or nothing: a new history entry, so Back undoes the pick. */
-  readonly select: (selection: Option.Option<Selection>) => void;
+  readonly select: (selection: Option.Option<LabSelection>) => void;
   /** Select a note, or none: a new history entry, so Back undoes the pick. */
   readonly selectNote: (note: Option.Option<string>) => void;
   /** Drop the note from the URL in place (it is gone from the feed): no entry to come back to. */

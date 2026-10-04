@@ -31,7 +31,7 @@ const useSelected = () => {
   return (scene: string, name: string) =>
     Option.exists(
       state.selection(),
-      (s) => s.kind === 'knob' && s.scene === scene && s.name === name,
+      (s) => s._tag === 'Knob' && s.scene === scene && s.name === name,
     );
 };
 

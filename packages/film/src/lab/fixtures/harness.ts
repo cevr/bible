@@ -20,7 +20,8 @@ import {
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
-import { type Selection, labHref } from '../place.ts';
+import type { LabSelection } from '../command/selection.ts';
+import { labHref } from '../place.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
 import { type Request, type Response, type Tab, jsonOf } from './tab.ts';
 
@@ -31,7 +32,7 @@ const probePlaced = probeFilm().placed;
 
 /** What a lab link picks: a cue or a knob of a scene, and a note. */
 interface LabPick {
-  readonly selection?: Selection;
+  readonly selection?: LabSelection;
   readonly note?: string;
 }
 

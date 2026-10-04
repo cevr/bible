@@ -91,7 +91,7 @@ describe('loops', () => {
       // opens with a cue selected.
       const { page } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor('.lab-motion [data-act="loop-cue"][disabled]');
-      yield* page.goto(labAt(1, { selection: { kind: 'cue', scene: 'one', name: 'rise' } }));
+      yield* page.goto(labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }));
       yield* page.waitFor('.lab-motion [data-act="loop-cue"]:not([disabled])');
       yield* holdClock(page);
       yield* click(page, '.lab-motion [data-act="loop-cue"]');

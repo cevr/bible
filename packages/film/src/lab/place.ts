@@ -8,18 +8,11 @@
 // the frame, the pick and the note they left.
 
 import { Place, parseHref } from '@bible/url-state';
-import { Array as Arr, Option, Schema } from 'effect';
+import { Array as Arr, Option } from 'effect';
 import { Places, pageHref } from '../core/api.ts';
 import { type Placed, sceneAt } from '../core/layout.ts';
 import { onTheMs } from '../player/t-in-url.ts';
-
-/** What the lab has selected: a cue or a knob of a scene. */
-export const Selection = Schema.Struct({
-  kind: Schema.Literals(['cue', 'knob']),
-  scene: Schema.String,
-  name: Schema.String,
-});
-export type Selection = typeof Selection.Type;
+import { type LabSelection as Selection, cueOf, knobOf, labKeysOf } from './command/selection.ts';
 
 /** What the lab's URL holds beside its film. */
 interface LabPlace {
@@ -49,8 +42,8 @@ const selectionIn = (
   query: { readonly cue: string; readonly knob: string },
 ): Option.Option<Selection> =>
   Option.orElse(
-    Option.map(named(query.cue), (name): Selection => ({ kind: 'cue', scene, name })),
-    () => Option.map(named(query.knob), (name): Selection => ({ kind: 'knob', scene, name })),
+    Option.map(named(query.cue), (name) => cueOf(scene, name)),
+    () => Option.map(named(query.knob), (name) => knobOf(scene, name)),
   );
 
 /** The lab's place `href` names; nothing for a page that is not the lab. */
@@ -141,7 +134,7 @@ export const labHref = (
         {
           ...Option.match(pick.selection, {
             onNone: () => ({}),
-            onSome: (s) => ({ [s.kind]: s.name }),
+            onSome: labKeysOf,
           }),
           note,
         },
@@ -152,4 +145,4 @@ export const labHref = (
 
 /** Whether `selection` is the cue `name` of `scene`. */
 export const selectsCue = (selection: Option.Option<Selection>, scene: string, name: string) =>
-  Option.exists(selection, (s) => s.kind === 'cue' && s.scene === scene && s.name === name);
+  Option.exists(selection, (s) => s._tag === 'Cue' && s.scene === scene && s.name === name);

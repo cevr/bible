@@ -24,12 +24,12 @@ describe("the lab's place", () => {
   test('reads the scene, a cue or a knob, the note and the time', () => {
     expect(labPlaceOf('/films/f/lab/b?cue=rise&note=n3#t=1.5')).toEqual({
       scene: Option.some('b'),
-      selection: Option.some({ kind: 'cue', scene: 'b', name: 'rise' }),
+      selection: Option.some({ _tag: 'Cue', scene: 'b', name: 'rise' }),
       note: Option.some('n3'),
       t: Option.some(1.5),
     });
     expect(labPlaceOf('/films/f/lab/a?knob=spot').selection).toEqual(
-      Option.some({ kind: 'knob', scene: 'a', name: 'spot' }),
+      Option.some({ _tag: 'Knob', scene: 'a', name: 'spot' }),
     );
     expect(labPlaceOf('/films/f/lab?note=n1').note).toEqual(Option.some('n1'));
     expect(labPlaceOf('/films/f/play#t=3').scene).toEqual(Option.none());
@@ -42,7 +42,7 @@ describe("the lab's place", () => {
 
   test("a selection keeps its scene in the path, the time signed against that scene's start", () => {
     const pick = {
-      selection: Option.some({ kind: 'cue' as const, scene: 'b', name: 'rise' }),
+      selection: Option.some({ _tag: 'Cue' as const, scene: 'b', name: 'rise' }),
       note: Option.some('n3'),
     };
     const href = labHref('f', placed, pick, 1);
@@ -68,7 +68,7 @@ describe("the lab's place", () => {
   });
 
   test('names a cue only when its scene and name match', () => {
-    const sel = Option.some({ kind: 'cue' as const, scene: 'one', name: 'rise' });
+    const sel = Option.some({ _tag: 'Cue' as const, scene: 'one', name: 'rise' });
     expect(selectsCue(sel, 'one', 'rise')).toBe(true);
     expect(selectsCue(sel, 'two', 'rise')).toBe(false);
     expect(selectsCue(Option.none(), 'one', 'rise')).toBe(false);

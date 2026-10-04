@@ -278,7 +278,7 @@ describe('the inspector', () => {
   it.live('its offset field and its eases write the selected cue', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([], {
-        href: labAt(1, { selection: { kind: 'cue', scene: 'one', name: 'rise' } }),
+        href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }),
       });
       // Enabled once the scene's source has come.
       yield* page.waitFor('.lab-edit-cue input[data-field="offset"]:not([disabled])');

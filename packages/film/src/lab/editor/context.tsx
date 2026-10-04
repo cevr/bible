@@ -25,6 +25,7 @@ import { sceneOf } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import type { DragEdge } from '../../core/timeline.ts';
 import { LabApi, type StepVerb, reasonOf } from '../api.ts';
+import { cueOf, knobOf } from '../command/selection.ts';
 import { useLab } from '../shell.tsx';
 import {
   CueGrip,
@@ -181,7 +182,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
 
   const press = (p: Press) => {
     if (followed()) return;
-    labActions.select(Option.some({ kind: 'cue', scene: p.scene, name: p.cue }));
+    labActions.select(Option.some(cueOf(p.scene, p.cue)));
     const refused = cueRefusal(stripSource().source, stripSource().error, p.cue, p.edge);
     if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
     const placed = Result.getSuccess(sceneOf(film.placed, p.scene));
@@ -215,7 +216,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
 
   const grabKnob = (p: KnobPress) => {
     if (followed()) return;
-    labActions.select(Option.some({ kind: 'knob', scene: p.scene, name: p.knob }));
+    labActions.select(Option.some(knobOf(p.scene, p.knob)));
     const refused = knobRefusal(stripSource().source, stripSource().error, p.knob);
     if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
     const knobs = stage.knobsOf(p.scene);

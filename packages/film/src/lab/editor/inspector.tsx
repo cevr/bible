@@ -11,7 +11,7 @@ import { type Placed, sceneOf } from '../../core/layout.ts';
 import { EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
 import { DEFAULT_EASE, toMs } from '../../core/time.ts';
 import { patchSpan, untilText } from '../../core/timeline.ts';
-import type { Selection } from '../place.ts';
+import type { LabSelection } from '../command/selection.ts';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY } from './format.ts';
@@ -147,7 +147,7 @@ const CueFields = (props: CueFieldsProps) => {
 };
 
 /** The inspector for the selected cue, if a cue of a laid-out scene is selected. */
-const CueInspector = (props: { readonly selection: Selection }) => {
+const CueInspector = (props: { readonly selection: LabSelection }) => {
   const { state: lab, meta } = useLab();
   const found = createMemo(() => {
     lab.revision();
@@ -235,7 +235,7 @@ export const Section = (props: ParentProps) => {
   const { state } = useEditor();
   const file = () =>
     Option.match(state.inspectedSource().source, { onNone: () => '', onSome: (s) => s.file });
-  const cueSelected = () => Option.filter(lab.selection(), (s) => s.kind === 'cue');
+  const cueSelected = () => Option.filter(lab.selection(), (s) => s._tag === 'Cue');
   return (
     <section class="lab-edit">
       <header>
@@ -245,7 +245,7 @@ export const Section = (props: ParentProps) => {
       </header>
       <div class="lab-edit-body">
         <Show when={Option.getOrUndefined(cueSelected())} keyed>
-          {(s: Selection) => <CueInspector selection={s} />}
+          {(s: LabSelection) => <CueInspector selection={s} />}
         </Show>
         {props.children}
       </div>

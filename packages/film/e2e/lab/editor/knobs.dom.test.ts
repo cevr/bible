@@ -58,7 +58,7 @@ describe('the knob rows', () => {
   it.live("a number knob's field writes its value", () =>
     Effect.gen(function* () {
       const { page, asked, errors } = yield* openLab([], {
-        href: labAt(1, { selection: { kind: 'knob', scene: 'one', name: 'size' } }),
+        href: labAt(1, { selection: { _tag: 'Knob', scene: 'one', name: 'size' } }),
       });
       const field = '.lab-knob[data-knob="size"] input';
       yield* page.waitFor(`${field}:not([disabled])`);
@@ -76,7 +76,7 @@ describe('the knob rows', () => {
   it.live('a knob whose value is 0 has its row, and its field writes', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([], {
-        href: labAt(1, { selection: { kind: 'knob', scene: 'one', name: 'tilt' } }),
+        href: labAt(1, { selection: { _tag: 'Knob', scene: 'one', name: 'tilt' } }),
       });
       const field = '.lab-knob[data-knob="tilt"] input';
       yield* page.waitFor(`${field}:not([disabled])`);
