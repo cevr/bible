@@ -1,12 +1,18 @@
-// `bun run test:gent`: the film extension's typecheck and tests, against a
-// local gent checkout. Local only, like `test:perf`: gent is no dependency of
-// this repo and CI has no checkout of it, so the gate never runs this.
+#!/usr/bin/env bun
+// `bun run test:gent`: the film extension's typecheck and tests (`.gent/` at
+// the repo root), against a local gent checkout. Local only, like
+// `test:perf`: gent is no dependency of this repo and CI has no checkout of
+// it, so the gate never runs this.
 //
 // It links `.gent/node_modules` to the checkout's modules (one `effect` for
 // the extension, its tests and gent), typechecks `.gent/` with the
 // checkout's compiler, and runs `.gent/tests` under gent's test preload (a
 // temp HOME, no network but this machine). The checkout is
 // `~/Developer/personal/gent`, or `GENT_CHECKOUT`.
+//
+// The runner lives here, not in `.gent/`, because it is what makes that link:
+// it resolves its own modules from this package, so it starts on a fresh
+// checkout.
 
 import { BunRuntime, BunServices } from '@effect/platform-bun';
 import { Config, Console, Effect, FileSystem, Option, Path } from 'effect';
@@ -38,8 +44,9 @@ const run = Effect.gen(function* () {
   const gent = yield* Config.String('GENT_CHECKOUT').pipe(
     Config.withDefault(path.join(home, 'Developer', 'personal', 'gent')),
   );
-  const here = import.meta.dir;
-  const root = path.dirname(here);
+  // packages/scripts/src → the repo root, and its `.gent/` folder.
+  const root = path.resolve(import.meta.dir, '..', '..', '..');
+  const extension = path.join(root, '.gent');
   const modules = path.join(gent, 'node_modules');
   const ready = yield* fs.exists(path.join(modules, '@gent', 'core', 'package.json'));
   if (!ready) {
@@ -51,7 +58,7 @@ const run = Effect.gen(function* () {
     );
     return 1;
   }
-  const link = path.join(here, 'node_modules');
+  const link = path.join(extension, 'node_modules');
   const linked = yield* fs.readLink(link).pipe(Effect.option);
   if (Option.isNone(linked)) yield* fs.symlink(modules, link);
   if (Option.isSome(linked) && linked.value !== modules) {
@@ -63,7 +70,7 @@ const run = Effect.gen(function* () {
   yield* Console.log(`test:gent: gent at ${gent}`);
   const typed = yield* step(root, path.join(modules, '.bin', 'tsc'), [
     '-p',
-    path.join(here, 'tsconfig.json'),
+    path.join(extension, 'tsconfig.json'),
   ]);
   if (typed !== 0) return typed;
   return yield* step(root, process.execPath, [
@@ -71,7 +78,7 @@ const run = Effect.gen(function* () {
     '--preload',
     path.join(gent, 'packages', 'tooling', 'src', 'test-preload.ts'),
     '--timeout=30000',
-    path.join(here, 'tests'),
+    path.join(extension, 'tests'),
   ]);
 }).pipe(
   Effect.flatMap((code) =>

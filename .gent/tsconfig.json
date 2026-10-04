@@ -6,5 +6,5 @@
   "compilerOptions": {
     "allowImportingTsExtensions": true
   },
-  "include": ["extensions", "tests/*.test.ts", "run-tests.ts"]
+  "include": ["extensions", "tests/*.test.ts"]
 }
