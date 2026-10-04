@@ -32,6 +32,7 @@ import { LabHttpApi } from '../core/api.ts';
 import { StillUnknown } from '../core/refusals.ts';
 import { type Allowed, type BesideRoutes, answered, serveApi, withServices } from './api-server.ts';
 import { choicesGroup } from './choices-http.ts';
+import { Easel } from './easel.ts';
 import type { Choices } from './choices.ts';
 import { LabPage } from './lab-page.ts';
 import { projectGroup } from './project-http.ts';
@@ -217,6 +218,18 @@ const pageGroup = HttpApiBuilder.group(LabHttpApi, 'page', (handlers) =>
   ),
 );
 
+/** A look: stills of a scene as its sources stand, from the page the lab holds warm (`Easel`). */
+const looksGroup = HttpApiBuilder.group(LabHttpApi, 'looks', (handlers) =>
+  handlers.handle('take', ({ params, payload }) =>
+    answered(
+      Effect.gen(function* () {
+        const film = yield* filmNamed(params.film);
+        return yield* (yield* Easel).look(film, payload);
+      }),
+    ),
+  ),
+);
+
 /**
  * The hosts the lab answers to beside loopback: `FILM_LAB_HOSTS`,
  * comma-separated Host values (`bite-cristian.exe.xyz:8229`); a page served
@@ -271,7 +284,8 @@ export type LabContext =
   | StudioReadings
   | Review
   | Choices
-  | LabPage;
+  | LabPage
+  | Easel;
 
 /**
  * The lab's whole server as one web handler over the services the caller
@@ -297,6 +311,7 @@ export const labHandler = Effect.fn('film.lab.handler')(function* (
         choicesGroup,
         projectGroup,
         pageGroup,
+        looksGroup,
       ),
     ),
     withServices(services),

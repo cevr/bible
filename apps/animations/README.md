@@ -51,6 +51,12 @@ bun run render <film> --scene id[,id] ...      # a video or contact sheet over t
 bun run render <film> --short <id> ...         # out/<film>/shorts/<id>/main.mp4 + .vtt at 1080×1920; --stills/--contact/--from/--to in its seconds
 bun run render <film> ... --variant <name>     # another render of the same address beside main (<name>.mp4, <name>/stills/…): a look or score option, lab-<id>
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
+bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
+bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer, or its failure as the route answers it (`ToolFailure`), as one line
+bun run look <film> ... --level <look>=<level>  # a wedge: that look (palette.ts's looks) drawn at that level instead of the one it plays, the pick left unwritten
+bun run judge <film> --scene <id> [--point look:<name>|render:<address>] [--captions] [--json]  # a blind second opinion on one picture choice: every version's stills at the scene's marks and cue middles, labelled at random, ranked against CRAFT and the director's vision by okra counsel --deep in a bwrap sandbox that reads only the packet; prints the verdict's path (out/<film>/judge/<scene>-<stamp>-<draw>/verdict.md) and the ranking; writes no choice
+bun run journal <film> note "text" [--scene <id>]   # append an observation to src/films/<film>/journal.md (committed), dated and placed; an empty note is refused
+bun run journal <film> read [--scene <id>] [--last N]  # the newest N entries (20), oldest first, one line each, under 8,000 characters
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
 bun run project render <film> [--scene id,id] [--scale 0.33]  # render each scene on its own into out/<film>/scenes/<id>/; a current one is skipped (--force), a stale:sound one re-muxed (nothing drawn)
 bun run project approve <film> --scene id,id | --act name | --all  # approve scenes' renders (a stale or missing one named is refused), an act's current scenes, or every current one; a re-render leaves the approval stale
@@ -268,6 +274,100 @@ serve a film's narration through the framework's one route
 folder with `scenes/index.ts`, read per request, so a film made while the
 lab runs is served), the file one directly in its `narration/` (never
 `attempts/`); any other name is a 404.
+
+### Looking at a scene: the easel
+
+A painter steps back from the easel after every passage; `bun run look` is
+that step back. It asks the running lab (`FILM_LAB_URL`, else the always-on
+one on 8229) for stills of a scene as its files stand now, and prints one
+line per still: its file, the scene, the place asked, its time in the scene,
+its frame, its pixel size and the lab's build. The lab draws them on an
+export page it keeps open per film (no render, no encode), so a look takes
+about a second once that page is open; the first look after a save rebuilds
+the pages and opens a fresh one first (a few seconds). A look never shows
+stale code: a save the lab's watch has not heard yet is built before the
+still is drawn, a page that does not build answers `PagesBroken` with the
+bundler's words and draws nothing, and a scene, mark or cue the film lacks,
+or a time past the scene's end, is its own refusal (`UnknownScene`,
+`LookPlaceUnknown`, `LookOutOfRange`). No lab answering is `LabDown`: a look
+starts no browser of its own. A lab started from another checkout refuses
+(`LabElsewhere`) rather than show its own files; start a spare one from this
+checkout (`LAB_PORT=8264 bun cli.ts lab`) and point `FILM_LAB_URL` at it.
+
+Two painter's views read the picture apart from its colour. **Value**
+(`--mode value`) is the frame in greys: the light and dark alone, the way a
+value study checks that the subject reads before colour helps it. **Squint**
+(`--mode squint`) is the greys blurred (1.2% of the still's long side): the
+detail goes and the big masses stay, the squint test for where the eye lands
+first. `--crop` shows a region at 1:1 to read faces, hands and lettering;
+`--size` scales the still's long side. A crop is a lossless PNG; a whole
+frame is a JPEG (0.95) unless `--format png` asks, since the paper's grain
+makes a 1920×1080 PNG about 4 MB. Stills are kept under
+`out/<film>/look/<scene>/`, named by time, view and build
+(`t0002.33.value.b<build>.jpg`), and never rewritten.
+
+A **wedge** (`--level ground=light`) is the printer's wedge: one strip printed
+at each of several grades so one can be chosen. It draws the scene with a
+look (`looks` in `palette.ts`) at another level than the one it plays,
+without writing the pick: the lab builds its pages once more with
+`palette.ts` read as a pick of that level would write it (the very edit the
+Choices view's **Pick** makes), serves that build beside its own, and draws
+from it. The file on disk never changes. A look or level the palette lacks
+is `LookLevelUnknown`; a wedge's stills carry its levels in their names
+(`….wground-light.b<build>.jpg`).
+
+### A second opinion: the judge
+
+`bun run judge <film> --scene <id>` asks another model family to rank the
+versions of one picture choice at a scene, blind. A version is what the
+Choices view picks between for the picture: a look's levels (`--point
+look:ground`, each drawn through the easel as a wedge) or a render set's
+variants (`--point render:scenes:<id>`, each cut from its video). Without
+`--point` it takes the scene's one picture choice that has two versions or
+more, and names them all when there are several (`JudgePointAmbiguous`).
+Every version is shown at the same moments, the scene's marks and its cues'
+middles (at most 12, spread evenly), as 1280-pixel JPEGs, under labels A, B,
+C drawn at random. The packet (`packet.md`) gives the beat's words, its
+picture's brief and register, its act, and the rules that bear on it,
+each named by its file's name alone (`JUDGE_RULES` in `cli.ts`: the look, the palette,
+the colour script, the paper and what we never do for every beat; human
+scale, figures and staging for a STORY beat; words off the picture,
+repetition and type for an IDEA beat). It never says which version is
+newer, which is picked or who made it, nor where anything lives (each still
+is named by its path beside the packet). The counsel reads it in a sandbox
+(bubblewrap, `bwrap`, which must be installed) that shows it the packet's
+folder (the packet and the stills, under the system's temp folder) and what
+okra and Codex need to run, and no other file: no earlier judge's folder,
+no look file, no repo, no cache. The network is shared, since Codex needs
+the internet, so the lab stays reachable on this machine's loopback, though
+nothing in the sandbox says it is there. The key stays in the judge's
+memory until the counsel has answered. `okra counsel --deep` (Codex)
+answers with a ranking (one
+whole line: labels and `>` or `=`, or exactly `no preference`) and, for
+each version, the still and the rule that decide it. The judge unblinds
+that answer into `verdict.md`, beside the stills, the packet and the key
+(`key.json`) in `out/<film>/judge/<scene>-<stamp>-<draw>/`: the ranking in
+real names beside the owner's pick, the key, the reasons, and the counsel's
+answer by path. It prints three
+short lines (`verdict <path>`, `ranking <names> (point= pick=)`, `counsel
+<path>`), or one JSON line with `--json`. It writes no choice: a pick is still
+the owner's, in the Choices view.
+
+### The journal
+
+A film's journal (`src/films/<film>/journal.md`, committed with its
+sources) is its production log: what was seen, heard or measured while it was
+made, so the next pass reads the film's history instead of finding it again.
+Its rule is written at its top: **observations, never instructions**. "Under
+squint the robe is the lightest mass at mark roof" is an entry; "make the
+robe lighter" is not (a decision lands in the source, a request is a lab
+note). `bun run journal <film> note "…" --scene <id>` appends one entry, its
+UTC time to the second and its scene (`film` without one), the words on one
+line; a scene the film lacks is refused (`UnknownScene`), and so is an empty
+note (`JournalEmpty`). Notes at once all land: a first note publishes its journal whole (written beside it, then linked into place, which fails if one is there), and every other appends. `bun run journal <film> read [--scene <id>] [--last N]`
+prints the newest entries, oldest first, as `<time> scene=<id> <text>`,
+never more than 8,000 characters, with a first line saying how many earlier
+entries it left out.
 
 ## How a film is built
 

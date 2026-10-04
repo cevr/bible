@@ -9,7 +9,15 @@ import { ConfigProvider, Effect, FileSystem, Layer, Option, Path, Schema } from 
 import { Base64 } from 'effect/encoding';
 import { FetchHttpClient, HttpBody, HttpClient, HttpPlatform } from 'effect/http';
 import { parseSync } from 'oxc-parser';
-import { LabHttpApi, Places, Refusal, labUrls, reviewFileUrl, routesOf } from '../core/api.ts';
+import {
+  LabHttpApi,
+  Places,
+  Refusal,
+  ToolFailure,
+  labUrls,
+  reviewFileUrl,
+  routesOf,
+} from '../core/api.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler, labLink } from './lab.ts';
@@ -239,6 +247,30 @@ describe('lab routes', () => {
       ).toBe(404);
       expect(yield* status(get('/api/films/f/stills/..%2Fnotes.json'))).toBe(404);
     }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+  );
+
+  it.effect(
+    'a look reaches the easel: its failure answers with its status and tag, a bad body 400',
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        const url = labUrls.looks.take({ params: { film: 'f' } });
+        const look =
+          '{"scene":"roof","at":["1"],"view":{"mode":"plain","captions":false,"format":"image/png"}}';
+        const failed = yield* Effect.promise(() => lab(post(url, look), bound));
+        expect(failed.status).toBe(502);
+        const body = yield* Effect.promise(() => failed.text());
+        expect(yield* Schema.decodeEffect(Schema.fromJsonString(Schema.Unknown))(body)).toEqual({
+          _tag: 'LookFailed',
+          reason: 'no easel in this test',
+        });
+        // The one shape a tool decodes, as `film look --json` prints it too.
+        expect(yield* Schema.decodeEffect(Schema.fromJsonString(ToolFailure))(body)).toMatchObject({
+          _tag: 'LookFailed',
+        });
+        const bad = yield* Effect.promise(() => lab(post(url, '{"scene":"roof","at":[]}'), bound));
+        expect(bad.status).toBe(400);
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
   );
 
   it.effect(

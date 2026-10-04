@@ -19,7 +19,9 @@
 import { BunHttpPlatform, BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   ApiKeyMissing,
+  Browser,
   Choices,
+  Easel,
   ContentStore,
   ElevenLabs,
   FilmRepo,
@@ -177,9 +179,11 @@ const Harness = Layer.unwrap(
     const Reviewed = Review.layerConfig(Effect.succeed([])).pipe(
       Layer.provide([Heard, Catalogue, Platform]),
     );
-    const Pages = LabPage.layer({ pages: LAB_PAGES, films: root }).pipe(
-      Layer.provide(PageBundler.layer),
-      Layer.provide(Platform),
+    // The pages, and the easel's warm pages over them (Chrome starts only for a look).
+    const Pages = Easel.layer.pipe(
+      Layer.provideMerge(LabPage.layer({ pages: LAB_PAGES, films: root })),
+      Layer.provide(Layer.mergeAll(PageBundler.layer, Browser.layer)),
+      Layer.provide([Repo, Platform]),
     );
     const Services = Choices.layer.pipe(
       Layer.provideMerge(Layer.mergeAll(Takes.layer, StudioReadings.layer)),
@@ -205,6 +209,7 @@ const Harness = Layer.unwrap(
         const lab = yield* labHandler({ hosts: [] }, control(misheard, root));
         const server = yield* Layer.build(labServer({ hostname: '127.0.0.1', port }));
         const url = yield* serveLab(lab).pipe(Effect.provideContext(server));
+        yield* (yield* Easel).serve(url);
         yield* Effect.log(`harness.ready url=${new URL(pageHref.lab(film), url)} root=${root}`);
       }),
     );

@@ -109,7 +109,7 @@ export const parseModule = (
 };
 
 /** A property key's name, when it is a plain name or string (not computed). */
-const keyName = (p: ObjectProperty): Option.Option<string> => {
+export const keyName = (p: ObjectProperty): Option.Option<string> => {
   if (p.computed) return Option.none();
   if (p.key.type === 'Identifier') return Option.some(p.key.name);
   if (p.key.type === 'Literal' && Predicate.isString(p.key.value)) return Option.some(p.key.value);

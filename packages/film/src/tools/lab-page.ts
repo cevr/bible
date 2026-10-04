@@ -11,7 +11,11 @@
 // entries' folders from the start and, after a failed build, the folders of
 // the files the bundler named; a folder still read keeps its watch, and a
 // file read in a newly watched folder, or new to the read set, that changed
-// from a second before its build began is one more change. Each change to
+// from a second before its build began is one more change. Each build prints
+// the files it read (length and hash) before and after it reads them: a save
+// the newest build already holds by content is no change, however late the
+// watch hears it (judged once no build is reading), and a look asks a build
+// whose files print as they stand (`built`). Each change to
 // one of those files is numbered (the build), and an open page that waits on
 // `/api/review/build?since=` hears of it and reloads onto the new code, as
 // the development server's hot reload did. A film's mixed track
@@ -39,6 +43,7 @@ import {
   Equal,
   Fiber,
   FileSystem,
+  Hash,
   Layer,
   Option,
   Order,
@@ -47,11 +52,13 @@ import {
   Random,
   Record,
   Ref,
+  Result,
   Schema,
   Semaphore,
   Stream,
   SubscriptionRef,
 } from 'effect';
+import type { BunPlugin } from 'bun';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import type { PageBuild } from '../core/schema.ts';
@@ -90,11 +97,26 @@ interface BundleFailed {
   readonly files: ReadonlyArray<string>;
 }
 
+/**
+ * How a build reads its sources: the path its pages link their files from,
+ * and files read as other text than they hold, by absolute path (a wedge: a
+ * look drawn at another level than its pick, the pick unwritten,
+ * `tools/easel.ts`).
+ */
+interface BundleHow {
+  readonly publicPath: string;
+  readonly swaps: ReadonlyMap<string, string>;
+}
+
+/** The lab's own build: its files linked from the root, every source as written. */
+const AS_WRITTEN: BundleHow = { publicPath: '/', swaps: new Map() };
+
 interface PageBundlerService {
-  /** The pages `entries` (HTML files under `root`) bundled for the browser, or why not. */
+  /** The pages `entries` (HTML files under `root`) bundled for the browser as `how` says, or why not. */
   readonly bundle: (
     entries: ReadonlyArray<string>,
     root: string,
+    how: BundleHow,
   ) => Effect.Effect<Bundled, BundleFailed>;
 }
 
@@ -124,46 +146,77 @@ const bundlerFiles = (cause: unknown): ReadonlyArray<string> =>
       ),
   });
 
-/** `Bun.build` over the pages with the framework's Solid plugin; `path` resolves what it read. */
-const bunBundle = (path: Path.Path) => (entries: ReadonlyArray<string>, root: string) =>
-  Effect.gen(function* () {
-    const { solidPlugin } = yield* Effect.promise(() => import('./solid-plugin.ts'));
-    const out = yield* Effect.tryPromise({
-      try: () =>
-        Bun.build({
-          entrypoints: [...entries],
-          root,
-          // Every page links its scripts and styles from the root (`/chunk-….js`), so a
-          // page served under a film's path (`/films/<film>/lab/<scene>`) finds them.
-          publicPath: '/',
-          plugins: [solidPlugin],
-          target: 'browser',
-          splitting: true,
-          minify: true,
-          sourcemap: 'linked',
-          metafile: true,
-          // A failed build throws its messages (an AggregateError), caught here.
-          throw: true,
-        }),
-      catch: (cause): BundleFailed => ({
-        reason: bundlerWords(cause),
-        files: bundlerFiles(cause).map((file) => path.resolve(file)),
-      }),
+/** `text` matched literally in a regular expression. */
+const literally = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/**
+ * A plugin that loads each file of `swaps` as its text there, and notes in
+ * `read` each one the build read, so a swap no build reached is refused
+ * rather than drawn as the source it was meant to replace.
+ */
+const swapPlugin = (swaps: ReadonlyMap<string, string>, read: Set<string>): BunPlugin => ({
+  name: 'film-wedge',
+  setup(build) {
+    const exact = new RegExp(`^(?:${[...swaps.keys()].map(literally).join('|')})$`);
+    build.onLoad({ filter: exact }, (args) => {
+      read.add(args.path);
+      return {
+        contents: Option.getOrElse(Option.fromUndefinedOr(swaps.get(args.path)), () => ''),
+        loader: 'ts',
+      };
     });
-    const outputs = yield* Effect.forEach(out.outputs, (file) =>
-      Effect.map(
-        Effect.promise(() => file.arrayBuffer()),
-        (buffer) => ({
-          path: file.path.replace(/^\.\//, ''),
-          bytes: new Uint8Array(buffer),
-          type: file.type,
+  },
+});
+
+/** `Bun.build` over the pages with the framework's Solid plugin; `path` resolves what it read. */
+const bunBundle =
+  (path: Path.Path) => (entries: ReadonlyArray<string>, root: string, how: BundleHow) =>
+    Effect.gen(function* () {
+      const { solidPlugin } = yield* Effect.promise(() => import('./solid-plugin.ts'));
+      const swapped = new Set<string>();
+      const swaps = Arr.filter([swapPlugin(how.swaps, swapped)], () => how.swaps.size > 0);
+      const out = yield* Effect.tryPromise({
+        try: () =>
+          Bun.build({
+            entrypoints: [...entries],
+            root,
+            // Every page links its scripts and styles from the root (`/chunk-….js`), so a
+            // page served under a film's path (`/films/<film>/lab/<scene>`) finds them.
+            publicPath: how.publicPath,
+            plugins: [...swaps, solidPlugin],
+            target: 'browser',
+            splitting: true,
+            minify: true,
+            sourcemap: 'linked',
+            metafile: true,
+            // A failed build throws its messages (an AggregateError), caught here.
+            throw: true,
+          }),
+        catch: (cause): BundleFailed => ({
+          reason: bundlerWords(cause),
+          files: bundlerFiles(cause).map((file) => path.resolve(file)),
         }),
-      ),
-    );
-    // The metafile names inputs relative to this process's directory.
-    const inputs = Object.keys(out.metafile?.inputs ?? {}).map((input) => path.resolve(input));
-    return { outputs, inputs } satisfies Bundled;
-  });
+      });
+      const outputs = yield* Effect.forEach(out.outputs, (file) =>
+        Effect.map(
+          Effect.promise(() => file.arrayBuffer()),
+          (buffer) => ({
+            path: file.path.replace(/^\.\//, ''),
+            bytes: new Uint8Array(buffer),
+            type: file.type,
+          }),
+        ),
+      );
+      // The metafile names inputs relative to this process's directory.
+      const inputs = Object.keys(out.metafile?.inputs ?? {}).map((input) => path.resolve(input));
+      const unread = [...how.swaps.keys()].filter((file) => !swapped.has(file));
+      if (unread.length > 0)
+        return yield* Effect.fail<BundleFailed>({
+          reason: `the build read none of ${unread.join(', ')}, so it cannot draw them changed`,
+          files: unread,
+        });
+      return { outputs, inputs } satisfies Bundled;
+    });
 
 /** The bundler the pages are built with. */
 export class PageBundler extends Context.Service<PageBundler, PageBundlerService>()(
@@ -177,8 +230,8 @@ export class PageBundler extends Context.Service<PageBundler, PageBundlerService
 
   /**
    * A bundler for tests that need no browser code: each entry is its own
-   * page, its HTML as written, read from the file system, and the entries
-   * are all a build reads.
+   * page, its HTML as written (or as swapped), read from the file system,
+   * and the entries are all a build reads.
    */
   static readonly layerTest = Layer.effect(
     PageBundler,
@@ -186,13 +239,19 @@ export class PageBundler extends Context.Service<PageBundler, PageBundlerService
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       return PageBundler.of({
-        bundle: (entries, root) =>
+        bundle: (entries, root, how) =>
           Effect.forEach(entries, (entry) =>
-            Effect.map(fs.readFile(entry), (bytes) => ({
-              path: path.relative(root, entry),
-              bytes,
-              type: 'text/html;charset=utf-8',
-            })),
+            Effect.map(
+              Option.match(Option.fromUndefinedOr(how.swaps.get(entry)), {
+                onNone: () => fs.readFile(entry),
+                onSome: (text) => Effect.succeed(new TextEncoder().encode(text)),
+              }),
+              (bytes) => ({
+                path: path.relative(root, entry),
+                bytes,
+                type: 'text/html;charset=utf-8',
+              }),
+            ),
           ).pipe(
             Effect.map((outputs) => ({ outputs, inputs: [...entries] })),
             Effect.mapError((error): BundleFailed => ({ reason: error.message, files: [] })),
@@ -207,7 +266,16 @@ export class PageBundler extends Context.Service<PageBundler, PageBundlerService
  * (scripts, styles, maps) by the path they are asked for, or the bundler's words.
  */
 interface Built {
+  /** The changes it is stamped with: a page waits past it. Answered again, the changes seen then. */
   readonly build: number;
+  /** Its own number among the builds kept, the one it was made as: its pages at `?build=<kept>`. */
+  readonly kept: number;
+  /** When it began reading its sources, ms since the epoch: a file saved since may not be in it. */
+  readonly started: number;
+  /** How far it holds the bytes it read (`Freshness`); a failed build is `Unsure`. */
+  readonly fresh: Freshness;
+  /** Each file it read (a package's `node_modules` aside) by its print once it was made (`printOf`). */
+  readonly prints: ReadonlyMap<string, string>;
   readonly outcome:
     | {
         readonly _tag: 'Built';
@@ -216,6 +284,26 @@ interface Built {
       }
     | { readonly _tag: 'Failed'; readonly reason: string };
 }
+
+/**
+ * How far a build holds the bytes it read. `Steady`: every file it read had
+ * the same print just before it began and once it was made, so it read them
+ * as they stood. `Moved`: one was saved while it read, so it may hold the
+ * bytes before the save (one more change, built again). `Unsure`: one it
+ * read was printed only once it was made (no build had read it before), so
+ * a save while it read cannot be told; a look builds again rather than
+ * trust it.
+ */
+type Freshness = 'Steady' | 'Moved' | 'Unsure';
+
+/** A file's bytes in a few characters: their length and their hash, so two that differ differ here. */
+const printOf = (bytes: Uint8Array): string => `${bytes.length}:${Bun.hash(bytes).toString(36)}`;
+
+/** The print of a file that is not there. */
+const GONE = 'gone';
+
+/** How many builds a look makes at most while the files it reads keep moving under it. */
+const BUILD_TRIES = 3;
 
 /** How many builds' files stay answered: a page loaded from one may still fetch its chunks. */
 const KEPT = 3;
@@ -296,7 +384,59 @@ interface LabPageService {
    * counted (a later one landed before any watch saw it).
    */
   readonly heardAt: (film: string, at: number) => Effect.Effect<Option.Option<PageBuild>>;
+  /**
+   * The pages as the sources stand now, every save made before the call in
+   * them, judged by content and not by mtime: the build answered, after any
+   * build under way is waited out, is judged at the moment it is answered,
+   * once made and published: its files printed alike before and after it
+   * read them (`Steady`) and print so still. A save no watch has heard yet,
+   * one in the build's own second, or one landing after the build printed
+   * what it read, is built first; a build a save moved is never answered.
+   * The answer names the build (`kept`), whose pages `?build=<kept>` serve
+   * as it was made, and the bundler's words when it failed (a look's
+   * freshness, `tools/easel.ts`).
+   */
+  readonly built: Effect.Effect<PagesNow>;
+  /**
+   * The pages as `built` answers them, but with each file of `swaps` read as
+   * its text there: a wedge, one look drawn at another level than its pick
+   * with the pick unwritten (`tools/easel.ts`). Built once per build and
+   * swap, its pages answered at their own paths with `?wedge=<id>` and its
+   * files under `/wedge/<id>/`, the last few kept; `wedge` is empty when it
+   * did not build, and `failed` says why.
+   */
+  readonly wedge: (swaps: ReadonlyMap<string, string>) => Effect.Effect<Wedged>;
 }
+
+/** The pages' build now, and why it failed when it did. */
+export interface PagesNow {
+  readonly build: PageBuild;
+  /**
+   * The build answered, by its number among the builds kept: its pages,
+   * asked with `?build=<kept>`, are served as it was made and judged, never
+   * a build made after (a look's page).
+   */
+  readonly kept: number;
+  readonly failed: Option.Option<string>;
+}
+
+/** A wedge of the pages' build now: its id, empty when it did not build. */
+interface Wedged extends PagesNow {
+  readonly wedge: string;
+}
+
+/** Where a wedge's files are answered: `/wedge/<id>/chunk-….js`. */
+const WEDGE_PATH = '/wedge/';
+
+/** A wedge built: its id, its pages' HTML by page, and its files by the path they are asked for. */
+interface WedgeBuilt {
+  readonly id: string;
+  readonly pages: ReadonlyMap<PageName, BuiltFile>;
+  readonly files: ReadonlyMap<string, BuiltFile>;
+}
+
+/** How many of a build's files are checked at once for a save no watch heard. */
+const STATS_AT_ONCE = 32;
 
 export class LabPage extends Context.Service<LabPage, LabPageService>()(
   '@bible/film/tools/LabPage',
@@ -372,6 +512,18 @@ const failedPage = (reason: string, build: PageBuild, tokens: string) =>
   `await new Promise(f=>setTimeout(f,${FAILED_PAUSE_MS}))}})()</script>` +
   `</body></html>`;
 
+/** Why a build failed: the bundler's words; none for one that built. */
+const failureOf = (built: Built): Option.Option<string> => {
+  if (built.outcome._tag === 'Failed') return Option.some(built.outcome.reason);
+  return Option.none();
+};
+
+/** A build's pages' HTML; a failed one has none. */
+const pagesOf = (built: Built): ReadonlyMap<PageName, BuiltFile> => {
+  if (built.outcome._tag === 'Built') return built.outcome.pages;
+  return new Map();
+};
+
 /** A build's files; a failed one has none. */
 const filesOf = (built: Built): ReadonlyMap<string, BuiltFile> => {
   if (built.outcome._tag === 'Built') return built.outcome.files;
@@ -435,6 +587,9 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const asked = yield* Ref.make<ReadonlyArray<string>>([]);
   const builds = yield* Ref.make<ReadonlyArray<Built>>([]);
   const building = yield* Semaphore.make(1);
+  // The wedges kept, newest first (`wedge`), built one at a time.
+  const wedges = yield* Ref.make<ReadonlyArray<WedgeBuilt>>([]);
+  const wedging = yield* Semaphore.make(1);
   // One wait at a time builds again after a failure (`retryFailed`), however many pages wait.
   const retrying = yield* Semaphore.make(1);
   // Bun names each output by its entry's path relative to the build's root: the
@@ -462,6 +617,38 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       Effect.map((info) => Option.map(info.mtime, (at) => at.getTime())),
       Effect.orElseSucceed(() => Option.none<number>()),
     );
+
+  /** `file`'s print now (`printOf`), `GONE` when it is not there. */
+  const printNow = (file: string) =>
+    fs.readFile(file).pipe(
+      Effect.map(printOf),
+      Effect.orElseSucceed(() => GONE),
+    );
+
+  /** Each of `files` by its print now, a package's `node_modules` aside. */
+  const printsOf = (files: Iterable<string>) =>
+    Effect.map(
+      Effect.forEach(
+        [...files].filter((file) => !file.includes('/node_modules/')),
+        (file) => Effect.map(printNow(file), (print) => [file, print] as const),
+        { concurrency: STATS_AT_ONCE },
+      ),
+      (pairs): ReadonlyMap<string, string> => new Map(pairs),
+    );
+
+  /**
+   * Whether `file` is as the newest build read it: that build is `Steady`
+   * and the file's print now is the one it made. A watch's event for a save
+   * the build already holds (a look built it first) is then no change.
+   */
+  const unmoved = (file: string) =>
+    Effect.gen(function* () {
+      const newest = Arr.head(yield* Ref.get(builds));
+      if (Option.isNone(newest) || newest.value.fresh !== 'Steady') return false;
+      const print = Option.fromUndefinedOr(newest.value.prints.get(file));
+      if (Option.isNone(print)) return false;
+      return (yield* printNow(file)) === print.value;
+    });
 
   /** The film a track (`<films>/<film>/narration/full.wav`) is of. */
   const filmOf = (master: string) => path.basename(path.dirname(path.dirname(master)));
@@ -535,8 +722,17 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const heard = (file: string): Effect.Effect<void> =>
     Effect.gen(function* () {
       const inputs = yield* Ref.get(read);
-      if (Option.match(inputs, { onNone: () => true, onSome: (set) => set.has(file) }))
-        return yield* sourceChanged;
+      if (Option.match(inputs, { onNone: () => true, onSome: (set) => set.has(file) })) {
+        // A save the newest build already holds (a look built it before the watch heard) is
+        // none. Judged once no build is reading: a build under way may hold the save or not,
+        // and says which only when it is done.
+        return yield* building.withPermit(
+          Effect.flatMap(unmoved(file), (held) => {
+            if (held) return Effect.void;
+            return sourceChanged;
+          }),
+        );
+      }
       const tracks = [...(yield* Ref.get(masters)).keys()];
       if (tracks.includes(file)) return yield* landed(file);
       const below = tracks.filter((track) => track.startsWith(`${file}/`));
@@ -619,21 +815,30 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
 
   /**
    * A save no watch counted: once new watches are armed, a file of
-   * `suspects` changed since `started` (the build began reading, less
-   * MTIME_LAG) is one more change. A suspect is a file the build read that a
-   * watch could not count: in a folder newly watched, or new to the read set
-   * (the watch judged its save against the build before).
+   * `suspects` the newest build does not hold as it stands (`unmoved`) and
+   * changed since `started` (the build began reading, less MTIME_LAG) is one
+   * more change. A suspect is a file the build read that a watch could not
+   * count: in a folder newly watched, or new to the read set (the watch
+   * judged its save against the build before).
    */
   const missed = (suspects: ReadonlyArray<string>, started: number) =>
     Effect.gen(function* () {
       if (suspects.length === 0) return;
       yield* Effect.sleep(ARMING);
       const since = started - Duration.toMillis(MTIME_LAG);
-      const changed = yield* Effect.forEach(suspects, (file) =>
-        fs.stat(file).pipe(
-          Effect.map((info) => Option.exists(info.mtime, (at) => at.getTime() >= since)),
-          // Gone since the build read it: changed.
-          Effect.orElseSucceed(() => true),
+      // Judged once no build is reading, as a watch's save is (`heard`).
+      const changed = yield* building.withPermit(
+        Effect.forEach(suspects, (file) =>
+          Effect.gen(function* () {
+            // A file the newest build no longer reads is none of its business, as for a watch.
+            if (Option.exists(yield* Ref.get(read), (set) => !set.has(file))) return false;
+            if (yield* unmoved(file)) return false;
+            return yield* fs.stat(file).pipe(
+              Effect.map((info) => Option.exists(info.mtime, (at) => at.getTime() >= since)),
+              // Gone since the build read it: changed.
+              Effect.orElseSucceed(() => true),
+            );
+          }),
         ),
       );
       if (!changed.includes(true)) return;
@@ -644,11 +849,40 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   // Before any build: the entries' folders, so a first build that fails still hears its fix.
   yield* watchOnly(foldersOf(htmls));
 
+  /**
+   * How far a build that read the files `after` prints, printed `before`
+   * just before it began, holds them (`Freshness`).
+   */
+  const freshness = (
+    before: ReadonlyMap<string, string>,
+    after: ReadonlyMap<string, string>,
+  ): Freshness => {
+    const files = [...after].map(([file, print]) => ({
+      print,
+      was: Option.fromUndefinedOr(before.get(file)),
+    }));
+    if (files.some((f) => Option.exists(f.was, (was) => was !== f.print))) return 'Moved';
+    if (files.some((f) => Option.isNone(f.was))) return 'Unsure';
+    return 'Steady';
+  };
+
   const bundle = Effect.fnUntraced(function* (build: number) {
     const started = yield* Clock.currentTimeMillis;
-    const outcome = yield* bundler.bundle(htmls, root).pipe(
+    // The files the last build read, printed before this one reads them: one whose print
+    // differs once this build is made was saved while it read.
+    const printedBefore = yield* Option.match(yield* Ref.get(read), {
+      onNone: () => Effect.succeed<ReadonlyMap<string, string>>(new Map()),
+      onSome: printsOf,
+    });
+    const printed = yield* Ref.make<{ fresh: Freshness; prints: ReadonlyMap<string, string> }>({
+      fresh: 'Unsure',
+      prints: new Map(),
+    });
+    const outcome = yield* bundler.bundle(htmls, root, AS_WRITTEN).pipe(
       Effect.flatMap(({ outputs, inputs }) =>
         Effect.gen(function* () {
+          const after = yield* printsOf(inputs);
+          yield* Ref.set(printed, { fresh: freshness(printedBefore, after), prints: after });
           const before = yield* Ref.getAndSet(read, Option.some(new Set(inputs)));
           const added = yield* watchOnly(foldersOf([...htmls, ...inputs]));
           yield* missed(
@@ -688,8 +922,11 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
         }),
       ),
     );
-    yield* Effect.log(`lab.page.build build=${build} outcome=${outcome._tag}`);
-    return { build, outcome } satisfies Built;
+    const { fresh, prints } = yield* Ref.get(printed);
+    yield* Effect.log(
+      `lab.page.build build=${build} outcome=${outcome._tag} fresh=${fresh} files=${prints.size}`,
+    );
+    return { build, kept: build, started, fresh, prints, outcome } satisfies Built;
   });
 
   /**
@@ -699,22 +936,29 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * the file it missed); one that then builds takes a new number, so a failed
    * page waiting past the old one reloads. Asks at once share one build. The
    * last build answered again is stamped with the changes seen now, a mix
-   * since among them, so its page waits past them.
+   * since among them, so its page waits past them. A build a save moved while
+   * it read (`Moved`) is one more change once made: the next ask builds again,
+   * and a waiting page hears it. Run under `building`.
    */
-  const current = building.withPermit(
-    Effect.gen(function* () {
-      const now = (yield* SubscriptionRef.get(changes)).n;
-      const since = yield* Ref.get(sourced);
-      const last = Arr.head(yield* Ref.get(builds)).pipe(Option.filter((b) => b.build >= since));
-      if (Option.isSome(last) && last.value.outcome._tag === 'Built')
-        return { ...last.value, build: now };
-      let made = yield* bundle(now);
-      if (Option.isSome(last) && made.outcome._tag === 'Built')
-        made = { ...made, build: (yield* SubscriptionRef.updateAndGet(changes, forAll)).n };
-      yield* Ref.update(builds, (kept) => [made, ...kept].slice(0, KEPT));
-      return made;
-    }),
-  );
+  const currentHeld = Effect.gen(function* () {
+    const now = (yield* SubscriptionRef.get(changes)).n;
+    const since = yield* Ref.get(sourced);
+    const last = Arr.head(yield* Ref.get(builds)).pipe(Option.filter((b) => b.build >= since));
+    if (Option.isSome(last) && last.value.outcome._tag === 'Built' && last.value.fresh !== 'Moved')
+      return { ...last.value, build: now };
+    let made = yield* bundle(now);
+    if (Option.isSome(last) && made.outcome._tag === 'Built') {
+      const n = (yield* SubscriptionRef.updateAndGet(changes, forAll)).n;
+      made = { ...made, build: n, kept: n };
+    }
+    yield* Ref.update(builds, (kept) => [made, ...kept].slice(0, KEPT));
+    if (made.fresh === 'Moved') {
+      yield* Effect.log(`lab.page.build.moved build=${made.build}`);
+      yield* sourceChanged;
+    }
+    return made;
+  });
+  const current = building.withPermit(currentHeld);
 
   /** The build a page playing `film` (or none) hears now. */
   const now = (film: Option.Option<string>) =>
@@ -790,16 +1034,57 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       });
     });
 
-  /** A script, style or map by its path, in the builds kept: each named by its hash, so never changed. */
+  /** A script, style or map by its path, in the builds and wedges kept: each named by its hash, so never changed. */
   const asset = (pathname: string) =>
-    Effect.map(Ref.get(builds), (kept) =>
-      Option.map(
-        Arr.findFirst(kept, (built) => Option.fromUndefinedOr(filesOf(built).get(pathname))),
+    Effect.gen(function* () {
+      const kept = [
+        ...(yield* Ref.get(builds)).map(filesOf),
+        ...(yield* Ref.get(wedges)).map((w) => w.files),
+      ];
+      return Option.map(
+        Arr.findFirst(kept, (files) => Option.fromUndefinedOr(files.get(pathname))),
         ({ bytes, type }) =>
           HttpServerResponse.uint8Array(bytes, {
             contentType: type,
             headers: { 'cache-control': 'max-age=31536000, immutable' },
           }),
+      );
+    });
+
+  /** A page as one build made it, unstamped (it waits on no build); none is a 404. */
+  const asMade = (html: Option.Option<BuiltFile>) =>
+    Option.match(html, {
+      onNone: () => NOT_FOUND,
+      onSome: (file) =>
+        HttpServerResponse.uint8Array(file.bytes, {
+          contentType: HTML,
+          headers: { 'cache-control': 'no-store' },
+        }),
+    });
+
+  /** A wedge's page (`?wedge=<id>`) as it was built; a wedge no longer kept is a 404. */
+  const wedgePage = (name: PageName, id: string) =>
+    Effect.map(Ref.get(wedges), (kept) =>
+      asMade(
+        Option.flatMap(
+          Arr.findFirst(kept, (w) => w.id === id),
+          (w) => Option.fromUndefinedOr(w.pages.get(name)),
+        ),
+      ),
+    );
+
+  /**
+   * A kept build's page (`?build=<kept>`, `PagesNow.kept`) as it was made:
+   * the build a look was answered, whatever was built since; a build no
+   * longer kept, or one that failed, is a 404.
+   */
+  const keptPage = (name: PageName, id: string) =>
+    Effect.map(Ref.get(builds), (kept) =>
+      asMade(
+        Option.flatMap(
+          Arr.findFirst(kept, (b) => String(b.kept) === id),
+          (b) => Option.fromUndefinedOr(pagesOf(b).get(name)),
+        ),
       ),
     );
 
@@ -851,11 +1136,100 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     const old = `${pathname}${url.search}`;
     const place = legacyPlace(old);
     if (Option.isSome(place)) return yield* moved(old, place.value);
+    const wedgeId = Option.fromNullishOr(url.searchParams.get('wedge'));
+    const keptId = Option.fromNullishOr(url.searchParams.get('build'));
     return yield* Option.match(pageAt(pathname), {
       onNone: () => Effect.succeed(NOT_FOUND),
-      onSome: page,
+      onSome: (name) => {
+        if (Option.isSome(wedgeId)) return wedgePage(name, wedgeId.value);
+        if (Option.isSome(keptId)) return keptPage(name, keptId.value);
+        return page(name);
+      },
     });
   });
 
-  return LabPage.of({ answer, wait, heardAt });
+  /**
+   * Whether `made` holds its files as they stand now: it read them as they
+   * stood (`Steady`), and each one's print now is the one it made, so no
+   * save since, heard or not, whatever its mtime, is missing from it.
+   */
+  const holds = (made: Built) =>
+    Effect.gen(function* () {
+      if (made.fresh !== 'Steady') return false;
+      const now = yield* printsOf(made.prints.keys());
+      return [...made.prints].every(([file, print]) => now.get(file) === print);
+    });
+
+  /**
+   * The build a look is answered, under `building`, so a build under way is
+   * waited out: the one `current` answers (kept, or made now, its watches
+   * and checks set), judged last, at the moment it is answered, by whether
+   * it holds its files as they stand (`holds`). One that does not is one
+   * more change and a new build; a build whose files keep moving
+   * `BUILD_TRIES` times is answered as failed.
+   */
+  const freshHeld = (tries: number): Effect.Effect<Built> =>
+    Effect.gen(function* () {
+      const made = yield* currentHeld;
+      if (made.outcome._tag === 'Failed' || (yield* holds(made))) return made;
+      yield* Effect.log(`lab.page.unheard build=${made.kept} fresh=${made.fresh} tries=${tries}`);
+      yield* sourceChanged;
+      if (tries >= BUILD_TRIES)
+        return {
+          ...made,
+          outcome: {
+            _tag: 'Failed',
+            reason: `the pages' files moved while each of ${BUILD_TRIES} builds read them: look again once the saves settle`,
+          },
+        };
+      return yield* freshHeld(tries + 1);
+    });
+
+  const built = Effect.map(building.withPermit(freshHeld(1)), (made) => ({
+    build: { build: made.build, server },
+    kept: made.kept,
+    failed: failureOf(made),
+  })) satisfies Effect.Effect<PagesNow>;
+
+  /** The text that names a set of swaps: each file and its text, in file order. */
+  const swapsKey = (swaps: ReadonlyMap<string, string>) =>
+    Arr.sort(
+      [...swaps.entries()],
+      Order.mapInput(Order.String, ([file]: readonly [string, string]) => file),
+    )
+      .map(([file, text]) => `${file}\n${text}`)
+      .join('\n\0\n');
+
+  // The wedges, built one at a time from the build as it stands: a wedge of a build
+  // is built once per swap and answered from then on.
+  const wedge = (swaps: ReadonlyMap<string, string>) =>
+    wedging.withPermit(
+      Effect.gen(function* () {
+        const now = yield* built;
+        if (Option.isSome(now.failed)) return { ...now, wedge: '' } satisfies Wedged;
+        const id = `${now.build.build}-${(Hash.string(swapsKey(swaps)) >>> 0).toString(36)}`;
+        if ((yield* Ref.get(wedges)).some((w) => w.id === id))
+          return { ...now, wedge: id } satisfies Wedged;
+        const prefix = `${WEDGE_PATH}${id}/`;
+        const made = yield* Effect.result(
+          bundler.bundle(htmls, root, { publicPath: prefix, swaps }),
+        );
+        if (Result.isFailure(made)) {
+          yield* Effect.log(`lab.page.wedge id=${id} outcome=Failed`);
+          return { ...now, failed: Option.some(made.failure.reason), wedge: '' } satisfies Wedged;
+        }
+        const pages = new Map<PageName, BuiltFile>();
+        const files = new Map<string, BuiltFile>();
+        for (const { path: name, ...file } of made.success.outputs)
+          Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
+            onNone: () => files.set(`${prefix}${name}`, file),
+            onSome: (page) => pages.set(page, file),
+          });
+        yield* Ref.update(wedges, (kept) => [{ id, pages, files }, ...kept].slice(0, KEPT));
+        yield* Effect.log(`lab.page.wedge id=${id} outcome=Built swaps=${swaps.size}`);
+        return { ...now, wedge: id } satisfies Wedged;
+      }),
+    );
+
+  return LabPage.of({ answer, wait, heardAt, built, wedge });
 });

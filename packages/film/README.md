@@ -1118,9 +1118,9 @@ in an `<img>` or `<audio>` (`stillUrl`, `attemptUrl`, `reviewFileUrl`,
 `reviewPhoneUrl`, `reviewFrameUrl`, `choiceAloneUrl`, `choiceMixUrl`, from
 `urlBuilder`).
 
-| API          | Served by                 | Groups                                                                                                                                                                   |
-| ------------ | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `LabHttpApi` | `film lab` (`labHandler`) | `notes`, `scenes` (source, head, cue, knob), `steps` (undo, redo, check), `studio`, `review` (index, file, phone, frame, duration), `choices`, `project`, `page` (build) |
+| API          | Served by                 | Groups                                                                                                                                                                                   |
+| ------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LabHttpApi` | `film lab` (`labHandler`) | `notes`, `scenes` (source, head, cue, knob), `steps` (undo, redo, check), `studio`, `review` (index, file, phone, frame, duration), `choices`, `project`, `looks` (take), `page` (build) |
 
 **Failures cross as themselves.** A failure a route answers is one of
 `Refusals` (`core/api.ts`; the classes are `core/refusals.ts` and
@@ -1636,6 +1636,143 @@ first scene. `film chapters <film>` prints them, `mm:ss title` a line, and a
 whole-film `render` writes them beside the video as `main.chapters.txt`.
 Fewer than three, a first past 00:00, or one under 10 s fail with
 `ChaptersInvalid` (a render logs the reason and writes none).
+
+### The easel: `film look`
+
+A look is a still of a scene as its sources stand, drawn in about a second
+with no render: the painter's step back from the easel after a passage. The
+lab holds one export page per film open in its own process's Chrome
+(`Easel`, `tools/easel.ts`, over the `Browser` a render uses: no second
+launcher), at `/films/<film>/play?export` on the lab's own address, and a
+look seeks it to the frame and takes the canvas through the view
+(`ExportHandle.still`, composed by `player/still.ts`). `film look` is a thin
+client of the route (`tools/easel-cli.ts`, an `HttpApiClient` of
+`LabHttpApi` at `FILM_LAB_URL`, else `http://127.0.0.1:8229/`); an agent's
+tool calls the route the same way.
+
+| Route                          | What it does                                                                                                                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `POST /api/films/<film>/looks` | `LookPost` `{scene, at: [place, …], view: {crop?, size?, mode, captions, format}, from?, levels?}` → `LookTaken` `{build, looks: [{file, scene, at, frame, time, width, height}]}` |
+
+**Never stale.** Every look first asks the pages' build as it stands
+(`LabPage.built`), judged by content, never by mtime: a build under way is
+waited out, then the build about to be answered, kept or just made (its
+watches and checks set), is judged last, at the moment it is answered: its
+files must have printed alike before and after it read them, and print so
+still (length and hash). A save no watch has heard yet, one in the build's
+own second, one made while the build read, or one landing after it printed
+what it read, is built first; files that keep moving through three builds
+are a `PagesBroken` asking to look again once the saves settle. A failed
+build is a 422 `PagesBroken` with the bundler's words and no still. The
+answer names the build by its own number among those kept
+(`PagesNow.kept`), and the look opens that build's export page
+(`?export&build=<kept>`, served as it was made, unstamped, so it never
+reloads itself), never one built after. The page is held per build
+(`<server>.<kept>`): a new build closes it and opens a fresh one, so the
+page always runs the code on disk; a page that fails a frame is closed too,
+and the next look opens another. Looks run one at a time.
+
+**Places and views** (`core/easel.ts`, pure). A place is seconds into the
+scene (`2.5`), `mark:<name>` (the mark's word, as `scenesOf` places it) or
+`cue:<name>[@<share>]` (0 the cue's start, 1 its end); it resolves to the
+nearest frame inside the scene's own frames (`momentOf`) and answers that
+frame's time. A mark or cue the scene lacks is a 404 `LookPlaceUnknown`
+naming the ones it has, seconds past the scene's end a 422
+`LookOutOfRange`, a scene the film lacks a 404 `UnknownScene`, words that
+name no place or a crop off the frame a 400 `LookInvalid`. The view crops
+(corners in canvas pixels, held to the frame, shown at 1:1), scales the long
+side (`size`, 16 to 4096), and draws `plain`, `value` (greys) or `squint`
+(greys blurred by 1.2% of the long side, at least 2 px, over the region's
+edges stretched outward so the frame's border blurs into itself). A crop is
+PNG and a whole frame JPEG at 0.95 unless the format is named
+(`formatFor`): a 1920×1080 PNG of the paper is about 4 MB.
+
+**Files.** Each still is written once, under `out/<film>/look/<scene>/`,
+named by its time, mode, crop, size, captions and build
+(`t0002.33.squint.crop0_0_700_500.b<build>.png`), so a path an agent was
+handed keeps its pixels. `from`, the asker's films folder, guards a lab
+serving another checkout: it refuses with a 409 `LabElsewhere` instead of
+showing its own files. A look whose page fails is a 502 `LookFailed` with
+the page's words. The CLI adds `LabDown` (no lab answered, or one too old to
+know the route) and checks the request before sending it: one the route
+would refuse unread (a `--size` under 16) is `LookInvalid`, asked of no
+lab. A failure prints (`--json`, and `film judge --json`) exactly as the
+route answers it, decoded by one schema, `ToolFailure` in `core/api.ts`:
+the route's refusals, `LabDown`, the judge's own, and `ToolFailed`
+(`{failed, reason}`) for any other. Each look logs `easel.look … ms= built_ms= page_ms=
+draw_ms=`: the build asked, the page opened (0 when held), the frames drawn
+and written.
+
+**Wedges.** `levels` (`{ground: 'light'}`, `film look --level ground=light`)
+draws a wedge, the printer's strip at several grades: each look named at
+that level in place of the one it plays, the pick unwritten. The easel reads
+the film's `palette.ts`, checks each look and level against the ones it
+declares (`lookLevels`, `tools/choice-source.ts`; a 404 `LookLevelUnknown`
+names them), and edits `play` exactly as a pick would (`editPick`), in
+memory. `LabPage.wedge` builds the pages once more with that text in place
+of the file (`PageBundler`'s `swaps`, a Bun plugin that also refuses a swap
+the build never read), once per build and swap, the last few kept; the
+wedge's page is answered at its usual path with `?wedge=<id>` and its files
+under `/wedge/<id>/`. Its page is held beside the film's own (four at
+most), and its stills carry the levels in their names
+(`….wground-light.b<server>.<build>.<wedge>.jpg`).
+
+### The judge: `film judge`
+
+`film judge <film> --scene <id> [--point <id>]` (`tools/judge.ts`, its
+words pure in `core/judge.ts`) is a blind second opinion on one picture
+choice. A version is what the Choices view picks between for the picture:
+a look point's levels (`look:<name>`, each drawn as a wedge through the look
+route, so the lab at `FILM_LAB_URL` must run) and a render set's variants
+(`render:<address>`, the catalogue's videos at an address that holds the
+scene, each cut by `Media.still` at the same film seconds). A sound point
+is `JudgePointUnjudged`; unnamed, the scene's one picture choice with two
+versions or more is judged, several are `JudgePointAmbiguous`, none
+`JudgeNothingToCompare`. The moments are the scene's marks and its cues'
+middles, one per frame as a look resolves it (`momentOf` at the film's fps,
+counted from the film's start), at most `JUDGE_MOMENTS` (12) spread evenly
+(`judgeMoments`); stills are 1280-pixel JPEGs, drawn straight to
+`stills/<label>-<nn>.jpg` in a folder of their own under the system's temp
+folder, beside `packet.md` and nothing else (a look's stills are copied
+there from the lab's own files, which stay the lab's, so judges at once
+never take one another's). The labels are drawn
+by `Random.shuffle`; the key (`JudgeKey`) stays in memory until the counsel
+has answered, and is never in `packet.md` (`packetOf`): the beat's words, its picture's brief,
+its register (`registersOf`, the head of the brief) and act, the app's rules
+that bear on it (`FilmApp.judge.rules`, each a heading of a file, for every
+beat or for a register; a heading its file lacks is `JudgeRuleMissing`),
+the stills by label and moment (each by its path beside the packet), and
+the form of the answer; it names no place (a rule's file by its name
+alone). The counsel is a seam (`Counsel`, `tools/counsel.ts`) with two
+adapters. `Counsel.layer` runs `okra counsel --deep --from claude -f
+/judge/packet/packet.md -o /judge/answer` (Codex) in the counsel's sandbox
+(`tools/sandbox.ts`, bubblewrap): a mount namespace that starts empty and
+shows only `/usr` and its merged links, `/etc`, the resolver's folder, a
+fresh `/proc`, `/dev` and `/tmp`, the packet's folder read-only at
+`/judge/packet` (the working folder), a temp folder written at
+`/judge/answer` (okra's prompt copy and run folder land there, copied into
+`<run>/counsel/` once it is done), okra's program, Codex's package and
+Node under `/judge/tools`, and a home of its own holding only Codex's
+sign-in (written, so a refreshed token lands in place), its settings and
+model lists (`okraRun`). The environment is cleared but for `PATH`, `HOME`
+and `LANG`. So no earlier run's folder, no look file, no repo, no cache
+and no home is there to read. The network is shared (Codex needs the
+internet), so the lab's loopback port stays reachable, though nothing in
+the sandbox names it. It reads the `codex.md` or `claude.md` written,
+its sandbox paths said as the host's (a non-zero exit is
+`CounselFailed`, 124 its time out); `Counsel.sandboxed` runs any command
+so (the tests probe the sandbox with one); `Counsel.layerTest` answers
+from a function of the packet. Its last `RANKING:` line is read (`rankingOf`: a
+whole expression, every label once, `>` between tiers, `=` a tie, nothing
+after; or exactly `no preference`; else `CounselUnreadable`) and unblinded
+into `verdict.md` (`verdictOf`) in the run's own folder,
+`out/<film>/judge/<scene>-<stamp>-<draw>/` (made by an exclusive mkdir, so
+two runs never share one), beside the stills, the packet (as it was read)
+and `key.json`: the ranking in real names beside the owner's pick
+(the level the look plays, the render set's approved variant), the key, the
+reasons with each label's heading named, and the counsel's answer and
+packet by path. The judge writes no choice. It logs `judge.drawn label= stills=` per version and `judge.done
+… ms=`.
 
 ## Review
 

@@ -121,13 +121,15 @@ interface FilmRepoService {
 }
 
 const ScenesModule = Schema.Struct({ scenes: Schema.Array(Timed) });
-/** The part of `script.ts` the tools read: each beat's line and its sources. */
+/** The part of `script.ts` the tools read: each beat's line, its sources and its picture's brief. */
 const ScriptModule = Schema.Struct({
   script: Schema.Array(
     Schema.Struct({
       id: Schema.String,
       say: Schema.optionalKey(Schema.String),
       cite: Schema.Array(Schema.String).pipe(Schema.withDecodingDefaultKey(Effect.succeed([]))),
+      /** What the picture does (the judge quotes it, `tools/judge.ts`). */
+      picture: Schema.optionalKey(Schema.String),
     }),
   ),
   heardAs: HeardAs.pipe(Schema.withDecodingDefaultKey(Effect.succeed({}))),

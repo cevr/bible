@@ -53,6 +53,8 @@ import {
   ExportAnswers,
   type LumaArea,
 } from '../core/export-handle.ts';
+import { LookFailed, type SceneTimes, type StillView } from '../core/easel.ts';
+import { Easel } from './easel.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler } from './lab.ts';
@@ -587,17 +589,39 @@ export const noReview = Layer.mergeAll(
 
 /**
  * The lab's pages as a test sees them: each answers its path, a wait the
- * build it was asked past, and no page hears a mix.
+ * build it was asked past, and no page hears a mix; the easel draws nothing
+ * (a look fails `LookFailed`), since no browser runs.
  */
-export const echoPages = Layer.succeed(
-  LabPage,
-  LabPage.of({
-    answer: Effect.map(HttpServerRequest.HttpServerRequest, (request) =>
-      HttpServerResponse.text(`page ${new URL(request.url, 'http://lab').pathname}`),
-    ),
-    wait: (served) => Effect.succeed({ build: served.since, server: 'echo' }),
-    heardAt: () => Effect.succeedNone,
-  }),
+export const echoPages = Layer.mergeAll(
+  Layer.succeed(
+    LabPage,
+    LabPage.of({
+      answer: Effect.map(HttpServerRequest.HttpServerRequest, (request) =>
+        HttpServerResponse.text(`page ${new URL(request.url, 'http://lab').pathname}`),
+      ),
+      wait: (served) => Effect.succeed({ build: served.since, server: 'echo' }),
+      heardAt: () => Effect.succeedNone,
+      built: Effect.succeed({
+        build: { build: 0, server: 'echo' },
+        kept: 0,
+        failed: Option.none(),
+      }),
+      wedge: () =>
+        Effect.succeed({
+          build: { build: 0, server: 'echo' },
+          kept: 0,
+          failed: Option.none(),
+          wedge: 'w',
+        }),
+    }),
+  ),
+  Layer.succeed(
+    Easel,
+    Easel.of({
+      serve: () => Effect.void,
+      look: () => Effect.fail(LookFailed.make({ reason: 'no easel in this test' })),
+    }),
+  ),
 );
 
 /**
@@ -941,6 +965,8 @@ export interface RenderLedger {
   readonly aac: Array<number>;
   /** The URL of every page opened. */
   readonly urls: Array<string>;
+  /** Every look's still drawn: its frame and how it was shown. */
+  readonly stills: Array<{ readonly frame: number; readonly view: StillView }>;
   /** AAC encodes cut off before they ended. */
   readonly aacInterrupted: { count: number };
 }
@@ -962,6 +988,7 @@ export const emptyLedger = (): RenderLedger => ({
   aac: [],
   aacInterrupted: { count: 0 },
   urls: [],
+  stills: [],
 });
 
 export const testExportInfo: ExportInfo = {
@@ -1009,6 +1036,10 @@ export interface FakeRenderHost {
   readonly looked?: (i: number) => FakeLook;
   /** The luma every sample of frame `i`'s `area` reads, as `luma` reports it (default 128). */
   readonly luma?: (i: number, area: LumaArea) => number;
+  /** The scenes the page reports (`scenes`, a look's clocks; none by default). */
+  readonly scenes?: ReadonlyArray<SceneTimes>;
+  /** What page `page`'s `scenes` waits on before it answers (nothing by default): a page still opening. */
+  readonly opening?: (page: number) => Effect.Effect<void>;
 }
 
 /**
@@ -1041,6 +1072,11 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
     faces: [],
   }));
   const luma = Option.getOrElse(Option.fromNullishOr(host.luma), () => () => 128);
+  const scenes = Option.getOrElse(
+    Option.fromNullishOr(host.scenes),
+    (): ReadonlyArray<SceneTimes> => [],
+  );
+  const opening = Option.getOrElse(Option.fromNullishOr(host.opening), () => () => Effect.void);
   const probe = Option.getOrElse(
     Option.fromNullishOr(host.probe),
     () => (): Effect.Effect<Probed> => Effect.succeed({ texts: [], inks: [] }),
@@ -1133,6 +1169,12 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
           Array.from({ length: area.cols * area.rows }, () => luma(i, area)),
         ),
       drawTimes: (frames) => Effect.forEach(frames, (i) => Effect.as(frame(i), 1)),
+      scenes: () => Effect.as(opening(page), scenes),
+      still: (i, view) =>
+        Effect.map(frame(i), (bytes) => {
+          ledger.stills.push({ frame: i, view });
+          return bytes;
+        }),
     };
   };
   const browser = Layer.effect(

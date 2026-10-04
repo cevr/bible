@@ -83,6 +83,11 @@ import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
 import { labAllowed, labHandler, labLink } from './lab.ts';
 import { type LabAt, labServer, serveLab } from './api-server.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
+import { Easel } from './easel.ts';
+import { look } from './easel-cli.ts';
+import { journal } from './journal-cli.ts';
+import { judge } from './judge-cli.ts';
+import type { JudgeRule } from '../core/judge.ts';
 import { Review, type ReviewRoot } from './review.ts';
 import { NotesStore } from './notes-store.ts';
 import { notes } from './notes-cli.ts';
@@ -815,6 +820,8 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
       // The server lives in the command's scope: Ctrl-C (or the unit stopping) stops it.
       const server = yield* Layer.build(labServer(yield* app.at));
       const url = yield* serveLab(handler).pipe(Effect.provideContext(server));
+      // The easel's pages are the lab's own, served where it is bound.
+      yield* (yield* Easel).serve(url);
       const link = labLink(url, allowed);
       yield* Console.log(link);
       yield* Effect.log(
@@ -823,8 +830,14 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
       return yield* Effect.never;
     }, Effect.scoped),
   ).pipe(
-    // The pages, built from the app's entries and watched while the lab runs.
-    Command.provide(LabPage.layer({ ...app.pages, films }).pipe(Layer.provide(PageBundler.layer))),
+    // The pages, built from the app's entries and watched while the lab runs,
+    // and the easel's warm pages over them, in this process's Chrome.
+    Command.provide(
+      Easel.layer.pipe(
+        Layer.provideMerge(LabPage.layer({ ...app.pages, films })),
+        Layer.provide(Layer.mergeAll(PageBundler.layer, Browser.layer)),
+      ),
+    ),
     Command.withDescription(
       "Serve the lab for every film: the player with notes on frames, cues and knobs that write back to the scene files and the studio, beside every render under the roots, compared in sync, and each film's choices and scenes to approve (Ctrl-C stops it)",
     ),
@@ -872,6 +885,13 @@ interface FilmApp<E> {
    * (`options`, `FreshFilm`).
    */
   readonly self: ReadonlyArray<string>;
+  /**
+   * What `film judge` quotes: sections of the app's rule files, each by its
+   * heading line, for every beat or only for a beat in one of its registers
+   * (`STORY`, `IDEA`). A section its file lacks fails the judge
+   * (`JudgeRuleMissing`).
+   */
+  readonly judge: { readonly rules: ReadonlyArray<JudgeRule> };
 }
 
 /**
@@ -886,6 +906,7 @@ export const runFilmCli = <E>({
   previewServer,
   lab: labApp,
   self,
+  judge: judging,
 }: FilmApp<E>): void => {
   // The app's folders under the environment's: FILMS_OUT and FILMS_LAB, when set, win.
   const Folders = ConfigProvider.layerAdd(
@@ -962,6 +983,9 @@ export const runFilmCli = <E>({
       chaptersCommand,
       doctor(previewServer),
       lab(labApp, films),
+      look(films),
+      journal,
+      judge(films, judging.rules),
       notes,
     ]),
   );
