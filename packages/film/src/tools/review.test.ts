@@ -591,6 +591,46 @@ describe('the review service', () => {
       }).pipe(Effect.provide(fixture(false))),
   );
 
+  it.effect(
+    'a say on a version rendered again since the index showed it is refused, and nothing is written',
+    () =>
+      Effect.gen(function* () {
+        const review = yield* Review;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const file = path.join(yield* Root, 'out', 'f', 'catalogue.json');
+        const shown = Option.getOrThrow(
+          Option.fromUndefinedOr(
+            (yield* review.index(false)).folders.find((f) => f.ref === 'out/f'),
+          ),
+        );
+        const film = shown.sets[0]?.id ?? '';
+        expect(shown.sets[0]?.variants.find((v) => v.id === 'main')?.key).toBe('k1');
+        // main is rendered again (k2) while the index still shows k1.
+        const again = recordRender(projectCatalogue, {
+          ...videoRender({ _tag: 'Film' }, 'film', 'main', 'k2'),
+          at: 9,
+        });
+        yield* fs.writeFileString(file, yield* Schema.encodeEffect(CatalogueJson)(again));
+        const refused = yield* Effect.flip(
+          review.say('out/f', film, { variant: 'main', say: { _tag: 'Approve' } }),
+        );
+        expect(refused._tag).toBe('VersionChanged');
+        const onDisk = yield* Schema.decodeEffect(CatalogueJson)(yield* fs.readFileString(file));
+        expect(onDisk.approvals).toEqual([]);
+        // Read again, the version now shown is approved as it is.
+        const now = yield* review.say('out/f', film, { variant: 'main', say: { _tag: 'Approve' } });
+        const main = now.sets.find((s) => s.id === film)?.variants.find((v) => v.id === 'main');
+        expect([main?.key, main?.approval]).toEqual(['k2', 'approved']);
+        // wide, drawn from k1, is stale beside main's k2: its approval is refused.
+        const wide = yield* Effect.flip(
+          review.say('out/f', film, { variant: 'wide', say: { _tag: 'Approve' } }),
+        );
+        expect(wide._tag).toBe('VerbRefused');
+        expect(wide.message).toContain('stale');
+      }).pipe(Effect.provide(fixture(false))),
+  );
+
   it.effect('resolves a ref inside its root that the index lists, and nothing else', () =>
     Effect.gen(function* () {
       const review = yield* Review;

@@ -70,6 +70,7 @@ import {
   UndoUnavailable,
   VariantUnknown,
   VerbRefused,
+  VersionChanged,
 } from './refusals.ts';
 import {
   CheckReport,
@@ -181,6 +182,7 @@ const Refusals = [
   RedoUnavailable.pipe(status(409)),
   SourceChanged.pipe(status(409)),
   VerbRefused.pipe(status(409)),
+  VersionChanged.pipe(status(409)),
   BodyTooLarge.pipe(status(413)),
   WriteNotJson.pipe(status(415)),
   RecordingLossy.pipe(status(415)),

@@ -4,7 +4,7 @@
 // words are its message on both ends. The tools import them from
 // `tools/errors.ts`, which re-exports them with the rest.
 
-import { Schema } from 'effect';
+import { Option, Schema } from 'effect';
 
 /** A name that is none of the films in the folder: answered with the films there are, no path. */
 export class FilmUnknown extends Schema.TaggedError<FilmUnknown>()('FilmUnknown', {
@@ -290,6 +290,28 @@ export class VerbRefused extends Schema.TaggedError<VerbRefused>()('VerbRefused'
 }) {
   override get message() {
     return `cannot ${this.verb} ${this.variant.slice(0, 24)} of "${this.point}": ${this.reason}`;
+  }
+}
+
+/**
+ * A say on a version that was made again (or dropped) since it was shown: the
+ * say was for the version the reviewer saw, so nothing is written; read the
+ * set again and say it of the version now there.
+ */
+export class VersionChanged extends Schema.TaggedError<VersionChanged>()('VersionChanged', {
+  point: Schema.String,
+  variant: Schema.String,
+  /** The version's key as it was shown. */
+  shown: Schema.String,
+  /** Its key now, if it is still there. */
+  now: Schema.Option(Schema.String),
+}) {
+  override get message() {
+    const now = Option.match(this.now, {
+      onNone: () => 'it is gone',
+      onSome: (key) => `it is ${key.slice(0, 12)} now`,
+    });
+    return `${this.variant.slice(0, 24)} of "${this.point}" changed since it was shown (${this.shown.slice(0, 12)}; ${now}): read it again and say it of the version now there`;
   }
 }
 

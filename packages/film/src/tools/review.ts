@@ -43,6 +43,7 @@ import {
   Queue,
   Record as Rec,
   Ref,
+  Result,
   Schema,
 } from 'effect';
 import { type PlatformError, isPlatformError } from 'effect/PlatformError';
@@ -84,6 +85,7 @@ import {
   ReviewToolFailed,
   VariantUnknown,
   VerbRefused,
+  VersionChanged,
 } from '../core/refusals.ts';
 import { clamp } from '../core/time.ts';
 import { CATALOGUE_FILE, type CatalogueError, RenderCatalogue } from './catalogue.ts';
@@ -515,7 +517,9 @@ interface ReviewService {
    * Say `asked.say` of version `asked.variant` of the set `point` in the
    * project folder `folder` (a ref), as it is now: written to that folder's
    * own catalogue, answered with the folder as the say leaves it. A montage
-   * keeps no say (its manifest is written by hand).
+   * keeps no say (its manifest is written by hand). The version is checked
+   * again inside the catalogue's write: one made again since the index showed
+   * it is `VersionChanged`, and an approval is refused by its state then.
    */
   readonly say: (
     folder: string,
@@ -523,7 +527,12 @@ interface ReviewService {
     asked: SetSayPost,
   ) => Effect.Effect<
     ReviewFolder,
-    ReviewFileUnknown | ChoiceUnknown | VariantUnknown | VerbRefused | CatalogueError
+    | ReviewFileUnknown
+    | ChoiceUnknown
+    | VariantUnknown
+    | VerbRefused
+    | VersionChanged
+    | CatalogueError
   >;
   /** A video's length in seconds (its container's index), kept per path and mtime. */
   readonly duration: (ref: string) => Effect.Effect<number, ReviewFileUnknown | MediaFailed>;
@@ -967,21 +976,52 @@ export class Review extends Context.Service<Review, ReviewService>()('@bible/fil
           const address = yield* Effect.fromOption(set.address, () =>
             refused('say', 'it belongs to no film address'),
           );
-          const stale = approvalRefused(set.kind, variant);
-          if (asked.say._tag === 'Approve' && Option.isSome(stale))
-            return yield* refused('approve', stale.value);
           const at = yield* Clock.currentTimeMillis;
           const subject = subjectAt(set.ref, address, variant);
           const { film } = yield* catalogues.read({ name: ref, out: dir.value });
-          yield* catalogues.update({ name: film, out: dir.value }, (catalogue) => {
-            const next = said(catalogue, subject, asked.say, at);
-            return [next, next] as const;
+          // The index may be up to INDEX_FRESH old: the version is checked
+          // against the catalogue as the write reads it, and the say written
+          // only of the version that was shown.
+          const written = yield* catalogues.update<
+            Result.Result<string, VersionChanged | VerbRefused>
+          >({ name: film, out: dir.value }, (catalogue) => {
+            const render = Arr.findFirst(
+              catalogue.renders,
+              (r) =>
+                r.kind === 'video' &&
+                r.variant === variant.id &&
+                addressKey(r.address) === addressKey(address),
+            );
+            const now = Option.map(render, (r) => subjectOf(r).key);
+            if (!Option.contains(now, variant.key))
+              return [
+                Result.fail(
+                  VersionChanged.make({ point, variant: variant.id, shown: variant.key, now }),
+                ),
+                catalogue,
+              ] as const;
+            const stale = Option.flatMap(
+              Option.liftPredicate(asked.say, (s) => s._tag === 'Approve'),
+              () =>
+                approvalRefused(
+                  set.kind,
+                  Option.match(recordedNow(catalogue, address), {
+                    onNone: () => ({ state: 'current' as const, staleBy: Option.none() }),
+                    onSome: (latest) => renderState(render, latest),
+                  }),
+                ),
+            );
+            if (Option.isSome(stale))
+              return [Result.fail(refused('approve', stale.value)), catalogue] as const;
+            return [Result.succeed(variant.id), said(catalogue, subject, asked.say, at)] as const;
           });
+          // The index reads the folder again on its next ask: it changed, or the
+          // index was found behind it.
+          yield* Ref.set(cached, Option.none());
+          yield* Effect.fromResult(written);
           yield* Effect.log(
             `review.say folder=${ref} point=${point} variant=${variant.id} say=${asked.say._tag}`,
           );
-          // The index reads the folder again on its next ask.
-          yield* Ref.set(cached, Option.none());
           const built = yield* folderAt(file);
           return yield* Effect.fromOption(
             Option.map(built, (b) => b.folder),
