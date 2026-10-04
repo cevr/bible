@@ -26,10 +26,8 @@ export const LabView = Schema.Struct({
     ]),
   ),
   onion: Schema.Struct({ on: Schema.Boolean, count: Schema.Finite, spacing: Schema.Finite }),
-  compare: Schema.Struct({
-    mode: Schema.Literals(['off', 'wipe', 'blink']),
-    split: Schema.Finite,
-  }),
+  /** The wipe's divider, this viewer's; the compare's mode is the link's (`?view=`). */
+  compare: Schema.Struct({ split: Schema.Finite }),
   playing: Schema.Boolean,
   /**
    * The beat the studio records, and whether focus was in the studio (so its
@@ -44,7 +42,7 @@ export type LabView = typeof LabView.Type;
 export const DEFAULT_VIEW: LabView = {
   rate: 1,
   onion: { on: false, count: 2, spacing: 3 },
-  compare: { mode: 'off', split: 0.5 },
+  compare: { split: 0.5 },
   playing: false,
 };
 

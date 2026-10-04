@@ -9,6 +9,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effect';
 import {
+  type CompareView,
   LabHttpApi,
   declares,
   type PageName,
@@ -36,6 +37,7 @@ const probePlaced = probeFilm().placed;
 interface LabPick {
   readonly selection?: LabSelection;
   readonly note?: string;
+  readonly view?: CompareView;
 }
 
 /** The probe film's lab at film seconds `T` with `pick`: the link the lab itself writes (`labHref`). */
@@ -46,6 +48,7 @@ export const labAt = (T: number, pick: LabPick = {}): string =>
     {
       selection: Option.fromUndefinedOr(pick.selection),
       note: Option.fromUndefinedOr(pick.note),
+      view: Option.getOrElse(Option.fromUndefinedOr(pick.view), (): CompareView => 'off'),
     },
     T,
   );

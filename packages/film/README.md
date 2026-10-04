@@ -1612,7 +1612,15 @@ commit made since shows) and draws the frame with HEAD's timeline and knobs
 through today's code (`player.renderShown`, the frame as the lab shows it,
 with HEAD's edit over whatever else the lab previews) on a layer over the
 film: wipe (HEAD left of a draggable
-divider) or blink. The mode is one effect-machine (`lab/compare/machine.ts`): `Off | Wipe | Blink` on `Choose | Split | Flip`, a blink flipping itself every 450 ms by the machine's timeout. Only data can differ that way; when the file's code
+divider), blink, or diff (a _difference matte_: HEAD laid over the frame in
+the `difference` blend, so what did not change is black and what an edit
+moved is lit). A blink is also flipped by hand: on the frame, a press held
+shows HEAD until it lifts (a phone's way, where there are no keys). The mode
+is one effect-machine (`lab/compare/machine.ts`): `Off | Wipe | Blink | Held | Diff`
+on `Choose | Split | Flip | Hold`, a blink flipping itself every 450 ms by the
+machine's timeout and waiting while held. The mode is the link's (`?view=off|wipe|blink|diff`
+on `/films/<film>/lab[/<scene>]`, written in place, so Back walks picks, not
+modes); the divider is the viewer's, kept in `film-lab-view:<film>`. Only data can differ that way; when the file's code
 changed since HEAD the panel says so, and a HEAD the server cannot give shows the server's reason.
 
 **The look-book** (`player/lookbook-sheet.ts`) is one sheet of the whole film:

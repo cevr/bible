@@ -11,10 +11,12 @@ import {
   BLINK_MS,
   CompareEvent,
   CompareState,
-  compareFromView,
+  blendOf,
+  compareAt,
   compareMachine,
   compareView,
   layerOf,
+  modeOf,
   splitOf,
 } from './machine.ts';
 
@@ -113,23 +115,89 @@ describe('the blink, through an actor', () => {
   );
 });
 
-describe('the view', () => {
-  test('keeps the mode and the divider through a reload', () => {
+describe('diff (PA-9)', () => {
+  test('shows HEAD whole over the frame in the difference blend: black where nothing moved', () => {
+    const diff = CompareState.Diff({ split: 0.5 });
+    expect(layerOf(diff)).toBe('head');
+    expect(blendOf(diff)).toBe('difference');
+    expect(splitOf(diff)).toEqual(Option.none());
+    expect(modeOf(diff)).toBe('diff');
+    for (const state of [
+      CompareState.Off({ split: 0.5 }),
+      CompareState.Wipe({ split: 0.5 }),
+      CompareState.Blink({ split: 0.5, head: true }),
+    ])
+      expect(blendOf(state)).toBe('normal');
+  });
+
+  it.effect('is a mode like the others, keeping the divider', () =>
+    Effect.gen(function* () {
+      const result = yield* simulate(off, [
+        CompareEvent.Choose({ mode: 'wipe' }),
+        CompareEvent.Split({ split: 0.3 }),
+        CompareEvent.Choose({ mode: 'diff' }),
+        CompareEvent.Choose({ mode: 'wipe' }),
+      ]);
+      expect(result.states.slice(2)).toEqual([
+        CompareState.Wipe({ split: 0.3 }),
+        CompareState.Diff({ split: 0.3 }),
+        CompareState.Wipe({ split: 0.3 }),
+      ]);
+    }),
+  );
+});
+
+describe('press and hold, the blink by hand (PA-9)', () => {
+  it.effect('a hold shows HEAD for as long as it lasts; the release shows now', () =>
+    Effect.gen(function* () {
+      const result = yield* simulate(off, [
+        CompareEvent.Choose({ mode: 'blink' }),
+        CompareEvent.Hold({ on: true }),
+        CompareEvent.Hold({ on: false }),
+      ]);
+      expect(result.states.slice(2)).toEqual([
+        CompareState.Held({ split: 0.5 }),
+        CompareState.Blink({ split: 0.5, head: false }),
+      ]);
+      expect(layerOf(CompareState.Held({ split: 0.5 }))).toBe('head');
+      expect(modeOf(CompareState.Held({ split: 0.5 }))).toBe('blink');
+    }),
+  );
+
+  it.effect('while held, the timed flip waits', () =>
+    Effect.gen(function* () {
+      const actor = yield* Machine.spawn(off);
+      yield* actor.start;
+      yield* actor.send(CompareEvent.Choose({ mode: 'blink' }));
+      yield* actor.send(CompareEvent.Hold({ on: true }));
+      yield* TestClock.adjust(`${BLINK_MS * 3} millis`);
+      expect(yield* SubscriptionRef.get(actor.state)).toEqual(CompareState.Held({ split: 0.5 }));
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect('a hold means nothing outside the blink', () =>
+    Effect.gen(function* () {
+      yield* assertPath(off, [CompareEvent.Hold({ on: true })], ['Off']);
+    }),
+  );
+});
+
+describe('the URL and the view (PA-9)', () => {
+  test("the mode is the link's (`?view=`); the divider is this viewer's, kept through a reload", () => {
     for (const state of [
       CompareState.Off({ split: 0.2 }),
       CompareState.Wipe({ split: 0.7 }),
       CompareState.Blink({ split: 0.4, head: false }),
+      CompareState.Diff({ split: 0.6 }),
     ]) {
       const kept = compareView(state);
-      expect(compareFromView(kept)._tag).toBe(state._tag);
-      expect(compareFromView(kept).split).toBe(state.split);
+      expect(kept).toEqual({ split: state.split });
+      const back = compareAt(modeOf(state), kept);
+      expect(modeOf(back)).toBe(modeOf(state));
+      expect(back.split).toBe(state.split);
     }
-    expect(compareView(CompareState.Blink({ split: 0.4, head: false }))).toEqual({
-      mode: 'blink',
-      split: 0.4,
-    });
-    expect(Option.some(compareFromView({ mode: 'blink', split: 0.4 }))).toEqual(
-      Option.some(CompareState.Blink({ split: 0.4, head: true })),
+    expect(compareAt('blink', { split: 0.4 })).toEqual(
+      CompareState.Blink({ split: 0.4, head: true }),
     );
   });
 });

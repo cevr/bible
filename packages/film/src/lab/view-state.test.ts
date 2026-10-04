@@ -36,7 +36,7 @@ describe('lab view state', () => {
     before.patch({ rate: 0.25 });
     before.patch({ loop: Option.some({ kind: 'cue', scene: 'hand', name: 'topple' }) });
     before.patch({ onion: { on: true, count: 3, spacing: 2 } });
-    before.patch({ compare: { mode: 'wipe', split: 0.3 } });
+    before.patch({ compare: { split: 0.3 } });
     before.patch({ playing: true });
     before.patch({ studio: { beat: 'thesis' } });
     const after = page().get();
@@ -44,7 +44,7 @@ describe('lab view state', () => {
       rate: 0.25,
       loop: { kind: 'cue', scene: 'hand', name: 'topple' },
       onion: { on: true, count: 3, spacing: 2 },
-      compare: { mode: 'wipe', split: 0.3 },
+      compare: { split: 0.3 },
       playing: true,
       studio: { beat: 'thesis' },
     });
@@ -56,8 +56,17 @@ describe('lab view state', () => {
     const { storage, page } = tab();
     page().patch({ rate: 0.5, loop: Option.some({ kind: 'ab', from: 1, to: 2 }) });
     expect(storage.items.get('film-lab-view:f')).toBe(
-      '{"rate":0.5,"loop":{"kind":"ab","from":1,"to":2},"onion":{"on":false,"count":2,"spacing":3},"compare":{"mode":"off","split":0.5},"playing":false}',
+      '{"rate":0.5,"loop":{"kind":"ab","from":1,"to":2},"onion":{"on":false,"count":2,"spacing":3},"compare":{"split":0.5},"playing":false}',
     );
+  });
+
+  test("a view kept before the compare's mode moved into the link (?view=, PA-9) still reads, its divider kept", () => {
+    const { storage, page } = tab();
+    storage.setItem(
+      'film-lab-view:f',
+      '{"rate":1,"onion":{"on":false,"count":2,"spacing":3},"compare":{"mode":"wipe","split":0.3},"playing":false}',
+    );
+    expect(page().get().compare).toEqual({ split: 0.3 });
   });
 
   test('a loop can be turned off', () => {

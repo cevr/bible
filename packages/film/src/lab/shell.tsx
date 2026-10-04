@@ -33,6 +33,7 @@ import { LAB_MODES, type LabMode, MODE_TITLE, modeCommands, modeOf } from './mod
 import { type ViewStore, viewStore } from './view-state.ts';
 import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
 import { goToCommands } from '../command/go.ts';
+import type { CompareView } from '../core/api.ts';
 import type { Hub } from '../command/hub.ts';
 import type { LabSelection } from '../command/selection.ts';
 import { CommandMenu } from './command/command-menu.tsx';
@@ -58,6 +59,8 @@ interface LabState {
   readonly selection: Accessor<Option.Option<LabSelection>>;
   /** The note selected: the URL's (`?note=`). */
   readonly note: Accessor<Option.Option<string>>;
+  /** How the compare meets HEAD: the URL's (`?view=`, PA-9). */
+  readonly view: Accessor<CompareView>;
   /** What a reload held by the owner's unsaved work waits for (`ReloadGate`); empty while none waits. */
   readonly reloadWaiting: Accessor<string>;
   /** The tool the inspector shows (`lab/mode.ts`): one at a time. */
@@ -73,6 +76,8 @@ interface LabActions {
   readonly selectNote: (note: Option.Option<string>) => void;
   /** Drop the note from the URL in place (it is gone from the feed): no entry to come back to. */
   readonly forgetNote: () => void;
+  /** Compare with HEAD by `view`, in place: the mode is the link's, with no entry of its own. */
+  readonly compareBy: (view: CompareView) => void;
   /** Show `mode` in the inspector, and keep it for this viewer. */
   readonly showMode: (mode: LabMode) => void;
 }
@@ -239,6 +244,7 @@ const Root = (props: RootProps) => {
         revision,
         selection: () => here().selection,
         note: () => here().note,
+        view: () => here().view,
         reloadWaiting,
         mode,
       },
@@ -251,6 +257,7 @@ const Root = (props: RootProps) => {
         select: (selection) => address.push(picked({ selection })),
         selectNote: (note) => address.push(picked({ note })),
         forgetNote: () => address.replace(picked({ note: Option.none() })),
+        compareBy: (view) => address.replace(picked({ view })),
         showMode,
       },
       meta: {
@@ -288,10 +295,10 @@ const Root = (props: RootProps) => {
 /** The viewer's mode, kept in the browser: a convenience, safe to lose. */
 const keptMode = keptText(ViewerStore, 'film-studio.lab-mode');
 
-/** What the lab has picked, as the URL at `href` holds it. */
+/** What the lab has picked, and how it compares with HEAD, as the URL at `href` holds it. */
 const pickOf = (href: string) => {
-  const { selection, note } = labPlaceOf(href);
-  return { selection, note };
+  const { selection, note, view } = labPlaceOf(href);
+  return { selection, note, view };
 };
 
 /** The element the film canvas sits in (its stage): the pinned layers' frame. */

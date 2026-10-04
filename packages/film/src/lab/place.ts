@@ -1,5 +1,5 @@
 // The lab's place in the URL (`Places.lab`, `Places.labScene`, core/api.ts):
-// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>#t=<seconds>`.
+// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&view=<compare>#t=<seconds>`.
 // The path's scene is the selection's scene when something is selected, else
 // the scene under the playhead, so the path never names a scene the frame has
 // left; `#t=` is the frame's time in that scene (signed: a selection's scene
@@ -9,7 +9,7 @@
 
 import { Place, parseHref } from '@bible/url-state';
 import { Array as Arr, Option } from 'effect';
-import { Places, pageHref } from '../core/api.ts';
+import { type CompareView, Places, pageHref } from '../core/api.ts';
 import { type Placed, sceneAt } from '../core/layout.ts';
 import { onTheMs } from '../player/t-in-url.ts';
 import { type LabSelection as Selection, cueOf, knobOf, labKeysOf } from '../command/selection.ts';
@@ -22,6 +22,8 @@ interface LabPlace {
   readonly selection: Option.Option<Selection>;
   /** The note selected (`?note=<id>`). */
   readonly note: Option.Option<string>;
+  /** The compare with HEAD (`?view=`, PA-9): off unless the link names a mode. */
+  readonly view: CompareView;
   /** `#t=`: seconds into the path's scene, or film seconds on a film's lab. */
   readonly t: Option.Option<number>;
 }
@@ -30,6 +32,7 @@ const NOWHERE: LabPlace = {
   scene: Option.none(),
   selection: Option.none(),
   note: Option.none(),
+  view: 'off',
   t: Option.none(),
 };
 
@@ -54,12 +57,14 @@ export const labPlaceOf = (href: string): LabPlace =>
         scene: Option.some(path.scene),
         selection: selectionIn(path.scene, query),
         note: named(query.note),
+        view: query.view,
         t: hash.t,
       })),
       () =>
         Option.map(Place.decode(Places.lab, href), ({ query, hash }): LabPlace => ({
           ...NOWHERE,
           note: named(query.note),
+          view: query.view,
           t: hash.t,
         })),
     ),
@@ -103,10 +108,11 @@ export const labOpensAt = (placed: ReadonlyArray<Placed>, href: string): number 
   );
 };
 
-/** What the lab writes beside the frame's time. */
+/** What the lab writes beside the frame's time: its pick, its note and the compare's mode. */
 interface LabPick {
   readonly selection: Option.Option<Selection>;
   readonly note: Option.Option<string>;
+  readonly view: CompareView;
 }
 
 /**
@@ -126,7 +132,7 @@ export const labHref = (
   );
   const note = Option.getOrElse(pick.note, () => '');
   return Option.match(scene, {
-    onNone: () => pageHref.lab(film, Option.some(onTheMs(T))),
+    onNone: () => pageHref.lab(film, Option.some(onTheMs(T)), pick.view),
     onSome: (id) =>
       pageHref.labScene(
         film,
@@ -137,6 +143,7 @@ export const labHref = (
             onSome: labKeysOf,
           }),
           note,
+          view: pick.view,
         },
         Option.some(onTheMs(T - Option.getOrElse(startOf(placed, id), () => 0))),
       ),

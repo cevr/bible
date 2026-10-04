@@ -879,6 +879,15 @@ body.lab .stage {
   cursor: ew-resize;
   pointer-events: all;
 }
+/* The blink by hand: the whole frame takes the press, and shows nothing of its own. */
+.lab-overlay .lab-hold {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+  cursor: pointer;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
 .lab-divider text {
   fill: var(--on-picture);
   /* In the picture's own units, as the divider's geometry is. */

@@ -756,8 +756,15 @@ const SET_VIEWS = ['all', 'pair', 'moments', 'notes'] as const;
 /** A moment's index (`?m=`): a whole number from 0. */
 const MomentIndex = Codec.Int.check(Schema.isGreaterThanOrEqualTo(0));
 
+/** The lab's compare with HEAD (`?view=`, PA-9): off, a wipe, a blink, or the difference. */
+export const COMPARE_VIEWS = ['off', 'wipe', 'blink', 'diff'] as const;
+export type CompareView = (typeof COMPARE_VIEWS)[number];
+
+/** How the lab compares with HEAD: no step of its own (Back walks the picks, not the modes). */
+const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off' });
+
 /** The lab's selection keys: a cue or a knob of the path's scene, and a note. */
-const LabSelection = Field.struct({ cue: cited, knob: cited, note: cited });
+const LabSelection = Field.struct({ cue: cited, knob: cited, note: cited, view: compareView });
 
 /**
  * A film's player on its choices and its project: the sound heard over the
@@ -824,7 +831,7 @@ export const Places = {
   lab: Place.make({
     path: '/films/:film/lab',
     params: filmParams,
-    query: Field.struct({ note: cited }),
+    query: Field.struct({ note: cited, view: compareView }),
     hash: At,
   }),
   labScene: Place.make({
@@ -880,13 +887,14 @@ const START = { t: Option.none<number>() };
 const NOTHING_HEARD = { heard: '', variant: '', picture: '', only: '' };
 
 /** The lab's selection keys, none set. */
-const NOTHING_SELECTED = { cue: '', knob: '', note: '' };
+const NOTHING_SELECTED = { cue: '', knob: '', note: '', view: 'off' as const };
 
 /** What the lab has selected in a scene: a cue or a knob by name, and a note by id. */
 interface LabPicked {
   readonly cue?: string;
   readonly knob?: string;
   readonly note?: string;
+  readonly view?: CompareView;
 }
 
 /** A time for the hash, when there is one. */
@@ -928,9 +936,13 @@ export const pageHref = {
     Place.href(Places.scene, { path: { film, scene }, query: {}, hash: timeOf(t) }),
   play: (film: string, t: Option.Option<number> = Option.none()): string =>
     Place.href(Places.play, { path: { film }, query: {}, hash: timeOf(t) }),
-  /** The lab on `film`, at film time `t`. */
-  lab: (film: string, t: Option.Option<number> = Option.none()): string =>
-    Place.href(Places.lab, { path: { film }, query: { note: '' }, hash: timeOf(t) }),
+  /** The lab on `film`, at film time `t`, comparing with HEAD by `view`. */
+  lab: (
+    film: string,
+    t: Option.Option<number> = Option.none(),
+    view: CompareView = 'off',
+  ): string =>
+    Place.href(Places.lab, { path: { film }, query: { note: '', view }, hash: timeOf(t) }),
   /** The lab on `scene` of `film`, at scene time `t`, with what is `picked` there. */
   labScene: (
     film: string,

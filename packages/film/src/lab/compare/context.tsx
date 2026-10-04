@@ -3,7 +3,9 @@
 // the lab API only once a mode is on, then once per scene until it is turned
 // off). The section, the
 // HEAD layer and the wipe's divider read this context and act through it.
-// The view keeps the mode and the divider through the reload a write causes.
+// The mode is the link's (`?view=`, PA-9): a mode chosen writes it in place,
+// and a link that names another (Back to an entry made in another mode)
+// chooses it. The view keeps the divider through the reload a write causes.
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
@@ -13,7 +15,7 @@ import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createEffect, createMemo, useContext } from 'solid-js';
+import { createContext, createEffect, createMemo, untrack, useContext } from 'solid-js';
 import type { ShownEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { HeadSource } from '../../core/schema.ts';
@@ -25,7 +27,8 @@ import {
   CompareEvent,
   type CompareMode,
   type HeadLayer,
-  compareFromView,
+  blendOf,
+  compareAt,
   compareView,
   layerOf,
   modeOf,
@@ -34,10 +37,12 @@ import {
 } from './machine.ts';
 
 interface CompareStateValue {
-  /** The mode chosen: off, wipe or blink. */
+  /** The mode chosen: off, wipe, blink or diff. */
   readonly mode: Accessor<CompareMode>;
   /** What the HEAD layer shows now: nothing, HEAD, or now (a blink's other side). */
   readonly layer: Accessor<HeadLayer>;
+  /** How the HEAD layer meets the frame: the difference blend in a diff. */
+  readonly blend: Accessor<'difference' | 'normal'>;
   /** Where the wipe's divider sits, 0–1 across the frame: only while wiping. */
   readonly split: Accessor<Option.Option<number>>;
   /** The scene under the playhead (`LabState.scene`). */
@@ -52,6 +57,8 @@ interface CompareActions {
   readonly choose: (mode: CompareMode) => void;
   /** The divider dragged to `split`, 0–1 across the frame. */
   readonly split: (split: number) => void;
+  /** A press on the frame held (`on`) or let go: in a blink, HEAD shows while held. */
+  readonly hold: (on: boolean) => void;
 }
 
 interface CompareContextValue {
@@ -68,7 +75,7 @@ export const useCompare = (): CompareContextValue => useContext(CompareContext);
 const unread = Atom.make(AsyncResult.initial<HeadSource, LabFailure>());
 
 const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
-  const { state: lab, meta } = useLab();
+  const { state: lab, actions: labActions, meta } = useLab();
   const { film, runtime, view } = meta;
   const stateAtom = ActorAtom.make(props.actor);
   const compare = useAtomValue(() => stateAtom);
@@ -105,11 +112,20 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
     compareText(mode(), scene(), head(), Option.flatMap(resolved(), Result.getFailure)),
   );
   createEffect(compare, (s) => view.patch({ compare: compareView(s) }));
+  // The link and the machine agree on the mode: each follows the other only
+  // where they differ, so neither write echoes.
+  createEffect(mode, (m) => {
+    if (m !== untrack(lab.view)) labActions.compareBy(m);
+  });
+  createEffect(lab.view, (v) => {
+    if (v !== untrack(mode)) send(CompareEvent.Choose({ mode: v }));
+  });
 
   const value: CompareContextValue = {
     state: {
       mode,
       layer: () => layerOf(compare()),
+      blend: () => blendOf(compare()),
       split: () => splitOf(compare()),
       scene,
       edit,
@@ -118,6 +134,7 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
     actions: {
       choose: (m) => send(CompareEvent.Choose({ mode: m })),
       split: (split) => send(CompareEvent.Split({ split })),
+      hold: (on) => send(CompareEvent.Hold({ on })),
     },
   };
   return <CompareContext value={value}>{props.children}</CompareContext>;
@@ -138,9 +155,9 @@ const Ready = (
 
 /** Compare's state and actions, for its section, its HEAD layer and its divider. */
 export const Provider = (props: ParentProps) => {
-  const { meta } = useLab();
+  const { state, meta } = useLab();
   const actor = meta.runtime.atom(
-    Machine.scoped(spawnCompare(compareFromView(meta.view.get().compare))),
+    Machine.scoped(spawnCompare(compareAt(untrack(state.view), meta.view.get().compare))),
   );
   return (
     <Loading>

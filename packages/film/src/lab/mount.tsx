@@ -68,6 +68,7 @@ const LabPage = (props: {
                 <Notes.Marks />
                 <Editor.Handles />
                 <Compare.Divider />
+                <Compare.Hold />
               </Lab.Overlay>
               <Lab.Strip>
                 <Editor.Strip />
@@ -99,7 +100,7 @@ const LabPage = (props: {
 /**
  * The lab's time in the URL: an entry names the frame its place does
  * (`labOpensAt`), on opening and on Back, and each write keeps the place's
- * pick and note and puts the frame's scene in the path (`labHref`), so the
+ * pick, note and compare mode and puts the frame's scene in the path (`labHref`), so the
  * path and `#t=` move together across a scene boundary.
  */
 const labTime = (name: string, film: Film, host: Host): TimeInUrl => {
@@ -107,8 +108,8 @@ const labTime = (name: string, film: Film, host: Host): TimeInUrl => {
   return {
     at: (href) => labOpensAt(film.placed, href),
     write: (T) => {
-      const { selection, note } = labPlaceOf(address.href());
-      address.replace(labHref(name, film.placed, { selection, note }, T));
+      const { selection, note, view } = labPlaceOf(address.href());
+      address.replace(labHref(name, film.placed, { selection, note, view }, T));
     },
   };
 };

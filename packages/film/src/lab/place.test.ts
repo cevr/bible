@@ -18,7 +18,7 @@ const placed = Result.getOrThrow(
   ),
 );
 const b = placed[1]?.start ?? Number.NaN;
-const none = { selection: Option.none(), note: Option.none() };
+const none = { selection: Option.none(), note: Option.none(), view: 'off' as const };
 
 describe("the lab's place", () => {
   test('reads the scene, a cue or a knob, the note and the time', () => {
@@ -26,6 +26,7 @@ describe("the lab's place", () => {
       scene: Option.some('b'),
       selection: Option.some({ _tag: 'Cue', scene: 'b', name: 'rise' }),
       note: Option.some('n3'),
+      view: 'off',
       t: Option.some(1.5),
     });
     expect(labPlaceOf('/films/f/lab/a?knob=spot').selection).toEqual(
@@ -44,11 +45,22 @@ describe("the lab's place", () => {
     const pick = {
       selection: Option.some({ _tag: 'Cue' as const, scene: 'b', name: 'rise' }),
       note: Option.some('n3'),
+      view: 'off' as const,
     };
     const href = labHref('f', placed, pick, 1);
     expect(href).toBe(`/films/f/lab/b?cue=rise&note=n3#t=${1 - b}`);
     expect(labOpensAt(placed, href)).toBeCloseTo(1, 9);
     expect(labPlaceOf(href).selection).toEqual(pick.selection);
+  });
+
+  test("the compare's mode rides in ?view= (PA-9): read back, kept across a scene boundary, off unwritten", () => {
+    expect(labPlaceOf('/films/f/lab/b?view=diff#t=1').view).toBe('diff');
+    expect(labPlaceOf('/films/f/lab?view=blink').view).toBe('blink');
+    expect(labPlaceOf('/films/f/lab/b?view=sideways').view).toBe('off');
+    const wiping = { ...none, view: 'wipe' as const };
+    expect(labHref('f', placed, wiping, 1)).toBe('/films/f/lab/a?view=wipe#t=1');
+    expect(labPlaceOf(labHref('f', placed, wiping, b + 1)).view).toBe('wipe');
+    expect(labHref('f', placed, none, 1)).not.toContain('view=');
   });
 
   test('crossing into the next scene rebases the path and the time in one write', () => {

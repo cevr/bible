@@ -116,12 +116,14 @@ export const citeOf = (selection: Selection, href: string): string => {
     Option.map(Place.decode(Places.labScene, href), (v) => ({
       film: v.path.film,
       scene: Option.some(v.path.scene),
+      view: v.query.view,
       t: v.hash.t,
     })),
     () =>
       Option.map(Place.decode(Places.lab, href), (v) => ({
         film: v.path.film,
         scene: Option.none<string>(),
+        view: v.query.view,
         t: v.hash.t,
       })),
   );
@@ -132,7 +134,7 @@ export const citeOf = (selection: Selection, href: string): string => {
         pageHref.labScene(
           l.film,
           scene,
-          keys,
+          { ...keys, view: l.view },
           Option.filter(l.t, () => Option.contains(l.scene, scene)),
         ),
     });
@@ -161,10 +163,10 @@ export const citeOf = (selection: Selection, href: string): string => {
             onNone: () =>
               Place.href(Places.lab, {
                 path: { film: l.film },
-                query: { note: s.id },
+                query: { note: s.id, view: l.view },
                 hash: { t: l.t },
               }),
-            onSome: (scene) => pageHref.labScene(l.film, scene, { note: s.id }, l.t),
+            onSome: (scene) => pageHref.labScene(l.film, scene, { note: s.id, view: l.view }, l.t),
           }),
       }),
     Folder: (s) => pageHref.folder(s.folder),

@@ -1,8 +1,11 @@
 // Compare's section of the panel, its HEAD layer and the wipe's divider. The
 // section picks the mode; the layer draws the frame shown with HEAD's
 // timeline and knobs through today's code (`film.render(…, { edits })`, over
-// whatever else the lab previews; one frame, nothing kept), clipped left of the divider in a wipe and shown on
-// HEAD's side of a blink; the divider, on the overlay, drags the wipe.
+// whatever else the lab previews; one frame, nothing kept), clipped left of
+// the divider in a wipe, shown on HEAD's side of a blink, and laid over the
+// frame in the difference blend in a diff (PA-9: black where nothing moved).
+// On the overlay, the divider drags the wipe, and in a blink a press held on
+// the frame shows HEAD until it lifts (the blink by hand, a phone's way).
 
 import { For, Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
@@ -18,10 +21,11 @@ import { CompareMode } from './machine.ts';
 const TITLES = {
   off: 'draw only now',
   wipe: 'HEAD left of the divider, now right of it',
-  blink: 'flip between HEAD and now',
+  blink: 'flip between HEAD and now; press and hold the frame to hold HEAD',
+  diff: 'HEAD over now in the difference blend: black where nothing moved',
 } as const satisfies Record<CompareMode, string>;
 
-/** Off, wipe or blink, and what the compare says. */
+/** Off, wipe, blink or diff, and what the compare says. */
 export const Section = () => {
   const { state, actions } = useCompare();
   return (
@@ -66,7 +70,8 @@ export const Layer = () => {
       l.el.hidden = Option.isNone(shown) || shows !== 'head';
       Option.map(shown, (edit) => {
         player.renderShown(l.ctx, player.now(), new Map([[state.scene(), edit]]));
-        // Clipped left of the divider in a wipe; whole otherwise.
+        // Clipped left of the divider in a wipe; whole otherwise; in the difference blend in a diff.
+        l.el.style.mixBlendMode = state.blend();
         l.el.style.clipPath = Option.match(state.split(), {
           onNone: () => '',
           onSome: (split) => `inset(0 ${(1 - split) * 100}% 0 0)`,
@@ -80,7 +85,7 @@ export const Layer = () => {
   createEffect(
     () => {
       lab.drawn();
-      return [state.layer(), state.split(), state.edit()] as const;
+      return [state.layer(), state.split(), state.blend(), state.edit()] as const;
     },
     () => repaint(),
   );
@@ -92,6 +97,37 @@ export const Layer = () => {
         layer = Option.map(Option.fromNullishOr(el.getContext('2d')), (ctx) => ({ el, ctx }));
       }}
     />
+  );
+};
+
+/**
+ * The blink by hand, on the overlay (PA-9): while Compare is the tool shown
+ * and the blink is on, a press on the frame holds HEAD until it lifts, or
+ * until the browser takes it. A finger's press never draws a note here: the
+ * overlay never sees it.
+ */
+export const Hold = () => {
+  const { state: lab, meta } = useLab();
+  const { state, actions } = useCompare();
+  const { film } = meta;
+  const shown = () => state.mode() === 'blink' && lab.mode() === 'compare';
+  const press = (el: SVGRectElement) =>
+    el.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      actions.hold(true);
+      Effect.runForkWith(meta.host)(
+        Pointer.use((pointer) =>
+          pointer.drag(e, { move: () => {}, end: () => actions.hold(false) }),
+        ),
+      );
+    });
+  return (
+    <Show when={shown()}>
+      <rect class="lab-hold" x="0" y="0" width={film.width} height={film.height} ref={press}>
+        <title>press and hold to hold HEAD</title>
+      </rect>
+    </Show>
   );
 };
 

@@ -3,7 +3,10 @@
 // says which file it read; a blink flips HEAD's frame in and out; a scene
 // HEAD cannot give says the server's reason, and HEAD's timeline that does
 // not resolve on today's narration says why; turned off and on, it reads
-// HEAD again; a reload keeps the mode.
+// HEAD again; a reload keeps the mode. A diff lays HEAD over the frame in
+// the difference blend; the mode rides in the link (`?view=`) with no entry
+// of its own, and a link that names one opens in it; in a blink a press held
+// on the frame holds HEAD until it lifts (PA-9).
 
 import { Effect, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -115,6 +118,69 @@ describe('compare with HEAD', () => {
       yield* compareSays(page, "one: HEAD's timeline does not resolve now: ");
       yield* compareSays(page, '{soar}');
       yield* evaluates(page, "document.querySelector('canvas.lab-compare')?.hidden", true);
+      expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a diff lays HEAD over the frame in the difference blend, and the link says so in place',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], { href: labAt(1), mode: 'compare' });
+        yield* page.waitFor('.lab-compare-tools [data-mode="diff"]');
+        // The entries the page opened with, which a mode written in place leaves alone.
+        yield* page.until('(globalThis.openedWith = history.length) > 0');
+        yield* click(page, '.lab-compare-tools [data-mode="diff"]');
+        yield* compareSays(page, 'at HEAD');
+        yield* page.waitFor('canvas.lab-compare:not([hidden])');
+        yield* page.until(
+          `document.querySelector('canvas.lab-compare')?.style.mixBlendMode === 'difference'`,
+        );
+        // Whole, not clipped to a divider.
+        yield* clipIs(page, '');
+        yield* page.until(`new URLSearchParams(location.search).get('view') === 'diff'`);
+        yield* evaluates(page, 'history.length === globalThis.openedWith', true);
+        yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
+        yield* page.until(
+          `document.querySelector('canvas.lab-compare')?.style.mixBlendMode === 'normal'`,
+        );
+        yield* page.until(`new URLSearchParams(location.search).get('view') === 'wipe'`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('a link that names a mode opens in it', () =>
+    Effect.gen(function* () {
+      const { page, errors } = yield* openLab([], {
+        href: labAt(1, { view: 'diff' }),
+        mode: 'compare',
+      });
+      yield* page.waitFor('.lab-compare-tools [data-mode="diff"].on');
+      yield* page.until(
+        `document.querySelector('canvas.lab-compare')?.style.mixBlendMode === 'difference'`,
+      );
+      expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('in a blink, a press held on the frame holds HEAD; its lift shows now', () =>
+    Effect.gen(function* () {
+      const { page, asked, errors } = yield* openLab([], {
+        href: labAt(1, { view: 'blink' }),
+        mode: 'compare',
+      });
+      yield* page.waitFor('.lab-compare-tools [data-mode="blink"].on');
+      yield* page.waitFor('canvas.lab-compare:not([hidden])');
+      const frame = yield* page.box('.lab-hold');
+      yield* page.mouse.move(frame.x + frame.width / 2, frame.y + frame.height / 2);
+      yield* page.mouse.down;
+      // Held, the timed flip waits: HEAD stays.
+      yield* page.clock.fastForward(BLINK_MS * 3);
+      yield* page.waitFor('canvas.lab-compare:not([hidden])');
+      yield* page.mouse.up;
+      yield* page.attached('canvas.lab-compare[hidden]');
+      // The press was the blink's, never a note's.
+      expect(asked.filter((a) => a.path === '/notes' && a.method === 'POST')).toEqual([]);
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
