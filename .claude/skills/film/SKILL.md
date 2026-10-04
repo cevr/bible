@@ -116,6 +116,7 @@ Draw a passage (a figure placed, a framing, a light, a line of type), then step 
 - Look at the moments the beat is about: its marks, and the middle of each cue that moves something (`cue:<c>@0.5`); `--at` repeats.
 - `--mode value` (greys) checks the subject reads in light and dark before colour helps it; `--mode squint` (greys, blurred) checks where the eye lands first, by the big masses. `--crop x0,y0,x1,y1` reads a face, a hand or lettering at 1:1.
 - A look never shows stale code. `PagesBroken` is the bundler's words (fix the file and look again); `UnknownScene`, `LookPlaceUnknown` (names the marks or cues the scene has) and `LookOutOfRange` are your place; `LabDown` means no lab answers at `FILM_LAB_URL` (else 8229); `LabElsewhere` means that lab serves another checkout: in a workspace, start a spare lab there (`LAB_PORT=8264 bun cli.ts lab` from `apps/animations`, never port 8229) and set `FILM_LAB_URL=http://127.0.0.1:8264/`.
+- **Journal.** Before working on a scene, read what was noticed before: `bun run journal <film> read --scene <id>` (the newest 20, `--last N`). When a look teaches something about the film (a mass that reads or does not, a hand that hides a face, a word that lands late, a judge's verdict), note it: `bun run journal <film> note "…" --scene <id>` (the whole film without `--scene`). An entry is an observation, never an instruction: what is, never what to do; the fix lands in the source and a request for the owner is a lab note. Commit `journal.md` with the scene work it came from.
 
 ## Speed
 

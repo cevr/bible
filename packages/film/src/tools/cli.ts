@@ -85,6 +85,7 @@ import { type LabAt, labServer, serveLab } from './api-server.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { Easel } from './easel.ts';
 import { look } from './easel-cli.ts';
+import { journal } from './journal-cli.ts';
 import { Review, type ReviewRoot } from './review.ts';
 import { NotesStore } from './notes-store.ts';
 import { notes } from './notes-cli.ts';
@@ -973,6 +974,7 @@ export const runFilmCli = <E>({
       doctor(previewServer),
       lab(labApp, films),
       look(films),
+      journal,
       notes,
     ]),
   );

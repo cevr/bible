@@ -53,6 +53,8 @@ bun run render <film> ... --variant <name>     # another render of the same addr
 bun run lookbook <film> [--captions]           # out/<film>/film/main/lookbook.jpg: palette + every scene's stills at cue edges and 60%; prints per-scene and per-act luma, dark, saturation, hues, held share, largest face
 bun run look <film> --scene <id> --at <place> [--at …]  # stills of the scene as its sources stand, from the running lab's warm page in about a second (no render): out/<film>/look/<scene>/…, one line per still; a place is seconds into the scene, mark:<name> or cue:<name>[@0..1] (FILM_LAB_URL, else :8229)
 bun run look <film> ... [--crop x0,y0,x1,y1] [--size <long side>] [--mode value|squint] [--captions] [--format png|jpeg] [--json]  # a region at 1:1, a smaller still, the value or squint view; --json prints the lab's answer (or {error}) as one line
+bun run journal <film> note "text" [--scene <id>]   # append an observation to src/films/<film>/journal.md (committed), dated and placed; an empty note is refused
+bun run journal <film> read [--scene <id>] [--last N]  # the newest N entries (20), oldest first, one line each, under 8,000 characters
 bun run project <film> [--variant v] [--json]  # every scene: its render current, stale, stale:sound or missing, approved or not, its comments
 bun run project render <film> [--scene id,id] [--scale 0.33]  # render each scene on its own into out/<film>/scenes/<id>/; a current one is skipped (--force), a stale:sound one re-muxed (nothing drawn)
 bun run project approve <film> --scene id,id | --act name | --all  # approve scenes' renders (a stale or missing one named is refused), an act's current scenes, or every current one; a re-render leaves the approval stale
@@ -301,6 +303,22 @@ frame is a JPEG (0.95) unless `--format png` asks, since the paper's grain
 makes a 1920×1080 PNG about 4 MB. Stills are kept under
 `out/<film>/look/<scene>/`, named by time, view and build
 (`t0002.33.value.b<build>.jpg`), and never rewritten.
+
+### The journal
+
+A film's journal (`src/films/<film>/journal.md`, committed with its
+sources) is its production log: what was seen, heard or measured while it was
+made, so the next pass reads the film's history instead of finding it again.
+Its rule is written at its top: **observations, never instructions**. "Under
+squint the robe is the lightest mass at mark roof" is an entry; "make the
+robe lighter" is not (a decision lands in the source, a request is a lab
+note). `bun run journal <film> note "…" --scene <id>` appends one entry, its
+UTC time to the second and its scene (`film` without one), the words on one
+line; a scene the film lacks is refused (`UnknownScene`), and so is an empty
+note (`JournalEmpty`). `bun run journal <film> read [--scene <id>] [--last N]`
+prints the newest entries, oldest first, as `<time> scene=<id> <text>`,
+never more than 8,000 characters, with a first line saying how many earlier
+entries it left out.
 
 ## How a film is built
 
