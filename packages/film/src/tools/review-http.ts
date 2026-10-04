@@ -1,8 +1,8 @@
 // The renders' routes, served by `film lab` (`LabHttpApi` in `core/api.ts`):
 // the index of every folder under the roots, each file where it lies (byte
 // ranges answered 206, so a video seeks on a phone), its phone copy, a frame
-// and a length. Every route names a file by its ref (`Review`), never a path
-// on the box.
+// and a length, and a say on a version of a set. Every route names a file or
+// a folder by its ref (`Review`), never a path on the box.
 
 import { Effect, Option, Result } from 'effect';
 import type { HttpServerRequest } from 'effect/http';
@@ -79,6 +79,11 @@ export const reviewGroup = HttpApiBuilder.group(LabHttpApi, 'review', (handlers)
           Effect.flatMap(Review, (review) => review.duration(query.ref)),
           (seconds) => ({ seconds }),
         ),
+      ),
+    )
+    .handle('say', ({ params, payload }) =>
+      answered(
+        Effect.flatMap(Review, (review) => review.say(params.folder, params.point, payload)),
       ),
     ),
 );

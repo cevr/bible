@@ -908,8 +908,9 @@ export const runFilmCli = <E>({
   const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Private, Platform]));
   const Reviewed = Review.layerConfig(labApp.roots).pipe(
     Layer.provideMerge(BunHttpPlatform.layer),
-    // Its lengths, frames and phone copies are the Media service's.
-    Layer.provide([Tools, Platform]),
+    // Its lengths, frames and phone copies are the Media service's; a say on a
+    // set is written to its folder's catalogue.
+    Layer.provide([Tools, Catalogue, Platform]),
   );
   const Services = Layer.mergeAll(Choices.layer, StudioReadings.layer).pipe(
     // The review hears each option in the mix, and writes a pick through the source writer;

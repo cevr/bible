@@ -53,12 +53,12 @@ const matches = (text: string, pattern: RegExp): ReadonlyArray<RegExpExecArray> 
 
 const firstGroup = (m: RegExpExecArray) => Option.getOrElse(Option.fromUndefinedOr(m[1]), () => '');
 
-/** `/api/films/<film>/choices/mix?point=&variant=` as declared: `/api/films/:film/choices/mix`. */
+/** `/api/films/<film>/choices/mix?point=&variant=` as declared: `/api/films/:film/choices/mix`; a `<ref>` is the rest of the path. */
 const declaredPath = (written: string) =>
   written
     .replace(/\[?\?.*$/, '')
-    .replaceAll('<film>', ':film')
-    .replaceAll('<ref>', '*');
+    .replaceAll('<ref>', '*')
+    .replace(/<(\w+)>/g, ':$1');
 
 const group = (m: RegExpExecArray, n: number) =>
   Option.getOrElse(Option.fromUndefinedOr(m[n]), () => '');

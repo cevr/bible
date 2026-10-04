@@ -409,9 +409,12 @@ export const LAB_IDLE_SECONDS = 255;
 /**
  * The largest body Bun reads before the gate: the gate's own limit and a
  * margin, so a body over `STUDIO_MAX_BODY` is the gate's 413 BodyTooLarge;
- * one past this Bun refuses with its own 413 before any byte is held.
+ * one past this Bun refuses with its own 413 before any byte is held. Bun
+ * calls neither the handler nor its error hook for that one (a declared
+ * length past the limit), so no line of the lab's can log it; a streamed
+ * body is counted by the gate first, which logs its refusal.
  */
-const MAX_REQUEST_BODY = STUDIO_MAX_BODY + 1024 * 1024;
+export const MAX_REQUEST_BODY = STUDIO_MAX_BODY + 1024 * 1024;
 
 /** Where a lab listens: the interface's name and the port (0: any free one). */
 export interface LabAt {

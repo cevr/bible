@@ -22,7 +22,9 @@ import {
   subjectOf,
 } from '../core/catalogue.ts';
 import { type ChoiceVariant, VariantMedia } from '../core/choice.ts';
-import { ReviewManifestJson } from '../core/review.ts';
+import { type ReviewFolder, type ReviewIndex, ReviewManifestJson } from '../core/review.ts';
+import { RenderCatalogue } from './catalogue.ts';
+import { ContentStore } from './content-store.ts';
 import { Media } from './media.ts';
 import { reviewMedia } from './testing.ts';
 import {
@@ -497,6 +499,7 @@ const fixture = (phoneCopies: boolean) =>
         phoneCopies,
       }).pipe(
         Layer.provideMerge(reviewMedia(spawned)),
+        Layer.provide(RenderCatalogue.layer.pipe(Layer.provide(ContentStore.layer))),
         Layer.merge(Layer.succeed(Spawned, spawned)),
         Layer.merge(Layer.succeed(Root, dir)),
       );
@@ -542,6 +545,50 @@ describe('the review service', () => {
       ]);
       expect(yield* review.pictures('other')).toEqual([]);
     }).pipe(Effect.provide(fixture(false))),
+  );
+
+  it.effect(
+    "a say on a set's version is written to its folder's own catalogue, and answered with the folder",
+    () =>
+      Effect.gen(function* () {
+        const review = yield* Review;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const commentsOf = (folder: Option.Option<ReviewFolder>, point: string) =>
+          Option.match(folder, {
+            onNone: () => [],
+            onSome: (f) =>
+              (
+                f.sets.find((s) => s.id === point)?.variants.find((v) => v.id === 'main')
+                  ?.comments ?? []
+              ).map((c) => c.text),
+          });
+        const projectIn = (index: ReviewIndex) =>
+          Option.fromUndefinedOr(index.folders.find((f) => f.ref === 'out/f'));
+        const film = Option.getOrThrow(projectIn(yield* review.index(false))).sets[0]?.id ?? '';
+        const answered = yield* review.say('out/f', film, {
+          variant: 'main',
+          say: { _tag: 'Comment', text: 'warmer' },
+        });
+        expect(answered.ref).toBe('out/f');
+        expect(commentsOf(Option.some(answered), film)).toEqual(['warmer']);
+        const onDisk = yield* Schema.decodeEffect(CatalogueJson)(
+          yield* fs.readFileString(path.join(yield* Root, 'out', 'f', 'catalogue.json')),
+        );
+        expect(onDisk.comments.map((c) => [c.variant, c.text])).toEqual([['main', 'warmer']]);
+        // The index reads the folder again at once.
+        expect(commentsOf(projectIn(yield* review.index(false)), film)).toEqual(['warmer']);
+        const tagOf = (ref: string, point: string, variant: string) =>
+          Effect.map(
+            Effect.flip(review.say(ref, point, { variant, say: { _tag: 'Approve' } })),
+            (e) => e._tag,
+          );
+        // A montage keeps no say; a set, a version or a folder that is not there is named.
+        expect(yield* tagOf('out/art', 'render:roof', 'A')).toBe('VerbRefused');
+        expect(yield* tagOf('out/f', 'render:nowhere', 'main')).toBe('ChoiceUnknown');
+        expect(yield* tagOf('out/f', film, 'gone')).toBe('VariantUnknown');
+        expect(yield* tagOf('out/none', film, 'main')).toBe('ReviewFileUnknown');
+      }).pipe(Effect.provide(fixture(false))),
   );
 
   it.effect('resolves a ref inside its root that the index lists, and nothing else', () =>

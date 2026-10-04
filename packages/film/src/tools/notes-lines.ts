@@ -20,15 +20,22 @@ const fields = (note: Note) => {
     (b) => ` box=${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.w)}x${Math.round(b.h)}`,
   );
   const ink = Option.map(Option.fromNullishOr(note.ink), (strokes) => ` ink=${strokes.length}`);
+  // Seconds into the scene: the film time now is the scene's start plus
+  // these, where `T` moves when an earlier scene is re-taken.
+  const local = Option.match(Option.fromNullishOr(note.local), {
+    onNone: () => '',
+    onSome: (s) => ` local=${s.toFixed(2)}`,
+  });
   return [
-    `scene=${note.scene} T=${note.T.toFixed(2)} frame=${note.frame}`,
+    `scene=${note.scene} T=${note.T.toFixed(2)}${local} frame=${note.frame}`,
     ...[cue, mark, box, ink].map((field) => Option.getOrElse(field, () => '')),
   ].join('');
 };
 
 /**
  * A note as of change `seq` (it was made then, or last changed then):
- * `note id=n3 seq=3 status=open scene=hand T=230.38 frame=6911 cue=topple:end ... still=/…/n3.png text="…"`.
+ * `note id=n3 seq=3 status=open scene=hand T=230.38 local=4.12 frame=6911 cue=topple:end ... still=/…/n3.png text="…"`
+ * (`local=` only on a note that has it).
  */
 export const noteLine = (at: NotesPaths, note: Note, seq: number) =>
   `note id=${note.id} seq=${seq} status=${note.status} ${fields(note)} replies=${note.thread.length} still=${at.stills}/${note.still} text=${quoted(note.text)}`;

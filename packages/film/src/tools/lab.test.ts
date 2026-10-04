@@ -7,13 +7,13 @@ import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
 import { ConfigProvider, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
-import { FetchHttpClient, HttpClient, HttpPlatform } from 'effect/http';
+import { FetchHttpClient, HttpBody, HttpClient, HttpPlatform } from 'effect/http';
 import { parseSync } from 'oxc-parser';
 import { LabHttpApi, Places, Refusal, labUrls, reviewFileUrl, routesOf } from '../core/api.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler, labLink } from './lab.ts';
-import { LAB_IDLE_SECONDS, labServer, serveLab } from './api-server.ts';
+import { LAB_IDLE_SECONDS, MAX_REQUEST_BODY, labServer, serveLab } from './api-server.ts';
 import { STUDIO_IMPORT_WAIT_S, STUDIO_MAX_BODY } from '../core/studio.ts';
 import { FilmFolder } from './film-repo.ts';
 import { NotesStore } from './notes-store.ts';
@@ -425,6 +425,36 @@ describe('lab routes', () => {
       // A take's import answers inside the studio's wait, which the server's idle limit outlasts.
       expect(LAB_IDLE_SECONDS).toBeGreaterThan(STUDIO_IMPORT_WAIT_S);
     }).pipe(Effect.scoped, Effect.provide([labLayer(files()), FetchHttpClient.layer])),
+  );
+
+  it.effect(
+    "a body over the gate's limit is the gate's 413; one over Bun's, Bun's own, before the gate",
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        const server = yield* Layer.build(labServer({ hostname: '127.0.0.1', port: 0 }));
+        const url = yield* serveLab(lab).pipe(Effect.provideContext(server));
+        const client = yield* HttpClient.HttpClient;
+        const notes = new URL(labUrls.notes.add({ params: { film: 'f' } }), url);
+        const sent = (bytes: number) =>
+          Effect.flatMap(
+            Effect.orDie(
+              client.post(notes, {
+                body: HttpBody.uint8Array(new Uint8Array(bytes), 'application/json'),
+              }),
+            ),
+            (response) =>
+              Effect.map(Effect.orDie(response.text), (text) => [response.status, text] as const),
+          );
+        // Under Bun's limit the gate counts the body, refuses it and logs it (`api.request.refused`).
+        const [gateStatus, gateText] = yield* sent(STUDIO_MAX_BODY + 1);
+        expect(gateStatus).toBe(413);
+        expect(gateText).toContain('BodyTooLarge');
+        // Past it Bun answers 413 itself: its handler is never called, so no line can say so.
+        const [bunStatus, bunText] = yield* sent(MAX_REQUEST_BODY + 1);
+        expect(bunStatus).toBe(413);
+        expect(bunText).not.toContain('BodyTooLarge');
+      }).pipe(Effect.scoped, Effect.provide([labLayer(files()), FetchHttpClient.layer])),
   );
 
   it.effect('the link the lab hands out: its first host over HTTPS, else where it is bound', () =>

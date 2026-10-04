@@ -173,8 +173,10 @@ const Harness = Layer.unwrap(
       Layer.provide([Repo, Platform]),
     );
     // The lab reviews nothing here: no render roots, but its choices over the copy.
-    const Reviewed = Review.layerConfig(Effect.succeed([])).pipe(Layer.provide([Heard, Platform]));
     const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
+    const Reviewed = Review.layerConfig(Effect.succeed([])).pipe(
+      Layer.provide([Heard, Catalogue, Platform]),
+    );
     const Pages = LabPage.layer({ pages: LAB_PAGES, films: root }).pipe(
       Layer.provide(PageBundler.layer),
       Layer.provide(Platform),

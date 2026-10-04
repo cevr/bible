@@ -415,10 +415,9 @@ const ProjectReady = (props: { readonly film: string }) => {
   const { meta } = useReview();
   const { version } = useFilm();
   const film = props.film;
-  // The page reads the `main` variant's project: no URL names another variant yet.
-  const variant = Option.none<string>();
-  const readAtom = meta.runtime.atom(OptionsApi.use((api) => api.project(film, variant)));
-  const againAtom = meta.runtime.fn(() => OptionsApi.use((api) => api.project(film, variant)));
+  // The page reads the `main` variant's project; another variant's is the CLI's (`--variant`).
+  const readAtom = meta.runtime.atom(OptionsApi.use((api) => api.project(film)));
+  const againAtom = meta.runtime.fn(() => OptionsApi.use((api) => api.project(film)));
   const read = useAtomValue(() => readAtom);
   const again = useAtomValue(() => againAtom);
   const askAgain = useAtomSet(() => againAtom, { mode: 'promiseExit' });
@@ -443,7 +442,7 @@ const ProjectReady = (props: { readonly film: string }) => {
   };
   const useSay = (): ProjectSayer => {
     const own = useWrite(
-      (s: ProjectSay) => OptionsApi.use((api) => api.sayOfProject(film, variant, s)),
+      (s: ProjectSay) => OptionsApi.use((api) => api.sayOfProject(film, s)),
       status,
       { project: asks },
     );

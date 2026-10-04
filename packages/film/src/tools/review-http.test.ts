@@ -7,7 +7,7 @@ import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, FileSystem, Option, Path, Schema } from 'effect';
 import { ReviewDuration, ReviewIndex } from '../core/review.ts';
-import { labUrls, reviewFileUrl, reviewPhoneUrl, ServerFailed } from '../core/api.ts';
+import { SetSayPost, labUrls, reviewFileUrl, reviewPhoneUrl, ServerFailed } from '../core/api.ts';
 import { refFromUrl } from './review-http.ts';
 import {
   ReviewTestRoot,
@@ -16,6 +16,9 @@ import {
   reviewTestAsk,
   reviewTestBody,
   reviewTestGet,
+  reviewTestPost,
+  reviewTestRefusalOf,
+  REVIEW_TEST_HOME,
 } from './testing.ts';
 
 describe('review routes', () => {
@@ -149,6 +152,29 @@ describe('review routes', () => {
           expect([path, (yield* reviewTestAsk(reviewTestGet(path))).status]).toEqual([path, 404]);
         expect((yield* reviewTestAsk(reviewTestGet('/api/review/frame'))).status).toBe(400);
       }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
+  );
+
+  it.effect("takes a say on a set's version by the folder's ref, each `/` written %2F", () =>
+    Effect.gen(function* () {
+      const sayOn = (folder: string) =>
+        reviewTestAsk(
+          reviewTestPost(
+            `/api/review/sets/${encodeURIComponent(folder)}/render:roof/say`,
+            Schema.encodeSync(Schema.fromJsonString(SetSayPost))({
+              variant: 'A',
+              say: { _tag: 'Approve' },
+            }),
+            REVIEW_TEST_HOME,
+          ),
+        );
+      // The montage is reached by its ref, and keeps no say.
+      const montage = yield* sayOn('out/art');
+      expect(montage.status).toBe(409);
+      const refusal = reviewTestRefusalOf(yield* reviewTestBody(montage));
+      expect(refusal._tag).toBe('VerbRefused');
+      expect(refusal.message).toContain('montage');
+      expect((yield* sayOn('out/none')).status).toBe(404);
+    }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );
 
   it.effect('answers the allowlist and loopback, and no other host or site', () =>

@@ -134,6 +134,19 @@ describe('film notes, as an agent reads it', () => {
     }).pipe(Effect.provide(Fresh)),
   );
 
+  it.live("prints a note's scene-local seconds, the time a re-take of an earlier scene keeps", () =>
+    Effect.gen(function* () {
+      yield* (yield* NotesStore).add(
+        film,
+        { scene: 'turn', T: 5.35, local: 1.2, frame: 160, text: 'later in the turn' },
+        png,
+      );
+      expect((yield* cli('tiny')).lines[0]).toBe(
+        `note id=n1 seq=1 status=open scene=turn T=5.35 local=1.20 frame=160 replies=0 still=${LAB}/tiny/stills/n1.png text="later in the turn"`,
+      );
+    }).pipe(Effect.provide(Fresh)),
+  );
+
   it.live(
     'a reply prints what the user said since the agent last replied: new notes and user replies',
     () =>

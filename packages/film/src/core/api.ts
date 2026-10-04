@@ -38,7 +38,7 @@ import { PartAddress } from './address.ts';
 import { Project, RenderVariantName } from './catalogue.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
-import { ReviewDuration, ReviewFilms, ReviewIndex, ReviewVideo } from './review.ts';
+import { ReviewDuration, ReviewFilms, ReviewFolder, ReviewIndex, ReviewVideo } from './review.ts';
 import {
   AttemptUnknown,
   AudioInvalid,
@@ -245,6 +245,10 @@ export type Say = typeof Say.Type;
 export const SayPost = Schema.Struct({ point: Schema.String, variant: Schema.String, say: Say });
 export type SayPost = typeof SayPost.Type;
 
+/** `POST /api/review/sets/<folder>/<point>/say`: a say on one version of a set, as it is now. */
+export const SetSayPost = Schema.Struct({ variant: Schema.String, say: Say });
+export type SetSayPost = typeof SetSayPost.Type;
+
 /** A file answered as it lies (a still, a take, a render, a mix): its type is the file's. */
 const FileBytes = Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array());
 
@@ -410,6 +414,17 @@ class ReviewGroup extends HttpApiGroup.make('review').add(
   HttpApiEndpoint.get('duration', `${REVIEW}/duration`, {
     query: { ref: Schema.String },
     success: ReviewDuration,
+    error: Refusals,
+  }),
+  /**
+   * A say on a version of a set in a film's project folder (its ref written
+   * `%2F` for each `/`), written to that folder's `catalogue.json`: the
+   * folder as the say leaves it.
+   */
+  HttpApiEndpoint.post('say', `${REVIEW}/sets/:folder/:point/say`, {
+    params: { folder: Schema.String, point: Schema.String },
+    payload: SetSayPost,
+    success: ReviewFolder,
     error: Refusals,
   }),
 ) {}
