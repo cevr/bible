@@ -422,8 +422,10 @@ with a warning. A new take is saved
 as `<id>.<audio hash>.mp3` (a person's, `.flac`), beside the take it replaces, and becomes current
 only when `timings.json` is rewritten to name it, so a crash at any step
 leaves every take the timings name on disk and matching them. The next
-`narrate` removes what a crash or a failed take left (takes the timings no
-longer name, `*.partial` writes). `timings.json` and `sound/manifest.json` are
+`narrate` clears what a crash or a failed take left in `narration/`: it
+removes `*.partial` writes, and puts every take the timings no longer name
+away into `narration/attempts/<beat>/` (git-ignored), never deleting one.
+`timings.json` and `sound/manifest.json` are
 Schema-decoded (`@bible/film/core` `schema.ts`: durations and word times are
 non-negative, words run in order, and none ends after its take) and written
 one writer at a time across processes (`ContentStore`: a `<file>.lock` held
@@ -446,7 +448,9 @@ ElevenLabs (`narrate`), then read by a person beat by beat:
    `TakeMismatch` and `--accept-mismatch` work as for `narrate`. Every
    recording stays in `narration/attempts/<beat>/` (git-ignored), the original
    file byte for byte beside its FLAC; the kept FLAC is committed, with
-   `source: "recorded"` in `timings.json`.
+   `source: "recorded"` in `timings.json`. The take it replaces moves out of
+   `narration/` into the same attempts folder (a staging take too), so git
+   drops it from the commit and no take is ever deleted.
 4. `bun run check`, `bun run cues` and `bun run mix` as for any take, then
    tighten each scene's `lead` and `tail` at the seams.
 

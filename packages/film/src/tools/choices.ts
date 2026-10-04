@@ -347,19 +347,25 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         return picked;
       });
 
-      /** A beat's attempt kept as its take in a fresh process, recorded around the timings' rewrite. */
+      /**
+       * A beat's attempt kept as its take in a fresh process, recorded around
+       * the timings' rewrite with the takes they name, so Undo brings back the
+       * take it replaced.
+       */
       const keepVoice = Effect.fn('Choices.keepVoice')(function* (
         film: FilmName,
         beat: string,
         file: string,
       ) {
-        const timings = folder.paths(film).timings.file;
+        const paths = folder.paths(film);
+        const timings = paths.timings.file;
         const target = `voice ${beat} keep ${file}`;
         const [done, change] = yield* writer.around(
           film,
           timings,
           target,
           fresh.keepVoice(film, beat, file),
+          takes.named(paths),
         );
         if (!done.mixed)
           yield* Effect.logWarning(`choices.voice.unmixed film=${film} beat=${beat}`);

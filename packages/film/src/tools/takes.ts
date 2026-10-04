@@ -11,9 +11,13 @@
 // (git-ignored): the recording itself, untouched (`<beat>.<hash>.orig.<ext>`),
 // its prepared FLAC, and in `attempts.json` what was heard and when. Keeping
 // one copies its FLAC beside the other takes and rewrites `timings.json` whole
-// to name it, source `recorded`. The take it replaces is removed from
-// `narration/` (its attempt stays). An earlier attempt can be kept again at
-// any time. Staging never replaces a recorded take (see narrator.ts).
+// to name it, source `recorded`. The take it replaces is put away into
+// `narration/attempts/<beat>/` (`putAwayTake`: a recorded take's attempt is
+// already there; a staging take, or a take with no attempt on this machine, is
+// copied there first), so a take is never deleted and git drops it from
+// `narration/` as before. An earlier attempt can be kept again at any time, and
+// an Undo of a keep brings the replaced take back (`named`). Staging never
+// replaces a recorded take (see narrator.ts).
 
 import {
   Array as Arr,
@@ -36,9 +40,11 @@ import { lineError } from '../core/spoken.ts';
 import type { ReadBeat } from '../core/studio.ts';
 import { prepareTake } from '../core/recording.ts';
 import { voicedWords } from '../core/voiced.ts';
-import { type Timings, VoiceTiming } from '../core/schema.ts';
+import { type Timings, TimingsJson, VoiceTiming } from '../core/schema.ts';
 import { ContentStore, type Manifest, type StoreError } from './content-store.ts';
 import { ElevenLabs, heardWords } from './elevenlabs.ts';
+import { NamedFileMissing } from './errors.ts';
+import type { NamedFiles } from './source-writer.ts';
 import {
   type ElevenLabsFailed,
   type MediaFailed,
@@ -48,7 +54,7 @@ import {
 } from '../core/refusals.ts';
 import type { FilmPaths } from './film-repo.ts';
 import { Media } from './media.ts';
-import { MAX_WORD_ERROR, type VoicedFilm, contentHash, takeFile } from './narrator.ts';
+import { MAX_WORD_ERROR, type VoicedFilm, contentHash, putAwayTake, takeFile } from './narrator.ts';
 
 /** The files a recording may be: what the owner's recorder saves. */
 const RECORDING_EXTENSIONS = ['.wav', '.m4a', '.mp3', '.aif', '.aiff', '.flac'] as const;
@@ -199,7 +205,30 @@ interface TakesService {
     file: string,
     options: BeatOptions,
   ) => Effect.Effect<Imported, TakesError>;
+  /**
+   * The takes the film's timings name, kept in step with a text of them by
+   * the SourceWriter's Undo and Redo: brought back into `narration/` from
+   * `narration/attempts/<beat>/`, and put away there.
+   */
+  readonly named: (film: FilmPaths) => NamedFiles;
 }
+
+/** Each take the timings name, by its beat. */
+const takesOf = (timings: Timings): ReadonlyArray<readonly [string, string]> =>
+  Object.entries(timings.scenes).map(([beat, t]) => [beat, t.file] as const);
+
+/** Each take a timings text names, by its beat; nothing for a text that is not timings. */
+const takesIn = (text: string): ReadonlyArray<readonly [string, string]> =>
+  Option.match(Schema.decodeOption(TimingsJson)(text), { onNone: () => [], onSome: takesOf });
+
+/** The takes `from` names that `to` does not, by their beat. */
+const onlyIn = (
+  from: ReadonlyArray<readonly [string, string]>,
+  to: ReadonlyArray<readonly [string, string]>,
+) => {
+  const kept = new Set(to.map(([, file]) => file));
+  return from.filter(([, file]) => !kept.has(file));
+};
 
 export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/tools/Takes') {
   static readonly layer = Layer.effect(
@@ -299,6 +328,51 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         return made;
       });
 
+      /** What putting a take away needs (`putAwayTake`). */
+      const io = yield* Effect.context<FileSystem.FileSystem | Path.Path | ContentStore>();
+
+      /** Every take `before` named that `after` does not, put away into its beat's attempts. */
+      const putAwayReplaced = (film: FilmPaths, before: Timings, after: Timings) =>
+        Effect.forEach(
+          onlyIn(takesOf(before), takesOf(after)),
+          ([beat, file]) => putAwayTake(film, beat, file).pipe(Effect.provideContext(io)),
+          { discard: true },
+        );
+
+      /** The take `file` of `beat` in `narration/`, copied back from its attempts when it is not. */
+      const bringTake = (film: FilmPaths, beat: string, file: string) =>
+        Effect.gen(function* () {
+          const take = path.join(film.narration, file);
+          if (yield* fs.exists(take)) return;
+          const kept = path.join(attemptsDir(film, beat), file);
+          if (!(yield* fs.exists(kept)))
+            return yield* NamedFileMissing.make({
+              file,
+              reason: `is a take in neither narration/ nor narration/attempts/${beat}/`,
+            });
+          yield* store.writeFile(take, yield* fs.readFile(kept));
+          yield* Effect.log(`takes.brought-back id=${beat} file=${file}`);
+        }).pipe(
+          Effect.catchTag('PlatformError', (error) =>
+            Effect.fail(NamedFileMissing.make({ file, reason: error.message })),
+          ),
+        );
+
+      const named = (film: FilmPaths): NamedFiles => ({
+        bring: (from, to) =>
+          Effect.forEach(
+            onlyIn(takesIn(to), takesIn(from)),
+            ([beat, file]) => bringTake(film, beat, file),
+            { discard: true },
+          ),
+        putAway: (from, to) =>
+          Effect.forEach(
+            onlyIn(takesIn(from), takesIn(to)),
+            ([beat, file]) => putAwayTake(film, beat, file).pipe(Effect.provideContext(io)),
+            { discard: true },
+          ),
+      });
+
       /** Make an attempt the beat's take: beside the others, named by the timings. */
       const keep = Effect.fn('Takes.keep')(function* (
         film: VoicedFilm,
@@ -327,16 +401,8 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
           film.paths.timings,
           withRecorded(film, beat.id, made.take),
         );
-        // The take it replaced, unless another beat still names it.
-        const named = new Set(Object.values(after.scenes).map((t) => t.file));
-        const replaced = Option.filter(
-          Option.fromNullishOr(before.scenes[beat.id]),
-          (old) => !named.has(old.file),
-        );
-        if (Option.isSome(replaced)) {
-          const old = path.join(film.paths.narration, replaced.value.file);
-          if (yield* fs.exists(old)) yield* fs.remove(old);
-        }
+        // The take it replaced, put away unless another beat still names it.
+        yield* putAwayReplaced(film.paths, before, after);
         yield* Effect.log(`takes.kept id=${beat.id} file=${made.file} source=recorded`);
         return {
           id: beat.id,
@@ -524,6 +590,7 @@ export class Takes extends Context.Service<Takes, TakesService>()('@bible/film/t
         attempts,
         attemptFile,
         keepAttempt,
+        named,
       });
     }),
   );

@@ -23,7 +23,11 @@
 // stack (UNDO_DEPTH): Undo puts back the newest change still on it, byte for
 // byte, and Redo makes the newest undone one again; each only while the file
 // is exactly as the step it reverses left it. A new change drops what could
-// be redone.
+// be redone. A change whose text names files (the timings name each beat's
+// take, which lives beside them in `narration/`) carries them (`NamedFiles`):
+// Undo and Redo bring back what the text they land names before it lands,
+// and refuse when one cannot be, then put away what only the text they
+// replaced named; nothing is deleted.
 
 import {
   Array as Arr,
@@ -48,9 +52,23 @@ import {
   type SourceRefused,
   UndoUnavailable,
 } from '../core/refusals.ts';
-import { FormatFailed, WriteUnverified } from './errors.ts';
+import { FormatFailed, type NamedFileMissing, WriteUnverified } from './errors.ts';
+import type { PlatformError } from 'effect/PlatformError';
 import { FilmFolder } from './film-repo.ts';
 import { collectWithin } from './process.ts';
+
+/**
+ * The files a recorded file's text names (a take the timings name), kept in
+ * step with it: before Undo or Redo lands a text, what it names is brought
+ * back beside it; once it has landed, what only the text it replaced named is
+ * put away. Nothing is deleted on either side.
+ */
+export interface NamedFiles {
+  /** Every file `to` names and `from` does not, in place before `to` lands; why not, when one cannot be. */
+  readonly bring: (from: string, to: string) => Effect.Effect<void, NamedFileMissing>;
+  /** Every file `from` names and `to` does not, put away once `to` has landed. */
+  readonly putAway: (from: string, to: string) => Effect.Effect<void, StoreError | PlatformError>;
+}
 
 /** One change to a film's source: its file's text before and after it. */
 export interface Change {
@@ -62,6 +80,8 @@ export interface Change {
   readonly target: string;
   readonly before: string;
   readonly after: string;
+  /** The files the text names, which Undo and Redo keep in step with it; none for a text that names no file. */
+  readonly named: Option.Option<NamedFiles>;
 }
 
 /** A rewrite of one file, as a writer asks for it. */
@@ -111,14 +131,16 @@ interface SourceWriterService {
   ) => Effect.Effect<readonly [Change, A], E | RewriteError>;
   /**
    * `act`, which rewrites `file` its own way, recorded as one change of
-   * `film`'s: the file's text before it and after it. Nothing is recorded when
-   * the file is as it was.
+   * `film`'s: the file's text before it and after it, and the files that
+   * text names (`named`: the act keeps them in step itself; Undo and Redo do
+   * it after). Nothing is recorded when the file is as it was.
    */
   readonly around: <A, E, R>(
     film: string,
     file: string,
     target: string,
     act: Effect.Effect<A, E, R>,
+    named?: NamedFiles,
   ) => Effect.Effect<readonly [A, Option.Option<Change>], E | StoreError | FormatFailed, R>;
   /** Put `film`'s newest change back: its file as it was before it. */
   readonly undo: (film: string) => Effect.Effect<Change, UndoUnavailable | StoreError>;
@@ -264,6 +286,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               target,
               before,
               after,
+              named: Option.none(),
             };
             // Already so (a pick of the option playing): nothing to write, nothing to undo.
             if (after === before) {
@@ -304,6 +327,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
         file: string,
         target: string,
         act: Effect.Effect<A, E, R>,
+        named?: NamedFiles,
       ) =>
         writer.withPermits(1)(
           Effect.uninterruptible(
@@ -315,12 +339,66 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               const acted = yield* fs.readFileString(file);
               const after = yield* formattedOver(film, file, acted, target);
               if (after === before) return [done, Option.none<Change>()] as const;
-              const change: Change = { film, scene: Option.none(), file, target, before, after };
+              const change: Change = {
+                film,
+                scene: Option.none(),
+                file,
+                target,
+                before,
+                after,
+                named: Option.fromUndefinedOr(named),
+              };
               yield* record(change, 'lab.write');
               return [done, Option.some(change)] as const;
             }),
           ),
         );
+
+      /** What only `from` named put away once `to` landed; a failure leaves a file the text no longer names, and is logged. */
+      const putAway = (c: Change, from: string, to: string) =>
+        Option.match(c.named, {
+          onNone: () => Effect.void,
+          onSome: (named) =>
+            named
+              .putAway(from, to)
+              .pipe(
+                Effect.catch((error) =>
+                  Effect.logWarning(
+                    `lab.named.put-away.failed film=${c.film} target="${c.target}" reason=${error.message}`,
+                  ),
+                ),
+              ),
+        });
+
+      /**
+       * `c`'s file from `from` to `to` (an undo or a redo), only while it is
+       * `from` (else refused with `changed`), and the files its text names in
+       * step: what `to` names is brought in first, and when one cannot be,
+       * nothing lands; what only `from` named is put away after. A swap that
+       * fails puts away again what it brought.
+       */
+      const land = <E>(
+        c: Change,
+        from: string,
+        to: string,
+        changed: string,
+        refused: (reason: string) => E,
+      ) =>
+        Effect.gen(function* () {
+          yield* Option.match(c.named, {
+            onNone: () => Effect.void,
+            onSome: (named) =>
+              Effect.mapError(named.bring(from, to), (missing) =>
+                refused(`${shown(c)} names ${missing.message}`),
+              ),
+          });
+          yield* swap(c.film, c.file, from, to, c.target).pipe(
+            Effect.catchTag('SourceChanged', () =>
+              Effect.andThen(putAway(c, to, from), Effect.fail(refused(changed))),
+            ),
+          );
+          yield* putAway(c, from, to);
+        });
 
       const undo = (film: string) =>
         writer
@@ -334,14 +412,12 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                     reason: `the lab has made no change to ${film} to undo`,
                   });
                 const c = top.value;
-                yield* swap(film, c.file, c.after, c.before, c.target).pipe(
-                  Effect.catchTag('SourceChanged', () =>
-                    Effect.fail(
-                      UndoUnavailable.make({
-                        reason: `${shown(c)} has changed since the lab wrote ${c.target}`,
-                      }),
-                    ),
-                  ),
+                yield* land(
+                  c,
+                  c.after,
+                  c.before,
+                  `${shown(c)} has changed since the lab wrote ${c.target}`,
+                  (reason) => UndoUnavailable.make({ reason }),
                 );
                 const undone = undoneOf(c);
                 yield* setHistory(film, {
@@ -370,14 +446,12 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
                     reason: `the lab has undone no change to ${film}`,
                   });
                 const c = top.value;
-                yield* swap(film, c.file, c.before, c.after, c.target).pipe(
-                  Effect.catchTag('SourceChanged', () =>
-                    Effect.fail(
-                      RedoUnavailable.make({
-                        reason: `${shown(c)} has changed since the lab undid ${c.target}`,
-                      }),
-                    ),
-                  ),
+                yield* land(
+                  c,
+                  c.before,
+                  c.after,
+                  `${shown(c)} has changed since the lab undid ${c.target}`,
+                  (reason) => RedoUnavailable.make({ reason }),
                 );
                 const redone = redoneOf(c);
                 yield* setHistory(film, {

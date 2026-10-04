@@ -16,8 +16,10 @@ import {
   Redacted,
   Result,
   Schema,
+  Sink,
   Stream,
 } from 'effect';
+import { type ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { Base64 } from 'effect/encoding';
 import * as PlatformError from 'effect/PlatformError';
@@ -315,6 +317,44 @@ export const freshFilm = (given: Partial<FreshFilmService>) => {
   );
 };
 
+/** What a command is given on stdin, when it is given a stream. */
+const stdinOf = (
+  command: ChildProcess.Command,
+): Stream.Stream<Uint8Array, PlatformError.PlatformError> => {
+  if (command._tag !== 'StandardCommand') return Stream.empty;
+  const given = command.options.stdin;
+  if (Stream.isStream(given)) return given;
+  return Stream.empty;
+};
+
+/**
+ * A child process spawner whose every run prints back what it was given on
+ * stdin and exits 0: oxfmt that leaves a text as it is. The SourceWriter
+ * formats what it writes through oxfmt; over an in-memory film there is no
+ * folder to run it from, and the text it formats is not what a test checks.
+ */
+export const formatAsIs = Layer.succeed(
+  ChildProcessSpawner.ChildProcessSpawner,
+  ChildProcessSpawner.make((command) => {
+    const stdout = stdinOf(command);
+    return Effect.succeed(
+      ChildProcessSpawner.makeHandle({
+        pid: ChildProcessSpawner.ProcessId(0),
+        exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(0)),
+        isRunning: Effect.succeed(false),
+        kill: () => Effect.void,
+        stdin: Sink.drain,
+        stdout,
+        stderr: Stream.empty,
+        all: stdout,
+        getInputFd: () => Sink.drain,
+        getOutputFd: () => Stream.empty,
+        unref: Effect.succeed(Effect.void),
+      }),
+    );
+  }),
+);
+
 const isFilmUnknown = Schema.is(FilmUnknown);
 
 /** A failure as a fresh run answers it: a film it cannot find as itself, any other as `ServerFailed`. */
@@ -414,6 +454,10 @@ export const noStudio = Layer.mergeAll(
       attempts: () => Effect.die('the studio is not called here'),
       attemptFile: () => Effect.die('the studio is not called here'),
       keepAttempt: () => Effect.die('the studio is not called here'),
+      named: () => ({
+        bring: () => Effect.die('the studio is not called here'),
+        putAway: () => Effect.die('the studio is not called here'),
+      }),
     }),
   ),
   Layer.succeed(
@@ -1400,6 +1444,7 @@ const reviewPickIn = (films: string): Change => ({
   target: 'score play bright',
   before: "play: 'warm'",
   after: "play: 'bright'",
+  named: Option.none(),
 });
 
 const reviewUnused = Effect.die('not used by the review routes');

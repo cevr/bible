@@ -518,6 +518,16 @@ export class WriteUnverified extends Schema.TaggedError<WriteUnverified>()('Writ
   }
 }
 
+/** A file a recorded text names (a take the timings name) that cannot be brought back beside it. */
+export class NamedFileMissing extends Schema.TaggedError<NamedFileMissing>()('NamedFileMissing', {
+  file: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.file} ${this.reason}`;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Review: the box's renders, served where they lie.
 

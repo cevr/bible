@@ -115,8 +115,9 @@ describe('Takes', () => {
       }
       // Every take was transcribed once, as narrate transcribes.
       expect(sttOf(calls)).toHaveLength(2);
-      // The staging take it replaced is gone; the timings name the new one.
+      // The staging take it replaced is put away under its beat's attempts, not deleted.
       expect(files.has(`${NARRATION}/a.mp3`)).toBe(false);
+      expect(files.get(`${NARRATION}/attempts/a/a.mp3`)).toEqual(text('Hello world.'));
       expect(after.voice).toBe(staged.voice);
       // The recording itself is kept untouched beside its attempt, byte for byte.
       const takes = yield* Takes;

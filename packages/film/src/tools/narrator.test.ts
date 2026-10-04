@@ -492,12 +492,12 @@ describe('Narrator', () => {
       }),
     );
 
-    it.effect('the next run removes what a crashed run left behind', () =>
+    it.effect('the next run clears what a crashed run left behind, putting every take away', () =>
       Effect.gen(function* () {
         const files = agreed();
         files.set(`${DIR}/b.take.mp3`, text('stray'));
         files.set(`${DIR}/a.0123456789ab.mp3`, text('orphan'));
-        // A replaced recorded take's committed FLAC goes the same way (its master stays in attempts/).
+        // A replaced recorded take's committed FLAC, whose attempt this machine does not have.
         files.set(`${DIR}/b.0123456789ab.flac`, text('replaced master'));
         files.set(`${TIMINGS}.partial`, text('{'));
         const layer = Narrator.layer.pipe(
@@ -510,12 +510,22 @@ describe('Narrator', () => {
           ]),
         );
         yield* narrate(layer);
-        const left = [...files.keys()].filter((f) => f.startsWith(`${DIR}/`)).toSorted();
+        const left = [...files.keys()]
+          .filter((f) => f.startsWith(`${DIR}/`) && !f.startsWith(`${DIR}/attempts/`))
+          .toSorted();
         const takes = yield* Schema.decodeEffect(TimingsJson)(
           new TextDecoder().decode(files.get(TIMINGS)),
         );
         const current = Object.values(takes.scenes).map((t) => `${DIR}/${t.file}`);
         expect(left).toEqual([`${DIR}/full.wav`, TIMINGS, ...current].toSorted());
+        // No take is deleted: each is put away under its beat's attempts, byte for byte.
+        expect(
+          [
+            `${DIR}/attempts/b/b.take.mp3`,
+            `${DIR}/attempts/a/a.0123456789ab.mp3`,
+            `${DIR}/attempts/b/b.0123456789ab.flac`,
+          ].map((f) => new TextDecoder().decode(files.get(f))),
+        ).toEqual(['stray', 'orphan', 'replaced master']);
       }),
     );
   });

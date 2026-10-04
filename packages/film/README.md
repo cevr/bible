@@ -234,7 +234,14 @@ attempt naming the stretch it was cut from), its FLAC, and its
 `attempts.json` ledger (what was heard, the word error, when). Keeping one
 checks its word error again as the check reads now, then copies the FLAC
 beside the other takes and rewrites `timings.json` to name it; the take it
-replaced is removed from `narration/`. The check (`core/spoken.ts`
+replaced is put away into `narration/attempts/<beat>/` (`putAwayTake`: a
+recorded take's attempt is already there, and any other take, a staging one
+or a recorded one whose attempt this machine lacks, is copied there first),
+so no take is ever deleted and git drops it from `narration/` as before. A
+keep made in the lab is undoable: its change carries the takes the timings
+name (`Takes.named`), so Undo brings the replaced take back into
+`narration/` before the timings name it again, and refuses when it is in
+neither place. The check (`core/spoken.ts`
 `lineError`, for narrate and takes alike) reads both sides as said
 (`spokenWords`): a run of numbers is one token of digits however written or
 spoken (`144,000`, "one hundred and forty-four thousand", a year in pairs),
