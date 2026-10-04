@@ -406,7 +406,16 @@ describe('lab pages', () => {
           page.wait({ since, server: Option.none() }, '5 seconds'),
         );
         yield* write('lib/missing.ts', "export const gone = 'made';\n");
-        const fixed = yield* ask('/');
+        // Bun's resolver may still hold lib/ as the failed build listed it a moment ago (the
+        // build asked 5 ms after the save failed again, once in fifteen runs): a failed build
+        // is built again on each ask, so the page serves on an ask soon after.
+        const fixed = yield* ask('/').pipe(
+          Effect.repeat({
+            until: (answer) => answer.status === 200,
+            schedule: Schedule.spaced('100 millis'),
+            times: 20,
+          }),
+        );
         expect(fixed.status).toBe(200);
         expect(buildOf(fixed.text)).toBeGreaterThan(since);
         expect((yield* Fiber.join(waiting)).build).toBeGreaterThan(since);
