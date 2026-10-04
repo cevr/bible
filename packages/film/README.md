@@ -1007,9 +1007,18 @@ has loaded. A receipt's Undo pressed when it cannot act says why and is
 held: its command not available (the reloaded page still reading the step:
 `Undo is not available now`), another film's change (`that was a change to
 toy: open toy to undo it`), or a newer change before it (`cue fall offset
-came after it: undo that first`). Still offered and never expiring, it says
+came after it: undo that first`), or the change undone already and nothing
+else to undo (`it is undone already`). Still offered and never expiring, it says
 again what it did once it can act, unless a receipt in its slot supersedes
-it.
+it. One that never can act is retired instead (`Command.fits` answers
+`Unfit.Never`, where a held one is `Unfit.Now`): when the history the page
+has read has nothing to step that way and the change is not the other way's
+newest, the lab no longer has it (its history is in memory, so a lab
+restart loses it). The receipt then says `the lab no longer has that change
+to undo: it was undone already, or the lab restarted since`, loses its Undo
+and goes as a refusal goes; a held receipt is retired the same way once the
+page reads such a history. The editor judges a change it made since it read
+the history as unread, since the history it read cannot know it.
 A drag's write and a field's carry what they move in an
 optional `said` (`CueWrite`, `KnobWrite`: `cueSaid`, before → after). On
 the choices page and the project, Undo and Redo are commands

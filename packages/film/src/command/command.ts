@@ -56,6 +56,19 @@ export interface Bound {
 }
 
 /**
+ * Why a command cannot act on a receipt's change, in words to say: `Now`
+ * while it may yet (the page still reading the lab's history, another film's
+ * change, another change before it), so the receipt holds its button; or
+ * `Never` (the lab no longer has the change: it restarted, or the change was
+ * stepped already and left its history), so the receipt retires it.
+ */
+export type Unfit = Data.TaggedEnum<{
+  Now: { readonly reason: string };
+  Never: { readonly reason: string };
+}>;
+export const Unfit = Data.taggedEnum<Unfit>();
+
+/**
  * A receipt's tone: done, refused (in the refusal's words), or busy (a
  * write on its way, said until its own receipt replaces it).
  */
@@ -139,19 +152,20 @@ export interface Command {
   /** Whether it is available in `ctx`: shown in menus, run by its keys. */
   readonly when: (ctx: Context) => boolean;
   /**
-   * Why it cannot act on the one change `bound` names now (another film's,
-   * or another change stands before it), or none when it can: then `run`
-   * hears it as `how.bound`. A command without one acts on no single change,
-   * so a receipt bound to one never runs it.
+   * Why it cannot act on the one change `bound` names (`Unfit`: for now,
+   * another film's or another change before it; or never, a change the lab
+   * no longer has), or none when it can: then `run` hears it as
+   * `how.bound`. A command without one acts on no single change, so a
+   * receipt bound to one never runs it.
    */
-  readonly fits?: (bound: Bound, ctx: Context) => Option.Option<string>;
+  readonly fits?: (bound: Bound, ctx: Context) => Option.Option<Unfit>;
   readonly run: (ctx: Context, how: Invocation) => Effect.Effect<Receipt>;
 }
 
 /** Why `command` cannot act on the change `bound` names in `ctx` (`Command.fits`); none when it can. */
-export const unfit = (command: Command, bound: Bound, ctx: Context): Option.Option<string> =>
+export const unfit = (command: Command, bound: Bound, ctx: Context): Option.Option<Unfit> =>
   Option.match(Option.fromUndefinedOr(command.fits), {
-    onNone: () => Option.some(`${command.label} acts on no single change`),
+    onNone: () => Option.some(Unfit.Never({ reason: `${command.label} acts on no single change` })),
     onSome: (fits) => fits(bound, ctx),
   });
 

@@ -291,6 +291,15 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     },
   );
 
+  // The changes this page's writes and steps made: the history it read at load predates them.
+  const madeHere = new Set<string>();
+  createEffect(
+    () => edit(),
+    (state) => {
+      if (state._tag === 'Written') Option.map(state.change, (c) => madeHere.add(c));
+    },
+  );
+
   // Each step is its own request, with an id no other has: with no answer, the lab says by it
   // whether it landed. A receipt's names its change, so the lab steps that one or refuses.
   const step = (verb: StepVerb, change: Option.Option<string>) =>
@@ -380,7 +389,14 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     meta.hub.commands.register(
       ...editorCommands({
         undoable: (verb) => Option.flatMap(report(), (r) => Option.fromUndefinedOr(r[verb])),
-        whyNot: (verb, bound) => stepWhyNot(verb, meta.name, report())(bound),
+        // A change this page made since it read the history is one that history cannot
+        // know: judged as unread, so the lab decides (it reloads onto the history soon).
+        whyNot: (verb, bound) =>
+          stepWhyNot(
+            verb,
+            meta.name,
+            Option.filter(report(), () => !madeHere.has(bound.change)),
+          )(bound),
         step,
         holding,
         cancel: () => send(EditEvent.Cancel),

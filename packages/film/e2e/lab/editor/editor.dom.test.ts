@@ -32,6 +32,7 @@ import {
   evaluates,
   textHas,
   textIs,
+  until,
   valueIs,
 } from '../../../src/lab/fixtures/settled.ts';
 
@@ -199,6 +200,37 @@ describe('the cue strip', () => {
           expect.anything(),
           Option.some({ request: expect.any(String), change: changeOf('cue') }),
         ]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a receipt's Undo held before the page reads its change is retired once the page reads a history without it (the lab restarted)",
+    () =>
+      Effect.gen(function* () {
+        // The lab's history is in memory: after a restart its check names no step at all.
+        const { page, asked } = yield* openLab(
+          [route('GET', /^\/check$/, () => json({ findings: [] }))],
+          { href: labAt(1) },
+        );
+        yield* editable(page);
+        yield* dragBar(page, 'rise', 0.5, 60);
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        // The history this page read predates its write: held, not retired.
+        yield* page.click('[data-receipt="edit"] [data-act="receipt-undo"]');
+        yield* statusSays(page, 'Undo is not available now');
+        yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Undo');
+        // The page loaded again reads a history without the change: retired, saying why.
+        yield* page.reload;
+        yield* until(
+          page,
+          `(() => {
+            const receipt = document.querySelector('[data-receipt="edit"]');
+            return (receipt?.textContent ?? '').includes(
+              'the lab no longer has that change to undo: it was undone already, or the lab restarted since',
+            ) && receipt.querySelectorAll('[data-act="receipt-undo"]').length === 0;
+          })()`,
+        );
+        expect(posted(asked).map((a) => a.path)).toEqual(['/scenes/one/cues/rise']);
       }).pipe(Effect.scoped),
   );
 

@@ -5,29 +5,53 @@ import { Context, Effect, Exit, Layer, Option, Scope } from 'effect';
 import { expect, it } from 'effect-bun-test';
 import { LabApi, LabClient, NotesApi, labApiLayer, stepWhyNot } from './api.ts';
 import { StudioApi, studioApiLayer } from './studio/api.ts';
+import { Unfit } from '../command/command.ts';
 
 test("a receipt's step takes its own change on its own film, or says why not", () => {
   const steps = Option.some({
     undo: { file: 'sound.ts', target: 'level RAIN -6', change: 'k2' },
     redo: { file: 'sound.ts', target: 'score play piano', change: 'k0' },
   });
+  const now = (reason: string) => Option.some(Unfit.Now({ reason }));
   const undo = stepWhyNot('undo', 'one', steps);
   expect(undo({ film: 'one', change: 'k2' })).toEqual(Option.none());
   // Two quick edits: the older one's Undo names the newer that stands before it.
   expect(undo({ film: 'one', change: 'k1' })).toEqual(
-    Option.some('level RAIN -6 came after it: undo that first'),
+    now('level RAIN -6 came after it: undo that first'),
   );
-  expect(undo({ film: 'one', change: 'k0' })).toEqual(Option.some('it is undone already'));
+  expect(undo({ film: 'one', change: 'k0' })).toEqual(now('it is undone already'));
   // A receipt carried to another film's page never steps that film's history.
   expect(undo({ film: 'two', change: 'k2' })).toEqual(
-    Option.some('that was a change to two: open two to undo it'),
+    now('that was a change to two: open two to undo it'),
   );
   expect(stepWhyNot('redo', 'one', steps)({ film: 'one', change: 'k2' })).toEqual(
-    Option.some('it is redone already'),
+    now('it is redone already'),
   );
-  // No step that way known: the command is not available, and says that instead.
+  // The history still being read: the command is not available, and says that instead.
   expect(stepWhyNot('undo', 'one', Option.none())({ film: 'one', change: 'k1' })).toEqual(
     Option.none(),
+  );
+});
+
+test("a receipt's step with nothing to step that way: undone already, or the lab no longer has it", () => {
+  // Undone, and nothing else to undo: the Redo stack's newest is its own change.
+  const undone = Option.some({
+    redo: { file: 'sound.ts', target: 'score play piano', change: 'k0' },
+  });
+  expect(stepWhyNot('undo', 'one', undone)({ film: 'one', change: 'k0' })).toEqual(
+    Option.some(Unfit.Now({ reason: 'it is undone already' })),
+  );
+  // The lab restarted (its history is in memory): no step either way, and no press ever can.
+  expect(stepWhyNot('undo', 'one', Option.some({}))({ film: 'one', change: 'k0' })).toEqual(
+    Option.some(
+      Unfit.Never({
+        reason:
+          'the lab no longer has that change to undo: it was undone already, or the lab restarted since',
+      }),
+    ),
+  );
+  expect(stepWhyNot('redo', 'one', undone)({ film: 'one', change: 'k9' })).toEqual(
+    Option.some(Unfit.Now({ reason: 'score play piano was undone after it: redo that first' })),
   );
 });
 

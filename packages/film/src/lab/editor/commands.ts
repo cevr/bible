@@ -18,7 +18,13 @@
 // place ⌘K goes to by its name (`cueDestinations`).
 
 import { Effect, Match, Option } from 'effect';
-import { type Bound, type Command, type Invocation, quiet } from '../../command/command.ts';
+import {
+  type Bound,
+  type Command,
+  type Invocation,
+  type Unfit,
+  quiet,
+} from '../../command/command.ts';
 import { type Context, selected } from '../../command/context.ts';
 import { type LabSelection, cueOf, sameSelection, selectionText } from '../../command/selection.ts';
 import { type Inspected, nudged, refusalOf } from '../../core/field.ts';
@@ -31,7 +37,7 @@ interface EditorVerbs {
   /** What the server's stack would undo or redo now (its target), if anything. */
   readonly undoable: (verb: StepVerb) => Option.Option<{ readonly target: string }>;
   /** Why a step of `verb` cannot take the change `bound` names (a receipt's), or none when it can. */
-  readonly whyNot: (verb: StepVerb, bound: Bound) => Option.Option<string>;
+  readonly whyNot: (verb: StepVerb, bound: Bound) => Option.Option<Unfit>;
   /** Undo or Redo `change` (a receipt's), or the newest with none. */
   readonly step: (verb: StepVerb, change: Option.Option<string>) => void;
   /** Whether a grip is held: pressed on a cue or a handle, or dragging. */

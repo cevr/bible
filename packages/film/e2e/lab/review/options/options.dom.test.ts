@@ -620,6 +620,42 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'a receipt whose change the lab no longer has (it restarted) retires its Undo, saying so, rather than holding it as not available',
+    () =>
+      Effect.gen(function* () {
+        const undos: Array<FakeChange> = [];
+        const { page, asked, errors } = yield* openReview(fakeFilm(freshToy(), undos), {
+          href: FILM,
+        });
+        yield* waitFor(page, `${at('score', 'strings')} .rv-badge`);
+        yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        // The lab restarts: its history, kept in memory, is gone.
+        undos.splice(0);
+        yield* page.reload;
+        yield* receiptSays(page, 'Picked piano · score: strings → piano');
+        // The page has read the lab's history: nothing to undo.
+        yield* menuOffers(page, 'undo', 'review.undo', false);
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        // Said why, and no Undo left on it: no press can ever step that change.
+        yield* until(
+          page,
+          `(() => {
+            const receipt = document.querySelector('${RECEIPT}');
+            return (receipt?.textContent ?? '').includes(
+              'the lab no longer has that change to undo: it was undone already, or the lab restarted since',
+            ) && receipt.querySelectorAll('[data-act="receipt-undo"]').length === 0;
+          })()`,
+        );
+        expect(asked.some((a) => a.method === 'POST' && a.path === '/api/films/toy/undo')).toBe(
+          false,
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a write that changed nothing (a level already so) offers no Undo, and the change before it is still the one to undo',
     () =>
       Effect.gen(function* () {

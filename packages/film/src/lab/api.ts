@@ -12,7 +12,7 @@
 import { Cause, Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
-import type { Bound } from '../command/command.ts';
+import { type Bound, Unfit } from '../command/command.ts';
 import { LabHttpApi, type Refusal, isRefusal } from '../core/api.ts';
 import { newerFirst } from '../core/refusals.ts';
 import {
@@ -64,30 +64,44 @@ export type StepVerb = typeof StepVerb.Type;
 /** What a step's receipt's button does once it lands: Redo for an Undo, Undo for a Redo. */
 const OTHER: Readonly<Record<StepVerb, StepVerb>> = { undo: 'redo', redo: 'undo' };
 
+const STEPPED: Readonly<Record<StepVerb, string>> = { undo: 'undone', redo: 'redone' };
+
 /**
- * Why a step of `verb` on `film`, whose history the page knows as `steps`,
- * cannot take the one change `bound` names (a receipt's): another film's,
- * stepped that way already, or another change stands before it; none when
- * it can, or when the page knows no step that way (the command is not
- * available then, and says so). The lab refuses one it cannot take all the
- * same (`StepNotNewest`), for a page that knew an older history.
+ * Why a step of `verb` on `film`, whose history the page knows as `steps`
+ * (none while it reads it), cannot take the one change `bound` names (a
+ * receipt's). For now (`Unfit.Now`): another film's, stepped that way
+ * already (the other way's newest), or another change stands before it.
+ * Never (`Unfit.Never`): nothing to step that way and the change not the
+ * other way's newest, so the lab no longer has it (it restarted: its
+ * history is in memory; or it was stepped already). None when it can, or
+ * while the page reads the history (the command is not available then, and
+ * says so). The lab refuses one it cannot take all the same
+ * (`StepNotNewest`), for a page that knew an older history.
  */
 export const stepWhyNot =
   (verb: StepVerb, film: string, steps: Option.Option<Pick<CheckReport, 'undo' | 'redo'>>) =>
-  (bound: Bound): Option.Option<string> => {
+  (bound: Bound): Option.Option<Unfit> => {
     if (bound.film !== film)
-      return Option.some(`that was a change to ${bound.film}: open ${bound.film} to ${verb} it`);
-    return Option.flatMap(steps, (s) =>
-      Option.flatMap(
-        Option.filter(Option.fromUndefinedOr(s[verb]), (top) => top.change !== bound.change),
-        (top) => {
-          const stepped = s[OTHER[verb]]?.change === bound.change;
-          if (stepped)
-            return Option.some(`it is ${{ undo: 'undone', redo: 'redone' }[verb]} already`);
-          return Option.some(newerFirst(verb, top.target));
-        },
-      ),
-    );
+      return Option.some(
+        Unfit.Now({
+          reason: `that was a change to ${bound.film}: open ${bound.film} to ${verb} it`,
+        }),
+      );
+    return Option.flatMap(steps, (s) => {
+      const top = Option.fromUndefinedOr(s[verb]);
+      if (Option.exists(top, (t) => t.change === bound.change)) return Option.none();
+      if (s[OTHER[verb]]?.change === bound.change)
+        return Option.some(Unfit.Now({ reason: `it is ${STEPPED[verb]} already` }));
+      return Option.some(
+        Option.match(top, {
+          onSome: (t) => Unfit.Now({ reason: newerFirst(verb, t.target) }),
+          onNone: () =>
+            Unfit.Never({
+              reason: `the lab no longer has that change to ${verb}: it was ${STEPPED[verb]} already, or the lab restarted since`,
+            }),
+        }),
+      );
+    });
   };
 
 export interface LabCalls {
