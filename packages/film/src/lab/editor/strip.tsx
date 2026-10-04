@@ -143,8 +143,8 @@ export const Strip = () => {
     <Show when={placed()}>
       {(p) => {
         const scrub = (e: PointerEvent) => {
-          // A right-click is the context menu's, never a scrub.
-          if (e.button !== 0) return;
+          // A right-click is the context menu's, never a scrub; a lane's press is the lane's.
+          if (e.button !== 0 || e.defaultPrevented) return;
           const r = Option.getOrThrow(rows).getBoundingClientRect();
           const at = (ev: PointerEvent) =>
             meta.player.scrub(
@@ -163,7 +163,9 @@ export const Strip = () => {
         // written next is about, looped meanwhile); a tap on it seeks there.
         const lane = (e: PointerEvent) => {
           if (e.button !== 0) return;
-          e.stopPropagation();
+          // Handled here (the strip's scrub leaves it), yet still heard above: the
+          // page's context menu must see the press to hold it once its long press
+          // opens, so no range starts under the open menu.
           e.preventDefault();
           const r = Option.getOrThrow(rows).getBoundingClientRect();
           const timeAt = (ev: PointerEvent) =>

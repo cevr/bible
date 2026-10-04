@@ -91,6 +91,37 @@ describe('the cue strip', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live(
+    'a finger held on a cue lane past the long press, then slid 30 px, marks no range; slid at once, it does',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(1) });
+        const lane = '.lab-strip-row:has([data-cue="fall"])';
+        yield* page.waitFor(lane);
+        const rows = yield* page.box('.lab-strip-rows');
+        const row = yield* page.box(lane);
+        // A point on the lane clear of fall's bar: near its scene's start.
+        const x = rows.x + 4;
+        const y = row.y + row.height / 2;
+        const marked = `document.querySelector('[data-role="in-out"]') !== null`;
+        // The clock held: the long press's delay passes only as the test runs it on.
+        yield* page.clock.hold;
+        yield* page.finger.down(x, y);
+        yield* page.clock.runFor(700);
+        yield* page.finger.move(x + 30, y, 15);
+        yield* page.finger.up;
+        yield* page.clock.runFor(100);
+        yield* evaluates(page, marked, false);
+        yield* page.press('Escape');
+        // The same slide made at once marks the range.
+        yield* page.finger.down(x, y);
+        yield* page.finger.move(x + 30, y, 15);
+        yield* page.finger.up;
+        yield* page.clock.runFor(100);
+        yield* evaluates(page, marked, true);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('a drag of a cue body writes its offset once, on release, and selects it', () =>
     Effect.gen(function* () {
       const { page, asked } = yield* openLab([], { href: labAt(1) });

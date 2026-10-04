@@ -581,6 +581,8 @@ body.lab .stage {
 .lab-strip-row {
   position: relative;
   height: 16px;
+  /* Inside the rows' scroll box: a sideways finger marks a range, an upright one scrolls (the browser took both). */
+  touch-action: pan-y;
 }
 .lab-cue-label {
   position: absolute;
