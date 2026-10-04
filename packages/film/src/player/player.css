@@ -715,6 +715,12 @@ body.lab .stage {
   border-radius: var(--r-1);
   padding: 2px 4px;
 }
+/* On touch a field is a finger tall (`--hit`); the mouse keeps the dense one. */
+@media (pointer: coarse) {
+  .lab-num {
+    min-height: var(--hit);
+  }
+}
 .lab-eases {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));

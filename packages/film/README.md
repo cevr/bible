@@ -1338,7 +1338,13 @@ storage and no permission; between cases the view waits on an empty page,
 its history, scripts for new pages and listeners dropped
 (`e2e/lab/fixtures/browsers.dom.test.ts` dirties each and proves the next case
 sees none of it). One fake microphone (a 440 Hz tone on input 1) every tab
-hears, allowed or refused per tab. The tab answers the page's requests itself (the
+hears, allowed or refused per tab. A tab opened `coarse` has a phone's pointer
+(touch emulation, so `(pointer: coarse)` matches): the touch-target guard
+(`e2e/lab/touch.dom.test.ts`) opens every studio page so at 390 × 844 over a
+synthetic film (`lab/fixtures/studio-film.ts`) and fails naming each control
+whose hit area, as a tap reaches it (`lab/fixtures/touch-targets.ts`: padding
+and a `::before` hit-slop count), is under the phone's `--hit` of 44 px,
+save by WCAG 2.5.8's inline and spacing principles. The tab answers the page's requests itself (the
 protocol's `Fetch`), types and clicks with native input events, and waits in
 the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
 worker (`--max-concurrency=3` in the E2E script: at most eight workers, one

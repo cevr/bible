@@ -268,6 +268,12 @@ interface TabOptions {
   readonly assets: ReadonlyArray<Asset>;
   /** Scripts run before the page's own on every load. */
   readonly init: ReadonlyArray<string>;
+  /**
+   * A phone's pointer: the browser's touch emulation, so the page matches
+   * `(pointer: coarse)` and `(hover: none)` as a phone does. None: the desk's
+   * mouse.
+   */
+  readonly coarse?: boolean;
 }
 
 /** A tab on an origin of its own, on an empty page, given back with the scope. */
@@ -314,6 +320,16 @@ export const openTab = (options: TabOptions): Effect.Effect<Tab, never, Scope.Sc
           setting: 'granted',
         }),
       );
+    // A phone's pointer for this case only: put back to the mouse before the
+    // view goes back to the pool (this finalizer runs before the lend's).
+    if (options.coarse === true) {
+      const touch = (enabled: boolean) =>
+        Effect.tryPromise(() =>
+          slot.lent.cdp('Emulation.setTouchEmulationEnabled', { enabled, maxTouchPoints: 5 }),
+        );
+      yield* Effect.orDie(touch(true));
+      yield* Effect.addFinalizer(() => Effect.ignore(touch(false)));
+    }
     const assets = new Map(options.assets.map((a) => [a.url, a.response]));
     return yield* makeTab(slot.lent, {
       origin,

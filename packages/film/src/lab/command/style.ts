@@ -48,6 +48,7 @@ body {
   --cmd-button-pad: 0 var(--s-2);
   --cmd-row-height: var(--row-h);
   --cmd-button-height: var(--control-h);
+  --cmd-hit: var(--hit);
   --cmd-inspector-width: var(--inspector-w);
   --cmd-field-width: 72px;
   --cmd-width: 560px;
@@ -161,6 +162,14 @@ const COMMAND_RULES = `
 }
 .lab-inspect {
   font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit;
+}
+/* On touch a name reads as text and is tapped as a finger's target: a hit-slop past it, a touch target each way, the row laid out as before. */
+@media (pointer: coarse) {
+  .lab-inspect { position: relative; }
+  .lab-inspect::before {
+    content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: max(100%, var(--cmd-hit)); height: max(100%, var(--cmd-hit));
+  }
 }
 .lab-count {
   min-width: var(--cmd-count-size); height: var(--cmd-count-size); padding: 0 var(--cmd-gap-small);
