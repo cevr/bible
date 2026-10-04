@@ -87,6 +87,16 @@ describe('actWords', () => {
     expect(words.done(wrote('level:const:RAIN -6', Option.none()))).toBe('Rain: -12 → -6 dB');
   });
 
+  test('a knob says the level that landed, not the one asked for', () => {
+    const words = actWords(
+      ChoiceAct.Knob({ point: 'level:const:RAIN', value: 10 }),
+      choices('strings', -12),
+    );
+    expect(words.done(wrote('level:const:RAIN 0', Option.some(choices('strings', 0))))).toBe(
+      'Rain: -12 → 0 dB',
+    );
+  });
+
   test('a say says what was said, and nothing undoes it', () => {
     const words = actWords(
       ChoiceAct.Say({ point: 'score', variant: 'piano', say: { _tag: 'Approve' } }),

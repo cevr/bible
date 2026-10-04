@@ -1,8 +1,8 @@
 // What a film's write says as its receipt (`Words`, `format.ts`), in the
 // words of the choices shown as it was sent: a pick, an unkeep or a reject
 // says what the point plays, before → after (`Score: piano → ensemble`), a
-// knob its level before → after, a say what was said of which variant, and
-// an Undo or a Redo what it walked. A source write is undone by Undo, an
+// knob its level before → after (the level that landed, as the write left it),
+// a say what was said of which variant, and an Undo or a Redo what it walked. A source write is undone by Undo, an
 // Undo by Redo, a Redo by Undo; a say, which writes the catalogue and no
 // source, by none. The sound check after a pick says it is hearing the mix,
 // then what it found.
@@ -120,8 +120,20 @@ export const actWords = (act: ChoiceAct, before: FilmChoices): Words<Wrote> => {
         );
         return {
           doing: `setting ${titleOf(k.point)}…`,
-          done: () =>
-            [`${titleOf(k.point)}: ${was} → ${k.value}`, unit].filter((s) => s !== '').join(' '),
+          // The level that landed, as the choices the write left read it (the server clamps).
+          done: (w) => {
+            const now = Option.getOrElse(
+              Option.map(
+                Option.flatMap(
+                  Option.flatMap(w.choices, (c) => pointIn(c, k.point)),
+                  (p) => p.knob,
+                ),
+                (n) => String(n.value),
+              ),
+              () => String(k.value),
+            );
+            return [`${titleOf(k.point)}: ${was} → ${now}`, unit].filter((s) => s !== '').join(' ');
+          },
           undo: Option.some(REVIEW_UNDO),
         };
       },
