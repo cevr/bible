@@ -1484,35 +1484,35 @@ export const painterNotice = Effect.fn('film.compact.notice')(function* (
 });
 
 /**
- * The compactor for the checkout at `root`: a scene painter's window is
+ * The compactor for the checkout each compacted session runs in: a scene painter's window is
  * condensed from the files with no model call; any other agent's is refused
  * (`ModelCompactionError`), so the next compactor in the chain (gent's own)
  * summarizes it.
  */
-export const painterCompactor = (root: string) =>
-  Layer.effect(
-    ModelContextCompactor,
-    Effect.gen(function* () {
-      const services = yield* Effect.context<
-        FileSystem.FileSystem | Path.Path | ChildProcessSpawner
-      >();
-      return ModelContextCompactor.of({
-        compact: (request) => {
-          if (request.agentName !== PAINTER)
-            return Effect.fail(
-              ModelCompactionError.make({
-                modelId: request.modelId,
-                reason: `the film compactor serves only ${PAINTER}`,
-              }),
-            );
-          return painterNotice(root, request).pipe(
-            Effect.provideContext(services),
-            Effect.map((notice) => ({ notice, modelId: request.modelId })),
+export const painterCompactor = Layer.effect(
+  ModelContextCompactor,
+  Effect.gen(function* () {
+    const services = yield* Effect.context<
+      FileSystem.FileSystem | Path.Path | ChildProcessSpawner
+    >();
+    return ModelContextCompactor.of({
+      // Run with the compacted session's context: its cwd is the checkout it paints in.
+      compact: (request) => {
+        if (request.agentName !== PAINTER)
+          return Effect.fail(
+            ModelCompactionError.make({
+              modelId: request.modelId,
+              reason: `the film compactor serves only ${PAINTER}`,
+            }),
           );
-        },
-      });
-    }),
-  );
+        return Effect.flatMap(ExtensionContext, (ctx) => painterNotice(ctx.cwd, request)).pipe(
+          Effect.provideContext(services),
+          Effect.map((notice) => ({ notice, modelId: request.modelId })),
+        );
+      },
+    });
+  }),
+);
 
 // ---------------------------------------------------------------------------
 // The extension.
@@ -1537,7 +1537,7 @@ export default defineExtension({
       defineResource({
         id: 'film/painter-compactor',
         scope: 'process',
-        layer: painterCompactor(host.cwd),
+        layer: painterCompactor,
       }),
     );
   }),

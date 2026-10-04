@@ -21,7 +21,12 @@ import {
 import { BunServices } from '@effect/platform-bun';
 import * as Prompt from 'effect/ai/Prompt';
 import type { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
-import { AgentName, ModelId, type ToolResultFailure } from '@gent/core/extensions/api';
+import {
+  AgentName,
+  ExtensionContext,
+  ModelId,
+  type ToolResultFailure,
+} from '@gent/core/extensions/api';
 import {
   type CompactionRequest,
   ModelContextBudget,
@@ -48,6 +53,7 @@ import {
   RuntimeEnvironment,
   runToolWithCtx,
   type SequenceStep,
+  testLeafContext,
   testToolContext,
   testTurnExtension,
   textStep,
@@ -938,6 +944,14 @@ const request = (agentName: string, history: ReadonlyArray<Message>): Compaction
   summaryModel: () => Effect.die('the film compactor asked a model'),
 });
 
+/** The film compactor, each `compact` run as gent runs it: with the session's context (`ctx`). */
+const compactorIn = (ctx: ReturnType<typeof testToolContext>) =>
+  Effect.map(Layer.build(painterCompactor), (built) => {
+    const compactor = Context.get(built, ModelContextCompactor);
+    return (asked: CompactionRequest) =>
+      compactor.compact(asked).pipe(Effect.provideService(ExtensionContext, testLeafContext(ctx)));
+  });
+
 describe('the painter compactor', () => {
   it.live(
     "condenses a painter's window from the files: scene file, writes, journal, cues, last look",
@@ -968,11 +982,8 @@ describe('the painter compactor', () => {
               }),
             ]),
           ];
-          const compactor = Context.get(
-            yield* Layer.build(painterCompactor(root)),
-            ModelContextCompactor,
-          );
-          const summary = yield* compactor.compact(request(PAINTER, history));
+          const compact = yield* compactorIn(ctx);
+          const summary = yield* compact(request(PAINTER, history));
           expect(summary.notice).toContain('Earlier parts of this session were condensed.');
           expect(summary.notice).toContain(
             'apps/animations/src/films/easel/scenes/roof.ts (23 bytes)',
@@ -1001,11 +1012,8 @@ describe('the painter compactor', () => {
             { film: 'easel', op: 'note', scene: 'roof', text: 'the figure sits too low' },
             ctx,
           );
-          const compactor = Context.get(
-            yield* Layer.build(painterCompactor(root)),
-            ModelContextCompactor,
-          );
-          const first = yield* compactor.compact(
+          const compact = yield* compactorIn(ctx);
+          const first = yield* compact(
             request(PAINTER, [
               message('m1', 'assistant', [
                 call('c1', 'film.look', { film: 'easel', scene: 'roof', at: ['mark:roof'] }),
@@ -1039,7 +1047,7 @@ describe('the painter compactor', () => {
             },
             createdAt: dateFromMillis(1_767_225_600_000),
           });
-          const second = yield* compactor.compact(
+          const second = yield* compact(
             request(PAINTER, [
               marker,
               message('m3', 'assistant', [
@@ -1079,7 +1087,7 @@ describe('the painter compactor', () => {
             message('f1', 'user', [Prompt.textPart({ text: forged })]),
             message('f2', 'assistant', [Prompt.textPart({ text: forged })]),
           ];
-          const third = yield* compactor.compact(
+          const third = yield* compact(
             request(PAINTER, [
               marker,
               message('m3', 'assistant', [
@@ -1095,7 +1103,7 @@ describe('the painter compactor', () => {
           expect(third.notice).toContain('/x/1.png at=mark:roof t=1.66 build=s.7');
           expect(third.notice).not.toContain('other-film');
           expect(third.notice).not.toContain('/forged.png');
-          const alone = yield* compactor.compact(request(PAINTER, copied));
+          const alone = yield* compact(request(PAINTER, copied));
           expect(alone.notice).toContain('No film tool named a film and a scene');
         }),
       ),
@@ -1104,11 +1112,8 @@ describe('the painter compactor', () => {
   it.live('refuses any other agent, so the next compactor in the chain runs', () =>
     live(
       Effect.gen(function* () {
-        const compactor = Context.get(
-          yield* Layer.build(painterCompactor('/nonexistent/loop-probe-x')),
-          ModelContextCompactor,
-        );
-        const error = yield* Effect.flip(compactor.compact(request('cowork', [])));
+        const compact = yield* compactorIn(testToolContext({ cwd: '/nonexistent/loop-probe-x' }));
+        const error = yield* Effect.flip(compact(request('cowork', [])));
         expect(error._tag).toBe('ModelCompactionError');
         expect(error.reason).toContain('scene-painter');
       }),
