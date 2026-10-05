@@ -710,7 +710,8 @@ playhead's line stays in sight while it plays; a scrub turns it off). A
 cut's name takes only its room: shortened with an ellipsis, set before the
 row's last rule where it fits there, or dropped. A tap on a still selects its scene (the path; Back
 steps through the selections) and moves the playhead there (`#t=`, film
-time); a drag along a line scrubs. The selected scene's card
+time; a scene's link with no `#t=` opens at the scene's start, as its lab
+does); a drag along a line scrubs. The selected scene's card
 (`lab/scenes/card.tsx`, the card the Project shows) stands in the sheet the
 Project's scene inspector stands in (`Sheet`, `lab/review/inspector.tsx`):
 beside the tape, and on a phone a sheet over the tab bar that opens lowered

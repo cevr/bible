@@ -6,7 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { legacyPlace, pageHref } from '../../core/api.ts';
-import { scenesHref, scenesPlaceOf, withScene, withTime } from './place.ts';
+import { scenesHref, scenesOpensAt, scenesPlaceOf, withScene, withTime } from './place.ts';
 
 describe("a film's Scenes in the URL", () => {
   test('the path names the scene selected and the hash the playhead, both ways', () => {
@@ -31,6 +31,15 @@ describe("a film's Scenes in the URL", () => {
     expect(withScene('/films/f/scenes/one#t=9.25', Option.none())).toEqual(
       Option.some('/films/f/scenes#t=9.25'),
     );
+  });
+
+  test("an entry opens at its time; a scene's path with none at the scene's start (SU-2); the tape at the film's", () => {
+    const startOf = (scene: string) => Option.liftPredicate(12.5, () => scene === 'woman');
+    expect(scenesOpensAt('/films/f/scenes/woman', startOf)).toBe(12.5);
+    expect(scenesOpensAt('/films/f/scenes/woman#t=40', startOf)).toBe(40);
+    expect(scenesOpensAt('/films/f/scenes#t=3', startOf)).toBe(3);
+    expect(scenesOpensAt('/films/f/scenes', startOf)).toBe(0);
+    expect(scenesOpensAt('/films/f/scenes/gone', startOf)).toBe(0);
   });
 
   test("the old look-book's links land on the film's Scenes", () => {

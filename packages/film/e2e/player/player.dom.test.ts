@@ -12,6 +12,7 @@ import { Boolean as Bool, Effect, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
+import { onTheMs } from '../../src/player/t-in-url.ts';
 import {
   type FakeRoute,
   type Json,
@@ -454,6 +455,26 @@ describe('the player', () => {
         yield* page.resize(PHONE.width, PHONE.height);
         yield* textHas(page, '[data-role="step"]', 'a line 30 s');
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a Scenes link naming a scene and no time opens at that scene's start; one with a time keeps it (SU-2)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scene(PROBE, 'two'), viewport: DESK },
+          '.sc-focus .sc-card',
+        );
+        yield* evaluates(page, 'location.hash', `#t=${onTheMs(TWO)}`);
+        expect(errors).toEqual([]);
+        const later = onTheMs(TWO + 0.5);
+        const timed = yield* openPlayer(
+          { href: pageHref.scene(PROBE, 'two', Option.some(later)), viewport: DESK },
+          '.sc-focus .sc-card',
+        );
+        yield* evaluates(timed.page, 'location.hash', `#t=${later}`);
+        expect(timed.errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
 

@@ -8,9 +8,10 @@
 // loads Solid.
 
 import { Location, Place } from '@bible/url-state';
-import { Effect, Match, Option, Schema } from 'effect';
+import { Array as Arr, Effect, Match, Option, Schema } from 'effect';
 import { createSignal, onCleanup } from 'solid-js';
 import { Places, legacyPlace, pageHref } from '../core/api.ts';
+import type { Placed } from '../core/layout.ts';
 import { type Host, addressOn, hostOf } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import type { Hub } from '../command/hub.ts';
@@ -20,7 +21,7 @@ import { onTheMs, type TimeInUrl } from '../player/t-in-url.ts';
 import { type FilmBody, PLAY_PAGE, playOn, playPartOf } from './film-page.tsx';
 import { mountPage } from './page-client.tsx';
 import { useShellTime } from './page-shell.tsx';
-import { scenesPlaceOf, withTime } from './scenes/place.ts';
+import { scenesOpensAt, withTime } from './scenes/place.ts';
 import { ScenesView } from './scenes/view.tsx';
 
 /** The page could not start: the film did not load, or the registry has no such film. */
@@ -41,14 +42,19 @@ const playTime = (name: string, host: Host): TimeInUrl => {
   };
 };
 
-/** The Scenes' time: `#t=`, in film seconds, written with the path's scene kept. */
-const scenesTime = (host: Host): TimeInUrl => {
+/**
+ * The Scenes' time: `#t=`, in film seconds (a scene's path with none opens
+ * at the scene's start, `scenesOpensAt`), written with the path's scene kept.
+ */
+const scenesTime = (host: Host, placed: ReadonlyArray<Placed>): TimeInUrl => {
   const address = addressOn(host);
   return {
     at: (href) =>
-      Option.getOrElse(
-        Option.flatMap(scenesPlaceOf(href), (p) => p.t),
-        () => 0,
+      scenesOpensAt(href, (scene) =>
+        Option.map(
+          Arr.findFirst(placed, (p) => p.spec.id === scene),
+          (p) => p.start,
+        ),
       ),
     write: (T) => {
       Option.map(withTime(address.href(), T), address.replace);
@@ -102,7 +108,7 @@ const playBody =
           staged,
           host,
           Match.value(part).pipe(
-            Match.when('scenes', () => scenesTime(host)),
+            Match.when('scenes', () => scenesTime(host, staged.film.placed)),
             Match.orElse(() => playTime(staged.name, host)),
           ),
           hub,

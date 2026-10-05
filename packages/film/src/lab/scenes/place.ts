@@ -2,9 +2,10 @@
 // `/films/<film>/scenes[/<scene>]#t=<seconds>`. The path's scene is the one
 // selected (its card in the scene's sheet): each selection is a step Back
 // walks; `#t=` is the playhead in film time, on the tape and on a selected
-// scene alike, written in place as it moves. One reader (`scenesPlaceOf`)
-// and one printer (`scenesHref`), so a reload, a pasted link and Back come
-// back to the scene and the frame they left. Pure.
+// scene alike, written in place as it moves; a scene's path with none opens
+// at the scene's start (`scenesOpensAt`). One reader (`scenesPlaceOf`) and
+// one printer (`scenesHref`), so a reload, a pasted link and Back come back
+// to the scene and the frame they left. Pure.
 
 import { Place } from '@bible/url-state';
 import { Option } from 'effect';
@@ -32,6 +33,22 @@ export const scenesPlaceOf = (href: string): Option.Option<ScenesPlace> =>
         scene: Option.none(),
         t: v.hash.t,
       })),
+  );
+
+/**
+ * The film second the Scenes entry at `href` opens at: its `#t=`; else, on a
+ * scene's path, that scene's start (`startOf`), as `/lab/<scene>` opens, so
+ * the picture is the scene's; else the film's start.
+ */
+export const scenesOpensAt = (
+  href: string,
+  startOf: (scene: string) => Option.Option<number>,
+): number =>
+  Option.getOrElse(
+    Option.flatMap(scenesPlaceOf(href), (p) =>
+      Option.orElse(p.t, () => Option.flatMap(p.scene, startOf)),
+    ),
+    () => 0,
   );
 
 /** A film's Scenes with `scene` selected (none: the tape alone), the playhead at film second `t`. */
