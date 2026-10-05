@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'effect-bun-test';
 
-import { Cause, Effect, Exit, Option } from 'effect';
+import { Array as Arr, Cause, Effect, Exit, Function, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
-import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
-import * as AtomRef from 'effect/reactivity/AtomRef';
+import type * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import {
+  children,
+  createComponent,
   createEffect,
   createRenderEffect,
   createRoot,
@@ -17,19 +18,13 @@ import {
 } from 'solid-js';
 
 import {
-  useAtom,
-  useAtomInitialValues,
   useAtomMount,
-  useAtomRef,
-  useAtomRefProp,
-  useAtomRefPropValue,
   useAtomRefresh,
   useAtomSet,
-  useAtomSubscribe,
   useAtomSuspense,
   useAtomValue,
 } from './hooks.js';
-import { RegistryContext } from './registry-context.js';
+import { RegistryProvider, type RegistryProviderProps, useRegistry } from './registry-context.js';
 
 const settle = Effect.gen(function* () {
   yield* Effect.yieldNow;
@@ -37,35 +32,53 @@ const settle = Effect.gen(function* () {
 });
 
 interface Mounted<A> {
+  /** The provider's registry, as the hooks found it. */
   readonly registry: AtomRegistry.AtomRegistry;
   readonly result: A;
-  /** Disposes the Solid owner, leaving the registry usable for assertions. */
+  /** Disposes the hooks' owner, leaving the provider and its registry. */
   readonly disposeOwner: () => void;
+  /** Disposes the hooks' owner, then the provider, which disposes its registry. */
   readonly dispose: () => void;
 }
 
 /**
- * Runs `body` inside a Solid root against a registry of its own.
- *
- * The hooks resolve their registry through `useRegistry()`, which
- * returns the context default when no provider is mounted. Pointing that
- * default at a fresh registry per test exercises the real lookup path while
- * keeping tests isolated — mounting `RegistryProvider` instead would need a JSX
- * runtime, which the bun test environment does not compile.
+ * Runs `body` under a `RegistryProvider` of its own, as a page's components
+ * run, with the provider's `options`. `body` runs in an owner of its own
+ * inside the provider, so a test can dispose the hooks and still read the
+ * registry they used.
  */
-const mount = <A>(body: () => A): Mounted<A> => {
-  const registry = AtomRegistry.make();
-  RegistryContext.defaultValue = Option.some(registry);
-  return createRoot((dispose) => ({
-    registry,
-    disposeOwner: dispose,
-    dispose: () => {
-      dispose();
-      registry.dispose();
-    },
-    result: body(),
-  }));
-};
+const mount = <A>(
+  body: () => A,
+  options: Omit<RegistryProviderProps, 'children'> = {},
+): Mounted<A> =>
+  createRoot((disposeProvider) => {
+    const mounted: Array<Mounted<A>> = [];
+    const view = createComponent(RegistryProvider, {
+      ...options,
+      get children() {
+        const registry = useRegistry();
+        createRoot((disposeOwner) => {
+          mounted.push({
+            registry,
+            result: body(),
+            disposeOwner,
+            dispose: () => {
+              disposeOwner();
+              disposeProvider();
+            },
+          });
+        });
+        return [];
+      },
+    });
+    // A provider's children are lazy, made when its view is read; a render
+    // effect reads the view and keeps it, as a renderer would.
+    createRenderEffect(
+      children(() => view),
+      Function.constVoid,
+    );
+    return Option.getOrThrow(Arr.head(mounted));
+  });
 
 describe('useAtomValue', () => {
   const test = it.scoped;
@@ -103,28 +116,7 @@ describe('useAtomValue', () => {
       expect(owned.result()).toBe('count-3');
     }));
 
-  test('reads the live value of an atom with a server value when not hydrating', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(0);
-      const served = Atom.withServerValue(counter, () => -1);
-      const owned = mount(() => ({
-        value: useAtomValue(() => served),
-        mapped: useAtomValue(
-          () => served,
-          (n) => `count-${n}`,
-        ),
-      }));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      expect([owned.result.value(), owned.result.mapped()]).toEqual([0, 'count-0']);
-
-      owned.registry.set(served, 1);
-      yield* settle;
-      expect([owned.result.value(), owned.result.mapped()]).toEqual([1, 'count-1']);
-    }));
-
-  test('reads a write to an atom with a server value at once when not hydrating', () =>
+  test('reads the live value of an atom with a server value, and a write at once, when not hydrating', () =>
     Effect.gen(function* () {
       const served = Atom.withServerValue(Atom.make(0), () => -1);
       const owned = mount(() => ({
@@ -158,40 +150,6 @@ describe('useAtomValue', () => {
     }));
 });
 
-describe('useAtom', () => {
-  const test = it.scoped;
-
-  test('writes through the setter and reflects the write in the accessor', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(0);
-      const owned = mount(() => useAtom(() => counter));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-      const [value, setValue] = owned.result;
-
-      yield* settle;
-      expect(value()).toBe(0);
-
-      setValue(5);
-      yield* settle;
-      expect(value()).toBe(5);
-    }));
-
-  test('accepts an updater function that reads the current value', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(10);
-      const owned = mount(() => useAtom(() => counter));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-      const [value, setValue] = owned.result;
-
-      yield* settle;
-      setValue((current) => current + 5);
-      yield* settle;
-
-      expect(value()).toBe(15);
-      expect(owned.registry.get(counter)).toBe(15);
-    }));
-});
-
 describe('useAtomSet', () => {
   const test = it.scoped;
 
@@ -206,6 +164,16 @@ describe('useAtomSet', () => {
 
       owned.result(7);
       expect(owned.registry.get(counter)).toBe(7);
+    }));
+
+  test('accepts an updater function that reads the current value', () =>
+    Effect.gen(function* () {
+      const counter = Atom.make(10);
+      const owned = mount(() => useAtomSet(() => counter));
+      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+
+      owned.result((current) => current + 5);
+      expect(owned.registry.get(counter)).toBe(15);
     }));
 });
 
@@ -253,74 +221,10 @@ describe('useAtomRefresh', () => {
     }));
 });
 
-describe('useAtomSubscribe', () => {
+describe('RegistryProvider', () => {
   const test = it.scoped;
 
-  test('delivers writes to the callback and stops after disposal', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(0);
-      const seen: Array<number> = [];
-      const owned = mount(() => {
-        useAtomSubscribe(
-          () => counter,
-          (n) => seen.push(n),
-        );
-      });
-
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      owned.registry.set(counter, 1);
-      yield* settle;
-      expect(seen).toEqual([1]);
-
-      owned.disposeOwner();
-      yield* settle;
-      owned.registry.set(counter, 2);
-      yield* settle;
-      expect(seen).toEqual([1]);
-    }));
-
-  test('emits the current value up front when immediate is set', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(3);
-      const seen: Array<number> = [];
-      const owned = mount(() => {
-        useAtomSubscribe(
-          () => counter,
-          (n) => seen.push(n),
-          { immediate: true },
-        );
-      });
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      expect(seen).toEqual([3]);
-    }));
-});
-
-describe('useAtomInitialValues', () => {
-  const test = it.scoped;
-
-  test('seeds the first value per atom and ignores later seeds', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(0).pipe(Atom.keepAlive);
-      const owned = mount(() => {
-        useAtomInitialValues([[counter, 42]]);
-        useAtomInitialValues([[counter, 99]]);
-        return useAtomValue(() => counter);
-      });
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      expect(owned.result()).toBe(42);
-    }));
-});
-
-describe('RegistryContext', () => {
-  const test = it.scoped;
-
-  test('isolates atom state between two registries', () =>
+  test("hooks under two providers each use their own provider's registry", () =>
     Effect.gen(function* () {
       const counter = Atom.make(0);
       const one = mount(() => useAtomValue(() => counter));
@@ -329,11 +233,26 @@ describe('RegistryContext', () => {
       yield* Effect.addFinalizer(() => Effect.sync(two.dispose));
 
       yield* settle;
+      expect(one.registry).not.toBe(two.registry);
       one.registry.set(counter, 1);
       yield* settle;
 
       expect(one.result()).toBe(1);
       expect(two.result()).toBe(0);
+    }));
+
+  test('seeds its initial values, and disposes its registry with its owner', () =>
+    Effect.gen(function* () {
+      const counter = Atom.make(0).pipe(Atom.keepAlive);
+      const owned = mount(() => useAtomValue(() => counter), {
+        initialValues: [[counter, 9]],
+      });
+
+      expect(owned.result()).toBe(9);
+      expect(owned.registry.getNodes().size).toBe(1);
+      owned.dispose();
+      yield* settle;
+      expect(owned.registry.getNodes().size).toBe(0);
     }));
 });
 
@@ -343,28 +262,21 @@ describe('AsyncResult atoms', () => {
   test('moves an Atom.fn from initial to success', () =>
     Effect.gen(function* () {
       const double = Atom.fn((n: number) => Effect.succeed(n * 2));
-      const owned = mount(() => useAtom(() => double));
+      const owned = mount(() => ({
+        result: useAtomValue(() => double),
+        run: useAtomSet(() => double),
+      }));
       yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-      const [result, run] = owned.result;
 
       yield* settle;
-      expect(AsyncResult.isInitial(result())).toBe(true);
+      expect(AsyncResult.isInitial(owned.result.result())).toBe(true);
 
-      run(21);
+      owned.result.run(21);
       yield* settle;
 
-      const current = result();
+      const current = owned.result.result();
       expect(AsyncResult.isSuccess(current)).toBe(true);
       if (AsyncResult.isSuccess(current)) expect(current.value).toBe(42);
-    }));
-
-  test('resolves the promise mode setter with the success value', () =>
-    Effect.gen(function* () {
-      const double = Atom.fn((n: number) => Effect.succeed(n * 2));
-      const owned = mount(() => useAtomSet(() => double, { mode: 'promise' as const }));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      expect(yield* Effect.promise(() => owned.result(4))).toBe(8);
     }));
 });
 
@@ -379,17 +291,6 @@ describe('useAtomSuspense', () => {
 
       yield* settle;
       expect(yield* Effect.promise(() => resolve(owned.result))).toBe(7);
-    }));
-
-  test('rejects with the squashed cause when the result fails', () =>
-    Effect.gen(function* () {
-      const failing = Atom.make(Effect.fail('boom'));
-      const owned = mount(() => useAtomSuspense(() => failing));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      const exit = yield* Effect.exit(Effect.promise(() => resolve(owned.result)));
-      expect(Exit.isFailure(exit)).toBe(true);
     }));
 
   test('rejects with the exact squashed error, not a wrapper', () =>
@@ -489,37 +390,6 @@ describe('atom thunk changes', () => {
       expect(owned.registry.getNodes().get(second)?.listeners.size).toBe(0);
     }));
 
-  test('useAtomSubscribe moves its callback to the newly selected atom', () =>
-    Effect.gen(function* () {
-      const first = Atom.make(0).pipe(Atom.keepAlive);
-      const second = Atom.make(0).pipe(Atom.keepAlive);
-      const [selected, select] = createSignal<Atom.Atom<number>>(first, { ownedWrite: true });
-      const seen: Array<number> = [];
-      const owned = mount(() => {
-        useAtomSubscribe(
-          () => selected(),
-          (n) => seen.push(n),
-        );
-      });
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      owned.registry.set(first, 1);
-      yield* settle;
-      expect(seen).toEqual([1]);
-
-      select(() => second);
-      yield* settle;
-      expect(owned.registry.getNodes().get(first)?.listeners.size).toBe(0);
-      expect(owned.registry.getNodes().get(second)?.listeners.size).toBe(1);
-
-      // The old atom is silent; the new one is heard exactly once per write.
-      owned.registry.set(first, 9);
-      owned.registry.set(second, 5);
-      yield* settle;
-      expect(seen).toEqual([1, 5]);
-    }));
-
   test('useAtomMount moves its mount to the newly selected atom', () =>
     Effect.gen(function* () {
       const first = Atom.make(0).pipe(Atom.keepAlive);
@@ -537,142 +407,6 @@ describe('atom thunk changes', () => {
       yield* settle;
       expect(owned.registry.getNodes().get(first)?.listeners.size).toBe(0);
       expect(owned.registry.getNodes().get(second)?.listeners.size).toBe(1);
-    }));
-});
-
-describe('useAtomSubscribe phase', () => {
-  const test = it.scoped;
-
-  test('runs the immediate callback after render, not during it', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(3);
-      const seen: Array<number> = [];
-      const owned = mount(() => {
-        useAtomSubscribe(
-          () => counter,
-          (n) => seen.push(n),
-          { immediate: true },
-        );
-        // `useAtomSubscribe` is a user effect, so nothing has been delivered by
-        // the time the surrounding component body finishes.
-        return seen.slice();
-      });
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      expect(owned.result).toEqual([]);
-      yield* settle;
-      expect(seen).toEqual([3]);
-    }));
-
-  test('runs after the render effects that seed accessors', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(11).pipe(Atom.keepAlive);
-      const order: Array<string> = [];
-      const owned = mount(() => {
-        useAtomSubscribe(
-          () => counter,
-          (n) => order.push(`subscribe-${n}`),
-          { immediate: true },
-        );
-        const value = useAtomValue(() => counter);
-        // A sibling render effect stands in for a JSX binding: it observes the
-        // accessor in the same phase a rendered view would.
-        createRenderEffect(
-          () => value(),
-          (current) => {
-            // Dev mode requires an effect callback to return a cleanup function
-            // or nothing, so the push result must not leak out of the body.
-            order.push(`render-${current}`);
-          },
-        );
-      });
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      // `useAtomValue` is a render effect and `useAtomSubscribe` is a user
-      // effect, so within one flush the accessor is seeded before the caller's
-      // subscription callback fires. Making `useAtomSubscribe` a render effect
-      // would reverse this order.
-      expect(order).toEqual(['render-11', 'subscribe-11']);
-    }));
-});
-
-describe('useAtomRef', () => {
-  const test = it.scoped;
-
-  test('seeds from the ref and tracks later writes', () =>
-    Effect.gen(function* () {
-      const ref = AtomRef.make({ n: 1 });
-      const owned = mount(() => useAtomRef(() => ref));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      expect(owned.result()).toEqual({ n: 1 });
-
-      ref.set({ n: 2 });
-      yield* settle;
-      expect(owned.result()).toEqual({ n: 2 });
-    }));
-
-  test('stops following the ref once the owner is disposed', () =>
-    Effect.gen(function* () {
-      const ref = AtomRef.make({ n: 1 });
-      const owned = mount(() => useAtomRef(() => ref));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      owned.disposeOwner();
-      yield* settle;
-
-      ref.set({ n: 3 });
-      yield* settle;
-      expect(owned.result()).toEqual({ n: 1 });
-    }));
-
-  test('re-subscribes when the selected ref changes', () =>
-    Effect.gen(function* () {
-      const first = AtomRef.make('a');
-      const second = AtomRef.make('b');
-      const [selected, select] = createSignal<AtomRef.AtomRef<string>>(first, {
-        ownedWrite: true,
-      });
-      const owned = mount(() => useAtomRef(() => selected()));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      expect(owned.result()).toBe('a');
-
-      select(() => second);
-      yield* settle;
-      expect(owned.result()).toBe('b');
-
-      // The abandoned ref no longer drives the accessor.
-      first.set('a2');
-      yield* settle;
-      expect(owned.result()).toBe('b');
-
-      second.set('b2');
-      yield* settle;
-      expect(owned.result()).toBe('b2');
-    }));
-
-  test('reads a property ref and its value', () =>
-    Effect.gen(function* () {
-      const ref = AtomRef.make({ count: 1, label: 'one' });
-      const owned = mount(() => ({
-        prop: useAtomRefProp(() => ref, 'count'),
-        value: useAtomRefPropValue(() => ref, 'count'),
-      }));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      expect(owned.result.prop().value).toBe(1);
-      expect(owned.result.value()).toBe(1);
-
-      owned.result.prop().set(7);
-      yield* settle;
-      expect(owned.result.value()).toBe(7);
-      expect(ref.value.count).toBe(7);
     }));
 });
 
@@ -709,33 +443,6 @@ describe('first synchronous read', () => {
       yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
 
       expect(owned.result).toBe('count-2');
-    }));
-
-  test('useAtom returns the seeded value before any flush', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(7);
-      const owned = mount(() => useAtom(() => counter)[0]());
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      expect(owned.result).toBe(7);
-    }));
-
-  test('useAtomRef returns the seeded value before any flush', () =>
-    Effect.gen(function* () {
-      const ref = AtomRef.make({ n: 5 });
-      const owned = mount(() => useAtomRef(() => ref)());
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      expect(owned.result).toEqual({ n: 5 });
-    }));
-
-  test('useAtomRefPropValue returns the seeded value before any flush', () =>
-    Effect.gen(function* () {
-      const ref = AtomRef.make({ count: 9, label: 'nine' });
-      const owned = mount(() => useAtomRefPropValue(() => ref, 'count')());
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      expect(owned.result).toBe(9);
     }));
 
   /**
@@ -775,33 +482,8 @@ describe('first synchronous read', () => {
     }));
 });
 
-describe('promise setter modes', () => {
+describe('the promiseExit setter mode', () => {
   const test = it.scoped;
-
-  test('keeps both result channels in the setter types', () =>
-    Effect.gen(function* () {
-      const atom = Atom.fn((n: number) => {
-        if (n < 0) return Effect.fail(`negative:${n}`);
-        return Effect.succeed(n * 2);
-      });
-      const owned = mount(() => ({
-        promise: useAtomSet(() => atom, { mode: 'promise' as const }),
-        promiseExit: useAtomSet(() => atom, { mode: 'promiseExit' as const }),
-      }));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      // `asAsyncResultAtom` preserves `AsyncResult.Success<R>` and
-      // `AsyncResult.Failure<R>`, so both channels stay named rather than
-      // widening to `unknown`. These annotated bindings are the assertion: a
-      // widened channel fails `tsc`, which the package gate runs.
-      const success: Promise<number> = owned.result.promise(3);
-      const exit: Promise<Exit.Exit<number, string>> = owned.result.promiseExit(4);
-
-      expect(yield* Effect.promise(() => success)).toBe(6);
-      const settled = yield* Effect.promise(() => exit);
-      expect(Exit.isSuccess(settled)).toBe(true);
-      if (Exit.isSuccess(settled)) expect(settled.value).toBe(8);
-    }));
 
   const doubleOrFail = () =>
     Atom.fn((n: number) => {
@@ -809,18 +491,23 @@ describe('promise setter modes', () => {
       return Effect.succeed(n * 2);
     });
 
-  test('promiseExit mode resolves with a success Exit', () =>
+  test('resolves with a success Exit, both result channels typed', () =>
     Effect.gen(function* () {
       const atom = doubleOrFail();
       const owned = mount(() => useAtomSet(() => atom, { mode: 'promiseExit' as const }));
       yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
 
-      const exit = yield* Effect.promise(() => owned.result(6));
+      // `asAsyncResultAtom` preserves `AsyncResult.Success<R>` and
+      // `AsyncResult.Failure<R>`, so both channels stay named rather than
+      // widening to `unknown`. The annotated binding is the assertion: a
+      // widened channel fails `tsc`, which the package gate runs.
+      const written: Promise<Exit.Exit<number, string>> = owned.result(6);
+      const exit = yield* Effect.promise(() => written);
       expect(Exit.isSuccess(exit)).toBe(true);
       if (Exit.isSuccess(exit)) expect(exit.value).toBe(12);
     }));
 
-  test('promiseExit mode resolves with a failure Exit rather than rejecting', () =>
+  test('resolves with a failure Exit rather than rejecting', () =>
     Effect.gen(function* () {
       const atom = doubleOrFail();
       const owned = mount(() => useAtomSet(() => atom, { mode: 'promiseExit' as const }));
@@ -830,57 +517,34 @@ describe('promise setter modes', () => {
       expect(Exit.isFailure(exit)).toBe(true);
       if (Exit.isFailure(exit)) expect(Cause.squash(exit.cause)).toBe('negative:-3');
     }));
-
-  test('promise mode rejects with the squashed error when the effect fails', () =>
-    Effect.gen(function* () {
-      const atom = doubleOrFail();
-      const owned = mount(() => useAtomSet(() => atom, { mode: 'promise' as const }));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      const exit = yield* Effect.exit(Effect.tryPromise(() => owned.result(-5)));
-
-      // `flattenExit` throws `Cause.squash(cause)`, so the rejection carries the
-      // original failure value, not the `Exit` or the `Cause`. `tryPromise`
-      // re-wraps it once in an `UnknownError`.
-      expect(Exit.isFailure(exit)).toBe(true);
-      if (Exit.isFailure(exit)) {
-        const squashed = Cause.squash(exit.cause);
-        expect(squashed).toBeInstanceOf(Cause.UnknownError);
-        if (squashed instanceof Cause.UnknownError) expect(squashed.cause).toBe('negative:-5');
-      }
-    }));
 });
 
-describe('RegistryProvider cleanup order', () => {
+describe('a registry disposed before its hooks unsubscribe', () => {
   const test = it.scoped;
 
   /**
    * Solid runs one owner's cleanups in reverse registration order (unwind),
    * and a child's before its owner's, so `RegistryProvider`, which registers
    * `registry.dispose()` before its children run, disposes the registry after
-   * their unsubscribes. A registry owned elsewhere can still be disposed while
-   * hooks are subscribed. This test disposes the registry first, then the
-   * owner, and asserts the unsubscribes neither throw nor leave listeners.
+   * their unsubscribes. The other order can still happen (a registry disposed
+   * from elsewhere while hooks are subscribed). This test disposes the
+   * registry first, then the hooks' owner, and asserts the unsubscribes
+   * neither throw nor leave listeners.
    */
-  test('disposes the registry before hook unsubscribes without leaking or throwing', () =>
+  test('the unsubscribes neither leak nor throw', () =>
     Effect.gen(function* () {
       const counter = Atom.make(0).pipe(Atom.keepAlive);
-      const registry = AtomRegistry.make({ defaultIdleTTL: 400 });
-      RegistryContext.defaultValue = Option.some(registry);
-
-      const owned = createRoot((dispose) => {
-        const value = useAtomValue(() => counter);
-        return { value, dispose };
-      });
+      const owned = mount(() => useAtomValue(() => counter));
       yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+      const { registry } = owned;
 
       yield* settle;
-      expect(owned.value()).toBe(0);
+      expect(owned.result()).toBe(0);
       const node = registry.getNodes().get(counter);
       expect(node?.listeners.size).toBe(1);
 
       registry.dispose();
-      owned.dispose();
+      owned.disposeOwner();
       yield* settle;
 
       expect(node?.listeners.size).toBe(0);
@@ -934,22 +598,5 @@ describe('Solid development mode', () => {
       yield* settle;
       expect(mounted.registry.get(counter)).toBe(1);
       expect(findings.events.map((e) => e.code)).toEqual([]);
-    }));
-
-  test('accepts an owned-scope write when the signal declares ownedWrite', () =>
-    Effect.gen(function* () {
-      const owned = createRoot((dispose) => {
-        // The same write on a signal without `ownedWrite` throws
-        // `REACTIVE_WRITE_IN_OWNED_SCOPE` under this build — which is exactly
-        // what the bridge signals in `hooks.ts` avoid.
-        const [value, setValue] = createSignal(0, { ownedWrite: true });
-        setValue(1);
-        return { value, dispose };
-      });
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      // The write is accepted but batched, so it lands on the next flush.
-      yield* settle;
-      expect(owned.value()).toBe(1);
     }));
 });

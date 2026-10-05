@@ -1,17 +1,27 @@
-/* oxlint-disable effect/noAsyncFunction, effect/noNodeBuiltinImport -- the build
- * harness is Promise based, and a scratch directory is a host concern. */
-import { describe, expect, test } from 'bun:test';
-import { mkdtemp } from 'node:fs/promises';
+/* oxlint-disable effect/noAsyncFunction, effect/noNodeBuiltinImport, effect/noTestLifecycleHooks -- the build
+ * harness is Promise based, a scratch directory is a host concern, and the
+ * one build lives for the file, its directory removed after it. */
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 
 import { Option } from 'effect';
 
 import { build } from './build.ts';
 
+let outdir: string;
+let built: Awaited<ReturnType<typeof build>>;
+
+beforeAll(async () => {
+  outdir = await mkdtemp(`${tmpdir()}/atom-solid-ssr-`);
+  built = await build(outdir);
+});
+
+afterAll(() => rm(outdir, { recursive: true, force: true }));
+
 describe('server rendering a place', () => {
-  test('renders path and query from the request, and the hash at its default', async () => {
-    const { render, findings } = await build(await mkdtemp(`${tmpdir()}/atom-solid-ssr-`));
-    const { html, codes } = findings(() => render('/films/f/lab/s?cue=c#t=2'));
+  test('renders path and query from the request, and the hash at its default', () => {
+    const { html, codes } = built.findings(() => built.render('/films/f/lab/s?cue=c#t=2'));
     expect(html).toMatch(/<p [^>]*id="film"[^>]*>f<\/p>/);
     expect(html).toMatch(/<p [^>]*id="cue"[^>]*>c<\/p>/);
     expect(html).toMatch(/<i [^>]*id="t"[^>]*>0<\/i>/);
@@ -20,19 +30,15 @@ describe('server rendering a place', () => {
     expect(codes).toEqual(Option.some([]));
   });
 
-  test('refuses a hook with no RegistryProvider: requests never share a registry', async () => {
-    const { renderWithoutProvider } = await build(
-      await mkdtemp(`${tmpdir()}/atom-solid-ssr-bare-`),
-    );
-    expect(renderWithoutProvider).toThrow(/RegistryProvider/);
+  test('refuses a hook with no RegistryProvider: requests never share a registry', () => {
+    expect(built.renderWithoutProvider).toThrow(/RegistryProvider/);
   });
 });
 
 describe("server rendering a viewer's own value", () => {
-  test('renders its server value, read and set, and never runs the atom', async () => {
-    const { ownPage } = await build(await mkdtemp(`${tmpdir()}/atom-solid-ssr-own-`));
+  test('renders its server value, read and set, and never runs the atom', () => {
     let runs = 0;
-    const html = ownPage(() => {
+    const html = built.ownPage(() => {
       runs += 1;
     });
     expect(html).toMatch(/<p [^>]*id="own"[^>]*>served<\/p>/);
@@ -42,9 +48,8 @@ describe("server rendering a viewer's own value", () => {
 
 describe('server rendering a served atom', () => {
   test('waits for its read, renders it, and sends it encoded for the client to adopt', async () => {
-    const { answerPage } = await build(await mkdtemp(`${tmpdir()}/atom-solid-ssr-served-`));
     let reads = 0;
-    const html = await answerPage(async () => {
+    const html = await built.answerPage(async () => {
       reads += 1;
       return '42';
     });

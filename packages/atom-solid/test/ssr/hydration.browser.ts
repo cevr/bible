@@ -8,13 +8,14 @@
 // Run with `bun run test:ssr`; it needs Playwright's Chromium, so the gate
 // leaves it out (the server half runs in `server.test.ts`).
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 
 import { chromium, type Browser } from '@playwright/test';
 
 import { build } from './build.ts';
 
+let outdir: string;
 let browser: Browser;
 let server: ReturnType<typeof Bun.serve>;
 
@@ -22,9 +23,8 @@ let server: ReturnType<typeof Bun.serve>;
 let serverReads = 0;
 
 beforeAll(async () => {
-  const { page, client, answerPage, answerClient } = await build(
-    await mkdtemp(`${tmpdir()}/atom-solid-ssr-`),
-  );
+  outdir = await mkdtemp(`${tmpdir()}/atom-solid-ssr-`);
+  const { page, client, answerPage, answerClient } = await build(outdir);
   server = Bun.serve({
     port: 0,
     async fetch(request) {
@@ -53,6 +53,7 @@ beforeAll(async () => {
 afterAll(async () => {
   await browser.close();
   await server.stop(true);
+  await rm(outdir, { recursive: true, force: true });
 });
 
 describe('hydrating a place', () => {

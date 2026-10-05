@@ -44,6 +44,7 @@ export {
   isCorpusSection,
   NO_SELECTION,
   SELECTABLE_SUBTYPES,
+  Signed,
   SignedFromStrings,
 };
 

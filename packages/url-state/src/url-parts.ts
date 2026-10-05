@@ -12,7 +12,7 @@
  * - the query by `URLSearchParams` (`+` for a space; byte-for-byte what a
  *   browser form and egw-search's links have always produced);
  * - the hash as `key=value&key=value`, keeping `,`, `:`, `/` and `@` readable,
- *   so a time range reads `#t=1.5,4`.
+ *   so a value such as `1.5,4` or `a/b` prints as written.
  *
  * Decoding is total: a segment or hash value whose percent-encoding is broken
  * is kept as written.

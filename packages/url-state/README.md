@@ -16,13 +16,14 @@ A URL has three parts: the path, a list of segments, and the query and the
 hash, each a record of keys to lists of values:
 
 ```
-/films/righteousness-by-faith/lab/roof?cue=render%3Ascenes%3Aroof#t=1.5,4
- └──────────── path ────────────────┘ └──────── query ─────────┘ └ hash ┘
+/films/righteousness-by-faith/lab/roof?cue=render%3Ascenes%3Aroof#t=1.5
+ └──────────── path ────────────────┘ └──────── query ─────────┘ └hash┘
 ```
 
-`UrlPartsFromHref` is the schema between an href and its `UrlParts`
-(`{ path, query, hash }`); `readHref` and `printHref` run it either way. Path
-segments are percent-decoded, and printing keeps `:`, `@` and `,` readable.
+One schema inside the package (`src/url-parts.ts`) runs between an href and
+its parts (`{ path, query, hash }`), and is the only code that reads or prints
+URL syntax. Path segments are percent-decoded, and printing keeps `:`, `@` and
+`,` readable.
 The query prints the way `URLSearchParams` does (so `:` is `%3A` there); the
 hash prints as `k=v&…` and keeps `, : / @` readable.
 
@@ -34,24 +35,22 @@ and the place's value; `None` means the href is not this place.
 ```ts
 import { Codec, Field, Place } from '@bible/url-state';
 
-const start: Codec.MediaTime = { _tag: 'Point', at: 0 };
-
 /** The film lab: a film's scene, the cue on screen, and the playhead. */
 export const Lab = Place.make({
   path: '/films/:film/lab/:scene',
   params: { film: Codec.Segment, scene: Codec.Segment },
   query: Field.struct({ cue: Field.key(Codec.Text, { default: '', history: 'push' }) }),
   hash: Field.struct({
-    t: Field.key(Codec.MediaTime, { default: start, throttle: '250 millis' }),
+    t: Field.key(Codec.Finite, { default: 0, throttle: '250 millis' }),
   }),
 });
 
-Place.decode(Lab, '/films/rbf/lab/roof?cue=a#t=1.5,4');
+Place.decode(Lab, '/films/rbf/lab/roof?cue=a#t=1.5');
 // Some({ path: { film: 'rbf', scene: 'roof' },
 //        query: { cue: 'a' },
-//        hash: { t: { _tag: 'Range', in: 1.5, out: 4 } } })
+//        hash: { t: 1.5 } })
 
-Place.href(Lab, { path: { film: 'rbf', scene: 'roof' }, query: { cue: '' }, hash: { t: start } });
+Place.href(Lab, { path: { film: 'rbf', scene: 'roof' }, query: { cue: '' }, hash: { t: 0 } });
 // '/films/rbf/lab/roof': both keys are at their defaults
 ```
 
@@ -77,23 +76,21 @@ every value a place's type admits (`effect/Arbitrary`).
 
 `Codec` holds the building blocks:
 
-| Codec                       | Reads                     | Value                            |
-| --------------------------- | ------------------------- | -------------------------------- |
-| `Text`                      | any well-formed text      | `string`                         |
-| `Segment`                   | a non-empty path segment  | `string`, not `.` or `..`        |
-| `Finite`, `Int`             | `1.5`, `1e1`              | `number`                         |
-| `Flag`                      | `1`                       | `true`; anything else, `false`   |
-| `literals(values)`          | one of a fixed set        | the literal union                |
-| `truncate(self)`            | `7.9`                     | `7`                              |
-| `clamp({ min, max })(self)` | `200` with `max: 100`     | `100`                            |
-| `delimited(item, ',')`      | `a,b`                     | `[a, b]`                         |
-| `MediaTime`                 | `t=4.5`, `t=1.5,4`        | a `Point` or an in ≤ out `Range` |
-| `selection(values, '-')`    | `x=a&x=-b` (repeated key) | `{ include: [a], exclude: [b] }` |
+| Codec                       | Reads                    | Value                          |
+| --------------------------- | ------------------------ | ------------------------------ |
+| `Text`                      | any well-formed text     | `string`                       |
+| `Segment`                   | a non-empty path segment | `string`, not `.` or `..`      |
+| `Finite`, `Int`             | `1.5`, `1e1`             | `number`                       |
+| `Flag`                      | `1`                      | `true`; anything else, `false` |
+| `literals(values)`          | one of a fixed set       | the literal union              |
+| `truncate(self)`            | `7.9`                    | `7`                            |
+| `clamp({ min, max })(self)` | `200` with `max: 100`    | `100`                          |
 
 A codec for one key is a `Schema.Codec<A, string>`; a codec for a repeated
-key (`selection`) is a `Schema.Codec<A, ReadonlyArray<string>>`. Any schema
-of either shape works: egw-search uses the API's own `SignedFromStrings` for
-its axes, through `Field.keys`.
+key is a `Schema.Codec<A, ReadonlyArray<string>>`. Any schema of either shape
+works: egw-search reads its signed axes (`?type=book&type=-periodical`) with
+the API's own `SignedFromStrings` from `@bible/core/writings`, through
+`Field.keys`, so the link and the endpoint share one codec.
 
 `Field` lifts codecs to keys:
 
@@ -131,25 +128,26 @@ Three layers fill it:
 
 - `layerBrowser({ scrollRestoration? })`: the tab's `window.history`. Each
   entry carries `{ key }` in `history.state`; Back and Forward arrive as
-  `traverse` entries. It is the only module that touches `window.location`,
-  `history` or `popstate`, and lint keeps `window.location`, `history` and
-  `onpopstate` out of every other module of this package, of egw-search, and
-  of the film's lab, player and browser modules (the film's lint also refuses
-  a `popstate` listener there).
-- `layerMemory(href)`: a history stack in memory, plus `LocationHistory`
-  (`back`, `forward`, `entries`) to drive it.
+  `traverse` entries. `back` at the tab's first entry leaves the page for the
+  tab's previous one, so a page calls it only over an entry it pushed. It is
+  the only module that touches `window.location`, `history` or `popstate`,
+  and lint keeps `window.location`, `history`, `onpopstate` and a `popstate`
+  or `hashchange` listener on the window out of every other module of this
+  package, of egw-search, and of the film's lab, player and browser modules.
+- `layerMemory(href)`: a history stack in memory; `back` at its first entry
+  stays there. `LocationHistory` adds `forward` and the stack (`entries`)
+  for a test to drive and read.
 - `layerServer(href)`: the request URL without its hash, read-only. A write
   is ignored and logged at Debug (`location.server.write.ignored`); a `back`
   is ignored too (`location.server.back.ignored`).
 
-Entry keys (`<ms>-<n>`; a server render's one entry is `SERVER_ENTRY_KEY`,
-`'server'`) name history entries, so anything remembered per entry
+Entry keys (`<ms>-<n>`; a server render's one entry is `'server'`) name
+history entries, so anything remembered per entry
 (a scroll position) is remembered against the key.
 
 `UrlState` (`UrlState.layer`, over a `Location`) is where writes go:
 
-- `UrlState.get(place)`, `UrlState.changes(place)`: the place's value, `None`
-  off the place.
+- `UrlState.get(place)`: the place's value, `None` off the place.
 - `UrlState.set(place, value)`: navigate to the value's href, moving as
   `Place.history` says; nothing when the href is the one already there.
 - `UrlState.update(place, f)`: `set` with `f` of the value as the URL holds it
@@ -181,13 +179,19 @@ const lab = UrlAtom.place(Lab); // Writable<Option<Lab value>, Lab value>, one p
 - `UrlAtom.href`: the URL as the program's writes leave it.
 - `UrlAtom.entry`: the history entry on screen, for per-entry memory.
 - `UrlAtom.services`: `Location` and `UrlState`, built from `layer` and kept
-  alive with the registry.
+  alive with the registry. A layer that carries its own `UrlState` gives that
+  one, so a page whose host already writes through a `UrlState` has one.
 
 ```tsx
 <RegistryProvider initialValues={[[UrlAtom.layer, layerBrowser({ scrollRestoration: 'manual' })]]}>
   <App />
 </RegistryProvider>
 ```
+
+A host that builds `Location` and `UrlState` itself (the film's pages) seeds
+the layer with them, built: `[[UrlAtom.layer, Layer.succeedContext(host)]]`.
+The registry's atoms then read and write through the host's own `UrlState`,
+and no second one follows the address bar.
 
 ## Testing with the memory layer
 
@@ -234,4 +238,4 @@ on the server and through the client's hydration pass, so the two produce the
 same markup, and then the real hash. `packages/atom-solid/test/ssr` proves it:
 `server.test.ts` renders the lab place (in the gate), and
 `bun run --cwd packages/atom-solid test:ssr` hydrates it in Chromium with a
-hash in the URL and checks for no mismatch.
+hash in the URL and checks for no mismatch (in CI's browser job).

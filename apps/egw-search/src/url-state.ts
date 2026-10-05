@@ -26,16 +26,14 @@ import {
   CorpusSection,
   NO_SELECTION,
   type SearchRequest,
+  type Signed,
   SignedFromStrings,
 } from '../server/api.js';
 
-/** One axis as the client holds it: the same `{ include, exclude }` the server
- *  decodes to, so a chip's three states map onto membership of one list, the
- *  other, or neither. */
-export interface Selection<A> {
-  readonly include: readonly A[];
-  readonly exclude: readonly A[];
-}
+/** One axis as the client holds it: the `{ include, exclude }` of core's
+ *  `Signed`, which the server decodes to, so a chip's three states map onto
+ *  membership of one list, the other, or neither. */
+type Selection<A> = ReturnType<typeof Signed<Schema.Codec<A>>>['Type'];
 
 /** A chip's state, which is the only thing the UI needs to know about an
  *  axis. `'off'` is absence from both lists. */

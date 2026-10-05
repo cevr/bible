@@ -1,19 +1,17 @@
 /**
- * Ported from @effect/atom-solid (MIT), adapted to Solid 2. Delete this package
- * when upstream supports Solid 2.
+ * The hooks this repo uses from @effect/atom-solid (MIT), ported to Solid 2.
+ * Delete this package when upstream supports Solid 2.
  *
  * Solid hooks for using Effect Atoms from components and computations. The
- * hooks read and write atoms through the current `RegistryContext`, mount atoms
- * for cleanup, subscribe callbacks, seed initial values, expose `AsyncResult`
- * atoms as suspending accessors, and read values from `AtomRef` references.
+ * hooks read and write atoms through the current registry (`useRegistry`),
+ * mount atoms for cleanup, refresh them, and expose `AsyncResult` atoms as
+ * suspending accessors.
  *
  * Solid 2 removed `createComputed`, so every subscription runs as a
  * compute/effect pair: the compute phase tracks the atom thunk, and the effect
  * phase attaches the subscription and returns the unsubscribe as its cleanup.
  * Value-carrying hooks use `createRenderEffect` so the subscription is attached
- * before the render pass reads the accessor; `useAtomSubscribe` uses the
- * user-phase `createEffect`, as upstream does, so a caller's `immediate`
- * callback never runs during render.
+ * before the render pass reads the accessor.
  *
  * A value-carrying hook cannot hold its value in a signal alone. Solid 2 queues
  * a signal write until the next flush, so a component that reads its accessor
@@ -52,7 +50,7 @@
 /* oxlint-disable effect/noAs -- the `mode` option selects the setter's return type at the type level; the implementation sees `mode` only as a runtime value and cannot prove which branch it is in. */
 /* oxlint-disable effect/noChainedTypeAssertions -- reaching the registry-private `ensureNode`, exactly as upstream @effect/atom-solid and @effect/atom-react do. */
 /* oxlint-disable effect/noThrowStatement -- Solid 2 signals async failure by throwing from a memo, and a rejected promise is produced by throwing; both are the framework's contract. */
-/* oxlint-disable effect/noNewPromise -- `useAtomSuspense` must hand Solid a real pending promise, and the `promise` setter modes are promise-returning by their upstream signature. */
+/* oxlint-disable effect/noNewPromise -- `useAtomSuspense` must hand Solid a real pending promise, and a served atom's server render waits on one. */
 /* oxlint-disable effect/noNullish -- `undefined` is Solid's own uninitialised-signal value and the registry's own optional-option encoding. */
 /* oxlint-disable effect/noRuntimeTypeof -- upstream's setter accepts `W | ((value: R) => W)`; only a runtime check separates an updater from a value. */
 /* oxlint-disable effect/noKnownValueWidening -- the overload pair on `useAtomValue` is the upstream signature. */
@@ -60,62 +58,16 @@
 
 import * as Cause from 'effect/Cause';
 import * as Effect from 'effect/Effect';
-import * as Exit from 'effect/Exit';
+import type * as Exit from 'effect/Exit';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
-import type * as AtomRef from 'effect/reactivity/AtomRef';
 import type * as Schema from 'effect/Schema';
 import type { Accessor } from 'solid-js';
 import { isServer } from '@solidjs/web';
-import {
-  createEffect,
-  createMemo,
-  createRenderEffect,
-  createSignal,
-  sharedConfig,
-  untrack,
-} from 'solid-js';
+import { createMemo, createRenderEffect, createSignal, sharedConfig, untrack } from 'solid-js';
 
 import { useRegistry } from './registry-context.js';
-
-/**
- * The `initialValues` element type accepted by `AtomRegistry.make`, reused so
- * this hook and the registry stay in step.
- */
-export type AtomRegistryInitialValues = NonNullable<
-  NonNullable<Parameters<typeof AtomRegistry.make>[0]>['initialValues']
->;
-
-type AtomInitialValue = AtomRegistryInitialValues extends Iterable<infer Pair> ? Pair : never;
-
-const initialValuesSet = new WeakMap<AtomRegistry.AtomRegistry, WeakSet<AtomInitialValue[0]>>();
-
-/**
- * Seeds initial atom values in the current Solid atom registry.
- *
- * For each atom in the current registry, this hook applies the first value
- * supplied through the hook. Later calls for the same atom in that registry are
- * ignored.
- *
- * The pair type matches `AtomRegistry.make`'s own `initialValues` option: the
- * list is heterogeneous and `Atom` is covariant in its value, so the element
- * type cannot name every atom's value at once.
- */
-export const useAtomInitialValues = (initialValues: AtomRegistryInitialValues): void => {
-  const registry = useRegistry();
-  let set = initialValuesSet.get(registry);
-  if (set === undefined) {
-    set = new WeakSet();
-    initialValuesSet.set(registry, set);
-  }
-  for (const [atom, value] of initialValues) {
-    if (!set.has(atom)) {
-      set.add(atom);
-      seedInitialValue(registry, atom, value);
-    }
-  }
-};
 
 /**
  * Seeding a value before the atom is ever read needs the registry's own node,
@@ -126,10 +78,10 @@ interface RegistryInternals {
   readonly ensureNode: <A>(atom: Atom.Atom<A>) => { readonly setValue: (value: A) => void };
 }
 
-const seedInitialValue = (
+const seedInitialValue = <A>(
   registry: AtomRegistry.AtomRegistry,
-  atom: AtomInitialValue[0],
-  value: AtomInitialValue[1],
+  atom: Atom.Atom<A>,
+  value: A,
 ): void => {
   (registry as unknown as RegistryInternals).ensureNode(atom).setValue(value);
 };
@@ -189,8 +141,8 @@ interface Bridge<A> {
 const createBridge = <A>(): Bridge<A> => {
   // The cell starts empty because no source has published yet. Every consumer
   // attaches a synchronously-seeding source (the registry's `immediate`
-  // subscription, or a direct `ref.value` read) before returning the accessor,
-  // so the empty state is never observable through the public API.
+  // subscription) before returning the accessor, so the empty state is never
+  // observable through the public API.
   let current: A | undefined;
   // The first publish is the seed, made before the accessor is returned, so
   // no reader can be stale yet: it fills the cell without a signal write. A
@@ -394,7 +346,7 @@ function mountAtom<A>(registry: AtomRegistry.AtomRegistry, atom: () => Atom.Atom
  * Mounts an atom in the current Solid registry for the lifetime of the current
  * Solid computation.
  *
- * The hook uses the current `RegistryContext`, mounts inside a Solid
+ * The hook uses the current registry (`useRegistry`), mounts inside a Solid
  * computation, and releases the mount through Solid cleanup when the
  * computation changes or the owner is disposed.
  */
@@ -404,21 +356,16 @@ export const useAtomMount = <A>(atom: () => Atom.Atom<A>): void => {
 };
 
 /**
- * The write callback returned by {@link useAtom} and {@link useAtomSet}. For
- * `AsyncResult` atoms, `promise` and `promiseExit` modes return promises for
- * the success value or the full `Exit`.
+ * The write callback returned by {@link useAtomSet}. For an `AsyncResult`
+ * atom, the `promiseExit` mode returns a promise of the write's full `Exit`.
  */
-export type AtomSetter<R, W, Mode extends SetterMode> = 'promise' extends Mode
-  ? (value: W) => Promise<AsyncResult.AsyncResult.Success<R>>
-  : 'promiseExit' extends Mode
-    ? (
-        value: W,
-      ) => Promise<
-        Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>
-      >
-    : (value: W | ((value: R) => W)) => void;
+type AtomSetter<R, W, Mode extends SetterMode> = 'promiseExit' extends Mode
+  ? (
+      value: W,
+    ) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
+  : (value: W | ((value: R) => W)) => void;
 
-type SetterMode = 'value' | 'promise' | 'promiseExit';
+type SetterMode = 'value' | 'promiseExit';
 
 interface SetterOptions<R, Mode extends SetterMode> {
   readonly mode?:
@@ -436,31 +383,22 @@ const untrackedMemo = <A>(atom: () => A): (() => A) => {
   return () => untrack(memo);
 };
 
-const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
-  if (Exit.isSuccess(exit)) return exit.value;
-  throw Cause.squash(exit.cause);
-};
-
 function setAtom<R, W, Mode extends SetterMode>(
   registry: AtomRegistry.AtomRegistry,
   atom: () => Atom.Writable<R, W>,
   options?: SetterOptions<R, Mode>,
 ): AtomSetter<R, W, Mode> {
   const memo = untrackedMemo(atom);
-  if (options?.mode === 'promise' || options?.mode === 'promiseExit') {
-    const mode = options.mode;
+  if (options?.mode === 'promiseExit') {
     const write = (
       value: W,
     ): Promise<
-      | AsyncResult.AsyncResult.Success<R>
-      | Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>
+      Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>
     > => {
       registry.set(memo(), value);
-      const promise = Effect.runPromiseExit(
+      return Effect.runPromiseExit(
         AtomRegistry.getResult(registry, asAsyncResultAtom(memo()), { suspendOnWaiting: true }),
       );
-      if (mode === 'promise') return promise.then(flattenExit);
-      return promise;
     };
     return write as AtomSetter<R, W, Mode>;
   }
@@ -478,12 +416,12 @@ const isUpdater = <R, W>(value: W | ((value: R) => W)): value is (value: R) => W
   typeof value === 'function';
 
 /**
- * The promise setter modes are only offered for `AsyncResult` atoms, which the
+ * The `promiseExit` mode is only offered for `AsyncResult` atoms, which the
  * public `mode` option enforces at the call site. The assertion narrows `R` to
  * the `AsyncResult` the caller already proved it is, keeping both result
  * channels — so `AtomRegistry.getResult` yields
  * `Effect<AsyncResult.Success<R>, AsyncResult.Failure<R>>` and the setter's
- * promise types are checked against {@link AtomSetter} rather than widened to
+ * promise type is checked against {@link AtomSetter} rather than widened to
  * `unknown`.
  */
 const asAsyncResultAtom = <R>(
@@ -517,37 +455,6 @@ export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): (() => void) => {
   return () => registry.refresh(memo());
 };
 
-/**
- * Returns a Solid accessor for a writable atom together with a setter for
- * updating it.
- *
- * The setter accepts either a write value or an updater function.
- */
-export const useAtom = <R, W, const Mode extends SetterMode = never>(
-  atom: () => Atom.Writable<R, W>,
-  options?: SetterOptions<R, Mode>,
-): readonly [value: Accessor<R>, write: AtomSetter<R, W, Mode>] => {
-  const registry = useRegistry();
-  return [createAtomAccessor(registry, atom), setAtom(registry, atom, options)] as const;
-};
-
-/**
- * Subscribes a callback to an atom in the current Solid registry.
- *
- * The subscription runs in the user effect phase, as upstream's
- * `createEffect(() => onCleanup(registry.subscribe(...)))` does. The callback is
- * the caller's own side effect and, under `immediate`, fires as soon as it is
- * attached, so it must not run during the render pass.
- */
-export const useAtomSubscribe = <A>(
-  atom: () => Atom.Atom<A>,
-  f: (_: A) => void,
-  options?: { readonly immediate?: boolean },
-): void => {
-  const registry = useRegistry();
-  createEffect(atom, (current) => registry.subscribe(current, f, options));
-};
-
 const constUnresolvedPromise = new Promise<never>(() => {});
 
 /**
@@ -572,45 +479,3 @@ export const useAtomSuspense = <A, E>(
     throw Cause.squash(current.cause);
   });
 };
-
-/**
- * Subscribes to an atom ref and returns its value as a Solid accessor.
- *
- * The hook accepts a thunk for the ref, reads `ref().value`, subscribes with
- * `ref.subscribe`, and releases the subscription through Solid cleanup when
- * the selected ref changes or the owner is disposed.
- */
-export const useAtomRef = <A>(ref: () => AtomRef.ReadonlyRef<A>): Accessor<A> => {
-  const bridge = createBridge<A>();
-  createRenderEffect(ref, (current) => {
-    // `AtomRef.subscribe` has no `immediate` option, so the seed is the direct
-    // read of `current.value`; it runs synchronously, as `createAtomAccessor`'s
-    // `immediate` seed does.
-    bridge.publish(current.value);
-    return current.subscribe(bridge.publish);
-  });
-  return bridge.accessor;
-};
-
-/**
- * Returns a Solid accessor for a property ref derived from an atom ref.
- *
- * The `prop` argument is captured as a plain value. Recreate the hook call when
- * the property key should change.
- */
-export const useAtomRefProp = <A, K extends keyof A>(
-  ref: () => AtomRef.AtomRef<A>,
-  prop: K,
-): Accessor<AtomRef.AtomRef<A[K]>> => createMemo(() => ref().prop(prop));
-
-/**
- * Returns a Solid accessor for the value of a property ref derived from an atom
- * ref.
- *
- * The `prop` argument is captured as a plain value. Recreate the hook call when
- * the property key should change.
- */
-export const useAtomRefPropValue = <A, K extends keyof A>(
-  ref: () => AtomRef.AtomRef<A>,
-  prop: K,
-): Accessor<A[K]> => useAtomRef(useAtomRefProp(ref, prop));
