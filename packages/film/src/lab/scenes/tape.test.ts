@@ -27,12 +27,12 @@ const SCENES: ReadonlyArray<TapeScene> = [
 
 describe('tapeOf', () => {
   test("a laptop's row is a minute, a phone's half a minute: the rows are the film's length over that", () => {
-    expect(perRowAt(1440)).toBe(12);
-    expect(perRowAt(390)).toBe(6);
-    const laptop = tapeOf(SCENES, 130, 5, perRowAt(1440));
+    expect(perRowAt(false)).toBe(12);
+    expect(perRowAt(true)).toBe(6);
+    const laptop = tapeOf(SCENES, 130, 5, perRowAt(false));
     expect(laptop.span).toBe(60);
     expect(laptop.rows.map((r) => r.from)).toEqual([0, 60, 120]);
-    const phone = tapeOf(SCENES, 130, 5, perRowAt(390));
+    const phone = tapeOf(SCENES, 130, 5, perRowAt(true));
     expect(phone.rows.length).toBe(5);
   });
 

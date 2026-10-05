@@ -39,6 +39,7 @@ import type { SeenPoint } from '../../core/choice.ts';
 import type { DrawStills } from './options/stills.tsx';
 import { ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { Viewport } from '../../browser/viewport.ts';
+import { PHONE } from '../viewport.ts';
 import {
   type BrowserServices,
   type Host,
@@ -183,10 +184,7 @@ const kept = {
   quality: keptText(ViewerStore, 'film-review.quality'),
 };
 
-/** A narrow screen, which plays the 720p copy unless the viewer kept another. */
-const NARROW = '(max-width: 900px)';
-
-/** The copy the page plays: the kept one, else 720p on a narrow screen. */
+/** The copy the page plays: the kept one, else 720p on a phone's width (`PHONE`). */
 const qualityOf = (stored: Option.Option<string>, narrow: () => boolean): Quality =>
   Option.getOrElse(
     Option.filter(stored, (q): q is Quality => q === 'phone' || q === 'full'),
@@ -298,7 +296,7 @@ export const Root = (
     const films = useAtomValue(() => filmsAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
-    const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(NARROW)));
+    const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(PHONE)));
     // The viewer's copy once the page is the client's; the phone's until then.
     const quality = createMemo(() => qualityOf(keptQuality(), narrow), {
       ssrSource: 'client',

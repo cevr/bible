@@ -703,6 +703,23 @@ describe('the review page', () => {
   );
 
   it.live(
+    "at 900 px the review is a laptop's, its copy too: it plays the originals, as its layout shows (H-6)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, {
+          href: SET,
+          viewport: { width: 900, height: 900 },
+        });
+        yield* waitFor(page, '.rv-transport');
+        yield* openCommandMenu(page, 'play the');
+        yield* textHas(page, menuEntry('review.quality'), 'Play the proxies');
+        yield* closeCommandMenu(page);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a version's inspector holds its Info, its approve and its comments, said over the set's route",
     () =>
       Effect.gen(function* () {

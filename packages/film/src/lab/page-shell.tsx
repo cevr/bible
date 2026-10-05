@@ -40,6 +40,7 @@ import { filmCommands, partCommands } from '../command/go.ts';
 import { hubKeys } from './command/changes.ts';
 import { GO_TO_COMMAND } from './command/command-menu.tsx';
 import { ViewMenu } from './command/view-menu.tsx';
+import { pressed } from './review/format.ts';
 
 /** The film last opened in this browser: where the tabs lead from Films. */
 const lastFilm = keptText(ViewerStore, 'film-studio.film');
@@ -210,9 +211,6 @@ interface PageShellProps {
 
 /** An ARIA `aria-current` by whether the tab is the page's. */
 const CURRENT = { true: 'page', false: 'false' } as const;
-
-/** Whether `on` holds, as an attribute's text. */
-const pressed = (on: boolean) => `${on}` as const;
 
 /** The part a film switch lands on: the same part of the other film; Scenes from Films. */
 const filmPart = (part: Part): Part =>

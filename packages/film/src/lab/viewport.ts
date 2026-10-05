@@ -10,6 +10,13 @@ import type { Context } from 'effect';
 import { type Accessor, createMemo, createSignal, onSettled } from 'solid-js';
 import { Viewport } from '../browser/viewport.ts';
 
+/**
+ * A phone's width, the studio's one: under it the shell is a phone's
+ * (`page-shell-style.ts`), a sheet rises from the bottom, Scenes' tape lays
+ * six stills a line and the review plays the 720p copy.
+ */
+export const PHONE = '(max-width: 899px)';
+
 /** Whether the window `host` sees matches `query`, for as long as the calling owner lives. */
 export const useMatches = (host: Context.Context<Viewport>, query: string): Accessor<boolean> => {
   const [now, setNow] = createSignal(

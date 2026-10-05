@@ -46,6 +46,8 @@ import { makeStills } from '../../player/stills.ts';
 import { onTheMs } from '../../player/t-in-url.ts';
 import { useShellTime } from '../page-shell.tsx';
 import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts';
+import { PHONE, useMatches } from '../viewport.ts';
+import { pressed } from '../review/format.ts';
 import { Sheet } from '../review/inspector.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
 import { SceneCard, SceneFindings, sceneHue } from './card.tsx';
@@ -93,9 +95,6 @@ const lineTime = (t: number, fps: number) => {
     onFalse: () => `${p.mm}:${p.ss}`,
   });
 };
-
-/** Whether `on` holds, as an ARIA state. */
-const ariaOf = (on: boolean) => `${on}` as const;
 
 /** `n` scenes, in words. */
 const scenesText = (n: number) =>
@@ -219,11 +218,8 @@ export const ScenesView = (props: ScenesViewProps) => {
   // The tape: its step kept per viewer, its line length the window's.
   const step = useAtomValue(() => keptStep);
   const keepStep = useAtomSet(() => keptStep);
-  const [wide, setWide] = createSignal(document.documentElement.clientWidth, fromHost);
-  const resized = () => setWide(document.documentElement.clientWidth);
-  window.addEventListener('resize', resized);
-  onCleanup(() => window.removeEventListener('resize', resized));
-  const tape = createMemo(() => tapeOf(scenes, film.duration, stepOf(step()), perRowAt(wide())));
+  const phone = useMatches(props.host, PHONE);
+  const tape = createMemo(() => tapeOf(scenes, film.duration, stepOf(step()), perRowAt(phone())));
   const [follow, setFollow] = createSignal(true, fromHost);
   // A press on the tape bar's track scrubs or seeks away from the playhead: Follow turns off (design §6).
   const unfollow = () => setFollow(false);
@@ -839,7 +835,7 @@ export const ScenesView = (props: ScenesViewProps) => {
               type="button"
               class="sc-follow"
               data-act="follow"
-              aria-pressed={ariaOf(follow())}
+              aria-pressed={pressed(follow())}
               onClick={() => {
                 setFollow(!follow());
               }}

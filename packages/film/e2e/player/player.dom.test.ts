@@ -443,6 +443,21 @@ describe('the player', () => {
   );
 
   it.live(
+    "the tape follows the window across the phone's width: a minute a line, then half (RS-7)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+        );
+        yield* textHas(page, '[data-role="step"]', 'a line a minute');
+        yield* page.resize(PHONE.width, PHONE.height);
+        yield* textHas(page, '[data-role="step"]', 'a line 30 s');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     "on a phone the selected scene's card is the one sheet over the tab bar, its verbs a finger's size, its Close dropping the scene (RS-4)",
     () =>
       Effect.gen(function* () {
