@@ -251,15 +251,13 @@ const KINDS: ReadonlyArray<{ readonly kind: ChoiceKind; readonly title: string }
   { kind: 'level', title: 'Levels' },
 ];
 
-/** A heading and a card for each of `points`. */
+/** A heading and a card for each of `points` (how many, the kinds strip says: UR-7). */
 const ChoiceSection = (props: {
   readonly title: string;
   readonly points: ReadonlyArray<ChoicePoint>;
 }) => (
   <Show when={props.points.length > 0}>
-    <h2 class="rv-h">
-      {props.title} <small>{props.points.length}</small>
-    </h2>
+    <h2 class="rv-h">{props.title}</h2>
     <div class="rv-list">
       <For each={props.points} keyed={(p) => p.id}>
         {(point) => <ChoiceCard point={point()} />}

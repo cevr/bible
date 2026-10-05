@@ -21,7 +21,6 @@ body.rv {
   font-size: var(--fs-2); line-height: var(--lh-2); text-transform: uppercase; letter-spacing: var(--track-caps);
   color: var(--text-2); margin: var(--s-6) 0 var(--s-2); font-weight: var(--w-2);
 }
-.rv-h small { text-transform: none; letter-spacing: 0; font-weight: var(--w-1); }
 .rv-hint, .rv-meta { color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
 .rv-row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
 .rv-pick { margin-bottom: var(--s-3); }

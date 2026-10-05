@@ -179,15 +179,14 @@ const FolderCard = (props: { readonly folder: ReviewFolder }) => {
   );
 };
 
+/** A heading over its things, shown while it has `count` of them; the count itself is not said at rest (UR-7). */
 const Section = (props: {
   readonly title: string;
   readonly count: number;
   readonly children: JSX.Element;
 }) => (
   <Show when={props.count > 0}>
-    <h2 class="rv-h">
-      {props.title} <small>{props.count}</small>
-    </h2>
+    <h2 class="rv-h">{props.title}</h2>
     {props.children}
   </Show>
 );
