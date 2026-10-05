@@ -289,9 +289,9 @@ export const ScenesView = (props: ScenesViewProps) => {
     player.seek(t);
   };
 
-  /** Say `say` of `ids` (a run of neighbours at a time); the receipt says `what`, or why not. */
-  const sayOf = (ids: ReadonlyArray<string>, what: string, say: Say) =>
-    Effect.map(calls.say(ids, order, say), (answer: Said) => {
+  /** Say `say` of `ids`, in one say; the receipt says `what`, or why not. */
+  const sayOf = (ids: readonly [string, ...string[]], what: string, say: Say) =>
+    Effect.map(calls.say(ids, say), (answer: Said) => {
       if (answer._tag === 'Refused') return refused(answer.reason);
       setRead({ ...read(), project: Option.some(answer.project) });
       return said(what);
@@ -364,10 +364,12 @@ export const ScenesView = (props: ScenesViewProps) => {
       about: ['Scene'],
       touch: 'select scenes (long-press a still, Add to selection), then this',
       when: () => picked().length > 1 && picked().some(approvable),
-      run: () => {
-        const ids = picked().filter(approvable);
-        return sayOf(ids, `approved ${scenesText(ids.length)}`, { _tag: 'Approve' });
-      },
+      run: () =>
+        Arr.match(picked().filter(approvable), {
+          onEmpty: () => Effect.succeed(quiet),
+          onNonEmpty: (ids) =>
+            sayOf(ids, `approved ${scenesText(ids.length)}`, { _tag: 'Approve' }),
+        }),
     },
     {
       id: 'scenes.add',

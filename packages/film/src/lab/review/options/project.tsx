@@ -62,7 +62,6 @@ import type { ReviewVideo } from '../../../core/review.ts';
 import { FILM_FPS, timecode } from '../../../core/time.ts';
 import { sceneHue, SceneCard } from '../../scenes/card.tsx';
 import { bandState, marksOf } from '../../scenes/marks.ts';
-import { runsOf } from '../../scenes/data.ts';
 import { type LabFailure, served } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { Go, OPEN_ON_CHOICES, plainClick, useReview } from '../context.tsx';
@@ -974,8 +973,8 @@ const ProjectReady = (props: { readonly film: string }) => {
         ),
     };
   };
-  // An approve's Undo: a withdraw of the approvals it gave (given its op), a run of
-  // neighbours a say. The catalogue takes only those: another's approval since stays.
+  // An approve's Undo: one withdraw of the approvals it gave (given its op), naming its
+  // scenes. The catalogue takes only those: another's approval since stays.
   // Whether any is left is the catalogue's to say (`Project.took`), not the page's: an
   // approval a new render made stale is still the approve's own, and goes.
   const undoing = useSay();
@@ -999,23 +998,17 @@ const ProjectReady = (props: { readonly film: string }) => {
       Effect.sync(() =>
         Option.match(Option.flatMap(Option.fromUndefinedOr(how.bound), gaveBound), {
           onNone: () => refused("an approve is undone from its receipt's Undo"),
-          onSome: (gave) => {
-            const order = Option.match(untrack(shown), {
-              onNone: (): ReadonlyArray<string> => [],
-              onSome: (v) => v.project.scenes.map((s) => s.scene),
-            });
-            void runsOf(gave.scenes, order).reduce(
-              (done, run) =>
-                done.then(() =>
-                  undoing.say({
-                    address: { _tag: 'Scenes', ids: run },
-                    say: withdrawSay(Option.some(gave.op)),
-                  }),
-                ),
-              Effect.runPromise(Effect.succeed(true)),
-            );
-            return quiet;
-          },
+          onSome: (gave) =>
+            Arr.match(gave.scenes, {
+              onEmpty: () => refused('that approve gave no approval to take back'),
+              onNonEmpty: (ids) => {
+                void undoing.say({
+                  address: { _tag: 'Scenes', ids },
+                  say: withdrawSay(Option.some(gave.op)),
+                });
+                return quiet;
+              },
+            }),
         }),
       ),
   };

@@ -435,32 +435,30 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
-  it.live(
-    '⇧-click adds scenes to the selection, and ⇧A approves them all, a run of neighbours at a time (AA-12)',
-    () =>
-      Effect.gen(function* () {
-        const { page, asked, errors } = yield* openPlayer(
-          { href: pageHref.scenes(PROBE), viewport: DESK },
-          STILL_DRAWN,
-          projectRoutes(),
-        );
-        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
-        yield* clickInScene(page, 'one');
-        yield* shiftClickInScene(page, 'three');
-        yield* textIs(page, '.sc-focus [data-role="picked"]', '2 scenes selected');
-        // The path names the first scene picked; the batch is never in the URL.
-        yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
-        yield* page.press('Shift+A');
-        yield* textHas(page, '[data-role="receipt"]', 'approved 2 scenes');
-        // One and three are not neighbours: two says, each naming its run.
-        expect(
-          asked
-            .filter((a) => a.method === 'POST' && a.path === '/project/say')
-            .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
-        ).toEqual([['one'], ['three']]);
-        yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
+  it.live('⇧-click adds scenes to the selection, and ⇧A approves them all in one say (AA-12)', () =>
+    Effect.gen(function* () {
+      const { page, asked, errors } = yield* openPlayer(
+        { href: pageHref.scenes(PROBE), viewport: DESK },
+        STILL_DRAWN,
+        projectRoutes(),
+      );
+      yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+      yield* clickInScene(page, 'one');
+      yield* shiftClickInScene(page, 'three');
+      yield* textIs(page, '.sc-focus [data-role="picked"]', '2 scenes selected');
+      // The path names the first scene picked; the batch is never in the URL.
+      yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
+      yield* page.press('Shift+A');
+      yield* textHas(page, '[data-role="receipt"]', 'approved 2 scenes');
+      // One say names every scene picked, neighbours or not: the project approves them in one run.
+      expect(
+        asked
+          .filter((a) => a.method === 'POST' && a.path === '/project/say')
+          .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
+      ).toEqual([['one', 'three']]);
+      yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
+      expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
   );
 
   it.live(
