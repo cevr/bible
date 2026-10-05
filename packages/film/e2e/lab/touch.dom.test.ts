@@ -22,7 +22,10 @@
 //
 // Every page also fits a phone (G8, `fitsPhone`): no sideways scroll, each
 // control inside the width, its chrome at most a quarter of the height; a
-// film's Scenes is asked with its tape bar's legend at its fullest.
+// film's Scenes is asked with its tape bar's legend at its fullest. And every
+// target stands where the UI face puts it, within 1 px, while the face's file
+// has not landed (G10): the fallback (`--font`, `tokens.css`) is matched to
+// its advance and height.
 //
 // The exceptions are principles, the same on every page and both devices:
 // - a backing input (out of the accessibility tree and the tab order, and
@@ -56,7 +59,12 @@ import {
   studioRoutes,
 } from '../../src/lab/fixtures/studio-film.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
-import { DESK_HIT, PHONE_HIT, undersizedTargets } from '../../src/lab/fixtures/touch-targets.ts';
+import {
+  DESK_HIT,
+  PHONE_HIT,
+  targetBoxes,
+  undersizedTargets,
+} from '../../src/lab/fixtures/touch-targets.ts';
 
 const SLOW = 30_000;
 
@@ -438,6 +446,87 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
     it.live(
       `${name}: no sideways scroll, every control inside the width, chrome at most a quarter of the height`,
       () => Effect.flatMap(open(PHONE.viewport), fitsPhone).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
+});
+
+/**
+ * The UI face taken out of the page's fonts and put back, as a script reads
+ * it: whether it was there, whether text named in it alone then set in
+ * another face (so the page was laid out without it), each target
+ * (`targetBoxes`) that stood more than 1 px elsewhere, or another size, in
+ * its fallback (`--font`), as `target: with → without`, and each of the
+ * chrome's sizes and weights whose 60-character line in `--font` was more
+ * than 1 px longer or taller: a line as long as a page's longest label, so a
+ * fallback a hair off the UI face's advance or height shows where a short
+ * label hides it.
+ */
+const SWAPPED = `(() => {
+  const ui = [...document.fonts].filter((f) => f.family.replaceAll('"', '') === 'JetBrains Mono');
+  const tokens = getComputedStyle(document.documentElement);
+  const sizes = ['--fs-1', '--fs-2', '--fs-3', '--fs-4', '--fs-5'];
+  const weights = ['--w-1', '--w-2', '--w-3'];
+  const measured = (font) => {
+    const probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;white-space:pre;line-height:normal;font:' + font;
+    probe.textContent = 'Record the frame 00:00:12:04 · Compare with last commit ⌘K';
+    document.body.append(probe);
+    const r = probe.getBoundingClientRect();
+    probe.remove();
+    return [r.width, r.height];
+  };
+  const lines = () =>
+    Object.fromEntries(
+      sizes.flatMap((size) =>
+        weights.map((weight) => [
+          size + ' ' + weight,
+          measured(tokens.getPropertyValue(weight) + ' ' + tokens.getPropertyValue(size) + ' ' + tokens.getPropertyValue('--font')),
+        ]),
+      ),
+    );
+  const alone = () => measured('12px "JetBrains Mono", serif')[0];
+  const withFace = ${targetBoxes()};
+  const linesWith = lines();
+  const aloneWith = alone();
+  for (const face of ui) document.fonts.delete(face);
+  const without = ${targetBoxes()};
+  const linesWithout = lines();
+  const aloneWithout = alone();
+  for (const face of ui) document.fonts.add(face);
+  const moved = Object.keys(withFace).filter((key) => {
+    const a = withFace[key].split(',').map(Number);
+    const b = (without[key] ?? '').split(',').map(Number);
+    return b.length !== 4 || a.some((v, i) => Math.abs(v - b[i]) > 1);
+  });
+  const off = Object.keys(linesWith).filter((key) =>
+    linesWith[key].some((v, i) => Math.abs(v - linesWithout[key][i]) > 1),
+  );
+  const box = (r) => r.map((v) => v.toFixed(1)).join('x');
+  return [
+    'face ' + (ui.length > 0),
+    'laid out without it ' + (aloneWith !== aloneWithout),
+    ...moved.map((key) => key + ': ' + withFace[key] + ' → ' + without[key]),
+    ...off.map((key) => 'a line at ' + key + ': ' + box(linesWith[key]) + ' → ' + box(linesWithout[key])),
+  ];
+})()`;
+
+describe("the UI face's fallback on a phone, 390 × 844 (G10)", () => {
+  const PAGES = [
+    ['Lab', lab('edit')],
+    ['Play', player(pageHref.play(PROBE), '.bar .tc')],
+    ['Scenes', player(pageHref.scenes(PROBE), STILL)],
+    ['Project', review(PROJECT, ...PROJECT_READY)],
+  ] as const;
+  for (const [name, open] of PAGES) {
+    it.live(
+      `${name}: every target stands where it does in the UI face, within 1 px, while the face's file has not landed`,
+      () =>
+        Effect.gen(function* () {
+          const page = yield* open(PHONE.viewport);
+          yield* evaluates(page, `document.fonts.status`, 'loaded');
+          yield* evaluates(page, SWAPPED, ['face true', 'laid out without it true']);
+        }).pipe(Effect.scoped),
       SLOW,
     );
   }
