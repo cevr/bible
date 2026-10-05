@@ -217,19 +217,16 @@ body {
   font-feature-settings: var(--font-features);
   font-variant-numeric: tabular-nums;
 }
-button,
-input,
-select,
-textarea {
+/* Controls take the page's type; weightless (`:where`), so the kit's parts and a page's rules set their own over it. */
+:where(button, input, select, textarea) {
   font: inherit;
   font-feature-settings: inherit;
   font-variant-numeric: inherit;
 }
 /* The type scale's own bold and small, not the user agent's (700, `smaller`). */
-b,
-strong {
+:where(b, strong) {
   font-weight: var(--w-3);
 }
-small {
+:where(small) {
   font-size: var(--fs-1);
 }

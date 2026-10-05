@@ -374,7 +374,11 @@ body.lab .stage {
   align-items: center;
   flex-wrap: wrap;
 }
-/* The mode tray (PA-7) is the kit's segmented control (`.sh-seg`); the panel shows the pressed mode's section only. */
+/* The mode tray (PA-7) is the kit's segmented control (`.sh-seg`) across the panel; the panel shows the pressed mode's section only. */
+.lab-modes {
+  display: flex;
+  width: 100%;
+}
 .lab-panel[data-mode='edit'] [data-mode-of]:not([data-mode-of='edit']),
 .lab-panel[data-mode='note'] [data-mode-of]:not([data-mode-of='note']),
 .lab-panel[data-mode='motion'] [data-mode-of]:not([data-mode-of='motion']),

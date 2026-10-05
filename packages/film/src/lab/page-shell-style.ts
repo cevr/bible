@@ -119,13 +119,13 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 /* Button, quiet: no fill, an edge; pressed, the raised surface and the accent edge. */
 :where(.sh-btn) { display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
   min-height: var(--control-h); padding: 0 var(--s-3); border: 1px solid var(--line-strong); border-radius: var(--r-2);
-  background: none; color: var(--text-1); font: inherit; text-decoration: none; cursor: pointer; }
+  background: none; color: var(--text-1); font: inherit; font-size: var(--fs-3); font-weight: var(--w-2);
+  text-decoration: none; cursor: pointer; }
 :where(.sh-btn:not([data-primary]):hover:not(:disabled)) { background: var(--surface-3); }
 :where(.sh-btn:is([aria-pressed="true"], [data-pressed])) { background: var(--surface-3); border-color: var(--accent); }
 :where(.sh-btn:is(:disabled, [aria-busy="true"])) { color: var(--text-3); cursor: default; }
 /* Button, primary: the view's one verb, in the accent. */
-:where(.sh-btn[data-primary]) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
-  font-weight: var(--w-2); }
+:where(.sh-btn[data-primary]) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 :where(.sh-btn[data-primary]) kbd { border-color: currentColor; color: inherit; }
 :where(.sh-btn[data-primary]:disabled) { background: var(--surface-3); border-color: var(--line); color: var(--text-3); }
 /* A button in a state's colour (a check's findings, the recorder's verb): its words and its edge. */
@@ -133,8 +133,8 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 :where(.sh-btn[data-state="warning"]) { color: var(--state-warning); border-color: var(--state-warning); }
 :where(.sh-btn[data-state="recording"]) { color: var(--state-recording); border-color: var(--state-recording); }
 /* Segmented: one box of choices, the pressed one raised. */
-:where(.sh-seg) { display: inline-flex; flex-wrap: wrap; border: var(--border); border-radius: var(--r-2); overflow: hidden; }
-:where(.sh-seg > button) { min-width: var(--hit); min-height: var(--hit); padding: 0 var(--s-3); border: 0; border-radius: 0;
+:where(.sh-seg) { display: inline-flex; max-width: 100%; border: var(--border); border-radius: var(--r-2); overflow: hidden; }
+:where(.sh-seg > button) { flex: 1 0 auto; min-width: var(--hit); min-height: var(--hit); padding: 0 var(--s-2); border: 0; border-radius: 0;
   background: none; color: var(--text-2); font: inherit; font-size: var(--fs-2); font-weight: var(--w-2); cursor: pointer; }
 :where(.sh-seg > button + button) { border-left: var(--border); }
 :where(.sh-seg > button:hover) { color: var(--text-1); }

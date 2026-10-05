@@ -348,6 +348,17 @@ describe('the lab shell', () => {
   );
 
   it.live(
+    "the mode tray is the kit's segmented control: its labels in the tray's size and weight, over the page's ground",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab();
+        // Each mode's label against the tokens the kit names for it.
+        const type = `(() => { const root = getComputedStyle(document.documentElement); const token = (n) => root.getPropertyValue(n).trim(); return [...document.querySelectorAll('.lab-modes > button')].map((b) => getComputedStyle(b)).map((s) => s.fontSize === token('--fs-2') && s.fontWeight === token('--w-2')); })()`;
+        yield* evaluates(page, type, [true, true, true, true, true]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     'Undo and Redo stay in the header in every mode, at 390 and 1440, and the view menu ⋯ follows Go to…',
     () =>
       Effect.gen(function* () {
