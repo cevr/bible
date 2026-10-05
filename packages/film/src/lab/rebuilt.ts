@@ -61,20 +61,23 @@ export const reloadPast = <E, R>(
 /**
  * Wait for newer code than this page was served, or a new mix of `film`,
  * whose track it plays, then `reload`; a page with no build waits for none.
+ * The page's build is read as it runs, never as it is made.
  */
 export const reloadOnRebuild = (film: string, reload: Effect.Effect<void>) =>
-  Option.match(servedBuild(), {
-    onNone: () => Effect.void,
-    onSome: (served) =>
-      Effect.flatMap(LabClient, (client) =>
-        reloadPast(
-          served,
-          ({ build, server }) =>
-            client.page.wait({ query: { since: build, server, film, timeout: WAIT_S } }),
-          reload,
+  Effect.suspend(() =>
+    Option.match(servedBuild(), {
+      onNone: () => Effect.void,
+      onSome: (served) =>
+        Effect.flatMap(LabClient, (client) =>
+          reloadPast(
+            served,
+            ({ build, server }) =>
+              client.page.wait({ query: { since: build, server, film, timeout: WAIT_S } }),
+            reload,
+          ),
         ),
-      ),
-  });
+    }),
+  );
 
 /**
  * Each newer answer than the last (through `wait`, asked first with `served`),
@@ -102,21 +105,25 @@ export const hearEach = <E, R, H = never>(
  * A review tab of `film` hears each new mix of it (another tab's write
  * mixed it again: `LabPage` watches the track once a page waits with its
  * film), and each newer build, then `heard` with the build it heard, in
- * place: a half-typed comment stays. A page with no build hears none.
+ * place: a half-typed comment stays. A page with no build hears none. The
+ * page's build is read as it runs, so a page's render on the server, which
+ * makes it and never runs it, reads no document.
  */
 export const hearMixes = <H = never>(
   film: string,
   heard: (answer: PageBuild) => Effect.Effect<void, never, H>,
 ) =>
-  Option.match(servedBuild(), {
-    onNone: () => Effect.void,
-    onSome: (served) =>
-      Effect.flatMap(LabClient, (client) =>
-        hearEach(
-          served,
-          ({ build, server }) =>
-            client.page.wait({ query: { since: build, server, film, timeout: WAIT_S } }),
-          heard,
+  Effect.suspend(() =>
+    Option.match(servedBuild(), {
+      onNone: () => Effect.void,
+      onSome: (served) =>
+        Effect.flatMap(LabClient, (client) =>
+          hearEach(
+            served,
+            ({ build, server }) =>
+              client.page.wait({ query: { since: build, server, film, timeout: WAIT_S } }),
+            heard,
+          ),
         ),
-      ),
-  });
+    }),
+  );

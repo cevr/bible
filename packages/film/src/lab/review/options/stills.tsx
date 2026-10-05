@@ -70,19 +70,27 @@ export const useSceneStills = (film: string): SceneStills => {
         [...onScreen].flatMap((s) => Option.toArray(Option.fromUndefinedOr(r.middles.get(s)))),
       ),
     );
-  const watcher = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (!(entry.target instanceof HTMLElement)) continue;
-        const scene = entry.target.dataset['still'] ?? '';
-        if (entry.isIntersecting) onScreen.add(scene);
-        else onScreen.delete(scene);
-      }
-      wantOnScreen();
-    },
-    { rootMargin: '120px 0px' },
-  );
-  onCleanup(() => watcher.disconnect());
+  // Made at the first card watched (a card's ref: the browser's alone), so the
+  // server's render, which watches none, makes none.
+  let watching = Option.none<IntersectionObserver>();
+  const watcher = (): IntersectionObserver =>
+    Option.getOrElse(watching, () => {
+      const made = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!(entry.target instanceof HTMLElement)) continue;
+            const scene = entry.target.dataset['still'] ?? '';
+            if (entry.isIntersecting) onScreen.add(scene);
+            else onScreen.delete(scene);
+          }
+          wantOnScreen();
+        },
+        { rootMargin: '120px 0px' },
+      );
+      watching = Option.some(made);
+      return made;
+    });
+  onCleanup(() => Option.map(watching, (w) => w.disconnect()));
   const now = monotonicMs(meta.host);
   const draw = meta.draw(film, {
     turn: () => Effect.runPromiseWith(meta.host)(Frames.use((f) => f.next)),
@@ -116,9 +124,9 @@ export const useSceneStills = (film: string): SceneStills => {
     },
     watch: (scene, el) => {
       el.dataset['still'] = scene;
-      watcher.observe(el);
+      watcher().observe(el);
       return () => {
-        watcher.unobserve(el);
+        watcher().unobserve(el);
         onScreen.delete(scene);
       };
     },

@@ -21,6 +21,7 @@ import {
   route,
 } from '../../../src/lab/fixtures/harness.ts';
 import { TOY } from '../../../src/lab/fixtures/toy-film.ts';
+import { STUDIO_FILM, studioRoutes } from '../../../src/lab/fixtures/studio-film.ts';
 import { textHas, until, waitFor } from '../../../src/lab/fixtures/settled.ts';
 
 /** Long enough to bundle the server entry once, render, open and hydrate. */
@@ -81,6 +82,13 @@ const FOLDER = pageHref.folder('out/art');
 const reads = (asked: ReadonlyArray<Asked>, path: string) =>
   asked.filter((a) => a.method === 'GET' && a.path === path).length;
 
+/** The reads among `read` that are the browser's alone: a check, the steps, a wait on a build. */
+const browserOnly = (read: ReadonlyArray<Asked>) =>
+  read.map((a) => a.path).filter((path) => /check|steps|wait|build/.test(path));
+
+/** `html` with its scripts gone: what the browser paints before any of them runs. */
+const painted = (html: string) => html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '');
+
 /** What the page said of its hydration: Solid's development build warns of every mismatch. */
 const mismatches = (logged: ReadonlyArray<{ readonly type: string; readonly text: string }>) =>
   logged.filter((l) => /hydrat/i.test(l.text) && l.type !== 'log');
@@ -122,7 +130,8 @@ describe('the review served as the lab renders it', () => {
 
         const film = yield* openServed('review', routes, { href: pageHref.choices(TOY) });
         expect(reads(film.read, `/api/films/${TOY}/choices`)).toBe(1);
-        // Its cards follow the player, which is the browser's: they show once hydrated.
+        // Its cards are the server's markup, painted before any script runs.
+        expect(painted(film.documents[0]?.html ?? '')).toContain('data-point="look:ground"');
         yield* waitFor(film.page, '[data-point="look:ground"]');
         expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(0);
         expect(mismatches(film.page.logged)).toEqual([]);
@@ -147,12 +156,59 @@ describe('the review served as the lab renders it', () => {
         expect(first).toContain('class="sh-header"');
         expect(first).toContain(`Reading ${TOY}'s choices…`);
         expect(first).not.toContain('look:ground');
-        // The read's answer, sent later in the same document for the page to adopt.
-        expect(rest.join('')).toContain('look:ground');
+        // The read's answer, sent later in the same document: its cards rendered, not only its data.
+        const later = painted(rest.join(''));
+        expect(later).toContain('data-point="look:ground"');
+        expect(later).toContain('data-variant="light"');
         yield* waitFor(film.page, '[data-point="look:ground"]');
         expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(0);
         expect(mismatches(film.page.logged)).toEqual([]);
         expect(film.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "renders a film's choice cards and its project's scenes on the server, painted before any script runs, and hydrates them with no read again",
+    () =>
+      Effect.gen(function* () {
+        const choicesPage = yield* openServed('review', studioRoutes, {
+          href: pageHref.choices(STUDIO_FILM),
+          viewport: PHONE,
+        });
+        const cards = painted(choicesPage.documents[0]?.html ?? '');
+        // Each kind's cards, their variants, which is picked and each one's state and approval.
+        for (const point of ['score', 'look:ground', 'take:room.tone', 'level:const:PAPER'])
+          expect(cards).toContain(`data-point="${point}"`);
+        expect(cards).toMatch(
+          /data-variant="strings"[^>]*data-state="current"[^>]*data-picked="true"/,
+        );
+        expect(cards).toMatch(/data-variant="piano"[^>]*data-picked="false"/);
+        expect(cards).toContain('data-approval="none"');
+        // The browser's alone: the server's render runs no check and waits on no build.
+        expect(browserOnly(choicesPage.read)).toEqual([]);
+        yield* waitFor(choicesPage.page, '[data-point="score"]');
+        expect(reads(choicesPage.asked, `/api/films/${STUDIO_FILM}/choices`)).toBe(0);
+        expect(mismatches(choicesPage.page.logged)).toEqual([]);
+        expect(choicesPage.errors).toEqual([]);
+
+        const projectPage = yield* openServed('review', studioRoutes, {
+          href: pageHref.project(STUDIO_FILM),
+          viewport: PHONE,
+        });
+        const scenes = painted(projectPage.documents[0]?.html ?? '');
+        // The film's panel, its act and each scene's card with its state.
+        expect(scenes).toContain('class="pj-film"');
+        expect(scenes).toContain('opening');
+        expect(scenes).toMatch(/data-scene="open"[^>]*data-state="current"/);
+        expect(scenes).toMatch(/data-scene="close"[^>]*data-state="stale"/);
+        expect(scenes).toMatch(/data-scene="end"[^>]*data-state="missing"/);
+        expect(browserOnly(projectPage.read)).toEqual([]);
+        yield* waitFor(projectPage.page, '[data-scene="open"]');
+        expect(reads(projectPage.asked, `/api/films/${STUDIO_FILM}/choices`)).toBe(0);
+        expect(reads(projectPage.asked, `/api/films/${STUDIO_FILM}/project`)).toBe(0);
+        expect(mismatches(projectPage.page.logged)).toEqual([]);
+        expect(projectPage.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );

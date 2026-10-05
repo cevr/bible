@@ -148,19 +148,23 @@ const ANY = [
 ] as const;
 const MOVING = [SyncState.Playing, SyncState.Buffering] as const;
 
+/** Where the synced player opens: `audible` heard, paused at `at` (never before `start`). */
+export const syncAt = (audible: string, start: number, at: number = start): SyncState =>
+  SyncState.Paused({
+    t: Math.max(start, at),
+    start,
+    end: UNKNOWN_END,
+    rate: 1,
+    audible,
+    seek: 0,
+  });
+
 /** The synced player: `audible` heard first, paused at `at` (never before `start`). */
 export const syncMachine = (audible: string, start: number, at: number = start) =>
   Machine.make({
     state: SyncState,
     event: SyncEvent,
-    initial: SyncState.Paused({
-      t: Math.max(start, at),
-      start,
-      end: UNKNOWN_END,
-      rate: 1,
-      audible,
-      seek: 0,
-    }),
+    initial: syncAt(audible, start, at),
   })
     .on(SyncState.Paused, SyncEvent.PlayPressed, ({ state }) => played(state))
     .on(SyncState.Paused, SyncEvent.Toggled, ({ state }) => played(state))

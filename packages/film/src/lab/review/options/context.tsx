@@ -17,7 +17,7 @@
 // it, from its own start) plays on one more `<audio>` the film shares (UR-52):
 // one at a time, the clock paused while it plays, gone when the clock plays.
 
-import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
 import { Data, Effect, Exit, Match, Option, Schema } from 'effect';
 import { Machine } from 'effect-machine';
@@ -55,7 +55,7 @@ import { hearMixes, newer } from '../../rebuilt.ts';
 import { type Asks, type Landed, newestAsked } from '../asked.ts';
 import { useReview } from '../context.tsx';
 import { Loaded, type WriteStatus, useWrite, writeStatus } from '../loaded.tsx';
-import { type SyncActor, SyncEvent, type SyncState, spawnSync } from '../machine.ts';
+import { type SyncActor, SyncEvent, type SyncState, spawnSync, syncAt } from '../machine.ts';
 import { type SyncDriver, playerCommands, makeSync, playerEvent } from '../sync.ts';
 import { ChoiceAct, OptionsApi, type Wrote, changesSound, writesSource } from './api.ts';
 import {
@@ -322,20 +322,46 @@ interface FilmAtoms {
   readonly soundCheck: Atom.Writable<AsyncResult.AsyncResult<SoundCheck, LabFailure>, void>;
 }
 
+/**
+ * The film's player as the page reads it: its state, written with its
+ * events, and whether its actor is up. The actor (`actor`) is the browser's:
+ * made once the page runs, never by the server's render. Until it is up,
+ * and on the server and while the page hydrates, the player stands at
+ * `still` (where the actor opens), so the server's markup and the browser's
+ * first are the same. An event sent before the actor is up is no one's:
+ * what the page tells the player as it opens waits on `up`.
+ */
+const playerOf = (
+  actor: Atom.Atom<AsyncResult.AsyncResult<SyncActor, never>>,
+  still: SyncState,
+) => {
+  const live = Atom.map(actor, (made) => Option.map(AsyncResult.value(made), ActorAtom.make));
+  return {
+    state: Atom.writable(
+      (get) => Option.match(get(live), { onNone: () => still, onSome: (a) => get(a) }),
+      (ctx, event: SyncEvent) => {
+        Option.map(ctx.get(live), (a) => ctx.set(a, event));
+      },
+    ).pipe(Atom.withServerValue(() => still)),
+    up: Atom.map(live, Option.isSome).pipe(Atom.withServerValue(() => false)),
+  };
+};
+
 const FilmBody = (
   props: ParentProps<{
     readonly atoms: FilmAtoms;
     readonly first: FilmChoices;
-    readonly actor: SyncActor;
+    readonly player: ReturnType<typeof playerOf>;
   }>,
 ) => {
   const { meta } = useReview();
   const film = props.atoms.film;
   // The choices as first read seed the body once; each later answer updates `choices`.
   const first = untrack(() => props.first);
-  const syncAtom = ActorAtom.make(props.actor);
-  const sync = useAtomValue(() => syncAtom);
-  const send = useAtomSet(() => syncAtom);
+  const player = props.player;
+  const sync = useAtomValue(() => player.state);
+  const send = useAtomSet(() => player.state);
+  const up = useAtomValue(() => player.up);
   const again = useAtomValue(() => props.atoms.again);
   const askAgain = useAtomSet(() => props.atoms.again, { mode: 'promiseExit' });
   const check = useAtomValue(() => props.atoms.check);
@@ -439,9 +465,13 @@ const FilmBody = (
         if (!sameChoices(untrack(choices), fresh)) setChoices(fresh);
       });
     }).pipe(Effect.ignore);
+  // The page's own: the server's render hears nothing (its value there is none heard).
   const hearing = meta.runtime
     .atom(hearMixes(film, heardMix).pipe(Effect.provide(meta.client)))
-    .pipe(Atom.setIdleTTL(0));
+    .pipe(
+      Atom.setIdleTTL(0),
+      Atom.withServerValue(() => AsyncResult.initial<void, never>()),
+    );
   useAtomValue(() => hearing);
 
   // What plays is the URL's (`?heard= &variant= &picture= #t=`), so a link
@@ -481,9 +511,16 @@ const FilmBody = (
     ),
   );
   const mix = createMemo(() => mixOf(film, playing(), version()));
+  // The player hears the track chosen once its actor is up, and each one chosen after.
   createEffect(
-    () => trackOf(film, playing(), version()),
-    (id) => send(SyncEvent.HeardChosen({ id })),
+    () =>
+      Option.getOrElse(
+        Option.filter(Option.some(trackOf(film, playing(), version())), up),
+        () => '',
+      ),
+    (id) => {
+      if (id !== '') send(SyncEvent.HeardChosen({ id }));
+    },
   );
 
   const driver = makeSync(PICTURE, send, meta.host);
@@ -644,26 +681,13 @@ const keptAt = (film: string, href: string): Option.Option<Option.Option<number>
     (v) => v.hash.t,
   );
 
-const FilmReady = (
-  props: ParentProps<{
-    readonly atoms: FilmAtoms;
-    readonly first: FilmChoices;
-    readonly actor: Atom.Atom<AsyncResult.AsyncResult<SyncActor, never>>;
-  }>,
-) => {
-  const actor = useAtomSuspense(() => props.actor);
-  return (
-    <Show when={actor()} keyed>
-      {(a: SyncActor) => (
-        <FilmBody atoms={props.atoms} first={props.first} actor={a}>
-          {props.children}
-        </FilmBody>
-      )}
-    </Show>
-  );
-};
-
-/** A film's choices, its check, its writes and its player, around `children`, once its choices are read. */
+/**
+ * A film's choices, its check, its writes and its player, around `children`,
+ * once its choices are read. The server renders it whole (the choices it read,
+ * their cards, the player standing where the URL's `#t=` says); what is the
+ * browser's (the player's actor, the check, hearing the film mixed again)
+ * starts once the page runs.
+ */
 export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
   const { meta } = useReview();
   const film = props.film;
@@ -674,32 +698,35 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
       .atom(OptionsApi.use((api) => api.choices(film)))
       .pipe(served(`review.choices:${film}`, FilmChoices)),
     again: meta.runtime.fn(() => OptionsApi.use((api) => api.choices(film))),
-    check: meta.runtime.atom(OptionsApi.use((api) => api.check(film))),
+    // The page's own, after it runs: the server's render runs no check (none is shown yet).
+    check: meta.runtime
+      .atom(OptionsApi.use((api) => api.check(film)))
+      .pipe(Atom.withServerValue(() => AsyncResult.initial<CheckReport, LabFailure>())),
     steps: meta.runtime.fn(() => OptionsApi.use((api) => api.steps(film))),
     soundCheck: meta.runtime.fn(() => OptionsApi.use((api) => api.soundCheck(film))),
   };
   // The player opens where the URL's `#t=` says, else at the start.
   const at = Option.getOrElse(Option.flatten(keptAt(film, addressOn(meta.host).href())), () => 0);
-  const actor = meta.runtime.atom(Machine.scoped(spawnSync(PICTURE, 0, at)));
+  const player = playerOf(
+    meta.runtime.atom(Machine.scoped(spawnSync(PICTURE, 0, at))),
+    syncAt(PICTURE, 0, at),
+  );
   const first = useAtomValue(() => atoms.choices);
-  // The page opens on the choices as first read; a later read (after a write) updates them in place.
-  const [opened, setOpened] = createSignal(Option.none<FilmChoices>());
-  createEffect(first, (result) => {
-    if (Option.isSome(untrack(opened))) return;
-    setOpened(AsyncResult.value(result));
-  });
+  // The page opens on the choices as first read, kept: a later read (after a write) updates
+  // them in place (`FilmBody`), never this.
+  const opened = createMemo((was: Option.Option<FilmChoices> = Option.none()) =>
+    Option.orElse(was, () => AsyncResult.value(first())),
+  );
   const reading = `Reading ${film}'s choices…`;
   // The server's read of the choices holds only this boundary: the page around it is sent
-  // and painted at once, and the read's answer follows in the same document.
+  // and painted at once, and the read's answer, rendered, follows in the same document.
   return (
     <Loading fallback={<p class="empty">{reading}</p>}>
       <Loaded value={opened()} result={first()} reading={reading}>
         {(choices) => (
-          <Loading>
-            <FilmReady atoms={atoms} first={choices()} actor={actor}>
-              {props.children}
-            </FilmReady>
-          </Loading>
+          <FilmBody atoms={atoms} first={choices()} player={player}>
+            {props.children}
+          </FilmBody>
         )}
       </Loaded>
     </Loading>
