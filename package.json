@@ -58,6 +58,7 @@
   "catalog": {
     "@effect/platform-bun": "4.0.0",
     "@effect/platform-node": "4.0.0",
+    "@effect/platform-node-shared": "4.0.0",
     "@effect/sql-sqlite-bun": "4.0.0",
     "@effect/vitest": "4.0.0",
     "@solidjs/compiler": "2.0.0-rc.11",

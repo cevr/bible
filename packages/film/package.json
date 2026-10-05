@@ -27,6 +27,7 @@
     "@bible/ui": "workspace:*",
     "@bible/url-state": "workspace:*",
     "@effect/platform-bun": "catalog:",
+    "@effect/platform-node-shared": "catalog:",
     "@fontsource-variable/jetbrains-mono": "5.3.0",
     "@mediabunny/aac-encoder": "1.61.0",
     "@mediabunny/flac-encoder": "1.61.0",
