@@ -16,38 +16,22 @@
 // again) and `GET /harness/root` (the copy's films folder, to read what the
 // studio wrote); `POST /harness/stop` stops it, removing the copy.
 
-import { BunHttpPlatform, BunRuntime, BunServices } from '@effect/platform-bun';
+import { BunRuntime, BunServices } from '@effect/platform-bun';
 import {
   ApiKeyMissing,
-  Browser,
-  Choices,
-  Easel,
-  ContentStore,
   ElevenLabs,
   FilmRepo,
-  FreshFilm,
-  LabPage,
-  PageBundler,
-  PageRenderer,
   Media,
-  NotesStore,
-  RenderCatalogue,
-  Review,
-  SceneHead,
-  SceneSources,
-  SceneWriter,
-  SourceWriter,
-  StudioReadings,
-  Takes,
   beatsOf,
-  labHandler,
-  labServer,
+  filmServices,
+  labPages,
   pageHref,
-  serveLab,
+  startLab,
 } from '@bible/film/tools';
 import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { LAB_PAGES, LAB_SERVERS } from './server.ts';
+import { FOLDERS, SOUNDS } from './cli.ts';
+import { FILMS, LAB_PAGES, LAB_SERVERS } from './server.ts';
 
 /** What the fake hears for a beat it is told to mis-hear. */
 const MISHEARD = 'the quick brown fox jumps over the lazy dog';
@@ -142,75 +126,44 @@ const Harness = Layer.unwrap(
       Config.withDefault('righteousness-by-faith'),
     );
     const port = yield* Config.Int('HARNESS_PORT').pipe(Config.withDefault(4411));
-    const app = import.meta.dir;
-    const out = path.join(app, 'out', 'studio-harness');
+    const out = path.join(import.meta.dir, 'out', 'studio-harness');
     yield* fs.makeDirectory(out, { recursive: true });
     const root = yield* fs.makeTempDirectoryScoped({ directory: out, prefix: 'films-' });
-    yield* fs.copy(path.join(app, 'src', 'films', film), path.join(root, film));
+    yield* fs.copy(path.join(FILMS, film), path.join(root, film));
     const misheard = new Set<string>();
 
-    const Platform = BunHttpPlatform.layer.pipe(Layer.provideMerge(BunServices.layer));
-    const Store = ContentStore.layer.pipe(Layer.provide(Platform));
-    const sounds = Option.some(path.join(app, 'sounds'));
-    const Repo = FilmRepo.layer(root, sounds).pipe(Layer.provide([Store, Platform]));
-    const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
     // The film CLI over the copy, for the lab's fresh check, reading and mix: they never touch
     // the real films.
     const cli = path.join(root, 'cli.ts');
     const [appAt, rootAt, soundsAt] = yield* Effect.forEach(
-      [path.join(app, 'cli.ts'), root, path.join(app, 'sounds')],
+      [path.join(import.meta.dir, 'cli.ts'), root, SOUNDS],
       (at) => Schema.encodeEffect(Schema.fromJsonString(Schema.String))(at),
     );
     yield* fs.writeFileString(
       cli,
       `import { appCli } from ${appAt};\nappCli(${rootAt}, ${soundsAt}, import.meta.path);\n`,
     );
-    const Check = FreshFilm.layer(['bun', cli]).pipe(Layer.provide(Platform));
-    const Source = Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(
-      Layer.provideMerge(SourceWriter.layer),
-      Layer.provideMerge(SceneSources.layer),
-      Layer.provide([Repo, Store, Check, Platform]),
-    );
-    const Heard = harnessElevenLabs(film, misheard).pipe(
-      Layer.provideMerge(Media.layer),
-      Layer.provide([Repo, Platform]),
-    );
-    // The lab reviews nothing here: no render roots, but its choices over the copy.
-    const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
-    const Reviewed = Review.layerConfig(Effect.succeed([])).pipe(
-      Layer.provide([Heard, Catalogue, Platform]),
-    );
-    // The pages, and the easel's warm pages over them (Chrome starts only for a look).
-    const Pages = Easel.layer.pipe(
-      Layer.provideMerge(LabPage.layer({ pages: LAB_PAGES, servers: LAB_SERVERS, films: root })),
-      Layer.provide(Layer.mergeAll(PageBundler.layer, PageRenderer.layer, Browser.layer)),
-      Layer.provide([Repo, Platform]),
-    );
-    const Services = Choices.layer.pipe(
-      Layer.provideMerge(Layer.mergeAll(Takes.layer, StudioReadings.layer)),
+    // The lab's own services and pages (`filmServices`, `labPages`, as `film lab` runs them)
+    // over the copy, read fresh through the CLI over the copy, reviewing no render roots, with
+    // an ElevenLabs that only hears.
+    const Services = labPages({ pages: LAB_PAGES, servers: LAB_SERVERS, films: root }).pipe(
       Layer.provideMerge(
-        Layer.mergeAll(
-          Repo,
-          Notes,
-          Source,
-          Check,
-          Store,
-          Heard,
-          Reviewed,
-          Catalogue,
-          Pages,
-          Platform,
-        ),
+        filmServices({
+          films: root,
+          sounds: SOUNDS,
+          folders: FOLDERS,
+          self: ['bun', cli],
+          roots: Effect.succeed([]),
+          elevenLabs: harnessElevenLabs(film, misheard),
+        }),
       ),
     );
 
     const Server = Layer.effectDiscard(
       Effect.gen(function* () {
         yield* (yield* FilmRepo).load(film);
-        const lab = yield* labHandler({ hosts: [] }, control(misheard, root));
-        const server = yield* Layer.build(labServer({ hostname: '127.0.0.1', port }));
-        const url = yield* serveLab(lab).pipe(Effect.provideContext(server));
-        yield* (yield* Easel).serve(url);
+        const at = { hostname: '127.0.0.1', port };
+        const url = yield* startLab(at, { hosts: [] }, control(misheard, root));
         yield* Effect.log(`harness.ready url=${new URL(pageHref.lab(film), url)} root=${root}`);
       }),
     );

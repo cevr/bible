@@ -19,11 +19,10 @@
 // narrate and score finish with a mix, so the track is always rebuilt from the
 // same inputs; mix alone never calls a paid API.
 
-import { BunHttpPlatform, BunRuntime, BunServices } from '@effect/platform-bun';
+import { BunRuntime } from '@effect/platform-bun';
 import {
   Array as Arr,
   Cause,
-  ConfigProvider,
   Console,
   Effect,
   Layer,
@@ -38,7 +37,6 @@ import {
 } from 'effect';
 import type { FileSystem } from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
-import { FetchHttpClient } from 'effect/http';
 import type { ChildProcessSpawner } from 'effect/process';
 import { type AddressFlags, type Scope, addressOf, resolveAddress } from '../core/address.ts';
 import { type Placed, scenesOf } from '../core/layout.ts';
@@ -62,7 +60,6 @@ import { Checker } from './checker.ts';
 import { filmChapters, lookLines } from './look.ts';
 import { Looker } from './looker.ts';
 import { Composer } from './composer.ts';
-import { ContentStore } from './content-store.ts';
 import { CUES_RULES, sceneReport, shortReport, soundReport } from './cues.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import { type ElevenLabsFailed } from '../core/refusals.ts';
@@ -75,25 +72,21 @@ import {
   SoundMissing,
 } from './errors.ts';
 import { FilmFolder, FilmRepo, type LoadedFilm, placeFilm } from './film-repo.ts';
-import { Media } from './media.ts';
 import { Mixer } from './mixer.ts';
 import { writeSheet } from './script-sheet.ts';
 import { Takes } from './takes.ts';
 import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
-import { labAllowed, labHandler, labLink } from './lab.ts';
-import { type LabAt, labServer, serveLab } from './api-server.ts';
-import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
-import { PageRenderer } from './page-render.ts';
-import { Easel } from './easel.ts';
+import { labAllowed, labLink } from './lab.ts';
+import type { LabAt } from './api-server.ts';
+import type { LabPageSpec } from './lab-page.ts';
+import { filmServices, labPages, startLab } from './film-services.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
 import { judge } from './judge-cli.ts';
 import type { JudgeRule } from '../core/judge.ts';
 import { Review, type ReviewRoot } from './review.ts';
-import { NotesStore } from './notes-store.ts';
 import { notes } from './notes-cli.ts';
-import { read, scenesLocatedHere } from './read-cli.ts';
-import { StudioReadings } from './studio.ts';
+import { read } from './read-cli.ts';
 import { PreviewServer } from './preview-server.ts';
 import {
   DRAW_WORKERS,
@@ -104,19 +97,12 @@ import {
   givenFlags,
   jobOf,
 } from './render-plan.ts';
-import { SceneHead } from './scene-head.ts';
-import { SceneSources } from './scene-sources.ts';
-import { SceneWriter } from './scene-writer.ts';
 import { media } from './media-cli.ts';
-import { SourceWriter } from './source-writer.ts';
-import { Choices } from './choices.ts';
 import { options } from './choices-cli.ts';
-import { FreshFilm, answeringCheck, encodeCheckLine } from './fresh-film.ts';
+import { answeringCheck, encodeCheckLine } from './fresh-film.ts';
 import { sfx } from './sfx-cli.ts';
-import { PrivateStore } from './private-store.ts';
 import { SoundLibrary } from './library.ts';
 import { type EncoderReadyError, Renderer, encoderReady } from './renderer.ts';
-import { RenderCatalogue } from './catalogue.ts';
 import { project, renderAndRecord, variantFlag } from './project-cli.ts';
 import { Stamps, stampOf } from './stamp.ts';
 import { EncoderName, encoderNamed } from '../core/encoder.ts';
@@ -815,14 +801,10 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
     Effect.fn('film.lab')(function* () {
       // The lab's whole API, for every film: what tweaks it and what reviews it.
       const allowed = yield* labAllowed;
-      const handler = yield* labHandler(allowed);
       const roots = (yield* Review).roots.map((root) => `${root.label}=${root.path}`);
       const known = yield* (yield* FilmFolder).names;
       // The server lives in the command's scope: Ctrl-C (or the unit stopping) stops it.
-      const server = yield* Layer.build(labServer(yield* app.at));
-      const url = yield* serveLab(handler).pipe(Effect.provideContext(server));
-      // The easel's pages are the lab's own, served where it is bound.
-      yield* (yield* Easel).serve(url);
+      const url = yield* startLab(yield* app.at, allowed);
       const link = labLink(url, allowed);
       yield* Console.log(link);
       yield* Effect.log(
@@ -833,20 +815,11 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
   ).pipe(
     // The pages, built from the app's entries and watched while the lab runs,
     // and the easel's warm pages over them, in this process's Chrome.
-    Command.provide(
-      Easel.layer.pipe(
-        Layer.provideMerge(LabPage.layer({ ...app.pages, films })),
-        Layer.provide(Layer.mergeAll(PageBundler.layer, PageRenderer.layer, Browser.layer)),
-      ),
-    ),
+    Command.provide(labPages({ ...app.pages, films })),
     Command.withDescription(
       "Serve the lab for every film: the player with notes on frames, cues and knobs that write back to the scene files and the studio, beside every render under the roots, compared in sync, and each film's choices and scenes to approve (Ctrl-C stops it)",
     ),
   );
-
-const Platform = BunServices.layer;
-const Store = ContentStore.layer.pipe(Layer.provide(Platform));
-const Tools = Layer.mergeAll(ElevenLabs.layer, Media.layer).pipe(Layer.provide(Platform));
 
 /** What the app hands the CLI: where its films are, and the servers for its player page. */
 interface FilmApp<E> {
@@ -909,54 +882,16 @@ export const runFilmCli = <E>({
   self,
   judge: judging,
 }: FilmApp<E>): void => {
-  // The app's folders under the environment's: FILMS_OUT and FILMS_LAB, when set, win.
-  const Folders = ConfigProvider.layerAdd(
-    ConfigProvider.fromUnknown({ FILMS_OUT: folders.out, FILMS_LAB: folders.lab }),
-  );
-  const Repo = FilmRepo.layer(films, Option.some(sounds)).pipe(Layer.provide([Store, Platform]));
-  const Notes = NotesStore.layer.pipe(Layer.provide([Store, Platform]));
-  // The lab checks each write, and the review reads a film's options, keeps its takes and
-  // makes its mixes, through this CLI in a fresh process.
-  const Fresh = FreshFilm.layer(self).pipe(Layer.provide(Platform));
-  // The lab locates a scene's drawing fresh (`film read sites`); a command's
-  // stamps locate it in the command's own process, which imports the film as it stands.
-  const Source = Layer.mergeAll(
-    Layer.mergeAll(SceneWriter.layer, SceneHead.layer).pipe(Layer.provideMerge(SceneSources.layer)),
-    Stamps.layer.pipe(Layer.provide(scenesLocatedHere)),
-  ).pipe(Layer.provideMerge(SourceWriter.layer), Layer.provide([Repo, Store, Fresh, Platform]));
-  // Each film's project folder: its renders, and the owner's approvals and comments on them.
-  const Catalogue = RenderCatalogue.layer.pipe(Layer.provide([Store, Platform]));
-  const Private = PrivateStore.layer(sounds).pipe(Layer.provide([FetchHttpClient.layer, Platform]));
-  const Library = SoundLibrary.layer(sounds).pipe(Layer.provide([Store, Tools, Private, Platform]));
-  const Reviewed = Review.layerConfig(labApp.roots).pipe(
-    Layer.provideMerge(BunHttpPlatform.layer),
-    // Its lengths, frames and phone copies are the Media service's; a say on a
-    // set is written to its folder's catalogue.
-    Layer.provide([Tools, Catalogue, Platform]),
-  );
-  const Services = Layer.mergeAll(Choices.layer, StudioReadings.layer).pipe(
-    // The review hears each option in the mix, and writes a pick through the source writer;
-    // the lab's studio reads the film's script and voice fresh.
-    Layer.provideMerge(
-      Layer.mergeAll(Narrator.layer, Takes.layer, Composer.layer, Mixer.layer).pipe(
-        Layer.provideMerge(
-          Layer.mergeAll(
-            Repo,
-            Notes,
-            Source,
-            Library,
-            Private,
-            Store,
-            Tools,
-            Reviewed,
-            Catalogue,
-            Fresh,
-            Platform,
-          ),
-        ),
-      ),
-    ),
-  );
+  // The film's services, the lab's included (`film-services.ts`), over the app's folders,
+  // reading a film fresh through this CLI, with the real ElevenLabs.
+  const Services = filmServices({
+    films,
+    sounds,
+    folders,
+    self,
+    roots: labApp.roots,
+    elevenLabs: ElevenLabs.layer,
+  });
   const renderLayer = Renderer.layer.pipe(Layer.provide([Browser.layer, previewServer]));
   const checkLayer = Layer.mergeAll(Checker.layer, Looker.layer).pipe(
     Layer.provide([Browser.layer, previewServer]),
@@ -1005,7 +940,7 @@ export const runFilmCli = <E>({
     // runMain would report a failure after these layers are gone, through the
     // default logger, onto stdout; it is reported here instead, under `Logs`.
     Effect.tapCause(reportFailure),
-    Effect.provide(Layer.mergeAll(Services, Logs).pipe(Layer.provideMerge(Folders))),
+    Effect.provide(Layer.mergeAll(Services, Logs)),
     BunRuntime.runMain({ disableErrorReporting: true }),
   );
 };

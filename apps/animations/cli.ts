@@ -11,6 +11,13 @@ import { FILMS, LAB_PAGES, LAB_SERVERS, serve } from './server.ts';
 /** The app's sound library, shared by its films (`sounds/library.ts`). */
 export const SOUNDS = `${import.meta.dir}/sounds`;
 
+/**
+ * Where the app's runs put what they make (`out`: renders, sheets, project
+ * folders) and the lab's notes (`lab`), whatever directory a run starts in
+ * (FILMS_OUT and FILMS_LAB move them).
+ */
+export const FOLDERS = { out: `${import.meta.dir}/out`, lab: `${import.meta.dir}/lab` };
+
 /** The player on any free port (nobody opens it by hand), its narration from `films`, stopped with the command's scope. */
 const player = (films: string) =>
   Layer.effect(
@@ -67,7 +74,7 @@ export const appCli = (films: string, sounds: string, self: string): void =>
   runFilmCli<Config.ConfigError>({
     films,
     sounds,
-    folders: { out: `${import.meta.dir}/out`, lab: `${import.meta.dir}/lab` },
+    folders: FOLDERS,
     previewServer: player(films),
     lab: {
       at: labAt,
