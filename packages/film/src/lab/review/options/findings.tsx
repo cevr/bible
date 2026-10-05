@@ -23,6 +23,7 @@ import { useReview } from '../context.tsx';
 import { failedText } from '../format.ts';
 import { SyncEvent } from '../machine.ts';
 import { useFilm } from './context.tsx';
+import { countState } from '../../scenes/marks.ts';
 import { findingsText } from './receipt.ts';
 
 /**
@@ -60,20 +61,14 @@ const unanswered = (check: Check): Option.Option<'checking' | 'failed'> =>
 const timeOf = (finding: CheckLine): Option.Option<number> =>
   Option.flatMap(Option.fromUndefinedOr(finding.address), (at) => Option.fromUndefinedOr(at.time));
 
-/** A check's chip's state: still checking, failed, clean, warnings only, or an error among them. */
+/**
+ * A check's chip's state: still checking, failed, clean, warnings only, or
+ * an error among them (`countState`, the one count of the check Scenes'
+ * legend and chips read too).
+ */
 const stateOf = (check: Check): 'checking' | 'failed' | 'clean' | 'warning' | 'findings' =>
   Option.getOrElse(unanswered(check), () =>
-    Match.value(foundBy(check)).pipe(
-      Match.when(
-        (fs) => fs.some((f) => f.level === 'error'),
-        () => 'findings' as const,
-      ),
-      Match.when(
-        (fs) => fs.length > 0,
-        () => 'warning' as const,
-      ),
-      Match.orElse(() => 'clean' as const),
-    ),
+    Option.getOrElse(countState(foundBy(check)), () => 'clean' as const),
   );
 
 /**

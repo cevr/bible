@@ -702,7 +702,10 @@ while the preview's are on, the tape drawn again as its toggle turns), each **cu
 thin rule at its scene's exact time carrying the scene's name, and a band
 under each line says each scene's state. Over it the **tape bar** holds the
 acts ruler, the preview's track (in two lanes: the scenes' names along its
-top, its ticks below them, so no name runs over a tick) and Follow (the
+top, its ticks below them, so no name runs over a tick), the legend (scenes
+out of date, not rendered and approved; the check's findings and warnings
+on scenes, each line once, and the film's own lines, counted as Project and
+Choices count the check, `lab/scenes/marks.ts` `checkCount`) and Follow (the
 playhead's line stays in sight while it plays; a scrub turns it off). A
 cut's name takes only its room: shortened with an ellipsis, set before the
 row's last rule where it fits there, or dropped. A tap on a still selects its scene (the path; Back

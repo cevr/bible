@@ -116,8 +116,9 @@ const player =
 
 /**
  * The probe film's project and check as a film in work has them: a scene out
- * of date, one not rendered, one approved, and a finding, so the Scenes' tape
- * bar holds its fullest legend.
+ * of date, one not rendered, one approved, a warning and a finding on scenes
+ * and a line of the film's own, so the Scenes' tape bar holds its fullest
+ * legend.
  */
 const WORK_ROUTES: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/project$/, () =>
@@ -145,6 +146,17 @@ const WORK_ROUTES: ReadonlyArray<FakeRoute> = [
           tag: 'cue',
           message: 'the page turns early',
           address: { part: { _tag: 'Scenes', ids: ['one'] }, time: 1 },
+        },
+        {
+          level: 'error',
+          tag: 'cue',
+          message: 'a cue past the scene',
+          address: { part: { _tag: 'Scenes', ids: ['two'] }, time: 4 },
+        },
+        {
+          level: 'warning',
+          tag: 'AudioStale',
+          message: "the film's audio is older than its script",
         },
       ],
     }),
@@ -416,8 +428,8 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
     ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]')],
     ['Scenes', player(pageHref.scenes(PROBE), STILL)],
     [
-      'Scenes, its legend full (out of date, not rendered, approved, findings)',
-      player(pageHref.scenes(PROBE), '.sc-legend-item[data-state="findings"]', WORK_ROUTES),
+      "Scenes, its legend full (out of date, not rendered, approved, findings, warnings, the film's)",
+      player(pageHref.scenes(PROBE), '.sc-legend-item[data-mark="film"]', WORK_ROUTES),
     ],
     ['Lab', lab('edit')],
     ['Play', player(pageHref.play(PROBE), '.bar .tc')],

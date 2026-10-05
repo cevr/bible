@@ -783,7 +783,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   /** The selected scene (the path's), as the sheet's footer and its target name it. */
   const focused = () => Option.getOrElse(chosen(), () => '');
 
-  const legend = createMemo(() => legendOf(order, marks()));
+  const legend = createMemo(() => legendOf(order, marks(), read().findings));
   // The page scrolls as a whole, the tape bar and the card held under the header.
   document.body.classList.add('scenes');
   onCleanup(() => document.body.classList.remove('scenes'));
@@ -818,9 +818,9 @@ export const ScenesView = (props: ScenesViewProps) => {
           {/* One row, whatever the film's marks: the counts scroll in their own strip, the step gives way first. */}
           <div class="sc-legend">
             <span class="sc-legend-items">
-              <For each={legend()} keyed={(l) => l.state}>
+              <For each={legend()} keyed={(l) => l.mark}>
                 {(l) => (
-                  <span class="sc-legend-item" data-state={l().state}>
+                  <span class="sc-legend-item" data-mark={l().mark} data-state={l().state}>
                     <i class="sc-dot" data-state={l().state} />
                     {l().text}
                   </span>
