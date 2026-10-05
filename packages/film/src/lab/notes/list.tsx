@@ -208,7 +208,8 @@ export const Pen = (props: { readonly hub: Hub }) => {
     <button
       type="button"
       data-act="pen"
-      class={{ on: feed.pen() }}
+      class="sh-btn"
+      aria-pressed={`${feed.pen()}`}
       title={keys.titled('draw freehand ink on the frame', PEN)}
       onClick={() => props.hub.invokeId(PEN, BY_BUTTON)}
     >
@@ -224,6 +225,7 @@ export const Frame = (props: { readonly hub: Hub }) => {
   return (
     <button
       type="button"
+      class="sh-btn"
       data-act="note-frame"
       title={keys.titled('note the whole frame shown', NOTE_FRAME)}
       disabled={Option.isNone(feed.staged())}
@@ -277,7 +279,7 @@ const ReplyForm = (props: { readonly note: Note }) => {
       />
       <button
         type="button"
-        class="lab-resolve"
+        class="sh-btn lab-resolve"
         onClick={() => feed.write({ _tag: 'Resolve', id: props.note.id })}
       >
         Resolve

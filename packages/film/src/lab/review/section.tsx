@@ -413,7 +413,7 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
           <p class="rv-row">
             <For each={other}>
               {(doc) => (
-                <a class="rv-chip" href={reviewFileUrl(doc.ref)} target="_blank" rel="noreferrer">
+                <a class="sh-btn" href={reviewFileUrl(doc.ref)} target="_blank" rel="noreferrer">
                   {doc.name}
                 </a>
               )}
@@ -426,7 +426,7 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
           <For each={props.folder.downloads ?? []}>
             {(file) => (
               <a
-                class="rv-chip"
+                class="sh-btn"
                 data-review-download
                 href={reviewFileUrl(file.ref)}
                 download={file.name}
@@ -511,7 +511,7 @@ const ViewTabs = () => {
     (name) => !PAIRED.includes(name) || set.variants.length >= 2,
   );
   return (
-    <div class="rv-seg rv-views">
+    <div class="sh-seg rv-views">
       <For each={offered}>
         {(name) => (
           <button
@@ -559,7 +559,8 @@ export const Transport = (props: {
     <section class="rv-transport">
       <button
         type="button"
-        class="rv-big"
+        class="sh-btn rv-big"
+        data-primary=""
         data-act="play"
         title="Play / pause (space)"
         onClick={() => send.sync(SyncEvent.Toggled)}
@@ -588,7 +589,7 @@ export const Transport = (props: {
         hub={meta.hub}
         ids={Rate.literals.map(rateId)}
         act="rate"
-        class="rv-chip"
+        class="sh-btn"
         title={rateTitle(keys.titled)}
       >
         <span data-rate={String(sync().rate)}>{rateText(sync().rate)}</span>
@@ -734,7 +735,7 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
               <Show when={version().approval !== 'none'}>
                 <button
                   type="button"
-                  class="rv-chip"
+                  class="sh-btn"
                   data-act="unapprove"
                   disabled={saying.waiting()}
                   onClick={() => void saying.say(props.version.id, withdrawSay())}
@@ -826,7 +827,7 @@ const VariantCap = (props: { readonly variant: SeenVariant }) => {
       </span>
       <button
         type="button"
-        class={['rv-sound', { on: audible() }]}
+        class={['sh-tool', 'rv-sound', { on: audible() }]}
         title="Hear this one"
         onClick={() => send.sync(SyncEvent.HeardChosen({ id: props.variant.id }))}
       >
@@ -887,7 +888,7 @@ const OtherPick = (props: { readonly other: string }) => {
         {(variant) => (
           <button
             type="button"
-            class="rv-chip"
+            class="sh-btn"
             data-other={variant.id}
             aria-pressed={pressed(variant.id === props.other)}
             onClick={() => send.view(ViewEvent.OtherChosen({ id: variant.id }))}
@@ -1128,7 +1129,7 @@ const MomentPick = (props: { readonly moments: ReadonlyArray<number>; readonly i
         {(m) => (
           <button
             type="button"
-            class="rv-chip"
+            class="sh-btn"
             data-moment={String(m.i)}
             aria-pressed={pressed(m.i === props.index)}
             onClick={() => send.view(ViewEvent.MomentChosen({ index: m.i }))}

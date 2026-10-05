@@ -104,7 +104,8 @@ const CueFields = (props: CueFieldsProps) => {
           {(e) => (
             <button
               type="button"
-              class={['lab-ease', { on: e === props.cue.ease }]}
+              class="sh-btn lab-ease"
+              aria-pressed={`${e === props.cue.ease}`}
               data-ease={e}
               title={e}
               disabled={!writable('ease')}

@@ -16,6 +16,8 @@ import {
   type Asked,
   type FakeRoute,
   type Json,
+  DESK,
+  PHONE,
   URL_T,
   json,
   labAt,
@@ -79,6 +81,15 @@ const notesFile = (seq: number, notes: ReadonlyArray<Json>) => json({ film: PROB
 
 /** The note the URL selects (`?note=`), or '' for none. */
 const NOTE_IN_URL = "new URLSearchParams(location.search).get('note') ?? ''";
+
+/** Whether the first note's pin is drawn: shown, with a box inside the window, and on top at its middle. */
+const PIN_SHOWN = `(() => {
+  const pin = document.querySelector('.track .tick.note');
+  if (pin === null || !pin.checkVisibility()) return false;
+  const r = pin.getBoundingClientRect();
+  if (r.width === 0 || r.height === 0 || r.left < 0 || r.right > innerWidth || r.top < 0 || r.bottom > innerHeight) return false;
+  return document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) === pin;
+})()`;
 
 /** A notes store: empty until a POST adds `n1`, which it then lists. */
 const store = (): ReadonlyArray<FakeRoute> => {
@@ -165,6 +176,29 @@ describe('marking a frame', () => {
     SLOW,
   );
 
+  for (const [name, viewport] of [
+    ['1440', DESK],
+    ['390', PHONE],
+  ] as const)
+    it.live(
+      `at ${name} a saved note's pin is drawn on the timeline, on top, and a click on it selects the note`,
+      () =>
+        Effect.gen(function* () {
+          const { page } = yield* openLab(
+            [route('GET', /^\/notes$/, () => notesFile(1, [noteJson('n1')]))],
+            { href: labAt(3), viewport },
+          );
+          yield* attached(page, '.track .tick.note');
+          // Drawn: a box with width, inside the window, and the pin is what its middle hits.
+          yield* evaluates(page, PIN_SHOWN, true);
+          const pin = yield* page.box('.track .tick.note');
+          yield* page.mouse.click(pin.x + pin.width / 2, pin.y + pin.height / 2);
+          yield* evaluates(page, NOTE_IN_URL, 'n1');
+        }).pipe(Effect.scoped),
+      // Past a wait's own limit, so a pin never drawn fails naming what the page last showed.
+      2 * SLOW,
+    );
+
   it.live(
     'a drag draws a box',
     () =>
@@ -192,7 +226,7 @@ describe('marking a frame', () => {
         const { page, asked } = yield* openLab(store(), { href: labAt(1) });
         yield* waitFor(page, '[data-act="pen"]');
         yield* click(page, '[data-act="pen"]');
-        yield* waitFor(page, '[data-act="pen"].on');
+        yield* waitFor(page, '[data-act="pen"][aria-pressed="true"]');
         yield* attached(page, '.lab-overlay .lab-notes-surface.pen');
         yield* drag(page, [420, 60], [560, 140]);
         yield* attached(page, '.lab-overlay polyline.lab-draft-ink');

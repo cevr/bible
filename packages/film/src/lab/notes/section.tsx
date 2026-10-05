@@ -76,8 +76,10 @@ export const Section = () => {
           }}
         />
         <div class="lab-actions">
-          <button type="submit">Save note</button>
-          <button type="button" data-act="cancel" onClick={actions.cancel}>
+          <button type="submit" class="sh-btn" data-primary="">
+            Save note
+          </button>
+          <button type="button" class="sh-btn" data-act="cancel" onClick={actions.cancel}>
             Cancel
           </button>
           <span class="lab-status">{state.status()}</span>

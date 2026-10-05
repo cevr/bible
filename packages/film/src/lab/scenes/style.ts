@@ -38,16 +38,14 @@ body.scenes { display: block; height: auto; }
 .sc-legend-item { display: inline-flex; flex: none; align-items: center; gap: var(--s-1); white-space: nowrap; }
 .sc-spacer { flex: 1 1 0; }
 .sc-step { flex: 0 1000 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.sc-follow { flex: none; }
-.sc-dot { display: inline-block; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); }
+.sc-dot { display: inline-block; flex: none; width: 6px; height: 6px; border-radius: var(--r-dot); background: var(--text-3); }
 .sc-dot[data-state="stale"] { background: var(--state-stale); }
 .sc-dot[data-state="rendered"] { background: var(--state-rendered); }
 .sc-dot[data-state="approved"] { background: var(--state-approved); }
 .sc-dot[data-state="findings"] { background: var(--state-findings); }
 .sc-dot[data-state="warning"] { background: var(--state-warning); }
-.sc-follow { display: inline-flex; align-items: center; gap: var(--s-2); min-height: var(--hit); padding: 0 var(--s-3);
-  border: 1px solid var(--line-strong); border-radius: var(--r-2); background: var(--surface-2); color: var(--text-1);
-  font: inherit; cursor: pointer; }
+/* Follow is the kit's quiet button, a toggle; on, its dot takes the accent. */
+.sc-follow { flex: none; min-height: var(--hit); }
 .sc-follow[aria-pressed="true"] .sc-dot { background: var(--accent); }
 .sc-tape { display: grid; gap: var(--s-1); padding: var(--s-2) var(--gutter) var(--s-8); }
 .sc-line { display: grid; grid-template-columns: var(--s-8) minmax(0, 1fr); gap: var(--s-2); }
@@ -68,7 +66,7 @@ body.scenes { display: block; height: auto; }
 .sc-still canvas { display: block; width: 100%; height: 100%; }
 .sc-still[data-picked="true"] { outline: 1px solid var(--accent); outline-offset: -1px; }
 .sc-still[data-picked="true"] canvas { opacity: 0.85; }
-.sc-band { position: relative; height: 2px; margin-top: 2px; }
+.sc-band { position: relative; height: 2px; margin-top: var(--s-1); }
 .sc-band span { position: absolute; top: 0; bottom: 0; background: var(--hue); }
 .sc-band span[data-state="stale"] { background: var(--state-stale); }
 .sc-band span[data-state="rendered"] { background: var(--state-rendered); }
@@ -97,7 +95,8 @@ body.scenes { display: block; height: auto; }
 /* The name is a target of the pointer's size in itself: the card clips its overflow, so a hit-slop past it would not count. */
 .sc-card-name .lab-inspect { max-width: 100%; min-height: var(--hit); overflow: hidden; text-overflow: ellipsis; font: inherit;
   color: inherit; }
-.sc-card-verb > .rv-chip { flex: 1; justify-content: center; min-height: var(--hit); }
+/* The card's verbs share its width, each the pointer's size. */
+.sc-card-verb > .sh-btn { flex: 1; min-height: var(--hit); white-space: nowrap; }
 .sc-hue { flex: none; width: 8px; height: 8px; border-radius: var(--r-1); }
 .sc-card-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-1) var(--s-3); margin: 0;
   font-size: var(--fs-2); line-height: var(--lh-2); }
@@ -112,13 +111,7 @@ body.scenes { display: block; height: auto; }
 .sc-chip[data-state="findings"] { color: var(--state-findings); }
 .sc-chip[data-state="warning"] { color: var(--state-warning); }
 .sc-card-verb { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.sc-verb { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: var(--s-2); min-height: var(--hit);
-  padding: 0 var(--s-3); border: 1px solid var(--line-strong); border-radius: var(--r-2); background: var(--surface-2);
-  color: var(--text-1); font: inherit; white-space: nowrap; cursor: pointer; text-decoration: none; }
-.sc-verb:hover:not(:disabled) { background: var(--surface-3); }
-.sc-verb[data-primary] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: var(--w-2); }
-.sc-verb[data-primary] kbd { border-color: currentColor; color: inherit; }
-.sc-verb:disabled { color: var(--text-3); cursor: default; }
+.sc-section > .sh-btn { min-height: var(--hit); }
 .sc-section { display: grid; gap: var(--s-2); padding-top: var(--s-3); border-top: var(--border); }
 .sc-section h3 { display: flex; justify-content: space-between; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-1); }
 .sc-section h3 span { color: var(--text-3); }
@@ -140,7 +133,7 @@ body.scenes { display: block; height: auto; }
   .sc-focus[data-peek="true"] .sc-card-picture { grid-row: span 2; }
   .sc-focus[data-peek="true"] .sc-card-facts,
   .sc-focus[data-peek="true"] .sc-section,
-  .sc-focus[data-peek="true"] .sc-verb:not([data-primary]) { display: none; }
+  .sc-focus[data-peek="true"] .sc-card-verb > .sh-btn:not([data-primary]) { display: none; }
   .sc-focus[data-peek="true"] .sc-card-verb { grid-column: 1 / -1; }
   .sc[data-selected="true"] .sc-tape { padding-bottom: 40dvh; }
   /* A tile on the phone is a row (design language §7, Project): its still beside its name and marks;

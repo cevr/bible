@@ -7,8 +7,10 @@
 // On the overlay, the divider drags the wipe, and in a blink a press held on
 // the frame shows HEAD until it lifts (the blink by hand, a phone's way).
 
+import { Toggle } from '@bible/ui/toggle';
+import { ToggleGroup } from '@bible/ui/toggle-group';
 import { For, Show } from '@solidjs/web';
-import { Effect, Option } from 'effect';
+import { Array as Arr, Effect, Option } from 'effect';
 import type { Accessor } from 'solid-js';
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
@@ -29,7 +31,11 @@ const TITLES = {
   diff: 'HEAD over now in the difference blend: black where nothing moved',
 } as const satisfies Record<CompareMode, string>;
 
-/** Off, wipe, blink or diff, and what the compare says, in Compare's section of the page's panel. */
+/**
+ * Off, wipe, blink or diff (the kit's segmented control, as the mode tray
+ * is: one pressed, pressing it again keeps it), and what the compare says,
+ * in Compare's section of the page's panel.
+ */
 export const Section = () => {
   const { meta } = useLab();
   const { state } = useCompare();
@@ -37,19 +43,26 @@ export const Section = () => {
   return (
     <Lab.Fill at="compare">
       <div class="lab-motion-row">
-        <For each={CompareMode.literals}>
-          {(m) => (
-            <button
-              type="button"
-              data-mode={m}
-              class={{ on: state.mode() === m }}
-              title={keys.titled(TITLES[m], compareCommandId(m))}
-              onClick={() => meta.hub.invokeId(compareCommandId(m), BY_BUTTON)}
-            >
-              {m}
-            </button>
-          )}
-        </For>
+        <ToggleGroup<CompareMode>
+          class="sh-seg"
+          aria-label="Compare with HEAD"
+          value={[state.mode()]}
+          onValueChange={(pressed) => {
+            Option.map(Arr.head(pressed), (m) => meta.hub.invokeId(compareCommandId(m), BY_BUTTON));
+          }}
+        >
+          <For each={CompareMode.literals}>
+            {(m) => (
+              <Toggle<CompareMode>
+                value={m}
+                data-mode={m}
+                title={keys.titled(TITLES[m], compareCommandId(m))}
+              >
+                {m}
+              </Toggle>
+            )}
+          </For>
+        </ToggleGroup>
       </div>
       <p class="lab-edit-note lab-compare-status">{state.status()}</p>
     </Lab.Fill>

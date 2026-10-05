@@ -109,7 +109,7 @@ export const FilmPicture = () => {
                   {(p) => (
                     <button
                       type="button"
-                      class="rv-chip"
+                      class="sh-btn"
                       data-picture={p.ref}
                       aria-pressed={pressed(p.ref === video().ref)}
                       onClick={() => choosePicture(p.ref)}
@@ -280,7 +280,7 @@ export const OnlyShown = () => {
           Showing only the points {ONLY_TEXT[state()]}.
           <button
             type="button"
-            class="rv-chip"
+            class="sh-btn"
             data-act="show-every-point"
             onClick={() => showOnly(Option.none())}
           >

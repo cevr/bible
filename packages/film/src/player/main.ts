@@ -195,11 +195,11 @@ export const mountPreview = (
   bar.className = 'bar';
   bar.innerHTML = `
     <div class="row">
-      <button data-act="play">▶︎</button>
-      <span class="time"><span class="tc"></span><span class="of"></span></span>
+      <button class="sh-tool" data-act="play">▶︎</button>
+      <span class="time"><span class="tc"></span><span class="of"></span><span class="narration" role="status"></span></span>
       <span class="scene"></span>
       <span class="say"></span>
-      <button data-act="captions">CC</button>
+      <button class="sh-tool" data-act="captions">CC</button>
     </div>
     <div class="track"><div class="head"></div></div>
     <div class="tip" hidden></div>
@@ -210,6 +210,7 @@ export const mountPreview = (
   const head = q<HTMLDivElement>('.head');
   const timecodeEl = q<HTMLSpanElement>('.tc');
   const lengthEl = q<HTMLSpanElement>('.of');
+  const narrationEl = q<HTMLSpanElement>('.narration');
   const sceneEl = q<HTMLSpanElement>('.scene');
   const sayEl = q<HTMLSpanElement>('.say');
   const playBtn = q<HTMLButtonElement>('[data-act="play"]');
@@ -285,8 +286,13 @@ export const mountPreview = (
   };
 
   // The narration says what it can play once it knows (a missing master, a
-  // play refused until a click), and the time line says it.
-  const voice = narration(film.audio, host, () => draw());
+  // play refused until a click), and the row says it: its own piece, apart
+  // from the length the docked phone row hides, and a polite status written
+  // only as the narration changes, so a screen reader hears it once (WCAG 4.1.3).
+  const voice = narration(film.audio, host, (state) => {
+    narrationEl.textContent = narrationNote(state);
+    draw();
+  });
   let T = Math.min(Math.max(time.at(addressOn(host).href()), 0), film.duration);
   let playing = false;
   let rate = 1;
@@ -367,7 +373,7 @@ export const mountPreview = (
     const [at, length] =
       page === 'lab' ? [Math.max(T - cur.start, 0), cur.dur] : [T, film.duration];
     timecodeEl.textContent = timecode(at, film.fps);
-    lengthEl.textContent = ` / ${timecode(length, film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
+    lengthEl.textContent = ` / ${timecode(length, film.fps)}${shownRate}${shownLoop}`;
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
@@ -513,6 +519,7 @@ export const mountPreview = (
     );
     const step = (id: string, glyph: string, label: string) => {
       const button = document.createElement('button');
+      button.className = 'sh-tool';
       button.dataset['act'] = id;
       button.textContent = glyph;
       button.setAttribute('aria-label', label);

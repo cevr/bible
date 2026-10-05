@@ -20,7 +20,7 @@ import { hubKeys } from '../command/changes.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { studioCommands } from './commands.ts';
 import { type AttemptRow, useStudio } from './context.tsx';
-import { beatBadge } from './view.ts';
+import { type Act, beatBadge } from './view.ts';
 
 /** One stretch of the beat as the owner reads it: a line (its reader named), or a quotation set apart. */
 const Stretch = (props: { readonly part: Part }) => {
@@ -66,7 +66,8 @@ const Beats = () => {
               <button
                 type="button"
                 data-beat={beat.id}
-                class={{ selected: beat.id === state.beat() }}
+                class={['sh-btn', { selected: beat.id === state.beat() }]}
+                aria-pressed={`${beat.id === state.beat()}`}
                 onClick={() => actions.select(beat.id)}
               >
                 <span class="studio-beat-id">{beat.id}</span>
@@ -141,6 +142,9 @@ const Meter = () => {
   );
 };
 
+/** The controls that start or end a take, edged in the recording's colour (design language §5, §7); the rest are quiet. */
+const STATE: Partial<Record<Act, 'recording'>> = { arm: 'recording', stop: 'recording' };
+
 /** What the owner can do now, and where the recorder stands. */
 const Controls = () => {
   const { state } = useStudio();
@@ -154,7 +158,9 @@ const Controls = () => {
           {(c) => (
             <button
               type="button"
+              class="sh-btn"
               data-act={c().act}
+              data-state={STATE[c().act]}
               onClick={() => meta.hub.invokeId(c().command, BY_BUTTON)}
             >
               {keys.titled(c().label, c().command)}
@@ -193,6 +199,7 @@ const Attempt = (props: { readonly row: Accessor<AttemptRow> }) => {
         <audio controls preload="none" src={row().src} />
         <button
           type="button"
+          class="sh-btn"
           data-act="keep"
           disabled={!(state.keepable() && row().current && !row().kept)}
           onClick={() => actions.keep(row().file)}

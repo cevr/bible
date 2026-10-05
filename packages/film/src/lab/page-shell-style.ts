@@ -2,8 +2,11 @@
 // through the tokens (`player/tokens.css`): the header on `--surface-1`, the
 // page bar's text tabs with the accent underline on the laptop, the tab bar
 // of line icons along the bottom on the phone (`--tabbar-h` over the safe
-// area), and the dock a page's transport takes above it (`.sh-dock`). Every
-// page injects it with the commands' styles.
+// area), and the dock a page's transport takes above it (`.sh-dock`); and
+// the kit (§5), each control styled once: the quiet and primary buttons
+// (`.sh-btn`), the icon button (`.sh-tool`), the segmented control
+// (`.sh-seg`), the field (`.lab-num`, a `select`) and the slider. Every page
+// injects it with the commands' styles.
 
 import { PHONE } from './viewport.ts';
 
@@ -28,7 +31,7 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 .sh-switcher .sh-icon { width: 12px; height: 12px; color: var(--text-3); }
 .sh-switcher:hover, .sh-switcher[data-popup-open] { background: var(--surface-3); }
 .sh-pagebar { display: flex; align-items: stretch; align-self: stretch; }
-.sh-tab { position: relative; display: flex; align-items: center; gap: 6px; padding: 0 var(--s-3);
+.sh-tab { position: relative; display: flex; align-items: center; gap: var(--s-1); padding: 0 var(--s-3);
   color: var(--text-2); text-decoration: none; font-size: var(--fs-2); line-height: var(--lh-2);
   font-weight: var(--w-2); white-space: nowrap; }
 .sh-tab .sh-icon { display: none; }
@@ -56,6 +59,7 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 .sh-tool:hover:not(:disabled), .sh-tool[data-popup-open] { background: var(--surface-3); color: var(--text-1); }
 .sh-tool:disabled { color: var(--text-3); cursor: default; }
 .sh-tool .sh-dots { fill: currentColor; stroke: none; }
+.sh-tool:is([aria-pressed="true"], .on) { color: var(--accent); }
 .sh kbd { font-family: var(--font); font-size: var(--fs-1); line-height: var(--lh-1); padding: 0 var(--s-1);
   border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--text-2); }
 .sh-header :focus-visible { outline: none; box-shadow: var(--focus-ring); }
@@ -71,7 +75,7 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
     height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
     background: var(--surface-2); border-top: var(--border); }
   .sh[data-film="false"] .sh-pagebar { display: none; }
-  .sh-tab { flex: 1; flex-direction: column; justify-content: center; gap: 3px; padding: 0;
+  .sh-tab { flex: 1; flex-direction: column; justify-content: center; padding: 0;
     font-size: var(--fs-1); line-height: var(--lh-1); }
   .sh-tab .sh-icon { display: block; width: 20px; height: 20px; }
   .sh-tab[data-active="true"] .sh-icon { color: var(--accent); }
@@ -105,4 +109,50 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
   .sh-goto .sh-icon { width: 14px; height: 14px; }
   .sh-goto > span, .sh-goto > kbd { display: inline; }
 }
+
+/*
+ * The kit (design language §5): the controls every page is made of, each
+ * styled once here. Its rules weigh nothing (\`:where\`), so a page's own
+ * rule for a control's place (its width, its height as a target) refines it
+ * whichever sheet comes first. The icon button is \`.sh-tool\` above.
+ */
+/* Button, quiet: no fill, an edge; pressed, the raised surface and the accent edge. */
+:where(.sh-btn) { display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+  min-height: var(--control-h); padding: 0 var(--s-3); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+  background: none; color: var(--text-1); font: inherit; font-size: var(--fs-3); font-weight: var(--w-2);
+  text-decoration: none; cursor: pointer; }
+:where(.sh-btn:not([data-primary]):hover:not(:disabled)) { background: var(--surface-3); }
+:where(.sh-btn:is([aria-pressed="true"], [data-pressed])) { background: var(--surface-3); border-color: var(--accent); }
+:where(.sh-btn:is(:disabled, [aria-busy="true"])) { color: var(--text-3); cursor: default; }
+/* Button, primary: the view's one verb, in the accent. */
+:where(.sh-btn[data-primary]) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+:where(.sh-btn[data-primary]) kbd { border-color: currentColor; color: inherit; }
+:where(.sh-btn[data-primary]:disabled) { background: var(--surface-3); border-color: var(--line); color: var(--text-3); }
+/* A button in a state's colour (a check's findings, the recorder's verb): its words and its edge.
+   Recording's red reads under 4.5:1 on the raised surfaces (WCAG 1.4.3): its words keep the
+   primary ink, and the red is its edge, a cue that needs 3:1 (1.4.11). */
+:where(.sh-btn[data-state="findings"]) { color: var(--state-findings); border-color: var(--state-findings); }
+:where(.sh-btn[data-state="warning"]) { color: var(--state-warning); border-color: var(--state-warning); }
+:where(.sh-btn[data-state="recording"]) { color: var(--text-1); border-color: var(--state-recording); }
+/* Segmented: one box of choices, the pressed one raised. */
+:where(.sh-seg) { display: inline-flex; max-width: 100%; border: var(--border); border-radius: var(--r-2); overflow: hidden; }
+:where(.sh-seg > button) { flex: 1 0 auto; min-width: var(--hit); min-height: var(--hit); padding: 0 var(--s-2); border: 0; border-radius: 0;
+  background: none; color: var(--text-2); font: inherit; font-size: var(--fs-2); font-weight: var(--w-2); cursor: pointer; }
+:where(.sh-seg > button + button) { border-left: var(--border); }
+:where(.sh-seg > button:hover) { color: var(--text-1); }
+:where(.sh-seg > button:is([aria-pressed="true"], [data-pressed])) { background: var(--surface-3); color: var(--text-1); }
+/* Field: a number (NumberField's input), and the platform's select, on the field's surface. */
+:where(.lab-num, select) { min-height: var(--hit); padding: 0 var(--s-1); background: var(--surface-2); color: var(--text-1);
+  border: 1px solid var(--line-strong); border-radius: var(--r-1); font: inherit; }
+:where(.lab-num) { width: 80px; }
+/* Slider: the platform's range, its track and thumb the scrubber's (the track's surface, the playhead's accent). */
+:where(input[type="range"]) { appearance: none; min-height: var(--hit); margin: 0; background: none; cursor: pointer; }
+:where(input[type="range"])::-webkit-slider-runnable-track { height: var(--s-1); border-radius: var(--r-1);
+  background: var(--surface-3); }
+:where(input[type="range"])::-moz-range-track { height: var(--s-1); border-radius: var(--r-1); background: var(--surface-3); }
+:where(input[type="range"])::-moz-range-progress { height: var(--s-1); border-radius: var(--r-1); background: var(--accent); }
+:where(input[type="range"])::-webkit-slider-thumb { appearance: none; width: var(--s-1); height: var(--s-4);
+  margin-top: calc((var(--s-1) - var(--s-4)) / 2); border: 0; border-radius: var(--r-1); background: var(--accent); }
+:where(input[type="range"])::-moz-range-thumb { width: var(--s-1); height: var(--s-4); border: 0; border-radius: var(--r-1);
+  background: var(--accent); }
 `;

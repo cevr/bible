@@ -163,7 +163,7 @@ export const Findings = (props: { readonly counts?: boolean }) => {
         {(check) => (
           <button
             type="button"
-            class="rv-chip rv-check"
+            class="sh-btn"
             data-act="findings"
             data-check={check().name}
             data-findings={Option.getOrUndefined(

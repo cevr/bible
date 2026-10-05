@@ -6,7 +6,8 @@
 // the player's timeline; a page reloaded onto new code flashes its picture
 // once and one opened by hand does not; and the page starts without an error.
 
-import { Deferred, Effect, Exit, Option } from 'effect';
+import { BunServices } from '@effect/platform-bun';
+import { Deferred, Effect, Exit, FileSystem, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { FilmUnknown } from '../../src/core/refusals.ts';
@@ -16,6 +17,7 @@ import {
   DESK,
   PHONE,
   URL_T,
+  file,
   hold,
   json,
   labAt,
@@ -23,8 +25,10 @@ import {
   openLab,
   refused,
   route,
+  text,
 } from '../../src/lab/fixtures/harness.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
+import { tone } from '../../src/lab/fixtures/tone.ts';
 import {
   attached,
   attributeIs,
@@ -74,6 +78,59 @@ const T = URL_T;
 
 /** Whether the page does not scroll sideways. */
 const NO_SIDEWAYS = 'document.documentElement.scrollWidth <= document.documentElement.clientWidth';
+
+/**
+ * Whether the bar says `words` where the viewer sees them: the element that
+ * holds them is drawn, inside the window, and on top at its middle. `words`
+ * holds no quote.
+ */
+const narrationShown = (words: string) =>
+  `[...document.querySelectorAll('.bar .row *')].filter((e) => e.children.length === 0 && e.textContent.includes('${words}')).some((e) => { const r = e.getBoundingClientRect(); if (r.width === 0 || r.height === 0 || r.left < 0 || r.right > innerWidth || r.top < 0 || r.bottom > innerHeight) return false; const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return top !== null && (top === e || e.contains(top)); })`;
+
+/** The kit's states a button is drawn in (`.sh-btn[data-state]`, `page-shell-style.ts`). */
+const KIT_STATES = ['findings', 'warning', 'recording'] as const;
+
+/** `KIT_STATES` as a script's array. */
+const JSON_STATES = `[${KIT_STATES.map((s) => `'${s}'`).join(', ')}]`;
+
+/**
+ * One kit button per state at the top of the Lab's panel, its real ground,
+ * and `window.kitRead(state, held)`: whether the button is in the state
+ * `held` names (`rest`, `hover`, `pressed`, `focus`), then its words' and its
+ * edge's WCAG contrast against the background it draws, each colour composed
+ * (alpha and all) onto the grounds under it, as `kitShort` lines short of
+ * 4.5:1 for the words (1.4.3) or 3:1 for the edge (1.4.11).
+ */
+const KIT_BUTTONS = `(() => {
+  const host = document.querySelector('.lab-panel');
+  for (const state of ${JSON_STATES}) {
+    const button = document.createElement('button');
+    button.className = 'sh-btn';
+    button.dataset.state = state;
+    button.dataset.kit = state;
+    button.textContent = state;
+    host.prepend(button);
+  }
+  const rgba = (c) => { const n = c.match(/[\\d.]+/g).map(Number); return [n[0], n[1], n[2], n.length > 3 ? n[3] : 1]; };
+  const over = (top, under) => top.slice(0, 3).map((v, i) => v * top[3] + under[i] * (1 - top[3]));
+  // The page's canvas is white under every ground; each element's own fill goes on it, outermost first.
+  const drawn = (el) => { const fills = []; for (let e = el; e !== null; e = e.parentElement) fills.push(rgba(getComputedStyle(e).backgroundColor)); return fills.reverse().reduce((under, fill) => over(fill, under), [255, 255, 255]); };
+  const lum = (c) => c.map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+  const held = { rest: (b) => !b.matches(':hover, :focus') && b.getAttribute('aria-pressed') !== 'true', hover: (b) => b.matches(':hover'), pressed: (b) => b.getAttribute('aria-pressed') === 'true', focus: (b) => b.matches(':focus-visible') };
+  window.kitShort = [];
+  window.kitRead = (state, how) => {
+    const b = document.querySelector('[data-kit="' + state + '"]');
+    if (!held[how](b)) return window.kitShort.push(state + ' is not ' + how);
+    const ground = drawn(b);
+    const s = getComputedStyle(b);
+    const words = ratio(over(rgba(s.color), ground), ground);
+    const edge = ratio(over(rgba(s.borderTopColor), ground), ground);
+    if (words < 4.5) window.kitShort.push(state + ' words ' + how + ' ' + words.toFixed(2));
+    if (edge < 3) window.kitShort.push(state + ' edge ' + how + ' ' + edge.toFixed(2));
+  };
+  return true;
+})()`;
 
 /** The vertical middle of the bar's `sel`, in whole pixels. */
 const middle = (sel: string) =>
@@ -348,6 +405,44 @@ describe('the lab shell', () => {
   );
 
   it.live(
+    "the mode tray is the kit's segmented control: its labels in the tray's size and weight, over the page's ground",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab();
+        // Each mode's label against the tokens the kit names for it.
+        const type = `(() => { const root = getComputedStyle(document.documentElement); const token = (n) => root.getPropertyValue(n).trim(); return [...document.querySelectorAll('.lab-modes > button')].map((b) => getComputedStyle(b)).map((s) => s.fontSize === token('--fs-2') && s.fontWeight === token('--w-2')); })()`;
+        yield* evaluates(page, type, [true, true, true, true, true]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a button in a state's colour reads at AA (4.5:1) at rest, hovered, pressed and focused, over the background it draws; its edge at 3:1",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab();
+        yield* page.evaluate(KIT_BUTTONS);
+        const at = (state: string) => `document.querySelector('[data-kit="${state}"]')`;
+        for (const state of KIT_STATES) {
+          // Each state driven as the viewer would, and read while it holds.
+          yield* page.mouse.move(1, 1);
+          yield* page.evaluate(`window.kitRead('${state}', 'rest'); true`);
+          const box = yield* page.box(`[data-kit="${state}"]`);
+          yield* page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+          yield* page.evaluate(`window.kitRead('${state}', 'hover'); true`);
+          yield* page.mouse.move(1, 1);
+          yield* page.evaluate(
+            `${at(state)}.setAttribute('aria-pressed', 'true'); window.kitRead('${state}', 'pressed'); ${at(state)}.removeAttribute('aria-pressed'); true`,
+          );
+          yield* page.evaluate(
+            `${at(state)}.focus({ focusVisible: true }); window.kitRead('${state}', 'focus'); ${at(state)}.blur(); true`,
+          );
+        }
+        // Each ratio short of its bar, and each state the button was not in when read.
+        yield* evaluates(page, 'window.kitShort', []);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     'Undo and Redo stay in the header in every mode, at 390 and 1440, and the view menu ⋯ follows Go to…',
     () =>
       Effect.gen(function* () {
@@ -566,6 +661,44 @@ describe('the lab shell', () => {
         yield* evaluates(page, "document.querySelector('.bar .tc').getClientRects().length", 1);
         yield* evaluates(page, NO_SIDEWAYS, true);
       }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'on a phone the docked transport says when the narration is missing, and when it waits for a click',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        // The film has a master the server cannot find: the narration is missing, and the dock says so.
+        const missing = yield* openLab([], {
+          href: labAt(1),
+          viewport: PHONE,
+          master: text('no such file', 404),
+        });
+        yield* evaluates(missing.page, narrationShown('no narration'), true);
+        // It is a polite status, written as the narration changes and not as the frame moves:
+        // a screen reader hears it once.
+        yield* evaluates(
+          missing.page,
+          `document.querySelector('.bar [role="status"]').textContent`,
+          'no narration',
+        );
+        yield* missing.page.evaluate(
+          `window.labSaid = 0; new MutationObserver((m) => { window.labSaid += m.length; }).observe(document.querySelector('.bar [role="status"]'), { childList: true, characterData: true, subtree: true }); true`,
+        );
+        yield* missing.page.click('.bar [data-act="play.frame-next"]');
+        yield* missing.page.click('.bar [data-act="play.frame-next"]');
+        yield* evaluates(missing.page, `window.labSaid`, 0);
+        // A master the browser will not play before a click: the dock says to click.
+        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'lab-narration-' });
+        const wav = `${dir}/full.wav`;
+        yield* fs.writeFile(wav, tone(2, 0.1));
+        const { page } = yield* openLab([], { href: labAt(1), viewport: PHONE, master: file(wav) });
+        yield* page.evaluate(
+          `HTMLMediaElement.prototype.play = function () { return Promise.reject(new DOMException('blocked', 'NotAllowedError')); }; true`,
+        );
+        yield* page.click('.bar [data-act="play"]');
+        yield* evaluates(page, narrationShown('narration waits for a click'), true);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
   for (const ended of ['pointercancel', 'lostpointercapture'])
