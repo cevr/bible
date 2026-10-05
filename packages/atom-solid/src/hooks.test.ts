@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'effect-bun-test';
 
-import { Cause, Effect, Exit, Option } from 'effect';
+import { Array as Arr, Cause, Effect, Exit, Function, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
-import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
+import type * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import {
+  children,
+  createComponent,
   createEffect,
   createRenderEffect,
   createRoot,
@@ -22,7 +24,7 @@ import {
   useAtomSuspense,
   useAtomValue,
 } from './hooks.js';
-import { RegistryContext } from './registry-context.js';
+import { RegistryProvider, type RegistryProviderProps, useRegistry } from './registry-context.js';
 
 const settle = Effect.gen(function* () {
   yield* Effect.yieldNow;
@@ -30,35 +32,53 @@ const settle = Effect.gen(function* () {
 });
 
 interface Mounted<A> {
+  /** The provider's registry, as the hooks found it. */
   readonly registry: AtomRegistry.AtomRegistry;
   readonly result: A;
-  /** Disposes the Solid owner, leaving the registry usable for assertions. */
+  /** Disposes the hooks' owner, leaving the provider and its registry. */
   readonly disposeOwner: () => void;
+  /** Disposes the hooks' owner, then the provider, which disposes its registry. */
   readonly dispose: () => void;
 }
 
 /**
- * Runs `body` inside a Solid root against a registry of its own.
- *
- * The hooks resolve their registry through `useRegistry()`, which
- * returns the context default when no provider is mounted. Pointing that
- * default at a fresh registry per test exercises the real lookup path while
- * keeping tests isolated — mounting `RegistryProvider` instead would need a JSX
- * runtime, which the bun test environment does not compile.
+ * Runs `body` under a `RegistryProvider` of its own, as a page's components
+ * run, with the provider's `options`. `body` runs in an owner of its own
+ * inside the provider, so a test can dispose the hooks and still read the
+ * registry they used.
  */
-const mount = <A>(body: () => A): Mounted<A> => {
-  const registry = AtomRegistry.make();
-  RegistryContext.defaultValue = Option.some(registry);
-  return createRoot((dispose) => ({
-    registry,
-    disposeOwner: dispose,
-    dispose: () => {
-      dispose();
-      registry.dispose();
-    },
-    result: body(),
-  }));
-};
+const mount = <A>(
+  body: () => A,
+  options: Omit<RegistryProviderProps, 'children'> = {},
+): Mounted<A> =>
+  createRoot((disposeProvider) => {
+    const mounted: Array<Mounted<A>> = [];
+    const view = createComponent(RegistryProvider, {
+      ...options,
+      get children() {
+        const registry = useRegistry();
+        createRoot((disposeOwner) => {
+          mounted.push({
+            registry,
+            result: body(),
+            disposeOwner,
+            dispose: () => {
+              disposeOwner();
+              disposeProvider();
+            },
+          });
+        });
+        return [];
+      },
+    });
+    // A provider's children are lazy, made when its view is read; a render
+    // effect reads the view and keeps it, as a renderer would.
+    createRenderEffect(
+      children(() => view),
+      Function.constVoid,
+    );
+    return Option.getOrThrow(Arr.head(mounted));
+  });
 
 describe('useAtomValue', () => {
   const test = it.scoped;
@@ -222,10 +242,10 @@ describe('useAtomRefresh', () => {
     }));
 });
 
-describe('RegistryContext', () => {
+describe('RegistryProvider', () => {
   const test = it.scoped;
 
-  test('isolates atom state between two registries', () =>
+  test("hooks under two providers each use their own provider's registry", () =>
     Effect.gen(function* () {
       const counter = Atom.make(0);
       const one = mount(() => useAtomValue(() => counter));
@@ -234,11 +254,26 @@ describe('RegistryContext', () => {
       yield* Effect.addFinalizer(() => Effect.sync(two.dispose));
 
       yield* settle;
+      expect(one.registry).not.toBe(two.registry);
       one.registry.set(counter, 1);
       yield* settle;
 
       expect(one.result()).toBe(1);
       expect(two.result()).toBe(0);
+    }));
+
+  test('seeds its initial values, and disposes its registry with its owner', () =>
+    Effect.gen(function* () {
+      const counter = Atom.make(0).pipe(Atom.keepAlive);
+      const owned = mount(() => useAtomValue(() => counter), {
+        initialValues: [[counter, 9]],
+      });
+
+      expect(owned.result()).toBe(9);
+      expect(owned.registry.getNodes().size).toBe(1);
+      owned.dispose();
+      yield* settle;
+      expect(owned.registry.getNodes().size).toBe(0);
     }));
 });
 
@@ -516,36 +551,32 @@ describe('the promiseExit setter mode', () => {
     }));
 });
 
-describe('RegistryProvider cleanup order', () => {
+describe('a registry disposed before its hooks unsubscribe', () => {
   const test = it.scoped;
 
   /**
    * Solid runs one owner's cleanups in reverse registration order (unwind),
    * and a child's before its owner's, so `RegistryProvider`, which registers
    * `registry.dispose()` before its children run, disposes the registry after
-   * their unsubscribes. A registry owned elsewhere can still be disposed while
-   * hooks are subscribed. This test disposes the registry first, then the
-   * owner, and asserts the unsubscribes neither throw nor leave listeners.
+   * their unsubscribes. The other order can still happen (a registry disposed
+   * from elsewhere while hooks are subscribed). This test disposes the
+   * registry first, then the hooks' owner, and asserts the unsubscribes
+   * neither throw nor leave listeners.
    */
-  test('disposes the registry before hook unsubscribes without leaking or throwing', () =>
+  test('the unsubscribes neither leak nor throw', () =>
     Effect.gen(function* () {
       const counter = Atom.make(0).pipe(Atom.keepAlive);
-      const registry = AtomRegistry.make({ defaultIdleTTL: 400 });
-      RegistryContext.defaultValue = Option.some(registry);
-
-      const owned = createRoot((dispose) => {
-        const value = useAtomValue(() => counter);
-        return { value, dispose };
-      });
+      const owned = mount(() => useAtomValue(() => counter));
       yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
+      const { registry } = owned;
 
       yield* settle;
-      expect(owned.value()).toBe(0);
+      expect(owned.result()).toBe(0);
       const node = registry.getNodes().get(counter);
       expect(node?.listeners.size).toBe(1);
 
       registry.dispose();
-      owned.dispose();
+      owned.disposeOwner();
       yield* settle;
 
       expect(node?.listeners.size).toBe(0);

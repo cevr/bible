@@ -28,12 +28,12 @@ const standalone = (): Option.Option<AtomRegistry.AtomRegistry> => {
 };
 
 /**
- * Provides a Solid context that carries the `AtomRegistry` used by atom hooks in
+ * The Solid context that carries the `AtomRegistry` used by atom hooks in
  * the current owner tree: a `RegistryProvider`'s, else the standalone one,
- * which the server does not have. Hooks read it through `useRegistry`.
+ * which the server does not have. Hooks read it through `useRegistry`; a
+ * page sets it only through `RegistryProvider`.
  */
-export const RegistryContext =
-  createContext<Option.Option<AtomRegistry.AtomRegistry>>(standalone());
+const RegistryContext = createContext<Option.Option<AtomRegistry.AtomRegistry>>(standalone());
 
 /** The registry of the current owner tree. On the server, a missing
  *  `RegistryProvider` throws. */

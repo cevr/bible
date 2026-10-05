@@ -346,7 +346,7 @@ function mountAtom<A>(registry: AtomRegistry.AtomRegistry, atom: () => Atom.Atom
  * Mounts an atom in the current Solid registry for the lifetime of the current
  * Solid computation.
  *
- * The hook uses the current `RegistryContext`, mounts inside a Solid
+ * The hook uses the current registry (`useRegistry`), mounts inside a Solid
  * computation, and releases the mount through Solid cleanup when the
  * computation changes or the owner is disposed.
  */
