@@ -334,6 +334,12 @@ describe('the studio', () => {
           yield* countIs(page, '[data-beat="one"].selected', 1);
           yield* press(page, 'Escape');
           yield* page.waitFor('[data-beat="two"].selected');
+          // What it said is replaced at once, in its slot: no receipt still says it stayed on one.
+          yield* evaluates(
+            page,
+            `[...document.querySelectorAll('[data-role="receipt"]')].map((r) => r.textContent).filter((t) => t.startsWith('Record '))`,
+            ['Record follows the link to two×'],
+          );
         }),
       ),
     60_000,

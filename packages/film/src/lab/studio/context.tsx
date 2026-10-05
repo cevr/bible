@@ -194,7 +194,8 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   // (a count-in cancelled, a take discarded) on a beat the link has left
   // moves it there. A recorder holding a take no one has kept stays on its
   // beat, so a take is never lost to a navigation, and the link moving on
-  // says so.
+  // says so; once it rejoins the link, that receipt is replaced in its slot
+  // by the beat it is on now, so none still names a beat the recorder left.
   const address = addressOn(meta.host);
   const href = useAtomValue(() => UrlAtom.href);
   const linked = createMemo(() => listedBeat(beats(), beatAt(href())), { equals: Equal.equals });
@@ -205,8 +206,14 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     },
     { equals: Equal.equals },
   );
+  /** Whether the studio's slot says the recorder stayed on a beat the link left. */
+  let stayedSaid = false;
   createEffect(due, (at) => {
-    Option.map(at, (id) => send(RecorderEvent.SelectBeat({ beat: id })));
+    Option.map(at, (id) => {
+      send(RecorderEvent.SelectBeat({ beat: id }));
+      if (stayedSaid) meta.hub.announce(said(`Record follows the link to ${id}`), STUDIO_SLOT);
+      stayedSaid = false;
+    });
   });
   createEffect(linked, (at) => {
     const now = untrack(recorder);
@@ -215,7 +222,10 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
         Option.filter(at, (id) => id !== now.beat),
         () => unsubmitted(now),
       ),
-      (why) => meta.hub.announce(said(`Record stays on ${now.beat}: ${why}`), STUDIO_SLOT),
+      (why) => {
+        meta.hub.announce(said(`Record stays on ${now.beat}: ${why}`), STUDIO_SLOT);
+        stayedSaid = true;
+      },
     );
   });
 
