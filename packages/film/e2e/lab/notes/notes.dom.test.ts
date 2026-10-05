@@ -440,6 +440,26 @@ describe("a note's place", () => {
   );
 
   it.live(
+    "a pasted note link shows Note on its page and leaves the viewer's own mode as it was (US2-3)",
+    () =>
+      Effect.gen(function* () {
+        const MODE =
+          "document.querySelector('.lab-panel[data-staged=\"true\"]')?.dataset.mode ?? ''";
+        const { page } = yield* openLab(
+          [route('GET', /^\/notes$/, () => notesFile(1, [noteJson('n1')]))],
+          { mode: 'motion' },
+        );
+        yield* page.goto(labAt(1, { note: 'n1' }));
+        yield* waitFor(page, '.lab-note-item[data-id="n1"].selected');
+        yield* evaluates(page, MODE, 'note');
+        // The next lab opened with no note is in the mode the viewer picked.
+        yield* page.goto(labAt(1));
+        yield* evaluates(page, MODE, 'motion');
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a drag across a cue lane marks a range; a note carries it and the cue selected as a chip one tap clears',
     () =>
       Effect.gen(function* () {

@@ -216,12 +216,14 @@ export const LabPage = (
     setChosen(Option.some(m));
     keep(m);
   };
-  // A note picked (a link, a pin, Back) shows the Note mode, the only one
-  // that shows notes; a cue or a knob shows on the strip in every mode.
+  // A note picked (a link, a pin, Back) shows the Note mode on this page, the
+  // only one that shows notes, and leaves the viewer's own mode as it was (a
+  // pasted link is not their pick); a cue or a knob shows on the strip in
+  // every mode.
   createEffect(
     () => here().note,
     (note) => {
-      Option.map(note, () => showMode('note'));
+      Option.map(note, () => setChosen(Option.some<LabMode>('note')));
     },
   );
   onCleanup(props.hub.commands.register(...modeCommands(mode, showMode)));
