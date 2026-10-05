@@ -7,7 +7,7 @@
 
 import { Array as Arr, Context, Effect, Layer, Option } from 'effect';
 import type { Scope } from '../core/address.ts';
-import type { Interval } from '../core/time.ts';
+import { CLOCK_EPSILON, type Interval } from '../core/time.ts';
 import { shortPhrases } from '../core/phrases.ts';
 import type { ShortError } from '../core/errors.ts';
 import type { LumaArea, Probed } from '../core/export-handle.ts';
@@ -143,7 +143,7 @@ const confirmHold = (
       if (run.to - run.from > longest.to - longest.from) longest = run;
     }
     const { from, to } = longest;
-    if (to - from <= HOLD + 1e-9) return { holds: [], frames: seen.size };
+    if (to - from <= HOLD + CLOCK_EPSILON) return { holds: [], frames: seen.size };
     return {
       holds: [StaticHold.make({ scene: hold.scene, from, to, max: HOLD })],
       frames: seen.size,
