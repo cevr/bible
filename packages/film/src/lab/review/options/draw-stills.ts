@@ -24,10 +24,7 @@ export const drawStills =
         Effect.map((code) => {
           const stills = makeStills(code, { width: STILL_W, captions: true, ...how });
           return {
-            at: stills.at,
-            want: stills.want,
-            onDrawn: stills.onDrawn,
-            stop: stills.stop,
+            ...stills,
             middles: new Map(code.placed.map((p) => [p.spec.id, p.start + p.dur / 2] as const)),
           };
         }),

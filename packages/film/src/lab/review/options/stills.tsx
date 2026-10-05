@@ -3,7 +3,8 @@
 // by the studio's one source of stills (`player/stills.ts`, the Scenes tape's
 // own), lazily the way the tape draws: the film's code loaded only once its
 // Project is open (the app's `Films`, `mountReview`), its faces loaded first,
-// then one still a turn, the cards on screen ahead of the rest. A film the
+// then one still a turn, the cards on screen ahead of the rest (by the one
+// "on screen first" order, `useOnScreenFirst`, the Scenes tape's too). A film the
 // app has no code for has no stills: its cards keep their blank picture. The
 // drawing is the browser's (`draw-stills.ts`, handed in by the page's
 // browser entry): the server's render draws none.
@@ -12,6 +13,7 @@ import { Effect, Equivalence, Fiber, Option } from 'effect';
 import { type Accessor, createMemo, createSignal, onCleanup, untrack } from 'solid-js';
 import { monotonicMs } from '../../../browser/host.ts';
 import { Frames } from '../../../browser/frames.ts';
+import type { makeStills } from '../../../player/stills.ts';
 import { useReview } from '../context.tsx';
 
 /** A film's scenes' stills, as its Project's cards show them. */
@@ -22,14 +24,73 @@ export interface SceneStills {
   readonly watch: (scene: string, el: HTMLElement) => () => void;
 }
 
-/** A film's stills as they are drawn (`player/stills.ts`), and each of its scenes' middles, in film seconds. */
-interface FilmStills {
-  readonly at: (t: number) => Option.Option<HTMLCanvasElement>;
-  readonly want: (times: ReadonlyArray<number>) => void;
-  readonly onDrawn: (listener: (t: number) => void) => () => void;
-  readonly stop: () => void;
-  readonly middles: ReadonlyMap<string, number>;
+/** A film's stills as they are drawn (`player/stills.ts`). */
+type Stills = ReturnType<typeof makeStills>;
+
+/** A film's stills, and each of its scenes' middles, in film seconds. */
+type FilmStills = Stills & { readonly middles: ReadonlyMap<string, number> };
+
+/** Where a page's stills are on screen: what it wants drawn first. */
+interface OnScreen {
+  /** Watch `el`, which shows the stills at `times` (read as they are asked), until the returned stop. */
+  readonly watch: (el: Element, times: () => ReadonlyArray<number>) => () => void;
+  /** Want the stills on screen now drawn ahead of the rest. */
+  readonly ask: () => void;
 }
+
+/**
+ * The "on screen first" order of a page's stills (the Scenes tape's lines,
+ * the Project's cards), for as long as the calling component lives: while a
+ * watched element is on screen (or within 120 px of it), its stills are
+ * wanted (`want`, the page's stills') ahead of the rest, in the page's
+ * order. Its observer is made at the first element watched (a ref: the
+ * browser's alone), so a server's render makes none.
+ */
+export const useOnScreenFirst = (want: (times: ReadonlyArray<number>) => void): OnScreen => {
+  const watched = new Map<Element, () => ReadonlyArray<number>>();
+  const seen = new Set<Element>();
+  // In the page's order: an element before another in the document is asked for first.
+  const before = (a: Element, b: Element) =>
+    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_PRECEDING) -
+    (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+  const ask = () =>
+    want(
+      [...seen]
+        .toSorted(before)
+        .flatMap((el) =>
+          Option.getOrElse(Option.fromUndefinedOr(watched.get(el)), () => () => [])(),
+        ),
+    );
+  let observing = Option.none<IntersectionObserver>();
+  const observer = (): IntersectionObserver =>
+    Option.getOrElse(observing, () => {
+      const made = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) seen.add(entry.target);
+            else seen.delete(entry.target);
+          }
+          ask();
+        },
+        { rootMargin: '120px 0px' },
+      );
+      observing = Option.some(made);
+      return made;
+    });
+  onCleanup(() => Option.map(observing, (o) => o.disconnect()));
+  return {
+    watch: (el, times) => {
+      watched.set(el, times);
+      observer().observe(el);
+      return () => {
+        observer().unobserve(el);
+        watched.delete(el);
+        seen.delete(el);
+      };
+    },
+    ask,
+  };
+};
 
 /**
  * How the page draws a film's stills, given its turn between two and its
@@ -54,43 +115,11 @@ export const useSceneStills = (film: string): SceneStills => {
   const fromHost = { ownedWrite: true } as const;
   // Bumped as each still lands: a card reads its still again then.
   const [drawn, setDrawn] = createSignal(0, fromHost);
-  const [ready, setReady] = createSignal(
-    Option.none<{
-      readonly at: (t: number) => Option.Option<HTMLCanvasElement>;
-      readonly want: (times: ReadonlyArray<number>) => void;
-      readonly middles: ReadonlyMap<string, number>;
-    }>(),
-    fromHost,
-  );
-  const onScreen = new Set<string>();
-  /** Ask for the scenes on screen first. */
-  const wantOnScreen = () =>
-    Option.map(untrack(ready), (r) =>
-      r.want(
-        [...onScreen].flatMap((s) => Option.toArray(Option.fromUndefinedOr(r.middles.get(s)))),
-      ),
-    );
-  // Made at the first card watched (a card's ref: the browser's alone), so the
-  // server's render, which watches none, makes none.
-  let watching = Option.none<IntersectionObserver>();
-  const watcher = (): IntersectionObserver =>
-    Option.getOrElse(watching, () => {
-      const made = new IntersectionObserver(
-        (entries) => {
-          for (const entry of entries) {
-            if (!(entry.target instanceof HTMLElement)) continue;
-            const scene = entry.target.dataset['still'] ?? '';
-            if (entry.isIntersecting) onScreen.add(scene);
-            else onScreen.delete(scene);
-          }
-          wantOnScreen();
-        },
-        { rootMargin: '120px 0px' },
-      );
-      watching = Option.some(made);
-      return made;
-    });
-  onCleanup(() => Option.map(watching, (w) => w.disconnect()));
+  const [ready, setReady] = createSignal(Option.none<FilmStills>(), fromHost);
+  // The cards on screen first, once the stills are made.
+  const onScreen = useOnScreenFirst((times) => Option.map(untrack(ready), (r) => r.want(times)));
+  const middleOf = (scene: string) =>
+    Option.flatMap(ready(), (r) => Option.fromUndefinedOr(r.middles.get(scene)));
   const now = monotonicMs(meta.host);
   const draw = meta.draw(film, {
     turn: () => Effect.runPromiseWith(meta.host)(Frames.use((f) => f.next)),
@@ -108,8 +137,8 @@ export const useSceneStills = (film: string): SceneStills => {
       stop = stills.stop;
       // Every scene's still in film order; the cards on screen go ahead of them as they are seen.
       stills.want([...middles.values()]);
-      setReady(Option.some({ at: stills.at, want: stills.want, middles }));
-      wantOnScreen();
+      setReady(Option.some(stills));
+      onScreen.ask();
     });
     yield* Effect.logInfo(`project.stills film=${film} scenes=${middles.size}`);
   }).pipe(Effect.catch((why) => Effect.logInfo(`project.stills-none film=${film} reason=${why}`)));
@@ -118,18 +147,9 @@ export const useSceneStills = (film: string): SceneStills => {
   return {
     of: (scene) => {
       drawn();
-      return Option.flatMap(ready(), (r) =>
-        Option.flatMap(Option.fromUndefinedOr(r.middles.get(scene)), r.at),
-      );
+      return Option.flatMap(ready(), (r) => Option.flatMap(middleOf(scene), r.at));
     },
-    watch: (scene, el) => {
-      el.dataset['still'] = scene;
-      watcher().observe(el);
-      return () => {
-        watcher().unobserve(el);
-        onScreen.delete(scene);
-      };
-    },
+    watch: (scene, el) => onScreen.watch(el, () => Option.toArray(untrack(() => middleOf(scene)))),
   };
 };
 

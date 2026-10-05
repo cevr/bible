@@ -46,6 +46,7 @@ import { onTheMs } from '../../player/t-in-url.ts';
 import { useShellTime } from '../page-shell.tsx';
 import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts';
 import { Sheet } from '../review/inspector.tsx';
+import { useOnScreenFirst } from '../review/options/stills.tsx';
 import { SceneCard, SceneFindings, sceneHue } from './card.tsx';
 import { type Said, type ScenesRead, scenesCalls } from './data.ts';
 import { bandState, legendOf, marksOf } from './marks.ts';
@@ -243,36 +244,12 @@ export const ScenesView = (props: ScenesViewProps) => {
       if (Option.isNone(untrack(firstStill))) setFirstStill(Option.some(nowMs() - opened));
     }),
   );
-  const onScreen = new Set<number>();
-  /** Ask for the stills of the lines on screen first. */
-  const wantOnScreen = () =>
-    stills.want(
-      [...onScreen]
-        .toSorted((a, b) => a - b)
-        .flatMap((r) =>
-          Option.match(Arr.get(untrack(tape).rows, r), {
-            onNone: () => [],
-            onSome: (row) => row.stills.map((s) => s.t),
-          }),
-        ),
-    );
-  const watch = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (!(entry.target instanceof HTMLElement)) continue;
-        const row = Number(entry.target.dataset['row']);
-        if (entry.isIntersecting) onScreen.add(row);
-        else onScreen.delete(row);
-      }
-      wantOnScreen();
-    },
-    { rootMargin: '120px 0px' },
-  );
-  onCleanup(() => watch.disconnect());
+  // The lines on screen first (`useOnScreenFirst`, the Project's cards' order too).
+  const onScreen = useOnScreenFirst(stills.want);
   createEffect(tape, (t) => {
     // Every still of the tape, in its order; the lines on screen go ahead of them as they are seen.
     stills.want(t.rows.flatMap((r) => r.stills.map((s) => s.t)));
-    wantOnScreen();
+    onScreen.ask();
   });
 
   // Follow: while it plays, the playhead's line stays in sight.
@@ -552,9 +529,9 @@ export const ScenesView = (props: ScenesViewProps) => {
         data-row={row.index}
         ref={(el: HTMLDivElement) => {
           rows.set(row.index, el);
-          watch.observe(el);
+          const unwatch = onScreen.watch(el, () => row.stills.map((s) => s.t));
           onCleanup(() => {
-            watch.unobserve(el);
+            unwatch();
             rows.delete(row.index);
           });
         }}
