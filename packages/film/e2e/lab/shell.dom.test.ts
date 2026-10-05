@@ -9,13 +9,24 @@
 import { Deferred, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
+import { FilmUnknown } from '../../src/core/refusals.ts';
 import { timecode } from '../../src/core/time.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
-import { URL_T, hold, json, labAt, later, openLab, route } from '../../src/lab/fixtures/harness.ts';
+import {
+  URL_T,
+  hold,
+  json,
+  labAt,
+  later,
+  openLab,
+  refused,
+  route,
+} from '../../src/lab/fixtures/harness.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
   attributeIs,
+  countIs,
   evaluates,
   labelsClash,
   textHas,
@@ -120,6 +131,30 @@ describe('the lab shell', () => {
         yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
         yield* evaluates(page, `Math.abs(${T} - ${at}) < 0.002`, true);
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a lab of a film the lab does not have says so once, and its page stops: nothing asked again, no key heard',
+    () =>
+      Effect.gen(function* () {
+        const NOTES = /^\/api\/films\/nope\/notes$/;
+        const { page, asked } = yield* openLab(
+          [route('GET', NOTES, () => refused(FilmUnknown.make({ film: 'nope', known: [PROBE] })))],
+          { href: pageHref.lab('nope'), ready: 'pre' },
+        );
+        yield* textHas(page, 'pre', `unknown film "nope"; have ${PROBE}`);
+        const notesAsked = () => asked.filter((a) => NOTES.test(a.path)).length;
+        const before = notesAsked();
+        // Long past the notes feed's pause before it asks again, and a key the page would hear.
+        yield* page.clock.runFor(10_000);
+        yield* page.press('?');
+        yield* page.clock.runFor(100);
+        // A request of the test's own, behind any the page made meanwhile.
+        yield* page.evaluate("fetch('/api/films/nope/check').then((r) => r.status)");
+        expect(notesAsked()).toBe(before);
+        yield* countIs(page, '[data-role="keys-sheet"]', 0);
+        yield* countIs(page, 'pre', 1);
       }).pipe(Effect.scoped),
   );
 

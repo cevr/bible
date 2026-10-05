@@ -20,7 +20,7 @@ import { LabClient } from './api.ts';
 import { labHrefWith, labOpensAt } from './place.ts';
 import { ShellTools, useShellTime } from './page-shell.tsx';
 import { type FilmBody, LAB_PAGE, labOn } from './film-page.tsx';
-import { mountPage } from './page-client.tsx';
+import { makePageEnd, mountPage } from './page-client.tsx';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
@@ -105,10 +105,11 @@ const NoBody = () => <></>;
 /**
  * The lab's body for `films` over `host`: the film its path names staged,
  * its preview mounted on the page's commands, and the lab around it. A film
- * that does not start says why in place of the page.
+ * that does not start ends the page (`end`: its panel's notes feed, its
+ * keys) and says why in its place.
  */
 const labBody =
-  (films: Films, host: Host): FilmBody =>
+  (films: Films, host: Host, end: Effect.Effect<void>): FilmBody =>
   (hub) =>
     Effect.runPromiseWith(host)(
       Effect.gen(function* () {
@@ -124,10 +125,13 @@ const labBody =
         };
       }).pipe(
         Effect.catchTag('LabStartFailed', (e) =>
-          Effect.sync(() => {
-            showFailure(e.reason);
-            return { default: NoBody };
-          }),
+          Effect.andThen(
+            end,
+            Effect.sync(() => {
+              showFailure(e.reason);
+              return { default: NoBody };
+            }),
+          ),
         ),
       ),
     );
@@ -147,16 +151,18 @@ export const mountLab = (films: Films): void => {
       // The UI face first, so the fonts the film waits on include it.
       registerFace(document.fonts);
       // The page's commands and its one key listener: the player's transport and every tool's verbs.
+      const ending = yield* makePageEnd;
       const { hub, app } = yield* labOn(
         host,
         Object.keys(films),
         LabClient.layer,
-        labBody(films, host),
+        labBody(films, host, ending.end),
       );
-      yield* Effect.forkDetach(hub.listen);
-      const how = mountPage({ ...LAB_PAGE, app });
+      const listening = yield* Effect.forkDetach(hub.listen);
+      const mounted = mountPage({ ...LAB_PAGE, app });
+      yield* ending.mounted(mounted, listening);
       const { href } = yield* Location.use((bar) => bar.current);
-      yield* Effect.logInfo(`lab.shell href=${href} how=${how}`);
+      yield* Effect.logInfo(`lab.shell href=${href} how=${mounted.how}`);
     }),
   );
 };

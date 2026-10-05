@@ -461,6 +461,8 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     readonly mode?: LabMode;
     /** The window, and its pointer; none: a desk's, 1400 × 900 with a mouse. */
     readonly viewport?: Viewport;
+    /** What the page is open at; none: its panel, the film staged in it. */
+    readonly ready?: string;
   } = {},
 ) {
   const script = labScript;
@@ -488,7 +490,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   });
   yield* page.goto(at.href ?? pageHref.lab(PROBE));
   // The panel stands before the film is staged; its tools are in it once it is.
-  yield* page.waitFor('.lab-panel[data-staged="true"]');
+  yield* page.waitFor(at.ready ?? '.lab-panel[data-staged="true"]');
   for (const mode of Option.toArray(Option.fromUndefinedOr(at.mode))) {
     yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
     yield* page.waitFor(`.lab-panel[data-mode="${mode}"]`);

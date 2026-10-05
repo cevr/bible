@@ -825,7 +825,10 @@ sent with the page and adopted (`ssrSource: 'server'`), never read twice,
 and a value only the browser knows (the viewport, quality, the viewer's
 keys) is `ssrSource: 'client'` with a server value (the server answers as a
 phone). The server draws no film: the canvas, the scene code and the stills
-are `clientOnly` (`lab/film-page.tsx`), and a build whose server entry reads
+are `clientOnly` (`lab/film-page.tsx`); a film the browser cannot start (one
+the lab does not have, `/films/nope/lab`) ends its page (`PageEnd`,
+`lab/page-client.tsx`: the tree disposed, the notes feed and the keys with
+it) and says why in its place, once. A build whose server entry reads
 a film's or a scene's module or `player/stills.ts` fails, naming them
 (`filmCode`). A render that fails before its head answers the page as built,
 which the browser then renders. One that fails after its head, or still runs
