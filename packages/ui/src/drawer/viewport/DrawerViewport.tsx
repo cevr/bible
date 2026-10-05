@@ -3,7 +3,8 @@
 // The dialog's viewport, plus the drawer's swipe. A drag on the popup in the
 // dismiss direction moves it with the pointer. Releasing past half the
 // popup's size (at least 10px) or with a fast flick dismisses it; anything
-// less springs it back, as does a dismissal the owner declines.
+// less springs it back, as does a dismissal the owner cancels. An accepted
+// dismissal holds the sheet in its exit pose until the owner closes it.
 //
 // On touch, a scrollable area inside the popup keeps its own scroll until it
 // is scrolled to the edge the swipe leaves from; a cross-axis scroller (or an
@@ -12,7 +13,7 @@
 // selected never starts a swipe.
 import { isElement } from '@floating-ui/utils/dom';
 import type { JSX } from '@solidjs/web';
-import { createEffect, createSignal, flush, untrack } from 'solid-js';
+import { createEffect, createSignal, untrack } from 'solid-js';
 
 import { renderDialogViewport } from '../../dialog/viewport/DialogViewport.tsx';
 import type {
@@ -36,7 +37,6 @@ import {
   getTarget,
   ownerDocument,
 } from '../../utils/dom.ts';
-import { useAnimationFrame } from '../../utils/timers.ts';
 import {
   findScrollableTouchTarget,
   getDisplacement,
@@ -100,7 +100,6 @@ export function DrawerViewport(componentProps: DrawerViewportProps): JSX.Element
     scrollAxis() === 'vertical' ? 'horizontal' : 'vertical';
 
   const [swipeRelease, setSwipeRelease] = createSignal<number | null>(null, { ownedWrite: true });
-  const controlledDismissFrame = useAnimationFrame();
 
   let lastPointerType = '';
   let ignoreNextTouchStartFromPen = false;
@@ -246,26 +245,16 @@ export function DrawerViewport(componentProps: DrawerViewportProps): JSX.Element
     onDismiss(event) {
       const dismissDetails = createChangeEventDetails(REASONS.swipe, event);
       store.setOpen(false, dismissDetails);
-      // Applied now, so `open` below tells an accepted close from a controlled owner's refusal.
-      flush();
+      // An owner refuses a swipe close by cancelling it: the drawer springs back.
       if (dismissDetails.isCanceled) {
         untrack(swipe.reset);
         clearSwipeRelease();
         return;
       }
-
-      // A controlled drawer may keep `open` until its owner updates it; a frame
-      // later, still open means the owner declined, so the drawer springs back.
-      if (untrack(store.open)) {
-        controlledDismissFrame.request(() => {
-          if (untrack(store.open)) {
-            clearSwipeRelease();
-            untrack(swipe.reset);
-          }
-        });
-        return;
-      }
-
+      // An accepted close holds the exit pose until the owner closes the drawer,
+      // however late (a page that closes on `popstate` does so a few frames on).
+      // Upstream guesses a refusal from `open` still being true a frame later,
+      // and springs an async owner's sheet back to rest before it goes.
       setSwipeDismissed(true);
     },
   });

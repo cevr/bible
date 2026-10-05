@@ -232,6 +232,47 @@ describe('swipe to dismiss', () => {
     expect(await logOf(page)).toEqual(['open false swipe']);
   });
 
+  it('holds the swiped sheet away from rest until an async owner drops it', async () => {
+    const page = await h.open('async-owner');
+    await openDrawer(page);
+    // Every frame from the press to the unmount: the popup's translateY, or null once gone.
+    await page.evaluate(() => {
+      const samples: Array<number | null> = [];
+      (window as unknown as { __samples: typeof samples }).__samples = samples;
+      const sample = () => {
+        const popup = document.getElementById('popup');
+        samples.push(popup ? new DOMMatrix(getComputedStyle(popup).transform).m42 : null);
+        if (popup) {
+          requestAnimationFrame(sample);
+        }
+      };
+      requestAnimationFrame(sample);
+    });
+    await drag(page, { x: 400, y: 350 }, { x: 400, y: 570 });
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).toEqual(['open false swipe']);
+    const samples = await page.evaluate(
+      () => (window as unknown as { __samples: Array<number | null> }).__samples,
+    );
+    // Once the swipe has moved the sheet, no frame shows it back at rest before it goes.
+    const moved = samples.findIndex((y) => y != null && y > 0);
+    expect(moved).toBeGreaterThanOrEqual(0);
+    const mounted = samples.slice(moved).filter((y): y is number => y != null);
+    expect(mounted.filter((y) => y === 0)).toEqual([]);
+  });
+
+  it('springs back when the owner cancels the swipe close', async () => {
+    const page = await h.open('drawer', { query: { owner: 'cancel' } });
+    await openDrawer(page);
+    await drag(page, { x: 400, y: 350 }, { x: 400, y: 570 });
+    const popup = page.locator('#popup');
+    await see(popup).toBeVisible();
+    await see(popup).not.toHaveAttribute('data-swipe-dismiss', '');
+    await see(popup).not.toHaveAttribute('data-ending-style', '');
+    expect(await styleVar(page, '#popup', '--drawer-swipe-movement-y')).toBe('0px');
+    expect(await logOf(page)).toEqual(['open false swipe']);
+  });
+
   it('never starts a pointer swipe inside Drawer.Content', async () => {
     const page = await h.open('drawer');
     await openDrawer(page);
