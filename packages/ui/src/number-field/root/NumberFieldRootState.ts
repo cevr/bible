@@ -29,9 +29,6 @@ export type NumberFieldRootChangeEventReason =
   | typeof REASONS.inputBlur
   | typeof REASONS.inputPaste
   | typeof REASONS.keyboard
-  | typeof REASONS.incrementPress
-  | typeof REASONS.decrementPress
-  | typeof REASONS.wheel
   | typeof REASONS.scrub;
 
 export type NumberFieldRootChangeEventDetails = BaseUIChangeEventDetails<
@@ -43,9 +40,6 @@ export type NumberFieldRootCommitEventReason =
   | typeof REASONS.inputBlur
   | typeof REASONS.inputClear
   | typeof REASONS.keyboard
-  | typeof REASONS.incrementPress
-  | typeof REASONS.decrementPress
-  | typeof REASONS.wheel
   | typeof REASONS.scrub;
 
 export type NumberFieldRootCommitEventDetails =

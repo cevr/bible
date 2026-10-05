@@ -3,21 +3,16 @@
 // Groups the number field's parts and owns its value: controlled or not,
 // validated (snapped, clamped, cleaned of float noise) on every change, and
 // shown as formatted text in the input. Typed text stays as typed until it
-// is committed on blur; step changes (keys, buttons, wheel, scrub) rewrite it
-// at once. Upstream's hidden `<input type="number">` for forms is left out:
-// a field here commits through `onValueCommitted`, not a form.
-// Renders a `<div>`.
+// is committed on blur; step changes (keys, scrub) rewrite it at once.
+// Upstream's hidden `<input type="number">` for forms, its stepper buttons
+// and its wheel stepping are left out: a field here commits through
+// `onValueCommitted`, not a form. Renders a `<div>`.
 import type { JSX } from '@solidjs/web';
 import { createEffect, createSignal, createUniqueId, omit, untrack } from 'solid-js';
 
-import {
-  createChangeEventDetails,
-  createGenericEventDetails,
-} from '../../internals/createBaseUIEventDetails.ts';
-import { REASONS } from '../../internals/reasons.ts';
+import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
-import { activeElement, addEventListener, ownerDocument } from '../../utils/dom.ts';
 import { formatNumber } from '../../utils/formatNumber.ts';
 import { platform } from '../../utils/platform.ts';
 import { useControlled } from '../../utils/useControlled.ts';
@@ -33,9 +28,7 @@ import {
 } from './NumberFieldRootContext.ts';
 import type {
   NumberFieldRootChangeEventDetails,
-  NumberFieldRootChangeEventReason,
   NumberFieldRootCommitEventDetails,
-  NumberFieldRootCommitEventReason,
   NumberFieldRootState,
 } from './NumberFieldRootState.ts';
 
@@ -58,7 +51,7 @@ export interface NumberFieldRootProps extends Omit<
   /** The step while Alt is held. @default 0.1 */
   smallStep?: number | undefined;
   /**
-   * The step of the buttons, arrow keys and scrub area. `'any'` turns off step
+   * The step of the arrow keys and scrub area. `'any'` turns off step
    * validation; interactive steps then use 1.
    * @default 1
    */
@@ -73,8 +66,6 @@ export interface NumberFieldRootProps extends Omit<
   value?: number | null | undefined;
   /** The value when first rendered (uncontrolled). */
   defaultValue?: number | undefined;
-  /** Whether the mouse wheel steps the value while the input is focused. @default false */
-  allowWheelScrub?: boolean | undefined;
   /** Whether stepping snaps to the nearest multiple of the step. @default false */
   snapOnStep?: boolean | undefined;
   /**
@@ -94,15 +85,14 @@ export interface NumberFieldRootProps extends Omit<
   locale?: Intl.LocalesArgument | undefined;
   /**
    * Called when the value changes. `details.reason` is `input-change`,
-   * `input-clear`, `input-blur`, `input-paste`, `keyboard`, `increment-press`,
-   * `decrement-press`, `wheel` or `scrub`.
+   * `input-clear`, `input-blur`, `input-paste`, `keyboard` or `scrub`.
    */
   onValueChange?:
     | ((value: number | null, details: NumberFieldRootChangeEventDetails) => void)
     | undefined;
   /**
    * Called when the value is committed: on blur after typing, on release after
-   * scrubbing or pressing a stepper, and with each keyboard or wheel step.
+   * scrubbing, and with each keyboard step.
    */
   onValueCommitted?:
     | ((value: number | null, details: NumberFieldRootCommitEventDetails) => void)
@@ -124,7 +114,6 @@ const ROOT_PROPS = [
   'readOnly',
   'value',
   'defaultValue',
-  'allowWheelScrub',
   'snapOnStep',
   'allowExpressions',
   'commitOnEnter',
@@ -191,7 +180,7 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
       const keyState = getKeyState(details.event);
       const direction = details.direction;
       // Direct text entry (typing, paste, clear) behaves natively; steps
-      // (keys, buttons, wheel, scrub) do not.
+      // (keys, scrub) do not.
       const isInputReason = details.reason.startsWith('input-');
       const shouldClamp = !(props.allowOutOfRange ?? false) || !isInputReason;
       const current = value();
@@ -284,49 +273,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     input.focus();
   };
 
-  // A native, non-passive listener, so the page does not scroll as the wheel steps.
-  createEffect(
-    () => [inputElement(), disabled(), readOnly(), props.allowWheelScrub ?? false] as const,
-    ([element, isDisabled, isReadOnly, allowWheelScrub]) => {
-      if (isDisabled || isReadOnly || !allowWheelScrub || !element) {
-        return undefined;
-      }
-      return addEventListener<WheelEvent>(
-        element,
-        'wheel',
-        (event) => {
-          // Ctrl + wheel is a pinch-zoom.
-          if (event.ctrlKey || activeElement(ownerDocument(element)) !== element) {
-            return;
-          }
-          // Some browsers deliver Shift + wheel on the horizontal axis. Touchpads
-          // add sub-pixel noise on the cross axis, so the axes are compared.
-          const isHorizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY);
-          const delta = event.shiftKey && isHorizontal ? event.deltaX : event.deltaY;
-          // A horizontal gesture scrolls the page (Shift's is the swapped vertical one).
-          if (delta === 0 || (!event.shiftKey && isHorizontal)) {
-            return;
-          }
-          event.preventDefault();
-          allowInputSyncRef.current = true;
-          // Each wheel turn is a final change: it commits when it changed the value.
-          const changed = incrementValue(getStepAmount(event), {
-            direction: delta > 0 ? -1 : 1,
-            event,
-            reason: REASONS.wheel,
-          });
-          if (changed) {
-            onValueCommitted(
-              lastChangedValueRef.current,
-              createGenericEventDetails(REASONS.wheel, event),
-            );
-          }
-        },
-        { passive: false },
-      );
-    },
-  );
-
   const state: NumberFieldRootState = {
     get disabled() {
       return disabled();
@@ -355,12 +301,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     },
     get max() {
       return props.max;
-    },
-    get minWithDefault() {
-      return minWithDefault();
-    },
-    get maxWithDefault() {
-      return maxWithDefault();
     },
     get inputMode() {
       return inputMode();
@@ -417,13 +357,4 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
       <RootElement />
     </NumberFieldRootContext>
   );
-}
-
-export namespace NumberFieldRoot {
-  export type State = NumberFieldRootState;
-  export type Props = NumberFieldRootProps;
-  export type ChangeEventReason = NumberFieldRootChangeEventReason;
-  export type ChangeEventDetails = NumberFieldRootChangeEventDetails;
-  export type CommitEventReason = NumberFieldRootCommitEventReason;
-  export type CommitEventDetails = NumberFieldRootCommitEventDetails;
 }

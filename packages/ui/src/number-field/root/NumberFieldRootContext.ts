@@ -1,7 +1,7 @@
 // Upstream: packages/react/src/number-field/root/NumberFieldRootContext.ts
 //
 // What the root shares with its parts: the live state, the bounds and step
-// amounts, the value setters the input, steppers and scrub area call, and
+// amounts, the value setters the input and scrub area call, and
 // the bookkeeping that decides when a change is committed. Members that read
 // props are getters, so a part reads them live.
 import { createContext, useContext } from 'solid-js';
@@ -22,12 +22,10 @@ export interface ValueCell<T> {
 
 export interface NumberFieldRootContextValue {
   readonly state: NumberFieldRootState;
-  /** The visible input's `id`, which the steppers name in `aria-controls`. */
+  /** The input's `id`. */
   readonly id: string;
   readonly min: number | undefined;
   readonly max: number | undefined;
-  readonly minWithDefault: number;
-  readonly maxWithDefault: number;
   readonly inputMode: InputMode;
   readonly locale: Intl.LocalesArgument | undefined;
   readonly format: Intl.NumberFormatOptions | undefined;

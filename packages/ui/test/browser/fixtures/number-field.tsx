@@ -1,5 +1,5 @@
 // Fixtures for the number field: one field configured from the URL (bounds,
-// steps, format, wheel, read-only, a canceled reason), a controlled field
+// steps, format, read-only, a canceled reason), a controlled field
 // set from outside, a field committing on Enter, and a scrub area that
 // unmounts mid-scrub.
 // The field's `window.__set({ disabled, readOnly })` changes those later, applied
@@ -73,7 +73,6 @@ function Field(): JSX.Element {
       snapOnStep={flagParam('snapOnStep')}
       allowExpressions={flagParam('allowExpressions')}
       commitOnEnter={flagParam('commitOnEnter')}
-      allowWheelScrub={flagParam('allowWheelScrub')}
       allowOutOfRange={flagParam('allowOutOfRange')}
       readOnly={readOnly()}
       disabled={disabled()}
@@ -90,13 +89,8 @@ function Field(): JSX.Element {
         onClick={() => log('scrub-area click')}
       >
         <span>Amount</span>
-        <NumberField.ScrubAreaCursor data-testid="cursor" style={{ width: '8px', height: '8px' }} />
       </NumberField.ScrubArea>
-      <NumberField.Group data-testid="group">
-        <NumberField.Decrement data-testid="decrement">−</NumberField.Decrement>
-        <NumberField.Input aria-label="Amount" />
-        <NumberField.Increment data-testid="increment">+</NumberField.Increment>
-      </NumberField.Group>
+      <NumberField.Input aria-label="Amount" />
     </NumberField.Root>
   );
 }
@@ -118,11 +112,7 @@ function Controlled(): JSX.Element {
         }}
         onValueCommitted={onValueCommitted}
       >
-        <NumberField.Group>
-          <NumberField.Decrement data-testid="decrement">−</NumberField.Decrement>
-          <NumberField.Input aria-label="Amount" />
-          <NumberField.Increment data-testid="increment">+</NumberField.Increment>
-        </NumberField.Group>
+        <NumberField.Input aria-label="Amount" />
       </NumberField.Root>
       <button id="set-42" onClick={() => setValue(42)}>
         42
@@ -134,7 +124,7 @@ function Controlled(): JSX.Element {
   );
 }
 
-/** The commit-on-Enter composition an inspector uses: Enter blurs the input. */
+/** Enter blurring the input, as a form-less page may compose it. */
 function EnterCommits(): JSX.Element {
   return (
     <NumberField.Root

@@ -438,8 +438,3 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     stateAttributesMapping,
   });
 }
-
-export namespace NumberFieldInput {
-  export type State = NumberFieldInputState;
-  export type Props = NumberFieldInputProps;
-}

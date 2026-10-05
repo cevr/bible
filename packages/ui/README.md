@@ -167,20 +167,18 @@ CSS variables:
 `import { NumberField } from '@bible/ui/number-field'`
 
 - `NumberField.Root`: `<div>` that owns the value and reports it through `onValueChange` and `onValueCommitted` (upstream's hidden form input, `name`, `form` and `required` are left out).
-  - `NumberField.ScrubArea`: `<span role="presentation">` dragged across to change the value.
-    - `NumberField.ScrubAreaCursor`: `<span role="presentation">`, portalled to the body, standing in for the hidden cursor during a pointer-locked mouse scrub.
-  - `NumberField.Group`: `<div role="group">`.
-    - `NumberField.Decrement`: `<button>` that decreases the value (held, it repeats).
-    - `NumberField.Input`: `<input>`, the text input.
-    - `NumberField.Increment`: `<button>` that increases the value.
+  - `NumberField.ScrubArea`: `<span role="presentation">` dragged across to change the value (under pointer lock for a mouse, outside WebKit).
+  - `NumberField.Input`: `<input>`, the text input; the arrow keys step it (Shift `largeStep`, Alt `smallStep`).
+
+Upstream's stepper buttons, `Group`, `ScrubAreaCursor` and `allowWheelScrub` are left out; a part returns with its first consumer.
 
 Every member carries the same attributes:
 
-| Member | Attribute        | Present when                                                                                                 |
-| ------ | ---------------- | ------------------------------------------------------------------------------------------------------------ |
-| all    | `data-disabled`  | the field is disabled; on `Increment` and `Decrement` also at `max` / `min`, or when that button is disabled |
-| all    | `data-readonly`  | the field is read-only                                                                                       |
-| all    | `data-scrubbing` | the value is being scrubbed                                                                                  |
+| Member | Attribute        | Present when                |
+| ------ | ---------------- | --------------------------- |
+| all    | `data-disabled`  | the field is disabled       |
+| all    | `data-readonly`  | the field is read-only      |
+| all    | `data-scrubbing` | the value is being scrubbed |
 
 The value and the input's text are not attributes. No CSS variables.
 
