@@ -7,8 +7,7 @@
 // the lab's. Each answers quietly: the recorder's status line says what
 // happened.
 
-import { Effect } from 'effect';
-import { type Command, quiet } from '../../command/command.ts';
+import { type Command, quietly } from '../../command/command.ts';
 
 /** What the studio's commands drive: the studio's own key, by `KeyboardEvent.key`. */
 interface StudioKeys {
@@ -36,9 +35,5 @@ export const studioCommands = (keys: StudioKeys): ReadonlyArray<Command> =>
     keysIn: ['studio'],
     touch: "the studio's buttons and beat list",
     when: () => keys.canPress(key),
-    run: () =>
-      Effect.sync(() => {
-        keys.press(key);
-        return quiet;
-      }),
+    run: quietly(() => keys.press(key)),
   }));

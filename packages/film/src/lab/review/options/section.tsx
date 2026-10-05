@@ -17,7 +17,7 @@ import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
 import { Duration, Effect, Fiber, Option } from 'effect';
 import { playableOf } from '../../../browser/media-browser.ts';
-import { type Command, type CommandId, quiet } from '../../../command/command.ts';
+import { type Command, type CommandId, quietly } from '../../../command/command.ts';
 import { Selection } from '../../../command/selection.ts';
 import {
   type ChoiceKind,
@@ -216,11 +216,9 @@ export const StepCommands = () => {
     touch: `the receipt's ${label}, or long-press the page`,
     when: () => Option.isSome(step(which)) && !stepping.waiting(),
     fits: (bound) => stepWhyNot(which, film, steps())(bound),
-    run: (_, how) =>
-      Effect.sync(() => {
-        void stepping.write(act(Option.map(Option.fromUndefinedOr(how.bound), (b) => b.change)));
-        return quiet;
-      }),
+    run: quietly((_, how) => {
+      void stepping.write(act(Option.map(Option.fromUndefinedOr(how.bound), (b) => b.change)));
+    }),
   });
   onCleanup(
     meta.hub.commands.register(

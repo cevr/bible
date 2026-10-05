@@ -22,14 +22,7 @@
 // place ⌘K goes to by its name (`cueDestinations`).
 
 import { Effect, Match, Option } from 'effect';
-import {
-  type Bound,
-  type Command,
-  type Invocation,
-  Unfit,
-  quiet,
-  refused,
-} from '../../command/command.ts';
+import { type Bound, type Command, Unfit, quiet, quietly, refused } from '../../command/command.ts';
 import { type Context, selected } from '../../command/context.ts';
 import { type LabSelection, cueOf, sameSelection, selectionText } from '../../command/selection.ts';
 import { type Inspected, nudged, refusalOf } from '../../core/field.ts';
@@ -95,11 +88,7 @@ const snapCommand = (verbs: EditorVerbs): Command => ({
   keys: ['s'],
   touch: 'the Snap toggle on the strip',
   when: () => true,
-  run: () =>
-    Effect.sync(() => {
-      verbs.setSnap(!verbs.snap());
-      return quiet;
-    }),
+  run: quietly(() => verbs.setSnap(!verbs.snap())),
 });
 
 /** The cue or knob `ctx` is about. */
@@ -244,13 +233,11 @@ const nudgeCommand = (verbs: EditorVerbs, way: Way): Command => {
     about: ['Cue', 'Knob'],
     touch: 'select it, then type in its field',
     when: (ctx) => Option.isSome(nudge(ctx)),
-    run: (ctx, how: Invocation) =>
-      Effect.sync(() => {
-        Option.map(nudge(ctx), ({ field, by }) =>
-          field.write(nudged(field.spec, field.value, how.step, by)),
-        );
-        return quiet;
-      }),
+    run: quietly((ctx, how) => {
+      Option.map(nudge(ctx), ({ field, by }) =>
+        field.write(nudged(field.spec, field.value, how.step, by)),
+      );
+    }),
   };
 };
 
@@ -265,11 +252,7 @@ const edgeCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: str
   keys: [key],
   touch: 'drag the time line to a cue edge on the strip',
   when: () => Option.isSome(edgeFrom(verbs.edges(), verbs.T(), toward)),
-  run: () =>
-    Effect.sync(() => {
-      Option.map(edgeFrom(verbs.edges(), verbs.T(), toward), verbs.seek);
-      return quiet;
-    }),
+  run: quietly(() => Option.map(edgeFrom(verbs.edges(), verbs.T(), toward), verbs.seek)),
 });
 
 /** F and ⇧F (AA-7): the film shown where the next or previous finding is. */
@@ -285,11 +268,7 @@ const findingCommand = (
   keys: [key],
   touch: "tap a finding's time in the findings",
   when: () => Option.isSome(edgeFrom(verbs.findingTimes(), verbs.T(), toward)),
-  run: () =>
-    Effect.sync(() => {
-      Option.map(edgeFrom(verbs.findingTimes(), verbs.T(), toward), verbs.seek);
-      return quiet;
-    }),
+  run: quietly(() => Option.map(edgeFrom(verbs.findingTimes(), verbs.T(), toward), verbs.seek)),
 });
 
 /** How far along the strip's cues a walk moves. */
@@ -323,11 +302,7 @@ const walkCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: str
   touch: 'tap the cue on the strip, or long-press it',
   // On a button or a link, Tab moves focus, as it always does.
   when: (ctx) => ctx.focus === 'page' && Option.isSome(cueFrom(verbs, ctx, toward)),
-  run: (ctx) =>
-    Effect.sync(() => {
-      Option.map(cueFrom(verbs, ctx, toward), verbs.select);
-      return quiet;
-    }),
+  run: quietly((ctx) => Option.map(cueFrom(verbs, ctx, toward), verbs.select)),
 });
 
 /**
@@ -365,11 +340,7 @@ export const editorCommands = (verbs: EditorVerbs): ReadonlyArray<Command> => [
     keysIn: ['page', 'field'],
     touch: 'Cancel drag on the strip, while a finger holds the cue',
     when: verbs.holding,
-    run: () =>
-      Effect.sync(() => {
-        verbs.cancel();
-        return quiet;
-      }),
+    run: quietly(() => verbs.cancel()),
   },
   {
     id: 'edit.select',
@@ -383,11 +354,7 @@ export const editorCommands = (verbs: EditorVerbs): ReadonlyArray<Command> => [
     about: ['Cue', 'Knob'],
     touch: 'tap it, or long-press it, then Select',
     when: (ctx) => Option.isSome(toSelect(verbs, ctx)),
-    run: (ctx) =>
-      Effect.sync(() => {
-        Option.map(toSelect(verbs, ctx), verbs.select);
-        return quiet;
-      }),
+    run: quietly((ctx) => Option.map(toSelect(verbs, ctx), verbs.select)),
   },
   ...WAYS.map((way) => nudgeCommand(verbs, way)),
   edgeCommand(verbs, 'next', 'Next cue edge', '.'),

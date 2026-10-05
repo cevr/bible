@@ -47,7 +47,7 @@ import {
   hostLayer,
   onTraverse,
 } from '../../browser/host.ts';
-import { type Command, type CommandId, quiet, said } from '../../command/command.ts';
+import { type Command, type CommandId, quietly, said } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type Context, selected } from '../../command/context.ts';
@@ -267,11 +267,7 @@ export const Root = (
       keysIn: ['page', 'field'],
       touch: 'tap the image',
       when: () => Option.isSome(lightbox()),
-      run: () =>
-        Effect.sync(() => {
-          setLightbox(Option.none());
-          return quiet;
-        }),
+      run: quietly(() => setLightbox(Option.none())),
     }),
   );
 
@@ -384,11 +380,7 @@ const openCommands = (
     about,
     touch: `long-press it, then ${label}`,
     when: (ctx) => Option.isSome(placeOfTarget(ctx)),
-    run: (ctx) =>
-      Effect.sync(() => {
-        Option.map(placeOfTarget(ctx), (open) => open());
-        return quiet;
-      }),
+    run: quietly((ctx) => Option.map(placeOfTarget(ctx), (open) => open())),
   });
   return [
     opening('review.open-folder', 'Open the folder', ['Folder'], (ctx) =>
@@ -440,11 +432,7 @@ const pageCommands = (review: ReviewContextValue): ReadonlyArray<Command> => [
     about: ['Page'],
     touch: 'long-press the page, then Refresh',
     when: () => true,
-    run: () =>
-      Effect.sync(() => {
-        review.actions.refresh();
-        return quiet;
-      }),
+    run: quietly(() => review.actions.refresh()),
   },
   {
     id: 'review.quality',
@@ -648,11 +636,9 @@ const SetBody = (
       about: ['Version'],
       touch: 'long-press a version, then Hear this version (or tap its 🔊)',
       when: (ctx) => Option.isSome(versionHere(ctx)),
-      run: (ctx) =>
-        Effect.sync(() => {
-          Option.map(versionHere(ctx), (v) => sendSync(SyncEvent.HeardChosen({ id: v.version })));
-          return quiet;
-        }),
+      run: quietly((ctx) =>
+        Option.map(versionHere(ctx), (v) => sendSync(SyncEvent.HeardChosen({ id: v.version }))),
+      ),
     }),
   );
 

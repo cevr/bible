@@ -4,9 +4,7 @@
 // frame, ten with ⇧ and a thousandth with ⌥; Home and End put it at the
 // frame's edges. Off the grip those keys are the page's again.
 
-import { Effect } from 'effect';
-import { type Command, type Invocation, quiet } from '../command/command.ts';
-import type { Context } from '../command/context.ts';
+import { type Command, type Invocation, quietly } from '../command/command.ts';
 
 /** A nudge's size by its step, as a fraction of the frame. */
 const STEP = { normal: 0.01, coarse: 0.1, fine: 0.001 } as const satisfies Record<
@@ -34,11 +32,7 @@ export const wipeCommands = (
     touch: "drag the wipe's grip",
     when: (ctx) => ctx.focus === 'slider',
   } as const satisfies Pick<Command, 'group' | 'keysIn' | 'touch' | 'when'>;
-  const to = (where: (how: Invocation) => number) => (_: Context, how: Invocation) =>
-    Effect.sync(() => {
-      move(where(how));
-      return quiet;
-    });
+  const to = (where: (how: Invocation) => number) => quietly((_, how) => move(where(how)));
   return [
     {
       id: `${scope}.wipe-right`,

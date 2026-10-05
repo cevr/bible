@@ -15,8 +15,7 @@
 // the lab (`src/command/`), so the player, which never imports the lab,
 // declares its transport here too.
 
-import { Array as Arr, Data, Option } from 'effect';
-import type { Effect } from 'effect';
+import { Array as Arr, Data, Effect, Option } from 'effect';
 import type { Context, Focus } from './context.ts';
 import type { Target } from './target.ts';
 
@@ -76,6 +75,15 @@ type Tone = 'done' | 'refused' | 'busy';
 
 /** A receipt that says nothing. */
 export const quiet: Receipt = Receipt.Quiet();
+
+/** A command's `run` that does `act` and says nothing (`quiet`): the page shows what changed. */
+export const quietly =
+  (act: (ctx: Context, how: Invocation) => void) =>
+  (ctx: Context, how: Invocation): Effect.Effect<Receipt> =>
+    Effect.sync(() => {
+      act(ctx, how);
+      return quiet;
+    });
 
 /**
  * A receipt's Undo: the command, and the change it acts on. There is no Undo
@@ -230,17 +238,3 @@ export const makeCommands = (): Commands => {
     },
   };
 };
-
-/**
- * Run `command` in `ctx` if it is available there: its receipt, or none
- * when it is not available (a key that names it does nothing then).
- */
-export const runIfAvailable = (
-  command: Command,
-  ctx: Context,
-  how: Invocation,
-): Option.Option<Effect.Effect<Receipt>> =>
-  Option.map(
-    Option.liftPredicate(command, (c) => c.when(ctx)),
-    (c) => c.run(ctx, how),
-  );

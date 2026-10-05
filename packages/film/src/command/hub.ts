@@ -29,7 +29,7 @@ import {
   makeCommands,
 } from './command.ts';
 import { type Context, type Focus, contextAt, focusOf, withFocused } from './context.ts';
-import { type Binding, KeymapOverrides, Resolved, bindingsOf, keysOf, resolve } from './keymap.ts';
+import { KeymapOverrides, Resolved, bindingsOf, keysOf, resolve } from './keymap.ts';
 import { linkCommands } from './link.ts';
 import { selectionOf } from './selection.ts';
 import { targetAt } from './target.ts';
@@ -55,14 +55,10 @@ export interface Hub {
   readonly overrides: () => KeymapOverrides;
   /** Keep `next` as the viewer's overrides: a reload keeps them too. */
   readonly setOverrides: (next: KeymapOverrides) => void;
-  /** Every key bound now: the defaults, then the viewer's overrides. */
-  readonly bindings: () => ReadonlyArray<Binding>;
   /** The keys bound to `id` now. */
   readonly keysOf: (id: CommandId) => ReadonlyArray<string>;
   /** Call `changed` each time a command comes or goes or a key is rebound, until the returned stop. */
   readonly subscribe: (changed: () => void) => () => void;
-  /** One press, bound and run: whether the keymap took it (its default is then prevented). */
-  readonly press: (press: KeyPress) => boolean;
   /** Hear the page's presses through `Keys`, until interrupted: the page's one key listener. */
   readonly listen: Effect.Effect<never, never, Keys>;
 }
@@ -131,6 +127,7 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
   };
   const bindings = () => bindingsOf(commands.all(), overrides);
 
+  /** One press, bound and run: whether the keymap took it (its default is then prevented). */
   const press = (pressed: KeyPress): boolean => {
     // A press inside a marked thing (a version's card, a variant's row) is about it too.
     const ctx = withFocused(context(focusOf(pressed.target)), targetAt(pressed.target));
@@ -170,13 +167,11 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
       registry.set(kept, next);
       changed();
     },
-    bindings,
     keysOf: (id) => keysOf(bindings(), id),
     subscribe: (listener) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    press,
     listen: Keys.use((k) => k.listen(press)),
   };
   return hub;

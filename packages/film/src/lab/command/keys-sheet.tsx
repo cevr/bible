@@ -8,9 +8,9 @@
 
 import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
-import { Effect, Option } from 'effect';
+import { Option } from 'effect';
 import { createMemo, createSignal, onCleanup } from 'solid-js';
-import { type Command, type CommandId, quiet } from '../../command/command.ts';
+import { type Command, type CommandId, quietly } from '../../command/command.ts';
 import type { Hub } from '../../command/hub.ts';
 import { chordOf, rebind, resetKeys } from '../../command/keymap.ts';
 import { sheetRows } from '../../command/menu.ts';
@@ -50,12 +50,10 @@ export const KeysSheet = (props: { readonly hub: Hub }) => {
       keysIn: ['page', 'studio'],
       touch: 'the command menu, then Keyboard shortcuts',
       when: () => true,
-      run: () =>
-        Effect.sync(() => {
-          setWaiting(Option.none());
-          setOpen((was) => !was);
-          return quiet;
-        }),
+      run: quietly(() => {
+        setWaiting(Option.none());
+        setOpen((was) => !was);
+      }),
     }),
   );
 

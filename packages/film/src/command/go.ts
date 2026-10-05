@@ -7,11 +7,10 @@
 // the page bar's tabs, from the keyboard; and a film card's context menu
 // opens each part of its film (`filmCommands`). Pure.
 
-import { Effect, Option } from 'effect';
+import { Option } from 'effect';
 import { PARTS, PART_TITLE, type Part, filmTimeOn, hasPart, partHref } from '../core/api.ts';
-import { type Command, quiet } from './command.ts';
-import type { Context } from './context.ts';
-import type { Selection } from './selection.ts';
+import { type Command, quietly } from './command.ts';
+import { type Context, selected } from './context.ts';
 
 /** A thing a page can go to. */
 export interface Destination {
@@ -37,11 +36,7 @@ export const goToCommands = (destinations: ReadonlyArray<Destination>): Readonly
     typed: true,
     touch: 'the command menu: type its name',
     when: () => true,
-    run: () =>
-      Effect.sync(() => {
-        d.go();
-        return quiet;
-      }),
+    run: quietly(() => d.go()),
   }));
 
 /** The group the parts' commands sit in. */
@@ -69,28 +64,20 @@ export const partCommands = (
     touch: 'the page bar',
     when: () =>
       here() !== part && (part === 'films' || Option.exists(film(), (f) => hasPart(f, part))),
-    run: () =>
-      Effect.sync(() => {
-        go(
-          partHref(
-            part,
-            Option.getOrElse(film(), () => ''),
-            filmTimeOn(here(), at()),
-          ),
-        );
-        return quiet;
-      }),
+    run: quietly(() =>
+      go(
+        partHref(
+          part,
+          Option.getOrElse(film(), () => ''),
+          filmTimeOn(here(), at()),
+        ),
+      ),
+    ),
   }));
 
 /** The film a context is about: its first selection, when that is a film (a card on Films). */
 const filmAbout = (ctx: Context): Option.Option<string> =>
-  Option.map(
-    Option.filter(
-      Option.fromUndefinedOr(ctx.selection[0]),
-      (s): s is Extract<Selection, { readonly _tag: 'Film' }> => s._tag === 'Film',
-    ),
-    (s) => s.film,
-  );
+  Option.map(selected(ctx, 'Film'), (s) => s.film);
 
 /**
  * The film card's moves (`film.<part>`, in its context menu): Open in Scenes,
@@ -105,9 +92,5 @@ export const filmCommands = (go: (href: string) => void): ReadonlyArray<Command>
     about: ['Film'],
     touch: 'long-press a film',
     when: (ctx) => Option.exists(filmAbout(ctx), (f) => hasPart(f, part)),
-    run: (ctx) =>
-      Effect.sync(() => {
-        Option.map(filmAbout(ctx), (f) => go(partHref(part, f)));
-        return quiet;
-      }),
+    run: quietly((ctx) => Option.map(filmAbout(ctx), (f) => go(partHref(part, f)))),
   }));

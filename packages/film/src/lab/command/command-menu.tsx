@@ -12,9 +12,9 @@
 
 import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
-import { Effect, Option } from 'effect';
+import { Option } from 'effect';
 import { createMemo, createSignal, onCleanup } from 'solid-js';
-import { type Command, quiet } from '../../command/command.ts';
+import { type Command, quietly } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { type MenuRow, menuRows, rowKey } from '../../command/menu.ts';
@@ -71,12 +71,10 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
         about: EVERYWHERE,
         touch: 'long-press a cue, a card or a note, then Command menu',
         when: () => true,
-        run: (ctx) =>
-          Effect.sync(() => {
-            if (open()) setOpen(false);
-            else show(ctx);
-            return quiet;
-          }),
+        run: quietly((ctx) => {
+          if (open()) setOpen(false);
+          else show(ctx);
+        }),
       },
       {
         // `/` opens the same menu to type a name in (AA-2): its Go to entries
@@ -87,11 +85,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
         keys: ['/'],
         touch: 'the command menu, then type a name',
         when: () => !open(),
-        run: (ctx) =>
-          Effect.sync(() => {
-            show(ctx);
-            return quiet;
-          }),
+        run: quietly((ctx) => show(ctx)),
       },
     ),
   );

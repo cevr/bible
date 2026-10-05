@@ -26,7 +26,7 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
-import { type Command, quiet } from '../../command/command.ts';
+import { type Command, quietly } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { type Toward, walkFrom } from '../../command/walk.ts';
 import { registerWhile } from '../command/changes.ts';
@@ -138,11 +138,7 @@ const walkCommand = (
   keys: [key],
   touch: 'tap it in the list',
   when: () => Option.isSome(walk(toward)),
-  run: () =>
-    Effect.sync(() => {
-      Option.map(walk(toward), actions.select);
-      return quiet;
-    }),
+  run: quietly(() => Option.map(walk(toward), actions.select)),
 });
 
 /**
@@ -169,11 +165,7 @@ const useCommands = (
         about: ['Note'],
         touch: 'tap it in the list, or long-press it, then Open the note',
         when: (ctx) => Option.isSome(noteOf(ctx)),
-        run: (ctx) =>
-          Effect.sync(() => {
-            Option.map(noteOf(ctx), actions.select);
-            return quiet;
-          }),
+        run: quietly((ctx) => Option.map(noteOf(ctx), actions.select)),
       },
       {
         id: 'notes.frame',
@@ -183,11 +175,7 @@ const useCommands = (
         touch:
           'the Note frame button in the header; click the frame to pin a point, drag to draw a box',
         when: () => true,
-        run: () =>
-          Effect.sync(() => {
-            actions.noteFrame();
-            return quiet;
-          }),
+        run: quietly(() => actions.noteFrame()),
       },
       {
         id: 'notes.cancel',
@@ -197,11 +185,7 @@ const useCommands = (
         keysIn: ['page', 'field'],
         touch: "the composer's Cancel button",
         when: composing,
-        run: () =>
-          Effect.sync(() => {
-            actions.cancel();
-            return quiet;
-          }),
+        run: quietly(() => actions.cancel()),
       },
     ),
   );

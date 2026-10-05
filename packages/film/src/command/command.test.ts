@@ -1,18 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Effect, Option } from 'effect';
+import { type Command, labelOf, makeCommands, moved, quiet, refused, said } from './command.ts';
 import {
-  BY_BUTTON,
-  type Command,
-  labelOf,
-  makeCommands,
-  moved,
-  quiet,
-  refused,
-  runIfAvailable,
-  said,
-} from './command.ts';
-import {
-  type Context,
   contextAt,
   focusOf,
   selected,
@@ -94,20 +83,6 @@ describe('the command registry', () => {
     stop();
     commands.register(command('b'));
     expect(heard).toBe(2);
-  });
-
-  test('runs a command only where it is available', () => {
-    const run = (ctx: Context) =>
-      Option.map(
-        runIfAvailable(
-          command('x', { when: (c) => c.playing, run: () => Effect.succeed(said('ran')) }),
-          ctx,
-          BY_BUTTON,
-        ),
-        Effect.runSync,
-      );
-    expect(run(lab)).toEqual(Option.none());
-    expect(run({ ...lab, playing: true })).toEqual(Option.some(said('ran')));
   });
 
   test('a label may read the context it is shown in', () => {

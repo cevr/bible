@@ -31,7 +31,7 @@ export const KeymapOverrides = Schema.Array(KeymapOverride);
 export type KeymapOverrides = typeof KeymapOverrides.Type;
 
 /** A key bound to a command: the chord in its canonical text. */
-export interface Binding {
+interface Binding {
   readonly key: string;
   readonly command: CommandId;
 }
