@@ -31,7 +31,9 @@ const URL_EVENTS: ReadonlyArray<string> = ['popstate', 'hashchange'];
 
 const Allow = Schema.Struct({ allow: Schema.optionalKey(Schema.Array(Schema.String)) });
 
-const Severity = Schema.Literals(['error', 'warn', 'off']);
+/** Every way oxlint lets a rule's severity be spelled: a rule's options are read under any of them. */
+const SEVERITIES = ['error', 'deny', 2, 'warn', 1, 'off', 'allow', 0] as const;
+const Severity = Schema.Literals(SEVERITIES);
 /** A rule's config with its options. */
 const withOptions = <S extends Schema.Top>(options: S) =>
   Schema.TupleWithRest(Schema.Tuple([Severity]), [options]);
@@ -89,6 +91,14 @@ const readJson = Effect.fn('test.lintConfig.readJson')(function* <A>(
   const text = yield* fs.readFileString(path.join(yield* ROOT, repoPath));
   return yield* Schema.decodeUnknownEffect(schema)(JSONC.parse(text));
 });
+
+/** Each URL event a block lets its files hear themselves, with the block's files. */
+const urlEventsAllowed = (overrides: ReadonlyArray<Override>) =>
+  overrides.flatMap((o) =>
+    optionsIn(o, 'film/host-events-through-adapter', Allow).flatMap(({ allow = [] }) =>
+      allow.filter((event) => URL_EVENTS.includes(event)).map((event) => [o.files, event]),
+    ),
+  );
 
 /** The host bans' block, and the blocks that let files hear some host events themselves. */
 const hostBlocks = (config: typeof Config.Type) => {
@@ -189,14 +199,23 @@ describe('the lint config', () => {
         expect(probe.filter((_, i) => !reported.has(i + 1))).toEqual([]);
         // The URL's names are banned, and no block lets a file off its events.
         expect(globals.map((g) => g.name)).toEqual(expect.arrayContaining([...URL_NAMES]));
-        const urlEventsAllowed = allowing.flatMap((o) =>
-          optionsIn(o, 'film/host-events-through-adapter', Allow).flatMap(({ allow = [] }) =>
-            allow.filter((event) => URL_EVENTS.includes(event)).map((event) => [o.files, event]),
-          ),
-        );
-        expect(urlEventsAllowed).toEqual([]);
+        expect(urlEventsAllowed(allowing)).toEqual([]);
       }),
     SPAWNS_MS,
+  );
+
+  it.effect("finds a block that allows the URL's events, whatever severity spelling it uses", () =>
+    Effect.sync(() => {
+      const found = SEVERITIES.map((severity) =>
+        urlEventsAllowed([
+          {
+            files: ['**/page.ts'],
+            rules: { 'film/host-events-through-adapter': [severity, { allow: ['popstate'] }] },
+          },
+        ]),
+      );
+      expect(found).toEqual(SEVERITIES.map(() => [[['**/page.ts'], 'popstate']]));
+    }),
   );
 
   it.effect.layer(BunServices.layer)(
