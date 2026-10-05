@@ -1,7 +1,6 @@
 // Upstream: packages/react/src/use-render/useRender.test.tsx (its cases run
 // against useRenderElement, the engine every part renders through),
-// packages/react/src/internals/useRenderElement.test.tsx,
-// packages/react/src/direction-provider/DirectionProvider.test.tsx
+// packages/react/src/internals/useRenderElement.test.tsx
 //
 // Dropped: the React-element `render` form (Solid has no element to clone),
 // React.lazy unwrapping and the uppercase-render-name warning (both React).
@@ -125,15 +124,5 @@ describe('mergeProps', () => {
     await see(page.locator('#late')).toHaveText('');
     await page.click('#add');
     await see(page.locator('#late')).toHaveText('added');
-  });
-});
-
-describe('DirectionProvider', () => {
-  it('defaults to ltr outside a provider and provides its direction, live', async () => {
-    const page = await h.open('direction');
-    await see(page.locator('#outside')).toHaveText('ltr');
-    await see(page.locator('#inside')).toHaveText('rtl');
-    await page.click('#flip');
-    await see(page.locator('#inside')).toHaveText('ltr');
   });
 });

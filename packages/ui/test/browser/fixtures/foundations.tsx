@@ -1,13 +1,11 @@
 // Fixtures for the foundations: `useRenderElement` (state attributes, the
-// render prop, refs, `enabled`, live params), a late `children` key, and the
-// direction provider.
+// render prop, refs, `enabled`, live params) and a late `children` key.
 import type { JSX } from '@solidjs/web';
 import { createSignal, createStore, omit } from 'solid-js';
 
-import { DirectionProvider, useDirection } from '../../../src/direction-provider/index.ts';
 import type { BaseUIEvent, HTMLProps } from '../../../src/internals/types.ts';
 import { useRenderElement } from '../../../src/internals/useRenderElement.tsx';
-import { mergeProps } from '../../../src/merge-props/index.ts';
+import { mergeProps } from '../../../src/merge-props/mergeProps.ts';
 import { log } from './log.ts';
 
 function StateAttributes() {
@@ -208,31 +206,11 @@ function LateChildren() {
   );
 }
 
-function DirectionProbe(props: { id: string }) {
-  return <span id={props.id}>{useDirection()}</span>;
-}
-
-function Direction() {
-  const [direction, setDirection] = createSignal<'ltr' | 'rtl'>('rtl');
-  return (
-    <>
-      <DirectionProbe id="outside" />
-      <DirectionProvider direction={direction()}>
-        <DirectionProbe id="inside" />
-      </DirectionProvider>
-      <button id="flip" onClick={() => setDirection((d) => (d === 'rtl' ? 'ltr' : 'rtl'))}>
-        flip
-      </button>
-    </>
-  );
-}
-
 export const fixtures: Record<string, () => JSX.Element> = {
   'state-attributes': () => <StateAttributes />,
   'class-style': () => <ClassStyle />,
   refs: () => <Refs />,
   enabled: () => <Enabled />,
-  direction: () => <Direction />,
   'live-params': () => <LiveParams />,
   'late-children': () => <LateChildren />,
 };

@@ -28,7 +28,7 @@ import { getAlignment, getSide, getSideAxis } from '@floating-ui/utils';
 import type { JSX } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 
-import { useDirectionAccessor } from '../direction-provider/DirectionContext.ts';
+import { useDirectionAccessor } from './DirectionContext.ts';
 import type {
   FloatingContext,
   FloatingRootContext,

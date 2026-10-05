@@ -12,10 +12,3 @@ export type * from './portal/DialogPortal.tsx';
 export type * from './root/DialogRoot.tsx';
 export type * from './title/DialogTitle.tsx';
 export type * from './viewport/DialogViewport.tsx';
-export {
-  DialogBackdropDataAttributes,
-  DialogCloseDataAttributes,
-  DialogPopupCssVars as DialogPopupCssVariables,
-  DialogPopupDataAttributes,
-  DialogViewportDataAttributes,
-} from './utils/stateAttributesMapping.ts';

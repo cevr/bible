@@ -12,7 +12,7 @@
 // in a grid.
 import { isHTMLElement } from '@floating-ui/utils/dom';
 
-import type { TextDirection } from '../../direction-provider/DirectionContext.ts';
+import type { TextDirection } from '../DirectionContext.ts';
 import {
   findNonDisabledListIndex,
   getMaxListIndex,

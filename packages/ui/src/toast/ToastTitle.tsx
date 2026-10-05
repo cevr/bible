@@ -1,5 +1,4 @@
 // Upstream: packages/react/src/toast/title/ToastTitle.tsx,
-// packages/react/src/toast/title/ToastTitleDataAttributes.ts,
 // packages/react/src/toast/utils/useToastLabelPart.ts
 //
 // A title that labels the toast: its children, else the toast's `title`.
@@ -12,11 +11,6 @@ import type { BaseUIComponentProps } from '../internals/types.ts';
 import { useRenderElement } from '../internals/useRenderElement.tsx';
 import { useToastRootContext } from './ToastRootContext.ts';
 import { isRenderableNode } from './utils.ts';
-
-export const ToastTitleDataAttributes = {
-  /** The type of the toast. */
-  type: 'data-type',
-} as const;
 
 export interface ToastTitleState {
   /** The type of the toast. */

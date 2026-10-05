@@ -1,14 +1,11 @@
 // Upstream: packages/react/src/dialog/utils/stateAttributesMapping.ts,
 // packages/react/src/dialog/popup/DialogPopupDataAttributes.ts,
-// packages/react/src/dialog/popup/DialogPopupCssVars.ts,
-// packages/react/src/dialog/viewport/DialogViewportDataAttributes.ts,
-// packages/react/src/dialog/backdrop/DialogBackdropDataAttributes.ts,
-// packages/react/src/dialog/close/DialogCloseDataAttributes.ts
+// packages/react/src/dialog/popup/DialogPopupCssVars.ts
 //
-// The `data-*` attributes and CSS variables of the dialog's parts. The popup
-// and the viewport share one state shape: open or closed, the transition,
-// `data-nested` inside another dialog, and `data-nested-dialog-open` while a
-// dialog nested in it is open.
+// The `data-*` attributes and CSS variables the dialog's parts write (the
+// README lists them all). The popup and the viewport share one state shape:
+// open or closed, the transition, `data-nested` inside another dialog, and
+// `data-nested-dialog-open` while a dialog nested in it is open.
 import type { StateAttributesMapping } from '../../internals/getStateAttributesProps.ts';
 import { type TransitionStatus, transitionStatusMapping } from '../../internals/transitions.ts';
 import { CommonPopupDataAttributes, popupStateMapping } from '../../utils/popupStateMapping.ts';
@@ -22,20 +19,6 @@ export const DialogPopupDataAttributes = {
   nested: 'data-nested',
   /** Present when the dialog has other open dialogs nested within it. */
   nestedDialogOpen: 'data-nested-dialog-open',
-} as const;
-
-export const DialogViewportDataAttributes = DialogPopupDataAttributes;
-
-export const DialogBackdropDataAttributes = {
-  open: CommonPopupDataAttributes.open,
-  closed: CommonPopupDataAttributes.closed,
-  startingStyle: CommonPopupDataAttributes.startingStyle,
-  endingStyle: CommonPopupDataAttributes.endingStyle,
-} as const;
-
-export const DialogCloseDataAttributes = {
-  /** Present when the button is disabled. */
-  disabled: 'data-disabled',
 } as const;
 
 export const DialogPopupCssVars = {

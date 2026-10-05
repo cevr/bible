@@ -1,6 +1,5 @@
 // Upstream: packages/react/src/drawer/popup/DrawerPopupCssVars.ts,
 // packages/react/src/drawer/popup/DrawerPopupDataAttributes.ts,
-// packages/react/src/drawer/viewport/DrawerViewportDataAttributes.ts,
 // packages/react/src/drawer/content/drawerContentAttribute.ts
 //
 // The `data-*` attributes and CSS variables of the drawer's parts. The popup
@@ -30,15 +29,6 @@ export const DrawerPopupDataAttributes = {
   swipeDirection: 'data-swipe-direction',
   /** Present when the drawer is being swiped. */
   swiping: 'data-swiping',
-} as const;
-
-export const DrawerViewportDataAttributes = {
-  open: CommonPopupDataAttributes.open,
-  closed: CommonPopupDataAttributes.closed,
-  startingStyle: CommonPopupDataAttributes.startingStyle,
-  endingStyle: CommonPopupDataAttributes.endingStyle,
-  /** Present when the drawer is nested within a dialog. */
-  nested: 'data-nested',
 } as const;
 
 /** Marks `Drawer.Content`: a press inside it never starts a swipe. */

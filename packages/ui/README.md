@@ -1,21 +1,14 @@
 # @bible/ui
 
-Base UI's unstyled parts, ported to Solid 2 (the `2.0.0-rc` line of `solid-js` and `@solidjs/web`). No part ships a style: each part shows its state as `data-*` attributes (and, where a value has to reach CSS, as CSS custom properties), and the consumer styles it through those attributes and its own `class`. Each part is imported from its subpath, for example `import { Menu } from '@bible/ui/menu'`; the root entry `@bible/ui` re-exports every subpath except `press`. Unit tests run with `bun run test` and the browser tests with `bun run test:browser` (Playwright, `test/browser`), both from `packages/ui`.
+Base UI's unstyled parts, ported to Solid 2 (the `2.0.0-rc` line of `solid-js` and `@solidjs/web`). No part ships a style: each part shows its state as `data-*` attributes (and, where a value has to reach CSS, as CSS custom properties), and the consumer styles it through those attributes and its own `class`. Each part is imported from its subpath, for example `import { Menu } from '@bible/ui/menu'`; there is no root entry. The package keeps only the parts a page draws: a part upstream has and this list lacks returns with its first consumer, and the attribute names below are the styling contract (no `*DataAttributes` constants are exported). Unit tests run with `bun run test` and the browser tests with `bun run test:browser` (Playwright, `test/browser`), both from `packages/ui`.
 
 Every part takes `class` and `style` (a value or a function of the part's state) and `render` (a function of the merged props and the state that replaces the default element). A part's state becomes attributes by one rule unless the part maps it otherwise: `true` becomes a bare `data-<key>` attribute (the key lowercased: `readOnly` is `data-readonly`), another truthy value its string, and a falsy value nothing. Attributes named `data-base-ui-*`, `data-rootownerid`, `data-tabindex`, `data-type="inside"` and `data-type="outside"` (the focus guards) are internal markers, not styling hooks. Every `Portal` takes `container` and `inline`: with `inline` its `<div>` renders where it is written instead of at the end of `<body>`, the same in the server's render and the browser's, so a popup open at the first render is in the server's markup (for a `position: fixed` popup under no transform, filter or `contain`); without it, a server render leaves the portal out.
 
 ## Parts
 
-### Utilities
+### Press
 
-These subpaths render no element and set no attributes.
-
-| Import                         | What it holds                                                                                                                                                            |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `@bible/ui/merge-props`        | `mergeProps`, `mergePropsN`, `makeEventPreventable`: merge prop sets the way the parts do, kept reactive.                                                                |
-| `@bible/ui/use-render`         | `useRender`: renders an element of your own component the parts' way (`render`, state as `data-*`, merged props).                                                        |
-| `@bible/ui/direction-provider` | `DirectionProvider` and `useDirection`: the text direction (`ltr` or `rtl`) the parts' arrow keys follow.                                                                |
-| `@bible/ui/press`              | `claimPress`, `liftHeldByOther`, `LONG_PRESS_DELAY`, `LONG_PRESS_MOVE_THRESHOLD`: one owner per press, shared with the context menu's long press. Not in the root entry. |
+`@bible/ui/press` renders no element and sets no attributes. It holds `claimPress`, `liftHeldByOther`, `LONG_PRESS_DELAY` and `LONG_PRESS_MOVE_THRESHOLD`: one owner per press, shared with the context menu's long press. The parts read the text direction as `ltr`; upstream's `DirectionProvider`, `useRender` and the `mergeProps` subpath are left out.
 
 ### Menu
 

@@ -22,9 +22,3 @@ export type {
   DialogTitleProps as DrawerTitleProps,
   DialogTitleState as DrawerTitleState,
 } from '../dialog/title/DialogTitle.tsx';
-export { DialogCloseDataAttributes as DrawerCloseDataAttributes } from '../dialog/utils/stateAttributesMapping.ts';
-export {
-  DrawerPopupCssVars as DrawerPopupCssVariables,
-  DrawerPopupDataAttributes,
-  DrawerViewportDataAttributes,
-} from './utils/drawerAttributes.ts';

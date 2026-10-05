@@ -9,7 +9,7 @@
 // falls back to an enabled one when its item is gone.
 import { createEffect, createSignal, untrack } from 'solid-js';
 
-import { useDirectionAccessor } from '../../direction-provider/DirectionContext.ts';
+import { useDirectionAccessor } from '../DirectionContext.ts';
 import { getTarget } from '../../utils/dom.ts';
 import type { HTMLProps } from '../types.ts';
 import {

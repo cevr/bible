@@ -12,7 +12,7 @@ import type { JSX } from '@solidjs/web';
 import { createEffect, createUniqueId, onCleanup, untrack } from 'solid-js';
 
 import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext.ts';
-import { useDirectionAccessor } from '../../direction-provider/DirectionContext.ts';
+import { useDirectionAccessor } from '../../internals/DirectionContext.ts';
 import {
   FloatingTree,
   useFloatingNodeId,

@@ -1,6 +1,5 @@
 // Upstream: packages/react/src/toast/viewport/ToastViewport.tsx,
-// packages/react/src/toast/viewport/ToastViewportCssVars.ts,
-// packages/react/src/toast/viewport/ToastViewportDataAttributes.ts
+// packages/react/src/toast/viewport/ToastViewportCssVars.ts
 //
 // The region the toasts live in. Hovering it or moving keyboard focus into
 // it expands the stack and pauses the auto-dismiss timers; leaving resumes
@@ -32,11 +31,6 @@ import { isFocusVisible } from './utils.ts';
 export const ToastViewportCssVars = {
   /** Indicates the height of the frontmost toast. */
   frontmostHeight: '--toast-frontmost-height',
-} as const;
-
-export const ToastViewportDataAttributes = {
-  /** Indicates toasts are expanded in the viewport. */
-  expanded: 'data-expanded',
 } as const;
 
 export interface ToastViewportState {
