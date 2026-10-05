@@ -220,8 +220,12 @@ export type SyncActor = Effect.Success<ReturnType<typeof spawnSync>>;
 /** Whether the videos should be running: only while playing (a stall holds them all). */
 export const runningOf = (state: SyncState): boolean => state._tag === 'Playing';
 
-/** What the transport says of the clock, in timecode: `00:00:12:09 / 00:00:25:00`, and when it waits on a video. */
-export const clockText = (state: SyncState): string => {
+/**
+ * What the transport says of the clock, in two parts: where it is
+ * (`00:00:12:09`), and the rest (` / 00:00:25:00`, and ` · waiting` while it
+ * waits on a video), which a phone's one-row transport leaves out.
+ */
+export const clockParts = (state: SyncState) => {
   const end = Match.value(state.end >= UNKNOWN_END).pipe(
     Match.when(true, () => '…'),
     Match.orElse(() => timecode(state.end)),
@@ -230,7 +234,13 @@ export const clockText = (state: SyncState): string => {
     Match.when('Buffering', () => ' · waiting'),
     Match.orElse(() => ''),
   );
-  return `${timecode(Math.max(0, state.t))} / ${end}${waiting}`;
+  return { at: timecode(Math.max(0, state.t)), rest: ` / ${end}${waiting}` };
+};
+
+/** What the transport says of the clock, in timecode: `00:00:12:09 / 00:00:25:00`, and when it waits on a video. */
+export const clockText = (state: SyncState): string => {
+  const { at, rest } = clockParts(state);
+  return `${at}${rest}`;
 };
 
 /** The scrub bar's reach: the first video's end once known, else where the clock is. */

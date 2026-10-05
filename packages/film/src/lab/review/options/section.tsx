@@ -44,9 +44,9 @@ const pictureLabel = (p: ReviewVideo): string => {
 };
 
 /**
- * The film's player: its transport over the render the sound plays over, and
- * the one `<audio>` heard with it (`FilmTransport`, `FilmPicture`); while the
- * film has no render, a line that says so.
+ * The film's player: its transport, docked as Project's is, over the render
+ * the sound plays over, and the one `<audio>` heard with it (`FilmTransport`,
+ * `FilmPicture`); while the film has no render, a line that says so.
  */
 const Player = () => {
   const { picture } = useFilm();
@@ -59,7 +59,9 @@ const Player = () => {
         </p>
       }
     >
-      <FilmTransport />
+      <section class="sh-dock">
+        <FilmTransport />
+      </section>
       <FilmPicture />
     </Show>
   );

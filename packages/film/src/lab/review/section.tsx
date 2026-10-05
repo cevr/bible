@@ -78,7 +78,7 @@ import {
   type SyncState,
   ViewEvent,
   ViewName,
-  clockText,
+  clockParts,
   playsIn,
   reachOf,
   runningOf,
@@ -533,9 +533,11 @@ const ViewTabs = () => {
 };
 
 /**
- * The synced player's controls: play, the clock, a scrub over every track,
- * and the one rate chip (UR-25), whose rates are the page's commands while
- * the transport is shown (J, K, L; ⌘K). Its keys are in the `?` sheet.
+ * The synced player's controls, one row: play, the clock, a scrub over every
+ * track, and the one rate chip (UR-25), whose rates are the page's commands
+ * while the transport is shown (J, K, L; ⌘K). Its keys are in the `?` sheet.
+ * A page docks it (`.sh-dock`: over the tab bar on a phone, held under the
+ * header on a laptop, design language §4), Choices, a Set and Project alike.
  */
 export const Transport = (props: {
   readonly sync: Accessor<SyncState>;
@@ -571,7 +573,9 @@ export const Transport = (props: {
         )}
       </button>
       <span class="rv-time" data-state={sync()._tag}>
-        {clockText(sync())}
+        {clockParts(sync()).at}
+        {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
+        <span class="rv-time-rest">{clockParts(sync()).rest}</span>
       </span>
       <input
         type="range"
@@ -1307,7 +1311,9 @@ const SetBody = () => {
   return (
     <>
       <Show when={playsIn(viewNameOf(view()))}>
-        <Transport sync={sync} send={send.sync} />
+        <section class="sh-dock">
+          <Transport sync={sync} send={send.sync} />
+        </section>
       </Show>
       {Match.value(view()).pipe(
         Match.tagsExhaustive({

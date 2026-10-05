@@ -3,8 +3,9 @@
 // with no radius, quiet buttons and segmented controls with no pills, chips
 // in their state's colour, one accent for the playhead, selection, focus and
 // the one primary verb, and every grid folding to one column on a phone
-// (the transport stays in reach under the shell's header while the page
-// scrolls). Put in the page by `mountReview`, so the page needs no
+// (the transport, one row in the shell's dock, stays in reach while the page
+// scrolls: over the tab bar on a phone, under the header on a laptop). Put
+// in the page by `mountReview`, so the page needs no
 // stylesheet of its own.
 
 export const REVIEW_CSS = `
@@ -100,17 +101,27 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-picked svg { width: 14px; height: 14px; flex: none; }
 .rv-picked circle { fill: var(--text-1); }
 .rv-picked path { fill: none; stroke: var(--surface-1); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
-.rv-transport {
-  position: sticky; top: var(--header-h); z-index: 4; display: flex; flex-wrap: wrap; align-items: center;
-  gap: var(--s-2) var(--s-3); margin-bottom: var(--s-3); background: var(--surface-1); border-bottom: var(--border);
-  padding: var(--s-2) var(--s-3);
+/*
+ * The transport: one row in the page's dock (\`.sh-dock\`, the shell's), on
+ * Choices, a Set and Project alike: play, the time, the scrub taking what is
+ * left, then the rate. On a phone the time is where the clock is; the scrub
+ * shows the end.
+ */
+.rv-transport { flex: 1; display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-3); min-width: 0; }
+@media (min-width: 900px) {
+  .rv-main .sh-dock:not(.pj-dock) { margin-bottom: var(--s-3); }
 }
 .rv-big {
   width: var(--control-h); height: var(--control-h); border-radius: var(--r-2); border: 0; background: var(--accent);
   color: var(--accent-ink); font-size: var(--fs-4); cursor: pointer; flex: none;
 }
-.rv-transport input[type="range"] { flex: 1 1 220px; min-width: 0; accent-color: var(--accent); height: var(--control-h); }
-.rv-time { color: var(--text-1); font-size: var(--fs-5); line-height: var(--lh-5); font-weight: var(--w-2); white-space: nowrap; }
+.rv-transport input[type="range"] { flex: 1 1 0; min-width: 0; accent-color: var(--accent); height: var(--control-h); }
+.rv-transport > .rv-chip { flex: none; }
+.rv-time { color: var(--text-1); font-size: var(--fs-5); line-height: var(--lh-5); font-weight: var(--w-2); white-space: nowrap; flex: none; }
+@media (max-width: 899px) {
+  .rv-transport { gap: var(--s-2); }
+  .rv-time-rest { display: none; }
+}
 .rv-time[data-state="Buffering"] { color: var(--accent); }
 .rv-lightbox {
   position: fixed; inset: 0; background: var(--backdrop-deep); display: grid; place-items: center;
@@ -165,8 +176,6 @@ a.rv-card:hover { background: var(--surface-2); }
  * holding its scenes: one row of cards on a laptop (the act's arrangement,
  * scrolling sideways when it runs long), a row each on a phone, edge to edge.
  */
-.pj-dock .rv-transport { position: static; flex: 1; flex-wrap: nowrap; min-width: 0; margin: 0; padding: 0; border: 0;
-  background: none; }
 .pj-no-cut { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pj-film { margin-bottom: var(--s-4); }
 /* Its lines stand apart, so the chip's hit-slop never reaches the name's line. */
@@ -249,7 +258,6 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-at, .rv-plays .rv-inline-link { display: inline-flex; align-items: center; min-height: var(--hit); vertical-align: middle; }
 @media (max-width: 600px) {
   .rv-main { padding: var(--s-3) var(--gutter) var(--s-8); }
-  .rv-transport { padding: var(--s-2) var(--s-2); gap: var(--s-2); }
   .rv-cap { flex-wrap: wrap; }
   .rv-tag { white-space: normal; overflow-wrap: anywhere; }
   /* A row's state word moves whole to the next line, never broken in two. */

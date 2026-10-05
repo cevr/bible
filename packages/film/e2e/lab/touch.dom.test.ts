@@ -40,7 +40,7 @@ import {
   openReview,
 } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { waitFor } from '../../src/lab/fixtures/settled.ts';
+import { evaluates, waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
   STUDIO_FILM,
   STUDIO_FOLDER,
@@ -314,6 +314,51 @@ for (const device of DEVICES) {
     }
   });
 }
+
+/**
+ * The review's transport as a script reads it: its dock's height, whether
+ * the dock stands on the tab bar, and whether play, the time, the scrub and
+ * the rate lie in that order along one line.
+ */
+const TRANSPORT_ROW = `(() => {
+  const dock = document.querySelector('.sh-dock:has(.rv-transport)');
+  const d = dock.getBoundingClientRect();
+  const parts = ['[data-act="play"]', '.rv-time', 'input[type="range"]', '[data-act="rate"]'].map(
+    (s) => dock.querySelector(s).getBoundingClientRect(),
+  );
+  const mid = (r) => r.top + r.height / 2;
+  return [
+    'height ' + Math.round(d.height),
+    'on the tabs ' + (Math.round(d.bottom) === Math.round(document.querySelector('.sh-pagebar').getBoundingClientRect().top)),
+    'in order ' + parts.every((r, i) => i === 0 || r.left >= parts[i - 1].right - 0.5),
+    'one line ' + parts.every((r) => Math.abs(mid(r) - mid(d)) < 4),
+  ];
+})()`;
+
+describe('the review transport on a phone (UI-10)', () => {
+  const PAGES = [
+    ['Choices', review(CHOICES, ...CHOICES_READY)],
+    ['Project', review(PROJECT, ...PROJECT_READY)],
+    ['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')],
+  ] as const;
+  for (const [name, open] of PAGES) {
+    it.live(
+      `${name}: one row docked over the tab bar, a finger tall: play, the time, the scrub, then the rate`,
+      () =>
+        Effect.gen(function* () {
+          const page = yield* open(PHONE.viewport);
+          // The dock is --dock-h: a --hit row and its padding, 61 px on a phone.
+          yield* evaluates(page, TRANSPORT_ROW, [
+            'height 61',
+            'on the tabs true',
+            'in order true',
+            'one line true',
+          ]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
+});
 
 /** How far `selector`'s box is wider than its words, in px. */
 const slack = (selector: string) =>
