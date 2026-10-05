@@ -2809,7 +2809,10 @@ drag event; `effect/noGlobals` holds in the player as everywhere. The
 fixtures and tests are the host's side and exempt; a live adapter
 (`*-browser.ts`) is not: each line where it reaches the one host API it
 adapts says so (`oxlint-disable-next-line`, with why), so an adapter that
-reaches another's API is red as a page is. The address bar is `Location`'s alone (`@bible/url-state`'s
+reaches another's API is red as a page is. No page imports a live adapter's
+module (`no-restricted-imports`): only a page's mount builds the host
+(`BrowserHost`), the two stores are `storage-browser.ts`'s, and the review's
+and the studio's mounts build theirs with an adapter of their own. The address bar is `Location`'s alone (`@bible/url-state`'s
 `location-browser.ts`): no film file reads or writes the URL directly.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between

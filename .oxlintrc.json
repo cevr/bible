@@ -499,10 +499,60 @@
                   "@bible/film/lab-server"
                 ],
                 "message": "the player never imports the tools or the lab: the lab mounts the player (packages/film/README.md, the purity rule)."
+              },
+              {
+                "group": [
+                  "**/*-browser.ts",
+                  "!**/browser/host-browser.ts",
+                  "!**/browser/storage-browser.ts"
+                ],
+                "message": "a page reaches the host through its services: only a page's mount builds the host (`BrowserHost`, browser/host-browser.ts), and the stores are storage-browser.ts's."
               }
             ]
           }
         ]
+      }
+    },
+    {
+      // A page reaches the host through its services, never a live adapter's
+      // module: only a page's mount builds the host (`BrowserHost`), and the
+      // page's two stores are `storage-browser.ts`'s. The mounts that build
+      // their host with an adapter of their own (the review's panes, the
+      // studio's microphone) are let off below.
+      "files": [
+        "**/packages/film/src/lab/**/*.ts",
+        "**/packages/film/src/lab/**/*.tsx",
+        "**/apps/animations/src/**/*.ts",
+        "**/apps/animations/src/**/*.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": [
+                  "**/*-browser.ts",
+                  "!**/browser/host-browser.ts",
+                  "!**/browser/storage-browser.ts"
+                ],
+                "message": "a page reaches the host through its services: only a page's mount builds the host (`BrowserHost`, browser/host-browser.ts), and the stores are storage-browser.ts's."
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "**/packages/film/src/lab/review/mount.tsx",
+        "**/packages/film/src/lab/studio/context.tsx",
+        "**/packages/film/src/lab/**/fixtures/**",
+        "**/packages/film/src/lab/**/*.test.ts",
+        "**/packages/film/src/lab/**/*.test.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
       }
     },
     {
