@@ -1,4 +1,6 @@
-// The browser player: the render page the renderer drives, and the narrated films.
+// The browser player: the render page the renderer drives, the narrated
+// films, and the faces they draw in.
 
+export { type Face, SUBSETS, pictureFaces } from './face.ts';
 export { mountRender } from './main.ts';
 export { type Narrated, narratedFilms } from './narrated.ts';

@@ -42,15 +42,6 @@ const HASH_MS = 250;
 /** How long a tick's name stays after the finger that held it lifts, in ms. */
 const TIP_READ_MS = 1500;
 
-/**
- * Every face the page declares (its stylesheets' `@font-face` rules, each
- * unicode-range subset its own face), loaded: text measures true from the
- * first frame whatever families and scripts a film draws (a short's hook and
- * captions are measured once, on the first frame that draws them), and the
- * engine names none of them. A face that will not load fails the page.
- */
-const loadFonts = () => Promise.all(Array.from(document.fonts, (face) => face.load()));
-
 declare global {
   interface Window {
     __film?: ExportHandle;
@@ -146,9 +137,11 @@ const filmName = (href: string, films: Films): string =>
   );
 
 /**
- * Load the film of the page at `href` (every font the page declares first,
- * so text measures true), title the page, and put the film's canvas on the
- * stage; its captions are on unless an export page says `captions=0`.
+ * Load the film of the page at `href` (its loader gives it with the faces it
+ * draws in loaded, `narratedFilms`, so text measures true from the first
+ * frame: a short's hook and captions are measured once, on the first frame
+ * that draws them), title the page, and put the film's canvas on the stage;
+ * its captions are on unless an export page says `captions=0`.
  */
 export const stageFilm = async (films: Films, href: string): Promise<Staged> => {
   const name = filmName(href, films);
@@ -156,7 +149,6 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
   const load = films[name];
   if (load === undefined)
     throw new Error(`unknown film "${name}"; have ${Object.keys(films).join(', ')}`);
-  await loadFonts();
   const film = await load();
   document.title = film.title;
 

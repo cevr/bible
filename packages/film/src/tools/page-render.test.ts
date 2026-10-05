@@ -3,12 +3,25 @@
 // it, renders the hydration script and its styles into the head, its markup
 // into its root, and a read of the lab's API streamed in once answered; each
 // build renders in a worker of its own, imported afresh; a render of an
-// older build still under way finishes after a newer build renders; and a
-// server entry that is no page's render fails its render.
+// older build still under way finishes after a newer build renders; a page's
+// head preloads and declares the UI face's latin file at the URL the
+// browser's build answers; and a server entry that is no page's render fails
+// its render.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Effect, Exit, Fiber, Layer, Logger, Option, Path, Stream } from 'effect';
+import {
+  Deferred,
+  Effect,
+  Exit,
+  Fiber,
+  FileSystem,
+  Layer,
+  Logger,
+  Option,
+  Path,
+  Stream,
+} from 'effect';
 import type { PageName } from '../core/api.ts';
 import { PageBundler } from './lab-page.ts';
 import { PageRenderer, type RenderBuild, type ServerBundle } from './page-render.ts';
@@ -215,6 +228,44 @@ describe("a page's server render", () => {
           expect(markup).toBe('<p>kept</p>');
         }).pipe(Effect.scoped);
       }).pipe(Effect.provide(Services)),
+  );
+
+  it.live(
+    "heads the page with the UI face's latin file, preloaded and declared, at the URL the browser's build answers it",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const bundler = yield* PageBundler;
+        // A page whose script registers the face, as every page with chrome does.
+        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-face-page-' });
+        yield* fs.writeFileString(
+          path.join(dir, 'face.html'),
+          '<!doctype html><html><head><title>face</title></head><body><script type="module" src="./face.ts"></script></body></html>',
+        );
+        yield* fs.writeFileString(
+          path.join(dir, 'face.ts'),
+          `import { registerFace } from '${path.join(import.meta.dir, '..', 'player', 'face.ts')}';\nregisterFace(document.fonts);\n`,
+        );
+        const browser = yield* bundler.bundle([path.join(dir, 'face.html')], dir, {
+          publicPath: '/',
+          swaps: new Map(),
+          servers: [],
+        });
+        const page = yield* renderOf({ id: 1, bundle: yield* fixtureBundle }, answering('a'));
+        const preloaded = Option.getOrElse(
+          Option.fromNullishOr(
+            /<link rel="preload" href="([^"]+)" as="font" type="font\/woff2" crossorigin>/.exec(
+              page.head,
+            )?.[1],
+          ),
+          () => '',
+        );
+        expect(preloaded).toMatch(/^\/jetbrains-mono-latin-wght-normal-\w+\.woff2$/);
+        expect(page.head).toContain(`src:url(${preloaded}) format('woff2')`);
+        expect(page.head).toContain('font-display:swap');
+        expect(browser.outputs.map((file) => `/${file.path}`)).toContain(preloaded);
+      }).pipe(Effect.scoped, Effect.provide(Services)),
   );
 
   it.live('fails a render whose server entry exports no page render', () =>

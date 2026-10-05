@@ -4,17 +4,22 @@
 
 import { type Film, shortPages } from '@bible/film/canvas';
 import { narratedFilms } from '@bible/film/player';
+import { faces } from './faces.ts';
 import { shorts as righteousnessByFaithShorts } from './righteousness-by-faith/shorts.ts';
 
 const righteousnessByFaith = () => import('./righteousness-by-faith/film.ts');
 
 /**
  * The films, by folder: each key names a folder under `src/films`, and the
- * framework loads that film's narration from it (`narratedFilms`).
+ * framework loads that film's narration from it and the faces it draws in
+ * (`faces.ts`) with it (`narratedFilms`).
  */
-export const films = narratedFilms({
-  'righteousness-by-faith': righteousnessByFaith,
-});
+export const films = narratedFilms(
+  {
+    'righteousness-by-faith': righteousnessByFaith,
+  },
+  faces,
+);
 
 /** Every page the player serves: the films, then each film's shorts. */
 export const pages = {

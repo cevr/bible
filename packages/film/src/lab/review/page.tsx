@@ -19,7 +19,6 @@ import { ReviewPlace, placeOf } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, SetPage } from './section.tsx';
-import { REVIEW_CSS } from './style.ts';
 import { type Part, pageAt } from '../../core/api.ts';
 import { type Host, addressOn } from '../../browser/host.ts';
 import { TabStore, ViewerStore } from '../../browser/storage-browser.ts';
@@ -28,10 +27,8 @@ import { CommandMenu } from '../command/command-menu.tsx';
 import { KeysSheet } from '../command/keys-sheet.tsx';
 import { Receipts } from '../command/receipts.tsx';
 import { TargetMenu } from '../command/context-menu.tsx';
-import { COMMAND_CSS } from '../command/style.ts';
 import { PageShell } from '../page-shell.tsx';
-import { SHELL_CSS } from '../page-shell-style.ts';
-import { SCENES_CSS } from '../scenes/style.ts';
+import { PAGE_STYLES } from '../page-styles.ts';
 import type { LabClient } from '../api.ts';
 import type { DrawStills } from './options/stills.tsx';
 
@@ -217,7 +214,7 @@ const ReviewPage = (props: ReviewWith) => (
 export const REVIEW_PAGE = {
   bodyClass: 'rv',
   rootClass: 'rv-root',
-  style: `${SHELL_CSS}${REVIEW_CSS}${COMMAND_CSS}${SCENES_CSS}`,
+  style: PAGE_STYLES.review,
 };
 
 /**

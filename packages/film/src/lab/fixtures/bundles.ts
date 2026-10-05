@@ -167,7 +167,8 @@ export const served = (entry: string, name: string): Effect.Effect<PageRender> =
           [heard]: `export { ${name} } from '${import.meta.dir}/${entry}';\nexport { OBSERVE } from 'solid-js';\n`,
         },
         target: 'bun',
-        plugins: [solidPluginFor('ssr')],
+        // The head's face (`FACE_HEAD`) as the fixture's scripts have it: a fixture page has no asset route.
+        plugins: [solidPluginFor('ssr'), inlineFonts],
         outdir: dir,
         naming: 'server.js',
       }),
