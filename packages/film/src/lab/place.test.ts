@@ -93,7 +93,8 @@ describe("the lab's place", () => {
     // The path moves to the next scene; the loop's film seconds stay as they were.
     expect(labPlaceOf(labHref('f', placed, looping, b + 1)).loop).toEqual(looping.loop);
     expect(labHref('f', placed, none, 1)).not.toContain('loop=');
-    for (const bad of ['3,1', '2,2', '1', '1,2,3', 'a,b', ','])
+    // A blank end (`,2`, `%20,2`, `1,`) is no point, never 0.
+    for (const bad of ['3,1', '2,2', '1', '1,2,3', 'a,b', ',', ',2', '%20,2', '1,', '1,%20'])
       expect(labPlaceOf(`/films/f/lab/a#t=1&loop=${bad}`).loop).toEqual(Option.none());
     // A link from before the key reads as no loop, its time as before.
     expect(labPlaceOf('/films/f/lab/a#t=1')).toMatchObject({

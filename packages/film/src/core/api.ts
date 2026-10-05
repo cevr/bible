@@ -790,8 +790,18 @@ const time = Field.key(maybe(Codec.Finite), {
 const At = Field.struct({ t: time });
 
 /**
+ * One end of an A–B loop: a number written there. A blank end (`,2`, `%20,2`)
+ * is no point, though `Number` reads it as 0.
+ */
+const loopPoint = (text: string): Option.Option<number> =>
+  Option.flatMap(
+    Option.liftPredicate(text, (written) => written.trim() !== ''),
+    Schema.decodeOption(Codec.Finite),
+  );
+
+/**
  * An A–B loop (`loop=10,14`): film seconds, its in point before its out
- * point; anything else reads as no loop.
+ * point; anything else (a blank end among it) reads as no loop.
  */
 const LoopSpan: Schema.Codec<Interval, string> = Schema.String.pipe(
   Schema.decodeTo(
@@ -802,11 +812,7 @@ const LoopSpan: Schema.Codec<Interval, string> = Schema.String.pipe(
           Option.filter(
             Option.flatMap(
               Option.liftPredicate(text.split(','), (parts) => parts.length === 2),
-              ([from = '', to = '']) =>
-                Option.all({
-                  from: Schema.decodeOption(Codec.Finite)(from),
-                  to: Schema.decodeOption(Codec.Finite)(to),
-                }),
+              ([from = '', to = '']) => Option.all({ from: loopPoint(from), to: loopPoint(to) }),
             ),
             (span) => span.to > span.from,
           ),
