@@ -160,6 +160,7 @@ export const sourceOne = {
     { name: 'spot', state: literal },
     { name: 'size', state: literal },
     { name: 'tilt', state: literal },
+    { name: 'lean', state: literal },
   ],
   refused: [],
 };

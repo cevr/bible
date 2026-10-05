@@ -22,6 +22,7 @@ import { contextRows } from '../../command/menu.ts';
 import type { Selection } from '../../command/selection.ts';
 import { EVERYWHERE } from '../../command/target.ts';
 import { type Inspected, refusalOf } from '../../core/field.ts';
+import { toMs } from '../../core/time.ts';
 import { hubChanges, hubKeys } from './changes.ts';
 
 /** How a field prints its value: to the thousandth, as the files keep it, without grouping. */
@@ -52,9 +53,11 @@ export const Field = (props: { readonly field: Inspected; readonly label?: JSX.E
       allowExpressions
       commitOnEnter
       onValueCommitted={(next) => {
-        // A cleared field writes nothing; nor does the value it already has.
+        // A cleared field writes nothing; nor does the value it already has, to
+        // the thousandth the lab writes (`toMs`): a literal finer than the field
+        // prints commits as printed on any Enter or blur, and is left as it is.
         Option.map(
-          Option.filter(Option.fromNullishOr(next), (v) => v !== props.field.value),
+          Option.filter(Option.fromNullishOr(next), (v) => toMs(v) !== toMs(props.field.value)),
           props.field.write,
         );
       }}

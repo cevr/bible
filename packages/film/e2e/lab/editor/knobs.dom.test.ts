@@ -91,6 +91,28 @@ describe('the knob rows', () => {
       ]);
     }).pipe(Effect.scoped),
   );
+
+  it.live('a field finer in the source than it prints writes nothing on Enter or Tab', () =>
+    Effect.gen(function* () {
+      const { page, asked } = yield* openLab([], {
+        href: labAt(1, { selection: { _tag: 'Knob', scene: 'one', name: 'lean' } }),
+      });
+      const field = '.lab-knob[data-knob="lean"] input';
+      yield* page.waitFor(`${field}:not([disabled])`);
+      // `lean` is 0.1234 in the source: the field prints 0.123, and leaving it as it is changes nothing.
+      yield* valueIs(page, field, '0.123');
+      yield* page.pressIn(field, 'Enter');
+      yield* page.pressIn(field, 'Tab');
+      // A write after them, so the page has sent whatever the Enter and the Tab would have.
+      const size = '.lab-knob[data-knob="size"] input';
+      yield* page.fill(size, '30');
+      yield* page.pressIn(size, 'Enter');
+      yield* statusSays(page, 'knob size 24 → 30');
+      expect(posted(asked)).toEqual([
+        { path: '/scenes/one/knobs/size', body: Option.some({ value: 30 }) },
+      ]);
+    }).pipe(Effect.scoped),
+  );
 });
 
 describe('the handles on the frame', () => {
