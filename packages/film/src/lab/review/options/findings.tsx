@@ -1,13 +1,14 @@
 // The film's findings on Choices and Project (UR-37/38): the check after the
 // last write and the sound check after the last pick or knob, read when asked
-// for and never over the player. At rest the write bar holds each check's
-// count, a chip; the chip, Show findings (⌘K, the page's long-press menu)
-// open one Findings sheet beside the page with both checks as groups, each
-// finding's time a button that moves the clock to it. F and ⇧F walk the
+// for and never over the player. Show findings (⌘K, the page's long-press
+// menu) opens one Findings sheet beside the page with both checks as groups,
+// each finding's time a button that moves the clock to it. F and ⇧F walk the
 // clock to the next or previous finding with a time, as they do in the lab.
-// On Project the chips sit in the film's panel, the check's by its count.
-// Until the check answers its chip says it is checking, and a check that
-// failed says so: only an answer counts as clean.
+// At rest only Project shows each check's count, a chip in the film's panel
+// that opens the sheet too (UR2-10, design language §7); Choices keeps the
+// sheet, its command and its keys. Until the check answers its chip says it
+// is checking, and a check that failed says so: only an answer counts as
+// clean.
 
 import { Drawer } from '@bible/ui/drawer';
 import { For, Show } from '@solidjs/web';
@@ -39,6 +40,10 @@ interface Check {
 /** What `check` found, once it has answered: none while it runs, nor once it failed. */
 const found = (check: Check): Option.Option<ReadonlyArray<CheckLine>> =>
   Option.filter(AsyncResult.value(check.result), () => !AsyncResult.isFailure(check.result));
+
+/** How many findings `check` has, as its chip and group are marked: none until it answers. */
+const countOf = (check: Check): Option.Option<string> =>
+  Option.map(found(check), (lines) => String(lines.length));
 
 /** What `check` found: nothing until it answers. */
 const foundBy = (check: Check): ReadonlyArray<CheckLine> =>
@@ -84,32 +89,25 @@ const countText = (name: string, n: number): string =>
     Match.orElse(() => findingsText(name, n)),
   );
 
-/** What a check that has not answered says: `checking…` or `check failed` (with `named`, `check: checking…`). */
-const unansweredText = (name: string, state: 'checking' | 'failed', named: boolean): string =>
-  Match.value({ state, named }).pipe(
-    Match.when({ state: 'checking', named: false }, () => 'checking…'),
-    Match.when({ state: 'failed', named: false }, () => `${name} failed`),
-    Match.when({ state: 'checking' }, () => `${name}: checking…`),
-    Match.orElse(() => `${name}: failed`),
+/** What a check that has not answered says: `checking…` or `check failed`. */
+const unansweredText = (name: string, state: 'checking' | 'failed'): string =>
+  Match.value(state).pipe(
+    Match.when('checking', () => 'checking…'),
+    Match.orElse(() => `${name} failed`),
   );
 
-/**
- * The film's findings sheet, the count chips that open it (the write bar's,
- * each check by its name; with `counts`, the film panel's, by its count),
- * and F/⇧F.
- */
-export const Findings = (props: { readonly counts?: boolean }) => {
-  const counts = props.counts === true;
-  const words = Bool.match(counts, {
-    onTrue: () => countText,
-    onFalse: () => findingsText,
+/** What `check`'s chip says: still checking, failed, or what it found. */
+const chipText = (check: Check) =>
+  Option.match(unanswered(check), {
+    onSome: (state) => unansweredText(check.name, state),
+    onNone: () => countText(check.name, foundBy(check).length),
   });
-  /** What `check`'s chip says: still checking, failed, or what it found. */
-  const chipText = (check: Check) =>
-    Option.match(unanswered(check), {
-      onSome: (state) => unansweredText(check.name, state, !counts),
-      onNone: () => words(check.name, foundBy(check).length),
-    });
+
+/**
+ * The film's findings sheet, Show findings and F/⇧F; with `chips`, the
+ * count chips that open the sheet too (the film panel's on Project).
+ */
+export const Findings = (props: { readonly chips?: boolean }) => {
   const { meta } = useReview();
   const { findings, soundCheck, picture, sync, send } = useFilm();
   const [open, setOpen] = createSignal(false, { ownedWrite: true });
@@ -153,7 +151,7 @@ export const Findings = (props: { readonly counts?: boolean }) => {
         label: 'Show findings',
         group: 'View',
         about: ['Page'],
-        touch: "tap a check's count, or long-press the page, then Show findings",
+        touch: "long-press the page, then Show findings; on Project, tap a check's count",
         when: () => !open(),
         run: () =>
           Effect.sync(() => {
@@ -167,23 +165,23 @@ export const Findings = (props: { readonly counts?: boolean }) => {
   );
   return (
     <>
-      <For each={checks()} keyed={(c) => c.name}>
-        {(check) => (
-          <button
-            type="button"
-            class="sh-btn"
-            data-act="findings"
-            data-check={check().name}
-            data-findings={Option.getOrUndefined(
-              Option.map(found(check()), (lines) => String(lines.length)),
-            )}
-            data-state={stateOf(check())}
-            onClick={() => setOpen(true)}
-          >
-            {chipText(check())}
-          </button>
-        )}
-      </For>
+      <Show when={props.chips === true}>
+        <For each={checks()} keyed={(c) => c.name}>
+          {(check) => (
+            <button
+              type="button"
+              class="sh-btn"
+              data-act="findings"
+              data-check={check().name}
+              data-findings={Option.getOrUndefined(countOf(check()))}
+              data-state={stateOf(check())}
+              onClick={() => setOpen(true)}
+            >
+              {chipText(check())}
+            </button>
+          )}
+        </For>
+      </Show>
       <Show when={open()}>
         <Drawer.Root
           open
@@ -206,7 +204,11 @@ export const Findings = (props: { readonly counts?: boolean }) => {
                 <Drawer.Content class="lab-inspector-body">
                   <For each={checks()} keyed={(c) => c.name}>
                     {(check) => (
-                      <section class="rv-group" data-check={check().name}>
+                      <section
+                        class="rv-group"
+                        data-check={check().name}
+                        data-findings={Option.getOrUndefined(countOf(check()))}
+                      >
                         <h3>
                           {check().name} <span class="lab-count">{foundBy(check()).length}</span>
                         </h3>

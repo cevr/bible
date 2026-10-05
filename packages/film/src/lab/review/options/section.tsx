@@ -231,17 +231,6 @@ export const StepCommands = () => {
   return <></>;
 };
 
-/** The film's checks as counts that open the Findings sheet (`findings.tsx`); Undo and Redo as commands. */
-const WriteBar = () => {
-  const { reading } = useFilm();
-  return (
-    <section class="rv-writes" data-reading={pressed(reading())}>
-      <StepCommands />
-      <Findings />
-    </section>
-  );
-};
-
 /** Each kind's heading, in the order the page shows them. */
 const KINDS: ReadonlyArray<{ readonly kind: ChoiceKind; readonly title: string }> = [
   { kind: 'score', title: 'Score' },
@@ -318,7 +307,7 @@ const variantKeys = (film: string, selection: Selection) =>
   );
 
 const FilmBody = () => {
-  const { film, choices, only } = useFilm();
+  const { film, choices, only, reading } = useFilm();
   // The open sheet is the URL's (`?inspect=`, a variant of the card in focus): a tap on a
   // variant's name names both in one step (Back closes it); Close, Escape and a swipe name
   // none, the card staying in focus; a link, Back and Forward open what they name.
@@ -343,8 +332,10 @@ const FilmBody = () => {
     },
   );
   return (
-    <>
-      <WriteBar />
+    // The page's own box (`display: contents`): says while the film is read again.
+    <div class="rv-choices" data-reading={pressed(reading())}>
+      <StepCommands />
+      <Findings />
       <Player />
       <OnlyShown />
       <For each={KINDS}>
@@ -360,7 +351,7 @@ const FilmBody = () => {
       </Show>
       {/* Every variant's sheet is the page's, whichever cards Show only leaves in. */}
       <ChoiceSheets points={choices().points} />
-    </>
+    </div>
   );
 };
 

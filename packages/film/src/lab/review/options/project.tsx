@@ -765,7 +765,7 @@ const FilmPanel = (props: { readonly at: ProjectValue }) => {
         <span class="pj-film-counts" data-role="counts">
           {`${currentOf(project().scenes)} current · ${approvedOf(project().scenes)} approved`}
         </span>
-        <Findings counts />
+        <Findings chips />
       </div>
       <StateBand at={props.at} />
       <PartInspector

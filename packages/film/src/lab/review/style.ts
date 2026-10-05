@@ -217,8 +217,7 @@ a.rv-card:hover { background: var(--surface-2); }
   .pj-scenes .sc-card[data-size="tile"][data-selected="true"] { box-shadow: inset 2px 0 var(--accent); }
 }
 .rv-tag[data-state="stale"] { color: var(--state-stale); }
-.rv-writes { background: var(--surface-1); border: var(--border); border-radius: var(--r-2); padding: var(--s-2) var(--s-3); margin-bottom: var(--s-3); }
-.rv-writes { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.rv-choices { display: contents; }
 .rv-group + .rv-group { margin-top: var(--s-4); }
 .rv-group h3 { display: flex; gap: var(--s-2); align-items: baseline; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-2); }
 .rv-at { font: inherit; font-variant-numeric: tabular-nums; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }

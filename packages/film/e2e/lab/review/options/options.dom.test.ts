@@ -866,14 +866,16 @@ describe("a film's choices", () => {
           variant: 'piano',
           verb: 'pick',
         });
-        // The sound check runs after the pick: its count at rest, F walks the clock to its
-        // finding's time (UR-37/38), and the count opens the Findings sheet that lists it.
-        const soundCount = '[data-act="findings"][data-check="sound check"]';
-        yield* waitFor(page, `${soundCount}[data-findings="1"]`);
-        yield* countIs(page, '[data-role="findings"]', 0);
-        yield* page.press('f');
-        yield* until(page, "location.hash === '#t=2'");
-        yield* click(page, soundCount);
+        // The sound check runs after the pick: Show findings opens the Findings sheet that
+        // lists it, and F walks the clock to its finding's time (UR-37/38); Choices shows no
+        // check's count at rest (UR2-10).
+        yield* countIs(page, '[data-act="findings"]', 0);
+        yield* openCommandMenu(page, 'findings');
+        yield* click(page, menuEntry('review.findings'));
+        yield* waitFor(
+          page,
+          '[data-role="findings"] [data-check="sound check"][data-findings="1"]',
+        );
         yield* textHas(
           page,
           '[data-role="findings"] [data-check="sound check"] li',
@@ -886,6 +888,8 @@ describe("a film's choices", () => {
         );
         yield* click(page, '[data-act="close-findings"]');
         yield* countIs(page, '[data-role="findings"]', 0);
+        yield* page.press('f');
+        yield* until(page, "location.hash === '#t=2'");
         // Every mix is asked for again once the source has changed.
         yield* until(page, `${MIX}.endsWith('&v=1')`);
 
@@ -1157,7 +1161,7 @@ describe("a film's choices", () => {
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 2 }),
           Effect.timeout('10 seconds'),
         );
-        yield* attributeIs(page, '.rv-writes', 'data-reading', 'true');
+        yield* attributeIs(page, '.rv-choices', 'data-reading', 'true');
         // Said while the read is out: the say answers the choices with the comment.
         yield* inspect(page, at('score', 'strings'));
         yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'warmer in the close');
@@ -1165,7 +1169,7 @@ describe("a film's choices", () => {
         yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         // The older read lands last: the page has read it, and the comment stays.
         yield* Deferred.done(land, Exit.void);
-        yield* attributeIs(page, '.rv-writes', 'data-reading', 'false');
+        yield* attributeIs(page, '.rv-choices', 'data-reading', 'false');
         yield* countIs(page, `${INSPECTOR} [data-comment="c1"]`, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -1284,7 +1288,7 @@ describe("a film's choices", () => {
           { href: FILM },
         );
         const knob = '[data-knob="level:const:PAPER"]';
-        const findings = '[data-act="findings"][data-check="check"]';
+        const findings = '[data-role="findings"] [data-check="check"]';
         yield* waitFor(page, `${knob} input`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* Effect.sync(() => asked.some((a) => a.path === '/api/films/toy/choices/pick')).pipe(
@@ -1297,6 +1301,8 @@ describe("a film's choices", () => {
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
           })()`);
+        yield* openCommandMenu(page, 'findings');
+        yield* click(page, menuEntry('review.findings'));
         yield* attributeIs(page, findings, 'data-findings', '1');
         yield* receiptSays(page, 'level:const:PAPER: -24 → -20 dB');
         // The pick lands last: the knob's check, asked after it, stays, and
