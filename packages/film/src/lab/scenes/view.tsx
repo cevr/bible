@@ -182,7 +182,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   const select = (scene: Option.Option<string>) => {
     setAdded([]);
     if (Option.getOrElse(scene, () => '') === Option.getOrElse(chosen(), () => '')) return;
-    Option.map(withScene(address.href(), scene), address.push);
+    Option.map(withScene(address.href(), scene), address.go);
     setChosen(scene);
   };
   /** Add `scene` to the selection, or take it out: the first one picked is the path's. */

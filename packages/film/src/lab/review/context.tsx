@@ -76,8 +76,8 @@ import {
 } from './machine.ts';
 import {
   ReviewPlace,
+  causeOf,
   destinationsOf,
-  historyOf,
   hrefOf,
   keptTime,
   placeOf,
@@ -288,7 +288,7 @@ export const Root = (
     createEffect(
       () => legacyPlace(href()),
       (moved) => {
-        Option.map(moved, address.replace);
+        Option.map(moved, address.follow);
       },
     );
     const index = useAtomValue(() => indexAtom);
@@ -308,7 +308,7 @@ export const Root = (
       state: { place, index, films, quality, lightbox },
       actions: {
         go: (next) => {
-          address.push(hrefOf(next));
+          address.go(hrefOf(next));
           window.scrollTo(0, 0);
         },
         refresh: () => {
@@ -534,7 +534,7 @@ const SetBody = (
   const address = addressOn(meta.host);
   const sendView = (event: ViewEvent) =>
     Option.map(at(), (v) =>
-      address[historyOf(event)](
+      address[causeOf(event)](
         Place.href(Places.set, {
           ...v,
           query: { ...v.query, ...queryOfView(stepView(view(), other, event)) },
@@ -550,7 +550,7 @@ const SetBody = (
         Place.href(Places.set, { ...v, query: { ...v.query, ...queryOfView(view()) } }),
       ),
     (shown) => {
-      Option.map(shown, address.replace);
+      Option.map(shown, address.follow);
     },
   );
   // The player's time is kept in the hash (`#t=`, throttled), so a link

@@ -676,9 +676,16 @@ listens; a box binds `0.0.0.0` with the names it is reached by in
 pasted link opens what the sender saw and Back walks the views: the path
 says what the view is about, the query what is selected in it or how it is
 shown, the hash when (`#t=`, seconds). Each page reads and writes its place
-through `@bible/url-state` (`UrlState`: a selection is a history entry; a
-refinement and the playhead replace the entry), and every link is printed by
-`pageHref` over the same places.
+through `@bible/url-state`, and every link is printed by `pageHref` over the
+same places. Whether a move is a step Back walks is the place's declaration
+alone (`pageMove`, `core/api.ts`): a new path or a cited key (a selection,
+a view, a moment chosen, the compare's mode) is a history entry; a
+refinement and the playhead replace the entry. A page names only why it
+moves (`addressOn`, `browser/host.ts`): the viewer went somewhere (`go`,
+entered as the place declares), or the URL follows what the page did on its
+own (`follow`: play, a drag, a ←/→ step through the moments, a correction, a
+note gone from the feed, an old link's redirect), which always rewrites the
+entry.
 
 | Place                            | Page   | Query                                                                                                                   | Hash                         |
 | -------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
@@ -696,8 +703,12 @@ The lab writes a scene's place (`lab/place.ts`): the path names the
 selected cue's or knob's scene, else the scene under the playhead, so play
 or a seek across a scene's end moves the path and rebases `#t=` in one
 write, and a write's reload comes back to the frame, the pick and the note.
-A pick and a note are history entries (Back undoes them); the time replaces
-the entry, and Back or Forward lands the player on the time the entry keeps
+A pick and a note are history entries (Back undoes them). Each time write
+names its cause (`TimeInUrl.write(T, cause)`, `player/t-in-url.ts`): play,
+a drag and a pause are `'play'` and rewrite the entry, even across a cut; a
+jump (`]`, `[`, a frame step, ⌘K to a scene, Go to, a press on the track)
+is the viewer's move, so a jump into another scene is a step Back walks,
+and one inside the scene rewrites the entry. Back or Forward lands the player on the time the entry keeps
 (`onTraverse`, `browser/host.ts`; the review's players too), a time still
 waiting to be written for the entry left dropped. A bare `#<seconds>` (an old link's film time) opens on that frame.
 A film's Scenes (`lab/scenes/`) is its **tape**: the whole film end to end

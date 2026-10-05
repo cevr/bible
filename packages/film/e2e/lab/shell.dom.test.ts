@@ -110,6 +110,41 @@ describe('the lab shell', () => {
   );
 
   it.live(
+    'a scene jump is a step Back walks: Back lands on the scene before at its frame, still in the lab',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(0.5) });
+        yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+        yield* page.press(']');
+        yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
+        yield* page.press(']');
+        yield* evaluates(page, 'location.pathname', '/films/probe/lab/three');
+        yield* page.back;
+        yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
+        yield* textHas(page, '.bar .scene', 'two');
+        yield* page.back;
+        yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+        yield* evaluates(page, `Math.abs(${T} - 0.5) < 0.002`, true);
+        yield* textHas(page, '.bar .scene', 'one');
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('a drag along the track across a cut writes the path in place: no step of its own', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(0.5) });
+      yield* page.until('(globalThis.openedWith = history.length) > 0');
+      const track = yield* page.box('.bar .track');
+      const y = track.y + track.height / 2;
+      yield* page.mouse.move(track.x + 2, y);
+      yield* page.mouse.down;
+      yield* page.mouse.move(track.x + track.width * 0.95, y, 12);
+      yield* page.mouse.up;
+      yield* evaluates(page, 'location.pathname', '/films/probe/lab/three');
+      yield* evaluates(page, 'history.length - globalThis.openedWith', 0);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live(
     'a link with a bare film time (an old one) opens on that frame, written as its place',
     () =>
       Effect.gen(function* () {

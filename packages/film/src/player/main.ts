@@ -400,11 +400,11 @@ export const mountPreview = (
   /**
    * T in the URL (`time`, the page's own place), so a reload lands on this
    * frame (`tInUrl`): written at most every HASH_MS while T moves, at once
-   * when it settles (a seek, the end of a scrub, play or pause, the film's
-   * end), and held at the frame a lab write was asked at. A frame loop that
-   * wrote it every frame cost a history call per frame.
+   * when it settles (the end of a scrub, play or pause, the film's end) or
+   * jumps (a seek), and held at the frame a lab write was asked at. A frame
+   * loop that wrote it every frame cost a history call per frame.
    */
-  const url = tInUrl(() => time.write(T), HASH_MS, timersOn(host));
+  const url = tInUrl((cause) => time.write(T, cause), HASH_MS, timersOn(host));
 
   /** The lab's edits, drawn over the film's own (`Player.showEdits`). */
   let edits: ReadonlyMap<string, ShownEdit> = new Map();
@@ -444,10 +444,10 @@ export const mountPreview = (
     draw();
   };
 
-  /** Show `t`, and settle there: `#t=` is written at once. */
+  /** Jump to `t`: `#t=` is written at once, as a jump. */
   const seek = (t: number) => {
     scrub(t);
-    url.settled();
+    url.jumped();
   };
 
   // Back or Forward shows the frame the entry landed on keeps, as the lab
@@ -502,11 +502,13 @@ export const mountPreview = (
     return playing;
   };
 
-  // A drag on the track scrubs; it settles where it ends, lifted or taken by the browser (a page pan).
+  // A press on the track jumps there; a drag from it scrubs, and settles
+  // where it ends, lifted or taken by the browser (a page pan).
   track.addEventListener('pointerdown', (e) => {
     const r = track.getBoundingClientRect();
-    const move = (ev: PointerEvent) => scrub(((ev.clientX - r.left) / r.width) * film.duration);
-    move(e);
+    const tAt = (ev: PointerEvent) => ((ev.clientX - r.left) / r.width) * film.duration;
+    const move = (ev: PointerEvent) => scrub(tAt(ev));
+    seek(tAt(e));
     const letGo = holdTick(e);
     Effect.runForkWith(host)(
       Pointer.use((pointer) =>

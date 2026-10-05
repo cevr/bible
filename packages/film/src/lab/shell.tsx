@@ -245,13 +245,13 @@ const Root = (props: RootProps) => {
         place();
         return () => pinned.delete(layer);
       },
-      select: (selection) => address.push(picked({ selection })),
-      selectNote: (note) => address.push(picked({ note })),
-      forgetNote: () => address.replace(picked({ note: Option.none() })),
+      select: (selection) => address.go(picked({ selection })),
+      selectNote: (note) => address.go(picked({ note })),
+      forgetNote: () => address.follow(picked({ note: Option.none() })),
       compareBy: (view) => {
-        if (view !== untrack(() => here().view)) address.push(picked({ view }));
+        if (view !== untrack(() => here().view)) address.go(picked({ view }));
       },
-      keepCompare: (view) => address.replace(picked({ view })),
+      keepCompare: (view) => address.follow(picked({ view })),
       showMode: page.showMode,
     },
     meta: {
