@@ -10,7 +10,7 @@ import { Match, Option } from 'effect';
 import type { PageName } from '../core/api.ts';
 import type { Selection, SelectionTag } from './selection.ts';
 
-/** The lab's modes, one at a time (the mode tray): `?mode=` once the tray lands. */
+/** The lab's modes, one at a time (the mode tray). */
 type LabMode = 'edit' | 'note' | 'motion' | 'compare' | 'record';
 
 /**

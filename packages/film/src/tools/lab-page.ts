@@ -17,8 +17,8 @@
 // watch hears it (judged once no build is reading), and a look asks a build
 // whose files print as they stand (`built`). Each change to
 // one of those files is numbered (the build), and an open page that waits on
-// `/api/review/build?since=` hears of it and reloads onto the new code, as
-// the development server's hot reload did. A film's mixed track
+// `/api/review/build?since=` hears of it and reloads onto the new code. A
+// film's mixed track
 // (`narration/full.wav`) is no source, but a page plays the one it loaded:
 // once one is asked for, there or not (a film before its first mix), its
 // folder is watched too, or the nearest one there on the way to it until the
@@ -587,10 +587,11 @@ const bodyWith = (attributes: string, extra: string): string => {
 /**
  * A built page split around where its render goes: before, the page up to
  * its body's opening tag, with the render's head before `</head>` and its
- * body's class on `<body>`; after, the rest of the body, the page's own
- * scripts in it (a module script runs once the document is whole, so the
- * browser's copy finds the markup, whatever their order). None for a page
- * with no head or body to put them in.
+ * body's class on `<body>`; after, the rest of the body. The page's own
+ * scripts and stylesheet are in its head (Bun's HTML bundler puts them
+ * there), so they are in before and fetched while the render streams; a
+ * module script still waits until the document ends, so the browser's copy
+ * finds the markup. None for a page with no head or body to put them in.
  */
 export const splice = (
   html: string,

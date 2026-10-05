@@ -211,8 +211,9 @@ const keeping = Effect.fn('studio.keeping')(function* (
     Effect.catchTag('TakeMismatch', (error) => mismatch(error, attempt)),
   );
   const timings = yield* timingsOf(film);
-  // An older film CLI answers whether it mixed alone: the take is the one the
-  // timings name now, and what was heard of it is in its attempt's ledger.
+  // An answer that names no take, heard or wer (`OptionsKept` leaves them
+  // optional): the take is the one the timings name now, and what was heard
+  // of it is in its attempt's ledger.
   const take = yield* Option.match(
     Option.orElse(Option.fromUndefinedOr(kept.take), () =>
       Option.fromUndefinedOr(timings.scenes[beat]),
