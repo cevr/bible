@@ -700,6 +700,40 @@ describe("a film's project", () => {
   );
 
   it.live(
+    "the film's check reads as checking until it answers, and a check that fails says so: never clean before the check has found nothing",
+    () =>
+      Effect.gen(function* () {
+        const chip = `${FILM} [data-act="findings"][data-check="check"]`;
+        const land = yield* Deferred.make<void>();
+        const held = route('GET', /^\/api\/films\/toy\/check$/, () =>
+          later(land, json({ findings: [CLOSE_FINDING], undo: LAST_WRITE })),
+        );
+        const { page, errors } = yield* openReview([held, ...fakeProject()], {
+          href: PROJECT,
+          viewport: LAPTOP,
+        });
+        yield* waitFor(page, `${FILM} .pj-band [data-scene]`);
+        yield* textIs(page, chip, 'checking…');
+        yield* attributeIs(page, chip, 'data-state', 'checking');
+        yield* Deferred.done(land, Exit.void);
+        yield* textIs(page, chip, '1 finding');
+
+        const failing = route('GET', /^\/api\/films\/toy\/check$/, () =>
+          refused(FreshProcessFailed.make({ command: 'film check', reason: 'exit 1' })),
+        );
+        const failed = yield* openReview([failing, ...fakeProject()], {
+          href: PROJECT,
+          viewport: LAPTOP,
+        });
+        yield* waitFor(failed.page, `${FILM} .pj-band [data-scene]`);
+        yield* textIs(failed.page, chip, 'check failed');
+        yield* attributeIs(failed.page, chip, 'data-state', 'failed');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'on a laptop each act is a panel (its name · scenes · length · approved) holding its scene cards in one row, the acts one under another',
     () =>
       Effect.gen(function* () {

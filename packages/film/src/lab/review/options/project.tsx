@@ -452,7 +452,7 @@ const SceneRow = (props: {
   const marks = () =>
     marksOf(
       Option.some(props.at.view()),
-      Option.getOrElse(findings(), () => []),
+      Option.getOrElse(AsyncResult.value(findings()), () => []),
     )(props.scene.scene);
   const card = (size: 'tile' | 'focus', picture: JSX.Element, verb: JSX.Element) => (
     <SceneCard
@@ -771,7 +771,7 @@ const StateBand = (props: { readonly at: ProjectValue }) => {
   const marks = () =>
     marksOf(
       Option.some(props.at.view()),
-      Option.getOrElse(findings(), () => []),
+      Option.getOrElse(AsyncResult.value(findings()), () => []),
     );
   return (
     <div class="pj-band" aria-hidden="true">

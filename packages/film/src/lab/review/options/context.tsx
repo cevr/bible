@@ -175,8 +175,11 @@ interface FilmContextValue {
   readonly choices: Accessor<FilmChoices>;
   /** Whether the choices are being read again (after an undo or a redo). */
   readonly reading: Accessor<boolean>;
-  /** The film's static check: as first read, then as the last source write answered it. */
-  readonly findings: Accessor<Option.Option<ReadonlyArray<CheckLine>>>;
+  /**
+   * The film's static check: as first read (waiting until it answers, or why
+   * it failed), then as the last source write answered it.
+   */
+  readonly findings: Accessor<AsyncResult.AsyncResult<ReadonlyArray<CheckLine>, LabFailure>>;
   /**
    * What Undo and Redo would do now; none while they are read again after a
    * write, so no step is taken (nor a receipt's judged) on a history the
@@ -390,9 +393,10 @@ const FilmBody = (
   };
   const [answered, setAnswered] = createSignal(Option.none<ReadonlyArray<CheckLine>>());
   const findings = createMemo(() =>
-    Option.orElse(answered(), () =>
-      Option.map(AsyncResult.value(check()), (report) => report.findings),
-    ),
+    Option.match(answered(), {
+      onSome: (lines) => AsyncResult.success<ReadonlyArray<CheckLine>>(lines),
+      onNone: () => AsyncResult.map(check(), (report) => report.findings),
+    }),
   );
   const steps = createMemo(() =>
     Option.filter(
