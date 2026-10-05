@@ -161,7 +161,7 @@ a.rv-card:hover { background: var(--surface-2); }
  * Project (design language §7): the transport docked (over the tab bar on a
  * phone, under the header across the page on a laptop) or the line that says
  * the film has no render; the film's panel, its state band a segment a scene
- * in its state's colour (else its hue); each act a panel, its name in caps,
+ * in its hue, its state's colour at its foot; each act a panel, its name in caps,
  * holding its scenes: one row of cards on a laptop (the act's arrangement,
  * scrolling sideways when it runs long), a row each on a phone, edge to edge.
  */
@@ -169,23 +169,33 @@ a.rv-card:hover { background: var(--surface-2); }
   background: none; }
 .pj-no-cut { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pj-film { margin-bottom: var(--s-4); }
-.pj-film-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-3); min-height: var(--hit); }
+/* Its lines stand apart, so the chip's hit-slop never reaches the name's line. */
+.pj-film-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); min-height: var(--hit); }
 .pj-film-head > .lab-named { font-size: var(--fs-4); font-weight: var(--w-3); }
-/* The findings chip is the line's target: as tall as the line, its neighbours too near for spacing. */
-.pj-film-head .rv-chip { min-height: var(--hit); }
+/*
+ * The findings chip is drawn small, as the mock has it; its target is the
+ * line's height through a hit-slop (its neighbours are too near for spacing).
+ */
+.pj-film-head .rv-chip { position: relative; min-height: var(--control-h); }
+.pj-film-head .rv-chip::before { content: ''; position: absolute; left: 0; right: 0;
+  top: min(0px, calc((var(--control-h) - var(--hit)) / 2)); bottom: min(0px, calc((var(--control-h) - var(--hit)) / 2)); }
 .pj-film-length, .pj-film-counts { color: var(--text-2); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
-.pj-band { display: flex; height: var(--s-1); margin: var(--s-2) 0 var(--s-3); }
-.pj-band span { flex-basis: 0; min-width: 0; background: var(--hue); box-shadow: inset -1px 0 var(--surface-0); }
-.pj-band span[data-state="stale"] { background: var(--state-stale); }
-.pj-band span[data-state="rendered"] { background: var(--state-rendered); }
-.pj-band span[data-state="approved"] { background: var(--state-approved); }
-.pj-band span[data-state="findings"] { background: var(--state-findings); }
-.pj-band span[data-state="warning"] { background: var(--state-warning); }
+/* A segment a scene in its hue, its state a foot of the state's colour, a dot when it has findings. */
+.pj-band { display: flex; gap: 1px; height: calc(var(--s-2) + 2px); margin: var(--s-2) 0 var(--s-3); }
+.pj-band span { position: relative; flex-basis: 0; min-width: 0; background: var(--hue); }
+.pj-band span[data-state="stale"] { box-shadow: inset 0 -2px 0 var(--state-stale); }
+.pj-band span[data-state="rendered"] { box-shadow: inset 0 -2px 0 var(--state-rendered); }
+.pj-band span[data-state="approved"] { box-shadow: inset 0 -2px 0 var(--state-approved); }
+.pj-band span:is([data-state="findings"], [data-state="warning"])::after { content: ''; position: absolute;
+  right: 2px; top: 2px; width: var(--s-1); height: var(--s-1); border-radius: 50%; background: var(--state-findings); }
+.pj-band span[data-state="warning"]::after { background: var(--state-warning); }
 .pj-act, .pj-loose { margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter) var(--s-4); border-top: var(--border); }
 .pj-act-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-2); min-height: var(--hit);
   color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
 .pj-act-head > .lab-named { color: var(--text-1); font-weight: var(--w-2); text-transform: uppercase;
   letter-spacing: var(--track-caps); }
+/* A button sets its own case: the name's button takes the head's caps. */
+.pj-act-head > .lab-named .lab-inspect { text-transform: inherit; letter-spacing: inherit; }
 .pj-act-meta { font-variant-numeric: tabular-nums; }
 .pj-loose { padding-top: var(--s-3); }
 .pj-scenes { display: grid; gap: var(--s-3); }
@@ -194,7 +204,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-scene { min-width: 0; cursor: pointer; }
 @media (min-width: 900px) {
   .pj-dock { margin: calc(-1 * var(--s-4)) calc(-1 * var(--gutter)) var(--s-4); }
-  .pj-scenes { grid-auto-flow: column; grid-auto-columns: minmax(12rem, 14rem); justify-content: start;
+  .pj-scenes { grid-auto-flow: column; grid-auto-columns: 13.5rem; justify-content: start;
     overflow-x: auto; padding-bottom: var(--s-1); }
 }
 @media (max-width: 899px) {
