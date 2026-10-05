@@ -237,6 +237,14 @@ describe('the review served as the lab renders it', () => {
         yield* countIs(film.page, `[${PAGE_ROOT}]`, 0);
         expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(1);
         expect(film.errors).toEqual([]);
+        // A render that ends before its cut is sent whole, unmarked, and hydrated.
+        const whole = yield* openServed('review', routes, {
+          href: pageHref.choices(TOY),
+          cut: '30 seconds',
+        });
+        expect(whole.documents[0]?.html ?? '').not.toContain(PAGE_CUT_MARK);
+        yield* countIs(whole.page, `[${PAGE_ROOT}]`, 1);
+        expect(whole.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );

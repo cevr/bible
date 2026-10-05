@@ -210,7 +210,7 @@ describe('lab pages', () => {
     "a script's coding over HTTP is the server's compression's own, before and after its best brotli is made: a header Effect refuses whole is answered as it is",
     () =>
       Effect.gen(function* () {
-        const { page, write } = yield* app;
+        const { ask, page, write } = yield* app;
         yield* write('src/lab.ts', `console.log('${'the lab '.repeat(400)}');\n`);
         const handler = yield* serveApi(LabHttpApi, Layer.empty, {
           allowed: { hosts: [] },
@@ -251,10 +251,12 @@ describe('lab pages', () => {
         const cold = yield* Effect.forEach(headers, (accept) => codingOf('/', accept));
         expect(cold.slice(0, 6)).toEqual(['br', 'br', 'gzip', 'br', 'br', '']);
         expect(cold.slice(6)).toEqual(['', '', '', '']);
-        // Ready: the script's best brotli made, and sent for the same headers, and only those.
-        yield* codingOf(src, 'br').pipe(
+        // Ready: the script's best brotli made (the page's own answer sends it compressed only
+        // once made, where over HTTP the compression would send br anyway), then sent for the
+        // same headers, and only those.
+        yield* ask(src, 'GET', { 'accept-encoding': 'br' }).pipe(
           Effect.repeat({
-            until: (coding) => coding === 'br',
+            until: (asked) => asked.encoding === 'br',
             schedule: Schedule.spaced('50 millis'),
           }),
           Effect.timeout('4 seconds'),

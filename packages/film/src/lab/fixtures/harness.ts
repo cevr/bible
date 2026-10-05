@@ -763,7 +763,7 @@ interface OpenServed extends OpenLab {
  * splices it (`splice`, `tools/lab-page.ts`); the browser's script (the
  * real entry, with Solid's development build) hydrates it. The page's own
  * requests are kept in `asked`. Done once the page says it is hydrated (a
- * page whose render was cut, `at.cut`: rendered anew); a
+ * page served cut, its render past `at.cut`: rendered anew); a
  * render that fails on the way (one that writes state among them, `served`)
  * is answered as an error and fails the open at once, in its words, where
  * the page would wait for a document that never comes.
@@ -813,8 +813,15 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
     serve: fakeServer(servedBy(name, document), spec.prefix, all, asked),
   });
   yield* page.goto(at.href ?? spec.home);
-  // A cut page is rendered anew; any other hydrates the server's markup.
-  const mounted = Option.match(cut, { onNone: () => 'hydrated', onSome: () => 'rendered' });
+  // A page served cut (its document carries the mark) is rendered anew; any other,
+  // a render that ended before `at.cut` among them, hydrates the server's markup.
+  const servedCut = Option.exists(Arr.last(documents), (served) =>
+    served.html.includes(PAGE_CUT_MARK),
+  );
+  const mounted = Option.match(Option.liftPredicate(servedCut, Boolean), {
+    onNone: () => 'hydrated',
+    onSome: () => 'rendered',
+  });
   yield* Effect.raceFirst(
     page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === '${mounted}'`, {
       now: `document.body.getAttribute('${PAGE_MOUNTED}')`,
