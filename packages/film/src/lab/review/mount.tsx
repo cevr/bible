@@ -5,14 +5,14 @@
 
 import { type JSX, Show, render } from '@solidjs/web';
 import { Location, parseHref } from '@bible/url-state';
-import { Effect, Match, Option } from 'effect';
+import { Effect, Equal, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { createEffect } from 'solid-js';
+import { createEffect, createMemo } from 'solid-js';
 import type { ReviewIndex } from '../../core/review.ts';
 import { Root, useReview } from './context.tsx';
 import { Inspecting } from './inspector.tsx';
 import { folderTitle } from './format.ts';
-import { type ReviewPlace, placeOf } from './place.ts';
+import { ReviewPlace, placeOf } from './place.ts';
 import { ProjectPage } from './options/project.tsx';
 import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, SetPage } from './section.tsx';
@@ -143,11 +143,24 @@ const Shell = (props: { readonly children: JSX.Element }) => {
   );
 };
 
+/**
+ * The page `place` is on: Choices' card in focus (`?point=`) is that page's
+ * own state, read from the URL by the page, so a tap, a Back or a Forward
+ * moving it keeps the page (its player, its open sheet) instead of drawing
+ * it again.
+ */
+const pageOf = (place: ReviewPlace): ReviewPlace =>
+  Match.value(place).pipe(
+    Match.tag('Film', (p) => ReviewPlace.Film({ film: p.film, point: '' })),
+    Match.orElse(() => place),
+  );
+
 const Page = () => {
   const { state } = useReview();
+  const page = createMemo(() => pageOf(state.place()), { equals: Equal.equals });
   return (
     <main class="rv-main">
-      {Match.value(state.place()).pipe(
+      {Match.value(page()).pipe(
         Match.tagsExhaustive({
           Home: () => <Home />,
           Folder: (p) => <FolderPage folder={p.folder} />,

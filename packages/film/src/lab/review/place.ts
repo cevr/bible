@@ -28,7 +28,7 @@ export type ReviewPlace = Data.TaggedEnum<{
 export const ReviewPlace = Data.taggedEnum<ReviewPlace>();
 
 /** What a comparison set's URL keeps of its view: its name, a pair's other, the moment. */
-export type SetQuery = Place.Type<typeof Places.set>['query'];
+export type SetQuery = Omit<Place.Type<typeof Places.set>['query'], 'inspect'>;
 
 /** The place `href` names; home when it names none of the review's. */
 export const placeOf = (href: string): ReviewPlace =>

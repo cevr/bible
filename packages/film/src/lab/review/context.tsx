@@ -472,14 +472,20 @@ const SetBody = (
   const sendView = (event: ViewEvent) =>
     Option.map(at(), (v) =>
       address[historyOf(event)](
-        Place.href(Places.set, { ...v, query: queryOfView(stepView(view(), other, event)) }),
+        Place.href(Places.set, {
+          ...v,
+          query: { ...v.query, ...queryOfView(stepView(view(), other, event)) },
+        }),
       ),
     );
   // A link asking for what the set cannot show (a pair on a set of one, an
   // other it does not hold) shows what `viewOf` makes of it, and the URL is
   // corrected to say so, in the same entry.
   createEffect(
-    () => Option.map(at(), (v) => Place.href(Places.set, { ...v, query: queryOfView(view()) })),
+    () =>
+      Option.map(at(), (v) =>
+        Place.href(Places.set, { ...v, query: { ...v.query, ...queryOfView(view()) } }),
+      ),
     (shown) => {
       Option.map(shown, address.replace);
     },

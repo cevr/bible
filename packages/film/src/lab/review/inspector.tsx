@@ -13,16 +13,21 @@
 // standing on the tab bar and the dock (design language §7), swiped down,
 // whose grip lowers it to a peek and raises it again. Escape closes it; its
 // footer prints the keys of the commands about the thing while the pointer or
-// the focus is in it (`Hint`). A page may keep which one is open in its URL
-// (`useInspectorPlace`, the Project's `?point=`): the URL then owns it, so a
-// link, Back and Forward open and close it.
+// the focus is in it (`Hint`). A page keeps which one is open in its URL
+// (`useInspectorPlace`: the Project's `?point=`, Choices' and a Set's
+// `?inspect=`): the URL then owns it, so a link, Back and Forward open and
+// close it, and its dismissal adds no entry to history.
 
+import { useAtomValue } from '@bible/atom-solid';
 import { Drawer } from '@bible/ui/drawer';
+import { Location, Place, UrlState } from '@bible/url-state';
+import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, Show } from '@solidjs/web';
-import { Boolean as Bool, Option } from 'effect';
+import { Boolean as Bool, Effect, Option } from 'effect';
 import {
   type Accessor,
   createContext,
+  createEffect,
   createMemo,
   createSignal,
   onCleanup,
@@ -33,6 +38,7 @@ import type { Hub } from '../../command/hub.ts';
 import type { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
 import { Hint } from '../command/inspector.tsx';
+import { useReview } from './context.tsx';
 import { pressed } from './format.ts';
 import { type OpenAt, type Thing, type Things, thingCommands } from './things.ts';
 
@@ -170,10 +176,92 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
   return <InspectingContext value={value}>{props.children}</InspectingContext>;
 };
 
-/** Keep the open inspector in the calling page's URL (`InspectorPlace`) for as long as the page lives. */
-export const useInspectorPlace = (place: InspectorPlace): void => {
+/**
+ * Where a page's URL names its open inspector: the page's place, the thing a
+ * value of it names open, that value naming `selection` open (none: the URL
+ * has no name for the thing, and its inspector stays shut), and that value
+ * naming none open. The key it is kept in is the page's own, `cited` (a
+ * change of it is a step in history).
+ */
+interface InspectorQuery<A> {
+  readonly place: Place.Place<A>;
+  readonly named: (value: A) => Option.Option<Selection>;
+  readonly naming: (value: A, selection: Selection) => Option.Option<A>;
+  readonly cleared: (value: A) => A;
+}
+
+/**
+ * Keep the open inspector in the calling page's URL (`InspectorQuery`) for as
+ * long as the page lives: a tap names the thing, a step of its own, so Back
+ * closes it; a link, Back and Forward open what they name. Dismissing it
+ * (Close, Escape, a swipe) adds no entry: the entry a tap here pushed to open
+ * it is gone Back over, so a Back after the Close leaves the page's entry
+ * before it, not the sheet again; any other (a link's, a reload's, one a
+ * Forward landed on after a Close) is replaced by one naming none.
+ */
+export const useInspectorPlace = <A,>(query: InspectorQuery<A>): void => {
   const inspecting = useInspecting();
-  onCleanup(inspecting.bind(place));
+  const { meta } = useReview();
+  const at = useAtomValue(() => UrlAtom.place(query.place));
+  const entry = useAtomValue(() => UrlAtom.entry);
+  // Read once, as the entry lands: what the page holds then (its choices, its variant) names it.
+  const namesOpen = (value: A, key: string) =>
+    untrack(() => Option.exists(query.named(value), (s) => targetAttr(s) === key));
+  // The thing a tap named on a closed sheet and the entry it was named on, until the next
+  // entry lands; then, when that entry is a new one naming it, the entry's key. A new entry is
+  // known by its key, not by how the entry on screen last arrived: the push may be replaced
+  // in the same tick (the player keeping its time), and a replace keeps the key.
+  let opening = Option.none<{ readonly thing: string; readonly from: string }>();
+  let openedBy = Option.none<string>();
+  createEffect(entry, (e) => {
+    const pushed =
+      e.navigation !== 'traverse' &&
+      Option.exists(opening, (o) => o.from !== e.key) &&
+      Option.exists(Place.decode(query.place, e.href), (v) =>
+        Option.exists(opening, (o) => namesOpen(v, o.thing)),
+      );
+    if (pushed) openedBy = Option.some(e.key);
+    opening = Option.none();
+  });
+  const name = (selection: Selection) =>
+    Effect.runSyncWith(meta.host)(
+      Effect.gen(function* () {
+        const here = yield* (yield* Location).current;
+        const now = yield* UrlState.get(query.place);
+        for (const value of Option.toArray(now)) {
+          for (const next of Option.toArray(query.naming(value, selection))) {
+            if (Option.isNone(query.named(value)))
+              opening = Option.some({ thing: targetAttr(selection), from: here.key });
+            yield* UrlState.set(query.place, next);
+          }
+        }
+      }),
+    );
+  const dismiss = () =>
+    Effect.runSyncWith(meta.host)(
+      Effect.gen(function* () {
+        const location = yield* Location;
+        const here = yield* location.current;
+        const ours = Option.contains(openedBy, here.key);
+        openedBy = Option.none();
+        if (ours) return yield* location.back;
+        const state = yield* UrlState.UrlState;
+        const named = Option.filter(yield* UrlState.get(query.place), (v) =>
+          Option.isSome(query.named(v)),
+        );
+        for (const value of Option.toArray(named))
+          yield* state.navigate(Place.href(query.place, query.cleared(value)), {
+            history: 'replace',
+            throttle: Option.none(),
+          });
+      }),
+    );
+  onCleanup(
+    inspecting.bind({
+      named: () => Option.flatMap(at(), query.named),
+      name: (selection) => Option.match(selection, { onNone: dismiss, onSome: name }),
+    }),
+  );
 };
 
 /** Register `thing` for as long as the calling row is shown. */

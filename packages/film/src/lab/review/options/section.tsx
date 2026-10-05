@@ -18,6 +18,7 @@ import { Places } from '../../../core/api.ts';
 import { Duration, Effect, Fiber, Option } from 'effect';
 import { playableOf } from '../../../browser/media-browser.ts';
 import { type Command, type CommandId, quiet } from '../../../command/command.ts';
+import { Selection } from '../../../command/selection.ts';
 import {
   type ChoiceKind,
   type ChoicePoint,
@@ -30,6 +31,7 @@ import { Findings } from './findings.tsx';
 import { stepWhyNot } from '../../api.ts';
 import { useReview } from '../context.tsx';
 import { pressed, sizeText, videoSource } from '../format.ts';
+import { useInspectorPlace } from '../inspector.tsx';
 import { ProxyPending, Transport } from '../section.tsx';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, HearButton, revealPoint } from './choice.tsx';
@@ -294,8 +296,41 @@ export const OnlyShown = () => {
 /** The choices' place: the card in focus is its `?point=`. */
 const choicesPlace = UrlAtom.place(Places.choices);
 
+/** The variant `v`'s `?point=` and `?inspect=` name, when the film's choices hold it. */
+const variantNamed = (
+  film: string,
+  points: ReadonlyArray<ChoicePoint>,
+  v: { readonly point: string; readonly inspect: string },
+): Option.Option<Selection> =>
+  Option.map(
+    Option.filter(Option.fromUndefinedOr(points.find((p) => p.id === v.point)), (p) =>
+      p.variants.some((x) => x.id === v.inspect),
+    ),
+    (p) => Selection.cases.Variant.make({ film, point: p.id, variant: v.inspect }),
+  );
+
+/** A variant of `film`, as `?point=` and `?inspect=` name it. */
+const variantKeys = (film: string, selection: Selection) =>
+  Option.map(
+    Option.filter(
+      Option.liftPredicate(selection, Selection.guards.Variant),
+      (s) => s.film === film,
+    ),
+    (s) => ({ point: s.point, inspect: s.variant }),
+  );
+
 const FilmBody = () => {
-  const { choices, only } = useFilm();
+  const { film, choices, only } = useFilm();
+  // The open sheet is the URL's (`?inspect=`, a variant of the card in focus): a tap on a
+  // variant's name names both in one step (Back closes it); Close, Escape and a swipe name
+  // none, the card staying in focus; a link, Back and Forward open what they name.
+  useInspectorPlace({
+    place: Places.choices,
+    named: (v) => variantNamed(film, choices().points, v.query),
+    naming: (v, s) =>
+      Option.map(variantKeys(film, s), (keys) => ({ ...v, query: { ...v.query, ...keys } })),
+    cleared: (v) => ({ ...v, query: { ...v.query, inspect: '' } }),
+  });
   // The card the URL's `?point=` names is brought into view, as on the project:
   // a link's first render (Open on Choices), and each Back or Forward to another.
   const at = useAtomValue(() => choicesPlace);

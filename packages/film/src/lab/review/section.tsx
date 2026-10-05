@@ -43,6 +43,7 @@ import { Pointer } from '../../browser/pointer.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
 import {
+  Places,
   type Say,
   type SetSayPost,
   pageHref,
@@ -52,7 +53,7 @@ import {
 } from '../../core/api.ts';
 import { ReviewApi } from './api.ts';
 import { newestAsked } from './asked.ts';
-import { InspectName, Inspector, useThing } from './inspector.tsx';
+import { InspectName, Inspector, useInspectorPlace, useThing } from './inspector.tsx';
 import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
 import type { ThingVerb } from './things.ts';
 import { Go, SetProvider, useReview, useSet } from './context.tsx';
@@ -1307,7 +1308,27 @@ const NotesView = () => {
 
 /** The set's page: the transport over the view it shows. */
 const SetBody = () => {
-  const { view, sync, send } = useSet();
+  const { folder, set, view, sync, send } = useSet();
+  // The open sheet is the URL's (`?inspect=`, a version of the set): a tap on a version's
+  // name names it (Back closes it); Close, Escape and a swipe name none; a link, Back and
+  // Forward open what they name.
+  useInspectorPlace({
+    place: Places.set,
+    named: (v) =>
+      Option.map(
+        Option.liftPredicate(v.query.inspect, (id) => set.variants.some((x) => x.id === id)),
+        (id) => versionOf(folder, set, id),
+      ),
+    naming: (v, s) =>
+      Option.map(
+        Option.filter(
+          Option.liftPredicate(s, Selection.guards.Version),
+          (x) => x.folder === folder.ref && x.point === set.id,
+        ),
+        (x) => ({ ...v, query: { ...v.query, inspect: x.version } }),
+      ),
+    cleared: (v) => ({ ...v, query: { ...v.query, inspect: '' } }),
+  });
   return (
     <>
       <Show when={playsIn(viewNameOf(view()))}>

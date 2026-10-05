@@ -761,6 +761,14 @@ const cited = Field.key(Codec.Text, { default: '', history: 'push' });
 const refined = Field.key(Codec.Text, { default: '' });
 
 /**
+ * The thing whose inspector is open (`?inspect=`, `useInspectorPlace`): on
+ * Choices a variant of the card in focus (`?point=`), on a set one of its
+ * versions. Its opening is a step Back walks; none open is the page's first,
+ * so a link from before the key lands as it did.
+ */
+const inspect = cited;
+
+/**
  * The views of a comparison set (`?view=`): all side by side, a pair, the
  * pair's wipe, the moments, the pair's difference at a moment (PA-8), the notes.
  */
@@ -818,14 +826,16 @@ export const Places = {
       view: Field.key(Codec.literals(SET_VIEWS), { default: 'all', history: 'push' }),
       other: refined,
       m: Field.key(MomentIndex, { default: 0 }),
+      inspect,
     }),
     hash: At,
   }),
   choices: Place.make({
     path: '/films/:film/choices',
     params: filmParams,
-    // The card in focus (`?point=`), as on the project: a link lands on it.
-    query: Field.struct({ point: cited, ...FILM_PLAYER, ...FILM_SHOWN }),
+    // The card in focus (`?point=`), as on the project: a link lands on it; and the variant
+    // of it whose inspector is open (`?inspect=`).
+    query: Field.struct({ point: cited, inspect, ...FILM_PLAYER, ...FILM_SHOWN }),
     hash: At,
   }),
   project: Place.make({
@@ -921,17 +931,18 @@ export const pageHref = {
   home: (): string => Place.href(Places.home, { path: {}, query: {}, hash: {} }),
   folder: (folder: string): string =>
     Place.href(Places.folder, { path: { folder }, query: {}, hash: {} }),
-  set: (folder: string, point: string): string =>
+  /** A comparison set, with the sheet of its version `inspect` open. */
+  set: (folder: string, point: string, inspect = ''): string =>
     Place.href(Places.set, {
       path: { folder, point },
-      query: { view: 'all', other: '', m: 0 },
+      query: { view: 'all', other: '', m: 0, inspect },
       hash: START,
     }),
-  /** A film's choices, with the card of `point` in focus. */
-  choices: (film: string, point = ''): string =>
+  /** A film's choices, with the card of `point` in focus and the sheet of its variant `inspect` open. */
+  choices: (film: string, point = '', inspect = ''): string =>
     Place.href(Places.choices, {
       path: { film },
-      query: { point, ...NOTHING_HEARD },
+      query: { point, inspect, ...NOTHING_HEARD },
       hash: START,
     }),
   /** A film's project, with the card of `point` in focus. */
@@ -1131,7 +1142,8 @@ const choiceOffProject = (href: string): Option.Option<string> =>
         Option.liftPredicate(value.query.point, (p) => p !== ''),
         onChoicesTab,
       ),
-      () => Place.href(Places.choices, value),
+      // The card in focus, its sheet shut: a project link named a card, never a variant.
+      () => Place.href(Places.choices, { ...value, query: { ...value.query, inspect: '' } }),
     ),
   );
 

@@ -44,7 +44,8 @@ describe('Copy link', () => {
     const fall = withSelection(page, [cueOf('one', 'fall')]);
     expect(linkOf(fall)).toBe(pageHref.labScene('f', 'one', { cue: 'fall' }, Option.some(1.5)));
     const version = Selection.cases.Version.make({ folder: 'r', point: 'cold', version: 'b' });
-    expect(linkOf(withSelection(page, [version]))).toBe(pageHref.set('r', 'cold'));
+    // A version's link opens its set with its sheet open.
+    expect(linkOf(withSelection(page, [version]))).toBe(pageHref.set('r', 'cold', 'b'));
   });
 
   test('says why when the browser keeps the link off the clipboard', () => {

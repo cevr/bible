@@ -5,9 +5,10 @@
 // (`Places`, core/api.ts; PA-1/PA-4): the lab's cue, knob and note
 // (`?cue=`, `?knob=`, `?note=` in a scene's path), a project's card
 // (`?point=`), a scene on a film's Scenes, a folder and a comparison set
-// (their paths). The rest (a version of a set, a
-// variant, an act, a beat) is the page's own and dies with it: no key is
-// added for them. A multi-select is a list of the same union; only its first
+// (their paths), and the thing whose review inspector is open (a variant on
+// Choices and a version of a set, `?inspect=`; a project's part, its
+// `?point=`: `useInspectorPlace`). The rest (a beat) is the page's own and
+// dies with it. A multi-select is a list of the same union; only its first
 // item is citable (a batch is an action, not a place). Pure.
 
 import { Place } from '@bible/url-state';
@@ -108,8 +109,9 @@ const named = (value: string): Option.Option<string> =>
  * The link that cites `selection` from the page at `href`: the page's own
  * place with the selection's key, where it has one. A lab selection keeps
  * the page's path scene unless it names its own, and the page's time; a
- * selection with no key of its own cites the place it is on (a version its
- * set, a variant its film's choices, an act its project, a beat the lab).
+ * version cites its set and a variant its card on Choices, each with its
+ * sheet open (`?inspect=`); a selection with no key of its own cites the
+ * place it is on (an act its project, a beat the lab).
  */
 export const citeOf = (selection: Selection, href: string): string => {
   const lab = Option.orElse(
@@ -171,9 +173,9 @@ export const citeOf = (selection: Selection, href: string): string => {
       }),
     Folder: (s) => pageHref.folder(s.folder),
     Set: (s) => pageHref.set(s.folder, s.point),
-    Version: (s) => pageHref.set(s.folder, s.point),
+    Version: (s) => pageHref.set(s.folder, s.point, s.version),
     Point: (s) => pageHref.project(s.film, s.point),
-    Variant: (s) => pageHref.choices(s.film, s.point),
+    Variant: (s) => pageHref.choices(s.film, s.point, s.variant),
     Beat: () => href,
   });
 };
