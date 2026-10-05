@@ -63,6 +63,13 @@ import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import type { PageBuild } from '../core/schema.ts';
 import type { PageAnswer } from './api-server.ts';
+import {
+  PageReads,
+  PageRenderer,
+  type RenderBuild,
+  type RenderedPage,
+  type ServerBundle,
+} from './page-render.ts';
 import { isNarrationUrl, narrationPath } from './narration-route.ts';
 import { narrationUrls } from '../player/narrated.ts';
 import { serveFile } from './review-file.ts';
@@ -340,18 +347,10 @@ interface Built {
         readonly _tag: 'Built';
         readonly pages: ReadonlyMap<PageName, BuiltFile>;
         readonly files: ReadonlyMap<string, BuiltFile>;
+        /** Its server bundle: its modules by their paths from the root, and each rendered page's entry. */
         readonly server: ServerBundle;
       }
     | { readonly _tag: 'Failed'; readonly reason: string };
-}
-
-/**
- * A build's server bundle: its modules at their paths relative to the
- * build's root, and the module each page the server renders is entered by.
- */
-interface ServerBundle {
-  readonly files: ReadonlyArray<BuiltAt>;
-  readonly entries: ReadonlyMap<PageName, string>;
 }
 
 /**
@@ -510,10 +509,10 @@ const STATS_AT_ONCE = 32;
 export class LabPage extends Context.Service<LabPage, LabPageService>()(
   '@bible/film/tools/LabPage',
 ) {
-  /** The app's pages over `spec`, watched while the scope is open. */
+  /** The app's pages over `spec`, watched while the scope is open, each with a server entry rendered by `PageRenderer`. */
   static layer(
     spec: LabPageSpec,
-  ): Layer.Layer<LabPage, never, FileSystem.FileSystem | Path.Path | PageBundler> {
+  ): Layer.Layer<LabPage, never, FileSystem.FileSystem | Path.Path | PageBundler | PageRenderer> {
     return Layer.effect(LabPage, make(spec));
   }
 }
@@ -545,6 +544,44 @@ const stamped = (html: string, build: PageBuild) =>
     '</head>',
     `<meta name="lab-build" content="${build.build}" /><meta name="lab-server" content="${escapeHtml(build.server)}" /></head>`,
   );
+
+/** A page's body's opening tag, and its attributes. */
+const BODY_OPEN = /<body\b([^>]*)>/i;
+
+/** A body's opening tag with `attributes`, its class joined by `extra`. */
+const bodyWith = (attributes: string, extra: string): string => {
+  const classed = /\bclass="([^"]*)"/.exec(attributes);
+  if (Predicate.isNull(classed)) return `<body${attributes} class="${escapeHtml(extra)}">`;
+  return `<body${attributes.replace(classed[0], `class="${classed[1]} ${escapeHtml(extra)}"`)}>`;
+};
+
+/**
+ * A built page split around where its render goes: before, the page up to
+ * its body's opening tag, with the render's head before `</head>` and its
+ * body's class on `<body>`; after, the rest of the body, the page's own
+ * scripts in it (a module script runs once the document is whole, so the
+ * browser's copy finds the markup, whatever their order). None for a page
+ * with no head or body to put them in.
+ */
+export const splice = (
+  html: string,
+  page: Pick<RenderedPage, 'head' | 'bodyClass'>,
+): Option.Option<readonly [string, string]> => {
+  const headEnd = html.indexOf('</head>');
+  if (headEnd < 0) return Option.none();
+  const rest = html.slice(headEnd);
+  return Option.map(Option.fromNullishOr(BODY_OPEN.exec(rest)), (open) => {
+    const tag = bodyWith(open[1] ?? '', page.bodyClass);
+    const before = `${html.slice(0, headEnd)}${page.head}${rest.slice(0, open.index)}${tag}`;
+    return [before, rest.slice(open.index + open[0].length)] as const;
+  });
+};
+
+/** The URL a page was asked at, whole: its path and query at the Host it was asked of. */
+const urlOf = (request: HttpServerRequest.HttpServerRequest): string => {
+  const host = Option.getOrElse(Option.fromUndefinedOr(request.headers['host']), () => 'lab');
+  return new URL(request.url, `http://${host}`).href;
+};
 
 /** `text` as a script's string literal. */
 const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.String));
@@ -624,6 +661,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const bundler = yield* PageBundler;
+  const renderer = yield* PageRenderer;
   const scope = yield* Effect.scope;
   const server = yield* serverId;
   // The tokens the failed page reads; a lab without them answers that page unstyled.
@@ -1107,6 +1145,53 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     );
   };
 
+  /**
+   * `html`, a page of the build `built` as its browser bundle made it,
+   * rendered on the server at `url` by its server entry: the page's markup
+   * streamed into it as it is written. A render that fails before its head
+   * answers the page as made, which the browser renders itself; one that
+   * fails later leaves what it wrote.
+   */
+  const rendered = (
+    name: PageName,
+    html: string,
+    build: RenderBuild,
+    url: string,
+    read: PageReads['Service']['read'],
+  ) =>
+    Stream.unwrap(
+      Effect.gen(function* () {
+        const made = yield* Effect.result(renderer.render(build, name, url, read));
+        if (Result.isFailure(made)) {
+          yield* Effect.logWarning(
+            `lab.page.render.failed page=${name} build=${build.id} reason="${made.failure.reason}"`,
+          );
+          return Stream.succeed(html);
+        }
+        return Option.match(splice(html, made.success), {
+          onNone: () => Stream.succeed(html),
+          onSome: ([before, after]) =>
+            Stream.concat(
+              Stream.succeed(before),
+              Stream.concat(
+                made.success.markup.pipe(
+                  Stream.catch((error) =>
+                    Stream.drain(
+                      Stream.fromEffect(
+                        Effect.logWarning(
+                          `lab.page.render.cut page=${name} build=${build.id} reason="${error.reason}"`,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Stream.succeed(after),
+              ),
+            ),
+        });
+      }),
+    );
+
   /** A page's HTML as the sources stand, built now if they changed: asked again each load. */
   const page = (name: PageName) =>
     Effect.gen(function* () {
@@ -1120,7 +1205,18 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
         });
       const html = Option.fromUndefinedOr(built.outcome.pages.get(name));
       if (Option.isNone(html)) return NOT_FOUND;
-      return HttpServerResponse.text(stamped(new TextDecoder().decode(html.value.bytes), stamp), {
+      const text = stamped(new TextDecoder().decode(html.value.bytes), stamp);
+      const request = yield* HttpServerRequest.HttpServerRequest;
+      // A page with a server entry is rendered for a GET; a HEAD is answered its headers alone.
+      if (request.method !== 'GET' || !built.outcome.server.entries.has(name))
+        return HttpServerResponse.text(text, {
+          contentType: HTML,
+          headers: { 'cache-control': 'no-store' },
+        });
+      const { read } = yield* PageReads;
+      const build = { id: built.kept, bundle: built.outcome.server };
+      const body = rendered(name, text, build, urlOf(request), read);
+      return HttpServerResponse.stream(Stream.encodeText(body), {
         contentType: HTML,
         headers: { 'cache-control': 'no-store' },
       });

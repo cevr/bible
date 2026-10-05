@@ -28,6 +28,7 @@ import {
   FreshFilm,
   LabPage,
   PageBundler,
+  PageRenderer,
   Media,
   NotesStore,
   RenderCatalogue,
@@ -182,7 +183,7 @@ const Harness = Layer.unwrap(
     // The pages, and the easel's warm pages over them (Chrome starts only for a look).
     const Pages = Easel.layer.pipe(
       Layer.provideMerge(LabPage.layer({ pages: LAB_PAGES, servers: LAB_SERVERS, films: root })),
-      Layer.provide(Layer.mergeAll(PageBundler.layer, Browser.layer)),
+      Layer.provide(Layer.mergeAll(PageBundler.layer, PageRenderer.layer, Browser.layer)),
       Layer.provide([Repo, Platform]),
     );
     const Services = Choices.layer.pipe(

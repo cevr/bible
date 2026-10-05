@@ -25,10 +25,12 @@ import {
   Path,
   Ref,
   Schedule,
+  Stream,
 } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { TestClock } from 'effect/testing';
-import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
+import { LabPage, type LabPageSpec, PageBundler, splice } from './lab-page.ts';
+import { PageReads, PageRenderer, RenderFailed } from './page-render.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
 const Platform = Layer.provideMerge(BunHttpPlatform.layer, BunServices.layer);
@@ -78,22 +80,37 @@ const appFolder = Effect.gen(function* () {
   return { spec, write };
 });
 
-/** The pages over a folder, as one lab process serves them, with `bundler`. */
+/** A page's reads as it renders, answered `read <path>`. */
+const echoReads = PageReads.of({
+  read: (path) => Effect.succeed(new Response(`read ${path}`)),
+});
+
+/**
+ * The pages over a folder, as one lab process serves them, with `bundler`
+ * and `renderer` (one that writes the page's name and URL, by default).
+ */
 const served = (
   spec: LabPageSpec,
   bundler: Layer.Layer<PageBundler, never, FileSystem.FileSystem | Path.Path>,
+  renderer: Layer.Layer<PageRenderer> = PageRenderer.layerTest,
 ) =>
   Effect.gen(function* () {
     const page = Context.get(
-      yield* Layer.build(LabPage.layer(spec).pipe(Layer.provide(bundler))),
+      yield* Layer.build(LabPage.layer(spec).pipe(Layer.provide([bundler, renderer]))),
       LabPage,
     );
-    const ask = (pathname: string) =>
+    const ask = (pathname: string, method = 'GET') =>
       Effect.gen(function* () {
-        const request = HttpServerRequest.fromWeb(new Request(`http://127.0.0.1:8229${pathname}`));
+        const request = HttpServerRequest.fromWeb(
+          new Request(`http://127.0.0.1:8229${pathname}`, {
+            method,
+            headers: { host: '127.0.0.1:8229' },
+          }),
+        );
         const response = HttpServerResponse.toWeb(
           yield* page.answer.pipe(
             Effect.provideService(HttpServerRequest.HttpServerRequest, request),
+            Effect.provideService(PageReads, echoReads),
           ),
         );
         return {
@@ -155,6 +172,77 @@ describe('lab pages', () => {
         expect(yield* script).toContain('first');
         expect((yield* ask('/nothing.js')).status).toBe(404);
       }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    "a page with a server entry is answered rendered: the render's head before </head>, its body's class on <body>, its markup first in the body, at the URL asked",
+    () =>
+      Effect.gen(function* () {
+        const { spec } = yield* appFolder;
+        const { ask } = yield* served(spec, PageBundler.layerTest);
+        const page = yield* ask('/sets/root/folder?view=all');
+        expect(page.status).toBe(200);
+        expect(buildOf(page.text)).toBe(0);
+        expect(page.text).toContain('<meta name="rendered" content="review"></head>');
+        expect(page.text).toContain(
+          '<body class="rendered"><main>review at http://127.0.0.1:8229/sets/root/folder?view=all</main><script type="module" src="./src/p.ts"></script></body>',
+        );
+        // The lab has no server entry: its page is as built.
+        const lab = yield* ask('/films/f/lab');
+        expect(lab.text).toContain('<body><script type="module" src="./src/lab.ts"></script>');
+        expect(lab.text).not.toContain('rendered');
+        // A HEAD is the page's headers: nothing is rendered for it.
+        const head = yield* ask('/', 'HEAD');
+        expect([head.status, head.text.includes('<main>')]).toEqual([200, false]);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    'a render that fails before its head answers the page as built; one cut short leaves what it wrote, then the rest of the page',
+    () =>
+      Effect.gen(function* () {
+        const { spec } = yield* appFolder;
+        const failing = Layer.succeed(
+          PageRenderer,
+          PageRenderer.of({
+            render: () => Effect.fail(RenderFailed.make({ reason: 'no worker' })),
+          }),
+        );
+        const unrendered = (yield* (yield* served(spec, PageBundler.layerTest, failing)).ask('/'))
+          .text;
+        expect(unrendered).toContain('</head><body><script type="module" src="./src/p.ts">');
+        const cut = Layer.succeed(
+          PageRenderer,
+          PageRenderer.of({
+            render: () =>
+              Effect.succeed({
+                head: '',
+                bodyClass: 'rv',
+                markup: Stream.concat(
+                  Stream.make('<main>half'),
+                  Stream.fail(RenderFailed.make({ reason: 'the worker stopped' })),
+                ),
+              }),
+          }),
+        );
+        const half = (yield* (yield* served(spec, PageBundler.layerTest, cut)).ask('/')).text;
+        expect(half).toContain(
+          '<body class="rv"><main>half<script type="module" src="./src/p.ts"></script></body></html>',
+        );
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.effect("a render's body class joins the page's own, its other attributes kept", () =>
+    Effect.sync(() => {
+      const page = '<html><head><title>t</title></head><body id="b" class="lab"><p>x</p></body>';
+      expect(splice(page, { head: '<style></style>', bodyClass: 'rv' })).toEqual(
+        Option.some([
+          '<html><head><title>t</title><style></style></head><body id="b" class="lab rv">',
+          '<p>x</p></body>',
+        ]),
+      );
+      expect(splice('<p>no head</p>', { head: '', bodyClass: 'rv' })).toEqual(Option.none());
+    }),
   );
 
   it.live(

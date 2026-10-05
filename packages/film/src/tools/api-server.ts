@@ -17,6 +17,7 @@
 import {
   Array as Arr,
   Context,
+  Deferred,
   Effect,
   type FileSystem,
   Layer,
@@ -53,6 +54,7 @@ import { NetAddress } from 'effect/net';
 import { BunHttpServer } from '@effect/platform-bun';
 import { BodyTooLarge } from '../core/refusals.ts';
 import { STUDIO_MAX_BODY } from '../core/studio.ts';
+import { PageReads } from './page-render.ts';
 
 /** Where the server listens: the name and port it is bound to. */
 interface LabBound {
@@ -302,7 +304,11 @@ export const answered = <A, E extends { readonly _tag: string; readonly message:
     ).pipe(Effect.andThen(Effect.fail(refusal)));
   });
 
-/** The app's pages as a route answers them: the response for the request, never a failure. */
+/**
+ * The app's pages as a route answers them: the response for the request,
+ * never a failure; a page rendered on the server reads the API through
+ * `PageReads`.
+ */
 export type PageAnswer = Effect.Effect<
   HttpServerResponse.HttpServerResponse,
   never,
@@ -310,7 +316,39 @@ export type PageAnswer = Effect.Effect<
   | FileSystem.FileSystem
   | Path.Path
   | HttpPlatform.HttpPlatform
+  | PageReads
 >;
+
+/** The server's own web handler, with the connection a request came on. */
+type OwnHandler = (request: Request, context: Context.Context<Connection>) => Promise<Response>;
+
+/**
+ * A page's reads of the API while it renders: each a GET of the path at the
+ * Host the page was asked of, answered by the server's own handler on the
+ * page's connection, so the gate admits it as it admitted the page (and
+ * refuses it as it would the page's own fetch), and the same routes answer.
+ */
+const readsOf = (
+  self: Deferred.Deferred<OwnHandler>,
+  request: HttpServerRequest.HttpServerRequest,
+  connection: ConnectionService,
+): Context.Context<PageReads> =>
+  Context.make(
+    PageReads,
+    PageReads.of({
+      read: (path) =>
+        Effect.flatMap(Deferred.await(self), (handler) =>
+          Effect.promise(() =>
+            handler(
+              new Request(new URL(path, `http://${hostOf(request)}`), {
+                headers: { accept: 'application/json' },
+              }),
+              Context.make(Connection, connection),
+            ),
+          ),
+        ),
+    }),
+  );
 
 /**
  * What else the server answers, once admitted: the app's pages, for every
@@ -322,6 +360,7 @@ const pageRoute = (
   page: PageAnswer,
   own: ReadonlyArray<string>,
   platform: Context.Context<FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform>,
+  self: Deferred.Deferred<OwnHandler>,
 ) =>
   HttpRouter.add(
     '*',
@@ -336,7 +375,8 @@ const pageRoute = (
           status: 405,
           headers: { allow: SAFE_METHODS.join(', ') },
         });
-      return yield* page;
+      const reads = readsOf(self, request, yield* Connection);
+      return yield* page.pipe(Effect.provideContext(reads));
     }),
   ).pipe(HttpRouter.provideRequest(Layer.succeedContext(platform)));
 
@@ -373,16 +413,19 @@ export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constrai
     const platform = yield* Effect.context<
       FileSystem.FileSystem | Path.Path | HttpPlatform.HttpPlatform
     >();
+    // The handler itself, for a page's reads as it renders (`PageReads`): known once made.
+    const self = yield* Deferred.make<OwnHandler>();
     const app = Layer.mergeAll(
       routes,
       options.beside,
       gate(options.allowed),
-      pageRoute(options.page, prefixesOf(api), platform),
+      pageRoute(options.page, prefixesOf(api), platform, self),
     ).pipe(Layer.provide(Etag.layerWeak), Layer.provide(Layer.succeedContext(platform)));
     const { handler } = yield* Effect.acquireRelease(
       Effect.sync(() => HttpRouter.toWebHandler(app, { disableLogger: true })),
       (web) => Effect.promise(() => web.dispose()),
     );
+    yield* Deferred.succeed(self, handler);
     const answer: LabHandler = (request, server) =>
       handler(request, Context.make(Connection, connectionOf(server)));
 

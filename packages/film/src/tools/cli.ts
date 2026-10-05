@@ -83,6 +83,7 @@ import { Narrator, planNarration, stateLine, voicedOf } from './narrator.ts';
 import { labAllowed, labHandler, labLink } from './lab.ts';
 import { type LabAt, labServer, serveLab } from './api-server.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
+import { PageRenderer } from './page-render.ts';
 import { Easel } from './easel.ts';
 import { look } from './easel-cli.ts';
 import { journal } from './journal-cli.ts';
@@ -835,7 +836,7 @@ const lab = <E>(app: FilmApp<E>['lab'], films: string) =>
     Command.provide(
       Easel.layer.pipe(
         Layer.provideMerge(LabPage.layer({ ...app.pages, films })),
-        Layer.provide(Layer.mergeAll(PageBundler.layer, Browser.layer)),
+        Layer.provide(Layer.mergeAll(PageBundler.layer, PageRenderer.layer, Browser.layer)),
       ),
     ),
     Command.withDescription(

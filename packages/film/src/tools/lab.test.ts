@@ -7,7 +7,13 @@ import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
 import { ConfigProvider, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { Base64 } from 'effect/encoding';
-import { FetchHttpClient, HttpBody, HttpClient, HttpPlatform } from 'effect/http';
+import {
+  FetchHttpClient,
+  HttpBody,
+  HttpClient,
+  HttpPlatform,
+  HttpServerResponse,
+} from 'effect/http';
 import { parseSync } from 'oxc-parser';
 import {
   LabHttpApi,
@@ -24,7 +30,9 @@ import { labHandler, labLink } from './lab.ts';
 import { LAB_IDLE_SECONDS, MAX_REQUEST_BODY, labServer, serveLab } from './api-server.ts';
 import { STUDIO_IMPORT_WAIT_S, STUDIO_MAX_BODY } from '../core/studio.ts';
 import { FilmFolder } from './film-repo.ts';
+import { LabPage } from './lab-page.ts';
 import { NotesStore } from './notes-store.ts';
+import { PageReads } from './page-render.ts';
 import {
   echoPages,
   foreignRequests,
@@ -40,14 +48,33 @@ import {
 const files = () =>
   new Map<string, Uint8Array>([['/films/f/scenes/index.ts', text('export {};\n')]]);
 
-const labLayer = (store: Map<string, Uint8Array>) =>
+/**
+ * Pages that read film `f`'s notes as a render does (`PageReads`) and are
+ * answered what they read: its status and its body.
+ */
+const readingPages = Layer.effect(
+  LabPage,
+  Effect.map(LabPage, (echo) =>
+    LabPage.of({
+      ...echo,
+      answer: Effect.gen(function* () {
+        const { read } = yield* PageReads;
+        const response = yield* read(labUrls.notes.list({ params: { film: 'f' } }));
+        const body = yield* Effect.promise(() => response.text());
+        return HttpServerResponse.text(`${response.status} ${body}`);
+      }),
+    }),
+  ),
+).pipe(Layer.provideMerge(echoPages));
+
+const labLayer = (store: Map<string, Uint8Array>, pages = echoPages) =>
   Layer.mergeAll(
     NotesStore.layer,
     FilmFolder.layer('/films'),
     noSource,
     noStudio,
     noReview,
-    echoPages,
+    pages,
     freshFilm({}),
     HttpPlatform.layer,
   ).pipe(
@@ -166,6 +193,20 @@ describe('the lab loads no film', () => {
 });
 
 describe('lab routes', () => {
+  it.effect(
+    "a page's render reads the API through the lab's own gate and routes, at the page's Host",
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        yield* Effect.promise(() =>
+          lab(post(labUrls.notes.add({ params: { film: 'f' } }), draft), bound),
+        );
+        const page = yield* Effect.promise(() => lab(get('/'), bound).then((r) => r.text()));
+        expect(page).toMatch(/^200 \{/);
+        expect(page).toContain('"id":"n1"');
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), readingPages))),
+  );
+
   it.effect('a posted note is listed, its still served, and a wait returns it', () =>
     Effect.gen(function* () {
       const lab = yield* labHandler(LOOPBACK);

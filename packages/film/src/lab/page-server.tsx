@@ -1,0 +1,62 @@
+// A page's render on the server, for its server entry (`*.server.tsx`,
+// `core/page-render.ts`): Solid's `renderToStream` of the page's components,
+// the same ones its browser entry hydrates, inside the page's root
+// (`PAGE_ROOT`). The head holds Solid's hydration script (the values the
+// render serializes are read by it) and the page's styles, so the first
+// paint is styled before any script runs. A failure that fails the render
+// is the sink's; one a boundary shows is the page's own.
+
+import { type JSX, generateHydrationScript, renderToStream } from '@solidjs/web';
+import { PAGE_ROOT, type PageRender, type PageRequest } from '../core/page-render.ts';
+
+/** A page as its server entry renders it. */
+interface ServedPage {
+  /** The class the page's body carries. */
+  readonly bodyClass: string;
+  /** The class of the page's root, where its components mount. */
+  readonly rootClass: string;
+  /** The page's styles, in its head before its markup. */
+  readonly style: string;
+  /** The page's components for `request`: never reading the browser's globals. */
+  readonly app: (request: PageRequest) => JSX.Element;
+}
+
+/** The marker on the page's style element: the browser's copy finds it there and adds none. */
+const PAGE_STYLE = 'data-page-style';
+
+/** `page` as the lab renders it on the server. */
+export const pageRender = (page: ServedPage): PageRender => ({
+  bodyClass: page.bodyClass,
+  render: (request, sink) => {
+    const heads: Array<string> = [];
+    let opened = false;
+    // The head and the root's opening tag, once: before the render's first piece.
+    const open = () => {
+      if (opened) return;
+      opened = true;
+      sink.head(
+        `${generateHydrationScript()}<style ${PAGE_STYLE}>${page.style}</style>${heads.join('')}`,
+      );
+      sink.write(`<div class="${page.rootClass}" ${PAGE_ROOT}>`);
+    };
+    renderToStream(() => page.app(request), {
+      signal: request.signal,
+      onHead: (html) => {
+        heads.push(html);
+      },
+      onError: (error, context) => {
+        if (context.handling === 'failed') sink.fail(String(error));
+      },
+    }).pipe({
+      write: (html) => {
+        open();
+        sink.write(html);
+      },
+      end: () => {
+        open();
+        sink.write('</div>');
+        sink.end();
+      },
+    });
+  },
+});
