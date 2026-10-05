@@ -29,7 +29,7 @@ import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import { type DragEdge, dragFields } from '../../core/timeline.ts';
-import { LabApi, type StepVerb, reasonOf, stepWhyNot } from '../api.ts';
+import { LabApi, type StepVerb, reasonOf, stepRequest, stepWhyNot } from '../api.ts';
 import { type Receipt, refused } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
@@ -51,7 +51,7 @@ import {
 import { type Handle, knobMode } from './handles.ts';
 import { cueDestinations, editorCommands, snapOf, snapText } from './commands.ts';
 import { findingTime, findingsOf, notTaken, receiptOf } from './format.ts';
-import { type EditActor, EditEvent, spawnEditor, stepRequest } from './machine.ts';
+import { type EditActor, EditEvent, spawnEditor } from './machine.ts';
 
 /** The editor's slot among the page's receipts (`Hub.announce`). */
 const EDIT_SLOT = 'edit';

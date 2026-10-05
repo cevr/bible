@@ -886,7 +886,9 @@ track are read at load, so no rebuild would). The editor waits for such a
 step as long as the studio waits for a keep (`STUDIO_IMPORT_WAIT_S`); with
 no answer even then it reads `GET …/check`, whose `landed` the step is
 recorded in, under the id its request carried, before it remixes, and says
-whether it landed. Undo and Redo are stepped back and on only with the
+whether it landed. Choices and Project send their Undo and Redo with an id
+too, and an answer lost on the way back is read from the same `landed`
+(`landedStep`, `lab/api.ts`). Undo and Redo are stepped back and on only with the
 timings' takes brought back as the very files they name: a take's copy is
 picked by the hash of its audio its name carries, and a name from before
 takes were named by their audio, whose copies differ, is refused

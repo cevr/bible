@@ -7,9 +7,11 @@
 // words. One client (`LabClient`) serves every page's calls: the scene
 // source routes are `LabApi`, the notes routes `NotesApi`, and the studio's,
 // the review's and the choices' build on it (`studio/api.ts`,
-// `review/api.ts`, `review/options/api.ts`).
+// `review/api.ts`, `review/options/api.ts`). An Undo or Redo carries an id
+// unique to its request (`stepRequest`), so either page whose step had no
+// answer learns from the lab's check whether it landed (`landedStep`).
 
-import { Cause, Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
+import { Array as Arr, Cause, Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
 import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -18,6 +20,7 @@ import { type Bound, Unfit } from '../command/command.ts';
 import { LabHttpApi, Refusal, isRefusal } from '../core/api.ts';
 import type { PageRequest } from '../core/page-render.ts';
 import { newerFirst } from '../core/refusals.ts';
+import { uniqueId } from '../core/unique.ts';
 import {
   type CheckReport,
   type CuePatch,
@@ -81,6 +84,23 @@ export const reasonOf = (cause: Cause.Cause<unknown>): string => {
 /** Undo or Redo: the server's bounded stack of the lab's writes. */
 export const StepVerb = Schema.Literals(['undo', 'redo']);
 export type StepVerb = typeof StepVerb.Type;
+
+/** An id for an Undo or Redo request that no other request has, from any page (`StepRequest.request`). */
+export const stepRequest: Effect.Effect<string> = uniqueId;
+
+/**
+ * The step the lab recorded under `request` (`CheckReport.landed`), as its
+ * answer would have said it, with the check now: what a page whose step had
+ * no answer learns by its id. None when the lab has no record of it (it did
+ * not land, or has not yet).
+ */
+export const landedStep = (report: CheckReport, request: string): Option.Option<LabWrite> =>
+  Option.map(
+    Option.flatMap(Option.fromUndefinedOr(report.landed), (steps) =>
+      Arr.findFirst(steps, (l) => l.request === request),
+    ),
+    ({ request: _, ...walked }): LabWrite => ({ ...walked, findings: report.findings }),
+  );
 
 /** What a step's receipt's button does once it lands: Redo for an Undo, Undo for a Redo. */
 const OTHER: Readonly<Record<StepVerb, StepVerb>> = { undo: 'redo', redo: 'undo' };

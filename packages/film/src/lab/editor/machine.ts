@@ -33,10 +33,9 @@ import { Array as Arr, Duration, Effect, Equal, Match, Option, Schema } from 'ef
 import { Event, Machine, State } from 'effect-machine';
 import { SceneEdit } from '../../canvas/film.ts';
 import { CheckLine, type CheckReport, LabWrite } from '../../core/schema.ts';
-import { uniqueId } from '../../core/unique.ts';
 import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { readAtLoad } from '../../player/narrated.ts';
-import { LabApi, LabUnreachable, StepVerb } from '../api.ts';
+import { LabApi, LabUnreachable, StepVerb, landedStep } from '../api.ts';
 import { Stage } from '../stage.ts';
 import { Grip, Pointer, StepWrite, Write, drag, joined, wroteNote } from './grip.ts';
 
@@ -53,9 +52,6 @@ export const WRITE_TIMEOUT_S = 20;
  * studio waits for one.
  */
 const STEP_TIMEOUT_S = STUDIO_IMPORT_WAIT_S;
-
-/** An id for an Undo or Redo request that no other request has, from any page. */
-export const stepRequest: Effect.Effect<string> = uniqueId;
 
 /** How long reading the lab's steps may take once a step's wait is over. */
 const CHECK_WAIT = Duration.seconds(15);
@@ -154,13 +150,8 @@ const waitFor = (write: Write): Duration.Duration =>
  * not yet, and the latest change is named.
  */
 const settleStep = (step: StepWrite, report: CheckReport): EditEvent => {
-  const landed = Option.flatMap(Option.fromUndefinedOr(report.landed), (steps) =>
-    Arr.findFirst(steps, (l) => l.request === step.request),
-  );
-  if (Option.isSome(landed)) {
-    const { request: _, ...walked } = landed.value;
-    return EditEvent.Landed({ result: { ...walked, findings: report.findings } });
-  }
+  const landed = landedStep(report, step.request);
+  if (Option.isSome(landed)) return EditEvent.Landed({ result: landed.value });
   const named = Option.match(Option.fromUndefinedOr(report.latest), {
     onNone: () => 'none',
     onSome: (l) => `${l.target} in ${l.file}`,
