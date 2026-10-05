@@ -9,6 +9,8 @@
 // each written in turn once the write before it lands, so the last value
 // asked of every field is the one that lands; those that waited on a step,
 // or on a write that did not land, are not written, and the receipt says so.
+// While a grip is held, neither a commit nor a step is taken; what the
+// machine does not take, the editor's commands and actions say (`notTaken`).
 //
 //   Idle | Written | Refused ─Press→ Pressed ─Move→ Dragging ─Release→ Writing
 //                   ─Commit | Step→ Writing ─Wrote→ Written | ─Failed | TimedOut→ Refused

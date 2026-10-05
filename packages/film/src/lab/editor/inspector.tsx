@@ -12,9 +12,10 @@ import type { ParentProps } from 'solid-js';
 import { createMemo } from 'solid-js';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
-import { EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
+import { type CuePatch, EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
 import { DEFAULT_EASE, timecode } from '../../core/time.ts';
 import { untilEndText } from '../../core/timeline.ts';
+import { BY_BUTTON } from '../../command/command.ts';
 import { type LabSelection, cueOf } from '../../command/selection.ts';
 import { Field, Hint } from '../command/inspector.tsx';
 import { HeaderTool } from '../page-shell.tsx';
@@ -22,7 +23,7 @@ import { Lab, useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY, findingsIn } from './format.ts';
 import { hubKeys } from '../command/changes.ts';
-import { CueWrite, cueSaid } from './grip.ts';
+import { cueCommit } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
 const Curve = (props: { readonly name: EaseName }) => (
@@ -62,16 +63,12 @@ const CueFields = (props: CueFieldsProps) => {
         (c) => c[field] !== 'computed',
       ),
     );
-  const write = (patch: CueWrite['patch'], span: Span) =>
-    actions.commit(
-      CueWrite.make({
-        scene: scene(),
-        cue: props.name,
-        patch,
-        said: cueSaid(props.span, props.cue, patch),
-      }),
-      { timeline: { ...meta.stage.timelineOf(scene()), [props.name]: span } },
-    );
+  const write = (patch: CuePatch) => {
+    const commit = cueCommit(scene(), props.name, props.span, props.cue, patch);
+    actions.commit(commit.write, {
+      timeline: { ...meta.stage.timelineOf(scene()), [props.name]: commit.span },
+    });
+  };
   const easeNote = () =>
     Option.match(Option.fromUndefinedOr(props.span.ease), {
       onNone: () => ` (default, ${DEFAULT_EASE})`,
@@ -112,7 +109,7 @@ const CueFields = (props: CueFieldsProps) => {
               title={e}
               disabled={!writable('ease')}
               onClick={() => {
-                if (e !== props.span.ease) write({ ease: e }, { ...props.span, ease: e });
+                if (e !== props.span.ease) write({ ease: e });
               }}
             >
               <Curve name={e} />
@@ -156,7 +153,10 @@ const CueInspector = (props: { readonly selection: LabSelection }) => {
  * studio's header (the shell's `tools`), so every mode keeps them (§4).
  */
 export const History = () => {
-  const { state, actions } = useEditor();
+  const { state } = useEditor();
+  const { meta } = useLab();
+  // Through the page's commands, so a step not taken now says why (`edit.undo`, `edit.redo`).
+  const step = (verb: 'undo' | 'redo') => meta.hub.invokeId(`edit.${verb}`, BY_BUTTON);
   const stepOf = (verb: 'undo' | 'redo') =>
     Option.flatMap(state.report(), (r) => Option.fromUndefinedOr(r[verb]));
   const title = (verb: 'undo' | 'redo', keys: string) =>
@@ -171,14 +171,14 @@ export const History = () => {
         label="Undo"
         title={title('undo', '⌘Z')}
         disabled={Option.isNone(stepOf('undo'))}
-        onClick={() => actions.step('undo')}
+        onClick={() => step('undo')}
       />
       <HeaderTool
         act="redo"
         label="Redo"
         title={title('redo', '⇧⌘Z')}
         disabled={Option.isNone(stepOf('redo'))}
-        onClick={() => actions.step('redo')}
+        onClick={() => step('redo')}
       />
     </>
   );

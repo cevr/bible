@@ -31,7 +31,7 @@ import { sceneOf } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import { type DragEdge, dragFields } from '../../core/timeline.ts';
 import { LabApi, type StepVerb, reasonOf, stepWhyNot } from '../api.ts';
-import type { Receipt } from '../../command/command.ts';
+import { type Receipt, refused } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type LabSelection, cueOf, knobOf } from '../../command/selection.ts';
@@ -50,7 +50,7 @@ import {
 } from './grip.ts';
 import { type Handle, knobMode } from './handles.ts';
 import { cueDestinations, editorCommands, snapOf, snapText } from './commands.ts';
-import { findingTime, findingsOf, receiptOf } from './format.ts';
+import { findingTime, findingsOf, notTaken, receiptOf } from './format.ts';
 import { type EditActor, EditEvent, spawnEditor, stepRequest } from './machine.ts';
 
 /** The editor's slot among the page's receipts (`Hub.announce`). */
@@ -116,10 +116,8 @@ interface EditorActions {
   readonly press: (press: Press) => void;
   /** A press on a knob's handle: select it, and grab it (or say why it cannot be moved). */
   readonly grabKnob: (press: KnobPress) => void;
-  /** Write `write`, showing `edit` until the reload. */
+  /** Write `write`, showing `edit` until the reload (or say why it is not written now). */
   readonly commit: (write: Write, edit: SceneEdit) => void;
-  /** Undo or Redo the newest change (the editor's buttons). */
-  readonly step: (verb: StepVerb) => void;
   /** Say why something cannot be written. */
   readonly refuse: (message: string) => void;
 }
@@ -333,7 +331,12 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   // whether it landed. A receipt's names its change, so the lab steps that one or refuses.
   const step = (verb: StepVerb, change: Option.Option<string>) =>
     send(EditEvent.Step({ verb, request: Effect.runSync(stepRequest), change }));
-  const commit = (write: Write, shown: SceneEdit) => send(EditEvent.Commit({ write, edit: shown }));
+  // A commit (a field, an ease, a nudge) the machine does not take now says why, in the editor's slot.
+  const commit = (write: Write, shown: SceneEdit) =>
+    Option.match(notTaken(edit(), 'commit'), {
+      onSome: (why) => meta.hub.announce(refused(`not written: ${why}`), EDIT_SLOT),
+      onNone: () => send(EditEvent.Commit({ write, edit: shown })),
+    });
 
   /** What the lab knows of `scene`'s source: the inspected scene's, else the strip's. */
   const sourceOf = (scene: string): Known =>
@@ -427,6 +430,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
             Option.filter(report(), () => !madeHere.has(bound.change)),
           )(bound),
         step,
+        notTaken: (verb) => notTaken(edit(), verb),
         holding,
         cancel: () => send(EditEvent.Cancel),
         selected: lab.selection,
@@ -460,7 +464,6 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       press,
       grabKnob,
       commit,
-      step: (verb) => step(verb, Option.none()),
       refuse: (message) => send(EditEvent.Refuse({ message })),
     },
   };

@@ -9,6 +9,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
+import type { SceneEdit } from '../../canvas/film.ts';
 import type { ResolvedCue, SceneSource } from '../../core/schema.ts';
 import { dragFields, dragPatch } from '../../core/timeline.ts';
 import {
@@ -17,6 +18,7 @@ import {
   EDGE_PX,
   EDGE_TOUCH_PX,
   type KnobGrip,
+  type Write,
   cueRefusal,
   dragCue,
   dragKnob,
@@ -158,6 +160,40 @@ describe('dragCue', () => {
 
   test('back where it began writes nothing', () => {
     expect(dragCue(grip('move'), { x: 500, y: 0, free: false }).write).toEqual(Option.none());
+  });
+});
+
+describe("a cue's fields", () => {
+  const span = { mark: 'rise', offset: 0.1, dur: 1 } as const;
+  const cue: ResolvedCue = { start: 1.1, end: 2.1, dur: 1, ease: 'inOutCubic', stagger: 0 };
+  const commitsOf = (id: string, v: number) => {
+    const commits: Array<{ readonly write: Write; readonly edit: SceneEdit }> = [];
+    fieldsOf(
+      { _tag: 'Cue', scene: 'one', name: 'rise' },
+      {
+        timeline: { rise: span },
+        cues: new Map([['rise', cue]]),
+        knobs: {},
+        source: Option.none(),
+        error: '',
+        fps: 30,
+        commit: (write, edit) => void commits.push({ write, edit }),
+      },
+    )
+      .find((f) => f.id === id)
+      ?.write(v);
+    return commits;
+  };
+
+  test('show the span the patch they send makes, rounded as the file holds it', () => {
+    for (const [id, v] of [
+      ['offset', 0.1 + 0.2],
+      ['dur', 0.1 + 0.2],
+    ] as const) {
+      const [commit] = commitsOf(id, v);
+      expect(commit?.write).toMatchObject({ patch: { [id]: 0.3 } });
+      expect(commit?.edit.timeline?.['rise']).toEqual({ ...span, [id]: 0.3 });
+    }
   });
 });
 

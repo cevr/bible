@@ -13,8 +13,9 @@
 // still moves focus); F and ⇧F go to the next or previous finding of the
 // film's check that has a place on the time line (`findingTime`); S turns
 // the viewer's Snap off or on (an editor's snapping toggle, Shift flipping
-// it for a move: `grip.ts`), the strip's Snap toggle a finger's way. Every
-// command answers quietly: a write's receipt is
+// it for a move: `grip.ts`), the strip's Snap toggle a finger's way. An Undo
+// or Redo the editor does not take now (a write out, a grip held: `notTaken`)
+// says why; every other command answers quietly: a write's receipt is
 // the editor's own once it lands (what a nudge moved, before → after, with
 // Undo; what an Undo walked, with Redo: `context.tsx`), and a selection
 // shows in the URL and the strip. Each cue of the strip's scene is also a
@@ -25,8 +26,9 @@ import {
   type Bound,
   type Command,
   type Invocation,
-  type Unfit,
+  Unfit,
   quiet,
+  refused,
 } from '../../command/command.ts';
 import { type Context, selected } from '../../command/context.ts';
 import { type LabSelection, cueOf, sameSelection, selectionText } from '../../command/selection.ts';
@@ -43,6 +45,8 @@ interface EditorVerbs {
   readonly whyNot: (verb: StepVerb, bound: Bound) => Option.Option<Unfit>;
   /** Undo or Redo `change` (a receipt's), or the newest with none. */
   readonly step: (verb: StepVerb, change: Option.Option<string>) => void;
+  /** Why the editor does not take a step of `verb` now (a write out, a grip held): `notTaken`. */
+  readonly notTaken: (verb: StepVerb) => Option.Option<string>;
   /** Whether a grip is held: pressed on a cue or a handle, or dragging. */
   readonly holding: () => boolean;
   /** Let the held grip go: it goes back where it was. */
@@ -121,16 +125,27 @@ const stepCommand = (verbs: EditorVerbs, verb: StepVerb, label: string, key: str
   keys: [key],
   touch: `the ${label} button in the editor`,
   when: () => Option.isSome(verbs.undoable(verb)),
-  // A receipt's button steps the change it names, or says why it cannot (`stepWhyNot`).
-  fits: (bound) => verbs.whyNot(verb, bound),
+  // A receipt's button steps the change it names, or says why it cannot (`stepWhyNot`);
+  // while the editor takes no step, it holds.
+  fits: (bound) =>
+    Option.orElse(
+      Option.map(verbs.notTaken(verb), (reason) => Unfit.Now({ reason })),
+      () => verbs.whyNot(verb, bound),
+    ),
+  // The step's own receipt says what it walked; one not taken says why here.
   run: (_, how) =>
-    Effect.sync(() => {
-      verbs.step(
-        verb,
-        Option.map(Option.fromUndefinedOr(how.bound), (b) => b.change),
-      );
-      return quiet;
-    }),
+    Effect.sync(() =>
+      Option.match(verbs.notTaken(verb), {
+        onSome: (why) => refused(`${verb} not taken: ${why}`),
+        onNone: () => {
+          verbs.step(
+            verb,
+            Option.map(Option.fromUndefinedOr(how.bound), (b) => b.change),
+          );
+          return quiet;
+        },
+      }),
+    ),
 });
 
 /**
