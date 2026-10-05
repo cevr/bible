@@ -63,15 +63,24 @@ body.export .stage canvas {
 .bar[data-captions='on'] [data-act='captions'] {
   color: var(--accent);
 }
-/* The playhead's timecode, then the film's length and state (rate, loop, narration): two pieces the row lays out. */
+/* The playhead's timecode, the film's length and state (rate, loop), then why
+   the narration is not heard: three pieces the row lays out. */
 .time {
   display: contents;
   font-variant-numeric: tabular-nums;
   color: var(--text-1);
 }
+/* The narration's failure and its way back, in the warning's colour; none, no room. */
+.note {
+  color: var(--state-warning);
+}
+.note:empty {
+  display: none;
+}
 /* A phone keeps the controls and the timecode on the first row, under the thumb; the length, the scene and the line go after them, wrapping below. */
 @media (max-width: 899px) {
   .row .of,
+  .row .note,
   .row .scene,
   .row .say {
     order: 1;
@@ -329,9 +338,20 @@ body.lab .stage {
     border-top: var(--border);
   }
   /* Docked, the row keeps the controls and the scene's time; the scene's
-     name shortens, and its length and line are the strip head's and the captions'. */
+     name shortens, and its length and line are the strip head's and the captions'.
+     A narration that cannot play says so in the name's place (the strip head
+     names the scene too), on two short lines when one does not hold it. */
   body.lab .bar > .row :is(.of, .say) {
     display: none;
+  }
+  body.lab .bar > .row:has(.note:not(:empty)) .scene {
+    display: none;
+  }
+  body.lab .bar > .row .note {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--fs-2);
+    line-height: var(--lh-2);
   }
   body.lab .bar > .row .scene {
     flex: 1;

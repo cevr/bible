@@ -116,9 +116,9 @@ export const narration = (
   };
 };
 
-/** What the preview says of its narration, when it cannot play it. */
+/** What the preview says of its narration, when it cannot play it: why, and what brings it back. */
 export const narrationNote = (state: NarrationState): string => {
-  if (state._tag === 'Missing') return ' · no narration';
-  if (state._tag === 'Blocked') return ' · narration waits for a click';
+  if (state._tag === 'Missing') return 'no narration';
+  if (state._tag === 'Blocked') return 'narration waits for a click';
   return '';
 };

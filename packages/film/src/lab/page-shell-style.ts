@@ -128,10 +128,12 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 :where(.sh-btn[data-primary]) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 :where(.sh-btn[data-primary]) kbd { border-color: currentColor; color: inherit; }
 :where(.sh-btn[data-primary]:disabled) { background: var(--surface-3); border-color: var(--line); color: var(--text-3); }
-/* A button in a state's colour (a check's findings, the recorder's verb): its words and its edge. */
+/* A button in a state's colour (a check's findings, the recorder's verb): its words and its edge.
+   Recording's red reads under 4.5:1 on the raised surfaces (WCAG 1.4.3): its words keep the
+   primary ink, and the red is its edge, a cue that needs 3:1 (1.4.11). */
 :where(.sh-btn[data-state="findings"]) { color: var(--state-findings); border-color: var(--state-findings); }
 :where(.sh-btn[data-state="warning"]) { color: var(--state-warning); border-color: var(--state-warning); }
-:where(.sh-btn[data-state="recording"]) { color: var(--state-recording); border-color: var(--state-recording); }
+:where(.sh-btn[data-state="recording"]) { color: var(--text-1); border-color: var(--state-recording); }
 /* Segmented: one box of choices, the pressed one raised. */
 :where(.sh-seg) { display: inline-flex; max-width: 100%; border: var(--border); border-radius: var(--r-2); overflow: hidden; }
 :where(.sh-seg > button) { flex: 1 0 auto; min-width: var(--hit); min-height: var(--hit); padding: 0 var(--s-2); border: 0; border-radius: 0;

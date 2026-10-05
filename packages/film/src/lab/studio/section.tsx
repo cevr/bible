@@ -140,7 +140,7 @@ const Meter = () => {
   );
 };
 
-/** The controls that start or end a take, in the recording's colour (design language §7); the rest are quiet. */
+/** The controls that start or end a take, edged in the recording's colour (design language §5, §7); the rest are quiet. */
 const STATE: Partial<Record<Act, 'recording'>> = { arm: 'recording', stop: 'recording' };
 
 /** What the owner can do now, and where the recorder stands. */

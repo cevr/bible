@@ -197,7 +197,7 @@ export const mountPreview = (
   bar.innerHTML = `
     <div class="row">
       <button class="sh-tool" data-act="play">▶︎</button>
-      <span class="time"><span class="tc"></span><span class="of"></span></span>
+      <span class="time"><span class="tc"></span><span class="of"></span><span class="note"></span></span>
       <span class="scene"></span>
       <span class="say"></span>
       <button class="sh-tool" data-act="captions">CC</button>
@@ -211,6 +211,7 @@ export const mountPreview = (
   const head = q<HTMLDivElement>('.head');
   const timecodeEl = q<HTMLSpanElement>('.tc');
   const lengthEl = q<HTMLSpanElement>('.of');
+  const noteEl = q<HTMLSpanElement>('.note');
   const sceneEl = q<HTMLSpanElement>('.scene');
   const sayEl = q<HTMLSpanElement>('.say');
   const playBtn = q<HTMLButtonElement>('[data-act="play"]');
@@ -368,7 +369,9 @@ export const mountPreview = (
     const [at, length] =
       page === 'lab' ? [Math.max(T - cur.start, 0), cur.dur] : [T, film.duration];
     timecodeEl.textContent = timecode(at, film.fps);
-    lengthEl.textContent = ` / ${timecode(length, film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
+    lengthEl.textContent = ` / ${timecode(length, film.fps)}${shownRate}${shownLoop}`;
+    // The narration's failure is its own piece: the docked phone row hides the length, never this.
+    noteEl.textContent = narrationNote(voice.state());
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';

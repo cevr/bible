@@ -38,6 +38,7 @@ import { CLOCK_SCRIPT } from './clock.ts';
 import type { LabSelection } from '../../command/selection.ts';
 import { labHref } from '../place.ts';
 import type { LabMode } from '../mode.ts';
+import { narrationUrls } from '../../player/narrated.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
 import { type Request, type Response, type Tab, jsonOf } from './tab.ts';
 
@@ -268,6 +269,31 @@ const [labScript, reviewScript, playerScript, tokens, playerCss] = await Effect.
     { concurrency: 5 },
   ),
 );
+
+/** The lab's script over the probe film with a master: built the first time a case asks for it. */
+const narratedLabScript = Effect.runSync(
+  Effect.cached(scriptAsset('lab-narrated-page.ts', 'lab.js')),
+);
+
+/** The probe film's master (`narrationUrls`), answered as `found` says when given; a hold answers never. */
+const masterFile =
+  (found: Option.Option<Answer>) =>
+  (request: Request): Option.Option<Effect.Effect<Response>> =>
+    Option.flatMap(found, (a) =>
+      Option.as(
+        Option.liftPredicate(request.url.pathname, (p) => p === narrationUrls(PROBE).audio),
+        Effect.flatMap(
+          answer(a),
+          Option.match({ onNone: () => Effect.never, onSome: Effect.succeed }),
+        ),
+      ),
+    );
+
+/** The lab's script over the probe film, with a master when `narrated`. */
+const labScriptFor = (narrated: boolean): Effect.Effect<Asset> => {
+  if (narrated) return narratedLabScript;
+  return Effect.succeed(labScript);
+};
 
 /** The styles `lab.html` and `index.html` link: the tokens, then the player's. */
 const css = `${tokens}${playerCss}`;
@@ -511,9 +537,16 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     readonly viewport?: Viewport;
     /** What the page is open at; none: its panel, the film staged in it. */
     readonly ready?: string;
+    /**
+     * The probe film with a master to play (`narratedProbeFilm`), its file
+     * answered so (served beside the API, as the lab's server serves a
+     * film's narration); none: the film without one.
+     */
+    readonly master?: Answer;
   } = {},
 ) {
-  const script = labScript;
+  const master = Option.fromUndefinedOr(at.master);
+  const script = yield* labScriptFor(Option.isSome(master));
   const mic = Option.fromUndefinedOr(at.mic);
   const asked: Array<Asked> = [];
   const page = yield* openTab({
@@ -530,7 +563,14 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     ],
     assets: [script],
     serve: fakeServer(
-      servedAs('lab', respond(labPage(css, script, Option.fromUndefinedOr(at.build)), 'text/html')),
+      (request) =>
+        Option.orElse(
+          servedAs(
+            'lab',
+            respond(labPage(css, script, Option.fromUndefinedOr(at.build)), 'text/html'),
+          )(request),
+          () => masterFile(master)(request),
+        ),
       API,
       [...routes, ...defaults],
       asked,
