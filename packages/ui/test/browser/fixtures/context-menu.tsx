@@ -1,11 +1,27 @@
 // Fixtures for the context menu: a 300×200 area that opens a menu with
 // items and a submenu, a backdrop, a field in the area whose open the root
-// declines, and a context menu inside a menu's item list (`nested`). URL params: `disabled=true` disables the root; `window.__setDisabled(bool)` changes it later.
+// declines, and a context menu inside a menu's item list (`nested`). URL params: `disabled=true` disables the root; `window.__setDisabled(bool)` changes it later;
+// `under=true` opens the menu over the point it opens at, its first item under it (as a menu kept on a phone's screen lands under the finger).
 import type { JSX } from '@solidjs/web';
 import { createSignal } from 'solid-js';
 
 import { ContextMenu } from '../../../src/context-menu/index.ts';
 import { log, param } from './log.ts';
+
+/**
+ * The area menu's positioner: with `under=true`, over the point the menu
+ * opens at (its first item under it), else at the root's own offsets.
+ */
+function Positioner(props: { readonly children: JSX.Element }): JSX.Element {
+  if (param('under') === 'true') {
+    return (
+      <ContextMenu.Positioner id="positioner" sideOffset={-20} alignOffset={-20}>
+        {props.children}
+      </ContextMenu.Positioner>
+    );
+  }
+  return <ContextMenu.Positioner id="positioner">{props.children}</ContextMenu.Positioner>;
+}
 
 function AreaMenu(): JSX.Element {
   const [disabled, setDisabled] = createSignal(param('disabled') === 'true');
@@ -32,7 +48,7 @@ function AreaMenu(): JSX.Element {
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Backdrop id="backdrop" />
-        <ContextMenu.Positioner id="positioner">
+        <Positioner>
           <ContextMenu.Popup id="popup">
             <ContextMenu.Item id="copy" onClick={() => log('click copy')}>
               Copy
@@ -53,7 +69,7 @@ function AreaMenu(): JSX.Element {
               </ContextMenu.Portal>
             </ContextMenu.SubmenuRoot>
           </ContextMenu.Popup>
-        </ContextMenu.Positioner>
+        </Positioner>
       </ContextMenu.Portal>
     </ContextMenu.Root>
   );

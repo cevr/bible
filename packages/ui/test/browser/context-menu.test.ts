@@ -59,26 +59,34 @@ const touch = (
   );
 
 /**
- * Whether a finger lifted at (x, y) from the trigger area had its `touchend`
- * cancelled (a touch's events go to the element it began on): a touchend
- * left alone is followed by the browser's click on what is under the finger.
+ * A finger as the browser's own touch input (CDP `Input.dispatchTouchEvent`):
+ * its touches, and the gestures and clicks the browser makes of them, are
+ * the browser's, at real time.
  */
-const releaseSpent = (page: Page, x: number, y: number): Promise<boolean> =>
-  page.evaluate(
-    ([x, y]) => {
-      const target = document.querySelector('#area') ?? document.body;
-      const touch = new Touch({ identifier: 0, target, clientX: x, clientY: y });
-      const event = new TouchEvent('touchend', {
-        bubbles: true,
-        cancelable: true,
-        touches: [],
-        changedTouches: [touch],
-      });
-      target.dispatchEvent(event);
-      return event.defaultPrevented;
-    },
-    [x, y] as const,
-  );
+const finger = async (page: Page) => {
+  const cdp = await page.context().newCDPSession(page);
+  return {
+    down: (x: number, y: number) =>
+      cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] }),
+    up: () => cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }),
+  };
+};
+
+/** The `id` of what is at (x, y), or of its nearest ancestor with one. */
+const idAt = (page: Page, x: number, y: number): Promise<string> =>
+  page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest('[id]')?.id ?? '', [
+    x,
+    y,
+  ] as const);
+
+/** The centre of `selector`'s box. */
+const centreOf = async (page: Page, selector: string): Promise<{ x: number; y: number }> => {
+  const box = await page.locator(selector).boundingBox();
+  if (!box) {
+    throw new Error(`no ${selector}`);
+  }
+  return { x: Math.round(box.x + box.width / 2), y: Math.round(box.y + box.height / 2) };
+};
 
 /** Whether a `contextmenu` event dispatched on `selector` had its default prevented. */
 const nativeMenuBlocked = (page: Page, selector: string): Promise<boolean> =>
@@ -254,19 +262,26 @@ describe('ContextMenu.Trigger: touch long press', () => {
     await see(page.locator('#popup')).toHaveCount(0);
   });
 
-  it('the finger that opened the menu lifts without a click: the item opened under it is not chosen', async () => {
-    const page = await h.open('area', { touch: true });
-    await page.clock.install();
-    await page.clock.pauseAt(Date.now() + 10_000);
+  it('the finger that opened the menu over itself lifts choosing nothing; a later tap chooses the item it lands on', async () => {
+    // The browser's own touches at real time (no page clock): the browser
+    // makes of the lift what it would of a finger's, a click under it included.
+    const page = await h.open('area', { touch: true, query: { under: 'true' } });
+    const f = await finger(page);
     const { x, y } = await areaCentre(page);
-    await touch(page, 'touchstart', x, y);
-    await page.clock.runFor(500);
+    await f.down(x, y);
     await see(page.locator('#popup')).toBeVisible();
-    expect(await releaseSpent(page, x, y)).toBe(true);
-    // The next finger's lift is the page's own again.
-    await touch(page, 'touchstart', x, y);
-    await page.clock.runFor(100);
-    expect(await releaseSpent(page, x, y)).toBe(false);
+    // The menu opened over the finger: its first item is under it.
+    expect(await idAt(page, x, y)).toBe('copy');
+    const paste = await centreOf(page, '#paste');
+    await f.up();
+    // A later tap, on the next item: the browser handles it after the lift,
+    // so once it has chosen, whatever the lift did is done. The lift chose
+    // nothing (no Copy), and the menu was still open for the tap to choose Paste.
+    await f.down(paste.x, paste.y);
+    await f.up();
+    await see
+      .poll(() => logOf(page))
+      .toEqual(['open true trigger-press', 'click paste', 'open false item-press']);
   });
 
   it('a second finger cancels the pending long press', async () => {
