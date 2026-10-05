@@ -192,7 +192,7 @@ describe('marking a frame', () => {
         const { page, asked } = yield* openLab(store(), { href: labAt(1) });
         yield* waitFor(page, '[data-act="pen"]');
         yield* click(page, '[data-act="pen"]');
-        yield* waitFor(page, '[data-act="pen"].on');
+        yield* waitFor(page, '[data-act="pen"][aria-pressed="true"]');
         yield* attached(page, '.lab-overlay .lab-notes-surface.pen');
         yield* drag(page, [420, 60], [560, 140]);
         yield* attached(page, '.lab-overlay polyline.lab-draft-ink');

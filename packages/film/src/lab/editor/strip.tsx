@@ -222,7 +222,7 @@ export const Strip = () => {
               <Show when={state.holding()}>
                 <button
                   type="button"
-                  class="lab-strip-cancel"
+                  class="sh-btn"
                   data-act="cancel-grip"
                   onPointerDown={(e) => e.preventDefault()}
                   onClick={() => meta.hub.invokeId(CANCEL_GRIP, BY_BUTTON)}
@@ -233,7 +233,7 @@ export const Strip = () => {
               {/* Shift's way for a finger (LS-5): edges snap while it is on; off, they go freely. */}
               <button
                 type="button"
-                class="lab-strip-snap"
+                class="sh-btn"
                 data-act="snap"
                 aria-pressed={`${state.snap()}`}
                 title={`Snap to words, marks, cue edges and frames (${keyOf(SNAP)}; ⇧ flips it while dragging)`}

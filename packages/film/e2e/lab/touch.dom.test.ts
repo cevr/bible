@@ -447,6 +447,41 @@ describe('the review transport on a phone (UI-10)', () => {
   }
 });
 
+/**
+ * The Lab's transport as a script reads it: whether its row stands on the
+ * tab bar as the page's dock, and whether play, the frame steps and the
+ * scene's time lie in that order along one line.
+ */
+const LAB_DOCK = `(() => {
+  const row = document.querySelector('.bar > .row');
+  const r = row.getBoundingClientRect();
+  const parts = ['[data-act="play"]', '[data-act="play.frame-previous"]', '[data-act="play.frame-next"]', '.tc'].map(
+    (s) => row.querySelector(s).getBoundingClientRect(),
+  );
+  const mid = (b) => b.top + b.height / 2;
+  return [
+    'on the tabs ' + (Math.round(r.bottom) === Math.round(document.querySelector('.sh-pagebar').getBoundingClientRect().top)),
+    'in order ' + parts.every((b, i) => i === 0 || b.left >= parts[i - 1].right - 0.5),
+    'one line ' + parts.every((b) => Math.abs(mid(b) - mid(r)) < 4),
+  ];
+})()`;
+
+describe("the Lab's transport on a phone (DL-10)", () => {
+  it.live(
+    'one row docked over the tab bar, where the page is scrolled: play, the frame steps, then the time',
+    () =>
+      Effect.gen(function* () {
+        const page = yield* lab('edit')(PHONE.viewport);
+        const docked = ['on the tabs true', 'in order true', 'one line true'];
+        yield* evaluates(page, LAB_DOCK, docked);
+        yield* page.evaluate('window.scrollTo(0, document.documentElement.scrollHeight); true');
+        yield* until(page, 'scrollY > 0');
+        yield* evaluates(page, LAB_DOCK, docked);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});
+
 describe('every page fits a phone, 390 × 844 (G8)', () => {
   const PAGES = [
     ['Films', review(pageHref.home(), '.rv-main a[href]')],

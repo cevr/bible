@@ -68,7 +68,7 @@ export const HearButton = (props: { readonly playing: Playing; readonly disabled
   return (
     <button
       type="button"
-      class={['rv-sound', { on: on() }]}
+      class={['sh-tool', 'rv-sound', { on: on() }]}
       data-act="hear"
       title="Hear this over the picture"
       aria-pressed={pressed(on())}
@@ -94,7 +94,7 @@ const AloneButton = (props: { readonly variant: InPlace }) => {
   return (
     <button
       type="button"
-      class={['rv-sound', { on: on() }]}
+      class={['sh-tool', 'rv-sound', { on: on() }]}
       data-act="hear-alone"
       aria-label="Hear alone"
       aria-pressed={pressed(on())}
@@ -172,7 +172,7 @@ export const SayBox = (props: {
       />
       <button
         type="submit"
-        class="rv-chip"
+        class="sh-btn"
         data-act="comment"
         disabled={text().trim() === '' || props.disabled === true}
       >
@@ -202,7 +202,7 @@ export const ApproveButton = (props: {
   return (
     <button
       type="button"
-      class="rv-chip"
+      class="sh-btn"
       data-act="approve"
       data-approval={props.approval}
       aria-pressed={pressed(props.approval === 'approved')}
@@ -274,7 +274,7 @@ const UnapproveButton = (props: { readonly variant: ChoiceVariant; readonly saye
   return (
     <button
       type="button"
-      class="rv-chip"
+      class="sh-btn"
       data-act="unapprove"
       disabled={withdrawing.waiting()}
       onClick={() => withdrawing.say(props.variant, withdrawSay())}
@@ -334,7 +334,7 @@ const VerbButton = (props: {
   return (
     <button
       type="button"
-      class="rv-chip"
+      class="sh-btn"
       data-act={props.verb}
       disabled={verbing.waiting()}
       onClick={() =>

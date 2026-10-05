@@ -1,7 +1,7 @@
 // The review's look, read only through the studio's tokens
 // (`player/tokens.css`, design language §3 and §5): panels on `--surface-1`
-// with no radius, quiet buttons and segmented controls with no pills, chips
-// in their state's colour, one accent for the playhead, selection, focus and
+// with no radius, the kit's buttons and segmented controls (the shell's
+// sheet) placed in them, chips in their state's colour, one accent for the playhead, selection, focus and
 // the one primary verb, and every grid folding to one column on a phone
 // (the transport, one row in the shell's dock, stays in reach while the page
 // scrolls: over the tab bar on a phone, under the header on a laptop). Put
@@ -25,21 +25,6 @@ body.rv {
 .rv-hint, .rv-meta { color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
 .rv-row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
 .rv-pick { margin-bottom: var(--s-3); }
-.rv-seg { display: inline-flex; border: var(--border); border-radius: var(--r-2); overflow: hidden; flex-wrap: wrap; }
-.rv-seg button {
-  background: none; border: 0; color: var(--text-2); padding: 0 var(--s-3); font: inherit; font-size: var(--fs-2);
-  cursor: pointer; min-height: var(--control-h);
-}
-.rv-seg button[aria-pressed="true"] { background: var(--surface-3); color: var(--text-1); }
-.rv-seg button:hover:not([aria-pressed="true"]) { color: var(--text-1); }
-.rv-chip {
-  display: inline-flex; align-items: center; border: 1px solid var(--line-strong); background: none; color: var(--text-1);
-  border-radius: var(--r-2); padding: 0 var(--s-3); cursor: pointer; font: inherit; text-decoration: none;
-  min-height: var(--control-h);
-}
-.rv-chip:hover { background: var(--surface-3); }
-.rv-chip[aria-pressed="true"] { background: var(--surface-3); border-color: var(--accent); }
-.rv-chip[aria-busy="true"] { color: var(--text-3); }
 .rv-set-tools { margin-bottom: var(--s-3); }
 .rv-grid { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
 .rv-grid.rv-wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
@@ -63,7 +48,7 @@ a.rv-card:hover { background: var(--surface-2); }
 }
 .rv-wipe-grip::before {
   content: ''; position: absolute; inset: 0;
-  border-radius: 50%; border: 2px solid var(--on-picture); background: var(--on-picture-shade);
+  border-radius: var(--r-dot); border: 2px solid var(--on-picture); background: var(--on-picture-shade);
 }
 .rv .rv-wipe-grip:focus-visible { box-shadow: none; }
 .rv .rv-wipe-grip:focus-visible::before { box-shadow: var(--focus-ring); }
@@ -78,12 +63,9 @@ a.rv-card:hover { background: var(--surface-2); }
   color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.rv-sound {
-  background: none; border: 0; color: var(--text-2); border-radius: var(--r-2); padding: 0 var(--s-2); cursor: pointer;
-  font: inherit; min-width: var(--hit); min-height: var(--hit); filter: grayscale(1);
-}
-.rv-sound:hover { background: var(--surface-3); color: var(--text-1); }
-.rv-sound.on { color: var(--accent); filter: none; }
+/* A hear button is the kit's icon button; its glyph is grey until it is on. */
+.rv-sound { filter: grayscale(1); }
+.rv-sound.on { filter: none; }
 .rv-letter {
   font-weight: var(--w-3); min-width: var(--s-6); height: var(--s-6); padding: 0 var(--s-1); border-radius: var(--r-1);
   display: grid; place-items: center; background: var(--surface-3); color: var(--text-1); flex: none; font-size: var(--fs-2);
@@ -111,12 +93,10 @@ a.rv-card:hover { background: var(--surface-2); }
 @media (min-width: 900px) {
   .rv-main .sh-dock:not(.pj-dock) { margin-bottom: var(--s-3); }
 }
-.rv-big {
-  width: var(--control-h); height: var(--control-h); border-radius: var(--r-2); border: 0; background: var(--accent);
-  color: var(--accent-ink); font-size: var(--fs-4); cursor: pointer; flex: none;
-}
-.rv-transport input[type="range"] { flex: 1 1 0; min-width: 0; accent-color: var(--accent); height: var(--control-h); }
-.rv-transport > .rv-chip { flex: none; }
+/* Play: the kit's primary button, square. */
+.rv-big { width: var(--control-h); padding: 0; font-size: var(--fs-4); flex: none; }
+.rv-transport input[type="range"] { flex: 1 1 0; min-width: 0; }
+.rv-transport > .sh-btn { flex: none; }
 .rv-time { color: var(--text-1); font-size: var(--fs-5); line-height: var(--lh-5); font-weight: var(--w-2); white-space: nowrap; flex: none; }
 @media (max-width: 899px) {
   .rv-transport { gap: var(--s-2); }
@@ -167,7 +147,7 @@ a.rv-card:hover { background: var(--surface-2); }
   border: 1px solid var(--line-strong); border-radius: var(--r-1); padding: 0 var(--s-2); font: inherit;
 }
 .rv-say .rv-comment-input::placeholder { color: var(--text-3); }
-.rv-knob input[type="range"] { flex: 1; min-width: 0; max-width: 320px; accent-color: var(--accent); }
+.rv-knob input[type="range"] { flex: 1; min-width: 0; max-width: 320px; }
 /*
  * Project (design language §7): the transport docked (over the tab bar on a
  * phone, under the header across the page on a laptop) or the line that says
@@ -185,8 +165,8 @@ a.rv-card:hover { background: var(--surface-2); }
  * The findings chip is drawn small, as the mock has it; its target is the
  * line's height through a hit-slop (its neighbours are too near for spacing).
  */
-.pj-film-head .rv-chip { position: relative; min-height: var(--control-h); }
-.pj-film-head .rv-chip::before { content: ''; position: absolute; left: 0; right: 0;
+.pj-film-head .sh-btn { position: relative; min-height: var(--control-h); }
+.pj-film-head .sh-btn::before { content: ''; position: absolute; left: 0; right: 0;
   top: min(0px, calc((var(--control-h) - var(--hit)) / 2)); bottom: min(0px, calc((var(--control-h) - var(--hit)) / 2)); }
 .pj-film-length, .pj-film-counts { color: var(--text-2); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
 /* A segment a scene in its hue, its state a foot of the state's colour, a dot when it has findings. */
@@ -196,7 +176,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .pj-band span[data-state="rendered"] { box-shadow: inset 0 -2px 0 var(--state-rendered); }
 .pj-band span[data-state="approved"] { box-shadow: inset 0 -2px 0 var(--state-approved); }
 .pj-band span:is([data-state="findings"], [data-state="warning"])::after { content: ''; position: absolute;
-  right: 2px; top: 2px; width: var(--s-1); height: var(--s-1); border-radius: 50%; background: var(--state-findings); }
+  right: 2px; top: 2px; width: var(--s-1); height: var(--s-1); border-radius: var(--r-dot); background: var(--state-findings); }
 .pj-band span[data-state="warning"]::after { background: var(--state-warning); }
 .pj-act, .pj-loose { margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter) var(--s-4); border-top: var(--border); }
 .pj-act-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-2); min-height: var(--hit);
@@ -226,8 +206,6 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-tag[data-state="stale"] { color: var(--state-stale); }
 .rv-writes { background: var(--surface-1); border: var(--border); border-radius: var(--r-2); padding: var(--s-2) var(--s-3); margin-bottom: var(--s-3); }
 .rv-writes { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
-.rv-check[data-state="findings"] { color: var(--state-findings); border-color: var(--state-findings); }
-.rv-check[data-state="warning"] { color: var(--state-warning); border-color: var(--state-warning); }
 .rv-group + .rv-group { margin-top: var(--s-4); }
 .rv-group h3 { display: flex; gap: var(--s-2); align-items: baseline; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-2); }
 .rv-at { font: inherit; font-variant-numeric: tabular-nums; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
@@ -245,14 +223,12 @@ a.rv-card:hover { background: var(--surface-2); }
 /*
  * Every target is the pointer's size, --hit each way (design language §3: a
  * finger's 44 px on the phone, 28 px on the laptop), grown by padding, never
- * by bigger text. A slider's box is --hit tall, its track centred in it; a
- * segment, a sound button and a loose video's file link --hit square; a
+ * by bigger text. A slider, a segment and a sound button are the kit's
+ * (the shell's sheet), --hit already; a loose video's file link --hit square; a
  * row or head that holds a name (the Project's film and act heads too), a
  * finding's time and a part's choice link full rows --hit tall (a name's own
  * hit-slop, in the commands' sheet, then stays inside its row).
  */
-.rv input[type="range"] { min-height: var(--hit); }
-.rv-seg button { min-height: var(--hit); min-width: var(--hit); }
 .rv-cap > a.rv-hint { display: inline-flex; align-items: center; justify-content: center; min-height: var(--hit); min-width: var(--hit); }
 .rv-row:has(> .lab-named) { min-height: var(--hit); }
 .rv-at, .rv-plays .rv-inline-link { display: inline-flex; align-items: center; min-height: var(--hit); vertical-align: middle; }

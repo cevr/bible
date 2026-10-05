@@ -196,11 +196,11 @@ export const mountPreview = (
   bar.className = 'bar';
   bar.innerHTML = `
     <div class="row">
-      <button data-act="play">▶︎</button>
+      <button class="sh-tool" data-act="play">▶︎</button>
       <span class="time"><span class="tc"></span><span class="of"></span></span>
       <span class="scene"></span>
       <span class="say"></span>
-      <button data-act="captions">CC</button>
+      <button class="sh-tool" data-act="captions">CC</button>
     </div>
     <div class="track"><div class="head"></div></div>
     <div class="tip" hidden></div>
@@ -520,6 +520,7 @@ export const mountPreview = (
     );
     const step = (id: string, glyph: string, label: string) => {
       const button = document.createElement('button');
+      button.className = 'sh-tool';
       button.dataset['act'] = id;
       button.textContent = glyph;
       button.setAttribute('aria-label', label);

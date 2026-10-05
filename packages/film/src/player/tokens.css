@@ -15,8 +15,8 @@
  * Each family is fonts of one advance: Menlo and DejaVu Sans Mono 1233/2048
  * em, Consolas 1126/2048, Liberation Mono and Courier New 1229/2048. An
  * override is of the scaled face, so each is the UI face's divided by the
- * scale. Regular below 550, bold from it (the chrome's weights are 400, 500,
- * 600 and 650). Local files only: none is fetched. The film's own faces are
+ * scale. Regular below 550, bold from it (the chrome's weights are 400, 500
+ * and 650). Local files only: none is fetched. The film's own faces are
  * never these: a frame waits for its faces (`pictureFacesWait`).
  */
 @font-face {
@@ -161,6 +161,7 @@
   --r-1: 2px; /* fields, chips, stills, cue bars */
   --r-2: 4px; /* buttons, menus, toasts */
   --r-sheet: 12px; /* a phone sheet's top corners */
+  --r-dot: 50%; /* a dot: a state's, a sound tick's, a grip's ring */
   --border: 1px solid var(--line);
   --shadow-pop: 0 8px 28px rgb(0 0 0 / 0.55); /* menus, sheets, toasts only; panels have none */
   --focus-ring: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--accent);
@@ -223,4 +224,12 @@ textarea {
   font: inherit;
   font-feature-settings: inherit;
   font-variant-numeric: inherit;
+}
+/* The type scale's own bold and small, not the user agent's (700, `smaller`). */
+b,
+strong {
+  font-weight: var(--w-3);
+}
+small {
+  font-size: var(--fs-1);
 }

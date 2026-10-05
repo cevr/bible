@@ -5,6 +5,7 @@
 // points, off; `commands.ts`); the layer paints the
 // onion over the film on a paused frame. Both read Motion's context.
 
+import { NumberField } from '@bible/ui/number-field';
 import { Option } from 'effect';
 import { createEffect, onCleanup } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
@@ -17,32 +18,40 @@ import { LOOP_IDS } from './commands.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useMotion } from './context.tsx';
 
-/** A whole-number field from 1 to `max`, `fallback` when it is empty or not a number. */
-const whole = (value: string, fallback: number, max: number) =>
-  Math.max(1, Math.min(max, Math.round(Number(value) || fallback)));
+/** A whole number from 1 to `max`. */
+const whole = (value: number, max: number) => Math.max(1, Math.min(max, Math.round(value)));
+
+/** Whole frames, as the field prints them. */
+const FRAMES: Intl.NumberFormatOptions = { maximumFractionDigits: 0, useGrouping: false };
 
 interface SpreadFieldProps {
   readonly field: 'count' | 'spacing';
   readonly max: number;
 }
 
-/** How many frames either side the onion ghosts, or how many frames apart. */
+/**
+ * How many frames either side the onion ghosts, or how many frames apart:
+ * the kit's number field (the inspector's), its arrows stepping a frame; a
+ * cleared field keeps the value it had.
+ */
 const SpreadField = (props: SpreadFieldProps) => {
   const { state, actions } = useMotion();
   return (
-    <input
-      type="number"
-      data-field={props.field}
-      min="1"
+    <NumberField.Root
+      value={state.onion()[props.field]}
+      min={1}
       max={props.max}
-      step="1"
-      value={String(state.onion()[props.field])}
-      onChange={(e) =>
-        actions.setOnion({
-          [props.field]: whole(e.currentTarget.value, state.onion()[props.field], props.max),
-        })
-      }
-    />
+      step={1}
+      format={FRAMES}
+      commitOnEnter
+      onValueCommitted={(next) => {
+        Option.map(Option.fromNullishOr(next), (v) =>
+          actions.setOnion({ [props.field]: whole(v, props.max) }),
+        );
+      }}
+    >
+      <NumberField.Input class="lab-num" data-field={props.field} />
+    </NumberField.Root>
   );
 };
 
@@ -60,7 +69,8 @@ export const Section = () => {
           <button
             type="button"
             data-act="onion"
-            class={{ on: state.onion().on }}
+            class="sh-btn"
+            aria-pressed={`${state.onion().on}`}
             title="ghost the frames around this one: warm before, cool after"
             onClick={() => actions.setOnion({ on: !state.onion().on })}
           >
@@ -78,6 +88,7 @@ export const Section = () => {
             hub={meta.hub}
             ids={RATES.map(rateId)}
             act="rate"
+            class="sh-btn"
             title="The speed: play slower (J), faster (L), or at 1× (K)"
           >
             <span data-rate={String(state.rate())}>{rateText(state.rate())}</span>
@@ -86,6 +97,7 @@ export const Section = () => {
             hub={meta.hub}
             ids={LOOP_IDS}
             act="loop"
+            class="sh-btn"
             title="Loop the selected cue (⇧L), this scene, or in (I) to out (O)"
           >
             Loop…
