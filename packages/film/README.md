@@ -1473,8 +1473,10 @@ change with `git diff`.
 A scene that is not located is a 404, a value the lab will not rewrite a 422
 (so is a cue timing the scene's timeline would not resolve with), an undo with nothing to undo (or a file changed since) a 409.
 A cue write is judged, and answered with the cue resolved on its scene's
-clock, as the film's files now declare it with the new spans in place
-(`film read cue <film> <scene> <cue> --spans <json>`, one fresh process,
+clock, as the film's files now declare it with the new spans in place, and
+the write applied to the cue's own span where its source computes part of it
+(`until: MARK`, which no literal says)
+(`film read cue <film> <scene> <cue> --spans <json> --patch <json>`, one fresh process,
 before the file is touched): a line that moved or renamed a mark while the
 lab runs moves the cue's answer and its judgement too. The lab's handlers run
 with `LabContext` (`lab.ts`), which holds no `FilmRepo`, `SoundLibrary` or

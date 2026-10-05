@@ -453,7 +453,7 @@ export const freshHere = (given: Partial<FreshFilmService>) =>
               Effect.mapError(freshFailure),
               Effect.provideContext(context),
             ),
-          cue: (film, scene, cue, spans) =>
+          cue: (film, scene, cue, spans, patch) =>
             FilmRepo.use((repo) => repo.load(film)).pipe(
               Effect.flatMap(placeFilm),
               Effect.map((placed) =>
@@ -462,6 +462,7 @@ export const freshHere = (given: Partial<FreshFilmService>) =>
                   scene,
                   cue,
                   Option.getOrElse(spans, () => ({})),
+                  patch,
                 ),
               ),
               Effect.mapError((error) =>

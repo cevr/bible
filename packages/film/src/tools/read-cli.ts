@@ -9,10 +9,12 @@
 //   film read voice <film>
 //       what the studio reads: the voice, how speech-to-text writes the
 //       script's names, each beat's line, and the reading sheet
-//   film read cue <film> <scene> <cue> [--spans <json>]
+//   film read cue <film> <scene> <cue> [--spans <json>] [--patch <json>]
 //       the cue on its scene's clock, as the scene file now declares it (or
-//       with `spans` in place of its own: a write the lab has not made yet),
-//       or why the scene's timeline does not resolve
+//       with `spans` in place of its own: a write the lab has not made yet,
+//       and `patch` over the cue's own span when its source computes part of
+//       it, so no literal span says it), or why the scene's timeline does not
+//       resolve
 //   film read sites <film>
 //       where each scene's drawing is declared, and what of it the lab may
 //       write (`locateHere`), or why a scene is not located
@@ -35,13 +37,14 @@ import { Argument, Command, Flag } from 'effect/cli';
 import type { LineError, UnknownVoice } from '../core/errors.ts';
 import { type Placed, sceneClock, sceneOf } from '../core/layout.ts';
 import { FilmUnknown, SceneNotLocated, SourceShared } from '../core/refusals.ts';
-import type { Span } from '../core/schema.ts';
+import type { CuePatch, Span } from '../core/schema.ts';
 import { type Quote, type ScriptLine, sheetBeats } from '../core/sheet.ts';
 import type { StudioReading } from '../core/studio.ts';
-import { resolveTimeline } from '../core/timeline.ts';
+import { patchSpan, resolveTimeline } from '../core/timeline.ts';
 import { FilmModuleInvalid } from './errors.ts';
 import { FilmFolder, FilmRepo, type LoadedFilm, importFilmModule, placeFilm } from './film-repo.ts';
 import {
+  CuePatchJson,
   CueRead,
   type SceneSite,
   SitesRead,
@@ -88,29 +91,62 @@ export const readingOf = Effect.fn('film.read.voice.reading')(function* (loaded:
 });
 
 /**
+ * The cue's own span as the film plays it with `patch` applied, when `spans`
+ * has none for it: its source computes part of it (`until: MARK`), so no
+ * literal of the new text says it, and only the film's value, with the write
+ * applied, is the span the write would play.
+ */
+const patched = (
+  timeline: Option.Option<Readonly<Record<string, Span>>>,
+  spans: Readonly<Record<string, Span>>,
+  cue: string,
+  patch: Option.Option<CuePatch>,
+): Readonly<Record<string, Span>> =>
+  Option.match(
+    Option.zipWith(
+      Option.filter(patch, () => !Object.hasOwn(spans, cue)),
+      Option.flatMap(timeline, (own) => Option.fromUndefinedOr(own[cue])),
+      (q, span) => patchSpan(span, q),
+    ),
+    { onNone: () => ({}), onSome: (span) => ({ [cue]: span }) },
+  );
+
+/**
  * `cue` on `scene`'s clock among the placed scenes, `spans` over the scene's
- * own, or why the scene's timeline does not resolve; neither when the scene
- * or the cue is not there. Pure.
+ * own and `patch` over the cue's own span where `spans` has none for it
+ * (`patched`), or why the scene's timeline does not resolve; neither when the
+ * scene or the cue is not there. Pure.
  */
 export const cueOf = (
   placed: ReadonlyArray<Placed>,
   scene: string,
   cue: string,
   spans: Readonly<Record<string, Span>>,
+  patch: Option.Option<CuePatch>,
 ): CueRead =>
   Result.match(sceneOf(placed, scene), {
     onFailure: () => CueRead.make({}),
     onSuccess: (p) =>
-      Result.match(resolveTimeline({ ...p.spec.timeline, ...spans }, sceneClock(p)), {
-        onFailure: (e) => CueRead.make({ unresolved: e.message }),
-        onSuccess: (cues) =>
-          CueRead.make(
-            Option.match(Option.fromUndefinedOr(cues.get(cue)), {
-              onNone: () => ({}),
-              onSome: (r) => ({ resolved: r }),
-            }),
-          ),
-      }),
+      Result.match(
+        resolveTimeline(
+          {
+            ...p.spec.timeline,
+            ...spans,
+            ...patched(Option.fromNullishOr(p.spec.timeline), spans, cue, patch),
+          },
+          sceneClock(p),
+        ),
+        {
+          onFailure: (e) => CueRead.make({ unresolved: e.message }),
+          onSuccess: (cues) =>
+            CueRead.make(
+              Option.match(Option.fromUndefinedOr(cues.get(cue)), {
+                onNone: () => ({}),
+                onSome: (r) => ({ resolved: r }),
+              }),
+            ),
+        },
+      ),
   });
 
 /**
@@ -340,15 +376,22 @@ const cue = Command.make(
       Flag.optional,
       Flag.withDescription("spans (JSON) in place of the scene's own: a write not made yet"),
     ),
+    patch: Flag.String('patch').pipe(
+      Flag.withSchema(CuePatchJson),
+      Flag.optional,
+      Flag.withDescription(
+        "the write (a CuePatch, JSON) applied to the cue's own span when --spans has none for it",
+      ),
+    ),
   },
   Effect.fn('film.read.cue')(function* (input) {
     const placed = yield* placeFilm(yield* (yield* FilmRepo).load(input.film));
     const spans = Option.getOrElse(input.spans, () => ({}));
-    yield* printLine(cueOf(placed, input.scene, input.cue, spans));
+    yield* printLine(cueOf(placed, input.scene, input.cue, spans, input.patch));
   }, answering),
 ).pipe(
   Command.withDescription(
-    "A cue on its scene's clock as the scene file declares it (or with --spans in its place), or why its timeline does not resolve, as one line of JSON",
+    "A cue on its scene's clock as the scene file declares it (or with --spans in its place, and --patch over its own span), or why its timeline does not resolve, as one line of JSON",
   ),
 );
 

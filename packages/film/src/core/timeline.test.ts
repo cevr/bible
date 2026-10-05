@@ -373,6 +373,35 @@ describe('timeline', () => {
     expect(drag('end', 2.8, 2.8)).toEqual(Option.some({ untilOffset: -2.7 }));
   });
 
+  test('dragPatch: an until end dragged onto a start off the millisecond rounds to the first millisecond at or after it', () => {
+    // Starts at 1.0004 (speech 0.5 + fiction 2 − 1.4996); {as} is at 5.5.
+    const walk = { mark: 'fiction', offset: -1.4996, until: 'as' } as const;
+    const resolved = (span: Span) =>
+      Option.getOrThrow(
+        Option.fromUndefinedOr(
+          Result.getOrThrow(resolveTimeline({ walk: span }, clock)).get('walk'),
+        ),
+      );
+    const c = resolved(walk);
+    expect(c.start).toBeCloseTo(1.0004, 9);
+    // Rounded to the nearest millisecond, -4.4996 is -4.5: an end at 1.0, before the start.
+    const patch = Option.getOrThrow(
+      dragPatch(walk, c, 'end', { start: c.start, end: c.start }, 1 / 30),
+    );
+    expect(patch).toEqual({ untilOffset: -4.499 });
+    const onStart = resolved(patchSpan(walk, patch));
+    expect(onStart.end).toBeGreaterThanOrEqual(onStart.start);
+    expect(onStart.end - onStart.start).toBeLessThan(0.001);
+    // The same, from a span already off its point.
+    const off = { ...walk, untilOffset: 0.25 } as const;
+    const c2 = resolved(off);
+    const again = Option.getOrThrow(
+      dragPatch(off, c2, 'end', { start: c2.start, end: c2.start }, 1 / 30),
+    );
+    expect(again).toEqual({ untilOffset: -4.499 });
+    expect(resolved(patchSpan(off, again)).end).toBeGreaterThanOrEqual(c2.start);
+  });
+
   test('dragPatch: an until span off its point moves the offset, and dropped back on the point is a plain until', () => {
     // Ends 0.5 past {as} (5.5): at 6.
     const walk = { mark: 'fiction', offset: 0.3, until: 'as', untilOffset: 0.5 } as const;

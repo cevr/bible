@@ -165,7 +165,12 @@ const untilPatch = (
     if (toMs(at.end) === toMs(cue.end)) return Option.none();
     // The point the span runs until: its end less the offset it ends off it.
     const point = cue.end - (span.untilOffset ?? 0);
-    return Option.some({ untilOffset: toMs(Math.max(cue.start, at.end) - point) });
+    const near = toMs(Math.max(cue.start, at.end) - point);
+    // Read back through an offset, the point is exact only to its last bit: a nanosecond's margin there.
+    const margin = span.untilOffset === undefined ? 0 : 1e-9;
+    // Rounded, the end may fall before the start: then it is the first millisecond at or after it.
+    if (point + near >= cue.start + margin) return Option.some({ untilOffset: near });
+    return Option.some({ untilOffset: toMs(near + 0.001) });
   }
   const offset = toMs(Math.min(at.start, cue.end - frame) - anchor);
   if (offset === toMs(span.offset ?? 0)) return Option.none();

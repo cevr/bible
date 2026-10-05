@@ -45,7 +45,7 @@ import {
   VariantUnknown,
   VerbRefused,
 } from '../core/refusals.ts';
-import { CheckLine, ResolvedCue, Timeline, VoiceTiming } from '../core/schema.ts';
+import { CheckLine, CuePatch, ResolvedCue, Timeline, VoiceTiming } from '../core/schema.ts';
 import { StudioReading } from '../core/studio.ts';
 import type { FilmName } from './film-repo.ts';
 import { type Finished, collectWithin } from './process.ts';
@@ -91,6 +91,10 @@ export class ProjectRead extends Schema.TaggedClass<ProjectRead>()('ProjectRead'
 /** A scene's spans as `film read cue --spans` takes them. */
 export const TimelineJson = Schema.fromJsonString(Timeline);
 const encodeTimeline = Schema.encodeEffect(TimelineJson);
+
+/** A cue write as `film read cue --patch` takes it. */
+export const CuePatchJson = Schema.fromJsonString(CuePatch);
+const encodeCuePatch = Schema.encodeEffect(CuePatchJson);
 
 /** `film read voice`'s answer: what the studio reads of the film's script and voice. */
 export class VoiceRead extends Schema.TaggedClass<VoiceRead>()('VoiceRead', {
@@ -304,7 +308,8 @@ export interface FreshFilmService {
   readonly reading: (film: FilmName) => Effect.Effect<StudioReading, FreshError>;
   /**
    * `cue` on `scene`'s clock as the film's files now declare it, `spans` in
-   * place of the scene's own where given (`film read cue`), or why the
+   * place of the scene's own where given, and `patch` applied to the cue's
+   * own span where `spans` has none for it (`film read cue`), or why the
    * scene's timeline does not resolve.
    */
   readonly cue: (
@@ -312,6 +317,7 @@ export interface FreshFilmService {
     scene: string,
     cue: string,
     spans: Option.Option<Timeline>,
+    patch: Option.Option<CuePatch>,
   ) => Effect.Effect<CueRead, FreshError>;
   /** Where each scene's drawing is declared, as the film's files and modules now stand (`film read sites`). */
   readonly sites: (film: FilmName) => Effect.Effect<SitesRead, FreshError>;
@@ -457,13 +463,22 @@ export class FreshFilm extends Context.Service<FreshFilm, FreshFilmService>()(
           scene: string,
           name: string,
           spans: Option.Option<Timeline>,
+          patch: Option.Option<CuePatch>,
         ) {
-          // Spans are data the lab read from a scene's source: they encode as their schema says.
+          // Spans and a patch are data the lab read or decoded: they encode as their schema says.
           const given = yield* Option.match(spans, {
             onNone: () => Effect.succeed<ReadonlyArray<string>>([]),
             onSome: (s) => Effect.map(Effect.orDie(encodeTimeline(s)), (json) => ['--spans', json]),
           });
-          return yield* ask(['read', 'cue', film, scene, name, ...given], READ_LIMIT, CueRead);
+          const write = yield* Option.match(patch, {
+            onNone: () => Effect.succeed<ReadonlyArray<string>>([]),
+            onSome: (q) => Effect.map(Effect.orDie(encodeCuePatch(q)), (json) => ['--patch', json]),
+          });
+          return yield* ask(
+            ['read', 'cue', film, scene, name, ...given, ...write],
+            READ_LIMIT,
+            CueRead,
+          );
         });
 
         const sites = Effect.fn('FreshFilm.sites')(function* (film: FilmName) {

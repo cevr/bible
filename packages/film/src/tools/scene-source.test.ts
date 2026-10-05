@@ -187,6 +187,61 @@ describe('scene source', () => {
     );
   });
 
+  it('takes an offset away with the comma that joins it, and keeps every comment around it', () => {
+    // Each case: the span with the offset, and the span once it is taken away.
+    const cases: ReadonlyArray<readonly [string, string]> = [
+      // One line, a comment before the offset and after it, the offset last and not.
+      [
+        "{ at: 'speech', until: 'gift', /* why */ untilOffset: 0.1 }",
+        "{ at: 'speech', until: 'gift' /* why */ }",
+      ],
+      [
+        "{ at: 'speech', until: 'gift', untilOffset: 0.1 /* why */ }",
+        "{ at: 'speech', until: 'gift' /* why */ }",
+      ],
+      [
+        "{ at: 'speech', until: 'gift' /* why */, untilOffset: 0.1 }",
+        "{ at: 'speech', until: 'gift' /* why */ }",
+      ],
+      [
+        "{ at: 'speech', /* why */ untilOffset: 0.1, until: 'gift' }",
+        "{ at: 'speech', /* why */ until: 'gift' }",
+      ],
+      [
+        "{ at: 'speech', untilOffset: 0.1 /* why */, until: 'gift' }",
+        "{ at: 'speech', /* why */ until: 'gift' }",
+      ],
+      // Several lines: the neighbour's comment after it, the offset's line goes whole.
+      [
+        "{\n      at: 'speech',\n      until: 'gift', // rationale\n      untilOffset: 0.1,\n      ease: 'linear',\n    }",
+        "{\n      at: 'speech',\n      until: 'gift', // rationale\n      ease: 'linear',\n    }",
+      ],
+      [
+        "{\n      at: 'speech',\n      until: 'gift', // rationale\n      untilOffset: 0.1\n    }",
+        "{\n      at: 'speech',\n      until: 'gift' // rationale\n    }",
+      ],
+      // A comment on a line of its own before the offset, and one after it on its line.
+      [
+        "{\n      at: 'speech',\n      until: 'gift',\n      // nudged past the word\n      untilOffset: 0.1,\n      ease: 'linear',\n    }",
+        "{\n      at: 'speech',\n      until: 'gift',\n      // nudged past the word\n      ease: 'linear',\n    }",
+      ],
+      [
+        "{\n      at: 'speech',\n      until: 'gift',\n      untilOffset: 0.1, // nudged\n      ease: 'linear',\n    }",
+        "{\n      at: 'speech',\n      until: 'gift',\n      // nudged\n      ease: 'linear',\n    }",
+      ],
+      [
+        "{\n      at: 'speech',\n      until: 'gift',\n      /* nudged\n         past the word */ untilOffset: 0.1,\n      ease: 'linear',\n    }",
+        "{\n      at: 'speech',\n      until: 'gift',\n      /* nudged\n         past the word */\n      ease: 'linear',\n    }",
+      ],
+    ];
+    for (const [span, dropped] of cases) {
+      const before = scene.replace("{ at: 'speech' }", span);
+      expect(ok(editCue(FILE, before, 'hand', 'bare', { untilOffset: 0 }))).toBe(
+        scene.replace("{ at: 'speech' }", dropped),
+      );
+    }
+  });
+
   it('refuses an until offset on a span that ends by its dur, or over one in code', () => {
     const why = (source: string, patch: Parameters<typeof editCue>[4]) =>
       Result.match(editCue(FILE, source, 'hand', 'bare', patch), {

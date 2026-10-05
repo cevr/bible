@@ -254,15 +254,17 @@ const saidOver = (a: Pick<CueWrite, 'said'>, b: Pick<CueWrite, 'said'>) => {
  */
 export const joined = (earlier: Write, later: Write): Option.Option<Write> =>
   Match.value([earlier, later] as const).pipe(
+    // The same cue first, then the merge: two cues' fields never make one patch.
     Match.when([{ _tag: 'CueWrite' }, { _tag: 'CueWrite' }], ([a, b]): Option.Option<Write> =>
-      Option.liftPredicate(
-        CueWrite.make({
-          scene: b.scene,
-          cue: b.cue,
-          patch: patchOver(a.patch, b.patch),
-          ...saidOver(a, b),
-        }),
-        () => a.scene === b.scene && a.cue === b.cue,
+      Option.map(
+        Option.liftPredicate(b, () => a.scene === b.scene && a.cue === b.cue),
+        (same) =>
+          CueWrite.make({
+            scene: same.scene,
+            cue: same.cue,
+            patch: patchOver(a.patch, same.patch),
+            ...saidOver(a, same),
+          }),
       ),
     ),
     Match.when([{ _tag: 'KnobWrite' }, { _tag: 'KnobWrite' }], ([a, b]): Option.Option<Write> =>

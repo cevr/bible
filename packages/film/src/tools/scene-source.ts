@@ -685,16 +685,85 @@ const replaceEnd = (
       ),
   });
 
-/** The splice that takes property `p` out of `span`, with the comma that joins it to its neighbour. */
-const removal = (span: ObjectExpression, p: ObjectProperty): Splice => {
+/**
+ * Where the comma in `source` between `from` and `to` is: text between two
+ * properties, or a property and its object's brace, which holds blanks,
+ * comments and at most that one comma.
+ */
+const commaBetween = (source: string, from: number, to: number): Option.Option<number> => {
+  let i = from;
+  while (i < to) {
+    if (source.charAt(i) === ',') return Option.some(i);
+    // A comment runs to its line's end, or its close; one that never ends holds no comma.
+    const close = Match.value(source.slice(i, i + 2)).pipe(
+      Match.when('//', () => Option.some([source.indexOf('\n', i), 0] as const)),
+      Match.when('/*', () => Option.some([source.indexOf('*/', i + 2), 2] as const)),
+      Match.orElse(() => Option.none()),
+    );
+    if (Option.isNone(close)) i += 1;
+    else if (close.value[0] === -1) return Option.none();
+    else i = close.value[0] + close.value[1];
+  }
+  return Option.none();
+};
+
+const isBlank = (c: string) => c === ' ' || c === '\t';
+
+/**
+ * `[start, end)` cut from `source`: its whole line when nothing else is on
+ * it; with the blanks before it when it ends its line, so none trail; else
+ * with the blanks after it when blanks are before it too, so one is left.
+ */
+const cut = (source: string, start: number, end: number): Splice => {
+  let from = start;
+  while (from > 0 && isBlank(source.charAt(from - 1))) from -= 1;
+  let to = end;
+  while (to < source.length && isBlank(source.charAt(to))) to += 1;
+  const endsLine = to === source.length || source.charAt(to) === '\n';
+  if (endsLine && (from === 0 || source.charAt(from - 1) === '\n'))
+    return { start: from, end: to + 1, text: '' };
+  if (endsLine) return { start: from, end: to, text: '' };
+  if (from < start) return { start, end: to, text: '' };
+  return { start, end, text: '' };
+};
+
+/** Whether `source` holds only blanks and line breaks from `from` to `to`. */
+const onlySpace = (source: string, from: number, to: number) =>
+  source.slice(from, to).trim() === '';
+
+/**
+ * The splices that take property `p` out of `span` with the comma that joins
+ * it to its neighbour (the one after it, else the one before it), and
+ * nothing else: a comment about it, or about a neighbour, stays.
+ */
+const removal = (
+  source: string,
+  span: ObjectExpression,
+  p: ObjectProperty,
+): ReadonlyArray<Splice> => {
   const at = span.properties.indexOf(p);
-  return Option.match(Arr.get(span.properties, at - 1), {
-    onSome: (before) => ({ start: before.end, end: p.end, text: '' }),
+  const next = Option.match(Arr.get(span.properties, at + 1), {
+    onSome: (after) => after.start,
+    onNone: () => span.end,
+  });
+  return Option.match(commaBetween(source, p.end, next), {
+    onSome: (comma) => {
+      if (onlySpace(source, p.end, comma)) return [cut(source, p.start, comma + 1)];
+      return [cut(source, p.start, p.end), cut(source, comma, comma + 1)];
+    },
     onNone: () =>
-      Option.match(Arr.get(span.properties, at + 1), {
-        onSome: (after) => ({ start: p.start, end: after.start, text: '' }),
-        onNone: () => ({ start: p.start, end: p.end, text: '' }),
-      }),
+      Option.match(
+        Option.flatMap(Arr.get(span.properties, at - 1), (before) =>
+          commaBetween(source, before.end, p.start),
+        ),
+        {
+          onSome: (comma) => {
+            if (onlySpace(source, comma + 1, p.start)) return [cut(source, comma, p.end)];
+            return [cut(source, comma, comma + 1), cut(source, p.start, p.end)];
+          },
+          onNone: () => [cut(source, p.start, p.end)],
+        },
+      ),
   });
 };
 
@@ -709,10 +778,10 @@ const dropsUntilOffset = (patch: CuePatch): boolean =>
   Option.exists(Option.fromUndefinedOr(patch.untilOffset), (v) => toMs(v) === 0);
 
 /**
- * The splice that takes the span's `untilOffset` away when `patch` drops it
- * (`dropsUntilOffset`) and the span has one; refused over one in code. An
- * `untilOffset` on a span that runs no `until`, and is given none, is refused:
- * it has no point to be off.
+ * The splices that take the span's `untilOffset` away when `patch` drops it
+ * (`dropsUntilOffset`) and the span has one (`removal`); refused over one in
+ * code. An `untilOffset` on a span that runs no `until`, and is given none, is
+ * refused: it has no point to be off.
  */
 const untilOffsetDrop = (
   file: string,
@@ -720,27 +789,28 @@ const untilOffsetDrop = (
   span: ObjectExpression,
   cue: string,
   patch: CuePatch,
-): Result.Result<Option.Option<Splice>, SourceRefused> => {
+): Result.Result<ReadonlyArray<Splice>, SourceRefused> => {
   const target = `cue ${cue} untilOffset`;
+  const none: ReadonlyArray<Splice> = [];
   return Result.flatMap(propertyOf(file, `cue ${cue} until`, span, 'until'), (until) => {
     if ('untilOffset' in patch && !('until' in patch) && Option.isNone(until))
-      return refuse<Option.Option<Splice>>(
+      return refuse<ReadonlyArray<Splice>>(
         file,
         target,
         'it runs no until, so its end has no point to be off (it ends by its dur)',
       );
-    if (!dropsUntilOffset(patch)) return Result.succeed(Option.none<Splice>());
+    if (!dropsUntilOffset(patch)) return Result.succeed(none);
     return Result.flatMap(propertyOf(file, target, span, 'untilOffset'), (prop) =>
       Option.match(prop, {
-        onNone: () => Result.succeed(Option.none<Splice>()),
+        onNone: () => Result.succeed(none),
         onSome: (p) => {
           if (!Option.exists(valueOf(p), isNumberLiteral))
-            return refuse<Option.Option<Splice>>(
+            return refuse<ReadonlyArray<Splice>>(
               file,
               target,
               `it is \`${textOf(source, p.value)}\`, not a literal, so the lab cannot take it away`,
             );
-          return Result.succeed(Option.some(removal(span, p)));
+          return Result.succeed(removal(source, span, p));
         },
       }),
     );
@@ -766,7 +836,7 @@ export const editCue = (
     const inserts = new Map<number, Array<string>>();
     const dropped = untilOffsetDrop(file, source, span, cue, patch);
     if (Result.isFailure(dropped)) return Result.fail(dropped.failure);
-    splices.push(...Option.toArray(dropped.success));
+    splices.push(...dropped.success);
     for (const key of TIMING) {
       const text = valueText(key, patch);
       if (Option.isNone(text)) continue;
