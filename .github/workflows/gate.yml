@@ -67,11 +67,14 @@ jobs:
       - run: bun run gate
 
   # The browser tests: the film's (`bun run test:e2e`: the lab, review and
-  # player pages over Chrome through Bun.WebView) and @bible/ui's (`bun run
-  # test:browser`: its parts in Playwright's Chromium). They need a browser, so
-  # they run in a job of their own beside the gate; the runner image carries
-  # Google Chrome, named to Bun by BUN_CHROME_PATH
-  # (packages/film/src/tools/chrome.ts), and Playwright installs its Chromium.
+  # player pages over Chrome through Bun.WebView), then, in Playwright's
+  # Chromium, @bible/ui's parts (`test:browser`), @bible/atom-solid's
+  # server-rendered page hydrating (`test:ssr`) and egw-search's page over its
+  # fixture server (`test:browser`, which builds the page first). They need a
+  # browser, so they run in a job of their own beside the gate; the runner
+  # image carries Google Chrome, named to Bun by BUN_CHROME_PATH
+  # (packages/film/src/tools/chrome.ts), and Playwright installs its Chromium
+  # once for the three packages, which pin one Playwright version.
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -94,4 +97,10 @@ jobs:
         run: bunx playwright install --with-deps chromium
       - name: '@bible/ui browser tests'
         working-directory: packages/ui
+        run: bun run test:browser
+      - name: '@bible/atom-solid hydration test'
+        working-directory: packages/atom-solid
+        run: bun run test:ssr
+      - name: 'egw-search browser tests'
+        working-directory: apps/egw-search
         run: bun run test:browser

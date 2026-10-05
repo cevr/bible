@@ -239,4 +239,4 @@ on the server and through the client's hydration pass, so the two produce the
 same markup, and then the real hash. `packages/atom-solid/test/ssr` proves it:
 `server.test.ts` renders the lab place (in the gate), and
 `bun run --cwd packages/atom-solid test:ssr` hydrates it in Chromium with a
-hash in the URL and checks for no mismatch.
+hash in the URL and checks for no mismatch (in CI's browser job).
