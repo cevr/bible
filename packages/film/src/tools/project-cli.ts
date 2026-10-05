@@ -56,9 +56,11 @@ import {
   renderState,
   sceneSlot,
   subjectOf,
-  withdraw,
+  tookOf,
+  withdrawScenes,
 } from '../core/catalogue.ts';
 import { approvalRefused } from '../core/choice.ts';
+import { uniqueId } from '../core/unique.ts';
 import { UnknownAct } from '../core/errors.ts';
 import { pointIdOf } from '../core/point.ts';
 import { SceneNotRendered, VerbRefused, renderCommand } from '../core/refusals.ts';
@@ -529,13 +531,16 @@ const approveScenes = Command.make(
     const { loaded, placed, tree } = yield* keyed(input.film);
     const catalogues = yield* RenderCatalogue;
     const at = yield* Clock.currentTimeMillis;
+    // This run's identity, on every approval it adds: its undo takes those and no other,
+    // another run's stamped at the very same moment too.
+    const op = yield* uniqueId;
     /**
      * Every current scene of `scenes` approved, in one update: those it
      * approved, and those it made approved, read under the catalogue's lock.
      */
     const current = (scenes: ReadonlyArray<SceneKey>) =>
       catalogues.update(loaded.paths, (catalogue) => {
-        const done = approveCurrent(catalogue, scenes, tree.sound, input.variant, at);
+        const done = approveCurrent(catalogue, scenes, tree.sound, input.variant, at, op);
         return [{ approved: done.approved, made: done.made }, done.catalogue] as const;
       });
     /** `scene`'s render, when it is current; else the refusal naming why and how to make it so. */
@@ -575,18 +580,18 @@ const approveScenes = Command.make(
     });
     const { approved, made } = yield* which;
     yield* Effect.log(
-      `project.approve film=${input.film} scenes=${approved.join(',')} made=${made.join(',')} at=${at}`,
+      `project.approve film=${input.film} scenes=${approved.join(',')} made=${made.join(',')} op=${op}`,
     );
     const catalogue = yield* catalogues.read(loaded.paths);
-    // The answer says what this approve gave, so its undo withdraws exactly that (`--given`).
+    // The answer says what this approve gave, so its undo withdraws exactly that (`--given <op>`).
     yield* show(
-      { ...projectOf(catalogue, tree, input.variant), gave: gaveOf(made, at) },
+      { ...projectOf(catalogue, tree, input.variant), gave: gaveOf(made, at, op) },
       input.json,
     );
   }, answeringIf),
 ).pipe(
   Command.withDescription(
-    "Approve scenes' renders, each current (--scene id,id: a stale or missing one is refused, naming why), an act's current scenes (--act name), or every scene whose render is current (--all); a new render of a scene makes its approval stale. Its JSON answer's `gave` names the moment and the scenes whose approval it added",
+    "Approve scenes' renders, each current (--scene id,id: a stale or missing one is refused, naming why), an act's current scenes (--act name), or every scene whose render is current (--all); a new render of a scene makes its approval stale. Its JSON answer's `gave` names this run's op, the moment and the scenes whose approval it added",
   ),
 );
 
@@ -596,10 +601,10 @@ const withdrawApprovals = Command.make(
     film,
     variant: variantFlag,
     ...partFlags('withdraw'),
-    given: Flag.Int('given').pipe(
+    given: Flag.String('given').pipe(
       Flag.optional,
       Flag.withDescription(
-        "withdraw only the approvals given at this moment (ms, an approve's `gave.at`): undo that approve, leaving others' alone",
+        'withdraw only the approvals one approve gave (its op, `gave.op`): undo that approve, leaving every other approval alone',
       ),
     ),
     json,
@@ -618,21 +623,22 @@ const withdrawApprovals = Command.make(
       return yield* ApprovalUnnamed.make({ film: input.film, verb: 'withdraw' });
     });
     const ids = yield* which;
-    const catalogue = yield* catalogues.update(loaded.paths, (now) => {
-      const next = ids.reduce(
-        (cat, id) => withdraw(cat, topicOfScene(id, input.variant), input.given),
-        now,
-      );
-      return [next, next] as const;
+    const { catalogue, took } = yield* catalogues.update(loaded.paths, (now) => {
+      const done = withdrawScenes(now, ids, input.variant, input.given);
+      return [done, done.catalogue] as const;
     });
     yield* Effect.log(
-      `project.withdraw film=${input.film} scenes=${ids.join(',')}${Option.match(input.given, { onNone: () => '', onSome: (g) => ` given=${g}` })}`,
+      `project.withdraw film=${input.film} scenes=${ids.join(',')} took=${took.join(',')}${Option.match(input.given, { onNone: () => '', onSome: (g) => ` given=${g}` })}`,
     );
-    yield* show(projectOf(catalogue, tree, input.variant), input.json);
+    // An undo's answer says what it took: none, when the approvals it names are gone already.
+    yield* show(
+      { ...projectOf(catalogue, tree, input.variant), took: tookOf(input.given, took) },
+      input.json,
+    );
   }, answeringIf),
 ).pipe(
   Command.withDescription(
-    "Withdraw the approval of scenes' renders (--scene id,id), an act's scenes (--act name) or every scene (--all), whatever version it was given on; with --given, only the approvals given at that moment",
+    "Withdraw the approval of scenes' renders (--scene id,id), an act's scenes (--act name) or every scene (--all), whatever version it was given on; with --given <op>, only the approvals that approve run gave, its JSON answer's `took` naming the scenes it took one from",
   ),
 );
 

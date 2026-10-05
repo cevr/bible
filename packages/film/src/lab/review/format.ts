@@ -42,7 +42,7 @@ export interface Words<A> {
 
 /**
  * What a say did, of `subject`, as its receipt says: `Approved B · warm ·
- * Score`; a withdraw given an approve's moment is that approve's undo.
+ * Score`; a withdraw given an approve's op is that approve's undo.
  */
 export const sayText = (say: Say, subject: string): string =>
   Match.value(say).pipe(

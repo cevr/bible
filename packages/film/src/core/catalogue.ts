@@ -109,8 +109,20 @@ const SayFields = {
   key: Schema.String,
 };
 
-/** The owner's approval of one variant, as it was when approved. */
-const Approval = Schema.Struct({ ...SayFields, at: Schema.Finite });
+/**
+ * An approve run's identity (`uniqueId`: base 36, `<time>-<random>`): what
+ * its approvals carry, so its undo takes them and no other, another run's
+ * at the very same moment too. Never flag-like: it goes on a CLI's argv.
+ */
+export const OpId = Schema.String.check(Schema.isPattern(/^[0-9a-z]+(-[0-9a-z]+)*$/));
+
+/**
+ * The owner's approval of one variant, as it was when approved; `op`, the
+ * approve run that gave it (`film project approve`), when one did. An
+ * approval given before runs carried one, or by a say, has none, and no
+ * undo takes it.
+ */
+const Approval = Schema.Struct({ ...SayFields, at: Schema.Finite, op: maybe(OpId) });
 type Approval = typeof Approval.Type;
 
 /** The owner's comment on one variant, as it was when said. */
@@ -344,37 +356,68 @@ export const approvalState = (catalogue: Catalogue, subject: Subject): ApprovalS
   return 'none';
 };
 
-/** `catalogue` with `subject` approved as it is now, once. */
-export const approve = (catalogue: Catalogue, subject: Subject, at: number): Catalogue => {
+/** `catalogue` with `subject` approved as it is now, once; by the approve run `op`, when one. */
+export const approve = (
+  catalogue: Catalogue,
+  subject: Subject,
+  at: number,
+  op: Option.Option<string> = Option.none(),
+): Catalogue => {
   if (approvalState(catalogue, subject) === 'approved') return catalogue;
   const { address, point, variant, key } = subject;
   return {
     ...catalogue,
-    approvals: [...catalogue.approvals, { address, point, variant, key, at }],
+    approvals: [...catalogue.approvals, { address, point, variant, key, at, op }],
   };
 };
 
 /**
  * `catalogue` with every approval of `topic` withdrawn, whatever version it
- * was given on (the same point's same variant); `given` a moment, only the
- * approvals of `topic` given then: the exact undo of the approve made then.
- * A topic's approval of one version at one moment is one approval, since
- * `approve` adds none to a subject already approved; another's approval of
- * the same topic, given at another moment, stays.
+ * was given on (the same point's same variant); `given` an approve run's op,
+ * only the approvals of `topic` that run gave: its exact undo. An approval
+ * with no op is never taken by it.
  */
 export const withdraw = (
   catalogue: Catalogue,
   topic: Topic,
-  given: Option.Option<number> = Option.none(),
+  given: Option.Option<string> = Option.none(),
 ): Catalogue => ({
   ...catalogue,
   approvals: catalogue.approvals.filter(
     (a) =>
       !(
-        about(a, topic) && Option.match(given, { onNone: () => true, onSome: (at) => a.at === at })
+        about(a, topic) &&
+        Option.match(given, { onNone: () => true, onSome: (op) => Option.contains(a.op, op) })
       ),
   ),
 });
+
+/** A catalogue after a withdraw of scenes, and the scenes it took an approval from. */
+interface Withdrawn {
+  readonly catalogue: Catalogue;
+  readonly took: ReadonlyArray<string>;
+}
+
+/** `catalogue` with `scenes`' renders of `variant` withdrawn (`withdraw`), and those it took one from. */
+export const withdrawScenes = (
+  catalogue: Catalogue,
+  scenes: ReadonlyArray<string>,
+  variant: string,
+  given: Option.Option<string>,
+): Withdrawn =>
+  scenes.reduce<Withdrawn>(
+    (done, scene) => {
+      const next = withdraw(done.catalogue, topicOf(sceneSlot(scene, variant)), given);
+      return {
+        catalogue: next,
+        took: Arr.appendAll(
+          done.took,
+          Arr.filter([scene], () => next.approvals.length < done.catalogue.approvals.length),
+        ),
+      };
+    },
+    { catalogue, took: [] },
+  );
 
 /** `catalogue` after `say` on `subject` (as it is now) at `at`: the one change a say makes. */
 export const said = (catalogue: Catalogue, subject: Subject, say: Say, at: number): Catalogue =>
@@ -452,18 +495,31 @@ export const ProjectAct = Schema.Struct({
 export type ProjectAct = typeof ProjectAct.Type;
 
 /**
- * The approvals an approve gave: the moment it gave them, and the scenes
+ * The approvals an approve run gave: its op, the moment, and the scenes
  * whose approval it added (not one approved already). A withdraw given that
- * moment (`Say`'s `Withdraw`) undoes exactly them.
+ * op (`Say`'s `Withdraw`) undoes exactly them.
  */
-export const Gave = Schema.Struct({ at: Schema.Finite, scenes: Schema.Array(Schema.String) });
+export const Gave = Schema.Struct({
+  op: OpId,
+  at: Schema.Finite,
+  scenes: Schema.Array(Schema.String),
+});
 export type Gave = typeof Gave.Type;
+
+/**
+ * What a withdraw given an approve's op took: the op, and the scenes it took
+ * an approval from; none when the approvals were gone already (withdrawn
+ * since, by another or by an Undo before).
+ */
+export const Took = Schema.Struct({ op: OpId, scenes: Schema.Array(Schema.String) });
+export type Took = typeof Took.Type;
 
 /**
  * `film project <film> --json`: the film by its address tree for one
  * variant: what was said of the whole film, its acts (none when it declares
  * no look), and every scene in film order. An approve's answer carries what
- * it `gave`, when it gave any approval; a read never does.
+ * it `gave`, when it gave any approval; a withdraw given an op, what it
+ * `took`; a read neither.
  */
 export const Project = Schema.Struct({
   film: Schema.String,
@@ -474,6 +530,7 @@ export const Project = Schema.Struct({
   acts: Schema.Array(ProjectAct),
   scenes: Schema.Array(ProjectScene),
   gave: maybe(Gave),
+  took: maybe(Took),
 });
 export type Project = typeof Project.Type;
 
@@ -547,8 +604,10 @@ export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): 
       }),
     };
   }),
-  // A read gave nothing: an approve's answer says what it gave (`film project approve`).
+  // A read gave and took nothing: an approve's answer says what it gave, an
+  // undo's what it took (`film project approve`, `withdraw --given`).
   gave: Option.none(),
+  took: Option.none(),
 });
 
 /**
@@ -565,8 +624,9 @@ interface Approved {
 /**
  * `catalogue` with every scene render of `variant` that is current (drawn
  * from its scene's sources as they are now, carrying the mix `sound` the
- * film makes now) approved, the scenes it approved, and those it made
- * approved. A stale or missing scene is left for a render (or a re-mux) first.
+ * film makes now) approved by the approve run `op`, the scenes it approved,
+ * and those it made approved. A stale or missing scene is left for a render
+ * (or a re-mux) first.
  */
 export const approveCurrent = (
   catalogue: Catalogue,
@@ -574,6 +634,7 @@ export const approveCurrent = (
   sound: Option.Option<string>,
   variant: string,
   at: number,
+  op: string,
 ): Approved => {
   const current = scenes.flatMap(({ scene, key }) =>
     Option.toArray(
@@ -586,7 +647,10 @@ export const approveCurrent = (
     ),
   );
   return {
-    catalogue: current.reduce((cat, { render }) => approve(cat, subjectOf(render), at), catalogue),
+    catalogue: current.reduce(
+      (cat, { render }) => approve(cat, subjectOf(render), at, Option.some(op)),
+      catalogue,
+    ),
     approved: current.map(({ scene }) => scene),
     made: current
       .filter(({ render }) => approvalState(catalogue, subjectOf(render)) !== 'approved')
@@ -594,9 +658,15 @@ export const approveCurrent = (
   };
 };
 
-/** What an approve that made `made` approved at `at` gave: none when it made none. */
-export const gaveOf = (made: ReadonlyArray<string>, at: number): Option.Option<Gave> =>
+/** What the approve run `op` that made `made` approved at `at` gave: none when it made none. */
+export const gaveOf = (made: ReadonlyArray<string>, at: number, op: string): Option.Option<Gave> =>
   Option.map(
     Option.liftPredicate(made, (m) => m.length > 0),
-    (scenes) => ({ at, scenes }),
+    (scenes) => ({ op, at, scenes }),
   );
+
+/** What a withdraw `given` an op took (`took`, the scenes it took one from); none for a plain withdraw. */
+export const tookOf = (
+  given: Option.Option<string>,
+  took: ReadonlyArray<string>,
+): Option.Option<Took> => Option.map(given, (op) => ({ op, scenes: took }));

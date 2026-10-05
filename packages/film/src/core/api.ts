@@ -37,7 +37,7 @@ import {
 import { PartAddress } from './address.ts';
 import { isShortKey } from './shorts.ts';
 import { onChoicesTab } from './point.ts';
-import { Project, RenderVariantName } from './catalogue.ts';
+import { OpId, Project, RenderVariantName } from './catalogue.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
 import {
@@ -302,20 +302,20 @@ export type Steps = typeof Steps.Type;
 /**
  * What the owner says of a variant, a scene's render, an act or the film:
  * approve it as it is now, withdraw every approval of it, or comment on it.
- * A withdraw `given` an approval's moment (an approve's `Project.gave`)
- * withdraws only the approvals given then: the exact undo of that approve,
- * leaving another's (given at another moment) alone. The one say both the
- * choices and the project take.
+ * A withdraw `given` an approve's op (its `Project.gave.op`) withdraws only
+ * the approvals that approve gave: its exact undo, leaving every other
+ * approval alone, another's given at the very same moment too. The one say
+ * both the choices and the project take.
  */
 export const Say = Schema.Union([
   Schema.TaggedStruct('Approve', {}),
-  Schema.TaggedStruct('Withdraw', { given: Schema.OptionFromOptionalKey(Schema.Finite) }),
+  Schema.TaggedStruct('Withdraw', { given: Schema.OptionFromOptionalKey(OpId) }),
   Schema.TaggedStruct('Comment', { text: Schema.String.check(Schema.isNonEmpty()) }),
 ]).pipe(Schema.toTaggedUnion('_tag'));
 export type Say = typeof Say.Type;
 
-/** A withdraw: of every approval, or `given` a moment, of the approvals given then alone. */
-export const withdrawSay = (given: Option.Option<number> = Option.none()): Say => ({
+/** A withdraw: of every approval, or `given` an approve's op, of the approvals it gave alone. */
+export const withdrawSay = (given: Option.Option<string> = Option.none()): Say => ({
   _tag: 'Withdraw',
   given,
 });

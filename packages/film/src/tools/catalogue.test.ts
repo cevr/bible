@@ -8,7 +8,14 @@ import { describe, expect, it } from 'effect-bun-test';
 import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Result } from 'effect';
 import { sceneAddress } from '../core/address.ts';
 import { withdrawSay } from '../core/api.ts';
-import { approvalState, comment, emptyCatalogue, partSubject, said } from '../core/catalogue.ts';
+import {
+  approvalState,
+  approve,
+  comment,
+  emptyCatalogue,
+  partSubject,
+  said,
+} from '../core/catalogue.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
 
@@ -84,18 +91,22 @@ describe('said', () => {
     expect(commented.comments.map((c) => [c.text, c.key])).toEqual([['late', 'k2']]);
   });
 
-  test("a withdraw given a moment takes only the approval given then: another's stays", () => {
+  test("a withdraw given an approve's op takes only the approval it gave: another's stays", () => {
     const now = partSubject(sceneAddress('open'), 'main', 'k2');
     const earlier = { ...now, key: 'k1' };
-    const approved = said(
-      said(emptyCatalogue('f'), earlier, { _tag: 'Approve' }, 1),
+    // Both approvals given at the same moment, by two runs.
+    const approved = approve(
+      approve(emptyCatalogue('f'), earlier, 2, Option.some('op-1')),
       now,
-      { _tag: 'Approve' },
       2,
+      Option.some('op-2'),
     );
-    expect(said(approved, now, withdrawSay(Option.some(9)), 3)).toEqual(approved);
-    const undone = said(approved, now, withdrawSay(Option.some(2)), 3);
+    expect(said(approved, now, withdrawSay(Option.some('op-9')), 3)).toEqual(approved);
+    const undone = said(approved, now, withdrawSay(Option.some('op-2')), 3);
     expect(approvalState(undone, now)).toBe('stale');
     expect(approvalState(undone, earlier)).toBe('approved');
+    // A say's approve carries no op: no Undo's withdraw takes it.
+    const plain = said(emptyCatalogue('f'), now, { _tag: 'Approve' }, 4);
+    expect(said(plain, now, withdrawSay(Option.some('op-2')), 5)).toEqual(plain);
   });
 });

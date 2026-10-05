@@ -44,9 +44,9 @@ describe("a film's project", () => {
         say('{"address":{"_tag":"Act","act":"one"},"say":{"_tag":"Withdraw"}}'),
       );
       expect(withdrawn.status).toBe(200);
-      // An approve's Undo: the withdraw of just the approvals given at its moment.
+      // An approve's Undo: the withdraw of just the approvals that approve's op gave.
       const undone = yield* reviewTestAsk(
-        say('{"address":{"_tag":"Act","act":"one"},"say":{"_tag":"Withdraw","given":1700}}'),
+        say('{"address":{"_tag":"Act","act":"one"},"say":{"_tag":"Withdraw","given":"op-1"}}'),
       );
       expect(undone.status).toBe(200);
       const said = yield* reviewTestAsk(
@@ -60,7 +60,7 @@ describe("a film's project", () => {
         ['approve', 'f', '--all', '--json'],
         ['approve', 'f', '--act', 'one', '--json'],
         ['withdraw', 'f', '--act', 'one', '--json'],
-        ['withdraw', 'f', '--act', 'one', '--given', '1700', '--json'],
+        ['withdraw', 'f', '--act', 'one', '--given', 'op-1', '--json'],
         ['comment', 'f', '--variant', 'ink', '--json', '--', '--all of it'],
       ]);
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
@@ -149,6 +149,11 @@ describe("a film's project", () => {
           part: 'Payload',
         });
       }
+      // An Undo's op is never flag-like either.
+      const undo = yield* reviewTestAsk(
+        say('{"address":{"_tag":"Film"},"say":{"_tag":"Withdraw","given":"--all"}}'),
+      );
+      expect(undo.status).toBe(400);
       expect(reviewProjectRuns).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );

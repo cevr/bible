@@ -65,8 +65,16 @@ interface ToyScene {
   readonly scene: string;
   state: 'current' | 'stale' | 'missing';
   staleBy?: 'sources' | 'sound';
-  /** Its approvals as the catalogue keeps them: the moment each was given, and whether of an earlier version. */
-  approvals: ReadonlyArray<{ readonly at: number; readonly earlier: boolean }>;
+  /**
+   * Its approvals as the catalogue keeps them: the moment each was given, the
+   * approve run that gave it (none, before runs had ops), and whether of an
+   * earlier version.
+   */
+  approvals: ReadonlyArray<{
+    readonly at: number;
+    readonly op?: string;
+    readonly earlier: boolean;
+  }>;
   said: ReadonlyArray<string>;
   /** Where it sits in the film, in seconds. */
   readonly span: { readonly start: number; readonly dur: number };
@@ -261,7 +269,7 @@ interface Said {
 /** A posted say: its address's tag and scene, and its own tag and text. */
 interface PostedSay {
   readonly address: { readonly _tag: string; readonly ids?: ReadonlyArray<string> };
-  readonly say: { readonly _tag: string; readonly text?: string; readonly given?: number };
+  readonly say: { readonly _tag: string; readonly text?: string; readonly given?: string };
 }
 
 const PostedSay = Schema.decodeUnknownSync(
@@ -273,7 +281,7 @@ const PostedSay = Schema.decodeUnknownSync(
     say: Schema.Struct({
       _tag: Schema.String,
       text: Schema.optionalKey(Schema.String),
-      given: Schema.optionalKey(Schema.Finite),
+      given: Schema.optionalKey(Schema.String),
     }),
   }),
 );
@@ -340,8 +348,10 @@ const fakeProject = (fake: Fake = {}) => {
     .forEach((s) => {
       s.approvals = EARLIER;
     });
-  // The catalogue's clock: each approve is given at a moment of its own.
-  let clock = 100;
+  // Each approve run's op, as the CLI makes one a run; every run stamped at one moment, as two
+  // runs queued on the catalogue's lock can be: the op, not the moment, names an approve's own.
+  let runs = 0;
+  const AT = 100;
   const text: Said = { film: [], act: [] };
   const view = (gave: Option.Option<Json> = Option.none()): Json => ({
     project: {
@@ -364,25 +374,25 @@ const fakeProject = (fake: Fake = {}) => {
     // This checkout's catalogue record of each rendered scene.
     videos: { open: videoOf('out/toy', 'open'), coda: videoOf('out/toy', 'coda') },
   });
-  /** The current scenes of `ids` approved at a moment of their own: those this approve made approved, and when. */
+  /** The current scenes of `ids` approved by a run of its own: its op, and the scenes it made approved. */
   const approveCurrent = (ids: ReadonlyArray<string>) => {
-    clock += 1;
-    const at = clock;
+    runs += 1;
+    const op = `op-${runs}`;
     const made = scenes.filter(
       (s) => ids.includes(s.scene) && s.state === 'current' && approvalOf(s) !== 'approved',
     );
     made.forEach((s) => {
-      s.approvals = [...s.approvals, { at, earlier: false }];
+      s.approvals = [...s.approvals, { at: AT, op, earlier: false }];
     });
-    return { at, made: made.map((s) => s.scene) };
+    return { op, made: made.map((s) => s.scene) };
   };
-  /** The approvals of `ids` withdrawn: every one, or only those given at `given`. */
-  const withdraw = (ids: ReadonlyArray<string>, given: Option.Option<number>) =>
+  /** The approvals of `ids` withdrawn: every one, or only those the run `given` gave. */
+  const withdraw = (ids: ReadonlyArray<string>, given: Option.Option<string>) =>
     scenes
       .filter((s) => ids.includes(s.scene))
       .forEach((s) => {
         s.approvals = s.approvals.filter((a) =>
-          Option.match(given, { onNone: () => false, onSome: (at) => a.at !== at }),
+          Option.match(given, { onNone: () => false, onSome: (op) => a.op !== op }),
         );
       });
   const other: Other = {
@@ -445,14 +455,15 @@ const fakeProject = (fake: Fake = {}) => {
           }),
         );
       }
-      // An approve answers what it gave: the moment, and the scenes it made approved (none: no gave).
+      // An approve answers what it gave: its op, the moment, and the scenes it made approved
+      // (none: no gave).
       if (p.say._tag === 'Approve') {
-        const { at, made } = approveCurrent(ids);
+        const { op, made } = approveCurrent(ids);
         return json(
           view(
             Option.map(
               Option.liftPredicate(made, (m) => m.length > 0),
-              (m) => ({ at, scenes: m }),
+              (m) => ({ op, at: AT, scenes: m }),
             ),
           ),
         );
@@ -906,10 +917,10 @@ describe("a film's project", () => {
         yield* countIs(page, `${render('open')} .sc-chip[data-mark="approved"]`, 0);
         // close kept its approval of an earlier version: the Undo withdrew open's alone.
         yield* attached(page, `${render('close')} .sc-chip[data-mark="approved-earlier"]`);
-        // The Undo names the moment the approve gave its approval: only that one goes.
+        // The Undo names the approve's run (its op): only the approvals it gave go.
         expect(saysPosted(asked)).toEqual([
           { address: { _tag: 'Act', act: 'opening' }, say: { _tag: 'Approve' } },
-          { address: { _tag: 'Scenes', ids: ['open'] }, say: { _tag: 'Withdraw', given: 101 } },
+          { address: { _tag: 'Scenes', ids: ['open'] }, say: { _tag: 'Withdraw', given: 'op-1' } },
         ]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -941,7 +952,8 @@ describe("a film's project", () => {
     "an approve's Undo after another withdrew and approved again takes nothing: the approval now is theirs",
     () =>
       Effect.gen(function* () {
-        // Just before the Undo lands, another withdraws coda's approval and approves it again.
+        // Just before the Undo lands, another withdraws coda's approval and approves it again, its
+        // run stamped at the very moment the page's was: only the op tells the two apart.
         const routes = fakeProject({
           before: (p, other) => {
             if (p.say._tag === 'Withdraw') {
@@ -962,7 +974,7 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="approved"]`);
         expect(saysPosted(asked)).toEqual([
           { address: { _tag: 'Scenes', ids: ['coda'] }, say: { _tag: 'Approve' } },
-          { address: { _tag: 'Scenes', ids: ['coda'] }, say: { _tag: 'Withdraw', given: 101 } },
+          { address: { _tag: 'Scenes', ids: ['coda'] }, say: { _tag: 'Withdraw', given: 'op-1' } },
         ]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -988,7 +1000,7 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="stale"]`);
         expect(saysPosted(asked)[1]).toEqual({
           address: { _tag: 'Scenes', ids: ['coda'] },
-          say: { _tag: 'Withdraw', given: 101 },
+          say: { _tag: 'Withdraw', given: 'op-1' },
         });
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

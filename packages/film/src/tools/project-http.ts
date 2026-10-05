@@ -40,8 +40,8 @@ const addressArgs = (address: PartAddress, film: ReadonlyArray<string>): Readonl
 
 /**
  * The verb `film project` runs for `say`, and the flags naming `address` to
- * it; a withdraw given an approval's moment names it (`--given`), so only
- * the approvals given then go.
+ * it; a withdraw given an approve's op names it (`--given`), so only the
+ * approvals that run gave go. The op is never flag-like (`OpId`).
  */
 const sayArgs = (
   address: PartAddress,
@@ -53,7 +53,7 @@ const sayArgs = (
       verb: 'withdraw',
       flags: [
         ...addressArgs(address, ['--all']),
-        ...Option.match(given, { onNone: () => [], onSome: (at) => ['--given', String(at)] }),
+        ...Option.match(given, { onNone: () => [], onSome: (op) => ['--given', op] }),
       ],
     }),
     Comment: () => ({ verb: 'comment', flags: addressArgs(address, []) }),

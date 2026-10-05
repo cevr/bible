@@ -45,6 +45,8 @@ import * as UrlAtom from '@bible/url-state/atom';
 import { Places, type ProjectView, pageHref, withdrawSay } from '../../../core/api.ts';
 import {
   type Gave,
+  OpId,
+  type Took,
   type ProjectAct as Act,
   type ProjectScene,
   type SaidComment,
@@ -864,24 +866,21 @@ const staleSinceRead = (failure: Option.Option<LabFailure>): boolean =>
 /** The command an approve's receipt offers as its Undo: a withdraw of just the approvals it gave. */
 const UNDO_APPROVE: CommandId = 'project.undo-approve';
 
-/** What an approve gave, as its receipt binds it (`Bound.change`): `<at> <scene> <scene>…`. */
-const boundGave = (gave: Gave): string => [String(gave.at), ...gave.scenes].join(' ');
+/** What an approve gave, as its receipt binds it (`Bound.change`): `<op> <scene> <scene>…`. */
+const boundGave = (gave: Gave): string => [gave.op, ...gave.scenes].join(' ');
 
-/** What an approve's Undo takes back, read from its receipt's binding: the moment and the scenes. */
-const gaveBound = (bound: Bound): Option.Option<Gave> => {
-  const [at = '', ...scenes] = bound.change.split(' ').filter((w) => w !== '');
-  return Option.map(
-    Option.liftPredicate(Number(at), (n) => at !== '' && Number.isFinite(n)),
-    (n) => ({ at: n, scenes }),
-  );
+/** What an approve's Undo takes back, read from its receipt's binding: the approve's op and its scenes. */
+const gaveBound = (bound: Bound): Option.Option<Took> => {
+  const [op = '', ...scenes] = bound.change.split(' ').filter((w) => w !== '');
+  return Option.map(Option.liftPredicate(op, Schema.is(OpId)), (id) => ({ op: id, scenes }));
 };
 
 /**
  * What a say of the project did, as its receipt says it (`Words`): what it
  * said of which part, and for an approve or a withdraw the part's approvals
  * before → after (`0/2 → 1/2 approved`). An approve's Undo takes back
- * exactly what the catalogue says it gave (`Project.gave`: the moment, and
- * the scenes whose approval it added), bound to that; none when it gave
+ * exactly what the catalogue says it gave (`Project.gave`: its op, and the
+ * scenes whose approval it added), bound to that; none when it gave
  * none (each scene approved already, by another as like as not). The page's
  * own earlier read never decides it: another may have approved since.
  */
@@ -965,7 +964,7 @@ const ProjectReady = (props: { readonly film: string }) => {
         ),
     };
   };
-  // An approve's Undo: a withdraw of the approvals it gave (given its moment), a run of
+  // An approve's Undo: a withdraw of the approvals it gave (given its op), a run of
   // neighbours a say. The catalogue takes only those: another's approval since stays.
   const undoing = useSay();
   const approvedNow = (ids: ReadonlyArray<string>) =>
@@ -1009,7 +1008,7 @@ const ProjectReady = (props: { readonly film: string }) => {
                 done.then(() =>
                   undoing.say({
                     address: { _tag: 'Scenes', ids: run },
-                    say: withdrawSay(Option.some(gave.at)),
+                    say: withdrawSay(Option.some(gave.op)),
                   }),
                 ),
               Effect.runPromise(Effect.succeed(true)),
