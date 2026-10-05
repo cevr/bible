@@ -231,6 +231,8 @@ export const ScenesView = (props: ScenesViewProps) => {
     turn: () => Effect.runPromiseWith(props.host)(Frames.use((f) => f.next)),
     now: nowMs,
   });
+  // Left, the page draws no more of them: the queue goes, and a still wanted after is not drawn.
+  onCleanup(stills.stop);
   const [firstStill, setFirstStill] = createSignal(Option.none<number>(), fromHost);
   onCleanup(
     stills.onDrawn(() => {

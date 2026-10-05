@@ -41,6 +41,12 @@ interface Stills {
   ) => Promise<ReadonlyArray<HTMLCanvasElement>>;
   /** How many stills have been drawn, and the page ms spent drawing them. */
   readonly drawn: () => { readonly count: number; readonly ms: number };
+  /**
+   * Draw no more, for good: the queue emptied, the drawing halted at the
+   * next turn, and any later `want` a no-op. What its page calls as it is
+   * left, so a film's stills stop costing a page that no longer shows them.
+   */
+  readonly stop: () => void;
 }
 
 /** How the stills are drawn. */
@@ -80,6 +86,7 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
     readonly canvas: HTMLCanvasElement;
   }>();
   let running = false;
+  let stopped = false;
   let count = 0;
   let ms = 0;
 
@@ -103,7 +110,7 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
   /** Draw the queue's head, then the next after the page's turn, until it is empty. */
   const step = (): Promise<void> => {
     const [next, ...rest] = queue;
-    if (next === undefined) {
+    if (next === undefined || stopped) {
       running = false;
       return Promise.resolve();
     }
@@ -119,6 +126,7 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
   };
 
   const want = (times: ReadonlyArray<number>) => {
+    if (stopped) return;
     const first = times.map((t) => ({ frame: frameOf(t), t })).filter((w) => !kept.has(w.frame));
     const asked = new Set(first.map((w) => w.frame));
     queue = [...first, ...queue.filter((w) => !asked.has(w.frame))];
@@ -155,5 +163,10 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
         if (!settle()) want(times);
       }),
     drawn: () => ({ count, ms }),
+    stop: () => {
+      stopped = true;
+      queue = [];
+      listeners.clear();
+    },
   };
 };

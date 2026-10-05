@@ -124,4 +124,29 @@ describe('makeStills', () => {
       }),
     ),
   );
+
+  it.effect('once stopped (its page left), no further still is drawn, wanted before or after', () =>
+    withDom(
+      Effect.gen(function* () {
+        const { film, times } = recording();
+        const page = turns();
+        const stills = makeStills(film, {
+          width: 160,
+          captions: false,
+          turn: page.turn,
+          now: () => 0,
+        });
+        stills.want([1, 2, 3]);
+        expect(times).toEqual([1]);
+        stills.stop();
+        // The turn the first still was waiting on comes: the queue is gone, nothing is drawn.
+        yield* page.next();
+        stills.want([4, 5]);
+        yield* page.next();
+        yield* page.next();
+        expect(times).toEqual([1]);
+        expect(stills.drawn().count).toBe(1);
+      }),
+    ),
+  );
 });

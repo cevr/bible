@@ -24,12 +24,16 @@ export interface SceneStills {
   readonly watch: (scene: string, el: HTMLElement) => () => void;
 }
 
-/** The faces the page's fonts declare, loaded: a still drawn before them would draw a fallback face. */
-const loadFonts = Effect.forEach(
-  Array.from(document.fonts),
-  (face) => Effect.promise(() => face.load()),
-  { concurrency: 8, discard: true },
-);
+/**
+ * The faces the page's fonts declare, loaded: a still drawn before them would
+ * draw a fallback face. Read as it runs (as the player's `loadFonts` is), so
+ * importing the module reads no `document`.
+ */
+const loadFonts = () =>
+  Effect.forEach(Array.from(document.fonts), (face) => Effect.promise(() => face.load()), {
+    concurrency: 8,
+    discard: true,
+  });
 
 /**
  * The stills of `film`'s scenes, while the calling component lives: drawn
@@ -72,15 +76,16 @@ export const useSceneStills = (film: string): SceneStills => {
   onCleanup(() => watcher.disconnect());
   const now = monotonicMs(meta.host);
   const load = Option.fromUndefinedOr(meta.films[film]);
-  // The stills' listener, once they are made: stopped with the page.
-  let unheard = () => {};
-  onCleanup(() => unheard());
+  // The stills, once they are made, stopped with the page: their queue and listener go,
+  // so a left Project draws nothing more.
+  let stop = () => {};
+  onCleanup(() => stop());
   const drawing = Effect.gen(function* () {
     const code = yield* Option.match(load, {
       onNone: () => Effect.fail('no-code' as const),
       onSome: (l) =>
         Effect.andThen(
-          loadFonts,
+          loadFonts(),
           Effect.mapError(Effect.tryPromise(l), () => 'load-failed' as const),
         ),
     });
@@ -92,7 +97,8 @@ export const useSceneStills = (film: string): SceneStills => {
     });
     const middles = new Map(code.placed.map((p) => [p.spec.id, p.start + p.dur / 2] as const));
     yield* Effect.sync(() => {
-      unheard = stills.onDrawn(() => setDrawn((n) => n + 1));
+      stills.onDrawn(() => setDrawn((n) => n + 1));
+      stop = stills.stop;
       // Every scene's still in film order; the cards on screen go ahead of them as they are seen.
       stills.want([...middles.values()]);
       setReady(Option.some({ at: stills.at, want: stills.want, middles }));
