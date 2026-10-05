@@ -2717,8 +2717,11 @@ sound (`playOrMute`, the review's players), and makes the narration's audio.
 Every copy goes through `Clipboard` (`browser/clipboard.ts`; the browser's in
 `clipboard-browser.ts`): a link written whole, against the page's origin, and
 a refusal (`ClipboardRefused`) in the browser's words.
-Every media query goes through `Viewport` (`browser/viewport.ts`; `useMatches`
-in a component), whose live adapter is the window's `matchMedia`.
+A page's media queries go through `Viewport` (`browser/viewport.ts`;
+`useMatches` in a component), whose live adapter is the window's
+`matchMedia`. One adapter still asks the window itself: the WebCodecs
+player's `(pointer: coarse)` capability probe (`browser/webcodecs-browser.ts`),
+which the lint allows an adapter, so `Viewport` is not yet the only reader.
 Every request goes through Effect's `HttpClient`: a page's calls through its
 one `LabClient`, built once at its root (the review's routes and its
 choices' share it; on the server, `LabClient.layerRendering`, whose reads
