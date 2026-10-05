@@ -92,7 +92,7 @@ import {
   InkOverFace,
   WordPinFar,
 } from './findings.ts';
-import { type LoadedFilm, masterFile } from './film-repo.ts';
+import { type FilmPaths, type LoadedFilm, masterFile } from './film-repo.ts';
 import { type Master, masterFinding } from './mixer.ts';
 
 // ---------------------------------------------------------------------------
@@ -634,9 +634,17 @@ export interface MasterAudio {
   readonly key: Option.Option<string>;
 }
 
+/** `file` as a finding names it: by its place in the film's folder (`narration/full.wav`), never the machine's path. */
+const inFilm = (paths: FilmPaths, file: string): string => {
+  const folder = `${paths.dir}/`;
+  if (!file.startsWith(folder)) return file;
+  return file.slice(folder.length);
+};
+
 /**
  * Once every take is recorded the film has a mixed track, and its master must
- * cover the film and be mixed for the plan the film plays now.
+ * cover the film and be mixed for the plan the film plays now. The finding
+ * names the master by its place in the film's folder.
  */
 const masterFindings = (
   film: LoadedFilm,
@@ -646,7 +654,7 @@ const masterFindings = (
   if (!everyTakeRecorded(placed)) return [];
   return Option.toArray(
     masterFinding(
-      masterFile(film.paths),
+      inFilm(film.paths, masterFile(film.paths)),
       audio.master,
       { seconds: filmEnd(placed), key: audio.key },
       MASTER_TOLERANCE,

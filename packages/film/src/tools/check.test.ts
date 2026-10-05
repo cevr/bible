@@ -1,6 +1,6 @@
 import { sceneMoments } from '../core/moments.ts';
 import { describe, expect, test } from 'bun:test';
-import { Array as Arr, Option, Result } from 'effect';
+import { Array as Arr, Match, Option, Result } from 'effect';
 import { DEFAULT_TAIL, MIN_LEAD, filmEnd, layout } from '../core/layout.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import type { Cast, Music, Score, Sound, Timed, Timings } from '../core/schema.ts';
@@ -1496,6 +1496,23 @@ describe('the audio master', () => {
     ]);
     expect(found(Option.some(end), false, Option.none())).toEqual([['error', 'AudioStale']]);
     expect(reason(end, Option.some('plan-before'))).toEqual(['mixed for another plan']);
+  });
+
+  test("names the master by its place in the film's folder, never the machine's path", () => {
+    const said = (master: MasterAudio['master']) =>
+      checked(film, placed, { allowStale: false }, { master, key: Option.some(NOW) }).flatMap((r) =>
+        Match.value(r.finding).pipe(
+          Match.tags({
+            AudioMissing: (f) => [[f.file, f.message.includes(film.paths.dir)]],
+            AudioStale: (f) => [[f.file, f.message.includes(film.paths.dir)]],
+          }),
+          Match.orElse(() => []),
+        ),
+      );
+    expect(said(Option.none())).toEqual([['narration/full.wav', false]]);
+    expect(said(Option.some({ length: end - 1, key: Option.some(NOW) }))).toEqual([
+      ['narration/full.wav', false],
+    ]);
   });
 
   test('--allow-stale reports them as warnings', () => {
