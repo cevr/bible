@@ -100,6 +100,27 @@ const lineTime = (t: number, fps: number) => {
 const scenesText = (n: number) =>
   Bool.match(n === 1, { onTrue: () => '1 scene', onFalse: () => `${n} scenes` });
 
+/**
+ * What an approve's receipt says: what the catalogue says it gave
+ * (`Project.gave`), not what was asked: `approved two`, `approved 2 scenes`,
+ * or, when it gave none (each approved already, by another meanwhile),
+ * `approved already`.
+ */
+const gaveText = (after: ProjectView): string =>
+  Option.match(
+    Option.flatMap(after.project.gave, (g) =>
+      Arr.match(g.scenes, { onEmpty: Option.none, onNonEmpty: Option.some }),
+    ),
+    {
+      onNone: () => 'approved already',
+      onSome: (scenes) =>
+        Bool.match(scenes.length === 1, {
+          onTrue: () => `approved ${scenes[0]}`,
+          onFalse: () => `approved ${scenesText(scenes.length)}`,
+        }),
+    },
+  );
+
 /** What a step reads as on the legend: `5 s a still · a line a minute`. */
 const stepText = (step: number, perRow: number) => {
   const line = step * perRow;
@@ -374,7 +395,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       run: (ctx) =>
         Option.match(sceneIn(ctx), {
           onNone: () => Effect.succeed(quiet),
-          onSome: (scene) => sayOf([scene], () => `approved ${scene}`, { _tag: 'Approve' }),
+          onSome: (scene) => sayOf([scene], gaveText, { _tag: 'Approve' }),
         }),
     },
     {
@@ -388,8 +409,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       run: () =>
         Arr.match(picked().filter(approvable), {
           onEmpty: () => Effect.succeed(quiet),
-          onNonEmpty: (ids) =>
-            sayOf(ids, () => `approved ${scenesText(ids.length)}`, { _tag: 'Approve' }),
+          onNonEmpty: (ids) => sayOf(ids, gaveText, { _tag: 'Approve' }),
         }),
     },
     {

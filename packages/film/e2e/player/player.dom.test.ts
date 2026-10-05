@@ -110,8 +110,9 @@ const SaidOf = Schema.decodeUnknownSync(
  * approves the scenes it names not approved already and says it gave them;
  * a withdraw given an op that takes just that run's approvals.
  */
-const projectRoutes = (): ReadonlyArray<FakeRoute> => {
-  // Each approved scene, by the op of the run that approved it.
+const projectRoutes = (meanwhile: ReadonlyArray<string> = []): ReadonlyArray<FakeRoute> => {
+  // Each approved scene, by the op of the run that approved it; `meanwhile`, approved by
+  // another reviewer just before the page's first approve lands.
   const approved = new Map<string, string>();
   let runs = 0;
   return [
@@ -123,6 +124,7 @@ const projectRoutes = (): ReadonlyArray<FakeRoute> => {
         took.forEach((s) => approved.delete(s));
         return json(projectOf(approved, { took: { op: said.say.given ?? '', scenes: took } }));
       }
+      if (runs === 0) meanwhile.forEach((s) => approved.set(s, 'op-another'));
       runs += 1;
       const op = `op-${runs}`;
       const made = said.address.ids.filter((s) => !approved.has(s));
@@ -581,6 +583,28 @@ describe('the player', () => {
           { address: { ids: ['one', 'three'] }, say: { _tag: 'Withdraw', given: 'op-1' } },
         ]);
         yield* evaluates(page, "document.querySelector('.sc-focus .sc-chips').textContent", '');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "an approve's receipt says what the catalogue gave, not what was asked: a scene another approved meanwhile is not counted",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          projectRoutes(['three']),
+        );
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        yield* clickInScene(page, 'one');
+        yield* shiftClickInScene(page, 'three');
+        // Every receipt said, kept as it shows.
+        yield* page.evaluate(
+          `window.__said = []; new MutationObserver(() => document.querySelectorAll('[data-role="receipt"] .lab-receipt-said').forEach((e) => { if (!window.__said.includes(e.textContent)) window.__said.push(e.textContent) })).observe(document.body, { subtree: true, childList: true, characterData: true })`,
+        );
+        yield* page.press('Shift+A');
+        yield* evaluates(page, 'window.__said', ['approved one']);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
