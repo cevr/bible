@@ -815,29 +815,32 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * then `fs.rename` onto it), never by writes in place, so one mix is one
    * new mtime; a watch's event, a check after arming and a write asking
    * for its own mix (`heardAt`) that all see it count it once, and keep the
-   * change it was counted as.
+   * change it was counted as: one step a write's request that leaves cannot
+   * cut, so a mtime is never kept without its count.
    */
   const landed = (master: string) =>
     landing.withPermit(
-      Effect.gen(function* () {
-        const at = yield* mtimeOf(master);
-        if (Option.isNone(at)) return;
-        const fresh = yield* Ref.modify(
-          masters,
-          (known): readonly [boolean, ReadonlyMap<string, Option.Option<number>>] => {
-            const last = Option.fromUndefinedOr(known.get(master));
-            if (Option.isNone(last) || Equal.equals(last.value, at)) return [false, known];
-            return [true, new Map([...known, [master, at]])];
-          },
-        );
-        if (!fresh) return;
-        const seen = yield* SubscriptionRef.updateAndGet(changes, mixOf(filmOf(master)));
-        yield* Ref.update(counted, (kept) => {
-          const before = Option.getOrElse(Option.fromUndefinedOr(kept.get(master)), () => []);
-          const next = [...before, [at.value, seen.n] as const].slice(-COUNTED_KEPT);
-          return new Map([...kept, [master, next]]);
-        });
-      }),
+      Effect.uninterruptible(
+        Effect.gen(function* () {
+          const at = yield* mtimeOf(master);
+          if (Option.isNone(at)) return;
+          const fresh = yield* Ref.modify(
+            masters,
+            (known): readonly [boolean, ReadonlyMap<string, Option.Option<number>>] => {
+              const last = Option.fromUndefinedOr(known.get(master));
+              if (Option.isNone(last) || Equal.equals(last.value, at)) return [false, known];
+              return [true, new Map([...known, [master, at]])];
+            },
+          );
+          if (!fresh) return;
+          const seen = yield* SubscriptionRef.updateAndGet(changes, mixOf(filmOf(master)));
+          yield* Ref.update(counted, (kept) => {
+            const before = Option.getOrElse(Option.fromUndefinedOr(kept.get(master)), () => []);
+            const next = [...before, [at.value, seen.n] as const].slice(-COUNTED_KEPT);
+            return new Map([...kept, [master, next]]);
+          });
+        }),
+      ),
     );
 
   /**
@@ -894,7 +897,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       if (below.length === 0) return;
       // Forked: the new watch may let go of the folder this one is heard in.
       yield* Effect.forkIn(
-        Effect.andThen(watching.withPermit(rewatch), landedUnwatched(below)),
+        Effect.andThen(rewatchAfter(Effect.void), landedUnwatched(below)),
         scope,
       );
     });
@@ -924,7 +927,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * track asked for, its folder, or the nearest one there on the way to it:
    * a folder already watched keeps its watch (a save there is never between
    * two watches), one no longer named is let go, and the folders newly
-   * watched are answered. Run under `watching`.
+   * watched are answered. Run by `rewatchAfter`.
    */
   const rewatch: Effect.Effect<ReadonlyArray<string>> = Effect.gen(function* () {
     const tracks = yield* Effect.forEach((yield* Ref.get(masters)).keys(), (track) =>
@@ -943,9 +946,17 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     return added;
   });
 
+  /**
+   * `change` to what is watched, then the watches made to match it
+   * (`rewatch`), under `watching` and as one step: a request that leaves
+   * part-way (its client gone) cannot cut it, so `watchers` names every
+   * watch running and no watch that ended.
+   */
+  const rewatchAfter = (change: Effect.Effect<void>) =>
+    watching.withPermit(Effect.uninterruptible(Effect.andThen(change, rewatch)));
+
   /** Watch exactly `dirs` for the builds, beside the tracks' folders; answers the folders newly watched. */
-  const watchOnly = (dirs: ReadonlyArray<string>) =>
-    watching.withPermit(Effect.andThen(Ref.set(asked, dirs), rewatch));
+  const watchOnly = (dirs: ReadonlyArray<string>) => rewatchAfter(Ref.set(asked, dirs));
 
   /**
    * `file`, asked for at `pathname`, there or not: when it is its film's
@@ -959,12 +970,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       if (pathname !== narrationUrls(filmOf(master)).audio) return;
       if ((yield* Ref.get(masters)).has(master)) return;
       const at = yield* mtimeOf(master);
-      yield* watching.withPermit(
-        Effect.andThen(
-          Ref.update(masters, (known) => new Map([...known, [master, at]])),
-          rewatch,
-        ),
-      );
+      yield* rewatchAfter(Ref.update(masters, (known) => new Map([...known, [master, at]])));
       yield* landedUnwatched([master]);
     });
 
@@ -1104,26 +1110,35 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * last build answered again is stamped with the changes seen now, a mix
    * since among them, so its page waits past them. A build a save moved while
    * it read (`Moved`) is one more change once made: the next ask builds again,
-   * and a waiting page hears it. Run under `building`.
+   * and a waiting page hears it. Run under `building`, as one step: a request
+   * that leaves while it builds (its client gone) leaves the build to end, so
+   * the builds kept, the files read and the watches always agree (`Bun.build`
+   * cannot be stopped anyway).
    */
-  const currentHeld = Effect.gen(function* () {
-    const now = (yield* SubscriptionRef.get(changes)).n;
-    const since = yield* Ref.get(sourced);
-    const last = Arr.head(yield* Ref.get(builds)).pipe(Option.filter((b) => b.build >= since));
-    if (Option.isSome(last) && last.value.outcome._tag === 'Built' && last.value.fresh !== 'Moved')
-      return { ...last.value, build: now };
-    let made = yield* bundle(now);
-    if (Option.isSome(last) && made.outcome._tag === 'Built') {
-      const n = (yield* SubscriptionRef.updateAndGet(changes, forAll)).n;
-      made = { ...made, build: n, kept: n };
-    }
-    yield* Ref.update(builds, (kept) => [made, ...kept].slice(0, KEPT));
-    if (made.fresh === 'Moved') {
-      yield* Effect.log(`lab.page.build.moved build=${made.build}`);
-      yield* sourceChanged;
-    }
-    return made;
-  });
+  const currentHeld = Effect.uninterruptible(
+    Effect.gen(function* () {
+      const now = (yield* SubscriptionRef.get(changes)).n;
+      const since = yield* Ref.get(sourced);
+      const last = Arr.head(yield* Ref.get(builds)).pipe(Option.filter((b) => b.build >= since));
+      if (
+        Option.isSome(last) &&
+        last.value.outcome._tag === 'Built' &&
+        last.value.fresh !== 'Moved'
+      )
+        return { ...last.value, build: now };
+      let made = yield* bundle(now);
+      if (Option.isSome(last) && made.outcome._tag === 'Built') {
+        const n = (yield* SubscriptionRef.updateAndGet(changes, forAll)).n;
+        made = { ...made, build: n, kept: n };
+      }
+      yield* Ref.update(builds, (kept) => [made, ...kept].slice(0, KEPT));
+      if (made.fresh === 'Moved') {
+        yield* Effect.log(`lab.page.build.moved build=${made.build}`);
+        yield* sourceChanged;
+      }
+      return made;
+    }),
+  );
   const current = building.withPermit(currentHeld);
 
   /** The build a page playing `film` (or none) hears now. */

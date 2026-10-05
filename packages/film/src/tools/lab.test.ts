@@ -1,20 +1,29 @@
 // The lab's routes as the page calls them: a note posted with its still is
 // listed and served, a wait hands back the change, a user reply reopens the
 // thread, and a bad body or an unknown note answers with its status. A page
-// is sent compressed, a streamed one chunk by chunk. And the lab never
-// imports a film: no module its handler runs reaches a loader.
+// is sent compressed, a streamed one chunk by chunk. A client that leaves
+// mid-build or mid-render, on the real server, leaves the watches whole and
+// stops the render's reads. And the lab never imports a film: no module its
+// handler runs reaches a loader.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
 import {
+  Array as Arr,
   ConfigProvider,
+  Context,
   Deferred,
   Effect,
   Exit,
+  Fiber,
   FileSystem,
   Layer,
   Option,
+  Order,
   Path,
+  PubSub,
+  Ref,
+  Schedule,
   Schema,
   Stream,
 } from 'effect';
@@ -41,12 +50,18 @@ import {
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler, labLink } from './lab.ts';
-import { LAB_IDLE_SECONDS, MAX_REQUEST_BODY, labServer, serveLab } from './api-server.ts';
+import {
+  type BesideRoutes,
+  LAB_IDLE_SECONDS,
+  MAX_REQUEST_BODY,
+  labServer,
+  serveLab,
+} from './api-server.ts';
 import { STUDIO_IMPORT_WAIT_S, STUDIO_MAX_BODY } from '../core/studio.ts';
 import { FilmFolder } from './film-repo.ts';
-import { LabPage } from './lab-page.ts';
+import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { NotesStore } from './notes-store.ts';
-import { PageReads } from './page-render.ts';
+import { PageReads, PageRenderer } from './page-render.ts';
 import {
   echoPages,
   foreignRequests,
@@ -84,14 +99,17 @@ const readingPages = Layer.effect(
 /** A path beside the API that answers nothing: held until its request is gone. */
 const HELD = '/held';
 
-/** The held path's route: `ended` is done once its request is stopped. */
-const heldRoute = (ended: Deferred.Deferred<void>) =>
+/** The held path's route: `asked` is done once it is asked, `ended` once its request is stopped. */
+const heldRoute = (ended: Deferred.Deferred<void>, asked?: Deferred.Deferred<void>) =>
   HttpRouter.add(
     'GET',
     HELD,
-    Effect.andThen(Effect.never, Effect.succeed(HttpServerResponse.empty())).pipe(
-      Effect.onInterrupt(() => Deferred.done(ended, Exit.void)),
-    ),
+    Effect.andThen(
+      Effect.forEach(Option.toArray(Option.fromUndefinedOr(asked)), (a) =>
+        Deferred.done(a, Exit.void),
+      ),
+      Effect.andThen(Effect.never, Effect.succeed(HttpServerResponse.empty())),
+    ).pipe(Effect.onInterrupt(() => Deferred.done(ended, Exit.void))),
   );
 
 /**
@@ -277,6 +295,147 @@ const loadersReached = Effect.gen(function* () {
     [...reached].map(([file, found]) => [path.relative(import.meta.dir, file), found]),
   );
 });
+
+/** The folder a build stops reading, then reads again (`drivenPages`). */
+const DROPPED = '/app/b';
+
+/** The sources a driven build reads beside its entries, one in each of two folders. */
+const SOURCES = ['/app/a/x.ts', `${DROPPED}/y.ts`] as const;
+
+/** What a test drives the app's pages by (`drivenPages`). */
+interface DrivenService {
+  /** `file` saved as `source`, and its folder's watch told. */
+  readonly save: (file: string, source: string) => Effect.Effect<void>;
+  /** The sources a build reads beside its entries. */
+  readonly reads: Ref.Ref<ReadonlyArray<string>>;
+  /** The folders whose watch runs now, sorted, once each watch. */
+  readonly watched: Effect.Effect<ReadonlyArray<string>>;
+  /** While true, the watch of `DROPPED` is done on `dropping` as it is let go and ends once `release` is. */
+  readonly held: Ref.Ref<boolean>;
+  readonly dropping: Deferred.Deferred<void>;
+  readonly release: Deferred.Deferred<void>;
+}
+
+class Driven extends Context.Service<Driven, DrivenService>()(
+  '@bible/film/tools/lab.test/Driven',
+) {}
+
+/**
+ * The app's pages (`LabPage`, beside `echoPages`' easel) over files in
+ * memory, built by the test bundler with the sources `Driven.reads` names
+ * beside their entries (a server entry, `server`, for the review when
+ * given), rendered by `renderer`, and watched by watches the test drives
+ * (`Driven`).
+ */
+const drivenPages = (
+  renderer: Layer.Layer<PageRenderer>,
+  server: Option.Option<string> = Option.none(),
+) =>
+  Layer.unwrap(
+    Effect.gen(function* () {
+      const page = (title: string) =>
+        text(`<!doctype html><html><head><title>${title}</title></head><body></body></html>`);
+      const files = new Map<string, Uint8Array>([
+        ['/app/review.html', page('review')],
+        ['/app/lab.html', page('lab')],
+        ['/app/sub/player.html', page('player')],
+        ...SOURCES.map((file) => [file, text('export {};\n')] as const),
+        ...Option.toArray(
+          Option.map(server, (code) => ['/app/review.server.js', text(code)] as const),
+        ),
+      ]);
+      const spec: LabPageSpec = {
+        pages: { review: '/app/review.html', lab: '/app/lab.html', player: '/app/sub/player.html' },
+        servers: Option.match(server, {
+          onNone: () => ({}),
+          onSome: () => ({ review: '/app/review.server.js' }),
+        }),
+        films: '/app/films',
+      };
+      const saves = yield* PubSub.unbounded<string>();
+      const reads = yield* Ref.make<ReadonlyArray<string>>(SOURCES);
+      const live = yield* Ref.make<ReadonlyArray<string>>([]);
+      const held = yield* Ref.make(false);
+      const dropping = yield* Deferred.make<void>();
+      const release = yield* Deferred.make<void>();
+      const path = yield* Path.Path;
+      const fileSystem = Layer.effect(
+        FileSystem.FileSystem,
+        Effect.map(FileSystem.FileSystem, (fs) =>
+          FileSystem.FileSystem.of({
+            ...fs,
+            watch: (dir) =>
+              Stream.unwrap(
+                Effect.as(
+                  Ref.update(live, (dirs) => [...dirs, dir]),
+                  Stream.fromPubSub(saves).pipe(
+                    Stream.filter((file) => path.dirname(file) === dir),
+                    Stream.map((file): FileSystem.WatchEvent => ({
+                      _tag: 'Update',
+                      path: path.basename(file),
+                    })),
+                  ),
+                ),
+              ).pipe(
+                Stream.ensuring(
+                  Effect.gen(function* () {
+                    yield* Ref.update(live, (dirs) => Arr.remove(dirs, dirs.indexOf(dir)));
+                    if (dir !== DROPPED || !(yield* Ref.get(held))) return;
+                    yield* Deferred.done(dropping, Exit.void);
+                    yield* Deferred.await(release);
+                  }),
+                ),
+              ),
+          }),
+        ),
+      ).pipe(Layer.provide(memoryFileSystem(files)));
+      const bundler = Layer.effect(
+        PageBundler,
+        Effect.map(PageBundler, (inner) =>
+          PageBundler.of({
+            bundle: (entries, root, how) =>
+              Effect.flatMap(inner.bundle(entries, root, how), (made) =>
+                Effect.map(Ref.get(reads), (more) => ({
+                  ...made,
+                  inputs: [...made.inputs, ...more],
+                })),
+              ),
+          }),
+        ),
+      ).pipe(Layer.provide(PageBundler.layerTest));
+      const save = (file: string, source: string) =>
+        Effect.asVoid(
+          Effect.andThen(
+            Effect.sync(() => files.set(file, text(source))),
+            PubSub.publish(saves, file),
+          ),
+        );
+      const watched = Effect.map(Ref.get(live), (dirs) => Arr.sort(dirs, Order.String));
+      return Layer.mergeAll(
+        echoPages,
+        LabPage.layer(spec).pipe(
+          Layer.provide([bundler, renderer]),
+          Layer.provide([fileSystem, Path.layer]),
+        ),
+        Layer.succeed(Driven, Driven.of({ save, reads, watched, held, dropping, release })),
+      );
+    }),
+  ).pipe(Layer.provide(Path.layer));
+
+/** The pages' build now, as a page another server served hears it at once. */
+const buildNow = Effect.flatMap(LabPage, (page) =>
+  page.wait({ since: 0, server: Option.some('another'), film: Option.none() }, 0),
+);
+
+/** A wait past the build now, once `change` is made: the build that heard it. */
+const heardOf = <E, R>(change: Effect.Effect<void, E, R>) =>
+  Effect.gen(function* () {
+    const since = (yield* buildNow).build;
+    yield* change;
+    const page = yield* LabPage;
+    return (yield* page.wait({ since, server: Option.none(), film: Option.none() }, '3 seconds'))
+      .build;
+  });
 
 const draft = `{"scene":"hand","T":230.38,"frame":6911,"cue":{"name":"topple","edge":"end"},"box":{"x":860,"y":640,"w":200,"h":120},"text":"too low","still":"${Base64.encode(png)}"}`;
 
@@ -700,5 +859,128 @@ describe('lab routes', () => {
       expect(labUrls.page.wait({ query: { since: 3 } })).toBe('/api/review/build?since=3');
       expect(reviewFileUrl('out/a b.mp4')).toBe('/api/review/files/out/a%20b.mp4');
     }),
+  );
+});
+
+// A browser that leaves (a closed tab, a reload) aborts its request, and Bun
+// interrupts the request's fiber wherever it is: the lab's real server on a
+// free port, a real client, and a step of the page's answer under way.
+describe('a client that goes away', () => {
+  /**
+   * The lab's real server on a free port, `beside` routes of the test's own:
+   * its URL, and `gone`, done once the server hears a client leave before
+   * its answer (the request's signal aborted, which interrupts the request's
+   * fiber; Bun aborts it after an answer too).
+   */
+  const served = (beside: BesideRoutes = Layer.empty) =>
+    Effect.gen(function* () {
+      const lab = yield* labHandler(LOOPBACK, beside);
+      const gone = yield* Deferred.make<void>();
+      const server = yield* Layer.build(labServer({ hostname: '127.0.0.1', port: 0 }));
+      const url = yield* serveLab((request, bound) => {
+        const answered = Deferred.makeUnsafe<void>();
+        // Heard after the lab's own listener, which interrupts the request's fiber.
+        const answer = lab(request, bound);
+        request.signal.addEventListener(
+          'abort',
+          () => {
+            if (!Deferred.isDoneUnsafe(answered)) Deferred.doneUnsafe(gone, Exit.void);
+          },
+          { once: true },
+        );
+        return answer.finally(() => Deferred.doneUnsafe(answered, Exit.void));
+      }).pipe(Effect.provideContext(server));
+      return { url, gone };
+    });
+
+  /** The app's pages with a server render and its reads in a real worker. */
+  const rendering = drivenPages(
+    PageRenderer.layer.pipe(Layer.provide(BunServices.layer)),
+    // The review's server render: its shell at once, then a read the lab holds.
+    Option.some(
+      `export default { bodyClass: 'held', render: ({ url, fetch }, sink) => { sink.head(''); sink.write('<main>shell</main>'); fetch(new URL('${HELD}', url)).finally(() => sink.end()); } };\n`,
+    ),
+  );
+
+  const building = drivenPages(PageRenderer.layerTest);
+
+  it.live(
+    "mid-build leaves the build's watches whole: no folder held by a dead watch, none untracked, and a save there heard",
+    () =>
+      Effect.gen(function* () {
+        const driven = yield* Driven;
+        const { url, gone } = yield* served();
+        const client = yield* HttpClient.HttpClient;
+        const ask = Effect.orDie(client.get(url));
+        const all = ['/app', '/app/a', DROPPED, '/app/sub'];
+        /** The folders watched once the watches just started run. */
+        const watchedSettled = (want: ReadonlyArray<string>) =>
+          Effect.andThen(
+            driven.watched.pipe(
+              Effect.repeat({
+                until: (dirs) => dirs.join() === want.join(),
+                schedule: Schedule.spaced('20 millis'),
+              }),
+              Effect.timeoutOption('2 seconds'),
+            ),
+            driven.watched,
+          );
+        expect((yield* ask).status).toBe(200);
+        expect(yield* watchedSettled(all)).toEqual(all);
+        // The page stops reading DROPPED: the next build lets its watch go, and the
+        // client leaves while it does.
+        yield* Ref.set(driven.reads, [SOURCES[0]]);
+        yield* heardOf(driven.save(SOURCES[0], 'export const a = 2;\n'));
+        yield* Ref.set(driven.held, true);
+        const leaving = yield* Effect.forkChild(ask);
+        yield* Deferred.await(driven.dropping);
+        yield* Fiber.interrupt(leaving);
+        yield* Deferred.await(gone);
+        yield* Ref.set(driven.held, false);
+        yield* Deferred.done(driven.release, Exit.void);
+        // The page reads DROPPED again: its next build watches it anew.
+        yield* Ref.set(driven.reads, SOURCES);
+        yield* heardOf(driven.save(SOURCES[0], 'export const a = 3;\n'));
+        expect((yield* ask).status).toBe(200);
+        expect(yield* watchedSettled(all)).toEqual(all);
+        const since = (yield* buildNow).build;
+        const heard = yield* heardOf(driven.save(SOURCES[1], 'export const b = 2;\n'));
+        expect(heard).toBeGreaterThan(since);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide([labLayer(files(), building), building, FetchHttpClient.layer]),
+      ),
+  );
+
+  it.live(
+    "mid-render stops the render's held read in the lab: the client gone, the stream, the render and the read each stopped",
+    () =>
+      Effect.gen(function* () {
+        const asked = yield* Deferred.make<void>();
+        const ended = yield* Deferred.make<void>();
+        const { url } = yield* served(heldRoute(ended, asked));
+        const client = yield* HttpClient.HttpClient;
+        const shell = yield* Deferred.make<string>();
+        // A browser's GET of the page, br accepted: it reads the shell and stays, until it leaves.
+        const reading = yield* Effect.forkChild(
+          Effect.flatMap(
+            Effect.orDie(client.get(url, { headers: { 'accept-encoding': 'br' } })),
+            (response) =>
+              response.stream.pipe(
+                Stream.decodeText(),
+                Stream.runForEach((chunk) => Deferred.succeed(shell, chunk)),
+                Effect.orDie,
+              ),
+          ),
+        );
+        expect(yield* Deferred.await(shell)).toContain('<body class="held">');
+        yield* Deferred.await(asked);
+        yield* Fiber.interrupt(reading);
+        const stopped = yield* Deferred.await(ended).pipe(Effect.timeoutOption('3 seconds'));
+        expect(Option.isSome(stopped)).toBe(true);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide([labLayer(files(), rendering), rendering, FetchHttpClient.layer]),
+      ),
   );
 });
