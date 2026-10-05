@@ -19,7 +19,7 @@ import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { type MenuRow, menuRows, rowKey } from '../../command/menu.ts';
 import { EVERYWHERE } from '../../command/target.ts';
-import { hubChanges, hubKeys } from './changes.ts';
+import { deferredRun, hubChanges, hubKeys } from './changes.ts';
 
 /** The command that opens and closes the menu: it is not listed in itself. */
 const OPEN = 'app.command-menu';
@@ -38,13 +38,12 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
   const [open, setOpen] = createSignal(false, { ownedWrite: true });
   const [query, setQuery] = createSignal('');
   const [at, setAt] = createSignal(0);
-  const [opened, setOpened] = createSignal<Context>(hub.context());
-  let chosen = Option.none<MenuRow>();
+  const run = deferredRun(hub, 'palette');
   const changes = hubChanges(hub);
 
   const rows = createMemo(() => {
     changes();
-    const ctx = opened();
+    const ctx = run.opened();
     return menuRows(
       hub.commands.available(ctx).filter((c) => c.id !== OPEN && c.id !== GO_TO_COMMAND),
       ctx,
@@ -53,10 +52,9 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
   });
 
   const show = (ctx: Context) => {
-    setOpened({ ...ctx, focus: 'page' });
+    run.open({ ...ctx, focus: 'page' });
     setQuery('');
     setAt(0);
-    chosen = Option.none();
     setOpen(true);
   };
 
@@ -91,7 +89,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
   );
 
   const choose = (row: MenuRow) => {
-    chosen = Option.some(row);
+    run.choose(row);
     setOpen(false);
   };
 
@@ -109,10 +107,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
       open={open()}
       onOpenChange={(next) => setOpen(next)}
       onOpenChangeComplete={(isOpen) => {
-        if (isOpen) return;
-        const row = chosen;
-        chosen = Option.none();
-        Option.map(row, (r) => hub.invoke(r.command, { step: 'normal', via: 'palette' }, opened()));
+        if (!isOpen) run.closed();
       }}
     >
       <Dialog.Portal>

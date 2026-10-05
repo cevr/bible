@@ -5,7 +5,8 @@
 // (`target.ts`), a stepped one also at ×10, a finger's Shift; the sheet,
 // every command registered, by group, with its
 // keys and how a phone reaches it; a chip, the commands it names that are
-// available (`chipRows`). Pure.
+// available (`chipRows`); the view menu, the `View` commands available and
+// the keys sheet (`viewRows`). Pure.
 
 import { Array as Arr, Option } from 'effect';
 import { type Command, type Invocation, labelOf } from './command.ts';
@@ -94,6 +95,21 @@ export const chipRows = (
   ids.flatMap((id) =>
     available.filter((command) => command.id === id).map((command) => rowOf(command, ctx)),
   );
+
+/** The group of the commands the view menu (`⋯`) lists. */
+const VIEW = 'View';
+
+/**
+ * The view menu's rows (`⋯`): the commands of `available` (those available
+ * in `ctx`) of the `View` group, then `last` (the keys sheet), each where
+ * the page is.
+ */
+export const viewRows = (
+  available: ReadonlyArray<Command>,
+  ctx: Context,
+  last: ReadonlyArray<Command>,
+): ReadonlyArray<MenuRow> =>
+  [...available.filter((c) => c.group === VIEW), ...last].map((command) => rowOf(command, ctx));
 
 /**
  * A stepped command's rows in a context menu: its step, then its coarse

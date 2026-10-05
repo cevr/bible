@@ -1,17 +1,20 @@
 // The page's hub as Solid reads and writes it: a count that moves each time
 // a command comes or goes or a key is rebound, so a list of commands or keys
 // reads it and follows; the keys a command is bound to, as the viewer's
-// keyboard writes them; and commands that follow a value (a page's Go to
-// entries over what it shows), registered again as it changes. Each ends
-// with the owner.
+// keyboard writes them; commands that follow a value (a page's Go to
+// entries over what it shows), registered again as it changes; and a menu's
+// run, deferred until it has closed (`deferredRun`). Each ends with the
+// owner.
 
 import { isServer } from '@solidjs/web';
-import { Boolean as Bool } from 'effect';
+import { Boolean as Bool, Option } from 'effect';
 import type { Accessor } from 'solid-js';
 import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
-import type { Command, CommandId } from '../../command/command.ts';
+import type { Command, CommandId, Invocation } from '../../command/command.ts';
+import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { bindingsOf, chordLabel, keysOf } from '../../command/keymap.ts';
+import type { MenuRow } from '../../command/menu.ts';
 
 /**
  * A count of `hub`'s changes, for as long as the calling owner lives. A
@@ -50,6 +53,44 @@ export const hubKeys = (hub: Hub): HubKeys => {
       });
     },
     label: (chord) => chordLabel(chord, viewers() && hub.mac),
+  };
+};
+
+/**
+ * A menu's run of the row chosen in it: the menu opens on a context (what
+ * its rows are listed in), a row is chosen, and the row's command runs in
+ * that context once the menu has closed and focus is back on the page, so
+ * what the command focuses (a note's composer, a sheet) keeps focus.
+ */
+interface DeferredRun {
+  /** The context the menu opened on. */
+  readonly opened: Accessor<Context>;
+  /** The menu opens on `ctx`: nothing is chosen yet. */
+  readonly open: (ctx: Context) => void;
+  /** `row` is chosen: it runs once the menu has closed. */
+  readonly choose: (row: MenuRow) => void;
+  /** The menu has closed: the row chosen runs, once. */
+  readonly closed: () => void;
+}
+
+/** A menu's deferred run on `hub`, asked for `via` the menu it is (`menu`, ⌘K's `palette`). */
+export const deferredRun = (hub: Hub, via: Invocation['via']): DeferredRun => {
+  const [opened, setOpened] = createSignal<Context>(hub.context());
+  let chosen = Option.none<MenuRow>();
+  return {
+    opened,
+    open: (ctx) => {
+      chosen = Option.none();
+      setOpened(ctx);
+    },
+    choose: (row) => {
+      chosen = Option.some(row);
+    },
+    closed: () => {
+      const row = chosen;
+      chosen = Option.none();
+      Option.map(row, (r) => hub.invoke(r.command, { step: r.step, via }, opened()));
+    },
   };
 };
 
