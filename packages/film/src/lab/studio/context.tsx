@@ -25,6 +25,7 @@ import {
   useContext,
 } from 'solid-js';
 import * as UrlAtom from '@bible/url-state/atom';
+import { said } from '../../command/command.ts';
 import { attemptUrl } from '../../core/api.ts';
 import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
 import { type BrowserServices, addressOn, hostLayer } from '../../browser/host.ts';
@@ -42,6 +43,7 @@ import {
   type Act,
   type Control,
   type Meter,
+  atRest,
   attemptLine,
   beatCounts,
   controlsOf,
@@ -56,6 +58,9 @@ import {
   statusOf,
   unsubmitted,
 } from './view.ts';
+
+/** Where the studio's receipts stand among the page's. */
+const STUDIO_SLOT = 'studio';
 
 /** One recording of the selected beat, as its row shows it. */
 export interface AttemptRow {
@@ -183,17 +188,34 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   createEffect(focused, (f) => meta.view.patch({ studio: { focused: f } }));
 
   // The beat is the link's (`beatAt`: `?beat=`, else the path's scene): a
-  // beat picked is written there, and the link landing on another beat
-  // (Back, Forward, play into the next scene) moves a recorder at rest to it.
+  // beat picked is written there. The recorder is on the link's beat whenever
+  // it is at rest (`atRest`): the link landing on another beat (Back,
+  // Forward, play into the next scene) or the recorder coming back to rest
+  // (a count-in cancelled, a take discarded) on a beat the link has left
+  // moves it there. A recorder holding a take no one has kept stays on its
+  // beat, so a take is never lost to a navigation, and the link moving on
+  // says so.
   const address = addressOn(meta.host);
   const href = useAtomValue(() => UrlAtom.href);
   const linked = createMemo(() => listedBeat(beats(), beatAt(href())), { equals: Equal.equals });
+  const due = createMemo(
+    () => {
+      const now = recorder();
+      return Option.filter(linked(), (id) => id !== now.beat && atRest(now));
+    },
+    { equals: Equal.equals },
+  );
+  createEffect(due, (at) => {
+    Option.map(at, (id) => send(RecorderEvent.SelectBeat({ beat: id })));
+  });
   createEffect(linked, (at) => {
     const now = untrack(recorder);
-    if (now._tag !== 'Idle' && now._tag !== 'Failed') return;
     Option.map(
-      Option.filter(at, (id) => id !== now.beat),
-      (id) => send(RecorderEvent.SelectBeat({ beat: id })),
+      Option.flatMap(
+        Option.filter(at, (id) => id !== now.beat),
+        () => unsubmitted(now),
+      ),
+      (why) => meta.hub.announce(said(`Record stays on ${now.beat}: ${why}`), STUDIO_SLOT),
     );
   });
 
