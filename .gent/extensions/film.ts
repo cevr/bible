@@ -3,10 +3,12 @@
 // gent (an Effect-native agent harness) loads this file for a session whose
 // working directory is this checkout's root (`.gent/extensions/`, in a project
 // the user trusts). It gives an agent the film's own tools, `film.look`,
-// `film.check`, `film.cues`, `film.journal`, and the film folder's files
-// (`film.read`, `film.write`, `film.edit`), the `scene-painter` agent that
-// holds exactly those, and a compactor that condenses a painter's window from
-// the files, with no model call.
+// `film.check`, `film.cues`, `film.journal`; the `scene-painter` agent that
+// holds exactly those and gent's file tools (`read`, `write`, `edit`,
+// `grep`), which its `paths` confine to the films and, to read, the film
+// skill; `film.paint`, which starts one painter on one film, its paths that
+// film's folder; and a compactor that condenses a painter's window from the
+// files, with no model call.
 //
 // One file, since its parts change together, importing only `effect`,
 // `@gent/core/extensions/api` and `@gent/core/extensions/branch-tools`: gent
@@ -29,18 +31,21 @@
 import { Duration, Effect, FileSystem, Hash, Layer, Option, Path, Schema } from 'effect';
 import type { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 import {
+  ActorCommandId,
   AgentDefinition,
   AgentName,
+  BranchId,
   defineExtension,
   defineResource,
   ExtensionContext,
   ExtensionHost,
+  RequestId,
   runProcess,
   saveToolImage,
+  SessionId,
   tool,
   ToolImage,
   ToolResultFailure,
-  writeFileAtomic,
 } from '@gent/core/extensions/api';
 import {
   type CompactionRequest,
@@ -60,12 +65,9 @@ const CLI_TIMEOUT = Duration.minutes(5);
  * JSON (escapes included). gent cuts a result over 8,000 and hands the model
  * a `context.read` locator, a tool the painter does not hold; so every result
  * fits under this budget, and one that stops early says how to read on with
- * the film tools.
+ * the painter's own tools.
  */
 const RESULT_BUDGET = 7_500;
-
-/** The most characters of a path a result or a failure repeats. */
-const PATH_CHARS = 300;
 
 /**
  * A count or cursor no result reaches: a result is measured with it where
@@ -136,26 +138,6 @@ export class FilmCliFailed extends Schema.TaggedError<FilmCliFailed>()('FilmCliF
   }
 }
 
-/** A path the film's file tools refuse: outside the film's folder, a `..` step, a symbolic link. */
-export class FilmPathRefused extends Schema.TaggedError<FilmPathRefused>()('FilmPathRefused', {
-  path: Schema.String,
-  reason: Schema.String,
-}) {
-  override get message() {
-    return `${this.path}: ${this.reason}`;
-  }
-}
-
-/** A file inside the film's folder that could not be read, written or edited as asked. */
-export class FilmFileFailed extends Schema.TaggedError<FilmFileFailed>()('FilmFileFailed', {
-  path: Schema.String,
-  reason: Schema.String,
-}) {
-  override get message() {
-    return `${this.path}: ${this.reason}`;
-  }
-}
-
 /** A still the lab wrote that gent's image store refuses: bytes no decoder reads (a larger one is scaled, not refused). */
 export class FilmImageRefused extends Schema.TaggedError<FilmImageRefused>()('FilmImageRefused', {
   file: Schema.String,
@@ -166,14 +148,19 @@ export class FilmImageRefused extends Schema.TaggedError<FilmImageRefused>()('Fi
   }
 }
 
+/** gent refused to make the painter's session, or to send it its task. */
+export class FilmPaintFailed extends Schema.TaggedError<FilmPaintFailed>()('FilmPaintFailed', {
+  film: Schema.String,
+  scene: Schema.String,
+  reason: Schema.String,
+}) {
+  override get message() {
+    return `${this.film}/${this.scene}: the painter did not start: ${this.reason}`;
+  }
+}
+
 /** Every failure a film tool has. */
-const FilmFailure = Schema.Union([
-  FilmRefused,
-  FilmCliFailed,
-  FilmPathRefused,
-  FilmFileFailed,
-  FilmImageRefused,
-]);
+const FilmFailure = Schema.Union([FilmRefused, FilmCliFailed, FilmImageRefused, FilmPaintFailed]);
 type FilmFailure = typeof FilmFailure.Type;
 const encodeFailure = Schema.encodeSync(FilmFailure);
 
@@ -322,8 +309,11 @@ const boundedLines = (lines: ReadonlyArray<string>): ReadonlyArray<string> => {
 // Names a tool passes to the CLI. Each refuses a leading `-`, so no value
 // reads as a flag.
 
+/** The films, from the checkout's root (the session cwd): each film is a folder in it. */
+const FILMS_FOLDER = 'apps/animations/src/films';
+
 const FilmName = Schema.String.check(Schema.isPattern(/^[a-z0-9][a-z0-9-]*$/)).annotate({
-  description: 'The film: a folder under apps/animations/src/films (lower case, digits, dashes)',
+  description: `The film: a folder under ${FILMS_FOLDER} (lower case, digits, dashes)`,
 });
 
 const SceneId = Schema.String.check(Schema.isPattern(/^[a-z0-9][a-z0-9-]*$/)).annotate({
@@ -835,7 +825,7 @@ const JournalParams = Schema.Struct({
   ),
 });
 
-/** The longest one journal line a result keeps: the whole journal reads with film.read. */
+/** The longest one journal line a result keeps: the whole journal reads with gent's `read`. */
 const LINE_CHARS = 800;
 
 const JournalOutput = Schema.Struct({
@@ -846,11 +836,11 @@ const JournalOutput = Schema.Struct({
 type JournalOutput = typeof JournalOutput.Type;
 const journalLength = encodedLength(JournalOutput);
 
-/** The journal result for the CLI's `stdout`: the newest lines that fit, and how to read the older. */
-export const journalReport = (stdout: string): JournalOutput => {
+/** `film`'s journal result for the CLI's `stdout`: the newest lines that fit, and how to read the older. */
+export const journalReport = (film: string, stdout: string): JournalOutput => {
   const lines = linesOf(stdout).map((line) => clip(line, LINE_CHARS));
   const earlierOf = (count: number) =>
-    `${lines.length - count} earlier lines left out to fit: film.read path journal.md reads the whole journal`;
+    `${lines.length - count} earlier lines left out to fit: read path ${FILMS_FOLDER}/${film}/journal.md reads the whole journal`;
   const count = largestFitting(
     lines.length,
     (size) =>
@@ -881,7 +871,7 @@ export const FilmJournal = tool({
       // `--` ends the flags: a note that opens with `-` is still its words.
       const args = ['journal', params.film, 'note', ...scene, '--', params.text ?? ''];
       const answer = yield* filmCli('film.journal', ctx.cwd, args, []);
-      return journalReport(answer.stdout);
+      return journalReport(params.film, answer.stdout);
     }
     const last = Option.match(Option.fromUndefinedOr(params.last), {
       onNone: () => [],
@@ -893,279 +883,7 @@ export const FilmJournal = tool({
       ['journal', params.film, 'read', ...scene, ...last],
       [],
     );
-    return journalReport(answer.stdout);
-  }, Effect.mapError(modelFailure)),
-});
-
-// ---------------------------------------------------------------------------
-// The film folder's files: a guard, not a sandbox.
-
-/** The folders the file tools reach: the film's own, and (to read) the film skill's rules. */
-const Within = Schema.Literals(['film', 'skill']);
-type Within = typeof Within.Type;
-
-/** A file the guard admitted: its absolute path, and its path as shown, from its folder. */
-interface Guarded {
-  readonly file: string;
-  readonly shown: string;
-}
-
-/**
- * The file `given` names inside the film `film`'s folder of the checkout at
- * `root` (`apps/animations/src/films/<film>/`), or inside the film skill's
- * folder (`.claude/skills/film/`) for `within: 'skill'`. Relative paths are
- * read from that folder; an absolute one must lie in it. A `..` step, a path
- * outside, and a symbolic link anywhere from the folder down (the folder
- * itself included) are refused. A guard against mistakes, not a sandbox: a
- * link made after the check is not seen.
- */
-export const guardPath = Effect.fn('film.guard')(function* (
-  root: string,
-  film: string,
-  given: string,
-  within: Within,
-) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const folder = path.join(root, '.claude', 'skills', 'film');
-  const base = Option.match(
-    Option.liftPredicate(within, (w) => w === 'skill'),
-    {
-      onSome: () => folder,
-      onNone: () => path.join(root, 'apps', 'animations', 'src', 'films', film),
-    },
-  );
-  if (given.split(/[\\/]/).includes('..'))
-    return yield* FilmPathRefused.make({ path: given, reason: 'a ".." step is refused' });
-  const link = yield* fs.readLink(base).pipe(Effect.option);
-  if (Option.isSome(link))
-    return yield* FilmPathRefused.make({ path: base, reason: 'the folder is a symbolic link' });
-  const real = yield* fs
-    .realPath(base)
-    .pipe(Effect.mapError(() => FilmPathRefused.make({ path: base, reason: 'no such folder' })));
-  const target = path.resolve(base, given);
-  const inside = (folderPath: string) => {
-    const relative = path.relative(folderPath, target);
-    const leaves =
-      relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
-    return Option.liftPredicate(relative, () => !leaves);
-  };
-  const shown = yield* Effect.fromOption(Option.orElse(inside(base), () => inside(real))).pipe(
-    Effect.mapError(() => FilmPathRefused.make({ path: given, reason: `outside ${base}` })),
-  );
-  let file = real;
-  for (const part of shown.split(path.sep).filter((step) => step !== '')) {
-    file = path.join(file, part);
-    const step = yield* fs.readLink(file).pipe(Effect.option);
-    if (Option.isSome(step))
-      return yield* FilmPathRefused.make({ path: given, reason: `${part} is a symbolic link` });
-  }
-  const guarded: Guarded = { file, shown };
-  return guarded;
-});
-
-const PathParam = Schema.String.annotate({
-  description:
-    "The file, from the film's folder (scenes/roof.ts, kit.ts); an absolute path must lie inside it",
-});
-
-const ReadParams = Schema.Struct({
-  film: FilmName,
-  path: PathParam,
-  within: Schema.optionalKey(
-    Within.annotate({
-      description:
-        "film (default): the film's folder. skill: the film skill's rules, read only (SKILL.md, CRAFT.md, reference/director-vision.md)",
-    }),
-  ),
-  from: Schema.optionalKey(
-    Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
-      description: 'The line to start at (1)',
-    }),
-  ),
-  column: Schema.optionalKey(
-    Schema.Int.check(Schema.isGreaterThanOrEqualTo(1)).annotate({
-      description: "The character of that line to start at (1): a previous answer's next.column",
-    }),
-  ),
-});
-
-/** Where a read starts, or goes on: a line, and a character in it (both from 1). */
-const ReadCursor = Schema.Struct({ from: Schema.Int, column: Schema.Int });
-
-const ReadOutput = Schema.Struct({
-  path: Schema.String,
-  /** Where `text` starts: its line and the character in that line. */
-  from: Schema.Int,
-  column: Schema.Int,
-  /** The line `text` ends in, and the file's line count. */
-  to: Schema.Int,
-  total: Schema.Int,
-  /** The file's text from `from`/`column`, exactly: never cut inside, only where it stops. */
-  text: Schema.String,
-  /** Present when the file goes on: the `from` and `column` that read the rest. */
-  next: Schema.optionalKey(ReadCursor),
-});
-type ReadOutput = typeof ReadOutput.Type;
-const readLength = encodedLength(ReadOutput);
-
-/**
- * The window of `text` a read starting at line `from`, character `column`
- * returns: as much as encodes within the result budget, ending at a line's
- * end when one falls in its second half, and `next` where the rest starts.
- * The cursor moves over exactly the characters returned, so a line longer
- * than one window comes back whole across reads.
- */
-export const readWindow = (
-  shown: string,
-  text: string,
-  cursor: { readonly from?: number; readonly column?: number },
-): ReadOutput => {
-  const lines = text.split('\n');
-  const from = Math.min(cursor.from ?? 1, lines.length);
-  const lineStart = lines.slice(0, from - 1).reduce((sum, line) => sum + line.length + 1, 0);
-  const column = Math.min(cursor.column ?? 1, (lines[from - 1] ?? '').length + 1);
-  const rest = text.slice(lineStart + column - 1);
-  const sized = (size: number): ReadOutput => ({
-    path: shown,
-    from,
-    column,
-    to: FAR,
-    total: lines.length,
-    text: rest.slice(0, size),
-    next: { from: FAR, column: FAR },
-  });
-  const fits = (size: number) => readLength(sized(size)) <= RESULT_BUDGET;
-  let size = rest.length;
-  if (!fits(size)) {
-    size = largestFitting(Math.min(rest.length, RESULT_BUDGET), fits);
-    const lineEnd = rest.lastIndexOf('\n', size - 1) + 1;
-    if (lineEnd >= size / 2) size = lineEnd;
-    else if (isHighSurrogate(rest.charCodeAt(size - 1))) size -= 1;
-  }
-  const window = rest.slice(0, size);
-  const breaks = window.split('\n').length - 1;
-  const trailing = Number(window.endsWith('\n'));
-  const base: ReadOutput = {
-    path: shown,
-    from,
-    column,
-    to: from + breaks - trailing,
-    total: lines.length,
-    text: window,
-  };
-  if (size === rest.length) return base;
-  const nextColumn = Option.match(
-    Option.liftPredicate(breaks, (count) => count > 0),
-    {
-      onNone: () => column + size,
-      onSome: () => window.length - window.lastIndexOf('\n'),
-    },
-  );
-  return { ...base, next: { from: from + breaks, column: nextColumn } };
-};
-
-export const FilmRead = tool({
-  id: 'film.read',
-  description:
-    "Read a file of the film's folder (apps/animations/src/films/<film>/), or of the film skill's rules (within: skill), as it stands. A long file comes a window at a time: when the answer has `next`, read on with its `from` and `column`",
-  readonly: true,
-  params: ReadParams,
-  output: ReadOutput,
-  summary: (_input, output) =>
-    `${output.path} lines ${output.from}–${output.to} of ${output.total}`,
-  execute: Effect.fn('film.read')(function* (params) {
-    const ctx = yield* ExtensionContext;
-    const fs = yield* FileSystem.FileSystem;
-    const guarded = yield* guardPath(ctx.cwd, params.film, params.path, params.within ?? 'film');
-    const text = yield* fs
-      .readFileString(guarded.file)
-      .pipe(
-        Effect.mapError((error) =>
-          FilmFileFailed.make({ path: guarded.shown, reason: error.message }),
-        ),
-      );
-    return readWindow(clip(guarded.shown, PATH_CHARS), text, params);
-  }, Effect.mapError(modelFailure)),
-});
-
-export const FilmWrite = tool({
-  id: 'film.write',
-  description:
-    "Write a whole file in the film's folder (apps/animations/src/films/<film>/), creating it and its folders if needed. Prefer film.edit for a change to part of a file",
-  destructive: true,
-  params: Schema.Struct({
-    film: FilmName,
-    path: PathParam,
-    content: Schema.String.annotate({ description: "The file's whole new text" }),
-  }),
-  output: Schema.Struct({ path: Schema.String, bytes: Schema.Int }),
-  summary: (_input, output) => `${output.path} · ${output.bytes} bytes`,
-  execute: Effect.fn('film.write')(function* (params) {
-    const ctx = yield* ExtensionContext;
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    const guarded = yield* guardPath(ctx.cwd, params.film, params.path, 'film');
-    return yield* ctx.FileLock.withLock(
-      guarded.file,
-      Effect.gen(function* () {
-        yield* fs.makeDirectory(path.dirname(guarded.file), { recursive: true });
-        yield* writeFileAtomic(guarded.file, params.content);
-        return {
-          path: clip(guarded.shown, PATH_CHARS),
-          bytes: new TextEncoder().encode(params.content).length,
-        };
-      }).pipe(
-        Effect.mapError((error) =>
-          FilmFileFailed.make({ path: guarded.shown, reason: error.message }),
-        ),
-      ),
-    );
-  }, Effect.mapError(modelFailure)),
-});
-
-export const FilmEdit = tool({
-  id: 'film.edit',
-  description:
-    "Replace an exact string in a file of the film's folder. Fails when oldString is not found, or is found more than once without replaceAll",
-  destructive: true,
-  params: Schema.Struct({
-    film: FilmName,
-    path: PathParam,
-    oldString: Schema.String.annotate({ description: "The file's text to replace, exactly" }),
-    newString: Schema.String.annotate({ description: 'The text to put in its place' }),
-    replaceAll: Schema.optionalKey(
-      Schema.Boolean.annotate({ description: 'Replace every occurrence (default: exactly one)' }),
-    ),
-  }),
-  output: Schema.Struct({ path: Schema.String, replacements: Schema.Int }),
-  summary: (_input, output) => `${output.path} · ${output.replacements} replacement(s)`,
-  execute: Effect.fn('film.edit')(function* (params) {
-    const ctx = yield* ExtensionContext;
-    const fs = yield* FileSystem.FileSystem;
-    const guarded = yield* guardPath(ctx.cwd, params.film, params.path, 'film');
-    const failed = (reason: string) => FilmFileFailed.make({ path: guarded.shown, reason });
-    if (params.oldString === '') return yield* failed('oldString is empty');
-    return yield* ctx.FileLock.withLock(
-      guarded.file,
-      Effect.gen(function* () {
-        const text = yield* fs
-          .readFileString(guarded.file)
-          .pipe(Effect.mapError((error) => failed(error.message)));
-        const pieces = text.split(params.oldString);
-        const found = pieces.length - 1;
-        if (found === 0) return yield* failed('oldString not found');
-        if (found > 1 && params.replaceAll !== true)
-          return yield* failed(
-            `oldString found ${found} times: give more of the text around it, or replaceAll`,
-          );
-        // Split and join: the new text goes in as written (no `$&` patterns).
-        yield* writeFileAtomic(guarded.file, pieces.join(params.newString)).pipe(
-          Effect.mapError((error) => failed(error.message)),
-        );
-        return { path: clip(guarded.shown, PATH_CHARS), replacements: found };
-      }),
-    );
+    return journalReport(params.film, answer.stdout);
   }, Effect.mapError(modelFailure)),
 });
 
@@ -1174,16 +892,24 @@ export const FilmEdit = tool({
 
 export const PAINTER = AgentName.make('scene-painter');
 
-/** Every tool the painter holds: the film's, and no other. */
-export const FILM_TOOL_IDS = [
-  'film.read',
-  'film.write',
-  'film.edit',
-  'film.cues',
-  'film.look',
-  'film.journal',
-  'film.check',
-] as const;
+/** The film skill's rules, from the checkout's root: the painter reads them, never writes them. */
+const SKILL_FOLDER = '.claude/skills/film';
+
+/** The folders the painter's file tools reach: what gent's `paths` take. */
+type PainterPaths = NonNullable<AgentDefinition['paths']>;
+
+/**
+ * The paths of one painter run on `film`: its own folder to write, the film
+ * skill to read. `film.paint` admits each painter session with these as its
+ * `paths` run override, so a run's scope holds by construction, not by a
+ * caller remembering it. Today an override replaces the definition's paths
+ * (gent will make one only narrow them), so a session started any other way
+ * (`delegate.start` with other paths) is not held to its film.
+ */
+export const painterPaths = (film: string): PainterPaths => [
+  { path: `${FILMS_FOLDER}/${film}`, access: 'write' },
+  { path: SKILL_FOLDER, access: 'read' },
+];
 
 /**
  * The painter's brief: the same bytes every turn (it is part of the cached
@@ -1193,24 +919,109 @@ export const FILM_TOOL_IDS = [
 export const PAINTER_BRIEF = [
   'You paint one scene of a narrated cut-paper film: its drawing, in apps/animations/src/films/<film>/scenes/<scene>.ts and the film files it reads. The user names the film and the scene.',
   '',
-  'Your tools are the film tools and no others: film.read (the film folder, or the film skill with within: skill), film.write and film.edit (the film folder only), film.cues, film.look, film.journal and film.check.',
+  'Your tools are these and no others: read and grep (the film folder and the film skill), write and edit (the film folder only), film.cues, film.look, film.journal and film.check. A path is from the repository root: apps/animations/src/films/<film>/ for the film, .claude/skills/film/ for the skill. grep takes a path inside them.',
   '',
   'Work in passages:',
-  '1. Read first. film.journal op=read for the scene: what was noticed before. film.cues for the scene: its marks and named cues with their times. film.read the scene file, the beat in script.ts, and what the scene imports from the film folder.',
+  '1. Read first. film.journal op=read for the scene: what was noticed before. film.cues for the scene: its marks and named cues with their times. read apps/animations/src/films/<film>/scenes/<scene>.ts, the beat in script.ts, and what the scene imports from the film folder.',
   '2. Paint one passage: a figure placed, a framing, a light, a line of type. Pin every motion to a mark or a named cue, never to a hand-timed second.',
   '3. Look after every passage, before the next one: film.look at the marks and at the middle of each cue that moves something (mark:<name>, cue:<name>@0.5). mode value checks the light and dark, mode squint where the eye lands first, crop a face, a hand or lettering at 1:1. Read every still.',
   '4. Note what a look taught in the journal (film.journal op=note, with the scene): what is, never what to do. A decision lands in the source; a request for the owner is not a journal entry.',
   '5. Before you finish, film.check the scenes you touched. Fix each finding in the scene, or say why it stands.',
   '',
-  'The rules live in files, never in your memory. Read them with film.read within: skill: SKILL.md (step 4, Scenes, and the Easel section), CRAFT.md and reference/director-vision.md. What a picture teaches comes from the film folder (script.ts, sources.md, quotes.jsonl), never from what you remember of the subject.',
+  'The rules live in files, never in your memory. read them: .claude/skills/film/SKILL.md (step 4, Scenes, and the Easel section), .claude/skills/film/CRAFT.md and .claude/skills/film/reference/director-vision.md. What a picture teaches comes from the film folder (script.ts, sources.md, quotes.jsonl), never from what you remember of the subject.',
 ].join('\n');
 
+/**
+ * The scene painter: gent's file tools and the film's, listed whole (no `*`),
+ * so bash, the cell and every other tool stay out; `paths` confines only the
+ * file tools, and is no sandbox. It does not hold `film.paint`: a painter
+ * starts no painter. Its `paths` are the wide default, every film to write:
+ * gent's paths are fixed folders, so the definition cannot name the one film
+ * a run paints. `film.paint` starts each run on one film, with
+ * `painterPaths(film)` as its override.
+ */
 export const scenePainter = AgentDefinition.make({
   name: PAINTER,
   description:
-    'Paints one scene of a film in apps/animations: reads its cues and journal, paints a passage, looks, notes what it saw, checks',
+    'Paints one scene of a film in apps/animations: reads its cues and journal, paints a passage, looks, notes what it saw, checks. One run paints one film, started by film.paint with painterPaths(film) as its paths override',
   systemPromptAddendum: PAINTER_BRIEF,
-  allowedTools: [...FILM_TOOL_IDS],
+  tools: ['read', 'grep', 'write', 'edit', 'film.cues', 'film.look', 'film.journal', 'film.check'],
+  paths: [
+    { path: FILMS_FOLDER, access: 'write' },
+    { path: SKILL_FOLDER, access: 'read' },
+  ],
+});
+
+// ---------------------------------------------------------------------------
+// film.paint: one painter run on one film.
+
+const PaintOutput = Schema.Struct({
+  /** The painter's session, a child of the caller's, and its branch. */
+  sessionId: SessionId,
+  branchId: BranchId,
+  /** How to follow the run. */
+  follow: Schema.String,
+});
+
+/** The painter's opening message: the film and the scene, and the caller's brief when one was given. */
+const paintTask = (film: string, scene: string, brief: Option.Option<string>): string =>
+  [
+    `Paint the scene ${scene} of the film ${film} (${FILMS_FOLDER}/${film}/scenes/${scene}.ts).`,
+    ...Option.toArray(brief),
+  ].join('\n\n');
+
+export const FilmPaint = tool({
+  id: 'film.paint',
+  description:
+    "Start a scene painter on one scene of one film: a child session admitted as scene-painter, its file tools held to that film's folder (and the film skill, to read). Returns at admission with the session's id, never the painting; the painter works on beside you",
+  destructive: true,
+  params: Schema.Struct({
+    film: FilmName,
+    scene: SceneId,
+    brief: Schema.optionalKey(
+      Schema.String.annotate({
+        description: 'What the painter is to do in the scene, beyond its brief: one passage, a fix',
+      }),
+    ),
+  }),
+  output: PaintOutput,
+  summary: (input) => `${input.film}/${input.scene}`,
+  execute: Effect.fn('film.paint')(function* (params) {
+    const ctx = yield* ExtensionContext;
+    // The film and the scene as film.cues reads them: an unknown one is
+    // refused (FilmUnknown, UnknownScene) before any session is made.
+    yield* filmCli('film.paint', ctx.cwd, ['cues', params.film, params.scene], ['CuesLate']);
+    const failed = (error: { readonly message: string }) =>
+      FilmPaintFailed.make({ film: params.film, scene: params.scene, reason: error.message });
+    // The call's id makes the create and the send durable-once: a repeat of
+    // this call finds its own painter and admits nothing new.
+    const call = Option.fromUndefinedOr(ctx.toolCallId);
+    const child = yield* ctx.Session.create({
+      name: `paint ${params.film}/${params.scene}`,
+      parentSessionId: ctx.sessionId,
+      parentBranchId: ctx.branchId,
+      admission: { agent: PAINTER, runSpec: { overrides: { paths: painterPaths(params.film) } } },
+      ...Option.match(call, {
+        onNone: () => ({}),
+        onSome: (id) => ({ requestId: RequestId.make(`film.paint:${id}`) }),
+      }),
+    }).pipe(Effect.mapError(failed));
+    yield* ctx.Session.send({
+      delivery: 'turn',
+      sessionId: child.sessionId,
+      branchId: child.branchId,
+      content: paintTask(params.film, params.scene, Option.fromUndefinedOr(params.brief)),
+      completion: 'admission',
+      ...Option.match(call, {
+        onNone: () => ({}),
+        onSome: (id) => ({ commandId: ActorCommandId.make(`film.paint:${id}`) }),
+      }),
+    }).pipe(Effect.mapError(failed));
+    return {
+      ...child,
+      follow: `read_session with sessionId ${child.sessionId} reads the painter's transcript; the session is a child of this one`,
+    };
+  }, Effect.mapError(modelFailure)),
 });
 
 // ---------------------------------------------------------------------------
@@ -1232,8 +1043,8 @@ interface Written {
  * What a painter's window says of its work, read oldest first: the scene it
  * paints, the files it wrote, and the lines of its last look. gent's handoff
  * marker, holding an earlier painter notice, carries all three forward (a
- * copy of a notice in any other message carries nothing); a film call after
- * it updates them.
+ * copy of a notice in any other message carries nothing); a film call, or a
+ * write or edit of gent's, after it updates them.
  */
 interface Trail {
   readonly place: Option.Option<Place>;
@@ -1251,11 +1062,40 @@ const CallParams = Schema.Struct({
   film: Schema.optionalKey(FilmName),
   scene: Schema.optionalKey(SceneId),
   scenes: Schema.optionalKey(Schema.NonEmptyArray(SceneId)),
-  path: Schema.optionalKey(Schema.String),
 });
 const decodeCallParams = Schema.decodeUnknownOption(CallParams);
 const LookLines = Schema.Struct({ stills: Schema.Array(Schema.Struct({ line: Schema.String })) });
 const decodeLookLines = Schema.decodeUnknownOption(LookLines);
+
+/** gent's file tools that change a file. */
+const WRITE_TOOLS: ReadonlySet<string> = new Set(['write', 'edit']);
+
+/**
+ * What the compactor reads of a write's or an edit's output: the file, as gent
+ * resolved it (`{ path, bytesWritten }`, `{ path, replacements }`): absolute,
+ * its `..` steps resolved, its links not followed.
+ */
+const WroteOutput = Schema.Struct({ path: Schema.String });
+const decodeWroteOutput = Schema.decodeUnknownOption(WroteOutput);
+const isFilmName = Schema.is(FilmName);
+
+/**
+ * The film file `inFilms` names, a path from the films folder
+ * (`<film>/<path>`): none when it names no film's folder, or the folder
+ * alone, or has a `..` step.
+ */
+const filmFileOf = (inFilms: string): Option.Option<Written> => {
+  const [film = '', ...rest] = inFilms.split('/');
+  if (!isFilmName(film) || rest.length === 0 || rest.includes('..')) return Option.none();
+  return Option.some({ film, path: rest.join('/') });
+};
+
+/** The film file at the absolute `file`, when it lies under `films`, the films folder with its trailing separator. */
+const writtenAt = (films: string, file: string): Option.Option<Written> =>
+  Option.flatMap(
+    Option.liftPredicate(file, (path) => path.startsWith(films)),
+    (path) => filmFileOf(path.slice(films.length)),
+  );
 
 /** The first words of a painter notice: how a later compaction finds an earlier one. */
 const NOTICE_HEADER =
@@ -1264,9 +1104,8 @@ const NOTICE_HEADER =
 /** A painter notice's scene line. */
 const SCENE_LINE = /^film ([a-z0-9][a-z0-9-]*), scene ([a-z0-9][a-z0-9-]*)$/m;
 
-/** A painter notice's line for a file written: its film and path, then its size or absence. */
-const WRITTEN_LINE =
-  /^apps\/animations\/src\/films\/([a-z0-9][a-z0-9-]*)\/(.+) \((?:\d+ bytes|not there now)\)$/;
+/** A painter notice's line for a file written: its path from the films folder, then its size or absence. */
+const WRITTEN_LINE = /^apps\/animations\/src\/films\/(.+) \((?:\d+ bytes|not there now)\)$/;
 
 /** The body of section `heading` of a painter notice, up to the next section. */
 const sectionOf = (notice: string, heading: string): Option.Option<string> => {
@@ -1294,15 +1133,13 @@ const noticeTrail = (text: string): Option.Option<Trail> => {
       written: Option.match(sectionOf(text, 'Files written'), {
         onNone: () => [],
         onSome: (body) =>
-          body.split('\n').flatMap((line) => {
-            const match = WRITTEN_LINE.exec(line);
-            return Option.toArray(
-              Option.all({
-                film: Option.fromUndefinedOr(match?.[1]),
-                path: Option.fromUndefinedOr(match?.[2]),
-              }),
-            );
-          }),
+          body
+            .split('\n')
+            .flatMap((line) =>
+              Option.toArray(
+                Option.flatMap(Option.fromUndefinedOr(WRITTEN_LINE.exec(line)?.[1]), filmFileOf),
+              ),
+            ),
       }),
       look: Option.filter(
         Option.map(sectionOf(text, 'Last look'), (body) => body.split('\n')),
@@ -1321,19 +1158,22 @@ const callPlace = (params: typeof CallParams.Type): Option.Option<Place> =>
     ),
   });
 
-/** `trail` after one film call: its place, the file it wrote, the stills it answered with. */
+/**
+ * `trail` after one call: its place, the film file it wrote, the stills it
+ * answered with. A write or an edit counts by the file its output names,
+ * never its params, and only a file in a film's folder under `films`.
+ */
 const afterCall = (
   trail: Trail,
+  films: string,
   name: string,
   params: typeof CallParams.Type,
   result: Option.Option<{ readonly value: unknown; readonly failed: boolean }>,
 ): Trail => {
-  const wrote = Option.filter(
-    Option.all({
-      film: Option.fromUndefinedOr(params.film),
-      path: Option.fromUndefinedOr(params.path),
-    }),
-    () => name === 'film.write' || name === 'film.edit',
+  const wrote = Option.flatMap(
+    Option.filter(result, (answer) => WRITE_TOOLS.has(name) && !answer.failed),
+    (answer) =>
+      Option.flatMap(decodeWroteOutput(answer.value), (output) => writtenAt(films, output.path)),
   );
   const saw = Option.flatMap(
     Option.filter(result, (answer) => name === 'film.look' && !answer.failed),
@@ -1385,9 +1225,11 @@ const handoffTrail = (message: Message): Option.Option<Trail> => {
 
 /**
  * The trail of `messages`, oldest first: gent's handoff marker seeds it with
- * what the earlier notice carried, and each film call after updates it.
+ * what the earlier notice carried, and each film call, write or edit after
+ * updates it. `films` is the films folder, absolute, with its trailing
+ * separator.
  */
-const trailOf = (messages: ReadonlyArray<Message>): Trail => {
+const trailOf = (films: string, messages: ReadonlyArray<Message>): Trail => {
   const results = new Map(
     messages.flatMap((message) =>
       message.parts.flatMap((part) => {
@@ -1400,9 +1242,11 @@ const trailOf = (messages: ReadonlyArray<Message>): Trail => {
     (seeded: Trail, message) =>
       message.parts.reduce(
         (trail: Trail, part) => {
-          if (part.type !== 'tool-call' || !part.name.startsWith('film.')) return trail;
+          if (part.type !== 'tool-call') return trail;
+          if (!part.name.startsWith('film.') && !WRITE_TOOLS.has(part.name)) return trail;
           return afterCall(
             trail,
+            films,
             part.name,
             Option.getOrElse(decodeCallParams(part.params), () => ({})),
             Option.fromUndefinedOr(results.get(part.id)),
@@ -1425,9 +1269,9 @@ const fileLine = Effect.fn('film.compact.file')(function* (
   given: string,
 ) {
   const fs = yield* FileSystem.FileSystem;
-  const shown = `apps/animations/src/films/${film}/${given}`;
-  return yield* guardPath(root, film, given, 'film').pipe(
-    Effect.flatMap((guarded) => fs.stat(guarded.file)),
+  const path = yield* Path.Path;
+  const shown = `${FILMS_FOLDER}/${film}/${given}`;
+  return yield* fs.stat(path.join(root, shown)).pipe(
     Effect.match({
       onFailure: () => `${shown} (not there now)`,
       onSuccess: (info) => `${shown} (${info.size} bytes)`,
@@ -1454,7 +1298,11 @@ export const painterNotice = Effect.fn('film.compact.notice')(function* (
   root: string,
   request: Pick<CompactionRequest, 'history' | 'kept'>,
 ) {
-  const trail = trailOf([...request.history, ...request.kept]);
+  const path = yield* Path.Path;
+  const trail = trailOf(`${path.join(root, FILMS_FOLDER)}${path.sep}`, [
+    ...request.history,
+    ...request.kept,
+  ]);
   if (Option.isNone(trail.place))
     return `${NOTICE_HEADER}\n\nNo film tool named a film and a scene in the condensed part.`;
   const { film, scene } = trail.place.value;
@@ -1524,16 +1372,7 @@ export default defineExtension({
   id: 'film',
   setup: Effect.gen(function* () {
     const host = yield* ExtensionHost;
-    yield* host.register(
-      'tool',
-      FilmLook,
-      FilmCheck,
-      FilmCues,
-      FilmJournal,
-      FilmRead,
-      FilmWrite,
-      FilmEdit,
-    );
+    yield* host.register('tool', FilmLook, FilmCheck, FilmCues, FilmJournal, FilmPaint);
     yield* host.register('agent', scenePainter);
     yield* host.register(
       'resource',
