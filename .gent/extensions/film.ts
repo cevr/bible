@@ -903,9 +903,9 @@ type PainterPaths = NonNullable<AgentDefinition['paths']>;
  * The paths of one painter run on `film`: its own folder to write, the film
  * skill to read. `film.paint` admits each painter session with these as its
  * `paths` run override, so a run's scope holds by construction, not by a
- * caller remembering it. Today an override replaces the definition's paths
- * (gent will make one only narrow them), so a session started any other way
- * (`delegate.start` with other paths) is not held to its film.
+ * caller remembering it. An override only narrows the definition's paths,
+ * so no run of the painter reaches past the films and the skill; a session
+ * started any other way (`delegate.start`) is held to the films, not to one.
  */
 export const painterPaths = (film: string): PainterPaths => [
   { path: `${FILMS_FOLDER}/${film}`, access: 'write' },
@@ -999,7 +999,6 @@ export const FilmPaint = tool({
     const call = Option.fromUndefinedOr(ctx.toolCallId);
     const child = yield* ctx.Session.create({
       name: `paint ${params.film}/${params.scene}`,
-      parentSessionId: ctx.sessionId,
       parentBranchId: ctx.branchId,
       admission: { agent: PAINTER, runSpec: { overrides: { paths: painterPaths(params.film) } } },
       ...Option.match(call, {
