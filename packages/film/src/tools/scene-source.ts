@@ -28,7 +28,7 @@ import {
   Visitor,
   parseSync,
 } from 'oxc-parser';
-import { type CuePatch, type Knob, Span, Until } from '../core/schema.ts';
+import { CUE_PATCH_KEYS, type CuePatch, type Knob, Span, Until } from '../core/schema.ts';
 import { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
 import { patchSpan, writtenPatch } from '../core/timeline.ts';
@@ -52,15 +52,10 @@ export interface DrawingSite {
 /** What a field holds in the source: a literal the lab may rewrite, nothing yet, or code. */
 type FieldState = 'literal' | 'absent' | 'computed';
 
-interface EditableCue {
-  readonly name: string;
-  readonly offset: FieldState;
-  readonly dur: FieldState;
-  readonly until: FieldState;
-  readonly untilOffset: FieldState;
-  readonly ease: FieldState;
-  readonly stagger: FieldState;
-}
+/** A cue, and what each field a patch may set holds in its source. */
+type EditableCue = { readonly name: string } & {
+  readonly [K in keyof CuePatch]-?: FieldState;
+};
 
 interface EditableKnob {
   readonly name: string;
@@ -81,10 +76,8 @@ interface Splice {
 
 /** The keys a span is anchored by; the lab writes the timing fields after them, in order. */
 const ANCHORS: ReadonlyArray<string> = ['mark', 'word', 'after', 'with', 'at'];
-const TIMING = ['offset', 'dur', 'until', 'untilOffset', 'ease', 'stagger'] satisfies ReadonlyArray<
-  keyof CuePatch
->;
-type TimingKey = (typeof TIMING)[number];
+const TIMING = CUE_PATCH_KEYS;
+type TimingKey = keyof CuePatch;
 
 /**
  * A number as the lab writes it: to the millisecond (`toMs`), never `-0`; the

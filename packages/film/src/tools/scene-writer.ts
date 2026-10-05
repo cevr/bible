@@ -11,7 +11,7 @@
 // are its.
 
 import { Array as Arr, Context, Effect, Layer, Option, Predicate, Result } from 'effect';
-import type { CuePatch, Knob } from '../core/schema.ts';
+import { CUE_PATCH_KEYS, type CuePatch, type Knob } from '../core/schema.ts';
 import {
   type SceneNotLocated,
   type SourceRefused,
@@ -63,12 +63,7 @@ const sameKnob = (a: Knob, b: Knob): boolean => {
   return same(a[0], b[0]) && same(a[1], b[1]);
 };
 
-const fieldsOf = (patch: CuePatch) =>
-  (
-    ['offset', 'dur', 'until', 'untilOffset', 'ease', 'stagger'] satisfies ReadonlyArray<
-      keyof CuePatch
-    >
-  ).filter((k) => Predicate.hasProperty(patch, k));
+const fieldsOf = (patch: CuePatch) => CUE_PATCH_KEYS.filter((k) => Predicate.hasProperty(patch, k));
 
 export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService>()(
   '@bible/film/tools/SceneWriter',

@@ -16,7 +16,16 @@ import {
   WordMissing,
 } from './errors.ts';
 import { wordAfter } from './narration.ts';
-import type { CuePatch, ResolvedCue, ScenePoint, Span, Timeline, Until, Word } from './schema.ts';
+import {
+  CUE_PATCH_KEYS,
+  type CuePatch,
+  type ResolvedCue,
+  type ScenePoint,
+  type Span,
+  type Timeline,
+  type Until,
+  type Word,
+} from './schema.ts';
 import { CLOCK_EPSILON, DEFAULT_EASE, type Key, ease, keys, progress, toMs } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
@@ -84,25 +93,17 @@ const endField = (span: Span, patch: CuePatch) => {
   return ends;
 };
 
-/** The keys of a `CuePatch` that hold seconds. */
-const PATCH_NUMBERS = ['offset', 'dur', 'untilOffset', 'stagger'] as const satisfies ReadonlyArray<
-  keyof CuePatch
->;
-
 /**
  * `patch` as a scene file holds it once written: every number to the
  * millisecond (`toMs`), the one rounding the source writer applies. What a
  * write is judged by before it lands, so the judgement is of what lands.
  */
 export const writtenPatch = (patch: CuePatch): CuePatch =>
-  PATCH_NUMBERS.reduce<CuePatch>(
-    (written, key) =>
-      Option.match(Option.fromUndefinedOr(patch[key]), {
-        onNone: () => written,
-        onSome: (value) => ({ ...written, [key]: toMs(value) }),
-      }),
-    patch,
-  );
+  CUE_PATCH_KEYS.reduce<CuePatch>((written, key) => {
+    const value = patch[key];
+    if (!Predicate.isNumber(value)) return written;
+    return { ...written, [key]: toMs(value) };
+  }, patch);
 
 /**
  * `span` with a lab edit applied. A span ends one way, so a `dur` replaces

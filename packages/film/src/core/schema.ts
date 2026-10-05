@@ -4,7 +4,7 @@
 // from these, so a decoded file and a hand-written film module share one
 // definition. Pure: Schema runs in the browser, the tools and the tests alike.
 
-import { Array as Arr, Option, Schema, SchemaTransformation } from 'effect';
+import { Array as Arr, Option, Schema, SchemaTransformation, Struct } from 'effect';
 import { ActName, Address, PartId } from './address-schema.ts';
 import { inspected } from './field.ts';
 import type { ease } from './time.ts';
@@ -914,8 +914,8 @@ export const CueDur = Seconds.annotate(
   inspected({ unit: 's', step: { frames: 1 }, coarse: { frames: 10 }, fine: 0.001, min: 0 }),
 );
 
-/** `POST /lab/:film/cues/:scene/:cue`: the fields to set; a field the span lacks is added. */
-export const CuePatch = Schema.Struct({
+/** A cue patch's fields, in the order a span writes them. */
+const CuePatchFields = {
   offset: Schema.optionalKey(CueOffset),
   dur: Schema.optionalKey(CueDur),
   /**
@@ -927,12 +927,16 @@ export const CuePatch = Schema.Struct({
   untilOffset: Schema.optionalKey(CueOffset),
   ease: Schema.optionalKey(EaseName),
   stagger: Schema.optionalKey(Share),
-})
+};
+
+/** Every key a cue patch may set, in the order a span writes them: the one list of them. */
+export const CUE_PATCH_KEYS = Struct.keys(CuePatchFields);
+
+/** `POST /lab/:film/cues/:scene/:cue`: the fields to set; a field the span lacks is added. */
+export const CuePatch = Schema.Struct(CuePatchFields)
   .check(
     Schema.makeFilter(
-      (p) =>
-        Object.keys(p).length > 0 ||
-        'set at least one of offset, dur, until, untilOffset, ease, stagger',
+      (p) => Object.keys(p).length > 0 || `set at least one of ${CUE_PATCH_KEYS.join(', ')}`,
     ),
   )
   .check(
@@ -1049,7 +1053,7 @@ export const SceneSource = Schema.Struct({
       untilOffset: Schema.optionalKey(FieldState),
       ease: FieldState,
       stagger: FieldState,
-    }),
+    } satisfies Record<keyof CuePatch | 'name', Schema.Top>),
   ),
   knobs: Schema.Array(Schema.Struct({ name: Schema.String, state: FieldState })),
   /**
