@@ -172,6 +172,17 @@ export const dragPatch = (
   return Option.some({ offset, dur });
 };
 
+/**
+ * The fields a drag of `span` at `edge` writes (`dragPatch`): what the lab
+ * must find literal, or absent, in the source to write it.
+ */
+export const dragFields = (span: Span, edge: DragEdge): ReadonlyArray<keyof CuePatch> => {
+  if (edge === 'move') return ['offset'];
+  if (span.until !== undefined) return edge === 'end' ? ['untilOffset'] : ['offset'];
+  if (edge === (span.ends === true ? 'start' : 'end')) return ['dur'];
+  return ['offset', 'dur'];
+};
+
 /** `dragPatch` for a span that runs `until` a point: see there. */
 const untilPatch = (
   span: Span,

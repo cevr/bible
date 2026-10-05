@@ -33,7 +33,7 @@ import {
   Timeline,
 } from '../../core/schema.ts';
 import { toMs } from '../../core/time.ts';
-import { type DragEdge, dragPatch, patchSpan, untilText } from '../../core/timeline.ts';
+import { type DragEdge, dragFields, dragPatch, patchSpan, untilText } from '../../core/timeline.ts';
 import { StepVerb } from '../api.ts';
 
 /** How near (screen pixels) an edge must come to a word, mark or cue edge to snap to it. */
@@ -434,38 +434,37 @@ export const knobRefusal = (
     },
   });
 
-const NEEDS = {
-  move: ['offset'],
-  end: ['dur'],
-  start: ['offset', 'dur'],
-} as const satisfies Record<DragEdge, ReadonlyArray<'offset' | 'dur'>>;
-
 const PAST = { undo: 'undid', redo: 'redid' } as const;
 
 /**
- * Why a drag of `cue` at `edge` cannot write, when it cannot: the scene has no
- * source the lab can read (`error`, as the server said), its timeline is one
- * the lab will not rewrite, or a field the drag sets is computed in source.
+ * Why a write of `fields` to `cue` cannot land, when it cannot: the scene has
+ * no source the lab can read (`error`, as the server said), its timeline is
+ * one the lab will not rewrite, the cue is not in it, or a field it sets is
+ * computed in source (named). A drag writes `dragFields` of its edge.
  */
 export const cueRefusal = (
   source: Option.Option<SceneSource>,
   error: string,
   cue: string,
-  edge: DragEdge,
+  fields: ReadonlyArray<keyof CuePatch>,
 ): Option.Option<string> =>
   Option.match(source, {
     onNone: () => Option.some(`cannot edit: ${error || 'no source for this scene'}`),
     onSome: (s) => {
-      const needs: ReadonlyArray<'offset' | 'dur'> = NEEDS[edge];
       const refused = Arr.findFirst(s.refused, (r) => r.field === 'timeline');
       if (Option.isSome(refused)) return Option.some(`cannot drag ${cue}: ${refused.value.reason}`);
-      const writable = Option.exists(
+      return Option.match(
         Arr.findFirst(s.cues, (c) => c.name === cue),
-        (found) => needs.every((f) => found[f] !== 'computed'),
-      );
-      if (writable) return Option.none();
-      return Option.some(
-        `cannot drag ${cue}: its ${needs.join(' and ')} is computed in the source`,
+        {
+          onNone: () => Option.some(`cannot drag ${cue}: its span is computed in the source`),
+          onSome: (found) => {
+            const computed = fields.filter((f) => found[f] === 'computed');
+            if (computed.length === 0) return Option.none();
+            return Option.some(
+              `cannot drag ${cue}: its ${computed.join(' and ')} is computed in the source`,
+            );
+          },
+        },
       );
     },
   });
@@ -576,7 +575,7 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
           label: 'offset',
           spec: fieldOf(CueOffset, at.fps),
           value: offset,
-          refusal: cueRefusal(at.source, at.error, name, 'move'),
+          refusal: cueRefusal(at.source, at.error, name, ['offset']),
           write: (v) => write({ offset: toMs(v) }, { ...span, offset: v }),
         };
         const durField: Inspected = {
@@ -584,7 +583,7 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
           label: 'dur',
           spec: fieldOf(CueDur, at.fps),
           value: cue.dur,
-          refusal: cueRefusal(at.source, at.error, name, 'end'),
+          refusal: cueRefusal(at.source, at.error, name, ['dur']),
           write: (v) =>
             write({ dur: toMs(Math.max(0, v)) }, patchSpan(span, { dur: Math.max(0, v) })),
         };
@@ -594,7 +593,7 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
           label: 'end',
           spec: { ...durSpec, min: Option.some(cue.start) },
           value: cue.end,
-          refusal: cueRefusal(at.source, at.error, name, 'end'),
+          refusal: cueRefusal(at.source, at.error, name, dragFields(span, 'end')),
           write: (v) => {
             const bar = { start: cue.start, end: Math.max(cue.start, v) };
             Option.map(dragPatch(span, cue, 'end', bar, 1 / at.fps), (patch) =>

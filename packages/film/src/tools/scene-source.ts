@@ -57,6 +57,7 @@ interface EditableCue {
   readonly offset: FieldState;
   readonly dur: FieldState;
   readonly until: FieldState;
+  readonly untilOffset: FieldState;
   readonly ease: FieldState;
   readonly stagger: FieldState;
 }
@@ -569,6 +570,7 @@ const editableCue = (file: string, cue: string, span: ObjectExpression): Editabl
     offset: state('offset', isNumberLiteral),
     dur: state('dur', isNumberLiteral),
     until: state('until', isUntilLiteral),
+    untilOffset: state('untilOffset', isNumberLiteral),
     ease: state('ease', isStringLiteral),
     stagger: state('stagger', isNumberLiteral),
   };

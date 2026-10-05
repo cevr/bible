@@ -110,9 +110,14 @@ describe('scene source', () => {
       offset: 'literal',
       dur: 'absent',
       until: 'literal',
+      untilOffset: 'absent',
       ease: 'absent',
       stagger: 'absent',
     });
+    const off = ok(editCue(FILE, marked, 'hand', 'topple', { untilOffset: 0.2 }));
+    expect(ok(editable(FILE, off, 'hand')).cues[0]?.untilOffset).toBe('literal');
+    const coded = off.replace('untilOffset: 0.2', 'untilOffset: GAP');
+    expect(ok(editable(FILE, coded, 'hand')).cues[0]?.untilOffset).toBe('computed');
     const sized = ok(editCue(FILE, marked, 'hand', 'topple', { dur: 1.2 }));
     expect(sized).toBe(scene.replace('dur: 1.8', 'dur: 1.2'));
     const bare = ok(editCue(FILE, scene, 'hand', 'bare', { until: 'gift', ease: 'linear' }));
@@ -442,6 +447,7 @@ export const hand = drawing({
         offset: 'literal',
         dur: 'literal',
         until: 'absent',
+        untilOffset: 'absent',
         ease: 'absent',
         stagger: 'absent',
       },
@@ -450,6 +456,7 @@ export const hand = drawing({
         offset: 'literal',
         dur: 'literal',
         until: 'absent',
+        untilOffset: 'absent',
         ease: 'literal',
         stagger: 'absent',
       },
@@ -458,6 +465,7 @@ export const hand = drawing({
         offset: 'computed',
         dur: 'absent',
         until: 'absent',
+        untilOffset: 'absent',
         ease: 'absent',
         stagger: 'absent',
       },
@@ -466,6 +474,7 @@ export const hand = drawing({
         offset: 'absent',
         dur: 'absent',
         until: 'absent',
+        untilOffset: 'absent',
         ease: 'absent',
         stagger: 'absent',
       },

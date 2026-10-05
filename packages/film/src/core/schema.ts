@@ -1045,6 +1045,8 @@ export const SceneSource = Schema.Struct({
       offset: FieldState,
       dur: FieldState,
       until: FieldState,
+      /** Additive: an answer without it (a server before it) leaves the end's offset unjudged. */
+      untilOffset: Schema.optionalKey(FieldState),
       ease: FieldState,
       stagger: FieldState,
     }),

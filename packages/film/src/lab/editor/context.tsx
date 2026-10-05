@@ -29,7 +29,7 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
-import type { DragEdge } from '../../core/timeline.ts';
+import { type DragEdge, dragFields } from '../../core/timeline.ts';
 import { LabApi, type StepVerb, reasonOf, stepWhyNot } from '../api.ts';
 import type { Receipt } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
@@ -219,11 +219,15 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   const press = (p: Press) => {
     if (followed()) return;
     labActions.select(Option.some(cueOf(p.scene, p.cue)));
-    const refused = cueRefusal(stripSource().source, stripSource().error, p.cue, p.edge);
+    const timeline = stage.timelineOf(p.scene);
+    const fields = Option.match(Option.fromUndefinedOr(timeline[p.cue]), {
+      onNone: () => [],
+      onSome: (span) => dragFields(span, p.edge),
+    });
+    const refused = cueRefusal(stripSource().source, stripSource().error, p.cue, fields);
     if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
     const placed = Result.getSuccess(sceneOf(film.placed, p.scene));
     const cues = stage.cuesOf(p.scene);
-    const timeline = stage.timelineOf(p.scene);
     const grip = Option.all({
       placed,
       span: Option.fromUndefinedOr(timeline[p.cue]),
