@@ -20,7 +20,7 @@ import { Choices, type Picked } from './choices.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { mixedAnswer } from './lab-page.ts';
-import { IMMUTABLE, serveFile } from './review-file.ts';
+import { CACHE, serveFile } from './review-file.ts';
 import { wroteFields } from './steps-http.ts';
 
 /**
@@ -28,7 +28,7 @@ import { wroteFields } from './steps-http.ts';
  * from, so a page asks again each time (a revalidation, answered 304 while the
  * film's source stands).
  */
-const MIXED = 'no-cache';
+const MIXED = CACHE.fresh;
 
 /**
  * What a write answers: the file it changed (relative to the film), the
@@ -84,7 +84,7 @@ export const choicesGroup = HttpApiBuilder.group(LabHttpApi, 'choices', (handler
         Effect.gen(function* () {
           const film = yield* filmNamed(params.film);
           const file = yield* (yield* Choices).alone(film, query.point, query.variant);
-          return yield* serveFile(request, file, IMMUTABLE);
+          return yield* serveFile(request, file, CACHE.derived);
         }),
       ),
     )

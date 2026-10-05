@@ -29,9 +29,6 @@ export const CACHE = {
   hashed: 'max-age=31536000, immutable',
 } as const;
 
-/** `CACHE.derived`, as `choices-http.ts` names it. */
-export const IMMUTABLE = CACHE.derived;
-
 /** The path a request's `url` asks for, without its query. */
 export const urlPath = (url: string): string => url.split('?')[0] ?? '';
 
