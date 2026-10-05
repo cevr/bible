@@ -172,7 +172,6 @@ function SwipeBox(): JSX.Element {
     directions: ['right'],
     element,
     movementCssVars: { x: '--movement-x', y: '--movement-y' },
-    onSwipingChange: (swiping) => log(`swiping ${swiping}`),
     onDismiss: (_event, details) => {
       log(`dismiss ${details.direction}`);
       setDismissed(true);

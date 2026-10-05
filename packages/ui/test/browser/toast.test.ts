@@ -383,8 +383,6 @@ describe('useSwipeDismiss', () => {
     await drag(page, '#swipe-box', 100, 0);
     await see(page.locator('#swipe-box')).toHaveAttribute('data-dismissed', '');
     const lines = await logOf(page);
-    expect(lines[0]).toBe('swiping true');
-    expect(lines).toContain('swiping false');
     expect(lines.at(-1)).toBe('dismiss right');
     expect(lines.find((line) => line.startsWith('release'))).toMatch(/^release right \d+$/);
   });

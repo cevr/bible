@@ -171,8 +171,6 @@ export function DrawerViewport(componentProps: DrawerViewportProps): JSX.Element
       return [swipeDirection()];
     },
     element: store.popupElement,
-    ignoreSelectorWhenTouch: false,
-    ignoreScrollableAncestors: true,
     movementCssVars: { x: DrawerPopupCssVars.swipeMovementX, y: DrawerPopupCssVars.swipeMovementY },
     onSwipeStart(event) {
       if ('touches' in event || event.pointerType === 'touch') {
