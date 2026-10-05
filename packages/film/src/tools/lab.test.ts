@@ -928,7 +928,9 @@ describe('lab routes', () => {
         '/api/films/f/project',
       );
       expect(labUrls.review.index({ query: {} })).toBe('/api/review/index');
-      expect(labUrls.page.wait({ query: { since: 3 } })).toBe('/api/review/build?since=3');
+      expect(labUrls.page.wait({ query: { since: 3, timeout: 9 } })).toBe(
+        '/api/review/build?since=3&timeout=9',
+      );
       expect(reviewFileUrl('out/a b.mp4')).toBe('/api/review/files/out/a%20b.mp4');
     }),
   );

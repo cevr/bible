@@ -56,6 +56,7 @@ import { NetAddress } from 'effect/net';
 import { BunHttpServer } from '@effect/platform-bun';
 import { BodyTooLarge } from '../core/refusals.ts';
 import { STUDIO_MAX_BODY } from '../core/studio.ts';
+import { urlPath } from './review-file.ts';
 
 /** Where the server listens: the name and port it is bound to. */
 interface LabBound {
@@ -122,9 +123,6 @@ const hostOf = (request: HttpServerRequest.HttpServerRequest) =>
 
 const refused = (reason: string) => Option.some<Refusal>(RequestRefused.make({ reason }));
 
-/** The path a request asks for, without its query. */
-const pathOf = (request: HttpServerRequest.HttpServerRequest) => request.url.split('?')[0] ?? '';
-
 /**
  * A link opened from another site (a chat, a mail): a GET or HEAD the
  * browser makes for a new document (`Sec-Fetch-Mode: navigate`,
@@ -136,7 +134,7 @@ const isNavigation = (request: HttpServerRequest.HttpServerRequest) =>
   SAFE_METHODS.includes(request.method) &&
   Option.contains(header(request, 'sec-fetch-mode'), 'navigate') &&
   Option.contains(header(request, 'sec-fetch-dest'), 'document') &&
-  (Option.isSome(pageAt(pathOf(request))) || Option.isSome(legacyPlace(request.url)));
+  (Option.isSome(pageAt(urlPath(request.url))) || Option.isSome(legacyPlace(request.url)));
 
 /**
  * Whether the server answers `request` at all: `None` when it does, else the
@@ -232,7 +230,7 @@ const encodeRefusal = Schema.encodeSync(RefusalSchema);
 /** `refusal` as the server answers it: its JSON at its status, logged. */
 const answerRefused = (request: HttpServerRequest.HttpServerRequest, refusal: Refusal) =>
   Effect.logWarning(
-    `api.request.refused method=${request.method} path=${request.url.split('?')[0]} status=${statusOf(refusal)} tag=${refusal._tag} reason="${refusal.message}"`,
+    `api.request.refused method=${request.method} path=${urlPath(request.url)} status=${statusOf(refusal)} tag=${refusal._tag} reason="${refusal.message}"`,
   ).pipe(
     Effect.as(HttpServerResponse.jsonUnsafe(encodeRefusal(refusal), { status: statusOf(refusal) })),
   );
@@ -261,7 +259,7 @@ const decodedOrRefused = <E, R>(
       reason: `${defect.kind}: ${reason}`,
     });
     return Effect.logWarning(
-      `api.request.failed method=${request.method} path=${pathOf(request)} status=${statusOf(failed)} tag=${failed.tag} reason="${failed.reason}"`,
+      `api.request.failed method=${request.method} path=${urlPath(request.url)} status=${statusOf(failed)} tag=${failed.tag} reason="${failed.reason}"`,
     ).pipe(
       Effect.as(HttpServerResponse.jsonUnsafe(encodeRefusal(failed), { status: statusOf(failed) })),
     );
@@ -489,7 +487,7 @@ const pageRoute = (
     '/*',
     Effect.gen(function* () {
       const request = yield* HttpServerRequest.HttpServerRequest;
-      const path = pathOf(request);
+      const path = urlPath(request.url);
       if (own.some((prefix) => path.startsWith(prefix)))
         return yield* answerRefused(request, RouteUnknown.make({ path }));
       if (!SAFE_METHODS.includes(request.method))

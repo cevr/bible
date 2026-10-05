@@ -51,7 +51,7 @@ import { ContentStore } from './content-store.ts';
 import { FilmFolder, type FilmName, Stamped, filmNamed, keptWhenMade } from './film-repo.ts';
 import { type FreshError, FreshFilm } from './fresh-film.ts';
 import type { VoicedFilm } from './narrator.ts';
-import { IMMUTABLE, serveFile } from './review-file.ts';
+import { CACHE, serveFile } from './review-file.ts';
 import { Takes } from './takes.ts';
 
 /**
@@ -325,7 +325,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
           const found = yield* (yield* Takes).attemptFile(yield* pathsOf(film), beat, params.file);
           if (Option.isNone(found)) return yield* AttemptUnknown.make({ beat, file: params.file });
           // A phone's Safari plays and seeks an <audio> by byte ranges.
-          return yield* serveFile(request, found.value, IMMUTABLE);
+          return yield* serveFile(request, found.value, CACHE.derived);
         }),
       ),
     )

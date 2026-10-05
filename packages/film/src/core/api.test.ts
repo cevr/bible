@@ -1,8 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { Place } from '@bible/url-state';
-import { Option } from 'effect';
+import { Option, Schema } from 'effect';
 import {
+  LONGEST_WAIT,
   LabHttpApi,
+  WaitTimeout,
   type PageName,
   Places,
   declares,
@@ -223,6 +225,19 @@ describe('old links', () => {
   test('every old link lands on a page', () => {
     for (const [, now] of OLD_LINKS)
       expect(Option.isSome(pageAt(now.split(/[?#]/)[0] ?? ''))).toBe(true);
+  });
+});
+
+describe('waits', () => {
+  const asked = Schema.decodeUnknownSync(Schema.Struct({ timeout: WaitTimeout }));
+
+  test.each([
+    [{ timeout: 999 }, LONGEST_WAIT],
+    [{}, LONGEST_WAIT],
+    [{ timeout: -5 }, 0],
+    [{ timeout: 3 }, 3],
+  ])('a wait asked %o is held %d s at most, never past the longest', (query, held) => {
+    expect(asked(query).timeout).toBe(held);
   });
 });
 

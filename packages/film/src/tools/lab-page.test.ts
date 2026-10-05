@@ -30,6 +30,7 @@ import {
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { TestClock } from 'effect/testing';
 import { brotliCompressSync, brotliDecompressSync, constants as zlib } from 'node:zlib';
+import { LONGEST_WAIT } from '../core/api.ts';
 import { LabPage, type LabPageSpec, PageBundler, splice } from './lab-page.ts';
 import { PageReads } from './api-server.ts';
 import { PageRenderer, RenderFailed } from './page-render.ts';
@@ -1038,7 +1039,7 @@ describe('lab pages', () => {
         // The page's own script, run over a fake fetch, location and timer.
         new Function('fetch', 'location', 'setTimeout', code)(fakeFetch, location, fakeTimeout);
         yield* Deferred.await(reloaded);
-        const wait = `/api/review/build?since=${build}&server=${server}`;
+        const wait = `/api/review/build?since=${build}&server=${server}&timeout=${LONGEST_WAIT}`;
         expect(heard).toEqual([
           `ask ${wait}`,
           'pause 2000',

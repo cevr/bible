@@ -36,7 +36,7 @@ import { Easel } from './easel.ts';
 import type { Choices } from './choices.ts';
 import { LabPage } from './lab-page.ts';
 import { projectGroup } from './project-http.ts';
-import { IMMUTABLE, serveFile } from './review-file.ts';
+import { CACHE, serveFile } from './review-file.ts';
 import { reviewGroup } from './review-http.ts';
 import type { Review } from './review.ts';
 import type { ContentStore } from './content-store.ts';
@@ -51,9 +51,6 @@ import type { FreshFilm } from './fresh-film.ts';
 import { stepsGroup, writeAnswer } from './steps-http.ts';
 import { type StudioReadings, studioGroup } from './studio.ts';
 import type { Takes } from './takes.ts';
-
-/** The longest a wait may hold a request open. */
-const MAX_WAIT = Duration.seconds(60);
 
 /** A cue written: the span as the file now reads it, and where it resolves (or why it does not). */
 const cueWritten = Effect.fn('lab.cueWritten')(function* (
@@ -116,11 +113,11 @@ const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
       answered(
         Effect.gen(function* () {
           const film = yield* filmNamed(params.film);
-          const timeout = Duration.min(
-            Duration.seconds(Math.max(0, query.timeout ?? 60)),
-            MAX_WAIT,
+          return yield* (yield* NotesStore).wait(
+            film,
+            query.since,
+            Duration.seconds(query.timeout),
           );
-          return yield* (yield* NotesStore).wait(film, query.since, timeout);
         }),
       ),
     )
@@ -131,7 +128,7 @@ const notesGroup = HttpApiBuilder.group(LabHttpApi, 'notes', (handlers) =>
           const file = yield* (yield* NotesStore).still(film, params.name);
           if (Option.isNone(file)) return yield* StillUnknown.make({ film, name: params.name });
           // A still is named by its number, written once.
-          return yield* serveFile(request, file.value, IMMUTABLE);
+          return yield* serveFile(request, file.value, CACHE.derived);
         }),
       ),
     ),
@@ -211,7 +208,7 @@ const pageGroup = HttpApiBuilder.group(LabHttpApi, 'page', (handlers) =>
             server: Option.fromUndefinedOr(query.server),
             film: Option.fromUndefinedOr(query.film),
           },
-          Duration.seconds(Math.max(0, query.timeout ?? 60)),
+          Duration.seconds(query.timeout),
         ),
       ),
     ),

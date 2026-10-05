@@ -61,7 +61,7 @@ import {
 } from 'effect';
 import type { BunPlugin } from 'bun';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
+import { LONGEST_WAIT, type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import type { PageBuild } from '../core/schema.ts';
 import { brotliCompress, constants as zlib } from 'node:zlib';
 import { type PageAnswer, PageReads, pageCodingOf } from './api-server.ts';
@@ -73,7 +73,7 @@ import {
 } from './page-render.ts';
 import { isNarrationUrl, narrationPath } from './narration-route.ts';
 import { narrationUrls } from '../player/narrated.ts';
-import { serveFile } from './review-file.ts';
+import { CACHE, serveFile } from './review-file.ts';
 import type { Remade } from './source-writer.ts';
 
 /** What the app builds its pages from. */
@@ -456,8 +456,6 @@ const BUILD_TRIES = 3;
 const KEPT = 3;
 /** Saves land as a burst (a formatter, several files): a waiting page hears of them once settled. */
 const SETTLE = Duration.millis(150);
-/** The longest a wait holds a request open. */
-const MAX_WAIT = Duration.seconds(60);
 /** How long a new watch is given to start before the files it now watches are checked. */
 const ARMING = Duration.millis(250);
 /** How far a file's mtime may lag the clock: a save during a build is counted from this before it began. */
@@ -519,8 +517,8 @@ interface LabPageService {
   readonly answer: PageAnswer;
   /**
    * The pages' build as the sources stand: past `since` once a source
-   * changes, held up to `timeout`; at once when the page was served by
-   * another server.
+   * changes, held up to `timeout` (a query's, at most `LONGEST_WAIT`); at
+   * once when the page was served by another server.
    */
   readonly wait: (served: Served, timeout: Duration.Input) => Effect.Effect<PageBuild>;
   /**
@@ -693,7 +691,7 @@ const failedPage = (reason: string, build: PageBuild, tokens: string) =>
   `<body>` +
   `<h1>The lab's page did not build</h1><pre>${escapeHtml(reason)}</pre>` +
   `<script>(async()=>{const S=${jsonText(build.server)},B=${build.build},` +
-  `u=${jsonText(labUrls.page.wait({ query: { since: build.build, server: build.server } }))};` +
+  `u=${jsonText(labUrls.page.wait({ query: { since: build.build, server: build.server, timeout: LONGEST_WAIT } }))};` +
   `for(;;){try{const r=await fetch(u);if(r.ok){const b=await r.json();if(b.server!==S||b.build>B)return location.reload()}}catch{}` +
   `await new Promise(f=>setTimeout(f,${FAILED_PAUSE_MS}))}})()</script>` +
   `</body></html>`;
@@ -1292,10 +1290,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
           Effect.andThen(Effect.sleep(SETTLE)),
         ),
         retryFailed,
-      ).pipe(
-        Effect.timeoutOption(Duration.min(Duration.fromInputUnsafe(timeout), MAX_WAIT)),
-        Effect.andThen(now(served.film)),
-      ),
+      ).pipe(Effect.timeoutOption(timeout), Effect.andThen(now(served.film))),
     );
   };
 
@@ -1404,7 +1399,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
             ),
         },
       );
-      const cache = { 'cache-control': 'max-age=31536000, immutable' };
+      const cache = { 'cache-control': CACHE.hashed };
       return Option.some(
         Option.match(made, {
           onNone: () => HttpServerResponse.uint8Array(bytes, { contentType: type, headers: cache }),
@@ -1468,7 +1463,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
             Effect.andThen(
               trackAsked(pathname, file),
               Effect.flatMap(fs.exists(file), (there) => {
-                if (there) return serveFile(request, file, 'no-cache');
+                if (there) return serveFile(request, file, CACHE.fresh);
                 return Effect.succeed(NOT_FOUND);
               }),
             ),
