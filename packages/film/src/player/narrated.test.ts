@@ -2,7 +2,8 @@
 // id, through the page's HTTP client; a film with no timings yet is laid out
 // on estimates, as the tools lay it out, and a timings file the page cannot
 // fetch or read fails, naming it. A film is given only once the faces it
-// draws in have loaded, so no canvas or still draws in a fallback face.
+// draws in have been asked for (`pictureFaces`, which waits for none of them:
+// what draws the film waits, `face.test.ts`).
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Deferred, Effect, Fiber, Layer } from 'effect';
@@ -82,11 +83,11 @@ describe('loadNarrated', () => {
 });
 
 describe('narratedFilms', () => {
-  it.live('a film is given only once the faces it draws in have loaded: a slow face holds it', () =>
+  it.live('a film is given only once its faces have been asked for: a slow ask holds it', () =>
     Effect.gen(function* () {
       const happened: Array<string> = [];
       const moduleAsked = yield* Deferred.make<boolean>();
-      const facesLand = yield* Deferred.make<boolean>();
+      const facesAsked = yield* Deferred.make<boolean>();
       const toy = createFilm({
         title: 'toy',
         paper: { base: '#fff', tone: '#000', seed: 1 },
@@ -99,8 +100,8 @@ describe('narratedFilms', () => {
             Effect.runPromise(Effect.as(Deferred.succeed(moduleAsked, true), { film: () => toy })),
         },
         Effect.andThen(
-          Deferred.await(facesLand),
-          Effect.sync(() => happened.push('faces loaded')),
+          Deferred.await(facesAsked),
+          Effect.sync(() => happened.push('faces asked')),
         ),
         answering(404).layer,
       );
@@ -108,13 +109,13 @@ describe('narratedFilms', () => {
         Effect.tap(() => Effect.sync(() => happened.push('film given'))),
       );
       const loading = yield* Effect.forkChild(given);
-      // The film's module and its narration are in; its faces are still on their way.
+      // The film's module and its narration are in; its faces are not yet asked for.
       yield* Deferred.await(moduleAsked);
       yield* Effect.yieldNow;
       expect(happened).toEqual([]);
-      yield* Deferred.succeed(facesLand, true);
+      yield* Deferred.succeed(facesAsked, true);
       expect(yield* Fiber.join(loading)).toBe(toy);
-      expect(happened).toEqual(['faces loaded', 'film given']);
+      expect(happened).toEqual(['faces asked', 'film given']);
     }),
   );
 });

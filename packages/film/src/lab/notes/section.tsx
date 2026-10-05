@@ -10,6 +10,7 @@ import { Effect, Option } from 'effect';
 import { createEffect } from 'solid-js';
 import { Pointer, Surface } from '../../browser/pointer.ts';
 import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
+import { useLabPage } from '../panel.tsx';
 import { Lab, useLab } from '../shell.tsx';
 import { useNotes } from './context.tsx';
 import { filmPixel } from './draft.ts';
@@ -23,10 +24,10 @@ const DRAG_PX = 6;
  */
 export const Section = () => {
   const { state, actions } = useNotes();
-  const { actions: lab } = useLab();
+  const page = useLabPage();
   // A note begun (Note frame, its key, a pin) shows the Note mode, where it is written.
   createEffect(state.composerOpen, (shown) => {
-    if (shown) lab.showMode('note');
+    if (shown) page.showMode('note');
   });
   let area = Option.none<HTMLTextAreaElement>();
   const open = () => state.composerOpen();

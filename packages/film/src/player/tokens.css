@@ -6,6 +6,81 @@
  * role, never by colour. The UI face, JetBrains Mono, is registered from
  * `face.ts`, so the lab's own routes answer its files.
  */
+
+/*
+ * The UI face's fallbacks, metric-matched: until its file lands (it is
+ * swapped in) the chrome is set in a monospace the system has, scaled to the
+ * UI face's advance (0.6 em) and given its ascent (1.02 em) and descent
+ * (0.30 em), so no target moves when it lands (G10, `touch.dom.test.ts`).
+ * Each family is fonts of one advance: Menlo and DejaVu Sans Mono 1233/2048
+ * em, Consolas 1126/2048, Liberation Mono and Courier New 1229/2048. An
+ * override is of the scaled face, so each is the UI face's divided by the
+ * scale. Regular below 550, bold from it (the chrome's weights are 400, 500,
+ * 600 and 650). Local files only: none is fetched. The film's own faces are
+ * never these: a frame waits for its faces (`pictureFacesWait`).
+ */
+@font-face {
+  font-family: 'Fallback Menlo';
+  src:
+    local('Menlo Regular'), local('Menlo-Regular'), local('DejaVu Sans Mono'),
+    local('DejaVuSansMono');
+  font-weight: 100 549;
+  size-adjust: 99.66%;
+  ascent-override: 102.35%;
+  descent-override: 30.1%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Fallback Menlo';
+  src:
+    local('Menlo Bold'), local('Menlo-Bold'), local('DejaVu Sans Mono Bold'),
+    local('DejaVuSansMono-Bold');
+  font-weight: 550 900;
+  size-adjust: 99.66%;
+  ascent-override: 102.35%;
+  descent-override: 30.1%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Fallback Consolas';
+  src: local('Consolas');
+  font-weight: 100 549;
+  size-adjust: 109.13%;
+  ascent-override: 93.47%;
+  descent-override: 27.49%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Fallback Consolas';
+  src: local('Consolas Bold'), local('Consolas-Bold');
+  font-weight: 550 900;
+  size-adjust: 109.13%;
+  ascent-override: 93.47%;
+  descent-override: 27.49%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Fallback Courier';
+  src:
+    local('Liberation Mono'), local('LiberationMono'), local('Courier New'), local('CourierNewPSMT');
+  font-weight: 100 549;
+  size-adjust: 99.98%;
+  ascent-override: 102.02%;
+  descent-override: 30.01%;
+  line-gap-override: 0%;
+}
+@font-face {
+  font-family: 'Fallback Courier';
+  src:
+    local('Liberation Mono Bold'), local('LiberationMono-Bold'), local('Courier New Bold'),
+    local('CourierNewPS-BoldMT');
+  font-weight: 550 900;
+  size-adjust: 99.98%;
+  ascent-override: 102.02%;
+  descent-override: 30.01%;
+  line-gap-override: 0%;
+}
+
 :root {
   color-scheme: dark;
 
@@ -52,7 +127,9 @@
   --scene-light: 32%;
 
   /* Type: one monospace family, five sizes and one reading size. */
-  --font: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font:
+    'JetBrains Mono', 'Fallback Menlo', 'Fallback Consolas', 'Fallback Courier', ui-monospace,
+    monospace;
   --font-features: 'calt' 0;
   --fs-1: 10px;
   --lh-1: 14px; /* tape and ruler labels, units, kbd */

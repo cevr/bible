@@ -20,19 +20,15 @@ import type { Component } from 'solid-js';
 import { Effect, type Layer, Option } from 'effect';
 import { type PageName, type Part, filmOfPage } from '../core/api.ts';
 import { type Host, addressOn, hostLayer } from '../browser/host.ts';
-import { TabStore, ViewerStore } from '../browser/storage-browser.ts';
-import { type Hub, makeHub } from '../command/hub.ts';
+import type { Hub } from '../command/hub.ts';
 import type { LabClient } from './api.ts';
-import { CommandMenu } from './command/command-menu.tsx';
-import { TargetMenu } from './command/context-menu.tsx';
-import { KeysSheet } from './command/keys-sheet.tsx';
-import { Receipts } from './command/receipts.tsx';
 import { COMMAND_CSS } from './command/style.ts';
 import { PageShell } from './page-shell.tsx';
 import { SHELL_CSS } from './page-shell-style.ts';
 import { LabPage } from './panel.tsx';
 import { scenesPlaceOf } from './scenes/place.ts';
 import { SCENES_CSS } from './scenes/style.ts';
+import { StudioFrame, studioOn } from './studio-frame.tsx';
 
 /**
  * A film page's body, made once its film is staged, with the page's
@@ -85,7 +81,7 @@ const FilmPage = (props: FilmPageWith) => {
   const Body = clientOnly(() => props.body(props.hub));
   return (
     <RegistryProvider initialValues={[[UrlAtom.layer, hostLayer(props.host)]]}>
-      <TargetMenu hub={props.hub}>
+      <StudioFrame hub={props.hub} scope={props.scope}>
         <PageShell
           part={(): Part => props.part}
           film={() => props.name}
@@ -97,10 +93,7 @@ const FilmPage = (props: FilmPageWith) => {
             <Body fallback={<Await name={props.name} />} />
           ))}
         </PageShell>
-        <CommandMenu hub={props.hub} />
-        <KeysSheet hub={props.hub} />
-        <Receipts hub={props.hub} tab={TabStore} scope={props.scope} />
-      </TargetMenu>
+      </StudioFrame>
     </RegistryProvider>
   );
 };
@@ -153,25 +146,22 @@ const filmPageOn = (
   around: AroundOf,
 ) => {
   const href = addressOn(host).href;
-  return Effect.map(makeHub(page, href, ViewerStore), (hub) => {
+  return studioOn(page, host, (hub) => {
     const name = filmOfPage(href());
     const film = Option.getOrElse(name, () => '');
-    return {
-      hub,
-      app: () => (
-        <FilmPage
-          part={part(href())}
-          name={name}
-          films={films}
-          host={host}
-          hub={hub}
-          scope={`${scope}:${film}`}
-          body={body}
-          around={around(film, host, hub)}
-        />
-      ),
-    };
-  }).pipe(Effect.provideContext(host));
+    return () => (
+      <FilmPage
+        part={part(href())}
+        name={name}
+        films={films}
+        host={host}
+        hub={hub}
+        scope={`${scope}:${film}`}
+        body={body}
+        around={around(film, host, hub)}
+      />
+    );
+  });
 };
 
 /**

@@ -144,6 +144,8 @@ export const useSceneStills = (film: string): SceneStills => {
         setReady(Option.some(stills));
         onScreen.ask();
       });
+      // A face the film draws in that will not load draws no still: the cards keep their blank picture, and the log says why.
+      yield* Effect.tryPromise({ try: () => stills.ready(), catch: () => 'faces-failed' as const });
       yield* Effect.logInfo(`project.stills film=${film} scenes=${middles.size}`);
     }).pipe(
       Effect.catch((why) => Effect.logInfo(`project.stills-none film=${film} reason=${why}`)),

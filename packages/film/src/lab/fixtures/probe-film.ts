@@ -5,6 +5,8 @@
 
 import { camera } from '../../canvas/camera.ts';
 import { type Film, createFilm, drawing } from '../../canvas/film.ts';
+import { REVIEW_FILES } from '../../core/api.ts';
+import { type Face, SUBSETS } from '../../player/face.ts';
 
 /** The probe film's name in its registry and in the lab's URLs. */
 export const PROBE = 'probe';
@@ -62,6 +64,19 @@ const shot = drawing({
     });
   },
 });
+
+/**
+ * A face the probe film draws in, as an app's films have theirs
+ * (`pictureFaces`): a file of the lab's (the review's files route), so a
+ * test can hold it back and see what waits for it.
+ */
+export const PROBE_FACE: Face = {
+  family: 'Probe Face',
+  url: `${REVIEW_FILES}probe-face.woff2`,
+  range: SUBSETS.latin,
+  weight: '100 800',
+  style: 'normal',
+};
 
 /**
  * The probe film, laid out afresh. Every scene held still (`drift: 0`): the

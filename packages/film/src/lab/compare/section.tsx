@@ -14,6 +14,7 @@ import { createEffect, createSignal, onCleanup, onSettled, untrack } from 'solid
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
 import { Pointer, Surface } from '../../browser/pointer.ts';
+import { useLabPage } from '../panel.tsx';
 import { Lab, useLab } from '../shell.tsx';
 import { hubKeys } from '../command/changes.ts';
 import { wipeCommands, wipeTitle } from '../wipe-keys.ts';
@@ -105,10 +106,11 @@ export const Layer = () => {
  * overlay never sees it.
  */
 export const Hold = () => {
-  const { state: lab, meta } = useLab();
+  const { meta } = useLab();
+  const page = useLabPage();
   const { state, actions } = useCompare();
   const { film } = meta;
-  const shown = () => state.mode() === 'blink' && lab.mode() === 'compare';
+  const shown = () => state.mode() === 'blink' && page.mode() === 'compare';
   /** The frame holds HEAD for one press: a second finger's lift never lets it go. */
   const frame = new Surface('the blink');
   const press = (el: SVGRectElement) =>

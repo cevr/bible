@@ -1,9 +1,11 @@
-// One clock for every pane of a compare (`frame-pane.ts`): each pane reads
-// its time from it, so two versions played together are never apart (the
-// `<video>` pair is only pulled back once it drifts past the sync's 0.2 s).
-// It stands while paused and runs at its rate from where it stood; a seek or
-// a rate change starts it again from there. It reads `now` (seconds,
-// monotonic: the host's `monotonicMs` live, `host.ts`; a number in a test),
+// The studio's media clock: one for every pane of a compare (`frame-pane.ts`),
+// each pane reading its time from it, so two versions played together are
+// never apart (the `<video>` pair is only pulled back once it drifts past the
+// sync's 0.2 s); and the preview's (`player/main.ts`), which a film's frames
+// follow off the narration. It stands while paused and runs at its rate from
+// where it stood; a seek or a rate change starts it again from there. It
+// reads `now` (seconds, monotonic: the host's `monotonicMs` live, `host.ts`;
+// a number in a test),
 // never the wall clock, which a sync or the owner may set on or back, nor
 // the sound's own clock, which a browser holds suspended until a gesture.
 

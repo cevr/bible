@@ -7,7 +7,7 @@
 
 import { type JSX, Show } from '@solidjs/web';
 import { parseHref } from '@bible/url-state';
-import { Effect, Equal, type Layer, Match, Option } from 'effect';
+import { Equal, type Layer, Match, Option } from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createEffect, createMemo } from 'solid-js';
@@ -21,14 +21,10 @@ import { FilmPage } from './options/section.tsx';
 import { FolderPage, Home, SetPage } from './section.tsx';
 import { REVIEW_CSS } from './style.ts';
 import { type Part, pageAt } from '../../core/api.ts';
-import { type Host, addressOn } from '../../browser/host.ts';
-import { TabStore, ViewerStore } from '../../browser/storage-browser.ts';
-import { type Hub, makeHub } from '../../command/hub.ts';
-import { CommandMenu } from '../command/command-menu.tsx';
-import { KeysSheet } from '../command/keys-sheet.tsx';
-import { Receipts } from '../command/receipts.tsx';
-import { TargetMenu } from '../command/context-menu.tsx';
+import type { Host } from '../../browser/host.ts';
+import type { Hub } from '../../command/hub.ts';
 import { COMMAND_CSS } from '../command/style.ts';
+import { StudioFrame, studioOn } from '../studio-frame.tsx';
 import { PageShell } from '../page-shell.tsx';
 import { SHELL_CSS } from '../page-shell-style.ts';
 import { SCENES_CSS } from '../scenes/style.ts';
@@ -199,17 +195,14 @@ interface ReviewWith {
 /** The review: its shell, the page it is on, the lightbox, its context menu, the inspector, ⌘K, the `?` sheet and the receipts. */
 const ReviewPage = (props: ReviewWith) => (
   <Root host={props.host} hub={props.hub} draw={props.draw} client={props.client}>
-    <TargetMenu hub={props.hub}>
+    <StudioFrame hub={props.hub} scope="review">
       <Inspecting hub={props.hub}>
         <Shell>
           <Page />
         </Shell>
         <Lightbox />
       </Inspecting>
-      <CommandMenu hub={props.hub} />
-      <KeysSheet hub={props.hub} />
-      <Receipts hub={props.hub} tab={TabStore} scope="review" />
-    </TargetMenu>
+    </StudioFrame>
   </Root>
 );
 
@@ -231,7 +224,6 @@ export const reviewOn = (
   client: Layer.Layer<LabClient | HttpClient.HttpClient>,
   draw: DrawStills,
 ) =>
-  Effect.map(makeHub('review', addressOn(host).href, ViewerStore), (hub) => ({
-    hub,
-    app: () => <ReviewPage host={host} hub={hub} draw={draw} client={client} />,
-  })).pipe(Effect.provideContext(host));
+  studioOn('review', host, (hub) => () => (
+    <ReviewPage host={host} hub={hub} draw={draw} client={client} />
+  ));

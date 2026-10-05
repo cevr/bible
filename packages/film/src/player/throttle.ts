@@ -1,7 +1,7 @@
 // A write the player may ask for every frame but makes at most once per
 // period: the first request runs at once, later ones within the period wait
-// for one trailing run that carries the latest state; `flush` runs a waiting
-// write now, and `ran` drops it after a write made outside (`tInUrl` writes
+// for one trailing run that carries the latest state; `ran` drops a waiting
+// write after a write made outside (`tInUrl` writes
 // `#t=` through this). The timers are injectable: live they are the page
 // host's `Clock` (`timersOn`), and the policy is tested on a clock the test
 // moves.
@@ -20,8 +20,6 @@ export interface Timers {
 export interface Throttled {
   /** Ask for a write: now if the period has passed, else once when it does. */
   request(): void;
-  /** Run a waiting write now; nothing when none waits. */
-  flush(): void;
   /** Drop a waiting write, and count a write made just now outside it. */
   ran(): void;
 }
@@ -67,11 +65,6 @@ export const throttled = (run: () => void, everyMs: number, timers: Timers): Thr
       const wait = last + everyMs - timers.now();
       if (wait <= 0) fire();
       else waiting = timers.set(fire, wait);
-    },
-    flush() {
-      if (waiting === undefined) return;
-      timers.clear(waiting);
-      fire();
     },
     ran() {
       if (waiting !== undefined) timers.clear(waiting);
