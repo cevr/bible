@@ -5,7 +5,9 @@
 // the state's colour (`MarkChip.state`, a `--state-*` token's name), why in full its title. The
 // tape's legend counts them over the film, the film's own lines too. The check is counted
 // one way here for every page (`checkCount`, `countState`: Scenes, Project, Choices): each
-// line once, a warning never a finding. The project or the check may not
+// line once. Every line of the check is a finding (`tools/findings.ts`), an
+// error or a warning by its level: the chips and the legend say `errors` and
+// `warnings`, and Project's chip their sum, `findings`. The project or the check may not
 // be read (yet, or at all: a short has no project): the scene then has no
 // such mark, never a wrong one. Pure.
 
@@ -24,7 +26,7 @@ export interface SceneMarks {
 
 /** A mark's chip: its word, why in full (its title), and the `--state-*` token it is drawn in. */
 interface MarkChip {
-  readonly mark: 'stale' | 'missing' | 'approved' | 'approved-earlier' | 'findings' | 'warnings';
+  readonly mark: 'stale' | 'missing' | 'approved' | 'approved-earlier' | 'errors' | 'warnings';
   readonly text: string;
   readonly why: string;
   readonly state: 'stale' | 'rendered' | 'approved' | 'findings' | 'warning';
@@ -47,8 +49,8 @@ const filmsOwn = (line: CheckLine): boolean =>
 
 /**
  * The check's lines counted one way, wherever a page counts them (a scene's
- * chips, the tape's legend, the Project's and Choices' check chips): each
- * line once, as an error (a finding) or a warning.
+ * chips, the tape's legend, the Project's check chip): each line once, as
+ * an error or a warning.
  */
 interface CheckCount {
   readonly errors: number;
@@ -95,7 +97,7 @@ export const marksOf =
     findings: findings.filter((line) => about(line, scene)),
   });
 
-/** `n` of `one`, in words: `1 finding`, `3 findings`. */
+/** `n` of `one`, in words: `1 error`, `3 errors`. */
 const count = (n: number, one: string) =>
   Bool.match(n === 1, { onTrue: () => `1 ${one}`, onFalse: () => `${n} ${one}s` });
 
@@ -144,8 +146,8 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
     ...[errors]
       .filter((n) => n > 0)
       .map((n): MarkChip => ({
-        mark: 'findings',
-        text: count(n, 'finding'),
+        mark: 'errors',
+        text: count(n, 'error'),
         why: lines('error'),
         state: 'findings',
       })),
@@ -166,7 +168,7 @@ export const bandState = (marks: SceneMarks): Option.Option<MarkChip['state']> =
 
 /** A line of the tape's legend: what it counts (`mark`), its words, and the `--state-*` token it is drawn in. */
 interface LegendLine {
-  readonly mark: 'stale' | 'missing' | 'approved' | 'findings' | 'warnings' | 'film';
+  readonly mark: 'stale' | 'missing' | 'approved' | 'errors' | 'warnings' | 'film';
   readonly text: string;
   readonly state: MarkChip['state'];
 }
@@ -174,7 +176,7 @@ interface LegendLine {
 /**
  * The tape's legend over `scenes`: how many are out of date, not rendered
  * and approved; then the check's `lines` about them, each once, by level
- * (`checkCount`: findings in the findings' colour, warnings in the
+ * (`checkCount`: errors in the findings' colour, warnings in the
  * warnings'), and the film's own lines (`filmsOwn`: addressed to no scene)
  * apart, in the colour of their most pressing level. None left at 0.
  */
@@ -203,7 +205,7 @@ export const legendOf = (
       .map((n): LegendLine => ({ mark: 'approved', text: `approved ${n}`, state: 'approved' })),
     ...[theirs.errors]
       .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'findings', text: `findings ${n}`, state: 'findings' })),
+      .map((n): LegendLine => ({ mark: 'errors', text: `errors ${n}`, state: 'findings' })),
     ...[theirs.warnings]
       .filter((n) => n > 0)
       .map((n): LegendLine => ({ mark: 'warnings', text: `warnings ${n}`, state: 'warning' })),

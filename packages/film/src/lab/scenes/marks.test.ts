@@ -73,12 +73,12 @@ describe('marksOf', () => {
     expect(bandState(unread)).toEqual(Option.none());
   });
 
-  test('its chips say the render first, then the approval, then the findings', () => {
-    expect(chipsOf(marks('one')).map((c) => c.text)).toEqual(['Out of date', '2 findings']);
+  test('its chips say the render first, then the approval, then the findings by level', () => {
+    expect(chipsOf(marks('one')).map((c) => c.text)).toEqual(['Out of date', '2 errors']);
     expect(chipsOf(marks('two')).map((c) => c.text)).toEqual(['Approved']);
     expect(chipsOf(marks('three')).map((c) => c.text)).toEqual([
       'Not rendered',
-      '1 finding',
+      '1 error',
       '1 warning',
     ]);
     expect(bandState(marks('one'))).toEqual(Option.some('stale'));
@@ -107,7 +107,7 @@ describe('marksOf', () => {
       'out of date 1',
       'not rendered 1',
       'approved 1',
-      'findings 2',
+      'errors 2',
       'warnings 1',
       'film 1',
     ]);
@@ -128,7 +128,9 @@ describe('marksOf', () => {
       ['warnings 20', 'warning'],
       ['film 1', 'warning'],
     ]);
-    // Counted as the Project's and Choices' chips count them: 21 lines, warnings only.
+    // Counted as the Project's chip counts them: 21 findings, warnings only; the legend's
+    // numbers add up to the chip's (one word, `findings`, for every line of the check).
     expect(checkCount(lines)).toEqual({ errors: 0, warnings: 21 });
+    expect(legend.reduce((sum, l) => sum + Number(l.text.split(' ').at(-1)), 0)).toBe(21);
   });
 });
