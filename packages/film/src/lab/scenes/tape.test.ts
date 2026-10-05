@@ -6,13 +6,13 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
+import { sceneAt } from '../../core/layout.ts';
 import {
   type TapeScene,
   cutNames,
   perRowAt,
   placeOf,
   rowAt,
-  sceneAt,
   stepFrom,
   tapeOf,
   timeAt,
