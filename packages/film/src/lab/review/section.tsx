@@ -53,7 +53,7 @@ import {
 } from '../../core/api.ts';
 import { ReviewApi } from './api.ts';
 import { newestAsked } from './asked.ts';
-import { InspectName, Inspector, useInspectorPlace, useThing } from './inspector.tsx';
+import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
 import type { ThingVerb } from './things.ts';
 import { Go, SetProvider, useReview, useSet } from './context.tsx';
@@ -881,14 +881,17 @@ const VariantCap = (props: { readonly variant: SeenVariant }) => {
   );
 };
 
-/** A variant's video on the set's clock, and its caption. */
+/** A variant's video on the set's clock, and its caption; marked while its inspector is open (SU-13). */
 const VariantCard = (props: { readonly variant: SeenVariant }) => {
   const { folder, set, sync } = useSet();
+  // A card is keyed by its version: its selection is fixed for as long as it lives.
+  const inspected = useInspected(untrack(() => versionOf(folder, set, props.variant.id)));
   return (
     <Target
       of={versionOf(folder, set, props.variant.id)}
       class={['rv-card', { 'rv-audible': sync().audible === props.variant.id }]}
       data-id={props.variant.id}
+      data-selected={pressed(inspected())}
     >
       <VariantVideo variant={props.variant} />
       <VariantCap variant={props.variant} />

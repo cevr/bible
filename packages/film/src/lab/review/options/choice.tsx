@@ -34,7 +34,13 @@ import { ChoiceAct } from './api.ts';
 import { Playing, samePlaying, useAct, useFilm } from './context.tsx';
 import { Selection } from '../../../command/selection.ts';
 import { Target } from '../../command/context-menu.tsx';
-import { InspectName, Inspector, type InspectorBox, useThing } from '../inspector.tsx';
+import {
+  InspectName,
+  Inspector,
+  type InspectorBox,
+  useInspected,
+  useThing,
+} from '../inspector.tsx';
 import type { ThingVerb, VerbId } from '../things.ts';
 import { type InPlace, verbTitle } from './keys.ts';
 import { Field } from '../../command/inspector.tsx';
@@ -466,6 +472,7 @@ const VariantRow = (props: {
   const selection = untrack(() =>
     Selection.cases.Variant.make({ film, point: props.point.id, variant: props.variant.id }),
   );
+  const inspected = useInspected(selection);
   const approveAtRest = () =>
     Option.isSome(props.point.address) && (props.variant.picked || props.point.kind === 'render');
   return (
@@ -475,6 +482,7 @@ const VariantRow = (props: {
       data-variant={props.variant.id}
       data-state={props.variant.state}
       data-picked={pressed(props.variant.picked)}
+      data-selected={pressed(inspected())}
     >
       <div class="rv-row">
         <InspectName of={selection} comments={props.variant.comments.length}>
