@@ -800,8 +800,11 @@ const MomentIndex = Codec.Int.check(Schema.isGreaterThanOrEqualTo(0));
 export const COMPARE_VIEWS = ['off', 'wipe', 'blink', 'diff'] as const;
 export type CompareView = (typeof COMPARE_VIEWS)[number];
 
-/** How the lab compares with HEAD: no step of its own (Back walks the picks, not the modes). */
-const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off' });
+/**
+ * How the lab compares with HEAD: each mode the owner picks is a step Back
+ * walks; the compare's own moves are written in place.
+ */
+const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off', history: 'push' });
 
 /** The lab's selection keys: a cue or a knob of the path's scene, and a note. */
 const LabSelection = Field.struct({ cue: cited, knob: cited, note: cited, view: compareView });
