@@ -719,7 +719,8 @@ waiting to be written for the entry left dropped. A bare `#<seconds>` (an old li
 A film's Scenes (`lab/scenes/`) is its **tape**: the whole film end to end
 as stills, wrapped like lines of text (a still every 5 s; a line a minute
 on a laptop, so the whole film is one screen, and half a minute on a phone;
-⌘+ and ⌘− step it between 2.5, 5 and 10 s, kept in this browser). A tape is
+⌘+ and ⌘− step it between 2.5, 5 and 10 s, kept in this browser; Finer
+and Coarser tape name the step they go to, and ⋯ Info the one it is). A tape is
 an editor's contact sheet read in film order: each still is the frame at
 the middle of its step, drawn from the code as it stands by the one source
 of stills (`player/stills.ts`, the lines on screen first; with captions
@@ -727,10 +728,11 @@ while the preview's are on, the tape drawn again as its toggle turns), each **cu
 thin rule at its scene's exact time carrying the scene's name, and a band
 under each line says each scene's state. Over it the **tape bar** holds the
 acts ruler, the preview's track (in two lanes: the scenes' names along its
-top, its ticks below them, so no name runs over a tick), the legend (scenes
-out of date, not rendered and approved; the check's findings on scenes by
-level, errors and warnings, each line once, and the film's own lines, adding
-up to Project's count of findings, `lab/scenes/marks.ts` `checkCount`) and Follow (the
+top, its ticks below them, so no name runs over a tick), the legend (a
+colour key: scenes out of date, not rendered and approved; the check's
+findings on scenes by level, errors and warnings, and the film's own lines;
+each with its count in ⋯ Info, each line once, adding up to Project's count
+of findings, `lab/scenes/marks.ts` `checkCount`) and Follow (the
 playhead's line stays in sight while it plays; a scrub turns it off). A
 cut's name takes only its room: shortened with an ellipsis, set before the
 row's last rule where it fits there, or dropped. A tap on a still selects its scene (the path; Back

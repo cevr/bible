@@ -166,14 +166,28 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
 export const bandState = (marks: SceneMarks): Option.Option<MarkChip['state']> =>
   Option.map(Arr.head(chipsOf(marks)), (c) => c.state);
 
-/** A line of the tape's legend: what it counts (`mark`), its words, and the `--state-*` token it is drawn in. */
+/**
+ * A line of the tape's legend: what it counts (`mark`), its word (the
+ * colour key the tape bar shows), its words with the count (Info's), and the
+ * `--state-*` token it is drawn in.
+ */
 interface LegendLine {
   readonly mark: 'stale' | 'missing' | 'approved' | 'errors' | 'warnings' | 'film' | 'check-failed';
+  readonly word: string;
   readonly text: string;
   readonly state: MarkChip['state'];
   /** Why, in full (its title), when its words do not say it all. */
   readonly why?: string;
 }
+
+/** A legend line counting `n`, none at 0. */
+const counted = (
+  mark: LegendLine['mark'],
+  word: string,
+  n: number,
+  state: MarkChip['state'],
+): ReadonlyArray<LegendLine> =>
+  [n].filter((k) => k > 0).map((k) => ({ mark, word, text: `${word} ${k}`, state }));
 
 /**
  * The tape's legend over `scenes`: how many are out of date, not rendered
@@ -198,31 +212,18 @@ export const legendOf = (
   const theirs = checkCount(lines.filter((l) => aboutAny(l, scenes)));
   const film = lines.filter(filmsOwn);
   return [
-    ...[stale]
-      .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'stale', text: `out of date ${n}`, state: 'stale' })),
-    ...[missing]
-      .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'missing', text: `not rendered ${n}`, state: 'rendered' })),
-    ...[approved]
-      .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'approved', text: `approved ${n}`, state: 'approved' })),
-    ...[theirs.errors]
-      .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'errors', text: `errors ${n}`, state: 'findings' })),
-    ...[theirs.warnings]
-      .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'warnings', text: `warnings ${n}`, state: 'warning' })),
-    ...Option.toArray(
-      Option.map(countState(film), (state): LegendLine => ({
-        mark: 'film',
-        text: `film ${film.length}`,
-        state,
-      })),
+    ...counted('stale', 'out of date', stale, 'stale'),
+    ...counted('missing', 'not rendered', missing, 'rendered'),
+    ...counted('approved', 'approved', approved, 'approved'),
+    ...counted('errors', 'errors', theirs.errors, 'findings'),
+    ...counted('warnings', 'warnings', theirs.warnings, 'warning'),
+    ...Option.toArray(countState(film)).flatMap((state) =>
+      counted('film', 'film', film.length, state),
     ),
     ...Option.toArray(
       Option.map(Result.getFailure(check), (why): LegendLine => ({
         mark: 'check-failed',
+        word: 'check failed',
         text: 'check failed',
         state: 'findings',
         why,

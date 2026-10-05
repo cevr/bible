@@ -39,7 +39,6 @@ body.scenes { display: block; height: auto; }
   scrollbar-width: none; }
 .sc-legend-item { display: inline-flex; flex: none; align-items: center; gap: var(--s-1); white-space: nowrap; }
 .sc-spacer { flex: 1 1 0; }
-.sc-step { flex: 0 1000 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .sc-dot { display: inline-block; flex: none; width: 6px; height: 6px; border-radius: var(--r-dot); background: var(--text-3); }
 .sc-dot[data-state="stale"] { background: var(--state-stale); }
 .sc-dot[data-state="rendered"] { background: var(--state-rendered); }

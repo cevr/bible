@@ -118,6 +118,12 @@ describe('marksOf', () => {
     ).toEqual(['approved 1']);
   });
 
+  test("the tape bar's legend is a colour key, its words without the counts Info keeps (UR2-13)", () => {
+    expect(
+      legendOf(['one', 'two', 'three'], marks, Result.succeed(FINDINGS)).map((l) => l.word),
+    ).toEqual(['out of date', 'not rendered', 'approved', 'errors', 'warnings', 'film']);
+  });
+
   test('a check that failed says so, why in its title: never a clean film (RS-1)', () => {
     const failed = legendOf(['two'], marksOf(Option.some(VIEW), []), Result.fail('lab down'));
     expect(failed.map((l) => [l.text, l.state])).toEqual([

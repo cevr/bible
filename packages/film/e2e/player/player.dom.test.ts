@@ -28,7 +28,13 @@ import {
   route,
 } from '../../src/lab/fixtures/harness.ts';
 import { CROWD } from '../../src/lab/fixtures/crowd-film.ts';
-import { MENU_ITEMS, touch } from '../../src/lab/fixtures/gestures.ts';
+import {
+  MENU_ITEMS,
+  closeCommandMenu,
+  menuEntry,
+  openCommandMenu,
+  touch,
+} from '../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
 import {
   attributeIs,
@@ -59,6 +65,9 @@ const NO_SIDEWAYS = 'document.documentElement.scrollWidth <= document.documentEl
 
 /** A still of the tape, drawn. */
 const STILL_DRAWN = '.sc-still[data-drawn="true"] canvas';
+
+/** Scenes' tape: its step and a line's length, in seconds, on `data-step` and `data-line`. */
+const TAPE = '[data-role="tape"]';
 
 /** The tape's point just past `scene`'s cut, on its line: inside the scene. */
 const pointInScene = (page: Tab, scene: string) =>
@@ -634,7 +643,20 @@ describe('the player', () => {
         // A laptop's line is a minute: the probe film is one line, a still every 5 s.
         yield* countIs(page, '.sc-line', 1);
         yield* textIs(page, '.sc-line-tc', '00:00');
-        yield* textHas(page, '[data-role="step"]', '5 s a still · a line a minute');
+        yield* attributeIs(page, TAPE, 'data-step', '5');
+        yield* attributeIs(page, TAPE, 'data-line', '60');
+        // The step is said nowhere at rest: Finer and Coarser name the one they go to (UR2-13).
+        yield* countIs(page, '[data-role="step"]', 0);
+        yield* openCommandMenu(page, 'tape');
+        yield* textHas(page, menuEntry('scenes.finer'), 'Finer tape: 2.5 s a still');
+        yield* textHas(page, menuEntry('scenes.coarser'), 'Coarser tape: 10 s a still');
+        yield* closeCommandMenu(page);
+        // The legend is a colour key: its counts are Info's.
+        yield* evaluates(
+          page,
+          "[...document.querySelectorAll('.sc-legend-item')].filter((l) => /\\d/.test(l.textContent)).length",
+          0,
+        );
         yield* evaluates(
           page,
           `(() => { const c = document.querySelector('${STILL_DRAWN}'); return c.width > 0 && c.height > 0; })()`,
@@ -692,9 +714,9 @@ describe('the player', () => {
           { href: pageHref.scenes(PROBE), viewport: DESK },
           STILL_DRAWN,
         );
-        yield* textHas(page, '[data-role="step"]', 'a line a minute');
+        yield* attributeIs(page, TAPE, 'data-line', '60');
         yield* page.resize(PHONE.width, PHONE.height);
-        yield* textHas(page, '[data-role="step"]', 'a line 30 s');
+        yield* attributeIs(page, TAPE, 'data-line', '30');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
@@ -728,7 +750,7 @@ describe('the player', () => {
           STILL_DRAWN,
         );
         // A phone's line is half a minute.
-        yield* textHas(page, '[data-role="step"]', 'a line 30 s');
+        yield* attributeIs(page, TAPE, 'data-line', '30');
         yield* clickInScene(page, 'one');
         yield* page.waitFor('.sc-focus');
         const sheet = yield* page.box('.sc-focus');
