@@ -1734,6 +1734,12 @@ describe("a film's choices", () => {
       const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
       const field = '[data-knob="level:const:PAPER"] .lab-num';
       yield* valueIs(page, field, '-24');
+      // The kit's number field, styled where the kit is (`page-shell-style.ts`): its width and its hit height.
+      yield* evaluates(
+        page,
+        `(() => { const s = getComputedStyle(document.querySelector('${field}')); return [s.width, s.minHeight === getComputedStyle(document.documentElement).getPropertyValue('--hit').trim()].join(' '); })()`,
+        '80px true',
+      );
       yield* page.fill(field, '-24+4');
       yield* page.press('Enter');
       yield* receiptSays(page, 'level:const:PAPER: -24 → -20 dB');
