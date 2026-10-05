@@ -291,16 +291,23 @@ const asRefusal = (error: { readonly _tag: string; readonly message: string }): 
 
 /**
  * A handler's failure as a route answers it: a Refusal as itself, anything
- * else as ServerFailed with its tag and words (500); logged either way.
+ * else as ServerFailed with its tag and words (500); logged either way, with
+ * the request it answers (its method and path) as a refusal's line has.
  */
 export const answered = <A, E extends { readonly _tag: string; readonly message: string }, R>(
   self: Effect.Effect<A, E, R>,
 ): Effect.Effect<A, Refusal, R> =>
   Effect.catch(self, (error) => {
     const refusal = asRefusal(error);
-    return Effect.logWarning(
-      `api.request.failed tag=${error._tag} status=${statusOf(refusal)} reason="${error.message}"`,
-    ).pipe(Effect.andThen(Effect.fail(refusal)));
+    return Effect.flatMap(Effect.serviceOption(HttpServerRequest.HttpServerRequest), (request) => {
+      const asked = Option.match(request, {
+        onNone: () => '',
+        onSome: (r) => `method=${r.method} path=${urlPath(r.url)} `,
+      });
+      return Effect.logWarning(
+        `api.request.failed ${asked}status=${statusOf(refusal)} tag=${error._tag} reason="${error.message}"`,
+      );
+    }).pipe(Effect.andThen(Effect.fail(refusal)));
   });
 
 /**

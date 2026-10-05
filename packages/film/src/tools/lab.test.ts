@@ -18,6 +18,7 @@ import {
   Fiber,
   FileSystem,
   Layer,
+  Logger,
   Option,
   Order,
   Path,
@@ -254,6 +255,10 @@ const post = (path: string, body: string, headers: Record<string, string> = {}) 
     headers: { 'content-type': 'application/json', ...headers },
     body,
   });
+
+/** A logger that keeps every line the lab logs in `lines`, and prints none. */
+const loggedInto = (lines: Array<string>) =>
+  Logger.layer([Logger.make(({ message }) => lines.push([message].flat().join(' ')))]);
 
 /** A GET with the test's headers. */
 const get = (path: string, headers: Record<string, string> = {}) =>
@@ -736,10 +741,12 @@ describe('lab routes', () => {
   );
 
   it.effect(
-    'the gate: every route and every kind of page path, against every request it refuses, and what it lets in',
-    () =>
-      Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK);
+    'the gate: every route and every kind of page path, against every request it refuses, and what it lets in, each refusal logged once',
+    () => {
+      const logged: Array<string> = [];
+      return Effect.gen(function* () {
+        // The gate logs in the handler's own runtime: its logger goes in beside the routes.
+        const lab = yield* labHandler(LOOPBACK, loggedInto(logged));
         const answer = (request: Request) =>
           Effect.gen(function* () {
             const res = yield* Effect.promise(() => lab(request, bound));
@@ -747,14 +754,18 @@ describe('lab routes', () => {
             const tag = /"_tag":"(\w+)"/.exec(body)?.[1] ?? '';
             return [res.status, tag] as const;
           });
+        /** Each refusal a row got, as the gate's log line names it (`api.request.refused`). */
+        const refusals: Array<string> = [];
         /** `request`'s row: what it asks, and the status and refusal it gets. */
         const row = (request: Request) => {
           const url = new URL(request.url);
-          return Effect.map(
-            answer(request),
-            ([status, tag]) =>
-              [`${request.method} ${url.pathname}${url.search}`, status, tag] as const,
-          );
+          return Effect.map(answer(request), ([status, tag]) => {
+            if (tag !== '')
+              refusals.push(
+                `api.request.refused method=${request.method} path=${url.pathname} status=${status} tag=${tag}`,
+              );
+            return [`${request.method} ${url.pathname}${url.search}`, status, tag] as const;
+          });
         };
         const routes = routesOf(LabHttpApi);
         expect(routes.length).toBeGreaterThan(15);
@@ -770,27 +781,50 @@ describe('lab routes', () => {
           if (method === 'GET') return new Request(at(path), init);
           return new Request(at(path), { ...init, body: '{}' });
         };
-        // Every route: a foreign Host, a cross-site request (a link opened on another
-        // site included: a navigation reaches pages only), and for a write, a body
-        // that is not JSON and an Origin that is not the lab's.
+        /** A write with a body and no Content-Type, as a no-cors fetch of a typeless Blob sends. */
+        const untyped = (path: string) =>
+          new Request(at(path), { method: 'POST', body: new Blob([new Uint8Array([123, 125])]) });
+        expect(untyped('/').headers.get('content-type')).toBeNull();
+        /**
+         * The writes the gate refuses on any path, before a route is matched: a
+         * body that is not JSON (a form's three, or no type at all) and an Origin
+         * that is not the lab's (another site's, a sandboxed frame's `null`, the
+         * lab's own host over https).
+         */
+        const refusedWrites = (path: string) =>
+          Effect.gen(function* () {
+            for (const type of [
+              'text/plain',
+              'application/x-www-form-urlencoded',
+              'multipart/form-data; boundary=x',
+            ])
+              expect(yield* row(post(path, '{}', { 'content-type': type }))).toEqual([
+                `POST ${path}`,
+                415,
+                'WriteNotJson',
+              ]);
+            expect(yield* row(untyped(path))).toEqual([`POST ${path}`, 415, 'WriteNotJson']);
+            for (const origin of ['http://evil.example', 'null', 'https://127.0.0.1:4401'])
+              expect(yield* row(post(path, '{}', { origin }))).toEqual([
+                `POST ${path}`,
+                403,
+                'RequestRefused',
+              ]);
+          });
+        // Every route: a foreign Host (or the bound host without its port), a
+        // cross-site or same-site request (a link opened on another site included:
+        // a navigation reaches pages only), and every refused write.
         for (const route of foreignRequests(routes, 'http://127.0.0.1:4401', 'f')) {
           const path = new URL(route.url).pathname;
           const refused = [`${route.method} ${path}`, 403, 'RequestRefused'] as const;
           expect(yield* row(json(path, route.method, foreign))).toEqual(refused);
+          expect(yield* row(json(path, route.method, { host: '127.0.0.1' }))).toEqual(refused);
           expect(yield* row(json(path, route.method, crossSite))).toEqual(refused);
+          expect(yield* row(json(path, route.method, { 'sec-fetch-site': 'same-site' }))).toEqual(
+            refused,
+          );
           expect(yield* row(json(path, route.method, navigation))).toEqual(refused);
-          if (route.method === 'GET') continue;
-          for (const type of [
-            'text/plain',
-            'application/x-www-form-urlencoded',
-            'multipart/form-data; boundary=x',
-          ])
-            expect(yield* row(post(path, '{}', { 'content-type': type }))).toEqual([
-              `${route.method} ${path}`,
-              415,
-              'WriteNotJson',
-            ]);
-          expect(yield* row(post(path, '{}', { origin: 'http://evil.example' }))).toEqual(refused);
+          yield* refusedWrites(path);
         }
         // The pages: a foreign Host never; a link opened on another site, yes (GET or
         // HEAD), but none of a page's files; a page is read, never written.
@@ -807,10 +841,26 @@ describe('lab routes', () => {
         const files = ['/chunk-a1.js', '/films/f/narration/s1.mp3', '/nothing'];
         for (const path of [...pages, ...files]) {
           expect(yield* row(get(path, foreign))).toEqual([`GET ${path}`, 403, 'RequestRefused']);
+          // A HEAD's answer has no body to name its refusal: the log names it.
+          expect(yield* row(new Request(at(path), { method: 'HEAD', headers: foreign }))).toEqual([
+            `HEAD ${path}`,
+            403,
+            '',
+          ]);
+          refusals.push(
+            `api.request.refused method=HEAD path=${new URL(at(path)).pathname} status=403 tag=RequestRefused`,
+          );
           expect(
             yield* row(get(path, { 'sec-fetch-site': 'cross-site', 'sec-fetch-dest': 'script' })),
           ).toEqual([`GET ${path}`, 403, 'RequestRefused']);
+          // A page framed from another site is no link opened there.
+          expect(yield* row(get(path, { ...navigation, 'sec-fetch-dest': 'iframe' }))).toEqual([
+            `GET ${path}`,
+            403,
+            'RequestRefused',
+          ]);
           expect(yield* row(json(path, 'POST', {}))).toEqual([`POST ${path}`, 405, '']);
+          yield* refusedWrites(path);
         }
         for (const path of pages) {
           expect(yield* row(get(path, navigation))).toEqual([`GET ${path}`, 200, '']);
@@ -849,7 +899,32 @@ describe('lab routes', () => {
             }),
           ))[1],
         ).toBe(200);
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files()))),
+        // Every refusal is one line of the gate's log, naming what was refused.
+        const lines = logged
+          .filter((line) => line.startsWith('api.request.refused '))
+          .map((line) => line.split(' reason=')[0] ?? '');
+        expect(refusals.length).toBeGreaterThan(600);
+        expect(Arr.sort(lines, Order.String)).toEqual(Arr.sort(refusals, Order.String));
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files())));
+    },
+  );
+
+  it.effect(
+    "a handler's failure is logged with the request it answers: its method and path",
+    () => {
+      const logged: Array<string> = [];
+      return Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK, loggedInto(logged));
+        const asked = labUrls.notes.list({ params: { film: 'nope' } });
+        const status = yield* Effect.promise(() => lab(get(asked), bound).then((r) => r.status));
+        expect(status).toBe(404);
+        expect(
+          logged
+            .filter((line) => line.startsWith('api.request.failed '))
+            .map((line) => line.split(' reason=')[0]),
+        ).toEqual([`api.request.failed method=GET path=${asked} status=404 tag=FilmUnknown`]);
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files())));
+    },
   );
 
   it.effect('the real server answers only behind the gate: no route of Bun answers first', () =>
