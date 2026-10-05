@@ -4,7 +4,8 @@
 // scene bands, ticks and playhead, then the legend, the step and Follow).
 // Each still is the frame at the middle of its step, drawn from the code as
 // it stands by the one source of stills (`player/stills.ts`), the lines on
-// screen first. A line's time is its timecode; each cut is a rule at its
+// screen first, with captions while the preview's captions are on (its
+// toggle turned, the tape is drawn again). A line's time is its timecode; each cut is a rule at its
 // scene's exact time with the scene's name where it has room, and a band
 // under the line says each scene's state in its colour.
 //
@@ -194,13 +195,15 @@ export const ScenesView = (props: ScenesViewProps) => {
     })),
   );
 
-  // The playhead, as the preview draws it.
+  // The playhead, and the captions on or off, as the preview draws them.
   const [T, setT] = createSignal(player.now(), { ...fromHost, equals: false });
   const [playing, setPlaying] = createSignal(player.playing(), fromHost);
+  const [captions, setCaptions] = createSignal(player.captions.on, fromHost);
   onCleanup(
     player.onDraw((t) => {
       setT(t);
       setPlaying(player.playing());
+      setCaptions(player.captions.on);
     }),
   );
   useShellTime(T, film.fps);
@@ -227,30 +230,38 @@ export const ScenesView = (props: ScenesViewProps) => {
   player.track.addEventListener('pointerdown', unfollow);
   onCleanup(() => player.track.removeEventListener('pointerdown', unfollow));
 
-  // The stills: one at a time, a frame apart, the lines on screen first.
+  // The stills: one at a time, a frame apart, the lines on screen first; drawn as the
+  // preview draws, with its captions or without them (its toggle, C): turned, the tape
+  // is drawn again.
   const nowMs = monotonicMs(props.host);
   const opened = nowMs();
-  const stills = makeStills(film, {
-    width: STILL_W,
-    captions: player.captions.on,
-    turn: () => Effect.runPromiseWith(props.host)(Frames.use((f) => f.next)),
-    now: nowMs,
+  const stills = createMemo(() => {
+    const made = makeStills(film, {
+      width: STILL_W,
+      captions: captions(),
+      turn: () => Effect.runPromiseWith(props.host)(Frames.use((f) => f.next)),
+      now: nowMs,
+    });
+    // Left, or drawn again, they draw no more: the queue goes, and a still wanted after is not drawn.
+    onCleanup(made.stop);
+    return made;
   });
-  // Left, the page draws no more of them: the queue goes, and a still wanted after is not drawn.
-  onCleanup(stills.stop);
   const [firstStill, setFirstStill] = createSignal(Option.none<number>(), fromHost);
-  onCleanup(
-    stills.onDrawn(() => {
+  createEffect(stills, (s) =>
+    s.onDrawn(() => {
       if (Option.isNone(untrack(firstStill))) setFirstStill(Option.some(nowMs() - opened));
     }),
   );
   // The lines on screen first (`useOnScreenFirst`, the Project's cards' order too).
-  const onScreen = useOnScreenFirst(stills.want);
-  createEffect(tape, (t) => {
-    // Every still of the tape, in its order; the lines on screen go ahead of them as they are seen.
-    stills.want(t.rows.flatMap((r) => r.stills.map((s) => s.t)));
-    onScreen.ask();
-  });
+  const onScreen = useOnScreenFirst((times) => untrack(stills).want(times));
+  createEffect(
+    () => ({ t: tape(), s: stills() }),
+    ({ t, s }) => {
+      // Every still of the tape, in its order; the lines on screen go ahead of them as they are seen.
+      s.want(t.rows.flatMap((r) => r.stills.map((still) => still.t)));
+      onScreen.ask();
+    },
+  );
 
   // Follow: while it plays, the playhead's line stays in sight.
   const rows = new Map<number, HTMLElement>();
@@ -595,12 +606,14 @@ export const ScenesView = (props: ScenesViewProps) => {
             <For each={row.stills} keyed={(s) => s.t}>
               {(still) => {
                 const t = untrack(() => still().t);
-                const [canvas, setCanvas] = createSignal(stills.at(t), fromHost);
-                onCleanup(
-                  stills.onDrawn(() => {
-                    if (Option.isNone(untrack(canvas))) setCanvas(stills.at(t));
-                  }),
-                );
+                // The still of the stills drawn now: none again while they are drawn again.
+                const [canvas, setCanvas] = createSignal(untrack(stills).at(t), fromHost);
+                createEffect(stills, (s) => {
+                  setCanvas(s.at(t));
+                  return s.onDrawn(() => {
+                    if (Option.isNone(untrack(canvas))) setCanvas(s.at(t));
+                  });
+                });
                 return (
                   <div
                     class="sc-still"
@@ -918,7 +931,7 @@ export const ScenesView = (props: ScenesViewProps) => {
                 {`${tape().rows.reduce((n, r) => n + r.stills.length, 0)} · ${stepText(tape().step, tape().perRow)}`}
               </dd>
               <dt>drawn</dt>
-              <dd>{`${stills.drawn().count} in ${Math.round(stills.drawn().ms)} ms`}</dd>
+              <dd>{`${stills().drawn().count} in ${Math.round(stills().drawn().ms)} ms`}</dd>
             </dl>
             <p class="lab-sheet-about">
               Tap a still to select its scene; drag along a line to scrub; ⇧-click to add a scene.

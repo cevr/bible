@@ -697,7 +697,8 @@ on a laptop, so the whole film is one screen, and half a minute on a phone;
 ⌘+ and ⌘− step it between 2.5, 5 and 10 s, kept in this browser). A tape is
 an editor's contact sheet read in film order: each still is the frame at
 the middle of its step, drawn from the code as it stands by the one source
-of stills (`player/stills.ts`, the lines on screen first), each **cut** is a
+of stills (`player/stills.ts`, the lines on screen first; with captions
+while the preview's are on, the tape drawn again as its toggle turns), each **cut** is a
 thin rule at its scene's exact time carrying the scene's name, and a band
 under each line says each scene's state. Over it the **tape bar** holds the
 acts ruler, the preview's track (in two lanes: the scenes' names along its

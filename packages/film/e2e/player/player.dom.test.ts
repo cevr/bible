@@ -472,6 +472,28 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live(
+    "the tape's stills follow the captions toggle: turned, each still is drawn again (RS-6)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+        );
+        // The first still drawn and its time, kept to tell its redrawing from it.
+        yield* page.evaluate(
+          `window.__still = document.querySelector('${STILL_DRAWN}'); window.__t = window.__still.parentElement.dataset.t`,
+        );
+        yield* page.evaluate(`document.querySelector('[data-act="captions"]').click()`);
+        yield* evaluates(
+          page,
+          `((now) => now !== null && now !== window.__still)(document.querySelector('.sc-still[data-t="' + window.__t + '"][data-drawn="true"] canvas'))`,
+          true,
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('⇧-click adds scenes to the selection, and ⇧A approves them all in one say (AA-12)', () =>
     Effect.gen(function* () {
       const { page, asked, errors } = yield* openPlayer(

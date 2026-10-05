@@ -22,6 +22,8 @@ export const drawStills =
     Option.map(Option.fromUndefinedOr(films[film]), (load) =>
       Effect.mapError(Effect.tryPromise(load), () => 'load-failed' as const).pipe(
         Effect.map((code) => {
+          // With captions, as the preview draws by default: the Project has no captions toggle
+          // (the Scenes tape's stills follow the player's).
           const stills = makeStills(code, { width: STILL_W, captions: true, ...how });
           return {
             ...stills,
