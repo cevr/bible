@@ -6,7 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
-import { labHref, labOpensAt, labPlaceOf, selectsCue } from './place.ts';
+import { labHref, labHrefWith, labOpensAt, labPlaceOf, selectsCue } from './place.ts';
 
 const placed = Result.getOrThrow(
   layout(
@@ -18,7 +18,12 @@ const placed = Result.getOrThrow(
   ),
 );
 const b = placed[1]?.start ?? Number.NaN;
-const none = { selection: Option.none(), note: Option.none(), view: 'off' as const };
+const none = {
+  selection: Option.none(),
+  note: Option.none(),
+  view: 'off' as const,
+  loop: Option.none(),
+};
 
 describe("the lab's place", () => {
   test('reads the scene, a cue or a knob, the note and the time', () => {
@@ -28,6 +33,7 @@ describe("the lab's place", () => {
       note: Option.some('n3'),
       view: 'off',
       t: Option.some(1.5),
+      loop: Option.none(),
     });
     expect(labPlaceOf('/films/f/lab/a?knob=spot').selection).toEqual(
       Option.some({ _tag: 'Knob', scene: 'a', name: 'spot' }),
@@ -46,6 +52,7 @@ describe("the lab's place", () => {
       selection: Option.some({ _tag: 'Cue' as const, scene: 'b', name: 'rise' }),
       note: Option.some('n3'),
       view: 'off' as const,
+      loop: Option.none(),
     };
     const href = labHref('f', placed, pick, 1);
     expect(href).toBe(`/films/f/lab/b?cue=rise&note=n3#t=${1 - b}`);
@@ -61,6 +68,33 @@ describe("the lab's place", () => {
     expect(labHref('f', placed, wiping, 1)).toBe('/films/f/lab/a?view=wipe#t=1');
     expect(labPlaceOf(labHref('f', placed, wiping, b + 1)).view).toBe('wipe');
     expect(labHref('f', placed, none, 1)).not.toContain('view=');
+  });
+
+  test('the A–B loop rides in #loop= in film seconds: read back, kept across a scene boundary, none unwritten or ill-formed', () => {
+    const looping = { ...none, loop: Option.some({ from: 1.5, to: b + 2 }) };
+    const href = labHref('f', placed, looping, 1);
+    expect(href).toBe(`/films/f/lab/a#t=1&loop=1.5,${b + 2}`);
+    expect(labPlaceOf(href).loop).toEqual(looping.loop);
+    // The path moves to the next scene; the loop's film seconds stay as they were.
+    expect(labPlaceOf(labHref('f', placed, looping, b + 1)).loop).toEqual(looping.loop);
+    expect(labHref('f', placed, none, 1)).not.toContain('loop=');
+    for (const bad of ['3,1', '2,2', '1', '1,2,3', 'a,b', ','])
+      expect(labPlaceOf(`/films/f/lab/a#t=1&loop=${bad}`).loop).toEqual(Option.none());
+    // A link from before the key reads as no loop, its time as before.
+    expect(labPlaceOf('/films/f/lab/a#t=1')).toMatchObject({
+      t: Option.some(1),
+      loop: Option.none(),
+    });
+  });
+
+  test('a write keeps what the URL holds beside the change it makes', () => {
+    const at = `/films/f/lab/b?cue=rise&view=wipe#t=0&loop=1,2`;
+    expect(labHrefWith('f', placed, at, {}, b + 0.5)).toBe(
+      `/films/f/lab/b?cue=rise&view=wipe#t=0.5&loop=1,2`,
+    );
+    expect(labHrefWith('f', placed, at, { loop: Option.none() }, b)).toBe(
+      `/films/f/lab/b?cue=rise&view=wipe#t=0`,
+    );
   });
 
   test('crossing into the next scene rebases the path and the time in one write', () => {

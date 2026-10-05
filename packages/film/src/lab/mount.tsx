@@ -17,7 +17,7 @@ import { type Films, type Player, mountPreview, showFailure, stageFilm } from '.
 import { TIME_MOVE, type TimeInUrl } from '../player/t-in-url.ts';
 import { registerFace } from '../player/face.ts';
 import { LabClient } from './api.ts';
-import { labHref, labOpensAt, labPlaceOf } from './place.ts';
+import { labHrefWith, labOpensAt } from './place.ts';
 import { ShellTools, useShellTime } from './page-shell.tsx';
 import { type FilmBody, LAB_PAGE, labOn } from './film-page.tsx';
 import { mountPage } from './page-client.tsx';
@@ -85,18 +85,17 @@ const LabBody = (props: { readonly player: Player }) => (
 /**
  * The lab's time in the URL: an entry names the frame its place does
  * (`labOpensAt`), on opening and on Back, and each write keeps the place's
- * pick, note and compare mode and puts the frame's scene in the path (`labHref`), so the
- * path and `#t=` move together across a scene boundary. Play crossing one
- * rewrites the entry; a jump to another scene is a step Back walks.
+ * pick, note, compare mode and loop and puts the frame's scene in the path
+ * (`labHrefWith`), so the path and `#t=` move together across a scene
+ * boundary. Play crossing one rewrites the entry; a jump to another scene is
+ * a step Back walks.
  */
 const labTime = (name: string, film: Film, host: Host): TimeInUrl => {
   const address = addressOn(host);
   return {
     at: (href) => labOpensAt(film.placed, href),
-    write: (T, cause) => {
-      const { selection, note, view } = labPlaceOf(address.href());
-      address[TIME_MOVE[cause]](labHref(name, film.placed, { selection, note, view }, T));
-    },
+    write: (T, cause) =>
+      address[TIME_MOVE[cause]](labHrefWith(name, film.placed, address.href(), {}, T)),
   };
 };
 

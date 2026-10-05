@@ -7,14 +7,18 @@
 //
 //   Off | Marked | Range | Cue ─MarkA | MarkB→ Marked (no range yet) | Range
 //                                ─LoopCue→ Cue ─Stop→ Off
+//                                ─Linked→ Range   Range ─Unlinked→ Off
 //
 // The player's clock is the stage's (`Stage.playFrom`); the machine touches
-// no DOM. The view (sessionStorage) keeps a range or a cue through the reload
-// a write causes, and the page starts in it without playing.
+// no DOM. The range is the link's (`#loop=`, `lab/place.ts`): a link that
+// names one (pasted, reloaded, or landed on by Back) puts the machine in it
+// without playing, and one that names none ends a range. Marks are kept to
+// the millisecond, as the link prints them. The view (sessionStorage) keeps a
+// looped cue through the reload a write causes.
 
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
-import { timecode } from '../../core/time.ts';
+import { type Interval, timecode, toMs } from '../../core/time.ts';
 import type { LoopRange } from '../../player/main.ts';
 import type { LabView } from '../view-state.ts';
 import { Stage, type StageOps } from '../stage.ts';
@@ -40,6 +44,10 @@ export const LoopEvent = Event({
   MarkB: { t: Schema.Finite },
   LoopCue: { scene: Schema.String, name: Schema.String },
   Stop: {},
+  /** The link names the range `from`–`to`, film seconds. */
+  Linked: { from: Schema.Finite, to: Schema.Finite },
+  /** The link names no range. */
+  Unlinked: {},
 });
 export type LoopEvent = typeof LoopEvent.Type;
 
@@ -104,11 +112,13 @@ const mark = (a: Option.Option<number>, b: Option.Option<number>) =>
     },
   );
 
-/** The loop machine, starting in `initial` (the view's, after a reload). */
+/** The loop machine, starting in `initial` (`loopAt`: the link's range, else the view's cue). */
 export const loopMachine = (initial: LoopState) =>
   Machine.make({ state: LoopState, event: LoopEvent, initial })
-    .on(ANY, LoopEvent.MarkA, ({ state, event }) => mark(Option.some(event.t), bOf(state)))
-    .on(ANY, LoopEvent.MarkB, ({ state, event }) => mark(aOf(state), Option.some(event.t)))
+    .on(ANY, LoopEvent.MarkA, ({ state, event }) => mark(Option.some(toMs(event.t)), bOf(state)))
+    .on(ANY, LoopEvent.MarkB, ({ state, event }) => mark(aOf(state), Option.some(toMs(event.t))))
+    .on(ANY, LoopEvent.Linked, ({ event }) => LoopState.Range({ from: event.from, to: event.to }))
+    .on(LoopState.Range, LoopEvent.Unlinked, () => LoopState.Off)
     .on(ANY, LoopEvent.LoopCue, ({ event }) => {
       const cue = LoopState.Cue({ scene: event.scene, name: event.name });
       return Stage.use((stage) =>
@@ -153,24 +163,44 @@ export const loopText = (state: LoopState, fps: number): string => {
 
 type ViewLoop = NonNullable<LabView['loop']>;
 
-/** The loop as the view keeps it through a reload: a range or a cue, else none. */
+/** The loop as the view keeps it through a reload: a looped cue, else none (a range is the link's). */
 export const loopView = (state: LoopState): Option.Option<ViewLoop> =>
   Match.value(state).pipe(
-    Match.tag('Range', (s): Option.Option<ViewLoop> =>
-      Option.some({ kind: 'ab', from: s.from, to: s.to }),
-    ),
     Match.tag('Cue', (s): Option.Option<ViewLoop> =>
       Option.some({ kind: 'cue', scene: s.scene, name: s.name }),
     ),
     Match.orElse(() => Option.none()),
   );
 
-/** The loop the view kept, as the machine starts in it. */
-export const loopFromView = (kept: Option.Option<ViewLoop>): LoopState =>
-  Option.match(kept, {
-    onNone: () => LoopState.Off,
-    onSome: (loop): LoopState => {
-      if (loop.kind === 'ab') return LoopState.Range({ from: loop.from, to: loop.to });
-      return LoopState.Cue({ scene: loop.scene, name: loop.name });
-    },
-  });
+/**
+ * The range a link's `#loop=` loops in a film `duration` seconds long: the
+ * part of it inside the film, none when nothing of it is (the film may have
+ * got shorter since the link was made).
+ */
+export const linkedRange = (
+  link: Option.Option<Interval>,
+  duration: number,
+): Option.Option<Interval> =>
+  Option.filter(
+    Option.map(link, (span) => ({ from: Math.max(0, span.from), to: Math.min(duration, span.to) })),
+    (span) => span.to > span.from,
+  );
+
+/** The state the machine starts in: the link's range, else the cue the view kept, else Off. */
+export const loopAt = (link: Option.Option<Interval>, kept: Option.Option<ViewLoop>): LoopState =>
+  Option.getOrElse(
+    Option.orElse(
+      Option.map(link, (span): LoopState => LoopState.Range(span)),
+      () =>
+        Option.flatMap(kept, (loop) =>
+          Option.map(
+            Option.liftPredicate(
+              loop,
+              (l): l is Extract<ViewLoop, { readonly kind: 'cue' }> => l.kind === 'cue',
+            ),
+            (cue): LoopState => LoopState.Cue({ scene: cue.scene, name: cue.name }),
+          ),
+        ),
+    ),
+    (): LoopState => LoopState.Off,
+  );

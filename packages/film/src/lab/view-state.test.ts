@@ -9,9 +9,6 @@ import { storeOver } from '../browser/storage.ts';
 import { deniedStorage, memoryStorage, refusingStorage } from '../browser/fixtures/storage.ts';
 import { DEFAULT_VIEW, type LabView, viewStore } from './view-state.ts';
 
-/** The film the stored views are read against: 392.9 s long. */
-const DURATION = 392.9;
-
 /** A value as stored JSON text, the lab's view or not. */
 const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
 
@@ -23,7 +20,6 @@ const tab = () => {
     page: (film = 'f') =>
       viewStore(
         film,
-        DURATION,
         storeOver(() => storage),
       ),
   };
@@ -54,9 +50,9 @@ describe('lab view state', () => {
 
   test('is kept as the JSON it always was, under the film’s key', () => {
     const { storage, page } = tab();
-    page().patch({ rate: 0.5, loop: Option.some({ kind: 'ab', from: 1, to: 2 }) });
+    page().patch({ rate: 0.5, loop: Option.some({ kind: 'cue', scene: 'one', name: 'rise' }) });
     expect(storage.items.get('film-lab-view:f')).toBe(
-      '{"rate":0.5,"loop":{"kind":"ab","from":1,"to":2},"onion":{"on":false,"count":2,"spacing":3},"compare":{"split":0.5},"playing":false}',
+      '{"rate":0.5,"loop":{"kind":"cue","scene":"one","name":"rise"},"onion":{"on":false,"count":2,"spacing":3},"compare":{"split":0.5},"playing":false}',
     );
   });
 
@@ -71,14 +67,14 @@ describe('lab view state', () => {
 
   test('a loop can be turned off', () => {
     const { page } = tab();
-    page().patch({ loop: Option.some({ kind: 'ab', from: 1, to: 2 }) });
+    page().patch({ loop: Option.some({ kind: 'cue', scene: 'one', name: 'rise' }) });
     page().patch({ loop: Option.none() });
     expect(page().get().loop).toBeUndefined();
   });
 
   test('storage that throws, or holds what is not a view, is the default view', () => {
     for (const store of [storeOver(refusingStorage), storeOver(deniedStorage)]) {
-      const view = viewStore('f', DURATION, store);
+      const view = viewStore('f', store);
       expect(view.get()).toEqual(DEFAULT_VIEW);
       view.patch({ rate: 0.5 });
       // The page keeps what it was told even when the tab cannot store it.
@@ -91,24 +87,15 @@ describe('lab view state', () => {
     expect(page().get()).toEqual(DEFAULT_VIEW);
   });
 
-  test('a stored A–B loop is read against the film as it is now: clamped to it, or dropped', () => {
+  test('a stored A–B range (the link holds it now, #loop=) is dropped, the rest of its view kept; a looped cue is kept', () => {
     const { storage, page } = tab();
     const stored = (loop: NonNullable<LabView['loop']>) => {
-      storage.setItem('film-lab-view:f', jsonText({ ...DEFAULT_VIEW, loop }));
-      return page().get().loop;
+      storage.setItem('film-lab-view:f', jsonText({ ...DEFAULT_VIEW, rate: 0.5, loop }));
+      return page().get();
     };
-    // Inside the film: kept as it is.
-    expect(stored({ kind: 'ab', from: 10, to: 12 })).toEqual({ kind: 'ab', from: 10, to: 12 });
-    // Running past the end of a film that got shorter: it ends where the film does.
-    expect(stored({ kind: 'ab', from: 390, to: 400 })).toEqual({
-      kind: 'ab',
-      from: 390,
-      to: DURATION,
-    });
-    // Wholly past the end: nothing of it is left to loop.
-    expect(stored({ kind: 'ab', from: 500, to: 510 })).toBeUndefined();
+    expect(stored({ kind: 'ab', from: 10, to: 12 })).toEqual({ ...DEFAULT_VIEW, rate: 0.5 });
     // A cue loop is resolved against the film when it is applied, so it is kept.
-    expect(stored({ kind: 'cue', scene: 'hand', name: 'topple' })).toEqual({
+    expect(stored({ kind: 'cue', scene: 'hand', name: 'topple' }).loop).toEqual({
       kind: 'cue',
       scene: 'hand',
       name: 'topple',

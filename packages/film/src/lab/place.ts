@@ -1,5 +1,5 @@
 // The lab's place in the URL (`Places.lab`, `Places.labScene`, core/api.ts):
-// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&view=<compare>#t=<seconds>`.
+// `/films/<film>/lab/<scene>?cue=<name>|knob=<name>&note=<id>&view=<compare>#t=<seconds>&loop=<a>,<b>`.
 // The path's scene is the selection's scene when something is selected, else
 // the scene under the playhead, so the path never names a scene the frame has
 // left; `#t=` is the frame's time in that scene (signed: a selection's scene
@@ -11,6 +11,7 @@ import { Place, parseHref } from '@bible/url-state';
 import { Array as Arr, Option } from 'effect';
 import { type CompareView, Places, pageHref } from '../core/api.ts';
 import { type Placed, sceneAt } from '../core/layout.ts';
+import type { Interval } from '../core/time.ts';
 import { onTheMs } from '../player/t-in-url.ts';
 import { type LabSelection as Selection, cueOf, knobOf, labKeysOf } from '../command/selection.ts';
 
@@ -26,6 +27,8 @@ interface LabPlace {
   readonly view: CompareView;
   /** `#t=`: seconds into the path's scene, or film seconds on a film's lab. */
   readonly t: Option.Option<number>;
+  /** `#loop=`: the A–B loop, film seconds on both. */
+  readonly loop: Option.Option<Interval>;
 }
 
 const NOWHERE: LabPlace = {
@@ -34,6 +37,7 @@ const NOWHERE: LabPlace = {
   note: Option.none(),
   view: 'off',
   t: Option.none(),
+  loop: Option.none(),
 };
 
 const named = (value: string): Option.Option<string> =>
@@ -59,6 +63,7 @@ export const labPlaceOf = (href: string): LabPlace =>
         note: named(query.note),
         view: query.view,
         t: hash.t,
+        loop: hash.loop,
       })),
       () =>
         Option.map(Place.decode(Places.lab, href), ({ query, hash }): LabPlace => ({
@@ -66,6 +71,7 @@ export const labPlaceOf = (href: string): LabPlace =>
           note: named(query.note),
           view: query.view,
           t: hash.t,
+          loop: hash.loop,
         })),
     ),
     () => NOWHERE,
@@ -108,11 +114,12 @@ export const labOpensAt = (placed: ReadonlyArray<Placed>, href: string): number 
   );
 };
 
-/** What the lab writes beside the frame's time: its pick, its note and the compare's mode. */
-interface LabPick {
+/** What the lab writes beside the frame's time: its pick, its note, the compare's mode and the loop. */
+export interface LabPick {
   readonly selection: Option.Option<Selection>;
   readonly note: Option.Option<string>;
   readonly view: CompareView;
+  readonly loop: Option.Option<Interval>;
 }
 
 /**
@@ -132,7 +139,7 @@ export const labHref = (
   );
   const note = Option.getOrElse(pick.note, () => '');
   return Option.match(scene, {
-    onNone: () => pageHref.lab(film, Option.some(onTheMs(T)), pick.view),
+    onNone: () => pageHref.lab(film, Option.some(onTheMs(T)), pick.view, pick.loop),
     onSome: (id) =>
       pageHref.labScene(
         film,
@@ -146,8 +153,25 @@ export const labHref = (
           view: pick.view,
         },
         Option.some(onTheMs(T - Option.getOrElse(startOf(placed, id), () => 0))),
+        pick.loop,
       ),
   });
+};
+
+/**
+ * The lab's URL at `href` with `change` made to what it picks, at film
+ * seconds `T` (`labHref`): what every lab write prints, so each keeps what
+ * the others hold (a pick keeps the loop, the time keeps the pick).
+ */
+export const labHrefWith = (
+  film: string,
+  placed: ReadonlyArray<Placed>,
+  href: string,
+  change: Partial<LabPick>,
+  T: number,
+): string => {
+  const { selection, note, view, loop } = labPlaceOf(href);
+  return labHref(film, placed, { selection, note, view, loop, ...change }, T);
 };
 
 /** Whether `selection` is the cue `name` of `scene`. */

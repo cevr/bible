@@ -36,13 +36,13 @@ import { labPlaceOf } from './place.ts';
 import { Frame, List, NotesFeed, Pen, type PageRuntime } from './notes/list.tsx';
 
 /** What the lab has picked, and how it compares with HEAD, as the URL at `href` holds it. */
-export const pickOf = (href: string) => {
+const pickOf = (href: string) => {
   const { selection, note, view } = labPlaceOf(href);
   return { selection, note, view };
 };
 
 /** The lab's place: the cue or knob picked, the note, the compare's view. */
-export type LabPick = ReturnType<typeof pickOf>;
+type LabPick = ReturnType<typeof pickOf>;
 
 /** The places in the panel the staged lab fills: each tool's controls, by section. */
 type SlotName = 'edit-head' | 'edit' | 'motion-head' | 'motion' | 'compare' | 'compose' | 'record';

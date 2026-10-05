@@ -687,17 +687,17 @@ own (`follow`: play, a drag, a ←/→ step through the moments, a correction, a
 note gone from the feed, an old link's redirect), which always rewrites the
 entry.
 
-| Place                            | Page   | Query                                                                                                                   | Hash                         |
-| -------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| `/`                              | review |                                                                                                                         |                              |
-| `/sets/<folder>`                 | review |                                                                                                                         |                              |
-| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`, `inspect` (the version whose sheet is open)                                                       | `t` (the set's video)        |
-| `/films/<film>/choices`          | review | `point` (the card revealed), `inspect` (its variant's sheet), `heard` (a point, or `own`), `variant`, `picture`, `only` | `t` (the picture)            |
-| `/films/<film>/project`          | review | `point` (the card in focus, its sheet open), `heard`, `variant`, `picture`, `only`                                      | `t` (the picture)            |
-| `/films/<film>/scenes[/<scene>]` | player |                                                                                                                         | `t` (film time)              |
-| `/films/<film>/play`             | player |                                                                                                                         | `t` (film time)              |
-| `/films/<film>/lab`              | lab    | `note`, `view` (the compare with HEAD)                                                                                  | `t` (film time)              |
-| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`, `view`                                                                          | `t` (from the scene's start) |
+| Place                            | Page   | Query                                                                                                                   | Hash                                 |
+| -------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `/`                              | review |                                                                                                                         |                                      |
+| `/sets/<folder>`                 | review |                                                                                                                         |                                      |
+| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`, `inspect` (the version whose sheet is open)                                                       | `t` (the set's video)                |
+| `/films/<film>/choices`          | review | `point` (the card revealed), `inspect` (its variant's sheet), `heard` (a point, or `own`), `variant`, `picture`, `only` | `t` (the picture)                    |
+| `/films/<film>/project`          | review | `point` (the card in focus, its sheet open), `heard`, `variant`, `picture`, `only`                                      | `t` (the picture)                    |
+| `/films/<film>/scenes[/<scene>]` | player |                                                                                                                         | `t` (film time)                      |
+| `/films/<film>/play`             | player |                                                                                                                         | `t` (film time)                      |
+| `/films/<film>/lab`              | lab    | `note`, `view` (the compare with HEAD)                                                                                  | `t` (film time), `loop`              |
+| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`, `view`                                                                          | `t` (from the scene's start), `loop` |
 
 The lab writes a scene's place (`lab/place.ts`): the path names the
 selected cue's or knob's scene, else the scene under the playhead, so play
@@ -708,7 +708,11 @@ names its cause (`TimeInUrl.write(T, cause)`, `player/t-in-url.ts`): play,
 a drag and a pause are `'play'` and rewrite the entry, even across a cut; a
 jump (`]`, `[`, a frame step, ⌘K to a scene, Go to, a press on the track)
 is the viewer's move, so a jump into another scene is a step Back walks,
-and one inside the scene rewrites the entry. Back or Forward lands the player on the time the entry keeps
+and one inside the scene rewrites the entry. Motion's A–B range is
+`#loop=<a>,<b>` (film seconds on both places, so a scene change never
+rebases it; an in point not before the out point reads as none): a pasted
+link opens on its loop without playing, and a range set, moved or stopped
+is a step Back walks. Back or Forward lands the player on the time the entry keeps
 (`onTraverse`, `browser/host.ts`; the review's players too), a time still
 waiting to be written for the entry left dropped. A bare `#<seconds>` (an old link's film time) opens on that frame.
 A film's Scenes (`lab/scenes/`) is its **tape**: the whole film end to end
@@ -745,10 +749,10 @@ the view menu (⋯). A short's Open goes to its play page, as the lab opens
 films.
 
 A folder ref is one path segment (`bible-tools%2Frighteousness-by-faith`), as
-is a short's name. Rate, onion, loop, the wipe's divider, the lab's mode,
-the microphone and quality are this viewer's own settings and stay in the
-browser's storage, never in a link; the compare's mode is the link's
-(`?view=`). Which points a film's choices or project page shows (`?only=`) is
+is a short's name. Rate, onion, a looped cue, the wipe's divider, the lab's
+mode, the microphone and quality are this viewer's own settings and stay in
+the browser's storage, never in a link; the compare's mode (`?view=`) and
+the A–B loop (`#loop=`) are the link's. Which points a film's choices or project page shows (`?only=`) is
 in its link.
 
 **The pages are built in the lab's process** (`LabPage`, `tools/lab-page.ts`):
@@ -1752,7 +1756,7 @@ the in point here (I), Set the out point here (O) and Stop looping
 cue under 0.2 s loops with 0.4 s either side. The in and out points loop
 any range (the machine's A and B; the section says `looping in 00:00:01:00 –
 out 00:00:02:00`). The review's synced player has the same rate chip over its rates
-(½×, 1×). The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop`; a B not after A stays `Marked`, and a range plays from A as it is made. The provider plays the state through `rangeOf` each frame drawn.
+(½×, 1×). The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop | Linked | Unlinked`; a B not after A stays `Marked`, and a range plays from A as it is made, its points kept to the millisecond. The range is the link's (`#loop=`): the provider and the link agree, each following the other only where they differ (`Linked` puts a range the link names in the machine without playing, `Unlinked` ends one), and the part of a range past the film's end is not looped (`linkedRange`). The provider plays the state through `rangeOf` each frame drawn.
 
 **Compare** (`lab/compare/`, Solid 2) reads the scene's file at HEAD
 (`GET /api/films/<film>/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`

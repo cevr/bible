@@ -4,10 +4,10 @@
 // as JSON under one key per film (`film-lab-view:<film>`). Each tool patches
 // its part as it changes. Storage that is missing, throws or holds something
 // that does not decode is the default view: the page still keeps what it was
-// told while it lives, and only then does a reload start from the default. A
-// view is read against the film as it is now: the film may have got shorter
-// since it was stored, so an A–B loop is clamped to the film, and dropped
-// when nothing of it is left.
+// told while it lives, and only then does a reload start from the default.
+// The loop the view keeps is a looped cue; the A–B range is the link's
+// (`#loop=`, `lab/place.ts`), and a range a tab stored before the link held
+// it is read and dropped.
 
 import { Option, Schema } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
@@ -22,6 +22,7 @@ export const LabView = Schema.Struct({
   loop: Schema.optionalKey(
     Schema.Union([
       Schema.Struct({ kind: Schema.Literal('cue'), scene: Schema.String, name: Schema.String }),
+      /** A range a tab stored before the link held it: read, so the rest of its view decodes, and dropped. */
       Schema.Struct({ kind: Schema.Literal('ab'), from: Schema.Finite, to: Schema.Finite }),
     ]),
   ),
@@ -70,24 +71,18 @@ const withLoop = (view: LabView, loop: Option.Option<ViewLoop>): LabView => {
   });
 };
 
-/** `view` against a film `duration` seconds long: its A–B loop inside the film, or none. */
-const fitView = (view: LabView, duration: number): LabView =>
+/** `view` with its looped cue, and no A–B range: a range is the link's (`#loop=`) now. */
+const fitView = (view: LabView): LabView =>
   withLoop(
     view,
-    Option.flatMap(Option.fromUndefinedOr(view.loop), (loop): Option.Option<ViewLoop> => {
-      if (loop.kind === 'cue') return Option.some(loop);
-      const from = Math.max(0, loop.from);
-      const to = Math.min(duration, loop.to);
-      return Option.liftPredicate({ kind: 'ab' as const, from, to }, () => to > from);
-    }),
+    Option.filter(Option.fromUndefinedOr(view.loop), (loop) => loop.kind === 'cue'),
   );
 
 /**
- * The view of `film` (`duration` seconds long now) kept in `store` (the
- * tab's, `TabStore`): read once and fitted to the film, kept in memory,
- * written through on each patch.
+ * The view of `film` kept in `store` (the tab's, `TabStore`): read once,
+ * kept in memory, written through on each patch.
  */
-export const viewStore = (film: string, duration: number, store: StoreRuntime): ViewStore => {
+export const viewStore = (film: string, store: StoreRuntime): ViewStore => {
   const kept = Atom.kvs({
     runtime: store,
     key: `film-lab-view:${film}`,
@@ -97,7 +92,7 @@ export const viewStore = (film: string, duration: number, store: StoreRuntime): 
   });
   const registry = AtomRegistry.make();
   registry.mount(kept);
-  let view = fitView(registry.get(kept), duration);
+  let view = fitView(registry.get(kept));
   return {
     get: () => view,
     patch: ({ loop, ...change }) => {

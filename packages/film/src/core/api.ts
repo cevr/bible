@@ -26,7 +26,15 @@
 // through the derived client. packages/film/README.md has the steps.
 
 import { Codec, Field, Place, parseHref } from '@bible/url-state';
-import { Array as Arr, Effect, Option, Schema, SchemaAST, SchemaTransformation } from 'effect';
+import {
+  Array as Arr,
+  Effect,
+  Option,
+  Schema,
+  SchemaAST,
+  SchemaIssue,
+  SchemaTransformation,
+} from 'effect';
 import {
   HttpApi,
   HttpApiClient,
@@ -35,6 +43,7 @@ import {
   HttpApiSchema,
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
+import type { Interval } from './time.ts';
 import { isShortKey } from './shorts.ts';
 import { onChoicesTab } from './point.ts';
 import { OpId, Project, RenderVariantName } from './catalogue.ts';
@@ -766,8 +775,48 @@ const maybe = <A>(codec: Schema.Codec<A, string>) =>
  * video's. None opens the page at its own start. It follows the playhead at
  * most every quarter second, and never makes a history entry.
  */
-const At = Field.struct({
-  t: Field.key(maybe(Codec.Finite), { default: Option.none(), throttle: '250 millis' }),
+const time = Field.key(maybe(Codec.Finite), { default: Option.none(), throttle: '250 millis' });
+const At = Field.struct({ t: time });
+
+/**
+ * An A–B loop (`loop=10,14`): film seconds, its in point before its out
+ * point; anything else reads as no loop.
+ */
+const LoopSpan: Schema.Codec<Interval, string> = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Struct({ from: Schema.Finite, to: Schema.Finite }),
+    SchemaTransformation.transformEffect({
+      decode: (text: string) =>
+        Effect.fromOption(
+          Option.filter(
+            Option.flatMap(
+              Option.liftPredicate(text.split(','), (parts) => parts.length === 2),
+              ([from = '', to = '']) =>
+                Option.all({
+                  from: Schema.decodeOption(Codec.Finite)(from),
+                  to: Schema.decodeOption(Codec.Finite)(to),
+                }),
+            ),
+            (span) => span.to > span.from,
+          ),
+        ).pipe(
+          Effect.mapError(
+            () => new SchemaIssue.InvalidValue({ message: `an in and an out point` }, text),
+          ),
+        ),
+      encode: (span: Interval) => Effect.succeed(`${span.from},${span.to}`),
+    }),
+  ),
+);
+
+/**
+ * The lab's hash: the time (`At`'s), and the A–B loop (`loop=<a>,<b>`, film
+ * seconds on a film's lab and a scene's alike, so it never moves with the
+ * path). The loop set, changed or stopped is a step Back walks.
+ */
+const LabAt = Field.struct({
+  t: time,
+  loop: Field.key(maybe(LoopSpan), { default: Option.none(), history: 'push' }),
 });
 
 /** A film by its name: one path segment (a short's `/` is written `%2F`). */
@@ -878,13 +927,13 @@ export const Places = {
     path: '/films/:film/lab',
     params: filmParams,
     query: Field.struct({ note: cited, view: compareView }),
-    hash: At,
+    hash: LabAt,
   }),
   labScene: Place.make({
     path: '/films/:film/lab/:scene',
     params: { film: Codec.Segment, scene: Codec.Segment },
     query: LabSelection,
-    hash: At,
+    hash: LabAt,
   }),
 };
 
@@ -999,24 +1048,30 @@ export const pageHref = {
     Place.href(Places.scene, { path: { film, scene }, query: {}, hash: timeOf(t) }),
   play: (film: string, t: Option.Option<number> = Option.none()): string =>
     Place.href(Places.play, { path: { film }, query: {}, hash: timeOf(t) }),
-  /** The lab on `film`, at film time `t`, comparing with HEAD by `view`. */
+  /** The lab on `film`, at film time `t`, comparing with HEAD by `view`, looping `loop`. */
   lab: (
     film: string,
     t: Option.Option<number> = Option.none(),
     view: CompareView = 'off',
+    loop: Option.Option<Interval> = Option.none(),
   ): string =>
-    Place.href(Places.lab, { path: { film }, query: { note: '', view }, hash: timeOf(t) }),
-  /** The lab on `scene` of `film`, at scene time `t`, with what is `picked` there. */
+    Place.href(Places.lab, {
+      path: { film },
+      query: { note: '', view },
+      hash: { t, loop },
+    }),
+  /** The lab on `scene` of `film`, at scene time `t`, with what is `picked` there, looping `loop`. */
   labScene: (
     film: string,
     scene: string,
     picked: LabPicked = {},
     t: Option.Option<number> = Option.none(),
+    loop: Option.Option<Interval> = Option.none(),
   ): string =>
     Place.href(Places.labScene, {
       path: { film, scene },
       query: { ...NOTHING_SELECTED, ...picked },
-      hash: timeOf(t),
+      hash: { t, loop },
     }),
 };
 
@@ -1149,7 +1204,9 @@ const withFilmTime = (href: string, t: number): string => {
         Place.href(Places.scenes, { ...v, hash }),
       ),
       Option.map(Place.decode(Places.scene, href), (v) => Place.href(Places.scene, { ...v, hash })),
-      Option.map(Place.decode(Places.lab, href), (v) => Place.href(Places.lab, { ...v, hash })),
+      Option.map(Place.decode(Places.lab, href), (v) =>
+        Place.href(Places.lab, { ...v, hash: { ...v.hash, ...hash } }),
+      ),
     ]),
     () => href,
   );
