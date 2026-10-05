@@ -35,6 +35,7 @@ import {
   AgentDefinition,
   AgentName,
   BranchId,
+  contextWindowOf,
   defineExtension,
   defineResource,
   ExtensionContext,
@@ -1188,40 +1189,16 @@ const afterCall = (
 };
 
 /**
- * `metadata.customType` of gent's window marker (core's runtime user message
- * type "context-window", which gent's own compactor also names by value: no
- * authoring entry exports it). Only the runtime writes it: an extension's
- * send and a client's message have it removed.
- */
-const WINDOW_MARKER_TYPE = 'context-window';
-
-/**
- * A handoff marker's details as gent writes them (`windowMarkerMessage`):
- * tagged with the marker's type, and `summarized` present, the summary of
- * the history it replaced. A bare window marker carries no summary.
- */
-const HandoffDetails = Schema.Struct({
-  _tag: Schema.Literal(WINDOW_MARKER_TYPE),
-  summarized: Schema.Struct({ firstMessageId: Schema.String, lastMessageId: Schema.String }),
-});
-const isHandoffDetails = Schema.is(HandoffDetails);
-
-/**
  * The trail an earlier compaction handed over, when `message` is gent's
- * handoff marker carrying a painter notice. Its words alone prove nothing:
- * a summary copied into a user's or the model's message is no handoff.
+ * handoff marker (`contextWindowOf`: a window the runtime opened, with the
+ * summary of the history it replaced) carrying a painter notice. Its words
+ * alone prove nothing: a summary copied into a user's or the model's message
+ * opens no window, and a bare window marker summarized nothing.
  */
-const handoffTrail = (message: Message): Option.Option<Trail> => {
-  if (message.role !== 'user' || message.metadata?.customType !== WINDOW_MARKER_TYPE)
-    return Option.none();
-  if (!isHandoffDetails(message.metadata.details)) return Option.none();
-  return Option.firstSomeOf(
-    message.parts.flatMap((part) => {
-      if (part.type !== 'text') return [];
-      return [noticeTrail(part.text)];
-    }),
+const handoffTrail = (message: Message): Option.Option<Trail> =>
+  Option.flatMap(contextWindowOf(message), (window) =>
+    Option.flatMap(Option.fromUndefinedOr(window.summarized), () => noticeTrail(window.notice)),
   );
-};
 
 /**
  * The trail of `messages`, oldest first: gent's handoff marker seeds it with

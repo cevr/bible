@@ -35,9 +35,7 @@ import {
   ModelContextCompactor,
 } from '@gent/core/extensions/branch-tools';
 import { BunPlatformLive } from '@gent/core/host';
-// gent's own window marker constructor: no entry exports it, so the test reads
-// it from the linked checkout's source, the module the runtime builds markers with.
-import { windowMarkerMessage } from '../node_modules/@gent/core/src/runtime/model-context.ts';
+import { BuiltinExtensions } from '@gent/extensions';
 import {
   BranchId,
   dateFromMillis,
@@ -52,6 +50,7 @@ import {
   freePort,
   LanguageModelLayers,
   makeTempDirectoryScoped,
+  multiToolCallStep,
   RuntimeEnvironment,
   runToolWithCtx,
   type SequenceStep,
@@ -62,6 +61,7 @@ import {
   textStep,
   toolCallStep,
   turnRequestText,
+  windowMarkerMessage,
 } from '@gent/core/test-utils';
 import FilmExtension, {
   checkReport,
@@ -934,6 +934,11 @@ describe('the painter compactor', () => {
 // ── a painter's turn ────────────────────────────────────────────────────────
 
 /** Run one message to its turn's end: every event it produced. */
+/** gent's shipped file tools (read, grep, write, edit), selected by id: the tools the painter's `paths` confine. */
+const FS_TOOLS = BuiltinExtensions.filter(
+  (extension) => extension.manifest.id === '@gent/fs-tools',
+);
+
 const oneTurn = Effect.fn('test.oneTurn')(function* (
   harness: Effect.Success<ReturnType<typeof createRpcHarness>>,
   content: string,
@@ -984,7 +989,7 @@ describe("the scene painter's turn", () => {
           ]);
           const harness = yield* createRpcHarness({
             agents: [],
-            extensionInputs: [testTurnExtension, FilmExtension],
+            extensionInputs: [testTurnExtension, ...FS_TOOLS, FilmExtension],
             providerLayer,
             cwd: root,
             home,
@@ -1017,17 +1022,71 @@ describe("the scene painter's turn", () => {
           expect(system).toContain('film.check the scenes you touched');
           // The brief is the same bytes on every request of the turn.
           expect(turnRequestText(prompts[3] ?? Prompt.empty).systemPrompt).toBe(system);
-          // The film's own tools, and not film.paint: gent's file tools, the
-          // rest of what it holds, are not loaded in this harness.
+          // gent's file tools and the film's own, and nothing else: not
+          // film.paint (the definition's whole list is checked below).
           expect(tools[0]?.toSorted()).toEqual([
+            'edit',
             'film.check',
             'film.cues',
             'film.journal',
             'film.look',
+            'grep',
+            'read',
+            'write',
           ]);
 
           const journal = yield* fs.readFileString(`${filmFolder(root)}/journal.md`);
           expect(journal).toContain('the roof reads as one mass at squint');
+        }),
+      ),
+    30_000,
+  );
+
+  it.live(
+    "a run started on one film (film.paint's paths) reads and writes that film and nothing else",
+    () =>
+      live(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const { root, home } = yield* world();
+          const films = 'apps/animations/src/films';
+          const { layer: providerLayer, controls } = yield* LanguageModelLayers.sequence([
+            multiToolCallStep(
+              // Its film: each succeeds.
+              { toolName: 'read', input: { path: `${films}/easel/script.ts` } },
+              {
+                toolName: 'write',
+                input: { path: `${films}/easel/scenes/sketch.ts`, content: 'x' },
+              },
+              // Another film, and the app outside the films: each is refused.
+              { toolName: 'write', input: { path: `${films}/other/scene.ts`, content: 'x' } },
+              { toolName: 'read', input: { path: 'apps/animations/cli.ts' } },
+            ),
+            textStep('done'),
+          ]);
+          const harness = yield* createRpcHarness({
+            agents: [],
+            extensionInputs: [testTurnExtension, ...FS_TOOLS, FilmExtension],
+            providerLayer,
+            cwd: root,
+            home,
+            admission: { agent: PAINTER, runSpec: { overrides: { paths: painterPaths('easel') } } },
+          });
+          const events = yield* oneTurn(harness, 'Paint a sketch of easel.');
+          yield* controls.assertDone;
+
+          const succeeded = events.flatMap((event) => {
+            if (event._tag !== 'ToolCallSucceeded') return [];
+            return [event.toolName];
+          });
+          const failed = events.flatMap((event) => {
+            if (event._tag !== 'ToolCallFailed') return [];
+            return [event.toolName];
+          });
+          expect(succeeded.toSorted()).toEqual(['read', 'write']);
+          expect(failed.toSorted()).toEqual(['read', 'write']);
+          expect(yield* fs.exists(`${filmFolder(root)}/scenes/sketch.ts`)).toBe(true);
+          expect(yield* fs.exists(`${root}/${films}/other`)).toBe(false);
         }),
       ),
     30_000,
