@@ -1,11 +1,12 @@
 // The host of a page the lab renders on the server (`host.ts`): the
 // request's URL as its address bar (`@bible/url-state`'s `layerServer`, read
-// only, with no hash: a browser never sends it), and every other service a
-// page's code may reach while it renders, inert. A server render answers one
-// request and runs no handler and no effect, so nothing here is pressed,
-// played, dragged or loaded: a call that would act is ignored and logged at
-// Debug, as `layerServer` logs a write, and one that would answer something
-// answers as the studio is designed for first, a phone held upright
+// only, with no hash: a browser never sends it), frames on the server's own
+// clock (`Frames.layerClock`, which no render waits on), and every other
+// service a page's code may reach while it renders, inert. A server render
+// answers one request and runs no handler and no effect, so nothing here is
+// pressed, played, dragged or loaded: a call that would act is ignored and
+// logged at Debug, as `layerServer` logs a write, and one that would answer
+// something answers as the studio is designed for first, a phone held upright
 // (`Viewport.layerPhone`). The client takes over each service from its live
 // adapter (`host-browser.ts`) once the page is hydrated.
 

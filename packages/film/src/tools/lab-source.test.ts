@@ -145,7 +145,7 @@ describe('lab source routes', () => {
   it.effect('a knob write answers with the knob; a computed value is a 422, file untouched', () =>
     Effect.gen(function* () {
       const lab = yield* labHandler({ hosts: [] });
-      const knob = yield* Effect.promise(() =>
+      const palm = Effect.promise(() =>
         lab(
           post(
             labUrls.scenes.knob({ params: { film: 'f', scene: 'hand', knob: 'palm' } }),
@@ -154,8 +154,15 @@ describe('lab source routes', () => {
           bound,
         ).then((r) => r.json()),
       );
+      const knob = yield* palm;
       expect(knob).toMatchObject({ target: 'knob palm', knob: [1000, 760] });
+      expect(knob).toHaveProperty('change');
       const after = yield* read();
+      // The same value again changes nothing: the answer says so, and has no change to undo.
+      const again = yield* palm;
+      expect(again).toMatchObject({ target: 'knob palm (already so)', knob: [1000, 760] });
+      expect(again).not.toHaveProperty('change');
+      expect(yield* read()).toBe(after);
       const refused = yield* Effect.promise(() =>
         lab(
           post(

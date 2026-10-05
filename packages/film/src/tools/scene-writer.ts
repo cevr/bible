@@ -23,11 +23,15 @@ import type { FilmName } from './film-repo.ts';
 import { CueRead, FreshFilm } from './fresh-film.ts';
 import { cueLanded, editCue, editKnob, readKnob, readSpans } from './scene-source.ts';
 import { type Field, type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';
-import { type Change, type RewriteError, SourceWriter } from './source-writer.ts';
+import { type RewriteError, SourceWriter, type Wrote } from './source-writer.ts';
 
-/** One write to a scene file: the change, and the name the file exports the drawing under. */
-interface Written extends Change {
-  /** Where the written value reads back. */
+/**
+ * One write to a scene file (`Wrote`: the change it made, none when the file
+ * was already so), the text the file holds after it, and the name the file
+ * exports the drawing under: where the written value reads back.
+ */
+interface Written extends Wrote {
+  readonly after: string;
   readonly exportName: string;
 }
 
@@ -95,16 +99,24 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
       ) =>
         Effect.gen(function* () {
           const at = yield* sources.writable(film, scene, slot);
-          const [change, checked] = yield* writer.write({
+          const [change, [checked, after]] = yield* writer.write({
             film,
             scene: Option.some(scene),
             file: at.file,
             target,
             edit: (source) => edit(at, source),
             verify: (after, before) => verify(at, after, before),
-            check: (after) => check(at, after),
+            // The text judged is the text the file holds after, written or already so.
+            check: (after) => Effect.map(check(at, after), (a) => [a, after] as const),
           });
-          const written: Written = { ...change, exportName: at.exportName };
+          const written: Written = {
+            scene: Option.some(scene),
+            file: at.file,
+            target,
+            change,
+            after,
+            exportName: at.exportName,
+          };
           return [written, checked] as const;
         });
 
