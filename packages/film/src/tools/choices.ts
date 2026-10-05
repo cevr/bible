@@ -435,7 +435,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
           ([change, , mixed]): Picked => ({
             file,
             target: `${site.target} ${option}`,
-            change: Option.liftPredicate(change, (c) => c.before !== c.after),
+            change,
             mixed,
           }),
         );
@@ -531,7 +531,7 @@ export class Choices extends Context.Service<Choices, ChoicesService>()(
         const picked: Picked = {
           file,
           target: `${point.id} ${value}`,
-          change: Option.liftPredicate(change, (c) => c.before !== c.after),
+          change,
           mixed,
         };
         return picked;

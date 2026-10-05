@@ -3,8 +3,10 @@
 
 import { Match, Option } from 'effect';
 import { type Receipt, busy, refused, said } from '../../command/command.ts';
+import { sceneAt } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, EaseName, Span } from '../../core/schema.ts';
 import { ease } from '../../core/time.ts';
+import type { StepVerb } from '../api.ts';
 import type { EditState } from './machine.ts';
 
 /** What a cue's span starts from, in words. */
@@ -75,27 +77,21 @@ interface SceneFindings {
 
 /**
  * `findings` as the inspector shows them in `scene`: one whose address names
- * the scene, or whose time falls in it, is the scene's; one with no place
- * (no address, or the whole film or an act with no time) belongs to every
- * scene, having no other; the rest are counted as elsewhere.
+ * the scene, or whose time is in it (`sceneAt`, the scene the playhead shows
+ * there), is the scene's; one with no place (no address, or the whole film or
+ * an act with no time) belongs to every scene, having no other; the rest are
+ * counted as elsewhere.
  */
 export const findingsIn = (
   findings: ReadonlyArray<CheckLine>,
-  placed: ReadonlyArray<{
-    readonly spec: { readonly id: string };
-    readonly start: number;
-    readonly dur: number;
-  }>,
+  placed: ReadonlyArray<{ readonly spec: { readonly id: string }; readonly start: number }>,
   scene: string,
 ): SceneFindings => {
-  const last = placed.length - 1;
-  const sceneAt = (t: number): ReadonlyArray<string> =>
-    placed
-      .filter((p, i) => t >= p.start && (t < p.start + p.dur || i === last))
-      .map((p) => p.spec.id);
+  const playing = (t: number): ReadonlyArray<string> =>
+    Option.match(sceneAt(placed, t), { onNone: () => [], onSome: (p) => [p.spec.id] });
   const named = (f: CheckLine): Option.Option<ReadonlyArray<string>> =>
     Option.flatMap(Option.fromUndefinedOr(f.address), (at) =>
-      Option.orElse(Option.map(Option.fromUndefinedOr(at.time), sceneAt), () =>
+      Option.orElse(Option.map(Option.fromUndefinedOr(at.time), playing), () =>
         Match.value(at.part).pipe(
           Match.tag('Scenes', (part): Option.Option<ReadonlyArray<string>> =>
             Option.some(part.ids),
@@ -111,6 +107,26 @@ export const findingsIn = (
 };
 
 const DOING = { undo: 'undoing', redo: 'redoing' } as const;
+
+/** Why a grip held takes no write. */
+const HELD = 'a cue or a handle is held; let it go first';
+
+/**
+ * Why the machine in `state` does not take what is `asked` (a commit, or an
+ * Undo or Redo), in a receipt's words; none when it does. A grip held takes
+ * neither; a write out takes a commit (it waits, shown) but no step.
+ */
+export const notTaken = (state: EditState, asked: 'commit' | StepVerb): Option.Option<string> =>
+  Match.value(state).pipe(
+    Match.tag('Pressed', 'Dragging', () => Option.some(HELD)),
+    Match.tag('Writing', 'Checking', () =>
+      Option.filter(
+        Option.some(`a write is still out; ${asked} once it lands`),
+        () => asked !== 'commit',
+      ),
+    ),
+    Match.orElse(() => Option.none()),
+  );
 
 /**
  * The editor's receipt in `state`, on `film`: a write on its way (busy),

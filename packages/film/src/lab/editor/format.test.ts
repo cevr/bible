@@ -5,6 +5,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { busy, refused, said } from '../../command/command.ts';
+import { sceneAt } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, FindingAddress } from '../../core/schema.ts';
 import { findingTime, findingsIn, findingsOf, receiptOf } from './format.ts';
 import { CueWrite, StepWrite } from './grip.ts';
@@ -71,6 +72,12 @@ describe('findingsIn (the inspector lists the scene shown, UI-6)', () => {
   test("a scene lists its own and those with no place; the others' are counted", () => {
     expect(tags('one')).toEqual([['timed-one', 'the-film', 'no-place'], 2]);
     expect(tags('two')).toEqual([['named-two', 'timed-past-the-end', 'the-film', 'no-place'], 1]);
+  });
+
+  test('a time a hair of float error short of a start is the scene the playhead shows there', () => {
+    const near = [at({ part: { _tag: 'Film' }, time: 4 - 1e-10 }, 'on-two')];
+    expect(findingsIn(near, placed, 'two').here.map((f) => f.tag)).toEqual(['on-two']);
+    expect(Option.map(sceneAt(placed, 4 - 1e-10), (p) => p.spec.id)).toEqual(Option.some('two'));
   });
 });
 

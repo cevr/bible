@@ -9,13 +9,16 @@
 
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
+import type { SceneEdit } from '../../canvas/film.ts';
 import type { ResolvedCue, SceneSource } from '../../core/schema.ts';
+import { dragFields, dragPatch } from '../../core/timeline.ts';
 import {
   type CueGrip,
   CueWrite,
   EDGE_PX,
   EDGE_TOUCH_PX,
   type KnobGrip,
+  type Write,
   cueRefusal,
   dragCue,
   dragKnob,
@@ -160,6 +163,40 @@ describe('dragCue', () => {
   });
 });
 
+describe("a cue's fields", () => {
+  const span = { mark: 'rise', offset: 0.1, dur: 1 } as const;
+  const cue: ResolvedCue = { start: 1.1, end: 2.1, dur: 1, ease: 'inOutCubic', stagger: 0 };
+  const commitsOf = (id: string, v: number) => {
+    const commits: Array<{ readonly write: Write; readonly edit: SceneEdit }> = [];
+    fieldsOf(
+      { _tag: 'Cue', scene: 'one', name: 'rise' },
+      {
+        timeline: { rise: span },
+        cues: new Map([['rise', cue]]),
+        knobs: {},
+        source: Option.none(),
+        error: '',
+        fps: 30,
+        commit: (write, edit) => void commits.push({ write, edit }),
+      },
+    )
+      .find((f) => f.id === id)
+      ?.write(v);
+    return commits;
+  };
+
+  test('show the span the patch they send makes, rounded as the file holds it', () => {
+    for (const [id, v] of [
+      ['offset', 0.1 + 0.2],
+      ['dur', 0.1 + 0.2],
+    ] as const) {
+      const [commit] = commitsOf(id, v);
+      expect(commit?.write).toMatchObject({ patch: { [id]: 0.3 } });
+      expect(commit?.edit.timeline?.['rise']).toEqual({ ...span, [id]: 0.3 });
+    }
+  });
+});
+
 describe("an `until` cue's end field", () => {
   const span = { mark: 'rise', until: 'fall' } as const;
   const cue: ResolvedCue = { start: 1, end: 2.2, dur: 1.2, ease: 'inOutCubic', stagger: 0 };
@@ -191,6 +228,31 @@ describe("an `until` cue's end field", () => {
         commit: (write, edit) => void commits.push({ write, edit }),
       },
     );
+
+  test('an end off its mark by code is refused, as its drag writes that offset', () => {
+    const computed = fieldsOf(
+      { _tag: 'Cue', scene: 'one', name: 'rise' },
+      {
+        timeline: { ...timeline, rise: { ...span, untilOffset: 0.2 } },
+        cues: new Map([['rise', cue]]),
+        knobs: {},
+        source: Option.some({
+          scene: 'one',
+          file: 'scenes/one.ts',
+          cues: [{ ...literal, untilOffset: 'computed' }],
+          knobs: [],
+          refused: [],
+        }),
+        error: '',
+        fps: 30,
+        commit: () => {},
+      },
+    );
+    expect(computed.find((f) => f.id === 'end')?.refusal).toEqual(
+      Option.some('cannot drag rise: its untilOffset is computed in the source'),
+    );
+    expect(fieldsIn([]).find((f) => f.id === 'end')?.refusal).toEqual(Option.none());
+  });
 
   test('reads where the cue ends, and goes no earlier than its start', () => {
     const fields = fieldsIn([]);
@@ -277,29 +339,67 @@ const source = (over: Partial<SceneSource> = {}): SceneSource => ({
 });
 
 describe('cueRefusal', () => {
+  const sized = { at: 'start', dur: 1 } as const;
   test('a field the lab may write: none', () => {
-    expect(cueRefusal(Option.some(source()), '', 'rise', 'move')).toEqual(Option.none());
+    expect(cueRefusal(Option.some(source()), '', 'rise', dragFields(sized, 'move'))).toEqual(
+      Option.none(),
+    );
   });
   test('a computed field is named', () => {
-    expect(cueRefusal(Option.some(source()), '', 'rise', 'end')).toEqual(
+    expect(cueRefusal(Option.some(source()), '', 'rise', dragFields(sized, 'end'))).toEqual(
       Option.some('cannot drag rise: its dur is computed in the source'),
+    );
+  });
+  test('a span that lands on its anchor is judged by the fields its drag writes', () => {
+    const landing = { at: 'start', dur: 1, ends: true } as const;
+    const offsetInCode = source({
+      cues: [{ ...source().cues[0]!, offset: 'computed', dur: 'literal' }],
+    });
+    // Its left edge sets the dur alone; its right edge the offset too.
+    expect(cueRefusal(Option.some(offsetInCode), '', 'rise', dragFields(landing, 'start'))).toEqual(
+      Option.none(),
+    );
+    expect(cueRefusal(Option.some(offsetInCode), '', 'rise', dragFields(landing, 'end'))).toEqual(
+      Option.some('cannot drag rise: its offset is computed in the source'),
+    );
+  });
+  test('a span not literal in the source says so', () => {
+    expect(cueRefusal(Option.some(source()), '', 'fall', ['offset'])).toEqual(
+      Option.some('cannot drag fall: its span is computed in the source'),
     );
   });
   test('a timeline the lab will not write gives its reason', () => {
     const refused = source({
       refused: [{ field: 'timeline', reason: 'the registry overrides it' }],
     });
-    expect(cueRefusal(Option.some(refused), '', 'rise', 'move')).toEqual(
+    expect(cueRefusal(Option.some(refused), '', 'rise', ['offset'])).toEqual(
       Option.some('cannot drag rise: the registry overrides it'),
     );
   });
   test('no source: the reason it could not be read', () => {
-    expect(cueRefusal(Option.none(), 'SceneNotFound: no file', 'rise', 'move')).toEqual(
+    expect(cueRefusal(Option.none(), 'SceneNotFound: no file', 'rise', ['offset'])).toEqual(
       Option.some('cannot edit: SceneNotFound: no file'),
     );
-    expect(cueRefusal(Option.none(), '', 'rise', 'move')).toEqual(
+    expect(cueRefusal(Option.none(), '', 'rise', ['offset'])).toEqual(
       Option.some('cannot edit: no source for this scene'),
     );
+  });
+});
+
+describe('dragFields', () => {
+  const cue: ResolvedCue = { start: 1, end: 2, dur: 1, ease: 'inOutCubic', stagger: 0 };
+  const bar = { start: 0.5, end: 2.5 };
+  const spans = [
+    { at: 'start', offset: 1, dur: 1 },
+    { at: 'start', dur: 1, ends: true },
+    { mark: 'rise', offset: 1, until: 'fall' },
+  ] as const;
+  test('names the fields the drag of each edge writes, for each way a span ends', () => {
+    for (const span of spans)
+      for (const edge of ['move', 'start', 'end'] as const)
+        expect(
+          `${edge}: ${Object.keys(Option.getOrThrow(dragPatch(span, cue, edge, bar, 1 / 30)))}`,
+        ).toBe(`${edge}: ${dragFields(span, edge)}`);
   });
 });
 

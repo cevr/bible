@@ -16,7 +16,16 @@ import {
   WordMissing,
 } from './errors.ts';
 import { wordAfter } from './narration.ts';
-import type { CuePatch, ResolvedCue, ScenePoint, Span, Timeline, Until, Word } from './schema.ts';
+import {
+  CUE_PATCH_KEYS,
+  type CuePatch,
+  type ResolvedCue,
+  type ScenePoint,
+  type Span,
+  type Timeline,
+  type Until,
+  type Word,
+} from './schema.ts';
 import { CLOCK_EPSILON, DEFAULT_EASE, type Key, ease, keys, progress, toMs } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
@@ -71,23 +80,24 @@ const untilOffsetField = (untilOffset: number | undefined) =>
  * A span's end: its `dur` (from its anchor, or up to it with `ends`), or the
  * point it runs `until` and its offset off it. A patch's `dur` or `until`
  * sets the whole end, so a new point starts on the point; its `untilOffset`
- * alone moves an `until` span's end off the point it keeps.
+ * alone moves an `until` span's end off the point it keeps. A patch that
+ * leaves the end leaves it as written, its `untilOffset` included, however
+ * fine: only an edit of the end is put to the millisecond.
  */
 const endField = (span: Span, patch: CuePatch) => {
   if (patch.until !== undefined)
     return { until: patch.until, ...untilOffsetField(patch.untilOffset) };
   const ends = span.ends === true ? { ends: true as const } : {};
   if (patch.dur !== undefined) return { dur: patch.dur, ...ends };
+  if (span.until !== undefined && patch.untilOffset !== undefined)
+    return { until: span.until, ...untilOffsetField(patch.untilOffset) };
   if (span.until !== undefined)
-    return { until: span.until, ...untilOffsetField(patch.untilOffset ?? span.untilOffset) };
+    return span.untilOffset === undefined
+      ? { until: span.until }
+      : { until: span.until, untilOffset: span.untilOffset };
   if (span.dur !== undefined) return { dur: span.dur, ...ends };
   return ends;
 };
-
-/** The keys of a `CuePatch` that hold seconds. */
-const PATCH_NUMBERS = ['offset', 'dur', 'untilOffset', 'stagger'] as const satisfies ReadonlyArray<
-  keyof CuePatch
->;
 
 /**
  * `patch` as a scene file holds it once written: every number to the
@@ -95,14 +105,11 @@ const PATCH_NUMBERS = ['offset', 'dur', 'untilOffset', 'stagger'] as const satis
  * write is judged by before it lands, so the judgement is of what lands.
  */
 export const writtenPatch = (patch: CuePatch): CuePatch =>
-  PATCH_NUMBERS.reduce<CuePatch>(
-    (written, key) =>
-      Option.match(Option.fromUndefinedOr(patch[key]), {
-        onNone: () => written,
-        onSome: (value) => ({ ...written, [key]: toMs(value) }),
-      }),
-    patch,
-  );
+  CUE_PATCH_KEYS.reduce<CuePatch>((written, key) => {
+    const value = patch[key];
+    if (!Predicate.isNumber(value)) return written;
+    return { ...written, [key]: toMs(value) };
+  }, patch);
 
 /**
  * `span` with a lab edit applied. A span ends one way, so a `dur` replaces
@@ -170,6 +177,17 @@ export const dragPatch = (
   if (edge === 'move') return Option.some({ offset });
   if (edge === (lands ? 'start' : 'end')) return Option.some({ dur });
   return Option.some({ offset, dur });
+};
+
+/**
+ * The fields a drag of `span` at `edge` writes (`dragPatch`): what the lab
+ * must find literal, or absent, in the source to write it.
+ */
+export const dragFields = (span: Span, edge: DragEdge): ReadonlyArray<keyof CuePatch> => {
+  if (edge === 'move') return ['offset'];
+  if (span.until !== undefined) return edge === 'end' ? ['untilOffset'] : ['offset'];
+  if (edge === (span.ends === true ? 'start' : 'end')) return ['dur'];
+  return ['offset', 'dur'];
 };
 
 /** `dragPatch` for a span that runs `until` a point: see there. */
@@ -274,6 +292,14 @@ export const untilText = (until: Until): string => {
   if (until.cue !== undefined) return `the ${until.edge ?? 'end'} of cue "${until.cue}"`;
   return until.at;
 };
+
+/**
+ * Whether `cue` ends after its scene, `sceneDur` long: past its end by more
+ * than float noise (`CLOCK_EPSILON`). The one judgement the lab's strip,
+ * `film cues` and `film check` (`CueLate`) make of it.
+ */
+export const endsLate = (cue: ResolvedCue, sceneDur: number): boolean =>
+  cue.end > sceneDur + CLOCK_EPSILON;
 
 /**
  * Where a span that runs `until` a point ends, as the lab, `film cues` and an

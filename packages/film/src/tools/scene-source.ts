@@ -11,8 +11,10 @@
 // the lab could not say what it would be changing. A missing `offset`, `dur`,
 // `until`, `untilOffset`, `ease` or `stagger` is added after the span's anchor, in
 // that order; a span ends one way, so a `dur` written replaces its `until`, and an
-// `until` its `dur`. An `untilOffset` goes with the end it is off: a `dur` or a
-// new `until` takes it away, and so does 0, an end back on its point.
+// `until` its `dur`. A key the span `patchSpan` makes lacks is taken away: an
+// `untilOffset` once a `dur` or a new `until` ends the span (or 0 puts the end
+// back on its point), an `ends` once it runs `until` a point. A write is
+// judged by the span its text holds (`cueLanded`), decoded, never rebuilt.
 
 import { Array as Arr, Match, Option, Predicate, Result, Schema } from 'effect';
 import {
@@ -26,10 +28,10 @@ import {
   Visitor,
   parseSync,
 } from 'oxc-parser';
-import { type CuePatch, EaseName, type Knob, Span, Until } from '../core/schema.ts';
+import { CUE_PATCH_KEYS, type CuePatch, type Knob, Span, Until } from '../core/schema.ts';
 import { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
-import { writtenPatch } from '../core/timeline.ts';
+import { patchSpan, writtenPatch } from '../core/timeline.ts';
 
 /** A `timeline` or `knobs` property: an object literal, something else, or not there. */
 type Slot =
@@ -50,14 +52,10 @@ export interface DrawingSite {
 /** What a field holds in the source: a literal the lab may rewrite, nothing yet, or code. */
 type FieldState = 'literal' | 'absent' | 'computed';
 
-interface EditableCue {
-  readonly name: string;
-  readonly offset: FieldState;
-  readonly dur: FieldState;
-  readonly until: FieldState;
-  readonly ease: FieldState;
-  readonly stagger: FieldState;
-}
+/** A cue, and what each field a patch may set holds in its source. */
+type EditableCue = { readonly name: string } & {
+  readonly [K in keyof CuePatch]-?: FieldState;
+};
 
 interface EditableKnob {
   readonly name: string;
@@ -78,10 +76,8 @@ interface Splice {
 
 /** The keys a span is anchored by; the lab writes the timing fields after them, in order. */
 const ANCHORS: ReadonlyArray<string> = ['mark', 'word', 'after', 'with', 'at'];
-const TIMING = ['offset', 'dur', 'until', 'untilOffset', 'ease', 'stagger'] satisfies ReadonlyArray<
-  keyof CuePatch
->;
-type TimingKey = (typeof TIMING)[number];
+const TIMING = CUE_PATCH_KEYS;
+type TimingKey = keyof CuePatch;
 
 /**
  * A number as the lab writes it: to the millisecond (`toMs`), never `-0`; the
@@ -509,9 +505,15 @@ const spanOf = (
     }),
   );
 
-/** An expression of literals only (numbers, strings, arrays, objects), as plain data. */
+/** A boolean literal's value (`ends: true`, `silence: true`). */
+const booleanOf = (e: Expression): Option.Option<boolean> => {
+  if (e.type === 'Literal' && Predicate.isBoolean(e.value)) return Option.some(e.value);
+  return Option.none();
+};
+
+/** An expression of literals only (numbers, strings, booleans, arrays, objects), as plain data. */
 const plain = (e: Expression): Option.Option<unknown> => {
-  const scalar = Option.orElse(numberOf(e), () => stringOf(e));
+  const scalar = Option.firstSomeOf<unknown>([numberOf(e), stringOf(e), booleanOf(e)]);
   if (Option.isSome(scalar)) return scalar;
   if (e.type === 'ArrayExpression')
     return Option.all(e.elements.map((x) => Option.flatMap(expressionOf(Option.some(x)), plain)));
@@ -535,6 +537,7 @@ const plain = (e: Expression): Option.Option<unknown> => {
 };
 
 const decodeUntil = Schema.decodeUnknownOption(Until, { onExcessProperty: 'error' });
+const decodeSpan = Schema.decodeUnknownOption(Span);
 
 /** A mark or cue/landmark object with every value declared literally. */
 const isUntilLiteral = (e: Expression): boolean =>
@@ -560,6 +563,7 @@ const editableCue = (file: string, cue: string, span: ObjectExpression): Editabl
     offset: state('offset', isNumberLiteral),
     dur: state('dur', isNumberLiteral),
     until: state('until', isUntilLiteral),
+    untilOffset: state('untilOffset', isNumberLiteral),
     ease: state('ease', isStringLiteral),
     stagger: state('stagger', isNumberLiteral),
   };
@@ -773,62 +777,118 @@ const removal = (
 };
 
 /**
- * Whether `patch` takes a span's `untilOffset` away: an end set another way
- * (a `dur`, or a new `until` with no offset of its own), or put back on its
- * point (0, to the millisecond).
+ * What stands in for a span's value the source computes (`until: MARK`), by
+ * its key: a value of the key's type, so the span still decodes and reads the
+ * same on both sides of a write that leaves that value be.
  */
-const dropsUntilOffset = (patch: CuePatch): boolean =>
-  'dur' in patch ||
-  ('until' in patch && !('untilOffset' in patch)) ||
-  Option.exists(Option.fromUndefinedOr(patch.untilOffset), (v) => toMs(v) === 0);
+const STAND_IN: ReadonlyMap<string, string | number | boolean> = new Map<
+  string,
+  string | number | boolean
+>([
+  ['mark', ''],
+  ['word', ''],
+  ['after', ''],
+  ['with', ''],
+  ['at', 'start'],
+  ['offset', 0],
+  ['dur', 0],
+  ['ends', true],
+  ['until', ''],
+  ['untilOffset', 0],
+  ['ease', 'linear'],
+  ['stagger', 0],
+  ['silence', true],
+]);
 
 /**
- * The splices that take the span's `untilOffset` away when `patch` drops it
- * (`dropsUntilOffset`) and the span has one (`removal`); refused over one in
- * code. An `untilOffset` on a span that runs no `until`, and is given none, is
- * refused: it has no point to be off.
+ * A span object as a `Span`: every literal value as the source declares it,
+ * and every value it computes by its stand-in (`STAND_IN`). None when the
+ * object does not decode as a span (an `until` beside an `ends`, say).
  */
-const untilOffsetDrop = (
+const literalSpan = (span: ObjectExpression): Option.Option<Span> =>
+  decodeSpan(
+    Object.fromEntries(
+      span.properties.flatMap((p) => {
+        if (p.type === 'SpreadElement') return [];
+        return Option.match(keyName(p), {
+          onNone: () => [],
+          onSome: (key) =>
+            Option.toArray(
+              Option.map(
+                Option.orElse(Option.flatMap(valueOf(p), plain), () =>
+                  Option.fromUndefinedOr(STAND_IN.get(key)),
+                ),
+                (value) => [key, value] as const,
+              ),
+            ),
+        });
+      }),
+    ),
+  );
+
+/**
+ * The splices that take away each key the span declares and the span `patch`
+ * makes of it lacks (`patchSpan`): an `untilOffset` once the end is set
+ * another way or put back on its point, an `ends` once it runs `until` a
+ * point. A key the patch writes in its place (`otherEnd`: a `dur` over an
+ * `until`) is replaced, not taken away. Refused over one in code; and an
+ * `untilOffset` on a span that runs no `until`, and is given none, is refused:
+ * it has no point to be off.
+ */
+const droppedBy = (
   file: string,
   source: string,
   span: ObjectExpression,
   cue: string,
   patch: CuePatch,
-): Result.Result<ReadonlyArray<Splice>, SourceRefused> => {
-  const target = `cue ${cue} untilOffset`;
-  const none: ReadonlyArray<Splice> = [];
-  return Result.flatMap(propertyOf(file, `cue ${cue} until`, span, 'until'), (until) => {
+): Result.Result<ReadonlyArray<Splice>, SourceRefused> =>
+  Result.flatMap(propertyOf(file, `cue ${cue} until`, span, 'until'), (until) => {
     if ('untilOffset' in patch && !('until' in patch) && Option.isNone(until))
       return refuse<ReadonlyArray<Splice>>(
         file,
-        target,
+        `cue ${cue} untilOffset`,
         'it runs no until, so its end has no point to be off (it ends by its dur)',
       );
-    if (!dropsUntilOffset(patch)) return Result.succeed(none);
-    return Result.flatMap(propertyOf(file, target, span, 'untilOffset'), (prop) =>
-      Option.match(prop, {
-        onNone: () => Result.succeed(none),
-        onSome: (p) => {
-          if (!Option.exists(valueOf(p), isNumberLiteral))
-            return refuse<ReadonlyArray<Splice>>(
-              file,
-              target,
-              `it is \`${textOf(source, p.value)}\`, not a literal, so the lab cannot take it away`,
-            );
-          return Result.succeed(removal(source, span, p));
-        },
-      }),
+    const declared = literalSpan(span);
+    if (Option.isNone(declared)) return Result.succeed([]);
+    const kept = patchSpan(declared.value, patch);
+    const replaced = TIMING.flatMap((key) =>
+      Option.toArray(Option.filter(otherEnd(key), () => Option.isSome(valueText(key, patch)))),
+    );
+    const gone = Object.keys(declared.value).filter(
+      (key) => !Object.hasOwn(kept, key) && !replaced.some((r) => r === key),
+    );
+    return Result.map(
+      Result.all(
+        gone.map((key) => {
+          const target = `cue ${cue} ${key}`;
+          return Result.flatMap(propertyOf(file, target, span, key), (prop) =>
+            Option.match(prop, {
+              onNone: () => Result.succeed<ReadonlyArray<Splice>>([]),
+              onSome: (p) => {
+                if (Option.isNone(Option.flatMap(valueOf(p), plain)))
+                  return refuse<ReadonlyArray<Splice>>(
+                    file,
+                    target,
+                    `it is \`${textOf(source, p.value)}\`, not a literal, so the lab cannot take it away`,
+                  );
+                return Result.succeed(removal(source, span, p));
+              },
+            }),
+          );
+        }),
+      ),
+      (each) => each.flat(),
     );
   });
-};
 
 /**
  * Set a cue's `offset`, `dur`, `until`, `untilOffset`, `ease` or `stagger` in
  * the drawing exported as `name`: the value's text replaced where it is a
- * literal, or the field added after the span's anchor; an `untilOffset` the
- * patch drops (`dropsUntilOffset`) is taken away. The patch is written as a
- * scene file holds it (`writtenPatch`), the one rounding its check judges.
- * The result is the whole new source.
+ * literal, or the field added after the span's anchor; a key the new span
+ * lacks is taken away (`droppedBy`). The patch is written as a scene file
+ * holds it (`writtenPatch`), the one rounding its check judges. The result is
+ * the whole new source.
  */
 export const editCue = (
   file: string,
@@ -841,7 +901,7 @@ export const editCue = (
     const written = writtenPatch(patch);
     const splices: Array<Splice> = [];
     const inserts = new Map<number, Array<string>>();
-    const dropped = untilOffsetDrop(file, source, span, cue, written);
+    const dropped = droppedBy(file, source, span, cue, written);
     if (Result.isFailure(dropped)) return Result.fail(dropped.failure);
     splices.push(...dropped.success);
     for (const key of TIMING) {
@@ -907,57 +967,38 @@ export const editKnob = (
     }),
   );
 
-const decodeEase = Schema.decodeUnknownOption(EaseName);
+const sameSpan = Schema.toEquivalence(Span);
 
-/** A cue's literal timing fields as the source declares them (what a write reads back). */
-export const readCue = (
+/**
+ * What of a write of `patch` to cue `cue` did not land in `after`, the text
+ * written over `before`: none when the span `after` holds, decoded from its
+ * text (a value it computes by its stand-in, `spanShape`), is the span
+ * `patch` makes of the one `before` held (`patchSpan` over `writtenPatch`);
+ * else the cue, and the span it holds against the one it was to hold, or that
+ * it holds none (it does not decode, as an `until` beside an `ends` would not).
+ */
+export const cueLanded = (
   file: string,
-  source: string,
+  before: string,
+  after: string,
   name: string,
   cue: string,
-): Result.Result<CuePatch, SourceRefused> =>
-  Result.flatMap(spanOf(file, source, name, cue), (span) => {
-    const read = (key: TimingKey) =>
-      Result.map(propertyOf(file, `cue ${cue}`, span, key), (prop) =>
-        Option.flatMap(prop, valueOf),
-      );
-    return Result.map(
-      Result.all({
-        offset: read('offset'),
-        dur: read('dur'),
-        until: read('until'),
-        untilOffset: read('untilOffset'),
-        ease: read('ease'),
-        stagger: read('stagger'),
-      }),
-      (f): CuePatch => ({
-        ...Option.match(Option.flatMap(f.offset, numberOf), {
-          onNone: () => ({}),
-          onSome: (offset) => ({ offset }),
-        }),
-        ...Option.match(Option.flatMap(f.dur, numberOf), {
-          onNone: () => ({}),
-          onSome: (dur) => ({ dur }),
-        }),
-        ...Option.match(Option.flatMap(f.until, stringOf), {
-          onNone: () => ({}),
-          onSome: (until) => ({ until }),
-        }),
-        ...Option.match(Option.flatMap(f.untilOffset, numberOf), {
-          onNone: () => ({}),
-          onSome: (untilOffset) => ({ untilOffset }),
-        }),
-        ...Option.match(Option.flatMap(Option.flatMap(f.ease, stringOf), decodeEase), {
-          onNone: () => ({}),
-          onSome: (ease) => ({ ease }),
-        }),
-        ...Option.match(Option.flatMap(f.stagger, numberOf), {
-          onNone: () => ({}),
-          onSome: (stagger) => ({ stagger }),
-        }),
-      }),
-    );
-  });
+  patch: CuePatch,
+): Result.Result<ReadonlyArray<string>, SourceRefused> =>
+  Result.flatMap(spanOf(file, before, name, cue), (was) =>
+    Result.map(spanOf(file, after, name, cue), (now) => {
+      const held = literalSpan(now);
+      const meant = Option.map(literalSpan(was), (span) => patchSpan(span, writtenPatch(patch)));
+      if (Option.isNone(held)) return [`cue ${cue} is not a span as written`];
+      if (Option.isNone(meant)) return [`cue ${cue} was not a span before the write`];
+      if (sameSpan(held.value, meant.value)) return [];
+      const entries = (s: Span) => new Map(Object.entries(s));
+      const [is, ought] = [entries(held.value), entries(meant.value)];
+      return Arr.dedupe([...is.keys(), ...ought.keys()])
+        .filter((key) => is.get(key) !== ought.get(key))
+        .map((key) => `cue ${cue} ${key}`);
+    }),
+  );
 
 /** A knob's literal value as the source declares it; none when it is computed. */
 export const readKnob = (
@@ -977,8 +1018,6 @@ export const readKnob = (
       ),
     ),
   );
-
-const decodeSpan = Schema.decodeUnknownOption(Span);
 
 /**
  * The spans of the drawing's timeline that are literal through and through,

@@ -672,10 +672,10 @@ describe('studio routes', () => {
           ['a', a1],
           ['b', b1],
         ]);
-        yield* writer.undo(FILM);
+        yield* writer.step('undo', FILM);
         expect(yield* takeOf(secondBeat ?? '')).toBe(before.get(secondBeat ?? '') ?? '');
         expect(yield* takeOf(firstBeat ?? '')).toBe(kept.get(firstBeat ?? '') ?? '');
-        yield* writer.undo(FILM);
+        yield* writer.step('undo', FILM);
         expect(files.get(film.paths.timings.file)).toEqual(start);
         expect([narrationOf(files, 'a'), narrationOf(files, 'b')]).toEqual([[a2], [b2]]);
       }).pipe(Effect.scoped, Effect.provide(layer));

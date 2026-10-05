@@ -11,7 +11,7 @@
 // before anything reads it: any other name is a 404 that lists the films,
 // never a path.
 
-import { Effect, Option, Path } from 'effect';
+import { Effect, Option } from 'effect';
 import { HttpApiBuilder } from 'effect/http-api';
 import { LabHttpApi } from '../core/api.ts';
 import type { ChoiceWrite } from '../core/choice.ts';
@@ -21,6 +21,7 @@ import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { mixedAnswer } from './lab-page.ts';
 import { IMMUTABLE, serveFile } from './review-file.ts';
+import { wroteFields } from './steps-http.ts';
 
 /**
  * A mix: its URL names the point and variant, not the source it was mixed
@@ -34,23 +35,12 @@ const MIXED = 'no-cache';
  * choices now, the check, and the mix it made as a page hears it.
  */
 const answer = Effect.fn('choices.answer')(function* (film: FilmName, picked: Picked) {
-  const path = yield* Path.Path;
-  const dir = (yield* FilmFolder).paths(film).dir;
+  // A choice lands in a film's own file: no scene.
+  const fields = yield* wroteFields(film, { ...picked, scene: Option.none() });
   // Named before the check runs: the mix by when this write landed it, never one landed since.
   const mixed = yield* mixedAnswer(film, picked.mixed);
   const { choices, findings } = yield* (yield* Choices).checked(film);
-  const wrote: ChoiceWrite = {
-    file: path.relative(dir, picked.file),
-    target: Option.match(picked.change, {
-      onNone: () => `${picked.target} (already so)`,
-      onSome: (c) => c.target,
-    }),
-    // The change it made, by its id: what its receipt's Undo asks for; none when already so.
-    ...Option.match(picked.change, { onNone: () => ({}), onSome: (c) => ({ change: c.id }) }),
-    choices,
-    findings,
-    ...mixed,
-  };
+  const wrote: ChoiceWrite = { ...fields, choices, findings, ...mixed };
   return wrote;
 });
 

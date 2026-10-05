@@ -9,7 +9,7 @@ import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Cue, Sound } from '../core/schema.ts';
 import type { ResolvedShort } from '../core/shorts.ts';
 import { cueTime } from '../core/sound.ts';
-import { untilEndText } from '../core/timeline.ts';
+import { endsLate, untilEndText } from '../core/timeline.ts';
 import { longSeams, seamAfter } from './check.ts';
 import type { FlagRule } from './render-plan.ts';
 
@@ -71,7 +71,7 @@ const lineOf = (p: Placed, seam: string): CueLine => {
   let late = 0;
   const cues = [...p.cues].map(([k, c]) => {
     const span = `${k}@${c.start.toFixed(2)}–${c.end.toFixed(2)}${offPoint(p, k)}`;
-    if (c.end <= p.dur + 1e-9) return span;
+    if (!endsLate(c, p.dur)) return span;
     late++;
     return `${span} (ENDS AFTER SCENE)`;
   });

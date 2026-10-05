@@ -6,6 +6,7 @@
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import {
+  Array as Arr,
   Context,
   Deferred,
   Duration,
@@ -15,7 +16,6 @@ import {
   Layer,
   Option,
   Path,
-  Result,
   Schema,
 } from 'effect';
 import { TestClock } from 'effect/testing';
@@ -23,16 +23,10 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { collect } from './process.ts';
 import { ContentStore, type Manifest } from './content-store.ts';
 import { FilmName, FilmRepo } from './film-repo.ts';
+import { readSpans } from './scene-source.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
-import {
-  FORMAT_LIMIT,
-  SourceWriter,
-  UNDO_DEPTH,
-  emptyHistory,
-  recordChange,
-  stepFits,
-} from './source-writer.ts';
+import { FORMAT_LIMIT, SourceWriter } from './source-writer.ts';
 import { freshHere, sceneFixture } from './testing.ts';
 
 /** The timeout of a test here that spawns (bunx oxfmt, sh, sleep): a cold start's time is the machine's (film/spawn-budget). */
@@ -110,6 +104,13 @@ const keep = (_: string, command: ChildProcess.Command) => Effect.succeed(comman
 const isOxfmt = (command: ChildProcess.Command) =>
   command._tag === 'StandardCommand' && command.args.includes('oxfmt');
 
+/** oxfmt as `cat`: the text as it was, so a test that writes many times spends no format run on each. */
+const formatAsIs = (_: string, command: ChildProcess.Command) =>
+  Effect.sync((): ChildProcess.Command => {
+    if (!isOxfmt(command) || command._tag !== 'StandardCommand') return command;
+    return ChildProcess.make('cat', [], command.options);
+  });
+
 /** What an editor saves: its buffer (the file as it was before the lab's write) plus a new line. */
 const EDITOR_LINE = '// a line typed in the editor\n';
 
@@ -178,7 +179,12 @@ describe.concurrent('scene writer', () => {
             "topple: { mark: 'earns', offset: 0.4,",
           ),
         );
-        expect(written).toMatchObject({ film: 'f', target: 'cue topple offset', before, after });
+        expect(Option.getOrThrow(written.change)).toMatchObject({
+          film: 'f',
+          target: 'cue topple offset',
+          before,
+          after,
+        });
         expect(written.scene).toEqual(Option.some('hand'));
       }).pipe(Effect.provide(fixture)),
     SPAWNS_MS,
@@ -240,6 +246,23 @@ describe.concurrent('scene writer', () => {
         before.replace('offset: 0.1, dur: 1.8 }', "offset: -0.5, until: 'earns' }"),
       );
     }).pipe(Effect.provide(fixture)),
+  );
+
+  it.effect(
+    'an until written over a span that lands on its anchor leaves a span that decodes',
+    () =>
+      Effect.gen(function* () {
+        const landing = (yield* read()).replace(
+          "topple: { mark: 'earns', offset: 0.1, dur: 1.8 }",
+          "topple: { mark: 'earns', dur: 1.8, ends: true }",
+        );
+        yield* (yield* FileSystem.FileSystem).writeFileString(yield* HandFile, landing);
+        yield* (yield* SceneWriter).setCue(F, 'hand', 'topple', { until: 'earns' });
+        expect(readSpans('scenes/hand.ts', yield* read(), 'hand')['topple']).toEqual({
+          mark: 'earns',
+          until: 'earns',
+        });
+      }).pipe(Effect.provide(fixture)),
   );
 
   it.effect(
@@ -330,9 +353,9 @@ describe.concurrent('scene writer', () => {
         latest: Option.some('knob palm'),
       });
       // Undo twice: the knob, then the ease.
-      expect((yield* source.undo('f'))[0].target).toBe('undo knob palm');
+      expect((yield* source.step('undo', 'f'))[0].target).toBe('undo knob palm');
       expect(yield* read()).toBe(afterEase);
-      expect((yield* source.undo('f'))[0].target).toBe('undo cue topple ease');
+      expect((yield* source.step('undo', 'f'))[0].target).toBe('undo cue topple ease');
       expect(yield* read()).toBe(before);
       // A page reloaded by the undo learns what it did here.
       expect(yield* targets).toEqual({
@@ -340,17 +363,17 @@ describe.concurrent('scene writer', () => {
         redo: Option.some('cue topple ease'),
         latest: Option.some('undo cue topple ease'),
       });
-      expect((yield* Effect.flip(source.undo('f')))._tag).toBe('UndoUnavailable');
+      expect((yield* Effect.flip(source.step('undo', 'f')))._tag).toBe('UndoUnavailable');
       // Redo twice: the ease, then the knob.
-      expect((yield* source.redo('f'))[0].target).toBe('redo cue topple ease');
+      expect((yield* source.step('redo', 'f'))[0].target).toBe('redo cue topple ease');
       expect(yield* read()).toBe(afterEase);
-      expect((yield* source.redo('f'))[0].target).toBe('redo knob palm');
+      expect((yield* source.step('redo', 'f'))[0].target).toBe('redo knob palm');
       expect(yield* read()).toBe(afterKnob);
-      expect((yield* Effect.flip(source.redo('f')))._tag).toBe('RedoUnavailable');
+      expect((yield* Effect.flip(source.step('redo', 'f')))._tag).toBe('RedoUnavailable');
       // A new write after an undo drops what could be redone.
-      yield* source.undo('f');
+      yield* source.step('undo', 'f');
       yield* writer.setKnob(F, 'hand', 'palm', [3, 4]);
-      expect((yield* Effect.flip(source.redo('f')))._tag).toBe('RedoUnavailable');
+      expect((yield* Effect.flip(source.step('redo', 'f')))._tag).toBe('RedoUnavailable');
     }).pipe(Effect.provide(fixture)),
   );
 
@@ -362,47 +385,43 @@ describe.concurrent('scene writer', () => {
       yield* writer.setKnob(F, 'hand', 'palm', [1, 2]);
       yield* fs.writeFileString(yield* HandFile, `${yield* read()}// edited by hand\n`);
       const edited = yield* read();
-      const refused = yield* Effect.flip(source.undo('f'));
+      const refused = yield* Effect.flip(source.step('undo', 'f'));
       expect(refused.message).toContain('has changed since the lab wrote knob palm');
       expect(yield* read()).toBe(edited);
       // The editor's line taken out again: the undo runs, and the redo is refused over a new one.
       yield* fs.writeFileString(yield* HandFile, edited.replace('// edited by hand\n', ''));
-      yield* source.undo('f');
+      yield* source.step('undo', 'f');
       yield* fs.writeFileString(yield* HandFile, `${yield* read()}// edited by hand\n`);
-      const redo = yield* Effect.flip(source.redo('f'));
+      const redo = yield* Effect.flip(source.step('redo', 'f'));
       expect(redo.message).toContain('has changed since the lab undid knob palm');
     }).pipe(Effect.provide(fixture)),
   );
 
-  it.effect('the undo stack keeps the newest writes, up to its depth', () =>
-    Effect.sync(() => {
-      const w = (n: number) => ({
-        id: `k${n}`,
-        film: 'f',
-        scene: Option.some('s'),
-        file: 'f.ts',
-        target: `knob k${n}`,
-        before: `${n - 1}`,
-        after: `${n}`,
-        follows: Option.none(),
-      });
-      let history = emptyHistory;
-      for (const n of [1, 2, 3, 4, 5]) history = recordChange(history, w(n), 3);
-      expect(history.undos.map((x) => x.target)).toEqual(['knob k3', 'knob k4', 'knob k5']);
-      expect(UNDO_DEPTH).toBeGreaterThanOrEqual(20);
-      // A step asked for one change takes the newest only when it is that change.
-      const top = w(5);
-      expect(Result.isSuccess(stepFits('undo', history.undos, top, Option.none()))).toBe(true);
-      expect(Result.isSuccess(stepFits('undo', history.undos, top, Option.some('k5')))).toBe(true);
-      const later = stepFits('undo', history.undos, top, Option.some('k4'));
-      expect(Result.isFailure(later) && later.failure.message).toBe(
-        'cannot undo that change: knob k5 came after it: undo that first',
-      );
-      const gone = stepFits('undo', history.undos, top, Option.some('k1'));
-      expect(Result.isFailure(gone) && gone.failure.message).toBe(
-        "cannot undo that change: it is no longer in the film's changes",
-      );
-    }),
+  it.effect(
+    'the undo stack keeps the newest fifty writes, and an Undo asked for one change takes only the newest',
+    () =>
+      Effect.gen(function* () {
+        const writer = yield* SceneWriter;
+        const source = yield* SourceWriter;
+        // Fifty-one writes: the first falls off a stack fifty deep.
+        const ids: Array<string> = [];
+        for (const n of Arr.range(1, 51)) {
+          const written = yield* writer.setKnob(F, 'hand', 'palm', [n, n]);
+          ids.push(Option.getOrThrow(written.change).id);
+        }
+        const idOf = (n: number) => ids[n - 1] ?? '';
+        const asked = (n: number) => Effect.flip(source.step('undo', 'f', { change: idOf(n) }));
+        expect((yield* asked(50)).message).toBe(
+          'cannot undo that change: knob palm came after it: undo that first',
+        );
+        expect((yield* asked(1)).message).toBe(
+          "cannot undo that change: it is no longer in the film's changes",
+        );
+        expect((yield* source.step('undo', 'f', { change: idOf(51) }))[0].id).toBe(idOf(51));
+        for (const _ of Arr.range(2, 50)) yield* source.step('undo', 'f');
+        expect((yield* Effect.flip(source.step('undo', 'f')))._tag).toBe('UndoUnavailable');
+      }).pipe(Effect.provide(fixtureWith(formatAsIs))),
+    SPAWNS_MS,
   );
 
   it.effect('an editor save while oxfmt runs is kept, and the write fails as SourceChanged', () =>

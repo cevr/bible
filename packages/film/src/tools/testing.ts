@@ -511,8 +511,7 @@ export const noSource = Layer.mergeAll(
     SourceWriter.of({
       write: () => unusedSource,
       around: () => unusedSource,
-      undo: () => unusedSource,
-      redo: () => unusedSource,
+      step: () => unusedSource,
       history: () => unusedSource,
     }),
   ),
@@ -1635,12 +1634,11 @@ const reviewFilmServices = (films: string, PICK = reviewPickIn(films)) =>
       SourceWriter.of({
         write: () => reviewUnused,
         around: () => reviewUnused,
-        undo: () =>
+        step: (verb) =>
           Effect.succeed([
-            { ...PICK, target: `undo ${PICK.target}` },
+            { ...PICK, target: `${verb} ${PICK.target}` },
             Option.none<number>(),
           ] as const),
-        redo: () => reviewUnused,
         history: () =>
           Effect.succeed({
             undo: Option.none(),

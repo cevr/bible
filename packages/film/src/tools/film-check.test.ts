@@ -5,7 +5,18 @@
 
 import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, type FileSystem, Layer, Option, Predicate, Result, Schema } from 'effect';
+import { BunPath } from '@effect/platform-bun';
+import {
+  Effect,
+  type FileSystem,
+  Layer,
+  Match,
+  Option,
+  type Path,
+  Predicate,
+  Result,
+  Schema,
+} from 'effect';
 import { filmEnd, layout } from '../core/layout.ts';
 import { mixKey } from '../core/mix.ts';
 import { voiceKey } from '../core/narration.ts';
@@ -13,7 +24,7 @@ import type { Timed, Timings } from '../core/schema.ts';
 import { laidOut, staticLeg } from './film-check.ts';
 import { type StaticFinding, lineOf, report } from './findings.ts';
 import type { Media } from './media.ts';
-import { masterFile } from './film-repo.ts';
+import { type LoadedFilm, masterFile } from './film-repo.ts';
 import { MasterStampJson, planOf, stampFile } from './mixer.ts';
 import { fakeMedia, memoryFileSystem, spokenTake, testFilm, testVoice, text } from './testing.ts';
 
@@ -29,14 +40,29 @@ const film = testFilm(scenes, recorded);
 const placed = Result.getOrThrow(layout(scenes, recorded));
 const NOW = { score: Option.none<string>(), take: Option.none() };
 
-/** The static leg over `files`: what it needs is all it is given. */
-const run = (files: Map<string, Uint8Array>) => {
+/** The same film in a folder on Windows. */
+const onWindows: LoadedFilm = {
+  ...film,
+  paths: {
+    ...film.paths,
+    dir: 'C:\\films\\test',
+    narration: 'C:\\films\\test\\narration',
+    sound: 'C:\\films\\test\\sound',
+  },
+};
+
+/** The static leg over `files`, its paths `paths`: what it needs is all it is given. */
+const run = (
+  files: Map<string, Uint8Array>,
+  of: LoadedFilm = film,
+  paths: Layer.Layer<Path.Path> = BunPath.layerPosix,
+) => {
   const leg: Effect.Effect<
     ReadonlyArray<StaticFinding>,
     unknown,
-    FileSystem.FileSystem | Media
-  > = staticLeg(film, placed);
-  return leg.pipe(Effect.provide(Layer.mergeAll(memoryFileSystem(files), fakeMedia(files))));
+    FileSystem.FileSystem | Media | Path.Path
+  > = staticLeg(of, placed);
+  return leg.pipe(Effect.provide(Layer.mergeAll(memoryFileSystem(files), fakeMedia(files), paths)));
 };
 
 /** The master's findings: missing, or stale. */
@@ -48,6 +74,23 @@ describe('the static leg', () => {
   it.effect('with every take recorded and no track, the master is missing', () =>
     Effect.gen(function* () {
       expect(masterTags(yield* run(new Map()))).toEqual(['AudioMissing']);
+    }),
+  );
+
+  it.effect("names the master by its place in the film's folder, on either path layer", () =>
+    Effect.gen(function* () {
+      const named = (found: ReadonlyArray<StaticFinding>) =>
+        found.flatMap((f) =>
+          Match.value(f).pipe(
+            Match.tags({ AudioMissing: (m) => [[m.file, m.message]] }),
+            Match.orElse(() => []),
+          ),
+        );
+      const said = 'no audio master at narration/full.wav; run mix to build it (no API calls)';
+      expect(named(yield* run(new Map()))).toEqual([['narration/full.wav', said]]);
+      expect(named(yield* run(new Map(), onWindows, BunPath.layerWin32))).toEqual([
+        ['narration/full.wav', said],
+      ]);
     }),
   );
 

@@ -14,8 +14,9 @@ const ball = drawing({
     rise: { mark: 'rise', dur: 0.6 },
     fall: { mark: 'fall', dur: 0.4 },
   },
-  // `tilt` is 0, as a knob at rest often is: it still gets its row.
-  knobs: { spot: [320, 200], size: 24, tilt: 0 },
+  // `tilt` is 0, as a knob at rest often is: it still gets its row. `lean`
+  // is a literal finer than a field prints it (to the thousandth), drawn by nothing.
+  knobs: { spot: [320, 200], size: 24, tilt: 0, lean: 0.1234 },
   draw: (f) => {
     const [x, y] = f.knob('spot');
     const tilt = f.knob('tilt');

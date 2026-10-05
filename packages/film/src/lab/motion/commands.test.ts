@@ -55,4 +55,8 @@ describe('Loop this scene', () => {
     expect(sceneSpan(placed, 0)).toEqual(Option.some({ from: 0, to: 4 }));
     expect(sceneSpan([], 1)).toEqual(Option.none());
   });
+
+  test('a time a hair of float error short of a start plays the scene starting there', () => {
+    expect(sceneSpan(placed, 4 - 1e-10)).toEqual(Option.some({ from: 4, to: 6.5 }));
+  });
 });

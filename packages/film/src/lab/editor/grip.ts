@@ -33,7 +33,14 @@ import {
   Timeline,
 } from '../../core/schema.ts';
 import { toMs } from '../../core/time.ts';
-import { type DragEdge, dragPatch, patchSpan, untilText } from '../../core/timeline.ts';
+import {
+  type DragEdge,
+  dragFields,
+  dragPatch,
+  patchSpan,
+  untilText,
+  writtenPatch,
+} from '../../core/timeline.ts';
 import { StepVerb } from '../api.ts';
 
 /** How near (screen pixels) an edge must come to a word, mark or cue edge to snap to it. */
@@ -294,22 +301,41 @@ const barAt = (grip: CueGrip, pointer: Pointer) => {
   return { start: c0.start, end: Math.max(snapEdge(c0.end, dt, near, pointer.free), c0.start) };
 };
 
+/** A cue write, and the span the page shows while it is on its way. */
+interface CueCommit {
+  readonly write: CueWrite;
+  readonly span: Span;
+}
+
+/**
+ * One commit of `patch` to cue `name` of `scene` (its span `span`, resolved as
+ * `cue`): the write it sends, the patch as a scene file holds it
+ * (`writtenPatch`), and the span the page shows meanwhile, made of that same
+ * patch. Every cue write the editor makes (a drag, a field, an ease) is one.
+ */
+export const cueCommit = (
+  scene: string,
+  name: string,
+  span: Span,
+  cue: ResolvedCue,
+  patch: CuePatch,
+): CueCommit => {
+  const written = writtenPatch(patch);
+  return {
+    write: CueWrite.make({ scene, cue: name, patch: written, said: cueSaid(span, cue, written) }),
+    span: patchSpan(span, written),
+  };
+};
+
 /** A cue grabbed by `grip`, dragged to `pointer`. */
 export const dragCue = (grip: CueGrip, pointer: Pointer): Dragged => {
-  const patch = dragPatch(grip.span, grip.cue0, grip.edge, barAt(grip, pointer), 1 / grip.fps);
-  const span = Option.match(patch, {
-    onNone: () => grip.span,
-    onSome: (q) => patchSpan(grip.span, q),
-  });
+  const commit = Option.map(
+    dragPatch(grip.span, grip.cue0, grip.edge, barAt(grip, pointer), 1 / grip.fps),
+    (patch) => cueCommit(grip.scene, grip.cue, grip.span, grip.cue0, patch),
+  );
+  const span = Option.match(commit, { onNone: () => grip.span, onSome: (c) => c.span });
   return {
-    write: Option.map(patch, (q) =>
-      CueWrite.make({
-        scene: grip.scene,
-        cue: grip.cue,
-        patch: q,
-        said: cueSaid(grip.span, grip.cue0, q),
-      }),
-    ),
+    write: Option.map(commit, (c) => c.write),
     scene: grip.scene,
     edit: { timeline: { ...grip.timeline, [grip.cue]: span } },
   };
@@ -434,38 +460,37 @@ export const knobRefusal = (
     },
   });
 
-const NEEDS = {
-  move: ['offset'],
-  end: ['dur'],
-  start: ['offset', 'dur'],
-} as const satisfies Record<DragEdge, ReadonlyArray<'offset' | 'dur'>>;
-
 const PAST = { undo: 'undid', redo: 'redid' } as const;
 
 /**
- * Why a drag of `cue` at `edge` cannot write, when it cannot: the scene has no
- * source the lab can read (`error`, as the server said), its timeline is one
- * the lab will not rewrite, or a field the drag sets is computed in source.
+ * Why a write of `fields` to `cue` cannot land, when it cannot: the scene has
+ * no source the lab can read (`error`, as the server said), its timeline is
+ * one the lab will not rewrite, the cue is not in it, or a field it sets is
+ * computed in source (named). A drag writes `dragFields` of its edge.
  */
 export const cueRefusal = (
   source: Option.Option<SceneSource>,
   error: string,
   cue: string,
-  edge: DragEdge,
+  fields: ReadonlyArray<keyof CuePatch>,
 ): Option.Option<string> =>
   Option.match(source, {
     onNone: () => Option.some(`cannot edit: ${error || 'no source for this scene'}`),
     onSome: (s) => {
-      const needs: ReadonlyArray<'offset' | 'dur'> = NEEDS[edge];
       const refused = Arr.findFirst(s.refused, (r) => r.field === 'timeline');
       if (Option.isSome(refused)) return Option.some(`cannot drag ${cue}: ${refused.value.reason}`);
-      const writable = Option.exists(
+      return Option.match(
         Arr.findFirst(s.cues, (c) => c.name === cue),
-        (found) => needs.every((f) => found[f] !== 'computed'),
-      );
-      if (writable) return Option.none();
-      return Option.some(
-        `cannot drag ${cue}: its ${needs.join(' and ')} is computed in the source`,
+        {
+          onNone: () => Option.some(`cannot drag ${cue}: its span is computed in the source`),
+          onSome: (found) => {
+            const computed = fields.filter((f) => found[f] === 'computed');
+            if (computed.length === 0) return Option.none();
+            return Option.some(
+              `cannot drag ${cue}: its ${computed.join(' and ')} is computed in the source`,
+            );
+          },
+        },
       );
     },
   });
@@ -526,7 +551,7 @@ const printed = (v: number): string => String(toMs(v));
  * → after, for each field it sets: `{ offset: 0.4 → 0.367 s, dur: 1 →
  * 1.033 s }` (`cueSaidText` words it).
  */
-export const cueSaid = (span: Span, cue: ResolvedCue, patch: CuePatch): CueSaid => {
+const cueSaid = (span: Span, cue: ResolvedCue, patch: CuePatch): CueSaid => {
   const part = (field: string, before: string, after: Option.Option<string>, unit = '') =>
     Option.toArray(
       Option.map(after, (a): [string, CueSaid[string]] => [field, { before, after: a, unit }]),
@@ -566,27 +591,26 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
     {
       onNone: () => [],
       onSome: ({ span, cue }) => {
-        const write = (patch: CueWrite['patch'], edited: Span) =>
-          at.commit(CueWrite.make({ scene, cue: name, patch, said: cueSaid(span, cue, patch) }), {
-            timeline: { ...at.timeline, [name]: edited },
-          });
+        const write = (patch: CuePatch) => {
+          const commit = cueCommit(scene, name, span, cue, patch);
+          at.commit(commit.write, { timeline: { ...at.timeline, [name]: commit.span } });
+        };
         const offset = Option.getOrElse(Option.fromUndefinedOr(span.offset), () => 0);
         const offsetField: Inspected = {
           id: 'offset',
           label: 'offset',
           spec: fieldOf(CueOffset, at.fps),
           value: offset,
-          refusal: cueRefusal(at.source, at.error, name, 'move'),
-          write: (v) => write({ offset: toMs(v) }, { ...span, offset: v }),
+          refusal: cueRefusal(at.source, at.error, name, ['offset']),
+          write: (v) => write({ offset: v }),
         };
         const durField: Inspected = {
           id: 'dur',
           label: 'dur',
           spec: fieldOf(CueDur, at.fps),
           value: cue.dur,
-          refusal: cueRefusal(at.source, at.error, name, 'end'),
-          write: (v) =>
-            write({ dur: toMs(Math.max(0, v)) }, patchSpan(span, { dur: Math.max(0, v) })),
+          refusal: cueRefusal(at.source, at.error, name, ['dur']),
+          write: (v) => write({ dur: Math.max(0, v) }),
         };
         const durSpec = fieldOf(CueDur, at.fps);
         const endField: Inspected = {
@@ -594,12 +618,10 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
           label: 'end',
           spec: { ...durSpec, min: Option.some(cue.start) },
           value: cue.end,
-          refusal: cueRefusal(at.source, at.error, name, 'end'),
+          refusal: cueRefusal(at.source, at.error, name, dragFields(span, 'end')),
           write: (v) => {
             const bar = { start: cue.start, end: Math.max(cue.start, v) };
-            Option.map(dragPatch(span, cue, 'end', bar, 1 / at.fps), (patch) =>
-              write(patch, patchSpan(span, patch)),
-            );
+            Option.map(dragPatch(span, cue, 'end', bar, 1 / at.fps), write);
           },
         };
         // A cue that runs `until` a mark has no dur of its own: its end is where it is moved.

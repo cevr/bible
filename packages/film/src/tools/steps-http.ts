@@ -1,7 +1,9 @@
-// A film's writes as the lab answers them: each write with the file it
-// changed and `film check --static` after it (`writeAnswer`, which the scene
-// writes in `lab.ts` share), and the lab API's `steps` group (undo, redo,
-// check, and the steps alone, in this process) for the film its route names.
+// A film's writes as the lab answers them: each write named one way
+// (`wroteFields`: the file it changed, what it set, the change it made), with
+// `film check --static` after it (`writeAnswer`, which the scene writes in
+// `lab.ts` share; the choices' writes name theirs the same way), and the lab
+// API's `steps` group (undo, redo, check, and the steps alone, in this
+// process) for the film its route names.
 
 import { Effect, Option, Path } from 'effect';
 import { HttpApiBuilder } from 'effect/http-api';
@@ -11,40 +13,62 @@ import { answered } from './api-server.ts';
 import { FilmFolder, type FilmName, filmNamed } from './film-repo.ts';
 import { FreshFilm } from './fresh-film.ts';
 import { mixedAnswer } from './lab-page.ts';
-import { type Change, SourceWriter, type StepAsk, madeChange } from './source-writer.ts';
+import { type Change, SourceWriter, type StepAsk, type Wrote } from './source-writer.ts';
 
 /** `film check --static` as the lab shows it, in a fresh process: a check that cannot run is itself a finding. */
 const findings = (film: string) => FreshFilm.use((fresh) => fresh.check(film, 'static'));
 
-/** A change's scene as an answer names it: none for a film's own file. */
-const sceneField = (change: Change) =>
-  Option.match(change.scene, { onNone: () => ({}), onSome: (scene) => ({ scene }) });
+/** A file of `film`'s as an answer names it: relative to the film's folder. */
+const relativeTo = Effect.fn('lab.relativeTo')(function* (film: string) {
+  const path = yield* Path.Path;
+  const dir = (yield* FilmFolder).paths(film).dir;
+  return (file: string) => path.relative(dir, file);
+});
+
+/** Where a write landed as an answer names it: its scene (none for a film's own file), its file (`relative`). */
+const placed = (
+  relative: (file: string) => string,
+  at: { readonly scene: Option.Option<string>; readonly file: string },
+) => ({
+  ...Option.match(at.scene, { onNone: () => ({}), onSome: (scene) => ({ scene }) }),
+  file: relative(at.file),
+});
+
+/** A change as an answer names it: where it landed, what it set, and its id (what a receipt's Undo asks for). */
+const changeNamed = (relative: (file: string) => string, c: Change) => ({
+  ...placed(relative, c),
+  target: c.target,
+  change: c.id,
+});
+
+/** `wrote` as every answer names it: the change it made, else where it landed and what it set `(already so)`. */
+const named = (relative: (file: string) => string, wrote: Wrote) =>
+  Option.match(wrote.change, {
+    onNone: () => ({ ...placed(relative, wrote), target: `${wrote.target} (already so)` }),
+    onSome: (c) => changeNamed(relative, c),
+  });
+
+/** `wrote` as every write's answer names it, of `film` (`named`). */
+export const wroteFields = (film: string, wrote: Wrote) =>
+  Effect.map(relativeTo(film), (relative) => named(relative, wrote));
 
 /**
- * What a write answers: the file relative to the film, the value as the
- * file now reads, the mix it made as a page hears it (`read`), the check.
+ * What a write answers: the write (`wroteFields`), the value as the file now
+ * reads, the mix it made as a page hears it (`read`), the check.
  */
 export const writeAnswer = Effect.fn('lab.writeAnswer')(function* <R>(
   film: string,
-  written: Change,
+  wrote: Wrote,
   read: Effect.Effect<
     Partial<Pick<LabWrite, 'span' | 'resolved' | 'unresolved' | 'knob' | 'mixed'>>,
     never,
     R
   >,
 ) {
-  const path = yield* Path.Path;
-  const dir = (yield* FilmFolder).paths(film).dir;
+  const fields = yield* wroteFields(film, wrote);
   const found = yield* findings(film);
-  const wrote: LabWrite = {
-    ...sceneField(written),
-    file: path.relative(dir, written.file),
-    target: written.target,
-    ...Option.match(madeChange(written), { onNone: () => ({}), onSome: (change) => ({ change }) }),
-    ...(yield* read),
-    findings: found,
-  };
-  return wrote;
+  const answer: LabWrite = { ...fields, ...(yield* read), findings: found };
+  return answer;
 });
 
 /**
@@ -57,8 +81,9 @@ const stepped = (name: string, verb: 'undo' | 'redo', ask: StepAsk) =>
   answered(
     Effect.gen(function* () {
       const film = yield* filmNamed(name);
-      const [change, remade] = yield* (yield* SourceWriter)[verb](film, ask);
-      return yield* writeAnswer(film, change, mixedAnswer(film, remade));
+      const [change, remade] = yield* (yield* SourceWriter).step(verb, film, ask);
+      const wrote: Wrote = { ...change, change: Option.some(change) };
+      return yield* writeAnswer(film, wrote, mixedAnswer(film, remade));
     }),
   );
 
@@ -67,23 +92,17 @@ const stepped = (name: string, verb: 'undo' | 'redo', ask: StepAsk) =>
  * file and target, and the steps that landed under a request's id, when any did.
  */
 const history = Effect.fn('lab.history')(function* (film: FilmName) {
-  const path = yield* Path.Path;
-  const dir = (yield* FilmFolder).paths(film).dir;
+  const relative = yield* relativeTo(film);
   const kept = yield* (yield* SourceWriter).history(film);
-  const named = (c: Change) => ({
-    ...sceneField(c),
-    file: path.relative(dir, c.file),
-    target: c.target,
-    change: c.id,
-  });
+  const change = (c: Change) => changeNamed(relative, c);
   const step = (key: 'latest' | 'undo' | 'redo') =>
     Option.match(kept[key], {
       onNone: () => ({}),
-      onSome: (c) => ({ [key]: named(c) }),
+      onSome: (c) => ({ [key]: change(c) }),
     });
   const landed = () => {
     if (kept.landed.length === 0) return {};
-    return { landed: kept.landed.map((l) => ({ ...named(l.step), request: l.request })) };
+    return { landed: kept.landed.map((l) => ({ ...change(l.step), request: l.request })) };
   };
   const steps: Steps = { ...step('latest'), ...step('undo'), ...step('redo'), ...landed() };
   return steps;

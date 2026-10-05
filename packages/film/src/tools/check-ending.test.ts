@@ -10,7 +10,7 @@ import { report } from './findings.ts';
 import { holdScenes, holdTimings, testFilm } from './testing.ts';
 
 /** No track on disk, and no plan key: what a check before any mix sees. */
-const NO_MASTER = { master: Option.none(), key: Option.none() };
+const NO_MASTER = { master: Option.none(), key: Option.none(), file: 'narration/full.wav' };
 
 const WINDOW = 0.05;
 /** `secs` of master at `db`, in `WINDOW` windows. */

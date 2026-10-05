@@ -13,6 +13,7 @@ import { Pointer } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { timecode } from '../../core/time.ts';
+import { endsLate } from '../../core/timeline.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
 import { BY_BUTTON } from '../../command/command.ts';
@@ -107,7 +108,7 @@ const CueRow = (props: CueRowProps) => {
           'lab-cue',
           {
             selected: selectsCue(lab.selection(), scene(), props.name),
-            late: props.cue.end > props.placed.dur + 1e-9,
+            late: endsLate(props.cue, props.placed.dur),
           },
         ]}
         data-cue={props.name}

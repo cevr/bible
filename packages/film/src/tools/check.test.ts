@@ -71,7 +71,9 @@ import {
 const frame = { width: 1920, height: 1080 };
 const noTakes: Timings = { voice: '', scenes: {} };
 /** No track on disk, and no plan key: what a check before any mix sees. */
-const NO_MASTER: MasterAudio = { master: Option.none(), key: Option.none() };
+/** The master's file as the static leg names it. */
+const MASTER = 'narration/full.wav';
+const NO_MASTER: MasterAudio = { master: Option.none(), key: Option.none(), file: MASTER };
 /** The static leg's findings, levelled and addressed as `film check` reports them. */
 /** `film` and its placed scenes, as the static check reads them. */
 const placedFilm = (film: LoadedFilm) =>
@@ -1459,6 +1461,7 @@ describe('the audio master', () => {
       {
         master: Option.map(length, (l) => ({ length: l, key: mixedFor })),
         key: Option.some(NOW),
+        file: MASTER,
       },
     )
       .filter(besideEnding)
@@ -1468,7 +1471,7 @@ describe('the audio master', () => {
       film,
       placed,
       { allowStale: false },
-      { master: Option.some({ length, key: mixedFor }), key: Option.some(NOW) },
+      { master: Option.some({ length, key: mixedFor }), key: Option.some(NOW), file: MASTER },
     )
       .map((r) => r.finding)
       .filter((f): f is AudioStale => f._tag === 'AudioStale')

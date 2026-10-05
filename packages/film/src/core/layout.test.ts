@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
-import { SCENE_EPSILON, layout, sceneAt, sceneIndexAt } from './layout.ts';
+import { layout, sceneAt, sceneIndexAt } from './layout.ts';
+import { CLOCK_EPSILON } from './time.ts';
 
 const placed = Result.getOrThrow(
   layout(
@@ -20,8 +21,8 @@ describe('sceneAt', () => {
   });
 
   test('a time computed a hair short of a start is in that scene', () => {
-    expect(id(4 - SCENE_EPSILON / 2)).toEqual(Option.some('b'));
-    expect(id(4 - SCENE_EPSILON * 10)).toEqual(Option.some('a'));
+    expect(id(4 - CLOCK_EPSILON / 2)).toEqual(Option.some('b'));
+    expect(id(4 - CLOCK_EPSILON * 10)).toEqual(Option.some('a'));
   });
 
   test('before the film the first scene plays, after it the last', () => {
