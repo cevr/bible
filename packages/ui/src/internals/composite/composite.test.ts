@@ -9,7 +9,7 @@ import {
   getCompositeNavigationIndex,
   getFallbackIndex,
   getNavigationKeys,
-  isModifierKeySet,
+  hasModifierKey,
 } from './composite.ts';
 
 const items = (n: number) => Array.from({ length: n }, () => null);
@@ -64,11 +64,6 @@ describe('getCompositeNavigationIndex', () => {
     expect(step({ key: 'ArrowLeft', highlightedIndex: 0, loopFocus: false }).index).toBe(-1);
   });
 
-  it('lets onLoop pick the index a wrap lands on', () => {
-    const result = step({ key: 'ArrowRight', highlightedIndex: 3, onLoop: () => 2 });
-    expect(result.index).toBe(2);
-  });
-
   it('skips disabled items, and wraps past disabled ends', () => {
     expect(step({ key: 'ArrowRight', disabledIndices: [1, 2] }).index).toBe(3);
     expect(step({ key: 'ArrowRight', highlightedIndex: 2, disabledIndices: [3] }).index).toBe(0);
@@ -97,15 +92,14 @@ describe('getFallbackIndex', () => {
   });
 });
 
-describe('isModifierKeySet', () => {
+describe('hasModifierKey', () => {
   const event = (held: ReadonlyArray<string>) => ({
     getModifierState: (key: string) => held.includes(key),
   });
 
-  it('is true while a modifier the composite does not allow is held', () => {
-    expect(isModifierKeySet(event([]), [])).toBe(false);
-    expect(isModifierKeySet(event(['Shift']), [])).toBe(true);
-    expect(isModifierKeySet(event(['Shift']), ['Shift'])).toBe(false);
-    expect(isModifierKeySet(event(['Shift', 'Alt']), ['Shift'])).toBe(true);
+  it('is true while any modifier is held', () => {
+    expect(hasModifierKey(event([]))).toBe(false);
+    expect(hasModifierKey(event(['Shift']))).toBe(true);
+    expect(hasModifierKey(event(['Meta']))).toBe(true);
   });
 });

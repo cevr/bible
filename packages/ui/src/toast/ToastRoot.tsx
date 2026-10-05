@@ -12,10 +12,7 @@
 import type { JSX } from '@solidjs/web';
 import { createEffect, createMemo, createSignal, omit, onCleanup, untrack } from 'solid-js';
 
-import {
-  BASE_UI_SWIPE_IGNORE_SELECTOR,
-  LEGACY_SWIPE_IGNORE_SELECTOR,
-} from '../internals/constants.ts';
+import { BASE_UI_SWIPE_IGNORE_SELECTOR } from '../internals/constants.ts';
 import type { StateAttributesMapping } from '../internals/getStateAttributesProps.ts';
 import {
   type TransitionStatus,
@@ -110,7 +107,6 @@ export interface ToastRootProps extends BaseUIComponentProps<'div', ToastRootSta
 const SWIPE_THRESHOLD = 40;
 const REVERSE_CANCEL_THRESHOLD = 10;
 const MIN_DRAG_THRESHOLD = 1;
-const TOAST_SWIPE_IGNORE_SELECTOR = `${BASE_UI_SWIPE_IGNORE_SELECTOR},${LEGACY_SWIPE_IGNORE_SELECTOR}`;
 
 type Point = { x: number; y: number };
 type Transform = Point & { scale: number };
@@ -284,7 +280,7 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     const target = getTarget(event) as HTMLElement | null;
     const isInteractiveElement = closest(
       target,
-      `button,a,input,textarea,[role="button"],${TOAST_SWIPE_IGNORE_SELECTOR}`,
+      `button,a,input,textarea,[role="button"],${BASE_UI_SWIPE_IGNORE_SELECTOR}`,
     );
     if (isInteractiveElement) {
       return;

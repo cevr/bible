@@ -42,8 +42,6 @@ import {
 import { useTimeout } from '../../utils/timers.ts';
 import { useContextMenuRootContextStrict } from '../root/ContextMenuRootContext.ts';
 
-export { LONG_PRESS_DELAY, LONG_PRESS_MOVE_THRESHOLD };
-
 export interface ContextMenuTriggerState {
   /** Whether the context menu is open. */
   open: boolean;

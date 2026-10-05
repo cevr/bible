@@ -9,9 +9,7 @@ export const DISABLED_TRANSITIONS_STYLE = { style: { transition: 'none' } };
 export const CLICK_TRIGGER_IDENTIFIER = 'data-base-ui-click-trigger';
 /** Marks an element a swipe gesture does not start from. */
 export const BASE_UI_SWIPE_IGNORE_ATTRIBUTE = 'data-base-ui-swipe-ignore';
-export const LEGACY_SWIPE_IGNORE_ATTRIBUTE = 'data-swipe-ignore';
 export const BASE_UI_SWIPE_IGNORE_SELECTOR = `[${BASE_UI_SWIPE_IGNORE_ATTRIBUTE}]`;
-export const LEGACY_SWIPE_IGNORE_SELECTOR = `[${LEGACY_SWIPE_IGNORE_ATTRIBUTE}]`;
 
 /** For dropdowns that keep to top/bottom and cap their height with `--available-height`. */
 export const DROPDOWN_COLLISION_AVOIDANCE = { fallbackAxisSide: 'none' } as const;

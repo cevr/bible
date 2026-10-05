@@ -41,8 +41,7 @@ export const END = 'End';
 
 export const COMPOSITE_KEYS = new Set([ARROW_UP, ARROW_DOWN, ARROW_LEFT, ARROW_RIGHT, HOME, END]);
 
-export const MODIFIER_KEYS = ['Shift', 'Control', 'Alt', 'Meta'] as const;
-export type ModifierKey = (typeof MODIFIER_KEYS)[number];
+const MODIFIER_KEYS = ['Shift', 'Control', 'Alt', 'Meta'] as const;
 
 export type CompositeOrientation = 'horizontal' | 'vertical' | 'both';
 
@@ -70,17 +69,9 @@ export function isElementDisabled(element: HTMLElement | null): boolean {
   );
 }
 
-/** Whether a modifier key the composite does not allow is held (a held modifier leaves the key alone). */
-export function isModifierKeySet(
-  event: Pick<KeyboardEvent, 'getModifierState'>,
-  allowed: ReadonlyArray<ModifierKey>,
-): boolean {
-  for (const key of MODIFIER_KEYS) {
-    if (!allowed.includes(key) && event.getModifierState(key)) {
-      return true;
-    }
-  }
-  return false;
+/** Whether a modifier key is held (a held modifier leaves the key alone). */
+export function hasModifierKey(event: Pick<KeyboardEvent, 'getModifierState'>): boolean {
+  return MODIFIER_KEYS.some((key) => event.getModifierState(key));
 }
 
 /** The forward and backward keys for an orientation and direction. */
@@ -104,9 +95,8 @@ export interface CompositeNavigationParameters {
   direction: TextDirection;
   loopFocus: boolean;
   enableHomeAndEndKeys: boolean;
+  /** Indices to skip as disabled; the DOM's disabled state is read when not given. */
   disabledIndices?: ReadonlyArray<number> | undefined;
-  /** Called when a step wraps around; returns the index to use instead. */
-  onLoop?: ((prevIndex: number, nextIndex: number) => number) | undefined;
 }
 
 export interface CompositeNavigationResult {
@@ -123,8 +113,7 @@ export interface CompositeNavigationResult {
 export function getCompositeNavigationIndex(
   params: CompositeNavigationParameters,
 ): CompositeNavigationResult {
-  const { key, highlightedIndex, elements, orientation, loopFocus, disabledIndices, onLoop } =
-    params;
+  const { key, highlightedIndex, elements, orientation, loopFocus, disabledIndices } = params;
   const isHomeOrEnd = key === HOME || key === END;
   if (!COMPOSITE_KEYS.has(key) || (!params.enableHomeAndEndKeys && isHomeOrEnd)) {
     return { index: highlightedIndex, handled: false };
@@ -149,9 +138,9 @@ export function getCompositeNavigationIndex(
 
   if (nextIndex === highlightedIndex && (isForwardKey || isBackwardKey)) {
     if (loopFocus && nextIndex === maxIndex && isForwardKey) {
-      nextIndex = onLoop ? onLoop(highlightedIndex, minIndex) : minIndex;
+      nextIndex = minIndex;
     } else if (loopFocus && nextIndex === minIndex && isBackwardKey) {
-      nextIndex = onLoop ? onLoop(highlightedIndex, maxIndex) : maxIndex;
+      nextIndex = maxIndex;
     } else {
       nextIndex = findNonDisabledListIndex(elements, {
         startingIndex: nextIndex,

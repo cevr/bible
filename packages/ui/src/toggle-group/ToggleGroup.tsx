@@ -126,7 +126,7 @@ export function ToggleGroup<Value extends string = string>(
 
   return (
     <ToggleGroupContext value={context as unknown as ToggleGroupContextValue<string>}>
-      <CompositeRoot<unknown, ToggleGroupState>
+      <CompositeRoot<ToggleGroupState>
         render={props.render}
         class={props.class}
         style={props.style}
