@@ -107,8 +107,9 @@ export const noStills: DrawStills = () => Option.none();
 
 /**
  * The stills of `film`'s scenes, while the calling component lives: drawn
- * from its code (none when the app has none, or it fails to load: said in
- * the page's log), a still a turn, the scenes on screen first.
+ * from its code (none when the app has none, the server's render's case, and
+ * none when it fails to load, said in the page's log), a still a turn, the
+ * scenes on screen first.
  */
 export const useSceneStills = (film: string): SceneStills => {
   const { meta } = useReview();
@@ -129,21 +130,27 @@ export const useSceneStills = (film: string): SceneStills => {
   // so a left Project draws nothing more.
   let stop = () => {};
   onCleanup(() => stop());
-  const drawing = Effect.gen(function* () {
-    const stills = yield* Option.getOrElse(draw, () => Effect.fail('no-code' as const));
-    const { middles } = stills;
-    yield* Effect.sync(() => {
-      stills.onDrawn(() => setDrawn((n) => n + 1));
-      stop = stills.stop;
-      // Every scene's still in film order; the cards on screen go ahead of them as they are seen.
-      stills.want([...middles.values()]);
-      setReady(Option.some(stills));
-      onScreen.ask();
-    });
-    yield* Effect.logInfo(`project.stills film=${film} scenes=${middles.size}`);
-  }).pipe(Effect.catch((why) => Effect.logInfo(`project.stills-none film=${film} reason=${why}`)));
-  const fiber = Effect.runForkWith(meta.host)(drawing);
-  onCleanup(() => Effect.runFork(Fiber.interrupt(fiber)));
+  // A film the page has no code for (the server's render has none) has no stills: nothing
+  // is drawn, forked or logged.
+  Option.map(draw, (load) => {
+    const drawing = Effect.gen(function* () {
+      const stills = yield* load;
+      const { middles } = stills;
+      yield* Effect.sync(() => {
+        stills.onDrawn(() => setDrawn((n) => n + 1));
+        stop = stills.stop;
+        // Every scene's still in film order; the cards on screen go ahead of them as they are seen.
+        stills.want([...middles.values()]);
+        setReady(Option.some(stills));
+        onScreen.ask();
+      });
+      yield* Effect.logInfo(`project.stills film=${film} scenes=${middles.size}`);
+    }).pipe(
+      Effect.catch((why) => Effect.logInfo(`project.stills-none film=${film} reason=${why}`)),
+    );
+    const fiber = Effect.runForkWith(meta.host)(drawing);
+    onCleanup(() => Effect.runFork(Fiber.interrupt(fiber)));
+  });
   return {
     of: (scene) => {
       drawn();

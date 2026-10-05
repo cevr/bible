@@ -68,7 +68,8 @@ interface Opened {
  * one (`useInspectorPlace`), its URL is the open inspector's one owner: a tap
  * names the thing (a step of its own, so Back closes it), Close, a swipe and
  * Escape name none, and a pasted link, Back and Forward open what they name.
- * A page that binds none keeps it in the inspector, for the page's life.
+ * Every page with things binds one (Choices, a Set, the Project); on a page
+ * that binds none (Films, a Folder: no things) no inspector opens.
  */
 interface InspectorPlace {
   readonly named: Accessor<Option.Option<Selection>>;
@@ -102,7 +103,7 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
   // after its box closed empties the box opened since.
   const [drafted, setDrafted] = createSignal(0, { ownedWrite: true });
   // The page's URL, while a page keeps the open inspector there (the newest page's
-  // binding, last); else the inspector's own. A page binds its place as it renders, before
+  // binding, last); else none is open. A page binds its place as it renders, before
   // its sheets: held here as it is bound, so what renders after reads it at once, on the
   // server and as the page hydrates (a signal's write would land only after the render,
   // and the server's render writes none). `rebound` follows a binding made or let go
@@ -113,44 +114,34 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
     rebound();
     return Option.fromUndefinedOr(places.at(-1));
   };
-  const [own, setOwn] = createSignal(Option.none<Opened>(), { ownedWrite: true });
   // Where the last opening opened (its info, or its comment box): no part of a URL.
   const [how, setHow] = createSignal(Option.none<Opened>(), { ownedWrite: true });
   // Read as it is asked, not kept: the server's render, whose computations never run
   // again, reads the place its page bound after this was made.
   const opened = (): Option.Option<Opened> =>
-    Option.match(place(), {
-      onNone: () => own(),
-      onSome: (p) =>
-        Option.map(p.named(), (selection): Opened => {
-          const key = targetAttr(selection);
-          return {
-            key,
-            at: Option.getOrElse(
-              Option.map(
-                Option.filter(how(), (h) => h.key === key),
-                (h) => h.at,
-              ),
-              (): OpenAt => 'info',
+    Option.flatMap(place(), (p) =>
+      Option.map(p.named(), (selection): Opened => {
+        const key = targetAttr(selection);
+        return {
+          key,
+          at: Option.getOrElse(
+            Option.map(
+              Option.filter(how(), (h) => h.key === key),
+              (h) => h.at,
             ),
-          };
-        }),
-    });
+            (): OpenAt => 'info',
+          ),
+        };
+      }),
+    );
   const open = (selection: Selection, at: OpenAt) => {
-    const now = { key: targetAttr(selection), at };
-    setHow(Option.some(now));
-    Option.match(untrack(place), {
-      onNone: () => setOwn(Option.some(now)),
-      onSome: (p) => p.name(Option.some(selection)),
-    });
+    setHow(Option.some({ key: targetAttr(selection), at }));
+    Option.map(untrack(place), (p) => p.name(Option.some(selection)));
   };
   const close = (key: string) => {
     if (!Option.exists(untrack(opened), (o) => o.key === key)) return;
     setHow(Option.none());
-    Option.match(untrack(place), {
-      onNone: () => setOwn(Option.none()),
-      onSome: (p) => p.name(Option.none()),
-    });
+    Option.map(untrack(place), (p) => p.name(Option.none()));
   };
   const things: Things = {
     at: (selection) => Option.fromUndefinedOr(shown.get(targetAttr(selection))),
@@ -176,8 +167,6 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
       setRebound((n) => n + 1);
       return () => {
         unbind();
-        // What the page opened of its own before a place was bound is gone with its sheets.
-        setOwn(Option.none());
         setRebound((n) => n + 1);
       };
     },
