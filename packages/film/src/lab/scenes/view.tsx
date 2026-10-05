@@ -51,7 +51,7 @@ import { PHONE, useMatches } from '../viewport.ts';
 import { pressed } from '../review/format.ts';
 import { Sheet } from '../review/inspector.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
-import { SceneCard, SceneFindings, sceneHue } from './card.tsx';
+import { SceneCard, SceneFindings, SceneState, sceneHue } from './card.tsx';
 import { type Said, type ScenesRead, findingsOf, scenesCalls } from './data.ts';
 import { bandState, legendOf, marksOf } from './marks.ts';
 import { scenesPlaceOf, withScene } from './place.ts';
@@ -758,6 +758,7 @@ export const ScenesView = (props: ScenesViewProps) => {
             </>
           }
         />
+        <SceneState marks={marks()(scene)} />
         <SceneFindings marks={marks()(scene)} />
         <Show when={!short && Option.isSome(read().project)}>
           <section class="sc-section" data-section="comment">

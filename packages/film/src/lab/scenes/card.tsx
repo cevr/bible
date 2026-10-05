@@ -110,6 +110,31 @@ export const SceneCard = (props: SceneCardProps) => (
 );
 
 /**
+ * Why a scene's render and approval chips say what they say, as Scenes'
+ * sheet prints it under its card: a chip's `title` never shows on touch.
+ * Its findings chips' lines are `SceneFindings`'. The Project's sheet says
+ * the same in its Info.
+ */
+export const SceneState = (props: { readonly marks: SceneMarks }) => {
+  const said = () =>
+    chipsOf(props.marks).filter((c) => c.mark !== 'errors' && c.mark !== 'warnings');
+  return (
+    <Show when={said().length > 0}>
+      <section class="sc-section" data-section="state">
+        <h3>State</h3>
+        <For each={said()} keyed={(c) => c.mark}>
+          {(chip) => (
+            <p class="sc-finding" data-mark={chip().mark}>
+              {chip().why}
+            </p>
+          )}
+        </For>
+      </section>
+    </Show>
+  );
+};
+
+/**
  * A scene's findings, as its sheet shows them under its card (on Scenes and
  * on the Project alike): each line's tag in its level's colour, then what it
  * says; nothing when the check found none about it.

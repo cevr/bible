@@ -18,6 +18,7 @@ import { timecode } from '../../src/core/time.ts';
 import { HUD_IDLE_MS } from '../../src/player/hud.ts';
 import { onTheMs } from '../../src/player/t-in-url.ts';
 import { FreshProcessFailed } from '../../src/core/refusals.ts';
+import { APPROVAL_TEXT } from '../../src/lab/review/format.ts';
 import {
   type FakeRoute,
   type Json,
@@ -828,6 +829,12 @@ describe('the player', () => {
           .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
       ).toEqual([['one', 'three']]);
       yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
+      // The sheet says why under the card, as a chip's title never shows on touch (SU-14).
+      yield* textIs(
+        page,
+        '.sc-focus [data-section="state"] [data-mark="approved"]',
+        APPROVAL_TEXT.approved,
+      );
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
@@ -857,6 +864,7 @@ describe('the player', () => {
           { address: { ids: ['one', 'three'] }, say: { _tag: 'Withdraw', given: 'op-1' } },
         ]);
         yield* evaluates(page, "document.querySelector('.sc-focus .sc-chips').textContent", '');
+        yield* countIs(page, '.sc-focus [data-section="state"]', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
