@@ -65,6 +65,7 @@ import {
   UndoUnavailable,
   newerFirst,
 } from '../core/refusals.ts';
+import { ChangeId, type RequestId } from '../core/schema.ts';
 import { uniqueId } from '../core/unique.ts';
 import {
   FormatFailed,
@@ -114,7 +115,7 @@ export type Remade = Option.Option<number>;
 /** One change to a film's source: its file's text before and after it. */
 export interface Change {
   /** An id no other change has, kept by its undo and its redo: what a receipt's Undo asks for. */
-  readonly id: string;
+  readonly id: ChangeId;
   readonly film: string;
   /** The scene it changed; none for a film's own file (its score's pick, the library's lock). */
   readonly scene: Option.Option<string>;
@@ -173,7 +174,7 @@ export type RewriteError =
 
 /** An Undo or a Redo that landed (`undo …`, `redo …`), and the id of the request that asked for it. */
 interface LandedStep {
-  readonly request: string;
+  readonly request: RequestId;
   readonly step: Change;
 }
 
@@ -240,8 +241,8 @@ interface SourceWriterService {
  * while it is the one the step would take; with none, the newest.
  */
 export interface StepAsk {
-  readonly request?: string;
-  readonly change?: string;
+  readonly request?: RequestId;
+  readonly change?: ChangeId;
 }
 
 /** An Undo or a Redo. */
@@ -274,7 +275,7 @@ const recordChange = (h: History, c: Change): History => ({
 /** `landed` with `step` recorded under `request`, when it was asked with one (the oldest past UNDO_DEPTH dropped). */
 const landedWith = (
   landed: ReadonlyArray<LandedStep>,
-  request: Option.Option<string>,
+  request: Option.Option<RequestId>,
   step: Change,
 ): ReadonlyArray<LandedStep> =>
   Option.match(request, {
@@ -448,7 +449,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               return [Option.none<Change>(), checked, Option.none<number>()] as const;
             }
             const change: Change = {
-              id: yield* uniqueId,
+              id: yield* uniqueId(ChangeId),
               film: rewrite.film,
               scene: rewrite.scene,
               file,
@@ -505,7 +506,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
               const after = yield* formattedOver(film, file, acted, target);
               if (after === before) return [done, Option.none<Change>()] as const;
               const change: Change = {
-                id: yield* uniqueId,
+                id: yield* uniqueId(ChangeId),
                 film,
                 scene: Option.none(),
                 file,

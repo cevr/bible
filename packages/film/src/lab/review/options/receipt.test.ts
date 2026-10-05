@@ -9,6 +9,7 @@ import { Option, Schema } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { busy, refused, said } from '../../../command/command.ts';
 import { FilmChoices, type SoundCheck } from '../../../core/choice.ts';
+import { ChangeId } from '../../../core/schema.ts';
 import { type LabFailure, LabUnreachable } from '../../api.ts';
 import type { Words } from '../format.ts';
 import { ChoiceAct, type Wrote } from './api.ts';
@@ -58,12 +59,15 @@ const choices = (playing: string, level: number): FilmChoices =>
     ],
   });
 
+/** The change a write made, by the id the lab gave it. */
+const K1 = ChangeId.make('k1');
+
 /** What a write answered: its target, and the choices it left (none for a step). */
 const wrote = (target: string, left: Option.Option<FilmChoices>): Wrote => ({
   act: ChoiceAct.Undo({ change: Option.none() }),
   target,
   file: 'sound.ts',
-  change: Option.some('k1'),
+  change: Option.some(K1),
   findings: Option.none(),
   choices: left,
   mixed: Option.none(),
@@ -84,7 +88,7 @@ describe('actWords', () => {
       'Picked piano · Score: strings → piano',
     );
     expect(undoOf(words, wrote('score play piano', Option.none()))).toEqual(
-      Option.some({ command: REVIEW_UNDO, bound: { film: 'toy', change: 'k1' } }),
+      Option.some({ command: REVIEW_UNDO, bound: { film: 'toy', change: K1 } }),
     );
   });
 
@@ -135,7 +139,7 @@ describe('actWords', () => {
     const before = choices('strings', -12);
     const boundOf = (act: ChoiceAct, answer = wrote('score play piano', Option.none())) =>
       Option.map(undoOf(actWords(act, before), answer), (u) => u.bound);
-    const made = Option.some({ film: before.film, change: 'k1' });
+    const made = Option.some({ film: before.film, change: K1 });
     const pick = ChoiceAct.Verb({ point: 'score', variant: 'piano', verb: 'pick' });
     const knob = ChoiceAct.Knob({ point: 'level:const:RAIN', value: -6 });
     expect(boundOf(pick)).toEqual(made);

@@ -10,7 +10,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import type { SceneEdit } from '../../canvas/film.ts';
-import type { ResolvedCue, SceneSource } from '../../core/schema.ts';
+import { RequestId, type ResolvedCue, type SceneSource } from '../../core/schema.ts';
 import { dragFields, dragPatch } from '../../core/timeline.ts';
 import {
   type CueGrip,
@@ -416,7 +416,7 @@ describe('wroteNote', () => {
     const undo = {
       _tag: 'StepWrite' as const,
       verb: 'undo' as const,
-      request: 'undo-1',
+      request: RequestId.make('undo-1'),
       change: Option.none(),
     };
     expect(wroteNote(undo, { ...result, target: 'undo cue rise offset' })).toBe(
@@ -425,7 +425,7 @@ describe('wroteNote', () => {
     const redo = {
       _tag: 'StepWrite' as const,
       verb: 'redo' as const,
-      request: 'redo-1',
+      request: RequestId.make('redo-1'),
       change: Option.none(),
     };
     expect(wroteNote(redo, { ...result, target: 'redo cue rise offset' })).toBe(

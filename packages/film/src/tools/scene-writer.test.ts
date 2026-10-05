@@ -20,6 +20,7 @@ import {
 } from 'effect';
 import { TestClock } from 'effect/testing';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
+import type { ChangeId } from '../core/schema.ts';
 import { collect } from './process.ts';
 import { ContentStore, type Manifest } from './content-store.ts';
 import { FilmName, FilmRepo } from './film-repo.ts';
@@ -404,12 +405,12 @@ describe.concurrent('scene writer', () => {
         const writer = yield* SceneWriter;
         const source = yield* SourceWriter;
         // Fifty-one writes: the first falls off a stack fifty deep.
-        const ids: Array<string> = [];
+        const ids: Array<ChangeId> = [];
         for (const n of Arr.range(1, 51)) {
           const written = yield* writer.setKnob(F, 'hand', 'palm', [n, n]);
           ids.push(Option.getOrThrow(written.change).id);
         }
-        const idOf = (n: number) => ids[n - 1] ?? '';
+        const idOf = (n: number) => Arr.getUnsafe(ids, n - 1);
         const asked = (n: number) => Effect.flip(source.step('undo', 'f', { change: idOf(n) }));
         expect((yield* asked(50)).message).toBe(
           'cannot undo that change: knob palm came after it: undo that first',

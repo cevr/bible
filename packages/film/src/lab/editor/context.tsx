@@ -27,10 +27,10 @@ import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
-import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
+import type { ChangeId, CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
 import { type DragEdge, dragFields } from '../../core/timeline.ts';
 import { LabApi, type StepVerb, reasonOf, stepRequest, stepWhyNot } from '../api.ts';
-import { type Receipt, refused } from '../../command/command.ts';
+import { type Receipt, boundChange, refused } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type LabSelection, cueOf, knobOf } from '../../command/selection.ts';
@@ -338,7 +338,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   );
 
   // The changes this page's writes and steps made: the history it read at load predates them.
-  const madeHere = new Set<string>();
+  const madeHere = new Set<ChangeId>();
   createEffect(
     () => edit(),
     (state) => {
@@ -348,7 +348,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
 
   // Each step is its own request, with an id no other has: with no answer, the lab says by it
   // whether it landed. A receipt's names its change, so the lab steps that one or refuses.
-  const step = (verb: StepVerb, change: Option.Option<string>) =>
+  const step = (verb: StepVerb, change: Option.Option<ChangeId>) =>
     send(EditEvent.Step({ verb, request: Effect.runSync(stepRequest), change }));
   // A commit (a field, an ease, a nudge) the machine does not take now says why, in the editor's slot.
   const commit = (write: Write, shown: SceneEdit) =>
@@ -446,7 +446,10 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
           stepWhyNot(
             verb,
             meta.name,
-            Option.filter(report(), () => !madeHere.has(bound.change)),
+            Option.filter(
+              report(),
+              () => !Option.exists(boundChange(bound), (c) => madeHere.has(c)),
+            ),
           )(bound),
         step,
         notTaken: (verb) => notTaken(edit(), verb),

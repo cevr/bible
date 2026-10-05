@@ -6,6 +6,7 @@ import { Effect, Option } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import { BY_BUTTON, Unfit, quiet, refused } from '../../command/command.ts';
 import { contextAt } from '../../command/context.ts';
+import { ChangeId, RequestId } from '../../core/schema.ts';
 import { editorCommands } from './commands.ts';
 import { CueWrite, StepWrite, type CueGrip } from './grip.ts';
 import { EditState } from './machine.ts';
@@ -30,7 +31,7 @@ const writing = EditState.Writing({
   next: [],
 });
 const checking = EditState.Checking({
-  write: StepWrite.make({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+  write: StepWrite.make({ verb: 'undo', request: RequestId.make('undo-1'), change: Option.none() }),
   next: [],
 });
 const held = EditState.Pressed({ grip, note: '' });
@@ -70,7 +71,7 @@ describe('Undo while the machine cannot step', () => {
         refused('undo not taken: a write is still out; undo once it lands'),
       );
       expect(stepped).toEqual([]);
-      expect(undo.fits?.({ film: 'probe', change: 'c-1' }, ctx)).toEqual(
+      expect(undo.fits?.({ film: 'probe', change: ChangeId.make('c-1') }, ctx)).toEqual(
         Option.some(Unfit.Now({ reason: 'a write is still out; undo once it lands' })),
       );
     }

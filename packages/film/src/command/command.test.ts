@@ -10,6 +10,7 @@ import {
   withSelection,
 } from './context.ts';
 import { cueOf, Selection } from './selection.ts';
+import { ChangeId } from '../core/schema.ts';
 
 const command = (id: string, over: Partial<Omit<Command, 'touch'>> = {}): Command => ({
   id,
@@ -104,7 +105,7 @@ describe('receipts', () => {
   });
 
   test('carry the command that undoes them, bound to its change, or none; a refusal never undoes', () => {
-    const bound = { film: 'f', change: 'k1' };
+    const bound = { film: 'f', change: ChangeId.make('k1') };
     expect(said('picked', Option.some({ command: 'edit.undo', bound }))).toMatchObject({
       _tag: 'Said',
       tone: 'done',

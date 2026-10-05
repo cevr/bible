@@ -1134,7 +1134,11 @@ refused. A receipt that can be undone carries the command that undoes it as
 its button: Undo for a write, Redo for an Undo, Undo for a Redo (the
 editor's `Written` state names it, read from its step flow), bound to the
 change its write made (`Bound`: the film, and the change by the id the
-lab's history gives it, `HistoryStep.change`). A bound receipt's button acts
+lab's history gives it, `HistoryStep.change`; an approve's, by its run's op
+and the scenes it gave one to, `Project.gave`). Each kind of id is its own
+brand (`ChangeId`, `RequestId`, `OpId`), made by `uniqueId(<brand>)` or
+decoded where it arrives, so a target's words, a time or another kind's id
+in its place is a type error (`lab/identity.types.ts`). A bound receipt's button acts
 on that change alone: its command says whether it can (`Command.fits`;
 Undo and Redo through `stepWhyNot`) and sends the change's id with the step
 (`{change}`), which the lab steps only while it is the newest that way,

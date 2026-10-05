@@ -28,6 +28,8 @@ import { createEffect, createSignal, onCleanup, onSettled } from 'solid-js';
 import { type StoreRuntime, keptJson } from '../../browser/storage.ts';
 import { BY_BUTTON, type Bound, Receipt, Unfit, unfit } from '../../command/command.ts';
 import type { Hub } from '../../command/hub.ts';
+import { OpId } from '../../core/catalogue.ts';
+import { ChangeId } from '../../core/schema.ts';
 import { hubChanges } from './changes.ts';
 
 /** How long a receipt shows, by its tone (ms; 0 until replaced). */
@@ -40,7 +42,13 @@ const Kept = Schema.Struct({
   undo: Schema.OptionFromOptionalKey(Schema.String),
   /** The change its Undo acts on, when it names one (`Receipt.Said.bound`). */
   bound: Schema.OptionFromOptionalKey(
-    Schema.Struct({ film: Schema.String, change: Schema.String }),
+    Schema.Union([
+      Schema.Struct({ film: Schema.String, change: ChangeId }),
+      Schema.Struct({
+        film: Schema.String,
+        gave: Schema.Struct({ op: OpId, scenes: Schema.Array(Schema.String) }),
+      }),
+    ]),
   ),
   tone: Schema.Literals(['done', 'refused', 'busy']),
   /** Its Undo was pressed when it could not act: why, said until it can. */

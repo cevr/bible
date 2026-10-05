@@ -57,6 +57,7 @@ import {
   type Topic,
   approveCurrent,
   comment,
+  OpId,
   gaveOf,
   nextCommentId,
   partSubject,
@@ -537,7 +538,7 @@ const approveScenes = Command.make(
     const at = yield* Clock.currentTimeMillis;
     // This run's identity, on every approval it adds: its undo takes those and no other,
     // another run's stamped at the very same moment too.
-    const op = yield* uniqueId;
+    const op = yield* uniqueId(OpId);
     /**
      * Every current scene of `scenes` approved, in one update: those it
      * approved, and those it made approved, read under the catalogue's lock.
@@ -627,6 +628,7 @@ const withdrawApprovals = Command.make(
     variant: variantFlag,
     ...partFlags('withdraw'),
     given: Flag.String('given').pipe(
+      Flag.withSchema(OpId),
       Flag.optional,
       Flag.withDescription(
         'withdraw only the approvals one approve gave (its op, `gave.op`): undo that approve, leaving every other approval alone',

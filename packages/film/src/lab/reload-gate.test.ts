@@ -7,7 +7,7 @@
 import { Effect, Layer, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { simulate } from 'effect-machine';
-import type { LabWrite } from '../core/schema.ts';
+import { type LabWrite, RequestId } from '../core/schema.ts';
 import { LabApi, type LabCalls } from './api.ts';
 import { EditEvent, editMachine } from './editor/machine.ts';
 import { ComposerState, unsaved } from './notes/composer.ts';
@@ -73,7 +73,11 @@ describe('the reload gate', () => {
         yield* gate.hold('studio', unsubmitted(RecorderState.Review({ beat: 'a', wav })));
         // An Undo of a kept take lands, and asks for the reload.
         const result = yield* simulate(editMachine, [
-          EditEvent.Step({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+          EditEvent.Step({
+            verb: 'undo',
+            request: RequestId.make('undo-1'),
+            change: Option.none(),
+          }),
           EditEvent.Wrote({ result: undoneTake }),
         ]);
         expect(result.finalState._tag).toBe('Written');

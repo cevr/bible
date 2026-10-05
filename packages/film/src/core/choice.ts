@@ -35,7 +35,7 @@ import {
   topicAt,
 } from './catalogue.ts';
 import { PointId, PointRef, pointIdOf } from './point.ts';
-import { CheckLine, Seconds, maybe, mixedField } from './schema.ts';
+import { ChangeId, CheckLine, Seconds, maybe, mixedField } from './schema.ts';
 import { ReviewFile, ReviewVideo } from './served.ts';
 
 /** What a choice point chooses between; each kind has one adapter. */
@@ -346,7 +346,7 @@ export const ChoiceWrite = Schema.Struct({
    * receipt's Undo asks for); none when the source already said so, and
    * there is nothing to undo.
    */
-  change: Schema.optionalKey(Schema.String),
+  change: Schema.optionalKey(ChangeId),
   choices: FilmChoices,
   findings: Schema.Array(CheckLine),
   ...mixedField,

@@ -13,7 +13,13 @@ import type { PartAddress } from '../../../core/address.ts';
 import type { ProjectView, Say, Steps } from '../../../core/api.ts';
 import type { ChoiceVerb, ChoiceWrite, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewFilms } from '../../../core/review.ts';
-import type { CheckLine, CheckReport, LabWrite, PageBuild } from '../../../core/schema.ts';
+import type {
+  ChangeId,
+  CheckLine,
+  CheckReport,
+  LabWrite,
+  PageBuild,
+} from '../../../core/schema.ts';
 import {
   LabClient,
   type LabFailure,
@@ -36,8 +42,8 @@ export type ChoiceAct = Data.TaggedEnum<{
   Knob: { readonly point: string; readonly value: number };
   Say: { readonly point: string; readonly variant: string; readonly say: Say };
   /** A step back or on: of one change (a receipt's, by its id), or of the newest with none. */
-  Undo: { readonly change: Option.Option<string> };
-  Redo: { readonly change: Option.Option<string> };
+  Undo: { readonly change: Option.Option<ChangeId> };
+  Redo: { readonly change: Option.Option<ChangeId> };
 }>;
 export const ChoiceAct = Data.taggedEnum<ChoiceAct>();
 
@@ -72,7 +78,7 @@ export interface Wrote {
   readonly act: ChoiceAct;
   readonly target: string;
   readonly file: string;
-  readonly change: Option.Option<string>;
+  readonly change: Option.Option<ChangeId>;
   readonly findings: Option.Option<ReadonlyArray<CheckLine>>;
   readonly choices: Option.Option<FilmChoices>;
   readonly mixed: Option.Option<PageBuild>;
@@ -108,7 +114,7 @@ export class OptionsApi extends Context.Service<OptionsApi, OptionsCalls>()(
 ) {}
 
 /** An Undo's or a Redo's change: the one it steps (a receipt's), or none for the newest. */
-const stepAsk = (change: Option.Option<string>) =>
+const stepAsk = (change: Option.Option<ChangeId>) =>
   Option.match(change, { onNone: () => ({}), onSome: (c) => ({ change: c }) });
 
 /** A film's choice and project routes, over the page's one client. */
@@ -120,7 +126,7 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
    * lab's check says by that id whether it landed (`landedStep`), and it is
    * said as landed, or as unreachable with no record of it. Never guessed at.
    */
-  const step = (film: string, verb: StepVerb, change: Option.Option<string>) =>
+  const step = (film: string, verb: StepVerb, change: Option.Option<ChangeId>) =>
     Effect.gen(function* () {
       const request = yield* stepRequest;
       return yield* called(

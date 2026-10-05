@@ -6,6 +6,7 @@ import { BunHttpServer } from '@effect/platform-bun';
 import { HttpServer, HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { Context, Effect, Exit, Layer, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
+import { ChangeId } from '../../../core/schema.ts';
 import { LabClient } from '../../api.ts';
 import { ChoiceAct, OptionsApi, optionsApiLayer } from './api.ts';
 
@@ -61,7 +62,7 @@ describe("a review page's step whose answer is lost", () => {
       expect([wrote.target, wrote.file, wrote.change]).toEqual([
         'undo level RAIN -6',
         'sound.ts',
-        Option.some('k2'),
+        Option.some(ChangeId.make('k2')),
       ]);
     }).pipe(Effect.scoped),
   );

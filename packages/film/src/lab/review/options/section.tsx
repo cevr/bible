@@ -17,7 +17,7 @@ import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
 import { Duration, Effect, Fiber, Option } from 'effect';
 import { playableOf } from '../../../browser/media.ts';
-import { type Command, type CommandId, quietly } from '../../../command/command.ts';
+import { type Command, type CommandId, boundChange, quietly } from '../../../command/command.ts';
 import { Selection } from '../../../command/selection.ts';
 import {
   type ChoiceKind,
@@ -27,6 +27,7 @@ import {
   shownIn,
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
+import type { ChangeId } from '../../../core/schema.ts';
 import { Findings } from './findings.tsx';
 import { stepWhyNot } from '../../api.ts';
 import { useReview } from '../context.tsx';
@@ -204,7 +205,7 @@ export const StepCommands = () => {
     which: 'undo' | 'redo',
     label: string,
     key: string,
-    act: (change: Option.Option<string>) => ChoiceAct,
+    act: (change: Option.Option<ChangeId>) => ChoiceAct,
   ): Command => ({
     id,
     label,
@@ -217,7 +218,7 @@ export const StepCommands = () => {
     when: () => Option.isSome(step(which)) && !stepping.waiting(),
     fits: (bound) => stepWhyNot(which, film, steps())(bound),
     run: quietly((_, how) => {
-      void stepping.write(act(Option.map(Option.fromUndefinedOr(how.bound), (b) => b.change)));
+      void stepping.write(act(Option.flatMap(Option.fromUndefinedOr(how.bound), boundChange)));
     }),
   });
   onCleanup(

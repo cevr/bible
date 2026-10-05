@@ -16,12 +16,13 @@ import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
-import { type Bound, Unfit } from '../command/command.ts';
+import { type Bound, Unfit, boundChange } from '../command/command.ts';
 import { LabHttpApi, Refusal, isRefusal } from '../core/api.ts';
 import type { PageRequest } from '../core/page-render.ts';
 import { newerFirst } from '../core/refusals.ts';
 import { uniqueId } from '../core/unique.ts';
 import {
+  type ChangeId,
   type CheckReport,
   type CuePatch,
   type HeadSource,
@@ -31,6 +32,7 @@ import {
   type NotePost as NotePostSchema,
   type NotesFile,
   type NotesWait,
+  RequestId,
   type SceneSource,
 } from '../core/schema.ts';
 
@@ -86,7 +88,7 @@ export const StepVerb = Schema.Literals(['undo', 'redo']);
 export type StepVerb = typeof StepVerb.Type;
 
 /** An id for an Undo or Redo request that no other request has, from any page (`StepRequest.request`). */
-export const stepRequest: Effect.Effect<string> = uniqueId;
+export const stepRequest: Effect.Effect<RequestId> = uniqueId(RequestId);
 
 /**
  * The step the lab recorded under `request` (`CheckReport.landed`), as its
@@ -94,7 +96,7 @@ export const stepRequest: Effect.Effect<string> = uniqueId;
  * no answer learns by its id. None when the lab has no record of it (it did
  * not land, or has not yet).
  */
-export const landedStep = (report: CheckReport, request: string): Option.Option<LabWrite> =>
+export const landedStep = (report: CheckReport, request: RequestId): Option.Option<LabWrite> =>
   Option.map(
     Option.flatMap(Option.fromUndefinedOr(report.landed), (steps) =>
       Arr.findFirst(steps, (l) => l.request === request),
@@ -128,10 +130,15 @@ export const stepWhyNot =
           reason: `that was a change to ${bound.film}: open ${bound.film} to ${verb} it`,
         }),
       );
+    const change = boundChange(bound);
     return Option.flatMap(steps, (s) => {
       const top = Option.fromUndefinedOr(s[verb]);
-      if (Option.exists(top, (t) => t.change === bound.change)) return Option.none();
-      if (s[OTHER[verb]]?.change === bound.change)
+      if (Option.exists(top, (t) => Option.contains(change, t.change))) return Option.none();
+      if (
+        Option.exists(Option.fromUndefinedOr(s[OTHER[verb]]), (o) =>
+          Option.contains(change, o.change),
+        )
+      )
         return Option.some(Unfit.Now({ reason: `it is ${STEPPED[verb]} already` }));
       return Option.some(
         Option.match(top, {
@@ -171,8 +178,8 @@ export interface LabCalls {
    */
   readonly step: (
     verb: StepVerb,
-    request: string,
-    change: Option.Option<string>,
+    request: RequestId,
+    change: Option.Option<ChangeId>,
   ) => Effect.Effect<LabWrite, LabFailure>;
 }
 

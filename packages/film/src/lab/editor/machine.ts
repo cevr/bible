@@ -32,7 +32,7 @@
 import { Array as Arr, Duration, Effect, Equal, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { SceneEdit } from '../../canvas/film.ts';
-import { CheckLine, type CheckReport, LabWrite } from '../../core/schema.ts';
+import { ChangeId, CheckLine, type CheckReport, LabWrite, RequestId } from '../../core/schema.ts';
 import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { readAtLoad } from '../../player/narrated.ts';
 import { LabApi, LabUnreachable, StepVerb, landedStep } from '../api.ts';
@@ -92,7 +92,7 @@ export const EditState = State({
     note: Schema.String,
     findings: Schema.Array(CheckLine),
     undo: StepVerb,
-    change: Schema.Option(Schema.String),
+    change: Schema.Option(ChangeId),
   },
   /** The server, or the lab, said no: its words. */
   Refused: { message: Schema.String },
@@ -109,7 +109,7 @@ export const EditEvent = Event({
   /** A write asked for from rest (a field, an ease, a knob), shown first as `edit`. */
   Commit: { write: Write, edit: SceneEdit },
   /** An Undo or Redo, with an id unique to this request (`StepWrite.request`), of one change or the newest. */
-  Step: { verb: StepVerb, request: Schema.String, change: Schema.Option(Schema.String) },
+  Step: { verb: StepVerb, request: RequestId, change: Schema.Option(ChangeId) },
   Wrote: { result: LabWrite },
   Failed: { message: Schema.String },
   /** The write was out its wait (WRITE_TIMEOUT_S, a step STEP_TIMEOUT_S) with no answer. */
