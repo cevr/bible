@@ -18,7 +18,7 @@ import { untilText } from '../../core/timeline.ts';
 import { type LabSelection, cueOf } from '../../command/selection.ts';
 import { Field, Hint } from '../command/inspector.tsx';
 import { HeaderTool } from '../page-shell.tsx';
-import { useLab } from '../shell.tsx';
+import { Lab, useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY, findingsIn } from './format.ts';
 import { hubKeys } from '../command/changes.ts';
@@ -236,8 +236,9 @@ const GESTURES: Readonly<Record<LabSelection['_tag'], ReadonlyArray<string>>> = 
 };
 
 /**
- * The editor's section: its header, the inspector, `children` (the knobs,
- * until they move), and the hint for the selection.
+ * The editor's controls in its section of the page's panel: the file its
+ * header names, the inspector, `children` (the knobs, until they move), the
+ * hint for the selection, and the findings.
  */
 export const Section = (props: ParentProps) => {
   const { state: lab, meta } = useLab();
@@ -246,21 +247,22 @@ export const Section = (props: ParentProps) => {
     Option.match(state.inspectedSource().source, { onNone: () => '', onSome: (s) => s.file });
   const cueSelected = () => Option.filter(lab.selection(), (s) => s._tag === 'Cue');
   return (
-    <section class="lab-edit" data-mode-of="edit">
-      <header>
-        <strong>Edit</strong>
+    <>
+      <Lab.Fill at="edit-head">
         <span class="lab-edit-file">{file()}</span>
-      </header>
-      <div class="lab-edit-body lab-inspector">
-        <Show when={Option.getOrUndefined(cueSelected())} keyed>
-          {(s: LabSelection) => <CueInspector selection={s} />}
-        </Show>
-        {props.children}
-        <Show when={Option.getOrUndefined(lab.selection())} keyed>
-          {(s: LabSelection) => <Hint hub={meta.hub} selection={s} gestures={GESTURES[s._tag]} />}
-        </Show>
-      </div>
-      <Findings />
-    </section>
+      </Lab.Fill>
+      <Lab.Fill at="edit">
+        <div class="lab-edit-body lab-inspector">
+          <Show when={Option.getOrUndefined(cueSelected())} keyed>
+            {(s: LabSelection) => <CueInspector selection={s} />}
+          </Show>
+          {props.children}
+          <Show when={Option.getOrUndefined(lab.selection())} keyed>
+            {(s: LabSelection) => <Hint hub={meta.hub} selection={s} gestures={GESTURES[s._tag]} />}
+          </Show>
+        </div>
+        <Findings />
+      </Lab.Fill>
+    </>
   );
 };

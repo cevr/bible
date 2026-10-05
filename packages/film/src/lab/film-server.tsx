@@ -4,12 +4,15 @@
 // (`film-page.tsx`), rendered by the lab for one request over a host of its
 // URL (`ServerHosted`). The page's body is the browser's: the server reads
 // no film's modules and stages nothing (`SERVER_BODY`), so the body's place
-// is a quiet line until the browser has staged the film. A server render
+// is a quiet line until the browser has staged the film. The Lab's panel is
+// the server's too, its notes read through the render's own reads
+// (`LabClient.layerRendering`) and sent with the page. A server render
 // never sees `#t=` (a browser never sends it): the header's timecode is the
 // browser's too.
 
 import { Effect } from 'effect';
 import type { PageRender } from '../core/page-render.ts';
+import { LabClient } from './api.ts';
 import { LAB_PAGE, PLAY_PAGE, SERVER_BODY, labOn, playOn } from './film-page.tsx';
 import { ServerHosted, pageRender } from './page-server.tsx';
 
@@ -19,7 +22,9 @@ export const labRender: PageRender = pageRender({
   app: (request) => (
     <ServerHosted
       url={request.url}
-      app={(host) => Effect.runSync(labOn(host, [], SERVER_BODY)).app()}
+      app={(host) =>
+        Effect.runSync(labOn(host, [], LabClient.layerRendering(request), SERVER_BODY)).app()
+      }
     />
   ),
 });

@@ -16,10 +16,10 @@
 //   Connecting | Live ─Dropped→ Lost ─Retry (after RETRY_MS)→ Connecting
 //   Live | Lost ─Refresh→ Connecting        Connecting ─Refresh→ Connecting (read again)
 
-import { Duration, Effect, Match, Schema } from 'effect';
+import { Duration, Effect, Exit, Match, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { Note, NotesFile } from '../../core/schema.ts';
-import { type LabFailure, NotesApi } from '../api.ts';
+import { type LabFailure, NotesApi, reasonOf } from '../api.ts';
 
 /** How long a lost feed waits before it connects again. */
 export const RETRY_MS = 2000;
@@ -68,40 +68,52 @@ const follow = (cursor: number) =>
 
 const dropped = (e: { readonly message: string }) => FeedEvent.Dropped({ reason: e.message });
 
-export const feedMachine = Machine.make({
-  state: FeedState,
-  event: FeedEvent,
-  initial: FeedState.Connecting({ notes: [], cursor: 0 }),
-})
-  .task(FeedState.Connecting, () => read, { onFailure: dropped })
-  .on(FeedState.Connecting, FeedEvent.Synced, ({ event }) =>
-    FeedState.Live({ notes: event.notes, cursor: event.cursor }),
-  )
-  .task(FeedState.Live, ({ state }) => follow(state.cursor), { onFailure: dropped })
-  .reenter(FeedState.Live, FeedEvent.Synced, ({ event }) =>
-    FeedState.Live({ notes: event.notes, cursor: event.cursor }),
-  )
-  .reenter(FeedState.Live, FeedEvent.Waited, ({ state, event }) =>
-    FeedState.Live({ notes: state.notes, cursor: Math.max(state.cursor, event.cursor) }),
-  )
-  .on([FeedState.Connecting, FeedState.Live], FeedEvent.Dropped, ({ state, event }) =>
-    FeedState.Lost({ notes: state.notes, cursor: state.cursor, reason: event.reason }),
-  )
-  .timeout(FeedState.Lost, { duration: Duration.millis(RETRY_MS), event: FeedEvent.Retry })
-  .on(FeedState.Lost, FeedEvent.Retry, ({ state }) =>
-    FeedState.Connecting({ notes: state.notes, cursor: state.cursor }),
-  )
-  .on([FeedState.Live, FeedState.Lost], FeedEvent.Refresh, ({ state }) =>
-    FeedState.Connecting({ notes: state.notes, cursor: state.cursor }),
-  )
-  .reenter(FeedState.Connecting, FeedEvent.Refresh, ({ state }) =>
-    FeedState.Connecting({ notes: state.notes, cursor: state.cursor }),
-  );
+/**
+ * Where a feed starts from the notes the page was sent with (`served`, read
+ * by the server that rendered it): live on them, waiting past their cursor,
+ * so the page reads them no second time; lost with the server's words when
+ * that read failed, connecting again after RETRY_MS.
+ */
+export const startOf = (sent: Exit.Exit<NotesFile, LabFailure>): FeedState =>
+  Exit.match(sent, {
+    onSuccess: (file) => FeedState.Live({ notes: file.notes, cursor: file.seq }),
+    onFailure: (cause) => FeedState.Lost({ notes: [], cursor: 0, reason: reasonOf(cause) }),
+  });
 
-/** The feed's actor, connecting. */
-export const spawnFeed = Machine.spawn(feedMachine).pipe(Effect.tap((actor) => actor.start));
+/** The feed, starting in `initial`. */
+const feedFrom = (initial: FeedState) =>
+  Machine.make({ state: FeedState, event: FeedEvent, initial })
+    .task(FeedState.Connecting, () => read, { onFailure: dropped })
+    .on(FeedState.Connecting, FeedEvent.Synced, ({ event }) =>
+      FeedState.Live({ notes: event.notes, cursor: event.cursor }),
+    )
+    .task(FeedState.Live, ({ state }) => follow(state.cursor), { onFailure: dropped })
+    .reenter(FeedState.Live, FeedEvent.Synced, ({ event }) =>
+      FeedState.Live({ notes: event.notes, cursor: event.cursor }),
+    )
+    .reenter(FeedState.Live, FeedEvent.Waited, ({ state, event }) =>
+      FeedState.Live({ notes: state.notes, cursor: Math.max(state.cursor, event.cursor) }),
+    )
+    .on([FeedState.Connecting, FeedState.Live], FeedEvent.Dropped, ({ state, event }) =>
+      FeedState.Lost({ notes: state.notes, cursor: state.cursor, reason: event.reason }),
+    )
+    .timeout(FeedState.Lost, { duration: Duration.millis(RETRY_MS), event: FeedEvent.Retry })
+    .on(FeedState.Lost, FeedEvent.Retry, ({ state }) =>
+      FeedState.Connecting({ notes: state.notes, cursor: state.cursor }),
+    )
+    .on([FeedState.Live, FeedState.Lost], FeedEvent.Refresh, ({ state }) =>
+      FeedState.Connecting({ notes: state.notes, cursor: state.cursor }),
+    )
+    .reenter(FeedState.Connecting, FeedEvent.Refresh, ({ state }) =>
+      FeedState.Connecting({ notes: state.notes, cursor: state.cursor }),
+    );
 
-export type FeedActor = Effect.Success<typeof spawnFeed>;
+/** The feed of a page with no notes yet: connecting, from nothing. */
+export const feedMachine = feedFrom(FeedState.Connecting({ notes: [], cursor: 0 }));
+
+/** The feed's actor, started in `initial` (`startOf` the notes the page was sent with). */
+export const spawnFeed = (initial: FeedState) =>
+  Machine.spawn(feedFrom(initial)).pipe(Effect.tap((actor) => actor.start));
 
 /** What the notes say of the feed: nothing while it holds, the reason once lost. */
 export const feedText = (state: FeedState): string =>

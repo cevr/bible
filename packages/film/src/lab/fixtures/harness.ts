@@ -432,7 +432,7 @@ export interface Viewport {
 }
 
 /** A desk's window: wide, with a mouse. */
-const DESK: Viewport = { width: 1400, height: 900 };
+export const DESK: Viewport = { width: 1400, height: 900 };
 
 /** A phone's window, as the studio is designed for first: 390 × 844, with a finger. */
 export const PHONE: Viewport = { width: 390, height: 844, coarse: true };
@@ -481,7 +481,8 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     ),
   });
   yield* page.goto(at.href ?? pageHref.lab(PROBE));
-  yield* page.waitFor('.lab-panel');
+  // The panel stands before the film is staged; its tools are in it once it is.
+  yield* page.waitFor('.lab-panel[data-staged="true"]');
   for (const mode of Option.toArray(Option.fromUndefinedOr(at.mode))) {
     yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
     yield* page.waitFor(`.lab-panel[data-mode="${mode}"]`);
@@ -595,7 +596,8 @@ type ServedName = 'review' | 'lab' | 'player';
 interface ServedPage {
   readonly render: Effect.Effect<PageRender>;
   readonly script: Effect.Effect<Asset>;
-  readonly html: (script: Asset) => string;
+  /** The page's HTML, stamped with the build it was served at when the test gives one. */
+  readonly html: (script: Asset, build: Option.Option<PageBuild>) => string;
   readonly prefix: string;
   readonly defaults: ReadonlyArray<FakeRoute>;
   readonly home: string;
@@ -607,7 +609,7 @@ const SERVED: Readonly<Record<ServedName, ServedPage>> = {
     script: Effect.runSync(
       Effect.cached(scriptAsset('review-hydrated-page.ts', 'review-hydrated.js')),
     ),
-    html: (script) => reviewPage(script, Option.none()),
+    html: (script, build) => reviewPage(script, build),
     prefix: '',
     defaults: [],
     home: '/',
@@ -615,7 +617,7 @@ const SERVED: Readonly<Record<ServedName, ServedPage>> = {
   lab: {
     render: Effect.runSync(Effect.cached(served('../film-server.tsx', 'labRender'))),
     script: Effect.runSync(Effect.cached(scriptAsset('lab-hydrated-page.ts', 'lab-hydrated.js'))),
-    html: (script) => labPage(css, script, Option.none()),
+    html: (script, build) => labPage(css, script, build),
     prefix: API,
     defaults,
     home: pageHref.lab(PROBE),
@@ -732,9 +734,10 @@ interface OpenServed extends OpenLab {
 export const openServed = Effect.fn('lab.fixture.served')(function* (
   name: ServedName,
   routes: ReadonlyArray<FakeRoute>,
-  at: Omit<ReviewAt, 'build'> = {},
+  at: ReviewAt = {},
 ) {
   const spec = SERVED[name];
+  const build = Option.fromUndefinedOr(at.build);
   const render = yield* spec.render;
   const script = yield* spec.script;
   const all = [...routes, ...spec.defaults];
@@ -744,7 +747,7 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
   const document = (request: Request) =>
     Effect.gen(function* () {
       const page = yield* rendered(render, request.url, apiAnswer(spec.prefix, all, read));
-      const [before, after] = yield* Option.match(splice(spec.html(script), page), {
+      const [before, after] = yield* Option.match(splice(spec.html(script, build), page), {
         onNone: () => Effect.die(`the ${name} page has no head or body to splice into`),
         onSome: Effect.succeed,
       });

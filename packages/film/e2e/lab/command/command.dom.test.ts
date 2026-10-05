@@ -113,7 +113,7 @@ describe('the keys sheet', () => {
       yield* textHas(page, `${row} .lab-keys-bound`, 'X');
       yield* page.press('Escape');
       yield* page.reload;
-      yield* page.waitFor('.lab-panel');
+      yield* page.waitFor('.lab-panel[data-staged="true"]');
       yield* page.press('x');
       yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
       yield* page.press('?');

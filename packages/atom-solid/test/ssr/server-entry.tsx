@@ -10,6 +10,7 @@ import { OBSERVE } from 'solid-js';
 import { RegistryProvider } from '../../src/registry-context.ts';
 import { ANSWER_KEY, Answer, AnswerResult } from './Answer.tsx';
 import { App } from './App.tsx';
+import { Own } from './Own.tsx';
 
 /**
  * The codes Solid's development build reports on its diagnostics channel
@@ -33,6 +34,25 @@ export const render = (href: string): string =>
       <App />
     </RegistryProvider>
   ));
+
+/**
+ * The markup of a control over a viewer's own value (`Atom.withServerValue`),
+ * read and set: `ran` is called each time the server runs the atom's own read.
+ */
+export const ownPage = (ran: () => void): string => {
+  const own = Atom.writable(
+    () => {
+      ran();
+      return 'live';
+    },
+    (ctx, value: string) => ctx.setSelf(value),
+  ).pipe(Atom.withServerValue(() => 'served'));
+  return renderToString(() => (
+    <RegistryProvider>
+      <Own own={own} />
+    </RegistryProvider>
+  ));
+};
 
 /** The App rendered with no `RegistryProvider`: a mistake on the server. */
 export const renderWithoutProvider = (): string => renderToString(() => <App />);

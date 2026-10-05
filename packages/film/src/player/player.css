@@ -228,12 +228,13 @@ body.lab {
   grid-template-columns: minmax(0, 1fr) var(--inspector-w);
   grid-template-rows: auto minmax(0, 1fr) auto;
 }
-/* The lab's own wrappers (the Solid root, the studio's shell and its body, its pinned layers and its panel sections) lay out as their children. */
+/* The lab's own wrappers (the Solid root, the studio's shell and its body, its pinned layers, its panel sections and the slots the staged lab fills) lay out as their children. */
 .lab-root,
 body.lab .sh,
 body.lab .sh-body,
 .lab-layers,
-.lab-notes-box {
+.lab-notes-box,
+.lab-slot {
   display: contents;
 }
 body.lab .sh-header {
@@ -334,6 +335,14 @@ body.lab .stage {
     padding: var(--s-3) var(--gutter);
     border-left: 0;
     border-top: var(--border);
+  }
+  /*
+   * The panel stands under the picture and its bar, whose heights are the
+   * film's (its frame, its scene's cue strip): until the film is staged the
+   * panel is laid out but unseen, so no control is painted where it will not stay.
+   */
+  .lab-panel[data-staged='false'] {
+    visibility: hidden;
   }
 }
 .lab-panel header {

@@ -3,23 +3,26 @@
 // as the browser and the server both render them: the shell
 // (`page-shell.tsx`: the header, the film switcher, the tab bar, Go to…),
 // the context menu, ⌘K, the `?` sheet and the receipts, around the page's
-// body. The body is the film's and the browser's alone (`clientOnly`): the
-// canvas, the scene code and the stills are drawn from the film's modules,
-// which the server never imports (Fresh reads, `filmCode` in
-// `tools/lab-page.ts`). The server, and the browser while it hydrates,
-// render the body's place as a quiet line; the browser then stages the film
-// and puts the body there (`mount.tsx`, `play-mount.tsx`). Neither side's
-// own adapters are imported here.
+// body, and on the Lab its panel (`panel.tsx`: the mode tray, each tool's
+// section, the film's notes). The body is the film's and the browser's
+// alone (`clientOnly`): the canvas, the scene code and the stills are drawn
+// from the film's modules, which the server never imports (Fresh reads,
+// `filmCode` in `tools/lab-page.ts`). The server, and the browser while it
+// hydrates, render the body's place as a quiet line; the browser then stages
+// the film and puts the body there, the Lab's tools in its panel
+// (`mount.tsx`, `play-mount.tsx`). Neither side's own adapters are imported
+// here: the page's reads go through the client it is given.
 
 import { RegistryProvider } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
-import { clientOnly } from '@solidjs/web';
+import { type JSX, clientOnly } from '@solidjs/web';
 import type { Component } from 'solid-js';
-import { Effect, Option } from 'effect';
+import { Effect, type Layer, Option } from 'effect';
 import { type PageName, type Part, filmOfPage } from '../core/api.ts';
 import { type Host, addressOn, hostLayer } from '../browser/host.ts';
 import { TabStore, ViewerStore } from '../browser/storage-browser.ts';
 import { type Hub, makeHub } from '../command/hub.ts';
+import type { LabClient } from './api.ts';
 import { CommandMenu } from './command/command-menu.tsx';
 import { TargetMenu } from './command/context-menu.tsx';
 import { KeysSheet } from './command/keys-sheet.tsx';
@@ -27,6 +30,7 @@ import { Receipts } from './command/receipts.tsx';
 import { COMMAND_CSS } from './command/style.ts';
 import { PageShell } from './page-shell.tsx';
 import { SHELL_CSS } from './page-shell-style.ts';
+import { LabPage } from './panel.tsx';
 import { scenesPlaceOf } from './scenes/place.ts';
 import { SCENES_CSS } from './scenes/style.ts';
 
@@ -44,6 +48,9 @@ export const SERVER_BODY: FilmBody = () =>
 /** The parts a film's page is: the Lab, or the Scenes or Play page (the player's). */
 type FilmPart = Extract<Part, 'lab' | 'scenes' | 'play'>;
 
+/** What a film's page puts around its body, made in its place when it is asked. */
+type PageAround = (body: () => JSX.Element) => JSX.Element;
+
 /** What a film's page is rendered with. */
 interface FilmPageWith {
   readonly part: FilmPart;
@@ -56,6 +63,8 @@ interface FilmPageWith {
   /** The receipts' scope in the tab's store: the page's kind and its film. */
   readonly scope: string;
   readonly body: FilmBody;
+  /** What the page's part puts around its body: the Lab's panel; Scenes and Play, nothing. */
+  readonly around: PageAround;
 }
 
 /** The body's place before the film is staged: the server's, and the browser's while it loads the film. */
@@ -89,7 +98,9 @@ const FilmPage = (props: FilmPageWith) => {
           hub={props.hub}
           host={props.host}
         >
-          <Body fallback={<Await name={props.name} />} />
+          {props.around(() => (
+            <Body fallback={<Await name={props.name} />} />
+          ))}
         </PageShell>
         <CommandMenu hub={props.hub} />
         <KeysSheet hub={props.hub} />
@@ -127,11 +138,15 @@ export const playPartOf = (href: string): FilmPart =>
     onSome: (): FilmPart => 'scenes',
   });
 
+/** What a page of film `name` puts around its body, given its host and commands. */
+type AroundOf = (name: string, host: Host, hub: Hub) => PageAround;
+
 /**
  * A film's page of `part` over `host`, as page `page`'s commands
  * (`command/hub.ts`, their keys not yet heard), with `body` in it once
- * staged: its commands and its app, for the browser to mount or hydrate and
- * the server to render. Its receipts are kept under `scope` and the film.
+ * staged and `around` it: its commands and its app, for the browser to
+ * mount or hydrate and the server to render. Its receipts are kept under
+ * `scope` and the film.
  */
 const filmPageOn = (
   page: PageName,
@@ -140,10 +155,12 @@ const filmPageOn = (
   host: Host,
   films: ReadonlyArray<string>,
   body: FilmBody,
+  around: AroundOf,
 ) => {
   const href = addressOn(host).href;
   return Effect.map(makeHub(page, href, ViewerStore), (hub) => {
     const name = filmOfPage(href());
+    const film = Option.getOrElse(name, () => '');
     return {
       hub,
       app: () => (
@@ -153,18 +170,39 @@ const filmPageOn = (
           films={films}
           host={host}
           hub={hub}
-          scope={`${scope}:${Option.getOrElse(name, () => '')}`}
+          scope={`${scope}:${film}`}
           body={body}
+          around={around(film, host, hub)}
         />
       ),
     };
   }).pipe(Effect.provideContext(host));
 };
 
-/** The Lab over `host`, its body `body` once the film is staged. */
-export const labOn = (host: Host, films: ReadonlyArray<string>, body: FilmBody) =>
-  filmPageOn('lab', 'lab', (): FilmPart => 'lab', host, films, body);
+/**
+ * The Lab over `host`, its panel's reads through `client` (the page's one
+ * client of the lab's API), its body `body` once the film is staged.
+ */
+export const labOn = (
+  host: Host,
+  films: ReadonlyArray<string>,
+  client: Layer.Layer<LabClient>,
+  body: FilmBody,
+) =>
+  filmPageOn(
+    'lab',
+    'lab',
+    (): FilmPart => 'lab',
+    host,
+    films,
+    body,
+    (name, at, hub) => (made) => (
+      <LabPage name={name} host={at} hub={hub} client={client}>
+        {made()}
+      </LabPage>
+    ),
+  );
 
 /** The Scenes or Play page over `host`, as its link says, its body `body` once the film is staged. */
 export const playOn = (host: Host, films: ReadonlyArray<string>, body: FilmBody) =>
-  filmPageOn('player', 'player', playPartOf, host, films, body);
+  filmPageOn('player', 'player', playPartOf, host, films, body, () => (made) => made());

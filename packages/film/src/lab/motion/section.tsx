@@ -42,52 +42,53 @@ const SpreadField = (props: SpreadFieldProps) => {
   );
 };
 
-/** The onion, the speed and the loop. */
+/** The onion, the speed and the loop, in Motion's section of the page's panel. */
 export const Section = () => {
   const { state, actions } = useMotion();
   const { meta } = useLab();
   return (
-    <Lab.Section class="lab-motion" mode="motion">
-      <header>
-        <strong>Motion</strong>
+    <>
+      <Lab.Fill at="motion-head">
         <span class="lab-motion-status">{state.status()}</span>
-      </header>
-      <div class="lab-motion-row">
-        <button
-          type="button"
-          data-act="onion"
-          class={{ on: state.onion().on }}
-          title="ghost the frames around this one: warm before, cool after"
-          onClick={() => actions.setOnion({ on: !state.onion().on })}
-        >
-          Onion
-        </button>
-        <label>
-          ± <SpreadField field="count" max={4} />
-        </label>
-        <label>
-          every <SpreadField field="spacing" max={15} /> f
-        </label>
-      </div>
-      <div class="lab-motion-row">
-        <CommandChip
-          hub={meta.hub}
-          ids={RATES.map(rateId)}
-          act="rate"
-          title="The speed: play slower (J), faster (L), or at 1× (K)"
-        >
-          <span data-rate={String(state.rate())}>{rateText(state.rate())}</span>
-        </CommandChip>
-        <CommandChip
-          hub={meta.hub}
-          ids={LOOP_IDS}
-          act="loop"
-          title="Loop the selected cue (⇧L), this scene, or in (I) to out (O)"
-        >
-          Loop…
-        </CommandChip>
-      </div>
-    </Lab.Section>
+      </Lab.Fill>
+      <Lab.Fill at="motion">
+        <div class="lab-motion-row">
+          <button
+            type="button"
+            data-act="onion"
+            class={{ on: state.onion().on }}
+            title="ghost the frames around this one: warm before, cool after"
+            onClick={() => actions.setOnion({ on: !state.onion().on })}
+          >
+            Onion
+          </button>
+          <label>
+            ± <SpreadField field="count" max={4} />
+          </label>
+          <label>
+            every <SpreadField field="spacing" max={15} /> f
+          </label>
+        </div>
+        <div class="lab-motion-row">
+          <CommandChip
+            hub={meta.hub}
+            ids={RATES.map(rateId)}
+            act="rate"
+            title="The speed: play slower (J), faster (L), or at 1× (K)"
+          >
+            <span data-rate={String(state.rate())}>{rateText(state.rate())}</span>
+          </CommandChip>
+          <CommandChip
+            hub={meta.hub}
+            ids={LOOP_IDS}
+            act="loop"
+            title="Loop the selected cue (⇧L), this scene, or in (I) to out (O)"
+          >
+            Loop…
+          </CommandChip>
+        </div>
+      </Lab.Fill>
+    </>
   );
 };
 

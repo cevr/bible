@@ -5,14 +5,22 @@
 // connects again after a pause. A change this page made reads the notes at
 // once.
 
-import { Effect, Layer, Option, SubscriptionRef } from 'effect';
+import { Cause, Effect, Exit, Layer, Option, SubscriptionRef } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertPath, simulate } from 'effect-machine';
 import { TestClock } from 'effect/testing';
 import type { Note, NotesFile, NotesWait } from '../../core/schema.ts';
 import { ServerFailed } from '../../core/api.ts';
 import { type LabFailure, NotesApi, type NotesCalls } from '../api.ts';
-import { FeedEvent, FeedState, RETRY_MS, feedMachine, feedText } from './feed.ts';
+import {
+  FeedEvent,
+  FeedState,
+  RETRY_MS,
+  feedMachine,
+  feedText,
+  spawnFeed,
+  startOf,
+} from './feed.ts';
 
 const note = (id: string, text = 'the ball rises too early'): Note => ({
   scene: 'one',
@@ -200,6 +208,39 @@ describe('the connection, through an actor', () => {
       expect(asked).toEqual(['notes', 'wait 5', 'notes', 'wait 0']);
     }).pipe(Effect.scoped, Effect.provide(layer));
   });
+
+  it.effect(
+    'a feed started on the notes the page was sent waits past their cursor and reads them no second time',
+    () => {
+      const { asked, layer } = fake([Effect.succeed(file(9, []))]);
+      return Effect.gen(function* () {
+        const actor = yield* spawnFeed(startOf(Exit.succeed(file(3, [note('n1')]))));
+        yield* TestClock.adjust('10 millis');
+        expect(yield* SubscriptionRef.get(actor.state)).toEqual(
+          FeedState.Live({ notes: [note('n1')], cursor: 3 }),
+        );
+        expect(asked).toEqual(['wait 3']);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
+
+  it.effect(
+    `a feed whose sent read failed starts lost, saying why, and reads after ${RETRY_MS} ms`,
+    () => {
+      const { asked, layer } = fake([Effect.succeed(file(0, []))]);
+      return Effect.gen(function* () {
+        const actor = yield* spawnFeed(startOf(Exit.failCause(Cause.fail(refused))));
+        const lost = yield* SubscriptionRef.get(actor.state);
+        expect(feedText(lost)).toBe('notes offline: notes.json is being written; trying again');
+        expect(asked).toEqual([]);
+        yield* TestClock.adjust(`${RETRY_MS} millis`);
+        expect(yield* SubscriptionRef.get(actor.state)).toEqual(
+          FeedState.Live({ notes: [], cursor: 0 }),
+        );
+        expect(asked).toEqual(['notes', 'wait 0']);
+      }).pipe(Effect.scoped, Effect.provide(layer));
+    },
+  );
 
   it.effect(`a failed read is lost, and connects again after ${RETRY_MS} ms`, () => {
     const { asked, layer } = fake([Effect.fail(refused), Effect.succeed(file(0, []))]);

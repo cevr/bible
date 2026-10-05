@@ -1,10 +1,12 @@
-// The notes' provider: two machines on the shell's runtime (the feed, the
-// page's live connection to the notes on the server, and the composer), the
-// pen, and the note selected. The section, the marks on the frame, the pins
-// on the timeline and the pen button read this context and act through it;
-// none holds state of its own. A save that made a note selects it and reads
-// the notes at once; a reply or a resolve does too. ⇧N and ⌥⇧N step to the
-// next or previous open note by time (`command/walk.ts`), and each note is a
+// The notes' provider in the staged lab: the composer's machine on the
+// shell's runtime, over the page's notes (`list.tsx`: the feed, the page's
+// live connection to the notes on the server, the note selected, the pen,
+// the thread's writes), which it lends what needs the film (each note's
+// time, the seek to it, Note frame). The composer, the marks on the frame
+// and the pins on the timeline read this context and act through it; none
+// holds state of its own. A save that made a note selects it and reads the
+// notes at once; a reply or a resolve does too. ⇧N and ⌥⇧N step to the next
+// or previous open note by time (`command/walk.ts`), and each note is a
 // place ⌘K goes to by its id and words (`command/go.ts`).
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
@@ -12,7 +14,7 @@ import { Loading, Show } from '@solidjs/web';
 import { Effect, Match, Option } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
-import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import type * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
@@ -32,7 +34,6 @@ import type { Hub } from '../../command/hub.ts';
 import { type Context, selected as selectedOf } from '../../command/context.ts';
 import { noteT } from '../../core/notes.ts';
 import type { Note, Point } from '../../core/schema.ts';
-import { NotesApi, reasonOf } from '../api.ts';
 import { useLab } from '../shell.tsx';
 import {
   type ComposerActor,
@@ -48,15 +49,11 @@ import {
 } from './composer.ts';
 import { NO_SCOPE, type Scope, draftOf, scopeText, whereText } from './draft.ts';
 import { useMotion } from '../motion/context.tsx';
-import { type FeedActor, FeedEvent, feedText, spawnFeed } from './feed.ts';
+import { feedText } from './feed.ts';
+import { type ThreadWrite, useNotesFeed } from './list.tsx';
 
 /** How much of a note's words its Go to entry carries. */
 const NOTE_NAMED = 48;
-
-/** A reply to a note, or its resolve: what the thread writes. */
-type ThreadWrite =
-  | { readonly _tag: 'Reply'; readonly id: string; readonly text: string }
-  | { readonly _tag: 'Resolve'; readonly id: string };
 
 interface NotesState {
   /** Whether the composer shows: from a press on the frame until the note is saved or cancelled. */
@@ -119,11 +116,6 @@ const NotesContext = createContext<NotesContextValue>();
 
 /** The notes' context: only inside `<Notes.Provider>`. */
 export const useNotes = (): NotesContextValue => useContext(NotesContext);
-
-interface Actors {
-  readonly feed: FeedActor;
-  readonly composer: ComposerActor;
-}
 
 /** The T of the note being made, while one is. */
 const composingT = (state: ComposerState): Option.Option<number> =>
@@ -214,24 +206,18 @@ const useCommands = (
     ),
   );
 
-const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
+const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
   const { state: lab, actions: labActions, meta } = useLab();
-  const { film, player, runtime } = meta;
-  const feedAtom = ActorAtom.make(props.actors.feed);
-  const composerAtom = ActorAtom.make(props.actors.composer);
-  const feed = useAtomValue(() => feedAtom);
-  const sendFeed = useAtomSet(() => feedAtom);
+  const { film, player } = meta;
+  const feed = useNotesFeed();
+  const composerAtom = ActorAtom.make(props.composer);
   const composer = useAtomValue(() => composerAtom);
   const sendComposer = useAtomSet(() => composerAtom);
 
-  const [pen, setPen] = createSignal(false);
   // The note selected is the URL's (`?note=`, `LabState.note`), so a link,
   // a reload and Back all carry it.
   const selectedId = lab.note;
-  const notes = createMemo(() => feed().notes);
-  const selected = createMemo(() =>
-    Option.flatMap(selectedId(), (id) => Option.fromUndefinedOr(notes().find((n) => n.id === id))),
-  );
+  const { notes, selected } = feed;
 
   // A note being made holds every reload (an Undo's, a rebuild's) until it is saved or cancelled.
   createEffect(composer, (s) => {
@@ -246,7 +232,7 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
     if (s._tag !== 'Closed') return;
     Option.map(s.saved, (id) => {
       labActions.selectNote(Option.some(id));
-      sendFeed(FeedEvent.Refresh);
+      feed.refresh();
     });
   });
 
@@ -254,7 +240,7 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
   // link names one long gone) leaves the URL. Only a read decides (the note
   // is read untracked): the note a save just selected waits for the read the
   // save asked for.
-  createEffect(feed, (s) => {
+  createEffect(feed.state, (s) => {
     if (s._tag !== 'Live') return;
     const gone = Option.exists(
       untrack(() => lab.note()),
@@ -262,26 +248,6 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
     );
     if (gone) labActions.forgetNote();
   });
-
-  const thread = runtime.fn((w: ThreadWrite) =>
-    NotesApi.use((api) =>
-      Match.value(w).pipe(
-        Match.tagsExhaustive({
-          Reply: (r) => api.reply(r.id, r.text),
-          Resolve: (r) => api.resolve(r.id),
-        }),
-      ),
-    ).pipe(Effect.tap(() => props.actors.feed.send(FeedEvent.Refresh))),
-  );
-  const threadResult = useAtomValue(() => thread);
-  const writeThread = useAtomSet(() => thread);
-  const threadStatus = createMemo(() =>
-    AsyncResult.match(threadResult(), {
-      onInitial: () => '',
-      onSuccess: () => '',
-      onFailure: (f) => reasonOf(f.cause),
-    }),
-  );
 
   const timeOf = (note: Note) => noteT(film.placed, film.fps, note);
 
@@ -315,8 +281,8 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
   );
 
   const actions: NotesActions = {
-    togglePen: () => setPen((on) => !on),
-    press: (at) => sendComposer(ComposerEvent.Press({ T: player.now(), at, pen: pen() })),
+    togglePen: feed.togglePen,
+    press: (at) => sendComposer(ComposerEvent.Press({ T: player.now(), at, pen: feed.pen() })),
     drag: (at, far) => sendComposer(ComposerEvent.Drag({ at, far })),
     lift: (at, far) => sendComposer(ComposerEvent.Lift({ at, far })),
     noteFrame: () => sendComposer(ComposerEvent.Note({ T: player.now() })),
@@ -333,8 +299,18 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
       labActions.selectNote(Option.some(note.id));
       player.seek(timeOf(note));
     },
-    write: (w) => writeThread(w),
+    write: feed.write,
   };
+  // The page's notes show each note's time, open one, and note the frame shown, while this lives.
+  onCleanup(
+    feed.lend({
+      timeOf,
+      fps: film.fps,
+      select: actions.select,
+      noteFrame: actions.noteFrame,
+      composerOpen: () => composerOpen(composer()),
+    }),
+  );
   // A note a context menu opened on, when it is not the one open already.
   const noteOf = (ctx: Context) =>
     Option.filter(
@@ -376,12 +352,12 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
       notes,
       selected,
       timeOf,
-      pen,
+      pen: feed.pen,
       where,
       scope: scopeChip,
       status: () => composerText(composer()),
-      feedStatus: () => feedText(feed()),
-      threadStatus,
+      feedStatus: () => feedText(feed.state()),
+      threadStatus: feed.threadStatus,
     },
     actions,
   };
@@ -390,30 +366,24 @@ const Body = (props: ParentProps<{ readonly actors: Actors }>) => {
 
 const Ready = (
   props: ParentProps<{
-    readonly feed: Atom.Atom<AsyncResult.AsyncResult<FeedActor, never>>;
     readonly composer: Atom.Atom<AsyncResult.AsyncResult<ComposerActor, never>>;
   }>,
 ) => {
-  const feed = useAtomSuspense(() => props.feed);
   const composer = useAtomSuspense(() => props.composer);
-  const actors = createMemo(() => ({ feed: feed(), composer: composer() }));
   return (
-    <Show when={actors()} keyed>
-      {(a: Actors) => <Body actors={a}>{props.children}</Body>}
+    <Show when={composer()} keyed>
+      {(c: ComposerActor) => <Body composer={c}>{props.children}</Body>}
     </Show>
   );
 };
 
-/** The notes' state and actions, for their section, marks, pins and pen. */
+/** The notes' state and actions in the staged lab, for the composer, the marks and the pins. */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
-  const feed = meta.runtime.atom(Machine.scoped(spawnFeed));
   const composer = meta.runtime.atom(Machine.scoped(spawnComposer));
   return (
     <Loading>
-      <Ready feed={feed} composer={composer}>
-        {props.children}
-      </Ready>
+      <Ready composer={composer}>{props.children}</Ready>
     </Loading>
   );
 };

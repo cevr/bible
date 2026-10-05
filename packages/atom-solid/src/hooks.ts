@@ -377,8 +377,17 @@ function createServedAccessor<A>(
 
 const identity = <A>(value: A): A => value;
 
+/**
+ * Keep `atom` mounted for the calling computation's life. On the server an
+ * atom with a server value (`Atom.withServerValue`, the viewer's own) is
+ * not mounted, as it is never read there: mounting it would run it. The
+ * render effect is made all the same, so both sides make the same owners.
+ */
 function mountAtom<A>(registry: AtomRegistry.AtomRegistry, atom: () => Atom.Atom<A>): void {
-  createRenderEffect(atom, (current) => registry.mount(current));
+  createRenderEffect(atom, (current) => {
+    if (isServer && Atom.ServerValueTypeId in current) return undefined;
+    return registry.mount(current);
+  });
 }
 
 /**

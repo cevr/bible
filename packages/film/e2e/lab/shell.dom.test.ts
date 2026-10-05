@@ -190,7 +190,7 @@ describe('the lab shell', () => {
         yield* evaluates(page, shown, [false, false, true, false, false]);
         yield* attributeIs(page, '.lab-modes [data-mode-pick="motion"]', 'aria-pressed', 'true');
         yield* page.reload;
-        yield* page.waitFor('.lab-panel');
+        yield* page.waitFor('.lab-panel[data-staged="true"]');
         yield* attributeIs(page, '.lab-panel', 'data-mode', 'motion');
         // Note this frame, from any mode, shows Note with its composer open.
         yield* page.press('n');

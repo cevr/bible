@@ -1,24 +1,21 @@
-// The lab's shell as compound components: `<Lab.Root>` holds what every panel
-// shares (the staged film and its player, the lab API's base, the view kept
-// through a reload, the frame shown, and the lab's place: the pick and the
-// note the URL holds, `lab/place.ts`), and the pieces place themselves: layers
-// pinned over the film canvas (`<Lab.Overlay>`, `<Lab.Layer>`), the slot under
-// the player's timeline (`<Lab.Strip>`), and the side panel (`<Lab.Panel>`,
-// `<Lab.Header>`, `<Lab.Section>`). Each panel's own state lives in its own
+// The staged lab as compound components: `<Lab.Root>` holds what every tool
+// shares once the browser has staged the film (the film and its player, the
+// lab API's base, the view kept through a reload, the frame shown), beside
+// what the Lab's page holds on both sides (`panel.tsx`: the lab's place, the
+// pick and the note the URL holds, `lab/place.ts`, and the mode), and the
+// pieces place themselves: layers pinned over the film canvas
+// (`<Lab.Overlay>`, `<Lab.Layer>`), the slot under the player's timeline
+// (`<Lab.Strip>`), and each tool's controls in its section of the page's
+// panel (`Fill`, `panel.tsx`). Each tool's own state lives in its own
 // provider; the shell knows none of it.
 
-import { useAtomSet, useAtomValue } from '@bible/atom-solid';
-import { Toggle } from '@bible/ui/toggle';
-import { ToggleGroup } from '@bible/ui/toggle-group';
-import * as UrlAtom from '@bible/url-state/atom';
-import { For, Portal, Show } from '@solidjs/web';
-import { Array as Arr, Duration, Effect, Equal, Fiber, Layer, Option } from 'effect';
+import { Portal } from '@solidjs/web';
+import { Duration, Effect, Fiber, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
   createContext,
   createMemo,
-  createEffect,
   createSignal,
   onCleanup,
   onSettled,
@@ -28,16 +25,16 @@ import {
 import type { Film } from '../canvas/film.ts';
 import { type BrowserServices, type Host, addressOn, hostLayer } from '../browser/host.ts';
 import type { Player } from '../player/main.ts';
-import { keptText } from '../browser/storage.ts';
-import { TabStore, ViewerStore } from '../browser/storage-browser.ts';
-import { LAB_MODES, type LabMode, MODE_TITLE, modeCommands, modeOf } from './mode.ts';
+import { TabStore } from '../browser/storage-browser.ts';
+import type { LabMode } from './mode.ts';
 import { type ViewStore, viewStore } from './view-state.ts';
-import { type LabApi, LabClient, type NotesApi, labApiLayer } from './api.ts';
+import { type LabApi, type LabClient, type NotesApi, labApiLayer } from './api.ts';
 import { goToCommands } from '../command/go.ts';
 import type { CompareView } from '../core/api.ts';
 import type { Hub } from '../command/hub.ts';
 import type { LabSelection } from '../command/selection.ts';
-import { labHref, labPlaceOf } from './place.ts';
+import { labHref } from './place.ts';
+import { Fill, type LabPick, pickOf, useLabPage } from './panel.tsx';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { type ReloadGate, makeReloadGate } from './reload-gate.ts';
 import { type Stage, type StageOps, makeStage, reloadHere, stageLayer } from './stage.ts';
@@ -121,14 +118,16 @@ export const useLab = (): LabContextValue => useContext(LabContext);
 const fromDraw = { ownedWrite: true, equals: false } as const;
 
 interface RootProps extends ParentProps {
-  readonly name: string;
   readonly player: Player;
-  readonly host: Host;
-  readonly hub: Hub;
 }
 
+/** The staged lab, in the Lab's page (`panel.tsx`): the film on its stage, and every tool's base. */
 const Root = (props: RootProps) => {
   const { player } = props;
+  const page = useLabPage();
+  const { name, host, hub } = page;
+  // The page's panel has the film's tools in it while this lives.
+  onCleanup(page.staged());
   const [T, setT] = createSignal(player.now(), fromDraw);
   const [drawn, setDrawn] = createSignal(0, fromDraw);
   onCleanup(
@@ -164,7 +163,7 @@ const Root = (props: RootProps) => {
     window.removeEventListener('resize', place);
   });
 
-  const view = viewStore(props.name, player.film.duration, TabStore);
+  const view = viewStore(name, player.film.duration, TabStore);
   // Whether it was playing: kept as the page goes (a write reloads it), and played again on load.
   const keepPlaying = () => view.patch({ playing: player.playing() });
   window.addEventListener('pagehide', keepPlaying);
@@ -175,32 +174,33 @@ const Root = (props: RootProps) => {
   // A page reloaded onto new code flashes its picture once as it lands; one opened by hand does not.
   if (view.get().landed === true) {
     view.patch({ landed: false });
-    onSettled(() => flashLanded(frame, props.host));
+    onSettled(() => flashLanded(frame, host));
   }
 
   document.body.classList.add('lab');
   onCleanup(() => document.body.classList.remove('lab'));
 
   const [revision, setRevision] = createSignal(0, fromDraw);
-  // Every reload (a write's, a kept take's, the rebuild's) waits while a panel holds unsaved work.
-  const [reloadWaiting, setReloadWaiting] = createSignal('', { ownedWrite: true });
+  // Every reload (a write's, a kept take's, the rebuild's) waits while a panel holds
+  // unsaved work; the page's panel says what it waits for.
   // Each reload says it is onto new code, so the page it lands on flashes once (PA-11).
   const reloads = makeReloadGate(
     Effect.andThen(
       Effect.sync(() => view.patch({ landed: true })),
-      reloadHere(player, props.host),
+      reloadHere(player, host),
     ),
-    setReloadWaiting,
+    page.setReloadWaiting,
   );
+  onCleanup(() => page.setReloadWaiting(''));
   const stage = makeStage(player, () => setRevision((n) => n + 1), reloads.request);
-  const clientLayer = LabClient.layer;
+  const clientLayer = page.client;
   // The server rebuilt the pages (a source changed): reload onto the new code at this frame.
   const rebuilt = Effect.runFork(
-    reloadOnRebuild(props.name, stage.reload).pipe(Effect.provide(clientLayer)),
+    reloadOnRebuild(name, stage.reload).pipe(Effect.provide(clientLayer)),
   );
   onCleanup(() => Effect.runFork(Fiber.interrupt(rebuilt)));
   const runtime = Atom.runtime(
-    Layer.mergeAll(stageLayer(stage), labApiLayer(props.name), hostLayer(props.host)).pipe(
+    Layer.mergeAll(stageLayer(stage), labApiLayer(name), hostLayer(host)).pipe(
       Layer.provide(clientLayer),
     ),
   );
@@ -208,7 +208,7 @@ const Root = (props: RootProps) => {
   const scene = createMemo(() => player.film.sceneAt(T()).spec.id);
   // Every scene is a place ⌘K goes to by its name, shown from its start.
   onCleanup(
-    props.hub.commands.register(
+    hub.commands.register(
       ...goToCommands(
         player.film.placed.map((p) => ({
           kind: 'scene',
@@ -222,87 +222,55 @@ const Root = (props: RootProps) => {
 
   // The lab's place is the URL's: a pick pushes an entry at the frame shown,
   // and Back or Forward landing on one shows its pick again.
-  const address = addressOn(props.host);
-  const picked = (pick: Partial<ReturnType<typeof pickOf>>) =>
-    labHref(props.name, player.film.placed, { ...pickOf(address.href()), ...pick }, player.now());
+  const address = addressOn(host);
+  const picked = (pick: Partial<LabPick>) =>
+    labHref(name, player.film.placed, { ...pickOf(address.href()), ...pick }, player.now());
 
-  const Inner = (inner: ParentProps) => {
-    const href = useAtomValue(() => UrlAtom.href);
-    const here = createMemo(() => pickOf(href()), { equals: Equal.equals });
-    // The mode: the one picked on this page, else the viewer's kept one.
-    const kept = useAtomValue(() => keptMode);
-    const keep = useAtomSet(() => keptMode);
-    const [chosen, setChosen] = createSignal(Option.none<LabMode>(), { ownedWrite: true });
-    const mode = createMemo(() => Option.getOrElse(chosen(), () => modeOf(kept())));
-    const showMode = (m: LabMode) => {
-      setChosen(Option.some(m));
-      keep(m);
-    };
-    // A note picked (a link, a pin, Back) shows the Note mode, the only one
-    // that shows notes; a cue or a knob shows on the strip in every mode.
-    createEffect(
-      () => here().note,
-      (note) => {
-        Option.map(note, () => showMode('note'));
+  const { here } = page;
+  const value: LabContextValue = {
+    state: {
+      T,
+      scene,
+      drawn,
+      revision,
+      selection: () => here().selection,
+      note: () => here().note,
+      view: () => here().view,
+      reloadWaiting: page.reloadWaiting,
+      mode: page.mode,
+    },
+    actions: {
+      pin: (layer) => {
+        pinned.add(layer);
+        place();
+        return () => pinned.delete(layer);
       },
-    );
-    onCleanup(props.hub.commands.register(...modeCommands(mode, showMode)));
-    const value: LabContextValue = {
-      state: {
-        T,
-        scene,
-        drawn,
-        revision,
-        selection: () => here().selection,
-        note: () => here().note,
-        view: () => here().view,
-        reloadWaiting,
-        mode,
+      select: (selection) => address.push(picked({ selection })),
+      selectNote: (note) => address.push(picked({ note })),
+      forgetNote: () => address.replace(picked({ note: Option.none() })),
+      compareBy: (view) => {
+        if (view !== untrack(() => here().view)) address.push(picked({ view }));
       },
-      actions: {
-        pin: (layer) => {
-          pinned.add(layer);
-          place();
-          return () => pinned.delete(layer);
-        },
-        select: (selection) => address.push(picked({ selection })),
-        selectNote: (note) => address.push(picked({ note })),
-        forgetNote: () => address.replace(picked({ note: Option.none() })),
-        compareBy: (view) => {
-          if (view !== untrack(() => here().view)) address.push(picked({ view }));
-        },
-        keepCompare: (view) => address.replace(picked({ view })),
-        showMode,
-      },
-      meta: {
-        name: props.name,
-        film: player.film,
-        player,
-        view,
-        stage,
-        reloads,
-        runtime,
-        clientLayer,
-        host: props.host,
-        hub: props.hub,
-      },
-    };
-    return <LabContext value={value}>{inner.children}</LabContext>;
+      keepCompare: (view) => address.replace(picked({ view })),
+      showMode: page.showMode,
+    },
+    meta: {
+      name,
+      film: player.film,
+      player,
+      view,
+      stage,
+      reloads,
+      runtime,
+      clientLayer,
+      host,
+      hub,
+    },
   };
-
   // The page's registry is its own (`film-page.tsx`): its URL atoms read and
   // write through the host's own `UrlState`, so they and the time the player
   // writes share one address bar.
-  return <Inner>{props.children}</Inner>;
-};
-
-/** The viewer's mode, kept in the browser: a convenience, safe to lose. */
-const keptMode = keptText(ViewerStore, 'film-studio.lab-mode');
-
-/** What the lab has picked, and how it compares with HEAD, as the URL at `href` holds it. */
-const pickOf = (href: string) => {
-  const { selection, note, view } = labPlaceOf(href);
-  return { selection, note, view };
+  return <LabContext value={value}>{props.children}</LabContext>;
 };
 
 /** How long the picture flashes when new code lands. */
@@ -397,76 +365,5 @@ const Strip = (props: ParentProps) => {
   return <Portal mount={slot}>{props.children}</Portal>;
 };
 
-/**
- * The side panel: the header, then each tool's section; above them, while a
- * reload waits on the owner's unsaved work, what it waits for.
- */
-const Panel = (props: ParentProps) => {
-  const { state } = useLab();
-  return (
-    <aside class="lab-panel" data-mode={state.mode()}>
-      <Show when={state.reloadWaiting()}>
-        {(waiting) => (
-          <p class="lab-reload-waiting" role="status">
-            {waiting()}
-          </p>
-        )}
-      </Show>
-      {props.children}
-    </aside>
-  );
-};
-
-/**
- * The panel's header: the mode tray (which tool the inspector shows), then
- * the header's tools. The film's other parts are the studio shell's page
- * bar (`page-shell.tsx`), not links here.
- * How to note a frame is in the `?` sheet (Note this frame's touch path) and
- * the notes' empty list (UR-80).
- */
-const Header = (props: ParentProps) => (
-  <header>
-    <ModeTray />
-    {props.children}
-  </header>
-);
-
-/** The mode tray: a segmented toolbar, one mode pressed (pressing it again keeps it). */
-const ModeTray = () => {
-  const { state, actions } = useLab();
-  return (
-    <ToggleGroup<LabMode>
-      class="lab-modes"
-      aria-label="Mode"
-      value={[state.mode()]}
-      onValueChange={(pressed) => {
-        Option.map(Arr.head(pressed), actions.showMode);
-      }}
-    >
-      <For each={LAB_MODES}>
-        {(m) => (
-          <Toggle<LabMode> value={m} class="lab-mode" data-mode-pick={m}>
-            {MODE_TITLE[m]}
-          </Toggle>
-        )}
-      </For>
-    </ToggleGroup>
-  );
-};
-
-interface SectionProps extends ParentProps {
-  /** The section's class: the tool it holds (`lab-edit`, `lab-motion`, …). */
-  readonly class: string;
-  /** The mode it shows in: the panel shows only the mode tray's pressed one. */
-  readonly mode: LabMode;
-}
-
-/** One tool's section of the panel, shown in its mode. */
-const Section = (props: SectionProps) => (
-  <section class={props.class} data-mode-of={props.mode}>
-    {props.children}
-  </section>
-);
-
-/** The lab's shell: `<Lab.Root>` and the pieces it places. */
-export const Lab = { Root, Overlay, Layer: PinnedLayer, Strip, Panel, Header, Section };
+/** The staged lab's shell: `<Lab.Root>` and the pieces it places; each tool's controls go in the page's panel (`Fill`). */
+export const Lab = { Root, Overlay, Layer: PinnedLayer, Strip, Fill };

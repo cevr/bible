@@ -57,6 +57,7 @@ export const build = async (outdir: string) => {
     findings: server.findings,
     page: server.page,
     answerPage: server.answerPage,
+    ownPage: server.ownPage,
     client: await Bun.file(`${outdir}/client/client.js`).text(),
     answerClient: await Bun.file(`${outdir}/client/answer-client.js`).text(),
   };

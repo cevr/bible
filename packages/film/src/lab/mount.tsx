@@ -1,10 +1,11 @@
 // The lab page's browser entry: build the page's host (`browser/host.ts`),
-// mount the studio's shell (`film-page.tsx`), hydrated over the markup the
-// lab rendered it with on the server (`film-server.tsx`) or rendered anew,
-// then stage the film its path names, mount the framework-free preview
-// player (`mountPreview`) on the lab's time in the URL (`lab/place.ts`), and
-// put the lab's Solid panels in the shell's body. The render page the
-// renderer loads never imports this.
+// mount the studio's shell and the Lab's panel (`film-page.tsx`,
+// `panel.tsx`), hydrated over the markup the lab rendered them with on the
+// server (`film-server.tsx`) or rendered anew, then stage the film its path
+// names, mount the framework-free preview player (`mountPreview`) on the
+// lab's time in the URL (`lab/place.ts`), and put each tool's controls in
+// its section of the panel. The render page the renderer loads never
+// imports this.
 
 import { Location } from '@bible/url-state';
 import { Effect, Option, Schema } from 'effect';
@@ -14,8 +15,8 @@ import { type Host, addressOn, hostOf } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
 import type { TimeInUrl } from '../player/t-in-url.ts';
-import type { Hub } from '../command/hub.ts';
 import { registerFace } from '../player/face.ts';
+import { LabClient } from './api.ts';
 import { labHref, labOpensAt, labPlaceOf } from './place.ts';
 import { ShellTools, useShellTime } from './page-shell.tsx';
 import { type FilmBody, LAB_PAGE, labOn } from './film-page.tsx';
@@ -39,14 +40,12 @@ const LabTime = () => {
   return <></>;
 };
 
-/** The lab in the shell's body: each tool in its place, around the staged film's player. */
-const LabBody = (props: {
-  readonly name: string;
-  readonly player: Player;
-  readonly host: Host;
-  readonly hub: Hub;
-}) => (
-  <Lab.Root name={props.name} player={props.player} host={props.host} hub={props.hub}>
+/**
+ * The staged lab in the Lab's page: each tool in its place around the
+ * staged film's player, its controls in its section of the page's panel.
+ */
+const LabBody = (props: { readonly player: Player }) => (
+  <Lab.Root player={props.player}>
     <LabTime />
     <Editor.Provider>
       <ShellTools>
@@ -67,21 +66,15 @@ const LabBody = (props: {
               <Editor.Strip />
             </Lab.Strip>
             <Notes.Pins />
-            <Lab.Panel>
-              <Lab.Header>
-                <Notes.Pen />
-                <Notes.Frame />
-              </Lab.Header>
-              <Editor.Section>
-                <Editor.Knobs />
-              </Editor.Section>
-              <Motion.Section />
-              <Compare.Section />
-              <Notes.Section />
-              <Studio.Provider>
-                <Studio.Section />
-              </Studio.Provider>
-            </Lab.Panel>
+            <Editor.Section>
+              <Editor.Knobs />
+            </Editor.Section>
+            <Motion.Section />
+            <Compare.Section />
+            <Notes.Section />
+            <Studio.Provider>
+              <Studio.Section />
+            </Studio.Provider>
           </Notes.Provider>
         </Compare.Provider>
       </Motion.Provider>
@@ -127,7 +120,7 @@ const labBody =
         const player = mountPreview(staged, host, labTime(staged.name, staged.film, host), hub);
         yield* Effect.logInfo(`lab.mounted film=${staged.name}`);
         return {
-          default: () => <LabBody name={staged.name} player={player} host={host} hub={hub} />,
+          default: () => <LabBody player={player} />,
         };
       }).pipe(
         Effect.catchTag('LabStartFailed', (e) =>
@@ -154,7 +147,12 @@ export const mountLab = (films: Films): void => {
       // The UI face first, so the fonts the film waits on include it.
       registerFace(document.fonts);
       // The page's commands and its one key listener: the player's transport and every tool's verbs.
-      const { hub, app } = yield* labOn(host, Object.keys(films), labBody(films, host));
+      const { hub, app } = yield* labOn(
+        host,
+        Object.keys(films),
+        LabClient.layer,
+        labBody(films, host),
+      );
       yield* Effect.forkDetach(hub.listen);
       const how = mountPage({ ...LAB_PAGE, app });
       const { href } = yield* Location.use((bar) => bar.current);

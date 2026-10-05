@@ -26,15 +26,11 @@ const TITLES = {
   diff: 'HEAD over now in the difference blend: black where nothing moved',
 } as const satisfies Record<CompareMode, string>;
 
-/** Off, wipe, blink or diff, and what the compare says. */
+/** Off, wipe, blink or diff, and what the compare says, in Compare's section of the page's panel. */
 export const Section = () => {
   const { state, actions } = useCompare();
   return (
-    <Lab.Section class="lab-compare-tools" mode="compare">
-      <header>
-        <strong>Compare</strong>
-        <span class="lab-edit-key">with HEAD</span>
-      </header>
+    <Lab.Fill at="compare">
       <div class="lab-motion-row">
         <For each={CompareMode.literals}>
           {(m) => (
@@ -51,7 +47,7 @@ export const Section = () => {
         </For>
       </div>
       <p class="lab-edit-note lab-compare-status">{state.status()}</p>
-    </Lab.Section>
+    </Lab.Fill>
   );
 };
 

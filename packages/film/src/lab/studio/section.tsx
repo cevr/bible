@@ -262,7 +262,7 @@ export const Section = () => {
     actions.focused(true);
   };
   return (
-    <Lab.Section class="lab-studio" mode="record">
+    <Lab.Fill at="record">
       <div
         class="studio"
         tabindex="0"
@@ -285,6 +285,6 @@ export const Section = () => {
         <Controls />
         <Attempts />
       </div>
-    </Lab.Section>
+    </Lab.Fill>
   );
 };

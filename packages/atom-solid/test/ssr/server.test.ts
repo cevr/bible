@@ -28,6 +28,18 @@ describe('server rendering a place', () => {
   });
 });
 
+describe("server rendering a viewer's own value", () => {
+  test('renders its server value, read and set, and never runs the atom', async () => {
+    const { ownPage } = await build(await mkdtemp(`${tmpdir()}/atom-solid-ssr-own-`));
+    let runs = 0;
+    const html = ownPage(() => {
+      runs += 1;
+    });
+    expect(html).toMatch(/<p [^>]*id="own"[^>]*>served<\/p>/);
+    expect(runs).toBe(0);
+  });
+});
+
 describe('server rendering a served atom', () => {
   test('waits for its read, renders it, and sends it encoded for the client to adopt', async () => {
     const { answerPage } = await build(await mkdtemp(`${tmpdir()}/atom-solid-ssr-served-`));
