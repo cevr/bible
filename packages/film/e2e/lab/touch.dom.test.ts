@@ -113,7 +113,7 @@ interface Budget {
 const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
 
 /** The Lab's Edit: its budget, which a planted target passes (the budget's positive control). */
-const LAB_EDIT = most(27, 28);
+const LAB_EDIT = most(25, 26);
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
 interface State {

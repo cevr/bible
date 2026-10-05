@@ -109,11 +109,11 @@ const literal = Schema.encodeSync(Schema.fromJsonString(Schema.String));
  * film is staged (on a desk, beside where the film lands; on a phone, under
  * it, so unseen until it lands), and the targets its first paint shows, by
  * `NAMING`: the six pages of the shell; the panel's modes on a desk, none on
- * a phone; and the acts (the film switcher, Go to, View, and on a desk the
- * pen and note-this-frame).
+ * a phone; and the acts (the film switcher, Go to, View: the pen and
+ * note-this-frame are Note mode's, and the panel opens in Edit).
  */
 const LAB_WINDOWS = [
-  { where: 'a desk', viewport: DESK, first: 'visible', shows: [6, LAB_MODES.length, 5] },
+  { where: 'a desk', viewport: DESK, first: 'visible', shows: [6, LAB_MODES.length, 3] },
   { where: 'a phone', viewport: PHONE, first: 'hidden', shows: [6, 0, 3] },
 ] as const;
 

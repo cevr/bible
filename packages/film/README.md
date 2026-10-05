@@ -1527,7 +1527,9 @@ are removed after the workers exit; a direct `bun test` builds its own scripts.
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
 ink; `n` or the **Note frame** button beside the Pen (its touch path)
-notes the whole frame, Escape drops the draft. The composer shows
+notes the whole frame, Escape drops the draft. The Pen and Note frame are
+Note mode's, over its notes; `n` and ⌘K Note this frame work in any mode,
+and the note begun shows Note. The composer shows
 the scene, time, frame and the nearest cue and mark, and pauses playback.
 A note written with a selection carries it as a **scope chip**
 (`one · rise · t 0.5–1.0 s`: the scene, the cue selected and the in and out

@@ -223,7 +223,7 @@ describe('marking a frame', () => {
     'the pen draws ink',
     () =>
       Effect.gen(function* () {
-        const { page, asked } = yield* openLab(store(), { href: labAt(1) });
+        const { page, asked } = yield* openLab(store(), { href: labAt(1), mode: 'note' });
         yield* waitFor(page, '[data-act="pen"]');
         yield* click(page, '[data-act="pen"]');
         yield* waitFor(page, '[data-act="pen"][aria-pressed="true"]');
@@ -377,10 +377,18 @@ describe('marking a frame', () => {
   );
 
   it.live(
-    'the Note frame button notes the whole frame, as `n` does, with no box',
+    'the Note frame button notes the whole frame, as `n` does, with no box; it and the pen are Note mode alone (UR2-8)',
     () =>
       Effect.gen(function* () {
         const { page, asked } = yield* openLab(store(), { href: labAt(1) });
+        // In Edit neither shows; `n` notes the frame in any mode, and the note shows Note.
+        yield* attached(page, '.lab-panel[data-staged="true"]');
+        yield* evaluates(
+          page,
+          `['pen', 'note-frame'].map((a) => document.querySelector('[data-act="' + a + '"]').checkVisibility())`,
+          [false, false],
+        );
+        yield* page.click('.lab-modes [data-mode-pick="note"]');
         yield* waitFor(page, '[data-act="note-frame"]');
         yield* textIs(page, '[data-act="note-frame"]', 'Note frame');
         yield* click(page, '[data-act="note-frame"]');
