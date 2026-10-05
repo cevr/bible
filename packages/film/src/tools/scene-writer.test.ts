@@ -23,6 +23,7 @@ import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { collect } from './process.ts';
 import { ContentStore, type Manifest } from './content-store.ts';
 import { FilmName, FilmRepo } from './film-repo.ts';
+import { readSpans } from './scene-source.ts';
 import { SceneSources } from './scene-sources.ts';
 import { SceneWriter } from './scene-writer.ts';
 import {
@@ -240,6 +241,23 @@ describe.concurrent('scene writer', () => {
         before.replace('offset: 0.1, dur: 1.8 }', "offset: -0.5, until: 'earns' }"),
       );
     }).pipe(Effect.provide(fixture)),
+  );
+
+  it.effect(
+    'an until written over a span that lands on its anchor leaves a span that decodes',
+    () =>
+      Effect.gen(function* () {
+        const landing = (yield* read()).replace(
+          "topple: { mark: 'earns', offset: 0.1, dur: 1.8 }",
+          "topple: { mark: 'earns', dur: 1.8, ends: true }",
+        );
+        yield* (yield* FileSystem.FileSystem).writeFileString(yield* HandFile, landing);
+        yield* (yield* SceneWriter).setCue(F, 'hand', 'topple', { until: 'earns' });
+        expect(readSpans('scenes/hand.ts', yield* read(), 'hand')['topple']).toEqual({
+          mark: 'earns',
+          until: 'earns',
+        });
+      }).pipe(Effect.provide(fixture)),
   );
 
   it.effect(

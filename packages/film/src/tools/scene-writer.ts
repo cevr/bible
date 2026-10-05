@@ -21,7 +21,7 @@ import {
 import { toMs } from '../core/time.ts';
 import type { FilmName } from './film-repo.ts';
 import { CueRead, FreshFilm } from './fresh-film.ts';
-import { editCue, editKnob, readCue, readKnob, readSpans } from './scene-source.ts';
+import { cueLanded, editCue, editKnob, readKnob, readSpans } from './scene-source.ts';
 import { type Field, type LocateError, type SceneSite, SceneSources } from './scene-sources.ts';
 import { type Change, type RewriteError, SourceWriter } from './source-writer.ts';
 
@@ -63,37 +63,6 @@ const sameKnob = (a: Knob, b: Knob): boolean => {
   return same(a[0], b[0]) && same(a[1], b[1]);
 };
 
-/** `name` when `wanted` is set and `read` is not the same value. */
-const missed = <A>(
-  name: string,
-  wanted: Option.Option<A>,
-  read: Option.Option<A>,
-  eq: (a: A, b: A) => boolean,
-): ReadonlyArray<string> =>
-  Option.match(wanted, {
-    onNone: () => [],
-    onSome: (w) => Arr.filter([name], () => !Option.exists(read, (r) => eq(r, w))),
-  });
-
-const field = <K extends keyof CuePatch>(patch: CuePatch, key: K) =>
-  Option.fromUndefinedOr(patch[key]);
-
-/** Which patched fields do not read back as written. */
-const cueMismatches = (patch: CuePatch, read: CuePatch): ReadonlyArray<string> => [
-  ...missed('offset', field(patch, 'offset'), field(read, 'offset'), same),
-  ...missed('dur', field(patch, 'dur'), field(read, 'dur'), same),
-  ...missed('until', field(patch, 'until'), field(read, 'until'), (a, b) => a === b),
-  // No key reads as 0: an end back on its point drops it.
-  ...missed(
-    'untilOffset',
-    field(patch, 'untilOffset'),
-    Option.some(Option.getOrElse(field(read, 'untilOffset'), () => 0)),
-    same,
-  ),
-  ...missed('ease', field(patch, 'ease'), field(read, 'ease'), (a, b) => a === b),
-  ...missed('stagger', field(patch, 'stagger'), field(read, 'stagger'), same),
-];
-
 const fieldsOf = (patch: CuePatch) =>
   (
     ['offset', 'dur', 'until', 'untilOffset', 'ease', 'stagger'] satisfies ReadonlyArray<
@@ -125,6 +94,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
         verify: (
           at: SceneSite,
           after: string,
+          before: string,
         ) => Result.Result<ReadonlyArray<string>, SourceRefused>,
         check: (at: SceneSite, after: string) => Effect.Effect<A, TimelineUnresolved>,
       ) =>
@@ -136,7 +106,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
             file: at.file,
             target,
             edit: (source) => edit(at, source),
-            verify: (after) => verify(at, after),
+            verify: (after, before) => verify(at, after, before),
             check: (after) => check(at, after),
           });
           const written: Written = { ...change, exportName: at.exportName };
@@ -190,10 +160,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
           'timeline',
           target,
           (at, source) => editCue(at.shown, source, at.exportName, cue, patch),
-          (at, after) =>
-            Result.map(readCue(at.shown, after, at.exportName, cue), (read) =>
-              cueMismatches(patch, read),
-            ),
+          (at, after, before) => cueLanded(at.shown, before, after, at.exportName, cue, patch),
           resolves(film, scene, cue, patch, target),
         );
         const done: CueWritten = { written, read };

@@ -135,8 +135,14 @@ interface Rewrite<E, A = void> {
   readonly target: string;
   /** The new text, from the file's as it is now. */
   readonly edit: (source: string) => Result.Result<string, SourceRefused>;
-  /** What of the change does not read back from the formatted text (none when it all does). */
-  readonly verify: (after: string) => Result.Result<ReadonlyArray<string>, SourceRefused>;
+  /**
+   * What of the change does not read back from the formatted text `after`
+   * (none when it all does), judged against `before`, the text it was made from.
+   */
+  readonly verify: (
+    after: string,
+    before: string,
+  ) => Result.Result<ReadonlyArray<string>, SourceRefused>;
   /** Refuse a text the film cannot play, or answer what the check found of it. */
   readonly check: (after: string) => Effect.Effect<A, E>;
   /**
@@ -395,7 +401,7 @@ export class SourceWriter extends Context.Service<SourceWriter, SourceWriterServ
             const before = yield* fs.readFileString(file);
             const next = yield* Effect.fromResult(rewrite.edit(before));
             const after = yield* format(rewrite.film, file, next);
-            const missed = Result.match(rewrite.verify(after), {
+            const missed = Result.match(rewrite.verify(after, before), {
               onFailure: (e) => [e.reason],
               onSuccess: (m) => m,
             });

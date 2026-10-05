@@ -4,13 +4,14 @@
 
 import { describe, expect, test as it } from 'bun:test';
 import { Option, Result } from 'effect';
+import type { CuePatch } from '../core/schema.ts';
 import {
   drawingSites,
   editCue,
   editKnob,
   editable,
   parseModule,
-  readCue,
+  cueLanded,
   readKnob,
   readKnobs,
   readSpans,
@@ -72,7 +73,11 @@ describe('scene source', () => {
     const next = ok(editCue(FILE, scene, 'hand', 'topple', { offset: 0.4 }));
     expect(next).toBe(scene.replace('offset: 0.1, dur: 1.8 }', 'offset: 0.4, dur: 1.8 }'));
     untouchedOutside(scene, next, '0.1');
-    expect(ok(readCue(FILE, next, 'hand', 'topple'))).toEqual({ offset: 0.4, dur: 1.8 });
+    expect(readSpans(FILE, next, 'hand')['topple']).toEqual({
+      mark: 'earns',
+      offset: 0.4,
+      dur: 1.8,
+    });
   });
 
   it('writes to the millisecond, negative values included', () => {
@@ -85,7 +90,7 @@ describe('scene source', () => {
     expect(eased).toContain("topple: { mark: 'earns', offset: 0.1, dur: 1.8, ease: 'inQuad' }");
     const timed = ok(editCue(FILE, scene, 'hand', 'bare', { dur: 1, offset: 0.25 }));
     expect(timed).toContain("bare: { at: 'speech', offset: 0.25, dur: 1 }");
-    expect(ok(readCue(FILE, timed, 'hand', 'bare'))).toEqual({ offset: 0.25, dur: 1 });
+    expect(readSpans(FILE, timed, 'hand')['bare']).toEqual({ at: 'speech', offset: 0.25, dur: 1 });
   });
 
   it('adds an offset to a word pin after its word, which it keeps', () => {
@@ -100,7 +105,6 @@ describe('scene source', () => {
   it('writes an until in place of a dur, and a dur in place of an until', () => {
     const marked = ok(editCue(FILE, scene, 'hand', 'topple', { until: 'gift' }));
     expect(marked).toBe(scene.replace('offset: 0.1, dur: 1.8 }', "offset: 0.1, until: 'gift' }"));
-    expect(ok(readCue(FILE, marked, 'hand', 'topple'))).toEqual({ offset: 0.1, until: 'gift' });
     expect(ok(editable(FILE, marked, 'hand')).cues[0]).toEqual({
       name: 'topple',
       offset: 'literal',
@@ -118,6 +122,70 @@ describe('scene source', () => {
       offset: 0.1,
       until: 'gift',
     });
+  });
+
+  it('writes an until over a span that lands on its anchor without its ends, so it still decodes', () => {
+    const landing = scene.replace(
+      "shine: { mark: 'gift', offset: -0.5, dur: 0.3, ease: 'outBack' }",
+      "shine: { mark: 'gift', dur: 0.3, ends: true, ease: 'outBack' }",
+    );
+    expect(readSpans(FILE, landing, 'hand')['shine']).toEqual({
+      mark: 'gift',
+      dur: 0.3,
+      ends: true,
+      ease: 'outBack',
+    });
+    const marked = ok(editCue(FILE, landing, 'hand', 'shine', { until: 'earns' }));
+    expect(marked).toBe(landing.replace('dur: 0.3, ends: true', "until: 'earns'"));
+    expect(readSpans(FILE, marked, 'hand')['shine']).toEqual({
+      mark: 'gift',
+      until: 'earns',
+      ease: 'outBack',
+    });
+    // A dur keeps it landing.
+    expect(ok(editCue(FILE, landing, 'hand', 'shine', { dur: 0.5 }))).toBe(
+      landing.replace('dur: 0.3', 'dur: 0.5'),
+    );
+    // An ends its source computes is not the lab's to take away.
+    const computed = landing.replace('ends: true', 'ends: LANDS');
+    expect(
+      Result.match(editCue(FILE, computed, 'hand', 'shine', { until: 'earns' }), {
+        onFailure: (error) => error.message,
+        onSuccess: () => 'written',
+      }),
+    ).toContain('cue shine ends: it is `LANDS`, not a literal, so the lab cannot take it away');
+  });
+
+  it('judges a cue write by the span its text holds, decoded, never by the patch alone', () => {
+    const landing = scene.replace(
+      "shine: { mark: 'gift', offset: -0.5, dur: 0.3, ease: 'outBack' }",
+      "shine: { mark: 'gift', dur: 0.3, ends: true, ease: 'outBack' }",
+    );
+    const until = { until: 'earns' } as const;
+    const landed = (before: string, after: string, cue: string, patch: CuePatch) =>
+      ok(cueLanded(FILE, before, after, 'hand', cue, patch));
+    // The until beside the ends it should have taken away: no span decodes there.
+    const both = landing.replace('dur: 0.3, ends: true', "until: 'earns', ends: true");
+    expect(landed(landing, both, 'shine', until)).toEqual(['cue shine is not a span as written']);
+    expect(
+      landed(landing, ok(editCue(FILE, landing, 'hand', 'shine', until)), 'shine', until),
+    ).toEqual([]);
+    // A value other than the patch's, or a field it never set, did not land.
+    const moved = { offset: 0.4 } as const;
+    const other = scene.replace('offset: 0.1, dur: 1.8 }', 'offset: 0.5, dur: 1.8 }');
+    expect(landed(scene, other, 'topple', moved)).toHaveLength(1);
+    const extra = scene.replace(
+      'offset: 0.1, dur: 1.8 }',
+      "offset: 0.4, dur: 1.8, ease: 'linear' }",
+    );
+    expect(landed(scene, extra, 'topple', moved)).toHaveLength(1);
+    expect(
+      landed(scene, ok(editCue(FILE, scene, 'hand', 'topple', moved)), 'topple', moved),
+    ).toEqual([]);
+    // A span its source computes in part is judged with its code as it stood.
+    const sized = ok(editCue(FILE, scene, 'hand', 'late', { dur: 1 }));
+    expect(sized).toContain("late: { after: 'topple', offset: GAP * 2, dur: 1 }");
+    expect(landed(scene, sized, 'late', { dur: 1 })).toEqual([]);
   });
 
   it('replaces a literal cue or landmark end with dur, without changing the rest of the scene', () => {
@@ -146,11 +214,6 @@ describe('scene source', () => {
     );
     const off = ok(editCue(FILE, marked, 'hand', 'bare', { untilOffset: 0.1 }));
     expect(off).toBe(marked.replace("until: 'gift',", "until: 'gift', untilOffset: 0.1,"));
-    expect(ok(readCue(FILE, off, 'hand', 'bare'))).toEqual({
-      until: 'gift',
-      untilOffset: 0.1,
-      ease: 'linear',
-    });
     expect(readSpans(FILE, off, 'hand')['bare']).toEqual({
       at: 'speech',
       until: 'gift',
@@ -284,7 +347,8 @@ describe('scene source', () => {
     expect(spread).toContain(
       "shine: { mark: 'gift', offset: -0.5, dur: 0.3, ease: 'outBack', stagger: 0.857 }",
     );
-    expect(ok(readCue(FILE, spread, 'hand', 'shine'))).toEqual({
+    expect(readSpans(FILE, spread, 'hand')['shine']).toEqual({
+      mark: 'gift',
       offset: -0.5,
       dur: 0.3,
       ease: 'outBack',
