@@ -145,6 +145,13 @@ const RATE_NAMES: ReadonlyMap<number, string> = new Map([
 export const rateId = (rate: number): string => `play.rate-${rate}`;
 
 /**
+ * The rate chip's title, each step named with its key as `titled` reads it
+ * bound now (a hub's), so a rebound key reads as rebound.
+ */
+export const rateTitle = (titled: (title: string, id: string) => string): string =>
+  `The speed: play ${titled('slower', 'play.slower')}, ${titled('faster', 'play.faster')}, or ${titled('at 1×', rateId(1))}`;
+
+/**
  * A transport's rates as commands (UR-25, UR-94: the one rate chip opens
  * them): Play at each rate but the one it plays at, K back to 1×, and J and
  * L a rate slower or faster (an editor's shuttle keys, stepping the rate:

@@ -11,7 +11,7 @@ import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
 import { ONION_SCALE, makeOnion } from '../../player/onion.ts';
 import { RATES } from '../view-state.ts';
-import { rateId, rateText } from '../../player/transport.ts';
+import { rateId, rateText, rateTitle } from '../../player/transport.ts';
 import { hubKeys } from '../command/changes.ts';
 import { CommandChip } from '../command/command-chip.tsx';
 import { BY_BUTTON } from '../../command/command.ts';
@@ -82,7 +82,7 @@ export const Section = () => {
             hub={meta.hub}
             ids={RATES.map(rateId)}
             act="rate"
-            title={`The speed: play ${keys.titled('slower', 'play.slower')}, ${keys.titled('faster', 'play.faster')}, or ${keys.titled('at 1×', rateId(1))}`}
+            title={rateTitle(keys.titled)}
           >
             <span data-rate={String(state.rate())}>{rateText(state.rate())}</span>
           </CommandChip>

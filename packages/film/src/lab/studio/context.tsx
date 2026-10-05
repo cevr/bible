@@ -42,13 +42,14 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import {
   type Act,
   type Control,
+  type ControlCommand,
   type Meter,
   atRest,
   attemptLine,
   beatCounts,
+  controlFor,
   controlsOf,
   eventOf,
-  keyOf,
   meterOf,
   micOptions,
   type MicOption,
@@ -56,6 +57,7 @@ import {
   neighbour,
   reviewWav,
   statusOf,
+  stepsBeats,
   unsubmitted,
 } from './view.ts';
 
@@ -116,10 +118,12 @@ interface StudioActions {
   /** Keep an earlier attempt as the beat's take. */
   readonly keep: (file: string) => void;
   readonly pick: (device: Option.Option<string>) => void;
-  /** A key pressed in the studio: whether it was the studio's (and so done here). */
-  readonly press: (key: string) => boolean;
-  /** Whether `key` has something to do in the recorder's state now (`keyOf`, `view.ts`). */
-  readonly canPress: (key: string) => boolean;
+  /** The control `command` presses now, if it presses one (`controlFor`, `view.ts`). */
+  readonly control: (command: ControlCommand) => Option.Option<Control>;
+  /** Whether ←/→ step through the beats now. */
+  readonly stepsBeats: () => boolean;
+  /** Select the beat `by` places on (1 the next, -1 the previous): a step Back does not walk. */
+  readonly step: (by: 1 | -1) => void;
   /** Focus came into the studio, or left it. */
   readonly focused: (inside: boolean) => void;
 }
@@ -334,17 +338,11 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     perform,
     keep: (file) => send(RecorderEvent.KeepAttempt({ file })),
     pick: (next) => choose(Option.getOrElse(next, () => '')),
-    press: (key) =>
-      Option.match(keyOf(recorder(), key), {
-        onNone: () => false,
-        onSome: (k) => {
-          if (k._tag === 'Act') perform(k.act);
-          if (k._tag === 'Beat')
-            Option.map(neighbour(beats(), beat(), k.step), (id) => select(id, 'follow'));
-          return true;
-        },
-      }),
-    canPress: (key) => Option.exists(keyOf(recorder(), key), (k) => k._tag !== 'None'),
+    control: (command) => controlFor(recorder(), command),
+    stepsBeats: () => stepsBeats(recorder()),
+    step: (by) => {
+      Option.map(neighbour(beats(), beat(), by), (id) => select(id, 'follow'));
+    },
     focused: setFocused,
   };
 

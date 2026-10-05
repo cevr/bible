@@ -1,6 +1,6 @@
 // What the studio's provider derives from its recorder for the panel, so no
 // component reads the machine's states: the controls each state offers and
-// the keys that press them, the status line, the recording to review, the
+// the commands that press them, the status line, the recording to review, the
 // beat list's counts and badges, the meter, and each attempt's line.
 
 import { describe, expect, test } from 'bun:test';
@@ -15,7 +15,6 @@ import {
   beatCounts,
   controlsOf,
   eventOf,
-  keyOf,
   meterOf,
   micOptions,
   nearLimit,
@@ -66,56 +65,17 @@ describe('controlsOf', () => {
     expect(acts(failed(SttUntimed.make({ file: 'a.wav', heard: 2 })))).toEqual(['arm', 'retry']);
   });
 
-  test('each control names its key', () => {
-    expect(controlsOf(RecorderState.Review({ beat: 'a', wav })).map((c) => c.label)).toEqual([
-      'Submit (K)',
-      'Retake (R)',
-      'Discard (Esc)',
+  test('each control is pressed by its command, as its key and its button are', () => {
+    expect(controlsOf(RecorderState.Review({ beat: 'a', wav })).map((c) => c.command)).toEqual([
+      'studio.submit',
+      'studio.record',
+      'studio.back',
     ]);
-  });
-});
-
-describe('keyOf', () => {
-  const key = (state: RecorderState, k: string) => keyOf(state, k);
-
-  test('R records, Space stops, K submits or accepts, Esc cancels, discards or backs out', () => {
-    expect(key(idle, 'r')).toEqual(Option.some({ _tag: 'Act', act: 'arm' }));
-    expect(key(RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 }), ' ')).toEqual(
-      Option.some({ _tag: 'Act', act: 'stop' }),
-    );
-    expect(key(RecorderState.Review({ beat: 'a', wav }), 'k')).toEqual(
-      Option.some({ _tag: 'Act', act: 'submit' }),
-    );
-    expect(key(RecorderState.Review({ beat: 'a', wav }), 'R')).toEqual(
-      Option.some({ _tag: 'Act', act: 'arm' }),
-    );
-    expect(key(failed(mismatch), 'K')).toEqual(Option.some({ _tag: 'Act', act: 'acceptAnyway' }));
-    expect(key(failed(mismatch), 'Escape')).toEqual(Option.some({ _tag: 'Act', act: 'retry' }));
-    expect(key(RecorderState.CountIn({ beat: 'a', n: 3 }), 'Escape')).toEqual(
-      Option.some({ _tag: 'Act', act: 'cancel' }),
-    );
-  });
-
-  test('a studio key with nothing to do now is still the studio’s: it does nothing', () => {
-    expect(key(idle, ' ')).toEqual(Option.some({ _tag: 'None' }));
-    expect(key(RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 }), 'k')).toEqual(
-      Option.some({ _tag: 'None' }),
-    );
-  });
-
-  test('←/→ step through the beats at rest or after a refusal, never while recording', () => {
-    expect(key(idle, 'ArrowRight')).toEqual(Option.some({ _tag: 'Beat', step: 1 }));
-    expect(key(failed(mismatch), 'ArrowLeft')).toEqual(Option.some({ _tag: 'Beat', step: -1 }));
-    expect(
-      key(RecorderState.Recording({ beat: 'a', startedAt: 0, limit: 300 }), 'ArrowRight'),
-    ).toEqual(Option.some({ _tag: 'None' }));
-    expect(key(RecorderState.Review({ beat: 'a', wav }), 'ArrowLeft')).toEqual(
-      Option.some({ _tag: 'None' }),
-    );
-  });
-
-  test('any other key is not the studio’s', () => {
-    for (const k of ['n', 'c', '[', ']', 'z', 'Enter']) expect(key(idle, k)).toEqual(Option.none());
+    expect(controlsOf(failed(mismatch)).map((c) => c.command)).toEqual([
+      'studio.submit',
+      'studio.record',
+      'studio.back',
+    ]);
   });
 });
 

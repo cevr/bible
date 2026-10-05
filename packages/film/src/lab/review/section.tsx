@@ -88,7 +88,7 @@ import { CommandChip } from '../command/command-chip.tsx';
 import { useShellTime } from '../page-shell.tsx';
 import { hubKeys } from '../command/changes.ts';
 import { wipeCommands, wipeTitle } from '../wipe-keys.ts';
-import { rateCommands, rateId, rateText } from '../../player/transport.ts';
+import { rateCommands, rateId, rateText, rateTitle } from '../../player/transport.ts';
 
 /** A version of `set` in `folder`, as a selection: what a version's card is. */
 const versionOf = (folder: ReviewFolder, set: { readonly id: string }, version: string) =>
@@ -543,6 +543,7 @@ export const Transport = (props: {
   const { meta } = useReview();
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
+  const keys = hubKeys(meta.hub);
   // The header's timecode is this transport's clock.
   useShellTime(() => sync().t);
   onCleanup(
@@ -588,7 +589,7 @@ export const Transport = (props: {
         ids={Rate.literals.map(rateId)}
         act="rate"
         class="rv-chip"
-        title="The speed: play slower (J), faster (L), or at 1× (K)"
+        title={rateTitle(keys.titled)}
       >
         <span data-rate={String(sync().rate)}>{rateText(sync().rate)}</span>
       </CommandChip>
