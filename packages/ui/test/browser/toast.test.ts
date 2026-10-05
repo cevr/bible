@@ -5,12 +5,12 @@
 // packages/react/src/toast/action/ToastAction.test.tsx,
 // packages/react/src/toast/close/ToastClose.test.tsx,
 // packages/react/src/toast/title/ToastTitle.test.tsx,
-// packages/react/src/toast/description/ToastDescription.test.tsx,
 // packages/react/src/toast/content/ToastContent.test.tsx,
 // packages/react/src/utils/useSwipeDismiss.test.tsx
 //
 // The behaviour cases, against a receipt toast (`{said, undo, tone}`)
-// raised through a manager created outside the tree. Timers run on
+// raised through a manager created outside the tree; its title carries the
+// receipt's count. Timers run on
 // Playwright's clock. Upstream's cases for React-only machinery (strict
 // mode, abandoned renders, layout-effect ordering) are left out.
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
@@ -64,20 +64,17 @@ const drag = async (page: Page, selector: string, dx: number, dy: number, steps 
 };
 
 describe('createToastManager', () => {
-  it('adds a toast raised outside the tree, with its title, description and type', async () => {
+  it('adds a toast raised outside the tree, with its title and type', async () => {
     const page = await openReceipt();
     await page.click('#raise-danger');
     await see(roots(page)).toHaveCount(1);
     const root = roots(page).first();
-    await see(root.getByTestId('title')).toHaveText('Removed tag');
-    await see(root.getByTestId('description')).toHaveText('receipt 1');
+    await see(root.getByTestId('title')).toHaveText('Removed tag 1');
     await see(root).toHaveAttribute('data-type', 'danger');
     await see(root).toHaveAttribute('role', 'dialog');
     await see(root).toHaveAttribute('aria-modal', 'false');
     const titleId = await root.getByTestId('title').getAttribute('id');
-    const descriptionId = await root.getByTestId('description').getAttribute('id');
     await see(root).toHaveAttribute('aria-labelledby', titleId ?? '');
-    await see(root).toHaveAttribute('aria-describedby', descriptionId ?? '');
     await see(page.locator('#viewport')).toHaveAttribute('role', 'region');
     await see(page.locator('#viewport')).toHaveAttribute('aria-live', 'polite');
   });
@@ -93,13 +90,11 @@ describe('createToastManager', () => {
     expect(await logOf(page)).toEqual(['undo 1', 'closed 1', 'removed 1']);
   });
 
-  it('updates a toast in place and closes every toast', async () => {
+  it('closes every toast', async () => {
     const page = await openReceipt();
     await page.click('#raise');
     await page.click('#raise');
     await see(roots(page)).toHaveCount(2);
-    await page.click('#update-first');
-    await see(page.getByText('updated receipt')).toHaveCount(1);
     await page.click('#close-all');
     await see(roots(page)).toHaveCount(0);
     const lines = await logOf(page);
@@ -114,7 +109,7 @@ describe('createToastManager', () => {
     await page.click('#raise');
     await page.click('#raise');
     await see(roots(page)).toHaveCount(2);
-    await see(roots(page).first().getByTestId('description')).toHaveText('receipt 2');
+    await see(roots(page).first().getByTestId('title')).toHaveText('Deleted note 2');
     const vars = await roots(page).evaluateAll((elements) =>
       elements.map((el) => [
         (el as HTMLElement).style.getPropertyValue('--toast-index'),
@@ -140,26 +135,6 @@ describe('useToastManager', () => {
     await see(roots(page).first().getByTestId('title')).toHaveText('Inside');
     // No action content: the action part renders nothing.
     await see(roots(page).first().getByTestId('action')).toHaveCount(0);
-  });
-
-  it('shows a promise toast loading, then its success; then its error', async () => {
-    const page = await openReceipt();
-    await page.click('#add-promise');
-    const root = roots(page).first();
-    await see(root).toHaveAttribute('data-type', 'loading');
-    await see(root.getByTestId('description')).toHaveText('Saving…');
-    // A loading toast does not auto-dismiss.
-    await page.clock.runFor(100);
-    await see(root).toHaveAttribute('data-type', 'success');
-    await see(root.getByTestId('description')).toHaveText('Done: saved');
-    await page.clock.runFor(5100);
-    await see(roots(page)).toHaveCount(0);
-
-    await page.click('#add-promise');
-    await page.clock.runFor(100);
-    await see(roots(page).first()).toHaveAttribute('data-type', 'error');
-    await see(roots(page).first().getByTestId('description')).toHaveText('Failed');
-    await see.poll(() => logOf(page)).toContain('promise rejected');
   });
 });
 
@@ -353,26 +328,6 @@ describe('swipe', () => {
     const page = await openReceipt();
     await page.click('#raise');
     await drag(page, '[data-testid="action"]', 120, 0);
-    await see(roots(page)).toHaveCount(1);
-  });
-});
-
-describe('Toast.Positioner', () => {
-  it('places an anchored toast above its anchor, with its side and index', async () => {
-    const page = await h.open('anchored');
-    await page.click('#copy');
-    const positioner = page.locator('#positioner');
-    await see(positioner).toHaveAttribute('data-side', 'top');
-    await see(positioner).toHaveAttribute('data-align', 'center');
-    await see(positioner).toHaveAttribute('role', 'presentation');
-    await see(positioner).toHaveCSS('--toast-index', '0');
-    await see(page.locator('#arrow')).toHaveAttribute('data-side', 'top');
-    await see(page.locator('#arrow')).toHaveAttribute('aria-hidden', 'true');
-    const anchor = await page.locator('#copy').boundingBox();
-    const box = await positioner.boundingBox();
-    expect(Math.round((box?.y ?? 0) + (box?.height ?? 0))).toBe(Math.round((anchor?.y ?? 0) - 8));
-    // Anchored toasts do not swipe.
-    await drag(page, '[data-testid="title"]', 100, 0);
     await see(roots(page)).toHaveCount(1);
   });
 });

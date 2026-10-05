@@ -130,37 +130,31 @@ CSS variables on `Drawer.Popup`: `--drawer-swipe-movement-x`, `--drawer-swipe-mo
 - `Toast.Provider`: no element; owns the toasts (with `Toast.useToastManager` inside and `Toast.createToastManager` outside the tree).
   - `Toast.Portal`: `<div>` at the end of `<body>`.
     - `Toast.Viewport`: `<div role="region">` the stacked toasts live in.
-      - `Toast.Root`: `<div role="dialog">` (`alertdialog` for high priority), one toast.
+      - `Toast.Root`: `<div role="dialog">` (`alertdialog` for high priority), one toast, labelled by its title.
         - `Toast.Content`: `<div>` around the toast's content.
           - `Toast.Title`: `<h2>`, rendered only when there is a title.
-          - `Toast.Description`: `<p>`, rendered only when there is a description.
           - `Toast.Action`: `<button>`, rendered only when it has a label.
           - `Toast.Close`: `<button>` that closes the toast.
-      - `Toast.Positioner`: `<div role="presentation">` around an anchored toast's `Toast.Root`, placing it against its anchor.
-        - `Toast.Arrow`: `<div aria-hidden>` inside that `Toast.Root`, pointing at the anchor.
 
-| Member                                    | Attribute                                   | Present when                                                  |
-| ----------------------------------------- | ------------------------------------------- | ------------------------------------------------------------- |
-| `Viewport`                                | `data-expanded`                             | the stack is expanded (hovered or focused)                    |
-| `Root`                                    | `data-expanded`                             | the stack is expanded                                         |
-| `Root`                                    | `data-limited`                              | the toast is past the provider's `limit` (it is also `inert`) |
-| `Root`                                    | `data-type`                                 | the toast has a `type`: its value                             |
-| `Root`                                    | `data-swiping`                              | the toast is being swiped                                     |
-| `Root`                                    | `data-swipe-direction`                      | a swipe has a direction: `up`, `down`, `left` or `right`      |
-| `Root`                                    | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition      |
-| `Content`                                 | `data-expanded`                             | the stack is expanded                                         |
-| `Content`                                 | `data-behind`                               | the toast is behind the frontmost one                         |
-| `Title`, `Description`, `Action`, `Close` | `data-type`                                 | the toast has a `type`: its value                             |
-| `Positioner`                              | `data-side`, `data-align`                   | always (values as in Menu)                                    |
-| `Positioner`                              | `data-anchor-hidden`                        | the anchor has scrolled out of view                           |
-| `Arrow`                                   | `data-side`, `data-align`                   | always                                                        |
-| `Arrow`                                   | `data-uncentered`                           | the arrow cannot point at the anchor's center                 |
+A manager has `add` and `close`; an `add` with an existing `id` updates that toast in place and restarts its timer. Upstream's description, anchored toasts (`Toast.Positioner`, `Toast.Arrow`, `positionerProps`), `update` and `promise` are left out; a part returns with its first consumer.
+
+| Member                     | Attribute                                   | Present when                                                  |
+| -------------------------- | ------------------------------------------- | ------------------------------------------------------------- |
+| `Viewport`                 | `data-expanded`                             | the stack is expanded (hovered or focused)                    |
+| `Root`                     | `data-expanded`                             | the stack is expanded                                         |
+| `Root`                     | `data-limited`                              | the toast is past the provider's `limit` (it is also `inert`) |
+| `Root`                     | `data-type`                                 | the toast has a `type`: its value                             |
+| `Root`                     | `data-swiping`                              | the toast is being swiped                                     |
+| `Root`                     | `data-swipe-direction`                      | a swipe has a direction: `up`, `down`, `left` or `right`      |
+| `Root`                     | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition      |
+| `Content`                  | `data-expanded`                             | the stack is expanded                                         |
+| `Content`                  | `data-behind`                               | the toast is behind the frontmost one                         |
+| `Title`, `Action`, `Close` | `data-type`                                 | the toast has a `type`: its value                             |
 
 CSS variables:
 
 - `Toast.Viewport`: `--toast-frontmost-height` (the frontmost toast's height, once measured).
 - `Toast.Root`: `--toast-index` (its place in the stack, 0 frontmost), `--toast-offset-y` (the summed heights in front of it), `--toast-height` (its measured height), `--toast-swipe-movement-x`, `--toast-swipe-movement-y` (the swipe so far).
-- `Toast.Positioner`: `--toast-index`, and `--anchor-width`, `--anchor-height`, `--available-width`, `--available-height`, `--transform-origin` (as in Menu).
 
 ### Number field
 

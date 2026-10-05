@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, jest, mock } from 'bun:test';
 
 import { selectors, ToastStore } from './store.ts';
 import type { ToastObject } from './types.ts';
-import { isRenderableNode, resolvePromiseOptions } from './utils.ts';
+import { isRenderableNode } from './utils.ts';
 
 function createStore(toasts: ToastObject[]) {
   return new ToastStore({
@@ -105,72 +105,10 @@ describe('ToastStore', () => {
 
     store.removeToast('missing');
     store.closeToast('missing');
-    store.updateToast('missing', { title: 'nope' });
+    store.updateToastInternal('missing', { height: 10 });
 
     expect(store.state.toasts).toBe(toastsBefore);
     expect(statusOf(store, 'a')).toBe(undefined);
-  });
-
-  it('replaces custom data wholesale when updating a toast', () => {
-    const store = createStore([{ id: 'a', data: { name: 'Draft', count: 1 } }]);
-
-    const nextData = { count: 2 };
-    store.updateToast('a', { data: nextData });
-    expect(selectors.toast(store.state, 'a')?.data).toBe(nextData);
-
-    store.updateToast('a', { title: 'Saved' });
-    expect(selectors.toast(store.state, 'a')?.data).toBe(nextData);
-
-    store.updateToast('a', { data: undefined });
-    expect(selectors.toast(store.state, 'a')?.data).toBe(undefined);
-  });
-
-  it('derives the update from the current toast when given a function', () => {
-    const store = createStore([{ id: 'a', title: 'Draft', data: { name: 'Draft', count: 1 } }]);
-
-    store.updateToast<{ name: string; count: number }>('a', (prevToast) => ({
-      title: `${String(prevToast.title)} (saved)`,
-      data: { name: prevToast.data?.name ?? '', count: 2 },
-    }));
-    const toast = selectors.toast(store.state, 'a');
-    expect(toast?.title).toBe('Draft (saved)');
-    expect(toast?.data).toEqual({ name: 'Draft', count: 2 });
-    expect(toast?.updateKey).toBe(1);
-  });
-
-  it('does not call the updater for a missing or ending toast', () => {
-    const store = createStore([{ id: 'a', data: { name: 'Draft' } }]);
-    store.closeToast('a');
-    expect(statusOf(store, 'a')).toBe('ending');
-
-    const updater = mock(() => ({}));
-    store.updateToast('a', updater);
-    store.updateToast('missing', updater);
-    expect(updater).not.toHaveBeenCalled();
-    expect(selectors.toast(store.state, 'a')?.data).toEqual({ name: 'Draft' });
-  });
-
-  it('keeps a toast added from inside an updater', () => {
-    const store = createStore([{ id: 'a', data: { count: 1 } }]);
-
-    store.updateToast('a', () => {
-      store.addToast({ id: 'b' });
-      return { data: { count: 2 } };
-    });
-    expect(store.state.toasts.map((toast) => toast.id)).toEqual(['b', 'a']);
-    expect(selectors.toast(store.state, 'a')?.data).toEqual({ count: 2 });
-    expectToastMetadataToMatchToasts(store);
-  });
-
-  it('keeps a toast closed from inside its updater closed', () => {
-    const store = createStore([{ id: 'a', data: { count: 1 } }]);
-
-    store.updateToast('a', () => {
-      store.closeToast('a');
-      return { data: { count: 2 } };
-    });
-    expect(statusOf(store, 'a')).toBe('ending');
-    expect(selectors.toast(store.state, 'a')?.data).toEqual({ count: 1 });
   });
 
   it('upserts when re-adding under an existing id, bumping updateKey', () => {
@@ -214,51 +152,6 @@ describe('ToastStore', () => {
     store.closeToast('a');
     store.closeToast();
     expect(onClose).toHaveBeenCalledTimes(2);
-  });
-
-  it('updates a promise toast with its success', async () => {
-    const store = createStore([]);
-    const loadingValue = () => 'loading';
-    const successValue = () => 'done';
-
-    const pending = store.promiseToast(Promise.resolve('done'), {
-      loading: { title: 'Saving', data: loadingValue },
-      success: { title: 'Saved', data: successValue },
-      error: 'Failed',
-    });
-    expect(store.state.toasts[0]?.data).toBe(loadingValue);
-    expect(store.state.toasts[0]?.type).toBe('loading');
-
-    await pending;
-    expect(store.state.toasts[0]?.data).toBe(successValue);
-    expect(store.state.toasts[0]?.type).toBe('success');
-  });
-
-  it('updates a promise toast with its error and rejects', async () => {
-    const store = createStore([]);
-    const failure = new Error('nope');
-    const pending = store.promiseToast(Promise.reject(failure), {
-      loading: 'Saving',
-      success: 'Saved',
-      error: (error) => `Failed: ${(error as Error).message}`,
-    });
-    await expect(pending).rejects.toBe(failure);
-    expect(store.state.toasts[0]?.type).toBe('error');
-    expect(store.state.toasts[0]?.description).toBe('Failed: nope');
-  });
-
-  it('does not reopen a dismissed promise toast when it resolves', async () => {
-    const store = createStore([]);
-    const pending = store.promiseToast(Promise.resolve(1), {
-      loading: 'Saving',
-      success: 'Saved',
-      error: 'Failed',
-    });
-    const id = store.state.toasts[0]?.id ?? '';
-    store.closeToast(id);
-    await pending;
-    expect(statusOf(store, id)).toBe('ending');
-    expect(selectors.toast(store.state, id)?.description).toBe('Saving');
   });
 
   it('does not invoke onRemove for a toast that is no longer in the store', () => {
@@ -389,8 +282,8 @@ describe('ToastStore', () => {
       store.set('hovering', true);
       store.pauseTimers();
 
-      // Passing `timeout` reschedules the timer; it must not run while expanded.
-      store.updateToast('a', { timeout: 100 });
+      // Re-adding reschedules the timer; it must not run while expanded.
+      store.addToast({ id: 'a', timeout: 100 });
 
       jest.advanceTimersByTime(200);
       expect(statusOf(store, 'a')).not.toBe('ending');
@@ -449,7 +342,7 @@ describe('ToastStore', () => {
       store.addToast({ id: 'a', title: 'a', timeout: 100 });
       store.pauseTimers();
 
-      store.updateToastInternal('a', { timeout: 0 });
+      store.addToast({ id: 'a', timeout: 0 });
 
       store.addToast({ id: 'b', title: 'b', timeout: 100 });
       store.pauseTimers();
@@ -479,12 +372,12 @@ describe('ToastStore', () => {
       expect(statusOf(store, 'a')).toBe('ending');
     });
 
-    it('resets the timer when updating with the same timeout', () => {
+    it('restarts the timer when re-added with the same timeout', () => {
       jest.useFakeTimers();
       const store = createStore([]);
       store.addToast({ id: 'a', timeout: 100 });
       jest.advanceTimersByTime(80);
-      store.updateToast('a', { timeout: 100 });
+      store.addToast({ id: 'a', timeout: 100 });
       jest.advanceTimersByTime(80);
       expect(statusOf(store, 'a')).not.toBe('ending');
       jest.advanceTimersByTime(20);
@@ -497,7 +390,7 @@ describe('ToastStore', () => {
       store.addToast({ id: 'a', type: 'loading', timeout: 100 });
       jest.advanceTimersByTime(500);
       expect(statusOf(store, 'a')).not.toBe('ending');
-      store.updateToast('a', { type: 'success' });
+      store.addToast({ id: 'a', type: 'success' });
       jest.advanceTimersByTime(100);
       expect(statusOf(store, 'a')).toBe('ending');
     });
@@ -525,15 +418,5 @@ describe('isRenderableNode', () => {
     expect(isRenderableNode([null, 0])).toBe(true);
     expect(isRenderableNode([[null]])).toBe(false);
     expect(isRenderableNode([[0]])).toBe(true);
-  });
-});
-
-describe('resolvePromiseOptions', () => {
-  it('turns a string into a description and calls a function with the result', () => {
-    expect(resolvePromiseOptions('Saved')).toEqual({ description: 'Saved' });
-    expect(resolvePromiseOptions((value: number) => `Got ${value}`, 2)).toEqual({
-      description: 'Got 2',
-    });
-    expect(resolvePromiseOptions(() => ({ title: 'Done' }), 1)).toEqual({ title: 'Done' });
   });
 });

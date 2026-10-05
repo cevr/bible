@@ -16,9 +16,6 @@ export const LEGACY_SWIPE_IGNORE_SELECTOR = `[${LEGACY_SWIPE_IGNORE_ATTRIBUTE}]`
 /** For dropdowns that keep to top/bottom and cap their height with `--available-height`. */
 export const DROPDOWN_COLLISION_AVOIDANCE = { fallbackAxisSide: 'none' } as const;
 
-/** For popups that may flip to any axis. */
-export const POPUP_COLLISION_AVOIDANCE = { fallbackAxisSide: 'end' } as const;
-
 /** Hides the empty `aria-owns` owner span (iOS VoiceControl still reads what it owns). */
 export const ownerVisuallyHidden: JSX.CSSProperties = {
   'clip-path': 'inset(50%)',

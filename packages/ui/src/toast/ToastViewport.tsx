@@ -301,7 +301,6 @@ export function ToastViewport(props: ToastViewportProps): JSX.Element {
             {(toast) => (
               <div role="alert" aria-atomic="true">
                 <div>{toast().title}</div>
-                <div>{toast().description}</div>
               </div>
             )}
           </For>
