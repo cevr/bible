@@ -27,7 +27,7 @@ import {
   Schema,
 } from 'effect';
 import { ChildProcess, ChildProcessSpawner } from 'effect/process';
-import { ServerFailed } from '../core/api.ts';
+import { LONGEST_WAIT, ServerFailed } from '../core/api.ts';
 import { Project } from '../core/catalogue.ts';
 import { ChoicePoint, type ChoiceVerb } from '../core/choice.ts';
 import { UnknownAct, UnknownScene } from '../core/errors.ts';
@@ -263,8 +263,13 @@ export const answeringCheck = <A, E, R>(
   });
 };
 
-/** How long a read may take (a cold start and the film's modules, a few seconds), a mix, a kept take. */
-const READ_LIMIT = Duration.seconds(60);
+/**
+ * How long a read may take (a cold start and the film's modules, a few
+ * seconds): the longest the lab holds a request (`LONGEST_WAIT`), so a page's
+ * render that reads through one (`END_WAIT`) hears the read's answer or its
+ * failure before it is cut. Then how long a mix or a kept take may take.
+ */
+const READ_LIMIT = Duration.seconds(LONGEST_WAIT);
 const MIX_LIMIT = Duration.minutes(10);
 
 /** A check leg a fresh run can take: `static` reads files only; `sound` also mixes the film. */
