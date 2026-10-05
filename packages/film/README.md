@@ -995,12 +995,16 @@ its selection, its time), or from a thing's menu that thing's citation
 (`citeOf`), written whole through the host's `Clipboard`. Their look is one
 set of CSS custom properties (`COMMAND_TOKENS` in `src/lab/command/style.ts`,
 each the studio's token for its role, `player/tokens.css`); the rules read
-only those. The player's keys legend under the film is generated from the
-same keymap; the Play and Scenes pages are the shell's too
-(`lab/play-mount.tsx`), so `?` is the keys sheet on every page. The legend
-is hidden at rest (UR-114, `legendCommand`, no key): on the Play page the
-bar's ? button shows it, else ⌘K or the page's long-press menu (Show the
-keys and the legend). No page keeps a line of key hints at rest (UR-26,
+only those. The Play and Scenes pages are the shell's too
+(`lab/play-mount.tsx`), so `?` is the keys sheet on every page, the one
+place the keys are listed (UR2-11). The lab bar's legend (what the stripes
+and the ticks mean) is hidden at rest (UR-114, `legendCommand`, no key):
+⌘K or the page's long-press menu shows it (Show the legend). Play has no
+legend of its own: the ticks' shows with the ticks (⋯ → Show the ticks).
+The lab's transport reads in the scene's time and length while the header
+keeps the film's, and on a laptop Play's one timecode is the header's
+(SU-12); the lab's captions are the view menu's and `c`, Play's its bar's
+CC (UR2-12). No page keeps a line of key hints at rest (UR-26,
 UR-80, UR-98): the keys are the `?` sheet's, each with its touch path (Note
 this frame's names the click and the drag that mark a frame, and the notes'
 empty list says them too), and the gestures of the selection are the

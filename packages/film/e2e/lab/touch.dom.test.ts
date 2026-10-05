@@ -352,7 +352,24 @@ const STATES: ReadonlyArray<State> = [
     disclose: AT_REST,
     layer: '[data-role="scene"]',
   },
-  { name: 'Play', open: player(pageHref.play(PROBE), '.bar .tc'), disclose: AT_REST },
+  {
+    name: 'Play',
+    open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
+    disclose: AT_REST,
+  },
+  {
+    // Play's ticks, turned on from the view menu: each a target its finger can hold.
+    name: 'Play, its ticks on',
+    open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
+    disclose: (page) =>
+      Effect.andThen(
+        opens(
+          '[data-act="view-menu"]',
+          '[data-role="view-menu"] [data-command="view.ticks"]',
+        )(page),
+        opens('[data-role="view-menu"] [data-command="view.ticks"]', '.bar[data-ticks="on"]')(page),
+      ),
+  },
 ];
 
 /** Every shown target in `layer` (the page when none) is `device`'s size, or kept by a principle; else each one under it is named. */
@@ -440,7 +457,7 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
       player(pageHref.scenes(PROBE), '.sc-legend-item[data-mark="film"]', WORK_ROUTES),
     ],
     ['Lab', lab('edit')],
-    ['Play', player(pageHref.play(PROBE), '.bar .tc')],
+    ['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')],
   ] as const;
   for (const [name, open] of PAGES) {
     it.live(
@@ -514,7 +531,7 @@ const SWAPPED = `(() => {
 describe("the UI face's fallback on a phone, 390 × 844 (G10)", () => {
   const PAGES = [
     ['Lab', lab('edit')],
-    ['Play', player(pageHref.play(PROBE), '.bar .tc')],
+    ['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')],
     ['Scenes', player(pageHref.scenes(PROBE), STILL)],
     ['Project', review(PROJECT, ...PROJECT_READY)],
   ] as const;

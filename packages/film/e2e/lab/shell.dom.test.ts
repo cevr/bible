@@ -16,13 +16,19 @@ import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
   attributeIs,
+  countIs,
   evaluates,
   labelsClash,
   textHas,
+  textIs,
 } from '../../src/lab/fixtures/settled.ts';
 
 /** Where the probe film's second scene starts, in film seconds. */
 const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
+
+/** The probe film's first and second scenes' lengths, in seconds. */
+const ONE_LENGTH = probeFilm().placed[0]?.dur ?? Number.NaN;
+const TWO_LENGTH = probeFilm().placed[1]?.dur ?? Number.NaN;
 
 /** Each match's box as the page placed it: its rect, or for a pinned layer its inline box from its frame's corner (a hidden layer has no rect). */
 const rects = (sel: string) =>
@@ -366,18 +372,32 @@ describe('the lab shell', () => {
   );
 
   it.live(
-    "on a phone the transport's controls and its timecode keep one row; the film's length and state wrap below",
+    "on a laptop the transport reads the scene's time and length, the header the film's (SU-12); the bar has no CC, the view menu turns the captions (UR2-12)",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(TWO + 0.5) });
+        yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(TWO + 0.5));
+        yield* textIs(page, '.bar .tc', timecode(0.5));
+        yield* textHas(page, '.bar .of', ` / ${timecode(TWO_LENGTH)}`);
+        yield* countIs(page, '.bar [data-act="captions"]', 0);
+        yield* page.click('[data-act="view-menu"]');
+        yield* page.waitFor('[data-role="view-menu"] [data-command="view.captions"]');
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a phone the transport's controls and its timecode keep one row; the scene's length and state wrap below",
     () =>
       Effect.gen(function* () {
         const { page } = yield* openLab([], { href: labAt(1) });
         yield* resize(page, { width: 390, height: 844 });
         // A slower rate says so after the length: more than the first row holds.
         yield* page.press('j');
-        yield* textHas(page, '.bar .of', ` / ${timecode(probeFilm().duration)} · 0.5× muted`);
+        yield* textHas(page, '.bar .of', ` / ${timecode(ONE_LENGTH)} · 0.5× muted`);
         const play = Number(yield* page.evaluate(middle('[data-act="play"]')));
         yield* evaluates(
           page,
-          `[${middle('[data-act="play.frame-next"]')}, ${middle('.tc')}, ${middle('[data-act="captions"]')}].every((m) => Math.abs(m - ${play}) <= 2)`,
+          `[${middle('[data-act="play.frame-next"]')}, ${middle('.tc')}].every((m) => Math.abs(m - ${play}) <= 2)`,
           true,
         );
         yield* evaluates(page, "document.querySelector('.bar .tc').getClientRects().length", 1);

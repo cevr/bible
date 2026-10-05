@@ -998,9 +998,19 @@ body.play .sh-body {
 .sh[data-part='play']:has(.bar[data-hud='hidden']) .stage {
   cursor: none;
 }
-/* Play's ticks are the viewer's (⋯ → Show the ticks), off until turned on. */
+/* Play's ticks are the viewer's (⋯ → Show the ticks), off until turned on;
+   their legend (the bar's `.keys`, otherwise hidden on Play) shows with them. */
 .sh[data-part='play'] .bar:not([data-ticks='on']) .track .tick {
   display: none;
+}
+.sh[data-part='play'] .bar[data-ticks='on'] .keys {
+  display: block;
+}
+/* On a laptop the header's timecode is Play's one readout; the bar keeps the length beside it. */
+@media (min-width: 900px) {
+  .sh[data-part='play'] .bar .tc {
+    display: none;
+  }
 }
 /* With the captions on the picture, Play's line is theirs alone. */
 .sh[data-part='play'] .bar[data-captions='on'] .say {

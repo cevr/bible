@@ -303,11 +303,12 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
 /**
  * The scrubbable preview of a staged film: its bar and timeline, its clock,
  * and its transport, registered as commands with the page's `hub` (whose
- * keymap binds their keys; the bar's legend says the keys bound now). The
- * legend is hidden at rest (UR-114, `legendCommand`): on the player's own
- * page `?` or the bar's ? button shows it, in the lab ⌘K or the page's menu.
- * On a film's Play page its HUD fades while the film plays (`hud.ts`), and
- * its ticks show once the viewer turns them on (`ticksCommand`).
+ * keymap binds their keys, which the `?` sheet lists). Its legend (the
+ * stripes and the ticks) is hidden at rest: in the lab ⌘K or the page's menu
+ * shows it (`legendCommand`); on a film's Play page it shows with the ticks,
+ * once the viewer turns them on (`ticksCommand`), and the HUD fades while the
+ * film plays (`hud.ts`). The lab's transport reads in the scene's time (the
+ * header keeps the film's), and its captions are the view menu's and `c`.
  */
 export const mountPreview = (
   { film, canvas, ctx, captions }: Staged,
@@ -327,7 +328,7 @@ export const mountPreview = (
     </div>
     <div class="track"><div class="head"></div></div>
     <div class="tip" hidden></div>
-    <div class="keys" hidden><span class="bound"></span> · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover or long-press for the name)</div>`;
+    <div class="keys" hidden>striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover or long-press for the name)</div>`;
   document.body.append(bar);
   const q = <T extends Element>(sel: string) => required<T>(bar, sel);
   const track = q<HTMLDivElement>('.track');
@@ -472,8 +473,11 @@ export const mountPreview = (
       loop === undefined
         ? ''
         : ` · loop ${timecode(loop.from, film.fps)}–${timecode(loop.to, film.fps)}`;
-    timecodeEl.textContent = timecode(T, film.fps);
-    lengthEl.textContent = ` / ${timecode(film.duration, film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
+    // The lab's transport is in the scene's time, the header's timecode the film's; elsewhere the film's.
+    const [at, length] =
+      page === 'lab' ? [Math.max(T - cur.start, 0), cur.dur] : [T, film.duration];
+    timecodeEl.textContent = timecode(at, film.fps);
+    lengthEl.textContent = ` / ${timecode(length, film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
@@ -569,13 +573,16 @@ export const mountPreview = (
     );
   });
   playBtn.addEventListener('click', toggle);
-  q<HTMLButtonElement>('[data-act="captions"]').addEventListener('click', () => {
+  // The captions' button, on the player's pages; the lab's captions are the view menu's and `c` (UR2-12).
+  const captionsBtn = q<HTMLButtonElement>('[data-act="captions"]');
+  if (page === 'lab') captionsBtn.remove();
+  captionsBtn.addEventListener('click', () => {
     captions.on = !captions.on;
     draw();
   });
   // The transport, as the page's commands: its keys are the page's keymap's.
   hub.commands.register(
-    ...transportCommands({
+    ...transportCommands(page, {
       toggle,
       stepFrames: (frames) => seek(T + frames / film.fps),
       nextScene: () => {
@@ -593,36 +600,25 @@ export const mountPreview = (
     }),
   );
   hub.refine((now) => ({ ...now, playing }));
-  // The legend says the keys bound now: a rebound key reads as rebound.
-  const bound = q<HTMLSpanElement>('.bound');
+  /** The key bound to `id` now, as the keys sheet says it: a rebound key reads as rebound. */
   const keyOf = (id: string) =>
     hub
       .keysOf(id)
       .slice(0, 1)
       .map((k) => chordLabel(k, hub.mac))[0] ?? '—';
-  const legend = () => {
-    bound.textContent = [
-      `${keyOf('play.toggle')} play`,
-      `${keyOf('play.frame-previous')}/${keyOf('play.frame-next')} frame (shift: 10)`,
-      `${keyOf('play.scene-previous')} ${keyOf('play.scene-next')} scene`,
-      `${keyOf('view.captions')} captions`,
-    ].join(' · ');
-  };
-  legend();
-  hub.subscribe(legend);
-  // The legend, hidden at rest; on the player's own page the bar's ? button is a phone's way to it.
-  const keysLine = q<HTMLDivElement>('.keys');
-  const legendButton = document.createElement('button');
-  legendButton.dataset['act'] = 'legend';
-  legendButton.textContent = '?';
-  legendButton.title = 'Show or hide the keys and the legend';
-  const toggleLegend = () => {
-    keysLine.hidden = !keysLine.hidden;
-    legendButton.setAttribute('aria-expanded', String(!keysLine.hidden));
-  };
   // The lab's transport steps a frame at a time by touch too (AA-8): the
-  // frame keys' own commands, as a pair beside play.
+  // frame keys' own commands, as a pair beside play. Its legend, hidden at
+  // rest, is ⌘K's and the page's menu's (the keys are the `?` sheet's).
   if (page === 'lab') {
+    const keysLine = q<HTMLDivElement>('.keys');
+    hub.commands.register(
+      legendCommand({
+        shown: () => !keysLine.hidden,
+        toggle: () => {
+          keysLine.hidden = !keysLine.hidden;
+        },
+      }),
+    );
     const step = (id: string, glyph: string, label: string) => {
       const button = document.createElement('button');
       button.dataset['act'] = id;
@@ -636,11 +632,6 @@ export const mountPreview = (
       step('play.frame-previous', '◀', 'Previous frame'),
       step('play.frame-next', '▶', 'Next frame'),
     );
-  }
-  if (page === 'player') {
-    legendButton.setAttribute('aria-expanded', 'false');
-    legendButton.addEventListener('click', toggleLegend);
-    q<HTMLDivElement>('.row').append(legendButton);
   }
   // The picture: a click plays or pauses; on Play a finger's tap while it
   // plays shows or hides the HUD instead (its ❚❚ pauses), as a phone's
@@ -665,7 +656,8 @@ export const mountPreview = (
     };
     for (const type of ['pointermove', 'pointerdown', 'keydown'])
       document.addEventListener(type, wake, { capture: true, signal: leaving.signal });
-    // A film's ticks (hundreds of them) are off on Play until the viewer turns them on (⋯ → Ticks), kept in this browser.
+    // A film's ticks (hundreds of them) are off on Play until the viewer turns
+    // them on (⋯ → Show the ticks), kept in this browser; their legend shows with them.
     const ticksKept = AtomRegistry.make();
     ticksKept.mount(KEPT_TICKS);
     const ticksShown = () => Option.contains(ticksKept.get(KEPT_TICKS), 'on');
@@ -684,9 +676,6 @@ export const mountPreview = (
       }),
     );
   }
-  hub.commands.register(
-    legendCommand(page, { shown: () => !keysLine.hidden, toggle: toggleLegend }),
-  );
   // The first frame: at once when the film's faces are in, else once they
   // have loaded (the bar stands meanwhile). A face that will not load says so
   // in place of the page, as a film that will not load does.

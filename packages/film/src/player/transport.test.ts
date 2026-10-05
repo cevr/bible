@@ -60,7 +60,7 @@ describe('the rate chip', () => {
 describe('the steps, a finger away (AA-8)', () => {
   test("a press on the picture's nothing lists the frame and scene steps, the frames' also ×10", () => {
     const moved: Array<string> = [];
-    const commands = transportCommands({
+    const commands = transportCommands('player', {
       toggle: () => moved.push('toggle'),
       stepFrames: (n) => moved.push(`frames ${n}`),
       nextScene: () => moved.push('next scene'),
@@ -89,14 +89,29 @@ describe('the steps, a finger away (AA-8)', () => {
 });
 
 describe('the legend', () => {
-  test('it has no key on any page (`?` is the keys sheet), and its label says what it would do', () => {
+  test('it has no key (`?` is the keys sheet), and its label says what it would do', () => {
     let shown = false;
-    const legend = { shown: () => shown, toggle: () => (shown = !shown) };
-    expect(legendCommand('player', legend).keys).toEqual([]);
-    expect(legendCommand('lab', legend).keys).toEqual([]);
-    const command = legendCommand('player', legend);
-    expect(labelOf(command, ctx)).toBe('Show the keys and the legend');
+    const command = legendCommand({ shown: () => shown, toggle: () => (shown = !shown) });
+    expect(command.keys).toEqual([]);
+    expect(labelOf(command, ctx)).toBe('Show the legend');
     Effect.runSync(command.run(ctx, BY_BUTTON));
-    expect(labelOf(command, ctx)).toBe('Hide the keys and the legend');
+    expect(labelOf(command, ctx)).toBe('Hide the legend');
+  });
+});
+
+describe('the captions and play, a finger away', () => {
+  test("the lab's captions are the view menu's (its bar has no CC); Play's are its CC button", () => {
+    const transport = {
+      toggle: () => undefined,
+      stepFrames: () => undefined,
+      nextScene: () => undefined,
+      previousScene: () => undefined,
+      toggleCaptions: () => undefined,
+    };
+    const touchOf = (page: 'lab' | 'player', id: string) =>
+      transportCommands(page, transport).find((c) => c.id === id)?.touch;
+    expect(touchOf('lab', 'view.captions')).toBe('the view menu (⋯), then Captions on or off');
+    expect(touchOf('player', 'view.captions')).toBe('the CC button');
+    expect(touchOf('player', 'play.toggle')).toContain('❚❚');
   });
 });

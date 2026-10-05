@@ -2,8 +2,9 @@
 // pause, a frame back or on, a scene back or on, and the captions. Their
 // keys are the transport's usual ones: Space plays, ← and → step one frame
 // (with Shift, ten: the coarse step, as an editor's nudge; with Alt, one),
-// [ and ] go by scenes, C toggles the captions; and the bar's legend, hidden
-// at rest (`legendCommand`). The frame and scene steps are the page's (a
+// [ and ] go by scenes, C toggles the captions; the lab's legend, hidden at
+// rest (`legendCommand`); and Play's ticks (`ticksCommand`). The frame and
+// scene steps are the page's (a
 // long press or a right-click on the film lists them, the frames' also ×10:
 // a finger's Shift, `menu.ts`). Each answers quietly: the
 // picture, the time line and the bar show what changed. The preview
@@ -45,15 +46,29 @@ const doing = (move: () => void) => () =>
     return quiet;
   });
 
-/** The transport's commands over `transport`. */
-export const transportCommands = (transport: Transport): ReadonlyArray<Command> => [
+/** How a phone plays and pauses, by page: on Play a tap while it plays shows the HUD (`hud.ts`). */
+const TOUCH_PLAY: Readonly<Record<PageName, string>> = {
+  player: 'tap the film; while it plays, the bar’s ❚❚',
+  lab: 'tap the film',
+  review: 'tap the film',
+};
+
+/** Where a phone turns the captions, by page: the lab's bar has no CC (UR2-12). */
+const TOUCH_CAPTIONS: Readonly<Record<PageName, string>> = {
+  player: 'the CC button',
+  lab: 'the view menu (⋯), then Captions on or off',
+  review: 'the CC button',
+};
+
+/** The transport's commands over `transport`, on `page`. */
+export const transportCommands = (page: PageName, transport: Transport): ReadonlyArray<Command> => [
   {
     id: 'play.toggle',
     label: 'Play or pause',
     labelIn: (ctx) => PLAY_LABEL[`${ctx.playing}`],
     group: 'Transport',
     keys: ['space'],
-    touch: 'tap the film',
+    touch: TOUCH_PLAY[page],
     when: always,
     run: doing(transport.toggle),
   },
@@ -104,7 +119,7 @@ export const transportCommands = (transport: Transport): ReadonlyArray<Command> 
     label: 'Captions on or off',
     group: 'View',
     keys: ['c'],
-    touch: 'the CC button',
+    touch: TOUCH_CAPTIONS[page],
     when: always,
     run: doing(transport.toggleCaptions),
   },
@@ -193,37 +208,31 @@ export const ticksCommand = (ticks: Ticks): Command => ({
 
 /** What the legend's command says, by whether the legend shows. */
 const LEGEND_LABEL: Readonly<Record<'true' | 'false', string>> = {
-  true: 'Hide the keys and the legend',
-  false: 'Show the keys and the legend',
+  true: 'Hide the legend',
+  false: 'Show the legend',
 };
 
-/** Where a phone shows the legend, by page. */
-const TOUCH_LEGEND: Readonly<Record<PageName, string>> = {
-  player: 'the bar’s ? button',
-  lab: 'hold the page, or the command menu',
-  review: 'the command menu',
-};
-
-/** The bar's legend: whether it shows, and the toggle. */
+/** The lab bar's legend: whether it shows, and the toggle. */
 interface Legend {
   readonly shown: () => boolean;
   readonly toggle: () => void;
 }
 
 /**
- * The bar's legend (the transport's keys, what the stripes and the ticks
- * mean), hidden at rest (UR-114). It has no key: on every page in the
- * studio's shell `?` opens the keys sheet. On the play page the bar's ?
- * button shows it; in the lab ⌘K and the page's long-press menu do.
+ * The lab bar's legend (what the stripes and the ticks mean), hidden at
+ * rest (UR-114). It has no key: on every page in the studio's shell `?`
+ * opens the keys sheet, the one place the keys are listed (UR2-11). ⌘K and
+ * the page's long-press menu show it. Play has none: its ticks' legend
+ * shows with its ticks (`ticksCommand`).
  */
-export const legendCommand = (page: PageName, legend: Legend): Command => ({
+export const legendCommand = (legend: Legend): Command => ({
   id: 'view.legend',
   label: 'Show or hide the legend',
   labelIn: () => LEGEND_LABEL[`${legend.shown()}`],
   group: 'View',
   keys: [],
   about: ['Page'],
-  touch: TOUCH_LEGEND[page],
+  touch: 'hold the page, or the command menu',
   when: always,
   run: doing(legend.toggle),
 });

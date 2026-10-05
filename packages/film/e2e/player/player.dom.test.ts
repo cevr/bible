@@ -46,6 +46,9 @@ const DESK = { width: 1440, height: 900 };
 const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
 const THREE = probeFilm().placed[2]?.start ?? Number.NaN;
 
+/** Play's bar, up: its play button (on a laptop its timecode is the header's alone). */
+const BAR_READY = '.bar [data-act="play"]';
+
 /** Whether the page is no wider than its window. */
 const NO_SIDEWAYS = 'document.documentElement.scrollWidth <= document.documentElement.clientWidth';
 
@@ -173,7 +176,7 @@ describe('the player', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
           { href: pageHref.play(PROBE), viewport },
-          '.bar .tc',
+          BAR_READY,
         );
         yield* evaluates(page, NO_SIDEWAYS, true);
         expect(errors).toEqual([]);
@@ -308,7 +311,7 @@ describe('the player', () => {
     Effect.gen(function* () {
       const { page } = yield* openPlayer(
         { href: `${pageHref.play(PROBE)}#t=0.5`, viewport: DESK },
-        '.bar .tc',
+        BAR_READY,
       );
       yield* textHas(page, '.bar .scene', 'one');
       yield* attributeIs(page, '.sh-pagebar [data-page="play"]', 'data-active', 'true');
@@ -327,7 +330,7 @@ describe('the player', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
           { href: pageHref.play(PROBE), viewport: DESK },
-          '.bar .tc',
+          BAR_READY,
         );
         yield* page.clock.hold;
         yield* page.clock.runFor(HUD_IDLE_MS * 2);
@@ -361,7 +364,7 @@ describe('the player', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
           { href: pageHref.play(PROBE), viewport: PHONE },
-          '.bar .tc',
+          BAR_READY,
         );
         yield* page.clock.hold;
         const tap = Effect.gen(function* () {
@@ -395,7 +398,7 @@ describe('the player', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
           { href: pageHref.play(PROBE), viewport: PHONE },
-          '.bar .tc',
+          BAR_READY,
         );
         const ticksShown = `[...document.querySelectorAll('.bar .track .tick')].filter((t) => t.checkVisibility()).length`;
         yield* evaluates(page, `document.querySelectorAll('.bar .track .tick').length > 0`, true);
@@ -415,7 +418,7 @@ describe('the player', () => {
       Effect.gen(function* () {
         const { page } = yield* openPlayer(
           { href: pageHref.play(PROBE), viewport: PHONE },
-          '.bar .tc',
+          BAR_READY,
         );
         yield* ticksOn(page);
         const tick = '.bar .track .tick.cue';
@@ -433,7 +436,7 @@ describe('the player', () => {
     Effect.gen(function* () {
       const { page } = yield* openPlayer(
         { href: pageHref.play(PROBE), viewport: PHONE },
-        '.bar .tc',
+        BAR_READY,
       );
       yield* ticksOn(page);
       // A cue's tick and a mark's: two names, apart along the track.
@@ -470,28 +473,60 @@ describe('the player', () => {
   );
 
   it.live(
-    'the legend is hidden at rest; the bar’s ? button shows it, with the keys bound, and ? opens the keys sheet',
+    'Play has one keys surface, the ? sheet (UR2-11): no ? button on its bar; the ticks’ legend shows with the ticks',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
           { href: pageHref.play(PROBE), viewport: PHONE },
-          '.bar .tc',
+          BAR_READY,
         );
-        const shown = "!document.querySelector('.bar .keys').hidden";
-        yield* evaluates(page, shown, false);
-        yield* page.click('.bar [data-act="legend"]');
-        yield* evaluates(page, shown, true);
-        yield* attributeIs(page, '.bar [data-act="legend"]', 'aria-expanded', 'true');
-        yield* textHas(page, '.bar .keys .bound', 'Space play');
-        yield* page.click('.bar [data-act="legend"]');
-        yield* evaluates(page, shown, false);
+        const legendShown =
+          "getComputedStyle(document.querySelector('.bar .keys')).display !== 'none'";
+        yield* countIs(page, '.bar [data-act="legend"]', 0);
+        yield* evaluates(page, legendShown, false);
         // `?` is the studio's keys sheet here as on every page, the transport's keys in it.
         yield* page.press('?');
         yield* page.waitFor('[data-role="keys-sheet"] [data-command="play.toggle"]');
-        yield* evaluates(page, shown, false);
         yield* page.press('Escape');
-        yield* attributeIs(page, '.bar [data-act="legend"]', 'aria-expanded', 'false');
+        // The view menu has the sheet and the ticks; with the ticks, their legend.
+        yield* page.click('[data-act="view-menu"]');
+        yield* page.waitFor('[data-role="view-menu"] [data-command="app.keys"]');
+        yield* evaluates(
+          page,
+          `document.querySelector('[data-role="view-menu"] [data-command="view.legend"]') === null`,
+          true,
+        );
+        yield* page.press('Escape');
+        yield* ticksOn(page);
+        yield* evaluates(page, legendShown, true);
+        yield* textHas(page, '.bar .keys', 'ticks:');
         yield* evaluates(page, NO_SIDEWAYS, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'on a laptop Play shows one timecode, the header’s; its bar keeps the length (SU-12)',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: `${pageHref.play(PROBE)}#t=0.5`, viewport: DESK },
+          BAR_READY,
+        );
+        yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(0.5));
+        yield* evaluates(
+          page,
+          "getComputedStyle(document.querySelector('.bar .tc')).display",
+          'none',
+        );
+        yield* textHas(page, '.bar .of', `/ ${timecode(probeFilm().duration)}`);
+        // A phone has no header timecode: the bar's shows.
+        yield* page.resize(PHONE.width, PHONE.height);
+        yield* evaluates(
+          page,
+          "getComputedStyle(document.querySelector('.bar .tc')).display !== 'none'",
+          true,
+        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
@@ -748,7 +783,7 @@ describe('the player', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
           { href: `${pageHref.play(PROBE)}#t=0.5`, viewport: { ...PHONE, coarse: true } },
-          '.bar .tc',
+          BAR_READY,
         );
         // The clock held: the long press's delay passes only as the test runs it on.
         yield* page.clock.hold;

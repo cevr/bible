@@ -166,7 +166,7 @@ const Panel = (props: {
         class="lab-compare-tools"
         mode="compare"
         title="Compare"
-        head={<span class="lab-edit-key">with HEAD</span>}
+        head={<span class="lab-edit-key">with last commit</span>}
       >
         {at('compare')}
       </Section>
