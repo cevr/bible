@@ -1,12 +1,14 @@
 // A film's page reads its narration where the tools write it, by the film's
 // id, through the page's HTTP client; a film with no timings yet is laid out
 // on estimates, as the tools lay it out, and a timings file the page cannot
-// fetch or read fails, naming it.
+// fetch or read fails, naming it. A film is given only once the faces it
+// draws in have loaded, so no canvas or still draws in a fallback face.
 
 import { describe, expect, it } from 'effect-bun-test';
-import { Effect, Layer } from 'effect';
+import { Deferred, Effect, Fiber, Layer } from 'effect';
 import { HttpClient, HttpClientError, HttpClientRequest, HttpClientResponse } from 'effect/http';
-import { NO_TAKES, loadNarrated, narrationUrls } from './narrated.ts';
+import { createFilm } from '../canvas/film.ts';
+import { NO_TAKES, loadNarrated, narratedFilms, narrationUrls } from './narrated.ts';
 
 const TIMINGS = '{"voice":"v","scenes":{}}';
 
@@ -77,4 +79,42 @@ describe('loadNarrated', () => {
         expect(failed.reason).toContain(why);
       }).pipe(Effect.provide(layer)),
     );
+});
+
+describe('narratedFilms', () => {
+  it.live('a film is given only once the faces it draws in have loaded: a slow face holds it', () =>
+    Effect.gen(function* () {
+      const happened: Array<string> = [];
+      const moduleAsked = yield* Deferred.make<boolean>();
+      const facesLand = yield* Deferred.make<boolean>();
+      const toy = createFilm({
+        title: 'toy',
+        paper: { base: '#fff', tone: '#000', seed: 1 },
+        shade: '#000',
+        scenes: [{ id: 'one', say: 'A line.', draw: () => undefined }],
+      });
+      const films = narratedFilms(
+        {
+          rbf: () =>
+            Effect.runPromise(Effect.as(Deferred.succeed(moduleAsked, true), { film: () => toy })),
+        },
+        Effect.andThen(
+          Deferred.await(facesLand),
+          Effect.sync(() => happened.push('faces loaded')),
+        ),
+        answering(404).layer,
+      );
+      const given = Effect.promise(() => films.rbf()).pipe(
+        Effect.tap(() => Effect.sync(() => happened.push('film given'))),
+      );
+      const loading = yield* Effect.forkChild(given);
+      // The film's module and its narration are in; its faces are still on their way.
+      yield* Deferred.await(moduleAsked);
+      yield* Effect.yieldNow;
+      expect(happened).toEqual([]);
+      yield* Deferred.succeed(facesLand, true);
+      expect(yield* Fiber.join(loading)).toBe(toy);
+      expect(happened).toEqual(['faces loaded', 'film given']);
+    }),
+  );
 });

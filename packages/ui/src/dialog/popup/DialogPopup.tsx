@@ -8,7 +8,7 @@
 // a composite widget around the dialog does not move. It carries the number
 // of dialogs open nested in it as `--nested-dialogs`.
 import type { JSX } from '@solidjs/web';
-import { omit, onCleanup, untrack } from 'solid-js';
+import { omit, untrack } from 'solid-js';
 
 import {
   FloatingFocusManager,
@@ -19,6 +19,7 @@ import { type TransitionStatus, useOpenChangeComplete } from '../../internals/tr
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { FOCUSABLE_POPUP_PROPS } from '../../utils/popups/popupStore.ts';
+import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { useDialogPortalContext } from '../portal/DialogPortal.tsx';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
 import type { DialogStore } from '../store/DialogStore.ts';
@@ -120,7 +121,7 @@ export function DialogPopup(componentProps: DialogPopupProps): JSX.Element {
   );
 
   useDialogOpenChangeComplete(store);
-  onCleanup(() => store.setPopupElement(null));
+  onClientCleanup(() => store.setPopupElement(null));
 
   // A touch open focuses the popup itself, so no virtual keyboard opens.
   const defaultInitialFocus = (interactionType: InteractionType) =>

@@ -165,9 +165,15 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
     close,
     bind: (p) => {
       places.push(p);
-      if (!isServer) setRebound((n) => n + 1);
-      return () => {
+      const unbind = () => {
         places.splice(places.indexOf(p), 1);
+      };
+      // The server's render writes no signal, binding or letting go as it ends: what it
+      // renders read the place as it was bound, and nothing runs again.
+      if (isServer) return unbind;
+      setRebound((n) => n + 1);
+      return () => {
+        unbind();
         // What the page opened of its own before a place was bound is gone with its sheets.
         setOwn(Option.none());
         setRebound((n) => n + 1);

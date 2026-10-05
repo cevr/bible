@@ -5,7 +5,7 @@
 // it by default. The positioner lets the pointer through while the tooltip
 // is closed or when the popup is not hoverable (`disableHoverablePopup`).
 import type { JSX } from '@solidjs/web';
-import { createContext, omit, onCleanup, untrack, useContext } from 'solid-js';
+import { createContext, omit, untrack, useContext } from 'solid-js';
 
 import { POPUP_COLLISION_AVOIDANCE } from '../../internals/constants.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
@@ -15,6 +15,7 @@ import {
   type UseAnchorPositioningSharedParameters,
   useAnchorPositioning,
 } from '../../internals/useAnchorPositioning.ts';
+import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { usePositioner } from '../../utils/usePositioner.ts';
 import { useTooltipPortalContext } from '../portal/TooltipPortal.tsx';
 import { useTooltipRootContext } from '../root/TooltipRootContext.ts';
@@ -123,7 +124,7 @@ export function TooltipPositioner(componentProps: TooltipPositionerProps): JSX.E
     },
   });
 
-  onCleanup(() => store.setPositionerElement(null));
+  onClientCleanup(() => store.setPositionerElement(null));
 
   const state: TooltipPositionerState = {
     get open() {

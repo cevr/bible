@@ -7,7 +7,7 @@
 // toward a submenu. An item press anywhere in the tree closes the menu.
 // Inside a toolbar, the composite navigation keys stop at the popup, so they
 // move through the menu and not the toolbar's focus.
-import type { JSX } from '@solidjs/web';
+import { isServer, type JSX } from '@solidjs/web';
 import { omit, onCleanup, untrack } from 'solid-js';
 
 import {
@@ -71,9 +71,10 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
   };
   const events = store.floatingTreeRoot.events;
   events.on('close', handleClose);
+  // Its listener goes first, then the element; the server set no element to let go.
   onCleanup(() => {
     events.off('close', handleClose);
-    store.setPopupElement(null);
+    if (!isServer) store.setPopupElement(null);
   });
 
   useHoverFloatingInteraction(store.floatingRootContext, {

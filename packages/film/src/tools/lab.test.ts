@@ -1,7 +1,8 @@
 // The lab's routes as the page calls them: a note posted with its still is
 // listed and served, a wait hands back the change, a user reply reopens the
-// thread, and a bad body or an unknown note answers with its status. And the
-// lab never imports a film: no module its handler runs reaches a loader.
+// thread, and a bad body or an unknown note answers with its status. A page
+// is sent compressed, a streamed one chunk by chunk. And the lab never
+// imports a film: no module its handler runs reaches a loader.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
@@ -15,6 +16,7 @@ import {
   Option,
   Path,
   Schema,
+  Stream,
 } from 'effect';
 import { Base64 } from 'effect/encoding';
 import {
@@ -25,6 +27,7 @@ import {
   HttpRouter,
   HttpServerResponse,
 } from 'effect/http';
+import { brotliDecompressSync } from 'node:zlib';
 import { parseSync } from 'oxc-parser';
 import {
   LabHttpApi,
@@ -110,6 +113,61 @@ const givingUpPages = Layer.effect(
     }),
   ),
 ).pipe(Layer.provideMerge(echoPages));
+
+/** A server-rendered page's shell, sent at once. */
+const SHELL = '<!doctype html><html><head></head><body><main>the shell</main>';
+
+/** The rest of the page, sent once its render ends. */
+const REST = '<p>the rest</p></body></html>';
+
+/** Pages streamed as a server render streams them: the shell, then the rest once `ended` is done. */
+const streamingPages = (ended: Deferred.Deferred<void>) =>
+  Layer.effect(
+    LabPage,
+    Effect.map(LabPage, (echo) =>
+      LabPage.of({
+        ...echo,
+        answer: Effect.succeed(
+          HttpServerResponse.stream(
+            Stream.encodeText(
+              Stream.concat(
+                Stream.succeed(SHELL),
+                Stream.fromEffect(Effect.as(Deferred.await(ended), REST)),
+              ),
+            ),
+            { contentType: 'text/html; charset=utf-8' },
+          ),
+        ),
+      }),
+    ),
+  ).pipe(Layer.provideMerge(echoPages));
+
+/** A reader of a gzipped response's body as text, as it arrives. */
+const gunzipped = (response: Response) =>
+  Option.match(Option.fromNullishOr(response.body), {
+    onNone: () => new ReadableStream<string>().getReader(),
+    onSome: (body) =>
+      body
+        .pipeThrough(new DecompressionStream('gzip'))
+        .pipeThrough(new TextDecoderStream())
+        .getReader(),
+  });
+
+/** What `reader` gives until it has `length` characters or ends. */
+const readTo = (
+  reader: ReadableStreamDefaultReader<string>,
+  length: number,
+  got = '',
+): Effect.Effect<string> => {
+  if (got.length >= length) return Effect.succeed(got);
+  return Effect.flatMap(
+    Effect.promise(() => reader.read()),
+    (read) => {
+      if (read.done) return Effect.succeed(got);
+      return readTo(reader, length, got + read.value);
+    },
+  );
+};
 
 const labLayer = (store: Map<string, Uint8Array>, pages = echoPages) =>
   Layer.mergeAll(
@@ -260,6 +318,40 @@ describe('lab routes', () => {
       const stopped = yield* Deferred.await(ended).pipe(Effect.timeoutOption('2 seconds'));
       expect(Option.isSome(stopped)).toBe(true);
     }).pipe(Effect.scoped, Effect.provide(labLayer(files(), givingUpPages))),
+  );
+
+  it.live(
+    "a page is sent compressed by the request's Accept-Encoding, br first; a streamed page's shell arrives before its render ends",
+    () => {
+      const ended = Deferred.makeUnsafe<void>();
+      return Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        const zipped = yield* Effect.promise(() =>
+          lab(get('/', { 'accept-encoding': 'gzip' }), bound),
+        );
+        expect([zipped.headers.get('content-encoding'), zipped.headers.get('vary')]).toEqual([
+          'gzip',
+          'Accept-Encoding',
+        ]);
+        const reader = gunzipped(zipped);
+        // The render has not ended: its shell is read all the same.
+        const shell = yield* readTo(reader, SHELL.length).pipe(Effect.timeoutOption('2 seconds'));
+        expect(shell).toEqual(Option.some(SHELL));
+        yield* Deferred.done(ended, Exit.void);
+        expect(yield* readTo(reader, Infinity)).toBe(REST);
+
+        const brotli = yield* Effect.promise(() =>
+          lab(get('/', { 'accept-encoding': 'gzip, br' }), bound),
+        );
+        expect(brotli.headers.get('content-encoding')).toBe('br');
+        const bytes = yield* Effect.promise(() => brotli.arrayBuffer());
+        expect(new TextDecoder().decode(brotliDecompressSync(bytes))).toBe(SHELL + REST);
+
+        const plain = yield* Effect.promise(() => lab(get('/'), bound));
+        expect(plain.headers.get('content-encoding')).toBeNull();
+        expect(yield* Effect.promise(() => plain.text())).toBe(SHELL + REST);
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), streamingPages(ended))));
+    },
   );
 
   it.effect('a posted note is listed, its still served, and a wait returns it', () =>

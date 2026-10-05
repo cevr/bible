@@ -15,8 +15,9 @@
 // look-book's page around its sheet is chrome and is read). So does paper:
 // the reading sheet is printed for the narrator at the microphone, light and
 // in a book face, never shown in the studio. One family is written outside
-// the tokens, the UI face's own registration (`player/face.ts`), and it is
-// held to the token: it is the family `--font` names first.
+// the tokens, the UI face's own registration (`player/face.ts`: its faces,
+// and the `@font-face` rule a page's head declares), and it is held to the
+// token: it is the family `--font` names first.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -110,7 +111,11 @@ const RULES: ReadonlyArray<{
     pattern:
       /setProperty\(\s*['"`](?:color|background(?:-color)?|border(?:-[a-z]+)?-color|outline-color|fill|stroke|font|font-family|font-size)['"`]\s*,\s*['"`](?!\s*(?:var\(|inherit))/,
   },
-  { why: 'a font family', pattern: new RegExp(`${cssSetting('font-family')}${NOT_TOKEN}`) },
+  {
+    why: 'a font family',
+    pattern: new RegExp(`${cssSetting('font-family')}${NOT_TOKEN}`),
+    spares: [FACE],
+  },
   {
     why: 'a font family',
     pattern: new RegExp(`${setting('(?:family|Family|FAMILY)')}\\s*['"\`]${NOT_TOKEN}`),

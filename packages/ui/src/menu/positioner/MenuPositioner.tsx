@@ -7,7 +7,7 @@
 // closes its children, and hovering another item of the parent closes this
 // submenu (after the trigger's `closeDelay`). A modal top-level menu gets a
 // transparent backdrop with a hole over its trigger, and locks page scroll.
-import type { JSX } from '@solidjs/web';
+import { isServer, type JSX } from '@solidjs/web';
 import { createContext, createEffect, omit, onCleanup, Show, untrack, useContext } from 'solid-js';
 
 import { FloatingNode } from '../../floating-ui-solid/FloatingTree.tsx';
@@ -240,11 +240,12 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
   events.on<MenuOpenEventDetails>('menuopenchange', onMenuOpenChange);
   events.on<MenuOpenEventDetails>('menuopenchange', onParentClose);
   events.on<ItemHoverEvent>('itemhover', onItemHover);
+  // Its listeners go first, then the element; the server set no element to let go.
   onCleanup(() => {
     events.off<MenuOpenEventDetails>('menuopenchange', onMenuOpenChange);
     events.off<MenuOpenEventDetails>('menuopenchange', onParentClose);
     events.off<ItemHoverEvent>('itemhover', onItemHover);
-    store.setPositionerElement(null);
+    if (!isServer) store.setPositionerElement(null);
   });
 
   createEffect(store.open, (isOpen) => {

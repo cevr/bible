@@ -29,12 +29,14 @@ import {
 } from 'effect';
 import {
   Etag,
-  HttpServer,
-  type HttpPlatform,
+  HttpMiddleware,
+  HttpPlatform,
   HttpRouter,
+  HttpServer,
   HttpServerRequest,
   HttpServerResponse,
 } from 'effect/http';
+import * as NodeHttpCompression from '@effect/platform-node-shared/NodeHttpCompression';
 import {
   type Refusal,
   Refusal as RefusalSchema,
@@ -353,11 +355,65 @@ const readsOf = (
     }),
   );
 
+/** The codings a page's answer is sent in, by the request's `Accept-Encoding`, best first. */
+const PAGE_CODINGS: ReadonlyArray<HttpPlatform.CompressionAlgorithm> = ['br', 'gzip'];
+
+/**
+ * How a page's answer is compressed: bytes whole, a stream through zlib
+ * flushed at every chunk (`NodeHttpCompression`), so a page's shell reaches
+ * the browser while its render goes on. The platform's own compression of a
+ * stream (`CompressionStream`) holds its bytes until it ends. Marked as
+ * `HttpPlatform.make` marks it: the coding named, `Vary` kept, a strong
+ * ETag made weak.
+ */
+const FLUSHED: HttpPlatform.Compression = (() => {
+  const made = NodeHttpCompression.make(
+    HttpPlatform.makeCompressionWeb({
+      algorithms: PAGE_CODINGS,
+      transform: NodeHttpCompression.compressTransformWeb,
+    }),
+  );
+  return {
+    algorithms: made.algorithms,
+    compressResponse: (response, algorithm, options) =>
+      Effect.map(made.compressResponse(response, algorithm, options), (compressed) => {
+        if (compressed === response) return response;
+        const vary = Option.match(Option.fromUndefinedOr(compressed.headers['vary']), {
+          onNone: () => 'Accept-Encoding',
+          onSome: (kept) => `${kept}, Accept-Encoding`,
+        });
+        const etag = Option.filter(
+          Option.fromUndefinedOr(compressed.headers['etag']),
+          (tag) => !tag.startsWith('W/'),
+        );
+        return HttpServerResponse.setHeaders(compressed, {
+          'content-encoding': algorithm,
+          vary,
+          ...Option.match(etag, { onNone: () => ({}), onSome: (tag) => ({ etag: `W/${tag}` }) }),
+        });
+      }),
+  };
+})();
+
+/**
+ * A page's answer compressed by the request's `Accept-Encoding` (`FLUSHED`),
+ * text only, as `HttpMiddleware.compression` judges it: a streamed page
+ * stays streamed.
+ */
+const compressed = <E, R>(
+  answer: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>,
+  platform: HttpPlatform.HttpPlatform['Service'],
+) =>
+  HttpMiddleware.compression({ algorithms: PAGE_CODINGS })(answer).pipe(
+    Effect.provideService(HttpPlatform.HttpPlatform, { ...platform, compression: FLUSHED }),
+  );
+
 /**
  * What else the server answers, once admitted: the app's pages, for every
  * path no route takes, except under the API's own prefixes (`own`), where a
  * path no route takes is a 404 RouteUnknown and never a page. A page is
- * read, never written: any method but GET and HEAD is a 405.
+ * read, never written: any method but GET and HEAD is a 405. A page's answer
+ * (its HTML, scripts and styles) is compressed (`compressed`).
  */
 const pageRoute = (
   page: PageAnswer,
@@ -379,7 +435,10 @@ const pageRoute = (
           headers: { allow: SAFE_METHODS.join(', ') },
         });
       const reads = readsOf(self, request, yield* Connection);
-      return yield* page.pipe(Effect.provideContext(reads));
+      return yield* compressed(
+        page.pipe(Effect.provideContext(reads)),
+        Context.get(platform, HttpPlatform.HttpPlatform),
+      );
     }),
   ).pipe(HttpRouter.provideRequest(Layer.succeedContext(platform)));
 

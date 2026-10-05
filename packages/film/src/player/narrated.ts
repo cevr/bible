@@ -4,7 +4,8 @@
 // builds its own URLs and the page and the tools lay out the same takes. A
 // film with no timings file yet is laid out on estimates, as the tools lay it
 // out; a file that is there but cannot be fetched or read is an error naming
-// it, never a silent fall back to estimates.
+// it, never a silent fall back to estimates. A film is given with the faces
+// it draws in loaded (`narratedFilms`).
 
 import { Effect, type Layer, Record as Rec, Schema } from 'effect';
 import { FetchHttpClient, HttpClient } from 'effect/http';
@@ -61,18 +62,21 @@ export const loadNarrated = (
 
 /**
  * The registry's loaders: each film, keyed by its folder under `films/`, its
- * module and its narration loaded together and the film built from them; the
- * narration is read through `http` (the page's `fetch` client unless given).
+ * module, its narration and the faces it draws in (`faces`, the app's
+ * `pictureFaces`) loaded together and the film built from them, so no page
+ * has a film to draw before its faces have loaded; the narration is read
+ * through `http` (the page's `fetch` client unless given).
  */
 export const narratedFilms = <K extends string>(
   modules: Readonly<Record<K, () => Promise<FilmModule>>>,
+  faces: Effect.Effect<void>,
   http: Layer.Layer<HttpClient.HttpClient> = FetchHttpClient.layer,
 ): Record<K, () => Promise<Film>> =>
   Rec.map(
     modules,
     (load, id) => () =>
       Effect.runPromise(
-        Effect.all([Effect.promise(load), loadNarrated(id)], { concurrency: 2 }).pipe(
+        Effect.all([Effect.promise(load), loadNarrated(id), faces], { concurrency: 3 }).pipe(
           Effect.map(([m, narrated]) => m.film(narrated)),
           Effect.provide(http),
         ),

@@ -16,7 +16,7 @@
 
 import { Menu } from '@bible/ui/menu';
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
-import { For, type JSX, Portal, Show } from '@solidjs/web';
+import { For, type JSX, Portal, Show, isServer } from '@solidjs/web';
 import { Effect, Option } from 'effect';
 import {
   type Accessor,
@@ -59,14 +59,15 @@ const ShellContext = createContext<Option.Option<(time: Option.Option<ShellTime>
  * Show `at` (seconds, at `fps`) as the header's timecode for as long as the
  * calling component is mounted: its values are written to the shell as they
  * change (the shell holds no accessor of the component's, which would read
- * stale once the component is gone).
+ * stale once the component is gone). The server's render writes none, not
+ * even as it lets the component go: nothing it renders runs again.
  */
 export const useShellTime = (at: Accessor<number>, fps: number = FILM_FPS): void => {
   Option.map(useContext(ShellContext), (write) => {
     createEffect(at, (t) => {
       write(Option.some({ t, fps }));
     });
-    onCleanup(() => write(Option.none()));
+    if (!isServer) onCleanup(() => write(Option.none()));
   });
 };
 
