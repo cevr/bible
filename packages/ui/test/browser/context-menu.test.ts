@@ -157,13 +157,14 @@ describe('ContextMenu.Trigger: right click', () => {
     expect(await logOf(page)).toContain('click paste');
   });
 
-  it('suppresses the native context menu on the area and on the backdrop', async () => {
+  it('suppresses the native context menu on the area and on the menu backdrop', async () => {
     const page = await h.open('area');
     expect(await nativeMenuBlocked(page, '#area')).toBe(true);
     const { x, y } = await areaCentre(page);
     await page.mouse.click(x, y, { button: 'right' });
-    await see(page.locator('#backdrop')).toHaveAttribute('data-open', '');
-    expect(await nativeMenuBlocked(page, '#backdrop')).toBe(true);
+    const backdrop = 'body > [data-base-ui-portal] > [role=presentation][data-base-ui-inert]';
+    await see(page.locator(backdrop)).toHaveCount(1);
+    expect(await nativeMenuBlocked(page, backdrop)).toBe(true);
     expect(await nativeMenuBlocked(page, 'body')).toBe(false);
   });
 

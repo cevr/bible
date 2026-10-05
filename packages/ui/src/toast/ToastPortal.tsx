@@ -9,7 +9,7 @@ import { FloatingPortal, type FloatingPortalProps } from '../floating-ui-solid/F
 
 export interface ToastPortalState {}
 
-export interface ToastPortalProps extends Omit<FloatingPortalProps, 'portalOwnerRole'> {}
+export interface ToastPortalProps extends FloatingPortalProps {}
 
 export function ToastPortal(props: ToastPortalProps): JSX.Element {
   return <FloatingPortal {...props} />;

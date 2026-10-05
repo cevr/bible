@@ -4,7 +4,6 @@
 import type { JSX } from '@solidjs/web';
 
 export const TYPEAHEAD_RESET_MS = 500;
-export const PATIENT_CLICK_THRESHOLD = 500;
 export const DISABLED_TRANSITIONS_STYLE = { style: { transition: 'none' } };
 /** Marks a trigger that opens on press, so focus leaving for it does not close the popup. */
 export const CLICK_TRIGGER_IDENTIFIER = 'data-base-ui-click-trigger';

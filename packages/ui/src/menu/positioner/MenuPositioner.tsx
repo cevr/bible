@@ -1,24 +1,15 @@
 // Upstream: packages/react/src/menu/positioner/MenuPositioner.tsx,
 // packages/react/src/menu/positioner/MenuPositionerContext.ts
 //
-// Positions the menu's popup against its trigger (a submenu beside its
-// trigger item, a context menu at the pointer). It also keeps the menu tree
-// in order: a menu opening closes its open siblings, a parent closing
-// closes its children, and hovering another item of the parent closes this
-// submenu (after the trigger's `closeDelay`). A modal top-level menu gets a
-// transparent backdrop with a hole over its trigger, and locks page scroll.
+// Positions the menu's popup against its trigger (a context menu at the
+// pointer). A modal menu gets a transparent backdrop (with a hole over a
+// top-level menu's trigger), and locks page scroll unless a touch opened it.
 import { isServer, type JSX } from '@solidjs/web';
-import { createContext, createEffect, omit, onCleanup, Show, untrack, useContext } from 'solid-js';
+import { createContext, omit, onCleanup, Show, untrack, useContext } from 'solid-js';
 
 import { FloatingNode } from '../../floating-ui-solid/FloatingTree.tsx';
-import type { FloatingContext } from '../../floating-ui-solid/FloatingRootContext.ts';
 import { CompositeList } from '../../internals/composite/CompositeList.tsx';
-import {
-  DROPDOWN_COLLISION_AVOIDANCE,
-  POPUP_COLLISION_AVOIDANCE,
-} from '../../internals/constants.ts';
-import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
-import { REASONS } from '../../internals/reasons.ts';
+import { DROPDOWN_COLLISION_AVOIDANCE } from '../../internals/constants.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import {
   type Align,
@@ -29,18 +20,13 @@ import {
 import { InternalBackdrop } from '../../utils/FocusGuard.tsx';
 import { usePositioner } from '../../utils/usePositioner.ts';
 import { useAnchoredPopupScrollLock } from '../../utils/useScrollLock.ts';
-import { useTimeout } from '../../utils/timers.ts';
 import { useMenuPortalContext } from '../portal/MenuPortal.tsx';
 import { useMenuRootContext } from '../root/MenuRootContext.ts';
-import type { MenuChangeEventReason, MenuInstantType } from '../store/MenuStore.ts';
+import type { MenuInstantType } from '../store/MenuStore.ts';
 
 export interface MenuPositionerContextValue {
   side: () => Side;
   align: () => Align;
-  setArrowElement: (element: Element | null) => void;
-  arrowUncentered: () => boolean;
-  arrowStyles: () => JSX.CSSProperties;
-  context: FloatingContext;
 }
 
 const MenuPositionerContext = createContext<MenuPositionerContextValue | null>(null);
@@ -55,29 +41,11 @@ export function useMenuPositionerContext(): MenuPositionerContextValue {
   return context;
 }
 
-export function useMenuPositionerContextOptional(): MenuPositionerContextValue | null {
-  return useContext(MenuPositionerContext);
-}
-
-export interface ItemHoverEvent {
-  nodeId: string | undefined;
-  target: Element | null;
-}
-
-interface MenuOpenEventDetails {
-  open: boolean;
-  reason: MenuChangeEventReason | null;
-  nodeId: string | undefined;
-  parentNodeId: string | null;
-}
-
 export interface MenuPositionerState {
   open: boolean;
   side: Side;
   align: Align;
   anchorHidden: boolean;
-  /** Whether the menu is a submenu. */
-  nested: boolean;
   /** Why transitions are skipped, if they are. */
   instant: MenuInstantType;
 }
@@ -110,22 +78,10 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
   const contextMenu = parent.type === 'context-menu' ? parent.context : undefined;
   const props = componentProps;
 
-  const align = (): Align | undefined => {
-    if (props.align !== undefined) {
-      return props.align;
-    }
-    if (contextMenu || parent.type === 'menu') {
-      return 'start';
-    }
-    return undefined;
-  };
-  const side = (): Side | undefined =>
-    props.side ?? (parent.type === 'menu' ? 'inline-end' : undefined);
+  const align = (): Align | undefined => props.align ?? (contextMenu ? 'start' : undefined);
   // A context menu sits just off the pointer, its first item under it.
   const contextMenuOffsets = () => contextMenu && !props.side && align() !== 'center';
-  const collisionAvoidance = () =>
-    props.collisionAvoidance ??
-    (parent.type === 'menu' ? POPUP_COLLISION_AVOIDANCE : DROPDOWN_COLLISION_AVOIDANCE);
+  const collisionAvoidance = () => props.collisionAvoidance ?? DROPDOWN_COLLISION_AVOIDANCE;
 
   const positioner = useAnchorPositioning({
     get anchor() {
@@ -139,7 +95,7 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
       return store.mounted();
     },
     get side() {
-      return side();
+      return props.side;
     },
     get sideOffset() {
       return props.sideOffset ?? (contextMenuOffsets() ? -5 : 0);
@@ -185,86 +141,13 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
     externalTree: store.floatingTreeRoot,
   });
 
-  const events = store.floatingTreeRoot.events;
-
-  // A menu opening closes its open siblings and turns off its parent's hover opening.
-  const onMenuOpenChange = (details: MenuOpenEventDetails) => {
-    if (!details.open) {
-      return;
-    }
-    if (details.parentNodeId === store.floatingNodeId) {
-      store.setHoverEnabled(false);
-    }
-    if (
-      details.nodeId !== store.floatingNodeId &&
-      details.parentNodeId === store.floatingParentNodeId
-    ) {
-      store.setOpen(false, createChangeEventDetails(REASONS.siblingOpen));
-    }
-  };
-  // A parent closing closes this submenu.
-  const onParentClose = (details: MenuOpenEventDetails) => {
-    if (
-      store.floatingParentNodeId == null ||
-      details.open ||
-      details.nodeId !== store.floatingParentNodeId
-    ) {
-      return;
-    }
-    store.setOpen(false, createChangeEventDetails(details.reason ?? REASONS.siblingOpen));
-  };
-
-  const closeTimeout = useTimeout();
-  // Hovering another item of the parent menu closes this submenu.
-  const onItemHover = (event: ItemHoverEvent) => {
-    if (!untrack(store.open) || event.nodeId !== store.floatingParentNodeId) {
-      return;
-    }
-    const triggerElement = untrack(store.activeTriggerElement);
-    if (event.target && triggerElement && triggerElement !== event.target) {
-      const delay = untrack(store.closeDelay);
-      if (delay > 0) {
-        if (!closeTimeout.isStarted()) {
-          closeTimeout.start(delay, () => {
-            store.setOpen(false, createChangeEventDetails(REASONS.siblingOpen));
-          });
-        }
-      } else {
-        store.setOpen(false, createChangeEventDetails(REASONS.siblingOpen));
-      }
-    } else {
-      closeTimeout.clear();
-    }
-  };
-
-  events.on<MenuOpenEventDetails>('menuopenchange', onMenuOpenChange);
-  events.on<MenuOpenEventDetails>('menuopenchange', onParentClose);
-  events.on<ItemHoverEvent>('itemhover', onItemHover);
-  // Its listeners go first, then the element; the server set no element to let go.
+  // The server set no element to let go.
   onCleanup(() => {
-    events.off<MenuOpenEventDetails>('menuopenchange', onMenuOpenChange);
-    events.off<MenuOpenEventDetails>('menuopenchange', onParentClose);
-    events.off<ItemHoverEvent>('itemhover', onItemHover);
     if (!isServer) store.setPositionerElement(null);
   });
 
-  createEffect(store.open, (isOpen) => {
-    if (!isOpen) {
-      closeTimeout.clear();
-    }
-    const details: MenuOpenEventDetails = {
-      open: isOpen,
-      nodeId: store.floatingNodeId,
-      parentNodeId: store.floatingParentNodeId,
-      reason: untrack(store.lastOpenChangeReason),
-    };
-    events.emit('menuopenchange', details);
-  });
-
-  const popupModal = () => store.modal() && store.lastOpenChangeReason() !== REASONS.triggerHover;
-
   useAnchoredPopupScrollLock(
-    () => store.open() && popupModal(),
+    () => store.open() && store.modal(),
     () => store.openMethod() === 'touch',
     store.positionerElement,
     store.activeTriggerElement,
@@ -283,21 +166,16 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
     get anchorHidden() {
       return positioner.anchorHidden();
     },
-    nested: parent.type === 'menu',
     get instant() {
       return store.instantType();
     },
   };
 
-  const shouldRenderBackdrop = () => store.mounted() && parent.type !== 'menu' && popupModal();
+  const shouldRenderBackdrop = () => store.mounted() && store.modal();
 
   const positionerContext: MenuPositionerContextValue = {
     side: positioner.side,
     align: positioner.align,
-    setArrowElement: positioner.setArrowElement,
-    arrowUncentered: positioner.arrowUncentered,
-    arrowStyles: positioner.arrowStyles,
-    context: positioner.context,
   };
 
   return (

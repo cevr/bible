@@ -651,11 +651,10 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         if (!details.open) {
           closeType = getEventType(details.nativeEvent, lastInteractionType);
         }
-        // Focus guards move focus themselves; a hover close by leaving moves none.
+        // Focus guards move focus themselves.
         if (
-          (details.reason === REASONS.focusOut &&
-            details.triggerElement?.hasAttribute(createAttribute('focus-guard'))) ||
-          (details.reason === REASONS.triggerHover && details.nativeEvent?.type === 'mouseleave')
+          details.reason === REASONS.focusOut &&
+          details.triggerElement?.hasAttribute(createAttribute('focus-guard'))
         ) {
           preventReturnFocus = true;
         }

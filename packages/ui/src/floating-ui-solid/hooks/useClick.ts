@@ -3,7 +3,8 @@
 // Opens and closes a popup by pressing its trigger: on click, or on
 // mousedown (so a press-drag-release on an item works, as native menus do).
 // A press on a second trigger while open moves the popup to it instead of
-// closing. A popup opened by hover is not closed by the click that follows.
+// closing. Upstream's `stickIfOpen` (a popup opened by hover or focus stays
+// open on the click that follows) is left out: no trigger here opens that way.
 import { untrack } from 'solid-js';
 
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
@@ -21,8 +22,6 @@ export interface UseClickProps {
   /** Whether a second press closes the popup. */
   toggle?: boolean | undefined;
   ignoreMouse?: boolean | undefined;
-  /** Whether a popup opened by hover or focus stays open on the following click. */
-  stickIfOpen?: boolean | undefined;
   touchOpenDelay?: number | undefined;
   reason?: typeof REASONS.triggerPress | typeof REASONS.inputPress | undefined;
 }
@@ -33,7 +32,6 @@ export function useClick(
   context: FloatingRootContext,
   props: UseClickProps = {},
 ): { reference: HTMLProps } {
-  const dataRef = context.dataRef;
   let pointerType: PointerKind;
   const frame = useAnimationFrame();
   const touchOpenTimeout = useTimeout();
@@ -60,26 +58,12 @@ export function useClick(
     }
   };
 
-  const getNextOpen = (
-    open: boolean,
-    currentTarget: EventTarget | null,
-    isClickLikeOpenEvent: (eventType: string | undefined) => boolean,
-  ) => {
-    const openEvent = dataRef.current.openEvent;
+  const getNextOpen = (open: boolean, currentTarget: EventTarget | null) => {
     const hasClickedOnInactiveTrigger = untrack(context.domReferenceElement) !== currentTarget;
-    if (open && hasClickedOnInactiveTrigger) {
+    if (!open || hasClickedOnInactiveTrigger) {
       return true;
     }
-    if (!open) {
-      return true;
-    }
-    if (!(props.toggle ?? true)) {
-      return true;
-    }
-    if (openEvent && (props.stickIfOpen ?? true)) {
-      return !isClickLikeOpenEvent(openEvent.type);
-    }
-    return false;
+    return !(props.toggle ?? true);
   };
 
   const reference: HTMLProps = {
@@ -104,11 +88,7 @@ export function useClick(
       ) {
         return;
       }
-      const nextOpen = getNextOpen(
-        untrack(context.open),
-        event.currentTarget,
-        (type) => type === 'click' || type === 'mousedown',
-      );
+      const nextOpen = getNextOpen(untrack(context.open), event.currentTarget);
       const target = getTarget(event);
       const isTypeable = isTypeableElement(target);
       if (isTypeable || kind === 'virtual') {
@@ -136,12 +116,7 @@ export function useClick(
       if (isMouseLikePointerType(kind, true) && props.ignoreMouse) {
         return;
       }
-      const nextOpen = getNextOpen(
-        untrack(context.open),
-        event.currentTarget,
-        (type) =>
-          type === 'click' || type === 'mousedown' || type === 'keydown' || type === 'keyup',
-      );
+      const nextOpen = getNextOpen(untrack(context.open), event.currentTarget);
       setOpenWithTouchDelay(nextOpen, event, event.currentTarget as HTMLElement, kind);
     },
     onKeyDown() {

@@ -4,11 +4,10 @@
 //
 // Element predicates the interactions share: typeable fields, interactive
 // elements, `:focus-visible`, and the element inside a popup that takes focus.
-import { isElement, isHTMLElement } from '@floating-ui/utils/dom';
+import { isHTMLElement } from '@floating-ui/utils/dom';
 
 import { activeElement, closest, contains, getTarget } from '../../utils/dom.ts';
 import { platform } from '../../utils/platform.ts';
-import type { PopupTriggerMap } from '../../utils/popups/popupTriggerMap.ts';
 
 export { activeElement, closest, contains, getTarget };
 
@@ -23,30 +22,8 @@ export const ARROW_RIGHT = 'ArrowRight';
 export const ARROW_UP = 'ArrowUp';
 export const ARROW_DOWN = 'ArrowDown';
 
-/** The tooltip trigger's attribute for a trigger that may not open its popup. */
-export const TRIGGER_DISABLED_ATTRIBUTE = 'data-trigger-disabled';
-
 export function createAttribute(name: string) {
   return `data-base-ui-${name}`;
-}
-
-export function isTargetInsideEnabledTrigger(
-  target: EventTarget | null,
-  triggerElements: PopupTriggerMap,
-) {
-  if (!isElement(target)) {
-    return false;
-  }
-  const targetElement = target as Element;
-  if (triggerElements.hasElement(targetElement)) {
-    return !targetElement.hasAttribute(TRIGGER_DISABLED_ATTRIBUTE);
-  }
-  for (const [, trigger] of triggerElements.entries()) {
-    if (contains(trigger, targetElement)) {
-      return !trigger.hasAttribute(TRIGGER_DISABLED_ATTRIBUTE);
-    }
-  }
-  return false;
 }
 
 export function isEventTargetWithin(event: Event, node: Node | null | undefined) {

@@ -1,10 +1,10 @@
 // Upstream: packages/react/src/menu/trigger/MenuTrigger.tsx
 //
 // The button that opens the menu: on press (mousedown, so pressing, dragging
-// onto an item and releasing picks it, as native menus do), with the arrow
-// keys, or on hover with `openOnHover`. A click within half a second of a
-// hover-open keeps the menu open. While the menu it opened is open, invisible
-// focus guards sit on either side of it so Tab leaves the menu in page order.
+// onto an item and releasing picks it, as native menus do) or with the arrow
+// keys. Upstream's hover opening is left out. While the menu it opened is
+// open, invisible focus guards sit on either side of it so Tab leaves the
+// menu in page order.
 import type { JSX } from '@solidjs/web';
 import {
   createEffect,
@@ -17,15 +17,12 @@ import {
 } from 'solid-js';
 
 import { useClick } from '../../floating-ui-solid/hooks/useClick.ts';
-import { useHoverReferenceInteraction } from '../../floating-ui-solid/hooks/useHoverReferenceInteraction.ts';
-import { safePolygon } from '../../floating-ui-solid/safePolygon.ts';
 import { contains } from '../../floating-ui-solid/utils/element.ts';
-import { PATIENT_CLICK_THRESHOLD } from '../../internals/constants.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import type { BaseUIComponentProps, NativeButtonProps } from '../../internals/types.ts';
 import { useButton } from '../../internals/useButton.ts';
 import { propsFromAccessor, useRenderElement } from '../../internals/useRenderElement.tsx';
-import { addEventListener, ownerDocument } from '../../utils/dom.ts';
+import { ownerDocument } from '../../utils/dom.ts';
 import { FocusGuard } from '../../utils/FocusGuard.tsx';
 import { isMouseWithinBounds } from '../../utils/getPseudoElementBounds.ts';
 import { pressableTriggerOpenStateMapping } from '../../utils/popupStateMapping.ts';
@@ -44,16 +41,10 @@ export interface MenuTriggerProps
   extends NativeButtonProps, BaseUIComponentProps<'button', MenuTriggerState> {
   /** @default false */
   disabled?: boolean | undefined;
-  /** How long the pointer rests before a hover opens the menu, in ms. @default 100 */
-  delay?: number | undefined;
-  /** How long before a hover-opened menu closes, in ms. @default 0 */
-  closeDelay?: number | undefined;
-  /** Whether hovering the trigger opens the menu. */
-  openOnHover?: boolean | undefined;
 }
 
 export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
-  const { store, parent, triggerProps } = useMenuRootContext();
+  const { store, triggerProps } = useMenuRootContext();
   const elementProps = omit(
     componentProps,
     'class',
@@ -62,9 +53,6 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     'disabled',
     'nativeButton',
     'id',
-    'openOnHover',
-    'delay',
-    'closeDelay',
   );
   const triggerId = untrack(() => componentProps.id) || createUniqueId();
   const [triggerElement, setTriggerElement] = createSignal<HTMLElement | null>(null, {
@@ -85,14 +73,8 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
   });
 
   createEffect(isOpenedByThisTrigger, (opened) => {
-    if (!opened && parent.type === undefined) {
+    if (!opened) {
       store.allowMouseUpTriggerRef.current = false;
-    }
-  });
-
-  createEffect(isMountedByThisTrigger, (mounted) => {
-    if (mounted) {
-      store.setCloseDelay(untrack(() => componentProps.closeDelay ?? 0));
     }
   });
 
@@ -126,44 +108,6 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     });
   };
 
-  createEffect(isOpenedByThisTrigger, (opened) => {
-    if (opened && untrack(store.lastOpenChangeReason) === REASONS.triggerHover) {
-      const doc = ownerDocument(untrack(triggerElement));
-      return addEventListener(doc, 'mouseup', handleDocumentMouseUp, { once: true });
-    }
-    return undefined;
-  });
-
-  // A click soon after a hover-open keeps the menu open; a patient click closes it.
-  const [stickIfOpen, setStickIfOpen] = createSignal(false, { ownedWrite: true });
-  const stickIfOpenTimeout = useTimeout();
-  createEffect(isOpenedByThisTrigger, (opened) => {
-    if (opened && untrack(store.lastOpenChangeReason) === REASONS.triggerHover) {
-      setStickIfOpen(true);
-      stickIfOpenTimeout.start(PATIENT_CLICK_THRESHOLD, () => setStickIfOpen(false));
-    } else if (!opened) {
-      stickIfOpenTimeout.clear();
-      setStickIfOpen(false);
-    }
-  });
-
-  const hoverProps = useHoverReferenceInteraction(store.floatingRootContext, {
-    get enabled() {
-      return (componentProps.openOnHover ?? false) && !disabled();
-    },
-    handleClose: safePolygon({ blockPointerEvents: true }),
-    mouseOnly: true,
-    move: false,
-    restMs: () => (parent.type === undefined ? (componentProps.delay ?? 100) : 0),
-    delay: () => ({ close: componentProps.closeDelay ?? 0 }),
-    triggerElement,
-    externalTree: store.floatingTreeRoot,
-    get isActiveTrigger() {
-      return store.isTriggerActive(triggerId);
-    },
-    isClosing: () => store.transitionStatus() === 'ending',
-  });
-
   const click = useClick(store.floatingRootContext, {
     get enabled() {
       return !disabled();
@@ -171,9 +115,6 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     event: 'mousedown',
     toggle: true,
     ignoreMouse: false,
-    get stickIfOpen() {
-      return parent.type === undefined ? stickIfOpen() : false;
-    },
   });
 
   const rootTriggerProps = propsFromAccessor(() => triggerProps(isMountedByThisTrigger()));
@@ -201,7 +142,6 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     },
     props: [
       click.reference,
-      hoverProps,
       rootTriggerProps,
       {
         'aria-haspopup': 'menu',

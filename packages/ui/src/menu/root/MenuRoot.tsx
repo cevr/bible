@@ -6,9 +6,8 @@
 // opened it (so focus lands on an item) and whether its transition is
 // skipped. The root wires the interactions the parts share: Escape and
 // outside presses, arrow-key navigation, typeahead, and how it was opened.
-//
-// A top-level menu or a context menu starts a tree of nested menus; a
-// submenu (`Menu.SubmenuRoot`) joins its parent's.
+// Upstream's hover opening and submenus are left out: each menu, a context
+// menu included, is the only menu of its tree.
 import type { JSX } from '@solidjs/web';
 import { createEffect, createUniqueId, onCleanup, untrack } from 'solid-js';
 
@@ -19,6 +18,7 @@ import {
   useFloatingNodeId,
   useFloatingParentNodeId,
 } from '../../floating-ui-solid/FloatingTree.tsx';
+import { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
 import {
   type HighlightItemTarget,
@@ -48,7 +48,6 @@ import {
   type MenuHighlightEventReason,
   type MenuInstantType,
   type MenuParent,
-  menuTreeFor,
 } from '../store/MenuStore.ts';
 import { isKeyboardClick, isKeyboardOpen } from '../utils/isKeyboardOpen.ts';
 import { MenuRootContext, useMenuRootContextOptional } from './MenuRootContext.ts';
@@ -77,8 +76,7 @@ export interface MenuRootProps {
   highlightItemOnHover?: boolean | undefined;
   /**
    * Whether the open menu is modal: page scroll locked and outside pointer
-   * interaction blocked. Nested menus ignore it; hover-opened menus never are.
-   * @default true
+   * interaction blocked. @default true
    */
   modal?: boolean | undefined;
   onOpenChange?: ((open: boolean, eventDetails: MenuChangeEventDetails) => void) | undefined;
@@ -92,16 +90,9 @@ export interface MenuRootProps {
   orientation?: Orientation | undefined;
   /** @default false */
   disabled?: boolean | undefined;
-  /** In a submenu, whether Escape closes the whole menu. @default false */
-  closeParentOnEsc?: boolean | undefined;
   /** Receives the imperative actions. */
   actionsRef?: { current: MenuRootActions | null } | undefined;
   children?: JSX.Element;
-}
-
-interface MenuRootInternalProps extends MenuRootProps {
-  /** Marks this root as a submenu of the enclosing menu. */
-  isSubmenu?: boolean | undefined;
 }
 
 function getHighlightReason(event: Event | undefined): MenuHighlightEventReason {
@@ -117,34 +108,25 @@ function getHighlightReason(event: Event | undefined): MenuHighlightEventReason 
   return REASONS.none;
 }
 
-export function MenuRootInternal(props: MenuRootInternalProps): JSX.Element {
+/**
+ * Groups all parts of the menu.
+ * Doesn't render its own HTML element.
+ */
+export function MenuRoot(props: MenuRootProps): JSX.Element {
   const contextMenuContext = useContextMenuRootContext();
-  const parentRootContext = useMenuRootContextOptional();
-  const enclosingStore = parentRootContext?.store;
+  const enclosingStore = useMenuRootContextOptional()?.store;
 
-  let parent: MenuParent = { type: undefined };
-  if (props.isSubmenu && enclosingStore) {
-    parent = { type: 'menu', store: enclosingStore };
-  } else if (contextMenuContext && !enclosingStore) {
-    parent = { type: 'context-menu', context: contextMenuContext };
-  }
+  const parent: MenuParent =
+    contextMenuContext && !enclosingStore
+      ? { type: 'context-menu', context: contextMenuContext }
+      : { type: undefined };
 
   const rootId = createUniqueId();
   const floatingId = createUniqueId();
-  const floatingTreeRoot = menuTreeFor(parent);
+  const floatingTreeRoot = new FloatingTreeStore();
   const floatingParentNodeId = useFloatingParentNodeId();
   const floatingNodeId = useFloatingNodeId(floatingTreeRoot);
   const nested = floatingParentNodeId != null;
-
-  const parentStore = parent.type === 'menu' ? parent.store : undefined;
-  // A submenu open from the start animates in only when its parent is animating in too.
-  const animateInitialOpen = untrack(
-    () =>
-      (props.open ?? props.defaultOpen ?? false) && parentStore?.transitionStatus() === 'starting',
-  );
-  const seededInstantType: MenuInstantType = animateInitialOpen
-    ? untrack(() => parentStore?.instantType())
-    : undefined;
 
   let openRead = () => false;
   const { openMethod, triggerProps: interactionTypeProps } = useOpenInteractionType(() =>
@@ -156,7 +138,7 @@ export function MenuRootInternal(props: MenuRootInternalProps): JSX.Element {
     openProp: () => props.open,
     defaultOpen: untrack(() => props.defaultOpen ?? false),
     disabled: () => props.disabled ?? false,
-    modal: () => (parent.type === undefined ? props.modal : undefined),
+    modal: () => props.modal,
     highlightItemOnHover: () => props.highlightItemOnHover ?? true,
     openMethod,
     floatingId,
@@ -164,26 +146,12 @@ export function MenuRootInternal(props: MenuRootInternalProps): JSX.Element {
     floatingTreeRoot,
     floatingNodeId,
     floatingParentNodeId,
-    animateInitialOpen,
-    initialInstantType: seededInstantType,
     onOpenChange: setOpen,
     onOpenChangeComplete: () => props.onOpenChangeComplete,
   });
   openRead = store.open;
 
   const floatingRootContext = store.floatingRootContext;
-
-  // An inherited instant type is for the first reveal only.
-  if (seededInstantType !== undefined) {
-    createEffect(
-      () => [store.open(), store.transitionStatus()] as const,
-      ([isOpen, status]) => {
-        if ((!isOpen || status === undefined) && untrack(store.instantType) === seededInstantType) {
-          store.setInstantType(undefined);
-        }
-      },
-    );
-  }
 
   let openEvent: Event | null = null;
   let allowOutsidePressDismissal = parent.type !== 'context-menu';
@@ -194,9 +162,6 @@ export function MenuRootInternal(props: MenuRootInternalProps): JSX.Element {
   createEffect(store.open, (isOpen) => {
     if (!isOpen) {
       openEvent = null;
-      if (!untrack(store.hoverEnabled)) {
-        store.setHoverEnabled(true);
-      }
     }
     if (parent.type !== 'context-menu') {
       return;
@@ -215,7 +180,7 @@ export function MenuRootInternal(props: MenuRootInternalProps): JSX.Element {
   function setOpen(nextOpen: boolean, eventDetails: BaseUIChangeEventDetails) {
     const reason = eventDetails.reason as MenuChangeEventReason;
     const isOpen = untrack(store.open);
-    // Relayed tree events and stale hover timers can ask a closed menu to close.
+    // Relayed tree events can ask a closed menu to close.
     if (!nextOpen && !isOpen) {
       return;
     }
@@ -292,17 +257,12 @@ export function MenuRootInternal(props: MenuRootInternalProps): JSX.Element {
     get enabled() {
       return enabled();
     },
-    get bubbles() {
-      return { escapeKey: (props.closeParentOnEsc ?? false) && parent.type === 'menu' };
-    },
     outsidePress() {
       if (parent.type !== 'context-menu' || openEvent?.type === 'contextmenu') {
         return true;
       }
       return allowOutsidePressDismissal;
     },
-    // Always the menu tree, top level included: a press inside a submenu reaches this
-    // menu only through the tree (React found it by bubbling through its portals).
     externalTree: floatingTreeRoot,
   });
 
@@ -411,11 +371,6 @@ export function MenuRootInternal(props: MenuRootInternalProps): JSX.Element {
     typeahead.reference,
     listNavigation.reference,
     dismiss.reference ?? {},
-    {
-      onMouseMove() {
-        store.setAllowMouseEnter(true);
-      },
-    },
     interactionTypeProps,
     {
       'aria-haspopup': 'menu',
@@ -434,19 +389,6 @@ export function MenuRootInternal(props: MenuRootInternalProps): JSX.Element {
 
   const popupProps = mergeProps(
     FOCUSABLE_POPUP_PROPS,
-    {
-      onMouseMove() {
-        store.setAllowMouseEnter(true);
-        if (parent.type === 'menu') {
-          store.setHoverEnabled(false);
-        }
-      },
-      onClick() {
-        if (untrack(store.hoverEnabled)) {
-          store.setHoverEnabled(false);
-        }
-      },
-    },
     typeahead.floating,
     listNavigation.floating,
     dismiss.floating ?? {},
@@ -459,7 +401,6 @@ export function MenuRootInternal(props: MenuRootInternalProps): JSX.Element {
     triggerProps: (active) => (active ? activeTriggerProps : inactiveTriggerProps),
     popupProps,
     itemProps: listNavigation.item,
-    parentItemProps: parentRootContext?.itemProps ?? {},
     syncHighlightedItem,
   };
 
@@ -469,18 +410,9 @@ export function MenuRootInternal(props: MenuRootInternalProps): JSX.Element {
     }
   });
 
-  const content = () => <MenuRootContext value={context}>{props.children}</MenuRootContext>;
-
-  if (parent.type === undefined || parent.type === 'context-menu') {
-    return <FloatingTree externalTree={floatingTreeRoot}>{content()}</FloatingTree>;
-  }
-  return content();
-}
-
-/**
- * Groups all parts of the menu.
- * Doesn't render its own HTML element.
- */
-export function MenuRoot(props: MenuRootProps): JSX.Element {
-  return <MenuRootInternal {...props} />;
+  return (
+    <FloatingTree externalTree={floatingTreeRoot}>
+      <MenuRootContext value={context}>{props.children}</MenuRootContext>
+    </FloatingTree>
+  );
 }

@@ -1,25 +1,22 @@
 // Upstream: packages/react/src/menu/store/MenuStore.ts
 //
 // A menu's state: the popup's (open, mounted, active trigger, elements) plus
-// the highlighted item, how the menu opened, whether hovering may open or
-// highlight, and its place in the tree of nested menus. A submenu shares its
-// root menu's tree, root id and mouse-up gesture flag.
+// the highlighted item, how the menu opened, and its tree. A context menu
+// shares its root id and mouse-up gesture flag with the context menu around it.
 import { type Accessor, createSignal, untrack } from 'solid-js';
 
 import type { ContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext.ts';
-import { FloatingTreeStore } from '../../floating-ui-solid/FloatingTree.tsx';
+import type { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { REASONS } from '../../internals/reasons.ts';
 import { createPopupStore, type PopupStore } from '../../utils/popups/popupStore.ts';
 import type { InteractionType } from '../../utils/useOpenInteractionType.ts';
 
 export type MenuParent =
-  | { type: 'menu'; store: MenuStore }
   | { type: 'context-menu'; context: ContextMenuRootContext }
   | { type: undefined };
 
 export type MenuChangeEventReason =
-  | typeof REASONS.triggerHover
   | typeof REASONS.triggerFocus
   | typeof REASONS.triggerPress
   | typeof REASONS.outsidePress
@@ -28,7 +25,6 @@ export type MenuChangeEventReason =
   | typeof REASONS.escapeKey
   | typeof REASONS.itemPress
   | typeof REASONS.closePress
-  | typeof REASONS.siblingOpen
   | typeof REASONS.cancelOpen
   | typeof REASONS.imperativeAction
   | typeof REASONS.none;
@@ -44,7 +40,7 @@ export type MenuHighlightEventReason =
   | typeof REASONS.imperativeAction
   | typeof REASONS.none;
 
-export type MenuInstantType = 'dismiss' | 'click' | 'group' | undefined;
+export type MenuInstantType = 'dismiss' | 'click' | undefined;
 
 export interface MenuStoreOptions {
   parent: MenuParent;
@@ -59,8 +55,6 @@ export interface MenuStoreOptions {
   floatingTreeRoot: FloatingTreeStore;
   floatingNodeId: string;
   floatingParentNodeId: string | null;
-  animateInitialOpen: boolean;
-  initialInstantType: MenuInstantType;
   onOpenChange: (open: boolean, details: BaseUIChangeEventDetails) => void;
   onOpenChangeComplete: () => ((open: boolean) => void) | undefined;
 }
@@ -68,26 +62,19 @@ export interface MenuStoreOptions {
 export interface MenuStore extends PopupStore {
   readonly parent: MenuParent;
   disabled: Accessor<boolean>;
-  /** Whether the open menu is modal (only a top-level or context menu can be). */
+  /** Whether the open menu is modal. */
   modal: Accessor<boolean>;
   openMethod: Accessor<InteractionType | null>;
   keyboardOpen: Accessor<boolean>;
-  allowMouseEnter: Accessor<boolean>;
-  setAllowMouseEnter: (value: boolean) => void;
   highlightItemOnHover: Accessor<boolean>;
-  /** The id shared by the whole menu tree's popups (`data-rootownerid`). */
+  /** The id the menu's popup carries as `data-rootownerid`. */
   rootId: Accessor<string>;
   activeIndex: Accessor<number | null>;
   /** Moves the highlight; the reason reaches `onItemHighlighted`. */
   setActiveIndex: (index: number | null, reason: MenuHighlightEventReason, event?: Event) => void;
   isActive: (index: number) => boolean;
-  hoverEnabled: Accessor<boolean>;
-  setHoverEnabled: (value: boolean) => void;
   instantType: Accessor<MenuInstantType>;
-  setInstantType: (value: MenuInstantType) => void;
   lastOpenChangeReason: Accessor<MenuChangeEventReason | null>;
-  closeDelay: Accessor<number>;
-  setCloseDelay: (value: number) => void;
   readonly floatingTreeRoot: FloatingTreeStore;
   readonly floatingNodeId: string;
   readonly floatingParentNodeId: string | null;
@@ -122,47 +109,29 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
     defaultOpen: options.defaultOpen,
     floatingId: options.floatingId,
     nested: options.floatingParentNodeId != null,
-    animateInitialOpen: options.animateInitialOpen,
     onOpenChange: (open, details) => options.onOpenChange(open, details),
     onOpenChangeComplete: options.onOpenChangeComplete,
-    onUnmount: () => setAllowMouseEnter(false),
   });
 
   const owned = { ownedWrite: true } as const;
   const [keyboardOpen, setKeyboardOpen] = createSignal(false, owned);
-  const [allowMouseEnter, setAllowMouseEnter] = createSignal(false, owned);
   const [activeIndex, setActiveIndexSignal] = createSignal<number | null>(null, owned);
-  const [hoverEnabled, setHoverEnabled] = createSignal(true, owned);
-  const [instantType, setInstantType] = createSignal<MenuInstantType>(
-    options.initialInstantType,
-    owned,
-  );
+  const [instantType, setInstantType] = createSignal<MenuInstantType>(undefined, owned);
   const [lastOpenChangeReason, setLastOpenChangeReason] =
     createSignal<MenuChangeEventReason | null>(null, owned);
-  const [closeDelay, setCloseDelay] = createSignal(0, owned);
 
   const parent = options.parent;
+  const contextMenu = parent.type === 'context-menu' ? parent.context : undefined;
 
   const store: MenuStore = {
     ...popup,
     parent,
     disabled: options.disabled,
-    modal: () =>
-      (parent.type === undefined || parent.type === 'context-menu') && (options.modal() ?? true),
+    modal: () => options.modal() ?? true,
     openMethod: options.openMethod,
     keyboardOpen,
-    allowMouseEnter,
-    setAllowMouseEnter: (value) => setAllowMouseEnter(value),
     highlightItemOnHover: options.highlightItemOnHover,
-    rootId: () => {
-      if (parent.type === 'menu') {
-        return parent.store.rootId();
-      }
-      if (parent.type === 'context-menu') {
-        return parent.context.rootId;
-      }
-      return options.rootId;
-    },
+    rootId: () => contextMenu?.rootId ?? options.rootId,
     activeIndex,
     setActiveIndex(index, reason, event) {
       // Only a change is tagged; a write back to the reported item reports `none`.
@@ -175,13 +144,8 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
       setActiveIndexSignal(index);
     },
     isActive: (index) => activeIndex() === index,
-    hoverEnabled,
-    setHoverEnabled: (value) => setHoverEnabled(value),
     instantType,
-    setInstantType: (value) => setInstantType(() => value),
     lastOpenChangeReason,
-    closeDelay,
-    setCloseDelay: (value) => setCloseDelay(value),
     floatingTreeRoot: options.floatingTreeRoot,
     floatingNodeId: options.floatingNodeId,
     floatingParentNodeId: options.floatingParentNodeId,
@@ -195,20 +159,10 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
     itemDomElements: { current: [] },
     itemLabels: { current: [] },
     typingRef: { current: false },
-    allowMouseUpTriggerRef:
-      parent.type === 'menu'
-        ? parent.store.allowMouseUpTriggerRef
-        : parent.type === 'context-menu'
-          ? parent.context.allowMouseUpTriggerRef
-          : { current: false },
+    allowMouseUpTriggerRef: contextMenu?.allowMouseUpTriggerRef ?? { current: false },
     highlightReason: 'none',
     highlightEvent: undefined,
     reportedItem: undefined,
   };
   return store;
-}
-
-/** A fresh tree for a top-level menu; a submenu uses its parent's. */
-export function menuTreeFor(parent: MenuParent): FloatingTreeStore {
-  return parent.type === 'menu' ? parent.store.floatingTreeRoot : new FloatingTreeStore();
 }

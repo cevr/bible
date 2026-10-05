@@ -28,7 +28,7 @@ export function useDialogPortalContext(): () => boolean {
 
 export interface DialogPortalState {}
 
-export interface DialogPortalProps extends Omit<FloatingPortalProps, 'portalOwnerRole'> {
+export interface DialogPortalProps extends FloatingPortalProps {
   /** Whether the portal stays in the DOM while the dialog is closed. @default false */
   keepMounted?: boolean | undefined;
 }

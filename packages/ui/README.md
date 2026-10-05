@@ -22,52 +22,31 @@ These subpaths render no element and set no attributes.
 `import { Menu } from '@bible/ui/menu'`
 
 - `Menu.Root`: no element; owns the menu's state.
-  - `Menu.Trigger`: `<button>` that opens the menu.
+  - `Menu.Trigger`: `<button>` that opens the menu on press or with the arrow keys.
   - `Menu.Portal`: `<div>` at the end of `<body>` (or `container`), rendered while the menu is mounted or with `keepMounted`.
-    - `Menu.Backdrop`: `<div role="presentation">` under the menu.
     - `Menu.Positioner`: `<div role="presentation">` that places the popup.
       - `Menu.Popup`: `<div role="menu">`.
-        - `Menu.Arrow`: `<div aria-hidden>` pointing at the anchor.
         - `Menu.Item`: `<div role="menuitem">` that runs an action.
-        - `Menu.LinkItem`: `<a>` that navigates.
-        - `Menu.CheckboxItem`: `<div role="menuitemcheckbox">`.
-          - `Menu.CheckboxItemIndicator`: `<span aria-hidden>`, mounted while checked or with `keepMounted`.
-        - `Menu.RadioGroup`: `<div role="group">`.
-          - `Menu.RadioItem`: `<div role="menuitemradio">`.
-            - `Menu.RadioItemIndicator`: `<span aria-hidden>`, mounted while checked or with `keepMounted`.
         - `Menu.Group`: `<div role="group">`.
           - `Menu.GroupLabel`: `<div aria-hidden>` that names the group.
         - `Menu.Separator`: `<div role="separator">`.
-        - `Menu.SubmenuRoot`: no element; a nested menu.
-          - `Menu.SubmenuTrigger`: `<div role="menuitem">` that opens the submenu, followed by the submenu's own `Menu.Portal > Menu.Positioner > Menu.Popup`.
 
-| Member                                                | Attribute                                   | Present when                                                                                     |
-| ----------------------------------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `Trigger`                                             | `data-popup-open`, `data-pressed`           | the menu this trigger opened is open (both together)                                             |
-| `Trigger`                                             | `data-disabled`                             | the trigger or the menu is disabled                                                              |
-| `Backdrop`                                            | `data-open` / `data-closed`                 | the menu is open / closed                                                                        |
-| `Backdrop`                                            | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                                         |
-| `Positioner`                                          | `data-open` / `data-closed`                 | the menu is open / closed                                                                        |
-| `Positioner`, `Popup`                                 | `data-side`                                 | always: `top`, `bottom`, `left`, `right`, `inline-start` or `inline-end` (after collision flips) |
-| `Positioner`, `Popup`                                 | `data-align`                                | always: `start`, `center` or `end`                                                               |
-| `Positioner`                                          | `data-anchor-hidden`                        | the anchor has scrolled out of view                                                              |
-| `Positioner`, `Popup`                                 | `data-nested`                               | the menu is a submenu                                                                            |
-| `Positioner`, `Popup`                                 | `data-instant`                              | transitions are skipped, with the reason: `click`, `dismiss` or `group`                          |
-| `Popup`                                               | `data-open` / `data-closed`                 | the menu is open / closed                                                                        |
-| `Popup`                                               | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                                         |
-| `Arrow`                                               | `data-open` / `data-closed`                 | the menu is open / closed                                                                        |
-| `Arrow`                                               | `data-side`, `data-align`                   | always, as on the positioner                                                                     |
-| `Arrow`                                               | `data-uncentered`                           | the arrow cannot point at the anchor's center                                                    |
-| `Item`, `CheckboxItem`, `RadioItem`, `SubmenuTrigger` | `data-highlighted`                          | the item is under the keyboard or the pointer                                                    |
-| `LinkItem`                                            | `data-highlighted`                          | the link is under the keyboard or the pointer                                                    |
-| `Item`, `CheckboxItem`, `RadioItem`, `SubmenuTrigger` | `data-disabled`                             | the item (or the menu, or for a radio item its group) is disabled                                |
-| `CheckboxItem`, `RadioItem`                           | `data-checked` / `data-unchecked`           | the item is checked / unchecked                                                                  |
-| `CheckboxItemIndicator`, `RadioItemIndicator`         | `data-checked` / `data-unchecked`           | the item is checked / unchecked                                                                  |
-| `CheckboxItemIndicator`, `RadioItemIndicator`         | `data-highlighted`, `data-disabled`         | as on the item                                                                                   |
-| `CheckboxItemIndicator`, `RadioItemIndicator`         | `data-starting-style` / `data-ending-style` | the indicator's enter frame on check / its exit transition on uncheck                            |
-| `RadioGroup`                                          | `data-disabled`                             | the group is disabled                                                                            |
-| `SubmenuTrigger`                                      | `data-popup-open`                           | its submenu is open (no `data-pressed`)                                                          |
-| `Separator`                                           | `data-orientation`                          | always: `horizontal` unless `orientation` says otherwise                                         |
+Upstream's hover opening, submenus, arrow, backdrop, and link, checkbox and radio items are left out; a part returns with its first consumer.
+
+| Member                | Attribute                                   | Present when                                                                                     |
+| --------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `Trigger`             | `data-popup-open`, `data-pressed`           | the menu this trigger opened is open (both together)                                             |
+| `Trigger`             | `data-disabled`                             | the trigger or the menu is disabled                                                              |
+| `Positioner`          | `data-open` / `data-closed`                 | the menu is open / closed                                                                        |
+| `Positioner`, `Popup` | `data-side`                                 | always: `top`, `bottom`, `left`, `right`, `inline-start` or `inline-end` (after collision flips) |
+| `Positioner`, `Popup` | `data-align`                                | always: `start`, `center` or `end`                                                               |
+| `Positioner`          | `data-anchor-hidden`                        | the anchor has scrolled out of view                                                              |
+| `Positioner`, `Popup` | `data-instant`                              | transitions are skipped, with the reason: `click` or `dismiss`                                   |
+| `Popup`               | `data-open` / `data-closed`                 | the menu is open / closed                                                                        |
+| `Popup`               | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                                         |
+| `Item`                | `data-highlighted`                          | the item is under the keyboard or the pointer                                                    |
+| `Item`                | `data-disabled`                             | the item (or the menu) is disabled                                                               |
+| `Separator`           | `data-orientation`                          | always: `horizontal` unless `orientation` says otherwise                                         |
 
 `Group` and `GroupLabel` set none.
 
@@ -79,13 +58,13 @@ CSS variables on `Menu.Positioner`: `--anchor-width`, `--anchor-height` (the anc
 
 - `ContextMenu.Root`: no element; a menu opened by a right click or by a touch held still for 500 ms (`LONG_PRESS_DELAY`; moving more than 10 px first cancels it). The lift of the touch that opened it is spent, so it never chooses the item that opened under the finger, and a press a drag has claimed (`@bible/ui/press`) opens nothing.
   - `ContextMenu.Trigger`: `<div>`, the area that opens the menu.
-  - `ContextMenu.Portal > ContextMenu.Positioner > ContextMenu.Popup`, and every other member, are the menu's (`Backdrop`, `Arrow`, `Item`, `LinkItem`, `CheckboxItem`, `CheckboxItemIndicator`, `RadioGroup`, `RadioItem`, `RadioItemIndicator`, `Group`, `GroupLabel`, `Separator`, `SubmenuRoot`, `SubmenuTrigger`); the root positioner sits at the pointer.
+  - `ContextMenu.Portal > ContextMenu.Positioner > ContextMenu.Popup`, and every other member, are the menu's (`Item`, `Group`, `GroupLabel`, `Separator`); the positioner sits at the pointer.
 
 | Member    | Attribute                         | Present when                             |
 | --------- | --------------------------------- | ---------------------------------------- |
 | `Trigger` | `data-popup-open`, `data-pressed` | the context menu is open (both together) |
 
-The other members set the menu's attributes and CSS variables (see Menu). The root menu is never `data-nested`; its submenus are.
+The other members set the menu's attributes and CSS variables (see Menu).
 
 ### Dialog
 

@@ -1,5 +1,5 @@
 // Fixtures for the context menu: a 300×200 area that opens a menu with
-// items, a backdrop, and a field in the area whose open the root declines;
+// items, and a field in the area whose open the root declines;
 // and the lab's shape, one root whose page trigger wraps target triggers (`nested`).
 // URL params: `disabled=true` disables the root; `window.__setDisabled(bool)`
 // changes it later; `under=true` opens the menu over the point it opens at,
@@ -49,7 +49,6 @@ function AreaMenu(): JSX.Element {
         <input id="field" style={{ display: 'block', width: '80px' }} />
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
-        <ContextMenu.Backdrop id="backdrop" />
         <Positioner>
           <ContextMenu.Popup id="popup">
             <ContextMenu.Item id="copy" onClick={() => log('click copy')}>

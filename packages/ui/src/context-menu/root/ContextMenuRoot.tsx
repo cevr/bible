@@ -3,7 +3,7 @@
 // A menu opened by a right click or a long press on its trigger area, placed
 // at the pointer. It is a `Menu.Root` under a context-menu context that holds
 // the anchor point and the gesture bookkeeping; a context menu inside another
-// menu starts a menu of its own rather than becoming a submenu.
+// menu starts a menu of its own.
 import type { JSX } from '@solidjs/web';
 import { createSignal, createUniqueId } from 'solid-js';
 
@@ -17,10 +17,7 @@ import {
   type ContextMenuRootContext as ContextMenuRootContextValue,
 } from './ContextMenuRootContext.ts';
 
-export interface ContextMenuRootProps extends Omit<
-  MenuRootProps,
-  'modal' | 'closeParentOnEsc' | 'onOpenChange'
-> {
+export interface ContextMenuRootProps extends Omit<MenuRootProps, 'modal' | 'onOpenChange'> {
   /** Called when the menu opens or closes. */
   onOpenChange?:
     | ((open: boolean, eventDetails: ContextMenuRootChangeEventDetails) => void)
@@ -48,7 +45,6 @@ export function ContextMenuRoot(props: ContextMenuRootProps): JSX.Element {
     setAnchor(next) {
       setAnchor(() => next);
     },
-    backdropRef: { current: null },
     internalBackdropRef: { current: null },
     actionsRef: { current: null },
     positionerRef: { current: null },

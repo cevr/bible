@@ -77,8 +77,6 @@ export interface FloatingPortalState {}
 export interface FloatingPortalProps extends BaseUIComponentProps<'div', FloatingPortalState> {
   /** The element the portal node is rendered into (the enclosing portal's, else the body). `null` waits. */
   container?: MaybeRef<HTMLElement | ShadowRoot | null> | undefined;
-  /** The role of the hidden `aria-owns` owner element. */
-  portalOwnerRole?: JSX.AriaAttributes['role'] | undefined;
   /**
    * Render the portal node where the portal is written, not moved into
    * `container`: the same in the server's render and the browser's, so a
@@ -166,15 +164,7 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
     afterOutsideRef,
   };
 
-  const elementProps = omit(
-    props,
-    'class',
-    'style',
-    'render',
-    'container',
-    'portalOwnerRole',
-    'inline',
-  );
+  const elementProps = omit(props, 'class', 'style', 'render', 'container', 'inline');
 
   function PortalElement() {
     onClientCleanup(() => setPortalNode(null));
@@ -201,7 +191,7 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
             }
           }}
         />
-        <span role={props.portalOwnerRole} aria-owns={id} style={ownerVisuallyHidden} />
+        <span aria-owns={id} style={ownerVisuallyHidden} />
       </Show>
       <PortalContext value={context}>
         <Show

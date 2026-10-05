@@ -1,15 +1,12 @@
 // Upstream: packages/react/src/menu/root/MenuRoot.test.tsx,
 // packages/react/src/menu/trigger/MenuTrigger.test.tsx,
 // packages/react/src/menu/item/MenuItem.test.tsx,
-// packages/react/src/menu/checkbox-item/MenuCheckboxItem.test.tsx,
-// packages/react/src/menu/radio-item/MenuRadioItem.test.tsx,
 // packages/react/src/menu/group-label/MenuGroupLabel.test.tsx,
-// packages/react/src/menu/submenu-trigger/MenuSubmenuTrigger.test.tsx,
-// packages/react/src/menu/popup/MenuPopup.test.tsx,
-// packages/react/src/menu/backdrop/MenuBackdrop.test.tsx
+// packages/react/src/menu/popup/MenuPopup.test.tsx
 //
-// The menu's behaviour cases, against one menu with every kind of item.
-// Upstream's cases for parts not ported (filter, list, viewport, detached
+// The menu's behaviour cases, against one menu of plain items in a group.
+// Upstream's cases for parts not ported (hover opening, submenus, checkbox,
+// radio and link items, arrow, backdrop, filter, list, viewport, detached
 // triggers, menubar) and for React-only machinery are left out.
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
@@ -41,10 +38,14 @@ describe('Menu.Trigger', () => {
     await see(trigger).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('opens on hover when openOnHover is set', async () => {
-    const page = await h.open('menu', { query: { hover: 'true' } });
-    await page.hover('#trigger');
-    await see(page.locator('#popup')).toBeVisible();
+  it('a press on the trigger closes a menu the keyboard opened', async () => {
+    const page = await h.open('menu');
+    await page.focus('#trigger');
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('cut');
+    await page.click('#trigger');
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).toContain('open false trigger-press');
   });
 });
 
@@ -75,8 +76,6 @@ describe('Menu.Popup', () => {
     await see(popup).toHaveAttribute('role', 'menu');
     await see(popup).toHaveAttribute('aria-labelledby', 'trigger');
     await see(page.locator('#cut')).toHaveAttribute('role', 'menuitem');
-    await see(page.locator('#grid')).toHaveAttribute('role', 'menuitemcheckbox');
-    await see(page.locator('#zoom-fit')).toHaveAttribute('role', 'menuitemradio');
     await see(page.locator('#sep')).toHaveAttribute('role', 'separator');
     await see(page.locator('#copy')).toHaveAttribute('aria-disabled', 'true');
     await see(page.locator('#copy')).toHaveAttribute('data-disabled', '');
@@ -215,95 +214,12 @@ describe('Menu.Item', () => {
   });
 });
 
-describe('Menu.CheckboxItem', () => {
-  // A checkbox item keeps the menu open by default (closeOnClick=false).
-  it('toggles checked, aria-checked, data-checked and the indicator, menu kept open', async () => {
-    const page = await h.open('menu');
-    await page.click('#trigger');
-    const grid = page.locator('#grid');
-    await see(grid).toHaveAttribute('aria-checked', 'false');
-    await see(grid).toHaveAttribute('data-unchecked', '');
-    await see(page.locator('#grid-indicator')).toHaveCount(0);
-    await grid.click();
-    await see(page.locator('#popup')).toBeVisible();
-    await see(grid).toHaveAttribute('aria-checked', 'true');
-    await see(grid).toHaveAttribute('data-checked', '');
-    await see(page.locator('#grid-indicator')).toHaveAttribute('data-checked', '');
-    expect(await logOf(page)).toContain('grid true');
-  });
-});
-
-describe('Menu.RadioGroup + Menu.RadioItem', () => {
-  it('starts on the default value and checks the pressed item', async () => {
-    const page = await h.open('menu');
-    await page.click('#trigger');
-    await see(page.locator('#zoom')).toHaveAttribute('role', 'group');
-    await see(page.locator('#zoom-fit')).toHaveAttribute('aria-checked', 'true');
-    await see(page.locator('#zoom-full')).toHaveAttribute('aria-checked', 'false');
-    await see(page.locator('#fit-indicator')).toHaveCount(1);
-    await see(page.locator('#full-indicator')).toHaveCount(0);
-    await page.click('#zoom-full');
-    await see(page.locator('#popup')).toBeVisible();
-    await see(page.locator('#zoom-fit')).toHaveAttribute('aria-checked', 'false');
-    await see(page.locator('#zoom-full')).toHaveAttribute('aria-checked', 'true');
-    await see(page.locator('#full-indicator')).toHaveCount(1);
-    expect(await logOf(page)).toContain('zoom full');
-  });
-});
-
 describe('Menu.Group + Menu.GroupLabel', () => {
   it('labels the group with the group label', async () => {
     const page = await h.open('menu');
     await page.click('#trigger');
     await see(page.locator('#view-group')).toHaveAttribute('role', 'group');
     await see(page.locator('#view-group')).toHaveAttribute('aria-labelledby', 'view-label');
-  });
-});
-
-describe('Menu.SubmenuTrigger', () => {
-  it('opens the submenu with ArrowRight and closes it with ArrowLeft', async () => {
-    const page = await h.open('menu');
-    await page.focus('#trigger');
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('End');
-    await see.poll(() => focused(page)).toBe('more');
-    await see(page.locator('#more')).toHaveAttribute('aria-haspopup', 'menu');
-    await page.keyboard.press('ArrowRight');
-    await see(page.locator('#sub-popup')).toBeVisible();
-    await see.poll(() => focused(page)).toBe('rename');
-    await page.keyboard.press('ArrowLeft');
-    await see(page.locator('#sub-popup')).toHaveCount(0);
-    await see.poll(() => focused(page)).toBe('more');
-    await see(page.locator('#popup')).toBeVisible();
-  });
-
-  it('opens the submenu on hover and closes everything on a submenu item click', async () => {
-    const page = await h.open('menu');
-    await page.click('#trigger');
-    await page.hover('#more');
-    await see(page.locator('#sub-popup')).toBeVisible();
-    await see(page.locator('#more')).toHaveAttribute('data-popup-open', '');
-    await page.click('#rename');
-    await see(page.locator('#sub-popup')).toHaveCount(0);
-    await see(page.locator('#popup')).toHaveCount(0);
-    expect(await logOf(page)).toContain('click rename');
-  });
-
-  // closeParentOnEsc defaults to false: Escape closes only the submenu.
-  it('Escape in the submenu closes only the submenu', async () => {
-    const page = await h.open('menu');
-    await page.focus('#trigger');
-    await page.keyboard.press('ArrowDown');
-    await page.keyboard.press('End');
-    await page.keyboard.press('ArrowRight');
-    await see.poll(() => focused(page)).toBe('rename');
-    await page.keyboard.press('Escape');
-    await see(page.locator('#sub-popup')).toHaveCount(0);
-    await see(page.locator('#popup')).toBeVisible();
-    await see.poll(() => focused(page)).toBe('more');
-    await page.keyboard.press('Escape');
-    await see(page.locator('#popup')).toHaveCount(0);
-    await see.poll(() => focused(page)).toBe('trigger');
   });
 });
 
@@ -384,19 +300,12 @@ describe('dismissal', () => {
     await page.click('#trigger');
     await see(page.locator('#popup')).toBeVisible();
     const internal = page.locator(
-      'body > [data-base-ui-portal] > [role=presentation][data-base-ui-inert]:not(#backdrop)',
+      'body > [data-base-ui-portal] > [role=presentation][data-base-ui-inert]',
     );
     await see(internal).toHaveCount(1);
     await see(internal).toHaveCSS('position', 'fixed');
     expect(await internal.evaluate((el) => el.style.clipPath)).toContain('polygon');
     await page.mouse.click(700, 500);
     await see(page.locator('#popup')).toHaveCount(0);
-  });
-
-  it('the backdrop carries data-open while the menu is open', async () => {
-    const page = await h.open('menu');
-    await page.click('#trigger');
-    await see(page.locator('#backdrop')).toHaveAttribute('data-open', '');
-    await see(page.locator('#backdrop')).toHaveAttribute('role', 'presentation');
   });
 });

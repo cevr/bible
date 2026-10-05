@@ -1,10 +1,8 @@
 // Upstream: packages/react/src/menu/popup/MenuPopup.tsx
 //
-// The menu's `role="menu"` container. Focus moves into it on open (a top
-// level menu focuses itself, or the item list navigation highlights) and
-// back to the trigger on close; a context menu traps focus. Leaving a
-// hover-opened menu with the pointer closes it, through the safe polygon
-// toward a submenu. An item press anywhere in the tree closes the menu.
+// The menu's `role="menu"` container. Focus moves into it on open (the menu
+// focuses itself, or the item list navigation highlights) and back to the
+// trigger on close; a context menu traps focus. An item press closes the menu.
 import { isServer, type JSX } from '@solidjs/web';
 import { omit, onCleanup, untrack } from 'solid-js';
 
@@ -12,7 +10,6 @@ import {
   FloatingFocusManager,
   type InteractionType,
 } from '../../floating-ui-solid/FloatingFocusManager.tsx';
-import { useHoverFloatingInteraction } from '../../floating-ui-solid/hooks/useHoverFloatingInteraction.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { type TransitionStatus, useOpenChangeComplete } from '../../internals/transitions.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
@@ -28,8 +25,6 @@ export interface MenuPopupState {
   side: Side;
   align: Align;
   open: boolean;
-  /** Whether the menu is a submenu. */
-  nested: boolean;
   instant: MenuInstantType;
 }
 
@@ -72,13 +67,6 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
     if (!isServer) store.setPopupElement(null);
   });
 
-  useHoverFloatingInteraction(store.floatingRootContext, {
-    get enabled() {
-      return store.hoverEnabled() && !store.disabled() && !isContextMenu;
-    },
-    closeDelay: () => store.closeDelay(),
-  });
-
   const state: MenuPopupState = {
     get transitionStatus() {
       return store.transitionStatus();
@@ -92,7 +80,6 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
     get open() {
       return store.open();
     },
-    nested: parent.type === 'menu',
     get instant() {
       return store.instantType();
     },
@@ -134,21 +121,14 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
       ],
     });
 
-  const returnFocus = () => {
-    if (componentProps.finalFocus !== undefined) {
-      return componentProps.finalFocus;
-    }
-    return parent.type === undefined || isContextMenu || store.activeTriggerElement() != null;
-  };
-
   return (
     <FloatingFocusManager
       context={store.floatingRootContext}
       openInteractionType={store.openMethod()}
       modal={isContextMenu}
       disabled={!store.mounted()}
-      returnFocus={returnFocus()}
-      initialFocus={parent.type !== 'menu'}
+      returnFocus={componentProps.finalFocus ?? true}
+      initialFocus
       restoreFocus
       getInsideElements={
         parent.type === undefined ? () => [store.beforeTriggerFocusGuardRef.current] : undefined

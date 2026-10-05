@@ -24,25 +24,23 @@ export function useMenuPortalContext(): () => boolean {
 
 export interface MenuPortalState {}
 
-export interface MenuPortalProps extends Omit<FloatingPortalProps, 'portalOwnerRole'> {
+export interface MenuPortalProps extends FloatingPortalProps {
   /** Whether the portal stays in the DOM while the menu is closed. @default false */
   keepMounted?: boolean | undefined;
 }
 
 export function MenuPortal(props: MenuPortalProps): JSX.Element {
-  const { store, parent } = useMenuRootContext();
+  const { store } = useMenuRootContext();
   const portalProps = omit(props, 'keepMounted');
   const value = {
     get keepMounted() {
       return props.keepMounted ?? false;
     },
   };
-  // The hidden `aria-owns` owner needs `group` under a menu.
-  const portalOwnerRole = parent.type === 'menu' ? 'group' : undefined;
   return (
     <Show when={store.mounted() || (props.keepMounted ?? false)}>
       <MenuPortalContext value={value}>
-        <FloatingPortal {...portalProps} portalOwnerRole={portalOwnerRole} />
+        <FloatingPortal {...portalProps} />
       </MenuPortalContext>
     </Show>
   );

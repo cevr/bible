@@ -1,9 +1,10 @@
 // Upstream: packages/react/src/floating-ui-react/components/FloatingTree.tsx
 //
-// Nested popups (a submenu in a menu) form a tree, so a press inside a child
-// popup is not "outside" its parent, Escape closes only the innermost one,
-// and hovering from parent to child keeps both open. Each popup registers a
-// node with its parent's id; the tree also carries events between them.
+// Nested popups form a tree, so a press inside a child popup is not
+// "outside" its parent and Escape closes only the innermost one. Each popup
+// registers a node with its parent's id; the tree also carries events
+// between them (a menu item's press reaches its menu as `close`). Each menu
+// starts its own tree; no part here nests a popup in a menu.
 import type { JSX } from '@solidjs/web';
 import { createContext, createUniqueId, onCleanup, untrack, useContext } from 'solid-js';
 

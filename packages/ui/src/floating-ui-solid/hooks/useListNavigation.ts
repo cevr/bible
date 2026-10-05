@@ -3,8 +3,9 @@
 // Arrow-key navigation over a popup's list of items: Arrow keys move the
 // highlight (skipping disabled items, wrapping with `loopFocus`), Home/End
 // jump to the ends, an arrow on the closed trigger opens the popup and
-// highlights the first or last item, the cross-axis arrow opens and closes
-// a nested list (a submenu), and the pointer highlights the item under it.
+// highlights the first or last item, the cross-axis arrow closes a nested
+// list (a context menu is one, as upstream marks it), and the pointer
+// highlights the item under it.
 // The highlighted item takes focus, or with `virtual` stays a highlight
 // (`aria-activedescendant`). Grid navigation is not ported (no part here
 // uses it).
@@ -141,7 +142,7 @@ export interface UseListNavigationProps {
   disabledIndices?: ReadonlyArray<number> | ((index: number) => boolean) | undefined;
   allowEscape?: boolean | undefined;
   loopFocus?: boolean | undefined;
-  /** Whether the list is nested in a parent list (a submenu). */
+  /** Whether the list is nested (upstream's submenu; here a context menu, as upstream marks it). */
   nested?: boolean | undefined;
   parentOrientation?: ListOrientation | undefined;
   rtl?: boolean | undefined;

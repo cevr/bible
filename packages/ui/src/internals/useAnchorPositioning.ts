@@ -563,7 +563,7 @@ export function useAnchorPositioning(
     };
   });
 
-  // What the hover close handler and the floating tree read of this popup.
+  // What the floating tree reads of this popup.
   const context: FloatingContext = {
     get open() {
       return untrack(rootContext.open);
