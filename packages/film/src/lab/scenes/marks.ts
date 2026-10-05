@@ -11,7 +11,7 @@
 // be read (yet, or at all: a short has no project): the scene then has no
 // such mark, never a wrong one. Pure.
 
-import { Array as Arr, Boolean as Bool, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Option, Result } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import type { CheckLine } from '../../core/schema.ts';
@@ -168,23 +168,27 @@ export const bandState = (marks: SceneMarks): Option.Option<MarkChip['state']> =
 
 /** A line of the tape's legend: what it counts (`mark`), its words, and the `--state-*` token it is drawn in. */
 interface LegendLine {
-  readonly mark: 'stale' | 'missing' | 'approved' | 'errors' | 'warnings' | 'film';
+  readonly mark: 'stale' | 'missing' | 'approved' | 'errors' | 'warnings' | 'film' | 'check-failed';
   readonly text: string;
   readonly state: MarkChip['state'];
+  /** Why, in full (its title), when its words do not say it all. */
+  readonly why?: string;
 }
 
 /**
  * The tape's legend over `scenes`: how many are out of date, not rendered
- * and approved; then the check's `lines` about them, each once, by level
+ * and approved; then the check's lines about them, each once, by level
  * (`checkCount`: errors in the findings' colour, warnings in the
  * warnings'), and the film's own lines (`filmsOwn`: addressed to no scene)
- * apart, in the colour of their most pressing level. None left at 0.
+ * apart, in the colour of their most pressing level. None left at 0. A
+ * check that failed says so, why in its title: never a clean film (RS-1).
  */
 export const legendOf = (
   scenes: ReadonlyArray<string>,
   marks: (scene: string) => SceneMarks,
-  lines: ReadonlyArray<CheckLine>,
+  check: Result.Result<ReadonlyArray<CheckLine>, string>,
 ): ReadonlyArray<LegendLine> => {
+  const lines = Result.getOrElse(check, () => []);
   const all = scenes.map(marks);
   const stale = all.filter((m) => Option.exists(m.render, (r) => r.state === 'stale')).length;
   const missing = all.filter((m) => Option.exists(m.render, (r) => r.state === 'missing')).length;
@@ -214,6 +218,14 @@ export const legendOf = (
         mark: 'film',
         text: `film ${film.length}`,
         state,
+      })),
+    ),
+    ...Option.toArray(
+      Option.map(Result.getFailure(check), (why): LegendLine => ({
+        mark: 'check-failed',
+        text: 'check failed',
+        state: 'findings',
+        why,
       })),
     ),
   ];

@@ -25,7 +25,7 @@
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
-import { Array as Arr, Boolean as Bool, Effect, Match, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Effect, Match, Option, Result } from 'effect';
 import { createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js';
 import { type Host, addressOn, monotonicMs, onTraverse } from '../../browser/host.ts';
 import { Frames } from '../../browser/frames.ts';
@@ -52,7 +52,7 @@ import { pressed } from '../review/format.ts';
 import { Sheet } from '../review/inspector.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
 import { SceneCard, SceneFindings, sceneHue } from './card.tsx';
-import { type Said, type ScenesRead, scenesCalls } from './data.ts';
+import { type Said, type ScenesRead, findingsOf, scenesCalls } from './data.ts';
 import { bandState, legendOf, marksOf } from './marks.ts';
 import { scenesPlaceOf, withScene } from './place.ts';
 import {
@@ -230,11 +230,11 @@ export const ScenesView = (props: ScenesViewProps) => {
 
   // What the lab knows of each scene: read once, and again after each say.
   const [read, setRead] = createSignal<ScenesRead>(
-    { project: Option.none(), findings: [] },
+    { project: Option.none(), check: Result.succeed([]) },
     fromHost,
   );
   Effect.runFork(Effect.tap(calls.read, (r) => Effect.sync(() => setRead(r))));
-  const marks = createMemo(() => marksOf(read().project, read().findings));
+  const marks = createMemo(() => marksOf(read().project, findingsOf(read())));
 
   // The tape: its step kept per viewer, its line length the window's.
   const step = useAtomValue(() => keptStep);
@@ -803,7 +803,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   /** The selected scene (the path's), as the sheet's footer and its target name it. */
   const focused = () => Option.getOrElse(chosen(), () => '');
 
-  const legend = createMemo(() => legendOf(order, marks(), read().findings));
+  const legend = createMemo(() => legendOf(order, marks(), read().check));
   // The page scrolls as a whole, the tape bar and the card held under the header.
   document.body.classList.add('scenes');
   onCleanup(() => document.body.classList.remove('scenes'));
@@ -840,7 +840,12 @@ export const ScenesView = (props: ScenesViewProps) => {
             <span class="sc-legend-items">
               <For each={legend()} keyed={(l) => l.mark}>
                 {(l) => (
-                  <span class="sc-legend-item" data-mark={l().mark} data-state={l().state}>
+                  <span
+                    class="sc-legend-item"
+                    data-mark={l().mark}
+                    data-state={l().state}
+                    title={l().why}
+                  >
                     <i class="sc-dot" data-state={l().state} />
                     {l().text}
                   </span>

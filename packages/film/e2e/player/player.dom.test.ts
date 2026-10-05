@@ -17,12 +17,14 @@ import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
 import { HUD_IDLE_MS } from '../../src/player/hud.ts';
 import { onTheMs } from '../../src/player/t-in-url.ts';
+import { FreshProcessFailed } from '../../src/core/refusals.ts';
 import {
   type FakeRoute,
   type Json,
   URL_T,
   json,
   openPlayer,
+  refused,
   route,
 } from '../../src/lab/fixtures/harness.ts';
 import { CROWD } from '../../src/lab/fixtures/crowd-film.ts';
@@ -303,6 +305,28 @@ describe('the player', () => {
       yield* evaluates(page, labelsClash('.bar .track .seg span', '.seg'), []);
       yield* evaluates(page, labelsInFull('.bar .track .seg span'), scenes);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "the Scenes' legend says a check that failed, why in its title: never a clean film (RS-1)",
+    () =>
+      Effect.gen(function* () {
+        const failing = route('GET', /^\/check$/, () =>
+          refused(FreshProcessFailed.make({ command: 'film check', reason: 'exit 1' })),
+        );
+        const { page } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          [failing],
+        );
+        const failed = '.sc-legend-item[data-mark="check-failed"]';
+        yield* textIs(page, failed, 'check failed');
+        yield* evaluates(
+          page,
+          `document.querySelector('${failed}').title.includes('exit 1')`,
+          true,
+        );
+      }).pipe(Effect.scoped),
   );
 
   it.live('a drag along the tape scrubs away from the playhead and turns Follow off', () =>

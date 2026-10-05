@@ -11,12 +11,12 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { CommandId, Undoing } from '../../command/command.ts';
 import type { LabFailure } from '../api.ts';
 
-/** What a failed read or write says: its words, without its tag. */
+/** What a failure says: its words, without its tag. */
+export const failureText = (failure: LabFailure): string => failure.message.replace(/^\w+: /, '');
+
+/** What a failed read or write says (`failureText`). */
 export const failedText = (result: AsyncResult.AsyncResult<unknown, LabFailure>): string =>
-  Option.getOrElse(
-    Option.map(AsyncResult.error(result), (e) => e.message.replace(/^\w+: /, '')),
-    () => '',
-  );
+  Option.getOrElse(Option.map(AsyncResult.error(result), failureText), () => '');
 
 /**
  * A write's receipt, in its control's words as it is sent (`writeStatus`):

@@ -4,7 +4,7 @@
 // most pressing first, and the legend counts the film's.
 
 import { describe, expect, test } from 'bun:test';
-import { Option } from 'effect';
+import { Option, Result } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import type { CheckLine } from '../../core/schema.ts';
@@ -103,7 +103,9 @@ describe('marksOf', () => {
   });
 
   test("the legend counts the film's scenes out of date, approved, and the check's lines once each by level, the film's apart; none left at 0", () => {
-    expect(legendOf(['one', 'two', 'three'], marks, FINDINGS).map((l) => l.text)).toEqual([
+    expect(
+      legendOf(['one', 'two', 'three'], marks, Result.succeed(FINDINGS)).map((l) => l.text),
+    ).toEqual([
       'out of date 1',
       'not rendered 1',
       'approved 1',
@@ -111,9 +113,18 @@ describe('marksOf', () => {
       'warnings 1',
       'film 1',
     ]);
-    expect(legendOf(['two'], marksOf(Option.some(VIEW), []), []).map((l) => l.text)).toEqual([
-      'approved 1',
+    expect(
+      legendOf(['two'], marksOf(Option.some(VIEW), []), Result.succeed([])).map((l) => l.text),
+    ).toEqual(['approved 1']);
+  });
+
+  test('a check that failed says so, why in its title: never a clean film (RS-1)', () => {
+    const failed = legendOf(['two'], marksOf(Option.some(VIEW), []), Result.fail('lab down'));
+    expect(failed.map((l) => [l.text, l.state])).toEqual([
+      ['approved 1', 'approved'],
+      ['check failed', 'findings'],
     ]);
+    expect(failed.at(-1)).toMatchObject({ mark: 'check-failed', why: 'lab down' });
   });
 
   test("a check of 21 warnings, 20 about scenes and 1 the film's: the legend says warnings in the warning's colour, and counts the film's (RS-11, SU-3)", () => {
@@ -123,7 +134,11 @@ describe('marksOf', () => {
       ),
       { level: 'warning', tag: 'AudioStale', message: "the film's audio is older than its script" },
     ];
-    const legend = legendOf(['one', 'two', 'three'], marksOf(Option.none(), lines), lines);
+    const legend = legendOf(
+      ['one', 'two', 'three'],
+      marksOf(Option.none(), lines),
+      Result.succeed(lines),
+    );
     expect(legend.map((l) => [l.text, l.state])).toEqual([
       ['warnings 20', 'warning'],
       ['film 1', 'warning'],
