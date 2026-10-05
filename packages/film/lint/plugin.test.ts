@@ -87,6 +87,8 @@ const MESSAGES = {
     'a pass number in a comment tells history: say what the code does today and why; how it got here lives in the ledger and git log.',
   'no-hand-timed-seconds.ts:20 film/no-hand-timed-seconds':
     "an offset over 1 s from its mark or scene landmark: a hand-timed second. Declare a cue in the drawing's timeline and read f.at / f.keys / f.stagger / f.cue, anchored to a mark, a word ({ mark, word }), another cue or the voice's end.",
+  'no-hand-timed-seconds.ts:31 film/no-hand-timed-seconds':
+    "an untilOffset over 1 s from its until point: a hand-timed second. Declare a cue in the drawing's timeline and read f.at / f.keys / f.stagger / f.cue, anchored to a mark, a word ({ mark, word }), another cue or the voice's end.",
 } as const satisfies Readonly<Record<string, string>>;
 
 /** oxlint over the fixtures with the fixtures' config: what it reported, and its exit code. */

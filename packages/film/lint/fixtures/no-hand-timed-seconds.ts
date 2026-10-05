@@ -26,6 +26,11 @@ export const scene = drawing({
     after: { at: 'speechEnd', offset: 7.9, dur: 1.2 },
     chained: { after: 'held', offset: 0.6, dur: 4.5 },
     farConst: { mark: 'go', offset: LATE, dur: 0.4 }, // RED film/no-hand-timed-seconds
+    tail: { mark: 'go', until: 'stop', untilOffset: 2.5 }, // RED film/no-hand-timed-seconds
+    cut: { mark: 'go', until: 'stop', untilOffset: -3 }, // RED film/no-hand-timed-seconds
+    hold: { with: 'far', until: { cue: 'far' }, untilOffset: 4 }, // RED film/no-hand-timed-seconds
+    trail: { mark: 'go', until: 'stop', untilOffset: 0.6 },
+    outro: { mark: 'go', until: { at: 'speechEnd' }, untilOffset: 3 },
   },
   draw: (f) => {
     const { t } = f;

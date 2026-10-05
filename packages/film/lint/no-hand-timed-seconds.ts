@@ -25,7 +25,10 @@
 //    over 1 s: past a word or two from its anchor. Pin it to the word
 //    (`{ mark, word }`), to a nearer mark, to a named cue (`after`/`with`)
 //    or to the voice's end (`at: 'speechEnd'`). A sound cue's point is the
-//    same shape and is read the same way.
+//    same shape and is read the same way. A span's end is read the same way
+//    off its `until` point (a mark, a landmark, a cue's edge): a literal
+//    `untilOffset` over 1 s, unless the point is the voice's end, after which
+//    no word is left to pin it to.
 //
 // The clock is `t` or `T` (`f.t`, `f.T`). A literal is a number written out,
 // or a module `const` holding one (`const HOLD = 0.5`).
@@ -185,6 +188,10 @@ const stringOf = (p: ESTree.ObjectProperty): Option.Option<string> => {
   return Option.none();
 };
 
+/** Whether a property holds a literal second over `MAX_OFFSET` either way. */
+const far = (p: ESTree.ObjectProperty): boolean =>
+  Option.exists(numberOf(p.value), (v) => Math.abs(v) > MAX_OFFSET);
+
 /** Shape 6: a span's literal offset over `MAX_OFFSET` from a mark or the scene's start or voice. */
 const farOffset = (n: ESTree.ObjectExpression): Option.Option<ESTree.ObjectProperty> => {
   const anchored =
@@ -194,10 +201,20 @@ const farOffset = (n: ESTree.ObjectExpression): Option.Option<ESTree.ObjectPrope
       (s) => s === 'start' || s === 'speech',
     );
   if (!anchored) return Option.none();
-  return Option.filter(property(n, 'offset'), (p) =>
-    Option.exists(numberOf(p.value), (v) => Math.abs(v) > MAX_OFFSET),
-  );
+  return Option.filter(property(n, 'offset'), far);
 };
+
+/** `until: { at: 'speechEnd' }`: a span that ends off the voice's end. */
+const untilVoiceEnd = (p: ESTree.ObjectProperty): boolean =>
+  p.value.type === 'ObjectExpression' &&
+  Option.contains(Option.flatMap(property(p.value, 'at'), stringOf), 'speechEnd');
+
+/** Shape 6, the end: a span's literal `untilOffset` over `MAX_OFFSET` from its `until` point, but the voice's end. */
+const farUntilOffset = (n: ESTree.ObjectExpression): Option.Option<ESTree.ObjectProperty> =>
+  Option.flatMap(
+    Option.filter(property(n, 'until'), (until) => !untilVoiceEnd(until)),
+    () => Option.filter(property(n, 'untilOffset'), far),
+  );
 
 const advice =
   "a hand-timed second. Declare a cue in the drawing's timeline and read f.at / f.keys / f.stagger / f.cue, anchored to a mark, a word ({ mark, word }), another cue or the voice's end.";
@@ -240,11 +257,18 @@ export const noHandTimedSeconds = Rule.define({
         return report(node, 'a literal offset from a cue edge or mark');
       }),
       Visitor.on('ObjectExpression', (node) =>
-        Option.match(farOffset(node), {
-          onNone: () => Effect.void,
-          onSome: (offset) =>
-            report(offset, `an offset over ${MAX_OFFSET} s from its mark or scene landmark`),
-        }),
+        Effect.andThen(
+          Option.match(farOffset(node), {
+            onNone: () => Effect.void,
+            onSome: (offset) =>
+              report(offset, `an offset over ${MAX_OFFSET} s from its mark or scene landmark`),
+          }),
+          Option.match(farUntilOffset(node), {
+            onNone: () => Effect.void,
+            onSome: (offset) =>
+              report(offset, `an untilOffset over ${MAX_OFFSET} s from its until point`),
+          }),
+        ),
       ),
     );
   },
