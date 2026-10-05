@@ -31,6 +31,7 @@ import { PageShell } from '../page-shell.tsx';
 import { SHELL_CSS } from '../page-shell-style.ts';
 import { SCENES_CSS } from '../scenes/style.ts';
 import { registerFace } from '../../player/face.ts';
+import type { Films } from '../../player/main.ts';
 
 /** A folder's title from the index once read, else its ref. */
 const folderName = (index: Option.Option<ReviewIndex>, ref: string): string =>
@@ -173,8 +174,8 @@ const Lightbox = () => {
 };
 
 /** The review: its shell, the page it is on, the lightbox, its context menu, the inspector, ⌘K, the `?` sheet and the receipts. */
-const ReviewPage = (props: { readonly host: Host; readonly hub: Hub }) => (
-  <Root host={props.host} hub={props.hub}>
+const ReviewPage = (props: { readonly host: Host; readonly hub: Hub; readonly films: Films }) => (
+  <Root host={props.host} hub={props.hub} films={props.films}>
     <TargetMenu hub={props.hub}>
       <Inspecting hub={props.hub}>
         <Shell>
@@ -192,9 +193,10 @@ const ReviewPage = (props: { readonly host: Host; readonly hub: Hub }) => (
 /**
  * Mount the review into the page, with its styles, over the page's host
  * (`browser/host.ts`), with its commands and their one key listener
- * (`command/hub.ts`).
+ * (`command/hub.ts`). `films` are the app's films, each loaded on demand:
+ * a film's Project draws its scenes' stills from its code (none, no stills).
  */
-export const mountReview = (): void => {
+export const mountReview = (films: Films = {}): void => {
   const host = hostOf(BrowserHost.layer);
   Effect.runSyncWith(host)(
     Effect.gen(function* () {
@@ -209,7 +211,7 @@ export const mountReview = (): void => {
       const root = document.createElement('div');
       root.className = 'rv-root';
       document.body.append(root);
-      render(() => <ReviewPage host={host} hub={hub} />, root);
+      render(() => <ReviewPage host={host} hub={hub} films={films} />, root);
       const { href } = yield* Location.use((bar) => bar.current);
       yield* Effect.logInfo(`review.mounted href=${href}`);
     }),

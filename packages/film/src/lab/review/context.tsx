@@ -33,6 +33,7 @@ import {
   useContext,
 } from 'solid-js';
 import type { SeenPoint } from '../../core/choice.ts';
+import type { Films } from '../../player/main.ts';
 import type { ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import {
   type BrowserServices,
@@ -115,6 +116,11 @@ interface ReviewMeta {
   readonly hub: Hub;
   /** Now, in ms, on the host's `Clock`: what a card's age is counted from. */
   readonly now: () => number;
+  /**
+   * The app's films, each loaded on demand (`player/main.ts`'s `Films`): what
+   * a film's Project draws its scenes' stills from. A film not here has none.
+   */
+  readonly films: Films;
 }
 
 interface ReviewContextValue {
@@ -180,7 +186,9 @@ const qualityOf = (stored: Option.Option<string>): Quality =>
   );
 
 /** The review page: its runtime, place, index and choices, around `children`. */
-export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub }>) => {
+export const Root = (
+  props: ParentProps<{ readonly host: Host; readonly hub: Hub; readonly films: Films }>,
+) => {
   // One client of the lab's API for the page: the review's and the choices'
   // routes both go through it.
   const runtime = Atom.runtime(
@@ -269,6 +277,7 @@ export const Root = (props: ParentProps<{ readonly host: Host; readonly hub: Hub
         host: props.host,
         hub: props.hub,
         now: () => Effect.runSyncWith(props.host)(Clock.currentTimeMillis),
+        films: props.films,
       },
     };
     onCleanup(
