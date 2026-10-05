@@ -7,16 +7,14 @@
 // command runs once the menu has closed, as the context menu's do. Its rows
 // are keyed by their command (`rowKey`): made again each frame a film plays,
 // a row keeps its element under the pointer. Built on
-// @bible/ui's Menu, styled as the context menu (`COMMAND_TOKENS`).
+// @bible/ui's Menu, styled as the context menu (`.lab-context-menu`, `style.ts`).
 
 import { For, type JSX } from '@solidjs/web';
 import { Menu } from '@bible/ui/menu';
-import { Option } from 'effect';
-import { createMemo, createSignal } from 'solid-js';
-import type { Context } from '../../command/context.ts';
+import { createMemo } from 'solid-js';
 import type { Hub } from '../../command/hub.ts';
-import { type MenuRow, chipRows, rowKey } from '../../command/menu.ts';
-import { hubChanges, hubKeys } from './changes.ts';
+import { chipRows, rowKey } from '../../command/menu.ts';
+import { deferredRun, hubChanges, hubKeys } from './changes.ts';
 
 /** What a chip shows and the commands it opens. */
 interface CommandChipProps {
@@ -36,27 +34,20 @@ interface CommandChipProps {
 export const CommandChip = (props: CommandChipProps) => {
   const hub = props.hub;
   const changes = hubChanges(hub);
-  const [opened, setOpened] = createSignal<Context>(hub.context());
-  let chosen = Option.none<MenuRow>();
+  const run = deferredRun(hub, 'menu');
   const rows = createMemo(() => {
     changes();
-    const ctx = opened();
+    const ctx = run.opened();
     return chipRows(hub.commands.available(ctx), ctx, props.ids);
   });
   const keys = hubKeys(hub);
-  const keysText = (row: MenuRow): string => keys.bound(row.command.id).map(keys.label).join(' ');
   return (
     <Menu.Root
       onOpenChange={(open) => {
-        if (!open) return;
-        chosen = Option.none();
-        setOpened(hub.context('page'));
+        if (open) run.open(hub.context('page'));
       }}
       onOpenChangeComplete={(isOpen) => {
-        if (isOpen) return;
-        const row = chosen;
-        chosen = Option.none();
-        Option.map(row, (r) => hub.invoke(r.command, { step: 'normal', via: 'menu' }, opened()));
+        if (!isOpen) run.closed();
       }}
     >
       <Menu.Trigger class={props.class} data-act={props.act} title={props.title}>
@@ -71,12 +62,10 @@ export const CommandChip = (props: CommandChipProps) => {
                   class="lab-context-item"
                   data-command={row().command.id}
                   label={row().label}
-                  onClick={() => {
-                    chosen = Option.some(row());
-                  }}
+                  onClick={() => run.choose(row())}
                 >
                   <span>{row().label}</span>
-                  <kbd>{keysText(row())}</kbd>
+                  <kbd>{keys.text(row().command.id)}</kbd>
                 </Menu.Item>
               )}
             </For>

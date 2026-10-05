@@ -4,7 +4,7 @@ import { Clipboard } from '../browser/clipboard.ts';
 import { hostOf } from '../browser/host.ts';
 import { Keys } from '../browser/keys.ts';
 import { storeOver } from '../browser/storage.ts';
-import { type Command, type Receipt, quiet, said } from './command.ts';
+import { type Command, type Receipt, quietly, said } from './command.ts';
 import { makeHub } from './hub.ts';
 import { cueOf } from './selection.ts';
 import { pageHref } from '../core/api.ts';
@@ -58,11 +58,9 @@ const counter = (id: string, over: Partial<Omit<Command, 'touch'>> = {}) => {
     group: 'test',
     touch: 'a test command',
     when: () => true,
-    run: (_ctx, how) =>
-      Effect.sync(() => {
-        ran.push(how.step);
-        return quiet;
-      }),
+    run: quietly((_ctx, how) => {
+      ran.push(how.step);
+    }),
     ...over,
   };
   return { command, ran };
@@ -127,6 +125,19 @@ describe('the hub', () => {
       [said('done'), 'x'],
       [said('wrote'), 'edit'],
     ]);
+  });
+
+  test('runs a command only where it is available, however it is asked for', () => {
+    const { hub, keydown } = pageWith(memoryStorage());
+    const playing = counter('play.only', { keys: ['p'], when: (ctx) => ctx.playing });
+    hub.commands.register(playing.command);
+    hub.invokeId('play.only', { step: 'normal', via: 'menu' });
+    expect(keydown('p')).toBe(false);
+    expect(playing.ran).toEqual([]);
+    hub.refine((ctx) => ({ ...ctx, playing: true }));
+    hub.invokeId('play.only', { step: 'normal', via: 'menu' });
+    expect(keydown('p')).toBe(true);
+    expect(playing.ran).toEqual(['normal', 'normal']);
   });
 
   test('says how chords read on its keyboard', () => {

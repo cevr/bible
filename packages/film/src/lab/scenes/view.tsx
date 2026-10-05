@@ -30,10 +30,10 @@ import { createEffect, createMemo, createSignal, onCleanup, untrack } from 'soli
 import { type Host, addressOn, monotonicMs, onTraverse } from '../../browser/host.ts';
 import { Frames } from '../../browser/frames.ts';
 import { PageLoad } from '../../browser/page-load.ts';
-import { Pointer } from '../../browser/pointer.ts';
+import { Pointer, Surface } from '../../browser/pointer.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
-import { type Command, quiet, refused, said } from '../../command/command.ts';
+import { type Command, quiet, quietly, refused, said } from '../../command/command.ts';
 import { type Context, selected } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { Selection } from '../../command/selection.ts';
@@ -378,11 +378,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       about: ['Scene'],
       touch: 'Open in Lab on the selected scene, or long-press a still',
       when: (ctx) => Option.isSome(sceneIn(ctx)),
-      run: (ctx) =>
-        Effect.sync(() => {
-          Option.map(sceneIn(ctx), openLab);
-          return quiet;
-        }),
+      run: quietly((ctx) => Option.map(sceneIn(ctx), openLab)),
     },
     {
       id: 'scenes.approve',
@@ -424,11 +420,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       about: ['Scene'],
       touch: 'long-press a still',
       when: (ctx) => Option.isSome(sceneIn(ctx)) && Option.isSome(chosen()),
-      run: (ctx) =>
-        Effect.sync(() => {
-          Option.map(sceneIn(ctx), toggle);
-          return quiet;
-        }),
+      run: quietly((ctx) => Option.map(sceneIn(ctx), toggle)),
     },
     {
       id: 'scenes.clear',
@@ -438,11 +430,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       about: ['Scene'],
       touch: 'long-press a still, then Clear the selection',
       when: () => Option.isSome(chosen()),
-      run: () =>
-        Effect.sync(() => {
-          select(Option.none());
-          return quiet;
-        }),
+      run: quietly(() => select(Option.none())),
     },
     {
       id: 'scenes.finer',
@@ -451,11 +439,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       keys: ['mod+='],
       touch: 'the view menu (⋯)',
       when: () => stepOf(step()) > (STEPS[0] ?? 0),
-      run: () =>
-        Effect.sync(() => {
-          keepStep(String(stepFrom(stepOf(step()), false)));
-          return quiet;
-        }),
+      run: quietly(() => keepStep(String(stepFrom(stepOf(step()), false)))),
     },
     {
       id: 'scenes.coarser',
@@ -464,11 +448,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       keys: ['mod+-'],
       touch: 'the view menu (⋯)',
       when: () => stepOf(step()) < (STEPS.at(-1) ?? 0),
-      run: () =>
-        Effect.sync(() => {
-          keepStep(String(stepFrom(stepOf(step()), true)));
-          return quiet;
-        }),
+      run: quietly(() => keepStep(String(stepFrom(stepOf(step()), true)))),
     },
     {
       id: 'scenes.follow',
@@ -479,11 +459,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       keys: ['f'],
       touch: 'Follow, over the tape',
       when: () => true,
-      run: () =>
-        Effect.sync(() => {
-          setFollow(!follow());
-          return quiet;
-        }),
+      run: quietly(() => setFollow(!follow())),
     },
     {
       id: 'scenes.palette',
@@ -491,11 +467,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       group: 'View',
       touch: 'the view menu (⋯)',
       when: () => Object.keys(film.palette).length > 0,
-      run: () =>
-        Effect.sync(() => {
-          setPalette(true);
-          return quiet;
-        }),
+      run: quietly(() => setPalette(true)),
     },
     {
       id: 'scenes.info',
@@ -503,11 +475,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       group: 'View',
       touch: 'the view menu (⋯)',
       when: () => true,
-      run: () =>
-        Effect.sync(() => {
-          setInfo(true);
-          return quiet;
-        }),
+      run: quietly(() => setInfo(true)),
     },
   ];
   onCleanup(props.hub.commands.register(...commands));
@@ -529,6 +497,8 @@ export const ScenesView = (props: ScenesViewProps) => {
     }),
   );
   const pct = (t: number) => `${(t / Math.max(film.duration, 1e-6)) * 100}%`;
+  /** The tape scrubs by one press at a time, on whichever line: a second finger's scrubs nothing. */
+  const lines = new Surface('the tape');
 
   /** One line of the tape. */
   const Line = (line: { readonly row: TapeRow }) => {
@@ -574,14 +544,16 @@ export const ScenesView = (props: ScenesViewProps) => {
             // A drag along the line scrubs; it settles where it ends (a tap selects, below).
             Effect.runForkWith(props.host)(
               Pointer.use((pointer) =>
-                pointer.drag(e, {
-                  // Scrubbing away from the playhead stops following it (design §6).
-                  move: (ev) => {
-                    setFollow(false);
-                    player.scrub(at(ev, body));
-                  },
-                  end: () => player.settle(),
-                }),
+                pointer.press(e, lines, () =>
+                  Option.some({
+                    // Scrubbing away from the playhead stops following it (design §6).
+                    move: (ev: PointerEvent) => {
+                      setFollow(false);
+                      player.scrub(at(ev, body));
+                    },
+                    end: () => player.settle(),
+                  }),
+                ),
               ),
             );
           }}

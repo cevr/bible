@@ -6,6 +6,7 @@ import { Location } from '@bible/url-state';
 import { Effect } from 'effect';
 import { hostOf } from '../../browser/host.ts';
 import { BrowserHost } from '../../browser/host-browser.ts';
+import { panesMediaLayer } from '../../browser/webcodecs-browser.ts';
 import { registerFace } from '../../player/face.ts';
 import type { Films } from '../../player/main.ts';
 import { LabClient } from '../api.ts';
@@ -15,14 +16,15 @@ import { REVIEW_PAGE, reviewOn } from './page.tsx';
 
 /**
  * Mount the review into the page, with its styles, over the page's host
- * (`browser/host.ts`), with its commands and their one key listener
+ * (`browser/host.ts`; its media plays a set's compare on WebCodecs panes
+ * where it can, `panesMediaLayer`), with its commands and their one key listener
  * (`command/hub.ts`): hydrated over the markup the lab rendered it with on
  * the server, or rendered anew (`page-client.tsx`). `films` are the app's
  * films, each loaded on demand: a film's Project draws its scenes' stills
  * from its code (none, no stills).
  */
 export const mountReview = (films: Films = {}): void => {
-  const host = hostOf(BrowserHost.layer);
+  const host = hostOf(BrowserHost.withMedia(panesMediaLayer));
   Effect.runSyncWith(host)(
     Effect.gen(function* () {
       registerFace(document.fonts);

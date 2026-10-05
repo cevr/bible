@@ -13,8 +13,7 @@
 import { type Context, Data, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
 import { Media, type Playable } from '../../browser/media.ts';
-import { type Command, type Invocation, quiet } from '../../command/command.ts';
-import type { Context as CommandContext } from '../../command/context.ts';
+import { type Command, type Invocation, quietly } from '../../command/command.ts';
 import {
   type SyncEvent,
   SyncEvent as Events,
@@ -235,11 +234,7 @@ export const playerCommands = (
 ): ReadonlyArray<Command> => {
   const asked = (key: (how: Invocation) => PlayerKey) => ({
     when: () => Option.isSome(heed(key({ step: 'normal', via: 'key' }))),
-    run: (_ctx: CommandContext, how: Invocation) =>
-      Effect.sync(() => {
-        Option.map(heed(key(how)), (act) => act());
-        return quiet;
-      }),
+    run: quietly((_ctx, how) => Option.map(heed(key(how)), (act) => act())),
   });
   return [
     {

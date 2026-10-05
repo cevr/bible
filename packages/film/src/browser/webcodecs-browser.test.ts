@@ -4,12 +4,29 @@
 // the compare, and with it aborts each request still in flight. Real
 // mediabunny inputs over ranged URL sources, on a fetch that answers by hand.
 // The panes stand while the page is hidden, from the moment they are made.
+// The engine a compare plays on reads the host: a phone's `Viewport` plays
+// `<video>`, and a browser without WebCodecs (bun has none) does too, each
+// opening nothing.
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
-import { Deferred, Duration, Effect, Exit, Fiber, FileSystem, Option, Scope } from 'effect';
+import {
+  Deferred,
+  Duration,
+  Effect,
+  Exit,
+  Fiber,
+  FileSystem,
+  Layer,
+  Option,
+  Scope,
+  Stream,
+} from 'effect';
 import { ALL_FORMATS, Input, UrlSource } from 'mediabunny';
-import { openRenders, standWhileHidden } from './webcodecs-browser.ts';
+import { Frames } from './frames.ts';
+import { hostOf } from './host.ts';
+import { Viewport } from './viewport.ts';
+import { compareOn, openRenders, standWhileHidden } from './webcodecs-browser.ts';
 
 /** What a URL answers: a short video, bytes that are no video at once, or nothing until its request is aborted. */
 type Answer = 'video' | 'not-video' | 'held';
@@ -189,5 +206,43 @@ describe('the panes while the page is hidden', () => {
       turn('visible');
       expect(pane.said).toEqual(['hide']);
     }),
+  );
+});
+
+/** A laptop's window: a fine pointer, so no media query a phone's pointer answers matches. */
+const laptop = Layer.succeed(
+  Viewport,
+  Viewport.of({ matches: () => Effect.succeed(false), changes: () => Stream.empty }),
+);
+
+/** The engine a compare of two renders plays on, over a host with `viewport`. */
+const engineOver = (viewport: Layer.Layer<Viewport>) =>
+  Effect.scoped(
+    Effect.map(
+      compareOn(hostOf(Layer.merge(Frames.layerClock, viewport)), () => Option.none())([
+        'https://lab.test/a.mp4',
+        'https://lab.test/b.mp4',
+      ]),
+      (compare) => ({ engine: compare.engine, panes: compare.panes([]).panes.length }),
+    ),
+  );
+
+describe('the engine a compare plays on', () => {
+  it.effect("a phone's compare plays on <video>, as the host's Viewport says", () =>
+    Effect.map(engineOver(Viewport.layerPhone), (got) =>
+      expect(got).toEqual({
+        engine: { engine: 'video', why: 'a phone plays <video> until one is measured' },
+        panes: 0,
+      }),
+    ),
+  );
+
+  it.effect('a browser with no WebCodecs plays a compare on <video>', () =>
+    Effect.map(engineOver(laptop), (got) =>
+      expect(got).toEqual({
+        engine: { engine: 'video', why: 'this browser has no WebCodecs' },
+        panes: 0,
+      }),
+    ),
   );
 });

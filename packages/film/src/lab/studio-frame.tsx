@@ -21,6 +21,8 @@ interface StudioFrameProps extends ParentProps {
   readonly hub: Hub;
   /** The receipts' scope in the tab's store: the page's kind, and its film if it has one. */
   readonly scope: string;
+  /** Whether the page has a film's bar: the `?` sheet then says what its stripes and ticks mean. */
+  readonly legend: boolean;
 }
 
 /** `children` (the page's shell and body) in the studio's frame: the context menu, ⌘K, the `?` sheet, the receipts. */
@@ -28,7 +30,7 @@ export const StudioFrame = (props: StudioFrameProps) => (
   <TargetMenu hub={props.hub}>
     {props.children}
     <CommandMenu hub={props.hub} />
-    <KeysSheet hub={props.hub} />
+    <KeysSheet hub={props.hub} legend={props.legend} />
     <Receipts hub={props.hub} tab={TabStore} scope={props.scope} />
   </TargetMenu>
 );

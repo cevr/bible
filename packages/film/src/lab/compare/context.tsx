@@ -3,29 +3,29 @@
 // the lab API only once a mode is on, then once per scene until it is turned
 // off). The section, the
 // HEAD layer and the wipe's divider read this context and act through it.
-// The mode is the link's (`?view=`, PA-9): a mode chosen writes it in place,
-// and a link that names another (Back to an entry made in another mode)
-// chooses it. The view keeps the divider through the reload a write causes.
+// The mode is the link's (`?view=`, PA-9): a mode chosen (a `compare.<mode>`
+// command, from the section's buttons or ⌘K) is an entry of its own, and a
+// link that names another (Back to an entry made in another mode) chooses it. The view keeps the divider through the reload a write causes.
 
-import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
-import { Loading, Show } from '@solidjs/web';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Option, Result } from 'effect';
-import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createEffect, createMemo, untrack, useContext } from 'solid-js';
+import { createContext, createEffect, createMemo, onCleanup, untrack, useContext } from 'solid-js';
 import type { ShownEdit } from '../../canvas/film.ts';
+import { type Command, type CommandId, quietly } from '../../command/command.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { HeadSource } from '../../core/schema.ts';
+import { Actor } from '../actor.tsx';
 import { LabApi, type LabFailure } from '../api.ts';
 import { useLab } from '../shell.tsx';
 import { compareText, headEdit } from './head.ts';
 import {
   type CompareActor,
   CompareEvent,
-  type CompareMode,
+  CompareMode,
   type HeadLayer,
   blendOf,
   compareAt,
@@ -53,8 +53,10 @@ interface CompareStateValue {
   readonly status: Accessor<string>;
 }
 
+/** The command that compares by `mode`, the owner's pick (a new entry, so Back walks the modes). */
+export const compareCommandId = (mode: CompareMode): CommandId => `compare.${mode}`;
+
 interface CompareActions {
-  readonly choose: (mode: CompareMode) => void;
   /** The divider dragged to `split`, 0–1 across the frame. */
   readonly split: (split: number) => void;
   /** A press on the frame held (`on`) or let go: in a blink, HEAD shows while held. */
@@ -112,15 +114,31 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
     compareText(mode(), scene(), head(), Option.flatMap(resolved(), Result.getFailure)),
   );
   createEffect(compare, (s) => view.patch({ compare: compareView(s) }));
-  // The link and the machine agree on the mode: each follows the other only
-  // where they differ, so neither write echoes. The owner's pick is an entry
-  // of its own (`choose`, below); the mode moving otherwise is written in place.
-  createEffect(mode, (m) => {
-    if (m !== untrack(lab.view)) labActions.keepCompare(m);
-  });
+  // The link owns the mode: the machine follows it where they differ (Back,
+  // a pasted link). The owner's pick is an entry of its own (`choose`,
+  // below), written to the link before the machine hears it, so the machine
+  // never moves the mode the link does not hold.
   createEffect(lab.view, (v) => {
     if (v !== untrack(mode)) send(CompareEvent.Choose({ mode: v }));
   });
+
+  // Each mode is a command (`compare.<mode>`): the section's buttons, ⌘K and
+  // the keys sheet reach it alike. The owner's pick is an entry of its own.
+  onCleanup(
+    meta.hub.commands.register(
+      ...CompareMode.literals.map((m): Command => ({
+        id: compareCommandId(m),
+        label: `Compare: ${m}`,
+        group: 'Compare',
+        touch: `the ${m} button in Compare`,
+        when: () => mode() !== m,
+        run: quietly(() => {
+          labActions.compareBy(m);
+          send(CompareEvent.Choose({ mode: m }));
+        }),
+      })),
+    ),
+  );
 
   const value: CompareContextValue = {
     state: {
@@ -133,10 +151,6 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
       status,
     },
     actions: {
-      choose: (m) => {
-        labActions.compareBy(m);
-        send(CompareEvent.Choose({ mode: m }));
-      },
       split: (split) => send(CompareEvent.Split({ split })),
       hold: (on) => send(CompareEvent.Hold({ on })),
     },
@@ -144,28 +158,15 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
   return <CompareContext value={value}>{props.children}</CompareContext>;
 };
 
-const Ready = (
-  props: ParentProps<{
-    readonly actor: Atom.Atom<AsyncResult.AsyncResult<CompareActor, never>>;
-  }>,
-) => {
-  const actor = useAtomSuspense(() => props.actor);
-  return (
-    <Show when={actor()} keyed>
-      {(a: CompareActor) => <Body actor={a}>{props.children}</Body>}
-    </Show>
-  );
-};
-
 /** Compare's state and actions, for its section, its HEAD layer and its divider. */
 export const Provider = (props: ParentProps) => {
   const { state, meta } = useLab();
-  const actor = meta.runtime.atom(
-    Machine.scoped(spawnCompare(compareAt(untrack(state.view), meta.view.get().compare))),
-  );
   return (
-    <Loading>
-      <Ready actor={actor}>{props.children}</Ready>
-    </Loading>
+    <Actor
+      runtime={meta.runtime}
+      spawn={spawnCompare(compareAt(untrack(state.view), meta.view.get().compare))}
+    >
+      {(actor) => <Body actor={actor}>{props.children}</Body>}
+    </Actor>
   );
 };

@@ -1,6 +1,7 @@
 // What the studio's panel shows of its recorder, derived: the controls each
-// state offers (with the key that presses each), what a key does in a state,
-// the status line, the recording under review, the beat list's counts and
+// state offers (each with the command that presses it, `commands.ts`, whose
+// key the panel names as bound), whether ←/→ step through the beats, the
+// status line, the recording under review, the beat list's counts and
 // badges, the meter's reading, and each attempt's line. The provider hands
 // these to the components, so none of them reads the machine's states. Pure.
 
@@ -15,24 +16,24 @@ import { wavSeconds } from './wav.ts';
 /** What a control does. */
 export type Act = 'arm' | 'stop' | 'cancel' | 'submit' | 'discard' | 'acceptAnyway' | 'retry';
 
-/** The studio's keys, as the panel names them. */
-type StudioKey = 'R' | 'Space' | 'K' | 'Esc';
+/** The studio's commands a control is pressed by (`commands.ts`): its button and its key. */
+export type ControlCommand = 'studio.record' | 'studio.stop' | 'studio.submit' | 'studio.back';
 
-/** One button: what it does, what it says, and its key. */
+/** One button: what it does, what it says, and the command it is. */
 export interface Control {
   readonly act: Act;
   readonly label: string;
-  readonly key: StudioKey;
+  readonly command: ControlCommand;
 }
 
-const control = (act: Act, name: string, key: StudioKey): Control => ({
+const control = (act: Act, label: string, command: ControlCommand): Control => ({
   act,
-  label: `${name} (${key})`,
-  key,
+  label,
+  command,
 });
 
-const ARM = control('arm', 'Record', 'R');
-const CANCEL = control('cancel', 'Cancel', 'Esc');
+const ARM = control('arm', 'Record', 'studio.record');
+const CANCEL = control('cancel', 'Cancel', 'studio.back');
 
 /** What the owner can do in `state`, in the order the panel shows it. */
 export const controlsOf = (state: RecorderState): ReadonlyArray<Control> =>
@@ -40,78 +41,34 @@ export const controlsOf = (state: RecorderState): ReadonlyArray<Control> =>
     Match.tagsExhaustive({
       Idle: () => [ARM],
       CountIn: () => [CANCEL],
-      Recording: () => [control('stop', 'Stop', 'Space'), CANCEL],
+      Recording: () => [control('stop', 'Stop', 'studio.stop'), CANCEL],
       Review: () => [
-        control('submit', 'Submit', 'K'),
-        control('arm', 'Retake', 'R'),
-        control('discard', 'Discard', 'Esc'),
+        control('submit', 'Submit', 'studio.submit'),
+        control('arm', 'Retake', 'studio.record'),
+        control('discard', 'Discard', 'studio.back'),
       ],
       Importing: () => [],
       Checking: () => [],
       Failed: (s) => [
         ...Option.match(mismatchAttempt(s.refusal), {
           onNone: () => [],
-          onSome: () => [control('acceptAnyway', 'Accept anyway', 'K')],
+          onSome: () => [control('acceptAnyway', 'Accept anyway', 'studio.submit')],
         }),
         ARM,
-        control('retry', 'Back', 'Esc'),
+        control('retry', 'Back', 'studio.back'),
       ],
     }),
   );
 
-/** What a studio key does now: a control, a step through the beats, or nothing yet. */
-type KeyAct =
-  | { readonly _tag: 'Act'; readonly act: Act }
-  | { readonly _tag: 'Beat'; readonly step: 1 | -1 }
-  | { readonly _tag: 'None' };
-
-/** The studio's key a `KeyboardEvent.key` is, if it is one. */
-const PRESSED = new Map<string, StudioKey>([
-  ['r', 'R'],
-  ['R', 'R'],
-  [' ', 'Space'],
-  ['k', 'K'],
-  ['K', 'K'],
-  ['Escape', 'Esc'],
-]);
-
-const STEPS = new Map<string, 1 | -1>([
-  ['ArrowRight', 1],
-  ['ArrowLeft', -1],
-]);
-
-const NOTHING: KeyAct = { _tag: 'None' };
+/** The control `command` presses in `state`, if it presses one now. */
+export const controlFor = (state: RecorderState, command: ControlCommand): Option.Option<Control> =>
+  Option.fromUndefinedOr(controlsOf(state).find((c) => c.command === command));
 
 /** ←/→ move between beats only at rest or after a refusal, never mid-take. */
-const steps = Predicate.or(Predicate.isTagged('Idle'), Predicate.isTagged('Failed'));
-
-/**
- * What `key` does in `state`: none when it is not one of the studio's keys
- * (the lab's keys pass through); `None` when it is, but has nothing to do now
- * (it is still the studio's, so the lab does not take it either).
- */
-export const keyOf = (state: RecorderState, key: string): Option.Option<KeyAct> =>
-  Option.orElse(
-    Option.map(Option.fromUndefinedOr(PRESSED.get(key)), (pressed): KeyAct =>
-      Option.getOrElse(
-        Option.map(
-          Option.fromUndefinedOr(controlsOf(state).find((c) => c.key === pressed)),
-          (c): KeyAct => ({ _tag: 'Act', act: c.act }),
-        ),
-        () => NOTHING,
-      ),
-    ),
-    () =>
-      Option.map(Option.fromUndefinedOr(STEPS.get(key)), (step): KeyAct =>
-        Option.getOrElse(
-          Option.map(Option.some(step).pipe(Option.filter(() => steps(state))), (s): KeyAct => ({
-            _tag: 'Beat',
-            step: s,
-          })),
-          () => NOTHING,
-        ),
-      ),
-  );
+export const stepsBeats: (state: RecorderState) => boolean = Predicate.or(
+  Predicate.isTagged('Idle'),
+  Predicate.isTagged('Failed'),
+);
 
 /** The recorder event `act` sends, with the microphone picked for a recording. */
 export const eventOf = (act: Act, device: Option.Option<string>): RecorderEvent =>
@@ -237,7 +194,7 @@ export const unsubmitted = (state: RecorderState): Option.Option<string> =>
  * with no recording kept. Only then may the link move it to another beat.
  */
 export const atRest = (state: RecorderState): boolean =>
-  steps(state) && Option.isNone(unsubmitted(state));
+  stepsBeats(state) && Option.isNone(unsubmitted(state));
 
 /** How many beats stand where: `1 recorded · 2 staging · 1 stale`. */
 export const beatCounts = (beats: ReadonlyArray<StudioBeat>): string =>

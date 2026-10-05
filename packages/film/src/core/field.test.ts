@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Schema } from 'effect';
-import { fieldOf, fieldText, inspected, nudged, refusalOf, stepOf } from './field.ts';
+import { fieldOf, inspected, nudged, refusalOf, stepOf } from './field.ts';
 import { CueDur, CueOffset, KnobNumber, Pixel } from './schema.ts';
 
 const FPS = 30;
@@ -61,12 +61,7 @@ describe('nudged', () => {
   });
 });
 
-describe('fieldText and refusalOf', () => {
-  test('prints the value with its unit, or bare', () => {
-    expect(fieldText(fieldOf(CueOffset, FPS), 0.38)).toBe('0.38 s');
-    expect(fieldText(fieldOf(KnobNumber, FPS), 4)).toBe('4');
-  });
-
+describe('refusalOf', () => {
   test("a read-only schema's why is the refusal, unless the field has its own", () => {
     const computed = Schema.Finite.annotate(inspected({ readOnly: true, why: 'computed' }));
     const field = {

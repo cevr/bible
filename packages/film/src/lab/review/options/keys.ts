@@ -13,7 +13,7 @@
 // here too, so a key and a button say one thing. Pure.
 
 import { Effect, Option } from 'effect';
-import { type Command, quiet } from '../../../command/command.ts';
+import { type Command, quiet, quietly } from '../../../command/command.ts';
 import { type Context, selectedAll } from '../../../command/context.ts';
 import { type Toward, walkFrom } from '../../../command/walk.ts';
 import type { ChoiceKind, ChoicePoint, ChoiceVariant, ChoiceVerb } from '../../../core/choice.ts';
@@ -145,13 +145,11 @@ const auditionCommand = (deck: Deck, toward: Toward, label: string, key: string)
   keys: [key],
   touch: 'tap a variant’s 🔊',
   when: (ctx) => Option.isSome(auditionOf(deck, ctx, toward)),
-  run: (ctx) =>
-    Effect.sync(() => {
-      Option.map(auditionOf(deck, ctx, toward), (v) =>
-        deck.audition({ point: v.point, variant: v.id }),
-      );
-      return quiet;
-    }),
+  run: quietly((ctx) =>
+    Option.map(auditionOf(deck, ctx, toward), (v) =>
+      deck.audition({ point: v.point, variant: v.id }),
+    ),
+  ),
 });
 
 /** The first of `point`'s marks past the time shown toward `toward`. */
@@ -167,13 +165,11 @@ const markWalk = (deck: Deck, toward: Toward, label: string, key: string): Comma
   keys: [key],
   touch: 'long-press its card, then Jump to…',
   when: (ctx) => Option.isSome(deck.jump()) && Option.isSome(markOf(deck, ctx, toward)),
-  run: (ctx) =>
-    Effect.sync(() => {
-      Option.map(Option.all({ jump: deck.jump(), mark: markOf(deck, ctx, toward) }), (m) =>
-        m.jump(m.mark.t),
-      );
-      return quiet;
-    }),
+  run: quietly((ctx) =>
+    Option.map(Option.all({ jump: deck.jump(), mark: markOf(deck, ctx, toward) }), (m) =>
+      m.jump(m.mark.t),
+    ),
+  ),
 });
 
 /** Audition, Enter's pick and the mark walk, over the selected point. */
@@ -271,10 +267,6 @@ export const markCommands = (deck: Deck): ReadonlyArray<Command> =>
       touch: 'long-press its card',
       when: (ctx) =>
         Option.isSome(deck.jump()) && Option.exists(pointIn(deck, ctx), (p) => p.id === point.id),
-      run: () =>
-        Effect.sync(() => {
-          Option.map(deck.jump(), (jump) => jump(mark.t));
-          return quiet;
-        }),
+      run: quietly(() => Option.map(deck.jump(), (jump) => jump(mark.t))),
     })),
   );

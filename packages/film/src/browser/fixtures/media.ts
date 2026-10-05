@@ -1,5 +1,5 @@
 // A stand-in media element for the unit tests (bun has none), seen through
-// the live adapter (`playableOf`), so a test drives the same `Playable` the
+// the pages' own `playableOf` (`media.ts`), so a test drives the same `Playable` the
 // pages do: it records what it was asked, plays at once or rejects each play
 // with the error named `refuse` (a `NotAllowedError` only while it is not
 // muted, as a browser refuses sound nobody asked for), and says `seeked` a
@@ -10,8 +10,7 @@
 import { Effect, Option } from 'effect';
 import type { Context } from 'effect';
 import { hostOf } from '../host.ts';
-import { Media, type Playable } from '../media.ts';
-import { type MediaElement, playableOf } from '../media-browser.ts';
+import { Media, type MediaElement, type Playable, playableOf } from '../media.ts';
 
 /** `HAVE_ENOUGH_DATA`. */
 const LOADED = 4;

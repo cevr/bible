@@ -1,18 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Effect, Option } from 'effect';
+import { type Command, labelOf, makeCommands, moved, quiet, refused, said } from './command.ts';
 import {
-  BY_BUTTON,
-  type Command,
-  labelOf,
-  makeCommands,
-  moved,
-  quiet,
-  refused,
-  runIfAvailable,
-  said,
-} from './command.ts';
-import {
-  type Context,
   contextAt,
   focusOf,
   selected,
@@ -21,6 +10,7 @@ import {
   withSelection,
 } from './context.ts';
 import { cueOf, Selection } from './selection.ts';
+import { ChangeId } from '../core/schema.ts';
 
 const command = (id: string, over: Partial<Omit<Command, 'touch'>> = {}): Command => ({
   id,
@@ -96,20 +86,6 @@ describe('the command registry', () => {
     expect(heard).toBe(2);
   });
 
-  test('runs a command only where it is available', () => {
-    const run = (ctx: Context) =>
-      Option.map(
-        runIfAvailable(
-          command('x', { when: (c) => c.playing, run: () => Effect.succeed(said('ran')) }),
-          ctx,
-          BY_BUTTON,
-        ),
-        Effect.runSync,
-      );
-    expect(run(lab)).toEqual(Option.none());
-    expect(run({ ...lab, playing: true })).toEqual(Option.some(said('ran')));
-  });
-
   test('a label may read the context it is shown in', () => {
     const c = command('loop', {
       label: 'Loop',
@@ -129,7 +105,7 @@ describe('receipts', () => {
   });
 
   test('carry the command that undoes them, bound to its change, or none; a refusal never undoes', () => {
-    const bound = { film: 'f', change: 'k1' };
+    const bound = { film: 'f', change: ChangeId.make('k1') };
     expect(said('picked', Option.some({ command: 'edit.undo', bound }))).toMatchObject({
       _tag: 'Said',
       tone: 'done',

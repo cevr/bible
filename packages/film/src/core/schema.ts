@@ -1001,13 +1001,24 @@ const LabStep = Schema.Struct({
 });
 
 /**
+ * The id the lab gives a change to a film as it makes it (`uniqueId`), the
+ * change's own: never its target's words or the time it was made.
+ */
+export const ChangeId = Schema.String.pipe(Schema.brand('ChangeId'));
+export type ChangeId = typeof ChangeId.Type;
+
+/** The id a page gives one Undo or Redo request (`uniqueId`), by which the lab records it once it lands. */
+export const RequestId = Schema.String.pipe(Schema.brand('RequestId'));
+export type RequestId = typeof RequestId.Type;
+
+/**
  * A change in a film's history, by the id the lab gave it as it was made
  * (`change`), unique to it: an undo or a redo of it carries its id, so a
  * receipt's Undo or Redo asks for that change and no other.
  */
 const HistoryStep = Schema.Struct({
   ...LabStep.fields,
-  change: Schema.String,
+  change: ChangeId,
 });
 
 /**
@@ -1016,7 +1027,7 @@ const HistoryStep = Schema.Struct({
  */
 const LandedStep = Schema.Struct({
   ...HistoryStep.fields,
-  request: Schema.String,
+  request: RequestId,
 });
 
 /**
@@ -1114,7 +1125,7 @@ export const LabWrite = Schema.Struct({
    * redo's is the change it stepped. None when the write changed nothing (the
    * file already said so), so there is nothing to undo.
    */
-  change: Schema.optionalKey(Schema.String),
+  change: Schema.optionalKey(ChangeId),
   /** The cue's span as the file now declares it, when every field of it is a literal. */
   span: Schema.optionalKey(Span),
   /** The cue resolved on the scene's clock, when its timeline resolves from the file alone. */

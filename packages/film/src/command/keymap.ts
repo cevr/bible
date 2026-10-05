@@ -31,7 +31,7 @@ export const KeymapOverrides = Schema.Array(KeymapOverride);
 export type KeymapOverrides = typeof KeymapOverrides.Type;
 
 /** A key bound to a command: the chord in its canonical text. */
-export interface Binding {
+interface Binding {
   readonly key: string;
   readonly command: CommandId;
 }
@@ -260,6 +260,16 @@ export const chordLabel = (chord: string, mac: boolean): string => {
   const mods = MAC_ORDER.filter((m) => held.has(m)).map((m) => style.marks[m]);
   return [...mods, shown].join(style.between);
 };
+
+/** `title` with `key` after it in brackets (`Next frame (→)`), or alone when `key` is ''. */
+export const titleWith = (title: string, key: string): string =>
+  Option.match(
+    Option.liftPredicate(key, (k) => k !== ''),
+    {
+      onNone: () => title,
+      onSome: (k) => `${title} (${k})`,
+    },
+  );
 
 const KEY_LABELS: ReadonlyMap<string, string> = new Map([
   ['arrowleft', '←'],

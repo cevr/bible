@@ -1,6 +1,7 @@
 // The lab's commands in a browser, over the probe film: ⌘K lists what is
 // available, filters by what is typed and runs the chosen command; the `?`
-// sheet rebinds a key, and the rebound key survives a reload; a right-click
+// sheet rebinds a key, and the rebound key survives a reload, and ends on
+// the bar's legend; a right-click
 // on no thing opens the page's own context menu; a cue's context
 // menu (a right-click, or a touch held still) lists its commands and runs
 // one; a touch that moves (a drag) never opens it, and a touch that opened
@@ -119,6 +120,39 @@ describe('the keys sheet', () => {
       yield* page.press('?');
       yield* page.click(`${row} [data-act="reset"]`);
       yield* textHas(page, `${row} .lab-keys-bound`, ']');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live("a key rebound here is the one the transport's step buttons name", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(0.5) });
+      const button = '.bar [data-act="play.frame-next"]';
+      yield* evaluates(page, `document.querySelector('${button}').title`, 'Next frame (→)');
+      yield* page.press('?');
+      const row = '[data-role="keys-sheet"] [data-command="play.frame-next"]';
+      yield* page.click(`${row} [data-act="rebind"]`);
+      yield* page.pressIn(`${row} [data-act="press"]`, 'x');
+      yield* textHas(page, `${row} .lab-keys-bound`, 'X');
+      yield* evaluates(page, `document.querySelector('${button}').title`, 'Next frame (X)');
+    }).pipe(Effect.scoped),
+  );
+
+  it.live("ends on the bar's legend: the stripes, and each tick beside its swatch", () =>
+    Effect.gen(function* () {
+      const { page, errors } = yield* openLab([], { href: labAt(0.5) });
+      yield* page.press('?');
+      const legend = '[data-role="keys-sheet"] [data-role="keys-legend"]';
+      yield* textHas(page, legend, 'striped = narration estimated, not recorded');
+      yield* textHas(page, legend, 'music act');
+      // Each swatch is drawn in its tick's look (`player.css`), as on the bar.
+      yield* evaluates(
+        page,
+        `[...document.querySelectorAll('${legend} i')].map((i) => i.className + ':' + (i.getBoundingClientRect().width > 0)).join(' ')`,
+        'k-mark:true k-cue:true k-effect:true k-act:true',
+      );
+      // The bar's own legend stays hidden at rest.
+      yield* evaluates(page, "document.querySelector('.bar .keys').hidden", true);
+      expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
 });

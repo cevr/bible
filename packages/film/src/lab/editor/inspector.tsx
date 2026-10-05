@@ -160,24 +160,29 @@ export const History = () => {
   const step = (verb: 'undo' | 'redo') => meta.hub.invokeId(`edit.${verb}`, BY_BUTTON);
   const stepOf = (verb: 'undo' | 'redo') =>
     Option.flatMap(state.report(), (r) => Option.fromUndefinedOr(r[verb]));
-  const title = (verb: 'undo' | 'redo', keys: string) =>
-    Option.match(stepOf(verb), {
-      onNone: () => `${verb} (nothing to ${verb}) (${keys})`,
-      onSome: (s) => `${verb} ${s.target} (${keys})`,
-    });
+  // Each names its key as bound now: a rebound key reads as rebound.
+  const keys = hubKeys(meta.hub);
+  const title = (verb: 'undo' | 'redo') =>
+    keys.titled(
+      Option.match(stepOf(verb), {
+        onNone: () => `${verb} (nothing to ${verb})`,
+        onSome: (s) => `${verb} ${s.target}`,
+      }),
+      `edit.${verb}`,
+    );
   return (
     <>
       <HeaderTool
         act="undo"
         label="Undo"
-        title={title('undo', '⌘Z')}
+        title={title('undo')}
         disabled={Option.isNone(stepOf('undo'))}
         onClick={() => step('undo')}
       />
       <HeaderTool
         act="redo"
         label="Redo"
-        title={title('redo', '⇧⌘Z')}
+        title={title('redo')}
         disabled={Option.isNone(stepOf('redo'))}
         onClick={() => step('redo')}
       />
@@ -195,8 +200,6 @@ const Findings = () => {
   const { state } = useEditor();
   const keys = hubKeys(meta.hub);
   const shown = createMemo(() => findingsIn(state.findings(), meta.film.placed, lab.scene()));
-  // F as bound now: a rebound key reads as rebound.
-  const walkKey = () => keys.bound('check.finding-next').slice(0, 1).map(keys.label).join('');
   return (
     <section
       class="lab-group lab-findings-group"
@@ -218,7 +221,7 @@ const Findings = () => {
       </ul>
       <Show when={shown().elsewhere > 0}>
         <p class="lab-findings-elsewhere">
-          {`${shown().elsewhere} in other scenes · ${walkKey()} walks to them`}
+          {`${shown().elsewhere} in other scenes · ${keys.first('check.finding-next')} walks to them`}
         </p>
       </Show>
     </section>

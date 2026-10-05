@@ -7,6 +7,7 @@ import { Plugin } from 'oxlint-plugin-effect/rule-bindings';
 import { drawingLiteral } from './drawing-literal.ts';
 import { framingIsAKnob } from './framing-is-a-knob.ts';
 import { hostEventsThroughAdapter } from './host-events-through-adapter.ts';
+import { keysNamedAsBound } from './keys-named-as-bound.ts';
 import { keysThroughKeymap } from './keys-through-keymap.ts';
 import { noCueRemap } from './no-cue-remap.ts';
 import { noEaseOnCue } from './no-ease-on-cue.ts';
@@ -24,6 +25,7 @@ export default Plugin.define({
     'drawing-literal': drawingLiteral,
     'framing-is-a-knob': framingIsAKnob,
     'host-events-through-adapter': hostEventsThroughAdapter,
+    'keys-named-as-bound': keysNamedAsBound,
     'keys-through-keymap': keysThroughKeymap,
     'no-cue-remap': noCueRemap,
     'no-ease-on-cue': noEaseOnCue,

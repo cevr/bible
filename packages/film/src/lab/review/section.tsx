@@ -32,14 +32,8 @@ import {
   seenPoint,
   seenVariants,
 } from '../../core/choice.ts';
-import { playableOf } from '../../browser/media-browser.ts';
-import {
-  type Chosen,
-  type ComparePanes,
-  chooseEngine,
-  panesOver,
-} from '../../browser/webcodecs-browser.ts';
-import { Pointer } from '../../browser/pointer.ts';
+import { type Compare, type ComparePanes, Media, playableOf } from '../../browser/media.ts';
+import { Pointer, Surface } from '../../browser/pointer.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
 import {
@@ -92,8 +86,9 @@ import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
 import { CommandChip } from '../command/command-chip.tsx';
 import { useShellTime } from '../page-shell.tsx';
-import { wipeCommands } from '../wipe-keys.ts';
-import { rateCommands, rateId, rateText } from '../../player/transport.ts';
+import { hubKeys } from '../command/changes.ts';
+import { wipeCommands, wipeTitle } from '../wipe-keys.ts';
+import { rateCommands, rateId, rateText, rateTitle } from '../../player/transport.ts';
 
 /** A version of `set` in `folder`, as a selection: what a version's card is. */
 const versionOf = (folder: ReviewFolder, set: { readonly id: string }, version: string) =>
@@ -548,6 +543,7 @@ export const Transport = (props: {
   const { meta } = useReview();
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
+  const keys = hubKeys(meta.hub);
   // The header's timecode is this transport's clock.
   useShellTime(() => sync().t);
   onCleanup(
@@ -594,7 +590,7 @@ export const Transport = (props: {
         ids={Rate.literals.map(rateId)}
         act="rate"
         class="sh-btn"
-        title="The speed: play slower (J), faster (L), or at 1× (K)"
+        title={rateTitle(keys.titled)}
       >
         <span data-rate={String(sync().rate)}>{rateText(sync().rate)}</span>
       </CommandChip>
@@ -927,35 +923,34 @@ const PairView = (props: { readonly other: string }) => {
 const WIPE_AT = 0.5;
 
 /** The wipe's player as `data-engine` names it: `asking` until it is chosen (`media-choice.ts`). */
-const engineName = (chosen: Option.Option<Chosen>) =>
+const engineName = (chosen: Option.Option<Compare>) =>
   Option.match(chosen, { onNone: () => 'asking', onSome: (c) => c.engine.engine });
 
 /** Why the wipe plays on `<video>`, when it does. */
-const engineWhy = (chosen: Option.Option<Chosen>) =>
+const engineWhy = (chosen: Option.Option<Compare>) =>
   Option.flatMap(chosen, ({ engine }) => {
     if (engine.engine === 'video') return Option.some(`Plays on <video>: ${engine.why}`);
     return Option.none();
   });
 
 /**
- * The pair as WebCodecs panes (`webcodecs-browser.ts`): each master painted
- * on a canvas, both on one clock, held by the set's clock in place of the
- * videos; let go when the wipe closes.
+ * The pair as the compare's WebCodecs panes (`Media.compare`): each master
+ * painted on a canvas, both on one clock, held by the set's clock in place
+ * of the videos; let go when the wipe closes.
  */
 const WipePanes = (props: {
-  readonly chosen: Chosen;
+  readonly chosen: Compare;
   readonly first: SeenVariant;
   readonly other: SeenVariant;
   readonly at: () => string;
 }) => {
-  const { meta } = useReview();
   const { driver } = useSet();
   const canvases: Array<HTMLCanvasElement> = [];
   const ids = [props.first.id, props.other.id];
   let made = Option.none<ComparePanes>();
   // Once both canvases are in the page; let go with the wipe (a cleanup inside `onSettled` is refused).
   onSettled(() => {
-    const compare = panesOver(meta.host, props.chosen, canvases);
+    const compare = props.chosen.panes(canvases);
     made = Option.some(compare);
     compare.panes.forEach((pane, i) =>
       Option.map(Option.fromUndefinedOr(ids[i]), (id) => driver.attach(id, pane)),
@@ -990,21 +985,30 @@ const WipeView = (props: { readonly other: string }) => {
   const pair = () => pairOf(set, props.other);
   const [split, setSplit] = createSignal(WIPE_AT, { ownedWrite: true });
   let frame = Option.none<HTMLElement>();
+  /** The divider follows one press at a time: a second finger's moves nothing. */
+  const divider = new Surface('the divider');
   const grab = (e: PointerEvent) => {
     e.preventDefault();
-    Option.map(frame, (el) => {
-      const r = el.getBoundingClientRect();
-      const move = (ev: PointerEvent) =>
-        setSplit(Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width))));
-      // The divider stays where the drag ends, lifted or ended by the browser.
-      Effect.runForkWith(meta.host)(
-        Pointer.use((pointer) => pointer.drag(e, { move, end: () => {} })),
-      );
-    });
+    // The divider stays where the drag ends, lifted or ended by the browser.
+    Effect.runForkWith(meta.host)(
+      Pointer.use((pointer) =>
+        pointer.press(e, divider, () =>
+          Option.map(frame, (el) => {
+            const r = el.getBoundingClientRect();
+            return {
+              move: (ev: PointerEvent) =>
+                setSplit(Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)))),
+              end: () => {},
+            };
+          }),
+        ),
+      ),
+    );
   };
   const at = () => `${split() * 100}%`;
   // The grip by the keyboard, while it has focus: ←/→ (⇧ ten, ⌥ a thousandth), Home and End.
   onCleanup(meta.hub.commands.register(...wipeCommands('review', () => untrack(split), setSplit)));
+  const keys = hubKeys(meta.hub);
   // The player is chosen from the masters (the scrub preview reads their key
   // frames); the videos play while it is asked, and stay if it is `<video>`.
   const masters = createMemo(() =>
@@ -1012,7 +1016,7 @@ const WipeView = (props: { readonly other: string }) => {
       .flatMap(Option.toArray)
       .flatMap((v) => Option.toArray(videoSource(v.video, 'full'))),
   );
-  const [chosen, setChosen] = createSignal(Option.none<Chosen>(), { ownedWrite: true });
+  const [chosen, setChosen] = createSignal(Option.none<Compare>(), { ownedWrite: true });
   createEffect(
     () => masters().join('\n'),
     () => {
@@ -1024,7 +1028,13 @@ const WipeView = (props: { readonly other: string }) => {
       // however far the opening got (the panes' own letting go of them is then a no-op).
       const owner = Scope.makeUnsafe();
       const asking = Effect.runForkWith(meta.host)(
-        Effect.map(Scope.provide(chooseEngine(urls), owner), (c) => setChosen(Option.some(c))),
+        Effect.map(
+          Scope.provide(
+            Media.use((media) => media.compare(urls)),
+            owner,
+          ),
+          (c) => setChosen(Option.some(c)),
+        ),
       );
       return () => {
         asking.interruptUnsafe();
@@ -1068,7 +1078,7 @@ const WipeView = (props: { readonly other: string }) => {
             </>
           }
         >
-          {(p: { chosen: Chosen; first: SeenVariant; other: SeenVariant }) => (
+          {(p: { chosen: Compare; first: SeenVariant; other: SeenVariant }) => (
             <WipePanes chosen={p.chosen} first={p.first} other={p.other} at={at} />
           )}
         </Show>
@@ -1087,7 +1097,7 @@ const WipeView = (props: { readonly other: string }) => {
               Option.map((v) => v.id),
               Option.getOrElse(() => 'the first'),
             )}`}
-            title="Drag the wipe, or move it with ←/→ (⇧ ten), Home and End"
+            title={wipeTitle('review', keys.first)}
             ref={(el: HTMLButtonElement) => el.addEventListener('pointerdown', grab)}
           />
         </div>

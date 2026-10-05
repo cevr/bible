@@ -15,6 +15,8 @@ import { For, Show } from '@solidjs/web';
 import { type Accessor, createEffect, onCleanup, onSettled } from 'solid-js';
 import { Option } from 'effect';
 import type { Part } from '../../core/sheet.ts';
+import { BY_BUTTON } from '../../command/command.ts';
+import { hubKeys } from '../command/changes.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { studioCommands } from './commands.ts';
 import { type AttemptRow, useStudio } from './context.tsx';
@@ -145,7 +147,10 @@ const STATE: Partial<Record<Act, 'recording'>> = { arm: 'recording', stop: 'reco
 
 /** What the owner can do now, and where the recorder stands. */
 const Controls = () => {
-  const { state, actions } = useStudio();
+  const { state } = useStudio();
+  const { meta } = useLab();
+  // Each button is its command, and names its key as bound now: a rebound key reads as rebound.
+  const keys = hubKeys(meta.hub);
   return (
     <div class="studio-controls">
       <div class="studio-buttons">
@@ -156,9 +161,9 @@ const Controls = () => {
               class="sh-btn"
               data-act={c().act}
               data-state={STATE[c().act]}
-              onClick={() => actions.perform(c().act)}
+              onClick={() => meta.hub.invokeId(c().command, BY_BUTTON)}
             >
-              {c().label}
+              {keys.titled(c().label, c().command)}
             </button>
           )}
         </For>

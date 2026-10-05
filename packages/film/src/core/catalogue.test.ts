@@ -4,6 +4,7 @@ import { sceneAddress } from './address.ts';
 import {
   type Catalogue,
   CatalogueJson,
+  OpId,
   type Render,
   approvalState,
   approve,
@@ -26,6 +27,13 @@ import {
 } from './catalogue.ts';
 
 const SETTINGS = { scale: 0.5, captions: true };
+
+/** Approve runs' ops, as `uniqueId(OpId)` or the CLI's `--given` decode makes them. */
+const OP_1 = OpId.make('op-1');
+const OP_2 = OpId.make('op-2');
+const OP_A = OpId.make('op-a');
+const OP_B = OpId.make('op-b');
+const OP_C = OpId.make('op-c');
 
 /** A render of scene `id`'s main variant, drawn from sources with `key`. */
 const sceneRender = (id: string, key: string, at = 1): Render => ({
@@ -158,7 +166,7 @@ describe("a scene render against the film's sound", () => {
       Option.some('mix-b'),
       'main',
       5,
-      'op-1',
+      OP_1,
     );
     expect(none).toEqual([]);
   });
@@ -197,7 +205,7 @@ describe('approvals', () => {
       Option.none(),
       'main',
       5,
-      'op-1',
+      OP_1,
     );
     expect(approved).toEqual(['a']);
     expect(
@@ -216,22 +224,17 @@ describe('approvals', () => {
       { scene: 'a', key: 'k1' },
       { scene: 'b', key: 'k2' },
     ];
-    const first = approveCurrent(catalogue, now, Option.none(), 'main', 5, 'op-1');
+    const first = approveCurrent(catalogue, now, Option.none(), 'main', 5, OP_1);
     expect([first.approved, first.made]).toEqual([['a', 'b'], ['b']]);
     // The approval it added carries its run's op; the one there before carries none.
-    expect(first.catalogue.approvals.map((x) => x.op)).toEqual([
-      Option.none(),
-      Option.some('op-1'),
-    ]);
+    expect(first.catalogue.approvals.map((x) => x.op)).toEqual([Option.none(), Option.some(OP_1)]);
     // Approved by another since: the same approve changes nothing, and names nothing it made.
-    const again = approveCurrent(first.catalogue, now, Option.none(), 'main', 7, 'op-2');
+    const again = approveCurrent(first.catalogue, now, Option.none(), 'main', 7, OP_2);
     expect([again.approved, again.made]).toEqual([['a', 'b'], []]);
     expect(again.catalogue).toEqual(first.catalogue);
     // What the CLI's answer says it gave: its op, the moment and those scenes; nothing, when it made none.
-    expect(gaveOf(first.made, 5, 'op-1')).toEqual(
-      Option.some({ op: 'op-1', at: 5, scenes: ['b'] }),
-    );
-    expect(gaveOf(again.made, 7, 'op-2')).toEqual(Option.none());
+    expect(gaveOf(first.made, 5, OP_1)).toEqual(Option.some({ op: OP_1, at: 5, scenes: ['b'] }));
+    expect(gaveOf(again.made, 7, OP_2)).toEqual(Option.none());
   });
 
   test('two approve runs at the same moment: each Undo takes its own approval alone', () => {
@@ -239,40 +242,40 @@ describe('approvals', () => {
     const second = sceneRender('a', 'k2', 20);
     const now = (key: string) => [{ scene: 'a', key }];
     // Run A approves k1 at 5; a new render; run B, queued with the same moment, approves k2.
-    const a = approveCurrent(withRenders(first), now('k1'), Option.none(), 'main', 5, 'op-a');
+    const a = approveCurrent(withRenders(first), now('k1'), Option.none(), 'main', 5, OP_A);
     const b = approveCurrent(
       recordRender(a.catalogue, second),
       now('k2'),
       Option.none(),
       'main',
       5,
-      'op-b',
+      OP_B,
     );
     expect(b.catalogue.approvals.map((x) => [x.key, x.at])).toEqual([
       ['k1', 5],
       ['k2', 5],
     ]);
     // B's Undo takes k2's alone: k1's, stamped identically, stays.
-    const undoneB = withdraw(b.catalogue, of(second), Option.some('op-b'));
+    const undoneB = withdraw(b.catalogue, of(second), Option.some(OP_B));
     expect(undoneB.approvals.map((x) => x.key)).toEqual(['k1']);
     expect(approvalState(undoneB, of(second))).toBe('stale');
     // A's Undo takes k1's alone.
-    const undoneA = withdraw(b.catalogue, of(second), Option.some('op-a'));
+    const undoneA = withdraw(b.catalogue, of(second), Option.some(OP_A));
     expect(undoneA.approvals.map((x) => x.key)).toEqual(['k2']);
     expect(approvalState(undoneA, of(second))).toBe('approved');
     // An op no approval carries takes nothing; with none given, every approval of the variant goes.
-    expect(withdraw(b.catalogue, of(second), Option.some('op-c'))).toEqual(b.catalogue);
+    expect(withdraw(b.catalogue, of(second), Option.some(OP_C))).toEqual(b.catalogue);
     expect(withdraw(b.catalogue, of(second), Option.none()).approvals).toEqual([]);
   });
 
   test("approve, another's withdraw and re-approve at the same moment: the first Undo takes nothing", () => {
     const render = sceneRender('a', 'k1');
     const now = [{ scene: 'a', key: 'k1' }];
-    const a = approveCurrent(withRenders(render), now, Option.none(), 'main', 5, 'op-a');
+    const a = approveCurrent(withRenders(render), now, Option.none(), 'main', 5, OP_A);
     const withdrawn = withdraw(a.catalogue, of(render), Option.none());
-    const b = approveCurrent(withdrawn, now, Option.none(), 'main', 5, 'op-b');
+    const b = approveCurrent(withdrawn, now, Option.none(), 'main', 5, OP_B);
     // A's Undo, late: the approval now is B's, at A's very moment, and stays.
-    expect(withdraw(b.catalogue, of(render), Option.some('op-a'))).toEqual(b.catalogue);
+    expect(withdraw(b.catalogue, of(render), Option.some(OP_A))).toEqual(b.catalogue);
     expect(approvalState(b.catalogue, of(render))).toBe('approved');
   });
 
@@ -280,7 +283,7 @@ describe('approvals', () => {
     const render = sceneRender('a', 'k1');
     const catalogue = approve(withRenders(render), of(render), 5);
     expect(catalogue.approvals.map((x) => x.op)).toEqual([Option.none()]);
-    expect(withdraw(catalogue, of(render), Option.some('op-a'))).toEqual(catalogue);
+    expect(withdraw(catalogue, of(render), Option.some(OP_A))).toEqual(catalogue);
     expect(withdraw(catalogue, of(render), Option.none()).approvals).toEqual([]);
   });
 
@@ -294,25 +297,23 @@ describe('approvals', () => {
       Option.none(),
       'main',
       5,
-      'op-a',
+      OP_A,
     );
     const both = approve(given.catalogue, of(b), 6);
     // Undoing op-a: a's goes; b's approval was another's (no op), so b is not among those taken.
-    const undone = withdrawScenes(both, ['a', 'b'], 'main', Option.some('op-a'));
+    const undone = withdrawScenes(both, ['a', 'b'], 'main', Option.some(OP_A));
     expect(undone.took).toEqual(['a']);
     expect([
       approvalState(undone.catalogue, of(a)),
       approvalState(undone.catalogue, of(b)),
     ]).toEqual(['none', 'approved']);
-    expect(tookOf(Option.some('op-a'), undone.took)).toEqual(
-      Option.some({ op: 'op-a', scenes: ['a'] }),
+    expect(tookOf(Option.some(OP_A), undone.took)).toEqual(
+      Option.some({ op: OP_A, scenes: ['a'] }),
     );
     // Undone again: nothing is left to take, and it says so.
-    const again = withdrawScenes(undone.catalogue, ['a', 'b'], 'main', Option.some('op-a'));
+    const again = withdrawScenes(undone.catalogue, ['a', 'b'], 'main', Option.some(OP_A));
     expect(again.took).toEqual([]);
-    expect(tookOf(Option.some('op-a'), again.took)).toEqual(
-      Option.some({ op: 'op-a', scenes: [] }),
-    );
+    expect(tookOf(Option.some(OP_A), again.took)).toEqual(Option.some({ op: OP_A, scenes: [] }));
     // A plain withdraw takes every approval, and says nothing of an op.
     expect(withdrawScenes(both, ['a', 'b'], 'main', Option.none()).took).toEqual(['a', 'b']);
     expect(tookOf(Option.none(), ['a'])).toEqual(Option.none());
@@ -399,8 +400,8 @@ describe("the owner's say beside a scene's render", () => {
     const text = Schema.encodeSync(CatalogueJson)(approve(withRenders(render), of(render), 1));
     expect(text).not.toContain('"op"');
     const legacy = Schema.decodeSync(CatalogueJson)(text);
-    expect(withdraw(legacy, of(render), Option.some('op-1'))).toEqual(legacy);
-    const given = approve(withRenders(render), of(render), 1, Option.some('op-1'));
+    expect(withdraw(legacy, of(render), Option.some(OP_1))).toEqual(legacy);
+    const given = approve(withRenders(render), of(render), 1, Option.some(OP_1));
     expect(Schema.decodeSync(CatalogueJson)(Schema.encodeSync(CatalogueJson)(given))).toEqual(
       given,
     );

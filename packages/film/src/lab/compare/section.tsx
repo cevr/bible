@@ -1,5 +1,5 @@
 // Compare's section of the panel, its HEAD layer and the wipe's divider. The
-// section picks the mode; the layer draws the frame shown with HEAD's
+// section picks the mode (each button its `compare.<mode>` command); the layer draws the frame shown with HEAD's
 // timeline and knobs through today's code (`film.render(…, { edits })`, over
 // whatever else the lab previews; one frame, nothing kept), clipped left of
 // the divider in a wipe, shown on HEAD's side of a blink, and laid over the
@@ -15,11 +15,13 @@ import type { Accessor } from 'solid-js';
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
-import { Pointer } from '../../browser/pointer.ts';
+import { Pointer, Surface } from '../../browser/pointer.ts';
 import { useLabPage } from '../panel.tsx';
 import { Lab, useLab } from '../shell.tsx';
-import { wipeCommands } from '../wipe-keys.ts';
-import { useCompare } from './context.tsx';
+import { hubKeys } from '../command/changes.ts';
+import { wipeCommands, wipeTitle } from '../wipe-keys.ts';
+import { BY_BUTTON } from '../../command/command.ts';
+import { compareCommandId, useCompare } from './context.tsx';
 import { CompareMode } from './machine.ts';
 
 const TITLES = {
@@ -35,7 +37,9 @@ const TITLES = {
  * in Compare's section of the page's panel.
  */
 export const Section = () => {
-  const { state, actions } = useCompare();
+  const { meta } = useLab();
+  const { state } = useCompare();
+  const keys = hubKeys(meta.hub);
   return (
     <Lab.Fill at="compare">
       <div class="lab-motion-row">
@@ -44,12 +48,16 @@ export const Section = () => {
           aria-label="Compare with HEAD"
           value={[state.mode()]}
           onValueChange={(pressed) => {
-            Option.map(Arr.head(pressed), actions.choose);
+            Option.map(Arr.head(pressed), (m) => meta.hub.invokeId(compareCommandId(m), BY_BUTTON));
           }}
         >
           <For each={CompareMode.literals}>
             {(m) => (
-              <Toggle<CompareMode> value={m} data-mode={m} title={TITLES[m]}>
+              <Toggle<CompareMode>
+                value={m}
+                data-mode={m}
+                title={keys.titled(TITLES[m], compareCommandId(m))}
+              >
                 {m}
               </Toggle>
             )}
@@ -119,14 +127,18 @@ export const Hold = () => {
   const { state, actions } = useCompare();
   const { film } = meta;
   const shown = () => state.mode() === 'blink' && page.mode() === 'compare';
+  /** The frame holds HEAD for one press: a second finger's lift never lets it go. */
+  const frame = new Surface('the blink');
   const press = (el: SVGRectElement) =>
     el.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       e.preventDefault();
-      actions.hold(true);
       Effect.runForkWith(meta.host)(
         Pointer.use((pointer) =>
-          pointer.drag(e, { move: () => {}, end: () => actions.hold(false) }),
+          pointer.press(e, frame, () => {
+            actions.hold(true);
+            return Option.some({ move: () => {}, end: () => actions.hold(false) });
+          }),
         ),
       );
     });
@@ -211,23 +223,32 @@ const Grip = (props: { readonly x: number }) => {
       ),
     ),
   );
+  /** The divider follows one press at a time: a second finger's moves nothing. */
+  const divider = new Surface('the divider');
   const grab = (el: SVGCircleElement) => {
     hitArea = Option.some(el);
     el.addEventListener('pointerdown', (e) => {
       // The divider, not a note: the overlay never sees this press.
       e.stopPropagation();
       e.preventDefault();
-      Option.map(Option.fromNullishOr(el.ownerSVGElement), (svg) => {
-        const r = svg.getBoundingClientRect();
-        const move = (ev: PointerEvent) => actions.split((ev.clientX - r.left) / r.width);
-        // The divider stays where the drag ends, lifted or ended by the browser.
-        Effect.runForkWith(meta.host)(
-          Pointer.use((pointer) => pointer.drag(e, { move, end: () => {} })),
-        );
-      });
+      // The divider stays where the drag ends, lifted or ended by the browser.
+      Effect.runForkWith(meta.host)(
+        Pointer.use((pointer) =>
+          pointer.press(e, divider, () =>
+            Option.map(Option.fromNullishOr(el.ownerSVGElement), (svg) => {
+              const r = svg.getBoundingClientRect();
+              return {
+                move: (ev: PointerEvent) => actions.split((ev.clientX - r.left) / r.width),
+                end: () => {},
+              };
+            }),
+          ),
+        ),
+      );
     });
   };
   const percent = () => Math.round(Option.getOrElse(state.split(), () => 0.5) * 100);
+  const keys = hubKeys(meta.hub);
   return (
     <>
       <circle class="lab-divider-grip" cx={props.x} cy={film.height / 2} r={GRIP_R} />
@@ -246,7 +267,7 @@ const Grip = (props: { readonly x: number }) => {
         aria-valuetext={`${percent()}% of the frame shows HEAD`}
         ref={grab}
       >
-        <title>Drag the wipe, or move it with ←/→ (⇧ ten), Home and End</title>
+        <title>{wipeTitle('compare', keys.first)}</title>
       </circle>
     </>
   );

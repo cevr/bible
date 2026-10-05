@@ -15,8 +15,9 @@
 // the lab (`src/command/`), so the player, which never imports the lab,
 // declares its transport here too.
 
-import { Array as Arr, Data, Option } from 'effect';
-import type { Effect } from 'effect';
+import { Array as Arr, Data, Effect, Option } from 'effect';
+import type { Gave } from '../core/catalogue.ts';
+import type { ChangeId } from '../core/schema.ts';
 import type { Context, Focus } from './context.ts';
 import type { Target } from './target.ts';
 
@@ -47,13 +48,36 @@ export type Receipt = Data.TaggedEnum<{
 export const Receipt = Data.taggedEnum<Receipt>();
 
 /**
- * The change a receipt's button is about: its film, and the change by the id
- * the lab's history knows it by (`HistoryStep.change`).
+ * The change a receipt's button is about, each by its own identity: a change
+ * in the film's history, by the id the lab gave it (`HistoryStep.change`); or
+ * an approve run's approvals, by its op and the scenes it gave one to
+ * (`Project.gave`). Never by a name, a time, or one id spelled as another.
  */
-export interface Bound {
+export type Bound = ChangeBound | GaveBound;
+
+export interface ChangeBound {
   readonly film: string;
-  readonly change: string;
+  readonly change: ChangeId;
 }
+
+interface GaveBound {
+  readonly film: string;
+  readonly gave: Pick<Gave, 'op' | 'scenes'>;
+}
+
+/** The history's change `bound` names; none for an approve's. */
+export const boundChange = (bound: Bound): Option.Option<ChangeId> =>
+  Option.map(
+    Option.liftPredicate(bound, (b): b is ChangeBound => 'change' in b),
+    (b) => b.change,
+  );
+
+/** The approve run `bound` names; none for a change in the history. */
+export const boundGave = (bound: Bound): Option.Option<GaveBound['gave']> =>
+  Option.map(
+    Option.liftPredicate(bound, (b): b is GaveBound => 'gave' in b),
+    (b) => b.gave,
+  );
 
 /**
  * Why a command cannot act on a receipt's change, in words to say: `Now`
@@ -76,6 +100,15 @@ type Tone = 'done' | 'refused' | 'busy';
 
 /** A receipt that says nothing. */
 export const quiet: Receipt = Receipt.Quiet();
+
+/** A command's `run` that does `act` and says nothing (`quiet`): the page shows what changed. */
+export const quietly =
+  (act: (ctx: Context, how: Invocation) => void) =>
+  (ctx: Context, how: Invocation): Effect.Effect<Receipt> =>
+    Effect.sync(() => {
+      act(ctx, how);
+      return quiet;
+    });
 
 /**
  * A receipt's Undo: the command, and the change it acts on. There is no Undo
@@ -230,17 +263,3 @@ export const makeCommands = (): Commands => {
     },
   };
 };
-
-/**
- * Run `command` in `ctx` if it is available there: its receipt, or none
- * when it is not available (a key that names it does nothing then).
- */
-export const runIfAvailable = (
-  command: Command,
-  ctx: Context,
-  how: Invocation,
-): Option.Option<Effect.Effect<Receipt>> =>
-  Option.map(
-    Option.liftPredicate(command, (c) => c.when(ctx)),
-    (c) => c.run(ctx, how),
-  );

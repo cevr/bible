@@ -25,16 +25,10 @@ import {
 } from 'effect';
 import { Capture, type CaptureOps, CaptureFailed, type Level, MicDenied } from './capture.ts';
 import type { Pcm } from './wav.ts';
-import { PROCESSOR, workletSource } from './worklet.ts';
+import { PROCESSOR, WorkletBlock, workletSource } from './worklet.ts';
 
 /** A block as the worklet posts it, checked at the thread boundary. */
-const Block = Schema.Struct({
-  samples: Schema.instanceOf(Float32Array),
-  peak: Schema.Finite,
-  rms: Schema.Finite,
-  last: Schema.Boolean,
-});
-const decodeBlock = Schema.decodeUnknownOption(Block);
+const decodeBlock = Schema.decodeUnknownOption(WorkletBlock);
 
 /** How long a stop waits for the worklet's last part-block. */
 const FLUSH_WAIT = '1 second';
@@ -125,7 +119,7 @@ const makeBrowserCapture = Effect.gen(function* () {
   let mic = Option.none<OpenMic>();
 
   /** A block from the worklet: the meter's reading, kept after `start`, and a flush's end. */
-  const heard = (open: OpenMic, block: typeof Block.Type) => {
+  const heard = (open: OpenMic, block: WorkletBlock) => {
     if (open.keeping) {
       open.kept.push(block.samples);
       open.frames += block.samples.length;
@@ -155,7 +149,9 @@ const makeBrowserCapture = Effect.gen(function* () {
     Effect.gen(function* () {
       const stream = yield* Effect.acquireRelease(
         Effect.tryPromise({
-          try: () => navigator.mediaDevices.getUserMedia({ audio: audioConstraints(device) }),
+          try: () =>
+            // oxlint-disable-next-line no-restricted-properties -- Capture's live adapter: the microphone
+            navigator.mediaDevices.getUserMedia({ audio: audioConstraints(device) }),
           catch: (error) =>
             MicDenied.make({
               reason: Option.match(Option.filter(Option.some(error), isDomException), {
@@ -182,6 +178,7 @@ const makeBrowserCapture = Effect.gen(function* () {
       const context = yield* Effect.acquireRelease(
         Effect.try({
           try: () =>
+            // oxlint-disable-next-line no-restricted-globals -- Capture's live adapter: the recording's own context
             new AudioContext(
               Option.match(micRate, {
                 onNone: () => ({}),
@@ -227,6 +224,7 @@ const makeBrowserCapture = Effect.gen(function* () {
       // as two channels whatever `channelCount` asked, and the `speakers`
       // down-mix would halve input 1 and add input 2's noise to it. The
       // `discrete` one keeps channel 0, input 1, untouched.
+      // oxlint-disable-next-line no-restricted-globals -- Capture's live adapter: the worklet that takes the samples
       const node = new AudioWorkletNode(context, PROCESSOR, {
         numberOfInputs: 1,
         numberOfOutputs: 0,
@@ -326,6 +324,7 @@ const makeBrowserCapture = Effect.gen(function* () {
   );
 
   const devices: CaptureOps['devices'] = Effect.tryPromise(() =>
+    // oxlint-disable-next-line no-restricted-properties -- Capture's live adapter: the microphones
     navigator.mediaDevices.enumerateDevices(),
   ).pipe(
     Effect.map((all) =>

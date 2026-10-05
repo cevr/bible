@@ -4,8 +4,8 @@
 // in the browser (`film-studio.lab-mode`); a note a link cites shows Note as
 // it lands (only Note shows notes), so the mode never needs the URL. Pure.
 
-import { Effect, Option } from 'effect';
-import { type Command, quiet } from '../command/command.ts';
+import { Option } from 'effect';
+import { type Command, quietly } from '../command/command.ts';
 
 /** The lab's modes, in the tray's order. */
 export const LAB_MODES = ['edit', 'note', 'motion', 'compare', 'record'] as const;
@@ -45,9 +45,5 @@ export const modeCommands = (
     group: 'Modes',
     touch: 'the mode tray',
     when: () => here() !== mode,
-    run: () =>
-      Effect.sync(() => {
-        show(mode);
-        return quiet;
-      }),
+    run: quietly(() => show(mode)),
   }));

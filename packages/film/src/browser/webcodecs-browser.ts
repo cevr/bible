@@ -4,16 +4,21 @@
 // `CanvasSink`, which fell behind the clock in the spike), its key frames
 // from an `EncodedPacketSink` for a scrub's preview, and the heard one's
 // sound from an `AudioBufferSink` scheduled on the page's one sound context
-// (`Media.sound`), kept at most a second ahead. Every pane reads one clock
-// over the page's monotonic time (`media-clock.ts`), so the pair is never
-// apart. Which engine a compare plays on is chosen here from what the
-// browser and the files allow (`media-choice.ts`); `<video>` is the
-// fallback, and a file that will not open falls back too; every input is
-// owned from the moment it is made, so an opening that fails or is cut short
-// lets them all go. Hidden, the panes stand and let their decoders go (the
-// spike's memory was 2.5–4× `<video>`'s); shown, they draw afresh and play on.
+// (`media-browser.ts` `pageSound`), kept at most a second ahead. Every pane
+// reads one clock over the host's monotonic time (`monotonicMs`,
+// `media-clock.ts`), so the pair is never apart. Which engine a compare
+// plays on is chosen here from what the browser and the files allow
+// (`media-choice.ts`), whether the page is a phone's read from the host's
+// `Viewport`; `<video>` is the fallback, and a file that will not open falls
+// back too; every input is owned from the moment it is made, so an opening
+// that fails or is cut short lets them all go. Hidden, the panes stand and
+// let their decoders go (the spike's memory was 2.5–4× `<video>`'s); shown,
+// they draw afresh and play on. The page reaches all of it through `Media`
+// (`compare`): the review page's host is built with `panesMediaLayer`, and
+// every other page's compares play on `<video>`, so no other page loads
+// the decoders.
 
-import { Clock, type Context, Data, Duration, Effect, Exit, Option, Scope } from 'effect';
+import { Context, Data, Duration, Effect, Exit, Layer, Option, Scope } from 'effect';
 import {
   ALL_FORMATS,
   AudioBufferSink,
@@ -34,15 +39,21 @@ import {
   lockstep,
   paneOver,
 } from './frame-pane.ts';
+import { monotonicMs } from './host.ts';
 import { type BrowserCodecs, type Engine, type TrackCodecs, engineFor } from './media-choice.ts';
-import { makeClock, monotonicNow } from './media-clock.ts';
-import { Media } from './media.ts';
+import { makeClock } from './media-clock.ts';
+import { pageAudio, pageSound } from './media-browser.ts';
+import { type Compare, Media, onVideo } from './media.ts';
+import { Viewport } from './viewport.ts';
 
-/** What this browser can decode, and whether it is a phone (a coarse pointer). */
-const browserCodecs = (): BrowserCodecs => ({
+/** A phone or a tablet, as its pointer says: what plays `<video>` until one is measured. */
+const COARSE = '(pointer: coarse)';
+
+/** What this browser can decode, and whether it is a phone (`phone`, the host's `Viewport`'s answer). */
+const browserCodecs = (phone: boolean): BrowserCodecs => ({
   videoDecoder: 'VideoDecoder' in globalThis,
   audioDecoder: 'AudioDecoder' in globalThis,
-  phone: matchMedia('(pointer: coarse)').matches,
+  phone,
 });
 
 /** A render opened for a pane: its input, its tracks, and what they need. */
@@ -138,7 +149,7 @@ export const openRenders = (
   );
 
 /** The engine a compare plays on, the renders opened for it (none on `<video>`), and the letting go of them. */
-export interface Chosen {
+interface Chosen {
   readonly engine: Engine;
   readonly opened: ReadonlyArray<Opened>;
   /** Dispose every input opened for it. */
@@ -146,13 +157,14 @@ export interface Chosen {
 }
 
 /**
- * The engine a compare of the renders at `urls` plays on, and the renders
- * opened for it, their inputs the scope's from the moment each is made.
+ * The engine a compare of the renders at `urls` plays on in a browser with
+ * `browser`'s codecs, and the renders opened for it, their inputs the
+ * scope's from the moment each is made.
  */
-export const chooseEngine = (
+const chooseEngine = (
   urls: ReadonlyArray<string>,
+  browser: BrowserCodecs,
 ): Effect.Effect<Chosen, never, Scope.Scope> => {
-  const browser = browserCodecs();
   // A browser that cannot play the panes opens nothing.
   const early = engineFor(browser, { video: true, audio: 'none', audioDecodable: false });
   if (early.engine === 'video')
@@ -241,8 +253,12 @@ const sourceOf = (opened: Opened, canvas: HTMLCanvasElement): Option.Option<Fram
 /** How far ahead of the clock the sound is scheduled, in seconds. */
 const AHEAD_S = 1;
 
-/** `track`'s sound, scheduled on the page's sound context from a time. */
-const soundOf = (track: InputAudioTrack, host: Context.Context<Media>): AudioOut => {
+/** `track`'s sound, scheduled on the page's sound context (`sound`) from a time, on `host`'s clock. */
+const soundOf = (
+  track: InputAudioTrack,
+  sound: () => Option.Option<AudioContext>,
+  host: Context.Context<never>,
+): AudioOut => {
   const sink = new AudioBufferSink(track);
   let playing = Option.none<() => void>();
   const stop = () => {
@@ -253,7 +269,7 @@ const soundOf = (track: InputAudioTrack, host: Context.Context<Media>): AudioOut
     start: (t) => {
       stop();
       // Asked in the press that plays: the context is made or woken there.
-      Option.map(Effect.runSyncWith(host)(Media.use((media) => media.sound)), (ctx) => {
+      Option.map(sound(), (ctx) => {
         const buffers = sink.buffers(t);
         const nodes = new Set<AudioBufferSourceNode>();
         const startedAt = ctx.currentTime;
@@ -310,30 +326,26 @@ export const standWhileHidden = (
   page.addEventListener('visibilitychange', follow, { signal });
 };
 
-/** The panes of a compare, and the letting go of them all. */
-export interface ComparePanes {
-  readonly panes: ReadonlyArray<Pane>;
-  readonly dispose: () => void;
-}
-
 /**
  * Panes over the renders `chosen` opened, each painted on its canvas (sized
- * to its picture), on one clock, in lockstep, their frames run on the
- * host's `Frames`. The page hidden, every pane stands (silent, its decoder
- * let go); shown, each draws afresh and plays on as it was. `dispose` lets
- * everything go.
+ * to its picture), on one clock over `host`'s monotonic time, in lockstep,
+ * their frames run on `host`'s `Frames`, their sound on `sound`. The page
+ * hidden, every pane stands (silent, its decoder let go); shown, each draws
+ * afresh and plays on as it was. `dispose` lets everything go.
  */
-export const panesOver = (
-  host: Context.Context<Frames | Media>,
+const panesOver = (
+  host: Context.Context<Frames>,
+  sound: () => Option.Option<AudioContext>,
   chosen: Chosen,
   canvases: ReadonlyArray<HTMLCanvasElement>,
-): ComparePanes => {
-  // The page's monotonic time: never the wall clock (set on or back by a sync), nor the
-  // sound context's (held suspended until a press).
-  const clock = makeClock(monotonicNow(Effect.runSync(Clock.clockWith(Effect.succeed))));
+) => {
+  // The host's monotonic time, in seconds: never the wall clock (set on or back by a sync),
+  // nor the sound context's (held suspended until a press).
+  const nowMs = monotonicMs(host);
+  const clock = makeClock(() => nowMs() / 1000);
+  const frames = Context.get(host, Frames);
   const together = lockstep(
-    (step: () => boolean) =>
-      Effect.runCallbackWith(host)(Frames.use((frames) => frames.loop(() => step()))),
+    (step: () => boolean) => Effect.runCallbackWith(host)(frames.loop(() => step())),
     clock,
   );
   const panes = chosen.opened.flatMap((opened, i) =>
@@ -346,7 +358,7 @@ export const panesOver = (
             source,
             clock,
             together,
-            audio: Option.map(opened.audio, (track) => soundOf(track, host)),
+            audio: Option.map(opened.audio, (track) => soundOf(track, sound, host)),
           }),
         );
       }),
@@ -363,3 +375,34 @@ export const panesOver = (
     },
   };
 };
+
+/**
+ * The compares of a page whose host is `host` (its `Viewport` says whether it
+ * is a phone's, its `Frames` run the panes, its `Clock` times them), heard
+ * through `sound`: each chooses its engine for its renders, and draws its
+ * panes over canvases.
+ */
+export const compareOn =
+  (host: Context.Context<Frames | Viewport>, sound: () => Option.Option<AudioContext>) =>
+  (urls: ReadonlyArray<string>): Effect.Effect<Compare, never, Scope.Scope> =>
+    Effect.gen(function* () {
+      const phone = yield* Context.get(host, Viewport).matches(COARSE);
+      const chosen = yield* chooseEngine(urls, browserCodecs(phone));
+      // On `<video>`, nothing was opened, so there is nothing to paint or let go.
+      if (chosen.engine.engine === 'video') return onVideo(chosen.engine.why);
+      const compare: Compare = {
+        engine: chosen.engine,
+        panes: (canvases) => panesOver(host, sound, chosen, canvases),
+      };
+      return compare;
+    });
+
+/**
+ * The review page's media: the page's own (`media-browser.ts`), its
+ * compares on WebCodecs panes where the browser and the files allow.
+ */
+export const panesMediaLayer: Layer.Layer<Media, never, Frames | Viewport> = Layer.unwrap(
+  Effect.map(Effect.context<Frames | Viewport>(), (host) =>
+    Media.layerOver(pageAudio, pageSound, compareOn(host, pageSound)),
+  ),
+);

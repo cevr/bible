@@ -2,12 +2,15 @@
 // none until one is kept, then the text as it was given, on the next page
 // too, and stored as it is (the bytes the pages always wrote). Storage that
 // throws, or that the page may not use, keeps the text while the page lives.
+// A value kept as JSON is its default until kept, then what was kept, on the
+// next page too; what does not decode is the default; a store that refuses
+// keeps it while the page lives.
 
 import { describe, expect, test } from 'bun:test';
-import { Option } from 'effect';
+import { Option, Schema } from 'effect';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import { deniedStorage, memoryStorage, refusingStorage } from './fixtures/storage.ts';
-import { keptText, storeOver } from './storage.ts';
+import { keptJson, keptText, storeOver } from './storage.ts';
 
 /** A page over `storage`: its own store and registry, as each page load has. */
 const page = (storage: () => Storage) => {
@@ -41,6 +44,32 @@ describe('keptText', () => {
       expect(kept.read()).toEqual(Option.none());
       kept.keep('usb-2');
       expect(kept.read()).toEqual(Option.some('usb-2'));
+    }
+  });
+});
+
+describe('keptJson', () => {
+  const Rate = Schema.Struct({ rate: Schema.Finite });
+  const kept = (storage: () => Storage) =>
+    keptJson(storeOver(storage), 'film-rate', Rate, () => ({ rate: 1 }));
+
+  test('the default until kept, then what was kept, on the next page too, as its JSON', () => {
+    const storage = memoryStorage();
+    const first = kept(() => storage);
+    expect(first.get()).toEqual({ rate: 1 });
+    first.set({ rate: 0.5 });
+    expect(first.get()).toEqual({ rate: 0.5 });
+    expect(storage.items.get('film-rate')).toBe('{"rate":0.5}');
+    expect(kept(() => storage).get()).toEqual({ rate: 0.5 });
+    storage.items.set('film-rate', '{"rate":"fast"}');
+    expect(kept(() => storage).get()).toEqual({ rate: 1 });
+  });
+
+  test('a store that refuses, or that the page may not use, keeps it while the page lives', () => {
+    for (const storage of [refusingStorage, deniedStorage]) {
+      const page = kept(storage);
+      page.set({ rate: 0.25 });
+      expect(page.get()).toEqual({ rate: 0.25 });
     }
   });
 });

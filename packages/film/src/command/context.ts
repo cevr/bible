@@ -1,17 +1,14 @@
 // The input every command's `when` reads: a typed record of where the page
 // is and what it holds, built from the page's URL (its `Places` place and
 // the selection the URL names, `selection.ts`) and from the page's shell
-// (what is selected that the URL does not hold, the lab's mode, where the
-// keyboard's focus is, whether the film plays). VS Code's context keys,
+// (what is selected that the URL does not hold, where the keyboard's focus
+// is, whether the film plays). VS Code's context keys,
 // reshaped: one record the typecheck sees, read by plain predicates, not a
 // string language. Pure.
 
 import { Match, Option } from 'effect';
 import type { PageName } from '../core/api.ts';
 import type { Selection, SelectionTag } from './selection.ts';
-
-/** The lab's modes, one at a time (the mode tray). */
-type LabMode = 'edit' | 'note' | 'motion' | 'compare' | 'record';
 
 /**
  * Where the keyboard's focus is: on the page; in a control that takes its
@@ -31,7 +28,6 @@ export interface Context {
   readonly href: string;
   /** What is selected, first the one the URL cites; a multi-select is the whole list. */
   readonly selection: ReadonlyArray<Selection>;
-  readonly mode: Option.Option<LabMode>;
   readonly focus: Focus;
   readonly playing: boolean;
 }
@@ -41,7 +37,6 @@ export const contextAt = (page: PageName, href: string): Context => ({
   page,
   href,
   selection: [],
-  mode: Option.none(),
   focus: 'page',
   playing: false,
 });

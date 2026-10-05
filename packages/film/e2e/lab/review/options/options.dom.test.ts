@@ -895,7 +895,9 @@ describe("a film's choices", () => {
         yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
         yield* receiptSays(page, 'Undid sound paper.page keep bbbbbbbbbbbb');
         yield* textIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 'Redo');
+        // Sent with its request's id, by which the lab's check says whether a lost answer landed.
         expect(posted(asked, '/api/films/toy/undo')).toEqual({
+          request: expect.any(String),
           change: changeOf('sound paper.page keep bbbbbbbbbbbb'),
         });
         yield* openCommandMenu(page, 'undo');
@@ -948,7 +950,7 @@ describe("a film's choices", () => {
           'cannot undo that change: level:const:PAPER -20 came after it: undo that first',
         );
         expect(undone().map((a) => a.body)).toEqual([
-          Option.some({ change: changeOf('score play piano') }),
+          Option.some({ request: expect.any(String), change: changeOf('score play piano') }),
         ]);
         yield* countIs(page, `${at('score', 'piano')} .rv-picked`, 1);
         expect(errors).toEqual([]);
@@ -1081,7 +1083,10 @@ describe("a film's choices", () => {
         yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
         yield* receiptSays(page, 'Undid score play piano in sound.ts');
         expect(undone().map((a) => [a.path, a.body])).toEqual([
-          ['/api/films/toy/undo', Option.some({ change: changeOf('score play piano') })],
+          [
+            '/api/films/toy/undo',
+            Option.some({ request: expect.any(String), change: changeOf('score play piano') }),
+          ],
         ]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -1729,6 +1734,12 @@ describe("a film's choices", () => {
       const { page, asked, errors } = yield* openReview(fakeFilm(), { href: FILM });
       const field = '[data-knob="level:const:PAPER"] .lab-num';
       yield* valueIs(page, field, '-24');
+      // The kit's number field, styled where the kit is (`page-shell-style.ts`): its width and its hit height.
+      yield* evaluates(
+        page,
+        `(() => { const s = getComputedStyle(document.querySelector('${field}')); return [s.width, s.minHeight === getComputedStyle(document.documentElement).getPropertyValue('--hit').trim()].join(' '); })()`,
+        '80px true',
+      );
       yield* page.fill(field, '-24+4');
       yield* page.press('Enter');
       yield* receiptSays(page, 'level:const:PAPER: -24 → -20 dB');

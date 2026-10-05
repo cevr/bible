@@ -13,8 +13,22 @@ import type { PartAddress } from '../../../core/address.ts';
 import type { ProjectView, Say, Steps } from '../../../core/api.ts';
 import type { ChoiceVerb, ChoiceWrite, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { ReviewFilms } from '../../../core/review.ts';
-import type { CheckLine, CheckReport, LabWrite, PageBuild } from '../../../core/schema.ts';
-import { LabClient, type LabFailure, called } from '../../api.ts';
+import type {
+  ChangeId,
+  CheckLine,
+  CheckReport,
+  LabWrite,
+  PageBuild,
+} from '../../../core/schema.ts';
+import {
+  LabClient,
+  type LabFailure,
+  LabUnreachable,
+  type StepVerb,
+  called,
+  landedStep,
+  stepRequest,
+} from '../../api.ts';
 
 /** What a page asks of a film: a verb on a variant, a knob set, a say on a variant, a step back or on. */
 export type ChoiceAct = Data.TaggedEnum<{
@@ -28,8 +42,8 @@ export type ChoiceAct = Data.TaggedEnum<{
   Knob: { readonly point: string; readonly value: number };
   Say: { readonly point: string; readonly variant: string; readonly say: Say };
   /** A step back or on: of one change (a receipt's, by its id), or of the newest with none. */
-  Undo: { readonly change: Option.Option<string> };
-  Redo: { readonly change: Option.Option<string> };
+  Undo: { readonly change: Option.Option<ChangeId> };
+  Redo: { readonly change: Option.Option<ChangeId> };
 }>;
 export const ChoiceAct = Data.taggedEnum<ChoiceAct>();
 
@@ -64,7 +78,7 @@ export interface Wrote {
   readonly act: ChoiceAct;
   readonly target: string;
   readonly file: string;
-  readonly change: Option.Option<string>;
+  readonly change: Option.Option<ChangeId>;
   readonly findings: Option.Option<ReadonlyArray<CheckLine>>;
   readonly choices: Option.Option<FilmChoices>;
   readonly mixed: Option.Option<PageBuild>;
@@ -99,13 +113,43 @@ export class OptionsApi extends Context.Service<OptionsApi, OptionsCalls>()(
   '@bible/film/lab/OptionsApi',
 ) {}
 
-/** An Undo's or a Redo's body: the one change it steps (a receipt's), or `{}` for the newest. */
-const stepAsk = (change: Option.Option<string>) =>
+/** An Undo's or a Redo's change: the one it steps (a receipt's), or none for the newest. */
+const stepAsk = (change: Option.Option<ChangeId>) =>
   Option.match(change, { onNone: () => ({}), onSome: (c) => ({ change: c }) });
 
 /** A film's choice and project routes, over the page's one client. */
 const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
   const client = yield* LabClient;
+  /**
+   * An undo or a redo on `film` of `change` (the newest with none), sent with
+   * an id unique to its request: when its answer is lost on the way back, the
+   * lab's check says by that id whether it landed (`landedStep`), and it is
+   * said as landed, or as unreachable with no record of it. Never guessed at.
+   */
+  const step = (film: string, verb: StepVerb, change: Option.Option<ChangeId>) =>
+    Effect.gen(function* () {
+      const request = yield* stepRequest;
+      return yield* called(
+        client.steps[verb]({ params: { film }, payload: { request, ...stepAsk(change) } }),
+      ).pipe(
+        Effect.catchTag('LabUnreachable', (lost) =>
+          called(client.steps.check({ params: { film } })).pipe(
+            Effect.mapError(() =>
+              LabUnreachable.make({
+                message: `${lost.message}, nor did the lab's check answer to say whether that ${verb} landed: see the lab log before stepping again`,
+              }),
+            ),
+            Effect.flatMap((report) =>
+              Effect.mapError(Effect.fromOption(landedStep(report, request)), () =>
+                LabUnreachable.make({
+                  message: `${lost.message}, and the lab has no record of that ${verb}: it did not land, or is still landing; see the lab log before stepping again`,
+                }),
+              ),
+            ),
+          ),
+        ),
+      );
+    });
   /** A pick or a knob: the change, the choices it leaves, the check after it, and its mix. */
   const picked =
     (act: ChoiceAct) =>
@@ -185,16 +229,8 @@ const makeOptionsApi = Effect.fn('lab.options.api')(function* () {
                 }),
                 said(act, sayTarget(s.say, `${s.point} ${s.variant}`)),
               ),
-            Undo: (u) =>
-              Effect.map(
-                client.steps.undo({ params: { film }, payload: stepAsk(u.change) }),
-                stepped(act),
-              ),
-            Redo: (r) =>
-              Effect.map(
-                client.steps.redo({ params: { film }, payload: stepAsk(r.change) }),
-                stepped(act),
-              ),
+            Undo: (u) => Effect.map(step(film, 'undo', u.change), stepped(act)),
+            Redo: (r) => Effect.map(step(film, 'redo', r.change), stepped(act)),
           }),
         ),
       ),

@@ -7,10 +7,9 @@
 // it; none reads the recorder's states. An import that settles (a take kept,
 // or refused with an attempt saved) reads the beats and the attempts again.
 
-import { useAtomRefresh, useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
-import { Loading, Show } from '@solidjs/web';
+import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { Show } from '@solidjs/web';
 import { Cause, Effect, Equal, Layer, Option, Stream } from 'effect';
-import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -31,6 +30,7 @@ import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
 import { type BrowserServices, addressOn, hostLayer } from '../../browser/host.ts';
 import { beatAt, labHrefWith } from '../place.ts';
 import type { LabFailure } from '../api.ts';
+import { Actor } from '../actor.tsx';
 import { useLab } from '../shell.tsx';
 import { type Stage, stageLayer } from '../stage.ts';
 import { StudioApi, studioApiLayer } from './api.ts';
@@ -42,13 +42,14 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import {
   type Act,
   type Control,
+  type ControlCommand,
   type Meter,
   atRest,
   attemptLine,
   beatCounts,
+  controlFor,
   controlsOf,
   eventOf,
-  keyOf,
   meterOf,
   micOptions,
   type MicOption,
@@ -56,6 +57,7 @@ import {
   neighbour,
   reviewWav,
   statusOf,
+  stepsBeats,
   unsubmitted,
 } from './view.ts';
 
@@ -116,10 +118,12 @@ interface StudioActions {
   /** Keep an earlier attempt as the beat's take. */
   readonly keep: (file: string) => void;
   readonly pick: (device: Option.Option<string>) => void;
-  /** A key pressed in the studio: whether it was the studio's (and so done here). */
-  readonly press: (key: string) => boolean;
-  /** Whether `key` has something to do in the recorder's state now (`keyOf`, `view.ts`). */
-  readonly canPress: (key: string) => boolean;
+  /** The control `command` presses now, if it presses one (`controlFor`, `view.ts`). */
+  readonly control: (command: ControlCommand) => Option.Option<Control>;
+  /** Whether ←/→ step through the beats now. */
+  readonly stepsBeats: () => boolean;
+  /** Select the beat `by` places on (1 the next, -1 the previous): a step Back does not walk. */
+  readonly step: (by: 1 | -1) => void;
   /** Focus came into the studio, or left it. */
   readonly focused: (inside: boolean) => void;
 }
@@ -334,17 +338,11 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     perform,
     keep: (file) => send(RecorderEvent.KeepAttempt({ file })),
     pick: (next) => choose(Option.getOrElse(next, () => '')),
-    press: (key) =>
-      Option.match(keyOf(recorder(), key), {
-        onNone: () => false,
-        onSome: (k) => {
-          if (k._tag === 'Act') perform(k.act);
-          if (k._tag === 'Beat')
-            Option.map(neighbour(beats(), beat(), k.step), (id) => select(id, 'follow'));
-          return true;
-        },
-      }),
-    canPress: (key) => Option.exists(keyOf(recorder(), key), (k) => k._tag !== 'None'),
+    control: (command) => controlFor(recorder(), command),
+    stepsBeats: () => stepsBeats(recorder()),
+    step: (by) => {
+      Option.map(neighbour(beats(), beat(), by), (id) => select(id, 'follow'));
+    },
     focused: setFocused,
   };
 
@@ -387,22 +385,6 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     actions,
   };
   return <StudioContext value={value}>{props.children}</StudioContext>;
-};
-
-/** The recorder on `beat`, once it is spawned. */
-const Recorder = (props: ParentProps<{ readonly beat: string; readonly reads: Reads }>) => {
-  const actor = useAtomSuspense(() =>
-    props.reads.runtime.atom(Machine.scoped(spawnRecorder(props.beat))),
-  );
-  return (
-    <Show when={actor()} keyed>
-      {(a: RecorderActor) => (
-        <Body actor={a} reads={props.reads}>
-          {props.children}
-        </Body>
-      )}
-    </Show>
-  );
 };
 
 /** `beat`, while the server lists it. */
@@ -457,11 +439,13 @@ export const Provider = (props: ParentProps) => {
   return (
     <Show when={start()} keyed fallback={<p class="studio-waiting">{waitingText(beats())}</p>}>
       {(beat: string) => (
-        <Loading>
-          <Recorder beat={beat} reads={reads}>
-            {props.children}
-          </Recorder>
-        </Loading>
+        <Actor runtime={runtime} spawn={spawnRecorder(beat)}>
+          {(actor) => (
+            <Body actor={actor} reads={reads}>
+              {props.children}
+            </Body>
+          )}
+        </Actor>
       )}
     </Show>
   );

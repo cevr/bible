@@ -12,17 +12,17 @@
 
 import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
-import { Effect, Option } from 'effect';
+import { Option } from 'effect';
 import { createMemo, createSignal, onCleanup } from 'solid-js';
-import { type Command, quiet } from '../../command/command.ts';
+import { quietly } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { type MenuRow, menuRows, rowKey } from '../../command/menu.ts';
 import { EVERYWHERE } from '../../command/target.ts';
-import { hubChanges, hubKeys } from './changes.ts';
+import { deferredRun, hubChanges, hubKeys } from './changes.ts';
 
 /** The command that opens and closes the menu: it is not listed in itself. */
-const OPEN = 'app.command-menu';
+export const COMMAND_MENU = 'app.command-menu';
 
 /** The command that opens it to go somewhere by name (`/`): not listed in it either. */
 export const GO_TO_COMMAND = 'app.go-to';
@@ -33,37 +33,33 @@ const PSEUDO = { true: 'true', false: 'false' } as const;
 export const CommandMenu = (props: { readonly hub: Hub }) => {
   const hub = props.hub;
   const keys = hubKeys(hub);
-  /** The keys bound to `command` now, as the page's keyboard writes them. */
-  const keysText = (command: Command): string => keys.bound(command.id).map(keys.label).join(' ');
   const [open, setOpen] = createSignal(false, { ownedWrite: true });
   const [query, setQuery] = createSignal('');
   const [at, setAt] = createSignal(0);
-  const [opened, setOpened] = createSignal<Context>(hub.context());
-  let chosen = Option.none<MenuRow>();
+  const run = deferredRun(hub, 'palette');
   const changes = hubChanges(hub);
 
   const rows = createMemo(() => {
     changes();
-    const ctx = opened();
+    const ctx = run.opened();
     return menuRows(
-      hub.commands.available(ctx).filter((c) => c.id !== OPEN && c.id !== GO_TO_COMMAND),
+      hub.commands.available(ctx).filter((c) => c.id !== COMMAND_MENU && c.id !== GO_TO_COMMAND),
       ctx,
       query(),
     );
   });
 
   const show = (ctx: Context) => {
-    setOpened({ ...ctx, focus: 'page' });
+    run.open({ ...ctx, focus: 'page' });
     setQuery('');
     setAt(0);
-    chosen = Option.none();
     setOpen(true);
   };
 
   onCleanup(
     hub.commands.register(
       {
-        id: OPEN,
+        id: COMMAND_MENU,
         label: 'Command menu',
         group: 'Help',
         keys: ['mod+k'],
@@ -71,12 +67,10 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
         about: EVERYWHERE,
         touch: 'long-press a cue, a card or a note, then Command menu',
         when: () => true,
-        run: (ctx) =>
-          Effect.sync(() => {
-            if (open()) setOpen(false);
-            else show(ctx);
-            return quiet;
-          }),
+        run: quietly((ctx) => {
+          if (open()) setOpen(false);
+          else show(ctx);
+        }),
       },
       {
         // `/` opens the same menu to type a name in (AA-2): its Go to entries
@@ -87,17 +81,13 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
         keys: ['/'],
         touch: 'the command menu, then type a name',
         when: () => !open(),
-        run: (ctx) =>
-          Effect.sync(() => {
-            show(ctx);
-            return quiet;
-          }),
+        run: quietly((ctx) => show(ctx)),
       },
     ),
   );
 
   const choose = (row: MenuRow) => {
-    chosen = Option.some(row);
+    run.choose(row);
     setOpen(false);
   };
 
@@ -115,10 +105,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
       open={open()}
       onOpenChange={(next) => setOpen(next)}
       onOpenChangeComplete={(isOpen) => {
-        if (isOpen) return;
-        const row = chosen;
-        chosen = Option.none();
-        Option.map(row, (r) => hub.invoke(r.command, { step: 'normal', via: 'palette' }, opened()));
+        if (!isOpen) run.closed();
       }}
     >
       <Dialog.Portal>
@@ -153,7 +140,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
                 >
                   <span class="lab-command-label">{row().label}</span>
                   <span class="lab-command-group">{row().command.group}</span>
-                  <kbd>{keysText(row().command)}</kbd>
+                  <kbd>{keys.text(row().command.id)}</kbd>
                 </div>
               )}
             </For>

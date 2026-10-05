@@ -1,5 +1,5 @@
 // Motion's section of the panel and its onion layer. The section sets the
-// onion skin (on, how many frames either side, how many frames apart), the
+// onion skin (on, through its command; how many frames either side, how many frames apart), the
 // speed and the loop, each one chip opening its commands (the rate chip:
 // ¼×, ½×, 1×; the loop chip: the selected cue, this scene, the in and out
 // points, off; `commands.ts`); the layer paints the
@@ -12,9 +12,11 @@ import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
 import { ONION_SCALE, makeOnion } from '../../player/onion.ts';
 import { RATES } from '../view-state.ts';
-import { rateId, rateText } from '../../player/transport.ts';
+import { rateId, rateText, rateTitle } from '../../player/transport.ts';
+import { hubKeys } from '../command/changes.ts';
 import { CommandChip } from '../command/command-chip.tsx';
-import { LOOP_IDS } from './commands.ts';
+import { BY_BUTTON } from '../../command/command.ts';
+import { LOOP_IDS, ONION } from './commands.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useMotion } from './context.tsx';
 
@@ -57,8 +59,10 @@ const SpreadField = (props: SpreadFieldProps) => {
 
 /** The onion, the speed and the loop, in Motion's section of the page's panel. */
 export const Section = () => {
-  const { state, actions } = useMotion();
+  const { state } = useMotion();
   const { meta } = useLab();
+  // The chips name their keys as bound now: a rebound key reads as rebound.
+  const keys = hubKeys(meta.hub);
   return (
     <>
       <Lab.Fill at="motion-head">
@@ -71,8 +75,8 @@ export const Section = () => {
             data-act="onion"
             class="sh-btn"
             aria-pressed={`${state.onion().on}`}
-            title="ghost the frames around this one: warm before, cool after"
-            onClick={() => actions.setOnion({ on: !state.onion().on })}
+            title={keys.titled('ghost the frames around this one: warm before, cool after', ONION)}
+            onClick={() => meta.hub.invokeId(ONION, BY_BUTTON)}
           >
             Onion
           </button>
@@ -89,7 +93,7 @@ export const Section = () => {
             ids={RATES.map(rateId)}
             act="rate"
             class="sh-btn"
-            title="The speed: play slower (J), faster (L), or at 1× (K)"
+            title={rateTitle(keys.titled)}
           >
             <span data-rate={String(state.rate())}>{rateText(state.rate())}</span>
           </CommandChip>
@@ -98,7 +102,7 @@ export const Section = () => {
             ids={LOOP_IDS}
             act="loop"
             class="sh-btn"
-            title="Loop the selected cue (⇧L), this scene, or in (I) to out (O)"
+            title={`Loop ${keys.titled('the selected cue', 'motion.loop-cue')}, this scene, or ${keys.titled('in', 'motion.in')} to ${keys.titled('out', 'motion.out')}`}
           >
             Loop…
           </CommandChip>

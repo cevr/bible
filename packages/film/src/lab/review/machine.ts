@@ -13,9 +13,7 @@
 //
 //   All | Pair | Wipe | Moments | Diff | Notes ─ViewChosen→ any (Pair, Wipe, Diff only with a second version)
 //   Pair | Wipe | Diff ─OtherChosen→ the same, against that other
-//   Moments | Diff ─MomentChosen | MomentStepped→ the same, at that moment| Pair | Moments | Notes ─ViewChosen→ any (Pair only with a second version)
-//   Pair ─OtherChosen→ Pair
-//   Moments ─MomentChosen | MomentStepped→ Moments
+//   Moments | Diff ─MomentChosen | MomentStepped→ the same, at that moment
 //
 // Events are facts (a button pressed, the clock moved on, a video stalled);
 // the driver (`sync.ts`) makes the videos do what each state says. A seek (a

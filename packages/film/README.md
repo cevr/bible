@@ -886,7 +886,9 @@ track are read at load, so no rebuild would). The editor waits for such a
 step as long as the studio waits for a keep (`STUDIO_IMPORT_WAIT_S`); with
 no answer even then it reads `GET …/check`, whose `landed` the step is
 recorded in, under the id its request carried, before it remixes, and says
-whether it landed. Undo and Redo are stepped back and on only with the
+whether it landed. Choices and Project send their Undo and Redo with an id
+too, and an answer lost on the way back is read from the same `landed`
+(`landedStep`, `lab/api.ts`). Undo and Redo are stepped back and on only with the
 timings' takes brought back as the very files they name: a take's copy is
 picked by the hash of its audio its name carries, and a name from before
 takes were named by their audio, whose copies differ, is refused
@@ -1016,15 +1018,18 @@ cites its Choices link (`?point=`); a part's render, an act and the film
 cite their project sheets (`?point=render:…`), read back by the one reader
 the page reads them with too (`selectionOf`, `projectPartOf`); a thing cited
 from its own page (another version of the set, another card of the film's
-Choices or project) keeps how the page shows it and when. Their look is one
-set of CSS custom properties (`COMMAND_TOKENS` in `src/lab/command/style.ts`,
-each the studio's token for its role, `player/tokens.css`); the rules read
-only those. The Play and Scenes pages are the shell's too
+Choices or project) keeps how the page shows it and when. Their rules
+(`src/lab/command/style.ts`) read the studio's tokens (`player/tokens.css`)
+directly; `COMMAND_TOKENS` names only what no studio token holds: the
+paddings and heights the surfaces compose, and their own widths, heights and
+layer. The Play and Scenes pages are the shell's too
 (`lab/play-mount.tsx`), so `?` is the keys sheet on every page, the one
-place the keys are listed (UR2-11). The lab bar's legend (what the stripes
-and the ticks mean) is hidden at rest (UR-114, `legendCommand`, no key):
-⌘K or the page's long-press menu shows it (Show the legend). Play has no
-legend of its own: the ticks' shows with the ticks (⋯ → Show the ticks).
+place the keys are listed (UR2-11): every command a key is bound to, one
+found only by typing too. The lab bar's legend (what the stripes and the
+ticks mean, `BAR_LEGEND`) is hidden at rest (UR-114, `legendCommand`, no
+key): ⌘K or the page's long-press menu shows it (Show the legend), and on a
+film's page the `?` sheet ends on it. Play has no bar legend of its own:
+the ticks' shows with the ticks (⋯ → Show the ticks).
 The lab's transport reads in the scene's time and length while the header
 keeps the film's, and on a laptop Play's one timecode is the header's
 (SU-12); the lab's captions are the view menu's and `c`, Play's its bar's
@@ -1129,7 +1134,11 @@ refused. A receipt that can be undone carries the command that undoes it as
 its button: Undo for a write, Redo for an Undo, Undo for a Redo (the
 editor's `Written` state names it, read from its step flow), bound to the
 change its write made (`Bound`: the film, and the change by the id the
-lab's history gives it, `HistoryStep.change`). A bound receipt's button acts
+lab's history gives it, `HistoryStep.change`; an approve's, by its run's op
+and the scenes it gave one to, `Project.gave`). Each kind of id is its own
+brand (`ChangeId`, `RequestId`, `OpId`), made by `uniqueId(<brand>)` or
+decoded where it arrives, so a target's words, a time or another kind's id
+in its place is a type error (`lab/identity.types.ts`). A bound receipt's button acts
 on that change alone: its command says whether it can (`Command.fits`;
 Undo and Redo through `stepWhyNot`) and sends the change's id with the step
 (`{change}`), which the lab steps only while it is the newest that way,
@@ -1173,7 +1182,11 @@ owner, `lab/review/options/receipt.ts` `undoApprove`) withdraws exactly the appr
 
 `.oxlintrc.json` refuses a raw `keydown`, `keyup`, `keypress` or
 `contextmenu` listener (`film/keys-through-keymap`) outside the adapters and
-`src/lab/command/`: a key is a binding in the hub.
+`src/lab/command/`: a key is a binding in the hub. It also refuses a title
+written with a key in brackets, and a read of the keymap (`keysOf`) outside
+its followers (`film/keys-named-as-bound`): a title names its key as bound
+now, through `hubKeys` in Solid or `titledNow` on `Hub.subscribe` outside it,
+so a key rebound in `?` reads as rebound.
 
 **Terms**, as editing software uses them:
 
@@ -2007,7 +2020,10 @@ own names, and the stored and wire words stay as they are.
   those keys); where it sits is the page's, not the
   link's, since a different split shows the same comparison. Where the
   browser can, the two play as **WebCodecs panes** (`browser/frame-pane.ts`
-  over mediabunny in `browser/webcodecs-browser.ts`): each master decoded to
+  over mediabunny in `browser/webcodecs-browser.ts`, reached through
+  `Media.compare`; only this page's host is built with them,
+  `BrowserHost.withMedia(panesMediaLayer)`, so no other page loads the
+  decoders): each master decoded to
   a canvas, both read from one monotonic clock (`media-clock.ts`) and drawn
   in lockstep (each frame, both show the frame their time asks for or
   neither moves on, so a slow decoder holds the pair), so they are frame
@@ -2752,15 +2768,19 @@ inert, answering as a phone held upright (`Viewport.layerPhone`). `browser/` is
 framework-free, so the player may import it. Per-viewer settings go through
 Effect's `KeyValueStore` (`browser/storage.ts`): `TabStore` over the tab's
 session (the lab's view, `film-lab-view:<film>`, and the receipts,
-`film-receipts`, each an `Atom.kvs` of its JSON) and `ViewerStore` over
-local storage (the keymap, `film-keymap`, an `Atom.kvs`; `film-lab-mic`,
+`film-receipts`, each a `keptJson`) and `ViewerStore` over
+local storage (the keymap, `film-keymap`, a `keptJson`; `film-lab-mic`,
 `film-review.quality` and the `film-studio.*` conveniences, each a
 `keptText` stored as plain text), each a store
 in memory when the page may not use its storage. Every drag (the
 player's track, the strip's scrub and its cue bars, a knob's handle, the
-wipe's divider, a note's mark) follows its press through `Pointer.drag`
+wipe's divider, a note's mark) follows its press through `Pointer`
 (`browser/pointer.ts`), which ends it once: lifted, or ended by the browser
-(`pointercancel`, `lostpointercapture`). Every key goes through one listener
+(`pointercancel`, `lostpointercapture`). A surface (the strip, the notes,
+the editor's grips, a divider, the blink, the tape) follows one press at a
+time (`Pointer.press`): a second finger's press on it does nothing. The
+lint refuses a press's end heard, or its capture taken, anywhere else
+(`film/host-events-through-adapter`). Every key goes through one listener
 per page, the hub's (Commands and keys, above), over `Keys.listen`
 (`browser/keys.ts`), which hands each press with its key, its physical code
 and its target, and drops one already handled or still composing. Every
@@ -2770,19 +2790,20 @@ the compare and onion paints) goes through `Frames` (`browser/frames.ts`):
 frame. Every time read goes through Effect's `Clock` on the host
 (`monotonicMs`, `timersOn` in `player/throttle.ts`), so a test's clock
 reaches it. Every media element is driven through a `Playable` (`browser/media.ts`;
-`playableOf` in `media-browser.ts` makes one of a `<video>` or an
+`playableOf` makes one of a `<video>` or an
 `<audio>`): time is read from it, a seek is done once its frame is shown,
 play and pause are effects. `Media` says what a refused play means
 (`Blocked`, `Aborted`, `Failed`), plays muted when the browser refuses
-sound (`playOrMute`, the review's players), and makes the narration's audio.
+sound (`playOrMute`, the review's players), makes the narration's audio,
+and says which engine a compare plays on (`compare`: WebCodecs panes, or
+`<video>` and why), its clock the host's `monotonicMs`.
 Every copy goes through `Clipboard` (`browser/clipboard.ts`; the browser's in
 `clipboard-browser.ts`): a link written whole, against the page's origin, and
 a refusal (`ClipboardRefused`) in the browser's words.
 A page's media queries go through `Viewport` (`browser/viewport.ts`;
 `useMatches` in a component), whose live adapter is the window's
-`matchMedia`. One adapter still asks the window itself: the WebCodecs
-player's `(pointer: coarse)` capability probe (`browser/webcodecs-browser.ts`),
-which the lint allows an adapter, so `Viewport` is not yet the only reader.
+`matchMedia`, and the only reader of it: the WebCodecs player's
+`(pointer: coarse)` probe asks the host's `Viewport` too.
 Every request goes through Effect's `HttpClient`: a page's calls through its
 one `LabClient`, built once at its root (the review's routes and its
 choices' share it; on the server, `LabClient.layerRendering`, whose reads
@@ -2792,15 +2813,23 @@ the browser to adopt), and a film's timings through `loadNarrated`
 given). Every link to a review place is the one `Go` (`review/context.tsx`):
 a plain click goes there in the page, a modified click is the browser's.
 
-The lint holds the host to its adapters in the lab, the player, `browser/`
-and the app's page entries (`.oxlintrc.json`): `no-restricted-globals` and
+The lint holds the host to its adapters in the lab, the player, `browser/`,
+`command/` and the app's page entries (`.oxlintrc.json`): `no-restricted-globals` and
 `no-restricted-properties` refuse the host's storage, frames, requests,
 media and recording, media queries (`Viewport`), timers, clock and URL, bare or through `window`/`globalThis`/`self`,
-each naming the service that owns it; `film/host-events-through-adapter`
+each naming the service that owns it, and every chain of the global object
+to itself (`globalThis.window`, `window.top`, `parent`, `document.defaultView`),
+so no chain reaches a name past its ban; `effect/noReflectGet` refuses
+`Reflect.get(window, …)`; `film/host-events-through-adapter`
 (`lint/`) refuses a window or document listener for a navigation, key or
-drag event; `effect/noGlobals` holds in the player as everywhere. The live
-adapters (`*-browser.ts`), fixtures and tests are the host's side and
-exempt. The address bar is `Location`'s alone (`@bible/url-state`'s
+drag event; `effect/noGlobals` holds in the player as everywhere. The
+fixtures and tests are the host's side and exempt; a live adapter
+(`*-browser.ts`) is not: each line where it reaches the one host API it
+adapts says so (`oxlint-disable-next-line`, with why), so an adapter that
+reaches another's API is red as a page is. No page imports a live adapter's
+module (`no-restricted-imports`): only a page's mount builds the host
+(`BrowserHost`), the two stores are `storage-browser.ts`'s, and the review's
+and the studio's mounts build theirs with an adapter of their own. The address bar is `Location`'s alone (`@bible/url-state`'s
 `location-browser.ts`): no film file reads or writes the URL directly.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
