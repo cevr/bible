@@ -9,7 +9,7 @@
 
 import { useAtomRefresh, useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Cause, Effect, Equal, Layer, Option, Stream } from 'effect';
+import { Cause, Effect, Equal, Option, Stream } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -28,14 +28,13 @@ import * as UrlAtom from '@bible/url-state/atom';
 import { said } from '../../command/command.ts';
 import { attemptUrl } from '../../core/api.ts';
 import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
-import { type BrowserServices, addressOn, hostLayer } from '../../browser/host.ts';
+import { type BrowserServices, addressOn } from '../../browser/host.ts';
 import { beatAt, labHrefWith } from '../place.ts';
 import type { LabFailure } from '../api.ts';
 import { useLab } from '../shell.tsx';
-import { type Stage, stageLayer } from '../stage.ts';
-import { StudioApi, studioApiLayer } from './api.ts';
+import type { Stage } from '../stage.ts';
+import { StudioApi } from './api.ts';
 import { Capture } from './capture.ts';
-import { browserCaptureLayer } from './capture-browser.ts';
 import { RecorderEvent, type RecorderActor, spawnRecorder } from './machine.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
@@ -438,14 +437,8 @@ const waitingText = (beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>) =>
  */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
-  const runtime: StudioRuntime = Atom.runtime(
-    Layer.mergeAll(
-      stageLayer(meta.stage),
-      studioApiLayer(meta.name),
-      browserCaptureLayer,
-      hostLayer(meta.host),
-    ).pipe(Layer.provide(meta.clientLayer)),
-  );
+  // The panels' runtime: the studio's API and the microphone are among its services.
+  const runtime: StudioRuntime = meta.runtime;
   const reads: Reads = {
     runtime,
     beats: runtime.atom(StudioApi.use((api) => api.beats)),
