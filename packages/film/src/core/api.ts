@@ -302,14 +302,23 @@ export type Steps = typeof Steps.Type;
 /**
  * What the owner says of a variant, a scene's render, an act or the film:
  * approve it as it is now, withdraw every approval of it, or comment on it.
- * The one say both the choices and the project take.
+ * A withdraw `given` an approval's moment (an approve's `Project.gave`)
+ * withdraws only the approvals given then: the exact undo of that approve,
+ * leaving another's (given at another moment) alone. The one say both the
+ * choices and the project take.
  */
 export const Say = Schema.Union([
   Schema.TaggedStruct('Approve', {}),
-  Schema.TaggedStruct('Withdraw', {}),
+  Schema.TaggedStruct('Withdraw', { given: Schema.OptionFromOptionalKey(Schema.Finite) }),
   Schema.TaggedStruct('Comment', { text: Schema.String.check(Schema.isNonEmpty()) }),
 ]).pipe(Schema.toTaggedUnion('_tag'));
 export type Say = typeof Say.Type;
+
+/** A withdraw: of every approval, or `given` a moment, of the approvals given then alone. */
+export const withdrawSay = (given: Option.Option<number> = Option.none()): Say => ({
+  _tag: 'Withdraw',
+  given,
+});
 
 /** `POST /api/films/<film>/choices/say`: a say on one variant of one point, as it is now. */
 export const SayPost = Schema.Struct({ point: Schema.String, variant: Schema.String, say: Say });

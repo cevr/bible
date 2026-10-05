@@ -33,6 +33,7 @@ const VIEW: ProjectView = {
     comments: [],
     acts: [{ name: 'open', scenes: ['one', 'two'], key: 'k', comments: [] }],
     scenes: [scene('one', 'stale'), scene('two', 'current', 'approved'), scene('three', 'missing')],
+    gave: Option.none(),
   },
   folder: Option.none(),
   videos: {},

@@ -39,8 +39,9 @@ import {
 } from 'solid-js';
 import { type Address, type PartAddress, addressKey, sceneAddress } from '../../../core/address.ts';
 import * as UrlAtom from '@bible/url-state/atom';
-import { Places, type ProjectView, pageHref } from '../../../core/api.ts';
+import { Places, type ProjectView, pageHref, withdrawSay } from '../../../core/api.ts';
 import {
+  type Gave,
   type ProjectAct as Act,
   type ProjectScene,
   type SaidComment,
@@ -555,7 +556,7 @@ const PartUnapprove = (props: {
       class="rv-chip"
       data-act={`unapprove-${props.part}`}
       disabled={withdrawing.waiting()}
-      onClick={() => withdrawing.say({ address: props.address, say: { _tag: 'Withdraw' } })}
+      onClick={() => withdrawing.say({ address: props.address, say: withdrawSay() })}
     >
       {PART_WORDS[props.part].unapprove}
     </button>
@@ -600,7 +601,7 @@ const partVerbs = (props: PartProps, saying: ProjectSayer): ReadonlyArray<ThingV
   const unapprove: ThingVerb = {
     id: 'unapprove',
     label: PART_WORDS[props.part].unapprove,
-    run: () => saying.say({ address: props.address, say: { _tag: 'Withdraw' } }),
+    run: () => saying.say({ address: props.address, say: withdrawSay() }),
   };
   return [
     ...[approve].filter(() => free && leftToApprove(props.scenes)),
@@ -811,20 +812,29 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
 const staleSinceRead = (failure: Option.Option<LabFailure>): boolean =>
   Option.exists(failure, (e) => e._tag === 'VerbRefused');
 
-/** The command an approve's receipt offers as its Undo: a withdraw of just the scenes it approved. */
+/** The command an approve's receipt offers as its Undo: a withdraw of just the approvals it gave. */
 const UNDO_APPROVE: CommandId = 'project.undo-approve';
 
-/** The scenes an approve's Undo withdraws, as its receipt binds them (`Bound.change`). */
-const boundScenes = (bound: Bound): ReadonlyArray<string> =>
-  bound.change.split(' ').filter((id) => id !== '');
+/** What an approve gave, as its receipt binds it (`Bound.change`): `<at> <scene> <scene>…`. */
+const boundGave = (gave: Gave): string => [String(gave.at), ...gave.scenes].join(' ');
+
+/** What an approve's Undo takes back, read from its receipt's binding: the moment and the scenes. */
+const gaveBound = (bound: Bound): Option.Option<Gave> => {
+  const [at = '', ...scenes] = bound.change.split(' ').filter((w) => w !== '');
+  return Option.map(
+    Option.liftPredicate(Number(at), (n) => at !== '' && Number.isFinite(n)),
+    (n) => ({ at: n, scenes }),
+  );
+};
 
 /**
  * What a say of the project did, as its receipt says it (`Words`): what it
  * said of which part, and for an approve or a withdraw the part's approvals
- * before → after (`0/2 → 1/2 approved`). An approve's Undo withdraws just
- * the scenes it approved, bound to them; none when it approved none, or when
- * it approved one an earlier version of which was approved (a withdraw would
- * take that approval too).
+ * before → after (`0/2 → 1/2 approved`). An approve's Undo takes back
+ * exactly what the catalogue says it gave (`Project.gave`: the moment, and
+ * the scenes whose approval it added), bound to that; none when it gave
+ * none (each scene approved already, by another as like as not). The page's
+ * own earlier read never decides it: another may have approved since.
  */
 const sayWords = (film: string, before: Option.Option<ProjectView>) => (s: ProjectSay) => {
   const was = Option.map(before, (v) => scenesIn(v, s.address));
@@ -837,24 +847,9 @@ const sayWords = (film: string, before: Option.Option<ProjectView>) => (s: Proje
       ),
     );
   const undo = (after: ProjectView): Option.Option<Undoing> =>
-    Option.flatMap(
-      Option.filter(was, () => s.say._tag === 'Approve'),
-      (then) => {
-        const approval = new Map(then.map((x) => [x.scene, x.approval]));
-        const approved = scenesIn(after, s.address).filter(
-          (x) => x.approval === 'approved' && approval.get(x.scene) !== 'approved',
-        );
-        return Option.map(
-          Option.liftPredicate(
-            approved,
-            (xs) => xs.length > 0 && xs.every((x) => approval.get(x.scene) === 'none'),
-          ),
-          (xs) => ({
-            command: UNDO_APPROVE,
-            bound: { film, change: xs.map((x) => x.scene).join(' ') },
-          }),
-        );
-      },
+    Option.map(
+      Option.filter(after.project.gave, (g) => s.say._tag === 'Approve' && g.scenes.length > 0),
+      (gave) => ({ command: UNDO_APPROVE, bound: { film, change: boundGave(gave) } }),
     );
   return {
     doing: 'saying…',
@@ -921,11 +916,12 @@ const ProjectReady = (props: { readonly film: string }) => {
         ),
     };
   };
-  // An approve's Undo: a withdraw of the scenes it approved, a run of neighbours a say.
+  // An approve's Undo: a withdraw of the approvals it gave (given its moment), a run of
+  // neighbours a say. The catalogue takes only those: another's approval since stays.
   const undoing = useSay();
   const approvedNow = (ids: ReadonlyArray<string>) =>
     Option.exists(untrack(shown), (v) =>
-      ids.every((id) => v.project.scenes.some((s) => s.scene === id && s.approval === 'approved')),
+      ids.some((id) => v.project.scenes.some((s) => s.scene === id && s.approval === 'approved')),
     );
   const undoApprove: Command = {
     id: UNDO_APPROVE,
@@ -942,27 +938,30 @@ const ProjectReady = (props: { readonly film: string }) => {
           (b) => Option.some(Unfit.Now({ reason: `that approve was of ${b.film}` })),
         ),
         Match.when(
-          (b) => !approvedNow(boundScenes(b)),
+          (b) => !Option.exists(gaveBound(b), (g) => approvedNow(g.scenes)),
           () =>
             Option.some(
-              Unfit.Never({ reason: 'those scenes are not approved now: nothing to undo' }),
+              Unfit.Never({ reason: 'none of those scenes is approved now: nothing to undo' }),
             ),
         ),
         Match.orElse(() => Option.none<Unfit>()),
       ),
     run: (_, how) =>
       Effect.sync(() =>
-        Option.match(Option.fromUndefinedOr(how.bound), {
+        Option.match(Option.flatMap(Option.fromUndefinedOr(how.bound), gaveBound), {
           onNone: () => refused("an approve is undone from its receipt's Undo"),
-          onSome: (bound) => {
+          onSome: (gave) => {
             const order = Option.match(untrack(shown), {
               onNone: (): ReadonlyArray<string> => [],
               onSome: (v) => v.project.scenes.map((s) => s.scene),
             });
-            void runsOf(boundScenes(bound), order).reduce(
+            void runsOf(gave.scenes, order).reduce(
               (done, run) =>
                 done.then(() =>
-                  undoing.say({ address: { _tag: 'Scenes', ids: run }, say: { _tag: 'Withdraw' } }),
+                  undoing.say({
+                    address: { _tag: 'Scenes', ids: run },
+                    say: withdrawSay(Option.some(gave.at)),
+                  }),
                 ),
               Effect.runPromise(Effect.succeed(true)),
             );

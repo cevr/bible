@@ -48,6 +48,7 @@ import {
   pageHref,
   reviewFileUrl,
   reviewFrameUrl,
+  withdrawSay,
 } from '../../core/api.ts';
 import { ReviewApi } from './api.ts';
 import { newestAsked } from './asked.ts';
@@ -692,7 +693,7 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
   const unapprove: ThingVerb = {
     id: 'unapprove',
     label: 'Unapprove',
-    run: () => saying.say(props.version.id, { _tag: 'Withdraw' }),
+    run: () => saying.say(props.version.id, withdrawSay()),
   };
   const free = () => sayable && !saying.waiting();
   useThing({
@@ -735,7 +736,7 @@ const VersionInspector = (props: { readonly version: SeenVariant }) => {
                   class="rv-chip"
                   data-act="unapprove"
                   disabled={saying.waiting()}
-                  onClick={() => void saying.say(props.version.id, { _tag: 'Withdraw' })}
+                  onClick={() => void saying.say(props.version.id, withdrawSay())}
                 >
                   Unapprove
                 </button>

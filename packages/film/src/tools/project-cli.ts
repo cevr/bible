@@ -47,6 +47,7 @@ import {
   type Topic,
   approveCurrent,
   comment,
+  gaveOf,
   nextCommentId,
   partSubject,
   projectOf,
@@ -528,11 +529,14 @@ const approveScenes = Command.make(
     const { loaded, placed, tree } = yield* keyed(input.film);
     const catalogues = yield* RenderCatalogue;
     const at = yield* Clock.currentTimeMillis;
-    /** Every current scene of `scenes` approved, in one update. */
+    /**
+     * Every current scene of `scenes` approved, in one update: those it
+     * approved, and those it made approved, read under the catalogue's lock.
+     */
     const current = (scenes: ReadonlyArray<SceneKey>) =>
       catalogues.update(loaded.paths, (catalogue) => {
         const done = approveCurrent(catalogue, scenes, tree.sound, input.variant, at);
-        return [done.approved, done.catalogue] as const;
+        return [{ approved: done.approved, made: done.made }, done.catalogue] as const;
       });
     /** `scene`'s render, when it is current; else the refusal naming why and how to make it so. */
     const approvable = (catalogue: Catalogue, { scene, key }: SceneKey) =>
@@ -569,20 +573,37 @@ const approveScenes = Command.make(
       if (input.all) return yield* current(tree.scenes);
       return yield* ApprovalUnnamed.make({ film: input.film, verb: 'approve' });
     });
-    const approved = yield* which;
-    yield* Effect.log(`project.approve film=${input.film} scenes=${approved.join(',')}`);
+    const { approved, made } = yield* which;
+    yield* Effect.log(
+      `project.approve film=${input.film} scenes=${approved.join(',')} made=${made.join(',')} at=${at}`,
+    );
     const catalogue = yield* catalogues.read(loaded.paths);
-    yield* show(projectOf(catalogue, tree, input.variant), input.json);
+    // The answer says what this approve gave, so its undo withdraws exactly that (`--given`).
+    yield* show(
+      { ...projectOf(catalogue, tree, input.variant), gave: gaveOf(made, at) },
+      input.json,
+    );
   }, answeringIf),
 ).pipe(
   Command.withDescription(
-    "Approve scenes' renders, each current (--scene id,id: a stale or missing one is refused, naming why), an act's current scenes (--act name), or every scene whose render is current (--all); a new render of a scene makes its approval stale",
+    "Approve scenes' renders, each current (--scene id,id: a stale or missing one is refused, naming why), an act's current scenes (--act name), or every scene whose render is current (--all); a new render of a scene makes its approval stale. Its JSON answer's `gave` names the moment and the scenes whose approval it added",
   ),
 );
 
 const withdrawApprovals = Command.make(
   'withdraw',
-  { film, variant: variantFlag, ...partFlags('withdraw'), json },
+  {
+    film,
+    variant: variantFlag,
+    ...partFlags('withdraw'),
+    given: Flag.Int('given').pipe(
+      Flag.optional,
+      Flag.withDescription(
+        "withdraw only the approvals given at this moment (ms, an approve's `gave.at`): undo that approve, leaving others' alone",
+      ),
+    ),
+    json,
+  },
   Effect.fn('film.project.withdraw')(function* (input) {
     yield* partsNamed(input);
     const { loaded, placed, tree } = yield* keyed(input.film);
@@ -598,15 +619,20 @@ const withdrawApprovals = Command.make(
     });
     const ids = yield* which;
     const catalogue = yield* catalogues.update(loaded.paths, (now) => {
-      const next = ids.reduce((cat, id) => withdraw(cat, topicOfScene(id, input.variant)), now);
+      const next = ids.reduce(
+        (cat, id) => withdraw(cat, topicOfScene(id, input.variant), input.given),
+        now,
+      );
       return [next, next] as const;
     });
-    yield* Effect.log(`project.withdraw film=${input.film} scenes=${ids.join(',')}`);
+    yield* Effect.log(
+      `project.withdraw film=${input.film} scenes=${ids.join(',')}${Option.match(input.given, { onNone: () => '', onSome: (g) => ` given=${g}` })}`,
+    );
     yield* show(projectOf(catalogue, tree, input.variant), input.json);
   }, answeringIf),
 ).pipe(
   Command.withDescription(
-    "Withdraw the approval of scenes' renders (--scene id,id), an act's scenes (--act name) or every scene (--all), whatever version it was given on",
+    "Withdraw the approval of scenes' renders (--scene id,id), an act's scenes (--act name) or every scene (--all), whatever version it was given on; with --given, only the approvals given at that moment",
   ),
 );
 

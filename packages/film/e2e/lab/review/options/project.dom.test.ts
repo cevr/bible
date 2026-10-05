@@ -20,7 +20,7 @@
 // went stale reads it again. Every wait is on the page, or on what it asked,
 // never a fixed time.
 
-import { Array as Arr, Deferred, Effect, Exit, Option, Schedule, Schema } from 'effect';
+import { Array as Arr, Deferred, Effect, Exit, Match, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../../../src/core/api.ts';
 import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
@@ -65,7 +65,8 @@ interface ToyScene {
   readonly scene: string;
   state: 'current' | 'stale' | 'missing';
   staleBy?: 'sources' | 'sound';
-  approval: 'none' | 'approved' | 'stale';
+  /** Its approvals as the catalogue keeps them: the moment each was given, and whether of an earlier version. */
+  approvals: ReadonlyArray<{ readonly at: number; readonly earlier: boolean }>;
   said: ReadonlyArray<string>;
   /** Where it sits in the film, in seconds. */
   readonly span: { readonly start: number; readonly dur: number };
@@ -102,6 +103,20 @@ const renderJson = (id: string): Json =>
     at: 0,
   });
 
+/** A scene's approval state, as the catalogue reads its approvals. */
+const approvalOf = (s: ToyScene): 'none' | 'approved' | 'stale' =>
+  Match.value(s.approvals).pipe(
+    Match.when(
+      (as) => as.some((a) => !a.earlier),
+      () => 'approved' as const,
+    ),
+    Match.when(
+      (as) => as.length > 0,
+      () => 'stale' as const,
+    ),
+    Match.orElse(() => 'none' as const),
+  );
+
 /** A scene as the project encodes it; `rendered`, with its catalogue render. */
 const sceneJson = (s: ToyScene, rendered = false): Json => ({
   scene: s.scene,
@@ -118,7 +133,7 @@ const sceneJson = (s: ToyScene, rendered = false): Json => ({
       onSome: (id) => ({ render: renderJson(id) }),
     },
   ),
-  approval: s.approval,
+  approval: approvalOf(s),
   span: s.span,
   comments: said({ _tag: 'Scenes', ids: [s.scene] }, s.said),
 });
@@ -246,7 +261,7 @@ interface Said {
 /** A posted say: its address's tag and scene, and its own tag and text. */
 interface PostedSay {
   readonly address: { readonly _tag: string; readonly ids?: ReadonlyArray<string> };
-  readonly say: { readonly _tag: string; readonly text?: string };
+  readonly say: { readonly _tag: string; readonly text?: string; readonly given?: number };
 }
 
 const PostedSay = Schema.decodeUnknownSync(
@@ -255,9 +270,19 @@ const PostedSay = Schema.decodeUnknownSync(
       _tag: Schema.String,
       ids: Schema.optionalKey(Schema.Array(Schema.String)),
     }),
-    say: Schema.Struct({ _tag: Schema.String, text: Schema.optionalKey(Schema.String) }),
+    say: Schema.Struct({
+      _tag: Schema.String,
+      text: Schema.optionalKey(Schema.String),
+      given: Schema.optionalKey(Schema.Finite),
+    }),
   }),
 );
+
+/** Another reviewer at the catalogue: an approve and a withdraw of scenes, as the CLI makes them. */
+interface Other {
+  readonly approve: (ids: ReadonlyArray<string>) => void;
+  readonly withdraw: (ids: ReadonlyArray<string>) => void;
+}
 
 /** The check's one error, about scene close. */
 const CLOSE_FINDING: Json = {
@@ -284,6 +309,8 @@ interface Fake {
   readonly cut?: boolean;
   /** Scenes an earlier version of which was approved. */
   readonly approvedEarlier?: ReadonlyArray<string>;
+  /** What another reviewer does at the catalogue just before the page's say `p` lands. */
+  readonly before?: (p: PostedSay, other: Other) => void;
 }
 
 /**
@@ -294,30 +321,34 @@ interface Fake {
 const fakeProject = (fake: Fake = {}) => {
   const goneStale = fake.goneStale ?? [];
   const rendered = fake.rendered ?? [];
+  const EARLIER = [{ at: 1, earlier: true }];
   const scenes: ReadonlyArray<ToyScene> = [
-    { scene: 'open', state: 'current', approval: 'none', said: [], span: { start: 0, dur: 4 } },
+    { scene: 'open', state: 'current', approvals: [], said: [], span: { start: 0, dur: 4 } },
     {
       scene: 'close',
       state: 'stale',
       staleBy: 'sound',
-      approval: 'stale',
+      approvals: EARLIER,
       said: [],
       span: { start: 4, dur: 6 },
     },
-    { scene: 'coda', state: 'current', approval: 'none', said: [], span: { start: 10, dur: 3 } },
-    { scene: 'end', state: 'missing', approval: 'none', said: [], span: { start: 13, dur: 2 } },
+    { scene: 'coda', state: 'current', approvals: [], said: [], span: { start: 10, dur: 3 } },
+    { scene: 'end', state: 'missing', approvals: [], said: [], span: { start: 13, dur: 2 } },
   ];
   scenes
     .filter((s) => (fake.approvedEarlier ?? []).includes(s.scene))
     .forEach((s) => {
-      s.approval = 'stale';
+      s.approvals = EARLIER;
     });
+  // The catalogue's clock: each approve is given at a moment of its own.
+  let clock = 100;
   const text: Said = { film: [], act: [] };
-  const view = (): Json => ({
+  const view = (gave: Option.Option<Json> = Option.none()): Json => ({
     project: {
       film: 'toy',
       variant: 'main',
       key: 'fk',
+      ...Option.match(gave, { onNone: () => ({}), onSome: (g) => ({ gave: g }) }),
       comments: said(FILM_AT, text.film),
       acts: [
         {
@@ -333,12 +364,31 @@ const fakeProject = (fake: Fake = {}) => {
     // This checkout's catalogue record of each rendered scene.
     videos: { open: videoOf('out/toy', 'open'), coda: videoOf('out/toy', 'coda') },
   });
-  const approveCurrent = (ids: ReadonlyArray<string>) =>
+  /** The current scenes of `ids` approved at a moment of their own: those this approve made approved, and when. */
+  const approveCurrent = (ids: ReadonlyArray<string>) => {
+    clock += 1;
+    const at = clock;
+    const made = scenes.filter(
+      (s) => ids.includes(s.scene) && s.state === 'current' && approvalOf(s) !== 'approved',
+    );
+    made.forEach((s) => {
+      s.approvals = [...s.approvals, { at, earlier: false }];
+    });
+    return { at, made: made.map((s) => s.scene) };
+  };
+  /** The approvals of `ids` withdrawn: every one, or only those given at `given`. */
+  const withdraw = (ids: ReadonlyArray<string>, given: Option.Option<number>) =>
     scenes
-      .filter((s) => ids.includes(s.scene) && s.state === 'current')
+      .filter((s) => ids.includes(s.scene))
       .forEach((s) => {
-        s.approval = 'approved';
+        s.approvals = s.approvals.filter((a) =>
+          Option.match(given, { onNone: () => false, onSome: (at) => a.at !== at }),
+        );
       });
+  const other: Other = {
+    approve: (ids) => void approveCurrent(ids),
+    withdraw: (ids) => withdraw(ids, Option.none()),
+  };
   const posted = (asked: { readonly body: Option.Option<Json> }) =>
     PostedSay(Option.getOrElse(asked.body, () => ({})));
   const scenesOf = (p: PostedSay) => {
@@ -378,6 +428,7 @@ const fakeProject = (fake: Fake = {}) => {
     route('GET', /^\/api\/films\/toy\/project$/, () => json(view())),
     route('POST', /^\/api\/films\/toy\/project\/say$/, (asked) => {
       const p = posted(asked);
+      fake.before?.(p, other);
       const ids = scenesOf(p);
       const gone = scenes.filter((s) => ids.includes(s.scene) && goneStale.includes(s.scene));
       if (p.say._tag === 'Approve' && gone.length > 0) {
@@ -394,13 +445,19 @@ const fakeProject = (fake: Fake = {}) => {
           }),
         );
       }
-      if (p.say._tag === 'Approve') approveCurrent(ids);
-      if (p.say._tag === 'Withdraw')
-        scenes
-          .filter((s) => ids.includes(s.scene))
-          .forEach((s) => {
-            s.approval = 'none';
-          });
+      // An approve answers what it gave: the moment, and the scenes it made approved (none: no gave).
+      if (p.say._tag === 'Approve') {
+        const { at, made } = approveCurrent(ids);
+        return json(
+          view(
+            Option.map(
+              Option.liftPredicate(made, (m) => m.length > 0),
+              (m) => ({ at, scenes: m }),
+            ),
+          ),
+        );
+      }
+      if (p.say._tag === 'Withdraw') withdraw(ids, Option.fromUndefinedOr(p.say.given));
       if (p.say._tag === 'Comment') {
         const said = p.say.text ?? '';
         if (p.address._tag === 'Act') text.act = [...text.act, said];
@@ -448,6 +505,14 @@ const RECEIPT = '[data-receipt="project"]';
 /** Wait until the project's receipt reads something containing `part`. */
 const receiptSays = (page: Tab, part: string) =>
   textHas(page, `${RECEIPT} .lab-receipt-said`, part);
+
+/** Wait until the project's receipt reads something containing `part` and offers an Undo or not, both in one read. */
+const receiptIs = (page: Tab, part: string, undo: boolean) =>
+  evaluates(
+    page,
+    `[Array.from(document.querySelectorAll('${RECEIPT} .lab-receipt-said')).some((e) => e.textContent.includes('${part}')), document.querySelectorAll('${RECEIPT} [data-act="receipt-undo"]').length > 0]`,
+    [true, undo],
+  );
 
 /** Open the inspector of the thing at `at` by a tap on its name. */
 const inspect = (page: Tab, at: string) =>
@@ -759,13 +824,14 @@ describe("a film's project", () => {
         yield* waitFor(page, `${render('open')} .sc-chip[data-mark="approved"]`);
         yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
         yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
-        yield* receiptSays(page, 'Unapproved scene open');
+        yield* receiptSays(page, 'Undid approving scene open');
         yield* countIs(page, `${render('open')} .sc-chip[data-mark="approved"]`, 0);
         // close kept its approval of an earlier version: the Undo withdrew open's alone.
         yield* attached(page, `${render('close')} .sc-chip[data-mark="approved-earlier"]`);
+        // The Undo names the moment the approve gave its approval: only that one goes.
         expect(saysPosted(asked)).toEqual([
           { address: { _tag: 'Act', act: 'opening' }, say: { _tag: 'Approve' } },
-          { address: { _tag: 'Scenes', ids: ['open'] }, say: { _tag: 'Withdraw' } },
+          { address: { _tag: 'Scenes', ids: ['open'] }, say: { _tag: 'Withdraw', given: 101 } },
         ]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -773,17 +839,79 @@ describe("a film's project", () => {
   );
 
   it.live(
-    'an approve that would lose an earlier approval if undone offers no Undo',
+    'an approve whose scene another approved first offers no Undo: it gave no approval to take back',
+    () =>
+      Effect.gen(function* () {
+        // The page read coda unapproved; another approves it just before the page's approve lands.
+        const routes = fakeProject({
+          before: (p, other) => {
+            if (p.say._tag === 'Approve') other.approve(['coda']);
+          },
+        });
+        const { page, errors } = yield* openReview(routes, { href: PROJECT, viewport: LAPTOP });
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
+        yield* click(page, `${render('coda')} [data-act="approve"]`);
+        // The receipt and its Undo, read together: the approve gave nothing, so offers nothing back.
+        yield* receiptIs(page, 'Approved scene coda · 0/1 → 1/1 approved', false);
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="approved"]`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "an approve's Undo after another withdrew and approved again takes nothing: the approval now is theirs",
+    () =>
+      Effect.gen(function* () {
+        // Just before the Undo lands, another withdraws coda's approval and approves it again.
+        const routes = fakeProject({
+          before: (p, other) => {
+            if (p.say._tag === 'Withdraw') {
+              other.withdraw(['coda']);
+              other.approve(['coda']);
+            }
+          },
+        });
+        const { page, asked, errors } = yield* openReview(routes, {
+          href: PROJECT,
+          viewport: LAPTOP,
+        });
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
+        yield* click(page, `${render('coda')} [data-act="approve"]`);
+        yield* receiptSays(page, 'Approved scene coda · 0/1 → 1/1 approved');
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* receiptSays(page, 'Undid approving scene coda · 1/1 → 1/1 approved');
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="approved"]`);
+        expect(saysPosted(asked)).toEqual([
+          { address: { _tag: 'Scenes', ids: ['coda'] }, say: { _tag: 'Approve' } },
+          { address: { _tag: 'Scenes', ids: ['coda'] }, say: { _tag: 'Withdraw', given: 101 } },
+        ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "an approve's Undo leaves an earlier version's approval in place",
     () =>
       Effect.gen(function* () {
         // coda's render is current; an earlier version of it was approved.
         const routes = fakeProject({ approvedEarlier: ['coda'] });
-        const { page, errors } = yield* openReview(routes, { href: PROJECT, viewport: LAPTOP });
+        const { page, asked, errors } = yield* openReview(routes, {
+          href: PROJECT,
+          viewport: LAPTOP,
+        });
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="stale"]`);
-        // A withdraw would take the earlier version's approval too: the receipt offers no Undo.
         yield* click(page, `${render('coda')} [data-act="approve"]`);
         yield* receiptSays(page, 'Approved scene coda · 0/1 → 1/1 approved');
-        yield* countIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 0);
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* receiptSays(page, 'Undid approving scene coda · 1/1 → 0/1 approved');
+        // The approval of the earlier version stands: the card says so again.
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="stale"]`);
+        expect(saysPosted(asked)[1]).toEqual({
+          address: { _tag: 'Scenes', ids: ['coda'] },
+          say: { _tag: 'Withdraw', given: 101 },
+        });
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

@@ -356,18 +356,31 @@ export const approve = (catalogue: Catalogue, subject: Subject, at: number): Cat
 
 /**
  * `catalogue` with every approval of `topic` withdrawn, whatever version it
- * was given on (the same point's same variant).
+ * was given on (the same point's same variant); `given` a moment, only the
+ * approvals of `topic` given then: the exact undo of the approve made then.
+ * A topic's approval of one version at one moment is one approval, since
+ * `approve` adds none to a subject already approved; another's approval of
+ * the same topic, given at another moment, stays.
  */
-export const withdraw = (catalogue: Catalogue, topic: Topic): Catalogue => ({
+export const withdraw = (
+  catalogue: Catalogue,
+  topic: Topic,
+  given: Option.Option<number> = Option.none(),
+): Catalogue => ({
   ...catalogue,
-  approvals: catalogue.approvals.filter((a) => !about(a, topic)),
+  approvals: catalogue.approvals.filter(
+    (a) =>
+      !(
+        about(a, topic) && Option.match(given, { onNone: () => true, onSome: (at) => a.at === at })
+      ),
+  ),
 });
 
 /** `catalogue` after `say` on `subject` (as it is now) at `at`: the one change a say makes. */
 export const said = (catalogue: Catalogue, subject: Subject, say: Say, at: number): Catalogue =>
   Match.valueTags(say, {
     Approve: () => approve(catalogue, subject, at),
-    Withdraw: () => withdraw(catalogue, subject),
+    Withdraw: ({ given }) => withdraw(catalogue, subject, given),
     Comment: ({ text }) => comment(catalogue, subject, text, at),
   });
 
@@ -439,9 +452,18 @@ export const ProjectAct = Schema.Struct({
 export type ProjectAct = typeof ProjectAct.Type;
 
 /**
+ * The approvals an approve gave: the moment it gave them, and the scenes
+ * whose approval it added (not one approved already). A withdraw given that
+ * moment (`Say`'s `Withdraw`) undoes exactly them.
+ */
+export const Gave = Schema.Struct({ at: Schema.Finite, scenes: Schema.Array(Schema.String) });
+export type Gave = typeof Gave.Type;
+
+/**
  * `film project <film> --json`: the film by its address tree for one
  * variant: what was said of the whole film, its acts (none when it declares
- * no look), and every scene in film order.
+ * no look), and every scene in film order. An approve's answer carries what
+ * it `gave`, when it gave any approval; a read never does.
  */
 export const Project = Schema.Struct({
   film: Schema.String,
@@ -451,6 +473,7 @@ export const Project = Schema.Struct({
   comments: Schema.Array(SaidComment),
   acts: Schema.Array(ProjectAct),
   scenes: Schema.Array(ProjectScene),
+  gave: maybe(Gave),
 });
 export type Project = typeof Project.Type;
 
@@ -524,19 +547,26 @@ export const projectOf = (catalogue: Catalogue, keyed: Keyed, variant: string): 
       }),
     };
   }),
+  // A read gave nothing: an approve's answer says what it gave (`film project approve`).
+  gave: Option.none(),
 });
 
-/** A catalogue after an approval, and the scenes it approved. */
+/**
+ * A catalogue after an approval, the scenes it approved, and of them the
+ * ones it `made` approved: those whose approval it added, not one approved
+ * already (another's approval, which its undo must leave alone).
+ */
 interface Approved {
   readonly catalogue: Catalogue;
   readonly approved: ReadonlyArray<string>;
+  readonly made: ReadonlyArray<string>;
 }
 
 /**
  * `catalogue` with every scene render of `variant` that is current (drawn
  * from its scene's sources as they are now, carrying the mix `sound` the
- * film makes now) approved, and the scenes it approved. A stale or missing
- * scene is left for a render (or a re-mux) first.
+ * film makes now) approved, the scenes it approved, and those it made
+ * approved. A stale or missing scene is left for a render (or a re-mux) first.
  */
 export const approveCurrent = (
   catalogue: Catalogue,
@@ -558,5 +588,15 @@ export const approveCurrent = (
   return {
     catalogue: current.reduce((cat, { render }) => approve(cat, subjectOf(render), at), catalogue),
     approved: current.map(({ scene }) => scene),
+    made: current
+      .filter(({ render }) => approvalState(catalogue, subjectOf(render)) !== 'approved')
+      .map(({ scene }) => scene),
   };
 };
+
+/** What an approve that made `made` approved at `at` gave: none when it made none. */
+export const gaveOf = (made: ReadonlyArray<string>, at: number): Option.Option<Gave> =>
+  Option.map(
+    Option.liftPredicate(made, (m) => m.length > 0),
+    (scenes) => ({ at, scenes }),
+  );

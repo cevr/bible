@@ -16,7 +16,7 @@
 import { For, Show } from '@solidjs/web';
 import { Option } from 'effect';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
-import { type Say, reviewFrameUrl } from '../../../core/api.ts';
+import { type Say, reviewFrameUrl, withdrawSay } from '../../../core/api.ts';
 import type { ApprovalState, SaidComment } from '../../../core/catalogue.ts';
 import {
   type ChoiceKnob,
@@ -269,7 +269,7 @@ const UnapproveButton = (props: { readonly variant: ChoiceVariant; readonly saye
       class="rv-chip"
       data-act="unapprove"
       disabled={withdrawing.waiting()}
-      onClick={() => withdrawing.say(props.variant, { _tag: 'Withdraw' })}
+      onClick={() => withdrawing.say(props.variant, withdrawSay())}
     >
       Unapprove
     </button>
@@ -381,7 +381,7 @@ const variantVerbs = (
   const unapprove: ThingVerb = {
     id: 'unapprove',
     label: 'Unapprove',
-    run: () => saying.say(variant, { _tag: 'Withdraw' }),
+    run: () => saying.say(variant, withdrawSay()),
   };
   const rare = variant.verbs
     .filter(isRare)

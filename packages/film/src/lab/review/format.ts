@@ -40,12 +40,19 @@ export interface Words<A> {
   readonly past?: (failure: LabFailure) => Option.Option<CommandId>;
 }
 
-/** What a say did, of `subject`, as its receipt says: `Approved B · warm · Score`. */
+/**
+ * What a say did, of `subject`, as its receipt says: `Approved B · warm ·
+ * Score`; a withdraw given an approve's moment is that approve's undo.
+ */
 export const sayText = (say: Say, subject: string): string =>
   Match.value(say).pipe(
     Match.tagsExhaustive({
       Approve: () => `Approved ${subject}`,
-      Withdraw: () => `Unapproved ${subject}`,
+      Withdraw: ({ given }) =>
+        Option.match(given, {
+          onNone: () => `Unapproved ${subject}`,
+          onSome: () => `Undid approving ${subject}`,
+        }),
       Comment: () => `Commented on ${subject}`,
     }),
   );

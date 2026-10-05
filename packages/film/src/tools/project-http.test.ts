@@ -44,6 +44,11 @@ describe("a film's project", () => {
         say('{"address":{"_tag":"Act","act":"one"},"say":{"_tag":"Withdraw"}}'),
       );
       expect(withdrawn.status).toBe(200);
+      // An approve's Undo: the withdraw of just the approvals given at its moment.
+      const undone = yield* reviewTestAsk(
+        say('{"address":{"_tag":"Act","act":"one"},"say":{"_tag":"Withdraw","given":1700}}'),
+      );
+      expect(undone.status).toBe(200);
       const said = yield* reviewTestAsk(
         say(
           '{"address":{"_tag":"Film"},"say":{"_tag":"Comment","text":"--all of it"},"variant":"ink"}',
@@ -55,6 +60,7 @@ describe("a film's project", () => {
         ['approve', 'f', '--all', '--json'],
         ['approve', 'f', '--act', 'one', '--json'],
         ['withdraw', 'f', '--act', 'one', '--json'],
+        ['withdraw', 'f', '--act', 'one', '--given', '1700', '--json'],
         ['comment', 'f', '--variant', 'ink', '--json', '--', '--all of it'],
       ]);
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),

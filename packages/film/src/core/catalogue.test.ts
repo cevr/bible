@@ -10,6 +10,7 @@ import {
   approveCurrent,
   comment,
   emptyCatalogue,
+  gaveOf,
   type Keyed,
   type SceneKey,
   renderNeed,
@@ -19,6 +20,7 @@ import {
   renderIn,
   sceneSlot,
   subjectOf,
+  withdraw,
 } from './catalogue.ts';
 
 const SETTINGS = { scale: 0.5, captions: true };
@@ -195,6 +197,49 @@ describe('approvals', () => {
       ['b', 'stale', 'none'],
       ['c', 'missing', 'none'],
     ]);
+  });
+
+  test('approve-all names the scenes it made approved: one approved already is not among them', () => {
+    const a = sceneRender('a', 'k1');
+    const catalogue = approve(withRenders(a, sceneRender('b', 'k2')), of(a), 1);
+    const now = [
+      { scene: 'a', key: 'k1' },
+      { scene: 'b', key: 'k2' },
+    ];
+    const first = approveCurrent(catalogue, now, Option.none(), 'main', 5);
+    expect([first.approved, first.made]).toEqual([['a', 'b'], ['b']]);
+    // Approved by another since: the same approve changes nothing, and names nothing it made.
+    const again = approveCurrent(first.catalogue, now, Option.none(), 'main', 7);
+    expect([again.approved, again.made]).toEqual([['a', 'b'], []]);
+    expect(again.catalogue).toEqual(first.catalogue);
+    // What the CLI's answer says it gave: the moment and those scenes; nothing, when it made none.
+    expect(gaveOf(first.made, 5)).toEqual(Option.some({ at: 5, scenes: ['b'] }));
+    expect(gaveOf(again.made, 7)).toEqual(Option.none());
+  });
+
+  test("a withdraw given an approval's moment takes that approval alone", () => {
+    const first = sceneRender('a', 'k1');
+    const second = sceneRender('a', 'k2', 20);
+    // An earlier version approved at 10; the render now approved at 30.
+    const earlier = approve(withRenders(first), of(first), 10);
+    const both = approve(recordRender(earlier, second), of(second), 30);
+    expect(both.approvals.map((x) => x.at)).toEqual([10, 30]);
+    // Another moment's withdraw takes nothing.
+    expect(withdraw(both, of(second), Option.some(40))).toEqual(both);
+    // The approve at 30 undone: the earlier version's approval stays.
+    const undone = withdraw(both, of(second), Option.some(30));
+    expect(undone.approvals.map((x) => x.at)).toEqual([10]);
+    expect(approvalState(undone, of(second))).toBe('stale');
+    // With no moment given, every approval of the variant goes, as before.
+    expect(withdraw(both, of(second), Option.none()).approvals).toEqual([]);
+  });
+
+  test('a read of the project says nothing of what an approve gave', () => {
+    const render = sceneRender('a', 'k1');
+    const catalogue = approve(withRenders(render), of(render), 1);
+    expect(projectOf(catalogue, keyed([{ scene: 'a', key: 'k1' }]), 'main').gave).toEqual(
+      Option.none(),
+    );
   });
 
   test("an approval is one variant's: another variant of the scene is not approved", () => {
