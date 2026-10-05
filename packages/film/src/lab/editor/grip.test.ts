@@ -2,8 +2,10 @@
 // moves the offset, its edges set start or end; a bar too short to hold two
 // edges and a body is all body (alt grabs its end). Edges snap to words,
 // marks and other cues within a few pixels, else move by whole frames; shift
-// places them freely. A drag that ends where it began writes nothing. A cue
-// the lab may not write says why before any drag starts.
+// places them freely, or with snapping off snaps them. A drag that ends where
+// it began writes nothing. A cue the lab may not write says why before any
+// drag starts. An `until` cue's end is a field of its own, written as its
+// right edge's drag writes it.
 
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
@@ -19,9 +21,11 @@ import {
   dragKnob,
   dragModeAt,
   edgeFor,
+  fieldsOf,
   knobRefusal,
   cueSaidText,
   joined,
+  placesFreely,
   snapEdge,
   wroteNote,
 } from './grip.ts';
@@ -94,6 +98,17 @@ describe('snapEdge', () => {
   });
 });
 
+describe('placesFreely', () => {
+  test('with snapping on, shift places an edge freely', () => {
+    expect(placesFreely(false, true)).toBe(false);
+    expect(placesFreely(true, true)).toBe(true);
+  });
+  test('with snapping off, an edge goes freely, and shift snaps it', () => {
+    expect(placesFreely(false, false)).toBe(true);
+    expect(placesFreely(true, false)).toBe(false);
+  });
+});
+
 const rise: ResolvedCue = { start: 1, end: 1.6, dur: 0.6, ease: 'inOutCubic', stagger: 0 };
 
 const grip = (edge: CueGrip['edge']): CueGrip => ({
@@ -112,7 +127,7 @@ const grip = (edge: CueGrip['edge']): CueGrip => ({
 
 describe('dragCue', () => {
   test('its body moves the offset, and the edit shows it; the write says it, before → after', () => {
-    const dragged = dragCue(grip('move'), { x: 520, y: 0, shift: false });
+    const dragged = dragCue(grip('move'), { x: 520, y: 0, free: false });
     expect(dragged.write).toEqual(
       Option.some({
         _tag: 'CueWrite',
@@ -128,7 +143,7 @@ describe('dragCue', () => {
   });
 
   test('its right edge sets the dur', () => {
-    const dragged = dragCue(grip('end'), { x: 510, y: 0, shift: false });
+    const dragged = dragCue(grip('end'), { x: 510, y: 0, free: false });
     expect(dragged.write).toEqual(
       Option.some({
         _tag: 'CueWrite',
@@ -141,7 +156,61 @@ describe('dragCue', () => {
   });
 
   test('back where it began writes nothing', () => {
-    expect(dragCue(grip('move'), { x: 500, y: 0, shift: false }).write).toEqual(Option.none());
+    expect(dragCue(grip('move'), { x: 500, y: 0, free: false }).write).toEqual(Option.none());
+  });
+});
+
+describe("an `until` cue's end field", () => {
+  const span = { mark: 'rise', until: 'fall' } as const;
+  const cue: ResolvedCue = { start: 1, end: 2.2, dur: 1.2, ease: 'inOutCubic', stagger: 0 };
+  const timeline = { rise: span, fall: { mark: 'fall', dur: 0.4 } };
+  const literal = {
+    name: 'rise',
+    offset: 'absent',
+    dur: 'absent',
+    until: 'literal',
+    ease: 'absent',
+    stagger: 'absent',
+  } as const;
+  const fieldsIn = (commits: Array<unknown>) =>
+    fieldsOf(
+      { _tag: 'Cue', scene: 'one', name: 'rise' },
+      {
+        timeline,
+        cues: new Map([['rise', cue]]),
+        knobs: {},
+        source: Option.some({
+          scene: 'one',
+          file: 'scenes/one.ts',
+          cues: [literal],
+          knobs: [],
+          refused: [],
+        }),
+        error: '',
+        fps: 30,
+        commit: (write, edit) => void commits.push({ write, edit }),
+      },
+    );
+
+  test('reads where the cue ends, and goes no earlier than its start', () => {
+    const fields = fieldsIn([]);
+    expect(fields.map((f) => f.id)).toEqual(['offset', 'end']);
+    const end = fields.find((f) => f.id === 'end');
+    expect(end?.value).toBe(2.2);
+    expect(end?.spec.min).toEqual(Option.some(1));
+  });
+
+  test("writes the cue as its right edge's drag to the same time does: off the mark, a dur", () => {
+    const commits: Array<unknown> = [];
+    fieldsIn(commits)
+      .find((f) => f.id === 'end')
+      ?.write(2.5);
+    const dragged = dragCue(
+      { ...grip('end'), span, timeline, cue0: cue },
+      { x: 530, y: 0, free: false },
+    );
+    expect(commits).toEqual([{ write: Option.getOrThrow(dragged.write), edit: dragged.edit }]);
+    expect(dragged.edit.timeline?.['rise']).toEqual({ mark: 'rise', dur: 1.5 });
   });
 });
 
@@ -242,7 +311,7 @@ const knobGrip = (mode: KnobGrip['mode'], m: KnobGrip['m'], inv: KnobGrip['inv']
 describe('dragKnob', () => {
   test('a point follows the pointer through its transform, to whole units', () => {
     const grip = knobGrip('point', [1, 0, 0, 1, 0, 0], [1, 0, 0, 1, 0, 0]);
-    const dragged = dragKnob(grip, { x: 10 + 215.2, y: 20 + 95, shift: false });
+    const dragged = dragKnob(grip, { x: 10 + 215.2, y: 20 + 95, free: false });
     expect(dragged.write).toEqual(
       Option.some({
         _tag: 'KnobWrite',
@@ -258,7 +327,7 @@ describe('dragKnob', () => {
   test("a camera's target the camera sits on moves the picture with the pointer", () => {
     const grip = knobGrip('picture', [2, 0, 0, 2, -480, -220], [0.5, 0, 0, 0.5, 240, 110]);
     // 40 frame pixels right: the target moves 20 world units left.
-    const dragged = dragKnob(grip, { x: 10 + 220, y: 20 + 100, shift: false });
+    const dragged = dragKnob(grip, { x: 10 + 220, y: 20 + 100, free: false });
     expect(dragged.write).toEqual(
       Option.some({
         _tag: 'KnobWrite',
@@ -272,7 +341,7 @@ describe('dragKnob', () => {
 
   test('back where it began writes nothing', () => {
     const grip = knobGrip('point', [1, 0, 0, 1, 0, 0], [1, 0, 0, 1, 0, 0]);
-    expect(dragKnob(grip, { x: 10 + 200, y: 20 + 100, shift: false }).write).toEqual(Option.none());
+    expect(dragKnob(grip, { x: 10 + 200, y: 20 + 100, free: false }).write).toEqual(Option.none());
   });
 });
 

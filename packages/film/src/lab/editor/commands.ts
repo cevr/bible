@@ -4,13 +4,16 @@
 // a held grip go, from a field as well; Select, from a cue's or a knob's
 // context menu; the nudges, which step the selected cue or knob through its
 // inspector's fields (`core/field.ts`): ⌥← and ⌥→ move a cue a frame earlier
-// or later (its offset), ⌥↑ and ⌥↓ lengthen or shorten it (its dur), and move
+// or later (its offset), ⌥↑ and ⌥↓ lengthen or shorten it (its dur, or the
+// end of one that runs until a mark), and move
 // a point knob by a pixel or a number knob by its step, each ten times with
 // Shift; and the walk through a scene: `.` and `,` go to the next or previous
 // cue edge of the strip's scene, Tab and ⇧Tab select the next or previous
 // cue while a cue is selected and focus is on the page (on a button, Tab
 // still moves focus); F and ⇧F go to the next or previous finding of the
-// film's check that has a place on the time line (`findingTime`). Every
+// film's check that has a place on the time line (`findingTime`); S turns
+// the viewer's Snap off or on (an editor's snapping toggle, Shift flipping
+// it for a move: `grip.ts`), the strip's Snap toggle a finger's way. Every
 // command answers quietly: a write's receipt is
 // the editor's own once it lands (what a nudge moved, before → after, with
 // Undo; what an Undo walked, with Redo: `context.tsx`), and a selection
@@ -58,7 +61,42 @@ interface EditorVerbs {
   readonly seek: (T: number) => void;
   /** Where the film shows each of the panel's findings that has a place on the time line. */
   readonly findingTimes: () => ReadonlyArray<number>;
+  /** Whether a drag's edges snap now (the viewer's Snap). */
+  readonly snap: () => boolean;
+  readonly setSnap: (on: boolean) => void;
 }
+
+/** The viewer's Snap as kept: on, unless `off` is kept (`snapText`). */
+export const snapOf = (kept: Option.Option<string>): boolean => !Option.contains(kept, 'off');
+
+/** The viewer's Snap as it is kept. */
+export const snapText = (on: boolean): string => SNAP_KEPT[`${on}`];
+
+const SNAP_KEPT: Readonly<Record<'true' | 'false', string>> = { true: 'on', false: 'off' };
+
+/** Turn the viewer's Snap off or on: S, ⌘K, or the strip's Snap toggle. */
+export const SNAP = 'edit.snap';
+
+/** What the Snap command says, by whether edges snap now. */
+const SNAP_LABEL: Readonly<Record<'true' | 'false', string>> = {
+  true: 'Turn snapping off',
+  false: 'Turn snapping on',
+};
+
+const snapCommand = (verbs: EditorVerbs): Command => ({
+  id: SNAP,
+  label: 'Snap on or off',
+  labelIn: () => SNAP_LABEL[`${verbs.snap()}`],
+  group: 'Edit',
+  keys: ['s'],
+  touch: 'the Snap toggle on the strip',
+  when: () => true,
+  run: () =>
+    Effect.sync(() => {
+      verbs.setSnap(!verbs.snap());
+      return quiet;
+    }),
+});
 
 /** The cue or knob `ctx` is about. */
 const aboutOf = (ctx: Context): Option.Option<LabSelection> =>
@@ -162,8 +200,12 @@ const nudgeOf = (verbs: EditorVerbs, way: Way, s: LabSelection): Option.Option<N
       by: part.by,
       label: part.verb.replace('{}', selectionText(s)),
     });
+  // A cue ending on a mark has no dur: its end lengthens and shortens it, as its field does.
+  const cueField = Option.orElse(named(way.cue.field), () =>
+    Option.filter(named('end'), () => way.cue.field === 'dur'),
+  );
   const found = Match.value(s).pipe(
-    Match.tag('Cue', () => Option.map(named(way.cue.field), as(way.cue))),
+    Match.tag('Cue', () => Option.map(cueField, as(way.cue))),
     // A knob is a number (its `value` field) or a point (its `x` and `y`).
     Match.tag('Knob', () =>
       Option.orElse(Option.map(named('value'), as(way.number)), () =>
@@ -306,6 +348,7 @@ export const editorCommands = (verbs: EditorVerbs): ReadonlyArray<Command> => [
     group: 'Edit',
     keys: ['escape'],
     keysIn: ['page', 'field'],
+    touch: 'Cancel drag on the strip, while a finger holds the cue',
     when: verbs.holding,
     run: () =>
       Effect.sync(() => {
@@ -338,4 +381,5 @@ export const editorCommands = (verbs: EditorVerbs): ReadonlyArray<Command> => [
   edgeCommand(verbs, 'previous', 'Previous cue edge', ','),
   walkCommand(verbs, 'next', 'Select the next cue', 'tab'),
   walkCommand(verbs, 'previous', 'Select the previous cue', 'shift+tab'),
+  snapCommand(verbs),
 ];

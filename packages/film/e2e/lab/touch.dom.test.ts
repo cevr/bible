@@ -10,7 +10,8 @@
 //
 // The disclosed states are the fixture film's (`fixtures/studio-film.ts`):
 // Project's panels with their stills and its dock, a scene row's sheet, an
-// act's long-press menu, an inspector, the Findings sheet, the command
+// act's long-press menu, an inspector, the lab editor's Snap toggle and an
+// `until` cue's End field, the Findings sheet, the command
 // menu (⌘K, its Go to…), the context menu, the keys dialog, the lab's modes,
 // comment counts on their rows, the Choices transport over a picture, a Set's
 // wipe and diff, a film's Scenes with a scene selected and the
@@ -31,7 +32,13 @@ import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
 import { rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
-import { type Viewport, openLab, openPlayer, openReview } from '../../src/lab/fixtures/harness.ts';
+import {
+  type Viewport,
+  labAt,
+  openLab,
+  openPlayer,
+  openReview,
+} from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
@@ -227,6 +234,18 @@ const STATES: ReadonlyArray<State> = [
     disclose: AT_REST,
   },
   { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST },
+  {
+    name: 'Lab, Edit, a cue that runs until a mark selected (its End field, the Snap toggle)',
+    open: (viewport) =>
+      Effect.gen(function* () {
+        const href = labAt(10, { selection: { _tag: 'Cue', scene: 'three', name: 'push' } });
+        const { page } = yield* openLab([], { viewport, mode: 'edit', href });
+        yield* waitFor(page, '.lab-edit-cue input[data-field="end"]:not([disabled])');
+        yield* waitFor(page, '[data-act="snap"]');
+        return page;
+      }),
+    disclose: AT_REST,
+  },
   { name: 'Lab, Note', open: lab('note'), disclose: AT_REST },
   { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST },
   { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST },

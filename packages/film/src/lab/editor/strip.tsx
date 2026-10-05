@@ -3,7 +3,8 @@
 // A press on a bar grabs it (the editor's machine takes it from there); a
 // drag across a cue's lane beside its bar marks the in and out points, shown
 // as a band (a tap there seeks); a press elsewhere on the strip scrubs within
-// the scene.
+// the scene. Its head holds the Snap toggle (S), and Cancel drag while a
+// grip is held: a finger's Shift and Escape.
 
 import { For, Show } from '@solidjs/web';
 import { Effect, Option, Result } from 'effect';
@@ -15,7 +16,9 @@ import { timecode } from '../../core/time.ts';
 import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
 import { BY_BUTTON } from '../../command/command.ts';
-import { CANCEL_GRIP } from './commands.ts';
+import { CANCEL_GRIP, SNAP } from './commands.ts';
+import { chordLabel } from '../../command/keymap.ts';
+import { hubChanges } from '../command/changes.ts';
 import { Target } from '../command/context-menu.tsx';
 import { selectsCue } from '../place.ts';
 import { useLab } from '../shell.tsx';
@@ -141,6 +144,16 @@ export const Strip = () => {
       onNone: () => state.stripSource().error,
       onSome: (s) => s.file,
     });
+  // A key as bound now: a rebound key reads as rebound.
+  const changes = hubChanges(meta.hub);
+  const keyOf = (id: string) => {
+    changes();
+    return meta.hub
+      .keysOf(id)
+      .slice(0, 1)
+      .map((k) => chordLabel(k, meta.hub.mac))
+      .join('');
+  };
   return (
     <Show when={placed()}>
       {(p) => {
@@ -224,6 +237,18 @@ export const Strip = () => {
                   Cancel drag
                 </button>
               </Show>
+              {/* Shift's way for a finger (LS-5): edges snap while it is on; off, they go freely. */}
+              <button
+                type="button"
+                class="lab-strip-snap"
+                data-act="snap"
+                aria-pressed={`${state.snap()}`}
+                title={`Snap to words, marks, cue edges and frames (${keyOf(SNAP)}; ⇧ flips it while dragging)`}
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => meta.hub.invokeId(SNAP, BY_BUTTON)}
+              >
+                Snap
+              </button>
             </div>
             {/* The rows scroll in their own box, the words held at its top, so the film keeps its row. */}
             <div class="lab-strip-scroll">

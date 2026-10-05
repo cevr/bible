@@ -597,7 +597,24 @@ body.lab .stage {
   border: 1px solid var(--line-strong);
   border-radius: var(--r-1);
   padding: 0 var(--s-2);
-  min-height: 32px;
+  min-height: var(--hit);
+}
+/* The strip's Snap toggle (an editor's snapping button): quiet at rest, the accent while on. */
+.lab-strip-snap {
+  flex: none;
+  font: inherit;
+  color: var(--text-2);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-1);
+  padding: 0 var(--s-2);
+  min-height: var(--hit);
+  min-width: var(--hit);
+  cursor: pointer;
+}
+.lab-strip-snap[aria-pressed='true'] {
+  color: var(--accent);
+  border-color: var(--line-strong);
 }
 /*
  * The cue rows scroll in their own box, so a scene of many cues (roof has 35)

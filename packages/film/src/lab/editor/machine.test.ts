@@ -52,7 +52,7 @@ const grip: CueGrip = {
   targets: [],
 };
 
-const at = (x: number) => EditEvent.Move({ pointer: { x, y: 0, shift: false } });
+const at = (x: number) => EditEvent.Move({ pointer: { x, y: 0, free: false } });
 
 const landed: LabWrite = {
   scene: 'one',
@@ -219,7 +219,7 @@ describe('a drag of a knob handle', () => {
     start: [320, 180],
     knobs: { face: [400, 200], faceZoom: 2 },
   };
-  const to = (x: number, y: number) => EditEvent.Move({ pointer: { x, y, shift: false } });
+  const to = (x: number, y: number) => EditEvent.Move({ pointer: { x, y, free: false } });
 
   it.effect('moves preview the knobs; the release writes the knob and holds #t=', () => {
     const { log, layer } = fakes();

@@ -7,9 +7,12 @@
 //
 // A grip follows the press that grabbed it (`Pointer.drag`) until the press
 // ends: lifted it lands, ended by the browser it goes back. Escape lets it go
-// while the machine is Pressed or Dragging, and only then. The editor's verbs
-// (Undo, Redo, that Escape) are commands on the page's hub (`commands.ts`),
-// and what its writes did is said there as they land: the page's receipts.
+// while the machine is Pressed or Dragging, and only then. Its edges snap
+// while the viewer's Snap is on (kept in the browser, `film-studio.snap`, a
+// per-viewer setting as the lab's mode is), Shift flipping it for a move
+// (`placesFreely`). The editor's verbs (Undo, Redo, that Escape, Snap) are
+// commands on the page's hub (`commands.ts`), and what its writes did is said
+// there as they land: the page's receipts.
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
@@ -19,8 +22,10 @@ import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createEffect, createMemo, onCleanup, useContext } from 'solid-js';
+import { createContext, createEffect, createMemo, onCleanup, untrack, useContext } from 'solid-js';
 import { Pointer } from '../../browser/pointer.ts';
+import { keptText } from '../../browser/storage.ts';
+import { ViewerStore } from '../../browser/storage-browser.ts';
 import type { SceneEdit } from '../../canvas/film.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, SceneSource } from '../../core/schema.ts';
@@ -40,10 +45,11 @@ import {
   fieldsOf,
   filmPoint,
   knobRefusal,
+  placesFreely,
   snapTargets,
 } from './grip.ts';
 import { type Handle, knobMode } from './handles.ts';
-import { cueDestinations, editorCommands } from './commands.ts';
+import { cueDestinations, editorCommands, snapOf, snapText } from './commands.ts';
 import { findingTime, findingsOf, receiptOf } from './format.ts';
 import { type EditActor, EditEvent, spawnEditor, stepRequest } from './machine.ts';
 
@@ -72,6 +78,8 @@ interface EditorState {
   readonly holding: Accessor<boolean>;
   /** The inspector's fields of a cue or knob, as the lab holds it now (`grip.ts`). */
   readonly fieldsOf: (selection: LabSelection) => ReadonlyArray<Inspected>;
+  /** Whether a drag's edges snap (the viewer's Snap): Shift flips it for a move. */
+  readonly snap: Accessor<boolean>;
 }
 
 /** Where on a cue's bar a press landed, and the strip's scale. */
@@ -116,6 +124,9 @@ interface EditorActions {
   readonly refuse: (message: string) => void;
 }
 
+/** The viewer's Snap, kept in the browser: a convenience, safe to lose (on with nothing kept). */
+const keptSnap = keptText(ViewerStore, 'film-studio.snap');
+
 interface EditorContextValue {
   readonly state: EditorState;
   readonly actions: EditorActions;
@@ -156,6 +167,10 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   const checked = useAtomValue(() => checkAtom);
   const report = createMemo(() => AsyncResult.value(checked()));
 
+  const kept = useAtomValue(() => keptSnap);
+  const keep = useAtomSet(() => keptSnap);
+  const snap = createMemo(() => snapOf(kept()));
+
   /** The drag of the press that grabbed the grip held now, while it lasts. */
   let following = Option.none<Fiber.Fiber<void>>();
   /** Stop following the held grip's press. */
@@ -175,7 +190,15 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
         Pointer.use((pointer) =>
           pointer.drag(down, {
             move: (e) =>
-              send(EditEvent.Move({ pointer: { x: e.clientX, y: e.clientY, shift: e.shiftKey } })),
+              send(
+                EditEvent.Move({
+                  pointer: {
+                    x: e.clientX,
+                    y: e.clientY,
+                    free: placesFreely(e.shiftKey, untrack(snap)),
+                  },
+                }),
+              ),
             end: (lifted) => {
               following = Option.none();
               send(
@@ -249,7 +272,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
           m: p.handle.m,
           inv: p.handle.inv,
           frame,
-          start: filmPoint(frame, { x: p.down.clientX, y: p.down.clientY, shift: false }),
+          start: filmPoint(frame, { x: p.down.clientX, y: p.down.clientY, free: false }),
           knobs,
         }),
       }),
@@ -411,6 +434,8 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
         seek: (T) => meta.player.seek(T),
         findingTimes: () =>
           findingsOf(edit(), report()).flatMap((f) => Option.toArray(findingTime(f, film.placed))),
+        snap,
+        setSnap: (on) => keep(snapText(on)),
       }),
     ),
   );
@@ -425,6 +450,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       report,
       holding,
       fieldsOf: fieldsAt,
+      snap,
     },
     actions: {
       press,
