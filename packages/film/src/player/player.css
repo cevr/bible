@@ -23,7 +23,7 @@ body.export {
   display: grid;
   place-items: center;
   min-height: 0;
-  padding: 16px;
+  padding: var(--s-4);
 }
 .stage canvas {
   max-width: 100%;
@@ -41,41 +41,46 @@ body.export .stage canvas {
 .bar {
   position: relative;
   background: var(--surface-1);
-  padding: 10px 16px 14px;
+  padding: var(--s-3) var(--gutter);
   display: grid;
   /* One column no wider than the window: its rows (the keys' long line
      among them) shrink into it, so the page does not scroll sideways. */
   grid-template-columns: minmax(0, 1fr);
-  gap: 8px;
+  gap: var(--s-2);
 }
-/* The transport row; what does not fit wraps below whole, never mid-timecode. */
+/* The transport row, its buttons the kit's icon buttons (`.sh-tool`); what
+   does not fit wraps below whole, never mid-timecode. */
 .row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--s-1) 12px;
+  gap: var(--s-1) var(--s-2);
   align-items: center;
 }
-.row button {
-  background: none;
-  border: 1px solid var(--line-strong);
+/* Play is the row's verb, in the primary ink; the captions' button lights while they show. */
+.row [data-act='play'] {
   color: var(--text-1);
-  border-radius: var(--r-2);
-  padding: 4px 10px;
-  cursor: pointer;
-  font: inherit;
 }
-.row button:hover {
-  background: var(--surface-3);
+.bar[data-captions='on'] [data-act='captions'] {
+  color: var(--accent);
 }
-/* The playhead's timecode, then the film's length and state (rate, loop, narration): two pieces the row lays out. */
+/* The playhead's timecode, the film's length and state (rate, loop), then why
+   the narration is not heard: three pieces the row lays out. */
 .time {
   display: contents;
   font-variant-numeric: tabular-nums;
   color: var(--text-1);
 }
+/* The narration's failure and its way back, in the warning's colour; none, no room. */
+.bar .narration {
+  color: var(--state-warning);
+}
+.bar .narration:empty {
+  display: none;
+}
 /* A phone keeps the controls and the timecode on the first row, under the thumb; the length, the scene and the line go after them, wrapping below. */
 @media (max-width: 899px) {
   .row .of,
+  .row .narration,
   .row .scene,
   .row .say {
     order: 1;
@@ -83,7 +88,7 @@ body.export .stage canvas {
 }
 .scene {
   color: var(--accent);
-  font-weight: 600;
+  font-weight: var(--w-3);
 }
 .say {
   color: var(--text-2);
@@ -93,6 +98,8 @@ body.export .stage canvas {
   white-space: nowrap;
 }
 .track {
+  /* A tick's reach either side of its line: room to hover or hold it, drawn as nothing. */
+  --tick-slop: 3px;
   position: relative;
   height: 34px;
   background: var(--surface-2);
@@ -118,8 +125,8 @@ body.export .stage canvas {
 }
 .track .seg span {
   position: absolute;
-  left: 4px;
-  right: 4px;
+  left: var(--s-1);
+  right: var(--s-1);
   top: 11px;
   color: var(--text-2);
   white-space: nowrap;
@@ -139,10 +146,10 @@ body.export .stage canvas {
 .track .tick.mark {
   bottom: 0;
   height: 10px;
-  width: 7px;
-  margin-left: -3.5px;
-  /* One pixel of tick, with room either side to hover it. */
-  border-inline: 3px solid transparent;
+  /* One pixel of tick, with its reach either side. */
+  width: calc(1px + 2 * var(--tick-slop));
+  margin-left: calc(-0.5px - var(--tick-slop));
+  border-inline: var(--tick-slop) solid transparent;
   background: var(--text-2);
   background-clip: padding-box;
 }
@@ -160,7 +167,7 @@ body.export .stage canvas {
   width: 7px;
   height: 7px;
   margin-left: -3.5px;
-  border-radius: 50%;
+  border-radius: var(--r-dot);
   background: var(--state-agent);
 }
 /* A movement of the score starts: a line through the whole track. */
@@ -174,7 +181,7 @@ body.export .stage canvas {
 .tip {
   position: absolute;
   transform: translateX(-50%);
-  padding: 2px 8px;
+  padding: 0 var(--s-2);
   border-radius: var(--r-1);
   background: var(--surface-2);
   color: var(--text-1);
@@ -187,7 +194,7 @@ body.export .stage canvas {
   display: inline-block;
   width: 8px;
   height: 8px;
-  margin: 0 3px 0 6px;
+  margin: 0 var(--s-1) 0 var(--s-2);
   border-radius: var(--r-1);
   vertical-align: -1px;
 }
@@ -201,7 +208,7 @@ body.export .stage canvas {
   background: var(--accent);
 }
 .keys .k-effect {
-  border-radius: 50%;
+  border-radius: var(--r-dot);
   background: var(--state-agent);
 }
 .keys .k-act {
@@ -292,17 +299,19 @@ body.lab .stage {
   grid-row: 2 / span 2;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--s-3);
   min-height: 0;
   overflow: auto;
-  padding: 12px;
+  padding: var(--s-3) var(--gutter);
   background: var(--surface-1);
   border-left: 1px solid var(--line);
 }
 /*
  * The phone: one column that scrolls as a page, the picture full width with
- * its transport and strip right under it (no row stretched below the
- * picture), then the inspector; the page clears the shell's tab bar.
+ * its track and strip right under it (no row stretched below the picture),
+ * then the inspector. The transport's row is the shell's dock (design
+ * language §4, `.sh-dock`): one line over the tab bar, in reach of the thumb
+ * wherever the page is scrolled; the page clears both.
  */
 @media (max-width: 899px) {
   html:has(body.lab),
@@ -314,7 +323,42 @@ body.lab .stage {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto auto auto;
     align-content: start;
-    padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+    padding-bottom: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));
+  }
+  body.lab .bar > .row {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+    z-index: 25;
+    height: var(--dock-h);
+    flex-wrap: nowrap;
+    padding: 0 var(--gutter);
+    background: var(--surface-1);
+    border-top: var(--border);
+  }
+  /* Docked, the row keeps the controls and the scene's time; the scene's
+     name shortens, and its length and line are the strip head's and the captions'.
+     A narration that cannot play says so in the name's place (the strip head
+     names the scene too), on two short lines when one does not hold it. */
+  body.lab .bar > .row :is(.of, .say) {
+    display: none;
+  }
+  body.lab .bar > .row:has(.narration:not(:empty)) .scene {
+    display: none;
+  }
+  body.lab .bar > .row .narration {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--fs-2);
+    line-height: var(--lh-2);
+  }
+  body.lab .bar > .row .scene {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   body.lab .stage {
     grid-template: auto / minmax(0, 1fr);
@@ -332,7 +376,6 @@ body.lab .stage {
     grid-column: 1;
     grid-row: 4;
     overflow: visible;
-    padding: var(--s-3) var(--gutter);
     border-left: 0;
     border-top: var(--border);
   }
@@ -347,32 +390,14 @@ body.lab .stage {
 }
 .lab-panel header {
   display: flex;
-  gap: 8px;
+  gap: var(--s-2);
   align-items: center;
   flex-wrap: wrap;
 }
-/* The mode tray (PA-7): a segmented toolbar; the panel shows the pressed mode's section only. */
+/* The mode tray (PA-7) is the kit's segmented control (`.sh-seg`) across the panel; the panel shows the pressed mode's section only. */
 .lab-modes {
   display: flex;
-  border: 1px solid var(--line);
-  border-radius: var(--r-2);
-  overflow: hidden;
-}
-.lab-panel .lab-modes .lab-mode {
-  border: 0;
-  border-radius: 0;
-  min-height: var(--control-h);
-  padding: 0 var(--s-3);
-  color: var(--text-2);
-  font-size: var(--fs-2);
-  font-weight: var(--w-2);
-}
-.lab-panel .lab-modes .lab-mode + .lab-mode {
-  border-left: 1px solid var(--line);
-}
-.lab-panel .lab-modes .lab-mode[data-pressed] {
-  background: var(--surface-3);
-  color: var(--text-1);
+  width: 100%;
 }
 .lab-panel[data-mode='edit'] [data-mode-of]:not([data-mode-of='edit']),
 .lab-panel[data-mode='note'] [data-mode-of]:not([data-mode-of='note']),
@@ -383,32 +408,17 @@ body.lab .stage {
 }
 .lab-reload-waiting {
   margin: 0;
-  padding: 6px 9px;
+  padding: var(--s-1) var(--s-2);
   border: 1px solid var(--accent);
   border-radius: var(--r-2);
   color: var(--text-1);
   font-size: var(--fs-2);
 }
-.lab-panel button {
-  background: none;
-  border: 1px solid var(--line-strong);
-  color: var(--text-1);
-  border-radius: var(--r-2);
-  padding: 3px 9px;
-  cursor: pointer;
-  font: inherit;
-}
-.lab-panel button:hover {
-  background: var(--surface-3);
-}
-.lab-panel button.on {
-  border-color: var(--accent);
-  background: var(--surface-3);
-}
+/* A note being written: the accent's box, the note's place, its words and its buttons (the kit's). */
 .lab-compose {
   display: grid;
-  gap: 6px;
-  padding: 10px;
+  gap: var(--s-2);
+  padding: var(--s-3);
   border: 1px solid var(--accent);
   border-radius: var(--r-2);
 }
@@ -425,18 +435,19 @@ body.lab .stage {
   background: var(--surface-2);
   color: var(--text-1);
   border: 1px solid var(--line-strong);
-  border-radius: var(--r-2);
-  padding: 6px 8px;
+  border-radius: var(--r-1);
+  padding: var(--s-1) var(--s-2);
   font: inherit;
   resize: vertical;
 }
 .lab-actions,
 .lab-reply-form {
   display: flex;
-  gap: 6px;
+  gap: var(--s-2);
   align-items: center;
 }
 .lab-status {
+  margin: 0;
   color: var(--text-2);
   font-size: var(--fs-2);
 }
@@ -446,15 +457,15 @@ body.lab .stage {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 8px;
+  gap: var(--s-2);
 }
 .lab-note-item {
-  padding: 8px;
+  padding: var(--s-2);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-2);
   cursor: pointer;
   display: grid;
-  gap: 6px;
+  gap: var(--s-2);
 }
 .lab-note-item.selected {
   border-color: var(--accent);
@@ -465,7 +476,7 @@ body.lab .stage {
 .lab-note-head {
   display: flex;
   justify-content: space-between;
-  gap: 6px;
+  gap: var(--s-2);
   font-size: var(--fs-2);
   color: var(--text-2);
 }
@@ -493,17 +504,16 @@ body.lab .stage {
   display: block;
 }
 .lab-reply {
-  padding-left: 8px;
+  padding-left: var(--s-2);
   border-left: 2px solid var(--line-strong);
   display: grid;
-  gap: 4px;
+  gap: var(--s-1);
 }
 .lab-reply.agent {
   border-left-color: var(--state-agent);
 }
 .lab-by {
   font-size: var(--fs-1);
-  text-transform: uppercase;
   color: var(--text-2);
 }
 /* The layer over the canvas: the lab's marks, never drawn into the film. */
@@ -527,6 +537,7 @@ body.lab .stage {
 }
 /* The notes' connection to the server, said only once lost. */
 .lab-feed {
+  margin: 0;
   color: var(--accent);
   font-size: var(--fs-2);
 }
@@ -564,9 +575,9 @@ body.lab .stage {
 .track .tick.note {
   top: 0;
   bottom: 0;
-  width: 9px;
-  margin-left: -4.5px;
-  border-inline: 3px solid transparent;
+  width: calc(3px + 2 * var(--tick-slop));
+  margin-left: calc(-1.5px - var(--tick-slop));
+  border-inline: var(--tick-slop) solid transparent;
   background: var(--state-note);
   background-clip: padding-box;
   cursor: pointer;
@@ -579,7 +590,7 @@ body.lab .stage {
 /* ── The lab's editor: the current scene's cues, draggable, and the inspector. ── */
 .lab-strip {
   position: relative;
-  margin-top: 6px;
+  margin-top: var(--s-1);
   font-size: var(--fs-2);
   color: var(--text-2);
   user-select: none;
@@ -589,7 +600,7 @@ body.lab .stage {
   display: flex;
   align-items: center;
   gap: var(--s-2);
-  margin-bottom: 2px;
+  margin-bottom: var(--s-1);
 }
 .lab-strip-name {
   flex: 1;
@@ -598,32 +609,11 @@ body.lab .stage {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.lab-strip-cancel {
+/* Cancel drag and the Snap toggle are the kit's quiet buttons, each the pointer's size. */
+.lab-strip-head > .sh-btn {
   flex: none;
-  font: inherit;
-  color: var(--text-1);
-  background: var(--surface-2);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-1);
-  padding: 0 var(--s-2);
-  min-height: var(--hit);
-}
-/* The strip's Snap toggle (an editor's snapping button): quiet at rest, the accent while on. */
-.lab-strip-snap {
-  flex: none;
-  font: inherit;
-  color: var(--text-2);
-  background: none;
-  border: 1px solid var(--line);
-  border-radius: var(--r-1);
-  padding: 0 var(--s-2);
   min-height: var(--hit);
   min-width: var(--hit);
-  cursor: pointer;
-}
-.lab-strip-snap[aria-pressed='true'] {
-  color: var(--accent);
-  border-color: var(--line-strong);
 }
 /*
  * The cue rows scroll in their own box, so a scene of many cues (roof has 35)
@@ -631,9 +621,11 @@ body.lab .stage {
  * The cue names sit in the box's left padding, inside what it clips.
  */
 .lab-strip-scroll {
+  /* The names' column: each name, then a step of room before its row. */
+  --cue-names: calc(2 * var(--s-8) + var(--s-2));
   max-height: min(30vh, 240px);
   overflow-y: auto;
-  padding-left: 72px;
+  padding-left: var(--cue-names);
 }
 .lab-strip-rows {
   position: relative;
@@ -666,7 +658,7 @@ body.lab .stage {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  line-height: 14px;
+  line-height: var(--lh-1);
   color: var(--text-1);
 }
 @container (width < 1.5em) {
@@ -689,23 +681,24 @@ body.lab .stage {
 }
 .lab-cue-label {
   position: absolute;
-  left: -72px;
-  width: 68px;
+  left: calc(-1 * var(--cue-names));
+  width: calc(var(--cue-names) - var(--s-1));
   overflow: hidden;
   text-align: right;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 16px;
+  line-height: var(--lh-2);
 }
+/* A cue's bar, its grips at either end (the edges a drag takes). */
 .lab-cue {
+  --cue-grip: 5px;
   position: absolute;
   top: 3px;
   height: 10px;
   min-width: 3px;
   box-sizing: border-box;
   background: var(--state-rendered);
-  border-left: 5px solid var(--text-2);
-  border-right: 5px solid var(--text-2);
+  border-inline: var(--cue-grip) solid var(--text-2);
   border-radius: var(--r-1);
   cursor: grab;
   /* Inside the rows' scroll box: a sideways finger drags the cue, an upright one scrolls. */
@@ -730,19 +723,19 @@ body.lab .stage {
 .lab-edit {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-bottom: 8px;
+  gap: var(--s-2);
+  padding-bottom: var(--s-2);
   border-bottom: 1px solid var(--line);
   font-size: var(--fs-3);
 }
 .lab-edit-title {
-  font-weight: 600;
-  margin: 4px 0;
+  font-weight: var(--w-3);
+  margin: var(--s-1) 0;
 }
 .lab-edit-grid {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 4px 8px;
+  gap: var(--s-1) var(--s-2);
   align-items: center;
 }
 .lab-edit-key,
@@ -752,30 +745,19 @@ body.lab .stage {
 .lab-edit-note {
   font-size: var(--fs-2);
 }
-.lab-num {
-  width: 80px;
-  background: var(--surface-2);
-  color: var(--text-1);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-1);
-  padding: 2px 4px;
-}
-/* A field is the pointer's target tall (`--hit`: a finger's on the phone, the laptop's dense one). */
-.lab-num,
-.lab-motion-row button,
-.lab-motion-row input {
+/* A number field is the kit's (`.lab-num`, `--hit` tall); a Motion row's buttons are the pointer's target tall too. */
+.lab-motion-row .sh-btn {
   min-height: var(--hit);
 }
 .lab-eases {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
-  gap: 4px;
+  gap: var(--s-1);
 }
-.lab-panel .lab-ease {
-  display: flex;
+/* An ease: the kit's quiet button holding its curve over its name. */
+.lab-ease {
   flex-direction: column;
-  align-items: center;
-  padding: 2px;
+  padding: var(--s-1);
   font-size: var(--fs-1);
 }
 .lab-ease-axis {
@@ -787,13 +769,13 @@ body.lab .stage {
   stroke: var(--text-1);
   stroke-width: 1.5;
 }
-.lab-ease.on .lab-ease-curve {
+.lab-ease[aria-pressed='true'] .lab-ease-curve {
   stroke: var(--accent);
 }
 .lab-knob {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--s-2);
   align-items: center;
 }
 .lab-knob.selected .lab-edit-key {
@@ -836,7 +818,7 @@ body.lab .stage {
 }
 .lab-findings {
   margin: 0;
-  padding-left: 16px;
+  padding-left: var(--s-4);
   font-size: var(--fs-2);
 }
 .lab-finding.error {
@@ -885,16 +867,18 @@ body.lab .stage {
   z-index: 2;
   pointer-events: none;
 }
-.lab-motion {
+.lab-motion,
+.lab-compare-tools {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding-bottom: 8px;
+  gap: var(--s-2);
+  padding-bottom: var(--s-2);
   border-bottom: 1px solid var(--line);
 }
-.lab-motion header {
+.lab-motion header,
+.lab-compare-tools header {
   display: flex;
-  gap: 8px;
+  gap: var(--s-2);
   align-items: baseline;
 }
 .lab-motion-status {
@@ -903,24 +887,18 @@ body.lab .stage {
 }
 .lab-motion-row {
   display: flex;
-  gap: 6px;
+  gap: var(--s-2);
   align-items: center;
   flex-wrap: wrap;
 }
-.lab-motion-row input[type='number'] {
-  width: 3.4em;
+.lab-motion-row label {
+  display: inline-flex;
+  gap: var(--s-1);
+  align-items: center;
 }
-.lab-compare-tools {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
-}
-.lab-compare-tools header {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
+/* The onion's two counts are a digit or two wide. */
+.lab-motion-row .lab-num {
+  width: 7ch;
 }
 .lab-divider line {
   stroke: var(--on-picture);
@@ -1018,10 +996,11 @@ body.play .sh-body {
 }
 
 /* The studio: record the voiceover beat by beat. */
+/* The section's keys are its own while focus is in it: its edge says so, in the accent. */
 .studio {
   display: grid;
-  gap: 10px;
-  padding: 8px;
+  gap: var(--s-3);
+  padding: var(--s-2);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-2);
   outline: none;
@@ -1044,20 +1023,14 @@ body.play .sh-body {
 .studio-beats ol {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--s-1);
   max-height: 120px;
   overflow: auto;
 }
-.lab-panel .studio-beats button {
-  display: flex;
-  gap: 6px;
-  align-items: center;
+/* A beat is the kit's quiet button, a small one; the selected beat is pressed. */
+.studio-beats .sh-btn {
+  padding: 0 var(--s-2);
   font-size: var(--fs-2);
-  padding: 2px 6px;
-}
-.lab-panel .studio-beats button.selected {
-  border-color: var(--accent);
-  color: var(--accent);
 }
 .lab-badge.recorded {
   color: var(--state-approved);
@@ -1066,27 +1039,26 @@ body.play .sh-body {
   color: var(--state-stale);
 }
 .studio-prompter {
-  padding: 10px 12px;
+  padding: var(--s-3);
   background: var(--surface-0);
   border-radius: var(--r-2);
   font-size: var(--fs-read);
-  line-height: 1.5;
+  line-height: var(--lh-read);
   max-height: 260px;
   overflow: auto;
 }
 .studio-line {
-  margin: 0 0 8px;
+  margin: 0 0 var(--s-2);
 }
 .studio-voice {
   color: var(--text-2);
   font-size: var(--fs-3);
-  text-transform: uppercase;
 }
+/* A quotation set apart by the kit's one quote rule. */
 .studio-quotation {
-  margin: 0 0 8px;
-  padding-left: 12px;
-  border-left: 3px solid var(--accent);
-  font-style: italic;
+  margin: 0 0 var(--s-2);
+  padding-left: var(--s-3);
+  border-left: 2px solid var(--line-strong);
 }
 .studio-quotation p {
   margin: 0;
@@ -1099,26 +1071,22 @@ body.play .sh-body {
 }
 .studio-mic {
   display: grid;
-  gap: 6px;
+  gap: var(--s-2);
 }
 .studio-mic label {
   display: flex;
-  gap: 6px;
+  gap: var(--s-2);
   align-items: center;
 }
+/* The microphone's select is the kit's field, as wide as the row leaves. */
 .studio-mic select {
   flex: 1;
   min-width: 0;
-  background: var(--surface-0);
-  color: var(--text-1);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-2);
-  font: inherit;
 }
 .studio-meter {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 10px;
+  gap: var(--s-1) var(--s-3);
   align-items: center;
   min-height: 18px;
   font-size: var(--fs-2);
@@ -1140,15 +1108,15 @@ body.play .sh-body {
 }
 .studio-clip {
   color: var(--state-recording);
-  font-weight: 600;
+  font-weight: var(--w-3);
 }
 .studio-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--s-2);
 }
 .studio-status {
-  margin: 6px 0 0;
+  margin: var(--s-1) 0 0;
   white-space: pre-line;
   font-size: var(--fs-3);
   color: var(--text-2);
@@ -1161,7 +1129,7 @@ body.play .sh-body {
 }
 .studio-status[data-tone='warn'] {
   color: var(--state-warning);
-  font-weight: 600;
+  font-weight: var(--w-3);
 }
 .studio-status[data-tone='refused'] {
   color: var(--state-findings);
@@ -1173,12 +1141,12 @@ body.play .sh-body {
 }
 .studio-attempts ol {
   display: grid;
-  gap: 6px;
+  gap: var(--s-2);
 }
 .studio-attempt {
   display: grid;
-  gap: 4px;
-  padding: 6px;
+  gap: var(--s-1);
+  padding: var(--s-2);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-2);
 }
@@ -1187,7 +1155,7 @@ body.play .sh-body {
 }
 .studio-attempt-head {
   display: flex;
-  gap: 6px;
+  gap: var(--s-2);
   align-items: center;
   font-size: var(--fs-2);
 }
@@ -1196,10 +1164,6 @@ body.play .sh-body {
 }
 .studio-attempt-row {
   display: flex;
-  gap: 6px;
+  gap: var(--s-2);
   align-items: center;
-}
-.lab-panel .studio-attempt-row button:disabled {
-  opacity: 0.4;
-  cursor: default;
 }

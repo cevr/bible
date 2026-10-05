@@ -175,7 +175,8 @@ export const Pen = () => {
     <button
       type="button"
       data-act="pen"
-      class={{ on: feed.pen() }}
+      class="sh-btn"
+      aria-pressed={`${feed.pen()}`}
       title="draw freehand ink on the frame"
       onClick={feed.togglePen}
     >
@@ -190,6 +191,7 @@ export const Frame = () => {
   return (
     <button
       type="button"
+      class="sh-btn"
       data-act="note-frame"
       title="note the whole frame shown (n)"
       disabled={Option.isNone(feed.staged())}
@@ -243,7 +245,7 @@ const ReplyForm = (props: { readonly note: Note }) => {
       />
       <button
         type="button"
-        class="lab-resolve"
+        class="sh-btn lab-resolve"
         onClick={() => feed.write({ _tag: 'Resolve', id: props.note.id })}
       >
         Resolve

@@ -650,6 +650,25 @@ describe("a film's project", () => {
   );
 
   it.live(
+    "the film's folder of renders and each set in it sit under its Project: its tab is the one lit",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject(), {
+          href: pageHref.folder('out/toy'),
+          viewport: LAPTOP,
+        });
+        yield* waitFor(page, '.rv-main a[href^="/sets/"]');
+        yield* attributesAre(page, '.sh-tab[data-active="true"]', 'data-page', ['project']);
+        yield* attributeIs(page, '.sh-films', 'data-active', 'false');
+        yield* page.click('.rv-main a[href^="/sets/"]');
+        yield* until(page, "location.pathname.startsWith('/sets/')");
+        yield* attributesAre(page, '.sh-tab[data-active="true"]', 'data-page', ['project']);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "the film's panel: its state band (a segment a scene, in film order, as long as the scene) and n/N current · n/N approved · its findings; no counts line, write bar or choices folds",
     () =>
       Effect.gen(function* () {

@@ -878,11 +878,11 @@ describe("a film's choices", () => {
         yield* click(page, `${at('take:paper.page', WAITING)} [data-act="pick"]`);
         yield* receiptSays(page, `Picked ${WAITING.slice(0, 12)}`);
         // A kept take can only be unkept (and approved): at rest its approve, the rest in its inspector.
-        yield* attributesAre(page, `${at('take:paper.page', KEPT)} button.rv-chip`, 'data-act', [
+        yield* attributesAre(page, `${at('take:paper.page', KEPT)} button.sh-btn`, 'data-act', [
           'approve',
         ]);
         yield* inspect(page, at('take:paper.page', KEPT));
-        yield* attributesAre(page, `${INSPECTOR} button.rv-chip`, 'data-act', [
+        yield* attributesAre(page, `${INSPECTOR} button.sh-btn`, 'data-act', [
           'approve',
           'unpick',
           'comment',
@@ -1574,7 +1574,7 @@ describe("a film's choices", () => {
         const waiting = at('take:paper.page', WAITING);
         yield* waitFor(page, `${waiting} [data-act="pick"]`);
         // At rest a waiting take offers its keep, never its reject or its approve (it is not the kept one).
-        yield* attributesAre(page, `${waiting} button.rv-chip`, 'data-act', ['pick']);
+        yield* attributesAre(page, `${waiting} button.sh-btn`, 'data-act', ['pick']);
         yield* rightClick(page, `${waiting} .rv-name`);
         yield* waitFor(page, '[data-role="context-menu"] [data-command="review.reject"]');
         yield* evaluates(page, `${MENU_ITEMS}.filter((id) => id.startsWith('review.'))`, [

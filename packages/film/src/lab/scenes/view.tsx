@@ -719,7 +719,7 @@ export const ScenesView = (props: ScenesViewProps) => {
             <>
               <button
                 type="button"
-                class="sc-verb"
+                class="sh-btn"
                 data-act="open-lab"
                 data-primary=""
                 onClick={() => openLab(scene)}
@@ -729,7 +729,7 @@ export const ScenesView = (props: ScenesViewProps) => {
               <Show when={!short}>
                 <button
                   type="button"
-                  class="sc-verb"
+                  class="sh-btn"
                   data-act="approve"
                   disabled={!approvable(scene)}
                   onClick={() =>
@@ -742,7 +742,7 @@ export const ScenesView = (props: ScenesViewProps) => {
               <Show when={picked().length > 1}>
                 <button
                   type="button"
-                  class="sc-verb"
+                  class="sh-btn"
                   data-act="approve-selected"
                   disabled={!picked().some(approvable)}
                   onClick={() =>
@@ -788,7 +788,7 @@ export const ScenesView = (props: ScenesViewProps) => {
             />
             <button
               type="button"
-              class="sc-verb"
+              class="sh-btn"
               data-act="comment"
               disabled={saying() || comment().trim() === ''}
               onClick={sayComment}
@@ -853,7 +853,7 @@ export const ScenesView = (props: ScenesViewProps) => {
             </span>
             <button
               type="button"
-              class="sc-follow"
+              class="sh-btn sc-follow"
               data-act="follow"
               aria-pressed={pressed(follow())}
               onClick={() => {

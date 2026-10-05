@@ -185,11 +185,11 @@ describe('compare with HEAD', () => {
         // Back walks the views: the diff, then the lab as it opened.
         yield* page.back;
         yield* page.until(`${view} === 'diff'`);
-        yield* page.waitFor('.lab-compare-tools [data-mode="diff"].on');
+        yield* page.waitFor('.lab-compare-tools [data-mode="diff"][aria-pressed="true"]');
         yield* page.until(`${blend} === 'difference'`);
         yield* page.back;
         yield* page.until(`${view} === null`);
-        yield* page.waitFor('.lab-compare-tools [data-mode="off"].on');
+        yield* page.waitFor('.lab-compare-tools [data-mode="off"][aria-pressed="true"]');
         // A mode picked again where the link already says it adds no entry.
         yield* click(page, '.lab-compare-tools [data-mode="off"]');
         yield* evaluates(page, 'history.length - globalThis.openedWith', 2);
@@ -203,7 +203,7 @@ describe('compare with HEAD', () => {
         href: labAt(1, { view: 'diff' }),
         mode: 'compare',
       });
-      yield* page.waitFor('.lab-compare-tools [data-mode="diff"].on');
+      yield* page.waitFor('.lab-compare-tools [data-mode="diff"][aria-pressed="true"]');
       yield* page.until(
         `document.querySelector('canvas.lab-compare')?.style.mixBlendMode === 'difference'`,
       );
@@ -217,7 +217,7 @@ describe('compare with HEAD', () => {
         href: labAt(1, { view: 'blink' }),
         mode: 'compare',
       });
-      yield* page.waitFor('.lab-compare-tools [data-mode="blink"].on');
+      yield* page.waitFor('.lab-compare-tools [data-mode="blink"][aria-pressed="true"]');
       yield* page.waitFor('canvas.lab-compare:not([hidden])');
       const frame = yield* page.box('.lab-hold');
       yield* page.mouse.move(frame.x + frame.width / 2, frame.y + frame.height / 2);
@@ -240,7 +240,7 @@ describe('compare with HEAD', () => {
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
       yield* compareSays(page, 'at HEAD');
       yield* page.reload;
-      yield* page.waitFor('.lab-compare-tools [data-mode="wipe"].on');
+      yield* page.waitFor('.lab-compare-tools [data-mode="wipe"][aria-pressed="true"]');
       yield* compareSays(page, 'at HEAD');
     }).pipe(Effect.scoped),
   );

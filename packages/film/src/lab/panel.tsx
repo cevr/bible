@@ -90,12 +90,12 @@ export const Fill = (props: ParentProps<{ readonly at: SlotName }>) => {
   );
 };
 
-/** The mode tray: a segmented toolbar, one mode pressed (pressing it again keeps it). */
+/** The mode tray: the kit's segmented control, one mode pressed (pressing it again keeps it). */
 const ModeTray = () => {
   const page = useLabPage();
   return (
     <ToggleGroup<LabMode>
-      class="lab-modes"
+      class="sh-seg lab-modes"
       aria-label="Mode"
       value={[page.mode()]}
       onValueChange={(pressed) => {
@@ -104,7 +104,7 @@ const ModeTray = () => {
     >
       <For each={LAB_MODES}>
         {(m) => (
-          <Toggle<LabMode> value={m} class="lab-mode" data-mode-pick={m}>
+          <Toggle<LabMode> value={m} data-mode-pick={m}>
             {MODE_TITLE[m]}
           </Toggle>
         )}

@@ -29,6 +29,7 @@ const servedFonts: BunPlugin = {
 
 export const ENTRIES = [
   'lab-page.ts',
+  'lab-narrated-page.ts',
   'lab-hydrated-page.ts',
   'review-page.ts',
   'review-hydrated-page.ts',

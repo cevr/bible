@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studio design language</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;650&display=swap"
+    />
+    <style>
+      /* Every mock at 390 × 844 and 1440 × 900, live in frames scaled to fit; the language itself is design-language.md. */
+      :root {
+        color-scheme: dark;
+        --surface-0: #0e0d0c;
+        --surface-1: #161513;
+        --surface-2: #1e1c1a;
+        --line: #2f2c29;
+        --text-1: #e4dfd6;
+        --text-2: #a19b91;
+        --text-3: #6b665f;
+        --accent: #e0ad45;
+        --font: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        --s-1: 4px;
+        --s-2: 8px;
+        --s-3: 12px;
+        --s-4: 16px;
+        --s-6: 24px;
+        --s-8: 32px;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--surface-0);
+        color: var(--text-1);
+        font: 12px/18px var(--font);
+        font-feature-settings: 'calt' 0;
+        overflow-x: hidden;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--s-1) var(--s-3);
+        padding: var(--s-2) var(--s-4);
+        background: var(--surface-1);
+        border-bottom: 1px solid var(--line);
+      }
+      header h1 {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 650;
+      }
+      header nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--s-1) var(--s-3);
+        font-size: 11px;
+      }
+      a {
+        color: var(--text-2);
+        text-decoration: none;
+      }
+      a:hover {
+        color: var(--text-1);
+      }
+      main {
+        padding: var(--s-4);
+        display: grid;
+        gap: var(--s-8);
+      }
+      section h2 {
+        display: flex;
+        align-items: baseline;
+        gap: var(--s-3);
+        margin: 0 0 var(--s-1);
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-2);
+      }
+      section h2 a {
+        text-transform: none;
+        letter-spacing: 0;
+        color: var(--accent);
+      }
+      section p {
+        margin: 0 0 var(--s-3);
+        color: var(--text-2);
+        max-width: 90ch;
+      }
+      .pair {
+        display: grid;
+        gap: var(--s-4);
+        grid-template-columns: minmax(0, 1fr);
+        align-items: start;
+      }
+      @media (min-width: 900px) {
+        .pair {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 3.2fr);
+        }
+      }
+      figure {
+        margin: 0;
+        min-width: 0;
+      }
+      figcaption {
+        margin-top: var(--s-1);
+        font-size: 10px;
+        color: var(--text-3);
+      }
+      .frame {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: var(--surface-1);
+      }
+      .frame iframe {
+        position: absolute;
+        left: 0;
+        top: 0;
+        border: 0;
+        transform-origin: 0 0;
+      }
+      .frame.phone {
+        max-width: 390px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Studio design language</h1>
+      <nav id="nav"></nav>
+    </header>
+    <main id="mocks"></main>
+    <script>
+      // Each mock: its file, its name, and what it shows.
+      const MOCKS = [
+        ['films', 'Films', 'The home: film cards with a state band, then folders.'],
+        ['scenes', 'Scenes', 'The continuous tape: a minute a line on a laptop, 30 s on a phone.'],
+        [
+          'lab',
+          'Lab · Edit',
+          'The mode tray as the segmented control; the inspector; the timeline at the foot; on a phone the transport docked over the tab bar.',
+        ],
+        [
+          'lab-note',
+          'Lab · Note',
+          'Pen and Note frame; the composer open on a point; Save note primary.',
+        ],
+        [
+          'lab-motion',
+          'Lab · Motion',
+          'Onion pressed with its number fields; the rate and loop chips.',
+        ],
+        [
+          'lab-compare',
+          'Lab · Compare',
+          'off · wipe · blink · diff as one segmented control; the wipe on the picture.',
+        ],
+        [
+          'lab-record',
+          'Lab · Record',
+          'Beats as small toggles, the prompter, the mic field, Record in the recording colour.',
+        ],
+        ['choices', 'Choices', 'Kinds as tabs; variants as rows with their verbs.'],
+        ['project', 'Project', 'Acts as panels of scene cards; the film state band.'],
+        ['folder', 'Folder', 'A film’s folder of renders, under its Project.'],
+        [
+          'set',
+          'Set',
+          'One point’s versions; All · Side by side · Moments as the segmented control.',
+        ],
+        ['play', 'Play', 'The picture and its HUD: play, the time, the scene, CC on.'],
+      ];
+      const SIZES = [
+        [390, 844, 'phone'],
+        [1440, 900, 'laptop'],
+      ];
+      document.getElementById('nav').innerHTML = MOCKS.map(
+        ([f, n]) => `<a href="#${f}">${n}</a>`,
+      ).join('');
+      document.getElementById('mocks').innerHTML = MOCKS.map(
+        ([f, n, says]) => `<section id="${f}">
+  <h2>${n} <a href="mocks/${f}.html">open the mock</a></h2>
+  <p>${says}</p>
+  <div class="pair">${SIZES.map(
+    ([w, h, k]) => `<figure>
+    <div class="frame ${k}" data-w="${w}" data-h="${h}"><iframe src="mocks/${f}.html" width="${w}" height="${h}" loading="lazy" title="${n} at ${w} × ${h}"></iframe></div>
+    <figcaption>${w} × ${h}</figcaption></figure>`,
+  ).join('')}</div>
+</section>`,
+      ).join('');
+      // Each frame scales its mock to the width it is given, keeping the mock's own viewport.
+      const fit = () => {
+        for (const box of document.querySelectorAll('.frame')) {
+          const w = Number(box.dataset.w),
+            h = Number(box.dataset.h),
+            k = box.clientWidth / w;
+          box.style.height = `${h * k}px`;
+          box.querySelector('iframe').style.transform = `scale(${k})`;
+        }
+      };
+      addEventListener('resize', fit);
+      fit();
+    </script>
+  </body>
+</html>

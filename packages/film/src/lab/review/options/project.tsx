@@ -317,7 +317,7 @@ const Compare = (props: { readonly folder: Option.Option<string>; readonly point
   <Show when={Option.getOrUndefined(props.folder)}>
     {(folder) => (
       <Go
-        class="rv-chip"
+        class="sh-btn"
         data-compare={props.point}
         place={ReviewPlace.Set({ folder: folder(), point: props.point })}
       >
@@ -467,7 +467,7 @@ const SceneRow = (props: {
             <SceneInfo scene={props.scene} variant={variant()} />
             <div class="rv-row">
               <a
-                class="rv-chip"
+                class="sh-btn"
                 data-act="open-lab"
                 href={pageHref.labScene(props.at.film, props.scene.scene)}
               >
@@ -522,7 +522,7 @@ const PartApproval = (props: {
     <>
       <button
         type="button"
-        class="rv-chip"
+        class="sh-btn"
         data-act={`approve-${props.part}`}
         disabled={!leftToApprove(props.scenes) || approving.waiting()}
         onClick={() => approving.say({ address: props.address, say: { _tag: 'Approve' } })}
@@ -546,7 +546,7 @@ const PartUnapprove = (props: {
   return (
     <button
       type="button"
-      class="rv-chip"
+      class="sh-btn"
       data-act={`unapprove-${props.part}`}
       disabled={withdrawing.waiting()}
       onClick={() => withdrawing.say({ address: props.address, say: withdrawSay() })}

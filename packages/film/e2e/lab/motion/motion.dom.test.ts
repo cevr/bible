@@ -183,7 +183,7 @@ describe('the onion', () => {
         for (let i = 3; i < d.length; i += 4) if ((d[i] ?? 0) > 0) n++;
         return n > 50;
       })()`);
-      yield* attributeIs(page, '.lab-motion [data-act="onion"]', 'class', /\bon\b/);
+      yield* attributeIs(page, '.lab-motion [data-act="onion"]', 'aria-pressed', 'true');
     }).pipe(Effect.scoped),
   );
 });
