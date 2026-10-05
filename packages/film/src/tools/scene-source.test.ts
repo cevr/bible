@@ -327,6 +327,28 @@ describe('scene source', () => {
     expect(why(computed, { dur: 3 })).toContain('not a literal');
   });
 
+  for (const untilOffset of ['GAP', '0.0004'])
+    it(`keeps an until's offset \`${untilOffset}\` as written through an edit that leaves the end`, () => {
+      const before = scene.replace(
+        "bare: { at: 'speech' }",
+        `bare: { at: 'speech', until: 'gift', untilOffset: ${untilOffset} }`,
+      );
+      expect(ok(editCue(FILE, before, 'hand', 'bare', { offset: 0.3 }))).toBe(
+        before.replace("at: 'speech',", "at: 'speech', offset: 0.3,"),
+      );
+      expect(ok(editCue(FILE, before, 'hand', 'bare', { ease: 'linear' }))).toBe(
+        before.replace(
+          `untilOffset: ${untilOffset}`,
+          `untilOffset: ${untilOffset}, ease: 'linear'`,
+        ),
+      );
+      // A write that took it away has not landed as asked.
+      const dropped = before.replace(`, untilOffset: ${untilOffset}`, ', offset: 0.3');
+      expect(ok(cueLanded(FILE, before, dropped, 'hand', 'bare', { offset: 0.3 }))).toEqual([
+        'cue bare untilOffset',
+      ]);
+    });
+
   it('preserves a computed or ambiguous object end when asked to replace it with dur', () => {
     for (const until of [
       '{ cue: PARENT }',

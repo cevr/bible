@@ -80,15 +80,21 @@ const untilOffsetField = (untilOffset: number | undefined) =>
  * A span's end: its `dur` (from its anchor, or up to it with `ends`), or the
  * point it runs `until` and its offset off it. A patch's `dur` or `until`
  * sets the whole end, so a new point starts on the point; its `untilOffset`
- * alone moves an `until` span's end off the point it keeps.
+ * alone moves an `until` span's end off the point it keeps. A patch that
+ * leaves the end leaves it as written, its `untilOffset` included, however
+ * fine: only an edit of the end is put to the millisecond.
  */
 const endField = (span: Span, patch: CuePatch) => {
   if (patch.until !== undefined)
     return { until: patch.until, ...untilOffsetField(patch.untilOffset) };
   const ends = span.ends === true ? { ends: true as const } : {};
   if (patch.dur !== undefined) return { dur: patch.dur, ...ends };
+  if (span.until !== undefined && patch.untilOffset !== undefined)
+    return { until: span.until, ...untilOffsetField(patch.untilOffset) };
   if (span.until !== undefined)
-    return { until: span.until, ...untilOffsetField(patch.untilOffset ?? span.untilOffset) };
+    return span.untilOffset === undefined
+      ? { until: span.until }
+      : { until: span.until, untilOffset: span.untilOffset };
   if (span.dur !== undefined) return { dur: span.dur, ...ends };
   return ends;
 };
