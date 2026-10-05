@@ -8,7 +8,7 @@
 import { For, Portal, Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
 import { createEffect } from 'solid-js';
-import { Pointer } from '../../browser/pointer.ts';
+import { Pointer, Surface } from '../../browser/pointer.ts';
 import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useNotes } from './context.tsx';
@@ -129,29 +129,27 @@ export const Marks = () => {
     Option.filter(state.selected(), (n) => Math.abs(lab.T() - state.timeOf(n)) < 0.5 / film.fps);
   const listen = (surface: SVGRectElement) => {
     const at = pointerAt(surface, film);
-    // One gesture at a time: the pointer that pressed first marks; a second
-    // finger is ignored until that one lifts or is cancelled.
-    let gesture = Option.none<number>();
+    // One gesture at a time (`Pointer.press`): the pointer that pressed first
+    // marks; a second finger is ignored until that one lifts or is cancelled.
+    const marks = new Surface('the notes');
     const down = (e: PointerEvent) => {
-      if (Option.isSome(gesture)) return;
-      gesture = Option.some(e.pointerId);
-      e.preventDefault();
       const far = (ev: PointerEvent) =>
         Math.hypot(ev.clientX - e.clientX, ev.clientY - e.clientY) >= DRAG_PX;
-      actions.press(at(e));
       Effect.runForkWith(meta.host)(
         Pointer.use((pointer) =>
-          pointer.drag(e, {
-            move: (ev) => actions.drag(at(ev), far(ev)),
-            // Lifted, the mark is made; the OS took the gesture (a swipe, a call)
-            // or the capture was lost: the mark goes, nothing is written.
-            end: (lifted) => {
-              gesture = Option.none();
-              Option.match(lifted, {
-                onNone: () => actions.cancel(),
-                onSome: (ev) => actions.lift(at(ev), far(ev)),
-              });
-            },
+          pointer.press(e, marks, () => {
+            e.preventDefault();
+            actions.press(at(e));
+            return Option.some({
+              move: (ev: PointerEvent) => actions.drag(at(ev), far(ev)),
+              // Lifted, the mark is made; the OS took the gesture (a swipe, a call)
+              // or the capture was lost: the mark goes, nothing is written.
+              end: (lifted: Option.Option<PointerEvent>) =>
+                Option.match(lifted, {
+                  onNone: () => actions.cancel(),
+                  onSome: (ev) => actions.lift(at(ev), far(ev)),
+                }),
+            });
           }),
         ),
       );

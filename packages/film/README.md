@@ -2757,9 +2757,13 @@ local storage (the keymap, `film-keymap`, an `Atom.kvs`; `film-lab-mic`,
 `keptText` stored as plain text), each a store
 in memory when the page may not use its storage. Every drag (the
 player's track, the strip's scrub and its cue bars, a knob's handle, the
-wipe's divider, a note's mark) follows its press through `Pointer.drag`
+wipe's divider, a note's mark) follows its press through `Pointer`
 (`browser/pointer.ts`), which ends it once: lifted, or ended by the browser
-(`pointercancel`, `lostpointercapture`). Every key goes through one listener
+(`pointercancel`, `lostpointercapture`). A surface (the strip, the notes,
+the editor's grips, a divider, the blink, the tape) follows one press at a
+time (`Pointer.press`): a second finger's press on it does nothing. The
+lint refuses a press's end heard, or its capture taken, anywhere else
+(`film/host-events-through-adapter`). Every key goes through one listener
 per page, the hub's (Commands and keys, above), over `Keys.listen`
 (`browser/keys.ts`), which hands each press with its key, its physical code
 and its target, and drops one already handled or still composing. Every

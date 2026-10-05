@@ -5,8 +5,9 @@
 // the machine events; none holds state of its own, nor reaches into another
 // panel's.
 //
-// A grip follows the press that grabbed it (`Pointer.drag`) until the press
-// ends: lifted it lands, ended by the browser it goes back. Escape lets it go
+// A grip follows the press that grabbed it (`Pointer.press`) until the press
+// ends: lifted it lands, ended by the browser it goes back; one grip is held
+// at a time, so another finger's press meanwhile grabs nothing. Escape lets it go
 // while the machine is Pressed or Dragging, and only then. Its edges snap
 // while the viewer's Snap is on (kept in the browser, `film-studio.snap`, a
 // per-viewer setting as the lab's mode is), Shift flipping it for a move
@@ -23,7 +24,7 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createEffect, createMemo, onCleanup, untrack, useContext } from 'solid-js';
-import { Pointer } from '../../browser/pointer.ts';
+import { Pointer, Surface } from '../../browser/pointer.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import type { SceneEdit } from '../../canvas/film.ts';
@@ -176,46 +177,56 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     Option.map(following, (drag) => Effect.runFork(Fiber.interrupt(drag)));
     following = Option.none();
   };
+  /** The editor's grips: one is held at a time, by one press. */
+  const grips = new Surface('the grips');
   /**
-   * The grip just grabbed follows the press `down` began: each move moves it,
-   * a lift lands it (Release), and a press the browser ends (a page pan, a
-   * lost capture) puts it back (Cancel). The press owns the grip until it
-   * ends: a press of another pointer meanwhile grabs nothing (`followed`).
+   * What the grip just grabbed does as its press goes on: each move moves
+   * it, a lift lands it (Release), and a press the browser ends (a page pan,
+   * a lost capture) puts it back (Cancel).
    */
-  const follow = (down: PointerEvent) => {
-    following = Option.some(
-      Effect.runForkWith(meta.host)(
-        Pointer.use((pointer) =>
-          pointer.drag(down, {
-            move: (e) =>
-              send(
-                EditEvent.Move({
-                  pointer: {
-                    x: e.clientX,
-                    y: e.clientY,
-                    free: placesFreely(e.shiftKey, untrack(snap)),
-                  },
-                }),
-              ),
-            end: (lifted) => {
-              following = Option.none();
-              send(
-                Option.match(lifted, {
-                  onNone: () => EditEvent.Cancel,
-                  onSome: () => EditEvent.Release,
-                }),
-              );
-            },
-          }),
-        ),
+  const gripSteps = {
+    move: (e: PointerEvent) =>
+      send(
+        EditEvent.Move({
+          pointer: {
+            x: e.clientX,
+            y: e.clientY,
+            free: placesFreely(e.shiftKey, untrack(snap)),
+          },
+        }),
+      ),
+    end: (lifted: Option.Option<PointerEvent>) => {
+      following = Option.none();
+      send(
+        Option.match(lifted, {
+          onNone: () => EditEvent.Cancel,
+          onSome: () => EditEvent.Release,
+        }),
+      );
+    },
+  };
+  /**
+   * The press `down` on a grip, while no other press holds one: `grab` is
+   * its work (a selection, the grip pressed), answering whether a grip was
+   * grabbed, which then follows the press until it ends. A press of another
+   * pointer meanwhile grabs nothing (`Pointer.press`).
+   */
+  const follow = (down: PointerEvent, grab: () => boolean) => {
+    let grabbed = false;
+    const drag = Effect.runForkWith(meta.host)(
+      Pointer.use((pointer) =>
+        pointer.press(down, grips, () => {
+          grabbed = grab();
+          return Option.liftPredicate(gripSteps, () => grabbed);
+        }),
       ),
     );
+    // `take` runs in the press's own dispatch: the drag is this grip's once it grabbed one.
+    if (grabbed) following = Option.some(drag);
   };
-  /** Whether a press's drag is still followed: then another pointer's press is not taken. */
-  const followed = () => Option.isSome(following);
 
-  const press = (p: Press) => {
-    if (followed()) return;
+  /** The cue `p` presses, selected and grabbed: whether a grip was grabbed. */
+  const grabCue = (p: Press): boolean => {
     labActions.select(Option.some(cueOf(p.scene, p.cue)));
     const timeline = stage.timelineOf(p.scene);
     const fields = Option.match(Option.fromUndefinedOr(timeline[p.cue]), {
@@ -223,7 +234,10 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       onSome: (span) => dragFields(span, p.edge),
     });
     const refused = cueRefusal(stripSource().source, stripSource().error, p.cue, fields);
-    if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
+    if (Option.isSome(refused)) {
+      send(EditEvent.Refuse({ message: refused.value }));
+      return false;
+    }
     const placed = Result.getSuccess(sceneOf(film.placed, p.scene));
     const cues = stage.cuesOf(p.scene);
     const grip = Option.all({
@@ -231,32 +245,37 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       span: Option.fromUndefinedOr(timeline[p.cue]),
       cue0: Option.fromUndefinedOr(cues.get(p.cue)),
     });
-    Option.map(grip, (g) => {
-      send(
-        EditEvent.Press({
-          grip: CueGrip.make({
-            scene: p.scene,
-            cue: p.cue,
-            edge: p.edge,
-            x0: p.down.clientX,
-            perSec: p.perSec,
-            fps: film.fps,
-            span: g.span,
-            timeline,
-            cue0: g.cue0,
-            targets: snapTargets(g.placed, cues, p.cue),
+    return Option.isSome(
+      Option.map(grip, (g) =>
+        send(
+          EditEvent.Press({
+            grip: CueGrip.make({
+              scene: p.scene,
+              cue: p.cue,
+              edge: p.edge,
+              x0: p.down.clientX,
+              perSec: p.perSec,
+              fps: film.fps,
+              span: g.span,
+              timeline,
+              cue0: g.cue0,
+              targets: snapTargets(g.placed, cues, p.cue),
+            }),
           }),
-        }),
-      );
-      follow(p.down);
-    });
+        ),
+      ),
+    );
   };
+  const press = (p: Press) => follow(p.down, () => grabCue(p));
 
-  const grabKnob = (p: KnobPress) => {
-    if (followed()) return;
+  /** The knob handle `p` presses, selected and grabbed: whether it was grabbed. */
+  const grabKnobOf = (p: KnobPress): boolean => {
     labActions.select(Option.some(knobOf(p.scene, p.knob)));
     const refused = knobRefusal(stripSource().source, stripSource().error, p.knob);
-    if (Option.isSome(refused)) return send(EditEvent.Refuse({ message: refused.value }));
+    if (Option.isSome(refused)) {
+      send(EditEvent.Refuse({ message: refused.value }));
+      return false;
+    }
     const knobs = stage.knobsOf(p.scene);
     const frame = {
       left: p.box.left,
@@ -279,8 +298,9 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
         }),
       }),
     );
-    follow(p.down);
+    return true;
   };
+  const grabKnob = (p: KnobPress) => follow(p.down, () => grabKnobOf(p));
 
   // A grip let go no longer follows its press.
   const holding = createMemo(() => edit()._tag === 'Pressed' || edit()._tag === 'Dragging');

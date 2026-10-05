@@ -13,7 +13,7 @@ import type { Accessor } from 'solid-js';
 import { createEffect, createSignal, onCleanup, onSettled, untrack } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
-import { Pointer } from '../../browser/pointer.ts';
+import { Pointer, Surface } from '../../browser/pointer.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { wipeCommands } from '../wipe-keys.ts';
 import { useCompare } from './context.tsx';
@@ -108,14 +108,18 @@ export const Hold = () => {
   const { state, actions } = useCompare();
   const { film } = meta;
   const shown = () => state.mode() === 'blink' && lab.mode() === 'compare';
+  /** The frame holds HEAD for one press: a second finger's lift never lets it go. */
+  const frame = new Surface('the blink');
   const press = (el: SVGRectElement) =>
     el.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       e.preventDefault();
-      actions.hold(true);
       Effect.runForkWith(meta.host)(
         Pointer.use((pointer) =>
-          pointer.drag(e, { move: () => {}, end: () => actions.hold(false) }),
+          pointer.press(e, frame, () => {
+            actions.hold(true);
+            return Option.some({ move: () => {}, end: () => actions.hold(false) });
+          }),
         ),
       );
     });
@@ -200,20 +204,28 @@ const Grip = (props: { readonly x: number }) => {
       ),
     ),
   );
+  /** The divider follows one press at a time: a second finger's moves nothing. */
+  const divider = new Surface('the divider');
   const grab = (el: SVGCircleElement) => {
     hitArea = Option.some(el);
     el.addEventListener('pointerdown', (e) => {
       // The divider, not a note: the overlay never sees this press.
       e.stopPropagation();
       e.preventDefault();
-      Option.map(Option.fromNullishOr(el.ownerSVGElement), (svg) => {
-        const r = svg.getBoundingClientRect();
-        const move = (ev: PointerEvent) => actions.split((ev.clientX - r.left) / r.width);
-        // The divider stays where the drag ends, lifted or ended by the browser.
-        Effect.runForkWith(meta.host)(
-          Pointer.use((pointer) => pointer.drag(e, { move, end: () => {} })),
-        );
-      });
+      // The divider stays where the drag ends, lifted or ended by the browser.
+      Effect.runForkWith(meta.host)(
+        Pointer.use((pointer) =>
+          pointer.press(e, divider, () =>
+            Option.map(Option.fromNullishOr(el.ownerSVGElement), (svg) => {
+              const r = svg.getBoundingClientRect();
+              return {
+                move: (ev: PointerEvent) => actions.split((ev.clientX - r.left) / r.width),
+                end: () => {},
+              };
+            }),
+          ),
+        ),
+      );
     });
   };
   const percent = () => Math.round(Option.getOrElse(state.split(), () => 0.5) * 100);

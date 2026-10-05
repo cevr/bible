@@ -71,12 +71,16 @@ const MESSAGES = {
     'evaluate reads the page once, whatever it had drawn at that instant: wait for the value instead (textIs, textHas, valueIs, attributeIs, countIs, evaluates or until in lab/fixtures/settled.ts).',
   'drawing-literal.ts:18 film/drawing-literal':
     "drawing's timeline is not an object literal or a module-level const literal: the lab cannot locate or edit it.",
-  'host-events-through-adapter.ts:8 film/host-events-through-adapter':
-    "window.addEventListener('keydown') hears the host directly: use Keys.listen (packages/film/src/browser/keys.ts).",
   'host-events-through-adapter.ts:10 film/host-events-through-adapter':
+    "window.addEventListener('keydown') hears the host directly: use Keys.listen (packages/film/src/browser/keys.ts).",
+  'host-events-through-adapter.ts:12 film/host-events-through-adapter':
     "window.addEventListener('popstate') hears the host directly: use @bible/url-state's Location.",
-  'host-events-through-adapter.ts:13 film/host-events-through-adapter':
+  'host-events-through-adapter.ts:15 film/host-events-through-adapter':
     "self.addEventListener('pointercancel') hears the host directly: use Pointer.drag (packages/film/src/browser/pointer.ts).",
+  'host-events-through-adapter.ts:19 film/host-events-through-adapter':
+    "document.body.addEventListener('pointercancel') ends a press outside its owner: use Pointer.drag (packages/film/src/browser/pointer.ts).",
+  'host-events-through-adapter.ts:21 film/host-events-through-adapter':
+    'el.setPointerCapture holds a press outside its owner: use Pointer.drag (packages/film/src/browser/pointer.ts).',
   'keys-through-keymap.tsx:10 film/keys-through-keymap':
     'a JSX handler hears keydown on its own: declare a command with its keys (packages/film/src/command/command.ts), registered with the page hub.',
   'keys-through-keymap.tsx:18 film/keys-through-keymap':

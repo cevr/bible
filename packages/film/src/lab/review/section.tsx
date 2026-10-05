@@ -33,7 +33,7 @@ import {
   seenVariants,
 } from '../../core/choice.ts';
 import { type Compare, type ComparePanes, Media, playableOf } from '../../browser/media.ts';
-import { Pointer } from '../../browser/pointer.ts';
+import { Pointer, Surface } from '../../browser/pointer.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
 import {
@@ -982,17 +982,25 @@ const WipeView = (props: { readonly other: string }) => {
   const pair = () => pairOf(set, props.other);
   const [split, setSplit] = createSignal(WIPE_AT, { ownedWrite: true });
   let frame = Option.none<HTMLElement>();
+  /** The divider follows one press at a time: a second finger's moves nothing. */
+  const divider = new Surface('the divider');
   const grab = (e: PointerEvent) => {
     e.preventDefault();
-    Option.map(frame, (el) => {
-      const r = el.getBoundingClientRect();
-      const move = (ev: PointerEvent) =>
-        setSplit(Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width))));
-      // The divider stays where the drag ends, lifted or ended by the browser.
-      Effect.runForkWith(meta.host)(
-        Pointer.use((pointer) => pointer.drag(e, { move, end: () => {} })),
-      );
-    });
+    // The divider stays where the drag ends, lifted or ended by the browser.
+    Effect.runForkWith(meta.host)(
+      Pointer.use((pointer) =>
+        pointer.press(e, divider, () =>
+          Option.map(frame, (el) => {
+            const r = el.getBoundingClientRect();
+            return {
+              move: (ev: PointerEvent) =>
+                setSplit(Math.max(0, Math.min(1, (ev.clientX - r.left) / Math.max(1, r.width)))),
+              end: () => {},
+            };
+          }),
+        ),
+      ),
+    );
   };
   const at = () => `${split() * 100}%`;
   // The grip by the keyboard, while it has focus: ←/→ (⇧ ten, ⌥ a thousandth), Home and End.

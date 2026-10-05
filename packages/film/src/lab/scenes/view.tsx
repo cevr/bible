@@ -30,7 +30,7 @@ import { createEffect, createMemo, createSignal, onCleanup, untrack } from 'soli
 import { type Host, addressOn, monotonicMs, onTraverse } from '../../browser/host.ts';
 import { Frames } from '../../browser/frames.ts';
 import { PageLoad } from '../../browser/page-load.ts';
-import { Pointer } from '../../browser/pointer.ts';
+import { Pointer, Surface } from '../../browser/pointer.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import { type Command, quiet, quietly, refused, said } from '../../command/command.ts';
@@ -497,6 +497,8 @@ export const ScenesView = (props: ScenesViewProps) => {
     }),
   );
   const pct = (t: number) => `${(t / Math.max(film.duration, 1e-6)) * 100}%`;
+  /** The tape scrubs by one press at a time, on whichever line: a second finger's scrubs nothing. */
+  const lines = new Surface('the tape');
 
   /** One line of the tape. */
   const Line = (line: { readonly row: TapeRow }) => {
@@ -542,14 +544,16 @@ export const ScenesView = (props: ScenesViewProps) => {
             // A drag along the line scrubs; it settles where it ends (a tap selects, below).
             Effect.runForkWith(props.host)(
               Pointer.use((pointer) =>
-                pointer.drag(e, {
-                  // Scrubbing away from the playhead stops following it (design §6).
-                  move: (ev) => {
-                    setFollow(false);
-                    player.scrub(at(ev, body));
-                  },
-                  end: () => player.settle(),
-                }),
+                pointer.press(e, lines, () =>
+                  Option.some({
+                    // Scrubbing away from the playhead stops following it (design §6).
+                    move: (ev: PointerEvent) => {
+                      setFollow(false);
+                      player.scrub(at(ev, body));
+                    },
+                    end: () => player.settle(),
+                  }),
+                ),
               ),
             );
           }}
