@@ -707,10 +707,13 @@ cut's name takes only its room: shortened with an ellipsis, set before the
 row's last rule where it fits there, or dropped. A tap on a still selects its scene (the path; Back
 steps through the selections) and moves the playhead there (`#t=`, film
 time); a drag along a line scrubs. The selected scene's card
-(`lab/scenes/card.tsx`, the card the Project shows) is the focus panel, a
-sheet over the tab bar on a phone: the live frame, in, out and length in
-timecode, its marks, Open in Lab (E), Approve (A), its findings and a
-comment. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
+(`lab/scenes/card.tsx`, the card the Project shows) stands in the sheet the
+Project's scene inspector stands in (`Sheet`, `lab/review/inspector.tsx`):
+beside the tape, and on a phone a sheet over the tab bar that opens lowered
+to the card in brief. It holds the live frame, in, out and length in
+timecode, its marks, Open in Lab (E), Approve (A), its findings
+(`SceneFindings`, the Project's too) and a comment; its Close clears the
+selection, a step Back walks. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
 say; an approve's receipt offers Undo (`project.undo-approve`), as
 Project's does. The palette and the film's counts are in
 the view menu (⋯). A short's Open goes to its play page, as the lab opens

@@ -57,7 +57,7 @@ import {
 import { PointId, pointIdOf } from '../../../core/point.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import { FILM_FPS, timecode } from '../../../core/time.ts';
-import { sceneHue, SceneCard } from '../../scenes/card.tsx';
+import { sceneHue, SceneCard, SceneFindings } from '../../scenes/card.tsx';
 import { bandState, marksOf } from '../../scenes/marks.ts';
 import { type LabFailure, served } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
@@ -488,20 +488,7 @@ const SceneRow = (props: {
               </Show>,
               <Approval variant={variant()} sayer={sayer} first={RENDER_FIRST} />,
             )}
-            <Show when={marks().findings.length > 0}>
-              <section class="rv-group" data-section="findings">
-                <h3>
-                  Findings <span class="lab-count">{marks().findings.length}</span>
-                </h3>
-                <For each={marks().findings}>
-                  {(line) => (
-                    <p class="sc-finding" data-level={line.level}>
-                      <b>{line.tag}</b> {line.message}
-                    </p>
-                  )}
-                </For>
-              </section>
-            </Show>
+            <SceneFindings marks={marks()} />
             <Comments comments={variant().comments} />
             <CommentBox variant={variant()} sayer={sayer} box={box} />
             <SceneInfo scene={props.scene} variant={variant()} />

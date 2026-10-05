@@ -420,7 +420,7 @@ describe('the player', () => {
         yield* clickInScene(page, 'two');
         yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'two'));
         yield* textIs(page, '.sc-focus .sc-card-name', 'two');
-        yield* textHas(page, '.sc-focus .sc-panel-title', '2 of 3');
+        yield* textHas(page, '.sc-focus .lab-sheet-title', '2 of 3');
         // In, out and length are the film's timecode.
         yield* textHas(page, '.sc-focus .sc-card-facts', timecode(TWO));
         // The playhead is in the scene, and the URL's `#t=` says so.
@@ -443,7 +443,7 @@ describe('the player', () => {
   );
 
   it.live(
-    "on a phone the selected scene's card is a sheet over the tab bar, its verbs a finger's size",
+    "on a phone the selected scene's card is the one sheet over the tab bar, its verbs a finger's size, its Close dropping the scene (RS-4)",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
@@ -459,10 +459,15 @@ describe('the player', () => {
         expect(sheet.width).toBe(PHONE.width);
         const open = yield* page.box('.sc-focus [data-act="open-lab"]');
         expect(open.height).toBeGreaterThanOrEqual(44);
-        yield* attributeIs(page, '.sc-focus', 'data-expanded', 'false');
+        // It opens lowered to a peek (its card in brief); its grip raises it, as an inspector's does.
+        yield* attributeIs(page, '.sc-focus', 'data-peek', 'true');
         yield* page.click('.sc-focus [data-act="sheet"]');
-        yield* attributeIs(page, '.sc-focus', 'data-expanded', 'true');
+        yield* attributeIs(page, '.sc-focus', 'data-peek', 'false');
         yield* evaluates(page, NO_SIDEWAYS, true);
+        // Its Close is the Project inspector's: it drops the scene from the path.
+        yield* page.click('.sc-focus [data-act="close-inspector"]');
+        yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
+        yield* countIs(page, '.sc-focus', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );

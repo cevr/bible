@@ -326,9 +326,11 @@ const STATES: ReadonlyArray<State> = [
     disclose: AT_REST,
   },
   {
-    name: 'Scenes, a scene selected (the tape and its focus card)',
+    // The scene's sheet is a layer, as an inspector is: the tape under it is the case above.
+    name: "Scenes, a scene selected (its sheet, the Project's scene inspector's)",
     open: player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
     disclose: AT_REST,
+    layer: '[data-role="scene"]',
   },
   { name: 'Play', open: player(pageHref.play(PROBE), '.bar .tc'), disclose: AT_REST },
 ];

@@ -1,6 +1,6 @@
 // A film's Scenes in the URL (`Places.scenes`, `Places.scene`, core/api.ts):
 // `/films/<film>/scenes[/<scene>]#t=<seconds>`. The path's scene is the one
-// selected (its card in the focus panel): each selection is a step Back
+// selected (its card in the scene's sheet): each selection is a step Back
 // walks; `#t=` is the playhead in film time, on the tape and on a selected
 // scene alike, written in place as it moves. One reader (`scenesPlaceOf`)
 // and one printer (`scenesHref`), so a reload, a pasted link and Back come

@@ -10,9 +10,10 @@
 //
 // A tap on a still selects its scene and moves the playhead there; a drag
 // along a line scrubs it. The selected scene's card (`card.tsx`, the card
-// the Project shows) is the inspector's focus panel at the side, a sheet
-// over the tab bar on a phone: the live frame, its act, in, out and length,
-// its marks, Open in Lab (E) and Approve (A), its findings and a comment.
+// the Project shows) stands in the one sheet (`Sheet`, the Project's scene
+// inspector's) beside the tape, a sheet over the tab bar on a phone: the
+// live frame, its act, in, out and length, its marks, Open in Lab (E) and
+// Approve (A), its findings and a comment; its Close clears the selection.
 // ⇧-click or ⌘-click adds scenes to the selection, and ⇧A approves them all
 // in one say; an approve's receipt offers Undo, as Project's does.
 // The selection is the URL's path and the playhead its `#t=` (`place.ts`):
@@ -44,7 +45,8 @@ import { makeStills } from '../../player/stills.ts';
 import { onTheMs } from '../../player/t-in-url.ts';
 import { useShellTime } from '../page-shell.tsx';
 import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts';
-import { SceneCard, sceneHue } from './card.tsx';
+import { Sheet } from '../review/inspector.tsx';
+import { SceneCard, SceneFindings, sceneHue } from './card.tsx';
 import { type Said, type ScenesRead, scenesCalls } from './data.ts';
 import { bandState, legendOf, marksOf } from './marks.ts';
 import { scenesPlaceOf, withScene } from './place.ts';
@@ -111,7 +113,7 @@ interface ScenesViewProps {
   /** The page's film key (a short's `<film>/shorts/<id>`). */
   readonly name: string;
   readonly player: Player;
-  /** The preview's picture: the focus panel's frame. */
+  /** The preview's picture: the scene sheet's frame. */
   readonly stage: HTMLElement;
   readonly host: Host;
   readonly hub: Hub;
@@ -663,8 +665,11 @@ export const ScenesView = (props: ScenesViewProps) => {
     );
   };
 
-  /** The selected scene's card: the focus panel, a sheet over the tab bar on a phone. */
-  const [expanded, setExpanded] = createSignal(false, fromHost);
+  /**
+   * What the selected scene's sheet holds (`Sheet`, the Project's scene
+   * inspector's): its card, its findings (`SceneFindings`), its comments and
+   * a comment box.
+   */
   const Focus = (focus: { readonly scene: string }) => {
     const scene = untrack(() => focus.scene);
     const [comment, setComment] = createSignal('', fromHost);
@@ -686,30 +691,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       );
     };
     return (
-      <aside class="sc-focus" data-expanded={String(expanded())} aria-label={`scene ${scene}`}>
-        <div class="sc-focus-head">
-          <button
-            type="button"
-            class="sc-grip"
-            data-act="sheet"
-            aria-label={Bool.match(expanded(), {
-              onTrue: () => 'Show less',
-              onFalse: () => 'Show more',
-            })}
-            aria-expanded={ariaOf(expanded())}
-            onClick={() => {
-              setExpanded(!expanded());
-            }}
-          />
-          <span class="sc-panel-title">
-            Scene <span>{`${indexOf(scene) + 1} of ${scenes.length}`}</span>
-          </span>
-          <Show when={picked().length > 1}>
-            <span class="sc-picked" data-role="picked">
-              {`${scenesText(picked().length)} selected`}
-            </span>
-          </Show>
-        </div>
+      <>
         <SceneCard
           film={props.name}
           scene={scene}
@@ -766,66 +748,54 @@ export const ScenesView = (props: ScenesViewProps) => {
               </Show>
             </>
           }
-        >
-          <Show when={marks()(scene).findings.length > 0}>
-            <section class="sc-section" data-section="findings">
-              <h3>
-                Findings <span>{marks()(scene).findings.length}</span>
-              </h3>
-              <For each={marks()(scene).findings}>
-                {(line) => (
-                  <p class="sc-finding" data-level={line.level}>
-                    <b>{line.tag}</b> {line.message}
-                  </p>
+        />
+        <SceneFindings marks={marks()(scene)} />
+        <Show when={!short && Option.isSome(read().project)}>
+          <section class="sc-section" data-section="comment">
+            <h3>
+              Comments{' '}
+              <span>
+                {Option.getOrElse(
+                  Option.map(marks()(scene).render, (r) => r.comments.length),
+                  () => 0,
                 )}
-              </For>
-            </section>
-          </Show>
-          <Show when={!short && Option.isSome(read().project)}>
-            <section class="sc-section" data-section="comment">
-              <h3>
-                Comments{' '}
-                <span>
-                  {Option.getOrElse(
-                    Option.map(marks()(scene).render, (r) => r.comments.length),
-                    () => 0,
-                  )}
-                </span>
-              </h3>
-              <For
-                each={Option.getOrElse(
-                  Option.map(marks()(scene).render, (r) => r.comments),
-                  () => [],
-                )}
-              >
-                {(c) => <p class="sc-comment">{c.text}</p>}
-              </For>
-              <textarea
-                class="sc-say"
-                rows="2"
-                placeholder={`Comment on ${scene}…`}
-                value={comment()}
-                disabled={saying()}
-                onInput={(e: InputEvent) => {
-                  const box = e.currentTarget;
-                  if (box instanceof HTMLTextAreaElement) setComment(box.value);
-                }}
-              />
-              <button
-                type="button"
-                class="sc-verb"
-                data-act="comment"
-                disabled={saying() || comment().trim() === ''}
-                onClick={sayComment}
-              >
-                Comment
-              </button>
-            </section>
-          </Show>
-        </SceneCard>
-      </aside>
+              </span>
+            </h3>
+            <For
+              each={Option.getOrElse(
+                Option.map(marks()(scene).render, (r) => r.comments),
+                () => [],
+              )}
+            >
+              {(c) => <p class="sc-comment">{c.text}</p>}
+            </For>
+            <textarea
+              class="sc-say"
+              rows="2"
+              placeholder={`Comment on ${scene}…`}
+              value={comment()}
+              disabled={saying()}
+              onInput={(e: InputEvent) => {
+                const box = e.currentTarget;
+                if (box instanceof HTMLTextAreaElement) setComment(box.value);
+              }}
+            />
+            <button
+              type="button"
+              class="sc-verb"
+              data-act="comment"
+              disabled={saying() || comment().trim() === ''}
+              onClick={sayComment}
+            >
+              Comment
+            </button>
+          </section>
+        </Show>
+      </>
     );
   };
+  /** The selected scene (the path's), as the sheet's footer and its target name it. */
+  const focused = () => Option.getOrElse(chosen(), () => '');
 
   const legend = createMemo(() => legendOf(order, marks()));
   // The page scrolls as a whole, the tape bar and the card held under the header.
@@ -833,7 +803,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   onCleanup(() => document.body.classList.remove('scenes'));
   return (
     <div class="sc" data-selected={String(Option.isSome(chosen()))}>
-      {/* With no scene selected the tape takes the page: the picture waits here, unseen, for the focus panel. */}
+      {/* With no scene selected the tape takes the page: the picture waits here, unseen, for the scene's sheet. */}
       <div
         class="sc-park"
         hidden
@@ -902,8 +872,35 @@ export const ScenesView = (props: ScenesViewProps) => {
           <For each={tape().rows}>{(row) => <Line row={row} />}</For>
         </div>
       </div>
-      <Show when={Option.getOrUndefined(chosen())} keyed>
-        {(scene) => <Focus scene={scene} />}
+      {/* One sheet while a scene is selected, its contents the scene's: a tap on another
+          still keeps it as it stands (lowered or raised) and shows that scene. On a phone
+          it opens lowered, its card in brief over the tab bar; its Close (and Escape, and a
+          swipe) clears the selection, a step Back walks. The focus stays on the tape. */}
+      <Show when={Option.isSome(chosen())}>
+        <Sheet
+          host={props.host}
+          hub={props.hub}
+          of={Selection.cases.Scene.make({ film: props.name, scene: focused() })}
+          role="scene"
+          class="sc-focus"
+          peeked
+          title={
+            <>
+              Scene <span>{`${indexOf(focused()) + 1} of ${scenes.length}`}</span>
+              <Show when={picked().length > 1}>
+                <span class="sc-picked" data-role="picked">
+                  {`${scenesText(picked().length)} selected`}
+                </span>
+              </Show>
+            </>
+          }
+          initialFocus={() => false}
+          onClose={() => select(Option.none())}
+        >
+          <Show when={Option.getOrUndefined(chosen())} keyed>
+            {(scene) => <Focus scene={scene} />}
+          </Show>
+        </Sheet>
       </Show>
       <Dialog.Root open={palette()} onOpenChange={setPalette}>
         <Dialog.Portal>

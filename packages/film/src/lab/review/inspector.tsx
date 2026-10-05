@@ -7,13 +7,14 @@
 // inspector is open at a time, opened by tapping the thing's name
 // (`<InspectName>`), its comment count beside it, Inspect (`i`) or
 // Comment on (`m`), from its context menu or ⌘K; a Project scene's row opens
-// it on a tap anywhere off its controls (`useInspect`). Hosted in @bible/ui's
-// Drawer, not over the page (it stays live, a tap outside keeps it open):
-// beside it on a laptop, swiped away to the right; on a phone a bottom sheet
-// standing on the tab bar and the dock (design language §7), swiped down,
-// whose grip lowers it to a peek and raises it again. Escape closes it; its
-// footer prints the keys of the commands about the thing while the pointer or
-// the focus is in it (`Hint`). A page keeps which one is open in its URL
+// it on a tap anywhere off its controls (`useInspect`). It stands in the
+// one sheet (`Sheet`, Scenes' scene sheet's too), not over the page (it
+// stays live, a tap outside keeps it open): beside it on a laptop, swiped
+// away to the right; on a phone a bottom sheet standing on the tab bar and
+// the dock (design language §7), swiped down, whose grip lowers it to a peek
+// and raises it again. Escape closes it; its footer prints the keys of the
+// commands about the thing while the pointer or the focus is in it (`Hint`).
+// A page keeps which one is open in its URL
 // (`useInspectorPlace`: the Project's `?point=`, Choices' and a Set's
 // `?inspect=`): the URL then owns it, so a link, Back and Forward open and
 // close it, and its dismissal adds no entry to history.
@@ -23,7 +24,7 @@ import { Drawer } from '@bible/ui/drawer';
 import { Location, Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, Show, isServer } from '@solidjs/web';
-import { Boolean as Bool, Effect, Option } from 'effect';
+import { Boolean as Bool, type Context, Effect, Option } from 'effect';
 import {
   type Accessor,
   createContext,
@@ -33,6 +34,7 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
+import type { Viewport } from '../../browser/viewport.ts';
 import type { Hub } from '../../command/hub.ts';
 import type { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
@@ -330,62 +332,107 @@ export const Inspector = (props: {
     draft: inspecting.draft(untrack(key)),
   };
   const { meta } = useReview();
-  // Whether the page is a phone's width now, followed as the window changes.
-  const phone = useMatches(meta.host, PHONE);
   return (
     <Show when={Option.getOrUndefined(at())}>
-      {(opened) => {
-        // Each opening starts whole; on a phone its grip lowers it to a peek and raises it again.
-        const [peek, setPeek] = createSignal(false, { ownedWrite: true });
-        return (
-          <Drawer.Root
-            open
-            modal={false}
-            disablePointerDismissal
-            swipeDirection={Bool.match(phone(), {
-              onTrue: () => 'down' as const,
-              onFalse: () => 'right' as const,
-            })}
-            onOpenChange={(next) => {
-              if (!next) inspecting.close(key());
-            }}
-          >
-            {/* In place, not moved to the body: a link's sheet is in the server's
-                markup and hydrates there; it stands against the window (fixed). */}
-            <Drawer.Portal inline>
-              <Drawer.Viewport class="lab-inspector-viewport">
-                <Drawer.Popup
-                  class="lab-inspector-sheet lab-inspector"
-                  data-role="inspector"
-                  data-target={key()}
-                  data-peek={String(peek())}
-                  initialFocus={() =>
-                    Option.getOrElse(
-                      Option.filter(comment, () => opened() === 'comment'),
-                      () => true,
-                    )
-                  }
-                >
-                  <header class="lab-inspector-head">
-                    <SheetGrip peek={peek()} toggle={() => setPeek(!peek())} />
-                    <Drawer.Title class="lab-sheet-title">{props.title}</Drawer.Title>
-                    <Drawer.Close class="lab-inspector-close" data-act="close-inspector">
-                      Close
-                    </Drawer.Close>
-                  </header>
-                  <Drawer.Content class="lab-inspector-body">{props.children(box)}</Drawer.Content>
-                  <Hint hub={inspecting.hub} selection={props.of} gestures={[]} />
-                </Drawer.Popup>
-              </Drawer.Viewport>
-            </Drawer.Portal>
-          </Drawer.Root>
-        );
-      }}
+      {(opened) => (
+        <Sheet
+          host={meta.host}
+          hub={inspecting.hub}
+          of={props.of}
+          role="inspector"
+          title={props.title}
+          initialFocus={() =>
+            Option.getOrElse(
+              Option.filter(comment, () => opened() === 'comment'),
+              () => true,
+            )
+          }
+          onClose={() => inspecting.close(key())}
+        >
+          {props.children(box)}
+        </Sheet>
+      )}
     </Show>
   );
 };
 
-/** The phone's width, as the shell's (`page-shell-style.ts`): the inspector is a bottom sheet under it. */
+/**
+ * The sheet of the selected thing (design language §7), the one frame an
+ * inspector and Scenes' scene sheet stand in: hosted in @bible/ui's Drawer,
+ * not over the page (it stays live, a tap outside keeps it open); beside the
+ * page on a laptop, swiped away to the right; on a phone a bottom sheet
+ * standing on the tab bar (and the dock), swiped down, whose grip lowers it
+ * to a peek and raises it again. Its head holds its title and Close. Close,
+ * Escape and a swipe each call `onClose`, and its page says what that is (a
+ * URL's step). Its footer prints the keys of the commands about `of` while
+ * the pointer or the focus is in it (`Hint`). It opens whole, or lowered on
+ * a phone when `peeked`; what a lowered sheet still shows is its page's
+ * styles' to say (its head alone, or Scenes' card in brief).
+ */
+export const Sheet = (props: {
+  readonly host: Context.Context<Viewport>;
+  readonly hub: Hub;
+  readonly of: Selection;
+  /** Its `data-role`: `inspector`, `scene`. */
+  readonly role: string;
+  readonly title: JSX.Element;
+  /** Its page's class for it, beside the sheet's own. */
+  readonly class?: string;
+  readonly peeked?: boolean;
+  readonly initialFocus: () => HTMLElement | boolean;
+  readonly onClose: () => void;
+  readonly children: JSX.Element;
+}) => {
+  // Whether the page is a phone's width now, followed as the window changes.
+  const phone = useMatches(props.host, PHONE);
+  const [peek, setPeek] = createSignal(
+    untrack(() => props.peeked === true && phone()),
+    { ownedWrite: true },
+  );
+  return (
+    <Drawer.Root
+      open
+      modal={false}
+      disablePointerDismissal
+      swipeDirection={Bool.match(phone(), {
+        onTrue: () => 'down' as const,
+        onFalse: () => 'right' as const,
+      })}
+      onOpenChange={(next) => {
+        if (!next) props.onClose();
+      }}
+    >
+      {/* In place, not moved to the body: a link's sheet is in the server's
+          markup and hydrates there; it stands against the window (fixed). */}
+      <Drawer.Portal inline>
+        <Drawer.Viewport class="lab-inspector-viewport">
+          <Drawer.Popup
+            class={[
+              'lab-inspector-sheet lab-inspector',
+              ...Option.toArray(Option.fromUndefinedOr(props.class)),
+            ].join(' ')}
+            data-role={props.role}
+            data-target={targetAttr(props.of)}
+            data-peek={pressed(peek())}
+            initialFocus={props.initialFocus}
+          >
+            <header class="lab-inspector-head">
+              <SheetGrip peek={peek()} toggle={() => setPeek(!peek())} />
+              <Drawer.Title class="lab-sheet-title">{props.title}</Drawer.Title>
+              <Drawer.Close class="lab-inspector-close" data-act="close-inspector">
+                Close
+              </Drawer.Close>
+            </header>
+            <Drawer.Content class="lab-inspector-body">{props.children}</Drawer.Content>
+            <Hint hub={props.hub} selection={props.of} gestures={[]} />
+          </Drawer.Popup>
+        </Drawer.Viewport>
+      </Drawer.Portal>
+    </Drawer.Root>
+  );
+};
+
+/** The phone's width, as the shell's (`page-shell-style.ts`): a sheet is a bottom sheet under it. */
 const PHONE = '(max-width: 899px)';
 
 /**
