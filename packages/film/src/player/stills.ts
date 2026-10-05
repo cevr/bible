@@ -9,7 +9,8 @@
 // seventh of a second, so a film's tape fills progressively, never all at
 // once. The first waits for the faces the film draws in
 // (`pictureFacesWait`), so no still is drawn in a fallback face; a face that
-// will not load leaves the stills undrawn. Framework-free.
+// will not load leaves the stills undrawn and says so: `ready` and every
+// `all` waiting reject with why. Framework-free.
 
 import { Effect, Option } from 'effect';
 import type { RenderOptions } from '../canvas/film.ts';
@@ -37,7 +38,15 @@ interface Stills {
   readonly want: (times: ReadonlyArray<number>) => void;
   /** Hear each still as it is drawn (its film second), until the returned stop. */
   readonly onDrawn: (listener: (t: number) => void) => () => void;
-  /** Every still of `times`, in order, once each is drawn; `progress` hears each one land. */
+  /**
+   * Once the faces the film draws in have loaded (at once with none to wait
+   * for); rejects with why when one will not load, and no still is drawn.
+   */
+  readonly ready: () => Promise<void>;
+  /**
+   * Every still of `times`, in order, once each is drawn; `progress` hears
+   * each one land. Rejects when the film's faces will not load (`ready`).
+   */
   readonly all: (
     times: ReadonlyArray<number>,
     progress?: (done: number, of: number) => void,
@@ -122,13 +131,23 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
     draw(next.t, next.frame);
     return options.turn().then(step);
   };
+  /** The load of the faces the film draws in, asked once: none when there are none to wait for. */
+  let faces = Option.none<Option.Option<Promise<void>>>();
+  const facesLoad = () =>
+    Option.getOrElse(faces, () => {
+      const load = Option.map(pictureFacesWait(document.fonts), (wait) => Effect.runPromise(wait));
+      faces = Option.some(load);
+      return load;
+    });
+  const ready = () => Option.getOrElse(facesLoad(), () => Promise.resolve());
   const run = () => {
     if (running) return;
     running = true;
-    Option.match(pictureFacesWait(document.fonts), {
+    Option.match(facesLoad(), {
       onNone: () => void step(),
-      onSome: (wait) =>
-        void Effect.runPromise(wait).then(step, () => {
+      // A face that will not load draws nothing; `ready` and `all` say why.
+      onSome: (load) =>
+        void load.then(step, () => {
           running = false;
         }),
     });
@@ -153,8 +172,9 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
+    ready,
     all: (times, progress) =>
-      new Promise((resolve) => {
+      new Promise((resolve, reject) => {
         const frames = times.map(frameOf);
         const left = () => frames.filter((f) => !kept.has(f)).length;
         const settle = () => {
@@ -169,7 +189,13 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
           settle();
         };
         listeners.add(heard);
-        if (!settle()) want(times);
+        if (settle()) return;
+        want(times);
+        // A face that will not load draws none of them: the wait ends with why.
+        ready().catch((why: unknown) => {
+          stop();
+          reject(why);
+        });
       }),
     drawn: () => ({ count, ms }),
     stop: () => {

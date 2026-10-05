@@ -125,6 +125,41 @@ describe('makeStills', () => {
     ),
   );
 
+  it.effect(
+    'a face the film draws in that will not load draws no still, and says so: `ready` and a waiting sheet reject',
+    () =>
+      withDom(
+        Effect.gen(function* () {
+          // The page's fonts hold one picture face whose load fails.
+          const broken = Promise.reject(new Error('face refused'));
+          broken.catch(() => undefined);
+          Reflect.set(Reflect.get(globalThis, 'document'), 'fonts', [
+            { display: 'block', status: 'error', loaded: broken },
+          ]);
+          const { film, times } = recording();
+          const page = turns();
+          const stills = makeStills(film, {
+            width: 160,
+            captions: false,
+            turn: page.turn,
+            now: () => 0,
+          });
+          const sheet = yield* Effect.flip(
+            Effect.tryPromise({ try: () => stills.all([1, 2]), catch: String }),
+          );
+          expect(sheet).toContain('face refused');
+          const ready = yield* Effect.flip(
+            Effect.tryPromise({ try: () => stills.ready(), catch: String }),
+          );
+          expect(ready).toContain('face refused');
+          stills.want([3]);
+          yield* page.next();
+          expect(times).toEqual([]);
+          expect(stills.drawn().count).toBe(0);
+        }),
+      ),
+  );
+
   it.effect('once stopped (its page left), no further still is drawn, wanted before or after', () =>
     withDom(
       Effect.gen(function* () {
