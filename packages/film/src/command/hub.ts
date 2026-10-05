@@ -27,7 +27,15 @@ import {
   makeCommands,
 } from './command.ts';
 import { type Context, type Focus, contextAt, focusOf, withFocused } from './context.ts';
-import { KeymapOverrides, Resolved, bindingsOf, keysOf, resolve } from './keymap.ts';
+import {
+  KeymapOverrides,
+  Resolved,
+  bindingsOf,
+  chordLabel,
+  keysOf,
+  resolve,
+  titleWith,
+} from './keymap.ts';
 import { linkCommands } from './link.ts';
 import { selectionOf } from './selection.ts';
 import { targetAt } from './target.ts';
@@ -60,6 +68,22 @@ export interface Hub {
   /** Hear the page's presses through `Keys`, until interrupted: the page's one key listener. */
   readonly listen: Effect.Effect<never, never, Keys>;
 }
+
+/**
+ * `title` naming the first key bound to `id` now, as the viewer's keyboard
+ * writes it (`Next frame (→)`), or `title` alone when none is: a control
+ * outside Solid reads it again on every change of keys (`Hub.subscribe`), so
+ * a rebound key reads as rebound. Solid's controls read `hubKeys`.
+ */
+export const titledNow = (hub: Hub, title: string, id: CommandId): string =>
+  titleWith(
+    title,
+    hub
+      .keysOf(id)
+      .slice(0, 1)
+      .map((k) => chordLabel(k, hub.mac))
+      .join(''),
+  );
 
 /** The key the viewer's overrides are kept under. */
 const KEPT_AS = 'film-keymap';

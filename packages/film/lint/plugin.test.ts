@@ -81,6 +81,10 @@ const MESSAGES = {
     "document.body.addEventListener('pointercancel') ends a press outside its owner: use Pointer.drag (packages/film/src/browser/pointer.ts).",
   'host-events-through-adapter.ts:21 film/host-events-through-adapter':
     'el.setPointerCapture holds a press outside its owner: use Pointer.drag (packages/film/src/browser/pointer.ts).',
+  'keys-named-as-bound.tsx:9 film/keys-named-as-bound':
+    "keysOf reads the keymap once, so a rebound key reads as the old one: name the key as bound now: hubKeys' titled or text in Solid (packages/film/src/lab/command/changes.ts), titledNow on Hub.subscribe outside it (packages/film/src/command/hub.ts).",
+  'keys-named-as-bound.tsx:15 film/keys-named-as-bound':
+    "a title written with its key: name the key as bound now: hubKeys' titled or text in Solid (packages/film/src/lab/command/changes.ts), titledNow on Hub.subscribe outside it (packages/film/src/command/hub.ts).",
   'keys-through-keymap.tsx:10 film/keys-through-keymap':
     'a JSX handler hears keydown on its own: declare a command with its keys (packages/film/src/command/command.ts), registered with the page hub.',
   'keys-through-keymap.tsx:18 film/keys-through-keymap':

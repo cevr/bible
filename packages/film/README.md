@@ -1176,7 +1176,11 @@ owner, `lab/review/options/receipt.ts` `undoApprove`) withdraws exactly the appr
 
 `.oxlintrc.json` refuses a raw `keydown`, `keyup`, `keypress` or
 `contextmenu` listener (`film/keys-through-keymap`) outside the adapters and
-`src/lab/command/`: a key is a binding in the hub.
+`src/lab/command/`: a key is a binding in the hub. It also refuses a title
+written with a key in brackets, and a read of the keymap (`keysOf`) outside
+its followers (`film/keys-named-as-bound`): a title names its key as bound
+now, through `hubKeys` in Solid or `titledNow` on `Hub.subscribe` outside it,
+so a key rebound in `?` reads as rebound.
 
 **Terms**, as editing software uses them:
 

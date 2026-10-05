@@ -610,6 +610,31 @@
       }
     },
     {
+      // A control's title names its command's key as bound now, never written
+      // into it or read once from the keymap
+      // (packages/film/lint/keys-named-as-bound.ts).
+      "files": [
+        "**/packages/film/src/lab/**/*.ts",
+        "**/packages/film/src/lab/**/*.tsx",
+        "**/packages/film/src/player/**/*.ts",
+        "**/packages/film/src/browser/**/*.ts"
+      ],
+      "rules": {
+        "film/keys-named-as-bound": "error"
+      }
+    },
+    {
+      // Where the keymap's followers are made, and the tests that read it.
+      "files": [
+        "**/packages/film/src/lab/command/changes.ts",
+        "**/packages/film/src/**/fixtures/**",
+        "**/packages/film/src/**/*.test.ts"
+      ],
+      "rules": {
+        "film/keys-named-as-bound": "off"
+      }
+    },
+    {
       // The host's adapters serve every page and import none of them.
       "files": ["**/packages/film/src/browser/**/*.ts"],
       "rules": {

@@ -13,7 +13,7 @@ import { createEffect, createMemo, createSignal, onCleanup } from 'solid-js';
 import type { Command, CommandId, Invocation } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
-import { bindingsOf, chordLabel, keysOf } from '../../command/keymap.ts';
+import { bindingsOf, chordLabel, keysOf, titleWith } from '../../command/keymap.ts';
 import type { MenuRow } from '../../command/menu.ts';
 
 /**
@@ -58,14 +58,7 @@ export const keysAs = (hub: Hub, viewers: Accessor<boolean>): HubKeys => {
     label,
     text: (id) => bound(id).map(label).join(' '),
     first,
-    titled: (title, id) =>
-      Option.match(
-        Option.liftPredicate(first(id), (k) => k !== ''),
-        {
-          onNone: () => title,
-          onSome: (key) => `${title} (${key})`,
-        },
-      ),
+    titled: (title, id) => titleWith(title, first(id)),
   };
 };
 

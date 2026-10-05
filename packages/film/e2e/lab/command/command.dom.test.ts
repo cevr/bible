@@ -123,6 +123,20 @@ describe('the keys sheet', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live("a key rebound here is the one the transport's step buttons name", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(0.5) });
+      const button = '.bar [data-act="play.frame-next"]';
+      yield* evaluates(page, `document.querySelector('${button}').title`, 'Next frame (→)');
+      yield* page.press('?');
+      const row = '[data-role="keys-sheet"] [data-command="play.frame-next"]';
+      yield* page.click(`${row} [data-act="rebind"]`);
+      yield* page.pressIn(`${row} [data-act="press"]`, 'x');
+      yield* textHas(page, `${row} .lab-keys-bound`, 'X');
+      yield* evaluates(page, `document.querySelector('${button}').title`, 'Next frame (X)');
+    }).pipe(Effect.scoped),
+  );
+
   it.live("ends on the bar's legend: the stripes, and each tick beside its swatch", () =>
     Effect.gen(function* () {
       const { page, errors } = yield* openLab([], { href: labAt(0.5) });

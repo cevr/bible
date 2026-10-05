@@ -18,8 +18,7 @@ import { makeClock } from '../browser/media-clock.ts';
 import { Frames } from '../browser/frames.ts';
 import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
 import { BY_BUTTON } from '../command/command.ts';
-import type { Hub } from '../command/hub.ts';
-import { chordLabel } from '../command/keymap.ts';
+import { type Hub, titledNow } from '../command/hub.ts';
 import { Pointer } from '../browser/pointer.ts';
 import { required } from './dom.ts';
 import { pictureFacesWait } from './face.ts';
@@ -499,12 +498,6 @@ export const mountPreview = (
     }),
   );
   hub.refine((now) => ({ ...now, playing }));
-  /** The key bound to `id` now, as the keys sheet says it: a rebound key reads as rebound. */
-  const keyOf = (id: string) =>
-    hub
-      .keysOf(id)
-      .slice(0, 1)
-      .map((k) => chordLabel(k, hub.mac))[0] ?? '—';
   // The lab's transport steps a frame at a time by touch too (AA-8): the
   // frame keys' own commands, as a pair beside play. Its legend, hidden at
   // rest, is ⌘K's and the page's menu's (the keys are the `?` sheet's).
@@ -523,7 +516,12 @@ export const mountPreview = (
       button.dataset['act'] = id;
       button.textContent = glyph;
       button.setAttribute('aria-label', label);
-      button.title = `${label} (${keyOf(id)})`;
+      // Named again whenever the keys change, so a key rebound in `?` reads as rebound.
+      const name = () => {
+        button.title = titledNow(hub, label, id);
+      };
+      name();
+      hub.subscribe(name);
       button.addEventListener('click', () => hub.invokeId(id, BY_BUTTON));
       return button;
     };
