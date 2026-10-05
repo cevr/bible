@@ -2,7 +2,7 @@
 
 Base UI's unstyled parts, ported to Solid 2 (the `2.0.0-rc` line of `solid-js` and `@solidjs/web`). No part ships a style: each part shows its state as `data-*` attributes (and, where a value has to reach CSS, as CSS custom properties), and the consumer styles it through those attributes and its own `class`. Each part is imported from its subpath, for example `import { Menu } from '@bible/ui/menu'`; the root entry `@bible/ui` re-exports every subpath except `press`. Unit tests run with `bun run test` and the browser tests with `bun run test:browser` (Playwright, `test/browser`), both from `packages/ui`.
 
-Every part takes `class` and `style` (a value or a function of the part's state) and `render` (a function of the merged props and the state that replaces the default element). A part's state becomes attributes by one rule unless the part maps it otherwise: `true` becomes a bare `data-<key>` attribute, another truthy value its string, and a falsy value nothing. Attributes named `data-base-ui-*`, `data-rootownerid`, `data-tabindex` and `data-type="outside"` (the focus guards) are internal markers, not styling hooks.
+Every part takes `class` and `style` (a value or a function of the part's state) and `render` (a function of the merged props and the state that replaces the default element). A part's state becomes attributes by one rule unless the part maps it otherwise: `true` becomes a bare `data-<key>` attribute (the key lowercased: `readOnly` is `data-readonly`), another truthy value its string, and a falsy value nothing. Attributes named `data-base-ui-*`, `data-rootownerid`, `data-tabindex`, `data-type="inside"` and `data-type="outside"` (the focus guards) are internal markers, not styling hooks. Every `Portal` takes `container` and `inline`: with `inline` its `<div>` renders where it is written instead of at the end of `<body>`, the same in the server's render and the browser's, so a popup open at the first render is in the server's markup (for a `position: fixed` popup under no transform, filter or `contain`); without it, a server render leaves the portal out.
 
 ## Parts
 
@@ -71,13 +71,13 @@ These subpaths render no element and set no attributes.
 
 `Group` and `GroupLabel` set none.
 
-CSS variables on `Menu.Positioner`: `--anchor-width`, `--anchor-height` (the anchor's size, the width snapped to device pixels), `--available-width`, `--available-height` (the room before the collision boundary; `100vw` and `100vh` until measured), `--transform-origin` (the anchor's side, for a scale from the anchor).
+CSS variables on `Menu.Positioner`: `--anchor-width`, `--anchor-height` (the anchor's size, snapped to device pixels), `--available-width`, `--available-height` (the room before the collision boundary; `100vw` and `100vh` until measured), `--transform-origin` (the anchor's side, for a scale from the anchor).
 
 ### Context menu
 
 `import { ContextMenu } from '@bible/ui/context-menu'`
 
-- `ContextMenu.Root`: no element; a menu opened by a right click or a long press.
+- `ContextMenu.Root`: no element; a menu opened by a right click or by a touch held still for 500 ms (`LONG_PRESS_DELAY`; moving more than 10 px first cancels it). The lift of the touch that opened it is spent, so it never chooses the item that opened under the finger, and a press a drag has claimed (`@bible/ui/press`) opens nothing.
   - `ContextMenu.Trigger`: `<div>`, the area that opens the menu.
   - `ContextMenu.Portal > ContextMenu.Positioner > ContextMenu.Popup`, and every other member, are the menu's (`Backdrop`, `Arrow`, `Item`, `LinkItem`, `CheckboxItem`, `CheckboxItemIndicator`, `RadioGroup`, `RadioItem`, `RadioItemIndicator`, `Group`, `GroupLabel`, `Separator`, `SubmenuRoot`, `SubmenuTrigger`); the root positioner sits at the pointer.
 
@@ -192,7 +192,7 @@ The attributes and CSS variables are the dialog's (see Dialog).
 - `Drawer.Provider`: no element; tracks the drawers open inside it for `Drawer.Indent`.
   - `Drawer.IndentBackground`: `<div>`, the layer behind the indented page.
   - `Drawer.Indent`: `<div>` around the page content that steps back while a drawer is open.
-  - `Drawer.Root`: no element; a dialog that slides in from an edge and swipes away.
+  - `Drawer.Root`: no element; a dialog that slides in from an edge (`swipeDirection`, `down` by default) and swipes away, settling at `snapPoints` when given (a vertical drawer's; a number up to 1 is a fraction of the viewport's height, a larger one pixels, a string `px` or `rem`; `snapPoint`, `defaultSnapPoint`, `onSnapPointChange`, `snapToSequentialPoints`).
     - `Drawer.Trigger`: the dialog's `<button>`.
     - `Drawer.SwipeArea`: `<div role="presentation" aria-hidden>`, an invisible strip that opens the drawer with a swipe.
     - `Drawer.Portal`: the dialog's portal `<div>`.
@@ -239,7 +239,7 @@ CSS variables:
 
 `import { Toast } from '@bible/ui/toast'`
 
-- `Toast.Provider`: no element; owns the toasts (with `useToastManager` inside and `createToastManager` outside the tree).
+- `Toast.Provider`: no element; owns the toasts (with `Toast.useToastManager` inside and `Toast.createToastManager` outside the tree).
   - `Toast.Portal`: `<div>` at the end of `<body>`.
     - `Toast.Viewport`: `<div role="region">` the stacked toasts live in.
       - `Toast.Root`: `<div role="dialog">` (`alertdialog` for high priority), one toast.
@@ -290,6 +290,8 @@ CSS variables:
 
 The port has no validity state of its own, so `data-valid` is never set; nor are upstream's `data-touched`, `data-dirty`, `data-filled` or `data-focused`.
 
+`NumberField` is the control a field ties up: inside `Field.Root` its input is named by `Field.Label`, described by `Field.Description` and a shown `Field.Error`, and `aria-invalid` while the field is `invalid`; it is disabled with the field, and submits under the root's `name` when it names none. The number field's own parts never carry `data-invalid`.
+
 ### Number field
 
 `import { NumberField } from '@bible/ui/number-field'`
@@ -312,6 +314,8 @@ Every member carries the same attributes:
 | all    | `data-scrubbing` | the value is being scrubbed                                                                                  |
 
 The value and the input's text are not attributes. No CSS variables.
+
+Two root props are not upstream's. `commitOnEnter` makes Enter commit typed text as blur does (reported as `keyboard`; a form still submits). `allowExpressions` keeps typed arithmetic as text and reads it on commit: `0.42*2`, `(1+2)/4`; text opening with `+`, `*` or `/` is relative to the value before typing began (`+0.1`, `*2`, `/2`), `×` and `÷` read as `*` and `/`, and a leading `-` is a negative number.
 
 ### Toggle
 
@@ -343,7 +347,7 @@ The value and the input's text are not attributes. No CSS variables.
 
 - `Toolbar.Root`: `<div role="toolbar">` with one tab stop.
   - `Toolbar.Group`: `<div role="group">`; disabling it disables its items.
-    - `Toolbar.Button`: `<button>` (render a menu trigger through `render`).
+    - `Toolbar.Button`: `<button>` (render a menu trigger through `render`; arrow keys in that menu's popup stay in the menu).
     - `Toolbar.Link`: `<a>`.
     - `Toolbar.Input`: `<input>`.
   - `Toolbar.Separator`: `<div role="separator">`, perpendicular to the toolbar by default.
@@ -379,4 +383,4 @@ CSS variables on `Tabs.Indicator`: `--active-tab-left`, `--active-tab-right`, `-
 
 ## Styling contract
 
-The studio styles these parts through its tokens (`packages/film/src/player/tokens.css`), selecting on the `data-*` attributes above and on its own class names. No part writes a colour, a size or a font family; the only inline styles a part sets are mechanics (position, `pointer-events`, `user-select`, `touch-action`, a transition turned off for a frame or during a drag) and the CSS variables listed above. A part that needs a visual state exposes it as a `data-*` attribute rather than styling it.
+The studio styles these parts through its tokens (`packages/film/src/player/tokens.css`), in rules (`packages/film/src/lab/command/style.ts`) that select on the `data-*` attributes above and on its own class names. No part writes a colour, a size or a font family; the only inline styles a part sets are mechanics (position, `pointer-events`, `user-select`, `touch-action`, a transition turned off for a frame or during a drag, an opacity held at 0 until the first position, `will-change: transform` at a device pixel ratio of 1.5 or more) and the CSS variables listed above. A part that needs a visual state exposes it as a `data-*` attribute rather than styling it.
