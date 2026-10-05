@@ -9,9 +9,10 @@
 // The drawer's behaviour cases: opening and closing as a dialog, swipe to
 // dismiss (past the threshold, by a flick, or springing back), the swipe
 // area's open gesture, snap points, nested drawers and the provider's
-// indent. Gestures are synthetic pointer events whose `timeStamp` is set, so
-// a drag's velocity is exact. The virtual keyboard provider, detached
-// triggers and the touch scroll arbitration's iOS cases are left out.
+// indent. Every drawer opens from its owner's `open`, as every page's does.
+// Gestures are synthetic pointer events whose `timeStamp` is set, so a
+// drag's velocity is exact. The virtual keyboard provider, triggers and the
+// touch scroll arbitration's iOS cases are left out.
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
@@ -135,7 +136,7 @@ const styleVar = (page: Page, selector: string, name: string) =>
     .evaluate((el, name) => (el as HTMLElement).style.getPropertyValue(name), name);
 
 async function openDrawer(page: Page) {
-  await page.click('#trigger');
+  await page.click('#open');
   await see(page.locator('#popup')).toBeVisible();
   await see.poll(() => focused(page)).toBe('popup');
 }
@@ -149,7 +150,6 @@ describe('Drawer.Root', () => {
     await see(popup).toHaveAttribute('aria-labelledby', 'title');
     await see(popup).toHaveAttribute('aria-describedby', 'description');
     await see(popup).toHaveAttribute('data-swipe-direction', 'down');
-    await see(page.locator('#trigger')).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('closes on Escape, on an outside press and from Drawer.Close', async () => {
@@ -157,7 +157,7 @@ describe('Drawer.Root', () => {
     await openDrawer(page);
     await page.keyboard.press('Escape');
     await see(page.locator('#popup')).toHaveCount(0);
-    await see.poll(() => focused(page)).toBe('trigger');
+    await see.poll(() => focused(page)).toBe('open');
     await openDrawer(page);
     await page.mouse.click(400, 100);
     await see(page.locator('#popup')).toHaveCount(0);
@@ -165,11 +165,8 @@ describe('Drawer.Root', () => {
     await page.click('#close');
     await see(page.locator('#popup')).toHaveCount(0);
     expect(await logOf(page)).toEqual([
-      'open true trigger-press',
       'open false escape-key',
-      'open true trigger-press',
       'open false outside-press',
-      'open true trigger-press',
       'open false close-press',
     ]);
   });
@@ -191,7 +188,7 @@ describe('swipe to dismiss', () => {
     // 220px down, slowly (the swipe counts from the first move: 192.5px of the 150px needed).
     await drag(page, { x: 400, y: 350 }, { x: 400, y: 570 });
     await see(page.locator('#popup')).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['open true trigger-press', 'open false swipe']);
+    expect(await logOf(page)).toEqual(['open false swipe']);
   });
 
   it('springs back when released short of the threshold, slowly', async () => {
@@ -203,7 +200,7 @@ describe('swipe to dismiss', () => {
     await see(popup).toBeVisible();
     await see(popup).not.toHaveAttribute('data-swiping', '');
     expect(await styleVar(page, '#popup', '--drawer-swipe-movement-y')).toBe('0px');
-    expect(await logOf(page)).toEqual(['open true trigger-press']);
+    expect(await logOf(page)).toEqual([]);
   });
 
   it('dismisses on a fast flick even when short', async () => {
@@ -232,7 +229,7 @@ describe('swipe to dismiss', () => {
     await openDrawer(page);
     await drag(page, { x: 400, y: 450 }, { x: 400, y: 320 }, { stepMs: 10 });
     await see(page.locator('#popup')).toBeVisible();
-    expect(await logOf(page)).toEqual(['open true trigger-press']);
+    expect(await logOf(page)).toEqual([]);
   });
 
   it('a side sheet dismisses on a swipe right, not down', async () => {
@@ -242,7 +239,7 @@ describe('swipe to dismiss', () => {
     await see(page.locator('#popup')).toBeVisible();
     await drag(page, { x: 600, y: 400 }, { x: 780, y: 400 });
     await see(page.locator('#popup')).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['open true trigger-press', 'open false swipe']);
+    expect(await logOf(page)).toEqual(['open false swipe']);
   });
 
   it('never starts a pointer swipe inside Drawer.Content', async () => {
@@ -366,7 +363,7 @@ describe('snap points', () => {
     const popup = page.locator('#popup');
     await see(popup).toHaveAttribute('data-expanded', '');
     await see(popup).toHaveCSS('--drawer-snap-point-offset', '0px');
-    expect(await logOf(page)).toEqual(['open true trigger-press', 'snap 1 swipe']);
+    expect(await logOf(page)).toEqual(['snap 1 swipe']);
   });
 
   it('a short drag down from the top settles back on the nearest point', async () => {
@@ -377,11 +374,7 @@ describe('snap points', () => {
     // 150px down from the top lands nearer the 100px point (offset 200) than closed.
     await drag(page, { x: 400, y: 350 }, { x: 400, y: 500 }, { holdMs: 200 });
     await see(page.locator('#popup')).toHaveCSS('--drawer-snap-point-offset', '200px');
-    expect(await logOf(page)).toEqual([
-      'open true trigger-press',
-      'snap 1 swipe',
-      'snap 100px swipe',
-    ]);
+    expect(await logOf(page)).toEqual(['snap 1 swipe', 'snap 100px swipe']);
   });
 
   it('a drag down nearer closed than the lowest point dismisses, and reopens on the first point', async () => {
@@ -396,7 +389,6 @@ describe('snap points', () => {
     await drag(page, { x: 400, y: 520 }, { x: 400, y: 599 }, { holdMs: 200 });
     await see(page.locator('#popup')).toHaveCount(0);
     expect(await logOf(page)).toEqual([
-      'open true trigger-press',
       'snap 1 swipe',
       'snap 100px swipe',
       'snap null swipe',
@@ -411,12 +403,12 @@ describe('snap points', () => {
 describe('nested drawers', () => {
   it('counts the drawers open on top and carries the frontmost height', async () => {
     const page = await h.open('nested');
-    await page.click('#trigger');
+    await page.click('#open');
     const parent = page.locator('#parent-popup');
     await see(parent).toBeVisible();
     await see(parent).toHaveCSS('--nested-drawers', '0');
     await see(parent).toHaveCSS('--drawer-frontmost-height', '300px');
-    await page.click('#child-trigger');
+    await page.click('#child-open');
     const child = page.locator('#child-popup');
     await see(child).toBeVisible();
     await see(child).toHaveAttribute('data-nested', '');
@@ -432,17 +424,13 @@ describe('nested drawers', () => {
 
   it('Escape closes only the frontmost drawer', async () => {
     const page = await h.open('nested');
-    await page.click('#trigger');
-    await page.click('#child-trigger');
+    await page.click('#open');
+    await page.click('#child-open');
     await see.poll(() => focused(page)).toBe('child-popup');
     await page.keyboard.press('Escape');
     await see(page.locator('#child-popup')).toHaveCount(0);
     await see(page.locator('#parent-popup')).toBeVisible();
-    expect(await logOf(page)).toEqual([
-      'parent true trigger-press',
-      'child true trigger-press',
-      'child false escape-key',
-    ]);
+    expect(await logOf(page)).toEqual(['child false escape-key']);
   });
 });
 
@@ -454,7 +442,7 @@ describe('Drawer.Provider', () => {
     await see(indent).toHaveAttribute('data-inactive', '');
     await see(background).toHaveAttribute('data-inactive', '');
     await see(indent).toHaveCSS('--drawer-swipe-progress', '0');
-    await page.click('#trigger');
+    await page.click('#open');
     await see(indent).toHaveAttribute('data-active', '');
     await see(background).toHaveAttribute('data-active', '');
     await page.click('#close');
@@ -463,7 +451,7 @@ describe('Drawer.Provider', () => {
 
   it('the indent follows the swipe progress', async () => {
     const page = await h.open('provider');
-    await page.click('#trigger');
+    await page.click('#open');
     await see.poll(() => focused(page)).toBe('popup');
     await pressAndMove(page, { x: 400, y: 350 }, { x: 400, y: 410 });
     await see

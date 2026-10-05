@@ -1,8 +1,8 @@
 // Upstream: packages/react/src/dialog/store/DialogStore.ts
 //
-// A dialog's state: the popup's (open, mounted, active trigger, elements)
-// plus whether it is modal, whether outside presses dismiss it, its role,
-// how it was opened, the ids of its title and description, its viewport,
+// A dialog's state: the popup's (open, mounted, elements) plus whether it
+// is modal, whether outside presses dismiss it, the ids of its title and
+// description, its viewport,
 // and how many dialogs (and drawers) are open nested in it. Opening and
 // closing go through `setOpen`: `onOpenChange` first (which may cancel),
 // then the interactions hear of it, then the state changes.
@@ -20,7 +20,6 @@ import {
   createPopupStore,
   type PopupStore,
 } from '../../utils/popups/popupStore.ts';
-import type { InteractionType } from '../../utils/useOpenInteractionType.ts';
 
 export type DialogChangeEventReason =
   | typeof REASONS.triggerPress
@@ -40,20 +39,16 @@ export type DialogChangeEventDetails = BaseUIChangeEventDetails<DialogChangeEven
 
 export type DialogModal = boolean | 'trap-focus';
 
-export type DialogRole = 'dialog' | 'alertdialog';
-
 export interface DialogStoreOptions {
   openProp: () => boolean | undefined;
   defaultOpen: boolean;
   modal: Accessor<DialogModal>;
   disablePointerDismissal: Accessor<boolean>;
-  role: DialogRole;
   /** Whether the dialog is nested in another dialog (or drawer). */
   nested: boolean;
   /** Whether the dialog sits inside another floating element (a menu). */
   floatingNested: boolean;
   floatingId: string;
-  openMethod: Accessor<InteractionType | null>;
   floatingTree: FloatingTreeStore;
   floatingNodeId: string;
   onOpenChange: () => ((open: boolean, eventDetails: DialogChangeEventDetails) => void) | undefined;
@@ -63,9 +58,7 @@ export interface DialogStoreOptions {
 export interface DialogStore extends PopupStore {
   modal: Accessor<DialogModal>;
   disablePointerDismissal: Accessor<boolean>;
-  readonly role: DialogRole;
   readonly nested: boolean;
-  openMethod: Accessor<InteractionType | null>;
   /** How many dialogs are open nested in this one (a chain counts each level). */
   nestedOpenDialogCount: Accessor<number>;
   /** How many of those are drawers. */
@@ -151,9 +144,7 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
     ...popup,
     modal: options.modal,
     disablePointerDismissal: options.disablePointerDismissal,
-    role: options.role,
     nested: options.nested,
-    openMethod: options.openMethod,
     nestedOpenDialogCount,
     nestedOpenDrawerCount,
     setNestedOpenCounts(dialogCount, drawerCount) {

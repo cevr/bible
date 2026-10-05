@@ -5,7 +5,6 @@ export * from './direction-provider/index.ts';
 export * from './menu/index.ts';
 export * from './context-menu/index.ts';
 export * from './dialog/index.ts';
-export * from './alert-dialog/index.ts';
 export * from './drawer/index.ts';
 export * from './toast/index.ts';
 export * from './number-field/index.ts';

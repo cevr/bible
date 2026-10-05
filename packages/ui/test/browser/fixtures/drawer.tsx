@@ -1,8 +1,10 @@
-// Fixtures for the drawer. URL params for `drawer`: `direction` (the root's
-// `swipeDirection`: `down` by default, or `right` for a side sheet), `snap=true`
-// for snap points `['100px', 1]`, `modal=false`, `area=true` for a swipe area
-// along the edge the drawer comes in from
-// (`window.__removeArea()` unmounts it).
+// Fixtures for the drawer. Every drawer is opened as a page opens one: its
+// owner holds `open`, a plain button sets it, and the drawer's own opens and
+// closes reach the owner through `onOpenChange`. URL params for `drawer`:
+// `direction` (the root's `swipeDirection`: `down` by default, or `right`
+// for a side sheet), `snap=true` for snap points `['100px', 1]`,
+// `modal=false`, `area=true` for a swipe area along the edge the drawer
+// comes in from (`window.__removeArea()` unmounts it).
 //
 // The bottom sheet is 300px tall on an 800x600 page (its top edge at y=300);
 // the side sheet is 300px wide (its left edge at x=500). Their transforms
@@ -33,7 +35,19 @@ function directionParam(): DrawerSwipeDirection {
   return param('direction') === 'right' ? 'right' : 'down';
 }
 
+/** An owner's open state and the plain button that opens it. */
+function ownerOpen(id: string) {
+  const [open, setOpen] = createSignal(false);
+  const Opener = (props: { children: JSX.Element }) => (
+    <button type="button" id={id} onClick={() => setOpen(true)}>
+      {props.children}
+    </button>
+  );
+  return { open, setOpen, Opener };
+}
+
 function BasicDrawer(): JSX.Element {
+  const owner = ownerOpen('open');
   const direction = directionParam();
   const [areaShown, setAreaShown] = createSignal(param('area') === 'true');
   (window as unknown as { __removeArea: () => void }).__removeArea = () => setAreaShown(false);
@@ -43,14 +57,18 @@ function BasicDrawer(): JSX.Element {
       <button type="button" id="outside">
         outside
       </button>
+      <owner.Opener>Open</owner.Opener>
       <Drawer.Root
+        open={owner.open()}
         swipeDirection={direction}
         modal={param('modal') !== 'false'}
         snapPoints={param('snap') === 'true' ? ['100px', 1] : undefined}
-        onOpenChange={(open, details) => log(`open ${open} ${details.reason}`)}
+        onOpenChange={(open, details) => {
+          log(`open ${open} ${details.reason}`);
+          owner.setOpen(open);
+        }}
         onSnapPointChange={(snapPoint, details) => log(`snap ${snapPoint} ${details.reason}`)}
       >
-        <Drawer.Trigger id="trigger">Open</Drawer.Trigger>
         <Show when={areaShown()}>
           <Drawer.SwipeArea
             id="area"
@@ -77,16 +95,30 @@ function BasicDrawer(): JSX.Element {
 }
 
 function NestedDrawer(): JSX.Element {
+  const parent = ownerOpen('open');
+  const child = ownerOpen('child-open');
   return (
     <div>
       <style>{STYLES}</style>
-      <Drawer.Root onOpenChange={(open, details) => log(`parent ${open} ${details.reason}`)}>
-        <Drawer.Trigger id="trigger">Open</Drawer.Trigger>
+      <parent.Opener>Open</parent.Opener>
+      <Drawer.Root
+        open={parent.open()}
+        onOpenChange={(open, details) => {
+          log(`parent ${open} ${details.reason}`);
+          parent.setOpen(open);
+        }}
+      >
         <Drawer.Portal>
           <Drawer.Viewport class="viewport">
             <Drawer.Popup id="parent-popup" class="popup">
-              <Drawer.Root onOpenChange={(open, details) => log(`child ${open} ${details.reason}`)}>
-                <Drawer.Trigger id="child-trigger">Open child</Drawer.Trigger>
+              <child.Opener>Open child</child.Opener>
+              <Drawer.Root
+                open={child.open()}
+                onOpenChange={(open, details) => {
+                  log(`child ${open} ${details.reason}`);
+                  child.setOpen(open);
+                }}
+              >
                 <Drawer.Portal>
                   <Drawer.Viewport class="viewport">
                     <Drawer.Popup id="child-popup" class="popup" style={{ height: '200px' }}>
@@ -104,13 +136,14 @@ function NestedDrawer(): JSX.Element {
 }
 
 function ProviderDrawer(): JSX.Element {
+  const owner = ownerOpen('open');
   return (
     <Drawer.Provider>
       <style>{STYLES}</style>
       <Drawer.IndentBackground id="indent-background" />
       <Drawer.Indent id="indent">
-        <Drawer.Root>
-          <Drawer.Trigger id="trigger">Open</Drawer.Trigger>
+        <owner.Opener>Open</owner.Opener>
+        <Drawer.Root open={owner.open()} onOpenChange={(open) => owner.setOpen(open)}>
           <Drawer.Portal>
             <Drawer.Viewport class="viewport">
               <Drawer.Popup id="popup" class="popup">

@@ -1,7 +1,7 @@
 // Upstream: packages/react/src/drawer/index.ts
 //
 // The drawer: a dialog that slides in from an edge and swipes away.
-// `Drawer.Root`, `Drawer.Trigger`, `Drawer.SwipeArea`, `Drawer.Portal`,
+// `Drawer.Root`, `Drawer.SwipeArea`, `Drawer.Portal`,
 // `Drawer.Backdrop`, `Drawer.Viewport`, `Drawer.Popup`, `Drawer.Content`,
 // `Drawer.Title`, `Drawer.Description`, `Drawer.Close`, and
 // `Drawer.Provider` with `Drawer.Indent` and `Drawer.IndentBackground`; the
@@ -30,11 +30,6 @@ export type {
   DialogTitleProps as DrawerTitleProps,
   DialogTitleState as DrawerTitleState,
 } from '../dialog/title/DialogTitle.tsx';
-export type {
-  DialogTriggerProps as DrawerTriggerProps,
-  DialogTriggerState as DrawerTriggerState,
-} from '../dialog/trigger/DialogTrigger.tsx';
-export { DialogTriggerDataAttributes as DrawerTriggerDataAttributes } from '../dialog/trigger/DialogTrigger.tsx';
 export { DialogCloseDataAttributes as DrawerCloseDataAttributes } from '../dialog/utils/stateAttributesMapping.ts';
 export {
   DrawerBackdropCssVars as DrawerBackdropCssVariables,

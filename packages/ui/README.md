@@ -91,8 +91,7 @@ The other members set the menu's attributes and CSS variables (see Menu). The ro
 
 `import { Dialog } from '@bible/ui/dialog'`
 
-- `Dialog.Root`: no element; owns the dialog's state.
-  - `Dialog.Trigger`: `<button>` that opens the dialog.
+- `Dialog.Root`: no element; owns the dialog's state. Its owner opens it through `open` (there is no trigger part); on close, focus returns to what had it before.
   - `Dialog.Portal`: `<div>` at the end of `<body>`, rendered while mounted or with `keepMounted`.
     - `Dialog.Backdrop`: `<div role="presentation">`; only the outermost dialog of a nested stack renders one, unless `forceRender`.
     - `Dialog.Viewport`: `<div role="presentation">`, a positioning (and scrolling) container around the popup.
@@ -103,8 +102,6 @@ The other members set the menu's attributes and CSS variables (see Menu). The ro
 
 | Member              | Attribute                                   | Present when                                             |
 | ------------------- | ------------------------------------------- | -------------------------------------------------------- |
-| `Trigger`           | `data-popup-open`                           | the dialog this trigger opened is open                   |
-| `Trigger`           | `data-disabled`                             | the trigger is disabled                                  |
 | `Backdrop`          | `data-open` / `data-closed`                 | the dialog is open / closed                              |
 | `Backdrop`          | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition |
 | `Viewport`, `Popup` | `data-open` / `data-closed`                 | the dialog is open / closed                              |
@@ -117,15 +114,6 @@ The other members set the menu's attributes and CSS variables (see Menu). The ro
 
 CSS variables on `Dialog.Popup`: `--nested-dialogs` (how many dialogs nested in it are open).
 
-### Alert dialog
-
-`import { AlertDialog } from '@bible/ui/alert-dialog'`
-
-- `AlertDialog.Root`: no element; a dialog that is always modal and never closed by an outside press.
-  - `AlertDialog.Trigger`, `AlertDialog.Portal > AlertDialog.Backdrop | AlertDialog.Viewport > AlertDialog.Popup > AlertDialog.Title | AlertDialog.Description | AlertDialog.Close` are the dialog's parts; the popup renders `<div role="alertdialog">`.
-
-The attributes and CSS variables are the dialog's (see Dialog).
-
 ### Drawer
 
 `import { Drawer } from '@bible/ui/drawer'`
@@ -134,7 +122,6 @@ The attributes and CSS variables are the dialog's (see Dialog).
   - `Drawer.IndentBackground`: `<div>`, the layer behind the indented page.
   - `Drawer.Indent`: `<div>` around the page content that steps back while a drawer is open.
   - `Drawer.Root`: no element; a dialog that slides in from an edge (`swipeDirection`, `down` by default) and swipes away, settling at `snapPoints` when given (a vertical drawer's; a number up to 1 is a fraction of the viewport's height, a larger one pixels, a string `px` or `rem`; `snapPoint`, `defaultSnapPoint`, `onSnapPointChange`, `snapToSequentialPoints`).
-    - `Drawer.Trigger`: the dialog's `<button>`.
     - `Drawer.SwipeArea`: `<div role="presentation" aria-hidden>`, an invisible strip that opens the drawer with a swipe.
     - `Drawer.Portal`: the dialog's portal `<div>`.
       - `Drawer.Backdrop`: `<div role="presentation">`; only the outermost drawer renders one, unless `forceRender`.
@@ -145,7 +132,6 @@ The attributes and CSS variables are the dialog's (see Dialog).
 
 | Member                       | Attribute                                   | Present when                                                                          |
 | ---------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `Trigger`                    | `data-popup-open`, `data-disabled`          | as on `Dialog.Trigger`                                                                |
 | `SwipeArea`                  | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
 | `SwipeArea`                  | `data-swipe-direction`                      | always: the direction that opens the drawer (`up`, `down`, `left` or `right`)         |
 | `SwipeArea`                  | `data-swiping`                              | the swipe area is being swiped                                                        |

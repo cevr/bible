@@ -2,11 +2,10 @@
 // packages/react/src/dialog/root/useRenderDialogRoot.tsx,
 // packages/react/src/dialog/root/useDialogRoot.ts
 //
-// Groups a dialog's parts and owns its state. The same root serves dialogs,
-// alert dialogs (always modal, never dismissed by an outside press, role
-// `alertdialog`) and drawers. It wires what the parts share: Escape and
-// outside presses close the topmost dialog, page scroll locks while a modal
-// dialog is open, and how the dialog was opened is recorded for focus.
+// Groups a dialog's parts and owns its state. The same root serves dialogs
+// and drawers, each opened by its owner's `open` (upstream's trigger is left
+// out). It wires what the parts share: Escape and outside presses close the
+// topmost dialog, and page scroll locks while a modal dialog is open.
 //
 // An outside press on a modal dialog closes it only on its own backdrop (or
 // the viewport around it), so a press on another dialog's backdrop or a
@@ -21,8 +20,6 @@ import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
 import { contains, getTarget } from '../../floating-ui-solid/utils/element.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
-import { mergeProps } from '../../merge-props/mergeProps.ts';
-import { useOpenInteractionType } from '../../utils/useOpenInteractionType.ts';
 import { useScrollLock } from '../../utils/useScrollLock.ts';
 import {
   createDialogStore,
@@ -67,21 +64,19 @@ export interface DialogRootProps {
   children?: JSX.Element;
 }
 
-export type DialogRootMode = 'dialog' | 'alert-dialog' | 'drawer';
+export type DialogRootMode = 'dialog' | 'drawer';
 
 export interface DialogRootInternalProps extends DialogRootProps {
   mode: DialogRootMode;
 }
 
 export function DialogRootInternal(props: DialogRootInternalProps): JSX.Element {
-  const mode = untrack(() => props.mode);
-  const isDrawer = mode === 'drawer';
-  const isAlertDialog = mode === 'alert-dialog';
+  const isDrawer = untrack(() => props.mode) === 'drawer';
   const parent = useDialogRootContextOptional();
   const floatingNested = useFloatingParentNodeId() != null;
 
-  const modal = (): DialogModal => (isAlertDialog ? true : (props.modal ?? true));
-  const disablePointerDismissal = () => isAlertDialog || (props.disablePointerDismissal ?? false);
+  const modal = (): DialogModal => props.modal ?? true;
+  const disablePointerDismissal = () => props.disablePointerDismissal ?? false;
 
   // Nested dialogs join their parent's tree, so presses inside them are inside it.
   const floatingTree = parent?.store.floatingTree ?? new FloatingTreeStore();
@@ -90,27 +85,19 @@ export function DialogRootInternal(props: DialogRootInternalProps): JSX.Element 
   floatingTree.addNode(floatingNode);
   onCleanup(() => floatingTree.removeNode(floatingNode));
 
-  let openRead = () => false;
-  const { openMethod, triggerProps: interactionTypeProps } = useOpenInteractionType(() =>
-    openRead(),
-  );
-
   const store = createDialogStore({
     openProp: () => props.open,
     defaultOpen: untrack(() => props.defaultOpen ?? false),
     modal,
     disablePointerDismissal,
-    role: isAlertDialog ? 'alertdialog' : 'dialog',
     nested: parent != null,
     floatingNested,
     floatingId: createUniqueId(),
-    openMethod,
     floatingTree,
     floatingNodeId,
     onOpenChange: () => props.onOpenChange,
     onOpenChangeComplete: () => props.onOpenChangeComplete,
   });
-  openRead = store.open;
 
   const isTopmost = () => store.nestedOpenDialogCount() === 0;
 
@@ -200,12 +187,8 @@ export function DialogRootInternal(props: DialogRootInternalProps): JSX.Element 
     }
   });
 
-  const activeTriggerProps = mergeProps(dismiss.reference ?? {}, interactionTypeProps);
-  const inactiveTriggerProps = mergeProps(dismiss.trigger ?? {}, interactionTypeProps);
-
   const context: DialogRootContext = {
     store,
-    triggerProps: (active) => (active ? activeTriggerProps : inactiveTriggerProps),
     popupProps: dismiss.floating ?? {},
   };
 

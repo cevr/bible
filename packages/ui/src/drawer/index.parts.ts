@@ -1,14 +1,13 @@
 // Upstream: packages/react/src/drawer/index.parts.ts
 //
 // The parts of a drawer, used as `Drawer.Root`, `Drawer.Popup` and so on.
-// The trigger, portal, title, description and close are the dialog's.
+// The portal, title, description and close are the dialog's.
 export { DialogClose as Close } from '../dialog/close/DialogClose.tsx';
 export { DialogPortal as Portal } from '../dialog/portal/DialogPortal.tsx';
 export {
   DialogDescription as Description,
   DialogTitle as Title,
 } from '../dialog/title/DialogTitle.tsx';
-export { DialogTrigger as Trigger } from '../dialog/trigger/DialogTrigger.tsx';
 export { DrawerBackdrop as Backdrop } from './backdrop/DrawerBackdrop.tsx';
 export { DrawerContent as Content } from './content/DrawerContent.tsx';
 export {

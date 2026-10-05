@@ -325,7 +325,7 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
           get 'aria-describedby'() {
             return store.descriptionElementId();
           },
-          role: store.role,
+          role: 'dialog',
           ...FOCUSABLE_POPUP_PROPS,
           get hidden() {
             return !store.mounted() || undefined;

@@ -1,13 +1,14 @@
-// Fixtures for the dialog and the alert dialog. URL params for `dialog`:
-// `modal` (`true`, `false`, `trap-focus`), `dismissal=disabled` for
+// Fixtures for the dialog. Every dialog is opened as a page opens one: its
+// owner holds `open`, a plain button sets it, and the dialog's own closes
+// reach the owner through `onOpenChange`. URL params for `dialog`: `modal`
+// (`true`, `false`, `trap-focus`), `dismissal=disabled` for
 // `disablePointerDismissal`, `initial=input|false|function` and
 // `final=outside|false` for the popup's focus props, `backdrop=user` for a
-// `Dialog.Backdrop`, `cancel=open` to cancel opening in `onOpenChange`,
-// `tall=true` for a page that scrolls.
+// `Dialog.Backdrop`, `owner=keep` for an owner that keeps `open` true
+// through a close request, `tall=true` for a page that scrolls.
 import type { JSX } from '@solidjs/web';
 import { createSignal } from 'solid-js';
 
-import { AlertDialog } from '../../../src/alert-dialog/index.ts';
 import {
   Dialog,
   type DialogFocusTarget,
@@ -26,7 +27,19 @@ function modalParam(): boolean | 'trap-focus' {
   return true;
 }
 
+/** An owner's open state and the plain button that opens it. */
+function ownerOpen(id: string) {
+  const [open, setOpen] = createSignal(false);
+  const Opener = (props: { children: JSX.Element }) => (
+    <button type="button" id={id} onClick={() => setOpen(true)}>
+      {props.children}
+    </button>
+  );
+  return { open, setOpen, Opener };
+}
+
 function BasicDialog(): JSX.Element {
+  const owner = ownerOpen('open');
   const inputRef: { current: HTMLElement | null } = { current: null };
   const outsideRef: { current: HTMLElement | null } = { current: null };
   const actionsRef: { current: DialogRootActions | null } = { current: null };
@@ -39,7 +52,7 @@ function BasicDialog(): JSX.Element {
     initialFocus = false;
   } else if (initial === 'function') {
     initialFocus = (type) => {
-      log(`initialFocus ${type}`);
+      log(`initialFocus "${type}"`);
       return inputRef.current;
     };
   }
@@ -57,19 +70,20 @@ function BasicDialog(): JSX.Element {
       <button type="button" id="close-imperative" onClick={() => actionsRef.current?.close()}>
         close imperatively
       </button>
+      <owner.Opener>Open</owner.Opener>
       <Dialog.Root
+        open={owner.open()}
         modal={modalParam()}
         disablePointerDismissal={param('dismissal') === 'disabled'}
         actionsRef={actionsRef}
         onOpenChange={(open, details) => {
           log(`open ${open} ${details.reason}`);
-          if (open && param('cancel') === 'open') {
-            details.cancel();
+          if (param('owner') !== 'keep') {
+            owner.setOpen(open);
           }
         }}
         onOpenChangeComplete={(open) => log(`complete ${open}`)}
       >
-        <Dialog.Trigger id="trigger">Open</Dialog.Trigger>
         <Dialog.Portal id="portal">
           {param('backdrop') === 'user' ? <Dialog.Backdrop id="backdrop" /> : null}
           <Dialog.Popup id="popup" initialFocus={initialFocus} finalFocus={finalFocus}>
@@ -88,53 +102,66 @@ function BasicDialog(): JSX.Element {
 }
 
 function NestedDialog(): JSX.Element {
+  const parent = ownerOpen('open');
+  const child = ownerOpen('child-open');
+  const grandchild = ownerOpen('grandchild-open');
   return (
-    <Dialog.Root onOpenChange={(open, details) => log(`parent ${open} ${details.reason}`)}>
-      <Dialog.Trigger id="trigger">Open</Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Backdrop id="parent-backdrop" />
-        <Dialog.Popup id="parent-popup">
-          <Dialog.Title>Parent</Dialog.Title>
-          <Dialog.Root onOpenChange={(open, details) => log(`child ${open} ${details.reason}`)}>
-            <Dialog.Trigger id="child-trigger">Open child</Dialog.Trigger>
-            <Dialog.Portal>
-              <Dialog.Backdrop id="child-backdrop" />
-              <Dialog.Popup id="child-popup">
-                <Dialog.Title>Child</Dialog.Title>
-                <Dialog.Root>
-                  <Dialog.Trigger id="grandchild-trigger">Open grandchild</Dialog.Trigger>
-                  <Dialog.Portal>
-                    <Dialog.Popup id="grandchild-popup">
-                      <Dialog.Close id="grandchild-close">Close grandchild</Dialog.Close>
-                    </Dialog.Popup>
-                  </Dialog.Portal>
-                </Dialog.Root>
-                <Dialog.Close id="child-close">Close child</Dialog.Close>
-              </Dialog.Popup>
-            </Dialog.Portal>
-          </Dialog.Root>
-          <AlertDialog.Root>
-            <AlertDialog.Trigger id="alert-trigger">Open alert</AlertDialog.Trigger>
-            <AlertDialog.Portal>
-              <AlertDialog.Popup id="alert-popup">
-                <AlertDialog.Close id="alert-close">Close alert</AlertDialog.Close>
-              </AlertDialog.Popup>
-            </AlertDialog.Portal>
-          </AlertDialog.Root>
-        </Dialog.Popup>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <>
+      <parent.Opener>Open</parent.Opener>
+      <Dialog.Root
+        open={parent.open()}
+        onOpenChange={(open, details) => {
+          log(`parent ${open} ${details.reason}`);
+          parent.setOpen(open);
+        }}
+      >
+        <Dialog.Portal>
+          <Dialog.Backdrop id="parent-backdrop" />
+          <Dialog.Popup id="parent-popup">
+            <Dialog.Title>Parent</Dialog.Title>
+            <child.Opener>Open child</child.Opener>
+            <Dialog.Root
+              open={child.open()}
+              onOpenChange={(open, details) => {
+                log(`child ${open} ${details.reason}`);
+                child.setOpen(open);
+              }}
+            >
+              <Dialog.Portal>
+                <Dialog.Backdrop id="child-backdrop" />
+                <Dialog.Popup id="child-popup">
+                  <Dialog.Title>Child</Dialog.Title>
+                  <grandchild.Opener>Open grandchild</grandchild.Opener>
+                  <Dialog.Root
+                    open={grandchild.open()}
+                    onOpenChange={(open) => grandchild.setOpen(open)}
+                  >
+                    <Dialog.Portal>
+                      <Dialog.Popup id="grandchild-popup">
+                        <Dialog.Close id="grandchild-close">Close grandchild</Dialog.Close>
+                      </Dialog.Popup>
+                    </Dialog.Portal>
+                  </Dialog.Root>
+                  <Dialog.Close id="child-close">Close child</Dialog.Close>
+                </Dialog.Popup>
+              </Dialog.Portal>
+            </Dialog.Root>
+          </Dialog.Popup>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
   );
 }
 
 /** Three dialogs side by side, each opened from the one before. */
 function SideBySide(): JSX.Element {
+  const first = ownerOpen('open');
   const [second, setSecond] = createSignal(false);
   const [third, setThird] = createSignal(false);
   return (
     <div>
-      <Dialog.Root>
-        <Dialog.Trigger id="trigger">Open base</Dialog.Trigger>
+      <first.Opener>Open base</first.Opener>
+      <Dialog.Root open={first.open()} onOpenChange={(open) => first.setOpen(open)}>
         <Dialog.Portal>
           <Dialog.Popup id="level-1">
             <button type="button" id="open-2" onClick={() => setSecond(true)}>
@@ -162,49 +189,37 @@ function SideBySide(): JSX.Element {
 }
 
 function KeepMounted(): JSX.Element {
+  const owner = ownerOpen('open');
   return (
-    <Dialog.Root>
-      <Dialog.Trigger id="trigger">Open</Dialog.Trigger>
-      <Dialog.Portal keepMounted>
-        <Dialog.Viewport id="viewport">
-          <Dialog.Popup id="popup">
-            <Dialog.Close id="close">Close</Dialog.Close>
-          </Dialog.Popup>
-        </Dialog.Viewport>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-
-function Alert(): JSX.Element {
-  return (
-    <div>
-      <button type="button" id="outside">
-        outside
-      </button>
-      <AlertDialog.Root onOpenChange={(open, details) => log(`open ${open} ${details.reason}`)}>
-        <AlertDialog.Trigger id="trigger">Delete</AlertDialog.Trigger>
-        <AlertDialog.Portal>
-          <AlertDialog.Backdrop id="backdrop" />
-          <AlertDialog.Popup id="popup">
-            <AlertDialog.Title id="title">Delete?</AlertDialog.Title>
-            <AlertDialog.Close id="cancel">Cancel</AlertDialog.Close>
-          </AlertDialog.Popup>
-        </AlertDialog.Portal>
-      </AlertDialog.Root>
-    </div>
+    <>
+      <owner.Opener>Open</owner.Opener>
+      <Dialog.Root open={owner.open()} onOpenChange={(open) => owner.setOpen(open)}>
+        <Dialog.Portal keepMounted>
+          <Dialog.Viewport id="viewport">
+            <Dialog.Popup id="popup">
+              <Dialog.Close id="close">Close</Dialog.Close>
+            </Dialog.Popup>
+          </Dialog.Viewport>
+        </Dialog.Portal>
+      </Dialog.Root>
+    </>
   );
 }
 
 function Animated(): JSX.Element {
+  const owner = ownerOpen('open');
   return (
     <div>
       <style>{`
         #popup { transition: opacity 200ms; }
         #popup[data-ending-style] { opacity: 0; }
       `}</style>
-      <Dialog.Root onOpenChangeComplete={(open) => log(`complete ${open}`)}>
-        <Dialog.Trigger id="trigger">Open</Dialog.Trigger>
+      <owner.Opener>Open</owner.Opener>
+      <Dialog.Root
+        open={owner.open()}
+        onOpenChange={(open) => owner.setOpen(open)}
+        onOpenChangeComplete={(open) => log(`complete ${open}`)}
+      >
         <Dialog.Portal>
           <Dialog.Popup id="popup">
             <Dialog.Close id="close">Close</Dialog.Close>
@@ -222,7 +237,7 @@ function Animated(): JSX.Element {
 function withPopupStyles(fixture: () => JSX.Element): () => JSX.Element {
   return () => (
     <>
-      <style>{`[role="dialog"], [role="alertdialog"] { position: relative; }`}</style>
+      <style>{`[role="dialog"] { position: relative; }`}</style>
       {fixture()}
     </>
   );
@@ -233,6 +248,5 @@ export const fixtures: Record<string, () => JSX.Element> = {
   nested: withPopupStyles(NestedDialog),
   'side-by-side': withPopupStyles(SideBySide),
   'keep-mounted': withPopupStyles(KeepMounted),
-  alert: withPopupStyles(Alert),
   animated: withPopupStyles(Animated),
 };
