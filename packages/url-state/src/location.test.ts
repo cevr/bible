@@ -4,7 +4,7 @@ import { TestClock } from 'effect/testing';
 
 import { Location, type Entry } from './location.js';
 import { layerMemory, LocationHistory } from './location-memory.js';
-import { layerServer, SERVER_ENTRY_KEY } from './location-server.js';
+import { layerServer } from './location-server.js';
 
 const hrefs = Effect.gen(function* () {
   const { stack, index } = yield* (yield* LocationHistory).entries;
@@ -30,7 +30,7 @@ describe('memory Location', () => {
     }).pipe(Effect.provide(layerMemory('/?q=a'))),
   );
 
-  it.effect('Back and Forward land on each entry with the key it was given', () =>
+  it.effect('Back and Forward land on each entry with the key it was given, as traversals', () =>
     Effect.gen(function* () {
       const location = yield* Location;
       const history = yield* LocationHistory;
@@ -38,10 +38,11 @@ describe('memory Location', () => {
       yield* location.push('/b');
       const second = yield* location.current;
 
-      yield* history.back;
+      yield* location.back;
       expect(yield* location.current).toEqual({ ...first, navigation: 'traverse' });
-      // Back at the first entry stays there, as the browser's button does.
-      yield* history.back;
+      expect(yield* hrefs).toEqual({ hrefs: ['/a', '/b'], index: 0 });
+      // The memory layer's Back at the first entry stays there.
+      yield* location.back;
       expect((yield* location.current).href).toBe('/a');
 
       yield* history.forward;
@@ -51,25 +52,12 @@ describe('memory Location', () => {
     }).pipe(Effect.provide(layerMemory('/a'))),
   );
 
-  it.effect(
-    "the program's own Back is the button's: it lands on the entry before, as a traversal",
-    () =>
-      Effect.gen(function* () {
-        const location = yield* Location;
-        const first = yield* location.current;
-        yield* location.push('/b');
-        yield* location.back;
-        expect(yield* location.current).toEqual({ ...first, navigation: 'traverse' });
-        expect(yield* hrefs).toEqual({ hrefs: ['/a', '/b'], index: 0 });
-      }).pipe(Effect.provide(layerMemory('/a'))),
-  );
-
   it.effect('a push after Back drops the entries ahead', () =>
     Effect.gen(function* () {
       const location = yield* Location;
       yield* location.push('/b');
       yield* location.push('/c');
-      yield* (yield* LocationHistory).back;
+      yield* location.back;
       yield* location.push('/d');
       expect(yield* hrefs).toEqual({ hrefs: ['/a', '/b', '/d'], index: 2 });
     }).pipe(Effect.provide(layerMemory('/a'))),
@@ -86,7 +74,7 @@ describe('memory Location', () => {
       );
       yield* location.push('/b');
       yield* location.replace('/c');
-      yield* (yield* LocationHistory).back;
+      yield* location.back;
       expect(yield* Fiber.join(seen)).toEqual(['load /a', 'push /b', 'replace /c', 'traverse /a']);
     }).pipe(Effect.provide(layerMemory('/a'))),
   );
@@ -109,7 +97,7 @@ describe('server Location', () => {
       const location = yield* Location;
       const entry: Entry = {
         href: '/films/a/lab/b?cue=c',
-        key: SERVER_ENTRY_KEY,
+        key: 'server',
         navigation: 'load',
       };
       expect(yield* location.current).toEqual(entry);

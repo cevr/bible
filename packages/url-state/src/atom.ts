@@ -7,9 +7,10 @@
  * - `layer`: the `Location` layer, one per registry. It is the browser's by
  *   default; seed it through the registry's initial values: the browser with
  *   options at an app's root, `layerServer(requestUrl)` per server render,
- *   a memory layer in a test.
+ *   a memory layer in a test, or a host's built `Location` and `UrlState`.
  * - `services`: `Location` and `UrlState`, built from `layer` in the atom's
- *   scope and kept alive with the registry.
+ *   scope and kept alive with the registry; the layer's own `UrlState` when
+ *   it has one.
  * - `href`: the URL as the program's writes leave it.
  * - `entry`: the history entry on screen (its key and how it arrived), for
  *   per-entry memory such as a scroll position.
@@ -25,8 +26,7 @@
  * server and on the client's hydration pass, then the real hash.
  */
 
-import { Context, Effect, Exit, Layer, Scheduler, Scope, Stream } from 'effect';
-import type { Option } from 'effect';
+import { Context, Effect, Exit, Layer, Option, Scheduler, Scope, Stream } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 
 import { Location, type Entry } from './location.js';
@@ -40,13 +40,28 @@ export const layer: Atom.Writable<Layer.Layer<Location>> = Atom.keepAlive(
   Atom.make<Layer.Layer<Location>>(layerBrowser()),
 );
 
-/** `Location` and `UrlState`, built from `layer`, closed with the atom. */
+/**
+ * `Location` and `UrlState`, built from `layer` and closed with the atom. A
+ * layer that carries a `UrlState` of its own (a host that writes through
+ * one) gives that one, so the page has a single `UrlState`; any other layer
+ * gets one built over its `Location`.
+ */
 export const services: Atom.Atom<Services> = Atom.keepAlive(
   Atom.make((get) => {
     const scope = Scope.makeUnsafe();
     get.addFinalizer(() => Effect.runSync(Scope.close(scope, Exit.void)));
     return Effect.runSync(
-      Layer.buildWithScope(UrlState.layer.pipe(Layer.provideMerge(get(layer))), scope),
+      Effect.gen(function* () {
+        const given = yield* Layer.buildWithScope(get(layer), scope);
+        return yield* Option.match(Context.getOption(given, UrlState.UrlState), {
+          onSome: (own) => Effect.succeed(Context.add(given, UrlState.UrlState, own)),
+          onNone: () =>
+            Layer.buildWithScope(
+              UrlState.layer.pipe(Layer.provideMerge(Layer.succeedContext(given))),
+              scope,
+            ),
+        });
+      }),
     );
   }),
 );

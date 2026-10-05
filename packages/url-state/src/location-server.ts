@@ -14,7 +14,7 @@ import { Effect, Layer, Stream } from 'effect';
 import { Location, parseHref, relativeHref, type Entry } from './location.js';
 
 /** The key of the one entry a server render is on. */
-export const SERVER_ENTRY_KEY = 'server';
+const SERVER_ENTRY_KEY = 'server';
 
 /** `Location` fixed at `href` (an absolute request URL or a path-relative one). */
 export const layerServer = (href: string): Layer.Layer<Location> => {

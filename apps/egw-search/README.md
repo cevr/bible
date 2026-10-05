@@ -28,7 +28,8 @@ bun run --cwd apps/egw-search test:browser
 
 The command builds the page, starts a fixture server on port `3187` (set
 `EGW_BROWSER_PORT` to use another) that serves the build and the app's own
-`SearchApi` with deterministic answers, and runs Playwright against it. It
+`SearchApi` with deterministic answers, and runs Playwright against it. CI
+runs it in the gate workflow's browser job. It
 does not read the private EGW corpus or use credentials. Playwright owns the
 fixture process and closes it after the run. Install the browser once with:
 

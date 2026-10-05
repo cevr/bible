@@ -1,7 +1,7 @@
 /**
  * A history stack in memory: the `Location` for tests, and for anything that
- * has no tab. `LocationHistory` drives it the way a reader drives a browser,
- * with Back and Forward, and shows the stack for assertions.
+ * has no tab. Back is `Location`'s own; `LocationHistory` adds what only a
+ * reader's browser does, Forward, and shows the stack for assertions.
  */
 
 import { Context, Effect, Layer, Option, Ref, SubscriptionRef } from 'effect';
@@ -10,8 +10,6 @@ import { makeEntryKeys } from './entry-key.js';
 import { Location, parseHref, relativeHref, type Entry } from './location.js';
 
 export interface LocationHistoryService {
-  /** Go back one entry, as the browser's Back button; at the first entry, nothing. */
-  readonly back: Effect.Effect<void>;
   /** Go forward one entry; at the last entry, nothing. */
   readonly forward: Effect.Effect<void>;
   /** Every entry on the stack, oldest first, and the index of the one on screen. */
@@ -82,7 +80,6 @@ export const layerMemory = (href: string): Layer.Layer<Location | LocationHistor
         back: traverse(-1),
       }).pipe(
         Context.add(LocationHistory, {
-          back: traverse(-1),
           forward: traverse(1),
           entries: Ref.get(stack),
         }),

@@ -8,26 +8,26 @@ import * as Field from './field.js';
 import * as Place from './place.js';
 import { printHref, readHref } from './url-parts.js';
 
-const start: Codec.MediaTime = { _tag: 'Point', at: 0 };
-
 /** The lab's place, as the README shows it. */
 const Lab = Place.make({
   path: '/films/:film/lab/:scene',
   params: { film: Codec.Segment, scene: Codec.Segment },
   query: Field.struct({ cue: Field.key(Codec.Text, { default: '', history: 'push' }) }),
   hash: Field.struct({
-    t: Field.key(Codec.MediaTime, { default: start, throttle: '250 millis' }),
+    t: Field.key(Codec.Finite, { default: 0, throttle: '250 millis' }),
   }),
 });
 
-const AXES = ['bible', 'egw', 'pioneer'] as const;
+/** A repeated key of fixed words (`?section=bible&section=egw`): the shape of
+ *  egw-search's axes, which read their values through core's codec. */
+const Sections = Schema.Array(Codec.literals(['bible', 'egw', 'pioneer']));
 
-/** A workspace of panes, as egw-search declares one. */
+/** A workspace of panes, shaped as egw-search's is. */
 const Pane = Field.struct(
   {
     q: Field.key(Codec.Text, { default: '', history: 'push' }),
     scope: Field.key(Codec.literals(['all', 'egw', 'bible']), { default: 'all' }),
-    section: Field.keys(Codec.selection(AXES)),
+    section: Field.keys(Sections),
     excludeApparatus: Field.key(Codec.Flag, { default: false }),
     limit: Field.key(
       Codec.Finite.pipe(
@@ -59,11 +59,10 @@ const Everything = Place.make({
     count: Field.key(Codec.Int, { default: 0 }),
     ratio: Field.key(Codec.Finite, { default: 1 }),
     on: Field.key(Codec.Flag, { default: false }),
-    tags: Field.key(Codec.delimited(Codec.literals(AXES), ','), { default: [] }),
-    axis: Field.keys(Codec.selection(AXES)),
+    axis: Field.keys(Sections),
   }),
   hash: Field.struct({
-    t: Field.key(Codec.MediaTime, { default: start }),
+    t: Field.key(Codec.Finite, { default: 0 }),
     note: Field.key(Codec.Text, { default: '' }),
   }),
 });
@@ -156,17 +155,17 @@ describe('UrlParts', () => {
 
 describe('Place', () => {
   test('reads and prints the lab place', () => {
-    const href = '/films/righteousness-by-faith/lab/roof?cue=render:scenes:roof#t=1.5,4';
+    const href = '/films/righteousness-by-faith/lab/roof?cue=render:scenes:roof#t=1.5';
     const value = Place.decode(Lab, href);
     expect(value).toEqual(
       Option.some({
         path: { film: 'righteousness-by-faith', scene: 'roof' },
         query: { cue: 'render:scenes:roof' },
-        hash: { t: { _tag: 'Range', in: 1.5, out: 4 } },
+        hash: { t: 1.5 },
       }),
     );
     expect(Place.href(Lab, Option.getOrThrow(value))).toBe(
-      '/films/righteousness-by-faith/lab/roof?cue=render%3Ascenes%3Aroof#t=1.5,4',
+      '/films/righteousness-by-faith/lab/roof?cue=render%3Ascenes%3Aroof#t=1.5',
     );
   });
 
@@ -175,8 +174,9 @@ describe('Place', () => {
       '/films/a/lab/b',
       '/films/a/lab/b?cue=x',
       '/films/a/lab/b#t=4.5',
-      '/films/a/lab/b#t=0.1,1e%2B21',
-      '/films/a%2Fb/lab/c%20d?cue=caf%C3%A9+au+lait#t=2,3',
+      '/films/a/lab/b#t=-0.1',
+      '/films/a/lab/b#t=1e%2B21',
+      '/films/a%2Fb/lab/c%20d?cue=caf%C3%A9+au+lait#t=2',
     ];
     for (const href of canonical) {
       expect(Option.map(Place.decode(Lab, href), (value) => Place.href(Lab, value))).toEqual(
@@ -190,7 +190,7 @@ describe('Place', () => {
       Place.href(Lab, {
         path: { film: 'a', scene: 'b' },
         query: { cue: '' },
-        hash: { t: start },
+        hash: { t: 0 },
       }),
     ).toBe('/films/a/lab/b');
   });
@@ -199,6 +199,13 @@ describe('Place', () => {
     type Pane = Place.Type<typeof Workspace>['query'][number];
     expectTypeOf<Pane['scope']>().toEqualTypeOf<'all' | 'egw' | 'bible'>();
     expectTypeOf<Pane['limit']>().toEqualTypeOf<number>();
+  });
+
+  test('a link asking for more panes than the cap opens the cap', () => {
+    const queries = Option.map(Place.decode(Workspace, '/?q=a&q2=b&q3=c&q4=d&q5=e'), (workspace) =>
+      workspace.query.map((pane) => pane.q),
+    );
+    expect(queries).toEqual(Option.some(['a', 'b', 'c', 'd']));
   });
 
   test('is not the place when the path does not fit', () => {
@@ -214,7 +221,7 @@ describe('Place', () => {
       return Effect.gen(function* () {
         const value = yield* Place.decodeEffect(Lab, '/films/a/lab/b?cue=x#t=4,1');
         expect(Option.map(value, (place) => [place.query.cue, place.hash.t])).toEqual(
-          Option.some(['x', start]),
+          Option.some(['x', 0]),
         );
         expect(lines.some((line) => line.startsWith('url-state.key.invalid'))).toBe(true);
       }).pipe(
