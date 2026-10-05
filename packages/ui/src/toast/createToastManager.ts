@@ -1,39 +1,22 @@
 // Upstream: packages/react/src/toast/createToastManager.ts
 //
-// A toast manager usable outside the component tree: `add`, `close`,
-// `update` and `promise` emit events, and a `Toast.Provider` given the
-// manager (its `toastManager` prop) applies them to its toasts. Events
-// emitted while no provider listens are dropped.
-import type {
-  ToastManagerAddOptions,
-  ToastManagerPromiseOptions,
-  ToastManagerUpdater,
-  ToastObject,
-} from './types.ts';
+// A toast manager usable outside the component tree: `add` and `close`
+// emit events, and a `Toast.Provider` given the manager (its `toastManager`
+// prop) applies them to its toasts. Events emitted while no provider
+// listens are dropped. Upstream's `update` and `promise` are left out: an
+// `add` with an existing id updates that toast in place.
+import type { ToastManagerAddOptions, ToastObject } from './types.ts';
 import { generateToastId } from './utils.ts';
 
 export type ToastManagerEvent =
   | { action: 'add'; options: ToastObject<object> }
-  | { action: 'close'; options: { id: string | undefined } }
-  | { action: 'update'; options: { id: string; updates: ToastManagerUpdater<object> } }
-  | {
-      action: 'promise';
-      options: ToastManagerPromiseOptions<unknown, object> & {
-        promise: Promise<unknown>;
-        setPromise(promise: Promise<unknown>): void;
-      };
-    };
+  | { action: 'close'; options: { id: string | undefined } };
 
 export interface ToastManager<Data extends object = object> {
   /** How a `Toast.Provider` listens; not for callers. */
   ' subscribe': (listener: (event: ToastManagerEvent) => void) => () => void;
   add: <T extends Data = Data>(options: ToastManagerAddOptions<T>) => string;
   close: (id?: string) => void;
-  update: <T extends Data = Data>(id: string, updates: ToastManagerUpdater<T>) => void;
-  promise: <Value, T extends Data = Data>(
-    promiseValue: Promise<Value>,
-    options: ToastManagerPromiseOptions<Value, T>,
-  ) => Promise<Value>;
 }
 
 /** Creates a new toast manager. */
@@ -63,33 +46,6 @@ export function createToastManager<Data extends object = object>(): ToastManager
 
     close(id) {
       emit({ action: 'close', options: { id } });
-    },
-
-    update(id, updates) {
-      emit({
-        action: 'update',
-        options: { id, updates: updates as ToastManagerUpdater<object> },
-      });
-    },
-
-    promise<Value, T extends Data = Data>(
-      promiseValue: Promise<Value>,
-      options: ToastManagerPromiseOptions<Value, T>,
-    ): Promise<Value> {
-      let handledPromise = promiseValue;
-
-      emit({
-        action: 'promise',
-        options: {
-          ...(options as ToastManagerPromiseOptions<unknown, object>),
-          promise: promiseValue,
-          setPromise(promise: Promise<unknown>) {
-            handledPromise = promise as Promise<Value>;
-          },
-        },
-      });
-
-      return handledPromise;
     },
   };
 }

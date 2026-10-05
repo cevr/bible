@@ -5,7 +5,7 @@
 // Button behaviour for a part's element: a native `<button type="button">`,
 // or any element with `role="button"`, Enter and Space activation, and the
 // disabled state (optionally still focusable, with `aria-disabled`). Inside a
-// composite widget (a toolbar, a menu) Space activates on keydown, and a
+// composite widget (a toggle group, a menu) Space activates on keydown, and a
 // disabled item stays focusable so arrow keys can reach it.
 import { isHTMLElement } from '@floating-ui/utils/dom';
 import { createEffect, createSignal } from 'solid-js';
@@ -145,8 +145,8 @@ export function useButton(params: UseButtonParameters = {}): UseButtonReturnValu
     },
   });
 
-  // A disabled composite button rendering another button (a toolbar button
-  // rendering a menu trigger) stays focusable: the inner `disabled` is removed.
+  // A disabled composite button rendering another button stays focusable:
+  // the inner `disabled` is removed.
   createEffect(
     () => [element(), disabled(), focusableProps['disabled'], isCompositeItem()] as const,
     ([el, isDisabled, focusableDisabled, composite]) => {

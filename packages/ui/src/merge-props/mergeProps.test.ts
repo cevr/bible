@@ -145,29 +145,19 @@ describe('mergeProps', () => {
     expect(log).toEqual(['0', '1']);
   });
 
-  for (const argument of [true, 13, 'newValue', { key: 'value' }, ['value'], () => 'value']) {
-    it(`runs non-event handlers with ${typeof argument} arguments`, () => {
-      const log: Array<string> = [];
-      const merged = mergeProps(
-        { onValueChange: () => log.push('1') },
-        { onValueChange: () => log.push('0') },
-      );
-      call(merged, 'onValueChange', argument);
-      expect(log).toEqual(['0', '1']);
-    });
-  }
-
-  it('forwards every argument to merged non-event handlers', () => {
-    const log: Array<[string, boolean, unknown]> = [];
+  it('runs merged non-event handlers in order and forwards every argument, of any type', () => {
+    const log: Array<[string, ...unknown[]]> = [];
     const details = { reason: 'test' };
+    const fn = () => 'value';
     const merged = mergeProps(
-      { onOpenChange: (open: boolean, d: unknown) => log.push(['ours', open, d]) },
-      { onOpenChange: (open: boolean, d: unknown) => log.push(['theirs', open, d]) },
+      { onOpenChange: (...args: unknown[]) => log.push(['ours', ...args]) },
+      { onOpenChange: (...args: unknown[]) => log.push(['theirs', ...args]) },
     );
-    call(merged, 'onOpenChange', true, details);
+    call(merged, 'onOpenChange', true, details, 13, 'newValue', ['value'], fn);
+    const args = [true, details, 13, 'newValue', ['value'], fn];
     expect(log).toEqual([
-      ['theirs', true, details],
-      ['ours', true, details],
+      ['theirs', ...args],
+      ['ours', ...args],
     ]);
   });
 

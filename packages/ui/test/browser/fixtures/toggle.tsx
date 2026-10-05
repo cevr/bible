@@ -1,10 +1,11 @@
 // Fixtures for Toggle and ToggleGroup: a lone toggle (uncontrolled or
 // controlled), and a toggle group whose orientation, direction, multiple,
 // value ownership, disabled state and cancellation come from URL params.
+// Right-to-left is set through the internal `DirectionContext`.
 import type { JSX } from '@solidjs/web';
 import { createSignal } from 'solid-js';
 
-import { DirectionProvider } from '../../../src/direction-provider/index.ts';
+import { DirectionContext } from '../../../src/internals/DirectionContext.ts';
 import type { HTMLProps } from '../../../src/internals/types.ts';
 import { Toggle } from '../../../src/toggle/index.ts';
 import { ToggleGroup } from '../../../src/toggle-group/index.ts';
@@ -52,7 +53,7 @@ function Group() {
   const [value, setValue] = createSignal<readonly string[]>([]);
   const [disabled, setDisabled] = createSignal(param('disabled') === 'true');
   return (
-    <DirectionProvider direction={direction}>
+    <DirectionContext value={{ direction }}>
       <button id="before">before</button>
       <ToggleGroup
         id="group"
@@ -101,7 +102,7 @@ function Group() {
       <button id="disable" onClick={() => setDisabled((d) => !d)}>
         disable
       </button>
-    </DirectionProvider>
+    </DirectionContext>
   );
 }
 

@@ -39,10 +39,6 @@ export function useTimeout(): Timeout {
 }
 
 export class AnimationFrame {
-  static create(): AnimationFrame {
-    return new AnimationFrame();
-  }
-
   currentId: number | null = null;
 
   request(fn: () => void): void {

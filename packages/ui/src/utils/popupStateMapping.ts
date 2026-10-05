@@ -1,8 +1,7 @@
 // Upstream: packages/react/src/utils/popupStateMapping.ts,
 // packages/react/src/utils/CommonPopupDataAttributes.ts,
 // packages/react/src/utils/CommonTriggerDataAttributes.ts,
-// packages/react/src/utils/CommonPositionerCssVars.ts,
-// packages/react/src/utils/CommonPopupCssVars.ts
+// packages/react/src/utils/CommonPositionerCssVars.ts
 //
 // The `data-*` attributes and CSS variables every popup part shares: a
 // trigger is `data-popup-open` while its popup is open; a popup is
@@ -34,11 +33,6 @@ export const CommonPositionerCssVars = {
   transformOrigin: '--transform-origin',
   positionerWidth: '--positioner-width',
   positionerHeight: '--positioner-height',
-} as const;
-
-export const CommonPopupCssVars = {
-  popupWidth: '--popup-width',
-  popupHeight: '--popup-height',
 } as const;
 
 const TRIGGER_HOOK = { [CommonTriggerDataAttributes.popupOpen]: '' };

@@ -1,6 +1,5 @@
 // Upstream: packages/react/src/toast/viewport/ToastViewport.tsx,
-// packages/react/src/toast/viewport/ToastViewportCssVars.ts,
-// packages/react/src/toast/viewport/ToastViewportDataAttributes.ts
+// packages/react/src/toast/viewport/ToastViewportCssVars.ts
 //
 // The region the toasts live in. Hovering it or moving keyboard focus into
 // it expands the stack and pauses the auto-dismiss timers; leaving resumes
@@ -23,7 +22,8 @@ import {
   ownerDocument,
   ownerWindow,
 } from '../utils/dom.ts';
-import { FocusGuard, visuallyHidden } from '../utils/FocusGuard.tsx';
+import { FocusGuard } from '../utils/FocusGuard.tsx';
+import { visuallyHidden } from '../utils/visuallyHidden.ts';
 import { useTimeout } from '../utils/timers.ts';
 import { selectors } from './store.ts';
 import { useToastProviderContext, useToastSelector } from './ToastProviderContext.ts';
@@ -32,11 +32,6 @@ import { isFocusVisible } from './utils.ts';
 export const ToastViewportCssVars = {
   /** Indicates the height of the frontmost toast. */
   frontmostHeight: '--toast-frontmost-height',
-} as const;
-
-export const ToastViewportDataAttributes = {
-  /** Indicates toasts are expanded in the viewport. */
-  expanded: 'data-expanded',
 } as const;
 
 export interface ToastViewportState {
@@ -301,7 +296,6 @@ export function ToastViewport(props: ToastViewportProps): JSX.Element {
             {(toast) => (
               <div role="alert" aria-atomic="true">
                 <div>{toast().title}</div>
-                <div>{toast().description}</div>
               </div>
             )}
           </For>

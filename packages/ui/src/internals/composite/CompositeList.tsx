@@ -2,9 +2,9 @@
 // packages/react/src/internals/composite/list/useCompositeListItem.ts,
 // packages/react/src/internals/composite/list/CompositeListContext.ts
 //
-// The registry of a list's items (menu items, tabs, toolbar items): each
+// The registry of a list's items (menu items, a toggle group's toggles): each
 // item registers its element, and gets its index, its position among the
-// connected items in document order (or the index it asks for). The list
+// connected items in document order. The list
 // keeps `elementsRef` (for list navigation) and `labelsRef` (for typeahead)
 // in index order. Registrations made in one tick are applied together on
 // the next microtask; a move of items in the DOM re-sorts them.
@@ -15,9 +15,7 @@ export type CompositeMetadata<CustomMetadata> = { index: number } & CustomMetada
 
 export interface CompositeListRegistration<Metadata> {
   metadata: Metadata | null;
-  index: number | null;
   label: string | null | undefined;
-  textRef: { current: HTMLElement | null } | undefined;
 }
 
 export interface CompositeListContextValue<Metadata> {
@@ -45,7 +43,7 @@ interface CompositeListItemEntry<Metadata> {
 
 export interface CompositeListProps<Metadata> {
   children?: JSX.Element;
-  /** The items' elements by index (explicit indexes may leave holes): list navigation's `listRef`. */
+  /** The items' elements by index: list navigation's `listRef`. */
   elementsRef: { current: Array<HTMLElement | null> };
   /** The items' labels by index: typeahead's `listRef`. */
   labelsRef?: { current: Array<string | null> } | undefined;
@@ -82,37 +80,19 @@ function hasMovedNode(entries: MutationRecord[]) {
   return false;
 }
 
+/** The connected items in document order, each with its index there. */
 function getSnapshot<Metadata>(map: Map<Element, CompositeListRegistration<Metadata>>) {
-  const reservedIndices = new Set<number>();
   const items: CompositeListItemEntry<Metadata>[] = [];
-  const automaticItems: CompositeListItemEntry<Metadata>[] = [];
   map.forEach((registration, node) => {
-    if (!node.isConnected) {
-      return;
-    }
-    const index = registration.index;
-    const item = { index: index ?? -1, element: node as HTMLElement, registration };
-    if (index === null) {
-      automaticItems.push(item);
-    } else if (index >= 0) {
-      reservedIndices.add(index);
-      items.push(item);
+    if (node.isConnected) {
+      items.push({ index: -1, element: node as HTMLElement, registration });
     }
   });
-  let nextAutomaticIndex = 0;
-  automaticItems.sort((a, b) => sortByDocumentPosition(a.element, b.element));
-  for (const item of automaticItems) {
-    while (reservedIndices.has(nextAutomaticIndex)) {
-      nextAutomaticIndex += 1;
-    }
-    item.index = nextAutomaticIndex;
-    items.push(item);
-    nextAutomaticIndex += 1;
-  }
-  if (reservedIndices.size > 0) {
-    items.sort((a, b) => a.index - b.index);
-  }
-  return [items, automaticItems.map((item) => item.element)] as const;
+  items.sort((a, b) => sortByDocumentPosition(a.element, b.element));
+  items.forEach((item, index) => {
+    item.index = index;
+  });
+  return items;
 }
 
 export function CompositeList<Metadata>(props: CompositeListProps<Metadata>): JSX.Element {
@@ -139,7 +119,7 @@ export function CompositeList<Metadata>(props: CompositeListProps<Metadata>): JS
         props.labelsRef.current[item.index] =
           item.registration.label !== undefined
             ? item.registration.label
-            : (item.registration.textRef?.current?.textContent ?? item.element.textContent);
+            : item.element.textContent;
       }
     }
     return nextMap;
@@ -187,7 +167,7 @@ export function CompositeList<Metadata>(props: CompositeListProps<Metadata>): JS
     if (disposed) {
       return;
     }
-    const [items, automaticNodes] = getSnapshot(map);
+    const items = getSnapshot(map);
     const nextMap = syncRefs(items);
     const prev = previousItems;
     const changed =
@@ -199,11 +179,10 @@ export function CompositeList<Metadata>(props: CompositeListProps<Metadata>): JS
           !p ||
           item.index !== p.index ||
           item.element !== p.element ||
-          item.registration.index !== p.registration.index ||
           item.registration.metadata !== p.registration.metadata
         );
       });
-    observe(automaticNodes);
+    observe(items.map((item) => item.element));
     previousItems = items;
     if (!changed) {
       return;
@@ -252,12 +231,9 @@ export function CompositeList<Metadata>(props: CompositeListProps<Metadata>): JS
 }
 
 export interface UseCompositeListItemParameters<Metadata> {
-  /** A fixed index, in place of the document-order one. */
-  index?: number | undefined;
   /** The typeahead label; the element's text when not given. */
   label?: string | null | undefined;
   metadata?: Metadata | undefined;
-  textRef?: { current: HTMLElement | null } | undefined;
 }
 
 export interface UseCompositeListItemReturnValue {
@@ -298,14 +274,12 @@ export function useCompositeListItem<Metadata>(
       if (element) {
         register(element, {
           metadata: params.metadata ?? null,
-          index: params.index ?? null,
           get label() {
             return params.label;
           },
-          textRef: params.textRef,
         });
       }
     },
-    index: () => params.index ?? internalIndex(),
+    index: internalIndex,
   };
 }

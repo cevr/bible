@@ -1,18 +1,12 @@
-// Upstream: packages/react/src/number-field/utils/types.ts,
-// packages/react/src/number-field/utils/constants.ts
+// Upstream: packages/react/src/number-field/utils/types.ts
 //
-// The shapes the number field's parts share: a step's direction, the reasons
-// a step may have, and the press-and-hold timing the steppers use.
+// The shapes the number field's parts share: a step's direction and the
+// reasons a step may have.
 import type { REASONS } from '../../internals/reasons.ts';
 
 export type Direction = -1 | 1;
 
-export type DirectionalChangeReason =
-  | typeof REASONS.incrementPress
-  | typeof REASONS.decrementPress
-  | typeof REASONS.wheel
-  | typeof REASONS.scrub
-  | typeof REASONS.keyboard;
+export type DirectionalChangeReason = typeof REASONS.scrub | typeof REASONS.keyboard;
 
 export interface ChangeEventCustomProperties {
   direction?: Direction | undefined;
@@ -32,7 +26,7 @@ export interface EventWithOptionalKeyState {
   shiftKey?: boolean | undefined;
 }
 
-/** The modifier keys of an event that has them (mouse, pointer, wheel, keyboard). */
+/** The modifier keys of an event that has them (mouse, pointer, keyboard). */
 export function getKeyState(event: Event | undefined): EventWithOptionalKeyState {
   if (
     typeof MouseEvent !== 'undefined' &&
@@ -43,8 +37,3 @@ export function getKeyState(event: Event | undefined): EventWithOptionalKeyState
   }
   return {};
 }
-
-/** Milliseconds between repeats of a held stepper button. */
-export const CHANGE_VALUE_TICK_DELAY = 60;
-/** Milliseconds a stepper button is held before it repeats. */
-export const START_AUTO_CHANGE_DELAY = 400;

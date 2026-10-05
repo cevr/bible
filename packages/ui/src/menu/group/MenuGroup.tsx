@@ -3,14 +3,15 @@
 // packages/react/src/menu/group-label/MenuGroupLabel.tsx
 //
 // A `role="group"` of related items, labelled by its `Menu.GroupLabel`
-// (the label registers its id with the group).
+// (the label registers its id with the group from an effect, as a dialog's
+// title does, so a server render writes no signal).
 import type { JSX } from '@solidjs/web';
 import {
   createContext,
+  createEffect,
   createSignal,
   createUniqueId,
   omit,
-  onCleanup,
   untrack,
   useContext,
 } from 'solid-js';
@@ -72,11 +73,22 @@ export interface MenuGroupLabelProps extends BaseUIComponentProps<'div', MenuGro
 /** The label of a `Menu.Group`; hidden from assistive tech, which reads it as the group's name. */
 export function MenuGroupLabel(componentProps: MenuGroupLabelProps): JSX.Element {
   const elementProps = omit(componentProps, 'class', 'style', 'render', 'id');
-  const id = untrack(() => componentProps.id) || createUniqueId();
+  const fallbackId = createUniqueId();
+  const id = () => componentProps.id || fallbackId;
   const setLabelId = useMenuGroupRootContext();
-  setLabelId(() => id);
-  onCleanup(() => setLabelId((current) => (current === id ? undefined : current)));
+  createEffect(id, (value) => {
+    setLabelId(() => value);
+    return () => setLabelId((current) => (current === value ? undefined : current));
+  });
   return useRenderElement('div', componentProps, {
-    props: [{ id, 'aria-hidden': 'true' }, elementProps],
+    props: [
+      {
+        get id() {
+          return id();
+        },
+        'aria-hidden': 'true',
+      },
+      elementProps,
+    ],
   });
 }

@@ -11,13 +11,8 @@
 // listener the state changed (the provider mirrors it into a signal).
 import { activeElement, contains, getTarget, ownerDocument } from '../utils/dom.ts';
 import { Timeout } from '../utils/timers.ts';
-import type {
-  ToastManagerAddOptions,
-  ToastManagerPromiseOptions,
-  ToastManagerUpdater,
-  ToastObject,
-} from './types.ts';
-import { generateToastId, isFocusVisible, resolvePromiseOptions } from './utils.ts';
+import type { ToastManagerAddOptions, ToastObject } from './types.ts';
+import { generateToastId, isFocusVisible } from './utils.ts';
 
 type ToastInternalUpdateOptions<Data extends object> = Partial<
   Omit<ToastObject<Data>, 'id' | 'updateKey'>
@@ -216,7 +211,7 @@ export class ToastStore {
           this.removeToast(toast.id, true);
         } else {
           const { id: _id, transitionStatus: _transitionStatus, ...updates } = toast;
-          this.updateToastInternal(toast.id, updates, true, true);
+          this.updateToastInternal(toast.id, updates, true);
           return toast.id;
         }
       }
@@ -244,28 +239,16 @@ export class ToastStore {
     return id;
   };
 
-  updateToast = <Data extends object>(id: string, updates: ToastManagerUpdater<Data>) => {
-    const prevToast = selectors.toast(this.state, id) as StoredToast<Data> | undefined;
-    // Never run the updater for an update the store is going to ignore.
-    if (!prevToast || prevToast.transitionStatus === 'ending') {
-      return;
-    }
-
-    // The updater may have called back into the store, so the internal update
-    // reads the current state again.
-    this.updateToastInternal(
-      id,
-      typeof updates === 'function' ? updates(prevToast) : updates,
-      false,
-      true,
-    );
-  };
-
+  /**
+   * Merges `updates` into a toast. An upsert (`addToast` under an existing id)
+   * also bumps its `updateKey` and restarts its auto-dismiss timer from the
+   * full timeout, or clears the timer when the toast no longer has one; the
+   * root's height measurement is not an upsert and leaves the timer alone.
+   */
   updateToastInternal = <Data extends object>(
     id: string,
     updates: ToastInternalUpdateOptions<Data>,
-    resetTimer: boolean = false,
-    markUpdated: boolean = false,
+    upsert: boolean = false,
   ) => {
     const { timeout, toasts } = this.state;
     const prevToast = selectors.toast(this.state, id);
@@ -273,8 +256,8 @@ export class ToastStore {
       return;
     }
 
-    // Ignore updates for toasts that are already closing, so async updates
-    // (a promise's success or error) cannot block a dismissal from completing.
+    // Ignore updates for toasts that are already closing (a late height
+    // measurement), so they cannot block a dismissal from completing.
     if (prevToast.transitionStatus === 'ending') {
       return;
     }
@@ -282,36 +265,19 @@ export class ToastStore {
     const nextToast: StoredToast = {
       ...prevToast,
       ...(updates as ToastInternalUpdateOptions<object>),
-      ...(markUpdated && { updateKey: prevToast.updateKey + 1 }),
+      ...(upsert && { updateKey: prevToast.updateKey + 1 }),
     };
 
     this.setToasts(toasts.map((toast) => (toast.id === id ? nextToast : toast)));
 
-    const nextTimeout = nextToast.timeout ?? timeout;
-    const prevTimeout = prevToast.timeout ?? timeout;
-
-    const timeoutUpdated = Object.hasOwn(updates, 'timeout');
-
-    const shouldHaveTimer =
-      nextToast.transitionStatus !== 'ending' && nextToast.type !== 'loading' && nextTimeout > 0;
-
-    const hasTimer = this.timers.has(id);
-    const timeoutChanged = prevTimeout !== nextTimeout;
-    const wasLoading = prevToast.type === 'loading';
-
-    if (!shouldHaveTimer && hasTimer) {
-      this.clearTimer(id);
+    if (!upsert) {
       return;
     }
 
-    if (
-      shouldHaveTimer &&
-      (!hasTimer || timeoutChanged || timeoutUpdated || wasLoading || resetTimer)
-    ) {
-      this.clearTimer(id);
-
+    this.clearTimer(id);
+    const nextTimeout = nextToast.timeout ?? timeout;
+    if (nextToast.type !== 'loading' && nextTimeout > 0) {
       this.scheduleTimer(id, nextTimeout, () => this.closeToast(id));
-
       if (selectors.expandedOrOutOfFocus(this.state)) {
         this.pauseTimers();
       }
@@ -350,45 +316,6 @@ export class ToastStore {
     });
 
     this.handleFocusManagement(toastId);
-  };
-
-  promiseToast = <Value, Data extends object>(
-    promiseValue: Promise<Value>,
-    options: ToastManagerPromiseOptions<Value, Data>,
-  ): Promise<Value> => {
-    // A loading toast does not auto-dismiss.
-    const loadingOptions = resolvePromiseOptions(options.loading);
-    const id = this.addToast({ ...loadingOptions, type: 'loading' });
-
-    const handledPromise = promiseValue
-      .then((result: Value) => {
-        const successOptions = resolvePromiseOptions(options.success, result);
-        this.updateToast(id, {
-          ...successOptions,
-          type: 'success',
-          timeout: successOptions.timeout,
-        });
-
-        return result;
-      })
-      .catch((error: unknown) => {
-        const errorOptions = resolvePromiseOptions(options.error, error);
-        this.updateToast(id, {
-          ...errorOptions,
-          type: 'error',
-          timeout: errorOptions.timeout,
-        });
-
-        return Promise.reject(error);
-      });
-
-    // The manager passes `setPromise` to receive the handled promise back.
-    const withSetter = options as { setPromise?: (promise: Promise<Value>) => void };
-    if (typeof withSetter.setPromise === 'function') {
-      withSetter.setPromise(handledPromise);
-    }
-
-    return handledPromise;
   };
 
   pauseTimers() {

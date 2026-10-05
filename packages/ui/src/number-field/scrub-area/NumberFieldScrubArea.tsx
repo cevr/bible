@@ -4,13 +4,12 @@
 // `pixelSensitivity` pixels of movement along `direction` steps the value
 // by the movement times the step (Shift: `largeStep`, Alt: `smallStep`), and
 // the release commits. A mouse press focuses the input and asks for pointer
-// lock, so the drag is not stopped by the screen's edge; the
-// `ScrubAreaCursor` then stands in for the hidden cursor, wrapping around
-// the viewport (or `teleportDistance` around the area). WebKit and touch
+// lock, so the drag is not stopped by the screen's edge. WebKit and touch
 // scrub without pointer lock. A press that does not move clicks its target.
-// Renders a `<span>`.
+// Upstream's `ScrubAreaCursor`, the virtual cursor drawn under the lock, is
+// left out. Renders a `<span>`.
 import type { JSX } from '@solidjs/web';
-import { createEffect, createSignal, flush, omit, onCleanup, untrack } from 'solid-js';
+import { createEffect, createSignal, omit, onCleanup, untrack } from 'solid-js';
 
 import { createGenericEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
@@ -27,13 +26,8 @@ import { platform } from '../../utils/platform.ts';
 import { useTimeout } from '../../utils/timers.ts';
 import { useNumberFieldRootContext } from '../root/NumberFieldRootContext.ts';
 import type { NumberFieldRootState } from '../root/NumberFieldRootState.ts';
-import { getViewportRect } from '../utils/getViewportRect.ts';
 import { stateAttributesMapping } from '../utils/stateAttributesMapping.ts';
 import { getKeyState } from '../utils/types.ts';
-import {
-  NumberFieldScrubAreaContext,
-  type NumberFieldScrubAreaContextValue,
-} from './NumberFieldScrubAreaContext.ts';
 
 const SCRUB_AREA_STYLE: JSX.CSSProperties = {
   'touch-action': 'none',
@@ -51,25 +45,6 @@ export interface NumberFieldScrubAreaProps extends BaseUIComponentProps<
   direction?: 'horizontal' | 'vertical' | undefined;
   /** How many pixels the pointer moves before the value changes. @default 2 */
   pixelSensitivity?: number | undefined;
-  /** How far the cursor may move from the scrub area's center before it wraps around. */
-  teleportDistance?: number | undefined;
-}
-
-/** Moves the virtual cursor, scaled against pinch-zoom like the OS cursor. */
-function updateCursorTransform(virtualCursor: HTMLSpanElement, x: number, y: number) {
-  const scale = ownerWindow(virtualCursor).visualViewport?.scale ?? 1;
-  virtualCursor.style.transform = `translate3d(${x}px,${y}px,0) scale(${1 / scale})`;
-}
-
-/** Wraps a coordinate to the opposite edge when its center crosses a bound. */
-function wrap(coord: number, halfSize: number, low: number, high: number) {
-  if (coord + halfSize < low) {
-    return high - halfSize;
-  }
-  if (coord + halfSize > high) {
-    return low - halfSize;
-  }
-  return coord;
 }
 
 export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps): JSX.Element {
@@ -82,65 +57,23 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
     'render',
     'direction',
     'pixelSensitivity',
-    'teleportDistance',
   );
 
   const [scrubAreaElement, setScrubAreaElement] = createSignal<HTMLSpanElement | null>(null, {
     ownedWrite: true,
   });
-  const [isTouchInput, setIsTouchInput] = createSignal(false, { ownedWrite: true });
-  const [isPointerLockDenied, setIsPointerLockDenied] = createSignal(false, { ownedWrite: true });
   const [isScrubbing, setIsScrubbing] = createSignal(false, { ownedWrite: true });
-  const scrubAreaCursorRef: { current: HTMLSpanElement | null } = { current: null };
+  let isTouchInput = false;
   let isScrubbingNow = false;
   // Counts scrubs ended or canceled: a lock request made during an earlier count is stale.
   let scrubSession = 0;
   let didMove = false;
   let pointerDownTarget: EventTarget | null = null;
-  let virtualCursorCoords = { x: 0, y: 0 };
   const exitPointerLockTimeout = useTimeout();
 
-  const onScrub = (event: PointerEvent) => {
-    const virtualCursor = scrubAreaCursorRef.current;
-    const scrubAreaEl = untrack(scrubAreaElement);
-    if (!virtualCursor || !scrubAreaEl) {
-      return;
-    }
-    const rect = getViewportRect(
-      untrack(() => componentProps.teleportDistance),
-      scrubAreaEl,
-    );
-    virtualCursorCoords = {
-      x: wrap(
-        Math.round(virtualCursorCoords.x + event.movementX),
-        virtualCursor.offsetWidth / 2,
-        rect.left,
-        rect.right,
-      ),
-      y: wrap(
-        Math.round(virtualCursorCoords.y + event.movementY),
-        virtualCursor.offsetHeight / 2,
-        rect.top,
-        rect.bottom,
-      ),
-    };
-    updateCursorTransform(virtualCursor, virtualCursorCoords.x, virtualCursorCoords.y);
-  };
-
-  const onScrubbingChange = (scrubbing: boolean, event: PointerEvent) => {
+  const onScrubbingChange = (scrubbing: boolean) => {
     setIsScrubbing(scrubbing);
     ctx.setScrubbing(scrubbing);
-    // The cursor mounts now, so it can be placed under the pointer.
-    flush();
-    const virtualCursor = scrubAreaCursorRef.current;
-    if (!virtualCursor || !scrubbing) {
-      return;
-    }
-    virtualCursorCoords = {
-      x: event.clientX - virtualCursor.offsetWidth / 2,
-      y: event.clientY - virtualCursor.offsetHeight / 2,
-    };
-    updateCursorTransform(virtualCursor, virtualCursorCoords.x, virtualCursorCoords.y);
   };
 
   const exitPointerLock = () => {
@@ -155,11 +88,11 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
     // The locked body, or a touch press whose touchstart was prevented, kept the
     // native click from the target; otherwise the browser clicks it itself.
     const clickWithheld =
-      ownerDocument(untrack(scrubAreaElement)).pointerLockElement != null || untrack(isTouchInput);
+      ownerDocument(untrack(scrubAreaElement)).pointerLockElement != null || isTouchInput;
     exitPointerLock();
     isScrubbingNow = false;
     scrubSession += 1;
-    onScrubbingChange(false, event);
+    onScrubbingChange(false);
     ctx.onValueCommitted(
       ctx.lastChangedValueRef.current ?? ctx.valueRef.current,
       createGenericEventDetails(REASONS.scrub, event),
@@ -217,7 +150,6 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
         }
         // No text selection.
         event.preventDefault();
-        onScrub(event);
         cumulativeDelta = scrubBy(event, cumulativeDelta);
       };
       const win = ownerWindow(input);
@@ -286,7 +218,8 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
 
   // The request belongs to the scrub that made it. A scrub ended or canceled before the
   // request runs makes none; one ended while the lock was pending releases what it gets.
-  const requestPointerLock = (event: PointerEvent) => {
+  // A denied lock leaves the scrub going without it.
+  const requestPointerLock = () => {
     const session = scrubSession;
     const current = () => session === scrubSession;
     Promise.resolve()
@@ -298,25 +231,13 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
       })
       .then(
         () => {
-          if (current()) {
-            setIsPointerLockDenied(false);
-          } else if (!isScrubbingNow) {
-            // A later scrub keeps the lock it shares with this one.
+          // A later scrub keeps the lock it shares with this one.
+          if (!current() && !isScrubbingNow) {
             exitPointerLock();
           }
         },
-        () => {
-          if (current()) {
-            setIsPointerLockDenied(true);
-          }
-        },
-      )
-      .finally(() => {
-        // Show (or not) the cursor for the lock's outcome.
-        if (current() && isScrubbingNow) {
-          onScrubbingChange(true, event);
-        }
-      });
+        () => undefined,
+      );
   };
 
   const defaultProps: HTMLProps = {
@@ -329,7 +250,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
           return;
         }
         const isTouch = event.pointerType === 'touch';
-        setIsTouchInput(isTouch);
+        isTouchInput = isTouch;
         if (event.pointerType === 'mouse') {
           event.preventDefault();
           ctx.focusInput();
@@ -337,45 +258,18 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
         isScrubbingNow = true;
         didMove = false;
         pointerDownTarget = getTarget(event);
-        onScrubbingChange(true, event);
+        onScrubbingChange(true);
         // WebKit's pointer lock banner shifts the layout, so it scrubs without the lock.
         if (!isTouch && !platform.engine.webkit) {
-          requestPointerLock(event);
+          requestPointerLock();
         }
       });
     },
   };
 
-  const context: NumberFieldScrubAreaContextValue = {
-    get isScrubbing() {
-      return isScrubbing();
-    },
-    get isTouchInput() {
-      return isTouchInput();
-    },
-    get isPointerLockDenied() {
-      return isPointerLockDenied();
-    },
-    scrubAreaCursorRef,
-  };
-
-  // Rendered inside the provider, so a `ScrubAreaCursor` among the children finds it.
-  function ScrubAreaElement() {
-    return useRenderElement('span', componentProps, {
-      state,
-      props: [defaultProps, elementProps],
-      stateAttributesMapping,
-    });
-  }
-
-  return (
-    <NumberFieldScrubAreaContext value={context}>
-      <ScrubAreaElement />
-    </NumberFieldScrubAreaContext>
-  );
-}
-
-export namespace NumberFieldScrubArea {
-  export type State = NumberFieldScrubAreaState;
-  export type Props = NumberFieldScrubAreaProps;
+  return useRenderElement('span', componentProps, {
+    state,
+    props: [defaultProps, elementProps],
+    stateAttributesMapping,
+  });
 }

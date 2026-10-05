@@ -3,7 +3,7 @@
 // packages/react/src/toast/root/ToastRootDataAttributes.ts
 //
 // One toast: a non-modal `dialog` (`alertdialog` for high priority)
-// labelled by its title and described by its description. It measures its
+// labelled by its title. It measures its
 // natural height into the store (the stack's offsets read it), removes
 // itself once its exit animations finish, closes on Escape while focus is
 // inside, and can be swiped away: a drag in an allowed direction follows
@@ -12,10 +12,7 @@
 import type { JSX } from '@solidjs/web';
 import { createEffect, createMemo, createSignal, omit, onCleanup, untrack } from 'solid-js';
 
-import {
-  BASE_UI_SWIPE_IGNORE_SELECTOR,
-  LEGACY_SWIPE_IGNORE_SELECTOR,
-} from '../internals/constants.ts';
+import { BASE_UI_SWIPE_IGNORE_SELECTOR } from '../internals/constants.ts';
 import type { StateAttributesMapping } from '../internals/getStateAttributesProps.ts';
 import {
   type TransitionStatus,
@@ -33,6 +30,7 @@ import {
   ownerDocument,
 } from '../utils/dom.ts';
 import {
+  applyDirectionalDamping,
   getDisplacement,
   getElementTransform,
   type SwipeDirection,
@@ -108,9 +106,7 @@ export interface ToastRootProps extends BaseUIComponentProps<'div', ToastRootSta
 
 const SWIPE_THRESHOLD = 40;
 const REVERSE_CANCEL_THRESHOLD = 10;
-const OPPOSITE_DIRECTION_DAMPING_FACTOR = 0.5;
 const MIN_DRAG_THRESHOLD = 1;
-const TOAST_SWIPE_IGNORE_SELECTOR = `${BASE_UI_SWIPE_IGNORE_SELECTOR},${LEGACY_SWIPE_IGNORE_SELECTOR}`;
 
 type Point = { x: number; y: number };
 type Transform = Point & { scale: number };
@@ -122,11 +118,7 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
   const toast = () => props.toast;
   const toastId = () => props.toast.id;
 
-  const isAnchored = () => toast().positionerProps?.anchor !== undefined;
   const swipeDirections = createMemo<SwipeDirection[]>(() => {
-    if (isAnchored()) {
-      return [];
-    }
     const swipeDirection = props.swipeDirection ?? ['down', 'right'];
     return Array.isArray(swipeDirection) ? swipeDirection : [swipeDirection];
   });
@@ -142,9 +134,6 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     { ownedWrite: true },
   );
   const [titleId, setTitleId] = createSignal<string | undefined>(undefined, { ownedWrite: true });
-  const [descriptionId, setDescriptionId] = createSignal<string | undefined>(undefined, {
-    ownedWrite: true,
-  });
   const [rootElement, setRootElement] = createSignal<HTMLDivElement | null>(null, {
     ownedWrite: true,
   });
@@ -239,21 +228,6 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     dragAbortController?.abort();
   });
 
-  function applyDirectionalDamping(deltaX: number, deltaY: number) {
-    const directions = untrack(swipeDirections);
-    const damp = (delta: number) =>
-      delta > 0
-        ? delta ** OPPOSITE_DIRECTION_DAMPING_FACTOR
-        : -(Math.abs(delta) ** OPPOSITE_DIRECTION_DAMPING_FACTOR);
-
-    const dampX =
-      (deltaX > 0 && !directions.includes('right')) || (deltaX < 0 && !directions.includes('left'));
-    const dampY =
-      (deltaY > 0 && !directions.includes('down')) || (deltaY < 0 && !directions.includes('up'));
-
-    return { x: dampX ? damp(deltaX) : deltaX, y: dampY ? damp(deltaY) : deltaY };
-  }
-
   function handleSwipeEnd(event: PointerEvent) {
     if (event.pointerId !== activePointerId) {
       return;
@@ -306,7 +280,7 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     const target = getTarget(event) as HTMLElement | null;
     const isInteractiveElement = closest(
       target,
-      `button,a,input,textarea,[role="button"],${TOAST_SWIPE_IGNORE_SELECTOR}`,
+      `button,a,input,textarea,[role="button"],${BASE_UI_SWIPE_IGNORE_SELECTOR}`,
     );
     if (isInteractiveElement) {
       return;
@@ -437,7 +411,7 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
       }
     }
 
-    const dampedDelta = applyDirectionalDamping(deltaX, deltaY);
+    const dampedDelta = applyDirectionalDamping(deltaX, deltaY, directions);
     let newOffsetX = initialTransformValue.x;
     let newOffsetY = initialTransformValue.y;
 
@@ -498,9 +472,6 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     get 'aria-labelledby'() {
       return titleId();
     },
-    get 'aria-describedby'() {
-      return descriptionId();
-    },
     get 'aria-hidden'() {
       return isHighPriority() && !focused() ? 'true' : undefined;
     },
@@ -540,7 +511,6 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
   const contextValue: ToastRootContextValue = {
     toast,
     setTitleId: (updater) => setTitleId(updater),
-    setDescriptionId: (updater) => setDescriptionId(updater),
     recalculateHeight,
     visibleIndex,
     expanded,
