@@ -146,7 +146,6 @@ export const Strip = () => {
     });
   // A key as bound now: a rebound key reads as rebound.
   const keys = hubKeys(meta.hub);
-  const keyOf = (id: string) => keys.bound(id).slice(0, 1).map(keys.label).join('');
   /** The strip follows one press at a time, a scrub's or a lane's: a second finger's starts nothing. */
   const strip = new Surface('the strip');
   return (
@@ -243,7 +242,7 @@ export const Strip = () => {
                 class="lab-strip-snap"
                 data-act="snap"
                 aria-pressed={`${state.snap()}`}
-                title={`Snap to words, marks, cue edges and frames (${keyOf(SNAP)}; ⇧ flips it while dragging)`}
+                title={`Snap to words, marks, cue edges and frames (${keys.first(SNAP)}; ⇧ flips it while dragging)`}
                 onPointerDown={(e) => e.preventDefault()}
                 onClick={() => meta.hub.invokeId(SNAP, BY_BUTTON)}
               >

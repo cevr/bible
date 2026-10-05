@@ -37,9 +37,9 @@ import { keptText } from '../browser/storage.ts';
 import { ViewerStore } from '../browser/storage-browser.ts';
 import type { Hub } from '../command/hub.ts';
 import { BY_BUTTON } from '../command/command.ts';
-import { filmCommands, partCommands } from '../command/go.ts';
+import { filmCommands, partCommandId, partCommands } from '../command/go.ts';
 import { hubKeys } from './command/changes.ts';
-import { GO_TO_COMMAND } from './command/command-menu.tsx';
+import { COMMAND_MENU, GO_TO_COMMAND } from './command/command-menu.tsx';
 import { ViewMenu } from './command/view-menu.tsx';
 import { pressed } from './review/format.ts';
 
@@ -255,8 +255,8 @@ export const PageShell = (props: PageShellProps) => {
   onCleanup(
     props.hub.commands.register(...partCommands(film, props.part, go, at), ...filmCommands(go)),
   );
+  // Each names its key as bound now: a rebound key reads as rebound.
   const keys = hubKeys(props.hub);
-  const keyOf = (part: Part) => keys.label(`shift+${PARTS.indexOf(part) + 1}`);
   const tab = (part: Part) => (
     <Show
       when={Option.getOrUndefined(
@@ -279,7 +279,7 @@ export const PageShell = (props: PageShellProps) => {
           href={href()}
           data-active={pressed(props.part() === part)}
           aria-current={CURRENT[pressed(props.part() === part)]}
-          title={`${PART_TITLE[part]} (${keyOf(part)})`}
+          title={keys.titled(PART_TITLE[part], partCommandId(part))}
           onClick={(e: MouseEvent) => onLink(href())(e)}
         >
           <Icon of={part} />
@@ -300,7 +300,7 @@ export const PageShell = (props: PageShellProps) => {
               data-active={pressed(props.part() === 'films')}
               aria-current={CURRENT[pressed(props.part() === 'films')]}
               aria-label="Films"
-              title={`Films (${keyOf('films')})`}
+              title={keys.titled('Films', partCommandId('films'))}
               onClick={onLink(partHref('films', ''))}
             >
               <Icon of="films" />
@@ -384,12 +384,18 @@ export const PageShell = (props: PageShellProps) => {
               class="sh-goto"
               data-act="search"
               aria-label="Go to…"
-              title="Go to a film, a part or a thing by name, or run a command (/ or ⌘K)"
+              title={`Go to a film, a part or a thing by name, or run a command (${[
+                GO_TO_COMMAND,
+                COMMAND_MENU,
+              ]
+                .map(keys.first)
+                .filter((k) => k !== '')
+                .join(' or ')})`}
               onClick={() => props.hub.invokeId(GO_TO_COMMAND, BY_BUTTON)}
             >
               <Icon of="search" />
               <span>Go to…</span>
-              <kbd>{keys.label('mod+k')}</kbd>
+              <kbd>{keys.first(COMMAND_MENU)}</kbd>
             </button>
             <ViewMenu hub={props.hub} />
           </header>

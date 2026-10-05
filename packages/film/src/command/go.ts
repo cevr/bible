@@ -9,7 +9,7 @@
 
 import { Option } from 'effect';
 import { PARTS, PART_TITLE, type Part, filmTimeOn, hasPart, partHref } from '../core/api.ts';
-import { type Command, quietly } from './command.ts';
+import { type Command, type CommandId, quietly } from './command.ts';
 import { type Context, selected } from './context.ts';
 
 /** A thing a page can go to. */
@@ -42,6 +42,9 @@ export const goToCommands = (destinations: ReadonlyArray<Destination>): Readonly
 /** The group the parts' commands sit in. */
 const PAGES_GROUP = 'Pages';
 
+/** The command that goes to `part`. */
+export const partCommandId = (part: Part): CommandId => `page.${part}`;
+
 /**
  * The command for each of the studio's parts (`page.<part>`, on ⇧1-⇧6 in
  * the page bar's order): it goes to that part of `film` (the film the page
@@ -57,7 +60,7 @@ export const partCommands = (
   at: () => Option.Option<number> = () => Option.none(),
 ): ReadonlyArray<Command> =>
   PARTS.map((part, i): Command => ({
-    id: `page.${part}`,
+    id: partCommandId(part),
     label: `Go to ${PART_TITLE[part]}`,
     group: PAGES_GROUP,
     keys: [`shift+${i + 1}`],

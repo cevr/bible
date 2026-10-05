@@ -17,6 +17,13 @@ export const nudged = (split: number, by: number, step: Invocation['step']): num
   Math.min(1, Math.max(0, Math.round((split + by * STEP[step]) * 1000) / 1000));
 
 /**
+ * The grip's title: how to move `scope`'s wipe, naming the keys `first`
+ * reads as bound now (a hub's `first`), so a rebound key reads as rebound.
+ */
+export const wipeTitle = (scope: string, first: (id: string) => string): string =>
+  `Drag the wipe, or move it with ${first(`${scope}.wipe-left`)}/${first(`${scope}.wipe-right`)} (⇧ ten), ${first(`${scope}.wipe-start`)} and ${first(`${scope}.wipe-end`)}`;
+
+/**
  * The commands that move a wipe's divider from its focused grip, `scope`
  * naming whose (`compare`, `review`): each reads where it is (`split`) and
  * moves it (`move`).

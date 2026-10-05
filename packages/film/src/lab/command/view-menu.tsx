@@ -11,7 +11,7 @@ import { Menu } from '@bible/ui/menu';
 import { Option } from 'effect';
 import { createMemo } from 'solid-js';
 import type { Hub } from '../../command/hub.ts';
-import { type MenuRow, rowKey, viewRows } from '../../command/menu.ts';
+import { rowKey, viewRows } from '../../command/menu.ts';
 import { KEYS_SHEET_COMMAND } from './keys-sheet.tsx';
 import { deferredRun, hubChanges, hubKeys } from './changes.ts';
 
@@ -30,7 +30,6 @@ export const ViewMenu = (props: { readonly hub: Hub }) => {
     );
   });
   const keys = hubKeys(hub);
-  const keysText = (row: MenuRow) => keys.bound(row.command.id).map(keys.label).join(' ');
   return (
     <Menu.Root
       onOpenChange={(open) => {
@@ -59,7 +58,7 @@ export const ViewMenu = (props: { readonly hub: Hub }) => {
                   onClick={() => run.choose(row())}
                 >
                   <span>{row().label}</span>
-                  <kbd>{keysText(row())}</kbd>
+                  <kbd>{keys.text(row().command.id)}</kbd>
                 </Menu.Item>
               )}
             </For>

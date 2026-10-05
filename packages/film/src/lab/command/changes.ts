@@ -33,27 +33,56 @@ interface HubKeys {
   readonly bound: (id: CommandId) => ReadonlyArray<string>;
   /** `chord` as the viewer's keyboard writes it (`⌘K` on a Mac, `Ctrl+K` elsewhere). */
   readonly label: (chord: string) => string;
+  /** Every chord bound to `id` now, as the viewer's keyboard writes them, a space between. */
+  readonly text: (id: CommandId) => string;
+  /** The first chord bound to `id` now, as the viewer's keyboard writes it ('' when none is). */
+  readonly first: (id: CommandId) => string;
+  /** `title` with `id`'s first chord after it in brackets, or alone when no key is bound. */
+  readonly titled: (title: string, id: CommandId) => string;
 }
 
 /**
- * `hub`'s keys as the page shows them. The viewer's keyboard and their
- * rebound keys are the browser's: a server render knows neither, so it shows
- * the default keys as a PC writes them, the client's hydration shows the
- * same, and the viewer's own follow once the page is hydrated.
+ * `hub`'s keys as the viewer's own (their rebinds, on their keyboard) where
+ * `viewers` holds, else the default keys as a PC writes them.
+ */
+export const keysAs = (hub: Hub, viewers: Accessor<boolean>): HubKeys => {
+  const bound = (id: CommandId) =>
+    Bool.match(viewers(), {
+      onTrue: () => hub.keysOf(id),
+      onFalse: () => keysOf(bindingsOf(hub.commands.all(), []), id),
+    });
+  const label = (chord: string) => chordLabel(chord, viewers() && hub.mac);
+  const first = (id: CommandId) => bound(id).slice(0, 1).map(label).join('');
+  return {
+    bound,
+    label,
+    text: (id) => bound(id).map(label).join(' '),
+    first,
+    titled: (title, id) =>
+      Option.match(
+        Option.liftPredicate(first(id), (k) => k !== ''),
+        {
+          onNone: () => title,
+          onSome: (key) => `${title} (${key})`,
+        },
+      ),
+  };
+};
+
+/**
+ * `hub`'s keys as the page shows them, followed as they change. The viewer's
+ * keyboard and their rebound keys are the browser's: a server render knows
+ * neither, so it shows the default keys as a PC writes them, the client's
+ * hydration shows the same, and the viewer's own follow once the page is
+ * hydrated.
  */
 export const hubKeys = (hub: Hub): HubKeys => {
   const changes = hubChanges(hub);
-  const viewers = createMemo(() => true, { ssrSource: 'client', loadingValue: false });
-  return {
-    bound: (id) => {
-      changes();
-      return Bool.match(viewers(), {
-        onTrue: () => hub.keysOf(id),
-        onFalse: () => keysOf(bindingsOf(hub.commands.all(), []), id),
-      });
-    },
-    label: (chord) => chordLabel(chord, viewers() && hub.mac),
-  };
+  const hydrated = createMemo(() => true, { ssrSource: 'client', loadingValue: false });
+  return keysAs(hub, () => {
+    changes();
+    return hydrated();
+  });
 };
 
 /**

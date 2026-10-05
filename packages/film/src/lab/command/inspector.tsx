@@ -90,8 +90,6 @@ export const Hint = (props: {
 }) => {
   const changes = hubChanges(props.hub);
   const keys = hubKeys(props.hub);
-  /** The keys bound to `command` now, as the page's keyboard writes them. */
-  const keysText = (command: Command): string => keys.bound(command.id).map(keys.label).join(' ');
   const rows = createMemo(() => {
     changes();
     const ctx = withSelection(props.hub.context(), [props.selection]);
@@ -102,7 +100,7 @@ export const Hint = (props: {
         .flatMap(([, commands]) => commands)
         // A key's own step: its ×10 is Shift on the same key, which the hint need not say twice.
         .filter((row) => row.step === 'normal' && !everywhere(row.command))
-        .map((row) => ({ label: row.label, keys: keysText(row.command) }))
+        .map((row) => ({ label: row.label, keys: keys.text(row.command.id) }))
         .filter((row) => row.keys !== '')
     );
   });

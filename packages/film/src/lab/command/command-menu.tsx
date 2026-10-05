@@ -14,7 +14,7 @@ import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
 import { Option } from 'effect';
 import { createMemo, createSignal, onCleanup } from 'solid-js';
-import { type Command, quietly } from '../../command/command.ts';
+import { quietly } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { type MenuRow, menuRows, rowKey } from '../../command/menu.ts';
@@ -22,7 +22,7 @@ import { EVERYWHERE } from '../../command/target.ts';
 import { deferredRun, hubChanges, hubKeys } from './changes.ts';
 
 /** The command that opens and closes the menu: it is not listed in itself. */
-const OPEN = 'app.command-menu';
+export const COMMAND_MENU = 'app.command-menu';
 
 /** The command that opens it to go somewhere by name (`/`): not listed in it either. */
 export const GO_TO_COMMAND = 'app.go-to';
@@ -33,8 +33,6 @@ const PSEUDO = { true: 'true', false: 'false' } as const;
 export const CommandMenu = (props: { readonly hub: Hub }) => {
   const hub = props.hub;
   const keys = hubKeys(hub);
-  /** The keys bound to `command` now, as the page's keyboard writes them. */
-  const keysText = (command: Command): string => keys.bound(command.id).map(keys.label).join(' ');
   const [open, setOpen] = createSignal(false, { ownedWrite: true });
   const [query, setQuery] = createSignal('');
   const [at, setAt] = createSignal(0);
@@ -45,7 +43,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
     changes();
     const ctx = run.opened();
     return menuRows(
-      hub.commands.available(ctx).filter((c) => c.id !== OPEN && c.id !== GO_TO_COMMAND),
+      hub.commands.available(ctx).filter((c) => c.id !== COMMAND_MENU && c.id !== GO_TO_COMMAND),
       ctx,
       query(),
     );
@@ -61,7 +59,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
   onCleanup(
     hub.commands.register(
       {
-        id: OPEN,
+        id: COMMAND_MENU,
         label: 'Command menu',
         group: 'Help',
         keys: ['mod+k'],
@@ -142,7 +140,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
                 >
                   <span class="lab-command-label">{row().label}</span>
                   <span class="lab-command-group">{row().command.group}</span>
-                  <kbd>{keysText(row().command)}</kbd>
+                  <kbd>{keys.text(row().command.id)}</kbd>
                 </div>
               )}
             </For>

@@ -15,7 +15,8 @@ import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
 import { Pointer, Surface } from '../../browser/pointer.ts';
 import { Lab, useLab } from '../shell.tsx';
-import { wipeCommands } from '../wipe-keys.ts';
+import { hubKeys } from '../command/changes.ts';
+import { wipeCommands, wipeTitle } from '../wipe-keys.ts';
 import { useCompare } from './context.tsx';
 import { CompareMode } from './machine.ts';
 
@@ -229,6 +230,7 @@ const Grip = (props: { readonly x: number }) => {
     });
   };
   const percent = () => Math.round(Option.getOrElse(state.split(), () => 0.5) * 100);
+  const keys = hubKeys(meta.hub);
   return (
     <>
       <circle class="lab-divider-grip" cx={props.x} cy={film.height / 2} r={GRIP_R} />
@@ -247,7 +249,7 @@ const Grip = (props: { readonly x: number }) => {
         aria-valuetext={`${percent()}% of the frame shows HEAD`}
         ref={grab}
       >
-        <title>Drag the wipe, or move it with ←/→ (⇧ ten), Home and End</title>
+        <title>{wipeTitle('compare', keys.first)}</title>
       </circle>
     </>
   );

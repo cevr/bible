@@ -13,7 +13,7 @@ import { For, type JSX } from '@solidjs/web';
 import { Menu } from '@bible/ui/menu';
 import { createMemo } from 'solid-js';
 import type { Hub } from '../../command/hub.ts';
-import { type MenuRow, chipRows, rowKey } from '../../command/menu.ts';
+import { chipRows, rowKey } from '../../command/menu.ts';
 import { deferredRun, hubChanges, hubKeys } from './changes.ts';
 
 /** What a chip shows and the commands it opens. */
@@ -41,7 +41,6 @@ export const CommandChip = (props: CommandChipProps) => {
     return chipRows(hub.commands.available(ctx), ctx, props.ids);
   });
   const keys = hubKeys(hub);
-  const keysText = (row: MenuRow): string => keys.bound(row.command.id).map(keys.label).join(' ');
   return (
     <Menu.Root
       onOpenChange={(open) => {
@@ -66,7 +65,7 @@ export const CommandChip = (props: CommandChipProps) => {
                   onClick={() => run.choose(row())}
                 >
                   <span>{row().label}</span>
-                  <kbd>{keysText(row())}</kbd>
+                  <kbd>{keys.text(row().command.id)}</kbd>
                 </Menu.Item>
               )}
             </For>

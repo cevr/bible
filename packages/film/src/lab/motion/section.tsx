@@ -12,6 +12,7 @@ import { runScoped } from '../../browser/host.ts';
 import { ONION_SCALE, makeOnion, whole } from '../../player/onion.ts';
 import { RATES } from '../view-state.ts';
 import { rateId, rateText } from '../../player/transport.ts';
+import { hubKeys } from '../command/changes.ts';
 import { CommandChip } from '../command/command-chip.tsx';
 import { LOOP_IDS } from './commands.ts';
 import { Lab, useLab } from '../shell.tsx';
@@ -46,6 +47,8 @@ const SpreadField = (props: SpreadFieldProps) => {
 export const Section = () => {
   const { state, actions } = useMotion();
   const { meta } = useLab();
+  // The chips name their keys as bound now: a rebound key reads as rebound.
+  const keys = hubKeys(meta.hub);
   return (
     <>
       <Lab.Fill at="motion-head">
@@ -74,7 +77,7 @@ export const Section = () => {
             hub={meta.hub}
             ids={RATES.map(rateId)}
             act="rate"
-            title="The speed: play slower (J), faster (L), or at 1× (K)"
+            title={`The speed: play ${keys.titled('slower', 'play.slower')}, ${keys.titled('faster', 'play.faster')}, or ${keys.titled('at 1×', rateId(1))}`}
           >
             <span data-rate={String(state.rate())}>{rateText(state.rate())}</span>
           </CommandChip>
@@ -82,7 +85,7 @@ export const Section = () => {
             hub={meta.hub}
             ids={LOOP_IDS}
             act="loop"
-            title="Loop the selected cue (⇧L), this scene, or in (I) to out (O)"
+            title={`Loop ${keys.titled('the selected cue', 'motion.loop-cue')}, this scene, or ${keys.titled('in', 'motion.in')} to ${keys.titled('out', 'motion.out')}`}
           >
             Loop…
           </CommandChip>

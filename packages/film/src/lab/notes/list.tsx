@@ -301,9 +301,8 @@ const Item = (props: { readonly film: string; readonly note: Note }) => {
  */
 export const List = (props: { readonly film: string; readonly hub: Hub }) => {
   const feed = useNotesFeed();
-  const keys = hubKeys(props.hub);
   // Note this frame's key as bound now: a rebound key reads as rebound.
-  const noteKey = () => keys.bound('notes.frame').slice(0, 1).map(keys.label).join('');
+  const keys = hubKeys(props.hub);
   const composing = () => Option.exists(feed.staged(), (s) => s.composerOpen());
   return (
     <Loading>
@@ -316,7 +315,7 @@ export const List = (props: { readonly film: string; readonly hub: Hub }) => {
       <Show when={feed.notes().length === 0 && !composing()}>
         <p class="lab-feed" data-role="notes-empty">
           No notes yet: click the frame to pin a point, drag to draw a box, or press{' '}
-          <kbd>{noteKey()}</kbd> to note the whole frame.
+          <kbd>{keys.first('notes.frame')}</kbd> to note the whole frame.
         </p>
       </Show>
     </Loading>
