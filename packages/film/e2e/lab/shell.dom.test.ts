@@ -393,6 +393,13 @@ describe('the lab shell', () => {
         yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(TWO + 0.5));
         yield* textIs(page, '.bar .tc', timecode(0.5));
         yield* textHas(page, '.bar .of', ` / ${timecode(TWO_LENGTH)}`);
+        // The link (what the header's timecode copies) names the scene and the transport's time in it.
+        yield* evaluates(
+          page,
+          'location.pathname + location.search + location.hash',
+          labAt(TWO + 0.5),
+        );
+        yield* evaluates(page, 'location.hash', '#t=0.5');
         yield* countIs(page, '.bar [data-act="captions"]', 0);
         yield* page.click('[data-act="view-menu"]');
         yield* page.waitFor('[data-role="view-menu"] [data-command="view.captions"]');

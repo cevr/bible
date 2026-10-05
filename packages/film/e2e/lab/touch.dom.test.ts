@@ -24,8 +24,10 @@
 // control inside the width, its chrome at most a quarter of the height; a
 // film's Scenes is asked with its tape bar's legend at its fullest. And every
 // target stands where the UI face puts it, within 1 px, while the face's file
-// has not landed (G10): the fallback (`--font`, `tokens.css`) is matched to
-// its advance and height.
+// has not landed (G10), on both devices: each page is served as the lab
+// renders it with that file held, measured, then measured again once it
+// lands; the fallback (`--font`, `tokens.css`) is matched to its advance and
+// height.
 //
 // The exceptions are principles, the same on every page and both devices:
 // - a backing input (out of the accessibility tree and the tab order, and
@@ -34,7 +36,7 @@
 // - Spacing (WCAG 2.5.8, at `--hit`): a target 24 px each way or more whose
 //   `--hit` circle reaches no other target cannot be missed for a neighbour.
 
-import { Effect, Schedule, type Scope } from 'effect';
+import { Deferred, Effect, Exit, Schedule, type Scope } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
@@ -47,11 +49,12 @@ import {
   openLab,
   openPlayer,
   openReview,
+  openServed,
   route,
 } from '../../src/lab/fixtures/harness.ts';
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { evaluates, waitFor } from '../../src/lab/fixtures/settled.ts';
+import { evaluates, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
   STUDIO_FILM,
   STUDIO_FOLDER,
@@ -468,19 +471,20 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
   }
 });
 
+/** The UI face's files in the page's fonts: the head's, and those its script registers. */
+const UI_FACES = `[...document.fonts].filter((f) => f.family.replaceAll('"', '') === 'JetBrains Mono')`;
+
 /**
- * The UI face taken out of the page's fonts and put back, as a script reads
- * it: whether it was there, whether text named in it alone then set in
- * another face (so the page was laid out without it), each target
- * (`targetBoxes`) that stood more than 1 px elsewhere, or another size, in
- * its fallback (`--font`), as `target: with → without`, and each of the
- * chrome's sizes and weights whose 60-character line in `--font` was more
- * than 1 px longer or taller: a line as long as a page's longest label, so a
- * fallback a hair off the UI face's advance or height shows where a short
- * label hides it.
+ * The page as it is laid out now, as a script reads it: how many of the UI
+ * face's files are on the page and how many have loaded, each target's box
+ * (`targetBoxes`), the width of a line named in the UI face alone (another
+ * face's while its file has not landed), and each of the chrome's sizes and
+ * weights' 60-character line in `--font`: a line as long as a page's longest
+ * label, so a fallback a hair off the UI face's advance or height shows where
+ * a short label hides it.
  */
-const SWAPPED = `(() => {
-  const ui = [...document.fonts].filter((f) => f.family.replaceAll('"', '') === 'JetBrains Mono');
+const LAID_OUT = `(() => {
+  const ui = ${UI_FACES};
   const tokens = getComputedStyle(document.documentElement);
   const sizes = ['--fs-1', '--fs-2', '--fs-3', '--fs-4', '--fs-5'];
   const weights = ['--w-1', '--w-2', '--w-3'];
@@ -502,52 +506,99 @@ const SWAPPED = `(() => {
         ]),
       ),
     );
-  const alone = () => measured('12px "JetBrains Mono", serif')[0];
-  const withFace = ${targetBoxes()};
-  const linesWith = lines();
-  const aloneWith = alone();
-  for (const face of ui) document.fonts.delete(face);
-  const without = ${targetBoxes()};
-  const linesWithout = lines();
-  const aloneWithout = alone();
-  for (const face of ui) document.fonts.add(face);
-  const moved = Object.keys(withFace).filter((key) => {
-    const a = withFace[key].split(',').map(Number);
-    const b = (without[key] ?? '').split(',').map(Number);
-    return b.length !== 4 || a.some((v, i) => Math.abs(v - b[i]) > 1);
+  return {
+    faces: ui.length,
+    loaded: ui.filter((f) => f.status === 'loaded').length,
+    boxes: ${targetBoxes()},
+    lines: lines(),
+    alone: measured('12px "JetBrains Mono", serif')[0],
+  };
+})()`;
+
+/** The page laid out while the UI face's files are held (`LAID_OUT`), kept on the page; what it says of them. */
+const HELD = `(() => { window.__held = ${LAID_OUT}; return [window.__held.faces > 0, window.__held.loaded]; })()`;
+
+/** The UI face landed: the page's fonts settled and its latin file (the chrome's) loaded. */
+const LANDED = `document.fonts.status === 'loaded' && ${UI_FACES}.some((f) => f.status === 'loaded')`;
+
+/**
+ * The page laid out once the UI face has landed, against how it stood
+ * held (`HELD`): whether the line named in the face alone changed (so the
+ * page was laid out without it, then with it), each target that stood more
+ * than 1 px elsewhere or another size, as `target: held → landed`, and each
+ * line in `--font` more than 1 px longer or taller.
+ */
+const SWAPPED = `(() => {
+  const held = window.__held;
+  const landed = ${LAID_OUT};
+  const keys = [...new Set([...Object.keys(held.boxes), ...Object.keys(landed.boxes)])];
+  const moved = keys.filter((key) => {
+    const a = (held.boxes[key] ?? '').split(',').map(Number);
+    const b = (landed.boxes[key] ?? '').split(',').map(Number);
+    return a.length !== 4 || b.length !== 4 || a.some((v, i) => Math.abs(v - b[i]) > 1);
   });
-  const off = Object.keys(linesWith).filter((key) =>
-    linesWith[key].some((v, i) => Math.abs(v - linesWithout[key][i]) > 1),
+  const off = Object.keys(held.lines).filter((key) =>
+    held.lines[key].some((v, i) => Math.abs(v - landed.lines[key][i]) > 1),
   );
   const box = (r) => r.map((v) => v.toFixed(1)).join('x');
   return [
-    'face ' + (ui.length > 0),
-    'laid out without it ' + (aloneWith !== aloneWithout),
-    ...moved.map((key) => key + ': ' + withFace[key] + ' → ' + without[key]),
-    ...off.map((key) => 'a line at ' + key + ': ' + box(linesWith[key]) + ' → ' + box(linesWithout[key])),
+    'laid out without it ' + (held.alone !== landed.alone),
+    ...moved.map((key) => key + ': ' + held.boxes[key] + ' → ' + landed.boxes[key]),
+    ...off.map((key) => 'a line at ' + key + ': ' + box(held.lines[key]) + ' → ' + box(landed.lines[key])),
   ];
 })()`;
 
-describe("the UI face's fallback on a phone, 390 × 844 (G10)", () => {
-  const PAGES = [
-    ['Lab', lab('edit')],
-    ['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')],
-    ['Scenes', player(pageHref.scenes(PROBE), STILL)],
-    ['Project', review(PROJECT, ...PROJECT_READY)],
-  ] as const;
-  for (const [name, open] of PAGES) {
-    it.live(
-      `${name}: every target stands where it does in the UI face, within 1 px, while the face's file has not landed`,
-      () =>
-        Effect.gen(function* () {
-          const page = yield* open(PHONE.viewport);
-          yield* evaluates(page, `document.fonts.status`, 'loaded');
-          yield* evaluates(page, SWAPPED, ['face true', 'laid out without it true']);
-        }).pipe(Effect.scoped),
-      SLOW,
-    );
-  }
-});
+/**
+ * A page as the lab serves it, rendered on the server with the UI face's
+ * file in its head, that file held until `faceHeld` is done; once each of
+ * `ready` shows.
+ */
+const servedHeld =
+  (
+    name: 'lab' | 'player' | 'review',
+    routes: ReadonlyArray<FakeRoute>,
+    href: string,
+    ...ready: ReadonlyArray<string>
+  ) =>
+  (viewport: Viewport, faceHeld: Deferred.Deferred<void>) =>
+    Effect.gen(function* () {
+      // The page's load waits for the head's face: the open waits for it to mount.
+      const { page } = yield* openServed(name, routes, {
+        href,
+        viewport,
+        mountedOnly: true,
+        faceHeld,
+      });
+      for (const selector of ready) yield* waitFor(page, selector);
+      return page;
+    });
+
+for (const device of DEVICES) {
+  describe(`the UI face's fallback on ${device.name} (G10)`, () => {
+    const PAGES = [
+      ['Lab', servedHeld('lab', [], pageHref.lab(PROBE), '.lab-panel[data-staged="true"]')],
+      ['Play', servedHeld('player', [], pageHref.play(PROBE), '.bar [data-act="play"]')],
+      ['Scenes', servedHeld('player', [], pageHref.scenes(PROBE), STILL)],
+      ['Project', servedHeld('review', studioRoutes, PROJECT, ...PROJECT_READY)],
+    ] as const;
+    for (const [name, open] of PAGES) {
+      it.live(
+        `${name}: every target stands where it does once the face lands, within 1 px, laid out while its file is held`,
+        () =>
+          Effect.gen(function* () {
+            const faceHeld = yield* Deferred.make<void>();
+            const page = yield* open(device.viewport, faceHeld);
+            // Held: the face is on the page, none of its files loaded; every target measured.
+            yield* evaluates(page, HELD, [true, 0]);
+            yield* Deferred.done(faceHeld, Exit.void);
+            yield* until(page, LANDED);
+            yield* evaluates(page, SWAPPED, ['laid out without it true']);
+          }).pipe(Effect.scoped),
+        SLOW,
+      );
+    }
+  });
+}
 
 /** How far `selector`'s box is wider than its words, in px. */
 const slack = (selector: string) =>

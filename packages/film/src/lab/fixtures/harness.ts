@@ -364,19 +364,50 @@ const apiAnswer =
     });
   };
 
-/** A page's fake server: the page a path serves (its HTML and its script), then the API (`apiAnswer`). */
+/**
+ * A UI face file as a fixture page asks for it: from the pages' root, as the
+ * lab's build names it and its asset route answers it (`bundles.ts`).
+ */
+const FACE_FILE = /^\/(jetbrains-mono-[a-z-]+\.woff2)$/;
+
+/**
+ * The UI face's files, as the lab's asset route answers them: fontsource's
+ * file of the name asked, once `held` (when given) is done, so a test reads
+ * the page while the face has not landed.
+ */
+const faceFiles =
+  (held: Option.Option<Deferred.Deferred<void>>) =>
+  (request: Request): Option.Option<Effect.Effect<Response>> =>
+    Option.map(Option.fromNullishOr(FACE_FILE.exec(request.url.pathname)), ([, name]) =>
+      Effect.andThen(
+        Option.match(held, { onNone: () => Effect.void, onSome: Deferred.await }),
+        fileAnswer(
+          Bun.resolveSync(`@fontsource-variable/jetbrains-mono/files/${name}`, import.meta.dir),
+        ),
+      ),
+    );
+
+/**
+ * A page's fake server: the page a path serves (its HTML and its script),
+ * the UI face's files (`faceFiles`, held by `faceHeld` when given), then the
+ * API (`apiAnswer`).
+ */
 const fakeServer =
   (
     pageFor: (request: Request) => Option.Option<Effect.Effect<Response>>,
     prefix: string,
     routes: ReadonlyArray<FakeRoute>,
     asked: Array<Asked>,
+    faceHeld = Option.none<Deferred.Deferred<void>>(),
   ) =>
   (request: Request): Effect.Effect<Option.Option<Response>> =>
-    Option.match(pageFor(request), {
-      onSome: Effect.asSome,
-      onNone: () => apiAnswer(prefix, routes, asked)(request),
-    });
+    Option.match(
+      Option.orElse(pageFor(request), () => faceFiles(faceHeld)(request)),
+      {
+        onSome: Effect.asSome,
+        onNone: () => apiAnswer(prefix, routes, asked)(request),
+      },
+    );
 
 /** What `answer` makes of each request for `name`, on every path the real server serves it on (`pageAt`, `core/api.ts`). */
 const servedBy =
@@ -572,6 +603,11 @@ interface ReviewAt {
    * the page meanwhile. None: it has loaded too.
    */
   readonly mountedOnly?: boolean;
+  /**
+   * The UI face's files held until this is done: the page laid out and read
+   * in the face's fallback, then the face landing (G10). None: answered at once.
+   */
+  readonly faceHeld?: Deferred.Deferred<void>;
 }
 
 /**
@@ -833,7 +869,13 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
     microphone: false,
     init: [CLOCK_SCRIPT],
     assets: [script],
-    serve: fakeServer(servedBy(name, document), spec.prefix, all, asked),
+    serve: fakeServer(
+      servedBy(name, document),
+      spec.prefix,
+      all,
+      asked,
+      Option.fromUndefinedOr(at.faceHeld),
+    ),
   });
   const going = page.goto(at.href ?? spec.home);
   if (at.mountedOnly === true) yield* Effect.forkScoped(going);
