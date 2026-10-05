@@ -1239,7 +1239,8 @@ describe("a film's project", () => {
         );
         // Each sheet lists the choices that play in its part, none of them at rest: a scene's,
         // its own and the layers placed elsewhere; the act's, its layers; the film's, its own.
-        yield* countIs(page, '.rv-main [data-plays]', 0);
+        // (The sheet stands in the page's main, where it is written: none outside it.)
+        yield* countIs(page, `.rv-main [data-plays]:not(${INSPECTOR} *)`, 0);
         yield* attributesAre(page, `${INSPECTOR} [data-plays]`, 'data-plays', [
           'voice:close',
           'take:paper.hum',

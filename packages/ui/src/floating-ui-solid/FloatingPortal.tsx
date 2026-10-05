@@ -79,6 +79,15 @@ export interface FloatingPortalProps extends BaseUIComponentProps<'div', Floatin
   container?: MaybeRef<HTMLElement | ShadowRoot | null> | undefined;
   /** The role of the hidden `aria-owns` owner element. */
   portalOwnerRole?: JSX.AriaAttributes['role'] | undefined;
+  /**
+   * Render the portal node where the portal is written, not moved into
+   * `container`: the same in the server's render and the browser's, so a
+   * popup open at the first render is in the server's markup and hydrates
+   * there. For a popup positioned against the window (`position: fixed`)
+   * under no ancestor that would hold it (a transform, a filter, `contain`).
+   * @default false
+   */
+  inline?: boolean | undefined;
 }
 
 export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
@@ -157,7 +166,15 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
     afterOutsideRef,
   };
 
-  const elementProps = omit(props, 'class', 'style', 'render', 'container', 'portalOwnerRole');
+  const elementProps = omit(
+    props,
+    'class',
+    'style',
+    'render',
+    'container',
+    'portalOwnerRole',
+    'inline',
+  );
 
   function PortalElement() {
     onCleanup(() => setPortalNode(null));
@@ -187,14 +204,21 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
         <span role={props.portalOwnerRole} aria-owns={id} style={ownerVisuallyHidden} />
       </Show>
       <PortalContext value={context}>
-        {/* A server render has no body to portal into: Solid's server `Portal`
-            renders nothing and never reads its mount, so the server takes this
-            branch without one, as the client's hydration will. */}
-        <Show when={isServer || mount()}>
-          {/* Solid only appends into the mount, which a shadow root supports too. */}
-          <Portal mount={(mount() ?? undefined) as Element | undefined}>
-            <PortalElement />
-          </Portal>
+        <Show
+          when={props.inline === true}
+          fallback={
+            /* A server render has no body to portal into: Solid's server `Portal`
+               renders nothing and never reads its mount, so the server takes this
+               branch without one, as the client's hydration will. */
+            <Show when={isServer || mount()}>
+              {/* Solid only appends into the mount, which a shadow root supports too. */}
+              <Portal mount={(mount() ?? undefined) as Element | undefined}>
+                <PortalElement />
+              </Portal>
+            </Show>
+          }
+        >
+          <PortalElement />
         </Show>
       </PortalContext>
       <Show when={shouldRenderGuards()}>

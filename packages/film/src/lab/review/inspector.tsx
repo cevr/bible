@@ -22,13 +22,12 @@ import { useAtomValue } from '@bible/atom-solid';
 import { Drawer } from '@bible/ui/drawer';
 import { Location, Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
-import { type JSX, Show } from '@solidjs/web';
+import { type JSX, Show, isServer } from '@solidjs/web';
 import { Boolean as Bool, Effect, Option } from 'effect';
 import {
   type Accessor,
   createContext,
   createEffect,
-  createMemo,
   createSignal,
   onCleanup,
   untrack,
@@ -100,12 +99,24 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
   // One count for every draft: a box reads its draft through it, so a say that lands
   // after its box closed empties the box opened since.
   const [drafted, setDrafted] = createSignal(0, { ownedWrite: true });
-  // The page's URL, while a page keeps the open inspector there; else the inspector's own.
-  const [place, setPlace] = createSignal(Option.none<InspectorPlace>(), { ownedWrite: true });
+  // The page's URL, while a page keeps the open inspector there (the newest page's
+  // binding, last); else the inspector's own. A page binds its place as it renders, before
+  // its sheets: held here as it is bound, so what renders after reads it at once, on the
+  // server and as the page hydrates (a signal's write would land only after the render,
+  // and the server's render writes none). `rebound` follows a binding made or let go
+  // once the page runs.
+  const places: Array<InspectorPlace> = [];
+  const [rebound, setRebound] = createSignal(0, { ownedWrite: true });
+  const place = (): Option.Option<InspectorPlace> => {
+    rebound();
+    return Option.fromUndefinedOr(places.at(-1));
+  };
   const [own, setOwn] = createSignal(Option.none<Opened>(), { ownedWrite: true });
   // Where the last opening opened (its info, or its comment box): no part of a URL.
   const [how, setHow] = createSignal(Option.none<Opened>(), { ownedWrite: true });
-  const opened = createMemo(() =>
+  // Read as it is asked, not kept: the server's render, whose computations never run
+  // again, reads the place its page bound after this was made.
+  const opened = (): Option.Option<Opened> =>
     Option.match(place(), {
       onNone: () => own(),
       onSome: (p) =>
@@ -122,8 +133,7 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
             ),
           };
         }),
-    }),
-  );
+    });
   const open = (selection: Selection, at: OpenAt) => {
     const now = { key: targetAttr(selection), at };
     setHow(Option.some(now));
@@ -154,9 +164,14 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
     open,
     close,
     bind: (p) => {
-      setOwn(Option.none());
-      setPlace(Option.some(p));
-      return () => setPlace((now) => Option.filter(now, (q) => q !== p));
+      places.push(p);
+      if (!isServer) setRebound((n) => n + 1);
+      return () => {
+        places.splice(places.indexOf(p), 1);
+        // What the page opened of its own before a place was bound is gone with its sheets.
+        setOwn(Option.none());
+        setRebound((n) => n + 1);
+      };
     },
     draft: (key) => ({
       get: () => {
@@ -329,7 +344,9 @@ export const Inspector = (props: {
               if (!next) inspecting.close(key());
             }}
           >
-            <Drawer.Portal>
+            {/* In place, not moved to the body: a link's sheet is in the server's
+                markup and hydrates there; it stands against the window (fixed). */}
+            <Drawer.Portal inline>
               <Drawer.Viewport class="lab-inspector-viewport">
                 <Drawer.Popup
                   class="lab-inspector-sheet lab-inspector"

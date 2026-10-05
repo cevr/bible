@@ -21,8 +21,13 @@ import {
   route,
 } from '../../../src/lab/fixtures/harness.ts';
 import { TOY } from '../../../src/lab/fixtures/toy-film.ts';
-import { STUDIO_FILM, studioRoutes } from '../../../src/lab/fixtures/studio-film.ts';
-import { textHas, until, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import {
+  STUDIO_FILM,
+  STUDIO_FOLDER,
+  STUDIO_SET,
+  studioRoutes,
+} from '../../../src/lab/fixtures/studio-film.ts';
+import { countIs, textHas, until, waitFor } from '../../../src/lab/fixtures/settled.ts';
 
 /** Long enough to bundle the server entry once, render, open and hydrate. */
 const SLOW = 60_000;
@@ -81,6 +86,43 @@ const FOLDER = pageHref.folder('out/art');
 /** The GETs of `path` among `asked`. */
 const reads = (asked: ReadonlyArray<Asked>, path: string) =>
   asked.filter((a) => a.method === 'GET' && a.path === path).length;
+
+/** The open sheet (`inspector.tsx`). */
+const SHEET = '[data-role="inspector"]';
+
+/** Links that name a sheet open: a Set's version, a Choices variant, a Project scene. */
+const NAMING_A_SHEET: ReadonlyArray<{
+  readonly name: string;
+  readonly href: string;
+  readonly title: string;
+}> = [
+  { name: 'a Set', href: pageHref.set(STUDIO_FOLDER, STUDIO_SET, 'warm'), title: 'warm' },
+  {
+    name: 'Choices',
+    href: pageHref.choices(STUDIO_FILM, 'score', 'piano'),
+    title: 'piano of score',
+  },
+  { name: 'Project', href: pageHref.project(STUDIO_FILM, STUDIO_SET), title: 'open' },
+];
+
+/** Links written before what they name went: a version and a variant the page no longer has. */
+const NAMING_NOTHING: ReadonlyArray<{
+  readonly name: string;
+  readonly href: string;
+  /** An attribute the page's cards carry, there once it is rendered. */
+  readonly ready: string;
+}> = [
+  {
+    name: 'a Set',
+    href: pageHref.set(STUDIO_FOLDER, STUDIO_SET, 'removed'),
+    ready: 'data-act="inspect"',
+  },
+  {
+    name: 'Choices',
+    href: pageHref.choices(STUDIO_FILM, 'look:ground', 'removed'),
+    ready: 'data-point="look:ground"',
+  },
+];
 
 /** The reads among `read` that are the browser's alone: a check, the steps, a wait on a build. */
 const browserOnly = (read: ReadonlyArray<Asked>) =>
@@ -212,6 +254,47 @@ describe('the review served as the lab renders it', () => {
       }).pipe(Effect.scoped),
     SLOW,
   );
+
+  for (const link of NAMING_A_SHEET)
+    it.live(
+      `renders the sheet ${link.name}'s link names on the server, painted before any script runs, and hydrates it with no mismatch`,
+      () =>
+        Effect.gen(function* () {
+          const served = yield* openServed('review', studioRoutes, {
+            href: link.href,
+            viewport: PHONE,
+          });
+          const html = painted(served.documents[0]?.html ?? '');
+          expect(html).toContain('data-role="inspector"');
+          expect(html).toContain(link.title);
+          yield* waitFor(served.page, `${SHEET} [data-act="close-inspector"]`);
+          yield* countIs(served.page, SHEET, 1);
+          yield* textHas(served.page, `${SHEET} .lab-sheet-title`, link.title);
+          expect(mismatches(served.page.logged)).toEqual([]);
+          expect(served.errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
+  for (const link of NAMING_NOTHING)
+    it.live(
+      `renders ${link.name}'s link that names no sheet the page has with its sheet shut, on the server as once hydrated`,
+      () =>
+        Effect.gen(function* () {
+          const served = yield* openServed('review', studioRoutes, {
+            href: link.href,
+            viewport: PHONE,
+          });
+          const html = painted(served.documents[0]?.html ?? '');
+          expect(html).toContain(link.ready);
+          expect(html).not.toContain('data-role="inspector"');
+          yield* waitFor(served.page, `[${link.ready}]`);
+          yield* countIs(served.page, SHEET, 0);
+          expect(mismatches(served.page.logged)).toEqual([]);
+          expect(served.errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
 
   it.live(
     'is the page as ever once hydrated: Refresh reads the index again, a card opens its folder, Back and Forward walk',
