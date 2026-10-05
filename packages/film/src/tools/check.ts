@@ -57,7 +57,8 @@ import {
   soundState,
 } from '../core/sfx.ts';
 import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
-import { DEFAULT_EASE, type Interval } from '../core/time.ts';
+import { CLOCK_EPSILON, DEFAULT_EASE, type Interval } from '../core/time.ts';
+import { endsLate } from '../core/timeline.ts';
 import type { PartError } from '../core/acts.ts';
 import type {
   MovementLength,
@@ -190,7 +191,7 @@ export const durOnWords = (placed: ReadonlyArray<Placed>): ReadonlyArray<DurOnWo
           );
           const voiceAt = sized - p.speechStart;
           return Option.map(
-            Arr.findFirst(edges, (e) => Math.abs(e.at - voiceAt) <= DUR_ON_WORD + 1e-9),
+            Arr.findFirst(edges, (e) => Math.abs(e.at - voiceAt) <= DUR_ON_WORD + CLOCK_EPSILON),
             (e) =>
               DurOnWord.make({ scene: p.spec.id, cue, dur, word: e.word, edge: e.edge, at: sized }),
           );
@@ -308,7 +309,7 @@ const declaredCues = (timeline: Timeline): ReadonlyMap<string, DeclaredCue> => {
 };
 
 const samePoint = (a: DeclaredPoint, b: DeclaredPoint) =>
-  a.anchor === b.anchor && Math.abs(a.offset - b.offset) < 1e-9;
+  a.anchor === b.anchor && Math.abs(a.offset - b.offset) < CLOCK_EPSILON;
 
 const sameCue = (a: DeclaredCue, b: DeclaredCue) =>
   samePoint(a.start, b.start) &&
@@ -386,11 +387,11 @@ export const repeatedKnobs = (placed: ReadonlyArray<Placed>): ReadonlyArray<Knob
   );
 };
 
-/** Named cues that end after their scene. */
+/** Named cues that end after their scene (`endsLate`). */
 export const lateCues = (placed: ReadonlyArray<Placed>): ReadonlyArray<CueLate> =>
   placed.flatMap((p) =>
     [...p.cues]
-      .filter(([, c]) => c.end > p.dur + 1e-9)
+      .filter(([, c]) => endsLate(c, p.dur))
       .map(([cue, c]) => CueLate.make({ scene: p.spec.id, cue, end: c.end, dur: p.dur })),
   );
 

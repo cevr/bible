@@ -8,6 +8,7 @@
 
 import { Effect, Option } from 'effect';
 import { type Command, quiet } from '../../command/command.ts';
+import { sceneAt } from '../../core/layout.ts';
 
 /** What the loop's commands drive: Motion's actions, and what they read. */
 export interface LoopVerbs {
@@ -88,12 +89,9 @@ export const loopCommands = (verbs: LoopVerbs): ReadonlyArray<Command> => [
   },
 ];
 
-/** The span of the scene at `T`, among `placed`: where Loop this scene plays. */
+/** The span of the scene at `T` (`sceneAt`), among `placed`: where Loop this scene plays. */
 export const sceneSpan = (
   placed: ReadonlyArray<{ readonly start: number; readonly dur: number }>,
   T: number,
 ): Option.Option<{ readonly from: number; readonly to: number }> =>
-  Option.map(Option.fromUndefinedOr(placed.findLast((p) => p.start <= T) ?? placed[0]), (p) => ({
-    from: p.start,
-    to: p.start + p.dur,
-  }));
+  Option.map(sceneAt(placed, T), (p) => ({ from: p.start, to: p.start + p.dur }));

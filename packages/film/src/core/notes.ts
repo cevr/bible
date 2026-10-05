@@ -17,6 +17,7 @@ import type {
   NotesWait,
   Reply,
 } from './schema.ts';
+import { CLOCK_EPSILON } from './time.ts';
 
 /** Where a time falls on the film: its scene, how far into it, and the cue edge and mark nearest it there. */
 interface Moment {
@@ -75,7 +76,7 @@ export const nearestMoment = (placed: ReadonlyArray<Placed>, T: number): Option.
 const inScene = (p: Placed, fps: number, local: number) => {
   if (local < p.dur) return p.start + local;
   const end = (p.start + p.dur) * fps;
-  return Math.max(p.start, (Math.ceil(end - 1e-9) - 1) / fps);
+  return Math.max(p.start, (Math.ceil(end - CLOCK_EPSILON) - 1) / fps);
 };
 
 /**

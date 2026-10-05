@@ -288,6 +288,14 @@ export const untilText = (until: Until): string => {
 };
 
 /**
+ * Whether `cue` ends after its scene, `sceneDur` long: past its end by more
+ * than float noise (`CLOCK_EPSILON`). The one judgement the lab's strip,
+ * `film cues` and `film check` (`CueLate`) make of it.
+ */
+export const endsLate = (cue: ResolvedCue, sceneDur: number): boolean =>
+  cue.end > sceneDur + CLOCK_EPSILON;
+
+/**
  * Where a span that runs `until` a point ends, as the lab, `film cues` and an
  * error say it: the point (`untilText`), and its offset off it when it has
  * one, to the hundredth: `{first} + 0.10 s`, `{first} − 0.10 s`.

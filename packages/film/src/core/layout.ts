@@ -13,6 +13,7 @@ import {
 } from './errors.ts';
 import { type SceneVoice, voiceFor } from './narration.ts';
 import type { Knob, ResolvedCue, ScenePoint, Timed, Timings, Transition } from './schema.ts';
+import { CLOCK_EPSILON } from './time.ts';
 import { type SceneClock, type TimelineError, pointOn, resolveTimeline } from './timeline.ts';
 
 export interface Placed<S extends Timed = Timed> {
@@ -138,24 +139,24 @@ export const scenesOf = <S extends Timed>(
 /**
  * The index of the placed scene playing at film time `T`: the last to have
  * started by then, so a scene owns its own start (and a transition's frames
- * the incoming scene's), with `SCENE_EPSILON` of slack for a time computed
- * onto a start; the first before the film starts; -1 for a film with no
- * scenes. Allocation-free, so a frame may call it.
+ * the incoming scene's), with `CLOCK_EPSILON` of slack for a time computed
+ * onto a start (float error, not a frame); the first before the film starts;
+ * -1 for a film with no scenes. Allocation-free, so a frame may call it.
  */
-export const sceneIndexAt = (placed: ReadonlyArray<Placed<Timed>>, T: number): number => {
+export const sceneIndexAt = (
+  placed: ReadonlyArray<{ readonly start: number }>,
+  T: number,
+): number => {
   for (let i = placed.length - 1; i > 0; i--)
-    if (T + SCENE_EPSILON >= Arr.getUnsafe(placed, i).start) return i;
+    if (T + CLOCK_EPSILON >= Arr.getUnsafe(placed, i).start) return i;
   return Math.min(0, placed.length - 1);
 };
 
-/** Seconds a time may fall short of a scene's start and still be in it: float error, not a frame. */
-export const SCENE_EPSILON = 1e-9;
-
 /** The placed scene playing at film time `T` (`sceneIndexAt`); none only for a film with no scenes. */
-export const sceneAt = <S extends Timed>(
-  placed: ReadonlyArray<Placed<S>>,
+export const sceneAt = <P extends { readonly start: number }>(
+  placed: ReadonlyArray<P>,
   T: number,
-): Option.Option<Placed<S>> => Arr.get(placed, sceneIndexAt(placed, T));
+): Option.Option<P> => Arr.get(placed, sceneIndexAt(placed, T));
 
 /** Whether every scene that speaks has its take recorded: only then is there a mixed track. */
 export const everyTakeRecorded = (placed: ReadonlyArray<Placed>): boolean =>

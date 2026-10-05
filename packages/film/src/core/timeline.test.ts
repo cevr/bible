@@ -3,6 +3,7 @@ import { Option, Predicate, Result, Schema } from 'effect';
 import { CueCycle, UnknownCue, UnknownMark, UntilBeforeStart, WordMissing } from './errors.ts';
 import { layout, sceneClock } from './layout.ts';
 import {
+  type ResolvedCue,
   type Span,
   type Timeline,
   type Timings,
@@ -12,12 +13,13 @@ import {
 
 /** No recorded takes: every scene is estimated. */
 const noTakes: Timings = { voice: '', scenes: {} };
-import { DEFAULT_EASE, ease } from './time.ts';
+import { CLOCK_EPSILON, DEFAULT_EASE, ease } from './time.ts';
 import {
   type SceneClock,
   cueKeys,
   cueProgress,
   dragPatch,
+  endsLate,
   patchSpan,
   resolveTimeline,
   staggerAt,
@@ -47,6 +49,21 @@ const clock: SceneClock = {
 /** Why `timeline` does not resolve on `clock`. */
 const failure = (timeline: Timeline) =>
   Option.getOrThrow(Result.getFailure(resolveTimeline(timeline, clock)));
+
+describe('endsLate', () => {
+  const ending = (end: number): ResolvedCue => ({
+    start: 0,
+    end,
+    dur: end,
+    ease: DEFAULT_EASE,
+    stagger: 0,
+  });
+  test('a cue ends after its scene only past its end by more than float noise', () => {
+    expect(endsLate(ending(4), 4)).toBe(false);
+    expect(endsLate(ending(4 + CLOCK_EPSILON / 2), 4)).toBe(false);
+    expect(endsLate(ending(4 + CLOCK_EPSILON * 10), 4)).toBe(true);
+  });
+});
 
 describe('timeline', () => {
   test('a mark anchor starts at the mark, scene-local, plus its offset', () => {
