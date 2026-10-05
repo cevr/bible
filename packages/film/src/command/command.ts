@@ -141,8 +141,12 @@ export interface Command {
   readonly keysIn?: ReadonlyArray<Focus>;
   /** Whether Shift (coarse) and Alt (fine) on its keys pick its step instead of another command. */
   readonly stepped?: boolean;
-  /** How a phone reaches it, for the `?` sheet (`long-press a cue`). */
-  readonly touch?: string;
+  /**
+   * How a phone reaches it, for the `?` sheet (`long-press a cue`). Every
+   * command has one (G8, mobile-first): a verb only a key reaches is a gap in
+   * the chrome to fill, not a command to register.
+   */
+  readonly touch: string;
   /**
    * Found only by typing (a Go to entry, one per thing on the page): ⌘K
    * lists it once a word is typed; the `?` sheet never, and a context menu

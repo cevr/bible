@@ -11,6 +11,7 @@ const command = (id: string, group: string, label: string): Command => ({
   id,
   label,
   group,
+  touch: 'a test command',
   when: () => true,
   run: () => Effect.succeed(quiet),
 });

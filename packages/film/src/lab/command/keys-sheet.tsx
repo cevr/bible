@@ -110,9 +110,7 @@ export const KeysSheet = (props: { readonly hub: Hub }) => {
                           <span class="lab-keys-none">no key</span>
                         </Show>
                       </span>
-                      <Show when={command.touch}>
-                        {(touch) => <span class="lab-keys-touch">{touch()}</span>}
-                      </Show>
+                      <span class="lab-keys-touch">{command.touch}</span>
                       <span class="lab-keys-actions">
                         {/* One button, so the focus the click gave it stays while it waits for the chord. */}
                         <button

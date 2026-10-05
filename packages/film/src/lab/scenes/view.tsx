@@ -392,6 +392,8 @@ export const ScenesView = (props: ScenesViewProps) => {
       label: 'Clear the selection',
       group: 'Scene',
       keys: ['escape'],
+      about: ['Scene'],
+      touch: 'long-press a still, then Clear the selection',
       when: () => Option.isSome(chosen()),
       run: () =>
         Effect.sync(() => {
@@ -818,15 +820,18 @@ export const ScenesView = (props: ScenesViewProps) => {
             </div>
           </Show>
           <div class="sc-track" ref={(el: HTMLDivElement) => el.append(player.bar)} />
+          {/* One row, whatever the film's marks: the counts scroll in their own strip, the step gives way first. */}
           <div class="sc-legend">
-            <For each={legend()} keyed={(l) => l.state}>
-              {(l) => (
-                <span class="sc-legend-item" data-state={l().state}>
-                  <i class="sc-dot" data-state={l().state} />
-                  {l().text}
-                </span>
-              )}
-            </For>
+            <span class="sc-legend-items">
+              <For each={legend()} keyed={(l) => l.state}>
+                {(l) => (
+                  <span class="sc-legend-item" data-state={l().state}>
+                    <i class="sc-dot" data-state={l().state} />
+                    {l().text}
+                  </span>
+                )}
+              </For>
+            </span>
             <span class="sc-spacer" />
             <span class="sc-step" data-role="step">
               {stepText(tape().step, tape().perRow)}

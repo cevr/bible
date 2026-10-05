@@ -20,6 +20,10 @@
 // layer (a sheet, a menu, a dialog) is measured within itself; what lies
 // under it was measured with it closed.
 //
+// Every page also fits a phone (G8, `fitsPhone`): no sideways scroll, each
+// control inside the width, its chrome at most a quarter of the height; a
+// film's Scenes is asked with its tape bar's legend at its fullest.
+//
 // The exceptions are principles, the same on every page and both devices:
 // - a backing input (out of the accessibility tree and the tab order, and
 //   nothing of it to see or press) is not a target; its visible field is;
@@ -33,12 +37,16 @@ import { pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
 import { rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
 import {
+  type FakeRoute,
   type Viewport,
+  json,
   labAt,
   openLab,
   openPlayer,
   openReview,
+  route,
 } from '../../src/lab/fixtures/harness.ts';
+import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { evaluates, waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
@@ -100,9 +108,48 @@ const review =
 const lab = (mode: LabMode) => (viewport: Viewport) =>
   Effect.map(openLab([], { viewport, mode }), (o) => o.page);
 
-/** The player at `href`, once `ready` shows. */
-const player = (href: string, ready: string) => (viewport: Viewport) =>
-  Effect.map(openPlayer({ href, viewport }, ready), (o) => o.page);
+/** The player at `href`, once `ready` shows, over `routes` and the harness's own. */
+const player =
+  (href: string, ready: string, routes: ReadonlyArray<FakeRoute> = []) =>
+  (viewport: Viewport) =>
+    Effect.map(openPlayer({ href, viewport }, ready, routes), (o) => o.page);
+
+/**
+ * The probe film's project and check as a film in work has them: a scene out
+ * of date, one not rendered, one approved, and a finding, so the Scenes' tape
+ * bar holds its fullest legend.
+ */
+const WORK_ROUTES: ReadonlyArray<FakeRoute> = [
+  route('GET', /^\/project$/, () =>
+    json({
+      project: {
+        film: PROBE,
+        variant: 'main',
+        key: 'fk',
+        comments: [],
+        acts: [{ name: 'opening', scenes: ['one', 'two', 'three'], key: 'ak', comments: [] }],
+        scenes: [
+          { scene: 'one', key: 'k', state: 'stale', approval: 'none', comments: [] },
+          { scene: 'two', key: 'k', state: 'missing', approval: 'none', comments: [] },
+          { scene: 'three', key: 'k', state: 'current', approval: 'approved', comments: [] },
+        ],
+      },
+      videos: {},
+    }),
+  ),
+  route('GET', /^\/check$/, () =>
+    json({
+      findings: [
+        {
+          level: 'warning',
+          tag: 'cue',
+          message: 'the page turns early',
+          address: { part: { _tag: 'Scenes', ids: ['one'] }, time: 1 },
+        },
+      ],
+    }),
+  ),
+];
 
 /** A click on `selector`, then `shows` on the page. */
 const opens = (selector: string, shows: string) => (page: Tab) =>
@@ -355,6 +402,30 @@ describe('the review transport on a phone (UI-10)', () => {
             'one line true',
           ]);
         }).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
+});
+
+describe('every page fits a phone, 390 × 844 (G8)', () => {
+  const PAGES = [
+    ['Films', review(pageHref.home(), '.rv-main a[href]')],
+    ['Choices', review(CHOICES, ...CHOICES_READY)],
+    ['Project', review(PROJECT, ...PROJECT_READY)],
+    ['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')],
+    ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]')],
+    ['Scenes', player(pageHref.scenes(PROBE), STILL)],
+    [
+      'Scenes, its legend full (out of date, not rendered, approved, findings)',
+      player(pageHref.scenes(PROBE), '.sc-legend-item[data-state="findings"]', WORK_ROUTES),
+    ],
+    ['Lab', lab('edit')],
+    ['Play', player(pageHref.play(PROBE), '.bar .tc')],
+  ] as const;
+  for (const [name, open] of PAGES) {
+    it.live(
+      `${name}: no sideways scroll, every control inside the width, chrome at most a quarter of the height`,
+      () => Effect.flatMap(open(PHONE.viewport), fitsPhone).pipe(Effect.scoped),
       SLOW,
     );
   }

@@ -50,12 +50,13 @@ const pageWith = (storage: Storage, href = pageHref.labScene('f', 'one', { cue: 
   return { hub, stop, keydown };
 };
 
-const counter = (id: string, over: Partial<Command> = {}) => {
+const counter = (id: string, over: Partial<Omit<Command, 'touch'>> = {}) => {
   const ran: Array<string> = [];
   const command: Command = {
     id,
     label: id,
     group: 'test',
+    touch: 'a test command',
     when: () => true,
     run: (_ctx, how) =>
       Effect.sync(() => {
@@ -115,6 +116,7 @@ describe('the hub', () => {
       id: 'x',
       label: 'x',
       group: 'test',
+      touch: 'a test command',
       when: () => true,
       run: () => Effect.succeed(said('done')),
     });

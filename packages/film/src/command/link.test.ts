@@ -78,6 +78,7 @@ describe('a context menu', () => {
     label: id,
     group: 'g',
     about: targets,
+    touch: 'a test command',
     when: () => true,
     run: () => Effect.succeed(Receipt.Quiet()),
   });

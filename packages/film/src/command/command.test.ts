@@ -22,10 +22,11 @@ import {
 } from './context.ts';
 import { cueOf, Selection } from './selection.ts';
 
-const command = (id: string, over: Partial<Command> = {}): Command => ({
+const command = (id: string, over: Partial<Omit<Command, 'touch'>> = {}): Command => ({
   id,
   label: id,
   group: 'test',
+  touch: 'a test command',
   when: () => true,
   run: () => Effect.succeed(quiet),
   ...over,

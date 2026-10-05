@@ -495,4 +495,28 @@ describe('the player', () => {
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
+
+  it.live(
+    "a finger clears the Scenes' selection, as Escape does (G8): a still's menu lists it",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: { ...PHONE, coarse: true } },
+          STILL_DRAWN,
+        );
+        yield* clickInScene(page, 'one');
+        yield* page.waitFor('.sc-focus');
+        yield* page.clock.hold;
+        yield* touch(page, '.sc-still[data-scene="three"]', 0);
+        yield* page.clock.runFor(700);
+        yield* page.waitFor('[data-role="context-menu"] [data-command="scenes.clear"]');
+        yield* page.finger.up;
+        yield* page.clock.runFor(500);
+        yield* page.click('[data-role="context-menu"] [data-command="scenes.clear"]');
+        yield* page.clock.runFor(500);
+        yield* countIs(page, '.sc-focus', 0);
+        yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
 });
