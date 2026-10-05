@@ -36,7 +36,7 @@ import {
   useContext,
 } from 'solid-js';
 import type { SeenPoint } from '../../core/choice.ts';
-import type { Films } from '../../player/main.ts';
+import type { DrawStills } from './options/stills.tsx';
 import { ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { Viewport } from '../../browser/viewport.ts';
 import {
@@ -124,10 +124,11 @@ interface ReviewMeta {
   /** Now, in ms, on the host's `Clock`: what a card's age is counted from. */
   readonly now: () => number;
   /**
-   * The app's films, each loaded on demand (`player/main.ts`'s `Films`): what
-   * a film's Project draws its scenes' stills from. A film not here has none.
+   * How a film's Project draws its scenes' stills: from the app's films,
+   * each loaded on demand, in the browser (`draw-stills.ts`); none on the
+   * server, which draws no film.
    */
-  readonly films: Films;
+  readonly draw: DrawStills;
 }
 
 interface ReviewContextValue {
@@ -210,7 +211,7 @@ export const Root = (
   props: ParentProps<{
     readonly host: Host;
     readonly hub: Hub;
-    readonly films: Films;
+    readonly draw: DrawStills;
     /**
      * The page's one client of the lab's API (`LabClient.layer` in the
      * browser, `LabClient.layerRendering` for a render on the server).
@@ -333,7 +334,7 @@ export const Root = (
           if (!isServer && !sharedConfig.hydrating) return clockNow();
           return Option.getOrElse(AsyncResult.value(untrack(servedAt)), clockNow);
         },
-        films: props.films,
+        draw: props.draw,
       },
     };
     onCleanup(

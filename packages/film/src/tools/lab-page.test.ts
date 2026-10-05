@@ -726,6 +726,50 @@ describe('lab pages', () => {
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
+  it.live(
+    "a server entry that reads a film's code, a scene's or the stills' drawing does not build, naming each; the browser's pages may",
+    () =>
+      Effect.gen(function* () {
+        const { ask, page, write, waitWriting, spec } = yield* app;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const stills = path.resolve(import.meta.dir, '..', 'player', 'stills.ts');
+        for (const folder of [
+          path.join(spec.films, 'toy', 'scenes'),
+          path.join(path.dirname(spec.pages.review), 'lib', 'scenes'),
+        ])
+          yield* fs.makeDirectory(folder, { recursive: true });
+        yield* write('src/films/toy/scenes/one.ts', "export const one = 'scene one';\n");
+        yield* write('src/films/toy/scenes/shown.ts', "export const shown = 'drawn';\n");
+        yield* write('lib/scenes/two.ts', "export const two = 'scene two';\n");
+        // The browser's page draws the film: allowed.
+        yield* write(
+          'src/p.ts',
+          "import { shown } from './films/toy/scenes/shown.ts';\nconsole.log(shown);\n",
+        );
+        yield* write(
+          'src/review.server.tsx',
+          `import { one } from './films/toy/scenes/one.ts';\nimport { two } from '../lib/scenes/two.ts';\nimport { makeStills } from '${stills}';\nexport const rendered = () => [one, two, typeof makeStills].join(' ');\n`,
+        );
+        const refused = yield* ask('/');
+        expect(refused.status).toBe(500);
+        const failed = Option.getOrElse((yield* page.built).failed, () => '');
+        expect(failed).toContain('draws no film');
+        expect(failed).toContain('films/toy/scenes/one.ts');
+        expect(failed).toContain('lib/scenes/two.ts');
+        expect(failed).toContain('player/stills.ts');
+        expect(failed).not.toContain('shown.ts');
+        // The server entry drawing none: the pages build, the browser's still drawing the film.
+        yield* waitWriting(
+          buildOf(refused.text),
+          '10 seconds',
+          'src/review.server.tsx',
+          "export const rendered = () => 'none';\n",
+        );
+        expect((yield* ask('/')).status).toBe(200);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
   it.live("a build that fails is the look's failure, in the bundler's words", () =>
     Effect.gen(function* () {
       const { ask, page, write } = yield* app;
@@ -865,7 +909,12 @@ describe('lab pages', () => {
                   })),
                 );
                 yield* Effect.flatten(Ref.getAndSet(during, Effect.void));
-                return { outputs, server: [], inputs: [...entries, ...(yield* Ref.get(graph))] };
+                return {
+                  outputs,
+                  server: [],
+                  inputs: [...entries, ...(yield* Ref.get(graph))],
+                  serverInputs: [],
+                };
               }).pipe(Effect.mapError((error) => ({ reason: error.message, files: [] }))),
           });
         }),

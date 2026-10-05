@@ -1,33 +1,26 @@
-// A film's Scenes and Play pages (`/films/<film>/scenes`, `/films/<film>/play`)
-// in the studio's shell (`page-shell.tsx`): the preview (`mountPreview`)
-// inside the shell's body, under the Scenes' tape (`scenes/view.tsx`: the
-// preview's track is its tape bar and its picture the selected scene's) or
-// on its own, the shell's header over it, and the page's commands with ⌘K,
-// the context menu, the receipts and the `?` sheet. The render page
-// (`mountRender`, `player/main.ts`) loads none of this, so it never loads
-// Solid.
+// A film's Scenes and Play pages' browser entry (`/films/<film>/scenes`,
+// `/films/<film>/play`): the studio's shell (`film-page.tsx`), hydrated over
+// the markup the lab rendered it with on the server (`film-server.tsx`) or
+// rendered anew, then the preview (`mountPreview`) in the shell's body,
+// under the Scenes' tape (`scenes/view.tsx`: the preview's track is its
+// tape bar and its picture the selected scene's) or on its own. The render
+// page (`mountRender`, `player/main.ts`) loads none of this, so it never
+// loads Solid.
 
-import { render } from '@solidjs/web';
-import { Place } from '@bible/url-state';
+import { Location, Place } from '@bible/url-state';
 import { Effect, Match, Option, Schema } from 'effect';
 import { createSignal, onCleanup } from 'solid-js';
-import { type Part, Places, legacyPlace, pageHref } from '../core/api.ts';
+import { Places, legacyPlace, pageHref } from '../core/api.ts';
 import { type Host, addressOn, hostOf } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
-import { TabStore, ViewerStore } from '../browser/storage-browser.ts';
-import { type Hub, makeHub } from '../command/hub.ts';
+import type { Hub } from '../command/hub.ts';
 import { registerFace } from '../player/face.ts';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
 import { onTheMs, type TimeInUrl } from '../player/t-in-url.ts';
-import { CommandMenu } from './command/command-menu.tsx';
-import { TargetMenu } from './command/context-menu.tsx';
-import { KeysSheet } from './command/keys-sheet.tsx';
-import { Receipts } from './command/receipts.tsx';
-import { COMMAND_CSS } from './command/style.ts';
-import { PageShell, useShellTime } from './page-shell.tsx';
-import { SHELL_CSS } from './page-shell-style.ts';
+import { type FilmBody, PLAY_PAGE, playOn, playPartOf } from './film-page.tsx';
+import { mountPage } from './page-client.tsx';
+import { useShellTime } from './page-shell.tsx';
 import { scenesPlaceOf, withTime } from './scenes/place.ts';
-import { SCENES_CSS } from './scenes/style.ts';
 import { ScenesView } from './scenes/view.tsx';
 
 /** The page could not start: the film did not load, or the registry has no such film. */
@@ -82,114 +75,85 @@ const Preview = (props: { readonly player: Player; readonly stage: HTMLElement }
   );
 };
 
-/** What the page shows in the shell: the Scenes' tape over the preview, or the preview alone. */
-interface Shown {
-  readonly part: 'scenes' | 'play';
-  readonly player: Player;
-  readonly stage: HTMLElement;
-}
+/** Nothing: the body of a page whose film did not start (the failure is the page's). */
+const NoBody = () => <></>;
 
-const PlayPage = (props: {
-  readonly name: string;
-  readonly films: ReadonlyArray<string>;
-  readonly shown: Shown;
-  readonly host: Host;
-  readonly hub: Hub;
-}) => {
-  const shown = props.shown;
-  return (
-    <>
-      <PageShell
-        part={(): Part => shown.part}
-        film={() => Option.some(props.name)}
-        films={() => props.films}
-        hub={props.hub}
-        host={props.host}
-      >
-        <TargetMenu hub={props.hub}>
-          {Match.value(shown.part).pipe(
-            Match.when('scenes', () => (
-              <ScenesView
-                name={props.name}
-                player={shown.player}
-                stage={shown.stage}
-                host={props.host}
-                hub={props.hub}
-              />
-            )),
-            Match.orElse(() => <Preview player={shown.player} stage={shown.stage} />),
-          )}
-        </TargetMenu>
-      </PageShell>
-      <CommandMenu hub={props.hub} />
-      <KeysSheet hub={props.hub} />
-      <Receipts hub={props.hub} tab={TabStore} scope={`player:${props.name}`} />
-    </>
-  );
-};
-
-const start = Effect.fn('play.start')(
-  function* (pages: Films, host: Host) {
-    const address = addressOn(host);
-    // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
-    Option.map(legacyPlace(address.href()), address.replace);
-    // The UI face first, so the fonts the film waits on include it.
-    registerFace(document.fonts);
-    const style = document.createElement('style');
-    style.textContent = `${SHELL_CSS}${COMMAND_CSS}${SCENES_CSS}`;
-    document.head.append(style);
-    const staged = yield* Effect.tryPromise({
-      try: () => stageFilm(pages, address.href()),
-      catch: (cause) => PlayStartFailed.make({ reason: String(cause) }),
-    });
-    const stage = staged.canvas.parentElement;
-    if (!(stage instanceof HTMLElement))
-      return yield* PlayStartFailed.make({ reason: 'the film has no stage' });
-    // The page's commands and its one key listener: the shell's page keys, and the transport's.
-    const hub = yield* makeHub('player', address.href, ViewerStore);
-    yield* Effect.forkDetach(hub.listen);
-    const scenes = Option.isSome(scenesPlaceOf(address.href()));
-    const shown: Shown = {
-      part: Match.value(scenes).pipe(
-        Match.when(true, (): Shown['part'] => 'scenes'),
-        Match.orElse((): Shown['part'] => 'play'),
-      ),
-      player: mountPreview(
-        staged,
-        host,
-        Match.value(scenes).pipe(
-          Match.when(true, () => scenesTime(host)),
-          Match.orElse(() => playTime(staged.name, host)),
+/**
+ * The Scenes or Play page's body for `pages` over `host`: the film its path
+ * names staged, its preview mounted on the page's commands, under the
+ * Scenes' tape or on its own as the link says. A film that does not start
+ * says why in place of the page.
+ */
+const playBody =
+  (pages: Films, host: Host): FilmBody =>
+  (hub: Hub) =>
+    Effect.runPromiseWith(host)(
+      Effect.gen(function* () {
+        const address = addressOn(host);
+        const staged = yield* Effect.tryPromise({
+          try: () => stageFilm(pages, address.href()),
+          catch: (cause) => PlayStartFailed.make({ reason: String(cause) }),
+        });
+        const stage = staged.canvas.parentElement;
+        if (!(stage instanceof HTMLElement))
+          return yield* PlayStartFailed.make({ reason: 'the film has no stage' });
+        const part = playPartOf(address.href());
+        const player = mountPreview(
+          staged,
+          host,
+          Match.value(part).pipe(
+            Match.when('scenes', () => scenesTime(host)),
+            Match.orElse(() => playTime(staged.name, host)),
+          ),
+          hub,
+        );
+        yield* Effect.logInfo(`play.mounted film=${staged.name} part=${part}`);
+        return {
+          default: () =>
+            Match.value(part).pipe(
+              Match.when('scenes', () => (
+                <ScenesView
+                  name={staged.name}
+                  player={player}
+                  stage={stage}
+                  host={host}
+                  hub={hub}
+                />
+              )),
+              Match.orElse(() => <Preview player={player} stage={stage} />),
+            ),
+        };
+      }).pipe(
+        Effect.catchTag('PlayStartFailed', (e) =>
+          Effect.sync(() => {
+            showFailure(e.reason);
+            return { default: NoBody };
+          }),
         ),
-        hub,
       ),
-      stage,
-    };
-    const root = document.createElement('div');
-    root.className = 'play-root';
-    document.body.append(root);
-    render(
-      () => (
-        <PlayPage
-          name={staged.name}
-          films={Object.keys(pages)}
-          shown={shown}
-          host={host}
-          hub={hub}
-        />
-      ),
-      root,
     );
-    yield* Effect.logInfo(`play.mounted film=${staged.name} part=${shown.part}`);
-  },
-  Effect.catchTag('PlayStartFailed', (e) => Effect.sync(() => showFailure(e.reason))),
-);
 
 /**
  * Mount a film's Scenes or Play page for `pages` (its films and their
- * shorts) into the page, on the film and the part its path names.
+ * shorts) into the page, on the film and the part its path names: the
+ * shell at once, hydrated over the server's markup or rendered anew, and
+ * the preview in its body once the film is staged.
  */
 export const mountPlay = (pages: Films): void => {
   const host = hostOf(BrowserHost.layer);
-  Effect.runForkWith(host)(start(pages, host));
+  Effect.runSyncWith(host)(
+    Effect.gen(function* () {
+      const address = addressOn(host);
+      // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
+      Option.map(legacyPlace(address.href()), address.replace);
+      // The UI face first, so the fonts the film waits on include it.
+      registerFace(document.fonts);
+      // The page's commands and its one key listener: the shell's page keys, and the transport's.
+      const { hub, app } = yield* playOn(host, Object.keys(pages), playBody(pages, host));
+      yield* Effect.forkDetach(hub.listen);
+      const how = mountPage({ ...PLAY_PAGE, app });
+      const { href } = yield* Location.use((bar) => bar.current);
+      yield* Effect.logInfo(`play.shell href=${href} how=${how}`);
+    }),
+  );
 };

@@ -58,6 +58,28 @@ const touch = (
     [type, x, y, count] as const,
   );
 
+/**
+ * Whether a finger lifted at (x, y) from the trigger area had its `touchend`
+ * cancelled (a touch's events go to the element it began on): a touchend
+ * left alone is followed by the browser's click on what is under the finger.
+ */
+const releaseSpent = (page: Page, x: number, y: number): Promise<boolean> =>
+  page.evaluate(
+    ([x, y]) => {
+      const target = document.querySelector('#area') ?? document.body;
+      const touch = new Touch({ identifier: 0, target, clientX: x, clientY: y });
+      const event = new TouchEvent('touchend', {
+        bubbles: true,
+        cancelable: true,
+        touches: [],
+        changedTouches: [touch],
+      });
+      target.dispatchEvent(event);
+      return event.defaultPrevented;
+    },
+    [x, y] as const,
+  );
+
 /** Whether a `contextmenu` event dispatched on `selector` had its default prevented. */
 const nativeMenuBlocked = (page: Page, selector: string): Promise<boolean> =>
   page.evaluate((selector) => {
@@ -230,6 +252,21 @@ describe('ContextMenu.Trigger: touch long press', () => {
     await touch(page, 'touchend', x, y);
     await page.clock.runFor(600);
     await see(page.locator('#popup')).toHaveCount(0);
+  });
+
+  it('the finger that opened the menu lifts without a click: the item opened under it is not chosen', async () => {
+    const page = await h.open('area', { touch: true });
+    await page.clock.install();
+    await page.clock.pauseAt(Date.now() + 10_000);
+    const { x, y } = await areaCentre(page);
+    await touch(page, 'touchstart', x, y);
+    await page.clock.runFor(500);
+    await see(page.locator('#popup')).toBeVisible();
+    expect(await releaseSpent(page, x, y)).toBe(true);
+    // The next finger's lift is the page's own again.
+    await touch(page, 'touchstart', x, y);
+    await page.clock.runFor(100);
+    expect(await releaseSpent(page, x, y)).toBe(false);
   });
 
   it('a second finger cancels the pending long press', async () => {

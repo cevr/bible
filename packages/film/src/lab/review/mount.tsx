@@ -10,6 +10,7 @@ import { registerFace } from '../../player/face.ts';
 import type { Films } from '../../player/main.ts';
 import { LabClient } from '../api.ts';
 import { mountPage } from '../page-client.tsx';
+import { drawStills } from './options/draw-stills.ts';
 import { REVIEW_PAGE, reviewOn } from './page.tsx';
 
 /**
@@ -25,7 +26,7 @@ export const mountReview = (films: Films = {}): void => {
   Effect.runSyncWith(host)(
     Effect.gen(function* () {
       registerFace(document.fonts);
-      const { hub, app } = yield* reviewOn(host, LabClient.layer, films);
+      const { hub, app } = yield* reviewOn(host, LabClient.layer, drawStills(films));
       yield* Effect.forkDetach(hub.listen);
       const how = mountPage({ ...REVIEW_PAGE, app });
       const { href } = yield* Location.use((bar) => bar.current);

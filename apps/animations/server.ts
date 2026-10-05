@@ -26,10 +26,14 @@ export const LAB_PAGES = {
 /**
  * The pages the lab renders on the server, each by its server entry: the
  * same components as its HTML entry's script, with none of the app's films
- * (the server never imports a film's modules: Fresh reads).
+ * (the server never imports a film's modules: Fresh reads; the lab refuses
+ * a build whose server entry does, `filmCode`). The lab and the player
+ * pages render their shell; the film is staged in the browser.
  */
 export const LAB_SERVERS: Partial<Record<keyof typeof LAB_PAGES, string>> = {
   review: join(import.meta.dir, 'src/review.server.tsx'),
+  lab: join(import.meta.dir, 'src/lab.server.tsx'),
+  player: join(import.meta.dir, 'src/play.server.tsx'),
 };
 
 /** The loopback interface: the only one the player listens on. */

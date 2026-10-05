@@ -58,6 +58,9 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
   border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--text-2); }
 .sh-header :focus-visible { outline: none; box-shadow: var(--focus-ring); }
 .sh-body { flex: 1; min-width: 0; }
+/* A film's page before its film is staged (\`film-page.tsx\`): a quiet line where the picture lands. */
+.sh-await { margin: 0; padding: var(--s-4) var(--gutter); color: var(--text-2); font-size: var(--fs-2); }
+body.lab .sh-await { grid-column: 1; grid-row: 2; }
 
 /* The phone: the five film tabs along the bottom, the transport docked above them. */
 @media (max-width: 899px) {

@@ -33,7 +33,7 @@ import { PageShell } from '../page-shell.tsx';
 import { SHELL_CSS } from '../page-shell-style.ts';
 import { SCENES_CSS } from '../scenes/style.ts';
 import type { LabClient } from '../api.ts';
-import type { Films } from '../../player/main.ts';
+import type { DrawStills } from './options/stills.tsx';
 
 /** A folder's title from the index once read, else its ref. */
 const folderName = (index: Option.Option<ReviewIndex>, ref: string): string =>
@@ -188,17 +188,17 @@ const Lightbox = () => {
   );
 };
 
-/** What the review is rendered with: its host, its commands, the app's films and its client of the lab. */
+/** What the review is rendered with: its host, its commands, how it draws a film's stills and its client of the lab. */
 interface ReviewWith {
   readonly host: Host;
   readonly hub: Hub;
-  readonly films: Films;
+  readonly draw: DrawStills;
   readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
 }
 
 /** The review: its shell, the page it is on, the lightbox, its context menu, the inspector, ⌘K, the `?` sheet and the receipts. */
 const ReviewPage = (props: ReviewWith) => (
-  <Root host={props.host} hub={props.hub} films={props.films} client={props.client}>
+  <Root host={props.host} hub={props.hub} draw={props.draw} client={props.client}>
     <TargetMenu hub={props.hub}>
       <Inspecting hub={props.hub}>
         <Shell>
@@ -221,16 +221,17 @@ export const REVIEW_PAGE = {
 };
 
 /**
- * The review over `host`, reading the lab through `client`: its commands
+ * The review over `host`, reading the lab through `client` and drawing a
+ * film's stills by `draw` (none on the server): its commands
  * (`command/hub.ts`, their keys not yet heard) and its app, for the browser
  * to mount or hydrate and the server to render.
  */
 export const reviewOn = (
   host: Host,
   client: Layer.Layer<LabClient | HttpClient.HttpClient>,
-  films: Films,
+  draw: DrawStills,
 ) =>
   Effect.map(makeHub('review', addressOn(host).href, ViewerStore), (hub) => ({
     hub,
-    app: () => <ReviewPage host={host} hub={hub} films={films} client={client} />,
+    app: () => <ReviewPage host={host} hub={hub} draw={draw} client={client} />,
   })).pipe(Effect.provideContext(host));

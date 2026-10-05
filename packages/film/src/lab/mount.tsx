@@ -1,24 +1,25 @@
-// The lab page's entry: build the page's host (`browser/host.ts`), stage the
-// film its path names, mount the framework-free preview player
-// (`mountPreview`) on the lab's time in the URL (`lab/place.ts`), and render
-// the lab's Solid panels around it, in the studio's shell (`page-shell.tsx`).
-// The render page the renderer loads never imports this.
+// The lab page's browser entry: build the page's host (`browser/host.ts`),
+// mount the studio's shell (`film-page.tsx`), hydrated over the markup the
+// lab rendered it with on the server (`film-server.tsx`) or rendered anew,
+// then stage the film its path names, mount the framework-free preview
+// player (`mountPreview`) on the lab's time in the URL (`lab/place.ts`), and
+// put the lab's Solid panels in the shell's body. The render page the
+// renderer loads never imports this.
 
-import { render } from '@solidjs/web';
+import { Location } from '@bible/url-state';
 import { Effect, Option, Schema } from 'effect';
 import type { Film } from '../canvas/film.ts';
-import { type Part, legacyPlace } from '../core/api.ts';
+import { legacyPlace } from '../core/api.ts';
 import { type Host, addressOn, hostOf } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
 import type { TimeInUrl } from '../player/t-in-url.ts';
-import { ViewerStore } from '../browser/storage-browser.ts';
-import { type Hub, makeHub } from '../command/hub.ts';
-import { COMMAND_CSS } from './command/style.ts';
+import type { Hub } from '../command/hub.ts';
 import { registerFace } from '../player/face.ts';
 import { labHref, labOpensAt, labPlaceOf } from './place.ts';
-import { PageShell, ShellTools, useShellTime } from './page-shell.tsx';
-import { SHELL_CSS } from './page-shell-style.ts';
+import { ShellTools, useShellTime } from './page-shell.tsx';
+import { type FilmBody, LAB_PAGE, labOn } from './film-page.tsx';
+import { mountPage } from './page-client.tsx';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
@@ -38,62 +39,53 @@ const LabTime = () => {
   return <></>;
 };
 
-/** The lab: the studio's shell around the lab's, and each tool in its place. */
-const LabPage = (props: {
+/** The lab in the shell's body: each tool in its place, around the staged film's player. */
+const LabBody = (props: {
   readonly name: string;
-  readonly films: ReadonlyArray<string>;
   readonly player: Player;
   readonly host: Host;
   readonly hub: Hub;
 }) => (
   <Lab.Root name={props.name} player={props.player} host={props.host} hub={props.hub}>
-    <PageShell
-      part={(): Part => 'lab'}
-      film={() => Option.some(props.name)}
-      films={() => props.films}
-      hub={props.hub}
-      host={props.host}
-    >
-      <LabTime />
-      <Editor.Provider>
-        <ShellTools>
-          <Editor.History />
-        </ShellTools>
-        <Motion.Provider>
-          <Compare.Provider>
-            <Notes.Provider>
-              <Motion.Onion />
-              <Compare.Layer />
-              <Lab.Overlay>
-                <Notes.Marks />
-                <Editor.Handles />
-                <Compare.Divider />
-                <Compare.Hold />
-              </Lab.Overlay>
-              <Lab.Strip>
-                <Editor.Strip />
-              </Lab.Strip>
-              <Notes.Pins />
-              <Lab.Panel>
-                <Lab.Header>
-                  <Notes.Pen />
-                  <Notes.Frame />
-                </Lab.Header>
-                <Editor.Section>
-                  <Editor.Knobs />
-                </Editor.Section>
-                <Motion.Section />
-                <Compare.Section />
-                <Notes.Section />
-                <Studio.Provider>
-                  <Studio.Section />
-                </Studio.Provider>
-              </Lab.Panel>
-            </Notes.Provider>
-          </Compare.Provider>
-        </Motion.Provider>
-      </Editor.Provider>
-    </PageShell>
+    <LabTime />
+    <Editor.Provider>
+      <ShellTools>
+        <Editor.History />
+      </ShellTools>
+      <Motion.Provider>
+        <Compare.Provider>
+          <Notes.Provider>
+            <Motion.Onion />
+            <Compare.Layer />
+            <Lab.Overlay>
+              <Notes.Marks />
+              <Editor.Handles />
+              <Compare.Divider />
+              <Compare.Hold />
+            </Lab.Overlay>
+            <Lab.Strip>
+              <Editor.Strip />
+            </Lab.Strip>
+            <Notes.Pins />
+            <Lab.Panel>
+              <Lab.Header>
+                <Notes.Pen />
+                <Notes.Frame />
+              </Lab.Header>
+              <Editor.Section>
+                <Editor.Knobs />
+              </Editor.Section>
+              <Motion.Section />
+              <Compare.Section />
+              <Notes.Section />
+              <Studio.Provider>
+                <Studio.Section />
+              </Studio.Provider>
+            </Lab.Panel>
+          </Notes.Provider>
+        </Compare.Provider>
+      </Motion.Provider>
+    </Editor.Provider>
   </Lab.Root>
 );
 
@@ -114,46 +106,59 @@ const labTime = (name: string, film: Film, host: Host): TimeInUrl => {
   };
 };
 
-const start = Effect.fn('lab.start')(
-  function* (films: Films, host: Host) {
-    const address = addressOn(host);
-    // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
-    Option.map(legacyPlace(address.href()), address.replace);
-    // The UI face first, so the fonts the film waits on include it.
-    registerFace(document.fonts);
-    const staged = yield* Effect.tryPromise({
-      try: () => stageFilm(films, address.href()),
-      catch: (cause) => LabStartFailed.make({ reason: String(cause) }),
-    });
-    // The page's commands and its one key listener: the player's transport and every tool's verbs.
-    const hub = yield* makeHub('lab', address.href, ViewerStore);
-    yield* Effect.forkDetach(hub.listen);
-    const player = mountPreview(staged, host, labTime(staged.name, staged.film, host), hub);
-    const style = document.createElement('style');
-    style.textContent = `${SHELL_CSS}${COMMAND_CSS}`;
-    document.head.append(style);
-    const root = document.createElement('div');
-    root.className = 'lab-root';
-    document.body.append(root);
-    render(
-      () => (
-        <LabPage
-          name={staged.name}
-          films={Object.keys(films)}
-          player={player}
-          host={host}
-          hub={hub}
-        />
-      ),
-      root,
-    );
-    yield* Effect.logInfo(`lab.mounted film=${staged.name}`);
-  },
-  Effect.catchTag('LabStartFailed', (e) => Effect.sync(() => showFailure(e.reason))),
-);
+/** Nothing: the body of a lab whose film did not start (the failure is the page's). */
+const NoBody = () => <></>;
 
-/** Mount the lab for `films` into the page, on the film its path names (`/films/<film>/lab…`). */
+/**
+ * The lab's body for `films` over `host`: the film its path names staged,
+ * its preview mounted on the page's commands, and the lab around it. A film
+ * that does not start says why in place of the page.
+ */
+const labBody =
+  (films: Films, host: Host): FilmBody =>
+  (hub) =>
+    Effect.runPromiseWith(host)(
+      Effect.gen(function* () {
+        const address = addressOn(host);
+        const staged = yield* Effect.tryPromise({
+          try: () => stageFilm(films, address.href()),
+          catch: (cause) => LabStartFailed.make({ reason: String(cause) }),
+        });
+        const player = mountPreview(staged, host, labTime(staged.name, staged.film, host), hub);
+        yield* Effect.logInfo(`lab.mounted film=${staged.name}`);
+        return {
+          default: () => <LabBody name={staged.name} player={player} host={host} hub={hub} />,
+        };
+      }).pipe(
+        Effect.catchTag('LabStartFailed', (e) =>
+          Effect.sync(() => {
+            showFailure(e.reason);
+            return { default: NoBody };
+          }),
+        ),
+      ),
+    );
+
+/**
+ * Mount the lab for `films` into the page, on the film its path names
+ * (`/films/<film>/lab…`): the shell at once, hydrated over the server's
+ * markup or rendered anew, and the lab in its body once the film is staged.
+ */
 export const mountLab = (films: Films): void => {
   const host = hostOf(BrowserHost.layer);
-  Effect.runForkWith(host)(start(films, host));
+  Effect.runSyncWith(host)(
+    Effect.gen(function* () {
+      const address = addressOn(host);
+      // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
+      Option.map(legacyPlace(address.href()), address.replace);
+      // The UI face first, so the fonts the film waits on include it.
+      registerFace(document.fonts);
+      // The page's commands and its one key listener: the player's transport and every tool's verbs.
+      const { hub, app } = yield* labOn(host, Object.keys(films), labBody(films, host));
+      yield* Effect.forkDetach(hub.listen);
+      const how = mountPage({ ...LAB_PAGE, app });
+      const { href } = yield* Location.use((bar) => bar.current);
+      yield* Effect.logInfo(`lab.shell href=${href} how=${how}`);
+    }),
+  );
 };

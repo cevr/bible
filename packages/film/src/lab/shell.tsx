@@ -7,7 +7,7 @@
 // `<Lab.Header>`, `<Lab.Section>`). Each panel's own state lives in its own
 // provider; the shell knows none of it.
 
-import { RegistryProvider, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import * as UrlAtom from '@bible/url-state/atom';
@@ -37,10 +37,6 @@ import { goToCommands } from '../command/go.ts';
 import type { CompareView } from '../core/api.ts';
 import type { Hub } from '../command/hub.ts';
 import type { LabSelection } from '../command/selection.ts';
-import { CommandMenu } from './command/command-menu.tsx';
-import { KeysSheet } from './command/keys-sheet.tsx';
-import { Receipts } from './command/receipts.tsx';
-import { TargetMenu } from './command/context-menu.tsx';
 import { labHref, labPlaceOf } from './place.ts';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { type ReloadGate, makeReloadGate } from './reload-gate.ts';
@@ -294,20 +290,10 @@ const Root = (props: RootProps) => {
     return <LabContext value={value}>{inner.children}</LabContext>;
   };
 
-  // The registry's URL atoms read and write through the host's own `UrlState`,
-  // so they and the time the player writes share one address bar.
-  return (
-    <RegistryProvider initialValues={[[UrlAtom.services, props.host]]}>
-      <Inner>
-        <TargetMenu hub={props.hub}>
-          {props.children}
-          <CommandMenu hub={props.hub} />
-          <KeysSheet hub={props.hub} />
-          <Receipts hub={props.hub} tab={TabStore} scope={`lab:${props.name}`} />
-        </TargetMenu>
-      </Inner>
-    </RegistryProvider>
-  );
+  // The page's registry is its own (`film-page.tsx`): its URL atoms read and
+  // write through the host's own `UrlState`, so they and the time the player
+  // writes share one address bar.
+  return <Inner>{props.children}</Inner>;
 };
 
 /** The viewer's mode, kept in the browser: a convenience, safe to lose. */

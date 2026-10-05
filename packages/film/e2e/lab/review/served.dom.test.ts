@@ -17,7 +17,7 @@ import {
   type Json,
   PHONE,
   json,
-  openServedReview,
+  openServed,
   route,
 } from '../../../src/lab/fixtures/harness.ts';
 import { TOY } from '../../../src/lab/fixtures/toy-film.ts';
@@ -90,7 +90,7 @@ describe('the review served as the lab renders it', () => {
     "holds Films and a folder's data in the server's document, hydrates with no mismatch, and asks again for nothing it was sent",
     () =>
       Effect.gen(function* () {
-        const { page, asked, read, documents, errors } = yield* openServedReview(routes, {
+        const { page, asked, read, documents, errors } = yield* openServed('review', routes, {
           viewport: PHONE,
         });
         // The server's document: the film and the folder, before any script ran.
@@ -113,14 +113,14 @@ describe('the review served as the lab renders it', () => {
     "renders a folder's videos on the server, and a film's choices are read once, by the server",
     () =>
       Effect.gen(function* () {
-        const folder = yield* openServedReview(routes, { href: FOLDER });
+        const folder = yield* openServed('review', routes, { href: FOLDER });
         expect(folder.documents[0]?.html ?? '').toContain('walk.mp4');
         yield* textHas(folder.page, '.rv-card', 'walk.mp4');
         expect(reads(folder.asked, '/api/review/index')).toBe(0);
         expect(mismatches(folder.page.logged)).toEqual([]);
         expect(folder.errors).toEqual([]);
 
-        const film = yield* openServedReview(routes, { href: pageHref.choices(TOY) });
+        const film = yield* openServed('review', routes, { href: pageHref.choices(TOY) });
         expect(reads(film.read, `/api/films/${TOY}/choices`)).toBe(1);
         // Its cards follow the player, which is the browser's: they show once hydrated.
         yield* waitFor(film.page, '[data-point="look:ground"]');
@@ -135,7 +135,7 @@ describe('the review served as the lab renders it', () => {
     'is the page as ever once hydrated: Refresh reads the index again, a card opens its folder, Back and Forward walk',
     () =>
       Effect.gen(function* () {
-        const { page, asked, errors } = yield* openServedReview(routes);
+        const { page, asked, errors } = yield* openServed('review', routes);
         yield* page.click('.sh-header [data-act="view-menu"]');
         yield* page.click('[data-role="view-menu"] [data-command="review.refresh"]');
         // A refresh asks the server to walk its roots again.

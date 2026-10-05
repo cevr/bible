@@ -574,13 +574,56 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
   return open;
 });
 
-/** The review's server entry, bundled as the lab bundles it: once, when a test first renders it. */
-const reviewRender = Effect.runSync(Effect.cached(served('../review/server.tsx', 'reviewRender')));
+/** A page the tests serve rendered on the server. */
+type ServedName = 'review' | 'lab' | 'player';
 
-/** The review's script, with Solid's development build (it warns of a hydration mismatch): once, when first asked. */
-const hydratedScript = Effect.runSync(
-  Effect.cached(scriptAsset('review-hydrated-page.ts', 'review-hydrated.js')),
-);
+/**
+ * A page as the tests serve it rendered: its server entry, bundled as the
+ * lab bundles it, and its script with Solid's development build (it warns of
+ * a hydration mismatch), each once, when a test first asks; its HTML entry
+ * as the app has it; the API its reads and requests go to (by their path
+ * past `prefix`, then the lab's `defaults` after the test's own routes); and
+ * the link it opens at.
+ */
+interface ServedPage {
+  readonly render: Effect.Effect<PageRender>;
+  readonly script: Effect.Effect<Asset>;
+  readonly html: (script: Asset) => string;
+  readonly prefix: string;
+  readonly defaults: ReadonlyArray<FakeRoute>;
+  readonly home: string;
+}
+
+const SERVED: Readonly<Record<ServedName, ServedPage>> = {
+  review: {
+    render: Effect.runSync(Effect.cached(served('../review/server.tsx', 'reviewRender'))),
+    script: Effect.runSync(
+      Effect.cached(scriptAsset('review-hydrated-page.ts', 'review-hydrated.js')),
+    ),
+    html: (script) => reviewPage(script, Option.none()),
+    prefix: '',
+    defaults: [],
+    home: '/',
+  },
+  lab: {
+    render: Effect.runSync(Effect.cached(served('../film-server.tsx', 'labRender'))),
+    script: Effect.runSync(Effect.cached(scriptAsset('lab-hydrated-page.ts', 'lab-hydrated.js'))),
+    html: (script) => labPage(css, script, Option.none()),
+    prefix: API,
+    defaults,
+    home: pageHref.lab(PROBE),
+  },
+  player: {
+    render: Effect.runSync(Effect.cached(served('../film-server.tsx', 'playRender'))),
+    script: Effect.runSync(
+      Effect.cached(scriptAsset('player-hydrated-page.ts', 'player-hydrated.js')),
+    ),
+    html: (script) => playerPage(css, script),
+    prefix: API,
+    defaults,
+    home: pageHref.play(PROBE),
+  },
+};
 
 /** A page's render, whole: its head, its body's class and its markup. */
 interface Rendered {
@@ -640,7 +683,7 @@ const rendered = (
         },
         end: () =>
           resume(Effect.succeed({ head, bodyClass: render.bodyClass, body: body.join('') })),
-        fail: (reason) => resume(Effect.die(`the review's server render failed: ${reason}`)),
+        fail: (reason) => resume(Effect.die(`the page's server render failed: ${reason}`)),
       },
     );
   });
@@ -651,7 +694,7 @@ interface Document {
   readonly html: string;
 }
 
-/** The review served as the lab serves a page it renders (PA-12): what the server read and answered too. */
+/** A page served as the lab serves a page it renders (PA-12): what the server read and answered too. */
 interface OpenServed extends OpenLab {
   /** The reads the server's renders made, apart from the page's own requests (`asked`). */
   readonly read: ReadonlyArray<Asked>;
@@ -660,29 +703,32 @@ interface OpenServed extends OpenLab {
 }
 
 /**
- * Open the review at `href` as the lab serves it once it renders the page
- * on the server: each document is the review's server entry
- * (`review/server.tsx`) rendered at the link asked, its reads answered by
- * `routes` (and kept in `read`), spliced into the review's page as the lab
+ * Open page `name` (the review, the lab, or the Scenes and Play pages) at
+ * `href` as the lab serves it once it renders the page on the server: each
+ * document is the page's server entry (`review/server.tsx`,
+ * `film-server.tsx`) rendered at the link asked, its reads answered by
+ * `routes` (and kept in `read`), spliced into the page's HTML as the lab
  * splices it (`splice`, `tools/lab-page.ts`); the browser's script (the
- * real `mountReview`, with Solid's development build) hydrates it. The
- * page's own requests are kept in `asked`. Done once the page says it is
- * hydrated.
+ * real entry, with Solid's development build) hydrates it. The page's own
+ * requests are kept in `asked`. Done once the page says it is hydrated.
  */
-export const openServedReview = Effect.fn('lab.fixture.review-served')(function* (
+export const openServed = Effect.fn('lab.fixture.served')(function* (
+  name: ServedName,
   routes: ReadonlyArray<FakeRoute>,
   at: Omit<ReviewAt, 'build'> = {},
 ) {
-  const render = yield* reviewRender;
-  const script = yield* hydratedScript;
+  const spec = SERVED[name];
+  const render = yield* spec.render;
+  const script = yield* spec.script;
+  const all = [...routes, ...spec.defaults];
   const asked: Array<Asked> = [];
   const read: Array<Asked> = [];
   const documents: Array<Document> = [];
   const document = (request: Request) =>
     Effect.gen(function* () {
-      const page = yield* rendered(render, request.url, apiAnswer('', routes, read));
-      const [before, after] = yield* Option.match(splice(reviewPage(script, Option.none()), page), {
-        onNone: () => Effect.die('the review page has no head or body to splice into'),
+      const page = yield* rendered(render, request.url, apiAnswer(spec.prefix, all, read));
+      const [before, after] = yield* Option.match(splice(spec.html(script), page), {
+        onNone: () => Effect.die(`the ${name} page has no head or body to splice into`),
         onSome: Effect.succeed,
       });
       const html = `${before}${page.body}${after}`;
@@ -694,12 +740,12 @@ export const openServedReview = Effect.fn('lab.fixture.review-served')(function*
     microphone: false,
     init: [CLOCK_SCRIPT],
     assets: [script],
-    serve: fakeServer(servedBy('review', document), '', routes, asked),
+    serve: fakeServer(servedBy(name, document), spec.prefix, all, asked),
   });
-  yield* page.goto(at.href ?? '/');
+  yield* page.goto(at.href ?? spec.home);
   yield* page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === 'hydrated'`, {
     now: `document.body.getAttribute('${PAGE_MOUNTED}')`,
-    say: (now) => `the review was not hydrated: its body says it was mounted ${now}`,
+    say: (now) => `the ${name} page was not hydrated: its body says it was mounted ${now}`,
   });
   const open: OpenServed = { page, asked, errors: page.errors, read, documents };
   return open;

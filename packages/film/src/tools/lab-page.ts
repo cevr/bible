@@ -108,7 +108,35 @@ interface Bundled {
   readonly outputs: ReadonlyArray<BuiltAt>;
   readonly server: ReadonlyArray<BuiltAt>;
   readonly inputs: ReadonlyArray<string>;
+  /** The files the server's build read, absolute: what a page's server render may run. */
+  readonly serverInputs: ReadonlyArray<string>;
 }
+
+/**
+ * The film code among `files` (absolute) a server's build read: a module of
+ * a film (under the films folder, `films`), of a scene (in a `scenes/`
+ * folder outside the framework's own source, `framework`: the framework's
+ * Scenes page is its own), or the drawing of stills (`player/stills.ts`). A
+ * page's server render draws no film (Fresh reads: the server never imports
+ * a film's modules); the browser's copy of the page does.
+ */
+const filmCode = (
+  path: Path.Path,
+  files: ReadonlyArray<string>,
+  films: string,
+  framework: string,
+): ReadonlyArray<string> => {
+  const stills = path.join(framework, 'player', 'stills.ts');
+  return files.filter(
+    (file) =>
+      file.startsWith(`${films}${path.sep}`) ||
+      file === stills ||
+      (file.split(path.sep).includes('scenes') && !file.startsWith(`${framework}${path.sep}`)),
+  );
+};
+
+/** The framework's own source, beside this module: its Scenes page's modules are no film's. */
+const FRAMEWORK = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 
 /** A build the bundler refused: its words, and the files they name, absolute. */
 interface BundleFailed {
@@ -265,6 +293,7 @@ const bunBundle =
         outputs: browser.outputs,
         server: server.outputs,
         inputs: Arr.dedupe([...browser.inputs, ...server.inputs]),
+        serverInputs: server.inputs,
       } satisfies Bundled;
     });
 
@@ -319,6 +348,7 @@ export class PageBundler extends Context.Service<PageBundler, PageBundlerService
               outputs,
               server,
               inputs: [...entries, ...how.servers],
+              serverInputs: how.servers,
             })),
             Effect.mapError((error): BundleFailed => ({ reason: error.message, files: [] })),
           ),
@@ -1004,8 +1034,14 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       prints: new Map(),
     });
     const outcome = yield* bundler.bundle(htmls, root, asWritten).pipe(
-      Effect.flatMap(({ outputs, server, inputs }) =>
+      Effect.flatMap(({ outputs, server, inputs, serverInputs }) =>
         Effect.gen(function* () {
+          const drawn = filmCode(path, serverInputs, films, FRAMEWORK);
+          if (drawn.length > 0)
+            return yield* Effect.fail<BundleFailed>({
+              reason: `a page's server render draws no film, but its server entry reads ${drawn.join(', ')}: give the page the film from its browser entry (clientOnly)`,
+              files: drawn,
+            });
           const after = yield* printsOf(inputs);
           yield* Ref.set(printed, { fresh: freshness(printedBefore, after), prints: after });
           const before = yield* Ref.getAndSet(read, Option.some(new Set(inputs)));

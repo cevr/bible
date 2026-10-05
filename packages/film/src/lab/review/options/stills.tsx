@@ -4,17 +4,15 @@
 // own), lazily the way the tape draws: the film's code loaded only once its
 // Project is open (the app's `Films`, `mountReview`), its faces loaded first,
 // then one still a turn, the cards on screen ahead of the rest. A film the
-// app has no code for has no stills: its cards keep their blank picture.
+// app has no code for has no stills: its cards keep their blank picture. The
+// drawing is the browser's (`draw-stills.ts`, handed in by the page's
+// browser entry): the server's render draws none.
 
 import { Effect, Equivalence, Fiber, Option } from 'effect';
 import { type Accessor, createMemo, createSignal, onCleanup, untrack } from 'solid-js';
 import { monotonicMs } from '../../../browser/host.ts';
 import { Frames } from '../../../browser/frames.ts';
-import { makeStills } from '../../../player/stills.ts';
 import { useReview } from '../context.tsx';
-
-/** A still's width in canvas px: a laptop's card is about 210 css px, twice that on a sharp screen. */
-const STILL_W = 384;
 
 /** A film's scenes' stills, as its Project's cards show them. */
 export interface SceneStills {
@@ -24,16 +22,27 @@ export interface SceneStills {
   readonly watch: (scene: string, el: HTMLElement) => () => void;
 }
 
+/** A film's stills as they are drawn (`player/stills.ts`), and each of its scenes' middles, in film seconds. */
+interface FilmStills {
+  readonly at: (t: number) => Option.Option<HTMLCanvasElement>;
+  readonly want: (times: ReadonlyArray<number>) => void;
+  readonly onDrawn: (listener: (t: number) => void) => () => void;
+  readonly stop: () => void;
+  readonly middles: ReadonlyMap<string, number>;
+}
+
 /**
- * The faces the page's fonts declare, loaded: a still drawn before them would
- * draw a fallback face. Read as it runs (as the player's `loadFonts` is), so
- * importing the module reads no `document`.
+ * How the page draws a film's stills, given its turn between two and its
+ * clock: the film's code loaded, then its stills made (`drawStills`, the
+ * browser's); none for a film the page has no code for.
  */
-const loadFonts = () =>
-  Effect.forEach(Array.from(document.fonts), (face) => Effect.promise(() => face.load()), {
-    concurrency: 8,
-    discard: true,
-  });
+export type DrawStills = (
+  film: string,
+  how: { readonly turn: () => Promise<unknown>; readonly now: () => number },
+) => Option.Option<Effect.Effect<FilmStills, 'load-failed'>>;
+
+/** No film's stills: the server's render, which draws no film. */
+export const noStills: DrawStills = () => Option.none();
 
 /**
  * The stills of `film`'s scenes, while the calling component lives: drawn
@@ -75,27 +84,17 @@ export const useSceneStills = (film: string): SceneStills => {
   );
   onCleanup(() => watcher.disconnect());
   const now = monotonicMs(meta.host);
-  const load = Option.fromUndefinedOr(meta.films[film]);
+  const draw = meta.draw(film, {
+    turn: () => Effect.runPromiseWith(meta.host)(Frames.use((f) => f.next)),
+    now,
+  });
   // The stills, once they are made, stopped with the page: their queue and listener go,
   // so a left Project draws nothing more.
   let stop = () => {};
   onCleanup(() => stop());
   const drawing = Effect.gen(function* () {
-    const code = yield* Option.match(load, {
-      onNone: () => Effect.fail('no-code' as const),
-      onSome: (l) =>
-        Effect.andThen(
-          loadFonts(),
-          Effect.mapError(Effect.tryPromise(l), () => 'load-failed' as const),
-        ),
-    });
-    const stills = makeStills(code, {
-      width: STILL_W,
-      captions: true,
-      turn: () => Effect.runPromiseWith(meta.host)(Frames.use((f) => f.next)),
-      now,
-    });
-    const middles = new Map(code.placed.map((p) => [p.spec.id, p.start + p.dur / 2] as const));
+    const stills = yield* Option.getOrElse(draw, () => Effect.fail('no-code' as const));
+    const { middles } = stills;
     yield* Effect.sync(() => {
       stills.onDrawn(() => setDrawn((n) => n + 1));
       stop = stills.stop;

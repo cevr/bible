@@ -43,9 +43,11 @@ const inlineFonts: BunPlugin = {
 
 export const ENTRIES = [
   'lab-page.ts',
+  'lab-hydrated-page.ts',
   'review-page.ts',
   'review-hydrated-page.ts',
   'player-page.ts',
+  'player-hydrated-page.ts',
   'capture-page.ts',
 ];
 
@@ -53,7 +55,11 @@ export const ENTRIES = [
  * The entries bundled with Solid's development build, whose pages say what
  * a production build keeps quiet: each hydration mismatch, as a warning.
  */
-const DEVELOPMENT: ReadonlySet<string> = new Set(['review-hydrated-page.ts']);
+const DEVELOPMENT: ReadonlySet<string> = new Set([
+  'lab-hydrated-page.ts',
+  'review-hydrated-page.ts',
+  'player-hydrated-page.ts',
+]);
 
 export const compile = (entry: string) =>
   Effect.promise(() =>

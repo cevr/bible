@@ -18,7 +18,9 @@
 // `onOpenChange` cancels (a field inside the area keeping its own menu)
 // leaves the event alone, so the browser's menu shows; over the area the
 // browser's menu is suppressed only by the open that went ahead, and the
-// document listener covers the backdrops alone.
+// document listener covers the backdrops alone. Nor in upstream: the lift of
+// the touch that opened the menu is cancelled, so the browser's click after
+// it does not choose the item the menu opened under the finger.
 import type { JSX } from '@solidjs/web';
 import { createEffect, omit, onCleanup, untrack } from 'solid-js';
 
@@ -65,6 +67,8 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
   const longPressTimeout = useTimeout();
   const allowMouseUpTimeout = useTimeout();
   let allowMouseUp = false;
+  // Whether the touch now down opened the menu: its lift then clicks nothing.
+  let pressOpened = false;
   let mouseUpAbortController: AbortController | null = null;
 
   /** Open the menu at `x`, `y`: true when it opened, false when the root's `onOpenChange` cancelled. */
@@ -91,6 +95,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     if (pressPointer !== null) {
       claimPress(pressPointer, self, ownerDocument(triggerElement));
     }
+    pressOpened = isTouchEvent;
     allowMouseUpTimeout.start(LONG_PRESS_DELAY, () => {
       allowMouseUp = true;
     });
@@ -156,6 +161,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
       return;
     }
     contextMenu.allowMouseUpTriggerRef.current = false;
+    pressOpened = false;
     const touch = event.touches[0];
     if (event.touches.length !== 1 || !touch) {
       cancelLongPress();
@@ -180,6 +186,19 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
       if (deltaX > LONG_PRESS_MOVE_THRESHOLD || deltaY > LONG_PRESS_MOVE_THRESHOLD) {
         cancelLongPress();
       }
+    }
+  }
+
+  /**
+   * The finger lifts: a pending long press is cancelled, and the lift of the
+   * press that opened the menu is spent, so the browser clicks nothing under
+   * the finger (the menu opens at the touch, an item under it).
+   */
+  function handleTouchEnd(event: TouchEvent) {
+    cancelLongPress();
+    if (pressOpened) {
+      pressOpened = false;
+      event.preventDefault();
     }
   }
 
@@ -257,7 +276,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
         onTouchMove: handleTouchMove,
         onPointerDown: handlePointerDown,
         onPointerMove: handlePointerMove,
-        onTouchEnd: cancelLongPress,
+        onTouchEnd: handleTouchEnd,
         onTouchCancel: cancelLongPress,
         style: { '-webkit-touch-callout': 'none' },
       },

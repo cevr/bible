@@ -7,7 +7,26 @@
 // is the sink's; one a boundary shows is the page's own.
 
 import { type JSX, generateHydrationScript, renderToStream } from '@solidjs/web';
+import { Effect, Exit, Layer, Scope } from 'effect';
+import { onCleanup } from 'solid-js';
 import { PAGE_ROOT, PAGE_STYLE, type PageRender, type PageRequest } from '../core/page-render.ts';
+import type { Host } from '../browser/host.ts';
+import { ServerHost } from '../browser/host-server.ts';
+
+/**
+ * `app` over a host of the page's URL (`host-server.ts`: the URL asked, no
+ * window), which lives as long as the render does.
+ */
+export const ServerHosted = (props: {
+  readonly url: string;
+  readonly app: (host: Host) => JSX.Element;
+}) => {
+  const scope = Scope.makeUnsafe();
+  onCleanup(() => {
+    Effect.runFork(Scope.close(scope, Exit.void));
+  });
+  return props.app(Effect.runSync(Layer.buildWithScope(ServerHost.layer(props.url), scope)));
+};
 
 /** A page as its server entry renders it. */
 interface ServedPage {
