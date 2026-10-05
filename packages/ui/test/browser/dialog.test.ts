@@ -1,8 +1,7 @@
 // Upstream: packages/react/src/dialog/root/DialogRoot.test.tsx,
 // packages/react/src/dialog/popup/DialogPopup.test.tsx,
 // packages/react/src/dialog/backdrop/DialogBackdrop.test.tsx,
-// packages/react/src/dialog/close/DialogClose.test.tsx,
-// packages/react/src/dialog/viewport/DialogViewport.test.tsx
+// packages/react/src/dialog/close/DialogClose.test.tsx
 //
 // The dialog's behaviour cases: closing (Close, Escape, outside presses per
 // modal mode, an owner that keeps it open), focus (trap, initial, final, the
@@ -272,21 +271,6 @@ describe('Dialog.Popup focus', () => {
     await page.keyboard.press('Escape');
     await see(page.locator('#popup')).toHaveCount(0);
     expect(await focused(page)).not.toBe('open');
-  });
-});
-
-describe('Dialog.Portal keepMounted', () => {
-  it('keeps the viewport and popup mounted, hidden, while closed', async () => {
-    const page = await h.open('keep-mounted');
-    await see(page.locator('#popup')).toBeHidden();
-    await see(page.locator('#viewport')).toHaveAttribute('hidden', '');
-    await page.click('#open');
-    await see(page.locator('#popup')).toBeVisible();
-    await see(page.locator('#viewport')).toHaveAttribute('role', 'presentation');
-    await see(page.locator('#viewport')).toHaveAttribute('data-open', '');
-    await page.click('#close');
-    await see(page.locator('#popup')).toHaveAttribute('hidden', '');
-    await see(page.locator('#viewport')).toHaveAttribute('data-closed', '');
   });
 });
 

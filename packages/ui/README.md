@@ -16,7 +16,7 @@ Every part takes `class` and `style` (a value or a function of the part's state)
 
 - `Menu.Root`: no element; owns the menu's state.
   - `Menu.Trigger`: `<button>` that opens the menu on press or with the arrow keys.
-  - `Menu.Portal`: `<div>` at the end of `<body>` (or `container`), rendered while the menu is mounted or with `keepMounted`.
+  - `Menu.Portal`: `<div>` at the end of `<body>` (or `container`), rendered while the menu is mounted.
     - `Menu.Positioner`: `<div role="presentation">` that places the popup.
       - `Menu.Popup`: `<div role="menu">`.
         - `Menu.Item`: `<div role="menuitem">` that runs an action.
@@ -24,7 +24,7 @@ Every part takes `class` and `style` (a value or a function of the part's state)
           - `Menu.GroupLabel`: `<div aria-hidden>` that names the group.
         - `Menu.Separator`: `<div role="separator">`.
 
-Upstream's hover opening, submenus, arrow, backdrop, and link, checkbox and radio items are left out; a part returns with its first consumer.
+Upstream's hover opening, submenus, arrow (and `arrowPadding`), backdrop, link, checkbox and radio items, `keepMounted`, `actionsRef` and `highlightItemOnHover` are left out; a part returns with its first consumer.
 
 | Member                | Attribute                                   | Present when                                                                                     |
 | --------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -64,23 +64,24 @@ The other members set the menu's attributes and CSS variables (see Menu).
 `import { Dialog } from '@bible/ui/dialog'`
 
 - `Dialog.Root`: no element; owns the dialog's state. Its owner opens it through `open` (there is no trigger part); on close, focus returns to what had it before.
-  - `Dialog.Portal`: `<div>` at the end of `<body>`, rendered while mounted or with `keepMounted`.
+  - `Dialog.Portal`: `<div>` at the end of `<body>`, rendered while mounted.
     - `Dialog.Backdrop`: `<div role="presentation">`; only the outermost dialog of a nested stack renders one, unless `forceRender`.
-    - `Dialog.Viewport`: `<div role="presentation">`, a positioning (and scrolling) container around the popup.
-      - `Dialog.Popup`: `<div role="dialog">`.
-        - `Dialog.Title`: `<h2>` that labels the popup.
-        - `Dialog.Description`: `<p>` that describes the popup.
-        - `Dialog.Close`: `<button>` that closes the dialog.
+    - `Dialog.Popup`: `<div role="dialog">`.
+      - `Dialog.Title`: `<h2>` that labels the popup.
+      - `Dialog.Description`: `<p>` that describes the popup.
+      - `Dialog.Close`: `<button>` that closes the dialog.
 
-| Member              | Attribute                                   | Present when                                             |
-| ------------------- | ------------------------------------------- | -------------------------------------------------------- |
-| `Backdrop`          | `data-open` / `data-closed`                 | the dialog is open / closed                              |
-| `Backdrop`          | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition |
-| `Viewport`, `Popup` | `data-open` / `data-closed`                 | the dialog is open / closed                              |
-| `Viewport`, `Popup` | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition |
-| `Viewport`, `Popup` | `data-nested`                               | the dialog is nested in another dialog                   |
-| `Viewport`, `Popup` | `data-nested-dialog-open`                   | a dialog nested in this one is open                      |
-| `Close`             | `data-disabled`                             | the button is disabled                                   |
+Upstream's trigger, `Dialog.Viewport`, the portal's `keepMounted` and `actionsRef` are left out; a part returns with its first consumer.
+
+| Member     | Attribute                                   | Present when                                             |
+| ---------- | ------------------------------------------- | -------------------------------------------------------- |
+| `Backdrop` | `data-open` / `data-closed`                 | the dialog is open / closed                              |
+| `Backdrop` | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition |
+| `Popup`    | `data-open` / `data-closed`                 | the dialog is open / closed                              |
+| `Popup`    | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition |
+| `Popup`    | `data-nested`                               | the dialog is nested in another dialog                   |
+| `Popup`    | `data-nested-dialog-open`                   | a dialog nested in this one is open                      |
+| `Close`    | `data-disabled`                             | the button is disabled                                   |
 
 `Title` and `Description` set none.
 

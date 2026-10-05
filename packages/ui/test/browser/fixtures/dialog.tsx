@@ -179,24 +179,6 @@ function SideBySide(): JSX.Element {
   );
 }
 
-function KeepMounted(): JSX.Element {
-  const owner = ownerOpen('open');
-  return (
-    <>
-      <owner.Opener>Open</owner.Opener>
-      <Dialog.Root open={owner.open()} onOpenChange={(open) => owner.setOpen(open)}>
-        <Dialog.Portal keepMounted>
-          <Dialog.Viewport id="viewport">
-            <Dialog.Popup id="popup">
-              <Dialog.Close id="close">Close</Dialog.Close>
-            </Dialog.Popup>
-          </Dialog.Viewport>
-        </Dialog.Portal>
-      </Dialog.Root>
-    </>
-  );
-}
-
 function Animated(): JSX.Element {
   const owner = ownerOpen('open');
   return (
@@ -238,6 +220,5 @@ export const fixtures: Record<string, () => JSX.Element> = {
   dialog: withPopupStyles(BasicDialog),
   nested: withPopupStyles(NestedDialog),
   'side-by-side': withPopupStyles(SideBySide),
-  'keep-mounted': withPopupStyles(KeepMounted),
   animated: withPopupStyles(Animated),
 };

@@ -175,9 +175,6 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
           },
           role: 'dialog',
           ...FOCUSABLE_POPUP_PROPS,
-          get hidden() {
-            return !store.mounted() || undefined;
-          },
           onKeyDown: stopCompositeKeys,
           get style() {
             return style();

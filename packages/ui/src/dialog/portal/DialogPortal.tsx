@@ -2,11 +2,12 @@
 // packages/react/src/dialog/portal/DialogPortalContext.ts
 //
 // Moves the dialog's parts into a portal node at the end of `<body>` (or
-// `container`). Renders only while the dialog is mounted, unless
-// `keepMounted`. A modal dialog gets a transparent internal backdrop that
-// catches outside presses, so the page underneath does not receive them.
+// `container`). Renders only while the dialog is mounted (upstream's
+// `keepMounted` is left out: no page keeps a closed dialog in the DOM). A
+// modal dialog gets a transparent internal backdrop that catches outside
+// presses, so the page underneath does not receive them.
 import type { JSX } from '@solidjs/web';
-import { createContext, omit, onCleanup, Show, useContext } from 'solid-js';
+import { createContext, onCleanup, Show, useContext } from 'solid-js';
 
 import {
   FloatingPortal,
@@ -15,23 +16,18 @@ import {
 import { InternalBackdrop } from '../../utils/FocusGuard.tsx';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
 
-const DialogPortalContext = createContext<{ keepMounted: boolean } | null>(null);
+const DialogPortalContext = createContext(false);
 
-/** Whether the portal keeps its content mounted; throws outside a portal. */
-export function useDialogPortalContext(): () => boolean {
-  const value = useContext(DialogPortalContext);
-  if (value === null) {
+/** Throws outside a `Dialog.Portal`: the popup must render inside one. */
+export function useDialogPortalContext(): void {
+  if (!useContext(DialogPortalContext)) {
     throw new Error('Base UI: <Dialog.Portal> is missing.');
   }
-  return () => value.keepMounted;
 }
 
 export interface DialogPortalState {}
 
-export interface DialogPortalProps extends FloatingPortalProps {
-  /** Whether the portal stays in the DOM while the dialog is closed. @default false */
-  keepMounted?: boolean | undefined;
-}
+export interface DialogPortalProps extends FloatingPortalProps {}
 
 /**
  * A portal element that moves the popup to a different part of the DOM.
@@ -40,12 +36,6 @@ export interface DialogPortalProps extends FloatingPortalProps {
  */
 export function DialogPortal(props: DialogPortalProps): JSX.Element {
   const { store } = useDialogRootContext();
-  const portalProps = omit(props, 'keepMounted', 'children');
-  const value = {
-    get keepMounted() {
-      return props.keepMounted ?? false;
-    },
-  };
 
   function ModalBackdrop() {
     onCleanup(() => {
@@ -62,10 +52,10 @@ export function DialogPortal(props: DialogPortalProps): JSX.Element {
   }
 
   return (
-    <Show when={store.mounted() || (props.keepMounted ?? false)}>
-      <DialogPortalContext value={value}>
-        <FloatingPortal {...portalProps}>
-          <Show when={store.mounted() && store.modal() === true}>
+    <Show when={store.mounted()}>
+      <DialogPortalContext value={true}>
+        <FloatingPortal {...props}>
+          <Show when={store.modal() === true}>
             <ModalBackdrop />
           </Show>
           {props.children}

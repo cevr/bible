@@ -55,7 +55,7 @@ export interface MenuPositionerProps
 
 export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element {
   const { store, parent, syncHighlightedItem } = useMenuRootContext();
-  const keepMounted = useMenuPortalContext();
+  useMenuPortalContext();
   const elementProps = omit(
     componentProps,
     'class',
@@ -69,7 +69,6 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
     'alignOffset',
     'collisionBoundary',
     'collisionPadding',
-    'arrowPadding',
     'sticky',
     'disableAnchorTracking',
     'collisionAvoidance',
@@ -106,9 +105,6 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
     get alignOffset() {
       return props.alignOffset ?? (contextMenuOffsets() ? 2 : 0);
     },
-    get arrowPadding() {
-      return contextMenu ? 0 : (props.arrowPadding ?? 5);
-    },
     get collisionBoundary() {
       return props.collisionBoundary ?? 'clipping-ancestors';
     },
@@ -119,9 +115,6 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
       return props.sticky ?? false;
     },
     nodeId: store.floatingNodeId,
-    get keepMounted() {
-      return keepMounted();
-    },
     get disableAnchorTracking() {
       return props.disableAnchorTracking ?? false;
     },
@@ -204,7 +197,6 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
               transitionStatus: store.transitionStatus,
               props: elementProps,
               ref: (el: HTMLElement) => store.setPositionerElement(el),
-              hidden: () => !store.mounted(),
               inert: () => !store.open(),
             }),
           )}

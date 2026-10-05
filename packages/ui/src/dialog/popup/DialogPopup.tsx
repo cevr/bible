@@ -155,9 +155,6 @@ export function DialogPopup(componentProps: DialogPopupProps): JSX.Element {
           },
           role: 'dialog',
           ...FOCUSABLE_POPUP_PROPS,
-          get hidden() {
-            return !store.mounted() || undefined;
-          },
           onKeyDown: stopCompositeKeys,
           get style() {
             return { [DialogPopupCssVars.nestedDialogs]: String(store.nestedOpenDialogCount()) };
