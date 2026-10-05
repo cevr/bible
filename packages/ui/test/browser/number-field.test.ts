@@ -6,10 +6,9 @@
 // packages/react/src/number-field/scrub-area/NumberFieldScrubArea.test.tsx,
 // packages/react/src/number-field/scrub-area-cursor/NumberFieldScrubAreaCursor.test.tsx
 //
-// The Field cases this package's Field supports are in field.test.ts.
-// Dropped: the Form and field-validation cases (this package has no Form and
-// its Field does not validate), React.Activity, the conformance suite, and
-// cases that only exercise React's event plumbing.
+// Dropped: the Field, Form, hidden-input and autofill cases (this port has
+// no Field and no hidden form input), React.Activity, the conformance suite,
+// and cases that only exercise React's event plumbing.
 //
 // Scrubbing: headless Chromium grants pointer lock, but under the lock a
 // Playwright mouse move (absolute coordinates) is reported as a jump to the
@@ -97,16 +96,14 @@ describe('NumberField.Root', () => {
     await see(input(page)).toHaveValue('');
   });
 
-  it('marks every part disabled, read-only and required', async () => {
-    const page = await open('field', { disabled: 'true', required: 'true' });
+  it('marks every part disabled and read-only', async () => {
+    const page = await open('field', { disabled: 'true' });
     await Promise.all(
-      ['root', 'group', 'increment', 'decrement', 'scrub-area'].flatMap((id) => [
+      ['root', 'group', 'increment', 'decrement', 'scrub-area'].map((id) =>
         see(page.getByTestId(id)).toHaveAttribute('data-disabled', ''),
-        see(page.getByTestId(id)).toHaveAttribute('data-required', ''),
-      ]),
+      ),
     );
     await see(input(page)).toBeDisabled();
-    await see(input(page)).toHaveAttribute('required', '');
     const readOnly = await open('field', { readOnly: 'true' });
     await see(readOnly.getByTestId('root')).toHaveAttribute('data-readonly', '');
     await see(input(readOnly)).toHaveAttribute('readonly', '');
@@ -144,34 +141,6 @@ describe('NumberField.Root', () => {
     await page.keyboard.press('ArrowUp');
     await see(input(page)).toHaveValue('5');
     expect(await logOf(page)).toEqual(['change 6 keyboard']);
-  });
-
-  it('carries the raw value into a form through the hidden input', async () => {
-    const page = await open('form');
-    await see(input(page)).toHaveValue('$1,234.50');
-    const hidden = page.locator('input[name="quantity"]');
-    await see(hidden).toHaveAttribute('type', 'number');
-    await see(hidden).toHaveAttribute('aria-hidden', 'true');
-    await see(hidden).toHaveValue('1234.5');
-    await page.click('#submit');
-    expect(await logOf(page)).toEqual(['submit 1234.5']);
-  });
-
-  it('moves focus from the hidden input to the visible one, caret at the end', async () => {
-    const page = await open('form');
-    await page.locator('input[name="quantity"]').focus();
-    await see(input(page)).toBeFocused();
-    expect(await input(page).evaluate((el: HTMLInputElement) => el.selectionStart)).toBe(9);
-  });
-
-  it('takes an autofilled value from the hidden input', async () => {
-    const page = await open('field', { name: 'amount' });
-    await page.locator('input[name="amount"]').evaluate((el: HTMLInputElement) => {
-      el.value = '12';
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await see(input(page)).toHaveValue('12');
-    expect(await logOf(page)).toEqual(['change 12 none']);
   });
 });
 

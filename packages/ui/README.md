@@ -215,29 +215,11 @@ CSS variables:
 - `Toast.Root`: `--toast-index` (its place in the stack, 0 frontmost), `--toast-offset-y` (the summed heights in front of it), `--toast-height` (its measured height), `--toast-swipe-movement-x`, `--toast-swipe-movement-y` (the swipe so far).
 - `Toast.Positioner`: `--toast-index`, and `--anchor-width`, `--anchor-height`, `--available-width`, `--available-height`, `--transform-origin` (as in Menu).
 
-### Field
-
-`import { Field } from '@bible/ui/field'`
-
-- `Field.Root`: `<div>` grouping a control with its label, description and error.
-  - `Field.Label`: `<label>` pointing at the field's control.
-  - `Field.Description`: `<p>` that describes the control.
-  - `Field.Error`: `<div>`, rendered while the field is invalid and not disabled (or always, with `match`).
-
-| Member                                  | Attribute       | Present when                 |
-| --------------------------------------- | --------------- | ---------------------------- |
-| `Root`, `Label`, `Description`, `Error` | `data-disabled` | the field is disabled        |
-| `Root`, `Label`, `Description`, `Error` | `data-invalid`  | the root's `invalid` is true |
-
-The port has no validity state of its own, so `data-valid` is never set; nor are upstream's `data-touched`, `data-dirty`, `data-filled` or `data-focused`.
-
-`NumberField` is the control a field ties up: inside `Field.Root` its input is named by `Field.Label`, described by `Field.Description` and a shown `Field.Error`, and `aria-invalid` while the field is `invalid`; it is disabled with the field, and submits under the root's `name` when it names none. The number field's own parts never carry `data-invalid`.
-
 ### Number field
 
 `import { NumberField } from '@bible/ui/number-field'`
 
-- `NumberField.Root`: `<div>` that owns the value (with a visually hidden `<input type="number">` for forms).
+- `NumberField.Root`: `<div>` that owns the value and reports it through `onValueChange` and `onValueCommitted` (upstream's hidden form input, `name`, `form` and `required` are left out).
   - `NumberField.ScrubArea`: `<span role="presentation">` dragged across to change the value.
     - `NumberField.ScrubAreaCursor`: `<span role="presentation">`, portalled to the body, standing in for the hidden cursor during a pointer-locked mouse scrub.
   - `NumberField.Group`: `<div role="group">`.
@@ -251,12 +233,11 @@ Every member carries the same attributes:
 | ------ | ---------------- | ------------------------------------------------------------------------------------------------------------ |
 | all    | `data-disabled`  | the field is disabled; on `Increment` and `Decrement` also at `max` / `min`, or when that button is disabled |
 | all    | `data-readonly`  | the field is read-only                                                                                       |
-| all    | `data-required`  | the field is required                                                                                        |
 | all    | `data-scrubbing` | the value is being scrubbed                                                                                  |
 
 The value and the input's text are not attributes. No CSS variables.
 
-Two root props are not upstream's. `commitOnEnter` makes Enter commit typed text as blur does (reported as `keyboard`; a form still submits). `allowExpressions` keeps typed arithmetic as text and reads it on commit: `0.42*2`, `(1+2)/4`; text opening with `+`, `*` or `/` is relative to the value before typing began (`+0.1`, `*2`, `/2`), `×` and `÷` read as `*` and `/`, and a leading `-` is a negative number.
+Two root props are not upstream's. `commitOnEnter` makes Enter commit typed text as blur does (reported as `keyboard`). `allowExpressions` keeps typed arithmetic as text and reads it on commit: `0.42*2`, `(1+2)/4`; text opening with `+`, `*` or `/` is relative to the value before typing began (`+0.1`, `*2`, `/2`), `×` and `÷` read as `*` and `/`, and a leading `-` is a negative number.
 
 ### Toggle
 

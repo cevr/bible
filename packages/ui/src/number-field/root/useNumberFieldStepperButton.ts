@@ -152,9 +152,6 @@ export function useNumberFieldStepperButton(
     get inputValue() {
       return rootState.inputValue;
     },
-    get required() {
-      return rootState.required;
-    },
     get disabled() {
       return disabled();
     },

@@ -12,5 +12,3 @@ export const scrubbing = 'data-scrubbing';
 export const disabled = 'data-disabled';
 /** Present when the number field is readonly. */
 export const readonly = 'data-readonly';
-/** Present when the number field is required. */
-export const required = 'data-required';

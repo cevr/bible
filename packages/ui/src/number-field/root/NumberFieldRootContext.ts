@@ -28,7 +28,6 @@ export interface NumberFieldRootContextValue {
   readonly max: number | undefined;
   readonly minWithDefault: number;
   readonly maxWithDefault: number;
-  readonly name: string | undefined;
   readonly inputMode: InputMode;
   readonly locale: Intl.LocalesArgument | undefined;
   readonly format: Intl.NumberFormatOptions | undefined;

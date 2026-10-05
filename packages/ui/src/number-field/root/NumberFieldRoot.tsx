@@ -4,15 +4,12 @@
 // validated (snapped, clamped, cleaned of float noise) on every change, and
 // shown as formatted text in the input. Typed text stays as typed until it
 // is committed on blur; step changes (keys, buttons, wheel, scrub) rewrite it
-// at once. A visually hidden `<input type="number">` carries the value into
-// forms and native validation, and takes browser autofill. Inside a
-// `Field.Root`, the field's `disabled` and `name` apply, and the input is the
-// control the field's label points at.
+// at once. Upstream's hidden `<input type="number">` for forms is left out:
+// a field here commits through `onValueCommitted`, not a form.
 // Renders a `<div>`.
 import type { JSX } from '@solidjs/web';
 import { createEffect, createSignal, createUniqueId, omit, untrack } from 'solid-js';
 
-import { useFieldRootContext } from '../../field/root/FieldRootContext.ts';
 import {
   createChangeEventDetails,
   createGenericEventDetails,
@@ -24,7 +21,6 @@ import { activeElement, addEventListener, ownerDocument } from '../../utils/dom.
 import { formatNumber } from '../../utils/formatNumber.ts';
 import { platform } from '../../utils/platform.ts';
 import { useControlled } from '../../utils/useControlled.ts';
-import { visuallyHidden, visuallyHiddenInput } from '../../utils/visuallyHidden.ts';
 import { stateAttributesMapping } from '../utils/stateAttributesMapping.ts';
 import type { EventWithOptionalKeyState, IncrementValueParameters } from '../utils/types.ts';
 import { getKeyState } from '../utils/types.ts';
@@ -69,16 +65,10 @@ export interface NumberFieldRootProps extends Omit<
   step?: number | 'any' | undefined;
   /** The step while Shift is held. @default 10 */
   largeStep?: number | undefined;
-  /** Whether a value is required to submit a form. @default false */
-  required?: boolean | undefined;
   /** Whether the field ignores user interaction. @default false */
   disabled?: boolean | undefined;
   /** Whether the user cannot change the value. @default false */
   readOnly?: boolean | undefined;
-  /** Identifies the field when a form is submitted. */
-  name?: string | undefined;
-  /** The id of the form that owns the hidden input. */
-  form?: string | undefined;
   /** The value (controlled). */
   value?: number | null | undefined;
   /** The value when first rendered (uncontrolled). */
@@ -105,7 +95,7 @@ export interface NumberFieldRootProps extends Omit<
   /**
    * Called when the value changes. `details.reason` is `input-change`,
    * `input-clear`, `input-blur`, `input-paste`, `keyboard`, `increment-press`,
-   * `decrement-press`, `wheel`, `scrub` or `none` (autofill).
+   * `decrement-press`, `wheel` or `scrub`.
    */
   onValueChange?:
     | ((value: number | null, details: NumberFieldRootChangeEventDetails) => void)
@@ -117,8 +107,6 @@ export interface NumberFieldRootProps extends Omit<
   onValueCommitted?:
     | ((value: number | null, details: NumberFieldRootCommitEventDetails) => void)
     | undefined;
-  /** A ref to the hidden input. */
-  inputRef?: JSX.Ref<HTMLInputElement> | undefined;
 }
 
 const ROOT_PROPS = [
@@ -132,11 +120,8 @@ const ROOT_PROPS = [
   'smallStep',
   'step',
   'largeStep',
-  'required',
   'disabled',
   'readOnly',
-  'name',
-  'form',
   'value',
   'defaultValue',
   'allowWheelScrub',
@@ -147,24 +132,12 @@ const ROOT_PROPS = [
   'locale',
   'onValueChange',
   'onValueCommitted',
-  'inputRef',
 ] as const;
 
 export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
   const generatedId = createUniqueId();
-  const field = useFieldRootContext(true);
-  const disabled = () => (props.disabled ?? false) || (field?.disabled ?? false);
-  const name = () => props.name ?? field?.name;
-  // The field's label points at this input.
-  createEffect(
-    () => props.id ?? generatedId,
-    (id) => {
-      field?.setControlId(id);
-      return () => field?.setControlId(undefined);
-    },
-  );
+  const disabled = () => props.disabled ?? false;
   const readOnly = () => props.readOnly ?? false;
-  const required = () => props.required ?? false;
   const minWithDefault = () => props.min ?? Number.MIN_SAFE_INTEGER;
   const maxWithDefault = () => props.max ?? Number.MAX_SAFE_INTEGER;
 
@@ -217,9 +190,9 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     untrack(() => {
       const keyState = getKeyState(details.event);
       const direction = details.direction;
-      // Direct text entry (typing, paste, clear, autofill) behaves natively;
-      // steps (keys, buttons, wheel, scrub) do not.
-      const isInputReason = details.reason.startsWith('input-') || details.reason === REASONS.none;
+      // Direct text entry (typing, paste, clear) behaves natively; steps
+      // (keys, buttons, wheel, scrub) do not.
+      const isInputReason = details.reason.startsWith('input-');
       const shouldClamp = !(props.allowOutOfRange ?? false) || !isInputReason;
       const current = value();
 
@@ -361,9 +334,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     get readOnly() {
       return readOnly();
     },
-    get required() {
-      return required();
-    },
     get value() {
       return value();
     },
@@ -391,9 +361,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     },
     get maxWithDefault() {
       return maxWithDefault();
-    },
-    get name() {
-      return name();
     },
     get inputMode() {
       return inputMode();
@@ -445,36 +412,9 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     });
   }
 
-  const onHiddenInput = (event: Event & { currentTarget: HTMLInputElement }) => {
-    if (event.defaultPrevented || untrack(disabled) || untrack(readOnly)) {
-      return;
-    }
-    // Browser autofill.
-    const next = event.currentTarget.valueAsNumber;
-    setValue(Number.isNaN(next) ? null : next, createChangeEventDetails(REASONS.none, event));
-  };
-
   return (
     <NumberFieldRootContext value={context}>
       <RootElement />
-      <input
-        ref={props.inputRef}
-        type="number"
-        form={props.form}
-        name={name()}
-        value={value() ?? ''}
-        min={props.min}
-        max={props.max}
-        step={props.step}
-        disabled={disabled()}
-        readonly={readOnly()}
-        required={required()}
-        aria-hidden="true"
-        tabindex={-1}
-        style={name() ? visuallyHiddenInput : visuallyHidden}
-        onFocus={focusInput}
-        onInput={onHiddenInput}
-      />
     </NumberFieldRootContext>
   );
 }

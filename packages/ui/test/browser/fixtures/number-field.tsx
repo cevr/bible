@@ -1,6 +1,7 @@
 // Fixtures for the number field: one field configured from the URL (bounds,
 // steps, format, wheel, read-only, a canceled reason), a controlled field
-// set from outside, a field committing on Enter, and a field in a form.
+// set from outside, a field committing on Enter, and a scrub area that
+// unmounts mid-scrub.
 // The field's `window.__set({ disabled, readOnly })` changes those later, applied
 // at once (flushed), so a test can change them inside a press's own task.
 // Every change and commit is logged as `change <value> <reason>` and
@@ -76,8 +77,6 @@ function Field(): JSX.Element {
       allowOutOfRange={flagParam('allowOutOfRange')}
       readOnly={readOnly()}
       disabled={disabled()}
-      required={flagParam('required')}
-      name={param('name') ?? undefined}
       locale={param('locale') ?? undefined}
       format={formatParam()}
       onValueChange={onValueChange}
@@ -156,34 +155,6 @@ function EnterCommits(): JSX.Element {
   );
 }
 
-function InForm(): JSX.Element {
-  return (
-    <form
-      id="form"
-      onSubmit={(event) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        log(`submit ${String(data.get('quantity'))}`);
-      }}
-    >
-      <NumberField.Root
-        id="input"
-        name="quantity"
-        defaultValue={1234.5}
-        step="any"
-        format={{ style: 'currency', currency: 'USD' }}
-        locale="en-US"
-        required
-      >
-        <NumberField.Input aria-label="Quantity" />
-      </NumberField.Root>
-      <button id="submit" type="submit">
-        Submit
-      </button>
-    </form>
-  );
-}
-
 function Unmounting(): JSX.Element {
   const [shown, setShown] = createSignal(true);
   return (
@@ -212,6 +183,5 @@ export const fixtures: Record<string, () => JSX.Element> = {
   field: Field,
   controlled: Controlled,
   'enter-commits': EnterCommits,
-  form: InForm,
   unmounting: Unmounting,
 };
