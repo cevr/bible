@@ -132,6 +132,32 @@ describe('the review served as the lab renders it', () => {
   );
 
   it.live(
+    "paints a film's shell before its choices are read: the server's first piece holds the page and a reading line, the choices follow in the same answer",
+    () =>
+      Effect.gen(function* () {
+        // The film's choices read as the lab reads them, in a fresh process: a while.
+        const slow = [
+          route('GET', /^\/api\/films\/toy\/choices$/, () => json(choices), '400 millis'),
+          ...routes,
+        ];
+        const film = yield* openServed('review', slow, { href: pageHref.choices(TOY) });
+        // The pieces after the page root's opening tag, which the lab writes on its own.
+        const [, first = '', ...rest] = film.documents[0]?.pieces ?? [];
+        // The shell, its header and the film's place, at once: no wait on the film's read.
+        expect(first).toContain('class="sh-header"');
+        expect(first).toContain(`Reading ${TOY}'s choices…`);
+        expect(first).not.toContain('look:ground');
+        // The read's answer, sent later in the same document for the page to adopt.
+        expect(rest.join('')).toContain('look:ground');
+        yield* waitFor(film.page, '[data-point="look:ground"]');
+        expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(0);
+        expect(mismatches(film.page.logged)).toEqual([]);
+        expect(film.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'is the page as ever once hydrated: Refresh reads the index again, a card opens its folder, Back and Forward walk',
     () =>
       Effect.gen(function* () {

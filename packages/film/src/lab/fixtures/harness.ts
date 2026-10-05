@@ -10,6 +10,7 @@ import { BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
   Deferred,
+  Duration,
   Effect,
   FileSystem,
   Match,
@@ -121,18 +122,24 @@ export const later = (gate: Deferred.Deferred<void>, then: Answer): Answer => ({
 /** A file on disk, its type read from its name (a fixture video). */
 export const file = (path: string): Answer => ({ _tag: 'File', path });
 
-/** A fake lab route: the method, the path under `/api/films/probe` it matches, and its answer. */
+/**
+ * A fake lab route: the method, the path under `/api/films/probe` it
+ * matches, its answer, and how long the answer takes (none by default; a
+ * read the real lab makes in a fresh process takes about a second).
+ */
 export interface FakeRoute {
   readonly method: 'GET' | 'POST';
   readonly path: RegExp;
   readonly answer: (asked: Asked) => Answer;
+  readonly after: Duration.Duration;
 }
 
 export const route = (
   method: FakeRoute['method'],
   path: RegExp,
   answer: FakeRoute['answer'],
-): FakeRoute => ({ method, path, answer });
+  after: Duration.Input = Duration.zero,
+): FakeRoute => ({ method, path, answer, after: Duration.fromInputUnsafe(after) });
 
 const literal = 'literal' as const;
 const cueSource = (name: string) => ({
@@ -335,7 +342,7 @@ const apiAnswer =
               500,
             ),
           );
-        return answer(f.answer(made));
+        return Effect.delay(answer(f.answer(made)), f.after);
       },
     });
   };
@@ -630,6 +637,8 @@ interface Rendered {
   readonly head: string;
   readonly bodyClass: string;
   readonly body: string;
+  /** The markup as the render wrote it, piece by piece: what a browser could paint first is the first. */
+  readonly pieces: ReadonlyArray<string>;
 }
 
 /** The fake server's answer as the render's fetch resolves it. */
@@ -682,16 +691,24 @@ const rendered = (
           body.push(html);
         },
         end: () =>
-          resume(Effect.succeed({ head, bodyClass: render.bodyClass, body: body.join('') })),
+          resume(
+            Effect.succeed({
+              head,
+              bodyClass: render.bodyClass,
+              body: body.join(''),
+              pieces: body,
+            }),
+          ),
         fail: (reason) => resume(Effect.die(`the page's server render failed: ${reason}`)),
       },
     );
   });
 
-/** A page the server rendered: the link it was asked at, and the document it answered. */
+/** A page the server rendered: the link it was asked at, the document it answered, and its markup's pieces in order. */
 interface Document {
   readonly path: string;
   readonly html: string;
+  readonly pieces: ReadonlyArray<string>;
 }
 
 /** A page served as the lab serves a page it renders (PA-12): what the server read and answered too. */
@@ -732,7 +749,11 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
         onSome: Effect.succeed,
       });
       const html = `${before}${page.body}${after}`;
-      documents.push({ path: `${request.url.pathname}${request.url.search}`, html });
+      documents.push({
+        path: `${request.url.pathname}${request.url.search}`,
+        html,
+        pieces: page.pieces,
+      });
       return respond(html, 'text/html');
     });
   const page = yield* openTab({

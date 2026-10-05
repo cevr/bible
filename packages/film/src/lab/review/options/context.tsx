@@ -688,15 +688,20 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
     if (Option.isSome(untrack(opened))) return;
     setOpened(AsyncResult.value(result));
   });
+  const reading = `Reading ${film}'s choices…`;
+  // The server's read of the choices holds only this boundary: the page around it is sent
+  // and painted at once, and the read's answer follows in the same document.
   return (
-    <Loaded value={opened()} result={first()} reading={`Reading ${film}'s choices…`}>
-      {(choices) => (
-        <Loading>
-          <FilmReady atoms={atoms} first={choices()} actor={actor}>
-            {props.children}
-          </FilmReady>
-        </Loading>
-      )}
-    </Loaded>
+    <Loading fallback={<p class="empty">{reading}</p>}>
+      <Loaded value={opened()} result={first()} reading={reading}>
+        {(choices) => (
+          <Loading>
+            <FilmReady atoms={atoms} first={choices()} actor={actor}>
+              {props.children}
+            </FilmReady>
+          </Loading>
+        )}
+      </Loaded>
+    </Loading>
   );
 };
