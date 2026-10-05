@@ -10,7 +10,7 @@
 // `admit`, as any script, and a changed file reaches an open page as any
 // changed source does.
 
-import { Effect } from 'effect';
+import { Effect, Option } from 'effect';
 import greek from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-greek-wght-normal.woff2';
 import latinExt from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-ext-wght-normal.woff2';
 import latin from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2';
@@ -115,20 +115,44 @@ export const FACE_HEAD =
   `<style>@font-face{font-family:'${FACE_FAMILY}';src:url(${fromRoot(latin)}) format('woff2');` +
   `font-weight:${HEAD_FACE.weight};font-style:normal;font-display:swap;unicode-range:${SUBSETS.latin}}</style>`;
 
+/** How a picture face is added to a page's fonts: never the chrome's text, so never swapped in. */
+const PICTURE_DISPLAY: FontDisplay = 'block';
+
 /**
- * The faces a film draws in, loaded: added to the page's fonts the first
- * time they are asked for (`block`: a picture face is never the chrome's
- * text), then every file fetched, so text measures and draws true from the
- * first frame whatever families and scripts the film draws. A film's loader
- * runs it (`narratedFilms`), so no canvas or still draws before them: a still
- * drawn in a fallback face is a wrong still. A face that will not load fails
- * the load. Read as it runs, so making it reads no `document`.
+ * The faces a film draws in, asked for: added to the page's fonts the first
+ * time (`block`: a picture face is never the chrome's text) and every file
+ * fetched from then on. Asking waits for none of them, so the page's chrome
+ * and the film's bar stand while they load; what draws the film waits for
+ * them instead (`pictureFacesWait`): the preview's canvas, the stills, the
+ * render page's handle. A film's loader asks (`narratedFilms`), so the faces
+ * are on the page before the film is given. Read as it runs, so making it
+ * reads no `document`.
  */
-export const pictureFaces = (faces: ReadonlyArray<Face>): Effect.Effect<void> => {
-  const registered = Effect.runSync(
-    Effect.cached(Effect.sync(() => added(document.fonts, faces, 'block'))),
+export const pictureFaces = (faces: ReadonlyArray<Face>): Effect.Effect<void> =>
+  Effect.runSync(
+    Effect.cached(
+      Effect.sync(() => {
+        for (const font of added(document.fonts, faces, PICTURE_DISPLAY))
+          // A face that will not load fails the wait for it (`pictureFacesWait`), not the asking.
+          font.load().catch(() => undefined);
+      }),
+    ),
   );
-  return Effect.flatMap(registered, (fonts) =>
-    Effect.promise(() => Promise.all(fonts.map((font) => font.load()))),
-  ).pipe(Effect.asVoid);
+
+/**
+ * The wait for the picture faces in `fonts` (a page's `document.fonts`, the
+ * ones `pictureFaces` asked for): none when every one has loaded, or none
+ * was asked for, so a page whose faces are in draws at once; else until each
+ * has, so text measures and draws true from the first frame whatever
+ * families and scripts the film draws (a frame or a still drawn in a
+ * fallback face is a wrong one). A face that will not load fails it.
+ */
+export const pictureFacesWait = (fonts: FontFaceSet): Option.Option<Effect.Effect<void>> => {
+  const loading = Array.from(fonts).filter(
+    (font) => font.display === PICTURE_DISPLAY && font.status !== 'loaded',
+  );
+  return Option.as(
+    Option.liftPredicate(loading, (l) => l.length > 0),
+    Effect.asVoid(Effect.promise(() => Promise.all(loading.map((font) => font.loaded)))),
+  );
 };

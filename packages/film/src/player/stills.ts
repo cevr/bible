@@ -7,10 +7,13 @@
 // order they are wanted: the last `want` goes first, so the stills on screen
 // are drawn before the rest. A full-size frame costs the page about a
 // seventh of a second, so a film's tape fills progressively, never all at
-// once. Framework-free.
+// once. The first waits for the faces the film draws in
+// (`pictureFacesWait`), so no still is drawn in a fallback face; a face that
+// will not load leaves the stills undrawn. Framework-free.
 
-import { Option } from 'effect';
+import { Effect, Option } from 'effect';
 import type { RenderOptions } from '../canvas/film.ts';
+import { pictureFacesWait } from './face.ts';
 
 /** What stills are drawn from: a film's frame size, rate and its render. */
 interface StillSource {
@@ -122,7 +125,13 @@ export const makeStills = (film: StillSource, options: StillsOptions): Stills =>
   const run = () => {
     if (running) return;
     running = true;
-    void step();
+    Option.match(pictureFacesWait(document.fonts), {
+      onNone: () => void step(),
+      onSome: (wait) =>
+        void Effect.runPromise(wait).then(step, () => {
+          running = false;
+        }),
+    });
   };
 
   const want = (times: ReadonlyArray<number>) => {

@@ -707,10 +707,11 @@ The film's `short` style sets the hook's
 and the captions' fonts and colours (`createFilm({ short: { hook, caption } })`).
 `src/films/index.ts` keeps `films` (a key per film folder, `narratedFilms`:
 the framework loads each film's `narration/timings.json` and names its
-`full.wav` by that key, and loads with it the faces the films draw in
+`full.wav` by that key, and asks with it for the faces the films draw in
 (`src/films/faces.ts`: each subset a woff2 under `assets/fonts`, imported
-from the script, `pictureFaces`), so no face holds a page's first paint,
-then calls the film's `film({ timings, audio })`; a
+from the script, `pictureFaces`), waiting for none of them, so no face holds
+a page's first paint or the film's bar (what draws the film, its canvas and
+its stills, waits for them), then calls the film's `film({ timings, audio })`; a
 film with no timings file yet is laid out on estimates, as the tools lay it
 out, and a timings file the page cannot read fails with
 `NarrationUnreadable`) apart from `pages`, what the player mounts: the films plus each short's page

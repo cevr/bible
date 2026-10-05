@@ -183,6 +183,15 @@ const sourceThree = {
 /** The id the fake lab gives the change a write of `target` to `scene` makes (`HistoryStep.change`). */
 export const changeOf = (target: string, scene = 'one'): string => `${scene}:${target}`;
 
+/** Where the probe film's face is asked for (`PROBE_FACE`): the review's files route. */
+export const PROBE_FACE_PATH = /^\/api\/review\/files\/probe-face\.woff2$/;
+
+/** The probe film's face's file: a subset of the UI face's own, under another family. */
+export const PROBE_FACE_FILE = Bun.resolveSync(
+  '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-greek-wght-normal.woff2',
+  import.meta.dir,
+);
+
 /** A write the server took, as it answers one, with the change it made. */
 const wrote = (target: string, scene = 'one') => ({
   scene,
@@ -214,6 +223,7 @@ const defaults: ReadonlyArray<FakeRoute> = [
   route('POST', /^\/scenes\/\w+\/cues\//, () => json(wrote('cue'))),
   route('POST', /^\/scenes\/\w+\/knobs\//, () => json(wrote('knob'))),
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
+  route('GET', PROBE_FACE_PATH, () => file(PROBE_FACE_FILE)),
 ];
 
 /**
@@ -283,8 +293,11 @@ const fileAnswer = (path: string) =>
     Effect.provide(BunServices.layer),
   );
 
-/** The media types of the files the tests answer with (a tone, as a fixture video's sound). */
-const TYPES = new Map([['.wav', 'audio/wav']]);
+/** The media types of the files the tests answer with (a tone, as a fixture video's sound; a face). */
+const TYPES = new Map([
+  ['.wav', 'audio/wav'],
+  ['.woff2', 'font/woff2'],
+]);
 
 const typeOfFile = (path: string) =>
   Option.getOrElse(
@@ -550,6 +563,12 @@ interface ReviewAt {
    * (`rendered`), as the lab cuts one; none: each render ends.
    */
   readonly cut?: Duration.Input;
+  /**
+   * A served page's open waits for it to have mounted, not loaded: a test
+   * that holds a file the page's load waits for (a face it asks for) reads
+   * the page meanwhile. None: it has loaded too.
+   */
+  readonly mountedOnly?: boolean;
 }
 
 /**
@@ -813,7 +832,9 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
     assets: [script],
     serve: fakeServer(servedBy(name, document), spec.prefix, all, asked),
   });
-  yield* page.goto(at.href ?? spec.home);
+  const going = page.goto(at.href ?? spec.home);
+  if (at.mountedOnly === true) yield* Effect.forkScoped(going);
+  else yield* going;
   // A page served cut (its document carries the mark) is rendered anew; any other,
   // a render that ended before `at.cut` among them, hydrates the server's markup.
   const servedCut = Option.exists(Arr.last(documents), (served) =>

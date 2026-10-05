@@ -11,7 +11,7 @@ import type { ProbeSink } from '../canvas/probe.ts';
 import type { ExportHandle } from '../core/export-handle.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { timecode } from '../core/time.ts';
-import { Effect, Option } from 'effect';
+import { Cause, Effect, Option } from 'effect';
 import type { Fiber } from 'effect';
 import { parseHref } from '@bible/url-state';
 import { filmOfPage } from '../core/api.ts';
@@ -29,6 +29,7 @@ import { sceneTimesOf } from '../core/easel.ts';
 import { composeStill } from './still.ts';
 import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
 import { encodeChunk, encoderChoice } from './encode.ts';
+import { pictureFacesWait } from './face.ts';
 import { composeLookbook } from './lookbook-sheet.ts';
 import { narration, narrationNote } from './narration.ts';
 import { tInUrl, type TimeInUrl } from './t-in-url.ts';
@@ -93,7 +94,8 @@ export interface Player {
    * Draw the frame at `T` into `ctx` as the preview shows it: its captions
    * and the lab's edits, with `over` (an edit per scene) on top of them. The
    * one spelling of "the frame as the lab shows it": a note's still, the
-   * onion and the HEAD layer draw through it.
+   * onion and the HEAD layer draw through it. Nothing is drawn until the
+   * film's faces have loaded (`drawable`).
    */
   renderShown(
     ctx: CanvasRenderingContext2D,
@@ -108,7 +110,13 @@ export interface Player {
   showEdits(edits: ReadonlyMap<string, ShownEdit>): void;
   /** Every knob the last frame drawn read, and how (`KnobRead`). */
   knobReads(): ReadonlyArray<KnobRead>;
-  /** Called after every frame the preview draws, until the returned function is called. */
+  /**
+   * Whether the preview draws frames: once the faces its film draws in have
+   * loaded (`pictureFacesWait`). Until then its bar shows where the film is,
+   * and its canvas nothing.
+   */
+  drawable(): boolean;
+  /** Called after every frame the preview draws (none while it is not `drawable`), until the returned function is called. */
   onDraw(listener: (T: number) => void): () => void;
 }
 
@@ -138,10 +146,11 @@ const filmName = (href: string, films: Films): string =>
 
 /**
  * Load the film of the page at `href` (its loader gives it with the faces it
- * draws in loaded, `narratedFilms`, so text measures true from the first
- * frame: a short's hook and captions are measured once, on the first frame
- * that draws them), title the page, and put the film's canvas on the stage;
- * its captions are on unless an export page says `captions=0`.
+ * draws in asked for, `narratedFilms`; what draws it waits for them,
+ * `pictureFacesWait`, so text measures true from the first frame: a short's
+ * hook and captions are measured once, on the first frame that draws them),
+ * title the page, and put the film's canvas on the stage, undrawn; its
+ * captions are on unless an export page says `captions=0`.
  */
 export const stageFilm = async (films: Films, href: string): Promise<Staged> => {
   const name = filmName(href, films);
@@ -178,11 +187,19 @@ export const showFailure = (e: unknown): void => {
 /**
  * Mount the render page for `films` (`?film=<name>&export`): the film
  * staged with no chrome and no UI face, drawing only the film's own faces,
- * and the handle the renderer drives on `window.__film`.
+ * and, once they have loaded, the handle the renderer drives on
+ * `window.__film`.
  */
 export const mountRender = (films: Films): void => {
   const host = hostOf(BrowserHost.layer);
   stageFilm(films, addressOn(host).href())
+    .then((staged) =>
+      Effect.runPromise(
+        Option.getOrElse(pictureFacesWait(document.fonts), () => Effect.void).pipe(
+          Effect.as(staged),
+        ),
+      ),
+    )
     .then((staged) => {
       document.body.classList.add('export');
       window.__film = exportHandle(staged, host);
@@ -416,10 +433,21 @@ export const mountPreview = (
     ...extra,
   });
 
+  /**
+   * Whether frames are drawn: once the faces the film draws in have loaded
+   * (`pictureFacesWait`), at once when they are in already. Until then the
+   * bar shows where the film is, its canvas nothing, so no frame is ever
+   * drawn in a fallback face.
+   */
+  let drawable = false;
+
   const draw = () => {
-    reads = [];
-    film.render(ctx, T, shownOptions({ knobs: reads }));
-    for (const listener of listeners) listener(T);
+    if (drawable) {
+      reads = [];
+      film.render(ctx, T, shownOptions({ knobs: reads }));
+      // As they stand at this frame: a listener that stops listening skips none of the rest.
+      for (const listener of [...listeners]) listener(T);
+    }
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
     const shownRate = rate === 1 ? '' : ` · ${rate}× muted`;
@@ -599,6 +627,27 @@ export const mountPreview = (
   hub.commands.register(
     legendCommand(page, { shown: () => !keysLine.hidden, toggle: toggleLegend }),
   );
+  // The first frame: at once when the film's faces are in, else once they
+  // have loaded (the bar stands meanwhile). A face that will not load says so
+  // in place of the page, as a film that will not load does.
+  Option.match(pictureFacesWait(document.fonts), {
+    onNone: () => {
+      drawable = true;
+    },
+    onSome: (wait) => {
+      Effect.runForkWith(host)(
+        wait.pipe(
+          Effect.andThen(
+            Effect.sync(() => {
+              drawable = true;
+              draw();
+            }),
+          ),
+          Effect.catchCause((cause) => Effect.sync(() => showFailure(Cause.squash(cause)))),
+        ),
+      );
+    },
+  });
   draw();
   return {
     film,
@@ -629,8 +678,10 @@ export const mountPreview = (
       draw();
     },
     redraw: draw,
-    renderShown: (into, at, over = new Map()) =>
-      film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]) })),
+    renderShown: (into, at, over = new Map()) => {
+      if (drawable) film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]) }));
+    },
+    drawable: () => drawable,
     showEdits: (next) => {
       edits = next;
       draw();

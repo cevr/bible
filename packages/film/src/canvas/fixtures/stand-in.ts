@@ -511,7 +511,11 @@ interface Globals {
 const putUp = (options: StandInOptions) =>
   Effect.sync((): Globals => {
     const before = { document: Reflect.get(globalThis, 'document') };
-    Reflect.set(globalThis, 'document', { createElement: () => standInCanvas(options) });
+    // Its fonts hold none a film asked for: what draws waits for nothing (`pictureFacesWait`).
+    Reflect.set(globalThis, 'document', {
+      createElement: () => standInCanvas(options),
+      fonts: [],
+    });
     return before;
   });
 

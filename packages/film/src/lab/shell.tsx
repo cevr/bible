@@ -9,7 +9,7 @@
 // panel (`Fill`, `panel.tsx`). Each tool's own state lives in its own
 // provider; the shell knows none of it.
 
-import { Portal } from '@solidjs/web';
+import { Portal, Show } from '@solidjs/web';
 import { Duration, Effect, Fiber, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
@@ -121,8 +121,28 @@ interface RootProps extends ParentProps {
   readonly player: Player;
 }
 
-/** The staged lab, in the Lab's page (`panel.tsx`): the film on its stage, and every tool's base. */
+/**
+ * The staged lab, in the Lab's page (`panel.tsx`): every tool's base, once
+ * the preview draws its film. Until its faces have loaded (`Player.drawable`)
+ * the film's bar shows where it is and no tool stands, so none draws a frame
+ * or takes a still in a fallback face.
+ */
 const Root = (props: RootProps) => {
+  const [drawable, setDrawable] = createSignal(props.player.drawable(), { ownedWrite: true });
+  const heard = props.player.onDraw(() => {
+    heard();
+    setDrawable(true);
+  });
+  onCleanup(heard);
+  return (
+    <Show when={drawable()}>
+      <Staged player={props.player}>{props.children}</Staged>
+    </Show>
+  );
+};
+
+/** The staged lab around its tools: the film on its stage, and every tool's base. */
+const Staged = (props: RootProps) => {
   const { player } = props;
   const page = useLabPage();
   const { name, host, hub } = page;
