@@ -686,7 +686,7 @@ describe('the inspector', () => {
   );
 
   it.live(
-    "on a phone, a cue that runs until a mark has its end as a field: a tap selects it, and an end typed writes it off the mark as its edge's drag does",
+    "on a phone, a cue that runs until a mark has its end as a field: a tap selects it, and an end typed writes its offset off the mark, keeping the until, as its edge's drag does",
     () =>
       Effect.gen(function* () {
         // 10 s in is scene three, its push running until {held}.
@@ -706,7 +706,9 @@ describe('the inspector', () => {
         yield* postedReach(asked, 1);
         const write = Option.getOrThrow(Option.fromUndefinedOr(posted(asked)[0]));
         expect(write.path).toBe('/scenes/three/cues/push');
-        expect(write.body).toMatchObject(Option.some({ dur: expect.any(Number) }));
+        // The end keeps following {held}: its offset off it, never a dur.
+        expect(write.body).toEqual(Option.some({ untilOffset: expect.closeTo(0.5, 2) }));
+        yield* textHas(page, '.lab-edit-cue', '{held} + 0.50 s');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );

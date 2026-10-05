@@ -9,8 +9,10 @@
 // (`{ cue: 'roll' }`) or a two-number array (`[960, 800]`).
 // A computed value, a spread, a shorthand or a duplicate key is refused, since
 // the lab could not say what it would be changing. A missing `offset`, `dur`,
-// `until`, `ease` or `stagger` is added after the span's anchor, in that order; a span
-// ends one way, so a `dur` written replaces its `until`, and an `until` its `dur`.
+// `until`, `untilOffset`, `ease` or `stagger` is added after the span's anchor, in
+// that order; a span ends one way, so a `dur` written replaces its `until`, and an
+// `until` its `dur`. An `untilOffset` goes with the end it is off: a `dur` or a
+// new `until` takes it away, and so does 0, an end back on its point.
 
 import { Array as Arr, Match, Option, Predicate, Result, Schema } from 'effect';
 import {
@@ -75,7 +77,7 @@ interface Splice {
 
 /** The keys a span is anchored by; the lab writes the timing fields after them, in order. */
 const ANCHORS: ReadonlyArray<string> = ['mark', 'word', 'after', 'with', 'at'];
-const TIMING = ['offset', 'dur', 'until', 'ease', 'stagger'] satisfies ReadonlyArray<
+const TIMING = ['offset', 'dur', 'until', 'untilOffset', 'ease', 'stagger'] satisfies ReadonlyArray<
   keyof CuePatch
 >;
 type TimingKey = (typeof TIMING)[number];
@@ -612,6 +614,12 @@ const valueText = (key: TimingKey, patch: CuePatch): Option.Option<string> => {
       return Option.map(Option.fromUndefinedOr(patch.dur), numberText);
     case 'until':
       return Option.map(Option.fromUndefinedOr(patch.until), stringText);
+    case 'untilOffset':
+      // 0 is the point itself: the key is taken away (`untilOffsetDrop`), never written.
+      return Option.map(
+        Option.filter(Option.fromUndefinedOr(patch.untilOffset), (v) => toMs(v) !== 0),
+        numberText,
+      );
     case 'ease':
       return Option.map(Option.fromUndefinedOr(patch.ease), stringText);
     case 'stagger':
@@ -677,10 +685,74 @@ const replaceEnd = (
       ),
   });
 
+/** The splice that takes property `p` out of `span`, with the comma that joins it to its neighbour. */
+const removal = (span: ObjectExpression, p: ObjectProperty): Splice => {
+  const at = span.properties.indexOf(p);
+  return Option.match(Arr.get(span.properties, at - 1), {
+    onSome: (before) => ({ start: before.end, end: p.end, text: '' }),
+    onNone: () =>
+      Option.match(Arr.get(span.properties, at + 1), {
+        onSome: (after) => ({ start: p.start, end: after.start, text: '' }),
+        onNone: () => ({ start: p.start, end: p.end, text: '' }),
+      }),
+  });
+};
+
 /**
- * Set a cue's `offset`, `dur`, `until`, `ease` or `stagger` in the drawing exported as `name`: the
- * value's text replaced where it is a literal, or the field added after the
- * span's anchor. The result is the whole new source.
+ * Whether `patch` takes a span's `untilOffset` away: an end set another way
+ * (a `dur`, or a new `until` with no offset of its own), or put back on its
+ * point (0, to the millisecond).
+ */
+const dropsUntilOffset = (patch: CuePatch): boolean =>
+  'dur' in patch ||
+  ('until' in patch && !('untilOffset' in patch)) ||
+  Option.exists(Option.fromUndefinedOr(patch.untilOffset), (v) => toMs(v) === 0);
+
+/**
+ * The splice that takes the span's `untilOffset` away when `patch` drops it
+ * (`dropsUntilOffset`) and the span has one; refused over one in code. An
+ * `untilOffset` on a span that runs no `until`, and is given none, is refused:
+ * it has no point to be off.
+ */
+const untilOffsetDrop = (
+  file: string,
+  source: string,
+  span: ObjectExpression,
+  cue: string,
+  patch: CuePatch,
+): Result.Result<Option.Option<Splice>, SourceRefused> => {
+  const target = `cue ${cue} untilOffset`;
+  return Result.flatMap(propertyOf(file, `cue ${cue} until`, span, 'until'), (until) => {
+    if ('untilOffset' in patch && !('until' in patch) && Option.isNone(until))
+      return refuse<Option.Option<Splice>>(
+        file,
+        target,
+        'it runs no until, so its end has no point to be off (it ends by its dur)',
+      );
+    if (!dropsUntilOffset(patch)) return Result.succeed(Option.none<Splice>());
+    return Result.flatMap(propertyOf(file, target, span, 'untilOffset'), (prop) =>
+      Option.match(prop, {
+        onNone: () => Result.succeed(Option.none<Splice>()),
+        onSome: (p) => {
+          if (!Option.exists(valueOf(p), isNumberLiteral))
+            return refuse<Option.Option<Splice>>(
+              file,
+              target,
+              `it is \`${textOf(source, p.value)}\`, not a literal, so the lab cannot take it away`,
+            );
+          return Result.succeed(Option.some(removal(span, p)));
+        },
+      }),
+    );
+  });
+};
+
+/**
+ * Set a cue's `offset`, `dur`, `until`, `untilOffset`, `ease` or `stagger` in
+ * the drawing exported as `name`: the value's text replaced where it is a
+ * literal, or the field added after the span's anchor; an `untilOffset` the
+ * patch drops (`dropsUntilOffset`) is taken away. The result is the whole new
+ * source.
  */
 export const editCue = (
   file: string,
@@ -692,6 +764,9 @@ export const editCue = (
   Result.flatMap(spanOf(file, source, name, cue), (span) => {
     const splices: Array<Splice> = [];
     const inserts = new Map<number, Array<string>>();
+    const dropped = untilOffsetDrop(file, source, span, cue, patch);
+    if (Result.isFailure(dropped)) return Result.fail(dropped.failure);
+    splices.push(...Option.toArray(dropped.success));
     for (const key of TIMING) {
       const text = valueText(key, patch);
       if (Option.isNone(text)) continue;
@@ -774,6 +849,7 @@ export const readCue = (
         offset: read('offset'),
         dur: read('dur'),
         until: read('until'),
+        untilOffset: read('untilOffset'),
         ease: read('ease'),
         stagger: read('stagger'),
       }),
@@ -789,6 +865,10 @@ export const readCue = (
         ...Option.match(Option.flatMap(f.until, stringOf), {
           onNone: () => ({}),
           onSome: (until) => ({ until }),
+        }),
+        ...Option.match(Option.flatMap(f.untilOffset, numberOf), {
+          onNone: () => ({}),
+          onSome: (untilOffset) => ({ untilOffset }),
         }),
         ...Option.match(Option.flatMap(Option.flatMap(f.ease, stringOf), decodeEase), {
           onNone: () => ({}),

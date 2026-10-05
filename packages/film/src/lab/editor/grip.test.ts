@@ -200,7 +200,7 @@ describe("an `until` cue's end field", () => {
     expect(end?.spec.min).toEqual(Option.some(1));
   });
 
-  test("writes the cue as its right edge's drag to the same time does: off the mark, a dur", () => {
+  test("writes the cue as its right edge's drag to the same time does: off the mark, its offset from it", () => {
     const commits: Array<unknown> = [];
     fieldsIn(commits)
       .find((f) => f.id === 'end')
@@ -210,7 +210,51 @@ describe("an `until` cue's end field", () => {
       { x: 530, y: 0, free: false },
     );
     expect(commits).toEqual([{ write: Option.getOrThrow(dragged.write), edit: dragged.edit }]);
-    expect(dragged.edit.timeline?.['rise']).toEqual({ mark: 'rise', dur: 1.5 });
+    expect(dragged.write).toEqual(
+      Option.some({
+        _tag: 'CueWrite',
+        scene: 'one',
+        cue: 'rise',
+        patch: { untilOffset: 0.3 },
+        said: { untilOffset: { before: '0', after: '0.3', unit: 's' } },
+      }),
+    );
+    expect(dragged.edit.timeline?.['rise']).toEqual({
+      mark: 'rise',
+      until: 'fall',
+      untilOffset: 0.3,
+    });
+  });
+});
+
+describe('joined, for an until cue', () => {
+  const write = (patch: CueWrite['patch'], said: NonNullable<CueWrite['said']>) =>
+    CueWrite.make({ scene: 'one', cue: 'rise', patch, said });
+
+  test("two moves of an until cue's end join into one offset, said from the first before", () => {
+    const joint = joined(
+      write({ untilOffset: 0.1 }, { untilOffset: { before: '0', after: '0.1', unit: 's' } }),
+      write({ untilOffset: 0.3 }, { untilOffset: { before: '0.1', after: '0.3', unit: 's' } }),
+    );
+    expect(
+      Option.map(
+        Option.filter(joint, (w): w is CueWrite => w._tag === 'CueWrite'),
+        (w) => [w.patch, cueSaidText(w)],
+      ),
+    ).toEqual(Option.some([{ untilOffset: 0.3 }, 'cue rise untilOffset 0 → 0.3 s']));
+  });
+
+  test('a dur after an offset ends the cue by its length: the offset goes with it', () => {
+    const joint = joined(
+      write({ untilOffset: 0.1 }, { untilOffset: { before: '0', after: '0.1', unit: 's' } }),
+      write({ dur: 1 }, { dur: { before: '0.6', after: '1', unit: 's' } }),
+    );
+    expect(
+      Option.map(
+        Option.filter(joint, (w): w is CueWrite => w._tag === 'CueWrite'),
+        (w) => [w.patch, cueSaidText(w)],
+      ),
+    ).toEqual(Option.some([{ dur: 1 }, 'cue rise dur 0.6 → 1 s']));
   });
 });
 

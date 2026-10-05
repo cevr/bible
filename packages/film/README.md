@@ -1464,7 +1464,7 @@ change with `git diff`.
 | Route                                              | What it does                                                                                                                                                                                                                 |
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /api/films/<film>/scenes/:scene/source`       | the scene's file and, per cue field and knob, `literal`, `absent` (added on write) or `computed`                                                                                                                             |
-| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                                                                                                          |
+| `POST /api/films/<film>/scenes/:scene/cues/:cue`   | `CuePatch` (`offset?`, `dur?`/`until?`, `untilOffset?`, `ease?`, `stagger?`) → the span, the cue resolved, findings                                                                                                          |
 | `POST /api/films/<film>/scenes/:scene/knobs/:knob` | `KnobPatch` (`{ value }`, a number or `[x, y]`); answers the value read back and findings                                                                                                                                    |
 | `POST /api/films/<film>/undo`, `/redo`             | puts the newest write's file back, byte for byte, or makes the newest undone write again (`{request?}`: an id the step is recorded under; `{change?}`: that change only, while it is the newest, else a 409 `StepNotNewest`) |
 | `GET /api/films/<film>/check`                      | `film check --static` now, the latest change, what Undo and Redo would do (each with its `change` id), and the steps `landed` by request id                                                                                  |
@@ -1506,8 +1506,9 @@ not read back, the write fails (`FormatFailed`, `WriteUnverified`) and the file
 is as it was. It refuses what
 it cannot prove is a literal (`SourceRefused`: `GAP * 2`, a spread, a
 computed key, a shorthand) and names it. Literal `until` objects (`{ cue }`,
-`{ cue, edge }`, `{ at }`) are editable ends: a right-edge edit replaces the
-whole `until` property with `dur`, keeping the rest of the scene intact.
+`{ cue, edge }`, `{ at }`) are editable ends: a `dur` written replaces the
+whole `until` property (and its `untilOffset`), keeping the rest of the scene
+intact; a right-edge edit writes `untilOffset` after the `until` and keeps it.
 Their members must be literal and unique, and decode against `Until`; a
 computed member, spread, duplicate key or conflicting anchor is refused.
 A cue write is also refused
@@ -1543,9 +1544,11 @@ its right edge to move its end (dur): an edge is the bar's outer 6 px, 14 px
 under a finger (`edgeFor`, `lab/editor/grip.ts`). A finger has no
 Escape, so while a grip is held the strip's head shows **Cancel drag**,
 which lets it go as Escape does (`edit.cancel-grip`). A cue that runs `until` a mark (or a
-landmark, or another cue's edge) keeps ending on it (`dragPatch` in `core/timeline.ts`): its body and left edge move
-only its offset, its start held a frame before the mark, and its right edge
-sets a `dur` only when dropped off the mark. Edges snap to word starts and ends,
+landmark, or another cue's edge) keeps following it (`dragPatch` in `core/timeline.ts`): its body and left edge move
+only its offset, its start held a frame before its end, and its right edge (or
+the inspector's End field) sets `untilOffset`, the end's seconds off the point
+(negative before it; dropped back on the point, the key goes), never a `dur`,
+so a re-take or a drag of the point still moves the end. Edges snap to word starts and ends,
 marks and other cues' edges within 8 px, else move by whole frames; shift
 places them freely. While dragging, the frame previews the edit in memory:
 an edit is resolved once, where it is made: `film.edit(scene, edit)` resolves

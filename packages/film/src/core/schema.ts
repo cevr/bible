@@ -350,6 +350,7 @@ const byDur = {
    */
   ends: Schema.optionalKey(Schema.Literal(true)),
   until: Schema.optionalKey(Schema.Never),
+  untilOffset: Schema.optionalKey(Schema.Never),
 };
 
 /**
@@ -369,9 +370,16 @@ export const Until = Schema.Union([
 ]);
 export type Until = typeof Until.Type;
 
-/** A span that ends on a mark, a landmark or a cue's edge. */
+/** A span that ends on a mark, a landmark or a cue's edge, or a set time off it. */
 const untilPoint = {
   until: Until,
+  /**
+   * Where the span ends off its `until` point, in seconds (negative: before
+   * it), as `offset` is where it starts off its anchor. The end still follows
+   * the point: a lab drag of the end off it writes this, never a `dur`.
+   * Defaults to 0, on the point.
+   */
+  untilOffset: Schema.optionalKey(Schema.Finite),
   dur: Schema.optionalKey(Schema.Never),
   ends: Schema.optionalKey(Schema.Never),
 };
@@ -910,19 +918,33 @@ export const CueDur = Seconds.annotate(
 export const CuePatch = Schema.Struct({
   offset: Schema.optionalKey(CueOffset),
   dur: Schema.optionalKey(CueDur),
-  /** End on this mark instead: it replaces the span's `dur`, as a `dur` replaces its `until`. */
+  /**
+   * End on this mark instead: it replaces the span's `dur`, as a `dur` replaces
+   * its `until`, and ends on the mark itself unless `untilOffset` comes with it.
+   */
   until: Schema.optionalKey(Schema.String),
+  /** Where an `until` span ends off its point: 0 puts it back on the point (the key dropped). */
+  untilOffset: Schema.optionalKey(CueOffset),
   ease: Schema.optionalKey(EaseName),
   stagger: Schema.optionalKey(Share),
 })
   .check(
     Schema.makeFilter(
-      (p) => Object.keys(p).length > 0 || 'set at least one of offset, dur, until, ease, stagger',
+      (p) =>
+        Object.keys(p).length > 0 ||
+        'set at least one of offset, dur, until, untilOffset, ease, stagger',
     ),
   )
   .check(
     Schema.makeFilter(
       (p) => !('dur' in p && 'until' in p) || 'a span ends by its dur or on a mark, not both',
+    ),
+  )
+  .check(
+    Schema.makeFilter(
+      (p) =>
+        !('dur' in p && 'untilOffset' in p) ||
+        'a span that ends by its dur has no until point to be off',
     ),
   );
 export type CuePatch = typeof CuePatch.Type;

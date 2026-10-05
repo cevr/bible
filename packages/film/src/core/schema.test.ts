@@ -167,6 +167,25 @@ describe('Timed', () => {
     expect(until('{"cue":"r","at":"end"}')).toBe(false);
   });
 
+  test('an until span may end off its point by `untilOffset`; a dur span may not', () => {
+    const spans: ReadonlyArray<Span> = [
+      { mark: 'm', until: 'n', untilOffset: 0.1 },
+      { with: 'r', until: { cue: 'r' }, untilOffset: -0.2 },
+      // @ts-expect-error: a span ended by its dur has no point to be off
+      { mark: 'm', dur: 1, untilOffset: 0.1 },
+    ];
+    expect(spans).toHaveLength(3);
+    const timeline = (span: string) => decodes(`{"id":"a","timeline":{"walk":${span}}}`);
+    // Without the key, every span decodes as it did.
+    expect(timeline('{"mark":"m","until":"n"}')).toBe(true);
+    expect(timeline('{"mark":"m","until":"n","untilOffset":0.1}')).toBe(true);
+    expect(timeline('{"at":"start","until":{"at":"end"},"untilOffset":-0.4}')).toBe(true);
+    expect(timeline('{"mark":"m","dur":1,"untilOffset":0.1}')).toBe(false);
+    expect(timeline('{"mark":"m","dur":1,"ends":true,"untilOffset":0.1}')).toBe(false);
+    expect(timeline('{"mark":"m","untilOffset":0.1}')).toBe(false);
+    expect(timeline('{"mark":"m","until":"n","untilOffset":"0.1"}')).toBe(false);
+  });
+
   test('a stagger is a share of the cue, 0 to 1', () => {
     expect(decodes('{"id":"a","timeline":{"drop":{"mark":"m","dur":1,"stagger":0.5}}}')).toBe(true);
     expect(decodes('{"id":"a","timeline":{"drop":{"mark":"m","stagger":1.2}}}')).toBe(false);
@@ -196,6 +215,12 @@ describe('CuePatch', () => {
     expect(decodes('{"dur":1,"until":"gift"}')).toBe(false);
     expect(decodes('{"dur":-1}')).toBe(false);
     expect(decodes('{}')).toBe(false);
+  });
+
+  test("sets an until's offset either way, alone or with its until, never with a dur", () => {
+    expect(decodes('{"untilOffset":-0.1}')).toBe(true);
+    expect(decodes('{"until":"gift","untilOffset":0.2}')).toBe(true);
+    expect(decodes('{"dur":1,"untilOffset":0.2}')).toBe(false);
   });
 });
 
