@@ -114,10 +114,6 @@ const bounded = (spec: FieldSpec, value: number): number =>
 export const nudged = (spec: FieldSpec, value: number, step: Step, by: number): number =>
   bounded(spec, value + by * stepOf(spec, step));
 
-/** `value` as the inspector prints it: to the thousandth, with its unit (`0.38 s`, `940 px`). */
-export const fieldText = (spec: FieldSpec, value: number): string =>
-  [String(toMs(value)), ...[spec.unit].filter((u) => u !== '')].join(' ');
-
 /**
  * One field as the inspector shows it: which (`id`, its `data-field`), its
  * label, how it steps, its value now, why it cannot be written now if it
