@@ -28,7 +28,7 @@ import {
 import type { LoopRange } from '../../player/main.ts';
 import { type LabView, RATES } from '../view-state.ts';
 import { rateCommands } from '../../player/transport.ts';
-import { loopCommands, sceneSpan } from './commands.ts';
+import { loopCommands, onionCommand, sceneSpan } from './commands.ts';
 import type { LabSelection } from '../../command/selection.ts';
 import { useLab } from '../shell.tsx';
 import {
@@ -165,9 +165,11 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
     setRate: (r) => setRateSignal(r),
     setOnion: (change) => setOnionSignal((o) => ({ ...o, ...change })),
   };
-  // The rate and the loop as the page's commands: keys, ⌘K, the cue's menu and the section's chips.
+  // The rate, the loop and the onion as the page's commands: keys, ⌘K, the
+  // cue's menu and the section's chips and button.
   onCleanup(
     meta.hub.commands.register(
+      onionCommand(() => actions.setOnion({ on: !untrack(onion).on })),
       ...rateCommands({ all: RATES, now: rate, choose: actions.setRate }),
       ...loopCommands({
         cueSelected: () => Option.isSome(cue()),

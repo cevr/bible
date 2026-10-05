@@ -4,7 +4,8 @@
 // in point the range loops, as every editor's in/out points do), and Stop
 // looping. The loop chip in Motion's section opens them, and the rate chip
 // the transport's rates (`player/transport.ts`). Each answers quietly: the
-// section's status and the time line say the loop.
+// section's status and the time line say the loop. The onion skin's on and
+// off is one more (`onionCommand`), behind the section's Onion button.
 
 import { Option } from 'effect';
 import { type Command, quietly } from '../../command/command.ts';
@@ -81,6 +82,19 @@ export const loopCommands = (verbs: LoopVerbs): ReadonlyArray<Command> => [
     run: quietly(verbs.stop),
   },
 ];
+
+/** The onion skin's command: Motion's Onion button and ⌘K turn it on and off. */
+export const ONION = 'motion.onion';
+
+/** Turn the onion skin on or off (`toggle`): no key until a visit wants one. */
+export const onionCommand = (toggle: () => void): Command => ({
+  id: ONION,
+  label: 'Onion skin on or off',
+  group: 'Motion',
+  touch: 'the Onion button in Motion',
+  when: () => true,
+  run: quietly(toggle),
+});
 
 /** The span of the scene at `T` (`sceneAt`), among `placed`: where Loop this scene plays. */
 export const sceneSpan = (

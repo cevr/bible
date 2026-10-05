@@ -153,8 +153,8 @@ const Panel = (props: {
       </Show>
       <header>
         <ModeTray />
-        <Pen />
-        <Frame />
+        <Pen hub={page.hub} />
+        <Frame hub={page.hub} />
       </header>
       <Section class="lab-edit" mode="edit" title="Edit">
         {at('edit')}
@@ -256,7 +256,7 @@ export const LabPage = (
   };
   return (
     <LabPageContext value={value}>
-      <NotesFeed film={props.name} runtime={runtime} note={() => here().note}>
+      <NotesFeed film={props.name} runtime={runtime} hub={props.hub} note={() => here().note}>
         <Panel
           slots={(name) => (el) => {
             made.set(name, el);

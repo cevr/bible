@@ -90,7 +90,6 @@ interface NotesState {
 }
 
 interface NotesActions {
-  readonly togglePen: () => void;
   /** The pointer went down on the frame at `at`, film pixels. */
   readonly press: (at: Point) => void;
   readonly drag: (at: Point, far: boolean) => void;
@@ -166,16 +165,6 @@ const useCommands = (
         touch: 'tap it in the list, or long-press it, then Open the note',
         when: (ctx) => Option.isSome(noteOf(ctx)),
         run: quietly((ctx) => Option.map(noteOf(ctx), actions.select)),
-      },
-      {
-        id: 'notes.frame',
-        label: 'Note this frame',
-        group: 'Notes',
-        keys: ['n'],
-        touch:
-          'the Note frame button in the header; click the frame to pin a point, drag to draw a box',
-        when: () => true,
-        run: quietly(() => actions.noteFrame()),
       },
       {
         id: 'notes.cancel',
@@ -265,7 +254,6 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
   );
 
   const actions: NotesActions = {
-    togglePen: feed.togglePen,
     press: (at) => sendComposer(ComposerEvent.Press({ T: player.now(), at, pen: feed.pen() })),
     drag: (at, far) => sendComposer(ComposerEvent.Drag({ at, far })),
     lift: (at, far) => sendComposer(ComposerEvent.Lift({ at, far })),

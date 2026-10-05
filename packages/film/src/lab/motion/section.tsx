@@ -1,5 +1,5 @@
 // Motion's section of the panel and its onion layer. The section sets the
-// onion skin (on, how many frames either side, how many frames apart), the
+// onion skin (on, through its command; how many frames either side, how many frames apart), the
 // speed and the loop, each one chip opening its commands (the rate chip:
 // ¼×, ½×, 1×; the loop chip: the selected cue, this scene, the in and out
 // points, off; `commands.ts`); the layer paints the
@@ -14,7 +14,8 @@ import { RATES } from '../view-state.ts';
 import { rateId, rateText } from '../../player/transport.ts';
 import { hubKeys } from '../command/changes.ts';
 import { CommandChip } from '../command/command-chip.tsx';
-import { LOOP_IDS } from './commands.ts';
+import { BY_BUTTON } from '../../command/command.ts';
+import { LOOP_IDS, ONION } from './commands.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useMotion } from './context.tsx';
 
@@ -49,7 +50,7 @@ const SpreadField = (props: SpreadFieldProps) => {
 
 /** The onion, the speed and the loop, in Motion's section of the page's panel. */
 export const Section = () => {
-  const { state, actions } = useMotion();
+  const { state } = useMotion();
   const { meta } = useLab();
   // The chips name their keys as bound now: a rebound key reads as rebound.
   const keys = hubKeys(meta.hub);
@@ -64,8 +65,8 @@ export const Section = () => {
             type="button"
             data-act="onion"
             class={{ on: state.onion().on }}
-            title="ghost the frames around this one: warm before, cool after"
-            onClick={() => actions.setOnion({ on: !state.onion().on })}
+            title={keys.titled('ghost the frames around this one: warm before, cool after', ONION)}
+            onClick={() => meta.hub.invokeId(ONION, BY_BUTTON)}
           >
             Onion
           </button>

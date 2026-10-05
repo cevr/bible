@@ -1,5 +1,5 @@
 // Compare's section of the panel, its HEAD layer and the wipe's divider. The
-// section picks the mode; the layer draws the frame shown with HEAD's
+// section picks the mode (each button its `compare.<mode>` command); the layer draws the frame shown with HEAD's
 // timeline and knobs through today's code (`film.render(…, { edits })`, over
 // whatever else the lab previews; one frame, nothing kept), clipped left of
 // the divider in a wipe, shown on HEAD's side of a blink, and laid over the
@@ -18,7 +18,8 @@ import { useLabPage } from '../panel.tsx';
 import { Lab, useLab } from '../shell.tsx';
 import { hubKeys } from '../command/changes.ts';
 import { wipeCommands, wipeTitle } from '../wipe-keys.ts';
-import { useCompare } from './context.tsx';
+import { BY_BUTTON } from '../../command/command.ts';
+import { compareCommandId, useCompare } from './context.tsx';
 import { CompareMode } from './machine.ts';
 
 const TITLES = {
@@ -30,7 +31,9 @@ const TITLES = {
 
 /** Off, wipe, blink or diff, and what the compare says, in Compare's section of the page's panel. */
 export const Section = () => {
-  const { state, actions } = useCompare();
+  const { meta } = useLab();
+  const { state } = useCompare();
+  const keys = hubKeys(meta.hub);
   return (
     <Lab.Fill at="compare">
       <div class="lab-motion-row">
@@ -40,8 +43,8 @@ export const Section = () => {
               type="button"
               data-mode={m}
               class={{ on: state.mode() === m }}
-              title={TITLES[m]}
-              onClick={() => actions.choose(m)}
+              title={keys.titled(TITLES[m], compareCommandId(m))}
+              onClick={() => meta.hub.invokeId(compareCommandId(m), BY_BUTTON)}
             >
               {m}
             </button>
