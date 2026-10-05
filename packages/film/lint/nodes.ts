@@ -38,20 +38,26 @@ export const declared = (statement: ESTree.Node) => {
   return statement;
 };
 
-/** The numbers a file names at its top level: `const HOLD = 0.5`, exported or not. */
+/** A number written out: `0.5`, or signed, `-0.5`. */
+const writtenNumber = (n: ESTree.Node): Option.Option<number> => {
+  if (n.type === 'Literal' && Predicate.isNumber(n.value)) return Option.some(n.value);
+  if (n.type === 'UnaryExpression' && n.operator === '-')
+    return Option.map(writtenNumber(n.argument), (v) => -v);
+  return Option.none();
+};
+
+/** The numbers a file names at its top level: `const HOLD = 0.5`, `const BACK = -3`, exported or not. */
 const moduleNumbers = (program: ESTree.Node): ReadonlyMap<string, number> => {
   const out = new Map<string, number>();
   if (program.type !== 'Program') return out;
   for (const statement of program.body) {
     const declaration = declared(statement);
     if (declaration?.type !== 'VariableDeclaration' || declaration.kind !== 'const') continue;
-    for (const d of declaration.declarations)
-      if (
-        d.id.type === 'Identifier' &&
-        d.init?.type === 'Literal' &&
-        Predicate.isNumber(d.init.value)
-      )
-        out.set(d.id.name, d.init.value);
+    for (const d of declaration.declarations) {
+      const id = d.id;
+      if (id.type === 'Identifier' && d.init)
+        Option.map(writtenNumber(d.init), (v) => out.set(id.name, v));
+    }
   }
   return out;
 };
