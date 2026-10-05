@@ -5,9 +5,9 @@
 // A step counts in the field's unit or in frames of the film (`{ frames: 1 }`,
 // for seconds). The plain step is the arrows', a nudge's and a scrub's per
 // pixel; Shift takes the coarse step, Alt the fine one. A number with no
-// annotation steps as every lab field did before the inspector (0.01, Shift
-// 0.1, Alt 0.001), so no field reaches less far than it did: the fine step
-// and a typed value keep the thousandth, whatever the plain step is. Pure.
+// annotation steps by 0.01 (Shift 0.1, Alt 0.001), and every field reaches
+// as far: the fine step and a typed value keep the thousandth, whatever the
+// plain step is. Pure.
 
 import { Match, Option, Predicate, Schema } from 'effect';
 import { toMs } from './time.ts';

@@ -4,10 +4,8 @@
 // Bun strips the types that remain. One source compiles two ways
 // (`solidPluginFor`): for the browser (`dom`) and for the server's render of
 // the same components (`ssr`, `LabPage`'s server bundle); both hydratable,
-// so the browser's copy claims the markup the server's wrote. The app's
-// `bunfig.toml` names the browser one under `[serve.static]`; the render page
-// imports no `.tsx`, so it never runs there. The DOM tests bundle their
-// fixtures with it too. A module is only read, so a load runs with the file
+// so the browser's copy claims the markup the server's wrote. The DOM tests
+// bundle their fixtures with it too. A module is only read, so a load runs with the file
 // system alone, built once for the plugin: the whole platform per load (a
 // terminal each) put a listener on stdin for every module of a bundle.
 

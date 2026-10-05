@@ -15,10 +15,25 @@ import { ReviewFileUnknown } from '../core/refusals.ts';
 const MIME_TYPES = { m4a: 'audio/mp4', vtt: 'text/vtt; charset=utf-8' };
 
 /**
- * The cache policy of a file that never changes under its URL: a take or an
- * attempt (named by its hash), a note's still (by its number).
+ * The cache policies the lab answers a file with, by how it changes under
+ * its URL: `fresh`, asked again on every load (a render or a mix rewritten
+ * in place, a film's narration); `derived`, named by what it is made of (a
+ * take or an attempt by its hash, a note's still by its number, a phone
+ * copy or a frame by its source's path and mtime), kept a day; `hashed`, a
+ * build's script or style named by its own bytes' hash, kept a year,
+ * immutable.
  */
-export const IMMUTABLE = 'max-age=86400';
+export const CACHE = {
+  fresh: 'no-cache',
+  derived: 'max-age=86400',
+  hashed: 'max-age=31536000, immutable',
+} as const;
+
+/** `CACHE.derived`, as `choices-http.ts` names it. */
+export const IMMUTABLE = CACHE.derived;
+
+/** The path a request's `url` asks for, without its query. */
+export const urlPath = (url: string): string => url.split('?')[0] ?? '';
 
 /**
  * The file at `file` as `request` asks for it. A file gone since it resolved
@@ -38,7 +53,7 @@ export const serveFile = Effect.fn('review.serveFile')(function* (
   return yield* serve.pipe(
     Effect.provideService(HttpServerRequest.HttpServerRequest, request.modify({ url })),
     Effect.catchTag('HttpServerError', () =>
-      Effect.fail(ReviewFileUnknown.make({ ref: request.url.split('?')[0] ?? '' })),
+      Effect.fail(ReviewFileUnknown.make({ ref: urlPath(request.url) })),
     ),
   );
 });

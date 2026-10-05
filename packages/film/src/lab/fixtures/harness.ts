@@ -29,7 +29,7 @@ import {
   statusOf,
 } from '../../core/api.ts';
 import type { PageBuild } from '../../core/schema.ts';
-import { PAGE_MOUNTED, type PageRender } from '../../core/page-render.ts';
+import { PAGE_CUT_MARK, PAGE_MOUNTED, type PageRender } from '../../core/page-render.ts';
 import { splice } from '../../tools/lab-page.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
 import { bundled, served } from './bundles.ts';
@@ -545,6 +545,11 @@ interface ReviewAt {
   readonly viewport?: Viewport;
   /** The build the page was served at, as the lab stamps it; none: unstamped (it hears no mixes). */
   readonly build?: PageBuild;
+  /**
+   * A served page's render, cut this long after it began if it has not ended
+   * (`rendered`), as the lab cuts one; none: each render ends.
+   */
+  readonly cut?: Duration.Input;
 }
 
 /**
@@ -662,16 +667,52 @@ const fetched = (response: Response): globalThis.Response =>
 /**
  * `render` of the page at `url`, whole, its reads answered by `read` (a
  * GET of the path, as the lab answers a render's reads); a held read holds
- * it, and a failed render fails the test.
+ * it, and a failed render fails the test. Given `cut`, a render still under
+ * way that long after it began is cut as the lab cuts one (`END_WAIT`,
+ * `tools/page-render.ts`): stopped, its markup what it wrote and the mark
+ * of a cut (`PAGE_CUT_MARK`).
  */
 const rendered = (
   render: PageRender,
   url: URL,
   read: (request: Request) => Effect.Effect<Option.Option<Response>>,
+  cut: Option.Option<Duration.Duration>,
 ): Effect.Effect<Rendered> =>
-  Effect.callback<Rendered>((resume, signal) => {
-    let head = '';
-    const body: Array<string> = [];
+  Effect.suspend(() => {
+    const written: Written = { head: '', body: [] };
+    const sofar = (): Rendered => ({
+      head: written.head,
+      bodyClass: render.bodyClass,
+      body: written.body.join(''),
+      pieces: written.body,
+    });
+    const whole = Effect.map(rendering(render, url, read, written), sofar);
+    return Option.match(cut, {
+      onNone: () => whole,
+      onSome: (after) =>
+        Effect.map(Effect.timeoutOption(whole, after), (ended) =>
+          Option.getOrElse(ended, () => {
+            written.body.push(PAGE_CUT_MARK);
+            return sofar();
+          }),
+        ),
+    });
+  });
+
+/** What a render has written so far: its head, and each piece of its markup in order. */
+interface Written {
+  head: string;
+  readonly body: Array<string>;
+}
+
+/** `render` of the page at `url` to its end, what it writes kept in `written` as it is written. */
+const rendering = (
+  render: PageRender,
+  url: URL,
+  read: (request: Request) => Effect.Effect<Option.Option<Response>>,
+  written: Written,
+): Effect.Effect<void> =>
+  Effect.callback<void>((resume, signal) => {
     // The render's client asks at the page's origin, so every read's URL is whole.
     const readOf = (input: RequestInfo | URL) =>
       Effect.runPromise(
@@ -688,20 +729,12 @@ const rendered = (
       },
       {
         head: (html) => {
-          head = html;
+          written.head = html;
         },
         write: (html) => {
-          body.push(html);
+          written.body.push(html);
         },
-        end: () =>
-          resume(
-            Effect.succeed({
-              head,
-              bodyClass: render.bodyClass,
-              body: body.join(''),
-              pieces: body,
-            }),
-          ),
+        end: () => resume(Effect.void),
         fail: (reason) => resume(Effect.die(`the page's server render failed: ${reason}`)),
       },
     );
@@ -730,7 +763,8 @@ interface OpenServed extends OpenLab {
  * `routes` (and kept in `read`), spliced into the page's HTML as the lab
  * splices it (`splice`, `tools/lab-page.ts`); the browser's script (the
  * real entry, with Solid's development build) hydrates it. The page's own
- * requests are kept in `asked`. Done once the page says it is hydrated; a
+ * requests are kept in `asked`. Done once the page says it is hydrated (a
+ * page served cut, its render past `at.cut`: rendered anew); a
  * render that fails on the way (one that writes state among them, `served`)
  * is answered as an error and fails the open at once, in its words, where
  * the page would wait for a document that never comes.
@@ -742,6 +776,7 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
 ) {
   const spec = SERVED[name];
   const build = Option.fromUndefinedOr(at.build);
+  const cut = Option.map(Option.fromUndefinedOr(at.cut), Duration.fromInputUnsafe);
   const render = yield* spec.render;
   const script = yield* spec.script;
   const all = [...routes, ...spec.defaults];
@@ -751,7 +786,7 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
   const failed = yield* Deferred.make<never>();
   const document = (request: Request) =>
     Effect.gen(function* () {
-      const page = yield* rendered(render, request.url, apiAnswer(spec.prefix, all, read));
+      const page = yield* rendered(render, request.url, apiAnswer(spec.prefix, all, read), cut);
       const [before, after] = yield* Option.match(splice(spec.html(script, build), page), {
         onNone: () => Effect.die(`the ${name} page has no head or body to splice into`),
         onSome: Effect.succeed,
@@ -779,10 +814,19 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
     serve: fakeServer(servedBy(name, document), spec.prefix, all, asked),
   });
   yield* page.goto(at.href ?? spec.home);
+  // A page served cut (its document carries the mark) is rendered anew; any other,
+  // a render that ended before `at.cut` among them, hydrates the server's markup.
+  const servedCut = Option.exists(Arr.last(documents), (served) =>
+    served.html.includes(PAGE_CUT_MARK),
+  );
+  const mounted = Option.match(Option.liftPredicate(servedCut, Boolean), {
+    onNone: () => 'hydrated',
+    onSome: () => 'rendered',
+  });
   yield* Effect.raceFirst(
-    page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === 'hydrated'`, {
+    page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === '${mounted}'`, {
       now: `document.body.getAttribute('${PAGE_MOUNTED}')`,
-      say: (now) => `the ${name} page was not hydrated: its body says it was mounted ${now}`,
+      say: (now) => `the ${name} page was not ${mounted}: its body says it was mounted ${now}`,
     }),
     Deferred.await(failed),
   );

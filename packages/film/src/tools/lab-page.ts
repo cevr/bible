@@ -17,8 +17,8 @@
 // watch hears it (judged once no build is reading), and a look asks a build
 // whose files print as they stand (`built`). Each change to
 // one of those files is numbered (the build), and an open page that waits on
-// `/api/review/build?since=` hears of it and reloads onto the new code, as
-// the development server's hot reload did. A film's mixed track
+// `/api/review/build?since=` hears of it and reloads onto the new code. A
+// film's mixed track
 // (`narration/full.wav`) is no source, but a page plays the one it loaded:
 // once one is asked for, there or not (a film before its first mix), its
 // folder is watched too, or the nearest one there on the way to it until the
@@ -38,6 +38,7 @@ import {
   Array as Arr,
   Clock,
   Context,
+  Deferred,
   Duration,
   Effect,
   Equal,
@@ -60,11 +61,12 @@ import {
 } from 'effect';
 import type { BunPlugin } from 'bun';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
+import { LONGEST_WAIT, type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import type { PageBuild } from '../core/schema.ts';
-import type { PageAnswer } from './api-server.ts';
+import { PAGE_CUT_MARK } from '../core/page-render.ts';
+import { brotliCompress, constants as zlib } from 'node:zlib';
+import { type PageAnswer, PageReads, pageCodingOf } from './api-server.ts';
 import {
-  PageReads,
   PageRenderer,
   type RenderBuild,
   type RenderedPage,
@@ -72,7 +74,7 @@ import {
 } from './page-render.ts';
 import { isNarrationUrl, narrationPath } from './narration-route.ts';
 import { narrationUrls } from '../player/narrated.ts';
-import { serveFile } from './review-file.ts';
+import { CACHE, serveFile } from './review-file.ts';
 import type { Remade } from './source-writer.ts';
 
 /** What the app builds its pages from. */
@@ -94,6 +96,54 @@ interface BuiltFile {
   readonly bytes: Uint8Array;
   readonly type: string;
 }
+
+/**
+ * A build's script, style or map as it is asked for: its bytes and media
+ * type, and, for text worth compressing (`squeezable`), its brotli at the
+ * best quality (`BEST_BR`), made once in the background after the build
+ * (`squeeze`) and shared by every kept build that makes the same file (a
+ * file is named by its hash, so the same name is the same bytes). Until it
+ * is made, the file is compressed per request, as a page is.
+ */
+interface AssetFile extends BuiltFile {
+  readonly best: Option.Option<Deferred.Deferred<Uint8Array>>;
+}
+
+/** The brotli quality a build's files are kept at: the smallest, made once per file. */
+const BEST_BR = 11;
+
+/** The least a file weighs to be kept compressed: the compression middleware's own floor. */
+const SQUEEZE_FROM = 1024;
+
+/**
+ * Whether `file` is kept compressed: a script or a style (text) of at least
+ * `SQUEEZE_FROM` bytes. A map is not: only the devtools ask for one, and
+ * the maps are most of a build's bytes (all of a build's files at the best
+ * took 24 s; its scripts and styles alone a fraction).
+ */
+const squeezable = (file: BuiltFile): boolean =>
+  file.bytes.byteLength >= SQUEEZE_FROM && file.type.startsWith('text/');
+
+/** `bytes` at brotli's best quality, in zlib's thread pool, off the lab's thread. */
+const brotliBest = (bytes: Uint8Array) =>
+  Effect.callback<Uint8Array, Error>((resume) => {
+    brotliCompress(
+      bytes,
+      {
+        params: {
+          [zlib.BROTLI_PARAM_QUALITY]: BEST_BR,
+          [zlib.BROTLI_PARAM_SIZE_HINT]: bytes.byteLength,
+        },
+      },
+      (error, out) =>
+        resume(
+          Option.match(Option.fromNullishOr(error), {
+            onNone: () => Effect.succeed(new Uint8Array(out)),
+            onSome: Effect.fail,
+          }),
+        ),
+    );
+  });
 
 /** A built file at its path relative to the build's root (`lab.html`, `chunk-….js`). */
 type BuiltAt = BuiltFile & { readonly path: string };
@@ -376,7 +426,7 @@ interface Built {
     | {
         readonly _tag: 'Built';
         readonly pages: ReadonlyMap<PageName, BuiltFile>;
-        readonly files: ReadonlyMap<string, BuiltFile>;
+        readonly files: ReadonlyMap<string, AssetFile>;
         /** Its server bundle: its modules by their paths from the root, and each rendered page's entry. */
         readonly server: ServerBundle;
       }
@@ -407,8 +457,6 @@ const BUILD_TRIES = 3;
 const KEPT = 3;
 /** Saves land as a burst (a formatter, several files): a waiting page hears of them once settled. */
 const SETTLE = Duration.millis(150);
-/** The longest a wait holds a request open. */
-const MAX_WAIT = Duration.seconds(60);
 /** How long a new watch is given to start before the files it now watches are checked. */
 const ARMING = Duration.millis(250);
 /** How far a file's mtime may lag the clock: a save during a build is counted from this before it began. */
@@ -470,8 +518,8 @@ interface LabPageService {
   readonly answer: PageAnswer;
   /**
    * The pages' build as the sources stand: past `since` once a source
-   * changes, held up to `timeout`; at once when the page was served by
-   * another server.
+   * changes, held up to `timeout` (a query's, at most `LONGEST_WAIT`); at
+   * once when the page was served by another server.
    */
   readonly wait: (served: Served, timeout: Duration.Input) => Effect.Effect<PageBuild>;
   /**
@@ -530,7 +578,7 @@ const WEDGE_PATH = '/wedge/';
 interface WedgeBuilt {
   readonly id: string;
   readonly pages: ReadonlyMap<PageName, BuiltFile>;
-  readonly files: ReadonlyMap<string, BuiltFile>;
+  readonly files: ReadonlyMap<string, AssetFile>;
 }
 
 /** How many of a build's files are checked at once for a save no watch heard. */
@@ -588,10 +636,11 @@ const bodyWith = (attributes: string, extra: string): string => {
 /**
  * A built page split around where its render goes: before, the page up to
  * its body's opening tag, with the render's head before `</head>` and its
- * body's class on `<body>`; after, the rest of the body, the page's own
- * scripts in it (a module script runs once the document is whole, so the
- * browser's copy finds the markup, whatever their order). None for a page
- * with no head or body to put them in.
+ * body's class on `<body>`; after, the rest of the body. The page's own
+ * scripts and stylesheet are in its head (Bun's HTML bundler puts them
+ * there), so they are in before and fetched while the render streams; a
+ * module script still waits until the document ends, so the browser's copy
+ * finds the markup. None for a page with no head or body to put them in.
  */
 export const splice = (
   html: string,
@@ -643,7 +692,7 @@ const failedPage = (reason: string, build: PageBuild, tokens: string) =>
   `<body>` +
   `<h1>The lab's page did not build</h1><pre>${escapeHtml(reason)}</pre>` +
   `<script>(async()=>{const S=${jsonText(build.server)},B=${build.build},` +
-  `u=${jsonText(labUrls.page.wait({ query: { since: build.build, server: build.server } }))};` +
+  `u=${jsonText(labUrls.page.wait({ query: { since: build.build, server: build.server, timeout: LONGEST_WAIT } }))};` +
   `for(;;){try{const r=await fetch(u);if(r.ok){const b=await r.json();if(b.server!==S||b.build>B)return location.reload()}}catch{}` +
   `await new Promise(f=>setTimeout(f,${FAILED_PAUSE_MS}))}})()</script>` +
   `</body></html>`;
@@ -661,7 +710,7 @@ const pagesOf = (built: Built): ReadonlyMap<PageName, BuiltFile> => {
 };
 
 /** A build's files; a failed one has none. */
-const filesOf = (built: Built): ReadonlyMap<string, BuiltFile> => {
+const filesOf = (built: Built): ReadonlyMap<string, AssetFile> => {
   if (built.outcome._tag === 'Built') return built.outcome.files;
   return new Map();
 };
@@ -815,29 +864,32 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * then `fs.rename` onto it), never by writes in place, so one mix is one
    * new mtime; a watch's event, a check after arming and a write asking
    * for its own mix (`heardAt`) that all see it count it once, and keep the
-   * change it was counted as.
+   * change it was counted as: one step a write's request that leaves cannot
+   * cut, so a mtime is never kept without its count.
    */
   const landed = (master: string) =>
     landing.withPermit(
-      Effect.gen(function* () {
-        const at = yield* mtimeOf(master);
-        if (Option.isNone(at)) return;
-        const fresh = yield* Ref.modify(
-          masters,
-          (known): readonly [boolean, ReadonlyMap<string, Option.Option<number>>] => {
-            const last = Option.fromUndefinedOr(known.get(master));
-            if (Option.isNone(last) || Equal.equals(last.value, at)) return [false, known];
-            return [true, new Map([...known, [master, at]])];
-          },
-        );
-        if (!fresh) return;
-        const seen = yield* SubscriptionRef.updateAndGet(changes, mixOf(filmOf(master)));
-        yield* Ref.update(counted, (kept) => {
-          const before = Option.getOrElse(Option.fromUndefinedOr(kept.get(master)), () => []);
-          const next = [...before, [at.value, seen.n] as const].slice(-COUNTED_KEPT);
-          return new Map([...kept, [master, next]]);
-        });
-      }),
+      Effect.uninterruptible(
+        Effect.gen(function* () {
+          const at = yield* mtimeOf(master);
+          if (Option.isNone(at)) return;
+          const fresh = yield* Ref.modify(
+            masters,
+            (known): readonly [boolean, ReadonlyMap<string, Option.Option<number>>] => {
+              const last = Option.fromUndefinedOr(known.get(master));
+              if (Option.isNone(last) || Equal.equals(last.value, at)) return [false, known];
+              return [true, new Map([...known, [master, at]])];
+            },
+          );
+          if (!fresh) return;
+          const seen = yield* SubscriptionRef.updateAndGet(changes, mixOf(filmOf(master)));
+          yield* Ref.update(counted, (kept) => {
+            const before = Option.getOrElse(Option.fromUndefinedOr(kept.get(master)), () => []);
+            const next = [...before, [at.value, seen.n] as const].slice(-COUNTED_KEPT);
+            return new Map([...kept, [master, next]]);
+          });
+        }),
+      ),
     );
 
   /**
@@ -894,7 +946,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       if (below.length === 0) return;
       // Forked: the new watch may let go of the folder this one is heard in.
       yield* Effect.forkIn(
-        Effect.andThen(watching.withPermit(rewatch), landedUnwatched(below)),
+        Effect.andThen(rewatchAfter(Effect.void), landedUnwatched(below)),
         scope,
       );
     });
@@ -924,7 +976,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * track asked for, its folder, or the nearest one there on the way to it:
    * a folder already watched keeps its watch (a save there is never between
    * two watches), one no longer named is let go, and the folders newly
-   * watched are answered. Run under `watching`.
+   * watched are answered. Run by `rewatchAfter`.
    */
   const rewatch: Effect.Effect<ReadonlyArray<string>> = Effect.gen(function* () {
     const tracks = yield* Effect.forEach((yield* Ref.get(masters)).keys(), (track) =>
@@ -943,9 +995,17 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     return added;
   });
 
+  /**
+   * `change` to what is watched, then the watches made to match it
+   * (`rewatch`), under `watching` and as one step: a request that leaves
+   * part-way (its client gone) cannot cut it, so `watchers` names every
+   * watch running and no watch that ended.
+   */
+  const rewatchAfter = (change: Effect.Effect<void>) =>
+    watching.withPermit(Effect.uninterruptible(Effect.andThen(change, rewatch)));
+
   /** Watch exactly `dirs` for the builds, beside the tracks' folders; answers the folders newly watched. */
-  const watchOnly = (dirs: ReadonlyArray<string>) =>
-    watching.withPermit(Effect.andThen(Ref.set(asked, dirs), rewatch));
+  const watchOnly = (dirs: ReadonlyArray<string>) => rewatchAfter(Ref.set(asked, dirs));
 
   /**
    * `file`, asked for at `pathname`, there or not: when it is its film's
@@ -959,12 +1019,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       if (pathname !== narrationUrls(filmOf(master)).audio) return;
       if ((yield* Ref.get(masters)).has(master)) return;
       const at = yield* mtimeOf(master);
-      yield* watching.withPermit(
-        Effect.andThen(
-          Ref.update(masters, (known) => new Map([...known, [master, at]])),
-          rewatch,
-        ),
-      );
+      yield* rewatchAfter(Ref.update(masters, (known) => new Map([...known, [master, at]])));
       yield* landedUnwatched([master]);
     });
 
@@ -1021,6 +1076,59 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     return 'Steady';
   };
 
+  /**
+   * A build's files (`made`, each by the path it is asked at) as it answers
+   * them: each squeezable one given its best brotli, shared with a kept
+   * build's file of the same path or made once in the background (`squeeze`),
+   * which the lab's scope stops.
+   */
+  const assetsOf = Effect.fnUntraced(function* (made: ReadonlyArray<readonly [string, BuiltFile]>) {
+    const kept = new Map((yield* Ref.get(builds)).flatMap((b) => [...filesOf(b)]));
+    const files = new Map<string, AssetFile>();
+    const fresh: Array<readonly [string, Uint8Array, Deferred.Deferred<Uint8Array>]> = [];
+    for (const [at, file] of made) {
+      const shared = Option.flatMap(Option.fromUndefinedOr(kept.get(at)), (k) => k.best);
+      if (Option.isSome(shared) || !squeezable(file)) {
+        files.set(at, { ...file, best: shared });
+        continue;
+      }
+      const best = yield* Deferred.make<Uint8Array>();
+      fresh.push([at, file.bytes, best]);
+      files.set(at, { ...file, best: Option.some(best) });
+    }
+    if (fresh.length > 0) yield* Effect.forkIn(squeeze(fresh), scope);
+    return files;
+  });
+
+  /**
+   * Each of `fresh` compressed at the best (`brotliBest`), one at a time so
+   * a build takes one of zlib's threads; one that fails stays compressed
+   * per request, and is logged.
+   */
+  const squeeze = (
+    fresh: ReadonlyArray<readonly [string, Uint8Array, Deferred.Deferred<Uint8Array>]>,
+  ) =>
+    Effect.gen(function* () {
+      const started = yield* Clock.currentTimeMillis;
+      const sizes = yield* Effect.forEach(fresh, ([at, bytes, best]) =>
+        brotliBest(bytes).pipe(
+          Effect.tap((out) => Deferred.succeed(best, out)),
+          Effect.map((out) => out.byteLength),
+          Effect.catch((error) =>
+            Effect.as(
+              Effect.logWarning(`lab.page.squeeze.failed path=${at} reason="${error.message}"`),
+              bytes.byteLength,
+            ),
+          ),
+        ),
+      );
+      const ms = (yield* Clock.currentTimeMillis) - started;
+      const raw = Arr.reduce(fresh, 0, (sum, [, bytes]) => sum + bytes.byteLength);
+      yield* Effect.log(
+        `lab.page.squeezed files=${fresh.length} raw=${raw} br=${Arr.reduce(sizes, 0, (a, b) => a + b)} ms=${ms}`,
+      );
+    });
+
   const bundle = Effect.fnUntraced(function* (build: number) {
     const started = yield* Clock.currentTimeMillis;
     // The files the last build read, printed before this one reads them: one whose print
@@ -1057,16 +1165,16 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
             started,
           );
           const pages = new Map<PageName, BuiltFile>();
-          const files = new Map<string, BuiltFile>();
+          const made: Array<readonly [string, BuiltFile]> = [];
           for (const { path: name, ...built } of outputs)
             Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
-              onNone: () => files.set(`/${name}`, built),
+              onNone: () => made.push([`/${name}`, built]),
               onSome: (page) => pages.set(page, built),
             });
           return {
             _tag: 'Built',
             pages,
-            files,
+            files: yield* assetsOf(made),
             server: { files: server, entries: serverModules },
           } as const;
         }),
@@ -1104,26 +1212,35 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * last build answered again is stamped with the changes seen now, a mix
    * since among them, so its page waits past them. A build a save moved while
    * it read (`Moved`) is one more change once made: the next ask builds again,
-   * and a waiting page hears it. Run under `building`.
+   * and a waiting page hears it. Run under `building`, as one step: a request
+   * that leaves while it builds (its client gone) leaves the build to end, so
+   * the builds kept, the files read and the watches always agree (`Bun.build`
+   * cannot be stopped anyway).
    */
-  const currentHeld = Effect.gen(function* () {
-    const now = (yield* SubscriptionRef.get(changes)).n;
-    const since = yield* Ref.get(sourced);
-    const last = Arr.head(yield* Ref.get(builds)).pipe(Option.filter((b) => b.build >= since));
-    if (Option.isSome(last) && last.value.outcome._tag === 'Built' && last.value.fresh !== 'Moved')
-      return { ...last.value, build: now };
-    let made = yield* bundle(now);
-    if (Option.isSome(last) && made.outcome._tag === 'Built') {
-      const n = (yield* SubscriptionRef.updateAndGet(changes, forAll)).n;
-      made = { ...made, build: n, kept: n };
-    }
-    yield* Ref.update(builds, (kept) => [made, ...kept].slice(0, KEPT));
-    if (made.fresh === 'Moved') {
-      yield* Effect.log(`lab.page.build.moved build=${made.build}`);
-      yield* sourceChanged;
-    }
-    return made;
-  });
+  const currentHeld = Effect.uninterruptible(
+    Effect.gen(function* () {
+      const now = (yield* SubscriptionRef.get(changes)).n;
+      const since = yield* Ref.get(sourced);
+      const last = Arr.head(yield* Ref.get(builds)).pipe(Option.filter((b) => b.build >= since));
+      if (
+        Option.isSome(last) &&
+        last.value.outcome._tag === 'Built' &&
+        last.value.fresh !== 'Moved'
+      )
+        return { ...last.value, build: now };
+      let made = yield* bundle(now);
+      if (Option.isSome(last) && made.outcome._tag === 'Built') {
+        const n = (yield* SubscriptionRef.updateAndGet(changes, forAll)).n;
+        made = { ...made, build: n, kept: n };
+      }
+      yield* Ref.update(builds, (kept) => [made, ...kept].slice(0, KEPT));
+      if (made.fresh === 'Moved') {
+        yield* Effect.log(`lab.page.build.moved build=${made.build}`);
+        yield* sourceChanged;
+      }
+      return made;
+    }),
+  );
   const current = building.withPermit(currentHeld);
 
   /** The build a page playing `film` (or none) hears now. */
@@ -1174,10 +1291,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
           Effect.andThen(Effect.sleep(SETTLE)),
         ),
         retryFailed,
-      ).pipe(
-        Effect.timeoutOption(Duration.min(Duration.fromInputUnsafe(timeout), MAX_WAIT)),
-        Effect.andThen(now(served.film)),
-      ),
+      ).pipe(Effect.timeoutOption(timeout), Effect.andThen(now(served.film))),
     );
   };
 
@@ -1186,7 +1300,8 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * rendered on the server at `url` by its server entry: the page's markup
    * streamed into it as it is written. A render that fails before its head
    * answers the page as made, which the browser renders itself; one that
-   * fails later leaves what it wrote.
+   * fails later (or is cut, `END_WAIT`) leaves what it wrote and the mark of
+   * a cut (`PAGE_CUT_MARK`), and the browser renders that page anew too.
    */
   const rendered = (
     name: PageName,
@@ -1212,12 +1327,13 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
               Stream.concat(
                 made.success.markup.pipe(
                   Stream.catch((error) =>
-                    Stream.drain(
+                    Stream.as(
                       Stream.fromEffect(
                         Effect.logWarning(
                           `lab.page.render.cut page=${name} build=${build.id} reason="${error.reason}"`,
                         ),
                       ),
+                      PAGE_CUT_MARK,
                     ),
                   ),
                 ),
@@ -1258,20 +1374,44 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       });
     });
 
-  /** A script, style or map by its path, in the builds and wedges kept: each named by its hash, so never changed. */
+  /**
+   * A script, style or map by its path, in the builds and wedges kept: each
+   * named by its hash, so never changed. Sent as its best brotli once that
+   * is made and the request's coding is br (`pageCodingOf`); else as it is,
+   * for the server's compression to compress per request.
+   */
   const asset = (pathname: string) =>
     Effect.gen(function* () {
       const kept = [
         ...(yield* Ref.get(builds)).map(filesOf),
         ...(yield* Ref.get(wedges)).map((w) => w.files),
       ];
-      return Option.map(
-        Arr.findFirst(kept, (files) => Option.fromUndefinedOr(files.get(pathname))),
-        ({ bytes, type }) =>
-          HttpServerResponse.uint8Array(bytes, {
-            contentType: type,
-            headers: { 'cache-control': 'max-age=31536000, immutable' },
-          }),
+      const found = Arr.findFirst(kept, (files) => Option.fromUndefinedOr(files.get(pathname)));
+      if (Option.isNone(found)) return Option.none();
+      const { bytes, type, best } = found.value;
+      const accept = Option.fromUndefinedOr(
+        (yield* HttpServerRequest.HttpServerRequest).headers['accept-encoding'],
+      );
+      const made = yield* Option.match(
+        Option.filter(best, () => Option.contains(pageCodingOf(accept), 'br')),
+        {
+          onNone: () => Effect.succeedNone,
+          onSome: (deferred) =>
+            Effect.flatMap(Deferred.isDone(deferred), (done) =>
+              Effect.when(Deferred.await(deferred), Effect.succeed(done)),
+            ),
+        },
+      );
+      const cache = { 'cache-control': CACHE.hashed };
+      return Option.some(
+        Option.match(made, {
+          onNone: () => HttpServerResponse.uint8Array(bytes, { contentType: type, headers: cache }),
+          onSome: (br) =>
+            HttpServerResponse.uint8Array(br, {
+              contentType: type,
+              headers: { ...cache, 'content-encoding': 'br', vary: 'Accept-Encoding' },
+            }),
+        }),
       );
     });
 
@@ -1326,7 +1466,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
             Effect.andThen(
               trackAsked(pathname, file),
               Effect.flatMap(fs.exists(file), (there) => {
-                if (there) return serveFile(request, file, 'no-cache');
+                if (there) return serveFile(request, file, CACHE.fresh);
                 return Effect.succeed(NOT_FOUND);
               }),
             ),
@@ -1443,12 +1583,13 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
           return { ...now, failed: Option.some(made.failure.reason), wedge: '' } satisfies Wedged;
         }
         const pages = new Map<PageName, BuiltFile>();
-        const files = new Map<string, BuiltFile>();
+        const asked: Array<readonly [string, BuiltFile]> = [];
         for (const { path: name, ...file } of made.success.outputs)
           Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
-            onNone: () => files.set(`${prefix}${name}`, file),
+            onNone: () => asked.push([`${prefix}${name}`, file]),
             onSome: (page) => pages.set(page, file),
           });
+        const files = yield* assetsOf(asked);
         yield* Ref.update(wedges, (kept) => [{ id, pages, files }, ...kept].slice(0, KEPT));
         yield* Effect.log(`lab.page.wedge id=${id} outcome=Built swaps=${swaps.size}`);
         return { ...now, wedge: id } satisfies Wedged;

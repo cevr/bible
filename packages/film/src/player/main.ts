@@ -164,9 +164,15 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
   return { name, film, canvas, ctx, captions };
 };
 
-/** A page that could not start: the error, in place of the page. */
+/**
+ * A page that could not start: the error, in place of the page, as text (an
+ * error's words may hold markup, a film's name from the URL among them).
+ */
 export const showFailure = (e: unknown): void => {
-  document.body.innerHTML = `<pre style="color:var(--state-findings);padding:24px;white-space:pre-wrap">${String(e instanceof Error ? (e.stack ?? e.message) : e)}</pre>`;
+  const shown = document.createElement('pre');
+  shown.style.cssText = 'color:var(--state-findings);padding:24px;white-space:pre-wrap';
+  shown.textContent = String(e instanceof Error ? (e.stack ?? e.message) : e);
+  document.body.replaceChildren(shown);
 };
 
 /**

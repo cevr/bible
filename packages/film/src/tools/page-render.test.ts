@@ -12,6 +12,7 @@ import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import {
   Deferred,
+  Duration,
   Effect,
   Exit,
   Fiber,
@@ -20,11 +21,14 @@ import {
   Logger,
   Option,
   Path,
+  Ref,
   Stream,
 } from 'effect';
-import type { PageName } from '../core/api.ts';
+import * as PlatformError from 'effect/PlatformError';
+import { TestClock } from 'effect/testing';
+import { LONGEST_WAIT, type PageName } from '../core/api.ts';
 import { PageBundler } from './lab-page.ts';
-import { PageRenderer, type RenderBuild, type ServerBundle } from './page-render.ts';
+import { END_WAIT, PageRenderer, type RenderBuild, type ServerBundle } from './page-render.ts';
 
 const Services = Layer.mergeAll(PageBundler.layer, PageRenderer.layer).pipe(
   Layer.provideMerge(BunServices.layer),
@@ -92,6 +96,55 @@ export default {
   },
 };
 `;
+
+/** A server entry whose page reads `/api/one` and writes the answer's status and text. */
+const READS_ONE = `
+export default {
+  bodyClass: 'reads-one',
+  render: ({ url, fetch }, sink) => {
+    sink.head('');
+    fetch(new URL('/api/one', url))
+      .then((response) => response.text().then((text) => sink.write('<p>' + response.status + ' ' + text + '</p>')))
+      .finally(() => sink.end());
+  },
+};
+`;
+
+/** A server bundle of one module, `code`, the review's entry. */
+const moduleBundle = (code: string): ServerBundle => ({
+  files: [{ path: 'page.js', bytes: new TextEncoder().encode(code) }],
+  entries: new Map<PageName, string>([['review', 'page.js']]),
+});
+
+/**
+ * The file system, its first temp folder failing to be made: a worker's
+ * spawn that fails (a spawn reads the file system it is rendered with).
+ */
+const failingFirstTempFolder = Layer.effect(
+  FileSystem.FileSystem,
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const made = yield* Ref.make(0);
+    return FileSystem.FileSystem.of({
+      ...fs,
+      makeTempDirectoryScoped: (options) =>
+        Effect.flatMap(
+          Ref.getAndUpdate(made, (n) => n + 1),
+          (n) => {
+            if (n > 0) return fs.makeTempDirectoryScoped(options);
+            return Effect.fail(
+              PlatformError.systemError({
+                _tag: 'Unknown',
+                module: 'FileSystem',
+                method: 'makeTempDirectoryScoped',
+                description: 'no temp folder',
+              }),
+            );
+          },
+        ),
+    });
+  }),
+);
 
 /** The module instance a page names: one per import of its server entry. */
 const instanceOf = (markup: string) => /<p id="instance"[^>]*>([^<]+)</.exec(markup)?.[1] ?? '';
@@ -266,6 +319,77 @@ describe("a page's server render", () => {
         expect(page.head).toContain('font-display:swap');
         expect(browser.outputs.map((file) => `/${file.path}`)).toContain(preloaded);
       }).pipe(Effect.scoped, Effect.provide(Services)),
+  );
+
+  it.live("spawns a build's worker again after its spawn failed: the failure is not kept", () =>
+    Effect.gen(function* () {
+      const bundle = yield* fixtureBundle;
+      const failed = yield* Effect.flip(renderOf({ id: 1, bundle }, answering('a')));
+      expect(failed.reason).toContain('no temp folder');
+      const page = yield* renderOf({ id: 1, bundle }, answering('again'));
+      expect(page.markup).toContain('again');
+    }).pipe(Effect.provide(failingFirstTempFolder.pipe(Layer.provideMerge(Services)))),
+  );
+
+  it.live(
+    "answers a read the lab cannot answer a 502 with why, so the render's fetch settles",
+    () =>
+      Effect.gen(function* () {
+        const page = yield* renderOf({ id: 1, bundle: moduleBundle(READS_ONE) }, () =>
+          Effect.die(new Error('the handler died')),
+        ).pipe(Effect.timeoutOption('3 seconds'));
+        expect(Option.map(page, (p) => p.markup)).toEqual(
+          Option.some('<p>502 Error: the handler died</p>'),
+        );
+      }).pipe(Effect.provide(Services)),
+  );
+
+  it.effect(
+    'waits out a read that takes as long as a lab request may be held (`LONGEST_WAIT`): the render ends with its answer, uncut',
+    () =>
+      Effect.gen(function* () {
+        const asked = yield* Deferred.make<void>();
+        const page = yield* Effect.forkChild(
+          renderOf({ id: 1, bundle: moduleBundle(READS_ONE) }, () =>
+            Effect.andThen(
+              Deferred.done(asked, Exit.void),
+              Effect.as(Effect.sleep(Duration.seconds(LONGEST_WAIT)), new Response('slow')),
+            ),
+          ),
+        );
+        yield* Deferred.await(asked);
+        yield* TestClock.adjust(Duration.seconds(LONGEST_WAIT));
+        expect((yield* Fiber.join(page)).markup).toBe('<p>200 slow</p>');
+      }).pipe(Effect.provide(Services)),
+  );
+
+  it.effect(
+    'cuts a render that goes on too long after its head, and stops it with the read it waits on',
+    () =>
+      Effect.gen(function* () {
+        const asked = yield* Deferred.make<void>();
+        const stopped = yield* Deferred.make<void>();
+        yield* Effect.gen(function* () {
+          const renderer = yield* PageRenderer;
+          const page = yield* renderer.render(
+            { id: 1, bundle: moduleBundle(READS_ONE) },
+            'review',
+            URL_ASKED,
+            () =>
+              Effect.andThen(Deferred.done(asked, Exit.void), Effect.never).pipe(
+                Effect.onInterrupt(() => Deferred.done(stopped, Exit.void)),
+              ),
+          );
+          const markup = yield* Effect.forkChild(Effect.flip(Stream.runDrain(page.markup)));
+          yield* Deferred.await(asked);
+          yield* TestClock.adjust(END_WAIT);
+          expect((yield* Fiber.join(markup)).reason).toContain(
+            `no end in ${Duration.format(END_WAIT)} after its head`,
+          );
+        }).pipe(Effect.scoped);
+        // The render's scope closed with the cut: its read's handler stopped with it.
+        expect(yield* Deferred.isDone(stopped)).toBe(true);
+      }).pipe(Effect.provide(Services)),
   );
 
   it.live('fails a render whose server entry exports no page render', () =>

@@ -333,6 +333,25 @@ const FileBytes = Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array());
 
 const film = { film: Schema.String };
 
+/** The longest a wait holds a request open, in seconds. */
+export const LONGEST_WAIT = 60;
+
+/**
+ * A wait's `timeout` query, in seconds: absent, the longest; any other held
+ * within 0..`LONGEST_WAIT` as it is decoded, so the server waits as long as
+ * the query says and never longer.
+ */
+export const WaitTimeout = Schema.Finite.pipe(
+  Schema.decodeTo(
+    Schema.Finite,
+    SchemaTransformation.transform({
+      decode: (seconds) => Math.min(Math.max(seconds, 0), LONGEST_WAIT),
+      encode: (seconds) => seconds,
+    }),
+  ),
+  Schema.withDecodingDefaultKey(Effect.succeed(LONGEST_WAIT)),
+);
+
 /** Where every route of the API lives: no page path starts with it. */
 const API = '/api';
 /** One film's routes. */
@@ -365,10 +384,10 @@ class NotesGroup extends HttpApiGroup.make('notes').add(
     success: Note,
     error: Refusals,
   }),
-  /** The changes past `since`, held open up to `timeout` s (at most 60). */
+  /** The changes past `since`, held open up to `timeout` s (`WaitTimeout`). */
   HttpApiEndpoint.get('wait', `${FILM}/notes/wait`, {
     params: film,
-    query: { since: Schema.Finite, timeout: Schema.optionalKey(Schema.Finite) },
+    query: { since: Schema.Finite, timeout: WaitTimeout },
     success: NotesWait,
     error: Refusals,
   }),
@@ -624,7 +643,7 @@ class LooksGroup extends HttpApiGroup.make('looks').add(
 ) {}
 
 /**
- * The lab's own pages: a wait, held open up to `timeout` s (at most 60),
+ * The lab's own pages: a wait, held open up to `timeout` s (`WaitTimeout`),
  * that answers once a file the pages were built from changed past the build
  * the page was served (`since`), so an open lab reloads onto the new code,
  * or once the track of the `film` the page plays is mixed (another film's
@@ -637,7 +656,7 @@ class PageGroup extends HttpApiGroup.make('page').add(
       since: Schema.Finite,
       server: Schema.optionalKey(Schema.String),
       film: Schema.optionalKey(Schema.String),
-      timeout: Schema.optionalKey(Schema.Finite),
+      timeout: WaitTimeout,
     },
     success: PageBuild,
     error: Refusals,

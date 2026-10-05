@@ -51,7 +51,7 @@ import { ContentStore } from './content-store.ts';
 import { FilmFolder, type FilmName, Stamped, filmNamed, keptWhenMade } from './film-repo.ts';
 import { type FreshError, FreshFilm } from './fresh-film.ts';
 import type { VoicedFilm } from './narrator.ts';
-import { IMMUTABLE, serveFile } from './review-file.ts';
+import { CACHE, serveFile } from './review-file.ts';
 import { Takes } from './takes.ts';
 
 /**
@@ -211,8 +211,9 @@ const keeping = Effect.fn('studio.keeping')(function* (
     Effect.catchTag('TakeMismatch', (error) => mismatch(error, attempt)),
   );
   const timings = yield* timingsOf(film);
-  // An older film CLI answers whether it mixed alone: the take is the one the
-  // timings name now, and what was heard of it is in its attempt's ledger.
+  // An answer that names no take, heard or wer (`OptionsKept` leaves them
+  // optional): the take is the one the timings name now, and what was heard
+  // of it is in its attempt's ledger.
   const take = yield* Option.match(
     Option.orElse(Option.fromUndefinedOr(kept.take), () =>
       Option.fromUndefinedOr(timings.scenes[beat]),
@@ -324,7 +325,7 @@ export const studioGroup = HttpApiBuilder.group(LabHttpApi, 'studio', (handlers)
           const found = yield* (yield* Takes).attemptFile(yield* pathsOf(film), beat, params.file);
           if (Option.isNone(found)) return yield* AttemptUnknown.make({ beat, file: params.file });
           // A phone's Safari plays and seeks an <audio> by byte ranges.
-          return yield* serveFile(request, found.value, IMMUTABLE);
+          return yield* serveFile(request, found.value, CACHE.derived);
         }),
       ),
     )

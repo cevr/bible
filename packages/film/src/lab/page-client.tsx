@@ -1,12 +1,13 @@
 // A page's mount in the browser, for its browser entry: hydrated over the
 // markup the lab rendered it with on the server (`page-server.tsx`: its root
 // marked `PAGE_ROOT`, its styles in the head), or, served as built (no
-// server entry, a render that failed, a kept build), rendered anew with its
-// styles added and its root made. Either way the same components run.
+// server entry, a render that failed or was cut, a kept build), rendered
+// anew with its styles added and its root made. Either way the same
+// components run.
 
 import { type JSX, hydrate, render } from '@solidjs/web';
 import { Option } from 'effect';
-import { PAGE_MOUNTED, PAGE_ROOT, PAGE_STYLE } from '../core/page-render.ts';
+import { PAGE_CUT, PAGE_MOUNTED, PAGE_ROOT, PAGE_STYLE } from '../core/page-render.ts';
 
 /** A page as its browser entry mounts it: the same parts its server entry renders (`pageRender`). */
 interface MountedPage {
@@ -21,11 +22,18 @@ type Mounted = 'hydrated' | 'rendered';
 
 /**
  * Mount `page`: hydrated over the server's markup when the page came with
- * it, else rendered. The body says how once it is (`PAGE_MOUNTED`).
+ * it whole, else rendered. A page whose render the lab cut short (it ends
+ * with `PAGE_CUT_MARK`) has its server markup and the mark dropped first: a
+ * hydration would wait on parts of it that never came. The body says how
+ * once it is (`PAGE_MOUNTED`).
  */
 export const mountPage = (page: MountedPage): Mounted => {
   document.body.classList.add(page.bodyClass);
-  const how = Option.match(Option.fromNullishOr(document.querySelector(`[${PAGE_ROOT}]`)), {
+  const served = Option.fromNullishOr(document.querySelector(`[${PAGE_ROOT}]`));
+  const cut = Option.fromNullishOr(document.querySelector(`[${PAGE_CUT}]`));
+  if (Option.isSome(cut)) for (const node of [...Option.toArray(served), cut.value]) node.remove();
+  const whole = Option.filter(served, () => Option.isNone(cut));
+  const how = Option.match(whole, {
     onSome: (served): Mounted => {
       hydrate(page.app, served);
       return 'hydrated';

@@ -10,17 +10,12 @@ import { HttpApiBuilder } from 'effect/http-api';
 import { REVIEW_FILES, REVIEW_PHONE, LabHttpApi } from '../core/api.ts';
 import { PhoneCopyUnmade, ReviewFileUnknown } from '../core/refusals.ts';
 import { answered } from './api-server.ts';
-import { serveFile } from './review-file.ts';
+import { CACHE, serveFile, urlPath } from './review-file.ts';
 import { Review } from './review.ts';
-
-/** A file the page asks again for each time (a render is rewritten in place). */
-const FRESH = 'no-cache';
-/** A derived file: named by its source's path and mtime, so it never changes. */
-const DERIVED = 'max-age=86400';
 
 /** The ref a `/api/review/files/<ref>` URL names: its path after `prefix`, each segment decoded. */
 export const refFromUrl = (url: string, prefix: string): Option.Option<string> => {
-  const path = url.split('?')[0] ?? '';
+  const path = urlPath(url);
   if (!path.startsWith(prefix)) return Option.none();
   return Result.getSuccess(
     Result.try(() => path.slice(prefix.length).split('/').map(decodeURIComponent).join('/')),
@@ -30,7 +25,7 @@ export const refFromUrl = (url: string, prefix: string): Option.Option<string> =
 /** The ref the request's path names after `prefix`, or ReviewFileUnknown naming the path. */
 const refOf = (request: HttpServerRequest.HttpServerRequest, prefix: string) =>
   Effect.fromOption(refFromUrl(request.url, prefix)).pipe(
-    Effect.mapError(() => ReviewFileUnknown.make({ ref: request.url.split('?')[0] ?? '' })),
+    Effect.mapError(() => ReviewFileUnknown.make({ ref: urlPath(request.url) })),
   );
 
 /** The review's own handlers. */
@@ -47,7 +42,8 @@ export const reviewGroup = HttpApiBuilder.group(LabHttpApi, 'review', (handlers)
       answered(
         Effect.gen(function* () {
           const ref = yield* refOf(request, REVIEW_FILES);
-          return yield* serveFile(request, yield* (yield* Review).resolve(ref), FRESH);
+          // A render is rewritten in place: asked again each time.
+          return yield* serveFile(request, yield* (yield* Review).resolve(ref), CACHE.fresh);
         }),
       ),
     )
@@ -57,7 +53,7 @@ export const reviewGroup = HttpApiBuilder.group(LabHttpApi, 'review', (handlers)
           const ref = yield* refOf(request, REVIEW_PHONE);
           const copy = yield* (yield* Review).phone(ref);
           if (Option.isNone(copy)) return yield* PhoneCopyUnmade.make({ ref });
-          return yield* serveFile(request, copy.value, DERIVED);
+          return yield* serveFile(request, copy.value, CACHE.derived);
         }),
       ),
     )
@@ -69,7 +65,7 @@ export const reviewGroup = HttpApiBuilder.group(LabHttpApi, 'review', (handlers)
             Option.fromUndefinedOr(query.t),
             query.w ?? 960,
           );
-          return yield* serveFile(request, frame, DERIVED);
+          return yield* serveFile(request, frame, CACHE.derived);
         }),
       ),
     )
