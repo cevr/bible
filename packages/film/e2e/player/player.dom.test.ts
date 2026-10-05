@@ -460,12 +460,22 @@ describe('the player', () => {
         // The first finger drags from a fifth along to a third, and the URL follows it there.
         const third = (2 * HALF) / 3;
         const atThird = `Math.abs(${URL_T} - ${third}) < ${HALF / 20}`;
+        // Every press the track is given, counted, so a second finger refused is one it was given.
+        yield* page.evaluate(
+          `(window.pressed = 0, document.querySelector('.bar .track').addEventListener('pointerdown', () => window.pressed++, true), 0)`,
+        );
         yield* page.finger.down(track.x + track.width / 5, y);
         yield* page.finger.move(track.x + track.width / 3, y, 15);
         yield* evaluates(page, atThird, true);
-        // A second finger taps near the end, and another drags there, while the first holds.
+        // A second finger taps near the end while the first holds.
         yield* page.finger.second.down(track.x + track.width * 0.9, y);
         yield* page.finger.second.up;
+        yield* evaluates(page, atThird, true);
+        yield* page.finger.up;
+        yield* evaluates(page, atThird, true);
+        // The first finger holds the track again at a third, and a second drags near the end.
+        // (Each its own touch: Chrome drops a finger put down again in the touch it lifted from.)
+        yield* page.finger.down(track.x + track.width / 3, y);
         yield* page.finger.second.down(track.x + track.width * 0.8, y);
         yield* page.finger.second.move(track.x + track.width * 0.95, y, 15);
         yield* page.finger.second.up;
@@ -473,6 +483,7 @@ describe('the player', () => {
         yield* page.finger.up;
         yield* evaluates(page, atThird, true);
         yield* evaluates(page, 'String(history.length)', String(before));
+        yield* evaluates(page, 'window.pressed', 4);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
