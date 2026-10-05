@@ -729,7 +729,10 @@ interface OpenServed extends OpenLab {
  * `routes` (and kept in `read`), spliced into the page's HTML as the lab
  * splices it (`splice`, `tools/lab-page.ts`); the browser's script (the
  * real entry, with Solid's development build) hydrates it. The page's own
- * requests are kept in `asked`. Done once the page says it is hydrated.
+ * requests are kept in `asked`. Done once the page says it is hydrated; a
+ * render that fails on the way (one that writes state among them, `served`)
+ * is answered as an error and fails the open at once, in its words, where
+ * the page would wait for a document that never comes.
  */
 export const openServed = Effect.fn('lab.fixture.served')(function* (
   name: ServedName,
@@ -744,6 +747,7 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
   const asked: Array<Asked> = [];
   const read: Array<Asked> = [];
   const documents: Array<Document> = [];
+  const failed = yield* Deferred.make<never>();
   const document = (request: Request) =>
     Effect.gen(function* () {
       const page = yield* rendered(render, request.url, apiAnswer(spec.prefix, all, read));
@@ -758,7 +762,14 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
         pieces: page.pieces,
       });
       return respond(html, 'text/html');
-    });
+    }).pipe(
+      Effect.catchCause((cause) =>
+        Effect.as(
+          Deferred.failCause(failed, cause),
+          respond(`the ${name} page's server render failed`, 'text/plain', 500),
+        ),
+      ),
+    );
   const page = yield* openTab({
     ...(at.viewport ?? DESK),
     microphone: false,
@@ -767,10 +778,13 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
     serve: fakeServer(servedBy(name, document), spec.prefix, all, asked),
   });
   yield* page.goto(at.href ?? spec.home);
-  yield* page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === 'hydrated'`, {
-    now: `document.body.getAttribute('${PAGE_MOUNTED}')`,
-    say: (now) => `the ${name} page was not hydrated: its body says it was mounted ${now}`,
-  });
+  yield* Effect.raceFirst(
+    page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === 'hydrated'`, {
+      now: `document.body.getAttribute('${PAGE_MOUNTED}')`,
+      say: (now) => `the ${name} page was not hydrated: its body says it was mounted ${now}`,
+    }),
+    Deferred.await(failed),
+  );
   const open: OpenServed = { page, asked, errors: page.errors, read, documents };
   return open;
 });

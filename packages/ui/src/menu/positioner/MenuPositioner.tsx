@@ -27,6 +27,7 @@ import {
   useAnchorPositioning,
 } from '../../internals/useAnchorPositioning.ts';
 import { InternalBackdrop } from '../../utils/FocusGuard.tsx';
+import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { usePositioner } from '../../utils/usePositioner.ts';
 import { useAnchoredPopupScrollLock } from '../../utils/useScrollLock.ts';
 import { useTimeout } from '../../utils/timers.ts';
@@ -244,8 +245,8 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
     events.off<MenuOpenEventDetails>('menuopenchange', onMenuOpenChange);
     events.off<MenuOpenEventDetails>('menuopenchange', onParentClose);
     events.off<ItemHoverEvent>('itemhover', onItemHover);
-    store.setPositionerElement(null);
   });
+  onClientCleanup(() => store.setPositionerElement(null));
 
   createEffect(store.open, (isOpen) => {
     if (!isOpen) {

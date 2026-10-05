@@ -6,7 +6,7 @@
 // transparent backdrop under the popup, with a hole over the trigger so a
 // press on it still toggles the popover.
 import type { JSX } from '@solidjs/web';
-import { createContext, omit, onCleanup, Show, untrack, useContext } from 'solid-js';
+import { createContext, omit, Show, untrack, useContext } from 'solid-js';
 
 import type { FloatingContext } from '../../floating-ui-solid/FloatingRootContext.ts';
 import { FloatingNode, useFloatingNodeId } from '../../floating-ui-solid/FloatingTree.tsx';
@@ -20,6 +20,7 @@ import {
   useAnchorPositioning,
 } from '../../internals/useAnchorPositioning.ts';
 import { InternalBackdrop } from '../../utils/FocusGuard.tsx';
+import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { usePositioner } from '../../utils/usePositioner.ts';
 import { useAnchoredPopupScrollLock } from '../../utils/useScrollLock.ts';
 import { usePopoverPortalContext } from '../portal/PopoverPortal.tsx';
@@ -144,7 +145,7 @@ export function PopoverPositioner(componentProps: PopoverPositionerProps): JSX.E
     store.activeTriggerElement,
   );
 
-  onCleanup(() => store.setPositionerElement(null));
+  onClientCleanup(() => store.setPositionerElement(null));
 
   const state: PopoverPositionerState = {
     get open() {

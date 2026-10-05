@@ -13,7 +13,7 @@
 // `data-nested-drawer-open`, `--nested-drawers` and
 // `--drawer-frontmost-height` (the height of the drawer in front).
 import type { JSX } from '@solidjs/web';
-import { createEffect, createSignal, omit, onCleanup, untrack } from 'solid-js';
+import { createEffect, createSignal, omit, untrack } from 'solid-js';
 
 import {
   type DialogFocusTarget,
@@ -29,6 +29,7 @@ import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
 import { FOCUSABLE_POPUP_PROPS } from '../../utils/popups/popupStore.ts';
+import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { type DrawerSwipeDirection, useDrawerRootContext } from '../root/DrawerRootContext.ts';
 import { getSnapPointSwipeMovement } from '../root/snapPoints.ts';
 import {
@@ -142,7 +143,7 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
   }
 
   useDialogOpenChangeComplete(store);
-  onCleanup(() => store.setPopupElement(null));
+  onClientCleanup(() => store.setPopupElement(null));
 
   const nestedDrawerOpen = () => store.nestedOpenDrawerCount() > 0;
   const swiping = () => swipe?.swiping() ?? false;

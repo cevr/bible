@@ -5,11 +5,12 @@
 // while the dialog is mounted, or always in a `keepMounted` portal, and lets
 // pointer events through once the dialog closes.
 import type { JSX } from '@solidjs/web';
-import { omit, onCleanup } from 'solid-js';
+import { omit } from 'solid-js';
 
 import type { TransitionStatus } from '../../internals/transitions.ts';
 import type { BaseUIComponentProps, HTMLProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
+import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { useDialogPortalContext } from '../portal/DialogPortal.tsx';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
 import { dialogStateAttributesMapping } from '../utils/stateAttributesMapping.ts';
@@ -35,7 +36,7 @@ export function renderDialogViewport(
   const keepMounted = useDialogPortalContext();
   const elementProps = omit(componentProps, 'class', 'style', 'render');
 
-  onCleanup(() => store.setViewportElement(null));
+  onClientCleanup(() => store.setViewportElement(null));
 
   const state: DialogViewportState = {
     get open() {

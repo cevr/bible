@@ -93,19 +93,79 @@ export const bundled = (entry: string) =>
     }),
   ).pipe(Effect.orDie);
 
+/** What Solid's diagnostics channel tells a listener of a finding: its code, and its words. */
+interface Finding {
+  readonly code: string;
+  readonly message: string;
+}
+
+/** Solid's diagnostics channel (`OBSERVE.diagnostics`), which its development build exports. */
+interface Diagnostics {
+  readonly subscribe: (listener: (finding: Finding) => void) => () => void;
+}
+
+/** Whether `value` is Solid's diagnostics channel. */
+const isDiagnostics = (value: unknown): value is Diagnostics =>
+  Predicate.hasProperty(value, 'subscribe') && Predicate.isFunction(value.subscribe);
+
+/**
+ * `render`, failing every render in which the page wrote a signal or a store
+ * (Solid's `SERVER_WRITE`, heard on its diagnostics channel `diagnostics`):
+ * a server's render is pure, its state flowing from its reads, never a
+ * setter. Solid disposes the render's owners as its stream ends, so what
+ * their cleanups write is heard too: the render's end is passed on once
+ * that is done. Solid tells of each kind of write once per loaded module, so
+ * the first render that writes fails, and the test that made it.
+ */
+const pure = (render: PageRender, diagnostics: Diagnostics): PageRender => ({
+  bodyClass: render.bodyClass,
+  render: (request, sink) => {
+    const writes: Array<string> = [];
+    const stop = diagnostics.subscribe((finding) => {
+      if (finding.code === 'SERVER_WRITE') writes.push(finding.message);
+    });
+    render.render(request, {
+      head: sink.head,
+      write: sink.write,
+      end: () =>
+        void Effect.runFork(
+          Effect.andThen(
+            Effect.yieldNow,
+            Effect.sync(() => {
+              stop();
+              if (writes.length === 0) return sink.end();
+              sink.fail(`the page wrote state while the server rendered it: ${writes.join(' ')}`);
+            }),
+          ),
+        ),
+      fail: (reason) => {
+        stop();
+        sink.fail(reason);
+      },
+    });
+  },
+});
+
 /**
  * The page render a server entry (`entry`, from this folder) exports as
  * `name`, bundled as the lab bundles it (`solidPluginFor('ssr')`, for Bun)
- * into a folder of its own and loaded from there; the folder is gone once
- * the module is loaded (it is one file, read whole).
+ * into a folder of its own and loaded from there, and held pure (`pure`):
+ * the bundle exports Solid's diagnostics channel beside it, from the copy of
+ * Solid its render runs on, and a build with none dies, so no render passes
+ * for want of a listener. The folder is gone once the module is loaded (it
+ * is one file, read whole).
  */
 export const served = (entry: string, name: string): Effect.Effect<PageRender> =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-test-server-' });
+    const heard = `${import.meta.dir}/heard-${name}.ts`;
     const built = yield* Effect.promise(() =>
       Bun.build({
-        entrypoints: [`${import.meta.dir}/${entry}`],
+        entrypoints: [heard],
+        files: {
+          [heard]: `export { ${name} } from '${import.meta.dir}/${entry}';\nexport { OBSERVE } from 'solid-js';\n`,
+        },
         target: 'bun',
         plugins: [solidPluginFor('ssr')],
         outdir: dir,
@@ -117,5 +177,14 @@ export const served = (entry: string, name: string): Effect.Effect<PageRender> =
     const loaded: unknown = yield* Effect.promise(() => import(`${dir}/server.js`));
     if (!Predicate.hasProperty(loaded, name) || !isPageRender(loaded[name]))
       return yield* Effect.die(`${entry} exports no page render named ${name}`);
-    return loaded[name];
+    const render = loaded[name];
+    if (
+      !Predicate.hasProperty(loaded, 'OBSERVE') ||
+      !Predicate.hasProperty(loaded.OBSERVE, 'diagnostics') ||
+      !isDiagnostics(loaded.OBSERVE.diagnostics)
+    )
+      return yield* Effect.die(
+        `${entry}'s bundle has no Solid diagnostics channel to hear a server write on`,
+      );
+    return pure(render, loaded.OBSERVE.diagnostics);
   }).pipe(Effect.scoped, Effect.orDie, Effect.provide(BunServices.layer));

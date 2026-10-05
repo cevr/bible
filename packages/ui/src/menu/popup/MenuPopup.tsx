@@ -23,6 +23,7 @@ import type { Align, Side } from '../../internals/useAnchorPositioning.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { useToolbarRootContext } from '../../toolbar/ToolbarRootContext.ts';
 import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
+import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { useMenuPositionerContext } from '../positioner/MenuPositioner.tsx';
 import { useMenuRootContext } from '../root/MenuRootContext.ts';
 import type { MenuChangeEventReason, MenuInstantType } from '../store/MenuStore.ts';
@@ -73,8 +74,8 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
   events.on('close', handleClose);
   onCleanup(() => {
     events.off('close', handleClose);
-    store.setPopupElement(null);
   });
+  onClientCleanup(() => store.setPopupElement(null));
 
   useHoverFloatingInteraction(store.floatingRootContext, {
     get enabled() {

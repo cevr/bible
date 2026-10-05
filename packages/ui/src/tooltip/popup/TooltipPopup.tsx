@@ -5,7 +5,7 @@
 // tooltip (after the trigger's `closeDelay`); `data-instant` says why
 // transitions are skipped, if they are.
 import type { JSX } from '@solidjs/web';
-import { omit, onCleanup, untrack } from 'solid-js';
+import { omit, untrack } from 'solid-js';
 
 import { useHoverFloatingInteraction } from '../../floating-ui-solid/hooks/useHoverFloatingInteraction.ts';
 import { type TransitionStatus, useOpenChangeComplete } from '../../internals/transitions.ts';
@@ -14,6 +14,7 @@ import type { Align, Side } from '../../internals/useAnchorPositioning.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
 import { FOCUSABLE_POPUP_PROPS } from '../../utils/popups/popupStore.ts';
+import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { useTooltipPositionerContext } from '../positioner/TooltipPositioner.tsx';
 import { useTooltipRootContext } from '../root/TooltipRootContext.ts';
 import type { TooltipInstantType } from '../store/TooltipStore.ts';
@@ -51,7 +52,7 @@ export function TooltipPopup(componentProps: TooltipPopupProps): JSX.Element {
     closeDelay: () => store.closeDelay(),
   });
 
-  onCleanup(() => store.setPopupElement(null));
+  onClientCleanup(() => store.setPopupElement(null));
 
   const state: TooltipPopupState = {
     get open() {

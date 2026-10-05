@@ -8,7 +8,7 @@
 // popover traps focus when a `Popover.Close` is inside. Leaving a
 // hover-opened popover with the pointer closes it.
 import type { JSX } from '@solidjs/web';
-import { createEffect, omit, onCleanup, untrack } from 'solid-js';
+import { createEffect, omit, untrack } from 'solid-js';
 
 import {
   FloatingFocusManager,
@@ -24,6 +24,7 @@ import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { useToolbarRootContext } from '../../toolbar/ToolbarRootContext.ts';
 import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
 import { FOCUSABLE_POPUP_PROPS } from '../../utils/popups/popupStore.ts';
+import { onClientCleanup } from '../../utils/onClientCleanup.ts';
 import { ClosePartContext, useClosePartCount } from '../close/closePart.ts';
 import { usePopoverPositionerContext } from '../positioner/PopoverPositioner.tsx';
 import { usePopoverRootContext } from '../root/PopoverRootContext.ts';
@@ -96,7 +97,7 @@ export function PopoverPopup(componentProps: PopoverPopupProps): JSX.Element {
     store.setFocusManagerModal(value);
   });
 
-  onCleanup(() => {
+  onClientCleanup(() => {
     store.setPopupElement(null);
     store.setFocusManagerModal(false);
   });

@@ -14,7 +14,6 @@ import {
   createEffect,
   createSignal,
   createUniqueId,
-  onCleanup,
   omit,
   Show,
   useContext,
@@ -28,6 +27,7 @@ import { useRenderElement } from '../internals/useRenderElement.tsx';
 import type { BaseUIChangeEventDetails } from '../internals/createBaseUIEventDetails.ts';
 import { addEventListener, mergeCleanups } from '../utils/dom.ts';
 import { FocusGuard } from '../utils/FocusGuard.tsx';
+import { onClientCleanup } from '../utils/onClientCleanup.ts';
 import { createAttribute } from './utils/element.ts';
 import {
   disableFocusInside,
@@ -177,7 +177,7 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
   );
 
   function PortalElement() {
-    onCleanup(() => setPortalNode(null));
+    onClientCleanup(() => setPortalNode(null));
     return useRenderElement('div', props, {
       ref: (node: HTMLElement) => setPortalNode(node),
       props: [{ id, [attr]: '' }, elementProps],
