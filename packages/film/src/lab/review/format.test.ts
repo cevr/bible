@@ -55,6 +55,8 @@ describe('what a card says', () => {
       images: [],
       docs: [file('notes.md')],
     };
-    expect(countsText(folder)).toBe('2 videos · 1 doc');
+    // Its card says what it mostly holds; the rest are its page's sections.
+    expect(countsText(folder)).toBe('2 videos');
+    expect(countsText({ ...folder, videos: [], docs: [] })).toBe('empty');
   });
 });

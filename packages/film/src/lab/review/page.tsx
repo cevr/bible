@@ -173,14 +173,16 @@ const Page = () => {
   );
 };
 
+/** The image the page shows full size, with what it is under it (its name and age, or a version's moment). */
 const Lightbox = () => {
   const { state, actions } = useReview();
   return (
     <Show when={Option.getOrUndefined(state.lightbox())}>
-      {(src) => (
-        <div class="rv-lightbox" onClick={() => actions.show(Option.none())}>
-          <img src={src()} alt="" />
-        </div>
+      {(shown) => (
+        <figure class="rv-lightbox" onClick={() => actions.show(Option.none())}>
+          <img src={shown().src} alt={shown().caption} />
+          <figcaption>{shown().caption}</figcaption>
+        </figure>
       )}
     </Show>
   );

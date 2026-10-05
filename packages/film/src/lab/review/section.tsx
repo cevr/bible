@@ -355,6 +355,11 @@ const LooseVideo = (props: {
   );
 };
 
+/**
+ * A version stack's card: its strip, its title, and how many versions when
+ * there is more than one (UR-15); their names are its long-press menu's
+ * (Open version n, UR-12).
+ */
 const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoint }) => (
   <Target
     of={Selection.cases.Set.make({ folder: props.folder.ref, point: props.set.id })}
@@ -364,8 +369,9 @@ const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoi
         <Strip refs={seenVariants(props.set).map((v) => v.video.ref)} />
         <div class="rv-body">
           <b>{props.set.title}</b>
-          <span class="rv-badge">{versionsText(props.set.variants.length)}</span>
-          <div class="rv-meta">{props.set.variants.map((v) => v.label).join(' · ')}</div>
+          <Show when={props.set.variants.length >= 2}>
+            <span class="rv-badge">{versionsText(props.set.variants.length)}</span>
+          </Show>
         </div>
       </Go>
     )}
@@ -400,17 +406,22 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
           <For each={props.folder.images}>
             {(image) => (
               <div class="rv-card">
+                {/* Its name and age are the lightbox's caption (UR-18). */}
                 <img
                   class="rv-media rv-zoom"
                   loading="lazy"
                   src={reviewFileUrl(image.ref)}
                   alt={image.name}
-                  onClick={() => actions.show(Option.some(reviewFileUrl(image.ref)))}
+                  title={`${image.name} · ${agoText(image.mtime, now)}`}
+                  onClick={() =>
+                    actions.show(
+                      Option.some({
+                        src: reviewFileUrl(image.ref),
+                        caption: `${image.name} · ${agoText(image.mtime, now)}`,
+                      }),
+                    )
+                  }
                 />
-                <div class="rv-cap">
-                  <span class="rv-name">{image.name}</span>
-                  <span class="rv-tag">{agoText(image.mtime, now)}</span>
-                </div>
               </div>
             )}
           </For>
@@ -1232,9 +1243,10 @@ const MomentsView = (props: { readonly index: number }) => {
                     alt={`${variant.label} at ${timecode(at())}`}
                     onClick={() =>
                       actions.show(
-                        Option.some(
-                          reviewFrameUrl(variant.video.ref, Option.some(at()), LIGHTBOX_W),
-                        ),
+                        Option.some({
+                          src: reviewFrameUrl(variant.video.ref, Option.some(at()), LIGHTBOX_W),
+                          caption: `${variant.label} at ${timecode(at())}`,
+                        }),
                       )
                     }
                   />

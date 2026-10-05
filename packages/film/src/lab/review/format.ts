@@ -111,15 +111,23 @@ const counted = (n: number, thing: string): Option.Option<string> => {
 export const versionsText = (n: number): string =>
   Option.getOrElse(counted(n, 'version'), () => '0 versions');
 
-/** What a folder holds: `2 version stacks · 3 videos · 1 doc`. */
+/**
+ * What a folder holds, as its card says it: its first kind of thing's count
+ * (`20 version stacks`, else `3 videos`…), the rest its page's sections (UR-16).
+ */
 export const countsText = (folder: ReviewFolder): string =>
-  Arr.getSomes([
-    counted(folder.sets.length, 'version stack'),
-    counted(folder.videos.length, 'video'),
-    counted(folder.images.length, 'image'),
-    counted(folder.docs.length, 'doc'),
-    counted(folder.downloads?.length ?? 0, 'download'),
-  ]).join(' · ');
+  Option.getOrElse(
+    Arr.head(
+      Arr.getSomes([
+        counted(folder.sets.length, 'version stack'),
+        counted(folder.videos.length, 'video'),
+        counted(folder.images.length, 'image'),
+        counted(folder.docs.length, 'doc'),
+        counted(folder.downloads?.length ?? 0, 'download'),
+      ]),
+    ),
+    () => 'empty',
+  );
 
 /** The folder's name as its card shows it: its manifest's title, else its ref's last part. */
 export const folderTitle = (folder: ReviewFolder): string =>

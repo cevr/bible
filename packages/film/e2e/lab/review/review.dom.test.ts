@@ -39,6 +39,7 @@ import {
   closeCommandMenu,
   menuEntry,
   openCommandMenu,
+  rightClick,
   touch,
 } from '../../../src/lab/fixtures/gestures.ts';
 
@@ -200,7 +201,31 @@ describe('the review page', () => {
         yield* textIs(page, '[data-review-blurb] b', 'Judge:');
         yield* textHas(page, '[data-review-blurb]', '<img src=x onerror=bad()>');
         yield* countIs(page, '[data-review-blurb] img, [data-review-blurb] script', 0);
-        yield* textHas(page, 'a.rv-card', '3 versions');
+        // A stack of several says how many; of one, nothing; its versions' names are its
+        // long-press menu's, each opening the set on that version's sheet (UR2-6).
+        const roof = `a.rv-card[href="${SET}"]`;
+        yield* textHas(page, roof, '3 versions');
+        yield* countIs(page, `a.rv-card[href="${SKY}"] .rv-badge`, 0);
+        yield* evaluates(
+          page,
+          `document.querySelector('${roof}').innerText.includes('Warm')`,
+          false,
+        );
+        yield* rightClick(page, roof);
+        yield* textHas(
+          page,
+          '[data-role="context-menu"] [data-command="review.open-version-2"]',
+          'Open version 2 · Cold',
+        );
+        yield* countIs(
+          page,
+          '[data-role="context-menu"] [data-command="review.open-version-4"]',
+          0,
+        );
+        yield* page.click('[data-role="context-menu"] [data-command="review.open-version-2"]');
+        yield* until(page, "location.search === '?inspect=B'");
+        yield* waitFor(page, '[data-role="inspector"]');
+        yield* page.back;
         yield* textHas(page, '.rv-card', 'walk.mp4');
         yield* attributeIs(page, '.rv-tall track', 'src', '/api/review/files/out/art/walk.vtt');
         yield* textHas(page, '[data-review-download]', 'master #1.mp4');
@@ -312,7 +337,7 @@ describe('the review page', () => {
         yield* until(page, `${frames} === '19,19,19'`);
         yield* until(page, "location.search === '?view=moments&m=4'");
         yield* page.click('.rv-card img');
-        yield* waitFor(page, '.rv-lightbox');
+        yield* textIs(page, '.rv-lightbox figcaption', 'Warm at 00:00:19:00');
         yield* page.press('Escape');
         yield* until(page, "document.querySelector('.rv-lightbox') === null");
 
@@ -650,9 +675,10 @@ describe('the review page', () => {
           "document.querySelector('.rv-transport').innerText.includes('/ 00:00:00:15')",
         );
         yield* page.click('.rv-transport button');
+        // It plays to the end (the time the header shows on a laptop, the row only its length).
         yield* until(
           page,
-          "document.querySelector('.rv-transport').innerText.includes('00:00:00:15 /')",
+          "document.querySelector('.rv-transport .rv-time-at').textContent === '00:00:00:15'",
         );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

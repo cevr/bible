@@ -17,7 +17,7 @@ import {
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, Loading, Show, isServer } from '@solidjs/web';
-import { Clock, Effect, Equal, Layer, Option, Schema } from 'effect';
+import { Array as Arr, Clock, Effect, Equal, Layer, Option, Schema } from 'effect';
 import type { HttpClient } from 'effect/http';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
@@ -35,7 +35,7 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
-import type { SeenPoint } from '../../core/choice.ts';
+import { type SeenPoint, seenVariants } from '../../core/choice.ts';
 import type { DrawStills } from './options/stills.tsx';
 import { ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { Viewport } from '../../browser/viewport.ts';
@@ -59,7 +59,7 @@ import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
 import type { Quality } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
-import { Places, legacyPlace } from '../../core/api.ts';
+import { Places, legacyPlace, pageHref } from '../../core/api.ts';
 import { onChoicesTab } from '../../core/point.ts';
 import {
   type SyncActor,
@@ -101,7 +101,13 @@ interface ReviewStateValue {
   readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
   readonly quality: Accessor<Quality>;
   /** The image the lightbox shows, when it is open. */
-  readonly lightbox: Accessor<Option.Option<string>>;
+  readonly lightbox: Accessor<Option.Option<Shown>>;
+}
+
+/** An image the lightbox shows: its source, and the caption under it (what its card no longer says, UR-18). */
+interface Shown {
+  readonly src: string;
+  readonly caption: string;
 }
 
 interface ReviewActions {
@@ -111,7 +117,7 @@ interface ReviewActions {
   readonly refresh: () => void;
   readonly quality: (quality: Quality) => void;
   /** Open the lightbox on an image, or close it. */
-  readonly show: (src: Option.Option<string>) => void;
+  readonly show: (shown: Option.Option<Shown>) => void;
 }
 
 interface ReviewMeta {
@@ -260,7 +266,7 @@ export const Root = (
 
   const address = addressOn(props.host);
 
-  const [lightbox, setLightbox] = createSignal(Option.none<string>());
+  const [lightbox, setLightbox] = createSignal(Option.none<Shown>());
   // Escape closes the lightbox while it is open, from a field too.
   onCleanup(
     props.hub.commands.register({
@@ -340,7 +346,11 @@ export const Root = (
       },
     };
     onCleanup(
-      props.hub.commands.register(...openCommands(value.actions.go, place), ...pageCommands(value)),
+      props.hub.commands.register(
+        ...openCommands(value.actions.go, place),
+        ...versionCommands(() => AsyncResult.value(index()), address.go),
+        ...pageCommands(value),
+      ),
     );
     // Every folder, set and film's page is a place ⌘K goes to by its name.
     registerWhile(props.hub, () =>
@@ -418,6 +428,53 @@ const openCommands = (
     ),
   ];
 };
+
+/** How many of a set's versions its card's menu names: the first nine. */
+const NAMED_VERSIONS = 9;
+
+/**
+ * A set card's versions, by name, in its long-press menu (UR-12, UR2-6): the
+ * card shows its strip and its title, and Open version n · <label> opens
+ * the set at that version's sheet.
+ */
+const versionCommands = (
+  index: Accessor<Option.Option<ReviewIndex>>,
+  open: (href: string) => void,
+): ReadonlyArray<Command> =>
+  Arr.makeBy(NAMED_VERSIONS, (i): Command => {
+    const n = i + 1;
+    const version = (ctx: Context) =>
+      Option.flatMap(selected(ctx, 'Set'), (s) =>
+        index().pipe(
+          Option.flatMap((ix) =>
+            Option.fromUndefinedOr(ix.folders.find((f) => f.ref === s.folder)),
+          ),
+          Option.flatMap((f) => Option.fromUndefinedOr(f.sets.find((x) => x.id === s.point))),
+          Option.flatMap((set) => Option.fromUndefinedOr(seenVariants(set)[i])),
+          Option.map((v) => ({ set: s, version: v })),
+        ),
+      );
+    return {
+      id: `review.open-version-${n}`,
+      label: `Open version ${n}`,
+      labelIn: (ctx) =>
+        Option.match(version(ctx), {
+          onNone: () => `Open version ${n}`,
+          onSome: ({ version: v }) => `Open version ${n} · ${v.label}`,
+        }),
+      group: 'Open',
+      about: ['Set'],
+      touch: `long-press a version stack, then Open version ${n}`,
+      when: (ctx) => Option.isSome(version(ctx)),
+      run: (ctx) =>
+        Effect.sync(() => {
+          Option.map(version(ctx), ({ set, version: v }) =>
+            open(pageHref.set(set.folder, set.point, v.id)),
+          );
+          return quiet;
+        }),
+    };
+  });
 
 /** What the copy-played command does next, by the copy played now. */
 const OTHER_QUALITY: Readonly<Record<Quality, Quality>> = { phone: 'full', full: 'phone' };

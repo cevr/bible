@@ -114,7 +114,9 @@ a.rv-card:hover { background: var(--surface-2); }
   position: fixed; inset: 0; background: var(--backdrop-deep); display: grid; place-items: center;
   z-index: 20; padding: var(--s-4); cursor: zoom-out;
 }
+.rv-lightbox { margin: 0; grid-template-rows: minmax(0, 1fr) auto; gap: var(--s-2); }
 .rv-lightbox img { max-width: 100%; max-height: 100%; }
+.rv-lightbox figcaption { color: var(--text-2); font-size: var(--fs-2); }
 .rv-note {
   background: var(--surface-1); padding: var(--s-3) var(--s-4); font-size: var(--fs-3); line-height: var(--lh-3);
   min-width: 0; overflow-wrap: anywhere;
