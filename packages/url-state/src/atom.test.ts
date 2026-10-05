@@ -12,8 +12,6 @@ import { layerMemory, LocationHistory } from './location-memory.js';
 import { layerServer } from './location-server.js';
 import * as Place from './place.js';
 
-const start: Codec.MediaTime = { _tag: 'Point', at: 0 };
-
 const Lab = Place.make({
   path: '/films/:film/lab/:scene',
   params: { film: Codec.Segment, scene: Codec.Segment },
@@ -21,7 +19,7 @@ const Lab = Place.make({
     cue: Field.key(Codec.Text, { default: '', history: 'push' }),
     knob: Field.key(Codec.Text, { default: '' }),
   }),
-  hash: Field.struct({ t: Field.key(Codec.MediaTime, { default: start }) }),
+  hash: Field.struct({ t: Field.key(Codec.Finite, { default: 0 }) }),
 });
 const lab = UrlAtom.place(Lab);
 
@@ -75,7 +73,7 @@ describe('UrlAtom', () => {
       Option.some({
         path: { film: 'f', scene: 's' },
         query: { cue: 'c', knob: '' },
-        hash: { t: { _tag: 'Point', at: 2 } },
+        hash: { t: 2 },
       }),
     );
     expect(registry.get(UrlAtom.href)).toBe('/films/f/lab/s?cue=c#t=2');
@@ -132,7 +130,7 @@ describe('UrlAtom', () => {
       Option.some({
         path: { film: 'f', scene: 's' },
         query: { cue: 'c', knob: '' },
-        hash: { t: start },
+        hash: { t: 0 },
       }),
     );
   });
@@ -143,8 +141,8 @@ describe('UrlAtom', () => {
     // the client's first pass matches the server's markup.
     const hashOf = (value: Option.Option<Place.Type<typeof Lab>>) =>
       Option.map(value, (place) => place.hash.t);
-    expect(hashOf(Atom.getServerValue(lab, registry))).toEqual(Option.some(start));
-    expect(hashOf(registry.get(lab))).toEqual(Option.some({ _tag: 'Point', at: 2 }));
+    expect(hashOf(Atom.getServerValue(lab, registry))).toEqual(Option.some(0));
+    expect(hashOf(registry.get(lab))).toEqual(Option.some(2));
     expect(Atom.ServerValueTypeId in scene).toBe(false);
   });
 });

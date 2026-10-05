@@ -4,7 +4,7 @@ import { TestClock } from 'effect/testing';
 
 import { Location, type Entry } from './location.js';
 import { layerMemory, LocationHistory } from './location-memory.js';
-import { layerServer, SERVER_ENTRY_KEY } from './location-server.js';
+import { layerServer } from './location-server.js';
 
 const hrefs = Effect.gen(function* () {
   const { stack, index } = yield* (yield* LocationHistory).entries;
@@ -109,7 +109,7 @@ describe('server Location', () => {
       const location = yield* Location;
       const entry: Entry = {
         href: '/films/a/lab/b?cue=c',
-        key: SERVER_ENTRY_KEY,
+        key: 'server',
         navigation: 'load',
       };
       expect(yield* location.current).toEqual(entry);

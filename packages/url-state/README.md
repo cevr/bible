@@ -16,13 +16,14 @@ A URL has three parts: the path, a list of segments, and the query and the
 hash, each a record of keys to lists of values:
 
 ```
-/films/righteousness-by-faith/lab/roof?cue=render%3Ascenes%3Aroof#t=1.5,4
- └──────────── path ────────────────┘ └──────── query ─────────┘ └ hash ┘
+/films/righteousness-by-faith/lab/roof?cue=render%3Ascenes%3Aroof#t=1.5
+ └──────────── path ────────────────┘ └──────── query ─────────┘ └hash┘
 ```
 
-`UrlPartsFromHref` is the schema between an href and its `UrlParts`
-(`{ path, query, hash }`); `readHref` and `printHref` run it either way. Path
-segments are percent-decoded, and printing keeps `:`, `@` and `,` readable.
+One schema inside the package (`src/url-parts.ts`) runs between an href and
+its parts (`{ path, query, hash }`), and is the only code that reads or prints
+URL syntax. Path segments are percent-decoded, and printing keeps `:`, `@` and
+`,` readable.
 The query prints the way `URLSearchParams` does (so `:` is `%3A` there); the
 hash prints as `k=v&…` and keeps `, : / @` readable.
 
@@ -34,24 +35,22 @@ and the place's value; `None` means the href is not this place.
 ```ts
 import { Codec, Field, Place } from '@bible/url-state';
 
-const start: Codec.MediaTime = { _tag: 'Point', at: 0 };
-
 /** The film lab: a film's scene, the cue on screen, and the playhead. */
 export const Lab = Place.make({
   path: '/films/:film/lab/:scene',
   params: { film: Codec.Segment, scene: Codec.Segment },
   query: Field.struct({ cue: Field.key(Codec.Text, { default: '', history: 'push' }) }),
   hash: Field.struct({
-    t: Field.key(Codec.MediaTime, { default: start, throttle: '250 millis' }),
+    t: Field.key(Codec.Finite, { default: 0, throttle: '250 millis' }),
   }),
 });
 
-Place.decode(Lab, '/films/rbf/lab/roof?cue=a#t=1.5,4');
+Place.decode(Lab, '/films/rbf/lab/roof?cue=a#t=1.5');
 // Some({ path: { film: 'rbf', scene: 'roof' },
 //        query: { cue: 'a' },
-//        hash: { t: { _tag: 'Range', in: 1.5, out: 4 } } })
+//        hash: { t: 1.5 } })
 
-Place.href(Lab, { path: { film: 'rbf', scene: 'roof' }, query: { cue: '' }, hash: { t: start } });
+Place.href(Lab, { path: { film: 'rbf', scene: 'roof' }, query: { cue: '' }, hash: { t: 0 } });
 // '/films/rbf/lab/roof': both keys are at their defaults
 ```
 
@@ -86,8 +85,6 @@ every value a place's type admits (`effect/Arbitrary`).
 | `literals(values)`          | one of a fixed set        | the literal union                |
 | `truncate(self)`            | `7.9`                     | `7`                              |
 | `clamp({ min, max })(self)` | `200` with `max: 100`     | `100`                            |
-| `delimited(item, ',')`      | `a,b`                     | `[a, b]`                         |
-| `MediaTime`                 | `t=4.5`, `t=1.5,4`        | a `Point` or an in ≤ out `Range` |
 | `selection(values, '-')`    | `x=a&x=-b` (repeated key) | `{ include: [a], exclude: [b] }` |
 
 A codec for one key is a `Schema.Codec<A, string>`; a codec for a repeated
@@ -142,14 +139,13 @@ Three layers fill it:
   is ignored and logged at Debug (`location.server.write.ignored`); a `back`
   is ignored too (`location.server.back.ignored`).
 
-Entry keys (`<ms>-<n>`; a server render's one entry is `SERVER_ENTRY_KEY`,
-`'server'`) name history entries, so anything remembered per entry
+Entry keys (`<ms>-<n>`; a server render's one entry is `'server'`) name
+history entries, so anything remembered per entry
 (a scroll position) is remembered against the key.
 
 `UrlState` (`UrlState.layer`, over a `Location`) is where writes go:
 
-- `UrlState.get(place)`, `UrlState.changes(place)`: the place's value, `None`
-  off the place.
+- `UrlState.get(place)`: the place's value, `None` off the place.
 - `UrlState.set(place, value)`: navigate to the value's href, moving as
   `Place.history` says; nothing when the href is the one already there.
 - `UrlState.update(place, f)`: `set` with `f` of the value as the URL holds it

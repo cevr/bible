@@ -9,19 +9,17 @@ import { Option, Schema } from 'effect';
 
 import { useAtomValue } from '../../src/hooks.ts';
 
-const start: Codec.MediaTime = { _tag: 'Point', at: 0 };
-
 export const Lab = Place.make({
   path: '/films/:film/lab/:scene',
   params: { film: Codec.Segment, scene: Codec.Segment },
   query: Field.struct({ cue: Field.key(Codec.Text, { default: '', history: 'push' }) }),
-  hash: Field.struct({ t: Field.key(Codec.MediaTime, { default: start }) }),
+  hash: Field.struct({ t: Field.key(Codec.Finite, { default: 0 }) }),
 });
 
 const lab = UrlAtom.place(Lab);
 
 /** The playhead as the URL writes it. */
-const timeOf = Schema.encodeSync(Codec.MediaTime);
+const timeOf = Schema.encodeSync(Codec.Finite);
 
 export const App = () => {
   const place = useAtomValue(
@@ -32,10 +30,7 @@ export const App = () => {
     <main>
       <p id="film">{place().path.film}</p>
       <p id="cue">{place().query.cue}</p>
-      <Show
-        when={timeOf(place().hash.t) !== timeOf(start)}
-        fallback={<i id="t">{timeOf(place().hash.t)}</i>}
-      >
+      <Show when={place().hash.t !== 0} fallback={<i id="t">{timeOf(place().hash.t)}</i>}>
         <b id="t">{timeOf(place().hash.t)}</b>
       </Show>
     </main>

@@ -9,8 +9,6 @@ import { layerMemory, LocationHistory } from './location-memory.js';
 import * as Place from './place.js';
 import * as UrlState from './url-state.js';
 
-const start: Codec.MediaTime = { _tag: 'Point', at: 0 };
-
 const Lab = Place.make({
   path: '/films/:film/lab/:scene',
   params: { film: Codec.Segment, scene: Codec.Segment },
@@ -19,11 +17,9 @@ const Lab = Place.make({
     knob: Field.key(Codec.Text, { default: '' }),
   }),
   hash: Field.struct({
-    t: Field.key(Codec.MediaTime, { default: start, throttle: '250 millis' }),
+    t: Field.key(Codec.Finite, { default: 0, throttle: '250 millis' }),
   }),
 });
-
-const at = (seconds: number): Codec.MediaTime => ({ _tag: 'Point', at: seconds });
 
 const stackOf = Effect.gen(function* () {
   const { stack, index } = yield* (yield* LocationHistory).entries;
@@ -56,7 +52,7 @@ describe('UrlState', () => {
         Option.some({
           path: { film: 'f', scene: 's' },
           query: { cue: 'c', knob: 'k' },
-          hash: { t: start },
+          hash: { t: 0 },
         }),
       );
       expect(yield* Fiber.join(committed)).toEqual(['push /films/f/lab/s?cue=c&knob=k']);
@@ -65,20 +61,16 @@ describe('UrlState', () => {
         index: 1,
       });
 
-      const restored = yield* UrlState.changes(Lab).pipe(
-        Stream.drop(1),
-        Stream.take(1),
-        Stream.runCollect,
-        Effect.forkChild({ startImmediately: true }),
-      );
+      const restored = yield* nextEntries(1);
       yield* (yield* LocationHistory).back;
-      expect(yield* Fiber.join(restored)).toEqual([
+      expect(yield* Fiber.join(restored)).toEqual(['traverse /films/f/lab/s']);
+      expect(yield* UrlState.get(Lab)).toEqual(
         Option.some({
           path: { film: 'f', scene: 's' },
           query: { cue: '', knob: '' },
-          hash: { t: start },
+          hash: { t: 0 },
         }),
-      ]);
+      );
     }).pipe(Effect.provide(memory('/films/f/lab/s'))),
   );
 
@@ -112,16 +104,14 @@ describe('UrlState', () => {
     Effect.gen(function* () {
       const committed = yield* nextEntries(2);
       const seek = (seconds: number) =>
-        UrlState.update(Lab, (value) => ({ ...value, hash: { t: at(seconds) } }));
+        UrlState.update(Lab, (value) => ({ ...value, hash: { t: seconds } }));
       yield* seek(1);
       yield* Effect.yieldNow;
       yield* seek(2);
       yield* Effect.yieldNow;
       yield* seek(3);
       // The URL as the program sees it moves at once; the entry waits.
-      expect(Option.map(yield* UrlState.get(Lab), (value) => value.hash.t)).toEqual(
-        Option.some(at(3)),
-      );
+      expect(Option.map(yield* UrlState.get(Lab), (value) => value.hash.t)).toEqual(Option.some(3));
       yield* TestClock.adjust('250 millis');
       expect(yield* Fiber.join(committed)).toEqual([
         'replace /films/f/lab/s#t=1',
@@ -133,9 +123,9 @@ describe('UrlState', () => {
   it.effect('an unthrottled write takes a waiting throttled batch with it now', () =>
     Effect.gen(function* () {
       const committed = yield* nextEntries(2);
-      yield* UrlState.update(Lab, (value) => ({ ...value, hash: { t: at(1) } }));
+      yield* UrlState.update(Lab, (value) => ({ ...value, hash: { t: 1 } }));
       yield* Effect.yieldNow;
-      yield* UrlState.update(Lab, (value) => ({ ...value, hash: { t: at(2) } }));
+      yield* UrlState.update(Lab, (value) => ({ ...value, hash: { t: 2 } }));
       yield* UrlState.update(Lab, (value) => ({ ...value, query: { ...value.query, cue: 'c' } }));
       expect(yield* Fiber.join(committed)).toEqual([
         'replace /films/f/lab/s#t=1',
@@ -148,16 +138,18 @@ describe('UrlState', () => {
     Effect.gen(function* () {
       const location = yield* Location;
       yield* location.push('/films/f/lab/two');
-      const landed = yield* UrlState.changes(Lab).pipe(
-        Stream.filter(Option.exists((value) => value.path.scene === 's')),
-        Stream.take(1),
-        Stream.runCollect,
-        Effect.forkChild({ startImmediately: true }),
-      );
-      yield* UrlState.update(Lab, (value) => ({ ...value, hash: { t: at(1) } }));
+      const landed = yield* nextEntries(1);
+      yield* UrlState.update(Lab, (value) => ({ ...value, hash: { t: 1 } }));
       yield* (yield* LocationHistory).back;
-      yield* Fiber.join(landed);
+      expect(yield* Fiber.join(landed)).toEqual(['traverse /films/f/lab/s']);
       yield* TestClock.adjust('1 second');
+      expect(yield* UrlState.get(Lab)).toEqual(
+        Option.some({
+          path: { film: 'f', scene: 's' },
+          query: { cue: '', knob: '' },
+          hash: { t: 0 },
+        }),
+      );
       expect(yield* stackOf).toEqual({
         entries: ['load /films/f/lab/s', 'push /films/f/lab/two'],
         index: 0,
@@ -169,7 +161,7 @@ describe('UrlState', () => {
     Effect.gen(function* () {
       const location = yield* Location;
       const seek = (seconds: number) =>
-        UrlState.update(Lab, (value) => ({ ...value, hash: { t: at(seconds) } }));
+        UrlState.update(Lab, (value) => ({ ...value, hash: { t: seconds } }));
       yield* seek(1);
       yield* Effect.yieldNow;
       yield* seek(2);
@@ -235,9 +227,7 @@ describe('UrlState', () => {
       yield* location.changes.pipe(
         Stream.filter((entry) => entry.navigation === 'push'),
         Stream.take(1),
-        Stream.runForEach(() =>
-          UrlState.update(Lab, (value) => ({ ...value, hash: { t: at(2) } })),
-        ),
+        Stream.runForEach(() => UrlState.update(Lab, (value) => ({ ...value, hash: { t: 2 } }))),
         Effect.forkChild({ startImmediately: true }),
       );
       yield* UrlState.update(Lab, (value) => ({ ...value, query: { ...value.query, cue: 'c' } }));

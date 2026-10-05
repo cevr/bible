@@ -21,7 +21,7 @@
  *
  * The module functions read and write one place:
  *
- * - `get(place)`, `changes(place)`: the place's value, `None` off the place;
+ * - `get(place)`: the place's value, `None` off the place;
  * - `set(place, value)`: navigate to the value's href, with the move
  *   `Place.history` gives; no write when the href is the one already there;
  * - `update(place, f)`: `set` with `f` of the value as the URL holds it now;
@@ -39,7 +39,6 @@ import {
   Order,
   Ref,
   Scheduler,
-  Schema,
   Stream,
   SubscriptionRef,
 } from 'effect';
@@ -215,21 +214,6 @@ export const layer: Layer.Layer<UrlState, never, Location> = Layer.effect(
 /** The place's value at the URL as it is now, `None` off the place. */
 export const get = <A>(place: Place.Place<A>): Effect.Effect<Option.Option<A>, never, UrlState> =>
   UrlState.use((state) => Effect.flatMap(state.href, (href) => Place.decodeEffect(place, href)));
-
-/** The place's value, then each change to it. */
-export const changes = <A>(
-  place: Place.Place<A>,
-): Stream.Stream<Option.Option<A>, never, UrlState> => {
-  const same = Option.makeEquivalence(Schema.toEquivalence(Schema.toType(place.schema)));
-  return Stream.unwrap(
-    UrlState.useSync((state) =>
-      state.changes.pipe(
-        Stream.mapEffect((href) => Place.decodeEffect(place, href)),
-        Stream.changesWith(same),
-      ),
-    ),
-  );
-};
 
 /** Navigate to the place's `value`, entering history as the move says. */
 export const set = <A>(place: Place.Place<A>, value: A): Effect.Effect<void, never, UrlState> =>

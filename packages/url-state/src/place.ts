@@ -6,7 +6,7 @@
  *   path: '/films/:film/lab/:scene',
  *   params: { film: Codec.Segment, scene: Codec.Segment },
  *   query: Field.struct({ cue: Field.key(Codec.Text, { default: '', history: 'push' }) }),
- *   hash: Field.struct({ t: Field.key(Codec.MediaTime, { default: start, throttle: '250 millis' }) }),
+ *   hash: Field.struct({ t: Field.key(Codec.Finite, { default: 0, throttle: '250 millis' }) }),
  * });
  * ```
  *
