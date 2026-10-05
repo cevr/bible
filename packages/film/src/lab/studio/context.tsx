@@ -9,7 +9,7 @@
 
 import { useAtomRefresh, useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
 import { Loading, Show } from '@solidjs/web';
-import { Cause, Effect, Layer, Option, Stream } from 'effect';
+import { Cause, Effect, Equal, Layer, Option, Stream } from 'effect';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -24,9 +24,12 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
+import * as UrlAtom from '@bible/url-state/atom';
+import { said } from '../../command/command.ts';
 import { attemptUrl } from '../../core/api.ts';
 import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
-import { type BrowserServices, hostLayer } from '../../browser/host.ts';
+import { type BrowserServices, addressOn, hostLayer } from '../../browser/host.ts';
+import { beatAt, labHrefWith } from '../place.ts';
 import type { LabFailure } from '../api.ts';
 import { useLab } from '../shell.tsx';
 import { type Stage, stageLayer } from '../stage.ts';
@@ -40,6 +43,7 @@ import {
   type Act,
   type Control,
   type Meter,
+  atRest,
   attemptLine,
   beatCounts,
   controlsOf,
@@ -54,6 +58,9 @@ import {
   statusOf,
   unsubmitted,
 } from './view.ts';
+
+/** Where the studio's receipts stand among the page's. */
+const STUDIO_SLOT = 'studio';
 
 /** One recording of the selected beat, as its row shows it. */
 export interface AttemptRow {
@@ -170,8 +177,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     ),
   );
   const beat = createMemo(() => recorder().beat);
-  // The beat, and whether focus is in the studio, are remembered through the
-  // reload a take kept causes.
+  // Whether focus is in the studio is remembered through the reload a take kept causes.
   const hadFocus = Option.exists(
     Option.flatMap(Option.fromUndefinedOr(meta.view.get().studio), (s) =>
       Option.fromUndefinedOr(s.focused),
@@ -179,10 +185,49 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     (f) => f,
   );
   const [focused, setFocused] = createSignal(hadFocus);
-  createEffect(
-    () => ({ beat: beat(), focused: focused() }),
-    (studio) => meta.view.patch({ studio }),
+  createEffect(focused, (f) => meta.view.patch({ studio: { focused: f } }));
+
+  // The beat is the link's (`beatAt`: `?beat=`, else the path's scene): a
+  // beat picked is written there. The recorder is on the link's beat whenever
+  // it is at rest (`atRest`): the link landing on another beat (Back,
+  // Forward, play into the next scene) or the recorder coming back to rest
+  // (a count-in cancelled, a take discarded) on a beat the link has left
+  // moves it there. A recorder holding a take no one has kept stays on its
+  // beat, so a take is never lost to a navigation, and the link moving on
+  // says so; once it rejoins the link, that receipt is replaced in its slot
+  // by the beat it is on now, so none still names a beat the recorder left.
+  const address = addressOn(meta.host);
+  const href = useAtomValue(() => UrlAtom.href);
+  const linked = createMemo(() => listedBeat(beats(), beatAt(href())), { equals: Equal.equals });
+  const due = createMemo(
+    () => {
+      const now = recorder();
+      return Option.filter(linked(), (id) => id !== now.beat && atRest(now));
+    },
+    { equals: Equal.equals },
   );
+  /** Whether the studio's slot says the recorder stayed on a beat the link left. */
+  let stayedSaid = false;
+  createEffect(due, (at) => {
+    Option.map(at, (id) => {
+      send(RecorderEvent.SelectBeat({ beat: id }));
+      if (stayedSaid) meta.hub.announce(said(`Record follows the link to ${id}`), STUDIO_SLOT);
+      stayedSaid = false;
+    });
+  });
+  createEffect(linked, (at) => {
+    const now = untrack(recorder);
+    Option.map(
+      Option.flatMap(
+        Option.filter(at, (id) => id !== now.beat),
+        () => unsubmitted(now),
+      ),
+      (why) => {
+        meta.hub.announce(said(`Record stays on ${now.beat}: ${why}`), STUDIO_SLOT);
+        stayedSaid = true;
+      },
+    );
+  });
 
   const attemptsOf = Atom.family((id: string) =>
     runtime.atom(StudioApi.use((api) => api.attempts(id))),
@@ -269,10 +314,23 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     return 'busy';
   });
 
-  const select = (id: string) => send(RecorderEvent.SelectBeat({ beat: id }));
+  // A beat picked is a step Back walks; a ←/→ step through the beats follows in place.
+  const select = (id: string, move: 'go' | 'follow') => {
+    send(RecorderEvent.SelectBeat({ beat: id }));
+    if (Option.contains(untrack(linked), id)) return;
+    address[move](
+      labHrefWith(
+        meta.name,
+        meta.film.placed,
+        address.href(),
+        { beat: Option.some(id) },
+        meta.player.now(),
+      ),
+    );
+  };
   const perform = (act: Act) => send(eventOf(act, device()));
   const actions: StudioActions = {
-    select,
+    select: (id) => select(id, 'go'),
     perform,
     keep: (file) => send(RecorderEvent.KeepAttempt({ file })),
     pick: (next) => choose(Option.getOrElse(next, () => '')),
@@ -281,7 +339,8 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
         onNone: () => false,
         onSome: (k) => {
           if (k._tag === 'Act') perform(k.act);
-          if (k._tag === 'Beat') Option.map(neighbour(beats(), beat(), k.step), select);
+          if (k._tag === 'Beat')
+            Option.map(neighbour(beats(), beat(), k.step), (id) => select(id, 'follow'));
           return true;
         },
       }),
@@ -346,20 +405,20 @@ const Recorder = (props: ParentProps<{ readonly beat: string; readonly reads: Re
   );
 };
 
-/** The beat the recorder starts on: the one remembered, while the server lists it, else the first. */
+/** `beat`, while the server lists it. */
+const listedBeat = (
+  beats: ReadonlyArray<StudioBeat>,
+  beat: Option.Option<string>,
+): Option.Option<string> => Option.filter(beat, (id) => beats.some((x) => x.id === id));
+
+/** The beat the recorder starts on: the link's (`beatAt`), while the server lists it, else the first. */
 const startBeat = (
   beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>,
-  remembered: Option.Option<string>,
+  linked: Option.Option<string>,
 ) =>
   Option.flatMap(AsyncResult.value(beats), (b) =>
-    Option.map(
-      Option.orElse(
-        Option.flatMap(remembered, (id) =>
-          Option.fromUndefinedOr(b.beats.find((x) => x.id === id)),
-        ),
-        () => Option.fromUndefinedOr(b.beats[0]),
-      ),
-      (start) => start.id,
+    Option.orElse(listedBeat(b.beats, linked), () =>
+      Option.map(Option.fromUndefinedOr(b.beats[0]), (first) => first.id),
     ),
   );
 
@@ -373,9 +432,9 @@ const waitingText = (beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>) =>
 
 /**
  * The studio's state and actions, for its section. The recorder is spawned
- * once the beats are read, on the beat the view remembers (a take kept
- * reloads the page) or else the first; until then the children render
- * nothing and the fallback says why.
+ * once the beats are read, on the link's beat (`?beat=`, else the path's
+ * scene, so Record opens where the lab is) or else the first; until then the
+ * children render nothing and the fallback says why.
  */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
@@ -392,9 +451,9 @@ export const Provider = (props: ParentProps) => {
     beats: runtime.atom(StudioApi.use((api) => api.beats)),
   };
   const beats = useAtomValue(() => reads.beats);
-  // Read once: the beat selected later is remembered for the next page, not this one.
-  const remembered = Option.map(Option.fromUndefinedOr(meta.view.get().studio), (s) => s.beat);
-  const start = createMemo(() => Option.getOrUndefined(startBeat(beats(), remembered)));
+  // Read once: the link's later beats move the recorder spawned here (`linked`), never respawn it.
+  const opened = beatAt(addressOn(meta.host).href());
+  const start = createMemo(() => Option.getOrUndefined(startBeat(beats(), opened)));
   return (
     <Show when={start()} keyed fallback={<p class="studio-waiting">{waitingText(beats())}</p>}>
       {(beat: string) => (

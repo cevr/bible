@@ -1,7 +1,8 @@
 // The preview's time in the URL (`#t=`, `Places`, core/api.ts): the one
 // place a reload reads T from, written only through this. While T moves
-// (play, a drag) it is written at most once per period; when T settles (a
-// seek, the end of a drag, a pause, the film's end) it is written at once.
+// (play, a drag) it is written at most once per period; when T settles (the
+// end of a drag, a pause, the film's end) or jumps (a seek) it is written at
+// once, each write naming its cause (`TimeCause`).
 // When the lab asks for a write, which reloads the page, it is written at
 // once and held there until T next settles, so the reload lands on the frame
 // the write was made at. (`pagehide` cannot do this: a URL written during it
@@ -22,12 +23,31 @@ import { type Throttled, type Timers, throttled } from './throttle.ts';
  */
 export const onTheMs = (T: number): number => Math.ceil(T * 1000 - 1e-6) / 1000;
 
+/**
+ * Why T is written: it moved on its own or under a drag, or came to rest
+ * there (`'play'`), or it was sent somewhere (`'jump'`: `]`, `[`, a frame
+ * step, ⌘K to a scene, Go to, a press on the track). The page's writer says
+ * what each enters in history: the lab makes a jump to another scene a step
+ * Back walks, and rewrites the entry as play crosses one.
+ */
+export type TimeCause = 'play' | 'jump';
+
+/**
+ * Each cause as the page's address bar moves for it (`addressOn`,
+ * browser/host.ts): a jump is the viewer's move, entered as the place
+ * declares it; play is the URL following the page, in place.
+ */
+export const TIME_MOVE: Readonly<Record<TimeCause, 'go' | 'follow'>> = {
+  play: 'follow',
+  jump: 'go',
+};
+
 /** Where a preview's time is kept: the film seconds an entry names, and the writer of `T` there. */
 export interface TimeInUrl {
   /** The film seconds the entry at `href` names: the page's start when it names none. */
   readonly at: (href: string) => number;
-  /** Write `T` (film seconds) into the URL, replacing the entry. */
-  readonly write: (T: number) => void;
+  /** Write `T` (film seconds) into the URL, moved there by `cause`. */
+  readonly write: (T: number, cause: TimeCause) => void;
 }
 
 interface TInUrl {
@@ -35,18 +55,24 @@ interface TInUrl {
   moved(): void;
   /** T settled: write it now, and let T move the URL again. */
   settled(): void;
+  /** T was sent somewhere: write it now as a jump, and let T move the URL again. */
+  jumped(): void;
   /** A write is on its way, and the page will reload: write T now, and keep it there. */
   held(): void;
   /** Back or Forward landed, and T is the time its entry keeps: drop a waiting write of the T before. */
   landed(): void;
 }
 
-export const tInUrl = (write: () => void, everyMs: number, timers: Timers): TInUrl => {
-  const moving: Throttled = throttled(write, everyMs, timers);
+export const tInUrl = (
+  write: (cause: TimeCause) => void,
+  everyMs: number,
+  timers: Timers,
+): TInUrl => {
+  const moving: Throttled = throttled(() => write('play'), everyMs, timers);
   let holding = false;
-  const now = () => {
+  const now = (cause: TimeCause) => {
     moving.ran();
-    write();
+    write(cause);
   };
   return {
     moved() {
@@ -54,11 +80,15 @@ export const tInUrl = (write: () => void, everyMs: number, timers: Timers): TInU
     },
     settled() {
       holding = false;
-      now();
+      now('play');
+    },
+    jumped() {
+      holding = false;
+      now('jump');
     },
     held() {
       holding = true;
-      now();
+      now('play');
     },
     landed() {
       holding = false;

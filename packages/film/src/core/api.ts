@@ -26,7 +26,16 @@
 // through the derived client. packages/film/README.md has the steps.
 
 import { Codec, Field, Place, parseHref } from '@bible/url-state';
-import { Array as Arr, Effect, Option, Schema, SchemaAST, SchemaTransformation } from 'effect';
+import {
+  Array as Arr,
+  Duration,
+  Effect,
+  Option,
+  Schema,
+  SchemaAST,
+  SchemaIssue,
+  SchemaTransformation,
+} from 'effect';
 import {
   HttpApi,
   HttpApiClient,
@@ -35,6 +44,7 @@ import {
   HttpApiSchema,
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
+import type { Interval } from './time.ts';
 import { isShortKey } from './shorts.ts';
 import { onChoicesTab } from './point.ts';
 import { OpId, Project, RenderVariantName } from './catalogue.ts';
@@ -761,13 +771,69 @@ const maybe = <A>(codec: Schema.Codec<A, string>) =>
   );
 
 /**
+ * How often, at most, `#t=` follows a time that moves (play, a drag), in ms:
+ * the time key's throttle, and the window the player's writer holds to
+ * before it encodes a link (`tInUrl`, `player/main.ts`).
+ */
+export const TIME_EVERY_MS = 250;
+
+/**
  * A time on the hash (`#t=12.5`), in seconds: in a scene's lab, from the
  * scene's start (negative before it); elsewhere, from the film's or the
  * video's. None opens the page at its own start. It follows the playhead at
- * most every quarter second, and never makes a history entry.
+ * most every `TIME_EVERY_MS`, and never makes a history entry.
  */
-const At = Field.struct({
-  t: Field.key(maybe(Codec.Finite), { default: Option.none(), throttle: '250 millis' }),
+const time = Field.key(maybe(Codec.Finite), {
+  default: Option.none(),
+  throttle: Duration.millis(TIME_EVERY_MS),
+});
+const At = Field.struct({ t: time });
+
+/**
+ * One end of an A–B loop: a number written there. A blank end (`,2`, `%20,2`)
+ * is no point, though `Number` reads it as 0.
+ */
+const loopPoint = (text: string): Option.Option<number> =>
+  Option.flatMap(
+    Option.liftPredicate(text, (written) => written.trim() !== ''),
+    Schema.decodeOption(Codec.Finite),
+  );
+
+/**
+ * An A–B loop (`loop=10,14`): film seconds, its in point before its out
+ * point; anything else (a blank end among it) reads as no loop.
+ */
+const LoopSpan: Schema.Codec<Interval, string> = Schema.String.pipe(
+  Schema.decodeTo(
+    Schema.Struct({ from: Schema.Finite, to: Schema.Finite }),
+    SchemaTransformation.transformEffect({
+      decode: (text: string) =>
+        Effect.fromOption(
+          Option.filter(
+            Option.flatMap(
+              Option.liftPredicate(text.split(','), (parts) => parts.length === 2),
+              ([from = '', to = '']) => Option.all({ from: loopPoint(from), to: loopPoint(to) }),
+            ),
+            (span) => span.to > span.from,
+          ),
+        ).pipe(
+          Effect.mapError(
+            () => new SchemaIssue.InvalidValue({ message: `an in and an out point` }, text),
+          ),
+        ),
+      encode: (span: Interval) => Effect.succeed(`${span.from},${span.to}`),
+    }),
+  ),
+);
+
+/**
+ * The lab's hash: the time (`At`'s), and the A–B loop (`loop=<a>,<b>`, film
+ * seconds on a film's lab and a scene's alike, so it never moves with the
+ * path). The loop set, changed or stopped is a step Back walks.
+ */
+const LabAt = Field.struct({
+  t: time,
+  loop: Field.key(maybe(LoopSpan), { default: Option.none(), history: 'push' }),
 });
 
 /** A film by its name: one path segment (a short's `/` is written `%2F`). */
@@ -800,11 +866,23 @@ const MomentIndex = Codec.Int.check(Schema.isGreaterThanOrEqualTo(0));
 export const COMPARE_VIEWS = ['off', 'wipe', 'blink', 'diff'] as const;
 export type CompareView = (typeof COMPARE_VIEWS)[number];
 
-/** How the lab compares with HEAD: no step of its own (Back walks the picks, not the modes). */
-const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off' });
+/**
+ * How the lab compares with HEAD: each mode the owner picks is a step Back
+ * walks; the compare's own moves are written in place.
+ */
+const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off', history: 'push' });
 
-/** The lab's selection keys: a cue or a knob of the path's scene, and a note. */
-const LabSelection = Field.struct({ cue: cited, knob: cited, note: cited, view: compareView });
+/**
+ * The lab's selection keys: a cue or a knob of the path's scene, a note, and
+ * the studio's beat (a scene's take; with none the studio is on the path's).
+ */
+const LabSelection = Field.struct({
+  cue: cited,
+  knob: cited,
+  note: cited,
+  beat: cited,
+  view: compareView,
+});
 
 /**
  * A film's player on its choices and its project: the sound heard over the
@@ -844,7 +922,8 @@ export const Places = {
     query: Field.struct({
       view: Field.key(Codec.literals(SET_VIEWS), { default: 'all', history: 'push' }),
       other: refined,
-      m: Field.key(MomentIndex, { default: 0 }),
+      // A moment chosen is a step Back walks; a ←/→ step through the moments follows in place.
+      m: Field.key(MomentIndex, { default: 0, history: 'push' }),
       inspect,
     }),
     hash: At,
@@ -874,13 +953,13 @@ export const Places = {
     path: '/films/:film/lab',
     params: filmParams,
     query: Field.struct({ note: cited, view: compareView }),
-    hash: At,
+    hash: LabAt,
   }),
   labScene: Place.make({
     path: '/films/:film/lab/:scene',
     params: { film: Codec.Segment, scene: Codec.Segment },
     query: LabSelection,
-    hash: At,
+    hash: LabAt,
   }),
 };
 
@@ -903,6 +982,22 @@ export const pageAt = (pathname: string): Option.Option<PageName> =>
   Option.map(
     Arr.findFirst(PAGES, ([place]) => Option.isSome(Place.decode(place, pathname))),
     ([, page]) => page,
+  );
+
+/**
+ * How the viewer's move from `from` to `to` enters history, as the place
+ * `to` is on declares it (`Place.history`): a new path or a cited key is a
+ * step Back walks, a refinement or the time rewrites the entry. The one
+ * owner of the policy: a page names why it moves (`addressOn`), never how.
+ * An href off every place is a step.
+ */
+export const pageMove = (from: string, to: string): 'push' | 'replace' =>
+  Option.match(
+    Arr.findFirst(PAGES, ([place]) => Option.isSome(Place.decode(place, to))),
+    {
+      onNone: () => 'push',
+      onSome: ([place]) => Place.history(place, from, to).history,
+    },
   );
 
 /** The places that name a film in their path. */
@@ -929,13 +1024,14 @@ const START = { t: Option.none<number>() };
 const NOTHING_HEARD = { heard: '', variant: '', picture: '', only: '' };
 
 /** The lab's selection keys, none set. */
-const NOTHING_SELECTED = { cue: '', knob: '', note: '', view: 'off' as const };
+const NOTHING_SELECTED = { cue: '', knob: '', note: '', beat: '', view: 'off' as const };
 
-/** What the lab has selected in a scene: a cue or a knob by name, and a note by id. */
+/** What the lab has selected in a scene: a cue or a knob by name, a note by id, the studio's beat. */
 interface LabPicked {
   readonly cue?: string;
   readonly knob?: string;
   readonly note?: string;
+  readonly beat?: string;
   readonly view?: CompareView;
 }
 
@@ -979,24 +1075,30 @@ export const pageHref = {
     Place.href(Places.scene, { path: { film, scene }, query: {}, hash: timeOf(t) }),
   play: (film: string, t: Option.Option<number> = Option.none()): string =>
     Place.href(Places.play, { path: { film }, query: {}, hash: timeOf(t) }),
-  /** The lab on `film`, at film time `t`, comparing with HEAD by `view`. */
+  /** The lab on `film`, at film time `t`, comparing with HEAD by `view`, looping `loop`. */
   lab: (
     film: string,
     t: Option.Option<number> = Option.none(),
     view: CompareView = 'off',
+    loop: Option.Option<Interval> = Option.none(),
   ): string =>
-    Place.href(Places.lab, { path: { film }, query: { note: '', view }, hash: timeOf(t) }),
-  /** The lab on `scene` of `film`, at scene time `t`, with what is `picked` there. */
+    Place.href(Places.lab, {
+      path: { film },
+      query: { note: '', view },
+      hash: { t, loop },
+    }),
+  /** The lab on `scene` of `film`, at scene time `t`, with what is `picked` there, looping `loop`. */
   labScene: (
     film: string,
     scene: string,
     picked: LabPicked = {},
     t: Option.Option<number> = Option.none(),
+    loop: Option.Option<Interval> = Option.none(),
   ): string =>
     Place.href(Places.labScene, {
       path: { film, scene },
       query: { ...NOTHING_SELECTED, ...picked },
-      hash: timeOf(t),
+      hash: { t, loop },
     }),
 };
 
@@ -1025,15 +1127,30 @@ export const PART_TITLE: Readonly<Record<Part, string>> = {
 export const hasPart = (film: string, part: Part): boolean =>
   !isShortKey(film) || part === 'films' || part === 'scenes' || part === 'play';
 
-/** The page of `part` on `film`, at its defaults (Films names no film). */
-export const partHref = (part: Part, film: string): string =>
+/** The parts whose `#t=` is the film's time: a move between them keeps the frame. */
+const FILM_TIME_PARTS: ReadonlySet<Part> = new Set<Part>(['scenes', 'lab', 'play']);
+
+/** The film time a page of `part` at `t` hands the page bar to keep: none from a part whose time is not the film's. */
+export const filmTimeOn = (part: Part, t: Option.Option<number>): Option.Option<number> =>
+  Option.filter(t, () => FILM_TIME_PARTS.has(part));
+
+/**
+ * The page of `part` on `film`, at its defaults (Films names no film);
+ * Scenes, the Lab and Play at film time `t`, the frame a move between them
+ * keeps.
+ */
+export const partHref = (
+  part: Part,
+  film: string,
+  t: Option.Option<number> = Option.none(),
+): string =>
   ({
     films: () => pageHref.home(),
-    scenes: () => pageHref.scenes(film),
-    lab: () => pageHref.lab(film),
+    scenes: () => pageHref.scenes(film, t),
+    lab: () => pageHref.lab(film, t),
     choices: () => pageHref.choices(film),
     project: () => pageHref.project(film),
-    play: () => pageHref.play(film),
+    play: () => pageHref.play(film, t),
   })[part]();
 
 /** A hash that is only a number (`#42.000`): the film time an old lab or player link carried. */
@@ -1129,7 +1246,9 @@ const withFilmTime = (href: string, t: number): string => {
         Place.href(Places.scenes, { ...v, hash }),
       ),
       Option.map(Place.decode(Places.scene, href), (v) => Place.href(Places.scene, { ...v, hash })),
-      Option.map(Place.decode(Places.lab, href), (v) => Place.href(Places.lab, { ...v, hash })),
+      Option.map(Place.decode(Places.lab, href), (v) =>
+        Place.href(Places.lab, { ...v, hash: { ...v.hash, ...hash } }),
+      ),
     ]),
     () => href,
   );

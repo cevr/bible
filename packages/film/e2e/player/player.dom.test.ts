@@ -396,7 +396,13 @@ describe('the player', () => {
           STILL_DRAWN,
         );
         yield* attributeIs(page, '.sh-pagebar [data-page="scenes"]', 'data-active', 'true');
-        yield* attributeIs(page, '.sh-pagebar [data-page="lab"]', 'href', pageHref.lab(PROBE));
+        // The lab opens at the tape's playhead.
+        yield* attributeIs(
+          page,
+          '.sh-pagebar [data-page="lab"]',
+          'href',
+          pageHref.lab(PROBE, Option.some(0)),
+        );
         // A cut per scene, in film order.
         yield* evaluates(
           page,

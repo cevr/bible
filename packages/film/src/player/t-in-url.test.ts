@@ -7,7 +7,7 @@
 
 import { describe, expect, test } from 'bun:test';
 import type { Timers } from './throttle.ts';
-import { onTheMs, tInUrl } from './t-in-url.ts';
+import { type TimeCause, onTheMs, tInUrl } from './t-in-url.ts';
 
 const fakeTimers = () => {
   let now = 0;
@@ -40,11 +40,19 @@ const rig = () => {
   const clock = fakeTimers();
   let T = 0;
   const written: Array<number> = [];
-  const url = tInUrl(() => written.push(T), 250, clock.timers);
+  const causes: Array<TimeCause> = [];
+  const url = tInUrl(
+    (cause) => {
+      written.push(T);
+      causes.push(cause);
+    },
+    250,
+    clock.timers,
+  );
   const at = (t: number) => {
     T = t;
   };
-  return { clock, url, at, written };
+  return { clock, url, at, written, causes };
 };
 
 describe('the time in the URL', () => {
@@ -103,6 +111,22 @@ describe('the time in the URL', () => {
     clock.advance(300);
     url.moved();
     expect(written).toEqual([10, 10.1, 20, 20.5]);
+  });
+
+  test('each write names its cause: play and a settle are play, a seek is a jump, written at once', () => {
+    const { clock, url, at, written, causes } = rig();
+    at(1);
+    url.moved();
+    at(2);
+    url.moved();
+    at(5);
+    url.jumped();
+    clock.advance(300);
+    at(6);
+    url.moved();
+    url.settled();
+    expect(written).toEqual([1, 5, 6, 6]);
+    expect(causes).toEqual(['play', 'jump', 'play', 'play']);
   });
 
   test('a time written to #t= reads back in its own frame, never before it', () => {

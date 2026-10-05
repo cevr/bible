@@ -28,13 +28,14 @@ import {
   refused,
   route,
 } from '../../../src/lab/fixtures/harness.ts';
-import { PROBE } from '../../../src/lab/fixtures/probe-film.ts';
+import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
   attributeIs,
   attributesAre,
   countIs,
   evaluates,
+  textHas,
   textIs,
   textsAre,
   until,
@@ -179,6 +180,10 @@ const withMic = (mic: { readonly allowed: boolean; readonly hot?: boolean }) =>
 /** Wait until the URL holds `t` film seconds. */
 const shownAt = (page: Tab, t: number) => evaluates(page, URL_T, t);
 
+/** Where the probe film's `scene` starts, film seconds. */
+const startOf = (scene: string) =>
+  probeFilm().placed.find((p) => p.spec.id === scene)?.start ?? Number.NaN;
+
 const scoped = <A, E>(self: Effect.Effect<A, E, Scope.Scope | FileSystem.FileSystem | Path.Path>) =>
   self.pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
@@ -219,6 +224,122 @@ describe('the studio', () => {
             files.map((file) => `/api/films/${PROBE}/studio/takes/thesis/attempts/${file}`),
           );
           expect(errors).toEqual([]);
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    "opens on a link's beat, else the lab's scene; a beat picked is in the link, and Back walks it",
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          // The probe film's beats are its scenes, as a film's are.
+          const scenes = {
+            film: PROBE,
+            beats: probeFilm().placed.map((p) =>
+              beat(p.spec.id, 'staging', [{ kind: 'line', text: `In ${p.spec.id}.` }]),
+            ),
+          };
+          const routes = [route('GET', /^\/studio\/beats$/, () => json(scenes)), ...studioRoutes];
+          const two = startOf('two');
+          const { page } = yield* openLab(routes, {
+            href: labAt(two + 0.5),
+            mic: { allowed: true },
+            mode: 'record',
+          });
+          // The lab is at two: so is the recorder, not the first beat.
+          yield* page.waitFor('[data-beat="two"].selected');
+          yield* textIs(page, '[data-role="prompter"]', 'In two.');
+          // A beat picked is cited in the link, the film where it stood.
+          yield* page.click('[data-beat="three"]');
+          yield* evaluates(page, 'new URLSearchParams(location.search).get("beat")', 'three');
+          yield* page.waitFor('[data-beat="three"].selected');
+          yield* evaluates(page, 'location.pathname', `/films/${PROBE}/lab/two`);
+          // Back returns to the lab's scene's beat; Forward to the one picked.
+          yield* page.back;
+          yield* page.waitFor('[data-beat="two"].selected');
+          yield* evaluates(page, 'location.search', '');
+          yield* page.forward;
+          yield* page.waitFor('[data-beat="three"].selected');
+          // A link that names a beat opens on it.
+          yield* page.reload;
+          yield* page.waitFor('[data-beat="three"].selected');
+          yield* textIs(page, '[data-role="prompter"]', 'In three.');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    'the link moves the recorder only at rest: a take it holds stays on its beat, said so, and a recorder back at rest follows the link',
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const scenes = {
+            film: PROBE,
+            beats: probeFilm().placed.map((p) =>
+              beat(p.spec.id, 'staging', [{ kind: 'line', text: `In ${p.spec.id}.` }]),
+            ),
+          };
+          const routes = [
+            route('GET', /^\/studio\/beats$/, () => json(scenes)),
+            route('POST', /^\/studio\/takes\/one$/, () =>
+              refused(TakeMismatch.make({ ...MISMATCH, id: 'one', attempt: 'one.abcd.flac' })),
+            ),
+            ...studioRoutes,
+          ];
+          const { page } = yield* openLab(routes, {
+            href: labAt(0.5),
+            mic: { allowed: true },
+            mode: 'record',
+          });
+          yield* page.waitFor('[data-beat="one"].selected');
+          /** Jump the film to the next scene with the lab's key, out of the studio. */
+          const nextScene = Effect.andThen(
+            page.evaluate('document.activeElement.blur()'),
+            press(page, ']'),
+          );
+          // Counting in on one, the film moves on to two; cancelled, the recorder follows the link.
+          yield* focusStudio(page);
+          yield* press(page, 'r');
+          yield* statusIs(page, /^recording in [123]…$/);
+          yield* nextScene;
+          yield* evaluates(page, 'location.pathname', `/films/${PROBE}/lab/two`);
+          yield* countIs(page, '[data-beat="one"].selected', 1);
+          yield* focusStudio(page);
+          yield* press(page, 'Escape');
+          yield* page.waitFor('[data-beat="two"].selected');
+          // A take refused on one holds its WAV: the film moving on leaves it on one, and says so.
+          yield* page.goto(labAt(0.5));
+          yield* page.waitFor('[data-beat="one"].selected');
+          yield* focusStudio(page);
+          yield* press(page, 'r');
+          yield* countedIn(page);
+          yield* recorded(page, 0.5);
+          yield* press(page, ' ');
+          yield* statusIs(page, /^review /);
+          yield* press(page, 'k');
+          yield* statusIs(page, /^take one says something else/);
+          yield* nextScene;
+          yield* evaluates(page, 'location.pathname', `/films/${PROBE}/lab/two`);
+          yield* textHas(page, '[data-role="receipt"]', 'Record stays on one');
+          yield* countIs(page, '[data-beat="one"].selected', 1);
+          yield* textIs(page, '[data-act="acceptAnyway"]', 'Accept anyway (K)');
+          // Back to the take under review it still holds it, on one; discarded, the recorder is
+          // at rest and goes where the link is.
+          yield* focusStudio(page);
+          yield* press(page, 'Escape');
+          yield* statusIs(page, /^review /);
+          yield* countIs(page, '[data-beat="one"].selected', 1);
+          yield* press(page, 'Escape');
+          yield* page.waitFor('[data-beat="two"].selected');
+          // What it said is replaced at once, in its slot: no receipt still says it stayed on one.
+          yield* evaluates(
+            page,
+            `[...document.querySelectorAll('[data-role="receipt"]')].map((r) => r.textContent).filter((t) => t.startsWith('Record '))`,
+            ['Record follows the link to two×'],
+          );
         }),
       ),
     60_000,

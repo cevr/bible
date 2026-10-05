@@ -676,28 +676,44 @@ listens; a box binds `0.0.0.0` with the names it is reached by in
 pasted link opens what the sender saw and Back walks the views: the path
 says what the view is about, the query what is selected in it or how it is
 shown, the hash when (`#t=`, seconds). Each page reads and writes its place
-through `@bible/url-state` (`UrlState`: a selection is a history entry; a
-refinement and the playhead replace the entry), and every link is printed by
-`pageHref` over the same places.
+through `@bible/url-state`, and every link is printed by `pageHref` over the
+same places. Whether a move is a step Back walks is the place's declaration
+alone (`pageMove`, `core/api.ts`): a new path or a cited key (a selection,
+a view, a moment chosen, the compare's mode) is a history entry; a
+refinement and the playhead replace the entry. A page names only why it
+moves (`addressOn`, `browser/host.ts`): the viewer went somewhere (`go`,
+entered as the place declares), or the URL follows what the page did on its
+own (`follow`: play, a drag, a ←/→ step through the moments, a correction, a
+note gone from the feed, an old link's redirect), which always rewrites the
+entry.
 
-| Place                            | Page   | Query                                                                                                                   | Hash                         |
-| -------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| `/`                              | review |                                                                                                                         |                              |
-| `/sets/<folder>`                 | review |                                                                                                                         |                              |
-| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`, `inspect` (the version whose sheet is open)                                                       | `t` (the set's video)        |
-| `/films/<film>/choices`          | review | `point` (the card revealed), `inspect` (its variant's sheet), `heard` (a point, or `own`), `variant`, `picture`, `only` | `t` (the picture)            |
-| `/films/<film>/project`          | review | `point` (the card in focus, its sheet open), `heard`, `variant`, `picture`, `only`                                      | `t` (the picture)            |
-| `/films/<film>/scenes[/<scene>]` | player |                                                                                                                         | `t` (film time)              |
-| `/films/<film>/play`             | player |                                                                                                                         | `t` (film time)              |
-| `/films/<film>/lab`              | lab    | `note`, `view` (the compare with HEAD)                                                                                  | `t` (film time)              |
-| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`, `view`                                                                          | `t` (from the scene's start) |
+| Place                            | Page   | Query                                                                                                                   | Hash                                 |
+| -------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `/`                              | review |                                                                                                                         |                                      |
+| `/sets/<folder>`                 | review |                                                                                                                         |                                      |
+| `/sets/<folder>/<point>`         | review | `view`, `other`, `m`, `inspect` (the version whose sheet is open)                                                       | `t` (the set's video)                |
+| `/films/<film>/choices`          | review | `point` (the card revealed), `inspect` (its variant's sheet), `heard` (a point, or `own`), `variant`, `picture`, `only` | `t` (the picture)                    |
+| `/films/<film>/project`          | review | `point` (the card in focus, its sheet open), `heard`, `variant`, `picture`, `only`                                      | `t` (the picture)                    |
+| `/films/<film>/scenes[/<scene>]` | player |                                                                                                                         | `t` (film time)                      |
+| `/films/<film>/play`             | player |                                                                                                                         | `t` (film time)                      |
+| `/films/<film>/lab`              | lab    | `note`, `view` (the compare with HEAD)                                                                                  | `t` (film time), `loop`              |
+| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`, `beat` (the studio's), `view`                                                   | `t` (from the scene's start), `loop` |
 
 The lab writes a scene's place (`lab/place.ts`): the path names the
 selected cue's or knob's scene, else the scene under the playhead, so play
 or a seek across a scene's end moves the path and rebases `#t=` in one
 write, and a write's reload comes back to the frame, the pick and the note.
-A pick and a note are history entries (Back undoes them); the time replaces
-the entry, and Back or Forward lands the player on the time the entry keeps
+A pick and a note are history entries (Back undoes them). Each time write
+names its cause (`TimeInUrl.write(T, cause)`, `player/t-in-url.ts`): play,
+a drag and a pause are `'play'` and rewrite the entry, even across a cut; a
+jump (`]`, `[`, a frame step, ⌘K to a scene, Go to, a tap on the track:
+a press lifted with no drag, so a drag from anywhere is never a jump)
+is the viewer's move, so a jump into another scene is a step Back walks,
+and one inside the scene rewrites the entry. Motion's A–B range is
+`#loop=<a>,<b>` (film seconds on both places, so a scene change never
+rebases it; an in point not before the out point reads as none): a pasted
+link opens on its loop without playing, and a range set, moved or stopped
+is a step Back walks. Back or Forward lands the player on the time the entry keeps
 (`onTraverse`, `browser/host.ts`; the review's players too), a time still
 waiting to be written for the entry left dropped. A bare `#<seconds>` (an old link's film time) opens on that frame.
 A film's Scenes (`lab/scenes/`) is its **tape**: the whole film end to end
@@ -734,10 +750,10 @@ the view menu (⋯). A short's Open goes to its play page, as the lab opens
 films.
 
 A folder ref is one path segment (`bible-tools%2Frighteousness-by-faith`), as
-is a short's name. Rate, onion, loop, the wipe's divider, the lab's mode,
-the microphone and quality are this viewer's own settings and stay in the
-browser's storage, never in a link; the compare's mode is the link's
-(`?view=`). Which points a film's choices or project page shows (`?only=`) is
+is a short's name. Rate, onion, a looped cue, the wipe's divider, the lab's
+mode, the microphone and quality are this viewer's own settings and stay in
+the browser's storage, never in a link; the compare's mode (`?view=`) and
+the A–B loop (`#loop=`) are the link's. Which points a film's choices or project page shows (`?only=`) is
 in its link.
 
 **The pages are built in the lab's process** (`LabPage`, `tools/lab-page.ts`):
@@ -810,7 +826,10 @@ sent with the page and adopted (`ssrSource: 'server'`), never read twice,
 and a value only the browser knows (the viewport, quality, the viewer's
 keys) is `ssrSource: 'client'` with a server value (the server answers as a
 phone). The server draws no film: the canvas, the scene code and the stills
-are `clientOnly` (`lab/film-page.tsx`), and a build whose server entry reads
+are `clientOnly` (`lab/film-page.tsx`); a film the browser cannot start (one
+the lab does not have, `/films/nope/lab`) ends its page (`PageEnd`,
+`lab/page-client.tsx`: the tree disposed, the notes feed and the keys with
+it) and says why in its place, once. A build whose server entry reads
 a film's or a scene's module or `player/stills.ts` fails, naming them
 (`filmCode`). A render that fails before its head answers the page as built,
 which the browser then renders. One that fails after its head, or still runs
@@ -992,7 +1011,12 @@ its label read the player, so each frame a film plays), and a row keeps its
 element, so a press and its release on it are one click. Every page has
 **Copy link** (⇧⌘C, AA-1, `src/command/link.ts`): the page's URL (its place,
 its selection, its time), or from a thing's menu that thing's citation
-(`citeOf`), written whole through the host's `Clipboard`. Their look is one
+(`citeOf`), written whole through the host's `Clipboard`. A choice's card
+cites its Choices link (`?point=`); a part's render, an act and the film
+cite their project sheets (`?point=render:…`), read back by the one reader
+the page reads them with too (`selectionOf`, `projectPartOf`); a thing cited
+from its own page (another version of the set, another card of the film's
+Choices or project) keeps how the page shows it and when. Their look is one
 set of CSS custom properties (`COMMAND_TOKENS` in `src/lab/command/style.ts`,
 each the studio's token for its role, `player/tokens.css`); the rules read
 only those. The player's keys legend under the film is generated from the
@@ -1154,7 +1178,9 @@ owner, `lab/review/options/receipt.ts` `undoApprove`) withdraws exactly the appr
   (`lab/page-shell.tsx`). On a laptop it sits in the header; on a phone the
   five film parts are a tab bar along the bottom and Films is the header's
   leading square. Every move between parts is the page bar, the film
-  switcher or a command that lands on a part.
+  switcher or a command that lands on a part. Between Scenes, the Lab and
+  Play it keeps the frame: each opens at the header's playhead (`#t=`,
+  `partHref`); Choices and Project open at their own.
 - **Project manager**: the studio's home, Films (`/`), named for Resolve's:
   a card per film (the stills of its renders' folder, its name; a tap opens
   its Scenes, a long press its other parts, `filmCommands`), then the
@@ -1350,7 +1376,7 @@ ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and 
   take under review or a note being written is the page's alone and says
   what it waits for): the player reads
   the timings and the track once, at load, so the film then plays the new
-  take at the same T, back on the same beat (the view keeps it). A mix that
+  take at the same T, back on the same beat (the link keeps it). A mix that
   failed reloads nothing and the status says so. The app serves the
   narration with `Cache-Control: no-cache`, so a reload never plays a take
   the browser cached.
@@ -1368,7 +1394,13 @@ The provider (`context.tsx`) builds the Studio's own runtime (the stage, the
 studio's routes, the capture), so the shell knows nothing of it, and hands
 the section derived values and actions (`view.ts`: the controls each state
 offers with their keys, the status line, the meter, the counts), never the
-machine's states. `e2e/lab/studio/studio.dom.test.ts` drives the whole panel in
+machine's states. The beat is the link's (`beatAt`, `lab/place.ts`): the
+one `?beat=` picks, else the path's scene (a beat is a scene's take), so
+Record opens where the lab is and Copy link cites the beat. A beat picked is
+a step Back walks and ←/→ follows in place; the link landing on another beat
+(Back, Forward, play into the next scene with none picked) moves a recorder
+at rest (`Idle`, `Failed`) to it, and never one mid-take.
+`e2e/lab/studio/studio.dom.test.ts` drives the whole panel in
 Chrome with a fake microphone.
 
 **Notes** live in `lab/<film>/notes.json` (`NotesFileJson`) with their stills
@@ -1741,7 +1773,7 @@ the in point here (I), Set the out point here (O) and Stop looping
 cue under 0.2 s loops with 0.4 s either side. The in and out points loop
 any range (the machine's A and B; the section says `looping in 00:00:01:00 –
 out 00:00:02:00`). The review's synced player has the same rate chip over its rates
-(½×, 1×). The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop`; a B not after A stays `Marked`, and a range plays from A as it is made. The provider plays the state through `rangeOf` each frame drawn.
+(½×, 1×). The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop | Linked | Unlinked`; a B not after A stays `Marked`, and a range plays from A as it is made, its points kept to the millisecond. The range is the link's (`#loop=`): the provider and the link agree, each following the other only where they differ (`Linked` puts a range the link names in the machine without playing, `Unlinked` ends one), and the part of a range past the film's end is not looped (`linkedRange`). The provider plays the state through `rangeOf` each frame drawn.
 
 **Compare** (`lab/compare/`, Solid 2) reads the scene's file at HEAD
 (`GET /api/films/<film>/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`

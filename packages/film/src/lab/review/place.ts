@@ -79,18 +79,15 @@ export const viewOf = (query: SetQuery, ids: ReadonlyArray<string>): ViewState =
 };
 
 /**
- * How a view's `event` enters history: a view or a moment chosen is a step
- * of its own (Back undoes it); a pair's other cycled (a refinement, as
- * `other`'s replace policy in `Places.set` says) and a ←/→ step through the
- * moments replace the entry.
+ * Why a view's `event` moves the URL (`addressOn`): a ←/→ step through the
+ * moments follows the viewer's stepping in place; every other event is the
+ * viewer's move, entered as `Places.set` declares it (a view or a moment
+ * chosen is a step Back walks, a pair's other cycled is a refinement).
  */
-export const historyOf = (event: ViewEvent): 'push' | 'replace' =>
+export const causeOf = (event: ViewEvent): 'go' | 'follow' =>
   Match.value(event).pipe(
-    Match.tags({
-      OtherChosen: (): 'replace' => 'replace',
-      MomentStepped: (): 'replace' => 'replace',
-    }),
-    Match.orElse((): 'push' => 'push'),
+    Match.tags({ MomentStepped: (): 'follow' => 'follow' }),
+    Match.orElse((): 'go' => 'go'),
   );
 
 /**

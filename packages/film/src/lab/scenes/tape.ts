@@ -88,10 +88,6 @@ type Step = (typeof STEPS)[number];
 export const perRowAt = (phone: boolean): number =>
   Bool.match(phone, { onTrue: () => 6, onFalse: () => 12 });
 
-// The scene a time falls in is the player's rule (`sceneAt`, core/layout.ts),
-// read here and by the Scenes view through this module.
-export { sceneAt };
-
 /** The tape of `scenes`, `duration` seconds long, a still every `step` seconds and `perRow` a row. */
 export const tapeOf = (
   scenes: ReadonlyArray<TapeScene>,

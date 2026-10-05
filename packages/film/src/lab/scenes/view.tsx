@@ -39,6 +39,7 @@ import type { Hub } from '../../command/hub.ts';
 import { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
 import { type ProjectView, type Say, pageHref } from '../../core/api.ts';
+import { sceneAt } from '../../core/layout.ts';
 import { isShortKey } from '../../core/shorts.ts';
 import { timecode, timecodeParts } from '../../core/time.ts';
 import type { Player } from '../../player/main.ts';
@@ -62,7 +63,6 @@ import {
   cutNames,
   perRowAt,
   placeOf,
-  sceneAt,
   stepFrom,
   tapeOf,
   timeAt,
@@ -182,7 +182,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   const select = (scene: Option.Option<string>) => {
     setAdded([]);
     if (Option.getOrElse(scene, () => '') === Option.getOrElse(chosen(), () => '')) return;
-    Option.map(withScene(address.href(), scene), address.push);
+    Option.map(withScene(address.href(), scene), address.go);
     setChosen(scene);
   };
   /** Add `scene` to the selection, or take it out: the first one picked is the path's. */

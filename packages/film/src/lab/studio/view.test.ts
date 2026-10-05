@@ -9,6 +9,7 @@ import { SttUntimed, TakeMismatch } from '../../core/refusals.ts';
 import type { StudioAttempt, StudioBeat } from '../../core/studio.ts';
 import { RecorderEvent, RecorderState } from './machine.ts';
 import {
+  atRest,
   attemptLine,
   beatBadge,
   beatCounts,
@@ -37,6 +38,19 @@ const failed = (refusal: TakeMismatch | SttUntimed) =>
   RecorderState.Failed({ beat: 'a', refusal, wav: Option.some(wav) });
 
 const acts = (state: RecorderState) => controlsOf(state).map((c) => c.act);
+
+describe('atRest', () => {
+  test('only a recorder with no take to lose is at rest: idle, or refused with none kept', () => {
+    expect(atRest(idle)).toBe(true);
+    expect(atRest(RecorderState.Failed({ beat: 'a', refusal: mismatch, wav: Option.none() }))).toBe(
+      true,
+    );
+    // A refused take kept to retry (a microphone lost mid-take, a mismatch) is the owner's work.
+    expect(atRest(failed(mismatch))).toBe(false);
+    expect(atRest(RecorderState.CountIn({ beat: 'a', n: 2 }))).toBe(false);
+    expect(atRest(RecorderState.Review({ beat: 'a', wav }))).toBe(false);
+  });
+});
 
 describe('controlsOf', () => {
   test('each state offers only what the recorder takes there', () => {

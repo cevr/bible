@@ -85,6 +85,35 @@ describe('loops', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live(
+    'a pasted link with #loop= opens on its A–B loop; a range marked or stopped is a step Back walks',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], {
+          href: labAt(1, { loop: { from: 1, to: 2 } }),
+          mode: 'motion',
+        });
+        yield* page.waitFor('.lab-motion [data-act="loop"]');
+        yield* motionSays(page, 'looping in 00:00:01:00 – out 00:00:02:00');
+        // Stopped: the link loses its loop, and Back brings it again.
+        yield* fromChip(page, 'loop', 'motion.loop-off');
+        yield* motionSays(page, '');
+        yield* evaluates(page, `location.hash.includes('loop=')`, false);
+        yield* page.back;
+        yield* motionSays(page, 'looping in 00:00:01:00 – out 00:00:02:00');
+        yield* evaluates(page, `location.hash.includes('&loop=1,2')`, true);
+        // A new out point: the range it makes is in the link, and Back returns to the one before.
+        yield* page.clock.hold;
+        for (let step = 0; step < 6; step++) yield* page.press('Shift+ArrowRight');
+        yield* page.press('o');
+        yield* motionSays(page, 'looping in 00:00:01:00 – out 00:00:03:00');
+        yield* evaluates(page, `location.hash.endsWith('&loop=1,3')`, true);
+        yield* page.back;
+        yield* motionSays(page, 'looping in 00:00:01:00 – out 00:00:02:00');
+        yield* evaluates(page, `location.hash.endsWith('&loop=1,2')`, true);
+      }).pipe(Effect.scoped),
+  );
+
   it.live('an out point with no in point says to set one first', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([], { href: labAt(2), mode: 'motion' });

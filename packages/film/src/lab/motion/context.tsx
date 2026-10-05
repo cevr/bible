@@ -1,12 +1,14 @@
 // Motion's provider: the loop's machine (one actor per lab page, on the
 // shell's runtime), the speed, and the onion skin's settings, each kept in
-// the view through the reload a write causes. The section and the onion
+// the view through the reload a write causes, the A–B range in the link
+// (`#loop=`). The section and the onion
 // layer read this context and act through it; neither holds state of its
 // own. The loop the machine is in plays through the player's clock each
 // frame (`rangeOf`: a looped cue follows its edits). The rate and the loop
 // are the page's commands too (`commands.ts`, `rateCommands`).
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
+import * as UrlAtom from '@bible/url-state/atom';
 import { Loading, Show } from '@solidjs/web';
 import { Option } from 'effect';
 import { Machine } from 'effect-machine';
@@ -20,6 +22,7 @@ import {
   createMemo,
   createSignal,
   onCleanup,
+  untrack,
   useContext,
 } from 'solid-js';
 import type { LoopRange } from '../../player/main.ts';
@@ -32,12 +35,15 @@ import {
   type LoopActor,
   LoopEvent,
   inOutOf,
-  loopFromView,
+  linkedRange,
+  loopAt,
   loopText,
   loopView,
   rangeOf,
   spawnLoop,
 } from './loop.ts';
+import { labHrefWith, labPlaceOf } from '../place.ts';
+import { addressOn } from '../../browser/host.ts';
 
 type Rate = LabView['rate'];
 type OnionView = LabView['onion'];
@@ -101,6 +107,33 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
     },
   );
   createEffect(loop, (s) => view.patch({ loop: loopView(s) }));
+
+  // The range is the link's (`#loop=`): the link and the machine agree, each
+  // following the other only where they differ. A range marked or stopped is
+  // a step Back walks; a link landed on (Back, Forward) moves the machine.
+  const address = addressOn(meta.host);
+  const href = useAtomValue(() => UrlAtom.href);
+  const linked = createMemo(() => linkedRange(labPlaceOf(href()).loop, meta.film.duration), {
+    equals: sameRange,
+  });
+  createEffect(linked, (range) => {
+    if (sameRange(range, inOutOf(untrack(loop)))) return;
+    send(
+      Option.match(range, {
+        onNone: () => LoopEvent.Unlinked,
+        onSome: (span) => LoopEvent.Linked(span),
+      }),
+    );
+  });
+  createEffect(
+    () => inOutOf(loop()),
+    (range) => {
+      if (sameRange(range, untrack(linked))) return;
+      address.go(
+        labHrefWith(meta.name, meta.film.placed, address.href(), { loop: range }, player.now()),
+      );
+    },
+  );
 
   const [rate, setRateSignal] = createSignal<Rate>(view.get().rate);
   createEffect(rate, (r) => {
@@ -172,7 +205,10 @@ const Ready = (
 /** Motion's state and actions, for its section and its onion layer. */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
-  const initial = loopFromView(Option.fromUndefinedOr(meta.view.get().loop));
+  const initial = loopAt(
+    linkedRange(labPlaceOf(addressOn(meta.host).href()).loop, meta.film.duration),
+    Option.fromUndefinedOr(meta.view.get().loop),
+  );
   const actor = meta.runtime.atom(Machine.scoped(spawnLoop(initial)));
   return (
     <Loading>

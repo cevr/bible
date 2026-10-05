@@ -11,6 +11,7 @@
 import { Location, UrlState } from '@bible/url-state';
 import { Clock, Duration, Effect, Exit, Layer, Option, Schedule, Scope, Stream } from 'effect';
 import type { Context } from 'effect';
+import { pageMove } from '../core/api.ts';
 import type { Clipboard } from './clipboard.ts';
 import type { Frames } from './frames.ts';
 import type { Keys } from './keys.ts';
@@ -50,26 +51,48 @@ export const hostOf = <S>(layer: Layer.Layer<S>): Context.Context<S> =>
 /** The host as a layer, for a runtime the page builds (the lab's, the studio's, the review's). */
 export const hostLayer = (host: Host): Layer.Layer<BrowserServices> => Layer.succeedContext(host);
 
-/** The address bar of a host, for a page's own code: what it reads, and its moves. */
+/**
+ * The address bar of a host, for a page's own code: what it reads, and its
+ * moves, each named by why it is made. Whether a move is a step Back walks
+ * is the place's to say (`pageMove`, core/api.ts), never the caller's.
+ */
 interface AddressBar {
   /** The URL as the page's writes leave it (written or still to flush). */
   readonly href: () => string;
-  /** Move to `href` as a new history entry (Back returns). */
-  readonly push: (href: string) => void;
-  /** Move this history entry to `href`. */
-  readonly replace: (href: string) => void;
+  /**
+   * The viewer went to `href` (a pick, a view, a jump, another place): a
+   * step Back walks where the place declares one (a new path, a cited key),
+   * else the entry is rewritten.
+   */
+  readonly go: (href: string) => void;
+  /**
+   * The URL follows what the page did on its own (play, a drag, a ←/→
+   * step, a correction, a note gone, an old link's redirect): the entry is
+   * rewritten in place, never a step of its own.
+   */
+  readonly follow: (href: string) => void;
 }
 
-/** The address bar of `host`, through its `UrlState`: writes in one tick make one move. */
-export const addressOn = (host: Context.Context<UrlState.UrlState>): AddressBar => {
-  const move = (history: 'push' | 'replace') => (href: string) =>
+/**
+ * The address bar of `host`, through its `UrlState`: writes in one tick make
+ * one move, from the entry on screen to where the last of them leaves the
+ * URL, so a viewer's move is judged from that entry (a play write and a jump
+ * in one tick are one step, from the scene the jump left).
+ */
+export const addressOn = (host: Context.Context<UrlState.UrlState | Location>): AddressBar => {
+  const navigate = (to: string, history: (from: string) => 'push' | 'replace') =>
     Effect.runSyncWith(host)(
-      UrlState.UrlState.use((url) => url.navigate(href, { history, throttle: Option.none() })),
+      Effect.gen(function* () {
+        const { href: from } = yield* Location.use((bar) => bar.current);
+        yield* UrlState.UrlState.use((url) =>
+          url.navigate(to, { history: history(from), throttle: Option.none() }),
+        );
+      }),
     );
   return {
     href: () => Effect.runSyncWith(host)(UrlState.UrlState.use((url) => url.href)),
-    push: move('push'),
-    replace: move('replace'),
+    go: (to) => navigate(to, (from) => pageMove(from, to)),
+    follow: (to) => navigate(to, () => 'replace'),
   };
 };
 

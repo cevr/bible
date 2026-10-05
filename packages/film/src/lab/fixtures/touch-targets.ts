@@ -228,8 +228,9 @@ const UNNAMING = [
  * An expression run in the page: each shown target (the elements and roles
  * `undersizedTargets` measures) and its box on the page, `left,top,width,height`
  * in whole CSS pixels from the page's top-left, keyed by what names it (its
- * tag and its attributes but `UNNAMING`) and its place among the targets
- * named the same: `{ key: box }`.
+ * tag and its attributes but `UNNAMING`, a link's `href` without its hash:
+ * the page bar's tabs carry the playhead's `#t=` once the film is staged)
+ * and its place among the targets named the same: `{ key: box }`.
  */
 export const targetBoxes = (): string => `(() => {
   const TARGETS = ${jsonOf(TARGETS)}, UNNAMING = ${jsonOf(UNNAMING)};
@@ -238,7 +239,7 @@ export const targetBoxes = (): string => `(() => {
   for (const el of document.querySelectorAll(TARGETS)) {
     const r = el.getBoundingClientRect();
     if (r.width === 0 || r.height === 0 || !el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) continue;
-    const named = [el.tagName.toLowerCase(), ...[...el.attributes].filter((a) => !UNNAMING.includes(a.name)).map((a) => a.name + '=' + a.value).sort()].join(' ');
+    const named = [el.tagName.toLowerCase(), ...[...el.attributes].filter((a) => !UNNAMING.includes(a.name)).map((a) => a.name + '=' + (a.name === 'href' ? a.value.split('#')[0] : a.value)).sort()].join(' ');
     const n = (counted.get(named) ?? 0) + 1;
     counted.set(named, n);
     boxes[named + ' #' + n] = [r.left + scrollX, r.top + scrollY, r.width, r.height].map(Math.round).join(',');

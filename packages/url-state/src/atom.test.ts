@@ -168,21 +168,13 @@ describe('UrlAtom', () => {
       yield* Effect.yieldNow;
       expect(followers).toBe(1);
 
-      // Seeded with the layer alone, and as the film seeds it, with the
-      // built services too.
-      const seeds = [
-        [[UrlAtom.layer, Layer.succeedContext(host)]],
-        [
-          [UrlAtom.layer, Layer.succeedContext(host)],
-          [UrlAtom.services, host],
-        ],
-      ] as const;
-      for (const initialValues of seeds) {
-        const registry = AtomRegistry.make({ initialValues });
-        expect(registry.get(UrlAtom.href)).toBe('/films/f/lab/s');
-        yield* Effect.yieldNow;
-        registry.dispose();
-      }
+      // Seeded as the film's pages seed it: the layer, with the host built.
+      const registry = AtomRegistry.make({
+        initialValues: [[UrlAtom.layer, Layer.succeedContext(host)]],
+      });
+      expect(registry.get(UrlAtom.href)).toBe('/films/f/lab/s');
+      yield* Effect.yieldNow;
+      registry.dispose();
       expect(followers).toBe(1);
     }).pipe(Effect.scoped),
   );

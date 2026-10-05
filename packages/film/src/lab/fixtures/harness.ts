@@ -29,6 +29,7 @@ import {
   statusOf,
 } from '../../core/api.ts';
 import type { PageBuild } from '../../core/schema.ts';
+import type { Interval } from '../../core/time.ts';
 import { PAGE_CUT_MARK, PAGE_MOUNTED, type PageRender } from '../../core/page-render.ts';
 import { splice } from '../../tools/lab-page.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
@@ -45,11 +46,13 @@ const API = `/api/films/${PROBE}`;
 /** The probe film as the lab page lays it out: where each scene starts. */
 const probePlaced = probeFilm().placed;
 
-/** What a lab link picks: a cue or a knob of a scene, and a note. */
+/** What a lab link picks: a cue or a knob of a scene, a note, the studio's beat, the compare's mode and the A–B loop. */
 interface LabPick {
   readonly selection?: LabSelection;
   readonly note?: string;
+  readonly beat?: string;
   readonly view?: CompareView;
+  readonly loop?: Interval;
 }
 
 /** The probe film's lab at film seconds `T` with `pick`: the link the lab itself writes (`labHref`). */
@@ -60,7 +63,9 @@ export const labAt = (T: number, pick: LabPick = {}): string =>
     {
       selection: Option.fromUndefinedOr(pick.selection),
       note: Option.fromUndefinedOr(pick.note),
+      beat: Option.fromUndefinedOr(pick.beat),
       view: Option.getOrElse(Option.fromUndefinedOr(pick.view), (): CompareView => 'off'),
+      loop: Option.fromUndefinedOr(pick.loop),
     },
     T,
   );
@@ -456,6 +461,8 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
     readonly mode?: LabMode;
     /** The window, and its pointer; none: a desk's, 1400 × 900 with a mouse. */
     readonly viewport?: Viewport;
+    /** What the page is open at; none: its panel, the film staged in it. */
+    readonly ready?: string;
   } = {},
 ) {
   const script = labScript;
@@ -483,7 +490,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
   });
   yield* page.goto(at.href ?? pageHref.lab(PROBE));
   // The panel stands before the film is staged; its tools are in it once it is.
-  yield* page.waitFor('.lab-panel[data-staged="true"]');
+  yield* page.waitFor(at.ready ?? '.lab-panel[data-staged="true"]');
   for (const mode of Option.toArray(Option.fromUndefinedOr(at.mode))) {
     yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
     yield* page.waitFor(`.lab-panel[data-mode="${mode}"]`);

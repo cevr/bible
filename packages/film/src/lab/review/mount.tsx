@@ -28,7 +28,7 @@ export const mountReview = (films: Films = {}): void => {
       registerFace(document.fonts);
       const { hub, app } = yield* reviewOn(host, LabClient.layer, drawStills(films));
       yield* Effect.forkDetach(hub.listen);
-      const how = mountPage({ ...REVIEW_PAGE, app });
+      const { how } = mountPage({ ...REVIEW_PAGE, app });
       const { href } = yield* Location.use((bar) => bar.current);
       yield* Effect.logInfo(`review.mounted href=${href} how=${how}`);
     }),

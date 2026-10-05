@@ -1,5 +1,5 @@
 // The review's pages. Home lists every folder with something to review,
-// version stacks first, filtered by name. A folder shows its version stacks
+// version stacks first. A folder shows its version stacks
 // (Versions), and whatever is in no stack: its videos (with captions when a
 // `.vtt` lies beside them), its sheets and stills (a lightbox), its docs
 // (markdown inline). A stack plays every version on one clock: all of them,
