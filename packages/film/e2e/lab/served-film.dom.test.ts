@@ -14,6 +14,7 @@ import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { DESK, PHONE, hold, json, openServed, route } from '../../src/lab/fixtures/harness.ts';
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
+import { targetBoxes } from '../../src/lab/fixtures/touch-targets.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { countIs, evaluates, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import { LAB_MODES } from '../../src/lab/mode.ts';
@@ -64,8 +65,27 @@ const NOTE = {
 /** Each tool's section of the Lab's panel, as the server writes it. */
 const SECTIONS = ['lab-edit', 'lab-motion', 'lab-compare-tools', 'lab-notes-box', 'lab-studio'];
 
-/** Where the mode tray stands on the page, in CSS pixels from its top. */
-const TRAY_TOP = `document.querySelector('.lab-modes').getBoundingClientRect().top + scrollY`;
+/**
+ * Every target the page shows now that the staged page (its boxes kept on
+ * the window as `stagedTargets`) has elsewhere or not at all, as
+ * `key: box now → box staged`; none, `[]`.
+ */
+const MOVED = `(() => {
+  const now = ${targetBoxes()};
+  return Object.entries(now)
+    .filter(([key, box]) => window.stagedTargets[key] !== box)
+    .map(([key, box]) => key + ': ' + box + ' → ' + (window.stagedTargets[key] ?? 'gone'));
+})()`;
+
+/** How many targets the page shows now that carry each of `attributes`. */
+const shownWith = (attributes: ReadonlyArray<string>) =>
+  `(() => {
+  const keys = Object.keys(${targetBoxes()});
+  return ${literal(attributes.join(' '))}.split(' ').map((attribute) => keys.filter((key) => key.includes(' ' + attribute + '=')).length);
+})()`;
+
+/** The attributes that name what a Lab's first paint shows: the shell's pages, the panel's modes, the acts. */
+const NAMING = ['data-page', 'data-mode-pick', 'data-act'];
 
 /** Whether the panel is seen. */
 const SEEN = `getComputedStyle(document.querySelector('.lab-panel')).visibility`;
@@ -85,13 +105,16 @@ const asks = (asked: ReadonlyArray<{ readonly path: string }>, start: string) =>
 const literal = Schema.encodeSync(Schema.fromJsonString(Schema.String));
 
 /**
- * The windows the Lab is served to, and whether the panel is seen before the
- * film is staged: on a desk, beside where the film lands; on a phone, under
- * it, so unseen until it lands.
+ * The windows the Lab is served to, whether the panel is seen before the
+ * film is staged (on a desk, beside where the film lands; on a phone, under
+ * it, so unseen until it lands), and the targets its first paint shows, by
+ * `NAMING`: the six pages of the shell; the panel's modes on a desk, none on
+ * a phone; and the acts (the film switcher, Go to, View, and on a desk the
+ * pen and note-this-frame).
  */
 const LAB_WINDOWS = [
-  { where: 'a desk', viewport: DESK, first: 'visible' },
-  { where: 'a phone', viewport: PHONE, first: 'hidden' },
+  { where: 'a desk', viewport: DESK, first: 'visible', shows: [6, LAB_MODES.length, 5] },
+  { where: 'a phone', viewport: PHONE, first: 'hidden', shows: [6, 0, 3] },
 ] as const;
 
 describe("a film's pages served as the lab renders them", () => {
@@ -121,7 +144,7 @@ describe("a film's pages served as the lab renders them", () => {
       SLOW,
     );
 
-  for (const { where, viewport, first } of LAB_WINDOWS)
+  for (const { where, viewport, first, shows } of LAB_WINDOWS)
     it.live(
       `Lab on ${where}: the server's document holds the panel, each tool's section and the film's notes as the server read them, none of the film; the browser adopts the notes, reads them no second time, and puts the film's tools in the panel; no control the server painted moves`,
       () =>
@@ -165,11 +188,12 @@ describe("a film's pages served as the lab renders them", () => {
           if (viewport === PHONE) yield* fitsPhone(page);
           expect(mismatches(page.logged)).toEqual([]);
           expect(errors).toEqual([]);
-          // What the server painted first, before any script: on a desk the
-          // panel, where the staged page has it; on a phone, under a picture
-          // and a bar only the film can size, nothing seen until they land.
-          // (The staged tray's place is kept on the window, which a document written anew keeps.)
-          yield* page.evaluate(`(window.stagedTray = ${TRAY_TOP}, 0)`);
+          // What the server painted first, before any script: every target it
+          // shows stands where the staged page has it. On a desk that is the
+          // panel's too; on a phone the panel, under a picture and a bar only
+          // the film can size, is not seen until they land. (The staged
+          // targets are kept on the window, which a document written anew keeps.)
+          yield* page.evaluate(`(window.stagedTargets = ${targetBoxes()}, 0)`);
           yield* page.evaluate(
             `(document.open(), document.write(${literal(painted(whole))}), document.close(), 0)`,
           );
@@ -178,8 +202,8 @@ describe("a film's pages served as the lab renders them", () => {
             `document.fonts.status === 'loaded' && document.querySelector('.lab-modes') !== null`,
           );
           yield* evaluates(page, SEEN, first);
-          if (first === 'visible')
-            yield* evaluates(page, `${TRAY_TOP} === window.stagedTray`, true);
+          yield* evaluates(page, shownWith(NAMING), shows);
+          yield* evaluates(page, MOVED, []);
         }).pipe(Effect.scoped),
       SLOW,
     );

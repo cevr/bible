@@ -281,8 +281,9 @@ interface TabOptions {
   readonly init: ReadonlyArray<string>;
   /**
    * A phone's pointer: the browser's touch emulation, so the page matches
-   * `(pointer: coarse)` and `(hover: none)` as a phone does. None: the desk's
-   * mouse.
+   * `(pointer: coarse)` and `(hover: none)` as a phone does, and scrollbars
+   * that take no room, as a phone's overlay ones. None: the desk's mouse and
+   * scrollbars.
    */
   readonly coarse?: boolean;
 }

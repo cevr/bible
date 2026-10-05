@@ -431,8 +431,8 @@ export interface Viewport {
   readonly coarse?: boolean;
 }
 
-/** A desk's window: wide, with a mouse. */
-export const DESK: Viewport = { width: 1400, height: 900 };
+/** A desk's window, as the studio is checked on a laptop: 1440 × 900, with a mouse. */
+export const DESK: Viewport = { width: 1440, height: 900 };
 
 /** A phone's window, as the studio is designed for first: 390 × 844, with a finger. */
 export const PHONE: Viewport = { width: 390, height: 844, coarse: true };

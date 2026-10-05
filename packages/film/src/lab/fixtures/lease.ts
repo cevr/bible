@@ -44,10 +44,17 @@ export interface Ask {
   readonly coarse: boolean;
 }
 
-/** Touch emulation on `view`, on or off: what makes `(pointer: coarse)` match. */
+/**
+ * A phone's pointer on `view`, on or off: touch emulation, what makes
+ * `(pointer: coarse)` match; and scrollbars that take no room, as a phone's
+ * overlay ones, so a page that grows past the window keeps its width.
+ */
 const touch = (view: View, enabled: boolean) =>
-  Effect.tryPromise(() =>
-    view.cdp('Emulation.setTouchEmulationEnabled', { enabled, maxTouchPoints: 5 }),
+  Effect.andThen(
+    Effect.tryPromise(() =>
+      view.cdp('Emulation.setTouchEmulationEnabled', { enabled, maxTouchPoints: 5 }),
+    ),
+    Effect.tryPromise(() => view.cdp('Emulation.setScrollbarsHidden', { hidden: enabled })),
   );
 
 /**
