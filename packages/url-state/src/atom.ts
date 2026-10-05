@@ -7,10 +7,8 @@
  * - `layer`: the `Location` layer, one per registry. It is the browser's by
  *   default; seed it through the registry's initial values: the browser with
  *   options at an app's root, `layerServer(requestUrl)` per server render,
- *   a memory layer in a test, or a host's built `Location` and `UrlState`.
- * - `services`: `Location` and `UrlState`, built from `layer` in the atom's
- *   scope and kept alive with the registry; the layer's own `UrlState` when
- *   it has one.
+ *   a memory layer in a test, or a host's built `Location` and `UrlState`
+ *   (the atoms then write through that `UrlState`, the host's own).
  * - `href`: the URL as the program's writes leave it.
  * - `entry`: the history entry on screen (its key and how it arrived), for
  *   per-entry memory such as a scroll position.
@@ -41,12 +39,13 @@ export const layer: Atom.Writable<Layer.Layer<Location>> = Atom.keepAlive(
 );
 
 /**
- * `Location` and `UrlState`, built from `layer` and closed with the atom. A
- * layer that carries a `UrlState` of its own (a host that writes through
- * one) gives that one, so the page has a single `UrlState`; any other layer
- * gets one built over its `Location`.
+ * `Location` and `UrlState`, built from `layer` in the atom's scope and kept
+ * alive with the registry, the one thing every atom reads through. A layer
+ * that carries a `UrlState` of its own (a host that writes through one)
+ * gives that one, so the page has a single `UrlState`; any other layer gets
+ * one built over its `Location`.
  */
-export const services: Atom.Atom<Services> = Atom.keepAlive(
+const services: Atom.Atom<Services> = Atom.keepAlive(
   Atom.make((get) => {
     const scope = Scope.makeUnsafe();
     get.addFinalizer(() => Effect.runSync(Scope.close(scope, Exit.void)));

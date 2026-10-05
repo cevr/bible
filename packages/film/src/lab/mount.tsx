@@ -14,13 +14,13 @@ import { legacyPlace } from '../core/api.ts';
 import { type Host, addressOn, hostOf } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
-import type { TimeInUrl } from '../player/t-in-url.ts';
+import { TIME_MOVE, type TimeInUrl } from '../player/t-in-url.ts';
 import { registerFace } from '../player/face.ts';
 import { LabClient } from './api.ts';
-import { labHref, labOpensAt, labPlaceOf } from './place.ts';
+import { labHrefWith, labOpensAt } from './place.ts';
 import { ShellTools, useShellTime } from './page-shell.tsx';
 import { type FilmBody, LAB_PAGE, labOn } from './film-page.tsx';
-import { mountPage } from './page-client.tsx';
+import { makePageEnd, mountPage } from './page-client.tsx';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
@@ -85,17 +85,17 @@ const LabBody = (props: { readonly player: Player }) => (
 /**
  * The lab's time in the URL: an entry names the frame its place does
  * (`labOpensAt`), on opening and on Back, and each write keeps the place's
- * pick, note and compare mode and puts the frame's scene in the path (`labHref`), so the
- * path and `#t=` move together across a scene boundary.
+ * pick, note, compare mode and loop and puts the frame's scene in the path
+ * (`labHrefWith`), so the path and `#t=` move together across a scene
+ * boundary. Play crossing one rewrites the entry; a jump to another scene is
+ * a step Back walks.
  */
 const labTime = (name: string, film: Film, host: Host): TimeInUrl => {
   const address = addressOn(host);
   return {
     at: (href) => labOpensAt(film.placed, href),
-    write: (T) => {
-      const { selection, note, view } = labPlaceOf(address.href());
-      address.replace(labHref(name, film.placed, { selection, note, view }, T));
-    },
+    write: (T, cause) =>
+      address[TIME_MOVE[cause]](labHrefWith(name, film.placed, address.href(), {}, T)),
   };
 };
 
@@ -105,10 +105,11 @@ const NoBody = () => <></>;
 /**
  * The lab's body for `films` over `host`: the film its path names staged,
  * its preview mounted on the page's commands, and the lab around it. A film
- * that does not start says why in place of the page.
+ * that does not start ends the page (`end`: its panel's notes feed, its
+ * keys) and says why in its place.
  */
 const labBody =
-  (films: Films, host: Host): FilmBody =>
+  (films: Films, host: Host, end: Effect.Effect<void>): FilmBody =>
   (hub) =>
     Effect.runPromiseWith(host)(
       Effect.gen(function* () {
@@ -124,10 +125,13 @@ const labBody =
         };
       }).pipe(
         Effect.catchTag('LabStartFailed', (e) =>
-          Effect.sync(() => {
-            showFailure(e.reason);
-            return { default: NoBody };
-          }),
+          Effect.andThen(
+            end,
+            Effect.sync(() => {
+              showFailure(e.reason);
+              return { default: NoBody };
+            }),
+          ),
         ),
       ),
     );
@@ -143,20 +147,22 @@ export const mountLab = (films: Films): void => {
     Effect.gen(function* () {
       const address = addressOn(host);
       // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
-      Option.map(legacyPlace(address.href()), address.replace);
+      Option.map(legacyPlace(address.href()), address.follow);
       // The UI face first, so the fonts the film waits on include it.
       registerFace(document.fonts);
       // The page's commands and its one key listener: the player's transport and every tool's verbs.
+      const ending = yield* makePageEnd;
       const { hub, app } = yield* labOn(
         host,
         Object.keys(films),
         LabClient.layer,
-        labBody(films, host),
+        labBody(films, host, ending.end),
       );
-      yield* Effect.forkDetach(hub.listen);
-      const how = mountPage({ ...LAB_PAGE, app });
+      const listening = yield* Effect.forkDetach(hub.listen);
+      const mounted = mountPage({ ...LAB_PAGE, app });
+      yield* ending.mounted(mounted, listening);
       const { href } = yield* Location.use((bar) => bar.current);
-      yield* Effect.logInfo(`lab.shell href=${href} how=${how}`);
+      yield* Effect.logInfo(`lab.shell href=${href} how=${mounted.how}`);
     }),
   );
 };

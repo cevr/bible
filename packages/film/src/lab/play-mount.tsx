@@ -17,9 +17,9 @@ import { BrowserHost } from '../browser/host-browser.ts';
 import type { Hub } from '../command/hub.ts';
 import { registerFace } from '../player/face.ts';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
-import { onTheMs, type TimeInUrl } from '../player/t-in-url.ts';
+import { TIME_MOVE, onTheMs, type TimeInUrl } from '../player/t-in-url.ts';
 import { type FilmBody, PLAY_PAGE, playOn, playPartOf } from './film-page.tsx';
-import { mountPage } from './page-client.tsx';
+import { makePageEnd, mountPage } from './page-client.tsx';
 import { useShellTime } from './page-shell.tsx';
 import { scenesOpensAt, withTime } from './scenes/place.ts';
 import { ScenesView } from './scenes/view.tsx';
@@ -38,7 +38,7 @@ const playTime = (name: string, host: Host): TimeInUrl => {
         Option.flatMap(Place.decode(Places.play, href), (v) => v.hash.t),
         () => 0,
       ),
-    write: (T) => address.replace(pageHref.play(name, Option.some(onTheMs(T)))),
+    write: (T, cause) => address[TIME_MOVE[cause]](pageHref.play(name, Option.some(onTheMs(T)))),
   };
 };
 
@@ -56,8 +56,8 @@ const scenesTime = (host: Host, placed: ReadonlyArray<Placed>): TimeInUrl => {
           (p) => p.start,
         ),
       ),
-    write: (T) => {
-      Option.map(withTime(address.href(), T), address.replace);
+    write: (T, cause) => {
+      Option.map(withTime(address.href(), T), address[TIME_MOVE[cause]]);
     },
   };
 };
@@ -88,10 +88,10 @@ const NoBody = () => <></>;
  * The Scenes or Play page's body for `pages` over `host`: the film its path
  * names staged, its preview mounted on the page's commands, under the
  * Scenes' tape or on its own as the link says. A film that does not start
- * says why in place of the page.
+ * ends the page (`end`: its keys) and says why in its place.
  */
 const playBody =
-  (pages: Films, host: Host): FilmBody =>
+  (pages: Films, host: Host, end: Effect.Effect<void>): FilmBody =>
   (hub: Hub) =>
     Effect.runPromiseWith(host)(
       Effect.gen(function* () {
@@ -131,10 +131,13 @@ const playBody =
         };
       }).pipe(
         Effect.catchTag('PlayStartFailed', (e) =>
-          Effect.sync(() => {
-            showFailure(e.reason);
-            return { default: NoBody };
-          }),
+          Effect.andThen(
+            end,
+            Effect.sync(() => {
+              showFailure(e.reason);
+              return { default: NoBody };
+            }),
+          ),
         ),
       ),
     );
@@ -151,15 +154,21 @@ export const mountPlay = (pages: Films): void => {
     Effect.gen(function* () {
       const address = addressOn(host);
       // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
-      Option.map(legacyPlace(address.href()), address.replace);
+      Option.map(legacyPlace(address.href()), address.follow);
       // The UI face first, so the fonts the film waits on include it.
       registerFace(document.fonts);
       // The page's commands and its one key listener: the shell's page keys, and the transport's.
-      const { hub, app } = yield* playOn(host, Object.keys(pages), playBody(pages, host));
-      yield* Effect.forkDetach(hub.listen);
-      const how = mountPage({ ...PLAY_PAGE, app });
+      const ending = yield* makePageEnd;
+      const { hub, app } = yield* playOn(
+        host,
+        Object.keys(pages),
+        playBody(pages, host, ending.end),
+      );
+      const listening = yield* Effect.forkDetach(hub.listen);
+      const mounted = mountPage({ ...PLAY_PAGE, app });
+      yield* ending.mounted(mounted, listening);
       const { href } = yield* Location.use((bar) => bar.current);
-      yield* Effect.logInfo(`play.shell href=${href} how=${how}`);
+      yield* Effect.logInfo(`play.shell href=${href} how=${mounted.how}`);
     }),
   );
 };

@@ -9,16 +9,21 @@ import { countIs, evaluates, waitFor } from './settled.ts';
 import type { Tab } from './tab.ts';
 
 /**
- * Run `script` with `el` (the element at `selector`) and `x`, `y` (its box's
- * middle) in scope: its answer is what the script returns.
+ * Run `script` with `el` (the element at `selector`, once it is shown) and
+ * `x`, `y` (its box's middle) in scope: its answer is what the script
+ * returns. A gesture waits for what it presses, as a hand does: an element a
+ * load paints later (home's film cards) is never pressed before it is there.
  */
 const fire = <A>(page: Tab, selector: string, script: string) =>
-  page.evaluate<A>(`(() => {
+  Effect.andThen(
+    waitFor(page, selector),
+    page.evaluate<A>(`(() => {
     const el = document.querySelector('${selector}');
     const r = el.getBoundingClientRect();
     const x = r.left + r.width / 2, y = r.top + r.height / 2;
     ${script}
-  })()`);
+  })()`),
+  );
 
 /**
  * A right-click on `selector`'s middle: the press (button 2), then the menu's

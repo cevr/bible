@@ -6,12 +6,24 @@
 // the player's timeline; a page reloaded onto new code flashes its picture
 // once and one opened by hand does not; and the page starts without an error.
 
-import { Deferred, Effect, Exit } from 'effect';
+import { Deferred, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
+import { FilmUnknown } from '../../src/core/refusals.ts';
 import { timecode } from '../../src/core/time.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
-import { URL_T, hold, json, labAt, later, openLab, route } from '../../src/lab/fixtures/harness.ts';
+import {
+  DESK,
+  PHONE,
+  URL_T,
+  hold,
+  json,
+  labAt,
+  later,
+  openLab,
+  refused,
+  route,
+} from '../../src/lab/fixtures/harness.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
@@ -87,11 +99,12 @@ describe('the lab shell', () => {
           'href',
           pageHref.choices(PROBE),
         );
+        // Scenes opens at the lab's playhead: the frame is kept between parts.
         yield* attributeIs(
           page,
           '.sh-pagebar [data-page="scenes"]',
           'href',
-          pageHref.scenes(PROBE),
+          pageHref.scenes(PROBE, Option.some(0)),
         );
         // No text link to another part: the page bar is the way.
         yield* evaluates(page, "document.querySelectorAll('.lab-panel a[href]').length", 0);
@@ -99,6 +112,55 @@ describe('the lab shell', () => {
         yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(0));
         yield* evaluates(page, "document.body.classList.contains('lab')", true);
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "the page bar keeps the film's frame between Scenes, the Lab and Play (#t=); Choices and Project open at their own",
+    () =>
+      Effect.gen(function* () {
+        const at = TWO + 0.25;
+        const { page, errors } = yield* openLab([], { href: labAt(at) });
+        yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(at));
+        const hrefT = (part: string) =>
+          `(() => { const a = document.querySelector('.sh-pagebar [data-page="${part}"]'); return a.hash.startsWith('#t=') && Math.abs(Number(a.hash.slice(3)) - ${at}) < 0.002; })()`;
+        yield* evaluates(page, hrefT('scenes'), true);
+        yield* evaluates(page, hrefT('play'), true);
+        yield* attributeIs(
+          page,
+          '.sh-pagebar [data-page="choices"]',
+          'href',
+          pageHref.choices(PROBE),
+        );
+        // ⇧2 goes to Scenes at the lab's frame.
+        yield* page.press('Shift+2');
+        yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
+        yield* evaluates(page, `Math.abs(${T} - ${at}) < 0.002`, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a lab of a film the lab does not have says so once, and its page stops: nothing asked again, no key heard',
+    () =>
+      Effect.gen(function* () {
+        const NOTES = /^\/api\/films\/nope\/notes$/;
+        const { page, asked } = yield* openLab(
+          [route('GET', NOTES, () => refused(FilmUnknown.make({ film: 'nope', known: [PROBE] })))],
+          { href: pageHref.lab('nope'), ready: 'pre' },
+        );
+        yield* textHas(page, 'pre', `unknown film "nope"; have ${PROBE}`);
+        const notesAsked = () => asked.filter((a) => NOTES.test(a.path)).length;
+        const before = notesAsked();
+        // Long past the notes feed's pause before it asks again, and a key the page would hear.
+        yield* page.clock.runFor(10_000);
+        yield* page.press('?');
+        yield* page.clock.runFor(100);
+        // A request of the test's own, behind any the page made meanwhile.
+        yield* page.evaluate("fetch('/api/films/nope/check').then((r) => r.status)");
+        expect(notesAsked()).toBe(before);
+        yield* countIs(page, '[data-role="keys-sheet"]', 0);
+        yield* countIs(page, 'pre', 1);
       }).pipe(Effect.scoped),
   );
 
@@ -112,6 +174,86 @@ describe('the lab shell', () => {
       yield* evaluates(page, `Math.abs(${T} - ${TWO}) < 0.002`, true);
       yield* evaluates(page, "location.hash.startsWith('#t=0')", true);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a scene jump is a step Back walks: Back lands on the scene before at its frame, still in the lab',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(0.5) });
+        yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+        yield* page.press(']');
+        yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
+        yield* page.press(']');
+        yield* evaluates(page, 'location.pathname', '/films/probe/lab/three');
+        yield* page.back;
+        yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
+        yield* textHas(page, '.bar .scene', 'two');
+        yield* page.back;
+        yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+        yield* evaluates(page, `Math.abs(${T} - 0.5) < 0.002`, true);
+        yield* textHas(page, '.bar .scene', 'one');
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('a drag along the track across a cut writes the path in place: no step of its own', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(0.5) });
+      yield* page.until('(globalThis.openedWith = history.length) > 0');
+      const track = yield* page.box('.bar .track');
+      const y = track.y + track.height / 2;
+      yield* page.mouse.move(track.x + 2, y);
+      yield* page.mouse.down;
+      yield* page.mouse.move(track.x + track.width * 0.95, y, 12);
+      yield* page.mouse.up;
+      yield* evaluates(page, 'location.pathname', '/films/probe/lab/three');
+      yield* evaluates(page, 'history.length - globalThis.openedWith', 0);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a drag that starts in another scene is no step either, by mouse or finger; a tap there is one Back walks',
+    () =>
+      Effect.gen(function* () {
+        type Point = { readonly x: number; readonly y: number };
+        /** A drag and a tap, by mouse on a desk or by finger on a phone. */
+        const hands = [
+          {
+            viewport: DESK,
+            drag: (page: Tab, from: Point, to: Point) =>
+              Effect.gen(function* () {
+                yield* page.mouse.move(from.x, from.y);
+                yield* page.mouse.down;
+                yield* page.mouse.move(to.x, to.y, 12);
+                yield* page.mouse.up;
+              }),
+            tap: (page: Tab, at: Point) => page.mouse.click(at.x, at.y),
+          },
+          {
+            viewport: PHONE,
+            drag: (page: Tab, from: Point, to: Point) => page.finger.drag(from, to, 24),
+            tap: (page: Tab, at: Point) =>
+              Effect.andThen(page.finger.down(at.x, at.y), page.finger.up),
+          },
+        ];
+        for (const hand of hands) {
+          const { page } = yield* openLab([], { href: labAt(0.5), viewport: hand.viewport });
+          yield* page.until('(globalThis.openedWith = history.length) > 0');
+          const track = yield* page.box('.bar .track');
+          const y = track.y + track.height / 2;
+          const at = (share: number) => ({ x: track.x + track.width * share, y });
+          // Pressed in three, dragged back into one: the path follows in place.
+          yield* hand.drag(page, at(0.9), at(0.1));
+          yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+          yield* evaluates(page, 'history.length - globalThis.openedWith', 0);
+          // A tap in three jumps there, a step Back walks.
+          yield* hand.tap(page, at(0.9));
+          yield* evaluates(page, 'location.pathname', '/films/probe/lab/three');
+          yield* evaluates(page, 'history.length - globalThis.openedWith', 1);
+          yield* page.back;
+          yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+        }
+      }).pipe(Effect.scoped),
   );
 
   it.live(

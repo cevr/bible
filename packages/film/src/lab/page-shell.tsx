@@ -4,7 +4,8 @@
 // view menu ⋯) over
 // the page. The page bar is Films · Scenes · Lab · Choices · Project ·
 // Play, each a link printed by its place (`partHref`) and each on its key
-// (⇧1-⇧6, `partCommands`); on a phone its five film tabs are a tab bar along
+// (⇧1-⇧6, `partCommands`); from Scenes, the Lab or Play the others of
+// those three open at the header's playhead (`filmTimeOn`); on a phone its five film tabs are a tab bar along
 // the bottom (56 px over the safe area) and Films is the header's leading
 // square. Every move between parts is here, the switcher or a command that
 // lands on a part's tab: no page links to another part in its text. The
@@ -28,7 +29,7 @@ import {
   type ParentProps,
   useContext,
 } from 'solid-js';
-import { PARTS, PART_TITLE, type Part, hasPart, partHref } from '../core/api.ts';
+import { PARTS, PART_TITLE, type Part, filmTimeOn, hasPart, partHref } from '../core/api.ts';
 import { FILM_FPS, timecodeParts } from '../core/time.ts';
 import type { Host } from '../browser/host.ts';
 import { PageLoad } from '../browser/page-load.ts';
@@ -249,8 +250,10 @@ export const PageShell = (props: PageShellProps) => {
     if (!plainClick(e) || props.follow?.(href) !== true) return;
     e.preventDefault();
   };
+  /** The playhead the header shows, as the time a move to another part keeps. */
+  const at = () => Option.map(time(), (shown) => shown.t);
   onCleanup(
-    props.hub.commands.register(...partCommands(film, props.part, go), ...filmCommands(go)),
+    props.hub.commands.register(...partCommands(film, props.part, go, at), ...filmCommands(go)),
   );
   const keys = hubKeys(props.hub);
   const keyOf = (part: Part) => keys.label(`shift+${PARTS.indexOf(part) + 1}`);
@@ -259,7 +262,7 @@ export const PageShell = (props: PageShellProps) => {
       when={Option.getOrUndefined(
         Option.map(
           Option.filter(film(), (f) => hasPart(f, part)),
-          (f) => partHref(part, f),
+          (f) => partHref(part, f, filmTimeOn(props.part(), at())),
         ),
       )}
       fallback={

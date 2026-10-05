@@ -20,6 +20,7 @@ import { onTheMs } from '../../src/player/t-in-url.ts';
 import {
   type FakeRoute,
   type Json,
+  URL_T,
   json,
   openPlayer,
   route,
@@ -45,6 +46,8 @@ const DESK = { width: 1440, height: 900 };
 /** Where the probe film's second and third scenes start, in film seconds. */
 const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
 const THREE = probeFilm().placed[2]?.start ?? Number.NaN;
+/** The probe film's middle, in film seconds: where a tap on the middle of the track jumps. */
+const HALF = probeFilm().duration / 2;
 
 /** Play's bar, up: its play button (on a laptop its timecode is the header's alone). */
 const BAR_READY = '.bar [data-act="play"]';
@@ -420,6 +423,12 @@ describe('the player', () => {
         yield* tap;
         yield* textIs(page, '.bar [data-act="play"]', '❚❚');
         yield* evaluates(page, controls(true), true);
+        // Playing, a finger's tap on the track jumps there, and the controls stay: the tap is the track's.
+        yield* touch(page, '.bar .track', 0);
+        yield* page.finger.up;
+        yield* evaluates(page, `Math.abs(${URL_T} - ${HALF}) < ${HALF / 10}`, true);
+        yield* evaluates(page, controls(true), true);
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
         // Playing, a tap hides them at once, and the next shows them.
         yield* tap;
         yield* evaluates(page, controls(false), true);
@@ -585,7 +594,13 @@ describe('the player', () => {
           STILL_DRAWN,
         );
         yield* attributeIs(page, '.sh-pagebar [data-page="scenes"]', 'data-active', 'true');
-        yield* attributeIs(page, '.sh-pagebar [data-page="lab"]', 'href', pageHref.lab(PROBE));
+        // The lab opens at the tape's playhead.
+        yield* attributeIs(
+          page,
+          '.sh-pagebar [data-page="lab"]',
+          'href',
+          pageHref.lab(PROBE, Option.some(0)),
+        );
         // A cut per scene, in film order.
         yield* evaluates(
           page,

@@ -29,7 +29,7 @@
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Array as Arr, Effect, Exit, Match, Option, Schema } from 'effect';
+import { Array as Arr, Effect, Exit, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
   type Accessor,
@@ -54,7 +54,6 @@ import {
   pointHead,
   shownIn,
 } from '../../../core/choice.ts';
-import { PointId, pointIdOf } from '../../../core/point.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import { FILM_FPS, timecode } from '../../../core/time.ts';
 import { sceneHue, SceneCard, SceneFindings } from '../../scenes/card.tsx';
@@ -80,7 +79,7 @@ import { FilmProvider, useFilm } from './context.tsx';
 import { Findings } from './findings.tsx';
 import { approveUndo, partText, tookText, undoApprove } from './receipt.ts';
 import { Still, type SceneStills, useSceneStills } from './stills.tsx';
-import { Selection } from '../../../command/selection.ts';
+import { Selection, projectPartOf, projectPointOf } from '../../../command/selection.ts';
 import { BY_BUTTON, type Undoing, quiet } from '../../../command/command.ts';
 import { withSelection } from '../../../command/context.ts';
 import { Target, type TargetElementProps } from '../../command/context-menu.tsx';
@@ -239,45 +238,19 @@ const sayerAt = (at: ProjectValue, address: () => PartAddress): Sayer => ({
   },
 });
 
-/** A part's render point: what the project's URL names its sheet by. */
-const renderPointOf = (address: PartAddress): string => pointIdOf({ _tag: 'Render', address });
-
 /**
- * The thing whose sheet the project's URL names (`?point=`): a part's render
- * point (`render:scenes:<id>`, `render:act:<name>`, `render:film`), the
- * words a link to a scene's sheet already spoke. A scene's sheet is its
- * render's, of the page's `variant`; an act's and the film's their own.
+ * The thing whose sheet the project's URL names (`?point=`, read as the hub
+ * reads it: `projectPartOf`): a scene's sheet is its render's, of the page's
+ * `variant`; an act's and the film's their own.
  */
 const inspectedAt = (film: string, variant: string, point: string): Option.Option<Selection> =>
-  Option.flatMap(
-    Option.filter(Schema.decodeOption(PointId)(point), (ref) => ref._tag === 'Render'),
-    (ref) =>
-      Match.value(ref).pipe(
-        Match.tag('Render', ({ address }) =>
-          Match.valueTags(address, {
-            Film: () => Option.some(Selection.cases.Film.make({ film })),
-            Act: ({ act }) => Option.some(Selection.cases.Act.make({ film, act })),
-            Scenes: ({ ids }) =>
-              Option.map(
-                Option.liftPredicate(ids, (xs) => xs.length === 1),
-                () => Selection.cases.Variant.make({ film, point, variant }),
-              ),
-            Short: () => Option.none<Selection>(),
-          }),
-        ),
-        Match.orElse(() => Option.none<Selection>()),
+  Option.map(projectPartOf(film, point), (part) =>
+    Match.value(part).pipe(
+      Match.tag('Point', (p): Selection =>
+        Selection.cases.Variant.make({ film: p.film, point: p.point, variant }),
       ),
-  );
-
-/** `inspectedAt`'s inverse: the `?point=` naming `selection`'s sheet; none for a thing the project has no sheet of. */
-const pointOfInspected = (selection: Selection): Option.Option<string> =>
-  Match.value(selection).pipe(
-    Match.tags({
-      Variant: (s) => Option.some(s.point),
-      Act: (s) => Option.some(renderPointOf({ _tag: 'Act', act: s.act })),
-      Film: () => Option.some(renderPointOf(FILM)),
-    }),
-    Match.orElse(() => Option.none<string>()),
+      Match.orElse((other) => other),
+    ),
   );
 
 /** What each part's list of choices is headed. */
@@ -948,7 +921,7 @@ const ProjectReady = (props: { readonly film: string }) => {
     place: Places.project,
     named: (v) => inspectedAt(film, variantNow(), v.query.point),
     naming: (v, s) =>
-      Option.map(pointOfInspected(s), (point) => ({ ...v, query: { ...v.query, point } })),
+      Option.map(projectPointOf(s), (point) => ({ ...v, query: { ...v.query, point } })),
     cleared: (v) => ({ ...v, query: { ...v.query, point: '' } }),
   });
   // A source write changes the film (a pick its sound, a kept voice a scene): its scenes are read again.

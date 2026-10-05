@@ -2,8 +2,8 @@
 // A it loops, played from A; a B before A (or no A) waits for one. The
 // selected cue loops its span as the timeline shows it now (a cue under
 // 0.2 s with 0.4 s either side), played from its start. Off stops looping.
-// The view keeps the loop through a reload, and the page starts in it
-// without playing.
+// The link's range (`#loop=`) and the view's looped cue start the page in
+// them without playing; the link landing on a range or none moves it.
 
 import { Effect, Layer, Option } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
@@ -13,7 +13,8 @@ import { Stage, type StageOps } from '../stage.ts';
 import {
   LoopEvent,
   LoopState,
-  loopFromView,
+  linkedRange,
+  loopAt,
   loopMachine,
   loopText,
   inOutOf,
@@ -190,15 +191,58 @@ describe('what the panel says', () => {
   });
 });
 
-describe('the view', () => {
-  test('keeps a range or a cue through a reload, and nothing else', () => {
-    const range = LoopState.Range({ from: 1, to: 3 });
+describe('the link and the view', () => {
+  it.effect(
+    'a link naming a range loops it without playing; one naming none ends a range only',
+    () => {
+      const { log, layer } = fakes();
+      return Effect.gen(function* () {
+        const linked = yield* simulate(off, [LoopEvent.Linked({ from: 2, to: 4 })]);
+        expect(linked.finalState).toEqual(LoopState.Range({ from: 2, to: 4 }));
+        expect(log).toEqual([]);
+        yield* assertPath(
+          loopMachine(LoopState.Range({ from: 2, to: 4 })),
+          [LoopEvent.Unlinked],
+          ['Range', 'Off'],
+        );
+        const cue = LoopState.Cue({ scene: 'one', name: 'rise' });
+        expect((yield* simulate(loopMachine(cue), [LoopEvent.Unlinked])).finalState).toEqual(cue);
+      }).pipe(Effect.provide(layer));
+    },
+  );
+
+  it.effect('marks are kept to the millisecond, as the link prints them', () =>
+    Effect.gen(function* () {
+      const result = yield* simulate(off, [
+        LoopEvent.MarkA({ t: 1 / 3 }),
+        LoopEvent.MarkB({ t: 2 / 3 }),
+      ]);
+      expect(result.finalState).toEqual(LoopState.Range({ from: 0.333, to: 0.667 }));
+    }).pipe(Effect.provide(fakes().layer)),
+  );
+
+  test("a link's range is the part of it inside the film, none when nothing is", () => {
+    expect(linkedRange(Option.some({ from: 1, to: 3 }), 20)).toEqual(
+      Option.some({ from: 1, to: 3 }),
+    );
+    expect(linkedRange(Option.some({ from: 18, to: 25 }), 20)).toEqual(
+      Option.some({ from: 18, to: 20 }),
+    );
+    expect(linkedRange(Option.some({ from: 21, to: 25 }), 20)).toEqual(Option.none());
+    expect(linkedRange(Option.none(), 20)).toEqual(Option.none());
+  });
+
+  test("starts in the link's range, else the cue the view kept, else off; the view keeps a cue only", () => {
+    const range = { from: 1, to: 3 };
     const cue = LoopState.Cue({ scene: 'one', name: 'rise' });
-    expect(loopFromView(loopView(range))).toEqual(range);
-    expect(loopFromView(loopView(cue))).toEqual(cue);
+    expect(loopAt(Option.some(range), loopView(cue))).toEqual(LoopState.Range(range));
+    expect(loopAt(Option.none(), loopView(cue))).toEqual(cue);
+    expect(loopAt(Option.none(), Option.none())).toEqual(LoopState.Off);
+    // A range a tab stored before the link held it starts nothing.
+    expect(loopAt(Option.none(), Option.some({ kind: 'ab', ...range }))).toEqual(LoopState.Off);
+    expect(loopView(LoopState.Range(range))).toEqual(Option.none());
     expect(loopView(LoopState.Marked({ a: Option.some(1), b: Option.none() }))).toEqual(
       Option.none(),
     );
-    expect(loopFromView(Option.none())).toEqual(LoopState.Off);
   });
 });

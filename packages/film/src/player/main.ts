@@ -11,7 +11,7 @@ import { timecode } from '../core/time.ts';
 import { Cause, Effect, Option } from 'effect';
 import type { Fiber } from 'effect';
 import { parseHref } from '@bible/url-state';
-import { filmOfPage } from '../core/api.ts';
+import { TIME_EVERY_MS, filmOfPage } from '../core/api.ts';
 import { addressOn, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
 import { makeClock } from '../browser/media-clock.ts';
@@ -31,9 +31,6 @@ import { makeHud } from './hud.ts';
 import { keptText } from '../browser/storage.ts';
 import { ViewerStore } from '../browser/storage-browser.ts';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
-
-/** The longest `#t=` in the URL trails the frame shown while it plays. */
-const HASH_MS = 250;
 
 /** How long a tick's name stays after the finger that held it lifts, in ms. */
 const TIP_READ_MS = 1500;
@@ -309,12 +306,13 @@ export const mountPreview = (
   let reads: KnobRead[] = [];
   /**
    * T in the URL (`time`, the page's own place), so a reload lands on this
-   * frame (`tInUrl`): written at most every HASH_MS while T moves, at once
-   * when it settles (a seek, the end of a scrub, play or pause, the film's
-   * end), and held at the frame a lab write was asked at. A frame loop that
-   * wrote it every frame cost a history call per frame.
+   * frame (`tInUrl`): written at most every `TIME_EVERY_MS` (the time key's
+   * throttle, `core/api.ts`) while T moves, at once
+   * when it settles (the end of a scrub, play or pause, the film's end) or
+   * jumps (a seek), and held at the frame a lab write was asked at. A frame
+   * loop that wrote it every frame cost a history call per frame.
    */
-  const url = tInUrl(() => time.write(T), HASH_MS, timersOn(host));
+  const url = tInUrl((cause) => time.write(T, cause), TIME_EVERY_MS, timersOn(host));
 
   /** The lab's edits, drawn over the film's own (`Player.showEdits`). */
   let edits: ReadonlyMap<string, ShownEdit> = new Map();
@@ -380,7 +378,7 @@ export const mountPreview = (
     url.moved();
   };
 
-  /** Show `t`, as a drag passes through it: `#t=` follows at most every HASH_MS. */
+  /** Show `t`, as a drag passes through it: `#t=` follows at most every `TIME_EVERY_MS`. */
   const scrub = (t: number) => {
     T = Math.max(0, Math.min(film.duration, t));
     clock.seek(T);
@@ -388,10 +386,10 @@ export const mountPreview = (
     draw();
   };
 
-  /** Show `t`, and settle there: `#t=` is written at once. */
+  /** Jump to `t`: `#t=` is written at once, as a jump. */
   const seek = (t: number) => {
     scrub(t);
-    url.settled();
+    url.jumped();
   };
 
   // Back or Forward shows the frame the entry landed on keeps, as the lab
@@ -445,19 +443,29 @@ export const mountPreview = (
     return playing;
   };
 
-  // A drag on the track scrubs; it settles where it ends, lifted or taken by the browser (a page pan).
+  // A press on the track is told by how it ends. Lifted where it was put
+  // down (no drag claimed it: a mouse that never moved, a finger within the
+  // long press's slop), it is a tap: a jump there, a step Back walks across a
+  // scene. Moved, it is a drag: it scrubs from its first move, following the
+  // URL in place, and settles where it ends, lifted or taken by the browser
+  // (a page pan); its press and its release enter nothing in history.
   track.addEventListener('pointerdown', (e) => {
     const r = track.getBoundingClientRect();
-    const move = (ev: PointerEvent) => scrub(((ev.clientX - r.left) / r.width) * film.duration);
-    move(e);
+    const tAt = (ev: PointerEvent) => ((ev.clientX - r.left) / r.width) * film.duration;
+    let dragged = false;
+    const move = (ev: PointerEvent) => {
+      dragged = true;
+      scrub(tAt(ev));
+    };
     const letGo = holdTick(e);
     Effect.runForkWith(host)(
       Pointer.use((pointer) =>
         pointer.drag(e, {
           move,
-          end: () => {
+          end: (lifted) => {
             letGo();
-            url.settled();
+            if (dragged) url.settled();
+            else Option.map(lifted, () => seek(tAt(e)));
           },
         }),
       ),

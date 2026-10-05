@@ -33,8 +33,8 @@ import { goToCommands } from '../command/go.ts';
 import type { CompareView } from '../core/api.ts';
 import type { Hub } from '../command/hub.ts';
 import type { LabSelection } from '../command/selection.ts';
-import { labHref } from './place.ts';
-import { Fill, type LabPick, pickOf, useLabPage } from './panel.tsx';
+import { type LabPick, labHrefWith } from './place.ts';
+import { Fill, useLabPage } from './panel.tsx';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { type ReloadGate, makeReloadGate } from './reload-gate.ts';
 import { type Stage, type StageOps, makeStage, reloadHere, stageLayer } from './stage.ts';
@@ -174,7 +174,7 @@ const Staged = (props: RootProps) => {
   watch.observe(frame);
   onCleanup(() => watch.disconnect());
 
-  const view = viewStore(name, player.film.duration, TabStore);
+  const view = viewStore(name, TabStore);
   // Whether it was playing: kept as the page goes (a write reloads it), and played again on load.
   const keepPlaying = () => view.patch({ playing: player.playing() });
   window.addEventListener('pagehide', keepPlaying);
@@ -235,7 +235,7 @@ const Staged = (props: RootProps) => {
   // and Back or Forward landing on one shows its pick again.
   const address = addressOn(host);
   const picked = (pick: Partial<LabPick>) =>
-    labHref(name, player.film.placed, { ...pickOf(address.href()), ...pick }, player.now());
+    labHrefWith(name, player.film.placed, address.href(), pick, player.now());
 
   const { here } = page;
   const value: LabContextValue = {
@@ -254,13 +254,13 @@ const Staged = (props: RootProps) => {
         place();
         return () => pinned.delete(layer);
       },
-      select: (selection) => address.push(picked({ selection })),
-      selectNote: (note) => address.push(picked({ note })),
-      forgetNote: () => address.replace(picked({ note: Option.none() })),
+      select: (selection) => address.go(picked({ selection })),
+      selectNote: (note) => address.go(picked({ note })),
+      forgetNote: () => address.follow(picked({ note: Option.none() })),
       compareBy: (view) => {
-        if (view !== untrack(() => here().view)) address.push(picked({ view }));
+        if (view !== untrack(() => here().view)) address.go(picked({ view }));
       },
-      keepCompare: (view) => address.replace(picked({ view })),
+      keepCompare: (view) => address.follow(picked({ view })),
     },
     meta: {
       name,

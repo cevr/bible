@@ -232,6 +232,13 @@ export const unsubmitted = (state: RecorderState): Option.Option<string> =>
     Match.orElse(() => Option.none()),
   );
 
+/**
+ * Whether the recorder is at rest with nothing to lose: idle, or refused
+ * with no recording kept. Only then may the link move it to another beat.
+ */
+export const atRest = (state: RecorderState): boolean =>
+  steps(state) && Option.isNone(unsubmitted(state));
+
 /** How many beats stand where: `1 recorded · 2 staging · 1 stale`. */
 export const beatCounts = (beats: ReadonlyArray<StudioBeat>): string =>
   (['recorded', 'staging', 'stale'] as const)

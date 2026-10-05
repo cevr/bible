@@ -36,13 +36,13 @@ import { labPlaceOf } from './place.ts';
 import { Frame, List, NotesFeed, Pen, type PageRuntime } from './notes/list.tsx';
 
 /** What the lab has picked, and how it compares with HEAD, as the URL at `href` holds it. */
-export const pickOf = (href: string) => {
+const pickOf = (href: string) => {
   const { selection, note, view } = labPlaceOf(href);
   return { selection, note, view };
 };
 
 /** The lab's place: the cue or knob picked, the note, the compare's view. */
-export type LabPick = ReturnType<typeof pickOf>;
+type LabPick = ReturnType<typeof pickOf>;
 
 /** The places in the panel the staged lab fills: each tool's controls, by section. */
 type SlotName = 'edit' | 'motion-head' | 'motion' | 'compare' | 'compose' | 'record';
@@ -216,12 +216,14 @@ export const LabPage = (
     setChosen(Option.some(m));
     keep(m);
   };
-  // A note picked (a link, a pin, Back) shows the Note mode, the only one
-  // that shows notes; a cue or a knob shows on the strip in every mode.
+  // A note picked (a link, a pin, Back) shows the Note mode on this page, the
+  // only one that shows notes, and leaves the viewer's own mode as it was (a
+  // pasted link is not their pick); a cue or a knob shows on the strip in
+  // every mode.
   createEffect(
     () => here().note,
     (note) => {
-      Option.map(note, () => showMode('note'));
+      Option.map(note, () => setChosen(Option.some<LabMode>('note')));
     },
   );
   onCleanup(props.hub.commands.register(...modeCommands(mode, showMode)));

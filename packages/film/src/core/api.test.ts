@@ -1,17 +1,20 @@
 import { describe, expect, test } from 'bun:test';
 import { Place } from '@bible/url-state';
-import { Option, Schema } from 'effect';
+import { Duration, Option, Schema } from 'effect';
 import {
   LONGEST_WAIT,
   LabHttpApi,
+  TIME_EVERY_MS,
   WaitTimeout,
   type PageName,
   Places,
   declares,
   filmOfPage,
+  filmTimeOn,
   legacyPlace,
   pageAt,
   pageHref,
+  partHref,
 } from './api.ts';
 
 type PlaceName = keyof typeof Places;
@@ -135,6 +138,20 @@ describe('page places', () => {
     );
   });
 
+  test('a moving time is written at most every TIME_EVERY_MS on every place that keeps one, in place', () => {
+    const moving = {
+      history: 'replace' as const,
+      throttle: Option.some(Duration.millis(TIME_EVERY_MS)),
+    };
+    const along = (at: string) => [`${at}#t=1`, `${at}#t=2`] as const;
+    expect(Place.history(Places.play, ...along('/films/f/play'))).toEqual(moving);
+    expect(Place.history(Places.scenes, ...along('/films/f/scenes'))).toEqual(moving);
+    expect(Place.history(Places.lab, ...along('/films/f/lab'))).toEqual(moving);
+    expect(Place.history(Places.labScene, ...along('/films/f/lab/one'))).toEqual(moving);
+    expect(Place.history(Places.set, ...along('/sets/f/p'))).toEqual(moving);
+    expect(Place.history(Places.choices, ...along('/films/f/choices'))).toEqual(moving);
+  });
+
   test("a film's page names its film in its path, a short's whole name too", () => {
     expect(filmOfPage('/films/rbf/lab/roof?cue=lower#t=1')).toEqual(Option.some('rbf'));
     expect(filmOfPage(pageHref.scenes('rbf/shorts/verdict'))).toEqual(
@@ -143,6 +160,20 @@ describe('page places', () => {
     expect(filmOfPage(pageHref.play('rbf'))).toEqual(Option.some('rbf'));
     for (const href of ['/', '/sets/f/p', '/?film=rbf&export'])
       expect(filmOfPage(href)).toEqual(Option.none());
+  });
+
+  test("the page bar keeps the film's frame between Scenes, the Lab and Play, and only there", () => {
+    const at = filmTimeOn('lab', Option.some(4));
+    expect(partHref('scenes', 'f', at)).toBe(pageHref.scenes('f', Option.some(4)));
+    expect(partHref('play', 'f', at)).toBe(pageHref.play('f', Option.some(4)));
+    expect(partHref('lab', 'f', filmTimeOn('play', Option.some(4)))).toBe(
+      pageHref.lab('f', Option.some(4)),
+    );
+    expect(partHref('choices', 'f', at)).toBe(pageHref.choices('f'));
+    expect(partHref('project', 'f', at)).toBe(pageHref.project('f'));
+    // A page whose time is not the film's (a set's video) hands none on.
+    expect(filmTimeOn('films', Option.some(4))).toEqual(Option.none());
+    expect(filmTimeOn('choices', Option.some(4))).toEqual(Option.none());
   });
 });
 

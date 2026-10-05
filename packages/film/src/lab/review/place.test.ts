@@ -5,14 +5,14 @@
 import { describe, expect, test } from 'bun:test';
 import { Place } from '@bible/url-state';
 import { Equal, Option, Schema } from 'effect';
-import { Places } from '../../core/api.ts';
+import { Places, pageMove } from '../../core/api.ts';
 import { ReviewIndex } from '../../core/review.ts';
 import { ViewEvent, ViewState } from './machine.ts';
 import {
   ReviewPlace,
   destinationsOf,
   type SetQuery,
-  historyOf,
+  causeOf,
   hrefOf,
   keptTime,
   placeOf,
@@ -103,10 +103,24 @@ describe('the place in the URL', () => {
   });
 
   test('a view or a moment chosen is a step Back undoes; a pair cycled or a ←/→ step is not', () => {
-    expect(historyOf(ViewEvent.ViewChosen({ view: 'moments' }))).toBe('push');
-    expect(historyOf(ViewEvent.OtherChosen({ id: 'C' }))).toBe('replace');
-    expect(historyOf(ViewEvent.MomentChosen({ index: 3 }))).toBe('push');
-    expect(historyOf(ViewEvent.MomentStepped({ by: 1, count: 5 }))).toBe('replace');
+    const set = '/sets/f/s';
+    /** The move `event` makes from `from` to `to`, as the address bar enters it. */
+    const moveOf = (event: ViewEvent, from: string, to: string) =>
+      ({ follow: 'replace', go: pageMove(`${set}${from}`, `${set}${to}`) })[causeOf(event)];
+    expect(moveOf(ViewEvent.ViewChosen({ view: 'moments' }), '', '?view=moments')).toBe('push');
+    expect(
+      moveOf(ViewEvent.OtherChosen({ id: 'C' }), '?view=pair&other=B', '?view=pair&other=C'),
+    ).toBe('replace');
+    expect(
+      moveOf(ViewEvent.MomentChosen({ index: 3 }), '?view=moments&m=1', '?view=moments&m=3'),
+    ).toBe('push');
+    expect(
+      moveOf(
+        ViewEvent.MomentStepped({ by: 1, count: 5 }),
+        '?view=moments&m=3',
+        '?view=moments&m=4',
+      ),
+    ).toBe('replace');
   });
 
   test("keeps a player's time to the ms, and none at its start", () => {
