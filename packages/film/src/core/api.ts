@@ -107,6 +107,7 @@ import {
   VersionChanged,
 } from './refusals.ts';
 import {
+  ChangeId,
   CheckReport,
   CuePatch,
   HeadSource,
@@ -118,6 +119,7 @@ import {
   NotesWait,
   PageBuild,
   ReplyPost,
+  RequestId,
   SceneSource,
 } from './schema.ts';
 import { KeepPost, StudioAttempts, StudioBeats, StudioTake, TakePost } from './studio.ts';
@@ -296,8 +298,8 @@ const NoBody = Schema.Struct({});
  * none steps whatever change is newest (⌘Z, the menus).
  */
 const StepRequest = Schema.Struct({
-  request: Schema.optionalKey(Schema.String),
-  change: Schema.optionalKey(Schema.String),
+  request: Schema.optionalKey(RequestId),
+  change: Schema.optionalKey(ChangeId),
 });
 
 /** `GET /api/films/<film>/steps`: the film's history as `CheckReport` gives it, without the check. */
@@ -325,7 +327,7 @@ export const Say = Schema.Union([
 export type Say = typeof Say.Type;
 
 /** A withdraw: of every approval, or `given` an approve's op, of the approvals it gave alone. */
-export const withdrawSay = (given: Option.Option<string> = Option.none()): Say => ({
+export const withdrawSay = (given: Option.Option<OpId> = Option.none()): Say => ({
   _tag: 'Withdraw',
   given,
 });

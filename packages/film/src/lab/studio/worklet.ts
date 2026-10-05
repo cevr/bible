@@ -6,6 +6,10 @@
 // goes to the page untouched, as float PCM at the context's own rate, with
 // the block's peak and RMS for the meter; a message from the page flushes
 // the part-block it holds, marked `last`, so a stop keeps every sample.
+// What it posts is declared once here (`WorkletBlock`); only `captureModule`'s
+// own source goes to the worklet, so the module may import what the page needs.
+
+import { Schema } from 'effect';
 
 /** The worklet scope's base class and registry: declared here, present only in the worklet. */
 declare const AudioWorkletProcessor: {
@@ -16,14 +20,18 @@ declare const registerProcessor: (name: string, processor: typeof AudioWorkletPr
 /** The name the processor registers under. */
 export const PROCESSOR = 'film-capture';
 
-/** What the processor posts for each block. */
-export interface WorkletBlock {
-  readonly samples: Float32Array;
-  readonly peak: number;
-  readonly rms: number;
+/**
+ * What the processor posts for each block: the thread boundary's contract,
+ * which the page checks each message against (`capture-browser.ts`).
+ */
+export const WorkletBlock = Schema.Struct({
+  samples: Schema.instanceOf(Float32Array),
+  peak: Schema.Finite,
+  rms: Schema.Finite,
   /** The flush a page's message asked for: the last samples before a stop. */
-  readonly last: boolean;
-}
+  last: Schema.Boolean,
+});
+export type WorkletBlock = typeof WorkletBlock.Type;
 
 /** Runs in the worklet: registers the processor. Never called on the page. */
 function captureModule() {

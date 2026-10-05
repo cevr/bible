@@ -23,7 +23,7 @@ import { TestClock } from 'effect/testing';
 import { describe, expect, it } from 'effect-bun-test';
 import { Machine, assertNeverReaches, assertPath, simulate } from 'effect-machine';
 import type { SceneEdit } from '../../canvas/film.ts';
-import type { CheckReport, LabWrite } from '../../core/schema.ts';
+import { ChangeId, type CheckReport, type LabWrite, RequestId } from '../../core/schema.ts';
 import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { SourceChanged } from '../../core/refusals.ts';
 import { LabApi, type LabCalls, type LabFailure } from '../api.ts';
@@ -54,11 +54,15 @@ const grip: CueGrip = {
 
 const at = (x: number) => EditEvent.Move({ pointer: { x, y: 0, free: false } });
 
+/** A page's first Undo request, and the change the lab's first write made, by their ids. */
+const UNDO_1 = RequestId.make('undo-1');
+const CHANGE_1 = ChangeId.make('change-1');
+
 const landed: LabWrite = {
   scene: 'one',
   file: 'scenes/one.ts',
   target: 'cue rise offset',
-  change: 'change-1',
+  change: CHANGE_1,
   findings: [{ level: 'warning', tag: 'late', message: 'rise ends after the scene' }],
 };
 
@@ -290,11 +294,11 @@ describe('writes', () => {
     const { log, layer } = fakes();
     return Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
-        EditEvent.Step({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+        EditEvent.Step({ verb: 'undo', request: UNDO_1, change: Option.none() }),
       ]);
       expect(result.finalState).toEqual(
         EditState.Writing({
-          write: StepWrite.make({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+          write: StepWrite.make({ verb: 'undo', request: UNDO_1, change: Option.none() }),
           next: [],
         }),
       );
@@ -330,11 +334,11 @@ describe('writes', () => {
 
   it.effect('one write at a time: a press or a step while one is out is not taken', () =>
     Effect.gen(function* () {
-      const undo = StepWrite.make({ verb: 'undo', request: 'undo-1', change: Option.none() });
+      const undo = StepWrite.make({ verb: 'undo', request: UNDO_1, change: Option.none() });
       const result = yield* simulate(editMachine, [
-        EditEvent.Step({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+        EditEvent.Step({ verb: 'undo', request: UNDO_1, change: Option.none() }),
         EditEvent.Press({ grip }),
-        EditEvent.Step({ verb: 'redo', request: 'redo-1', change: Option.none() }),
+        EditEvent.Step({ verb: 'redo', request: RequestId.make('redo-1'), change: Option.none() }),
       ]);
       expect(result.finalState).toEqual(EditState.Writing({ write: undo, next: [] }));
     }).pipe(Effect.provide(fakes().layer)),
@@ -469,7 +473,7 @@ describe('writes', () => {
       const { log, layer } = fakes();
       return Effect.gen(function* () {
         const result = yield* simulate(editMachine, [
-          EditEvent.Step({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+          EditEvent.Step({ verb: 'undo', request: UNDO_1, change: Option.none() }),
           EditEvent.Commit({ write: cueWrite, edit: {} }),
           EditEvent.Wrote({ result: { ...landed, target: 'undo cue rise offset' } }),
         ]);
@@ -495,7 +499,7 @@ describe('writes', () => {
           findings: landed.findings,
           undo: 'undo',
           // The change it made, by its id: what its receipt's Undo acts on.
-          change: Option.some('change-1'),
+          change: Option.some(CHANGE_1),
         }),
       );
     }).pipe(Effect.provide(fakes().layer)),
@@ -518,7 +522,7 @@ describe('writes', () => {
     Effect.gen(function* () {
       const stepped = (verb: 'undo' | 'redo') =>
         simulate(editMachine, [
-          EditEvent.Step({ verb, request: `${verb}-1`, change: Option.none() }),
+          EditEvent.Step({ verb, request: RequestId.make(`${verb}-1`), change: Option.none() }),
           EditEvent.Wrote({ result: { ...landed, target: `${verb} cue rise offset` } }),
         ]);
       expect((yield* stepped('undo')).finalState).toMatchObject({
@@ -549,7 +553,7 @@ describe('writes', () => {
     };
     return Effect.gen(function* () {
       const result = yield* simulate(editMachine, [
-        EditEvent.Step({ verb: 'undo', request: 'undo-1', change: Option.none() }),
+        EditEvent.Step({ verb: 'undo', request: UNDO_1, change: Option.none() }),
         EditEvent.Wrote({ result: timings }),
       ]);
       expect(result.finalState._tag).toBe('Written');
@@ -677,11 +681,16 @@ describe('an Undo that remakes what follows its file', () => {
     landed: ReadonlyArray<{ readonly target: string; readonly request: string }> = [],
   ): CheckReport => ({
     findings: [],
-    latest: { file: 'narration/timings.json', target: latest, change: `change-${latest}` },
+    latest: {
+      file: 'narration/timings.json',
+      target: latest,
+      change: ChangeId.make(`change-${latest}`),
+    },
     landed: landed.map((step) => ({
       file: 'narration/timings.json',
-      change: `change-${step.target}`,
-      ...step,
+      change: ChangeId.make(`change-${step.target}`),
+      target: step.target,
+      request: RequestId.make(step.request),
     })),
   });
   /** The editor's actor once it was asked to undo, as request `request`. */
@@ -689,7 +698,9 @@ describe('an Undo that remakes what follows its file', () => {
     Effect.gen(function* () {
       const actor = yield* Machine.spawn(editMachine);
       yield* actor.start;
-      yield* actor.send(EditEvent.Step({ verb: 'undo', request, change: Option.none() }));
+      yield* actor.send(
+        EditEvent.Step({ verb: 'undo', request: RequestId.make(request), change: Option.none() }),
+      );
       yield* TestClock.adjust('10 millis');
       return actor;
     });

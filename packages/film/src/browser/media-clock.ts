@@ -4,15 +4,10 @@
 // sync's 0.2 s); and the preview's (`player/main.ts`), which a film's frames
 // follow off the narration. It stands while paused and runs at its rate from
 // where it stood; a seek or a rate change starts it again from there. It
-// reads `now` (seconds, monotonic: Effect's clock live, a number in a test),
+// reads `now` (seconds, monotonic: the host's `monotonicMs` live, `host.ts`;
+// a number in a test),
 // never the wall clock, which a sync or the owner may set on or back, nor
 // the sound's own clock, which a browser holds suspended until a gesture.
-
-import type { Clock } from 'effect';
-
-/** `clock`'s monotonic time, in seconds: what a compare's clock counts by. */
-export const monotonicNow = (clock: Clock.Clock) => (): number =>
-  Number(clock.monotonicTimeNanosUnsafe()) / 1e9;
 
 export interface MediaClock {
   /** Where the compare is, in seconds. */

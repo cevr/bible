@@ -10,9 +10,7 @@
 // it is read and dropped; so is a studio beat (the link's `?beat=` now).
 
 import { Option, Schema } from 'effect';
-import * as Atom from 'effect/reactivity/Atom';
-import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
-import type { StoreRuntime } from '../browser/storage.ts';
+import { type StoreRuntime, keptJson } from '../browser/storage.ts';
 
 /** The rates the lab plays at: the only ones a stored view may hold. */
 export const RATES = [0.25, 0.5, 1] as const;
@@ -81,16 +79,8 @@ const fitView = (view: LabView): LabView =>
  * kept in memory, written through on each patch.
  */
 export const viewStore = (film: string, store: StoreRuntime): ViewStore => {
-  const kept = Atom.kvs({
-    runtime: store,
-    key: `film-lab-view:${film}`,
-    schema: LabView,
-    defaultValue: () => DEFAULT_VIEW,
-    mode: 'sync',
-  });
-  const registry = AtomRegistry.make();
-  registry.mount(kept);
-  let view = fitView(registry.get(kept));
+  const kept = keptJson(store, `film-lab-view:${film}`, LabView, () => DEFAULT_VIEW);
+  let view = fitView(kept.get());
   return {
     get: () => view,
     patch: ({ loop, ...change }) => {
@@ -99,7 +89,7 @@ export const viewStore = (film: string, store: StoreRuntime): ViewStore => {
         onNone: () => next,
         onSome: (to) => withLoop(next, to),
       });
-      registry.set(kept, view);
+      kept.set(view);
     },
   };
 };

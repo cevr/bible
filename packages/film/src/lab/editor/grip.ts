@@ -18,6 +18,7 @@ import { moved } from '../../command/command.ts';
 import type { LabSelection } from '../../command/selection.ts';
 import { type Inspected, fieldOf } from '../../core/field.ts';
 import {
+  ChangeId,
   CueDur,
   CueOffset,
   CuePatch,
@@ -27,6 +28,7 @@ import {
   type LabWrite,
   Pixel,
   Point,
+  RequestId,
   ResolvedCue,
   type SceneSource,
   Span,
@@ -185,9 +187,9 @@ export const StepWrite = Schema.TaggedStruct('StepWrite', {
    * the step once it lands, so a step with no answer is known by it, never
    * by a name another change may share.
    */
-  request: Schema.String,
+  request: RequestId,
   /** The one change it steps, by its id, when a receipt's button asked for it; none: the newest. */
-  change: Schema.Option(Schema.String),
+  change: Schema.Option(ChangeId),
 });
 export type StepWrite = typeof StepWrite.Type;
 

@@ -11,7 +11,7 @@
 import { For, Show } from '@solidjs/web';
 import { Effect, Option, Result } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
-import { Pointer } from '../../browser/pointer.ts';
+import { Pointer, Surface } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { timecode } from '../../core/time.ts';
@@ -150,7 +150,8 @@ export const Strip = () => {
     });
   // A key as bound now: a rebound key reads as rebound.
   const keys = hubKeys(meta.hub);
-  const keyOf = (id: string) => keys.bound(id).slice(0, 1).map(keys.label).join('');
+  /** The strip follows one press at a time, a scrub's or a lane's: a second finger's starts nothing. */
+  const strip = new Surface('the strip');
   return (
     <Show when={placed()}>
       {(p) => {
@@ -163,11 +164,13 @@ export const Strip = () => {
               p().start +
                 Math.max(0, Math.min(p().dur, ((ev.clientX - r.left) / r.width) * p().dur)),
             );
-          at(e);
           // The playhead settles where the drag ends, lifted or ended by the browser.
           Effect.runForkWith(meta.host)(
             Pointer.use((pointer) =>
-              pointer.drag(e, { move: at, end: () => meta.player.settle() }),
+              pointer.press(e, strip, () => {
+                at(e);
+                return Option.some({ move: at, end: () => meta.player.settle() });
+              }),
             ),
           );
         };
@@ -190,17 +193,20 @@ export const Strip = () => {
           });
           Effect.runForkWith(meta.host)(
             Pointer.use((pointer) =>
-              pointer.drag(e, {
-                move: (ev) => setMarking(Option.liftPredicate(spanTo(ev), () => far(ev))),
-                end: (lifted) => {
-                  setMarking(Option.none());
-                  Option.map(lifted, (ev) => {
-                    if (!far(ev)) return meta.player.seek(from);
-                    const span = spanTo(ev);
-                    return motion.markRange(span.from, span.to);
-                  });
-                },
-              }),
+              pointer.press(e, strip, () =>
+                Option.some({
+                  move: (ev: PointerEvent) =>
+                    setMarking(Option.liftPredicate(spanTo(ev), () => far(ev))),
+                  end: (lifted: Option.Option<PointerEvent>) => {
+                    setMarking(Option.none());
+                    Option.map(lifted, (ev) => {
+                      if (!far(ev)) return meta.player.seek(from);
+                      const span = spanTo(ev);
+                      return motion.markRange(span.from, span.to);
+                    });
+                  },
+                }),
+              ),
             ),
           );
         };
@@ -240,7 +246,7 @@ export const Strip = () => {
                 class="sh-btn"
                 data-act="snap"
                 aria-pressed={`${state.snap()}`}
-                title={`Snap to words, marks, cue edges and frames (${keyOf(SNAP)}; ⇧ flips it while dragging)`}
+                title={`Snap to words, marks, cue edges and frames (${keys.first(SNAP)}; ⇧ flips it while dragging)`}
                 onPointerDown={(e) => e.preventDefault()}
                 onClick={() => meta.hub.invokeId(SNAP, BY_BUTTON)}
               >

@@ -7,14 +7,10 @@
 // frame (`rangeOf`: a looped cue follows its edits). The rate and the loop
 // are the page's commands too (`commands.ts`, `rateCommands`).
 
-import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
-import { Loading, Show } from '@solidjs/web';
 import { Option } from 'effect';
-import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
-import type * as AsyncResult from 'effect/reactivity/AsyncResult';
-import type * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
   createContext,
@@ -28,8 +24,9 @@ import {
 import type { LoopRange } from '../../player/main.ts';
 import { type LabView, RATES } from '../view-state.ts';
 import { rateCommands } from '../../player/transport.ts';
-import { loopCommands, sceneSpan } from './commands.ts';
+import { loopCommands, onionCommand, sceneSpan } from './commands.ts';
 import type { LabSelection } from '../../command/selection.ts';
+import { Actor } from '../actor.tsx';
 import { useLab } from '../shell.tsx';
 import {
   type LoopActor,
@@ -165,9 +162,11 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
     setRate: (r) => setRateSignal(r),
     setOnion: (change) => setOnionSignal((o) => ({ ...o, ...change })),
   };
-  // The rate and the loop as the page's commands: keys, ⌘K, the cue's menu and the section's chips.
+  // The rate, the loop and the onion as the page's commands: keys, ⌘K, the
+  // cue's menu and the section's chips and button.
   onCleanup(
     meta.hub.commands.register(
+      onionCommand(() => actions.setOnion({ on: !untrack(onion).on })),
       ...rateCommands({ all: RATES, now: rate, choose: actions.setRate }),
       ...loopCommands({
         cueSelected: () => Option.isSome(cue()),
@@ -191,17 +190,6 @@ const Body = (props: ParentProps<{ readonly actor: LoopActor }>) => {
   return <MotionContext value={value}>{props.children}</MotionContext>;
 };
 
-const Ready = (
-  props: ParentProps<{ readonly actor: Atom.Atom<AsyncResult.AsyncResult<LoopActor, never>> }>,
-) => {
-  const actor = useAtomSuspense(() => props.actor);
-  return (
-    <Show when={actor()} keyed>
-      {(a: LoopActor) => <Body actor={a}>{props.children}</Body>}
-    </Show>
-  );
-};
-
 /** Motion's state and actions, for its section and its onion layer. */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
@@ -209,10 +197,9 @@ export const Provider = (props: ParentProps) => {
     linkedRange(labPlaceOf(addressOn(meta.host).href()).loop, meta.film.duration),
     Option.fromUndefinedOr(meta.view.get().loop),
   );
-  const actor = meta.runtime.atom(Machine.scoped(spawnLoop(initial)));
   return (
-    <Loading>
-      <Ready actor={actor}>{props.children}</Ready>
-    </Loading>
+    <Actor runtime={meta.runtime} spawn={spawnLoop(initial)}>
+      {(actor) => <Body actor={actor}>{props.children}</Body>}
+    </Actor>
   );
 };

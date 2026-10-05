@@ -29,9 +29,6 @@ import type { Player } from '../player/main.ts';
 import { TabStore } from '../browser/storage-browser.ts';
 import { type ViewStore, viewStore } from './view-state.ts';
 import { type LabApi, type NotesApi, labApiLayer } from './api.ts';
-import { type StudioApi, studioApiLayer } from './studio/api.ts';
-import type { Capture } from './studio/capture.ts';
-import { browserCaptureLayer } from './studio/capture-browser.ts';
 import { goToCommands } from '../command/go.ts';
 import type { CompareView } from '../core/api.ts';
 import type { Hub } from '../command/hub.ts';
@@ -71,8 +68,6 @@ interface LabActions {
   readonly forgetNote: () => void;
   /** Compare with HEAD by `view`, the owner's pick: a new history entry, so Back walks the views. */
   readonly compareBy: (view: CompareView) => void;
-  /** Write the compare's mode into the link in place, where it moved on its own: no entry of its own. */
-  readonly keepCompare: (view: CompareView) => void;
 }
 
 interface LabMeta {
@@ -87,13 +82,11 @@ interface LabMeta {
   /** The page's reloads, held while a panel holds work only the page has (a take under review, a note). */
   readonly reloads: ReloadGate;
   /**
-   * What the panels' machines and atoms run with: the stage, the lab's, the
-   * notes' and the studio's APIs, the studio's microphone (opened only when
-   * asked) and the host.
+   * What the panels' machines and atoms run with: the stage, the lab API,
+   * the notes API and the host. The studio runs its own over the page's
+   * client (`useLabPage().client`), with its microphone.
    */
-  readonly runtime: Atom.AtomRuntime<
-    Stage | LabApi | NotesApi | StudioApi | Capture | BrowserServices
-  >;
+  readonly runtime: Atom.AtomRuntime<Stage | LabApi | NotesApi | BrowserServices>;
   /** The page's host (`browser/host.ts`), built once at the page's root: what a panel's effects run with. */
   readonly host: Host;
   /**
@@ -217,13 +210,9 @@ const Staged = (props: RootProps) => {
   );
   onCleanup(() => Effect.runFork(Fiber.interrupt(rebuilt)));
   const runtime = Atom.runtime(
-    Layer.mergeAll(
-      stageLayer(stage),
-      labApiLayer(name),
-      studioApiLayer(name),
-      browserCaptureLayer,
-      hostLayer(host),
-    ).pipe(Layer.provide(page.client)),
+    Layer.mergeAll(stageLayer(stage), labApiLayer(name), hostLayer(host)).pipe(
+      Layer.provide(page.client),
+    ),
   );
 
   const scene = createMemo(() => player.film.sceneAt(T()).spec.id);
@@ -270,7 +259,6 @@ const Staged = (props: RootProps) => {
       compareBy: (view) => {
         if (view !== untrack(() => here().view)) address.go(picked({ view }));
       },
-      keepCompare: (view) => address.follow(picked({ view })),
     },
     meta: {
       name,

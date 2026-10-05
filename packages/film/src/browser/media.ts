@@ -1,21 +1,24 @@
-// What plays: a `Playable` is anything the pages play and keep in time (live
-// a `<video>` or an `<audio>`, `media-browser.ts`; a fake in a test; a
-// player of its own over decoded frames and an `AudioContext` could be
-// another). The drivers (the review's synced player, `lab/review/sync.ts`;
-// the preview's narration, `player/narration.ts`) reach media only through
-// it: time is read from it, a seek is done once the frame at that time is
-// shown, play and pause are effects. `Media` owns what is the host's rule:
-// what a refused play means (`play`: the browser's refusal of sound nobody
-// asked for is `Blocked`, a play a pause cut short is `Aborted`), the
-// fallback to muted play (`playOrMute`), the audio a page makes
-// (`audio(src)`), and the one sound context the WebCodecs panes play
-// through (`sound`): made on the first ask, which a press makes, so the
-// browser lets it run; asked again on each play, so a context the browser
-// held suspended is woken by the next press; and made with the audio session
-// set to `playback`, so an iPhone's silent switch does not mute it, as it
-// does not a `<video>`.
+// What plays: a `Playable` is anything the pages play and keep in time (a
+// `<video>` or an `<audio>` the page shows, `playableOf`; an `Audio` the
+// page makes, `media-browser.ts`; a compare's pane over decoded frames,
+// `frame-pane.ts`; a fake in a test). The drivers (the review's synced
+// player, `lab/review/sync.ts`; the preview's narration,
+// `player/narration.ts`) reach media only through it: time is read from it,
+// a seek is done once the frame at that time is shown, play and pause are
+// effects. `Media` owns what is the host's rule: what a refused play means
+// (`play`: the browser's refusal of sound nobody asked for is `Blocked`, a
+// play a pause cut short is `Aborted`), the fallback to muted play
+// (`playOrMute`), the audio a page makes (`audio(src)`), the engine a
+// compare plays on (`compare`: the WebCodecs panes where the browser and
+// the files allow, `webcodecs-browser.ts`, else `<video>`), and the one
+// sound context the panes play through (`sound`): made on the first ask,
+// which a press makes, so the browser lets it run; asked again on each
+// play, so a context the browser held suspended is woken by the next press;
+// and made with the audio session set to `playback`, so an iPhone's silent
+// switch does not mute it, as it does not a `<video>`.
 
-import { Context, Data, Effect, Layer, Option } from 'effect';
+import { type Cause, Context, Data, Effect, Layer, Option, type Scope } from 'effect';
+import type { Engine } from './media-choice.ts';
 
 /** A refused play, as the media said it: its error's name (`NotAllowedError`, `AbortError`, …). */
 export class PlayRefused extends Data.TaggedError('PlayRefused')<{ readonly name: string }> {}
@@ -44,6 +47,103 @@ export interface Playable {
   /** Hear `event` until `signal` aborts. */
   readonly on: (event: MediaEvent, listener: () => void, signal: AbortSignal) => void;
 }
+
+/** `HAVE_FUTURE_DATA`: an element that can play on without waiting. */
+const FUTURE_DATA = 3;
+
+/** The element's own name for each thing a playable says it did. */
+const EVENTS: Record<MediaEvent, string> = {
+  canplay: 'canplay',
+  measured: 'loadedmetadata',
+  stalled: 'waiting',
+  ended: 'ended',
+  error: 'error',
+};
+
+/** The name of the error a refused `play()` rejected with. */
+const nameOf = (error: Cause.UnknownError): string =>
+  Option.match(
+    Option.liftPredicate(error.cause, (c) => c instanceof DOMException),
+    {
+      onNone: () => '',
+      onSome: (e) => e.name,
+    },
+  );
+
+/** The part of a media element a `Playable` reads and drives. */
+export type MediaElement = Pick<
+  HTMLMediaElement,
+  | 'currentTime'
+  | 'duration'
+  | 'readyState'
+  | 'paused'
+  | 'seeking'
+  | 'ended'
+  | 'muted'
+  | 'playbackRate'
+  | 'play'
+  | 'pause'
+  | 'addEventListener'
+>;
+
+/** `el` (a `<video>` or an `<audio>`) as a `Playable`. */
+export const playableOf = (el: MediaElement): Playable => {
+  /** The seek in flight: a later seek ends its wait. */
+  let seeking = new AbortController();
+  return {
+    time: () => el.currentTime,
+    duration: () => el.duration,
+    ready: () => el.readyState >= FUTURE_DATA,
+    playing: () => !el.paused,
+    seeking: () => el.seeking,
+    ended: () => el.ended,
+    seek: (t) =>
+      Effect.callback<void>((resume) => {
+        seeking.abort();
+        const mine = new AbortController();
+        seeking = mine;
+        // Done once shown, or once a later seek takes its place.
+        mine.signal.addEventListener('abort', () => resume(Effect.void));
+        el.currentTime = t;
+        // An element with nothing loaded shows the time once it loads: nothing to wait for.
+        if (el.readyState === 0) mine.abort();
+        else el.addEventListener('seeked', () => mine.abort(), { signal: mine.signal });
+        return Effect.sync(() => mine.abort());
+      }),
+    play: Effect.mapError(
+      Effect.tryPromise(() => el.play()),
+      (error) => new PlayRefused({ name: nameOf(error) }),
+    ),
+    pause: Effect.sync(() => el.pause()),
+    mute: (muted) => {
+      el.muted = muted;
+    },
+    rate: (rate) => {
+      el.playbackRate = rate;
+    },
+    on: (event, listener, signal) => el.addEventListener(EVENTS[event], listener, { signal }),
+  };
+};
+
+/** A compare's panes, one per canvas, on one clock, and the letting go of them all. */
+export interface ComparePanes {
+  readonly panes: ReadonlyArray<Playable>;
+  /** Let every pane and every render opened for them go. */
+  readonly dispose: () => void;
+}
+
+/** The engine a compare plays on, chosen for its renders, and its panes over canvases. */
+export interface Compare {
+  readonly engine: Engine;
+  /** Panes over the renders, each painted on its canvas: none where the engine is `<video>`. */
+  readonly panes: (canvases: ReadonlyArray<HTMLCanvasElement>) => ComparePanes;
+}
+
+/** A compare on `<video>`, for `why`: no panes. */
+export const onVideo = (why: string): Compare => ({
+  engine: { engine: 'video', why },
+  panes: () => ({ panes: [], dispose: () => {} }),
+});
 
 /** What a play came to. */
 export type Played = Data.TaggedEnum<{
@@ -85,17 +185,29 @@ interface MediaOps {
    * None where the page makes no sound of its own (a test).
    */
   readonly sound: Effect.Effect<Option.Option<AudioContext>>;
+  /**
+   * The engine a compare of the renders at `urls` plays on, chosen by what
+   * the browser and the files allow; whatever it opens is the scope's from
+   * the moment it is made.
+   */
+  readonly compare: (urls: ReadonlyArray<string>) => Effect.Effect<Compare, never, Scope.Scope>;
 }
+
+/** A host whose compares play on `<video>`: a server render's, a test's, a page with no panes. */
+const NO_PANES = () => Effect.succeed(onVideo('this page has no WebCodecs panes'));
 
 export class Media extends Context.Service<Media, MediaOps>()('@bible/film/browser/Media') {
   /**
    * The host's media, its audio made by `audio` (live an `Audio` element, a
    * fake in a test), its sound context by `sound` (live the page's one
-   * `AudioContext`; none in a test).
+   * `AudioContext`; none in a test), its compares chosen by `compare` (live
+   * the review page's WebCodecs panes, `webcodecs-browser.ts`; `<video>`
+   * elsewhere).
    */
   static readonly layerOver = (
     audio: (src: string) => Playable,
     sound: () => Option.Option<AudioContext> = () => Option.none(),
+    compare: MediaOps['compare'] = NO_PANES,
   ): Layer.Layer<Media> =>
     Layer.succeed(
       Media,
@@ -103,6 +215,7 @@ export class Media extends Context.Service<Media, MediaOps>()('@bible/film/brows
         audio,
         play,
         sound: Effect.sync(sound),
+        compare,
         playOrMute: (media) =>
           Effect.flatMap(play(media), (played) => {
             if (played._tag !== 'Blocked') return Effect.succeed(played);

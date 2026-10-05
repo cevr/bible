@@ -12,7 +12,7 @@
 // name reads whole.
 
 import { Boolean as Bool, Effect, Option, Schema } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
 import { HUD_IDLE_MS } from '../../src/player/hud.ts';
@@ -478,6 +478,48 @@ describe('the player', () => {
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
+  );
+
+  // Serial: while two fingers are down on one tab, Chrome drops the touches the file's other
+  // cases send their own tabs at the same time (a tick's held name never shows).
+  test.serial(
+    "a second finger on the track while the first drags it is not the track's: it neither scrubs nor jumps, and enters nothing in history",
+    () =>
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const { page, errors } = yield* openPlayer(
+            { href: pageHref.play(PROBE), viewport: PHONE },
+            BAR_READY,
+          );
+          const track = yield* page.box('.bar .track');
+          const y = track.y + track.height / 2;
+          const before = yield* page.evaluate('history.length');
+          // The first finger drags from a fifth along to a third, and the URL follows it there.
+          const third = (2 * HALF) / 3;
+          const atThird = `Math.abs(${URL_T} - ${third}) < ${HALF / 20}`;
+          // Every press the track is given, counted, so a second finger refused is one it was
+          // given; and every finger lifted, so the case ends once the page has both lifts.
+          yield* page.evaluate(
+            `(window.pressed = 0, window.lifted = 0, document.querySelector('.bar .track').addEventListener('pointerdown', () => window.pressed++, true), addEventListener('touchend', () => window.lifted++, true), 0)`,
+          );
+          yield* page.finger.down(track.x + track.width / 5, y);
+          yield* page.finger.move(track.x + track.width / 3, y, 15);
+          yield* evaluates(page, atThird, true);
+          // A second finger lands near the end and slides on while the first holds: its own
+          // press would scrub there, and, lifted, jump there.
+          yield* page.finger.second.down(track.x + track.width * 0.8, y);
+          yield* page.finger.second.move(track.x + track.width * 0.95, y, 15);
+          yield* evaluates(page, 'window.pressed', 2);
+          yield* evaluates(page, atThird, true);
+          // Both lift. (Chrome lifts a finger only as the touch ends: the two lift together.)
+          yield* page.finger.second.up;
+          yield* page.finger.up;
+          yield* evaluates(page, 'window.lifted', 2);
+          yield* evaluates(page, atThird, true);
+          yield* evaluates(page, 'String(history.length)', String(before));
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      ),
   );
 
   it.live(

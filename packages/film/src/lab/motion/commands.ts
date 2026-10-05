@@ -4,10 +4,11 @@
 // in point the range loops, as every editor's in/out points do), and Stop
 // looping. The loop chip in Motion's section opens them, and the rate chip
 // the transport's rates (`player/transport.ts`). Each answers quietly: the
-// section's status and the time line say the loop.
+// section's status and the time line say the loop. The onion skin's on and
+// off is one more (`onionCommand`), behind the section's Onion button.
 
-import { Effect, Option } from 'effect';
-import { type Command, quiet } from '../../command/command.ts';
+import { Option } from 'effect';
+import { type Command, quietly } from '../../command/command.ts';
 import { sceneAt } from '../../core/layout.ts';
 
 /** What the loop's commands drive: Motion's actions, and what they read. */
@@ -32,13 +33,6 @@ export const LOOP_IDS = [
   'motion.loop-off',
 ] as const;
 
-/** Run `move` and answer quietly. */
-const doing = (move: () => void) => () =>
-  Effect.sync(() => {
-    move();
-    return quiet;
-  });
-
 /** The loop's commands over `verbs`. */
 export const loopCommands = (verbs: LoopVerbs): ReadonlyArray<Command> => [
   {
@@ -49,7 +43,7 @@ export const loopCommands = (verbs: LoopVerbs): ReadonlyArray<Command> => [
     about: ['Cue', 'Page'],
     touch: 'hold the cue, or the loop chip',
     when: verbs.cueSelected,
-    run: doing(verbs.loopCue),
+    run: quietly(verbs.loopCue),
   },
   {
     id: 'motion.loop-scene',
@@ -58,7 +52,7 @@ export const loopCommands = (verbs: LoopVerbs): ReadonlyArray<Command> => [
     about: ['Page'],
     touch: 'the loop chip',
     when: () => true,
-    run: doing(verbs.loopScene),
+    run: quietly(verbs.loopScene),
   },
   {
     id: 'motion.in',
@@ -67,7 +61,7 @@ export const loopCommands = (verbs: LoopVerbs): ReadonlyArray<Command> => [
     keys: ['i'],
     touch: 'the loop chip',
     when: () => true,
-    run: doing(verbs.markIn),
+    run: quietly(verbs.markIn),
   },
   {
     id: 'motion.out',
@@ -76,7 +70,7 @@ export const loopCommands = (verbs: LoopVerbs): ReadonlyArray<Command> => [
     keys: ['o'],
     touch: 'the loop chip',
     when: () => true,
-    run: doing(verbs.markOut),
+    run: quietly(verbs.markOut),
   },
   {
     id: 'motion.loop-off',
@@ -85,9 +79,22 @@ export const loopCommands = (verbs: LoopVerbs): ReadonlyArray<Command> => [
     about: ['Page'],
     touch: 'the loop chip',
     when: verbs.looping,
-    run: doing(verbs.stop),
+    run: quietly(verbs.stop),
   },
 ];
+
+/** The onion skin's command: Motion's Onion button and ⌘K turn it on and off. */
+export const ONION = 'motion.onion';
+
+/** Turn the onion skin on or off (`toggle`): no key until a visit wants one. */
+export const onionCommand = (toggle: () => void): Command => ({
+  id: ONION,
+  label: 'Onion skin on or off',
+  group: 'Motion',
+  touch: 'the Onion button in Motion',
+  when: () => true,
+  run: quietly(toggle),
+});
 
 /** The span of the scene at `T` (`sceneAt`), among `placed`: where Loop this scene plays. */
 export const sceneSpan = (

@@ -32,11 +32,10 @@
 import { Array as Arr, Duration, Effect, Equal, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
 import { SceneEdit } from '../../canvas/film.ts';
-import { CheckLine, type CheckReport, LabWrite } from '../../core/schema.ts';
-import { uniqueId } from '../../core/unique.ts';
+import { ChangeId, CheckLine, type CheckReport, LabWrite, RequestId } from '../../core/schema.ts';
 import { STUDIO_IMPORT_WAIT_S } from '../../core/studio.ts';
 import { readAtLoad } from '../../player/narrated.ts';
-import { LabApi, LabUnreachable, StepVerb } from '../api.ts';
+import { LabApi, LabUnreachable, StepVerb, landedStep } from '../api.ts';
 import { Stage } from '../stage.ts';
 import { Grip, Pointer, StepWrite, Write, drag, joined, wroteNote } from './grip.ts';
 
@@ -53,9 +52,6 @@ export const WRITE_TIMEOUT_S = 20;
  * studio waits for one.
  */
 const STEP_TIMEOUT_S = STUDIO_IMPORT_WAIT_S;
-
-/** An id for an Undo or Redo request that no other request has, from any page. */
-export const stepRequest: Effect.Effect<string> = uniqueId;
 
 /** How long reading the lab's steps may take once a step's wait is over. */
 const CHECK_WAIT = Duration.seconds(15);
@@ -96,7 +92,7 @@ export const EditState = State({
     note: Schema.String,
     findings: Schema.Array(CheckLine),
     undo: StepVerb,
-    change: Schema.Option(Schema.String),
+    change: Schema.Option(ChangeId),
   },
   /** The server, or the lab, said no: its words. */
   Refused: { message: Schema.String },
@@ -113,7 +109,7 @@ export const EditEvent = Event({
   /** A write asked for from rest (a field, an ease, a knob), shown first as `edit`. */
   Commit: { write: Write, edit: SceneEdit },
   /** An Undo or Redo, with an id unique to this request (`StepWrite.request`), of one change or the newest. */
-  Step: { verb: StepVerb, request: Schema.String, change: Schema.Option(Schema.String) },
+  Step: { verb: StepVerb, request: RequestId, change: Schema.Option(ChangeId) },
   Wrote: { result: LabWrite },
   Failed: { message: Schema.String },
   /** The write was out its wait (WRITE_TIMEOUT_S, a step STEP_TIMEOUT_S) with no answer. */
@@ -154,13 +150,8 @@ const waitFor = (write: Write): Duration.Duration =>
  * not yet, and the latest change is named.
  */
 const settleStep = (step: StepWrite, report: CheckReport): EditEvent => {
-  const landed = Option.flatMap(Option.fromUndefinedOr(report.landed), (steps) =>
-    Arr.findFirst(steps, (l) => l.request === step.request),
-  );
-  if (Option.isSome(landed)) {
-    const { request: _, ...walked } = landed.value;
-    return EditEvent.Landed({ result: { ...walked, findings: report.findings } });
-  }
+  const landed = landedStep(report, step.request);
+  if (Option.isSome(landed)) return EditEvent.Landed({ result: landed.value });
   const named = Option.match(Option.fromUndefinedOr(report.latest), {
     onNone: () => 'none',
     onSome: (l) => `${l.target} in ${l.file}`,

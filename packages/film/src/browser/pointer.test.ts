@@ -3,12 +3,14 @@
 // or ended by the browser (a cancel, a lost capture); after its end, and once
 // interrupted, it hears nothing more. A finger's press another holds (an open
 // menu's long press) tells neither its moves nor its lift; a plain tap lifts.
+// A surface follows one press at a time: a second finger's press on it while
+// it follows one does nothing, and the next press after that one ends does.
 
 import { describe, expect, test } from 'bun:test';
 import { claimPress } from '@bible/ui/press';
 import { Effect, Fiber, Option } from 'effect';
 import { hostOf } from './host.ts';
-import { Pointer } from './pointer.ts';
+import { Pointer, Surface } from './pointer.ts';
 
 /** An element that can hold a pointer's capture: the ids it was asked to capture. */
 class Pressable extends EventTarget {
@@ -138,5 +140,75 @@ describe('Pointer.drag', () => {
     drag.send('pointermove', 23, 30);
     drag.send('pointerup', 23, 40);
     expect([drag.moves, drag.ends]).toEqual([[30], [Option.some(40)]]);
+  });
+});
+
+/**
+ * A surface whose presses go through `Pointer.press`: each press's work
+ * (`took`, the pointer it was) runs and follows its drag, or follows none
+ * when `follow` says so; the moves each drag told, by pointer.
+ */
+const surface = (follow: (id: number) => boolean = () => true) => {
+  const window = new EventTarget();
+  const element = new Pressable();
+  const host = hostOf(Pointer.layerOn(window));
+  const held = new Surface('the strip');
+  const took: Array<number> = [];
+  const moves: Array<string> = [];
+  const fibers: Array<Fiber.Fiber<void>> = [];
+  element.addEventListener('pointerdown', (e) => {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- dispatched by `press` below
+    const down = e as PointerEvent;
+    fibers.push(
+      Effect.runForkWith(host)(
+        Pointer.use((p) =>
+          p.press(down, held, () => {
+            took.push(down.pointerId);
+            return Option.liftPredicate(
+              {
+                move: (ev: PointerEvent) => moves.push(`${down.pointerId}:${ev.clientX}`),
+                end: () => {},
+              },
+              () => follow(down.pointerId),
+            );
+          }),
+        ),
+      ),
+    );
+  });
+  return {
+    took,
+    moves,
+    press: (id: number) => element.dispatchEvent(pointer('pointerdown', id)),
+    send: (type: string, id: number, x = 0) => window.dispatchEvent(pointer(type, id, x)),
+    interrupt: () => fibers.map((f) => Effect.runFork(Fiber.interrupt(f))),
+  };
+};
+
+describe('Pointer.press', () => {
+  test("a second finger's press while the surface follows one is not the surface's", () => {
+    const s = surface();
+    s.press(1);
+    s.press(2);
+    s.send('pointermove', 1, 10);
+    s.send('pointermove', 2, 20);
+    expect(s.took).toEqual([1]);
+    expect(s.moves).toEqual(['1:10']);
+    // The first press ends: the surface takes the next one.
+    s.send('pointerup', 1, 10);
+    s.press(3);
+    s.send('pointermove', 3, 30);
+    expect(s.took).toEqual([1, 3]);
+    expect(s.moves).toEqual(['1:10', '3:30']);
+  });
+
+  test('a press with nothing to follow holds nothing, and an interrupted one lets go', () => {
+    const s = surface((id) => id !== 1);
+    s.press(1);
+    s.press(2);
+    expect(s.took).toEqual([1, 2]);
+    s.interrupt();
+    s.press(3);
+    expect(s.took).toEqual([1, 2, 3]);
   });
 });

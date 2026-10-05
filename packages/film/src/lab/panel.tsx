@@ -171,8 +171,8 @@ const Panel = (props: {
       <div class="lab-notes-box" data-mode-of="note">
         {/* Note's own: `n` and ⌘K note the frame in any mode, and a note begun shows Note. */}
         <header class="lab-note-head">
-          <Pen />
-          <Frame />
+          <Pen hub={page.hub} />
+          <Frame hub={page.hub} />
         </header>
         {at('compose')}
         <List film={page.name} hub={page.hub} />
@@ -259,7 +259,7 @@ export const LabPage = (
   };
   return (
     <LabPageContext value={value}>
-      <NotesFeed film={props.name} runtime={runtime} note={() => here().note}>
+      <NotesFeed film={props.name} runtime={runtime} hub={props.hub} note={() => here().note}>
         <Panel
           slots={(name) => (el) => {
             made.set(name, el);

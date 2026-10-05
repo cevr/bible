@@ -4,7 +4,7 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { Effect, Schema } from 'effect';
-import { CheckReport, LabWrite } from '../core/schema.ts';
+import { ChangeId, CheckReport, LabWrite } from '../core/schema.ts';
 import { Steps, labUrls } from '../core/api.ts';
 import { ChoiceWrite, FilmChoices, SoundCheck } from '../core/choice.ts';
 import {
@@ -18,6 +18,9 @@ import {
   reviewTestPost,
   reviewTestRefusalOf,
 } from './testing.ts';
+
+/** The pick's change (`reviewPickIn`), by the id the lab gave it. */
+const PICKED = ChangeId.make('pick-bright');
 
 /** A pick as the review's page sends it. */
 const pick = (film: string, body: string, origin: string, type = 'application/json') =>
@@ -83,7 +86,7 @@ describe("a film's choices", () => {
       expect(answer).toEqual({
         file: 'sound.ts',
         target: 'score play bright',
-        change: 'pick-bright',
+        change: PICKED,
         choices: REVIEW_CHOICES,
         findings: [],
       });
@@ -101,7 +104,7 @@ describe("a film's choices", () => {
       expect(undone).toEqual({
         file: 'sound.ts',
         target: 'undo score play bright',
-        change: 'pick-bright',
+        change: PICKED,
         findings: [],
       });
       const check = yield* Schema.decodeEffect(Schema.fromJsonString(CheckReport))(
@@ -111,7 +114,7 @@ describe("a film's choices", () => {
       );
       expect(check).toEqual({
         findings: [],
-        redo: { file: 'sound.ts', target: 'score play bright', change: 'pick-bright' },
+        redo: { file: 'sound.ts', target: 'score play bright', change: PICKED },
       });
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );
@@ -212,7 +215,7 @@ describe("a film's choices", () => {
       expect(
         yield* Schema.decodeEffect(Schema.fromJsonString(Steps))(yield* reviewTestBody(steps)),
       ).toEqual({
-        redo: { file: 'sound.ts', target: 'score play bright', change: 'pick-bright' },
+        redo: { file: 'sound.ts', target: 'score play bright', change: PICKED },
       });
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );

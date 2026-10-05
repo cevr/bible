@@ -3,10 +3,14 @@
 // - The host bans: a page reaches each host name it may not use neither bare
 //   nor under a global (`window.`, `globalThis.`, `self.`), and neither a host
 //   object's banned member (`performance.now`) through a global
-//   (`window.performance.now`). oxlint lints a probe of every such form, built
-//   from the bans themselves, with the bans' own options: each line is red.
-//   The URL's names are among them, and no page file is let off them: every
-//   page reaches the address bar through `@bible/url-state`'s Location.
+//   (`window.performance.now`), and neither through a chain of the global
+//   object's own names (`globalThis.window.location`, `parent.location`,
+//   `document.defaultView?.matchMedia`). oxlint lints a probe of every such
+//   form, built from the bans themselves, with the bans' own options: each
+//   line is red. The URL's names are among them, and no page file is let off
+//   them: every page reaches the address bar through `@bible/url-state`'s
+//   Location. `Reflect.get(window, 'history')`, a name no property ban can
+//   see, is `effect/noReflectGet`'s, on in the same block.
 // - The purity rule: a block that keeps a layer's folder (`**/lab/**`) out
 //   also keeps out every package export that resolves into it
 //   (`@bible/film/review` is the lab's).
@@ -28,6 +32,25 @@ const URL_NAMES: ReadonlyArray<string> = ['history', 'location', 'onpopstate'];
 
 /** The URL's events: heard only through Location. */
 const URL_EVENTS: ReadonlyArray<string> = ['popstate', 'hashchange'];
+
+/**
+ * The global object reached through a chain or an alias of itself, then a
+ * banned name (the pass-2 guardrails probe, q1–q11 but `Reflect.get`): each
+ * is red on its first hop, however the name after it is spelled.
+ */
+const CHAINS: ReadonlyArray<string> = [
+  'globalThis.window.location;',
+  'window.self.fetch(url);',
+  'window.window.history;',
+  'window.top?.location;',
+  'parent.location;',
+  'top.history;',
+  'document.defaultView?.location;',
+  'frames.location;',
+  'globalThis.window.matchMedia(query);',
+  'self.globalThis.localStorage;',
+  'window.parent.requestAnimationFrame(step);',
+];
 
 const Allow = Schema.Struct({ allow: Schema.optionalKey(Schema.Array(Schema.String)) });
 
@@ -128,6 +151,7 @@ const probeOf = (
     'new window.Audio();',
     'self.requestAnimationFrame(() => {});',
     'globalThis.setInterval(() => {}, 1);',
+    ...CHAINS,
   ];
 };
 

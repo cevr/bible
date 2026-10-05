@@ -18,15 +18,14 @@ import { makeClock } from '../browser/media-clock.ts';
 import { Frames } from '../browser/frames.ts';
 import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
 import { BY_BUTTON } from '../command/command.ts';
-import type { Hub } from '../command/hub.ts';
-import { chordLabel } from '../command/keymap.ts';
-import { Pointer } from '../browser/pointer.ts';
+import { type Hub, titledNow } from '../command/hub.ts';
+import { Pointer, Surface } from '../browser/pointer.ts';
 import { required } from './dom.ts';
 import { pictureFacesWait } from './face.ts';
 import { narration, narrationNote } from './narration.ts';
 import { tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
-import { legendCommand, ticksCommand, transportCommands } from './transport.ts';
+import { legendCommand, legendHtml, ticksCommand, transportCommands } from './transport.ts';
 import { makeHud } from './hud.ts';
 import { keptText } from '../browser/storage.ts';
 import { ViewerStore } from '../browser/storage-browser.ts';
@@ -204,7 +203,7 @@ export const mountPreview = (
     </div>
     <div class="track"><div class="head"></div></div>
     <div class="tip" hidden></div>
-    <div class="keys" hidden>striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover or long-press for the name)</div>`;
+    <div class="keys" hidden>${legendHtml()}</div>`;
   document.body.append(bar);
   const q = <T extends Element>(sel: string) => required<T>(bar, sel);
   const track = q<HTMLDivElement>('.track');
@@ -454,7 +453,10 @@ export const mountPreview = (
   // long press's slop), it is a tap: a jump there, a step Back walks across a
   // scene. Moved, it is a drag: it scrubs from its first move, following the
   // URL in place, and settles where it ends, lifted or taken by the browser
-  // (a page pan); its press and its release enter nothing in history.
+  // (a page pan); its press and its release enter nothing in history. The
+  // track follows one press at a time (`TRACK`): a second finger put down
+  // while the first holds it neither scrubs, nor jumps, nor names a tick.
+  const TRACK = new Surface('track');
   track.addEventListener('pointerdown', (e) => {
     const r = track.getBoundingClientRect();
     const tAt = (ev: PointerEvent) => ((ev.clientX - r.left) / r.width) * film.duration;
@@ -463,16 +465,18 @@ export const mountPreview = (
       dragged = true;
       scrub(tAt(ev));
     };
-    const letGo = holdTick(e);
     Effect.runForkWith(host)(
       Pointer.use((pointer) =>
-        pointer.drag(e, {
-          move,
-          end: (lifted) => {
-            letGo();
-            if (dragged) url.settled();
-            else Option.map(lifted, () => seek(tAt(e)));
-          },
+        pointer.press(e, TRACK, () => {
+          const letGo = holdTick(e);
+          return Option.some({
+            move,
+            end: (lifted: Option.Option<PointerEvent>) => {
+              letGo();
+              if (dragged) url.settled();
+              else Option.map(lifted, () => seek(tAt(e)));
+            },
+          });
         }),
       ),
     );
@@ -505,12 +509,6 @@ export const mountPreview = (
     }),
   );
   hub.refine((now) => ({ ...now, playing }));
-  /** The key bound to `id` now, as the keys sheet says it: a rebound key reads as rebound. */
-  const keyOf = (id: string) =>
-    hub
-      .keysOf(id)
-      .slice(0, 1)
-      .map((k) => chordLabel(k, hub.mac))[0] ?? '—';
   // The lab's transport steps a frame at a time by touch too (AA-8): the
   // frame keys' own commands, as a pair beside play. Its legend, hidden at
   // rest, is ⌘K's and the page's menu's (the keys are the `?` sheet's).
@@ -530,7 +528,12 @@ export const mountPreview = (
       button.dataset['act'] = id;
       button.textContent = glyph;
       button.setAttribute('aria-label', label);
-      button.title = `${label} (${keyOf(id)})`;
+      // Named again whenever the keys change, so a key rebound in `?` reads as rebound.
+      const name = () => {
+        button.title = titledNow(hub, label, id);
+      };
+      name();
+      hub.subscribe(name);
       button.addEventListener('click', () => hub.invokeId(id, BY_BUTTON));
       return button;
     };

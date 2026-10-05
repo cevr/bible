@@ -9,6 +9,7 @@ import { Array as Arr, Context, Effect, FileSystem, Layer, Option, Result } from
 import { sceneAddress } from '../core/address.ts';
 import { withdrawSay } from '../core/api.ts';
 import {
+  OpId,
   approvalState,
   approve,
   comment,
@@ -95,18 +96,19 @@ describe('said', () => {
     const now = partSubject(sceneAddress('open'), 'main', 'k2');
     const earlier = { ...now, key: 'k1' };
     // Both approvals given at the same moment, by two runs.
+    const op2 = OpId.make('op-2');
     const approved = approve(
-      approve(emptyCatalogue('f'), earlier, 2, Option.some('op-1')),
+      approve(emptyCatalogue('f'), earlier, 2, Option.some(OpId.make('op-1'))),
       now,
       2,
-      Option.some('op-2'),
+      Option.some(op2),
     );
-    expect(said(approved, now, withdrawSay(Option.some('op-9')), 3)).toEqual(approved);
-    const undone = said(approved, now, withdrawSay(Option.some('op-2')), 3);
+    expect(said(approved, now, withdrawSay(Option.some(OpId.make('op-9'))), 3)).toEqual(approved);
+    const undone = said(approved, now, withdrawSay(Option.some(op2)), 3);
     expect(approvalState(undone, now)).toBe('stale');
     expect(approvalState(undone, earlier)).toBe('approved');
     // A say's approve carries no op: no Undo's withdraw takes it.
     const plain = said(emptyCatalogue('f'), now, { _tag: 'Approve' }, 4);
-    expect(said(plain, now, withdrawSay(Option.some('op-2')), 5)).toEqual(plain);
+    expect(said(plain, now, withdrawSay(Option.some(op2)), 5)).toEqual(plain);
   });
 });

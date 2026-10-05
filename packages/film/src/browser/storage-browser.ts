@@ -8,7 +8,9 @@
 import { type StoreRuntime, storeOver } from './storage.ts';
 
 /** The tab's session: what a reload keeps and a new tab does not (the lab's view). */
+// oxlint-disable-next-line no-restricted-globals -- the stores' live adapter: the tab's session storage
 export const TabStore: StoreRuntime = storeOver(() => sessionStorage);
 
 /** The browser's local storage: what every visit from this browser keeps (the microphone, the review's quality and filter). */
+// oxlint-disable-next-line no-restricted-globals -- the stores' live adapter: the browser's local storage
 export const ViewerStore: StoreRuntime = storeOver(() => localStorage);

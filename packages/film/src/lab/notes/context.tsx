@@ -9,13 +9,9 @@
 // or previous open note by time (`command/walk.ts`), and each note is a
 // place ⌘K goes to by its id and words (`command/go.ts`).
 
-import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
-import { Loading, Show } from '@solidjs/web';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Effect, Match, Option } from 'effect';
-import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
-import type * as AsyncResult from 'effect/reactivity/AsyncResult';
-import type * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
   createContext,
@@ -26,7 +22,7 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
-import { type Command, quiet } from '../../command/command.ts';
+import { type Command, quietly } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { type Toward, walkFrom } from '../../command/walk.ts';
 import { registerWhile } from '../command/changes.ts';
@@ -34,6 +30,7 @@ import type { Hub } from '../../command/hub.ts';
 import { type Context, selected as selectedOf } from '../../command/context.ts';
 import { noteT } from '../../core/notes.ts';
 import type { Note, Point } from '../../core/schema.ts';
+import { Actor } from '../actor.tsx';
 import { useLab } from '../shell.tsx';
 import {
   type ComposerActor,
@@ -90,7 +87,6 @@ interface NotesState {
 }
 
 interface NotesActions {
-  readonly togglePen: () => void;
   /** The pointer went down on the frame at `at`, film pixels. */
   readonly press: (at: Point) => void;
   readonly drag: (at: Point, far: boolean) => void;
@@ -138,11 +134,7 @@ const walkCommand = (
   keys: [key],
   touch: 'tap it in the list',
   when: () => Option.isSome(walk(toward)),
-  run: () =>
-    Effect.sync(() => {
-      Option.map(walk(toward), actions.select);
-      return quiet;
-    }),
+  run: quietly(() => Option.map(walk(toward), actions.select)),
 });
 
 /**
@@ -169,25 +161,7 @@ const useCommands = (
         about: ['Note'],
         touch: 'tap it in the list, or long-press it, then Open the note',
         when: (ctx) => Option.isSome(noteOf(ctx)),
-        run: (ctx) =>
-          Effect.sync(() => {
-            Option.map(noteOf(ctx), actions.select);
-            return quiet;
-          }),
-      },
-      {
-        id: 'notes.frame',
-        label: 'Note this frame',
-        group: 'Notes',
-        keys: ['n'],
-        touch:
-          'the Note frame button in the header; click the frame to pin a point, drag to draw a box',
-        when: () => true,
-        run: () =>
-          Effect.sync(() => {
-            actions.noteFrame();
-            return quiet;
-          }),
+        run: quietly((ctx) => Option.map(noteOf(ctx), actions.select)),
       },
       {
         id: 'notes.cancel',
@@ -197,11 +171,7 @@ const useCommands = (
         keysIn: ['page', 'field'],
         touch: "the composer's Cancel button",
         when: composing,
-        run: () =>
-          Effect.sync(() => {
-            actions.cancel();
-            return quiet;
-          }),
+        run: quietly(() => actions.cancel()),
       },
     ),
   );
@@ -281,7 +251,6 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
   );
 
   const actions: NotesActions = {
-    togglePen: feed.togglePen,
     press: (at) => sendComposer(ComposerEvent.Press({ T: player.now(), at, pen: feed.pen() })),
     drag: (at, far) => sendComposer(ComposerEvent.Drag({ at, far })),
     lift: (at, far) => sendComposer(ComposerEvent.Lift({ at, far })),
@@ -363,26 +332,12 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
   return <NotesContext value={value}>{props.children}</NotesContext>;
 };
 
-const Ready = (
-  props: ParentProps<{
-    readonly composer: Atom.Atom<AsyncResult.AsyncResult<ComposerActor, never>>;
-  }>,
-) => {
-  const composer = useAtomSuspense(() => props.composer);
-  return (
-    <Show when={composer()} keyed>
-      {(c: ComposerActor) => <Body composer={c}>{props.children}</Body>}
-    </Show>
-  );
-};
-
 /** The notes' state and actions in the staged lab, for the composer, the marks and the pins. */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
-  const composer = meta.runtime.atom(Machine.scoped(spawnComposer));
   return (
-    <Loading>
-      <Ready composer={composer}>{props.children}</Ready>
-    </Loading>
+    <Actor runtime={meta.runtime} spawn={spawnComposer}>
+      {(composer) => <Body composer={composer}>{props.children}</Body>}
+    </Actor>
   );
 };

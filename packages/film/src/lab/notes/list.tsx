@@ -9,7 +9,8 @@
 // (when a note shows on its time line, the seek to it, a new note on the
 // frame shown) the staged notes lend the page once the film is staged
 // (`NotesStaged`, `context.tsx`); until then the list shows each note
-// without its time, and opening one waits for the film.
+// without its time, and opening one or noting the frame waits for the film.
+// The pen and Note this frame are the page's commands from the first paint.
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, Loading, Show } from '@solidjs/web';
@@ -19,9 +20,10 @@ import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createMemo, createSignal, useContext } from 'solid-js';
+import { createContext, createMemo, createSignal, onCleanup, useContext } from 'solid-js';
 import { stillUrl } from '../../core/api.ts';
 import { type Note, NotesFile } from '../../core/schema.ts';
+import { BY_BUTTON, quietly } from '../../command/command.ts';
 import { Selection } from '../../command/selection.ts';
 import type { Hub } from '../../command/hub.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
@@ -63,9 +65,8 @@ interface NotesFeedValue {
   readonly write: (write: ThreadWrite) => void;
   /** What the last reply or resolve said, if it failed. */
   readonly threadStatus: Accessor<string>;
-  /** Whether a drag on the frame draws ink rather than a box. */
+  /** Whether a drag on the frame draws ink rather than a box (`notes.pen` turns it on and off). */
   readonly pen: Accessor<boolean>;
-  readonly togglePen: () => void;
   /** What the staged film lends, while it is staged. */
   readonly staged: Accessor<Option.Option<NotesStaged>>;
   /** Lend the notes what needs the film's code, until the returned function is called. */
@@ -86,6 +87,7 @@ export const NotesFeed = (
   props: ParentProps<{
     readonly film: string;
     readonly runtime: PageRuntime;
+    readonly hub: Hub;
     readonly note: Accessor<Option.Option<string>>;
   }>,
 ) => {
@@ -155,44 +157,76 @@ export const NotesFeed = (
     write: (w) => writeThread(w),
     threadStatus,
     pen,
-    togglePen: () => setPen((on) => !on),
     staged,
     lend: (verbs) => {
       setStaged(Option.some(verbs));
       return () => setStaged(Option.none());
     },
   };
+  // The header's pen and Note frame are commands, registered with the page
+  // (a server render names their keys as the browser does): their buttons,
+  // keys and ⌘K reach them alike. Note this frame waits for the staged film.
+  onCleanup(
+    props.hub.commands.register(
+      {
+        id: PEN,
+        label: 'Pen on or off',
+        group: 'Notes',
+        touch: 'the Pen button in the header',
+        when: () => true,
+        run: quietly(() => setPen((on) => !on)),
+      },
+      {
+        id: NOTE_FRAME,
+        label: 'Note this frame',
+        group: 'Notes',
+        keys: ['n'],
+        touch:
+          'the Note frame button in the header; click the frame to pin a point, drag to draw a box',
+        when: () => Option.isSome(staged()),
+        run: quietly(() => Option.map(staged(), (s) => s.noteFrame())),
+      },
+    ),
+  );
   return <NotesFeedContext value={value}>{props.children}</NotesFeedContext>;
 };
 
+/** The pen's command. */
+const PEN = 'notes.pen';
+
+/** Note this frame's command (`n`). */
+const NOTE_FRAME = 'notes.frame';
+
 /** The pen: a drag on the frame draws ink while it is on. */
-export const Pen = () => {
+export const Pen = (props: { readonly hub: Hub }) => {
   const feed = useNotesFeed();
+  const keys = hubKeys(props.hub);
   return (
     <button
       type="button"
       data-act="pen"
       class="sh-btn"
       aria-pressed={`${feed.pen()}`}
-      title="draw freehand ink on the frame"
-      onClick={feed.togglePen}
+      title={keys.titled('draw freehand ink on the frame', PEN)}
+      onClick={() => props.hub.invokeId(PEN, BY_BUTTON)}
     >
       Pen
     </button>
   );
 };
 
-/** Note the whole frame shown: the touch path for `n`, once the film is staged. */
-export const Frame = () => {
+/** Note the whole frame shown: the touch path for Note this frame, once the film is staged. */
+export const Frame = (props: { readonly hub: Hub }) => {
   const feed = useNotesFeed();
+  const keys = hubKeys(props.hub);
   return (
     <button
       type="button"
       class="sh-btn"
       data-act="note-frame"
-      title="note the whole frame shown (n)"
+      title={keys.titled('note the whole frame shown', NOTE_FRAME)}
       disabled={Option.isNone(feed.staged())}
-      onClick={() => Option.map(feed.staged(), (s) => s.noteFrame())}
+      onClick={() => props.hub.invokeId(NOTE_FRAME, BY_BUTTON)}
     >
       Note frame
     </button>
@@ -300,9 +334,8 @@ const Item = (props: { readonly film: string; readonly note: Note }) => {
  */
 export const List = (props: { readonly film: string; readonly hub: Hub }) => {
   const feed = useNotesFeed();
-  const keys = hubKeys(props.hub);
   // Note this frame's key as bound now: a rebound key reads as rebound.
-  const noteKey = () => keys.bound('notes.frame').slice(0, 1).map(keys.label).join('');
+  const keys = hubKeys(props.hub);
   const composing = () => Option.exists(feed.staged(), (s) => s.composerOpen());
   return (
     <Loading>
@@ -315,7 +348,7 @@ export const List = (props: { readonly film: string; readonly hub: Hub }) => {
       <Show when={feed.notes().length === 0 && !composing()}>
         <p class="lab-feed" data-role="notes-empty">
           No notes yet: click the frame to pin a point, drag to draw a box, or press{' '}
-          <kbd>{noteKey()}</kbd> to note the whole frame.
+          <kbd>{keys.first(NOTE_FRAME)}</kbd> to note the whole frame.
         </p>
       </Show>
     </Loading>

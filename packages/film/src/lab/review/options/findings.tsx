@@ -12,10 +12,10 @@
 
 import { Drawer } from '@bible/ui/drawer';
 import { For, Show } from '@solidjs/web';
-import { Boolean as Bool, Effect, Match, Option } from 'effect';
+import { Boolean as Bool, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createSignal, onCleanup } from 'solid-js';
-import { type Command, quiet } from '../../../command/command.ts';
+import { type Command, quietly } from '../../../command/command.ts';
 import { type Toward, walkFrom } from '../../../command/walk.ts';
 import type { CheckLine } from '../../../core/schema.ts';
 import { timecode } from '../../../core/time.ts';
@@ -138,11 +138,7 @@ export const Findings = (props: { readonly chips?: boolean }) => {
     about: ['Page'],
     touch: "Show findings, then tap a finding's time",
     when: () => Option.isSome(walk(toward)),
-    run: () =>
-      Effect.sync(() => {
-        Option.map(walk(toward), seek);
-        return quiet;
-      }),
+    run: quietly(() => Option.map(walk(toward), seek)),
   });
   onCleanup(
     meta.hub.commands.register(
@@ -153,11 +149,7 @@ export const Findings = (props: { readonly chips?: boolean }) => {
         about: ['Page'],
         touch: "long-press the page, then Show findings; on Project, tap a check's count",
         when: () => !open(),
-        run: () =>
-          Effect.sync(() => {
-            setOpen(true);
-            return quiet;
-          }),
+        run: quietly(() => setOpen(true)),
       },
       walkCommand('next', 'Next finding', 'f'),
       walkCommand('previous', 'Previous finding', 'shift+f'),

@@ -16,7 +16,8 @@
     "film/no-read-once": "error",
     "film/spawn-budget": "error",
     "film/host-events-through-adapter": "error",
-    "film/keys-through-keymap": "error"
+    "film/keys-through-keymap": "error",
+    "film/keys-named-as-bound": "error"
   },
   "overrides": [
     {

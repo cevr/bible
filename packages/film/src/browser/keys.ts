@@ -43,20 +43,34 @@ export class Keys extends Context.Service<Keys, KeysOps>()('@bible/film/browser/
     Layer.succeed(Keys, keysOn(page, mac));
 }
 
+/**
+ * An event as a key press may carry it: each field unknown until read, as
+ * the page hears `Event`s (a test's carries them as its own).
+ */
+interface KeyFields extends Pick<Event, 'defaultPrevented' | 'target'> {
+  readonly key?: unknown;
+  readonly code?: unknown;
+  readonly shiftKey?: unknown;
+  readonly metaKey?: unknown;
+  readonly ctrlKey?: unknown;
+  readonly altKey?: unknown;
+  readonly isComposing?: unknown;
+}
+
 /** Whether `e` is a press the page hears: not handled already, not composing text. */
-const heard = (e: Event): boolean =>
-  'key' in e && !e.defaultPrevented && Reflect.get(e, 'isComposing') !== true;
+const heard = (e: KeyFields): boolean =>
+  'key' in e && !e.defaultPrevented && e.isComposing !== true;
 
 /** The key press `e` is, if the page hears it. */
-const pressOf = (e: Event): Option.Option<KeyPress> =>
+const pressOf = (e: KeyFields): Option.Option<KeyPress> =>
   Option.liftPredicate(e, heard).pipe(
     Option.map((ev) => ({
-      key: String(Reflect.get(ev, 'key')),
-      code: String(Option.getOrElse(Option.fromNullishOr(Reflect.get(ev, 'code')), () => '')),
-      shift: Reflect.get(ev, 'shiftKey') === true,
-      meta: Reflect.get(ev, 'metaKey') === true,
-      ctrl: Reflect.get(ev, 'ctrlKey') === true,
-      alt: Reflect.get(ev, 'altKey') === true,
+      key: String(ev.key),
+      code: String(Option.getOrElse(Option.fromNullishOr(ev.code), () => '')),
+      shift: ev.shiftKey === true,
+      meta: ev.metaKey === true,
+      ctrl: ev.ctrlKey === true,
+      alt: ev.altKey === true,
       target: Option.fromNullishOr(ev.target),
     })),
   );

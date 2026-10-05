@@ -4,8 +4,7 @@
 // heard (the view plays, a pair holds it) and is not the one heard already,
 // and says the version's number and label. Pure.
 
-import { Effect } from 'effect';
-import { type Command, quiet } from '../../command/command.ts';
+import { type Command, quietly } from '../../command/command.ts';
 
 /** How many versions have a key: `1`…`9`. */
 const KEYED = 9;
@@ -32,10 +31,6 @@ export const hearVersionCommands = (hearing: Hearing): ReadonlyArray<Command> =>
       keys: [String(n)],
       touch: 'tap its 🔊',
       when: () => hearing.hearable(version.id) && hearing.heard() !== version.id,
-      run: () =>
-        Effect.sync(() => {
-          hearing.hear(version.id);
-          return quiet;
-        }),
+      run: quietly(() => hearing.hear(version.id)),
     };
   });

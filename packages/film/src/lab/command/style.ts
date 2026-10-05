@@ -1,56 +1,30 @@
 // The look of the pages' command surfaces (⌘K, the `?` sheet, the context
 // menu, the inspector's fields and hint, the review's inspector sheet and
 // comment dot, the receipts' toasts, a note's scope chip and the in and out
-// points' band on the cue strip, and every primitive after them):
-// one set of names (`COMMAND_TOKENS`), each the studio's token for its role
-// (`player/tokens.css`, design language §3 and §5: menus and toasts on
-// `--surface-2` with `--line-strong` and `--shadow-pop`, rows `--row-h`,
-// keys in the Kbd part's look, the accent only for a selection or the one
-// verb), and the rules, which read only those names: no colour, face, size,
-// radius or spacing is written in a rule or a component. Restyling the
-// surfaces is changing the tokens. Only the surfaces' own geometry (widths,
-// heights, the layer) is set here. Put in the page by its root (`mountLab`,
-// `mountPlay`, `mountReview`). Each surface fits a phone: no wider than the
-// screen less its gutters, scrolling inside itself. An inspector field keeps
-// the look of the lab's number fields (`.lab-num`); on the review, which has
-// no `player.css`, the tokens give it that look.
+// points' band on the cue strip, and every primitive after them). The rules
+// read the studio's tokens (`player/tokens.css`, design language §3 and §5:
+// menus and toasts on `--surface-2` with `--line-strong` and `--shadow-pop`,
+// rows `--row-h`, keys in the Kbd part's look, the accent only for a
+// selection or the one verb): no colour, face, size, radius or spacing is
+// written in a rule or a component, so restyling the surfaces is changing
+// the tokens. Only what no studio token holds is named here
+// (`COMMAND_TOKENS`): the paddings and heights the surfaces compose, and
+// their own geometry (widths, heights, the layer). Put in the page by its
+// root (`mountLab`, `mountPlay`, `mountReview`). Each surface fits a phone:
+// no wider than the screen less its gutters, scrolling inside itself. An
+// inspector field is the kit's number field (`.lab-num`), styled where the
+// kit is, never here.
 
-/** The command surfaces' names, each the studio's token for its role, and their geometry. */
+/**
+ * The command surfaces' own constants: the four paddings and heights they
+ * compose from studio tokens, and the geometry no studio token holds.
+ */
 const COMMAND_TOKENS = `
 body {
-  --cmd-panel: var(--surface-2);
-  --cmd-ink: var(--text-1);
-  --cmd-dim: var(--text-2);
-  --cmd-line: var(--line-strong);
-  --cmd-accent: var(--accent);
-  --cmd-refused: var(--state-findings);
-  --cmd-hover: var(--surface-3);
-  --cmd-scrim: var(--backdrop);
-  --cmd-shadow: var(--shadow-pop);
-  --cmd-range: var(--accent-wash);
-  --cmd-font: var(--font);
-  --cmd-mono: var(--font);
-  --cmd-text: var(--body-fs);
-  --cmd-small: var(--fs-2);
-  --cmd-query: var(--fs-5);
-  --cmd-leading: var(--body-lh);
-  --cmd-weight: var(--w-3);
-  --cmd-caps: var(--track-caps);
-  --cmd-radius: var(--r-2);
-  --cmd-radius-small: var(--r-2);
-  --cmd-radius-key: var(--r-1);
-  --cmd-gutter: var(--gutter);
-  --cmd-pad: var(--s-3);
-  --cmd-gap: var(--s-2);
-  --cmd-gap-small: var(--s-1);
   --cmd-row-pad: var(--s-2) var(--s-3);
   --cmd-key-pad: 0 var(--s-1);
   --cmd-button-pad: 0 var(--s-2);
   --cmd-row-height: max(var(--row-h), var(--hit));
-  --cmd-button-height: var(--control-h);
-  --cmd-hit: var(--hit);
-  --cmd-inspector-width: var(--inspector-w);
-  --cmd-field-width: 72px;
   --cmd-width: 560px;
   --cmd-menu-width: 200px;
   --cmd-count-size: 18px;
@@ -58,112 +32,111 @@ body {
   --cmd-height: 72vh;
   --cmd-top: 12vh;
   --cmd-layer: 40;
-  --cmd-radius-sheet: var(--r-sheet);
   --cmd-sheet-height: 75dvh;
+  /* What the phone's sheet stands on: the tab bar and the shell's dock (\`.sh .sh-dock\`), set below. */
   --cmd-sheet-floor: env(safe-area-inset-bottom);
-  --cmd-grip-width: var(--s-8);
   --cmd-grip-height: 4px;
 }
 `;
 
 const COMMAND_RULES = `
-.lab-sheet-backdrop { position: fixed; inset: 0; background: var(--cmd-scrim); z-index: var(--cmd-layer); }
+.lab-sheet-backdrop { position: fixed; inset: 0; background: var(--backdrop); z-index: var(--cmd-layer); }
 .lab-command-menu, .lab-keys-sheet {
   position: fixed; z-index: calc(var(--cmd-layer) + 1); left: 50%; top: var(--cmd-top); transform: translateX(-50%);
-  width: min(var(--cmd-width), calc(100vw - 2 * var(--cmd-gutter))); max-height: var(--cmd-height); overflow: auto;
-  background: var(--cmd-panel); color: var(--cmd-ink); border: 1px solid var(--cmd-line);
-  border-radius: var(--cmd-radius); padding: var(--cmd-pad); box-shadow: var(--cmd-shadow);
-  font-family: var(--cmd-font); font-size: var(--cmd-text); line-height: var(--cmd-leading);
+  width: min(var(--cmd-width), calc(100vw - 2 * var(--gutter))); max-height: var(--cmd-height); overflow: auto;
+  background: var(--surface-2); color: var(--text-1); border: 1px solid var(--line-strong);
+  border-radius: var(--r-2); padding: var(--s-3); box-shadow: var(--shadow-pop);
+  font-family: var(--font); font-size: var(--body-fs); line-height: var(--body-lh);
 }
 .lab-sheet-title {
-  margin: 0 0 var(--cmd-gap-small); font-size: var(--cmd-small); font-weight: var(--cmd-weight); color: var(--cmd-dim);
-  text-transform: uppercase; letter-spacing: var(--cmd-caps);
+  margin: 0 0 var(--s-1); font-size: var(--fs-2); font-weight: var(--w-3); color: var(--text-2);
+  text-transform: uppercase; letter-spacing: var(--track-caps);
 }
-.lab-sheet-about { margin: 0 0 var(--cmd-gap); color: var(--cmd-dim); }
+.lab-sheet-about { margin: 0 0 var(--s-2); color: var(--text-2); }
 .lab-command-query {
-  width: 100%; font: inherit; font-size: var(--cmd-query); padding: var(--cmd-row-pad);
-  border-radius: var(--cmd-radius-small); background: transparent; color: var(--cmd-ink);
-  border: 1px solid var(--cmd-line); margin-bottom: var(--cmd-gap-small);
+  width: 100%; font: inherit; font-size: var(--fs-5); padding: var(--cmd-row-pad);
+  border-radius: var(--r-2); background: transparent; color: var(--text-1);
+  border: 1px solid var(--line-strong); margin-bottom: var(--s-1);
 }
 .lab-command-rows { display: flex; flex-direction: column; }
 .lab-command-row {
-  display: grid; grid-template-columns: 1fr auto auto; gap: var(--cmd-gap); align-items: baseline;
-  padding: var(--cmd-row-pad); border-radius: var(--cmd-radius-small); cursor: pointer; min-height: var(--cmd-row-height);
+  display: grid; grid-template-columns: 1fr auto auto; gap: var(--s-2); align-items: baseline;
+  padding: var(--cmd-row-pad); border-radius: var(--r-2); cursor: pointer; min-height: var(--cmd-row-height);
 }
-.lab-command-row[aria-selected="true"] { background: var(--cmd-hover); }
-.lab-command-group, .lab-command-none, .lab-keys-touch, .lab-keys-none { color: var(--cmd-dim); font-size: var(--cmd-small); }
+.lab-command-row[aria-selected="true"] { background: var(--surface-3); }
+.lab-command-group, .lab-command-none, .lab-keys-touch, .lab-keys-none { color: var(--text-2); font-size: var(--fs-2); }
 .lab-command-menu kbd, .lab-keys-sheet kbd {
-  font-family: var(--cmd-mono); font-size: var(--cmd-small); color: var(--cmd-ink); padding: var(--cmd-key-pad);
-  border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-key);
+  font-family: var(--font); font-size: var(--fs-2); color: var(--text-1); padding: var(--cmd-key-pad);
+  border: 1px solid var(--line-strong); border-radius: var(--r-1);
 }
 .lab-command-row kbd:empty { display: none; }
 .lab-keys-group h3 {
-  font-size: var(--cmd-small); margin: var(--cmd-pad) 0 var(--cmd-gap-small); color: var(--cmd-dim); font-weight: var(--cmd-weight);
-  text-transform: uppercase; letter-spacing: var(--cmd-caps);
+  font-size: var(--fs-2); margin: var(--s-3) 0 var(--s-1); color: var(--text-2); font-weight: var(--w-3);
+  text-transform: uppercase; letter-spacing: var(--track-caps);
 }
 .lab-keys-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--cmd-gap); align-items: center;
-  padding: var(--cmd-gap-small) 0; border-top: 1px solid var(--cmd-line);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--s-2); align-items: center;
+  padding: var(--s-1) 0; border-top: 1px solid var(--line-strong);
 }
 .lab-keys-touch { grid-column: 1; }
-.lab-keys-actions { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: var(--cmd-gap-small); }
+.lab-keys-actions { grid-column: 2; grid-row: 1 / span 2; display: flex; gap: var(--s-1); }
 .lab-keys-actions button {
-  font: inherit; font-size: var(--cmd-small); background: none; color: var(--cmd-ink); cursor: pointer;
-  border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-small); padding: var(--cmd-button-pad);
-  min-height: var(--cmd-button-height);
+  font: inherit; font-size: var(--fs-2); background: none; color: var(--text-1); cursor: pointer;
+  border: 1px solid var(--line-strong); border-radius: var(--r-2); padding: var(--cmd-button-pad);
+  min-height: var(--control-h);
 }
-.lab-keys-actions button[data-act="press"] { border-color: var(--cmd-accent); color: var(--cmd-accent); }
+.lab-keys-actions button[data-act="press"] { border-color: var(--accent); color: var(--accent); }
 .lab-context-positioner { z-index: calc(var(--cmd-layer) + 1); }
 .lab-context-menu {
-  min-width: var(--cmd-menu-width); max-width: calc(100vw - 2 * var(--cmd-gutter)); max-height: var(--cmd-height); overflow: auto;
-  background: var(--cmd-panel); color: var(--cmd-ink); border: 1px solid var(--cmd-line);
-  border-radius: var(--cmd-radius-small); padding: var(--cmd-gap-small); box-shadow: var(--cmd-shadow);
-  font-family: var(--cmd-font); font-size: var(--cmd-text); line-height: var(--cmd-leading); outline: none;
+  min-width: var(--cmd-menu-width); max-width: calc(100vw - 2 * var(--gutter)); max-height: var(--cmd-height); overflow: auto;
+  background: var(--surface-2); color: var(--text-1); border: 1px solid var(--line-strong);
+  border-radius: var(--r-2); padding: var(--s-1); box-shadow: var(--shadow-pop);
+  font-family: var(--font); font-size: var(--body-fs); line-height: var(--body-lh); outline: none;
 }
-.lab-context-label { padding: var(--cmd-gap-small) var(--cmd-gap) 0; color: var(--cmd-dim); font-size: var(--cmd-small); }
-.lab-context-separator { height: 1px; margin: var(--cmd-gap-small) 0; background: var(--cmd-line); }
+.lab-context-label { padding: var(--s-1) var(--s-2) 0; color: var(--text-2); font-size: var(--fs-2); }
+.lab-context-separator { height: 1px; margin: var(--s-1) 0; background: var(--line-strong); }
 .lab-context-item {
-  display: flex; justify-content: space-between; align-items: center; gap: var(--cmd-gap);
-  padding: var(--cmd-row-pad); border-radius: var(--cmd-radius-small); cursor: pointer; min-height: var(--cmd-row-height);
+  display: flex; justify-content: space-between; align-items: center; gap: var(--s-2);
+  padding: var(--cmd-row-pad); border-radius: var(--r-2); cursor: pointer; min-height: var(--cmd-row-height);
   outline: none;
 }
-.lab-context-item[data-highlighted] { background: var(--cmd-hover); }
+.lab-context-item[data-highlighted] { background: var(--surface-3); }
 .lab-context-menu kbd {
-  font-family: var(--cmd-mono); font-size: var(--cmd-small); color: var(--cmd-dim); padding: var(--cmd-key-pad);
-  border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-key);
+  font-family: var(--font); font-size: var(--fs-2); color: var(--text-2); padding: var(--cmd-key-pad);
+  border: 1px solid var(--line-strong); border-radius: var(--r-1);
 }
 .lab-context-menu kbd:empty { display: none; }
 .lab-field { display: contents; }
 .lab-field-scrub { cursor: ew-resize; }
 .lab-inspector-hint {
-  display: none; flex-wrap: wrap; gap: var(--cmd-gap-small) var(--cmd-gap); margin-top: var(--cmd-gap-small);
-  color: var(--cmd-dim); font-family: var(--cmd-font); font-size: var(--cmd-small); line-height: var(--cmd-leading);
+  display: none; flex-wrap: wrap; gap: var(--s-1) var(--s-2); margin-top: var(--s-1);
+  color: var(--text-2); font-family: var(--font); font-size: var(--fs-2); line-height: var(--body-lh);
 }
 .lab-inspector:hover .lab-inspector-hint, .lab-inspector:focus-within .lab-inspector-hint { display: flex; }
 @media (pointer: coarse) {
   .lab-inspector:hover .lab-inspector-hint, .lab-inspector:focus-within .lab-inspector-hint { display: none; }
 }
 .lab-inspector-hint kbd {
-  font-family: var(--cmd-mono); font-size: var(--cmd-small); color: var(--cmd-ink); padding: var(--cmd-key-pad);
-  border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-key);
+  font-family: var(--font); font-size: var(--fs-2); color: var(--text-1); padding: var(--cmd-key-pad);
+  border: 1px solid var(--line-strong); border-radius: var(--r-1);
 }
 .lab-inspector-viewport { position: fixed; inset: 0; z-index: var(--cmd-layer); pointer-events: none; }
 .lab-inspector-sheet {
-  position: fixed; top: 0; right: 0; bottom: 0; width: min(var(--cmd-inspector-width), 100vw); overflow: auto;
-  pointer-events: auto; display: flex; flex-direction: column; gap: var(--cmd-gap);
-  background: var(--cmd-panel); color: var(--cmd-ink); border-left: 1px solid var(--cmd-line);
-  padding: var(--cmd-pad); box-shadow: var(--cmd-shadow); outline: none;
-  font-family: var(--cmd-font); font-size: var(--cmd-text); line-height: var(--cmd-leading);
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(var(--inspector-w), 100vw); overflow: auto;
+  pointer-events: auto; display: flex; flex-direction: column; gap: var(--s-2);
+  background: var(--surface-2); color: var(--text-1); border-left: 1px solid var(--line-strong);
+  padding: var(--s-3); box-shadow: var(--shadow-pop); outline: none;
+  font-family: var(--font); font-size: var(--body-fs); line-height: var(--body-lh);
   transform: translateX(var(--drawer-swipe-movement-x, 0px));
 }
-.lab-inspector-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--cmd-gap); }
-.lab-inspector-body { display: flex; flex-direction: column; gap: var(--cmd-gap-small); }
+.lab-inspector-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s-2); }
+.lab-inspector-body { display: flex; flex-direction: column; gap: var(--s-1); }
 .lab-inspector-close, .lab-count {
-  font: inherit; font-size: var(--cmd-small); cursor: pointer; border-radius: var(--cmd-radius-small);
+  font: inherit; font-size: var(--fs-2); cursor: pointer; border-radius: var(--r-2);
 }
 .lab-inspector-close {
-  background: none; color: var(--cmd-ink); border: 1px solid var(--cmd-line);
-  padding: var(--cmd-button-pad); min-height: var(--cmd-button-height);
+  background: none; color: var(--text-1); border: 1px solid var(--line-strong);
+  padding: var(--cmd-button-pad); min-height: var(--control-h);
 }
 .lab-inspect {
   font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: inherit;
@@ -177,24 +150,24 @@ const COMMAND_RULES = `
  * too. With no count, the hit-slop alone is its target, and it is as wide as
  * its words.
  */
-.lab-named { display: inline-flex; align-items: center; gap: var(--cmd-gap-small); min-width: 0; max-width: 100%; vertical-align: middle; }
-.lab-named:has(> .lab-count-hit) > .lab-inspect { min-width: var(--cmd-hit); }
+.lab-named { display: inline-flex; align-items: center; gap: var(--s-1); min-width: 0; max-width: 100%; vertical-align: middle; }
+.lab-named:has(> .lab-count-hit) > .lab-inspect { min-width: var(--hit); }
 .lab-inspect { position: relative; }
 .lab-inspect::before {
   content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: max(100%, var(--cmd-hit)); height: max(100%, var(--cmd-hit));
+  width: max(100%, var(--hit)); height: max(100%, var(--hit));
 }
 .lab-count-hit {
-  display: inline-grid; place-items: center; flex: none; min-width: var(--cmd-hit); min-height: var(--cmd-hit);
+  display: inline-grid; place-items: center; flex: none; min-width: var(--hit); min-height: var(--hit);
   padding: 0; margin: 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; vertical-align: middle;
 }
 .lab-count {
-  min-width: var(--cmd-count-size); height: var(--cmd-count-size); padding: 0 var(--cmd-gap-small);
-  border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius-key); background: none; color: var(--cmd-ink);
+  min-width: var(--cmd-count-size); height: var(--cmd-count-size); padding: 0 var(--s-1);
+  border: 1px solid var(--line-strong); border-radius: var(--r-1); background: none; color: var(--text-1);
   line-height: var(--cmd-count-size);
 }
 /* Beside the page, not over it: on a wide screen the page makes room while an inspector is open. */
-@media (min-width: 900px) { body:has(.lab-inspector-sheet) { padding-right: var(--cmd-inspector-width); } }
+@media (min-width: 900px) { body:has(.lab-inspector-sheet) { padding-right: var(--inspector-w); } }
 .lab-inspector-grip { display: none; }
 /*
  * On a phone (the shell's width) the sheet rises from the bottom (design
@@ -213,67 +186,62 @@ const COMMAND_RULES = `
   body:has(.sh[data-film="false"] .sh-dock) { --cmd-sheet-floor: calc(var(--dock-h) + env(safe-area-inset-bottom)); }
   .lab-inspector-sheet {
     top: auto; left: 0; bottom: var(--cmd-sheet-floor); width: auto; max-height: var(--cmd-sheet-height);
-    border-left: 0; border-top: 1px solid var(--cmd-line);
-    border-radius: var(--cmd-radius-sheet) var(--cmd-radius-sheet) 0 0;
+    border-left: 0; border-top: 1px solid var(--line-strong);
+    border-radius: var(--r-sheet) var(--r-sheet) 0 0;
     transform: translateY(var(--drawer-swipe-movement-y, 0px));
   }
-  .lab-inspector-head { position: relative; align-items: center; min-height: var(--cmd-hit); }
+  .lab-inspector-head { position: relative; align-items: center; min-height: var(--hit); }
   .lab-inspector-grip {
-    display: block; position: absolute; inset: calc(-1 * var(--cmd-pad)) calc(-1 * var(--cmd-pad)) 0;
+    display: block; position: absolute; inset: calc(-1 * var(--s-3)) calc(-1 * var(--s-3)) 0;
     padding: 0; border: 0; background: none; cursor: pointer;
   }
   .lab-inspector-grip::before {
-    content: ''; position: absolute; top: var(--cmd-gap); left: 50%; width: var(--cmd-grip-width);
-    height: var(--cmd-grip-height); margin-left: calc(var(--cmd-grip-width) / -2);
-    border-radius: var(--cmd-radius-key); background: var(--cmd-line);
+    content: ''; position: absolute; top: var(--s-2); left: 50%; width: var(--s-8);
+    height: var(--cmd-grip-height); margin-left: calc(var(--s-8) / -2);
+    border-radius: var(--r-1); background: var(--line-strong);
   }
   .lab-inspector-head .lab-sheet-title { position: relative; pointer-events: none; }
   /* Close stands over the grip, a whole target of its own: the grip round it leaves it no spacing. */
-  .lab-inspector-head .lab-inspector-close { position: relative; z-index: 1; min-height: var(--cmd-hit); }
+  .lab-inspector-head .lab-inspector-close { position: relative; z-index: 1; min-height: var(--hit); }
   .lab-inspector-sheet[data-peek="true"] > :not(.lab-inspector-head) { display: none; }
   body:has(.lab-inspector-sheet:not([data-peek="true"])) .sh-body { padding-bottom: var(--cmd-sheet-height); }
 }
 .lab-clamp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lab-receipts {
-  position: fixed; z-index: calc(var(--cmd-layer) + 2); left: 50%; bottom: var(--cmd-gutter); transform: translateX(-50%);
-  width: min(var(--cmd-toast-width), calc(100vw - 2 * var(--cmd-gutter)));
-  display: flex; flex-direction: column; gap: var(--cmd-gap-small); outline: none;
+  position: fixed; z-index: calc(var(--cmd-layer) + 2); left: 50%; bottom: var(--gutter); transform: translateX(-50%);
+  width: min(var(--cmd-toast-width), calc(100vw - 2 * var(--gutter)));
+  display: flex; flex-direction: column; gap: var(--s-1); outline: none;
 }
 .lab-receipt {
-  background: var(--cmd-panel); color: var(--cmd-ink); border: 1px solid var(--cmd-line);
-  border-radius: var(--cmd-radius-small); padding: var(--cmd-row-pad); box-shadow: var(--cmd-shadow);
-  font-family: var(--cmd-font); font-size: var(--cmd-text); line-height: var(--cmd-leading);
+  background: var(--surface-2); color: var(--text-1); border: 1px solid var(--line-strong);
+  border-radius: var(--r-2); padding: var(--cmd-row-pad); box-shadow: var(--shadow-pop);
+  font-family: var(--font); font-size: var(--body-fs); line-height: var(--body-lh);
   transform: translate(var(--toast-swipe-movement-x, 0px), var(--toast-swipe-movement-y, 0px));
 }
 .lab-receipt[data-limited] { display: none; }
-.lab-receipt[data-type="refused"] { border-left: 2px solid var(--cmd-refused); }
-.lab-receipt[data-type="refused"] .lab-receipt-said { color: var(--cmd-refused); }
-.lab-receipt[data-type="busy"] .lab-receipt-said { color: var(--cmd-dim); }
-.lab-receipt-content { display: flex; align-items: center; gap: var(--cmd-gap); }
-.lab-receipt-said { flex: 1; min-width: 0; margin: 0; font-size: var(--cmd-text); font-weight: normal; overflow-wrap: anywhere; }
+.lab-receipt[data-type="refused"] { border-left: 2px solid var(--state-findings); }
+.lab-receipt[data-type="refused"] .lab-receipt-said { color: var(--state-findings); }
+.lab-receipt[data-type="busy"] .lab-receipt-said { color: var(--text-2); }
+.lab-receipt-content { display: flex; align-items: center; gap: var(--s-2); }
+.lab-receipt-said { flex: 1; min-width: 0; margin: 0; font-size: var(--body-fs); font-weight: normal; overflow-wrap: anywhere; }
 .lab-receipt-undo, .lab-receipt-close {
-  font: inherit; font-size: var(--cmd-small); cursor: pointer; background: none; color: var(--cmd-ink);
-  border-radius: var(--cmd-radius-small); padding: var(--cmd-button-pad); min-height: var(--cmd-button-height);
+  font: inherit; font-size: var(--fs-2); cursor: pointer; background: none; color: var(--text-1);
+  border-radius: var(--r-2); padding: var(--cmd-button-pad); min-height: var(--control-h);
 }
-.lab-receipt-undo { border: 1px solid var(--cmd-line); color: var(--cmd-ink); }
-.lab-receipt-close { border: 0; color: var(--cmd-dim); }
+.lab-receipt-undo { border: 1px solid var(--line-strong); color: var(--text-1); }
+.lab-receipt-close { border: 0; color: var(--text-2); }
 .lab-scope {
-  display: inline-flex; align-items: center; gap: var(--cmd-gap-small); max-width: 100%;
-  padding: var(--cmd-key-pad); border: 1px solid var(--cmd-line); border-radius: var(--cmd-radius);
-  color: var(--cmd-ink); font: var(--cmd-small)/var(--cmd-leading) var(--cmd-mono);
+  display: inline-flex; align-items: center; gap: var(--s-1); max-width: 100%;
+  padding: var(--cmd-key-pad); border: 1px solid var(--line-strong); border-radius: var(--r-2);
+  color: var(--text-1); font: var(--fs-2)/var(--body-lh) var(--font);
 }
 .lab-scope-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lab-scope button {
-  background: none; border: 0; color: var(--cmd-dim); cursor: pointer; font: inherit;
+  background: none; border: 0; color: var(--text-2); cursor: pointer; font: inherit;
   min-width: var(--cmd-count-size); min-height: var(--cmd-count-size);
 }
-.lab-scope button:hover { color: var(--cmd-ink); }
-.lab-strip-range { position: absolute; top: 0; bottom: 0; background: var(--cmd-range); pointer-events: none; }
-body.rv .lab-num {
-  width: var(--cmd-field-width); min-height: var(--cmd-button-height); padding: var(--cmd-button-pad);
-  background: var(--cmd-panel); color: var(--cmd-ink); border: 1px solid var(--cmd-line);
-  border-radius: var(--cmd-radius-small); font: inherit; font-variant-numeric: tabular-nums;
-}
+.lab-scope button:hover { color: var(--text-1); }
+.lab-strip-range { position: absolute; top: 0; bottom: 0; background: var(--accent-wash); pointer-events: none; }
 `;
 
 /** The command surfaces' stylesheet: the tokens, then the rules that read them. */

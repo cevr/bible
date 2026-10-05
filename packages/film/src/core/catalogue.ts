@@ -114,7 +114,10 @@ const SayFields = {
  * its approvals carry, so its undo takes them and no other, another run's
  * at the very same moment too. Never flag-like: it goes on a CLI's argv.
  */
-export const OpId = Schema.String.check(Schema.isPattern(/^[0-9a-z]+(-[0-9a-z]+)*$/));
+export const OpId = Schema.String.check(Schema.isPattern(/^[0-9a-z]+(-[0-9a-z]+)*$/)).pipe(
+  Schema.brand('OpId'),
+);
+export type OpId = typeof OpId.Type;
 
 /**
  * The owner's approval of one variant, as it was when approved; `op`, the
@@ -361,7 +364,7 @@ export const approve = (
   catalogue: Catalogue,
   subject: Subject,
   at: number,
-  op: Option.Option<string> = Option.none(),
+  op: Option.Option<OpId> = Option.none(),
 ): Catalogue => {
   if (approvalState(catalogue, subject) === 'approved') return catalogue;
   const { address, point, variant, key } = subject;
@@ -380,7 +383,7 @@ export const approve = (
 export const withdraw = (
   catalogue: Catalogue,
   topic: Topic,
-  given: Option.Option<string> = Option.none(),
+  given: Option.Option<OpId> = Option.none(),
 ): Catalogue => ({
   ...catalogue,
   approvals: catalogue.approvals.filter(
@@ -403,7 +406,7 @@ export const withdrawScenes = (
   catalogue: Catalogue,
   scenes: ReadonlyArray<string>,
   variant: string,
-  given: Option.Option<string>,
+  given: Option.Option<OpId>,
 ): Withdrawn =>
   scenes.reduce<Withdrawn>(
     (done, scene) => {
@@ -634,7 +637,7 @@ export const approveCurrent = (
   sound: Option.Option<string>,
   variant: string,
   at: number,
-  op: string,
+  op: OpId,
 ): Approved => {
   const current = scenes.flatMap(({ scene, key }) =>
     Option.toArray(
@@ -659,7 +662,7 @@ export const approveCurrent = (
 };
 
 /** What the approve run `op` that made `made` approved at `at` gave: none when it made none. */
-export const gaveOf = (made: ReadonlyArray<string>, at: number, op: string): Option.Option<Gave> =>
+export const gaveOf = (made: ReadonlyArray<string>, at: number, op: OpId): Option.Option<Gave> =>
   Option.map(
     Option.liftPredicate(made, (m) => m.length > 0),
     (scenes) => ({ op, at, scenes }),
@@ -667,6 +670,6 @@ export const gaveOf = (made: ReadonlyArray<string>, at: number, op: string): Opt
 
 /** What a withdraw `given` an op took (`took`, the scenes it took one from); none for a plain withdraw. */
 export const tookOf = (
-  given: Option.Option<string>,
+  given: Option.Option<OpId>,
   took: ReadonlyArray<string>,
 ): Option.Option<Took> => Option.map(given, (op) => ({ op, scenes: took }));

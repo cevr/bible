@@ -47,7 +47,7 @@ import {
   type SoundCheck,
   onlyOf,
 } from '../../../core/choice.ts';
-import { type Command, quiet } from '../../../command/command.ts';
+import { type Command, quietly } from '../../../command/command.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine, CheckReport, PageBuild } from '../../../core/schema.ts';
 import { type LabFailure, served } from '../../api.ts';
@@ -236,11 +236,7 @@ const onlyCommands = (
     about: ['Page'],
     touch: `long-press the page, then Show only ${ONLY_TEXT[state]}`,
     when: () => !Option.contains(only(), state),
-    run: () =>
-      Effect.sync(() => {
-        showOnly(Option.some(state));
-        return quiet;
-      }),
+    run: quietly(() => showOnly(Option.some(state))),
   })),
   {
     id: 'review.only-all',
@@ -249,11 +245,7 @@ const onlyCommands = (
     about: ['Page'],
     touch: 'long-press the page, then Show every point',
     when: () => Option.isSome(only()),
-    run: () =>
-      Effect.sync(() => {
-        showOnly(Option.none());
-        return quiet;
-      }),
+    run: quietly(() => showOnly(Option.none())),
   },
 ];
 

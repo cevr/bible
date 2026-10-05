@@ -33,6 +33,7 @@ import { NO_SOUNDS } from '../core/sfx.ts';
 import { hashText, parse, takeScript, voiceKey } from '../core/narration.ts';
 import { unmeasured } from '../core/voiced.ts';
 import {
+  ChangeId,
   type VoiceTiming,
   SoundManifestJson,
   type Timed,
@@ -1567,7 +1568,7 @@ export const reviewProjectRuns: Array<ReadonlyArray<string>> = [];
 
 /** The pick of `bright`, in `sound.ts` of film `f` under `films`. */
 const reviewPickIn = (films: string): Change => ({
-  id: 'pick-bright',
+  id: ChangeId.make('pick-bright'),
   film: 'f',
   scene: Option.none(),
   file: `${films}/f/sound.ts`,

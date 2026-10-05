@@ -20,20 +20,13 @@
 import { For, Show } from '@solidjs/web';
 import { ContextMenu } from '@bible/ui/context-menu';
 import { Option } from 'effect';
-import {
-  type Accessor,
-  type ComponentProps,
-  type ParentProps,
-  createMemo,
-  createSignal,
-  omit,
-} from 'solid-js';
-import { type Context, focusOf, withSelection } from '../../command/context.ts';
+import { type Accessor, type ComponentProps, type ParentProps, createMemo, omit } from 'solid-js';
+import { focusOf, withSelection } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { type MenuRow, contextRows, rowChord, rowKey } from '../../command/menu.ts';
 import type { Selection } from '../../command/selection.ts';
 import { targetAt, targetAttr } from '../../command/target.ts';
-import { hubChanges, hubKeys } from './changes.ts';
+import { deferredRun, hubChanges, hubKeys } from './changes.ts';
 
 /**
  * The page's one context menu, over `children`: every `Target` inside opens
@@ -42,13 +35,12 @@ import { hubChanges, hubKeys } from './changes.ts';
  */
 export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
   const hub = props.hub;
-  const [opened, setOpened] = createSignal<Context>(hub.context());
+  const run = deferredRun(hub, 'menu');
   const changes = hubChanges(hub);
-  let chosen = Option.none<MenuRow>();
 
   const groups = createMemo(() => {
     changes();
-    const ctx = opened();
+    const ctx = run.opened();
     return contextRows(hub.commands.available(ctx), ctx);
   });
 
@@ -69,14 +61,10 @@ export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
           details.cancel();
           return;
         }
-        chosen = Option.none();
-        setOpened(withSelection(hub.context(), Option.toArray(targetAt(at))));
+        run.open(withSelection(hub.context(), Option.toArray(targetAt(at))));
       }}
       onOpenChangeComplete={(isOpen) => {
-        if (isOpen) return;
-        const row = chosen;
-        chosen = Option.none();
-        Option.map(row, (r) => hub.invoke(r.command, { step: r.step, via: 'menu' }, opened()));
+        if (!isOpen) run.closed();
       }}
     >
       {/* The page itself is a target: a press on no thing opens the page's commands (`Page`). */}
@@ -102,9 +90,7 @@ export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
                         data-command={row().command.id}
                         data-step={row().step}
                         label={row().label}
-                        onClick={() => {
-                          chosen = Option.some(row());
-                        }}
+                        onClick={() => run.choose(row())}
                       >
                         <span>{row().label}</span>
                         <kbd>{keysText(row())}</kbd>

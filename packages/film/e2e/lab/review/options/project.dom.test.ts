@@ -1203,6 +1203,36 @@ describe("a film's project", () => {
   );
 
   it.live(
+    "an approve's receipt the tab kept before ids were their own still undoes the approve after a reload",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openReview(fakeProject(), {
+          href: PROJECT,
+          viewport: LAPTOP,
+        });
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
+        yield* click(page, `${render('coda')} [data-act="approve"]`);
+        yield* receiptSays(page, 'Approved scene coda · 0/1 → 1/1 approved');
+        // As the page goes, its receipt is kept as a tab kept it before: the approve's op and
+        // scenes spelled as one change, `<op> <scene>…`.
+        yield* page.evaluate(
+          `addEventListener('pagehide', () => { const k = 'film-receipts'; const v = JSON.parse(sessionStorage.getItem(k)); v.receipts = v.receipts.map((r) => r.bound !== undefined && r.bound.gave !== undefined ? { ...r, bound: { film: r.bound.film, change: [r.bound.gave.op, ...r.bound.gave.scenes].join(' ') } } : r); sessionStorage.setItem(k, JSON.stringify(v)); }); true`,
+        );
+        yield* page.reload;
+        yield* receiptSays(page, 'Approved scene coda · 0/1 → 1/1 approved');
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* receiptSays(page, 'Undid approving scene coda · 1/1 → 0/1 approved');
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
+        expect(saysPosted(asked)[1]).toEqual({
+          address: { _tag: 'Scenes', ids: ['coda'] },
+          say: { _tag: 'Withdraw', given: 'op-1' },
+        });
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "each scene's card shows a still of the scene drawn from the film's code, its length over it",
     () =>
       Effect.gen(function* () {

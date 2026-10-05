@@ -4,8 +4,9 @@
 // wall clock set right (a sync, a time zone) never moves a playing compare.
 
 import { describe, expect, test } from 'bun:test';
-import { type Clock, Effect } from 'effect';
-import { makeClock, monotonicNow } from './media-clock.ts';
+import { Clock, Context, Effect } from 'effect';
+import { monotonicMs } from './host.ts';
+import { makeClock } from './media-clock.ts';
 
 /** An Effect clock whose wall time and monotonic time are moved apart by hand, in seconds. */
 const twoClocks = () => {
@@ -78,9 +79,10 @@ describe('the compare clock', () => {
     expect(clock.time()).toBe(5);
   });
 
-  test("reads the page's monotonic time: the wall clock set 30 s on moves a playing compare not at all", () => {
+  test("reads the host's monotonic time: the wall clock set 30 s on moves a playing compare not at all", () => {
     const { clock: effectClock, pass, setWall } = twoClocks();
-    const clock = makeClock(monotonicNow(effectClock));
+    const nowMs = monotonicMs(Context.make(Clock.Clock, effectClock));
+    const clock = makeClock(() => nowMs() / 1000);
     clock.play();
     pass(1);
     expect(clock.time()).toBeCloseTo(1, 9);

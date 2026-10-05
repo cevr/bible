@@ -7,19 +7,12 @@
 // view, spawned on the runtime and stopped with the set), the driver that
 // makes its videos follow the player, and its moments.
 
-import {
-  RegistryProvider,
-  useAtomRefresh,
-  useAtomSet,
-  useAtomSuspense,
-  useAtomValue,
-} from '@bible/atom-solid';
+import { RegistryProvider, useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
-import { type JSX, Loading, Show, isServer } from '@solidjs/web';
+import { type JSX, isServer } from '@solidjs/web';
 import { Array as Arr, Clock, Effect, Equal, Layer, Option, Schema } from 'effect';
 import type { HttpClient } from 'effect/http';
-import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -47,11 +40,12 @@ import {
   hostLayer,
   onTraverse,
 } from '../../browser/host.ts';
-import { type Command, type CommandId, quiet, said } from '../../command/command.ts';
+import { type Command, type CommandId, quietly, said } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type Context, selected } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
+import { Actor } from '../actor.tsx';
 import type { LabClient, LabFailure } from '../api.ts';
 import { served } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
@@ -277,11 +271,7 @@ export const Root = (
       keysIn: ['page', 'field'],
       touch: 'tap the image',
       when: () => Option.isSome(lightbox()),
-      run: () =>
-        Effect.sync(() => {
-          setLightbox(Option.none());
-          return quiet;
-        }),
+      run: quietly(() => setLightbox(Option.none())),
     }),
   );
 
@@ -398,11 +388,7 @@ const openCommands = (
     about,
     touch: `long-press it, then ${label}`,
     when: (ctx) => Option.isSome(placeOfTarget(ctx)),
-    run: (ctx) =>
-      Effect.sync(() => {
-        Option.map(placeOfTarget(ctx), (open) => open());
-        return quiet;
-      }),
+    run: quietly((ctx) => Option.map(placeOfTarget(ctx), (open) => open())),
   });
   return [
     opening('review.open-folder', 'Open the folder', ['Folder'], (ctx) =>
@@ -466,13 +452,11 @@ const versionCommands = (
       about: ['Set'],
       touch: `long-press a version stack, then Open version ${n}`,
       when: (ctx) => Option.isSome(version(ctx)),
-      run: (ctx) =>
-        Effect.sync(() => {
-          Option.map(version(ctx), ({ set, version: v }) =>
-            open(pageHref.set(set.folder, set.point, v.id)),
-          );
-          return quiet;
-        }),
+      run: quietly((ctx) => {
+        Option.map(version(ctx), ({ set, version: v }) =>
+          open(pageHref.set(set.folder, set.point, v.id)),
+        );
+      }),
     };
   });
 
@@ -501,11 +485,7 @@ const pageCommands = (review: ReviewContextValue): ReadonlyArray<Command> => [
     about: ['Page'],
     touch: 'long-press the page, then Refresh',
     when: () => true,
-    run: () =>
-      Effect.sync(() => {
-        review.actions.refresh();
-        return quiet;
-      }),
+    run: quietly(() => review.actions.refresh()),
   },
   {
     id: 'review.quality',
@@ -713,11 +693,9 @@ const SetBody = (
         keys: ['v'],
         touch: "tap one of the set's modes",
         when: () => modes.length > 1,
-        run: () =>
-          Effect.sync(() => {
-            sendView(ViewEvent.ViewChosen({ view: nextModeView(viewNameOf(view()), modes) }));
-            return quiet;
-          }),
+        run: quietly(() => {
+          sendView(ViewEvent.ViewChosen({ view: nextModeView(viewNameOf(view()), modes) }));
+        }),
       },
       {
         id: 'set.next-layout',
@@ -726,13 +704,11 @@ const SetBody = (
         keys: ['shift+v'],
         touch: 'in Compare, tap one of its layouts',
         when: () => Option.isSome(nextLayout(viewNameOf(view()))),
-        run: () =>
-          Effect.sync(() => {
-            Option.map(nextLayout(viewNameOf(view())), (layout) =>
-              sendView(ViewEvent.ViewChosen({ view: layout })),
-            );
-            return quiet;
-          }),
+        run: quietly(() => {
+          Option.map(nextLayout(viewNameOf(view())), (layout) =>
+            sendView(ViewEvent.ViewChosen({ view: layout })),
+          );
+        }),
       },
     ),
   );
@@ -744,11 +720,9 @@ const SetBody = (
       about: ['Version'],
       touch: 'long-press a version, then Hear this version (or tap its 🔊)',
       when: (ctx) => Option.isSome(versionHere(ctx)),
-      run: (ctx) =>
-        Effect.sync(() => {
-          Option.map(versionHere(ctx), (v) => sendSync(SyncEvent.HeardChosen({ id: v.version })));
-          return quiet;
-        }),
+      run: quietly((ctx) =>
+        Option.map(versionHere(ctx), (v) => sendSync(SyncEvent.HeardChosen({ id: v.version }))),
+      ),
     }),
   );
 
@@ -762,25 +736,6 @@ const SetBody = (
     send: { sync: sendSync, view: sendView },
   };
   return <SetContext value={value}>{props.children}</SetContext>;
-};
-
-const SetReady = (
-  props: ParentProps<{
-    readonly folder: ReviewFolder;
-    readonly set: SeenPoint;
-    readonly sync: Atom.Atom<AsyncResult.AsyncResult<SyncActor, never>>;
-  }>,
-) => {
-  const sync = useAtomSuspense(() => props.sync);
-  return (
-    <Show when={sync()} keyed>
-      {(actor: SyncActor) => (
-        <SetBody folder={props.folder} set={props.set} sync={actor}>
-          {props.children}
-        </SetBody>
-      )}
-    </Show>
-  );
 };
 
 /** One version stack's player, view and moments, for its page; a stack of one has no side by side. */
@@ -797,12 +752,13 @@ export const SetProvider = (
     Option.flatMap(Effect.runSyncWith(meta.host)(UrlState.get(Places.set)), (v) => v.hash.t),
     () => props.set.start,
   );
-  const sync = meta.runtime.atom(Machine.scoped(spawnSync(first, props.set.start, at)));
   return (
-    <Loading>
-      <SetReady folder={props.folder} set={props.set} sync={sync}>
-        {props.children}
-      </SetReady>
-    </Loading>
+    <Actor runtime={meta.runtime} spawn={spawnSync(first, props.set.start, at)}>
+      {(sync) => (
+        <SetBody folder={props.folder} set={props.set} sync={sync}>
+          {props.children}
+        </SetBody>
+      )}
+    </Actor>
   );
 };

@@ -1,16 +1,15 @@
-// The studio's provider: its own runtime (the stage, the studio's routes and
-// the page's microphone, so the shell knows nothing of the studio), the beats
-// as the server lists them, the recorder (one actor, spawned on the first
+// The studio's provider: its own runtime over the page's one client (the
+// stage, the studio's routes and the page's microphone, so the shell knows
+// nothing of the studio), the beats as the server lists them, the recorder (one actor, spawned on the first
 // beat once the beats are read), the selected beat's attempts, the
 // microphones and the one picked, the meter, and the recording under review
 // as a URL to play. The panel's components read this context and act through
 // it; none reads the recorder's states. An import that settles (a take kept,
 // or refused with an attempt saved) reads the beats and the attempts again.
 
-import { useAtomRefresh, useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
-import { Loading, Show } from '@solidjs/web';
-import { Cause, Effect, Equal, Option, Stream } from 'effect';
-import { Machine } from 'effect-machine';
+import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { Show } from '@solidjs/web';
+import { Cause, Effect, Equal, Layer, Option, Stream } from 'effect';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -28,26 +27,30 @@ import * as UrlAtom from '@bible/url-state/atom';
 import { said } from '../../command/command.ts';
 import { attemptUrl } from '../../core/api.ts';
 import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
-import { type BrowserServices, addressOn } from '../../browser/host.ts';
+import { type BrowserServices, addressOn, hostLayer } from '../../browser/host.ts';
 import { beatAt, labHrefWith } from '../place.ts';
 import type { LabFailure } from '../api.ts';
+import { Actor } from '../actor.tsx';
+import { useLabPage } from '../panel.tsx';
 import { useLab } from '../shell.tsx';
-import type { Stage } from '../stage.ts';
-import { StudioApi } from './api.ts';
+import { type Stage, stageLayer } from '../stage.ts';
+import { StudioApi, studioApiLayer } from './api.ts';
 import { Capture } from './capture.ts';
+import { browserCaptureLayer } from './capture-browser.ts';
 import { RecorderEvent, type RecorderActor, spawnRecorder } from './machine.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import {
   type Act,
   type Control,
+  type ControlCommand,
   type Meter,
   atRest,
   attemptLine,
   beatCounts,
+  controlFor,
   controlsOf,
   eventOf,
-  keyOf,
   meterOf,
   micOptions,
   type MicOption,
@@ -55,6 +58,7 @@ import {
   neighbour,
   reviewWav,
   statusOf,
+  stepsBeats,
   unsubmitted,
 } from './view.ts';
 
@@ -115,10 +119,12 @@ interface StudioActions {
   /** Keep an earlier attempt as the beat's take. */
   readonly keep: (file: string) => void;
   readonly pick: (device: Option.Option<string>) => void;
-  /** A key pressed in the studio: whether it was the studio's (and so done here). */
-  readonly press: (key: string) => boolean;
-  /** Whether `key` has something to do in the recorder's state now (`keyOf`, `view.ts`). */
-  readonly canPress: (key: string) => boolean;
+  /** The control `command` presses now, if it presses one (`controlFor`, `view.ts`). */
+  readonly control: (command: ControlCommand) => Option.Option<Control>;
+  /** Whether ←/→ step through the beats now. */
+  readonly stepsBeats: () => boolean;
+  /** Select the beat `by` places on (1 the next, -1 the previous): a step Back does not walk. */
+  readonly step: (by: 1 | -1) => void;
   /** Focus came into the studio, or left it. */
   readonly focused: (inside: boolean) => void;
 }
@@ -333,17 +339,11 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
     perform,
     keep: (file) => send(RecorderEvent.KeepAttempt({ file })),
     pick: (next) => choose(Option.getOrElse(next, () => '')),
-    press: (key) =>
-      Option.match(keyOf(recorder(), key), {
-        onNone: () => false,
-        onSome: (k) => {
-          if (k._tag === 'Act') perform(k.act);
-          if (k._tag === 'Beat')
-            Option.map(neighbour(beats(), beat(), k.step), (id) => select(id, 'follow'));
-          return true;
-        },
-      }),
-    canPress: (key) => Option.exists(keyOf(recorder(), key), (k) => k._tag !== 'None'),
+    control: (command) => controlFor(recorder(), command),
+    stepsBeats: () => stepsBeats(recorder()),
+    step: (by) => {
+      Option.map(neighbour(beats(), beat(), by), (id) => select(id, 'follow'));
+    },
     focused: setFocused,
   };
 
@@ -388,22 +388,6 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   return <StudioContext value={value}>{props.children}</StudioContext>;
 };
 
-/** The recorder on `beat`, once it is spawned. */
-const Recorder = (props: ParentProps<{ readonly beat: string; readonly reads: Reads }>) => {
-  const actor = useAtomSuspense(() =>
-    props.reads.runtime.atom(Machine.scoped(spawnRecorder(props.beat))),
-  );
-  return (
-    <Show when={actor()} keyed>
-      {(a: RecorderActor) => (
-        <Body actor={a} reads={props.reads}>
-          {props.children}
-        </Body>
-      )}
-    </Show>
-  );
-};
-
 /** `beat`, while the server lists it. */
 const listedBeat = (
   beats: ReadonlyArray<StudioBeat>,
@@ -437,8 +421,15 @@ const waitingText = (beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>) =>
  */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
-  // The panels' runtime: the studio's API and the microphone are among its services.
-  const runtime: StudioRuntime = meta.runtime;
+  // Its own runtime over the page's one client: the panels' services know nothing of the studio.
+  const runtime: StudioRuntime = Atom.runtime(
+    Layer.mergeAll(
+      stageLayer(meta.stage),
+      studioApiLayer(meta.name),
+      browserCaptureLayer,
+      hostLayer(meta.host),
+    ).pipe(Layer.provide(useLabPage().client)),
+  );
   const reads: Reads = {
     runtime,
     beats: runtime.atom(StudioApi.use((api) => api.beats)),
@@ -450,11 +441,13 @@ export const Provider = (props: ParentProps) => {
   return (
     <Show when={start()} keyed fallback={<p class="studio-waiting">{waitingText(beats())}</p>}>
       {(beat: string) => (
-        <Loading>
-          <Recorder beat={beat} reads={reads}>
-            {props.children}
-          </Recorder>
-        </Loading>
+        <Actor runtime={runtime} spawn={spawnRecorder(beat)}>
+          {(actor) => (
+            <Body actor={actor} reads={reads}>
+              {props.children}
+            </Body>
+          )}
+        </Actor>
       )}
     </Show>
   );

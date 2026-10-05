@@ -13,7 +13,7 @@
 // (`loaded.tsx`), whichever way it was asked. Framework-free.
 
 import { Effect, Option } from 'effect';
-import { type Command, quiet } from '../../command/command.ts';
+import { type Command, quiet, quietly } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Selection } from '../../command/selection.ts';
 import type { Target } from '../../command/target.ts';
@@ -132,11 +132,7 @@ const openCommand = (
     about: INSPECTED,
     touch: 'tap its name, or long-press it',
     when: (ctx) => Option.isSome(thing(ctx)),
-    run: (ctx) =>
-      Effect.sync(() => {
-        Option.map(thing(ctx), (t) => things.open(t.selection, at));
-        return quiet;
-      }),
+    run: quietly((ctx) => Option.map(thing(ctx), (t) => things.open(t.selection, at))),
   };
 };
 

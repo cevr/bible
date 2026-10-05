@@ -6,7 +6,13 @@ import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import { busy, refused, said } from '../../command/command.ts';
 import { sceneAt } from '../../core/layout.ts';
-import type { CheckLine, CheckReport, FindingAddress } from '../../core/schema.ts';
+import {
+  ChangeId,
+  type CheckLine,
+  type CheckReport,
+  type FindingAddress,
+  RequestId,
+} from '../../core/schema.ts';
 import { findingTime, findingsIn, findingsOf, receiptOf } from './format.ts';
 import { CueWrite, StepWrite } from './grip.ts';
 import { EditState } from './machine.ts';
@@ -87,16 +93,21 @@ describe('receiptOf', () => {
     expect(receiptOf(EditState.Writing({ write, next: [] }), 'f')).toEqual(
       Option.some(busy('writing…')),
     );
-    const undo = StepWrite.make({ verb: 'undo', request: 'r', change: Option.none() });
+    const undo = StepWrite.make({
+      verb: 'undo',
+      request: RequestId.make('r'),
+      change: Option.none(),
+    });
     expect(receiptOf(EditState.Writing({ write: undo, next: [] }), 'f')).toEqual(
       Option.some(busy('undoing…')),
     );
     const undid = { note: 'undid cue rise offset', findings: [], undo: 'redo' } as const;
-    expect(receiptOf(EditState.Written({ ...undid, change: Option.some('k1') }), 'f')).toEqual(
+    const change = ChangeId.make('k1');
+    expect(receiptOf(EditState.Written({ ...undid, change: Option.some(change) }), 'f')).toEqual(
       Option.some(
         said(
           'undid cue rise offset',
-          Option.some({ command: 'edit.redo', bound: { film: 'f', change: 'k1' } }),
+          Option.some({ command: 'edit.redo', bound: { film: 'f', change } }),
         ),
       ),
     );

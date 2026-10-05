@@ -104,13 +104,19 @@ export interface Tab {
    * the pointer events it makes, `pointerType: 'touch'`): put down at `x`,
    * `y`, moved there in `steps` moves, lifted where it is; or a whole drag,
    * put down at `from`, moved to `to` in `steps` moves and lifted there (a
-   * swipe, a scrub).
+   * swipe, a scrub). `second` is another finger, put down, moved and lifted
+   * while the first stays where it is.
    */
   readonly finger: {
     readonly down: (x: number, y: number) => Effect.Effect<void>;
     readonly move: (x: number, y: number, steps?: number) => Effect.Effect<void>;
     readonly up: Effect.Effect<void>;
     readonly drag: (from: Point, to: Point, steps?: number) => Effect.Effect<void>;
+    readonly second: {
+      readonly down: (x: number, y: number) => Effect.Effect<void>;
+      readonly move: (x: number, y: number, steps?: number) => Effect.Effect<void>;
+      readonly up: Effect.Effect<void>;
+    };
   };
   /** Go to `path` (`/films/probe/lab`, a page's link) on the tab's origin; done when it has loaded. */
   readonly goto: (path: string) => Effect.Effect<void>;
@@ -538,48 +544,65 @@ export const makeTab = (
     );
     const clickAt = (x: number, y: number) => Effect.andThen(move(x, y), Effect.andThen(down, up));
 
-    let fingerAt = { x: 0, y: 0 };
-    let fingerDown = false;
-    const touchEvent = (type: string, points: ReadonlyArray<{ x: number; y: number }>) =>
+    /** The fingers down now, by touch id (1, the first; 2, a second), where each is. */
+    const fingers = new Map<number, Point>();
+    /** Every finger down, as the touch device reports them: Chrome makes each change since the last report its own event. */
+    const report = (type: string) =>
       call('Input.dispatchTouchEvent', {
         type,
-        touchPoints: points.map((p) => ({ x: p.x, y: p.y, id: 1, radiusX: 1, radiusY: 1 })),
+        touchPoints: [...fingers].map(([id, p]) => ({
+          x: p.x,
+          y: p.y,
+          id,
+          radiusX: 1,
+          radiusY: 1,
+        })),
       });
     // The view outlives the case: a finger the case left down is lifted, so the next case's press is its own.
     yield* Effect.addFinalizer(() =>
       Effect.when(
-        Effect.exit(touchEvent('touchEnd', [])),
-        Effect.sync(() => fingerDown),
+        Effect.exit(
+          Effect.suspend(() => {
+            fingers.clear();
+            return report('touchEnd');
+          }),
+        ),
+        Effect.sync(() => fingers.size > 0),
       ),
     );
-    const finger: Tab['finger'] = {
-      down: (x, y) =>
-        Effect.andThen(
-          Effect.sync(() => {
-            fingerAt = { x, y };
-            fingerDown = true;
-          }),
-          touchEvent('touchStart', [{ x, y }]),
-        ),
-      move: (x, y, steps = 1) =>
-        Effect.gen(function* () {
-          const from = fingerAt;
-          for (let i = 1; i <= steps; i++)
-            yield* touchEvent('touchMove', [
-              { x: from.x + ((x - from.x) * i) / steps, y: from.y + ((y - from.y) * i) / steps },
-            ]);
-          fingerAt = { x, y };
+    /** The finger `id`: put down, moved, lifted, the others held where they are. */
+    const fingerOf = (id: number) => ({
+      down: (x: number, y: number) =>
+        Effect.suspend(() => {
+          fingers.set(id, { x, y });
+          return report('touchStart');
         }),
+      move: (x: number, y: number, steps = 1) =>
+        Effect.gen(function* () {
+          const from = fingers.get(id) ?? { x, y };
+          for (let i = 1; i <= steps; i++) {
+            fingers.set(id, {
+              x: from.x + ((x - from.x) * i) / steps,
+              y: from.y + ((y - from.y) * i) / steps,
+            });
+            yield* report('touchMove');
+          }
+        }),
+      // A lift with another finger still down reports the rest, which lifts this one alone.
       up: Effect.suspend(() => {
-        fingerDown = false;
-        return touchEvent('touchEnd', []);
+        fingers.delete(id);
+        if (fingers.size > 0) return report('touchMove');
+        return report('touchEnd');
       }),
+    });
+    const first = fingerOf(1);
+    const finger: Tab['finger'] = {
+      ...first,
       drag: (from, to, steps = 12) =>
-        Effect.suspend(() =>
-          finger
-            .down(from.x, from.y)
-            .pipe(Effect.andThen(finger.move(to.x, to.y, steps)), Effect.andThen(finger.up)),
-        ),
+        first
+          .down(from.x, from.y)
+          .pipe(Effect.andThen(first.move(to.x, to.y, steps)), Effect.andThen(first.up)),
+      second: fingerOf(2),
     };
 
     const press = (combo: string) =>
