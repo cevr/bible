@@ -58,6 +58,11 @@ body {
   --cmd-height: 72vh;
   --cmd-top: 12vh;
   --cmd-layer: 40;
+  --cmd-radius-sheet: var(--r-sheet);
+  --cmd-sheet-height: 75dvh;
+  --cmd-sheet-floor: env(safe-area-inset-bottom);
+  --cmd-grip-width: var(--s-8);
+  --cmd-grip-height: 4px;
 }
 `;
 
@@ -189,7 +194,45 @@ const COMMAND_RULES = `
   line-height: var(--cmd-count-size);
 }
 /* Beside the page, not over it: on a wide screen the page makes room while an inspector is open. */
-@media (min-width: 901px) { body:has(.lab-inspector-sheet) { padding-right: var(--cmd-inspector-width); } }
+@media (min-width: 900px) { body:has(.lab-inspector-sheet) { padding-right: var(--cmd-inspector-width); } }
+.lab-inspector-grip { display: none; }
+/*
+ * On a phone (the shell's width) the sheet rises from the bottom (design
+ * language §7): the screen's width, standing on the film's tab bar and the
+ * transport docked over it, so both stay in reach; at most three quarters of
+ * the screen tall. Its head is its grip (a bar drawn at its top): a tap lowers
+ * it to a peek, its head alone, and raises it again; the head's Close stays
+ * above the grip. While it stands whole the page makes room under it, so its
+ * last row can be scrolled above it.
+ */
+@media (max-width: 899px) {
+  body:has(.sh[data-film="true"]) { --cmd-sheet-floor: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
+  body:has(.sh[data-film="true"] .sh-dock) {
+    --cmd-sheet-floor: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));
+  }
+  body:has(.sh[data-film="false"] .sh-dock) { --cmd-sheet-floor: calc(var(--dock-h) + env(safe-area-inset-bottom)); }
+  .lab-inspector-sheet {
+    top: auto; left: 0; bottom: var(--cmd-sheet-floor); width: auto; max-height: var(--cmd-sheet-height);
+    border-left: 0; border-top: 1px solid var(--cmd-line);
+    border-radius: var(--cmd-radius-sheet) var(--cmd-radius-sheet) 0 0;
+    transform: translateY(var(--drawer-swipe-movement-y, 0px));
+  }
+  .lab-inspector-head { position: relative; align-items: center; min-height: var(--cmd-hit); }
+  .lab-inspector-grip {
+    display: block; position: absolute; inset: calc(-1 * var(--cmd-pad)) calc(-1 * var(--cmd-pad)) 0;
+    padding: 0; border: 0; background: none; cursor: pointer;
+  }
+  .lab-inspector-grip::before {
+    content: ''; position: absolute; top: var(--cmd-gap); left: 50%; width: var(--cmd-grip-width);
+    height: var(--cmd-grip-height); margin-left: calc(var(--cmd-grip-width) / -2);
+    border-radius: var(--cmd-radius-key); background: var(--cmd-line);
+  }
+  .lab-inspector-head .lab-sheet-title { position: relative; pointer-events: none; }
+  /* Close stands over the grip, a whole target of its own: the grip round it leaves it no spacing. */
+  .lab-inspector-head .lab-inspector-close { position: relative; z-index: 1; min-height: var(--cmd-hit); }
+  .lab-inspector-sheet[data-peek="true"] > :not(.lab-inspector-head) { display: none; }
+  body:has(.lab-inspector-sheet:not([data-peek="true"])) .sh-body { padding-bottom: var(--cmd-sheet-height); }
+}
 .lab-clamp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lab-receipts {
   position: fixed; z-index: calc(var(--cmd-layer) + 2); left: 50%; bottom: var(--cmd-gutter); transform: translateX(-50%);

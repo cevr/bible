@@ -7,14 +7,16 @@
 // inspector is open at a time, opened by tapping the thing's name
 // (`<InspectName>`), its comment count beside it, Inspect (`i`) or
 // Comment on (`m`), from its context menu or ⌘K. Hosted in @bible/ui's
-// Drawer, beside the page (not over it: the page stays live, a tap outside
-// keeps it open), swiped away to the right or closed with Escape; its footer
-// prints the keys of the commands about the thing while the pointer or the
-// focus is in it (`Hint`).
+// Drawer, not over the page (it stays live, a tap outside keeps it open):
+// beside it on a laptop, swiped away to the right; on a phone a bottom sheet
+// standing on the tab bar and the dock (design language §7), swiped down,
+// whose grip lowers it to a peek and raises it again. Escape closes it; its
+// footer prints the keys of the commands about the thing while the pointer or
+// the focus is in it (`Hint`).
 
 import { Drawer } from '@bible/ui/drawer';
 import { type JSX, Show } from '@solidjs/web';
-import { Option } from 'effect';
+import { Boolean as Bool, Option } from 'effect';
 import {
   type Accessor,
   createContext,
@@ -27,6 +29,7 @@ import type { Hub } from '../../command/hub.ts';
 import type { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
 import { Hint } from '../command/inspector.tsx';
+import { pressed } from './format.ts';
 import { type OpenAt, type Thing, type Things, thingCommands } from './things.ts';
 
 /** A comment box's unsent text, kept per thing while the page lives (read reactively): a box that closes keeps it. */
@@ -143,47 +146,87 @@ export const Inspector = (props: {
     },
     draft: inspecting.draft(untrack(key)),
   };
+  const phone = usePhone();
   return (
     <Show when={Option.getOrUndefined(at())}>
-      {(opened) => (
-        <Drawer.Root
-          open
-          modal={false}
-          disablePointerDismissal
-          swipeDirection="right"
-          onOpenChange={(next) => {
-            if (!next) inspecting.close(key());
-          }}
-        >
-          <Drawer.Portal>
-            <Drawer.Viewport class="lab-inspector-viewport">
-              <Drawer.Popup
-                class="lab-inspector-sheet lab-inspector"
-                data-role="inspector"
-                data-target={key()}
-                initialFocus={() =>
-                  Option.getOrElse(
-                    Option.filter(comment, () => opened() === 'comment'),
-                    () => true,
-                  )
-                }
-              >
-                <header class="lab-inspector-head">
-                  <Drawer.Title class="lab-sheet-title">{props.title}</Drawer.Title>
-                  <Drawer.Close class="lab-inspector-close" data-act="close-inspector">
-                    Close
-                  </Drawer.Close>
-                </header>
-                <Drawer.Content class="lab-inspector-body">{props.children(box)}</Drawer.Content>
-                <Hint hub={inspecting.hub} selection={props.of} gestures={[]} />
-              </Drawer.Popup>
-            </Drawer.Viewport>
-          </Drawer.Portal>
-        </Drawer.Root>
-      )}
+      {(opened) => {
+        // Each opening starts whole; on a phone its grip lowers it to a peek and raises it again.
+        const [peek, setPeek] = createSignal(false, { ownedWrite: true });
+        return (
+          <Drawer.Root
+            open
+            modal={false}
+            disablePointerDismissal
+            swipeDirection={Bool.match(phone(), {
+              onTrue: () => 'down' as const,
+              onFalse: () => 'right' as const,
+            })}
+            onOpenChange={(next) => {
+              if (!next) inspecting.close(key());
+            }}
+          >
+            <Drawer.Portal>
+              <Drawer.Viewport class="lab-inspector-viewport">
+                <Drawer.Popup
+                  class="lab-inspector-sheet lab-inspector"
+                  data-role="inspector"
+                  data-target={key()}
+                  data-peek={String(peek())}
+                  initialFocus={() =>
+                    Option.getOrElse(
+                      Option.filter(comment, () => opened() === 'comment'),
+                      () => true,
+                    )
+                  }
+                >
+                  <header class="lab-inspector-head">
+                    <SheetGrip peek={peek()} toggle={() => setPeek(!peek())} />
+                    <Drawer.Title class="lab-sheet-title">{props.title}</Drawer.Title>
+                    <Drawer.Close class="lab-inspector-close" data-act="close-inspector">
+                      Close
+                    </Drawer.Close>
+                  </header>
+                  <Drawer.Content class="lab-inspector-body">{props.children(box)}</Drawer.Content>
+                  <Hint hub={inspecting.hub} selection={props.of} gestures={[]} />
+                </Drawer.Popup>
+              </Drawer.Viewport>
+            </Drawer.Portal>
+          </Drawer.Root>
+        );
+      }}
     </Show>
   );
 };
+
+/** The phone's width, as the shell's (`page-shell-style.ts`): the inspector is a bottom sheet under it. */
+const PHONE = '(max-width: 899px)';
+
+/** Whether the page is a phone's width now, followed as the window changes. */
+const usePhone = (): Accessor<boolean> => {
+  const query = matchMedia(PHONE);
+  const [phone, setPhone] = createSignal(query.matches, { ownedWrite: true });
+  const changed = () => setPhone(query.matches);
+  query.addEventListener('change', changed);
+  onCleanup(() => query.removeEventListener('change', changed));
+  return phone;
+};
+
+/**
+ * A phone's sheet's grip (design language §7): the sheet's whole head, a bar
+ * drawn at its top; a tap lowers the sheet to a peek (its head over the dock)
+ * and raises it again. The head's Close stays above it. None on a laptop,
+ * where the sheet stands beside the page.
+ */
+const SheetGrip = (props: { readonly peek: boolean; readonly toggle: () => void }) => (
+  <button
+    type="button"
+    class="lab-inspector-grip"
+    data-act="sheet"
+    aria-label={Bool.match(props.peek, { onTrue: () => 'Show more', onFalse: () => 'Show less' })}
+    aria-expanded={pressed(!props.peek)}
+    onClick={() => props.toggle()}
+  />
+);
 
 /**
  * A thing's name that opens its inspector when tapped, its look the name's

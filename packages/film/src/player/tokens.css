@@ -100,6 +100,7 @@
   --row-h: 40px;
   --header-h: 44px;
   --tabbar-h: 56px;
+  --dock-h: calc(var(--hit) + 2 * var(--s-2) + 1px); /* the transport docked over the tab bar */
   --panel-head-h: 32px;
   --inspector-w: 320px;
   --gutter: 16px;
