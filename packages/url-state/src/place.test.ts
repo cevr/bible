@@ -18,14 +18,16 @@ const Lab = Place.make({
   }),
 });
 
-const AXES = ['bible', 'egw', 'pioneer'] as const;
+/** A repeated key of fixed words (`?section=bible&section=egw`): the shape of
+ *  egw-search's axes, which read their values through core's codec. */
+const Sections = Schema.Array(Codec.literals(['bible', 'egw', 'pioneer']));
 
-/** A workspace of panes, as egw-search declares one. */
+/** A workspace of panes, shaped as egw-search's is. */
 const Pane = Field.struct(
   {
     q: Field.key(Codec.Text, { default: '', history: 'push' }),
     scope: Field.key(Codec.literals(['all', 'egw', 'bible']), { default: 'all' }),
-    section: Field.keys(Codec.selection(AXES)),
+    section: Field.keys(Sections),
     excludeApparatus: Field.key(Codec.Flag, { default: false }),
     limit: Field.key(
       Codec.Finite.pipe(
@@ -57,7 +59,7 @@ const Everything = Place.make({
     count: Field.key(Codec.Int, { default: 0 }),
     ratio: Field.key(Codec.Finite, { default: 1 }),
     on: Field.key(Codec.Flag, { default: false }),
-    axis: Field.keys(Codec.selection(AXES)),
+    axis: Field.keys(Sections),
   }),
   hash: Field.struct({
     t: Field.key(Codec.Finite, { default: 0 }),

@@ -76,21 +76,21 @@ every value a place's type admits (`effect/Arbitrary`).
 
 `Codec` holds the building blocks:
 
-| Codec                       | Reads                     | Value                            |
-| --------------------------- | ------------------------- | -------------------------------- |
-| `Text`                      | any well-formed text      | `string`                         |
-| `Segment`                   | a non-empty path segment  | `string`, not `.` or `..`        |
-| `Finite`, `Int`             | `1.5`, `1e1`              | `number`                         |
-| `Flag`                      | `1`                       | `true`; anything else, `false`   |
-| `literals(values)`          | one of a fixed set        | the literal union                |
-| `truncate(self)`            | `7.9`                     | `7`                              |
-| `clamp({ min, max })(self)` | `200` with `max: 100`     | `100`                            |
-| `selection(values, '-')`    | `x=a&x=-b` (repeated key) | `{ include: [a], exclude: [b] }` |
+| Codec                       | Reads                    | Value                          |
+| --------------------------- | ------------------------ | ------------------------------ |
+| `Text`                      | any well-formed text     | `string`                       |
+| `Segment`                   | a non-empty path segment | `string`, not `.` or `..`      |
+| `Finite`, `Int`             | `1.5`, `1e1`             | `number`                       |
+| `Flag`                      | `1`                      | `true`; anything else, `false` |
+| `literals(values)`          | one of a fixed set       | the literal union              |
+| `truncate(self)`            | `7.9`                    | `7`                            |
+| `clamp({ min, max })(self)` | `200` with `max: 100`    | `100`                          |
 
 A codec for one key is a `Schema.Codec<A, string>`; a codec for a repeated
-key (`selection`) is a `Schema.Codec<A, ReadonlyArray<string>>`. Any schema
-of either shape works: egw-search uses the API's own `SignedFromStrings` for
-its axes, through `Field.keys`.
+key is a `Schema.Codec<A, ReadonlyArray<string>>`. Any schema of either shape
+works: egw-search reads its signed axes (`?type=book&type=-periodical`) with
+the API's own `SignedFromStrings` from `@bible/core/writings`, through
+`Field.keys`, so the link and the endpoint share one codec.
 
 `Field` lifts codecs to keys:
 
