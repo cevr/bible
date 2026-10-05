@@ -41,6 +41,9 @@ const TIP_READ_MS = 1500;
 /** Whether the viewer shows the ticks on Play (`on`; none or `off`: hidden), kept in this browser. */
 const KEPT_TICKS = keptText(ViewerStore, 'film-studio.ticks');
 
+/** Play's HUD: the bar, the shell's header and its tab bar (`player.css` fades them together). */
+const HUD_PARTS = '.bar, .sh-header, .sh-pagebar';
+
 /** A span of film seconds playback repeats: `from` to `to`. */
 export interface LoopRange {
   readonly from: number;
@@ -334,9 +337,19 @@ export const mountPreview = (
   const page = hub.context().page;
   /** Whether the bar is on a film's Play page (the shell's part), where the HUD fades and the ticks are the viewer's. */
   const onPlay = () => bar.closest('[data-part="play"]') !== null;
-  const hud = makeHud((shown) => {
-    bar.dataset['hud'] = shown ? 'shown' : 'hidden';
-  }, timersOn(host));
+  /** Whether the keyboard's focus is on one of the HUD's controls (the bar, the header, the tab bar): they stay while it is. */
+  const focusHeld = () =>
+    Option.match(Option.fromNullishOr(document.activeElement), {
+      onNone: () => false,
+      onSome: (el) => el.matches(':focus-visible') && el.closest(HUD_PARTS) !== null,
+    });
+  const hud = makeHud(
+    (shown) => {
+      bar.dataset['hud'] = shown ? 'shown' : 'hidden';
+    },
+    timersOn(host),
+    focusHeld,
+  );
   bar.dataset['hud'] = 'shown';
 
   const draw = () => {
@@ -532,7 +545,9 @@ export const mountPreview = (
       if (e instanceof PointerEvent && e.target === canvas && e.pointerType !== 'mouse') return;
       hud.wake();
     };
-    for (const type of ['pointermove', 'pointerdown', 'keydown'])
+    // The focus moving wakes it too: Tab landing on a faded control shows it,
+    // and the focus leaving the controls starts the wait again.
+    for (const type of ['pointermove', 'pointerdown', 'keydown', 'focusin', 'focusout'])
       document.addEventListener(type, wake, { capture: true, signal: leaving.signal });
     // A film's ticks (hundreds of them) are off on Play until the viewer turns
     // them on (⋯ → Show the ticks), kept in this browser; their legend shows with them.

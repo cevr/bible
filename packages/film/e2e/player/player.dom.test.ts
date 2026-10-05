@@ -149,12 +149,30 @@ const ticksOn = (page: Tab) =>
     yield* attributeIs(page, '.bar', 'data-ticks', 'on');
   });
 
-/** Whether Play's controls (the bar, the header, the tab bar) are each shown, or each hidden. */
+/**
+ * Whether Play's controls (the bar, the header, the tab bar) are each shown,
+ * or each faded: faded, they take no tap but stay visible to the
+ * accessibility tree and the tab order (`visibility` stays `visible`).
+ */
 const controls = (shown: boolean) =>
-  `['.bar', '.sh-header', '.sh-pagebar'].every((s) => getComputedStyle(document.querySelector(s)).visibility === '${VISIBILITY[`${shown}`]}')`;
+  `['.bar', '.sh-header', '.sh-pagebar'].every((s) => { const c = getComputedStyle(document.querySelector(s)); return c.visibility === 'visible' && c.opacity === '${FADE[`${shown}`].opacity}' && c.pointerEvents === '${FADE[`${shown}`].taps}'; })`;
 
-/** A control's `visibility`, by whether it is shown. */
-const VISIBILITY = { true: 'visible', false: 'hidden' } as const;
+/** A control's opacity and its `pointer-events`, by whether it is shown. */
+const FADE = {
+  true: { opacity: '1', taps: 'auto' },
+  false: { opacity: '0', taps: 'none' },
+} as const;
+
+/** Press Tab until the focus is on `selector`, at most `max` times. */
+const tabTo = (page: Tab, selector: string, max = 40): Effect.Effect<void, unknown> =>
+  Effect.gen(function* () {
+    for (let i = 0; i < max; i += 1) {
+      yield* page.press('Tab');
+      const there = yield* page.evaluate(`document.activeElement?.matches('${selector}') === true`);
+      if (there === true) return;
+    }
+    return yield* Effect.die(new Error(`Tab never reached ${selector}`));
+  });
 
 describe('the player', () => {
   it.live('a film that will not start says why as text, markup in its words shown, never run', () =>
@@ -353,6 +371,33 @@ describe('the player', () => {
         // The film paused, they stay.
         yield* page.press('Space');
         yield* page.clock.runFor(HUD_IDLE_MS * 2);
+        yield* evaluates(page, controls(true), true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "Play's HUD and the keyboard: Tab onto a faded control shows them, they stay while it holds the focus, and Enter on it pauses",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: DESK },
+          BAR_READY,
+        );
+        yield* page.clock.hold;
+        yield* page.press('Space');
+        yield* page.clock.runFor(HUD_IDLE_MS + 200);
+        yield* evaluates(page, controls(false), true);
+        // Faded, the transport is still in the tab order: Tab reaches play, and the controls show.
+        yield* tabTo(page, '.bar [data-act="play"]');
+        yield* evaluates(page, controls(true), true);
+        // While it holds the focus they stay, however long the film plays.
+        yield* page.clock.runFor(HUD_IDLE_MS * 3);
+        yield* evaluates(page, controls(true), true);
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        // Enter on it is its click: the film pauses.
+        yield* page.press('Enter');
+        yield* textIs(page, '.bar [data-act="play"]', '▶︎');
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

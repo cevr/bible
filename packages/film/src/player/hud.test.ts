@@ -6,12 +6,17 @@ import { describe, expect, test } from 'bun:test';
 import { fakeTimers } from './fixtures/timers.ts';
 import { HUD_IDLE_MS, makeHud } from './hud.ts';
 
-/** A HUD on a clock the test moves, and every change it said. */
+/** A HUD on a clock the test moves, every change it said, and whether the keyboard's focus is on a control. */
 const hudOn = () => {
   const clock = fakeTimers();
   const said: Array<boolean> = [];
-  const hud = makeHud((shown) => said.push(shown), clock.timers);
-  return { hud, clock, said };
+  const focus = { held: false };
+  const hud = makeHud(
+    (shown) => said.push(shown),
+    clock.timers,
+    () => focus.held,
+  );
+  return { hud, clock, said, focus };
 };
 
 describe('makeHud', () => {
@@ -53,6 +58,25 @@ describe('makeHud', () => {
     expect(clock.pending()).toBe(0);
     hud.toggle();
     expect(hud.shown()).toBe(true);
+    clock.advance(HUD_IDLE_MS);
+    expect(hud.shown()).toBe(false);
+  });
+
+  test("a control holding the keyboard's focus keeps them shown; the focus leaving waits again", () => {
+    const { hud, clock, focus } = hudOn();
+    hud.playing(true);
+    clock.advance(HUD_IDLE_MS);
+    expect(hud.shown()).toBe(false);
+    // Tab lands on a control: the focus moving wakes them, and they stay while it is held.
+    focus.held = true;
+    hud.wake();
+    clock.advance(HUD_IDLE_MS * 10);
+    expect(hud.shown()).toBe(true);
+    hud.toggle();
+    expect(hud.shown()).toBe(true);
+    // The focus leaves the controls: they fade a wait later.
+    focus.held = false;
+    hud.wake();
     clock.advance(HUD_IDLE_MS);
     expect(hud.shown()).toBe(false);
   });

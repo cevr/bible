@@ -985,15 +985,15 @@ body.play .sh-body {
 }
 /* Play's HUD (`hud.ts`): the bar, the header and the tab bar fade while the
    film plays with no input, in place, so the picture does not move; the
-   pointer goes with them. Hidden, none of them takes a tap or a focus. */
+   pointer goes with them. Faded, they take no tap (the tap wakes them), yet
+   stay in the accessibility tree and the tab order, as YouTube's and AVKit's
+   controls do: a focus landing on one brings them back. */
 .sh[data-part='play'] :is(.bar, .sh-header, .sh-pagebar) {
-  transition:
-    opacity 0.3s,
-    visibility 0.3s;
+  transition: opacity 0.3s;
 }
 .sh[data-part='play']:has(.bar[data-hud='hidden']) :is(.bar, .sh-header, .sh-pagebar) {
   opacity: 0;
-  visibility: hidden;
+  pointer-events: none;
 }
 .sh[data-part='play']:has(.bar[data-hud='hidden']) .stage {
   cursor: none;
