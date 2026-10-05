@@ -98,7 +98,21 @@ export const selectionOf = (href: string): Option.Option<Selection> =>
         Selection.cases.Point.make({ film: path.film, point }),
       ),
     ),
-    Option.map(Place.decode(Places.set, href), ({ path }) => Selection.cases.Set.make(path)),
+    // A set's version whose sheet is open (`?inspect=`), else the set.
+    Option.map(Place.decode(Places.set, href), ({ path, query }) =>
+      Option.match(named(query.inspect), {
+        onNone: (): Selection => Selection.cases.Set.make(path),
+        onSome: (version) => Selection.cases.Version.make({ ...path, version }),
+      }),
+    ),
+    // Choices' variant whose sheet is open: `?inspect=` of the card in focus (`?point=`).
+    Option.flatMap(Place.decode(Places.choices, href), ({ path, query }) =>
+      Option.flatMap(named(query.point), (point) =>
+        Option.map(named(query.inspect), (variant) =>
+          Selection.cases.Variant.make({ film: path.film, point, variant }),
+        ),
+      ),
+    ),
     Option.map(Place.decode(Places.folder, href), ({ path }) => Selection.cases.Folder.make(path)),
   ]);
 
