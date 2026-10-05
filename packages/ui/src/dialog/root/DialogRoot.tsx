@@ -18,8 +18,6 @@ import { useFloatingParentNodeId } from '../../floating-ui-solid/FloatingTree.ts
 import { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
 import { contains, getTarget } from '../../floating-ui-solid/utils/element.ts';
-import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
-import { REASONS } from '../../internals/reasons.ts';
 import { useScrollLock } from '../../utils/useScrollLock.ts';
 import {
   createDialogStore,
@@ -30,12 +28,6 @@ import {
 import { DialogRootContext, useDialogRootContextOptional } from './DialogRootContext.ts';
 
 export type { DialogChangeEventDetails, DialogChangeEventReason };
-
-export interface DialogRootActions {
-  /** Ends a close kept mounted by `preventUnmountOnClose()`. */
-  unmount: () => void;
-  close: () => void;
-}
 
 export interface DialogRootState {}
 
@@ -59,8 +51,6 @@ export interface DialogRootProps {
    * also focus moving outside). @default false
    */
   disablePointerDismissal?: boolean | undefined;
-  /** Receives the imperative actions. */
-  actionsRef?: { current: DialogRootActions | null } | undefined;
   children?: JSX.Element;
 }
 
@@ -168,18 +158,6 @@ export function DialogRoot(props: DialogRootProps): JSX.Element {
       },
     );
   }
-
-  if (props.actionsRef) {
-    props.actionsRef.current = {
-      unmount: store.forceUnmount,
-      close: () => store.setOpen(false, createChangeEventDetails(REASONS.imperativeAction)),
-    };
-  }
-  onCleanup(() => {
-    if (props.actionsRef) {
-      props.actionsRef.current = null;
-    }
-  });
 
   const context: DialogRootContext = {
     store,

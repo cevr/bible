@@ -36,7 +36,6 @@ import {
   createAttribute,
   getFloatingFocusElement,
   getTarget,
-  isTypeableCombobox,
   isTypeableElement,
 } from './utils/element.ts';
 import { enqueueFocus, isVirtualClick, isVirtualPointerEvent, stopEvent } from './utils/event.ts';
@@ -173,8 +172,6 @@ export interface FloatingFocusManagerProps {
    * `false` nothing, an element, or a function of the close type.
    */
   returnFocus?: FocusTarget | undefined;
-  /** Whether `returnFocus` is the consumer's explicit target (returned to even if focus moved elsewhere). */
-  explicitReturnFocus?: boolean | undefined;
   /** Where focus goes when the focused element inside is removed: `true` a nearby tabbable, `'popup'` the popup. */
   restoreFocus?: boolean | 'popup' | undefined;
   /** Whether focus is trapped inside and the rest of the page hidden from assistive tech. */
@@ -205,10 +202,6 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   const openInteractionType = () =>
     props.openInteractionType === undefined ? '' : props.openInteractionType;
   const floatingFocusElement = () => getFloatingFocusElement(context.floatingElement());
-  // A typeable combobox trigger with `initialFocus={false}` keeps focus in its
-  // input: no guards, but the outside is still hidden from assistive tech.
-  const isUntrappedTypeableCombobox = () =>
-    isTypeableCombobox(context.domReferenceElement()) && props.initialFocus === false;
 
   const getNodeId = () => dataRef.current.floatingContext?.nodeId;
 
@@ -251,10 +244,10 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
 
   // Tab cannot leave a modal with nothing tabbable inside.
   createEffect(
-    () => [disabled(), modal(), context.floatingElement(), isUntrappedTypeableCombobox()] as const,
-    ([isDisabled, isModal, floatingForFocus, untrapped]) => {
+    () => [disabled(), modal(), context.floatingElement()] as const,
+    ([isDisabled, isModal, floating]) => {
       // Resolved here, once the popup's content is in the DOM.
-      const focusElement = getFloatingFocusElement(floatingForFocus);
+      const focusElement = getFloatingFocusElement(floating);
       if (isDisabled || !isModal) {
         return undefined;
       }
@@ -262,8 +255,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         if (
           event.key === 'Tab' &&
           contains(focusElement, activeElement(ownerDocument(focusElement))) &&
-          getTabbableContent(focusElement).length === 0 &&
-          !untrapped
+          getTabbableContent(focusElement).length === 0
         ) {
           stopEvent(event);
         }
@@ -279,11 +271,10 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         context.open(),
         context.floatingElement(),
         context.domReferenceElement(),
-        context.floatingElement(),
       ] as const,
-    ([isDisabled, open, floating, domReference, floatingForFocus]) => {
+    ([isDisabled, open, floating, domReference]) => {
       // Resolved here, once the popup's content is in the DOM.
-      const focusElement = getFloatingFocusElement(floatingForFocus);
+      const focusElement = getFloatingFocusElement(floating);
       if (isDisabled || !open) {
         return undefined;
       }
@@ -332,23 +323,12 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         closeOnFocusOut(),
         context.domReferenceElement(),
         context.floatingElement(),
-        context.floatingElement(),
         modal(),
         restoreFocus(),
-        isUntrappedTypeableCombobox(),
       ] as const,
-    ([
-      isDisabled,
-      closeOnOut,
-      domReference,
-      floating,
-      floatingForFocus,
-      isModal,
-      restore,
-      untrapped,
-    ]) => {
+    ([isDisabled, closeOnOut, domReference, floating, isModal, restore]) => {
       // Resolved here, once the popup's content is in the DOM.
-      const focusElement = getFloatingFocusElement(floatingForFocus);
+      const focusElement = getFloatingFocusElement(floating);
       if (isDisabled || !closeOnOut) {
         return undefined;
       }
@@ -463,11 +443,11 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
           }
 
           if (
-            (untrapped ? true : !isModal) &&
+            !isModal &&
             relatedTarget &&
             movedToUnrelatedNode &&
             !isPointerDown &&
-            (untrapped || relatedTarget !== getPreviouslyFocusedElement())
+            relatedTarget !== getPreviouslyFocusedElement()
           ) {
             preventReturnFocus = true;
             context.setOpen(false, createChangeEventDetails(REASONS.focusOut, event));
@@ -514,11 +494,9 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         context.floatingElement(),
         context.open(),
         modal(),
-        isUntrappedTypeableCombobox(),
-        context.domReferenceElement(),
         portalContext?.portalNode() ?? null,
       ] as const,
-    ([isDisabled, floating, open, isModal, untrapped, domReference, portalNode]) => {
+    ([isDisabled, floating, open, isModal, portalNode]) => {
       if (isDisabled || !floating || !open) {
         return undefined;
       }
@@ -526,10 +504,6 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
       const portalNodes = Array.from(
         portalNode?.querySelectorAll(`[${createAttribute('portal')}]`) || [],
       );
-      const ancestors = tree ? getNodeAncestors(tree.nodesRef.current, getNodeId()) : [];
-      const rootAncestorComboboxDomReference = ancestors.find((node) =>
-        isTypeableCombobox(node.context?.elements.domReference || null),
-      )?.context?.elements.domReference;
       const insideElements = [
         floating,
         ...portalNodes,
@@ -538,14 +512,12 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         portalContext?.beforeOutsideRef.current,
         portalContext?.afterOutsideRef.current,
         ...getResolvedInsideElements(),
-        rootAncestorComboboxDomReference,
         // Read as the effect runs, not tracked: the guards follow the popup's open state.
         untrack(() => resolveRef(props.previousFocusableElement)),
         untrack(() => resolveRef(props.nextFocusableElement)),
-        untrapped ? domReference : null,
       ].filter((x): x is Element => x != null);
       const ariaHiddenCleanup = markOthers(insideElements, {
-        ariaHidden: isModal || untrapped,
+        ariaHidden: isModal,
         mark: false,
       });
       const markerCleanup = markOthers(
@@ -561,9 +533,9 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   // Focuses the initial element on open.
   createEffect(
     () => [context.open(), disabled(), context.floatingElement()] as const,
-    ([open, isDisabled, floatingForFocus]) => {
+    ([open, isDisabled, floating]) => {
       // Resolved here, once the popup's content is in the DOM.
-      const focusElement = getFloatingFocusElement(floatingForFocus);
+      const focusElement = getFloatingFocusElement(floating);
       if (!open || isDisabled || !isHTMLElement(focusElement)) {
         return;
       }
@@ -622,16 +594,10 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
 
   // Records where focus returns to, and returns it when the popup closes or unmounts.
   createEffect(
-    () =>
-      [
-        disabled(),
-        context.floatingElement(),
-        context.floatingElement(),
-        context.domReferenceElement(),
-      ] as const,
-    ([isDisabled, floating, floatingForFocus, domReference]) => {
+    () => [disabled(), context.floatingElement(), context.domReferenceElement()] as const,
+    ([isDisabled, floating, domReference]) => {
       // Resolved here, once the popup's content is in the DOM.
-      const focusElement = getFloatingFocusElement(floatingForFocus);
+      const focusElement = getFloatingFocusElement(floating);
       if (isDisabled || !focusElement) {
         pendingReturnFocus = null;
         return undefined;
@@ -731,8 +697,8 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
             pendingReturnFocus = null;
           }
           const tabbableReturnElement = getFirstTabbableElement(returnElement);
-          const hasExplicitReturnFocus =
-            untrack(() => props.explicitReturnFocus) ?? typeof returnFocusValue !== 'boolean';
+          // An element or function is an explicit target, returned to even if focus moved elsewhere.
+          const hasExplicitReturnFocus = typeof returnFocusValue !== 'boolean';
           if (
             !job.cancelled &&
             returnFocusValue &&
@@ -799,9 +765,9 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
 
   createEffect(
     () => [disabled(), context.floatingElement()] as const,
-    ([isDisabled, floatingForFocus]) => {
+    ([isDisabled, floating]) => {
       // Resolved here, once the popup's content is in the DOM.
-      const focusElement = getFloatingFocusElement(floatingForFocus);
+      const focusElement = getFloatingFocusElement(floating);
       if (isDisabled || !focusElement) {
         return undefined;
       }
@@ -814,10 +780,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
     pendingReturnFocus = null;
   });
 
-  const shouldRenderGuards = () =>
-    !disabled() &&
-    (modal() ? !isUntrappedTypeableCombobox() : true) &&
-    (!!portalContext || modal());
+  const shouldRenderGuards = () => !disabled() && (!!portalContext || modal());
 
   return (
     <>

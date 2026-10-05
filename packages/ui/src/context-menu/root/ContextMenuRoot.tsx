@@ -8,7 +8,7 @@ import type { JSX } from '@solidjs/web';
 import { createSignal, createUniqueId } from 'solid-js';
 
 import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
-import { MenuRoot, type MenuRootActions, type MenuRootProps } from '../../menu/root/MenuRoot.tsx';
+import { MenuRoot, type MenuRootProps } from '../../menu/root/MenuRoot.tsx';
 import { MenuRootContext } from '../../menu/root/MenuRootContext.ts';
 import type { MenuChangeEventReason } from '../../menu/store/MenuStore.ts';
 import {
@@ -24,7 +24,6 @@ export interface ContextMenuRootProps extends Omit<MenuRootProps, 'modal' | 'onO
     | undefined;
 }
 
-export type ContextMenuRootActions = MenuRootActions;
 export type ContextMenuRootChangeEventReason = MenuChangeEventReason;
 export type ContextMenuRootChangeEventDetails =
   BaseUIChangeEventDetails<ContextMenuRootChangeEventReason>;

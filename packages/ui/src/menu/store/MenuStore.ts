@@ -26,18 +26,13 @@ export type MenuChangeEventReason =
   | typeof REASONS.itemPress
   | typeof REASONS.closePress
   | typeof REASONS.cancelOpen
-  | typeof REASONS.imperativeAction
   | typeof REASONS.none;
 
-export type MenuChangeEventDetails = BaseUIChangeEventDetails<MenuChangeEventReason> & {
-  /** Keeps the popup mounted after closing until the `unmount` action is called. */
-  preventUnmountOnClose: () => void;
-};
+export type MenuChangeEventDetails = BaseUIChangeEventDetails<MenuChangeEventReason>;
 
 export type MenuHighlightEventReason =
   | typeof REASONS.keyboard
   | typeof REASONS.pointer
-  | typeof REASONS.imperativeAction
   | typeof REASONS.none;
 
 export type MenuInstantType = 'dismiss' | 'click' | undefined;
@@ -48,7 +43,6 @@ export interface MenuStoreOptions {
   defaultOpen: boolean;
   disabled: () => boolean;
   modal: () => boolean | undefined;
-  highlightItemOnHover: () => boolean;
   openMethod: Accessor<InteractionType | null>;
   floatingId: string;
   rootId: string;
@@ -66,7 +60,6 @@ export interface MenuStore extends PopupStore {
   modal: Accessor<boolean>;
   openMethod: Accessor<InteractionType | null>;
   keyboardOpen: Accessor<boolean>;
-  highlightItemOnHover: Accessor<boolean>;
   /** The id the menu's popup carries as `data-rootownerid`. */
   rootId: Accessor<string>;
   activeIndex: Accessor<number | null>;
@@ -84,7 +77,6 @@ export interface MenuStore extends PopupStore {
   applyMenuOpenState: (
     open: boolean,
     details: BaseUIChangeEventDetails,
-    preventUnmount: boolean,
     menuState: {
       reason: MenuChangeEventReason;
       keyboardOpen: boolean;
@@ -130,7 +122,6 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
     modal: () => options.modal() ?? true,
     openMethod: options.openMethod,
     keyboardOpen,
-    highlightItemOnHover: options.highlightItemOnHover,
     rootId: () => contextMenu?.rootId ?? options.rootId,
     activeIndex,
     setActiveIndex(index, reason, event) {
@@ -150,11 +141,11 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
     floatingNodeId: options.floatingNodeId,
     floatingParentNodeId: options.floatingParentNodeId,
     setOpen: (open, details) => popup.floatingRootContext.setOpen(open, details),
-    applyMenuOpenState(open, details, preventUnmount, menuState) {
+    applyMenuOpenState(open, details, menuState) {
       setLastOpenChangeReason(menuState.reason);
       setKeyboardOpen(menuState.keyboardOpen);
       setInstantType(menuState.instantType);
-      popup.applyOpenState(open, details.trigger, preventUnmount);
+      popup.applyOpenState(open, details.trigger);
     },
     itemDomElements: { current: [] },
     itemLabels: { current: [] },

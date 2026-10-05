@@ -13,7 +13,6 @@ export const REASONS = {
   inputClear: 'input-clear',
   inputBlur: 'input-blur',
   inputPaste: 'input-paste',
-  inputPress: 'input-press',
   focusOut: 'focus-out',
   escapeKey: 'escape-key',
   closeWatcher: 'close-watcher',
@@ -22,7 +21,6 @@ export const REASONS = {
   pointer: 'pointer',
   scrub: 'scrub',
   cancelOpen: 'cancel-open',
-  imperativeAction: 'imperative-action',
   swipe: 'swipe',
 } as const;
 

@@ -1,14 +1,14 @@
 // Upstream: packages/react/src/floating-ui-react/hooks/useListNavigation.ts
 //
-// Arrow-key navigation over a popup's list of items: Arrow keys move the
+// Arrow-key navigation over a menu's list of items: Arrow keys move the
 // highlight (skipping disabled items, wrapping with `loopFocus`), Home/End
 // jump to the ends, an arrow on the closed trigger opens the popup and
 // highlights the first or last item, the cross-axis arrow closes a nested
 // list (a context menu is one, as upstream marks it), and the pointer
-// highlights the item under it.
-// The highlighted item takes focus, or with `virtual` stays a highlight
-// (`aria-activedescendant`). Grid navigation is not ported (no part here
-// uses it).
+// highlights the item under it. The highlighted item takes focus.
+// Upstream's virtual focus (`aria-activedescendant`), selected index,
+// combobox, escape-to-none and grid modes are left out: Menu, the one
+// caller, uses none of them.
 import { isHTMLElement } from '@floating-ui/utils/dom';
 import { type Accessor, createEffect, untrack } from 'solid-js';
 
@@ -25,6 +25,7 @@ import {
   useFloatingTree,
 } from '../FloatingTree.tsx';
 import {
+  type DisabledIndices,
   getMaxListIndex,
   getMinListIndex,
   getNextListIndex,
@@ -39,24 +40,15 @@ import {
   contains,
   getFloatingFocusElement,
   getTarget,
-  isTypeableCombobox,
-  isTypeableElement,
 } from '../utils/element.ts';
 import { enqueueFocus, isVirtualClick, isVirtualPointerEvent, stopEvent } from '../utils/event.ts';
-
-export type ListNavigationSource = 'imperative';
-
-export type HighlightItemTarget = 'next' | 'previous' | 'first' | 'last' | 'none';
 
 export type ListOrientation = 'vertical' | 'horizontal' | 'both';
 
 export interface UseListNavigationReturn {
-  reference: HTMLProps;
   floating: HTMLProps;
   item: HTMLProps;
   trigger: HTMLProps;
-  /** Moves the highlight from code (a filter input's arrow keys, a command's "first"). */
-  highlightItem: (target: HighlightItemTarget) => void;
 }
 
 function isStationaryWebKitPointer(event: MouseEvent | PointerEvent) {
@@ -125,35 +117,17 @@ export interface UseListNavigationProps {
   /** The highlighted index (`null` for none). Read live. */
   activeIndex: number | null;
   /** Called when navigation moves the highlight. */
-  onNavigate?:
-    | ((
-        activeIndex: number | null,
-        event: Event | undefined,
-        source?: ListNavigationSource | undefined,
-      ) => void)
-    | undefined;
+  onNavigate?: ((activeIndex: number | null, event: Event | undefined) => void) | undefined;
   enabled?: boolean | undefined;
-  /** The selected item, highlighted when the list opens. */
-  selectedIndex?: number | null | undefined;
-  /** Whether opening highlights an item; `auto` does for keyboard and virtual opens. */
-  focusItemOnOpen?: boolean | 'auto' | undefined;
-  focusItemOnHover?: boolean | undefined;
   openOnArrowKeyDown?: boolean | undefined;
-  disabledIndices?: ReadonlyArray<number> | ((index: number) => boolean) | undefined;
-  allowEscape?: boolean | undefined;
+  disabledIndices?: DisabledIndices | undefined;
   loopFocus?: boolean | undefined;
   /** Whether the list is nested (upstream's submenu; here a context menu, as upstream marks it). */
   nested?: boolean | undefined;
-  parentOrientation?: ListOrientation | undefined;
   rtl?: boolean | undefined;
-  virtual?: boolean | undefined;
+  /** The list's axis, and the trigger's: the key that opens the popup runs along it. */
   orientation?: ListOrientation | undefined;
-  triggerOrientation?: ListOrientation | undefined;
-  id?: string | undefined;
-  resetOnPointerLeave?: boolean | undefined;
   externalTree?: FloatingTreeStore | undefined;
-  /** Where focus returns when a nested list closes from the keyboard. */
-  nestedReturnFocusRef?: { current: HTMLElement | null } | undefined;
 }
 
 export function useListNavigation(
@@ -163,29 +137,23 @@ export function useListNavigation(
   const listRef = props.listRef;
   const enabled = () => props.enabled ?? true;
   const activeIndex = () => props.activeIndex;
-  const selectedIndex = () => props.selectedIndex ?? null;
   const loopFocus = () => props.loopFocus ?? false;
   const nested = () => props.nested ?? false;
   const rtl = () => props.rtl ?? false;
-  const virtual = () => props.virtual ?? false;
-  const focusItemOnOpen = () => props.focusItemOnOpen ?? 'auto';
-  const focusItemOnHover = () => props.focusItemOnHover ?? true;
   const openOnArrowKeyDown = () => props.openOnArrowKeyDown ?? true;
   const orientation = () => props.orientation ?? 'vertical';
-  const triggerOrientation = () => props.triggerOrientation ?? orientation();
-  const resetOnPointerLeave = () => props.resetOnPointerLeave ?? true;
 
   const dataRef = context.dataRef;
   const floatingFocusElement: Accessor<HTMLElement | null> = () =>
     getFloatingFocusElement(untrack(context.floatingElement));
-  const isTypeableComboboxReference = () =>
-    isTypeableCombobox(untrack(context.domReferenceElement));
 
   const parentId = useFloatingParentNodeId();
   const tree = useFloatingTree(props.externalTree);
 
-  let focusItemOnOpenValue = untrack(focusItemOnOpen);
-  let index = untrack(selectedIndex) ?? -1;
+  // Whether opening highlights an item: `auto` does for a keyboard open (a
+  // key is pending), `true` for a virtual (screen reader) click or pointer.
+  let focusItemOnOpen: boolean | 'auto' = 'auto';
+  let index = -1;
   let key: string | null = null;
   let isPointerModality = true;
   let previousMounted = !!untrack(context.floatingElement);
@@ -194,8 +162,8 @@ export function useListNavigation(
   let forceScrollIntoView = false;
   let cancelQueuedFocus: (() => void) | null = null;
 
-  const onNavigate = (event?: Event, source?: ListNavigationSource) => {
-    props.onNavigate?.(index === -1 ? null : index, event, source);
+  const onNavigate = (event?: Event) => {
+    props.onNavigate?.(index === -1 ? null : index, event);
   };
 
   const focusFrame = useAnimationFrame();
@@ -205,9 +173,7 @@ export function useListNavigation(
     focusFrame.cancel();
 
     const runFocus = (item: HTMLElement) => {
-      if (!untrack(virtual)) {
-        cancelQueuedFocus = enqueueFocus(item, { sync: forceSyncFocus, preventScroll: true });
-      }
+      cancelQueuedFocus = enqueueFocus(item, { sync: forceSyncFocus, preventScroll: true });
     };
 
     const initialItem = listRef.current[index];
@@ -239,30 +205,21 @@ export function useListNavigation(
     dataRef.current['orientation'] = value;
   });
 
-  createEffect(
-    () => [context.open(), focusItemOnOpen()] as const,
-    ([open, focusOnOpen]) => {
-      if (!open) {
-        key = null;
-      }
-      if (!open || focusOnOpen !== 'auto') {
-        focusItemOnOpenValue = focusOnOpen;
-      }
-    },
-  );
+  createEffect(context.open, (open) => {
+    if (!open) {
+      key = null;
+      focusItemOnOpen = 'auto';
+    }
+  });
 
   createEffect(
-    () => [enabled(), context.open(), context.floatingElement(), selectedIndex()] as const,
-    ([isEnabled, open, floating, selected]) => {
+    () => [enabled(), context.open(), context.floatingElement()] as const,
+    ([isEnabled, open, floating]) => {
       if (!isEnabled) {
         return;
       }
       if (open && floating) {
-        index = selected ?? -1;
-        if (focusItemOnOpenValue && selected != null) {
-          forceScrollIntoView = true;
-          onNavigate();
-        }
+        index = -1;
       } else if (previousMounted) {
         index = -1;
         onNavigate();
@@ -287,10 +244,6 @@ export function useListNavigation(
       if (active == null) {
         forceSyncFocus = false;
 
-        if (untrack(selectedIndex) != null) {
-          return;
-        }
-
         if (previousMounted) {
           index = -1;
           focusItem();
@@ -298,8 +251,8 @@ export function useListNavigation(
 
         if (
           (!previousOpen || !previousMounted) &&
-          focusItemOnOpenValue &&
-          (key != null || (focusItemOnOpenValue === true && key == null))
+          focusItemOnOpen &&
+          (key != null || (focusItemOnOpen === true && key == null))
         ) {
           let runs = 0;
           const waitForListPopulated = () => {
@@ -315,7 +268,7 @@ export function useListNavigation(
             } else {
               index =
                 key == null ||
-                isMainOrientationToEndKey(key, untrack(triggerOrientation), untrack(rtl)) ||
+                isMainOrientationToEndKey(key, untrack(orientation), untrack(rtl)) ||
                 untrack(nested)
                   ? getMinListIndex(listRef.current)
                   : getMaxListIndex(listRef.current);
@@ -337,7 +290,7 @@ export function useListNavigation(
   createEffect(
     () => [enabled(), context.floatingElement(), context.domReferenceElement()] as const,
     ([isEnabled, floating, domReference]) => {
-      if (!isEnabled || floating || !tree || untrack(virtual) || !previousMounted) {
+      if (!isEnabled || floating || !tree || !previousMounted) {
         return;
       }
       const nodes = tree.nodesRef.current;
@@ -372,10 +325,16 @@ export function useListNavigation(
   };
 
   const getParentOrientation = (): ListOrientation | undefined =>
-    props.parentOrientation ??
-    (tree?.nodesRef.current.find((node) => node.id === parentId)?.context?.dataRef?.current[
+    tree?.nodesRef.current.find((node) => node.id === parentId)?.context?.dataRef?.current[
       'orientation'
-    ] as ListOrientation | undefined);
+    ] as ListOrientation | undefined;
+
+  const returnFocusToTrigger = () => {
+    const returnElement = untrack(context.domReferenceElement);
+    if (isHTMLElement(returnElement)) {
+      returnElement.focus();
+    }
+  };
 
   const commonOnKeyDown = (event: KeyboardEvent) => {
     isPointerModality = false;
@@ -398,11 +357,7 @@ export function useListNavigation(
         stopEvent(event);
       }
       context.setOpen(false, createChangeEventDetails(REASONS.listNavigation, event));
-      const returnElement =
-        props.nestedReturnFocusRef?.current ?? untrack(context.domReferenceElement);
-      if (isHTMLElement(returnElement)) {
-        returnElement.focus();
-      }
+      returnFocusToTrigger();
       return;
     }
 
@@ -416,17 +371,15 @@ export function useListNavigation(
     const minIndex = getMinListIndex(listRef.current, disabledIndices);
     const maxIndex = getMaxListIndex(listRef.current, disabledIndices);
 
-    if (!isTypeableComboboxReference()) {
-      if (event.key === 'Home') {
-        stopEvent(event);
-        index = minIndex;
-        onNavigate(event);
-      }
-      if (event.key === 'End') {
-        stopEvent(event);
-        index = maxIndex;
-        onNavigate(event);
-      }
+    if (event.key === 'Home') {
+      stopEvent(event);
+      index = minIndex;
+      onNavigate(event);
+    }
+    if (event.key === 'End') {
+      stopEvent(event);
+      index = maxIndex;
+      onNavigate(event);
     }
 
     if (isMainOrientationKey(event.key, currentOrientation)) {
@@ -436,7 +389,6 @@ export function useListNavigation(
       const focusedElement = activeElement(currentTarget.ownerDocument);
       if (
         untrack(context.open) &&
-        !untrack(virtual) &&
         contains(currentTarget, focusedElement) &&
         !listRef.current.some((item) => item != null && contains(item, focusedElement))
       ) {
@@ -450,7 +402,6 @@ export function useListNavigation(
       const next = getNextListIndex(listRef.current, currentIndex, {
         decrement: !isMainOrientationToEndKey(event.key, currentOrientation, isRtl),
         loopFocus: untrack(loopFocus),
-        allowEscape: props.allowEscape ?? false,
         disabledIndices,
         minIndex,
         maxIndex,
@@ -463,76 +414,13 @@ export function useListNavigation(
     }
   };
 
-  const highlightItem = (target: HighlightItemTarget) => {
-    if (!untrack(enabled) || !untrack(context.open)) {
-      return;
-    }
-    const list = listRef.current;
-
-    if (target === 'none') {
-      cancelQueuedFocus?.();
-      cancelQueuedFocus = null;
-      index = -1;
-      isPointerModality = false;
-      forceSyncFocus = false;
-      onNavigate(undefined, 'imperative');
-      if (!untrack(virtual)) {
-        const floatingFocusEl = floatingFocusElement();
-        const activeEl = activeElement(ownerDocument(floatingFocusEl));
-        if (floatingFocusEl && list.some((item) => item && contains(item, activeEl))) {
-          floatingFocusEl.focus({ preventScroll: true });
-        }
-      }
-      return;
-    }
-
-    if (list.length === 0) {
-      return;
-    }
-
-    const disabled = props.disabledIndices;
-    const minIndex = getMinListIndex(list, disabled);
-    const maxIndex = getMaxListIndex(list, disabled);
-    const decrement = target === 'previous';
-
-    let nextIndex: number;
-    if (target === 'first') {
-      nextIndex = minIndex;
-    } else if (target === 'last') {
-      nextIndex = maxIndex;
-    } else if (isIndexOutOfListBounds(list, index)) {
-      nextIndex = decrement ? maxIndex : minIndex;
-    } else {
-      nextIndex = getNextListIndex(list, index, {
-        decrement,
-        loopFocus: untrack(loopFocus),
-        allowEscape: false,
-        disabledIndices: disabled,
-        minIndex,
-        maxIndex,
-      }).index;
-    }
-
-    if (isIndexOutOfListBounds(list, nextIndex)) {
-      return;
-    }
-
-    index = nextIndex;
-    isPointerModality = false;
-    forceSyncFocus = false;
-    forceScrollIntoView = true;
-    onNavigate(undefined, 'imperative');
-  };
-
   const item: HTMLProps = {
     onFocus(event: FocusEvent) {
       forceSyncFocus = true;
       syncCurrentTarget(event);
     },
     onClick(event: MouseEvent) {
-      if (!untrack(virtual)) {
-        (event.currentTarget as HTMLElement).focus({ preventScroll: true });
-      }
+      (event.currentTarget as HTMLElement).focus({ preventScroll: true });
     },
     onMouseMove(event: MouseEvent) {
       if (isStationaryWebKitPointer(event)) {
@@ -540,9 +428,7 @@ export function useListNavigation(
       }
       forceSyncFocus = true;
       forceScrollIntoView = false;
-      if (untrack(focusItemOnHover)) {
-        syncCurrentTarget(event);
-      }
+      syncCurrentTarget(event);
     },
     onPointerLeave(event: PointerEvent) {
       if (!untrack(context.open) || !isPointerModality || event.pointerType === 'touch') {
@@ -550,40 +436,27 @@ export function useListNavigation(
       }
       forceSyncFocus = true;
       const relatedTarget = event.relatedTarget as HTMLElement | null;
-      if (!untrack(focusItemOnHover) || listRef.current.includes(relatedTarget)) {
-        return;
-      }
-      if (!untrack(resetOnPointerLeave)) {
+      if (listRef.current.includes(relatedTarget)) {
         return;
       }
       cancelQueuedFocus?.();
       cancelQueuedFocus = null;
       index = -1;
       onNavigate(event);
-      if (!untrack(virtual)) {
-        const floatingFocusEl = floatingFocusElement();
-        const activeEl = activeElement(ownerDocument(floatingFocusEl));
-        if (floatingFocusEl && contains(floatingFocusEl, activeEl)) {
-          floatingFocusEl.focus({ preventScroll: true });
-        }
+      const floatingFocusEl = floatingFocusElement();
+      const activeEl = activeElement(ownerDocument(floatingFocusEl));
+      if (floatingFocusEl && contains(floatingFocusEl, activeEl)) {
+        floatingFocusEl.focus({ preventScroll: true });
       }
     },
   };
 
-  const activeDescendant = () => {
-    const active = activeIndex();
-    return virtual() && context.open() && active != null ? `${props.id}-${active}` : undefined;
-  };
-
   const floating: HTMLProps = {
-    get 'aria-activedescendant'() {
-      return isTypeableComboboxReference() ? undefined : activeDescendant();
-    },
     onKeyDown(event: KeyboardEvent) {
       if (!untrack(enabled)) {
         return;
       }
-      if (event.key === 'Tab' && event.shiftKey && untrack(context.open) && !untrack(virtual)) {
+      if (event.key === 'Tab' && event.shiftKey && untrack(context.open)) {
         const target = getTarget(event) as Element | null;
         if (target && !contains(floatingFocusElement(), target)) {
           return;
@@ -591,10 +464,8 @@ export function useListNavigation(
         stopEvent(event);
         const details = createChangeEventDetails(REASONS.focusOut, event);
         context.setOpen(false, details);
-        const returnElement =
-          props.nestedReturnFocusRef?.current ?? untrack(context.domReferenceElement);
-        if (!details.isCanceled && isHTMLElement(returnElement)) {
-          returnElement.focus();
+        if (!details.isCanceled) {
+          returnFocusToTrigger();
         }
         return;
       }
@@ -616,16 +487,13 @@ export function useListNavigation(
   };
 
   const checkVirtualMouse = (event: MouseEvent) => {
-    if (untrack(focusItemOnOpen) === 'auto' && isVirtualClick(event)) {
-      focusItemOnOpenValue = !untrack(virtual);
+    if (isVirtualClick(event)) {
+      focusItemOnOpen = true;
     }
   };
 
   const checkVirtualPointer = (event: PointerEvent) => {
-    focusItemOnOpenValue = untrack(focusItemOnOpen);
-    if (untrack(focusItemOnOpen) === 'auto' && isVirtualPointerEvent(event)) {
-      focusItemOnOpenValue = true;
-    }
+    focusItemOnOpen = isVirtualPointerEvent(event) ? true : 'auto';
   };
 
   const trigger: HTMLProps = {
@@ -644,23 +512,11 @@ export function useListNavigation(
         getParentOrientation(),
         isRtl,
       );
-      const isMainKey = isMainOrientationKey(
-        event.key,
-        currentOpen ? untrack(orientation) : untrack(triggerOrientation),
-      );
+      const isMainKey = isMainOrientationKey(event.key, untrack(orientation));
       const isNavigationKey =
         (isNested ? isParentCrossOpenKey : isMainKey) ||
         event.key === 'Enter' ||
         event.key.trim() === '';
-
-      if (
-        untrack(virtual) &&
-        currentOpen &&
-        (!isNested || isTypeableElement(event.currentTarget))
-      ) {
-        commonOnKeyDown(event);
-        return;
-      }
 
       if (!currentOpen && !untrack(openOnArrowKeyDown) && isArrowKey) {
         return;
@@ -677,9 +533,6 @@ export function useListNavigation(
           if (currentOpen) {
             index = getMinListIndex(listRef.current, props.disabledIndices);
             onNavigate(event);
-            if (untrack(virtual)) {
-              floatingFocusElement()?.focus();
-            }
           } else {
             openOnNavigationKeyDown(event);
           }
@@ -688,10 +541,6 @@ export function useListNavigation(
       }
 
       if (isMainKey) {
-        const selected = untrack(selectedIndex);
-        if (selected != null) {
-          index = selected;
-        }
         stopEvent(event);
         if (!currentOpen && untrack(openOnArrowKeyDown)) {
           openOnNavigationKeyDown(event);
@@ -707,7 +556,7 @@ export function useListNavigation(
       if (event.target !== event.currentTarget) {
         return;
       }
-      if (untrack(enabled) && untrack(context.open) && !untrack(virtual)) {
+      if (untrack(enabled) && untrack(context.open)) {
         index = -1;
         onNavigate(event);
       }
@@ -718,12 +567,5 @@ export function useListNavigation(
     onClick: checkVirtualMouse,
   };
 
-  const reference: HTMLProps = {
-    get 'aria-activedescendant'() {
-      return activeDescendant();
-    },
-    ...trigger,
-  };
-
-  return { reference, floating, item, trigger, highlightItem };
+  return { floating, item, trigger };
 }

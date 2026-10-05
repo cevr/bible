@@ -38,7 +38,6 @@ type PressType = 'intentional' | 'sloppy';
 export interface ElementProps {
   reference?: HTMLProps | undefined;
   floating?: HTMLProps | undefined;
-  item?: HTMLProps | ((props: { active?: boolean; selected?: boolean }) => HTMLProps) | undefined;
   trigger?: HTMLProps | undefined;
 }
 
@@ -58,8 +57,6 @@ export interface UseDismissProps {
   enabled?: boolean | undefined;
   /** Whether Escape closes the popup. */
   escapeKey?: boolean | undefined;
-  /** Whether a press on the trigger closes the popup (read on each press). */
-  referencePress?: (() => boolean) | undefined;
   /** Whether an outside press closes it, or a function deciding per event. */
   outsidePress?: boolean | ((event: MouseEvent | TouchEvent) => boolean) | undefined;
   /**
@@ -89,7 +86,6 @@ export function useDismiss(
   const enabled = () => props.enabled ?? true;
   const escapeKey = () => props.escapeKey ?? true;
   const outsidePress = () => props.outsidePress ?? true;
-  const referencePress = () => (props.referencePress ? props.referencePress() : false);
   const bubbles = () => normalizeBubbles(props.bubbles);
 
   let pressStartedInside = false;
@@ -119,13 +115,6 @@ export function useDismiss(
   const isEventWithinOwnElements = (event: Event) =>
     isEventTargetWithin(event, untrack(context.floatingElement)) ||
     isEventTargetWithin(event, untrack(context.domReferenceElement));
-
-  const closeOnReferencePress = (event: Event) => {
-    if (!enabled() || !referencePress()) {
-      return;
-    }
-    context.setOpen(false, createChangeEventDetails(REASONS.triggerPress, event));
-  };
 
   const closeOnEscapeKeyDown = (event: KeyboardEvent) => {
     if (!untrack(context.open) || !enabled() || !escapeKey() || event.key !== 'Escape') {
@@ -550,11 +539,7 @@ export function useDismiss(
     },
   );
 
-  const reference: HTMLProps = {
-    onKeyDown: closeOnEscapeKeyDown,
-    onPointerDown: closeOnReferencePress,
-    onClick: closeOnReferencePress,
-  };
+  const reference: HTMLProps = { onKeyDown: closeOnEscapeKeyDown };
 
   const floating: HTMLProps = {
     onKeyDown: closeOnEscapeKeyDown,

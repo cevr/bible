@@ -9,11 +9,7 @@
 import type { JSX } from '@solidjs/web';
 import { createSignal } from 'solid-js';
 
-import {
-  Dialog,
-  type DialogFocusTarget,
-  type DialogRootActions,
-} from '../../../src/dialog/index.ts';
+import { Dialog, type DialogFocusTarget } from '../../../src/dialog/index.ts';
 import { log, param } from './log.ts';
 
 function modalParam(): boolean | 'trap-focus' {
@@ -42,7 +38,6 @@ function BasicDialog(): JSX.Element {
   const owner = ownerOpen('open');
   const inputRef: { current: HTMLElement | null } = { current: null };
   const outsideRef: { current: HTMLElement | null } = { current: null };
-  const actionsRef: { current: DialogRootActions | null } = { current: null };
   const initial = param('initial');
   const final = param('final');
   let initialFocus: DialogFocusTarget | undefined;
@@ -67,15 +62,11 @@ function BasicDialog(): JSX.Element {
       <button type="button" id="outside" ref={(el) => (outsideRef.current = el)}>
         outside
       </button>
-      <button type="button" id="close-imperative" onClick={() => actionsRef.current?.close()}>
-        close imperatively
-      </button>
       <owner.Opener>Open</owner.Opener>
       <Dialog.Root
         open={owner.open()}
         modal={modalParam()}
         disablePointerDismissal={param('dismissal') === 'disabled'}
-        actionsRef={actionsRef}
         onOpenChange={(open, details) => {
           log(`open ${open} ${details.reason}`);
           if (param('owner') !== 'keep') {

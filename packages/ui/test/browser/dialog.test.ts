@@ -64,15 +64,6 @@ describe('Dialog.Root', () => {
     expect(await logOf(page)).toContain('open false escape-key');
   });
 
-  it('closes when the actions close', async () => {
-    const page = await h.open('dialog', { query: { modal: 'false' } });
-    await page.click('#open');
-    await see(page.locator('#popup')).toBeVisible();
-    await page.click('#close-imperative');
-    await see(page.locator('#popup')).toHaveCount(0);
-    expect(await logOf(page)).toContain('open false imperative-action');
-  });
-
   it('stays open, focus inside, while the owner keeps open through a close request', async () => {
     const page = await h.open('dialog', { query: { owner: 'keep' } });
     await page.click('#open');

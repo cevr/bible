@@ -1,7 +1,7 @@
 // Upstream: packages/react/src/floating-ui-react/utils/composite.ts
 //
 // One-dimensional list stepping over a list of item elements: the next
-// enabled index in a direction, wrapping or escaping at the ends, and whether
+// enabled index in a direction, stopping or wrapping at the ends, and whether
 // an item counts as disabled (hidden, `:disabled`, `aria-disabled`). Grid
 // navigation is not ported: no part here lays items out in a grid.
 import { getComputedStyle } from '@floating-ui/utils/dom';
@@ -33,7 +33,6 @@ export function getMaxListIndex(
 export interface ListStepOptions {
   decrement: boolean;
   loopFocus: boolean;
-  allowEscape: boolean;
   disabledIndices?: DisabledIndices | undefined;
   minIndex: number;
   maxIndex: number;
@@ -45,7 +44,7 @@ export function getNextListIndex(
   currentIndex: number,
   options: ListStepOptions,
 ): { index: number; wrapped: boolean } {
-  const { decrement, loopFocus, allowEscape, disabledIndices, minIndex, maxIndex } = options;
+  const { decrement, loopFocus, disabledIndices, minIndex, maxIndex } = options;
   const step = () =>
     findNonDisabledListIndex(list, { startingIndex: currentIndex, decrement, disabledIndices });
 
@@ -55,13 +54,8 @@ export function getNextListIndex(
   if (!loopFocus) {
     index = decrement ? Math.max(minIndex, step()) : Math.min(maxIndex, step());
   } else if (decrement ? currentIndex <= minIndex : currentIndex >= maxIndex) {
-    const outside = decrement ? -1 : list.length;
-    if (allowEscape && currentIndex !== outside) {
-      index = -1;
-    } else {
-      index = decrement ? maxIndex : minIndex;
-      wrapped = true;
-    }
+    index = decrement ? maxIndex : minIndex;
+    wrapped = true;
   } else {
     index = step();
   }

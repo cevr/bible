@@ -26,7 +26,7 @@ describe('composite list indexes', () => {
   });
 
   it('steps past disabled items and stops at the ends without loopFocus', () => {
-    const options = { loopFocus: false, allowEscape: false, minIndex: 0, maxIndex: 3 };
+    const options = { loopFocus: false, minIndex: 0, maxIndex: 3 };
     expect(
       getNextListIndex(list(4), 0, { ...options, decrement: false, disabledIndices: [1] }),
     ).toEqual({ index: 2, wrapped: false });
@@ -40,17 +40,16 @@ describe('composite list indexes', () => {
     });
   });
 
-  it('wraps with loopFocus, or escapes to -1 with allowEscape', () => {
+  it('wraps with loopFocus', () => {
     const options = { loopFocus: true, minIndex: 0, maxIndex: 3 };
-    expect(
-      getNextListIndex(list(4), 3, { ...options, allowEscape: false, decrement: false }),
-    ).toEqual({ index: 0, wrapped: true });
-    expect(
-      getNextListIndex(list(4), 0, { ...options, allowEscape: false, decrement: true }),
-    ).toEqual({ index: 3, wrapped: true });
-    expect(
-      getNextListIndex(list(4), 3, { ...options, allowEscape: true, decrement: false }),
-    ).toEqual({ index: -1, wrapped: false });
+    expect(getNextListIndex(list(4), 3, { ...options, decrement: false })).toEqual({
+      index: 0,
+      wrapped: true,
+    });
+    expect(getNextListIndex(list(4), 0, { ...options, decrement: true })).toEqual({
+      index: 3,
+      wrapped: true,
+    });
   });
 
   it('reads disabled indices as a list or a predicate', () => {

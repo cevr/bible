@@ -12,8 +12,6 @@ import { platform } from '../../utils/platform.ts';
 export { activeElement, closest, contains, getTarget };
 
 export const FOCUSABLE_ATTRIBUTE = 'data-base-ui-focusable';
-export const ACTIVE_KEY = 'active';
-export const SELECTED_KEY = 'selected';
 export const TYPEABLE_SELECTOR =
   "input:not([type='hidden']):not([disabled])," +
   "[contenteditable]:not([contenteditable='false']),textarea:not([disabled])";
@@ -52,13 +50,6 @@ export function isInteractiveElement(element: Element | null) {
       `button,a[href],[role="button"],select,[tabindex]:not([tabindex="-1"]),${TYPEABLE_SELECTOR}`,
     ) != null
   );
-}
-
-export function isTypeableCombobox(element: Element | null) {
-  if (!element) {
-    return false;
-  }
-  return element.getAttribute('role') === 'combobox' && isTypeableElement(element);
 }
 
 export function matchesFocusVisible(element: Element | null) {

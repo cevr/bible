@@ -9,7 +9,7 @@
 // Upstream's hover opening and submenus are left out: each menu, a context
 // menu included, is the only menu of its tree.
 import type { JSX } from '@solidjs/web';
-import { createEffect, createUniqueId, onCleanup, untrack } from 'solid-js';
+import { createEffect, createUniqueId, untrack } from 'solid-js';
 
 import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext.ts';
 import { useDirectionAccessor } from '../../internals/DirectionContext.ts';
@@ -20,25 +20,18 @@ import {
 } from '../../floating-ui-solid/FloatingTree.tsx';
 import { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
-import {
-  type HighlightItemTarget,
-  useListNavigation,
-} from '../../floating-ui-solid/hooks/useListNavigation.ts';
+import { useListNavigation } from '../../floating-ui-solid/hooks/useListNavigation.ts';
 import { useTypeahead } from '../../floating-ui-solid/hooks/useTypeahead.ts';
 import { TYPEAHEAD_RESET_MS } from '../../internals/constants.ts';
 import {
   type BaseUIChangeEventDetails,
   type BaseUIGenericEventDetails,
-  createChangeEventDetails,
   createGenericEventDetails,
 } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import type { Orientation } from '../../internals/types.ts';
 import { mergeProps } from '../../merge-props/mergeProps.ts';
-import {
-  attachPreventUnmountOnClose,
-  FOCUSABLE_POPUP_PROPS,
-} from '../../utils/popups/popupStore.ts';
+import { FOCUSABLE_POPUP_PROPS } from '../../utils/popups/popupStore.ts';
 import { useTimeout } from '../../utils/timers.ts';
 import { useOpenInteractionType } from '../../utils/useOpenInteractionType.ts';
 import {
@@ -59,21 +52,11 @@ export type MenuHighlightEventDetails = BaseUIGenericEventDetails<
   { label: string | undefined }
 >;
 
-export interface MenuRootActions {
-  /** Ends a close kept mounted by `preventUnmountOnClose()`. */
-  unmount: () => void;
-  close: () => void;
-  /** Moves or clears the highlight while the menu is open. */
-  highlightItem: (target: HighlightItemTarget) => void;
-}
-
 export interface MenuRootProps {
   /** @default false */
   defaultOpen?: boolean | undefined;
   /** @default true */
   loopFocus?: boolean | undefined;
-  /** Whether the pointer highlights items. @default true */
-  highlightItemOnHover?: boolean | undefined;
   /**
    * Whether the open menu is modal: page scroll locked and outside pointer
    * interaction blocked. @default true
@@ -90,8 +73,6 @@ export interface MenuRootProps {
   orientation?: Orientation | undefined;
   /** @default false */
   disabled?: boolean | undefined;
-  /** Receives the imperative actions. */
-  actionsRef?: { current: MenuRootActions | null } | undefined;
   children?: JSX.Element;
 }
 
@@ -139,7 +120,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     defaultOpen: untrack(() => props.defaultOpen ?? false),
     disabled: () => props.disabled ?? false,
     modal: () => props.modal,
-    highlightItemOnHover: () => props.highlightItemOnHover ?? true,
     openMethod,
     floatingId,
     rootId,
@@ -193,7 +173,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
       return;
     }
     const details = eventDetails as MenuChangeEventDetails;
-    const shouldPreventUnmountOnClose = attachPreventUnmountOnClose(details);
     // The trigger stays active while closing, so the exit animates from it and focus returns to it.
     if (!nextOpen && eventDetails.trigger == null) {
       eventDetails.trigger = activeTriggerElement ?? undefined;
@@ -236,7 +215,7 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
       instantType = 'dismiss';
     }
 
-    store.applyMenuOpenState(nextOpen, eventDetails, shouldPreventUnmountOnClose(), {
+    store.applyMenuOpenState(nextOpen, eventDetails, {
       reason,
       keyboardOpen: nextOpen && isKeyboardOpen(reason, nativeEvent),
       instantType,
@@ -285,35 +264,16 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     get orientation() {
       return orientation();
     },
-    get triggerOrientation() {
-      return orientation();
-    },
     get rtl() {
       return direction() === 'rtl';
     },
     disabledIndices: [],
-    onNavigate(nextActiveIndex, event, source) {
-      store.setActiveIndex(
-        nextActiveIndex,
-        source === 'imperative' ? REASONS.imperativeAction : getHighlightReason(event),
-        event,
-      );
+    onNavigate(nextActiveIndex, event) {
+      store.setActiveIndex(nextActiveIndex, getHighlightReason(event), event);
     },
     openOnArrowKeyDown: parent.type !== 'context-menu',
     externalTree: nested ? floatingTreeRoot : undefined,
-    get focusItemOnHover() {
-      return store.highlightItemOnHover();
-    },
-    resetOnPointerLeave: true,
   });
-
-  if (props.actionsRef) {
-    props.actionsRef.current = {
-      unmount: store.forceUnmount,
-      close: () => store.setOpen(false, createChangeEventDetails(REASONS.imperativeAction)),
-      highlightItem: listNavigation.highlightItem,
-    };
-  }
 
   const typeahead = useTypeahead(floatingRootContext, {
     get enabled() {
@@ -369,7 +329,7 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
 
   const activeTriggerProps = mergeProps(
     typeahead.reference,
-    listNavigation.reference,
+    listNavigation.trigger,
     dismiss.reference ?? {},
     interactionTypeProps,
     {
@@ -403,12 +363,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     itemProps: listNavigation.item,
     syncHighlightedItem,
   };
-
-  onCleanup(() => {
-    if (props.actionsRef) {
-      props.actionsRef.current = null;
-    }
-  });
 
   return (
     <FloatingTree externalTree={floatingTreeRoot}>

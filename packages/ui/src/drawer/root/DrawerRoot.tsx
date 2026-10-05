@@ -11,7 +11,6 @@ import {
   type DialogChangeEventDetails,
   type DialogChangeEventReason,
   DialogRoot,
-  type DialogRootActions,
 } from '../../dialog/root/DialogRoot.tsx';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext.ts';
 import type { DialogModal } from '../../dialog/store/DialogStore.ts';
@@ -25,7 +24,6 @@ export type { DrawerSwipeDirection };
 
 export type DrawerRootChangeEventReason = DialogChangeEventReason;
 export type DrawerRootChangeEventDetails = DialogChangeEventDetails;
-export type DrawerRootActions = DialogRootActions;
 
 export interface DrawerRootState {}
 
@@ -49,8 +47,6 @@ export interface DrawerRootProps {
    * also focus moving outside). @default false
    */
   disablePointerDismissal?: boolean | undefined;
-  /** Receives the imperative actions. */
-  actionsRef?: { current: DrawerRootActions | null } | undefined;
   /** The direction a swipe dismisses the drawer in. @default 'down' */
   swipeDirection?: DrawerSwipeDirection | undefined;
   children?: JSX.Element;
@@ -67,7 +63,6 @@ export function DrawerRoot(props: DrawerRootProps): JSX.Element {
       defaultOpen={props.defaultOpen}
       modal={props.modal}
       disablePointerDismissal={props.disablePointerDismissal}
-      actionsRef={props.actionsRef}
       onOpenChange={props.onOpenChange}
       onOpenChangeComplete={props.onOpenChangeComplete}
     >

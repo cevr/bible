@@ -1,29 +1,24 @@
 // Upstream: packages/react/src/floating-ui-react/hooks/useClick.ts
 //
-// Opens and closes a popup by pressing its trigger: on click, or on
-// mousedown (so a press-drag-release on an item works, as native menus do).
+// Opens and closes a popup by pressing its trigger, in Menu's mode: a
+// pointer opens on mousedown (so a press-drag-release on an item works, as
+// native menus do), a keyboard click on click, and a second press closes.
 // A press on a second trigger while open moves the popup to it instead of
-// closing. Upstream's `stickIfOpen` (a popup opened by hover or focus stays
-// open on the click that follows) is left out: no trigger here opens that way.
+// closing. Upstream's click-only mode, `ignoreMouse`, `touchOpenDelay`,
+// `reason` and `stickIfOpen` are left out: MenuTrigger, the one caller,
+// uses none of them.
 import { untrack } from 'solid-js';
 
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import type { HTMLProps } from '../../internals/types.ts';
-import { useAnimationFrame, useTimeout } from '../../utils/timers.ts';
+import { useAnimationFrame } from '../../utils/timers.ts';
 import type { FloatingRootContext } from '../FloatingRootContext.ts';
 import { getTarget, isTypeableElement } from '../utils/element.ts';
 import { isMouseLikePointerType, isVirtualPointerEvent } from '../utils/event.ts';
 
 export interface UseClickProps {
   enabled?: boolean | undefined;
-  /** `mousedown` opens on press; `mousedown-only` also ignores the click after it. */
-  event?: 'click' | 'mousedown' | 'mousedown-only' | undefined;
-  /** Whether a second press closes the popup. */
-  toggle?: boolean | undefined;
-  ignoreMouse?: boolean | undefined;
-  touchOpenDelay?: number | undefined;
-  reason?: typeof REASONS.triggerPress | typeof REASONS.inputPress | undefined;
 }
 
 type PointerKind = 'mouse' | 'pen' | 'touch' | 'virtual' | undefined;
@@ -34,37 +29,17 @@ export function useClick(
 ): { reference: HTMLProps } {
   let pointerType: PointerKind;
   const frame = useAnimationFrame();
-  const touchOpenTimeout = useTimeout();
 
   const enabled = () => props.enabled ?? true;
-  const eventOption = () => props.event ?? 'click';
 
-  const setOpenWithTouchDelay = (
-    nextOpen: boolean,
-    nativeEvent: MouseEvent,
-    target: HTMLElement,
-    kind: PointerKind,
-  ) => {
-    const details = createChangeEventDetails(
-      props.reason ?? REASONS.triggerPress,
-      nativeEvent,
-      target,
-    );
-    const delay = props.touchOpenDelay ?? 0;
-    if (nextOpen && kind === 'touch' && delay > 0) {
-      touchOpenTimeout.start(delay, () => context.setOpen(true, details));
-    } else {
-      context.setOpen(nextOpen, details);
-    }
+  const setOpen = (nextOpen: boolean, nativeEvent: MouseEvent, target: HTMLElement) => {
+    context.setOpen(nextOpen, createChangeEventDetails(REASONS.triggerPress, nativeEvent, target));
   };
 
-  const getNextOpen = (open: boolean, currentTarget: EventTarget | null) => {
-    const hasClickedOnInactiveTrigger = untrack(context.domReferenceElement) !== currentTarget;
-    if (!open || hasClickedOnInactiveTrigger) {
-      return true;
-    }
-    return !(props.toggle ?? true);
-  };
+  // A press opens a closed popup, or moves an open one to this trigger; a
+  // press on the trigger that holds it closes it.
+  const getNextOpen = (open: boolean, currentTarget: EventTarget | null) =>
+    !open || untrack(context.domReferenceElement) !== currentTarget;
 
   const reference: HTMLProps = {
     onPointerDown(event: PointerEvent) {
@@ -77,47 +52,31 @@ export function useClick(
           : (event.pointerType as PointerKind);
     },
     onMouseDown(event: MouseEvent) {
-      if (!enabled()) {
-        return;
-      }
-      const kind = pointerType;
-      if (
-        event.button !== 0 ||
-        eventOption() === 'click' ||
-        (isMouseLikePointerType(kind, true) && props.ignoreMouse)
-      ) {
+      if (!enabled() || event.button !== 0) {
         return;
       }
       const nextOpen = getNextOpen(untrack(context.open), event.currentTarget);
       const target = getTarget(event);
       const isTypeable = isTypeableElement(target);
-      if (isTypeable || kind === 'virtual') {
-        setOpenWithTouchDelay(
-          nextOpen,
-          event,
-          (isTypeable ? target : event.currentTarget) as HTMLElement,
-          kind,
-        );
+      if (isTypeable || pointerType === 'virtual') {
+        setOpen(nextOpen, event, (isTypeable ? target : event.currentTarget) as HTMLElement);
         return;
       }
       // Wait a frame so the mousedown's focus lands on the trigger before the popup takes it.
       const currentTarget = event.currentTarget as HTMLElement;
-      frame.request(() => setOpenWithTouchDelay(nextOpen, event, currentTarget, kind));
+      frame.request(() => setOpen(nextOpen, event, currentTarget));
     },
     onClick(event: MouseEvent) {
-      if (!enabled() || eventOption() === 'mousedown-only') {
+      if (!enabled()) {
         return;
       }
-      const kind = pointerType;
-      if (eventOption() === 'mousedown' && kind) {
+      // A pointer press already acted on mousedown; only a keyboard click acts here.
+      if (pointerType) {
         pointerType = undefined;
         return;
       }
-      if (isMouseLikePointerType(kind, true) && props.ignoreMouse) {
-        return;
-      }
       const nextOpen = getNextOpen(untrack(context.open), event.currentTarget);
-      setOpenWithTouchDelay(nextOpen, event, event.currentTarget as HTMLElement, kind);
+      setOpen(nextOpen, event, event.currentTarget as HTMLElement);
     },
     onKeyDown() {
       pointerType = undefined;

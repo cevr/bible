@@ -112,9 +112,6 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     get enabled() {
       return !disabled();
     },
-    event: 'mousedown',
-    toggle: true,
-    ignoreMouse: false,
   });
 
   const rootTriggerProps = propsFromAccessor(() => triggerProps(isMountedByThisTrigger()));

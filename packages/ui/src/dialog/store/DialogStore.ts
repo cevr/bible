@@ -15,27 +15,18 @@ import type { FloatingContext } from '../../floating-ui-solid/FloatingRootContex
 import type { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { REASONS } from '../../internals/reasons.ts';
-import {
-  attachPreventUnmountOnClose,
-  createPopupStore,
-  type PopupStore,
-} from '../../utils/popups/popupStore.ts';
+import { createPopupStore, type PopupStore } from '../../utils/popups/popupStore.ts';
 
 export type DialogChangeEventReason =
-  | typeof REASONS.triggerPress
   | typeof REASONS.outsidePress
   | typeof REASONS.escapeKey
   | typeof REASONS.closeWatcher
   | typeof REASONS.closePress
   | typeof REASONS.focusOut
-  | typeof REASONS.imperativeAction
   | typeof REASONS.swipe
   | typeof REASONS.none;
 
-export type DialogChangeEventDetails = BaseUIChangeEventDetails<DialogChangeEventReason> & {
-  /** Keeps the popup mounted after closing until the `unmount` action is called. */
-  preventUnmountOnClose: () => void;
-};
+export type DialogChangeEventDetails = BaseUIChangeEventDetails<DialogChangeEventReason>;
 
 export type DialogModal = boolean | 'trap-focus';
 
@@ -99,13 +90,12 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
 
   function setOpen(nextOpen: boolean, eventDetails: BaseUIChangeEventDetails) {
     const details = eventDetails as DialogChangeEventDetails;
-    const shouldPreventUnmountOnClose = attachPreventUnmountOnClose(details);
     untrack(options.onOpenChange)?.(nextOpen, details);
     if (details.isCanceled) {
       return;
     }
     popup.floatingRootContext.dispatchOpenChange(nextOpen, details);
-    popup.applyOpenState(nextOpen, details.trigger, shouldPreventUnmountOnClose());
+    popup.applyOpenState(nextOpen, details.trigger);
   }
 
   // What the floating tree and the interactions read of this dialog.
