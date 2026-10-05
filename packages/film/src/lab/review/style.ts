@@ -25,7 +25,8 @@ body.rv {
 .rv-hint, .rv-meta { color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
 .rv-row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
 .rv-pick { margin-bottom: var(--s-3); }
-.rv-set-tools { margin-bottom: var(--s-3); }
+/* A set's modes, and in Compare its layouts beside them (wrapping under on a phone). */
+.rv-set-tools { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-3); }
 .rv-grid { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
 .rv-grid.rv-wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
 .rv-grid.rv-two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 640px), 1fr)); }
@@ -63,8 +64,9 @@ a.rv-card:hover { background: var(--surface-2); }
   color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* A hear button is the kit's icon button; its glyph is grey until it is on. */
+/* A hear button is the kit's icon button, at its caption's end; its glyph is grey until it is on. */
 .rv-sound { filter: grayscale(1); }
+.rv-cap > .rv-sound { margin-left: auto; }
 .rv-sound.on { filter: none; }
 .rv-letter {
   font-weight: var(--w-3); min-width: var(--s-6); height: var(--s-6); padding: 0 var(--s-1); border-radius: var(--r-1);

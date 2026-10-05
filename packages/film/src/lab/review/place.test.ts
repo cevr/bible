@@ -17,6 +17,7 @@ import {
   keptTime,
   placeOf,
   queryOfView,
+  shownQuery,
   viewOf,
 } from './place.ts';
 
@@ -51,8 +52,24 @@ describe('the place in the URL', () => {
     expect(viewOf(queryAt('?view=pair&other=Z'), ids)).toEqual(ViewState.Pair({ other: 'B' }));
     expect(viewOf(queryAt('?view=moments&m=3'), ids)).toEqual(ViewState.Moments({ index: 3 }));
     expect(viewOf(queryAt('?view=moments&m=-2'), ids)).toEqual(ViewState.Moments({ index: 0 }));
-    expect(viewOf(queryAt('?view=notes'), ids)).toEqual(ViewState.Notes);
+    expect(viewOf(queryAt('?view=notes'), ids)).toEqual(ViewState.All);
     expect(viewOf(queryAt('?view=wat'), ids)).toEqual(ViewState.All);
+  });
+
+  test("an old link to a set's notes opens all, with the first version's Info (UR-34)", () => {
+    const whole = (search: string) =>
+      Option.getOrThrow(Place.decode(Places.set, `/sets/f/s${search}`)).query;
+    const old = whole('?view=notes');
+    expect(shownQuery(old, viewOf(old, ['A', 'B']), 'A')).toEqual({
+      ...whole(''),
+      inspect: 'A',
+    });
+    // A link that names a version's Info keeps it.
+    const named = whole('?view=notes&inspect=B');
+    expect(shownQuery(named, viewOf(named, ['A', 'B']), 'A').inspect).toBe('B');
+    // Any other view keeps its sheet as it is.
+    const pair = whole('?view=pair&other=B');
+    expect(shownQuery(pair, viewOf(pair, ['A', 'B']), 'A').inspect).toBe('');
   });
 
   test('a place or a view read again from a new href is equal to the one before', () => {

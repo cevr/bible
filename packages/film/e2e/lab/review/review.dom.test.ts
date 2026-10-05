@@ -277,13 +277,13 @@ describe('the review page', () => {
   );
 
   it.live(
-    'shows the first against one other, the moments, and the notes, the view kept in the URL',
+    "shows the first against one other, the moments, and an old notes link as a version's Info, the view kept in the URL",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: SET });
         yield* waitFor(page, '.rv-transport');
         yield* page.click('.rv-card[data-id="C"] .rv-sound');
-        yield* page.click('.rv-views button[data-view="pair"]');
+        yield* page.click('.rv-views button[data-view="compare"]');
         yield* until(page, "location.search === '?view=pair&other=B'");
         const shown =
           "Array.from(document.querySelectorAll('.rv-card[data-id]')).map((c) => c.dataset.id).join()";
@@ -315,10 +315,16 @@ describe('the review page', () => {
         yield* page.press('Escape');
         yield* until(page, "document.querySelector('.rv-lightbox') === null");
 
-        yield* page.click('.rv-views button[data-view="notes"]');
-        yield* textHas(page, '.rv-verdict', 'verdict B');
-        yield* waitFor(page, '.rv-note[data-id="A"] i');
-        yield* textHas(page, '.rv-note[data-id="A"]', 'Warm reads best.');
+        // The notes are each version's Info (UR-34): an old link to them opens All, the
+        // first version's sheet open on its lines and notes, and says so in the URL.
+        yield* page.goto(`${SET}?view=notes`);
+        yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
+        yield* until(page, "location.search === '?inspect=A'");
+        yield* textHas(page, '[data-role="inspector"] .rv-verdict', 'verdict A');
+        yield* waitFor(page, '[data-role="inspector"] i');
+        yield* textHas(page, '[data-role="inspector"]', 'Warm reads best.');
+        // The caps say a version's name, not its lines (UR-30).
+        yield* countIs(page, '.rv-card .rv-tag', 0);
 
         // A reload opens the view the URL keeps.
         yield* page.goto(`${SET}?view=moments&m=2`);
@@ -337,7 +343,7 @@ describe('the review page', () => {
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
         yield* until(page, "location.hash === '#t=4'");
-        yield* page.click('.rv-views button[data-view="pair"]');
+        yield* page.click('.rv-views button[data-view="compare"]');
         yield* until(page, "location.search === '?view=pair&other=B'");
         // The time moves on in the pair's entry; all's keeps 4.
         yield* page.press('ArrowRight');
@@ -373,7 +379,7 @@ describe('the review page', () => {
         // The time in the URL is the set's own: the set and its videos stay as they are.
         yield* evaluates(page, "document.querySelector('.rv-card video') === window.first", true);
         const at = 'location.pathname + location.search';
-        yield* page.click('.rv-views button[data-view="pair"]');
+        yield* page.click('.rv-views button[data-view="compare"]');
         yield* until(page, `${at} === '${SET}?view=pair&other=B'`);
         // Cycling the pair refines the view in its own entry.
         yield* page.click('button[data-other="C"]');
@@ -388,7 +394,7 @@ describe('the review page', () => {
         yield* waitFor(page, 'button[data-moment="0"][aria-pressed="true"]');
         yield* until(page, `${at} === '${SET}?view=moments'`);
         yield* page.back;
-        yield* waitFor(page, '.rv-views button[data-view="pair"][aria-pressed="true"]');
+        yield* waitFor(page, '.rv-views button[data-view="compare"][aria-pressed="true"]');
         yield* until(page, `${at} === '${SET}?view=pair&other=C'`);
         yield* page.back;
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
@@ -431,51 +437,58 @@ describe('the review page', () => {
   );
 
   it.live(
-    'a variant the record proves stale says why in every view; the rest say no state',
+    'a variant the record proves stale says Out of date in every view and why in its Info; the rest say no state',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: SET });
         const STALE = 'out of date: its sources changed since it was made';
-        /** The grid's one state word is C's, and says why it is stale. */
+        /** The grid's one state badge is C's (UR-29). */
         const onlyCStale = Effect.andThen(
-          textsAre(page, '.rv-grid [data-state]', [STALE]),
-          textsAre(page, '.rv-grid [data-id="C"] [data-state]', [STALE]),
+          textsAre(page, '.rv-grid [data-approval="stale"]', ['Out of date']),
+          textsAre(page, '.rv-grid [data-id="C"] [data-approval="stale"]', ['Out of date']),
         );
-        yield* waitFor(page, '.rv-card[data-id="C"] [data-state="stale"]');
+        yield* waitFor(page, '.rv-card[data-id="C"] [data-approval="stale"]');
         yield* onlyCStale;
         yield* page.click('.rv-views button[data-view="moments"]');
         yield* waitFor(page, '.rv-card[data-id="C"] img');
         yield* onlyCStale;
-        yield* page.click('.rv-views button[data-view="notes"]');
-        yield* waitFor(page, '.rv-note[data-id="C"]');
-        yield* onlyCStale;
+        // Why is C's Info.
+        yield* page.goto(`${SET}?inspect=C`);
+        yield* textsAre(page, '[data-role="inspector"] [data-state="stale"]', [STALE]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );
 
   it.live(
-    'a set of one version offers no side by side, and a link asking for one opens All',
+    'a set of one version offers no Compare, and a link asking for one opens All',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, {
           href: `${SKY}?view=pair&other=nope`,
         });
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
-        yield* countIs(page, '.rv-views button[data-view="pair"]', 0);
-        yield* countIs(page, '.rv-views button[data-view="wipe"]', 0);
-        yield* countIs(page, '.rv-views button[data-view="diff"]', 0);
+        yield* textsAre(page, '.rv-views button', ['All', 'Moments']);
+        yield* countIs(page, '.rv-layouts', 0);
         // The URL keeps no empty other.
         yield* until(page, `location.pathname + location.search === '${SKY}'`);
         // Nor does a wipe or a difference: neither has an other here.
         yield* page.goto(`${SKY}?view=diff&m=2`);
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
         yield* until(page, `location.pathname + location.search === '${SKY}'`);
-        // A set of several offers them, by their industry names.
+        // A set of several offers its modes, and in Compare its layouts by their industry
+        // names (UR-21): `v` steps the modes, `⇧V` the layouts.
         yield* page.goto(SET);
-        yield* textIs(page, '.rv-views button[data-view="pair"]', 'Side by side');
-        yield* textIs(page, '.rv-views button[data-view="wipe"]', 'Wipe');
-        yield* textIs(page, '.rv-views button[data-view="diff"]', 'Difference');
+        yield* textsAre(page, '.rv-views button', ['All', 'Compare', 'Moments']);
+        yield* countIs(page, '.rv-layouts', 0);
+        yield* page.press('v');
+        yield* waitFor(page, '.rv-views button[data-view="compare"][aria-pressed="true"]');
+        yield* textsAre(page, '.rv-layouts button', ['Side by side', 'Wipe', 'Difference']);
+        yield* waitFor(page, '.rv-layouts button[data-view="pair"][aria-pressed="true"]');
+        yield* page.press('Shift+V');
+        yield* until(page, "location.search === '?view=wipe&other=B'");
+        yield* page.press('v');
+        yield* waitFor(page, '.rv-views button[data-view="moments"][aria-pressed="true"]');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -487,7 +500,8 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: SET });
         yield* waitFor(page, '.rv-transport');
-        yield* page.click('.rv-views button[data-view="wipe"]');
+        yield* page.click('.rv-views button[data-view="compare"]');
+        yield* page.click('.rv-layouts button[data-view="wipe"]');
         yield* until(page, "location.search === '?view=wipe&other=B'");
         const stacked =
           "Array.from(document.querySelectorAll('.rv-wipe video')).map((v) => v.dataset.id).join()";
@@ -615,7 +629,8 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: SET });
         yield* waitFor(page, '.rv-transport');
-        yield* page.click('.rv-views button[data-view="diff"]');
+        yield* page.click('.rv-views button[data-view="compare"]');
+        yield* page.click('.rv-layouts button[data-view="diff"]');
         yield* until(page, "location.search === '?view=diff&other=B'");
         yield* countIs(page, '.rv-transport', 0);
         const stills =
@@ -645,18 +660,25 @@ describe('the review page', () => {
   );
 
   it.live(
-    "at a phone's width, a version's out-of-date reason and lines show in full, and a proxy still being made is said, never the original streamed",
+    "at a phone's width, a version's caps fit, its out-of-date reason and lines show in full in its Info, and a proxy still being made is said, never the original streamed",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, {
           href: SET,
           viewport: { width: 390, height: 844 },
         });
-        const tag = '.rv-card[data-id="C"] .rv-tag[data-state="stale"]';
-        yield* waitFor(page, tag);
+        // The caps fit, C's saying Out of date; why, and its lines, are its Info, in full.
+        yield* waitFor(page, '.rv-card[data-id="C"] [data-approval="stale"]');
         yield* evaluates(
           page,
-          `Array.from(document.querySelectorAll('.rv-card[data-id] .rv-tag')).every((t) => t.scrollWidth <= t.clientWidth)`,
+          `Array.from(document.querySelectorAll('.rv-card[data-id] .rv-cap')).every((t) => t.scrollWidth <= t.clientWidth)`,
+          true,
+        );
+        yield* page.goto(`${SET}?inspect=C`);
+        yield* waitFor(page, '[data-role="inspector"] .rv-tag[data-state="stale"]');
+        yield* evaluates(
+          page,
+          `Array.from(document.querySelectorAll('[data-role="inspector"] :is(.rv-tag, .rv-hint)')).every((t) => t.scrollWidth <= t.clientWidth)`,
           true,
         );
         // The phone plays proxies: the sky's is not made yet, so its card says so and streams nothing.

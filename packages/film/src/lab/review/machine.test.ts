@@ -2,7 +2,7 @@
 // plays again from the start once at the end, holds while a video stalls,
 // scrubs (playing on after if it was), steps inside the set, and keeps its
 // rate and the sound it plays through all of it; a seek counts, a tick does
-// not. The view moves between all, the pair, the moments and the notes, a
+// not. The view moves between all, the pair, the moments and the difference, a
 // pair keeping its other and the moments wrapping round.
 
 import { Effect, Match, Option } from 'effect';
@@ -16,6 +16,11 @@ import {
   ViewEvent,
   ViewState,
   clockText,
+  modeOf,
+  modeView,
+  modesOf,
+  nextLayout,
+  nextModeView,
   playsIn,
   reachOf,
   runningOf,
@@ -221,17 +226,17 @@ describe('the synced player', () => {
 const views = viewMachine(ViewState.All, Option.some('B'));
 
 describe('the view', () => {
-  it.effect('moves between all, the pair, the moments and the notes', () =>
+  it.effect('moves between all, the pair, the moments and the difference', () =>
     Effect.gen(function* () {
       yield* assertPath(
         views,
         [
           ViewEvent.ViewChosen({ view: 'pair' }),
           ViewEvent.ViewChosen({ view: 'moments' }),
-          ViewEvent.ViewChosen({ view: 'notes' }),
+          ViewEvent.ViewChosen({ view: 'diff' }),
           ViewEvent.ViewChosen({ view: 'all' }),
         ],
-        ['All', 'Pair', 'Moments', 'Notes', 'All'],
+        ['All', 'Pair', 'Moments', 'Diff', 'All'],
       );
     }),
   );
@@ -309,15 +314,41 @@ describe('the view', () => {
     );
   });
 
-  test('plays videos in all, the pair and its wipe; the moments, the difference and the notes stand still', () => {
+  test("a set's modes: All, Compare (its layouts the pair, the wipe and the difference) and Moments (UR-21)", () => {
+    expect([
+      modeOf('all'),
+      modeOf('pair'),
+      modeOf('wipe'),
+      modeOf('diff'),
+      modeOf('moments'),
+    ]).toEqual(['all', 'compare', 'compare', 'compare', 'moments']);
+    expect(modesOf(1)).toEqual(['all', 'moments']);
+    expect(modesOf(3)).toEqual(['all', 'compare', 'moments']);
+    // `v` steps the modes round, each opening on its first view; a set of one skips Compare.
+    expect(nextModeView('all', modesOf(3))).toBe('pair');
+    expect(nextModeView('wipe', modesOf(3))).toBe('moments');
+    expect(nextModeView('moments', modesOf(3))).toBe('all');
+    expect(nextModeView('all', modesOf(1))).toBe('moments');
+    // A mode tapped again keeps its layout.
+    expect(modeView('compare', 'diff')).toBe('diff');
+    expect(modeView('compare', 'all')).toBe('pair');
+    // `⇧V` steps Compare's layouts round, and nothing outside it.
+    expect([nextLayout('pair'), nextLayout('wipe'), nextLayout('diff')]).toEqual([
+      Option.some('wipe'),
+      Option.some('diff'),
+      Option.some('pair'),
+    ]);
+    expect(nextLayout('all')).toEqual(Option.none());
+  });
+
+  test('plays videos in all, the pair and its wipe; the moments and the difference stand still', () => {
     expect([
       playsIn('all'),
       playsIn('pair'),
       playsIn('wipe'),
       playsIn('moments'),
       playsIn('diff'),
-      playsIn('notes'),
-    ]).toEqual([true, true, true, false, false, false]);
+    ]).toEqual([true, true, true, false, false]);
   });
 });
 

@@ -855,7 +855,9 @@ const inspect = cited;
 
 /**
  * The views of a comparison set (`?view=`): all side by side, a pair, the
- * pair's wipe, the moments, the pair's difference at a moment (PA-8), the notes.
+ * pair's wipe, the moments, the pair's difference at a moment (PA-8); and
+ * `notes`, a view no longer shown, read so an old link opens all with the
+ * first version's Info, where its notes now are (UR-34).
  */
 export const SET_VIEWS = ['all', 'pair', 'wipe', 'moments', 'diff', 'notes'] as const;
 

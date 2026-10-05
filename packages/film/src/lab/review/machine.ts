@@ -4,18 +4,18 @@
 // variants, the first against one other (side by side, or wiped: stacked
 // full width, the other right of a divider), the moments (every variant's
 // frame at a few instants), the first and one other's difference at a moment
-// (PA-8: stills cut at the same instant, so the blend is exact), or the notes.
+// (PA-8: stills cut at the same instant, so the blend is exact). A version's
+// notes are its Info, in its inspector (UR-34): an old `?view=notes` reads as
+// All.
 //
 //   Paused ─Play→ Playing ─Pause→ Paused     Playing ─Stalled→ Buffering ─Resumed→ Playing
 //   any ─ScrubMoved→ Scrubbing ─ScrubReleased→ Playing | Paused (as it was)
 //   Playing | Buffering ─Ended→ Paused (at the end)
 //   any ─Stepped | Landed | Measured | HeardChosen | RateChosen→ the same, changed
 //
-//   All | Pair | Wipe | Moments | Diff | Notes ─ViewChosen→ any (Pair, Wipe, Diff only with a second version)
+//   All | Pair | Wipe | Moments | Diff ─ViewChosen→ any (Pair, Wipe, Diff only with a second version)
 //   Pair | Wipe | Diff ─OtherChosen→ the same, against that other
-//   Moments | Diff ─MomentChosen | MomentStepped→ the same, at that moment| Pair | Moments | Notes ─ViewChosen→ any (Pair only with a second version)
-//   Pair ─OtherChosen→ Pair
-//   Moments ─MomentChosen | MomentStepped→ Moments
+//   Moments | Diff ─MomentChosen | MomentStepped→ the same, at that moment
 //
 // Events are facts (a button pressed, the clock moved on, a video stalled);
 // the driver (`sync.ts`) makes the videos do what each state says. A seek (a
@@ -28,7 +28,7 @@
 
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State, simulate } from 'effect-machine';
-import { SET_VIEWS } from '../../core/api.ts';
+import type { SET_VIEWS } from '../../core/api.ts';
 import { timecode } from '../../core/time.ts';
 
 /** Seconds a ←/→ step moves. */
@@ -256,8 +256,11 @@ export const reachOf = (state: SyncState): number => {
 // ---------------------------------------------------------------------------
 // The view
 
-export const ViewName = Schema.Literals(SET_VIEWS);
-export type ViewName = typeof ViewName.Type;
+/** The views a set shows, each a `?view=` value (`SET_VIEWS` but the old `notes`). */
+const ViewName = Schema.Literals(['all', 'pair', 'wipe', 'moments', 'diff'] satisfies ReadonlyArray<
+  (typeof SET_VIEWS)[number]
+>);
+type ViewName = typeof ViewName.Type;
 
 export const ViewState = State({
   All: {},
@@ -269,7 +272,6 @@ export const ViewState = State({
   Moments: { index: Schema.Int },
   /** The first variant's frame and `other`'s at the `index`th moment, in the difference blend. */
   Diff: { other: Schema.String, index: Schema.Int },
-  Notes: {},
 });
 export type ViewState = typeof ViewState.Type;
 
@@ -288,11 +290,15 @@ const VIEWS = [
   ViewState.Wipe,
   ViewState.Moments,
   ViewState.Diff,
-  ViewState.Notes,
 ] as const;
 
-/** The views of the first against one other: a set of one has none of them. */
-const PAIRED: ReadonlyArray<ViewName> = ['pair', 'wipe', 'diff'];
+/**
+ * The views of the first against one other, the Compare's layouts (side by
+ * side, wiped, the difference): a set of one has none of them.
+ */
+export const LAYOUTS = ['pair', 'wipe', 'diff'] as const satisfies ReadonlyArray<ViewName>;
+export type Layout = (typeof LAYOUTS)[number];
+const PAIRED: ReadonlyArray<ViewName> = LAYOUTS;
 
 /** The state `view` shows: a pair, its wipe or its difference against `other`, the moments at `index`. */
 const viewEntered = (view: ViewName, other: string, index: number): ViewState =>
@@ -302,7 +308,7 @@ const viewEntered = (view: ViewName, other: string, index: number): ViewState =>
     Match.when('wipe', () => ViewState.Wipe({ other })),
     Match.when('moments', () => ViewState.Moments({ index })),
     Match.when('diff', () => ViewState.Diff({ other, index })),
-    Match.orElse(() => ViewState.Notes),
+    Match.exhaustive,
   );
 
 /** The other `state` is against: a pair's, its wipe's or its difference's. */
@@ -390,7 +396,6 @@ export const viewNameOf = (state: ViewState): ViewName =>
       Wipe: (): ViewName => 'wipe',
       Moments: (): ViewName => 'moments',
       Diff: (): ViewName => 'diff',
-      Notes: (): ViewName => 'notes',
     }),
   );
 
@@ -401,6 +406,49 @@ export const viewNameOf = (state: ViewState): ViewName =>
  */
 export const playsIn = (view: ViewName): boolean =>
   view === 'all' || view === 'pair' || view === 'wipe';
+
+/**
+ * A set's modes, one at a time (UR-21): all its versions, the Compare of
+ * the first against one other (its layouts the pair, the wipe and the
+ * difference), and the moments. Each opens on its first view.
+ */
+const SET_MODES = ['all', 'compare', 'moments'] as const;
+export type SetMode = (typeof SET_MODES)[number];
+
+/** The view a mode opens on. */
+const OPENS: Record<SetMode, ViewName> = { all: 'all', compare: 'pair', moments: 'moments' };
+
+/** The mode `view` is in: a pair, its wipe and its difference are the Compare's. */
+export const modeOf = (view: ViewName): SetMode =>
+  Option.getOrElse(
+    Option.fromUndefinedOr(SET_MODES.find((m) => m === view)),
+    (): SetMode => 'compare',
+  );
+
+/** The modes a set of `count` versions offers: one has no Compare. */
+export const modesOf = (count: number): ReadonlyArray<SetMode> =>
+  SET_MODES.filter((m) => m !== 'compare' || count >= 2);
+
+/** The view the mode after `view`'s opens on, round to the first, among `modes`. */
+export const nextModeView = (view: ViewName, modes: ReadonlyArray<SetMode>): ViewName =>
+  OPENS[modes[(modes.indexOf(modeOf(view)) + 1) % modes.length] ?? 'all'];
+
+/** The view a mode opens on, staying put when `view` is in it already. */
+export const modeView = (mode: SetMode, view: ViewName): ViewName =>
+  Option.getOrElse(
+    Option.liftPredicate(view, (v) => modeOf(v) === mode),
+    () => OPENS[mode],
+  );
+
+/** Compare's layout after `view`, round to the first; none outside Compare. */
+export const nextLayout = (view: ViewName): Option.Option<Layout> =>
+  Option.map(
+    Option.liftPredicate(
+      LAYOUTS.findIndex((l) => l === view),
+      (i) => i >= 0,
+    ),
+    (i) => LAYOUTS[(i + 1) % LAYOUTS.length] ?? 'pair',
+  );
 
 /** The instants the moments show when the set names none: 5, 25, 50, 75 and 95% in. */
 const MOMENT_SPREAD = [0.05, 0.25, 0.5, 0.75, 0.95] as const;

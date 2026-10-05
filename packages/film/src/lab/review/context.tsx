@@ -67,6 +67,9 @@ import {
   type SyncState,
   ViewEvent,
   ViewState,
+  modesOf,
+  nextLayout,
+  nextModeView,
   otherOf,
   playsIn,
   spawnSync,
@@ -82,6 +85,7 @@ import {
   keptTime,
   placeOf,
   queryOfView,
+  shownQuery,
   viewOf,
 } from './place.ts';
 import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
@@ -536,12 +540,12 @@ const SetBody = (
       ),
     );
   // A link asking for what the set cannot show (a pair on a set of one, an
-  // other it does not hold) shows what `viewOf` makes of it, and the URL is
-  // corrected to say so, in the same entry.
+  // other it does not hold, the old notes) shows what `viewOf` makes of it,
+  // and the URL is corrected to say so, in the same entry.
   createEffect(
     () =>
       Option.map(at(), (v) =>
-        Place.href(Places.set, { ...v, query: { ...v.query, ...queryOfView(view()) } }),
+        Place.href(Places.set, { ...v, query: shownQuery(v.query, view(), first) }),
       ),
     (shown) => {
       Option.map(shown, address.follow);
@@ -566,7 +570,7 @@ const SetBody = (
       ),
     ),
   );
-  // Nothing plays behind the moments, the difference or the notes; a pair (or
+  // Nothing plays behind the moments or the difference; a pair (or
   // its wipe) hears one of its two.
   createEffect(
     () => [view(), sync().audible] as const,
@@ -638,6 +642,41 @@ const SetBody = (
         hearable,
         hear: (id) => sendSync(SyncEvent.HeardChosen({ id })),
       }),
+    ),
+  );
+  // The set's modes and Compare's layouts by key and ⌘K, each the next one
+  // round (UR-21); their touch path the segmented controls (`ViewTabs`).
+  const modes = modesOf(props.set.variants.length);
+  onCleanup(
+    meta.hub.commands.register(
+      {
+        id: 'set.next-mode',
+        label: 'Next mode: All, Compare, Moments',
+        group: 'Review',
+        keys: ['v'],
+        touch: "tap one of the set's modes",
+        when: () => modes.length > 1,
+        run: () =>
+          Effect.sync(() => {
+            sendView(ViewEvent.ViewChosen({ view: nextModeView(viewNameOf(view()), modes) }));
+            return quiet;
+          }),
+      },
+      {
+        id: 'set.next-layout',
+        label: 'Next Compare layout: side by side, wipe, difference',
+        group: 'Review',
+        keys: ['shift+v'],
+        touch: 'in Compare, tap one of its layouts',
+        when: () => Option.isSome(nextLayout(viewNameOf(view()))),
+        run: () =>
+          Effect.sync(() => {
+            Option.map(nextLayout(viewNameOf(view())), (layout) =>
+              sendView(ViewEvent.ViewChosen({ view: layout })),
+            );
+            return quiet;
+          }),
+      },
     ),
   );
   onCleanup(

@@ -74,12 +74,17 @@ import {
   videoSource,
 } from './format.ts';
 import {
+  LAYOUTS,
+  type Layout,
   Rate,
+  type SetMode,
   SyncEvent,
   type SyncState,
   ViewEvent,
-  ViewName,
   clockParts,
+  modeOf,
+  modeView,
+  modesOf,
   playsIn,
   reachOf,
   runningOf,
@@ -497,39 +502,59 @@ export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
   );
 };
 
-const VIEW_TITLES = {
+const MODE_TITLES = {
   all: 'All',
+  compare: 'Compare',
+  moments: 'Moments',
+} as const satisfies Record<SetMode, string>;
+
+/** Compare's layouts (Frame.io's comparison viewer): side by side, wiped, the difference. */
+const LAYOUT_TITLES = {
   pair: 'Side by side',
   wipe: 'Wipe',
-  moments: 'Moments',
   diff: 'Difference',
-  notes: 'Notes',
-} as const satisfies Record<ViewName, string>;
+} as const satisfies Record<Layout, string>;
 
-/** The views of the first against one other: a stack of one has none of them. */
-const PAIRED: ReadonlyArray<ViewName> = ['pair', 'wipe', 'diff'];
-
-/** All, side by side, its wipe (a stack of two or more), the moments, the difference (two or more), the notes. */
+/**
+ * The set's modes as one segmented control (UR-21, UR2-5), and in Compare
+ * its layouts as a second: the touch path of `v` and `⇧V` (`viewCommands`).
+ */
 const ViewTabs = () => {
   const { set, view, send } = useSet();
-  const offered = ViewName.literals.filter(
-    (name) => !PAIRED.includes(name) || set.variants.length >= 2,
-  );
+  const name = () => viewNameOf(view());
   return (
-    <div class="sh-seg rv-views">
-      <For each={offered}>
-        {(name) => (
-          <button
-            type="button"
-            data-view={name}
-            aria-pressed={pressed(viewNameOf(view()) === name)}
-            onClick={() => send.view(ViewEvent.ViewChosen({ view: name }))}
-          >
-            {VIEW_TITLES[name]}
-          </button>
-        )}
-      </For>
-    </div>
+    <>
+      <div class="sh-seg rv-views">
+        <For each={modesOf(set.variants.length)}>
+          {(mode) => (
+            <button
+              type="button"
+              data-view={mode}
+              aria-pressed={pressed(modeOf(name()) === mode)}
+              onClick={() => send.view(ViewEvent.ViewChosen({ view: modeView(mode, name()) }))}
+            >
+              {MODE_TITLES[mode]}
+            </button>
+          )}
+        </For>
+      </div>
+      <Show when={modeOf(name()) === 'compare'}>
+        <div class="sh-seg rv-layouts">
+          <For each={LAYOUTS}>
+            {(layout) => (
+              <button
+                type="button"
+                data-view={layout}
+                aria-pressed={pressed(name() === layout)}
+                onClick={() => send.view(ViewEvent.ViewChosen({ view: layout }))}
+              >
+                {LAYOUT_TITLES[layout]}
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
+    </>
   );
 };
 
@@ -776,6 +801,20 @@ const VersionName = (props: { readonly version: SeenVariant }) => {
   );
 };
 
+/**
+ * A version's state on its caption, when its record proves it stale: the
+ * short badge (UR-29); why, in its inspector's Info (`StaleTag`).
+ */
+const StaleBadge = (props: { readonly variant: SeenVariant }) => (
+  <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
+    {(words) => (
+      <span class="rv-badge" data-approval="stale" title={words()}>
+        Out of date
+      </span>
+    )}
+  </Show>
+);
+
 /** Why a variant is stale, when its record proves it; nothing otherwise (`recordedStaleText`). */
 const StaleTag = (props: { readonly variant: SeenVariant }) => (
   <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
@@ -817,7 +856,11 @@ const VariantVideo = (props: { readonly variant: SeenVariant; readonly class?: s
   );
 };
 
-/** A variant's caption: its letter, its name, why it is stale, its lines, and the 🔊 that makes it the one heard. */
+/**
+ * A variant's caption: its letter, its name, Out of date when it is, and the
+ * 🔊 that makes it the one heard; its lines and why it is stale are its
+ * inspector's Info (UR-29, UR-30).
+ */
 const VariantCap = (props: { readonly variant: SeenVariant }) => {
   const { set, sync, send } = useSet();
   const audible = () => sync().audible === props.variant.id;
@@ -825,10 +868,7 @@ const VariantCap = (props: { readonly variant: SeenVariant }) => {
     <div class="rv-cap">
       <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
       <VersionName version={props.variant} />
-      <StaleTag variant={props.variant} />
-      <span class="rv-tag" title={props.variant.lines.join(' · ')}>
-        {props.variant.lines.join(' · ')}
-      </span>
+      <StaleBadge variant={props.variant} />
       <button
         type="button"
         class={['sh-tool', 'rv-sound', { on: audible() }]}
@@ -1114,7 +1154,6 @@ const MomentPick = (props: { readonly moments: ReadonlyArray<number>; readonly i
   const { send } = useSet();
   return (
     <div class="rv-row rv-pick">
-      <span class="rv-hint">Moment (←/→):</span>
       <For each={props.moments.map((t, i) => ({ t, i }))}>
         {(m) => (
           <button
@@ -1132,15 +1171,14 @@ const MomentPick = (props: { readonly moments: ReadonlyArray<number>; readonly i
   );
 };
 
-/** A still's caption: the variant's letter, its name, why it is stale and its lines (no 🔊: nothing plays). */
+/** A still's caption: the variant's letter, its name and Out of date when it is (no 🔊: nothing plays). */
 const StillCap = (props: { readonly variant: SeenVariant }) => {
   const { set } = useSet();
   return (
     <div class="rv-cap">
       <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
       <VersionName version={props.variant} />
-      <StaleTag variant={props.variant} />
-      <span class="rv-tag">{props.variant.lines.join(' · ')}</span>
+      <StaleBadge variant={props.variant} />
     </div>
   );
 };
@@ -1267,41 +1305,6 @@ const DiffView = (props: { readonly other: string; readonly index: number }) => 
   );
 };
 
-const NotesView = () => {
-  const { folder, set } = useSet();
-  const now = useReview().meta.now();
-  return (
-    <div class="rv-grid rv-wide">
-      <For each={set.variants}>
-        {(variant) => (
-          <Target of={versionOf(folder, set, variant.id)} class="rv-note" data-id={variant.id}>
-            <div class="rv-verdict">
-              <b>
-                {letterOf(set, variant.id)} · {variant.label}
-              </b>
-              {approvalText(variant.approval)}
-              <StaleTag variant={variant} />
-              <For each={variant.lines}>{(line) => <div class="rv-hint">{line}</div>}</For>
-            </div>
-            <Show
-              when={Option.getOrUndefined(variant.notes)}
-              keyed
-              fallback={
-                <p class="rv-hint">
-                  {variant.video.ref} · {sizeText(variant.video.size)} ·{' '}
-                  {agoText(variant.video.mtime, now)}
-                </p>
-              }
-            >
-              {(notes: ReviewFile) => <Markdown file={notes.ref} />}
-            </Show>
-          </Target>
-        )}
-      </For>
-    </div>
-  );
-};
-
 /**
  * The set's page: the transport over the view it shows, and its versions as
  * the page's things. The page owns each version's thing and sheet, not the
@@ -1344,7 +1347,6 @@ const SetBody = () => {
           Wipe: (s) => <WipeView other={s.other} />,
           Moments: (s) => <MomentsView index={s.index} />,
           Diff: (s) => <DiffView other={s.other} index={s.index} />,
-          Notes: () => <NotesView />,
         }),
       )}
       <For each={set.variants}>{(variant) => <VersionInspector version={variant} />}</For>
