@@ -952,7 +952,7 @@ const Dock = () => (
     <FilmTransport
       fallback={
         <p class="rv-hint pj-no-cut" data-role="no-cut">
-          No film render yet: render the scenes to play the cut
+          No render of the whole film yet
         </p>
       }
     />

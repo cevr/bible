@@ -1014,11 +1014,7 @@ describe("a film's project", () => {
           href: PROJECT,
           viewport: PHONE,
         });
-        yield* textIs(
-          page,
-          `${DOCK} [data-role="no-cut"]`,
-          'No film render yet: render the scenes to play the cut',
-        );
+        yield* textIs(page, `${DOCK} [data-role="no-cut"]`, 'No render of the whole film yet');
         yield* countIs(page, '.rv-transport', 0);
         yield* countIs(page, '.rv-note', 0);
         expect(errors).toEqual([]);

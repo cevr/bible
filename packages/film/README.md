@@ -2318,8 +2318,8 @@ so it takes back exactly the approvals it gave (`Project.gave`, each
 `Approval.op`), never one given since, and says what it took
 (`Project.took`). The film's transport is docked (`.sh-dock`: over the tab
 bar on a phone, under the header on a laptop); while the film has no
-render, the dock says "No film render yet: render the scenes to play the
-cut". Each say answers the fresh `ProjectView`, which the page
+render, the dock says "No render of the whole film yet" (its scenes'
+renders may all be there: what is missing is the film's). Each say answers the fresh `ProjectView`, which the page
 shows in place (a playing clip plays on, a half-typed comment stays); a
 source write reads it again (`data-reading` on the film while it does). The
 answers land in any order, so the page shows the newest asked
