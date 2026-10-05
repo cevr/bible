@@ -3,8 +3,8 @@
 // the lab API only once a mode is on, then once per scene until it is turned
 // off). The section, the
 // HEAD layer and the wipe's divider read this context and act through it.
-// The mode is the link's (`?view=`, PA-9): a mode chosen writes it in place,
-// and a link that names another (Back to an entry made in another mode)
+// The mode is the link's (`?view=`, PA-9): a mode chosen is an entry of its
+// own, and a link that names another (Back to an entry made in another mode)
 // chooses it. The view keeps the divider through the reload a write causes.
 
 import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
@@ -112,12 +112,10 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
     compareText(mode(), scene(), head(), Option.flatMap(resolved(), Result.getFailure)),
   );
   createEffect(compare, (s) => view.patch({ compare: compareView(s) }));
-  // The link and the machine agree on the mode: each follows the other only
-  // where they differ, so neither write echoes. The owner's pick is an entry
-  // of its own (`choose`, below); the mode moving otherwise is written in place.
-  createEffect(mode, (m) => {
-    if (m !== untrack(lab.view)) labActions.keepCompare(m);
-  });
+  // The link owns the mode: the machine follows it where they differ (Back,
+  // a pasted link). The owner's pick is an entry of its own (`choose`,
+  // below), written to the link before the machine hears it, so the machine
+  // never moves the mode the link does not hold.
   createEffect(lab.view, (v) => {
     if (v !== untrack(mode)) send(CompareEvent.Choose({ mode: v }));
   });

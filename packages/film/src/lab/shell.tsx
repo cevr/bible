@@ -72,8 +72,6 @@ interface LabActions {
   readonly forgetNote: () => void;
   /** Compare with HEAD by `view`, the owner's pick: a new history entry, so Back walks the views. */
   readonly compareBy: (view: CompareView) => void;
-  /** Write the compare's mode into the link in place, where it moved on its own: no entry of its own. */
-  readonly keepCompare: (view: CompareView) => void;
   /** Show `mode` in the inspector, and keep it for this viewer. */
   readonly showMode: (mode: LabMode) => void;
 }
@@ -251,7 +249,6 @@ const Root = (props: RootProps) => {
       compareBy: (view) => {
         if (view !== untrack(() => here().view)) address.go(picked({ view }));
       },
-      keepCompare: (view) => address.follow(picked({ view })),
       showMode: page.showMode,
     },
     meta: {
