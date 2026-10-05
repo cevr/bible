@@ -899,9 +899,23 @@ const sayWords = (film: string, before: Option.Option<ProjectView>) => (s: Proje
       Option.filter(after.project.gave, (g) => s.say._tag === 'Approve' && g.scenes.length > 0),
       (gave) => ({ command: UNDO_APPROVE, bound: { film, change: boundGave(gave) } }),
     );
+  // An Undo's words are what the catalogue says it took (`Project.took`): nothing, when the
+  // approve's approvals were withdrawn since.
+  const said = (after: ProjectView) =>
+    Option.match(after.project.took, {
+      onNone: () => sayText(s.say, partText(s.address)),
+      onSome: (took) =>
+        Match.value(took.scenes.length > 0).pipe(
+          Match.when(true, () => `Undid approving ${partText(s.address)}`),
+          Match.orElse(
+            () =>
+              `Nothing left to undo: that approval of ${partText(s.address)} was withdrawn since`,
+          ),
+        ),
+    });
   return {
     doing: 'saying…',
-    done: (after: ProjectView) => `${sayText(s.say, partText(s.address))}${moved(after)}`,
+    done: (after: ProjectView) => `${said(after)}${moved(after)}`,
     undo,
   };
 };
@@ -966,11 +980,9 @@ const ProjectReady = (props: { readonly film: string }) => {
   };
   // An approve's Undo: a withdraw of the approvals it gave (given its op), a run of
   // neighbours a say. The catalogue takes only those: another's approval since stays.
+  // Whether any is left is the catalogue's to say (`Project.took`), not the page's: an
+  // approval a new render made stale is still the approve's own, and goes.
   const undoing = useSay();
-  const approvedNow = (ids: ReadonlyArray<string>) =>
-    Option.exists(untrack(shown), (v) =>
-      ids.some((id) => v.project.scenes.some((s) => s.scene === id && s.approval === 'approved')),
-    );
   const undoApprove: Command = {
     id: UNDO_APPROVE,
     label: 'Undo',
@@ -984,13 +996,6 @@ const ProjectReady = (props: { readonly film: string }) => {
         Match.when(
           (b) => b.film !== film,
           (b) => Option.some(Unfit.Now({ reason: `that approve was of ${b.film}` })),
-        ),
-        Match.when(
-          (b) => !Option.exists(gaveBound(b), (g) => approvedNow(g.scenes)),
-          () =>
-            Option.some(
-              Unfit.Never({ reason: 'none of those scenes is approved now: nothing to undo' }),
-            ),
         ),
         Match.orElse(() => Option.none<Unfit>()),
       ),

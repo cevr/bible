@@ -286,10 +286,15 @@ const PostedSay = Schema.decodeUnknownSync(
   }),
 );
 
-/** Another reviewer at the catalogue: an approve and a withdraw of scenes, as the CLI makes them. */
+/**
+ * Another at the catalogue: a reviewer's approve and withdraw of scenes, as
+ * the CLI makes them, and a terminal's render of scenes again (each approval
+ * then of an earlier version: stale).
+ */
 interface Other {
   readonly approve: (ids: ReadonlyArray<string>) => void;
   readonly withdraw: (ids: ReadonlyArray<string>) => void;
+  readonly render: (ids: ReadonlyArray<string>) => void;
 }
 
 /** The check's one error, about scene close. */
@@ -319,6 +324,8 @@ interface Fake {
   readonly approvedEarlier?: ReadonlyArray<string>;
   /** What another reviewer does at the catalogue just before the page's say `p` lands. */
   readonly before?: (p: PostedSay, other: Other) => void;
+  /** What another does just after the page's say `p` lands, before its answer reads the catalogue. */
+  readonly after?: (p: PostedSay, other: Other) => void;
 }
 
 /**
@@ -353,12 +360,16 @@ const fakeProject = (fake: Fake = {}) => {
   let runs = 0;
   const AT = 100;
   const text: Said = { film: [], act: [] };
-  const view = (gave: Option.Option<Json> = Option.none()): Json => ({
+  const view = (
+    gave: Option.Option<Json> = Option.none(),
+    took: Option.Option<Json> = Option.none(),
+  ): Json => ({
     project: {
       film: 'toy',
       variant: 'main',
       key: 'fk',
       ...Option.match(gave, { onNone: () => ({}), onSome: (g) => ({ gave: g }) }),
+      ...Option.match(took, { onNone: () => ({}), onSome: (t) => ({ took: t }) }),
       comments: said(FILM_AT, text.film),
       acts: [
         {
@@ -386,18 +397,26 @@ const fakeProject = (fake: Fake = {}) => {
     });
     return { op, made: made.map((s) => s.scene) };
   };
-  /** The approvals of `ids` withdrawn: every one, or only those the run `given` gave. */
+  /** The approvals of `ids` withdrawn: every one, or only those the run `given` gave; the scenes it took one from. */
   const withdraw = (ids: ReadonlyArray<string>, given: Option.Option<string>) =>
     scenes
       .filter((s) => ids.includes(s.scene))
-      .forEach((s) => {
+      .flatMap((s) => {
+        const before = s.approvals.length;
         s.approvals = s.approvals.filter((a) =>
           Option.match(given, { onNone: () => false, onSome: (op) => a.op !== op }),
         );
+        return Arr.filter([s.scene], () => s.approvals.length < before);
       });
   const other: Other = {
     approve: (ids) => void approveCurrent(ids),
-    withdraw: (ids) => withdraw(ids, Option.none()),
+    withdraw: (ids) => void withdraw(ids, Option.none()),
+    render: (ids) =>
+      scenes
+        .filter((s) => ids.includes(s.scene))
+        .forEach((s) => {
+          s.approvals = s.approvals.map((a) => ({ ...a, earlier: true }));
+        }),
   };
   const posted = (asked: { readonly body: Option.Option<Json> }) =>
     PostedSay(Option.getOrElse(asked.body, () => ({})));
@@ -459,6 +478,7 @@ const fakeProject = (fake: Fake = {}) => {
       // (none: no gave).
       if (p.say._tag === 'Approve') {
         const { op, made } = approveCurrent(ids);
+        fake.after?.(p, other);
         return json(
           view(
             Option.map(
@@ -468,7 +488,17 @@ const fakeProject = (fake: Fake = {}) => {
           ),
         );
       }
-      if (p.say._tag === 'Withdraw') withdraw(ids, Option.fromUndefinedOr(p.say.given));
+      // An undo (a withdraw given an op) answers what it took: the scenes it took one from.
+      if (p.say._tag === 'Withdraw') {
+        const given = Option.fromUndefinedOr(p.say.given);
+        const took = withdraw(ids, given);
+        return json(
+          view(
+            Option.none(),
+            Option.map(given, (op) => ({ op, scenes: took })),
+          ),
+        );
+      }
       if (p.say._tag === 'Comment') {
         const said = p.say.text ?? '';
         if (p.address._tag === 'Act') text.act = [...text.act, said];
@@ -970,12 +1000,72 @@ describe("a film's project", () => {
         yield* click(page, `${render('coda')} [data-act="approve"]`);
         yield* receiptSays(page, 'Approved scene coda · 0/1 → 1/1 approved');
         yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
-        yield* receiptSays(page, 'Undid approving scene coda · 1/1 → 1/1 approved');
+        // The catalogue's answer says the Undo took nothing, and the receipt says so.
+        yield* receiptSays(
+          page,
+          'Nothing left to undo: that approval of scene coda was withdrawn since · 1/1 → 1/1 approved',
+        );
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="approved"]`);
         expect(saysPosted(asked)).toEqual([
           { address: { _tag: 'Scenes', ids: ['coda'] }, say: { _tag: 'Approve' } },
           { address: { _tag: 'Scenes', ids: ['coda'] }, say: { _tag: 'Withdraw', given: 'op-1' } },
         ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "an approve's Undo whose approval another withdrew says there is nothing left to undo",
+    () =>
+      Effect.gen(function* () {
+        // Just before the Undo lands, another withdraws coda's approval: the op's is gone.
+        const routes = fakeProject({
+          before: (p, other) => {
+            if (p.say._tag === 'Withdraw') other.withdraw(['coda']);
+          },
+        });
+        const { page, errors } = yield* openReview(routes, { href: PROJECT, viewport: LAPTOP });
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
+        yield* click(page, `${render('coda')} [data-act="approve"]`);
+        yield* receiptSays(page, 'Approved scene coda · 0/1 → 1/1 approved');
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* receiptSays(
+          page,
+          'Nothing left to undo: that approval of scene coda was withdrawn since · 1/1 → 0/1 approved',
+        );
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "an approve's Undo takes its approval though a new render made it stale since",
+    () =>
+      Effect.gen(function* () {
+        // A terminal renders coda again just after the page's approve lands: its answer reads
+        // the approval stale. The approval is still the approve's own, so its Undo takes it.
+        const routes = fakeProject({
+          after: (p, other) => {
+            if (p.say._tag === 'Approve') other.render(['coda']);
+          },
+        });
+        const { page, asked, errors } = yield* openReview(routes, {
+          href: PROJECT,
+          viewport: LAPTOP,
+        });
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
+        yield* click(page, `${render('coda')} [data-act="approve"]`);
+        yield* receiptSays(page, 'Approved scene coda · 0/1 → 0/1 approved');
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="stale"]`);
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* receiptSays(page, 'Undid approving scene coda · 0/1 → 0/1 approved');
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
+        expect(saysPosted(asked)[1]).toEqual({
+          address: { _tag: 'Scenes', ids: ['coda'] },
+          say: { _tag: 'Withdraw', given: 'op-1' },
+        });
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
