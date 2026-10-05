@@ -28,7 +28,7 @@ import { getAlignment, getSide, getSideAxis } from '@floating-ui/utils';
 import type { JSX } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 
-import { useDirectionAccessor } from '../direction-provider/DirectionContext.ts';
+import { useDirectionAccessor } from './DirectionContext.ts';
 import type {
   FloatingContext,
   FloatingRootContext,
@@ -38,7 +38,7 @@ import {
   setFloatingNodeContext,
   useFloatingTree,
 } from '../floating-ui-solid/FloatingTree.tsx';
-import { arrow, DEFAULT_SIDES, hide } from '../floating-ui-solid/middleware.ts';
+import { arrow, hide } from '../floating-ui-solid/middleware.ts';
 import { ownerDocument, ownerWindow } from '../utils/dom.ts';
 import { CommonPositionerCssVars } from '../utils/popupStateMapping.ts';
 
@@ -82,7 +82,6 @@ export interface UseAnchorPositioningSharedParameters {
   collisionPadding?: Padding | undefined;
   /** Whether the popup stays in view after its anchor scrolls out. */
   sticky?: boolean | undefined;
-  arrowPadding?: number | undefined;
   disableAnchorTracking?: boolean | undefined;
   collisionAvoidance?: CollisionAvoidance | undefined;
 }
@@ -90,25 +89,15 @@ export interface UseAnchorPositioningSharedParameters {
 export interface UseAnchorPositioningParameters extends UseAnchorPositioningSharedParameters {
   floatingRootContext: FloatingRootContext;
   mounted: boolean;
-  keepMounted?: boolean | undefined;
   nodeId?: string | undefined;
-  adaptiveOrigin?: Middleware | undefined;
   shift?:
     | { crossAxis?: boolean | undefined; rootBoundary?: 'layoutViewport' | undefined }
     | undefined;
-  /** Keeps a flipped side (`'placement'`: and alignment) while the popup resizes. */
-  lazyFlip?: boolean | 'placement' | undefined;
   externalTree?: FloatingTreeStore | undefined;
-  /** Replaces the measured anchor rect before the other middleware run. */
-  inline?: Middleware | undefined;
 }
 
 export interface UseAnchorPositioningReturnValue {
   positionerStyles: Accessor<JSX.CSSProperties>;
-  arrowStyles: Accessor<JSX.CSSProperties>;
-  /** Pass to the arrow element's `ref`. */
-  setArrowElement: (element: Element | null) => void;
-  arrowUncentered: Accessor<boolean>;
   side: Accessor<Side>;
   align: Accessor<Align>;
   physicalSide: Accessor<PhysicalSide>;
@@ -175,20 +164,11 @@ export function useAnchorPositioning(
   const [strategy, setStrategy] = createSignal<'absolute' | 'fixed'>('absolute', {
     ownedWrite: true,
   });
-  const [mountPlacement, setMountPlacement] = createSignal<Placement | null>(null, {
-    ownedWrite: true,
-  });
-  const [arrowElement, setArrowElement] = createSignal<Element | null>(null, { ownedWrite: true });
 
   const sideParam = () => params.side ?? 'bottom';
   const isRtl = () => direction() === 'rtl';
-  const lockAlign = () => params.lazyFlip === 'placement';
 
   const side = createMemo<PhysicalSide>(() => {
-    const mount = mountPlacement();
-    if (mount) {
-      return getSide(mount);
-    }
     const rtl = isRtl();
     return {
       top: 'top',
@@ -199,12 +179,7 @@ export function useAnchorPositioning(
       'inline-start': rtl ? 'right' : 'left',
     }[sideParam()] as PhysicalSide;
   });
-  const placementAlign = createMemo<Align>(() => {
-    const mount = mountPlacement();
-    return (
-      (mount && lockAlign() ? getAlignment(mount) || 'center' : null) || (params.align ?? 'center')
-    );
-  });
+  const placementAlign = (): Align => params.align ?? 'center';
   const placement = createMemo<Placement>(() =>
     placementAlign() === 'center' ? side() : (`${side()}-${placementAlign()}` as Placement),
   );
@@ -213,7 +188,6 @@ export function useAnchorPositioning(
     () => params.mounted,
     (mounted) => {
       if (!mounted) {
-        setMountPlacement(null);
         setIsPositioned(false);
       }
     },
@@ -230,7 +204,6 @@ export function useAnchorPositioning(
     const rtl = isRtl();
     const sideOffset = params.sideOffset ?? 0;
     const alignOffset = params.alignOffset ?? 0;
-    const arrowPadding = params.arrowPadding ?? 5;
     const paddingParam = params.collisionPadding ?? 5;
     const collisionPadding =
       typeof paddingParam === 'number'
@@ -253,12 +226,8 @@ export function useAnchorPositioning(
         ? 'clippingAncestors'
         : params.collisionBoundary;
     const common = { boundary, padding: collisionPadding } as const;
-    const arrowEl = untrack(arrowElement);
 
     const middleware: Array<Middleware | null | undefined> = [];
-    if (params.inline) {
-      middleware.push(params.inline);
-    }
     middleware.push(
       offset((state) => {
         const data = getOffsetData(state, currentSideParam, rtl);
@@ -295,22 +264,7 @@ export function useAnchorPositioning(
           rootBoundary: params.shift?.rootBoundary === 'layoutViewport' ? 'viewport' : undefined,
           mainAxis: collisionAvoidanceAlign !== 'none',
           crossAxis: crossAxisShiftEnabled,
-          limiter:
-            sticky || shiftCrossAxis
-              ? undefined
-              : limitShift((limitData) => {
-                  if (!arrowEl) {
-                    return {};
-                  }
-                  const { width, height } = arrowEl.getBoundingClientRect();
-                  const sideAxis = getSideAxis(getSide(limitData.placement));
-                  const arrowSize = sideAxis === 'y' ? width : height;
-                  const offsetAmount =
-                    sideAxis === 'y'
-                      ? collisionPadding.left + collisionPadding.right
-                      : collisionPadding.top + collisionPadding.bottom;
-                  return { offset: arrowSize / 2 + offsetAmount / 2 };
-                }),
+          limiter: sticky || shiftCrossAxis ? undefined : limitShift(),
         });
 
     // https://floating-ui.com/docs/flip#combining-with-shift
@@ -346,11 +300,10 @@ export function useAnchorPositioning(
           floatingStyle.setProperty(CommonPositionerCssVars.anchorHeight, `${anchorHeight}px`);
         },
       }),
+      // The transform origin is computed from an arrow; no popup draws one, so a stand-in.
       arrow((state) => ({
-        // The transform origin is computed from an arrow; without one, a stand-in element.
-        element: arrowEl || ownerDocument(state.elements.floating).createElement('div'),
-        // No padding for the stand-in: it would displace aligned popups on narrow anchors.
-        padding: arrowEl ? arrowPadding : 0,
+        element: ownerDocument(state.elements.floating).createElement('div'),
+        padding: 0,
       })),
       {
         name: 'transformOrigin',
@@ -370,11 +323,10 @@ export function useAnchorPositioning(
             typeof sideOffset === 'function'
               ? sideOffset(getOffsetData(state, currentSideParam, rtl))
               : sideOffset;
-          // An aligned popup without an arrow grows from its aligned edge until a
-          // shift breaks the alignment; everything else grows from the arrow.
+          // An aligned popup grows from its aligned edge until a shift breaks the
+          // alignment; everything else grows from the stand-in arrow's point.
           let crossOrigin: string;
           if (
-            !arrowEl &&
             renderedAlign &&
             Math.abs(isVertical ? data.shift?.x || 0 : data.shift?.y || 0) <= 1
           ) {
@@ -384,9 +336,7 @@ export function useAnchorPositioning(
             crossOrigin =
               (renderedAlign === 'start') === (isVertical && platformRtl === true) ? '100%' : '0%';
           } else {
-            const arrowOffset = isVertical ? data.arrow?.x || 0 : data.arrow?.y || 0;
-            const arrowSize = isVertical ? arrowEl?.clientWidth || 0 : arrowEl?.clientHeight || 0;
-            crossOrigin = `${arrowOffset + arrowSize / 2}px`;
+            crossOrigin = `${isVertical ? data.arrow?.x || 0 : data.arrow?.y || 0}px`;
           }
           // The anchor-facing edge, or the anchor's center when the popup overlaps it.
           let sideOrigin =
@@ -408,7 +358,6 @@ export function useAnchorPositioning(
         },
       },
       hide,
-      params.adaptiveOrigin,
     );
     return middleware.filter((m): m is Middleware => m != null);
   };
@@ -482,40 +431,14 @@ export function useAnchorPositioning(
       params.collisionBoundary,
       params.collisionPadding,
       params.sticky,
-      params.arrowPadding,
       params.collisionAvoidance,
       isRtl(),
-      arrowElement(),
     ],
     () => update(),
   );
 
   const renderedSide = () => getSide(renderedPlacement());
   const renderedAlign = () => (getAlignment(renderedPlacement()) || 'center') as Align;
-
-  // Keeps a flipped side (and alignment, when asked) while the popup resizes.
-  createEffect(
-    () =>
-      [
-        params.lazyFlip,
-        params.mounted,
-        isPositioned(),
-        renderedPlacement(),
-        side(),
-        placementAlign(),
-      ] as const,
-    ([lazyFlip, mounted, positioned, rendered, preferredSide, preferredAlign]) => {
-      if (
-        lazyFlip &&
-        mounted &&
-        positioned &&
-        (getSide(rendered) !== preferredSide ||
-          (lazyFlip === 'placement' && (getAlignment(rendered) || 'center') !== preferredAlign))
-      ) {
-        setMountPlacement(rendered);
-      }
-    },
-  );
 
   const positionerStyles = createMemo<JSX.CSSProperties>(() => {
     const positioned = isPositioned();
@@ -527,12 +450,6 @@ export function useAnchorPositioning(
       base['position'] = position;
       base['top'] = '0px';
       base['left'] = '0px';
-    } else if (params.adaptiveOrigin) {
-      const { sideX, sideY } =
-        (middlewareData()['adaptiveOrigin'] as typeof DEFAULT_SIDES | undefined) ?? DEFAULT_SIDES;
-      base['position'] = position;
-      base[sideX] = `${x()}px`;
-      base[sideY] = `${y()}px`;
     } else {
       const floating = untrack(rootContext.floatingElement);
       const rx = floating ? roundByDPR(floating, x()) : x();
@@ -554,16 +471,7 @@ export function useAnchorPositioning(
     return base as JSX.CSSProperties;
   });
 
-  const arrowStyles = createMemo<JSX.CSSProperties>(() => {
-    const data = middlewareData().arrow;
-    return {
-      position: 'absolute',
-      top: data?.y != null ? `${data.y}px` : undefined,
-      left: data?.x != null ? `${data.x}px` : undefined,
-    };
-  });
-
-  // What the hover close handler and the floating tree read of this popup.
+  // What the floating tree reads of this popup.
   const context: FloatingContext = {
     get open() {
       return untrack(rootContext.open);
@@ -592,9 +500,6 @@ export function useAnchorPositioning(
 
   return {
     positionerStyles,
-    arrowStyles,
-    setArrowElement: (element) => setArrowElement(() => element),
-    arrowUncentered: () => middlewareData().arrow?.centerOffset !== 0,
     side: () => getLogicalSide(sideParam(), renderedSide(), isRtl()),
     align: renderedAlign,
     physicalSide: renderedSide,

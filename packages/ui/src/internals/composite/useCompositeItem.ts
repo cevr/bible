@@ -1,10 +1,10 @@
 // Upstream: packages/react/src/internals/composite/item/useCompositeItem.ts
 //
 // An item of a composite widget: it registers in the root's list, holds the
-// tab stop (`tabindex` 0) while highlighted and -1 otherwise, takes the tab
-// stop when it is focused, and, when the root asks, takes focus on hover.
-// Its metadata is re-registered whenever it changes, so the root's map (a
-// toolbar's disabled items, a tab list's values) stays current.
+// tab stop (`tabindex` 0) while highlighted and -1 otherwise, and takes the
+// tab stop when it is focused.
+// Its metadata is re-registered whenever it changes, so the root's map stays
+// current.
 import { type Accessor, createEffect, createMemo, untrack } from 'solid-js';
 
 import type { HTMLProps } from '../types.ts';
@@ -53,16 +53,6 @@ export function useCompositeItem<Metadata>(
     },
     onFocus() {
       root.onHighlightedIndexChange(untrack(listItem.index));
-    },
-    onMouseMove() {
-      if (!element || !untrack(root.highlightItemOnHover)) {
-        return;
-      }
-      const disabled =
-        element.hasAttribute('disabled') || element.getAttribute('aria-disabled') === 'true';
-      if (!untrack(highlighted) && !disabled) {
-        element.focus();
-      }
     },
   };
 

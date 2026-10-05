@@ -1,10 +1,9 @@
 // Upstream: packages/react/src/dialog/popup/DialogPopup.tsx
 //
-// The dialog's `role="dialog"` (or `alertdialog`) container, labelled by its
-// title and described by its description. Focus moves into it on open (the
-// first tabbable element, or the popup itself when opened by touch so no
-// virtual keyboard pops up) and back to the trigger on close; a modal or
-// trap-focus dialog keeps Tab inside. Arrow, Home and End keys stop here, so
+// The dialog's `role="dialog"` container, labelled by its title and
+// described by its description. Focus moves into it on open (the first
+// tabbable element) and, on close, back to what had it before the owner
+// opened the dialog; a modal or trap-focus dialog keeps Tab inside. Arrow, Home and End keys stop here, so
 // a composite widget around the dialog does not move. It carries the number
 // of dialogs open nested in it as `--nested-dialogs`.
 import type { JSX } from '@solidjs/web';
@@ -45,13 +44,13 @@ export interface DialogPopupState {
 export interface DialogPopupProps extends BaseUIComponentProps<'div', DialogPopupState> {
   /**
    * What takes focus on open: `false` nothing, `true` the default (the first
-   * tabbable element, or the popup when opened by touch), an element, or a
-   * function of how it opened.
+   * tabbable element), an element, or a function (called with `''`: an
+   * owner's open has no interaction type).
    */
   initialFocus?: DialogFocusTarget | undefined;
   /**
-   * What takes focus on close: `false` nothing, `true` the default (the
-   * trigger, or what had focus before), an element, or a function of how it closed.
+   * What takes focus on close: `false` nothing, `true` the default (what had
+   * focus before the dialog opened), an element, or a function of how it closed.
    */
   finalFocus?: DialogFocusTarget | undefined;
 }
@@ -76,7 +75,8 @@ export function DialogPopupFocus(props: DialogPopupFocusProps): JSX.Element {
   return (
     <FloatingFocusManager
       context={store.floatingRootContext}
-      openInteractionType={store.openMethod()}
+      // The owner's `open` opens it: a programmatic open, so focus returns to what had it.
+      openInteractionType={null}
       disabled={!store.mounted()}
       closeOnFocusOut={!store.disablePointerDismissal()}
       initialFocus={props.initialFocus}
@@ -123,10 +123,6 @@ export function DialogPopup(componentProps: DialogPopupProps): JSX.Element {
   useDialogOpenChangeComplete(store);
   onClientCleanup(() => store.setPopupElement(null));
 
-  // A touch open focuses the popup itself, so no virtual keyboard opens.
-  const defaultInitialFocus = (interactionType: InteractionType) =>
-    interactionType === 'touch' ? untrack(store.popupElement) : true;
-
   const state: DialogPopupState = {
     get open() {
       return store.open();
@@ -157,11 +153,8 @@ export function DialogPopup(componentProps: DialogPopupProps): JSX.Element {
           get 'aria-describedby'() {
             return store.descriptionElementId();
           },
-          role: store.role,
+          role: 'dialog',
           ...FOCUSABLE_POPUP_PROPS,
-          get hidden() {
-            return !store.mounted() || undefined;
-          },
           onKeyDown: stopCompositeKeys,
           get style() {
             return { [DialogPopupCssVars.nestedDialogs]: String(store.nestedOpenDialogCount()) };
@@ -174,11 +167,7 @@ export function DialogPopup(componentProps: DialogPopupProps): JSX.Element {
   return (
     <DialogPopupFocus
       store={store}
-      initialFocus={
-        componentProps.initialFocus === undefined
-          ? defaultInitialFocus
-          : componentProps.initialFocus
-      }
+      initialFocus={componentProps.initialFocus ?? true}
       finalFocus={componentProps.finalFocus}
     >
       {untrack(element)}

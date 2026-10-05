@@ -1,33 +1,11 @@
-// Upstream: packages/react/src/toast/utils/resolvePromiseOptions.ts,
-// packages/react/src/toast/utils/isRenderableNode.ts,
+// Upstream: packages/react/src/toast/utils/isRenderableNode.ts,
 // packages/react/src/toast/utils/focusVisible.ts
 //
-// Small helpers the toast parts share: turning a promise toast's state
-// option into update options, deciding whether a part has content worth
-// rendering, and the toast id generator.
+// Small helpers the toast parts share: deciding whether a part has content
+// worth rendering, whether focus is visible, and the toast id generator.
 import { matchesFocusVisible } from '../floating-ui-solid/utils/element.ts';
-import type { ToastManagerUpdateOptions } from './types.ts';
 
 export { matchesFocusVisible as isFocusVisible };
-
-export function resolvePromiseOptions<T, Data extends object>(
-  options:
-    | string
-    | ToastManagerUpdateOptions<Data>
-    | ((result: T) => string | ToastManagerUpdateOptions<Data>),
-  result?: T,
-): ToastManagerUpdateOptions<Data> {
-  if (typeof options === 'string') {
-    return { description: options };
-  }
-
-  if (typeof options === 'function') {
-    const resolvedOptions = options(result as T);
-    return typeof resolvedOptions === 'string' ? { description: resolvedOptions } : resolvedOptions;
-  }
-
-  return options;
-}
 
 /** Whether a JSX value renders anything: `null`, `undefined`, booleans and `''` do not. */
 export function isRenderableNode(node: unknown): boolean {

@@ -1,5 +1,4 @@
-// Upstream: packages/react/src/toast/action/ToastAction.tsx,
-// packages/react/src/toast/action/ToastActionDataAttributes.ts
+// Upstream: packages/react/src/toast/action/ToastAction.tsx
 //
 // Performs an action when clicked. Its props merge with the toast's
 // `actionProps` (whose `children` is the label, ahead of the part's own);
@@ -12,11 +11,6 @@ import type { BaseUIComponentProps, NativeButtonProps } from '../internals/types
 import { propsFromAccessor, useRenderElement } from '../internals/useRenderElement.tsx';
 import { useToastRootContext } from './ToastRootContext.ts';
 import { isRenderableNode } from './utils.ts';
-
-export const ToastActionDataAttributes = {
-  /** The type of the toast. */
-  type: 'data-type',
-} as const;
 
 export interface ToastActionState {
   /** The type of the toast. */

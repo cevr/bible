@@ -64,15 +64,11 @@ export function ToastProvider(props: ToastProviderProps): JSX.Element {
       if (!toastManager) {
         return undefined;
       }
-      return toastManager[' subscribe'](({ action, options }) => {
-        if (action === 'promise') {
-          store.promiseToast(options.promise, options);
-        } else if (action === 'update') {
-          store.updateToast(options.id, options.updates);
-        } else if (action === 'close') {
-          store.closeToast(options.id);
+      return toastManager[' subscribe']((event) => {
+        if (event.action === 'close') {
+          store.closeToast(event.options.id);
         } else {
-          store.addToast(options);
+          store.addToast(event.options);
         }
       });
     },

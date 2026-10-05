@@ -21,8 +21,7 @@ function raiseReceipt(said: string, tone: Receipt['tone'] = 'neutral') {
   receiptCount += 1;
   const count = receiptCount;
   const id: string = receipts.add({
-    title: said,
-    description: `receipt ${count}`,
+    title: `${said} ${count}`,
     type: tone,
     priority: param('priority') === 'high' ? 'high' : 'low',
     data: { tone },
@@ -71,7 +70,6 @@ function ToastList(): JSX.Element {
         >
           <Toast.Content data-testid="content" style={contentRow}>
             <Toast.Title data-testid="title" style={label} />
-            <Toast.Description data-testid="description" style={label} />
             <Toast.Action data-testid="action" />
             <Toast.Close data-testid="close" aria-label="Close">
               x
@@ -86,43 +84,15 @@ function ToastList(): JSX.Element {
 /** Adds toasts from inside the tree, through `useToastManager`. */
 function InsideControls(): JSX.Element {
   const manager = Toast.useToastManager();
-  let promiseCount = 0;
   return (
-    <>
-      <button
-        id="add-inside"
-        onClick={() => {
-          manager.add({ title: 'Inside', description: 'added inside' });
-        }}
-      >
-        add inside
-      </button>
-      <button
-        id="add-promise"
-        onClick={() => {
-          promiseCount += 1;
-          const outcome = promiseCount === 1 ? 'resolve' : 'reject';
-          const work = new Promise<string>((resolve, reject) => {
-            window.setTimeout(() => {
-              if (outcome === 'resolve') {
-                resolve('saved');
-              } else {
-                reject(new Error('nope'));
-              }
-            }, 100);
-          });
-          manager
-            .promise(work, {
-              loading: 'Saving…',
-              success: (value) => `Done: ${value}`,
-              error: 'Failed',
-            })
-            .catch(() => log('promise rejected'));
-        }}
-      >
-        add promise
-      </button>
-    </>
+    <button
+      id="add-inside"
+      onClick={() => {
+        manager.add({ title: 'Inside' });
+      }}
+    >
+      add inside
+    </button>
   );
 }
 
@@ -136,12 +106,6 @@ function ReceiptFixture(): JSX.Element {
       </button>
       <button id="raise-danger" onClick={() => raiseReceipt('Removed tag', 'danger')}>
         raise danger
-      </button>
-      <button
-        id="update-first"
-        onClick={() => receipts.update('toast-1', { description: 'updated receipt' })}
-      >
-        update
       </button>
       <button id="close-all" onClick={() => receipts.close()}>
         close all
@@ -172,7 +136,6 @@ function SwipeBox(): JSX.Element {
     directions: ['right'],
     element,
     movementCssVars: { x: '--movement-x', y: '--movement-y' },
-    onSwipingChange: (swiping) => log(`swiping ${swiping}`),
     onDismiss: (_event, details) => {
       log(`dismiss ${details.direction}`);
       setDismissed(true);
@@ -197,56 +160,7 @@ function SwipeBox(): JSX.Element {
   );
 }
 
-/** A toast anchored to a button, through `positionerProps`. */
-function AnchoredList(): JSX.Element {
-  const manager = Toast.useToastManager();
-  return (
-    <For each={manager.toasts} keyed={(toast) => toast.id}>
-      {(toast) => (
-        <Toast.Positioner toast={toast() as ToastObject} id="positioner">
-          <Toast.Root toast={toast() as ToastObject} data-testid="root" style={toastBox}>
-            <Toast.Arrow id="arrow" />
-            <Toast.Title data-testid="title" style={label} />
-          </Toast.Root>
-        </Toast.Positioner>
-      )}
-    </For>
-  );
-}
-
-function AnchoredControls(): JSX.Element {
-  const manager = Toast.useToastManager();
-  return (
-    <button
-      id="copy"
-      style={{ 'margin-top': '200px', 'margin-left': '200px' }}
-      onClick={(event) => {
-        manager.add({
-          title: 'Copied',
-          positionerProps: { anchor: event.currentTarget, sideOffset: 8 },
-        });
-      }}
-    >
-      copy
-    </button>
-  );
-}
-
-function AnchoredFixture(): JSX.Element {
-  return (
-    <Toast.Provider>
-      <AnchoredControls />
-      <Toast.Portal>
-        <Toast.Viewport id="viewport">
-          <AnchoredList />
-        </Toast.Viewport>
-      </Toast.Portal>
-    </Toast.Provider>
-  );
-}
-
 export const fixtures: Record<string, () => JSX.Element> = {
   receipt: ReceiptFixture,
   'swipe-dismiss': SwipeBox,
-  anchored: AnchoredFixture,
 };

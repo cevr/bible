@@ -39,10 +39,6 @@ export class PopupTriggerMap {
     return this.idMap.entries();
   }
 
-  elements(): IterableIterator<Element> {
-    return this.idMap.values();
-  }
-
   get size(): number {
     return this.idMap.size;
   }

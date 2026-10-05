@@ -3,7 +3,7 @@
 // packages/react/src/floating-ui-react/hooks/useSyncedFloatingRootContext.ts,
 // packages/react/src/floating-ui-react/types.ts
 //
-// What the interactions (dismiss, list navigation, hover, focus management)
+// What the interactions (dismiss, list navigation, focus management)
 // read of one popup: whether it is open, its trigger and popup elements,
 // and how to ask it to open or close. Upstream keeps a second store synced
 // from the popup's; here the context reads the popup's own signals, so
@@ -20,7 +20,7 @@ import { createEventEmitter, type FloatingEvents, isClickLikeEvent } from './uti
 
 export type ReferenceType = Element | VirtualElement;
 
-/** The live view of a popup that a floating tree node and the hover close handler read. */
+/** The live view of a popup that a floating tree node reads. */
 export interface FloatingContext {
   readonly open: boolean;
   readonly nodeId: string | undefined;

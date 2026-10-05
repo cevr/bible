@@ -1,29 +1,12 @@
-// Fixtures for the foundations: `useRender`, state attributes, the render
-// prop, refs, `enabled`, live params, a late `children` key, and the direction provider.
+// Fixtures for the foundations: `useRenderElement` (state attributes, the
+// render prop, refs, `enabled`, live params) and a late `children` key.
 import type { JSX } from '@solidjs/web';
 import { createSignal, createStore, omit } from 'solid-js';
 
-import { DirectionProvider, useDirection } from '../../../src/direction-provider/index.ts';
 import type { BaseUIEvent, HTMLProps } from '../../../src/internals/types.ts';
 import { useRenderElement } from '../../../src/internals/useRenderElement.tsx';
-import { mergeProps } from '../../../src/merge-props/index.ts';
-import { useRender } from '../../../src/use-render/index.ts';
+import { mergeProps } from '../../../src/merge-props/mergeProps.ts';
 import { log } from './log.ts';
-
-function Defaults() {
-  return (
-    <>
-      {useRender({ props: { id: 'plain', children: 'plain' } })}
-      {useRender({ defaultTagName: 'span', props: { id: 'span', children: 'span' } })}
-      {useRender({
-        defaultTagName: 'span',
-        render: (props) => <b {...props} />,
-        props: { id: 'rendered', children: 'rendered' },
-      })}
-      {useRender({ defaultTagName: 'button', props: { id: 'button', children: 'button' } })}
-    </>
-  );
-}
 
 function StateAttributes() {
   const [count, setCount] = createSignal(0);
@@ -42,17 +25,14 @@ function StateAttributes() {
   };
   return (
     <>
-      {useRender({
-        state,
-        props: [{ id: 'state', 'data-extra': 'yes', 'data-orientation': 'vertical' }],
-      })}
-      {useRender({
-        state: { checkedState: true },
-        stateAttributesMapping: {
-          checkedState: (value: boolean) => (value ? { 'data-checked-state': 'on' } : null),
+      {useRenderElement(
+        'div',
+        {},
+        {
+          state,
+          props: [{ id: 'state', 'data-extra': 'yes', 'data-orientation': 'vertical' }],
         },
-        props: { id: 'mapped' },
-      })}
+      )}
       <button id="bump" onClick={() => setCount((c) => c + 1)}>
         bump
       </button>
@@ -129,16 +109,20 @@ function Refs() {
   let fromParams: HTMLElement | undefined;
   return (
     <>
-      {useRender({
-        ref: (el: HTMLElement) => {
-          fromParams = el;
-          log(`params ref ${el.tagName.toLowerCase()}`);
+      {useRenderElement(
+        'div',
+        {},
+        {
+          ref: (el: HTMLElement) => {
+            fromParams = el;
+            log(`params ref ${el.tagName.toLowerCase()}`);
+          },
+          props: {
+            id: 'with-ref',
+            ref: (el: HTMLElement) => log(`props ref ${el.tagName.toLowerCase()}`),
+          },
         },
-        props: {
-          id: 'with-ref',
-          ref: (el: HTMLElement) => log(`props ref ${el.tagName.toLowerCase()}`),
-        },
-      })}
+      )}
       <button id="check" onClick={() => log(`same ${fromParams?.id}`)}>
         check
       </button>
@@ -150,12 +134,16 @@ function Enabled() {
   const [enabled, setEnabled] = createSignal(true);
   return (
     <>
-      {useRender({
-        get enabled() {
-          return enabled();
+      {useRenderElement(
+        'div',
+        {},
+        {
+          get enabled() {
+            return enabled();
+          },
+          props: { id: 'toggled', children: 'here' },
         },
-        props: { id: 'toggled', children: 'here' },
-      })}
+      )}
       <button id="toggle" onClick={() => setEnabled((value) => !value)}>
         toggle
       </button>
@@ -218,32 +206,11 @@ function LateChildren() {
   );
 }
 
-function DirectionProbe(props: { id: string }) {
-  return <span id={props.id}>{useDirection()}</span>;
-}
-
-function Direction() {
-  const [direction, setDirection] = createSignal<'ltr' | 'rtl'>('rtl');
-  return (
-    <>
-      <DirectionProbe id="outside" />
-      <DirectionProvider direction={direction()}>
-        <DirectionProbe id="inside" />
-      </DirectionProvider>
-      <button id="flip" onClick={() => setDirection((d) => (d === 'rtl' ? 'ltr' : 'rtl'))}>
-        flip
-      </button>
-    </>
-  );
-}
-
 export const fixtures: Record<string, () => JSX.Element> = {
-  defaults: () => <Defaults />,
   'state-attributes': () => <StateAttributes />,
   'class-style': () => <ClassStyle />,
   refs: () => <Refs />,
   enabled: () => <Enabled />,
-  direction: () => <Direction />,
   'live-params': () => <LiveParams />,
   'late-children': () => <LateChildren />,
 };

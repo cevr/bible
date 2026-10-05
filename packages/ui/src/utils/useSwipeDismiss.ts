@@ -6,9 +6,9 @@
 // Swipe to dismiss for an element: a pointer or touch drag in one of the
 // allowed directions moves the element with the pointer (damped against the
 // allowed directions), and releasing past the threshold dismisses it;
-// reversing course cancels. Gestures that start on interactive elements or
-// inside a scrollable area (until it is scrolled to the edge the swipe
-// leaves from) are left to them. While swiping, the element's transform and
+// reversing course cancels. Mouse gestures that start on interactive
+// elements, and touches inside a scrollable area (until it is scrolled to the
+// edge the swipe leaves from), are left to them. While swiping, the element's transform and
 // the movement CSS variables are written imperatively so the element tracks
 // the pointer without a render per move. Release reports the swipe's
 // velocity so a consumer may decide dismissal by flick.
@@ -30,12 +30,6 @@ export type SwipeDirection = 'up' | 'down' | 'left' | 'right';
 export type ScrollAxis = 'horizontal' | 'vertical';
 
 type SwipeDismissEvent = PointerEvent | TouchEvent;
-
-type SwipeProgressDetailsInternal = {
-  deltaX: number;
-  deltaY: number;
-  direction: SwipeDirection | undefined;
-};
 
 const DEFAULT_SWIPE_THRESHOLD = 40;
 const REVERSE_CANCEL_THRESHOLD = 10;
@@ -197,10 +191,6 @@ function isTouchEvent(event: SwipeDismissEvent): event is TouchEvent {
   return 'touches' in event;
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
-}
-
 function safelyChangePointerCapture(
   element: HTMLElement,
   pointerId: number,
@@ -226,8 +216,6 @@ export interface UseSwipeDismissDetails {
   direction: SwipeDirection | undefined;
 }
 
-export type UseSwipeDismissProgressDetails = SwipeProgressDetailsInternal;
-
 export interface UseSwipeDismissReleaseDetails {
   event: PointerEvent | TouchEvent;
   direction: SwipeDirection | undefined;
@@ -248,11 +236,9 @@ export interface UseSwipeDismissOptions {
   movementCssVars: { x: string; y: string };
   /**
    * The minimum distance (in pixels) the pointer must travel from the initial swipe point
-   * before the gesture is considered a dismiss.
-   * @default 40
+   * before the gesture is considered a dismiss. 40 without an element.
    */
   swipeThreshold?:
-    | number
     | ((details: { element: HTMLElement; direction: SwipeDirection }) => number)
     | undefined;
   /**
@@ -262,28 +248,7 @@ export interface UseSwipeDismissOptions {
   canStart?:
     | ((position: { x: number; y: number }, details: UseSwipeDismissDetails) => boolean)
     | undefined;
-  /**
-   * If true, swiping won't start when the gesture begins within a scrollable element.
-   * @default false
-   */
-  ignoreScrollableAncestors?: boolean | undefined;
-  /**
-   * If false, touch interactions can start swiping on interactive elements
-   * that are ignored during pointer swipes.
-   * @default true
-   */
-  ignoreSelectorWhenTouch?: boolean | undefined;
-  /**
-   * Whether to apply the drag transform and movement styles to the element imperatively during
-   * a swipe. Disable for event-only usage where the consumer drives styling itself.
-   * @default true
-   */
-  trackDrag?: boolean | undefined;
   onSwipeStart?: ((event: PointerEvent | TouchEvent) => void) | undefined;
-  onProgress?: ((progress: number, details?: UseSwipeDismissProgressDetails) => void) | undefined;
-  onCancel?: ((event: PointerEvent | TouchEvent) => void) | undefined;
-  /** Called when the swipe interaction starts or ends. */
-  onSwipingChange?: ((swiping: boolean) => void) | undefined;
   /**
    * Called when the swipe interaction ends. Returning `true` or `false`
    * overrides the default dismissal decision.
@@ -296,8 +261,6 @@ export interface UseSwipeDismissOptions {
 
 export interface UseSwipeDismissReturnValue {
   swiping: Accessor<boolean>;
-  swipeDirection: Accessor<SwipeDirection | undefined>;
-  dragDismissed: Accessor<boolean>;
   getPointerProps: () => {
     onPointerDown?: (event: PointerEvent) => void;
     onPointerMove?: (event: PointerEvent) => void;
@@ -306,13 +269,12 @@ export interface UseSwipeDismissReturnValue {
   };
   getTouchProps: () => {
     onTouchStart?: (event: TouchEvent) => void;
-    onTouchMove?: (event: TouchEvent) => void;
     onTouchEnd?: (event: TouchEvent) => void;
     onTouchCancel?: (event: TouchEvent) => void;
   };
   /**
-   * Feeds a native touchmove into the swipe, for consumers that claim the
-   * gesture in a capture-phase listener; `currentTarget` bounds the scroll check.
+   * Feeds a native touchmove into the swipe: the consumer claims touch moves
+   * in a capture-phase listener; `currentTarget` bounds the scroll check.
    */
   moveNative: (nativeEvent: TouchEvent, currentTarget: HTMLElement) => void;
   /** The element's drag styles for its `style` (read it in a tracking scope). */
@@ -321,25 +283,14 @@ export interface UseSwipeDismissReturnValue {
 }
 
 export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismissReturnValue {
-  const ignoreSelector = DEFAULT_IGNORE_SELECTOR;
-
   const directions = () => options.directions;
   const primaryDirection = () => (directions().length === 1 ? directions()[0] : undefined);
-  const swipeThresholdDefault = () =>
-    Math.max(
-      0,
-      typeof options.swipeThreshold === 'number' ? options.swipeThreshold : DEFAULT_SWIPE_THRESHOLD,
-    );
   const allow = (direction: SwipeDirection) => directions().includes(direction);
   const hasHorizontal = () => allow('left') || allow('right');
   const hasVertical = () => allow('up') || allow('down');
   // Consumers only pass directions on a single axis.
   const scrollAxis = (): ScrollAxis => (hasHorizontal() ? 'horizontal' : 'vertical');
-  const trackDrag = () => options.trackDrag ?? true;
 
-  const [currentSwipeDirection, setCurrentSwipeDirection] = createSignal<
-    SwipeDirection | undefined
-  >(undefined, { ownedWrite: true });
   const [isSwiping, setIsSwiping] = createSignal(false, { ownedWrite: true });
   const [dragDismissed, setDragDismissed] = createSignal(false, { ownedWrite: true });
 
@@ -356,8 +307,6 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
   let pendingSwipeStartPos: { x: number; y: number } | null = null;
   let swipeFromScrollable = false;
   let sawPrimaryButtonsOnMove = false;
-  let elementSize = { width: 0, height: 0 };
-  let swipeProgress = 0;
   let swipeThreshold = DEFAULT_SWIPE_THRESHOLD;
   let swipeThresholdFunction:
     | ((details: { element: HTMLElement; direction: SwipeDirection }) => number)
@@ -366,7 +315,6 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
   let lastDragSample: { x: number; y: number; time: number } | null = null;
   let hasStationarySample = false;
   let lastDragVelocity = { x: 0, y: 0 };
-  let lastProgressDetails: SwipeProgressDetailsInternal | null = null;
   let swipingNow = false;
   let dragStyleSnapshot: [string, string] | null = null;
 
@@ -377,7 +325,6 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
 
     swipingNow = nextSwiping;
     setIsSwiping(nextSwiping);
-    options.onSwipingChange?.(nextSwiping);
   }
 
   function resolveSwipeThreshold(direction: SwipeDirection | undefined) {
@@ -393,36 +340,9 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
     swipeThreshold = Math.max(0, swipeThresholdFunction({ element, direction }));
   }
 
-  function updateSwipeProgress(progress: number, details?: SwipeProgressDetailsInternal) {
-    const nextProgress = Number.isFinite(progress) ? clamp(progress, 0, 1) : 0;
-    const progressChanged = nextProgress !== swipeProgress;
-    let detailsChanged = false;
-
-    if (details) {
-      const lastDetails = lastProgressDetails;
-      detailsChanged =
-        !lastDetails ||
-        lastDetails.deltaX !== details.deltaX ||
-        lastDetails.deltaY !== details.deltaY ||
-        lastDetails.direction !== details.direction;
-    }
-
-    if (!progressChanged && !detailsChanged) {
-      return;
-    }
-
-    swipeProgress = nextProgress;
-    if (details) {
-      lastProgressDetails = details;
-    } else if (progressChanged) {
-      lastProgressDetails = null;
-    }
-    options.onProgress?.(nextProgress, details);
-  }
-
   function syncDragStyles(swiping: boolean) {
     const element = options.element();
-    if (!trackDrag() || !element) {
+    if (!element) {
       if (!swiping) {
         dragStyleSnapshot = null;
       }
@@ -481,12 +401,10 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
   }
 
   function reset() {
-    setCurrentSwipeDirection(undefined);
     setSwiping(false);
     setDragDismissed(false);
-    updateSwipeProgress(0);
 
-    swipeThreshold = swipeThresholdDefault();
+    swipeThreshold = DEFAULT_SWIPE_THRESHOLD;
     swipeThresholdFunction = null;
     dragStartPos = { x: 0, y: 0 };
     dragOffset = { x: 0, y: 0 };
@@ -501,12 +419,10 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
     pendingSwipeStartPos = null;
     swipeFromScrollable = false;
     sawPrimaryButtonsOnMove = false;
-    elementSize = { width: 0, height: 0 };
     swipeStartTime = null;
     lastDragSample = null;
     hasStationarySample = false;
     lastDragVelocity = { x: 0, y: 0 };
-    lastProgressDetails = null;
     syncDragStyles(false);
   }
 
@@ -568,12 +484,12 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
     }
     swipeFromScrollable = Boolean(scrollableTarget && ignoreScrollableTarget);
 
-    const isInteractiveElement = closest(target, ignoreSelector);
-    if (isInteractiveElement && (!touchLike || (options.ignoreSelectorWhenTouch ?? true))) {
+    // A touch may start on an interactive element; a mouse press there is the element's.
+    if (!touchLike && closest(target, DEFAULT_IGNORE_SELECTOR)) {
       return false;
     }
 
-    if (options.ignoreScrollableAncestors && element && target) {
+    if (element && target) {
       const ignoreAncestors = startOptions?.ignoreScrollableAncestors ?? false;
       if (!ignoreAncestors && hasScrollableAncestor(target, element, scrollAxis())) {
         return false;
@@ -591,12 +507,10 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
     lastDragVelocity = { x: 0, y: 0 };
     swipeCancelBaseline = position;
     lastMovePos = position;
-    swipeThreshold = swipeThresholdDefault();
-    swipeThresholdFunction =
-      typeof options.swipeThreshold === 'function' ? options.swipeThreshold : null;
+    swipeThreshold = DEFAULT_SWIPE_THRESHOLD;
+    swipeThresholdFunction = options.swipeThreshold ?? null;
 
     if (element) {
-      elementSize = { width: element.offsetWidth, height: element.offsetHeight };
       resolveSwipeThreshold(primaryDirection());
       const transform = getElementTransform(element);
 
@@ -613,7 +527,6 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
 
     setSwiping(true);
     isFirstPointerMove = true;
-    updateSwipeProgress(0);
     syncDragStyles(true);
 
     return true;
@@ -640,7 +553,6 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
     setSwiping(false);
 
     dragOffset = { x: initialTransform.x, y: initialTransform.y };
-    setCurrentSwipeDirection(undefined);
     sawPrimaryButtonsOnMove = false;
     syncDragStyles(false);
 
@@ -648,10 +560,6 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
     if (element) {
       safelyChangePointerCapture(element, event.pointerId, 'releasePointerCapture');
     }
-
-    updateSwipeProgress(0, { deltaX: 0, deltaY: 0, direction: undefined });
-
-    options.onCancel?.(event);
   }
 
   function canSwipeFromScrollEdgeOnPendingMove(
@@ -751,18 +659,14 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
       isFirstPointerMove = false;
       // Reset the drag origin to the first move's position to absorb the gap
       // between the press and the first move (iOS touch arrives offset), which
-      // would make the dragged element jump. Without `trackDrag` the original
-      // press position is kept, so a quick flick that lands entirely in this
-      // first move still registers.
-      if (trackDrag()) {
-        dragStartPos = position;
-        const moveTime = getValidTimeStamp(event.timeStamp);
-        if (moveTime !== null) {
-          swipeStartTime = moveTime;
-        }
-        lastDragSample = null;
-        hasStationarySample = false;
+      // would make the dragged element jump.
+      dragStartPos = position;
+      const moveTime = getValidTimeStamp(event.timeStamp);
+      if (moveTime !== null) {
+        swipeStartTime = moveTime;
       }
+      lastDragSample = null;
+      hasStationarySample = false;
     }
 
     const clientX = position.x;
@@ -798,7 +702,6 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
       if (allow(candidate)) {
         intendedSwipeDirection = candidate;
         maxSwipeDisplacement = getDisplacement(candidate, deltaX, deltaY);
-        setCurrentSwipeDirection(candidate);
         resolveSwipeThreshold(candidate);
       }
     } else {
@@ -806,7 +709,6 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
       const currentDisplacement = getDisplacement(direction, cancelDeltaX, cancelDeltaY);
       if (currentDisplacement > swipeThreshold) {
         cancelledSwipe = false;
-        setCurrentSwipeDirection(direction);
       } else if (
         !(allow('left') && allow('right')) &&
         !(allow('up') && allow('down')) &&
@@ -828,9 +730,7 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
       newOffsetY += dampedDelta.y;
     }
 
-    // Only rewrite drag styles when the drag offset changed: `syncDragStyles`
-    // writes the raw transform, relying on `onProgress` to overwrite it with
-    // damped styles, and `updateSwipeProgress` skips unchanged deltas.
+    // Only rewrite drag styles when the drag offset changed.
     const previousOffset = dragOffset;
     const offsetChanged = newOffsetX !== previousOffset.x || newOffsetY !== previousOffset.y;
 
@@ -839,29 +739,6 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
       syncDragStyles(true);
     }
     recordDragSample({ x: newOffsetX, y: newOffsetY }, getValidTimeStamp(event.timeStamp));
-    const dragDeltaX = newOffsetX - initialTransform.x;
-    const dragDeltaY = newOffsetY - initialTransform.y;
-    const progressDetails: SwipeProgressDetailsInternal = {
-      deltaX: dragDeltaX,
-      deltaY: dragDeltaY,
-      direction: intendedSwipeDirection,
-    };
-
-    let progress = 0;
-    const progressDirection = primaryDirection() ?? intendedSwipeDirection;
-    if (progressDirection) {
-      const size =
-        progressDirection === 'left' || progressDirection === 'right'
-          ? elementSize.width
-          : elementSize.height;
-      const scale = initialTransform.scale || 1;
-      const progressDisplacement = getDisplacement(progressDirection, dragDeltaX, dragDeltaY);
-      if (size > 0 && scale > 0 && progressDisplacement > 0) {
-        progress = progressDisplacement / (size * scale);
-      }
-    }
-
-    updateSwipeProgress(progress, progressDetails);
   }
 
   function handleEnd(event: SwipeDismissEvent) {
@@ -873,15 +750,9 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
     const resolvedInitialTransform = initialTransform;
     const releaseDeltaX = resolvedDragOffset.x - resolvedInitialTransform.x;
     const releaseDeltaY = resolvedDragOffset.y - resolvedInitialTransform.y;
-    const progressDetails: SwipeProgressDetailsInternal = {
-      deltaX: releaseDeltaX,
-      deltaY: releaseDeltaY,
-      direction: intendedSwipeDirection,
-    };
 
     if (!swipingNow) {
       resetPendingSwipeState();
-      updateSwipeProgress(0, progressDetails);
       return;
     }
 
@@ -938,9 +809,7 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
 
     if (cancelledSwipe && !hasReleaseDecision) {
       dragOffset = { x: resolvedInitialTransform.x, y: resolvedInitialTransform.y };
-      setCurrentSwipeDirection(undefined);
       syncDragStyles(false);
-      updateSwipeProgress(0, progressDetails);
       return;
     }
 
@@ -961,15 +830,12 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
     }
 
     if (shouldClose && dismissDirection) {
-      setCurrentSwipeDirection(dismissDirection);
       setDragDismissed(true);
       syncDragStyles(false);
       options.onDismiss?.(event, { direction: dismissDirection });
     } else {
       dragOffset = { x: resolvedInitialTransform.x, y: resolvedInitialTransform.y };
-      setCurrentSwipeDirection(undefined);
       syncDragStyles(false);
-      updateSwipeProgress(0, progressDetails);
     }
   }
 
@@ -1083,7 +949,7 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
     }
   }
 
-  const onMove = (event: SwipeDismissEvent) => handleMove(event, event.currentTarget);
+  const onPointerMove = (event: PointerEvent) => handleMove(event, event.currentTarget);
 
   function getDragStyles(): Record<string, string | undefined> {
     // Tracks the swiping and dismissed flags; the offsets themselves are
@@ -1109,15 +975,13 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
 
   return {
     swiping: isSwiping,
-    swipeDirection: currentSwipeDirection,
-    dragDismissed,
     getPointerProps() {
       if (!options.enabled) {
         return {};
       }
       return {
         onPointerDown: handleStart,
-        onPointerMove: onMove,
+        onPointerMove,
         onPointerUp: handleEnd,
         onPointerCancel: handleEnd,
       };
@@ -1128,7 +992,6 @@ export function useSwipeDismiss(options: UseSwipeDismissOptions): UseSwipeDismis
       }
       return {
         onTouchStart: handleStart,
-        onTouchMove: onMove,
         onTouchEnd: handleEnd,
         onTouchCancel: handleEnd,
       };

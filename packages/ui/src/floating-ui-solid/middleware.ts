@@ -1,13 +1,9 @@
 // Upstream: packages/react/src/floating-ui-react/middleware/arrow.ts,
-// packages/react/src/utils/hideMiddleware.ts,
-// packages/react/src/utils/adaptiveOriginMiddleware.ts,
-// packages/react/src/utils/adaptiveOriginConstants.ts
+// packages/react/src/utils/hideMiddleware.ts
 //
 // Base UI's own positioning middleware: an arrow that always measures
-// against the popup (not its offset parent), anchor-hidden detection, and an
-// origin that anchors a transitioning popup by its far edge (right/bottom)
-// when it opens to the left or top, so a size transition grows away from
-// the anchor.
+// against the popup (not its offset parent), and anchor-hidden detection.
+// Upstream's `adaptiveOrigin` is left out: no popup here passes it.
 import type { Derivable, Middleware, Padding } from '@floating-ui/dom';
 import {
   clamp,
@@ -16,10 +12,7 @@ import {
   getAlignmentAxis,
   getAxisLength,
   getPaddingObject,
-  getSide,
 } from '@floating-ui/utils';
-
-import { ownerDocument, ownerWindow } from '../utils/dom.ts';
 
 export interface ArrowOptions {
   element: Element | null;
@@ -99,58 +92,5 @@ export const hide: Middleware = {
       overflow.bottom - height >= 0 ||
       overflow.left - width >= 0;
     return { data: { referenceHidden: referenceHidden || anchorHidden } };
-  },
-};
-
-export const DEFAULT_SIDES = { sideX: 'left', sideY: 'top' } as const;
-
-export const adaptiveOrigin: Middleware = {
-  name: 'adaptiveOrigin',
-  async fn(state) {
-    const {
-      x: rawX,
-      y: rawY,
-      rects: { floating: floatRect },
-      elements: { floating },
-      platform,
-      strategy,
-      placement,
-    } = state;
-    const win = ownerWindow(floating);
-    const styles = win.getComputedStyle(floating);
-    const hasTransition = styles.transitionDuration !== '0s' && styles.transitionDuration !== '';
-    if (!hasTransition) {
-      return { x: rawX, y: rawY, data: DEFAULT_SIDES };
-    }
-    const offsetParent = await platform.getOffsetParent?.(floating);
-    let offsetDimensions = { width: 0, height: 0 };
-    if (strategy === 'fixed' && win.visualViewport) {
-      offsetDimensions = { width: win.visualViewport.width, height: win.visualViewport.height };
-    } else if (offsetParent === win) {
-      const doc = ownerDocument(floating);
-      offsetDimensions = {
-        width: doc.documentElement.clientWidth,
-        height: doc.documentElement.clientHeight,
-      };
-    } else if (await platform.isElement?.(offsetParent)) {
-      offsetDimensions = await platform.getDimensions(offsetParent as Element);
-    }
-    const currentSide = getSide(placement);
-    let x = rawX;
-    let y = rawY;
-    if (currentSide === 'left') {
-      x = offsetDimensions.width - (rawX + floatRect.width);
-    }
-    if (currentSide === 'top') {
-      y = offsetDimensions.height - (rawY + floatRect.height);
-    }
-    return {
-      x,
-      y,
-      data: {
-        sideX: currentSide === 'left' ? 'right' : DEFAULT_SIDES.sideX,
-        sideY: currentSide === 'top' ? 'bottom' : DEFAULT_SIDES.sideY,
-      },
-    };
   },
 };

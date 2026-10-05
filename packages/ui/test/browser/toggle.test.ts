@@ -116,6 +116,17 @@ describe('ToggleGroup', () => {
     await see(page.locator('#three')).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('keeps the pressed toggle pressed when the owner ignores the empty value', async () => {
+    // The mode tray's shape: one value always pressed, pressing it again offers [].
+    const page = await h.open('group', { query: { controlled: 'true' } });
+    await page.click('#set-value');
+    await see(page.locator('#three')).toHaveAttribute('aria-pressed', 'true');
+    await page.click('#three');
+    expect(await logOf(page)).toEqual(['value [] none']);
+    await see(page.locator('#three')).toHaveAttribute('aria-pressed', 'true');
+    await see(page.locator('#three')).toHaveAttribute('data-pressed', '');
+  });
+
   it('keeps its value when the group or the toggle cancels the change', async () => {
     const page = await h.open('group', { query: { cancel: 'group' } });
     await page.click('#one');

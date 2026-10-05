@@ -100,6 +100,14 @@ const nativeMenuBlocked = (page: Page, selector: string): Promise<boolean> =>
     return event.defaultPrevented;
   }, selector);
 
+/** Whether the page's scroll is locked (the scroller's `overflow` is hidden). */
+const scrollLocked = (page: Page): Promise<boolean> =>
+  page.evaluate(() =>
+    [document.documentElement, document.body].some(
+      (element) => getComputedStyle(element).overflowY === 'hidden',
+    ),
+  );
+
 describe('ContextMenu.Trigger: right click', () => {
   it('opens the menu at the pointer and marks the trigger open', async () => {
     const page = await h.open('area');
@@ -149,14 +157,15 @@ describe('ContextMenu.Trigger: right click', () => {
     expect(await logOf(page)).toContain('click paste');
   });
 
-  it('suppresses the native context menu on the area and on the backdrop', async () => {
+  it('suppresses the native context menu on the area and on the menu backdrop', async () => {
     const page = await h.open('area');
     expect(await nativeMenuBlocked(page, '#area')).toBe(true);
     const { x, y } = await areaCentre(page);
     await page.mouse.click(x, y, { button: 'right' });
-    await see(page.locator('#backdrop')).toHaveAttribute('data-open', '');
-    expect(await nativeMenuBlocked(page, '#backdrop')).toBe(true);
-    expect(await nativeMenuBlocked(page, '#before-nothing, body')).toBe(false);
+    const backdrop = 'body > [data-base-ui-portal] > [role=presentation][data-base-ui-inert]';
+    await see(page.locator(backdrop)).toHaveCount(1);
+    expect(await nativeMenuBlocked(page, backdrop)).toBe(true);
+    expect(await nativeMenuBlocked(page, 'body')).toBe(false);
   });
 
   it('an open the root declines leaves the native context menu alone', async () => {
@@ -314,6 +323,80 @@ describe('ContextMenu.Root: outside press after a long press', () => {
     await page.clock.runFor(100);
     await see(page.locator('#popup')).toHaveCount(0);
     expect(await logOf(page)).toContain('open false outside-press');
+  });
+});
+
+describe('ContextMenu.Root: one root, a page trigger around target triggers', () => {
+  it('a right click on a target opens once, at the pointer, naming that target', async () => {
+    const page = await h.open('nested');
+    const { x, y } = await centreOf(page, '#target-a');
+    await page.mouse.click(x, y, { button: 'right' });
+    await see(page.locator('#popup')).toBeVisible();
+    await see(page.locator('#positioner')).not.toHaveCSS('opacity', '0');
+    const box = (await page.locator('#positioner').boundingBox())!;
+    expect(Math.round(box.y)).toBe(y - 5);
+    expect(Math.round(box.x)).toBe(x + 2);
+    expect(await logOf(page)).toEqual(['open true a']);
+    await see(page.locator('#target-a')).toHaveAttribute('data-popup-open', '');
+  });
+
+  it('a right click on another target, or on no target, moves the menu and names it', async () => {
+    const page = await h.open('nested');
+    const a = await centreOf(page, '#target-a');
+    await page.mouse.click(a.x, a.y, { button: 'right' });
+    await see(page.locator('#popup')).toBeVisible();
+    const b = await centreOf(page, '#target-b');
+    await page.mouse.click(b.x, b.y, { button: 'right' });
+    await see
+      .poll(async () => Math.round((await page.locator('#positioner').boundingBox())?.y ?? 0))
+      .toBe(b.y - 5);
+    const blank = await centreOf(page, '#blank');
+    await page.mouse.click(blank.x, blank.y, { button: 'right' });
+    await see
+      .poll(async () => Math.round((await page.locator('#positioner').boundingBox())?.y ?? 0))
+      .toBe(blank.y - 5);
+    await see(page.locator('#popup')).toBeVisible();
+    expect((await logOf(page)).filter((line) => line.startsWith('open true'))).toEqual([
+      'open true a',
+      'open true b',
+      'open true page',
+    ]);
+  });
+
+  it('typeahead matches an item by its label, not its text', async () => {
+    const page = await h.open('nested');
+    const { x, y } = await centreOf(page, '#target-a');
+    await page.mouse.click(x, y, { button: 'right' });
+    await see(page.locator('#popup')).toBeVisible();
+    await see.poll(() => focused(page)).toBe('popup');
+    await page.keyboard.press('r');
+    await see.poll(() => focused(page)).toBe('rename');
+    await page.keyboard.press('Enter');
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).toContain('click rename');
+  });
+});
+
+describe('ContextMenu.Root: the page scroll', () => {
+  // As upstream: only a trigger's click records a touch open (Menu.Trigger's), so a
+  // long press is not one and its menu locks the page as a right click's does.
+  it('locks the page scroll while open, from a right click or a long press', async () => {
+    const page = await h.open('area');
+    const { x, y } = await areaCentre(page);
+    await page.mouse.click(x, y, { button: 'right' });
+    await see(page.locator('#popup')).toBeVisible();
+    await see.poll(() => scrollLocked(page)).toBe(true);
+    await page.keyboard.press('Escape');
+    await see(page.locator('#popup')).toHaveCount(0);
+    await see.poll(() => scrollLocked(page)).toBe(false);
+
+    const phone = await h.open('area', { touch: true });
+    const f = await finger(phone);
+    const centre = await areaCentre(phone);
+    await f.down(centre.x, centre.y);
+    await see(phone.locator('#popup')).toBeVisible();
+    await see.poll(() => scrollLocked(phone)).toBe(true);
+    await f.up();
   });
 });
 
