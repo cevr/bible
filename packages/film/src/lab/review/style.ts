@@ -92,11 +92,14 @@ a.rv-card:hover { background: var(--surface-2); }
  * The transport: one row in the page's dock (\`.sh-dock\`, the shell's), on
  * Choices, a Set and Project alike: play, the time, the scrub taking what is
  * left, then the rate. On a phone the time is where the clock is; the scrub
- * shows the end.
+ * shows the end. On a laptop the header's timecode is the time, and the row
+ * says only the length.
  */
 .rv-transport { flex: 1; display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-3); min-width: 0; }
 @media (min-width: 900px) {
   .rv-main .sh-dock:not(.pj-dock) { margin-bottom: var(--s-3); }
+  /* One timecode on a laptop (SU-12): the header's; the row keeps the length. */
+  .rv-time-at { display: none; }
 }
 /* Play: the kit's primary button, square. */
 .rv-big { width: var(--control-h); padding: 0; font-size: var(--fs-4); flex: none; }

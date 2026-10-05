@@ -600,7 +600,8 @@ export const Transport = (props: {
         )}
       </button>
       <span class="rv-time" data-state={sync()._tag}>
-        {clockParts(sync()).at}
+        {/* The time: a laptop's header shows it already (`useShellTime`), so its row leaves it out. */}
+        <span class="rv-time-at">{clockParts(sync()).at}</span>
         {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
         <span class="rv-time-rest">{clockParts(sync()).rest}</span>
       </span>
