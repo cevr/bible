@@ -12,7 +12,13 @@ import { Boolean as Bool, Effect, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
-import { type FakeRoute, json, openPlayer, route } from '../../src/lab/fixtures/harness.ts';
+import {
+  type FakeRoute,
+  type Json,
+  json,
+  openPlayer,
+  route,
+} from '../../src/lab/fixtures/harness.ts';
 import { CROWD } from '../../src/lab/fixtures/crowd-film.ts';
 import { MENU_ITEMS, touch } from '../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
@@ -60,19 +66,27 @@ const shiftClickInScene = (page: Tab, scene: string) =>
     ),
   );
 
-/** The probe film's project: each scene rendered as it stands, approved when `approved` holds it. */
-const projectOf = (approved: ReadonlyArray<string>) => ({
+/**
+ * The probe film's project: each scene rendered as it stands, approved when
+ * `approved` holds it; an approve's answer says what it `gave`, an Undo's
+ * what it `took`.
+ */
+const projectOf = (
+  approved: ReadonlyMap<string, string>,
+  answer: { readonly gave?: Json; readonly took?: Json } = {},
+) => ({
   project: {
     film: PROBE,
     variant: 'main',
     key: 'fk',
+    ...answer,
     comments: [],
     acts: [{ name: 'opening', scenes: ['one', 'two', 'three'], key: 'ak', comments: [] }],
     scenes: ['one', 'two', 'three'].map((scene) => ({
       scene,
       key: 'k',
       state: 'current',
-      approval: Bool.match(approved.includes(scene), {
+      approval: Bool.match(approved.has(scene), {
         onTrue: () => 'approved',
         onFalse: () => 'none',
       }),
@@ -82,19 +96,37 @@ const projectOf = (approved: ReadonlyArray<string>) => ({
   videos: {},
 });
 
-/** What a project say names: its scenes. */
+/** What a project say names: its scenes, and what it says (a withdraw `given` an approve's op). */
 const SaidOf = Schema.decodeUnknownSync(
-  Schema.Struct({ address: Schema.Struct({ ids: Schema.Array(Schema.String) }) }),
+  Schema.Struct({
+    address: Schema.Struct({ ids: Schema.Array(Schema.String) }),
+    say: Schema.Struct({ _tag: Schema.String, given: Schema.optionalKey(Schema.String) }),
+  }),
 );
 
-/** The project's routes: a read, and an approval that approves the scenes it names. */
+/**
+ * The project's routes: a read; an approve, a run of its own (its op), that
+ * approves the scenes it names not approved already and says it gave them;
+ * a withdraw given an op that takes just that run's approvals.
+ */
 const projectRoutes = (): ReadonlyArray<FakeRoute> => {
-  const approved: Array<string> = [];
+  // Each approved scene, by the op of the run that approved it.
+  const approved = new Map<string, string>();
+  let runs = 0;
   return [
     route('GET', /^\/project$/, () => json(projectOf(approved))),
     route('POST', /^\/project\/say$/, (asked) => {
-      approved.push(...SaidOf(Option.getOrElse(asked.body, () => ({}))).address.ids);
-      return json(projectOf(approved));
+      const said = SaidOf(Option.getOrElse(asked.body, () => ({})));
+      if (said.say._tag === 'Withdraw') {
+        const took = said.address.ids.filter((s) => approved.get(s) === said.say.given);
+        took.forEach((s) => approved.delete(s));
+        return json(projectOf(approved, { took: { op: said.say.given ?? '', scenes: took } }));
+      }
+      runs += 1;
+      const op = `op-${runs}`;
+      const made = said.address.ids.filter((s) => !approved.has(s));
+      made.forEach((s) => approved.set(s, op));
+      return json(projectOf(approved, { gave: { op, at: 0, scenes: made } }));
     }),
   ];
 };
@@ -459,6 +491,35 @@ describe('the player', () => {
       yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "an approve on Scenes offers Undo, as Project's does: one withdraw of just the approvals it gave (its op)",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          projectRoutes(),
+        );
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        yield* clickInScene(page, 'one');
+        yield* shiftClickInScene(page, 'three');
+        yield* page.press('Shift+A');
+        yield* textHas(page, '[data-role="receipt"]', 'approved 2 scenes');
+        yield* page.click('[data-role="receipt"] [data-act="receipt-undo"]');
+        yield* textHas(page, '[data-role="receipt"]', 'Undid approving scenes one, three');
+        expect(
+          asked
+            .filter((a) => a.method === 'POST' && a.path === '/project/say')
+            .map((a) => SaidOf(Option.getOrElse(a.body, () => ({})))),
+        ).toEqual([
+          { address: { ids: ['one', 'three'] }, say: { _tag: 'Approve' } },
+          { address: { ids: ['one', 'three'] }, say: { _tag: 'Withdraw', given: 'op-1' } },
+        ]);
+        yield* evaluates(page, "document.querySelector('.sc-focus .sc-chips').textContent", '');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live(

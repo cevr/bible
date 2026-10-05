@@ -42,9 +42,6 @@ import {
 import { type Address, type PartAddress, addressKey, sceneAddress } from '../../../core/address.ts';
 import { Places, ProjectView, pageHref, withdrawSay } from '../../../core/api.ts';
 import {
-  type Gave,
-  OpId,
-  type Took,
   type ProjectAct as Act,
   type ProjectScene,
   type SaidComment,
@@ -81,19 +78,10 @@ import {
 } from './choice.tsx';
 import { FilmProvider, useFilm } from './context.tsx';
 import { Findings } from './findings.tsx';
-import { partText } from './receipt.ts';
+import { approveUndo, partText, tookText, undoApprove } from './receipt.ts';
 import { Still, type SceneStills, useSceneStills } from './stills.tsx';
 import { Selection } from '../../../command/selection.ts';
-import {
-  BY_BUTTON,
-  type Bound,
-  type Command,
-  type CommandId,
-  type Undoing,
-  Unfit,
-  quiet,
-  refused,
-} from '../../../command/command.ts';
+import { BY_BUTTON, type Undoing, quiet } from '../../../command/command.ts';
 import { withSelection } from '../../../command/context.ts';
 import { Target, type TargetElementProps } from '../../command/context-menu.tsx';
 import {
@@ -857,26 +845,11 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
 const staleSinceRead = (failure: Option.Option<LabFailure>): boolean =>
   Option.exists(failure, (e) => e._tag === 'VerbRefused');
 
-/** The command an approve's receipt offers as its Undo: a withdraw of just the approvals it gave. */
-const UNDO_APPROVE: CommandId = 'project.undo-approve';
-
-/** What an approve gave, as its receipt binds it (`Bound.change`): `<op> <scene> <scene>…`. */
-const boundGave = (gave: Gave): string => [gave.op, ...gave.scenes].join(' ');
-
-/** What an approve's Undo takes back, read from its receipt's binding: the approve's op and its scenes. */
-const gaveBound = (bound: Bound): Option.Option<Took> => {
-  const [op = '', ...scenes] = bound.change.split(' ').filter((w) => w !== '');
-  return Option.map(Option.liftPredicate(op, Schema.is(OpId)), (id) => ({ op: id, scenes }));
-};
-
 /**
  * What a say of the project did, as its receipt says it (`Words`): what it
  * said of which part, and for an approve or a withdraw the part's approvals
  * before → after (`0/2 → 1/2 approved`). An approve's Undo takes back
- * exactly what the catalogue says it gave (`Project.gave`: its op, and the
- * scenes whose approval it added), bound to that; none when it gave
- * none (each scene approved already, by another as like as not). The page's
- * own earlier read never decides it: another may have approved since.
+ * exactly what the catalogue says it gave (`approveUndo`).
  */
 const sayWords = (film: string, before: Option.Option<ProjectView>) => (s: ProjectSay) => {
   const was = Option.map(before, (v) => scenesIn(v, s.address));
@@ -889,23 +862,12 @@ const sayWords = (film: string, before: Option.Option<ProjectView>) => (s: Proje
       ),
     );
   const undo = (after: ProjectView): Option.Option<Undoing> =>
-    Option.map(
-      Option.filter(after.project.gave, (g) => s.say._tag === 'Approve' && g.scenes.length > 0),
-      (gave) => ({ command: UNDO_APPROVE, bound: { film, change: boundGave(gave) } }),
-    );
-  // An Undo's words are what the catalogue says it took (`Project.took`): nothing, when the
-  // approve's approvals were withdrawn since.
+    Option.filter(approveUndo(film, after), () => s.say._tag === 'Approve');
+  // An Undo's words are what the catalogue says it took (`Project.took`).
   const said = (after: ProjectView) =>
     Option.match(after.project.took, {
       onNone: () => sayText(s.say, partText(s.address)),
-      onSome: (took) =>
-        Match.value(took.scenes.length > 0).pipe(
-          Match.when(true, () => `Undid approving ${partText(s.address)}`),
-          Match.orElse(
-            () =>
-              `Nothing left to undo: that approval of ${partText(s.address)} was withdrawn since`,
-          ),
-        ),
+      onSome: (took) => tookText(s.address, took),
     });
   return {
     doing: 'saying…',
@@ -973,46 +935,21 @@ const ProjectReady = (props: { readonly film: string }) => {
         ),
     };
   };
-  // An approve's Undo: one withdraw of the approvals it gave (given its op), naming its
-  // scenes. The catalogue takes only those: another's approval since stays.
-  // Whether any is left is the catalogue's to say (`Project.took`), not the page's: an
-  // approval a new render made stale is still the approve's own, and goes.
+  // An approve's Undo (`undoApprove`), its receipt this page's say's. An approval a new
+  // render made stale since is still the approve's own, and goes.
   const undoing = useSay();
-  const undoApprove: Command = {
-    id: UNDO_APPROVE,
-    label: 'Undo',
-    labelIn: () => 'Undo an approve',
-    group: 'Edit',
-    typed: true,
-    touch: "the approve's receipt's Undo",
-    when: () => !undoing.waiting(),
-    fits: (bound) =>
-      Match.value(bound).pipe(
-        Match.when(
-          (b) => b.film !== film,
-          (b) => Option.some(Unfit.Now({ reason: `that approve was of ${b.film}` })),
-        ),
-        Match.orElse(() => Option.none<Unfit>()),
-      ),
-    run: (_, how) =>
-      Effect.sync(() =>
-        Option.match(Option.flatMap(Option.fromUndefinedOr(how.bound), gaveBound), {
-          onNone: () => refused("an approve is undone from its receipt's Undo"),
-          onSome: (gave) =>
-            Arr.match(gave.scenes, {
-              onEmpty: () => refused('that approve gave no approval to take back'),
-              onNonEmpty: (ids) => {
-                void undoing.say({
-                  address: { _tag: 'Scenes', ids },
-                  say: withdrawSay(Option.some(gave.op)),
-                });
-                return quiet;
-              },
-            }),
-        }),
-      ),
-  };
-  onCleanup(meta.hub.commands.register(undoApprove));
+  onCleanup(
+    meta.hub.commands.register(
+      undoApprove(film, {
+        waiting: undoing.waiting,
+        withdraw: (ids, say) =>
+          Effect.sync(() => {
+            void undoing.say({ address: { _tag: 'Scenes', ids }, say });
+            return quiet;
+          }),
+      }),
+    ),
+  );
   // The open sheet is the URL's (`?point=`): a tap names its part (Back closes it), Close,
   // Escape and a swipe name none, and a link, Back and Forward open what they name.
   const variantNow = () =>

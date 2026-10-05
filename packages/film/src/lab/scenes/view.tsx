@@ -13,7 +13,8 @@
 // the Project shows) is the inspector's focus panel at the side, a sheet
 // over the tab bar on a phone: the live frame, its act, in, out and length,
 // its marks, Open in Lab (E) and Approve (A), its findings and a comment.
-// ⇧-click or ⌘-click adds scenes to the selection, and ⇧A approves them all.
+// ⇧-click or ⌘-click adds scenes to the selection, and ⇧A approves them all
+// in one say; an approve's receipt offers Undo, as Project's does.
 // The selection is the URL's path and the playhead its `#t=` (`place.ts`):
 // Back steps through the selections. ⌘+ and ⌘− step the tape between 2.5,
 // 5 and 10 s a still (kept in this browser); the palette and the film's
@@ -35,13 +36,14 @@ import { type Context, selected } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
-import { type Say, pageHref } from '../../core/api.ts';
+import { type ProjectView, type Say, pageHref } from '../../core/api.ts';
 import { isShortKey } from '../../core/shorts.ts';
 import { timecode, timecodeParts } from '../../core/time.ts';
 import type { Player } from '../../player/main.ts';
 import { makeStills } from '../../player/stills.ts';
 import { onTheMs } from '../../player/t-in-url.ts';
 import { useShellTime } from '../page-shell.tsx';
+import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts';
 import { SceneCard, sceneHue } from './card.tsx';
 import { type Said, type ScenesRead, scenesCalls } from './data.ts';
 import { bandState, legendOf, marksOf } from './marks.ts';
@@ -289,13 +291,46 @@ export const ScenesView = (props: ScenesViewProps) => {
     player.seek(t);
   };
 
-  /** Say `say` of `ids`, in one say; the receipt says `what`, or why not. */
-  const sayOf = (ids: readonly [string, ...string[]], what: string, say: Say) =>
+  /**
+   * Say `say` of `ids`, in one say; the receipt says `what` (from the
+   * project it leaves), or why not. An approve's offers its Undo
+   * (`approveUndo`), as Project's does.
+   */
+  const sayOf = (
+    ids: readonly [string, ...string[]],
+    what: (after: ProjectView) => string,
+    say: Say,
+  ) =>
     Effect.map(calls.say(ids, say), (answer: Said) => {
       if (answer._tag === 'Refused') return refused(answer.reason);
       setRead({ ...read(), project: Option.some(answer.project) });
-      return said(what);
+      return said(what(answer.project), approveUndo(props.name, answer.project));
     });
+  // An approve's Undo: one withdraw of just the approvals it gave, said in the words of
+  // what the catalogue took.
+  const [undoing, setUndoing] = createSignal(false, fromHost);
+  onCleanup(
+    props.hub.commands.register(
+      undoApprove(props.name, {
+        waiting: undoing,
+        withdraw: (ids, say) =>
+          Effect.sync(() => setUndoing(true)).pipe(
+            Effect.andThen(
+              sayOf(
+                ids,
+                (after) =>
+                  Option.match(after.project.took, {
+                    onNone: () => `withdrew ${scenesText(ids.length)}`,
+                    onSome: (took) => tookText({ _tag: 'Scenes', ids }, took),
+                  }),
+                say,
+              ),
+            ),
+            Effect.ensuring(Effect.sync(() => setUndoing(false))),
+          ),
+      }),
+    ),
+  );
 
   /** Whether `scene`'s render is current and not yet approved as it is: what Approve takes. */
   const approvable = (scene: string) =>
@@ -353,7 +388,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       run: (ctx) =>
         Option.match(sceneIn(ctx), {
           onNone: () => Effect.succeed(quiet),
-          onSome: (scene) => sayOf([scene], `approved ${scene}`, { _tag: 'Approve' }),
+          onSome: (scene) => sayOf([scene], () => `approved ${scene}`, { _tag: 'Approve' }),
         }),
     },
     {
@@ -368,7 +403,7 @@ export const ScenesView = (props: ScenesViewProps) => {
         Arr.match(picked().filter(approvable), {
           onEmpty: () => Effect.succeed(quiet),
           onNonEmpty: (ids) =>
-            sayOf(ids, `approved ${scenesText(ids.length)}`, { _tag: 'Approve' }),
+            sayOf(ids, () => `approved ${scenesText(ids.length)}`, { _tag: 'Approve' }),
         }),
     },
     {
@@ -639,12 +674,14 @@ export const ScenesView = (props: ScenesViewProps) => {
       if (text === '' || saying()) return;
       setSaying(true);
       Effect.runFork(
-        Effect.tap(sayOf([scene], `commented on ${scene}`, { _tag: 'Comment', text }), (receipt) =>
-          Effect.sync(() => {
-            setSaying(false);
-            if (receipt._tag === 'Said' && receipt.tone === 'done') setComment('');
-            props.hub.announce(receipt, 'scenes.comment');
-          }),
+        Effect.tap(
+          sayOf([scene], () => `commented on ${scene}`, { _tag: 'Comment', text }),
+          (receipt) =>
+            Effect.sync(() => {
+              setSaying(false);
+              if (receipt._tag === 'Said' && receipt.tone === 'done') setComment('');
+              props.hub.announce(receipt, 'scenes.comment');
+            }),
         ),
       );
     };
