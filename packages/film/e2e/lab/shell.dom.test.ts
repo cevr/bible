@@ -87,39 +87,49 @@ const NO_SIDEWAYS = 'document.documentElement.scrollWidth <= document.documentEl
 const narrationShown = (words: string) =>
   `[...document.querySelectorAll('.bar .row *')].filter((e) => e.children.length === 0 && e.textContent.includes('${words}')).some((e) => { const r = e.getBoundingClientRect(); if (r.width === 0 || r.height === 0 || r.left < 0 || r.right > innerWidth || r.top < 0 || r.bottom > innerHeight) return false; const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return top !== null && (top === e || e.contains(top)); })`;
 
+/** The kit's states a button is drawn in (`.sh-btn[data-state]`, `page-shell-style.ts`). */
+const KIT_STATES = ['findings', 'warning', 'recording'] as const;
+
+/** `KIT_STATES` as a script's array. */
+const JSON_STATES = `[${KIT_STATES.map((s) => `'${s}'`).join(', ')}]`;
+
 /**
- * The kit's state buttons (`.sh-btn[data-state]`, `page-shell-style.ts`)
- * against the surfaces a quiet button stands on (`--surface-1`, `--surface-2`)
- * or takes when hovered or pressed (`--surface-3`): each pair whose WCAG
- * contrast is short of 4.5:1 for the words (1.4.3) or 3:1 for the edge
- * (1.4.11), as `state ink on surface ratio`. None: every pair reads.
+ * One kit button per state at the top of the Lab's panel, its real ground,
+ * and `window.kitRead(state, held)`: whether the button is in the state
+ * `held` names (`rest`, `hover`, `pressed`, `focus`), then its words' and its
+ * edge's WCAG contrast against the background it draws, each colour composed
+ * (alpha and all) onto the grounds under it, as `kitShort` lines short of
+ * 4.5:1 for the words (1.4.3) or 3:1 for the edge (1.4.11).
  */
-const STATE_CONTRAST = `(() => {
-  const rgb = (c) => c.match(/[\\d.]+/g).slice(0, 3).map(Number);
-  const lum = (c) => rgb(c).map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
-  const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+const KIT_BUTTONS = `(() => {
   const host = document.querySelector('.lab-panel');
-  const short = [];
-  for (const surface of ['--surface-1', '--surface-2', '--surface-3']) {
-    const ground = document.createElement('div');
-    ground.style.background = 'var(' + surface + ')';
-    host.append(ground);
-    const bg = getComputedStyle(ground).backgroundColor;
-    for (const state of ['findings', 'warning', 'recording']) {
-      const button = document.createElement('button');
-      button.className = 'sh-btn';
-      button.dataset.state = state;
-      button.textContent = state;
-      ground.append(button);
-      const s = getComputedStyle(button);
-      const words = ratio(s.color, bg);
-      const edge = ratio(s.borderTopColor, bg);
-      if (words < 4.5) short.push(state + ' words on ' + surface + ' ' + words.toFixed(2));
-      if (edge < 3) short.push(state + ' edge on ' + surface + ' ' + edge.toFixed(2));
-    }
-    ground.remove();
+  for (const state of ${JSON_STATES}) {
+    const button = document.createElement('button');
+    button.className = 'sh-btn';
+    button.dataset.state = state;
+    button.dataset.kit = state;
+    button.textContent = state;
+    host.prepend(button);
   }
-  return short;
+  const rgba = (c) => { const n = c.match(/[\\d.]+/g).map(Number); return [n[0], n[1], n[2], n.length > 3 ? n[3] : 1]; };
+  const over = (top, under) => top.slice(0, 3).map((v, i) => v * top[3] + under[i] * (1 - top[3]));
+  // The page's canvas is white under every ground; each element's own fill goes on it, outermost first.
+  const drawn = (el) => { const fills = []; for (let e = el; e !== null; e = e.parentElement) fills.push(rgba(getComputedStyle(e).backgroundColor)); return fills.reverse().reduce((under, fill) => over(fill, under), [255, 255, 255]); };
+  const lum = (c) => c.map((v) => v / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)).reduce((sum, v, i) => sum + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const ratio = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+  const held = { rest: (b) => !b.matches(':hover, :focus') && b.getAttribute('aria-pressed') !== 'true', hover: (b) => b.matches(':hover'), pressed: (b) => b.getAttribute('aria-pressed') === 'true', focus: (b) => b.matches(':focus-visible') };
+  window.kitShort = [];
+  window.kitRead = (state, how) => {
+    const b = document.querySelector('[data-kit="' + state + '"]');
+    if (!held[how](b)) return window.kitShort.push(state + ' is not ' + how);
+    const ground = drawn(b);
+    const s = getComputedStyle(b);
+    const words = ratio(over(rgba(s.color), ground), ground);
+    const edge = ratio(over(rgba(s.borderTopColor), ground), ground);
+    if (words < 4.5) window.kitShort.push(state + ' words ' + how + ' ' + words.toFixed(2));
+    if (edge < 3) window.kitShort.push(state + ' edge ' + how + ' ' + edge.toFixed(2));
+  };
+  return true;
 })()`;
 
 /** The vertical middle of the bar's `sel`, in whole pixels. */
@@ -406,12 +416,29 @@ describe('the lab shell', () => {
   );
 
   it.live(
-    "a button in a state's colour reads at AA (4.5:1) on each surface it sits on or turns to (rest, hover, pressed); its edge at 3:1",
+    "a button in a state's colour reads at AA (4.5:1) at rest, hovered, pressed and focused, over the background it draws; its edge at 3:1",
     () =>
       Effect.gen(function* () {
         const { page } = yield* openLab();
-        // Each ratio short of its bar, worked out in the page from the colours it computes.
-        yield* evaluates(page, STATE_CONTRAST, []);
+        yield* page.evaluate(KIT_BUTTONS);
+        const at = (state: string) => `document.querySelector('[data-kit="${state}"]')`;
+        for (const state of KIT_STATES) {
+          // Each state driven as the viewer would, and read while it holds.
+          yield* page.mouse.move(1, 1);
+          yield* page.evaluate(`window.kitRead('${state}', 'rest'); true`);
+          const box = yield* page.box(`[data-kit="${state}"]`);
+          yield* page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+          yield* page.evaluate(`window.kitRead('${state}', 'hover'); true`);
+          yield* page.mouse.move(1, 1);
+          yield* page.evaluate(
+            `${at(state)}.setAttribute('aria-pressed', 'true'); window.kitRead('${state}', 'pressed'); ${at(state)}.removeAttribute('aria-pressed'); true`,
+          );
+          yield* page.evaluate(
+            `${at(state)}.focus({ focusVisible: true }); window.kitRead('${state}', 'focus'); ${at(state)}.blur(); true`,
+          );
+        }
+        // Each ratio short of its bar, and each state the button was not in when read.
+        yield* evaluates(page, 'window.kitShort', []);
       }).pipe(Effect.scoped),
   );
 
@@ -648,6 +675,19 @@ describe('the lab shell', () => {
           master: text('no such file', 404),
         });
         yield* evaluates(missing.page, narrationShown('no narration'), true);
+        // It is a polite status, written as the narration changes and not as the frame moves:
+        // a screen reader hears it once.
+        yield* evaluates(
+          missing.page,
+          `document.querySelector('.bar [role="status"]').textContent`,
+          'no narration',
+        );
+        yield* missing.page.evaluate(
+          `window.labSaid = 0; new MutationObserver((m) => { window.labSaid += m.length; }).observe(document.querySelector('.bar [role="status"]'), { childList: true, characterData: true, subtree: true }); true`,
+        );
+        yield* missing.page.click('.bar [data-act="play.frame-next"]');
+        yield* missing.page.click('.bar [data-act="play.frame-next"]');
+        yield* evaluates(missing.page, `window.labSaid`, 0);
         // A master the browser will not play before a click: the dock says to click.
         const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'lab-narration-' });
         const wav = `${dir}/full.wav`;

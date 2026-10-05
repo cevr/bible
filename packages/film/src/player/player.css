@@ -71,16 +71,16 @@ body.export .stage canvas {
   color: var(--text-1);
 }
 /* The narration's failure and its way back, in the warning's colour; none, no room. */
-.note {
+.bar .narration {
   color: var(--state-warning);
 }
-.note:empty {
+.bar .narration:empty {
   display: none;
 }
 /* A phone keeps the controls and the timecode on the first row, under the thumb; the length, the scene and the line go after them, wrapping below. */
 @media (max-width: 899px) {
   .row .of,
-  .row .note,
+  .row .narration,
   .row .scene,
   .row .say {
     order: 1;
@@ -344,10 +344,10 @@ body.lab .stage {
   body.lab .bar > .row :is(.of, .say) {
     display: none;
   }
-  body.lab .bar > .row:has(.note:not(:empty)) .scene {
+  body.lab .bar > .row:has(.narration:not(:empty)) .scene {
     display: none;
   }
-  body.lab .bar > .row .note {
+  body.lab .bar > .row .narration {
     flex: 1;
     min-width: 0;
     font-size: var(--fs-2);
