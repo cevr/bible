@@ -471,6 +471,21 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
   }
 });
 
+/**
+ * How far, in CSS px, G10 lets a target's edge or size move as the face
+ * lands: half a pixel, the most an edge moves without its painted edge
+ * jumping a whole pixel, the sub-pixel drift a metric-matched fallback
+ * leaves (0.25 px at most across the four pages, on both devices).
+ */
+const SHIFT_PX = 0.5;
+
+/**
+ * How far, in CSS px, a 60-character line in `--font` may change: 1 px over
+ * 60 characters, so a label of 30 or fewer drifts under `SHIFT_PX` (0.73 px
+ * at most measured, at the largest sizes).
+ */
+const LINE_PX = 1;
+
 /** The UI face's files in the page's fonts: the head's, and those its script registers. */
 const UI_FACES = `[...document.fonts].filter((f) => f.family.replaceAll('"', '') === 'JetBrains Mono')`;
 
@@ -509,7 +524,7 @@ const LAID_OUT = `(() => {
   return {
     faces: ui.length,
     loaded: ui.filter((f) => f.status === 'loaded').length,
-    boxes: ${targetBoxes()},
+    boxes: ${targetBoxes('exact')},
     lines: lines(),
     alone: measured('12px "JetBrains Mono", serif')[0],
   };
@@ -524,26 +539,28 @@ const LANDED = `document.fonts.status === 'loaded' && ${UI_FACES}.some((f) => f.
 /**
  * The page laid out once the UI face has landed, against how it stood
  * held (`HELD`): whether the line named in the face alone changed (so the
- * page was laid out without it, then with it), each target that stood more
- * than 1 px elsewhere or another size, as `target: held → landed`, and each
- * line in `--font` more than 1 px longer or taller.
+ * page was laid out without it, then with it), each target whose edge or
+ * size moved more than `SHIFT_PX`, as `target: held → landed`, and each
+ * line in `--font` more than `LINE_PX` longer or taller. Every box is
+ * compared as the layout has it (`targetBoxes('exact')`), rounded only to
+ * be read in a failure.
  */
 const SWAPPED = `(() => {
   const held = window.__held;
   const landed = ${LAID_OUT};
   const keys = [...new Set([...Object.keys(held.boxes), ...Object.keys(landed.boxes)])];
   const moved = keys.filter((key) => {
-    const a = (held.boxes[key] ?? '').split(',').map(Number);
-    const b = (landed.boxes[key] ?? '').split(',').map(Number);
-    return a.length !== 4 || b.length !== 4 || a.some((v, i) => Math.abs(v - b[i]) > 1);
+    const a = held.boxes[key] ?? [];
+    const b = landed.boxes[key] ?? [];
+    return a.length !== 4 || b.length !== 4 || a.some((v, i) => Math.abs(v - b[i]) > ${SHIFT_PX});
   });
   const off = Object.keys(held.lines).filter((key) =>
-    held.lines[key].some((v, i) => Math.abs(v - landed.lines[key][i]) > 1),
+    held.lines[key].some((v, i) => Math.abs(v - landed.lines[key][i]) > ${LINE_PX}),
   );
-  const box = (r) => r.map((v) => v.toFixed(1)).join('x');
+  const box = (r) => (r ?? []).map((v) => v.toFixed(2)).join(',') || 'none';
   return [
     'laid out without it ' + (held.alone !== landed.alone),
-    ...moved.map((key) => key + ': ' + held.boxes[key] + ' → ' + landed.boxes[key]),
+    ...moved.map((key) => key + ': ' + box(held.boxes[key]) + ' → ' + box(landed.boxes[key])),
     ...off.map((key) => 'a line at ' + key + ': ' + box(held.lines[key]) + ' → ' + box(landed.lines[key])),
   ];
 })()`;
