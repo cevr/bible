@@ -90,18 +90,33 @@ describe("a selection in the pages' URLs", () => {
       Point.make({ film: 'f', point: 'cold' }),
       Folder.make({ folder: 'renders' }),
       Set.make({ folder: 'renders', point: 'cold' }),
+      Version.make({ folder: 'renders', point: 'cold', version: 'b' }),
+      Variant.make({ film: 'f', point: 'score', variant: 'piano' }),
     ]) {
       expect(selectionOf(citeOf(s, here))).toEqual(Option.some(s));
     }
   });
 
-  test('cites a selection with no key of its own by the place it is on, a variant by its card', () => {
+  test("reads a set's and Choices' `?inspect=` as the version or the variant whose sheet is open; none open, as before", () => {
+    expect(selectionOf('/sets/r/cold?view=wipe&other=b&inspect=b')).toEqual(
+      Option.some(Version.make({ folder: 'r', point: 'cold', version: 'b' })),
+    );
+    expect(selectionOf('/sets/r/cold?view=wipe&other=b')).toEqual(
+      Option.some(Set.make({ folder: 'r', point: 'cold' })),
+    );
+    expect(selectionOf('/films/f/choices?point=score&inspect=piano&heard=score')).toEqual(
+      Option.some(Variant.make({ film: 'f', point: 'score', variant: 'piano' })),
+    );
+    expect(selectionOf('/films/f/choices?point=score')).toEqual(Option.none());
+  });
+
+  test('cites a version and a variant with their sheets open; one with no key of its own by the place it is on', () => {
     const here = pageHref.home();
     expect(citeOf(Version.make({ folder: 'r', point: 'cold', version: 'b' }), here)).toBe(
-      pageHref.set('r', 'cold'),
+      '/sets/r/cold?inspect=b',
     );
     expect(citeOf(Variant.make({ film: 'f', point: 'score', variant: 'piano' }), here)).toBe(
-      pageHref.choices('f', 'score'),
+      '/films/f/choices?point=score&inspect=piano',
     );
     expect(citeOf(Act.make({ film: 'f', act: 'one' }), here)).toBe(pageHref.project('f'));
     expect(citeOf(Film.make({ film: 'f' }), here)).toBe(pageHref.project('f'));

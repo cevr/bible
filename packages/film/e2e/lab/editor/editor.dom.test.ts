@@ -21,6 +21,7 @@ import {
   labAt,
   later,
   openLab,
+  PHONE,
   refused,
   URL_T,
   route,
@@ -682,6 +683,60 @@ describe('the inspector', () => {
         { path: '/scenes/one/cues/rise', body: Option.some({ dur: 1.2 }) },
       ]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a phone, a cue that runs until a mark has its end as a field: a tap selects it, and an end typed writes it off the mark as its edge's drag does",
+    () =>
+      Effect.gen(function* () {
+        // 10 s in is scene three, its push running until {held}.
+        const { page, asked, errors } = yield* openLab([], { href: labAt(10), viewport: PHONE });
+        const bar = '.lab-cue[data-cue="push"]';
+        yield* page.waitFor(bar);
+        yield* textHas(page, '.lab-strip-head', 'scenes/three.ts');
+        const box = yield* page.box(bar);
+        yield* page.finger.down(box.x + box.width / 2, box.y + box.height / 2);
+        yield* page.finger.up;
+        const end = '.lab-edit-cue input[data-field="end"]';
+        yield* page.waitFor(`${end}:not([disabled])`);
+        yield* textHas(page, '.lab-edit-cue', '{held}');
+        const at = Number(yield* page.evaluate<string>(`document.querySelector('${end}').value`));
+        yield* page.fill(end, `${at + 0.5}`);
+        yield* page.pressIn(end, 'Enter');
+        yield* postedReach(asked, 1);
+        const write = Option.getOrThrow(Option.fromUndefinedOr(posted(asked)[0]));
+        expect(write.path).toBe('/scenes/three/cues/push');
+        expect(write.body).toMatchObject(Option.some({ dur: expect.any(Number) }));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "the strip's Snap is on until turned off, by a tap or S, and the viewer keeps it: off, a drag lands free of the frames",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openLab([], { href: labAt(1) });
+        const snap = '[data-act="snap"]';
+        yield* editable(page);
+        yield* attributeIs(page, snap, 'aria-pressed', 'true');
+        yield* page.click(snap);
+        yield* attributeIs(page, snap, 'aria-pressed', 'false');
+        yield* page.reload;
+        yield* editable(page);
+        yield* attributeIs(page, snap, 'aria-pressed', 'false');
+        yield* dragBar(page, 'rise', 0.5, 61);
+        yield* postedReach(asked, 1);
+        const write = Option.getOrThrow(Option.fromUndefinedOr(posted(asked)[0]));
+        const offset = Option.match(write.body, {
+          onNone: () => 0,
+          onSome: (b) => Number((b as { readonly offset?: unknown }).offset),
+        });
+        // A frame is 1/30 s: free of the frames, the offset is off their grid.
+        expect(Math.abs(offset * 30 - Math.round(offset * 30))).toBeGreaterThan(0.01);
+        yield* page.press('s');
+        yield* attributeIs(page, snap, 'aria-pressed', 'true');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live("the hint names the selection's keys, only while the pointer is on the inspector", () =>

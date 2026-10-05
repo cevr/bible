@@ -12,7 +12,8 @@ export const SCENES_CSS = `
 body.scenes { display: block; height: auto; }
 .sc { display: grid; grid-template-columns: minmax(0, 1fr); }
 .sc-main { min-width: 0; }
-.sc-tapebar { position: sticky; top: var(--header-h); z-index: 10; display: grid; gap: var(--s-1);
+.sc-tapebar { position: sticky; top: var(--header-h); z-index: 10; display: grid;
+  grid-template-columns: minmax(0, 1fr); gap: var(--s-1);
   padding: var(--s-2) var(--gutter) 0; background: var(--surface-1); border-bottom: var(--border); }
 .sc-acts { position: relative; height: var(--lh-1); font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }
 .sc-act { position: absolute; top: 0; padding-left: var(--s-1); border-left: 1px solid var(--line-strong);
@@ -27,10 +28,17 @@ body.scenes { display: block; height: auto; }
 .sc-track .track .tick.mark { height: 7px; }
 .sc-track .track .tick.effect { top: var(--name-lane); }
 .sc-track .track .tick.movement, .sc-track .track .tick.note { top: var(--name-lane); }
-.sc-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-3); min-height: var(--hit);
+/* The legend is one row on any window, so the tape bar holds its height:
+   the counts scroll sideways in their own strip, the step ellipsizes first,
+   Follow keeps its size. */
+.sc-legend { display: flex; flex-wrap: nowrap; align-items: center; gap: 0 var(--s-3); min-height: var(--hit);
   font-size: var(--fs-1); line-height: var(--lh-1); color: var(--text-2); }
-.sc-legend-item { display: inline-flex; align-items: center; gap: var(--s-1); }
-.sc-spacer { flex: 1; }
+.sc-legend-items { display: flex; flex: 0 1 auto; min-width: 0; gap: 0 var(--s-3); overflow-x: auto;
+  scrollbar-width: none; }
+.sc-legend-item { display: inline-flex; flex: none; align-items: center; gap: var(--s-1); white-space: nowrap; }
+.sc-spacer { flex: 1 1 0; }
+.sc-step { flex: 0 1000 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.sc-follow { flex: none; }
 .sc-dot { display: inline-block; flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); }
 .sc-dot[data-state="stale"] { background: var(--state-stale); }
 .sc-dot[data-state="rendered"] { background: var(--state-rendered); }

@@ -2,29 +2,47 @@
 // the registry and the keymap alone (nothing is written twice): the menu,
 // the commands available where the page is, matched by what was typed; a
 // context menu, the commands available about the thing it opened on
-// (`target.ts`); the sheet, every command registered, by group, with its
+// (`target.ts`), a stepped one also at ×10, a finger's Shift; the sheet,
+// every command registered, by group, with its
 // keys and how a phone reaches it; a chip, the commands it names that are
 // available (`chipRows`). Pure.
 
 import { Array as Arr, Option } from 'effect';
-import { type Command, labelOf } from './command.ts';
+import { type Command, type Invocation, labelOf } from './command.ts';
 import type { Context } from './context.ts';
 import { EVERYWHERE, type Target, targetOf } from './target.ts';
 
-/** One row of the command menu: the command, and its label where the page is. */
+/**
+ * One row of a menu: the command, its label where the page is, and the step
+ * it runs at (`coarse` for a context menu's ×10 row: a finger's Shift).
+ */
 export interface MenuRow {
   readonly command: Command;
   readonly label: string;
+  readonly step: Invocation['step'];
 }
 
+/** `command`'s row at its own step. */
+const rowOf = (command: Command, ctx: Context): MenuRow => ({
+  command,
+  label: labelOf(command, ctx),
+  step: 'normal',
+});
+
 /**
- * A row's identity in a rendered list: its command's id. A menu's rows are
+ * A row's identity in a rendered list: its command's id, and its step when
+ * not the normal one. A menu's rows are
  * made again whenever what they read moves (a command's `when` and its label
  * read the player, so each frame a film plays; a command registered again);
  * a list keyed by it keeps each row's element, so a press on a row and its
  * release are on one element, and the click is that row's.
  */
-export const rowKey = (row: MenuRow): string => row.command.id;
+export const rowKey = (row: MenuRow): string =>
+  [row.command.id, ...[row.step].filter((s) => s !== 'normal')].join(' ');
+
+/** The chord that runs `row` from its command's `key`: a coarse row's with Shift, as the keymap steps it. */
+export const rowChord = (row: MenuRow, key: string): string =>
+  [...['shift'].filter(() => row.step === 'coarse'), key].join('+');
 
 /** Whether every word of `query` is in `text`, ignoring case. */
 const matches = (query: string, text: string): boolean => {
@@ -53,7 +71,7 @@ export const menuRows = (
   const typing = query.trim() !== '';
   return byGroup(available.filter((command) => typing || !isTyped(command)))
     .flatMap(([, commands]) => commands)
-    .map((command) => ({ command, label: labelOf(command, ctx) }))
+    .map((command) => rowOf(command, ctx))
     .filter((row) => matches(query, `${row.label} ${row.command.group} ${row.command.id}`));
 };
 
@@ -74,16 +92,30 @@ export const chipRows = (
   ids: ReadonlyArray<string>,
 ): ReadonlyArray<MenuRow> =>
   ids.flatMap((id) =>
-    available
-      .filter((command) => command.id === id)
-      .map((command) => ({ command, label: labelOf(command, ctx) })),
+    available.filter((command) => command.id === id).map((command) => rowOf(command, ctx)),
   );
+
+/**
+ * A stepped command's rows in a context menu: its step, then its coarse
+ * step (Shift's, ×10), since a finger has no Shift. ⌘K and the keys keep the
+ * one row: there Shift is at hand.
+ */
+const steppedRows = (command: Command, ctx: Context): ReadonlyArray<MenuRow> => {
+  const row = rowOf(command, ctx);
+  return [
+    row,
+    ...[{ ...row, label: `${row.label} ×10`, step: 'coarse' as const }].filter(
+      () => command.stepped === true,
+    ),
+  ];
+};
 
 /**
  * A context menu's rows, by group: the commands of `available` (those
  * available in `ctx`, whose selection is the thing the menu opened on) about
  * that thing, or about the page where it opened on nothing; the thing's own
- * first, then those every menu offers.
+ * first, then those every menu offers. A stepped command has a ×10 row
+ * after its own (`steppedRows`).
  */
 export const contextRows = (
   available: ReadonlyArray<Command>,
@@ -97,7 +129,7 @@ export const contextRows = (
   const everywhere = (c: Command) => EVERYWHERE.every((t) => targetsOf(c).includes(t));
   return byGroup([...about.filter((c) => !everywhere(c)), ...about.filter(everywhere)]).map(
     ([group, commands]) =>
-      [group, commands.map((command) => ({ command, label: labelOf(command, ctx) }))] as const,
+      [group, commands.flatMap((command) => steppedRows(command, ctx))] as const,
   );
 };
 

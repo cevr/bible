@@ -54,6 +54,12 @@ interface Box {
   readonly height: number;
 }
 
+/** A point in the viewport, in CSS pixels. */
+interface Point {
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface Tab {
   /** What the page threw, and every `[STRICT_…]` reactivity warning it logged. */
   readonly errors: ReadonlyArray<string>;
@@ -96,12 +102,15 @@ export interface Tab {
   /**
    * One finger, as the browser's touch input sends it (its touch events and
    * the pointer events it makes, `pointerType: 'touch'`): put down at `x`,
-   * `y`, moved there in `steps` moves, lifted where it is.
+   * `y`, moved there in `steps` moves, lifted where it is; or a whole drag,
+   * put down at `from`, moved to `to` in `steps` moves and lifted there (a
+   * swipe, a scrub).
    */
   readonly finger: {
     readonly down: (x: number, y: number) => Effect.Effect<void>;
     readonly move: (x: number, y: number, steps?: number) => Effect.Effect<void>;
     readonly up: Effect.Effect<void>;
+    readonly drag: (from: Point, to: Point, steps?: number) => Effect.Effect<void>;
   };
   /** Go to `path` (`/films/probe/lab`, a page's link) on the tab's origin; done when it has loaded. */
   readonly goto: (path: string) => Effect.Effect<void>;
@@ -565,6 +574,12 @@ export const makeTab = (
         fingerDown = false;
         return touchEvent('touchEnd', []);
       }),
+      drag: (from, to, steps = 12) =>
+        Effect.suspend(() =>
+          finger
+            .down(from.x, from.y)
+            .pipe(Effect.andThen(finger.move(to.x, to.y, steps)), Effect.andThen(finger.up)),
+        ),
     };
 
     const press = (combo: string) =>

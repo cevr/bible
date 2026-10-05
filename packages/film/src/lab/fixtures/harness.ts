@@ -148,11 +148,11 @@ export const sourceOne = {
 
 const sourceTwo = { scene: 'two', file: 'scenes/two.ts', cues: [], knobs: [], refused: [] };
 
-/** Scene three's source: its camera's target and zoom, and a pole, all literals. */
+/** Scene three's source: its `until` cue, its camera's target and zoom, and a pole, all literals. */
 const sourceThree = {
   scene: 'three',
   file: 'scenes/three.ts',
-  cues: [],
+  cues: [cueSource('push')],
   knobs: [
     { name: 'face', state: literal },
     { name: 'faceZoom', state: literal },
@@ -412,6 +412,9 @@ export interface Viewport {
 
 /** A desk's window: wide, with a mouse. */
 const DESK: Viewport = { width: 1400, height: 900 };
+
+/** A phone's window, as the studio is designed for first: 390 × 844, with a finger. */
+export const PHONE: Viewport = { width: 390, height: 844, coarse: true };
 
 /**
  * Open the lab at `href` (`pageHref.lab`, `pageHref.labScene`, `core/api.ts`;

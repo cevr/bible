@@ -43,6 +43,7 @@ import { Pointer } from '../../browser/pointer.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
 import {
+  Places,
   type Say,
   type SetSayPost,
   pageHref,
@@ -52,7 +53,7 @@ import {
 } from '../../core/api.ts';
 import { ReviewApi } from './api.ts';
 import { newestAsked } from './asked.ts';
-import { InspectName, Inspector, useThing } from './inspector.tsx';
+import { InspectName, Inspector, useInspectorPlace, useThing } from './inspector.tsx';
 import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
 import type { ThingVerb } from './things.ts';
 import { Go, SetProvider, useReview, useSet } from './context.tsx';
@@ -78,7 +79,7 @@ import {
   type SyncState,
   ViewEvent,
   ViewName,
-  clockText,
+  clockParts,
   playsIn,
   reachOf,
   runningOf,
@@ -533,9 +534,11 @@ const ViewTabs = () => {
 };
 
 /**
- * The synced player's controls: play, the clock, a scrub over every track,
- * and the one rate chip (UR-25), whose rates are the page's commands while
- * the transport is shown (J, K, L; ⌘K). Its keys are in the `?` sheet.
+ * The synced player's controls, one row: play, the clock, a scrub over every
+ * track, and the one rate chip (UR-25), whose rates are the page's commands
+ * while the transport is shown (J, K, L; ⌘K). Its keys are in the `?` sheet.
+ * A page docks it (`.sh-dock`: over the tab bar on a phone, held under the
+ * header on a laptop, design language §4), Choices, a Set and Project alike.
  */
 export const Transport = (props: {
   readonly sync: Accessor<SyncState>;
@@ -571,7 +574,9 @@ export const Transport = (props: {
         )}
       </button>
       <span class="rv-time" data-state={sync()._tag}>
-        {clockText(sync())}
+        {clockParts(sync()).at}
+        {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
+        <span class="rv-time-rest">{clockParts(sync()).rest}</span>
       </span>
       <input
         type="range"
@@ -846,7 +851,6 @@ const VariantCard = (props: { readonly variant: SeenVariant }) => {
     >
       <VariantVideo variant={props.variant} />
       <VariantCap variant={props.variant} />
-      <VersionInspector version={props.variant} />
     </Target>
   );
 };
@@ -1096,7 +1100,6 @@ const WipeView = (props: { readonly other: string }) => {
               data-id={variant.id}
             >
               <VariantCap variant={variant} />
-              <VersionInspector version={variant} />
             </Target>
           )}
         </For>
@@ -1194,7 +1197,6 @@ const MomentsView = (props: { readonly index: number }) => {
                     }
                   />
                   <StillCap variant={variant} />
-                  <VersionInspector version={variant} />
                 </Target>
               )}
             </For>
@@ -1254,7 +1256,6 @@ const DiffView = (props: { readonly other: string; readonly index: number }) => 
                   data-id={variant.id}
                 >
                   <StillCap variant={variant} />
-                  <VersionInspector version={variant} />
                 </Target>
               )}
             </For>
@@ -1293,7 +1294,6 @@ const NotesView = () => {
             >
               {(notes: ReviewFile) => <Markdown file={notes.ref} />}
             </Show>
-            <VersionInspector version={variant} />
           </Target>
         )}
       </For>
@@ -1301,13 +1301,40 @@ const NotesView = () => {
   );
 };
 
-/** The set's page: the transport over the view it shows. */
+/**
+ * The set's page: the transport over the view it shows, and its versions as
+ * the page's things. The page owns each version's thing and sheet, not the
+ * view's cards: a pair or a wipe shows two of three versions, and a link
+ * may open the third's sheet.
+ */
 const SetBody = () => {
-  const { view, sync, send } = useSet();
+  const { folder, set, view, sync, send } = useSet();
+  // The open sheet is the URL's (`?inspect=`, a version of the set): a tap on a version's
+  // name names it (Back closes it); Close, Escape and a swipe name none; a link, Back and
+  // Forward open what they name.
+  useInspectorPlace({
+    place: Places.set,
+    named: (v) =>
+      Option.map(
+        Option.liftPredicate(v.query.inspect, (id) => set.variants.some((x) => x.id === id)),
+        (id) => versionOf(folder, set, id),
+      ),
+    naming: (v, s) =>
+      Option.map(
+        Option.filter(
+          Option.liftPredicate(s, Selection.guards.Version),
+          (x) => x.folder === folder.ref && x.point === set.id,
+        ),
+        (x) => ({ ...v, query: { ...v.query, inspect: x.version } }),
+      ),
+    cleared: (v) => ({ ...v, query: { ...v.query, inspect: '' } }),
+  });
   return (
     <>
       <Show when={playsIn(viewNameOf(view()))}>
-        <Transport sync={sync} send={send.sync} />
+        <section class="sh-dock">
+          <Transport sync={sync} send={send.sync} />
+        </section>
       </Show>
       {Match.value(view()).pipe(
         Match.tagsExhaustive({
@@ -1319,6 +1346,7 @@ const SetBody = () => {
           Notes: () => <NotesView />,
         }),
       )}
+      <For each={set.variants}>{(variant) => <VersionInspector version={variant} />}</For>
     </>
   );
 };

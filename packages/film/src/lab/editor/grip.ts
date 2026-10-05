@@ -4,9 +4,11 @@
 // (dur). A bar too short for two edges and a body (under 3 × EDGE_PX) is all
 // body; alt grabs its end. A cue that runs `until` a mark keeps ending on it
 // (`dragPatch`). Edges snap to word starts and ends, marks and other cues'
-// edges within SNAP_PX, else move by whole frames; shift places them freely.
-// The inspector's fields of a cue or a knob (`fieldsOf`) write through the
-// same writes as a drag, and refuse as a drag of that part would.
+// edges within SNAP_PX, else move by whole frames; shift inverts the viewer's
+// snap (`placesFreely`). The inspector's fields of a cue or a knob
+// (`fieldsOf`) write through the same writes as a drag, and refuse as a drag
+// of that part would: an `until` cue's end is a field as its right edge is a
+// grip, so a bar too short for edges still has its end by touch.
 
 import { Array as Arr, Match, Option, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../../canvas/film.ts';
@@ -124,9 +126,17 @@ export const CueGrip = Schema.TaggedStruct('CueGrip', {
 });
 export type CueGrip = typeof CueGrip.Type;
 
-/** Where the pointer is: screen x and y, and whether shift is held. */
-export const Pointer = Schema.Struct({ x: Schema.Finite, y: Schema.Finite, shift: Schema.Boolean });
+/** Where the pointer is: screen x and y, and whether it places edges freely (`placesFreely`). */
+export const Pointer = Schema.Struct({ x: Schema.Finite, y: Schema.Finite, free: Schema.Boolean });
 export type Pointer = typeof Pointer.Type;
+
+/**
+ * Whether a drag places edges freely: Shift held inverts the viewer's snap
+ * (the editor's Snap toggle, on by default), as an editor's snapping key
+ * does. With snapping on, Shift frees an edge; with it off, edges go freely
+ * and Shift snaps them.
+ */
+export const placesFreely = (shift: boolean, snap: boolean): boolean => shift === snap;
 
 /**
  * What a knob write moves, before → after (`knob face [400, 200] → [380,
@@ -269,12 +279,12 @@ const barAt = (grip: CueGrip, pointer: Pointer) => {
   const c0 = grip.cue0;
   const near: Snap = grip;
   if (grip.edge === 'move') {
-    const start = snapEdge(c0.start, dt, near, pointer.shift);
+    const start = snapEdge(c0.start, dt, near, pointer.free);
     return { start, end: start + c0.dur };
   }
   if (grip.edge === 'start')
-    return { start: Math.min(snapEdge(c0.start, dt, near, pointer.shift), c0.end), end: c0.end };
-  return { start: c0.start, end: Math.max(snapEdge(c0.end, dt, near, pointer.shift), c0.start) };
+    return { start: Math.min(snapEdge(c0.start, dt, near, pointer.free), c0.end), end: c0.end };
+  return { start: c0.start, end: Math.max(snapEdge(c0.end, dt, near, pointer.free), c0.start) };
 };
 
 /** A cue grabbed by `grip`, dragged to `pointer`. */
@@ -528,8 +538,10 @@ export const cueSaid = (span: Span, cue: ResolvedCue, patch: CuePatch): CueSaid 
 };
 
 /**
- * Cue `name`'s fields: its offset and, unless it ends on a mark, its dur
- * (seconds, stepped by frames). Each refuses as a drag of that part would.
+ * Cue `name`'s fields: its offset, and its dur or, when it runs `until` a
+ * mark, its end (scene seconds, stepped by frames, never before its start).
+ * The end writes as its right edge's drag to that time does (`dragPatch`):
+ * off the mark, as a dur. Each refuses as a drag of that part would.
  */
 const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Inspected> =>
   Option.match(
@@ -562,12 +574,26 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
           write: (v) =>
             write({ dur: toMs(Math.max(0, v)) }, patchSpan(span, { dur: Math.max(0, v) })),
         };
-        // A cue that runs `until` a mark has no dur of its own to write.
+        const durSpec = fieldOf(CueDur, at.fps);
+        const endField: Inspected = {
+          id: 'end',
+          label: 'end',
+          spec: { ...durSpec, min: Option.some(cue.start) },
+          value: cue.end,
+          refusal: cueRefusal(at.source, at.error, name, 'end'),
+          write: (v) => {
+            const bar = { start: cue.start, end: Math.max(cue.start, v) };
+            Option.map(dragPatch(span, cue, 'end', bar, 1 / at.fps), (patch) =>
+              write(patch, patchSpan(span, patch)),
+            );
+          },
+        };
+        // A cue that runs `until` a mark has no dur of its own: its end is where it is moved.
         return [
           offsetField,
           ...Option.match(Option.fromUndefinedOr(span.until), {
             onNone: () => [durField],
-            onSome: () => [],
+            onSome: () => [endField],
           }),
         ];
       },

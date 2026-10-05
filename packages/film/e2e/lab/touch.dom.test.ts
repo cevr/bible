@@ -10,7 +10,8 @@
 //
 // The disclosed states are the fixture film's (`fixtures/studio-film.ts`):
 // Project's panels with their stills and its dock, a scene row's sheet, an
-// act's long-press menu, an inspector, the Findings sheet, the command
+// act's long-press menu, an inspector, the lab editor's Snap toggle and an
+// `until` cue's End field, the Findings sheet, the command
 // menu (⌘K, its Go to…), the context menu, the keys dialog, the lab's modes,
 // comment counts on their rows, the Choices transport over a picture, a Set's
 // wipe and diff, a film's Scenes with a scene selected and the
@@ -18,6 +19,10 @@
 // its words (its hit-slop is its target). A
 // layer (a sheet, a menu, a dialog) is measured within itself; what lies
 // under it was measured with it closed.
+//
+// Every page also fits a phone (G8, `fitsPhone`): no sideways scroll, each
+// control inside the width, its chrome at most a quarter of the height; a
+// film's Scenes is asked with its tape bar's legend at its fullest.
 //
 // The exceptions are principles, the same on every page and both devices:
 // - a backing input (out of the accessibility tree and the tab order, and
@@ -31,9 +36,19 @@ import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
 import { rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
-import { type Viewport, openLab, openPlayer, openReview } from '../../src/lab/fixtures/harness.ts';
+import {
+  type FakeRoute,
+  type Viewport,
+  json,
+  labAt,
+  openLab,
+  openPlayer,
+  openReview,
+  route,
+} from '../../src/lab/fixtures/harness.ts';
+import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
-import { waitFor } from '../../src/lab/fixtures/settled.ts';
+import { evaluates, waitFor } from '../../src/lab/fixtures/settled.ts';
 import {
   STUDIO_FILM,
   STUDIO_FOLDER,
@@ -93,9 +108,48 @@ const review =
 const lab = (mode: LabMode) => (viewport: Viewport) =>
   Effect.map(openLab([], { viewport, mode }), (o) => o.page);
 
-/** The player at `href`, once `ready` shows. */
-const player = (href: string, ready: string) => (viewport: Viewport) =>
-  Effect.map(openPlayer({ href, viewport }, ready), (o) => o.page);
+/** The player at `href`, once `ready` shows, over `routes` and the harness's own. */
+const player =
+  (href: string, ready: string, routes: ReadonlyArray<FakeRoute> = []) =>
+  (viewport: Viewport) =>
+    Effect.map(openPlayer({ href, viewport }, ready, routes), (o) => o.page);
+
+/**
+ * The probe film's project and check as a film in work has them: a scene out
+ * of date, one not rendered, one approved, and a finding, so the Scenes' tape
+ * bar holds its fullest legend.
+ */
+const WORK_ROUTES: ReadonlyArray<FakeRoute> = [
+  route('GET', /^\/project$/, () =>
+    json({
+      project: {
+        film: PROBE,
+        variant: 'main',
+        key: 'fk',
+        comments: [],
+        acts: [{ name: 'opening', scenes: ['one', 'two', 'three'], key: 'ak', comments: [] }],
+        scenes: [
+          { scene: 'one', key: 'k', state: 'stale', approval: 'none', comments: [] },
+          { scene: 'two', key: 'k', state: 'missing', approval: 'none', comments: [] },
+          { scene: 'three', key: 'k', state: 'current', approval: 'approved', comments: [] },
+        ],
+      },
+      videos: {},
+    }),
+  ),
+  route('GET', /^\/check$/, () =>
+    json({
+      findings: [
+        {
+          level: 'warning',
+          tag: 'cue',
+          message: 'the page turns early',
+          address: { part: { _tag: 'Scenes', ids: ['one'] }, time: 1 },
+        },
+      ],
+    }),
+  ),
+];
 
 /** A click on `selector`, then `shows` on the page. */
 const opens = (selector: string, shows: string) => (page: Tab) =>
@@ -227,6 +281,18 @@ const STATES: ReadonlyArray<State> = [
     disclose: AT_REST,
   },
   { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST },
+  {
+    name: 'Lab, Edit, a cue that runs until a mark selected (its End field, the Snap toggle)',
+    open: (viewport) =>
+      Effect.gen(function* () {
+        const href = labAt(10, { selection: { _tag: 'Cue', scene: 'three', name: 'push' } });
+        const { page } = yield* openLab([], { viewport, mode: 'edit', href });
+        yield* waitFor(page, '.lab-edit-cue input[data-field="end"]:not([disabled])');
+        yield* waitFor(page, '[data-act="snap"]');
+        return page;
+      }),
+    disclose: AT_REST,
+  },
   { name: 'Lab, Note', open: lab('note'), disclose: AT_REST },
   { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST },
   { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST },
@@ -295,6 +361,73 @@ for (const device of DEVICES) {
     }
   });
 }
+
+/**
+ * The review's transport as a script reads it: whether its dock stands on
+ * the tab bar, and whether play, the time, the scrub and the rate lie in that
+ * order along one line. Their size is the touch guard's (a finger's target)
+ * and the phone-fit checks' (the chrome's share of the screen).
+ */
+const TRANSPORT_ROW = `(() => {
+  const dock = document.querySelector('.sh-dock:has(.rv-transport)');
+  const d = dock.getBoundingClientRect();
+  const parts = ['[data-act="play"]', '.rv-time', 'input[type="range"]', '[data-act="rate"]'].map(
+    (s) => dock.querySelector(s).getBoundingClientRect(),
+  );
+  const mid = (r) => r.top + r.height / 2;
+  return [
+    'on the tabs ' + (Math.round(d.bottom) === Math.round(document.querySelector('.sh-pagebar').getBoundingClientRect().top)),
+    'in order ' + parts.every((r, i) => i === 0 || r.left >= parts[i - 1].right - 0.5),
+    'one line ' + parts.every((r) => Math.abs(mid(r) - mid(d)) < 4),
+  ];
+})()`;
+
+describe('the review transport on a phone (UI-10)', () => {
+  const PAGES = [
+    ['Choices', review(CHOICES, ...CHOICES_READY)],
+    ['Project', review(PROJECT, ...PROJECT_READY)],
+    ['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')],
+  ] as const;
+  for (const [name, open] of PAGES) {
+    it.live(
+      `${name}: one row docked over the tab bar: play, the time, the scrub, then the rate`,
+      () =>
+        Effect.gen(function* () {
+          const page = yield* open(PHONE.viewport);
+          yield* evaluates(page, TRANSPORT_ROW, [
+            'on the tabs true',
+            'in order true',
+            'one line true',
+          ]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
+});
+
+describe('every page fits a phone, 390 × 844 (G8)', () => {
+  const PAGES = [
+    ['Films', review(pageHref.home(), '.rv-main a[href]')],
+    ['Choices', review(CHOICES, ...CHOICES_READY)],
+    ['Project', review(PROJECT, ...PROJECT_READY)],
+    ['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')],
+    ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]')],
+    ['Scenes', player(pageHref.scenes(PROBE), STILL)],
+    [
+      'Scenes, its legend full (out of date, not rendered, approved, findings)',
+      player(pageHref.scenes(PROBE), '.sc-legend-item[data-state="findings"]', WORK_ROUTES),
+    ],
+    ['Lab', lab('edit')],
+    ['Play', player(pageHref.play(PROBE), '.bar .tc')],
+  ] as const;
+  for (const [name, open] of PAGES) {
+    it.live(
+      `${name}: no sideways scroll, every control inside the width, chrome at most a quarter of the height`,
+      () => Effect.flatMap(open(PHONE.viewport), fitsPhone).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
+});
 
 /** How far `selector`'s box is wider than its words, in px. */
 const slack = (selector: string) =>

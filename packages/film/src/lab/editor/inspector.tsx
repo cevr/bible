@@ -44,7 +44,11 @@ interface CueFieldsProps {
   readonly cue: ResolvedCue;
 }
 
-/** The selected cue: its anchor, offset, dur or end, when it plays, and its ease. */
+/**
+ * The selected cue: its anchor, offset, dur (or, ending on a mark, its end
+ * and the mark: an end typed takes it off the mark, as its drag does), when
+ * it plays, and its ease.
+ */
 const CueFields = (props: CueFieldsProps) => {
   const { meta } = useLab();
   const { state, actions } = useEditor();
@@ -88,8 +92,9 @@ const CueFields = (props: CueFieldsProps) => {
         >
           {(until) => (
             <>
-              <Key>end</Key>
-              <Val>{`until ${untilText(until())} · ${timecode(props.cue.end, meta.film.fps)}`}</Val>
+              <Show when={field('end')}>{(f) => <Field field={f()} label={<Key>end</Key>} />}</Show>
+              <Key>until</Key>
+              <Val>{untilText(until())}</Val>
             </>
           )}
         </Show>
@@ -229,7 +234,7 @@ const Findings = () => {
 /** What a pointer does to a cue or a knob, for the inspector's hint (its keys come from the keymap). */
 const GESTURES: Readonly<Record<LabSelection['_tag'], ReadonlyArray<string>>> = {
   Cue: [
-    'drag its bar to move it, an edge to trim it (⇧ free of the frames)',
+    'drag its bar to move it, an edge to trim it (Snap off, or ⇧ while on: free of the frames)',
     'drag a label to scrub (⇧ coarse, ⌥ fine); type +0.1 or *2, then Enter',
   ],
   Knob: [

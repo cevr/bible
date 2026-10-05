@@ -52,6 +52,19 @@ export interface Things {
 /** What the inspector opens on. */
 const INSPECTED: ReadonlyArray<Target> = ['Variant', 'Version', 'Act', 'Film'];
 
+/**
+ * `ctx` without the selected things of the review's kinds that the page has
+ * none of now: a link's `?inspect=` naming a version since removed selects
+ * nothing, so the focused card's keys act on it (`withFocused`). A hub part
+ * (`Hub.refine`): what the page knows that its URL does not.
+ */
+export const withRegistered = (things: Things, ctx: Context): Context => ({
+  ...ctx,
+  selection: ctx.selection.filter(
+    (s) => !INSPECTED.includes(s._tag) || Option.isSome(things.at(s)),
+  ),
+});
+
 /** The first selected thing that is shown: what a command about a thing acts on. */
 const thingOf = (things: Things, ctx: Context): Option.Option<Thing> =>
   Option.firstSomeOf(ctx.selection.map(things.at));

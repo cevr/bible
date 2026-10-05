@@ -1,6 +1,7 @@
 // A small film for the lab's browser tests: three scenes, the first with two
 // cues on its narration's marks and a point and a number knob, drawn so a
-// handle can be read off the frame; the third a camera pushed in on a knob.
+// handle can be read off the frame; the third a camera pushed in on a knob,
+// with a cue that runs `until` a mark.
 
 import { camera } from '../../canvas/camera.ts';
 import { type Film, createFilm, drawing } from '../../canvas/film.ts';
@@ -45,7 +46,8 @@ const rest = drawing({
  * pole lands at (120, 280) on the frame, and `face` at its centre.
  */
 const shot = drawing({
-  timeline: {},
+  // A cue that ends on a mark, as a push in that lands on a word does: its end is the mark's.
+  timeline: { push: { mark: 'near', until: 'held' } },
   knobs: { face: [400, 200], faceZoom: 2, pole: [300, 250] },
   draw: (f) => {
     const face = f.knob('face');
@@ -80,6 +82,11 @@ export const probeFilm = (): Film =>
         drift: 0,
       },
       { id: 'two', say: 'A second scene, with nothing to move.', ...rest, drift: 0 },
-      { id: 'three', say: 'A third scene, pushed in close on a face.', ...shot, drift: 0 },
+      {
+        id: 'three',
+        say: 'A third scene, pushed {near}in close on a {held}face.',
+        ...shot,
+        drift: 0,
+      },
     ],
   });

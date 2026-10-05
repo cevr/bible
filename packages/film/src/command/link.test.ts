@@ -40,11 +40,21 @@ describe('Copy link', () => {
     expect(written).toEqual([`${ORIGIN}${here}`, `${ORIGIN}${here}`]);
   });
 
+  test("copies the page's URL whole for the version or the variant whose sheet the URL opens", () => {
+    const set = '/sets/r/cold?view=wipe&other=b&inspect=b#t=12';
+    const version = Selection.cases.Version.make({ folder: 'r', point: 'cold', version: 'b' });
+    expect(linkOf({ ...contextAt('review', set), selection: [version] })).toBe(set);
+    const choices = '/films/f/choices?point=score&inspect=piano&heard=score&variant=strings#t=3';
+    const variant = Selection.cases.Variant.make({ film: 'f', point: 'score', variant: 'piano' });
+    expect(linkOf({ ...contextAt('review', choices), selection: [variant] })).toBe(choices);
+  });
+
   test('copies the citation of another thing a context menu opened on', () => {
     const fall = withSelection(page, [cueOf('one', 'fall')]);
     expect(linkOf(fall)).toBe(pageHref.labScene('f', 'one', { cue: 'fall' }, Option.some(1.5)));
     const version = Selection.cases.Version.make({ folder: 'r', point: 'cold', version: 'b' });
-    expect(linkOf(withSelection(page, [version]))).toBe(pageHref.set('r', 'cold'));
+    // A version's link opens its set with its sheet open.
+    expect(linkOf(withSelection(page, [version]))).toBe(pageHref.set('r', 'cold', 'b'));
   });
 
   test('says why when the browser keeps the link off the clipboard', () => {
@@ -77,6 +87,7 @@ describe('a context menu', () => {
     label: id,
     group: 'g',
     about: targets,
+    touch: 'a test command',
     when: () => true,
     run: () => Effect.succeed(Receipt.Quiet()),
   });

@@ -93,7 +93,7 @@ describe('the place in the URL', () => {
     const at = (state: ViewState) =>
       Place.href(Places.set, {
         path: { folder: 'f', point: 's' },
-        query: queryOfView(state),
+        query: { ...queryOfView(state), inspect: '' },
         hash: { t: Option.none() },
       });
     expect(at(ViewState.Wipe({ other: 'C' }))).toBe('/sets/f/s?view=wipe&other=C');
@@ -119,7 +119,7 @@ describe('the place in the URL', () => {
     const at = (state: ViewState) =>
       Place.href(Places.set, {
         path: { folder: 'f', point: 's' },
-        query: queryOfView(state),
+        query: { ...queryOfView(state), inspect: '' },
         hash: { t: Option.none() },
       });
     expect(at(ViewState.Pair({ other: 'C' }))).toBe('/sets/f/s?view=pair&other=C');
