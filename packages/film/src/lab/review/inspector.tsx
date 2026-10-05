@@ -40,7 +40,7 @@ import { targetAttr } from '../../command/target.ts';
 import { Hint } from '../command/inspector.tsx';
 import { useReview } from './context.tsx';
 import { pressed } from './format.ts';
-import { type OpenAt, type Thing, type Things, thingCommands } from './things.ts';
+import { type OpenAt, type Thing, type Things, thingCommands, withRegistered } from './things.ts';
 
 /** A comment box's unsent text, kept per thing while the page lives (read reactively): a box that closes keeps it. */
 interface Draft {
@@ -144,6 +144,9 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
     open,
   };
   onCleanup(props.hub.commands.register(...thingCommands(things)));
+  // A thing the URL names that the page has none of (an old link's) is no selection:
+  // the focused card's keys act on it.
+  onCleanup(props.hub.refine((ctx) => withRegistered(things, ctx)));
   const value: InspectingValue = {
     hub: props.hub,
     opened,

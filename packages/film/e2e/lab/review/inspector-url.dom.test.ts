@@ -192,3 +192,47 @@ describe('a sheet the URL names opens whatever cards the page shows', () => {
     );
   }
 });
+
+describe('a link whose sheet names a thing the page has none of', () => {
+  const CASES = [
+    {
+      name: 'Choices',
+      href: pageHref.choices(STUDIO_FILM, 'look:ground', 'removed'),
+      focus: '[data-point="look:ground"] [data-variant="now"] .lab-inspect',
+      title: 'now of',
+      named: 'now',
+    },
+    {
+      name: 'a Set',
+      href: pageHref.set(STUDIO_FOLDER, STUDIO_SET, 'removed'),
+      focus: '.rv-main .rv-card[data-id="main"] [data-act="inspect"]',
+      title: 'main',
+      named: 'main',
+    },
+  ];
+  for (const c of CASES) {
+    it.live(
+      `${c.name}: no sheet opens, and \`i\` on a focused card opens that card's`,
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* openReview(studioRoutes, {
+            href: c.href,
+            viewport: LAPTOP,
+          });
+          yield* waitFor(page, c.focus);
+          yield* countIs(page, INSPECTOR, 0);
+          yield* page.focus(c.focus);
+          yield* page.press('i');
+          yield* waitFor(page, CLOSE);
+          yield* textHas(page, `${INSPECTOR} .lab-sheet-title`, c.title);
+          yield* evaluates(
+            page,
+            `new URL(location.href).searchParams.get('inspect') ?? ''`,
+            c.named,
+          );
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
+});
