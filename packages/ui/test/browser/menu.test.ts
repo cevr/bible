@@ -137,6 +137,17 @@ describe('keyboard navigation', () => {
     await see.poll(() => focused(page)).toBe('grid');
   });
 
+  it('typeahead wraps the search past the highlighted item', async () => {
+    const page = await h.open('menu');
+    await page.click('#trigger');
+    // The open popup takes focus a frame after the click; a key before that reaches the trigger.
+    await see.poll(() => focused(page)).toBe('popup');
+    await page.keyboard.press('End');
+    await see.poll(() => focused(page)).toBe('more');
+    await page.keyboard.press('c');
+    await see.poll(() => focused(page)).toBe('cut');
+  });
+
   it('typeahead reaches aria-disabled items', async () => {
     const page = await h.open('menu');
     await page.focus('#trigger');
@@ -291,7 +302,45 @@ describe('Menu.SubmenuTrigger', () => {
   });
 });
 
+describe('Menu.Positioner', () => {
+  it('places the popup under the trigger and sets the positioning CSS variables', async () => {
+    const page = await h.open('menu');
+    await page.click('#trigger');
+    await see(page.locator('body > [data-base-ui-portal] #popup')).toHaveCount(1);
+    await see(page.locator('#positioner')).not.toHaveCSS('opacity', '0');
+    const trigger = (await page.locator('#trigger').boundingBox())!;
+    const positioner = (await page.locator('#positioner').boundingBox())!;
+    expect(Math.round(positioner.y)).toBe(Math.round(trigger.y + trigger.height + 4));
+    expect(Math.round(positioner.x)).toBe(Math.round(trigger.x));
+    const vars = await page
+      .locator('#positioner')
+      .evaluate((el) => [
+        el.style.getPropertyValue('--anchor-width'),
+        el.style.getPropertyValue('--available-height'),
+        el.style.getPropertyValue('--transform-origin'),
+      ]);
+    // The width snaps to device pixels, as Base UI does, so a fractional text width reads whole.
+    const dpr = await page.evaluate(() => window.devicePixelRatio || 1);
+    const snapped =
+      (Math.round((trigger.x + trigger.width) * dpr) - Math.round(trigger.x * dpr)) / dpr;
+    expect(vars[0]).toBe(`${snapped}px`);
+    expect(vars[1]).toMatch(/px$/);
+    expect(vars[2]).toBe('0% -4px');
+  });
+});
+
 describe('dismissal', () => {
+  it('Tab out of the open menu closes it and moves focus on from the trigger', async () => {
+    const page = await h.open('menu');
+    await page.focus('#trigger');
+    await page.keyboard.press('Enter');
+    await see.poll(() => focused(page)).toBe('cut');
+    await page.keyboard.press('Tab');
+    await see(page.locator('#popup')).toHaveCount(0);
+    await see.poll(() => focused(page)).toBe('after');
+    expect(await logOf(page)).toContain('open false focus-out');
+  });
+
   it('an outside press closes the menu', async () => {
     const page = await h.open('menu', { query: { modal: 'false' } });
     await page.click('#trigger');

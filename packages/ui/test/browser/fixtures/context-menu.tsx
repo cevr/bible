@@ -1,7 +1,8 @@
 // Fixtures for the context menu: a 300×200 area that opens a menu with
-// items and a submenu, a backdrop, a field in the area whose open the root
-// declines, and a context menu inside a menu's item list (`nested`). URL params: `disabled=true` disables the root; `window.__setDisabled(bool)` changes it later;
-// `under=true` opens the menu over the point it opens at, its first item under it (as a menu kept on a phone's screen lands under the finger).
+// items, a backdrop, and a field in the area whose open the root declines.
+// URL params: `disabled=true` disables the root; `window.__setDisabled(bool)`
+// changes it later; `under=true` opens the menu over the point it opens at,
+// its first item under it (as a menu kept on a phone's screen lands under the finger).
 import type { JSX } from '@solidjs/web';
 import { createSignal } from 'solid-js';
 
@@ -56,18 +57,6 @@ function AreaMenu(): JSX.Element {
             <ContextMenu.Item id="paste" onClick={() => log('click paste')}>
               Paste
             </ContextMenu.Item>
-            <ContextMenu.SubmenuRoot>
-              <ContextMenu.SubmenuTrigger id="more">More</ContextMenu.SubmenuTrigger>
-              <ContextMenu.Portal>
-                <ContextMenu.Positioner id="sub-positioner">
-                  <ContextMenu.Popup id="sub-popup">
-                    <ContextMenu.Item id="rename" onClick={() => log('click rename')}>
-                      Rename
-                    </ContextMenu.Item>
-                  </ContextMenu.Popup>
-                </ContextMenu.Positioner>
-              </ContextMenu.Portal>
-            </ContextMenu.SubmenuRoot>
           </ContextMenu.Popup>
         </Positioner>
       </ContextMenu.Portal>

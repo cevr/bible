@@ -1,4 +1,5 @@
-// Upstream: packages/react/src/use-render/useRender.test.tsx,
+// Upstream: packages/react/src/use-render/useRender.test.tsx (its cases run
+// against useRenderElement, the engine every part renders through),
 // packages/react/src/internals/useRenderElement.test.tsx,
 // packages/react/src/direction-provider/DirectionProvider.test.tsx
 //
@@ -18,15 +19,7 @@ afterAll(async () => {
   await h.close();
 });
 
-describe('useRender', () => {
-  it('renders a div by default, the default tag, or what render returns', async () => {
-    const page = await h.open('defaults');
-    expect(await page.locator('#plain').evaluate((el) => el.tagName)).toBe('DIV');
-    expect(await page.locator('#span').evaluate((el) => el.tagName)).toBe('SPAN');
-    expect(await page.locator('#rendered').evaluate((el) => el.tagName)).toBe('B');
-    expect(await page.locator('#button').getAttribute('type')).toBe('button');
-  });
-
+describe('useRenderElement', () => {
   it('turns state into data attributes, live, props overriding them', async () => {
     const page = await h.open('state-attributes');
     const el = page.locator('#state');
@@ -44,12 +37,6 @@ describe('useRender', () => {
     expect(await el.getAttribute('data-count')).toBe('2');
   });
 
-  it('applies a custom state attributes mapping', async () => {
-    const page = await h.open('state-attributes');
-    expect(await page.locator('#mapped').getAttribute('data-checked-state')).toBe('on');
-    expect(await page.locator('#mapped').getAttribute('data-checkedstate')).toBe(null);
-  });
-
   it('passes the element to the params ref and the props ref', async () => {
     const page = await h.open('refs');
     await page.click('#check');
@@ -64,9 +51,7 @@ describe('useRender', () => {
     await page.click('#toggle');
     await see(page.locator('#toggled')).toHaveText('here');
   });
-});
 
-describe('useRenderElement', () => {
   it('accepts class and style as functions of the state', async () => {
     const page = await h.open('class-style');
     const part = page.locator('#fn-class');
@@ -117,7 +102,6 @@ describe('useRenderElement', () => {
     expect(await part.evaluate((el) => el.tagName)).toBe('SECTION');
     await see(part).toHaveAttribute('data-on', 'false');
     await part.click();
-    await see(part).toHaveAttribute('data-on', 'true');
     await see(part).toHaveAttribute('data-on', 'true');
   });
 

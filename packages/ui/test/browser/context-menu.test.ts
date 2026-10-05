@@ -156,7 +156,7 @@ describe('ContextMenu.Trigger: right click', () => {
     await page.mouse.click(x, y, { button: 'right' });
     await see(page.locator('#backdrop')).toHaveAttribute('data-open', '');
     expect(await nativeMenuBlocked(page, '#backdrop')).toBe(true);
-    expect(await nativeMenuBlocked(page, '#before-nothing, body')).toBe(false);
+    expect(await nativeMenuBlocked(page, 'body')).toBe(false);
   });
 
   it('an open the root declines leaves the native context menu alone', async () => {
