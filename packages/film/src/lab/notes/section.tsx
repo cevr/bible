@@ -15,8 +15,7 @@ import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
 import { useLab } from '../shell.tsx';
-import { chordLabel } from '../../command/keymap.ts';
-import { hubChanges } from '../command/changes.ts';
+import { hubKeys } from '../command/changes.ts';
 import { useNotes } from './context.tsx';
 import { filmPixel } from './draft.ts';
 
@@ -156,16 +155,9 @@ export const Section = () => {
   createEffect(state.composerOpen, (shown) => {
     if (shown) lab.showMode('note');
   });
-  const changes = hubChanges(meta.hub);
+  const keys = hubKeys(meta.hub);
   // Note this frame's key as bound now: a rebound key reads as rebound.
-  const noteKey = () => {
-    changes();
-    return meta.hub
-      .keysOf('notes.frame')
-      .slice(0, 1)
-      .map((k) => chordLabel(k, meta.hub.mac))
-      .join('');
-  };
+  const noteKey = () => keys.bound('notes.frame').slice(0, 1).map(keys.label).join('');
   let area = Option.none<HTMLTextAreaElement>();
   const open = () => state.composerOpen();
   // A note saved or cancelled leaves an empty composer; one opened takes the keys.

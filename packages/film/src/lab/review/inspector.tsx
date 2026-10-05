@@ -38,6 +38,7 @@ import type { Hub } from '../../command/hub.ts';
 import type { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
 import { Hint } from '../command/inspector.tsx';
+import { useMatches } from '../viewport.ts';
 import { useReview } from './context.tsx';
 import { pressed } from './format.ts';
 import { type OpenAt, type Thing, type Things, thingCommands, withRegistered } from './things.ts';
@@ -307,7 +308,9 @@ export const Inspector = (props: {
     },
     draft: inspecting.draft(untrack(key)),
   };
-  const phone = usePhone();
+  const { meta } = useReview();
+  // Whether the page is a phone's width now, followed as the window changes.
+  const phone = useMatches(meta.host, PHONE);
   return (
     <Show when={Option.getOrUndefined(at())}>
       {(opened) => {
@@ -361,16 +364,6 @@ export const Inspector = (props: {
 
 /** The phone's width, as the shell's (`page-shell-style.ts`): the inspector is a bottom sheet under it. */
 const PHONE = '(max-width: 899px)';
-
-/** Whether the page is a phone's width now, followed as the window changes. */
-const usePhone = (): Accessor<boolean> => {
-  const query = matchMedia(PHONE);
-  const [phone, setPhone] = createSignal(query.matches, { ownedWrite: true });
-  const changed = () => setPhone(query.matches);
-  query.addEventListener('change', changed);
-  onCleanup(() => query.removeEventListener('change', changed));
-  return phone;
-};
 
 /**
  * A phone's sheet's grip (design language §7): the sheet's whole head, a bar

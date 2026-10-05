@@ -50,7 +50,7 @@ import {
 import { type Command, quiet } from '../../../command/command.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import type { CheckLine, CheckReport, PageBuild } from '../../../core/schema.ts';
-import { LabClient, type LabFailure } from '../../api.ts';
+import { type LabFailure, served } from '../../api.ts';
 import { hearMixes, newer } from '../../rebuilt.ts';
 import { type Asks, type Landed, newestAsked } from '../asked.ts';
 import { useReview } from '../context.tsx';
@@ -440,7 +440,7 @@ const FilmBody = (
       });
     }).pipe(Effect.ignore);
   const hearing = meta.runtime
-    .atom(hearMixes(film, heardMix).pipe(Effect.provide(LabClient.layer)))
+    .atom(hearMixes(film, heardMix).pipe(Effect.provide(meta.client)))
     .pipe(Atom.setIdleTTL(0));
   useAtomValue(() => hearing);
 
@@ -669,7 +669,10 @@ export const FilmProvider = (props: ParentProps<{ readonly film: string }>) => {
   const film = props.film;
   const atoms: FilmAtoms = {
     film,
-    choices: meta.runtime.atom(OptionsApi.use((api) => api.choices(film))),
+    // Read by the server and sent with the page; the page adopts them and reads none again.
+    choices: meta.runtime
+      .atom(OptionsApi.use((api) => api.choices(film)))
+      .pipe(served(`review.choices:${film}`, FilmChoices)),
     again: meta.runtime.fn(() => OptionsApi.use((api) => api.choices(film))),
     check: meta.runtime.atom(OptionsApi.use((api) => api.check(film))),
     steps: meta.runtime.fn(() => OptionsApi.use((api) => api.steps(film))),

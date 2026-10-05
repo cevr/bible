@@ -8,17 +8,10 @@
 // reads. A `Cancel` aborts a render whose request is gone.
 
 import { BunWorkerRunner } from '@effect/platform-bun';
-import { Deferred, Effect, Option, Predicate, Schema } from 'effect';
+import { Deferred, Effect, Option, Schema } from 'effect';
 import * as WorkerRunner from 'effect/workers/WorkerRunner';
-import type { PageRender, PageSink } from '../core/page-render.ts';
+import { type PageSink, isPageRender } from '../core/page-render.ts';
 import { FromRender, ToRender } from './page-render-protocol.ts';
-
-/** Whether a server entry's default export is a page's render. */
-const isPageRender = (value: unknown): value is PageRender =>
-  Predicate.hasProperty(value, 'render') &&
-  Predicate.isFunction(value.render) &&
-  Predicate.hasProperty(value, 'bodyClass') &&
-  Predicate.isString(value.bodyClass);
 
 /** The statuses whose answer has no body: a `Response` refuses one. */
 const BODILESS: ReadonlyArray<number> = [101, 204, 205, 304];

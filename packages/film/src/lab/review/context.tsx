@@ -16,8 +16,9 @@ import {
 } from '@bible/atom-solid';
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
-import { type JSX, Loading, Show } from '@solidjs/web';
-import { Clock, Effect, Equal, Layer, Option } from 'effect';
+import { type JSX, Loading, Show, isServer } from '@solidjs/web';
+import { Clock, Effect, Equal, Layer, Option, Schema } from 'effect';
+import type { HttpClient } from 'effect/http';
 import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -30,11 +31,14 @@ import {
   createSignal,
   omit,
   onCleanup,
+  sharedConfig,
+  untrack,
   useContext,
 } from 'solid-js';
 import type { SeenPoint } from '../../core/choice.ts';
 import type { Films } from '../../player/main.ts';
-import type { ReviewFilms, ReviewFolder, ReviewIndex } from '../../core/review.ts';
+import { ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
+import { Viewport } from '../../browser/viewport.ts';
 import {
   type BrowserServices,
   type Host,
@@ -47,7 +51,8 @@ import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type Context, selected } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
-import { LabClient, type LabFailure } from '../api.ts';
+import type { LabClient, LabFailure } from '../api.ts';
+import { served } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
@@ -110,6 +115,8 @@ interface ReviewMeta {
   /** A doc's text, read once per ref. */
   readonly text: (ref: string) => Loaded<string>;
   readonly runtime: Atom.AtomRuntime<ReviewApi | OptionsApi | BrowserServices>;
+  /** The page's one client of the lab's API: what a read of its own (a feed) goes through. */
+  readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
   /** The page's host (`browser/host.ts`): what the page's own effects run with. */
   readonly host: Host;
   /** The page's commands (`command/hub.ts`): each player registers its transport here while it is mounted. */
@@ -175,43 +182,78 @@ const kept = {
   quality: keptText(ViewerStore, 'film-review.quality'),
 };
 
+/** A narrow screen, which plays the 720p copy unless the viewer kept another. */
+const NARROW = '(max-width: 900px)';
+
 /** The copy the page plays: the kept one, else 720p on a narrow screen. */
-const qualityOf = (stored: Option.Option<string>): Quality =>
+const qualityOf = (stored: Option.Option<string>, narrow: () => boolean): Quality =>
   Option.getOrElse(
     Option.filter(stored, (q): q is Quality => q === 'phone' || q === 'full'),
     (): Quality => {
-      if (matchMedia('(max-width: 900px)').matches) return 'phone';
+      if (narrow()) return 'phone';
       return 'full';
     },
   );
 
+/**
+ * The copy a page rendered on the server plays, and the client while it
+ * hydrates (a viewer's kept copy and their screen are their browser's): the
+ * phone's, as the studio is designed for first (`Viewport.layerPhone`).
+ */
+const SERVED_QUALITY: Quality = 'phone';
+
+/** The time a page was rendered at, by the server, sent with it: what its cards' ages are counted from while it hydrates. */
+const SERVED_AT = 'review.served-at';
+
 /** The review page: its runtime, place, index and choices, around `children`. */
 export const Root = (
-  props: ParentProps<{ readonly host: Host; readonly hub: Hub; readonly films: Films }>,
+  props: ParentProps<{
+    readonly host: Host;
+    readonly hub: Hub;
+    readonly films: Films;
+    /**
+     * The page's one client of the lab's API (`LabClient.layer` in the
+     * browser, `LabClient.layerRendering` for a render on the server).
+     */
+    readonly client: Layer.Layer<LabClient | HttpClient.HttpClient>;
+  }>,
 ) => {
   // One client of the lab's API for the page: the review's and the choices'
   // routes both go through it.
   const runtime = Atom.runtime(
     Layer.mergeAll(reviewApiLayer, optionsApiLayer, hostLayer(props.host)).pipe(
-      Layer.provide(LabClient.layer),
+      Layer.provide(props.client),
     ),
   );
-  const filmsAtom = runtime.atom(OptionsApi.use((api) => api.films));
+  // The page's reads are the server's when it renders the page: sent with it,
+  // and adopted by the client, which reads none of them again (`served`).
+  const filmsAtom = runtime
+    .atom(OptionsApi.use((api) => api.films))
+    .pipe(served('review.films', ReviewFilms));
   // A refresh asks the server to walk its roots again; a first read takes its cache.
   let fresh = false;
-  const indexAtom = runtime.atom(
-    ReviewApi.use((api) =>
-      Effect.suspend(() => {
-        const asked = fresh;
-        fresh = false;
-        return api.index(asked);
-      }),
-    ),
-  );
+  const indexAtom = runtime
+    .atom(
+      ReviewApi.use((api) =>
+        Effect.suspend(() => {
+          const asked = fresh;
+          fresh = false;
+          return api.index(asked);
+        }),
+      ),
+    )
+    .pipe(served('review.index', ReviewIndex));
   const duration = Atom.family((ref: string) =>
-    runtime.atom(ReviewApi.use((api) => api.duration(ref))),
+    runtime
+      .atom(ReviewApi.use((api) => api.duration(ref)))
+      .pipe(served(`review.duration:${ref}`, Schema.Finite)),
   );
-  const text = Atom.family((ref: string) => runtime.atom(ReviewApi.use((api) => api.text(ref))));
+  const text = Atom.family((ref: string) =>
+    runtime
+      .atom(ReviewApi.use((api) => api.text(ref)))
+      .pipe(served(`review.text:${ref}`, Schema.String)),
+  );
+  const servedAtAtom = Atom.make(Clock.currentTimeMillis).pipe(served(SERVED_AT, Schema.Finite));
 
   const address = addressOn(props.host);
 
@@ -255,7 +297,14 @@ export const Root = (
     const films = useAtomValue(() => filmsAtom);
     const keptQuality = useAtomValue(() => kept.quality);
     const keepQuality = useAtomSet(() => kept.quality);
-    const quality = createMemo(() => qualityOf(keptQuality()));
+    const narrow = () => Effect.runSyncWith(props.host)(Viewport.use((v) => v.matches(NARROW)));
+    // The viewer's copy once the page is the client's; the phone's until then.
+    const quality = createMemo(() => qualityOf(keptQuality(), narrow), {
+      ssrSource: 'client',
+      loadingValue: SERVED_QUALITY,
+    });
+    const servedAt = useAtomValue(() => servedAtAtom);
+    const clockNow = () => Effect.runSyncWith(props.host)(Clock.currentTimeMillis);
     const value: ReviewContextValue = {
       state: { place, index, films, quality, lightbox },
       actions: {
@@ -274,9 +323,16 @@ export const Root = (
         duration,
         text,
         runtime,
+        client: props.client,
         host: props.host,
         hub: props.hub,
-        now: () => Effect.runSyncWith(props.host)(Clock.currentTimeMillis),
+        // The server's render and the client's hydration count from the time
+        // the page was rendered, so both say the same; the client's later
+        // renders count from its own clock.
+        now: () => {
+          if (!isServer && !sharedConfig.hydrating) return clockNow();
+          return Option.getOrElse(AsyncResult.value(untrack(servedAt)), clockNow);
+        },
         films: props.films,
       },
     };
@@ -293,9 +349,17 @@ export const Root = (
   };
 
   // The registry's URL atoms read and write through the host's own `UrlState`,
-  // so they and the page's effects share one address bar.
+  // so they and the page's effects share one address bar. Their `Location`
+  // layer is the host's too: the registry still reads `services` once under
+  // its seed, and the default layer would build the browser's own (none on
+  // the server, a second one in the browser).
   return (
-    <RegistryProvider initialValues={[[UrlAtom.services, props.host]]}>
+    <RegistryProvider
+      initialValues={[
+        [UrlAtom.layer, hostLayer(props.host)],
+        [UrlAtom.services, props.host],
+      ]}
+    >
       <Inner>{props.children}</Inner>
     </RegistryProvider>
   );

@@ -43,7 +43,7 @@ export const build = async (outdir: string) => {
   );
   checked(
     await Bun.build({
-      entrypoints: [`${import.meta.dir}/client.tsx`],
+      entrypoints: [`${import.meta.dir}/client.tsx`, `${import.meta.dir}/answer-client.tsx`],
       plugins: [solid('dom')],
       target: 'browser',
       conditions: ['development'],
@@ -56,6 +56,8 @@ export const build = async (outdir: string) => {
     renderWithoutProvider: server.renderWithoutProvider,
     findings: server.findings,
     page: server.page,
+    answerPage: server.answerPage,
     client: await Bun.file(`${outdir}/client/client.js`).text(),
+    answerClient: await Bun.file(`${outdir}/client/answer-client.js`).text(),
   };
 };

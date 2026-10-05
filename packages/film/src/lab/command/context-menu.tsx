@@ -30,11 +30,10 @@ import {
 } from 'solid-js';
 import { type Context, focusOf, withSelection } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
-import { chordLabel } from '../../command/keymap.ts';
 import { type MenuRow, contextRows, rowChord, rowKey } from '../../command/menu.ts';
 import type { Selection } from '../../command/selection.ts';
 import { targetAt, targetAttr } from '../../command/target.ts';
-import { hubChanges } from './changes.ts';
+import { hubChanges, hubKeys } from './changes.ts';
 
 /**
  * The page's one context menu, over `children`: every `Target` inside opens
@@ -53,10 +52,11 @@ export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
     return contextRows(hub.commands.available(ctx), ctx);
   });
 
+  const keys = hubKeys(hub);
   const keysText = (row: MenuRow): string =>
-    hub
-      .keysOf(row.command.id)
-      .map((k) => chordLabel(rowChord(row, k), hub.mac))
+    keys
+      .bound(row.command.id)
+      .map((k) => keys.label(rowChord(row, k)))
       .join(' ');
 
   return (

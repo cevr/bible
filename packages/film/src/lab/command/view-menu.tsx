@@ -12,9 +12,8 @@ import { createMemo, createSignal } from 'solid-js';
 import { type Command, labelOf } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
-import { chordLabel } from '../../command/keymap.ts';
 import { KEYS_SHEET_COMMAND } from './keys-sheet.tsx';
-import { hubChanges } from './changes.ts';
+import { hubChanges, hubKeys } from './changes.ts';
 
 /** The group of the commands the view menu lists. */
 const VIEW = 'View';
@@ -35,11 +34,8 @@ export const ViewMenu = (props: { readonly hub: Hub }) => {
     changes();
     return viewRows(hub, opened());
   });
-  const keysText = (command: Command) =>
-    hub
-      .keysOf(command.id)
-      .map((k) => chordLabel(k, hub.mac))
-      .join(' ');
+  const keys = hubKeys(hub);
+  const keysText = (command: Command) => keys.bound(command.id).map(keys.label).join(' ');
   return (
     <Menu.Root
       onOpenChange={(open) => {

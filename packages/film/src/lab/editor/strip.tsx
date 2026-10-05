@@ -17,8 +17,7 @@ import type { ResolvedCue } from '../../core/schema.ts';
 import { cueOf } from '../../command/selection.ts';
 import { BY_BUTTON } from '../../command/command.ts';
 import { CANCEL_GRIP, SNAP } from './commands.ts';
-import { chordLabel } from '../../command/keymap.ts';
-import { hubChanges } from '../command/changes.ts';
+import { hubKeys } from '../command/changes.ts';
 import { Target } from '../command/context-menu.tsx';
 import { selectsCue } from '../place.ts';
 import { useLab } from '../shell.tsx';
@@ -145,15 +144,8 @@ export const Strip = () => {
       onSome: (s) => s.file,
     });
   // A key as bound now: a rebound key reads as rebound.
-  const changes = hubChanges(meta.hub);
-  const keyOf = (id: string) => {
-    changes();
-    return meta.hub
-      .keysOf(id)
-      .slice(0, 1)
-      .map((k) => chordLabel(k, meta.hub.mac))
-      .join('');
-  };
+  const keys = hubKeys(meta.hub);
+  const keyOf = (id: string) => keys.bound(id).slice(0, 1).map(keys.label).join('');
   return (
     <Show when={placed()}>
       {(p) => {

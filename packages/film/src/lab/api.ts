@@ -10,10 +10,13 @@
 // `review/api.ts`, `review/options/api.ts`).
 
 import { Cause, Context, Effect, Layer, Option, Predicate, Schema } from 'effect';
-import { FetchHttpClient } from 'effect/http';
+import { FetchHttpClient, HttpClient, HttpClientRequest } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
+import * as AsyncResult from 'effect/reactivity/AsyncResult';
+import * as Atom from 'effect/reactivity/Atom';
 import { type Bound, Unfit } from '../command/command.ts';
-import { LabHttpApi, type Refusal, isRefusal } from '../core/api.ts';
+import { LabHttpApi, Refusal, isRefusal } from '../core/api.ts';
+import type { PageRequest } from '../core/page-render.ts';
 import { newerFirst } from '../core/refusals.ts';
 import {
   type CheckReport,
@@ -35,6 +38,24 @@ export class LabUnreachable extends Schema.TaggedError<LabUnreachable>()('LabUnr
 
 /** A call that failed: the server said no (its own failure), or could not be reached. */
 export type LabFailure = Refusal | LabUnreachable;
+
+/** A failed call as the page's data carries it from the server to the client (`served`). */
+const LabFailure = Schema.Union([Refusal, LabUnreachable]);
+
+/**
+ * A read of the lab the server renders a page with and sends along, for the
+ * client to adopt rather than read again (`Atom.serializable`, adopted by
+ * `@bible/atom-solid`'s hooks): the read's answer, or its failure, encoded
+ * by `success`'s schema and `LabFailure`'s, under `key`, which names it
+ * among the page's reads.
+ */
+export const served =
+  <A, I>(key: string, success: Schema.Codec<A, I>) =>
+  (read: Atom.Atom<AsyncResult.AsyncResult<A, LabFailure>>) =>
+    Atom.serializable(read, {
+      key,
+      schema: AsyncResult.Schema({ success, error: LabFailure }),
+    });
 
 /**
  * A call through a derived client as the page takes it: the server's refusal
@@ -183,6 +204,25 @@ export class LabClient extends Context.Service<LabClient, Effect.Success<typeof 
   /** The client of the lab at `origin`: a process with no page (a test). */
   static readonly layerAt = (origin: string) =>
     Layer.effect(LabClient, clientAt(origin)).pipe(Layer.provideMerge(FetchHttpClient.layer));
+  /**
+   * The client a server render of a page reads the lab with: the render's
+   * own reads (`request.fetch`, answered by the lab that renders it), each
+   * path resolved against the page's origin, as the browser resolves it.
+   */
+  static readonly layerRendering = (request: PageRequest) => {
+    const origin = new URL(request.url).origin;
+    const atOrigin = Layer.effect(
+      HttpClient.HttpClient,
+      Effect.map(
+        HttpClient.HttpClient,
+        HttpClient.mapRequest(HttpClientRequest.prependUrl(origin)),
+      ),
+    ).pipe(
+      Layer.provide(FetchHttpClient.layer),
+      Layer.provide(Layer.succeed(FetchHttpClient.Fetch, request.fetch)),
+    );
+    return Layer.effect(LabClient, pageClient).pipe(Layer.provideMerge(atOrigin));
+  };
 }
 
 /** The scene source routes for `film`, over the page's derived client. */

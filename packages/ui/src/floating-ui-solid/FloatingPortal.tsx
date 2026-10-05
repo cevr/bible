@@ -6,7 +6,7 @@
 // non-modal popup in a portal is still in the Tab order where its trigger
 // is: guards before and after the trigger's place send focus into the portal
 // and back out, and tabbing out past the end closes the popup.
-import { type JSX, Portal } from '@solidjs/web';
+import { type JSX, Portal, isServer } from '@solidjs/web';
 import { isNode } from '@floating-ui/utils/dom';
 import {
   type Accessor,
@@ -187,7 +187,10 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
         <span role={props.portalOwnerRole} aria-owns={id} style={ownerVisuallyHidden} />
       </Show>
       <PortalContext value={context}>
-        <Show when={mount()}>
+        {/* A server render has no body to portal into: Solid's server `Portal`
+            renders nothing and never reads its mount, so the server takes this
+            branch without one, as the client's hydration will. */}
+        <Show when={isServer || mount()}>
           {/* Solid only appends into the mount, which a shadow root supports too. */}
           <Portal mount={(mount() ?? undefined) as Element | undefined}>
             <PortalElement />

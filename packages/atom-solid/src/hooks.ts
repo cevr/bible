@@ -31,6 +31,18 @@
  * `immediate` subscription calls back synchronously from inside the effect — an
  * owned scope — which Solid 2 development mode rejects
  * (`REACTIVE_WRITE_IN_OWNED_SCOPE`) unless the write is declared intentional.
+ *
+ * Server rendering. An atom is read on the server in one of three ways, by
+ * what it is:
+ *
+ * - A served atom (`Atom.serializable`): the server reads it, waits for its
+ *   first answer, and sends it encoded with the page (`ssrSource: 'server'`);
+ *   the client's hydration adopts that value into the registry and requests
+ *   nothing (`createServedAccessor`).
+ * - An atom with a server value (`Atom.withServerValue`): the viewer's own
+ *   (a kept setting, the hash). The server and the client's hydration show the
+ *   server value; the live one follows (`serverAware`, `ssrSource: 'client'`).
+ * - Any other atom is read live on both sides, as it reads with no window.
  */
 
 // This module is a framework binding, not Effect domain code: its vocabulary is
@@ -44,6 +56,7 @@
 /* oxlint-disable effect/noNullish -- `undefined` is Solid's own uninitialised-signal value and the registry's own optional-option encoding. */
 /* oxlint-disable effect/noRuntimeTypeof -- upstream's setter accepts `W | ((value: R) => W)`; only a runtime check separates an updater from a value. */
 /* oxlint-disable effect/noKnownValueWidening -- the overload pair on `useAtomValue` is the upstream signature. */
+/* oxlint-disable effect/noUnknownParameters -- a served atom's encoded value is its own schema's, opaque to this binding (`Atom.serializable` types it so), and any atom's value may be an `AsyncResult` still reading. */
 
 import * as Cause from 'effect/Cause';
 import * as Effect from 'effect/Effect';
@@ -52,6 +65,7 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import type * as AtomRef from 'effect/reactivity/AtomRef';
+import type * as Schema from 'effect/Schema';
 import type { Accessor } from 'solid-js';
 import { isServer } from '@solidjs/web';
 import {
@@ -130,12 +144,19 @@ export const useAtomValue: {
 } = <A, B>(atom: () => Atom.Atom<A>, f?: (_: A) => B): Accessor<A | B> => {
   const registry = useRegistry();
   if (f === undefined) return createAtomAccessor<A | B>(registry, atom);
+  // A served atom is adopted as it is, and projected through `f` here.
+  const source = untrack(atom);
+  if (Atom.isSerializable(source)) {
+    const served = createServedAccessor(registry, atom, source);
+    return () => f(served());
+  }
   // `Atom.map` makes a new atom without the source's server value, so the
   // server value is projected through `f` here.
   return serverAware(
     registry,
-    untrack(atom),
-    createLiveAccessor<B>(registry, () => Atom.map(atom(), f)),
+    atom,
+    source,
+    () => createLiveAccessor<B>(registry, () => Atom.map(atom(), f)),
     f,
   );
 };
@@ -173,14 +194,15 @@ const createBridge = <A>(): Bridge<A> => {
   let current: A | undefined;
   // The first publish is the seed, made before the accessor is returned, so
   // no reader can be stale yet: it fills the cell without a signal write. A
-  // server render therefore writes no signal at all (Solid's server render is
-  // pure, and warns `SERVER_WRITE` on a write).
+  // server render writes no signal at all: it is one pass that re-renders
+  // nothing (Solid's server render is pure, and warns `SERVER_WRITE` on a
+  // write), so a later value there only fills the cell, for a later read.
   let seeded = false;
   const [version, setVersion] = createSignal(0, constOwnedWrite);
   return {
     publish: (value) => {
       current = value;
-      if (seeded) setVersion((n) => n + 1);
+      if (seeded && !isServer) setVersion((n) => n + 1);
       seeded = true;
     },
     accessor: () => {
@@ -220,26 +242,137 @@ function createLiveAccessor<A>(
  * `isServer` is Solid's build flag; `sharedConfig.hydrating` is Solid's own
  * flag for a hydration pass, set by `hydrate` and by each boundary that
  * hydrates later.
+ *
+ * The server never reads the live value (the memo shows the server value
+ * there), so it never runs the atom: an atom whose value is the browser's
+ * (a viewer's kept setting, the window) is not read where there is none. A
+ * render effect stands in for the client's subscription, so both sides make
+ * the same owners and Solid's hydration keys stay in step.
  */
 const serverAware = <S, A>(
   registry: AtomRegistry.AtomRegistry,
+  atom: () => Atom.Atom<unknown>,
   source: Atom.Atom<S>,
-  live: Accessor<A>,
+  live: () => Accessor<A>,
   project: (value: S) => A,
 ): Accessor<A> => {
-  if (!(Atom.ServerValueTypeId in source)) return live;
-  if (!isServer && !sharedConfig.hydrating) return live;
-  return createMemo(() => live(), {
-    ssrSource: 'client',
-    loadingValue: project(Atom.getServerValue(source, registry)),
-  });
+  if (!(Atom.ServerValueTypeId in source)) return live();
+  if (!isServer && !sharedConfig.hydrating) return live();
+  const loadingValue = project(Atom.getServerValue(source, registry));
+  if (isServer) {
+    createRenderEffect(atom, noop);
+    return createMemo(() => loadingValue, { ssrSource: 'client', loadingValue });
+  }
+  const read = live();
+  return createMemo(() => read(), { ssrSource: 'client', loadingValue });
 };
 
 function createAtomAccessor<A>(
   registry: AtomRegistry.AtomRegistry,
   atom: () => Atom.Atom<A>,
 ): Accessor<A> {
-  return serverAware(registry, untrack(atom), createLiveAccessor(registry, atom), identity);
+  const source = untrack(atom);
+  if (Atom.isSerializable(source)) return createServedAccessor(registry, atom, source);
+  return serverAware(registry, atom, source, () => createLiveAccessor(registry, atom), identity);
+}
+
+/** What a served atom's carrier holds where no server value came with the page. */
+const UNSERVED: unique symbol = Symbol('@bible/atom-solid/unserved');
+
+/** A value the server is still reading: an `AsyncResult` not yet answered, or answered and reading again. */
+const isReading = (value: unknown): boolean =>
+  AsyncResult.isAsyncResult(value) && (AsyncResult.isInitial(value) || value.waiting);
+
+/** `atom`'s value in `registry` once it is read: what the server renders and sends. */
+const settledOn = <A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>): Promise<A> =>
+  new Promise((done) => {
+    let settled = false;
+    let stop: (() => void) | undefined;
+    const take = (value: A): void => {
+      if (settled || isReading(value)) return;
+      settled = true;
+      stop?.();
+      done(value);
+    };
+    stop = registry.subscribe(atom, take, constImmediate);
+    if (settled) stop();
+  });
+
+/** `decode`, kept for the last encoded value it was given: one value however often it is read. */
+const lastDecoded = <A>(decode: (encoded: unknown) => A): ((encoded: unknown) => A) => {
+  let last: { readonly encoded: unknown; readonly value: A } | undefined;
+  return (encoded) => {
+    if (last === undefined || last.encoded !== encoded) last = { encoded, value: decode(encoded) };
+    return last.value;
+  };
+};
+
+const noop = (): void => {};
+
+/**
+ * The accessor for an atom the server reads and sends with the page
+ * (`Atom.serializable`): its data is read once, by the server, and the
+ * client adopts it.
+ *
+ * On the server, a memo (`ssrSource: 'server'`) holds the atom's value once
+ * it is read (an `AsyncResult` past its first read), encoded by the atom's
+ * own schema. Solid waits for it where it is read and serializes it into the
+ * page's stream under the memo's hydration key. The accessor decodes it.
+ *
+ * In the client, the same memo is created at the same place. While the page
+ * hydrates, Solid hands it the value the server sent, and its own compute,
+ * which Solid traces once, reads nothing: no request goes out. That value
+ * seeds the registry's node for the atom before the hook subscribes, so the
+ * node starts valid and its effect never runs for it; the subscription then
+ * carries every later value (a refresh, a write) as a plain atom's does. A
+ * client render with no server value (no hydration, or a part the server
+ * left to the client) holds no value in the memo, and the hook subscribes
+ * at once and reads as a plain atom does.
+ *
+ * Both sides create the same memo and the same render effect, so Solid's
+ * hydration keys of every later sibling stay in step.
+ */
+function createServedAccessor<A>(
+  registry: AtomRegistry.AtomRegistry,
+  atom: () => Atom.Atom<A>,
+  source: Atom.Atom<A> & Atom.Serializable<Schema.ConstraintCodec<A, unknown>>,
+): Accessor<A> {
+  const codec = source[Atom.SerializableTypeId];
+  const decoded = lastDecoded<A>(codec.decode);
+  if (isServer) {
+    const carrier = createMemo(
+      () => settledOn(registry, atom()).then((value): unknown => codec.encode(value)),
+      { ssrSource: 'server' },
+    );
+    createRenderEffect(atom, noop);
+    // A value already read renders at once (it is sent all the same); one
+    // still being read holds the render where it is read.
+    return () => {
+      const now = registry.get(untrack(atom));
+      if (isReading(now)) return decoded(carrier());
+      return now;
+    };
+  }
+  const bridge = createBridge<A>();
+  let adopting = true;
+  let live = false;
+  const carrier = createMemo((): unknown => UNSERVED, { ssrSource: 'server' });
+  createRenderEffect(
+    () => [atom(), carrier()] as const,
+    ([current, served]) => {
+      if (adopting && served !== UNSERVED) seedInitialValue(registry, current, decoded(served));
+      adopting = false;
+      const stop = registry.subscribe(current, bridge.publish, constImmediate);
+      live = true;
+      return stop;
+    },
+  );
+  // Until the subscription is attached (the server's value is still on its
+  // way), the reader waits on the memo, as the server's render did.
+  return () => {
+    if (live) return bridge.accessor();
+    return decoded(carrier());
+  };
 }
 
 const identity = <A>(value: A): A => value;

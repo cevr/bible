@@ -203,15 +203,22 @@ export const Receipts = (props: {
     mode: 'sync',
   });
   const registry = AtomRegistry.make();
-  registry.mount(carried);
-  const keep = () => registry.set(carried, { scope: props.scope, receipts: [...showing.values()] });
-  window.addEventListener('pagehide', keep);
-  onCleanup(() => window.removeEventListener('pagehide', keep));
-  // Shown again once the page's commands are registered, so an Undo is named as its command is.
+  // The tab's kept receipts are the browser's: read, shown and kept again as
+  // the page is left only once the page is the client's (a server render
+  // reads and keeps nothing). Shown again once the page's commands are
+  // registered, so an Undo is named as its command is.
   onSettled(() => {
+    const unmount = registry.mount(carried);
     const was = registry.get(carried);
     registry.set(carried, { scope: '', receipts: [] });
     if (was.scope === props.scope) for (const kept of was.receipts) show(kept);
+    const keep = () =>
+      registry.set(carried, { scope: props.scope, receipts: [...showing.values()] });
+    window.addEventListener('pagehide', keep);
+    return () => {
+      window.removeEventListener('pagehide', keep);
+      unmount();
+    };
   });
 
   return (

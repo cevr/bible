@@ -2,11 +2,13 @@
 // the request's URL, which never carries a hash.
 import { layerServer } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
-import { generateHydrationScript, renderToString } from '@solidjs/web';
-import { Option } from 'effect';
+import { generateHydrationScript, renderToStream, renderToString } from '@solidjs/web';
+import { Effect, Option } from 'effect';
+import * as Atom from 'effect/reactivity/Atom';
 import { OBSERVE } from 'solid-js';
 
 import { RegistryProvider } from '../../src/registry-context.ts';
+import { ANSWER_KEY, Answer, AnswerResult } from './Answer.tsx';
 import { App } from './App.tsx';
 
 /**
@@ -34,6 +36,42 @@ export const render = (href: string): string =>
 
 /** The App rendered with no `RegistryProvider`: a mistake on the server. */
 export const renderWithoutProvider = (): string => renderToString(() => <App />);
+
+/**
+ * The adoption proof's whole page: its markup streamed to the end (the
+ * render waits for the answer `read` gives), the hydration script with the
+ * values the render serialized, and its client entry.
+ */
+export const answerPage = (read: () => Promise<string>): Promise<string> => {
+  const answer = Atom.make(Effect.promise(read)).pipe(
+    Atom.serializable({ key: ANSWER_KEY, schema: AnswerResult }),
+  );
+  const parts: Array<string> = [];
+  return Effect.runPromise(
+    Effect.callback<string>((resume) => {
+      renderToStream(() => (
+        <RegistryProvider>
+          <Answer answer={answer} />
+        </RegistryProvider>
+      )).pipe({
+        write: (html) => {
+          parts.push(html);
+        },
+        end: () =>
+          resume(
+            Effect.succeed(
+              [
+                '<!doctype html><html><head><meta charset="utf-8">',
+                generateHydrationScript(),
+                '<script type="module" src="/answer-client.js"></script></head>',
+                `<body><div id="root">${parts.join('')}</div></body></html>`,
+              ].join(''),
+            ),
+          ),
+      });
+    }),
+  );
+};
 
 /** The whole page: the App's markup, the hydration script, the client entry. */
 export const page = (href: string): string =>

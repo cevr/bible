@@ -15,9 +15,8 @@ import { Option } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
-import { chordLabel } from '../../command/keymap.ts';
 import { type MenuRow, chipRows, rowKey } from '../../command/menu.ts';
-import { hubChanges } from './changes.ts';
+import { hubChanges, hubKeys } from './changes.ts';
 
 /** What a chip shows and the commands it opens. */
 interface CommandChipProps {
@@ -44,11 +43,8 @@ export const CommandChip = (props: CommandChipProps) => {
     const ctx = opened();
     return chipRows(hub.commands.available(ctx), ctx, props.ids);
   });
-  const keysText = (row: MenuRow): string =>
-    hub
-      .keysOf(row.command.id)
-      .map((k) => chordLabel(k, hub.mac))
-      .join(' ');
+  const keys = hubKeys(hub);
+  const keysText = (row: MenuRow): string => keys.bound(row.command.id).map(keys.label).join(' ');
   return (
     <Menu.Root
       onOpenChange={(open) => {

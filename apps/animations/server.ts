@@ -28,7 +28,9 @@ export const LAB_PAGES = {
  * same components as its HTML entry's script, with none of the app's films
  * (the server never imports a film's modules: Fresh reads).
  */
-export const LAB_SERVERS: Partial<Record<keyof typeof LAB_PAGES, string>> = {};
+export const LAB_SERVERS: Partial<Record<keyof typeof LAB_PAGES, string>> = {
+  review: join(import.meta.dir, 'src/review.server.tsx'),
+};
 
 /** The loopback interface: the only one the player listens on. */
 const HOST = '127.0.0.1';

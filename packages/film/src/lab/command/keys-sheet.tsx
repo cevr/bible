@@ -12,9 +12,9 @@ import { Effect, Option } from 'effect';
 import { createMemo, createSignal, onCleanup } from 'solid-js';
 import { type Command, type CommandId, quiet } from '../../command/command.ts';
 import type { Hub } from '../../command/hub.ts';
-import { chordLabel, chordOf, rebind, resetKeys } from '../../command/keymap.ts';
+import { chordOf, rebind, resetKeys } from '../../command/keymap.ts';
 import { sheetRows } from '../../command/menu.ts';
-import { hubChanges } from './changes.ts';
+import { hubChanges, hubKeys } from './changes.ts';
 
 /** The keys a chord is not made of alone: a modifier waits for its key. */
 const MODIFIER_KEYS = new Set(['Shift', 'Meta', 'Control', 'Alt', 'AltGraph', 'CapsLock']);
@@ -76,10 +76,8 @@ export const KeysSheet = (props: { readonly hub: Hub }) => {
     setWaiting(Option.none());
   };
 
-  const keysOf = (id: CommandId) => {
-    changes();
-    return hub.keysOf(id).map((k) => chordLabel(k, hub.mac));
-  };
+  const keys = hubKeys(hub);
+  const keysOf = (id: CommandId) => keys.bound(id).map(keys.label);
 
   return (
     <Dialog.Root

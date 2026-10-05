@@ -17,11 +17,13 @@ import type { Keys } from './keys.ts';
 import type { Media } from './media.ts';
 import { PageLoad } from './page-load.ts';
 import type { Pointer } from './pointer.ts';
+import type { Viewport } from './viewport.ts';
 
 /**
  * Every service the host gives a page: the address bar among them
  * (`Location`, written through `UrlState` so writes in one tick make one
- * history entry, `@bible/url-state`).
+ * history entry, `@bible/url-state`), and the window's media queries
+ * (`Viewport`). A server render's host is `host-server.ts`'s.
  */
 export type BrowserServices =
   | Clipboard
@@ -31,7 +33,8 @@ export type BrowserServices =
   | Media
   | PageLoad
   | Pointer
-  | UrlState.UrlState;
+  | UrlState.UrlState
+  | Viewport;
 
 /** The host's services, built: what a page's code runs its effects with. */
 export type Host = Context.Context<BrowserServices>;

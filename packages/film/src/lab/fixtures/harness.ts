@@ -7,7 +7,16 @@
 // page and the Scenes) are served the same way, the player's routes too.
 
 import { BunServices } from '@effect/platform-bun';
-import { Array as Arr, Deferred, Effect, FileSystem, Option, Schema } from 'effect';
+import {
+  Array as Arr,
+  Deferred,
+  Effect,
+  FileSystem,
+  Match,
+  Option,
+  Predicate,
+  Schema,
+} from 'effect';
 import {
   type CompareView,
   LabHttpApi,
@@ -19,8 +28,10 @@ import {
   statusOf,
 } from '../../core/api.ts';
 import type { PageBuild } from '../../core/schema.ts';
+import { PAGE_MOUNTED, type PageRender } from '../../core/page-render.ts';
+import { splice } from '../../tools/lab-page.ts';
 import { type Asset, asset, openTab, respond, scriptOf } from './browsers.ts';
-import { bundled } from './bundles.ts';
+import { bundled, served } from './bundles.ts';
 import { CLOCK_SCRIPT } from './clock.ts';
 import type { LabSelection } from '../../command/selection.ts';
 import { labHref } from '../place.ts';
@@ -332,25 +343,28 @@ const apiAnswer =
 /** A page's fake server: the page a path serves (its HTML and its script), then the API (`apiAnswer`). */
 const fakeServer =
   (
-    pageFor: (pathname: string) => Option.Option<Response>,
+    pageFor: (request: Request) => Option.Option<Effect.Effect<Response>>,
     prefix: string,
     routes: ReadonlyArray<FakeRoute>,
     asked: Array<Asked>,
   ) =>
   (request: Request): Effect.Effect<Option.Option<Response>> =>
-    Option.match(pageFor(request.url.pathname), {
-      onSome: Effect.succeedSome,
+    Option.match(pageFor(request), {
+      onSome: Effect.asSome,
       onNone: () => apiAnswer(prefix, routes, asked)(request),
     });
 
-/** `html` on every path the real server serves `name` on (`pageAt`, `core/api.ts`). */
-const servedAs =
-  (name: PageName, html: Response) =>
-  (pathname: string): Option.Option<Response> =>
+/** What `answer` makes of each request for `name`, on every path the real server serves it on (`pageAt`, `core/api.ts`). */
+const servedBy =
+  (name: PageName, answer: (request: Request) => Effect.Effect<Response>) =>
+  (request: Request): Option.Option<Effect.Effect<Response>> =>
     Option.as(
-      Option.filter(pageAt(pathname), (page) => page === name),
-      html,
+      Option.filter(pageAt(request.url.pathname), (page) => page === name),
+      answer(request),
     );
+
+/** `html` on every path the real server serves `name` on. */
+const servedAs = (name: PageName, html: Response) => servedBy(name, () => Effect.succeed(html));
 
 /**
  * `canvas.toBlob` encoding at once, from `toDataURL`: the same image in the
@@ -557,5 +571,136 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
   yield* page.goto(at.href ?? '/');
   yield* page.waitFor('.rv-main');
   const open: OpenLab = { page, asked, errors: page.errors };
+  return open;
+});
+
+/** The review's server entry, bundled as the lab bundles it: once, when a test first renders it. */
+const reviewRender = Effect.runSync(Effect.cached(served('../review/server.tsx', 'reviewRender')));
+
+/** The review's script, with Solid's development build (it warns of a hydration mismatch): once, when first asked. */
+const hydratedScript = Effect.runSync(
+  Effect.cached(scriptAsset('review-hydrated-page.ts', 'review-hydrated.js')),
+);
+
+/** A page's render, whole: its head, its body's class and its markup. */
+interface Rendered {
+  readonly head: string;
+  readonly bodyClass: string;
+  readonly body: string;
+}
+
+/** The fake server's answer as the render's fetch resolves it. */
+const fetched = (response: Response): globalThis.Response =>
+  new globalThis.Response(
+    new Blob([
+      Match.value(response.body).pipe(
+        Match.when(Predicate.isString, (text) => text),
+        Match.orElse((bytes) => new Uint8Array(bytes)),
+      ),
+    ]),
+    {
+      status: response.status,
+      headers: { 'content-type': response.type, ...response.headers },
+    },
+  );
+
+/**
+ * `render` of the page at `url`, whole, its reads answered by `read` (a
+ * GET of the path, as the lab answers a render's reads); a held read holds
+ * it, and a failed render fails the test.
+ */
+const rendered = (
+  render: PageRender,
+  url: URL,
+  read: (request: Request) => Effect.Effect<Option.Option<Response>>,
+): Effect.Effect<Rendered> =>
+  Effect.callback<Rendered>((resume, signal) => {
+    let head = '';
+    const body: Array<string> = [];
+    // The render's client asks at the page's origin, so every read's URL is whole.
+    const readOf = (input: RequestInfo | URL) =>
+      Effect.runPromise(
+        read({ method: 'GET', url: new URL(new globalThis.Request(input).url), body: '' }).pipe(
+          Effect.flatMap(Option.match({ onNone: () => Effect.never, onSome: Effect.succeed })),
+          Effect.map(fetched),
+        ),
+      );
+    render.render(
+      {
+        url: `${url.origin}${url.pathname}${url.search}`,
+        signal,
+        fetch: Object.assign(readOf, { preconnect: globalThis.fetch.preconnect }),
+      },
+      {
+        head: (html) => {
+          head = html;
+        },
+        write: (html) => {
+          body.push(html);
+        },
+        end: () =>
+          resume(Effect.succeed({ head, bodyClass: render.bodyClass, body: body.join('') })),
+        fail: (reason) => resume(Effect.die(`the review's server render failed: ${reason}`)),
+      },
+    );
+  });
+
+/** A page the server rendered: the link it was asked at, and the document it answered. */
+interface Document {
+  readonly path: string;
+  readonly html: string;
+}
+
+/** The review served as the lab serves a page it renders (PA-12): what the server read and answered too. */
+interface OpenServed extends OpenLab {
+  /** The reads the server's renders made, apart from the page's own requests (`asked`). */
+  readonly read: ReadonlyArray<Asked>;
+  /** Each document the server answered, in order. */
+  readonly documents: ReadonlyArray<Document>;
+}
+
+/**
+ * Open the review at `href` as the lab serves it once it renders the page
+ * on the server: each document is the review's server entry
+ * (`review/server.tsx`) rendered at the link asked, its reads answered by
+ * `routes` (and kept in `read`), spliced into the review's page as the lab
+ * splices it (`splice`, `tools/lab-page.ts`); the browser's script (the
+ * real `mountReview`, with Solid's development build) hydrates it. The
+ * page's own requests are kept in `asked`. Done once the page says it is
+ * hydrated.
+ */
+export const openServedReview = Effect.fn('lab.fixture.review-served')(function* (
+  routes: ReadonlyArray<FakeRoute>,
+  at: Omit<ReviewAt, 'build'> = {},
+) {
+  const render = yield* reviewRender;
+  const script = yield* hydratedScript;
+  const asked: Array<Asked> = [];
+  const read: Array<Asked> = [];
+  const documents: Array<Document> = [];
+  const document = (request: Request) =>
+    Effect.gen(function* () {
+      const page = yield* rendered(render, request.url, apiAnswer('', routes, read));
+      const [before, after] = yield* Option.match(splice(reviewPage(script, Option.none()), page), {
+        onNone: () => Effect.die('the review page has no head or body to splice into'),
+        onSome: Effect.succeed,
+      });
+      const html = `${before}${page.body}${after}`;
+      documents.push({ path: `${request.url.pathname}${request.url.search}`, html });
+      return respond(html, 'text/html');
+    });
+  const page = yield* openTab({
+    ...(at.viewport ?? DESK),
+    microphone: false,
+    init: [CLOCK_SCRIPT],
+    assets: [script],
+    serve: fakeServer(servedBy('review', document), '', routes, asked),
+  });
+  yield* page.goto(at.href ?? '/');
+  yield* page.until(`document.body.getAttribute('${PAGE_MOUNTED}') === 'hydrated'`, {
+    now: `document.body.getAttribute('${PAGE_MOUNTED}')`,
+    say: (now) => `the review was not hydrated: its body says it was mounted ${now}`,
+  });
+  const open: OpenServed = { page, asked, errors: page.errors, read, documents };
   return open;
 });

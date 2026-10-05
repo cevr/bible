@@ -18,12 +18,11 @@ import { createMemo } from 'solid-js';
 import type { Command } from '../../command/command.ts';
 import { withSelection } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
-import { chordLabel } from '../../command/keymap.ts';
 import { contextRows } from '../../command/menu.ts';
 import type { Selection } from '../../command/selection.ts';
 import { EVERYWHERE } from '../../command/target.ts';
 import { type Inspected, refusalOf } from '../../core/field.ts';
-import { hubChanges } from './changes.ts';
+import { hubChanges, hubKeys } from './changes.ts';
 
 /** How a field prints its value: to the thousandth, as the files keep it, without grouping. */
 const FORMAT: Intl.NumberFormatOptions = { maximumFractionDigits: 3, useGrouping: false };
@@ -77,13 +76,6 @@ export const Field = (props: { readonly field: Inspected; readonly label?: JSX.E
   );
 };
 
-/** The keys bound to `command` now, as the page's keyboard writes them. */
-const keysText = (hub: Hub, command: Command): string =>
-  hub
-    .keysOf(command.id)
-    .map((k) => chordLabel(k, hub.mac))
-    .join(' ');
-
 /**
  * The inspector's footer: the keys of the commands about `selection`
  * available now (not those every menu has), then `gestures`.
@@ -94,6 +86,9 @@ export const Hint = (props: {
   readonly gestures: ReadonlyArray<string>;
 }) => {
   const changes = hubChanges(props.hub);
+  const keys = hubKeys(props.hub);
+  /** The keys bound to `command` now, as the page's keyboard writes them. */
+  const keysText = (command: Command): string => keys.bound(command.id).map(keys.label).join(' ');
   const rows = createMemo(() => {
     changes();
     const ctx = withSelection(props.hub.context(), [props.selection]);
@@ -104,7 +99,7 @@ export const Hint = (props: {
         .flatMap(([, commands]) => commands)
         // A key's own step: its ×10 is Shift on the same key, which the hint need not say twice.
         .filter((row) => row.step === 'normal' && !everywhere(row.command))
-        .map((row) => ({ label: row.label, keys: keysText(props.hub, row.command) }))
+        .map((row) => ({ label: row.label, keys: keysText(row.command) }))
         .filter((row) => row.keys !== '')
     );
   });

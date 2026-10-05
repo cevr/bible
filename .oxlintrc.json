@@ -407,7 +407,8 @@
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
-                  "@bible/film/review"
+                  "@bible/film/review",
+                  "@bible/film/review-server"
                 ],
                 "message": "the engine never imports the player, tools, lab or the host's adapters (browser): they import it (packages/film/README.md, the purity rule)."
               }
@@ -437,7 +438,8 @@
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
-                  "@bible/film/review"
+                  "@bible/film/review",
+                  "@bible/film/review-server"
                 ],
                 "message": "the engine never imports the player, tools or lab: they import it (packages/film/README.md, the purity rule)."
               }
@@ -460,7 +462,8 @@
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
-                  "@bible/film/review"
+                  "@bible/film/review",
+                  "@bible/film/review-server"
                 ],
                 "message": "the player never imports the tools or the lab: the lab mounts the player (packages/film/README.md, the purity rule)."
               }
@@ -488,7 +491,8 @@
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
-                  "@bible/film/review"
+                  "@bible/film/review",
+                  "@bible/film/review-server"
                 ],
                 "message": "the pages' commands never import the player, the tools or the lab: they register their commands with it (packages/film/README.md, the purity rule)."
               }
@@ -540,7 +544,8 @@
                   "@bible/film/tools",
                   "@bible/film/solid-plugin",
                   "@bible/film/lab",
-                  "@bible/film/review"
+                  "@bible/film/review",
+                  "@bible/film/review-server"
                 ],
                 "message": "the host's adapters never import the player, the tools or the lab: the pages import them (packages/film/README.md, the purity rule)."
               }

@@ -7,7 +7,7 @@
 // is the sink's; one a boundary shows is the page's own.
 
 import { type JSX, generateHydrationScript, renderToStream } from '@solidjs/web';
-import { PAGE_ROOT, type PageRender, type PageRequest } from '../core/page-render.ts';
+import { PAGE_ROOT, PAGE_STYLE, type PageRender, type PageRequest } from '../core/page-render.ts';
 
 /** A page as its server entry renders it. */
 interface ServedPage {
@@ -20,9 +20,6 @@ interface ServedPage {
   /** The page's components for `request`: never reading the browser's globals. */
   readonly app: (request: PageRequest) => JSX.Element;
 }
-
-/** The marker on the page's style element: the browser's copy finds it there and adds none. */
-const PAGE_STYLE = 'data-page-style';
 
 /** `page` as the lab renders it on the server. */
 export const pageRender = (page: ServedPage): PageRender => ({

@@ -17,10 +17,9 @@ import { createMemo, createSignal, onCleanup } from 'solid-js';
 import { type Command, quiet } from '../../command/command.ts';
 import type { Context } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
-import { chordLabel } from '../../command/keymap.ts';
 import { type MenuRow, menuRows, rowKey } from '../../command/menu.ts';
 import { EVERYWHERE } from '../../command/target.ts';
-import { hubChanges } from './changes.ts';
+import { hubChanges, hubKeys } from './changes.ts';
 
 /** The command that opens and closes the menu: it is not listed in itself. */
 const OPEN = 'app.command-menu';
@@ -31,15 +30,11 @@ export const GO_TO_COMMAND = 'app.go-to';
 /** An ARIA state's text, by whether it holds. */
 const PSEUDO = { true: 'true', false: 'false' } as const;
 
-/** The keys bound to `command` now, as the page's keyboard writes them. */
-const keysText = (hub: Hub, command: Command): string =>
-  hub
-    .keysOf(command.id)
-    .map((k) => chordLabel(k, hub.mac))
-    .join(' ');
-
 export const CommandMenu = (props: { readonly hub: Hub }) => {
   const hub = props.hub;
+  const keys = hubKeys(hub);
+  /** The keys bound to `command` now, as the page's keyboard writes them. */
+  const keysText = (command: Command): string => keys.bound(command.id).map(keys.label).join(' ');
   const [open, setOpen] = createSignal(false, { ownedWrite: true });
   const [query, setQuery] = createSignal('');
   const [at, setAt] = createSignal(0);
@@ -158,7 +153,7 @@ export const CommandMenu = (props: { readonly hub: Hub }) => {
                 >
                   <span class="lab-command-label">{row().label}</span>
                   <span class="lab-command-group">{row().command.group}</span>
-                  <kbd>{keysText(hub, row().command)}</kbd>
+                  <kbd>{keysText(row().command)}</kbd>
                 </div>
               )}
             </For>

@@ -24,6 +24,7 @@ import {
   createEffect,
   createSignal,
   onCleanup,
+  onSettled,
   type ParentProps,
   useContext,
 } from 'solid-js';
@@ -36,7 +37,7 @@ import { ViewerStore } from '../browser/storage-browser.ts';
 import type { Hub } from '../command/hub.ts';
 import { BY_BUTTON } from '../command/command.ts';
 import { filmCommands, partCommands } from '../command/go.ts';
-import { chordLabel } from '../command/keymap.ts';
+import { hubKeys } from './command/changes.ts';
 import { GO_TO_COMMAND } from './command/command-menu.tsx';
 import { ViewMenu } from './command/view-menu.tsx';
 
@@ -69,65 +70,78 @@ export const useShellTime = (at: Accessor<number>, fps: number = FILM_FPS): void
   });
 };
 
-/** The header's slot for a page's own tools, before the timecode. */
-const ToolsContext = createContext<Option.Option<HTMLElement>>(Option.none());
+/** The header's slot for a page's own tools, before the timecode: none until the page is the client's. */
+const ToolsContext = createContext<Accessor<Option.Option<HTMLElement>>>(() => Option.none());
 
 /**
  * Put `children` in the header, before the timecode, for as long as this is
  * mounted: a page's own tools (the Lab's Undo and Redo), wherever in the
- * page they are made, so they read the context they are made in.
+ * page they are made, so they read the context they are made in. They are
+ * the client's: a server render, and the client's hydration of it, leave
+ * the slot empty, and the tools land in it once the page is mounted.
  */
-export const ShellTools = (props: ParentProps) => (
-  <Show when={Option.getOrUndefined(useContext(ToolsContext))}>
-    {(slot) => <Portal mount={slot()}>{props.children}</Portal>}
-  </Show>
-);
+export const ShellTools = (props: ParentProps) => {
+  const slot = useContext(ToolsContext);
+  return (
+    <Show when={Option.getOrUndefined(slot())}>
+      {(at) => <Portal mount={at()}>{props.children}</Portal>}
+    </Show>
+  );
+};
+
+/** The shell's icons, by name. */
+type IconName = Part | 'search' | 'chevron' | 'undo' | 'redo';
+
+/**
+ * Each icon's strokes, drawn only for the icon shown: an element made is a
+ * hydration key taken, so the browser making every icon's strokes to show
+ * one would look for strokes the server never wrote.
+ */
+const ICON_STROKES: Readonly<Record<IconName, () => JSX.Element>> = {
+  films: () => (
+    <>
+      <rect x="3.5" y="3.5" width="7" height="7" />
+      <rect x="13.5" y="3.5" width="7" height="7" />
+      <rect x="3.5" y="13.5" width="7" height="7" />
+      <rect x="13.5" y="13.5" width="7" height="7" />
+    </>
+  ),
+  scenes: () => (
+    <>
+      <rect x="2.5" y="5.5" width="19" height="13" />
+      <path d="M8.5 5.5v13M15.5 5.5v13" />
+    </>
+  ),
+  lab: () => (
+    <>
+      <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
+      <circle cx="15" cy="7" r="2" />
+      <circle cx="9" cy="17" r="2" />
+    </>
+  ),
+  choices: () => <path d="M4 6h16M4 12h16M4 18h8M15 17.5l2 2 3.5-4" />,
+  project: () => (
+    <>
+      <rect x="3.5" y="3.5" width="17" height="17" />
+      <path d="M8 12.5l3 3 5-6" />
+    </>
+  ),
+  play: () => <path d="M7 4.5l12 7.5-12 7.5z" />,
+  search: () => (
+    <>
+      <circle cx="11" cy="11" r="6" />
+      <path d="M16 16l4 4" />
+    </>
+  ),
+  chevron: () => <path d="M7 10l5 5 5-5" />,
+  undo: () => <path d="M9 6l-5 5 5 5M4 11h10a6 6 0 0 1 6 6v1" />,
+  redo: () => <path d="M15 6l5 5-5 5M20 11H10a6 6 0 0 0-6 6v1" />,
+};
 
 /** A line icon of the shell's, 20 px in the tab bar and 16 px in the header. */
-const Icon = (props: { readonly of: Part | 'search' | 'chevron' | 'undo' | 'redo' }) => (
+const Icon = (props: { readonly of: IconName }) => (
   <svg class="sh-icon" viewBox="0 0 24 24" aria-hidden="true">
-    {
-      {
-        films: (
-          <>
-            <rect x="3.5" y="3.5" width="7" height="7" />
-            <rect x="13.5" y="3.5" width="7" height="7" />
-            <rect x="3.5" y="13.5" width="7" height="7" />
-            <rect x="13.5" y="13.5" width="7" height="7" />
-          </>
-        ),
-        scenes: (
-          <>
-            <rect x="2.5" y="5.5" width="19" height="13" />
-            <path d="M8.5 5.5v13M15.5 5.5v13" />
-          </>
-        ),
-        lab: (
-          <>
-            <path d="M4 7h9M17 7h3M4 17h3M11 17h9" />
-            <circle cx="15" cy="7" r="2" />
-            <circle cx="9" cy="17" r="2" />
-          </>
-        ),
-        choices: <path d="M4 6h16M4 12h16M4 18h8M15 17.5l2 2 3.5-4" />,
-        project: (
-          <>
-            <rect x="3.5" y="3.5" width="17" height="17" />
-            <path d="M8 12.5l3 3 5-6" />
-          </>
-        ),
-        play: <path d="M7 4.5l12 7.5-12 7.5z" />,
-        search: (
-          <>
-            <circle cx="11" cy="11" r="6" />
-            <path d="M16 16l4 4" />
-          </>
-        ),
-        chevron: <path d="M7 10l5 5 5-5" />,
-        undo: <path d="M9 6l-5 5 5 5M4 11h10a6 6 0 0 1 6 6v1" />,
-        redo: <path d="M15 6l5 5-5 5M20 11H10a6 6 0 0 0-6 6v1" />,
-      }[props.of]
-    }
+    {ICON_STROKES[props.of]()}
   </svg>
 );
 
@@ -220,9 +234,13 @@ export const PageShell = (props: PageShellProps) => {
   /** The film the tabs lead into: the page's, else the one last opened. */
   const film = () => Option.orElse(props.film(), kept);
   const [time, setTime] = createSignal(Option.none<ShellTime>(), { ownedWrite: true });
-  // The page's own tools land here (`ShellTools`), laid out as the header's own controls.
-  const tools = document.createElement('span');
-  tools.className = 'sh-tools';
+  // The page's own tools land here (`ShellTools`), laid out as the header's
+  // own controls, once the page is mounted (its element is the client's).
+  let toolsAt = Option.none<HTMLElement>();
+  const [tools, setTools] = createSignal(Option.none<HTMLElement>(), { ownedWrite: true });
+  onSettled(() => {
+    setTools(toolsAt);
+  });
   const go = (href: string) => {
     if (props.follow?.(href) === true) return;
     Effect.runForkWith(props.host)(PageLoad.use((load) => load.open(href)));
@@ -235,7 +253,8 @@ export const PageShell = (props: PageShellProps) => {
   onCleanup(
     props.hub.commands.register(...partCommands(film, props.part, go), ...filmCommands(go)),
   );
-  const keyOf = (part: Part) => `${chordLabel(`shift+${PARTS.indexOf(part) + 1}`, props.hub.mac)}`;
+  const keys = hubKeys(props.hub);
+  const keyOf = (part: Part) => keys.label(`shift+${PARTS.indexOf(part) + 1}`);
   const tab = (part: Part) => (
     <Show
       when={Option.getOrUndefined(
@@ -269,7 +288,7 @@ export const PageShell = (props: PageShellProps) => {
   );
   return (
     <ShellContext value={Option.some(setTime)}>
-      <ToolsContext value={Option.some(tools)}>
+      <ToolsContext value={tools}>
         <div class="sh" data-part={props.part()} data-film={pressed(Option.isSome(film()))}>
           <header class="sh-header">
             <a
@@ -339,7 +358,12 @@ export const PageShell = (props: PageShellProps) => {
               )}
             </Show>
             <span class="sh-spacer" />
-            {tools}
+            <span
+              class="sh-tools"
+              ref={(el) => {
+                toolsAt = Option.some(el);
+              }}
+            />
             <Show when={Option.getOrUndefined(time())}>
               {(shown) => (
                 <button
@@ -363,7 +387,7 @@ export const PageShell = (props: PageShellProps) => {
             >
               <Icon of="search" />
               <span>Go to…</span>
-              <kbd>{chordLabel('mod+k', props.hub.mac)}</kbd>
+              <kbd>{keys.label('mod+k')}</kbd>
             </button>
             <ViewMenu hub={props.hub} />
           </header>

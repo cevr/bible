@@ -13,6 +13,7 @@ import { keysLayer } from './keys-browser.ts';
 import { mediaLayer } from './media-browser.ts';
 import { pageLoadLayer } from './page-load-browser.ts';
 import { pointerLayer } from './pointer-browser.ts';
+import { viewportLayer } from './viewport-browser.ts';
 
 /** The page's host over the browser's own APIs. */
 export const BrowserHost = {
@@ -23,6 +24,7 @@ export const BrowserHost = {
     mediaLayer,
     pageLoadLayer,
     pointerLayer,
+    viewportLayer,
     UrlState.layer.pipe(Layer.provideMerge(layerBrowser())),
   ) satisfies Layer.Layer<BrowserServices>,
 };

@@ -31,6 +31,11 @@ export const storeOver = (storage: () => Storage): StoreRuntime =>
 /**
  * The text kept under `key` in `store`, as it is stored (none when nothing
  * is, or the store cannot be read); a write keeps the text given.
+ *
+ * What a viewer kept is in their browser, which a page rendered on the
+ * server has not seen: its server value is none (`Atom.withServerValue`),
+ * which the server renders and the client hydrates with before it reads
+ * the store (`@bible/atom-solid`'s hooks).
  */
 export const keptText = (
   store: StoreRuntime,
@@ -40,7 +45,7 @@ export const keptText = (
   const write = store.fn((text: string) =>
     KeyValueStore.KeyValueStore.use((kv) => kv.set(key, text)),
   );
-  return Atom.writable(
+  const kept = Atom.writable(
     (get) => {
       get.mount(write);
       return Option.flatMap(AsyncResult.value(get(read)), Option.fromUndefinedOr);
@@ -50,4 +55,5 @@ export const keptText = (
       ctx.setSelf(Option.some(text));
     },
   );
+  return Atom.withServerValue(kept, () => Option.none<string>());
 };

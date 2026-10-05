@@ -27,3 +27,17 @@ describe('server rendering a place', () => {
     expect(renderWithoutProvider).toThrow(/RegistryProvider/);
   });
 });
+
+describe('server rendering a served atom', () => {
+  test('waits for its read, renders it, and sends it encoded for the client to adopt', async () => {
+    const { answerPage } = await build(await mkdtemp(`${tmpdir()}/atom-solid-ssr-served-`));
+    let reads = 0;
+    const html = await answerPage(async () => {
+      reads += 1;
+      return '42';
+    });
+    expect(html).toMatch(/<p [^>]*id="answer"[^>]*>answered 42<\/p>/);
+    expect(html).toContain('{_tag:"Success",value:"42",waiting:!1');
+    expect(reads).toBe(1);
+  });
+});

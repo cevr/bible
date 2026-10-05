@@ -21,8 +21,7 @@ import { HeaderTool } from '../page-shell.tsx';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY, findingsIn } from './format.ts';
-import { chordLabel } from '../../command/keymap.ts';
-import { hubChanges } from '../command/changes.ts';
+import { hubKeys } from '../command/changes.ts';
 import { CueWrite, cueSaid } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
@@ -192,17 +191,10 @@ export const History = () => {
 const Findings = () => {
   const { state: lab, meta } = useLab();
   const { state } = useEditor();
-  const changes = hubChanges(meta.hub);
+  const keys = hubKeys(meta.hub);
   const shown = createMemo(() => findingsIn(state.findings(), meta.film.placed, lab.scene()));
   // F as bound now: a rebound key reads as rebound.
-  const walkKey = () => {
-    changes();
-    return meta.hub
-      .keysOf('check.finding-next')
-      .slice(0, 1)
-      .map((k) => chordLabel(k, meta.hub.mac))
-      .join('');
-  };
+  const walkKey = () => keys.bound('check.finding-next').slice(0, 1).map(keys.label).join('');
   return (
     <section
       class="lab-group lab-findings-group"

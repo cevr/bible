@@ -5,8 +5,10 @@
 // page was asked at and the page's reads of the lab's own API, and splices
 // what it writes into the page's HTML: the head before `</head>`, the body's
 // class on `<body>`, and the markup first in the body, where the browser's
-// copy of the same components hydrates it. Types only: the server entry and
-// the lab's worker both read them, and neither imports the other.
+// copy of the same components hydrates it. The server entry and the lab's
+// worker both read this module, and neither imports the other.
+
+import { Predicate } from 'effect';
 
 /** The request a page is rendered for. */
 export interface PageRequest {
@@ -42,5 +44,18 @@ export interface PageRender {
   readonly render: (request: PageRequest, sink: PageSink) => void;
 }
 
+/** Whether a server entry's export is a page's render: what the lab's worker loads it as. */
+export const isPageRender = (value: unknown): value is PageRender =>
+  Predicate.hasProperty(value, 'render') &&
+  Predicate.isFunction(value.render) &&
+  Predicate.hasProperty(value, 'bodyClass') &&
+  Predicate.isString(value.bodyClass);
+
 /** The attribute a server-rendered page's root carries: where the browser's copy hydrates. */
 export const PAGE_ROOT = 'data-page-root';
+
+/** The attribute a page's body carries once the browser has mounted it: `hydrated` over the server's markup, else `rendered`. */
+export const PAGE_MOUNTED = 'data-page-mounted';
+
+/** The attribute on a server-rendered page's style element: the browser's mount finds it there and adds none. */
+export const PAGE_STYLE = 'data-page-style';
