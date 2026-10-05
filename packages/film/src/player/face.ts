@@ -96,12 +96,15 @@ export const registerFace = (fonts: FontFaceSet): void => {
 
 /**
  * A file's URL from the pages' root. The browser's build names it there
- * (`/…-<hash>.woff2`, the pages' public path); the server's names it beside
- * its own output (`./…-<hash>.woff2`), by the same content hash, since both
- * are built from the same sources under the same root and a server's chunks
- * import each other by a relative path. A `data:` URL is its own.
+ * (`/…-<hash>.woff2`, the pages' public path); the server's names it from
+ * the chunk this module lands in (`./…` from one at the build's root,
+ * `../…` from one in a subfolder), by the same content hash, since both are
+ * built from the same sources under the same root and every asset is
+ * written at the root under `[name]-[hash]`: so its file name, from the
+ * root. A `data:` URL is its own.
  */
-const fromRoot = (url: string) => url.replace(/^\.\//, '/');
+const fromRoot = (url: string) =>
+  url.startsWith('data:') ? url : `/${url.slice(url.lastIndexOf('/') + 1)}`;
 
 /**
  * The UI face's latin subset in a page's head (`page-server.tsx`), for its
