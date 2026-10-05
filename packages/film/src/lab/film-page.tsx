@@ -27,10 +27,12 @@ import { CommandMenu } from './command/command-menu.tsx';
 import { TargetMenu } from './command/context-menu.tsx';
 import { KeysSheet } from './command/keys-sheet.tsx';
 import { Receipts } from './command/receipts.tsx';
+import { COMMAND_CSS } from './command/style.ts';
 import { PageShell } from './page-shell.tsx';
-import { PAGE_STYLES } from './page-styles.ts';
+import { SHELL_CSS } from './page-shell-style.ts';
 import { LabPage } from './panel.tsx';
 import { scenesPlaceOf } from './scenes/place.ts';
+import { SCENES_CSS } from './scenes/style.ts';
 
 /**
  * A film page's body, made once its film is staged, with the page's
@@ -119,14 +121,14 @@ interface FilmPageSpec {
 export const LAB_PAGE: FilmPageSpec = {
   bodyClass: 'lab',
   rootClass: 'lab-root',
-  style: PAGE_STYLES.lab,
+  style: `${SHELL_CSS}${COMMAND_CSS}`,
 };
 
 /** The Scenes and Play pages' page. */
 export const PLAY_PAGE: FilmPageSpec = {
   bodyClass: 'play',
   rootClass: 'play-root',
-  style: PAGE_STYLES.play,
+  style: `${SHELL_CSS}${COMMAND_CSS}${SCENES_CSS}`,
 };
 
 /** The Scenes page on a Scenes link (`/films/<film>/scenes…`), else Play. */
