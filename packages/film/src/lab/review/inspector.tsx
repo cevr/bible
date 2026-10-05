@@ -6,7 +6,8 @@
 // (`<Inspector>`), so the sheet reads the row's own providers; one thing's
 // inspector is open at a time, opened by tapping the thing's name
 // (`<InspectName>`), its comment count beside it, Inspect (`i`) or
-// Comment on (`m`), from its context menu or ⌘K. Hosted in @bible/ui's
+// Comment on (`m`), from its context menu or ⌘K; a Project scene's row opens
+// it on a tap anywhere off its controls (`useInspect`). Hosted in @bible/ui's
 // Drawer, not over the page (it stays live, a tap outside keeps it open):
 // beside it on a laptop, swiped away to the right; on a phone a bottom sheet
 // standing on the tab bar and the dock (design language §7), swiped down,
@@ -227,6 +228,12 @@ const SheetGrip = (props: { readonly peek: boolean; readonly toggle: () => void 
     onClick={() => props.toggle()}
   />
 );
+
+/** Open `of`'s inspector, as a tap on its row does (the Project's scene rows). */
+export const useInspect = (of: () => Selection): (() => void) => {
+  const inspecting = useInspecting();
+  return () => inspecting.open(of(), 'info');
+};
 
 /**
  * A thing's name that opens its inspector when tapped, its look the name's

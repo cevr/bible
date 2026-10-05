@@ -72,10 +72,16 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
   .sh-tab[data-active="true"] .sh-icon { color: var(--accent); }
   .sh-tab[data-active="true"]::after { display: none; }
   .sh-crumb { display: none; }
-  .sh-dock { position: fixed; left: 0; right: 0; z-index: 25;
+  .sh-dock { position: fixed; left: 0; right: 0; z-index: 25; height: var(--dock-h);
     bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); border-top: var(--border); }
   .sh[data-film="false"] .sh-dock { bottom: env(safe-area-inset-bottom); }
-  .sh-body:has(.sh-dock) { padding-bottom: calc(var(--control-h) + var(--s-3)); }
+  .sh-body:has(.sh-dock) { padding-bottom: calc(var(--dock-h) + var(--s-3)); }
+}
+/* The dock: one line, the page's width, on the header's surface (on a laptop, held under the header). */
+.sh-dock { display: flex; align-items: center; gap: var(--s-2); min-width: 0; box-sizing: border-box;
+  padding: 0 var(--gutter); background: var(--surface-1); }
+@media (min-width: 900px) {
+  .sh-dock { position: sticky; top: var(--header-h); z-index: 15; min-height: var(--dock-h); border-bottom: var(--border); }
 }
 
 /* The laptop: Films as the page bar's first tab, the timecode and Go to… in full. */

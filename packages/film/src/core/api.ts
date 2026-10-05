@@ -36,6 +36,7 @@ import {
 } from 'effect/http-api';
 import { PartAddress } from './address.ts';
 import { isShortKey } from './shorts.ts';
+import { onChoicesTab } from './point.ts';
 import { Project, RenderVariantName } from './catalogue.ts';
 import { ChoiceWrite, FilmChoices, KnobPost, PickPost, SoundCheck } from './choice.ts';
 import { UnknownAct, UnknownScene, UnknownVoice } from './errors.ts';
@@ -1109,11 +1110,29 @@ const withFocus = (href: string, point: string): Option.Option<string> =>
   );
 
 /**
+ * `href`, when it is a project with a choice's card in focus, on Choices at
+ * that card: the project holds no choice's card now (design language §7);
+ * the Choices tab holds every one. A scene's render (`render:scenes:<id>`)
+ * stays on the project, where its scene's sheet opens.
+ */
+const choiceOffProject = (href: string): Option.Option<string> =>
+  Option.flatMap(Place.decode(Places.project, href), (value) =>
+    Option.map(
+      Option.filter(
+        Option.liftPredicate(value.query.point, (p) => p !== ''),
+        onChoicesTab,
+      ),
+      () => Place.href(Places.choices, value),
+    ),
+  );
+
+/**
  * The place an old link names, if `href` is one: `/lab?film=<f>[&sel=…]`,
  * `/player?film=<f>[&lookbook|&lab]`, `/?project=<f>`,
  * `/?film=<f>[&lookbook|&lab]`, `/?folder=<ref>[&set=<point>…]`, a bare
  * `#<seconds>` on a place that reads film time (`/films/<f>/play`, the Scenes, a lab with
- * no scene), and a project card's anchor (`#point-<id>`, now `?point=<id>`). The server sends the browser on with a redirect (the browser
+ * no scene), a project card's anchor (`#point-<id>`, now `?point=<id>`), and
+ * a project link to a choice's card (on Choices now). The server sends the browser on with a redirect (the browser
  * keeps the hash, which the server never sees); a page already loaded
  * replaces its entry. A renderer's export page (`&export`) is not old. A
  * scene's lab reads a bare `#<seconds>` as film time itself.
@@ -1124,7 +1143,7 @@ export const legacyPlace = (href: string): Option.Option<string> => {
   const at = Option.getOrElse(moved, () => `${url.pathname}${url.search}`);
   const hashKept = Option.map(moved, (to) => `${to}${url.hash}`);
   const focused = Option.flatMap(cardAnchor(url.hash), (point) => withFocus(at, point));
-  return Option.orElse(focused, () =>
+  const old = Option.orElse(focused, () =>
     Option.match(bareTime(url.hash), {
       onNone: () => hashKept,
       onSome: (t) =>
@@ -1134,6 +1153,8 @@ export const legacyPlace = (href: string): Option.Option<string> => {
         ),
     }),
   );
+  // A project link to a choice's card goes on to the card on Choices, from wherever the rest leaves it.
+  return Option.orElse(choiceOffProject(Option.getOrElse(old, () => href)), () => old);
 };
 
 // ---------------------------------------------------------------------------

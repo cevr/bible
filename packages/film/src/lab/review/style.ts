@@ -43,7 +43,6 @@ body.rv {
 .rv-grid { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
 .rv-grid.rv-wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
 .rv-grid.rv-two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 640px), 1fr)); }
-.rv-grid.rv-scenes { grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr)); }
 .rv-card { background: var(--surface-1); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
 a.rv-card { text-decoration: none; }
 a.rv-card:hover { background: var(--surface-2); }
@@ -145,11 +144,11 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-take { border-top: var(--border); padding-top: var(--s-2); display: flex; flex-direction: column; gap: var(--s-2); }
 /* The choices as a list (design language §6, Choices): each point a group across the column, each variant one row, its name and line at the start and its hear buttons and verbs at the end (wrapping there, the name keeping at least 10rem or half the row). */
 .rv-list { display: flex; flex-direction: column; gap: var(--s-3); }
-.rv-list .rv-take, .rv-layers .rv-take { display: grid; grid-template-columns: minmax(min(10rem, 50%), 1fr) minmax(0, auto); column-gap: var(--s-3); row-gap: var(--s-1); align-items: center; }
-.rv-list .rv-take > .rv-acts, .rv-layers .rv-take > .rv-acts { grid-column: 2; grid-row: 1 / span 2; justify-content: flex-end; }
+.rv-list .rv-take { display: grid; grid-template-columns: minmax(min(10rem, 50%), 1fr) minmax(0, auto); column-gap: var(--s-3); row-gap: var(--s-1); align-items: center; }
+.rv-list .rv-take > .rv-acts { grid-column: 2; grid-row: 1 / span 2; justify-content: flex-end; }
 /* A long name wraps inside its column rather than running under the verbs. */
-.rv-list .rv-take .lab-inspect, .rv-layers .rv-take .lab-inspect { max-width: 100%; text-align: start; }
-.rv-list .rv-take .rv-name, .rv-layers .rv-take .rv-name { white-space: normal; overflow-wrap: anywhere; }
+.rv-list .rv-take .lab-inspect { max-width: 100%; text-align: start; }
+.rv-list .rv-take .rv-name { white-space: normal; overflow-wrap: anywhere; }
 .rv-comments { margin: var(--s-1) 0; padding-left: var(--s-4); font-size: var(--fs-2); overflow-wrap: anywhere; }
 .rv-say { flex-wrap: nowrap; }
 .rv-say .rv-comment-input {
@@ -158,8 +157,53 @@ a.rv-card:hover { background: var(--surface-2); }
 }
 .rv-say .rv-comment-input::placeholder { color: var(--text-3); }
 .rv-knob input[type="range"] { flex: 1; min-width: 0; max-width: 320px; accent-color: var(--accent); }
-.rv-film, .rv-act { margin-bottom: var(--s-4); }
-.rv-scene .sc-card-picture video { max-height: none; }
+/*
+ * Project (design language §7): the transport docked (over the tab bar on a
+ * phone, under the header across the page on a laptop) or the line that says
+ * the film has no render; the film's panel, its state band a segment a scene
+ * in its state's colour (else its hue); each act a panel, its name in caps,
+ * holding its scenes: one row of cards on a laptop (the act's arrangement,
+ * scrolling sideways when it runs long), a row each on a phone, edge to edge.
+ */
+.pj-dock .rv-transport { position: static; flex: 1; flex-wrap: nowrap; min-width: 0; margin: 0; padding: 0; border: 0;
+  background: none; }
+.pj-no-cut { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pj-film { margin-bottom: var(--s-4); }
+.pj-film-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-3); min-height: var(--hit); }
+.pj-film-head > .lab-named { font-size: var(--fs-4); font-weight: var(--w-3); }
+/* The findings chip is the line's target: as tall as the line, its neighbours too near for spacing. */
+.pj-film-head .rv-chip { min-height: var(--hit); }
+.pj-film-length, .pj-film-counts { color: var(--text-2); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
+.pj-band { display: flex; height: var(--s-1); margin: var(--s-2) 0 var(--s-3); }
+.pj-band span { flex-basis: 0; min-width: 0; background: var(--hue); box-shadow: inset -1px 0 var(--surface-0); }
+.pj-band span[data-state="stale"] { background: var(--state-stale); }
+.pj-band span[data-state="rendered"] { background: var(--state-rendered); }
+.pj-band span[data-state="approved"] { background: var(--state-approved); }
+.pj-band span[data-state="findings"] { background: var(--state-findings); }
+.pj-band span[data-state="warning"] { background: var(--state-warning); }
+.pj-act, .pj-loose { margin: 0 calc(-1 * var(--gutter)); padding: 0 var(--gutter) var(--s-4); border-top: var(--border); }
+.pj-act-head { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-2); min-height: var(--hit);
+  color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
+.pj-act-head > .lab-named { color: var(--text-1); font-weight: var(--w-2); text-transform: uppercase;
+  letter-spacing: var(--track-caps); }
+.pj-act-meta { font-variant-numeric: tabular-nums; }
+.pj-loose { padding-top: var(--s-3); }
+.pj-scenes { display: grid; gap: var(--s-3); }
+.pj-still { width: 100%; height: 100%; }
+.pj-still canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
+.rv-scene { min-width: 0; cursor: pointer; }
+@media (min-width: 900px) {
+  .pj-dock { margin: calc(-1 * var(--s-4)) calc(-1 * var(--gutter)) var(--s-4); }
+  .pj-scenes { grid-auto-flow: column; grid-auto-columns: minmax(12rem, 14rem); justify-content: start;
+    overflow-x: auto; padding-bottom: var(--s-1); }
+}
+@media (max-width: 899px) {
+  .pj-act, .pj-loose { padding-bottom: 0; }
+  .pj-scenes { gap: 0; margin: 0 calc(-1 * var(--gutter)); }
+  .pj-scenes .sc-card[data-size="tile"] { padding: var(--s-2) var(--gutter); border-width: 0 0 1px; border-radius: 0;
+    background: none; }
+  .pj-scenes .sc-card[data-size="tile"][data-selected="true"] { box-shadow: inset 2px 0 var(--accent); }
+}
 .rv-tag[data-state="stale"] { color: var(--state-stale); }
 .rv-writes { background: var(--surface-1); border: var(--border); border-radius: var(--r-2); padding: var(--s-2) var(--s-3); margin-bottom: var(--s-3); }
 .rv-writes { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
@@ -184,17 +228,14 @@ a.rv-card:hover { background: var(--surface-2); }
  * finger's 44 px on the phone, 28 px on the laptop), grown by padding, never
  * by bigger text. A slider's box is --hit tall, its track centred in it; a
  * segment, a sound button and a loose video's file link --hit square; a
- * fold's summary, the Versions link, a row or head that holds a name, a
- * finding's time and a scene's choice link full rows --hit tall (a name's own
+ * row or head that holds a name (the Project's film and act heads too), a
+ * finding's time and a part's choice link full rows --hit tall (a name's own
  * hit-slop, in the commands' sheet, then stays inside its row).
  */
 .rv input[type="range"] { min-height: var(--hit); }
 .rv-seg button { min-height: var(--hit); min-width: var(--hit); }
 .rv-cap > a.rv-hint { display: inline-flex; align-items: center; justify-content: center; min-height: var(--hit); min-width: var(--hit); }
-.rv-layers > summary { padding-block: calc((var(--hit) - var(--lh-2)) / 2); }
-.rv-scene > [data-compare] { display: flex; align-items: center; min-height: var(--hit); }
 .rv-row:has(> .lab-named) { min-height: var(--hit); }
-.rv-act > .rv-h { display: flex; flex-wrap: wrap; align-items: center; column-gap: var(--s-2); min-height: var(--hit); }
 .rv-at, .rv-plays .rv-inline-link { display: inline-flex; align-items: center; min-height: var(--hit); vertical-align: middle; }
 @media (max-width: 600px) {
   .rv-main { padding: var(--s-3) var(--gutter) var(--s-8); }

@@ -185,7 +185,13 @@ const OLD_LINKS: ReadonlyArray<readonly [old: string, now: string]> = [
   ['/films/rbf/lab#12.5', '/films/rbf/lab#t=12.5'],
   ['/films/rbf/scenes#12.5', '/films/rbf/scenes#t=12.5'],
   ['/films/rbf/scenes/roof#12.5', '/films/rbf/scenes/roof#t=12.5'],
-  ['/films/rbf/project#point-take%3Awood.gavel', '/films/rbf/project?point=take%3Awood.gavel'],
+  // A choice's card is on Choices now; a scene's render stays on the project.
+  ['/films/rbf/project#point-take%3Awood.gavel', '/films/rbf/choices?point=take%3Awood.gavel'],
+  ['/films/rbf/project?point=score', '/films/rbf/choices?point=score'],
+  [
+    '/films/rbf/project#point-render%3Ascenes%3Aroof',
+    '/films/rbf/project?point=render%3Ascenes%3Aroof',
+  ],
 ];
 
 describe('old links', () => {
@@ -207,6 +213,7 @@ describe('old links', () => {
     '/films/rbf/play#t=4',
     '/films/rbf/lab/roof#42.000',
     '/films/rbf/choices',
+    '/films/rbf/project?point=render%3Ascenes%3Aroof',
     '/sets/f/p?view=pair',
     '/nowhere?film=rbf',
   ])('%s is not old', (href) => {

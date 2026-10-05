@@ -94,9 +94,7 @@ body.scenes { display: block; height: auto; }
 /* The name is a target of the pointer's size in itself: the card clips its overflow, so a hit-slop past it would not count. */
 .sc-card-name .lab-inspect { max-width: 100%; min-height: var(--hit); overflow: hidden; text-overflow: ellipsis; font: inherit;
   color: inherit; }
-.sc-card-blank { display: grid; place-items: center; height: 100%; padding: var(--s-2); text-align: center; overflow-wrap: anywhere; }
 .sc-card-verb > .rv-chip { flex: 1; justify-content: center; min-height: var(--hit); }
-.sc-card .rv-layers { margin: 0 var(--s-2); }
 .sc-hue { flex: none; width: 8px; height: 8px; border-radius: var(--r-1); }
 .sc-card-facts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: var(--s-1) var(--s-3); margin: 0;
   font-size: var(--fs-2); line-height: var(--lh-2); }
@@ -152,13 +150,12 @@ body.scenes { display: block; height: auto; }
   .sc-focus[data-expanded="false"] .sc-verb:not([data-primary]) { display: none; }
   .sc-focus[data-expanded="false"] .sc-card-verb { grid-column: 1 / -1; }
   .sc[data-selected="true"] .sc-tape { padding-bottom: 40dvh; }
-  /* A tile on the phone is a row (design language §7, Project): its picture beside its name and marks;
-     its verb lives in the scene's sheet, and the picture's words (the command that renders it) in the sheet's card. */
+  /* A tile on the phone is a row (design language §7, Project): its still beside its name and marks;
+     its verb lives in the scene's sheet. */
   .sc-card[data-size="tile"] { grid-template-columns: 7rem minmax(0, 1fr); column-gap: var(--s-3); align-items: center;
     padding: var(--s-2); }
   .sc-card[data-size="tile"] > :not(.sc-card-picture) { padding: 0; }
   .sc-card[data-size="tile"] .sc-card-picture { grid-row: span 2; }
   .sc-card[data-size="tile"] .sc-card-verb { display: none; }
-  .sc-card[data-size="tile"] .sc-card-blank { visibility: hidden; }
 }
 `;

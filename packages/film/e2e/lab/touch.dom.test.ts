@@ -9,7 +9,8 @@
 // failure names each target under it, with what a pointer meets.
 //
 // The disclosed states are the fixture film's (`fixtures/studio-film.ts`):
-// Project's choices unfolded, an inspector, the Findings sheet, the command
+// Project's panels with their stills and its dock, a scene row's sheet, an
+// act's long-press menu, an inspector, the Findings sheet, the command
 // menu (⌘K, its Go to…), the context menu, the keys dialog, the lab's modes,
 // comment counts on their rows, the Choices transport over a picture, a Set's
 // wipe and diff, a film's Scenes with a scene selected and the
@@ -29,7 +30,7 @@ import { Effect, Schedule, type Scope } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
-import { rightClick } from '../../src/lab/fixtures/gestures.ts';
+import { rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
 import { type Viewport, openLab, openPlayer, openReview } from '../../src/lab/fixtures/harness.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { waitFor } from '../../src/lab/fixtures/settled.ts';
@@ -108,10 +109,35 @@ const pressed = (key: string, shows: string) => (page: Tab) =>
 const menuOn = (selector: string) => (page: Tab) =>
   Effect.andThen(rightClick(page, selector), waitFor(page, CONTEXT_MENU));
 
+/**
+ * A long press on `selector` (the page's clock held, so its delay passes only
+ * as it is run on), then the context menu, the finger lifted and the menu
+ * settled.
+ */
+const heldOn = (selector: string) => (page: Tab) =>
+  Effect.gen(function* () {
+    yield* page.clock.hold;
+    yield* touch(page, selector, 0);
+    yield* page.clock.runFor(700);
+    yield* waitFor(page, `${CONTEXT_MENU} [data-command]`);
+    yield* page.finger.up;
+    // The menu's opening runs its frames on the held clock: run on, it stands open.
+    yield* page.clock.runFor(500);
+  });
+
 const CHOICES = pageHref.choices(STUDIO_FILM);
 const PROJECT = pageHref.project(STUDIO_FILM);
-/** A Project scene's card, drawn. */
-const PROJECT_SCENE = '.rv-scene .sc-card';
+/**
+ * Project at rest: the film's panel and its band, the act's panel, each
+ * scene's still drawn, the dock's transport and a comment's count.
+ */
+const PROJECT_READY = [
+  '.pj-film .pj-band',
+  '.pj-act .pj-act-head',
+  '.rv-scene[data-scene="end"] .pj-still[data-drawn="true"] canvas',
+  '.pj-dock .rv-transport',
+  '[data-comments]',
+];
 /** A still on a film's Scenes tape, drawn. */
 const STILL = '.sc-still[data-drawn="true"] canvas';
 const STRINGS = '[data-point="score"] [data-variant="strings"]';
@@ -155,23 +181,29 @@ const STATES: ReadonlyArray<State> = [
     layer: COMMAND_MENU,
   },
   {
-    name: 'Project, its choices unfolded, with comment counts',
-    open: review(PROJECT, PROJECT_SCENE, '.rv-layers > summary', '[data-comments]'),
-    disclose: (page) =>
-      Effect.andThen(
-        page.evaluate(
-          `document.querySelectorAll('details.rv-layers:not([open]) > summary').forEach((s) => s.click())`,
-        ),
-        waitFor(page, 'details.rv-layers[open] .rv-card'),
-      ),
+    name: 'Project, its panels, stills and dock, with comment counts',
+    open: review(PROJECT, ...PROJECT_READY),
+    disclose: AT_REST,
   },
   {
-    name: "Project, a scene's inspector",
-    open: review(PROJECT, PROJECT_SCENE),
+    name: "Project, a scene row's sheet",
+    open: review(PROJECT, ...PROJECT_READY),
     disclose: opens(
-      '.rv-scene[data-scene="open"] .lab-inspect',
-      `${INSPECTOR} [data-act="close-inspector"]`,
+      '.rv-scene[data-scene="open"] .sc-card-picture',
+      `${INSPECTOR} .rv-comment-input`,
     ),
+    layer: INSPECTOR,
+  },
+  {
+    name: "Project, an act's long-press menu",
+    open: review(PROJECT, ...PROJECT_READY),
+    disclose: heldOn('.pj-act-head .pj-act-meta'),
+    layer: CONTEXT_MENU,
+  },
+  {
+    name: "Project, the film's inspector",
+    open: review(PROJECT, ...PROJECT_READY),
+    disclose: opens('.pj-film-head .lab-inspect', `${INSPECTOR} .rv-comment-input`),
     layer: INSPECTOR,
   },
   {

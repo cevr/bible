@@ -1,21 +1,24 @@
 // A film's project in a browser, its routes faked over a synthetic film of
-// one act (open, close) and two scenes in no act (coda, end): home links the
-// project; the page lists the act and its scenes by the address tree, each
-// scene a render card with the video this checkout's catalogue records for
-// it (not another folder's of the same film), its state (a render stale by
-// the film's sound alone says so; a missing one names the command that
-// renders it) and its approval; "Approve all current" (in the film's inspector)
-// approves the current scenes; a scene is approved, unapproved from its
-// inspector, and commented
-// on (a missing one too); an act's current scenes are approved and the act
-// commented on; each choice point sits once, where it belongs (the score
-// with the film, a layer across the act's scenes with the act, a take with
-// the scene it plays in), and a scene links the layers that play in it. The
-// page updates in place (a half-typed comment and the clip survive a say
-// elsewhere) and shows what a say or a pick answered without reading it
-// twice; a read that lands after a say asked later leaves the say shown,
-// and an approve refused because its scene went stale reads it again.
-// Every wait is on the page, or on what it asked, never a fixed time.
+// one act (open, close) and two scenes in no act (coda, end), the film's own
+// code the toy film's (`fixtures/toy-film.ts`), as design language §7 lays
+// it out: the film's panel (its name, its state band of a segment a scene,
+// `n/N current · n/N approved` and the check's findings), each act a panel
+// (its name, scenes, length and approvals) holding its scenes (a row each on
+// a phone, one row of cards on a laptop, as a DAW's sections), each scene's
+// card a still of the scene drawn from the film's code, its length, its name
+// in its hue, its marks and, on a laptop, its Approve; the transport docked
+// over the tab bar on a phone. A tap on a scene opens its sheet (its render,
+// its Approve, what was said and the comment box, Info, Versions, Open in
+// Lab and the choices that play in it, each opening on Choices); a long
+// press on an act's header offers its approvals, whose receipt offers Undo.
+// Home links the project; a scene is approved, unapproved and commented on
+// (a missing one too); an act's and the film's current scenes are approved
+// and withdrawn, and they are commented on. The page updates in place (a
+// half-typed comment and the clip survive a say elsewhere) and shows what a
+// say answered without reading it twice; a read that lands after a say
+// asked later leaves the say shown, and an approve refused because its scene
+// went stale reads it again. Every wait is on the page, or on what it asked,
+// never a fixed time.
 
 import { Array as Arr, Deferred, Effect, Exit, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -28,6 +31,7 @@ import {
   menuEntry,
   openCommandMenu,
   rightClick,
+  touch,
 } from '../../../../src/lab/fixtures/gestures.ts';
 import { Render } from '../../../../src/core/catalogue.ts';
 import {
@@ -45,6 +49,7 @@ import {
   attributesAre,
   countIs,
   evaluates,
+  textHas,
   textIs,
   until,
   valueIs,
@@ -62,6 +67,8 @@ interface ToyScene {
   staleBy?: 'sources' | 'sound';
   approval: 'none' | 'approved' | 'stale';
   said: ReadonlyArray<string>;
+  /** Where it sits in the film, in seconds. */
+  readonly span: { readonly start: number; readonly dur: number };
 }
 
 const said = (address: Json, texts: ReadonlyArray<string>): ReadonlyArray<Json> =>
@@ -112,6 +119,7 @@ const sceneJson = (s: ToyScene, rendered = false): Json => ({
     },
   ),
   approval: s.approval,
+  span: s.span,
   comments: said({ _tag: 'Scenes', ids: [s.scene] }, s.said),
 });
 
@@ -184,17 +192,26 @@ const pointJson = (
   variants,
 });
 
-/** The film's choices, with what was said of the take. */
-const choicesOf = (takeSaid: ReadonlyArray<string>): Json => ({
+/** The film's render, as the choices list the pictures the sound plays over. */
+const CUT: Json = {
+  ref: 'out/toy/film/main.share.mp4',
+  name: 'main.share.mp4',
+  size: 4096,
+  mtime: 0,
+  phone: 'none',
+};
+
+/** The film's choices; `cut`, with the film's render under them. */
+const choicesOf = (cut: boolean): Json => ({
   film: 'toy',
-  pictures: [],
+  pictures: Arr.filter([CUT], () => cut),
   points: [
     pointJson('score', 'score', FILM_AT, [
       heardVariant('strings', true),
       heardVariant('brass', false, ['pick']),
     ]),
     pointJson('take:paper.page', 'take', { _tag: 'Scenes', ids: ['open'] }, [
-      heardVariant('a'.repeat(64), true, [], said({ _tag: 'Scenes', ids: ['open'] }, takeSaid)),
+      heardVariant('a'.repeat(64), true),
     ]),
     pointJson('voice:close', 'voice', { _tag: 'Scenes', ids: ['close'] }, [
       heardVariant('close-1.wav', true),
@@ -242,27 +259,60 @@ const PostedSay = Schema.decodeUnknownSync(
   }),
 );
 
+/** The check's one error, about scene close. */
+const CLOSE_FINDING: Json = {
+  level: 'error',
+  tag: 'DurOnWord',
+  message: 'cue grow runs past its word',
+  address: { part: { _tag: 'Scenes', ids: ['close'] }, time: 5 },
+};
+
+/** The film's last source write, a score's pick: what Undo steps back. */
+const LAST_WRITE: Json = { file: 'sound.ts', target: 'score play brass', change: 'k-brass' };
+
+/** How the fake project is set up. */
+interface Fake {
+  /** Another checkout's folder of the film in the review's index, rendered since. */
+  readonly elsewhere?: boolean;
+  /** Scenes drawn again since the page read them: an approve naming one is refused. */
+  readonly goneStale?: ReadonlyArray<string>;
+  /** Scenes carrying their catalogue render: their sheets link their Versions. */
+  readonly rendered?: ReadonlyArray<string>;
+  /** What the film's check finds. */
+  readonly findings?: ReadonlyArray<Json>;
+  /** Whether the film's render is under the review's roots: the transport then plays it. */
+  readonly cut?: boolean;
+  /** Scenes an earlier version of which was approved. */
+  readonly approvedEarlier?: ReadonlyArray<string>;
+}
+
 /**
- * The fake project: the scenes as they stand, and what was said of the film
- * and the act. `elsewhere` adds another checkout's folder of the film to the
- * review's index, rendered since; the scenes in `goneStale` were drawn again
- * since the page read them, so an approve naming one is refused and leaves it
- * stale by its sources. The scenes in `rendered` carry their catalogue
- * render, so their rows link the scene's Versions.
+ * The fake project: the scenes as they stand (open 4 s, close 6 s, coda 3 s,
+ * end 2 s), and what was said of the film and the act. Undo steps back the
+ * film's last source write (a score's pick), as the lab's history has it.
  */
-const fakeProject = (
-  elsewhere = false,
-  goneStale: ReadonlyArray<string> = [],
-  rendered: ReadonlyArray<string> = [],
-) => {
+const fakeProject = (fake: Fake = {}) => {
+  const goneStale = fake.goneStale ?? [];
+  const rendered = fake.rendered ?? [];
   const scenes: ReadonlyArray<ToyScene> = [
-    { scene: 'open', state: 'current', approval: 'none', said: [] },
-    { scene: 'close', state: 'stale', staleBy: 'sound', approval: 'stale', said: [] },
-    { scene: 'coda', state: 'current', approval: 'none', said: [] },
-    { scene: 'end', state: 'missing', approval: 'none', said: [] },
+    { scene: 'open', state: 'current', approval: 'none', said: [], span: { start: 0, dur: 4 } },
+    {
+      scene: 'close',
+      state: 'stale',
+      staleBy: 'sound',
+      approval: 'stale',
+      said: [],
+      span: { start: 4, dur: 6 },
+    },
+    { scene: 'coda', state: 'current', approval: 'none', said: [], span: { start: 10, dur: 3 } },
+    { scene: 'end', state: 'missing', approval: 'none', said: [], span: { start: 13, dur: 2 } },
   ];
+  scenes
+    .filter((s) => (fake.approvedEarlier ?? []).includes(s.scene))
+    .forEach((s) => {
+      s.approval = 'stale';
+    });
   const text: Said = { film: [], act: [] };
-  let takeSaid: ReadonlyArray<string> = [];
   const view = (): Json => ({
     project: {
       film: 'toy',
@@ -300,7 +350,7 @@ const fakeProject = (
     route('GET', /^\/api\/review\/index/, () =>
       json({
         folders: [
-          ...Arr.filter([ELSEWHERE], () => elsewhere),
+          ...Arr.filter([ELSEWHERE], () => fake.elsewhere === true),
           {
             ref: 'out/toy',
             title: 'toy',
@@ -313,24 +363,17 @@ const fakeProject = (
         ],
       }),
     ),
+    route('GET', /^\/api\/review\/duration/, () => json({ seconds: 15 })),
     route('GET', /^\/api\/films$/, () => json({ films: ['toy'] })),
-    route('GET', /^\/api\/films\/toy\/choices$/, () => json(choicesOf(takeSaid))),
-    route('GET', /^\/api\/films\/toy\/check$/, () => json({ findings: [] })),
-    route('GET', /^\/api\/films\/toy\/steps$/, () =>
-      json({ undo: { file: 'sound.ts', target: 'score play brass', change: 'k-brass' } }),
+    route('GET', /^\/api\/films\/toy\/choices$/, () => json(choicesOf(fake.cut === true))),
+    // The film's last source write, as its check and its steps report it: Undo steps it back.
+    route('GET', /^\/api\/films\/toy\/check$/, () =>
+      json({ findings: fake.findings ?? [], undo: LAST_WRITE }),
     ),
+    route('GET', /^\/api\/films\/toy\/steps$/, () => json({ undo: LAST_WRITE })),
     route('GET', /^\/api\/films\/toy\/choices\/check$/, () => json({ findings: [] })),
-    route('POST', /^\/api\/films\/toy\/choices\/say$/, () => {
-      takeSaid = [...takeSaid, 'the page is late'];
-      return json(choicesOf(takeSaid));
-    }),
-    route('POST', /^\/api\/films\/toy\/choices\/pick$/, () =>
-      json({
-        file: 'sound.ts',
-        target: 'score play brass',
-        choices: choicesOf(takeSaid),
-        findings: [],
-      }),
+    route('POST', /^\/api\/films\/toy\/undo$/, () =>
+      json({ file: 'sound.ts', target: 'undo score play brass', change: 'k-brass', findings: [] }),
     ),
     route('GET', /^\/api\/films\/toy\/project$/, () => json(view())),
     route('POST', /^\/api\/films\/toy\/project\/say$/, (asked) => {
@@ -377,21 +420,34 @@ const fakeProject = (
 
 const PROJECT = pageHref.project('toy');
 
+const LAPTOP = { width: 1440, height: 900 };
+const PHONE = { width: 390, height: 844 };
+
 const click = (page: Tab, selector: string) => page.click(selector);
 
-const scene = (id: string) => `[data-scene="${id}"]`;
+const scene = (id: string) => `.rv-scene[data-scene="${id}"]`;
 
 /** A scene's render card. */
 const render = (id: string) => `${scene(id)} > .sc-card[data-size="tile"]`;
 
-/** The open inspector: one at a time. */
+/** The open inspector (a sheet on a phone): one at a time. */
 const INSPECTOR = '[data-role="inspector"]';
-/** The film's choices' fold, closed at rest (UR-65): open it to reach a card. */
-const FILM_CHOICES = '.rv-film > .rv-layers > summary';
 
-/** Where the film's and the act's names sit (their inspect button), above their cards. */
-const FILM_HEAD = '.rv-film > .rv-row';
-const ACT_HEAD = '[data-act-name="opening"] > .rv-h';
+/** The film's panel, and the head of it and of the act, where their names sit (their inspect button). */
+const FILM = '.pj-film';
+const FILM_HEAD = '.pj-film-head';
+const ACT = '[data-act-name="opening"]';
+const ACT_HEAD = `${ACT} .pj-act-head`;
+
+/** The transport's dock. */
+const DOCK = '.pj-dock';
+
+/** The project's receipt. */
+const RECEIPT = '[data-receipt="project"]';
+
+/** Wait until the project's receipt reads something containing `part`. */
+const receiptSays = (page: Tab, part: string) =>
+  textHas(page, `${RECEIPT} .lab-receipt-said`, part);
 
 /** Open the inspector of the thing at `at` by a tap on its name. */
 const inspect = (page: Tab, at: string) =>
@@ -404,6 +460,13 @@ const saysPosted = (
   asked
     .filter((a) => a.path === '/api/films/toy/project/say')
     .map((a) => Option.getOrUndefined(a.body));
+
+/** `selector`'s box, as a script reads it. */
+const rect = (selector: string) => `document.querySelector('${selector}').getBoundingClientRect()`;
+
+/** Whether `selector` spans the page's width with its bottom on `below`'s top, as a script reads it. */
+const standsOn = (selector: string, below: string) =>
+  `((r, b) => Math.round(r.left) === 0 && Math.round(r.right) === document.documentElement.clientWidth && Math.round(r.bottom) === Math.round(b.top))(${rect(selector)}, ${rect(below)})`;
 
 /** Where the page bar's tab of `part` lands on the film `toy`. */
 const TABS = [
@@ -421,9 +484,9 @@ describe("a film's project", () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject(), {
           href: PROJECT,
-          viewport: { width: 1440, height: 900 },
+          viewport: LAPTOP,
         });
-        yield* waitFor(page, '[data-act-name="opening"]');
+        yield* waitFor(page, ACT);
         // Every part of the film is a tab, each at its place; Project is the one shown.
         yield* attributesAre(
           page,
@@ -481,12 +544,99 @@ describe("a film's project", () => {
   );
 
   it.live(
+    "the film's panel: its state band (a segment a scene, in film order, as long as the scene) and n/N current · n/N approved · its findings; no counts line, write bar or choices folds",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject({ findings: [CLOSE_FINDING] }), {
+          href: PROJECT,
+          viewport: LAPTOP,
+        });
+        yield* waitFor(page, `${FILM} .pj-band [data-scene]`);
+        yield* textIs(page, `${FILM_HEAD} [data-act="inspect"]`, 'toy');
+        yield* textIs(page, `${FILM} [data-role="counts"]`, '2/4 current · 0/4 approved');
+        // The check's findings are a count there that opens the Findings sheet.
+        yield* textIs(page, `${FILM} [data-act="findings"][data-check="check"]`, '1 finding');
+        yield* click(page, `${FILM} [data-act="findings"][data-check="check"]`);
+        yield* waitFor(page, '[data-role="findings"]');
+        yield* page.press('Escape');
+        // One segment a scene, in film order, each as wide as its scene is long (4, 6, 3, 2 of 15 s),
+        // in its most pressing state's colour.
+        yield* attributesAre(page, `${FILM} .pj-band [data-scene]`, 'data-scene', [
+          'open',
+          'close',
+          'coda',
+          'end',
+        ]);
+        yield* attributesAre(page, `${FILM} .pj-band [data-scene]`, 'data-state', [
+          'none',
+          'stale',
+          'none',
+          'rendered',
+        ]);
+        yield* evaluates(
+          page,
+          `(() => {
+            const band = document.querySelector('${FILM} .pj-band').getBoundingClientRect().width;
+            return [...document.querySelectorAll('${FILM} .pj-band [data-scene]')]
+              .map((s) => Math.round((s.getBoundingClientRect().width / band) * 15));
+          })()`,
+          [4, 6, 3, 2],
+        );
+        // Gone from rest: the counts line, the write bar, the film's, act's and scenes' choices folds,
+        // and every scene's own player.
+        yield* countIs(page, '[data-counts]', 0);
+        yield* countIs(page, '.rv-writes', 0);
+        yield* countIs(page, '.rv-layers', 0);
+        yield* countIs(page, '.rv-scene video', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'on a laptop each act is a panel (its name · scenes · length · approved) holding its scene cards in one row, the acts one under another',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject(), {
+          href: PROJECT,
+          viewport: LAPTOP,
+        });
+        yield* waitFor(page, render('close'));
+        yield* textIs(page, `${ACT_HEAD} [data-act="inspect"]`, 'opening');
+        yield* textIs(page, `${ACT_HEAD} .pj-act-meta`, '2 scenes · 00:00:10:00 · 0/2 approved');
+        yield* attributesAre(page, `${ACT} .rv-scene`, 'data-scene', ['open', 'close']);
+        // The act's cards side by side, in film order, on one line.
+        yield* evaluates(
+          page,
+          `(() => {
+            const [a, b] = ['open', 'close'].map((id) => document.querySelector('${scene('{id}')} > .sc-card'.replace('{id}', id)).getBoundingClientRect());
+            return [Math.round(a.top) === Math.round(b.top), a.right <= b.left];
+          })()`,
+          [true, true],
+        );
+        // The scenes in no act follow, under the act's panel.
+        const act = yield* page.box(ACT);
+        const coda = yield* page.box(render('coda'));
+        expect(coda.y).toBeGreaterThanOrEqual(act.y + act.height);
+        // A card's Approve is on the card; a stale one waits on a render, and says so.
+        yield* textIs(page, `${render('close')} [data-act="approve"]`, 'Approve · render first');
+        yield* evaluates(
+          page,
+          `document.querySelector('${render('close')} [data-act="approve"]').disabled`,
+          true,
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "on a phone each scene is a row, its picture beside its name and marks, its Approve in the scene's sheet",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject(), {
           href: PROJECT,
-          viewport: { width: 390, height: 844 },
+          viewport: PHONE,
         });
         yield* waitFor(page, render('open'));
         // The picture sits left of the name, a thumbnail, not the row's width.
@@ -515,7 +665,163 @@ describe("a film's project", () => {
   );
 
   it.live(
-    'lists the act and its scenes with their renders, states and approvals; each choice once, where it belongs',
+    "on a phone the transport is docked over the tab bar; a tap on a scene's row opens its sheet above it, whose grip lowers it to a peek and raises it again",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject({ cut: true }), {
+          href: PROJECT,
+          viewport: PHONE,
+        });
+        yield* waitFor(page, `${DOCK} .rv-transport [data-act="play"]`);
+        // The dock sits on the tab bar, the page's width.
+        yield* until(page, standsOn(DOCK, '.sh-pagebar'));
+        // A tap on the row's picture (not its name) opens the scene's sheet.
+        yield* click(page, `${render('open')} .sc-card-picture`);
+        yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+        // A sheet the page's width standing on the dock, the tab bar still in reach.
+        yield* until(page, standsOn(INSPECTOR, DOCK));
+        yield* evaluates(
+          page,
+          `document.elementFromPoint(innerWidth / 2, ${rect('.sh-pagebar')}.top + 20)?.closest('.sh-pagebar') !== null`,
+          true,
+        );
+        // It holds what the row does not: the comment box, Info, Versions and Open in Lab, the choices in the scene.
+        yield* waitFor(page, `${INSPECTOR} .rv-comment-input`);
+        yield* waitFor(page, `${INSPECTOR} [data-section="info"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-act="open-lab"]`);
+        yield* waitFor(page, `${INSPECTOR} [data-plays="take:paper.page"]`);
+        // Its grip lowers it to a peek: its title and the grip, standing on the dock; and raises it again.
+        yield* click(page, `${INSPECTOR} [data-act="sheet"]`);
+        yield* attributeIs(page, INSPECTOR, 'data-peek', 'true');
+        yield* evaluates(
+          page,
+          `document.querySelector('${INSPECTOR} .lab-inspector-body').checkVisibility()`,
+          false,
+        );
+        yield* until(
+          page,
+          `${standsOn(INSPECTOR, DOCK)} && ${rect(INSPECTOR)}.height <= 2 * 44 + 1`,
+        );
+        yield* click(page, `${INSPECTOR} [data-act="sheet"]`);
+        yield* attributeIs(page, INSPECTOR, 'data-peek', 'false');
+        yield* waitFor(page, `${INSPECTOR} .rv-comment-input`);
+        yield* evaluates(page, 'document.documentElement.scrollWidth <= innerWidth', true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'with no render of the film, the dock says so in a line where the transport would be',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject(), {
+          href: PROJECT,
+          viewport: PHONE,
+        });
+        yield* textIs(
+          page,
+          `${DOCK} [data-role="no-cut"]`,
+          'No film render yet: render the scenes to play the cut',
+        );
+        yield* countIs(page, '.rv-transport', 0);
+        yield* countIs(page, '.rv-note', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a long press on an act's header offers its approvals from the command registry; the approve's receipt says before → after, and its Undo withdraws just what it approved",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked, errors } = yield* openReview(fakeProject(), {
+          href: PROJECT,
+          viewport: { ...PHONE, coarse: true },
+        });
+        yield* waitFor(page, render('close'));
+        // The clock held: the long press's delay passes only as the test runs it on.
+        yield* page.clock.hold;
+        yield* touch(page, `${ACT_HEAD} .pj-act-meta`, 0);
+        yield* page.clock.runFor(700);
+        const approve = '[data-role="context-menu"] [data-command="review.approve-part"]';
+        yield* waitFor(page, approve);
+        yield* textHas(page, approve, "Approve the act's current scenes");
+        yield* page.finger.up;
+        // The menu is open: the page's time runs on again, in steps no faster than the test's,
+        // so the approve's say goes and its receipt shows for its while.
+        yield* Effect.forkScoped(
+          Effect.forever(Effect.andThen(Effect.sleep('25 millis'), page.clock.runFor(20))),
+        );
+        yield* click(page, approve);
+        // Only the current scene is approved (close waits on a render): one of two.
+        yield* receiptSays(page, 'Approved act opening · 0/2 → 1/2 approved');
+        yield* waitFor(page, `${render('open')} .sc-chip[data-mark="approved"]`);
+        yield* waitFor(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* click(page, `${RECEIPT} [data-act="receipt-undo"]`);
+        yield* receiptSays(page, 'Unapproved scene open');
+        yield* countIs(page, `${render('open')} .sc-chip[data-mark="approved"]`, 0);
+        // close kept its approval of an earlier version: the Undo withdrew open's alone.
+        yield* attached(page, `${render('close')} .sc-chip[data-mark="approved-earlier"]`);
+        expect(saysPosted(asked)).toEqual([
+          { address: { _tag: 'Act', act: 'opening' }, say: { _tag: 'Approve' } },
+          { address: { _tag: 'Scenes', ids: ['open'] }, say: { _tag: 'Withdraw' } },
+        ]);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'an approve that would lose an earlier approval if undone offers no Undo',
+    () =>
+      Effect.gen(function* () {
+        // coda's render is current; an earlier version of it was approved.
+        const routes = fakeProject({ approvedEarlier: ['coda'] });
+        const { page, errors } = yield* openReview(routes, { href: PROJECT, viewport: LAPTOP });
+        yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="stale"]`);
+        // A withdraw would take the earlier version's approval too: the receipt offers no Undo.
+        yield* click(page, `${render('coda')} [data-act="approve"]`);
+        yield* receiptSays(page, 'Approved scene coda · 0/1 → 1/1 approved');
+        yield* countIs(page, `${RECEIPT} [data-act="receipt-undo"]`, 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "each scene's card shows a still of the scene drawn from the film's code, its length over it",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject(), {
+          href: PROJECT,
+          viewport: LAPTOP,
+        });
+        for (const id of ['open', 'close', 'coda', 'end'])
+          yield* waitFor(page, `${render(id)} .pj-still[data-drawn="true"] canvas`);
+        // Each still is its own scene's frame: open's block is red, close's blue.
+        const redder = (id: string) =>
+          `((c) => ((p) => p[0] > p[2])(c.getContext('2d').getImageData(c.width / 2, c.height / 2, 1, 1).data))(document.querySelector('${render(id)} .pj-still canvas'))`;
+        yield* evaluates(page, redder('open'), true);
+        yield* evaluates(page, redder('close'), false);
+        yield* textIs(page, `${render('close')} .sc-card-length`, '00:00:06:00');
+        // A missing scene's card shows its still too: the command that renders it is in its sheet's Info.
+        yield* countIs(page, `${render('end')} .rv-meta`, 0);
+        yield* inspect(page, render('end'));
+        yield* textHas(
+          page,
+          `${INSPECTOR} [data-section="info"]`,
+          'film project render toy --scene end',
+        );
+        // A scene with no render recorded shows its still in its sheet, a copy of the card's.
+        yield* waitFor(page, `${INSPECTOR} .pj-still[data-drawn="true"] canvas`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "lists the act and its scenes with their states and approvals; a scene's sheet plays its render and links the choices in it, each to its card on Choices",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject());
@@ -523,27 +829,26 @@ describe("a film's project", () => {
         yield* rightClick(page, '.rv-film-card[data-film="toy"]');
         yield* click(page, '[data-role="context-menu"] [data-command="film.project"]');
         yield* until(page, `location.pathname === '${PROJECT}'`);
-        yield* waitFor(page, '[data-act-name="opening"]');
+        yield* waitFor(page, ACT);
         // The act holds its scenes; the scenes in no act follow.
-        yield* attributesAre(page, '[data-act-name="opening"] .rv-scene', 'data-scene', [
-          'open',
-          'close',
-        ]);
+        yield* attributesAre(page, `${ACT} .rv-scene`, 'data-scene', ['open', 'close']);
         yield* waitFor(page, `${scene('coda')}[data-state="current"]`);
         yield* waitFor(page, `${scene('close')}[data-state="stale"]`);
-        // A rendered scene plays its render; one with none recorded shows none.
+        // A rendered scene's sheet plays its render; one with none recorded shows its still.
+        yield* inspect(page, render('open'));
         yield* until(
           page,
-          `document.querySelector('${render('open')} video')?.getAttribute('src') === '/api/review/files/out/toy/scenes/open/main.share.mp4'`,
+          `document.querySelector('${INSPECTOR} video')?.getAttribute('src') === '/api/review/files/out/toy/scenes/open/main.share.mp4'`,
         );
-        // Each render shows a still of itself before it is played, as a folder's cards do.
+        // The render shows a still of itself before it is played, as a folder's cards do.
         yield* attributeIs(
           page,
-          `${render('open')} video`,
+          `${INSPECTOR} video`,
           'poster',
           '/api/review/frame?ref=out%2Ftoy%2Fscenes%2Fopen%2Fmain.share.mp4&w=960',
         );
-        yield* countIs(page, `${render('close')} video`, 0);
+        yield* inspect(page, render('close'));
+        yield* countIs(page, `${INSPECTOR} video`, 0);
         // A render stale by the film's sound alone says so, beside its approval
         // of an earlier version: each a chip, why in full its title.
         yield* textIs(page, `${render('close')} .sc-chip[data-mark="stale"]`, 'Out of date');
@@ -568,54 +873,52 @@ describe("a film's project", () => {
           `document.querySelector('${render('close')} [data-act="approve"]').disabled`,
           true,
         );
-        // A missing scene names the command that renders it.
-        yield* textIs(
-          page,
-          `${render('end')} .rv-meta`,
-          'not rendered yet: film project render toy --scene end',
-        );
-        // The score with the film; a layer of the act's scenes with the act; one across parts with the film.
-        yield* attached(page, '.rv-film [data-point="score"]');
-        // The film's choices fold away at rest (UR-65).
-        yield* evaluates(page, "document.querySelector('.rv-film > .rv-layers').open", false);
-        yield* attached(
-          page,
-          '[data-act-name="opening"] > .rv-layers [data-point="take:paper.hum"]',
-        );
-        yield* attached(page, '.rv-film [data-point="take:room.tone"]');
-        // The take with its scene, the voice with its beat.
-        yield* attached(page, `${scene('open')} [data-point="take:paper.page"]`);
-        yield* attached(page, `${scene('close')} [data-point="voice:close"]`);
-        // Each card once: a scene's inspector links the choices that play in it, its own
-        // and the layers that sit elsewhere; none of the links is at rest.
-        yield* countIs(page, '.rv-option:not([data-kind="render"])', 5);
-        yield* countIs(page, `${scene('close')} [data-plays]`, 0);
-        yield* inspect(page, render('close'));
+        // Each sheet lists the choices that play in its part, none of them at rest: a scene's,
+        // its own and the layers placed elsewhere; the act's, its layers; the film's, its own.
+        yield* countIs(page, '.rv-main [data-plays]', 0);
         yield* attributesAre(page, `${INSPECTOR} [data-plays]`, 'data-plays', [
           'voice:close',
           'take:paper.hum',
           'take:room.tone',
         ]);
-        // A link opens the part its card is folded under.
+        yield* inspect(page, ACT_HEAD);
+        yield* attributesAre(page, `${INSPECTOR} [data-plays]`, 'data-plays', ['take:paper.hum']);
+        yield* inspect(page, FILM_HEAD);
+        yield* attributesAre(page, `${INSPECTOR} [data-plays]`, 'data-plays', [
+          'score',
+          'take:room.tone',
+        ]);
+        // A choice's link opens it on Choices at its card, a step Back undoes; a modified click is the browser's.
         yield* inspect(page, render('open'));
+        yield* attributeIs(
+          page,
+          `${INSPECTOR} [data-plays="take:paper.hum"]`,
+          'href',
+          pageHref.choices('toy', 'take:paper.hum'),
+        );
         yield* click(page, `${INSPECTOR} [data-plays="take:paper.hum"]`);
-        const hum = '[data-act-name="opening"] > .rv-layers[open] [data-point="take:paper.hum"]';
-        yield* waitFor(page, hum);
-        // The card in focus is in the link, a step Back undoes.
-        yield* until(page, "location.search === '?point=take%3Apaper.hum'");
+        yield* until(
+          page,
+          `location.pathname + location.search === '${pageHref.choices('toy', 'take:paper.hum')}'`,
+        );
         yield* page.back;
         yield* until(page, `location.pathname + location.search === '${PROJECT}'`);
-        // A pasted link opens the card where it sits, as an old anchor does.
+        // An old link to a choice's card on the project goes on to the card on Choices.
         yield* page.goto(pageHref.project('toy', 'take:paper.hum'));
-        yield* waitFor(page, hum);
+        yield* until(
+          page,
+          `location.pathname + location.search === '${pageHref.choices('toy', 'take:paper.hum')}'`,
+        );
         yield* page.goto(`${PROJECT}#point-take%3Apaper.hum`);
-        yield* until(page, "location.search === '?point=take%3Apaper.hum'");
-        yield* waitFor(page, hum);
-        // Its Open on Choices lands on the Choices tab at the card (UR-65), brought into view on
-        // a phone, where the card starts well below the fold.
+        yield* until(
+          page,
+          `location.pathname + location.search === '${pageHref.choices('toy', 'take:paper.hum')}'`,
+        );
+        // The card is brought into view on a phone, where it starts well below the fold.
         yield* page.resize(390, 600);
+        yield* page.goto(PROJECT);
         yield* inspect(page, render('open'));
-        yield* click(page, `${INSPECTOR} [data-act="on-choices"][data-point="take:paper.hum"]`);
+        yield* click(page, `${INSPECTOR} [data-plays="take:paper.hum"]`);
         yield* until(
           page,
           `location.pathname + location.search === '${pageHref.choices('toy', 'take:paper.hum')}'`,
@@ -735,24 +1038,24 @@ describe("a film's project", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject(), { href: PROJECT });
-        yield* waitFor(page, `${scene('open')} video`);
         yield* inspect(page, render('open'));
+        yield* waitFor(page, `${INSPECTOR} video`);
         yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'half a thought');
-        yield* page.evaluate(`window.clip = document.querySelector('${scene('open')} video')`);
+        yield* page.evaluate(`window.clip = document.querySelector('${INSPECTOR} video')`);
         // The inspector sits beside the page: the page under it stays live.
-        yield* click(page, `${scene('coda')} [data-act="approve"]`);
-        yield* waitFor(page, `${scene('coda')} .sc-chip[data-mark="approved"]`);
+        yield* click(page, `${render('coda')} [data-act="approve"]`);
+        yield* waitFor(page, `${render('coda')} .sc-chip[data-mark="approved"]`);
         yield* valueIs(page, `${INSPECTOR} .rv-comment-input`, 'half a thought');
+        yield* evaluates(
+          page,
+          `window.clip === document.querySelector('${INSPECTOR} video')`,
+          true,
+        );
         // Closed and opened again, it keeps the half-typed comment.
         yield* page.press('Escape');
         yield* countIs(page, INSPECTOR, 0);
         yield* inspect(page, render('open'));
         yield* valueIs(page, `${INSPECTOR} .rv-comment-input`, 'half a thought');
-        yield* evaluates(
-          page,
-          `window.clip === document.querySelector('${scene('open')} video')`,
-          true,
-        );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -762,7 +1065,7 @@ describe("a film's project", () => {
     "a scene's Versions link leaves a modified click to the browser (a new tab); a plain one goes there in place",
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openReview(fakeProject(false, [], ['open']), {
+        const { page, errors } = yield* openReview(fakeProject({ rendered: ['open'] }), {
           href: PROJECT,
         });
         // Versions is in the scene's inspector, with Open in Lab.
@@ -816,38 +1119,29 @@ describe("a film's project", () => {
             ),
           );
         const { page, asked, errors } = yield* openReview(
-          [
-            whileBroken(/^\/api\/films\/toy\/project\/say$/),
-            whileBroken(/^\/api\/films\/toy\/choices\/say$/),
-            ...routes,
-          ],
+          [whileBroken(/^\/api\/films\/toy\/project\/say$/), ...routes],
           { href: PROJECT },
         );
         const box = `${INSPECTOR} .rv-comment-input`;
-        /** Say `text` in the inspector of `at`, posted as the `n`th say to `path`; wait for its receipt in `slot` to refuse it. */
-        const failedSay = (at: string, text: string, path: string, n: number, slot: string) =>
+        /** Say `text` in the inspector of `at`, posted as the `n`th say; wait for its receipt to refuse it. */
+        const failedSay = (at: string, text: string, n: number) =>
           Effect.gen(function* () {
             yield* inspect(page, at);
             yield* page.fill(box, text);
             yield* click(page, `${INSPECTOR} [data-act="comment"]`);
-            yield* Effect.sync(() => asked.filter((a) => a.path === path).length).pipe(
+            yield* Effect.sync(() => saysPosted(asked).length).pipe(
               Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (m) => m >= n }),
               Effect.timeout('10 seconds'),
             );
-            // Its receipt, in its page's slot, says why it was refused.
-            yield* attributeIs(page, `[data-receipt="${slot}"]`, 'data-type', 'refused');
+            // Its receipt, in the project's slot, says why it was refused.
+            yield* attributeIs(page, RECEIPT, 'data-type', 'refused');
           });
-        const PROJECT_SAY = '/api/films/toy/project/say';
-        const take = `${scene('open')} [data-point="take:paper.page"]`;
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
-        // A scene's comment, the film's, and a take's: each fails, and each keeps its text.
-        yield* failedSay(render('open'), 'a long thoughtful note', PROJECT_SAY, 1, 'project');
+        // A scene's comment and the film's: each fails, and each keeps its text.
+        yield* failedSay(render('open'), 'a long thoughtful note', 1);
         yield* valueIs(page, box, 'a long thoughtful note');
-        yield* failedSay(FILM_HEAD, 'of the whole film', PROJECT_SAY, 2, 'project');
+        yield* failedSay(FILM_HEAD, 'of the whole film', 2);
         yield* valueIs(page, box, 'of the whole film');
-        yield* click(page, `${scene('open')} > .rv-layers > summary`);
-        yield* failedSay(take, 'the page is late', '/api/films/toy/choices/say', 1, 'film');
-        yield* valueIs(page, box, 'the page is late');
         // The film loads again: the kept comment, back in its box, is said, and its box empties.
         loads = true;
         yield* inspect(page, render('open'));
@@ -864,12 +1158,12 @@ describe("a film's project", () => {
     'an approve refused because the scene went stale reads the project again: the card says why',
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openReview(fakeProject(false, ['coda']), {
+        const { page, errors } = yield* openReview(fakeProject({ goneStale: ['coda'] }), {
           href: PROJECT,
         });
         yield* waitFor(page, `${render('coda')} [data-act="approve"][data-approval="none"]`);
         yield* click(page, `${render('coda')} [data-act="approve"]`);
-        yield* attributeIs(page, '[data-receipt="project"]', 'data-type', 'refused');
+        yield* attributeIs(page, RECEIPT, 'data-type', 'refused');
         yield* waitFor(page, `${scene('coda')}[data-state="stale"]`);
         yield* attributeIs(
           page,
@@ -891,11 +1185,14 @@ describe("a film's project", () => {
     "plays this checkout's render of a scene, not another folder's of the same film",
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openReview(fakeProject(true), { href: PROJECT });
-        yield* waitFor(page, `${scene('open')} video`);
+        const { page, errors } = yield* openReview(fakeProject({ elsewhere: true }), {
+          href: PROJECT,
+        });
+        yield* inspect(page, render('open'));
+        yield* waitFor(page, `${INSPECTOR} video`);
         yield* attributeIs(
           page,
-          `${scene('open')} video`,
+          `${INSPECTOR} video`,
           'src',
           '/api/review/files/out/toy/scenes/open/main.share.mp4',
         );
@@ -914,7 +1211,7 @@ describe("a film's project", () => {
             routes.find((r) => r.method === 'GET' && r.path.test('/api/films/toy/project')),
           ),
         );
-        // The read after the pick answers the project as it stood when asked, once let land.
+        // The read after the undo answers the project as it stood when asked, once let land.
         const land = yield* Deferred.make<void>();
         let reads = 0;
         const lateRead = route('GET', /^\/api\/films\/toy\/project$/, (asked) => {
@@ -927,11 +1224,9 @@ describe("a film's project", () => {
           href: PROJECT,
         });
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
-        yield* click(page, FILM_CHOICES);
-        yield* click(
-          page,
-          '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',
-        );
+        // An undo changes the film's source: its scenes are read again.
+        yield* openCommandMenu(page, 'undo');
+        yield* click(page, menuEntry('review.undo'));
         yield* Effect.sync(
           () =>
             asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/project').length,
@@ -939,7 +1234,7 @@ describe("a film's project", () => {
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 2 }),
           Effect.timeout('10 seconds'),
         );
-        yield* attributeIs(page, '.rv-film', 'data-reading', 'true');
+        yield* attributeIs(page, FILM, 'data-reading', 'true');
         // Said while the read is out: the say answers the project with the comment.
         yield* inspect(page, render('open'));
         yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'said while it read');
@@ -947,7 +1242,7 @@ describe("a film's project", () => {
         yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         // The older read lands last: the page has read it, and the comment stays.
         yield* Deferred.done(land, Exit.void);
-        yield* attributeIs(page, '.rv-film', 'data-reading', 'false');
+        yield* attributeIs(page, FILM, 'data-reading', 'false');
         yield* countIs(page, `${INSPECTOR} [data-comment="c1"]`, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -977,23 +1272,20 @@ describe("a film's project", () => {
           asked.filter((a) => a.method === 'GET' && a.path === '/api/films/toy/project').length;
         yield* waitFor(page, `${render('open')} [data-act="approve"]`);
         yield* inspect(page, render('open'));
-        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'said before the pick');
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'said before the undo');
         yield* click(page, `${INSPECTOR} [data-act="comment"]`);
         yield* Effect.sync(() => saysPosted(asked).length).pipe(
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 1 }),
           Effect.timeout('10 seconds'),
         );
-        // A pick while the say is out: its read answers first, without the comment.
-        yield* click(page, FILM_CHOICES);
-        yield* click(
-          page,
-          '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',
-        );
+        // An undo while the say is out: its read answers first, without the comment.
+        yield* openCommandMenu(page, 'undo');
+        yield* click(page, menuEntry('review.undo'));
         yield* Effect.sync(reads).pipe(
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 2 }),
           Effect.timeout('10 seconds'),
         );
-        yield* attributeIs(page, '.rv-film', 'data-reading', 'false');
+        yield* attributeIs(page, FILM, 'data-reading', 'false');
         // The say lands last: the project is read again, and the comment shows.
         yield* Deferred.done(land, Exit.void);
         yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
@@ -1064,45 +1356,37 @@ describe("a film's project", () => {
   );
 
   it.live(
-    'a say and a pick are shown from their answers: nothing is read twice',
+    'a say is shown from its answer, and an undo reads the project again once',
     () =>
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openReview(fakeProject(), { href: PROJECT });
-        const take = `${scene('open')} [data-point="take:paper.page"]`;
-        yield* attached(page, take);
+        yield* waitFor(page, `${render('open')} [data-act="approve"]`);
         const reads = (from: number) =>
           asked
             .slice(from)
-            .filter(
-              (a) =>
-                a.method === 'GET' &&
-                /^\/api\/films\/toy\/(choices|check|project)(\?|$)/.test(a.path),
-            )
+            .filter((a) => a.method === 'GET' && a.path === '/api/films/toy/project')
             .map((a) => a.path);
         const before = asked.length;
-        yield* click(page, `${scene('open')} > .rv-layers > summary`);
-        yield* inspect(page, take);
+        yield* inspect(page, render('open'));
         yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'the page is late');
         yield* click(page, `${INSPECTOR} [data-act="comment"]`);
         yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
-        yield* click(page, FILM_CHOICES);
-        yield* click(
-          page,
-          '.rv-film [data-point="score"] [data-variant="brass"] [data-act="pick"]',
-        );
-        // A pick changes the film's sound: the project's scenes are read again, once.
+        // The say's answer is the project: nothing is read for it.
+        expect(reads(before)).toEqual([]);
+        // The menu's Undo names what it undoes; it changes the film, whose scenes are read again, once.
+        yield* openCommandMenu(page, 'undo');
+        yield* textIs(page, menuEntry('review.undo'), /^Undo score play brass/);
+        yield* click(page, menuEntry('review.undo'));
         yield* Effect.sync(() => reads(before)).pipe(
           Effect.repeat({
             schedule: Schedule.spaced('25 millis'),
-            until: (paths) => paths.includes('/api/films/toy/project'),
+            until: (paths) => paths.length > 0,
           }),
           Effect.timeout('10 seconds'),
         );
+        yield* attributeIs(page, FILM, 'data-reading', 'false');
         expect(reads(before)).toEqual(['/api/films/toy/project']);
-        // The menu's Undo names what it undoes.
-        yield* openCommandMenu(page, 'undo');
-        yield* textIs(page, menuEntry('review.undo'), /^Undo score play brass/);
-        yield* closeCommandMenu(page);
+        yield* closeCommandMenu(page).pipe(Effect.ignore);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

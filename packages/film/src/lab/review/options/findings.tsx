@@ -5,10 +5,11 @@
 // open one Findings sheet beside the page with both checks as groups, each
 // finding's time a button that moves the clock to it. F and ⇧F walk the
 // clock to the next or previous finding with a time, as they do in the lab.
+// On Project the chips sit in the film's panel, the check's by its count.
 
 import { Drawer } from '@bible/ui/drawer';
 import { For, Show } from '@solidjs/web';
-import { Effect, Match, Option } from 'effect';
+import { Boolean as Bool, Effect, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import { createSignal, onCleanup } from 'solid-js';
 import { type Command, quiet } from '../../../command/command.ts';
@@ -44,8 +45,29 @@ const stateOf = (findings: ReadonlyArray<CheckLine>): 'clean' | 'warning' | 'fin
     Match.orElse(() => 'clean' as const),
   );
 
-/** The film's findings sheet, the write bar's count chips that open it, and F/⇧F. */
-export const Findings = () => {
+/**
+ * A check's chip as the film's panel on Project says it (design language
+ * §7): the check's own findings by their count alone (`21 findings`, `no
+ * findings`), another check by its name too (`sound check: clean`).
+ */
+const countText = (name: string, n: number): string =>
+  Match.value({ name, n }).pipe(
+    Match.when({ name: 'check', n: 0 }, () => 'no findings'),
+    Match.when({ name: 'check', n: 1 }, () => '1 finding'),
+    Match.when({ name: 'check' }, () => `${n} findings`),
+    Match.orElse(() => findingsText(name, n)),
+  );
+
+/**
+ * The film's findings sheet, the count chips that open it (the write bar's,
+ * each check by its name; with `counts`, the film panel's, by its count),
+ * and F/⇧F.
+ */
+export const Findings = (props: { readonly counts?: boolean }) => {
+  const words = Bool.match(props.counts === true, {
+    onTrue: () => countText,
+    onFalse: () => findingsText,
+  });
   const { meta } = useReview();
   const { findings, soundCheck, picture, sync, send } = useFilm();
   const [open, setOpen] = createSignal(false, { ownedWrite: true });
@@ -112,7 +134,7 @@ export const Findings = () => {
             data-state={stateOf(check().findings)}
             onClick={() => setOpen(true)}
           >
-            {findingsText(check().name, check().findings.length)}
+            {words(check().name, check().findings.length)}
           </button>
         )}
       </For>

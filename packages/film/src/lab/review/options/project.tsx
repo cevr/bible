@@ -1,34 +1,45 @@
-// A film's project page (`/films/<film>/project`, the card in focus in its
-// `?point=`): the film by its address tree (`core/catalogue.ts`'s Project,
-// read in a fresh `film project --json` on the server), film → acts →
-// scenes → layers, with the same card, the same say (approve, unapprove,
-// comment) and the same words at every level. The film's own comments, an
-// approve of its current scenes and an unapprove of them; each act (its
-// comments, the same approve and unapprove of its scenes), both in the
-// part's inspector, menu and ⌘K, its name and a comment dot at rest; each
-// scene as the scene card a film's Scenes shows (`scenes/card.tsx`, One
-// surface): its render (the video this checkout's catalogue records for it,
-// `ProjectView.videos`, or the command that renders it), its length, its marks
-// (out of date by its sources or the film's sound alone, not rendered, its
-// approval, its findings) and Approve, the full card with its comments in its
-// inspector. Each choice point sits once, at the narrowest
-// part that holds every scene it plays in (a scene, an act, else the film),
-// folded under that part; a scene's inspector lists the choices that play
-// in it (its own and the layers placed elsewhere) as links to their cards. Every say answers the project as it
-// leaves it; a source write reads it again (a pick changes the film's
-// sound, a kept voice a scene's key), the film marked reading while it
-// does. Answers land in any order: the page shows the newest asked. The page
-// updates in place: a playing clip plays on and a half-typed comment stays.
+// A film's project page (`/films/<film>/project`): the film by its address
+// tree (`core/catalogue.ts`'s Project, read in a fresh `film project --json`
+// on the server) in the studio's shell, as design language §7 lays it out,
+// a DAW's arrangement: the film's panel (its name, its length, its state
+// band of a segment a scene, `n/N current · n/N approved` and the check's
+// findings), then each act a panel (its name, scenes, length and approvals)
+// holding its scenes (on a phone a row each; on a laptop one row of cards),
+// then the scenes in no act. Each scene is the card a film's Scenes shows
+// (`scenes/card.tsx`, One surface): a still of the scene drawn from the
+// film's code (`stills.tsx`, the tape's one source), its length, its name in
+// its hue, its marks (out of date, not rendered, approved, findings), a
+// comment dot when something was said of it, and on a laptop its Approve
+// (`render first` while out of date). A tap on a scene opens its sheet (the
+// inspector: a bottom sheet over the docked transport on a phone): its render
+// or its still, its Approve and Unapprove, its findings, what was said of it
+// and the comment box, Info, Open in Lab and Versions, and the choices that
+// play in it, each a link to its card on Choices. An act's and the film's
+// approvals and comments are in their inspectors, their context menus (a
+// long press or a right-click on the panel) and ⌘K. The film's transport is
+// docked: over the tab bar on a phone, under the header on a laptop. Every
+// say answers the project as it leaves it, its receipt saying what it moved
+// (`0/2 → 1/2 approved`), an approve's offering Undo (a withdraw of just the
+// scenes it approved); a source write reads it again, the film marked
+// reading while it does. Answers land in any order: the page shows the
+// newest asked, kept in place: a playing clip plays on and a half-typed
+// comment stays.
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Array as Arr, Exit, Match, Option } from 'effect';
+import { Array as Arr, Effect, Exit, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
+import {
+  type Accessor,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  untrack,
+} from 'solid-js';
 import { type Address, type PartAddress, addressKey, sceneAddress } from '../../../core/address.ts';
-import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
-import { Places, type ProjectView, pageHref, reviewFrameUrl } from '../../../core/api.ts';
+import { Places, type ProjectView, pageHref } from '../../../core/api.ts';
 import {
   type ProjectAct as Act,
   type ProjectScene,
@@ -43,50 +54,61 @@ import {
   shownIn,
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
-import { FILM_FPS } from '../../../core/time.ts';
-import { SceneCard } from '../../scenes/card.tsx';
-import { marksOf } from '../../scenes/marks.ts';
+import { FILM_FPS, timecode } from '../../../core/time.ts';
+import { sceneHue, SceneCard } from '../../scenes/card.tsx';
+import { bandState, marksOf } from '../../scenes/marks.ts';
+import { runsOf } from '../../scenes/data.ts';
 import type { LabFailure } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { Go, OPEN_ON_CHOICES, plainClick, useReview } from '../context.tsx';
-import { POSTER_W, pressed, sayText } from '../format.ts';
+import { APPROVAL_TEXT, pressed, sayText, stateText } from '../format.ts';
 import { Loaded, useWrite, writeStatus } from '../loaded.tsx';
 import { ReviewPlace } from '../place.ts';
 import { OptionsApi, type ProjectSay } from './api.ts';
 import {
   Approval,
   Approve,
-  ChoiceCard,
   CommentBox,
   Comments,
   type Sayer,
   SayBox,
   Seen,
-  revealPoint,
   useVariantThing,
 } from './choice.tsx';
 import { FilmProvider, useFilm } from './context.tsx';
+import { Findings } from './findings.tsx';
 import { partText } from './receipt.ts';
+import { Still, type SceneStills, useSceneStills } from './stills.tsx';
 import { Selection } from '../../../command/selection.ts';
-import { BY_BUTTON } from '../../../command/command.ts';
+import {
+  BY_BUTTON,
+  type Bound,
+  type Command,
+  type CommandId,
+  type Undoing,
+  Unfit,
+  quiet,
+  refused,
+} from '../../../command/command.ts';
 import { withSelection } from '../../../command/context.ts';
-import { onChoicesTab } from '../../../core/point.ts';
 import { Target, type TargetElementProps } from '../../command/context-menu.tsx';
 import {
   InspectName,
   Inspector,
   type InspectorBox,
+  useInspect,
   useInspected,
   useThing,
 } from '../inspector.tsx';
 import type { ThingVerb } from '../things.ts';
-import { OnlyShown, Player, WriteBar } from './section.tsx';
+import { FilmPicture, FilmTransport, OnlyShown, StepCommands } from './section.tsx';
 
 const FILM: PartAddress = { _tag: 'Film' };
 
 /**
- * Where `point` sits on the page: the scene it plays in, the act that holds
- * every scene it plays in, else the film (a short's point too).
+ * Where `point` sits in the film: the scene it plays in, the act that holds
+ * every scene it plays in, else the film (a short's point too). Its part's
+ * inspector lists it.
  */
 const placeOf = (point: ChoicePoint, acts: ReadonlyArray<Act>): Address =>
   Option.match(point.address, {
@@ -106,7 +128,7 @@ const placeOf = (point: ChoicePoint, acts: ReadonlyArray<Act>): Address =>
       }),
   });
 
-/** The film's points the page shows: every one, or only those in `?only=`'s state (AA-14). */
+/** The film's points the page lists: every one, or only those in `?only=`'s state (AA-14). */
 const useShownPoints = (): Accessor<ReadonlyArray<ChoicePoint>> => {
   const { choices, only } = useFilm();
   return () => choices().points.filter(shownIn(only()));
@@ -122,6 +144,38 @@ const playingIn = (points: ReadonlyArray<ChoicePoint>, acts: ReadonlyArray<Act>,
     (p) =>
       Option.exists(p.address, (at) => at._tag === 'Scenes' && at.ids.includes(scene)) &&
       addressKey(placeOf(p, acts)) !== addressKey(sceneAddress(scene)),
+  );
+
+/** The scenes `address` holds in `view`, in film order. */
+const scenesIn = (view: ProjectView, address: PartAddress): ReadonlyArray<ProjectScene> =>
+  Match.valueTags(address, {
+    Film: () => view.project.scenes,
+    Act: ({ act }) =>
+      Option.match(
+        Arr.findFirst(view.project.acts, (a) => a.name === act),
+        {
+          onNone: (): ReadonlyArray<ProjectScene> => [],
+          onSome: (a) => view.project.scenes.filter((s) => a.scenes.includes(s.scene)),
+        },
+      ),
+    Scenes: ({ ids }) => view.project.scenes.filter((s) => ids.includes(s.scene)),
+  });
+
+/** How many of `scenes` are approved as they are now, of all: `1/2`. */
+const approvedOf = (scenes: ReadonlyArray<ProjectScene>) =>
+  `${scenes.filter((s) => s.approval === 'approved').length}/${scenes.length}`;
+
+/** How many of `scenes` are rendered as they are now, of all: `2/4`. */
+const currentOf = (scenes: ReadonlyArray<ProjectScene>) =>
+  `${scenes.filter((s) => s.state === 'current').length}/${scenes.length}`;
+
+/** `n` scenes, in words. */
+const scenesText = (n: number) => `${n} ${['scenes', 'scene'][Number(n === 1)]}`;
+
+/** How long `scenes` run together, when each says (none while one does not). */
+const lengthOf = (scenes: ReadonlyArray<ProjectScene>): Option.Option<number> =>
+  Option.map(Option.all(scenes.map((s) => s.span)), (spans) =>
+    spans.reduce((t, s) => t + s.dur, 0),
   );
 
 /** A scene's render as its card shows it: the project's say on it, its state, and the video recorded for it. */
@@ -180,6 +234,8 @@ interface ProjectValue {
   readonly useSay: () => ProjectSayer;
   /** Whether the project is being read again. */
   readonly reading: () => boolean;
+  /** The scenes' stills, drawn from the film's code. */
+  readonly stills: SceneStills;
 }
 
 /** The says of the project at `address`: a render card's, an act's, the film's. */
@@ -190,47 +246,29 @@ const sayerAt = (at: ProjectValue, address: () => PartAddress): Sayer => ({
   },
 });
 
-/** `n` choices, said as a fold's summary says them. */
-const choicesText = (n: number) =>
-  Match.value(n).pipe(
-    Match.when(1, () => '1 choice'),
-    Match.orElse(() => `${n} choices`),
-  );
-
-/** Choice cards folded under a part, closed at rest (UR-65): the scene inspector and Choices hold them too. */
-const Layers = (props: { readonly points: ReadonlyArray<ChoicePoint> }) => (
-  <Show when={props.points.length > 0}>
-    <details class="rv-layers">
-      <summary class="rv-hint" data-layers={String(props.points.length)}>
-        {choicesText(props.points.length)}
-      </summary>
-      <For each={props.points} keyed={(p) => p.id}>
-        {(point) => <ChoiceCard point={point()} />}
-      </For>
-    </details>
-  </Show>
-);
-
-/** The project's place: the card in focus is its `?point=`. */
+/** The project's place: a scene's render in its `?point=` opens the scene's sheet. */
 const projectPlace = UrlAtom.place(Places.project);
 
+/** What each part's list of choices is headed. */
+const CHOICES_HEAD = {
+  Scenes: 'Choices in this scene',
+  Act: 'Choices in this act',
+  Film: 'Choices of the film',
+} as const satisfies Record<PartAddress['_tag'], string>;
+
 /**
- * The scene inspector's Choices in this scene (UR-65/69): the choices that
- * play in the scene (placed in it, or elsewhere: a layer across scenes), a
- * row each. Its name is a link to its card here: a plain click brings the
- * card into view and puts it in the URL's `?point=` (Back returns to the card
- * before); a modified one opens the project there in a tab. Its Choices
- * button runs Open on Choices for it, landing on the Choices tab at its card.
+ * A part's choices, in its inspector (UR-65/69): the choices that play in it
+ * (a scene's: placed in it, or a layer placed elsewhere; an act's or the
+ * film's: placed in it), a link each to its card on Choices. A plain click
+ * runs Open on Choices (a step Back returns here); a modified one is the
+ * browser's (a new tab).
  */
-const SceneChoices = (props: {
+const PartChoices = (props: {
   readonly film: string;
+  readonly part: PartAddress['_tag'];
   readonly points: ReadonlyArray<ChoicePoint>;
 }) => {
   const { meta } = useReview();
-  const at = useAtomValue(() => projectPlace);
-  const focus = useAtomSet(() => projectPlace);
-  const focused = (point: string) =>
-    Option.map(at(), (v) => ({ ...v, query: { ...v.query, point } }));
   const onChoices = (point: string) =>
     Option.map(meta.hub.commands.byId(OPEN_ON_CHOICES), (command) =>
       meta.hub.invoke(
@@ -243,40 +281,25 @@ const SceneChoices = (props: {
     );
   return (
     <Show when={props.points.length > 0}>
-      <section class="rv-group rv-plays">
+      <section class="rv-group rv-plays" data-section="choices">
         <h3>
-          Choices in this scene <span class="lab-count">{props.points.length}</span>
+          {CHOICES_HEAD[props.part]} <span class="lab-count">{props.points.length}</span>
         </h3>
         <For each={props.points} keyed={(p) => p.id}>
           {(point) => (
             <div class="rv-row">
               <a
                 class="rv-inline-link"
-                href={Option.getOrElse(
-                  Option.map(focused(point().id), (v) => Place.href(Places.project, v)),
-                  () => '',
-                )}
+                href={pageHref.choices(props.film, point().id)}
                 data-plays={point().id}
                 onClick={(e: MouseEvent) => {
                   if (!plainClick(e)) return;
                   e.preventDefault();
-                  revealPoint(point().id);
-                  Option.map(focused(point().id), focus);
+                  onChoices(point().id);
                 }}
               >
                 {point().title}
               </a>
-              <Show when={onChoicesTab(point().id)}>
-                <button
-                  type="button"
-                  class="rv-chip"
-                  data-act="on-choices"
-                  data-point={point().id}
-                  onClick={() => onChoices(point().id)}
-                >
-                  Open on Choices
-                </button>
-              </Show>
             </div>
           )}
         </For>
@@ -308,41 +331,43 @@ const videoOf = (variant: ChoiceVariant): Option.Option<ReviewVideo> =>
     Unseen: () => Option.none(),
   });
 
-/** What a scene's card shows where no render is recorded: the command that renders it, when it is missing. */
-const NoRender = (props: { readonly variant: ChoiceVariant }) => (
-  <span class="rv-meta sc-card-blank">
-    {Option.getOrElse(Arr.head(props.variant.lines), () => 'no render yet')}
-  </span>
+/** What a scene waits on before it is approved: its render. */
+const RENDER_FIRST = 'render first';
+
+/**
+ * A scene's Info in its sheet: its render's state (why it is out of date),
+ * its approval, and every line of what it is (the command that renders a
+ * missing one).
+ */
+const SceneInfo = (props: { readonly scene: ProjectScene; readonly variant: ChoiceVariant }) => (
+  <section class="rv-group" data-section="info">
+    <h3>Info</h3>
+    <p class="rv-hint">{stateText(props.scene.state, props.scene.staleBy)}</p>
+    <p class="rv-hint">{APPROVAL_TEXT[props.scene.approval]}</p>
+    <For each={props.variant.lines}>{(line) => <p class="rv-hint">{line}</p>}</For>
+  </section>
 );
 
-/** A scene's render as its card's picture in the grid: its video, a still of itself until it plays. */
-const RenderPicture = (props: { readonly variant: ChoiceVariant }) => (
-  <Show
-    when={Option.getOrUndefined(videoOf(props.variant))}
-    fallback={<NoRender variant={props.variant} />}
-  >
-    {(video) => <Seen video={video()} />}
-  </Show>
-);
-
-/** A scene's render as its inspector's picture: a still of it (the grid's card plays it). */
-const RenderStill = (props: { readonly variant: ChoiceVariant }) => (
-  <Show
-    when={Option.getOrUndefined(videoOf(props.variant))}
-    fallback={<NoRender variant={props.variant} />}
-  >
-    {(video) => <img src={reviewFrameUrl(video().ref, Option.none(), POSTER_W)} alt="" />}
-  </Show>
-);
+/** Whether a tap at `target` was on a control of its own (a button, a link, a field, a video's bar). */
+const onControl = (event: MouseEvent): boolean =>
+  Option.exists(
+    Option.filter(Option.fromNullishOr(event.target), (t) => t instanceof Element),
+    (t) =>
+      t instanceof Element &&
+      Option.isSome(
+        Option.fromNullishOr(t.closest('button, a, input, textarea, select, video, label')),
+      ),
+  );
 
 /**
  * A scene of the project as its card (`scenes/card.tsx`, the card a film's
- * Scenes shows): in the grid its render (a tap on the video plays it), its
- * name (a tap inspects it), its length, its marks and Approve; in its
- * inspector the same card at full size, with its in, out and length, its
- * approve and unapprove, its findings, every line of what it is, what was
- * said of it and the comment box, Open in Lab, its Versions and the choices
- * that play in it. Its menu and keys are its render's (`useVariantThing`).
+ * Scenes shows): at rest its still and length, its name in its hue (a tap
+ * inspects it), its marks, its comment dot and, on a laptop, its Approve; a
+ * tap anywhere on it that is not a control opens its sheet: the same card
+ * at full size (its render's video, else its still), its approve and
+ * unapprove, its findings, what was said of it and the comment box, Info,
+ * Open in Lab and Versions, and the choices that play in it. Its menu and
+ * keys are its render's (`useVariantThing`).
  */
 const SceneRow = (props: {
   readonly at: ProjectValue;
@@ -368,6 +393,15 @@ const SceneRow = (props: {
     sayer,
   });
   const inspected = useInspected(thing.selection);
+  const inspect = useInspect(() => thing.selection);
+  // A link to the scene's render (`?point=render:scenes:<id>`) opens its sheet.
+  const place = useAtomValue(() => projectPlace);
+  createEffect(
+    () => Option.exists(place(), (v) => v.query.point === point().id),
+    (named) => {
+      if (named) inspect();
+    },
+  );
   const marks = () =>
     marksOf(
       Option.some(props.at.view()),
@@ -394,19 +428,31 @@ const SceneRow = (props: {
     />
   );
   return (
-    <div class="rv-scene" data-scene={props.scene.scene} data-state={props.scene.state}>
+    <div
+      class="rv-scene"
+      data-scene={props.scene.scene}
+      data-state={props.scene.state}
+      onClick={(e: MouseEvent) => {
+        if (!onControl(e)) inspect();
+      }}
+    >
       {card(
         'tile',
-        <RenderPicture variant={variant()} />,
-        <Approve variant={variant()} sayer={sayer} />,
+        <Still stills={props.at.stills} scene={props.scene.scene} />,
+        <Approve variant={variant()} sayer={sayer} first={RENDER_FIRST} />,
       )}
       <Inspector of={thing.selection} title={thing.title()}>
         {(box) => (
           <>
             {card(
               'focus',
-              <RenderStill variant={variant()} />,
-              <Approval variant={variant()} sayer={sayer} />,
+              <Show
+                when={Option.getOrUndefined(videoOf(variant()))}
+                fallback={<Still stills={props.at.stills} scene={props.scene.scene} copy />}
+              >
+                {(video) => <Seen video={video()} />}
+              </Show>,
+              <Approval variant={variant()} sayer={sayer} first={RENDER_FIRST} />,
             )}
             <Show when={marks().findings.length > 0}>
               <section class="rv-group" data-section="findings">
@@ -424,6 +470,7 @@ const SceneRow = (props: {
             </Show>
             <Comments comments={variant().comments} />
             <CommentBox variant={variant()} sayer={sayer} box={box} />
+            <SceneInfo scene={props.scene} variant={variant()} />
             <div class="rv-row">
               <a
                 class="rv-chip"
@@ -436,8 +483,9 @@ const SceneRow = (props: {
                 <Compare folder={props.at.view().folder} point={point().id} />
               </Show>
             </div>
-            <SceneChoices
+            <PartChoices
               film={props.at.film}
+              part="Scenes"
               points={[
                 ...placedAt(shownPoints(), acts(), address()),
                 ...playingIn(shownPoints(), acts(), props.scene.scene),
@@ -446,16 +494,13 @@ const SceneRow = (props: {
           </>
         )}
       </Inspector>
-      <Layers points={placedAt(shownPoints(), acts(), address())} />
     </div>
   );
 };
 
 /** A part's counts: its scenes, how many are current, how many approved. */
 const countsOf = (scenes: ReadonlyArray<ProjectScene>) =>
-  `${scenes.length} scenes · ${scenes.filter((s) => s.state === 'current').length} current · ${
-    scenes.filter((s) => s.approval === 'approved').length
-  } approved`;
+  `${scenesText(scenes.length)} · ${currentOf(scenes)} current · ${approvedOf(scenes)} approved`;
 
 /** What a part's approval buttons say: an act's, or the whole film's. */
 const PART_WORDS = {
@@ -564,14 +609,16 @@ const partVerbs = (props: PartProps, saying: ProjectSayer): ReadonlyArray<ThingV
 };
 
 /**
- * A part's say, out of sight at rest: its approve and unapprove in its menu,
- * ⌘K and its inspector; its inspector holds its counts, what was said of it
- * and its comment box.
+ * A part's say, out of sight at rest: its approve and unapprove in its menu
+ * (a long press or a right-click on its panel), ⌘K and its inspector; its
+ * inspector holds its counts, what was said of it, its comment box and the
+ * choices placed in it.
  */
 const PartInspector = (props: PartProps) => {
   const saying = props.at.useSay();
+  const shownPoints = useShownPoints();
   useThing({
-    // A part's inspector lives with its block, whose selection is fixed.
+    // A part's inspector lives with its panel, whose selection is fixed.
     selection: untrack(() => props.of),
     title: () => props.title,
     commentable: () => true,
@@ -592,17 +639,23 @@ const PartInspector = (props: PartProps) => {
           </div>
           <Comments comments={props.comments} />
           <PartComment at={props.at} address={props.address} box={box} />
+          <PartChoices
+            film={props.at.film}
+            part={props.address._tag}
+            points={placedAt(shownPoints(), props.at.view().project.acts, props.address)}
+          />
         </>
       )}
     </Inspector>
   );
 };
 
+/** A run of scenes: a row each on a phone, one row of cards on a laptop. */
 const Scenes = (props: {
   readonly at: ProjectValue;
   readonly scenes: ReadonlyArray<ProjectScene>;
 }) => (
-  <div class="rv-grid rv-scenes">
+  <div class="pj-scenes">
     <For each={props.scenes} keyed={(s) => s.scene}>
       {(scene) => (
         <SceneRow
@@ -615,28 +668,38 @@ const Scenes = (props: {
   </div>
 );
 
-const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
-  const shownPoints = useShownPoints();
+/**
+ * An act's panel: its head (its name, a tap inspects it; how many scenes,
+ * how long, how many approved) over its scenes. A long press or a
+ * right-click on it opens its menu: its approvals.
+ */
+const ActPanel = (props: { readonly at: ProjectValue; readonly act: Act }) => {
   const address = (): PartAddress => ({ _tag: 'Act', act: props.act.name });
   const scenes = () =>
     props.at.view().project.scenes.filter((s) => props.act.scenes.includes(s.scene));
-  // An act's block is keyed by its name: its selection is fixed for as long as it lives.
+  // An act's panel is keyed by its name: its selection is fixed for as long as it lives.
   const selection = untrack(() =>
     Selection.cases.Act.make({ film: props.at.film, act: props.act.name }),
   );
+  const meta = () =>
+    [
+      scenesText(scenes().length),
+      ...Option.toArray(Option.map(lengthOf(scenes()), (t) => timecode(t, FILM_FPS))),
+      `${approvedOf(scenes())} approved`,
+    ].join(' · ');
   return (
     <Target
       of={selection}
       render={(p: TargetElementProps) => <section {...p} />}
-      class="rv-act"
+      class="rv-act pj-act"
       data-act-name={props.act.name}
     >
-      <h2 class="rv-h">
+      <header class="pj-act-head">
         <InspectName of={selection} comments={props.act.comments.length}>
           {props.act.name}
-        </InspectName>{' '}
-        <small>{countsOf(scenes())}</small>
-      </h2>
+        </InspectName>
+        <span class="pj-act-meta">{meta()}</span>
+      </header>
       <PartInspector
         at={props.at}
         of={selection}
@@ -646,63 +709,99 @@ const ActBlock = (props: { readonly at: ProjectValue; readonly act: Act }) => {
         comments={props.act.comments}
         part="act"
       />
-      <Layers points={placedAt(shownPoints(), props.at.view().project.acts, address())} />
       <Scenes at={props.at} scenes={scenes()} />
     </Target>
   );
 };
 
+/**
+ * The film's state band: a segment a scene in film order, as wide as the
+ * scene is long (alike while lengths are unknown), in its most pressing
+ * mark's state colour, else its hue.
+ */
+const StateBand = (props: { readonly at: ProjectValue }) => {
+  const { findings } = useFilm();
+  const marks = () =>
+    marksOf(
+      Option.some(props.at.view()),
+      Option.getOrElse(findings(), () => []),
+    );
+  return (
+    <div class="pj-band" aria-hidden="true">
+      <For each={props.at.view().project.scenes} keyed={(s) => s.scene}>
+        {(scene, i) => (
+          <span
+            data-scene={scene().scene}
+            data-state={Option.getOrElse(bandState(marks()(scene().scene)), () => 'none')}
+            style={{
+              'flex-grow': String(
+                Option.getOrElse(
+                  Option.map(scene().span, (s) => s.dur),
+                  () => 1,
+                ),
+              ),
+              '--hue': sceneHue(i()),
+            }}
+          />
+        )}
+      </For>
+    </div>
+  );
+};
+
+/** The film's panel: its name (a tap inspects it), its length, its counts, its findings, its state band, its render. */
+const FilmPanel = (props: { readonly at: ProjectValue }) => {
+  const project = () => props.at.view().project;
+  const film = untrack(() => Selection.cases.Film.make({ film: props.at.film }));
+  return (
+    <Target
+      of={film}
+      render={(p: TargetElementProps) => <section {...p} />}
+      class="pj-film"
+      data-film={props.at.film}
+      data-reading={pressed(props.at.reading())}
+    >
+      <div class="pj-film-head">
+        <InspectName of={film} comments={project().comments.length}>
+          {props.at.film}
+        </InspectName>
+        <Show when={Option.getOrUndefined(lengthOf(project().scenes))}>
+          {(t) => <span class="pj-film-length">{timecode(t(), FILM_FPS)}</span>}
+        </Show>
+        <span class="pj-film-counts" data-role="counts">
+          {`${currentOf(project().scenes)} current · ${approvedOf(project().scenes)} approved`}
+        </span>
+        <Findings counts />
+      </div>
+      <StateBand at={props.at} />
+      <PartInspector
+        at={props.at}
+        of={film}
+        title={`the film ${props.at.film}`}
+        address={FILM}
+        scenes={project().scenes}
+        comments={project().comments}
+        part="all"
+      />
+      <FilmPicture />
+    </Target>
+  );
+};
+
 const ProjectBody = (props: { readonly at: ProjectValue }) => {
-  const shownPoints = useShownPoints();
   const project = () => props.at.view().project;
   const inActs = () => new Set(project().acts.flatMap((a) => a.scenes));
   const loose = () => project().scenes.filter((s) => !inActs().has(s.scene));
-  // The card the URL's `?point=` names is brought into view: on a link's
-  // first render, and each time Back or Forward lands on another.
-  const at = useAtomValue(() => projectPlace);
-  createEffect(
-    () =>
-      Option.filter(
-        Option.map(at(), (v) => v.query.point),
-        (point) => point !== '',
-      ),
-    (point) => {
-      Option.map(point, revealPoint);
-    },
-  );
-  const film = untrack(() => Selection.cases.Film.make({ film: props.at.film }));
   return (
     <>
-      <Target
-        of={film}
-        render={(p: TargetElementProps) => <section {...p} />}
-        class="rv-film"
-        data-film={props.at.film}
-        data-reading={pressed(props.at.reading())}
-      >
-        <div class="rv-row">
-          <InspectName of={film} comments={project().comments.length}>
-            <span class="rv-hint" data-counts="">
-              {countsOf(project().scenes)} · variant {project().variant}
-            </span>
-          </InspectName>
-        </div>
-        <PartInspector
-          at={props.at}
-          of={film}
-          title={`the film ${props.at.film}`}
-          address={FILM}
-          scenes={project().scenes}
-          comments={project().comments}
-          part="all"
-        />
-        <Layers points={placedAt(shownPoints(), project().acts, FILM)} />
-      </Target>
+      <FilmPanel at={props.at} />
       <For each={project().acts} keyed={(a) => a.name}>
-        {(act) => <ActBlock at={props.at} act={act()} />}
+        {(act) => <ActPanel at={props.at} act={act()} />}
       </For>
       <Show when={loose().length > 0}>
-        <Scenes at={props.at} scenes={loose()} />
+        <section class="pj-loose">
+          <Scenes at={props.at} scenes={loose()} />
+        </section>
       </Show>
     </>
   );
@@ -711,6 +810,58 @@ const ProjectBody = (props: { readonly at: ProjectValue }) => {
 /** Whether a say was refused for the state its scenes are in now (one drawn again since the page read it). */
 const staleSinceRead = (failure: Option.Option<LabFailure>): boolean =>
   Option.exists(failure, (e) => e._tag === 'VerbRefused');
+
+/** The command an approve's receipt offers as its Undo: a withdraw of just the scenes it approved. */
+const UNDO_APPROVE: CommandId = 'project.undo-approve';
+
+/** The scenes an approve's Undo withdraws, as its receipt binds them (`Bound.change`). */
+const boundScenes = (bound: Bound): ReadonlyArray<string> =>
+  bound.change.split(' ').filter((id) => id !== '');
+
+/**
+ * What a say of the project did, as its receipt says it (`Words`): what it
+ * said of which part, and for an approve or a withdraw the part's approvals
+ * before → after (`0/2 → 1/2 approved`). An approve's Undo withdraws just
+ * the scenes it approved, bound to them; none when it approved none, or when
+ * it approved one an earlier version of which was approved (a withdraw would
+ * take that approval too).
+ */
+const sayWords = (film: string, before: Option.Option<ProjectView>) => (s: ProjectSay) => {
+  const was = Option.map(before, (v) => scenesIn(v, s.address));
+  const moved = (after: ProjectView) =>
+    Match.value(s.say._tag).pipe(
+      Match.when('Comment', () => ''),
+      Match.orElse(
+        () =>
+          ` · ${Option.getOrElse(Option.map(was, approvedOf), () => '?')} → ${approvedOf(scenesIn(after, s.address))} approved`,
+      ),
+    );
+  const undo = (after: ProjectView): Option.Option<Undoing> =>
+    Option.flatMap(
+      Option.filter(was, () => s.say._tag === 'Approve'),
+      (then) => {
+        const approval = new Map(then.map((x) => [x.scene, x.approval]));
+        const approved = scenesIn(after, s.address).filter(
+          (x) => x.approval === 'approved' && approval.get(x.scene) !== 'approved',
+        );
+        return Option.map(
+          Option.liftPredicate(
+            approved,
+            (xs) => xs.length > 0 && xs.every((x) => approval.get(x.scene) === 'none'),
+          ),
+          (xs) => ({
+            command: UNDO_APPROVE,
+            bound: { film, change: xs.map((x) => x.scene).join(' ') },
+          }),
+        );
+      },
+    );
+  return {
+    doing: 'saying…',
+    done: (after: ProjectView) => `${sayText(s.say, partText(s.address))}${moved(after)}`,
+    undo,
+  };
+};
 
 /**
  * The project read, read again, and said: the page shows the answer to the
@@ -731,6 +882,7 @@ const ProjectReady = (props: { readonly film: string }) => {
   const status = writeStatus<ProjectView>('project');
   const [shown, setShown] = createSignal(Option.none<ProjectView>());
   const asks = newestAsked();
+  const stills = useSceneStills(film);
   /** Show `exit`'s project when it answered and `ask` is still the newest: whether it answered. */
   const answered = (ask: Ask, exit: Exit.Exit<ProjectView, LabFailure>): boolean => {
     if (Exit.isFailure(exit)) return false;
@@ -751,10 +903,8 @@ const ProjectReady = (props: { readonly film: string }) => {
       (s: ProjectSay) => OptionsApi.use((api) => api.sayOfProject(film, s)),
       status,
       { project: asks },
-      (s) => ({
-        doing: 'saying…',
-        done: () => sayText(s.say, partText(s.address)),
-      }),
+      // The words are given as the say is sent: the part as the page shows it then.
+      (s) => sayWords(film, untrack(shown))(s),
     );
     return {
       waiting: own.waiting,
@@ -771,6 +921,57 @@ const ProjectReady = (props: { readonly film: string }) => {
         ),
     };
   };
+  // An approve's Undo: a withdraw of the scenes it approved, a run of neighbours a say.
+  const undoing = useSay();
+  const approvedNow = (ids: ReadonlyArray<string>) =>
+    Option.exists(untrack(shown), (v) =>
+      ids.every((id) => v.project.scenes.some((s) => s.scene === id && s.approval === 'approved')),
+    );
+  const undoApprove: Command = {
+    id: UNDO_APPROVE,
+    label: 'Undo',
+    labelIn: () => 'Undo an approve',
+    group: 'Edit',
+    typed: true,
+    touch: "the approve's receipt's Undo",
+    when: () => !undoing.waiting(),
+    fits: (bound) =>
+      Match.value(bound).pipe(
+        Match.when(
+          (b) => b.film !== film,
+          (b) => Option.some(Unfit.Now({ reason: `that approve was of ${b.film}` })),
+        ),
+        Match.when(
+          (b) => !approvedNow(boundScenes(b)),
+          () =>
+            Option.some(
+              Unfit.Never({ reason: 'those scenes are not approved now: nothing to undo' }),
+            ),
+        ),
+        Match.orElse(() => Option.none<Unfit>()),
+      ),
+    run: (_, how) =>
+      Effect.sync(() =>
+        Option.match(Option.fromUndefinedOr(how.bound), {
+          onNone: () => refused("an approve is undone from its receipt's Undo"),
+          onSome: (bound) => {
+            const order = Option.match(untrack(shown), {
+              onNone: (): ReadonlyArray<string> => [],
+              onSome: (v) => v.project.scenes.map((s) => s.scene),
+            });
+            void runsOf(boundScenes(bound), order).reduce(
+              (done, run) =>
+                done.then(() =>
+                  undoing.say({ address: { _tag: 'Scenes', ids: run }, say: { _tag: 'Withdraw' } }),
+                ),
+              Effect.runPromise(Effect.succeed(true)),
+            );
+            return quiet;
+          },
+        }),
+      ),
+  };
+  onCleanup(meta.hub.commands.register(undoApprove));
   // A source write changes the film (a pick its sound, a kept voice a scene): its scenes are read again.
   createEffect(version, (v) => {
     if (v > 0) readAgain();
@@ -780,6 +981,7 @@ const ProjectReady = (props: { readonly film: string }) => {
     view,
     useSay,
     reading: () => again().waiting,
+    stills,
   });
   return (
     <Loaded value={shown()} result={read()} reading={`Reading ${film}'s project…`}>
@@ -788,11 +990,28 @@ const ProjectReady = (props: { readonly film: string }) => {
   );
 };
 
-/** A film's project by its address tree, with its choices placed where they belong. */
+/**
+ * The film's transport, docked (design language §7): over the tab bar on a
+ * phone, held under the header on a laptop; while the film has no render, a
+ * line that says so where it would be.
+ */
+const Dock = () => (
+  <section class="sh-dock pj-dock">
+    <FilmTransport
+      fallback={
+        <p class="rv-hint pj-no-cut" data-role="no-cut">
+          No film render yet: render the scenes to play the cut
+        </p>
+      }
+    />
+  </section>
+);
+
+/** A film's project by its address tree, in the studio's shell. */
 export const ProjectPage = (props: { readonly film: string }) => (
   <FilmProvider film={props.film}>
-    <WriteBar />
-    <Player />
+    <StepCommands />
+    <Dock />
     <OnlyShown />
     <ProjectReady film={props.film} />
   </FilmProvider>

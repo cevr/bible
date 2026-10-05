@@ -182,11 +182,16 @@ export const SayBox = (props: {
   );
 };
 
-/** An approve button: approved as it is now, or again once it has changed. */
+/**
+ * An approve button: approved as it is now, or again once it has changed;
+ * while it waits on something first (`first`: a scene's render), disabled,
+ * saying what (`Approve · render first`).
+ */
 export const ApproveButton = (props: {
   readonly approval: ApprovalState;
   readonly approve: () => void;
   readonly disabled?: boolean;
+  readonly first?: string;
 }) => (
   <button
     type="button"
@@ -194,10 +199,17 @@ export const ApproveButton = (props: {
     data-act="approve"
     data-approval={props.approval}
     aria-pressed={pressed(props.approval === 'approved')}
-    disabled={props.disabled === true || props.approval === 'approved'}
+    disabled={
+      props.disabled === true ||
+      props.approval === 'approved' ||
+      Option.isSome(Option.fromUndefinedOr(props.first))
+    }
     onClick={() => props.approve()}
   >
-    {APPROVE_TITLE[props.approval]}
+    {Option.match(Option.fromUndefinedOr(props.first), {
+      onNone: () => APPROVE_TITLE[props.approval],
+      onSome: (first) => `Approve · ${first}`,
+    })}
   </button>
 );
 
@@ -264,22 +276,37 @@ const UnapproveButton = (props: { readonly variant: ChoiceVariant; readonly saye
   );
 };
 
-/** A variant's approve: only what is current is approved, as the version seen now. */
-export const Approve = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => {
+/**
+ * A variant's approve: only what is current is approved, as the version seen
+ * now. `first` is what one not current waits on, said on it (a scene's
+ * render: `render first`).
+ */
+export const Approve = (props: {
+  readonly variant: ChoiceVariant;
+  readonly sayer: Sayer;
+  readonly first?: string;
+}) => {
   const approving = props.sayer.use();
   return (
     <ApproveButton
       approval={props.variant.approval}
       disabled={props.variant.state !== 'current' || approving.waiting()}
+      first={Option.getOrUndefined(
+        Option.filter(Option.fromUndefinedOr(props.first), () => props.variant.state !== 'current'),
+      )}
       approve={() => approving.say(props.variant, { _tag: 'Approve' })}
     />
   );
 };
 
 /** A variant's approve and unapprove, as its inspector offers them. */
-export const Approval = (props: { readonly variant: ChoiceVariant; readonly sayer: Sayer }) => (
+export const Approval = (props: {
+  readonly variant: ChoiceVariant;
+  readonly sayer: Sayer;
+  readonly first?: string;
+}) => (
   <>
-    <Approve variant={props.variant} sayer={props.sayer} />
+    <Approve variant={props.variant} sayer={props.sayer} first={props.first} />
     <Show when={props.variant.approval !== 'none'}>
       <UnapproveButton variant={props.variant} sayer={props.sayer} />
     </Show>

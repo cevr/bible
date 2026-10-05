@@ -10,7 +10,7 @@
 // check --sound`: dead air, balance against the picked score); both checks
 // are counts that open the Findings sheet (`findings.tsx`).
 
-import { For, Show } from '@solidjs/web';
+import { For, type JSX, Show } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, onCleanup } from 'solid-js';
 import { useAtomValue } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
@@ -44,30 +44,59 @@ const pictureLabel = (p: ReviewVideo): string => {
 };
 
 /**
- * The render the sound plays over, on the clock, and the one `<audio>` heard
- * with it. Made once while the film has a picture: a write's answer (new
- * choices, the same picture) updates it in place, so a playing film plays on;
- * choosing another picture changes the one `<video>`'s source.
+ * The film's player: its transport over the render the sound plays over, and
+ * the one `<audio>` heard with it (`FilmTransport`, `FilmPicture`); while the
+ * film has no render, a line that says so.
  */
-export const Player = () => {
-  const { state } = useReview();
-  const { choices, picture, choosePicture, mix, driver, sync, send } = useFilm();
-  const mixes = () => Option.toArray(mix());
+const Player = () => {
+  const { picture } = useFilm();
   return (
     <Show
-      when={Option.getOrUndefined(picture())}
+      when={Option.isSome(picture())}
       fallback={
         <p class="rv-hint rv-note">
           No render of this film under the review's roots yet: each option plays alone below.
         </p>
       }
     >
+      <FilmTransport />
+      <FilmPicture />
+    </Show>
+  );
+};
+
+/**
+ * The film's transport (play, the time, the scrub, the rate) on its player's
+ * clock while the film has a render to play; `fallback` while it has none, so
+ * no control stands that would play nothing.
+ */
+export const FilmTransport = (props: { readonly fallback?: JSX.Element }) => {
+  const { picture, sync, send } = useFilm();
+  return (
+    <Show when={Option.isSome(picture())} fallback={props.fallback}>
+      <Transport sync={sync} send={send} />
+    </Show>
+  );
+};
+
+/**
+ * The render the sound plays over, on the clock, and the one `<audio>` heard
+ * with it. Made once while the film has a picture: a write's answer (new
+ * choices, the same picture) updates it in place, so a playing film plays on;
+ * choosing another picture changes the one `<video>`'s source. None while
+ * the film has no render.
+ */
+export const FilmPicture = () => {
+  const { state } = useReview();
+  const { choices, picture, choosePicture, mix, driver } = useFilm();
+  const mixes = () => Option.toArray(mix());
+  return (
+    <Show when={Option.getOrUndefined(picture())}>
       {(video: Accessor<ReviewVideo>) => {
         // The same file answered again keeps its source, so nothing reloads.
         const src = createMemo(() => Option.getOrUndefined(videoSource(video(), state.quality())));
         return (
           <>
-            <Transport sync={sync} send={send} />
             <Show when={choices().pictures.length > 1}>
               <div class="rv-row rv-pick">
                 <span class="rv-hint">Picture:</span>
@@ -160,7 +189,7 @@ const Mix = (props: { readonly src: string }) => {
  * stepped only when it is this film's and the one the stack would step
  * (`stepWhyNot`), else said why not, never another change.
  */
-const StepCommands = () => {
+export const StepCommands = () => {
   const { meta } = useReview();
   const { film, steps } = useFilm();
   const stepping = useAct();
@@ -199,7 +228,7 @@ const StepCommands = () => {
 };
 
 /** The film's checks as counts that open the Findings sheet (`findings.tsx`); Undo and Redo as commands. */
-export const WriteBar = () => {
+const WriteBar = () => {
   const { reading } = useFilm();
   return (
     <section class="rv-writes" data-reading={pressed(reading())}>
