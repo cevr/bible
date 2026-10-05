@@ -26,6 +26,11 @@ const QUALIFIERS: ReadonlyArray<string> = ['window', 'globalThis', 'self'];
 /** The URL's names: banned to every page, reached through Location. */
 const URL_NAMES: ReadonlyArray<string> = ['history', 'location', 'onpopstate'];
 
+/** The URL's events: heard only through Location. */
+const URL_EVENTS: ReadonlyArray<string> = ['popstate', 'hashchange'];
+
+const Allow = Schema.Struct({ allow: Schema.optionalKey(Schema.Array(Schema.String)) });
+
 const Severity = Schema.Literals(['error', 'warn', 'off']);
 /** A rule's config with its options. */
 const withOptions = <S extends Schema.Top>(options: S) =>
@@ -182,9 +187,14 @@ describe('the lint config', () => {
         const probe = probeOf(globals, properties);
         const reported = reportedLines(yield* lint(globals, properties, `${probe.join('\n')}\n`));
         expect(probe.filter((_, i) => !reported.has(i + 1))).toEqual([]);
-        // The URL's names are banned, and no block lets a page file off them.
+        // The URL's names are banned, and no block lets a file off its events.
         expect(globals.map((g) => g.name)).toEqual(expect.arrayContaining([...URL_NAMES]));
-        expect(allowing.map((o) => o.files)).toEqual([]);
+        const urlEventsAllowed = allowing.flatMap((o) =>
+          optionsIn(o, 'film/host-events-through-adapter', Allow).flatMap(({ allow = [] }) =>
+            allow.filter((event) => URL_EVENTS.includes(event)).map((event) => [o.files, event]),
+          ),
+        );
+        expect(urlEventsAllowed).toEqual([]);
       }),
     SPAWNS_MS,
   );

@@ -145,8 +145,10 @@
       // (packages/url-state/src/location-browser.ts). Everything else reads
       // and writes it through `@bible/url-state`, so a push or replace cannot
       // skip the batching, the entry keys or the history policy. A
-      // `popstate` listener is not caught here: `addEventListener` takes the
-      // event name as a string.
+      // `popstate` or `hashchange` listener on the window is the film's
+      // `host-events-through-adapter` rule's to refuse; the key and drag
+      // events it also refuses name the film's own adapters, so they stay
+      // allowed here.
       "files": [
         "**/packages/url-state/src/**/*.ts",
         "**/packages/url-state/src/**/*.tsx",
@@ -154,6 +156,19 @@
         "**/apps/egw-search/src/**/*.tsx"
       ],
       "rules": {
+        "film/host-events-through-adapter": [
+          "error",
+          {
+            "allow": [
+              "keydown",
+              "keyup",
+              "pointermove",
+              "pointerup",
+              "pointercancel",
+              "lostpointercapture"
+            ]
+          }
+        ],
         "no-restricted-globals": [
           "error",
           { "name": "history", "message": "Use @bible/url-state's Location." },
@@ -198,6 +213,7 @@
     {
       "files": ["**/packages/url-state/src/location-browser.ts"],
       "rules": {
+        "film/host-events-through-adapter": "off",
         "no-restricted-globals": "off",
         "no-restricted-properties": "off"
       }
