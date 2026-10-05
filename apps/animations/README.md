@@ -373,25 +373,33 @@ entries it left out.
 
 `.gent/extensions/film.ts`, at the repo root, is a project extension for
 [gent](https://github.com/cevr/gent). It gives gent the
-`scene-painter` agent. The agent holds the film tools and no others:
+`scene-painter` agent and `film.paint`, which starts one. The agent holds
+these tools and no others (no bash, no cell):
 
 - `film.look`, `film.check`, `film.cues` and `film.journal` run this
   checkout's own film CLI (`bun cli.ts …` in `apps/animations`). The stills
   come back as images the model reads. A refusal (`UnknownScene`,
   `PagesBroken`, `LabDown`, …) comes back as a failure whose fields are the
   film's tag and words.
-- `film.read`, `film.write` and `film.edit` reach only
-  `apps/animations/src/films/<film>/`, and refuse `..`, a path outside and
-  a symbolic link. `film.read` with `within: skill` also reads the film
-  skill's rules.
+- gent's own `read`, `grep`, `write` and `edit`, which the agent's `paths`
+  confine: `apps/animations/src/films` to write, `.claude/skills/film` (the
+  film skill's rules) to read. gent's paths are fixed folders, so the
+  definition cannot name one film; `film.paint` admits each painter session
+  with its film's folder alone as the `paths` override.
+
+`film.paint { film, scene, brief? }` checks the film and the scene as
+`film.cues` does, refuses an unknown one before any session is made, then
+starts a child session as `scene-painter` on that film and sends it the
+scene. It returns at admission with the session's id; `read_session` reads
+the painter's transcript. The painter does not hold `film.paint`.
 
 Every result fits whole in gent's 8,000-character tool result. A result that
-stops early says how to read on with the same tools: `film.read` and
-`film.cues` give the `next` line and column (inside a line, when one is
-longer than a result), `film.check` the `next` finding and the report it
-belongs to. When the findings change between pages, the check says
-`restarted` and lists them again from the first, so none is skipped. The
-journal names the narrower call that reads the lines it left out.
+stops early says how to read on: `film.cues` gives the `next` line and column
+(inside a line, when one is longer than a result), `film.check` the `next`
+finding and the report it belongs to. When the findings change between
+pages, the check says `restarted` and lists them again from the first, so
+none is skipped. The journal names the file `read` takes for the lines it
+left out.
 
 The agent's brief, in the extension, has it work in passages: read the scene,
 its cues and its journal; paint one passage; look; note what it saw; and run
@@ -409,7 +417,8 @@ To run a painter:
    trusted".
 2. Start the server: `gent server start`.
 3. With the repo root as the working directory, run
-   `gent -H -a scene-painter "Paint the roof scene of <film>: …"`.
+   `gent -H "film.paint the roof scene of <film>: …"`. Run as
+   `-a scene-painter` directly, a painter may write in every film.
 
 A look asks the lab named by `FILM_LAB_URL` in the gent server's environment,
 or the always-on lab on 8229 when that is unset. `bun run test:gent`

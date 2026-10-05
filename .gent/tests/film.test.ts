@@ -23,6 +23,7 @@ import { BunServices } from '@effect/platform-bun';
 import * as Prompt from 'effect/ai/Prompt';
 import type { ChildProcessSpawner } from 'effect/process/ChildProcessSpawner';
 import {
+  AgentDefinition,
   AgentName,
   ExtensionContext,
   ModelId,
@@ -54,6 +55,7 @@ import {
   RuntimeEnvironment,
   runToolWithCtx,
   type SequenceStep,
+  testAgent,
   testLeafContext,
   testToolContext,
   testTurnExtension,
@@ -64,17 +66,15 @@ import {
 import FilmExtension, {
   checkReport,
   cuesReport,
-  FILM_TOOL_IDS,
   FilmCheck,
   FilmCues,
-  FilmEdit,
   FilmJournal,
   FilmLook,
-  FilmRead,
-  FilmWrite,
   PAINTER,
   painterCompactor,
+  painterPaths,
   refusalOf,
+  scenePainter,
 } from '../extensions/film.ts';
 
 /** A string as a JavaScript string literal, for the temp checkout's `cli.ts`. */
@@ -118,8 +118,8 @@ const pngBytes = (width: number, height: number) => {
 
 /**
  * A temp checkout: `apps/animations/cli.ts` runs this repo's film CLI over the
- * temp films folder and asks the lab at `labUrl`, the fixture film `easel`
- * sits in it, and the film skill folder holds one rules file.
+ * temp films folder and asks the lab at `labUrl`, and the fixture film
+ * `easel` sits in it.
  */
 const checkout = Effect.fn('test.checkout')(function* (labUrl: string) {
   const fs = yield* FileSystem.FileSystem;
@@ -143,12 +143,6 @@ const checkout = Effect.fn('test.checkout')(function* (labUrl: string) {
   yield* fs.copy(
     path.join(import.meta.dir, 'fixtures', 'easel'),
     path.join(app, 'src', 'films', 'easel'),
-  );
-  const skill = path.join(root, '.claude', 'skills', 'film');
-  yield* fs.makeDirectory(skill, { recursive: true });
-  yield* fs.writeFileString(
-    path.join(skill, 'SKILL.md'),
-    '# Film\n\nStep 4: draw from the corpus.\n',
   );
   return root;
 });
@@ -253,7 +247,6 @@ const ModelFailure = Schema.Struct({
   tool: Schema.optionalKey(Schema.String),
   tag: Schema.optionalKey(Schema.String),
   text: Schema.optionalKey(Schema.String),
-  path: Schema.optionalKey(Schema.String),
   file: Schema.optionalKey(Schema.String),
   reason: Schema.optionalKey(Schema.String),
 });
@@ -270,223 +263,6 @@ const failure = (effect: Effect.Effect<unknown, ToolResultFailure>) =>
       return Schema.decodeUnknownEffect(ModelFailure)(error.result);
     }),
   );
-
-// ── the guard ───────────────────────────────────────────────────────────────
-
-describe('the film folder guard', () => {
-  it.live(
-    'a ".." step, an absolute path outside and a symbolic link are refused; the file outside is untouched',
-    () =>
-      live(
-        Effect.gen(function* () {
-          const fs = yield* FileSystem.FileSystem;
-          const { root, ctx } = yield* world();
-          const outside = yield* makeTempDirectoryScoped('film-gent-outside-');
-          const secret = `${outside}/outside.ts`;
-          yield* fs.writeFileString(secret, 'outside\n');
-          yield* fs.symlink(secret, `${filmFolder(root)}/link.ts`);
-          yield* fs.symlink(outside, `${filmFolder(root)}/linked`);
-
-          const dots = yield* failure(
-            runToolWithCtx(FilmRead, { film: 'easel', path: '../easel/script.ts' }, ctx),
-          );
-          expect(dots).toMatchObject({
-            _tag: 'FilmPathRefused',
-            reason: expect.stringContaining('".."'),
-          });
-
-          const absolute = yield* failure(
-            runToolWithCtx(
-              FilmWrite,
-              { film: 'easel', path: '/nonexistent/loop-probe-x', content: 'x' },
-              ctx,
-            ),
-          );
-          expect(absolute).toMatchObject({
-            _tag: 'FilmPathRefused',
-            reason: expect.stringContaining('outside'),
-          });
-
-          const fileLink = yield* failure(
-            runToolWithCtx(
-              FilmWrite,
-              { film: 'easel', path: 'link.ts', content: 'overwritten\n' },
-              ctx,
-            ),
-          );
-          expect(fileLink).toEqual({
-            _tag: 'FilmPathRefused',
-            path: 'link.ts',
-            reason: 'link.ts is a symbolic link',
-          });
-
-          const folderLink = yield* failure(
-            runToolWithCtx(FilmWrite, { film: 'easel', path: 'linked/new.ts', content: 'x' }, ctx),
-          );
-          expect(folderLink.reason).toContain('linked is a symbolic link');
-
-          const readLink = yield* failure(
-            runToolWithCtx(FilmRead, { film: 'easel', path: 'link.ts' }, ctx),
-          );
-          expect(readLink._tag).toBe('FilmPathRefused');
-
-          expect(yield* fs.readFileString(secret)).toBe('outside\n');
-          expect(yield* fs.exists(`${outside}/new.ts`)).toBe(false);
-        }),
-      ),
-    30_000,
-  );
-
-  it.live('a film folder that is itself a symbolic link is refused', () =>
-    live(
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const { root, ctx } = yield* world();
-        yield* fs.symlink(filmFolder(root), `${root}/apps/animations/src/films/alias`);
-        const error = yield* failure(
-          runToolWithCtx(FilmRead, { film: 'alias', path: 'script.ts' }, ctx),
-        );
-        expect(error._tag).toBe('FilmPathRefused');
-        expect(error.reason).toBe('the folder is a symbolic link');
-      }),
-    ),
-  );
-
-  it.live('write, read and edit inside the folder; an absolute path inside is admitted', () =>
-    live(
-      Effect.gen(function* () {
-        const { root, ctx } = yield* world();
-        const written = yield* runToolWithCtx(
-          FilmWrite,
-          { film: 'easel', path: 'scenes/roof.ts', content: 'const a = 1;\nconst b = 1;\n' },
-          ctx,
-        );
-        expect(written).toEqual({ path: 'scenes/roof.ts', bytes: 26 });
-
-        const once = yield* failure(
-          runToolWithCtx(
-            FilmEdit,
-            { film: 'easel', path: 'scenes/roof.ts', oldString: '= 1', newString: '= 2' },
-            ctx,
-          ),
-        );
-        expect(once.reason).toContain('found 2 times');
-        const missing = yield* failure(
-          runToolWithCtx(
-            FilmEdit,
-            { film: 'easel', path: 'scenes/roof.ts', oldString: '$&', newString: 'x' },
-            ctx,
-          ),
-        );
-        expect(missing).toMatchObject({ _tag: 'FilmFileFailed', reason: 'oldString not found' });
-        const empty = yield* failure(
-          runToolWithCtx(
-            FilmEdit,
-            { film: 'easel', path: 'scenes/roof.ts', oldString: '', newString: 'x' },
-            ctx,
-          ),
-        );
-        expect(empty).toMatchObject({ _tag: 'FilmFileFailed', reason: 'oldString is empty' });
-
-        // A replacement holding `$&` is put in as written, never read as a pattern.
-        const one = yield* runToolWithCtx(
-          FilmEdit,
-          { film: 'easel', path: 'scenes/roof.ts', oldString: 'a = 1', newString: 'a = "$&"' },
-          ctx,
-        );
-        expect(one.replacements).toBe(1);
-        const all = yield* runToolWithCtx(
-          FilmEdit,
-          {
-            film: 'easel',
-            path: `${filmFolder(root)}/scenes/roof.ts`,
-            oldString: 'const',
-            newString: 'let',
-            replaceAll: true,
-          },
-          ctx,
-        );
-        expect(all).toEqual({ path: 'scenes/roof.ts', replacements: 2 });
-
-        const read = yield* runToolWithCtx(
-          FilmRead,
-          { film: 'easel', path: 'scenes/roof.ts', from: 2 },
-          ctx,
-        );
-        expect(read).toEqual({
-          path: 'scenes/roof.ts',
-          from: 2,
-          column: 1,
-          to: 2,
-          total: 3,
-          text: 'let b = 1;\n',
-        });
-        const first = yield* runToolWithCtx(
-          FilmRead,
-          { film: 'easel', path: 'scenes/roof.ts' },
-          ctx,
-        );
-        expect(first.text).toBe('let a = "$&";\nlet b = 1;\n');
-      }),
-    ),
-  );
-
-  it.live('the film skill folder reads with within: skill, and only there', () =>
-    live(
-      Effect.gen(function* () {
-        const { ctx } = yield* world();
-        const rules = yield* runToolWithCtx(
-          FilmRead,
-          { film: 'easel', path: 'SKILL.md', within: 'skill' },
-          ctx,
-        );
-        expect(rules.text).toContain('Step 4');
-        const error = yield* failure(
-          runToolWithCtx(FilmRead, { film: 'easel', path: 'SKILL.md' }, ctx),
-        );
-        expect(error).toMatchObject({ _tag: 'FilmFileFailed', path: 'SKILL.md' });
-      }),
-    ),
-  );
-
-  it.live(
-    'a line longer than one read comes back whole across reads: the cursor moves only over what was returned',
-    () =>
-      live(
-        Effect.gen(function* () {
-          const fs = yield* FileSystem.FileSystem;
-          const { root, ctx } = yield* world();
-          const long = `${'x'.repeat(8_989)}END-OF-LONG`;
-          expect(long).toHaveLength(9_000);
-          yield* fs.writeFileString(`${filmFolder(root)}/long.txt`, `${long}\nNEXT\n`);
-          const pieces = yield* readAll(ctx, 'long.txt');
-          expect(pieces.length).toBeGreaterThan(1);
-          expect(pieces.join('')).toBe(`${long}\nNEXT\n`);
-        }),
-      ),
-  );
-});
-
-/**
- * Every window of `path` that `film.read` returns, following each answer's
- * `next` as the painter would, until a read has no `next` (at most 40 reads).
- */
-const readAll = Effect.fn('test.readAll')(function* (
-  ctx: ReturnType<typeof testToolContext>,
-  path: string,
-) {
-  const pieces: Array<string> = [];
-  let cursor = { from: 1, column: 1 };
-  for (let read = 0; read < 40; read += 1) {
-    const window = yield* runToolWithCtx(FilmRead, { film: 'easel', path, ...cursor }, ctx);
-    expect(encodeAny(window).length).toBeLessThan(8_000);
-    pieces.push(window.text);
-    const next = Option.fromUndefinedOr(window.next);
-    if (Option.isNone(next)) return pieces;
-    cursor = next.value;
-  }
-  return pieces;
-});
 
 // ── the CLI tools ───────────────────────────────────────────────────────────
 
@@ -598,36 +374,6 @@ describe("every result fits gent's budget, and says how to read on", () => {
         expect(rests.length).toBeGreaterThan(0);
         expect(got[1]).toContain('mark899@8.99');
       }),
-  );
-
-  it.live('a file full of quotes reads back whole, each window under 8,000 characters', () =>
-    live(
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const { root, ctx } = yield* world();
-        const quotes = `${'"'.repeat(99)}\n`.repeat(200);
-        yield* fs.writeFileString(`${filmFolder(root)}/quotes.txt`, quotes);
-        const pieces = yield* readAll(ctx, 'quotes.txt');
-        expect(pieces.length).toBeGreaterThan(2);
-        expect(pieces.join('')).toBe(quotes);
-      }),
-    ),
-  );
-
-  it.live('a refusal of a very long path stays under 8,000 characters', () =>
-    live(
-      Effect.gen(function* () {
-        const { ctx } = yield* world();
-        const refused = yield* failure(
-          runToolWithCtx(
-            FilmRead,
-            { film: 'easel', path: `/nonexistent/loop-probe-x/${'"'.repeat(9_000)}` },
-            ctx,
-          ),
-        );
-        expect(refused._tag).toBe('FilmPathRefused');
-      }),
-    ),
   );
 });
 
@@ -984,11 +730,11 @@ describe('the painter compactor', () => {
           );
           const history = [
             message('m1', 'assistant', [
-              call('c1', 'film.write', { film: 'easel', path: 'kit.ts', content: 'x' }),
+              call('c1', 'write', { path: 'apps/animations/src/films/easel/kit.ts', content: 'x' }),
               call('c2', 'film.look', { film: 'easel', scene: 'roof', at: ['mark:roof'] }),
             ]),
             message('m2', 'tool', [
-              result('c1', 'film.write', { path: 'kit.ts', bytes: 1 }),
+              result('c1', 'write', { path: `${filmFolder(root)}/kit.ts`, bytesWritten: 1 }),
               result('c2', 'film.look', {
                 build: 's.7',
                 stills: [{ line: '/x/1.png at=mark:roof t=1.66 build=s.7' }],
@@ -1040,7 +786,7 @@ describe('the painter compactor', () => {
             ]),
           );
 
-          // After the handoff: only file tools, which name a film but no scene.
+          // After the handoff: only gent's file tools, which name no scene.
           yield* fs.writeFileString(roof, 'export const roof = 2; // raised\n');
           yield* runToolWithCtx(
             FilmJournal,
@@ -1064,16 +810,19 @@ describe('the painter compactor', () => {
             request(PAINTER, [
               marker,
               message('m3', 'assistant', [
-                call('c2', 'film.read', { film: 'easel', path: 'scenes/roof.ts' }),
-                call('c3', 'film.write', {
-                  film: 'easel',
-                  path: 'scenes/roof.ts',
-                  content: 'x',
+                call('c2', 'read', { path: 'apps/animations/src/films/easel/scenes/roof.ts' }),
+                call('c3', 'edit', {
+                  path: `${filmFolder(root)}/scenes/roof.ts`,
+                  oldString: '1',
+                  newString: '2',
                 }),
               ]),
               message('m4', 'tool', [
-                result('c2', 'film.read', { path: 'scenes/roof.ts', text: 'x' }),
-                result('c3', 'film.write', { path: 'scenes/roof.ts', bytes: 1 }),
+                result('c2', 'read', { path: `${filmFolder(root)}/scenes/roof.ts`, content: 'x' }),
+                result('c3', 'edit', {
+                  path: `${filmFolder(root)}/scenes/roof.ts`,
+                  replacements: 1,
+                }),
               ]),
               message('m5', 'user', [Prompt.textPart({ text: 'Continue painting.' })]),
             ]),
@@ -1104,10 +853,10 @@ describe('the painter compactor', () => {
             request(PAINTER, [
               marker,
               message('m3', 'assistant', [
-                call('c2', 'film.read', { film: 'easel', path: 'scenes/roof.ts' }),
+                call('c2', 'read', { path: 'apps/animations/src/films/easel/scenes/roof.ts' }),
               ]),
               message('m4', 'tool', [
-                result('c2', 'film.read', { path: 'scenes/roof.ts', text: 'x' }),
+                result('c2', 'read', { path: `${filmFolder(root)}/scenes/roof.ts`, content: 'x' }),
               ]),
               ...copied,
             ]),
@@ -1120,6 +869,54 @@ describe('the painter compactor', () => {
           expect(alone.notice).toContain('No film tool named a film and a scene');
         }),
       ),
+  );
+
+  it.live("counts a write by the file its output names, and only a file in a film's folder", () =>
+    live(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const { root, ctx } = yield* world();
+        yield* fs.writeFileString(`${filmFolder(root)}/kit.ts`, 'export const kit = 1;\n');
+        const films = `${root}/apps/animations/src/films`;
+        // Each write's params name a film file; what counts is the output.
+        const wrote = (id: string, name: string, path: string, failed = false) => [
+          call(id, name, { path: 'apps/animations/src/films/easel/kit.ts', content: 'x' }),
+          Prompt.toolResultPart({
+            id: ToolCallId.make(id),
+            name,
+            isFailure: failed,
+            providerExecuted: false,
+            result: { path, bytesWritten: 1 },
+          }),
+        ];
+        const compact = yield* compactorIn(ctx);
+        const summary = yield* compact(
+          request(PAINTER, [
+            message('m1', 'assistant', [
+              call('c0', 'film.cues', { film: 'easel', scene: 'roof' }),
+              ...wrote('c1', 'write', `${root}/apps/animations/src/outside.ts`),
+              ...wrote('c2', 'edit', `${films}/loose.ts`),
+              ...wrote('c3', 'write', `${films}-elsewhere/easel/kit.ts`),
+              ...wrote('c4', 'write', `${filmFolder(root)}/kit.ts`, true),
+              ...wrote('c5', 'film.write', `${filmFolder(root)}/kit.ts`),
+            ]),
+          ]),
+        );
+        expect(summary.notice).toContain('## Files written\n(none)');
+
+        const counted = yield* compact(
+          request(PAINTER, [
+            message('m1', 'assistant', [
+              call('c0', 'film.cues', { film: 'easel', scene: 'roof' }),
+              ...wrote('c1', 'edit', `${filmFolder(root)}/kit.ts`),
+            ]),
+          ]),
+        );
+        expect(counted.notice).toContain(
+          '## Files written\napps/animations/src/films/easel/kit.ts (22 bytes)',
+        );
+      }),
+    ),
   );
 
   it.live('refuses any other agent, so the next compactor in the chain runs', () =>
@@ -1220,10 +1017,192 @@ describe("the scene painter's turn", () => {
           expect(system).toContain('film.check the scenes you touched');
           // The brief is the same bytes on every request of the turn.
           expect(turnRequestText(prompts[3] ?? Prompt.empty).systemPrompt).toBe(system);
-          expect(tools[0]?.toSorted()).toEqual([...FILM_TOOL_IDS].toSorted());
+          // The film's own tools, and not film.paint: gent's file tools, the
+          // rest of what it holds, are not loaded in this harness.
+          expect(tools[0]?.toSorted()).toEqual([
+            'film.check',
+            'film.cues',
+            'film.journal',
+            'film.look',
+          ]);
 
           const journal = yield* fs.readFileString(`${filmFolder(root)}/journal.md`);
           expect(journal).toContain('the roof reads as one mass at squint');
+        }),
+      ),
+    30_000,
+  );
+});
+
+// ── the painter's definition and film.paint ─────────────────────────────────
+
+const decodeAgent = Schema.decodeUnknownSync(AgentDefinition);
+const encodeAgent = Schema.encodeSync(AgentDefinition);
+
+describe("the scene painter's definition", () => {
+  it.effect(
+    "decodes through gent's AgentDefinition: exactly its eight tools, no bash, and the two paths",
+    () =>
+      Effect.sync(() => {
+        const decoded = decodeAgent(encodeAgent(scenePainter));
+        expect(decoded.tools).toEqual([
+          'read',
+          'grep',
+          'write',
+          'edit',
+          'film.cues',
+          'film.look',
+          'film.journal',
+          'film.check',
+        ]);
+        expect(decoded.paths).toEqual([
+          { path: 'apps/animations/src/films', access: 'write' },
+          { path: '.claude/skills/film', access: 'read' },
+        ]);
+        for (const held of decoded.tools ?? []) expect(decoded.admitsTool(held)).toBe(true);
+        for (const out of ['bash', 'cell', 'film.paint', 'film.read', 'delegate.start'])
+          expect(decoded.admitsTool(out)).toBe(false);
+      }),
+  );
+
+  it.effect("painterPaths holds one run to its film's folder, and the film skill to read", () =>
+    Effect.sync(() => {
+      expect(painterPaths('easel')).toEqual([
+        { path: 'apps/animations/src/films/easel', access: 'write' },
+        { path: '.claude/skills/film', access: 'read' },
+      ]);
+      // A run override decodes as the definition's own paths do.
+      const run = decodeAgent(
+        encodeAgent(AgentDefinition.make({ name: PAINTER, paths: painterPaths('easel') })),
+      );
+      expect(run.paths).toEqual(painterPaths('easel'));
+    }),
+  );
+});
+
+/** What film.paint answered: the painter's session and branch. */
+const PaintAnswer = Schema.fromJsonString(
+  Schema.Struct({ sessionId: SessionId, branchId: BranchId, follow: Schema.String }),
+);
+const decodePaintAnswer = Schema.decodeUnknownSync(PaintAnswer);
+
+describe('film.paint', () => {
+  it.live(
+    'starts a child session admitted as the painter, its paths the film alone, with the scene as its task',
+    () =>
+      live(
+        Effect.gen(function* () {
+          const { root, home } = yield* world();
+          // The parent's closing reply and the painter's one reply may come in
+          // either order: each step records what it was asked.
+          const asked: Array<{ readonly system: string; readonly tools: ReadonlyArray<string> }> =
+            [];
+          const users: Array<string> = [];
+          const seen: SequenceStep['assertOptions'] = (options) => {
+            const text = turnRequestText(options.prompt);
+            asked.push({
+              system: text.systemPrompt,
+              tools: options.tools.map((each) => each.name.replaceAll('__', '.')),
+            });
+            users.push(
+              options.prompt.content
+                .flatMap((each) => {
+                  if (each.role !== 'user') return [];
+                  return each.content.flatMap((part) => {
+                    if (part.type !== 'text') return [];
+                    return [part.text];
+                  });
+                })
+                .join('\n'),
+            );
+          };
+          const { layer: providerLayer, controls } = yield* LanguageModelLayers.sequence([
+            toolCallStep('film.paint', {
+              film: 'easel',
+              scene: 'roof',
+              brief: 'Raise the figure.',
+            }),
+            { ...textStep('Done.'), assertOptions: seen },
+            { ...textStep('Done.'), assertOptions: seen },
+          ]);
+          const harness = yield* createRpcHarness({
+            agents: [testAgent],
+            extensionInputs: [testTurnExtension, FilmExtension],
+            providerLayer,
+            cwd: root,
+            home,
+          });
+          const events = yield* oneTurn(harness, 'Paint the roof scene of easel.');
+          const started = events.find((event) => event._tag === 'ToolCallSucceeded');
+          if (started?._tag !== 'ToolCallSucceeded') return expect.unreachable();
+          expect(started.toolName).toBe('film.paint');
+          const answer = decodePaintAnswer(started.resultJson ?? '');
+          expect(answer.follow).toContain(answer.sessionId);
+
+          // The painter's turn runs to its end on the scripted model.
+          yield* harness.client.session
+            .events({ sessionId: answer.sessionId, branchId: answer.branchId })
+            .pipe(
+              Stream.takeUntil(({ event }) => event._tag === 'TurnCompleted'),
+              Stream.runDrain,
+            );
+          yield* controls.assertDone;
+
+          const child = (yield* harness.client.session.list()).find(
+            (session) => session.id === answer.sessionId,
+          );
+          expect(child?.parentSessionId).toBe(harness.sessionId);
+          expect(child?.admission?.agent).toBe(PAINTER);
+          expect(child?.admission?.runSpec?.overrides?.paths).toEqual(painterPaths('easel'));
+
+          const painter = asked.findIndex((each) =>
+            each.system.includes('## Agent: scene-painter'),
+          );
+          expect(painter).toBeGreaterThanOrEqual(0);
+          expect(asked[painter]?.tools.toSorted()).toEqual([
+            'film.check',
+            'film.cues',
+            'film.journal',
+            'film.look',
+          ]);
+          expect(users[painter]).toContain(
+            'Paint the scene roof of the film easel (apps/animations/src/films/easel/scenes/roof.ts).',
+          );
+          expect(users[painter]).toContain('Raise the figure.');
+        }),
+      ),
+    30_000,
+  );
+
+  it.live(
+    'an unknown film or scene is refused before any session is made',
+    () =>
+      live(
+        Effect.gen(function* () {
+          const { root, home } = yield* world();
+          const { layer: providerLayer, controls } = yield* LanguageModelLayers.sequence([
+            toolCallStep('film.paint', { film: 'nofilm', scene: 'roof' }),
+            toolCallStep('film.paint', { film: 'easel', scene: 'nope' }),
+            textStep('Refused.'),
+          ]);
+          const harness = yield* createRpcHarness({
+            agents: [testAgent],
+            extensionInputs: [testTurnExtension, FilmExtension],
+            providerLayer,
+            cwd: root,
+            home,
+          });
+          const events = yield* oneTurn(harness, 'Paint.');
+          yield* controls.assertDone;
+          const failed = events.flatMap((event) => {
+            if (event._tag !== 'ToolCallFailed') return [];
+            return [event.output ?? ''];
+          });
+          expect(failed).toHaveLength(2);
+          expect(failed[0]).toContain('FilmUnknown');
+          expect(failed[1]).toContain('UnknownScene');
+          const sessions = yield* harness.client.session.list();
+          expect(sessions.map((session) => session.id)).toEqual([harness.sessionId]);
         }),
       ),
     30_000,
@@ -1237,9 +1216,9 @@ const encodeUserConfig = Schema.encodeSync(
 );
 
 /**
- * A project holding a copy of the extension file (and no `node_modules`), a
- * home whose user config trusts it when `trusted`, and a server over both
- * that reads the config as gent does.
+ * A checkout holding a copy of the extension file (and no `node_modules` of
+ * its own), a home whose user config trusts it when `trusted`, and a server
+ * over both that reads the config as gent does.
  */
 const projectServer = Effect.fn('test.projectServer')(function* (
   trusted: boolean,
@@ -1247,16 +1226,14 @@ const projectServer = Effect.fn('test.projectServer')(function* (
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const project = yield* fs.realPath(yield* makeTempDirectoryScoped('film-gent-project-'));
+  // No look is taken: the lab's address is never asked.
+  const project = yield* checkout('http://127.0.0.1:9/');
   const home = yield* makeTempDirectoryScoped('film-gent-home-');
   yield* fs.makeDirectory(path.join(project, '.gent', 'extensions'), { recursive: true });
   yield* fs.copyFile(
     path.join(import.meta.dir, '..', 'extensions', 'film.ts'),
     path.join(project, '.gent', 'extensions', 'film.ts'),
   );
-  const films = path.join(project, 'apps', 'animations', 'src', 'films');
-  yield* fs.makeDirectory(films, { recursive: true });
-  yield* fs.copy(path.join(import.meta.dir, 'fixtures', 'easel'), path.join(films, 'easel'));
   yield* fs.makeDirectory(path.join(home, '.gent'), { recursive: true });
   yield* fs.writeFileString(
     path.join(home, '.gent', 'config.json'),
@@ -1293,19 +1270,19 @@ describe('the extension file in a project', () => {
       live(
         Effect.gen(function* () {
           const { harness, controls } = yield* projectServer(true, [
-            toolCallStep('film.read', { film: 'easel', path: 'script.ts' }),
-            textStep('Read it.'),
+            toolCallStep('film.cues', { film: 'easel', scene: 'roof' }),
+            textStep('Read them.'),
           ]);
           const health = yield* harness.client.extension.listStatus({
             scope: { _tag: 'Session', id: harness.sessionId },
           });
           expect(health._tag).toBe('Healthy');
-          const events = yield* oneTurn(harness, 'Read the script.');
+          const events = yield* oneTurn(harness, 'Read the cues.');
           yield* controls.assertDone;
-          const read = events.find((event) => event._tag === 'ToolCallSucceeded');
-          if (read?._tag !== 'ToolCallSucceeded') return expect.unreachable();
-          expect(read.toolName).toBe('film.read');
-          expect(read.output).toContain('defineScript');
+          const cues = events.find((event) => event._tag === 'ToolCallSucceeded');
+          if (cues?._tag !== 'ToolCallSucceeded') return expect.unreachable();
+          expect(cues.toolName).toBe('film.cues');
+          expect(cues.output).toContain('roof@');
         }),
       ),
   );
