@@ -2751,8 +2751,8 @@ inert, answering as a phone held upright (`Viewport.layerPhone`). `browser/` is
 framework-free, so the player may import it. Per-viewer settings go through
 Effect's `KeyValueStore` (`browser/storage.ts`): `TabStore` over the tab's
 session (the lab's view, `film-lab-view:<film>`, and the receipts,
-`film-receipts`, each an `Atom.kvs` of its JSON) and `ViewerStore` over
-local storage (the keymap, `film-keymap`, an `Atom.kvs`; `film-lab-mic`,
+`film-receipts`, each a `keptJson`) and `ViewerStore` over
+local storage (the keymap, `film-keymap`, a `keptJson`; `film-lab-mic`,
 `film-review.quality` and the `film-studio.*` conveniences, each a
 `keptText` stored as plain text), each a store
 in memory when the page may not use its storage. Every drag (the

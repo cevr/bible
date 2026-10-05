@@ -24,10 +24,8 @@
 import { Toast } from '@bible/ui/toast';
 import { For } from '@solidjs/web';
 import { Equal, Option, Schema } from 'effect';
-import * as Atom from 'effect/reactivity/Atom';
-import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import { createEffect, createSignal, onCleanup, onSettled } from 'solid-js';
-import type { StoreRuntime } from '../../browser/storage.ts';
+import { type StoreRuntime, keptJson } from '../../browser/storage.ts';
 import { BY_BUTTON, type Bound, Receipt, Unfit, unfit } from '../../command/command.ts';
 import type { Hub } from '../../command/hub.ts';
 import { hubChanges } from './changes.ts';
@@ -195,30 +193,21 @@ export const Receipts = (props: {
     ),
   );
 
-  const carried = Atom.kvs({
-    runtime: props.tab,
-    key: KEPT_AS,
-    schema: Carried,
-    defaultValue: (): typeof Carried.Type => ({ scope: '', receipts: [] }),
-    mode: 'sync',
-  });
-  const registry = AtomRegistry.make();
   // The tab's kept receipts are the browser's: read, shown and kept again as
   // the page is left only once the page is the client's (a server render
   // reads and keeps nothing). Shown again once the page's commands are
   // registered, so an Undo is named as its command is.
   onSettled(() => {
-    const unmount = registry.mount(carried);
-    const was = registry.get(carried);
-    registry.set(carried, { scope: '', receipts: [] });
+    const carried = keptJson(props.tab, KEPT_AS, Carried, (): typeof Carried.Type => ({
+      scope: '',
+      receipts: [],
+    }));
+    const was = carried.get();
+    carried.set({ scope: '', receipts: [] });
     if (was.scope === props.scope) for (const kept of was.receipts) show(kept);
-    const keep = () =>
-      registry.set(carried, { scope: props.scope, receipts: [...showing.values()] });
+    const keep = () => carried.set({ scope: props.scope, receipts: [...showing.values()] });
     window.addEventListener('pagehide', keep);
-    return () => {
-      window.removeEventListener('pagehide', keep);
-      unmount();
-    };
+    return () => window.removeEventListener('pagehide', keep);
   });
 
   return (

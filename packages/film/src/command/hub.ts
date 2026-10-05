@@ -14,11 +14,9 @@
 // menu, ⌘K or a button asked for it. Framework-free.
 
 import { Effect, Option } from 'effect';
-import * as Atom from 'effect/reactivity/Atom';
-import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import type { Clipboard } from '../browser/clipboard.ts';
 import { type KeyPress, Keys } from '../browser/keys.ts';
-import type { StoreRuntime } from '../browser/storage.ts';
+import { type StoreRuntime, keptJson } from '../browser/storage.ts';
 import type { PageName } from '../core/api.ts';
 import {
   type Command,
@@ -88,16 +86,7 @@ export const makeHub = (
 /** The hub of `page`, chords read as a Mac's when `mac`. */
 const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boolean): Hub => {
   const commands = makeCommands();
-  const kept = Atom.kvs({
-    runtime: store,
-    key: KEPT_AS,
-    schema: KeymapOverrides,
-    defaultValue: (): KeymapOverrides => [],
-    mode: 'sync',
-  });
-  const registry = AtomRegistry.make();
-  registry.mount(kept);
-  let overrides = registry.get(kept);
+  const kept = keptJson(store, KEPT_AS, KeymapOverrides, (): KeymapOverrides => []);
 
   const listeners = new Set<() => void>();
   const changed = () => {
@@ -125,7 +114,7 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
       ),
     );
   };
-  const bindings = () => bindingsOf(commands.all(), overrides);
+  const bindings = () => bindingsOf(commands.all(), kept.get());
 
   /** One press, bound and run: whether the keymap took it (its default is then prevented). */
   const press = (pressed: KeyPress): boolean => {
@@ -161,10 +150,9 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
       return () => sinks.delete(sink);
     },
     announce,
-    overrides: () => overrides,
+    overrides: kept.get,
     setOverrides: (next) => {
-      overrides = next;
-      registry.set(kept, next);
+      kept.set(next);
       changed();
     },
     keysOf: (id) => keysOf(bindings(), id),
