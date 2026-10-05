@@ -8,7 +8,7 @@ import { Effect } from 'effect';
 import { createFilm } from '../canvas/film.ts';
 import { standInDom } from '../canvas/fixtures/stand-in.ts';
 import { timecode } from '../core/time.ts';
-import { composeLookbook, fontFamilyOf, sceneHead, stillTime } from './lookbook-sheet.ts';
+import { composeLookbook, fontFamilyOf, sceneHead } from './lookbook-sheet.ts';
 
 describe('fontFamilyOf', () => {
   test("what follows a CSS font's size", () => {
@@ -55,7 +55,7 @@ describe('composeLookbook', () => {
     expect((last?.x ?? 0) + (last?.w ?? 0)).toBeLessThanOrEqual(canvas.width);
   });
 
-  test("every time on the sheet is the film's timecode, a scene's head and each still's label", () => {
+  test("a scene's head on the sheet spans its time in the film's timecode", () => {
     const film = filmOf(3);
     const second = film.placed[1];
     expect(second).toBeDefined();
@@ -63,7 +63,6 @@ describe('composeLookbook', () => {
     expect(sceneHead(second, 30)).toBe(
       `2. s1 · ${timecode(second.start, 30)}–${timecode(second.start + second.dur, 30)}`,
     );
-    expect(stillTime(65.4, 30)).toBe('00:01:05:12');
   });
 
   test('a film that fits is laid out at full size', async () => {

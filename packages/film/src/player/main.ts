@@ -1,52 +1,45 @@
-// The browser player, framework-free. The render page (an app's `index.html`,
-// `?film=<name>&export`) calls `mountRender(films)`: the film with no chrome,
-// and `window.__film` for the renderer. The studio's pages with a film on
-// them stage it here (`stageFilm`) and mount the scrubbable preview
-// (`mountPreview`) in their Solid shell: the lab (`@bible/film/lab`), and a
-// film's Scenes and Play pages (`mountPlay`, lab/play-mount.tsx). So the
-// render page never loads Solid.
+// The browser player, framework-free. A page with a film on it stages it
+// here (`stageFilm`): the render page (`render.ts`, `mountRender`), and the
+// studio's pages, which mount the scrubbable preview (`mountPreview`) in
+// their Solid shell: the lab (`@bible/film/lab`), and a film's Scenes and
+// Play pages (`mountPlay`, lab/play-mount.tsx). So the render page never
+// loads Solid, and the studio's pages never load the encoder.
 
 import type { Film, KnobRead, RenderOptions, ShownEdit } from '../canvas/film.ts';
-import type { ProbeSink } from '../canvas/probe.ts';
-import type { ExportHandle } from '../core/export-handle.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { timecode } from '../core/time.ts';
-import { Effect, Option } from 'effect';
+import { Cause, Effect, Option } from 'effect';
 import type { Fiber } from 'effect';
 import { parseHref } from '@bible/url-state';
-import { filmOfPage } from '../core/api.ts';
-import { addressOn, hostOf, monotonicMs, onTraverse } from '../browser/host.ts';
+import { TIME_EVERY_MS, filmOfPage } from '../core/api.ts';
+import { addressOn, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
-import { BrowserHost } from '../browser/host-browser.ts';
+import { makeClock } from '../browser/media-clock.ts';
 import { Frames } from '../browser/frames.ts';
 import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
 import { BY_BUTTON } from '../command/command.ts';
 import type { Hub } from '../command/hub.ts';
 import { chordLabel } from '../command/keymap.ts';
 import { Pointer } from '../browser/pointer.ts';
-import { composeContact } from './contact.ts';
-import { sceneTimesOf } from '../core/easel.ts';
-import { composeStill } from './still.ts';
-import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
-import { encodeChunk, encoderChoice } from './encode.ts';
-import { composeLookbook } from './lookbook-sheet.ts';
+import { required } from './dom.ts';
+import { pictureFacesWait } from './face.ts';
 import { narration, narrationNote } from './narration.ts';
 import { tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
-import { lookFrames } from './look-frames.ts';
-import { legendCommand, transportCommands } from './transport.ts';
-
-/** The longest `#t=` in the URL trails the frame shown while it plays. */
-const HASH_MS = 250;
+import { legendCommand, ticksCommand, transportCommands } from './transport.ts';
+import { makeHud } from './hud.ts';
+import { keptText } from '../browser/storage.ts';
+import { ViewerStore } from '../browser/storage-browser.ts';
+import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 
 /** How long a tick's name stays after the finger that held it lifts, in ms. */
 const TIP_READ_MS = 1500;
 
-declare global {
-  interface Window {
-    __film?: ExportHandle;
-  }
-}
+/** Whether the viewer shows the ticks on Play (`on`; none or `off`: hidden), kept in this browser. */
+const KEPT_TICKS = keptText(ViewerStore, 'film-studio.ticks');
+
+/** Play's HUD: the bar, the shell's header and its tab bar (`player.css` fades them together). */
+const HUD_PARTS = '.bar, .sh-header, .sh-pagebar';
 
 /** A span of film seconds playback repeats: `from` to `to`. */
 export interface LoopRange {
@@ -93,7 +86,8 @@ export interface Player {
    * Draw the frame at `T` into `ctx` as the preview shows it: its captions
    * and the lab's edits, with `over` (an edit per scene) on top of them. The
    * one spelling of "the frame as the lab shows it": a note's still, the
-   * onion and the HEAD layer draw through it.
+   * onion and the HEAD layer draw through it. Nothing is drawn until the
+   * film's faces have loaded (`drawable`).
    */
   renderShown(
     ctx: CanvasRenderingContext2D,
@@ -108,7 +102,13 @@ export interface Player {
   showEdits(edits: ReadonlyMap<string, ShownEdit>): void;
   /** Every knob the last frame drawn read, and how (`KnobRead`). */
   knobReads(): ReadonlyArray<KnobRead>;
-  /** Called after every frame the preview draws, until the returned function is called. */
+  /**
+   * Whether the preview draws frames: once the faces its film draws in have
+   * loaded (`pictureFacesWait`). Until then its bar shows where the film is,
+   * and its canvas nothing.
+   */
+  drawable(): boolean;
+  /** Called after every frame the preview draws (none while it is not `drawable`), until the returned function is called. */
   onDraw(listener: (T: number) => void): () => void;
 }
 
@@ -116,7 +116,7 @@ export interface Player {
 export type Films = Record<string, () => Promise<Film>>;
 
 /** A page's film, loaded and on the stage: its name, its canvas and the captions switch. */
-interface Staged {
+export interface Staged {
   readonly name: string;
   readonly film: Film;
   readonly canvas: HTMLCanvasElement;
@@ -138,10 +138,11 @@ const filmName = (href: string, films: Films): string =>
 
 /**
  * Load the film of the page at `href` (its loader gives it with the faces it
- * draws in loaded, `narratedFilms`, so text measures true from the first
- * frame: a short's hook and captions are measured once, on the first frame
- * that draws them), title the page, and put the film's canvas on the stage;
- * its captions are on unless an export page says `captions=0`.
+ * draws in asked for, `narratedFilms`; what draws it waits for them,
+ * `pictureFacesWait`, so text measures true from the first frame: a short's
+ * hook and captions are measured once, on the first frame that draws them),
+ * title the page, and put the film's canvas on the stage, undrawn; its
+ * captions are on unless an export page says `captions=0`.
  */
 export const stageFilm = async (films: Films, href: string): Promise<Staged> => {
   const name = filmName(href, films);
@@ -176,112 +177,14 @@ export const showFailure = (e: unknown): void => {
 };
 
 /**
- * Mount the render page for `films` (`?film=<name>&export`): the film
- * staged with no chrome and no UI face, drawing only the film's own faces,
- * and the handle the renderer drives on `window.__film`.
- */
-export const mountRender = (films: Films): void => {
-  const host = hostOf(BrowserHost.layer);
-  stageFilm(films, addressOn(host).href())
-    .then((staged) => {
-      document.body.classList.add('export');
-      window.__film = exportHandle(staged, host);
-    })
-    .catch((e: unknown) => {
-      showFailure(e);
-      throw e;
-    });
-};
-
-/**
- * The handle the tools drive a staged film through (`ExportHandle`,
- * core/export-handle.ts). Every draw is timed the same way (`drawn`): the
- * frame drawn, then rastered by a one-pixel read before the clock stops, so
- * the canvas's recorded drawing is paid for in the draw and not later by
- * whatever reads the canvas next (an encoder, `toBlob`).
- */
-const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): ExportHandle => {
-  /** The page clock in ms (`monotonicMs`): what every draw and encode is timed by. */
-  const nowMs = monotonicMs(host);
-  const draw = (i: number) => film.render(ctx, i / film.fps, { captions: captions.on });
-  /** Draw frame `i` and raster it: the ms it took. */
-  const drawn = (i: number) => {
-    const began = nowMs();
-    draw(i);
-    ctx.getImageData(0, 0, 1, 1);
-    return nowMs() - began;
-  };
-  return {
-    info: {
-      width: film.width,
-      height: film.height,
-      fps: film.fps,
-      duration: film.duration,
-      frames: Math.ceil(film.duration * film.fps),
-      audio: film.audio,
-    },
-    frame: (i, type) => {
-      draw(i);
-      return canvasBase64(canvas, type);
-    },
-    probe: (i) => {
-      const sink: ProbeSink = { texts: [], inks: [] };
-      film.render(ctx, i / film.fps, { captions: captions.on, probe: sink });
-      return sink;
-    },
-    lookbook: async (type) =>
-      canvasBase64((await composeLookbook(film, { captions: captions.on })).canvas, type),
-    encoder: (scale, share, candidates) =>
-      encoderChoice(canvas, film.fps, scale, share, candidates),
-    encode: async (from, to, scale, share, encoder) => {
-      const began = nowMs();
-      let drawing = 0;
-      const chunk = await encodeChunk(
-        (i) => {
-          drawing += drawn(i);
-        },
-        canvas,
-        film.fps,
-        from,
-        to,
-        scale,
-        share,
-        encoder,
-      );
-      const master = bytesBase64(chunk.master);
-      const copy = chunk.share === undefined ? {} : { share: bytesBase64(chunk.share) };
-      return { master, ...copy, timing: { draw: drawing, page: nowMs() - began } };
-    },
-    contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
-    look: (frames, w, h) => {
-      const shot = lookFrames(
-        (i, probe) => film.render(ctx, i / film.fps, { captions: false, probe }),
-        canvas,
-        frames,
-        w,
-        h,
-      );
-      return { thumbs: bytesBase64(shot.thumbs), faces: shot.faces, hands: shot.hands };
-    },
-    luma: (i, area) => {
-      draw(i);
-      return canvasLuma(canvas, area);
-    },
-    drawTimes: (frames) => frames.map(drawn),
-    scenes: () => film.placed.map(sceneTimesOf),
-    still: (i, view) => {
-      film.render(ctx, i / film.fps, { captions: view.captions });
-      return canvasBase64(composeStill(canvas, view), view.format);
-    },
-  };
-};
-
-/**
  * The scrubbable preview of a staged film: its bar and timeline, its clock,
  * and its transport, registered as commands with the page's `hub` (whose
- * keymap binds their keys; the bar's legend says the keys bound now). The
- * legend is hidden at rest (UR-114, `legendCommand`): on the player's own
- * page `?` or the bar's ? button shows it, in the lab ⌘K or the page's menu.
+ * keymap binds their keys, which the `?` sheet lists). Its legend (the
+ * stripes and the ticks) is hidden at rest: in the lab ⌘K or the page's menu
+ * shows it (`legendCommand`); on a film's Play page it shows with the ticks,
+ * once the viewer turns them on (`ticksCommand`), and the HUD fades while the
+ * film plays (`hud.ts`). The lab's transport reads in the scene's time (the
+ * header keeps the film's), and its captions are the view menu's and `c`.
  */
 export const mountPreview = (
   { film, canvas, ctx, captions }: Staged,
@@ -301,7 +204,7 @@ export const mountPreview = (
     </div>
     <div class="track"><div class="head"></div></div>
     <div class="tip" hidden></div>
-    <div class="keys" hidden><span class="bound"></span> · striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover or long-press for the name)</div>`;
+    <div class="keys" hidden>striped = narration estimated, not recorded · ticks: <i class="k-mark"></i>mark <i class="k-cue"></i>cue <i class="k-effect"></i>sound <i class="k-act"></i>music act (hover or long-press for the name)</div>`;
   document.body.append(bar);
   const q = <T extends Element>(sel: string) => required<T>(bar, sel);
   const track = q<HTMLDivElement>('.track');
@@ -387,24 +290,29 @@ export const mountPreview = (
   const voice = narration(film.audio, host, () => draw());
   let T = Math.min(Math.max(time.at(addressOn(host).href()), 0), film.duration);
   let playing = false;
-  let wallStart = 0;
-  let tStart = 0;
   let rate = 1;
   /** The play loop, while the film plays (`Frames.loop`). */
   let running = Option.none<Fiber.Fiber<void>>();
-  /** The page clock's monotonic time in ms: the host's `Clock`. */
+  /**
+   * The preview's own clock, over the host's monotonic `Clock` (seconds):
+   * what T follows off the narration (at any rate but 1×, or with no
+   * narration to play). It stands while the film does; a seek or a rate
+   * change starts it again from T.
+   */
   const nowMs = monotonicMs(host);
+  const clock = makeClock(() => nowMs() / 1000);
   let loop: LoopRange | undefined;
   const listeners: Array<(T: number) => void> = [];
   let reads: KnobRead[] = [];
   /**
    * T in the URL (`time`, the page's own place), so a reload lands on this
-   * frame (`tInUrl`): written at most every HASH_MS while T moves, at once
+   * frame (`tInUrl`): written at most every `TIME_EVERY_MS` (the time key's
+   * throttle, `core/api.ts`) while T moves, at once
    * when it settles (the end of a scrub, play or pause, the film's end) or
    * jumps (a seek), and held at the frame a lab write was asked at. A frame
    * loop that wrote it every frame cost a history call per frame.
    */
-  const url = tInUrl((cause) => time.write(T, cause), HASH_MS, timersOn(host));
+  const url = tInUrl((cause) => time.write(T, cause), TIME_EVERY_MS, timersOn(host));
 
   /** The lab's edits, drawn over the film's own (`Player.showEdits`). */
   let edits: ReadonlyMap<string, ShownEdit> = new Map();
@@ -416,10 +324,39 @@ export const mountPreview = (
     ...extra,
   });
 
+  /**
+   * Whether frames are drawn: once the faces the film draws in have loaded
+   * (`pictureFacesWait`), at once when they are in already. Until then the
+   * bar shows where the film is, its canvas nothing, so no frame is ever
+   * drawn in a fallback face.
+   */
+  let drawable = false;
+
+  const page = hub.context().page;
+  /** Whether the bar is on a film's Play page (the shell's part), where the HUD fades and the ticks are the viewer's. */
+  const onPlay = () => bar.closest('[data-part="play"]') !== null;
+  /** Whether the keyboard's focus is on one of the HUD's controls (the bar, the header, the tab bar): they stay while it is. */
+  const focusHeld = () =>
+    Option.match(Option.fromNullishOr(document.activeElement), {
+      onNone: () => false,
+      onSome: (el) => el.matches(':focus-visible') && el.closest(HUD_PARTS) !== null,
+    });
+  const hud = makeHud(
+    (shown) => {
+      bar.dataset['hud'] = shown ? 'shown' : 'hidden';
+    },
+    timersOn(host),
+    focusHeld,
+  );
+  bar.dataset['hud'] = 'shown';
+
   const draw = () => {
-    reads = [];
-    film.render(ctx, T, shownOptions({ knobs: reads }));
-    for (const listener of listeners) listener(T);
+    if (drawable) {
+      reads = [];
+      film.render(ctx, T, shownOptions({ knobs: reads }));
+      // As they stand at this frame: a listener that stops listening skips none of the rest.
+      for (const listener of [...listeners]) listener(T);
+    }
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
     const shownRate = rate === 1 ? '' : ` · ${rate}× muted`;
@@ -427,19 +364,24 @@ export const mountPreview = (
       loop === undefined
         ? ''
         : ` · loop ${timecode(loop.from, film.fps)}–${timecode(loop.to, film.fps)}`;
-    timecodeEl.textContent = timecode(T, film.fps);
-    lengthEl.textContent = ` / ${timecode(film.duration, film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
+    // The lab's transport is in the scene's time, the header's timecode the film's; elsewhere the film's.
+    const [at, length] =
+      page === 'lab' ? [Math.max(T - cur.start, 0), cur.dur] : [T, film.duration];
+    timecodeEl.textContent = timecode(at, film.fps);
+    lengthEl.textContent = ` / ${timecode(length, film.fps)}${shownRate}${shownLoop}${narrationNote(voice.state())}`;
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
+    // On Play the line is the captions' alone while they show (`player.css`).
+    bar.dataset['captions'] = captions.on ? 'on' : 'off';
+    if (onPlay()) hud.playing(playing);
     url.moved();
   };
 
-  /** Show `t`, as a drag passes through it: `#t=` follows at most every HASH_MS. */
+  /** Show `t`, as a drag passes through it: `#t=` follows at most every `TIME_EVERY_MS`. */
   const scrub = (t: number) => {
     T = Math.max(0, Math.min(film.duration, t));
-    tStart = T;
-    wallStart = nowMs();
+    clock.seek(T);
     voice.seek(T);
     draw();
   };
@@ -464,8 +406,9 @@ export const mountPreview = (
    * is not asked to (`narration.ts`).
    */
   const rebase = () => {
-    tStart = T;
-    wallStart = nowMs();
+    clock.seek(T);
+    if (playing) clock.play();
+    else clock.pause();
     voice.seek(T);
     if (playing && rate === 1) voice.play(() => T);
     else voice.pause();
@@ -486,9 +429,7 @@ export const mountPreview = (
   /** One frame of play: the frame at the clock's time, and whether play goes on. */
   const tick = (): boolean => {
     if (!playing) return false;
-    T =
-      (rate === 1 ? voice.playingAt() : undefined) ??
-      tStart + ((nowMs() - wallStart) / 1000) * rate;
+    T = (rate === 1 ? voice.playingAt() : undefined) ?? clock.time();
     if (loop !== undefined && (T >= loop.to || T < loop.from - 1 / film.fps)) {
       T = loop.from;
       rebase();
@@ -531,14 +472,16 @@ export const mountPreview = (
     );
   });
   playBtn.addEventListener('click', toggle);
-  q<HTMLButtonElement>('[data-act="captions"]').addEventListener('click', () => {
+  // The captions' button, on the player's pages; the lab's captions are the view menu's and `c` (UR2-12).
+  const captionsBtn = q<HTMLButtonElement>('[data-act="captions"]');
+  if (page === 'lab') captionsBtn.remove();
+  captionsBtn.addEventListener('click', () => {
     captions.on = !captions.on;
     draw();
   });
-  canvas.addEventListener('click', toggle);
   // The transport, as the page's commands: its keys are the page's keymap's.
   hub.commands.register(
-    ...transportCommands({
+    ...transportCommands(page, {
       toggle,
       stepFrames: (frames) => seek(T + frames / film.fps),
       nextScene: () => {
@@ -556,37 +499,25 @@ export const mountPreview = (
     }),
   );
   hub.refine((now) => ({ ...now, playing }));
-  // The legend says the keys bound now: a rebound key reads as rebound.
-  const bound = q<HTMLSpanElement>('.bound');
+  /** The key bound to `id` now, as the keys sheet says it: a rebound key reads as rebound. */
   const keyOf = (id: string) =>
     hub
       .keysOf(id)
       .slice(0, 1)
       .map((k) => chordLabel(k, hub.mac))[0] ?? '—';
-  const legend = () => {
-    bound.textContent = [
-      `${keyOf('play.toggle')} play`,
-      `${keyOf('play.frame-previous')}/${keyOf('play.frame-next')} frame (shift: 10)`,
-      `${keyOf('play.scene-previous')} ${keyOf('play.scene-next')} scene`,
-      `${keyOf('view.captions')} captions`,
-    ].join(' · ');
-  };
-  legend();
-  hub.subscribe(legend);
-  // The legend, hidden at rest; on the player's own page the bar's ? button is a phone's way to it.
-  const keysLine = q<HTMLDivElement>('.keys');
-  const page = hub.context().page;
-  const legendButton = document.createElement('button');
-  legendButton.dataset['act'] = 'legend';
-  legendButton.textContent = '?';
-  legendButton.title = 'Show or hide the keys and the legend';
-  const toggleLegend = () => {
-    keysLine.hidden = !keysLine.hidden;
-    legendButton.setAttribute('aria-expanded', String(!keysLine.hidden));
-  };
   // The lab's transport steps a frame at a time by touch too (AA-8): the
-  // frame keys' own commands, as a pair beside play.
+  // frame keys' own commands, as a pair beside play. Its legend, hidden at
+  // rest, is ⌘K's and the page's menu's (the keys are the `?` sheet's).
   if (page === 'lab') {
+    const keysLine = q<HTMLDivElement>('.keys');
+    hub.commands.register(
+      legendCommand({
+        shown: () => !keysLine.hidden,
+        toggle: () => {
+          keysLine.hidden = !keysLine.hidden;
+        },
+      }),
+    );
     const step = (id: string, glyph: string, label: string) => {
       const button = document.createElement('button');
       button.dataset['act'] = id;
@@ -601,14 +532,72 @@ export const mountPreview = (
       step('play.frame-next', '▶', 'Next frame'),
     );
   }
+  // The picture: a click plays or pauses; on Play a finger's tap while it
+  // plays shows or hides the HUD instead (its ❚❚ pauses), as a phone's
+  // players do. Any other input on Play shows the HUD (`hud.ts`), for as long
+  // as the bar is on the page.
+  let pressedBy = 'mouse';
+  canvas.addEventListener('pointerdown', (e) => {
+    pressedBy = e.pointerType;
+  });
+  canvas.addEventListener('click', () => {
+    if (onPlay() && playing && pressedBy !== 'mouse') hud.toggle();
+    else toggle();
+  });
   if (page === 'player') {
-    legendButton.setAttribute('aria-expanded', 'false');
-    legendButton.addEventListener('click', toggleLegend);
-    q<HTMLDivElement>('.row').append(legendButton);
+    const leaving = new AbortController();
+    const wake = (e: Event) => {
+      if (!bar.isConnected) return leaving.abort();
+      if (!onPlay()) return;
+      // A finger on the picture is the picture's tap, which toggles the HUD.
+      if (e instanceof PointerEvent && e.target === canvas && e.pointerType !== 'mouse') return;
+      hud.wake();
+    };
+    // The focus moving wakes it too: Tab landing on a faded control shows it,
+    // and the focus leaving the controls starts the wait again.
+    for (const type of ['pointermove', 'pointerdown', 'keydown', 'focusin', 'focusout'])
+      document.addEventListener(type, wake, { capture: true, signal: leaving.signal });
+    // A film's ticks (hundreds of them) are off on Play until the viewer turns
+    // them on (⋯ → Show the ticks), kept in this browser; their legend shows with them.
+    const ticksKept = AtomRegistry.make();
+    ticksKept.mount(KEPT_TICKS);
+    const ticksShown = () => Option.contains(ticksKept.get(KEPT_TICKS), 'on');
+    const showTicks = () => {
+      bar.dataset['ticks'] = ticksShown() ? 'on' : 'off';
+    };
+    showTicks();
+    hub.commands.register(
+      ticksCommand({
+        shown: ticksShown,
+        toggle: () => {
+          ticksKept.set(KEPT_TICKS, ticksShown() ? 'off' : 'on');
+          showTicks();
+        },
+        here: onPlay,
+      }),
+    );
   }
-  hub.commands.register(
-    legendCommand(page, { shown: () => !keysLine.hidden, toggle: toggleLegend }),
-  );
+  // The first frame: at once when the film's faces are in, else once they
+  // have loaded (the bar stands meanwhile). A face that will not load says so
+  // in place of the page, as a film that will not load does.
+  Option.match(pictureFacesWait(document.fonts), {
+    onNone: () => {
+      drawable = true;
+    },
+    onSome: (wait) => {
+      Effect.runForkWith(host)(
+        wait.pipe(
+          Effect.andThen(
+            Effect.sync(() => {
+              drawable = true;
+              draw();
+            }),
+          ),
+          Effect.catchCause((cause) => Effect.sync(() => showFailure(Cause.squash(cause)))),
+        ),
+      );
+    },
+  });
   draw();
   return {
     film,
@@ -631,6 +620,7 @@ export const mountPreview = (
     playing: () => playing,
     setRate: (r) => {
       rate = r;
+      clock.rate(r);
       rebase();
       draw();
     },
@@ -639,8 +629,10 @@ export const mountPreview = (
       draw();
     },
     redraw: draw,
-    renderShown: (into, at, over = new Map()) =>
-      film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]) })),
+    renderShown: (into, at, over = new Map()) => {
+      if (drawable) film.render(into, at, shownOptions({ edits: new Map([...edits, ...over]) }));
+    },
+    drawable: () => drawable,
     showEdits: (next) => {
       edits = next;
       draw();

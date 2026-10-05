@@ -77,9 +77,6 @@ const labelOf = (at: string) =>
 export const sceneHead = (p: Placed, fps: number) =>
   `${p.index + 1}. ${p.spec.id} · ${timecode(p.start, fps)}–${timecode(p.start + p.dur, fps)}`;
 
-/** A still's time on the sheet: its timecode. */
-export const stillTime = (time: number, fps: number) => timecode(time, fps);
-
 /** How wide a still's timecode is set, in the sheet's px: what its cue label leaves room for. */
 const TIME_W = 104;
 
@@ -196,7 +193,7 @@ export const composeLookbook = async (
     ctx.fillStyle = MUTED;
     ctx.font = `400 14px ${body}`;
     ctx.textAlign = 'right';
-    ctx.fillText(stillTime(tile.moment.time, film.fps), tile.x + tile.w, tile.y + tile.h + 21);
+    ctx.fillText(timecode(tile.moment.time, film.fps), tile.x + tile.w, tile.y + tile.h + 21);
     ctx.textAlign = 'left';
   });
   return {

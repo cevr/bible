@@ -32,10 +32,6 @@ const canvas2d = (w: number, h: number) => {
 const brightness = (d: Uint8ClampedArray, i: number) =>
   0.299 * (d[i] ?? 0) + 0.587 * (d[i + 1] ?? 0) + 0.114 * (d[i + 2] ?? 0);
 
-/** A whole-number field from 1 to `max`, `fallback` when it is empty or not a number. */
-export const whole = (value: string, fallback: number, max: number) =>
-  Math.max(1, Math.min(max, Math.round(Number(value) || fallback)));
-
 /** Each pixel's brightness in `d`, written into `into` (one entry per pixel). */
 const brightnessInto = (into: Float64Array, d: Uint8ClampedArray) => {
   for (let p = 0, i = 0; p < into.length; p++, i += 4) into[p] = brightness(d, i);

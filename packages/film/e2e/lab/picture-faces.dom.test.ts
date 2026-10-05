@@ -1,0 +1,86 @@
+// What waits for a film's picture faces on the Lab (PS-1): its loader asks
+// for them and gives the film at once (`narratedFilms`), so the page's bar
+// stands and names where the film is while they load, and only what draws
+// the film waits (`pictureFacesWait`): the stage's canvas stays blank and no
+// tool stands until they have loaded, so no frame is drawn in a fallback
+// face. The probe film's face (`PROBE_FACE`) is the lab's file, held here.
+
+import { Deferred, Effect, Exit } from 'effect';
+import { describe, expect, it } from 'effect-bun-test';
+import {
+  PHONE,
+  PROBE_FACE_FILE,
+  PROBE_FACE_PATH,
+  file,
+  later,
+  openServed,
+  route,
+} from '../../src/lab/fixtures/harness.ts';
+import { attributeIs, evaluates, textHas, textIs, until } from '../../src/lab/fixtures/settled.ts';
+
+/** Long enough to bundle the server entry once, render, open, hydrate and stage the film. */
+const SLOW = 60_000;
+
+/** Whether the stage's canvas has nothing drawn on it. */
+const BLANK = `(() => {
+  const canvas = document.querySelector('.stage canvas');
+  const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+  return data.every((v) => v === 0);
+})()`;
+
+/** The probe face's status in the page's fonts. */
+const FACE_STATUS = `[...document.fonts].find((f) => f.family.replaceAll('"', '') === 'Probe Face')?.status ?? 'none'`;
+
+/**
+ * From now on, the probe face's status at every fill on the stage's canvas,
+ * kept on `window.__fills`: what each frame drawn there was drawn with. Run
+ * again, it keeps recording as it was.
+ */
+const RECORD_FILLS = `(() => {
+  if ('__fills' in window) return true;
+  window.__fills = [];
+  const proto = CanvasRenderingContext2D.prototype;
+  for (const name of ['fill', 'fillRect', 'fillText', 'drawImage']) {
+    const own = proto[name];
+    proto[name] = function (...args) {
+      if (this.canvas === document.querySelector('.stage canvas')) window.__fills.push(${FACE_STATUS});
+      return own.apply(this, args);
+    };
+  }
+  return true;
+})()`;
+
+describe("a film's picture faces on the Lab", () => {
+  it.live(
+    "held: the bar stands and names the film's place, the canvas is blank and no tool stands; landed: the first frame is drawn, and every fill on it, with the face loaded",
+    () =>
+      Effect.gen(function* () {
+        const gate = yield* Deferred.make<void>();
+        const { page, errors } = yield* openServed(
+          'lab',
+          [route('GET', PROBE_FACE_PATH, () => later(gate, file(PROBE_FACE_FILE)))],
+          // The page's load waits for the face too: the open waits for it to mount.
+          { viewport: PHONE, mountedOnly: true },
+        );
+        // The face held: the film's bar is up, its canvas blank, the panel not staged.
+        yield* textIs(page, '.bar .scene', 'one');
+        yield* textHas(page, '.bar .say', 'The ball');
+        yield* evaluates(page, FACE_STATUS, 'loading');
+        yield* evaluates(page, BLANK, true);
+        yield* evaluates(
+          page,
+          `document.querySelector('.lab-panel').dataset.staged === 'true'`,
+          false,
+        );
+        yield* until(page, RECORD_FILLS);
+        // The face lands: the frame is drawn, every fill with it loaded, and the tools stand.
+        yield* Deferred.done(gate, Exit.void);
+        yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
+        yield* evaluates(page, BLANK, false);
+        yield* evaluates(page, 'window.__fills.length > 0', true);
+        yield* evaluates(page, '[...new Set(window.__fills)]', ['loaded']);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+});

@@ -50,6 +50,26 @@ const fixtureBundle = Effect.gen(function* () {
   } satisfies ServerBundle;
 });
 
+/**
+ * The same page built from the folder above it: its server entry in a
+ * subfolder of the build's root, as an app with one entry under `src/` has
+ * it, so its chunks name the files at the root by `../`.
+ */
+const nestedBundle = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  const bundler = yield* PageBundler;
+  const root = path.join(import.meta.dir, 'fixtures');
+  const built = yield* bundler.bundle([path.join(root, 'render', 'page.html')], root, {
+    publicPath: '/',
+    swaps: new Map(),
+    servers: [path.join(root, 'render', 'page.server.tsx')],
+  });
+  return {
+    files: built.server,
+    entries: new Map<PageName, string>([['review', 'render/page.server.js']]),
+  } satisfies ServerBundle;
+});
+
 const URL_ASKED = 'http://127.0.0.1:8229/sets/root/folder?view=all';
 
 /** A read answered `text` at once. */
@@ -283,43 +303,47 @@ describe("a page's server render", () => {
       }).pipe(Effect.provide(Services)),
   );
 
-  it.live(
-    "heads the page with the UI face's latin file, preloaded and declared, at the URL the browser's build answers it",
-    () =>
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const path = yield* Path.Path;
-        const bundler = yield* PageBundler;
-        // A page whose script registers the face, as every page with chrome does.
-        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-face-page-' });
-        yield* fs.writeFileString(
-          path.join(dir, 'face.html'),
-          '<!doctype html><html><head><title>face</title></head><body><script type="module" src="./face.ts"></script></body></html>',
-        );
-        yield* fs.writeFileString(
-          path.join(dir, 'face.ts'),
-          `import { registerFace } from '${path.join(import.meta.dir, '..', 'player', 'face.ts')}';\nregisterFace(document.fonts);\n`,
-        );
-        const browser = yield* bundler.bundle([path.join(dir, 'face.html')], dir, {
-          publicPath: '/',
-          swaps: new Map(),
-          servers: [],
-        });
-        const page = yield* renderOf({ id: 1, bundle: yield* fixtureBundle }, answering('a'));
-        const preloaded = Option.getOrElse(
-          Option.fromNullishOr(
-            /<link rel="preload" href="([^"]+)" as="font" type="font\/woff2" crossorigin>/.exec(
-              page.head,
-            )?.[1],
-          ),
-          () => '',
-        );
-        expect(preloaded).toMatch(/^\/jetbrains-mono-latin-wght-normal-\w+\.woff2$/);
-        expect(page.head).toContain(`src:url(${preloaded}) format('woff2')`);
-        expect(page.head).toContain('font-display:swap');
-        expect(browser.outputs.map((file) => `/${file.path}`)).toContain(preloaded);
-      }).pipe(Effect.scoped, Effect.provide(Services)),
-  );
+  for (const [where, bundle] of [
+    ['at the root of its build', fixtureBundle],
+    ['in a subfolder of its build', nestedBundle],
+  ] as const)
+    it.live(
+      `heads the page with the UI face's latin file, preloaded and declared, at the URL the browser's build answers it: its server entry ${where}`,
+      () =>
+        Effect.gen(function* () {
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const bundler = yield* PageBundler;
+          // A page whose script registers the face, as every page with chrome does.
+          const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'film-face-page-' });
+          yield* fs.writeFileString(
+            path.join(dir, 'face.html'),
+            '<!doctype html><html><head><title>face</title></head><body><script type="module" src="./face.ts"></script></body></html>',
+          );
+          yield* fs.writeFileString(
+            path.join(dir, 'face.ts'),
+            `import { registerFace } from '${path.join(import.meta.dir, '..', 'player', 'face.ts')}';\nregisterFace(document.fonts);\n`,
+          );
+          const browser = yield* bundler.bundle([path.join(dir, 'face.html')], dir, {
+            publicPath: '/',
+            swaps: new Map(),
+            servers: [],
+          });
+          const page = yield* renderOf({ id: 1, bundle: yield* bundle }, answering('a'));
+          const preloaded = Option.getOrElse(
+            Option.fromNullishOr(
+              /<link rel="preload" href="([^"]+)" as="font" type="font\/woff2" crossorigin>/.exec(
+                page.head,
+              )?.[1],
+            ),
+            () => '',
+          );
+          expect(preloaded).toMatch(/^\/jetbrains-mono-latin-wght-normal-\w+\.woff2$/);
+          expect(page.head).toContain(`src:url(${preloaded}) format('woff2')`);
+          expect(page.head).toContain('font-display:swap');
+          expect(browser.outputs.map((file) => `/${file.path}`)).toContain(preloaded);
+        }).pipe(Effect.scoped, Effect.provide(Services)),
+    );
 
   it.live("spawns a build's worker again after its spawn failed: the failure is not kept", () =>
     Effect.gen(function* () {

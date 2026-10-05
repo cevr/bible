@@ -1,15 +1,16 @@
 // The staged lab as compound components: `<Lab.Root>` holds what every tool
 // shares once the browser has staged the film (the film and its player, the
 // lab API's base, the view kept through a reload, the frame shown), beside
-// what the Lab's page holds on both sides (`panel.tsx`: the lab's place, the
-// pick and the note the URL holds, `lab/place.ts`, and the mode), and the
+// what the Lab's page holds on both sides (`panel.tsx`, `useLabPage`: the
+// lab's place, the pick and the note the URL holds, `lab/place.ts`, the mode
+// and a held reload, which tools read from the page itself), and the
 // pieces place themselves: layers pinned over the film canvas
 // (`<Lab.Overlay>`, `<Lab.Layer>`), the slot under the player's timeline
 // (`<Lab.Strip>`), and each tool's controls in its section of the page's
 // panel (`Fill`, `panel.tsx`). Each tool's own state lives in its own
 // provider; the shell knows none of it.
 
-import { Portal } from '@solidjs/web';
+import { Portal, Show } from '@solidjs/web';
 import { Duration, Effect, Fiber, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
@@ -26,7 +27,6 @@ import type { Film } from '../canvas/film.ts';
 import { type BrowserServices, type Host, addressOn, hostLayer } from '../browser/host.ts';
 import type { Player } from '../player/main.ts';
 import { TabStore } from '../browser/storage-browser.ts';
-import type { LabMode } from './mode.ts';
 import { type ViewStore, viewStore } from './view-state.ts';
 import { type LabApi, type LabClient, type NotesApi, labApiLayer } from './api.ts';
 import { goToCommands } from '../command/go.ts';
@@ -55,10 +55,6 @@ interface LabState {
   readonly note: Accessor<Option.Option<string>>;
   /** How the compare meets HEAD: the URL's (`?view=`, PA-9). */
   readonly view: Accessor<CompareView>;
-  /** What a reload held by the owner's unsaved work waits for (`ReloadGate`); empty while none waits. */
-  readonly reloadWaiting: Accessor<string>;
-  /** The tool the inspector shows (`lab/mode.ts`): one at a time. */
-  readonly mode: Accessor<LabMode>;
 }
 
 interface LabActions {
@@ -74,8 +70,6 @@ interface LabActions {
   readonly compareBy: (view: CompareView) => void;
   /** Write the compare's mode into the link in place, where it moved on its own: no entry of its own. */
   readonly keepCompare: (view: CompareView) => void;
-  /** Show `mode` in the inspector, and keep it for this viewer. */
-  readonly showMode: (mode: LabMode) => void;
 }
 
 interface LabMeta {
@@ -121,8 +115,28 @@ interface RootProps extends ParentProps {
   readonly player: Player;
 }
 
-/** The staged lab, in the Lab's page (`panel.tsx`): the film on its stage, and every tool's base. */
+/**
+ * The staged lab, in the Lab's page (`panel.tsx`): every tool's base, once
+ * the preview draws its film. Until its faces have loaded (`Player.drawable`)
+ * the film's bar shows where it is and no tool stands, so none draws a frame
+ * or takes a still in a fallback face.
+ */
 const Root = (props: RootProps) => {
+  const [drawable, setDrawable] = createSignal(props.player.drawable(), { ownedWrite: true });
+  const heard = props.player.onDraw(() => {
+    heard();
+    setDrawable(true);
+  });
+  onCleanup(heard);
+  return (
+    <Show when={drawable()}>
+      <Staged player={props.player}>{props.children}</Staged>
+    </Show>
+  );
+};
+
+/** The staged lab around its tools: the film on its stage, and every tool's base. */
+const Staged = (props: RootProps) => {
   const { player } = props;
   const page = useLabPage();
   const { name, host, hub } = page;
@@ -137,10 +151,11 @@ const Root = (props: RootProps) => {
     }),
   );
 
-  // Layers kept exactly over the film canvas, placed again as it resizes.
-  // They live in the canvas's own frame (the stage), placed from its
-  // corner: as the page scrolls (a phone's lab is one long page) they move
-  // with the picture, never left where it was (LS-7).
+  // Layers kept exactly over the film canvas, placed again as it or its
+  // frame resizes (a window's resize, a phone turned: what moves the canvas
+  // in its frame resizes one of them). They live in the canvas's own frame
+  // (the stage), placed from its corner: as the page scrolls (a phone's lab
+  // is one long page) they move with the picture, never left where it was (LS-7).
   const frame = pictureFrame(player);
   const pinned = new Set<HTMLElement | SVGElement>();
   const place = () => {
@@ -157,11 +172,7 @@ const Root = (props: RootProps) => {
   const watch = new ResizeObserver(place);
   watch.observe(player.canvas);
   watch.observe(frame);
-  window.addEventListener('resize', place);
-  onCleanup(() => {
-    watch.disconnect();
-    window.removeEventListener('resize', place);
-  });
+  onCleanup(() => watch.disconnect());
 
   const view = viewStore(name, TabStore);
   // Whether it was playing: kept as the page goes (a write reloads it), and played again on load.
@@ -236,8 +247,6 @@ const Root = (props: RootProps) => {
       selection: () => here().selection,
       note: () => here().note,
       view: () => here().view,
-      reloadWaiting: page.reloadWaiting,
-      mode: page.mode,
     },
     actions: {
       pin: (layer) => {
@@ -252,7 +261,6 @@ const Root = (props: RootProps) => {
         if (view !== untrack(() => here().view)) address.go(picked({ view }));
       },
       keepCompare: (view) => address.follow(picked({ view })),
-      showMode: page.showMode,
     },
     meta: {
       name,

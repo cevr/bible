@@ -46,8 +46,12 @@ const API = `/api/films/${PROBE}`;
 /** The probe film as the lab page lays it out: where each scene starts. */
 const probePlaced = probeFilm().placed;
 
-/** What a lab link picks: a cue or a knob of a scene, a note, the studio's beat, the compare's mode and the A–B loop. */
-interface LabPick {
+/**
+ * What a test's lab link picks, each part optional: a cue or a knob of a
+ * scene, a note, the studio's beat, the compare's mode and the A–B loop
+ * (`labAt` fills in the lab's pick).
+ */
+interface PickAsked {
   readonly selection?: LabSelection;
   readonly note?: string;
   readonly beat?: string;
@@ -56,7 +60,7 @@ interface LabPick {
 }
 
 /** The probe film's lab at film seconds `T` with `pick`: the link the lab itself writes (`labHref`). */
-export const labAt = (T: number, pick: LabPick = {}): string =>
+export const labAt = (T: number, pick: PickAsked = {}): string =>
   labHref(
     PROBE,
     probePlaced,
@@ -188,6 +192,15 @@ const sourceThree = {
 /** The id the fake lab gives the change a write of `target` to `scene` makes (`HistoryStep.change`). */
 export const changeOf = (target: string, scene = 'one'): string => `${scene}:${target}`;
 
+/** Where the probe film's face is asked for (`PROBE_FACE`): the review's files route. */
+export const PROBE_FACE_PATH = /^\/api\/review\/files\/probe-face\.woff2$/;
+
+/** The probe film's face's file: a subset of the UI face's own, under another family. */
+export const PROBE_FACE_FILE = Bun.resolveSync(
+  '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-greek-wght-normal.woff2',
+  import.meta.dir,
+);
+
 /** A write the server took, as it answers one, with the change it made. */
 const wrote = (target: string, scene = 'one') => ({
   scene,
@@ -219,6 +232,7 @@ const defaults: ReadonlyArray<FakeRoute> = [
   route('POST', /^\/scenes\/\w+\/cues\//, () => json(wrote('cue'))),
   route('POST', /^\/scenes\/\w+\/knobs\//, () => json(wrote('knob'))),
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
+  route('GET', PROBE_FACE_PATH, () => file(PROBE_FACE_FILE)),
 ];
 
 /**
@@ -288,8 +302,11 @@ const fileAnswer = (path: string) =>
     Effect.provide(BunServices.layer),
   );
 
-/** The media types of the files the tests answer with (a tone, as a fixture video's sound). */
-const TYPES = new Map([['.wav', 'audio/wav']]);
+/** The media types of the files the tests answer with (a tone, as a fixture video's sound; a face). */
+const TYPES = new Map([
+  ['.wav', 'audio/wav'],
+  ['.woff2', 'font/woff2'],
+]);
 
 const typeOfFile = (path: string) =>
   Option.getOrElse(
@@ -353,19 +370,50 @@ const apiAnswer =
     });
   };
 
-/** A page's fake server: the page a path serves (its HTML and its script), then the API (`apiAnswer`). */
+/**
+ * A UI face file as a fixture page asks for it: from the pages' root, as the
+ * lab's build names it and its asset route answers it (`bundles.ts`).
+ */
+const FACE_FILE = /^\/(jetbrains-mono-[a-z-]+\.woff2)$/;
+
+/**
+ * The UI face's files, as the lab's asset route answers them: fontsource's
+ * file of the name asked, once `held` (when given) is done, so a test reads
+ * the page while the face has not landed.
+ */
+const faceFiles =
+  (held: Option.Option<Deferred.Deferred<void>>) =>
+  (request: Request): Option.Option<Effect.Effect<Response>> =>
+    Option.map(Option.fromNullishOr(FACE_FILE.exec(request.url.pathname)), ([, name]) =>
+      Effect.andThen(
+        Option.match(held, { onNone: () => Effect.void, onSome: Deferred.await }),
+        fileAnswer(
+          Bun.resolveSync(`@fontsource-variable/jetbrains-mono/files/${name}`, import.meta.dir),
+        ),
+      ),
+    );
+
+/**
+ * A page's fake server: the page a path serves (its HTML and its script),
+ * the UI face's files (`faceFiles`, held by `faceHeld` when given), then the
+ * API (`apiAnswer`).
+ */
 const fakeServer =
   (
     pageFor: (request: Request) => Option.Option<Effect.Effect<Response>>,
     prefix: string,
     routes: ReadonlyArray<FakeRoute>,
     asked: Array<Asked>,
+    faceHeld = Option.none<Deferred.Deferred<void>>(),
   ) =>
   (request: Request): Effect.Effect<Option.Option<Response>> =>
-    Option.match(pageFor(request), {
-      onSome: Effect.asSome,
-      onNone: () => apiAnswer(prefix, routes, asked)(request),
-    });
+    Option.match(
+      Option.orElse(pageFor(request), () => faceFiles(faceHeld)(request)),
+      {
+        onSome: Effect.asSome,
+        onNone: () => apiAnswer(prefix, routes, asked)(request),
+      },
+    );
 
 /** What `answer` makes of each request for `name`, on every path the real server serves it on (`pageAt`, `core/api.ts`). */
 const servedBy =
@@ -557,6 +605,17 @@ interface ReviewAt {
    * (`rendered`), as the lab cuts one; none: each render ends.
    */
   readonly cut?: Duration.Input;
+  /**
+   * A served page's open waits for it to have mounted, not loaded: a test
+   * that holds a file the page's load waits for (a face it asks for) reads
+   * the page meanwhile. None: it has loaded too.
+   */
+  readonly mountedOnly?: boolean;
+  /**
+   * The UI face's files held until this is done: the page laid out and read
+   * in the face's fallback, then the face landing (G10). None: answered at once.
+   */
+  readonly faceHeld?: Deferred.Deferred<void>;
 }
 
 /**
@@ -818,9 +877,17 @@ export const openServed = Effect.fn('lab.fixture.served')(function* (
     microphone: false,
     init: [CLOCK_SCRIPT],
     assets: [script],
-    serve: fakeServer(servedBy(name, document), spec.prefix, all, asked),
+    serve: fakeServer(
+      servedBy(name, document),
+      spec.prefix,
+      all,
+      asked,
+      Option.fromUndefinedOr(at.faceHeld),
+    ),
   });
-  yield* page.goto(at.href ?? spec.home);
+  const going = page.goto(at.href ?? spec.home);
+  if (at.mountedOnly === true) yield* Effect.forkScoped(going);
+  else yield* going;
   // A page served cut (its document carries the mark) is rendered anew; any other,
   // a render that ended before `at.cut` among them, hydrates the server's markup.
   const servedCut = Option.exists(Arr.last(documents), (served) =>

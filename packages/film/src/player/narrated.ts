@@ -5,7 +5,7 @@
 // film with no timings file yet is laid out on estimates, as the tools lay it
 // out; a file that is there but cannot be fetched or read is an error naming
 // it, never a silent fall back to estimates. A film is given with the faces
-// it draws in loaded (`narratedFilms`).
+// it draws in asked for (`narratedFilms`): what draws it waits for them.
 
 import { Effect, type Layer, Record as Rec, Schema } from 'effect';
 import { FetchHttpClient, HttpClient } from 'effect/http';
@@ -62,10 +62,11 @@ export const loadNarrated = (
 
 /**
  * The registry's loaders: each film, keyed by its folder under `films/`, its
- * module, its narration and the faces it draws in (`faces`, the app's
- * `pictureFaces`) loaded together and the film built from them, so no page
- * has a film to draw before its faces have loaded; the narration is read
- * through `http` (the page's `fetch` client unless given).
+ * module and its narration read and the faces it draws in (`faces`, the
+ * app's `pictureFaces`) asked for, together, and the film built from them:
+ * a page lays its film out (its bar, its scenes) while the faces load, and
+ * what draws the film waits for them (`pictureFacesWait`); the narration is
+ * read through `http` (the page's `fetch` client unless given).
  */
 export const narratedFilms = <K extends string>(
   modules: Readonly<Record<K, () => Promise<FilmModule>>>,

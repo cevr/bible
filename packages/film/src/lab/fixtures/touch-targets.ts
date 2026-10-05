@@ -224,15 +224,21 @@ const UNNAMING = [
   'data-popup-open',
 ];
 
+/** How `targetBoxes` writes a box (`box`, its four numbers), by its unit. */
+const BOX_AS = { whole: "box.map(Math.round).join(',')", exact: 'box' } as const;
+
 /**
  * An expression run in the page: each shown target (the elements and roles
  * `undersizedTargets` measures) and its box on the page, `left,top,width,height`
- * in whole CSS pixels from the page's top-left, keyed by what names it (its
- * tag and its attributes but `UNNAMING`, a link's `href` without its hash:
- * the page bar's tabs carry the playhead's `#t=` once the film is staged)
- * and its place among the targets named the same: `{ key: box }`.
+ * from the page's top-left, keyed by what names it (its tag and its
+ * attributes but `UNNAMING`, a link's `href` without its hash: the page
+ * bar's tabs carry the playhead's `#t=` once the film is staged) and its
+ * place among the targets named the same: `{ key: box }`. `whole` (the
+ * default): each box a string of whole CSS pixels, compared as it is;
+ * `exact`: each box the four numbers as the layout has them, so a check
+ * that allows a sub-pixel difference measures it before any rounding.
  */
-export const targetBoxes = (): string => `(() => {
+export const targetBoxes = (unit: keyof typeof BOX_AS = 'whole'): string => `(() => {
   const TARGETS = ${jsonOf(TARGETS)}, UNNAMING = ${jsonOf(UNNAMING)};
   const counted = new Map();
   const boxes = {};
@@ -242,7 +248,8 @@ export const targetBoxes = (): string => `(() => {
     const named = [el.tagName.toLowerCase(), ...[...el.attributes].filter((a) => !UNNAMING.includes(a.name)).map((a) => a.name + '=' + (a.name === 'href' ? a.value.split('#')[0] : a.value)).sort()].join(' ');
     const n = (counted.get(named) ?? 0) + 1;
     counted.set(named, n);
-    boxes[named + ' #' + n] = [r.left + scrollX, r.top + scrollY, r.width, r.height].map(Math.round).join(',');
+    const box = [r.left + scrollX, r.top + scrollY, r.width, r.height];
+    boxes[named + ' #' + n] = ${BOX_AS[unit]};
   }
   return boxes;
 })()`;

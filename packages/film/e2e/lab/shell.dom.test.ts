@@ -32,10 +32,15 @@ import {
   evaluates,
   labelsClash,
   textHas,
+  textIs,
 } from '../../src/lab/fixtures/settled.ts';
 
 /** Where the probe film's second scene starts, in film seconds. */
 const TWO = probeFilm().placed[1]?.start ?? Number.NaN;
+
+/** The probe film's first and second scenes' lengths, in seconds. */
+const ONE_LENGTH = probeFilm().placed[0]?.dur ?? Number.NaN;
+const TWO_LENGTH = probeFilm().placed[1]?.dur ?? Number.NaN;
 
 /** Each match's box as the page placed it: its rect, or for a pinned layer its inline box from its frame's corner (a hidden layer has no rect). */
 const rects = (sel: string) =>
@@ -43,9 +48,8 @@ const rects = (sel: string) =>
 
 /**
  * Resize the window, and wait until the page has handled it: its `resize`
- * event has fired. The lab places its layers in its own listener, added
- * before this one, and on the canvas's ResizeObserver in the same rendering
- * step, so the next read sees them placed.
+ * event has fired. The lab places its layers on the ResizeObserver of the
+ * canvas and its frame, which a later read waits for (`evaluates`).
  */
 const resize = (page: Tab, size: { readonly width: number; readonly height: number }) =>
   Effect.gen(function* () {
@@ -392,6 +396,21 @@ describe('the lab shell', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live('a phone turned on its side keeps the layers over the film canvas, and turned back', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      yield* resize(page, { width: 390, height: 844 });
+      yield* evaluates(page, layersOnCanvas, true);
+      yield* page.evaluate(`window.labCanvasBefore = ${canvasBox}; true`);
+      yield* resize(page, { width: 844, height: 390 });
+      yield* evaluates(page, `${canvasBox} !== window.labCanvasBefore`, true);
+      yield* evaluates(page, layersOnCanvas, true);
+      yield* resize(page, { width: 390, height: 844 });
+      yield* evaluates(page, `${canvasBox} === window.labCanvasBefore`, true);
+      yield* evaluates(page, layersOnCanvas, true);
+    }).pipe(Effect.scoped),
+  );
+
   it.live(
     'on a phone, the lab is one page: the picture fills the width, nothing scrolls sideways, and the layers ride the picture as it scrolls',
     () =>
@@ -509,18 +528,39 @@ describe('the lab shell', () => {
   );
 
   it.live(
-    "on a phone the transport's controls and its timecode keep one row; the film's length and state wrap below",
+    "on a laptop the transport reads the scene's time and length, the header the film's (SU-12); the bar has no CC, the view menu turns the captions (UR2-12)",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(TWO + 0.5) });
+        yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(TWO + 0.5));
+        yield* textIs(page, '.bar .tc', timecode(0.5));
+        yield* textHas(page, '.bar .of', ` / ${timecode(TWO_LENGTH)}`);
+        // The link (what the header's timecode copies) names the scene and the transport's time in it.
+        yield* evaluates(
+          page,
+          'location.pathname + location.search + location.hash',
+          labAt(TWO + 0.5),
+        );
+        yield* evaluates(page, 'location.hash', '#t=0.5');
+        yield* countIs(page, '.bar [data-act="captions"]', 0);
+        yield* page.click('[data-act="view-menu"]');
+        yield* page.waitFor('[data-role="view-menu"] [data-command="view.captions"]');
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a phone the transport's controls and its timecode keep one row; the scene's length and state wrap below",
     () =>
       Effect.gen(function* () {
         const { page } = yield* openLab([], { href: labAt(1) });
         yield* resize(page, { width: 390, height: 844 });
         // A slower rate says so after the length: more than the first row holds.
         yield* page.press('j');
-        yield* textHas(page, '.bar .of', ` / ${timecode(probeFilm().duration)} · 0.5× muted`);
+        yield* textHas(page, '.bar .of', ` / ${timecode(ONE_LENGTH)} · 0.5× muted`);
         const play = Number(yield* page.evaluate(middle('[data-act="play"]')));
         yield* evaluates(
           page,
-          `[${middle('[data-act="play.frame-next"]')}, ${middle('.tc')}, ${middle('[data-act="captions"]')}].every((m) => Math.abs(m - ${play}) <= 2)`,
+          `[${middle('[data-act="play.frame-next"]')}, ${middle('.tc')}].every((m) => Math.abs(m - ${play}) <= 2)`,
           true,
         );
         yield* evaluates(page, "document.querySelector('.bar .tc').getClientRects().length", 1);

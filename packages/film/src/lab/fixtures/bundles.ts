@@ -4,40 +4,26 @@
 // server entry is bundled as the lab bundles it (Solid's server output, for
 // Bun) by the test process that renders it, and loaded there.
 
-import { BunFileSystem, BunServices } from '@effect/platform-bun';
-import {
-  Array as Arr,
-  Config,
-  Effect,
-  FileSystem,
-  ManagedRuntime,
-  Option,
-  Predicate,
-} from 'effect';
-import { Base64 } from 'effect/encoding';
+import { BunServices } from '@effect/platform-bun';
+import { Array as Arr, Config, Effect, FileSystem, Option, Predicate } from 'effect';
 import type { BunPlugin } from 'bun';
 import { type PageRender, isPageRender } from '../../core/page-render.ts';
 import { solidPlugin, solidPluginFor } from '../../tools/solid-plugin.ts';
 
 /**
- * A font file a fixture script imports, inlined as a `data:` URL: a fixture
- * page is one script with no asset route, and the bundler's own `dataurl`
- * loader answers an empty string for a woff2.
+ * A font file a fixture script imports, named from the pages' root as the
+ * lab's build names it (`/<file>.woff2`): the fixtures' fake server answers
+ * it as the lab's asset route does (`faceFiles`, `harness.ts`), so a test
+ * can hold the UI face's file and read the page laid out without it (G10).
  */
-const inlineFonts: BunPlugin = {
-  name: 'inline-fonts',
+const servedFonts: BunPlugin = {
+  name: 'served-fonts',
   setup(build) {
-    const runtime = ManagedRuntime.make(BunFileSystem.layer);
-    build.onLoad({ filter: /\.woff2$/ }, (args) =>
-      runtime.runPromise(
-        FileSystem.FileSystem.use((fs) => fs.readFile(args.path)).pipe(
-          Effect.map((bytes) => ({
-            contents: `export default "data:font/woff2;base64,${Base64.encode(bytes)}";`,
-            loader: 'js' as const,
-          })),
-        ),
-      ),
-    );
+    build.onLoad({ filter: /\.woff2$/ }, (args) => ({
+      // A fontsource file's name is letters, digits and dashes: no quote to escape.
+      contents: `export default "/${args.path.slice(args.path.lastIndexOf('/') + 1)}";`,
+      loader: 'js' as const,
+    }));
   },
 };
 
@@ -68,7 +54,7 @@ export const compile = (entry: string) =>
       target: 'browser',
       format: 'iife',
       minify: true,
-      plugins: [solidPlugin, inlineFonts],
+      plugins: [solidPlugin, servedFonts],
       conditions: Arr.filter(['development'], () => DEVELOPMENT.has(entry)),
     }),
   ).pipe(
@@ -167,8 +153,8 @@ export const served = (entry: string, name: string): Effect.Effect<PageRender> =
           [heard]: `export { ${name} } from '${import.meta.dir}/${entry}';\nexport { OBSERVE } from 'solid-js';\n`,
         },
         target: 'bun',
-        // The head's face (`FACE_HEAD`) as the fixture's scripts have it: a fixture page has no asset route.
-        plugins: [solidPluginFor('ssr'), inlineFonts],
+        // The head's face (`FACE_HEAD`) named as the fixture's scripts name it, from the pages' root.
+        plugins: [solidPluginFor('ssr'), servedFonts],
         outdir: dir,
         naming: 'server.js',
       }),

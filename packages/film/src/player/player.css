@@ -983,6 +983,39 @@ body.play .sh-body {
 .play-body .stage {
   grid-template: minmax(0, 1fr) / minmax(0, 1fr);
 }
+/* Play's HUD (`hud.ts`): the bar, the header and the tab bar fade while the
+   film plays with no input, in place, so the picture does not move; the
+   pointer goes with them. Faded, they take no tap (the tap wakes them), yet
+   stay in the accessibility tree and the tab order, as YouTube's and AVKit's
+   controls do: a focus landing on one brings them back. */
+.sh[data-part='play'] :is(.bar, .sh-header, .sh-pagebar) {
+  transition: opacity 0.3s;
+}
+.sh[data-part='play']:has(.bar[data-hud='hidden']) :is(.bar, .sh-header, .sh-pagebar) {
+  opacity: 0;
+  pointer-events: none;
+}
+.sh[data-part='play']:has(.bar[data-hud='hidden']) .stage {
+  cursor: none;
+}
+/* Play's ticks are the viewer's (⋯ → Show the ticks), off until turned on;
+   their legend (the bar's `.keys`, otherwise hidden on Play) shows with them. */
+.sh[data-part='play'] .bar:not([data-ticks='on']) .track .tick {
+  display: none;
+}
+.sh[data-part='play'] .bar[data-ticks='on'] .keys {
+  display: block;
+}
+/* On a laptop the header's timecode is Play's one readout; the bar keeps the length beside it. */
+@media (min-width: 900px) {
+  .sh[data-part='play'] .bar .tc {
+    display: none;
+  }
+}
+/* With the captions on the picture, Play's line is theirs alone. */
+.sh[data-part='play'] .bar[data-captions='on'] .say {
+  display: none;
+}
 
 /* The studio: record the voiceover beat by beat. */
 .studio {
