@@ -20,6 +20,7 @@ import {
   Duration,
   Effect,
   Exit,
+  FiberSet,
   FileSystem,
   Layer,
   Option,
@@ -131,10 +132,11 @@ const WORKER = new URL('./page-render-worker.ts', import.meta.url);
 /** How long a render may take to write its head before the page is answered without it. */
 const HEAD_WAIT = Duration.seconds(10);
 
-/** A render under way: the worker's messages for it, and its reads. */
+/** A render under way: the worker's messages for it, its reads, and the fibers answering them (interrupted when it closes). */
 interface Pending {
   readonly parts: Queue.Queue<FromRender>;
   readonly read: Read;
+  readonly answering: FiberSet.FiberSet<void>;
 }
 
 /** A build's worker: its pages' renders, and whether it still runs. */
@@ -210,12 +212,17 @@ const spawnWorker = Effect.fnUntraced(function* (build: number, bundle: ServerBu
       ),
     );
 
-  /** A message of the worker's, to the render it names (a render already gone hears nothing). */
+  /**
+   * A message of the worker's, to the render it names (a render already gone
+   * hears nothing). A read is answered in a fiber of the render's, so it ends
+   * when the render does.
+   */
   const deliver = (message: FromRender): Effect.Effect<void> =>
     Option.match(Option.fromUndefinedOr(pending.get(message.id)), {
       onNone: () => Effect.void,
       onSome: (render) => {
-        if (message._tag === 'Read') return answer(render, message);
+        if (message._tag === 'Read')
+          return Effect.asVoid(FiberSet.run(render.answering, answer(render, message)));
         return Effect.asVoid(Queue.offer(render.parts, message));
       },
     });
@@ -251,7 +258,8 @@ const spawnWorker = Effect.fnUntraced(function* (build: number, bundle: ServerBu
       const id = started;
       const parts = yield* Queue.unbounded<FromRender>();
       const ended = yield* Ref.make(false);
-      pending.set(id, { parts, read });
+      const answering = yield* FiberSet.make<void>();
+      pending.set(id, { parts, read, answering });
       yield* Effect.addFinalizer(() =>
         Effect.gen(function* () {
           pending.delete(id);

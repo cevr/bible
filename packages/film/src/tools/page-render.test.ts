@@ -8,7 +8,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Effect, Exit, Fiber, Layer, Logger, Path, Stream } from 'effect';
+import { Deferred, Effect, Exit, Fiber, Layer, Logger, Option, Path, Stream } from 'effect';
 import type { PageName } from '../core/api.ts';
 import { PageBundler } from './lab-page.ts';
 import { PageRenderer, type RenderBuild, type ServerBundle } from './page-render.ts';
@@ -138,6 +138,25 @@ describe("a page's server render", () => {
         expect(retired).toEqual(['1', '2']);
       }).pipe(Effect.provide(Layer.merge(Services, retiredInto(retired))));
     },
+  );
+
+  it.live('stops a held read of a render whose request is gone, as its scope closes', () =>
+    Effect.gen(function* () {
+      const bundle = yield* fixtureBundle;
+      const asked = yield* Deferred.make<void>();
+      const stopped = yield* Deferred.make<void>();
+      const render = yield* Effect.forkChild(
+        renderOf({ id: 1, bundle }, () =>
+          Effect.andThen(Deferred.done(asked, Exit.void), Effect.never).pipe(
+            Effect.onInterrupt(() => Deferred.done(stopped, Exit.void)),
+          ),
+        ),
+      );
+      yield* Deferred.await(asked);
+      yield* Fiber.interrupt(render);
+      const ended = yield* Deferred.await(stopped).pipe(Effect.timeoutOption('2 seconds'));
+      expect(Option.isSome(ended)).toBe(true);
+    }).pipe(Effect.provide(Services)),
   );
 
   it.live('fails a render whose server entry exports no page render', () =>

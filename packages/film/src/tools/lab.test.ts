@@ -5,13 +5,24 @@
 
 import { describe, expect, it } from 'effect-bun-test';
 import { BunServices } from '@effect/platform-bun';
-import { ConfigProvider, Effect, FileSystem, Layer, Option, Path, Schema } from 'effect';
+import {
+  ConfigProvider,
+  Deferred,
+  Effect,
+  Exit,
+  FileSystem,
+  Layer,
+  Option,
+  Path,
+  Schema,
+} from 'effect';
 import { Base64 } from 'effect/encoding';
 import {
   FetchHttpClient,
   HttpBody,
   HttpClient,
   HttpPlatform,
+  HttpRouter,
   HttpServerResponse,
 } from 'effect/http';
 import { parseSync } from 'oxc-parser';
@@ -62,6 +73,39 @@ const readingPages = Layer.effect(
         const response = yield* read(labUrls.notes.list({ params: { film: 'f' } }));
         const body = yield* Effect.promise(() => response.text());
         return HttpServerResponse.text(`${response.status} ${body}`);
+      }),
+    }),
+  ),
+).pipe(Layer.provideMerge(echoPages));
+
+/** A path beside the API that answers nothing: held until its request is gone. */
+const HELD = '/held';
+
+/** The held path's route: `ended` is done once its request is stopped. */
+const heldRoute = (ended: Deferred.Deferred<void>) =>
+  HttpRouter.add(
+    'GET',
+    HELD,
+    Effect.andThen(Effect.never, Effect.succeed(HttpServerResponse.empty())).pipe(
+      Effect.onInterrupt(() => Deferred.done(ended, Exit.void)),
+    ),
+  );
+
+/**
+ * Pages whose render reads the held path and gives the read up after a
+ * moment, as a render whose request is gone does: answered `gave up`.
+ */
+const givingUpPages = Layer.effect(
+  LabPage,
+  Effect.map(LabPage, (echo) =>
+    LabPage.of({
+      ...echo,
+      answer: Effect.gen(function* () {
+        const { read } = yield* PageReads;
+        const got = yield* read(HELD).pipe(Effect.timeoutOption('50 millis'));
+        return HttpServerResponse.text(
+          Option.match(got, { onNone: () => 'gave up', onSome: () => 'read' }),
+        );
       }),
     }),
   ),
@@ -205,6 +249,17 @@ describe('lab routes', () => {
         expect(page).toMatch(/^200 \{/);
         expect(page).toContain('"id":"n1"');
       }).pipe(Effect.scoped, Effect.provide(labLayer(files(), readingPages))),
+  );
+
+  it.live("a page's read its render gives up stops that read's request in the lab", () =>
+    Effect.gen(function* () {
+      const ended = yield* Deferred.make<void>();
+      const lab = yield* labHandler(LOOPBACK, heldRoute(ended));
+      const page = yield* Effect.promise(() => lab(get('/'), bound).then((r) => r.text()));
+      expect(page).toBe('gave up');
+      const stopped = yield* Deferred.await(ended).pipe(Effect.timeoutOption('2 seconds'));
+      expect(Option.isSome(stopped)).toBe(true);
+    }).pipe(Effect.scoped, Effect.provide(labLayer(files(), givingUpPages))),
   );
 
   it.effect('a posted note is listed, its still served, and a wait returns it', () =>

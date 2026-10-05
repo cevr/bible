@@ -327,6 +327,8 @@ type OwnHandler = (request: Request, context: Context.Context<Connection>) => Pr
  * Host the page was asked of, answered by the server's own handler on the
  * page's connection, so the gate admits it as it admitted the page (and
  * refuses it as it would the page's own fetch), and the same routes answer.
+ * A read given up (its render over) aborts its request, which stops its
+ * handler.
  */
 const readsOf = (
   self: Deferred.Deferred<OwnHandler>,
@@ -338,10 +340,11 @@ const readsOf = (
     PageReads.of({
       read: (path) =>
         Effect.flatMap(Deferred.await(self), (handler) =>
-          Effect.promise(() =>
+          Effect.promise((signal) =>
             handler(
               new Request(new URL(path, `http://${hostOf(request)}`), {
                 headers: { accept: 'application/json' },
+                signal,
               }),
               Context.make(Connection, connection),
             ),
