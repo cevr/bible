@@ -1007,7 +1007,12 @@ its label read the player, so each frame a film plays), and a row keeps its
 element, so a press and its release on it are one click. Every page has
 **Copy link** (⇧⌘C, AA-1, `src/command/link.ts`): the page's URL (its place,
 its selection, its time), or from a thing's menu that thing's citation
-(`citeOf`), written whole through the host's `Clipboard`. Their look is one
+(`citeOf`), written whole through the host's `Clipboard`. A choice's card
+cites its Choices link (`?point=`); a part's render, an act and the film
+cite their project sheets (`?point=render:…`), read back by the one reader
+the page reads them with too (`selectionOf`, `projectPartOf`); a thing cited
+from its own page (another version of the set, another card of the film's
+Choices or project) keeps how the page shows it and when. Their look is one
 set of CSS custom properties (`COMMAND_TOKENS` in `src/lab/command/style.ts`,
 each the studio's token for its role, `player/tokens.css`); the rules read
 only those. The player's keys legend under the film is generated from the

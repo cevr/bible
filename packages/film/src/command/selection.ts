@@ -13,7 +13,9 @@
 
 import { Place } from '@bible/url-state';
 import { Equal, Match, Option, Schema } from 'effect';
+import type { Address } from '../core/address.ts';
 import { Places, pageHref } from '../core/api.ts';
+import { PointId, pointIdOf } from '../core/point.ts';
 
 /** One selected thing. */
 export const Selection = Schema.TaggedUnion({
@@ -94,9 +96,12 @@ export const selectionOf = (href: string): Option.Option<Selection> =>
     Option.map(Place.decode(Places.scene, href), ({ path }) =>
       Selection.cases.Scene.make({ film: path.film, scene: path.scene }),
     ),
+    // The project's sheet (`?point=`), as the page reads it (`projectPartOf`); an old link's choice point, as it is.
     Option.flatMap(Place.decode(Places.project, href), ({ path, query }) =>
       Option.map(named(query.point), (point) =>
-        Selection.cases.Point.make({ film: path.film, point }),
+        Option.getOrElse(projectPartOf(path.film, point), (): Selection =>
+          Selection.cases.Point.make({ film: path.film, point }),
+        ),
       ),
     ),
     // A set's version whose sheet is open (`?inspect=`), else the set.
@@ -106,12 +111,13 @@ export const selectionOf = (href: string): Option.Option<Selection> =>
         onSome: (version) => Selection.cases.Version.make({ ...path, version }),
       }),
     ),
-    // Choices' variant whose sheet is open: `?inspect=` of the card in focus (`?point=`).
+    // Choices' variant whose sheet is open (`?inspect=`) of the card in focus (`?point=`), else the card.
     Option.flatMap(Place.decode(Places.choices, href), ({ path, query }) =>
-      Option.flatMap(named(query.point), (point) =>
-        Option.map(named(query.inspect), (variant) =>
-          Selection.cases.Variant.make({ film: path.film, point, variant }),
-        ),
+      Option.map(named(query.point), (point) =>
+        Option.match(named(query.inspect), {
+          onNone: (): Selection => Selection.cases.Point.make({ film: path.film, point }),
+          onSome: (variant) => Selection.cases.Variant.make({ film: path.film, point, variant }),
+        }),
       ),
     ),
     Option.map(Place.decode(Places.folder, href), ({ path }) => Selection.cases.Folder.make(path)),
@@ -120,13 +126,56 @@ export const selectionOf = (href: string): Option.Option<Selection> =>
 const named = (value: string): Option.Option<string> =>
   Option.liftPredicate(value, (v) => v !== '');
 
+/** The part a render point (`render:scenes:<id>`, `render:act:<name>`, `render:film`) is of; none for another point. */
+const renderedOf = (point: string): Option.Option<Address> =>
+  Option.flatMap(Schema.decodeOption(PointId)(point), (ref) =>
+    Match.value(ref).pipe(
+      Match.tag('Render', (r) => Option.some<Address>(r.address)),
+      Match.orElse(() => Option.none<Address>()),
+    ),
+  );
+
+/**
+ * The thing whose sheet the project's `?point=` names: an act's, the
+ * film's, or one scene's render point (its sheet shows the page's variant of
+ * that render, which only the page knows); none for any other point.
+ */
+export const projectPartOf = (film: string, point: string): Option.Option<Selection> =>
+  Option.flatMap(renderedOf(point), (address) =>
+    Match.valueTags(address, {
+      Film: () => Option.some(Selection.cases.Film.make({ film })),
+      Act: ({ act }) => Option.some(Selection.cases.Act.make({ film, act })),
+      Scenes: ({ ids }) =>
+        Option.map(
+          Option.liftPredicate(ids, (xs) => xs.length === 1),
+          () => Selection.cases.Point.make({ film, point }),
+        ),
+      Short: () => Option.none<Selection>(),
+    }),
+  );
+
+/** `projectPartOf`'s inverse: the `?point=` naming `selection`'s project sheet; none for a thing the project has no sheet of. */
+export const projectPointOf = (selection: Selection): Option.Option<string> =>
+  Match.value(selection).pipe(
+    Match.tags({
+      Point: (s) => Option.as(renderedOf(s.point), s.point),
+      Variant: (s) => Option.as(renderedOf(s.point), s.point),
+      Act: (s) => Option.some(pointIdOf({ _tag: 'Render', address: { _tag: 'Act', act: s.act } })),
+      Film: () => Option.some(pointIdOf({ _tag: 'Render', address: { _tag: 'Film' } })),
+    }),
+    Match.orElse(() => Option.none<string>()),
+  );
+
 /**
  * The link that cites `selection` from the page at `href`: the page's own
  * place with the selection's key, where it has one. A lab selection keeps
  * the page's path scene unless it names its own, and the page's time; a
  * version cites its set and a variant its card on Choices, each with its
- * sheet open (`?inspect=`); a selection with no key of its own cites the
- * place it is on (an act its project, a beat the lab).
+ * sheet open (`?inspect=`); a choice point its card on Choices; a part's
+ * render, an act and the film their project sheets (`projectPointOf`). One
+ * cited from its own page (the set, the film's Choices or project) keeps how
+ * the page shows it and when; a selection with no key of its own cites the
+ * place it is on.
  */
 export const citeOf = (selection: Selection, href: string): string => {
   const lab = Option.orElse(
@@ -161,9 +210,31 @@ export const citeOf = (selection: Selection, href: string): string => {
           l.loop,
         ),
     });
+  // A film's Choices or project cited from that same page keeps how it is shown and when.
+  const onChoices = (film: string, point: string, inspect: string) =>
+    Option.getOrElse(
+      Option.map(
+        Option.filter(Place.decode(Places.choices, href), (v) => v.path.film === film),
+        (v) => Place.href(Places.choices, { ...v, query: { ...v.query, point, inspect } }),
+      ),
+      () => pageHref.choices(film, point, inspect),
+    );
+  const onProject = (film: string, point: string) =>
+    Option.getOrElse(
+      Option.map(
+        Option.filter(Place.decode(Places.project, href), (v) => v.path.film === film),
+        (v) => Place.href(Places.project, { ...v, query: { ...v.query, point } }),
+      ),
+      () => pageHref.project(film, point),
+    );
+  const sheetOf = (s: Selection & { readonly film: string }) =>
+    onProject(
+      s.film,
+      Option.getOrElse(projectPointOf(s), () => ''),
+    );
   return Selection.match(selection, {
-    Film: (s) => pageHref.project(s.film),
-    Act: (s) => pageHref.project(s.film),
+    Film: sheetOf,
+    Act: sheetOf,
     // On a film's Scenes a scene is cited on the tape, at the playhead; elsewhere, as its lab.
     Scene: (s) =>
       Option.match(
@@ -195,9 +266,27 @@ export const citeOf = (selection: Selection, href: string): string => {
       }),
     Folder: (s) => pageHref.folder(s.folder),
     Set: (s) => pageHref.set(s.folder, s.point),
-    Version: (s) => pageHref.set(s.folder, s.point, s.version),
-    Point: (s) => pageHref.project(s.film, s.point),
-    Variant: (s) => pageHref.choices(s.film, s.point, s.variant),
+    Version: (s) =>
+      Option.getOrElse(
+        Option.map(
+          Option.filter(
+            Place.decode(Places.set, href),
+            (v) => v.path.folder === s.folder && v.path.point === s.point,
+          ),
+          (v) => Place.href(Places.set, { ...v, query: { ...v.query, inspect: s.version } }),
+        ),
+        () => pageHref.set(s.folder, s.point, s.version),
+      ),
+    Point: (s) =>
+      Option.match(projectPointOf(s), {
+        onNone: () => onChoices(s.film, s.point, ''),
+        onSome: (point) => onProject(s.film, point),
+      }),
+    Variant: (s) =>
+      Option.match(projectPointOf(s), {
+        onNone: () => onChoices(s.film, s.point, s.variant),
+        onSome: (point) => onProject(s.film, point),
+      }),
     // A beat in the lab's scene it is cited from, else in its own (a beat is a scene's take).
     Beat: (s) =>
       inLab(
