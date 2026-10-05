@@ -363,9 +363,10 @@ for (const device of DEVICES) {
 }
 
 /**
- * The review's transport as a script reads it: its dock's height, whether
- * the dock stands on the tab bar, and whether play, the time, the scrub and
- * the rate lie in that order along one line.
+ * The review's transport as a script reads it: whether its dock stands on
+ * the tab bar, and whether play, the time, the scrub and the rate lie in that
+ * order along one line. Their size is the touch guard's (a finger's target)
+ * and the phone-fit checks' (the chrome's share of the screen).
  */
 const TRANSPORT_ROW = `(() => {
   const dock = document.querySelector('.sh-dock:has(.rv-transport)');
@@ -375,7 +376,6 @@ const TRANSPORT_ROW = `(() => {
   );
   const mid = (r) => r.top + r.height / 2;
   return [
-    'height ' + Math.round(d.height),
     'on the tabs ' + (Math.round(d.bottom) === Math.round(document.querySelector('.sh-pagebar').getBoundingClientRect().top)),
     'in order ' + parts.every((r, i) => i === 0 || r.left >= parts[i - 1].right - 0.5),
     'one line ' + parts.every((r) => Math.abs(mid(r) - mid(d)) < 4),
@@ -390,13 +390,11 @@ describe('the review transport on a phone (UI-10)', () => {
   ] as const;
   for (const [name, open] of PAGES) {
     it.live(
-      `${name}: one row docked over the tab bar, a finger tall: play, the time, the scrub, then the rate`,
+      `${name}: one row docked over the tab bar: play, the time, the scrub, then the rate`,
       () =>
         Effect.gen(function* () {
           const page = yield* open(PHONE.viewport);
-          // The dock is --dock-h: a --hit row and its padding, 61 px on a phone.
           yield* evaluates(page, TRANSPORT_ROW, [
-            'height 61',
             'on the tabs true',
             'in order true',
             'one line true',
