@@ -9,6 +9,7 @@
 // and the playhead read one layout. Pure.
 
 import { Array as Arr, Boolean as Bool, Option } from 'effect';
+import { sceneAt } from '../../core/layout.ts';
 
 /** A scene as the tape lays it out: its id, and where it starts and how long it lasts, in film seconds. */
 export interface TapeScene {
@@ -87,12 +88,9 @@ type Step = (typeof STEPS)[number];
 export const perRowAt = (width: number): number =>
   Bool.match(width < 900, { onTrue: () => 6, onFalse: () => 12 });
 
-/** The scene `t` falls in: the last that starts at or before it (the first before any). */
-export const sceneAt = (scenes: ReadonlyArray<TapeScene>, t: number): Option.Option<TapeScene> =>
-  Option.orElse(
-    Arr.findLast(scenes, (s) => s.start <= t),
-    () => Arr.head(scenes),
-  );
+// The scene a time falls in is the player's rule (`sceneAt`, core/layout.ts),
+// read here and by the Scenes view through this module.
+export { sceneAt };
 
 /** The tape of `scenes`, `duration` seconds long, a still every `step` seconds and `perRow` a row. */
 export const tapeOf = (

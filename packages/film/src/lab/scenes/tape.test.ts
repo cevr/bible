@@ -149,9 +149,11 @@ describe('a place on the tape', () => {
     expect(timeAt(tape, 0, -1)).toBe(0);
   });
 
-  test("a time's scene is the last that starts at or before it", () => {
+  test("a time's scene is the last that starts at or before it, as the player's clock reads it", () => {
     expect(Option.map(sceneAt(SCENES, 41), (s) => s.id)).toEqual(Option.some('title'));
     expect(Option.map(sceneAt(SCENES, 43), (s) => s.id)).toEqual(Option.some('word'));
+    // A time computed onto a start, a hair short of it (float error, not a frame), is that scene's.
+    expect(Option.map(sceneAt(SCENES, 43 - 1e-10), (s) => s.id)).toEqual(Option.some('word'));
   });
 
   test('⌘+ and ⌘− step between 2.5, 5 and 10 s a still, staying at the ends', () => {
