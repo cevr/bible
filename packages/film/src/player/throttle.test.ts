@@ -1,6 +1,6 @@
 // `throttled`, which `#t=` is written through while T moves: at most once per
-// period, the last request always lands (trailing), and a flush lands a
-// waiting write at once.
+// period, the last request always lands (trailing), and a write made outside
+// drops the one waiting.
 
 import { describe, expect, test } from 'bun:test';
 import { fakeTimers } from './fixtures/timers.ts';
@@ -26,26 +26,15 @@ describe('throttled', () => {
     expect(clock.pending()).toBe(0);
   });
 
-  test('flush lands a pending write at once, and nothing after it', () => {
+  test('a write made outside drops the one waiting, and the period starts again from it', () => {
     const clock = fakeTimers();
     const writes: Array<string> = [];
-    let T = 'a';
-    const write = throttled(() => writes.push(T), 250, clock.timers);
+    const write = throttled(() => writes.push('throttled'), 250, clock.timers);
     write.request();
-    T = 'b';
     write.request();
-    expect(writes).toEqual(['a']);
-    write.flush();
-    expect(writes).toEqual(['a', 'b']);
+    write.ran();
     clock.advance(1000);
-    expect(writes).toEqual(['a', 'b']);
-  });
-
-  test('flush with nothing pending writes nothing', () => {
-    const clock = fakeTimers();
-    const writes: Array<number> = [];
-    const write = throttled(() => writes.push(1), 250, clock.timers);
-    write.flush();
-    expect(writes).toEqual([]);
+    expect(writes).toEqual(['throttled']);
+    expect(clock.pending()).toBe(0);
   });
 });

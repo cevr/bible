@@ -1,8 +1,9 @@
 // The staged lab as compound components: `<Lab.Root>` holds what every tool
 // shares once the browser has staged the film (the film and its player, the
 // lab API's base, the view kept through a reload, the frame shown), beside
-// what the Lab's page holds on both sides (`panel.tsx`: the lab's place, the
-// pick and the note the URL holds, `lab/place.ts`, and the mode), and the
+// what the Lab's page holds on both sides (`panel.tsx`, `useLabPage`: the
+// lab's place, the pick and the note the URL holds, `lab/place.ts`, the mode
+// and a held reload, which tools read from the page itself), and the
 // pieces place themselves: layers pinned over the film canvas
 // (`<Lab.Overlay>`, `<Lab.Layer>`), the slot under the player's timeline
 // (`<Lab.Strip>`), and each tool's controls in its section of the page's
@@ -26,7 +27,6 @@ import type { Film } from '../canvas/film.ts';
 import { type BrowserServices, type Host, addressOn, hostLayer } from '../browser/host.ts';
 import type { Player } from '../player/main.ts';
 import { TabStore } from '../browser/storage-browser.ts';
-import type { LabMode } from './mode.ts';
 import { type ViewStore, viewStore } from './view-state.ts';
 import { type LabApi, type LabClient, type NotesApi, labApiLayer } from './api.ts';
 import { goToCommands } from '../command/go.ts';
@@ -55,10 +55,6 @@ interface LabState {
   readonly note: Accessor<Option.Option<string>>;
   /** How the compare meets HEAD: the URL's (`?view=`, PA-9). */
   readonly view: Accessor<CompareView>;
-  /** What a reload held by the owner's unsaved work waits for (`ReloadGate`); empty while none waits. */
-  readonly reloadWaiting: Accessor<string>;
-  /** The tool the inspector shows (`lab/mode.ts`): one at a time. */
-  readonly mode: Accessor<LabMode>;
 }
 
 interface LabActions {
@@ -74,8 +70,6 @@ interface LabActions {
   readonly compareBy: (view: CompareView) => void;
   /** Write the compare's mode into the link in place, where it moved on its own: no entry of its own. */
   readonly keepCompare: (view: CompareView) => void;
-  /** Show `mode` in the inspector, and keep it for this viewer. */
-  readonly showMode: (mode: LabMode) => void;
 }
 
 interface LabMeta {
@@ -256,8 +250,6 @@ const Staged = (props: RootProps) => {
       selection: () => here().selection,
       note: () => here().note,
       view: () => here().view,
-      reloadWaiting: page.reloadWaiting,
-      mode: page.mode,
     },
     actions: {
       pin: (layer) => {
@@ -272,7 +264,6 @@ const Staged = (props: RootProps) => {
         if (view !== untrack(() => here().view)) address.push(picked({ view }));
       },
       keepCompare: (view) => address.replace(picked({ view })),
-      showMode: page.showMode,
     },
     meta: {
       name,

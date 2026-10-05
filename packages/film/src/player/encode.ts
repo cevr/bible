@@ -31,16 +31,22 @@ interface Settings {
   readonly preroll: number;
 }
 
+/**
+ * Each encoder's settings. Its qualities are marked pure: built at load
+ * but read only by an encode, so a page that loads the player's entry and
+ * never encodes (every studio page, through a film's `narratedFilms` and
+ * faces) drops this module and mediabunny from its bundle (PS-8).
+ */
 export const SETTINGS = {
   Hardware: {
     hardwareAcceleration: 'prefer-hardware',
     /** The master: quantizer 16, about 37 Mbps at 1080p30 on this film. */
-    master: new Quality({ quantizer: 16 }),
+    master: /* @__PURE__ */ new Quality({ quantizer: 16 }),
     /**
      * The share copy: quantizer 26, the smallest that keeps the paper's
      * grain. A 4 Mbps target smoothed the grain away entirely.
      */
-    share: new Quality({ quantizer: 26 }),
+    share: /* @__PURE__ */ new Quality({ quantizer: 26 }),
     /** A fixed quantizer has no rate control to settle: the first frame is coded like every other. */
     preroll: 0,
   },
@@ -53,7 +59,7 @@ export const SETTINGS = {
      * quantizer 16 comes to. What it comes to and the grain it keeps are
      * measured in packages/film/README.md ("Encoders").
      */
-    master: new Quality({ bitrate: 37_000_000, bitrateMode: 'variable' }),
+    master: /* @__PURE__ */ new Quality({ bitrate: 37_000_000, bitrateMode: 'variable' }),
     /**
      * No share copy in the page: this encoder kept the grain only at 24 Mbps,
      * 1.16 GB for the film. The share is x264's, made from the joined master

@@ -2,5 +2,5 @@
 // films, and the faces they draw in.
 
 export { type Face, SUBSETS, pictureFaces } from './face.ts';
-export { mountRender } from './main.ts';
+export { mountRender } from './render.ts';
 export { type Narrated, narratedFilms } from './narrated.ts';

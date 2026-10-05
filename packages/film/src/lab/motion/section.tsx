@@ -9,13 +9,17 @@ import { Option } from 'effect';
 import { createEffect, onCleanup } from 'solid-js';
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
-import { ONION_SCALE, makeOnion, whole } from '../../player/onion.ts';
+import { ONION_SCALE, makeOnion } from '../../player/onion.ts';
 import { RATES } from '../view-state.ts';
 import { rateId, rateText } from '../../player/transport.ts';
 import { CommandChip } from '../command/command-chip.tsx';
 import { LOOP_IDS } from './commands.ts';
 import { Lab, useLab } from '../shell.tsx';
 import { useMotion } from './context.tsx';
+
+/** A whole-number field from 1 to `max`, `fallback` when it is empty or not a number. */
+const whole = (value: string, fallback: number, max: number) =>
+  Math.max(1, Math.min(max, Math.round(Number(value) || fallback)));
 
 interface SpreadFieldProps {
   readonly field: 'count' | 'spacing';

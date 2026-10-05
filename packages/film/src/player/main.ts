@@ -1,40 +1,31 @@
-// The browser player, framework-free. The render page (an app's `index.html`,
-// `?film=<name>&export`) calls `mountRender(films)`: the film with no chrome,
-// and `window.__film` for the renderer. The studio's pages with a film on
-// them stage it here (`stageFilm`) and mount the scrubbable preview
-// (`mountPreview`) in their Solid shell: the lab (`@bible/film/lab`), and a
-// film's Scenes and Play pages (`mountPlay`, lab/play-mount.tsx). So the
-// render page never loads Solid.
+// The browser player, framework-free. A page with a film on it stages it
+// here (`stageFilm`): the render page (`render.ts`, `mountRender`), and the
+// studio's pages, which mount the scrubbable preview (`mountPreview`) in
+// their Solid shell: the lab (`@bible/film/lab`), and a film's Scenes and
+// Play pages (`mountPlay`, lab/play-mount.tsx). So the render page never
+// loads Solid, and the studio's pages never load the encoder.
 
 import type { Film, KnobRead, RenderOptions, ShownEdit } from '../canvas/film.ts';
-import type { ProbeSink } from '../canvas/probe.ts';
-import type { ExportHandle } from '../core/export-handle.ts';
 import { timelineTicks } from '../core/ticks.ts';
 import { timecode } from '../core/time.ts';
 import { Cause, Effect, Option } from 'effect';
 import type { Fiber } from 'effect';
 import { parseHref } from '@bible/url-state';
 import { filmOfPage } from '../core/api.ts';
-import { addressOn, hostOf, monotonicMs, onTraverse } from '../browser/host.ts';
+import { addressOn, monotonicMs, onTraverse } from '../browser/host.ts';
 import type { Host } from '../browser/host.ts';
-import { BrowserHost } from '../browser/host-browser.ts';
+import { makeClock } from '../browser/media-clock.ts';
 import { Frames } from '../browser/frames.ts';
 import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
 import { BY_BUTTON } from '../command/command.ts';
 import type { Hub } from '../command/hub.ts';
 import { chordLabel } from '../command/keymap.ts';
 import { Pointer } from '../browser/pointer.ts';
-import { composeContact } from './contact.ts';
-import { sceneTimesOf } from '../core/easel.ts';
-import { composeStill } from './still.ts';
-import { bytesBase64, canvasBase64, canvasLuma, required } from './dom.ts';
-import { encodeChunk, encoderChoice } from './encode.ts';
+import { required } from './dom.ts';
 import { pictureFacesWait } from './face.ts';
-import { composeLookbook } from './lookbook-sheet.ts';
 import { narration, narrationNote } from './narration.ts';
 import { tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
-import { lookFrames } from './look-frames.ts';
 import { legendCommand, ticksCommand, transportCommands } from './transport.ts';
 import { makeHud } from './hud.ts';
 import { keptText } from '../browser/storage.ts';
@@ -49,12 +40,6 @@ const TIP_READ_MS = 1500;
 
 /** Whether the viewer shows the ticks on Play (`on`; none or `off`: hidden), kept in this browser. */
 const KEPT_TICKS = keptText(ViewerStore, 'film-studio.ticks');
-
-declare global {
-  interface Window {
-    __film?: ExportHandle;
-  }
-}
 
 /** A span of film seconds playback repeats: `from` to `to`. */
 export interface LoopRange {
@@ -131,7 +116,7 @@ export interface Player {
 export type Films = Record<string, () => Promise<Film>>;
 
 /** A page's film, loaded and on the stage: its name, its canvas and the captions switch. */
-interface Staged {
+export interface Staged {
   readonly name: string;
   readonly film: Film;
   readonly canvas: HTMLCanvasElement;
@@ -189,115 +174,6 @@ export const showFailure = (e: unknown): void => {
   shown.style.cssText = 'color:var(--state-findings);padding:24px;white-space:pre-wrap';
   shown.textContent = String(e instanceof Error ? (e.stack ?? e.message) : e);
   document.body.replaceChildren(shown);
-};
-
-/**
- * Mount the render page for `films` (`?film=<name>&export`): the film
- * staged with no chrome and no UI face, drawing only the film's own faces,
- * and, once they have loaded, the handle the renderer drives on
- * `window.__film`.
- */
-export const mountRender = (films: Films): void => {
-  const host = hostOf(BrowserHost.layer);
-  stageFilm(films, addressOn(host).href())
-    .then((staged) =>
-      Effect.runPromise(
-        Option.getOrElse(pictureFacesWait(document.fonts), () => Effect.void).pipe(
-          Effect.as(staged),
-        ),
-      ),
-    )
-    .then((staged) => {
-      document.body.classList.add('export');
-      window.__film = exportHandle(staged, host);
-    })
-    .catch((e: unknown) => {
-      showFailure(e);
-      throw e;
-    });
-};
-
-/**
- * The handle the tools drive a staged film through (`ExportHandle`,
- * core/export-handle.ts). Every draw is timed the same way (`drawn`): the
- * frame drawn, then rastered by a one-pixel read before the clock stops, so
- * the canvas's recorded drawing is paid for in the draw and not later by
- * whatever reads the canvas next (an encoder, `toBlob`).
- */
-const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): ExportHandle => {
-  /** The page clock in ms (`monotonicMs`): what every draw and encode is timed by. */
-  const nowMs = monotonicMs(host);
-  const draw = (i: number) => film.render(ctx, i / film.fps, { captions: captions.on });
-  /** Draw frame `i` and raster it: the ms it took. */
-  const drawn = (i: number) => {
-    const began = nowMs();
-    draw(i);
-    ctx.getImageData(0, 0, 1, 1);
-    return nowMs() - began;
-  };
-  return {
-    info: {
-      width: film.width,
-      height: film.height,
-      fps: film.fps,
-      duration: film.duration,
-      frames: Math.ceil(film.duration * film.fps),
-      audio: film.audio,
-    },
-    frame: (i, type) => {
-      draw(i);
-      return canvasBase64(canvas, type);
-    },
-    probe: (i) => {
-      const sink: ProbeSink = { texts: [], inks: [] };
-      film.render(ctx, i / film.fps, { captions: captions.on, probe: sink });
-      return sink;
-    },
-    lookbook: async (type) =>
-      canvasBase64((await composeLookbook(film, { captions: captions.on })).canvas, type),
-    encoder: (scale, share, candidates) =>
-      encoderChoice(canvas, film.fps, scale, share, candidates),
-    encode: async (from, to, scale, share, encoder) => {
-      const began = nowMs();
-      let drawing = 0;
-      const chunk = await encodeChunk(
-        (i) => {
-          drawing += drawn(i);
-        },
-        canvas,
-        film.fps,
-        from,
-        to,
-        scale,
-        share,
-        encoder,
-      );
-      const master = bytesBase64(chunk.master);
-      const copy = chunk.share === undefined ? {} : { share: bytesBase64(chunk.share) };
-      return { master, ...copy, timing: { draw: drawing, page: nowMs() - began } };
-    },
-    contact: (frames) => canvasBase64(composeContact(draw, canvas, frames), 'image/jpeg'),
-    look: (frames, w, h) => {
-      const shot = lookFrames(
-        (i, probe) => film.render(ctx, i / film.fps, { captions: false, probe }),
-        canvas,
-        frames,
-        w,
-        h,
-      );
-      return { thumbs: bytesBase64(shot.thumbs), faces: shot.faces, hands: shot.hands };
-    },
-    luma: (i, area) => {
-      draw(i);
-      return canvasLuma(canvas, area);
-    },
-    drawTimes: (frames) => frames.map(drawn),
-    scenes: () => film.placed.map(sceneTimesOf),
-    still: (i, view) => {
-      film.render(ctx, i / film.fps, { captions: view.captions });
-      return canvasBase64(composeStill(canvas, view), view.format);
-    },
-  };
 };
 
 /**
@@ -414,13 +290,17 @@ export const mountPreview = (
   const voice = narration(film.audio, host, () => draw());
   let T = Math.min(Math.max(time.at(addressOn(host).href()), 0), film.duration);
   let playing = false;
-  let wallStart = 0;
-  let tStart = 0;
   let rate = 1;
   /** The play loop, while the film plays (`Frames.loop`). */
   let running = Option.none<Fiber.Fiber<void>>();
-  /** The page clock's monotonic time in ms: the host's `Clock`. */
+  /**
+   * The preview's own clock, over the host's monotonic `Clock` (seconds):
+   * what T follows off the narration (at any rate but 1×, or with no
+   * narration to play). It stands while the film does; a seek or a rate
+   * change starts it again from T.
+   */
   const nowMs = monotonicMs(host);
+  const clock = makeClock(() => nowMs() / 1000);
   let loop: LoopRange | undefined;
   const listeners: Array<(T: number) => void> = [];
   let reads: KnobRead[] = [];
@@ -490,8 +370,7 @@ export const mountPreview = (
   /** Show `t`, as a drag passes through it: `#t=` follows at most every HASH_MS. */
   const scrub = (t: number) => {
     T = Math.max(0, Math.min(film.duration, t));
-    tStart = T;
-    wallStart = nowMs();
+    clock.seek(T);
     voice.seek(T);
     draw();
   };
@@ -516,8 +395,9 @@ export const mountPreview = (
    * is not asked to (`narration.ts`).
    */
   const rebase = () => {
-    tStart = T;
-    wallStart = nowMs();
+    clock.seek(T);
+    if (playing) clock.play();
+    else clock.pause();
     voice.seek(T);
     if (playing && rate === 1) voice.play(() => T);
     else voice.pause();
@@ -538,9 +418,7 @@ export const mountPreview = (
   /** One frame of play: the frame at the clock's time, and whether play goes on. */
   const tick = (): boolean => {
     if (!playing) return false;
-    T =
-      (rate === 1 ? voice.playingAt() : undefined) ??
-      tStart + ((nowMs() - wallStart) / 1000) * rate;
+    T = (rate === 1 ? voice.playingAt() : undefined) ?? clock.time();
     if (loop !== undefined && (T >= loop.to || T < loop.from - 1 / film.fps)) {
       T = loop.from;
       rebase();
@@ -719,6 +597,7 @@ export const mountPreview = (
     playing: () => playing,
     setRate: (r) => {
       rate = r;
+      clock.rate(r);
       rebase();
       draw();
     },

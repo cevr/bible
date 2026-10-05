@@ -45,15 +45,18 @@ const API = `/api/films/${PROBE}`;
 /** The probe film as the lab page lays it out: where each scene starts. */
 const probePlaced = probeFilm().placed;
 
-/** What a lab link picks: a cue or a knob of a scene, and a note. */
-interface LabPick {
+/**
+ * What a test's lab link picks, each part optional: a cue or a knob of a
+ * scene, a note, the compare's view (`labAt` fills in the lab's pick).
+ */
+interface PickAsked {
   readonly selection?: LabSelection;
   readonly note?: string;
   readonly view?: CompareView;
 }
 
 /** The probe film's lab at film seconds `T` with `pick`: the link the lab itself writes (`labHref`). */
-export const labAt = (T: number, pick: LabPick = {}): string =>
+export const labAt = (T: number, pick: PickAsked = {}): string =>
   labHref(
     PROBE,
     probePlaced,

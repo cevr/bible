@@ -14,6 +14,7 @@ import { createEffect, createSignal, onCleanup, onSettled, untrack } from 'solid
 import { Frames } from '../../browser/frames.ts';
 import { runScoped } from '../../browser/host.ts';
 import { Pointer } from '../../browser/pointer.ts';
+import { useLabPage } from '../panel.tsx';
 import { Lab, useLab } from '../shell.tsx';
 import { wipeCommands } from '../wipe-keys.ts';
 import { useCompare } from './context.tsx';
@@ -104,10 +105,11 @@ export const Layer = () => {
  * overlay never sees it.
  */
 export const Hold = () => {
-  const { state: lab, meta } = useLab();
+  const { meta } = useLab();
+  const page = useLabPage();
   const { state, actions } = useCompare();
   const { film } = meta;
-  const shown = () => state.mode() === 'blink' && lab.mode() === 'compare';
+  const shown = () => state.mode() === 'blink' && page.mode() === 'compare';
   const press = (el: SVGRectElement) =>
     el.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
