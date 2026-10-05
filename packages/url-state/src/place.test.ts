@@ -201,6 +201,13 @@ describe('Place', () => {
     expectTypeOf<Pane['limit']>().toEqualTypeOf<number>();
   });
 
+  test('a link asking for more panes than the cap opens the cap', () => {
+    const queries = Option.map(Place.decode(Workspace, '/?q=a&q2=b&q3=c&q4=d&q5=e'), (workspace) =>
+      workspace.query.map((pane) => pane.q),
+    );
+    expect(queries).toEqual(Option.some(['a', 'b', 'c', 'd']));
+  });
+
   test('is not the place when the path does not fit', () => {
     expect(Place.decode(Lab, '/films/a/scenes/b')).toEqual(Option.none());
     expect(Place.decode(Lab, '/films/a/lab')).toEqual(Option.none());

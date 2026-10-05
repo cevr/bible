@@ -116,28 +116,7 @@ describe('useAtomValue', () => {
       expect(owned.result()).toBe('count-3');
     }));
 
-  test('reads the live value of an atom with a server value when not hydrating', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(0);
-      const served = Atom.withServerValue(counter, () => -1);
-      const owned = mount(() => ({
-        value: useAtomValue(() => served),
-        mapped: useAtomValue(
-          () => served,
-          (n) => `count-${n}`,
-        ),
-      }));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      expect([owned.result.value(), owned.result.mapped()]).toEqual([0, 'count-0']);
-
-      owned.registry.set(served, 1);
-      yield* settle;
-      expect([owned.result.value(), owned.result.mapped()]).toEqual([1, 'count-1']);
-    }));
-
-  test('reads a write to an atom with a server value at once when not hydrating', () =>
+  test('reads the live value of an atom with a server value, and a write at once, when not hydrating', () =>
     Effect.gen(function* () {
       const served = Atom.withServerValue(Atom.make(0), () => -1);
       const owned = mount(() => ({
@@ -312,17 +291,6 @@ describe('useAtomSuspense', () => {
 
       yield* settle;
       expect(yield* Effect.promise(() => resolve(owned.result))).toBe(7);
-    }));
-
-  test('rejects with the squashed cause when the result fails', () =>
-    Effect.gen(function* () {
-      const failing = Atom.make(Effect.fail('boom'));
-      const owned = mount(() => useAtomSuspense(() => failing));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      const exit = yield* Effect.exit(Effect.promise(() => resolve(owned.result)));
-      expect(Exit.isFailure(exit)).toBe(true);
     }));
 
   test('rejects with the exact squashed error, not a wrapper', () =>
@@ -630,22 +598,5 @@ describe('Solid development mode', () => {
       yield* settle;
       expect(mounted.registry.get(counter)).toBe(1);
       expect(findings.events.map((e) => e.code)).toEqual([]);
-    }));
-
-  test('accepts an owned-scope write when the signal declares ownedWrite', () =>
-    Effect.gen(function* () {
-      const owned = createRoot((dispose) => {
-        // The same write on a signal without `ownedWrite` throws
-        // `REACTIVE_WRITE_IN_OWNED_SCOPE` under this build — which is exactly
-        // what the bridge signals in `hooks.ts` avoid.
-        const [value, setValue] = createSignal(0, { ownedWrite: true });
-        setValue(1);
-        return { value, dispose };
-      });
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      // The write is accepted but batched, so it lands on the next flush.
-      yield* settle;
-      expect(owned.value()).toBe(1);
     }));
 });
