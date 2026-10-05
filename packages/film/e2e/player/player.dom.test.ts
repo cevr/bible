@@ -447,6 +447,37 @@ describe('the player', () => {
   );
 
   it.live(
+    "a second finger on the track while the first drags it is not the track's: it neither scrubs nor jumps, and enters nothing in history",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: PHONE },
+          BAR_READY,
+        );
+        const track = yield* page.box('.bar .track');
+        const y = track.y + track.height / 2;
+        const before = yield* page.evaluate('history.length');
+        // The first finger drags from a fifth along to a third, and the URL follows it there.
+        const third = (2 * HALF) / 3;
+        const atThird = `Math.abs(${URL_T} - ${third}) < ${HALF / 20}`;
+        yield* page.finger.down(track.x + track.width / 5, y);
+        yield* page.finger.move(track.x + track.width / 3, y, 15);
+        yield* evaluates(page, atThird, true);
+        // A second finger taps near the end, and another drags there, while the first holds.
+        yield* page.finger.second.down(track.x + track.width * 0.9, y);
+        yield* page.finger.second.up;
+        yield* page.finger.second.down(track.x + track.width * 0.8, y);
+        yield* page.finger.second.move(track.x + track.width * 0.95, y, 15);
+        yield* page.finger.second.up;
+        yield* evaluates(page, atThird, true);
+        yield* page.finger.up;
+        yield* evaluates(page, atThird, true);
+        yield* evaluates(page, 'String(history.length)', String(before));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     "Play's ticks are off at rest; the view menu (⋯) turns them on, and this browser keeps them on",
     () =>
       Effect.gen(function* () {

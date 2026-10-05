@@ -19,7 +19,7 @@ import { Frames } from '../browser/frames.ts';
 import { LONG_PRESS_DELAY, claimPress } from '@bible/ui/press';
 import { BY_BUTTON } from '../command/command.ts';
 import { type Hub, titledNow } from '../command/hub.ts';
-import { Pointer } from '../browser/pointer.ts';
+import { Pointer, Surface } from '../browser/pointer.ts';
 import { required } from './dom.ts';
 import { pictureFacesWait } from './face.ts';
 import { narration, narrationNote } from './narration.ts';
@@ -453,7 +453,10 @@ export const mountPreview = (
   // long press's slop), it is a tap: a jump there, a step Back walks across a
   // scene. Moved, it is a drag: it scrubs from its first move, following the
   // URL in place, and settles where it ends, lifted or taken by the browser
-  // (a page pan); its press and its release enter nothing in history.
+  // (a page pan); its press and its release enter nothing in history. The
+  // track follows one press at a time (`TRACK`): a second finger put down
+  // while the first holds it neither scrubs, nor jumps, nor names a tick.
+  const TRACK = new Surface('track');
   track.addEventListener('pointerdown', (e) => {
     const r = track.getBoundingClientRect();
     const tAt = (ev: PointerEvent) => ((ev.clientX - r.left) / r.width) * film.duration;
@@ -462,16 +465,18 @@ export const mountPreview = (
       dragged = true;
       scrub(tAt(ev));
     };
-    const letGo = holdTick(e);
     Effect.runForkWith(host)(
       Pointer.use((pointer) =>
-        pointer.drag(e, {
-          move,
-          end: (lifted) => {
-            letGo();
-            if (dragged) url.settled();
-            else Option.map(lifted, () => seek(tAt(e)));
-          },
+        pointer.press(e, TRACK, () => {
+          const letGo = holdTick(e);
+          return Option.some({
+            move,
+            end: (lifted: Option.Option<PointerEvent>) => {
+              letGo();
+              if (dragged) url.settled();
+              else Option.map(lifted, () => seek(tAt(e)));
+            },
+          });
         }),
       ),
     );
