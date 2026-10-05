@@ -69,19 +69,12 @@ const TARGETS = [
 ].join(', ');
 
 /**
- * An expression run in the page: each shown target in `within` (a selector;
- * the whole page when none) whose usable area holds no `hit`-px square and
- * no exception keeps, as `tag.class "text" W×H □S` (the area's width and
- * height, and the side of the largest square in it); none, `[]`. It scrolls
- * each target into view to reach it, and leaves the page scrolled to the top.
- * A layer (a sheet, a menu, a dialog) is measured `within` itself: what lies
- * under it is measured with it closed.
+ * The page-side words both measures share: `boxOf`; `backing`, a backing
+ * input (out of the tree and the tab order, and nothing of it to see or
+ * press); `shown`, a target the page shows; `named`, how a failure names one.
  */
-export const undersizedTargets = (hit: number, within = ':root'): string => `(() => {
-  const HIT = ${hit}, SPACED_MIN = ${SPACED_MIN}, STEP = ${STEP}, MARGIN = ${Math.ceil(hit / 2)};
-  const TARGETS = ${jsonOf(TARGETS)}, WITHIN = ${jsonOf(within)};
+const SHOWN = `
   const boxOf = (el) => el.getBoundingClientRect();
-  // A backing input: out of the tree and the tab order, and nothing of it to see or press.
   const backing = (el) => {
     if (!(el.tabIndex < 0 && el.closest('[aria-hidden="true"]'))) return false;
     const r = boxOf(el), s = getComputedStyle(el);
@@ -93,6 +86,38 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
     const r = boxOf(el);
     return r.width > 0 && r.height > 0 && el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
   };
+  const named = (el) => {
+    const cls = typeof el.className === 'string' && el.className.trim() !== '' ? '.' + el.className.trim().split(/\\s+/).join('.') : '';
+    const kind = el instanceof HTMLInputElement ? '[type=' + el.type + ']' : '';
+    const text = (el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/\\s+/g, ' ').trim().slice(0, 32);
+    return el.tagName.toLowerCase() + kind + cls + ' "' + text + '"';
+  };`;
+
+/**
+ * An expression run in the page: every target it shows (the elements and
+ * roles `undersizedTargets` measures, a backing input left out), wherever it
+ * stands on the page, each named as `tag.class "text"`. A view's at-rest
+ * count is its length (UR2-17).
+ */
+export const shownTargets = (): string => `(() => {
+  const TARGETS = ${jsonOf(TARGETS)};
+  ${SHOWN}
+  return [...document.querySelectorAll(TARGETS)].filter(shown).map(named);
+})()`;
+
+/**
+ * An expression run in the page: each shown target in `within` (a selector;
+ * the whole page when none) whose usable area holds no `hit`-px square and
+ * no exception keeps, as `tag.class "text" W×H □S` (the area's width and
+ * height, and the side of the largest square in it); none, `[]`. It scrolls
+ * each target into view to reach it, and leaves the page scrolled to the top.
+ * A layer (a sheet, a menu, a dialog) is measured `within` itself: what lies
+ * under it is measured with it closed.
+ */
+export const undersizedTargets = (hit: number, within = ':root'): string => `(() => {
+  const HIT = ${hit}, SPACED_MIN = ${SPACED_MIN}, STEP = ${STEP}, MARGIN = ${Math.ceil(hit / 2)};
+  const TARGETS = ${jsonOf(TARGETS)}, WITHIN = ${jsonOf(within)};
+  ${SHOWN}
   // A field reached by its labels: every labelable one but a slider, whose track is what moves it.
   const setOf = (el) => {
     const labels = 'labels' in el && el.labels && !(el instanceof HTMLInputElement && el.type === 'range') ? [...el.labels] : [];
@@ -131,12 +156,6 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
       }
     }
     return best;
-  };
-  const named = (el) => {
-    const cls = typeof el.className === 'string' && el.className.trim() !== '' ? '.' + el.className.trim().split(/\\s+/).join('.') : '';
-    const kind = el instanceof HTMLInputElement ? '[type=' + el.type + ']' : '';
-    const text = (el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/\\s+/g, ' ').trim().slice(0, 32);
-    return el.tagName.toLowerCase() + kind + cls + ' "' + text + '"';
   };
   const targets = [...new Set([...document.querySelectorAll(WITHIN)].flatMap((root) => [root, ...root.querySelectorAll(TARGETS)]))]
     .filter((el) => el.matches(TARGETS) && shown(el));
