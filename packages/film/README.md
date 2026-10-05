@@ -505,7 +505,7 @@ x264 (core 165) spends 3.6 MB on 8 s of paper at 78–86 s and 4.0 MB at
 
 Not `@mediabunny/server`'s libx264: it (through NodeAV) runs a fixed
 `qp` with qmin = qmax on the default preset, with no CRF, preset or tune to
-pass (`@mediabunny/server`'s `src/video-encoder.ts`), and at equal size it kept far
+pass (`@mediabunny/server/src/video-encoder.ts`), and at equal size it kept far
 less grain: q23 was 444 MB and kept 0.33–0.67, against x264 CRF 23 tune
 grain's 487 MB at 0.75–0.83; over those 8 s of paper, 4 Mbps (4.3 MB) and
 q22 (2.7 MB) both smoothed it flat.

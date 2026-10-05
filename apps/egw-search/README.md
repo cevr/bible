@@ -43,5 +43,5 @@ filter changes, typed failures and recovery, request cancellation when a pane
 closes, the viewport on filter changes and new panes, the scroll position on
 Back, the row labels and context disclosure, and the not-found page. It does
 not prove production corpus retrieval or browser behavior in the deployed
-service. Failures retain Playwright traces under
-`apps/egw-search/test-results/`.
+service. Failures retain Playwright traces under this app's `test-results/`
+(git-ignored, written by the run).
