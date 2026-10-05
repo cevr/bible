@@ -62,7 +62,7 @@ describe('UrlState', () => {
       });
 
       const restored = yield* nextEntries(1);
-      yield* (yield* LocationHistory).back;
+      yield* (yield* Location).back;
       expect(yield* Fiber.join(restored)).toEqual(['traverse /films/f/lab/s']);
       expect(yield* UrlState.get(Lab)).toEqual(
         Option.some({
@@ -140,7 +140,7 @@ describe('UrlState', () => {
       yield* location.push('/films/f/lab/two');
       const landed = yield* nextEntries(1);
       yield* UrlState.update(Lab, (value) => ({ ...value, hash: { t: 1 } }));
-      yield* (yield* LocationHistory).back;
+      yield* location.back;
       expect(yield* Fiber.join(landed)).toEqual(['traverse /films/f/lab/s']);
       yield* TestClock.adjust('1 second');
       expect(yield* UrlState.get(Lab)).toEqual(

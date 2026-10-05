@@ -43,8 +43,9 @@ export interface LocationService {
   readonly replace: (href: string) => Effect.Effect<void>;
   /** The entry before this one, as the browser's Back button lands on it: a
    *  `traverse` on `changes`, once it lands (a tab's lands after this
-   *  returns). At the first entry, or with no history (a server render),
-   *  nothing. */
+   *  returns). At the first entry the memory layer stays where it is and the
+   *  server layer does nothing, but the browser's leaves the page for the
+   *  tab's previous one: call it only over an entry this page pushed. */
   readonly back: Effect.Effect<void>;
 }
 

@@ -41,11 +41,10 @@ const registryOver = <R>(location: Layer.Layer<R>) => {
 
 const memoryRegistry = (href: string) => {
   const { registry, context } = registryOver(layerMemory(href));
-  const history = Context.get(context, LocationHistory);
-  const stack = history.entries.pipe(
+  const stack = Context.get(context, LocationHistory).entries.pipe(
     Effect.map(({ stack }) => stack.map((entry) => `${entry.navigation} ${entry.href}`)),
   );
-  return { registry, history, stack, location: Context.get(context, Location) };
+  return { registry, stack, location: Context.get(context, Location) };
 };
 
 /** Waits until the atom's value holds `predicate`, and returns it. */
@@ -100,11 +99,11 @@ describe('UrlAtom', () => {
 
   it.effect('Back lands on the atoms, with the entry it arrived as', () =>
     Effect.gen(function* () {
-      const { registry, history } = memoryRegistry('/films/f/lab/s');
+      const { registry, location } = memoryRegistry('/films/f/lab/s');
       const unmount = registry.mount(lab);
       registry.set(lab, { ...labOf(registry), query: { ...labOf(registry).query, cue: 'c' } });
       const pushed = yield* until(registry, UrlAtom.entry, (entry) => entry.navigation === 'push');
-      yield* history.back;
+      yield* location.back;
       const landed = yield* until(registry, UrlAtom.entry, (entry) => entry.key !== pushed.key);
       expect(landed.navigation).toBe('traverse');
       expect(labOf(registry).query.cue).toBe('');

@@ -128,13 +128,16 @@ Three layers fill it:
 
 - `layerBrowser({ scrollRestoration? })`: the tab's `window.history`. Each
   entry carries `{ key }` in `history.state`; Back and Forward arrive as
-  `traverse` entries. It is the only module that touches `window.location`,
+  `traverse` entries. `back` at the tab's first entry leaves the page for the
+  tab's previous one, so a page calls it only over an entry it pushed. It is
+  the only module that touches `window.location`,
   `history` or `popstate`, and lint keeps `window.location`, `history` and
   `onpopstate` out of every other module of this package, of egw-search, and
   of the film's lab, player and browser modules (the film's lint also refuses
   a `popstate` listener there).
-- `layerMemory(href)`: a history stack in memory, plus `LocationHistory`
-  (`back`, `forward`, `entries`) to drive it.
+- `layerMemory(href)`: a history stack in memory; `back` at its first entry
+  stays there. `LocationHistory` adds `forward` and the stack (`entries`)
+  for a test to drive and read.
 - `layerServer(href)`: the request URL without its hash, read-only. A write
   is ignored and logged at Debug (`location.server.write.ignored`); a `back`
   is ignored too (`location.server.back.ignored`).
