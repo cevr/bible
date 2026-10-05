@@ -57,6 +57,29 @@ const retiredInto = (retired: Array<string>) =>
     }),
   ]);
 
+/**
+ * A server entry whose page reads `/api/given-up` with a signal of its own,
+ * gives that read up once `/api/go` is answered, and ends with what
+ * `/api/kept` answers.
+ */
+const GIVES_UP = `
+export default {
+  bodyClass: 'gives-up',
+  render: ({ url, fetch }, sink) => {
+    sink.head('');
+    const giving = new AbortController();
+    fetch(new URL('/api/given-up', url), { signal: giving.signal }).catch(() => undefined);
+    fetch(new URL('/api/go', url)).then(() => giving.abort());
+    fetch(new URL('/api/kept', url))
+      .then((response) => response.text())
+      .then((text) => {
+        sink.write('<p>' + text + '</p>');
+        sink.end();
+      });
+  },
+};
+`;
+
 /** The module instance a page names: one per import of its server entry. */
 const instanceOf = (markup: string) => /<p id="instance"[^>]*>([^<]+)</.exec(markup)?.[1] ?? '';
 
@@ -157,6 +180,41 @@ describe("a page's server render", () => {
       const ended = yield* Deferred.await(stopped).pipe(Effect.timeoutOption('2 seconds'));
       expect(Option.isSome(ended)).toBe(true);
     }).pipe(Effect.provide(Services)),
+  );
+
+  it.live(
+    "stops the handler of a read its render's fetch gives up while the render goes on, before the render closes",
+    () =>
+      Effect.gen(function* () {
+        const bundle: ServerBundle = {
+          files: [{ path: 'gives-up.js', bytes: new TextEncoder().encode(GIVES_UP) }],
+          entries: new Map<PageName, string>([['review', 'gives-up.js']]),
+        };
+        const givenUpAsked = yield* Deferred.make<void>();
+        const givenUpStopped = yield* Deferred.make<void>();
+        const kept = yield* Deferred.make<void>();
+        const read = (path: string) => {
+          if (path === '/api/given-up')
+            return Effect.andThen(Deferred.done(givenUpAsked, Exit.void), Effect.never).pipe(
+              Effect.onInterrupt(() => Deferred.done(givenUpStopped, Exit.void)),
+            );
+          if (path === '/api/go')
+            return Effect.as(Deferred.await(givenUpAsked), new Response('go'));
+          return Effect.as(Deferred.await(kept), new Response('kept'));
+        };
+        yield* Effect.gen(function* () {
+          const renderer = yield* PageRenderer;
+          const page = yield* renderer.render({ id: 1, bundle }, 'review', URL_ASKED, read);
+          // The render goes on, its kept read held: the given-up read's handler stops now.
+          const stopped = yield* Deferred.await(givenUpStopped).pipe(
+            Effect.timeoutOption('2 seconds'),
+          );
+          expect(Option.isSome(stopped)).toBe(true);
+          yield* Deferred.done(kept, Exit.void);
+          const markup = (yield* Stream.runCollect(page.markup)).join('');
+          expect(markup).toBe('<p>kept</p>');
+        }).pipe(Effect.scoped);
+      }).pipe(Effect.provide(Services)),
   );
 
   it.live('fails a render whose server entry exports no page render', () =>

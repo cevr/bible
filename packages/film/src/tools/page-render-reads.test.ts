@@ -62,12 +62,17 @@ describe("a render's reads", () => {
 
   it.live("aborts and drops a read whose fetch's own signal aborts", () =>
     Effect.gen(function* () {
-      const { reads } = bridge();
+      const { sent, reads } = bridge();
       const giving = new AbortController();
       const held = reads.open(1)(`${LAB}/api/held`, { signal: giving.signal });
       giving.abort();
       expect(yield* settled(held)).toContain('AbortError');
       expect(reads.held(1)).toBe(0);
+      // The lab hears it, and stops answering it.
+      expect(sent).toEqual([
+        expect.objectContaining({ _tag: 'Read', id: 1, read: 1 }),
+        expect.objectContaining({ _tag: 'ReadCancelled', id: 1, read: 1 }),
+      ]);
     }),
   );
 

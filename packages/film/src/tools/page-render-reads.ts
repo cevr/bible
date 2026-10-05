@@ -3,7 +3,8 @@
 // `Answer`, and refuses any other method, as a render only reads. A render
 // owns its reads: once it is over (ended, failed or cancelled), each read it
 // still waits on is aborted and dropped, as is one whose fetch's own signal
-// aborts, and an answer that comes after is no one's.
+// aborts (the lab told so, `ReadCancelled`, as the render goes on), and an
+// answer that comes after is no one's.
 
 import { Deferred, Effect, Option, Schema } from 'effect';
 import { FromRender, type ToRender } from './page-render-protocol.ts';
@@ -53,8 +54,13 @@ export const renderReads = (send: (message: FromRender) => void): RenderReads =>
   const renders = new Map<number, AbortController>();
   let readsMade = 0;
 
-  /** Render `id`'s read of `request`, held (in `reads`) until answered or interrupted. */
-  const readOf = (id: number, request: Request) =>
+  /**
+   * Render `id`'s read of `request`, held (in `reads`) until answered or
+   * interrupted. Interrupted while its render goes on (`renderOver` not
+   * aborted: the fetch's own signal gave it up), the lab is told, so it stops
+   * answering; a render over is the lab's to close, whole.
+   */
+  const readOf = (id: number, request: Request, renderOver: AbortSignal) =>
     Effect.gen(function* () {
       if (request.method !== 'GET')
         return yield* NotARead.make({
@@ -67,6 +73,11 @@ export const renderReads = (send: (message: FromRender) => void): RenderReads =>
       const url = new URL(request.url);
       send(FromRender.Read({ id, read: made, path: `${url.pathname}${url.search}` }));
       return yield* Deferred.await(answered).pipe(
+        Effect.onInterrupt(() =>
+          Effect.sync(() => {
+            if (!renderOver.aborted) send(FromRender.ReadCancelled({ id, read: made }));
+          }),
+        ),
         Effect.ensuring(Effect.sync(() => reads.delete(made))),
       );
     });
@@ -82,7 +93,7 @@ export const renderReads = (send: (message: FromRender) => void): RenderReads =>
       return Effect.runPromise(
         Effect.gen(function* () {
           if (signal.aborted) return yield* Effect.fail(signal.reason);
-          return yield* readOf(id, request).pipe(Effect.raceFirst(abortedBy(signal)));
+          return yield* readOf(id, request, over.signal).pipe(Effect.raceFirst(abortedBy(signal)));
         }),
       );
     };

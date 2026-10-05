@@ -37,6 +37,8 @@ export type FromRender = Data.TaggedEnum<{
   Failed: { readonly id: number; readonly reason: string };
   /** The render reads `path` of the lab's API (a GET): answered by `Answer` with the same `read`. */
   Read: { readonly id: number; readonly read: number; readonly path: string };
+  /** The render, going on, gave up its read `read` (its fetch's signal aborted): the lab stops answering it. */
+  ReadCancelled: { readonly id: number; readonly read: number };
 }>;
 
 export const FromRender = Data.taggedEnum<FromRender>();

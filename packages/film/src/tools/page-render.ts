@@ -20,7 +20,7 @@ import {
   Duration,
   Effect,
   Exit,
-  FiberSet,
+  FiberMap,
   FileSystem,
   Layer,
   Option,
@@ -132,11 +132,15 @@ const WORKER = new URL('./page-render-worker.ts', import.meta.url);
 /** How long a render may take to write its head before the page is answered without it. */
 const HEAD_WAIT = Duration.seconds(10);
 
-/** A render under way: the worker's messages for it, its reads, and the fibers answering them (interrupted when it closes). */
+/**
+ * A render under way: the worker's messages for it, its reads, and the
+ * fiber answering each read by its number (interrupted when the render gives
+ * the read up, and all of them when it closes).
+ */
 interface Pending {
   readonly parts: Queue.Queue<FromRender>;
   readonly read: Read;
-  readonly answering: FiberSet.FiberSet<void>;
+  readonly answering: FiberMap.FiberMap<number, void>;
 }
 
 /** A build's worker: its pages' renders, and whether it still runs. */
@@ -159,6 +163,7 @@ const pieceOf = (part: FromRender): Effect.Effect<string, RenderFailed> =>
     Chunk: ({ html }) => Effect.succeed(html),
     End: () => Effect.succeed(''),
     Read: () => Effect.succeed(''),
+    ReadCancelled: () => Effect.succeed(''),
     Failed: ({ reason }) => Effect.fail(RenderFailed.make({ reason })),
   });
 
@@ -214,15 +219,20 @@ const spawnWorker = Effect.fnUntraced(function* (build: number, bundle: ServerBu
 
   /**
    * A message of the worker's, to the render it names (a render already gone
-   * hears nothing). A read is answered in a fiber of the render's, so it ends
-   * when the render does.
+   * hears nothing). A read is answered in a fiber of the render's, kept by
+   * the read's number: it ends when the render gives the read up (its
+   * handler interrupted, its request aborted), or when the render ends.
    */
   const deliver = (message: FromRender): Effect.Effect<void> =>
     Option.match(Option.fromUndefinedOr(pending.get(message.id)), {
       onNone: () => Effect.void,
       onSome: (render) => {
         if (message._tag === 'Read')
-          return Effect.asVoid(FiberSet.run(render.answering, answer(render, message)));
+          return Effect.asVoid(
+            FiberMap.run(render.answering, message.read, answer(render, message)),
+          );
+        if (message._tag === 'ReadCancelled')
+          return FiberMap.remove(render.answering, message.read);
         return Effect.asVoid(Queue.offer(render.parts, message));
       },
     });
@@ -258,7 +268,7 @@ const spawnWorker = Effect.fnUntraced(function* (build: number, bundle: ServerBu
       const id = started;
       const parts = yield* Queue.unbounded<FromRender>();
       const ended = yield* Ref.make(false);
-      const answering = yield* FiberSet.make<void>();
+      const answering = yield* FiberMap.make<number, void>();
       pending.set(id, { parts, read, answering });
       yield* Effect.addFinalizer(() =>
         Effect.gen(function* () {
