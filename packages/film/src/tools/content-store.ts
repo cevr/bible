@@ -19,9 +19,12 @@
 // writer's own (`<file>.<pid>-<n>.partial`), then renamed over it (by the
 // caller, under a lock, with `writeWholeWith`: the mix's track and its
 // stamp), and the partial removed if the write fails. A reader never sees
-// half a file, and two writers never share a partial.
+// half a file, and two writers never share a partial. The name says whose a
+// partial is (`partialWriter`), so a sweep of what a crash left (narrate's)
+// spares a partial whose writer still runs.
 
 import {
+  Array as Arr,
   Clock,
   Context,
   Duration,
@@ -50,6 +53,21 @@ export interface Manifest<A> {
 
 export type StoreError = FileInvalid | StoreLocked | PlatformError;
 
+/** The partial process `pid` writes `file` through (`writeWholeWith`): `<file>.<pid>-<n>.partial`. */
+const partialOf = (file: string, pid: number, n: number): string => `${file}.${pid}-${n}.partial`;
+
+/**
+ * The process writing a partial (`writeWholeWith`), read from its name;
+ * none for a name no writer of this store makes (`<file>.partial`).
+ */
+export const partialWriter = (name: string): Option.Option<number> =>
+  Option.map(
+    Option.flatMap(Option.fromNullishOr(/\.(\d+)-\d+\.partial$/.exec(name)), (named) =>
+      Arr.get(named, 1),
+    ),
+    Number,
+  );
+
 /**
  * `file` written whole by `write`, which writes the partial it is handed:
  * a name of this writer's own beside `file`, landed by `land` once written
@@ -63,7 +81,7 @@ export const writeWholeWith = <E, R, L, LR>(
   land: (partial: string) => Effect.Effect<void, L, LR>,
 ): Effect.Effect<void, E | L | PlatformError, R | LR> =>
   Effect.gen(function* () {
-    const partial = `${file}.${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}.partial`;
+    const partial = partialOf(file, process.pid, yield* Random.nextIntBetween(0, 1e9));
     yield* Effect.gen(function* () {
       yield* write(partial);
       yield* land(partial);

@@ -7,13 +7,16 @@
 // else fails the run unless it is accepted, and is never recorded as current.
 //
 // A crash at any point leaves the takes and their timings in agreement. A new
-// take is written under a name of its own (its beat and a hash of its audio),
-// never over a file the timings name; rewriting `timings.json` whole is the
-// one step that makes it current. What a crashed or failed run leaves behind
-// (a take never made current, a take replaced, a partial write) the timings
-// name nowhere, and the next run clears it from `narration/`: a partial write
-// is removed, a take is put away into `narration/attempts/<beat>/`, never
-// deleted.
+// take is made in a temporary folder of its run's own, where no other run
+// sees it, and named for its beat and a hash of its audio, never the name of
+// a file the timings name. It enters `narration/` only under the timings'
+// lock, placed there and named by `timings.json`, rewritten whole, in one
+// step: so another run's sweep, which holds that lock too, never finds a
+// take that is still being made. What a crashed or failed run leaves behind
+// (a take placed but never named, a take replaced, a partial write) the
+// timings name nowhere, and the next run clears it from `narration/`: a
+// partial write whose writer is gone is removed, a take is put away into
+// `narration/attempts/<beat>/`, never deleted.
 
 import {
   Array as Arr,
@@ -53,7 +56,7 @@ import {
 import { lineError } from '../core/spoken.ts';
 import type { ReadBeat } from '../core/studio.ts';
 import { voicedWords } from '../core/voiced.ts';
-import { ContentStore, type StoreError } from './content-store.ts';
+import { ContentStore, Processes, type StoreError, partialWriter } from './content-store.ts';
 import { sha256Hex } from './digest.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import { ElevenLabsFailed, type MediaFailed, TakeMismatch } from '../core/refusals.ts';
@@ -360,25 +363,38 @@ export const putAwayUnnamed = Effect.fn('putAwayUnnamed')(function* (
 });
 
 /**
- * Clear `narration/` of what the timings do not name: every partial write is
- * removed, and every take file (what a crashed or failed run left, or a take
- * since replaced) is put away into `attempts/<beat>/` (`putAwayTake`), never
+ * Clear `narration/` of what the timings do not name: every partial write
+ * whose writer is gone is removed (one whose writer runs, a mix's track
+ * say, which no timings lock covers, is left to land: `partialWriter`), and
+ * every take file (what a crashed or failed run left, or a take since
+ * replaced) is put away into `attempts/<beat>/` (`putAwayTake`), never
  * deleted, so a person's take whose attempt is not on this machine is still
  * kept. All of it holds the timings' lock, which a lab's Undo holds while it
- * brings a take back and names it, and a keep while it places one, so what
- * is swept is decided from the timings as they are, in any process.
+ * brings a take back and names it, and a keep or a staging take while it
+ * places one, so what is swept is decided from the timings as they are, in
+ * any process.
  */
 export const sweepNarration = Effect.fn('Narrator.sweep')(function* (paths: FilmPaths) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const store = yield* ContentStore;
+  const processes = yield* Processes;
   const dir = paths.narration;
   if (!(yield* fs.exists(dir))) return;
+  /** Whether a partial's writer is gone: a crash's, or one from before partials named theirs. */
+  const abandoned = (name: string) =>
+    Option.match(partialWriter(name), {
+      onNone: () => Effect.succeed(true),
+      onSome: (pid) => Effect.map(processes.alive(pid), (runs) => !runs),
+    });
   const sweep = Effect.gen(function* () {
     const timings = yield* store.read(paths.timings);
     const named = new Set(Object.values(timings.scenes).map((t) => t.file));
     const names = yield* fs.readDirectory(dir);
-    const partials = names.filter((name) => name.endsWith('.partial'));
+    const partials = yield* Effect.filter(
+      names.filter((name) => name.endsWith('.partial')),
+      abandoned,
+    );
     const stray = names.filter(
       (name) => TAKE_EXTENSIONS.some((ext) => name.endsWith(ext)) && !named.has(name),
     );
@@ -432,6 +448,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
   static readonly layer = Layer.effect(
     Narrator,
     Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const store = yield* ContentStore;
       const elevenLabs = yield* ElevenLabs;
@@ -490,10 +507,11 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
           ),
         );
 
-        // The take lands beside the current one; only the timings make it current.
+        // The take is made in this beat's own folder, out of every other
+        // run's sight, and gone with it however the beat ends.
         const file = takeFile(beat.id, audio);
-        const take = path.join(film.paths.narration, file);
-        yield* store.writeFile(take, audio);
+        const take = path.join(yield* fs.makeTempDirectoryScoped({ prefix: 'narrate-' }), file);
+        yield* fs.writeFile(take, audio);
         const heard = yield* elevenLabs.stt(take);
         const wer = lineError(beat.text, heard.text, film.heardAs);
         const duration = yield* media.duration(take);
@@ -512,39 +530,42 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
             heard: heard.text,
             wer,
           });
-          // Never made current, the take is removed with the run's leftovers.
+          // Never made current, the take never reaches `narration/`.
           if (!options.acceptMismatch.has(beat.id)) return yield* mismatch;
           yield* Effect.logWarning(`narrate.mismatch accepted=true ${mismatch.message}`);
         }
         // Seconds of silence after the last word are trimmed, as an import's
         // are: the trimmed take is a FLAC of what ElevenLabs sent (never
-        // re-encoded lossy), and the MP3 it replaces goes with the sweep.
+        // re-encoded lossy), kept in place of the MP3.
         const sent = yield* media.decode(take);
         const kept = yield* Option.match(trimTail(sent), {
-          onNone: () => Effect.succeed({ file, duration, pcm: sent }),
+          onNone: () => Effect.succeed({ file, bytes: audio, duration, pcm: sent }),
           onSome: (trimmed) =>
             Effect.gen(function* () {
               const flac = yield* media.encodeFlac(trimmed);
               const trimmedFile = takeFile(beat.id, flac, '.flac');
-              yield* store.writeFile(path.join(film.paths.narration, trimmedFile), flac);
               const secs = trimmed.frames / trimmed.rate;
               yield* Effect.log(
                 `narrate.trimmed id=${beat.id} tail=${(duration - secs).toFixed(2)} file=${trimmedFile}`,
               );
-              return { file: trimmedFile, duration: secs, pcm: trimmed };
+              return { file: trimmedFile, bytes: flac, duration: secs, pcm: trimmed };
             }),
         });
         // Where each word is heard, read from the take as it will be mixed.
         const voiced = voicedWords(heldInside(words, kept.duration), kept.pcm);
-        // The commit: timings.json is replaced whole, naming the new take.
-        yield* store.update(
-          film.paths.timings,
-          withTake(plan.voice, beat.id, {
-            hash: hashText(beat.script),
-            file: kept.file,
-            duration: kept.duration,
-            words: voiced,
-            source: 'elevenlabs',
+        // The commit, under the timings' lock: the take placed beside the
+        // current one, then timings.json replaced whole, naming it.
+        yield* store.transact(film.paths.timings, (timings) =>
+          Effect.gen(function* () {
+            yield* store.writeFile(path.join(film.paths.narration, kept.file), kept.bytes);
+            const named = withTake(plan.voice, beat.id, {
+              hash: hashText(beat.script),
+              file: kept.file,
+              duration: kept.duration,
+              words: voiced,
+              source: 'elevenlabs',
+            })(timings);
+            return [named, named] as const;
           }),
         );
       });
@@ -569,6 +590,7 @@ export class Narrator extends Context.Service<Narrator, NarratorService>()(
           plan.stale,
           (beat) =>
             recordBeat(film, plan, options, beat).pipe(
+              Effect.scoped,
               Effect.tapError((error) =>
                 Effect.logError(`narrate.failed id=${beat.id} error=${error._tag}`),
               ),

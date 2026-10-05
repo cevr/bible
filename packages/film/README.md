@@ -187,9 +187,13 @@ mixes to now (`AudioMissing`; `AudioStale`, `length` or `mixed for another
 plan`, which an unstamped track is too): the renderer checks it before the
 first frame and `check` in its static leg.
 
-`narrate` writes each new take as `<id>.<audio hash>.mp3` and makes it current
-only by rewriting `timings.json`, so no crash leaves a take and its timings
-disagreeing. A take's words come from the speech model's alignment and its
+`narrate` makes each new take, `<id>.<audio hash>.mp3`, in a temporary folder
+of its own, and places it in `narration/` only under the timings' store lock,
+in the same step as the `timings.json` rewrite that makes it current. No crash
+leaves a take and its timings disagreeing, and another `narrate`'s sweep
+never puts away a take still being made. The sweep removes a partial write
+only when its writer (the pid in `<file>.<pid>-<n>.partial`) no longer runs,
+so a mix landing its track meanwhile keeps its partial. A take's words come from the speech model's alignment and its
 length from the encoded file; a word the alignment puts past the end is held
 inside the take (`core/narration.ts` `heldInside`, with a `narrate.overrun`
 warning past `TAKE_TOLERANCE`), so the timings always fit their audio. The
@@ -244,7 +248,8 @@ or a recorded one whose attempt this machine lacks, is copied there first;
 an attempt of the same name with other bytes stays as it is, and the take
 is kept beside it as `<file>.<sha12><ext>`, logged `takes.put-away.kept-aside`),
 so no take's bytes are ever lost and git drops it from `narration/` as
-before. Placing a take and naming it hold the timings' store lock, and a
+before. Placing a take and naming it hold the timings' store lock (a keep's,
+and a `narrate` staging take's), and a
 take is put away only while the timings, read under that lock, do not name
 it (`putAwayUnnamed`; narrate's sweep runs under it too), so a sweep in
 another process never puts away a take a lab's Undo is naming. A
