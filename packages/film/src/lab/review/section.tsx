@@ -851,7 +851,6 @@ const VariantCard = (props: { readonly variant: SeenVariant }) => {
     >
       <VariantVideo variant={props.variant} />
       <VariantCap variant={props.variant} />
-      <VersionInspector version={props.variant} />
     </Target>
   );
 };
@@ -1101,7 +1100,6 @@ const WipeView = (props: { readonly other: string }) => {
               data-id={variant.id}
             >
               <VariantCap variant={variant} />
-              <VersionInspector version={variant} />
             </Target>
           )}
         </For>
@@ -1199,7 +1197,6 @@ const MomentsView = (props: { readonly index: number }) => {
                     }
                   />
                   <StillCap variant={variant} />
-                  <VersionInspector version={variant} />
                 </Target>
               )}
             </For>
@@ -1259,7 +1256,6 @@ const DiffView = (props: { readonly other: string; readonly index: number }) => 
                   data-id={variant.id}
                 >
                   <StillCap variant={variant} />
-                  <VersionInspector version={variant} />
                 </Target>
               )}
             </For>
@@ -1298,7 +1294,6 @@ const NotesView = () => {
             >
               {(notes: ReviewFile) => <Markdown file={notes.ref} />}
             </Show>
-            <VersionInspector version={variant} />
           </Target>
         )}
       </For>
@@ -1306,7 +1301,12 @@ const NotesView = () => {
   );
 };
 
-/** The set's page: the transport over the view it shows. */
+/**
+ * The set's page: the transport over the view it shows, and its versions as
+ * the page's things. The page owns each version's thing and sheet, not the
+ * view's cards: a pair or a wipe shows two of three versions, and a link
+ * may open the third's sheet.
+ */
 const SetBody = () => {
   const { folder, set, view, sync, send } = useSet();
   // The open sheet is the URL's (`?inspect=`, a version of the set): a tap on a version's
@@ -1346,6 +1346,7 @@ const SetBody = () => {
           Notes: () => <NotesView />,
         }),
       )}
+      <For each={set.variants}>{(variant) => <VersionInspector version={variant} />}</For>
     </>
   );
 };

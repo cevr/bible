@@ -452,17 +452,22 @@ export const useVariantThing = (props: {
  * One variant: at rest its name (a tap inspects it), its state, its first
  * line, how it is seen or heard, its pick (picked: a filled check, not a
  * colour), its approve where it is the picked one, and a dot counting what
- * was said of it. The rest is in its inspector: every line, unapprove,
- * unkeep and reject, the comments and the comment box; and in its context
- * menu.
+ * was said of it. The rest is in its inspector (`VariantInspector`, the
+ * page's, not the row's): every line, unapprove, unkeep and reject, the
+ * comments and the comment box; and in its context menu.
  */
 const VariantRow = (props: {
   readonly point: ChoicePoint;
   readonly variant: ChoiceVariant;
   readonly sayer: Sayer;
 }) => {
-  const { selection, title, said } = useVariantThing(props);
-  const approveAtRest = () => said() && (props.variant.picked || props.point.kind === 'render');
+  const { film } = useFilm();
+  // A row is keyed by its variant: its selection is fixed for as long as it lives.
+  const selection = untrack(() =>
+    Selection.cases.Variant.make({ film, point: props.point.id, variant: props.variant.id }),
+  );
+  const approveAtRest = () =>
+    Option.isSome(props.point.address) && (props.variant.picked || props.point.kind === 'render');
   return (
     <Target
       of={selection}
@@ -502,31 +507,64 @@ const VariantRow = (props: {
           <Approve variant={props.variant} sayer={props.sayer} />
         </Show>
       </div>
-      <Inspector of={selection} title={title()}>
-        {(box) => (
-          <>
-            <div class="rv-row">
-              <StateTags variant={props.variant} />
-            </div>
-            <For each={props.variant.lines}>{(line) => <div class="rv-meta">{line}</div>}</For>
-            <div class="rv-row">
-              <Show when={said()}>
-                <Approval variant={props.variant} sayer={props.sayer} />
-              </Show>
-              <For each={props.variant.verbs.filter(isRare)}>
-                {(verb) => <VerbButton point={props.point} variant={props.variant} verb={verb} />}
-              </For>
-            </div>
-            <Comments comments={props.variant.comments} />
-            <Show when={said()}>
-              <CommentBox variant={props.variant} sayer={props.sayer} box={box} />
-            </Show>
-          </>
-        )}
-      </Inspector>
     </Target>
   );
 };
+
+/**
+ * A choice's variant as a thing of the page (`useVariantThing`) and its
+ * inspector: every line, its approval, unkeep and reject, the comments and
+ * the comment box.
+ */
+const VariantInspector = (props: {
+  readonly point: ChoicePoint;
+  readonly variant: ChoiceVariant;
+  readonly sayer: Sayer;
+}) => {
+  const { selection, title, said } = useVariantThing(props);
+  return (
+    <Inspector of={selection} title={title()}>
+      {(box) => (
+        <>
+          <div class="rv-row">
+            <StateTags variant={props.variant} />
+          </div>
+          <For each={props.variant.lines}>{(line) => <div class="rv-meta">{line}</div>}</For>
+          <div class="rv-row">
+            <Show when={said()}>
+              <Approval variant={props.variant} sayer={props.sayer} />
+            </Show>
+            <For each={props.variant.verbs.filter(isRare)}>
+              {(verb) => <VerbButton point={props.point} variant={props.variant} verb={verb} />}
+            </For>
+          </div>
+          <Comments comments={props.variant.comments} />
+          <Show when={said()}>
+            <CommentBox variant={props.variant} sayer={props.sayer} box={box} />
+          </Show>
+        </>
+      )}
+    </Inspector>
+  );
+};
+
+/**
+ * Every variant of `points` as a thing of the page, and its sheet: the
+ * page's, whichever cards it shows, so a sheet a link names opens though
+ * Show only (`?only=`) leaves its card out.
+ */
+export const ChoiceSheets = (props: { readonly points: ReadonlyArray<ChoicePoint> }) => (
+  <For each={props.points} keyed={(p) => p.id}>
+    {(point) => {
+      const sayer = choiceSayer(point);
+      return (
+        <For each={point().variants} keyed={(v) => v.id}>
+          {(variant) => <VariantInspector point={point()} variant={variant()} sayer={sayer} />}
+        </For>
+      );
+    }}
+  </For>
+);
 
 /** A variant's state, and its approval when it has one. */
 const StateTags = (props: { readonly variant: ChoiceVariant }) => (
@@ -627,23 +665,25 @@ export const revealPoint = (point: string) =>
     card.scrollIntoView({ block: 'center' });
   });
 
+/** Where a choice's says go: the film's choices, under its point. */
+const choiceSayer = (point: () => ChoicePoint): Sayer => ({
+  use: () => {
+    const saying = useAct();
+    return {
+      waiting: saying.waiting,
+      say: (variant, say) =>
+        saying.write(ChoiceAct.Say({ point: point().id, variant: variant.id, say })),
+    };
+  },
+});
+
 /**
  * One choice point: its lines, its knob, its variants. A
  * choice's says go to the film's choices. Why a stale variant is stale is
  * its own (`staleBy`).
  */
 export const ChoiceCard = (props: { readonly point: ChoicePoint }) => {
-  /** A choice's says go to the film's choices. */
-  const sayer: Sayer = {
-    use: () => {
-      const saying = useAct();
-      return {
-        waiting: saying.waiting,
-        say: (variant, say) =>
-          saying.write(ChoiceAct.Say({ point: props.point.id, variant: variant.id, say })),
-      };
-    },
-  };
+  const sayer = choiceSayer(() => props.point);
   const { film } = useFilm();
   return (
     <Target

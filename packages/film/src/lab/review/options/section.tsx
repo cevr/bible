@@ -34,7 +34,7 @@ import { pressed, sizeText, videoSource } from '../format.ts';
 import { useInspectorPlace } from '../inspector.tsx';
 import { ProxyPending, Transport } from '../section.tsx';
 import { ChoiceAct } from './api.ts';
-import { ChoiceCard, HearButton, revealPoint } from './choice.tsx';
+import { ChoiceCard, ChoiceSheets, HearButton, revealPoint } from './choice.tsx';
 import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
 import { REVIEW_REDO, REVIEW_UNDO } from './receipt.ts';
 
@@ -360,6 +360,8 @@ const FilmBody = () => {
       <Show when={choices().points.length === 0}>
         <p class="empty">This film has nothing to choose between.</p>
       </Show>
+      {/* Every variant's sheet is the page's, whichever cards Show only leaves in. */}
+      <ChoiceSheets points={choices().points} />
     </>
   );
 };

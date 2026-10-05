@@ -198,8 +198,8 @@ const project: Json = {
   videos: { open: videoOf('open') },
 };
 
-/** Open's render set, with two versions to compare. */
-const renderSet: Json = {
+/** Open's render set, with `versions` to compare. */
+const renderSetOf = (versions: ReadonlyArray<string>): Json => ({
   id: STUDIO_SET,
   kind: 'render',
   address: scenesAt('open'),
@@ -207,7 +207,7 @@ const renderSet: Json = {
   lines: [],
   start: 0,
   marks: [],
-  variants: ['main', 'warm'].map((id) => ({
+  variants: versions.map((id) => ({
     id,
     label: id,
     lines: [`${id} look`],
@@ -221,25 +221,26 @@ const renderSet: Json = {
       .filter((v) => v === 'main')
       .map(() => said(scenesAt('open'), 'the page lands', Option.some(STUDIO_SET))),
   })),
-};
+});
 
-const index: Json = {
+/** The review's index: the film's folder, open's render set of `versions`, two loose videos. */
+const indexOf = (versions: ReadonlyArray<string>): Json => ({
   folders: [
     {
       ref: STUDIO_FOLDER,
       title: STUDIO_FILM,
       mtime: 0,
-      sets: [renderSet],
+      sets: [renderSetOf(versions)],
       videos: [looseOf('take-1.mp4', 'ready'), looseOf('take-2.mp4', 'pending')],
       images: [],
       docs: [],
     },
   ],
-};
+});
 
 /** The review's routes over the film: its index, its films, its choices, its project and their checks. */
 export const studioRoutes: ReadonlyArray<FakeRoute> = [
-  route('GET', /^\/api\/review\/index/, () => json(index)),
+  route('GET', /^\/api\/review\/index/, () => json(indexOf(['main', 'warm']))),
   route('GET', /^\/api\/review\/duration/, () => json({ seconds: 20 })),
   route('GET', /^\/api\/films$/, () => json({ films: [STUDIO_FILM] })),
   route('GET', /^\/api\/films\/toy\/choices$/, () => json(choices)),
@@ -270,4 +271,10 @@ export const studioRoutes: ReadonlyArray<FakeRoute> = [
   ),
   route('GET', /^\/api\/films\/toy\/steps$/, () => json({})),
   route('GET', /^\/api\/films\/toy\/project$/, () => json(project)),
+];
+
+/** The studio's routes with open's render set holding three versions: a pair leaves one out. */
+export const studioRoutesOfThree: ReadonlyArray<FakeRoute> = [
+  route('GET', /^\/api\/review\/index/, () => json(indexOf(['main', 'warm', 'cool']))),
+  ...studioRoutes,
 ];

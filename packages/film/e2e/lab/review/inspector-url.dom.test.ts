@@ -5,7 +5,9 @@
 // opens it again; Close, Escape and, on a phone, a swipe down drop it,
 // going Back over the entry the tap pushed, so they leave none of their own;
 // a link naming it opens it, and closing that makes no entry either. A link
-// written before the key keeps landing, the sheet shut.
+// written before the key keeps landing, the sheet shut. The page owns its
+// sheets, not the cards it shows: a sheet the URL names opens though a
+// filter (`?only=`) or a pair leaves its card out.
 
 import { Effect } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -16,8 +18,9 @@ import {
   STUDIO_FOLDER,
   STUDIO_SET,
   studioRoutes,
+  studioRoutesOfThree,
 } from '../../../src/lab/fixtures/studio-film.ts';
-import { countIs, evaluates, until, waitFor } from '../../../src/lab/fixtures/settled.ts';
+import { countIs, evaluates, textHas, until, waitFor } from '../../../src/lab/fixtures/settled.ts';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 
 const SLOW = 30_000;
@@ -148,4 +151,44 @@ describe('a link written before the sheet had a key', () => {
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
   );
+});
+
+describe('a sheet the URL names opens whatever cards the page shows', () => {
+  const CASES = [
+    {
+      name: "Choices, its variant's card left out by Show only (`?only=comments`)",
+      routes: studioRoutes,
+      href: `${pageHref.choices(STUDIO_FILM, 'look:ground', 'now')}&only=comments`,
+      card: '.rv-main [data-point="look:ground"] [data-variant="now"]',
+      title: 'now of',
+    },
+    {
+      name: "a Set's pair, the version it names not one of the two (`?view=pair&other=warm&inspect=cool`)",
+      routes: studioRoutesOfThree,
+      href: `/sets/${encodeURIComponent(STUDIO_FOLDER)}/${STUDIO_SET}?view=pair&other=warm&inspect=cool`,
+      card: '.rv-main .rv-card[data-id="cool"]',
+      title: 'cool',
+    },
+  ];
+  for (const c of CASES) {
+    it.live(
+      `${c.name}: its sheet opens, and its Close names none`,
+      () =>
+        Effect.gen(function* () {
+          const { page, errors } = yield* openReview(c.routes, {
+            href: c.href,
+            viewport: LAPTOP,
+          });
+          yield* waitFor(page, CLOSE);
+          yield* textHas(page, `${INSPECTOR} .lab-sheet-title`, c.title);
+          // The page shows no card of it.
+          yield* countIs(page, c.card, 0);
+          yield* page.click(CLOSE);
+          yield* countIs(page, INSPECTOR, 0);
+          yield* evaluates(page, `new URL(location.href).searchParams.get('inspect') ?? ''`, '');
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
 });

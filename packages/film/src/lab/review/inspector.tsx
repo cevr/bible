@@ -278,8 +278,10 @@ export const useInspected = (of: Selection): Accessor<boolean> => {
 };
 
 /**
- * A thing's inspector, rendered in its row so it reads the row's providers;
- * shown while it is the one open. `children` gets its comment box's handle:
+ * A thing's inspector, shown while it is the one open. A page renders it
+ * where the providers it reads are, for every thing the page has, not in the
+ * card that shows the thing: a filter or a view that leaves the card out
+ * leaves the sheet a link names. `children` gets its comment box's handle:
  * the ref the box's field takes (focused when it opened at the box) and the
  * box's draft.
  */
