@@ -1022,10 +1022,12 @@ directly; `COMMAND_TOKENS` names only what no studio token holds: the
 paddings and heights the surfaces compose, and their own widths, heights and
 layer. The Play and Scenes pages are the shell's too
 (`lab/play-mount.tsx`), so `?` is the keys sheet on every page, the one
-place the keys are listed (UR2-11). The lab bar's legend (what the stripes
-and the ticks mean) is hidden at rest (UR-114, `legendCommand`, no key):
-⌘K or the page's long-press menu shows it (Show the legend). Play has no
-legend of its own: the ticks' shows with the ticks (⋯ → Show the ticks).
+place the keys are listed (UR2-11): every command a key is bound to, one
+found only by typing too. The lab bar's legend (what the stripes and the
+ticks mean, `BAR_LEGEND`) is hidden at rest (UR-114, `legendCommand`, no
+key): ⌘K or the page's long-press menu shows it (Show the legend), and on a
+film's page the `?` sheet ends on it. Play has no bar legend of its own:
+the ticks' shows with the ticks (⋯ → Show the ticks).
 The lab's transport reads in the scene's time and length while the header
 keeps the film's, and on a laptop Play's one timecode is the header's
 (SU-12); the lab's captions are the view menu's and `c`, Play's its bar's

@@ -9,7 +9,7 @@
 // the keys sheet (`viewRows`). Pure.
 
 import { Array as Arr, Option } from 'effect';
-import { type Command, type Invocation, labelOf } from './command.ts';
+import { type Command, type CommandId, type Invocation, labelOf } from './command.ts';
 import type { Context } from './context.ts';
 import { EVERYWHERE, type Target, targetOf } from './target.ts';
 
@@ -76,11 +76,16 @@ export const menuRows = (
     .filter((row) => matches(query, `${row.label} ${row.command.group} ${row.command.id}`));
 };
 
-/** The `?` sheet's rows: every command registered but those found only by typing, by group. */
+/**
+ * The `?` sheet's rows, by group: every command registered but those found
+ * only by typing, unless a key is bound to one now (`bound`), so every key
+ * the page hears is listed.
+ */
 export const sheetRows = (
   all: ReadonlyArray<Command>,
+  bound: (id: CommandId) => ReadonlyArray<unknown>,
 ): ReadonlyArray<readonly [string, ReadonlyArray<Command>]> =>
-  byGroup(all.filter((command) => !isTyped(command)));
+  byGroup(all.filter((command) => !isTyped(command) || bound(command.id).length > 0));
 
 /**
  * A chip's menu rows (the rate chip, the loop chip): the commands named by

@@ -81,7 +81,7 @@ const FilmPage = (props: FilmPageWith) => {
   const Body = clientOnly(() => props.body(props.hub));
   return (
     <RegistryProvider initialValues={[[UrlAtom.layer, hostLayer(props.host)]]}>
-      <StudioFrame hub={props.hub} scope={props.scope}>
+      <StudioFrame hub={props.hub} scope={props.scope} legend>
         <PageShell
           part={(): Part => props.part}
           film={() => props.name}

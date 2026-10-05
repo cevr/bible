@@ -50,8 +50,18 @@ describe('the command menu and the sheet', () => {
     const all = [...commands, ...goes];
     expect(menuRows(all, ctx, '').map((r) => r.command.id)).not.toContain('go.scene.cold');
     expect(menuRows(all, ctx, 'cold').map((r) => r.label)).toEqual(['Go to scene cold']);
-    expect(sheetRows(all).map(([group]) => group)).toEqual(['Transport', 'Edit']);
+    expect(sheetRows(all, () => []).map(([group]) => group)).toEqual(['Transport', 'Edit']);
     expect(contextRows(all, ctx)).toEqual([]);
+  });
+
+  test('the sheet lists every command a key is bound to, one found only by typing too', () => {
+    const goes = goToCommands([{ kind: 'scene', id: 'cold', name: 'cold', go: () => {} }]);
+    const bound = (id: string) => ['g'].filter(() => id === 'go.scene.cold');
+    expect(sheetRows([...commands, ...goes], bound).map(([group]) => group)).toEqual([
+      'Transport',
+      'Edit',
+      GO_TO,
+    ]);
   });
 
   test('the view menu lists the View commands available, then what it ends on, each at its step', () => {

@@ -226,11 +226,32 @@ interface Legend {
 }
 
 /**
+ * What the bar's stripes and ticks mean, written once: the bar's legend
+ * (`legendHtml`) and the `?` sheet's on a film's page (`keys-sheet.tsx`).
+ * Each tick's swatch is its kind's (`.keys .k-<kind>`, `player.css`).
+ */
+export const BAR_LEGEND = {
+  striped: 'striped = narration estimated, not recorded',
+  ticks: [
+    { kind: 'mark', name: 'mark' },
+    { kind: 'cue', name: 'cue' },
+    { kind: 'effect', name: 'sound' },
+    { kind: 'act', name: 'music act' },
+  ],
+  names: '(hover or long-press for the name)',
+} as const;
+
+/** The bar's legend as markup: the stripes, then each tick's swatch before its name. */
+export const legendHtml = (): string =>
+  `${BAR_LEGEND.striped} · ticks: ${BAR_LEGEND.ticks.map((t) => `<i class="k-${t.kind}"></i>${t.name}`).join(' ')} ${BAR_LEGEND.names}`;
+
+/**
  * The lab bar's legend (what the stripes and the ticks mean), hidden at
  * rest (UR-114). It has no key: on every page in the studio's shell `?`
- * opens the keys sheet, the one place the keys are listed (UR2-11). ⌘K and
- * the page's long-press menu show it. Play has none: its ticks' legend
- * shows with its ticks (`ticksCommand`).
+ * opens the keys sheet, the one place the keys are listed (UR2-11), and on
+ * a film's page the sheet ends on this legend too. ⌘K and the page's
+ * long-press menu show it. Play has none: its ticks' legend shows with its
+ * ticks (`ticksCommand`).
  */
 export const legendCommand = (legend: Legend): Command => ({
   id: 'view.legend',
