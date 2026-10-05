@@ -728,9 +728,9 @@ thin rule at its scene's exact time carrying the scene's name, and a band
 under each line says each scene's state. Over it the **tape bar** holds the
 acts ruler, the preview's track (in two lanes: the scenes' names along its
 top, its ticks below them, so no name runs over a tick), the legend (scenes
-out of date, not rendered and approved; the check's findings and warnings
-on scenes, each line once, and the film's own lines, counted as Project and
-Choices count the check, `lab/scenes/marks.ts` `checkCount`) and Follow (the
+out of date, not rendered and approved; the check's findings on scenes by
+level, errors and warnings, each line once, and the film's own lines, adding
+up to Project's count of findings, `lab/scenes/marks.ts` `checkCount`) and Follow (the
 playhead's line stays in sight while it plays; a scrub turns it off). A
 cut's name takes only its room: shortened with an ellipsis, set before the
 row's last rule where it fits there, or dropped. A tap on a still selects its scene (the path; Back
@@ -2259,10 +2259,11 @@ the comment box (both in the inspector); a level point's knob is a slider, writt
 one `POST …/choices/say`, answered by the film's choices with it recorded,
 which the page shows as they are. Undo and Redo are the page's commands
 (⌘Z, ⇧⌘Z, the receipt's button, the page's menu), naming what they would
-undo or redo (`Undo score play brass`); the film's static check is a count chip beside
-the page's writes, the one the write answered, and after a pick or a knob
-`film check --sound` runs (`GET …/choices/check`): its receipt says it is
-running, then its findings count, as a second chip. A chip opens the
+undo or redo (`Undo score play brass`); the film's static check is the one
+the write answered, and after a pick or a knob `film check --sound` runs
+(`GET …/choices/check`): its receipt says it is running, then its findings
+count. No chip counts them at rest on Choices (Project's film panel has
+them): Show findings (⌘K, the page's long-press menu) opens the
 **Findings** sheet (`options/findings.tsx`, `review.findings`): each
 check's findings grouped, a timed one with its timecode, which seeks the
 picture there; F and ⇧F walk the timed findings forward and back. A write is
