@@ -1016,10 +1016,11 @@ cites its Choices link (`?point=`); a part's render, an act and the film
 cite their project sheets (`?point=render:…`), read back by the one reader
 the page reads them with too (`selectionOf`, `projectPartOf`); a thing cited
 from its own page (another version of the set, another card of the film's
-Choices or project) keeps how the page shows it and when. Their look is one
-set of CSS custom properties (`COMMAND_TOKENS` in `src/lab/command/style.ts`,
-each the studio's token for its role, `player/tokens.css`); the rules read
-only those. The Play and Scenes pages are the shell's too
+Choices or project) keeps how the page shows it and when. Their rules
+(`src/lab/command/style.ts`) read the studio's tokens (`player/tokens.css`)
+directly; `COMMAND_TOKENS` names only what no studio token holds: the
+paddings and heights the surfaces compose, and their own widths, heights and
+layer. The Play and Scenes pages are the shell's too
 (`lab/play-mount.tsx`), so `?` is the keys sheet on every page, the one
 place the keys are listed (UR2-11). The lab bar's legend (what the stripes
 and the ticks mean) is hidden at rest (UR-114, `legendCommand`, no key):
