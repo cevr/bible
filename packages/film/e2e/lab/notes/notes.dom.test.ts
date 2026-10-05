@@ -440,7 +440,8 @@ describe("a note's place", () => {
           mode: 'note',
         });
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
-        yield* textHas(page, '.lab-note-label', `two · ${timecode(shown)}`);
+        // Beside its scene's name, its time into the scene: one clock in one place.
+        yield* textHas(page, '.lab-note-label', `two · ${timecode(0.4)}`);
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
         yield* evaluates(page, `Math.round(${URL_T} * ${film.fps})`, Math.round(shown * film.fps));
         yield* attached(page, '.lab-overlay rect.lab-note');

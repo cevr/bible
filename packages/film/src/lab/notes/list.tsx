@@ -21,7 +21,6 @@ import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import { createContext, createMemo, createSignal, useContext } from 'solid-js';
 import { stillUrl } from '../../core/api.ts';
-import { timecode } from '../../core/time.ts';
 import { type Note, NotesFile } from '../../core/schema.ts';
 import { Selection } from '../../command/selection.ts';
 import type { Hub } from '../../command/hub.ts';
@@ -41,10 +40,8 @@ export type ThreadWrite =
 
 /** What the staged film lends the notes: what needs its code, while it is staged. */
 interface NotesStaged {
-  /** The film time `note` shows at now (`noteT`): its label's time. */
-  readonly timeOf: (note: Note) => number;
-  /** The film's frame rate, its labels' timecode. */
-  readonly fps: number;
+  /** When `note` shows now, as its label says it beside its scene (`whenText`). */
+  readonly whenOf: (note: Note) => string;
   /** Open `note`: select it in the URL and show its frame. */
   readonly select: (note: Note) => void;
   /** Note the frame shown, whole. */
@@ -203,8 +200,8 @@ export const Frame = () => {
 };
 
 /**
- * A note in the list: its id and scene, the time it shows at now once the
- * film is staged (timecode at its rate), and its nearest cue edge.
+ * A note in the list: its id and scene, the time into its scene it shows at
+ * now once the film is staged (`whenText`), and its nearest cue edge.
  */
 const label = (note: Note, at: Option.Option<string>) => {
   const cue = Option.match(Option.fromUndefinedOr(note.cue), {
@@ -258,7 +255,7 @@ const ReplyForm = (props: { readonly note: Note }) => {
 const Item = (props: { readonly film: string; readonly note: Note }) => {
   const feed = useNotesFeed();
   const selected = () => Option.exists(feed.selected(), (s) => s.id === props.note.id);
-  const at = () => Option.map(feed.staged(), (s) => timecode(s.timeOf(props.note), s.fps));
+  const at = () => Option.map(feed.staged(), (s) => s.whenOf(props.note));
   return (
     <Target
       of={Selection.cases.Note.make({ id: props.note.id })}
