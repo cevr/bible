@@ -2792,15 +2792,20 @@ the browser to adopt), and a film's timings through `loadNarrated`
 given). Every link to a review place is the one `Go` (`review/context.tsx`):
 a plain click goes there in the page, a modified click is the browser's.
 
-The lint holds the host to its adapters in the lab, the player, `browser/`
-and the app's page entries (`.oxlintrc.json`): `no-restricted-globals` and
+The lint holds the host to its adapters in the lab, the player, `browser/`,
+`command/` and the app's page entries (`.oxlintrc.json`): `no-restricted-globals` and
 `no-restricted-properties` refuse the host's storage, frames, requests,
 media and recording, media queries (`Viewport`), timers, clock and URL, bare or through `window`/`globalThis`/`self`,
-each naming the service that owns it; `film/host-events-through-adapter`
+each naming the service that owns it, and every chain of the global object
+to itself (`globalThis.window`, `window.top`, `parent`, `document.defaultView`),
+so no chain reaches a name past its ban; `effect/noReflectGet` refuses
+`Reflect.get(window, …)`; `film/host-events-through-adapter`
 (`lint/`) refuses a window or document listener for a navigation, key or
-drag event; `effect/noGlobals` holds in the player as everywhere. The live
-adapters (`*-browser.ts`), fixtures and tests are the host's side and
-exempt. The address bar is `Location`'s alone (`@bible/url-state`'s
+drag event; `effect/noGlobals` holds in the player as everywhere. The
+fixtures and tests are the host's side and exempt; a live adapter
+(`*-browser.ts`) is not: each line where it reaches the one host API it
+adapts says so (`oxlint-disable-next-line`, with why), so an adapter that
+reaches another's API is red as a page is. The address bar is `Location`'s alone (`@bible/url-state`'s
 `location-browser.ts`): no film file reads or writes the URL directly.
 
 Frames stay pure: no `Math.random`, no wall clock, no state carried between
