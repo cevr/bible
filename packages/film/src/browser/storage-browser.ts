@@ -1,6 +1,9 @@
 // The browser's storage as the page's two stores (`storage.ts`): the tab's
 // session and the browser's local storage, each a store in memory when the
-// page may not use it.
+// page may not use it. A server render has neither, so there each is a
+// store in memory, empty, as a viewer who kept nothing: what is kept as text
+// renders its server value (none, `keptText`), and the keymap's overrides
+// render as the default keys (`hubKeys`), until the page is hydrated.
 
 import { type StoreRuntime, storeOver } from './storage.ts';
 

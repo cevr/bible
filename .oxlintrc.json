@@ -667,6 +667,10 @@
           {
             "name": "setInterval",
             "message": "Use Effect.sleep on the host's Clock (timersOn, packages/film/src/player/throttle.ts)."
+          },
+          {
+            "name": "matchMedia",
+            "message": "Use the host's Viewport (packages/film/src/browser/viewport.ts; useMatches in a component): a server render answers as a phone."
           }
         ],
         "no-restricted-properties": [
@@ -895,6 +899,21 @@
             "object": "self",
             "property": "MediaRecorder",
             "message": "Use Capture (packages/film/src/lab/studio/capture.ts)."
+          },
+          {
+            "object": "window",
+            "property": "matchMedia",
+            "message": "Use the host's Viewport (packages/film/src/browser/viewport.ts; useMatches in a component): a server render answers as a phone."
+          },
+          {
+            "object": "globalThis",
+            "property": "matchMedia",
+            "message": "Use the host's Viewport (packages/film/src/browser/viewport.ts; useMatches in a component): a server render answers as a phone."
+          },
+          {
+            "object": "self",
+            "property": "matchMedia",
+            "message": "Use the host's Viewport (packages/film/src/browser/viewport.ts; useMatches in a component): a server render answers as a phone."
           },
           {
             "object": "window",
