@@ -6,7 +6,7 @@
 
 import { PreviewServer, type ReviewRoot, runFilmCli } from '@bible/film/tools';
 import { Config, Effect, FileSystem, Layer, Path } from 'effect';
-import { FILMS, LAB_PAGES, serve } from './server.ts';
+import { FILMS, LAB_PAGES, LAB_SERVERS, serve } from './server.ts';
 
 /** The app's sound library, shared by its films (`sounds/library.ts`). */
 export const SOUNDS = `${import.meta.dir}/sounds`;
@@ -71,8 +71,9 @@ export const appCli = (films: string, sounds: string, self: string): void =>
     previewServer: player(films),
     lab: {
       at: labAt,
-      // The lab's pages, this app's entries: its review, its lab and its player.
-      pages: { pages: LAB_PAGES },
+      // The lab's pages, this app's entries: its review, its lab and its player, and
+      // the server entries of those the server renders.
+      pages: { pages: LAB_PAGES, servers: LAB_SERVERS },
       roots: checkoutRoots,
     },
     // This CLI, for the lab's fresh `check --static` after each write.

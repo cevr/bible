@@ -72,6 +72,12 @@ import type { Remade } from './source-writer.ts';
 export interface LabPageSpec {
   /** Each page's HTML entry; the paths each is served at are the framework's (`PAGE_PATHS`). */
   readonly pages: Readonly<Record<PageName, string>>;
+  /**
+   * Each page the server renders: its server entry (`*.server.tsx`), the
+   * same components as its HTML entry's script, compiled for the server
+   * (`solidPluginFor('ssr')`). A page with none is drawn in the browser alone.
+   */
+  readonly servers: Partial<Readonly<Record<PageName, string>>>;
   /** The films folder, whose narration the pages play (`/films/<film>/narration/<file>`). */
   readonly films: string;
 }
@@ -82,12 +88,18 @@ interface BuiltFile {
   readonly type: string;
 }
 
+/** A built file at its path relative to the build's root (`lab.html`, `chunk-….js`). */
+type BuiltAt = BuiltFile & { readonly path: string };
+
 /**
- * What a build made: each output by its path relative to the build's root
- * (`lab.html`, `chunk-….js`), and the files it read, absolute.
+ * What a build made: the browser's outputs and the server's, each by its
+ * path relative to the build's root (`lab.html`, `chunk-….js`,
+ * `src/review.server.js`), and the files the two read, absolute: a change
+ * to a file either read is a change to the pages.
  */
 interface Bundled {
-  readonly outputs: ReadonlyArray<BuiltFile & { readonly path: string }>;
+  readonly outputs: ReadonlyArray<BuiltAt>;
+  readonly server: ReadonlyArray<BuiltAt>;
   readonly inputs: ReadonlyArray<string>;
 }
 
@@ -106,10 +118,13 @@ interface BundleFailed {
 interface BundleHow {
   readonly publicPath: string;
   readonly swaps: ReadonlyMap<string, string>;
+  /**
+   * The server entries built beside the pages, absolute, from the same
+   * sources: none for a build no server renders (a wedge, drawn in the
+   * browser alone).
+   */
+  readonly servers: ReadonlyArray<string>;
 }
-
-/** The lab's own build: its files linked from the root, every source as written. */
-const AS_WRITTEN: BundleHow = { publicPath: '/', swaps: new Map() };
 
 interface PageBundlerService {
   /** The pages `entries` (HTML files under `root`) bundled for the browser as `how` says, or why not. */
@@ -168,55 +183,89 @@ const swapPlugin = (swaps: ReadonlyMap<string, string>, read: Set<string>): BunP
   },
 });
 
-/** `Bun.build` over the pages with the framework's Solid plugin; `path` resolves what it read. */
+/** A `Bun.build` as the pages take it: its outputs at their paths, and the files it read, absolute. */
+const bunBuild = (path: Path.Path, config: Bun.BuildConfig) =>
+  Effect.gen(function* () {
+    const out = yield* Effect.tryPromise({
+      // A failed build throws its messages (an AggregateError), caught here.
+      try: () => Bun.build({ ...config, metafile: true, throw: true }),
+      catch: (cause): BundleFailed => ({
+        reason: bundlerWords(cause),
+        files: bundlerFiles(cause).map((file) => path.resolve(file)),
+      }),
+    });
+    const outputs = yield* Effect.forEach(out.outputs, (file) =>
+      Effect.map(
+        Effect.promise(() => file.arrayBuffer()),
+        (buffer): BuiltAt => ({
+          path: file.path.replace(/^\.\//, ''),
+          bytes: new Uint8Array(buffer),
+          type: file.type,
+        }),
+      ),
+    );
+    // The metafile names inputs relative to this process's directory.
+    const inputs = Object.keys(out.metafile?.inputs ?? {}).map((input) => path.resolve(input));
+    return { outputs, inputs };
+  });
+
+/**
+ * `Bun.build` over the pages with the framework's Solid plugin, for the
+ * browser, and over their server entries with its server output, from the
+ * same sources (the server bundle's own `node_modules` resolve to their
+ * server builds by Bun's `bun` target); `path` resolves what they read.
+ */
 const bunBundle =
   (path: Path.Path) => (entries: ReadonlyArray<string>, root: string, how: BundleHow) =>
     Effect.gen(function* () {
-      const { solidPlugin } = yield* Effect.promise(() => import('./solid-plugin.ts'));
+      const { solidPluginFor } = yield* Effect.promise(() => import('./solid-plugin.ts'));
       const swapped = new Set<string>();
       const swaps = Arr.filter([swapPlugin(how.swaps, swapped)], () => how.swaps.size > 0);
-      const out = yield* Effect.tryPromise({
-        try: () =>
-          Bun.build({
+      const [browser, server] = yield* Effect.all(
+        [
+          bunBuild(path, {
             entrypoints: [...entries],
             root,
             // Every page links its scripts and styles from the root (`/chunk-….js`), so a
             // page served under a film's path (`/films/<film>/lab/<scene>`) finds them.
             publicPath: how.publicPath,
-            plugins: [...swaps, solidPlugin],
+            plugins: [...swaps, solidPluginFor('dom')],
             target: 'browser',
             splitting: true,
             minify: true,
             sourcemap: 'linked',
-            metafile: true,
-            // A failed build throws its messages (an AggregateError), caught here.
-            throw: true,
           }),
-        catch: (cause): BundleFailed => ({
-          reason: bundlerWords(cause),
-          files: bundlerFiles(cause).map((file) => path.resolve(file)),
-        }),
-      });
-      const outputs = yield* Effect.forEach(out.outputs, (file) =>
-        Effect.map(
-          Effect.promise(() => file.arrayBuffer()),
-          (buffer) => ({
-            path: file.path.replace(/^\.\//, ''),
-            bytes: new Uint8Array(buffer),
-            type: file.type,
+          Effect.suspend(() => {
+            if (how.servers.length === 0) return Effect.succeed({ outputs: [], inputs: [] });
+            return bunBuild(path, {
+              entrypoints: [...how.servers],
+              root,
+              plugins: [solidPluginFor('ssr')],
+              target: 'bun',
+              splitting: true,
+            });
           }),
-        ),
+        ],
+        { concurrency: 2 },
       );
-      // The metafile names inputs relative to this process's directory.
-      const inputs = Object.keys(out.metafile?.inputs ?? {}).map((input) => path.resolve(input));
       const unread = [...how.swaps.keys()].filter((file) => !swapped.has(file));
       if (unread.length > 0)
         return yield* Effect.fail<BundleFailed>({
           reason: `the build read none of ${unread.join(', ')}, so it cannot draw them changed`,
           files: unread,
         });
-      return { outputs, inputs } satisfies Bundled;
+      return {
+        outputs: browser.outputs,
+        server: server.outputs,
+        inputs: Arr.dedupe([...browser.inputs, ...server.inputs]),
+      } satisfies Bundled;
     });
+
+/** A file as the test bundler answers it: a page's HTML, or a module. */
+const typeOf = (file: string): string => {
+  if (file.endsWith('.html')) return 'text/html;charset=utf-8';
+  return 'text/javascript';
+};
 
 /** The bundler the pages are built with. */
 export class PageBundler extends Context.Service<PageBundler, PageBundlerService>()(
@@ -230,30 +279,40 @@ export class PageBundler extends Context.Service<PageBundler, PageBundlerService
 
   /**
    * A bundler for tests that need no browser code: each entry is its own
-   * page, its HTML as written (or as swapped), read from the file system,
-   * and the entries are all a build reads.
+   * page, its HTML as written (or as swapped), read from the file system;
+   * each server entry its own module, as written; and the entries are all
+   * a build reads.
    */
   static readonly layerTest = Layer.effect(
     PageBundler,
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
+      const asWritten = (files: ReadonlyArray<string>, root: string, how: BundleHow) =>
+        Effect.forEach(files, (file) =>
+          Effect.map(
+            Option.match(Option.fromUndefinedOr(how.swaps.get(file)), {
+              onNone: () => fs.readFile(file),
+              onSome: (text) => Effect.succeed(new TextEncoder().encode(text)),
+            }),
+            (bytes): BuiltAt => ({
+              path: path.relative(root, file),
+              bytes,
+              type: typeOf(file),
+            }),
+          ),
+        );
       return PageBundler.of({
         bundle: (entries, root, how) =>
-          Effect.forEach(entries, (entry) =>
-            Effect.map(
-              Option.match(Option.fromUndefinedOr(how.swaps.get(entry)), {
-                onNone: () => fs.readFile(entry),
-                onSome: (text) => Effect.succeed(new TextEncoder().encode(text)),
-              }),
-              (bytes) => ({
-                path: path.relative(root, entry),
-                bytes,
-                type: 'text/html;charset=utf-8',
-              }),
-            ),
-          ).pipe(
-            Effect.map((outputs) => ({ outputs, inputs: [...entries] })),
+          Effect.all({
+            outputs: asWritten(entries, root, how),
+            server: asWritten(how.servers, root, how),
+          }).pipe(
+            Effect.map(({ outputs, server }) => ({
+              outputs,
+              server,
+              inputs: [...entries, ...how.servers],
+            })),
             Effect.mapError((error): BundleFailed => ({ reason: error.message, files: [] })),
           ),
       });
@@ -281,8 +340,18 @@ interface Built {
         readonly _tag: 'Built';
         readonly pages: ReadonlyMap<PageName, BuiltFile>;
         readonly files: ReadonlyMap<string, BuiltFile>;
+        readonly server: ServerBundle;
       }
     | { readonly _tag: 'Failed'; readonly reason: string };
+}
+
+/**
+ * A build's server bundle: its modules at their paths relative to the
+ * build's root, and the module each page the server renders is entered by.
+ */
+interface ServerBundle {
+  readonly files: ReadonlyArray<BuiltAt>;
+  readonly entries: ReadonlyMap<PageName, string>;
 }
 
 /**
@@ -596,8 +665,26 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   // entries' common folder, given to the build so the names cannot drift.
   const entries = Record.toEntries(spec.pages);
   const htmls = entries.map(([, html]) => path.resolve(html));
-  const root = commonDir(htmls.map(path.dirname));
+  const servers = entries.flatMap(([page]) =>
+    Option.toArray(
+      Option.map(
+        Option.fromUndefinedOr(spec.servers[page]),
+        (e) => [page, path.resolve(e)] as const,
+      ),
+    ),
+  );
+  const serverEntries = servers.map(([, entry]) => entry);
+  const root = commonDir([...htmls, ...serverEntries].map(path.dirname));
   const pageOf = new Map(entries.map(([page, html]) => [path.relative(root, html), page]));
+  // Each server entry's module, as the bundler names it: its path from the root, as `.js`.
+  const serverModules = new Map(
+    servers.map(([page, entry]) => [
+      page,
+      path.relative(root, entry).replace(/\.[cm]?tsx?$/, '.js'),
+    ]),
+  );
+  /** The lab's own build: its files linked from the root, every source as written, its server entries beside. */
+  const asWritten: BundleHow = { publicPath: '/', swaps: new Map(), servers: serverEntries };
 
   /** The folders `files` lie in, sorted, once each; a package's `node_modules` aside. */
   const foldersOf = (files: ReadonlyArray<string>) =>
@@ -847,7 +934,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     }).pipe(Effect.forkIn(scope));
 
   // Before any build: the entries' folders, so a first build that fails still hears its fix.
-  yield* watchOnly(foldersOf(htmls));
+  yield* watchOnly(foldersOf([...htmls, ...serverEntries]));
 
   /**
    * How far a build that read the files `after` prints, printed `before`
@@ -878,13 +965,13 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       fresh: 'Unsure',
       prints: new Map(),
     });
-    const outcome = yield* bundler.bundle(htmls, root, AS_WRITTEN).pipe(
-      Effect.flatMap(({ outputs, inputs }) =>
+    const outcome = yield* bundler.bundle(htmls, root, asWritten).pipe(
+      Effect.flatMap(({ outputs, server, inputs }) =>
         Effect.gen(function* () {
           const after = yield* printsOf(inputs);
           yield* Ref.set(printed, { fresh: freshness(printedBefore, after), prints: after });
           const before = yield* Ref.getAndSet(read, Option.some(new Set(inputs)));
-          const added = yield* watchOnly(foldersOf([...htmls, ...inputs]));
+          const added = yield* watchOnly(foldersOf([...htmls, ...serverEntries, ...inputs]));
           yield* missed(
             inputs.filter(
               (input) =>
@@ -902,7 +989,12 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
               onNone: () => files.set(`/${name}`, built),
               onSome: (page) => pages.set(page, built),
             });
-          return { _tag: 'Built', pages, files } as const;
+          return {
+            _tag: 'Built',
+            pages,
+            files,
+            server: { files: server, entries: serverModules },
+          } as const;
         }),
       ),
       Effect.catch((failed) =>
@@ -1212,7 +1304,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
           return { ...now, wedge: id } satisfies Wedged;
         const prefix = `${WEDGE_PATH}${id}/`;
         const made = yield* Effect.result(
-          bundler.bundle(htmls, root, { publicPath: prefix, swaps }),
+          bundler.bundle(htmls, root, { publicPath: prefix, swaps, servers: [] }),
         );
         if (Result.isFailure(made)) {
           yield* Effect.log(`lab.page.wedge id=${id} outcome=Failed`);

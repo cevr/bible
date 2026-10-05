@@ -28,7 +28,7 @@ import {
 } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { TestClock } from 'effect/testing';
-import { LabPage, PageBundler } from './lab-page.ts';
+import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
 const Platform = Layer.provideMerge(BunHttpPlatform.layer, BunServices.layer);
@@ -60,12 +60,19 @@ const appFolder = Effect.gen(function* () {
   yield* write('src/lab.ts', "console.log('the lab');\n");
   yield* write('src/play.ts', "console.log('the player');\n");
   yield* write('src/notes.json', '{}');
+  // The review's server entry: the same shared source, and one only the server reads.
+  yield* write(
+    'src/review.server.tsx',
+    "import { shared } from '../lib/shared.ts';\nimport { only } from '../lib/server-only.ts';\nexport const rendered = () => `${shared} ${only}`;\n",
+  );
+  yield* write('lib/server-only.ts', "export const only = 'server one';\n");
   const spec = {
     pages: {
       review: path.join(dir, 'review.html'),
       lab: path.join(dir, 'lab.html'),
       player: path.join(dir, 'sub', 'player.html'),
     },
+    servers: { review: path.join(dir, 'src', 'review.server.tsx') },
     films: path.join(dir, 'src', 'films'),
   };
   return { spec, write };
@@ -73,7 +80,7 @@ const appFolder = Effect.gen(function* () {
 
 /** The pages over a folder, as one lab process serves them, with `bundler`. */
 const served = (
-  spec: Effect.Success<typeof appFolder>['spec'],
+  spec: LabPageSpec,
   bundler: Layer.Layer<PageBundler, never, FileSystem.FileSystem | Path.Path>,
 ) =>
   Effect.gen(function* () {
@@ -271,6 +278,26 @@ describe('lab pages', () => {
         );
         expect(shared.build).toBeGreaterThan(entry.build);
         expect(yield* script).toContain('shared two');
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    'a file only the server entry reads is a file the pages were built from: its change wakes a wait',
+    () =>
+      Effect.gen(function* () {
+        const { ask, page, waitWriting } = yield* app;
+        yield* ask('/');
+        const settled = (yield* page.wait(
+          { since: 0, server: Option.none(), film: Option.none() },
+          '1 second',
+        )).build;
+        const { build } = yield* waitWriting(
+          settled,
+          '10 seconds',
+          'lib/server-only.ts',
+          "export const only = 'server two';\n",
+        );
+        expect(build).toBeGreaterThan(settled);
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 
@@ -750,7 +777,7 @@ describe('lab pages', () => {
                   })),
                 );
                 yield* Effect.flatten(Ref.getAndSet(during, Effect.void));
-                return { outputs, inputs: [...entries, ...(yield* Ref.get(graph))] };
+                return { outputs, server: [], inputs: [...entries, ...(yield* Ref.get(graph))] };
               }).pipe(Effect.mapError((error) => ({ reason: error.message, files: [] }))),
           });
         }),
@@ -880,6 +907,7 @@ const memoryApp = (
       lab: '/app/lab.html',
       player: '/app/sub/player.html',
     },
+    servers: {},
     films: '/app/src/films',
   };
   const fileSystem = Layer.effect(

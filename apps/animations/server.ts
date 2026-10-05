@@ -23,6 +23,13 @@ export const LAB_PAGES = {
   player: join(import.meta.dir, 'play.html'),
 };
 
+/**
+ * The pages the lab renders on the server, each by its server entry: the
+ * same components as its HTML entry's script, with none of the app's films
+ * (the server never imports a film's modules: Fresh reads).
+ */
+export const LAB_SERVERS: Partial<Record<keyof typeof LAB_PAGES, string>> = {};
+
 /** The loopback interface: the only one the player listens on. */
 const HOST = '127.0.0.1';
 

@@ -46,7 +46,7 @@ import {
 } from '@bible/film/tools';
 import { Config, Deferred, Effect, Exit, FileSystem, Layer, Option, Path, Schema } from 'effect';
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from 'effect/http';
-import { LAB_PAGES } from './server.ts';
+import { LAB_PAGES, LAB_SERVERS } from './server.ts';
 
 /** What the fake hears for a beat it is told to mis-hear. */
 const MISHEARD = 'the quick brown fox jumps over the lazy dog';
@@ -181,7 +181,7 @@ const Harness = Layer.unwrap(
     );
     // The pages, and the easel's warm pages over them (Chrome starts only for a look).
     const Pages = Easel.layer.pipe(
-      Layer.provideMerge(LabPage.layer({ pages: LAB_PAGES, films: root })),
+      Layer.provideMerge(LabPage.layer({ pages: LAB_PAGES, servers: LAB_SERVERS, films: root })),
       Layer.provide(Layer.mergeAll(PageBundler.layer, Browser.layer)),
       Layer.provide([Repo, Platform]),
     );
