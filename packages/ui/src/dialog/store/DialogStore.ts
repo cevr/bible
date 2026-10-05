@@ -50,7 +50,7 @@ export interface DialogStoreOptions {
   role: DialogRole;
   /** Whether the dialog is nested in another dialog (or drawer). */
   nested: boolean;
-  /** Whether the dialog sits inside another floating element (a menu, a popover). */
+  /** Whether the dialog sits inside another floating element (a menu). */
   floatingNested: boolean;
   floatingId: string;
   openMethod: Accessor<InteractionType | null>;

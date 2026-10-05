@@ -2,7 +2,7 @@
 // packages/react/src/utils/popups/popupStoreUtils.ts,
 // packages/react/src/utils/popups/useTriggerFocusGuards.ts
 //
-// The state every popup (menu, popover, dialog) keeps: whether it is open
+// The state every popup (menu, dialog) keeps: whether it is open
 // (the owner's `open` prop wins over its own), whether it is still mounted
 // for an exit transition, which trigger opened it, its popup and positioner
 // elements, and the floating root context its interactions read. A part

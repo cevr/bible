@@ -12,8 +12,6 @@
     "./menu": "./src/menu/index.ts",
     "./context-menu": "./src/context-menu/index.ts",
     "./press": "./src/press/index.ts",
-    "./popover": "./src/popover/index.ts",
-    "./tooltip": "./src/tooltip/index.ts",
     "./dialog": "./src/dialog/index.ts",
     "./alert-dialog": "./src/alert-dialog/index.ts",
     "./drawer": "./src/drawer/index.ts",

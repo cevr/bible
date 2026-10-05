@@ -87,65 +87,6 @@ CSS variables on `Menu.Positioner`: `--anchor-width`, `--anchor-height` (the anc
 
 The other members set the menu's attributes and CSS variables (see Menu). The root menu is never `data-nested`; its submenus are.
 
-### Popover
-
-`import { Popover } from '@bible/ui/popover'`
-
-- `Popover.Root`: no element; owns the popover's state.
-  - `Popover.Trigger`: `<button>` that opens the popover on click (or hover with `openOnHover`).
-  - `Popover.Portal`: `<div>` at the end of `<body>`, rendered while mounted or with `keepMounted`.
-    - `Popover.Backdrop`: `<div role="presentation">` under the popover.
-    - `Popover.Positioner`: `<div role="presentation">` that places the popup.
-      - `Popover.Popup`: `<div role="dialog">`.
-        - `Popover.Arrow`: `<div aria-hidden>` pointing at the anchor.
-        - `Popover.Title`: `<h2>` that labels the popup.
-        - `Popover.Description`: `<p>` that describes the popup.
-        - `Popover.Close`: `<button>` that closes the popover.
-
-| Member                | Attribute                                   | Present when                                                            |
-| --------------------- | ------------------------------------------- | ----------------------------------------------------------------------- |
-| `Trigger`             | `data-popup-open`                           | the popover this trigger opened is open                                 |
-| `Trigger`             | `data-pressed`                              | that popover is open and was opened by a press on the trigger           |
-| `Trigger`             | `data-disabled`                             | the trigger is disabled                                                 |
-| `Backdrop`, `Popup`   | `data-open` / `data-closed`                 | the popover is open / closed                                            |
-| `Backdrop`, `Popup`   | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                |
-| `Positioner`          | `data-open` / `data-closed`                 | the popover is open / closed                                            |
-| `Positioner`, `Popup` | `data-side`, `data-align`                   | always (values as in Menu)                                              |
-| `Positioner`          | `data-anchor-hidden`                        | the anchor has scrolled out of view                                     |
-| `Positioner`, `Popup` | `data-instant`                              | transitions are skipped, with the reason: `click`, `dismiss` or `focus` |
-| `Arrow`               | `data-open` / `data-closed`                 | the popover is open / closed                                            |
-| `Arrow`               | `data-side`, `data-align`                   | always                                                                  |
-| `Arrow`               | `data-uncentered`                           | the arrow cannot point at the anchor's center                           |
-
-`Title`, `Description` and `Close` set none.
-
-CSS variables on `Popover.Positioner`: `--anchor-width`, `--anchor-height`, `--available-width`, `--available-height`, `--transform-origin` (as in Menu).
-
-### Tooltip
-
-`import { Tooltip } from '@bible/ui/tooltip'`
-
-- `Tooltip.Provider`: no element; shares an open delay among the tooltips inside it.
-  - `Tooltip.Root`: no element; owns one tooltip's state.
-    - `Tooltip.Trigger`: `<button>` the tooltip describes.
-    - `Tooltip.Portal`: `<div>` at the end of `<body>`, rendered while mounted or with `keepMounted`.
-      - `Tooltip.Positioner`: `<div role="presentation">` that places the popup.
-        - `Tooltip.Popup`: `<div>` holding the tooltip's content.
-          - `Tooltip.Arrow`: `<div aria-hidden>` pointing at the anchor.
-
-| Member                         | Attribute                                   | Present when                                                                                    |
-| ------------------------------ | ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| `Trigger`                      | `data-popup-open`                           | the tooltip this trigger opened is open                                                         |
-| `Trigger`                      | `data-trigger-disabled`                     | the trigger is disabled                                                                         |
-| `Positioner`, `Popup`, `Arrow` | `data-open` / `data-closed`                 | the tooltip is open / closed                                                                    |
-| `Positioner`, `Popup`, `Arrow` | `data-side`, `data-align`                   | always (values as in Menu)                                                                      |
-| `Positioner`, `Popup`, `Arrow` | `data-instant`                              | transitions are skipped, with the reason: `delay` (a provider hands over), `dismiss` or `focus` |
-| `Positioner`                   | `data-anchor-hidden`                        | the anchor has scrolled out of view                                                             |
-| `Popup`                        | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                                        |
-| `Arrow`                        | `data-uncentered`                           | the arrow cannot point at the anchor's center                                                   |
-
-CSS variables on `Tooltip.Positioner`: `--anchor-width`, `--anchor-height`, `--available-width`, `--available-height`, `--transform-origin` (as in Menu).
-
 ### Dialog
 
 `import { Dialog } from '@bible/ui/dialog'`
