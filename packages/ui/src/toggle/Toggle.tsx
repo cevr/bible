@@ -2,9 +2,8 @@
 //
 // A two-state button (`aria-pressed`). Alone it keeps its own pressed state
 // (or the owner's, `pressed`); inside a toggle group it is pressed while its
-// `value` is among the group's, and it is an item of the group's (or the
-// toolbar's) roving focus. A disabled toggle is natively disabled and leaves
-// the roving focus.
+// `value` is among the group's, and it is an item of the group's roving
+// focus. A disabled toggle is natively disabled and leaves the roving focus.
 import type { JSX } from '@solidjs/web';
 import { createEffect, createUniqueId, omit, untrack } from 'solid-js';
 
@@ -19,7 +18,6 @@ import type { BaseUIComponentProps, HTMLProps, NativeButtonProps } from '../inte
 import { useButton } from '../internals/useButton.ts';
 import { useRenderElement } from '../internals/useRenderElement.tsx';
 import { useToggleGroupContext } from '../toggle-group/ToggleGroupContext.ts';
-import type { ToolbarItemMetadata } from '../toolbar/ToolbarRootContext.ts';
 import { useControlled } from '../utils/useControlled.ts';
 
 export interface ToggleState {
@@ -134,12 +132,11 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
 
   if (group) {
     return (
-      <CompositeItem<ToolbarItemMetadata, ToggleState>
+      <CompositeItem<unknown, ToggleState>
         tag="button"
         render={props.render}
         class={props.class}
         style={props.style}
-        metadata={() => ({ disabled: disabled(), focusableWhenDisabled: false })}
         state={state}
         refs={[buttonRef]}
         props={[ownProps, elementProps, getButtonProps]}

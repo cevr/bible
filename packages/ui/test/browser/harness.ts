@@ -7,9 +7,6 @@
 // Real Chromium, not a fake DOM: focus, pointer and touch events, layout and
 // `:focus-visible` are what the parts are about, and a fake DOM gets them
 // wrong. Run with `bun run test:browser` (it needs Playwright's Chromium).
-import { mkdtemp } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-
 import { transform } from '@solidjs/compiler';
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import type { BunPlugin } from 'bun';
@@ -31,20 +28,19 @@ const solid = (fixtureFile: string): BunPlugin => ({
   },
 });
 
-/** The page script serving one fixture file's fixtures. */
+/** The page script serving one fixture file's fixtures, built in memory (nothing is written to disk). */
 const bundle = async (fixtureFile: string): Promise<string> => {
-  const outdir = await mkdtemp(`${tmpdir()}/bible-ui-browser-`);
   const output = await Bun.build({
     entrypoints: [`${import.meta.dir}/client.tsx`],
     plugins: [solid(fixtureFile)],
     target: 'browser',
     conditions: ['browser', 'development'],
-    outdir,
   });
-  if (!output.success) {
+  const [script] = output.outputs;
+  if (!output.success || !script) {
     throw new Error(output.logs.map(String).join('\n'));
   }
-  return Bun.file(`${outdir}/client.js`).text();
+  return script.text();
 };
 
 const PAGE = `<!doctype html>

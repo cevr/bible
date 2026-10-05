@@ -1,15 +1,11 @@
 // Upstream: packages/react/src/number-field/root/NumberFieldRoot.test.tsx,
 // packages/react/src/number-field/input/NumberFieldInput.test.tsx,
-// packages/react/src/number-field/increment/NumberFieldIncrement.test.tsx,
-// packages/react/src/number-field/decrement/NumberFieldDecrement.test.tsx,
-// packages/react/src/number-field/group/NumberFieldGroup.test.tsx,
-// packages/react/src/number-field/scrub-area/NumberFieldScrubArea.test.tsx,
-// packages/react/src/number-field/scrub-area-cursor/NumberFieldScrubAreaCursor.test.tsx
+// packages/react/src/number-field/scrub-area/NumberFieldScrubArea.test.tsx
 //
-// The Field cases this package's Field supports are in field.test.ts.
-// Dropped: the Form and field-validation cases (this package has no Form and
-// its Field does not validate), React.Activity, the conformance suite, and
-// cases that only exercise React's event plumbing.
+// Dropped: the Field, Form, hidden-input and autofill cases (this port has
+// no Field and no hidden form input), the stepper buttons, Group, the scrub
+// area's virtual cursor and wheel stepping (not ported), React.Activity, the
+// conformance suite, and cases that only exercise React's event plumbing.
 //
 // Scrubbing: headless Chromium grants pointer lock, but under the lock a
 // Playwright mouse move (absolute coordinates) is reported as a jump to the
@@ -81,11 +77,6 @@ describe('NumberField.Root', () => {
   it('renders the parts with their roles and labels', async () => {
     const page = await open('field', { defaultValue: '5' });
     await see(input(page)).toHaveValue('5');
-    await see(page.getByTestId('group')).toHaveAttribute('role', 'group');
-    await see(page.getByTestId('increment')).toHaveAttribute('aria-label', 'Increase');
-    await see(page.getByTestId('decrement')).toHaveAttribute('aria-label', 'Decrease');
-    await see(page.getByTestId('increment')).toHaveAttribute('aria-controls', 'input');
-    await see(page.getByTestId('increment')).toHaveAttribute('tabindex', '-1');
     await see(page.getByTestId('scrub-area')).toHaveAttribute('role', 'presentation');
     await see(input(page)).toHaveAttribute('aria-roledescription', 'Number field');
     await see(input(page)).toHaveAttribute('inputmode', 'numeric');
@@ -97,16 +88,14 @@ describe('NumberField.Root', () => {
     await see(input(page)).toHaveValue('');
   });
 
-  it('marks every part disabled, read-only and required', async () => {
-    const page = await open('field', { disabled: 'true', required: 'true' });
+  it('marks every part disabled and read-only', async () => {
+    const page = await open('field', { disabled: 'true' });
     await Promise.all(
-      ['root', 'group', 'increment', 'decrement', 'scrub-area'].flatMap((id) => [
+      ['root', 'scrub-area'].map((id) =>
         see(page.getByTestId(id)).toHaveAttribute('data-disabled', ''),
-        see(page.getByTestId(id)).toHaveAttribute('data-required', ''),
-      ]),
+      ),
     );
     await see(input(page)).toBeDisabled();
-    await see(input(page)).toHaveAttribute('required', '');
     const readOnly = await open('field', { readOnly: 'true' });
     await see(readOnly.getByTestId('root')).toHaveAttribute('data-readonly', '');
     await see(input(readOnly)).toHaveAttribute('readonly', '');
@@ -130,6 +119,14 @@ describe('NumberField.Root', () => {
     await see(input(page)).toHaveValue('');
   });
 
+  it('steps from the controlled value after an external change', async () => {
+    const page = await open('controlled');
+    await page.click('#set-42');
+    await input(page).focus();
+    await page.keyboard.press('ArrowUp');
+    await see(input(page)).toHaveValue('43');
+  });
+
   it('shows the controlled value when the owner does not take a change', async () => {
     const page = await open('controlled', { mirror: 'false' });
     await input(page).focus();
@@ -144,34 +141,6 @@ describe('NumberField.Root', () => {
     await page.keyboard.press('ArrowUp');
     await see(input(page)).toHaveValue('5');
     expect(await logOf(page)).toEqual(['change 6 keyboard']);
-  });
-
-  it('carries the raw value into a form through the hidden input', async () => {
-    const page = await open('form');
-    await see(input(page)).toHaveValue('$1,234.50');
-    const hidden = page.locator('input[name="quantity"]');
-    await see(hidden).toHaveAttribute('type', 'number');
-    await see(hidden).toHaveAttribute('aria-hidden', 'true');
-    await see(hidden).toHaveValue('1234.5');
-    await page.click('#submit');
-    expect(await logOf(page)).toEqual(['submit 1234.5']);
-  });
-
-  it('moves focus from the hidden input to the visible one, caret at the end', async () => {
-    const page = await open('form');
-    await page.locator('input[name="quantity"]').focus();
-    await see(input(page)).toBeFocused();
-    expect(await input(page).evaluate((el: HTMLInputElement) => el.selectionStart)).toBe(9);
-  });
-
-  it('takes an autofilled value from the hidden input', async () => {
-    const page = await open('field', { name: 'amount' });
-    await page.locator('input[name="amount"]').evaluate((el: HTMLInputElement) => {
-      el.value = '12';
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    });
-    await see(input(page)).toHaveValue('12');
-    expect(await logOf(page)).toEqual(['change 12 none']);
   });
 });
 
@@ -540,207 +509,6 @@ describe('NumberField.Input: typing', () => {
   });
 });
 
-describe('NumberField.Input: wheel', () => {
-  it('steps with the wheel while focused, Shift picking largeStep', async () => {
-    const page = await open('field', { defaultValue: '5', allowWheelScrub: 'true' });
-    await input(page).focus();
-    const box = await input(page).boundingBox();
-    if (!box) {
-      throw new Error('no box');
-    }
-    await page.mouse.move(box.x + 4, box.y + 4);
-    await page.mouse.wheel(0, -100);
-    await see(input(page)).toHaveValue('6');
-    await page.mouse.wheel(0, 100);
-    await see(input(page)).toHaveValue('5');
-    await page.keyboard.down('Shift');
-    await page.mouse.wheel(0, -100);
-    await page.keyboard.up('Shift');
-    await see(input(page)).toHaveValue('15');
-    expect(await logOf(page)).toEqual([
-      'change 6 wheel',
-      'commit 6 wheel',
-      'change 5 wheel',
-      'commit 5 wheel',
-      'change 15 wheel',
-      'commit 15 wheel',
-    ]);
-  });
-
-  it('does not step with the wheel unless allowed and focused', async () => {
-    const page = await open('field', { defaultValue: '5', allowWheelScrub: 'true' });
-    const box = await input(page).boundingBox();
-    if (!box) {
-      throw new Error('no box');
-    }
-    await page.mouse.move(box.x + 4, box.y + 4);
-    await page.mouse.wheel(0, -100);
-    const off = await open('field', { defaultValue: '5' });
-    await input(off).focus();
-    await off.mouse.move(box.x + 4, box.y + 4);
-    await off.mouse.wheel(0, -100);
-    await see(input(page)).toHaveValue('5');
-    await see(input(off)).toHaveValue('5');
-    expect(await logOf(page)).toEqual([]);
-    expect(await logOf(off)).toEqual([]);
-  });
-});
-
-describe('NumberField.Increment and Decrement', () => {
-  it('step on click, seeding an empty field with 0', async () => {
-    const page = await open('field');
-    await page.getByTestId('increment').click();
-    await see(input(page)).toHaveValue('0');
-    await page.getByTestId('increment').click();
-    await see(input(page)).toHaveValue('1');
-    await page.getByTestId('decrement').click();
-    await page.getByTestId('decrement').click();
-    await see(input(page)).toHaveValue('-1');
-    expect(await logOf(page)).toEqual([
-      'change 0 increment-press',
-      'commit 0 increment-press',
-      'change 1 increment-press',
-      'commit 1 increment-press',
-      'change 0 decrement-press',
-      'commit 0 decrement-press',
-      'change -1 decrement-press',
-      'commit -1 decrement-press',
-    ]);
-  });
-
-  it('step by largeStep with Shift and smallStep with Alt', async () => {
-    const page = await open('field', { defaultValue: '1' });
-    await page.getByTestId('increment').click({ modifiers: ['Shift'] });
-    await see(input(page)).toHaveValue('11');
-    await page.getByTestId('decrement').click({ modifiers: ['Alt'] });
-    await see(input(page)).toHaveValue('10.9');
-  });
-
-  it('focus the input on a mouse press, with the caret at the end', async () => {
-    const page = await open('field', { defaultValue: '100' });
-    await page.getByTestId('increment').click();
-    await see(input(page)).toBeFocused();
-    expect(await input(page).evaluate((el: HTMLInputElement) => el.selectionStart)).toBe(3);
-  });
-
-  it('are disabled at the bound they step toward', async () => {
-    const page = await open('field', { defaultValue: '9', min: '8', max: '10' });
-    await page.getByTestId('increment').click();
-    await see(page.getByTestId('increment')).toBeDisabled();
-    await see(page.getByTestId('increment')).toHaveAttribute('data-disabled', '');
-    await see(page.getByTestId('decrement')).toBeEnabled();
-    await page.getByTestId('decrement').click();
-    await page.getByTestId('decrement').click();
-    await see(page.getByTestId('decrement')).toBeDisabled();
-    await see(input(page)).toHaveValue('8');
-  });
-
-  it('do nothing when the field is read-only or disabled', async () => {
-    const page = await open('field', { defaultValue: '5', readOnly: 'true' });
-    await see(page.getByTestId('increment')).toBeDisabled();
-    await see(page.getByTestId('increment')).toHaveAttribute('data-readonly', '');
-    await page.getByTestId('increment').click({ force: true });
-    await see(input(page)).toHaveValue('5');
-    const disabled = await open('field', { defaultValue: '5', disabled: 'true' });
-    await disabled.getByTestId('decrement').click({ force: true });
-    await see(input(disabled)).toHaveValue('5');
-    expect(await logOf(page)).toEqual([]);
-    expect(await logOf(disabled)).toEqual([]);
-  });
-
-  it('commit typed text first, then step from it', async () => {
-    const page = await open('field', { defaultValue: '5' });
-    await input(page).fill('');
-    await input(page).pressSequentially('10');
-    await page.getByTestId('increment').click();
-    await see(input(page)).toHaveValue('11');
-    expect(await logOf(page)).toEqual([
-      'change null input-clear',
-      'change 1 input-change',
-      'change 10 input-change',
-      'change 11 increment-press',
-      'commit 11 increment-press',
-    ]);
-  });
-
-  it('step from the controlled value after an external change', async () => {
-    const page = await open('controlled');
-    await page.click('#set-42');
-    await page.getByTestId('increment').click();
-    await see(input(page)).toHaveValue('43');
-  });
-
-  it('activate from the keyboard through a click, once per press', async () => {
-    const page = await open('field', { defaultValue: '5' });
-    await page.getByTestId('increment').focus();
-    await page.keyboard.press('Enter');
-    await see(input(page)).toHaveValue('6');
-    expect(await logOf(page)).toEqual(['change 6 increment-press', 'commit 6 increment-press']);
-  });
-
-  it('repeat while held, and commit once on release', async () => {
-    const page = await open('field', { defaultValue: '0' });
-    await page.clock.install();
-    const { x, y } = await centerOf(page, 'increment');
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await see(input(page)).toHaveValue('1');
-    // The repeats start after 400ms, one every 60ms.
-    await page.clock.runFor(400);
-    await see(input(page)).toHaveValue('1');
-    await page.clock.runFor(180);
-    await see(input(page)).toHaveValue('4');
-    await page.mouse.up();
-    await page.clock.runFor(200);
-    await see(input(page)).toHaveValue('4');
-    expect(await logOf(page)).toEqual([
-      'change 1 increment-press',
-      'change 2 increment-press',
-      'change 3 increment-press',
-      'change 4 increment-press',
-      'commit 4 increment-press',
-    ]);
-  });
-
-  it('stop repeating when the pointer leaves, and resume when it returns', async () => {
-    const page = await open('field', { defaultValue: '0' });
-    await page.clock.install();
-    const { x, y } = await centerOf(page, 'decrement');
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.clock.runFor(460);
-    await see(input(page)).toHaveValue('-2');
-    await page.mouse.move(x, y + 200);
-    await page.clock.runFor(300);
-    await see(input(page)).toHaveValue('-2');
-    await page.mouse.move(x, y);
-    await see(input(page)).toHaveValue('-3');
-    await page.mouse.up();
-    await page.clock.runFor(600);
-    await see(input(page)).toHaveValue('-3');
-    expect((await logOf(page)).filter((line) => line.startsWith('commit'))).toEqual([
-      'commit -3 decrement-press',
-    ]);
-  });
-
-  it('stop at the bound while held, committing the bound on release', async () => {
-    const page = await open('field', { defaultValue: '0', max: '3' });
-    await page.clock.install();
-    const { x, y } = await centerOf(page, 'increment');
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.clock.runFor(1000);
-    await see(input(page)).toHaveValue('3');
-    await page.mouse.up();
-    expect(await logOf(page)).toEqual([
-      'change 1 increment-press',
-      'change 2 increment-press',
-      'change 3 increment-press',
-      'commit 3 increment-press',
-    ]);
-  });
-});
-
 describe('NumberField.ScrubArea', () => {
   it('scrubs with a mouse drag when pointer lock is refused', async () => {
     const page = await open('field', { defaultValue: '0' });
@@ -762,8 +530,6 @@ describe('NumberField.ScrubArea', () => {
       lines.filter((line) => line.startsWith('change')).every((l) => l.endsWith(' scrub')),
     ).toBe(true);
     expect(lines.filter((line) => line.startsWith('commit'))).toEqual(['commit 4 scrub']);
-    // The refused lock shows no virtual cursor.
-    await see(page.getByTestId('cursor')).toHaveCount(0);
   });
 
   it('scrubs by largeStep with Shift and smallStep with Alt', async () => {
@@ -825,26 +591,18 @@ describe('NumberField.ScrubArea', () => {
     await page.mouse.up();
   });
 
-  it('locks the pointer and shows the cursor while a mouse scrubs', async () => {
+  it('locks the pointer while a mouse scrubs', async () => {
     const page = await open('field', { defaultValue: '0' });
     const { x, y } = await centerOf(page, 'scrub-area');
     await page.mouse.move(x, y);
     await page.mouse.down();
-    await see(page.getByTestId('cursor')).toHaveCount(1);
-    expect(await page.evaluate(() => document.pointerLockElement?.tagName)).toBe('BODY');
-    const cursor = page.getByTestId('cursor');
-    await see(cursor).toHaveAttribute('role', 'presentation');
-    await see(cursor).toHaveAttribute('data-scrubbing', '');
-    expect(await cursor.evaluate((el) => el.parentElement?.tagName)).toBe('BODY');
-    expect(await cursor.evaluate((el) => el.style.position)).toBe('fixed');
+    await see.poll(() => page.evaluate(() => document.pointerLockElement?.tagName)).toBe('BODY');
 
     expect(await lockedMove(page, 10)).toBe(10);
-    expect(await cursor.evaluate((el) => el.style.transform)).toContain('translate3d(');
     expect(await lockedMove(page, -4)).toBe(-4);
     expect(await lockedMove(page, 2, 0, true)).toBe(20);
 
     await page.mouse.up();
-    await see(page.getByTestId('cursor')).toHaveCount(0);
     expect(await page.evaluate(() => document.pointerLockElement)).toBe(null);
     const lines = await logOf(page);
     const last = lines.findLast((line) => line.startsWith('change '));
@@ -854,6 +612,38 @@ describe('NumberField.ScrubArea', () => {
     expect(
       lines.filter((line) => line.startsWith('change')).every((l) => l.endsWith(' scrub')),
     ).toBe(true);
+  });
+
+  it('scrubs with a finger, without the lock, and commits once on the lift', async () => {
+    // The browser's own touches (CDP), so the pointer events are its own: pointerType touch.
+    const page = await h.open('field', { touch: true, query: { defaultValue: '0' } });
+    const cdp = await page.context().newCDPSession(page);
+    const at = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) =>
+      cdp.send('Input.dispatchTouchEvent', {
+        type,
+        touchPoints: type === 'touchEnd' ? [] : [{ x, y }],
+      });
+    // A phone lays the page out wider than its screen: touches land in screen pixels.
+    const scale = await page.evaluate(() => window.visualViewport?.scale ?? 1);
+    const centre = await centerOf(page, 'scrub-area');
+    const x = centre.x * scale;
+    const y = centre.y * scale;
+    await at('touchStart', x, y);
+    await see(page.getByTestId('root')).toHaveAttribute('data-scrubbing', '');
+    await at('touchMove', x + 4, y);
+    await at('touchMove', x + 8, y);
+    await at('touchMove', x + 12, y);
+    await at('touchMove', x + 16, y);
+    await at('touchMove', x + 20, y);
+    await see.poll(async () => Number(await input(page).inputValue())).toBeGreaterThan(5);
+    expect(await page.evaluate(() => document.pointerLockElement)).toBe(null);
+    await at('touchEnd', x + 20, y);
+    await see(page.getByTestId('root')).not.toHaveAttribute('data-scrubbing');
+    const lines = await logOf(page);
+    const last = lines.findLast((line) => line.startsWith('change '));
+    expect(lines.filter((line) => line.startsWith('commit'))).toEqual([
+      `commit ${last?.split(' ')[1]} scrub`,
+    ]);
   });
 
   it('clicks its target when pressed without moving', async () => {
@@ -874,15 +664,13 @@ describe('NumberField.ScrubArea', () => {
       const { x, y } = await centerOf(page, 'scrub-area');
       await page.mouse.move(x, y);
       await page.mouse.down();
-      await see(page.getByTestId('cursor')).toHaveCount(1);
-      expect(await page.evaluate(() => document.pointerLockElement?.tagName)).toBe('BODY');
+      await see.poll(() => page.evaluate(() => document.pointerLockElement?.tagName)).toBe('BODY');
       await page.evaluate((name) => {
         (window as unknown as { __set: (next: Record<string, boolean>) => void }).__set({
           [name]: true,
         });
       }, flag);
       await see(page.getByTestId('root')).not.toHaveAttribute('data-scrubbing');
-      await see(page.getByTestId('cursor')).toHaveCount(0);
       expect(await page.evaluate(() => document.pointerLockElement)).toBe(null);
       await page.mouse.up();
       // Canceled, not ended: no commit. (The release may still bring the browser's
@@ -940,7 +728,6 @@ describe('NumberField.ScrubArea', () => {
       await see(page.getByTestId('root')).not.toHaveAttribute('data-scrubbing');
       await page.evaluate(() => (window as unknown as { __grant: () => Promise<void> }).__grant());
       await see.poll(() => page.evaluate(() => document.pointerLockElement)).toBe(null);
-      await see(page.getByTestId('cursor')).toHaveCount(0);
       await page.mouse.up();
       expect((await logOf(page)).filter((line) => line.startsWith('commit'))).toEqual([]);
     });

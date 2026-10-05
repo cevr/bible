@@ -2,7 +2,7 @@
 // packages/react/src/utils/popups/popupStoreUtils.ts,
 // packages/react/src/utils/popups/useTriggerFocusGuards.ts
 //
-// The state every popup (menu, popover, dialog) keeps: whether it is open
+// The state every popup (menu, dialog) keeps: whether it is open
 // (the owner's `open` prop wins over its own), whether it is still mounted
 // for an exit transition, which trigger opened it, its popup and positioner
 // elements, and the floating root context its interactions read. A part
@@ -59,8 +59,6 @@ export interface PopupStore {
   open: Accessor<boolean>;
   mounted: Accessor<boolean>;
   transitionStatus: Accessor<TransitionStatus>;
-  /** Ends a kept-mounted close (after `preventUnmountOnClose()`). */
-  forceUnmount: () => void;
   activeTriggerId: Accessor<string | null>;
   /** The trigger that opened the popup, while it is mounted. */
   activeTriggerElement: Accessor<Element | null>;
@@ -68,9 +66,7 @@ export interface PopupStore {
   setPopupElement: (element: HTMLElement | null) => void;
   positionerElement: Accessor<HTMLElement | null>;
   setPositionerElement: (element: HTMLElement | null) => void;
-  preventUnmountingOnClose: Accessor<boolean>;
   triggerElements: PopupTriggerMap;
-  triggerCount: Accessor<number>;
   floatingRootContext: FloatingRootContext;
   floatingId: string;
   /** The popup's rendered id (its element's, else `floatingId`). */
@@ -83,7 +79,7 @@ export interface PopupStore {
   /** Registers a trigger element (`null` unregisters it). */
   registerTrigger: (triggerId: string, element: Element | null) => void;
   /** Applies an accepted open change; `trigger` becomes the active trigger. */
-  applyOpenState: (open: boolean, trigger: Element | undefined, preventUnmount: boolean) => void;
+  applyOpenState: (open: boolean, trigger: Element | undefined) => void;
   readonly onOpenChangeComplete: (open: boolean) => void;
   readonly triggerFocusTargetRef: Ref<HTMLElement | null>;
   readonly beforeTriggerFocusGuardRef: Ref<HTMLElement | null>;
@@ -105,9 +101,6 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
   const [positionerElement, setPositionerElement] = createSignal<HTMLElement | null>(null, {
     ownedWrite: true,
   });
-  const [preventUnmountingOnClose, setPreventUnmountingOnClose] = createSignal(false, {
-    ownedWrite: true,
-  });
   const [triggerCount, setTriggerCount] = createSignal(0, { ownedWrite: true });
   const triggerElements = new PopupTriggerMap();
 
@@ -118,12 +111,10 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
   const status = createUnmountAfterClose({
     open,
     element: popupElement,
-    preventUnmountOnClose: preventUnmountingOnClose,
     animateInitialOpen: options.animateInitialOpen,
     onUnmount() {
       setActiveTriggerId(null);
       setActiveTrigger(null);
-      setPreventUnmountingOnClose(false);
       options.onUnmount?.();
       onOpenChangeComplete(false);
     },
@@ -167,16 +158,13 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
     open,
     mounted: status.mounted,
     transitionStatus: status.transitionStatus,
-    forceUnmount: status.forceUnmount,
     activeTriggerId,
     activeTriggerElement,
     popupElement,
     setPopupElement: (element) => setPopupElement(() => element),
     positionerElement,
     setPositionerElement: (element) => setPositionerElement(() => element),
-    preventUnmountingOnClose,
     triggerElements,
-    triggerCount,
     floatingRootContext,
     floatingId: options.floatingId,
     popupId,
@@ -207,13 +195,7 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
         setActiveTrigger(() => element);
       }
     },
-    applyOpenState(nextOpen, trigger, preventUnmount) {
-      if (nextOpen) {
-        // A new open starts a new close cycle.
-        setPreventUnmountingOnClose(false);
-      } else if (preventUnmount) {
-        setPreventUnmountingOnClose(true);
-      }
+    applyOpenState(nextOpen, trigger) {
       // A close without a trigger keeps the old one, so focus returns to it and exits animate from it.
       const triggerId = trigger?.id || null;
       if (triggerId || nextOpen) {
@@ -227,15 +209,6 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
     beforeTriggerFocusGuardRef: { current: null },
     beforeContentFocusGuardRef: { current: null },
   };
-}
-
-/** Gives the details a `preventUnmountOnClose()` and returns whether it was called. */
-export function attachPreventUnmountOnClose(eventDetails: { preventUnmountOnClose?: () => void }) {
-  let prevent = false;
-  eventDetails.preventUnmountOnClose = () => {
-    prevent = true;
-  };
-  return () => prevent;
 }
 
 /**

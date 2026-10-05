@@ -98,6 +98,3 @@ export function mergeCleanups(...cleanups: Cleanup[]): () => void {
 }
 
 export function NOOP(): void {}
-
-export const EMPTY_OBJECT: Readonly<Record<string, never>> = Object.freeze({});
-export const EMPTY_ARRAY: never[] = Object.freeze([]) as never[];

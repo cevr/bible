@@ -7,10 +7,9 @@
 import { createEffect, untrack } from 'solid-js';
 
 import type { HTMLProps } from '../../internals/types.ts';
-import { EMPTY_ARRAY } from '../../utils/dom.ts';
 import { useTimeout } from '../../utils/timers.ts';
 import type { FloatingRootContext } from '../FloatingRootContext.ts';
-import { type DisabledIndices, isElementVisible, isListIndexDisabled } from '../utils/composite.ts';
+import { isElementVisible } from '../utils/composite.ts';
 import { contains } from '../utils/element.ts';
 import { stopEvent } from '../utils/event.ts';
 
@@ -19,12 +18,11 @@ export interface UseTypeaheadProps {
   listRef: { current: Array<string | null> };
   activeIndex: number | null;
   onMatch?: ((index: number, event: KeyboardEvent) => void) | undefined;
+  /** The items' elements: a hidden or `:disabled` item is never matched. */
   elementsRef?: { current: Array<HTMLElement | null> } | undefined;
-  disabledIndices?: DisabledIndices | undefined;
   onTyping?: ((isTyping: boolean) => void) | undefined;
   enabled?: boolean | undefined;
   resetMs?: number | undefined;
-  selectedIndex?: number | null | undefined;
 }
 
 export function useTypeahead(
@@ -33,8 +31,7 @@ export function useTypeahead(
 ): { reference: HTMLProps; floating: HTMLProps } {
   const timeout = useTimeout();
   let typed = '';
-  const selectedIndex = () => props.selectedIndex ?? null;
-  let prevIndex: number | null = untrack(() => selectedIndex() ?? props.activeIndex ?? -1);
+  let prevIndex: number | null = untrack(() => props.activeIndex ?? -1);
   let matchIndex: number | null = null;
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -42,17 +39,9 @@ export function useTypeahead(
       return;
     }
 
-    const getElement = (index: number) => props.elementsRef?.current[index];
-
     const isItemAvailable = (index: number) => {
-      const element = getElement(index);
-      if ((element && !isElementVisible(element)) || element?.matches(':disabled')) {
-        return false;
-      }
-      return (
-        props.disabledIndices == null ||
-        !isListIndexDisabled(EMPTY_ARRAY, index, props.disabledIndices)
-      );
+      const element = props.elementsRef?.current[index];
+      return !((element && !isElementVisible(element)) || element?.matches(':disabled'));
     };
 
     const getMatchingIndex = (list: Array<string | null>, string: string, startIndex = 0) => {
@@ -74,7 +63,6 @@ export function useTypeahead(
 
     const listContent = props.listRef.current;
     const activeIndex = props.activeIndex;
-    const selected = untrack(selectedIndex);
 
     if (typed.length > 0 && event.key === ' ') {
       stopEvent(event);
@@ -104,7 +92,7 @@ export function useTypeahead(
 
     const isNewSession = typed === '';
     if (isNewSession) {
-      prevIndex = selected ?? activeIndex ?? -1;
+      prevIndex = activeIndex ?? -1;
     }
 
     // Bail out if a label repeats its first letter ("Eggs"), else cycle.
@@ -124,7 +112,7 @@ export function useTypeahead(
       props.onTyping?.(false);
     });
 
-    const from = isNewSession ? (selected ?? activeIndex ?? -1) : prevIndex;
+    const from = isNewSession ? (activeIndex ?? -1) : prevIndex;
     const startIndex = (from ?? 0) + 1;
     const index = getMatchingIndex(listContent, typed, startIndex);
 
@@ -151,20 +139,15 @@ export function useTypeahead(
     props.onTyping?.(false);
   };
 
-  createEffect(
-    () => [context.open(), selectedIndex()] as const,
-    ([open, selected]) => {
-      if (!open && selected !== null) {
-        return;
-      }
-      timeout.clear();
-      matchIndex = null;
-      if (typed !== '') {
-        typed = '';
-        props.onTyping?.(false);
-      }
-    },
-  );
+  // Opening or closing ends a typing session.
+  createEffect(context.open, () => {
+    timeout.clear();
+    matchIndex = null;
+    if (typed !== '') {
+      typed = '';
+      props.onTyping?.(false);
+    }
+  });
 
   const shared: HTMLProps = { onKeyDown, onFocusOut };
   return { reference: shared, floating: shared };

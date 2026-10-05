@@ -3,7 +3,7 @@
 // The area that opens the context menu: a right click opens it at the
 // pointer, and a touch held still for 500ms opens it at the touch (moving
 // more than 10px first cancels). The browser's own context menu is
-// suppressed over the area and the menu's backdrops. After a right click,
+// suppressed over the area and the menu's backdrop. After a right click,
 // releasing the button over nothing in the menu more than 500ms later closes
 // it again, so a press-drag-release gesture works like a native menu.
 // Not in upstream: one owner per press (`claimPress`, `utils/press.ts`). The
@@ -18,7 +18,7 @@
 // `onOpenChange` cancels (a field inside the area keeping its own menu)
 // leaves the event alone, so the browser's menu shows; over the area the
 // browser's menu is suppressed only by the open that went ahead, and the
-// document listener covers the backdrops alone. Nor in upstream: the lift of
+// document listener covers the backdrop alone. Nor in upstream: the lift of
 // the touch that opened the menu is cancelled, so the browser's click after
 // it does not choose the item the menu opened under the finger.
 import type { JSX } from '@solidjs/web';
@@ -41,8 +41,6 @@ import {
 } from '../../utils/press.ts';
 import { useTimeout } from '../../utils/timers.ts';
 import { useContextMenuRootContextStrict } from '../root/ContextMenuRootContext.ts';
-
-export { LONG_PRESS_DELAY, LONG_PRESS_MOVE_THRESHOLD };
 
 export interface ContextMenuTriggerState {
   /** Whether the context menu is open. */
@@ -236,7 +234,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     mouseUpAbortController?.abort();
   });
 
-  // The browser's context menu stays closed over the menu's backdrops (over the area, the open
+  // The browser's context menu stays closed over the menu's backdrop (over the area, the open
   // that went ahead closes it). Disabling the root drops a pending long press.
   createEffect(
     () => store.disabled(),
@@ -247,10 +245,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
       }
       return addEventListener(ownerDocument(triggerElement), 'contextmenu', (event) => {
         const target = getTarget(event) as HTMLElement | null;
-        if (
-          contains(contextMenu.internalBackdropRef.current, target) ||
-          contains(contextMenu.backdropRef.current, target)
-        ) {
+        if (contains(contextMenu.internalBackdropRef.current, target)) {
           event.preventDefault();
         }
       });

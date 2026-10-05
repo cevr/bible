@@ -1,9 +1,9 @@
 // Upstream: packages/react/src/dialog/store/DialogStore.ts
 //
-// A dialog's state: the popup's (open, mounted, active trigger, elements)
-// plus whether it is modal, whether outside presses dismiss it, its role,
-// how it was opened, the ids of its title and description, its viewport,
-// and how many dialogs (and drawers) are open nested in it. Opening and
+// A dialog's state: the popup's (open, mounted, elements) plus whether it
+// is modal, whether outside presses dismiss it, the ids of its title and
+// description, its viewport, and how many dialogs are open nested in it
+// (a drawer is a dialog here). Opening and
 // closing go through `setOpen`: `onOpenChange` first (which may cancel),
 // then the interactions hear of it, then the state changes.
 //
@@ -15,45 +15,31 @@ import type { FloatingContext } from '../../floating-ui-solid/FloatingRootContex
 import type { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { REASONS } from '../../internals/reasons.ts';
-import {
-  attachPreventUnmountOnClose,
-  createPopupStore,
-  type PopupStore,
-} from '../../utils/popups/popupStore.ts';
-import type { InteractionType } from '../../utils/useOpenInteractionType.ts';
+import { createPopupStore, type PopupStore } from '../../utils/popups/popupStore.ts';
 
 export type DialogChangeEventReason =
-  | typeof REASONS.triggerPress
   | typeof REASONS.outsidePress
   | typeof REASONS.escapeKey
   | typeof REASONS.closeWatcher
   | typeof REASONS.closePress
   | typeof REASONS.focusOut
-  | typeof REASONS.imperativeAction
   | typeof REASONS.swipe
   | typeof REASONS.none;
 
-export type DialogChangeEventDetails = BaseUIChangeEventDetails<DialogChangeEventReason> & {
-  /** Keeps the popup mounted after closing until the `unmount` action is called. */
-  preventUnmountOnClose: () => void;
-};
+export type DialogChangeEventDetails = BaseUIChangeEventDetails<DialogChangeEventReason>;
 
 export type DialogModal = boolean | 'trap-focus';
-
-export type DialogRole = 'dialog' | 'alertdialog';
 
 export interface DialogStoreOptions {
   openProp: () => boolean | undefined;
   defaultOpen: boolean;
   modal: Accessor<DialogModal>;
   disablePointerDismissal: Accessor<boolean>;
-  role: DialogRole;
-  /** Whether the dialog is nested in another dialog (or drawer). */
+  /** Whether the dialog is nested in another dialog. */
   nested: boolean;
-  /** Whether the dialog sits inside another floating element (a menu, a popover). */
+  /** Whether the dialog sits inside another floating element (a menu). */
   floatingNested: boolean;
   floatingId: string;
-  openMethod: Accessor<InteractionType | null>;
   floatingTree: FloatingTreeStore;
   floatingNodeId: string;
   onOpenChange: () => ((open: boolean, eventDetails: DialogChangeEventDetails) => void) | undefined;
@@ -63,15 +49,11 @@ export interface DialogStoreOptions {
 export interface DialogStore extends PopupStore {
   modal: Accessor<DialogModal>;
   disablePointerDismissal: Accessor<boolean>;
-  readonly role: DialogRole;
   readonly nested: boolean;
-  openMethod: Accessor<InteractionType | null>;
   /** How many dialogs are open nested in this one (a chain counts each level). */
   nestedOpenDialogCount: Accessor<number>;
-  /** How many of those are drawers. */
-  nestedOpenDrawerCount: Accessor<number>;
-  /** A nested dialog reports its open count here; a close reports zeros. */
-  setNestedOpenCounts: (dialogCount: number, drawerCount: number) => void;
+  /** A nested dialog reports its open count here; a close reports zero. */
+  setNestedOpenDialogCount: (count: number) => void;
   titleElementId: Accessor<string | undefined>;
   setTitleElementId: (id: string | undefined) => void;
   descriptionElementId: Accessor<string | undefined>;
@@ -80,8 +62,6 @@ export interface DialogStore extends PopupStore {
   setViewportElement: (element: HTMLElement | null) => void;
   readonly backdropRef: { current: HTMLElement | null };
   readonly internalBackdropRef: { current: HTMLElement | null };
-  /** Off while a drawer's swipe area drives an open gesture, so its release click does not dismiss. */
-  readonly outsidePressEnabledRef: { current: boolean };
   readonly floatingTree: FloatingTreeStore;
   readonly floatingNodeId: string;
   /** Asks the dialog to open or close (through `onOpenChange`, which may cancel). */
@@ -101,7 +81,6 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
 
   const owned = { ownedWrite: true } as const;
   const [nestedOpenDialogCount, setNestedOpenDialogCount] = createSignal(0, owned);
-  const [nestedOpenDrawerCount, setNestedOpenDrawerCount] = createSignal(0, owned);
   const [titleElementId, setTitleElementId] = createSignal<string | undefined>(undefined, owned);
   const [descriptionElementId, setDescriptionElementId] = createSignal<string | undefined>(
     undefined,
@@ -111,17 +90,12 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
 
   function setOpen(nextOpen: boolean, eventDetails: BaseUIChangeEventDetails) {
     const details = eventDetails as DialogChangeEventDetails;
-    const shouldPreventUnmountOnClose = attachPreventUnmountOnClose(details);
-    // A close keeps the trigger that opened the dialog, so focus returns to it.
-    if (!nextOpen && details.trigger == null && untrack(popup.activeTriggerId) != null) {
-      details.trigger = untrack(popup.activeTriggerElement) ?? undefined;
-    }
     untrack(options.onOpenChange)?.(nextOpen, details);
     if (details.isCanceled) {
       return;
     }
     popup.floatingRootContext.dispatchOpenChange(nextOpen, details);
-    popup.applyOpenState(nextOpen, details.trigger, shouldPreventUnmountOnClose());
+    popup.applyOpenState(nextOpen, details.trigger);
   }
 
   // What the floating tree and the interactions read of this dialog.
@@ -151,15 +125,9 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
     ...popup,
     modal: options.modal,
     disablePointerDismissal: options.disablePointerDismissal,
-    role: options.role,
     nested: options.nested,
-    openMethod: options.openMethod,
     nestedOpenDialogCount,
-    nestedOpenDrawerCount,
-    setNestedOpenCounts(dialogCount, drawerCount) {
-      setNestedOpenDialogCount(dialogCount);
-      setNestedOpenDrawerCount(drawerCount);
-    },
+    setNestedOpenDialogCount: (count) => setNestedOpenDialogCount(count),
     titleElementId,
     setTitleElementId: (id) => setTitleElementId(() => id),
     descriptionElementId,
@@ -168,7 +136,6 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
     setViewportElement: (element) => setViewportElement(() => element),
     backdropRef: { current: null },
     internalBackdropRef: { current: null },
-    outsidePressEnabledRef: { current: true },
     floatingTree: options.floatingTree,
     floatingNodeId: options.floatingNodeId,
     setOpen,

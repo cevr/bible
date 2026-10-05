@@ -211,30 +211,26 @@ export function useOpenChangeComplete(parameters: OpenChangeCompleteParameters) 
 export interface UnmountAfterCloseParameters extends TransitionStatusOptions {
   open: Accessor<boolean>;
   element: Accessor<HTMLElement | null | undefined>;
-  /** While true, a closed popup stays mounted (a `keepMounted` or a prevented unmount). */
-  preventUnmountOnClose?: Accessor<boolean> | undefined;
   onUnmount?: (() => void) | undefined;
 }
 
 /** `createTransitionStatus`, unmounting once the exit animations finish. */
 export function createUnmountAfterClose(parameters: UnmountAfterCloseParameters) {
-  const { open, element, preventUnmountOnClose = () => false, onUnmount } = parameters;
+  const { open, element, onUnmount } = parameters;
   const status = createTransitionStatus(open, parameters);
 
-  const forceUnmount = () => {
-    if (!untrack(status.mounted) || untrack(open)) {
-      return;
-    }
-    status.unmount();
-    onUnmount?.();
-  };
-
   useOpenChangeComplete({
-    enabled: () => status.mounted() && !open() && !preventUnmountOnClose(),
+    enabled: () => status.mounted() && !open(),
     open,
     element,
-    onComplete: forceUnmount,
+    onComplete() {
+      if (!untrack(status.mounted) || untrack(open)) {
+        return;
+      }
+      status.unmount();
+      onUnmount?.();
+    },
   });
 
-  return { ...status, forceUnmount };
+  return status;
 }

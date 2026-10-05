@@ -1,5 +1,4 @@
-// Upstream: packages/react/src/toast/content/ToastContent.tsx,
-// packages/react/src/toast/content/ToastContentDataAttributes.ts
+// Upstream: packages/react/src/toast/content/ToastContent.tsx
 //
 // A container for the contents of a toast. When its size or content
 // changes, the root re-measures the toast's height. Renders a `<div>`
@@ -10,13 +9,6 @@ import { createEffect, createSignal, omit } from 'solid-js';
 import type { BaseUIComponentProps } from '../internals/types.ts';
 import { useRenderElement } from '../internals/useRenderElement.tsx';
 import { useToastRootContext } from './ToastRootContext.ts';
-
-export const ToastContentDataAttributes = {
-  /** Present when the toast viewport is expanded. */
-  expanded: 'data-expanded',
-  /** Present when the toast is behind the frontmost toast in the stack. */
-  behind: 'data-behind',
-} as const;
 
 export interface ToastContentState {
   /** Whether the toast viewport is expanded. */

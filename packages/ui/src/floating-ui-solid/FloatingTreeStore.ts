@@ -1,6 +1,6 @@
 // Upstream: packages/react/src/floating-ui-react/components/FloatingTreeStore.ts
 //
-// The nodes of a tree of nested popups (a submenu in a menu), each with its
+// The nodes of a tree of nested popups, each with its
 // parent's id and live context, and an event bus between them.
 import type { FloatingContext } from './FloatingRootContext.ts';
 import { createEventEmitter, type FloatingEvents } from './utils/event.ts';

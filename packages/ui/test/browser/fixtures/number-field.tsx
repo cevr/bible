@@ -1,6 +1,7 @@
 // Fixtures for the number field: one field configured from the URL (bounds,
-// steps, format, wheel, read-only, a canceled reason), a controlled field
-// set from outside, a field committing on Enter, and a field in a form.
+// steps, format, read-only, a canceled reason), a controlled field
+// set from outside, a field committing on Enter, and a scrub area that
+// unmounts mid-scrub.
 // The field's `window.__set({ disabled, readOnly })` changes those later, applied
 // at once (flushed), so a test can change them inside a press's own task.
 // Every change and commit is logged as `change <value> <reason>` and
@@ -72,12 +73,9 @@ function Field(): JSX.Element {
       snapOnStep={flagParam('snapOnStep')}
       allowExpressions={flagParam('allowExpressions')}
       commitOnEnter={flagParam('commitOnEnter')}
-      allowWheelScrub={flagParam('allowWheelScrub')}
       allowOutOfRange={flagParam('allowOutOfRange')}
       readOnly={readOnly()}
       disabled={disabled()}
-      required={flagParam('required')}
-      name={param('name') ?? undefined}
       locale={param('locale') ?? undefined}
       format={formatParam()}
       onValueChange={onValueChange}
@@ -91,13 +89,8 @@ function Field(): JSX.Element {
         onClick={() => log('scrub-area click')}
       >
         <span>Amount</span>
-        <NumberField.ScrubAreaCursor data-testid="cursor" style={{ width: '8px', height: '8px' }} />
       </NumberField.ScrubArea>
-      <NumberField.Group data-testid="group">
-        <NumberField.Decrement data-testid="decrement">−</NumberField.Decrement>
-        <NumberField.Input aria-label="Amount" />
-        <NumberField.Increment data-testid="increment">+</NumberField.Increment>
-      </NumberField.Group>
+      <NumberField.Input aria-label="Amount" />
     </NumberField.Root>
   );
 }
@@ -119,11 +112,7 @@ function Controlled(): JSX.Element {
         }}
         onValueCommitted={onValueCommitted}
       >
-        <NumberField.Group>
-          <NumberField.Decrement data-testid="decrement">−</NumberField.Decrement>
-          <NumberField.Input aria-label="Amount" />
-          <NumberField.Increment data-testid="increment">+</NumberField.Increment>
-        </NumberField.Group>
+        <NumberField.Input aria-label="Amount" />
       </NumberField.Root>
       <button id="set-42" onClick={() => setValue(42)}>
         42
@@ -135,7 +124,7 @@ function Controlled(): JSX.Element {
   );
 }
 
-/** The commit-on-Enter composition an inspector uses: Enter blurs the input. */
+/** Enter blurring the input, as a form-less page may compose it. */
 function EnterCommits(): JSX.Element {
   return (
     <NumberField.Root
@@ -153,34 +142,6 @@ function EnterCommits(): JSX.Element {
         }}
       />
     </NumberField.Root>
-  );
-}
-
-function InForm(): JSX.Element {
-  return (
-    <form
-      id="form"
-      onSubmit={(event) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        log(`submit ${String(data.get('quantity'))}`);
-      }}
-    >
-      <NumberField.Root
-        id="input"
-        name="quantity"
-        defaultValue={1234.5}
-        step="any"
-        format={{ style: 'currency', currency: 'USD' }}
-        locale="en-US"
-        required
-      >
-        <NumberField.Input aria-label="Quantity" />
-      </NumberField.Root>
-      <button id="submit" type="submit">
-        Submit
-      </button>
-    </form>
   );
 }
 
@@ -212,6 +173,5 @@ export const fixtures: Record<string, () => JSX.Element> = {
   field: Field,
   controlled: Controlled,
   'enter-commits': EnterCommits,
-  form: InForm,
   unmounting: Unmounting,
 };

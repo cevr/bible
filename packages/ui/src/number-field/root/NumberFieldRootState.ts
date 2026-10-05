@@ -15,8 +15,6 @@ export interface NumberFieldRootState {
   value: number | null;
   /** The text the input shows. */
   inputValue: string;
-  /** Whether the user must enter a value before submitting a form. */
-  required: boolean;
   /** Whether the component ignores user interaction. */
   disabled: boolean;
   /** Whether the user is unable to change the value. */
@@ -31,11 +29,7 @@ export type NumberFieldRootChangeEventReason =
   | typeof REASONS.inputBlur
   | typeof REASONS.inputPaste
   | typeof REASONS.keyboard
-  | typeof REASONS.incrementPress
-  | typeof REASONS.decrementPress
-  | typeof REASONS.wheel
-  | typeof REASONS.scrub
-  | typeof REASONS.none;
+  | typeof REASONS.scrub;
 
 export type NumberFieldRootChangeEventDetails = BaseUIChangeEventDetails<
   NumberFieldRootChangeEventReason,
@@ -46,11 +40,7 @@ export type NumberFieldRootCommitEventReason =
   | typeof REASONS.inputBlur
   | typeof REASONS.inputClear
   | typeof REASONS.keyboard
-  | typeof REASONS.incrementPress
-  | typeof REASONS.decrementPress
-  | typeof REASONS.wheel
-  | typeof REASONS.scrub
-  | typeof REASONS.none;
+  | typeof REASONS.scrub;
 
 export type NumberFieldRootCommitEventDetails =
   BaseUIGenericEventDetails<NumberFieldRootCommitEventReason>;

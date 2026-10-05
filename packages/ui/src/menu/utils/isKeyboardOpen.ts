@@ -1,16 +1,12 @@
 // Upstream: packages/react/src/menu/utils/isKeyboardOpen.ts,
-// packages/react/src/menu/utils/findRootOwnerId.ts,
-// packages/react/src/menu/utils/stateAttributesMapping.ts
+// packages/react/src/menu/utils/findRootOwnerId.ts
 //
 // Whether a menu opened from the keyboard (arrow keys report
 // `list-navigation`; Enter and Space dispatch a click with `detail` 0, a
-// mouse click carries 1 or more), the menu tree an element belongs to, and
-// the checked-state attributes of checkbox and radio items.
+// mouse click carries 1 or more), and the menu an element belongs to.
 import { getParentNode, isHTMLElement, isLastTraversableNode } from '@floating-ui/utils/dom';
 
-import type { StateAttributesMapping } from '../../internals/getStateAttributesProps.ts';
 import { REASONS } from '../../internals/reasons.ts';
-import { type TransitionStatus, transitionStatusMapping } from '../../internals/transitions.ts';
 
 export function isKeyboardClick(reason: string | null, event: Event | undefined): boolean {
   return (
@@ -23,7 +19,7 @@ export function isKeyboardOpen(reason: string | null, event: Event | undefined):
   return reason === REASONS.listNavigation || isKeyboardClick(reason, event);
 }
 
-/** The `data-rootownerid` of the menu tree `node` is inside, if any. */
+/** The `data-rootownerid` of the menu `node` is inside, if any. */
 export function findRootOwnerId(node: Node): string | undefined {
   if (isHTMLElement(node) && node.hasAttribute('data-rootownerid')) {
     return node.getAttribute('data-rootownerid') ?? undefined;
@@ -33,16 +29,3 @@ export function findRootOwnerId(node: Node): string | undefined {
   }
   return findRootOwnerId(getParentNode(node));
 }
-
-const CHECKED = { 'data-checked': '' };
-const UNCHECKED = { 'data-unchecked': '' };
-
-export const itemMapping: StateAttributesMapping<{
-  checked: boolean;
-  transitionStatus?: TransitionStatus;
-}> = {
-  checked(value) {
-    return value ? CHECKED : UNCHECKED;
-  },
-  ...transitionStatusMapping,
-};
