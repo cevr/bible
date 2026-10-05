@@ -3,34 +3,8 @@
 // waiting write at once.
 
 import { describe, expect, test } from 'bun:test';
-import { type Timers, throttled } from './throttle.ts';
-
-/** A clock the test moves by hand, with the timers it would fire. */
-const fakeTimers = () => {
-  let now = 0;
-  let next = 1;
-  const due = new Map<number, { at: number; run: () => void }>();
-  const timers: Timers = {
-    now: () => now,
-    set: (run, ms) => {
-      const id = next++;
-      due.set(id, { at: now + ms, run });
-      return id;
-    },
-    clear: (id) => {
-      due.delete(id);
-    },
-  };
-  const advance = (ms: number) => {
-    now += ms;
-    for (const [id, t] of [...due].sort((a, b) => a[1].at - b[1].at))
-      if (t.at <= now) {
-        due.delete(id);
-        t.run();
-      }
-  };
-  return { timers, advance, pending: () => due.size };
-};
+import { fakeTimers } from './fixtures/timers.ts';
+import { throttled } from './throttle.ts';
 
 describe('throttled', () => {
   test('a frame loop writes at most once per period, and the last request lands', () => {

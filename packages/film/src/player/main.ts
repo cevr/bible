@@ -35,13 +35,20 @@ import { narration, narrationNote } from './narration.ts';
 import { tInUrl, type TimeInUrl } from './t-in-url.ts';
 import { timersOn } from './throttle.ts';
 import { lookFrames } from './look-frames.ts';
-import { legendCommand, transportCommands } from './transport.ts';
+import { legendCommand, ticksCommand, transportCommands } from './transport.ts';
+import { makeHud } from './hud.ts';
+import { keptText } from '../browser/storage.ts';
+import { ViewerStore } from '../browser/storage-browser.ts';
+import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 
 /** The longest `#t=` in the URL trails the frame shown while it plays. */
 const HASH_MS = 250;
 
 /** How long a tick's name stays after the finger that held it lifts, in ms. */
 const TIP_READ_MS = 1500;
+
+/** Whether the viewer shows the ticks on Play (`on`; none or `off`: hidden), kept in this browser. */
+const KEPT_TICKS = keptText(ViewerStore, 'film-studio.ticks');
 
 declare global {
   interface Window {
@@ -299,6 +306,8 @@ const exportHandle = ({ film, canvas, ctx, captions }: Staged, host: Host): Expo
  * keymap binds their keys; the bar's legend says the keys bound now). The
  * legend is hidden at rest (UR-114, `legendCommand`): on the player's own
  * page `?` or the bar's ? button shows it, in the lab ⌘K or the page's menu.
+ * On a film's Play page its HUD fades while the film plays (`hud.ts`), and
+ * its ticks show once the viewer turns them on (`ticksCommand`).
  */
 export const mountPreview = (
   { film, canvas, ctx, captions }: Staged,
@@ -441,6 +450,14 @@ export const mountPreview = (
    */
   let drawable = false;
 
+  const page = hub.context().page;
+  /** Whether the bar is on a film's Play page (the shell's part), where the HUD fades and the ticks are the viewer's. */
+  const onPlay = () => bar.closest('[data-part="play"]') !== null;
+  const hud = makeHud((shown) => {
+    bar.dataset['hud'] = shown ? 'shown' : 'hidden';
+  }, timersOn(host));
+  bar.dataset['hud'] = 'shown';
+
   const draw = () => {
     if (drawable) {
       reads = [];
@@ -460,6 +477,9 @@ export const mountPreview = (
     sceneEl.textContent = cur.spec.id;
     sayEl.textContent = cur.voice.spoken;
     playBtn.textContent = playing ? '❚❚' : '▶︎';
+    // On Play the line is the captions' alone while they show (`player.css`).
+    bar.dataset['captions'] = captions.on ? 'on' : 'off';
+    if (onPlay()) hud.playing(playing);
     url.moved();
   };
 
@@ -553,7 +573,6 @@ export const mountPreview = (
     captions.on = !captions.on;
     draw();
   });
-  canvas.addEventListener('click', toggle);
   // The transport, as the page's commands: its keys are the page's keymap's.
   hub.commands.register(
     ...transportCommands({
@@ -593,7 +612,6 @@ export const mountPreview = (
   hub.subscribe(legend);
   // The legend, hidden at rest; on the player's own page the bar's ? button is a phone's way to it.
   const keysLine = q<HTMLDivElement>('.keys');
-  const page = hub.context().page;
   const legendButton = document.createElement('button');
   legendButton.dataset['act'] = 'legend';
   legendButton.textContent = '?';
@@ -623,6 +641,48 @@ export const mountPreview = (
     legendButton.setAttribute('aria-expanded', 'false');
     legendButton.addEventListener('click', toggleLegend);
     q<HTMLDivElement>('.row').append(legendButton);
+  }
+  // The picture: a click plays or pauses; on Play a finger's tap while it
+  // plays shows or hides the HUD instead (its ❚❚ pauses), as a phone's
+  // players do. Any other input on Play shows the HUD (`hud.ts`), for as long
+  // as the bar is on the page.
+  let pressedBy = 'mouse';
+  canvas.addEventListener('pointerdown', (e) => {
+    pressedBy = e.pointerType;
+  });
+  canvas.addEventListener('click', () => {
+    if (onPlay() && playing && pressedBy !== 'mouse') hud.toggle();
+    else toggle();
+  });
+  if (page === 'player') {
+    const leaving = new AbortController();
+    const wake = (e: Event) => {
+      if (!bar.isConnected) return leaving.abort();
+      if (!onPlay()) return;
+      // A finger on the picture is the picture's tap, which toggles the HUD.
+      if (e instanceof PointerEvent && e.target === canvas && e.pointerType !== 'mouse') return;
+      hud.wake();
+    };
+    for (const type of ['pointermove', 'pointerdown', 'keydown'])
+      document.addEventListener(type, wake, { capture: true, signal: leaving.signal });
+    // A film's ticks (hundreds of them) are off on Play until the viewer turns them on (⋯ → Ticks), kept in this browser.
+    const ticksKept = AtomRegistry.make();
+    ticksKept.mount(KEPT_TICKS);
+    const ticksShown = () => Option.contains(ticksKept.get(KEPT_TICKS), 'on');
+    const showTicks = () => {
+      bar.dataset['ticks'] = ticksShown() ? 'on' : 'off';
+    };
+    showTicks();
+    hub.commands.register(
+      ticksCommand({
+        shown: ticksShown,
+        toggle: () => {
+          ticksKept.set(KEPT_TICKS, ticksShown() ? 'off' : 'on');
+          showTicks();
+        },
+        here: onPlay,
+      }),
+    );
   }
   hub.commands.register(
     legendCommand(page, { shown: () => !keysLine.hidden, toggle: toggleLegend }),

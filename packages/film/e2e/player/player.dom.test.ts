@@ -2,6 +2,9 @@
 // phone's window and a desk's, each in the studio's shell. Neither the play
 // page nor the Scenes' tape scrolls sideways; the play page keeps its film
 // time as `#t=`, and its legend is hidden until `?` or the bar's ? button.
+// Its HUD fades 3 s into play with no input and any input brings it back (a
+// finger's tap on the picture while it plays toggles it), and its ticks are
+// off until the view menu turns them on, kept in the browser.
 // The Scenes are the film's tape: a tap selects its scene (the path) and
 // moves the playhead there (`#t=`), Back deselects, the scene's card opens
 // its lab, a phone's card is a sheet, and ⇧-click and ⇧A approve a batch.
@@ -12,6 +15,7 @@ import { Boolean as Bool, Effect, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
+import { HUD_IDLE_MS } from '../../src/player/hud.ts';
 import { onTheMs } from '../../src/player/t-in-url.ts';
 import {
   type FakeRoute,
@@ -133,6 +137,21 @@ const projectRoutes = (meanwhile: ReadonlyArray<string> = []): ReadonlyArray<Fak
     }),
   ];
 };
+
+/** Play's ticks turned on, as a viewer does: the view menu (⋯), then Show the ticks. */
+const ticksOn = (page: Tab) =>
+  Effect.gen(function* () {
+    yield* page.click('[data-act="view-menu"]');
+    yield* page.click('[data-role="view-menu"] [data-command="view.ticks"]');
+    yield* attributeIs(page, '.bar', 'data-ticks', 'on');
+  });
+
+/** Whether Play's controls (the bar, the header, the tab bar) are each shown, or each hidden. */
+const controls = (shown: boolean) =>
+  `['.bar', '.sh-header', '.sh-pagebar'].every((s) => getComputedStyle(document.querySelector(s)).visibility === '${VISIBILITY[`${shown}`]}')`;
+
+/** A control's `visibility`, by whether it is shown. */
+const VISIBILITY = { true: 'visible', false: 'hidden' } as const;
 
 describe('the player', () => {
   it.live('a film that will not start says why as text, markup in its words shown, never run', () =>
@@ -303,6 +322,94 @@ describe('the player', () => {
   );
 
   it.live(
+    "Play's HUD on a desk: shown at rest; 3 s into play with no input only the picture shows; a pointer's move or a key brings the controls back",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: DESK },
+          '.bar .tc',
+        );
+        yield* page.clock.hold;
+        yield* page.clock.runFor(HUD_IDLE_MS * 2);
+        yield* evaluates(page, controls(true), true);
+        yield* page.press('Space');
+        yield* page.clock.runFor(HUD_IDLE_MS - 200);
+        yield* evaluates(page, controls(true), true);
+        yield* page.clock.runFor(400);
+        yield* evaluates(page, controls(false), true);
+        yield* evaluates(page, "getComputedStyle(document.querySelector('.stage')).cursor", 'none');
+        // A pointer's move brings them back, and the wait starts again.
+        const stage = yield* page.box('.stage canvas');
+        yield* page.mouse.move(stage.x + stage.width / 2, stage.y + stage.height / 2);
+        yield* evaluates(page, controls(true), true);
+        yield* page.clock.runFor(HUD_IDLE_MS + 200);
+        yield* evaluates(page, controls(false), true);
+        // A key too: → steps a frame, and the controls show.
+        yield* page.press('ArrowRight');
+        yield* evaluates(page, controls(true), true);
+        // The film paused, they stay.
+        yield* page.press('Space');
+        yield* page.clock.runFor(HUD_IDLE_MS * 2);
+        yield* evaluates(page, controls(true), true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "Play's HUD on a phone: a tap on the picture while it plays hides the controls and shows them; at rest a tap plays",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: PHONE },
+          '.bar .tc',
+        );
+        yield* page.clock.hold;
+        const tap = Effect.gen(function* () {
+          yield* touch(page, '.stage canvas', 0);
+          yield* page.finger.up;
+        });
+        // At rest a tap plays, the controls shown.
+        yield* tap;
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        yield* evaluates(page, controls(true), true);
+        // Playing, a tap hides them at once, and the next shows them.
+        yield* tap;
+        yield* evaluates(page, controls(false), true);
+        yield* tap;
+        yield* evaluates(page, controls(true), true);
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        // Shown, they fade 3 s on; the bar's ❚❚ is a tap away once they are back.
+        yield* page.clock.runFor(HUD_IDLE_MS + 200);
+        yield* evaluates(page, controls(false), true);
+        yield* tap;
+        yield* page.click('.bar [data-act="play"]');
+        yield* textIs(page, '.bar [data-act="play"]', '▶︎');
+        yield* evaluates(page, controls(true), true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "Play's ticks are off at rest; the view menu (⋯) turns them on, and this browser keeps them on",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: PHONE },
+          '.bar .tc',
+        );
+        const ticksShown = `[...document.querySelectorAll('.bar .track .tick')].filter((t) => t.checkVisibility()).length`;
+        yield* evaluates(page, `document.querySelectorAll('.bar .track .tick').length > 0`, true);
+        yield* evaluates(page, ticksShown, 0);
+        yield* ticksOn(page);
+        yield* evaluates(page, `${ticksShown} > 0`, true);
+        yield* page.reload;
+        yield* attributeIs(page, '.bar', 'data-ticks', 'on');
+        yield* evaluates(page, `${ticksShown} > 0`, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     'a tick held by a finger says its name, which stays a moment once it lifts (UR-115)',
     () =>
       Effect.gen(function* () {
@@ -310,6 +417,7 @@ describe('the player', () => {
           { href: pageHref.play(PROBE), viewport: PHONE },
           '.bar .tc',
         );
+        yield* ticksOn(page);
         const tick = '.bar .track .tick.cue';
         const name = String(yield* page.evaluate(`document.querySelector('${tick}').dataset.name`));
         yield* touch(page, tick, 0);
@@ -327,6 +435,7 @@ describe('the player', () => {
         { href: pageHref.play(PROBE), viewport: PHONE },
         '.bar .tc',
       );
+      yield* ticksOn(page);
       // A cue's tick and a mark's: two names, apart along the track.
       const middle = (box: { x: number; y: number; width: number; height: number }) => ({
         x: box.x + box.width / 2,

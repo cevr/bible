@@ -162,6 +162,35 @@ export const rateCommands = <R extends number>(rates: Rates<R>): ReadonlyArray<C
   ];
 };
 
+/** What the ticks' command says, by whether they show. */
+const TICKS_LABEL: Readonly<Record<'true' | 'false', string>> = {
+  true: 'Hide the ticks',
+  false: 'Show the ticks',
+};
+
+/** Play's ticks: whether they show, the toggle, and whether the page is Play. */
+interface Ticks {
+  readonly shown: () => boolean;
+  readonly toggle: () => void;
+  readonly here: () => boolean;
+}
+
+/**
+ * Play's ticks on the track (marks, cues, sounds, music acts), off at rest
+ * (UR2-1): the viewer turns them on from the view menu (⋯), and this
+ * browser keeps the choice. The Lab and the Scenes always show theirs.
+ */
+export const ticksCommand = (ticks: Ticks): Command => ({
+  id: 'view.ticks',
+  label: 'Show or hide the ticks',
+  labelIn: () => TICKS_LABEL[`${ticks.shown()}`],
+  group: 'View',
+  keys: [],
+  touch: 'the view menu (⋯), then Show the ticks',
+  when: () => ticks.here(),
+  run: doing(ticks.toggle),
+});
+
 /** What the legend's command says, by whether the legend shows. */
 const LEGEND_LABEL: Readonly<Record<'true' | 'false', string>> = {
   true: 'Hide the keys and the legend',

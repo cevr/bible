@@ -983,6 +983,29 @@ body.play .sh-body {
 .play-body .stage {
   grid-template: minmax(0, 1fr) / minmax(0, 1fr);
 }
+/* Play's HUD (`hud.ts`): the bar, the header and the tab bar fade while the
+   film plays with no input, in place, so the picture does not move; the
+   pointer goes with them. Hidden, none of them takes a tap or a focus. */
+.sh[data-part='play'] :is(.bar, .sh-header, .sh-pagebar) {
+  transition:
+    opacity 0.3s,
+    visibility 0.3s;
+}
+.sh[data-part='play']:has(.bar[data-hud='hidden']) :is(.bar, .sh-header, .sh-pagebar) {
+  opacity: 0;
+  visibility: hidden;
+}
+.sh[data-part='play']:has(.bar[data-hud='hidden']) .stage {
+  cursor: none;
+}
+/* Play's ticks are the viewer's (⋯ → Show the ticks), off until turned on. */
+.sh[data-part='play'] .bar:not([data-ticks='on']) .track .tick {
+  display: none;
+}
+/* With the captions on the picture, Play's line is theirs alone. */
+.sh[data-part='play'] .bar[data-captions='on'] .say {
+  display: none;
+}
 
 /* The studio: record the voiceover beat by beat. */
 .studio {
