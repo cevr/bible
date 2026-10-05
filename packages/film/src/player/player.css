@@ -816,6 +816,18 @@ body.lab .stage {
   color: var(--text-2);
   font-size: var(--fs-2);
 }
+/* The film's own findings, apart from the scene's: in their most pressing level's colour. */
+.lab-findings-film {
+  margin: 0;
+  font-size: var(--fs-2);
+  font-weight: var(--w-2);
+}
+.lab-findings-film[data-state='findings'] {
+  color: var(--state-findings);
+}
+.lab-findings-film[data-state='warning'] {
+  color: var(--state-warning);
+}
 .lab-findings {
   margin: 0;
   padding-left: var(--s-4);

@@ -65,13 +65,13 @@ describe('findingsIn (the inspector lists the scene shown, UI-6)', () => {
     { ...late, tag: 'no-place' },
   ];
   const tags = (scene: string) => {
-    const { here, elsewhere } = findingsIn(findings, placed, scene);
-    return [here.map((f) => f.tag), elsewhere];
+    const { here, film, elsewhere } = findingsIn(findings, placed, scene);
+    return [here.map((f) => f.tag), film.map((f) => f.tag), elsewhere];
   };
 
-  test("a scene lists its own and those with no place; the others' are counted", () => {
-    expect(tags('one')).toEqual([['timed-one', 'the-film', 'no-place'], 2]);
-    expect(tags('two')).toEqual([['named-two', 'timed-past-the-end', 'the-film', 'no-place'], 1]);
+  test("a scene lists its own, and those with no place as the film's; the others' are counted", () => {
+    expect(tags('one')).toEqual([['timed-one'], ['the-film', 'no-place'], 2]);
+    expect(tags('two')).toEqual([['named-two', 'timed-past-the-end'], ['the-film', 'no-place'], 1]);
   });
 
   test('a time a hair of float error short of a start is the scene the playhead shows there', () => {

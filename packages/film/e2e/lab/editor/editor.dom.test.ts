@@ -816,16 +816,19 @@ describe('the inspector', () => {
         href: labAt(0.2),
       });
       yield* page.waitFor('.lab-finding');
-      // The inspector lists the scene shown's findings and the film's placeless one; the rest are counted.
+      // The inspector lists the scene shown's findings, then the film's placeless one apart, as
+      // the film's in its level's colour (SU-3); the rest are counted.
       const listed = "[...document.querySelectorAll('.lab-finding b')].map((b) => b.textContent)";
-      yield* evaluates(page, listed, ['whole', 'timed']);
+      yield* evaluates(page, listed, ['timed', 'whole']);
+      yield* textIs(page, '.lab-findings-group h3 .lab-count', '1');
+      yield* textIs(page, '.lab-findings-film[data-state="warning"]', 'Film · 1');
       yield* textIs(page, '.lab-findings-elsewhere', '1 in other scenes · F walks to them');
       yield* page.press('f');
       yield* page.until(`Math.abs(${URL_T} - 0.8) < 0.01`);
       // The finding about scene two is at its start; the one about the whole film is nowhere.
       yield* page.press('f');
       yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
-      yield* evaluates(page, listed, ['whole', 'scene']);
+      yield* evaluates(page, listed, ['scene', 'whole']);
       yield* page.press('Shift+F');
       yield* page.until(`Math.abs(${URL_T} - 0.8) < 0.01`);
     }).pipe(Effect.scoped),

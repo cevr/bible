@@ -12,7 +12,13 @@ import type { ParentProps } from 'solid-js';
 import { createMemo } from 'solid-js';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
-import { type CuePatch, EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
+import {
+  type CheckLine,
+  type CuePatch,
+  EaseName,
+  type ResolvedCue,
+  type Span,
+} from '../../core/schema.ts';
 import { DEFAULT_EASE, timecode } from '../../core/time.ts';
 import { untilEndText } from '../../core/timeline.ts';
 import { BY_BUTTON } from '../../command/command.ts';
@@ -23,6 +29,7 @@ import { Lab, useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY, findingsIn } from './format.ts';
 import { hubKeys } from '../command/changes.ts';
+import { countState } from '../scenes/marks.ts';
 import { cueCommit } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
@@ -185,10 +192,26 @@ export const History = () => {
   );
 };
 
+/** Findings listed, each its tag and message in its level's colour. */
+const FindingList = (props: { readonly lines: ReadonlyArray<CheckLine> }) => (
+  <ul class="lab-findings">
+    <For each={props.lines}>
+      {(f) => (
+        <li class={['lab-finding', f.level]}>
+          <b>{f.tag}</b>
+          {` ${f.message}`}
+        </li>
+      )}
+    </For>
+  </ul>
+);
+
 /**
  * The inspector's Findings group (UI-6): the film's check (the last write's,
- * else the page's) as it bears on the scene shown, its own and the film's
- * placeless ones; the other scenes' are a count, and F walks to them.
+ * else the page's) as it bears on the scene shown, its own, then the film's
+ * placeless ones apart (`Film · n`, in their most pressing level's colour,
+ * as Scenes' legend counts them: `countState`); the other scenes' are a
+ * count, and F walks to them.
  */
 const Findings = () => {
   const { state: lab, meta } = useLab();
@@ -200,22 +223,20 @@ const Findings = () => {
   return (
     <section
       class="lab-group lab-findings-group"
-      data-empty={shown().here.length + shown().elsewhere === 0}
+      data-empty={shown().here.length + shown().film.length + shown().elsewhere === 0}
     >
       <h3>
         {`Findings in ${lab.scene()}`}
         <span class="lab-count">{shown().here.length}</span>
       </h3>
-      <ul class="lab-findings">
-        <For each={shown().here}>
-          {(f) => (
-            <li class={['lab-finding', f.level]}>
-              <b>{f.tag}</b>
-              {` ${f.message}`}
-            </li>
-          )}
-        </For>
-      </ul>
+      <FindingList lines={shown().here} />
+      <Show when={shown().film.length > 0}>
+        <h4
+          class="lab-findings-film"
+          data-state={Option.getOrUndefined(countState(shown().film))}
+        >{`Film · ${shown().film.length}`}</h4>
+        <FindingList lines={shown().film} />
+      </Show>
       <Show when={shown().elsewhere > 0}>
         <p class="lab-findings-elsewhere">
           {`${shown().elsewhere} in other scenes · ${walkKey()} walks to them`}

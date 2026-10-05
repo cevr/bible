@@ -69,8 +69,10 @@ export const findingTime = (
 
 /** The findings the inspector lists for one scene, and how many sit elsewhere (UI-6). */
 interface SceneFindings {
-  /** The scene's own, and those with no place on the film (about the whole film): listed. */
+  /** The scene's own: listed under its name. */
   readonly here: ReadonlyArray<CheckLine>;
+  /** Those with no place on the film (about the whole film): listed apart, as the film's (SU-3). */
+  readonly film: ReadonlyArray<CheckLine>;
   /** How many belong to other scenes: counted, and F walks to them. */
   readonly elsewhere: number;
 }
@@ -79,8 +81,8 @@ interface SceneFindings {
  * `findings` as the inspector shows them in `scene`: one whose address names
  * the scene, or whose time is in it (`sceneAt`, the scene the playhead shows
  * there), is the scene's; one with no place (no address, or the whole film or
- * an act with no time) belongs to every scene, having no other; the rest are
- * counted as elsewhere.
+ * an act with no time) is the film's, shown with every scene, having no
+ * other; the rest are counted as elsewhere.
  */
 export const findingsIn = (
   findings: ReadonlyArray<CheckLine>,
@@ -100,10 +102,9 @@ export const findingsIn = (
         ),
       ),
     );
-  const here = findings.filter((f) =>
-    Option.match(named(f), { onNone: () => true, onSome: (ids) => ids.includes(scene) }),
-  );
-  return { here, elsewhere: findings.length - here.length };
+  const here = findings.filter((f) => Option.exists(named(f), (ids) => ids.includes(scene)));
+  const film = findings.filter((f) => Option.isNone(named(f)));
+  return { here, film, elsewhere: findings.length - here.length - film.length };
 };
 
 const DOING = { undo: 'undoing', redo: 'redoing' } as const;
