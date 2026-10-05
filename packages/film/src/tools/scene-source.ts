@@ -29,6 +29,7 @@ import {
 import { type CuePatch, EaseName, type Knob, Span, Until } from '../core/schema.ts';
 import { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
+import { writtenPatch } from '../core/timeline.ts';
 
 /** A `timeline` or `knobs` property: an object literal, something else, or not there. */
 type Slot =
@@ -82,7 +83,11 @@ const TIMING = ['offset', 'dur', 'until', 'untilOffset', 'ease', 'stagger'] sati
 >;
 type TimingKey = (typeof TIMING)[number];
 
-/** A number as the lab writes it: to the millisecond (`toMs`), never `-0`. */
+/**
+ * A number as the lab writes it: to the millisecond (`toMs`), never `-0`; the
+ * rule `writtenPatch` applies to a cue write, so a cue's numbers come here
+ * already rounded and print as judged.
+ */
 const numberText = (v: number) => String(toMs(v));
 
 /** A single-quoted string literal. */
@@ -821,8 +826,9 @@ const untilOffsetDrop = (
  * Set a cue's `offset`, `dur`, `until`, `untilOffset`, `ease` or `stagger` in
  * the drawing exported as `name`: the value's text replaced where it is a
  * literal, or the field added after the span's anchor; an `untilOffset` the
- * patch drops (`dropsUntilOffset`) is taken away. The result is the whole new
- * source.
+ * patch drops (`dropsUntilOffset`) is taken away. The patch is written as a
+ * scene file holds it (`writtenPatch`), the one rounding its check judges.
+ * The result is the whole new source.
  */
 export const editCue = (
   file: string,
@@ -832,13 +838,14 @@ export const editCue = (
   patch: CuePatch,
 ): Result.Result<string, SourceRefused> =>
   Result.flatMap(spanOf(file, source, name, cue), (span) => {
+    const written = writtenPatch(patch);
     const splices: Array<Splice> = [];
     const inserts = new Map<number, Array<string>>();
-    const dropped = untilOffsetDrop(file, source, span, cue, patch);
+    const dropped = untilOffsetDrop(file, source, span, cue, written);
     if (Result.isFailure(dropped)) return Result.fail(dropped.failure);
     splices.push(...dropped.success);
     for (const key of TIMING) {
-      const text = valueText(key, patch);
+      const text = valueText(key, written);
       if (Option.isNone(text)) continue;
       const target = `cue ${cue} ${key}`;
       const prop = propertyOf(file, target, span, key);

@@ -40,7 +40,7 @@ import { FilmUnknown, SceneNotLocated, SourceShared } from '../core/refusals.ts'
 import type { CuePatch, Span } from '../core/schema.ts';
 import { type Quote, type ScriptLine, sheetBeats } from '../core/sheet.ts';
 import type { StudioReading } from '../core/studio.ts';
-import { patchSpan, resolveTimeline } from '../core/timeline.ts';
+import { patchSpan, resolveTimeline, writtenPatch } from '../core/timeline.ts';
 import { FilmModuleInvalid } from './errors.ts';
 import { FilmFolder, FilmRepo, type LoadedFilm, importFilmModule, placeFilm } from './film-repo.ts';
 import {
@@ -94,7 +94,8 @@ export const readingOf = Effect.fn('film.read.voice.reading')(function* (loaded:
  * The cue's own span as the film plays it with `patch` applied, when `spans`
  * has none for it: its source computes part of it (`until: MARK`), so no
  * literal of the new text says it, and only the film's value, with the write
- * applied, is the span the write would play.
+ * applied as the file will hold it (`writtenPatch`), is the span the write
+ * would play.
  */
 const patched = (
   timeline: Option.Option<Readonly<Record<string, Span>>>,
@@ -106,7 +107,7 @@ const patched = (
     Option.zipWith(
       Option.filter(patch, () => !Object.hasOwn(spans, cue)),
       Option.flatMap(timeline, (own) => Option.fromUndefinedOr(own[cue])),
-      (q, span) => patchSpan(span, q),
+      (q, span) => patchSpan(span, writtenPatch(q)),
     ),
     { onNone: () => ({}), onSome: (span) => ({ [cue]: span }) },
   );

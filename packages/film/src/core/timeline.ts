@@ -17,7 +17,7 @@ import {
 } from './errors.ts';
 import { wordAfter } from './narration.ts';
 import type { CuePatch, ResolvedCue, ScenePoint, Span, Timeline, Until, Word } from './schema.ts';
-import { DEFAULT_EASE, type Key, ease, keys, progress, toMs } from './time.ts';
+import { CLOCK_EPSILON, DEFAULT_EASE, type Key, ease, keys, progress, toMs } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
 export const cueProgress = (cue: ResolvedCue, t: number): number =>
@@ -83,6 +83,26 @@ const endField = (span: Span, patch: CuePatch) => {
   if (span.dur !== undefined) return { dur: span.dur, ...ends };
   return ends;
 };
+
+/** The keys of a `CuePatch` that hold seconds. */
+const PATCH_NUMBERS = ['offset', 'dur', 'untilOffset', 'stagger'] as const satisfies ReadonlyArray<
+  keyof CuePatch
+>;
+
+/**
+ * `patch` as a scene file holds it once written: every number to the
+ * millisecond (`toMs`), the one rounding the source writer applies. What a
+ * write is judged by before it lands, so the judgement is of what lands.
+ */
+export const writtenPatch = (patch: CuePatch): CuePatch =>
+  PATCH_NUMBERS.reduce<CuePatch>(
+    (written, key) =>
+      Option.match(Option.fromUndefinedOr(patch[key]), {
+        onNone: () => written,
+        onSome: (value) => ({ ...written, [key]: toMs(value) }),
+      }),
+    patch,
+  );
 
 /**
  * `span` with a lab edit applied. A span ends one way, so a `dur` replaces
@@ -166,10 +186,9 @@ const untilPatch = (
     // The point the span runs until: its end less the offset it ends off it.
     const point = cue.end - (span.untilOffset ?? 0);
     const near = toMs(Math.max(cue.start, at.end) - point);
-    // Read back through an offset, the point is exact only to its last bit: a nanosecond's margin there.
-    const margin = span.untilOffset === undefined ? 0 : 1e-9;
     // Rounded, the end may fall before the start: then it is the first millisecond at or after it.
-    if (point + near >= cue.start + margin) return Option.some({ untilOffset: near });
+    // On the start within float noise is on it, as the resolver judges it (`CLOCK_EPSILON`).
+    if (point + near >= cue.start - CLOCK_EPSILON) return Option.some({ untilOffset: near });
     return Option.some({ untilOffset: toMs(near + 0.001) });
   }
   const offset = toMs(Math.min(at.start, cue.end - frame) - anchor);
@@ -293,7 +312,8 @@ export const resolveTimeline = (
       pointOn(clock, (n) => resolve(n, self), untilPoint(until), self),
       (point): Result.Result<number, TimelineError> => {
         const end = point + (span.untilOffset ?? 0);
-        if (end < start)
+        // Before its start by more than float noise (`CLOCK_EPSILON`); within it, it ends on its start.
+        if (end < start - CLOCK_EPSILON)
           return Result.fail(
             UntilBeforeStart.make({
               scene: clock.scene,
@@ -301,7 +321,7 @@ export const resolveTimeline = (
               until: untilEndText(until, span.untilOffset),
             }),
           );
-        return Result.succeed(end - start);
+        return Result.succeed(Math.max(0, end - start));
       },
     );
   };

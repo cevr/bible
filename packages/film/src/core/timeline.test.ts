@@ -402,6 +402,56 @@ describe('timeline', () => {
     expect(resolved(patchSpan(off, again)).end).toBeGreaterThanOrEqual(c2.start);
   });
 
+  test('dragPatch: an until end set exactly on its start stays there, never a millisecond past it', () => {
+    // Starts at 1 (speech 0.5 + fiction 2 − 1.5); {two} is at 2; ends 0.9995 before it, at 1.0005.
+    const two = { ...clock, marks: new Map([...clock.marks, ['two', 1.5]]) };
+    const walk = { mark: 'fiction', offset: -1.5, until: 'two', untilOffset: -0.9995 } as const;
+    const resolved = (span: Span) =>
+      Option.getOrThrow(
+        Option.fromUndefinedOr(Result.getOrThrow(resolveTimeline({ walk: span }, two)).get('walk')),
+      );
+    const c = resolved(walk);
+    expect(c.start).toBe(1);
+    expect(c.end).toBeCloseTo(1.0005, 9);
+    // End set to 1, the start: shortened onto it, the 1 s before {two}; not 1.001.
+    const patch = Option.getOrThrow(dragPatch(walk, c, 'end', { start: c.start, end: 1 }, 1 / 30));
+    expect(patch).toEqual({ untilOffset: -1 });
+    const onStart = resolved(patchSpan(walk, patch));
+    expect(onStart.end).toBe(1);
+    expect(onStart.dur).toBe(0);
+  });
+
+  test('dragPatch and the resolver share one tolerance: an end on its start by float noise alone is on it', () => {
+    // Starts at 0.1 + 0.2 (0.30000000000000004 in floats); {b} is at 0.5; 0.5 − 0.2 is 0.3.
+    const noisy: SceneClock = {
+      ...clock,
+      marks: new Map([
+        ['a', 0.2],
+        ['b', 0.4],
+      ]),
+      speechStart: 0.1,
+    };
+    const walk = { mark: 'a', until: 'b' } as const;
+    const resolved = (span: Span) =>
+      Option.getOrThrow(
+        Option.fromUndefinedOr(
+          Result.getOrThrow(resolveTimeline({ walk: span }, noisy)).get('walk'),
+        ),
+      );
+    const c = resolved(walk);
+    expect(c.start).toBe(0.1 + 0.2);
+    expect(c.end).toBe(0.5);
+    // Dragged onto its start: the 0.2 s before {b}, not a millisecond more to clear the noise.
+    const patch = Option.getOrThrow(
+      dragPatch(walk, c, 'end', { start: c.start, end: c.start }, 1 / 30),
+    );
+    expect(patch).toEqual({ untilOffset: -0.2 });
+    // And the resolver takes that end as on the start: no UntilBeforeStart, no negative dur.
+    const onStart = resolved(patchSpan(walk, patch));
+    expect(onStart.dur).toBe(0);
+    expect(onStart.end).toBe(onStart.start);
+  });
+
   test('dragPatch: an until span off its point moves the offset, and dropped back on the point is a plain until', () => {
     // Ends 0.5 past {as} (5.5): at 6.
     const walk = { mark: 'fiction', offset: 0.3, until: 'as', untilOffset: 0.5 } as const;
