@@ -502,21 +502,29 @@ export const mountPreview = (
     return playing;
   };
 
-  // A press on the track jumps there; a drag from it scrubs, and settles
-  // where it ends, lifted or taken by the browser (a page pan).
+  // A press on the track is told by how it ends. Lifted where it was put
+  // down (no drag claimed it: a mouse that never moved, a finger within the
+  // long press's slop), it is a tap: a jump there, a step Back walks across a
+  // scene. Moved, it is a drag: it scrubs from its first move, following the
+  // URL in place, and settles where it ends, lifted or taken by the browser
+  // (a page pan); its press and its release enter nothing in history.
   track.addEventListener('pointerdown', (e) => {
     const r = track.getBoundingClientRect();
     const tAt = (ev: PointerEvent) => ((ev.clientX - r.left) / r.width) * film.duration;
-    const move = (ev: PointerEvent) => scrub(tAt(ev));
-    seek(tAt(e));
+    let dragged = false;
+    const move = (ev: PointerEvent) => {
+      dragged = true;
+      scrub(tAt(ev));
+    };
     const letGo = holdTick(e);
     Effect.runForkWith(host)(
       Pointer.use((pointer) =>
         pointer.drag(e, {
           move,
-          end: () => {
+          end: (lifted) => {
             letGo();
-            url.settled();
+            if (dragged) url.settled();
+            else Option.map(lifted, () => seek(tAt(e)));
           },
         }),
       ),

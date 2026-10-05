@@ -706,7 +706,8 @@ write, and a write's reload comes back to the frame, the pick and the note.
 A pick and a note are history entries (Back undoes them). Each time write
 names its cause (`TimeInUrl.write(T, cause)`, `player/t-in-url.ts`): play,
 a drag and a pause are `'play'` and rewrite the entry, even across a cut; a
-jump (`]`, `[`, a frame step, ⌘K to a scene, Go to, a press on the track)
+jump (`]`, `[`, a frame step, ⌘K to a scene, Go to, a tap on the track:
+a press lifted with no drag, so a drag from anywhere is never a jump)
 is the viewer's move, so a jump into another scene is a step Back walks,
 and one inside the scene rewrites the entry. Motion's A–B range is
 `#loop=<a>,<b>` (film seconds on both places, so a scene change never

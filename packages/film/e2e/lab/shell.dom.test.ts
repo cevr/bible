@@ -13,6 +13,8 @@ import { FilmUnknown } from '../../src/core/refusals.ts';
 import { timecode } from '../../src/core/time.ts';
 import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import {
+  DESK,
+  PHONE,
   URL_T,
   hold,
   json,
@@ -203,6 +205,51 @@ describe('the lab shell', () => {
       yield* evaluates(page, 'location.pathname', '/films/probe/lab/three');
       yield* evaluates(page, 'history.length - globalThis.openedWith', 0);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a drag that starts in another scene is no step either, by mouse or finger; a tap there is one Back walks',
+    () =>
+      Effect.gen(function* () {
+        type Point = { readonly x: number; readonly y: number };
+        /** A drag and a tap, by mouse on a desk or by finger on a phone. */
+        const hands = [
+          {
+            viewport: DESK,
+            drag: (page: Tab, from: Point, to: Point) =>
+              Effect.gen(function* () {
+                yield* page.mouse.move(from.x, from.y);
+                yield* page.mouse.down;
+                yield* page.mouse.move(to.x, to.y, 12);
+                yield* page.mouse.up;
+              }),
+            tap: (page: Tab, at: Point) => page.mouse.click(at.x, at.y),
+          },
+          {
+            viewport: PHONE,
+            drag: (page: Tab, from: Point, to: Point) => page.finger.drag(from, to, 24),
+            tap: (page: Tab, at: Point) =>
+              Effect.andThen(page.finger.down(at.x, at.y), page.finger.up),
+          },
+        ];
+        for (const hand of hands) {
+          const { page } = yield* openLab([], { href: labAt(0.5), viewport: hand.viewport });
+          yield* page.until('(globalThis.openedWith = history.length) > 0');
+          const track = yield* page.box('.bar .track');
+          const y = track.y + track.height / 2;
+          const at = (share: number) => ({ x: track.x + track.width * share, y });
+          // Pressed in three, dragged back into one: the path follows in place.
+          yield* hand.drag(page, at(0.9), at(0.1));
+          yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+          yield* evaluates(page, 'history.length - globalThis.openedWith', 0);
+          // A tap in three jumps there, a step Back walks.
+          yield* hand.tap(page, at(0.9));
+          yield* evaluates(page, 'location.pathname', '/films/probe/lab/three');
+          yield* evaluates(page, 'history.length - globalThis.openedWith', 1);
+          yield* page.back;
+          yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
+        }
+      }).pipe(Effect.scoped),
   );
 
   it.live(
