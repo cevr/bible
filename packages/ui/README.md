@@ -100,7 +100,7 @@ CSS variables on `Dialog.Popup`: `--nested-dialogs` (how many dialogs nested in 
 
 Upstream's swipe area, backdrop, description, snap points, nested drawer stacks and the provider's indent are left out; a part returns with its first consumer.
 
-A swipe released past half the popup (or flicked) calls `onOpenChange(false, details)` with the reason `swipe`. An owner that refuses it calls `details.cancel()`, and the sheet springs back. Otherwise the sheet holds its exit pose (`data-swipe-dismiss`, `data-ending-style`) until the owner closes the drawer, however many frames later. Upstream instead reads `open` still being true a frame later as a refusal.
+A swipe released past half the popup (or flicked) calls `onOpenChange(false, details)` with the reason `swipe`. An owner that refuses it calls `details.cancel()`, and the sheet springs back. Otherwise the sheet holds its exit pose (`data-swipe-dismiss`, `data-ending-style`) until the owner closes the drawer, however many frames later. Upstream instead reads `open` still being true a frame later as a refusal. An owner that neither cancels nor closes leaves the sheet held in its exit pose, with no timeout. Every film owner closes.
 
 | Member     | Attribute                                   | Present when                                                                          |
 | ---------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
