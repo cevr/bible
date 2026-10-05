@@ -56,7 +56,7 @@ import {
 import { lineError } from '../core/spoken.ts';
 import type { ReadBeat } from '../core/studio.ts';
 import { voicedWords } from '../core/voiced.ts';
-import { ContentStore, Processes, type StoreError, partialWriter } from './content-store.ts';
+import { ContentStore, type StoreError, partialAbandoned } from './content-store.ts';
 import { sha256Hex } from './digest.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import { ElevenLabsFailed, type MediaFailed, TakeMismatch } from '../core/refusals.ts';
@@ -364,8 +364,9 @@ export const putAwayUnnamed = Effect.fn('putAwayUnnamed')(function* (
 
 /**
  * Clear `narration/` of what the timings do not name: every partial write
- * whose writer is gone is removed (one whose writer runs, a mix's track
- * say, which no timings lock covers, is left to land: `partialWriter`), and
+ * whose writer is gone is removed (one whose writer runs, here or on
+ * another host, a mix's track say, which no timings lock covers, is left to
+ * land: `partialAbandoned`), and
  * every take file (what a crashed or failed run left, or a take since
  * replaced) is put away into `attempts/<beat>/` (`putAwayTake`), never
  * deleted, so a person's take whose attempt is not on this machine is still
@@ -378,22 +379,15 @@ export const sweepNarration = Effect.fn('Narrator.sweep')(function* (paths: Film
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const store = yield* ContentStore;
-  const processes = yield* Processes;
   const dir = paths.narration;
   if (!(yield* fs.exists(dir))) return;
-  /** Whether a partial's writer is gone: a crash's, or one from before partials named theirs. */
-  const abandoned = (name: string) =>
-    Option.match(partialWriter(name), {
-      onNone: () => Effect.succeed(true),
-      onSome: (pid) => Effect.map(processes.alive(pid), (runs) => !runs),
-    });
   const sweep = Effect.gen(function* () {
     const timings = yield* store.read(paths.timings);
     const named = new Set(Object.values(timings.scenes).map((t) => t.file));
     const names = yield* fs.readDirectory(dir);
     const partials = yield* Effect.filter(
       names.filter((name) => name.endsWith('.partial')),
-      abandoned,
+      partialAbandoned,
     );
     const stray = names.filter(
       (name) => TAKE_EXTENSIONS.some((ext) => name.endsWith(ext)) && !named.has(name),

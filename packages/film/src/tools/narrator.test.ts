@@ -759,14 +759,13 @@ describe('Narrator', () => {
       }).pipe(Effect.scoped, Effect.provide(Path.layer)),
     );
 
-    it.effect("a sweep spares a running writer's partial, and removes a gone writer's", () =>
+    /**
+     * A mix landing its track through `fs`, under no timings lock: paused
+     * once its partial is written, and landing when `finish` is done.
+     */
+    const midMix = (fs: FileSystem.FileSystem) =>
       Effect.gen(function* () {
-        const files = filed();
-        const gone = `${DIR}/full.wav.4194305-7.partial`;
-        files.set(gone, text('half a mix'));
         const [begun, finish] = [yield* Deferred.make<boolean>(), yield* Deferred.make<boolean>()];
-        const fs = yield* fileSystemOf(files);
-        // The mix writes its track through a partial of its own, under no timings lock.
         const mix = writeWholeWith(
           fs,
           `${DIR}/full.wav`,
@@ -781,6 +780,17 @@ describe('Narrator', () => {
         );
         const mixing = yield* Effect.forkChild(Effect.exit(mix));
         yield* Deferred.await(begun);
+        return { mixing, finish };
+      });
+
+    it.effect("a sweep spares a running writer's partial, and removes a gone writer's", () =>
+      Effect.gen(function* () {
+        const files = filed();
+        // A partial from before partials named their host: its pid judged on this host, as a lock's is.
+        const gone = `${DIR}/full.wav.4194305-7.partial`;
+        files.set(gone, text('half a mix'));
+        const fs = yield* fileSystemOf(files);
+        const { mixing, finish } = yield* midMix(fs);
         yield* sweepElsewhere(fs);
         yield* Deferred.succeed(finish, true);
         expect(Exit.isSuccess(yield* Fiber.join(mixing))).toBe(true);
@@ -794,6 +804,29 @@ describe('Narrator', () => {
           alive: (pid) => Effect.succeed(pid === process.pid),
         }),
       ),
+    );
+
+    it.effect(
+      'a sweep spares the partial of a writer on another host, whose pid means nothing here',
+      () =>
+        Effect.gen(function* () {
+          const files = filed();
+          const fs = yield* fileSystemOf(files);
+          // The mix runs on another host sharing the folder.
+          const { mixing, finish } = yield* midMix(fs).pipe(
+            Effect.provideService(Processes, {
+              host: 'elsewhere',
+              alive: () => Effect.succeed(true),
+            }),
+          );
+          // Here, no process has the mix's pid.
+          yield* sweepElsewhere(fs).pipe(
+            Effect.provideService(Processes, { host: 'here', alive: () => Effect.succeed(false) }),
+          );
+          yield* Deferred.succeed(finish, true);
+          expect(Exit.isSuccess(yield* Fiber.join(mixing))).toBe(true);
+          expect(new TextDecoder().decode(files.get(`${DIR}/full.wav`))).toBe('the mix');
+        }).pipe(Effect.scoped, Effect.provide(Path.layer)),
     );
   });
 });

@@ -20,8 +20,9 @@
 // caller, under a lock, with `writeWholeWith`: the mix's track and its
 // stamp), and the partial removed if the write fails. A reader never sees
 // half a file, and two writers never share a partial. The name says whose a
-// partial is (`partialWriter`), so a sweep of what a crash left (narrate's)
-// spares a partial whose writer still runs.
+// partial is, its pid and its host (`<file>.<pid>-<n>.<host tag>.partial`),
+// so a sweep of what a crash left (narrate's) removes only a partial whose
+// writer is gone (`partialAbandoned`), judged as a lock's holder is.
 
 import {
   Array as Arr,
@@ -42,6 +43,7 @@ import {
 } from 'effect';
 import type { PlatformError } from 'effect/PlatformError';
 import { hostname } from 'node:os';
+import { sha256Hex } from './digest.ts';
 import { FileInvalid, StoreLocked } from './errors.ts';
 
 /** A manifest file, its codec, and what it holds before anything is generated. */
@@ -53,19 +55,35 @@ export interface Manifest<A> {
 
 export type StoreError = FileInvalid | StoreLocked | PlatformError;
 
-/** The partial process `pid` writes `file` through (`writeWholeWith`): `<file>.<pid>-<n>.partial`. */
-const partialOf = (file: string, pid: number, n: number): string => `${file}.${pid}-${n}.partial`;
+/** A host as a partial's name carries it: twelve hex digits of its name's SHA-256, free of dots. */
+const hostTag = (host: string): string => sha256Hex(host).slice(0, 12);
 
 /**
- * The process writing a partial (`writeWholeWith`), read from its name;
- * none for a name no writer of this store makes (`<file>.partial`).
+ * The partial process `pid` on `host` writes `file` through
+ * (`writeWholeWith`): `<file>.<pid>-<n>.<host tag>.partial`.
  */
-export const partialWriter = (name: string): Option.Option<number> =>
-  Option.map(
-    Option.flatMap(Option.fromNullishOr(/\.(\d+)-\d+\.partial$/.exec(name)), (named) =>
-      Arr.get(named, 1),
-    ),
-    Number,
+const partialOf = (file: string, pid: number, n: number, host: string): string =>
+  `${file}.${pid}-${n}.${hostTag(host)}.partial`;
+
+/** Who writes a partial: its pid, and its host's tag (none in a name from before partials carried it). */
+interface PartialWriter {
+  readonly pid: number;
+  readonly host: Option.Option<string>;
+}
+
+/**
+ * The writer of a partial (`writeWholeWith`), read from its name: none for
+ * a name that carries no writer (`<file>.partial`), and no host for one
+ * from before partials named theirs (`<file>.<pid>-<n>.partial`).
+ */
+const partialWriter = (name: string): Option.Option<PartialWriter> =>
+  Option.flatMap(
+    Option.fromNullishOr(/\.(\d+)-\d+(?:\.([0-9a-f]{12}))?\.partial$/.exec(name)),
+    (named) =>
+      Option.map(Arr.get(named, 1), (pid) => ({
+        pid: Number(pid),
+        host: Option.fromNullishOr(named[2]),
+      })),
   );
 
 /**
@@ -81,7 +99,8 @@ export const writeWholeWith = <E, R, L, LR>(
   land: (partial: string) => Effect.Effect<void, L, LR>,
 ): Effect.Effect<void, E | L | PlatformError, R | LR> =>
   Effect.gen(function* () {
-    const partial = partialOf(file, process.pid, yield* Random.nextIntBetween(0, 1e9));
+    const { host } = yield* Processes;
+    const partial = partialOf(file, process.pid, yield* Random.nextIntBetween(0, 1e9), host);
     yield* Effect.gen(function* () {
       yield* write(partial);
       yield* land(partial);
@@ -172,6 +191,25 @@ export const Processes = Context.Reference<ProcessesService>('@bible/film/tools/
 /** Whether `owner` runs on host `here`: one that names no host is taken to. */
 const holdsOn = (owner: LockOwner, here: string): boolean =>
   Option.getOrElse(Option.fromUndefinedOr(owner.host), () => here) === here;
+
+/**
+ * Whether the partial `name` was left by a writer that is gone, as a lock's
+ * holder is judged: a pid on this host that no longer runs. A partial
+ * written on another host is never judged, since its pid means nothing here;
+ * one that names no host (from before partials carried it) is taken as this
+ * host's, as a lock that names none is. A name that carries no writer at
+ * all (`<file>.partial`) is one no writer of this store has made since
+ * partials were named by their writer, so a crash left it.
+ */
+export const partialAbandoned = (name: string): Effect.Effect<boolean> =>
+  Effect.gen(function* () {
+    const writer = partialWriter(name);
+    if (Option.isNone(writer)) return true;
+    const processes = yield* Processes;
+    const here = hostTag(processes.host);
+    if (Option.getOrElse(writer.value.host, () => here) !== here) return false;
+    return !(yield* processes.alive(writer.value.pid));
+  });
 
 /**
  * Why a lock held by `owner` is stale, or none while it holds. A lock is
