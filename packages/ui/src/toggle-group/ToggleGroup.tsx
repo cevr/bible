@@ -1,9 +1,8 @@
 // Upstream: packages/react/src/toggle-group/ToggleGroup.tsx
 //
 // A shared pressed state for a set of toggles (`role="group"`): one pressed
-// at a time, or several with `multiple`. On its own it is a composite with
-// one tab stop (arrow keys, Home and End); inside a toolbar it is a plain
-// group and its toggles join the toolbar's roving focus.
+// at a time, or several with `multiple`. It is a composite with one tab stop
+// (arrow keys, Home and End).
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
 
@@ -11,8 +10,6 @@ import { CompositeRoot } from '../internals/composite/CompositeRoot.tsx';
 import type { BaseUIChangeEventDetails } from '../internals/createBaseUIEventDetails.ts';
 import type { REASONS } from '../internals/reasons.ts';
 import type { BaseUIComponentProps, HTMLProps, Orientation } from '../internals/types.ts';
-import { useRenderElement } from '../internals/useRenderElement.tsx';
-import { useToolbarGroupContext, useToolbarRootContext } from '../toolbar/ToolbarRootContext.ts';
 import { useControlled } from '../utils/useControlled.ts';
 import { ToggleGroupContext, type ToggleGroupContextValue } from './ToggleGroupContext.ts';
 
@@ -54,11 +51,7 @@ const EMPTY: readonly never[] = [];
 export function ToggleGroup<Value extends string = string>(
   props: ToggleGroupProps<Value>,
 ): JSX.Element {
-  const toolbar = useToolbarRootContext(true);
-  const toolbarGroup = useToolbarGroupContext();
-
-  const disabled = () =>
-    (toolbar?.disabled ?? false) || (toolbarGroup?.disabled ?? false) || (props.disabled ?? false);
+  const disabled = () => props.disabled ?? false;
   const multiple = () => props.multiple ?? false;
   const orientation = () => props.orientation ?? 'horizontal';
 
@@ -131,26 +124,18 @@ export function ToggleGroup<Value extends string = string>(
     'multiple',
   ) as HTMLProps;
 
-  function Plain() {
-    return useRenderElement('div', props, { state, props: [defaultProps, elementProps] });
-  }
-
   return (
     <ToggleGroupContext value={context as unknown as ToggleGroupContextValue<string>}>
-      {toolbar ? (
-        <Plain />
-      ) : (
-        <CompositeRoot<unknown, ToggleGroupState>
-          render={props.render}
-          class={props.class}
-          style={props.style}
-          state={state}
-          props={[defaultProps, elementProps]}
-          loopFocus={props.loopFocus ?? true}
-          enableHomeAndEndKeys
-          orientation={orientation()}
-        />
-      )}
+      <CompositeRoot<unknown, ToggleGroupState>
+        render={props.render}
+        class={props.class}
+        style={props.style}
+        state={state}
+        props={[defaultProps, elementProps]}
+        loopFocus={props.loopFocus ?? true}
+        enableHomeAndEndKeys
+        orientation={orientation()}
+      />
     </ToggleGroupContext>
   );
 }

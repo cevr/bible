@@ -12,5 +12,3 @@ export * from './field/index.ts';
 export * from './number-field/index.ts';
 export * from './toggle/index.ts';
 export * from './toggle-group/index.ts';
-export * from './toolbar/index.ts';
-export * from './tabs/index.ts';

@@ -2,7 +2,7 @@
 // packages/react/src/internals/composite/list/useCompositeListItem.ts,
 // packages/react/src/internals/composite/list/CompositeListContext.ts
 //
-// The registry of a list's items (menu items, tabs, toolbar items): each
+// The registry of a list's items (menu items, a toggle group's toggles): each
 // item registers its element, and gets its index, its position among the
 // connected items in document order (or the index it asks for). The list
 // keeps `elementsRef` (for list navigation) and `labelsRef` (for typeahead)

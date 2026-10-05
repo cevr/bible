@@ -3,7 +3,7 @@
 // packages/utils/src/isElementDisabled.ts,
 // packages/react/src/internals/composite/root/useCompositeRoot.ts (the key logic)
 //
-// The keys a composite widget (a toolbar, a toggle group, a tab list) moves
+// The keys a composite widget (a toggle group) moves
 // its roving tab stop with, and the pure step from one highlighted index to
 // the next: arrow keys per orientation (swapped in right-to-left), Home and
 // End, wrapping at the ends, skipping disabled items. Also the scroll that

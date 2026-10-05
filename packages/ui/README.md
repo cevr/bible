@@ -262,7 +262,7 @@ Two root props are not upstream's. `commitOnEnter` makes Enter commit typed text
 
 `import { Toggle } from '@bible/ui/toggle'`
 
-- `Toggle`: `<button aria-pressed>`, a two-state button; inside a `ToggleGroup` or `Toolbar` it joins their roving focus.
+- `Toggle`: `<button aria-pressed>`, a two-state button; inside a `ToggleGroup` it joins the group's roving focus.
 
 | Member   | Attribute       | Present when           |
 | -------- | --------------- | ---------------------- |
@@ -281,46 +281,6 @@ Two root props are not upstream's. `commitOnEnter` makes Enter commit typed text
 | `ToggleGroup` | `data-disabled`    | the group is disabled                                    |
 | `ToggleGroup` | `data-multiple`    | several toggles can be pressed at once (`multiple`)      |
 | `ToggleGroup` | `data-orientation` | always: `horizontal` unless `orientation` says otherwise |
-
-### Toolbar
-
-`import { Toolbar } from '@bible/ui/toolbar'`
-
-- `Toolbar.Root`: `<div role="toolbar">` with one tab stop.
-  - `Toolbar.Group`: `<div role="group">`; disabling it disables its items.
-    - `Toolbar.Button`: `<button>` (render a menu trigger through `render`; arrow keys in that menu's popup stay in the menu).
-    - `Toolbar.Link`: `<a>`.
-    - `Toolbar.Input`: `<input>`.
-  - `Toolbar.Separator`: `<div role="separator">`, perpendicular to the toolbar by default.
-
-| Member                                     | Attribute          | Present when                                                                    |
-| ------------------------------------------ | ------------------ | ------------------------------------------------------------------------------- |
-| `Root`, `Group`, `Button`, `Link`, `Input` | `data-orientation` | always: the toolbar's orientation (`horizontal` by default)                     |
-| `Root`, `Group`, `Button`, `Input`         | `data-disabled`    | the toolbar, the group or the item is disabled                                  |
-| `Button`, `Input`                          | `data-focusable`   | the item stays focusable when disabled (`focusableWhenDisabled`, on by default) |
-| `Separator`                                | `data-orientation` | always: `vertical` in a horizontal toolbar, `horizontal` in a vertical one      |
-
-### Tabs
-
-`import { Tabs } from '@bible/ui/tabs'`
-
-- `Tabs.Root`: `<div>` that owns the selected value.
-  - `Tabs.List`: `<div role="tablist">` with one tab stop.
-    - `Tabs.Tab`: `<button role="tab">`.
-    - `Tabs.Indicator`: `<span role="presentation">` marking the active tab; nothing while no tab is selected.
-  - `Tabs.Panel`: `<div role="tabpanel">`, mounted while its tab is active (or with `keepMounted`).
-
-| Member                                      | Attribute                                   | Present when                                                                                             |
-| ------------------------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `Root`, `List`, `Tab`, `Indicator`, `Panel` | `data-orientation`                          | always: `horizontal` unless `orientation` says otherwise                                                 |
-| `Root`, `List`, `Tab`, `Indicator`, `Panel` | `data-activation-direction`                 | always: where the active tab sits relative to the previous one (`left`, `right`, `up`, `down` or `none`) |
-| `Tab`                                       | `data-active`                               | the tab is selected                                                                                      |
-| `Tab`                                       | `data-disabled`                             | the tab is disabled                                                                                      |
-| `Panel`                                     | `data-hidden`                               | the panel's tab is not active                                                                            |
-| `Panel`                                     | `data-starting-style` / `data-ending-style` | the panel's enter frame / its exit transition                                                            |
-| `Panel`                                     | `data-index`                                | always: the panel's index among the panels                                                               |
-
-CSS variables on `Tabs.Indicator`: `--active-tab-left`, `--active-tab-right`, `--active-tab-top`, `--active-tab-bottom`, `--active-tab-width`, `--active-tab-height` (the active tab's box in px, relative to the list's padding box).
 
 ## Styling contract
 
