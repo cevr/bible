@@ -5,8 +5,9 @@
 // server refuses shows the server's own text; a cue whose dragged field is
 // computed says so and writes nothing; the inspector's fields and eases
 // write the selected cue; Undo asks the server to undo, its receipt offering
-// Redo; the findings of the film's check show under the inspector, and F
-// and ⇧F walk those with a place on the time line.
+// Redo; the findings of the film's check show under the inspector, wrapped
+// inside the panel, and F and ⇧F walk those with a place on the time line.
+// The scene's file is named once, on the strip's head.
 
 import { Deferred, Effect, Exit, Option, Schedule } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -90,6 +91,14 @@ describe('the cue strip', () => {
       yield* attributesAre(page, '.lab-cue', 'data-cue', ['rise', 'fall']);
       yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
       expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live("names the scene's file once, on its head", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      yield* editable(page);
+      yield* evaluates(page, "document.body.innerText.split('scenes/one.ts').length - 1", 1);
     }).pipe(Effect.scoped),
   );
 
@@ -819,6 +828,36 @@ describe('the inspector', () => {
       yield* evaluates(page, listed, ['whole', 'scene']);
       yield* page.press('Shift+F');
       yield* page.until(`Math.abs(${URL_T} - 0.8) < 0.01`);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a finding with a long unbroken path wraps inside the panel at 1440', () =>
+    Effect.gen(function* () {
+      const path = `/${'a'.repeat(240)}/narration/full.wav`;
+      const report: Json = {
+        findings: [
+          {
+            level: 'warning',
+            tag: 'AudioStale',
+            message: `the audio master ${path} was mixed for an older cut`,
+            address: { part: { _tag: 'Film' } },
+          },
+        ],
+      };
+      const { page } = yield* openLab([route('GET', /^\/check$/, () => json(report))], {
+        href: labAt(0.2),
+      });
+      yield* page.waitFor('.lab-finding');
+      // Nothing in the findings group reaches past the panel's right edge.
+      yield* evaluates(
+        page,
+        `(() => {
+          const edge = document.querySelector('.lab-panel').getBoundingClientRect().right;
+          const parts = [...document.querySelectorAll('.lab-findings-group, .lab-findings-group *')];
+          return parts.every((el) => el.getBoundingClientRect().right <= edge + 0.5);
+        })()`,
+        true,
+      );
     }).pipe(Effect.scoped),
   );
 

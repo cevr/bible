@@ -237,21 +237,15 @@ const GESTURES: Readonly<Record<LabSelection['_tag'], ReadonlyArray<string>>> = 
 };
 
 /**
- * The editor's controls in its section of the page's panel: the file its
- * header names, the inspector, `children` (the knobs, until they move), the
- * hint for the selection, and the findings.
+ * The editor's controls in its section of the page's panel: the inspector,
+ * `children` (the knobs, until they move), the hint for the selection, and
+ * the findings. The scene's file is named once, on the strip's head.
  */
 export const Section = (props: ParentProps) => {
   const { state: lab, meta } = useLab();
-  const { state } = useEditor();
-  const file = () =>
-    Option.match(state.inspectedSource().source, { onNone: () => '', onSome: (s) => s.file });
   const cueSelected = () => Option.filter(lab.selection(), (s) => s._tag === 'Cue');
   return (
     <>
-      <Lab.Fill at="edit-head">
-        <span class="lab-edit-file">{file()}</span>
-      </Lab.Fill>
       <Lab.Fill at="edit">
         <div class="lab-edit-body lab-inspector">
           <Show when={Option.getOrUndefined(cueSelected())} keyed>

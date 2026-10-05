@@ -735,10 +735,6 @@ body.lab .stage {
   border-bottom: 1px solid var(--line);
   font-size: var(--fs-3);
 }
-.lab-edit-file {
-  color: var(--text-2);
-  font-size: var(--fs-2);
-}
 .lab-edit-title {
   font-weight: 600;
   margin: 4px 0;
@@ -828,6 +824,10 @@ body.lab .stage {
   border-radius: var(--r-1);
   color: var(--state-findings);
   font-size: var(--fs-1);
+}
+/* A finding's text may hold a long unbroken token (a path): it wraps inside the panel. */
+.lab-findings-group {
+  overflow-wrap: anywhere;
 }
 .lab-findings-elsewhere {
   margin: 0;
