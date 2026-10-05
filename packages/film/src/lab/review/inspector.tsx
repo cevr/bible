@@ -13,7 +13,9 @@
 // standing on the tab bar and the dock (design language §7), swiped down,
 // whose grip lowers it to a peek and raises it again. Escape closes it; its
 // footer prints the keys of the commands about the thing while the pointer or
-// the focus is in it (`Hint`).
+// the focus is in it (`Hint`). A page may keep which one is open in its URL
+// (`useInspectorPlace`, the Project's `?point=`): the URL then owns it, so a
+// link, Back and Forward open and close it.
 
 import { Drawer } from '@bible/ui/drawer';
 import { type JSX, Show } from '@solidjs/web';
@@ -21,6 +23,7 @@ import { Boolean as Bool, Option } from 'effect';
 import {
   type Accessor,
   createContext,
+  createMemo,
   createSignal,
   onCleanup,
   untrack,
@@ -51,6 +54,20 @@ interface Opened {
   readonly at: OpenAt;
 }
 
+/**
+ * A page whose URL keeps its open inspector (the Project's `?point=`): the
+ * thing its URL names now, and how to name one, or none. While a page binds
+ * one (`useInspectorPlace`), its URL is the open inspector's one owner: a tap
+ * names the thing (a step of its own, so Back closes it), Close, a swipe and
+ * Escape name none, and a pasted link, Back and Forward open what they name.
+ * A page that binds none keeps it in the inspector, for the page's life.
+ */
+interface InspectorPlace {
+  readonly named: Accessor<Option.Option<Selection>>;
+  /** Name `selection` in the URL, or none (a thing the URL has no name for stays shut). */
+  readonly name: (selection: Option.Option<Selection>) => void;
+}
+
 interface InspectingValue {
   readonly hub: Hub;
   readonly opened: Accessor<Option.Option<Opened>>;
@@ -61,6 +78,8 @@ interface InspectingValue {
   readonly put: (thing: Thing) => () => void;
   /** The unsent comment on the thing of `key`. */
   readonly draft: (key: string) => Draft;
+  /** Keep the open inspector in the page's URL (`InspectorPlace`) until the returned stop. */
+  readonly bind: (place: InspectorPlace) => () => void;
 }
 
 const InspectingContext = createContext<InspectingValue>();
@@ -74,9 +93,46 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
   // One count for every draft: a box reads its draft through it, so a say that lands
   // after its box closed empties the box opened since.
   const [drafted, setDrafted] = createSignal(0, { ownedWrite: true });
-  const [opened, setOpened] = createSignal(Option.none<Opened>(), { ownedWrite: true });
-  const open = (selection: Selection, at: OpenAt) =>
-    setOpened(Option.some({ key: targetAttr(selection), at }));
+  // The page's URL, while a page keeps the open inspector there; else the inspector's own.
+  const [place, setPlace] = createSignal(Option.none<InspectorPlace>(), { ownedWrite: true });
+  const [own, setOwn] = createSignal(Option.none<Opened>(), { ownedWrite: true });
+  // Where the last opening opened (its info, or its comment box): no part of a URL.
+  const [how, setHow] = createSignal(Option.none<Opened>(), { ownedWrite: true });
+  const opened = createMemo(() =>
+    Option.match(place(), {
+      onNone: () => own(),
+      onSome: (p) =>
+        Option.map(p.named(), (selection): Opened => {
+          const key = targetAttr(selection);
+          return {
+            key,
+            at: Option.getOrElse(
+              Option.map(
+                Option.filter(how(), (h) => h.key === key),
+                (h) => h.at,
+              ),
+              (): OpenAt => 'info',
+            ),
+          };
+        }),
+    }),
+  );
+  const open = (selection: Selection, at: OpenAt) => {
+    const now = { key: targetAttr(selection), at };
+    setHow(Option.some(now));
+    Option.match(untrack(place), {
+      onNone: () => setOwn(Option.some(now)),
+      onSome: (p) => p.name(Option.some(selection)),
+    });
+  };
+  const close = (key: string) => {
+    if (!Option.exists(untrack(opened), (o) => o.key === key)) return;
+    setHow(Option.none());
+    Option.match(untrack(place), {
+      onNone: () => setOwn(Option.none()),
+      onSome: (p) => p.name(Option.none()),
+    });
+  };
   const things: Things = {
     at: (selection) => Option.fromUndefinedOr(shown.get(targetAttr(selection))),
     open,
@@ -86,7 +142,12 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
     hub: props.hub,
     opened,
     open,
-    close: (key) => setOpened((now) => Option.filter(now, (o) => o.key !== key)),
+    close,
+    bind: (p) => {
+      setOwn(Option.none());
+      setPlace(Option.some(p));
+      return () => setPlace((now) => Option.filter(now, (q) => q !== p));
+    },
     draft: (key) => ({
       get: () => {
         drafted();
@@ -107,6 +168,12 @@ export const Inspecting = (props: { readonly hub: Hub; readonly children: JSX.El
     },
   };
   return <InspectingContext value={value}>{props.children}</InspectingContext>;
+};
+
+/** Keep the open inspector in the calling page's URL (`InspectorPlace`) for as long as the page lives. */
+export const useInspectorPlace = (place: InspectorPlace): void => {
+  const inspecting = useInspecting();
+  onCleanup(inspecting.bind(place));
 };
 
 /** Register `thing` for as long as the calling row is shown. */

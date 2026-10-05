@@ -683,13 +683,26 @@ describe("a film's project", () => {
         const act = yield* page.box(ACT);
         const coda = yield* page.box(render('coda'));
         expect(coda.y).toBeGreaterThanOrEqual(act.y + act.height);
-        // A card's Approve is on the card; a stale one waits on a render, and says so.
-        yield* textIs(page, `${render('close')} [data-act="approve"]`, 'Approve · render first');
+        // A card's Approve is on the card, its words on one line (close's earlier version was
+        // approved: Approve again); a stale one waits on a render, and says so when asked (its
+        // title, and its name to a screen reader), its card's out-of-date mark beside it.
+        const cardApprove = `${render('close')} [data-act="approve"]`;
+        yield* textIs(page, cardApprove, 'Approve again');
+        yield* attributeIs(page, cardApprove, 'title', 'Approve · render first');
+        yield* attributeIs(page, cardApprove, 'aria-label', 'Approve · render first');
         yield* evaluates(
           page,
-          `document.querySelector('${render('close')} [data-act="approve"]').disabled`,
-          true,
+          `(() => {
+            const el = document.querySelector('${cardApprove}');
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            return [el.disabled, range.getClientRects().length];
+          })()`,
+          [true, 1],
         );
+        // Its sheet has the room to say it in full.
+        yield* inspect(page, render('close'));
+        yield* textIs(page, `${INSPECTOR} [data-act="approve"]`, 'Approve · render first');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -777,6 +790,73 @@ describe("a film's project", () => {
   );
 
   it.live(
+    "the open sheet is the URL's: a tap names its part (Back closes it, Forward opens it), Close and Escape drop it, a link opens it; the draft and the player live through it",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject({ cut: true }), {
+          href: PROJECT,
+          viewport: LAPTOP,
+        });
+        const pointIs = (want: string) =>
+          evaluates(page, `new URL(location.href).searchParams.get('point') ?? ''`, want);
+        const title = `${INSPECTOR} .lab-sheet-title`;
+        yield* waitFor(page, `${DOCK} .rv-transport [data-act="play"]`);
+        yield* page.evaluate(
+          `void (window.__transport = document.querySelector('${DOCK} .rv-transport'))`,
+        );
+        const samePlayer = `document.querySelector('${DOCK} .rv-transport') === window.__transport`;
+        // A tap on a scene names its render in the URL, a step of its own; the sheet says scene and act.
+        yield* click(page, `${render('open')} .sc-card-picture`);
+        yield* textIs(page, title, 'scene open · opening');
+        yield* pointIs('render:scenes:open');
+        yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'half a thought');
+        // Back closes it; Forward opens it again, its draft kept, the player the same throughout.
+        yield* page.back;
+        yield* countIs(page, INSPECTOR, 0);
+        yield* pointIs('');
+        yield* page.forward;
+        yield* textIs(page, title, 'scene open · opening');
+        yield* valueIs(page, `${INSPECTOR} .rv-comment-input`, 'half a thought');
+        yield* evaluates(page, samePlayer, true);
+        // Close drops it from the URL.
+        yield* click(page, `${INSPECTOR} [data-act="close-inspector"]`);
+        yield* countIs(page, INSPECTOR, 0);
+        yield* pointIs('');
+        // An act's and the film's sheets are named by their renders too; Escape drops them.
+        yield* inspect(page, ACT_HEAD);
+        yield* textIs(page, title, 'act opening');
+        yield* pointIs('render:act:opening');
+        yield* page.press('Escape');
+        yield* countIs(page, INSPECTOR, 0);
+        yield* pointIs('');
+        yield* inspect(page, FILM_HEAD);
+        yield* textIs(page, title, 'the film toy');
+        yield* pointIs('render:film');
+        // Back from one sheet to another opens the other: the film's, then none (Escape's entry).
+        yield* click(page, `${render('coda')} .sc-card-picture`);
+        yield* textIs(page, title, 'scene coda');
+        yield* pointIs('render:scenes:coda');
+        yield* page.back;
+        yield* textIs(page, title, 'the film toy');
+        yield* page.back;
+        yield* countIs(page, INSPECTOR, 0);
+        yield* evaluates(page, samePlayer, true);
+        yield* page.forward;
+        yield* page.forward;
+        yield* textIs(page, title, 'scene coda');
+        // The URL with the sheet named, opened fresh: the sheet is open, and Close drops it.
+        const link = new URL(yield* page.url);
+        yield* page.goto(`${link.pathname}${link.search}`);
+        yield* textIs(page, title, 'scene coda');
+        yield* click(page, `${INSPECTOR} [data-act="close-inspector"]`);
+        yield* countIs(page, INSPECTOR, 0);
+        yield* pointIs('');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'with no render of the film, the dock says so in a line where the transport would be',
     () =>
       Effect.gen(function* () {
@@ -813,11 +893,9 @@ describe("a film's project", () => {
         yield* waitFor(page, approve);
         yield* textHas(page, approve, "Approve the act's current scenes");
         yield* page.finger.up;
-        // The menu is open: the page's time runs on again, in steps no faster than the test's,
-        // so the approve's say goes and its receipt shows for its while.
-        yield* Effect.forkScoped(
-          Effect.forever(Effect.andThen(Effect.sleep('25 millis'), page.clock.runFor(20))),
-        );
+        // The menu is open: the page's time runs on again with real time, so the approve's say
+        // goes and its receipt shows for its while.
+        yield* page.clock.release;
         yield* click(page, approve);
         // Only the current scene is approved (close waits on a render): one of two.
         yield* receiptSays(page, 'Approved act opening · 0/2 → 1/2 approved');
@@ -1030,7 +1108,12 @@ describe("a film's project", () => {
           `location.pathname + location.search === '${pageHref.choices('toy', 'take:paper.hum')}'`,
         );
         yield* page.back;
-        yield* until(page, `location.pathname + location.search === '${PROJECT}'`);
+        // Back on the project, the scene's sheet the URL names is open again.
+        yield* until(
+          page,
+          `location.pathname + location.search === '${pageHref.project('toy', 'render:scenes:open')}'`,
+        );
+        yield* textIs(page, `${INSPECTOR} .lab-sheet-title`, 'scene open · opening');
         // An old link to a choice's card on the project goes on to the card on Choices.
         yield* page.goto(pageHref.project('toy', 'take:paper.hum'));
         yield* until(

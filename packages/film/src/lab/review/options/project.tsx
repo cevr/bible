@@ -11,7 +11,9 @@
 // its hue, its marks (out of date, not rendered, approved, findings), a
 // comment dot when something was said of it, and on a laptop its Approve
 // (`render first` while out of date). A tap on a scene opens its sheet (the
-// inspector: a bottom sheet over the docked transport on a phone): its render
+// inspector: a bottom sheet over the docked transport on a phone), named in
+// the URL (`?point=`, its render point) so a link opens it and Back closes
+// it: its render
 // or its still, its Approve and Unapprove, its findings, what was said of it
 // and the comment box, Info, Open in Lab and Versions, and the choices that
 // play in it, each a link to its card on Choices. An act's and the film's
@@ -20,14 +22,15 @@
 // docked: over the tab bar on a phone, under the header on a laptop. Every
 // say answers the project as it leaves it, its receipt saying what it moved
 // (`0/2 → 1/2 approved`), an approve's offering Undo (a withdraw of just the
-// scenes it approved); a source write reads it again, the film marked
+// approvals it gave); a source write reads it again, the film marked
 // reading while it does. Answers land in any order: the page shows the
 // newest asked, kept in place: a playing clip plays on and a half-typed
 // comment stays.
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
-import { Array as Arr, Effect, Exit, Match, Option } from 'effect';
+import { UrlState } from '@bible/url-state';
+import { Array as Arr, Effect, Exit, Match, Option, Schema } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
   type Accessor,
@@ -54,6 +57,7 @@ import {
   pointHead,
   shownIn,
 } from '../../../core/choice.ts';
+import { PointId, pointIdOf } from '../../../core/point.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import { FILM_FPS, timecode } from '../../../core/time.ts';
 import { sceneHue, SceneCard } from '../../scenes/card.tsx';
@@ -99,6 +103,7 @@ import {
   type InspectorBox,
   useInspect,
   useInspected,
+  useInspectorPlace,
   useThing,
 } from '../inspector.tsx';
 import type { ThingVerb } from '../things.ts';
@@ -247,8 +252,49 @@ const sayerAt = (at: ProjectValue, address: () => PartAddress): Sayer => ({
   },
 });
 
-/** The project's place: a scene's render in its `?point=` opens the scene's sheet. */
+/** The project's place: its `?point=` names the part whose sheet is open (`inspectedAt`). */
 const projectPlace = UrlAtom.place(Places.project);
+
+/** A part's render point: what the project's URL names its sheet by. */
+const renderPointOf = (address: PartAddress): string => pointIdOf({ _tag: 'Render', address });
+
+/**
+ * The thing whose sheet the project's URL names (`?point=`): a part's render
+ * point (`render:scenes:<id>`, `render:act:<name>`, `render:film`), the
+ * words a link to a scene's sheet already spoke. A scene's sheet is its
+ * render's, of the page's `variant`; an act's and the film's their own.
+ */
+const inspectedAt = (film: string, variant: string, point: string): Option.Option<Selection> =>
+  Option.flatMap(
+    Option.filter(Schema.decodeOption(PointId)(point), (ref) => ref._tag === 'Render'),
+    (ref) =>
+      Match.value(ref).pipe(
+        Match.tag('Render', ({ address }) =>
+          Match.valueTags(address, {
+            Film: () => Option.some(Selection.cases.Film.make({ film })),
+            Act: ({ act }) => Option.some(Selection.cases.Act.make({ film, act })),
+            Scenes: ({ ids }) =>
+              Option.map(
+                Option.liftPredicate(ids, (xs) => xs.length === 1),
+                () => Selection.cases.Variant.make({ film, point, variant }),
+              ),
+            Short: () => Option.none<Selection>(),
+          }),
+        ),
+        Match.orElse(() => Option.none<Selection>()),
+      ),
+  );
+
+/** `inspectedAt`'s inverse: the `?point=` naming `selection`'s sheet; none for a thing the project has no sheet of. */
+const pointOfInspected = (selection: Selection): Option.Option<string> =>
+  Match.value(selection).pipe(
+    Match.tags({
+      Variant: (s) => Option.some(s.point),
+      Act: (s) => Option.some(renderPointOf({ _tag: 'Act', act: s.act })),
+      Film: () => Option.some(renderPointOf(FILM)),
+    }),
+    Match.orElse(() => Option.none<string>()),
+  );
 
 /** What each part's list of choices is headed. */
 const CHOICES_HEAD = {
@@ -395,14 +441,17 @@ const SceneRow = (props: {
   });
   const inspected = useInspected(thing.selection);
   const inspect = useInspect(() => thing.selection);
-  // A link to the scene's render (`?point=render:scenes:<id>`) opens its sheet.
-  const place = useAtomValue(() => projectPlace);
-  createEffect(
-    () => Option.exists(place(), (v) => v.query.point === point().id),
-    (named) => {
-      if (named) inspect();
-    },
-  );
+  // Its sheet's title: the scene and the act it is in.
+  const title = () =>
+    [
+      `scene ${props.scene.scene}`,
+      ...Option.toArray(
+        Option.map(
+          Arr.findFirst(acts(), (a) => a.scenes.includes(props.scene.scene)),
+          (a) => a.name,
+        ),
+      ),
+    ].join(' · ');
   const marks = () =>
     marksOf(
       Option.some(props.at.view()),
@@ -440,9 +489,9 @@ const SceneRow = (props: {
       {card(
         'tile',
         <Still stills={props.at.stills} scene={props.scene.scene} />,
-        <Approve variant={variant()} sayer={sayer} first={RENDER_FIRST} />,
+        <Approve variant={variant()} sayer={sayer} first={RENDER_FIRST} brief />,
       )}
-      <Inspector of={thing.selection} title={thing.title()}>
+      <Inspector of={thing.selection} title={title()}>
         {(box) => (
           <>
             {card(
@@ -971,6 +1020,26 @@ const ProjectReady = (props: { readonly film: string }) => {
       ),
   };
   onCleanup(meta.hub.commands.register(undoApprove));
+  // The open sheet is the URL's (`?point=`): a tap names its part (Back closes it), Close
+  // names none, and a link, Back and Forward open what they name.
+  const place = useAtomValue(() => projectPlace);
+  const variantNow = () =>
+    Option.getOrElse(
+      Option.map(shown(), (v) => v.project.variant),
+      () => 'main',
+    );
+  const namePoint = (point: string) =>
+    Effect.runSyncWith(meta.host)(
+      UrlState.update(Places.project, (v) => ({ ...v, query: { ...v.query, point } })),
+    );
+  useInspectorPlace({
+    named: () => Option.flatMap(place(), (v) => inspectedAt(film, variantNow(), v.query.point)),
+    name: (selection) =>
+      Option.match(selection, {
+        onNone: () => namePoint(''),
+        onSome: (s) => Option.map(pointOfInspected(s), namePoint),
+      }),
+  });
   // A source write changes the film (a pick its sound, a kept voice a scene): its scenes are read again.
   createEffect(version, (v) => {
     if (v > 0) readAgain();

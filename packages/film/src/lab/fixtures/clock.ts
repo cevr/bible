@@ -6,7 +6,8 @@
 // `runFor(ms)` runs every timer and frame due in the next `ms`, in order, at
 // its own time; `fastForward(ms)` jumps there and fires what fell due once;
 // `pauseAt(t)` jumps to the epoch time `t` and stops the clock, which then
-// moves only as the test runs it. Animation frames are timers on the 16 ms
+// moves only as the test runs it, until `resume()` runs it on with real time
+// from where it stands. Animation frames are timers on the 16 ms
 // grid. Audio runs on its own, real, clock. The real timers stay reachable
 // under `REAL_TIMERS`, for the tab's own waits (`tab.ts`).
 //
@@ -153,6 +154,13 @@ export const CLOCK_SCRIPT = `(() => {
       jump(t);
       held = now();
       paused = true;
+      schedule();
+    },
+    resume: () => {
+      if (!paused) return;
+      base = held;
+      since = real.perf();
+      paused = false;
       schedule();
     },
   };

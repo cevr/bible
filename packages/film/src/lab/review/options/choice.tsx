@@ -185,33 +185,41 @@ export const SayBox = (props: {
 /**
  * An approve button: approved as it is now, or again once it has changed;
  * while it waits on something first (`first`: a scene's render), disabled,
- * saying what (`Approve · render first`).
+ * saying what (`Approve · render first`). A `brief` one (a card's, with no
+ * room for it) says only `Approve` and keeps what it waits on for its title
+ * and its name to a screen reader.
  */
 export const ApproveButton = (props: {
   readonly approval: ApprovalState;
   readonly approve: () => void;
   readonly disabled?: boolean;
   readonly first?: string;
-}) => (
-  <button
-    type="button"
-    class="rv-chip"
-    data-act="approve"
-    data-approval={props.approval}
-    aria-pressed={pressed(props.approval === 'approved')}
-    disabled={
-      props.disabled === true ||
-      props.approval === 'approved' ||
-      Option.isSome(Option.fromUndefinedOr(props.first))
-    }
-    onClick={() => props.approve()}
-  >
-    {Option.match(Option.fromUndefinedOr(props.first), {
-      onNone: () => APPROVE_TITLE[props.approval],
-      onSome: (first) => `Approve · ${first}`,
-    })}
-  </button>
-);
+  readonly brief?: boolean;
+}) => {
+  const waiting = () =>
+    Option.map(Option.fromUndefinedOr(props.first), (first) => `Approve · ${first}`);
+  const said = () => Option.filter(waiting(), () => props.brief === true);
+  return (
+    <button
+      type="button"
+      class="rv-chip"
+      data-act="approve"
+      data-approval={props.approval}
+      aria-pressed={pressed(props.approval === 'approved')}
+      title={Option.getOrUndefined(said())}
+      aria-label={Option.getOrUndefined(said())}
+      disabled={
+        props.disabled === true || props.approval === 'approved' || Option.isSome(waiting())
+      }
+      onClick={() => props.approve()}
+    >
+      {Option.getOrElse(
+        Option.filter(waiting(), () => props.brief !== true),
+        () => APPROVE_TITLE[props.approval],
+      )}
+    </button>
+  );
+};
 
 /**
  * A render's video, kept in place while its file stays the same, showing a
@@ -285,6 +293,8 @@ export const Approve = (props: {
   readonly variant: ChoiceVariant;
   readonly sayer: Sayer;
   readonly first?: string;
+  /** Said in one word, what it waits on in its title (`ApproveButton`): a card's. */
+  readonly brief?: boolean;
 }) => {
   const approving = props.sayer.use();
   return (
@@ -294,6 +304,7 @@ export const Approve = (props: {
       first={Option.getOrUndefined(
         Option.filter(Option.fromUndefinedOr(props.first), () => props.variant.state !== 'current'),
       )}
+      brief={props.brief}
       approve={() => approving.say(props.variant, { _tag: 'Approve' })}
     />
   );

@@ -108,6 +108,8 @@ export interface Tab {
   readonly reload: Effect.Effect<void>;
   /** Back a step in the tab's history: wait on what the page then shows. */
   readonly back: Effect.Effect<void>;
+  /** Forward a step in the tab's history: wait on what the page then shows. */
+  readonly forward: Effect.Effect<void>;
   /** The page's URL now (its hash and query as the page last wrote them). */
   readonly url: Effect.Effect<string>;
   readonly resize: (width: number, height: number) => Effect.Effect<void>;
@@ -127,6 +129,8 @@ export interface Tab {
      * a loaded machine took between two steps.
      */
     readonly hold: Effect.Effect<void>;
+    /** Run a held clock on with real time again, from where it stands. */
+    readonly release: Effect.Effect<void>;
   };
 }
 
@@ -640,6 +644,7 @@ export const makeTab = (
       reload: Effect.promise(() => view.reload()),
       // Bun's `back` is typed but not there at run time (1.4.2): the page goes back itself.
       back: run('history.back()'),
+      forward: run('history.forward()'),
       url: run<string>('location.href'),
       resize: (width, height) => Effect.promise(() => view.resize(width, height)),
       // The page as it stands is marked; the next one, loaded, has no mark.
@@ -677,6 +682,7 @@ export const makeTab = (
         hold: Effect.flatMap(run<number>('Date.now()'), (now) =>
           clock(`pauseAt(${now + HOLD_LEAD_MS})`),
         ),
+        release: clock('resume()'),
       },
     };
     return tab;
