@@ -8,6 +8,8 @@
 // which on a phone peeks over the tab bar with the card in brief. The player
 // page and the review page each inject it with the shell's styles.
 
+import { PHONE } from '../viewport.ts';
+
 export const SCENES_CSS = `
 body.scenes { display: block; height: auto; }
 .sc { display: grid; grid-template-columns: minmax(0, 1fr); }
@@ -127,7 +129,7 @@ body.scenes { display: block; height: auto; }
 
 /* The phone: lowered, the sheet keeps the card in brief over the tab bar (picture, name, marks, Open in Lab);
    raised, the whole card. */
-@media (max-width: 899px) {
+@media ${PHONE} {
   .sc-focus.lab-inspector-sheet[data-peek="true"] > .lab-inspector-body { display: flex; }
   .sc-focus[data-peek="true"] .sc-card { grid-template-columns: 7rem minmax(0, 1fr); column-gap: var(--s-3); align-items: center; }
   .sc-focus[data-peek="true"] .sc-card-picture { grid-row: span 2; }

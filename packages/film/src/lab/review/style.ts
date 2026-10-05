@@ -8,6 +8,8 @@
 // in the page by `mountReview`, so the page needs no
 // stylesheet of its own.
 
+import { PHONE, WIDE } from '../viewport.ts';
+
 export const REVIEW_CSS = `
 body.rv {
   color-scheme: dark;
@@ -95,7 +97,7 @@ a.rv-card:hover { background: var(--surface-2); }
  * says only the length.
  */
 .rv-transport { flex: 1; display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-3); min-width: 0; }
-@media (min-width: 900px) {
+@media ${WIDE} {
   .rv-main .sh-dock:not(.pj-dock) { margin-bottom: var(--s-3); }
   /* One timecode on a laptop (SU-12): the header's; the row keeps the length. */
   .rv-time-at { display: none; }
@@ -105,7 +107,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-transport input[type="range"] { flex: 1 1 0; min-width: 0; }
 .rv-transport > .sh-btn { flex: none; }
 .rv-time { color: var(--text-1); font-size: var(--fs-5); line-height: var(--lh-5); font-weight: var(--w-2); white-space: nowrap; flex: none; }
-@media (max-width: 899px) {
+@media ${PHONE} {
   .rv-transport { gap: var(--s-2); }
   .rv-time-rest { display: none; }
 }
@@ -204,12 +206,12 @@ a.rv-card:hover { background: var(--surface-2); }
 .pj-still { width: 100%; height: 100%; }
 .pj-still canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
 .rv-scene { min-width: 0; cursor: pointer; }
-@media (min-width: 900px) {
+@media ${WIDE} {
   .pj-dock { margin: calc(-1 * var(--s-4)) calc(-1 * var(--gutter)) var(--s-4); }
   .pj-scenes { grid-auto-flow: column; grid-auto-columns: 13.5rem; justify-content: start;
     overflow-x: auto; padding-bottom: var(--s-1); }
 }
-@media (max-width: 899px) {
+@media ${PHONE} {
   .pj-act, .pj-loose { padding-bottom: 0; }
   .pj-scenes { gap: 0; margin: 0 calc(-1 * var(--gutter)); }
   .pj-scenes .sc-card[data-size="tile"] { padding: var(--s-2) var(--gutter); border-width: 0 0 1px; border-radius: 0;
@@ -244,7 +246,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-cap > a.rv-hint { display: inline-flex; align-items: center; justify-content: center; min-height: var(--hit); min-width: var(--hit); }
 .rv-row:has(> .lab-named) { min-height: var(--hit); }
 .rv-at, .rv-plays .rv-inline-link { display: inline-flex; align-items: center; min-height: var(--hit); vertical-align: middle; }
-@media (max-width: 600px) {
+@media ${PHONE} {
   .rv-main { padding: var(--s-3) var(--gutter) var(--s-8); }
   .rv-cap { flex-wrap: wrap; }
   .rv-tag { white-space: normal; overflow-wrap: anywhere; }

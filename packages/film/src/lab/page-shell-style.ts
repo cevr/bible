@@ -8,7 +8,7 @@
 // (`.sh-seg`), the field (`.lab-num`, a `select`) and the slider. Every page
 // injects it with the commands' styles.
 
-import { PHONE } from './viewport.ts';
+import { PHONE, WIDE } from './viewport.ts';
 
 export const SHELL_CSS = `
 html, body { margin: 0; }
@@ -89,12 +89,12 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 /* The dock: one line, the page's width, on the header's surface (on a laptop, held under the header). */
 .sh-dock { display: flex; align-items: center; gap: var(--s-2); min-width: 0; box-sizing: border-box;
   padding: 0 var(--gutter); background: var(--surface-1); }
-@media (min-width: 900px) {
+@media ${WIDE} {
   .sh-dock { position: sticky; top: var(--header-h); z-index: 15; min-height: var(--dock-h); border-bottom: var(--border); }
 }
 
 /* The laptop: Films as the page bar's first tab, the timecode and Go to… in full. */
-@media (min-width: 900px) {
+@media ${WIDE} {
   .sh-films { display: flex; width: auto; height: auto; align-self: stretch; padding: 0 var(--s-3);
     font-size: var(--fs-2); font-weight: var(--w-2); position: relative; }
   .sh-films .sh-icon { display: none; }
