@@ -51,6 +51,19 @@ describe('memory Location', () => {
     }).pipe(Effect.provide(layerMemory('/a'))),
   );
 
+  it.effect(
+    "the program's own Back is the button's: it lands on the entry before, as a traversal",
+    () =>
+      Effect.gen(function* () {
+        const location = yield* Location;
+        const first = yield* location.current;
+        yield* location.push('/b');
+        yield* location.back;
+        expect(yield* location.current).toEqual({ ...first, navigation: 'traverse' });
+        expect(yield* hrefs).toEqual({ hrefs: ['/a', '/b'], index: 0 });
+      }).pipe(Effect.provide(layerMemory('/a'))),
+  );
+
   it.effect('a push after Back drops the entries ahead', () =>
     Effect.gen(function* () {
       const location = yield* Location;
@@ -102,6 +115,7 @@ describe('server Location', () => {
       expect(yield* location.current).toEqual(entry);
       yield* location.push('/elsewhere');
       yield* location.replace('/elsewhere');
+      yield* location.back;
       expect(yield* location.current).toEqual(entry);
       expect(yield* Stream.runCollect(location.changes)).toEqual([entry]);
     }).pipe(Effect.provide(layerServer('http://lab.test/films/a/lab/b?cue=c#t=4'))),

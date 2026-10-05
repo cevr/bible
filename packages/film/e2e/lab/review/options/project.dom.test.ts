@@ -859,11 +859,12 @@ describe("a film's project", () => {
         yield* textIs(page, title, 'scene open · opening');
         yield* valueIs(page, `${INSPECTOR} .rv-comment-input`, 'half a thought');
         yield* evaluates(page, samePlayer, true);
-        // Close drops it from the URL.
+        // Close drops it from the URL, going Back over the tap's entry: it makes none of its own.
         yield* click(page, `${INSPECTOR} [data-act="close-inspector"]`);
         yield* countIs(page, INSPECTOR, 0);
         yield* pointIs('');
-        // An act's and the film's sheets are named by their renders too; Escape drops them.
+        // An act's and the film's sheets are named by their renders too; Escape drops them, as
+        // Close does.
         yield* inspect(page, ACT_HEAD);
         yield* textIs(page, title, 'act opening');
         yield* pointIs('render:act:opening');
@@ -873,7 +874,8 @@ describe("a film's project", () => {
         yield* inspect(page, FILM_HEAD);
         yield* textIs(page, title, 'the film toy');
         yield* pointIs('render:film');
-        // Back from one sheet to another opens the other: the film's, then none (Escape's entry).
+        // Back from one sheet to another opens the other: the film's, then none (Project's own
+        // entry: Escape went Back over the act's, leaving none of its own).
         yield* click(page, `${render('coda')} .sc-card-picture`);
         yield* textIs(page, title, 'scene coda');
         yield* pointIs('render:scenes:coda');
@@ -892,6 +894,60 @@ describe("a film's project", () => {
         yield* click(page, `${INSPECTOR} [data-act="close-inspector"]`);
         yield* countIs(page, INSPECTOR, 0);
         yield* pointIs('');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "closing a sheet a tap opened goes Back over the tap's entry: Back then leaves Project, the sheet staying closed",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject({ cut: true }), {
+          href: pageHref.choices('toy'),
+          viewport: LAPTOP,
+        });
+        const at = (href: string) =>
+          until(page, `location.pathname + location.search === '${href}'`);
+        yield* page.click('.sh-pagebar [data-page="project"]');
+        yield* at(PROJECT);
+        // Close and Escape (and a swipe: the drawer's own close) dismiss the sheet one way, the
+        // place's `name(None)`; neither leaves an entry, as the Back after them shows.
+        const dismissals = [
+          click(page, `${INSPECTOR} [data-act="close-inspector"]`),
+          page.press('Escape'),
+        ];
+        for (const dismiss of dismissals) {
+          yield* click(page, `${render('open')} .sc-card-picture`);
+          yield* waitFor(page, `${INSPECTOR} [data-act="approve"]`);
+          yield* at(pageHref.project('toy', 'render:scenes:open'));
+          yield* dismiss;
+          yield* countIs(page, INSPECTOR, 0);
+          yield* at(PROJECT);
+        }
+        // The dismissals left no entry of their own: Back is Project's previous one, Choices.
+        yield* page.back;
+        yield* at(pageHref.choices('toy'));
+        yield* countIs(page, INSPECTOR, 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'closing a sheet a link opened makes no entry: it names no part on the same one',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject({ cut: true }), {
+          href: pageHref.project('toy', 'render:scenes:open'),
+          viewport: LAPTOP,
+        });
+        yield* textIs(page, `${INSPECTOR} .lab-sheet-title`, 'scene open · opening');
+        yield* page.evaluate('void (window.__entries = history.length)');
+        yield* click(page, `${INSPECTOR} [data-act="close-inspector"]`);
+        yield* countIs(page, INSPECTOR, 0);
+        yield* until(page, `location.pathname + location.search === '${PROJECT}'`);
+        yield* evaluates(page, 'history.length === window.__entries', true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

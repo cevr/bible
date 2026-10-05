@@ -79,6 +79,7 @@ export const layerMemory = (href: string): Layer.Layer<Location | LocationHistor
         changes: SubscriptionRef.changes(current),
         push,
         replace,
+        back: traverse(-1),
       }).pipe(
         Context.add(LocationHistory, {
           back: traverse(-1),

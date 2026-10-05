@@ -30,6 +30,7 @@ export const layerServer = (href: string): Layer.Layer<Location> => {
       changes: Stream.make(entry),
       push: ignored('push'),
       replace: ignored('replace'),
+      back: Effect.logDebug('location.server.back.ignored'),
     }),
   );
 };

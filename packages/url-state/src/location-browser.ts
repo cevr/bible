@@ -6,8 +6,9 @@
  *
  * Each entry this layer makes carries `{ key }` in `history.state`. The entry
  * the page loaded on has none yet, so building the layer gives it one with a
- * `replaceState` that leaves the URL as it is. Back and Forward arrive as
- * `popstate` and are published as `traverse` entries; an entry made before
+ * `replaceState` that leaves the URL as it is. Back and Forward (the
+ * program's own `back` too) arrive as `popstate` and are published as
+ * `traverse` entries; an entry made before
  * this layer existed gets a fresh key, without a write.
  *
  * Nothing here runs at import: `window` is touched only when the layer is
@@ -88,6 +89,8 @@ export const layerBrowser = (options: BrowserOptions = {}): Layer.Layer<Location
             navigation: 'replace',
           });
         }),
+        // The entry it lands on arrives as `popstate`, a traversal, as the button's does.
+        back: Effect.sync(() => window.history.back()),
       });
     }),
   );

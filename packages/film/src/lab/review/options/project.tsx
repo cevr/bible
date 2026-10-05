@@ -29,7 +29,7 @@
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';
-import { UrlState } from '@bible/url-state';
+import { Location, Place, UrlState } from '@bible/url-state';
 import { Array as Arr, Effect, Exit, Match, Option, Schema } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import {
@@ -1025,22 +1025,67 @@ const ProjectReady = (props: { readonly film: string }) => {
   };
   onCleanup(meta.hub.commands.register(undoApprove));
   // The open sheet is the URL's (`?point=`): a tap names its part (Back closes it), Close
-  // names none, and a link, Back and Forward open what they name.
+  // names none (`dismiss`), and a link, Back and Forward open what they name.
   const place = useAtomValue(() => projectPlace);
   const variantNow = () =>
     Option.getOrElse(
       Option.map(shown(), (v) => v.project.variant),
       () => 'main',
     );
+  // Dismissing the sheet (Close, Escape, a swipe) has a history policy of its own: it never
+  // adds an entry. The entry this page pushed to open the sheet is gone Back over, so a Back
+  // after the Close leaves Project's entry before it, not the sheet again; any other (a
+  // link's, a reload's, one a Forward landed on after a Close) is replaced by one naming none.
+  const entry = useAtomValue(() => UrlAtom.entry);
+  // The part a tap named on a closed sheet, until the next entry lands; then, when that entry
+  // is the push naming it, the entry's key.
+  let opening = Option.none<string>();
+  let openedBy = Option.none<string>();
+  createEffect(entry, (e) => {
+    const pushed =
+      e.navigation === 'push' &&
+      Option.exists(Place.decode(Places.project, e.href), (v) =>
+        Option.contains(opening, v.query.point),
+      );
+    if (pushed) openedBy = Option.some(e.key);
+    opening = Option.none();
+  });
   const namePoint = (point: string) =>
     Effect.runSyncWith(meta.host)(
-      UrlState.update(Places.project, (v) => ({ ...v, query: { ...v.query, point } })),
+      Effect.gen(function* () {
+        const now = yield* UrlState.get(Places.project);
+        if (Option.exists(now, (v) => v.query.point === '')) opening = Option.some(point);
+        yield* UrlState.update(Places.project, (v) => ({ ...v, query: { ...v.query, point } }));
+      }),
+    );
+  const dismiss = () =>
+    Effect.runSyncWith(meta.host)(
+      Effect.gen(function* () {
+        const location = yield* Location;
+        const here = yield* location.current;
+        const ours = Option.contains(openedBy, here.key);
+        openedBy = Option.none();
+        if (ours) return yield* location.back;
+        const state = yield* UrlState.UrlState;
+        const named = Option.filter(
+          yield* UrlState.get(Places.project),
+          (v) => v.query.point !== '',
+        );
+        yield* Option.match(named, {
+          onNone: () => Effect.void,
+          onSome: (v) =>
+            state.navigate(Place.href(Places.project, { ...v, query: { ...v.query, point: '' } }), {
+              history: 'replace',
+              throttle: Option.none(),
+            }),
+        });
+      }),
     );
   useInspectorPlace({
     named: () => Option.flatMap(place(), (v) => inspectedAt(film, variantNow(), v.query.point)),
     name: (selection) =>
       Option.match(selection, {
-        onNone: () => namePoint(''),
+        onNone: dismiss,
         onSome: (s) => Option.map(pointOfInspected(s), namePoint),
       }),
   });

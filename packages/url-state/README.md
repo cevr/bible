@@ -117,6 +117,7 @@ interface LocationService {
   readonly changes: Stream<Entry>; // the current entry, then each one after
   readonly push: (href: string) => Effect<void>;
   readonly replace: (href: string) => Effect<void>; // keeps the entry's key
+  readonly back: Effect<void>; // as the Back button: lands as a `traverse`
 }
 ```
 
@@ -130,7 +131,8 @@ Three layers fill it:
 - `layerMemory(href)`: a history stack in memory, plus `LocationHistory`
   (`back`, `forward`, `entries`) to drive it.
 - `layerServer(href)`: the request URL without its hash, read-only. A write
-  is ignored and logged at Debug (`location.server.write.ignored`).
+  is ignored and logged at Debug (`location.server.write.ignored`), and so
+  is a `back`.
 
 Entry keys (`<ms>-<n>`) name history entries, so anything remembered per entry
 (a scroll position) is remembered against the key.
