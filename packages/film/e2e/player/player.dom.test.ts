@@ -14,7 +14,7 @@ import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
 import { type FakeRoute, json, openPlayer, route } from '../../src/lab/fixtures/harness.ts';
 import { CROWD } from '../../src/lab/fixtures/crowd-film.ts';
-import { touch } from '../../src/lab/fixtures/gestures.ts';
+import { MENU_ITEMS, touch } from '../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
 import {
   attributeIs,
@@ -459,6 +459,39 @@ describe('the player', () => {
             .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
         ).toEqual([['one'], ['three']]);
         yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a finger held on the play page's film lists its frame and scene steps (AA-8), and ×10 steps ten frames: Shift's step by touch",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: `${pageHref.play(PROBE)}#t=0.5`, viewport: { ...PHONE, coarse: true } },
+          '.bar .tc',
+        );
+        // The clock held: the long press's delay passes only as the test runs it on.
+        yield* page.clock.hold;
+        yield* touch(page, '.stage', 0);
+        yield* page.clock.runFor(700);
+        yield* page.waitFor('[data-role="context-menu"] [data-command]');
+        yield* page.finger.up;
+        yield* page.clock.runFor(500);
+        yield* evaluates(page, `${MENU_ITEMS}.filter((id) => id.startsWith('play.'))`, [
+          'play.frame-next',
+          'play.frame-next',
+          'play.frame-previous',
+          'play.frame-previous',
+          'play.scene-next',
+          'play.scene-previous',
+        ]);
+        yield* page.click(
+          '[data-role="context-menu"] [data-command="play.frame-next"][data-step="coarse"]',
+        );
+        yield* page.clock.runFor(500);
+        // Frame 15 (0.5 s at 30 fps), ten on: frame 25, kept to the millisecond rounded up.
+        yield* evaluates(page, 'location.hash', `#t=${Math.ceil((25 / 30) * 1000) / 1000}`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );

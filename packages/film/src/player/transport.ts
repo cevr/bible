@@ -3,7 +3,9 @@
 // keys are the transport's usual ones: Space plays, ← and → step one frame
 // (with Shift, ten: the coarse step, as an editor's nudge; with Alt, one),
 // [ and ] go by scenes, C toggles the captions; and the bar's legend, hidden
-// at rest (`legendCommand`). Each answers quietly: the
+// at rest (`legendCommand`). The frame and scene steps are the page's (a
+// long press or a right-click on the film lists them, the frames' also ×10:
+// a finger's Shift, `menu.ts`). Each answers quietly: the
 // picture, the time line and the bar show what changed. The preview
 // registers them with its page's hub for as long as it lives, so the lab's
 // keys, ⌘K and the `?` sheet read them as they read the lab's own.
@@ -60,8 +62,9 @@ export const transportCommands = (transport: Transport): ReadonlyArray<Command> 
     label: 'Next frame',
     group: 'Transport',
     keys: ['arrowright'],
+    about: ['Page'],
     stepped: true,
-    touch: 'drag the time line',
+    touch: 'long-press the film, then Next frame (or ×10)',
     when: always,
     run: (_ctx, how) => doing(() => transport.stepFrames(FRAMES_BY_STEP[how.step]))(),
   },
@@ -70,8 +73,9 @@ export const transportCommands = (transport: Transport): ReadonlyArray<Command> 
     label: 'Previous frame',
     group: 'Transport',
     keys: ['arrowleft'],
+    about: ['Page'],
     stepped: true,
-    touch: 'drag the time line',
+    touch: 'long-press the film, then Previous frame (or ×10)',
     when: always,
     run: (_ctx, how) => doing(() => transport.stepFrames(-FRAMES_BY_STEP[how.step]))(),
   },
@@ -80,7 +84,8 @@ export const transportCommands = (transport: Transport): ReadonlyArray<Command> 
     label: 'Next scene',
     group: 'Transport',
     keys: [']'],
-    touch: 'drag the time line to it',
+    about: ['Page'],
+    touch: 'long-press the film, then Next scene',
     when: always,
     run: doing(transport.nextScene),
   },
@@ -89,7 +94,8 @@ export const transportCommands = (transport: Transport): ReadonlyArray<Command> 
     label: 'Scene start, or the scene before',
     group: 'Transport',
     keys: ['['],
-    touch: 'drag the time line to it',
+    about: ['Page'],
+    touch: 'long-press the film, then Scene start',
     when: always,
     run: doing(transport.previousScene),
   },

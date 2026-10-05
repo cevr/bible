@@ -4,7 +4,7 @@ import { BY_BUTTON, type Command, quiet } from './command.ts';
 import { contextAt } from './context.ts';
 import { pageHref } from '../core/api.ts';
 import { GO_TO, goToCommands, partCommands } from './go.ts';
-import { byGroup, contextRows, menuRows, sheetRows } from './menu.ts';
+import { byGroup, contextRows, menuRows, rowChord, rowKey, sheetRows } from './menu.ts';
 import { walkFrom } from './walk.ts';
 
 const command = (id: string, group: string, label: string): Command => ({
@@ -51,6 +51,42 @@ describe('the command menu and the sheet', () => {
     expect(menuRows(all, ctx, 'cold').map((r) => r.label)).toEqual(['Go to scene cold']);
     expect(sheetRows(all).map(([group]) => group)).toEqual(['Transport', 'Edit']);
     expect(contextRows(all, ctx)).toEqual([]);
+  });
+});
+
+describe("a stepped command in a context menu (a finger's Shift)", () => {
+  test('is a row at its step and a row at its coarse step (×10), each its own row', () => {
+    const next: Command = {
+      ...command('play.frame-next', 'Transport', 'Next frame'),
+      stepped: true,
+      about: ['Page'],
+    };
+    const scene: Command = {
+      ...command('play.scene-next', 'Transport', 'Next scene'),
+      about: ['Page'],
+    };
+    const rows = contextRows([next, scene], ctx).flatMap(([, r]) => r);
+    expect(rows.map((r) => [r.command.id, r.label, r.step])).toEqual([
+      ['play.frame-next', 'Next frame', 'normal'],
+      ['play.frame-next', 'Next frame ×10', 'coarse'],
+      ['play.scene-next', 'Next scene', 'normal'],
+    ]);
+    expect(new Set(rows.map(rowKey)).size).toBe(rows.length);
+    // Its keys read as the keymap steps them: the coarse row's with Shift.
+    expect(rows.slice(0, 2).map((r) => rowChord(r, 'arrowright'))).toEqual([
+      'arrowright',
+      'shift+arrowright',
+    ]);
+  });
+
+  test('⌘K and a chip list it once, at its step', () => {
+    const next: Command = {
+      ...command('play.frame-next', 'Transport', 'Next frame'),
+      stepped: true,
+    };
+    expect(menuRows([next], ctx, '').map((r) => [r.label, r.step])).toEqual([
+      ['Next frame', 'normal'],
+    ]);
   });
 });
 

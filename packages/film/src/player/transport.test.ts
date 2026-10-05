@@ -7,8 +7,8 @@ import { describe, expect, test } from 'bun:test';
 import { Effect } from 'effect';
 import { BY_BUTTON, type Command, labelOf } from '../command/command.ts';
 import { contextAt } from '../command/context.ts';
-import { chipRows } from '../command/menu.ts';
-import { legendCommand, rateCommands, rateId, rateText } from './transport.ts';
+import { chipRows, contextRows } from '../command/menu.ts';
+import { legendCommand, rateCommands, rateId, rateText, transportCommands } from './transport.ts';
 
 const ctx = contextAt('lab', '/films/f/lab');
 
@@ -54,6 +54,37 @@ describe('the rate chip', () => {
     expect(t.byId(rateId(1)).keys).toEqual(['k']);
     t.run(rateId(1));
     expect(t.rates.at).toBe(1);
+  });
+});
+
+describe('the steps, a finger away (AA-8)', () => {
+  test("a press on the picture's nothing lists the frame and scene steps, the frames' also ×10", () => {
+    const moved: Array<string> = [];
+    const commands = transportCommands({
+      toggle: () => moved.push('toggle'),
+      stepFrames: (n) => moved.push(`frames ${n}`),
+      nextScene: () => moved.push('next scene'),
+      previousScene: () => moved.push('previous scene'),
+      toggleCaptions: () => moved.push('captions'),
+    });
+    const rows = contextRows(commands, ctx).flatMap(([, r]) => r);
+    expect(rows.map((r) => r.label)).toEqual([
+      'Next frame',
+      'Next frame ×10',
+      'Previous frame',
+      'Previous frame ×10',
+      'Next scene',
+      'Scene start, or the scene before',
+    ]);
+    for (const row of rows) Effect.runSync(row.command.run(ctx, { step: row.step, via: 'menu' }));
+    expect(moved).toEqual([
+      'frames 1',
+      'frames 10',
+      'frames -1',
+      'frames -10',
+      'next scene',
+      'previous scene',
+    ]);
   });
 });
 

@@ -99,11 +99,14 @@ export const Hint = (props: {
     const ctx = withSelection(props.hub.context(), [props.selection]);
     const everywhere = (c: Command) =>
       EVERYWHERE.every((t) => Option.exists(Option.fromUndefinedOr(c.about), (a) => a.includes(t)));
-    return contextRows(props.hub.commands.available(ctx), ctx)
-      .flatMap(([, commands]) => commands)
-      .filter((row) => !everywhere(row.command))
-      .map((row) => ({ label: row.label, keys: keysText(props.hub, row.command) }))
-      .filter((row) => row.keys !== '');
+    return (
+      contextRows(props.hub.commands.available(ctx), ctx)
+        .flatMap(([, commands]) => commands)
+        // A key's own step: its ×10 is Shift on the same key, which the hint need not say twice.
+        .filter((row) => row.step === 'normal' && !everywhere(row.command))
+        .map((row) => ({ label: row.label, keys: keysText(props.hub, row.command) }))
+        .filter((row) => row.keys !== '')
+    );
   });
   return (
     <footer class="lab-inspector-hint" data-role="inspector-hint">

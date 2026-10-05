@@ -7,7 +7,8 @@
 // target on the page, a nested one winning over its container. The page
 // itself is the outermost target: its children sit in one trigger that lays
 // out as they do (`display: contents`), so a press on no thing opens the
-// commands about the page (`Page`: Undo, Redo, Show only…), and a field
+// commands about the page (`Page`: Undo, Redo, Show only…, the transport's
+// steps, a stepped one also at ×10: `contextRows`), and a field
 // anywhere keeps the browser's own menu. The commands run once the menu has
 // closed and focus is back on the page, as ⌘K's do.
 // Its groups and rows are keyed by name and command (`rowKey`): made again
@@ -30,7 +31,7 @@ import {
 import { type Context, focusOf, withSelection } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { chordLabel } from '../../command/keymap.ts';
-import { type MenuRow, contextRows, rowKey } from '../../command/menu.ts';
+import { type MenuRow, contextRows, rowChord, rowKey } from '../../command/menu.ts';
 import type { Selection } from '../../command/selection.ts';
 import { targetAt, targetAttr } from '../../command/target.ts';
 import { hubChanges } from './changes.ts';
@@ -55,7 +56,7 @@ export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
   const keysText = (row: MenuRow): string =>
     hub
       .keysOf(row.command.id)
-      .map((k) => chordLabel(k, hub.mac))
+      .map((k) => chordLabel(rowChord(row, k), hub.mac))
       .join(' ');
 
   return (
@@ -75,7 +76,7 @@ export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
         if (isOpen) return;
         const row = chosen;
         chosen = Option.none();
-        Option.map(row, (r) => hub.invoke(r.command, { step: 'normal', via: 'menu' }, opened()));
+        Option.map(row, (r) => hub.invoke(r.command, { step: r.step, via: 'menu' }, opened()));
       }}
     >
       {/* The page itself is a target: a press on no thing opens the page's commands (`Page`). */}
@@ -99,6 +100,7 @@ export const TargetMenu = (props: ParentProps<{ readonly hub: Hub }>) => {
                       <ContextMenu.Item
                         class="lab-context-item"
                         data-command={row().command.id}
+                        data-step={row().step}
                         label={row().label}
                         onClick={() => {
                           chosen = Option.some(row());

@@ -147,11 +147,16 @@ describe("a cue's context menu", () => {
       yield* page.waitFor(RISE);
       yield* rightClick(page, RISE);
       yield* page.waitFor('[data-role="context-menu"] [data-command="edit.select"]');
+      // Each nudge twice: its step, and its ×10 (Shift's step, a finger's way to it).
       yield* evaluates(page, MENU_ITEMS, [
         'edit.select',
         'edit.nudge-right',
+        'edit.nudge-right',
+        'edit.nudge-left',
         'edit.nudge-left',
         'edit.nudge-up',
+        'edit.nudge-up',
+        'edit.nudge-down',
         'edit.nudge-down',
         'edit.cue-next',
         'link.copy',
