@@ -30,6 +30,7 @@ import { timecode } from '../../../src/core/time.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
+  attributeIs,
   evaluates,
   textHas,
   textIs,
@@ -250,7 +251,9 @@ describe('marking a frame', () => {
         const at = yield* onFrame(page, 520, 300);
         yield* page.mouse.move(at.x, at.y);
         yield* page.mouse.down;
-        yield* waitFor(page, '.lab-compose:not([hidden])');
+        // Marking: the composer is open, the panel still in Edit until the mark is lifted.
+        yield* attached(page, '.lab-compose:not([hidden])');
+        yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
         yield* page.evaluate(
           `document.querySelector('.lab-notes-surface').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 }))`,
         );

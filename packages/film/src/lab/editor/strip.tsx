@@ -4,7 +4,9 @@
 // drag across a cue's lane beside its bar marks the in and out points, shown
 // as a band (a tap there seeks); a press elsewhere on the strip scrubs within
 // the scene. Its head holds the Snap toggle (S), and Cancel drag while a
-// grip is held: a finger's Shift and Escape.
+// grip is held: a finger's Shift and Escape. The cue lanes are Edit's: in
+// Note and Record, and on a phone in every mode but Edit, the strip folds
+// to its words (`player.css`, by the panel's mode on `data-mode`).
 
 import { For, Show } from '@solidjs/web';
 import { Effect, Option, Result } from 'effect';
@@ -21,6 +23,7 @@ import { CANCEL_GRIP, SNAP } from './commands.ts';
 import { hubKeys } from '../command/changes.ts';
 import { Target } from '../command/context-menu.tsx';
 import { selectsCue } from '../place.ts';
+import { useLabPage } from '../panel.tsx';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
@@ -128,6 +131,7 @@ const CueRow = (props: CueRowProps) => {
 export const Strip = () => {
   const { state: lab, meta } = useLab();
   const { state } = useEditor();
+  const page = useLabPage();
   const placed = createMemo(() =>
     Option.getOrUndefined(Result.getSuccess(sceneOf(meta.film.placed, state.stripScene()))),
   );
@@ -213,7 +217,7 @@ export const Strip = () => {
             (b) => b.to > b.from,
           );
         return (
-          <div class="lab-strip" onPointerDown={scrub}>
+          <div class="lab-strip" data-mode={page.mode()} onPointerDown={scrub}>
             <div class="lab-strip-head">
               <span class="lab-strip-name">
                 {`${p().spec.id} · ${timecode(p().dur, meta.film.fps)} · ${file()}`}

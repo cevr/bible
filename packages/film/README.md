@@ -1205,7 +1205,11 @@ owner, `lab/review/options/receipt.ts` `undoApprove`) withdraws exactly the appr
 - **Timeline dock**: the lab's foot under the picture: the film's timeline
   (its scenes end to end, the playhead) and the cue strip (the scene under
   the playhead, zoomed: its words, a lane per cue). Not a dock of tabs: a
-  mode's tools live in the inspector.
+  mode's tools live in the inspector. The lanes and Snap are Edit's: in
+  Note and Record, and on a phone in every mode but Edit, the strip folds
+  to its words, so the mode's own controls start on the first screen. A
+  note begun shows Note once its mark is lifted, so the frame never moves
+  under the drag.
 - **Mode tray**: the segmented toolbar at the head of the lab's inspector,
   Edit · Note · Motion · Compare · Record (`lab/mode.ts`): one pressed, and
   the inspector shows that tool only. Kept per viewer in the browser; a

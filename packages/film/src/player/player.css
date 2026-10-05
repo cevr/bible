@@ -679,6 +679,21 @@ body.lab .stage {
   /* Inside the rows' scroll box: a sideways finger marks a range, an upright one scrolls (the browser took both). */
   touch-action: pan-y;
 }
+/*
+ * The cue lanes and their Snap are Edit's (and Motion's and Compare's on a
+ * laptop): in Note and Record, and on a phone in every mode but Edit, the
+ * strip folds to its words, so the mode's own controls start on the first
+ * screen (UR2-3, SU-4).
+ */
+.lab-strip:is([data-mode='note'], [data-mode='record'])
+  :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
+  display: none;
+}
+@media (max-width: 899px) {
+  .lab-strip:not([data-mode='edit']) :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
+    display: none;
+  }
+}
 .lab-cue-label {
   position: absolute;
   left: calc(-1 * var(--cue-names));
