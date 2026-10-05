@@ -25,16 +25,10 @@ import {
 } from 'effect';
 import { Capture, type CaptureOps, CaptureFailed, type Level, MicDenied } from './capture.ts';
 import type { Pcm } from './wav.ts';
-import { PROCESSOR, workletSource } from './worklet.ts';
+import { PROCESSOR, WorkletBlock, workletSource } from './worklet.ts';
 
 /** A block as the worklet posts it, checked at the thread boundary. */
-const Block = Schema.Struct({
-  samples: Schema.instanceOf(Float32Array),
-  peak: Schema.Finite,
-  rms: Schema.Finite,
-  last: Schema.Boolean,
-});
-const decodeBlock = Schema.decodeUnknownOption(Block);
+const decodeBlock = Schema.decodeUnknownOption(WorkletBlock);
 
 /** How long a stop waits for the worklet's last part-block. */
 const FLUSH_WAIT = '1 second';
@@ -125,7 +119,7 @@ const makeBrowserCapture = Effect.gen(function* () {
   let mic = Option.none<OpenMic>();
 
   /** A block from the worklet: the meter's reading, kept after `start`, and a flush's end. */
-  const heard = (open: OpenMic, block: typeof Block.Type) => {
+  const heard = (open: OpenMic, block: WorkletBlock) => {
     if (open.keeping) {
       open.kept.push(block.samples);
       open.frames += block.samples.length;
