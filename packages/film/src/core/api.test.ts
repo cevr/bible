@@ -1,9 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { Place } from '@bible/url-state';
-import { Option, Schema } from 'effect';
+import { Duration, Option, Schema } from 'effect';
 import {
   LONGEST_WAIT,
   LabHttpApi,
+  TIME_EVERY_MS,
   WaitTimeout,
   type PageName,
   Places,
@@ -133,6 +134,20 @@ describe('page places', () => {
     expect(pageHref.labScene('rbf', 'roof', { cue: 'lower' }, Option.some(0.25))).toBe(
       '/films/rbf/lab/roof?cue=lower#t=0.25',
     );
+  });
+
+  test('a moving time is written at most every TIME_EVERY_MS on every place that keeps one, in place', () => {
+    const moving = {
+      history: 'replace' as const,
+      throttle: Option.some(Duration.millis(TIME_EVERY_MS)),
+    };
+    const along = (at: string) => [`${at}#t=1`, `${at}#t=2`] as const;
+    expect(Place.history(Places.play, ...along('/films/f/play'))).toEqual(moving);
+    expect(Place.history(Places.scenes, ...along('/films/f/scenes'))).toEqual(moving);
+    expect(Place.history(Places.lab, ...along('/films/f/lab'))).toEqual(moving);
+    expect(Place.history(Places.labScene, ...along('/films/f/lab/one'))).toEqual(moving);
+    expect(Place.history(Places.set, ...along('/sets/f/p'))).toEqual(moving);
+    expect(Place.history(Places.choices, ...along('/films/f/choices'))).toEqual(moving);
   });
 
   test("a film's page names its film in its path, a short's whole name too", () => {

@@ -28,6 +28,7 @@
 import { Codec, Field, Place, parseHref } from '@bible/url-state';
 import {
   Array as Arr,
+  Duration,
   Effect,
   Option,
   Schema,
@@ -770,12 +771,22 @@ const maybe = <A>(codec: Schema.Codec<A, string>) =>
   );
 
 /**
+ * How often, at most, `#t=` follows a time that moves (play, a drag), in ms:
+ * the time key's throttle, and the window the player's writer holds to
+ * before it encodes a link (`tInUrl`, `player/main.ts`).
+ */
+export const TIME_EVERY_MS = 250;
+
+/**
  * A time on the hash (`#t=12.5`), in seconds: in a scene's lab, from the
  * scene's start (negative before it); elsewhere, from the film's or the
  * video's. None opens the page at its own start. It follows the playhead at
- * most every quarter second, and never makes a history entry.
+ * most every `TIME_EVERY_MS`, and never makes a history entry.
  */
-const time = Field.key(maybe(Codec.Finite), { default: Option.none(), throttle: '250 millis' });
+const time = Field.key(maybe(Codec.Finite), {
+  default: Option.none(),
+  throttle: Duration.millis(TIME_EVERY_MS),
+});
 const At = Field.struct({ t: time });
 
 /**
