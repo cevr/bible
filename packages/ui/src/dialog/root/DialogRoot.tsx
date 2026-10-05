@@ -10,7 +10,7 @@
 // An outside press on a modal dialog closes it only on its own backdrop (or
 // the viewport around it), so a press on another dialog's backdrop or a
 // nested popup's never does. A dialog opened inside another reports its open
-// state to its parent, which counts its open nested dialogs and drawers.
+// state to its parent, which counts its open nested dialogs.
 import type { JSX } from '@solidjs/web';
 import { createEffect, createUniqueId, onCleanup, untrack } from 'solid-js';
 
@@ -64,14 +64,11 @@ export interface DialogRootProps {
   children?: JSX.Element;
 }
 
-export type DialogRootMode = 'dialog' | 'drawer';
-
-export interface DialogRootInternalProps extends DialogRootProps {
-  mode: DialogRootMode;
-}
-
-export function DialogRootInternal(props: DialogRootInternalProps): JSX.Element {
-  const isDrawer = untrack(() => props.mode) === 'drawer';
+/**
+ * Groups all parts of the dialog.
+ * Doesn't render its own HTML element.
+ */
+export function DialogRoot(props: DialogRootProps): JSX.Element {
   const parent = useDialogRootContextOptional();
   const floatingNested = useFloatingParentNodeId() != null;
 
@@ -113,9 +110,6 @@ export function DialogRootInternal(props: DialogRootInternalProps): JSX.Element 
       };
     },
     outsidePress(event) {
-      if (!store.outsidePressEnabledRef.current) {
-        return false;
-      }
       // Only the main button; a touch counts when it is a single finger.
       if ('button' in event && event.button !== 0) {
         return false;
@@ -161,15 +155,15 @@ export function DialogRootInternal(props: DialogRootInternalProps): JSX.Element 
   // A nested dialog reports to its parent how many dialogs (itself included) are open in it.
   if (parent) {
     createEffect(
-      () => [store.open(), store.nestedOpenDialogCount(), store.nestedOpenDrawerCount()] as const,
-      ([isOpen, dialogCount, drawerCount]) => {
+      () => [store.open(), store.nestedOpenDialogCount()] as const,
+      ([isOpen, dialogCount]) => {
         if (!isOpen) {
-          parent.store.setNestedOpenCounts(0, 0);
+          parent.store.setNestedOpenDialogCount(0);
           return undefined;
         }
-        parent.store.setNestedOpenCounts(dialogCount + 1, drawerCount + (isDrawer ? 1 : 0));
+        parent.store.setNestedOpenDialogCount(dialogCount + 1);
         return () => {
-          parent.store.setNestedOpenCounts(0, 0);
+          parent.store.setNestedOpenDialogCount(0);
         };
       },
     );
@@ -193,12 +187,4 @@ export function DialogRootInternal(props: DialogRootInternalProps): JSX.Element 
   };
 
   return <DialogRootContext value={context}>{props.children}</DialogRootContext>;
-}
-
-/**
- * Groups all parts of the dialog.
- * Doesn't render its own HTML element.
- */
-export function DialogRoot(props: DialogRootProps): JSX.Element {
-  return <DialogRootInternal {...props} mode="dialog" />;
 }

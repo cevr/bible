@@ -1,18 +1,12 @@
 // Upstream: packages/react/src/drawer/root/DrawerRoot.test.tsx,
-// packages/react/src/drawer/root/DrawerSnapPoints.test.tsx,
 // packages/react/src/drawer/popup/DrawerPopup.test.tsx,
-// packages/react/src/drawer/viewport/DrawerViewport.test.tsx,
-// packages/react/src/drawer/swipe-area/DrawerSwipeArea.test.tsx,
-// packages/react/src/drawer/provider/DrawerProvider.test.tsx,
-// packages/react/src/drawer/indent/DrawerIndent.test.tsx
+// packages/react/src/drawer/viewport/DrawerViewport.test.tsx
 //
-// The drawer's behaviour cases: opening and closing as a dialog, swipe to
-// dismiss (past the threshold, by a flick, or springing back), the swipe
-// area's open gesture, snap points, nested drawers and the provider's
-// indent. Every drawer opens from its owner's `open`, as every page's does.
-// Gestures are synthetic pointer events whose `timeStamp` is set, so a
-// drag's velocity is exact. The virtual keyboard provider, triggers and the
-// touch scroll arbitration's iOS cases are left out.
+// The drawer's behaviour cases: opening and closing as a dialog, and swipe to
+// dismiss (past the threshold, by a flick, or springing back). Every drawer
+// opens from its owner's `open`, as every page's does. Gestures are
+// synthetic pointer events whose `timeStamp` is set, so a drag's velocity is
+// exact. The touch scroll arbitration's iOS cases are left out.
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
@@ -148,7 +142,6 @@ describe('Drawer.Root', () => {
     const popup = page.locator('#popup');
     await see(popup).toHaveAttribute('role', 'dialog');
     await see(popup).toHaveAttribute('aria-labelledby', 'title');
-    await see(popup).toHaveAttribute('aria-describedby', 'description');
     await see(popup).toHaveAttribute('data-swipe-direction', 'down');
   });
 
@@ -212,16 +205,13 @@ describe('swipe to dismiss', () => {
     expect(await logOf(page)).toContain('open false swipe');
   });
 
-  it('marks the popup and the backdrop while swiping and moves the popup with the drag', async () => {
+  it('marks the popup while swiping and moves it with the drag', async () => {
     const page = await h.open('drawer');
     await openDrawer(page);
     await pressAndMove(page, { x: 400, y: 350 }, { x: 400, y: 410 });
     await see(page.locator('#popup')).toHaveAttribute('data-swiping', '');
-    await see(page.locator('#backdrop')).toHaveAttribute('data-swiping', '');
     // The swipe starts at the first move (15px in), so 45px of the 60px count.
     expect(await styleVar(page, '#popup', '--drawer-swipe-movement-y')).toBe('45px');
-    const progress = Number(await styleVar(page, '#backdrop', '--drawer-swipe-progress'));
-    expect(progress).toBeCloseTo(0.15, 2);
   });
 
   it('a drag against the dismiss direction does not dismiss', async () => {
@@ -250,213 +240,5 @@ describe('swipe to dismiss', () => {
     const y = (box?.y ?? 0) + (box?.height ?? 0) / 2;
     await drag(page, { x, y }, { x, y: y + 250 });
     await see(page.locator('#popup')).toBeVisible();
-  });
-});
-
-describe('Drawer.SwipeArea', () => {
-  it('removed mid-drag, leaves the drawer open with no drag styles behind', async () => {
-    const page = await h.open('drawer', { query: { area: 'true' } });
-    await pressAndMove(page, { x: 400, y: 590 }, { x: 400, y: 530 });
-    const popup = page.locator('#popup');
-    await see(popup).toHaveAttribute('data-swiping', '');
-    await page.evaluate(() => (window as unknown as { __removeArea: () => void }).__removeArea());
-    await see(page.locator('#area')).toHaveCount(0);
-    await see(popup).toBeVisible();
-    await see(popup).not.toHaveAttribute('data-swiping', '');
-    expect(await styleVar(page, '#popup', '--drawer-swipe-movement-y')).toBe('');
-    expect(await popup.evaluate((el) => (el as HTMLElement).style.transition)).not.toBe('none');
-    await page.click('#first');
-    await see(popup).toBeVisible();
-  });
-
-  it('is hidden from assistive tech and pans across its axis', async () => {
-    const page = await h.open('drawer', { query: { area: 'true' } });
-    const area = page.locator('#area');
-    await see(area).toHaveAttribute('role', 'presentation');
-    await see(area).toHaveAttribute('aria-hidden', 'true');
-    await see(area).toHaveAttribute('data-swipe-direction', 'up');
-    await see(area).toHaveAttribute('data-closed', '');
-    await see(area).toHaveCSS('touch-action', 'pan-x');
-  });
-
-  it('opens the drawer with a swipe past half the popup', async () => {
-    const page = await h.open('drawer', { query: { area: 'true' } });
-    await drag(page, { x: 400, y: 590 }, { x: 400, y: 400 }, { holdMs: 200 });
-    const popup = page.locator('#popup');
-    await see(popup).toBeVisible();
-    await see(page.locator('#area')).toHaveAttribute('data-open', '');
-    await see(popup).not.toHaveAttribute('data-swiping', '');
-    expect(await logOf(page)).toEqual(['open true swipe']);
-  });
-
-  it('closes again when released short, slowly', async () => {
-    const page = await h.open('drawer', { query: { area: 'true' } });
-    // 60px up, then a hold: neither far enough nor a flick.
-    await drag(page, { x: 400, y: 590 }, { x: 400, y: 530 }, { holdMs: 200 });
-    await see(page.locator('#popup')).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['open true swipe', 'open false swipe']);
-  });
-
-  it('opens on a short flick', async () => {
-    const page = await h.open('drawer', { query: { area: 'true' } });
-    await drag(page, { x: 400, y: 590 }, { x: 400, y: 550 }, { steps: 4, stepMs: 10 });
-    await see(page.locator('#popup')).toBeVisible();
-    expect(await logOf(page)).toEqual(['open true swipe']);
-  });
-
-  it('follows the drag in, with the backdrop fading to match', async () => {
-    const page = await h.open('drawer', { query: { area: 'true' } });
-    await pressAndMove(page, { x: 400, y: 590 }, { x: 400, y: 530 });
-    await see(page.locator('#popup')).toHaveAttribute('data-swiping', '');
-    await see(page.locator('#area')).toHaveAttribute('data-swiping', '');
-    // 60px of a 300px popup: 240px still to come in.
-    await see.poll(() => styleVar(page, '#popup', '--drawer-swipe-movement-y')).toBe('240px');
-    expect(Number(await styleVar(page, '#backdrop', '--drawer-swipe-progress'))).toBeCloseTo(
-      0.8,
-      2,
-    );
-  });
-
-  it("the release's trailing click does not dismiss the drawer it opened", async () => {
-    const page = await h.open('drawer', { query: { area: 'true' } });
-    await drag(page, { x: 400, y: 590 }, { x: 400, y: 100 }, { holdMs: 200 });
-    await see(page.locator('#popup')).toBeVisible();
-    // The click a real release synthesizes, outside the popup.
-    await page.evaluate(() => {
-      document
-        .elementFromPoint(400, 100)
-        ?.dispatchEvent(
-          new MouseEvent('click', { bubbles: true, detail: 1, clientX: 400, clientY: 100 }),
-        );
-    });
-    await see(page.locator('#popup')).toBeVisible();
-    // The next press of the user's own dismisses as usual.
-    await page.mouse.click(400, 100);
-    await see(page.locator('#popup')).toHaveCount(0);
-  });
-
-  it('opens a side sheet with a swipe left from the right edge', async () => {
-    const page = await h.open('drawer', { query: { area: 'true', direction: 'right' } });
-    await see(page.locator('#area')).toHaveAttribute('data-swipe-direction', 'left');
-    await see(page.locator('#area')).toHaveCSS('touch-action', 'pan-y');
-    await drag(page, { x: 790, y: 300 }, { x: 550, y: 300 }, { holdMs: 200 });
-    await see(page.locator('#popup')).toBeVisible();
-    expect(await logOf(page)).toEqual(['open true swipe']);
-  });
-});
-
-describe('snap points', () => {
-  it('opens on the first snap point and offsets the popup to show it', async () => {
-    const page = await h.open('drawer', { query: { snap: 'true' } });
-    await openDrawer(page);
-    const popup = page.locator('#popup');
-    await see(popup).toHaveCSS('--drawer-snap-point-offset', '200px');
-    await see(popup).not.toHaveAttribute('data-expanded', '');
-    const box = await popup.boundingBox();
-    expect(box?.y).toBe(500);
-  });
-
-  it('a drag up settles on the taller point and marks it expanded', async () => {
-    const page = await h.open('drawer', { query: { snap: 'true' } });
-    await openDrawer(page);
-    await drag(page, { x: 400, y: 550 }, { x: 400, y: 350 });
-    const popup = page.locator('#popup');
-    await see(popup).toHaveAttribute('data-expanded', '');
-    await see(popup).toHaveCSS('--drawer-snap-point-offset', '0px');
-    expect(await logOf(page)).toEqual(['snap 1 swipe']);
-  });
-
-  it('a short drag down from the top settles back on the nearest point', async () => {
-    const page = await h.open('drawer', { query: { snap: 'true' } });
-    await openDrawer(page);
-    await drag(page, { x: 400, y: 550 }, { x: 400, y: 350 });
-    await see(page.locator('#popup')).toHaveAttribute('data-expanded', '');
-    // 150px down from the top lands nearer the 100px point (offset 200) than closed.
-    await drag(page, { x: 400, y: 350 }, { x: 400, y: 500 }, { holdMs: 200 });
-    await see(page.locator('#popup')).toHaveCSS('--drawer-snap-point-offset', '200px');
-    expect(await logOf(page)).toEqual(['snap 1 swipe', 'snap 100px swipe']);
-  });
-
-  it('a drag down nearer closed than the lowest point dismisses, and reopens on the first point', async () => {
-    const page = await h.open('drawer', { query: { snap: 'true' } });
-    await openDrawer(page);
-    await drag(page, { x: 400, y: 550 }, { x: 400, y: 350 });
-    await see(page.locator('#popup')).toHaveAttribute('data-expanded', '');
-    // From the top: 240px down (210px counted) lands nearer the 100px point than closed.
-    await drag(page, { x: 400, y: 350 }, { x: 400, y: 590 }, { holdMs: 200 });
-    await see(page.locator('#popup')).toHaveCSS('--drawer-snap-point-offset', '200px');
-    // From the 100px point: 79px down (69px counted) lands nearer closed.
-    await drag(page, { x: 400, y: 520 }, { x: 400, y: 599 }, { holdMs: 200 });
-    await see(page.locator('#popup')).toHaveCount(0);
-    expect(await logOf(page)).toEqual([
-      'snap 1 swipe',
-      'snap 100px swipe',
-      'snap null swipe',
-      'open false swipe',
-      'snap 100px swipe',
-    ]);
-    await openDrawer(page);
-    await see(page.locator('#popup')).toHaveCSS('--drawer-snap-point-offset', '200px');
-  });
-});
-
-describe('nested drawers', () => {
-  it('counts the drawers open on top and carries the frontmost height', async () => {
-    const page = await h.open('nested');
-    await page.click('#open');
-    const parent = page.locator('#parent-popup');
-    await see(parent).toBeVisible();
-    await see(parent).toHaveCSS('--nested-drawers', '0');
-    await see(parent).toHaveCSS('--drawer-frontmost-height', '300px');
-    await page.click('#child-open');
-    const child = page.locator('#child-popup');
-    await see(child).toBeVisible();
-    await see(child).toHaveAttribute('data-nested', '');
-    await see(parent).toHaveAttribute('data-nested-drawer-open', '');
-    await see(parent).toHaveCSS('--nested-drawers', '1');
-    await see(parent).toHaveCSS('--drawer-frontmost-height', '200px');
-    await see(parent).toHaveCSS('--drawer-height', '300px');
-    await page.click('#child-close');
-    await see(child).toHaveCount(0);
-    await see(parent).not.toHaveAttribute('data-nested-drawer-open', '');
-    await see(parent).toHaveCSS('--drawer-frontmost-height', '300px');
-  });
-
-  it('Escape closes only the frontmost drawer', async () => {
-    const page = await h.open('nested');
-    await page.click('#open');
-    await page.click('#child-open');
-    await see.poll(() => focused(page)).toBe('child-popup');
-    await page.keyboard.press('Escape');
-    await see(page.locator('#child-popup')).toHaveCount(0);
-    await see(page.locator('#parent-popup')).toBeVisible();
-    expect(await logOf(page)).toEqual(['child false escape-key']);
-  });
-});
-
-describe('Drawer.Provider', () => {
-  it('marks the indent and its background active while a drawer is open', async () => {
-    const page = await h.open('provider');
-    const indent = page.locator('#indent');
-    const background = page.locator('#indent-background');
-    await see(indent).toHaveAttribute('data-inactive', '');
-    await see(background).toHaveAttribute('data-inactive', '');
-    await see(indent).toHaveCSS('--drawer-swipe-progress', '0');
-    await page.click('#open');
-    await see(indent).toHaveAttribute('data-active', '');
-    await see(background).toHaveAttribute('data-active', '');
-    await page.click('#close');
-    await see(indent).toHaveAttribute('data-inactive', '');
-  });
-
-  it('the indent follows the swipe progress', async () => {
-    const page = await h.open('provider');
-    await page.click('#open');
-    await see.poll(() => focused(page)).toBe('popup');
-    await pressAndMove(page, { x: 400, y: 350 }, { x: 400, y: 410 });
-    await see
-      .poll(async () => Number(await styleVar(page, '#indent', '--drawer-swipe-progress')))
-      .toBeCloseTo(0.15, 2);
-    await see(page.locator('#indent')).toHaveCSS('--drawer-height', '300px');
   });
 });

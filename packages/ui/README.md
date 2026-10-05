@@ -97,49 +97,31 @@ CSS variables on `Dialog.Popup`: `--nested-dialogs` (how many dialogs nested in 
 
 `import { Drawer } from '@bible/ui/drawer'`
 
-- `Drawer.Provider`: no element; tracks the drawers open inside it for `Drawer.Indent`.
-  - `Drawer.IndentBackground`: `<div>`, the layer behind the indented page.
-  - `Drawer.Indent`: `<div>` around the page content that steps back while a drawer is open.
-  - `Drawer.Root`: no element; a dialog that slides in from an edge (`swipeDirection`, `down` by default) and swipes away, settling at `snapPoints` when given (a vertical drawer's; a number up to 1 is a fraction of the viewport's height, a larger one pixels, a string `px` or `rem`; `snapPoint`, `defaultSnapPoint`, `onSnapPointChange`, `snapToSequentialPoints`).
-    - `Drawer.SwipeArea`: `<div role="presentation" aria-hidden>`, an invisible strip that opens the drawer with a swipe.
-    - `Drawer.Portal`: the dialog's portal `<div>`.
-      - `Drawer.Backdrop`: `<div role="presentation">`; only the outermost drawer renders one, unless `forceRender`.
-      - `Drawer.Viewport`: `<div role="presentation">` that carries the swipe.
-        - `Drawer.Popup`: `<div role="dialog">`.
-          - `Drawer.Content`: `<div data-drawer-content>`, a region where a mouse press never starts a swipe.
-          - `Drawer.Title`, `Drawer.Description`, `Drawer.Close`: the dialog's `<h2>`, `<p>` and `<button>`.
+- `Drawer.Root`: no element; a dialog that slides in from an edge (`swipeDirection`, `down` by default) and swipes away.
+  - `Drawer.Portal`: the dialog's portal `<div>`.
+    - `Drawer.Viewport`: `<div role="presentation">` that carries the swipe.
+      - `Drawer.Popup`: `<div role="dialog">`.
+        - `Drawer.Content`: `<div data-drawer-content>`, a region where a mouse press never starts a swipe.
+        - `Drawer.Title`, `Drawer.Close`: the dialog's `<h2>` and `<button>`.
 
-| Member                       | Attribute                                   | Present when                                                                          |
-| ---------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `SwipeArea`                  | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
-| `SwipeArea`                  | `data-swipe-direction`                      | always: the direction that opens the drawer (`up`, `down`, `left` or `right`)         |
-| `SwipeArea`                  | `data-swiping`                              | the swipe area is being swiped                                                        |
-| `SwipeArea`                  | `data-disabled`                             | the swipe area is disabled                                                            |
-| `Backdrop`                   | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
-| `Backdrop`                   | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                              |
-| `Backdrop`                   | `data-swiping`                              | the drawer is being swiped (open or shut)                                             |
-| `Backdrop`, `Popup`          | `data-swipe-dismiss`                        | the drawer is being dismissed by a swipe release                                      |
-| `Viewport`                   | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
-| `Viewport`                   | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                              |
-| `Viewport`                   | `data-nested`                               | the drawer is nested in another drawer or dialog (no `data-nested-dialog-open`)       |
-| `Popup`                      | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
-| `Popup`                      | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition (also after a swipe dismiss) |
-| `Popup`                      | `data-nested`                               | the drawer is nested in another drawer or dialog                                      |
-| `Popup`                      | `data-expanded`                             | the active snap point is the full height (`1`)                                        |
-| `Popup`                      | `data-nested-drawer-open`                   | a drawer nested in this one is open                                                   |
-| `Popup`                      | `data-nested-drawer-swiping`                | a drawer nested in this one is being swiped                                           |
-| `Popup`                      | `data-swipe-direction`                      | always: the direction a swipe dismisses it (`up`, `down`, `left` or `right`)          |
-| `Popup`                      | `data-swiping`                              | the drawer is being swiped                                                            |
-| `Close`                      | `data-disabled`                             | the button is disabled                                                                |
-| `Indent`, `IndentBackground` | `data-active` / `data-inactive`             | a drawer in the provider is open / none is                                            |
+Upstream's swipe area, backdrop, description, snap points, nested drawer stacks and the provider's indent are left out; a part returns with its first consumer.
 
-`Content`, `Title` and `Description` set none (`data-drawer-content` on `Content` is a fixed marker).
+| Member     | Attribute                                   | Present when                                                                          |
+| ---------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `Viewport` | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
+| `Viewport` | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                              |
+| `Viewport` | `data-nested`                               | the drawer is nested in a dialog (no `data-nested-dialog-open`)                       |
+| `Popup`    | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
+| `Popup`    | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition (also after a swipe dismiss) |
+| `Popup`    | `data-nested`                               | the drawer is nested in a dialog                                                      |
+| `Popup`    | `data-swipe-direction`                      | always: the direction a swipe dismisses it (`up`, `down`, `left` or `right`)          |
+| `Popup`    | `data-swiping`                              | the drawer is being swiped                                                            |
+| `Popup`    | `data-swipe-dismiss`                        | the drawer is being dismissed by a swipe release                                      |
+| `Close`    | `data-disabled`                             | the button is disabled                                                                |
 
-CSS variables:
+`Content` and `Title` set none (`data-drawer-content` on `Content` is a fixed marker).
 
-- `Drawer.Popup`: `--drawer-swipe-movement-x`, `--drawer-swipe-movement-y` (the drag so far, while dragged), `--drawer-snap-point-offset` (the active snap point's offset, negative for an upward drawer; `0px` without snap points), `--drawer-swipe-strength` (0.1 to 1, to shorten the exit after a hard flick; `1` otherwise), `--drawer-height` (the measured height, while a nested drawer is present or while closing), `--nested-drawers` (how many nested drawers are open), `--drawer-frontmost-height` (the height of the frontmost nested drawer, while one is open), `--drawer-swipe-progress` (a nested drawer's swipe progress, `0` at rest).
-- `Drawer.Backdrop`: `--drawer-swipe-progress` (0 at rest, toward 1 as a swipe dismisses), `--drawer-height` (the frontmost drawer's height, during a swipe), `--drawer-swipe-strength`.
-- `Drawer.Indent`: `--drawer-swipe-progress` and `--drawer-height`, following the frontmost drawer's swipe.
+CSS variables on `Drawer.Popup`: `--drawer-swipe-movement-x`, `--drawer-swipe-movement-y` (the drag so far, while dragged), `--drawer-swipe-strength` (0.1 to 1, to shorten the exit after a hard flick; `1` otherwise).
 
 ### Toast
 
