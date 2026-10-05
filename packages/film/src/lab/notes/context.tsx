@@ -9,13 +9,9 @@
 // or previous open note by time (`command/walk.ts`), and each note is a
 // place ⌘K goes to by its id and words (`command/go.ts`).
 
-import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
-import { Loading, Show } from '@solidjs/web';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Effect, Match, Option } from 'effect';
-import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
-import type * as AsyncResult from 'effect/reactivity/AsyncResult';
-import type * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
   createContext,
@@ -34,6 +30,7 @@ import type { Hub } from '../../command/hub.ts';
 import { type Context, selected as selectedOf } from '../../command/context.ts';
 import { noteT } from '../../core/notes.ts';
 import type { Note, Point } from '../../core/schema.ts';
+import { Actor } from '../actor.tsx';
 import { useLab } from '../shell.tsx';
 import {
   type ComposerActor,
@@ -336,26 +333,12 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
   return <NotesContext value={value}>{props.children}</NotesContext>;
 };
 
-const Ready = (
-  props: ParentProps<{
-    readonly composer: Atom.Atom<AsyncResult.AsyncResult<ComposerActor, never>>;
-  }>,
-) => {
-  const composer = useAtomSuspense(() => props.composer);
-  return (
-    <Show when={composer()} keyed>
-      {(c: ComposerActor) => <Body composer={c}>{props.children}</Body>}
-    </Show>
-  );
-};
-
 /** The notes' state and actions in the staged lab, for the composer, the marks and the pins. */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
-  const composer = meta.runtime.atom(Machine.scoped(spawnComposer));
   return (
-    <Loading>
-      <Ready composer={composer}>{props.children}</Ready>
-    </Loading>
+    <Actor runtime={meta.runtime} spawn={spawnComposer}>
+      {(composer) => <Body composer={composer}>{props.children}</Body>}
+    </Actor>
   );
 };

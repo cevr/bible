@@ -7,19 +7,12 @@
 // view, spawned on the runtime and stopped with the set), the driver that
 // makes its videos follow the player, and its moments.
 
-import {
-  RegistryProvider,
-  useAtomRefresh,
-  useAtomSet,
-  useAtomSuspense,
-  useAtomValue,
-} from '@bible/atom-solid';
+import { RegistryProvider, useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
-import { type JSX, Loading, Show, isServer } from '@solidjs/web';
+import { type JSX, isServer } from '@solidjs/web';
 import { Clock, Effect, Equal, Layer, Option, Schema } from 'effect';
 import type { HttpClient } from 'effect/http';
-import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -52,6 +45,7 @@ import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type Context, selected } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
+import { Actor } from '../actor.tsx';
 import type { LabClient, LabFailure } from '../api.ts';
 import { served } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
@@ -654,25 +648,6 @@ const SetBody = (
   return <SetContext value={value}>{props.children}</SetContext>;
 };
 
-const SetReady = (
-  props: ParentProps<{
-    readonly folder: ReviewFolder;
-    readonly set: SeenPoint;
-    readonly sync: Atom.Atom<AsyncResult.AsyncResult<SyncActor, never>>;
-  }>,
-) => {
-  const sync = useAtomSuspense(() => props.sync);
-  return (
-    <Show when={sync()} keyed>
-      {(actor: SyncActor) => (
-        <SetBody folder={props.folder} set={props.set} sync={actor}>
-          {props.children}
-        </SetBody>
-      )}
-    </Show>
-  );
-};
-
 /** One version stack's player, view and moments, for its page; a stack of one has no side by side. */
 export const SetProvider = (
   props: ParentProps<{ readonly folder: ReviewFolder; readonly set: SeenPoint }>,
@@ -687,12 +662,13 @@ export const SetProvider = (
     Option.flatMap(Effect.runSyncWith(meta.host)(UrlState.get(Places.set)), (v) => v.hash.t),
     () => props.set.start,
   );
-  const sync = meta.runtime.atom(Machine.scoped(spawnSync(first, props.set.start, at)));
   return (
-    <Loading>
-      <SetReady folder={props.folder} set={props.set} sync={sync}>
-        {props.children}
-      </SetReady>
-    </Loading>
+    <Actor runtime={meta.runtime} spawn={spawnSync(first, props.set.start, at)}>
+      {(sync) => (
+        <SetBody folder={props.folder} set={props.set} sync={sync}>
+          {props.children}
+        </SetBody>
+      )}
+    </Actor>
   );
 };

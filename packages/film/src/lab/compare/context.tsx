@@ -7,10 +7,8 @@
 // command, from the section's buttons or ⌘K) is an entry of its own, and a
 // link that names another (Back to an entry made in another mode) chooses it. The view keeps the divider through the reload a write causes.
 
-import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
-import { Loading, Show } from '@solidjs/web';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Option, Result } from 'effect';
-import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -20,6 +18,7 @@ import type { ShownEdit } from '../../canvas/film.ts';
 import { type Command, type CommandId, quietly } from '../../command/command.ts';
 import { sceneOf } from '../../core/layout.ts';
 import type { HeadSource } from '../../core/schema.ts';
+import { Actor } from '../actor.tsx';
 import { LabApi, type LabFailure } from '../api.ts';
 import { useLab } from '../shell.tsx';
 import { compareText, headEdit } from './head.ts';
@@ -159,28 +158,15 @@ const Body = (props: ParentProps<{ readonly actor: CompareActor }>) => {
   return <CompareContext value={value}>{props.children}</CompareContext>;
 };
 
-const Ready = (
-  props: ParentProps<{
-    readonly actor: Atom.Atom<AsyncResult.AsyncResult<CompareActor, never>>;
-  }>,
-) => {
-  const actor = useAtomSuspense(() => props.actor);
-  return (
-    <Show when={actor()} keyed>
-      {(a: CompareActor) => <Body actor={a}>{props.children}</Body>}
-    </Show>
-  );
-};
-
 /** Compare's state and actions, for its section, its HEAD layer and its divider. */
 export const Provider = (props: ParentProps) => {
   const { state, meta } = useLab();
-  const actor = meta.runtime.atom(
-    Machine.scoped(spawnCompare(compareAt(untrack(state.view), meta.view.get().compare))),
-  );
   return (
-    <Loading>
-      <Ready actor={actor}>{props.children}</Ready>
-    </Loading>
+    <Actor
+      runtime={meta.runtime}
+      spawn={spawnCompare(compareAt(untrack(state.view), meta.view.get().compare))}
+    >
+      {(actor) => <Body actor={actor}>{props.children}</Body>}
+    </Actor>
   );
 };

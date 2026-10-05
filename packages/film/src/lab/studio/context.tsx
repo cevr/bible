@@ -7,10 +7,9 @@
 // it; none reads the recorder's states. An import that settles (a take kept,
 // or refused with an attempt saved) reads the beats and the attempts again.
 
-import { useAtomRefresh, useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
-import { Loading, Show } from '@solidjs/web';
+import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { Show } from '@solidjs/web';
 import { Cause, Effect, Equal, Layer, Option, Stream } from 'effect';
-import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -31,6 +30,7 @@ import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
 import { type BrowserServices, addressOn, hostLayer } from '../../browser/host.ts';
 import { beatAt, labHrefWith } from '../place.ts';
 import type { LabFailure } from '../api.ts';
+import { Actor } from '../actor.tsx';
 import { useLab } from '../shell.tsx';
 import { type Stage, stageLayer } from '../stage.ts';
 import { StudioApi, studioApiLayer } from './api.ts';
@@ -387,22 +387,6 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   return <StudioContext value={value}>{props.children}</StudioContext>;
 };
 
-/** The recorder on `beat`, once it is spawned. */
-const Recorder = (props: ParentProps<{ readonly beat: string; readonly reads: Reads }>) => {
-  const actor = useAtomSuspense(() =>
-    props.reads.runtime.atom(Machine.scoped(spawnRecorder(props.beat))),
-  );
-  return (
-    <Show when={actor()} keyed>
-      {(a: RecorderActor) => (
-        <Body actor={a} reads={props.reads}>
-          {props.children}
-        </Body>
-      )}
-    </Show>
-  );
-};
-
 /** `beat`, while the server lists it. */
 const listedBeat = (
   beats: ReadonlyArray<StudioBeat>,
@@ -455,11 +439,13 @@ export const Provider = (props: ParentProps) => {
   return (
     <Show when={start()} keyed fallback={<p class="studio-waiting">{waitingText(beats())}</p>}>
       {(beat: string) => (
-        <Loading>
-          <Recorder beat={beat} reads={reads}>
-            {props.children}
-          </Recorder>
-        </Loading>
+        <Actor runtime={runtime} spawn={spawnRecorder(beat)}>
+          {(actor) => (
+            <Body actor={actor} reads={reads}>
+              {props.children}
+            </Body>
+          )}
+        </Actor>
       )}
     </Show>
   );

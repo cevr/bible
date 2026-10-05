@@ -15,10 +15,8 @@
 // commands on the page's hub (`commands.ts`), and what its writes did is said
 // there as they land: the page's receipts.
 
-import { useAtomSet, useAtomSuspense, useAtomValue } from '@bible/atom-solid';
-import { Loading, Show } from '@solidjs/web';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Effect, Equal, Fiber, Option, Result } from 'effect';
-import { Machine } from 'effect-machine';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -37,6 +35,7 @@ import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type LabSelection, cueOf, knobOf } from '../../command/selection.ts';
 import type { Inspected } from '../../core/field.ts';
+import { Actor } from '../actor.tsx';
 import { useLab } from '../shell.tsx';
 import {
   CueGrip,
@@ -490,24 +489,12 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   return <EditorContext value={value}>{props.children}</EditorContext>;
 };
 
-const Ready = (
-  props: ParentProps<{ readonly actor: Atom.Atom<AsyncResult.AsyncResult<EditActor, never>> }>,
-) => {
-  const actor = useAtomSuspense(() => props.actor);
-  return (
-    <Show when={actor()} keyed>
-      {(a: EditActor) => <Body actor={a}>{props.children}</Body>}
-    </Show>
-  );
-};
-
 /** The editor's state and actions, for the strip and the inspector inside it. */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
-  const actor = meta.runtime.atom(Machine.scoped(spawnEditor));
   return (
-    <Loading>
-      <Ready actor={actor}>{props.children}</Ready>
-    </Loading>
+    <Actor runtime={meta.runtime} spawn={spawnEditor}>
+      {(actor) => <Body actor={actor}>{props.children}</Body>}
+    </Actor>
   );
 };
