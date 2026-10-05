@@ -38,6 +38,7 @@ import {
   Array as Arr,
   Clock,
   Context,
+  Deferred,
   Duration,
   Effect,
   Equal,
@@ -62,7 +63,8 @@ import type { BunPlugin } from 'bun';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import type { PageBuild } from '../core/schema.ts';
-import { type PageAnswer, PageReads } from './api-server.ts';
+import { brotliCompress, constants as zlib } from 'node:zlib';
+import { type PageAnswer, PageReads, pageCodingOf } from './api-server.ts';
 import {
   PageRenderer,
   type RenderBuild,
@@ -93,6 +95,54 @@ interface BuiltFile {
   readonly bytes: Uint8Array;
   readonly type: string;
 }
+
+/**
+ * A build's script, style or map as it is asked for: its bytes and media
+ * type, and, for text worth compressing (`squeezable`), its brotli at the
+ * best quality (`BEST_BR`), made once in the background after the build
+ * (`squeeze`) and shared by every kept build that makes the same file (a
+ * file is named by its hash, so the same name is the same bytes). Until it
+ * is made, the file is compressed per request, as a page is.
+ */
+interface AssetFile extends BuiltFile {
+  readonly best: Option.Option<Deferred.Deferred<Uint8Array>>;
+}
+
+/** The brotli quality a build's files are kept at: the smallest, made once per file. */
+const BEST_BR = 11;
+
+/** The least a file weighs to be kept compressed: the compression middleware's own floor. */
+const SQUEEZE_FROM = 1024;
+
+/**
+ * Whether `file` is kept compressed: a script or a style (text) of at least
+ * `SQUEEZE_FROM` bytes. A map is not: only the devtools ask for one, and
+ * the maps are most of a build's bytes (all of a build's files at the best
+ * took 24 s; its scripts and styles alone a fraction).
+ */
+const squeezable = (file: BuiltFile): boolean =>
+  file.bytes.byteLength >= SQUEEZE_FROM && file.type.startsWith('text/');
+
+/** `bytes` at brotli's best quality, in zlib's thread pool, off the lab's thread. */
+const brotliBest = (bytes: Uint8Array) =>
+  Effect.callback<Uint8Array, Error>((resume) => {
+    brotliCompress(
+      bytes,
+      {
+        params: {
+          [zlib.BROTLI_PARAM_QUALITY]: BEST_BR,
+          [zlib.BROTLI_PARAM_SIZE_HINT]: bytes.byteLength,
+        },
+      },
+      (error, out) =>
+        resume(
+          Option.match(Option.fromNullishOr(error), {
+            onNone: () => Effect.succeed(new Uint8Array(out)),
+            onSome: Effect.fail,
+          }),
+        ),
+    );
+  });
 
 /** A built file at its path relative to the build's root (`lab.html`, `chunk-….js`). */
 type BuiltAt = BuiltFile & { readonly path: string };
@@ -375,7 +425,7 @@ interface Built {
     | {
         readonly _tag: 'Built';
         readonly pages: ReadonlyMap<PageName, BuiltFile>;
-        readonly files: ReadonlyMap<string, BuiltFile>;
+        readonly files: ReadonlyMap<string, AssetFile>;
         /** Its server bundle: its modules by their paths from the root, and each rendered page's entry. */
         readonly server: ServerBundle;
       }
@@ -529,7 +579,7 @@ const WEDGE_PATH = '/wedge/';
 interface WedgeBuilt {
   readonly id: string;
   readonly pages: ReadonlyMap<PageName, BuiltFile>;
-  readonly files: ReadonlyMap<string, BuiltFile>;
+  readonly files: ReadonlyMap<string, AssetFile>;
 }
 
 /** How many of a build's files are checked at once for a save no watch heard. */
@@ -661,7 +711,7 @@ const pagesOf = (built: Built): ReadonlyMap<PageName, BuiltFile> => {
 };
 
 /** A build's files; a failed one has none. */
-const filesOf = (built: Built): ReadonlyMap<string, BuiltFile> => {
+const filesOf = (built: Built): ReadonlyMap<string, AssetFile> => {
   if (built.outcome._tag === 'Built') return built.outcome.files;
   return new Map();
 };
@@ -1027,6 +1077,59 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
     return 'Steady';
   };
 
+  /**
+   * A build's files (`made`, each by the path it is asked at) as it answers
+   * them: each squeezable one given its best brotli, shared with a kept
+   * build's file of the same path or made once in the background (`squeeze`),
+   * which the lab's scope stops.
+   */
+  const assetsOf = Effect.fnUntraced(function* (made: ReadonlyArray<readonly [string, BuiltFile]>) {
+    const kept = new Map((yield* Ref.get(builds)).flatMap((b) => [...filesOf(b)]));
+    const files = new Map<string, AssetFile>();
+    const fresh: Array<readonly [string, Uint8Array, Deferred.Deferred<Uint8Array>]> = [];
+    for (const [at, file] of made) {
+      const shared = Option.flatMap(Option.fromUndefinedOr(kept.get(at)), (k) => k.best);
+      if (Option.isSome(shared) || !squeezable(file)) {
+        files.set(at, { ...file, best: shared });
+        continue;
+      }
+      const best = yield* Deferred.make<Uint8Array>();
+      fresh.push([at, file.bytes, best]);
+      files.set(at, { ...file, best: Option.some(best) });
+    }
+    if (fresh.length > 0) yield* Effect.forkIn(squeeze(fresh), scope);
+    return files;
+  });
+
+  /**
+   * Each of `fresh` compressed at the best (`brotliBest`), one at a time so
+   * a build takes one of zlib's threads; one that fails stays compressed
+   * per request, and is logged.
+   */
+  const squeeze = (
+    fresh: ReadonlyArray<readonly [string, Uint8Array, Deferred.Deferred<Uint8Array>]>,
+  ) =>
+    Effect.gen(function* () {
+      const started = yield* Clock.currentTimeMillis;
+      const sizes = yield* Effect.forEach(fresh, ([at, bytes, best]) =>
+        brotliBest(bytes).pipe(
+          Effect.tap((out) => Deferred.succeed(best, out)),
+          Effect.map((out) => out.byteLength),
+          Effect.catch((error) =>
+            Effect.as(
+              Effect.logWarning(`lab.page.squeeze.failed path=${at} reason="${error.message}"`),
+              bytes.byteLength,
+            ),
+          ),
+        ),
+      );
+      const ms = (yield* Clock.currentTimeMillis) - started;
+      const raw = Arr.reduce(fresh, 0, (sum, [, bytes]) => sum + bytes.byteLength);
+      yield* Effect.log(
+        `lab.page.squeezed files=${fresh.length} raw=${raw} br=${Arr.reduce(sizes, 0, (a, b) => a + b)} ms=${ms}`,
+      );
+    });
+
   const bundle = Effect.fnUntraced(function* (build: number) {
     const started = yield* Clock.currentTimeMillis;
     // The files the last build read, printed before this one reads them: one whose print
@@ -1063,16 +1166,16 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
             started,
           );
           const pages = new Map<PageName, BuiltFile>();
-          const files = new Map<string, BuiltFile>();
+          const made: Array<readonly [string, BuiltFile]> = [];
           for (const { path: name, ...built } of outputs)
             Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
-              onNone: () => files.set(`/${name}`, built),
+              onNone: () => made.push([`/${name}`, built]),
               onSome: (page) => pages.set(page, built),
             });
           return {
             _tag: 'Built',
             pages,
-            files,
+            files: yield* assetsOf(made),
             server: { files: server, entries: serverModules },
           } as const;
         }),
@@ -1273,20 +1376,44 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       });
     });
 
-  /** A script, style or map by its path, in the builds and wedges kept: each named by its hash, so never changed. */
+  /**
+   * A script, style or map by its path, in the builds and wedges kept: each
+   * named by its hash, so never changed. Sent as its best brotli once that
+   * is made and the request's coding is br (`pageCodingOf`); else as it is,
+   * for the server's compression to compress per request.
+   */
   const asset = (pathname: string) =>
     Effect.gen(function* () {
       const kept = [
         ...(yield* Ref.get(builds)).map(filesOf),
         ...(yield* Ref.get(wedges)).map((w) => w.files),
       ];
-      return Option.map(
-        Arr.findFirst(kept, (files) => Option.fromUndefinedOr(files.get(pathname))),
-        ({ bytes, type }) =>
-          HttpServerResponse.uint8Array(bytes, {
-            contentType: type,
-            headers: { 'cache-control': 'max-age=31536000, immutable' },
-          }),
+      const found = Arr.findFirst(kept, (files) => Option.fromUndefinedOr(files.get(pathname)));
+      if (Option.isNone(found)) return Option.none();
+      const { bytes, type, best } = found.value;
+      const accept = Option.fromUndefinedOr(
+        (yield* HttpServerRequest.HttpServerRequest).headers['accept-encoding'],
+      );
+      const made = yield* Option.match(
+        Option.filter(best, () => Option.contains(pageCodingOf(accept), 'br')),
+        {
+          onNone: () => Effect.succeedNone,
+          onSome: (deferred) =>
+            Effect.flatMap(Deferred.isDone(deferred), (done) =>
+              Effect.when(Deferred.await(deferred), Effect.succeed(done)),
+            ),
+        },
+      );
+      const cache = { 'cache-control': 'max-age=31536000, immutable' };
+      return Option.some(
+        Option.match(made, {
+          onNone: () => HttpServerResponse.uint8Array(bytes, { contentType: type, headers: cache }),
+          onSome: (br) =>
+            HttpServerResponse.uint8Array(br, {
+              contentType: type,
+              headers: { ...cache, 'content-encoding': 'br', vary: 'Accept-Encoding' },
+            }),
+        }),
       );
     });
 
@@ -1458,12 +1585,13 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
           return { ...now, failed: Option.some(made.failure.reason), wedge: '' } satisfies Wedged;
         }
         const pages = new Map<PageName, BuiltFile>();
-        const files = new Map<string, BuiltFile>();
+        const asked: Array<readonly [string, BuiltFile]> = [];
         for (const { path: name, ...file } of made.success.outputs)
           Option.match(Option.fromUndefinedOr(pageOf.get(name)), {
-            onNone: () => files.set(`${prefix}${name}`, file),
+            onNone: () => asked.push([`${prefix}${name}`, file]),
             onSome: (page) => pages.set(page, file),
           });
+        const files = yield* assetsOf(asked);
         yield* Ref.update(wedges, (kept) => [{ id, pages, files }, ...kept].slice(0, KEPT));
         yield* Effect.log(`lab.page.wedge id=${id} outcome=Built swaps=${swaps.size}`);
         return { ...now, wedge: id } satisfies Wedged;

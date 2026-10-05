@@ -29,6 +29,7 @@ import {
 } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { TestClock } from 'effect/testing';
+import { brotliCompressSync, brotliDecompressSync, constants as zlib } from 'node:zlib';
 import { LabPage, type LabPageSpec, PageBundler, splice } from './lab-page.ts';
 import { PageReads } from './api-server.ts';
 import { PageRenderer, RenderFailed } from './page-render.ts';
@@ -100,12 +101,12 @@ const served = (
       yield* Layer.build(LabPage.layer(spec).pipe(Layer.provide([bundler, renderer]))),
       LabPage,
     );
-    const ask = (pathname: string, method = 'GET') =>
+    const ask = (pathname: string, method = 'GET', headers: Record<string, string> = {}) =>
       Effect.gen(function* () {
         const request = HttpServerRequest.fromWeb(
           new Request(`http://127.0.0.1:8229${pathname}`, {
             method,
-            headers: { host: '127.0.0.1:8229' },
+            headers: { host: '127.0.0.1:8229', ...headers },
           }),
         );
         const response = HttpServerResponse.toWeb(
@@ -114,11 +115,14 @@ const served = (
             Effect.provideService(PageReads, echoReads),
           ),
         );
+        const bytes = new Uint8Array(yield* Effect.promise(() => response.arrayBuffer()));
         return {
           status: response.status,
           location: response.headers.get('location') ?? '',
           type: response.headers.get('content-type') ?? '',
-          text: yield* Effect.promise(() => response.text()),
+          encoding: response.headers.get('content-encoding') ?? '',
+          bytes,
+          text: new TextDecoder().decode(bytes),
         };
       });
     return { page, ask };
@@ -172,6 +176,31 @@ describe('lab pages', () => {
         expect(serverOf(page.text)).not.toBe('');
         expect(yield* script).toContain('first');
         expect((yield* ask('/nothing.js')).status).toBe(404);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
+    "a page's script is sent as its best brotli once made, to a request whose coding is br; as it is to one that takes no br",
+    () =>
+      Effect.gen(function* () {
+        const { ask, write } = yield* app;
+        yield* write('src/lab.ts', `console.log('${'the lab '.repeat(400)}');\n`);
+        const src = /src="\.?(\/[^"]+\.js)"/.exec((yield* ask('/films/f/lab')).text)?.[1] ?? '';
+        const brotli = yield* ask(src, 'GET', { 'accept-encoding': 'gzip, br' }).pipe(
+          Effect.repeat({
+            until: (sent) => sent.encoding === 'br',
+            schedule: Schedule.spaced('50 millis'),
+          }),
+          Effect.timeout('4 seconds'),
+        );
+        const plain = yield* ask(src, 'GET', { 'accept-encoding': 'gzip;q=1, br;q=0' });
+        expect(plain.encoding).toBe('');
+        expect(plain.text).toContain('the lab the lab');
+        expect(new Uint8Array(brotliDecompressSync(brotli.bytes))).toEqual(plain.bytes);
+        const best = brotliCompressSync(plain.bytes, {
+          params: { [zlib.BROTLI_PARAM_QUALITY]: 11 },
+        });
+        expect(brotli.bytes.byteLength).toBe(best.byteLength);
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );
 

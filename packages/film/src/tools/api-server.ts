@@ -378,6 +378,34 @@ const readsOf = (
 const PAGE_CODINGS: ReadonlyArray<HttpPlatform.CompressionAlgorithm> = ['br', 'gzip'];
 
 /**
+ * The coding a page's answer is sent in for `accept` (its Accept-Encoding),
+ * as `HttpMiddleware.compression` negotiates it over `PAGE_CODINGS`: the
+ * first the request takes with a weight above 0, named or by `*` (Effect
+ * keeps its own negotiation internal). A file sent already compressed
+ * (`LabPage`'s best brotli) is sent so only when this names its coding.
+ */
+export const pageCodingOf = (
+  accept: Option.Option<string>,
+): Option.Option<HttpPlatform.CompressionAlgorithm> => {
+  const weights = new Map(
+    Option.getOrElse(accept, () => '')
+      .split(',')
+      .map((part) => {
+        const [coding = '', ...params] = part.split(';').map((p) => p.trim().toLowerCase());
+        const weight = Option.fromUndefinedOr(params.find((p) => p.startsWith('q=')));
+        return [
+          coding,
+          Option.match(weight, { onNone: () => 1, onSome: (q) => Number(q.slice(2)) }),
+        ];
+      }),
+  );
+  return Arr.findFirst(
+    PAGE_CODINGS,
+    (coding) => (weights.get(coding) ?? weights.get('*') ?? 0) > 0,
+  );
+};
+
+/**
  * A response's `Vary` once it varies by `dimension` too, by the rule of
  * Effect's own compression (`varyWith`, internal to `HttpPlatform.make`):
  * kept as it is when it already names the dimension or `*`.

@@ -799,7 +799,10 @@ which the browser then renders. A page's answer (its HTML, scripts and
 styles) is compressed by the request's `Accept-Encoding` (br, else gzip;
 `pageRoute`, `tools/api-server.ts`), a streamed page flushed chunk by chunk
 (`NodeHttpCompression`), so its shell reaches the browser while its render
-goes on. A page's head preloads and declares the UI face's latin subset
+goes on. A build's scripts and styles are also compressed once at brotli's
+best, in the background after the build, and sent so to a request that
+takes br once made (`squeeze`, `tools/lab-page.ts`; the Lab's main chunk
+261 KB, against 313 KB per request). A page's head preloads and declares the UI face's latin subset
 (`FACE_HEAD`, `player/face.ts`) and holds no other font;
 `tools/page-css-budget.test.ts` holds each place's render-blocking CSS, as
 the lab answers it, to 64 KiB. Only the lab's server bundles Solid; the
