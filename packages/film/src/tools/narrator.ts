@@ -15,7 +15,7 @@
 // take that is still being made. What a crashed or failed run leaves behind
 // (a take placed but never named, a take replaced, a partial write) the
 // timings name nowhere, and the next run clears it from `narration/`: a
-// partial write whose writer is gone is removed, a take is put away into
+// partial write whose writer is known to be gone is removed, a take is put away into
 // `narration/attempts/<beat>/`, never deleted.
 
 import {
@@ -364,9 +364,10 @@ export const putAwayUnnamed = Effect.fn('putAwayUnnamed')(function* (
 
 /**
  * Clear `narration/` of what the timings do not name: every partial write
- * whose writer is gone is removed (one whose writer runs, here or on
- * another host, a mix's track say, which no timings lock covers, is left to
- * land: `partialAbandoned`), and
+ * whose writer is known to be gone, a pid on this host that no longer runs,
+ * is removed (every other is kept: one whose writer runs here or on another
+ * host, a mix's track say, which no timings lock covers, or whose writer
+ * cannot be told: `partialAbandoned`), and
  * every take file (what a crashed or failed run left, or a take since
  * replaced) is put away into `attempts/<beat>/` (`putAwayTake`), never
  * deleted, so a person's take whose attempt is not on this machine is still

@@ -515,7 +515,9 @@ describe('Narrator', () => {
         files.set(`${DIR}/a.0123456789ab.mp3`, text('orphan'));
         // A replaced recorded take's committed FLAC, whose attempt this machine does not have.
         files.set(`${DIR}/b.0123456789ab.flac`, text('replaced master'));
-        files.set(`${TIMINGS}.partial`, text('{'));
+        // A partial that names no writer: whose it is cannot be told, so it stays.
+        const unowned = `${TIMINGS}.partial`;
+        files.set(unowned, text('{'));
         const layer = Narrator.layer.pipe(
           Layer.provideMerge(storeLayer(files)),
           Layer.provide([
@@ -533,7 +535,7 @@ describe('Narrator', () => {
           new TextDecoder().decode(files.get(TIMINGS)),
         );
         const current = Object.values(takes.scenes).map((t) => `${DIR}/${t.file}`);
-        expect(left).toEqual([`${DIR}/full.wav`, TIMINGS, ...current].toSorted());
+        expect(left).toEqual([`${DIR}/full.wav`, TIMINGS, unowned, ...current].toSorted());
         // No take is deleted: each is put away under its beat's attempts, byte for byte.
         expect(
           [
@@ -783,19 +785,19 @@ describe('Narrator', () => {
         return { mixing, finish };
       });
 
-    it.effect("a sweep spares a running writer's partial, and removes a gone writer's", () =>
+    /** The partials in `narration/`. */
+    const partialsIn = (files: Map<string, Uint8Array>) =>
+      [...files.keys()].filter((f) => f.startsWith(`${DIR}/`) && f.endsWith('.partial'));
+
+    it.effect("a sweep spares a running writer's partial", () =>
       Effect.gen(function* () {
         const files = filed();
-        // A partial from before partials named their host: its pid judged on this host, as a lock's is.
-        const gone = `${DIR}/full.wav.4194305-7.partial`;
-        files.set(gone, text('half a mix'));
         const fs = yield* fileSystemOf(files);
         const { mixing, finish } = yield* midMix(fs);
         yield* sweepElsewhere(fs);
         yield* Deferred.succeed(finish, true);
         expect(Exit.isSuccess(yield* Fiber.join(mixing))).toBe(true);
         expect(new TextDecoder().decode(files.get(`${DIR}/full.wav`))).toBe('the mix');
-        expect(files.has(gone)).toBe(false);
       }).pipe(
         Effect.scoped,
         Effect.provide(Path.layer),
@@ -804,6 +806,43 @@ describe('Narrator', () => {
           alive: (pid) => Effect.succeed(pid === process.pid),
         }),
       ),
+    );
+
+    it.effect('a sweep removes the partial of a writer on this host that no longer runs', () =>
+      Effect.gen(function* () {
+        const files = filed();
+        const fs = yield* fileSystemOf(files);
+        // The writer's partial is on disk; then, as far as this host knows, its process is gone.
+        const { mixing } = yield* midMix(fs);
+        expect(partialsIn(files)).toHaveLength(1);
+        yield* sweepElsewhere(fs).pipe(
+          Effect.provideService(Processes, { host: 'here', alive: () => Effect.succeed(false) }),
+        );
+        expect(partialsIn(files)).toEqual([]);
+        yield* Fiber.interrupt(mixing);
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(Path.layer),
+        Effect.provideService(Processes, { host: 'here', alive: () => Effect.succeed(true) }),
+      ),
+    );
+
+    it.effect('a sweep keeps a partial written before partials named their host', () =>
+      Effect.gen(function* () {
+        const files = filed();
+        const fs = yield* fileSystemOf(files);
+        // A mix started before the upgrade names only its pid, which runs on some host but not here.
+        const partial = `${DIR}/full.wav.4242-7.partial`;
+        files.set(partial, text('the mix'));
+        yield* sweepElsewhere(fs).pipe(
+          Effect.provideService(Processes, { host: 'here', alive: () => Effect.succeed(false) }),
+        );
+        // The mix lands its track.
+        expect(Exit.isSuccess(yield* Effect.exit(fs.rename(partial, `${DIR}/full.wav`)))).toBe(
+          true,
+        );
+        expect(new TextDecoder().decode(files.get(`${DIR}/full.wav`))).toBe('the mix');
+      }).pipe(Effect.scoped, Effect.provide(Path.layer)),
     );
 
     it.effect(

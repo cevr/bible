@@ -193,8 +193,11 @@ in the same step as the `timings.json` rewrite that makes it current. No crash
 leaves a take and its timings disagreeing, and another `narrate`'s sweep
 never puts away a take still being made. The sweep removes a partial write
 only when its writer, named in `<file>.<pid>-<n>.<host tag>.partial`, is a
-pid on this host that no longer runs, as a lock's holder is judged. A mix
-landing its track meanwhile, here or on another host, keeps its partial. A take's words come from the speech model's alignment and its
+pid on this host that no longer runs. It keeps every other partial: another
+host's, and one whose name carries no host (a writer from before partials
+named it) or no writer, since a leftover partial blocks nothing and is
+git-ignored while removing a live one loses its write. A mix landing its
+track meanwhile, here or on another host, keeps its partial. A take's words come from the speech model's alignment and its
 length from the encoded file; a word the alignment puts past the end is held
 inside the take (`core/narration.ts` `heldInside`, with a `narrate.overrun`
 warning past `TAKE_TOLERANCE`), so the timings always fit their audio. The

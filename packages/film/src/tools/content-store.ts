@@ -16,13 +16,13 @@
 // that waits its whole wait for one fails as StoreLocked and logs who holds it.
 //
 // A file is written whole (`writeWhole`): beside it under a name of the
-// writer's own (`<file>.<pid>-<n>.partial`), then renamed over it (by the
-// caller, under a lock, with `writeWholeWith`: the mix's track and its
-// stamp), and the partial removed if the write fails. A reader never sees
-// half a file, and two writers never share a partial. The name says whose a
-// partial is, its pid and its host (`<file>.<pid>-<n>.<host tag>.partial`),
-// so a sweep of what a crash left (narrate's) removes only a partial whose
-// writer is gone (`partialAbandoned`), judged as a lock's holder is.
+// writer's own (`<file>.<pid>-<n>.<host tag>.partial`), then renamed over it
+// (by the caller, under a lock, with `writeWholeWith`: the mix's track and
+// its stamp), and the partial removed if the write fails. A reader never
+// sees half a file, and two writers never share a partial. The name says
+// whose a partial is, so a sweep of what a crash left (narrate's) removes
+// only a partial whose writer is known to be gone, a pid on this host that
+// no longer runs, and keeps every other (`partialAbandoned`).
 
 import {
   Array as Arr,
@@ -65,24 +65,24 @@ const hostTag = (host: string): string => sha256Hex(host).slice(0, 12);
 const partialOf = (file: string, pid: number, n: number, host: string): string =>
   `${file}.${pid}-${n}.${hostTag(host)}.partial`;
 
-/** Who writes a partial: its pid, and its host's tag (none in a name from before partials carried it). */
+/** Who writes a partial: its pid, and its host's tag. */
 interface PartialWriter {
   readonly pid: number;
-  readonly host: Option.Option<string>;
+  readonly host: string;
 }
 
 /**
- * The writer of a partial (`writeWholeWith`), read from its name: none for
- * a name that carries no writer (`<file>.partial`), and no host for one
- * from before partials named theirs (`<file>.<pid>-<n>.partial`).
+ * The writer of a partial (`writeWholeWith`), read from its name; none for
+ * a name that does not carry both (`<file>.partial`, or
+ * `<file>.<pid>-<n>.partial` from before partials named their host).
  */
 const partialWriter = (name: string): Option.Option<PartialWriter> =>
   Option.flatMap(
-    Option.fromNullishOr(/\.(\d+)-\d+(?:\.([0-9a-f]{12}))?\.partial$/.exec(name)),
+    Option.fromNullishOr(/\.(\d+)-\d+\.([0-9a-f]{12})\.partial$/.exec(name)),
     (named) =>
-      Option.map(Arr.get(named, 1), (pid) => ({
+      Option.zipWith(Arr.get(named, 1), Arr.get(named, 2), (pid, host) => ({
         pid: Number(pid),
-        host: Option.fromNullishOr(named[2]),
+        host,
       })),
   );
 
@@ -193,21 +193,21 @@ const holdsOn = (owner: LockOwner, here: string): boolean =>
   Option.getOrElse(Option.fromUndefinedOr(owner.host), () => here) === here;
 
 /**
- * Whether the partial `name` was left by a writer that is gone, as a lock's
- * holder is judged: a pid on this host that no longer runs. A partial
- * written on another host is never judged, since its pid means nothing here;
- * one that names no host (from before partials carried it) is taken as this
- * host's, as a lock that names none is. A name that carries no writer at
- * all (`<file>.partial`) is one no writer of this store has made since
- * partials were named by their writer, so a crash left it.
+ * Whether the partial `name` was left by a writer that is gone: a pid on
+ * this host that no longer runs. Every other partial is kept: one written on
+ * another host (its pid means nothing here), and one that names no host
+ * (`<file>.<pid>-<n>.partial`, a writer from before partials carried it, on
+ * any host) or no writer at all (`<file>.partial`), whose writer cannot be
+ * told. Unlike a lock, a stale partial blocks no writer and is git-ignored,
+ * while removing a live one loses its write, so a partial is removed only
+ * when its writer is known to be gone.
  */
 export const partialAbandoned = (name: string): Effect.Effect<boolean> =>
   Effect.gen(function* () {
     const writer = partialWriter(name);
-    if (Option.isNone(writer)) return true;
+    if (Option.isNone(writer)) return false;
     const processes = yield* Processes;
-    const here = hostTag(processes.host);
-    if (Option.getOrElse(writer.value.host, () => here) !== here) return false;
+    if (writer.value.host !== hostTag(processes.host)) return false;
     return !(yield* processes.alive(writer.value.pid));
   });
 
