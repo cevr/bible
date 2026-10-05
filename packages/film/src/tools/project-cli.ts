@@ -29,7 +29,17 @@
 // as one line, or the refusal it failed with: what the review's project
 // routes read, each in a fresh process.
 
-import { Array as Arr, Clock, Console, Effect, type Layer, Match, Option, Path } from 'effect';
+import {
+  Array as Arr,
+  Clock,
+  Console,
+  Effect,
+  type Layer,
+  Match,
+  Option,
+  Path,
+  Result,
+} from 'effect';
 import { Argument, Command, Flag } from 'effect/cli';
 import { type Scope, addressKey, resolveAddress, sceneAddress } from '../core/address.ts';
 import {
@@ -477,12 +487,6 @@ const topicOfScene = (scene: string, variant: string): Topic => ({
   variant,
 });
 
-/** `scene`'s render of `variant` in `catalogue`, or `SceneNotRendered`. */
-const renderOf = (catalogue: Catalogue, film: string, scene: string, variant: string) =>
-  Effect.fromOption(renderIn(catalogue, sceneSlot(scene, variant)), () =>
-    SceneNotRendered.make({ film, scene, variant }),
-  );
-
 /** What `--act` and `--all` do, said for each verb that takes them. */
 const PART_TEXT = {
   approve: {
@@ -543,30 +547,51 @@ const approveScenes = Command.make(
         const done = approveCurrent(catalogue, scenes, tree.sound, input.variant, at, op);
         return [{ approved: done.approved, made: done.made }, done.catalogue] as const;
       });
-    /** `scene`'s render, when it is current; else the refusal naming why and how to make it so. */
-    const approvable = (catalogue: Catalogue, { scene, key }: SceneKey) =>
-      Effect.gen(function* () {
-        const render = yield* renderOf(catalogue, input.film, scene, input.variant);
-        const refused = approvalRefused(
-          'render',
-          renderState(Option.some(render), { key, sound: tree.sound }),
-        );
-        if (Option.isNone(refused)) return;
-        return yield* VerbRefused.make({
-          point: pointIdOf({ _tag: 'Render', address: sceneAddress(scene) }),
-          variant: input.variant,
-          verb: 'approve',
-          reason: `${refused.value} (${renderCommand(input.film, scene, input.variant)})`,
-        });
+    /** Why `scene` cannot be approved in `catalogue`, naming how to make it so; none while its render is current. */
+    const refusalOf = (
+      catalogue: Catalogue,
+      { scene, key }: SceneKey,
+    ): Option.Option<SceneNotRendered | VerbRefused> =>
+      Option.match(renderIn(catalogue, sceneSlot(scene, input.variant)), {
+        onNone: () =>
+          Option.some(SceneNotRendered.make({ film: input.film, scene, variant: input.variant })),
+        onSome: (render) =>
+          Option.map(
+            approvalRefused('render', renderState(Option.some(render), { key, sound: tree.sound })),
+            (why) =>
+              VerbRefused.make({
+                point: pointIdOf({ _tag: 'Render', address: sceneAddress(scene) }),
+                variant: input.variant,
+                verb: 'approve',
+                reason: `${why} (${renderCommand(input.film, scene, input.variant)})`,
+              }),
+          ),
       });
-    /** The scenes `ids` approved, each current, or none when any is not. */
+    /**
+     * The scenes `ids` approved, all of them or none: each is checked and
+     * approved in the one write that holds the catalogue's lock, so a render
+     * landing meanwhile is seen (and refused, naming its scene) rather than
+     * skipped.
+     */
     const named = (ids: ReadonlyArray<string>) =>
       Effect.gen(function* () {
         yield* scenesNamed(loaded, placed, Option.some(ids));
-        const catalogue = yield* catalogues.read(loaded.paths);
         const scenes = tree.scenes.filter((s) => ids.includes(s.scene));
-        yield* Effect.forEach(scenes, (scene) => approvable(catalogue, scene));
-        return yield* current(scenes);
+        return yield* catalogues.attempt(loaded.paths, (catalogue) =>
+          Option.match(
+            Arr.findFirst(scenes, (s) => refusalOf(catalogue, s)),
+            {
+              onSome: Result.fail,
+              onNone: () => {
+                const done = approveCurrent(catalogue, scenes, tree.sound, input.variant, at, op);
+                return Result.succeed([
+                  { approved: done.approved, made: done.made },
+                  done.catalogue,
+                ] as const);
+              },
+            },
+          ),
+        );
       });
     const inAct = (name: string) =>
       Effect.flatMap(actNamed(tree, name), (act) =>

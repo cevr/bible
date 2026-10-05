@@ -4,16 +4,19 @@
 // scene bands, ticks and playhead, then the legend, the step and Follow).
 // Each still is the frame at the middle of its step, drawn from the code as
 // it stands by the one source of stills (`player/stills.ts`), the lines on
-// screen first. A line's time is its timecode; each cut is a rule at its
+// screen first, with captions while the preview's captions are on (its
+// toggle turned, the tape is drawn again). A line's time is its timecode; each cut is a rule at its
 // scene's exact time with the scene's name where it has room, and a band
 // under the line says each scene's state in its colour.
 //
 // A tap on a still selects its scene and moves the playhead there; a drag
 // along a line scrubs it. The selected scene's card (`card.tsx`, the card
-// the Project shows) is the inspector's focus panel at the side, a sheet
-// over the tab bar on a phone: the live frame, its act, in, out and length,
-// its marks, Open in Lab (E) and Approve (A), its findings and a comment.
-// ⇧-click or ⌘-click adds scenes to the selection, and ⇧A approves them all.
+// the Project shows) stands in the one sheet (`Sheet`, the Project's scene
+// inspector's) beside the tape, a sheet over the tab bar on a phone: the
+// live frame, its act, in, out and length, its marks, Open in Lab (E) and
+// Approve (A), its findings and a comment; its Close clears the selection.
+// ⇧-click or ⌘-click adds scenes to the selection, and ⇧A approves them all
+// in one say; an approve's receipt offers Undo, as Project's does.
 // The selection is the URL's path and the playhead its `#t=` (`place.ts`):
 // Back steps through the selections. ⌘+ and ⌘− step the tape between 2.5,
 // 5 and 10 s a still (kept in this browser); the palette and the film's
@@ -35,14 +38,19 @@ import { type Context, selected } from '../../command/context.ts';
 import type { Hub } from '../../command/hub.ts';
 import { Selection } from '../../command/selection.ts';
 import { targetAttr } from '../../command/target.ts';
-import { type Say, pageHref } from '../../core/api.ts';
+import { type ProjectView, type Say, pageHref } from '../../core/api.ts';
 import { isShortKey } from '../../core/shorts.ts';
 import { timecode, timecodeParts } from '../../core/time.ts';
 import type { Player } from '../../player/main.ts';
 import { makeStills } from '../../player/stills.ts';
 import { onTheMs } from '../../player/t-in-url.ts';
 import { useShellTime } from '../page-shell.tsx';
-import { SceneCard, sceneHue } from './card.tsx';
+import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts';
+import { PHONE, useMatches } from '../viewport.ts';
+import { pressed } from '../review/format.ts';
+import { Sheet } from '../review/inspector.tsx';
+import { useOnScreenFirst } from '../review/options/stills.tsx';
+import { SceneCard, SceneFindings, sceneHue } from './card.tsx';
 import { type Said, type ScenesRead, scenesCalls } from './data.ts';
 import { bandState, legendOf, marksOf } from './marks.ts';
 import { scenesPlaceOf, withScene } from './place.ts';
@@ -88,12 +96,30 @@ const lineTime = (t: number, fps: number) => {
   });
 };
 
-/** Whether `on` holds, as an ARIA state. */
-const ariaOf = (on: boolean) => `${on}` as const;
-
 /** `n` scenes, in words. */
 const scenesText = (n: number) =>
   Bool.match(n === 1, { onTrue: () => '1 scene', onFalse: () => `${n} scenes` });
+
+/**
+ * What an approve's receipt says: what the catalogue says it gave
+ * (`Project.gave`), not what was asked: `approved two`, `approved 2 scenes`,
+ * or, when it gave none (each approved already, by another meanwhile),
+ * `approved already`.
+ */
+const gaveText = (after: ProjectView): string =>
+  Option.match(
+    Option.flatMap(after.project.gave, (g) =>
+      Arr.match(g.scenes, { onEmpty: Option.none, onNonEmpty: Option.some }),
+    ),
+    {
+      onNone: () => 'approved already',
+      onSome: (scenes) =>
+        Bool.match(scenes.length === 1, {
+          onTrue: () => `approved ${scenes[0]}`,
+          onFalse: () => `approved ${scenesText(scenes.length)}`,
+        }),
+    },
+  );
 
 /** What a step reads as on the legend: `5 s a still · a line a minute`. */
 const stepText = (step: number, perRow: number) => {
@@ -109,7 +135,7 @@ interface ScenesViewProps {
   /** The page's film key (a short's `<film>/shorts/<id>`). */
   readonly name: string;
   readonly player: Player;
-  /** The preview's picture: the focus panel's frame. */
+  /** The preview's picture: the scene sheet's frame. */
   readonly stage: HTMLElement;
   readonly host: Host;
   readonly hub: Hub;
@@ -189,13 +215,15 @@ export const ScenesView = (props: ScenesViewProps) => {
     })),
   );
 
-  // The playhead, as the preview draws it.
+  // The playhead, and the captions on or off, as the preview draws them.
   const [T, setT] = createSignal(player.now(), { ...fromHost, equals: false });
   const [playing, setPlaying] = createSignal(player.playing(), fromHost);
+  const [captions, setCaptions] = createSignal(player.captions.on, fromHost);
   onCleanup(
     player.onDraw((t) => {
       setT(t);
       setPlaying(player.playing());
+      setCaptions(player.captions.on);
     }),
   );
   useShellTime(T, film.fps);
@@ -211,65 +239,46 @@ export const ScenesView = (props: ScenesViewProps) => {
   // The tape: its step kept per viewer, its line length the window's.
   const step = useAtomValue(() => keptStep);
   const keepStep = useAtomSet(() => keptStep);
-  const [wide, setWide] = createSignal(document.documentElement.clientWidth, fromHost);
-  const resized = () => setWide(document.documentElement.clientWidth);
-  window.addEventListener('resize', resized);
-  onCleanup(() => window.removeEventListener('resize', resized));
-  const tape = createMemo(() => tapeOf(scenes, film.duration, stepOf(step()), perRowAt(wide())));
+  const phone = useMatches(props.host, PHONE);
+  const tape = createMemo(() => tapeOf(scenes, film.duration, stepOf(step()), perRowAt(phone())));
   const [follow, setFollow] = createSignal(true, fromHost);
   // A press on the tape bar's track scrubs or seeks away from the playhead: Follow turns off (design §6).
   const unfollow = () => setFollow(false);
   player.track.addEventListener('pointerdown', unfollow);
   onCleanup(() => player.track.removeEventListener('pointerdown', unfollow));
 
-  // The stills: one at a time, a frame apart, the lines on screen first.
+  // The stills: one at a time, a frame apart, the lines on screen first; drawn as the
+  // preview draws, with its captions or without them (its toggle, C): turned, the tape
+  // is drawn again.
   const nowMs = monotonicMs(props.host);
   const opened = nowMs();
-  const stills = makeStills(film, {
-    width: STILL_W,
-    captions: player.captions.on,
-    turn: () => Effect.runPromiseWith(props.host)(Frames.use((f) => f.next)),
-    now: nowMs,
+  const stills = createMemo(() => {
+    const made = makeStills(film, {
+      width: STILL_W,
+      captions: captions(),
+      turn: () => Effect.runPromiseWith(props.host)(Frames.use((f) => f.next)),
+      now: nowMs,
+    });
+    // Left, or drawn again, they draw no more: the queue goes, and a still wanted after is not drawn.
+    onCleanup(made.stop);
+    return made;
   });
-  // Left, the page draws no more of them: the queue goes, and a still wanted after is not drawn.
-  onCleanup(stills.stop);
   const [firstStill, setFirstStill] = createSignal(Option.none<number>(), fromHost);
-  onCleanup(
-    stills.onDrawn(() => {
+  createEffect(stills, (s) =>
+    s.onDrawn(() => {
       if (Option.isNone(untrack(firstStill))) setFirstStill(Option.some(nowMs() - opened));
     }),
   );
-  const onScreen = new Set<number>();
-  /** Ask for the stills of the lines on screen first. */
-  const wantOnScreen = () =>
-    stills.want(
-      [...onScreen]
-        .toSorted((a, b) => a - b)
-        .flatMap((r) =>
-          Option.match(Arr.get(untrack(tape).rows, r), {
-            onNone: () => [],
-            onSome: (row) => row.stills.map((s) => s.t),
-          }),
-        ),
-    );
-  const watch = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (!(entry.target instanceof HTMLElement)) continue;
-        const row = Number(entry.target.dataset['row']);
-        if (entry.isIntersecting) onScreen.add(row);
-        else onScreen.delete(row);
-      }
-      wantOnScreen();
+  // The lines on screen first (`useOnScreenFirst`, the Project's cards' order too).
+  const onScreen = useOnScreenFirst((times) => untrack(stills).want(times));
+  createEffect(
+    () => ({ t: tape(), s: stills() }),
+    ({ t, s }) => {
+      // Every still of the tape, in its order; the lines on screen go ahead of them as they are seen.
+      s.want(t.rows.flatMap((r) => r.stills.map((still) => still.t)));
+      onScreen.ask();
     },
-    { rootMargin: '120px 0px' },
   );
-  onCleanup(() => watch.disconnect());
-  createEffect(tape, (t) => {
-    // Every still of the tape, in its order; the lines on screen go ahead of them as they are seen.
-    stills.want(t.rows.flatMap((r) => r.stills.map((s) => s.t)));
-    wantOnScreen();
-  });
 
   // Follow: while it plays, the playhead's line stays in sight.
   const rows = new Map<number, HTMLElement>();
@@ -289,13 +298,46 @@ export const ScenesView = (props: ScenesViewProps) => {
     player.seek(t);
   };
 
-  /** Say `say` of `ids` (a run of neighbours at a time); the receipt says `what`, or why not. */
-  const sayOf = (ids: ReadonlyArray<string>, what: string, say: Say) =>
-    Effect.map(calls.say(ids, order, say), (answer: Said) => {
+  /**
+   * Say `say` of `ids`, in one say; the receipt says `what` (from the
+   * project it leaves), or why not. An approve's offers its Undo
+   * (`approveUndo`), as Project's does.
+   */
+  const sayOf = (
+    ids: readonly [string, ...string[]],
+    what: (after: ProjectView) => string,
+    say: Say,
+  ) =>
+    Effect.map(calls.say(ids, say), (answer: Said) => {
       if (answer._tag === 'Refused') return refused(answer.reason);
       setRead({ ...read(), project: Option.some(answer.project) });
-      return said(what);
+      return said(what(answer.project), approveUndo(props.name, answer.project));
     });
+  // An approve's Undo: one withdraw of just the approvals it gave, said in the words of
+  // what the catalogue took.
+  const [undoing, setUndoing] = createSignal(false, fromHost);
+  onCleanup(
+    props.hub.commands.register(
+      undoApprove(props.name, {
+        waiting: undoing,
+        withdraw: (ids, say) =>
+          Effect.sync(() => setUndoing(true)).pipe(
+            Effect.andThen(
+              sayOf(
+                ids,
+                (after) =>
+                  Option.match(after.project.took, {
+                    onNone: () => `withdrew ${scenesText(ids.length)}`,
+                    onSome: (took) => tookText({ _tag: 'Scenes', ids }, took),
+                  }),
+                say,
+              ),
+            ),
+            Effect.ensuring(Effect.sync(() => setUndoing(false))),
+          ),
+      }),
+    ),
+  );
 
   /** Whether `scene`'s render is current and not yet approved as it is: what Approve takes. */
   const approvable = (scene: string) =>
@@ -353,7 +395,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       run: (ctx) =>
         Option.match(sceneIn(ctx), {
           onNone: () => Effect.succeed(quiet),
-          onSome: (scene) => sayOf([scene], `approved ${scene}`, { _tag: 'Approve' }),
+          onSome: (scene) => sayOf([scene], gaveText, { _tag: 'Approve' }),
         }),
     },
     {
@@ -364,10 +406,11 @@ export const ScenesView = (props: ScenesViewProps) => {
       about: ['Scene'],
       touch: 'select scenes (long-press a still, Add to selection), then this',
       when: () => picked().length > 1 && picked().some(approvable),
-      run: () => {
-        const ids = picked().filter(approvable);
-        return sayOf(ids, `approved ${scenesText(ids.length)}`, { _tag: 'Approve' });
-      },
+      run: () =>
+        Arr.match(picked().filter(approvable), {
+          onEmpty: () => Effect.succeed(quiet),
+          onNonEmpty: (ids) => sayOf(ids, gaveText, { _tag: 'Approve' }),
+        }),
     },
     {
       id: 'scenes.add',
@@ -513,9 +556,9 @@ export const ScenesView = (props: ScenesViewProps) => {
         data-row={row.index}
         ref={(el: HTMLDivElement) => {
           rows.set(row.index, el);
-          watch.observe(el);
+          const unwatch = onScreen.watch(el, () => row.stills.map((s) => s.t));
           onCleanup(() => {
-            watch.unobserve(el);
+            unwatch();
             rows.delete(row.index);
           });
         }}
@@ -579,12 +622,14 @@ export const ScenesView = (props: ScenesViewProps) => {
             <For each={row.stills} keyed={(s) => s.t}>
               {(still) => {
                 const t = untrack(() => still().t);
-                const [canvas, setCanvas] = createSignal(stills.at(t), fromHost);
-                onCleanup(
-                  stills.onDrawn(() => {
-                    if (Option.isNone(untrack(canvas))) setCanvas(stills.at(t));
-                  }),
-                );
+                // The still of the stills drawn now: none again while they are drawn again.
+                const [canvas, setCanvas] = createSignal(untrack(stills).at(t), fromHost);
+                createEffect(stills, (s) => {
+                  setCanvas(s.at(t));
+                  return s.onDrawn(() => {
+                    if (Option.isNone(untrack(canvas))) setCanvas(s.at(t));
+                  });
+                });
                 return (
                   <div
                     class="sc-still"
@@ -626,8 +671,11 @@ export const ScenesView = (props: ScenesViewProps) => {
     );
   };
 
-  /** The selected scene's card: the focus panel, a sheet over the tab bar on a phone. */
-  const [expanded, setExpanded] = createSignal(false, fromHost);
+  /**
+   * What the selected scene's sheet holds (`Sheet`, the Project's scene
+   * inspector's): its card, its findings (`SceneFindings`), its comments and
+   * a comment box.
+   */
   const Focus = (focus: { readonly scene: string }) => {
     const scene = untrack(() => focus.scene);
     const [comment, setComment] = createSignal('', fromHost);
@@ -637,40 +685,19 @@ export const ScenesView = (props: ScenesViewProps) => {
       if (text === '' || saying()) return;
       setSaying(true);
       Effect.runFork(
-        Effect.tap(sayOf([scene], `commented on ${scene}`, { _tag: 'Comment', text }), (receipt) =>
-          Effect.sync(() => {
-            setSaying(false);
-            if (receipt._tag === 'Said' && receipt.tone === 'done') setComment('');
-            props.hub.announce(receipt, 'scenes.comment');
-          }),
+        Effect.tap(
+          sayOf([scene], () => `commented on ${scene}`, { _tag: 'Comment', text }),
+          (receipt) =>
+            Effect.sync(() => {
+              setSaying(false);
+              if (receipt._tag === 'Said' && receipt.tone === 'done') setComment('');
+              props.hub.announce(receipt, 'scenes.comment');
+            }),
         ),
       );
     };
     return (
-      <aside class="sc-focus" data-expanded={String(expanded())} aria-label={`scene ${scene}`}>
-        <div class="sc-focus-head">
-          <button
-            type="button"
-            class="sc-grip"
-            data-act="sheet"
-            aria-label={Bool.match(expanded(), {
-              onTrue: () => 'Show less',
-              onFalse: () => 'Show more',
-            })}
-            aria-expanded={ariaOf(expanded())}
-            onClick={() => {
-              setExpanded(!expanded());
-            }}
-          />
-          <span class="sc-panel-title">
-            Scene <span>{`${indexOf(scene) + 1} of ${scenes.length}`}</span>
-          </span>
-          <Show when={picked().length > 1}>
-            <span class="sc-picked" data-role="picked">
-              {`${scenesText(picked().length)} selected`}
-            </span>
-          </Show>
-        </div>
+      <>
         <SceneCard
           film={props.name}
           scene={scene}
@@ -727,74 +754,62 @@ export const ScenesView = (props: ScenesViewProps) => {
               </Show>
             </>
           }
-        >
-          <Show when={marks()(scene).findings.length > 0}>
-            <section class="sc-section" data-section="findings">
-              <h3>
-                Findings <span>{marks()(scene).findings.length}</span>
-              </h3>
-              <For each={marks()(scene).findings}>
-                {(line) => (
-                  <p class="sc-finding" data-level={line.level}>
-                    <b>{line.tag}</b> {line.message}
-                  </p>
+        />
+        <SceneFindings marks={marks()(scene)} />
+        <Show when={!short && Option.isSome(read().project)}>
+          <section class="sc-section" data-section="comment">
+            <h3>
+              Comments{' '}
+              <span>
+                {Option.getOrElse(
+                  Option.map(marks()(scene).render, (r) => r.comments.length),
+                  () => 0,
                 )}
-              </For>
-            </section>
-          </Show>
-          <Show when={!short && Option.isSome(read().project)}>
-            <section class="sc-section" data-section="comment">
-              <h3>
-                Comments{' '}
-                <span>
-                  {Option.getOrElse(
-                    Option.map(marks()(scene).render, (r) => r.comments.length),
-                    () => 0,
-                  )}
-                </span>
-              </h3>
-              <For
-                each={Option.getOrElse(
-                  Option.map(marks()(scene).render, (r) => r.comments),
-                  () => [],
-                )}
-              >
-                {(c) => <p class="sc-comment">{c.text}</p>}
-              </For>
-              <textarea
-                class="sc-say"
-                rows="2"
-                placeholder={`Comment on ${scene}…`}
-                value={comment()}
-                disabled={saying()}
-                onInput={(e: InputEvent) => {
-                  const box = e.currentTarget;
-                  if (box instanceof HTMLTextAreaElement) setComment(box.value);
-                }}
-              />
-              <button
-                type="button"
-                class="sc-verb"
-                data-act="comment"
-                disabled={saying() || comment().trim() === ''}
-                onClick={sayComment}
-              >
-                Comment
-              </button>
-            </section>
-          </Show>
-        </SceneCard>
-      </aside>
+              </span>
+            </h3>
+            <For
+              each={Option.getOrElse(
+                Option.map(marks()(scene).render, (r) => r.comments),
+                () => [],
+              )}
+            >
+              {(c) => <p class="sc-comment">{c.text}</p>}
+            </For>
+            <textarea
+              class="sc-say"
+              rows="2"
+              placeholder={`Comment on ${scene}…`}
+              value={comment()}
+              disabled={saying()}
+              onInput={(e: InputEvent) => {
+                const box = e.currentTarget;
+                if (box instanceof HTMLTextAreaElement) setComment(box.value);
+              }}
+            />
+            <button
+              type="button"
+              class="sc-verb"
+              data-act="comment"
+              disabled={saying() || comment().trim() === ''}
+              onClick={sayComment}
+            >
+              Comment
+            </button>
+          </section>
+        </Show>
+      </>
     );
   };
+  /** The selected scene (the path's), as the sheet's footer and its target name it. */
+  const focused = () => Option.getOrElse(chosen(), () => '');
 
-  const legend = createMemo(() => legendOf(order, marks()));
+  const legend = createMemo(() => legendOf(order, marks(), read().findings));
   // The page scrolls as a whole, the tape bar and the card held under the header.
   document.body.classList.add('scenes');
   onCleanup(() => document.body.classList.remove('scenes'));
   return (
     <div class="sc" data-selected={String(Option.isSome(chosen()))}>
-      {/* With no scene selected the tape takes the page: the picture waits here, unseen, for the focus panel. */}
+      {/* With no scene selected the tape takes the page: the picture waits here, unseen, for the scene's sheet. */}
       <div
         class="sc-park"
         hidden
@@ -823,9 +838,9 @@ export const ScenesView = (props: ScenesViewProps) => {
           {/* One row, whatever the film's marks: the counts scroll in their own strip, the step gives way first. */}
           <div class="sc-legend">
             <span class="sc-legend-items">
-              <For each={legend()} keyed={(l) => l.state}>
+              <For each={legend()} keyed={(l) => l.mark}>
                 {(l) => (
-                  <span class="sc-legend-item" data-state={l().state}>
+                  <span class="sc-legend-item" data-mark={l().mark} data-state={l().state}>
                     <i class="sc-dot" data-state={l().state} />
                     {l().text}
                   </span>
@@ -840,7 +855,7 @@ export const ScenesView = (props: ScenesViewProps) => {
               type="button"
               class="sc-follow"
               data-act="follow"
-              aria-pressed={ariaOf(follow())}
+              aria-pressed={pressed(follow())}
               onClick={() => {
                 setFollow(!follow());
               }}
@@ -863,8 +878,35 @@ export const ScenesView = (props: ScenesViewProps) => {
           <For each={tape().rows}>{(row) => <Line row={row} />}</For>
         </div>
       </div>
-      <Show when={Option.getOrUndefined(chosen())} keyed>
-        {(scene) => <Focus scene={scene} />}
+      {/* One sheet while a scene is selected, its contents the scene's: a tap on another
+          still keeps it as it stands (lowered or raised) and shows that scene. On a phone
+          it opens lowered, its card in brief over the tab bar; its Close (and Escape, and a
+          swipe) clears the selection, a step Back walks. The focus stays on the tape. */}
+      <Show when={Option.isSome(chosen())}>
+        <Sheet
+          host={props.host}
+          hub={props.hub}
+          of={Selection.cases.Scene.make({ film: props.name, scene: focused() })}
+          role="scene"
+          class="sc-focus"
+          peeked
+          title={
+            <>
+              Scene <span>{`${indexOf(focused()) + 1} of ${scenes.length}`}</span>
+              <Show when={picked().length > 1}>
+                <span class="sc-picked" data-role="picked">
+                  {`${scenesText(picked().length)} selected`}
+                </span>
+              </Show>
+            </>
+          }
+          initialFocus={() => false}
+          onClose={() => select(Option.none())}
+        >
+          <Show when={Option.getOrUndefined(chosen())} keyed>
+            {(scene) => <Focus scene={scene} />}
+          </Show>
+        </Sheet>
       </Show>
       <Dialog.Root open={palette()} onOpenChange={setPalette}>
         <Dialog.Portal>
@@ -905,7 +947,7 @@ export const ScenesView = (props: ScenesViewProps) => {
                 {`${tape().rows.reduce((n, r) => n + r.stills.length, 0)} · ${stepText(tape().step, tape().perRow)}`}
               </dd>
               <dt>drawn</dt>
-              <dd>{`${stills.drawn().count} in ${Math.round(stills.drawn().ms)} ms`}</dd>
+              <dd>{`${stills().drawn().count} in ${Math.round(stills().drawn().ms)} ms`}</dd>
             </dl>
             <p class="lab-sheet-about">
               Tap a still to select its scene; drag along a line to scrub; ⇧-click to add a scene.

@@ -4,9 +4,9 @@
 // acts ruler, the preview's track as its scene bands, the legend and
 // Follow), the wrapped tape (a line's timecode, its cuts and their names,
 // its stills, its state band and the playhead), and the selected scene's card
-// in the focus panel at the side, a sheet peeking over the tab bar on a
-// phone. The player page and the review page each inject it with the
-// shell's styles.
+// in its sheet (the one sheet, `lab-inspector-sheet` in the command styles),
+// which on a phone peeks over the tab bar with the card in brief. The player
+// page and the review page each inject it with the shell's styles.
 
 export const SCENES_CSS = `
 body.scenes { display: block; height: auto; }
@@ -78,14 +78,9 @@ body.scenes { display: block; height: auto; }
 .sc-playhead { position: absolute; top: var(--lh-1); bottom: 0; z-index: 2; width: 2px; margin-left: -1px;
   background: var(--accent); pointer-events: none; }
 
-.sc-focus { position: sticky; top: var(--header-h); height: calc(100dvh - var(--header-h)); overflow-y: auto;
-  background: var(--surface-1); border-left: var(--border); }
-.sc-focus-head { display: flex; align-items: center; gap: var(--s-2); min-height: var(--panel-head-h); padding: 0 var(--gutter); }
-.sc-grip { display: none; }
-.sc-panel-title { font-size: var(--fs-2); font-weight: var(--w-3); letter-spacing: var(--track-caps);
-  text-transform: uppercase; color: var(--text-1); }
-.sc-panel-title span { font-weight: var(--w-1); letter-spacing: normal; text-transform: none; color: var(--text-3); }
-.sc-picked { margin-left: auto; font-size: var(--fs-1); color: var(--accent); }
+.sc-focus .lab-sheet-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-2); min-width: 0; }
+.sc-focus .lab-sheet-title > span { font-weight: var(--w-1); color: var(--text-3); }
+.sc-focus .lab-sheet-title > .sc-picked { color: var(--accent); }
 
 .sc-card { display: grid; align-content: start; gap: var(--s-2); padding: 0 var(--gutter) var(--s-4); }
 .sc-card[data-size="tile"] { gap: var(--s-1); padding: 0 0 var(--s-2); overflow: hidden; background: var(--surface-2);
@@ -137,26 +132,16 @@ body.scenes { display: block; height: auto; }
 .sc-swatch b { font-weight: var(--w-2); color: var(--text-1); }
 .sc-swatch-chip { height: var(--s-8); border: var(--border); border-radius: var(--r-1); }
 
-/* The laptop: the selected scene's card at the side. */
-@media (min-width: 900px) {
-  .sc[data-selected="true"] { grid-template-columns: minmax(0, 1fr) var(--inspector-w); }
-}
-
-/* The phone: the card peeks over the tab bar (picture, name, marks, Open in Lab) and opens to the whole card. */
+/* The phone: lowered, the sheet keeps the card in brief over the tab bar (picture, name, marks, Open in Lab);
+   raised, the whole card. */
 @media (max-width: 899px) {
-  .sc-focus { position: fixed; top: auto; left: 0; right: 0; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
-    z-index: 26; height: auto; max-height: 75dvh; border-left: 0; border-top: var(--border);
-    border-radius: var(--r-sheet) var(--r-sheet) 0 0; box-shadow: var(--shadow-pop); }
-  .sc-focus-head { position: relative; min-height: var(--hit); }
-  .sc-grip { display: block; position: absolute; inset: 0; border: 0; background: none; cursor: pointer; }
-  .sc-grip::before { content: ""; position: absolute; top: var(--s-2); left: 50%; width: var(--s-8); height: 4px;
-    margin-left: calc(var(--s-8) / -2); border-radius: 2px; background: var(--line-strong); }
-  .sc-focus[data-expanded="false"] .sc-card { grid-template-columns: 7rem minmax(0, 1fr); column-gap: var(--s-3); align-items: center; }
-  .sc-focus[data-expanded="false"] .sc-card-picture { grid-row: span 2; }
-  .sc-focus[data-expanded="false"] .sc-card-facts,
-  .sc-focus[data-expanded="false"] .sc-section,
-  .sc-focus[data-expanded="false"] .sc-verb:not([data-primary]) { display: none; }
-  .sc-focus[data-expanded="false"] .sc-card-verb { grid-column: 1 / -1; }
+  .sc-focus.lab-inspector-sheet[data-peek="true"] > .lab-inspector-body { display: flex; }
+  .sc-focus[data-peek="true"] .sc-card { grid-template-columns: 7rem minmax(0, 1fr); column-gap: var(--s-3); align-items: center; }
+  .sc-focus[data-peek="true"] .sc-card-picture { grid-row: span 2; }
+  .sc-focus[data-peek="true"] .sc-card-facts,
+  .sc-focus[data-peek="true"] .sc-section,
+  .sc-focus[data-peek="true"] .sc-verb:not([data-primary]) { display: none; }
+  .sc-focus[data-peek="true"] .sc-card-verb { grid-column: 1 / -1; }
   .sc[data-selected="true"] .sc-tape { padding-bottom: 40dvh; }
   /* A tile on the phone is a row (design language §7, Project): its still beside its name and marks;
      its verb lives in the scene's sheet. */

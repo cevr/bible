@@ -1,12 +1,12 @@
 // A scene's card (design language §6, One surface): the same card wherever a
-// scene is shown whole, the Scenes page's focus panel and the Project's grid
-// and inspector. Its picture (a slot: the live frame on Scenes, the render on
-// the Project), the scene's hue and name, its act and its in, out and length
-// as timecode, its marks as chips (`marks.ts`), a slot for its verb (Open in
-// Lab, Approve) and, below, whatever the page shows of the scene in its
-// inspector. The card is a `Target`: a right-click or a long press on it
-// opens the commands of what it stands for (the scene on Scenes, its render
-// on the Project). `tile` is the grid's size, `focus` the inspector's.
+// scene is shown whole, the scene's sheet (Scenes' and the Project's, the
+// one `Sheet`) and the Project's grid. Its picture (a slot: the live frame on
+// Scenes, the render on the Project), the scene's hue and name, its act and
+// its in, out and length as timecode, its marks as chips (`marks.ts`) and a
+// slot for its verb (Open in Lab, Approve); under it in the sheet, its
+// findings (`SceneFindings`). The card is a `Target`: a right-click or a long
+// press on it opens the commands of what it stands for (the scene on Scenes,
+// its render on the Project). `tile` is the grid's size, `focus` the sheet's.
 
 import { For, type JSX, Show } from '@solidjs/web';
 import { Option } from 'effect';
@@ -40,8 +40,6 @@ interface SceneCardProps {
   readonly verb?: JSX.Element;
   /** Whether it is the one selected. */
   readonly selected?: boolean;
-  /** What the page shows of the scene below its head. */
-  readonly children?: JSX.Element;
 }
 
 /** A scene's card. */
@@ -108,6 +106,27 @@ export const SceneCard = (props: SceneCardProps) => (
     <Show when={props.verb}>
       <div class="sc-card-verb">{props.verb}</div>
     </Show>
-    {props.children}
   </Target>
+);
+
+/**
+ * A scene's findings, as its sheet shows them under its card (on Scenes and
+ * on the Project alike): each line's tag in its level's colour, then what it
+ * says; nothing when the check found none about it.
+ */
+export const SceneFindings = (props: { readonly marks: SceneMarks }) => (
+  <Show when={props.marks.findings.length > 0}>
+    <section class="sc-section" data-section="findings">
+      <h3>
+        Findings <span>{props.marks.findings.length}</span>
+      </h3>
+      <For each={props.marks.findings}>
+        {(line) => (
+          <p class="sc-finding" data-level={line.level}>
+            <b>{line.tag}</b> {line.message}
+          </p>
+        )}
+      </For>
+    </section>
+  </Show>
 );

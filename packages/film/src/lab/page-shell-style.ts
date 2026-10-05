@@ -5,6 +5,8 @@
 // area), and the dock a page's transport takes above it (`.sh-dock`). Every
 // page injects it with the commands' styles.
 
+import { PHONE } from './viewport.ts';
+
 export const SHELL_CSS = `
 html, body { margin: 0; }
 body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
@@ -63,7 +65,7 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 body.lab .sh-await { grid-column: 1; grid-row: 2; }
 
 /* The phone: the five film tabs along the bottom, the transport docked above them. */
-@media (max-width: 899px) {
+@media ${PHONE} {
   .sh[data-film="true"] { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
   .sh-pagebar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
     height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);

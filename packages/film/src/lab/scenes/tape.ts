@@ -83,9 +83,9 @@ interface Tape {
 export const STEPS = [2.5, 5, 10] as const;
 type Step = (typeof STEPS)[number];
 
-/** Stills a row on a window `width` px wide: a laptop's 12, a phone's 6. */
-export const perRowAt = (width: number): number =>
-  Bool.match(width < 900, { onTrue: () => 6, onFalse: () => 12 });
+/** Stills a row: a laptop's 12, a phone's 6 (a window of the phone's width, `PHONE`). */
+export const perRowAt = (phone: boolean): number =>
+  Bool.match(phone, { onTrue: () => 6, onFalse: () => 12 });
 
 /** The scene `t` falls in: the last that starts at or before it (the first before any). */
 export const sceneAt = (scenes: ReadonlyArray<TapeScene>, t: number): Option.Option<TapeScene> =>

@@ -12,7 +12,14 @@ import { Boolean as Bool, Effect, Option, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
-import { type FakeRoute, json, openPlayer, route } from '../../src/lab/fixtures/harness.ts';
+import { onTheMs } from '../../src/player/t-in-url.ts';
+import {
+  type FakeRoute,
+  type Json,
+  json,
+  openPlayer,
+  route,
+} from '../../src/lab/fixtures/harness.ts';
 import { CROWD } from '../../src/lab/fixtures/crowd-film.ts';
 import { MENU_ITEMS, touch } from '../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../src/lab/fixtures/probe-film.ts';
@@ -60,19 +67,27 @@ const shiftClickInScene = (page: Tab, scene: string) =>
     ),
   );
 
-/** The probe film's project: each scene rendered as it stands, approved when `approved` holds it. */
-const projectOf = (approved: ReadonlyArray<string>) => ({
+/**
+ * The probe film's project: each scene rendered as it stands, approved when
+ * `approved` holds it; an approve's answer says what it `gave`, an Undo's
+ * what it `took`.
+ */
+const projectOf = (
+  approved: ReadonlyMap<string, string>,
+  answer: { readonly gave?: Json; readonly took?: Json } = {},
+) => ({
   project: {
     film: PROBE,
     variant: 'main',
     key: 'fk',
+    ...answer,
     comments: [],
     acts: [{ name: 'opening', scenes: ['one', 'two', 'three'], key: 'ak', comments: [] }],
     scenes: ['one', 'two', 'three'].map((scene) => ({
       scene,
       key: 'k',
       state: 'current',
-      approval: Bool.match(approved.includes(scene), {
+      approval: Bool.match(approved.has(scene), {
         onTrue: () => 'approved',
         onFalse: () => 'none',
       }),
@@ -82,19 +97,39 @@ const projectOf = (approved: ReadonlyArray<string>) => ({
   videos: {},
 });
 
-/** What a project say names: its scenes. */
+/** What a project say names: its scenes, and what it says (a withdraw `given` an approve's op). */
 const SaidOf = Schema.decodeUnknownSync(
-  Schema.Struct({ address: Schema.Struct({ ids: Schema.Array(Schema.String) }) }),
+  Schema.Struct({
+    address: Schema.Struct({ ids: Schema.Array(Schema.String) }),
+    say: Schema.Struct({ _tag: Schema.String, given: Schema.optionalKey(Schema.String) }),
+  }),
 );
 
-/** The project's routes: a read, and an approval that approves the scenes it names. */
-const projectRoutes = (): ReadonlyArray<FakeRoute> => {
-  const approved: Array<string> = [];
+/**
+ * The project's routes: a read; an approve, a run of its own (its op), that
+ * approves the scenes it names not approved already and says it gave them;
+ * a withdraw given an op that takes just that run's approvals.
+ */
+const projectRoutes = (meanwhile: ReadonlyArray<string> = []): ReadonlyArray<FakeRoute> => {
+  // Each approved scene, by the op of the run that approved it; `meanwhile`, approved by
+  // another reviewer just before the page's first approve lands.
+  const approved = new Map<string, string>();
+  let runs = 0;
   return [
     route('GET', /^\/project$/, () => json(projectOf(approved))),
     route('POST', /^\/project\/say$/, (asked) => {
-      approved.push(...SaidOf(Option.getOrElse(asked.body, () => ({}))).address.ids);
-      return json(projectOf(approved));
+      const said = SaidOf(Option.getOrElse(asked.body, () => ({})));
+      if (said.say._tag === 'Withdraw') {
+        const took = said.address.ids.filter((s) => approved.get(s) === said.say.given);
+        took.forEach((s) => approved.delete(s));
+        return json(projectOf(approved, { took: { op: said.say.given ?? '', scenes: took } }));
+      }
+      if (runs === 0) meanwhile.forEach((s) => approved.set(s, 'op-another'));
+      runs += 1;
+      const op = `op-${runs}`;
+      const made = said.address.ids.filter((s) => !approved.has(s));
+      made.forEach((s) => approved.set(s, op));
+      return json(projectOf(approved, { gave: { op, at: 0, scenes: made } }));
     }),
   ];
 };
@@ -388,7 +423,7 @@ describe('the player', () => {
         yield* clickInScene(page, 'two');
         yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'two'));
         yield* textIs(page, '.sc-focus .sc-card-name', 'two');
-        yield* textHas(page, '.sc-focus .sc-panel-title', '2 of 3');
+        yield* textHas(page, '.sc-focus .lab-sheet-title', '2 of 3');
         // In, out and length are the film's timecode.
         yield* textHas(page, '.sc-focus .sc-card-facts', timecode(TWO));
         // The playhead is in the scene, and the URL's `#t=` says so.
@@ -411,7 +446,42 @@ describe('the player', () => {
   );
 
   it.live(
-    "on a phone the selected scene's card is a sheet over the tab bar, its verbs a finger's size",
+    "the tape follows the window across the phone's width: a minute a line, then half (RS-7)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+        );
+        yield* textHas(page, '[data-role="step"]', 'a line a minute');
+        yield* page.resize(PHONE.width, PHONE.height);
+        yield* textHas(page, '[data-role="step"]', 'a line 30 s');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "a Scenes link naming a scene and no time opens at that scene's start; one with a time keeps it (SU-2)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scene(PROBE, 'two'), viewport: DESK },
+          '.sc-focus .sc-card',
+        );
+        yield* evaluates(page, 'location.hash', `#t=${onTheMs(TWO)}`);
+        expect(errors).toEqual([]);
+        const later = onTheMs(TWO + 0.5);
+        const timed = yield* openPlayer(
+          { href: pageHref.scene(PROBE, 'two', Option.some(later)), viewport: DESK },
+          '.sc-focus .sc-card',
+        );
+        yield* evaluates(timed.page, 'location.hash', `#t=${later}`);
+        expect(timed.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a phone the selected scene's card is the one sheet over the tab bar, its verbs a finger's size, its Close dropping the scene (RS-4)",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openPlayer(
@@ -427,16 +497,82 @@ describe('the player', () => {
         expect(sheet.width).toBe(PHONE.width);
         const open = yield* page.box('.sc-focus [data-act="open-lab"]');
         expect(open.height).toBeGreaterThanOrEqual(44);
-        yield* attributeIs(page, '.sc-focus', 'data-expanded', 'false');
+        // It opens lowered to a peek (its card in brief); its grip raises it, as an inspector's does.
+        yield* attributeIs(page, '.sc-focus', 'data-peek', 'true');
         yield* page.click('.sc-focus [data-act="sheet"]');
-        yield* attributeIs(page, '.sc-focus', 'data-expanded', 'true');
+        yield* attributeIs(page, '.sc-focus', 'data-peek', 'false');
         yield* evaluates(page, NO_SIDEWAYS, true);
+        // Its Close is the Project inspector's: it drops the scene from the path.
+        yield* page.click('.sc-focus [data-act="close-inspector"]');
+        yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
+        yield* countIs(page, '.sc-focus', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
 
   it.live(
-    '⇧-click adds scenes to the selection, and ⇧A approves them all, a run of neighbours at a time (AA-12)',
+    "the tape's stills follow the captions toggle: turned, a captioned still is drawn without its caption, and turned back, as it was (RS-6)",
+    () =>
+      Effect.gen(function* () {
+        // The crowd film carries captions (the probe film draws none).
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(CROWD), viewport: DESK },
+          STILL_DRAWN,
+        );
+        // Every still drawn as the page opened, by its time: a hash of its pixels (none while
+        // one is not drawn). No still is kept beyond this run.
+        yield* evaluates(
+          page,
+          `document.querySelectorAll('.sc-still:not([data-drawn="true"])').length`,
+          0,
+        );
+        yield* page.evaluate(
+          `window.__pixels = (t) => { const c = document.querySelector('.sc-still[data-t="' + t + '"][data-drawn="true"] canvas'); if (c === null) return null; const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 2166136261; for (let i = 0; i < d.length; i += 1) h = Math.imul(h ^ d[i], 16777619); return h >>> 0; };
+           window.__first = Object.fromEntries([...document.querySelectorAll('.sc-still')].map((s) => [s.dataset.t, window.__pixels(s.dataset.t)]));`,
+        );
+        const captions = `document.querySelector('[data-act="captions"]').click()`;
+        // Turned, a still with a caption is drawn again without it: its pixels differ.
+        yield* page.evaluate(captions);
+        yield* evaluates(
+          page,
+          `(window.__t = Object.keys(window.__first).find((t) => ((now) => now !== null && now !== window.__first[t])(window.__pixels(t)))) !== undefined`,
+          true,
+        );
+        // Turned back, that still is drawn as it was, pixel for pixel.
+        yield* page.evaluate(captions);
+        yield* evaluates(page, `window.__pixels(window.__t) === window.__first[window.__t]`, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live('⇧-click adds scenes to the selection, and ⇧A approves them all in one say (AA-12)', () =>
+    Effect.gen(function* () {
+      const { page, asked, errors } = yield* openPlayer(
+        { href: pageHref.scenes(PROBE), viewport: DESK },
+        STILL_DRAWN,
+        projectRoutes(),
+      );
+      yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+      yield* clickInScene(page, 'one');
+      yield* shiftClickInScene(page, 'three');
+      yield* textIs(page, '.sc-focus [data-role="picked"]', '2 scenes selected');
+      // The path names the first scene picked; the batch is never in the URL.
+      yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
+      yield* page.press('Shift+A');
+      yield* textHas(page, '[data-role="receipt"]', 'approved 2 scenes');
+      // One say names every scene picked, neighbours or not: the project approves them in one run.
+      expect(
+        asked
+          .filter((a) => a.method === 'POST' && a.path === '/project/say')
+          .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
+      ).toEqual([['one', 'three']]);
+      yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
+      expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "an approve on Scenes offers Undo, as Project's does: one withdraw of just the approvals it gave (its op)",
     () =>
       Effect.gen(function* () {
         const { page, asked, errors } = yield* openPlayer(
@@ -447,18 +583,41 @@ describe('the player', () => {
         yield* page.waitFor('.sc-acts [data-act-name="opening"]');
         yield* clickInScene(page, 'one');
         yield* shiftClickInScene(page, 'three');
-        yield* textIs(page, '.sc-focus [data-role="picked"]', '2 scenes selected');
-        // The path names the first scene picked; the batch is never in the URL.
-        yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
         yield* page.press('Shift+A');
         yield* textHas(page, '[data-role="receipt"]', 'approved 2 scenes');
-        // One and three are not neighbours: two says, each naming its run.
+        yield* page.click('[data-role="receipt"] [data-act="receipt-undo"]');
+        yield* textHas(page, '[data-role="receipt"]', 'Undid approving scenes one, three');
         expect(
           asked
             .filter((a) => a.method === 'POST' && a.path === '/project/say')
-            .map((a) => SaidOf(Option.getOrElse(a.body, () => ({}))).address.ids),
-        ).toEqual([['one'], ['three']]);
-        yield* textHas(page, '.sc-focus .sc-chips', 'Approved');
+            .map((a) => SaidOf(Option.getOrElse(a.body, () => ({})))),
+        ).toEqual([
+          { address: { ids: ['one', 'three'] }, say: { _tag: 'Approve' } },
+          { address: { ids: ['one', 'three'] }, say: { _tag: 'Withdraw', given: 'op-1' } },
+        ]);
+        yield* evaluates(page, "document.querySelector('.sc-focus .sc-chips').textContent", '');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "an approve's receipt says what the catalogue gave, not what was asked: a scene another approved meanwhile is not counted",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+          projectRoutes(['three']),
+        );
+        yield* page.waitFor('.sc-acts [data-act-name="opening"]');
+        yield* clickInScene(page, 'one');
+        yield* shiftClickInScene(page, 'three');
+        // Every receipt said, kept as it shows.
+        yield* page.evaluate(
+          `window.__said = []; new MutationObserver(() => document.querySelectorAll('[data-role="receipt"] .lab-receipt-said').forEach((e) => { if (!window.__said.includes(e.textContent)) window.__said.push(e.textContent) })).observe(document.body, { subtree: true, childList: true, characterData: true })`,
+        );
+        yield* page.press('Shift+A');
+        yield* evaluates(page, 'window.__said', ['approved one']);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );

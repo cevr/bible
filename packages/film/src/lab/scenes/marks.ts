@@ -3,7 +3,9 @@
 // its approval (approved, or approved earlier) from the film's project, and the check's findings about it
 // (a finding whose address names the scene). Each mark is a chip: a word in
 // the state's colour (`MarkChip.state`, a `--state-*` token's name), why in full its title. The
-// tape's legend counts them over the film. The project or the check may not
+// tape's legend counts them over the film, the film's own lines too. The check is counted
+// one way here for every page (`checkCount`, `countState`: Scenes, Project, Choices): each
+// line once, a warning never a finding. The project or the check may not
 // be read (yet, or at all: a short has no project): the scene then has no
 // such mark, never a wrong one. Pure.
 
@@ -35,6 +37,48 @@ const about = (line: CheckLine, scene: string): boolean =>
     (a) => a.part._tag === 'Scenes' && a.part.ids.includes(scene),
   );
 
+/** Whether `line` is about one of `scenes`. */
+const aboutAny = (line: CheckLine, scenes: ReadonlyArray<string>): boolean =>
+  scenes.some((scene) => about(line, scene));
+
+/** Whether `line` is the film's own: addressed to no scene (the film's, an act's, or no place). */
+const filmsOwn = (line: CheckLine): boolean =>
+  !Option.exists(Option.fromUndefinedOr(line.address), (a) => a.part._tag === 'Scenes');
+
+/**
+ * The check's lines counted one way, wherever a page counts them (a scene's
+ * chips, the tape's legend, the Project's and Choices' check chips): each
+ * line once, as an error (a finding) or a warning.
+ */
+interface CheckCount {
+  readonly errors: number;
+  readonly warnings: number;
+}
+
+/** `lines` counted by level (`CheckCount`). */
+export const checkCount = (lines: ReadonlyArray<CheckLine>): CheckCount => {
+  const errors = lines.filter((l) => l.level === 'error').length;
+  return { errors, warnings: lines.length - errors };
+};
+
+/** The state `lines` are drawn in: an error among them, warnings only, or none at all. */
+export const countState = (
+  lines: ReadonlyArray<CheckLine>,
+): Option.Option<'findings' | 'warning'> => {
+  const count = checkCount(lines);
+  return Option.orElse(
+    Option.as(
+      Option.liftPredicate(count.errors, (n) => n > 0),
+      'findings' as const,
+    ),
+    () =>
+      Option.as(
+        Option.liftPredicate(count.warnings, (n) => n > 0),
+        'warning' as const,
+      ),
+  );
+};
+
 /** What is known of each scene, from the project (when read) and the check's findings. */
 export const marksOf =
   (project: Option.Option<ProjectView>, findings: ReadonlyArray<CheckLine>) =>
@@ -57,8 +101,7 @@ const count = (n: number, one: string) =>
 
 /** A scene's chips, most pressing first: its render's state, its approval, its findings. */
 export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
-  const errors = marks.findings.filter((l) => l.level === 'error').length;
-  const warnings = marks.findings.length - errors;
+  const { errors, warnings } = checkCount(marks.findings);
   const render = Option.toArray(marks.render);
   const lines = (level: CheckLine['level']) =>
     marks.findings
@@ -121,24 +164,55 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
 export const bandState = (marks: SceneMarks): Option.Option<MarkChip['state']> =>
   Option.map(Arr.head(chipsOf(marks)), (c) => c.state);
 
-/** The tape's legend over `scenes`: how many are out of date, approved, and how many findings. */
+/** A line of the tape's legend: what it counts (`mark`), its words, and the `--state-*` token it is drawn in. */
+interface LegendLine {
+  readonly mark: 'stale' | 'missing' | 'approved' | 'findings' | 'warnings' | 'film';
+  readonly text: string;
+  readonly state: MarkChip['state'];
+}
+
+/**
+ * The tape's legend over `scenes`: how many are out of date, not rendered
+ * and approved; then the check's `lines` about them, each once, by level
+ * (`checkCount`: findings in the findings' colour, warnings in the
+ * warnings'), and the film's own lines (`filmsOwn`: addressed to no scene)
+ * apart, in the colour of their most pressing level. None left at 0.
+ */
 export const legendOf = (
   scenes: ReadonlyArray<string>,
   marks: (scene: string) => SceneMarks,
-): ReadonlyArray<{ readonly text: string; readonly state: MarkChip['state'] }> => {
+  lines: ReadonlyArray<CheckLine>,
+): ReadonlyArray<LegendLine> => {
   const all = scenes.map(marks);
   const stale = all.filter((m) => Option.exists(m.render, (r) => r.state === 'stale')).length;
   const missing = all.filter((m) => Option.exists(m.render, (r) => r.state === 'missing')).length;
   const approved = all.filter((m) =>
     Option.exists(m.render, (r) => r.approval === 'approved'),
   ).length;
-  const findings = all.reduce((n, m) => n + m.findings.length, 0);
+  const theirs = checkCount(lines.filter((l) => aboutAny(l, scenes)));
+  const film = lines.filter(filmsOwn);
   return [
-    { n: stale, text: `out of date ${stale}`, state: 'stale' as const },
-    { n: missing, text: `not rendered ${missing}`, state: 'rendered' as const },
-    { n: approved, text: `approved ${approved}`, state: 'approved' as const },
-    { n: findings, text: `findings ${findings}`, state: 'findings' as const },
-  ]
-    .filter((l) => l.n > 0)
-    .map(({ text, state }) => ({ text, state }));
+    ...[stale]
+      .filter((n) => n > 0)
+      .map((n): LegendLine => ({ mark: 'stale', text: `out of date ${n}`, state: 'stale' })),
+    ...[missing]
+      .filter((n) => n > 0)
+      .map((n): LegendLine => ({ mark: 'missing', text: `not rendered ${n}`, state: 'rendered' })),
+    ...[approved]
+      .filter((n) => n > 0)
+      .map((n): LegendLine => ({ mark: 'approved', text: `approved ${n}`, state: 'approved' })),
+    ...[theirs.errors]
+      .filter((n) => n > 0)
+      .map((n): LegendLine => ({ mark: 'findings', text: `findings ${n}`, state: 'findings' })),
+    ...[theirs.warnings]
+      .filter((n) => n > 0)
+      .map((n): LegendLine => ({ mark: 'warnings', text: `warnings ${n}`, state: 'warning' })),
+    ...Option.toArray(
+      Option.map(countState(film), (state): LegendLine => ({
+        mark: 'film',
+        text: `film ${film.length}`,
+        state,
+      })),
+    ),
+  ];
 };

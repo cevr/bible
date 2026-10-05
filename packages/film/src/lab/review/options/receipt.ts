@@ -4,13 +4,27 @@
 // knob its level before → after (the level that landed, as the write left it),
 // a say what was said of which variant, and an Undo or a Redo what it walked. A source write that made a change is undone by Undo, an
 // Undo by Redo, a Redo by Undo, each bound to the change it made on its film
-// (`Bound`); a say, which writes the catalogue and no source, by none. The
+// (`Bound`); a say, which writes the catalogue and no source, by none, but
+// for an approve of the project's scenes, whose Undo (on Project and on
+// Scenes alike, `undoApprove`) withdraws just the approvals it gave. The
 // sound check after a pick says it is hearing the mix, then what it found.
 
-import { Match, Option } from 'effect';
+import { Array as Arr, Effect, Match, Option, Schema } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { type CommandId, type Receipt, busy, refused, said } from '../../../command/command.ts';
+import {
+  type Bound,
+  type Command,
+  type CommandId,
+  type Receipt,
+  type Undoing,
+  Unfit,
+  busy,
+  refused,
+  said,
+} from '../../../command/command.ts';
 import type { PartAddress } from '../../../core/address.ts';
+import { type ProjectView, type Say, withdrawSay } from '../../../core/api.ts';
+import { type Gave, OpId, type Took } from '../../../core/catalogue.ts';
 import type { ChoicePoint, ChoiceVerb, FilmChoices, SoundCheck } from '../../../core/choice.ts';
 import type { LabFailure } from '../../api.ts';
 import { type Words, failedText, sayText } from '../format.ts';
@@ -160,3 +174,79 @@ export const actWords = (act: ChoiceAct, before: FilmChoices): Words<Wrote> => {
     }),
   );
 };
+
+/**
+ * The command an approve of the project's receipt offers as its Undo, on
+ * Project and on Scenes alike: a withdraw of just the approvals it gave.
+ */
+const UNDO_APPROVE: CommandId = 'project.undo-approve';
+
+/** What an approve gave, as its receipt binds it (`Bound.change`): `<op> <scene> <scene>…`. */
+const boundGave = (gave: Gave): string => [gave.op, ...gave.scenes].join(' ');
+
+/** What an approve's Undo takes back, read from its receipt's binding: the approve's op and its scenes. */
+const gaveBound = (bound: Bound): Option.Option<Took> => {
+  const [op = '', ...scenes] = bound.change.split(' ').filter((w) => w !== '');
+  return Option.map(Option.liftPredicate(op, Schema.is(OpId)), (id) => ({ op: id, scenes }));
+};
+
+/**
+ * An approve's Undo, bound to exactly what the catalogue says it gave
+ * (`Project.gave`: its op, and the scenes whose approval it added); none when
+ * it gave none (each scene approved already, by another as like as not). The
+ * page's own earlier read never decides it: another may have approved since.
+ */
+export const approveUndo = (film: string, after: ProjectView): Option.Option<Undoing> =>
+  Option.map(
+    Option.filter(after.project.gave, (g) => g.scenes.length > 0),
+    (gave) => ({ command: UNDO_APPROVE, bound: { film, change: boundGave(gave) } }),
+  );
+
+/**
+ * What an approve's Undo says it did, from what the catalogue says it took
+ * (`Project.took`): nothing, when the approve's approvals were withdrawn since.
+ */
+export const tookText = (address: PartAddress, took: Took): string =>
+  Match.value(took.scenes.length > 0).pipe(
+    Match.when(true, () => `Undid approving ${partText(address)}`),
+    Match.orElse(
+      () => `Nothing left to undo: that approval of ${partText(address)} was withdrawn since`,
+    ),
+  );
+
+/**
+ * An approve's Undo as a command (`UNDO_APPROVE`), as its page registers it:
+ * one withdraw, given the approve's op, of the scenes it gave, sent by the
+ * page's `withdraw` (whose receipt says what it took). The catalogue takes
+ * only the approvals that op gave: another's approval since stays, and
+ * whether any is left is the catalogue's to say, not the page's.
+ */
+export const undoApprove = (
+  film: string,
+  how: {
+    readonly waiting: () => boolean;
+    readonly withdraw: (ids: readonly [string, ...string[]], say: Say) => Effect.Effect<Receipt>;
+  },
+): Command => ({
+  id: UNDO_APPROVE,
+  label: 'Undo',
+  labelIn: () => 'Undo an approve',
+  group: 'Edit',
+  typed: true,
+  touch: "the approve's receipt's Undo",
+  when: () => !how.waiting(),
+  fits: (bound) =>
+    Option.map(
+      Option.liftPredicate(bound.film, (f) => f !== film),
+      (f) => Unfit.Now({ reason: `that approve was of ${f}` }),
+    ),
+  run: (_, invoked) =>
+    Option.match(Option.flatMap(Option.fromUndefinedOr(invoked.bound), gaveBound), {
+      onNone: () => Effect.succeed(refused("an approve is undone from its receipt's Undo")),
+      onSome: (gave) =>
+        Arr.match(gave.scenes, {
+          onEmpty: () => Effect.succeed(refused('that approve gave no approval to take back')),
+          onNonEmpty: (ids) => how.withdraw(ids, withdrawSay(Option.some(gave.op))),
+        }),
+    }),
+});

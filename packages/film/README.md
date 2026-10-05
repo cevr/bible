@@ -706,21 +706,30 @@ on a laptop, so the whole film is one screen, and half a minute on a phone;
 ⌘+ and ⌘− step it between 2.5, 5 and 10 s, kept in this browser). A tape is
 an editor's contact sheet read in film order: each still is the frame at
 the middle of its step, drawn from the code as it stands by the one source
-of stills (`player/stills.ts`, the lines on screen first), each **cut** is a
+of stills (`player/stills.ts`, the lines on screen first; with captions
+while the preview's are on, the tape drawn again as its toggle turns), each **cut** is a
 thin rule at its scene's exact time carrying the scene's name, and a band
 under each line says each scene's state. Over it the **tape bar** holds the
 acts ruler, the preview's track (in two lanes: the scenes' names along its
-top, its ticks below them, so no name runs over a tick) and Follow (the
+top, its ticks below them, so no name runs over a tick), the legend (scenes
+out of date, not rendered and approved; the check's findings and warnings
+on scenes, each line once, and the film's own lines, counted as Project and
+Choices count the check, `lab/scenes/marks.ts` `checkCount`) and Follow (the
 playhead's line stays in sight while it plays; a scrub turns it off). A
 cut's name takes only its room: shortened with an ellipsis, set before the
 row's last rule where it fits there, or dropped. A tap on a still selects its scene (the path; Back
 steps through the selections) and moves the playhead there (`#t=`, film
-time); a drag along a line scrubs. The selected scene's card
-(`lab/scenes/card.tsx`, the card the Project shows) is the focus panel, a
-sheet over the tab bar on a phone: the live frame, in, out and length in
-timecode, its marks, Open in Lab (E), Approve (A), its findings and a
-comment. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all (a run of
-neighbouring scenes at a time). The palette and the film's counts are in
+time; a scene's link with no `#t=` opens at the scene's start, as its lab
+does); a drag along a line scrubs. The selected scene's card
+(`lab/scenes/card.tsx`, the card the Project shows) stands in the sheet the
+Project's scene inspector stands in (`Sheet`, `lab/review/inspector.tsx`):
+beside the tape, and on a phone a sheet over the tab bar that opens lowered
+to the card in brief. It holds the live frame, in, out and length in
+timecode, its marks, Open in Lab (E), Approve (A), its findings
+(`SceneFindings`, the Project's too) and a comment; its Close clears the
+selection, a step Back walks. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
+say; an approve's receipt offers Undo (`project.undo-approve`), as
+Project's does. The palette and the film's counts are in
 the view menu (⋯). A short's Open goes to its play page, as the lab opens
 films.
 
@@ -1122,8 +1131,9 @@ the choices page and the project, Undo and Redo are commands
 (`review.undo` ⌘Z, `review.redo` ⇧⌘Z, in ⌘K, the `?` sheet and the page's
 long-press menu, named for what they would undo: `Undo score play brass`),
 shown only while there is a step to take. A say's receipt has no Undo (it
-writes the catalogue, not the source), except a Project approve's: its Undo
-(`project.undo-approve`) withdraws exactly the approvals it gave
+writes the catalogue, not the source), except an approve of the project's
+scenes, on Project or on Scenes: its Undo (`project.undo-approve`, one
+owner, `lab/review/options/receipt.ts` `undoApprove`) withdraws exactly the approvals it gave
 (`Project.gave`, `Withdraw { given }`) and says what it took
 (`Project.took`).
 

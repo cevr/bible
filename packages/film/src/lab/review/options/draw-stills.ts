@@ -22,12 +22,11 @@ export const drawStills =
     Option.map(Option.fromUndefinedOr(films[film]), (load) =>
       Effect.mapError(Effect.tryPromise(load), () => 'load-failed' as const).pipe(
         Effect.map((code) => {
+          // With captions, as the preview draws by default: the Project has no captions toggle
+          // (the Scenes tape's stills follow the player's).
           const stills = makeStills(code, { width: STILL_W, captions: true, ...how });
           return {
-            at: stills.at,
-            want: stills.want,
-            onDrawn: stills.onDrawn,
-            stop: stills.stop,
+            ...stills,
             middles: new Map(code.placed.map((p) => [p.spec.id, p.start + p.dur / 2] as const)),
           };
         }),

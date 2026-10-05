@@ -8,7 +8,7 @@ import { Option } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import type { CheckLine } from '../../core/schema.ts';
-import { bandState, chipsOf, legendOf, marksOf } from './marks.ts';
+import { bandState, checkCount, chipsOf, legendOf, marksOf } from './marks.ts';
 
 const scene = (
   id: string,
@@ -102,13 +102,33 @@ describe('marksOf', () => {
     expect(chipsOf(marks('three'))[0]?.why).toBe('not made yet');
   });
 
-  test("the legend counts the film's scenes out of date, approved and its findings, none left at 0", () => {
-    expect(legendOf(['one', 'two', 'three'], marks).map((l) => l.text)).toEqual([
+  test("the legend counts the film's scenes out of date, approved, and the check's lines once each by level, the film's apart; none left at 0", () => {
+    expect(legendOf(['one', 'two', 'three'], marks, FINDINGS).map((l) => l.text)).toEqual([
       'out of date 1',
       'not rendered 1',
       'approved 1',
-      'findings 4',
+      'findings 2',
+      'warnings 1',
+      'film 1',
     ]);
-    expect(legendOf(['two'], marks).map((l) => l.text)).toEqual(['approved 1']);
+    expect(legendOf(['two'], marksOf(Option.some(VIEW), []), []).map((l) => l.text)).toEqual([
+      'approved 1',
+    ]);
+  });
+
+  test("a check of 21 warnings, 20 about scenes and 1 the film's: the legend says warnings in the warning's colour, and counts the film's (RS-11, SU-3)", () => {
+    const lines: ReadonlyArray<CheckLine> = [
+      ...Array.from({ length: 20 }, (_, i) =>
+        finding('warning', [['one', 'two', 'three'][i % 3] ?? 'one']),
+      ),
+      { level: 'warning', tag: 'AudioStale', message: "the film's audio is older than its script" },
+    ];
+    const legend = legendOf(['one', 'two', 'three'], marksOf(Option.none(), lines), lines);
+    expect(legend.map((l) => [l.text, l.state])).toEqual([
+      ['warnings 20', 'warning'],
+      ['film 1', 'warning'],
+    ]);
+    // Counted as the Project's and Choices' chips count them: 21 lines, warnings only.
+    expect(checkCount(lines)).toEqual({ errors: 0, warnings: 21 });
   });
 });
