@@ -177,13 +177,19 @@ const lab = UrlAtom.place(Lab); // Writable<Option<Lab value>, Lab value>, one p
 - `UrlAtom.href`: the URL as the program's writes leave it.
 - `UrlAtom.entry`: the history entry on screen, for per-entry memory.
 - `UrlAtom.services`: `Location` and `UrlState`, built from `layer` and kept
-  alive with the registry.
+  alive with the registry. A layer that carries its own `UrlState` gives that
+  one, so a page whose host already writes through a `UrlState` has one.
 
 ```tsx
 <RegistryProvider initialValues={[[UrlAtom.layer, layerBrowser({ scrollRestoration: 'manual' })]]}>
   <App />
 </RegistryProvider>
 ```
+
+A host that builds `Location` and `UrlState` itself (the film's pages) seeds
+the layer with them, built: `[[UrlAtom.layer, Layer.succeedContext(host)]]`.
+The registry's atoms then read and write through the host's own `UrlState`,
+and no second one follows the address bar.
 
 ## Testing with the memory layer
 

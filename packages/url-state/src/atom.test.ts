@@ -1,5 +1,5 @@
 import { test } from 'bun:test';
-import { Context, Effect, Layer, Option, Scope } from 'effect';
+import { Context, Effect, Layer, Option, Scope, Stream } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
@@ -11,6 +11,7 @@ import { Location } from './location.js';
 import { layerMemory, LocationHistory } from './location-memory.js';
 import { layerServer } from './location-server.js';
 import * as Place from './place.js';
+import * as UrlState from './url-state.js';
 
 const Lab = Place.make({
   path: '/films/:film/lab/:scene',
@@ -145,4 +146,45 @@ describe('UrlAtom', () => {
     expect(hashOf(registry.get(lab))).toEqual(Option.some(2));
     expect(Atom.ServerValueTypeId in scene).toBe(false);
   });
+
+  it.effect("a host's own UrlState, seeded with the layer, is the registry's: no second one", () =>
+    Effect.gen(function* () {
+      // Each UrlState follows its Location's entries for as long as it lives,
+      // so the subscriptions to `changes` count the UrlStates built over it.
+      let followers = 0;
+      const counted = Layer.effect(
+        Location,
+        Effect.gen(function* () {
+          const inner = yield* Location;
+          return Location.of({
+            ...inner,
+            changes: Stream.suspend(() => {
+              followers += 1;
+              return inner.changes;
+            }),
+          });
+        }),
+      ).pipe(Layer.provide(layerMemory('/films/f/lab/s')));
+      const host = yield* Layer.build(UrlState.layer.pipe(Layer.provideMerge(counted)));
+      yield* Effect.yieldNow;
+      expect(followers).toBe(1);
+
+      // Seeded with the layer alone, and as the film seeds it, with the
+      // built services too.
+      const seeds = [
+        [[UrlAtom.layer, Layer.succeedContext(host)]],
+        [
+          [UrlAtom.layer, Layer.succeedContext(host)],
+          [UrlAtom.services, host],
+        ],
+      ] as const;
+      for (const initialValues of seeds) {
+        const registry = AtomRegistry.make({ initialValues });
+        expect(registry.get(UrlAtom.href)).toBe('/films/f/lab/s');
+        yield* Effect.yieldNow;
+        registry.dispose();
+      }
+      expect(followers).toBe(1);
+    }).pipe(Effect.scoped),
+  );
 });
