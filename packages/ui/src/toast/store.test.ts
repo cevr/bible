@@ -186,6 +186,14 @@ describe('ToastStore', () => {
     expect(store.state.toasts).toHaveLength(1);
   });
 
+  it('drops the action of the toast it replaces when re-added with actionProps undefined', () => {
+    const store = createStore([]);
+    store.addToast({ id: 'a', title: 'Moved', actionProps: { children: 'Undo' } });
+    store.addToast({ id: 'a', title: 'Refused', actionProps: undefined });
+    expect(selectors.toast(store.state, 'a')?.title).toBe('Refused');
+    expect(selectors.toast(store.state, 'a')?.actionProps).toBeUndefined();
+  });
+
   it('replaces a closing toast when adding again with the same id', () => {
     const onRemove = mock(() => {});
     const store = createStore([]);

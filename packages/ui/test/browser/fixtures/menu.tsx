@@ -1,9 +1,11 @@
 // Fixtures for the menu: one menu with plain items (one disabled), a group
 // with a label, checkbox and radio items with indicators, a separator and a
 // submenu. URL params: `modal=false` for a non-modal menu, `hover=true` for a
-// trigger that opens on hover, `loop=false` to stop focus wrapping. Also a
-// menu inside a toolbar.
+// trigger that opens on hover, `loop=false` to stop focus wrapping,
+// `animated=true` for a popup that fades out over 300 ms. Also a menu inside
+// a toolbar.
 import type { JSX } from '@solidjs/web';
+import { Show } from 'solid-js';
 
 import { Menu } from '../../../src/menu/index.ts';
 import { Toolbar } from '../../../src/toolbar/index.ts';
@@ -15,6 +17,12 @@ function FullMenu(): JSX.Element {
   const loopFocus = param('loop') !== 'false';
   return (
     <div style={{ padding: '40px' }}>
+      <Show when={param('animated') === 'true'}>
+        <style>{`
+          #popup { transition: opacity 300ms; }
+          #popup[data-ending-style] { opacity: 0; }
+        `}</style>
+      </Show>
       <button type="button" id="before">
         before
       </button>
@@ -22,6 +30,7 @@ function FullMenu(): JSX.Element {
         modal={modal}
         loopFocus={loopFocus}
         onOpenChange={(open, details) => log(`open ${open} ${details.reason}`)}
+        onOpenChangeComplete={(open) => log(`complete ${open}`)}
       >
         <Menu.Trigger id="trigger" openOnHover={openOnHover} delay={0}>
           Edit

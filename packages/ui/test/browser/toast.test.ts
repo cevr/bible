@@ -295,6 +295,15 @@ describe('swipe', () => {
     expect(await logOf(page)).toEqual(['closed 1', 'removed 1']);
   });
 
+  it('dismisses when dragged down past the threshold, the receipts’ other direction', async () => {
+    const page = await openReceipt();
+    await page.click('#raise');
+    await see(roots(page)).toHaveCount(1);
+    await drag(page, '[data-testid="title"]', 0, 100);
+    await see(roots(page)).toHaveCount(0);
+    expect(await logOf(page)).toEqual(['closed 1', 'removed 1']);
+  });
+
   it('marks the toast swiping while dragging, with the swipe direction', async () => {
     const page = await openReceipt();
     await page.click('#raise');

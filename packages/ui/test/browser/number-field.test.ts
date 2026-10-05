@@ -856,6 +856,38 @@ describe('NumberField.ScrubArea', () => {
     ).toBe(true);
   });
 
+  it('scrubs with a finger, without the lock, and commits once on the lift', async () => {
+    // The browser's own touches (CDP), so the pointer events are its own: pointerType touch.
+    const page = await h.open('field', { touch: true, query: { defaultValue: '0' } });
+    const cdp = await page.context().newCDPSession(page);
+    const at = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) =>
+      cdp.send('Input.dispatchTouchEvent', {
+        type,
+        touchPoints: type === 'touchEnd' ? [] : [{ x, y }],
+      });
+    // A phone lays the page out wider than its screen: touches land in screen pixels.
+    const scale = await page.evaluate(() => window.visualViewport?.scale ?? 1);
+    const centre = await centerOf(page, 'scrub-area');
+    const x = centre.x * scale;
+    const y = centre.y * scale;
+    await at('touchStart', x, y);
+    await see(page.getByTestId('root')).toHaveAttribute('data-scrubbing', '');
+    await at('touchMove', x + 4, y);
+    await at('touchMove', x + 8, y);
+    await at('touchMove', x + 12, y);
+    await at('touchMove', x + 16, y);
+    await at('touchMove', x + 20, y);
+    await see.poll(async () => Number(await input(page).inputValue())).toBeGreaterThan(5);
+    expect(await page.evaluate(() => document.pointerLockElement)).toBe(null);
+    await at('touchEnd', x + 20, y);
+    await see(page.getByTestId('root')).not.toHaveAttribute('data-scrubbing');
+    const lines = await logOf(page);
+    const last = lines.findLast((line) => line.startsWith('change '));
+    expect(lines.filter((line) => line.startsWith('commit'))).toEqual([
+      `commit ${last?.split(' ')[1]} scrub`,
+    ]);
+  });
+
   it('clicks its target when pressed without moving', async () => {
     const page = await open('field', { defaultValue: '0' });
     await refusePointerLock(page);

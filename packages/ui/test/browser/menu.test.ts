@@ -13,7 +13,7 @@
 // triggers, menubar) and for React-only machinery are left out.
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
-import { expect as see } from '@playwright/test';
+import { expect as see, type Page } from '@playwright/test';
 
 import { type Harness, focused, harness, logOf } from './harness.ts';
 
@@ -45,6 +45,25 @@ describe('Menu.Trigger', () => {
     const page = await h.open('menu', { query: { hover: 'true' } });
     await page.hover('#trigger');
     await see(page.locator('#popup')).toBeVisible();
+  });
+});
+
+describe('Menu.Root', () => {
+  // The lab runs the chosen row's command here, once the menu is gone.
+  it('reports the close complete once the exit animation ends, after the item ran', async () => {
+    const page = await h.open('menu', { query: { animated: 'true' } });
+    await page.click('#trigger');
+    await see.poll(() => logOf(page)).toContain('complete true');
+    await page.click('#cut');
+    await see(page.locator('#popup')).toHaveAttribute('data-ending-style', '');
+    expect(await logOf(page)).not.toContain('complete false');
+    await see(page.locator('#popup')).toHaveCount(0);
+    const lines = await logOf(page);
+    expect(lines.slice(lines.indexOf('click cut'))).toEqual([
+      'click cut',
+      'open false item-press',
+      'complete false',
+    ]);
   });
 });
 
@@ -339,6 +358,30 @@ describe('dismissal', () => {
     await see(page.locator('#popup')).toHaveCount(0);
     await see.poll(() => focused(page)).toBe('after');
     expect(await logOf(page)).toContain('open false focus-out');
+  });
+
+  it('a modal menu opened by the mouse locks the page scroll; one a finger opens does not', async () => {
+    const scrollLocked = (page: Page) =>
+      page.evaluate(() =>
+        [document.documentElement, document.body].some(
+          (element) => getComputedStyle(element).overflowY === 'hidden',
+        ),
+      );
+    const page = await h.open('menu');
+    await page.click('#trigger');
+    await see(page.locator('#popup')).toBeVisible();
+    await see.poll(() => scrollLocked(page)).toBe(true);
+    await page.keyboard.press('Escape');
+    await see.poll(() => scrollLocked(page)).toBe(false);
+
+    // A narrow menu on a phone: a swipe outside may still scroll the page.
+    const phone = await h.open('menu', { touch: true });
+    await phone.clock.install();
+    await phone.tap('#trigger');
+    await see(phone.locator('#popup')).toBeVisible();
+    // A lock lands on a 0 ms timeout set as the menu opened: run every timer due.
+    await phone.clock.runFor(10);
+    expect(await scrollLocked(phone)).toBe(false);
   });
 
   it('an outside press closes the menu', async () => {
