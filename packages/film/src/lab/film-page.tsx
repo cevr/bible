@@ -77,19 +77,14 @@ const Await = (props: { readonly name: Option.Option<string> }) => (
 /**
  * A film's page: the shell around its body, with its context menu, ⌘K, the
  * `?` sheet and the receipts. The registry's URL atoms read and write
- * through the host's own Location (seeded, so neither side builds the
- * browser's own), so they and the time the player writes share one address
- * bar.
+ * through the host's own Location and UrlState (its layer seeded, so
+ * neither side builds the browser's own), so they and the time the player
+ * writes share one address bar.
  */
 const FilmPage = (props: FilmPageWith) => {
   const Body = clientOnly(() => props.body(props.hub));
   return (
-    <RegistryProvider
-      initialValues={[
-        [UrlAtom.layer, hostLayer(props.host)],
-        [UrlAtom.services, props.host],
-      ]}
-    >
+    <RegistryProvider initialValues={[[UrlAtom.layer, hostLayer(props.host)]]}>
       <TargetMenu hub={props.hub}>
         <PageShell
           part={(): Part => props.part}

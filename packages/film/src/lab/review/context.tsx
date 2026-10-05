@@ -347,18 +347,12 @@ export const Root = (
     return <ReviewContext value={value}>{inner.children}</ReviewContext>;
   };
 
-  // The registry's URL atoms read and write through the host's own `UrlState`,
-  // so they and the page's effects share one address bar. Their `Location`
-  // layer is the host's too: the registry still reads `services` once under
-  // its seed, and the default layer would build the browser's own (none on
-  // the server, a second one in the browser).
+  // The registry's URL atoms read and write through the host's own `UrlState`
+  // (its layer carries it, and the atoms reuse it), so they and the page's
+  // effects share one address bar; the default layer would build the
+  // browser's own (none on the server, a second one in the browser).
   return (
-    <RegistryProvider
-      initialValues={[
-        [UrlAtom.layer, hostLayer(props.host)],
-        [UrlAtom.services, props.host],
-      ]}
-    >
+    <RegistryProvider initialValues={[[UrlAtom.layer, hostLayer(props.host)]]}>
       <Inner>{props.children}</Inner>
     </RegistryProvider>
   );
