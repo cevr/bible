@@ -22,7 +22,8 @@ import {
   ownerDocument,
   ownerWindow,
 } from '../utils/dom.ts';
-import { FocusGuard, visuallyHidden } from '../utils/FocusGuard.tsx';
+import { FocusGuard } from '../utils/FocusGuard.tsx';
+import { visuallyHidden } from '../utils/visuallyHidden.ts';
 import { useTimeout } from '../utils/timers.ts';
 import { selectors } from './store.ts';
 import { useToastProviderContext, useToastSelector } from './ToastProviderContext.ts';

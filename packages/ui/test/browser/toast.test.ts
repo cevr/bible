@@ -8,9 +8,9 @@
 // packages/react/src/toast/content/ToastContent.test.tsx,
 // packages/react/src/utils/useSwipeDismiss.test.tsx
 //
-// The behaviour cases, against a receipt toast (`{said, undo, tone}`)
-// raised through a manager created outside the tree; its title carries the
-// receipt's count. Timers run on
+// The behaviour cases, against a receipt toast (a title, a tone, an Undo
+// action) raised through a manager created outside the tree; its title
+// carries the receipt's count. Timers run on
 // Playwright's clock. Upstream's cases for React-only machinery (strict
 // mode, abandoned renders, layout-effect ordering) are left out.
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';

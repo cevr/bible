@@ -1,5 +1,4 @@
 // Upstream: packages/react/src/utils/FocusGuard.tsx,
-// packages/utils/src/visuallyHidden.ts,
 // packages/react/src/utils/InternalBackdrop.tsx
 //
 // A focus guard is an invisible tabbable span at a popup's edge: Tab onto it
@@ -11,30 +10,7 @@ import type { JSX } from '@solidjs/web';
 import { createMemo, omit } from 'solid-js';
 
 import { platform } from './platform.ts';
-
-const visuallyHiddenBase: JSX.CSSProperties = {
-  'clip-path': 'inset(50%)',
-  overflow: 'hidden',
-  'white-space': 'nowrap',
-  border: '0',
-  padding: '0',
-  width: '1px',
-  height: '1px',
-  margin: '-1px',
-};
-
-export const visuallyHidden: JSX.CSSProperties = {
-  ...visuallyHiddenBase,
-  position: 'fixed',
-  margin: '0',
-  top: '0',
-  left: '0',
-};
-
-export const visuallyHiddenInput: JSX.CSSProperties = {
-  ...visuallyHiddenBase,
-  position: 'absolute',
-};
+import { visuallyHidden } from './visuallyHidden.ts';
 
 export interface FocusGuardProps {
   ref?: ((el: HTMLSpanElement) => void) | undefined;
