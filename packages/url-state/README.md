@@ -12,7 +12,8 @@ and in the browser.
 
 ## The model
 
-A URL has three parts, each a record of keys to lists of values:
+A URL has three parts: the path, a list of segments, and the query and the
+hash, each a record of keys to lists of values:
 
 ```
 /films/righteousness-by-faith/lab/roof?cue=render%3Ascenes%3Aroof#t=1.5,4
@@ -26,7 +27,8 @@ The query prints the way `URLSearchParams` does (so `:` is `%3A` there); the
 hash prints as `k=v&…` and keeps `, : / @` readable.
 
 A **place** is one address an app can be at: a path pattern with typed
-params, a query section and a hash section. Its schema runs between an href
+params, and optionally a query section and a hash section (`Field.none`, the
+section with no keys, when left out). Its schema runs between an href
 and the place's value; `None` means the href is not this place.
 
 ```ts
@@ -88,15 +90,19 @@ every value a place's type admits (`effect/Arbitrary`).
 | `MediaTime`                 | `t=4.5`, `t=1.5,4`        | a `Point` or an in ≤ out `Range` |
 | `selection(values, '-')`    | `x=a&x=-b` (repeated key) | `{ include: [a], exclude: [b] }` |
 
-A codec is a `Schema.Codec<A, string>`, so any schema of that shape works:
-egw-search uses the API's own `SignedFromStrings` for its axes.
+A codec for one key is a `Schema.Codec<A, string>`; a codec for a repeated
+key (`selection`) is a `Schema.Codec<A, ReadonlyArray<string>>`. Any schema
+of either shape works: egw-search uses the API's own `SignedFromStrings` for
+its axes, through `Field.keys`.
 
 `Field` lifts codecs to keys:
 
 - `Field.key(codec, { default, history?, throttle? })`: one value, the first
   in the URL. Missing or refused, it reads as the default (a refusal is logged
   at Debug as `url-state.key.invalid`); at the default it is left out.
-- `Field.keys(codec)`: a repeated key, the whole list of values.
+- `Field.keys(codec, { history?, throttle? })`: a repeated key, the whole
+  list of values read by a list codec. No values is the default, and a value
+  that writes none leaves the key out.
 - `Field.struct(fields, { keys? })`: a section; `keys` renames a field in the
   URL (`{ excludeApparatus: 'noref' }`).
 - `Field.indexed(section, { max, key, marker })`: copies of a section under
@@ -126,15 +132,18 @@ Three layers fill it:
 - `layerBrowser({ scrollRestoration? })`: the tab's `window.history`. Each
   entry carries `{ key }` in `history.state`; Back and Forward arrive as
   `traverse` entries. It is the only module that touches `window.location`,
-  `history` or `popstate`, and lint keeps them out of every other module of
-  this package and of egw-search.
+  `history` or `popstate`, and lint keeps `window.location`, `history` and
+  `onpopstate` out of every other module of this package, of egw-search, and
+  of the film's lab, player and browser modules (the film's lint also refuses
+  a `popstate` listener there).
 - `layerMemory(href)`: a history stack in memory, plus `LocationHistory`
   (`back`, `forward`, `entries`) to drive it.
 - `layerServer(href)`: the request URL without its hash, read-only. A write
-  is ignored and logged at Debug (`location.server.write.ignored`), and so
-  is a `back`.
+  is ignored and logged at Debug (`location.server.write.ignored`); a `back`
+  is ignored too (`location.server.back.ignored`).
 
-Entry keys (`<ms>-<n>`) name history entries, so anything remembered per entry
+Entry keys (`<ms>-<n>`; a server render's one entry is `SERVER_ENTRY_KEY`,
+`'server'`) name history entries, so anything remembered per entry
 (a scroll position) is remembered against the key.
 
 `UrlState` (`UrlState.layer`, over a `Location`) is where writes go:
@@ -171,6 +180,8 @@ const lab = UrlAtom.place(Lab); // Writable<Option<Lab value>, Lab value>, one p
   tick, before the entry flushes.
 - `UrlAtom.href`: the URL as the program's writes leave it.
 - `UrlAtom.entry`: the history entry on screen, for per-entry memory.
+- `UrlAtom.services`: `Location` and `UrlState`, built from `layer` and kept
+  alive with the registry.
 
 ```tsx
 <RegistryProvider initialValues={[[UrlAtom.layer, layerBrowser({ scrollRestoration: 'manual' })]]}>
