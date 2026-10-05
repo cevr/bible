@@ -72,20 +72,22 @@ const filmOf = (place: ReviewPlace, films: ReadonlyArray<string>): Option.Option
   );
 
 /**
- * The part a place sits under: a film's choices and project are theirs; a
- * set sits under its film's Project when its folder names one (Frame.io's
- * version stack on its asset), under Films otherwise, as a folder does.
+ * The part a folder and each set in it sit under: its film's Project when
+ * the folder names one (Frame.io's version stack on its asset), Films otherwise.
  */
+const folderPart = (folder: string, films: ReadonlyArray<string>): Part =>
+  Option.match(filmOfFolder(folder, films), {
+    onNone: (): Part => 'films',
+    onSome: (): Part => 'project',
+  });
+
+/** The part a place sits under: a film's choices and project are theirs; a folder and its sets, their folder's. */
 const partOf = (place: ReviewPlace, films: ReadonlyArray<string>): Part =>
   Match.value(place).pipe(
     Match.tagsExhaustive({
       Home: (): Part => 'films',
-      Folder: (): Part => 'films',
-      Set: (p): Part =>
-        Option.match(filmOfFolder(p.folder, films), {
-          onNone: () => 'films',
-          onSome: () => 'project',
-        }),
+      Folder: (p) => folderPart(p.folder, films),
+      Set: (p) => folderPart(p.folder, films),
       Film: (): Part => 'choices',
       Project: (): Part => 'project',
     }),
