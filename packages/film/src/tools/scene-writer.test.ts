@@ -242,6 +242,74 @@ describe.concurrent('scene writer', () => {
     }).pipe(Effect.provide(fixture)),
   );
 
+  it.effect(
+    'checks a write to a span its source computes in part with the write applied: a bad timing is refused, a good one lands',
+    () =>
+      Effect.gen(function* () {
+        const source = (yield* read())
+          .replace('const GAP = 0.2;', "const GAP = 0.2;\nconst MARK = 'earns';")
+          .replace(
+            "late: { after: 'topple', offset: GAP * 2 },",
+            "late: { mark: 'earns', until: MARK },",
+          );
+        yield* (yield* FileSystem.FileSystem).writeFileString(yield* HandFile, source);
+        const writer = yield* SceneWriter;
+        // An end 10 s before {earns} ends `late` before it starts.
+        const early = yield* Effect.flip(writer.setCue(F, 'hand', 'late', { untilOffset: -10 }));
+        expect(early._tag).toBe('TimelineUnresolved');
+        expect(early.message).toContain('before it starts');
+        // So does a start 5 s past the mark it runs until: any field, not only the end's.
+        const late = yield* Effect.flip(writer.setCue(F, 'hand', 'late', { offset: 5 }));
+        expect(late._tag).toBe('TimelineUnresolved');
+        expect(late.message).toContain('before it starts');
+        expect(yield* read()).toBe(source);
+        // An end the timeline resolves lands, and reads back where it plays.
+        const { read: landed } = yield* writer.setCue(F, 'hand', 'late', { untilOffset: 0.3 });
+        expect(yield* read()).toBe(
+          source.replace('until: MARK }', 'until: MARK, untilOffset: 0.3 }'),
+        );
+        expect(landed.resolved?.dur).toBeCloseTo(0.3, 9);
+      }).pipe(Effect.provide(fixture)),
+    SPAWNS_MS,
+  );
+
+  it.effect(
+    'judges a write to a computed span by the numbers the file will hold, each to the millisecond',
+    () =>
+      Effect.gen(function* () {
+        // {earns} is at 0.995: `topple` ends at 2 (0.995 + 0.1 + 0.905), `late` starts at 1.0003.
+        const source = (yield* read())
+          .replace('const GAP = 0.2;', "const GAP = 0.2;\nconst TOPPLE = 'topple';")
+          .replace('offset: 0.1, dur: 1.8 }', 'offset: 0.1, dur: 0.905 }')
+          .replace(
+            "late: { after: 'topple', offset: GAP * 2 },",
+            "late: { mark: 'earns', offset: 0.0053, until: { cue: TOPPLE } },",
+          );
+        yield* (yield* FileSystem.FileSystem).writeFileString(yield* HandFile, source);
+        const writer = yield* SceneWriter;
+        // Asked: −0.9996, an end at 1.0004, after the start. Written: −1, an end at 1, before it.
+        const rounded = yield* Effect.flip(
+          writer.setCue(F, 'hand', 'late', { untilOffset: -0.9996 }),
+        );
+        expect(rounded._tag).toBe('TimelineUnresolved');
+        expect(rounded.message).toContain('before it starts');
+        expect(yield* read()).toBe(source);
+        // −0.9994 is written −0.999, an end at 1.001: it lands, as written.
+        const { read: landed } = yield* writer.setCue(F, 'hand', 'late', {
+          untilOffset: -0.9994,
+        });
+        expect(yield* read()).toBe(
+          source.replace(
+            'until: { cue: TOPPLE } }',
+            'until: { cue: TOPPLE }, untilOffset: -0.999 }',
+          ),
+        );
+        expect(landed.resolved?.start).toBeCloseTo(1.0003, 9);
+        expect(landed.resolved?.end).toBeCloseTo(1.001, 9);
+      }).pipe(Effect.provide(fixture)),
+    SPAWNS_MS,
+  );
+
   it.effect('undoes the film writes newest first and redoes them, byte for byte', () =>
     Effect.gen(function* () {
       const writer = yield* SceneWriter;

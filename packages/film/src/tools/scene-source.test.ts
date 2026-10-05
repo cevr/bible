@@ -139,6 +139,126 @@ describe('scene source', () => {
     }
   });
 
+  it("writes an until's offset after its until, keeps the until, and drops the key back on the point", () => {
+    const marked = scene.replace(
+      "bare: { at: 'speech' }",
+      "bare: { at: 'speech', until: 'gift', ease: 'linear' }",
+    );
+    const off = ok(editCue(FILE, marked, 'hand', 'bare', { untilOffset: 0.1 }));
+    expect(off).toBe(marked.replace("until: 'gift',", "until: 'gift', untilOffset: 0.1,"));
+    expect(ok(readCue(FILE, off, 'hand', 'bare'))).toEqual({
+      until: 'gift',
+      untilOffset: 0.1,
+      ease: 'linear',
+    });
+    expect(readSpans(FILE, off, 'hand')['bare']).toEqual({
+      at: 'speech',
+      until: 'gift',
+      untilOffset: 0.1,
+      ease: 'linear',
+    });
+    expect(ok(editCue(FILE, off, 'hand', 'bare', { untilOffset: -0.25 }))).toBe(
+      marked.replace("until: 'gift',", "until: 'gift', untilOffset: -0.25,"),
+    );
+    // Back on the point: the key goes, and the span is the plain until it was.
+    expect(ok(editCue(FILE, off, 'hand', 'bare', { untilOffset: 0 }))).toBe(marked);
+    expect(ok(editCue(FILE, marked, 'hand', 'bare', { untilOffset: 0 }))).toBe(marked);
+    // A dur, or another point, ends it another way: the offset goes with the until.
+    expect(ok(editCue(FILE, off, 'hand', 'bare', { dur: 3 }))).toBe(
+      marked.replace("until: 'gift'", 'dur: 3'),
+    );
+    expect(ok(editCue(FILE, off, 'hand', 'bare', { until: 'earns' }))).toBe(
+      marked.replace("until: 'gift'", "until: 'earns'"),
+    );
+    // The last key of a span, and the first, go cleanly too.
+    const last = scene.replace(
+      "bare: { at: 'speech' }",
+      "bare: { at: 'speech', until: 'gift', untilOffset: 0.1 }",
+    );
+    expect(ok(editCue(FILE, last, 'hand', 'bare', { untilOffset: 0 }))).toBe(
+      scene.replace("bare: { at: 'speech' }", "bare: { at: 'speech', until: 'gift' }"),
+    );
+    const first = scene.replace(
+      "bare: { at: 'speech' }",
+      "bare: { untilOffset: 0.1, at: 'speech', until: 'gift' }",
+    );
+    expect(ok(editCue(FILE, first, 'hand', 'bare', { untilOffset: 0 }))).toBe(
+      scene.replace("bare: { at: 'speech' }", "bare: { at: 'speech', until: 'gift' }"),
+    );
+  });
+
+  it('takes an offset away with the comma that joins it, and keeps every comment around it', () => {
+    // Each case: the span with the offset, and the span once it is taken away.
+    const cases: ReadonlyArray<readonly [string, string]> = [
+      // One line, a comment before the offset and after it, the offset last and not.
+      [
+        "{ at: 'speech', until: 'gift', /* why */ untilOffset: 0.1 }",
+        "{ at: 'speech', until: 'gift' /* why */ }",
+      ],
+      [
+        "{ at: 'speech', until: 'gift', untilOffset: 0.1 /* why */ }",
+        "{ at: 'speech', until: 'gift' /* why */ }",
+      ],
+      [
+        "{ at: 'speech', until: 'gift' /* why */, untilOffset: 0.1 }",
+        "{ at: 'speech', until: 'gift' /* why */ }",
+      ],
+      [
+        "{ at: 'speech', /* why */ untilOffset: 0.1, until: 'gift' }",
+        "{ at: 'speech', /* why */ until: 'gift' }",
+      ],
+      [
+        "{ at: 'speech', untilOffset: 0.1 /* why */, until: 'gift' }",
+        "{ at: 'speech', /* why */ until: 'gift' }",
+      ],
+      // Several lines: the neighbour's comment after it, the offset's line goes whole.
+      [
+        "{\n      at: 'speech',\n      until: 'gift', // rationale\n      untilOffset: 0.1,\n      ease: 'linear',\n    }",
+        "{\n      at: 'speech',\n      until: 'gift', // rationale\n      ease: 'linear',\n    }",
+      ],
+      [
+        "{\n      at: 'speech',\n      until: 'gift', // rationale\n      untilOffset: 0.1\n    }",
+        "{\n      at: 'speech',\n      until: 'gift' // rationale\n    }",
+      ],
+      // A comment on a line of its own before the offset, and one after it on its line.
+      [
+        "{\n      at: 'speech',\n      until: 'gift',\n      // nudged past the word\n      untilOffset: 0.1,\n      ease: 'linear',\n    }",
+        "{\n      at: 'speech',\n      until: 'gift',\n      // nudged past the word\n      ease: 'linear',\n    }",
+      ],
+      [
+        "{\n      at: 'speech',\n      until: 'gift',\n      untilOffset: 0.1, // nudged\n      ease: 'linear',\n    }",
+        "{\n      at: 'speech',\n      until: 'gift',\n      // nudged\n      ease: 'linear',\n    }",
+      ],
+      [
+        "{\n      at: 'speech',\n      until: 'gift',\n      /* nudged\n         past the word */ untilOffset: 0.1,\n      ease: 'linear',\n    }",
+        "{\n      at: 'speech',\n      until: 'gift',\n      /* nudged\n         past the word */\n      ease: 'linear',\n    }",
+      ],
+    ];
+    for (const [span, dropped] of cases) {
+      const before = scene.replace("{ at: 'speech' }", span);
+      expect(ok(editCue(FILE, before, 'hand', 'bare', { untilOffset: 0 }))).toBe(
+        scene.replace("{ at: 'speech' }", dropped),
+      );
+    }
+  });
+
+  it('refuses an until offset on a span that ends by its dur, or over one in code', () => {
+    const why = (source: string, patch: Parameters<typeof editCue>[4]) =>
+      Result.match(editCue(FILE, source, 'hand', 'bare', patch), {
+        onFailure: (error) => error.message,
+        onSuccess: () => 'written',
+      });
+    const sized = scene.replace("bare: { at: 'speech' }", "bare: { at: 'speech', dur: 2 }");
+    expect(why(sized, { untilOffset: 0.1 })).toContain('it runs no until');
+    const computed = scene.replace(
+      "bare: { at: 'speech' }",
+      "bare: { at: 'speech', until: 'gift', untilOffset: GAP }",
+    );
+    expect(why(computed, { untilOffset: 0.1 })).toContain('not a literal');
+    expect(why(computed, { untilOffset: 0 })).toContain('not a literal');
+    expect(why(computed, { dur: 3 })).toContain('not a literal');
+  });
+
   it('preserves a computed or ambiguous object end when asked to replace it with dur', () => {
     for (const until of [
       '{ cue: PARENT }',

@@ -2,8 +2,8 @@
 // the editor's machine and its tests share it. On the strip a cue's body moves
 // its offset, its left edge its start (offset and dur), its right edge its end
 // (dur). A bar too short for two edges and a body (under 3 × EDGE_PX) is all
-// body; alt grabs its end. A cue that runs `until` a mark keeps ending on it
-// (`dragPatch`). Edges snap to word starts and ends, marks and other cues'
+// body; alt grabs its end. A cue that runs `until` a mark keeps following it:
+// its end is set as an offset off the mark (`dragPatch`). Edges snap to word starts and ends, marks and other cues'
 // edges within SNAP_PX, else move by whole frames; shift inverts the viewer's
 // snap (`placesFreely`). The inspector's fields of a cue or a knob
 // (`fieldsOf`) write through the same writes as a drag, and refuse as a drag
@@ -188,10 +188,18 @@ export type StepWrite = typeof StepWrite.Type;
 export const Write = Schema.Union([CueWrite, KnobWrite, StepWrite]);
 export type Write = typeof Write.Type;
 
-/** `b`'s fields over `a`'s: a dur replaces an until and an until a dur, as a span ends one way. */
+/** The fields that set a span's whole end: a dur replaces an until and an until a dur. */
+const RESETS: ReadonlyArray<string> = ['dur', 'until'];
+/** The fields a span's end is: its dur, or its until and the offset off it. */
+const ENDS: ReadonlyArray<string> = ['dur', 'until', 'untilOffset'];
+
+/**
+ * `b`'s fields over `a`'s: a dur replaces an until and an until a dur, each
+ * with the until's offset, as a span ends one way (`patchSpan`).
+ */
 const patchOver = (a: CuePatch, b: CuePatch): CuePatch => {
-  if (!('dur' in b) && !('until' in b)) return { ...a, ...b };
-  const { dur: _dur, until: _until, ...fields } = a;
+  if (!RESETS.some((f) => f in b)) return { ...a, ...b };
+  const { dur: _dur, until: _until, untilOffset: _untilOffset, ...fields } = a;
   return { ...fields, ...b };
 };
 
@@ -208,9 +216,6 @@ export const cueSaidText = (write: Pick<CueWrite, 'cue' | 'said'>): string =>
     .map(([field, m]) => moved(`cue ${write.cue} ${field}`, m.before, m.after, m.unit))
     .join('; ');
 
-/** A span's two ends: a dur replaces an until and an until a dur (`patchOver`). */
-const ENDS: ReadonlyArray<string> = ['dur', 'until'];
-
 /**
  * `b`'s moves over `a`'s, field by field: a field both move goes from `a`'s
  * before to `b`'s after; one only `a` moves stays, unless `b` ends the span
@@ -219,7 +224,7 @@ const ENDS: ReadonlyArray<string> = ['dur', 'until'];
 const saidOver = (a: Pick<CueWrite, 'said'>, b: Pick<CueWrite, 'said'>) => {
   const earlier = movesOf(a);
   const later = movesOf(b);
-  const ends = Object.keys(later).some((f) => ENDS.includes(f));
+  const ends = Object.keys(later).some((f) => RESETS.includes(f));
   // In the order first said: `a`'s fields (each moved on by `b`'s, or kept), then `b`'s new ones.
   const kept = Object.entries(earlier)
     .filter(([field]) => field in later || !(ends && ENDS.includes(field)))
@@ -249,15 +254,17 @@ const saidOver = (a: Pick<CueWrite, 'said'>, b: Pick<CueWrite, 'said'>) => {
  */
 export const joined = (earlier: Write, later: Write): Option.Option<Write> =>
   Match.value([earlier, later] as const).pipe(
+    // The same cue first, then the merge: two cues' fields never make one patch.
     Match.when([{ _tag: 'CueWrite' }, { _tag: 'CueWrite' }], ([a, b]): Option.Option<Write> =>
-      Option.liftPredicate(
-        CueWrite.make({
-          scene: b.scene,
-          cue: b.cue,
-          patch: patchOver(a.patch, b.patch),
-          ...saidOver(a, b),
-        }),
-        () => a.scene === b.scene && a.cue === b.cue,
+      Option.map(
+        Option.liftPredicate(b, () => a.scene === b.scene && a.cue === b.cue),
+        (same) =>
+          CueWrite.make({
+            scene: same.scene,
+            cue: same.cue,
+            patch: patchOver(a.patch, same.patch),
+            ...saidOver(a, same),
+          }),
       ),
     ),
     Match.when([{ _tag: 'KnobWrite' }, { _tag: 'KnobWrite' }], ([a, b]): Option.Option<Write> =>
@@ -531,6 +538,12 @@ export const cueSaid = (span: Span, cue: ResolvedCue, patch: CuePatch): CueSaid 
     ...part('offset', printed(offset), Option.map(has(patch.offset), printed), 's'),
     ...part('dur', printed(cue.dur), Option.map(has(patch.dur), printed), 's'),
     ...part('until', until, Option.map(has(patch.until), untilText)),
+    ...part(
+      'untilOffset',
+      printed(Option.getOrElse(has(span.untilOffset), () => 0)),
+      Option.map(has(patch.untilOffset), printed),
+      's',
+    ),
     ...part('ease', cue.ease, has(patch.ease)),
     ...part('stagger', printed(cue.stagger), Option.map(has(patch.stagger), printed)),
   ];
@@ -541,7 +554,8 @@ export const cueSaid = (span: Span, cue: ResolvedCue, patch: CuePatch): CueSaid 
  * Cue `name`'s fields: its offset, and its dur or, when it runs `until` a
  * mark, its end (scene seconds, stepped by frames, never before its start).
  * The end writes as its right edge's drag to that time does (`dragPatch`):
- * off the mark, as a dur. Each refuses as a drag of that part would.
+ * off the mark, as its offset off it, so it keeps following the mark. Each
+ * refuses as a drag of that part would.
  */
 const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Inspected> =>
   Option.match(

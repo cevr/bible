@@ -17,7 +17,7 @@ import {
 } from './errors.ts';
 import { wordAfter } from './narration.ts';
 import type { CuePatch, ResolvedCue, ScenePoint, Span, Timeline, Until, Word } from './schema.ts';
-import { DEFAULT_EASE, type Key, ease, keys, progress, toMs } from './time.ts';
+import { CLOCK_EPSILON, DEFAULT_EASE, type Key, ease, keys, progress, toMs } from './time.ts';
 
 /** 0→1 across a cue at scene time `t`, eased by the cue's own ease. */
 export const cueProgress = (cue: ResolvedCue, t: number): number =>
@@ -63,22 +63,54 @@ const anchorField = (span: Span) => {
   return { at: span.at };
 };
 
-/** A span's end: its `dur` (from its anchor, or up to it with `ends`), or the mark it runs `until`. */
+/** An `until` span's offset off its point as the span writes it: none on the point (0, to the millisecond). */
+const untilOffsetField = (untilOffset: number | undefined) =>
+  untilOffset === undefined || toMs(untilOffset) === 0 ? {} : { untilOffset };
+
+/**
+ * A span's end: its `dur` (from its anchor, or up to it with `ends`), or the
+ * point it runs `until` and its offset off it. A patch's `dur` or `until`
+ * sets the whole end, so a new point starts on the point; its `untilOffset`
+ * alone moves an `until` span's end off the point it keeps.
+ */
 const endField = (span: Span, patch: CuePatch) => {
-  if (patch.until !== undefined) return { until: patch.until };
+  if (patch.until !== undefined)
+    return { until: patch.until, ...untilOffsetField(patch.untilOffset) };
   const ends = span.ends === true ? { ends: true as const } : {};
   if (patch.dur !== undefined) return { dur: patch.dur, ...ends };
-  if (span.until !== undefined) return { until: span.until };
+  if (span.until !== undefined)
+    return { until: span.until, ...untilOffsetField(patch.untilOffset ?? span.untilOffset) };
   if (span.dur !== undefined) return { dur: span.dur, ...ends };
   return ends;
 };
 
+/** The keys of a `CuePatch` that hold seconds. */
+const PATCH_NUMBERS = ['offset', 'dur', 'untilOffset', 'stagger'] as const satisfies ReadonlyArray<
+  keyof CuePatch
+>;
+
+/**
+ * `patch` as a scene file holds it once written: every number to the
+ * millisecond (`toMs`), the one rounding the source writer applies. What a
+ * write is judged by before it lands, so the judgement is of what lands.
+ */
+export const writtenPatch = (patch: CuePatch): CuePatch =>
+  PATCH_NUMBERS.reduce<CuePatch>(
+    (written, key) =>
+      Option.match(Option.fromUndefinedOr(patch[key]), {
+        onNone: () => written,
+        onSome: (value) => ({ ...written, [key]: toMs(value) }),
+      }),
+    patch,
+  );
+
 /**
  * `span` with a lab edit applied. A span ends one way, so a `dur` replaces
- * its `until` and an `until` its `dur`; a span that `ends` on its anchor
- * keeps landing there as its `dur` changes. A field neither has stays
- * absent, never `undefined`, so the result decodes as a `Span`; a designed
- * `silence` is kept.
+ * its `until` (and the offset off it) and an `until` its `dur`; an
+ * `untilOffset` moves an `until` span's end off its point, and 0 puts it back
+ * on it, the key dropped; a span that `ends` on its anchor keeps landing there
+ * as its `dur` changes. A field neither has stays absent, never `undefined`,
+ * so the result decodes as a `Span`; a designed `silence` is kept.
  */
 export const patchSpan = (span: Span, patch: CuePatch): Span => {
   const offset = patch.offset ?? span.offset;
@@ -115,10 +147,11 @@ interface DraggedBar {
  * edge sets only the dur and the right edge both.
  *
  * A span that runs `until` a point (a mark, a landmark or a cue's edge) keeps
- * ending on it: the body and the left edge move only its offset, its start
- * held at least `frame` before the point so it never ends before it starts,
- * and the right edge leaves the point only when dropped off it, as a hand-set
- * `dur`.
+ * following it: the body and the left edge move only its offset, its start
+ * held at least `frame` before its end so it never ends before it starts, and
+ * the right edge sets the end's offset off the point (`untilOffset`; 0, the
+ * key dropped, when dropped back on it), never a `dur`, so a re-take or a drag
+ * of that point still moves the end.
  */
 export const dragPatch = (
   span: Span,
@@ -150,7 +183,13 @@ const untilPatch = (
 ): Option.Option<CuePatch> => {
   if (edge === 'end') {
     if (toMs(at.end) === toMs(cue.end)) return Option.none();
-    return Option.some({ dur: toMs(Math.max(0, at.end - cue.start)) });
+    // The point the span runs until: its end less the offset it ends off it.
+    const point = cue.end - (span.untilOffset ?? 0);
+    const near = toMs(Math.max(cue.start, at.end) - point);
+    // Rounded, the end may fall before the start: then it is the first millisecond at or after it.
+    // On the start within float noise is on it, as the resolver judges it (`CLOCK_EPSILON`).
+    if (point + near >= cue.start - CLOCK_EPSILON) return Option.some({ untilOffset: near });
+    return Option.some({ untilOffset: toMs(near + 0.001) });
   }
   const offset = toMs(Math.min(at.start, cue.end - frame) - anchor);
   if (offset === toMs(span.offset ?? 0)) return Option.none();
@@ -236,6 +275,17 @@ export const untilText = (until: Until): string => {
   return until.at;
 };
 
+/**
+ * Where a span that runs `until` a point ends, as the lab, `film cues` and an
+ * error say it: the point (`untilText`), and its offset off it when it has
+ * one, to the hundredth: `{first} + 0.10 s`, `{first} − 0.10 s`.
+ */
+export const untilEndText = (until: Until, untilOffset = 0): string => {
+  if (toMs(untilOffset) === 0) return untilText(until);
+  const sign = untilOffset < 0 ? '−' : '+';
+  return `${untilText(until)} ${sign} ${Math.abs(untilOffset).toFixed(2)} s`;
+};
+
 /** Why a timeline does not resolve: a point it names, a cycle, or an `until` before its start. */
 export type TimelineError = PointError | CueCycle | UntilBeforeStart;
 
@@ -249,7 +299,7 @@ export const resolveTimeline = (
   const visiting: Array<string> = [];
   const known = Object.keys(timeline);
 
-  /** How long a cue that starts at `start` lasts: its `dur`, or up to where it runs `until`. */
+  /** How long a cue that starts at `start` lasts: its `dur`, or up to where it runs `until`, plus its offset off it. */
   const length = (
     name: string,
     span: Span,
@@ -260,12 +310,18 @@ export const resolveTimeline = (
     const self = `cue "${name}"`;
     return Result.flatMap(
       pointOn(clock, (n) => resolve(n, self), untilPoint(until), self),
-      (end): Result.Result<number, TimelineError> => {
-        if (end < start)
+      (point): Result.Result<number, TimelineError> => {
+        const end = point + (span.untilOffset ?? 0);
+        // Before its start by more than float noise (`CLOCK_EPSILON`); within it, it ends on its start.
+        if (end < start - CLOCK_EPSILON)
           return Result.fail(
-            UntilBeforeStart.make({ scene: clock.scene, cue: name, until: untilText(until) }),
+            UntilBeforeStart.make({
+              scene: clock.scene,
+              cue: name,
+              until: untilEndText(until, span.untilOffset),
+            }),
           );
-        return Result.succeed(end - start);
+        return Result.succeed(Math.max(0, end - start));
       },
     );
   };

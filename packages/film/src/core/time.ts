@@ -60,6 +60,13 @@ export interface Interval {
  */
 export const toMs = (v: number): number => Math.round(v * 1000) / 1000 + 0;
 
+/**
+ * How far apart two times on a scene's clock may be and still be one time: a
+ * sum of seconds (a mark plus an offset) carries float noise in its last bits
+ * (0.1 + 0.2 is 0.30000000000000004), far below the millisecond a file keeps.
+ */
+export const CLOCK_EPSILON = 1e-9;
+
 export const clamp = (v: number, lo = 0, hi = 1) => (v < lo ? lo : v > hi ? hi : v);
 export const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 export const invLerp = (a: number, b: number, v: number) => (a === b ? 0 : (v - a) / (b - a));

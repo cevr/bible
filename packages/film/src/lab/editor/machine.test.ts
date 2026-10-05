@@ -302,6 +302,32 @@ describe('writes', () => {
     }).pipe(Effect.provide(layer));
   });
 
+  it.effect(
+    "a commit for another cue waits after the rest, whatever its fields: one cue's dur and another's untilOffset are never merged",
+    () =>
+      Effect.gen(function* () {
+        const commit = (cue: string, patch: CueWrite['patch']) =>
+          EditEvent.Commit({ write: CueWrite.make({ scene: 'one', cue, patch }), edit: {} });
+        const result = yield* simulate(editMachine, [
+          commit('rise', { offset: 0.2 }),
+          commit('rise', { dur: 1 }),
+          commit('fall', { untilOffset: 0.1 }),
+        ]);
+        expect(result.finalState).toEqual(
+          EditState.Writing({
+            write: CueWrite.make({ scene: 'one', cue: 'rise', patch: { offset: 0.2 } }),
+            next: [
+              { write: CueWrite.make({ scene: 'one', cue: 'rise', patch: { dur: 1 } }), edit: {} },
+              {
+                write: CueWrite.make({ scene: 'one', cue: 'fall', patch: { untilOffset: 0.1 } }),
+                edit: {},
+              },
+            ],
+          }),
+        );
+      }).pipe(Effect.provide(fakes().layer)),
+  );
+
   it.effect('one write at a time: a press or a step while one is out is not taken', () =>
     Effect.gen(function* () {
       const undo = StepWrite.make({ verb: 'undo', request: 'undo-1', change: Option.none() });

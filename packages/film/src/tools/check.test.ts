@@ -975,6 +975,22 @@ describe('cueTwins', () => {
     ).toEqual([['dim', 'dark']]);
   });
 
+  test('an until offset is part of the end: the same offset twins, another does not', () => {
+    expect(
+      found({
+        walk: { mark: 'two', until: 'four', untilOffset: 0.2 },
+        pace: { mark: 'two', until: 'four', untilOffset: 0.2 },
+        stop: { mark: 'two', until: 'four', untilOffset: -0.2 },
+        stay: { mark: 'two', until: 'four' },
+        // Ends where `walk` does, written as a part that ends 0.2 past its parent's end.
+        trail: { with: 'stay', until: { cue: 'stay' }, untilOffset: 0.2 },
+      }),
+    ).toEqual([
+      ['pace', 'walk'],
+      ['trail', 'walk'],
+    ]);
+  });
+
   test('another ease, stagger, length or anchor is its own cue, even where the times agree today', () => {
     expect(
       found({

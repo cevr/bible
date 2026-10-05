@@ -9,8 +9,10 @@
 // (`{ cue: 'roll' }`) or a two-number array (`[960, 800]`).
 // A computed value, a spread, a shorthand or a duplicate key is refused, since
 // the lab could not say what it would be changing. A missing `offset`, `dur`,
-// `until`, `ease` or `stagger` is added after the span's anchor, in that order; a span
-// ends one way, so a `dur` written replaces its `until`, and an `until` its `dur`.
+// `until`, `untilOffset`, `ease` or `stagger` is added after the span's anchor, in
+// that order; a span ends one way, so a `dur` written replaces its `until`, and an
+// `until` its `dur`. An `untilOffset` goes with the end it is off: a `dur` or a
+// new `until` takes it away, and so does 0, an end back on its point.
 
 import { Array as Arr, Match, Option, Predicate, Result, Schema } from 'effect';
 import {
@@ -27,6 +29,7 @@ import {
 import { type CuePatch, EaseName, type Knob, Span, Until } from '../core/schema.ts';
 import { SourceRefused } from '../core/refusals.ts';
 import { toMs } from '../core/time.ts';
+import { writtenPatch } from '../core/timeline.ts';
 
 /** A `timeline` or `knobs` property: an object literal, something else, or not there. */
 type Slot =
@@ -75,12 +78,16 @@ interface Splice {
 
 /** The keys a span is anchored by; the lab writes the timing fields after them, in order. */
 const ANCHORS: ReadonlyArray<string> = ['mark', 'word', 'after', 'with', 'at'];
-const TIMING = ['offset', 'dur', 'until', 'ease', 'stagger'] satisfies ReadonlyArray<
+const TIMING = ['offset', 'dur', 'until', 'untilOffset', 'ease', 'stagger'] satisfies ReadonlyArray<
   keyof CuePatch
 >;
 type TimingKey = (typeof TIMING)[number];
 
-/** A number as the lab writes it: to the millisecond (`toMs`), never `-0`. */
+/**
+ * A number as the lab writes it: to the millisecond (`toMs`), never `-0`; the
+ * rule `writtenPatch` applies to a cue write, so a cue's numbers come here
+ * already rounded and print as judged.
+ */
 const numberText = (v: number) => String(toMs(v));
 
 /** A single-quoted string literal. */
@@ -612,6 +619,12 @@ const valueText = (key: TimingKey, patch: CuePatch): Option.Option<string> => {
       return Option.map(Option.fromUndefinedOr(patch.dur), numberText);
     case 'until':
       return Option.map(Option.fromUndefinedOr(patch.until), stringText);
+    case 'untilOffset':
+      // 0 is the point itself: the key is taken away (`untilOffsetDrop`), never written.
+      return Option.map(
+        Option.filter(Option.fromUndefinedOr(patch.untilOffset), (v) => toMs(v) !== 0),
+        numberText,
+      );
     case 'ease':
       return Option.map(Option.fromUndefinedOr(patch.ease), stringText);
     case 'stagger':
@@ -678,9 +691,144 @@ const replaceEnd = (
   });
 
 /**
- * Set a cue's `offset`, `dur`, `until`, `ease` or `stagger` in the drawing exported as `name`: the
- * value's text replaced where it is a literal, or the field added after the
- * span's anchor. The result is the whole new source.
+ * Where the comma in `source` between `from` and `to` is: text between two
+ * properties, or a property and its object's brace, which holds blanks,
+ * comments and at most that one comma.
+ */
+const commaBetween = (source: string, from: number, to: number): Option.Option<number> => {
+  let i = from;
+  while (i < to) {
+    if (source.charAt(i) === ',') return Option.some(i);
+    // A comment runs to its line's end, or its close; one that never ends holds no comma.
+    const close = Match.value(source.slice(i, i + 2)).pipe(
+      Match.when('//', () => Option.some([source.indexOf('\n', i), 0] as const)),
+      Match.when('/*', () => Option.some([source.indexOf('*/', i + 2), 2] as const)),
+      Match.orElse(() => Option.none()),
+    );
+    if (Option.isNone(close)) i += 1;
+    else if (close.value[0] === -1) return Option.none();
+    else i = close.value[0] + close.value[1];
+  }
+  return Option.none();
+};
+
+const isBlank = (c: string) => c === ' ' || c === '\t';
+
+/**
+ * `[start, end)` cut from `source`: its whole line when nothing else is on
+ * it; with the blanks before it when it ends its line, so none trail; else
+ * with the blanks after it when blanks are before it too, so one is left.
+ */
+const cut = (source: string, start: number, end: number): Splice => {
+  let from = start;
+  while (from > 0 && isBlank(source.charAt(from - 1))) from -= 1;
+  let to = end;
+  while (to < source.length && isBlank(source.charAt(to))) to += 1;
+  const endsLine = to === source.length || source.charAt(to) === '\n';
+  if (endsLine && (from === 0 || source.charAt(from - 1) === '\n'))
+    return { start: from, end: to + 1, text: '' };
+  if (endsLine) return { start: from, end: to, text: '' };
+  if (from < start) return { start, end: to, text: '' };
+  return { start, end, text: '' };
+};
+
+/** Whether `source` holds only blanks and line breaks from `from` to `to`. */
+const onlySpace = (source: string, from: number, to: number) =>
+  source.slice(from, to).trim() === '';
+
+/**
+ * The splices that take property `p` out of `span` with the comma that joins
+ * it to its neighbour (the one after it, else the one before it), and
+ * nothing else: a comment about it, or about a neighbour, stays.
+ */
+const removal = (
+  source: string,
+  span: ObjectExpression,
+  p: ObjectProperty,
+): ReadonlyArray<Splice> => {
+  const at = span.properties.indexOf(p);
+  const next = Option.match(Arr.get(span.properties, at + 1), {
+    onSome: (after) => after.start,
+    onNone: () => span.end,
+  });
+  return Option.match(commaBetween(source, p.end, next), {
+    onSome: (comma) => {
+      if (onlySpace(source, p.end, comma)) return [cut(source, p.start, comma + 1)];
+      return [cut(source, p.start, p.end), cut(source, comma, comma + 1)];
+    },
+    onNone: () =>
+      Option.match(
+        Option.flatMap(Arr.get(span.properties, at - 1), (before) =>
+          commaBetween(source, before.end, p.start),
+        ),
+        {
+          onSome: (comma) => {
+            if (onlySpace(source, comma + 1, p.start)) return [cut(source, comma, p.end)];
+            return [cut(source, comma, comma + 1), cut(source, p.start, p.end)];
+          },
+          onNone: () => [cut(source, p.start, p.end)],
+        },
+      ),
+  });
+};
+
+/**
+ * Whether `patch` takes a span's `untilOffset` away: an end set another way
+ * (a `dur`, or a new `until` with no offset of its own), or put back on its
+ * point (0, to the millisecond).
+ */
+const dropsUntilOffset = (patch: CuePatch): boolean =>
+  'dur' in patch ||
+  ('until' in patch && !('untilOffset' in patch)) ||
+  Option.exists(Option.fromUndefinedOr(patch.untilOffset), (v) => toMs(v) === 0);
+
+/**
+ * The splices that take the span's `untilOffset` away when `patch` drops it
+ * (`dropsUntilOffset`) and the span has one (`removal`); refused over one in
+ * code. An `untilOffset` on a span that runs no `until`, and is given none, is
+ * refused: it has no point to be off.
+ */
+const untilOffsetDrop = (
+  file: string,
+  source: string,
+  span: ObjectExpression,
+  cue: string,
+  patch: CuePatch,
+): Result.Result<ReadonlyArray<Splice>, SourceRefused> => {
+  const target = `cue ${cue} untilOffset`;
+  const none: ReadonlyArray<Splice> = [];
+  return Result.flatMap(propertyOf(file, `cue ${cue} until`, span, 'until'), (until) => {
+    if ('untilOffset' in patch && !('until' in patch) && Option.isNone(until))
+      return refuse<ReadonlyArray<Splice>>(
+        file,
+        target,
+        'it runs no until, so its end has no point to be off (it ends by its dur)',
+      );
+    if (!dropsUntilOffset(patch)) return Result.succeed(none);
+    return Result.flatMap(propertyOf(file, target, span, 'untilOffset'), (prop) =>
+      Option.match(prop, {
+        onNone: () => Result.succeed(none),
+        onSome: (p) => {
+          if (!Option.exists(valueOf(p), isNumberLiteral))
+            return refuse<ReadonlyArray<Splice>>(
+              file,
+              target,
+              `it is \`${textOf(source, p.value)}\`, not a literal, so the lab cannot take it away`,
+            );
+          return Result.succeed(removal(source, span, p));
+        },
+      }),
+    );
+  });
+};
+
+/**
+ * Set a cue's `offset`, `dur`, `until`, `untilOffset`, `ease` or `stagger` in
+ * the drawing exported as `name`: the value's text replaced where it is a
+ * literal, or the field added after the span's anchor; an `untilOffset` the
+ * patch drops (`dropsUntilOffset`) is taken away. The patch is written as a
+ * scene file holds it (`writtenPatch`), the one rounding its check judges.
+ * The result is the whole new source.
  */
 export const editCue = (
   file: string,
@@ -690,10 +838,14 @@ export const editCue = (
   patch: CuePatch,
 ): Result.Result<string, SourceRefused> =>
   Result.flatMap(spanOf(file, source, name, cue), (span) => {
+    const written = writtenPatch(patch);
     const splices: Array<Splice> = [];
     const inserts = new Map<number, Array<string>>();
+    const dropped = untilOffsetDrop(file, source, span, cue, written);
+    if (Result.isFailure(dropped)) return Result.fail(dropped.failure);
+    splices.push(...dropped.success);
     for (const key of TIMING) {
-      const text = valueText(key, patch);
+      const text = valueText(key, written);
       if (Option.isNone(text)) continue;
       const target = `cue ${cue} ${key}`;
       const prop = propertyOf(file, target, span, key);
@@ -774,6 +926,7 @@ export const readCue = (
         offset: read('offset'),
         dur: read('dur'),
         until: read('until'),
+        untilOffset: read('untilOffset'),
         ease: read('ease'),
         stagger: read('stagger'),
       }),
@@ -789,6 +942,10 @@ export const readCue = (
         ...Option.match(Option.flatMap(f.until, stringOf), {
           onNone: () => ({}),
           onSome: (until) => ({ until }),
+        }),
+        ...Option.match(Option.flatMap(f.untilOffset, numberOf), {
+          onNone: () => ({}),
+          onSome: (untilOffset) => ({ untilOffset }),
         }),
         ...Option.match(Option.flatMap(Option.flatMap(f.ease, stringOf), decodeEase), {
           onNone: () => ({}),

@@ -14,7 +14,7 @@ import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { EaseName, type ResolvedCue, type Span } from '../../core/schema.ts';
 import { DEFAULT_EASE, timecode } from '../../core/time.ts';
-import { untilText } from '../../core/timeline.ts';
+import { untilEndText } from '../../core/timeline.ts';
 import { type LabSelection, cueOf } from '../../command/selection.ts';
 import { Field, Hint } from '../command/inspector.tsx';
 import { HeaderTool } from '../page-shell.tsx';
@@ -45,8 +45,9 @@ interface CueFieldsProps {
 
 /**
  * The selected cue: its anchor, offset, dur (or, ending on a mark, its end
- * and the mark: an end typed takes it off the mark, as its drag does), when
- * it plays, and its ease.
+ * and the mark with the offset off it: an end typed sets that offset, as its
+ * drag does, and the end keeps following the mark), when it plays, and its
+ * ease.
  */
 const CueFields = (props: CueFieldsProps) => {
   const { meta } = useLab();
@@ -93,7 +94,7 @@ const CueFields = (props: CueFieldsProps) => {
             <>
               <Show when={field('end')}>{(f) => <Field field={f()} label={<Key>end</Key>} />}</Show>
               <Key>until</Key>
-              <Val>{untilText(until())}</Val>
+              <Val>{untilEndText(until(), props.span.untilOffset)}</Val>
             </>
           )}
         </Show>

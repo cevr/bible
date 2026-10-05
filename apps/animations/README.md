@@ -68,7 +68,7 @@ bun cli.ts options take <film> --point p --variant v --verb pick|unpick|reject  
 bun cli.ts options mix <film> --point p --variant v --to f.m4a  # the film's whole mix with a score option or a take in place
 bun cli.ts options keep-voice <film> <beat> <file> [--accept-mismatch]  # keep a beat's recorded attempt as its take, and remix
 bun cli.ts read voice <film>                   # what the lab's studio reads of the film, fresh from disk (one line of JSON)
-bun cli.ts read cue <film> <scene> <cue> [--spans <json>]  # a cue on its scene's clock as the files declare it (or with these spans), or why it does not resolve (one line of JSON)
+bun cli.ts read cue <film> <scene> <cue> [--spans <json>] [--patch <json>]  # a cue on its scene's clock as the files declare it (or with these spans, and this patch over its own span when its source computes part of it), or why it does not resolve (one line of JSON)
 bun run notes <film> [--watch [--since <seq>]] # open lab notes and `cursor seq=`; --watch streams changes past it, each with seq=
 bun run notes reply <film> <id> "text" [--still file.png] [--since <seq>]  # then new notes + user replies since your last reply, and `cursor seq=`
 bun run notes resolve <film> <id>

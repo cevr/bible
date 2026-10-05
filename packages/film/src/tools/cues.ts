@@ -1,6 +1,7 @@
 // The film's clock as text: each scene's placement, its marks, its resolved
-// named cues and the seam to the next voice, each sound effect's film time, or
-// a short's spans. Pure; `film cues` prints it.
+// named cues (an `until` cue's offset off its point beside it) and the seam to
+// the next voice, each sound effect's film time, or a short's spans. Pure;
+// `film cues` prints it.
 
 import { Array as Arr, Option, Result } from 'effect';
 import type { SoundCueError, UnknownScene } from '../core/errors.ts';
@@ -8,6 +9,7 @@ import { type Placed, sceneOf } from '../core/layout.ts';
 import type { Cue, Sound } from '../core/schema.ts';
 import type { ResolvedShort } from '../core/shorts.ts';
 import { cueTime } from '../core/sound.ts';
+import { untilEndText } from '../core/timeline.ts';
 import { longSeams, seamAfter } from './check.ts';
 import type { FlagRule } from './render-plan.ts';
 
@@ -49,11 +51,26 @@ const seamOf = (p: Placed, next: Option.Option<Placed>, long: ReadonlySet<string
     },
   );
 
+/** ` (until {first} + 0.10 s)`: where a cue ends off the point it runs until; nothing on the point or for a dur. */
+const offPoint = (p: Placed, cue: string): string =>
+  Option.match(
+    Option.flatMap(Option.fromNullishOr(p.spec.timeline?.[cue]), (span) =>
+      Option.all({
+        until: Option.fromUndefinedOr(span.until),
+        off: Option.fromUndefinedOr(span.untilOffset),
+      }),
+    ),
+    {
+      onNone: () => '',
+      onSome: ({ until, off }) => ` (until ${untilEndText(until, off)})`,
+    },
+  );
+
 const lineOf = (p: Placed, seam: string): CueLine => {
   const marks = [...p.voice.marks].map(([k, v]) => `${k}@${(p.speechStart + v).toFixed(2)}`);
   let late = 0;
   const cues = [...p.cues].map(([k, c]) => {
-    const span = `${k}@${c.start.toFixed(2)}–${c.end.toFixed(2)}`;
+    const span = `${k}@${c.start.toFixed(2)}–${c.end.toFixed(2)}${offPoint(p, k)}`;
     if (c.end <= p.dur + 1e-9) return span;
     late++;
     return `${span} (ENDS AFTER SCENE)`;

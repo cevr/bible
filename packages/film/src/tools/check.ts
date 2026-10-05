@@ -231,7 +231,7 @@ const markPoint = (mark: string, word?: string): DeclaredPoint => ({
   offset: 0,
 });
 
-/** A span's edges from its anchor's declared point and its `until`'s (`ended`), as `resolveTimeline` lays them. */
+/** A span's edges from its anchor's declared point and its `until`'s (`ended`, plus its `untilOffset`), as `resolveTimeline` lays them. */
 const edgesFrom = (
   span: Span,
   anchor: DeclaredPoint,
@@ -241,8 +241,9 @@ const edgesFrom = (
     anchor,
     Option.getOrElse(Option.fromUndefinedOr(span.offset), () => 0),
   );
+  const off = Option.getOrElse(Option.fromUndefinedOr(span.untilOffset), () => 0);
   return Option.match(Option.fromUndefinedOr(span.until), {
-    onSome: (until) => Option.map(ended(until), (end) => ({ start: at, end })),
+    onSome: (until) => Option.map(ended(until), (end) => ({ start: at, end: plus(end, off) })),
     onNone: () => {
       const dur = Option.getOrElse(Option.fromUndefinedOr(span.dur), () => 0);
       if (span.ends === true) return Option.some({ start: plus(at, -dur), end: at });

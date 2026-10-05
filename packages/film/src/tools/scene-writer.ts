@@ -1,8 +1,8 @@
-// The lab's writes to scene source: a cue's `offset`, `dur`, `until`, `ease`
-// or `stagger`, or a knob's value, in the `drawing({...})` literal
+// The lab's writes to scene source: a cue's `offset`, `dur`, `until`,
+// `untilOffset`, `ease` or `stagger`, or a knob's value, in the `drawing({...})` literal
 // SceneSources locates. A cue write the scene's timeline cannot resolve with
 // is refused (`TimelineUnresolved`): judged in a fresh `film read cue
-// --spans` (`FreshFilm`), on the clock the film's files give now, never this
+// --spans --patch` (`FreshFilm`), on the clock the film's files give now, never this
 // process's first import of them; its answer is the cue where it lands.
 //
 // Each write splices the one value (`scene-source.ts`) and reads it back from
@@ -83,14 +83,23 @@ const cueMismatches = (patch: CuePatch, read: CuePatch): ReadonlyArray<string> =
   ...missed('offset', field(patch, 'offset'), field(read, 'offset'), same),
   ...missed('dur', field(patch, 'dur'), field(read, 'dur'), same),
   ...missed('until', field(patch, 'until'), field(read, 'until'), (a, b) => a === b),
+  // No key reads as 0: an end back on its point drops it.
+  ...missed(
+    'untilOffset',
+    field(patch, 'untilOffset'),
+    Option.some(Option.getOrElse(field(read, 'untilOffset'), () => 0)),
+    same,
+  ),
   ...missed('ease', field(patch, 'ease'), field(read, 'ease'), (a, b) => a === b),
   ...missed('stagger', field(patch, 'stagger'), field(read, 'stagger'), same),
 ];
 
 const fieldsOf = (patch: CuePatch) =>
-  (['offset', 'dur', 'until', 'ease', 'stagger'] satisfies ReadonlyArray<keyof CuePatch>).filter(
-    (k) => Predicate.hasProperty(patch, k),
-  );
+  (
+    ['offset', 'dur', 'until', 'untilOffset', 'ease', 'stagger'] satisfies ReadonlyArray<
+      keyof CuePatch
+    >
+  ).filter((k) => Predicate.hasProperty(patch, k));
 
 export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService>()(
   '@bible/film/tools/SceneWriter',
@@ -136,18 +145,21 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
 
       /**
        * Refuse `after` when the scene's timeline, its spans read from `after`
-       * where they are literals, does not resolve on the clock the film's
-       * files give now (a fresh `film read cue --spans`); else answer where
-       * `cue` lands. A film that does not load or lay out as it stands is not
-       * this write's to judge: the check passes, saying why it could not
-       * resolve the cue.
+       * where they are literals, and `patch` applied to the cue's own span
+       * where its source computes part of it (`until: MARK`, which no literal
+       * says), does not resolve on the clock the film's files give now (a
+       * fresh `film read cue --spans --patch`); else answer where `cue` lands.
+       * A film that does not load or lay out as it stands is not this write's
+       * to judge: the check passes, saying why it could not resolve the cue.
        */
       const resolves =
-        (film: FilmName, scene: string, cue: string, target: string) =>
+        (film: FilmName, scene: string, cue: string, patch: CuePatch, target: string) =>
         (at: SceneSite, after: string) =>
           Effect.gen(function* () {
             const spans = readSpans(at.shown, after, at.exportName);
-            const answered = yield* Effect.result(fresh.cue(film, scene, cue, Option.some(spans)));
+            const answered = yield* Effect.result(
+              fresh.cue(film, scene, cue, Option.some(spans), Option.some(patch)),
+            );
             if (Result.isFailure(answered)) {
               const why = `${answered.failure._tag}: ${answered.failure.message}`;
               yield* Effect.logWarning(
@@ -182,7 +194,7 @@ export class SceneWriter extends Context.Service<SceneWriter, SceneWriterService
             Result.map(readCue(at.shown, after, at.exportName, cue), (read) =>
               cueMismatches(patch, read),
             ),
-          resolves(film, scene, cue, target),
+          resolves(film, scene, cue, patch, target),
         );
         const done: CueWritten = { written, read };
         return done;
