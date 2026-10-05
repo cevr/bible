@@ -63,6 +63,7 @@ import type { BunPlugin } from 'bun';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { LONGEST_WAIT, type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import type { PageBuild } from '../core/schema.ts';
+import { PAGE_CUT_MARK } from '../core/page-render.ts';
 import { brotliCompress, constants as zlib } from 'node:zlib';
 import { type PageAnswer, PageReads, pageCodingOf } from './api-server.ts';
 import {
@@ -1299,7 +1300,8 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * rendered on the server at `url` by its server entry: the page's markup
    * streamed into it as it is written. A render that fails before its head
    * answers the page as made, which the browser renders itself; one that
-   * fails later leaves what it wrote.
+   * fails later (or is cut, `END_WAIT`) leaves what it wrote and the mark of
+   * a cut (`PAGE_CUT_MARK`), and the browser renders that page anew too.
    */
   const rendered = (
     name: PageName,
@@ -1325,12 +1327,13 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
               Stream.concat(
                 made.success.markup.pipe(
                   Stream.catch((error) =>
-                    Stream.drain(
+                    Stream.as(
                       Stream.fromEffect(
                         Effect.logWarning(
                           `lab.page.render.cut page=${name} build=${build.id} reason="${error.reason}"`,
                         ),
                       ),
+                      PAGE_CUT_MARK,
                     ),
                   ),
                 ),

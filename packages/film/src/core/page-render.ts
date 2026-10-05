@@ -57,5 +57,21 @@ export const PAGE_ROOT = 'data-page-root';
 /** The attribute a page's body carries once the browser has mounted it: `hydrated` over the server's markup, else `rendered`. */
 export const PAGE_MOUNTED = 'data-page-mounted';
 
+/**
+ * The attribute of what a page's markup ends with when the lab cut its render
+ * short (`PAGE_CUT_MARK`): the browser's mount finds it and renders the page
+ * anew, the server's markup dropped, where a hydration would wait on parts
+ * of the page that never came.
+ */
+export const PAGE_CUT = 'data-page-cut';
+
+/**
+ * What the lab writes where it cut a page's render: an empty `<template>`,
+ * which the HTML parser takes as an element wherever in the body a cut
+ * leaves it (inside an open table too, where other elements are moved out),
+ * and which is never shown.
+ */
+export const PAGE_CUT_MARK = `<template ${PAGE_CUT}></template>`;
+
 /** The attribute on a server-rendered page's style element: the browser's mount finds it there and adds none. */
 export const PAGE_STYLE = 'data-page-style';

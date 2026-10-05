@@ -30,9 +30,10 @@ import {
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { TestClock } from 'effect/testing';
 import { brotliCompressSync, brotliDecompressSync, constants as zlib } from 'node:zlib';
-import { LONGEST_WAIT } from '../core/api.ts';
+import { LONGEST_WAIT, LabHttpApi } from '../core/api.ts';
+import { PAGE_CUT_MARK } from '../core/page-render.ts';
 import { LabPage, type LabPageSpec, PageBundler, splice } from './lab-page.ts';
-import { PageReads } from './api-server.ts';
+import { PageReads, serveApi } from './api-server.ts';
 import { PageRenderer, RenderFailed } from './page-render.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
@@ -206,6 +207,64 @@ describe('lab pages', () => {
   );
 
   it.live(
+    "a script's coding over HTTP is the server's compression's own, before and after its best brotli is made: a header Effect refuses whole is answered as it is",
+    () =>
+      Effect.gen(function* () {
+        const { page, write } = yield* app;
+        yield* write('src/lab.ts', `console.log('${'the lab '.repeat(400)}');\n`);
+        const handler = yield* serveApi(LabHttpApi, Layer.empty, {
+          allowed: { hosts: [] },
+          page: page.answer,
+          beside: Layer.empty,
+        });
+        /** `pathname` answered over HTTP for `accept`: its coding, and its body read whole. */
+        const sent = (pathname: string, accept: string) =>
+          Effect.gen(function* () {
+            const response = yield* Effect.promise(() =>
+              handler(
+                new Request(`http://127.0.0.1:8229${pathname}`, {
+                  headers: { host: '127.0.0.1:8229', 'accept-encoding': accept },
+                }),
+                { hostname: '127.0.0.1', port: 8229 },
+              ),
+            );
+            const body = yield* Effect.promise(() => response.text());
+            return { coding: response.headers.get('content-encoding') ?? '', body };
+          });
+        const codingOf = (pathname: string, accept: string) =>
+          Effect.map(sent(pathname, accept), (answer) => answer.coding);
+        const lab = (yield* sent('/films/f/lab', 'identity')).body;
+        const src = /src="\.?(\/[^"]+\.js)"/.exec(lab)?.[1] ?? '';
+        const headers = [
+          'br',
+          'gzip, br',
+          'br;q=0, gzip',
+          'BR ; q=1',
+          '*',
+          'identity',
+          'br;q=2',
+          'br, gzip;q=oops',
+          'br;q=1;level=3',
+          'br,',
+        ];
+        // Cold: no best brotli yet, every coding the compression's (the page's own answer is never kept compressed).
+        const cold = yield* Effect.forEach(headers, (accept) => codingOf('/', accept));
+        expect(cold.slice(0, 6)).toEqual(['br', 'br', 'gzip', 'br', 'br', '']);
+        expect(cold.slice(6)).toEqual(['', '', '', '']);
+        // Ready: the script's best brotli made, and sent for the same headers, and only those.
+        yield* codingOf(src, 'br').pipe(
+          Effect.repeat({
+            until: (coding) => coding === 'br',
+            schedule: Schedule.spaced('50 millis'),
+          }),
+          Effect.timeout('4 seconds'),
+        );
+        const ready = yield* Effect.forEach(headers, (accept) => codingOf(src, accept));
+        expect(ready).toEqual(cold);
+      }).pipe(Effect.scoped, Effect.provide(Platform)),
+  );
+
+  it.live(
     "a page with a server entry is answered rendered: the render's head before </head>, its body's class on <body>, its markup first in the body, at the URL asked",
     () =>
       Effect.gen(function* () {
@@ -229,7 +288,7 @@ describe('lab pages', () => {
   );
 
   it.live(
-    'a render that fails before its head answers the page as built; one cut short leaves what it wrote, then the rest of the page',
+    'a render that fails before its head answers the page as built; one cut short leaves what it wrote, the mark of a cut, then the rest of the page',
     () =>
       Effect.gen(function* () {
         const { spec } = yield* appFolder;
@@ -257,8 +316,9 @@ describe('lab pages', () => {
           }),
         );
         const half = (yield* (yield* served(spec, PageBundler.layerTest, cut)).ask('/')).text;
+        // Marked as cut, so the browser renders the page anew (`mountPage`).
         expect(half).toContain(
-          '<body class="rv"><main>half<script type="module" src="./src/p.ts"></script></body></html>',
+          `<body class="rv"><main>half${PAGE_CUT_MARK}<script type="module" src="./src/p.ts"></script></body></html>`,
         );
       }).pipe(Effect.scoped, Effect.provide(Platform)),
   );

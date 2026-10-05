@@ -16,10 +16,12 @@ import {
   type FakeRoute,
   type Json,
   PHONE,
+  hold,
   json,
   openServed,
   route,
 } from '../../../src/lab/fixtures/harness.ts';
+import { PAGE_CUT_MARK, PAGE_ROOT } from '../../../src/core/page-render.ts';
 import { TOY } from '../../../src/lab/fixtures/toy-film.ts';
 import {
   STUDIO_FILM,
@@ -205,6 +207,35 @@ describe('the review served as the lab renders it', () => {
         yield* waitFor(film.page, '[data-point="look:ground"]');
         expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(0);
         expect(mismatches(film.page.logged)).toEqual([]);
+        expect(film.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a page whose render was cut while a read was held still settles: the server's markup dropped, the page rendered anew reads the choices itself",
+    () =>
+      Effect.gen(function* () {
+        // The server's read is never answered; the browser's own is.
+        const held: Array<Asked> = [];
+        const stuck = [
+          route('GET', /^\/api\/films\/toy\/choices$/, (asked) => {
+            held.push(asked);
+            if (held.length === 1) return hold;
+            return json(choices);
+          }),
+          ...routes,
+        ];
+        const film = yield* openServed('review', stuck, {
+          href: pageHref.choices(TOY),
+          cut: '1 second',
+        });
+        const html = film.documents[0]?.html ?? '';
+        expect(html).toContain(`Reading ${TOY}'s choices…`);
+        expect(html).toContain(PAGE_CUT_MARK);
+        yield* waitFor(film.page, '[data-point="look:ground"]');
+        yield* countIs(film.page, `[${PAGE_ROOT}]`, 0);
+        expect(reads(film.asked, `/api/films/${TOY}/choices`)).toBe(1);
         expect(film.errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

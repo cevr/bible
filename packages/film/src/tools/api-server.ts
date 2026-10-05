@@ -383,32 +383,63 @@ const readsOf = (
 const PAGE_CODINGS: ReadonlyArray<HttpPlatform.CompressionAlgorithm> = ['br', 'gzip'];
 
 /**
+ * One member of an Accept-Encoding as Effect's negotiation reads it
+ * (`acceptMember`, internal to `effect/http`): a coding, and at most a
+ * weight from 0 to 1 with up to three decimals.
+ */
+const ACCEPT_MEMBER = /^([a-z0-9!#$%&'*+.^_`|~-]+)(?:;q=(0(?:\.[0-9]{0,3})?|1(?:\.0{0,3})?))?$/;
+
+/**
+ * `header`'s codings by weight, as Effect's negotiation reads them
+ * (`parseAcceptEncoding`): none for an empty header, or for one with any
+ * member it cannot read, which is then answered as if it took no coding.
+ */
+const acceptedOf = (header: string): Option.Option<ReadonlyMap<string, number>> =>
+  Option.flatMap(
+    Option.liftPredicate(header.trim(), (trimmed) => trimmed !== ''),
+    (trimmed) =>
+      Option.map(
+        Option.all(
+          trimmed.split(',').map((part) =>
+            Option.map(
+              Option.fromNullishOr(
+                ACCEPT_MEMBER.exec(
+                  part
+                    .trim()
+                    .toLowerCase()
+                    .replace(/[ \t]*;[ \t]*/g, ';'),
+                ),
+              ),
+              ([, coding = '', weight]) =>
+                [
+                  coding,
+                  Option.match(Option.fromUndefinedOr(weight), {
+                    onNone: () => 1,
+                    onSome: Number,
+                  }),
+                ] as const,
+            ),
+          ),
+        ),
+        (members) => new Map(members),
+      ),
+  );
+
+/**
  * The coding a page's answer is sent in for `accept` (its Accept-Encoding),
- * as `HttpMiddleware.compression` negotiates it over `PAGE_CODINGS`: the
- * first the request takes with a weight above 0, named or by `*` (Effect
- * keeps its own negotiation internal). A file sent already compressed
- * (`LabPage`'s best brotli) is sent so only when this names its coding.
+ * as `HttpMiddleware.compression` negotiates it over `PAGE_CODINGS` (Effect
+ * keeps its negotiation internal, so its rules are followed here): the first
+ * the header takes with a weight above 0, named or by `*`; none when Effect
+ * reads the header as none (`acceptedOf`). A file sent already compressed
+ * (`LabPage`'s best brotli) is sent so only when this names its coding, so
+ * a header is answered in the same coding before and after it is made.
  */
 export const pageCodingOf = (
   accept: Option.Option<string>,
-): Option.Option<HttpPlatform.CompressionAlgorithm> => {
-  const weights = new Map(
-    Option.getOrElse(accept, () => '')
-      .split(',')
-      .map((part) => {
-        const [coding = '', ...params] = part.split(';').map((p) => p.trim().toLowerCase());
-        const weight = Option.fromUndefinedOr(params.find((p) => p.startsWith('q=')));
-        return [
-          coding,
-          Option.match(weight, { onNone: () => 1, onSome: (q) => Number(q.slice(2)) }),
-        ];
-      }),
+): Option.Option<HttpPlatform.CompressionAlgorithm> =>
+  Option.flatMap(Option.flatMap(accept, acceptedOf), (accepted) =>
+    Arr.findFirst(PAGE_CODINGS, (coding) => (accepted.get(coding) ?? accepted.get('*') ?? 0) > 0),
   );
-  return Arr.findFirst(
-    PAGE_CODINGS,
-    (coding) => (weights.get(coding) ?? weights.get('*') ?? 0) > 0,
-  );
-};
 
 /**
  * A response's `Vary` once it varies by `dimension` too, by the rule of

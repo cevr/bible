@@ -36,7 +36,7 @@ import {
   Stream,
 } from 'effect';
 import * as Worker from 'effect/workers/Worker';
-import type { PageName } from '../core/api.ts';
+import { LONGEST_WAIT, type PageName } from '../core/api.ts';
 import { FromRender, ToRender } from './page-render-protocol.ts';
 
 /** A module of a build's server bundle, at its path under the build's root. */
@@ -129,12 +129,13 @@ const WORKER = new URL('./page-render-worker.ts', import.meta.url);
 const HEAD_WAIT = Duration.seconds(10);
 
 /**
- * How long a render may go on after its head before it is cut: the page then
- * ends, so its scripts run and the browser renders what the server did not
- * (a read the lab never answers would otherwise hold the page unhydrated).
- * Longer than a fresh read of a film takes.
+ * How long a render may go on after its head before it is cut: the longest a
+ * lab request is held (`LONGEST_WAIT`), so a read the lab answers in that time
+ * is rendered, and a few seconds to render its answer. The lab ends a cut
+ * page marked (`PAGE_CUT_MARK`), and the browser renders that page anew (a
+ * read the lab never answers would otherwise hold the page unhydrated).
  */
-const END_WAIT = Duration.seconds(20);
+export const END_WAIT = Duration.sum(Duration.seconds(LONGEST_WAIT), Duration.seconds(5));
 
 /**
  * A render under way: the worker's messages for it, its reads, and the

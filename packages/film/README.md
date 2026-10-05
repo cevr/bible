@@ -804,7 +804,10 @@ phone). The server draws no film: the canvas, the scene code and the stills
 are `clientOnly` (`lab/film-page.tsx`), and a build whose server entry reads
 a film's or a scene's module or `player/stills.ts` fails, naming them
 (`filmCode`). A render that fails before its head answers the page as built,
-which the browser then renders. A page's answer (its HTML, scripts and
+which the browser then renders. One that fails after its head, or still runs
+`LONGEST_WAIT` and a few seconds after it (`END_WAIT`), is cut: the page ends
+with what it wrote and `PAGE_CUT_MARK`, and the browser drops that markup
+and renders the page anew (`mountPage`). A page's answer (its HTML, scripts and
 styles) is compressed by the request's `Accept-Encoding` (br, else gzip;
 `pageRoute`, `tools/api-server.ts`), a streamed page flushed chunk by chunk
 (`NodeHttpCompression`), so its shell reaches the browser while its render

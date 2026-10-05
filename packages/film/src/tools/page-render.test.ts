@@ -12,6 +12,7 @@ import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
 import {
   Deferred,
+  Duration,
   Effect,
   Exit,
   Fiber,
@@ -25,9 +26,9 @@ import {
 } from 'effect';
 import * as PlatformError from 'effect/PlatformError';
 import { TestClock } from 'effect/testing';
-import type { PageName } from '../core/api.ts';
+import { LONGEST_WAIT, type PageName } from '../core/api.ts';
 import { PageBundler } from './lab-page.ts';
-import { PageRenderer, type RenderBuild, type ServerBundle } from './page-render.ts';
+import { END_WAIT, PageRenderer, type RenderBuild, type ServerBundle } from './page-render.ts';
 
 const Services = Layer.mergeAll(PageBundler.layer, PageRenderer.layer).pipe(
   Layer.provideMerge(BunServices.layer),
@@ -344,6 +345,25 @@ describe("a page's server render", () => {
   );
 
   it.effect(
+    'waits out a read that takes as long as a lab request may be held (`LONGEST_WAIT`): the render ends with its answer, uncut',
+    () =>
+      Effect.gen(function* () {
+        const asked = yield* Deferred.make<void>();
+        const page = yield* Effect.forkChild(
+          renderOf({ id: 1, bundle: moduleBundle(READS_ONE) }, () =>
+            Effect.andThen(
+              Deferred.done(asked, Exit.void),
+              Effect.as(Effect.sleep(Duration.seconds(LONGEST_WAIT)), new Response('slow')),
+            ),
+          ),
+        );
+        yield* Deferred.await(asked);
+        yield* TestClock.adjust(Duration.seconds(LONGEST_WAIT));
+        expect((yield* Fiber.join(page)).markup).toBe('<p>200 slow</p>');
+      }).pipe(Effect.provide(Services)),
+  );
+
+  it.effect(
     'cuts a render that goes on too long after its head, and stops it with the read it waits on',
     () =>
       Effect.gen(function* () {
@@ -362,8 +382,10 @@ describe("a page's server render", () => {
           );
           const markup = yield* Effect.forkChild(Effect.flip(Stream.runDrain(page.markup)));
           yield* Deferred.await(asked);
-          yield* TestClock.adjust('20 seconds');
-          expect((yield* Fiber.join(markup)).reason).toContain('no end in 20s after its head');
+          yield* TestClock.adjust(END_WAIT);
+          expect((yield* Fiber.join(markup)).reason).toContain(
+            `no end in ${Duration.format(END_WAIT)} after its head`,
+          );
         }).pipe(Effect.scoped);
         // The render's scope closed with the cut: its read's handler stopped with it.
         expect(yield* Deferred.isDone(stopped)).toBe(true);
