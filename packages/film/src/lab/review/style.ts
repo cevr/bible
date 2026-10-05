@@ -82,7 +82,7 @@ a.rv-card:hover { background: var(--surface-2); }
   border: 1px solid currentColor; color: var(--text-2); border-radius: var(--r-1); padding: 0 var(--s-1); margin-left: var(--s-1);
 }
 .rv-badge[data-approval="approved"] { color: var(--state-approved); }
-.rv-badge[data-approval="stale"] { color: var(--state-stale); }
+.rv-badge:is([data-approval="stale"], [data-state="stale"]) { color: var(--state-stale); }
 .rv-picked { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--text-1); font-size: var(--fs-2); font-weight: var(--w-2); }
 .rv-picked svg { width: 14px; height: 14px; flex: none; }
 .rv-picked circle { fill: var(--text-1); }

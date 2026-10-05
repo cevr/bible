@@ -1,7 +1,8 @@
 // One choice point as the review shows it (`core/choice.ts`), the same card
 // for every kind and at every level of the film: its title and lines, its
 // knob (a sound layer's level: a slider, and its value a field typed to the
-// step, nudged by its arrows), and each variant with its state, what it is, how it is seen or
+// step, nudged by its arrows), and each variant with its state when it is not
+// current (in full in its sheet), what it is, how it is seen or
 // heard (a render's video; a take alone, its own file; in place: 🔊 over the
 // picture), the verbs its state allows (pick, unpick, reject), its approval
 // (approve, unapprove) and what was said of it; at rest only what most
@@ -264,7 +265,6 @@ const Media = (props: { readonly point: ChoicePoint; readonly variant: ChoiceVar
         <AloneButton variant={{ point: props.point.id, variant: props.variant.id }} />
       </Show>
       <Show when={Option.exists(heard(), (h) => h.inPlace)}>
-        <span class="rv-hint">in place</span>
         <HearButton
           playing={Playing.InPlace({ point: props.point.id, variant: props.variant.id })}
           disabled={missing()}
@@ -497,7 +497,7 @@ const VariantRow = (props: {
             picked
           </span>
         </Show>
-        <StateTags variant={props.variant} />
+        <RowState variant={props.variant} />
       </div>
       <Show when={props.variant.lines[0]}>
         {(line) => (
@@ -573,6 +573,43 @@ export const ChoiceSheets = (props: { readonly points: ReadonlyArray<ChoicePoint
     }}
   </For>
 );
+
+/** A row's word for a variant's state, when it is not current (UR-49): why is its sheet's. */
+const ROW_STATE = {
+  stale: 'Out of date',
+  missing: 'Not made yet',
+} as const satisfies Record<Exclude<ChoiceVariant['state'], 'current'>, string>;
+
+/**
+ * A variant's state on its row, only when it is not current (UR2-2), and its
+ * approval when it has one; its sheet says the state in full (`StateTags`).
+ */
+const RowState = (props: { readonly variant: ChoiceVariant }) => {
+  const notCurrent = (): Option.Option<keyof typeof ROW_STATE> =>
+    Option.fromUndefinedOr(
+      Object.keys(ROW_STATE).find((s): s is keyof typeof ROW_STATE => s === props.variant.state),
+    );
+  return (
+    <>
+      <For each={Option.toArray(notCurrent())}>
+        {(s) => (
+          <span
+            class="rv-badge"
+            data-state={s}
+            title={stateText(props.variant.state, props.variant.staleBy)}
+          >
+            {ROW_STATE[s]}
+          </span>
+        )}
+      </For>
+      <Show when={props.variant.approval !== 'none'}>
+        <span class="rv-badge" data-approval={props.variant.approval}>
+          {APPROVAL_TEXT[props.variant.approval]}
+        </span>
+      </Show>
+    </>
+  );
+};
 
 /** A variant's state, and its approval when it has one. */
 const StateTags = (props: { readonly variant: ChoiceVariant }) => (

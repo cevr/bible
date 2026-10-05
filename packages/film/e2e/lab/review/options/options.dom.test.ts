@@ -433,6 +433,20 @@ describe("a film's choices", () => {
           `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=strings')`,
         );
         yield* evaluates(page, "document.querySelector('.rv-picture video').muted", true);
+        // A row says its state only when it is not current, in a word (UR2-2); a take in place
+        // says nothing of it: its 🔊 hears it over the picture.
+        yield* countIs(page, `${at('score', 'strings')} [data-state]:not([data-variant])`, 0);
+        yield* textIs(page, `${at('score', 'piano')} .rv-badge[data-state="stale"]`, 'Out of date');
+        yield* textIs(
+          page,
+          `${at('score', 'choir')} .rv-badge[data-state="missing"]`,
+          'Not made yet',
+        );
+        yield* evaluates(
+          page,
+          "document.querySelector('.rv-main').innerText.includes('in place')",
+          false,
+        );
         // A missing option cannot be heard.
         yield* countIs(page, `${at('score', 'choir')} [data-act="hear"]`, 0);
         yield* click(page, `${at('score', 'piano')} [data-act="hear"]`);
