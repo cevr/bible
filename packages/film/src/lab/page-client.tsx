@@ -5,10 +5,18 @@
 // anew with its styles added and its root made. Either way the same
 // components run. A film page whose film does not start ends (`PageEnd`):
 // its tree disposed and its keys unheard before it says why in its place.
+// Every studio page mounts in the one sequence `mountStudio` runs (the Lab,
+// Scenes and Play, and the review).
 
+import { Location } from '@bible/url-state';
 import { type JSX, hydrate, render } from '@solidjs/web';
 import { Deferred, Effect, Fiber, Option } from 'effect';
+import { type BrowserServices, type Host, addressOn, hostOf } from '../browser/host.ts';
+import { BrowserHost } from '../browser/host-browser.ts';
+import type { Hub } from '../command/hub.ts';
+import { legacyPlace } from '../core/api.ts';
 import { PAGE_CUT, PAGE_MOUNTED, PAGE_ROOT, PAGE_STYLE } from '../core/page-render.ts';
+import { registerFace } from '../player/face.ts';
 
 /** A page as its browser entry mounts it: the same parts its server entry renders (`pageRender`). */
 interface MountedPage {
@@ -34,7 +42,7 @@ interface MountedAs {
  * hydration would wait on parts of it that never came. The body says how
  * once it is (`PAGE_MOUNTED`).
  */
-export const mountPage = (page: MountedPage): MountedAs => {
+const mountPage = (page: MountedPage): MountedAs => {
   document.body.classList.add(page.bodyClass);
   const served = Option.fromNullishOr(document.querySelector(`[${PAGE_ROOT}]`));
   const cut = Option.fromNullishOr(document.querySelector(`[${PAGE_CUT}]`));
@@ -77,7 +85,7 @@ interface PageEnd {
 }
 
 /** A page's end, to settle once the page is mounted. */
-export const makePageEnd: Effect.Effect<PageEnd> = Effect.map(
+const makePageEnd: Effect.Effect<PageEnd> = Effect.map(
   Deferred.make<Effect.Effect<void>>(),
   (stop): PageEnd => ({
     end: Effect.flatten(Deferred.await(stop)),
@@ -90,3 +98,48 @@ export const makePageEnd: Effect.Effect<PageEnd> = Effect.map(
       ),
   }),
 );
+
+/** A studio page as its browser entry mounts it. */
+interface StudioPage {
+  /** Its body's and root's classes and its styles (`pageRender`'s too). */
+  readonly page: Omit<MountedPage, 'app'>;
+  /** The event its mount logs, with where it is and how it mounted (`lab.shell`). */
+  readonly event: string;
+  /**
+   * Its commands' hub and its app over `host`, given what ends the page: a
+   * film page's body, loaded later, ends it when its film does not start.
+   */
+  readonly on: (
+    host: Host,
+    end: Effect.Effect<void>,
+  ) => Effect.Effect<
+    { readonly hub: Hub; readonly app: () => JSX.Element },
+    never,
+    BrowserServices
+  >;
+}
+
+/**
+ * Mount `studio` into the page over the browser's host: an old link the
+ * server could not see all of (a bare `#<seconds>`) goes on to its place;
+ * the UI face is registered first, so the fonts a film waits on include it;
+ * then its commands and their one key listener, and the page mounted
+ * (`mountPage`), its end settled on it.
+ */
+export const mountStudio = (studio: StudioPage): void => {
+  const host = hostOf(BrowserHost.layer);
+  Effect.runSyncWith(host)(
+    Effect.gen(function* () {
+      const address = addressOn(host);
+      Option.map(legacyPlace(address.href()), address.follow);
+      registerFace(document.fonts);
+      const ending = yield* makePageEnd;
+      const { hub, app } = yield* studio.on(host, ending.end);
+      const listening = yield* Effect.forkDetach(hub.listen);
+      const mounted = mountPage({ ...studio.page, app });
+      yield* ending.mounted(mounted, listening);
+      const { href } = yield* Location.use((bar) => bar.current);
+      yield* Effect.logInfo(`${studio.event} href=${href} how=${mounted.how}`);
+    }),
+  );
+};

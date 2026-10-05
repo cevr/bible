@@ -1,26 +1,22 @@
-// The lab page's browser entry: build the page's host (`browser/host.ts`),
-// mount the studio's shell and the Lab's panel (`film-page.tsx`,
-// `panel.tsx`), hydrated over the markup the lab rendered them with on the
+// The lab page's browser entry: mount the studio's shell and the Lab's
+// panel (`film-page.tsx`, `panel.tsx`) as every studio page mounts
+// (`mountStudio`), hydrated over the markup the lab rendered them with on the
 // server (`film-server.tsx`) or rendered anew, then stage the film its path
 // names, mount the framework-free preview player (`mountPreview`) on the
 // lab's time in the URL (`lab/place.ts`), and put each tool's controls in
 // its section of the panel. The render page the renderer loads never
 // imports this.
 
-import { Location } from '@bible/url-state';
-import { Effect, Option, Schema } from 'effect';
+import { Effect, Schema } from 'effect';
 import type { Film } from '../canvas/film.ts';
-import { legacyPlace } from '../core/api.ts';
-import { type Host, addressOn, hostOf } from '../browser/host.ts';
-import { BrowserHost } from '../browser/host-browser.ts';
+import { type Host, addressOn } from '../browser/host.ts';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
 import { TIME_MOVE, type TimeInUrl } from '../player/t-in-url.ts';
-import { registerFace } from '../player/face.ts';
 import { LabClient } from './api.ts';
 import { labHrefWith, labOpensAt } from './place.ts';
 import { ShellTools, useShellTime } from './page-shell.tsx';
 import { type FilmBody, LAB_PAGE, labOn } from './film-page.tsx';
-import { makePageEnd, mountPage } from './page-client.tsx';
+import { mountStudio } from './page-client.tsx';
 import { Compare } from './compare/index.ts';
 import { Editor } from './editor/index.ts';
 import { Motion } from './motion/index.ts';
@@ -141,28 +137,10 @@ const labBody =
  * (`/films/<film>/lab…`): the shell at once, hydrated over the server's
  * markup or rendered anew, and the lab in its body once the film is staged.
  */
-export const mountLab = (films: Films): void => {
-  const host = hostOf(BrowserHost.layer);
-  Effect.runSyncWith(host)(
-    Effect.gen(function* () {
-      const address = addressOn(host);
-      // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
-      Option.map(legacyPlace(address.href()), address.follow);
-      // The UI face first, so the fonts the film waits on include it.
-      registerFace(document.fonts);
-      // The page's commands and its one key listener: the player's transport and every tool's verbs.
-      const ending = yield* makePageEnd;
-      const { hub, app } = yield* labOn(
-        host,
-        Object.keys(films),
-        LabClient.layer,
-        labBody(films, host, ending.end),
-      );
-      const listening = yield* Effect.forkDetach(hub.listen);
-      const mounted = mountPage({ ...LAB_PAGE, app });
-      yield* ending.mounted(mounted, listening);
-      const { href } = yield* Location.use((bar) => bar.current);
-      yield* Effect.logInfo(`lab.shell href=${href} how=${mounted.how}`);
-    }),
-  );
-};
+export const mountLab = (films: Films): void =>
+  // The page's commands: the player's transport and every tool's verbs.
+  mountStudio({
+    page: LAB_PAGE,
+    event: 'lab.shell',
+    on: (host, end) => labOn(host, Object.keys(films), LabClient.layer, labBody(films, host, end)),
+  });
