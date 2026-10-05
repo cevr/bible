@@ -34,6 +34,7 @@ import {
   HttpClient,
   HttpPlatform,
   HttpRouter,
+  HttpServerRequest,
   HttpServerResponse,
 } from 'effect/http';
 import { brotliDecompressSync } from 'node:zlib';
@@ -54,6 +55,7 @@ import {
   type BesideRoutes,
   LAB_IDLE_SECONDS,
   MAX_REQUEST_BODY,
+  PageReads,
   labServer,
   serveLab,
 } from './api-server.ts';
@@ -61,7 +63,7 @@ import { STUDIO_IMPORT_WAIT_S, STUDIO_MAX_BODY } from '../core/studio.ts';
 import { FilmFolder } from './film-repo.ts';
 import { LabPage, type LabPageSpec, PageBundler } from './lab-page.ts';
 import { NotesStore } from './notes-store.ts';
-import { PageReads, PageRenderer } from './page-render.ts';
+import { PageRenderer } from './page-render.ts';
 import {
   echoPages,
   foreignRequests,
@@ -96,8 +98,37 @@ const readingPages = Layer.effect(
   ),
 ).pipe(Layer.provideMerge(echoPages));
 
-/** A path beside the API that answers nothing: held until its request is gone. */
-const HELD = '/held';
+/**
+ * Pages as a test asks them: one asked `?read=<path>` reads that path as a
+ * render does and is answered its status and body; one asked `?vary=<v>` is
+ * answered with that Vary, as a page that varies by more than its coding.
+ */
+const askedPages = Layer.effect(
+  LabPage,
+  Effect.map(LabPage, (echo) =>
+    LabPage.of({
+      ...echo,
+      answer: Effect.gen(function* () {
+        const query = new URL((yield* HttpServerRequest.HttpServerRequest).url, 'http://lab')
+          .searchParams;
+        const vary = Option.fromNullishOr(query.get('vary'));
+        if (Option.isSome(vary))
+          // Long enough to be compressed (a body under 1 KB is sent as it is).
+          return HttpServerResponse.text('a page '.repeat(300), { headers: { vary: vary.value } });
+        const { read } = yield* PageReads;
+        const response = yield* read(query.get('read') ?? '');
+        const body = yield* Effect.promise(() => response.text());
+        return HttpServerResponse.text(`${response.status} ${body}`);
+      }),
+    }),
+  ),
+).pipe(Layer.provideMerge(echoPages));
+
+/**
+ * A path beside the API's routes that answers nothing: held until its
+ * request is gone. Under the API's prefix, as a render reads nothing else.
+ */
+const HELD = '/api/held';
 
 /** The held path's route: `asked` is done once it is asked, `ended` once its request is stopped. */
 const heldRoute = (ended: Deferred.Deferred<void>, asked?: Deferred.Deferred<void>) =>
@@ -466,6 +497,47 @@ describe('lab routes', () => {
         expect(page).toMatch(/^200 \{/);
         expect(page).toContain('"id":"n1"');
       }).pipe(Effect.scoped, Effect.provide(labLayer(files(), readingPages))),
+  );
+
+  it.effect(
+    "a page's render reads the API alone: a page, a script or a file is a 404 RouteUnknown, never asked",
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        for (const path of ['/films/f/play', '/chunk-a1.js', '/films/f/narration/s1.mp3']) {
+          const asked = `/?read=${encodeURIComponent(path)}`;
+          const page = yield* Effect.promise(() => lab(get(asked), bound).then((r) => r.text()));
+          expect([path, page]).toEqual([path, `404 {"_tag":"RouteUnknown","path":"${path}"}`]);
+        }
+        // An API path is read as ever.
+        const notes = labUrls.notes.list({ params: { film: 'f' } });
+        const read = `/?read=${encodeURIComponent(notes)}`;
+        expect(yield* Effect.promise(() => lab(get(read), bound).then((r) => r.text()))).toMatch(
+          /^200 \{/,
+        );
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), askedPages))),
+  );
+
+  it.effect(
+    "a compressed page's Vary names its coding once, beside what it already varies by",
+    () =>
+      Effect.gen(function* () {
+        const lab = yield* labHandler(LOOPBACK);
+        for (const [vary, sent] of [
+          ['accept-encoding', 'accept-encoding'],
+          ['Origin', 'Origin, Accept-Encoding'],
+          ['*', '*'],
+        ] as const) {
+          const page = yield* Effect.promise(() =>
+            lab(get(`/?vary=${encodeURIComponent(vary)}`, { 'accept-encoding': 'br' }), bound),
+          );
+          expect([vary, page.headers.get('content-encoding'), page.headers.get('vary')]).toEqual([
+            vary,
+            'br',
+            sent,
+          ]);
+        }
+      }).pipe(Effect.scoped, Effect.provide(labLayer(files(), askedPages))),
   );
 
   it.live("a page's read its render gives up stops that read's request in the lab", () =>

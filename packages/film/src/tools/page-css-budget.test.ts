@@ -14,7 +14,8 @@ import { Context, Effect, FileSystem, Layer } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { LAB_PAGES, LAB_SERVERS } from '../../../../apps/animations/server.ts';
 import { LabPage, PageBundler } from './lab-page.ts';
-import { PageReads, PageRenderer } from './page-render.ts';
+import { PageReads } from './api-server.ts';
+import { PageRenderer } from './page-render.ts';
 
 /** Each place a phone opens, by the path the lab serves it at. */
 const PLACES = [

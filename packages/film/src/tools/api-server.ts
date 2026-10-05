@@ -56,7 +56,6 @@ import { NetAddress } from 'effect/net';
 import { BunHttpServer } from '@effect/platform-bun';
 import { BodyTooLarge } from '../core/refusals.ts';
 import { STUDIO_MAX_BODY } from '../core/studio.ts';
-import { PageReads } from './page-render.ts';
 
 /** Where the server listens: the name and port it is bound to. */
 interface LabBound {
@@ -307,6 +306,17 @@ export const answered = <A, E extends { readonly _tag: string; readonly message:
   });
 
 /**
+ * The reads a page's render makes of the lab's API, for the page being
+ * answered (`readsOf`): each a GET of a path of the API through the lab's
+ * own handler with the page's Host, so the gate admits it as it admitted
+ * the page; any other path is a 404 RouteUnknown.
+ */
+export class PageReads extends Context.Service<
+  PageReads,
+  { readonly read: (path: string) => Effect.Effect<Response> }
+>()('@bible/film/tools/PageReads') {}
+
+/**
  * The app's pages as a route answers them: the response for the request,
  * never a failure; a page rendered on the server reads the API through
  * `PageReads`.
@@ -329,29 +339,38 @@ type OwnHandler = (request: Request, context: Context.Context<Connection>) => Pr
  * Host the page was asked of, answered by the server's own handler on the
  * page's connection, so the gate admits it as it admitted the page (and
  * refuses it as it would the page's own fetch), and the same routes answer.
- * A read given up (its render over) aborts its request, which stops its
- * handler.
+ * A path outside the API's own prefixes (`own`: a page, a script, a file)
+ * is a 404 RouteUnknown, never asked. A read given up (its render over)
+ * aborts its request, which stops its handler.
  */
 const readsOf = (
   self: Deferred.Deferred<OwnHandler>,
+  own: ReadonlyArray<string>,
   request: HttpServerRequest.HttpServerRequest,
   connection: ConnectionService,
 ): Context.Context<PageReads> =>
   Context.make(
     PageReads,
     PageReads.of({
-      read: (path) =>
-        Effect.flatMap(Deferred.await(self), (handler) =>
+      read: (path) => {
+        const url = new URL(path, `http://${hostOf(request)}`);
+        if (!own.some((prefix) => url.pathname.startsWith(prefix)))
+          return Effect.map(
+            answerRefused(
+              HttpServerRequest.fromWeb(new Request(url)),
+              RouteUnknown.make({ path: url.pathname }),
+            ),
+            (refusal) => HttpServerResponse.toWeb(refusal),
+          );
+        return Effect.flatMap(Deferred.await(self), (handler) =>
           Effect.promise((signal) =>
             handler(
-              new Request(new URL(path, `http://${hostOf(request)}`), {
-                headers: { accept: 'application/json' },
-                signal,
-              }),
+              new Request(url, { headers: { accept: 'application/json' }, signal }),
               Context.make(Connection, connection),
             ),
           ),
-        ),
+        );
+      },
     }),
   );
 
@@ -359,12 +378,28 @@ const readsOf = (
 const PAGE_CODINGS: ReadonlyArray<HttpPlatform.CompressionAlgorithm> = ['br', 'gzip'];
 
 /**
+ * A response's `Vary` once it varies by `dimension` too, by the rule of
+ * Effect's own compression (`varyWith`, internal to `HttpPlatform.make`):
+ * kept as it is when it already names the dimension or `*`.
+ */
+const varyWith = (vary: Option.Option<string>, dimension: string): string =>
+  Option.match(vary, {
+    onNone: () => dimension,
+    onSome: (kept) => {
+      const members = kept.split(',').map((member) => member.trim().toLowerCase());
+      if (members.includes('*') || members.includes(dimension.toLowerCase())) return kept;
+      return `${kept}, ${dimension}`;
+    },
+  });
+
+/**
  * How a page's answer is compressed: bytes whole, a stream through zlib
  * flushed at every chunk (`NodeHttpCompression`), so a page's shell reaches
  * the browser while its render goes on. The platform's own compression of a
  * stream (`CompressionStream`) holds its bytes until it ends. Marked as
- * `HttpPlatform.make` marks it: the coding named, `Vary` kept, a strong
- * ETag made weak.
+ * `HttpPlatform.make` marks it (Effect's `wrapCompression`, which it does
+ * not export): the coding named, `Vary` naming `Accept-Encoding` once, a
+ * strong ETag made weak.
  */
 const FLUSHED: HttpPlatform.Compression = (() => {
   const made = NodeHttpCompression.make(
@@ -378,10 +413,10 @@ const FLUSHED: HttpPlatform.Compression = (() => {
     compressResponse: (response, algorithm, options) =>
       Effect.map(made.compressResponse(response, algorithm, options), (compressed) => {
         if (compressed === response) return response;
-        const vary = Option.match(Option.fromUndefinedOr(compressed.headers['vary']), {
-          onNone: () => 'Accept-Encoding',
-          onSome: (kept) => `${kept}, Accept-Encoding`,
-        });
+        const vary = varyWith(
+          Option.fromUndefinedOr(compressed.headers['vary']),
+          'Accept-Encoding',
+        );
         const etag = Option.filter(
           Option.fromUndefinedOr(compressed.headers['etag']),
           (tag) => !tag.startsWith('W/'),
@@ -434,7 +469,7 @@ const pageRoute = (
           status: 405,
           headers: { allow: SAFE_METHODS.join(', ') },
         });
-      const reads = readsOf(self, request, yield* Connection);
+      const reads = readsOf(self, own, request, yield* Connection);
       return yield* compressed(
         page.pipe(Effect.provideContext(reads)),
         Context.get(platform, HttpPlatform.HttpPlatform),

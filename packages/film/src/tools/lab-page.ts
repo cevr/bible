@@ -62,9 +62,8 @@ import type { BunPlugin } from 'bun';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { type PageName, labUrls, legacyPlace, pageAt } from '../core/api.ts';
 import type { PageBuild } from '../core/schema.ts';
-import type { PageAnswer } from './api-server.ts';
+import { type PageAnswer, PageReads } from './api-server.ts';
 import {
-  PageReads,
   PageRenderer,
   type RenderBuild,
   type RenderedPage,

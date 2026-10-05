@@ -62,18 +62,11 @@ export class RenderFailed extends Schema.TaggedError<RenderFailed>()('RenderFail
   reason: Schema.String,
 }) {}
 
-/** A read of the lab's API by a page's render: the GET of `path`, answered as the page's own request would be. */
-type Read = (path: string) => Effect.Effect<Response>;
-
 /**
- * The reads a page's render makes of the lab's API, for the page being
- * answered: the lab's server gives them (`serveApi`), each a GET through its
- * own handler with the page's Host, so the gate admits it as it admitted the
- * page.
+ * A read of the lab's API by a page's render: the GET of `path`, answered as
+ * the page's own request would be (the lab's server gives it, `PageReads`).
  */
-export class PageReads extends Context.Service<PageReads, { readonly read: Read }>()(
-  '@bible/film/tools/PageReads',
-) {}
+type Read = (path: string) => Effect.Effect<Response>;
 
 /** A page as its render writes it. */
 export interface RenderedPage {

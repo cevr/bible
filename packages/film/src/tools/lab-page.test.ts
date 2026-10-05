@@ -30,7 +30,8 @@ import {
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { TestClock } from 'effect/testing';
 import { LabPage, type LabPageSpec, PageBundler, splice } from './lab-page.ts';
-import { PageReads, PageRenderer, RenderFailed } from './page-render.ts';
+import { PageReads } from './api-server.ts';
+import { PageRenderer, RenderFailed } from './page-render.ts';
 import { memoryFileSystem, text } from './testing.ts';
 
 const Platform = Layer.provideMerge(BunHttpPlatform.layer, BunServices.layer);
