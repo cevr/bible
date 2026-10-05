@@ -113,13 +113,20 @@ const folderAndParents = (path: string, recursive: boolean): ReadonlyArray<strin
   return parts.slice(1).map((_, i) => parts.slice(0, i + 2).join('/'));
 };
 
-/** `path` written with `bytes`, or NotFound when its folder was never made nor holds a file. */
+/**
+ * `path` written with `bytes`, or NotFound when its folder was never made nor
+ * holds a file. Written `wx` (create, never replace), a path already there,
+ * a file or a folder, is AlreadyExists, as Node's EEXIST: a lock taken that
+ * way is refused while another holds it.
+ */
 const writeInto = (
   files: Map<string, Uint8Array>,
   folders: Set<string>,
   method: string,
   path: string,
   bytes: Uint8Array,
+  /** Written `wx`. */
+  exclusive: boolean,
 ) =>
   Effect.suspend(() => {
     const parent = path.slice(0, path.lastIndexOf('/'));
@@ -128,6 +135,19 @@ const writeInto = (
       folders.has(parent) ||
       [...files.keys()].some((f) => f.startsWith(`${parent}/`));
     if (!made) return Effect.fail(notFound(method, path));
+    const there =
+      files.has(path) ||
+      folders.has(path) ||
+      [...files.keys()].some((f) => f.startsWith(`${path}/`));
+    if (exclusive && there)
+      return Effect.fail(
+        PlatformError.systemError({
+          _tag: 'AlreadyExists',
+          module: 'FileSystem',
+          method,
+          pathOrDescriptor: path,
+        }),
+      );
     return Effect.sync(() => void files.set(path, bytes));
   });
 
@@ -168,8 +188,10 @@ const memoryOps = (
         onSome: (bytes) => Effect.succeed(new TextDecoder().decode(bytes)),
       }),
     // A write needs its folder, as Node's does: ENOENT when it was never made.
-    writeFile: (path, data) => writeInto(files, folders, 'writeFile', path, data),
-    writeFileString: (path, data) => writeInto(files, folders, 'writeFileString', path, text(data)),
+    writeFile: (path, data, options) =>
+      writeInto(files, folders, 'writeFile', path, data, options?.flag === 'wx'),
+    writeFileString: (path, data, options) =>
+      writeInto(files, folders, 'writeFileString', path, text(data), options?.flag === 'wx'),
     makeDirectory: (path, options) =>
       Effect.sync(() => {
         for (const folder of folderAndParents(path, options?.recursive === true))
@@ -627,33 +649,45 @@ export const echoPages = Layer.mergeAll(
 
 /**
  * `files`, whose `nth` write, rename or remove (counting from 1) fails as a
- * crash would: nothing after it runs. Every op before it has landed. `ops()`
- * counts the writes, renames and removes attempted so far.
+ * crash would, and every one after it: the process is gone, so nothing after
+ * it lands, not even a cleanup that catches the failure (a lock given back).
+ * Every op before it has landed. `nth` 0 never crashes. `ops()` counts the
+ * writes, renames and removes attempted so far.
  */
 export const crashingFileSystem = (files: Map<string, Uint8Array>, nth: number) => {
   const ops = memoryOps(files);
   let count = 0;
+  const gone = () => nth > 0 && count >= nth;
+  const crashed = (method: string, path: string) =>
+    PlatformError.systemError({
+      _tag: 'Unknown',
+      module: 'FileSystem',
+      method,
+      pathOrDescriptor: path,
+      description: 'crash',
+    });
+  /** A write the count leaves out (a lock's text, a folder): after the crash it lands no more than the rest. */
+  const after = (method: string, path: string) =>
+    Effect.suspend(() => {
+      if (gone()) return Effect.fail(crashed(method, path));
+      return Effect.void;
+    });
   const crash = (method: string, path: string) =>
     Effect.suspend(() => {
       count += 1;
-      if (count !== nth) return Effect.void;
-      return Effect.fail(
-        PlatformError.systemError({
-          _tag: 'Unknown',
-          module: 'FileSystem',
-          method,
-          pathOrDescriptor: path,
-          description: 'crash',
-        }),
-      );
+      return after(method, path);
     });
   const layer = FileSystem.layerNoop({
     ...ops,
-    writeFile: (path, data) =>
-      crash('writeFile', path).pipe(Effect.andThen(ops.writeFile(path, data))),
+    writeFile: (path, data, options) =>
+      crash('writeFile', path).pipe(Effect.andThen(ops.writeFile(path, data, options))),
     rename: (from, to) => crash('rename', from).pipe(Effect.andThen(ops.rename(from, to))),
     remove: (path, options) =>
       crash('remove', path).pipe(Effect.andThen(ops.remove(path, options))),
+    writeFileString: (path, data, options) =>
+      after('writeFileString', path).pipe(Effect.andThen(ops.writeFileString(path, data, options))),
+    makeDirectory: (path, options) =>
+      after('makeDirectory', path).pipe(Effect.andThen(ops.makeDirectory(path, options))),
   });
   return { layer, ops: () => count };
 };

@@ -16,7 +16,6 @@ import {
   Path,
   Schema,
 } from 'effect';
-import * as PlatformError from 'effect/PlatformError';
 import { TestClock } from 'effect/testing';
 import { type SoundManifest, SoundManifestJson } from '../core/schema.ts';
 import {
@@ -47,42 +46,14 @@ const assets: Manifest<typeof Assets.Type> = {
 };
 
 /**
- * A store over `files` whose file system refuses to create a file that is
+ * A store over `files`, whose file system refuses to create a file that is
  * there (`wx`), as a disk does: another process, as far as any lock knows.
  */
 const storeOn = (files: Map<string, Uint8Array>) =>
-  Effect.gen(function* () {
-    const memory = yield* Effect.map(
-      Layer.build(memoryFileSystem(files)),
-      Context.get(FileSystem.FileSystem),
-    );
-    const exclusive = FileSystem.FileSystem.of({
-      ...memory,
-      // Asked when run, as a disk is: a retry of the same call sees the file as it is then.
-      writeFileString: (file, data, options) =>
-        Effect.suspend(() => {
-          const wx = Option.exists(Option.fromUndefinedOr(options), (o) => o.flag === 'wx');
-          if (wx && files.has(file))
-            return Effect.fail(
-              PlatformError.systemError({
-                _tag: 'AlreadyExists',
-                module: 'FileSystem',
-                method: 'writeFileString',
-                pathOrDescriptor: file,
-              }),
-            );
-          return memory.writeFileString(file, data, options);
-        }),
-    });
-    return yield* Effect.map(
-      Layer.build(
-        ContentStore.layer.pipe(
-          Layer.provide([Layer.succeed(FileSystem.FileSystem, exclusive), Path.layer]),
-        ),
-      ),
-      Context.get(ContentStore),
-    );
-  });
+  Effect.map(
+    Layer.build(ContentStore.layer.pipe(Layer.provide([memoryFileSystem(files), Path.layer]))),
+    Context.get(ContentStore),
+  );
 
 /** `effect` run while the test clock passes every wait a writer makes for another's lock. */
 const waited = <A, E>(effect: Effect.Effect<A, E>) =>
