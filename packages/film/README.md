@@ -1174,7 +1174,9 @@ owner, `lab/review/options/receipt.ts` `undoApprove`) withdraws exactly the appr
   (`lab/page-shell.tsx`). On a laptop it sits in the header; on a phone the
   five film parts are a tab bar along the bottom and Films is the header's
   leading square. Every move between parts is the page bar, the film
-  switcher or a command that lands on a part.
+  switcher or a command that lands on a part. Between Scenes, the Lab and
+  Play it keeps the frame: each opens at the header's playhead (`#t=`,
+  `partHref`); Choices and Project open at their own.
 - **Project manager**: the studio's home, Films (`/`), named for Resolve's:
   a card per film (the stills of its renders' folder, its name; a tap opens
   its Scenes, a long press its other parts, `filmCommands`), then the

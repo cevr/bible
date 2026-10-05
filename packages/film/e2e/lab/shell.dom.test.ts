@@ -6,7 +6,7 @@
 // the player's timeline; a page reloaded onto new code flashes its picture
 // once and one opened by hand does not; and the page starts without an error.
 
-import { Deferred, Effect, Exit } from 'effect';
+import { Deferred, Effect, Exit, Option } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { timecode } from '../../src/core/time.ts';
@@ -82,17 +82,43 @@ describe('the lab shell', () => {
           'href',
           pageHref.choices(PROBE),
         );
+        // Scenes opens at the lab's playhead: the frame is kept between parts.
         yield* attributeIs(
           page,
           '.sh-pagebar [data-page="scenes"]',
           'href',
-          pageHref.scenes(PROBE),
+          pageHref.scenes(PROBE, Option.some(0)),
         );
         // No text link to another part: the page bar is the way.
         yield* evaluates(page, "document.querySelectorAll('.lab-panel a[href]').length", 0);
         // The header's timecode is the playhead's.
         yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(0));
         yield* evaluates(page, "document.body.classList.contains('lab')", true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "the page bar keeps the film's frame between Scenes, the Lab and Play (#t=); Choices and Project open at their own",
+    () =>
+      Effect.gen(function* () {
+        const at = TWO + 0.25;
+        const { page, errors } = yield* openLab([], { href: labAt(at) });
+        yield* textHas(page, '.sh-header [data-act="timecode"]', timecode(at));
+        const hrefT = (part: string) =>
+          `(() => { const a = document.querySelector('.sh-pagebar [data-page="${part}"]'); return a.hash.startsWith('#t=') && Math.abs(Number(a.hash.slice(3)) - ${at}) < 0.002; })()`;
+        yield* evaluates(page, hrefT('scenes'), true);
+        yield* evaluates(page, hrefT('play'), true);
+        yield* attributeIs(
+          page,
+          '.sh-pagebar [data-page="choices"]',
+          'href',
+          pageHref.choices(PROBE),
+        );
+        // ⇧2 goes to Scenes at the lab's frame.
+        yield* page.press('Shift+2');
+        yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
+        yield* evaluates(page, `Math.abs(${T} - ${at}) < 0.002`, true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );

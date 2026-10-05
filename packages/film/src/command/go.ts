@@ -8,7 +8,7 @@
 // opens each part of its film (`filmCommands`). Pure.
 
 import { Effect, Option } from 'effect';
-import { PARTS, PART_TITLE, type Part, hasPart, partHref } from '../core/api.ts';
+import { PARTS, PART_TITLE, type Part, filmTimeOn, hasPart, partHref } from '../core/api.ts';
 import { type Command, quiet } from './command.ts';
 import type { Context } from './context.ts';
 import type { Selection } from './selection.ts';
@@ -52,12 +52,14 @@ const PAGES_GROUP = 'Pages';
  * the page bar's order): it goes to that part of `film` (the film the page
  * bar leads into), through `go`. A film's part waits for a film that has it
  * (a short has no lab, choices or project); the part the page is on is no
- * move.
+ * move. A page at film time `at` (Scenes, the Lab, Play) keeps it on the
+ * part it goes to that has it (`partHref`).
  */
 export const partCommands = (
   film: () => Option.Option<string>,
   here: () => Part,
   go: (href: string) => void,
+  at: () => Option.Option<number> = () => Option.none(),
 ): ReadonlyArray<Command> =>
   PARTS.map((part, i): Command => ({
     id: `page.${part}`,
@@ -73,6 +75,7 @@ export const partCommands = (
           partHref(
             part,
             Option.getOrElse(film(), () => ''),
+            filmTimeOn(here(), at()),
           ),
         );
         return quiet;

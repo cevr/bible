@@ -10,9 +10,11 @@ import {
   Places,
   declares,
   filmOfPage,
+  filmTimeOn,
   legacyPlace,
   pageAt,
   pageHref,
+  partHref,
 } from './api.ts';
 
 type PlaceName = keyof typeof Places;
@@ -158,6 +160,20 @@ describe('page places', () => {
     expect(filmOfPage(pageHref.play('rbf'))).toEqual(Option.some('rbf'));
     for (const href of ['/', '/sets/f/p', '/?film=rbf&export'])
       expect(filmOfPage(href)).toEqual(Option.none());
+  });
+
+  test("the page bar keeps the film's frame between Scenes, the Lab and Play, and only there", () => {
+    const at = filmTimeOn('lab', Option.some(4));
+    expect(partHref('scenes', 'f', at)).toBe(pageHref.scenes('f', Option.some(4)));
+    expect(partHref('play', 'f', at)).toBe(pageHref.play('f', Option.some(4)));
+    expect(partHref('lab', 'f', filmTimeOn('play', Option.some(4)))).toBe(
+      pageHref.lab('f', Option.some(4)),
+    );
+    expect(partHref('choices', 'f', at)).toBe(pageHref.choices('f'));
+    expect(partHref('project', 'f', at)).toBe(pageHref.project('f'));
+    // A page whose time is not the film's (a set's video) hands none on.
+    expect(filmTimeOn('films', Option.some(4))).toEqual(Option.none());
+    expect(filmTimeOn('choices', Option.some(4))).toEqual(Option.none());
   });
 });
 

@@ -1121,15 +1121,30 @@ export const PART_TITLE: Readonly<Record<Part, string>> = {
 export const hasPart = (film: string, part: Part): boolean =>
   !isShortKey(film) || part === 'films' || part === 'scenes' || part === 'play';
 
-/** The page of `part` on `film`, at its defaults (Films names no film). */
-export const partHref = (part: Part, film: string): string =>
+/** The parts whose `#t=` is the film's time: a move between them keeps the frame. */
+const FILM_TIME_PARTS: ReadonlySet<Part> = new Set<Part>(['scenes', 'lab', 'play']);
+
+/** The film time a page of `part` at `t` hands the page bar to keep: none from a part whose time is not the film's. */
+export const filmTimeOn = (part: Part, t: Option.Option<number>): Option.Option<number> =>
+  Option.filter(t, () => FILM_TIME_PARTS.has(part));
+
+/**
+ * The page of `part` on `film`, at its defaults (Films names no film);
+ * Scenes, the Lab and Play at film time `t`, the frame a move between them
+ * keeps.
+ */
+export const partHref = (
+  part: Part,
+  film: string,
+  t: Option.Option<number> = Option.none(),
+): string =>
   ({
     films: () => pageHref.home(),
-    scenes: () => pageHref.scenes(film),
-    lab: () => pageHref.lab(film),
+    scenes: () => pageHref.scenes(film, t),
+    lab: () => pageHref.lab(film, t),
     choices: () => pageHref.choices(film),
     project: () => pageHref.project(film),
-    play: () => pageHref.play(film),
+    play: () => pageHref.play(film, t),
   })[part]();
 
 /** A hash that is only a number (`#42.000`): the film time an old lab or player link carried. */
