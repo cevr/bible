@@ -6,7 +6,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Result } from 'effect';
 import { layout } from '../core/layout.ts';
-import { labHref, labHrefWith, labOpensAt, labPlaceOf, selectsCue } from './place.ts';
+import { beatAt, labHref, labHrefWith, labOpensAt, labPlaceOf, selectsCue } from './place.ts';
 
 const placed = Result.getOrThrow(
   layout(
@@ -21,6 +21,7 @@ const b = placed[1]?.start ?? Number.NaN;
 const none = {
   selection: Option.none(),
   note: Option.none(),
+  beat: Option.none(),
   view: 'off' as const,
   loop: Option.none(),
 };
@@ -31,6 +32,7 @@ describe("the lab's place", () => {
       scene: Option.some('b'),
       selection: Option.some({ _tag: 'Cue', scene: 'b', name: 'rise' }),
       note: Option.some('n3'),
+      beat: Option.none(),
       view: 'off',
       t: Option.some(1.5),
       loop: Option.none(),
@@ -51,6 +53,7 @@ describe("the lab's place", () => {
     const pick = {
       selection: Option.some({ _tag: 'Cue' as const, scene: 'b', name: 'rise' }),
       note: Option.some('n3'),
+      beat: Option.none(),
       view: 'off' as const,
       loop: Option.none(),
     };
@@ -58,6 +61,18 @@ describe("the lab's place", () => {
     expect(href).toBe(`/films/f/lab/b?cue=rise&note=n3#t=${1 - b}`);
     expect(labOpensAt(placed, href)).toBeCloseTo(1, 9);
     expect(labPlaceOf(href).selection).toEqual(pick.selection);
+  });
+
+  test("the studio's beat rides in ?beat=: read back, kept by every write, else the path's scene", () => {
+    const at = '/films/f/lab/a?beat=b#t=1';
+    expect(labPlaceOf(at).beat).toEqual(Option.some('b'));
+    expect(beatAt(at)).toEqual(Option.some('b'));
+    // With none picked, the studio is on the path's scene.
+    expect(beatAt('/films/f/lab/a#t=1')).toEqual(Option.some('a'));
+    expect(beatAt('/films/f/lab#t=1')).toEqual(Option.none());
+    // Play crossing into b keeps the beat picked in a.
+    expect(labHrefWith('f', placed, at, {}, b + 0.5)).toBe('/films/f/lab/b?beat=b#t=0.5');
+    expect(labHref('f', placed, none, 1)).not.toContain('beat=');
   });
 
   test("the compare's mode rides in ?view= (PA-9): read back, kept across a scene boundary, off unwritten", () => {

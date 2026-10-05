@@ -34,7 +34,7 @@ describe('lab view state', () => {
     before.patch({ onion: { on: true, count: 3, spacing: 2 } });
     before.patch({ compare: { split: 0.3 } });
     before.patch({ playing: true });
-    before.patch({ studio: { beat: 'thesis' } });
+    before.patch({ studio: { focused: true } });
     const after = page().get();
     expect(after).toEqual({
       rate: 0.25,
@@ -42,7 +42,7 @@ describe('lab view state', () => {
       onion: { on: true, count: 3, spacing: 2 },
       compare: { split: 0.3 },
       playing: true,
-      studio: { beat: 'thesis' },
+      studio: { focused: true },
     });
     // Another film's page starts from the default.
     expect(page('g').get()).toEqual(DEFAULT_VIEW);
@@ -63,6 +63,15 @@ describe('lab view state', () => {
       '{"rate":1,"onion":{"on":false,"count":2,"spacing":3},"compare":{"mode":"wipe","split":0.3},"playing":false}',
     );
     expect(page().get().compare).toEqual({ split: 0.3 });
+  });
+
+  test('a studio beat a tab stored before the link held it (?beat=) is dropped, its focus kept', () => {
+    const { storage, page } = tab();
+    storage.setItem(
+      'film-lab-view:f',
+      jsonText({ ...DEFAULT_VIEW, studio: { beat: 'thesis', focused: true } }),
+    );
+    expect(page().get().studio).toEqual({ focused: true });
   });
 
   test('a loop can be turned off', () => {

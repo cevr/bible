@@ -1,5 +1,5 @@
 // The lab's view: speed, loop, onion skin, compare, play, and the studio's
-// beat. A lab write changes a scene file, and the page reloads to show it;
+// focus. A lab write changes a scene file, and the page reloads to show it;
 // the view comes back from the tab's store (`TabStore`, `browser/storage.ts`),
 // as JSON under one key per film (`film-lab-view:<film>`). Each tool patches
 // its part as it changes. Storage that is missing, throws or holds something
@@ -7,7 +7,7 @@
 // told while it lives, and only then does a reload start from the default.
 // The loop the view keeps is a looped cue; the A–B range is the link's
 // (`#loop=`, `lab/place.ts`), and a range a tab stored before the link held
-// it is read and dropped.
+// it is read and dropped; so is a studio beat (the link's `?beat=` now).
 
 import { Option, Schema } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
@@ -33,12 +33,10 @@ export const LabView = Schema.Struct({
   /** The page reloaded itself onto new code (a write's, a kept take's, the rebuild's): it flashes once as it lands (PA-11). */
   landed: Schema.optionalKey(Schema.Boolean),
   /**
-   * The beat the studio records, and whether focus was in the studio (so its
-   * keys still reach it), kept through the reload a take kept causes.
+   * Whether focus was in the studio (so its keys still reach it), kept through
+   * the reload a take kept causes; the beat is the link's (`?beat=`).
    */
-  studio: Schema.optionalKey(
-    Schema.Struct({ beat: Schema.String, focused: Schema.optionalKey(Schema.Boolean) }),
-  ),
+  studio: Schema.optionalKey(Schema.Struct({ focused: Schema.optionalKey(Schema.Boolean) })),
 });
 export type LabView = typeof LabView.Type;
 

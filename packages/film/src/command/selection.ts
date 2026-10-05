@@ -1,15 +1,15 @@
 // What a page has selected: one thing of the film's or the review's, as a
 // tagged union every primitive reads (the context menu shows its commands,
 // the inspector its fields, ⌘K and the keys act on it). A selection is
-// written in the URL only where the pages' places already have a key for it
-// (`Places`, core/api.ts; PA-1/PA-4): the lab's cue, knob and note
-// (`?cue=`, `?knob=`, `?note=` in a scene's path), a project's card
+// written in the URL where the pages' places have a key for it (`Places`,
+// core/api.ts; PA-1/PA-4): the lab's cue, knob, note and the studio's beat
+// (`?cue=`, `?knob=`, `?note=`, `?beat=` in a scene's path), a project's card
 // (`?point=`), a scene on a film's Scenes, a folder and a comparison set
 // (their paths), and the thing whose review inspector is open (a variant on
 // Choices and a version of a set, `?inspect=`; a project's part, its
-// `?point=`: `useInspectorPlace`). The rest (a beat) is the page's own and
-// dies with it. A multi-select is a list of the same union; only its first
-// item is citable (a batch is an action, not a place). Pure.
+// `?point=`: `useInspectorPlace`). A multi-select is a list of the same
+// union; only its first item is citable (a batch is an action, not a place).
+// Pure.
 
 import { Place } from '@bible/url-state';
 import { Equal, Match, Option, Schema } from 'effect';
@@ -85,6 +85,7 @@ export const selectionOf = (href: string): Option.Option<Selection> =>
           Selection.cases.Knob.make({ scene: path.scene, name }),
         ),
         Option.map(named(query.note), (id) => Selection.cases.Note.make({ id })),
+        Option.map(named(query.beat), (beat) => Selection.cases.Beat.make({ beat })),
       ]),
     ),
     Option.flatMap(Place.decode(Places.lab, href), ({ query }) =>
@@ -145,7 +146,10 @@ export const citeOf = (selection: Selection, href: string): string => {
         loop: v.hash.loop,
       })),
   );
-  const inLab = (scene: string, keys: { cue?: string; knob?: string; note?: string }) =>
+  const inLab = (
+    scene: string,
+    keys: { cue?: string; knob?: string; note?: string; beat?: string },
+  ) =>
     Option.match(lab, {
       onNone: () => href,
       onSome: (l) =>
@@ -194,7 +198,15 @@ export const citeOf = (selection: Selection, href: string): string => {
     Version: (s) => pageHref.set(s.folder, s.point, s.version),
     Point: (s) => pageHref.project(s.film, s.point),
     Variant: (s) => pageHref.choices(s.film, s.point, s.variant),
-    Beat: () => href,
+    // A beat in the lab's scene it is cited from, else in its own (a beat is a scene's take).
+    Beat: (s) =>
+      inLab(
+        Option.getOrElse(
+          Option.flatMap(lab, (l) => l.scene),
+          () => s.beat,
+        ),
+        { beat: s.beat },
+      ),
   });
 };
 

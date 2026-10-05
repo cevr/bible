@@ -855,8 +855,17 @@ export type CompareView = (typeof COMPARE_VIEWS)[number];
  */
 const compareView = Field.key(Codec.literals(COMPARE_VIEWS), { default: 'off', history: 'push' });
 
-/** The lab's selection keys: a cue or a knob of the path's scene, and a note. */
-const LabSelection = Field.struct({ cue: cited, knob: cited, note: cited, view: compareView });
+/**
+ * The lab's selection keys: a cue or a knob of the path's scene, a note, and
+ * the studio's beat (a scene's take; with none the studio is on the path's).
+ */
+const LabSelection = Field.struct({
+  cue: cited,
+  knob: cited,
+  note: cited,
+  beat: cited,
+  view: compareView,
+});
 
 /**
  * A film's player on its choices and its project: the sound heard over the
@@ -998,13 +1007,14 @@ const START = { t: Option.none<number>() };
 const NOTHING_HEARD = { heard: '', variant: '', picture: '', only: '' };
 
 /** The lab's selection keys, none set. */
-const NOTHING_SELECTED = { cue: '', knob: '', note: '', view: 'off' as const };
+const NOTHING_SELECTED = { cue: '', knob: '', note: '', beat: '', view: 'off' as const };
 
-/** What the lab has selected in a scene: a cue or a knob by name, and a note by id. */
+/** What the lab has selected in a scene: a cue or a knob by name, a note by id, the studio's beat. */
 interface LabPicked {
   readonly cue?: string;
   readonly knob?: string;
   readonly note?: string;
+  readonly beat?: string;
   readonly view?: CompareView;
 }
 

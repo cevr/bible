@@ -46,10 +46,11 @@ const API = `/api/films/${PROBE}`;
 /** The probe film as the lab page lays it out: where each scene starts. */
 const probePlaced = probeFilm().placed;
 
-/** What a lab link picks: a cue or a knob of a scene, a note, the compare's mode and the A–B loop. */
+/** What a lab link picks: a cue or a knob of a scene, a note, the studio's beat, the compare's mode and the A–B loop. */
 interface LabPick {
   readonly selection?: LabSelection;
   readonly note?: string;
+  readonly beat?: string;
   readonly view?: CompareView;
   readonly loop?: Interval;
 }
@@ -62,6 +63,7 @@ export const labAt = (T: number, pick: LabPick = {}): string =>
     {
       selection: Option.fromUndefinedOr(pick.selection),
       note: Option.fromUndefinedOr(pick.note),
+      beat: Option.fromUndefinedOr(pick.beat),
       view: Option.getOrElse(Option.fromUndefinedOr(pick.view), (): CompareView => 'off'),
       loop: Option.fromUndefinedOr(pick.loop),
     },

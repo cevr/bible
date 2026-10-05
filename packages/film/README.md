@@ -697,7 +697,7 @@ entry.
 | `/films/<film>/scenes[/<scene>]` | player |                                                                                                                         | `t` (film time)                      |
 | `/films/<film>/play`             | player |                                                                                                                         | `t` (film time)                      |
 | `/films/<film>/lab`              | lab    | `note`, `view` (the compare with HEAD)                                                                                  | `t` (film time), `loop`              |
-| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`, `view`                                                                          | `t` (from the scene's start), `loop` |
+| `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`, `beat` (the studio's), `view`                                                   | `t` (from the scene's start), `loop` |
 
 The lab writes a scene's place (`lab/place.ts`): the path names the
 selected cue's or knob's scene, else the scene under the playhead, so play
@@ -1365,7 +1365,7 @@ ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and 
   take under review or a note being written is the page's alone and says
   what it waits for): the player reads
   the timings and the track once, at load, so the film then plays the new
-  take at the same T, back on the same beat (the view keeps it). A mix that
+  take at the same T, back on the same beat (the link keeps it). A mix that
   failed reloads nothing and the status says so. The app serves the
   narration with `Cache-Control: no-cache`, so a reload never plays a take
   the browser cached.
@@ -1383,7 +1383,13 @@ The provider (`context.tsx`) builds the Studio's own runtime (the stage, the
 studio's routes, the capture), so the shell knows nothing of it, and hands
 the section derived values and actions (`view.ts`: the controls each state
 offers with their keys, the status line, the meter, the counts), never the
-machine's states. `e2e/lab/studio/studio.dom.test.ts` drives the whole panel in
+machine's states. The beat is the link's (`beatAt`, `lab/place.ts`): the
+one `?beat=` picks, else the path's scene (a beat is a scene's take), so
+Record opens where the lab is and Copy link cites the beat. A beat picked is
+a step Back walks and ←/→ follows in place; the link landing on another beat
+(Back, Forward, play into the next scene with none picked) moves a recorder
+at rest (`Idle`, `Failed`) to it, and never one mid-take.
+`e2e/lab/studio/studio.dom.test.ts` drives the whole panel in
 Chrome with a fake microphone.
 
 **Notes** live in `lab/<film>/notes.json` (`NotesFileJson`) with their stills

@@ -81,12 +81,27 @@ describe("a selection in the pages' URLs", () => {
     );
   });
 
+  test("cites the studio's beat in the lab's scene at its time (?beat=), else in the beat's own scene", () => {
+    const here = pageHref.labScene('f', 'one', {}, Option.some(1.5));
+    expect(citeOf(Beat.make({ beat: 'two' }), here)).toBe(
+      pageHref.labScene('f', 'one', { beat: 'two' }, Option.some(1.5)),
+    );
+    expect(citeOf(Beat.make({ beat: 'two' }), pageHref.lab('f', Option.some(9)))).toBe(
+      pageHref.labScene('f', 'two', { beat: 'two' }),
+    );
+    // A cue picked wins the URL's selection over the beat, as it does over a note.
+    expect(selectionOf(pageHref.labScene('f', 'one', { cue: 'rise', beat: 'two' }))).toEqual(
+      Option.some(Cue.make({ scene: 'one', name: 'rise' })),
+    );
+  });
+
   test('every selection round-trips through its citation where the places have a key for it', () => {
     const here = pageHref.labScene('f', 'one');
     for (const s of [
       Cue.make({ scene: 'one', name: 'rise' }),
       Knob.make({ scene: 'one', name: 'size' }),
       Note.make({ id: 'n7' }),
+      Beat.make({ beat: 'two' }),
       Point.make({ film: 'f', point: 'cold' }),
       Folder.make({ folder: 'renders' }),
       Set.make({ folder: 'renders', point: 'cold' }),
