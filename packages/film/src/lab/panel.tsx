@@ -45,7 +45,7 @@ export const pickOf = (href: string) => {
 export type LabPick = ReturnType<typeof pickOf>;
 
 /** The places in the panel the staged lab fills: each tool's controls, by section. */
-type SlotName = 'edit-head' | 'edit' | 'motion-head' | 'motion' | 'compare' | 'compose' | 'record';
+type SlotName = 'edit' | 'motion-head' | 'motion' | 'compare' | 'compose' | 'record';
 
 interface LabPageValue {
   /** The film's name (`/films/<film>/lab`), which every lab route names. */
@@ -156,7 +156,7 @@ const Panel = (props: {
         <Pen />
         <Frame />
       </header>
-      <Section class="lab-edit" mode="edit" title="Edit" head={at('edit-head')}>
+      <Section class="lab-edit" mode="edit" title="Edit">
         {at('edit')}
       </Section>
       <Section class="lab-motion" mode="motion" title="Motion" head={at('motion-head')}>

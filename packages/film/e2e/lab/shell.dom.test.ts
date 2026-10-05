@@ -36,9 +36,8 @@ const rects = (sel: string) =>
 
 /**
  * Resize the window, and wait until the page has handled it: its `resize`
- * event has fired. The lab places its layers in its own listener, added
- * before this one, and on the canvas's ResizeObserver in the same rendering
- * step, so the next read sees them placed.
+ * event has fired. The lab places its layers on the ResizeObserver of the
+ * canvas and its frame, which a later read waits for (`evaluates`).
  */
 const resize = (page: Tab, size: { readonly width: number; readonly height: number }) =>
   Effect.gen(function* () {
@@ -251,6 +250,21 @@ describe('the lab shell', () => {
       yield* page.evaluate(`window.labCanvasBefore = ${canvasBox}; true`);
       yield* resize(page, { width: 1000, height: 800 });
       yield* evaluates(page, `${canvasBox} !== window.labCanvasBefore`, true);
+      yield* evaluates(page, layersOnCanvas, true);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('a phone turned on its side keeps the layers over the film canvas, and turned back', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([], { href: labAt(1) });
+      yield* resize(page, { width: 390, height: 844 });
+      yield* evaluates(page, layersOnCanvas, true);
+      yield* page.evaluate(`window.labCanvasBefore = ${canvasBox}; true`);
+      yield* resize(page, { width: 844, height: 390 });
+      yield* evaluates(page, `${canvasBox} !== window.labCanvasBefore`, true);
+      yield* evaluates(page, layersOnCanvas, true);
+      yield* resize(page, { width: 390, height: 844 });
+      yield* evaluates(page, `${canvasBox} === window.labCanvasBefore`, true);
       yield* evaluates(page, layersOnCanvas, true);
     }).pipe(Effect.scoped),
   );

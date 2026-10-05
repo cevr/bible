@@ -151,10 +151,11 @@ const Staged = (props: RootProps) => {
     }),
   );
 
-  // Layers kept exactly over the film canvas, placed again as it resizes.
-  // They live in the canvas's own frame (the stage), placed from its
-  // corner: as the page scrolls (a phone's lab is one long page) they move
-  // with the picture, never left where it was (LS-7).
+  // Layers kept exactly over the film canvas, placed again as it or its
+  // frame resizes (a window's resize, a phone turned: what moves the canvas
+  // in its frame resizes one of them). They live in the canvas's own frame
+  // (the stage), placed from its corner: as the page scrolls (a phone's lab
+  // is one long page) they move with the picture, never left where it was (LS-7).
   const frame = pictureFrame(player);
   const pinned = new Set<HTMLElement | SVGElement>();
   const place = () => {
@@ -171,11 +172,7 @@ const Staged = (props: RootProps) => {
   const watch = new ResizeObserver(place);
   watch.observe(player.canvas);
   watch.observe(frame);
-  window.addEventListener('resize', place);
-  onCleanup(() => {
-    watch.disconnect();
-    window.removeEventListener('resize', place);
-  });
+  onCleanup(() => watch.disconnect());
 
   const view = viewStore(name, player.film.duration, TabStore);
   // Whether it was playing: kept as the page goes (a write reloads it), and played again on load.
