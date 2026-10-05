@@ -100,6 +100,17 @@ const projectRoutes = (): ReadonlyArray<FakeRoute> => {
 };
 
 describe('the player', () => {
+  it.live('a film that will not start says why as text, markup in its words shown, never run', () =>
+    Effect.gen(function* () {
+      const { page } = yield* openPlayer(
+        { href: pageHref.play('<i>x</i>'), viewport: DESK },
+        'pre',
+      );
+      yield* textHas(page, 'pre', 'unknown film "<i>x</i>"');
+      yield* evaluates(page, `document.querySelectorAll('pre i').length`, 0);
+    }).pipe(Effect.scoped),
+  );
+
   for (const [label, viewport] of [
     ['a phone', PHONE],
     ['a desk', DESK],
