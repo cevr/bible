@@ -8,7 +8,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Deferred, Effect, Exit, Fiber, Layer, Path, Stream } from 'effect';
+import { Deferred, Effect, Exit, Fiber, Layer, Logger, Path, Stream } from 'effect';
 import type { PageName } from '../core/api.ts';
 import { PageBundler } from './lab-page.ts';
 import { PageRenderer, type RenderBuild, type ServerBundle } from './page-render.ts';
@@ -46,6 +46,16 @@ const renderOf = (build: RenderBuild, read: (path: string) => Effect.Effect<Resp
     const markup = (yield* Stream.runCollect(page.markup)).join('');
     return { head: page.head, bodyClass: page.bodyClass, markup };
   }).pipe(Effect.scoped);
+
+/** A logger that keeps each build the renderer logs as retired (`lab.render.worker.retired`). */
+const retiredInto = (retired: Array<string>) =>
+  Logger.layer([
+    Logger.make(({ message }) => {
+      const text = [message].flat().join(' ');
+      for (const found of text.matchAll(/^lab\.render\.worker\.retired build=(\d+)/g))
+        retired.push(String(found[1]));
+    }),
+  ]);
 
 /** The module instance a page names: one per import of its server entry. */
 const instanceOf = (markup: string) => /<p id="instance"[^>]*>([^<]+)</.exec(markup)?.[1] ?? '';
@@ -111,6 +121,23 @@ describe("a page's server render", () => {
       expect(done.markup).toContain('late');
       expect(done.markup).toMatch(/<\/div>$/);
     }).pipe(Effect.provide(Services)),
+  );
+
+  it.live(
+    'retires every older build: one asked after a newer build rendered (2, then 1) once its render ends, the one before the newest when a newer renders (3)',
+    () => {
+      const retired: Array<string> = [];
+      return Effect.gen(function* () {
+        const bundle = yield* fixtureBundle;
+        yield* renderOf({ id: 2, bundle }, answering('two'));
+        // A request that named build 1 before build 2 rendered, answered late.
+        const late = yield* renderOf({ id: 1, bundle }, answering('one'));
+        expect(late.markup).toContain('one');
+        expect(retired).toEqual(['1']);
+        yield* renderOf({ id: 3, bundle }, answering('three'));
+        expect(retired).toEqual(['1', '2']);
+      }).pipe(Effect.provide(Layer.merge(Services, retiredInto(retired))));
+    },
   );
 
   it.live('fails a render whose server entry exports no page render', () =>

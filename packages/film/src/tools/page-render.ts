@@ -315,14 +315,30 @@ const make = Effect.gen(function* () {
   });
   const latest = yield* Ref.make(Option.none<number>());
 
-  /** `build` the latest to render: the build it follows is retired once its renders end. */
+  /** `build` the latest to render, when it is newer: the build it follows is retired once its renders end. */
   const follow = (build: number) =>
-    Effect.gen(function* () {
-      const before = yield* Ref.get(latest);
-      if (Option.exists(before, (b) => b >= build)) return;
-      yield* Ref.set(latest, Option.some(build));
-      yield* Effect.forEach(Option.toArray(before), (old) => RcMap.invalidate(workers, old));
-    });
+    Effect.flatMap(
+      Ref.modify(latest, (before): [Option.Option<number>, Option.Option<number>] => {
+        if (Option.exists(before, (b) => b >= build)) return [Option.none(), before];
+        return [before, Option.some(build)];
+      }),
+      (old) => Effect.forEach(Option.toArray(old), (o) => RcMap.invalidate(workers, o)),
+    );
+
+  /**
+   * `build`'s worker, just acquired, retired once its renders end when a
+   * newer build has rendered: a request that named an older build, answered
+   * after a newer one rendered, ends with that build's worker. Checked after
+   * the acquisition, so whichever comes first (the newer build's render, or
+   * this one's), no older worker outlives its last render.
+   */
+  const retireIfOlder = (build: number) =>
+    Effect.flatMap(Ref.get(latest), (now) =>
+      Effect.when(
+        RcMap.invalidate(workers, build),
+        Effect.succeed(Option.exists(now, (n) => n > build)),
+      ),
+    );
 
   /** `build`'s worker, running: one that stopped is spawned again. */
   const workerOf = (build: RenderBuild): Effect.Effect<BuildWorker, RenderFailed, Scope.Scope> =>
@@ -347,6 +363,7 @@ const make = Effect.gen(function* () {
         );
         yield* follow(build.id);
         const worker = yield* workerOf(build);
+        yield* retireIfOlder(build.id);
         return yield* worker.render(entry, url, read);
       }),
   });
