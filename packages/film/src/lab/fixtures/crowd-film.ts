@@ -1,6 +1,7 @@
 // A film of many short scenes with long names, for the browser tests of the
 // tape bar on a phone: at 390 px its scenes are narrower than their names, so
-// each name must shorten or drop rather than run into its neighbour's.
+// each name must shorten or drop rather than run into its neighbour's. It
+// carries captions, so the tape's stills can be told with them from without.
 
 import { type Film, createFilm, drawing } from '../../canvas/film.ts';
 
@@ -55,6 +56,7 @@ export const crowdFilm = (): Film =>
     fps: 30,
     paper: { base: '#f4ecd8', tone: '#2a2520', seed: 1 },
     shade: '#000',
+    captions: { font: '20px sans-serif', color: '#000', plate: '#fff' },
     scenes: NAMES.map((id) => ({
       id,
       say: SAYS.get(id) ?? 'One short line.',

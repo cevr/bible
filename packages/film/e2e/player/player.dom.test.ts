@@ -511,23 +511,36 @@ describe('the player', () => {
   );
 
   it.live(
-    "the tape's stills follow the captions toggle: turned, each still is drawn again (RS-6)",
+    "the tape's stills follow the captions toggle: turned, a captioned still is drawn without its caption, and turned back, as it was (RS-6)",
     () =>
       Effect.gen(function* () {
+        // The crowd film carries captions (the probe film draws none).
         const { page, errors } = yield* openPlayer(
-          { href: pageHref.scenes(PROBE), viewport: DESK },
+          { href: pageHref.scenes(CROWD), viewport: DESK },
           STILL_DRAWN,
         );
-        // The first still drawn and its time, kept to tell its redrawing from it.
-        yield* page.evaluate(
-          `window.__still = document.querySelector('${STILL_DRAWN}'); window.__t = window.__still.parentElement.dataset.t`,
-        );
-        yield* page.evaluate(`document.querySelector('[data-act="captions"]').click()`);
+        // Every still drawn as the page opened, by its time: a hash of its pixels (none while
+        // one is not drawn). No still is kept beyond this run.
         yield* evaluates(
           page,
-          `((now) => now !== null && now !== window.__still)(document.querySelector('.sc-still[data-t="' + window.__t + '"][data-drawn="true"] canvas'))`,
+          `document.querySelectorAll('.sc-still:not([data-drawn="true"])').length`,
+          0,
+        );
+        yield* page.evaluate(
+          `window.__pixels = (t) => { const c = document.querySelector('.sc-still[data-t="' + t + '"][data-drawn="true"] canvas'); if (c === null) return null; const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let h = 2166136261; for (let i = 0; i < d.length; i += 1) h = Math.imul(h ^ d[i], 16777619); return h >>> 0; };
+           window.__first = Object.fromEntries([...document.querySelectorAll('.sc-still')].map((s) => [s.dataset.t, window.__pixels(s.dataset.t)]));`,
+        );
+        const captions = `document.querySelector('[data-act="captions"]').click()`;
+        // Turned, a still with a caption is drawn again without it: its pixels differ.
+        yield* page.evaluate(captions);
+        yield* evaluates(
+          page,
+          `(window.__t = Object.keys(window.__first).find((t) => ((now) => now !== null && now !== window.__first[t])(window.__pixels(t)))) !== undefined`,
           true,
         );
+        // Turned back, that still is drawn as it was, pixel for pixel.
+        yield* page.evaluate(captions);
+        yield* evaluates(page, `window.__pixels(window.__t) === window.__first[window.__t]`, true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
   );
