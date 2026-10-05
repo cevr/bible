@@ -2003,7 +2003,10 @@ own names, and the stored and wire words stay as they are.
   those keys); where it sits is the page's, not the
   link's, since a different split shows the same comparison. Where the
   browser can, the two play as **WebCodecs panes** (`browser/frame-pane.ts`
-  over mediabunny in `browser/webcodecs-browser.ts`): each master decoded to
+  over mediabunny in `browser/webcodecs-browser.ts`, reached through
+  `Media.compare`; only this page's host is built with them,
+  `BrowserHost.withMedia(panesMediaLayer)`, so no other page loads the
+  decoders): each master decoded to
   a canvas, both read from one monotonic clock (`media-clock.ts`) and drawn
   in lockstep (each frame, both show the frame their time asks for or
   neither moves on, so a slow decoder holds the pair), so they are frame
@@ -2766,19 +2769,20 @@ the compare and onion paints) goes through `Frames` (`browser/frames.ts`):
 frame. Every time read goes through Effect's `Clock` on the host
 (`monotonicMs`, `timersOn` in `player/throttle.ts`), so a test's clock
 reaches it. Every media element is driven through a `Playable` (`browser/media.ts`;
-`playableOf` in `media-browser.ts` makes one of a `<video>` or an
+`playableOf` makes one of a `<video>` or an
 `<audio>`): time is read from it, a seek is done once its frame is shown,
 play and pause are effects. `Media` says what a refused play means
 (`Blocked`, `Aborted`, `Failed`), plays muted when the browser refuses
-sound (`playOrMute`, the review's players), and makes the narration's audio.
+sound (`playOrMute`, the review's players), makes the narration's audio,
+and says which engine a compare plays on (`compare`: WebCodecs panes, or
+`<video>` and why), its clock the host's `monotonicMs`.
 Every copy goes through `Clipboard` (`browser/clipboard.ts`; the browser's in
 `clipboard-browser.ts`): a link written whole, against the page's origin, and
 a refusal (`ClipboardRefused`) in the browser's words.
 A page's media queries go through `Viewport` (`browser/viewport.ts`;
 `useMatches` in a component), whose live adapter is the window's
-`matchMedia`. One adapter still asks the window itself: the WebCodecs
-player's `(pointer: coarse)` capability probe (`browser/webcodecs-browser.ts`),
-which the lint allows an adapter, so `Viewport` is not yet the only reader.
+`matchMedia`, and the only reader of it: the WebCodecs player's
+`(pointer: coarse)` probe asks the host's `Viewport` too.
 Every request goes through Effect's `HttpClient`: a page's calls through its
 one `LabClient`, built once at its root (the review's routes and its
 choices' share it; on the server, `LabClient.layerRendering`, whose reads

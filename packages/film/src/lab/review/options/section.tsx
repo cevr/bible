@@ -16,7 +16,7 @@ import { useAtomValue } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
 import { Duration, Effect, Fiber, Option } from 'effect';
-import { playableOf } from '../../../browser/media-browser.ts';
+import { playableOf } from '../../../browser/media.ts';
 import { type Command, type CommandId, quietly } from '../../../command/command.ts';
 import { Selection } from '../../../command/selection.ts';
 import {

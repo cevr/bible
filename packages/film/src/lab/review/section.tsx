@@ -32,13 +32,7 @@ import {
   seenPoint,
   seenVariants,
 } from '../../core/choice.ts';
-import { playableOf } from '../../browser/media-browser.ts';
-import {
-  type Chosen,
-  type ComparePanes,
-  chooseEngine,
-  panesOver,
-} from '../../browser/webcodecs-browser.ts';
+import { type Compare, type ComparePanes, Media, playableOf } from '../../browser/media.ts';
 import { Pointer } from '../../browser/pointer.ts';
 import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../core/review.ts';
 import { timecode } from '../../core/time.ts';
@@ -926,35 +920,34 @@ const PairView = (props: { readonly other: string }) => {
 const WIPE_AT = 0.5;
 
 /** The wipe's player as `data-engine` names it: `asking` until it is chosen (`media-choice.ts`). */
-const engineName = (chosen: Option.Option<Chosen>) =>
+const engineName = (chosen: Option.Option<Compare>) =>
   Option.match(chosen, { onNone: () => 'asking', onSome: (c) => c.engine.engine });
 
 /** Why the wipe plays on `<video>`, when it does. */
-const engineWhy = (chosen: Option.Option<Chosen>) =>
+const engineWhy = (chosen: Option.Option<Compare>) =>
   Option.flatMap(chosen, ({ engine }) => {
     if (engine.engine === 'video') return Option.some(`Plays on <video>: ${engine.why}`);
     return Option.none();
   });
 
 /**
- * The pair as WebCodecs panes (`webcodecs-browser.ts`): each master painted
- * on a canvas, both on one clock, held by the set's clock in place of the
- * videos; let go when the wipe closes.
+ * The pair as the compare's WebCodecs panes (`Media.compare`): each master
+ * painted on a canvas, both on one clock, held by the set's clock in place
+ * of the videos; let go when the wipe closes.
  */
 const WipePanes = (props: {
-  readonly chosen: Chosen;
+  readonly chosen: Compare;
   readonly first: SeenVariant;
   readonly other: SeenVariant;
   readonly at: () => string;
 }) => {
-  const { meta } = useReview();
   const { driver } = useSet();
   const canvases: Array<HTMLCanvasElement> = [];
   const ids = [props.first.id, props.other.id];
   let made = Option.none<ComparePanes>();
   // Once both canvases are in the page; let go with the wipe (a cleanup inside `onSettled` is refused).
   onSettled(() => {
-    const compare = panesOver(meta.host, props.chosen, canvases);
+    const compare = props.chosen.panes(canvases);
     made = Option.some(compare);
     compare.panes.forEach((pane, i) =>
       Option.map(Option.fromUndefinedOr(ids[i]), (id) => driver.attach(id, pane)),
@@ -1011,7 +1004,7 @@ const WipeView = (props: { readonly other: string }) => {
       .flatMap(Option.toArray)
       .flatMap((v) => Option.toArray(videoSource(v.video, 'full'))),
   );
-  const [chosen, setChosen] = createSignal(Option.none<Chosen>(), { ownedWrite: true });
+  const [chosen, setChosen] = createSignal(Option.none<Compare>(), { ownedWrite: true });
   createEffect(
     () => masters().join('\n'),
     () => {
@@ -1023,7 +1016,13 @@ const WipeView = (props: { readonly other: string }) => {
       // however far the opening got (the panes' own letting go of them is then a no-op).
       const owner = Scope.makeUnsafe();
       const asking = Effect.runForkWith(meta.host)(
-        Effect.map(Scope.provide(chooseEngine(urls), owner), (c) => setChosen(Option.some(c))),
+        Effect.map(
+          Scope.provide(
+            Media.use((media) => media.compare(urls)),
+            owner,
+          ),
+          (c) => setChosen(Option.some(c)),
+        ),
       );
       return () => {
         asking.interruptUnsafe();
@@ -1067,7 +1066,7 @@ const WipeView = (props: { readonly other: string }) => {
             </>
           }
         >
-          {(p: { chosen: Chosen; first: SeenVariant; other: SeenVariant }) => (
+          {(p: { chosen: Compare; first: SeenVariant; other: SeenVariant }) => (
             <WipePanes chosen={p.chosen} first={p.first} other={p.other} at={at} />
           )}
         </Show>
