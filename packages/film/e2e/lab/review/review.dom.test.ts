@@ -39,6 +39,7 @@ import {
   closeCommandMenu,
   menuEntry,
   openCommandMenu,
+  touch,
 } from '../../../src/lab/fixtures/gestures.ts';
 
 /** Long enough to open the page, walk to a set and play with it. */
@@ -356,6 +357,36 @@ describe('the review page', () => {
         yield* page.evaluate('new Promise((done) => setTimeout(() => done(true), 600))');
         yield* until(page, "location.search === '' && location.hash === '#t=4'");
         yield* textHas(page, '.rv-time', '00:00:04:00');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a long-press on a version's picture steps the set on or back, one step or ten (SU-11)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, {
+          href: SET,
+          viewport: { width: 390, height: 844 },
+        });
+        yield* waitFor(page, '.rv-transport');
+        const MENU = '[data-role="context-menu"]';
+        /** A long press on the second version's picture, on the page's held clock. */
+        const held = Effect.gen(function* () {
+          yield* page.clock.hold;
+          yield* touch(page, '.rv-card[data-id="B"] video', 0);
+          yield* page.clock.runFor(700);
+          yield* waitFor(page, `${MENU} [data-command]`);
+          yield* page.finger.up;
+          yield* page.clock.runFor(500);
+        });
+        yield* held;
+        yield* waitFor(page, `${MENU} [data-command="review.step-previous"]`);
+        yield* page.click(`${MENU} [data-command="review.step-next"][data-step="coarse"]`);
+        // The menu closes, and runs its row, on the held clock.
+        yield* page.clock.runFor(500);
+        yield* textHas(page, '.rv-time', '00:00:20:00');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

@@ -35,6 +35,9 @@ a.rv-card { text-decoration: none; }
 a.rv-card:hover { background: var(--surface-2); }
 .rv-card video, .rv-media { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--surface-0); object-fit: contain; }
 .rv-card.rv-tall video { aspect-ratio: auto; max-height: 70vh; }
+/* A version's picture is its card's to press: a long-press opens the card's menu (its steps,
+   SU-11), never the browser's own over a video, which takes the touch. */
+.rv-card video:not([controls]) { pointer-events: none; }
 .rv-zoom { cursor: zoom-in; }
 /* The pair wiped (PA-8): both videos stacked full width, the other right of the divider. */
 .rv-wipe { position: relative; background: var(--surface-0); overflow: hidden; touch-action: pan-y; }
