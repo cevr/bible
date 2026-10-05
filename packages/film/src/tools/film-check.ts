@@ -18,7 +18,7 @@ import type { Short } from '../core/schema.ts';
 import type { SafeZoneName } from '../core/shorts.ts';
 import { mixFindings, staticFindings } from './check.ts';
 import { Checker } from './checker.ts';
-import { type LoadedFilm, importFilmModule } from './film-repo.ts';
+import { type LoadedFilm, importFilmModule, masterFile } from './film-repo.ts';
 import { lookFindings } from './look.ts';
 import { Looker } from './looker.ts';
 import { Media } from './media.ts';
@@ -64,16 +64,19 @@ export const laidOut = (
 /**
  * What the film's files tell without a mix or a frame: cues, takes, sounds,
  * the ending, and the master on disk (its length and the plan it was mixed
- * for, against the plan the film mixes to now).
+ * for, against the plan the film mixes to now), named by its place in the
+ * film's folder with `/` whatever the platform's separator.
  */
 export const staticLeg = Effect.fn('check.static')(function* (
   film: LoadedFilm,
   placed: ReadonlyArray<Placed>,
 ) {
   const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
   const master = yield* readMaster(fs, yield* Media, film.paths);
   const key = yield* planKey(film, placed);
-  return staticFindings(film, placed, { master, key });
+  const file = path.relative(film.paths.dir, masterFile(film.paths)).split(path.sep).join('/');
+  return staticFindings(film, placed, { master, key, file });
 });
 
 /**

@@ -11,6 +11,7 @@ const RISE = [
 const HOLD = 0.5;
 const LATE = 1.4;
 const BACK = -3;
+const PAST = +3;
 /** A share of the frame, not a second: never compared with the clock. */
 const SCALE = 3.8;
 
@@ -33,6 +34,8 @@ export const scene = drawing({
     trail: { mark: 'go', until: 'stop', untilOffset: 0.6 },
     outro: { mark: 'go', until: { at: 'speechEnd' }, untilOffset: 3 },
     backConst: { mark: 'go', until: 'stop', untilOffset: BACK }, // RED film/no-hand-timed-seconds
+    pastConst: { mark: 'go', until: 'stop', untilOffset: PAST }, // RED film/no-hand-timed-seconds
+    plus: { mark: 'go', offset: +1.5, dur: 0.4 }, // RED film/no-hand-timed-seconds
   },
   draw: (f) => {
     const { t } = f;

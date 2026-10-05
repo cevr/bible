@@ -38,12 +38,21 @@ export const declared = (statement: ESTree.Node) => {
   return statement;
 };
 
-/** A number written out: `0.5`, or signed, `-0.5`. */
+/** A sign over the number `read` reads: `-x` its negation, `+x` itself. */
+const signed = (
+  n: ESTree.Node,
+  read: (x: ESTree.Node) => Option.Option<number>,
+): Option.Option<number> => {
+  if (n.type !== 'UnaryExpression') return Option.none();
+  if (n.operator === '-') return Option.map(read(n.argument), (v) => -v);
+  if (n.operator === '+') return read(n.argument);
+  return Option.none();
+};
+
+/** A number written out: `0.5`, or signed, `-0.5`, `+0.5`. */
 const writtenNumber = (n: ESTree.Node): Option.Option<number> => {
   if (n.type === 'Literal' && Predicate.isNumber(n.value)) return Option.some(n.value);
-  if (n.type === 'UnaryExpression' && n.operator === '-')
-    return Option.map(writtenNumber(n.argument), (v) => -v);
-  return Option.none();
+  return signed(n, writtenNumber);
 };
 
 /** The numbers a file names at its top level: `const HOLD = 0.5`, `const BACK = -3`, exported or not. */
@@ -75,15 +84,13 @@ const namedNumber = (n: ESTree.Node, name: string): Option.Option<number> => {
 };
 
 /**
- * The value of a number written as a literal (`0.3`, `-0.3`), or named by a
- * module const holding one (`HOLD` for `const HOLD = 0.5`).
+ * The value of a number written as a literal (`0.3`, `-0.3`, `+0.3`), or
+ * named by a module const holding one (`HOLD` for `const HOLD = 0.5`).
  */
 export const numberOf = (n: ESTree.Node): Option.Option<number> => {
   if (n.type === 'Literal' && Predicate.isNumber(n.value)) return Option.some(n.value);
   if (n.type === 'Identifier') return namedNumber(n, n.name);
-  if (n.type === 'UnaryExpression' && n.operator === '-')
-    return Option.map(numberOf(n.argument), (v) => -v);
-  return Option.none();
+  return signed(n, numberOf);
 };
 
 /** The property `key` of an object literal, by plain name. */
