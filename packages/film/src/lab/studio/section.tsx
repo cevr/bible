@@ -54,7 +54,7 @@ const Prompter = () => {
 };
 
 /**
- * Every beat, each with a dot in its take's state colour (UR2-4): the dots
+ * Every beat, each with a dot in its take's state colour and shape (UR2-4): the dots
  * are the count at a glance, every beat on screen with no list to scroll.
  * The words are disclosed: each beat's in its name (`thesis: scratch`, its
  * title on a pointer), the counts in the list's (`1 recorded · 1 scratch ·

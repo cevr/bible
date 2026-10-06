@@ -1364,7 +1364,8 @@ joins the `Layer.mergeAll` in `labHandler`, and the page calls
 
 **The Studio** (`lab/studio/`, Solid 2 + effect-machine) is the lab's panel
 for recording the final voiceover beat by beat. It lists every beat with a
-line, each with a dot in its take's state colour (`recorded`, `scratch` for
+line, each with a dot in its take's state colour and shape (filled, a ring,
+half filled; `recorded`, `scratch` for
 a staging take, `stale: <why>`: the word in the beat's name and title, the
 counts in the list's, the selected beat's under the list), then Record and
 the meter over the teleprompter, so R is on a phone's first screen; it

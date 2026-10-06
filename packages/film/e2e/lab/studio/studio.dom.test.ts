@@ -193,13 +193,34 @@ const scoped = <A, E>(self: Effect.Effect<A, E, Scope.Scope | FileSystem.FileSys
 
 describe('the studio', () => {
   it.live(
+    "with its colours made one, each beat's dot still tells its state by its shape (WCAG 1.4.1)",
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const { page, errors } = yield* withMic({ allowed: true });
+          yield* page.waitFor('[data-beat="close"] [data-role="badge"]');
+          // Every state token one colour: whatever still tells the dots apart is their shape.
+          yield* page.evaluate(
+            `(() => { const s = document.createElement('style'); s.textContent = ':root { --state-scratch: #777 !important; --state-approved: #777 !important; --state-stale: #777 !important; }'; document.head.append(s); return 0; })()`,
+          );
+          // Each dot as it paints: its fill, its ring, its corners, anything drawn on it.
+          const painted = `[...document.querySelectorAll('[data-role="badge"]')].map((d) => { const c = getComputedStyle(d); return [c.backgroundColor, c.backgroundImage, c.borderTopWidth, c.borderTopStyle, c.borderTopColor, c.borderRadius, c.boxShadow, getComputedStyle(d, '::before').content, getComputedStyle(d, '::after').content].join(' | '); })`;
+          yield* evaluates(page, `${painted}.length`, 3);
+          yield* evaluates(page, `new Set(${painted}).size`, 3);
+          expect(errors).toEqual([]);
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
     'lists the beats, reads the selected one, and lists its attempts',
     () =>
       scoped(
         Effect.gen(function* () {
           const { page, errors } = yield* withMic({ allowed: true });
           yield* page.waitFor('[data-beat="thesis"]');
-          // Each beat is a dot in its take's state colour, its word in its name and the
+          // Each beat is a dot in its take's state colour and shape, its word in its name and the
           // counts in the list's (UR2-4); the selected beat's word is shown under the list.
           yield* attributesAre(page, '[data-role="badge"]', 'data-state', [
             'recorded',
