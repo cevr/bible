@@ -1,8 +1,9 @@
 // The studio's section of the panel: the beats with where each take stands,
-// the teleprompter (the selected beat's lines and quotations, as the reading
-// sheet sets them), the microphone and its meter, the recorder's controls and
-// status, the recording to hear before it is submitted, and the beat's
-// earlier attempts to hear and keep. Every piece reads the studio's context.
+// the recorder's controls and status, the microphone (named when not the
+// default; picked from ⌘K) and its meter, the teleprompter (the selected
+// beat's lines and quotations, as the reading sheet sets them), the
+// recording to hear before it is submitted, and the beat's earlier attempts
+// to hear and keep. Every piece reads the studio's context.
 //
 // The studio's keys (R record, Space stop, K submit or accept, ←/→ beat,
 // Esc cancel) are commands on the page's hub that run only while focus is
@@ -16,9 +17,9 @@ import { type Accessor, createEffect, onCleanup, onSettled } from 'solid-js';
 import { Option } from 'effect';
 import type { Part } from '../../core/sheet.ts';
 import { BY_BUTTON } from '../../command/command.ts';
-import { hubKeys } from '../command/changes.ts';
+import { hubKeys, registerWhile } from '../command/changes.ts';
 import { Lab, useLab } from '../shell.tsx';
-import { studioCommands } from './commands.ts';
+import { micCommands, studioCommands } from './commands.ts';
 import { type AttemptRow, useStudio } from './context.tsx';
 import { type Act, beatBadge } from './view.ts';
 
@@ -52,14 +53,19 @@ const Prompter = () => {
   );
 };
 
-/** Every beat, where its take stands, and the counts. */
+/**
+ * Every beat, each with a dot in its take's state colour and shape (UR2-4): the dots
+ * are the count at a glance, every beat on screen with no list to scroll.
+ * The words are disclosed: each beat's in its name (`thesis: scratch`, its
+ * title on a pointer), the counts in the list's (`1 recorded · 1 scratch ·
+ * 1 stale`), and the selected beat's under the list, which a tap shows.
+ */
 const Beats = () => {
   const { state, actions } = useStudio();
   return (
     <div class="studio-beats">
-      <p class="studio-counts">{state.counts()}</p>
       <Show when={state.beatsStatus()}>{(status) => <p class="lab-status">{status()}</p>}</Show>
-      <ol>
+      <ol aria-label={`Beats: ${state.counts()}`} title={state.counts()} data-role="beats">
         <For each={state.beats()}>
           {(beat) => (
             <li>
@@ -68,43 +74,44 @@ const Beats = () => {
                 data-beat={beat.id}
                 class={['sh-btn', { selected: beat.id === state.beat() }]}
                 aria-pressed={`${beat.id === state.beat()}`}
+                aria-label={`${beat.id}: ${beatBadge(beat)}`}
+                title={`${beat.id}: ${beatBadge(beat)}`}
                 onClick={() => actions.select(beat.id)}
               >
+                <span class="studio-dot" data-state={beat.state} data-role="badge" />
                 <span class="studio-beat-id">{beat.id}</span>
-                <span class={['lab-badge', beat.state]} data-role="badge">
-                  {beatBadge(beat)}
-                </span>
               </button>
             </li>
           )}
         </For>
       </ol>
+      <Show when={Option.getOrUndefined(state.current())}>
+        {(beat) => (
+          <p class="studio-beat-state" data-role="beat-state" data-state={beat().state}>
+            {beatBadge(beat())}
+          </p>
+        )}
+      </Show>
     </div>
   );
 };
 
-/** The microphone picked (remembered in this browser) and its level while it is open. */
+/**
+ * The microphone in use, named only when it is not the default (one picked
+ * before and gone says so), and its level while it is open. The picker is
+ * ⌘K's (`micCommands`: Choose microphone …).
+ */
 const Mic = () => {
-  const { state, actions } = useStudio();
+  const { state } = useStudio();
   return (
     <div class="studio-mic">
-      <label>
-        <span class="lab-edit-key">mic</span>
-        <select
-          data-field="mic"
-          onChange={(e) =>
-            actions.pick(Option.filter(Option.some(e.currentTarget.value), (id) => id !== ''))
-          }
-        >
-          <For each={state.mics()} keyed={(o) => o.id}>
-            {(o) => (
-              <option value={o().id} selected={o().selected}>
-                {o().label}
-              </option>
-            )}
-          </For>
-        </select>
-      </label>
+      <For each={state.mics().filter((o) => o.selected && o.id !== '')} keyed={(o) => o.id}>
+        {(o) => (
+          <p class="studio-mic-name" data-role="mic">
+            {o().label}
+          </p>
+        )}
+      </For>
       <Meter />
     </div>
   );
@@ -268,6 +275,7 @@ export const Section = () => {
   });
   const { meta } = useLab();
   onCleanup(meta.hub.commands.register(...studioCommands(actions)));
+  registerWhile(meta.hub, () => micCommands(state.mics(), actions.pick));
   const onMouseDown = (e: MouseEvent) => {
     if (!Option.exists(Option.fromNullishOr(e.target), onButton)) return;
     e.preventDefault();
@@ -292,13 +300,12 @@ export const Section = () => {
           actions.focused(Option.exists(Option.fromNullishOr(e.relatedTarget), within))
         }
       >
-        <header>
-          <strong>Studio</strong>
-        </header>
+        {/* No heading of its own: the mode tray's Record names the panel (UR-98). */}
+        {/* Record (R) and the meter stand over the prompter, on a phone's first screen (SU-4). */}
         <Beats />
-        <Prompter />
-        <Mic />
         <Controls />
+        <Mic />
+        <Prompter />
         <Attempts />
       </div>
     </Lab.Fill>

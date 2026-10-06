@@ -19,6 +19,7 @@
 // - a native part the engine colours itself: a range's and a select's own
 //   colours (text, ground, edge) and leading (`NATIVE`);
 // - a visually hidden field (1 × 1 or less), never seen;
+// - a margin set to `auto`, which pushes a part along and is no step;
 // - the compositions in `COMPOSED`, each tokens summed, or a share of the
 //   window, for a part's room;
 // - the geometry in `GEOMETRY`, each a size a shape needs, not a step of
@@ -128,6 +129,9 @@ export const untokened = (tokensCss: string) => `(() => {
   // The colours a computed gradient or shadow draws with, each as the engine writes a colour.
   const COLOURS_IN = /(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\\([^()]*\\)/g;
   const NATIVE = (el) => el.matches('input[type="range"], select');
+  // A margin set to auto: its computed value (the typed one; the resolved one is the px it took).
+  const autoMargin = (el, p) =>
+    p.startsWith('margin') && el.computedStyleMap().get(p.replace(/[A-Z]/, (c) => '-' + c.toLowerCase())).toString() === 'auto';
   const name = (el) => {
     const cls = typeof el.className === 'string' ? el.className.trim().split(/\\s+/).filter(Boolean).slice(0, 2).join('.') : '';
     const parent = el.parentElement && typeof el.parentElement.className === 'string' && el.parentElement.className.trim() ? el.parentElement.className.trim().split(/\\s+/)[0] + ' > ' : '';
@@ -179,7 +183,7 @@ export const untokened = (tokensCss: string) => `(() => {
       }
       for (const p of ['paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'rowGap', 'columnGap']) {
         const v = s[p];
-        if (v === 'normal' || isLength(v)) continue;
+        if (v === 'normal' || isLength(v) || autoMargin(el, p)) continue;
         off(p, v, el);
       }
     }

@@ -152,6 +152,20 @@ describe('page places', () => {
     expect(Place.history(Places.choices, ...along('/films/f/choices'))).toEqual(moving);
   });
 
+  test("a filter shown or cleared is a step Back walks on a film's choices and project, its point unchanged too", () => {
+    const step = { history: 'push' as const, throttle: Option.none() };
+    expect(
+      Place.history(
+        Places.choices,
+        '/films/f/choices?point=a&only=stale',
+        '/films/f/choices?point=a',
+      ),
+    ).toEqual(step);
+    expect(
+      Place.history(Places.project, '/films/f/project', '/films/f/project?only=comments'),
+    ).toEqual(step);
+  });
+
   test("a film's page names its film in its path, a short's whole name too", () => {
     expect(filmOfPage('/films/rbf/lab/roof?cue=lower#t=1')).toEqual(Option.some('rbf'));
     expect(filmOfPage(pageHref.scenes('rbf/shorts/verdict'))).toEqual(

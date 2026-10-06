@@ -36,7 +36,12 @@ interface Page {
   readonly thing: string;
   /** The query the URL has once the thing's sheet is open, past what `href` has. */
   readonly named: Readonly<Record<string, string>>;
+  /** The row marked while its sheet is open (SU-13). */
+  readonly row: string;
 }
+
+/** The rows marked as the open sheet's, as a script reads them. */
+const MARKED = `document.querySelectorAll('.rv-main [data-selected="true"]').length`;
 
 const PAGES: ReadonlyArray<Page> = [
   {
@@ -46,6 +51,7 @@ const PAGES: ReadonlyArray<Page> = [
     thing: '[data-point="score"] [data-variant="piano"] .lab-inspect',
     // The card in focus moves to the variant's point with it, in the same step.
     named: { point: 'score', inspect: 'piano' },
+    row: '[data-point="score"] [data-variant="piano"]',
   },
   {
     name: 'a Set',
@@ -54,6 +60,7 @@ const PAGES: ReadonlyArray<Page> = [
     thing: '.rv-main [data-act="inspect"]',
     // The set's first version.
     named: { inspect: 'main' },
+    row: '.rv-card[data-id="main"]',
   },
 ];
 
@@ -82,9 +89,13 @@ for (const p of PAGES) {
           for (const [key, value] of Object.entries(p.named))
             yield* evaluates(page, `new URL(location.href).searchParams.get('${key}')`, value);
           const named = yield* page.evaluate<string>('location.pathname + location.search');
+          // Its row is marked, and only it; none once the sheet is shut.
+          yield* waitFor(page, `${p.row}[data-selected="true"]`);
+          yield* evaluates(page, MARKED, 1);
           yield* page.back;
           yield* countIs(page, INSPECTOR, 0);
           yield* at(page, rest);
+          yield* evaluates(page, MARKED, 0);
           yield* page.forward;
           yield* waitFor(page, CLOSE);
           yield* at(page, named);

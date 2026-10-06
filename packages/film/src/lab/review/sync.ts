@@ -14,6 +14,7 @@ import { type Context, Data, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
 import { Media, type Playable } from '../../browser/media.ts';
 import { type Command, type Invocation, quietly } from '../../command/command.ts';
+import type { Target } from '../../command/target.ts';
 import {
   type SyncEvent,
   SyncEvent as Events,
@@ -223,6 +224,13 @@ export const playerEvent = (key: PlayerKey): SyncEvent =>
 const STEPS_BY: Readonly<Record<Invocation['step'], number>> = { normal: 1, coarse: 10, fine: 1 };
 
 /**
+ * Where a step is offered by touch (SU-11): a long-press on a Set's version
+ * (its picture is the version's) or on a page's picture (Choices', the
+ * Project's dock), with its ×10 row, as Play's picture offers its frames.
+ */
+const STEP_ABOUT: ReadonlyArray<Target> = ['Version', 'Page'];
+
+/**
  * A synced player's transport as the page's commands: Space plays or
  * pauses, ← and → step back or on (ten steps with Shift). `heed` says what
  * the page does with an ask now, or none when it has nothing to do with it
@@ -250,8 +258,9 @@ export const playerCommands = (
       label: 'Step on',
       group: 'Player',
       keys: ['arrowright'],
+      about: STEP_ABOUT,
       stepped: true,
-      touch: 'drag the time line',
+      touch: 'long-press the picture, then Step on (or ×10)',
       ...asked((how) => PlayerKey.Step({ by: STEPS_BY[how.step] })),
     },
     {
@@ -259,8 +268,9 @@ export const playerCommands = (
       label: 'Step back',
       group: 'Player',
       keys: ['arrowleft'],
+      about: STEP_ABOUT,
       stepped: true,
-      touch: 'drag the time line',
+      touch: 'long-press the picture, then Step back (or ×10)',
       ...asked((how) => PlayerKey.Step({ by: -STEPS_BY[how.step] })),
     },
   ];

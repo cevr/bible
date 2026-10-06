@@ -29,9 +29,24 @@ import {
   cueSaidText,
   joined,
   placesFreely,
+  type SourceKnown,
   snapEdge,
+  stripWindow,
   wroteNote,
 } from './grip.ts';
+
+/** A source the lab has read. */
+const read = (source: SceneSource): SourceKnown => ({
+  source: Option.some(source),
+  reading: false,
+  error: '',
+});
+
+/** No source, for `error` (the server's reason). */
+const unread = (error: string): SourceKnown => ({ source: Option.none(), reading: false, error });
+
+/** A source still being read. */
+const READING: SourceKnown = { source: Option.none(), reading: true, error: '' };
 
 describe('joined', () => {
   const write = (patch: CueWrite['patch'], said: NonNullable<CueWrite['said']>) =>
@@ -58,6 +73,18 @@ describe('joined', () => {
         write({ dur: 1 }, { dur: { before: '0.6', after: '1', unit: 's' } }),
       ),
     ).toEqual(Option.some('cue rise dur 0.6 → 1 s'));
+  });
+});
+
+describe('stripWindow', () => {
+  test('on a phone, a long scene shows 8 s around the playhead, held inside the scene', () => {
+    expect(stripWindow(30, 10, true)).toEqual({ from: 6, span: 8 });
+    expect(stripWindow(30, 1, true)).toEqual({ from: 0, span: 8 });
+    expect(stripWindow(30, 29, true)).toEqual({ from: 22, span: 8 });
+  });
+  test('a scene of 8 s or less, or any scene on a laptop, shows whole', () => {
+    expect(stripWindow(6, 3, true)).toEqual({ from: 0, span: 6 });
+    expect(stripWindow(30, 10, false)).toEqual({ from: 0, span: 30 });
   });
 });
 
@@ -174,8 +201,7 @@ describe("a cue's fields", () => {
         timeline: { rise: span },
         cues: new Map([['rise', cue]]),
         knobs: {},
-        source: Option.none(),
-        error: '',
+        known: { source: Option.none(), reading: false, error: '' },
         fps: 30,
         commit: (write, edit) => void commits.push({ write, edit }),
       },
@@ -216,14 +242,13 @@ describe("an `until` cue's end field", () => {
         timeline,
         cues: new Map([['rise', cue]]),
         knobs: {},
-        source: Option.some({
+        known: read({
           scene: 'one',
           file: 'scenes/one.ts',
           cues: [literal],
           knobs: [],
           refused: [],
         }),
-        error: '',
         fps: 30,
         commit: (write, edit) => void commits.push({ write, edit }),
       },
@@ -236,14 +261,13 @@ describe("an `until` cue's end field", () => {
         timeline: { ...timeline, rise: { ...span, untilOffset: 0.2 } },
         cues: new Map([['rise', cue]]),
         knobs: {},
-        source: Option.some({
+        known: read({
           scene: 'one',
           file: 'scenes/one.ts',
           cues: [{ ...literal, untilOffset: 'computed' }],
           knobs: [],
           refused: [],
         }),
-        error: '',
         fps: 30,
         commit: () => {},
       },
@@ -341,12 +365,10 @@ const source = (over: Partial<SceneSource> = {}): SceneSource => ({
 describe('cueRefusal', () => {
   const sized = { at: 'start', dur: 1 } as const;
   test('a field the lab may write: none', () => {
-    expect(cueRefusal(Option.some(source()), '', 'rise', dragFields(sized, 'move'))).toEqual(
-      Option.none(),
-    );
+    expect(cueRefusal(read(source()), 'rise', dragFields(sized, 'move'))).toEqual(Option.none());
   });
   test('a computed field is named', () => {
-    expect(cueRefusal(Option.some(source()), '', 'rise', dragFields(sized, 'end'))).toEqual(
+    expect(cueRefusal(read(source()), 'rise', dragFields(sized, 'end'))).toEqual(
       Option.some('cannot drag rise: its dur is computed in the source'),
     );
   });
@@ -356,15 +378,15 @@ describe('cueRefusal', () => {
       cues: [{ ...source().cues[0]!, offset: 'computed', dur: 'literal' }],
     });
     // Its left edge sets the dur alone; its right edge the offset too.
-    expect(cueRefusal(Option.some(offsetInCode), '', 'rise', dragFields(landing, 'start'))).toEqual(
+    expect(cueRefusal(read(offsetInCode), 'rise', dragFields(landing, 'start'))).toEqual(
       Option.none(),
     );
-    expect(cueRefusal(Option.some(offsetInCode), '', 'rise', dragFields(landing, 'end'))).toEqual(
+    expect(cueRefusal(read(offsetInCode), 'rise', dragFields(landing, 'end'))).toEqual(
       Option.some('cannot drag rise: its offset is computed in the source'),
     );
   });
   test('a span not literal in the source says so', () => {
-    expect(cueRefusal(Option.some(source()), '', 'fall', ['offset'])).toEqual(
+    expect(cueRefusal(read(source()), 'fall', ['offset'])).toEqual(
       Option.some('cannot drag fall: its span is computed in the source'),
     );
   });
@@ -372,17 +394,20 @@ describe('cueRefusal', () => {
     const refused = source({
       refused: [{ field: 'timeline', reason: 'the registry overrides it' }],
     });
-    expect(cueRefusal(Option.some(refused), '', 'rise', ['offset'])).toEqual(
+    expect(cueRefusal(read(refused), 'rise', ['offset'])).toEqual(
       Option.some('cannot drag rise: the registry overrides it'),
     );
   });
   test('no source: the reason it could not be read', () => {
-    expect(cueRefusal(Option.none(), 'SceneNotFound: no file', 'rise', ['offset'])).toEqual(
+    expect(cueRefusal(unread('SceneNotFound: no file'), 'rise', ['offset'])).toEqual(
       Option.some('cannot edit: SceneNotFound: no file'),
     );
-    expect(cueRefusal(Option.none(), '', 'rise', ['offset'])).toEqual(
+    expect(cueRefusal(unread(''), 'rise', ['offset'])).toEqual(
       Option.some('cannot edit: no source for this scene'),
     );
+  });
+  test('a source still being read is pending, never a refusal', () => {
+    expect(cueRefusal(READING, 'rise', ['offset'])).toEqual(Option.some('reading the source…'));
   });
 });
 
@@ -502,20 +527,19 @@ describe('knobRefusal', () => {
     ...over,
   });
   test('a literal knob: none', () => {
-    expect(knobRefusal(Option.some(source()), '', 'spot')).toEqual(Option.none());
+    expect(knobRefusal(read(source()), 'spot')).toEqual(Option.none());
   });
   test('a computed knob, or a knobs object the lab will not write, says why', () => {
-    expect(knobRefusal(Option.some(source()), '', 'size')).toEqual(
+    expect(knobRefusal(read(source()), 'size')).toEqual(
       Option.some('cannot move size: it is computed in the source'),
     );
     const refused = source({ refused: [{ field: 'knobs', reason: 'they are spread in' }] });
-    expect(knobRefusal(Option.some(refused), '', 'spot')).toEqual(
+    expect(knobRefusal(read(refused), 'spot')).toEqual(
       Option.some('cannot move spot: they are spread in'),
     );
   });
-  test('no source: the reason it could not be read', () => {
-    expect(knobRefusal(Option.none(), 'no file', 'spot')).toEqual(
-      Option.some('cannot edit: no file'),
-    );
+  test('no source: the reason it could not be read; pending while it is read', () => {
+    expect(knobRefusal(unread('no file'), 'spot')).toEqual(Option.some('cannot edit: no file'));
+    expect(knobRefusal(READING, 'spot')).toEqual(Option.some('reading the source…'));
   });
 });

@@ -1,11 +1,13 @@
 // The editor's Undo and Redo while the machine cannot take a step: with a
 // write out, or a grip held, the command says why it is not taken (and a
-// receipt's button holds), never answering as if it stepped.
+// receipt's button holds), never answering as if it stepped. A walk through
+// the strip's cues shows the cue before it selects it.
 
 import { Effect, Option } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import { BY_BUTTON, Unfit, quiet, refused } from '../../command/command.ts';
-import { contextAt } from '../../command/context.ts';
+import { contextAt, withSelection } from '../../command/context.ts';
+import { cueOf, selectionText } from '../../command/selection.ts';
 import { ChangeId, RequestId } from '../../core/schema.ts';
 import { editorCommands } from './commands.ts';
 import { CueWrite, StepWrite, type CueGrip } from './grip.ts';
@@ -36,8 +38,8 @@ const checking = EditState.Checking({
 });
 const held = EditState.Pressed({ grip, note: '' });
 
-/** The editor's commands with the machine in `state`, and the steps they took. */
-const commandsIn = (state: EditState) => {
+/** The editor's commands with the machine in `state`, its verbs `more` beside the rest, and the steps they took. */
+const commandsIn = (state: EditState, more: Partial<Parameters<typeof editorCommands>[0]> = {}) => {
   const stepped: Array<string> = [];
   const commands = editorCommands({
     undoable: () => Option.some({ target: 'cue rise offset in scenes/one.ts' }),
@@ -50,15 +52,17 @@ const commandsIn = (state: EditState) => {
     select: () => {},
     fieldsOf: () => [],
     stripCues: () => ({ scene: 'one', names: [] }),
+    startOf: () => 0,
     edges: () => [],
     T: () => 0,
     seek: () => {},
     findingTimes: () => [],
     snap: () => true,
     setSnap: () => {},
+    ...more,
   });
   const undo = commands.find((c) => c.id === 'edit.undo');
-  return { undo: Option.getOrThrow(Option.fromUndefinedOr(undo)), stepped };
+  return { undo: Option.getOrThrow(Option.fromUndefinedOr(undo)), stepped, commands };
 };
 
 const ctx = contextAt('lab', 'https://lab.test/films/probe/lab');
@@ -89,6 +93,28 @@ describe('Undo while the machine cannot step', () => {
     const { undo, stepped } = commandsIn(EditState.Idle({ note: '' }));
     expect(Effect.runSync(undo.run(ctx, BY_BUTTON))).toEqual(quiet);
     expect(stepped).toEqual(['undo']);
+  });
+});
+
+describe("walking the strip's cues", () => {
+  test("Tab shows the next cue at its start, then selects it: the strip's window (8 s of a long scene on a phone) holds it", () => {
+    const did: Array<string> = [];
+    const starts = new Map([
+      ['rise', 11],
+      ['fall', 30],
+    ]);
+    const { commands } = commandsIn(EditState.Idle({ note: '' }), {
+      stripCues: () => ({ scene: 'one', names: ['rise', 'fall'] }),
+      startOf: (name) => starts.get(name) ?? 0,
+      seek: (T) => void did.push(`seek ${T}`),
+      select: (s) => void did.push(`select ${selectionText(s)}`),
+    });
+    const walk = Option.getOrThrow(
+      Option.fromUndefinedOr(commands.find((c) => c.id === 'edit.cue-next')),
+    );
+    const on = withSelection(ctx, [cueOf('one', 'rise')]);
+    expect(Effect.runSync(walk.run(on, BY_BUTTON))).toEqual(quiet);
+    expect(did).toEqual(['seek 30', `select ${selectionText(cueOf('one', 'fall'))}`]);
   });
 });
 

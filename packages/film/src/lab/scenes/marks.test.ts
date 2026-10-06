@@ -4,11 +4,11 @@
 // most pressing first, and the legend counts the film's.
 
 import { describe, expect, test } from 'bun:test';
-import { Option } from 'effect';
+import { Option, Result } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import type { CheckLine } from '../../core/schema.ts';
-import { bandState, checkCount, chipsOf, legendOf, marksOf } from './marks.ts';
+import { bandState, checkCount, chipsOf, filmCounts, legendOf, marksOf } from './marks.ts';
 
 const scene = (
   id: string,
@@ -73,12 +73,12 @@ describe('marksOf', () => {
     expect(bandState(unread)).toEqual(Option.none());
   });
 
-  test('its chips say the render first, then the approval, then the findings', () => {
-    expect(chipsOf(marks('one')).map((c) => c.text)).toEqual(['Out of date', '2 findings']);
+  test('its chips say the render first, then the approval, then the findings by level', () => {
+    expect(chipsOf(marks('one')).map((c) => c.text)).toEqual(['Out of date', '2 errors']);
     expect(chipsOf(marks('two')).map((c) => c.text)).toEqual(['Approved']);
     expect(chipsOf(marks('three')).map((c) => c.text)).toEqual([
       'Not rendered',
-      '1 finding',
+      '1 error',
       '1 warning',
     ]);
     expect(bandState(marks('one'))).toEqual(Option.some('stale'));
@@ -103,17 +103,34 @@ describe('marksOf', () => {
   });
 
   test("the legend counts the film's scenes out of date, approved, and the check's lines once each by level, the film's apart; none left at 0", () => {
-    expect(legendOf(['one', 'two', 'three'], marks, FINDINGS).map((l) => l.text)).toEqual([
+    expect(
+      legendOf(['one', 'two', 'three'], marks, Result.succeed(FINDINGS)).map((l) => l.text),
+    ).toEqual([
       'out of date 1',
       'not rendered 1',
       'approved 1',
-      'findings 2',
+      'errors 2',
       'warnings 1',
       'film 1',
     ]);
-    expect(legendOf(['two'], marksOf(Option.some(VIEW), []), []).map((l) => l.text)).toEqual([
-      'approved 1',
+    expect(
+      legendOf(['two'], marksOf(Option.some(VIEW), []), Result.succeed([])).map((l) => l.text),
+    ).toEqual(['approved 1']);
+  });
+
+  test("the tape bar's legend is a colour key, its words without the counts Info keeps (UR2-13)", () => {
+    expect(
+      legendOf(['one', 'two', 'three'], marks, Result.succeed(FINDINGS)).map((l) => l.word),
+    ).toEqual(['out of date', 'not rendered', 'approved', 'errors', 'warnings', 'film']);
+  });
+
+  test('a check that failed says so, why in its title: never a clean film (RS-1)', () => {
+    const failed = legendOf(['two'], marksOf(Option.some(VIEW), []), Result.fail('lab down'));
+    expect(failed.map((l) => [l.text, l.state])).toEqual([
+      ['approved 1', 'approved'],
+      ['check failed', 'findings'],
     ]);
+    expect(failed.at(-1)).toMatchObject({ mark: 'check-failed', why: 'lab down' });
   });
 
   test("a check of 21 warnings, 20 about scenes and 1 the film's: the legend says warnings in the warning's colour, and counts the film's (RS-11, SU-3)", () => {
@@ -123,12 +140,36 @@ describe('marksOf', () => {
       ),
       { level: 'warning', tag: 'AudioStale', message: "the film's audio is older than its script" },
     ];
-    const legend = legendOf(['one', 'two', 'three'], marksOf(Option.none(), lines), lines);
+    const legend = legendOf(
+      ['one', 'two', 'three'],
+      marksOf(Option.none(), lines),
+      Result.succeed(lines),
+    );
     expect(legend.map((l) => [l.text, l.state])).toEqual([
       ['warnings 20', 'warning'],
       ['film 1', 'warning'],
     ]);
-    // Counted as the Project's and Choices' chips count them: 21 lines, warnings only.
+    // Counted as the Project's chip counts them: 21 findings, warnings only; the legend's
+    // numbers add up to the chip's (one word, `findings`, for every line of the check).
     expect(checkCount(lines)).toEqual({ errors: 0, warnings: 21 });
+    expect(legend.reduce((sum, l) => sum + Number(l.text.split(' ').at(-1)), 0)).toBe(21);
+  });
+});
+
+describe('filmCounts', () => {
+  test("a film's scenes in the chips' words: approved of all, then those out of date and not rendered (SU-8)", () => {
+    expect(filmCounts(VIEW.project.scenes)).toBe('1/3 approved · 1 out of date · 1 not rendered');
+  });
+
+  test('none out of date or not rendered: approved alone, never a 0', () => {
+    expect(filmCounts([scene('one', 'current'), scene('two', 'current', 'approved')])).toBe(
+      '1/2 approved',
+    );
+  });
+
+  test('20 scenes, each made for an earlier version: 0/20 approved · 20 out of date', () => {
+    expect(filmCounts(Array.from({ length: 20 }, (_, i) => scene(`s${i}`, 'stale', 'stale')))).toBe(
+      '0/20 approved · 20 out of date',
+    );
   });
 });

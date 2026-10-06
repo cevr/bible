@@ -14,7 +14,7 @@
 import { Place } from '@bible/url-state';
 import { Equal, Match, Option, Schema } from 'effect';
 import type { Address } from '../core/address.ts';
-import { Places, pageHref } from '../core/api.ts';
+import { Places, pageHref, reviewFileUrl } from '../core/api.ts';
 import { PointId, pointIdOf } from '../core/point.ts';
 
 /** One selected thing. */
@@ -37,6 +37,8 @@ export const Selection = Schema.TaggedUnion({
   Set: { folder: Schema.String, point: Schema.String },
   /** One version of a comparison set. */
   Version: { folder: Schema.String, point: Schema.String, version: Schema.String },
+  /** A file of a folder of renders in no set (a loose video), by its ref. */
+  File: { ref: Schema.String },
   /** A choice point of a film (a scene's render on the project, a score, a look). */
   Point: { film: Schema.String, point: Schema.String },
   /** A variant of a film's choice point. */
@@ -277,6 +279,8 @@ export const citeOf = (selection: Selection, href: string): string => {
         ),
         () => pageHref.set(s.folder, s.point, s.version),
       ),
+    // A file is cited as itself: its link opens the file.
+    File: (s) => reviewFileUrl(s.ref),
     Point: (s) =>
       Option.match(projectPointOf(s), {
         onNone: () => onChoices(s.film, s.point, ''),
@@ -311,6 +315,7 @@ export const selectionText = (selection: Selection): string =>
     Folder: (s) => `folder ${s.folder}`,
     Set: (s) => `set ${s.point}`,
     Version: (s) => `version ${s.version} of ${s.point}`,
+    File: (s) => `file ${s.ref}`,
     Point: (s) => s.point,
     Variant: (s) => `${s.variant} of ${s.point}`,
     Beat: (s) => `beat ${s.beat}`,

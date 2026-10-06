@@ -11,12 +11,12 @@ import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import type { CommandId, Undoing } from '../../command/command.ts';
 import type { LabFailure } from '../api.ts';
 
-/** What a failed read or write says: its words, without its tag. */
+/** What a failure says: its words, without its tag. */
+export const failureText = (failure: LabFailure): string => failure.message.replace(/^\w+: /, '');
+
+/** What a failed read or write says (`failureText`). */
 export const failedText = (result: AsyncResult.AsyncResult<unknown, LabFailure>): string =>
-  Option.getOrElse(
-    Option.map(AsyncResult.error(result), (e) => e.message.replace(/^\w+: /, '')),
-    () => '',
-  );
+  Option.getOrElse(Option.map(AsyncResult.error(result), failureText), () => '');
 
 /**
  * A write's receipt, in its control's words as it is sent (`writeStatus`):
@@ -79,6 +79,19 @@ export const agoText = (mtime: number, now: number): string => {
   return `${Math.round(seconds / 86_400)} d ago`;
 };
 
+/** What a loose video's Info says of its file at `now`: `walk.mp4 · 36 MB · 2 d ago · proxy ready`. */
+export const fileInfoText = (video: ReviewVideo, now: number): string =>
+  [
+    video.name,
+    sizeText(video.size),
+    agoText(video.mtime, now),
+    ...Match.value(video.phone).pipe(
+      Match.when('ready', () => ['proxy ready']),
+      Match.when('pending', () => ['proxy coming']),
+      Match.orElse(() => []),
+    ),
+  ].join(' · ');
+
 /** How wide a video's poster still is: the frame a card shows before it plays. */
 export const POSTER_W = 960;
 
@@ -111,15 +124,23 @@ const counted = (n: number, thing: string): Option.Option<string> => {
 export const versionsText = (n: number): string =>
   Option.getOrElse(counted(n, 'version'), () => '0 versions');
 
-/** What a folder holds: `2 version stacks · 3 videos · 1 doc`. */
+/**
+ * What a folder holds, as its card says it: its first kind of thing's count
+ * (`20 version stacks`, else `3 videos`…), the rest its page's sections (UR-16).
+ */
 export const countsText = (folder: ReviewFolder): string =>
-  Arr.getSomes([
-    counted(folder.sets.length, 'version stack'),
-    counted(folder.videos.length, 'video'),
-    counted(folder.images.length, 'image'),
-    counted(folder.docs.length, 'doc'),
-    counted(folder.downloads?.length ?? 0, 'download'),
-  ]).join(' · ');
+  Option.getOrElse(
+    Arr.head(
+      Arr.getSomes([
+        counted(folder.sets.length, 'version stack'),
+        counted(folder.videos.length, 'video'),
+        counted(folder.images.length, 'image'),
+        counted(folder.docs.length, 'doc'),
+        counted(folder.downloads?.length ?? 0, 'download'),
+      ]),
+    ),
+    () => 'empty',
+  );
 
 /** The folder's name as its card shows it: its manifest's title, else its ref's last part. */
 export const folderTitle = (folder: ReviewFolder): string =>

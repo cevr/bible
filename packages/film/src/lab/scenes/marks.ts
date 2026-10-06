@@ -5,11 +5,13 @@
 // the state's colour (`MarkChip.state`, a `--state-*` token's name), why in full its title. The
 // tape's legend counts them over the film, the film's own lines too. The check is counted
 // one way here for every page (`checkCount`, `countState`: Scenes, Project, Choices): each
-// line once, a warning never a finding. The project or the check may not
+// line once. Every line of the check is a finding (`tools/findings.ts`), an
+// error or a warning by its level: the chips and the legend say `errors` and
+// `warnings`, and Project's chip their sum, `findings`. The project or the check may not
 // be read (yet, or at all: a short has no project): the scene then has no
 // such mark, never a wrong one. Pure.
 
-import { Array as Arr, Boolean as Bool, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Option, Result } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import type { CheckLine } from '../../core/schema.ts';
@@ -24,7 +26,7 @@ export interface SceneMarks {
 
 /** A mark's chip: its word, why in full (its title), and the `--state-*` token it is drawn in. */
 interface MarkChip {
-  readonly mark: 'stale' | 'missing' | 'approved' | 'approved-earlier' | 'findings' | 'warnings';
+  readonly mark: 'stale' | 'missing' | 'approved' | 'approved-earlier' | 'errors' | 'warnings';
   readonly text: string;
   readonly why: string;
   readonly state: 'stale' | 'rendered' | 'approved' | 'findings' | 'warning';
@@ -47,8 +49,8 @@ const filmsOwn = (line: CheckLine): boolean =>
 
 /**
  * The check's lines counted one way, wherever a page counts them (a scene's
- * chips, the tape's legend, the Project's and Choices' check chips): each
- * line once, as an error (a finding) or a warning.
+ * chips, the tape's legend, the Project's check chip): each line once, as
+ * an error or a warning.
  */
 interface CheckCount {
   readonly errors: number;
@@ -95,7 +97,7 @@ export const marksOf =
     findings: findings.filter((line) => about(line, scene)),
   });
 
-/** `n` of `one`, in words: `1 finding`, `3 findings`. */
+/** `n` of `one`, in words: `1 error`, `3 errors`. */
 const count = (n: number, one: string) =>
   Bool.match(n === 1, { onTrue: () => `1 ${one}`, onFalse: () => `${n} ${one}s` });
 
@@ -144,8 +146,8 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
     ...[errors]
       .filter((n) => n > 0)
       .map((n): MarkChip => ({
-        mark: 'findings',
-        text: count(n, 'finding'),
+        mark: 'errors',
+        text: count(n, 'error'),
         why: lines('error'),
         state: 'findings',
       })),
@@ -160,29 +162,63 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
   ];
 };
 
+/**
+ * A film's scenes summed up in the chips' words, as Project's head and a
+ * Films card say it: `0/4 approved · 1 out of date · 1 not rendered`, the
+ * last two left out at 0.
+ */
+export const filmCounts = (scenes: ReadonlyArray<ProjectScene>): string =>
+  [
+    `${scenes.filter((s) => s.approval === 'approved').length}/${scenes.length} approved`,
+    ...[
+      [scenes.filter((s) => s.state === 'stale').length, 'out of date'] as const,
+      [scenes.filter((s) => s.state === 'missing').length, 'not rendered'] as const,
+    ]
+      .filter(([n]) => n > 0)
+      .map(([n, word]) => `${n} ${word}`),
+  ].join(' · ');
+
 /** The state a scene's band is drawn in on the tape: its most pressing mark's, else none (its hue). */
 export const bandState = (marks: SceneMarks): Option.Option<MarkChip['state']> =>
   Option.map(Arr.head(chipsOf(marks)), (c) => c.state);
 
-/** A line of the tape's legend: what it counts (`mark`), its words, and the `--state-*` token it is drawn in. */
+/**
+ * A line of the tape's legend: what it counts (`mark`), its word (the
+ * colour key the tape bar shows), its words with the count (Info's), and the
+ * `--state-*` token it is drawn in.
+ */
 interface LegendLine {
-  readonly mark: 'stale' | 'missing' | 'approved' | 'findings' | 'warnings' | 'film';
+  readonly mark: 'stale' | 'missing' | 'approved' | 'errors' | 'warnings' | 'film' | 'check-failed';
+  readonly word: string;
   readonly text: string;
   readonly state: MarkChip['state'];
+  /** Why, in full (its title), when its words do not say it all. */
+  readonly why?: string;
 }
+
+/** A legend line counting `n`, none at 0. */
+const counted = (
+  mark: LegendLine['mark'],
+  word: string,
+  n: number,
+  state: MarkChip['state'],
+): ReadonlyArray<LegendLine> =>
+  [n].filter((k) => k > 0).map((k) => ({ mark, word, text: `${word} ${k}`, state }));
 
 /**
  * The tape's legend over `scenes`: how many are out of date, not rendered
- * and approved; then the check's `lines` about them, each once, by level
- * (`checkCount`: findings in the findings' colour, warnings in the
+ * and approved; then the check's lines about them, each once, by level
+ * (`checkCount`: errors in the findings' colour, warnings in the
  * warnings'), and the film's own lines (`filmsOwn`: addressed to no scene)
- * apart, in the colour of their most pressing level. None left at 0.
+ * apart, in the colour of their most pressing level. None left at 0. A
+ * check that failed says so, why in its title: never a clean film (RS-1).
  */
 export const legendOf = (
   scenes: ReadonlyArray<string>,
   marks: (scene: string) => SceneMarks,
-  lines: ReadonlyArray<CheckLine>,
+  check: Result.Result<ReadonlyArray<CheckLine>, string>,
 ): ReadonlyArray<LegendLine> => {
+  const lines = Result.getOrElse(check, () => []);
   const all = scenes.map(marks);
   const stale = all.filter((m) => Option.exists(m.render, (r) => r.state === 'stale')).length;
   const missing = all.filter((m) => Option.exists(m.render, (r) => r.state === 'missing')).length;
@@ -192,26 +228,21 @@ export const legendOf = (
   const theirs = checkCount(lines.filter((l) => aboutAny(l, scenes)));
   const film = lines.filter(filmsOwn);
   return [
-    ...[stale]
-      .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'stale', text: `out of date ${n}`, state: 'stale' })),
-    ...[missing]
-      .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'missing', text: `not rendered ${n}`, state: 'rendered' })),
-    ...[approved]
-      .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'approved', text: `approved ${n}`, state: 'approved' })),
-    ...[theirs.errors]
-      .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'findings', text: `findings ${n}`, state: 'findings' })),
-    ...[theirs.warnings]
-      .filter((n) => n > 0)
-      .map((n): LegendLine => ({ mark: 'warnings', text: `warnings ${n}`, state: 'warning' })),
+    ...counted('stale', 'out of date', stale, 'stale'),
+    ...counted('missing', 'not rendered', missing, 'rendered'),
+    ...counted('approved', 'approved', approved, 'approved'),
+    ...counted('errors', 'errors', theirs.errors, 'findings'),
+    ...counted('warnings', 'warnings', theirs.warnings, 'warning'),
+    ...Option.toArray(countState(film)).flatMap((state) =>
+      counted('film', 'film', film.length, state),
+    ),
     ...Option.toArray(
-      Option.map(countState(film), (state): LegendLine => ({
-        mark: 'film',
-        text: `film ${film.length}`,
-        state,
+      Option.map(Result.getFailure(check), (why): LegendLine => ({
+        mark: 'check-failed',
+        word: 'check failed',
+        text: 'check failed',
+        state: 'findings',
+        why,
       })),
     ),
   ];

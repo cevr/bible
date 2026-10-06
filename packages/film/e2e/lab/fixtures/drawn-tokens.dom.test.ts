@@ -53,6 +53,10 @@ describe('the drawn-token check', () => {
     ),
   );
 
+  it.live('passes a margin set to auto, which pushes a part along and is no step', () =>
+    drawn(`<div style="display:flex;width:300px"><i style="margin-left:auto">pushed</i></div>`, []),
+  );
+
   it.live('names a colour a page declares in a variable of its own', () =>
     drawn(
       `<style>.bad { --rogue: crimson; --wide: 5px; color: var(--rogue); padding-left: var(--wide); }</style>

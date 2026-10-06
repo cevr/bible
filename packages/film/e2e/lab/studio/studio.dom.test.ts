@@ -28,6 +28,7 @@ import {
   refused,
   route,
 } from '../../../src/lab/fixtures/harness.ts';
+import { menuEntry, openCommandMenu } from '../../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
@@ -127,6 +128,9 @@ const askedMoreThan = (asked: ReadonlyArray<Asked>, path: string, least: number)
 /** Wait until the status line reads `pattern`. */
 const statusIs = (page: Tab, pattern: RegExp) => textIs(page, '[data-role="status"]', pattern);
 
+/** The status line of a recorder at rest with nothing to report: empty (the Record button names its key). */
+const AT_REST = /^$/;
+
 /** Wait until the recording has kept at least `seconds` of the microphone, as its status counts. */
 const recorded = (page: Tab, seconds: number) =>
   page.until(`(() => {
@@ -189,20 +193,56 @@ const scoped = <A, E>(self: Effect.Effect<A, E, Scope.Scope | FileSystem.FileSys
 
 describe('the studio', () => {
   it.live(
+    "with its colours made one, each beat's dot still tells its state by its shape (WCAG 1.4.1)",
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const { page, errors } = yield* withMic({ allowed: true });
+          yield* page.waitFor('[data-beat="close"] [data-role="badge"]');
+          // Every state token one colour: whatever still tells the dots apart is their shape.
+          yield* page.evaluate(
+            `(() => { const s = document.createElement('style'); s.textContent = ':root { --state-scratch: #777 !important; --state-approved: #777 !important; --state-stale: #777 !important; }'; document.head.append(s); return 0; })()`,
+          );
+          // Each dot as it paints: its fill, its ring, its corners, anything drawn on it.
+          const painted = `[...document.querySelectorAll('[data-role="badge"]')].map((d) => { const c = getComputedStyle(d); return [c.backgroundColor, c.backgroundImage, c.borderTopWidth, c.borderTopStyle, c.borderTopColor, c.borderRadius, c.boxShadow, getComputedStyle(d, '::before').content, getComputedStyle(d, '::after').content].join(' | '); })`;
+          yield* evaluates(page, `${painted}.length`, 3);
+          yield* evaluates(page, `new Set(${painted}).size`, 3);
+          expect(errors).toEqual([]);
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
     'lists the beats, reads the selected one, and lists its attempts',
     () =>
       scoped(
         Effect.gen(function* () {
           const { page, errors } = yield* withMic({ allowed: true });
           yield* page.waitFor('[data-beat="thesis"]');
-          yield* textIs(page, '.studio-counts', '1 recorded · 1 staging · 1 stale');
-          yield* textsAre(page, '[data-role="badge"]', [
+          // Each beat is a dot in its take's state colour and shape, its word in its name and the
+          // counts in the list's (UR2-4); the selected beat's word is shown under the list.
+          yield* attributesAre(page, '[data-role="badge"]', 'data-state', [
             'recorded',
             'staging',
-            'stale: text changed',
+            'stale',
           ]);
+          yield* attributesAre(page, '[data-beat]', 'aria-label', [
+            'opening: recorded',
+            'thesis: scratch',
+            'close: stale: text changed',
+          ]);
+          yield* attributeIs(
+            page,
+            '[data-role="beats"]',
+            'aria-label',
+            'Beats: 1 recorded · 1 scratch · 1 stale',
+          );
+          yield* textIs(page, '[data-role="beat-state"]', 'recorded');
+          yield* textIs(page, '[data-role="status"]', '');
           yield* textIs(page, '[data-role="prompter"]', 'In the beginning.');
           yield* page.click('[data-beat="thesis"]');
+          yield* textIs(page, '[data-role="beat-state"]', 'scratch');
           yield* page.waitFor('.studio-quotation cite');
           yield* textIs(page, '.studio-line', 'The law is holy.');
           yield* textIs(page, '.studio-quotation p', 'The law of the Lord is perfect.');
@@ -408,7 +448,7 @@ describe('the studio', () => {
           yield* press(page, 'r');
           yield* statusIs(page, /^recording in [123]…$/);
           yield* press(page, 'Escape');
-          yield* statusIs(page, /^ready/);
+          yield* statusIs(page, AT_REST);
           expect(errors).toEqual([]);
         }),
       ),
@@ -479,20 +519,26 @@ describe('the studio', () => {
   );
 
   it.live(
-    'leaves ←/→ and n to the microphone picker while it has focus: the film holds, no note opens',
+    'chooses the microphone from ⌘K: the one picked is remembered and named, Default names none (UR2-4)',
     () =>
       scoped(
         Effect.gen(function* () {
           const { page } = yield* withMic({ allowed: true });
           yield* page.waitFor('[data-beat="thesis"]');
-          yield* page.focus('[data-field="mic"]');
-          yield* press(page, 'ArrowRight');
-          yield* press(page, 'Shift+ArrowRight');
-          yield* press(page, 'n');
-          yield* runClock(page, 300);
-          yield* shownAt(page, 1);
-          yield* attached(page, '.lab-compose[hidden]');
-          yield* evaluates(page, "document.activeElement?.getAttribute('data-field')", 'mic');
+          // At rest on the default, no picker and no name: the choice is ⌘K's.
+          yield* countIs(page, '[data-field="mic"]', 0);
+          yield* countIs(page, '[data-role="mic"]', 0);
+          yield* openCommandMenu(page, 'microphone');
+          yield* countIs(page, menuEntry('studio.mic.default'), 0);
+          const listed = `[data-role="command-menu"] [data-command^="studio.mic."]`;
+          yield* page.waitFor(listed);
+          yield* page.click(listed);
+          yield* until(page, "(window.localStorage.getItem('film-lab-mic') ?? '') !== ''");
+          yield* page.waitFor('[data-role="mic"]');
+          yield* openCommandMenu(page, 'microphone');
+          yield* page.click(menuEntry('studio.mic.default'));
+          yield* evaluates(page, "window.localStorage.getItem('film-lab-mic')", '');
+          yield* countIs(page, '[data-role="mic"]', 0);
         }),
       ),
     60_000,
@@ -536,7 +582,7 @@ describe('the studio', () => {
           yield* press(page, 'r');
           yield* statusIs(page, /^recording in [123]…$/);
           yield* press(page, 'Escape');
-          yield* statusIs(page, /^ready/);
+          yield* statusIs(page, AT_REST);
           // The row kept: its player still carries the mark.
           yield* until(
             page,
@@ -556,14 +602,51 @@ describe('the studio', () => {
           yield* page.waitFor('[data-beat="thesis"]');
           yield* page.evaluate("window.localStorage.setItem('film-lab-mic', 'film-probe-gone')");
           yield* page.reload;
-          yield* page.attached('[data-field="mic"] option[value="film-probe-gone"]');
-          yield* textIs(
-            page,
-            '[data-field="mic"] option:checked',
-            'the microphone picked before (not connected)',
-          );
-          yield* page.select('[data-field="mic"]', '');
+          yield* textIs(page, '[data-role="mic"]', 'the microphone picked before (not connected)');
+          yield* openCommandMenu(page, 'microphone');
+          yield* page.click(menuEntry('studio.mic.default'));
           yield* evaluates(page, "window.localStorage.getItem('film-lab-mic')", '');
+          yield* countIs(page, '[data-role="mic"]', 0);
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    "on a phone, Record (R) stands over the tab bar on the first screen, every beat's dot with it (SU-4, UR2-4)",
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          // A film's worth of beats (18, as the film the sweep measured), the first a long read.
+          const long = Array.from({ length: 8 }, () => ({
+            kind: 'line',
+            text: 'The law of the Lord is perfect, converting the soul; the testimony of the Lord is sure.',
+          }));
+          const many: Json = {
+            film: PROBE,
+            beats: [
+              beat('beat0', 'staging', long),
+              ...Array.from({ length: 17 }, (_, i) =>
+                beat(`beat${i + 1}`, 'staging', [{ kind: 'line', text: 'Amen.' }]),
+              ),
+            ],
+          };
+          const { page } = yield* openLab(
+            [route('GET', /^\/studio\/beats$/, () => json(many)), ...studioRoutes.slice(1)],
+            { href: labAt(1), mic: { allowed: true }, mode: 'record' },
+          );
+          yield* page.resize(390, 844);
+          yield* page.waitFor('[data-act="arm"]');
+          yield* evaluates(
+            page,
+            `(() => {
+              const bar = document.querySelector('.sh-pagebar').getBoundingClientRect().top;
+              const below = [...document.querySelectorAll('[data-act="arm"], [data-beat]')]
+                .filter((el) => el.getBoundingClientRect().bottom > bar);
+              return scrollY === 0 ? below.map((el) => el.outerHTML.slice(0, 60)) : 'scrolled ' + scrollY;
+            })()`,
+            [],
+          );
         }),
       ),
     60_000,
@@ -581,7 +664,7 @@ describe('the studio', () => {
           yield* page.waitFor('[data-role="clip"]');
           yield* textIs(page, '[data-role="clip"]', 'clipping: turn the input down');
           yield* press(page, 'Escape');
-          yield* statusIs(page, /^ready/);
+          yield* statusIs(page, AT_REST);
         }),
       ),
     60_000,

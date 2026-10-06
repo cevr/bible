@@ -1,5 +1,6 @@
-// A note's draft, pure: where the moment noted sits (its scene, time, time
-// into the scene and frame, and the cue edge and mark nearest it), what it
+// A note's draft, pure: where the moment noted sits (its scene, the time
+// into the scene, and the cue edge and mark nearest it), when a made note
+// shows (its scene's time, or the film's, named, once its scene is gone), what it
 // is about beside its frame (its scope: the cue selected and the in and out
 // points, shown as a chip the owner can clear), the draft the composer posts
 // (the box, the ink and the range only when there are any), and the frame's
@@ -7,7 +8,7 @@
 
 import { Option } from 'effect';
 import { type Placed, sceneAt } from '../../core/layout.ts';
-import { nearestMoment } from '../../core/notes.ts';
+import { nearestMoment, noteT } from '../../core/notes.ts';
 import { timecode } from '../../core/time.ts';
 import type {
   InkStroke,
@@ -27,17 +28,36 @@ interface Composed {
   readonly text: string;
 }
 
-/** Where a note at `T` sits, as the composer says it; nothing past the film. */
+/**
+ * Where a note at `T` sits, as the composer says it: its scene and the time
+ * into it (one clock beside a scene's name: the scene's); nothing past the
+ * film.
+ */
 export const whereText = (placed: ReadonlyArray<Placed>, fps: number, T: number): string =>
   Option.match(nearestMoment(placed, T), {
     onNone: () => '',
     onSome: (m) =>
       [
         m.scene,
-        timecode(T, fps),
+        timecode(m.local, fps),
         ...Option.toArray(Option.map(m.cue, (c) => `cue ${c.name}:${c.edge}`)),
         ...Option.toArray(Option.map(m.mark, (k) => `{${k}}`)),
       ].join(' · '),
+  });
+
+/**
+ * When a made note shows, as the list says it beside its scene's name: the
+ * time into its scene now (`noteT`); a note whose scene the film no longer
+ * has says the film's time, naming the film.
+ */
+export const whenText = (
+  placed: ReadonlyArray<Placed>,
+  fps: number,
+  note: Pick<NoteDraft, 'scene' | 'T' | 'local'>,
+): string =>
+  Option.match(Option.fromUndefinedOr(placed.find((p) => p.spec.id === note.scene)), {
+    onNone: () => `film ${timecode(note.T, fps)}`,
+    onSome: (p) => timecode(noteT(placed, fps, note) - p.start, fps),
   });
 
 /**

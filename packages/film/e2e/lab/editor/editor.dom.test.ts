@@ -10,9 +10,11 @@
 // The scene's file is named once, on the strip's head.
 
 import { Deferred, Effect, Exit, Option, Schedule } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
+import { pageHref } from '../../../src/core/api.ts';
 import { SourceRefused } from '../../../src/core/refusals.ts';
+import { LONG, LONG_SCENE } from '../../../src/lab/fixtures/long-film.ts';
 import {
   type Asked,
   type Json,
@@ -94,6 +96,25 @@ describe('the cue strip', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live(
+    "on a phone, Tab to a cue past the strip's 8 s window shows it: the playhead goes to its start, its bar on the strip",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], {
+          href: pageHref.labScene(LONG, LONG_SCENE, { cue: 'early' }, Option.some(1)),
+          viewport: PHONE,
+        });
+        const shown = (cue: string) =>
+          `(() => { const lane = document.querySelector('.lab-strip-rows').getBoundingClientRect(); const bar = document.querySelector('.lab-cue[data-cue="${cue}"]').getBoundingClientRect(); return bar.left >= lane.left - 1 && bar.left < lane.right; })()`;
+        yield* page.waitFor('.lab-cue[data-cue="late"]');
+        yield* until(page, shown('early'));
+        yield* evaluates(page, shown('late'), false);
+        yield* page.press('Tab');
+        yield* until(page, "new URLSearchParams(location.search).get('cue') === 'late'");
+        yield* until(page, shown('late'));
+      }).pipe(Effect.scoped),
+  );
+
   it.live("names the scene's file once, on its head", () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([], { href: labAt(1) });
@@ -102,62 +123,122 @@ describe('the cue strip', () => {
     }).pipe(Effect.scoped),
   );
 
+  /** Whether the shown mode's first control in the panel ends above the phone's tab bar, unscrolled. */
+  const FIRST_ON_SCREEN = `(() => {
+    const bar = document.querySelector('.sh-pagebar').getBoundingClientRect().top;
+    const first = [...document.querySelectorAll('.lab-panel [data-mode-of] :is(button, input, select, a[href])')]
+      .find((el) => el.checkVisibility() && el.getBoundingClientRect().height > 0);
+    if (first === undefined) return 'no control in ' + document.querySelector('.lab-panel').dataset.mode;
+    const bottom = first.getBoundingClientRect().bottom;
+    return scrollY === 0 && bottom <= bar ? 'on screen' : first.outerHTML.slice(0, 80) + ' ends at ' + Math.round(bottom) + ', the bar at ' + Math.round(bar) + ', scrolled ' + scrollY;
+  })()`;
+
+  /** Whether the strip shows its cue lanes and its Snap, and its words. */
+  const strip = `['.lab-strip-row', '[data-act="snap"]', '.lab-strip-words'].map((s) => document.querySelector(s).checkVisibility())`;
+
   it.live(
-    'a finger held on a cue lane past the long press, then slid 30 px, marks no range; slid at once, it does',
+    'folds to its words in Note and Record, and on a phone in every mode but Edit (UR2-3, SU-4)',
     () =>
       Effect.gen(function* () {
         const { page } = yield* openLab([], { href: labAt(1) });
-        const lane = '.lab-strip-row:has([data-cue="fall"])';
-        yield* page.waitFor(lane);
-        const rows = yield* page.box('.lab-strip-rows');
-        const row = yield* page.box(lane);
-        // A point on the lane clear of fall's bar: near its scene's start.
-        const x = rows.x + 4;
-        const y = row.y + row.height / 2;
-        const marked = `document.querySelector('[data-role="in-out"]') !== null`;
-        // The clock held: the long press's delay passes only as the test runs it on.
-        yield* page.clock.hold;
-        yield* page.finger.down(x, y);
-        yield* page.clock.runFor(700);
-        yield* page.finger.move(x + 30, y, 15);
-        yield* page.finger.up;
-        yield* page.clock.runFor(100);
-        yield* evaluates(page, marked, false);
-        yield* page.press('Escape');
-        // The same slide made at once marks the range.
-        yield* page.finger.down(x, y);
-        yield* page.finger.move(x + 30, y, 15);
-        yield* page.finger.up;
-        yield* page.clock.runFor(100);
-        yield* evaluates(page, marked, true);
+        yield* editable(page);
+        yield* evaluates(page, strip, [true, true, true]);
+        for (const [mode, lanes] of [
+          ['note', false],
+          ['record', false],
+          ['motion', true],
+          ['compare', true],
+          ['edit', true],
+        ] as const) {
+          yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
+          yield* evaluates(page, strip, [lanes, lanes, true]);
+        }
+        yield* page.resize(PHONE.width, PHONE.height);
+        for (const [mode, lanes] of [
+          ['motion', false],
+          ['compare', false],
+          ['note', false],
+          ['edit', true],
+        ] as const) {
+          yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
+          yield* evaluates(page, strip, [lanes, lanes, true]);
+          // The mode's first control stands over the tab bar, on the first screen. (Record's
+          // recorder needs the studio's routes: `studio/studio.dom.test.ts` checks its R so.)
+          yield* evaluates(page, FIRST_ON_SCREEN, 'on screen');
+        }
       }).pipe(Effect.scoped),
   );
 
-  it.live(
+  // Serial, as every case here that sends touches: Chrome drops one tab's touches while another
+  // tab's are down (a tap there lands as a bare click, no press), so no two run at once.
+  test.serial(
+    'a finger held on a cue lane past the long press, then slid 30 px, marks no range; slid at once, it does',
+    () =>
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const { page } = yield* openLab([], { href: labAt(1) });
+          const lane = '.lab-strip-row:has([data-cue="fall"])';
+          yield* page.waitFor(lane);
+          const rows = yield* page.box('.lab-strip-rows');
+          const row = yield* page.box(lane);
+          // A point on the lane clear of fall's bar: near its scene's start.
+          const x = rows.x + 4;
+          const y = row.y + row.height / 2;
+          const marked = `document.querySelector('[data-role="in-out"]') !== null`;
+          // The clock held: the long press's delay passes only as the test runs it on.
+          yield* page.clock.hold;
+          yield* page.finger.down(x, y);
+          yield* page.clock.runFor(700);
+          yield* page.finger.move(x + 30, y, 15);
+          yield* page.finger.up;
+          yield* page.clock.runFor(100);
+          yield* evaluates(page, marked, false);
+          yield* page.press('Escape');
+          // The same slide made at once marks the range.
+          yield* page.finger.down(x, y);
+          yield* page.finger.move(x + 30, y, 15);
+          yield* page.finger.up;
+          yield* page.clock.runFor(100);
+          yield* evaluates(page, marked, true);
+        }).pipe(Effect.scoped),
+      ),
+  );
+
+  test.serial(
     "a second finger put down while a lane's drag marks a range marks no range of its own",
     () =>
-      Effect.gen(function* () {
-        const { page } = yield* openLab([], { href: labAt(1) });
-        const lane = '.lab-strip-row:has([data-cue="fall"])';
-        yield* page.waitFor(lane);
-        const rows = yield* page.box('.lab-strip-rows');
-        const row = yield* page.box(lane);
-        const x = rows.x + 4;
-        const y = row.y + row.height / 2;
-        yield* page.finger.down(x, y);
-        yield* page.finger.move(x + 30, y, 15);
-        // A second finger lands further along the lane and slides on while the first is down,
-        // then the first lifts before it: the range marked last would be the second's.
-        yield* page.finger.second.down(x + 120, y);
-        yield* page.finger.second.move(x + 200, y, 15);
-        yield* page.finger.up;
-        yield* page.finger.second.up;
-        yield* page.waitFor('[data-role="in-out"]');
-        const band = yield* page.box('[data-role="in-out"]');
-        // The range is the first finger's: from where it went down to where it lifted.
-        expect(band.x).toBeLessThan(x + 10);
-        expect(band.x + band.width).toBeLessThan(x + 60);
-      }).pipe(Effect.scoped),
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const { page } = yield* openLab([], { href: labAt(1) });
+          const lane = '.lab-strip-row:has([data-cue="fall"])';
+          yield* page.waitFor(lane);
+          const rows = yield* page.box('.lab-strip-rows');
+          const row = yield* page.box(lane);
+          const x = rows.x + 4;
+          const y = row.y + row.height / 2;
+          // Every press the lanes are given, counted, so the second finger's is one they were
+          // given; and every finger lifted, so the range is read once the page has both lifts.
+          yield* page.evaluate(
+            `(window.pressed = 0, window.lifted = 0, document.querySelector('.lab-strip-rows').addEventListener('pointerdown', () => window.pressed++, true), addEventListener('touchend', () => window.lifted++, true), 0)`,
+          );
+          yield* page.finger.down(x, y);
+          yield* page.finger.move(x + 30, y, 15);
+          // A second finger lands further along the lane and slides on while the first is
+          // down: the range marked last would be the second's.
+          yield* page.finger.second.down(x + 120, y);
+          yield* page.finger.second.move(x + 200, y, 15);
+          yield* evaluates(page, 'window.pressed', 2);
+          // Both lift. (Chrome lifts a finger only as the touch ends: the two lift together.)
+          yield* page.finger.second.up;
+          yield* page.finger.up;
+          yield* evaluates(page, 'window.lifted', 2);
+          yield* page.waitFor('[data-role="in-out"]');
+          const band = yield* page.box('[data-role="in-out"]');
+          // The range is the first finger's: from where it went down to where it lifted.
+          expect(band.x).toBeLessThan(x + 10);
+          expect(band.x + band.width).toBeLessThan(x + 60);
+        }).pipe(Effect.scoped),
+      ),
   );
 
   it.live('a drag of a cue body writes its offset once, on release, and selects it', () =>
@@ -445,6 +526,30 @@ describe('the cue strip', () => {
       expect(posted(asked)).toEqual([]);
     }).pipe(Effect.scoped),
   );
+
+  it.live("a scene's source still being read reads as pending, never as refused", () =>
+    Effect.gen(function* () {
+      // Held until the case has looked, then answered: no read is left open past it.
+      const read = Deferred.makeUnsafe<void>();
+      const { page } = yield* openLab(
+        [route('GET', /^\/scenes\/one\/source$/, () => later(read, json(sourceOne)))],
+        { href: labAt(1) },
+      );
+      yield* page.waitFor('.lab-knob .lab-edit-note');
+      yield* evaluates(
+        page,
+        `[...document.querySelectorAll('.lab-knob .lab-edit-note')].map((n) => n.textContent).filter((t) => t !== 'reading the source…')`,
+        [],
+      );
+      yield* evaluates(
+        page,
+        `document.querySelector('.lab-panel').textContent.includes('cannot edit')`,
+        false,
+      );
+      yield* Deferred.done(read, Exit.void);
+      yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
+    }).pipe(Effect.scoped),
+  );
 });
 
 describe('one write at a time', () => {
@@ -468,40 +573,42 @@ describe('one write at a time', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live(
+  test.serial(
     "a finger's drag has Cancel drag at hand, which puts the cue back; a finger grabs an edge a mouse would miss",
     () =>
-      Effect.gen(function* () {
-        const { page, asked } = yield* openLab([], { href: labAt(1) });
-        const bar = '.lab-cue[data-cue="rise"]';
-        yield* editable(page);
-        const box = yield* page.box(bar);
-        const y = box.y + box.height / 2;
-        const x = box.x + box.width / 2;
-        // The clock held: a slow machine's slide never outlasts the long press, which a held
-        // press would rightly open (a menu, not a drag).
-        yield* page.clock.hold;
-        // No Cancel at rest; held and slid, the strip offers it, and its tap lets the cue go.
-        yield* countIs(page, '[data-act="cancel-grip"]', 0);
-        yield* page.finger.down(x, y);
-        yield* page.finger.move(x + 40, y, 8);
-        yield* page.click('[data-act="cancel-grip"]');
-        yield* page.finger.up;
-        yield* runClock(page, 200);
-        expect(posted(asked)).toEqual([]);
-        yield* countIs(page, '[data-act="cancel-grip"]', 0);
-        expect(Math.round((yield* page.box(bar)).x)).toBe(Math.round(box.x));
-        // 10 px in is the body to a mouse (6 px edges) and the start to a finger (14 px): its
-        // drag writes the start, offset and dur together.
-        expect(box.width).toBeGreaterThan(14 * 3);
-        yield* page.finger.down(box.x + 10, y);
-        yield* page.finger.move(box.x + 40, y, 8);
-        yield* page.finger.up;
-        yield* postedReach(asked, 1);
-        expect(Option.getOrThrow(Option.fromUndefinedOr(posted(asked)[0])).body).toMatchObject(
-          Option.some({ offset: expect.any(Number), dur: expect.any(Number) }),
-        );
-      }).pipe(Effect.scoped),
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const { page, asked } = yield* openLab([], { href: labAt(1) });
+          const bar = '.lab-cue[data-cue="rise"]';
+          yield* editable(page);
+          const box = yield* page.box(bar);
+          const y = box.y + box.height / 2;
+          const x = box.x + box.width / 2;
+          // The clock held: a slow machine's slide never outlasts the long press, which a held
+          // press would rightly open (a menu, not a drag).
+          yield* page.clock.hold;
+          // No Cancel at rest; held and slid, the strip offers it, and its tap lets the cue go.
+          yield* countIs(page, '[data-act="cancel-grip"]', 0);
+          yield* page.finger.down(x, y);
+          yield* page.finger.move(x + 40, y, 8);
+          yield* page.click('[data-act="cancel-grip"]');
+          yield* page.finger.up;
+          yield* runClock(page, 200);
+          expect(posted(asked)).toEqual([]);
+          yield* countIs(page, '[data-act="cancel-grip"]', 0);
+          expect(Math.round((yield* page.box(bar)).x)).toBe(Math.round(box.x));
+          // 10 px in is the body to a mouse (6 px edges) and the start to a finger (14 px): its
+          // drag writes the start, offset and dur together.
+          expect(box.width).toBeGreaterThan(14 * 3);
+          yield* page.finger.down(box.x + 10, y);
+          yield* page.finger.move(box.x + 40, y, 8);
+          yield* page.finger.up;
+          yield* postedReach(asked, 1);
+          expect(Option.getOrThrow(Option.fromUndefinedOr(posted(asked)[0])).body).toMatchObject(
+            Option.some({ offset: expect.any(Number), dur: expect.any(Number) }),
+          );
+        }).pipe(Effect.scoped),
+      ),
   );
 
   it.live(
@@ -721,32 +828,34 @@ describe('the inspector', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live(
+  test.serial(
     "on a phone, a cue that runs until a mark has its end as a field: a tap selects it, and an end typed writes its offset off the mark, keeping the until, as its edge's drag does",
     () =>
-      Effect.gen(function* () {
-        // 10 s in is scene three, its push running until {held}.
-        const { page, asked, errors } = yield* openLab([], { href: labAt(10), viewport: PHONE });
-        const bar = '.lab-cue[data-cue="push"]';
-        yield* page.waitFor(bar);
-        yield* textHas(page, '.lab-strip-head', 'scenes/three.ts');
-        const box = yield* page.box(bar);
-        yield* page.finger.down(box.x + box.width / 2, box.y + box.height / 2);
-        yield* page.finger.up;
-        const end = '.lab-edit-cue input[data-field="end"]';
-        yield* page.waitFor(`${end}:not([disabled])`);
-        yield* textHas(page, '.lab-edit-cue', '{held}');
-        const at = Number(yield* page.evaluate<string>(`document.querySelector('${end}').value`));
-        yield* page.fill(end, `${at + 0.5}`);
-        yield* page.pressIn(end, 'Enter');
-        yield* postedReach(asked, 1);
-        const write = Option.getOrThrow(Option.fromUndefinedOr(posted(asked)[0]));
-        expect(write.path).toBe('/scenes/three/cues/push');
-        // The end keeps following {held}: its offset off it, never a dur.
-        expect(write.body).toEqual(Option.some({ untilOffset: expect.closeTo(0.5, 2) }));
-        yield* textHas(page, '.lab-edit-cue', '{held} + 0.50 s');
-        expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
+      Effect.runPromise(
+        Effect.gen(function* () {
+          // 10 s in is scene three, its push running until {held}.
+          const { page, asked, errors } = yield* openLab([], { href: labAt(10), viewport: PHONE });
+          const bar = '.lab-cue[data-cue="push"]';
+          yield* page.waitFor(bar);
+          yield* textHas(page, '.lab-strip-head', 'scenes/three.ts');
+          const box = yield* page.box(bar);
+          yield* page.finger.down(box.x + box.width / 2, box.y + box.height / 2);
+          yield* page.finger.up;
+          const end = '.lab-edit-cue input[data-field="end"]';
+          yield* page.waitFor(`${end}:not([disabled])`);
+          yield* textHas(page, '.lab-edit-cue', '{held}');
+          const at = Number(yield* page.evaluate<string>(`document.querySelector('${end}').value`));
+          yield* page.fill(end, `${at + 0.5}`);
+          yield* page.pressIn(end, 'Enter');
+          yield* postedReach(asked, 1);
+          const write = Option.getOrThrow(Option.fromUndefinedOr(posted(asked)[0]));
+          expect(write.path).toBe('/scenes/three/cues/push');
+          // The end keeps following {held}: its offset off it, never a dur.
+          expect(write.body).toEqual(Option.some({ untilOffset: expect.closeTo(0.5, 2) }));
+          yield* textHas(page, '.lab-edit-cue', '{held} + 0.50 s');
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      ),
   );
 
   it.live(
@@ -804,9 +913,8 @@ describe('the inspector', () => {
       yield* evaluates(page, 'location.search', '?cue=fall');
       yield* page.press('Shift+Tab');
       yield* evaluates(page, 'location.search', '?cue=rise');
-      // The first edge on from the scene's start is rise's start (its bar's title says it, in timecode: to the frame).
+      // A cue walked to is shown at its start (its bar's title says it, in timecode: to the frame).
       const riseStart = `document.querySelector('.lab-cue[data-cue="rise"]').title.split(' · ')[1].split('–')[0].split(':').map(Number).reduce((s, n, i) => s + n * [3600, 60, 1, 1 / 30][i], 0)`;
-      yield* page.press('.');
       yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.02`);
       yield* page.press('.');
       yield* page.until(`${URL_T} > ${riseStart} + 0.1`);
@@ -843,16 +951,19 @@ describe('the inspector', () => {
         href: labAt(0.2),
       });
       yield* page.waitFor('.lab-finding');
-      // The inspector lists the scene shown's findings and the film's placeless one; the rest are counted.
+      // The inspector lists the scene shown's findings, then the film's placeless one apart, as
+      // the film's in its level's colour (SU-3); the rest are counted.
       const listed = "[...document.querySelectorAll('.lab-finding b')].map((b) => b.textContent)";
-      yield* evaluates(page, listed, ['whole', 'timed']);
+      yield* evaluates(page, listed, ['timed', 'whole']);
+      yield* textIs(page, '.lab-findings-group h3 .lab-count', '1');
+      yield* textIs(page, '.lab-findings-film[data-state="warning"]', 'Film · 1');
       yield* textIs(page, '.lab-findings-elsewhere', '1 in other scenes · F walks to them');
       yield* page.press('f');
       yield* page.until(`Math.abs(${URL_T} - 0.8) < 0.01`);
       // The finding about scene two is at its start; the one about the whole film is nowhere.
       yield* page.press('f');
       yield* evaluates(page, 'location.pathname', '/films/probe/lab/two');
-      yield* evaluates(page, listed, ['whole', 'scene']);
+      yield* evaluates(page, listed, ['scene', 'whole']);
       yield* page.press('Shift+F');
       yield* page.until(`Math.abs(${URL_T} - 0.8) < 0.01`);
     }).pipe(Effect.scoped),

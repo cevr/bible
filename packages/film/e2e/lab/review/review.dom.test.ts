@@ -12,7 +12,7 @@
 // phone's width folds the grid to one column without scrolling sideways.
 
 import { Effect, Match, Option, Schema } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import {
@@ -39,6 +39,8 @@ import {
   closeCommandMenu,
   menuEntry,
   openCommandMenu,
+  rightClick,
+  touch,
 } from '../../../src/lab/fixtures/gestures.ts';
 
 /** Long enough to open the page, walk to a set and play with it. */
@@ -191,6 +193,16 @@ describe('the review page', () => {
         yield* page.click(`a.rv-card[href="${FOLDER}"]`);
         yield* until(page, `location.pathname === '${FOLDER}'`);
         yield* textHas(page, '.sh-header [data-role="crumb"]', 'Roofs at dusk');
+        // The tab's title names the Folder first, then its part (SU-9).
+        yield* until(page, "document.title.startsWith('Roofs at dusk · ')");
+        // A phone's header names the Folder too (SU-10).
+        yield* page.resize(390, 844);
+        yield* evaluates(
+          page,
+          `document.querySelector('.sh-header [data-role="crumb"]').checkVisibility()`,
+          true,
+        );
+        yield* page.resize(1440, 900);
         yield* textsAre(page, '[data-review-blurb] li', [
           'Cold opening',
           'Message arrives',
@@ -199,9 +211,44 @@ describe('the review page', () => {
         yield* textIs(page, '[data-review-blurb] b', 'Judge:');
         yield* textHas(page, '[data-review-blurb]', '<img src=x onerror=bad()>');
         yield* countIs(page, '[data-review-blurb] img, [data-review-blurb] script', 0);
-        yield* textHas(page, 'a.rv-card', '3 versions');
+        // A stack of several says how many; of one, nothing; its versions' names are its
+        // long-press menu's, each opening the set on that version's sheet (UR2-6).
+        const roof = `a.rv-card[href="${SET}"]`;
+        yield* textHas(page, roof, '3 versions');
+        yield* countIs(page, `a.rv-card[href="${SKY}"] .rv-badge`, 0);
+        yield* evaluates(
+          page,
+          `document.querySelector('${roof}').innerText.includes('Warm')`,
+          false,
+        );
+        yield* rightClick(page, roof);
+        yield* textHas(
+          page,
+          '[data-role="context-menu"] [data-command="review.open-version-2"]',
+          'Open version 2 · Cold',
+        );
+        yield* countIs(
+          page,
+          '[data-role="context-menu"] [data-command="review.open-version-4"]',
+          0,
+        );
+        yield* page.click('[data-role="context-menu"] [data-command="review.open-version-2"]');
+        yield* until(page, "location.search === '?inspect=B'");
+        yield* waitFor(page, '[data-role="inspector"]');
+        yield* page.back;
         yield* textHas(page, '.rv-card', 'walk.mp4');
         yield* attributeIs(page, '.rv-tall track', 'src', '/api/review/files/out/art/walk.vtt');
+        // A loose video shows its name; its file is its menu's: Open, Copy link, Info (UR-17).
+        yield* textIs(page, '.rv-tall .rv-cap', 'walk.mp4');
+        yield* rightClick(page, '.rv-tall .rv-cap');
+        yield* waitFor(page, '[data-role="context-menu"] [data-command="review.file-open"]');
+        yield* textHas(
+          page,
+          '[data-role="context-menu"] [data-command="link.copy"]',
+          'Copy link to file out/art/walk.mp4',
+        );
+        yield* page.click('[data-role="context-menu"] [data-command="review.file-info"]');
+        yield* textHas(page, '[data-role="receipt"]', 'walk.mp4 · 4.0 KB · ');
         yield* textHas(page, '[data-review-download]', 'master #1.mp4');
         yield* attributeIs(
           page,
@@ -277,13 +324,13 @@ describe('the review page', () => {
   );
 
   it.live(
-    'shows the first against one other, the moments, and the notes, the view kept in the URL',
+    "shows the first against one other, the moments, and an old notes link as a version's Info, the view kept in the URL",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: SET });
         yield* waitFor(page, '.rv-transport');
         yield* page.click('.rv-card[data-id="C"] .rv-sound');
-        yield* page.click('.rv-views button[data-view="pair"]');
+        yield* page.click('.rv-views button[data-view="compare"]');
         yield* until(page, "location.search === '?view=pair&other=B'");
         const shown =
           "Array.from(document.querySelectorAll('.rv-card[data-id]')).map((c) => c.dataset.id).join()";
@@ -311,14 +358,28 @@ describe('the review page', () => {
         yield* until(page, `${frames} === '19,19,19'`);
         yield* until(page, "location.search === '?view=moments&m=4'");
         yield* page.click('.rv-card img');
-        yield* waitFor(page, '.rv-lightbox');
+        yield* textIs(page, '.rv-lightbox figcaption', 'Warm at 00:00:19:00');
         yield* page.press('Escape');
         yield* until(page, "document.querySelector('.rv-lightbox') === null");
+        // The keyboard opens it too: a still is a button, Enter and Space open its caption.
+        for (const key of ['Enter', ' ']) {
+          yield* page.focus('.rv-card[data-id="B"] .rv-zoom');
+          yield* page.press(key);
+          yield* textHas(page, '.rv-lightbox figcaption', 'at 00:00:19:00');
+          yield* page.press('Escape');
+          yield* until(page, "document.querySelector('.rv-lightbox') === null");
+        }
 
-        yield* page.click('.rv-views button[data-view="notes"]');
-        yield* textHas(page, '.rv-verdict', 'verdict B');
-        yield* waitFor(page, '.rv-note[data-id="A"] i');
-        yield* textHas(page, '.rv-note[data-id="A"]', 'Warm reads best.');
+        // The notes are each version's Info (UR-34): an old link to them opens All, the
+        // first version's sheet open on its lines and notes, and says so in the URL.
+        yield* page.goto(`${SET}?view=notes`);
+        yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
+        yield* until(page, "location.search === '?inspect=A'");
+        yield* textHas(page, '[data-role="inspector"] .rv-verdict', 'verdict A');
+        yield* waitFor(page, '[data-role="inspector"] i');
+        yield* textHas(page, '[data-role="inspector"]', 'Warm reads best.');
+        // The caps say a version's name, not its lines (UR-30).
+        yield* countIs(page, '.rv-card .rv-tag', 0);
 
         // A reload opens the view the URL keeps.
         yield* page.goto(`${SET}?view=moments&m=2`);
@@ -337,7 +398,7 @@ describe('the review page', () => {
         yield* page.press('ArrowRight');
         yield* page.press('ArrowRight');
         yield* until(page, "location.hash === '#t=4'");
-        yield* page.click('.rv-views button[data-view="pair"]');
+        yield* page.click('.rv-views button[data-view="compare"]');
         yield* until(page, "location.search === '?view=pair&other=B'");
         // The time moves on in the pair's entry; all's keeps 4.
         yield* page.press('ArrowRight');
@@ -352,6 +413,63 @@ describe('the review page', () => {
         yield* textHas(page, '.rv-time', '00:00:04:00');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "shows one timecode: a laptop's in the header, the row its length; a phone's in the row (SU-12)",
+    () =>
+      Effect.gen(function* () {
+        /** The timecodes the page shows, as read (a hidden one is not). */
+        const SHOWN = `[...document.querySelectorAll('.sh-tc, .rv-time')].filter((e) => e.getClientRects().length > 0).map((e) => e.innerText.replace(/\\s+/g, ' ').trim()).filter((t) => t !== '')`;
+        const { page, errors } = yield* openReview(routes, { href: `${SET}#t=4` });
+        yield* textHas(page, '.rv-time', '00:00:04:00');
+        yield* until(
+          page,
+          `${SHOWN}.length === 2 && ${SHOWN}[0] === '00:00:04:00' && ${SHOWN}[1].startsWith('/ ')`,
+        );
+        const phone = yield* openReview(routes, {
+          href: `${SET}#t=4`,
+          viewport: { width: 390, height: 844 },
+        });
+        yield* textHas(phone.page, '.rv-time', '00:00:04:00');
+        yield* phone.page.until(`${SHOWN}.join() === '00:00:04:00'`, {
+          now: SHOWN,
+          say: (shown) => `a phone shows the timecodes ${shown}`,
+        });
+        expect([...errors, ...phone.errors]).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    "a long-press on a version's picture steps the set on or back, one step or ten (SU-11)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, {
+          href: SET,
+          viewport: { width: 390, height: 844 },
+        });
+        yield* waitFor(page, '.rv-transport');
+        const MENU = '[data-role="context-menu"]';
+        /** A long press on the second version's picture, on the page's held clock. */
+        const held = Effect.gen(function* () {
+          yield* page.clock.hold;
+          yield* touch(page, '.rv-card[data-id="B"] video', 0);
+          yield* page.clock.runFor(700);
+          yield* waitFor(page, `${MENU} [data-command]`);
+          yield* page.finger.up;
+          yield* page.clock.runFor(500);
+        });
+        yield* held;
+        yield* waitFor(page, `${MENU} [data-command="review.step-previous"]`);
+        yield* page.click(`${MENU} [data-command="review.step-next"][data-step="coarse"]`);
+        // The menu closes, and runs its row, on the held clock.
+        yield* page.clock.runFor(500);
+        yield* textHas(page, '.rv-time', '00:00:20:00');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.runPromise),
     SLOW,
   );
 
@@ -373,7 +491,7 @@ describe('the review page', () => {
         // The time in the URL is the set's own: the set and its videos stay as they are.
         yield* evaluates(page, "document.querySelector('.rv-card video') === window.first", true);
         const at = 'location.pathname + location.search';
-        yield* page.click('.rv-views button[data-view="pair"]');
+        yield* page.click('.rv-views button[data-view="compare"]');
         yield* until(page, `${at} === '${SET}?view=pair&other=B'`);
         // Cycling the pair refines the view in its own entry.
         yield* page.click('button[data-other="C"]');
@@ -388,7 +506,7 @@ describe('the review page', () => {
         yield* waitFor(page, 'button[data-moment="0"][aria-pressed="true"]');
         yield* until(page, `${at} === '${SET}?view=moments'`);
         yield* page.back;
-        yield* waitFor(page, '.rv-views button[data-view="pair"][aria-pressed="true"]');
+        yield* waitFor(page, '.rv-views button[data-view="compare"][aria-pressed="true"]');
         yield* until(page, `${at} === '${SET}?view=pair&other=C'`);
         yield* page.back;
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
@@ -431,51 +549,58 @@ describe('the review page', () => {
   );
 
   it.live(
-    'a variant the record proves stale says why in every view; the rest say no state',
+    'a variant the record proves stale says Out of date in every view and why in its Info; the rest say no state',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: SET });
         const STALE = 'out of date: its sources changed since it was made';
-        /** The grid's one state word is C's, and says why it is stale. */
+        /** The grid's one state badge is C's (UR-29). */
         const onlyCStale = Effect.andThen(
-          textsAre(page, '.rv-grid [data-state]', [STALE]),
-          textsAre(page, '.rv-grid [data-id="C"] [data-state]', [STALE]),
+          textsAre(page, '.rv-grid [data-approval="stale"]', ['Out of date']),
+          textsAre(page, '.rv-grid [data-id="C"] [data-approval="stale"]', ['Out of date']),
         );
-        yield* waitFor(page, '.rv-card[data-id="C"] [data-state="stale"]');
+        yield* waitFor(page, '.rv-card[data-id="C"] [data-approval="stale"]');
         yield* onlyCStale;
         yield* page.click('.rv-views button[data-view="moments"]');
         yield* waitFor(page, '.rv-card[data-id="C"] img');
         yield* onlyCStale;
-        yield* page.click('.rv-views button[data-view="notes"]');
-        yield* waitFor(page, '.rv-note[data-id="C"]');
-        yield* onlyCStale;
+        // Why is C's Info.
+        yield* page.goto(`${SET}?inspect=C`);
+        yield* textsAre(page, '[data-role="inspector"] [data-state="stale"]', [STALE]);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
   );
 
   it.live(
-    'a set of one version offers no side by side, and a link asking for one opens All',
+    'a set of one version offers no Compare, and a link asking for one opens All',
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, {
           href: `${SKY}?view=pair&other=nope`,
         });
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
-        yield* countIs(page, '.rv-views button[data-view="pair"]', 0);
-        yield* countIs(page, '.rv-views button[data-view="wipe"]', 0);
-        yield* countIs(page, '.rv-views button[data-view="diff"]', 0);
+        yield* textsAre(page, '.rv-views button', ['All', 'Moments']);
+        yield* countIs(page, '.rv-layouts', 0);
         // The URL keeps no empty other.
         yield* until(page, `location.pathname + location.search === '${SKY}'`);
         // Nor does a wipe or a difference: neither has an other here.
         yield* page.goto(`${SKY}?view=diff&m=2`);
         yield* waitFor(page, '.rv-views button[data-view="all"][aria-pressed="true"]');
         yield* until(page, `location.pathname + location.search === '${SKY}'`);
-        // A set of several offers them, by their industry names.
+        // A set of several offers its modes, and in Compare its layouts by their industry
+        // names (UR-21): `v` steps the modes, `⇧V` the layouts.
         yield* page.goto(SET);
-        yield* textIs(page, '.rv-views button[data-view="pair"]', 'Side by side');
-        yield* textIs(page, '.rv-views button[data-view="wipe"]', 'Wipe');
-        yield* textIs(page, '.rv-views button[data-view="diff"]', 'Difference');
+        yield* textsAre(page, '.rv-views button', ['All', 'Compare', 'Moments']);
+        yield* countIs(page, '.rv-layouts', 0);
+        yield* page.press('v');
+        yield* waitFor(page, '.rv-views button[data-view="compare"][aria-pressed="true"]');
+        yield* textsAre(page, '.rv-layouts button', ['Side by side', 'Wipe', 'Difference']);
+        yield* waitFor(page, '.rv-layouts button[data-view="pair"][aria-pressed="true"]');
+        yield* page.press('Shift+V');
+        yield* until(page, "location.search === '?view=wipe&other=B'");
+        yield* page.press('v');
+        yield* waitFor(page, '.rv-views button[data-view="moments"][aria-pressed="true"]');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -487,7 +612,8 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: SET });
         yield* waitFor(page, '.rv-transport');
-        yield* page.click('.rv-views button[data-view="wipe"]');
+        yield* page.click('.rv-views button[data-view="compare"]');
+        yield* page.click('.rv-layouts button[data-view="wipe"]');
         yield* until(page, "location.search === '?view=wipe&other=B'");
         const stacked =
           "Array.from(document.querySelectorAll('.rv-wipe video')).map((v) => v.dataset.id).join()";
@@ -579,9 +705,10 @@ describe('the review page', () => {
           "document.querySelector('.rv-transport').innerText.includes('/ 00:00:00:15')",
         );
         yield* page.click('.rv-transport button');
+        // It plays to the end (the time the header shows on a laptop, the row only its length).
         yield* until(
           page,
-          "document.querySelector('.rv-transport').innerText.includes('00:00:00:15 /')",
+          "document.querySelector('.rv-transport .rv-time-at').textContent === '00:00:00:15'",
         );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -615,7 +742,8 @@ describe('the review page', () => {
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, { href: SET });
         yield* waitFor(page, '.rv-transport');
-        yield* page.click('.rv-views button[data-view="diff"]');
+        yield* page.click('.rv-views button[data-view="compare"]');
+        yield* page.click('.rv-layouts button[data-view="diff"]');
         yield* until(page, "location.search === '?view=diff&other=B'");
         yield* countIs(page, '.rv-transport', 0);
         const stills =
@@ -645,18 +773,25 @@ describe('the review page', () => {
   );
 
   it.live(
-    "at a phone's width, a version's out-of-date reason and lines show in full, and a proxy still being made is said, never the original streamed",
+    "at a phone's width, a version's caps fit, its out-of-date reason and lines show in full in its Info, and a proxy still being made is said, never the original streamed",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(routes, {
           href: SET,
           viewport: { width: 390, height: 844 },
         });
-        const tag = '.rv-card[data-id="C"] .rv-tag[data-state="stale"]';
-        yield* waitFor(page, tag);
+        // The caps fit, C's saying Out of date; why, and its lines, are its Info, in full.
+        yield* waitFor(page, '.rv-card[data-id="C"] [data-approval="stale"]');
         yield* evaluates(
           page,
-          `Array.from(document.querySelectorAll('.rv-card[data-id] .rv-tag')).every((t) => t.scrollWidth <= t.clientWidth)`,
+          `Array.from(document.querySelectorAll('.rv-card[data-id] .rv-cap')).every((t) => t.scrollWidth <= t.clientWidth)`,
+          true,
+        );
+        yield* page.goto(`${SET}?inspect=C`);
+        yield* waitFor(page, '[data-role="inspector"] .rv-tag[data-state="stale"]');
+        yield* evaluates(
+          page,
+          `Array.from(document.querySelectorAll('[data-role="inspector"] :is(.rv-tag, .rv-hint)')).every((t) => t.scrollWidth <= t.clientWidth)`,
           true,
         );
         // The phone plays proxies: the sky's is not made yet, so its card says so and streams nothing.

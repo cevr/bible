@@ -73,7 +73,7 @@ export const viewOf = (query: SetQuery, ids: ReadonlyArray<string>): ViewState =
     Match.when('wipe', () => against((id) => ViewState.Wipe({ other: id }))),
     Match.when('diff', () => against((id) => ViewState.Diff({ other: id, index: query.m }))),
     Match.when('moments', () => ViewState.Moments({ index: query.m })),
-    Match.when('notes', () => ViewState.Notes),
+    // All, and the old notes (`shownQuery` opens the first version's Info for it).
     Match.orElse(() => ViewState.All),
   );
 };
@@ -137,6 +137,25 @@ export const destinationsOf = (
 /** The time a URL keeps for a player at `t`: none at its `start`, else to the ms. */
 export const keptTime = (t: number, start: number): Option.Option<number> =>
   Option.liftPredicate(Math.round(t * 1000) / 1000, (ms) => ms !== start);
+
+/**
+ * The query a set's URL is corrected to once its view is shown: the view
+ * `state` (`queryOfView`), and for an old `?view=notes`, which the set no
+ * longer shows, the first version's inspector (`first`), whose Info holds
+ * what the notes showed, unless the link opens another.
+ */
+export const shownQuery = (
+  query: Place.Type<typeof Places.set>['query'],
+  state: ViewState,
+  first: string,
+): Place.Type<typeof Places.set>['query'] => ({
+  ...query,
+  ...queryOfView(state),
+  inspect: Option.getOrElse(
+    Option.liftPredicate(query.inspect, (named) => query.view !== 'notes' || named !== ''),
+    () => first,
+  ),
+});
 
 /** The query that keeps the view `state` shows (and nothing else of a view's). */
 export const queryOfView = (state: ViewState): SetQuery => ({

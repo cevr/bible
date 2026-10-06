@@ -30,6 +30,7 @@ import { timecode } from '../../../src/core/time.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
 import {
   attached,
+  attributeIs,
   evaluates,
   textHas,
   textIs,
@@ -223,7 +224,7 @@ describe('marking a frame', () => {
     'the pen draws ink',
     () =>
       Effect.gen(function* () {
-        const { page, asked } = yield* openLab(store(), { href: labAt(1) });
+        const { page, asked } = yield* openLab(store(), { href: labAt(1), mode: 'note' });
         yield* waitFor(page, '[data-act="pen"]');
         yield* click(page, '[data-act="pen"]');
         yield* waitFor(page, '[data-act="pen"][aria-pressed="true"]');
@@ -250,7 +251,9 @@ describe('marking a frame', () => {
         const at = yield* onFrame(page, 520, 300);
         yield* page.mouse.move(at.x, at.y);
         yield* page.mouse.down;
-        yield* waitFor(page, '.lab-compose:not([hidden])');
+        // Marking: the composer is open, the panel still in Edit until the mark is lifted.
+        yield* attached(page, '.lab-compose:not([hidden])');
+        yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
         yield* page.evaluate(
           `document.querySelector('.lab-notes-surface').dispatchEvent(new PointerEvent('pointercancel', { bubbles: true, pointerId: 1 }))`,
         );
@@ -378,10 +381,18 @@ describe('marking a frame', () => {
   );
 
   it.live(
-    'the Note frame button notes the whole frame, as `n` does, with no box',
+    'the Note frame button notes the whole frame, as `n` does, with no box; it and the pen are Note mode alone (UR2-8)',
     () =>
       Effect.gen(function* () {
         const { page, asked } = yield* openLab(store(), { href: labAt(1) });
+        // In Edit neither shows; `n` notes the frame in any mode, and the note shows Note.
+        yield* attached(page, '.lab-panel[data-staged="true"]');
+        yield* evaluates(
+          page,
+          `['pen', 'note-frame'].map((a) => document.querySelector('[data-act="' + a + '"]').checkVisibility())`,
+          [false, false],
+        );
+        yield* page.click('.lab-modes [data-mode-pick="note"]');
         yield* waitFor(page, '[data-act="note-frame"]');
         yield* textIs(page, '[data-act="note-frame"]', 'Note frame');
         yield* click(page, '[data-act="note-frame"]');
@@ -441,7 +452,8 @@ describe("a note's place", () => {
           mode: 'note',
         });
         yield* waitFor(page, '.lab-note-item[data-id="n1"]');
-        yield* textHas(page, '.lab-note-label', `two · ${timecode(shown)}`);
+        // Beside its scene's name, its time into the scene: one clock in one place.
+        yield* textHas(page, '.lab-note-label', `two · ${timecode(0.4)}`);
         yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
         yield* evaluates(page, `Math.round(${URL_T} * ${film.fps})`, Math.round(shown * film.fps));
         yield* attached(page, '.lab-overlay rect.lab-note');

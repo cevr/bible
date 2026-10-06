@@ -11,14 +11,44 @@
 import { For, type JSX, Show } from '@solidjs/web';
 import { Option } from 'effect';
 import { Selection } from '../../command/selection.ts';
-import type { SceneSpan } from '../../core/catalogue.ts';
+import type { ProjectScene, SceneSpan } from '../../core/catalogue.ts';
 import { timecode } from '../../core/time.ts';
 import { Target } from '../command/context-menu.tsx';
-import { type SceneMarks, chipsOf } from './marks.ts';
+import { type SceneMarks, bandState, chipsOf } from './marks.ts';
 
 /** Scene `i`'s hue, as every band, dot and rule of it is drawn: from the tokens' saturation and lightness. */
 export const sceneHue = (i: number): string =>
   `hsl(${(i * 47) % 360} var(--scene-sat) var(--scene-light))`;
+
+/**
+ * A film's state band, as Project's head and a Films card draw it: a
+ * segment a scene in film order, as wide as the scene is long (alike while
+ * lengths are unknown), in its most pressing mark's state colour, else its hue.
+ */
+export const StateBand = (props: {
+  readonly scenes: ReadonlyArray<ProjectScene>;
+  readonly marks: (scene: string) => SceneMarks;
+}) => (
+  <div class="pj-band" aria-hidden="true">
+    <For each={props.scenes} keyed={(s) => s.scene}>
+      {(scene, i) => (
+        <span
+          data-scene={scene().scene}
+          data-state={Option.getOrElse(bandState(props.marks(scene().scene)), () => 'none')}
+          style={{
+            'flex-grow': String(
+              Option.getOrElse(
+                Option.map(scene().span, (s) => s.dur),
+                () => 1,
+              ),
+            ),
+            '--hue': sceneHue(i()),
+          }}
+        />
+      )}
+    </For>
+  </div>
+);
 
 interface SceneCardProps {
   readonly film: string;
@@ -108,6 +138,31 @@ export const SceneCard = (props: SceneCardProps) => (
     </Show>
   </Target>
 );
+
+/**
+ * Why a scene's render and approval chips say what they say, as Scenes'
+ * sheet prints it under its card: a chip's `title` never shows on touch.
+ * Its findings chips' lines are `SceneFindings`'. The Project's sheet says
+ * the same in its Info.
+ */
+export const SceneState = (props: { readonly marks: SceneMarks }) => {
+  const said = () =>
+    chipsOf(props.marks).filter((c) => c.mark !== 'errors' && c.mark !== 'warnings');
+  return (
+    <Show when={said().length > 0}>
+      <section class="sc-section" data-section="state">
+        <h3>State</h3>
+        <For each={said()} keyed={(c) => c.mark}>
+          {(chip) => (
+            <p class="sc-finding" data-mark={chip().mark}>
+              {chip().why}
+            </p>
+          )}
+        </For>
+      </section>
+    </Show>
+  );
+};
 
 /**
  * A scene's findings, as its sheet shows them under its card (on Scenes and

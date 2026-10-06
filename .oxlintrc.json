@@ -681,14 +681,6 @@
       }
     },
     {
-      // The editor's touch cases are made serial by its owner's batch (p2-reduction):
-      // this entry goes when that lands.
-      "files": ["**/packages/film/e2e/lab/editor/editor.dom.test.ts"],
-      "rules": {
-        "film/touches-serial": "off"
-      }
-    },
-    {
       // A test that spawns a process declares its timeout (packages/film/lint/spawn-budget.ts).
       "files": ["**/packages/film/**/*.test.ts"],
       "rules": {

@@ -44,7 +44,7 @@ import {
   spawnComposer,
   unsaved,
 } from './composer.ts';
-import { NO_SCOPE, type Scope, draftOf, scopeText, whereText } from './draft.ts';
+import { NO_SCOPE, type Scope, draftOf, scopeText, whenText, whereText } from './draft.ts';
 import { useMotion } from '../motion/context.tsx';
 import { feedText } from './feed.ts';
 import { type ThreadWrite, useNotesFeed } from './list.tsx';
@@ -273,8 +273,7 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
   // The page's notes show each note's time, open one, and note the frame shown, while this lives.
   onCleanup(
     feed.lend({
-      timeOf,
-      fps: film.fps,
+      whenOf: (note) => whenText(film.placed, film.fps, note),
       select: actions.select,
       noteFrame: actions.noteFrame,
       composerOpen: () => composerOpen(composer()),

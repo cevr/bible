@@ -178,12 +178,12 @@ describe('the beat list', () => {
     beat('d', 'staging'),
   ];
 
-  test('counts each state', () => {
-    expect(beatCounts(beats)).toBe('1 recorded · 2 staging · 1 stale');
+  test("a badge names its state in the owner's words, and a stale one says why", () => {
+    expect(beats.map(beatBadge)).toEqual(['recorded', 'scratch', 'stale: text changed', 'scratch']);
   });
 
-  test('a stale badge says why', () => {
-    expect(beats.map(beatBadge)).toEqual(['recorded', 'staging', 'stale: text changed', 'staging']);
+  test("counts each state in the owner's words", () => {
+    expect(beatCounts(beats)).toBe('1 recorded · 2 scratch · 1 stale');
   });
 
   test('←/→ step to the neighbour, and stop at either end', () => {
