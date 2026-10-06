@@ -31,6 +31,7 @@ import {
   placesFreely,
   type SourceKnown,
   snapEdge,
+  stripWindow,
   wroteNote,
 } from './grip.ts';
 
@@ -72,6 +73,18 @@ describe('joined', () => {
         write({ dur: 1 }, { dur: { before: '0.6', after: '1', unit: 's' } }),
       ),
     ).toEqual(Option.some('cue rise dur 0.6 → 1 s'));
+  });
+});
+
+describe('stripWindow', () => {
+  test('on a phone, a long scene shows 8 s around the playhead, held inside the scene', () => {
+    expect(stripWindow(30, 10, true)).toEqual({ from: 6, span: 8 });
+    expect(stripWindow(30, 1, true)).toEqual({ from: 0, span: 8 });
+    expect(stripWindow(30, 29, true)).toEqual({ from: 22, span: 8 });
+  });
+  test('a scene of 8 s or less, or any scene on a laptop, shows whole', () => {
+    expect(stripWindow(6, 3, true)).toEqual({ from: 0, span: 6 });
+    expect(stripWindow(30, 10, false)).toEqual({ from: 0, span: 30 });
   });
 });
 

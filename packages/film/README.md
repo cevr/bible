@@ -1693,7 +1693,10 @@ otherwise (a line that does not decode, a crash, 30 s gone) is itself one
 error finding, `FreshProcessFailed`, in its words.
 
 **The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
-current scene zoomed, its words and marks, and one row per cue. Drag a cue's
+current scene zoomed, its words and marks, and one row per cue. On a phone a
+scene longer than 8 s shows the 8 s around the playhead, held inside the scene
+(`stripWindow`, `lab/editor/grip.ts`), so a cue is a finger wide; a scrub keeps
+the window it began in, and a cue's bar is clipped to it. Drag a cue's
 body to move its offset, its left edge to move its start (offset and dur),
 its right edge to move its end (dur): an edge is the bar's outer 6 px, 14 px
 under a finger (`edgeFor`, `lab/editor/grip.ts`). A finger has no

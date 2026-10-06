@@ -1,4 +1,5 @@
-// The cue strip: the scene under the playhead, zoomed, under the film's
+// The cue strip: the scene under the playhead, zoomed (on a phone, a long
+// scene's 8 s around the playhead: `stripWindow`, SU-4), under the film's
 // timeline: its narration's words and marks, a bar per cue, and the playhead.
 // A press on a bar grabs it (the editor's machine takes it from there); a
 // drag across a cue's lane beside its bar marks the in and out points, shown
@@ -27,25 +28,33 @@ import { useLabPage } from '../panel.tsx';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
-import { dragModeAt, edgeFor } from './grip.ts';
+import { type StripWindow, dragModeAt, edgeFor, stripWindow } from './grip.ts';
+import { PHONE, useMatches } from '../viewport.ts';
 import { useMotion } from '../motion/context.tsx';
 import type { LoopRange } from '../../player/main.ts';
 
 /** A press on a lane that moves less than this many screen pixels is a tap (a seek); more marks a range. */
 const DRAG_PX = 6;
 
-const pct = (p: Placed<SceneSpec>, t: number) => `${(t / p.dur) * 100}%`;
+/** Where scene second `t` sits across the strip showing `w`. */
+const pct = (w: StripWindow, t: number) => `${((t - w.from) / w.span) * 100}%`;
+
+/** How wide `d` seconds are on the strip showing `w`. */
+const len = (w: StripWindow, d: number) => `${(d / w.span) * 100}%`;
 
 /** The words and marks of the scene's narration, each word in the room its time gives it. */
-const Words = (props: { readonly placed: Placed<SceneSpec> }) => (
+const Words = (props: {
+  readonly placed: Placed<SceneSpec>;
+  readonly window: () => StripWindow;
+}) => (
   <div class="lab-strip-words">
     <For each={props.placed.voice.words}>
       {(w) => (
         <span
           class="lab-word-room"
           style={{
-            left: pct(props.placed, props.placed.speechStart + w.start),
-            width: pct(props.placed, Math.max(0, w.end - w.start)),
+            left: pct(props.window(), props.placed.speechStart + w.start),
+            width: len(props.window(), Math.max(0, w.end - w.start)),
           }}
         >
           <span class="lab-word">{w.text}</span>
@@ -56,7 +65,7 @@ const Words = (props: { readonly placed: Placed<SceneSpec> }) => (
       {([name, m]) => (
         <i
           class="lab-strip-mark"
-          style={{ left: pct(props.placed, props.placed.speechStart + m) }}
+          style={{ left: pct(props.window(), props.placed.speechStart + m) }}
           title={`{${name}}`}
         />
       )}
@@ -68,7 +77,9 @@ interface CueRowProps {
   readonly placed: Placed<SceneSpec>;
   readonly name: string;
   readonly cue: ResolvedCue;
-  /** The strip's rows, whose width is the scene's length. */
+  /** The seconds of the scene the strip shows. */
+  readonly window: () => StripWindow;
+  /** The strip's rows, whose width is the window's length. */
   readonly rows: () => Option.Option<HTMLElement>;
   /** A press on the lane beside the bar: a drag across it marks the in and out points. */
   readonly lane: (e: PointerEvent) => void;
@@ -99,30 +110,33 @@ const CueRow = (props: CueRowProps) => {
       cue: props.name,
       edge: dragModeAt(e.clientX - bar.left, bar.width, e.altKey, edgeFor(e.pointerType)),
       down: e,
-      perSec: width / props.placed.dur,
+      perSec: width / props.window().span,
     });
   };
   return (
     <div class="lab-strip-row" onPointerDown={props.lane}>
       <span class="lab-cue-label">{props.name}</span>
-      <Target
-        of={cueOf(scene(), props.name)}
-        class={[
-          'lab-cue',
-          {
-            selected: selectsCue(lab.selection(), scene(), props.name),
-            late: endsLate(props.cue, props.placed.dur),
-          },
-        ]}
-        data-cue={props.name}
-        data-scene={scene()}
-        style={{
-          left: pct(props.placed, props.cue.start),
-          width: pct(props.placed, props.cue.dur),
-        }}
-        title={`${props.name}: ${title()} · ${timecode(props.cue.start, meta.film.fps)}–${timecode(props.cue.end, meta.film.fps)} · ${props.cue.ease}`}
-        onPointerDown={press}
-      />
+      {/* The lane clips its bar to the window; the name stays beside it. */}
+      <div class="lab-cue-lane">
+        <Target
+          of={cueOf(scene(), props.name)}
+          class={[
+            'lab-cue',
+            {
+              selected: selectsCue(lab.selection(), scene(), props.name),
+              late: endsLate(props.cue, props.placed.dur),
+            },
+          ]}
+          data-cue={props.name}
+          data-scene={scene()}
+          style={{
+            left: pct(props.window(), props.cue.start),
+            width: len(props.window(), props.cue.dur),
+          }}
+          title={`${props.name}: ${title()} · ${timecode(props.cue.start, meta.film.fps)}–${timecode(props.cue.end, meta.film.fps)} · ${props.cue.ease}`}
+          onPointerDown={press}
+        />
+      </div>
     </div>
   );
 };
@@ -152,24 +166,39 @@ export const Strip = () => {
   const keys = hubKeys(meta.hub);
   /** The strip follows one press at a time, a scrub's or a lane's: a second finger's starts nothing. */
   const strip = new Surface('the strip');
+  const phone = useMatches(meta.host, PHONE);
+  // A scrub holds the window it began in: one following the playhead under it would run away.
+  const [held, setHeld] = createSignal(Option.none<StripWindow>());
   return (
     <Show when={placed()}>
       {(p) => {
+        /** The scene seconds the playhead is at, inside the scene. */
+        const sceneT = () => Math.max(0, Math.min(p().dur, lab.T() - p().start));
+        /** The seconds of the scene the strip shows now. */
+        const shown = () => Option.getOrElse(held(), () => stripWindow(p().dur, sceneT(), phone()));
+        /** The scene second a pointer at `x` across the rows `r` is over. */
+        const timeAt = (r: DOMRect, x: number) => {
+          const w = shown();
+          return Math.max(0, Math.min(p().dur, w.from + ((x - r.left) / r.width) * w.span));
+        };
         const scrub = (e: PointerEvent) => {
           // A right-click is the context menu's, never a scrub; a lane's press is the lane's.
           if (e.button !== 0 || e.defaultPrevented) return;
           const r = Option.getOrThrow(rows).getBoundingClientRect();
-          const at = (ev: PointerEvent) =>
-            meta.player.scrub(
-              p().start +
-                Math.max(0, Math.min(p().dur, ((ev.clientX - r.left) / r.width) * p().dur)),
-            );
+          const at = (ev: PointerEvent) => meta.player.scrub(p().start + timeAt(r, ev.clientX));
           // The playhead settles where the drag ends, lifted or ended by the browser.
           Effect.runForkWith(meta.host)(
             Pointer.use((pointer) =>
               pointer.press(e, strip, () => {
+                setHeld(Option.some(shown()));
                 at(e);
-                return Option.some({ move: at, end: () => meta.player.settle() });
+                return Option.some({
+                  move: at,
+                  end: () => {
+                    setHeld(Option.none());
+                    meta.player.settle();
+                  },
+                });
               }),
             ),
           );
@@ -183,13 +212,12 @@ export const Strip = () => {
           // opens, so no range starts under the open menu.
           e.preventDefault();
           const r = Option.getOrThrow(rows).getBoundingClientRect();
-          const timeAt = (ev: PointerEvent) =>
-            p().start + Math.max(0, Math.min(p().dur, ((ev.clientX - r.left) / r.width) * p().dur));
-          const from = timeAt(e);
+          const filmAt = (ev: PointerEvent) => p().start + timeAt(r, ev.clientX);
+          const from = filmAt(e);
           const far = (ev: PointerEvent) => Math.abs(ev.clientX - e.clientX) >= DRAG_PX;
           const spanTo = (ev: PointerEvent) => ({
-            from: Math.min(from, timeAt(ev)),
-            to: Math.max(from, timeAt(ev)),
+            from: Math.min(from, filmAt(ev)),
+            to: Math.max(from, filmAt(ev)),
           });
           Effect.runForkWith(meta.host)(
             Pointer.use((pointer) =>
@@ -210,14 +238,14 @@ export const Strip = () => {
             ),
           );
         };
-        // The in and out points over this scene: as a lane drag marks them, else as marked.
+        // The in and out points over this scene's window: as a lane drag marks them, else as marked.
         const band = () =>
           Option.filter(
             Option.map(
               Option.orElse(marking(), () => motionState.inOut()),
               (b) => ({
-                from: Math.max(0, b.from - p().start),
-                to: Math.min(p().dur, b.to - p().start),
+                from: Math.max(shown().from, b.from - p().start),
+                to: Math.min(shown().from + shown().span, b.to - p().start),
               }),
             ),
             (b) => b.to > b.from,
@@ -261,13 +289,16 @@ export const Strip = () => {
                   rows = Option.some(el);
                 }}
               >
-                <Words placed={p()} />
+                <Words placed={p()} window={shown} />
                 <Show when={Option.getOrUndefined(band())}>
                   {(b) => (
                     <div
                       class="lab-strip-range"
                       data-role="in-out"
-                      style={{ left: pct(p(), b().from), width: pct(p(), b().to - b().from) }}
+                      style={{
+                        left: pct(shown(), b().from),
+                        width: len(shown(), b().to - b().from),
+                      }}
                     />
                   )}
                 </Show>
@@ -277,17 +308,13 @@ export const Strip = () => {
                       placed={p()}
                       name={entry()[0]}
                       cue={entry()[1]}
+                      window={shown}
                       rows={() => rows}
                       lane={lane}
                     />
                   )}
                 </For>
-                <div
-                  class="lab-strip-playhead"
-                  style={{
-                    left: pct(p(), Math.max(0, Math.min(p().dur, lab.T() - p().start))),
-                  }}
-                />
+                <div class="lab-strip-playhead" style={{ left: pct(shown(), sceneT()) }} />
               </div>
             </div>
           </div>

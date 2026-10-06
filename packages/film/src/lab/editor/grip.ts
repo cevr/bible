@@ -59,6 +59,32 @@ export const edgeFor = (pointerType: string): number =>
     Match.orElse(() => EDGE_PX),
   );
 
+/** How many seconds of a scene the strip shows on a phone (SU-4). */
+const PHONE_WINDOW = 8;
+
+/** The seconds of its scene the strip shows: from `from`, `span` long. */
+export interface StripWindow {
+  readonly from: number;
+  readonly span: number;
+}
+
+/**
+ * The strip's window on a scene `dur` long with the playhead `at` (scene
+ * seconds): on a phone a longer scene shows 8 s around the playhead, held
+ * inside the scene, so its cues are a finger wide; else the whole scene.
+ */
+export const stripWindow = (dur: number, at: number, phone: boolean): StripWindow =>
+  Option.match(
+    Option.liftPredicate(dur, (d) => phone && d > PHONE_WINDOW),
+    {
+      onNone: () => ({ from: 0, span: dur }),
+      onSome: (d) => ({
+        from: Math.max(0, Math.min(d - PHONE_WINDOW, at - PHONE_WINDOW / 2)),
+        span: PHONE_WINDOW,
+      }),
+    },
+  );
+
 /**
  * What a press `x` pixels into a cue's bar `width` wide grabs, its edges
  * `edge` pixels wide. A bar under 3 edges has no room for two edges and a

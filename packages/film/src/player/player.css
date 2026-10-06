@@ -632,11 +632,12 @@ body.lab .stage {
   background: var(--surface-2);
   border-radius: var(--r-1);
 }
-/* The words stay at the top of the strip while its cues scroll under them. */
+/* The words stay at the top of the strip while its cues scroll under them; those outside its window are clipped. */
 .lab-strip-words {
   position: sticky;
   top: 0;
   z-index: 1;
+  overflow: hidden;
   height: 18px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--line);
@@ -703,6 +704,12 @@ body.lab .stage {
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: var(--lh-2);
+}
+/* A cue's lane: its bar, clipped to the strip's window (on a phone, 8 s of a long scene). */
+.lab-cue-lane {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 /* A cue's bar, its grips at either end (the edges a drag takes). */
 .lab-cue {
