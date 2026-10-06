@@ -291,9 +291,7 @@ export const Section = () => {
           actions.focused(Option.exists(Option.fromNullishOr(e.relatedTarget), within))
         }
       >
-        <header>
-          <strong>Studio</strong>
-        </header>
+        {/* No heading of its own: the mode tray's Record names the panel (UR-98). */}
         <Beats />
         <Prompter />
         <Mic />
