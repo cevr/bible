@@ -25,7 +25,6 @@ import {
   useFloatingTree,
 } from '../FloatingTree.tsx';
 import {
-  type DisabledIndices,
   getMaxListIndex,
   getMinListIndex,
   getNextListIndex,
@@ -120,7 +119,6 @@ export interface UseListNavigationProps {
   onNavigate?: ((activeIndex: number | null, event: Event | undefined) => void) | undefined;
   enabled?: boolean | undefined;
   openOnArrowKeyDown?: boolean | undefined;
-  disabledIndices?: DisabledIndices | undefined;
   loopFocus?: boolean | undefined;
   /** Whether the list is nested (upstream's submenu; here a context menu, as upstream marks it). */
   nested?: boolean | undefined;
@@ -367,9 +365,10 @@ export function useListNavigation(
     }
 
     const currentIndex = index;
-    const disabledIndices = props.disabledIndices;
-    const minIndex = getMinListIndex(listRef.current, disabledIndices);
-    const maxIndex = getMaxListIndex(listRef.current, disabledIndices);
+    // The keys reach a menu's disabled items (upstream: "includes disabled items during
+    // keyboard navigation"); the menu refuses to run them.
+    const minIndex = getMinListIndex(listRef.current, true);
+    const maxIndex = getMaxListIndex(listRef.current, true);
 
     if (event.key === 'Home') {
       stopEvent(event);
@@ -402,7 +401,7 @@ export function useListNavigation(
       const next = getNextListIndex(listRef.current, currentIndex, {
         decrement: !isMainOrientationToEndKey(event.key, currentOrientation, isRtl),
         loopFocus: untrack(loopFocus),
-        disabledIndices,
+        reachDisabled: true,
         minIndex,
         maxIndex,
       });
@@ -531,7 +530,7 @@ export function useListNavigation(
         if (isParentCrossOpenKey) {
           stopEvent(event);
           if (currentOpen) {
-            index = getMinListIndex(listRef.current, props.disabledIndices);
+            index = getMinListIndex(listRef.current, true);
             onNavigate(event);
           } else {
             openOnNavigationKeyDown(event);

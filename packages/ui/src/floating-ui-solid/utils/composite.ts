@@ -4,36 +4,32 @@
 // enabled index in a direction, stopping or wrapping at the ends, and whether
 // an item counts as disabled (hidden, `:disabled`, `aria-disabled`). Grid
 // navigation is not ported: no part here lays items out in a grid.
+//
+// `reachDisabled` keeps items marked disabled (`disabled`, `aria-disabled`)
+// reachable, as a menu's are; hidden and natively `:disabled` items are
+// skipped either way.
 import { getComputedStyle } from '@floating-ui/utils/dom';
-
-export type DisabledIndices = ReadonlyArray<number> | ((index: number) => boolean);
 
 export function isIndexOutOfListBounds(list: ReadonlyArray<HTMLElement | null>, index: number) {
   return index < 0 || index >= list.length;
 }
 
-export function getMinListIndex(
-  list: ReadonlyArray<HTMLElement | null>,
-  disabledIndices?: DisabledIndices | undefined,
-) {
-  return findNonDisabledListIndex(list, { disabledIndices });
+export function getMinListIndex(list: ReadonlyArray<HTMLElement | null>, reachDisabled = false) {
+  return findNonDisabledListIndex(list, { reachDisabled });
 }
 
-export function getMaxListIndex(
-  list: ReadonlyArray<HTMLElement | null>,
-  disabledIndices?: DisabledIndices | undefined,
-) {
+export function getMaxListIndex(list: ReadonlyArray<HTMLElement | null>, reachDisabled = false) {
   return findNonDisabledListIndex(list, {
     decrement: true,
     startingIndex: list.length,
-    disabledIndices,
+    reachDisabled,
   });
 }
 
 export interface ListStepOptions {
   decrement: boolean;
   loopFocus: boolean;
-  disabledIndices?: DisabledIndices | undefined;
+  reachDisabled?: boolean | undefined;
   minIndex: number;
   maxIndex: number;
 }
@@ -44,9 +40,9 @@ export function getNextListIndex(
   currentIndex: number,
   options: ListStepOptions,
 ): { index: number; wrapped: boolean } {
-  const { decrement, loopFocus, disabledIndices, minIndex, maxIndex } = options;
+  const { decrement, loopFocus, reachDisabled, minIndex, maxIndex } = options;
   const step = () =>
-    findNonDisabledListIndex(list, { startingIndex: currentIndex, decrement, disabledIndices });
+    findNonDisabledListIndex(list, { startingIndex: currentIndex, decrement, reachDisabled });
 
   let index: number;
   let wrapped = false;
@@ -68,18 +64,17 @@ export function findNonDisabledListIndex(
   options: {
     startingIndex?: number | undefined;
     decrement?: boolean | undefined;
-    disabledIndices?: DisabledIndices | undefined;
-    amount?: number | undefined;
+    reachDisabled?: boolean | undefined;
   } = {},
 ): number {
-  const { startingIndex = -1, decrement = false, disabledIndices, amount = 1 } = options;
+  const { startingIndex = -1, decrement = false, reachDisabled = false } = options;
   let index = startingIndex;
   do {
-    index += decrement ? -amount : amount;
+    index += decrement ? -1 : 1;
   } while (
     index >= 0 &&
     index <= list.length - 1 &&
-    isListIndexDisabled(list, index, disabledIndices)
+    isListIndexDisabled(list, index, reachDisabled)
   );
   return index;
 }
@@ -87,17 +82,8 @@ export function findNonDisabledListIndex(
 export function isListIndexDisabled(
   list: ReadonlyArray<HTMLElement | null>,
   index: number,
-  disabledIndices?: DisabledIndices,
+  reachDisabled = false,
 ) {
-  const isExplicitlyDisabled =
-    typeof disabledIndices === 'function'
-      ? disabledIndices(index)
-      : (disabledIndices?.includes(index) ?? false);
-
-  if (isExplicitlyDisabled) {
-    return true;
-  }
-
   const element = list[index];
   if (!element) {
     return false;
@@ -112,7 +98,7 @@ export function isListIndexDisabled(
   }
 
   return (
-    !disabledIndices &&
+    !reachDisabled &&
     (element.hasAttribute('disabled') || element.getAttribute('aria-disabled') === 'true')
   );
 }

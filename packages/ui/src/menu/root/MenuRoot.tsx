@@ -264,7 +264,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     get rtl() {
       return direction() === 'rtl';
     },
-    disabledIndices: [],
     onNavigate(nextActiveIndex, event) {
       store.setActiveIndex(nextActiveIndex, getHighlightReason(event), event);
     },

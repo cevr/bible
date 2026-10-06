@@ -95,8 +95,6 @@ export interface CompositeNavigationParameters {
   direction: TextDirection;
   loopFocus: boolean;
   enableHomeAndEndKeys: boolean;
-  /** Indices to skip as disabled; the DOM's disabled state is read when not given. */
-  disabledIndices?: ReadonlyArray<number> | undefined;
 }
 
 export interface CompositeNavigationResult {
@@ -113,14 +111,14 @@ export interface CompositeNavigationResult {
 export function getCompositeNavigationIndex(
   params: CompositeNavigationParameters,
 ): CompositeNavigationResult {
-  const { key, highlightedIndex, elements, orientation, loopFocus, disabledIndices } = params;
+  const { key, highlightedIndex, elements, orientation, loopFocus } = params;
   const isHomeOrEnd = key === HOME || key === END;
   if (!COMPOSITE_KEYS.has(key) || (!params.enableHomeAndEndKeys && isHomeOrEnd)) {
     return { index: highlightedIndex, handled: false };
   }
   const keys = getNavigationKeys(orientation, params.direction);
-  const minIndex = getMinListIndex(elements, disabledIndices);
-  const maxIndex = getMaxListIndex(elements, disabledIndices);
+  const minIndex = getMinListIndex(elements);
+  const maxIndex = getMaxListIndex(elements);
 
   const isForwardKey =
     (orientation !== 'vertical' && key === keys.horizontalForward) ||
@@ -145,7 +143,6 @@ export function getCompositeNavigationIndex(
       nextIndex = findNonDisabledListIndex(elements, {
         startingIndex: nextIndex,
         decrement: isBackwardKey,
-        disabledIndices,
       });
     }
   }
@@ -158,14 +155,11 @@ export function getCompositeNavigationIndex(
  * item when it can take focus, else the first item that can, else 0 (so an
  * all-disabled composite regains a tab stop as soon as an item is enabled).
  */
-export function getFallbackIndex(
-  elements: ItemList,
-  disabledIndices?: ReadonlyArray<number> | undefined,
-): number {
+export function getFallbackIndex(elements: ItemList): number {
   let fallbackIndex = -1;
   for (let index = 0; index < elements.length; index += 1) {
     const element = elements[index];
-    if (!element || isListIndexDisabled(elements, index, disabledIndices)) {
+    if (!element || isListIndexDisabled(elements, index)) {
       continue;
     }
     if (element.hasAttribute(ACTIVE_COMPOSITE_ITEM)) {
