@@ -9,11 +9,13 @@
 // One writer at a time: a change holds the manifest's lock, a file beside it
 // (`<file>.lock`) created only if there is none, for its read, its change and
 // its write; fibers of one process queue on a semaphore per file first. The
-// lock names its holder (pid, host, when taken, a token): a lock whose holder
+// lock names its holder (pid, host, when taken, a token no other taking in
+// its process has), so no two takings write the same lock: a lock whose holder
 // is gone (a pid on this host that no longer runs) was left by a crash, and
 // the next writer breaks it and says so. So is one this store gave back but
-// could not remove (a busy disk): it keeps that lock's token, and its next
-// change takes the lock as its own leftover. A running holder's lock is never
+// could not remove (a busy disk): it keeps that lock's path and the very text
+// it wrote there, and its next change breaks the lock at that path only while
+// it holds that text, as its own leftover. A running holder's lock is never
 // broken, however long it is held, nor one held on another host; a writer
 // that waits its whole wait for one fails as StoreLocked and logs who holds it.
 //
@@ -141,8 +143,9 @@ const LOCK_SPACING = Duration.millis(20);
 
 /**
  * Who holds a manifest's lock: its process, the host it runs on, when it
- * took it (epoch ms), and a token of its own. A lock from before the host was
- * written names none, and is judged as this host's.
+ * took it (epoch ms), and a token of its own (`<pid>-<n>`, the process's nth
+ * taking). A lock from before the host was written names none, and is judged
+ * as this host's.
  */
 const LockOwner = Schema.Struct({
   pid: Schema.Int,
@@ -161,6 +164,9 @@ const encodeOwner = Schema.encodeSync(LockOwnerJson);
  * left by a crash: a holder writes itself into the lock as it creates it.
  */
 const UNREAD_LOCK_STALE = Duration.seconds(30);
+
+/** The locks this process has taken, every store's: each taking's token is its count. */
+const takings = { count: 0 };
 
 /** The lock of the manifest at `file`. */
 export const lockFile = (file: string): string => `${file}.lock`;
@@ -307,8 +313,8 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           writers.set(file, made);
           return made;
         });
-      /** The tokens of locks this store gave back but could not remove: its own leftovers. */
-      const unremoved = new Set<string>();
+      /** Each lock this store gave back but could not remove, by path: the text it wrote there. */
+      const leftovers = new Map<string, string>();
 
       const writeFile = Effect.fn('ContentStore.writeFile')(function* (
         file: string,
@@ -349,7 +355,8 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           Option.filter(owner, (o) => holdsOn(o, processes.host)),
           { onNone: () => Effect.succeed(true), onSome: (o) => processes.alive(o.pid) },
         );
-        const leftover = Option.filter(owner, (o) => unremoved.has(o.token));
+        // This store's leftover: the lock at this path holding the very text it wrote there.
+        const leftover = Option.filter(held, (t) => leftovers.get(lock) === t);
         const verdict = Option.match(leftover, {
           onSome: () => Option.some('this store gave it back, and its removal failed'),
           onNone: () => lockVerdict(owner, now, processes.host, () => running, since),
@@ -367,7 +374,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           return;
         }
         yield* fs.remove(grave, { recursive: true }).pipe(Effect.ignore);
-        if (Option.isSome(leftover)) unremoved.delete(leftover.value.token);
+        if (Option.isSome(leftover)) leftovers.delete(lock);
         yield* Effect.logWarning(`store.lock.broken lock=${lock} reason="${verdict.value}"`);
       });
 
@@ -406,28 +413,28 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         );
 
       /**
-       * Give `lock` back, if it is still this writer's (a lock broken as stale is
-       * someone else's now). One whose removal fails is kept as this store's
-       * leftover, for its next change to take.
+       * Give `lock` back, if it still holds the very text this writer wrote (a
+       * lock broken as stale is someone else's now). One whose removal fails is
+       * kept as this store's leftover, its path and that text, for its next
+       * change to take.
        */
-      const give = (lock: string, owner: LockOwner) =>
-        Effect.gen(function* () {
-          const held = Option.flatMap(
-            yield* fs.readFileString(lock).pipe(Effect.option),
-            decodeOwner,
-          );
-          if (Option.exists(held, (o) => o.token === owner.token)) return yield* fs.remove(lock);
+      const give = (lock: string, owner: LockOwner) => {
+        const written = encodeOwner(owner);
+        return Effect.gen(function* () {
+          const held = yield* fs.readFileString(lock).pipe(Effect.option);
+          if (Option.contains(held, written)) return yield* fs.remove(lock);
           yield* Effect.logWarning(
             `store.unlock.lost lock=${lock} reason="another writer holds it now"`,
           );
         }).pipe(
           Effect.catchTag('PlatformError', (error) =>
             Effect.andThen(
-              Effect.sync(() => unremoved.add(owner.token)),
+              Effect.sync(() => void leftovers.set(lock, written)),
               Effect.logWarning(`store.unlock lock=${lock} reason=${error.message}`),
             ),
           ),
         );
+      };
 
       /** `change` holding `file`'s lock, in this process and across processes. */
       const locked = <A, E, R>(file: string, change: Effect.Effect<A, E, R>) =>
@@ -437,7 +444,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
             pid: process.pid,
             host: (yield* Processes).host,
             created: yield* Clock.currentTimeMillis,
-            token: `${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}`,
+            token: `${process.pid}-${(takings.count += 1)}`,
           };
           return yield* Effect.acquireUseRelease(
             fs

@@ -56,6 +56,43 @@ const storeOn = (files: Map<string, Uint8Array>) =>
     Context.get(ContentStore),
   );
 
+/**
+ * A store over `files` whose first give-back of `lock` fails to remove it (a
+ * busy disk, say); the process runs on.
+ */
+const flakyStoreOn = (files: Map<string, Uint8Array>, lock: string) =>
+  Effect.gen(function* () {
+    const memory = yield* Effect.map(
+      Layer.build(memoryFileSystem(files)),
+      Context.get(FileSystem.FileSystem),
+    );
+    let refusals = 1;
+    const flaky = FileSystem.FileSystem.of({
+      ...memory,
+      remove: (file, options) =>
+        Effect.suspend(() => {
+          if (file !== lock || refusals === 0) return memory.remove(file, options);
+          refusals -= 1;
+          return Effect.fail(
+            PlatformError.systemError({
+              _tag: 'Busy',
+              module: 'FileSystem',
+              method: 'remove',
+              pathOrDescriptor: file,
+            }),
+          );
+        }),
+    });
+    return yield* Effect.map(
+      Layer.build(
+        ContentStore.layer.pipe(
+          Layer.provide([Layer.succeed(FileSystem.FileSystem, flaky), Path.layer]),
+        ),
+      ),
+      Context.get(ContentStore),
+    );
+  });
+
 /** `effect` run while the test clock passes every wait a writer makes for another's lock. */
 const waited = <A, E>(effect: Effect.Effect<A, E>) =>
   Effect.gen(function* () {
@@ -198,36 +235,7 @@ describe('ContentStore', () => {
     Effect.gen(function* () {
       const files = new Map<string, Uint8Array>();
       const lock = lockFile(assets.file);
-      const memory = yield* Effect.map(
-        Layer.build(memoryFileSystem(files)),
-        Context.get(FileSystem.FileSystem),
-      );
-      // The first give-back's remove fails (a busy disk, say); the process runs on.
-      let refusals = 1;
-      const flaky = FileSystem.FileSystem.of({
-        ...memory,
-        remove: (file, options) =>
-          Effect.suspend(() => {
-            if (file !== lock || refusals === 0) return memory.remove(file, options);
-            refusals -= 1;
-            return Effect.fail(
-              PlatformError.systemError({
-                _tag: 'Busy',
-                module: 'FileSystem',
-                method: 'remove',
-                pathOrDescriptor: file,
-              }),
-            );
-          }),
-      });
-      const store = yield* Effect.map(
-        Layer.build(
-          ContentStore.layer.pipe(
-            Layer.provide([Layer.succeed(FileSystem.FileSystem, flaky), Path.layer]),
-          ),
-        ),
-        Context.get(ContentStore),
-      );
+      const store = yield* flakyStoreOn(files, lock);
       const add = (key: string) =>
         store.update(assets, (m) => ({
           assets: { ...m.assets, [key]: { hash: key, file: `${key}.flac` } },
@@ -237,6 +245,35 @@ describe('ContentStore', () => {
       yield* waited(add('b'));
       expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['a', 'b']);
       expect(files.has(lock)).toBe(false);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect('its leftover is that lock as it wrote it; its token elsewhere is not', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const lock = lockFile(assets.file);
+      const store = yield* flakyStoreOn(files, lock);
+      yield* store.update(assets, (m) => m);
+      const left = yield* Schema.decodeEffect(LockOwnerJson)(
+        new TextDecoder().decode(files.get(lock)),
+      );
+      // A live writer on another host whose token is the leftover's.
+      const live = yield* Schema.encodeEffect(LockOwnerJson)({
+        pid: 4242,
+        host: 'elsewhere',
+        created: 0,
+        token: left.token,
+      });
+      const other: Manifest<typeof Assets.Type> = { ...assets, file: '/films/test/other.json' };
+      files.set(lockFile(other.file), text(live));
+      const elsewhere = yield* waited(Effect.flip(store.update(other, (m) => m)));
+      expect(elsewhere._tag).toBe('StoreLocked');
+      expect(new TextDecoder().decode(files.get(lockFile(other.file)))).toBe(live);
+      // The leftover gone after all, and that writer took this lock since.
+      files.set(lock, text(live));
+      const here = yield* waited(Effect.flip(store.update(assets, (m) => m)));
+      expect(here._tag).toBe('StoreLocked');
+      expect(new TextDecoder().decode(files.get(lock))).toBe(live);
     }).pipe(Effect.scoped),
   );
 
