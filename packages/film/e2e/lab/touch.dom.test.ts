@@ -21,12 +21,14 @@
 // under it was measured with it closed.
 //
 // Both guards are keyed by place (`Places`, `core/api.ts`; G13): a place
-// added there is opened here or named exempt with its reason, or this fails
-// to typecheck, and each case checks its page stands at its place.
+// added there is opened here by one case at least or named exempt with its
+// reason, or this fails to typecheck, and each case checks its page stands at
+// its place.
 //
 // Every page also fits a phone (G8, `fitsPhone`): no sideways scroll, each
 // control inside the width, its chrome at most a quarter of the height; a
-// film's Scenes is asked with its tape bar's legend at its fullest. And every
+// film's Scenes is asked with its tape bar's legend at its fullest, and a
+// selected scene with its sheet open, the sheet a layer and no chrome. And every
 // target stands where the UI face puts it, within 1 px, while the face's file
 // has not landed (G10), on both devices: each page is served as the lab
 // renders it with that file held, measured, then measured again once it
@@ -117,10 +119,15 @@ interface Exempt {
 
 /**
  * What a guard opens at each place: a place added to `Places` is opened here
- * or named exempt with its reason, or this fails to typecheck; and each case
- * checks its page is at the place it is keyed by (`isAt`).
+ * by one case at least or named exempt with its reason, or this fails to
+ * typecheck (an empty list too); and each case checks its page is at the
+ * place it is keyed by (`isAt`).
  */
-type ByPlace<A> = Readonly<Record<PlaceName, ReadonlyArray<A> | Exempt>>;
+type ByPlace<A> = Readonly<Record<PlaceName, readonly [A, ...ReadonlyArray<A>] | Exempt>>;
+
+// The type's own probe: a place given an empty list fails to typecheck.
+// @ts-expect-error: an empty list neither opens a place nor names it exempt
+void ([] satisfies ByPlace<State>[PlaceName]);
 
 /** Each case of `cases` with the place it is keyed by; an exempt place has none. */
 const byPlace = <A>(cases: ByPlace<A>): ReadonlyArray<readonly [PlaceName, A]> =>
@@ -553,7 +560,8 @@ describe("the Lab's transport on a phone (DL-10)", () => {
 });
 
 describe('every page fits a phone, 390 × 844 (G8)', () => {
-  const PAGES: ByPlace<readonly [string, State['open']]> = {
+  /** A page: its name, how it opens, and the layer it opens, which is no chrome. */
+  const PAGES: ByPlace<readonly [name: string, open: State['open'], layer?: string]> = {
     home: [['Films', review(pageHref.home(), '.rv-main a[href]')]],
     choices: [['Choices', review(CHOICES, ...CHOICES_READY)]],
     project: [['Project', review(PROJECT, ...PROJECT_READY)]],
@@ -568,10 +576,14 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
         player(pageHref.scenes(PROBE), '.sc-legend-item[data-mark="film"]', WORK_ROUTES),
       ],
     ],
-    scene: {
-      exempt:
-        "a selected scene opens its sheet, a layer over the tape as an inspector is, never the page's chrome: the tape under it fits as Scenes, and the sheet's targets are measured above",
-    },
+    scene: [
+      [
+        // Its sheet is a layer over the tape, as an inspector is: shut to go back, so no chrome.
+        "Scenes, a scene selected: its sheet's width and controls the page's, the sheet no chrome",
+        player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
+        '[data-role="scene"]',
+      ],
+    ],
     lab: LAB_MOVES,
     labScene: [
       ['Lab', lab('edit')],
@@ -579,14 +591,14 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
     ],
     play: [['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')]],
   };
-  for (const [place, [name, open]] of byPlace(PAGES)) {
+  for (const [place, [name, open, layer]] of byPlace(PAGES)) {
     it.live(
       `${name}: no sideways scroll, every control inside the width, chrome at most a quarter of the height`,
       () =>
         Effect.gen(function* () {
           const page = yield* open(PHONE.viewport);
           yield* isAt(page, place);
-          yield* fitsPhone(page);
+          yield* fitsPhone(page, layer);
         }).pipe(Effect.scoped),
       SLOW,
     );
