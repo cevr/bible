@@ -53,8 +53,6 @@ export type MenuHighlightEventDetails = BaseUIGenericEventDetails<
 >;
 
 export interface MenuRootProps {
-  /** @default false */
-  defaultOpen?: boolean | undefined;
   /** @default true */
   loopFocus?: boolean | undefined;
   /**
@@ -117,7 +115,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
   const store = createMenuStore({
     parent,
     openProp: () => props.open,
-    defaultOpen: untrack(() => props.defaultOpen ?? false),
     disabled: () => props.disabled ?? false,
     modal: () => props.modal,
     openMethod,

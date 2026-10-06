@@ -29,8 +29,6 @@ export interface DrawerRootState {}
 
 export interface DrawerRootProps {
   open?: boolean | undefined;
-  /** @default false */
-  defaultOpen?: boolean | undefined;
   /**
    * Whether the open drawer is modal.
    * - `true`: focus is trapped, page scroll is locked, and outside pointer interaction is blocked.
@@ -60,7 +58,6 @@ export function DrawerRoot(props: DrawerRootProps): JSX.Element {
   return (
     <DialogRoot
       open={props.open}
-      defaultOpen={props.defaultOpen}
       modal={props.modal}
       disablePointerDismissal={props.disablePointerDismissal}
       onOpenChange={props.onOpenChange}

@@ -32,7 +32,6 @@ export type DialogModal = boolean | 'trap-focus';
 
 export interface DialogStoreOptions {
   openProp: () => boolean | undefined;
-  defaultOpen: boolean;
   modal: Accessor<DialogModal>;
   disablePointerDismissal: Accessor<boolean>;
   /** Whether the dialog is nested in another dialog. */
@@ -71,7 +70,6 @@ export interface DialogStore extends PopupStore {
 export function createDialogStore(options: DialogStoreOptions): DialogStore {
   const popup = createPopupStore({
     openProp: options.openProp,
-    defaultOpen: options.defaultOpen,
     floatingId: options.floatingId,
     nested: options.floatingNested,
     popupIsFloatingElement: true,

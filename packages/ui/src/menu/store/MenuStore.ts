@@ -40,7 +40,6 @@ export type MenuInstantType = 'dismiss' | 'click' | undefined;
 export interface MenuStoreOptions {
   parent: MenuParent;
   openProp: () => boolean | undefined;
-  defaultOpen: boolean;
   disabled: () => boolean;
   modal: () => boolean | undefined;
   openMethod: Accessor<InteractionType | null>;
@@ -98,7 +97,6 @@ export interface MenuStore extends PopupStore {
 export function createMenuStore(options: MenuStoreOptions): MenuStore {
   const popup = createPopupStore({
     openProp: options.openProp,
-    defaultOpen: options.defaultOpen,
     floatingId: options.floatingId,
     nested: options.floatingParentNodeId != null,
     onOpenChange: (open, details) => options.onOpenChange(open, details),

@@ -33,8 +33,6 @@ export interface DialogRootState {}
 
 export interface DialogRootProps {
   open?: boolean | undefined;
-  /** @default false */
-  defaultOpen?: boolean | undefined;
   /**
    * Whether the open dialog is modal.
    * - `true`: focus is trapped, page scroll is locked, and outside pointer interaction is blocked.
@@ -74,7 +72,6 @@ export function DialogRoot(props: DialogRootProps): JSX.Element {
 
   const store = createDialogStore({
     openProp: () => props.open,
-    defaultOpen: untrack(() => props.defaultOpen ?? false),
     modal,
     disablePointerDismissal,
     nested: parent != null,

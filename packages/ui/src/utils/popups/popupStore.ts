@@ -39,7 +39,6 @@ type Ref<T> = { current: T };
 export interface PopupStoreOptions {
   /** The owner's `open` prop; `undefined` leaves the popup in charge. */
   openProp: () => boolean | undefined;
-  defaultOpen: boolean;
   /** The popup's id when its element sets none. */
   floatingId: string;
   /** Whether the popup is nested in another floating element. */
@@ -87,7 +86,7 @@ export interface PopupStore {
 }
 
 export function createPopupStore(options: PopupStoreOptions): PopupStore {
-  const [ownOpen, setOwnOpen] = createSignal(options.defaultOpen, { ownedWrite: true });
+  const [ownOpen, setOwnOpen] = createSignal(false, { ownedWrite: true });
   const open = () => options.openProp() ?? ownOpen();
   const [activeTriggerId, setActiveTriggerId] = createSignal<string | null>(null, {
     ownedWrite: true,
@@ -138,7 +137,7 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
   const ownsOpenPopup = (triggerId: string | undefined) =>
     triggerId !== undefined && open() && activeTriggerId() === triggerId;
 
-  // A popup opened with no trigger (its `open` prop, `defaultOpen`) claims its only trigger.
+  // A popup opened with no trigger (its `open` prop) claims its only trigger.
   createEffect(
     () => [open(), triggerCount(), activeTriggerId()] as const,
     ([isOpen, count, activeId]) => {
