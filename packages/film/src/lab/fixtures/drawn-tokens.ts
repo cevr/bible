@@ -25,7 +25,7 @@ import { Schema } from 'effect';
  * hairline, centres a mark on its line, or sums two tokens in a `calc`,
  * and is no step of the spacing scale.
  */
-export const GEOMETRY = {
+const GEOMETRY = {
   '1px':
     "a hairline: the seam between stills, a band's scenes, a strip's frames; the playhead centred on it",
   '3.5px': "half a tape mark's 7 px: the mark centred on its time",
