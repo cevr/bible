@@ -39,7 +39,9 @@ a.rv-card:hover { background: var(--surface-2); }
 /* A version's picture is its card's to press: a long-press opens the card's menu (its steps,
    SU-11), never the browser's own over a video, which takes the touch. */
 .rv-card video:not([controls]) { pointer-events: none; }
-.rv-zoom { cursor: zoom-in; }
+/* A still that opens the lightbox: a bare button around its picture. */
+.rv-zoom { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; cursor: zoom-in; }
+.rv-zoom:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* The pair wiped (PA-8): both videos stacked full width, the other right of the divider. */
 .rv-wipe { position: relative; background: var(--surface-0); overflow: hidden; touch-action: pan-y; }
 .rv-wipe video, .rv-wipe canvas { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }

@@ -350,6 +350,14 @@ describe('the review page', () => {
         yield* textIs(page, '.rv-lightbox figcaption', 'Warm at 00:00:19:00');
         yield* page.press('Escape');
         yield* until(page, "document.querySelector('.rv-lightbox') === null");
+        // The keyboard opens it too: a still is a button, Enter and Space open its caption.
+        for (const key of ['Enter', ' ']) {
+          yield* page.focus('.rv-card[data-id="B"] .rv-zoom');
+          yield* page.press(key);
+          yield* textHas(page, '.rv-lightbox figcaption', 'at 00:00:19:00');
+          yield* page.press('Escape');
+          yield* until(page, "document.querySelector('.rv-lightbox') === null");
+        }
 
         // The notes are each version's Info (UR-34): an old link to them opens All, the
         // first version's sheet open on its lines and notes, and says so in the URL.

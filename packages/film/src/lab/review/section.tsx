@@ -50,7 +50,7 @@ import { newestAsked } from './asked.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
 import type { ThingVerb } from './things.ts';
-import { Go, SetProvider, useReview, useSet } from './context.tsx';
+import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
 import {
   agoText,
   approvalText,
@@ -304,6 +304,24 @@ const Markdown = (props: { readonly file: string }) => {
   );
 };
 
+/**
+ * A still that opens in the lightbox with its caption (`shown`): a button, so
+ * a tap, a click, Enter and Space all open it, and its name says what opens.
+ */
+const Zoom = (props: { readonly still: string; readonly alt: string; readonly shown: Shown }) => {
+  const { actions } = useReview();
+  return (
+    <button
+      type="button"
+      class="rv-zoom"
+      aria-label={`Open ${props.shown.caption}`}
+      onClick={() => actions.show(Option.some(props.shown))}
+    >
+      <img class="rv-media" loading="lazy" src={props.still} alt={props.alt} />
+    </button>
+  );
+};
+
 /** A video in no set: its poster, its captions, and a link to the file itself. */
 const LooseVideo = (props: {
   readonly video: ReviewVideo;
@@ -375,7 +393,7 @@ const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoi
 
 /** A folder: its sets, then whatever is in none of them. */
 const FolderBody = (props: { readonly folder: ReviewFolder }) => {
-  const { actions, meta } = useReview();
+  const { meta } = useReview();
   const now = meta.now();
   const markdown = props.folder.docs.filter(isMarkdown);
   const other = props.folder.docs.filter((d) => !isMarkdown(d) && !d.name.endsWith('.vtt'));
@@ -402,20 +420,13 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
             {(image) => (
               <div class="rv-card">
                 {/* Its name and age are the lightbox's caption (UR-18). */}
-                <img
-                  class="rv-media rv-zoom"
-                  loading="lazy"
-                  src={reviewFileUrl(image.ref)}
+                <Zoom
+                  still={reviewFileUrl(image.ref)}
                   alt={image.name}
-                  title={`${image.name} · ${agoText(image.mtime, now)}`}
-                  onClick={() =>
-                    actions.show(
-                      Option.some({
-                        src: reviewFileUrl(image.ref),
-                        caption: `${image.name} · ${agoText(image.mtime, now)}`,
-                      }),
-                    )
-                  }
+                  shown={{
+                    src: reviewFileUrl(image.ref),
+                    caption: `${image.name} · ${agoText(image.mtime, now)}`,
+                  }}
                 />
               </div>
             )}
@@ -1232,7 +1243,6 @@ const WithMoments = (props: {
 };
 
 const MomentsView = (props: { readonly index: number }) => {
-  const { actions } = useReview();
   const { folder, set } = useSet();
   return (
     <WithMoments index={props.index}>
@@ -1247,18 +1257,13 @@ const MomentsView = (props: { readonly index: number }) => {
                   class="rv-card"
                   data-id={variant.id}
                 >
-                  <img
-                    class="rv-media rv-zoom"
-                    src={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
+                  <Zoom
+                    still={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
                     alt={`${variant.label} at ${timecode(at())}`}
-                    onClick={() =>
-                      actions.show(
-                        Option.some({
-                          src: reviewFrameUrl(variant.video.ref, Option.some(at()), LIGHTBOX_W),
-                          caption: `${variant.label} at ${timecode(at())}`,
-                        }),
-                      )
-                    }
+                    shown={{
+                      src: reviewFrameUrl(variant.video.ref, Option.some(at()), LIGHTBOX_W),
+                      caption: `${variant.label} at ${timecode(at())}`,
+                    }}
                   />
                   <StillCap variant={variant} />
                 </Target>

@@ -99,7 +99,7 @@ interface ReviewStateValue {
 }
 
 /** An image the lightbox shows: its source, and the caption under it (what its card no longer says, UR-18). */
-interface Shown {
+export interface Shown {
   readonly src: string;
   readonly caption: string;
 }
