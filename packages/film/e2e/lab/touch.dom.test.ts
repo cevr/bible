@@ -712,10 +712,21 @@ const servedHeld =
       return page;
     });
 
+/**
+ * The Lab's inspected scene's source read, landed: a knob's field says it
+ * can be written. Until it lands each knob's row carries a "cannot edit"
+ * line, so a source landing while the face is held moves every row under it
+ * for a reason that is no font's (the Motion fields under full-E2E load).
+ */
+const SOURCED = '.lab-knob [data-field="x"]:not([title^="cannot edit"])';
+
 for (const device of DEVICES) {
   describe(`the UI face's fallback on ${device.name} (G10)`, () => {
     const PAGES = [
-      ['Lab', servedHeld('lab', [], pageHref.lab(PROBE), '.lab-panel[data-staged="true"]')],
+      [
+        'Lab',
+        servedHeld('lab', [], pageHref.lab(PROBE), '.lab-panel[data-staged="true"]', SOURCED),
+      ],
       ['Play', servedHeld('player', [], pageHref.play(PROBE), '.bar [data-act="play"]')],
       ['Scenes', servedHeld('player', [], pageHref.scenes(PROBE), STILL)],
       ['Project', servedHeld('review', studioRoutes, PROJECT, ...PROJECT_READY)],
