@@ -11,7 +11,9 @@
 // its write; fibers of one process queue on a semaphore per file first. The
 // lock names its holder (pid, host, when taken, a token): a lock whose holder
 // is gone (a pid on this host that no longer runs) was left by a crash, and
-// the next writer breaks it and says so. A running holder's lock is never
+// the next writer breaks it and says so. So is one this store gave back but
+// could not remove (a busy disk): it keeps that lock's token, and its next
+// change takes the lock as its own leftover. A running holder's lock is never
 // broken, however long it is held, nor one held on another host; a writer
 // that waits its whole wait for one fails as StoreLocked and logs who holds it.
 //
@@ -305,6 +307,8 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           writers.set(file, made);
           return made;
         });
+      /** The tokens of locks this store gave back but could not remove: its own leftovers. */
+      const unremoved = new Set<string>();
 
       const writeFile = Effect.fn('ContentStore.writeFile')(function* (
         file: string,
@@ -345,7 +349,11 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           Option.filter(owner, (o) => holdsOn(o, processes.host)),
           { onNone: () => Effect.succeed(true), onSome: (o) => processes.alive(o.pid) },
         );
-        const verdict = lockVerdict(owner, now, processes.host, () => running, since);
+        const leftover = Option.filter(owner, (o) => unremoved.has(o.token));
+        const verdict = Option.match(leftover, {
+          onSome: () => Option.some('this store gave it back, and its removal failed'),
+          onNone: () => lockVerdict(owner, now, processes.host, () => running, since),
+        });
         if (Option.isNone(verdict)) return;
         const grave = `${lock}.stale-${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}`;
         const moved = yield* fs.rename(lock, grave).pipe(Effect.option);
@@ -359,6 +367,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           return;
         }
         yield* fs.remove(grave, { recursive: true }).pipe(Effect.ignore);
+        if (Option.isSome(leftover)) unremoved.delete(leftover.value.token);
         yield* Effect.logWarning(`store.lock.broken lock=${lock} reason="${verdict.value}"`);
       });
 
@@ -396,7 +405,11 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           ),
         );
 
-      /** Give `lock` back, if it is still this writer's (a lock broken as stale is someone else's now). */
+      /**
+       * Give `lock` back, if it is still this writer's (a lock broken as stale is
+       * someone else's now). One whose removal fails is kept as this store's
+       * leftover, for its next change to take.
+       */
       const give = (lock: string, owner: LockOwner) =>
         Effect.gen(function* () {
           const held = Option.flatMap(
@@ -409,7 +422,10 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           );
         }).pipe(
           Effect.catchTag('PlatformError', (error) =>
-            Effect.logWarning(`store.unlock lock=${lock} reason=${error.message}`),
+            Effect.andThen(
+              Effect.sync(() => unremoved.add(owner.token)),
+              Effect.logWarning(`store.unlock lock=${lock} reason=${error.message}`),
+            ),
           ),
         );
 

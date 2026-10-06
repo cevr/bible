@@ -16,6 +16,7 @@ import {
   Path,
   Schema,
 } from 'effect';
+import * as PlatformError from 'effect/PlatformError';
 import { TestClock } from 'effect/testing';
 import { type SoundManifest, SoundManifestJson } from '../core/schema.ts';
 import {
@@ -192,6 +193,52 @@ describe('ContentStore', () => {
       expect(new TextDecoder().decode(files.get(lock))).toBe(held);
     }).pipe(Effect.scoped);
   });
+
+  it.effect('a lock this writer failed to give back is its own: its next change takes it', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const lock = lockFile(assets.file);
+      const memory = yield* Effect.map(
+        Layer.build(memoryFileSystem(files)),
+        Context.get(FileSystem.FileSystem),
+      );
+      // The first give-back's remove fails (a busy disk, say); the process runs on.
+      let refusals = 1;
+      const flaky = FileSystem.FileSystem.of({
+        ...memory,
+        remove: (file, options) =>
+          Effect.suspend(() => {
+            if (file !== lock || refusals === 0) return memory.remove(file, options);
+            refusals -= 1;
+            return Effect.fail(
+              PlatformError.systemError({
+                _tag: 'Busy',
+                module: 'FileSystem',
+                method: 'remove',
+                pathOrDescriptor: file,
+              }),
+            );
+          }),
+      });
+      const store = yield* Effect.map(
+        Layer.build(
+          ContentStore.layer.pipe(
+            Layer.provide([Layer.succeed(FileSystem.FileSystem, flaky), Path.layer]),
+          ),
+        ),
+        Context.get(ContentStore),
+      );
+      const add = (key: string) =>
+        store.update(assets, (m) => ({
+          assets: { ...m.assets, [key]: { hash: key, file: `${key}.flac` } },
+        }));
+      yield* add('a');
+      expect(files.has(lock)).toBe(true);
+      yield* waited(add('b'));
+      expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['a', 'b']);
+      expect(files.has(lock)).toBe(false);
+    }).pipe(Effect.scoped),
+  );
 
   it.effect("a dead holder's lock is recovered; a holder on another host is never judged", () =>
     Effect.gen(function* () {
