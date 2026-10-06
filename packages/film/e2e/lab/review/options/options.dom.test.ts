@@ -351,6 +351,8 @@ const at = (point: string, id: string) => `[data-point="${point}"] [data-variant
 /** The fake film's level and its take, as Go to and the kinds strip go to them. */
 const LEVEL = 'level:const:PAPER';
 const TAKE = 'take:paper.page';
+/** A level whose value the film computes: its slider and field take no input. */
+const WIND = 'level:effect:wind';
 
 /** Whether the URL's card in focus is `point` (`''`: none). */
 const pointIs = (point: string) =>
@@ -567,6 +569,73 @@ describe("a film's choices", () => {
         // The next audition is the gone-to point's, not the one focused before.
         yield* page.press('Alt+ArrowRight');
         yield* until(page, `new URLSearchParams(location.search).get('heard') === '${TAKE}'`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'Go to the point the link already names, hidden by Show only, is a step of its own: Back is the filtered view again',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), {
+          href: `${FILM}?point=${encodeURIComponent(TAKE)}&only=stale`,
+        });
+        yield* waitFor(page, at('score', 'piano'));
+        yield* countIs(page, `[id="point-${TAKE}"]`, 0);
+        yield* openCommandMenu(page, 'paper.page');
+        yield* click(page, menuEntry(`go.choice.${TAKE}`));
+        yield* until(page, "new URLSearchParams(location.search).get('only') === null");
+        yield* until(page, focusIn(TAKE));
+        // Only the filter changed: still its own step, so Back finds the filtered view.
+        yield* page.back;
+        yield* until(page, "new URLSearchParams(location.search).get('only') === 'stale'");
+        yield* until(page, pointIs(TAKE));
+        yield* countIs(page, `[id="point-${TAKE}"]`, 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'Back to a card gone from puts the keyboard back in it, so the next audition is its own (Score → Sounds → Back)',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
+        yield* page.resize(390, 600);
+        yield* click(page, '.rv-kinds [data-kind="score"]');
+        yield* until(page, focusIn('score'));
+        yield* click(page, '.rv-kinds [data-kind="take"]');
+        yield* until(page, focusIn(TAKE));
+        yield* page.back;
+        yield* until(page, pointIs('score'));
+        yield* until(page, focusIn('score'));
+        yield* page.press('Alt+ArrowRight');
+        yield* until(page, "new URLSearchParams(location.search).get('heard') === 'score'");
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "Go to a level whose value is computed puts the keyboard on its card: its slider can't take it",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const computed = point(WIND, 'level', OPEN_AT, [], {
+          knob: { value: -12, min: -40, max: 0, step: 0.5, unit: 'dB', fixed: 'computed' },
+        });
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/films\/toy\/choices$/, () => json(choices(toy, [computed]))),
+            ...fakeFilm(toy),
+          ],
+          { href: FILM },
+        );
+        yield* waitFor(page, `[id="point-${WIND}"] input[type="range"][disabled]`);
+        yield* openCommandMenu(page, 'wind');
+        yield* click(page, menuEntry(`go.choice.${WIND}`));
+        yield* until(page, focusIn(WIND));
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

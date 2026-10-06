@@ -702,31 +702,34 @@ const knobField = (
 });
 
 /** Open the card of `point` where it sits (a fold it is in opens), and bring it into view. */
-export const revealPoint = (point: string) =>
+const revealPoint = (point: string) =>
   Option.map(Option.fromNullishOr(document.getElementById(`point-${point}`)), (card) => {
     Option.map(Option.fromNullishOr(card.closest('details')), (d) => {
       d.open = true;
     });
     card.scrollIntoView({ block: 'center' });
+    return card;
   });
 
-/** A card's first control: where the keyboard lands when the card is gone to. */
-const FIRST_CONTROL = '.rv-body :is(button, input, select, a[href])';
+/**
+ * A card's first control that takes the keyboard: where it lands when the
+ * card is gone to. A disabled one (a computed level's slider and field) is
+ * passed over.
+ */
+const FIRST_CONTROL = '.rv-body :is(button, input, select, a[href]):not(:disabled)';
 
 /**
- * Reveal the card of `point` and put the keyboard on its first control, so
- * what the keys select next (an audition, a pick) is this point's and not
- * the one focused before.
+ * Reveal the card of `point` and put the keyboard on its first control that
+ * takes it, else on the card itself, so what the keys select next (an
+ * audition, a pick) is this point's and not the one focused before.
  */
-export const focusPoint = (point: string) => {
-  revealPoint(point);
-  Option.map(
-    Option.flatMap(Option.fromNullishOr(document.getElementById(`point-${point}`)), (card) =>
+export const focusPoint = (point: string) =>
+  Option.map(revealPoint(point), (card) =>
+    Option.getOrElse(
       Option.fromNullishOr(card.querySelector<HTMLElement>(FIRST_CONTROL)),
-    ),
-    (control) => control.focus({ preventScroll: true }),
+      () => card,
+    ).focus({ preventScroll: true }),
   );
-};
 
 /** Where a choice's says go: the film's choices, under its point. */
 const choiceSayer = (point: () => ChoicePoint): Sayer => ({
@@ -753,6 +756,8 @@ export const ChoiceCard = (props: { readonly point: ChoicePoint }) => {
       of={Selection.cases.Point.make({ film, point: props.point.id })}
       class="rv-card rv-option"
       id={`point-${props.point.id}`}
+      // Out of the tab order, but where Go to puts the keyboard when no control takes it.
+      tabindex="-1"
       data-point={props.point.id}
       data-kind={props.point.kind}
     >

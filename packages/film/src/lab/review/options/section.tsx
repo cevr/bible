@@ -14,6 +14,7 @@
 import { For, type JSX, Show } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, flush, onCleanup } from 'solid-js';
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
 import { Array as Arr, Duration, Effect, Fiber, Option } from 'effect';
@@ -38,7 +39,7 @@ import { pressed, sizeText, videoSource } from '../format.ts';
 import { useInspectorPlace } from '../inspector.tsx';
 import { ProxyPending, Transport } from '../section.tsx';
 import { ChoiceAct } from './api.ts';
-import { ChoiceCard, ChoiceSheets, HearButton, focusPoint, revealPoint } from './choice.tsx';
+import { ChoiceCard, ChoiceSheets, HearButton, focusPoint } from './choice.tsx';
 import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
 import { REVIEW_REDO, REVIEW_UNDO } from './receipt.ts';
 
@@ -369,19 +370,28 @@ const FilmBody = () => {
       Option.map(variantKeys(film, s), (keys) => ({ ...v, query: { ...v.query, ...keys } })),
     cleared: (v) => ({ ...v, query: { ...v.query, inspect: '' } }),
   });
-  // The card the URL's `?point=` names is brought into view, as on the project:
-  // a link's first render (Open on Choices), and each Back or Forward to another.
+  // As the route is replayed (the entry the page opens on: a link, Open on Choices, a reload;
+  // then each Back and Forward), the card its `?point=` names is brought into view with the
+  // keyboard in it, so the keys' next audition is that card's. A later push or replace is the
+  // page's own move (a Go to, a tap, an audition), which leaves the keyboard where it put it.
   const at = useAtomValue(() => choicesPlace);
-  createEffect(
-    () =>
+  const entry = useAtomValue(() => UrlAtom.entry);
+  // The entry the page opens on is the first on Choices: a move here from another page lands
+  // after the page mounts.
+  let opened = false;
+  createEffect(entry, (e) => {
+    const here = Place.decode(Places.choices, e.href);
+    const replayed = Option.isSome(here) && (!opened || e.navigation === 'traverse');
+    if (Option.isSome(here)) opened = true;
+    if (!replayed) return;
+    Option.map(
       Option.filter(
-        Option.map(at(), (v) => v.query.point),
+        Option.map(here, (v) => v.query.point),
         (point) => point !== '',
       ),
-    (point) => {
-      Option.map(point, revealPoint);
-    },
-  );
+      focusPoint,
+    );
+  });
   // Going to a point (⌘K's Go to, a kind's tab) is one step Back walks: its card in focus
   // (`?point=`, its sheet closed, a Show only that hides it cleared), in view, and the
   // keyboard on it, so the keys' next audition is its own.
