@@ -15,6 +15,7 @@
     "film/no-point-free-log": "error",
     "film/no-read-once": "error",
     "film/spawn-budget": "error",
+    "film/two-fingers-serial": "error",
     "film/host-events-through-adapter": "error",
     "film/keys-through-keymap": "error",
     "film/keys-named-as-bound": "error"

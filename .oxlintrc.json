@@ -673,6 +673,22 @@
       }
     },
     {
+      // A browser test that puts a second finger down runs alone, as test.serial
+      // (packages/film/lint/two-fingers-serial.ts).
+      "files": ["**/packages/film/e2e/**/*.test.ts"],
+      "rules": {
+        "film/two-fingers-serial": "error"
+      }
+    },
+    {
+      // The editor's two-finger case is made serial by its owner's batch (p2-reduction):
+      // this entry goes when that lands.
+      "files": ["**/packages/film/e2e/lab/editor/editor.dom.test.ts"],
+      "rules": {
+        "film/two-fingers-serial": "off"
+      }
+    },
+    {
       // A test that spawns a process declares its timeout (packages/film/lint/spawn-budget.ts).
       "files": ["**/packages/film/**/*.test.ts"],
       "rules": {

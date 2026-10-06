@@ -2670,6 +2670,10 @@ whose kept answer only a wait reads (a baseline the page keeps).
 its timeout in milliseconds as its last argument: a cold start's time is the
 machine's, and bun's default 5 s fails a loaded one.
 A spawn inside a service the test provides is not seen.
+`film/two-fingers-serial` (`lint/two-fingers-serial.ts`) holds the browser
+tests (`e2e/`): a second finger (`page.finger.second`) is read only inside a
+`test.serial(…)` body, since while two fingers are down on one tab Chrome
+drops the touches a file's other cases send their own tabs at the same time.
 `film/no-history-comment` (`lint/no-history-comment.ts`) holds every comment
 in `packages/film` and `apps/animations`: a comment says what the code does
 today and why, and how it got here lives in the ledger and `git log`. It
