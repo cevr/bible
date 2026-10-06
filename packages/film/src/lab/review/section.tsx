@@ -322,23 +322,20 @@ const Zoom = (props: { readonly still: string; readonly alt: string; readonly sh
   );
 };
 
-/** A video in no set: its poster, its captions, and a link to the file itself. */
+/**
+ * A video in no set: its poster, its captions and its name. Its file (Open
+ * the file, Copy link, Info: its size, age and proxy) is its long-press
+ * menu's (UR-17).
+ */
 const LooseVideo = (props: {
   readonly video: ReviewVideo;
   readonly docs: ReadonlyArray<ReviewFile>;
 }) => {
-  const { state, meta } = useReview();
-  const now = meta.now();
+  const { state } = useReview();
   const captions = captionsFor(props.video, props.docs);
-  const ready = () =>
-    Match.value(props.video.phone).pipe(
-      Match.when('ready', () => ' · proxy ready'),
-      Match.when('pending', () => ' · proxy coming'),
-      Match.orElse(() => ''),
-    );
   const source = createMemo(() => videoSource(props.video, state.quality()));
   return (
-    <div class="rv-card rv-tall">
+    <Target of={Selection.cases.File.make({ ref: props.video.ref })} class="rv-card rv-tall">
       <Show when={Option.getOrUndefined(source())} fallback={<ProxyPending video={props.video} />}>
         {(src) => (
           <video
@@ -356,15 +353,8 @@ const LooseVideo = (props: {
       </Show>
       <div class="rv-cap">
         <span class="rv-name">{props.video.name}</span>
-        <span class="rv-tag">
-          {sizeText(props.video.size)} · {agoText(props.video.mtime, now)}
-          {ready()}
-        </span>
-        <a class="rv-hint" href={reviewFileUrl(props.video.ref)} target="_blank" rel="noreferrer">
-          file
-        </a>
       </div>
-    </div>
+    </Target>
   );
 };
 

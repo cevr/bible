@@ -40,7 +40,7 @@ import {
   hostLayer,
   onTraverse,
 } from '../../browser/host.ts';
-import { type Command, type CommandId, quietly, said } from '../../command/command.ts';
+import { type Command, type CommandId, quiet, quietly, said } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type Context, selected } from '../../command/context.ts';
@@ -51,9 +51,9 @@ import { served } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
-import type { Quality } from './format.ts';
+import { type Quality, fileInfoText } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
-import { Places, legacyPlace, pageHref } from '../../core/api.ts';
+import { Places, legacyPlace, pageHref, reviewFileUrl } from '../../core/api.ts';
 import { onChoicesTab } from '../../core/point.ts';
 import {
   type SyncActor,
@@ -339,6 +339,7 @@ export const Root = (
       props.hub.commands.register(
         ...openCommands(value.actions.go, place),
         ...versionCommands(() => AsyncResult.value(index()), address.go),
+        ...fileCommands(() => AsyncResult.value(index()), value.meta.now),
         ...pageCommands(value),
       ),
     );
@@ -459,6 +460,53 @@ const versionCommands = (
       }),
     };
   });
+
+/**
+ * A loose video's file, from its long-press menu and ⌘K while it is
+ * selected (UR-17): Open the file in a tab of its own, and Info, saying its
+ * size, its age and its proxy, which the card no longer prints at rest. Copy
+ * link copies the file's own link (`citeOf`).
+ */
+const fileCommands = (
+  index: Accessor<Option.Option<ReviewIndex>>,
+  now: () => number,
+): ReadonlyArray<Command> => {
+  const video = (ctx: Context) =>
+    Option.flatMap(selected(ctx, 'File'), (file) =>
+      Option.flatMap(index(), (ix) =>
+        Option.fromUndefinedOr(ix.folders.flatMap((f) => f.videos).find((v) => v.ref === file.ref)),
+      ),
+    );
+  const about = {
+    group: 'Open',
+    about: ['File'],
+    when: (ctx) => Option.isSome(video(ctx)),
+  } as const satisfies Pick<Command, 'group' | 'about' | 'when'>;
+  return [
+    {
+      id: 'review.file-open',
+      label: 'Open the file',
+      touch: 'long-press a video, then Open the file',
+      ...about,
+      run: quietly((ctx) =>
+        Option.map(video(ctx), (v) => window.open(reviewFileUrl(v.ref), '_blank', 'noreferrer')),
+      ),
+    },
+    {
+      id: 'review.file-info',
+      label: 'Info',
+      touch: 'long-press a video, then Info',
+      ...about,
+      run: (ctx) =>
+        Effect.succeed(
+          Option.match(video(ctx), {
+            onNone: () => quiet,
+            onSome: (v) => said(fileInfoText(v, now())),
+          }),
+        ),
+    },
+  ];
+};
 
 /** What the copy-played command does next, by the copy played now. */
 const OTHER_QUALITY: Readonly<Record<Quality, Quality>> = { phone: 'full', full: 'phone' };

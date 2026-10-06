@@ -342,7 +342,7 @@ const STATES: ReadonlyArray<State> = [
   },
   {
     name: 'a Folder, with its set and loose videos',
-    open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]'),
+    open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name'),
     disclose: AT_REST,
     budget: most(24, 22),
   },
@@ -587,7 +587,7 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
     ['Choices', review(CHOICES, ...CHOICES_READY)],
     ['Project', review(PROJECT, ...PROJECT_READY)],
     ['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')],
-    ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]')],
+    ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name')],
     ['Scenes', player(pageHref.scenes(PROBE), STILL)],
     [
       "Scenes, its legend full (out of date, not rendered, approved, findings, warnings, the film's)",

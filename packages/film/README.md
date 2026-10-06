@@ -2257,7 +2257,9 @@ opens it and Back closes it.
 Refresh (`review.refresh`) and the copy played (`review.quality`: Play the
 proxies, Play the originals) are the page's commands, in ⌘K and the page's
 long-press menu; a proxy still being made still offers its original in
-place. On a film's choices and its project, Show only… (`review.only-stale`,
+place. A Folder's loose video shows its picture and name; its file is its
+long-press menu's (`review.file-open` Open the file, Copy link to the file,
+`review.file-info` Info: its size, age and proxy; UR-17). On a film's choices and its project, Show only… (`review.only-stale`,
 `review.only-unapproved`, `review.only-comments`, and `review.only-all` to
 show every point again; AA-14) keeps the points in one state: out of date (a
 stale variant), awaiting approval (its picked variant, or any while none is

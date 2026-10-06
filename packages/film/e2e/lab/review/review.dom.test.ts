@@ -238,6 +238,17 @@ describe('the review page', () => {
         yield* page.back;
         yield* textHas(page, '.rv-card', 'walk.mp4');
         yield* attributeIs(page, '.rv-tall track', 'src', '/api/review/files/out/art/walk.vtt');
+        // A loose video shows its name; its file is its menu's: Open, Copy link, Info (UR-17).
+        yield* textIs(page, '.rv-tall .rv-cap', 'walk.mp4');
+        yield* rightClick(page, '.rv-tall .rv-cap');
+        yield* waitFor(page, '[data-role="context-menu"] [data-command="review.file-open"]');
+        yield* textHas(
+          page,
+          '[data-role="context-menu"] [data-command="link.copy"]',
+          'Copy link to file out/art/walk.mp4',
+        );
+        yield* page.click('[data-role="context-menu"] [data-command="review.file-info"]');
+        yield* textHas(page, '[data-role="receipt"]', 'walk.mp4 · 4.0 KB · ');
         yield* textHas(page, '[data-review-download]', 'master #1.mp4');
         yield* attributeIs(
           page,

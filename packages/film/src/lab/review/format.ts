@@ -79,6 +79,19 @@ export const agoText = (mtime: number, now: number): string => {
   return `${Math.round(seconds / 86_400)} d ago`;
 };
 
+/** What a loose video's Info says of its file at `now`: `walk.mp4 · 36 MB · 2 d ago · proxy ready`. */
+export const fileInfoText = (video: ReviewVideo, now: number): string =>
+  [
+    video.name,
+    sizeText(video.size),
+    agoText(video.mtime, now),
+    ...Match.value(video.phone).pipe(
+      Match.when('ready', () => ['proxy ready']),
+      Match.when('pending', () => ['proxy coming']),
+      Match.orElse(() => []),
+    ),
+  ].join(' · ');
+
 /** How wide a video's poster still is: the frame a card shows before it plays. */
 export const POSTER_W = 960;
 
