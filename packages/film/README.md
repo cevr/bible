@@ -1481,7 +1481,9 @@ module. The browser E2E tests (`e2e/lab/**/*.dom.test.ts`, and
 `e2e/player/` for the play page and the Scenes) open the real
 page over a probe film in headless Chrome with the lab API faked
 (`lab/fixtures/harness.ts`), or served (`openServed`: the page's server
-entry rendered, then hydrated with no mismatch), and the page's clock the test's
+entry rendered, failing any render that writes a signal or a store, then
+hydrated with no mismatch; `e2e/lab/fixtures/served.test.ts` proves a
+writing render fails), and the page's clock the test's
 (`lab/fixtures/clock.ts`): a count-in, a retry or a loop's playback is moved
 on with `page.clock`, not waited out, and `canvas.toBlob` encodes at once
 (Chromium's waits for idle time a busy page may not leave, up to 5 s). The
@@ -1526,7 +1528,9 @@ target 24 px or more whose `--hit` circle reaches no neighbour's area
 (`e2e/lab/fixtures/touch-targets.dom.test.ts` holds the measure to synthetic
 shapes). Every page also fits a phone (G8, `fitsPhone`,
 `lab/fixtures/phone-fit.ts`): no sideways scroll, each control inside the
-width, its chrome at most a quarter of the height. The tab answers the page's requests itself (the
+width, its chrome at most a quarter of the height
+(`e2e/lab/fixtures/phone-fit.dom.test.ts` holds the measure to synthetic
+pages). The tab answers the page's requests itself (the
 protocol's `Fetch`), types and clicks with native input events, and waits in
 the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
 worker (`--max-concurrency=3` in the E2E script: at most eight workers, one

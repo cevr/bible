@@ -26,7 +26,7 @@ const CHROME_MAX = 0.25;
  * and its rows. It scrolls the page to measure its chrome, and back to where
  * it was.
  */
-const PHONE_FIT = `(() => {
+export const PHONE_FIT = `(() => {
   const root = document.documentElement;
   const clipping = (el) => {
     const s = getComputedStyle(el);
@@ -102,16 +102,18 @@ const PHONE_FIT = `(() => {
 })()`;
 
 /**
- * Wait until the page fits its window (a phone's: 390 × 844): no sideways
- * scroll, every control inside the width, chrome at most `CHROME_MAX`. A
+ * A script answering whether the page fits its window: no sideways scroll,
+ * every control inside the width, chrome at most `CHROME_MAX`.
+ */
+export const FITS = `(() => { const f = ${PHONE_FIT}; return f.sideways === 0 && f.outside.length === 0 && f.chrome <= ${CHROME_MAX}; })()`;
+
+/**
+ * Wait until the page fits its window (a phone's: 390 × 844), by `FITS`. A
  * timeout fails with what the page answers then (`PHONE_FIT`), so the bar or
  * the control over is named.
  */
 export const fitsPhone = (page: Tab) =>
-  page.until(
-    `(() => { const f = ${PHONE_FIT}; return f.sideways === 0 && f.outside.length === 0 && f.chrome <= ${CHROME_MAX}; })()`,
-    {
-      now: PHONE_FIT,
-      say: (found) => `the page does not fit the window (chrome at most ${CHROME_MAX}): ${found}`,
-    },
-  );
+  page.until(FITS, {
+    now: PHONE_FIT,
+    say: (found) => `the page does not fit the window (chrome at most ${CHROME_MAX}): ${found}`,
+  });
