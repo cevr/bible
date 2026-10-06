@@ -1077,8 +1077,9 @@ its end, `untilOffset`, a point's y or a number; Shift ten), and their
 write's receipt says what moved, before → after; S turns the viewer's Snap
 off or on (`film-studio.snap`; Shift flips it for one move, `placesFreely`),
 the strip's Snap toggle its touch path; `.` and `,` go to the next or
-previous cue edge on the strip, Tab and ⇧Tab select the next or previous cue
-(a focused button or link keeps Tab for focus). The inspector's footer
+previous cue edge on the strip, Tab and ⇧Tab select the next or previous cue,
+the playhead put at its start first as ⌘K's Go to does, so the strip (8 s of a
+long scene on a phone) shows it (a focused button or link keeps Tab for focus). The inspector's footer
 (`Hint`) names the keys of the commands about the selection and its
 gestures, only while the pointer or focus is in the inspector, never on a
 touch screen (`pointer: coarse`), where the long-press menu is the hint.

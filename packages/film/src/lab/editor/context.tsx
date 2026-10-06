@@ -407,24 +407,27 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     return [...new Set(times)].toSorted((a, b) => a - b);
   };
 
+  /** Film seconds at which the strip scene's cue `name` starts, as the stage holds it now. */
+  const startOf = (name: string): number => {
+    const scene = untrack(stripScene);
+    return (
+      sceneStart(scene) +
+      Option.match(Option.fromUndefinedOr(stage.cuesOf(scene).get(name)), {
+        onNone: () => 0,
+        onSome: (cue) => cue.start,
+      })
+    );
+  };
+  const select = (s: LabSelection) => labActions.select(Option.some(s));
+  const seek = (T: number) => meta.player.seek(T);
+
   // Each cue of the strip's scene is a place ⌘K goes to by its name; the
   // list follows the strip's scene and its cues, not each frame an edit shows.
   const stripNames = createMemo(stripCues, {
     equals: (a, b) => a.scene === b.scene && a.names.join('\n') === b.names.join('\n'),
   });
   registerWhile(meta.hub, () =>
-    goToCommands(
-      cueDestinations(
-        stripNames(),
-        (name) =>
-          sceneStart(stripNames().scene) +
-          Option.match(Option.fromUndefinedOr(stage.cuesOf(stripNames().scene).get(name)), {
-            onNone: () => 0,
-            onSome: (cue) => cue.start,
-          }),
-        { select: (s) => labActions.select(Option.some(s)), seek: (T) => meta.player.seek(T) },
-      ),
-    ),
+    goToCommands(cueDestinations(stripNames(), { select, seek, startOf })),
   );
 
   // The editor's verbs on the page's hub: Undo (⌘Z) and Redo (⇧⌘Z) while the
@@ -450,12 +453,13 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
         holding,
         cancel: () => send(EditEvent.Cancel),
         selected: lab.selection,
-        select: (s) => labActions.select(Option.some(s)),
+        select,
         fieldsOf: fieldsAt,
         stripCues,
+        startOf,
         edges,
         T: lab.T,
-        seek: (T) => meta.player.seek(T),
+        seek,
         findingTimes: () =>
           findingsOf(edit(), report()).flatMap((f) => Option.toArray(findingTime(f, film.placed))),
         snap,

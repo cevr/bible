@@ -60,6 +60,8 @@ interface EditorVerbs {
   readonly fieldsOf: (selection: LabSelection) => ReadonlyArray<Inspected>;
   /** The strip's scene and its cues, by when they start. */
   readonly stripCues: () => { readonly scene: string; readonly names: ReadonlyArray<string> };
+  /** Film seconds at which the strip scene's cue `name` starts. */
+  readonly startOf: (name: string) => number;
   /** The film times at which the strip scene's cues start or end, in order. */
   readonly edges: () => ReadonlyArray<number>;
   /** The film time shown. */
@@ -280,8 +282,12 @@ const findingCommand = (
 /** How far along the strip's cues a walk moves. */
 const STEP: Readonly<Record<Toward, number>> = { next: 1, previous: -1 };
 
-/** The strip scene's cue toward `toward` from the one `ctx` selects, if any. */
-const cueFrom = (verbs: EditorVerbs, ctx: Context, toward: Toward): Option.Option<LabSelection> =>
+/** The strip scene and its cue toward `toward` from the one `ctx` selects, if any. */
+const cueFrom = (
+  verbs: EditorVerbs,
+  ctx: Context,
+  toward: Toward,
+): Option.Option<{ readonly scene: string; readonly name: string }> =>
   Option.flatMap(selected(ctx, 'Cue'), (cue) => {
     const strip = verbs.stripCues();
     const at = strip.names.indexOf(cue.name);
@@ -290,9 +296,24 @@ const cueFrom = (verbs: EditorVerbs, ctx: Context, toward: Toward): Option.Optio
         Option.fromUndefinedOr(strip.names[at + STEP[toward]]),
         () => cue.scene === strip.scene && at >= 0,
       ),
-      (name) => cueOf(strip.scene, name),
+      (name) => ({ scene: strip.scene, name }),
     );
   });
+
+/**
+ * Show the strip scene's cue `name` at its start, then select it: the
+ * strip's window (a long scene's 8 s on a phone, `stripWindow`) follows the
+ * playhead, so a cue selected is one the strip shows. Go to and the walk
+ * both select a cue so; the URL's entry holds the time and the cue.
+ */
+const showCue = (
+  verbs: Pick<EditorVerbs, 'select' | 'seek' | 'startOf'>,
+  scene: string,
+  name: string,
+) => {
+  verbs.seek(verbs.startOf(name));
+  verbs.select(cueOf(scene, name));
+};
 
 const walkCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: string): Command => ({
   id: `edit.cue-${toward}`,
@@ -300,7 +321,7 @@ const walkCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: str
   labelIn: (ctx) =>
     Option.match(cueFrom(verbs, ctx, toward), {
       onNone: () => label,
-      onSome: (s) => `Select ${selectionText(s)}`,
+      onSome: (c) => `Select ${selectionText(cueOf(c.scene, c.name))}`,
     }),
   group: 'Edit',
   keys: [key],
@@ -308,27 +329,24 @@ const walkCommand = (verbs: EditorVerbs, toward: Toward, label: string, key: str
   touch: 'tap the cue on the strip, or long-press it',
   // On a button or a link, Tab moves focus, as it always does.
   when: (ctx) => ctx.focus === 'page' && Option.isSome(cueFrom(verbs, ctx, toward)),
-  run: quietly((ctx) => Option.map(cueFrom(verbs, ctx, toward), verbs.select)),
+  run: quietly((ctx) =>
+    Option.map(cueFrom(verbs, ctx, toward), (c) => showCue(verbs, c.scene, c.name)),
+  ),
 });
 
 /**
  * Each cue of the strip's scene as a place ⌘K goes to by its name
- * (`command/go.ts`): shown at its start (`startOf`, film seconds), then
- * selected, so the URL's entry holds both.
+ * (`command/go.ts`): shown at its start, then selected (`showCue`).
  */
 export const cueDestinations = (
   strip: ReturnType<EditorVerbs['stripCues']>,
-  startOf: (name: string) => number,
-  verbs: Pick<EditorVerbs, 'select' | 'seek'>,
+  verbs: Pick<EditorVerbs, 'select' | 'seek' | 'startOf'>,
 ): ReadonlyArray<Destination> =>
   strip.names.map((name) => ({
     kind: 'cue',
     id: `${strip.scene}.${name}`,
     name: `${name} in ${strip.scene}`,
-    go: () => {
-      verbs.seek(startOf(name));
-      verbs.select(cueOf(strip.scene, name));
-    },
+    go: () => showCue(verbs, strip.scene, name),
   }));
 
 /** Cancel the drag: Escape, or the strip's Cancel drag while a grip is held (a finger has no Escape). */

@@ -12,7 +12,9 @@
 import { Deferred, Effect, Exit, Option, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
+import { pageHref } from '../../../src/core/api.ts';
 import { SourceRefused } from '../../../src/core/refusals.ts';
+import { LONG, LONG_SCENE } from '../../../src/lab/fixtures/long-film.ts';
 import {
   type Asked,
   type Json,
@@ -92,6 +94,25 @@ describe('the cue strip', () => {
       yield* textHas(page, '.lab-strip-head', 'scenes/one.ts');
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a phone, Tab to a cue past the strip's 8 s window shows it: the playhead goes to its start, its bar on the strip",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], {
+          href: pageHref.labScene(LONG, LONG_SCENE, { cue: 'early' }, Option.some(1)),
+          viewport: PHONE,
+        });
+        const shown = (cue: string) =>
+          `(() => { const lane = document.querySelector('.lab-strip-rows').getBoundingClientRect(); const bar = document.querySelector('.lab-cue[data-cue="${cue}"]').getBoundingClientRect(); return bar.left >= lane.left - 1 && bar.left < lane.right; })()`;
+        yield* page.waitFor('.lab-cue[data-cue="late"]');
+        yield* until(page, shown('early'));
+        yield* evaluates(page, shown('late'), false);
+        yield* page.press('Tab');
+        yield* until(page, "new URLSearchParams(location.search).get('cue') === 'late'");
+        yield* until(page, shown('late'));
+      }).pipe(Effect.scoped),
   );
 
   it.live("names the scene's file once, on its head", () =>
@@ -892,9 +913,8 @@ describe('the inspector', () => {
       yield* evaluates(page, 'location.search', '?cue=fall');
       yield* page.press('Shift+Tab');
       yield* evaluates(page, 'location.search', '?cue=rise');
-      // The first edge on from the scene's start is rise's start (its bar's title says it, in timecode: to the frame).
+      // A cue walked to is shown at its start (its bar's title says it, in timecode: to the frame).
       const riseStart = `document.querySelector('.lab-cue[data-cue="rise"]').title.split(' · ')[1].split('–')[0].split(':').map(Number).reduce((s, n, i) => s + n * [3600, 60, 1, 1 / 30][i], 0)`;
-      yield* page.press('.');
       yield* page.until(`Math.abs(${URL_T} - ${riseStart}) < 0.02`);
       yield* page.press('.');
       yield* page.until(`${URL_T} > ${riseStart} + 0.1`);
