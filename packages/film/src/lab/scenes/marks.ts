@@ -162,6 +162,22 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
   ];
 };
 
+/**
+ * A film's scenes summed up in the chips' words, as Project's head and a
+ * Films card say it: `0/4 approved · 1 out of date · 1 not rendered`, the
+ * last two left out at 0.
+ */
+export const filmCounts = (scenes: ReadonlyArray<ProjectScene>): string =>
+  [
+    `${scenes.filter((s) => s.approval === 'approved').length}/${scenes.length} approved`,
+    ...[
+      [scenes.filter((s) => s.state === 'stale').length, 'out of date'] as const,
+      [scenes.filter((s) => s.state === 'missing').length, 'not rendered'] as const,
+    ]
+      .filter(([n]) => n > 0)
+      .map(([n, word]) => `${n} ${word}`),
+  ].join(' · ');
+
 /** The state a scene's band is drawn in on the tape: its most pressing mark's, else none (its hue). */
 export const bandState = (marks: SceneMarks): Option.Option<MarkChip['state']> =>
   Option.map(Arr.head(chipsOf(marks)), (c) => c.state);

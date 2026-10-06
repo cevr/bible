@@ -2011,7 +2011,9 @@ packet by path. The judge writes no choice. It logs `judge.drawn label= stills=`
 The review is the lab's home page (`/`, served by `film lab`): every render
 under the review's roots, compared in sync, and each film's options, picked
 where they are heard. Each film on it is a card that opens its Scenes (its
-other parts in its menu, `filmCommands`); every move between parts is the
+other parts in its menu, `filmCommands`), its state as its Project's head
+says it: the state band and `0/20 approved · 20 out of date` (`filmCounts`),
+from the film's project read with the page; every move between parts is the
 shell's page bar (Films · Scenes · Lab · Choices · Project · Play), the film
 switcher or a command, never a link in a page's text. It is the lab's
 server's (`tools/review.ts`, `review-http.ts`, `choices.ts`,
@@ -2318,7 +2320,7 @@ sheet is its `?point=`, a part's render point, `render:scenes:<id>`,
 `useInspectorPlace`, so a link opens it and Back closes it; an old project
 link to a choice's card goes on to that card on Choices, `legacyPlace`) is
 the film by its address tree, laid out as a DAW's arrangement: the film's
-panel (its name, length, `n/N current · n/N approved`, the check's findings
+panel (its name, length, `n/N approved · n out of date · n not rendered`, the check's findings
 as a count chip, a state band of a segment a scene, and its picture), then
 each act a panel (its name, scenes, length and approvals) holding its
 scenes, then the scenes in no act. No choice's card is on it: Choices holds

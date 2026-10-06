@@ -8,7 +8,7 @@ import { Option, Result } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import type { CheckLine } from '../../core/schema.ts';
-import { bandState, checkCount, chipsOf, legendOf, marksOf } from './marks.ts';
+import { bandState, checkCount, chipsOf, filmCounts, legendOf, marksOf } from './marks.ts';
 
 const scene = (
   id: string,
@@ -153,5 +153,23 @@ describe('marksOf', () => {
     // numbers add up to the chip's (one word, `findings`, for every line of the check).
     expect(checkCount(lines)).toEqual({ errors: 0, warnings: 21 });
     expect(legend.reduce((sum, l) => sum + Number(l.text.split(' ').at(-1)), 0)).toBe(21);
+  });
+});
+
+describe('filmCounts', () => {
+  test("a film's scenes in the chips' words: approved of all, then those out of date and not rendered (SU-8)", () => {
+    expect(filmCounts(VIEW.project.scenes)).toBe('1/3 approved · 1 out of date · 1 not rendered');
+  });
+
+  test('none out of date or not rendered: approved alone, never a 0', () => {
+    expect(filmCounts([scene('one', 'current'), scene('two', 'current', 'approved')])).toBe(
+      '1/2 approved',
+    );
+  });
+
+  test('20 scenes, each made for an earlier version: 0/20 approved · 20 out of date', () => {
+    expect(filmCounts(Array.from({ length: 20 }, (_, i) => scene(`s${i}`, 'stale', 'stale')))).toBe(
+      '0/20 approved · 20 out of date',
+    );
   });
 });

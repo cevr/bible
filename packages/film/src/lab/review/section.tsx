@@ -38,6 +38,7 @@ import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../c
 import { timecode } from '../../core/time.ts';
 import {
   Places,
+  ProjectView,
   type Say,
   type SetSayPost,
   pageHref,
@@ -45,7 +46,11 @@ import {
   reviewFrameUrl,
   withdrawSay,
 } from '../../core/api.ts';
+import { served } from '../api.ts';
+import { StateBand } from '../scenes/card.tsx';
+import { filmCounts, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
+import { OptionsApi } from './options/api.ts';
 import { newestAsked } from './asked.ts';
 import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
@@ -187,9 +192,41 @@ const Section = (props: {
 );
 
 /**
+ * A film's state on its card, as its Project's head says it (SU-8): the
+ * state band and `n/N approved · n out of date`, from the film's project,
+ * read for the card (by the server, sent with the page). Its band marks the
+ * renders and approvals; the check's findings are Project's. Nothing while
+ * the project is read or when the film has none.
+ */
+const FilmState = (props: { readonly film: string }) => {
+  const { meta } = useReview();
+  const readAtom = untrack(() =>
+    meta.runtime
+      .atom(OptionsApi.use((api) => api.project(props.film)))
+      .pipe(served(`review.project:${props.film}`, ProjectView)),
+  );
+  const read = useAtomValue(() => readAtom);
+  return (
+    <Show when={Option.getOrUndefined(AsyncResult.value(read()))}>
+      {(view: Accessor<ProjectView>) => (
+        <>
+          <StateBand
+            scenes={view().project.scenes}
+            marks={(scene) => marksOf(Option.some(view()), [])(scene)}
+          />
+          <div class="rv-film-counts" data-role="counts">
+            {filmCounts(view().project.scenes)}
+          </div>
+        </>
+      )}
+    </Show>
+  );
+};
+
+/**
  * The app's films (none when the app has no films), each a card that opens
  * its Scenes, with the stills of the folder its renders sit in when the
- * review holds one; its context menu opens its other parts (`filmCommands`),
+ * review holds one, and its state (`FilmState`); its context menu opens its other parts (`filmCommands`),
  * which no line on the card spells out (a gesture is the `?` sheet's). The
  * switcher is the other way into a film; the page bar shows once one is
  * chosen.
@@ -227,6 +264,7 @@ const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
                   </Show>
                   <div class="rv-body">
                     <b>{film}</b>
+                    <FilmState film={film} />
                   </div>
                 </a>
               )}
