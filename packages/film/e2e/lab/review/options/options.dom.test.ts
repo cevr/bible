@@ -57,6 +57,7 @@ import {
   evaluates,
   textHas,
   textIs,
+  textsAre,
   until,
   valueIs,
   waitFor,
@@ -347,6 +348,24 @@ const MIX = "(document.querySelector('audio.rv-mix')?.getAttribute('src') ?? '')
 /** A variant's element by its point and id. */
 const at = (point: string, id: string) => `[data-point="${point}"] [data-variant="${id}"]`;
 
+/** The fake film's level and its take, as Go to and the kinds strip go to them. */
+const LEVEL = 'level:const:PAPER';
+const TAKE = 'take:paper.page';
+/** A level whose value the film computes: its slider and field take no input. */
+const WIND = 'level:effect:wind';
+
+/** Whether the URL's card in focus is `point` (`''`: none). */
+const pointIs = (point: string) =>
+  `(new URLSearchParams(location.search).get('point') ?? '') === '${point}'`;
+
+/** Whether the card of `point` lies on the screen. */
+const cardInView = (point: string) =>
+  `(() => { const c = document.getElementById('point-${point}'); if (!c) return false; const r = c.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; })()`;
+
+/** Whether the keyboard is in the card of `point`. */
+const focusIn = (point: string) =>
+  `document.activeElement?.closest('.rv-option')?.id === 'point-${point}'`;
+
 /** The open inspector: one at a time. */
 const INSPECTOR = '[data-role="inspector"]';
 
@@ -414,6 +433,10 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm());
+        // No film chosen: no page bar of tabs that cannot act, and no gesture hint on the card (UR2-14).
+        yield* page.waitFor('.rv-film-card[data-film="toy"]');
+        yield* evaluates(page, "document.querySelector('.sh-pagebar').checkVisibility()", false);
+        yield* countIs(page, '.rv-film-card .rv-meta', 0);
         // A film card opens its choices from its context menu, which offers each of its parts.
         yield* rightClick(page, '.rv-film-card[data-film="toy"]');
         yield* evaluates(page, `${MENU_ITEMS}.filter((id) => id.startsWith('film.'))`, [
@@ -427,12 +450,29 @@ describe("a film's choices", () => {
         yield* until(page, `location.pathname === '${FILM}'`);
         yield* waitFor(page, '.rv-transport');
         yield* waitFor(page, '.rv-picture video');
+        yield* evaluates(page, "document.querySelector('.sh-pagebar').checkVisibility()", true);
+        // The tab's title names the part before the film (SU-9).
+        yield* until(page, "document.title === 'Choices · toy'");
         // The picked option is heard first; the picture's own sound is muted.
         yield* until(
           page,
           `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=strings')`,
         );
         yield* evaluates(page, "document.querySelector('.rv-picture video').muted", true);
+        // A row says its state only when it is not current, in a word (UR2-2); a take in place
+        // says nothing of it: its 🔊 hears it over the picture.
+        yield* countIs(page, `${at('score', 'strings')} [data-state]:not([data-variant])`, 0);
+        yield* textIs(page, `${at('score', 'piano')} .rv-badge[data-state="stale"]`, 'Out of date');
+        yield* textIs(
+          page,
+          `${at('score', 'choir')} .rv-badge[data-state="missing"]`,
+          'Not made yet',
+        );
+        yield* evaluates(
+          page,
+          "document.querySelector('.rv-main').innerText.includes('in place')",
+          false,
+        );
         // A missing option cannot be heard.
         yield* countIs(page, `${at('score', 'choir')} [data-act="hear"]`, 0);
         yield* click(page, `${at('score', 'piano')} [data-act="hear"]`);
@@ -483,6 +523,119 @@ describe("a film's choices", () => {
           page,
           "document.querySelector('.rv-time').textContent.startsWith('00:00:02:00')",
         );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "a kinds strip names each kind with its count and goes to its first point: in view, in focus, Back's and a reload's (SU-5)",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
+        yield* page.resize(390, 600);
+        yield* textsAre(page, '.rv-kinds .sh-btn', ['Score 1', 'Looks 1', 'Sounds 1', 'Levels 1']);
+        yield* click(page, '.rv-kinds [data-kind="level"]');
+        yield* until(page, pointIs(LEVEL));
+        yield* until(page, cardInView(LEVEL));
+        yield* until(page, focusIn(LEVEL));
+        // The jump is a step: Back walks it, and a reload lands on it again.
+        yield* page.back;
+        yield* until(page, pointIs(''));
+        yield* page.goto(`${FILM}?point=${encodeURIComponent(LEVEL)}`);
+        yield* page.reload;
+        yield* until(page, cardInView(LEVEL));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'Go to a point hidden by Show only shows every point, focuses its card, and the keys then hear its variants (SU-5)',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { href: `${FILM}?only=stale` });
+        yield* page.resize(390, 600);
+        yield* waitFor(page, at('score', 'piano'));
+        yield* countIs(page, `[id="point-${TAKE}"]`, 0);
+        // The keyboard was on the score's card: the go moves it.
+        yield* page.focus(`${at('score', 'piano')} [data-act="hear"]`);
+        yield* openCommandMenu(page, 'paper.page');
+        yield* click(page, menuEntry(`go.choice.${TAKE}`));
+        yield* until(page, pointIs(TAKE));
+        yield* until(page, "new URLSearchParams(location.search).get('only') === null");
+        yield* until(page, cardInView(TAKE));
+        yield* until(page, focusIn(TAKE));
+        // The next audition is the gone-to point's, not the one focused before.
+        yield* page.press('Alt+ArrowRight');
+        yield* until(page, `new URLSearchParams(location.search).get('heard') === '${TAKE}'`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'Go to the point the link already names, hidden by Show only, is a step of its own: Back is the filtered view again',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), {
+          href: `${FILM}?point=${encodeURIComponent(TAKE)}&only=stale`,
+        });
+        yield* waitFor(page, at('score', 'piano'));
+        yield* countIs(page, `[id="point-${TAKE}"]`, 0);
+        yield* openCommandMenu(page, 'paper.page');
+        yield* click(page, menuEntry(`go.choice.${TAKE}`));
+        yield* until(page, "new URLSearchParams(location.search).get('only') === null");
+        yield* until(page, focusIn(TAKE));
+        // Only the filter changed: still its own step, so Back finds the filtered view.
+        yield* page.back;
+        yield* until(page, "new URLSearchParams(location.search).get('only') === 'stale'");
+        yield* until(page, pointIs(TAKE));
+        yield* countIs(page, `[id="point-${TAKE}"]`, 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'Back to a card gone from puts the keyboard back in it, so the next audition is its own (Score → Sounds → Back)',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
+        yield* page.resize(390, 600);
+        yield* click(page, '.rv-kinds [data-kind="score"]');
+        yield* until(page, focusIn('score'));
+        yield* click(page, '.rv-kinds [data-kind="take"]');
+        yield* until(page, focusIn(TAKE));
+        yield* page.back;
+        yield* until(page, pointIs('score'));
+        yield* until(page, focusIn('score'));
+        yield* page.press('Alt+ArrowRight');
+        yield* until(page, "new URLSearchParams(location.search).get('heard') === 'score'");
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "Go to a level whose value is computed puts the keyboard on its card: its slider can't take it",
+    () =>
+      Effect.gen(function* () {
+        const toy = freshToy();
+        const computed = point(WIND, 'level', OPEN_AT, [], {
+          knob: { value: -12, min: -40, max: 0, step: 0.5, unit: 'dB', fixed: 'computed' },
+        });
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/films\/toy\/choices$/, () => json(choices(toy, [computed]))),
+            ...fakeFilm(toy),
+          ],
+          { href: FILM },
+        );
+        yield* waitFor(page, `[id="point-${WIND}"] input[type="range"][disabled]`);
+        yield* openCommandMenu(page, 'wind');
+        yield* click(page, menuEntry(`go.choice.${WIND}`));
+        yield* until(page, focusIn(WIND));
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
@@ -852,14 +1005,16 @@ describe("a film's choices", () => {
           variant: 'piano',
           verb: 'pick',
         });
-        // The sound check runs after the pick: its count at rest, F walks the clock to its
-        // finding's time (UR-37/38), and the count opens the Findings sheet that lists it.
-        const soundCount = '[data-act="findings"][data-check="sound check"]';
-        yield* waitFor(page, `${soundCount}[data-findings="1"]`);
-        yield* countIs(page, '[data-role="findings"]', 0);
-        yield* page.press('f');
-        yield* until(page, "location.hash === '#t=2'");
-        yield* click(page, soundCount);
+        // The sound check runs after the pick: Show findings opens the Findings sheet that
+        // lists it, and F walks the clock to its finding's time (UR-37/38); Choices shows no
+        // check's count at rest (UR2-10).
+        yield* countIs(page, '[data-act="findings"]', 0);
+        yield* openCommandMenu(page, 'findings');
+        yield* click(page, menuEntry('review.findings'));
+        yield* waitFor(
+          page,
+          '[data-role="findings"] [data-check="sound check"][data-findings="1"]',
+        );
         yield* textHas(
           page,
           '[data-role="findings"] [data-check="sound check"] li',
@@ -872,6 +1027,8 @@ describe("a film's choices", () => {
         );
         yield* click(page, '[data-act="close-findings"]');
         yield* countIs(page, '[data-role="findings"]', 0);
+        yield* page.press('f');
+        yield* until(page, "location.hash === '#t=2'");
         // Every mix is asked for again once the source has changed.
         yield* until(page, `${MIX}.endsWith('&v=1')`);
 
@@ -1148,7 +1305,7 @@ describe("a film's choices", () => {
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (n) => n >= 2 }),
           Effect.timeout('10 seconds'),
         );
-        yield* attributeIs(page, '.rv-writes', 'data-reading', 'true');
+        yield* attributeIs(page, '.rv-choices', 'data-reading', 'true');
         // Said while the read is out: the say answers the choices with the comment.
         yield* inspect(page, at('score', 'strings'));
         yield* page.fill(`${INSPECTOR} .rv-comment-input`, 'warmer in the close');
@@ -1156,7 +1313,7 @@ describe("a film's choices", () => {
         yield* waitFor(page, `${INSPECTOR} [data-comment="c1"]`);
         // The older read lands last: the page has read it, and the comment stays.
         yield* Deferred.done(land, Exit.void);
-        yield* attributeIs(page, '.rv-writes', 'data-reading', 'false');
+        yield* attributeIs(page, '.rv-choices', 'data-reading', 'false');
         yield* countIs(page, `${INSPECTOR} [data-comment="c1"]`, 1);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -1275,7 +1432,7 @@ describe("a film's choices", () => {
           { href: FILM },
         );
         const knob = '[data-knob="level:const:PAPER"]';
-        const findings = '[data-act="findings"][data-check="check"]';
+        const findings = '[data-role="findings"] [data-check="check"]';
         yield* waitFor(page, `${knob} input`);
         yield* click(page, `${at('score', 'piano')} [data-act="pick"]`);
         yield* Effect.sync(() => asked.some((a) => a.path === '/api/films/toy/choices/pick')).pipe(
@@ -1288,6 +1445,8 @@ describe("a film's choices", () => {
             input.dispatchEvent(new Event('input', { bubbles: true }));
             input.dispatchEvent(new Event('change', { bubbles: true }));
           })()`);
+        yield* openCommandMenu(page, 'findings');
+        yield* click(page, menuEntry('review.findings'));
         yield* attributeIs(page, findings, 'data-findings', '1');
         yield* receiptSays(page, 'level:const:PAPER: -24 → -20 dB');
         // The pick lands last: the knob's check, asked after it, stays, and

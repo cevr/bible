@@ -20,6 +20,7 @@ import {
   json,
   openServed,
   route,
+  servedTitle,
 } from '../../../src/lab/fixtures/harness.ts';
 import { PAGE_CUT_MARK, PAGE_ROOT } from '../../../src/core/page-render.ts';
 import { TOY } from '../../../src/lab/fixtures/toy-film.ts';
@@ -167,6 +168,10 @@ describe('the review served as the lab renders it', () => {
       Effect.gen(function* () {
         const folder = yield* openServed('review', routes, { href: FOLDER });
         expect(folder.documents[0]?.html ?? '').toContain('walk.mp4');
+        // The served page is titled as the shell titles it, before it hydrates (SU-9).
+        expect(yield* servedTitle(folder.page, folder.documents[0]?.html ?? '')).toBe(
+          'Roofs at dusk · Films',
+        );
         yield* textHas(folder.page, '.rv-card', 'walk.mp4');
         expect(reads(folder.asked, '/api/review/index')).toBe(0);
         expect(mismatches(folder.page.logged)).toEqual([]);
@@ -174,6 +179,9 @@ describe('the review served as the lab renders it', () => {
 
         const film = yield* openServed('review', routes, { href: pageHref.choices(TOY) });
         expect(reads(film.read, `/api/films/${TOY}/choices`)).toBe(1);
+        expect(yield* servedTitle(film.page, film.documents[0]?.html ?? '')).toBe(
+          `Choices · ${TOY}`,
+        );
         // Its cards are the server's markup, painted before any script runs.
         expect(painted(film.documents[0]?.html ?? '')).toContain('data-point="look:ground"');
         yield* waitFor(film.page, '[data-point="look:ground"]');

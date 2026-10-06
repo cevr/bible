@@ -3,7 +3,8 @@
 // film has (`core/choice.ts`), a card each (`choice.tsx`), by kind: the
 // score's options (`play` in `sound.ts`), its looks (`looks` in
 // `palette.ts`), each library sound's takes (the library's lock), each
-// beat's recorded voice, and each sound layer's level (a knob). Undo and
+// beat's recorded voice, and each sound layer's level (a knob), under a
+// kinds strip that jumps to each kind; ⌘K goes to each point. Undo and
 // Redo are the page's commands, each naming the source change it steps, and
 // every write says what it did in a receipt; the film's check is the one the
 // last write answered; after a pick or a knob the sound check runs (`film
@@ -11,14 +12,17 @@
 // are counts that open the Findings sheet (`findings.tsx`).
 
 import { For, type JSX, Show } from '@solidjs/web';
-import { type Accessor, createEffect, createMemo, onCleanup } from 'solid-js';
-import { useAtomValue } from '@bible/atom-solid';
+import { type Accessor, createEffect, createMemo, flush, onCleanup } from 'solid-js';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
-import { Duration, Effect, Fiber, Option } from 'effect';
+import { Array as Arr, Duration, Effect, Fiber, Option } from 'effect';
 import { playableOf } from '../../../browser/media.ts';
 import { type Command, type CommandId, boundChange, quietly } from '../../../command/command.ts';
+import { type Destination, goToCommands } from '../../../command/go.ts';
 import { Selection } from '../../../command/selection.ts';
+import { registerWhile } from '../../command/changes.ts';
 import {
   type ChoiceKind,
   type ChoicePoint,
@@ -35,7 +39,7 @@ import { pressed, sizeText, videoSource } from '../format.ts';
 import { useInspectorPlace } from '../inspector.tsx';
 import { ProxyPending, Transport } from '../section.tsx';
 import { ChoiceAct } from './api.ts';
-import { ChoiceCard, ChoiceSheets, HearButton, revealPoint } from './choice.tsx';
+import { ChoiceCard, ChoiceSheets, HearButton, focusPoint } from './choice.tsx';
 import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
 import { REVIEW_REDO, REVIEW_UNDO } from './receipt.ts';
 
@@ -230,17 +234,6 @@ export const StepCommands = () => {
   return <></>;
 };
 
-/** The film's checks as counts that open the Findings sheet (`findings.tsx`); Undo and Redo as commands. */
-const WriteBar = () => {
-  const { reading } = useFilm();
-  return (
-    <section class="rv-writes" data-reading={pressed(reading())}>
-      <StepCommands />
-      <Findings />
-    </section>
-  );
-};
-
 /** Each kind's heading, in the order the page shows them. */
 const KINDS: ReadonlyArray<{ readonly kind: ChoiceKind; readonly title: string }> = [
   { kind: 'score', title: 'Score' },
@@ -250,15 +243,62 @@ const KINDS: ReadonlyArray<{ readonly kind: ChoiceKind; readonly title: string }
   { kind: 'level', title: 'Levels' },
 ];
 
-/** A heading and a card for each of `points`. */
+/** The kinds the page shows, each with how many of its points are shown and the first of them. */
+interface ShownKind {
+  readonly kind: ChoiceKind;
+  readonly title: string;
+  readonly count: number;
+  readonly first: string;
+}
+
+/**
+ * The kinds strip (design language §7): a tab per kind the page shows, with
+ * how many points it has, that goes to the kind's first point as Go to does
+ * (`?point=`, so Back and a link come back to it); shown once there are two
+ * kinds to move between. A point itself is ⌘K's: Go to finds it by its name
+ * (`pointDestinations`).
+ */
+const KindsStrip = (props: {
+  readonly kinds: ReadonlyArray<ShownKind>;
+  readonly go: (point: string) => void;
+}) => (
+  <Show when={props.kinds.length > 1}>
+    <nav class="rv-kinds" data-role="kinds" aria-label="Kinds">
+      <For each={props.kinds} keyed={(k) => k.kind}>
+        {(k) => (
+          <button
+            type="button"
+            class="sh-btn"
+            data-kind={k().kind}
+            onClick={() => props.go(k().first)}
+          >
+            {k().title} <span class="rv-count">{k().count}</span>
+          </button>
+        )}
+      </For>
+    </nav>
+  </Show>
+);
+
+/** Each of `points` as a place ⌘K goes to by its name: its card, brought into view and in focus (`?point=`). */
+const pointDestinations = (
+  points: ReadonlyArray<ChoicePoint>,
+  focus: (point: string) => void,
+): ReadonlyArray<Destination> =>
+  points.map((point) => ({
+    kind: 'choice',
+    id: point.id,
+    name: `${point.title} ${point.id}`,
+    go: () => focus(point.id),
+  }));
+
+/** A heading and a card for each of `points` (how many, the kinds strip says: UR-7). */
 const ChoiceSection = (props: {
   readonly title: string;
   readonly points: ReadonlyArray<ChoicePoint>;
 }) => (
   <Show when={props.points.length > 0}>
-    <h2 class="rv-h">
-      {props.title} <small>{props.points.length}</small>
-    </h2>
+    <h2 class="rv-h">{props.title}</h2>
     <div class="rv-list">
       <For each={props.points} keyed={(p) => p.id}>
         {(point) => <ChoiceCard point={point()} />}
@@ -319,7 +359,7 @@ const variantKeys = (film: string, selection: Selection) =>
   );
 
 const FilmBody = () => {
-  const { film, choices, only } = useFilm();
+  const { film, choices, only, reading } = useFilm();
   // The open sheet is the URL's (`?inspect=`, a variant of the card in focus): a tap on a
   // variant's name names both in one step (Back closes it); Close, Escape and a swipe name
   // none, the card staying in focus; a link, Back and Forward open what they name.
@@ -330,38 +370,86 @@ const FilmBody = () => {
       Option.map(variantKeys(film, s), (keys) => ({ ...v, query: { ...v.query, ...keys } })),
     cleared: (v) => ({ ...v, query: { ...v.query, inspect: '' } }),
   });
-  // The card the URL's `?point=` names is brought into view, as on the project:
-  // a link's first render (Open on Choices), and each Back or Forward to another.
+  // As the route is replayed (the entry the page opens on: a link, Open on Choices, a reload;
+  // then each Back and Forward), the card its `?point=` names is brought into view with the
+  // keyboard in it, so the keys' next audition is that card's. A later push or replace is the
+  // page's own move (a Go to, a tap, an audition), which leaves the keyboard where it put it.
   const at = useAtomValue(() => choicesPlace);
-  createEffect(
-    () =>
+  const entry = useAtomValue(() => UrlAtom.entry);
+  // The entry the page opens on is the first on Choices: a move here from another page lands
+  // after the page mounts.
+  let opened = false;
+  createEffect(entry, (e) => {
+    const here = Place.decode(Places.choices, e.href);
+    const replayed = Option.isSome(here) && (!opened || e.navigation === 'traverse');
+    if (Option.isSome(here)) opened = true;
+    if (!replayed) return;
+    Option.map(
       Option.filter(
-        Option.map(at(), (v) => v.query.point),
+        Option.map(here, (v) => v.query.point),
         (point) => point !== '',
       ),
-    (point) => {
-      Option.map(point, revealPoint);
-    },
+      focusPoint,
+    );
+  });
+  // Going to a point (⌘K's Go to, a kind's tab) is one step Back walks: its card in focus
+  // (`?point=`, its sheet closed, a Show only that hides it cleared), in view, and the
+  // keyboard on it, so the keys' next audition is its own.
+  const setAt = useAtomSet(() => choicesPlace);
+  const goToPoint = (point: string) => {
+    const shows = choices().points.some((p) => p.id === point && shownIn(only())(p));
+    Option.map(at(), (v) =>
+      setAt({
+        ...v,
+        query: {
+          ...v.query,
+          point,
+          inspect: '',
+          only: Option.getOrElse(
+            Option.liftPredicate(v.query.only, () => shows),
+            () => '',
+          ),
+        },
+      }),
+    );
+    flush();
+    focusPoint(point);
+  };
+  const { meta } = useReview();
+  registerWhile(meta.hub, () => goToCommands(pointDestinations(choices().points, goToPoint)));
+  const shown = createMemo(() =>
+    KINDS.map((k) => ({
+      ...k,
+      points: choices().points.filter((p) => p.kind === k.kind && shownIn(only())(p)),
+    })),
   );
   return (
-    <>
-      <WriteBar />
+    // The page's own box (`display: contents`): says while the film is read again.
+    <div class="rv-choices" data-reading={pressed(reading())}>
+      <StepCommands />
+      <Findings />
       <Player />
       <OnlyShown />
-      <For each={KINDS}>
-        {(k) => (
-          <ChoiceSection
-            title={k.title}
-            points={choices().points.filter((p) => p.kind === k.kind && shownIn(only())(p))}
-          />
+      <KindsStrip
+        kinds={shown().flatMap((k) =>
+          Option.toArray(
+            Option.map(Arr.head(k.points), (first) => ({
+              kind: k.kind,
+              title: k.title,
+              count: k.points.length,
+              first: first.id,
+            })),
+          ),
         )}
-      </For>
+        go={goToPoint}
+      />
+      <For each={shown()}>{(k) => <ChoiceSection title={k.title} points={k.points} />}</For>
       <Show when={choices().points.length === 0}>
         <p class="empty">This film has nothing to choose between.</p>
       </Show>
       {/* Every variant's sheet is the page's, whichever cards Show only leaves in. */}
       <ChoiceSheets points={choices().points} />
-    </>
+    </div>
   );
 };
 

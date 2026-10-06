@@ -69,19 +69,12 @@ const TARGETS = [
 ].join(', ');
 
 /**
- * An expression run in the page: each shown target in `within` (a selector;
- * the whole page when none) whose usable area holds no `hit`-px square and
- * no exception keeps, as `tag.class "text" W×H □S` (the area's width and
- * height, and the side of the largest square in it); none, `[]`. It scrolls
- * each target into view to reach it, and leaves the page scrolled to the top.
- * A layer (a sheet, a menu, a dialog) is measured `within` itself: what lies
- * under it is measured with it closed.
+ * The page-side words both measures share: `boxOf`; `backing`, a backing
+ * input (out of the tree and the tab order, and nothing of it to see or
+ * press); `shown`, a target the page shows; `named`, how a failure names one.
  */
-export const undersizedTargets = (hit: number, within = ':root'): string => `(() => {
-  const HIT = ${hit}, SPACED_MIN = ${SPACED_MIN}, STEP = ${STEP}, MARGIN = ${Math.ceil(hit / 2)};
-  const TARGETS = ${jsonOf(TARGETS)}, WITHIN = ${jsonOf(within)};
+const SHOWN = `
   const boxOf = (el) => el.getBoundingClientRect();
-  // A backing input: out of the tree and the tab order, and nothing of it to see or press.
   const backing = (el) => {
     if (!(el.tabIndex < 0 && el.closest('[aria-hidden="true"]'))) return false;
     const r = boxOf(el), s = getComputedStyle(el);
@@ -93,6 +86,94 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
     const r = boxOf(el);
     return r.width > 0 && r.height > 0 && el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
   };
+  const named = (el) => {
+    const cls = typeof el.className === 'string' && el.className.trim() !== '' ? '.' + el.className.trim().split(/\\s+/).join('.') : '';
+    const kind = el instanceof HTMLInputElement ? '[type=' + el.type + ']' : '';
+    const text = (el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/\\s+/g, ' ').trim().slice(0, 32);
+    return el.tagName.toLowerCase() + kind + cls + ' "' + text + '"';
+  };`;
+
+/**
+ * The controls that hold their own words and pictures: a button's label, a
+ * link's text, the image inside either is that one control, never a second
+ * thing seen. A focusable container (`[tabindex]`) and a slider are counted,
+ * but what they hold is counted on its own.
+ */
+const OWNERS = [
+  'button',
+  'a[href]',
+  'summary',
+  'select',
+  'textarea',
+  ...['button', 'link', 'menuitem', 'option', 'tab', 'checkbox', 'radio', 'switch'].map(
+    (role) => `[role=${role}]`,
+  ),
+].join(', ');
+
+/** What a view shows that the eye counts as one thing: every target, and every picture and player. */
+const SEEN = `${TARGETS}, video, audio, canvas, img`;
+
+/**
+ * An expression run in the page: everything the view shows on its first
+ * screen, the clutter the at-rest budget holds (UR2-17), as the UI-reduction
+ * sweep's `count.js` counts it: each control (a target, a picture, a player
+ * or a canvas: `C tag.class "text"`) and each text leaf (an element with
+ * words of its own, not inside a control: `T …`). A disabled control is
+ * still seen, so it counts. Something below the fold, or scrolled out of an
+ * inner scroller's box, is not on the first screen and does not count; a
+ * visually hidden one (1 px, clipped to nothing) and a backing input never
+ * count.
+ */
+export const firstScreenItems = (): string => `(() => {
+  const SEEN = ${jsonOf(SEEN)}, OWNERS = ${jsonOf(OWNERS)};
+  ${SHOWN}
+  const vw = innerWidth, vh = innerHeight;
+  const hidden = (el) => {
+    const r = boxOf(el);
+    return (r.width <= 1 && r.height <= 1) || /inset\\(50%/.test(getComputedStyle(el).clipPath);
+  };
+  // Some of its box lies on the viewport and inside every scroller's box that clips it
+  // (up to a fixed layer, which no scroller below it clips).
+  const onScreen = (el) => {
+    const r = boxOf(el);
+    let l = Math.max(r.left, 0), t = Math.max(r.top, 0), rt = Math.min(r.right, vw), b = Math.min(r.bottom, vh);
+    for (let n = el; n && n !== document.body && rt > l && b > t; n = n.parentElement) {
+      const s = getComputedStyle(n);
+      if (n !== el && s.display !== 'contents') {
+        const c = boxOf(n);
+        if (s.overflowX !== 'visible') { l = Math.max(l, c.left); rt = Math.min(rt, c.right); }
+        if (s.overflowY !== 'visible') { t = Math.max(t, c.top); b = Math.min(b, c.bottom); }
+      }
+      if (s.position === 'fixed') break;
+    }
+    return rt > l && b > t;
+  };
+  const items = [];
+  for (const el of document.body.querySelectorAll('*')) {
+    if (el.closest('svg') && el.tagName.toLowerCase() !== 'svg') continue;
+    if (el.parentElement && el.parentElement.closest(OWNERS)) continue;
+    const control = el.matches(SEEN);
+    const words = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim() !== '');
+    if (!control && !words) continue;
+    if (!shown(el) || hidden(el) || !onScreen(el)) continue;
+    items.push((control ? 'C ' : 'T ') + named(el));
+  }
+  return items;
+})()`;
+
+/**
+ * An expression run in the page: each shown target in `within` (a selector;
+ * the whole page when none) whose usable area holds no `hit`-px square and
+ * no exception keeps, as `tag.class "text" W×H □S` (the area's width and
+ * height, and the side of the largest square in it); none, `[]`. It scrolls
+ * each target into view to reach it, and leaves the page scrolled to the top.
+ * A layer (a sheet, a menu, a dialog) is measured `within` itself: what lies
+ * under it is measured with it closed.
+ */
+export const undersizedTargets = (hit: number, within = ':root'): string => `(() => {
+  const HIT = ${hit}, SPACED_MIN = ${SPACED_MIN}, STEP = ${STEP}, MARGIN = ${Math.ceil(hit / 2)};
+  const TARGETS = ${jsonOf(TARGETS)}, WITHIN = ${jsonOf(within)};
+  ${SHOWN}
   // A field reached by its labels: every labelable one but a slider, whose track is what moves it.
   const setOf = (el) => {
     const labels = 'labels' in el && el.labels && !(el instanceof HTMLInputElement && el.type === 'range') ? [...el.labels] : [];
@@ -131,12 +212,6 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
       }
     }
     return best;
-  };
-  const named = (el) => {
-    const cls = typeof el.className === 'string' && el.className.trim() !== '' ? '.' + el.className.trim().split(/\\s+/).join('.') : '';
-    const kind = el instanceof HTMLInputElement ? '[type=' + el.type + ']' : '';
-    const text = (el.textContent || el.getAttribute('aria-label') || el.getAttribute('title') || '').replace(/\\s+/g, ' ').trim().slice(0, 32);
-    return el.tagName.toLowerCase() + kind + cls + ' "' + text + '"';
   };
   const targets = [...new Set([...document.querySelectorAll(WITHIN)].flatMap((root) => [root, ...root.querySelectorAll(TARGETS)]))]
     .filter((el) => el.matches(TARGETS) && shown(el));

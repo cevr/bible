@@ -1,25 +1,24 @@
 // A film's Scenes and Play pages' browser entry (`/films/<film>/scenes`,
-// `/films/<film>/play`): the studio's shell (`film-page.tsx`), hydrated over
-// the markup the lab rendered it with on the server (`film-server.tsx`) or
-// rendered anew, then the preview (`mountPreview`) in the shell's body,
-// under the Scenes' tape (`scenes/view.tsx`: the preview's track is its
-// tape bar and its picture the selected scene's) or on its own. The render
-// page (`mountRender`, `player/main.ts`) loads none of this, so it never
-// loads Solid.
+// `/films/<film>/play`): the studio's shell (`film-page.tsx`), mounted as
+// every studio page is (`mountStudio`), hydrated over the markup the lab
+// rendered it with on the server (`film-server.tsx`) or rendered anew, then
+// the preview (`mountPreview`) in the shell's body, under the Scenes' tape
+// (`scenes/view.tsx`: the preview's track is its tape bar and its picture the
+// selected scene's) or on its own. The render page (`mountRender`,
+// `player/render.ts`) loads none of this, so it never loads Solid
+// (`player/render.test.ts`).
 
-import { Location, Place } from '@bible/url-state';
+import { Place } from '@bible/url-state';
 import { Array as Arr, Effect, Match, Option, Schema } from 'effect';
 import { createSignal, onCleanup } from 'solid-js';
-import { Places, legacyPlace, pageHref } from '../core/api.ts';
+import { Places, pageHref } from '../core/api.ts';
 import type { Placed } from '../core/layout.ts';
-import { type Host, addressOn, hostOf } from '../browser/host.ts';
-import { BrowserHost } from '../browser/host-browser.ts';
+import { type Host, addressOn } from '../browser/host.ts';
 import type { Hub } from '../command/hub.ts';
-import { registerFace } from '../player/face.ts';
 import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
 import { TIME_MOVE, onTheMs, type TimeInUrl } from '../player/t-in-url.ts';
 import { type FilmBody, PLAY_PAGE, playOn, playPartOf } from './film-page.tsx';
-import { makePageEnd, mountPage } from './page-client.tsx';
+import { mountStudio } from './page-client.tsx';
 import { useShellTime } from './page-shell.tsx';
 import { scenesOpensAt, withTime } from './scenes/place.ts';
 import { ScenesView } from './scenes/view.tsx';
@@ -148,27 +147,10 @@ const playBody =
  * shell at once, hydrated over the server's markup or rendered anew, and
  * the preview in its body once the film is staged.
  */
-export const mountPlay = (pages: Films): void => {
-  const host = hostOf(BrowserHost.layer);
-  Effect.runSyncWith(host)(
-    Effect.gen(function* () {
-      const address = addressOn(host);
-      // An old link the server could not see all of (a bare `#<seconds>`) goes on to its place.
-      Option.map(legacyPlace(address.href()), address.follow);
-      // The UI face first, so the fonts the film waits on include it.
-      registerFace(document.fonts);
-      // The page's commands and its one key listener: the shell's page keys, and the transport's.
-      const ending = yield* makePageEnd;
-      const { hub, app } = yield* playOn(
-        host,
-        Object.keys(pages),
-        playBody(pages, host, ending.end),
-      );
-      const listening = yield* Effect.forkDetach(hub.listen);
-      const mounted = mountPage({ ...PLAY_PAGE, app });
-      yield* ending.mounted(mounted, listening);
-      const { href } = yield* Location.use((bar) => bar.current);
-      yield* Effect.logInfo(`play.shell href=${href} how=${mounted.how}`);
-    }),
-  );
-};
+export const mountPlay = (pages: Films): void =>
+  // The page's commands: the shell's page keys, and the transport's.
+  mountStudio({
+    page: PLAY_PAGE,
+    event: 'play.shell',
+    on: (host, end) => playOn(host, Object.keys(pages), playBody(pages, host, end)),
+  });

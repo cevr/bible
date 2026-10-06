@@ -28,7 +28,7 @@ import { type BrowserServices, type Host, addressOn, hostLayer } from '../browse
 import type { Player } from '../player/main.ts';
 import { TabStore } from '../browser/storage-browser.ts';
 import { type ViewStore, viewStore } from './view-state.ts';
-import { type LabApi, type LabClient, type NotesApi, labApiLayer } from './api.ts';
+import { type LabApi, type NotesApi, labApiLayer } from './api.ts';
 import { goToCommands } from '../command/go.ts';
 import type { CompareView } from '../core/api.ts';
 import type { Hub } from '../command/hub.ts';
@@ -81,10 +81,12 @@ interface LabMeta {
   readonly stage: StageOps;
   /** The page's reloads, held while a panel holds work only the page has (a take under review, a note). */
   readonly reloads: ReloadGate;
-  /** What the panels' machines and atoms run with: the stage, the lab API, the notes API and the host. */
+  /**
+   * What the panels' machines and atoms run with: the stage, the lab API,
+   * the notes API and the host. The studio runs its own over the page's
+   * client (`useLabPage().client`), with its microphone.
+   */
   readonly runtime: Atom.AtomRuntime<Stage | LabApi | NotesApi | BrowserServices>;
-  /** This page's client layer identity, reused by the studio's separate runtime. */
-  readonly clientLayer: Layer.Layer<LabClient>;
   /** The page's host (`browser/host.ts`), built once at the page's root: what a panel's effects run with. */
   readonly host: Host;
   /**
@@ -202,15 +204,14 @@ const Staged = (props: RootProps) => {
   );
   onCleanup(() => page.setReloadWaiting(''));
   const stage = makeStage(player, () => setRevision((n) => n + 1), reloads.request);
-  const clientLayer = page.client;
   // The server rebuilt the pages (a source changed): reload onto the new code at this frame.
   const rebuilt = Effect.runFork(
-    reloadOnRebuild(name, stage.reload).pipe(Effect.provide(clientLayer)),
+    reloadOnRebuild(name, stage.reload).pipe(Effect.provide(page.client)),
   );
   onCleanup(() => Effect.runFork(Fiber.interrupt(rebuilt)));
   const runtime = Atom.runtime(
     Layer.mergeAll(stageLayer(stage), labApiLayer(name), hostLayer(host)).pipe(
-      Layer.provide(clientLayer),
+      Layer.provide(page.client),
     ),
   );
 
@@ -267,7 +268,6 @@ const Staged = (props: RootProps) => {
       stage,
       reloads,
       runtime,
-      clientLayer,
       host,
       hub,
     },

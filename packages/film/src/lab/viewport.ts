@@ -10,12 +10,20 @@ import type { Context } from 'effect';
 import { type Accessor, createMemo, createSignal, onSettled } from 'solid-js';
 import { Viewport } from '../browser/viewport.ts';
 
+/** A phone's widest window, in CSS px: the studio's one breakpoint. */
+const PHONE_WIDEST = 899;
+
 /**
  * A phone's width, the studio's one: under it the shell is a phone's
  * (`page-shell-style.ts`), a sheet rises from the bottom, Scenes' tape lays
- * six stills a line and the review plays the 720p copy.
+ * six stills a line and the review plays the 720p copy. The styles say it
+ * through `PHONE` and `WIDE`; a stylesheet that cannot (`player.css`,
+ * `tokens.css`) is held to it by `viewport.test.ts`.
  */
-export const PHONE = '(max-width: 899px)';
+export const PHONE = `(max-width: ${PHONE_WIDEST}px)`;
+
+/** Wider than a phone: a laptop's window, `PHONE`'s other side. */
+export const WIDE = `(min-width: ${PHONE_WIDEST + 1}px)`;
 
 /** Whether the window `host` sees matches `query`, for as long as the calling owner lives. */
 export const useMatches = (host: Context.Context<Viewport>, query: string): Accessor<boolean> => {

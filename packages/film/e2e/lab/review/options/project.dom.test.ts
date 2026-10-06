@@ -2,7 +2,7 @@
 // one act (open, close) and two scenes in no act (coda, end), the film's own
 // code the toy film's (`fixtures/toy-film.ts`), as design language §7 lays
 // it out: the film's panel (its name, its state band of a segment a scene,
-// `n/N current · n/N approved` and the check's findings), each act a panel
+// `n/N approved · n out of date` and the check's findings), each act a panel
 // (its name, scenes, length and approvals) holding its scenes (a row each on
 // a phone, one row of cards on a laptop, as a DAW's sections), each scene's
 // card a still of the scene drawn from the film's code, its length, its name
@@ -669,7 +669,7 @@ describe("a film's project", () => {
   );
 
   it.live(
-    "the film's panel: its state band (a segment a scene, in film order, as long as the scene) and n/N current · n/N approved · its findings; no counts line, write bar or choices folds",
+    "the film's panel: its state band (a segment a scene, in film order, as long as the scene) and n/N approved · n out of date · n not rendered · its findings; no counts line, write bar or choices folds",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject({ findings: [CLOSE_FINDING] }), {
@@ -678,7 +678,11 @@ describe("a film's project", () => {
         });
         yield* waitFor(page, `${FILM} .pj-band [data-scene]`);
         yield* textIs(page, `${FILM_HEAD} [data-act="inspect"]`, 'toy');
-        yield* textIs(page, `${FILM} [data-role="counts"]`, '2/4 current · 0/4 approved');
+        yield* textIs(
+          page,
+          `${FILM} [data-role="counts"]`,
+          '0/4 approved · 1 out of date · 1 not rendered',
+        );
         // The check's findings are a count there that opens the Findings sheet.
         yield* textIs(page, `${FILM} [data-act="findings"][data-check="check"]`, '1 finding');
         yield* click(page, `${FILM} [data-act="findings"][data-check="check"]`);
@@ -1014,11 +1018,7 @@ describe("a film's project", () => {
           href: PROJECT,
           viewport: PHONE,
         });
-        yield* textIs(
-          page,
-          `${DOCK} [data-role="no-cut"]`,
-          'No film render yet: render the scenes to play the cut',
-        );
+        yield* textIs(page, `${DOCK} [data-role="no-cut"]`, 'No render of the whole film yet');
         yield* countIs(page, '.rv-transport', 0);
         yield* countIs(page, '.rv-note', 0);
         expect(errors).toEqual([]);
@@ -1272,8 +1272,23 @@ describe("a film's project", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeProject());
+        // A film card says the film's state as its project's head does: the band (renders and
+        // approvals) and the counts (SU-8).
+        const card = '.rv-film-card[data-film="toy"]';
+        yield* waitFor(page, `${card} .pj-band [data-scene]`);
+        yield* attributesAre(page, `${card} .pj-band [data-scene]`, 'data-state', [
+          'none',
+          'stale',
+          'none',
+          'rendered',
+        ]);
+        yield* textIs(
+          page,
+          `${card} [data-role="counts"]`,
+          '0/4 approved · 1 out of date · 1 not rendered',
+        );
         // A film card opens its project from its context menu.
-        yield* rightClick(page, '.rv-film-card[data-film="toy"]');
+        yield* rightClick(page, card);
         yield* click(page, '[data-role="context-menu"] [data-command="film.project"]');
         yield* until(page, `location.pathname === '${PROJECT}'`);
         yield* waitFor(page, ACT);

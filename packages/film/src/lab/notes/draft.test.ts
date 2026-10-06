@@ -9,7 +9,16 @@ import { Option, Schema } from 'effect';
 import { describe, expect, test } from 'effect-bun-test';
 import { NoteDraft } from '../../core/schema.ts';
 import { probeFilm } from '../fixtures/probe-film.ts';
-import { NO_SCOPE, type Scope, boxOf, draftOf, filmPixel, scopeText, whereText } from './draft.ts';
+import {
+  NO_SCOPE,
+  type Scope,
+  boxOf,
+  draftOf,
+  filmPixel,
+  scopeText,
+  whenText,
+  whereText,
+} from './draft.ts';
 
 const film = probeFilm();
 
@@ -22,6 +31,20 @@ describe('where a note sits', () => {
 
   test('names the mark nearest it', () => {
     expect(whereText(film.placed, film.fps, 1)).toMatch(/ · \{\w+\}$/);
+  });
+
+  test("speaks the scene's time beside the scene's name, never the film's", () => {
+    const two = film.placed[1]?.start ?? 0;
+    expect(whereText(film.placed, film.fps, two + 0.5).startsWith('two · 00:00:00:15')).toBe(true);
+  });
+
+  test("a made note says its time into its scene now, or the film's, named, once its scene is gone", () => {
+    expect(whenText(film.placed, film.fps, { scene: 'two', T: 0.5, local: 0.4 })).toBe(
+      '00:00:00:12',
+    );
+    expect(whenText(film.placed, film.fps, { scene: 'gone', T: 2, local: 0.4 })).toBe(
+      'film 00:00:02:00',
+    );
   });
 });
 

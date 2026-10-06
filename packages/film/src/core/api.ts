@@ -857,7 +857,9 @@ const inspect = cited;
 
 /**
  * The views of a comparison set (`?view=`): all side by side, a pair, the
- * pair's wipe, the moments, the pair's difference at a moment (PA-8), the notes.
+ * pair's wipe, the moments, the pair's difference at a moment (PA-8); and
+ * `notes`, a view no longer shown, read so an old link opens all with the
+ * first version's Info, where its notes now are (UR-34).
  */
 export const SET_VIEWS = ['all', 'pair', 'wipe', 'moments', 'diff', 'notes'] as const;
 
@@ -897,9 +899,11 @@ const FILM_PLAYER = { heard: refined, variant: refined, picture: refined };
 /**
  * How a film's choices and its project are shown: only the points in one
  * state (`?only=stale`, `unapproved`, `comments`: `SHOWN_ONLY`, AA-14), every
- * point when it is empty.
+ * point when it is empty. The view filtered is a step Back walks, as a set's
+ * view is: a move that only shows or hides points (Go to clearing the filter
+ * that hid its point) never writes over the filtered view.
  */
-const FILM_SHOWN = { only: refined };
+const FILM_SHOWN = { only: Field.key(Codec.Text, { default: '', history: 'push' }) };
 
 /** `?heard=` for the picture's own sound. */
 export const OWN_SOUND = 'own';

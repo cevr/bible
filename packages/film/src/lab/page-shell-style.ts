@@ -8,7 +8,7 @@
 // (`.sh-seg`), the field (`.lab-num`, a `select`) and the slider. Every page
 // injects it with the commands' styles.
 
-import { PHONE } from './viewport.ts';
+import { PHONE, WIDE } from './viewport.ts';
 
 export const SHELL_CSS = `
 html, body { margin: 0; }
@@ -31,6 +31,8 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 .sh-switcher .sh-icon { width: 12px; height: 12px; color: var(--text-3); }
 .sh-switcher:hover, .sh-switcher[data-popup-open] { background: var(--surface-3); }
 .sh-pagebar { display: flex; align-items: stretch; align-self: stretch; }
+/* No film chosen (Films): no film tab can act, so the bar is not shown on any device (UR2-14). */
+.sh[data-film="false"] .sh-pagebar { display: none; }
 .sh-tab { position: relative; display: flex; align-items: center; gap: var(--s-1); padding: 0 var(--s-3);
   color: var(--text-2); text-decoration: none; font-size: var(--fs-2); line-height: var(--lh-2);
   font-weight: var(--w-2); white-space: nowrap; }
@@ -74,13 +76,13 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
   .sh-pagebar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
     height: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); padding-bottom: env(safe-area-inset-bottom);
     background: var(--surface-2); border-top: var(--border); }
-  .sh[data-film="false"] .sh-pagebar { display: none; }
   .sh-tab { flex: 1; flex-direction: column; justify-content: center; padding: 0;
     font-size: var(--fs-1); line-height: var(--lh-1); }
   .sh-tab .sh-icon { display: block; width: 20px; height: 20px; }
   .sh-tab[data-active="true"] .sh-icon { color: var(--accent); }
   .sh-tab[data-active="true"]::after { display: none; }
-  .sh-crumb { display: none; }
+  /* The crumb names the subject on a phone too (a Set's scene, a Folder's), shortened first (SU-10). */
+  .sh-crumb { flex: 0 1 auto; font-size: var(--fs-1); }
   .sh-dock { position: fixed; left: 0; right: 0; z-index: 25; height: var(--dock-h);
     bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); border-top: var(--border); }
   .sh[data-film="false"] .sh-dock { bottom: env(safe-area-inset-bottom); }
@@ -89,12 +91,12 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
 /* The dock: one line, the page's width, on the header's surface (on a laptop, held under the header). */
 .sh-dock { display: flex; align-items: center; gap: var(--s-2); min-width: 0; box-sizing: border-box;
   padding: 0 var(--gutter); background: var(--surface-1); }
-@media (min-width: 900px) {
+@media ${WIDE} {
   .sh-dock { position: sticky; top: var(--header-h); z-index: 15; min-height: var(--dock-h); border-bottom: var(--border); }
 }
 
 /* The laptop: Films as the page bar's first tab, the timecode and Go to… in full. */
-@media (min-width: 900px) {
+@media ${WIDE} {
   .sh-films { display: flex; width: auto; height: auto; align-self: stretch; padding: 0 var(--s-3);
     font-size: var(--fs-2); font-weight: var(--w-2); position: relative; }
   .sh-films .sh-icon { display: none; }

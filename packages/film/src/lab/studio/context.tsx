@@ -1,6 +1,6 @@
-// The studio's provider: its own runtime (the stage, the studio's routes and
-// the page's microphone, so the shell knows nothing of the studio), the beats
-// as the server lists them, the recorder (one actor, spawned on the first
+// The studio's provider: its own runtime over the page's one client (the
+// stage, the studio's routes and the page's microphone, so the shell knows
+// nothing of the studio), the beats as the server lists them, the recorder (one actor, spawned on the first
 // beat once the beats are read), the selected beat's attempts, the
 // microphones and the one picked, the meter, and the recording under review
 // as a URL to play. The panel's components read this context and act through
@@ -31,7 +31,8 @@ import { type BrowserServices, addressOn, hostLayer } from '../../browser/host.t
 import { beatAt, labHrefWith } from '../place.ts';
 import type { LabFailure } from '../api.ts';
 import { Actor } from '../actor.tsx';
-import { useLab } from '../shell.tsx';
+import { useLabPage } from '../panel.tsx';
+import { Lab, useLab } from '../shell.tsx';
 import { type Stage, stageLayer } from '../stage.ts';
 import { StudioApi, studioApiLayer } from './api.ts';
 import { Capture } from './capture.ts';
@@ -83,7 +84,7 @@ type StudioTone = 'rest' | 'busy' | 'warn' | 'kept' | 'refused';
 interface StudioStateValue {
   /** Every beat with a line, in the film's order. */
   readonly beats: Accessor<ReadonlyArray<StudioBeat>>;
-  /** How many beats are recorded, staging, stale. */
+  /** How many beats are recorded, scratch, stale: the beat list's label, disclosed. */
   readonly counts: Accessor<string>;
   /** Why the beats are not shown, while they are not. */
   readonly beatsStatus: Accessor<string>;
@@ -416,17 +417,18 @@ const waitingText = (beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>) =>
  * The studio's state and actions, for its section. The recorder is spawned
  * once the beats are read, on the link's beat (`?beat=`, else the path's
  * scene, so Record opens where the lab is) or else the first; until then the
- * children render nothing and the fallback says why.
+ * children render nothing and the fallback says why, in Record's panel only.
  */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
+  // Its own runtime over the page's one client: the panels' services know nothing of the studio.
   const runtime: StudioRuntime = Atom.runtime(
     Layer.mergeAll(
       stageLayer(meta.stage),
       studioApiLayer(meta.name),
       browserCaptureLayer,
       hostLayer(meta.host),
-    ).pipe(Layer.provide(meta.clientLayer)),
+    ).pipe(Layer.provide(useLabPage().client)),
   );
   const reads: Reads = {
     runtime,
@@ -437,7 +439,15 @@ export const Provider = (props: ParentProps) => {
   const opened = beatAt(addressOn(meta.host).href());
   const start = createMemo(() => Option.getOrUndefined(startBeat(beats(), opened)));
   return (
-    <Show when={start()} keyed fallback={<p class="studio-waiting">{waitingText(beats())}</p>}>
+    <Show
+      when={start()}
+      keyed
+      fallback={
+        <Lab.Fill at="record">
+          <p class="studio-waiting">{waitingText(beats())}</p>
+        </Lab.Fill>
+      }
+    >
       {(beat: string) => (
         <Actor runtime={runtime} spawn={spawnRecorder(beat)}>
           {(actor) => (

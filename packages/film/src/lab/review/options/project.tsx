@@ -2,8 +2,8 @@
 // tree (`core/catalogue.ts`'s Project, read in a fresh `film project --json`
 // on the server) in the studio's shell, as design language §7 lays it out,
 // a DAW's arrangement: the film's panel (its name, its length, its state
-// band of a segment a scene, `n/N current · n/N approved` and the check's
-// findings), then each act a panel (its name, scenes, length and approvals)
+// band of a segment a scene, `n/N approved · n out of date` (`filmCounts`,
+// as a Films card says it) and the check's findings), then each act a panel (its name, scenes, length and approvals)
 // holding its scenes (on a phone a row each; on a laptop one row of cards),
 // then the scenes in no act. Each scene is the card a film's Scenes shows
 // (`scenes/card.tsx`, One surface): a still of the scene drawn from the
@@ -56,8 +56,8 @@ import {
 } from '../../../core/choice.ts';
 import type { ReviewVideo } from '../../../core/review.ts';
 import { FILM_FPS, timecode } from '../../../core/time.ts';
-import { sceneHue, SceneCard, SceneFindings } from '../../scenes/card.tsx';
-import { bandState, marksOf } from '../../scenes/marks.ts';
+import { SceneCard, SceneFindings, StateBand } from '../../scenes/card.tsx';
+import { filmCounts, marksOf } from '../../scenes/marks.ts';
 import { type LabFailure, served } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { Go, OPEN_ON_CHOICES, plainClick, useReview } from '../context.tsx';
@@ -708,39 +708,15 @@ const ActPanel = (props: { readonly at: ProjectValue; readonly act: Act }) => {
   );
 };
 
-/**
- * The film's state band: a segment a scene in film order, as wide as the
- * scene is long (alike while lengths are unknown), in its most pressing
- * mark's state colour, else its hue.
- */
-const StateBand = (props: { readonly at: ProjectValue }) => {
+/** The film's state band (`StateBand`), its scenes marked by the project and the check's findings. */
+const FilmBand = (props: { readonly at: ProjectValue }) => {
   const { findings } = useFilm();
   const marks = () =>
     marksOf(
       Option.some(props.at.view()),
       Option.getOrElse(AsyncResult.value(findings()), () => []),
     );
-  return (
-    <div class="pj-band" aria-hidden="true">
-      <For each={props.at.view().project.scenes} keyed={(s) => s.scene}>
-        {(scene, i) => (
-          <span
-            data-scene={scene().scene}
-            data-state={Option.getOrElse(bandState(marks()(scene().scene)), () => 'none')}
-            style={{
-              'flex-grow': String(
-                Option.getOrElse(
-                  Option.map(scene().span, (s) => s.dur),
-                  () => 1,
-                ),
-              ),
-              '--hue': sceneHue(i()),
-            }}
-          />
-        )}
-      </For>
-    </div>
-  );
+  return <StateBand scenes={props.at.view().project.scenes} marks={(scene) => marks()(scene)} />;
 };
 
 /** The film's panel: its name (a tap inspects it), its length, its counts, its findings, its state band, its render. */
@@ -763,11 +739,11 @@ const FilmPanel = (props: { readonly at: ProjectValue }) => {
           {(t) => <span class="pj-film-length">{timecode(t(), FILM_FPS)}</span>}
         </Show>
         <span class="pj-film-counts" data-role="counts">
-          {`${currentOf(project().scenes)} current · ${approvedOf(project().scenes)} approved`}
+          {filmCounts(project().scenes)}
         </span>
-        <Findings counts />
+        <Findings chips />
       </div>
-      <StateBand at={props.at} />
+      <FilmBand at={props.at} />
       <PartInspector
         at={props.at}
         of={film}
@@ -952,7 +928,7 @@ const Dock = () => (
     <FilmTransport
       fallback={
         <p class="rv-hint pj-no-cut" data-role="no-cut">
-          No film render yet: render the scenes to play the cut
+          No render of the whole film yet
         </p>
       }
     />

@@ -8,6 +8,8 @@
 // in the page by `mountReview`, so the page needs no
 // stylesheet of its own.
 
+import { PHONE, WIDE } from '../viewport.ts';
+
 export const REVIEW_CSS = `
 body.rv {
   color-scheme: dark;
@@ -21,11 +23,11 @@ body.rv {
   font-size: var(--fs-2); line-height: var(--lh-2); text-transform: uppercase; letter-spacing: var(--track-caps);
   color: var(--text-2); margin: var(--s-6) 0 var(--s-2); font-weight: var(--w-2);
 }
-.rv-h small { text-transform: none; letter-spacing: 0; font-weight: var(--w-1); }
 .rv-hint, .rv-meta { color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); }
 .rv-row { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
 .rv-pick { margin-bottom: var(--s-3); }
-.rv-set-tools { margin-bottom: var(--s-3); }
+/* A set's modes, and in Compare its layouts beside them (wrapping under on a phone). */
+.rv-set-tools { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-3); }
 .rv-grid { display: grid; gap: var(--s-3); grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); }
 .rv-grid.rv-wide { grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr)); }
 .rv-grid.rv-two { grid-template-columns: repeat(auto-fit, minmax(min(100%, 640px), 1fr)); }
@@ -34,7 +36,12 @@ a.rv-card { text-decoration: none; }
 a.rv-card:hover { background: var(--surface-2); }
 .rv-card video, .rv-media { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--surface-0); object-fit: contain; }
 .rv-card.rv-tall video { aspect-ratio: auto; max-height: 70vh; }
-.rv-zoom { cursor: zoom-in; }
+/* A version's picture is its card's to press: a long-press opens the card's menu (its steps,
+   SU-11), never the browser's own over a video, which takes the touch. */
+.rv-card video:not([controls]) { pointer-events: none; }
+/* A still that opens the lightbox: a bare button around its picture. */
+.rv-zoom { display: block; width: 100%; padding: 0; border: 0; background: none; color: inherit; cursor: zoom-in; }
+.rv-zoom:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* The pair wiped (PA-8): both videos stacked full width, the other right of the divider. */
 .rv-wipe { position: relative; background: var(--surface-0); overflow: hidden; touch-action: pan-y; }
 .rv-wipe video, .rv-wipe canvas { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; }
@@ -63,8 +70,9 @@ a.rv-card:hover { background: var(--surface-2); }
   color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* A hear button is the kit's icon button; its glyph is grey until it is on. */
+/* A hear button is the kit's icon button, at its caption's end; its glyph is grey until it is on. */
 .rv-sound { filter: grayscale(1); }
+.rv-cap > .rv-sound { margin-left: auto; }
 .rv-sound.on { filter: none; }
 .rv-letter {
   font-weight: var(--w-3); min-width: var(--s-6); height: var(--s-6); padding: 0 var(--s-1); border-radius: var(--r-1);
@@ -78,7 +86,7 @@ a.rv-card:hover { background: var(--surface-2); }
   border: 1px solid currentColor; color: var(--text-2); border-radius: var(--r-1); padding: 0 var(--s-1); margin-left: var(--s-1);
 }
 .rv-badge[data-approval="approved"] { color: var(--state-approved); }
-.rv-badge[data-approval="stale"] { color: var(--state-stale); }
+.rv-badge:is([data-approval="stale"], [data-state="stale"]) { color: var(--state-stale); }
 .rv-picked { display: inline-flex; align-items: center; gap: var(--s-1); color: var(--text-1); font-size: var(--fs-2); font-weight: var(--w-2); }
 .rv-picked svg { width: 14px; height: 14px; flex: none; }
 .rv-picked circle { fill: var(--text-1); }
@@ -87,18 +95,21 @@ a.rv-card:hover { background: var(--surface-2); }
  * The transport: one row in the page's dock (\`.sh-dock\`, the shell's), on
  * Choices, a Set and Project alike: play, the time, the scrub taking what is
  * left, then the rate. On a phone the time is where the clock is; the scrub
- * shows the end.
+ * shows the end. On a laptop the header's timecode is the time, and the row
+ * says only the length.
  */
 .rv-transport { flex: 1; display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-3); min-width: 0; }
-@media (min-width: 900px) {
+@media ${WIDE} {
   .rv-main .sh-dock:not(.pj-dock) { margin-bottom: var(--s-3); }
+  /* One timecode on a laptop (SU-12): the header's; the row keeps the length. */
+  .rv-time-at { display: none; }
 }
 /* Play: the kit's primary button, square. */
 .rv-big { width: var(--control-h); padding: 0; font-size: var(--fs-4); flex: none; }
 .rv-transport input[type="range"] { flex: 1 1 0; min-width: 0; }
 .rv-transport > .sh-btn { flex: none; }
 .rv-time { color: var(--text-1); font-size: var(--fs-5); line-height: var(--lh-5); font-weight: var(--w-2); white-space: nowrap; flex: none; }
-@media (max-width: 899px) {
+@media ${PHONE} {
   .rv-transport { gap: var(--s-2); }
   .rv-time-rest { display: none; }
 }
@@ -107,7 +118,9 @@ a.rv-card:hover { background: var(--surface-2); }
   position: fixed; inset: 0; background: var(--backdrop-deep); display: grid; place-items: center;
   z-index: 20; padding: var(--s-4); cursor: zoom-out;
 }
+.rv-lightbox { margin: 0; grid-template-rows: minmax(0, 1fr) auto; gap: var(--s-2); }
 .rv-lightbox img { max-width: 100%; max-height: 100%; }
+.rv-lightbox figcaption { color: var(--text-2); font-size: var(--fs-2); }
 .rv-note {
   background: var(--surface-1); padding: var(--s-3) var(--s-4); font-size: var(--fs-3); line-height: var(--lh-3);
   min-width: 0; overflow-wrap: anywhere;
@@ -133,6 +146,10 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-pending .rv-row { padding: var(--s-2) var(--s-3); justify-content: space-between; }
 .rv-option .rv-body { display: flex; flex-direction: column; gap: var(--s-2); }
 .rv-take { border-top: var(--border); padding-top: var(--s-2); display: flex; flex-direction: column; gap: var(--s-2); }
+/* The row whose inspector is open (design language §5, List row; SU-13): its left edge in the
+   accent, on Choices' variant rows and a Set's version cards alike (Project's tiles below). */
+:is(.rv-take, .rv-card)[data-selected="true"] { box-shadow: inset 2px 0 var(--accent); }
+.rv-take { padding-left: var(--s-2); }
 /* The choices as a list (design language §6, Choices): each point a group across the column, each variant one row, its name and line at the start and its hear buttons and verbs at the end (wrapping there, the name keeping at least 10rem or half the row). */
 .rv-list { display: flex; flex-direction: column; gap: var(--s-3); }
 .rv-list .rv-take { display: grid; grid-template-columns: minmax(min(10rem, 50%), 1fr) minmax(0, auto); column-gap: var(--s-3); row-gap: var(--s-1); align-items: center; }
@@ -168,7 +185,9 @@ a.rv-card:hover { background: var(--surface-2); }
 .pj-film-head .sh-btn { position: relative; min-height: var(--control-h); }
 .pj-film-head .sh-btn::before { content: ''; position: absolute; left: 0; right: 0;
   top: min(0px, calc((var(--control-h) - var(--hit)) / 2)); bottom: min(0px, calc((var(--control-h) - var(--hit)) / 2)); }
-.pj-film-length, .pj-film-counts { color: var(--text-2); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
+.pj-film-length, .pj-film-counts, .rv-film-counts { color: var(--text-2); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
+/* A Films card's band sits between the film's name and its counts. */
+.rv-film-card .pj-band { margin: var(--s-2) 0; }
 /* A segment a scene in its hue, its state a foot of the state's colour, a dot when it has findings. */
 .pj-band { display: flex; gap: 1px; height: calc(var(--s-2) + 2px); margin: var(--s-2) 0 var(--s-3); }
 .pj-band span { position: relative; flex-basis: 0; min-width: 0; background: var(--hue); }
@@ -191,12 +210,12 @@ a.rv-card:hover { background: var(--surface-2); }
 .pj-still { width: 100%; height: 100%; }
 .pj-still canvas { display: block; width: 100%; height: 100%; object-fit: cover; }
 .rv-scene { min-width: 0; cursor: pointer; }
-@media (min-width: 900px) {
+@media ${WIDE} {
   .pj-dock { margin: calc(-1 * var(--s-4)) calc(-1 * var(--gutter)) var(--s-4); }
   .pj-scenes { grid-auto-flow: column; grid-auto-columns: 13.5rem; justify-content: start;
     overflow-x: auto; padding-bottom: var(--s-1); }
 }
-@media (max-width: 899px) {
+@media ${PHONE} {
   .pj-act, .pj-loose { padding-bottom: 0; }
   .pj-scenes { gap: 0; margin: 0 calc(-1 * var(--gutter)); }
   .pj-scenes .sc-card[data-size="tile"] { padding: var(--s-2) var(--gutter); border-width: 0 0 1px; border-radius: 0;
@@ -204,8 +223,11 @@ a.rv-card:hover { background: var(--surface-2); }
   .pj-scenes .sc-card[data-size="tile"][data-selected="true"] { box-shadow: inset 2px 0 var(--accent); }
 }
 .rv-tag[data-state="stale"] { color: var(--state-stale); }
-.rv-writes { background: var(--surface-1); border: var(--border); border-radius: var(--r-2); padding: var(--s-2) var(--s-3); margin-bottom: var(--s-3); }
-.rv-writes { display: flex; flex-wrap: wrap; gap: var(--s-2); align-items: center; }
+.rv-choices { display: contents; }
+/* The kinds strip: one row of tabs (scrolling sideways on a phone). */
+.rv-kinds { display: flex; gap: var(--s-1); margin-top: var(--s-3); overflow-x: auto; }
+.rv-kinds .sh-btn { flex: none; }
+.rv-kinds .rv-count { color: var(--text-3); font-variant-numeric: tabular-nums; }
 .rv-group + .rv-group { margin-top: var(--s-4); }
 .rv-group h3 { display: flex; gap: var(--s-2); align-items: baseline; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-2); }
 .rv-at { font: inherit; font-variant-numeric: tabular-nums; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }
@@ -232,7 +254,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .rv-cap > a.rv-hint { display: inline-flex; align-items: center; justify-content: center; min-height: var(--hit); min-width: var(--hit); }
 .rv-row:has(> .lab-named) { min-height: var(--hit); }
 .rv-at, .rv-plays .rv-inline-link { display: inline-flex; align-items: center; min-height: var(--hit); vertical-align: middle; }
-@media (max-width: 600px) {
+@media ${PHONE} {
   .rv-main { padding: var(--s-3) var(--gutter) var(--s-8); }
   .rv-cap { flex-wrap: wrap; }
   .rv-tag { white-space: normal; overflow-wrap: anywhere; }

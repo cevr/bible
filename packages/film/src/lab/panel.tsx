@@ -1,7 +1,7 @@
 // The Lab's page as the server and the browser both render it (PA-12): the
 // lab's place as the URL holds it, the mode the panel shows, and the panel
-// itself, with the mode tray, the pen and the Note frame button, each
-// tool's section with its name, and the film's notes (`notes/list.tsx`).
+// itself, with the mode tray, each tool's section with its name, and the
+// film's notes under the pen and the Note frame button (`notes/list.tsx`).
 // None of it reads the film's code, which the server never imports: the
 // tools' own controls (the cue inspector, the knobs, the findings, the
 // onion and the speed, the compare's modes, the recorder) need the staged
@@ -133,8 +133,8 @@ const Section = (
 
 /**
  * The side panel: while a reload waits on the owner's unsaved work, what it
- * waits for; the header (the mode tray, the pen, Note frame); each tool's
- * section, filled by the staged lab; the notes.
+ * waits for; the header (the mode tray); each tool's section, filled by the
+ * staged lab; the notes, under the pen and Note frame.
  */
 const Panel = (props: {
   readonly slots: (name: SlotName) => (el: HTMLElement) => void;
@@ -153,8 +153,6 @@ const Panel = (props: {
       </Show>
       <header>
         <ModeTray />
-        <Pen hub={page.hub} />
-        <Frame hub={page.hub} />
       </header>
       <Section class="lab-edit" mode="edit" title="Edit">
         {at('edit')}
@@ -171,6 +169,11 @@ const Panel = (props: {
         {at('compare')}
       </Section>
       <div class="lab-notes-box" data-mode-of="note">
+        {/* Note's own: `n` and ⌘K note the frame in any mode, and a note begun shows Note. */}
+        <header class="lab-note-head">
+          <Pen hub={page.hub} />
+          <Frame hub={page.hub} />
+        </header>
         {at('compose')}
         <List film={page.name} hub={page.hub} />
       </div>

@@ -12,7 +12,15 @@
 import { Effect, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
-import { DESK, PHONE, hold, json, openServed, route } from '../../src/lab/fixtures/harness.ts';
+import {
+  DESK,
+  PHONE,
+  hold,
+  json,
+  openServed,
+  route,
+  servedTitle,
+} from '../../src/lab/fixtures/harness.ts';
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { targetBoxes } from '../../src/lab/fixtures/touch-targets.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
@@ -109,11 +117,11 @@ const literal = Schema.encodeSync(Schema.fromJsonString(Schema.String));
  * film is staged (on a desk, beside where the film lands; on a phone, under
  * it, so unseen until it lands), and the targets its first paint shows, by
  * `NAMING`: the six pages of the shell; the panel's modes on a desk, none on
- * a phone; and the acts (the film switcher, Go to, View, and on a desk the
- * pen and note-this-frame).
+ * a phone; and the acts (the film switcher, Go to, View: the pen and
+ * note-this-frame are Note mode's, and the panel opens in Edit).
  */
 const LAB_WINDOWS = [
-  { where: 'a desk', viewport: DESK, first: 'visible', shows: [6, LAB_MODES.length, 5] },
+  { where: 'a desk', viewport: DESK, first: 'visible', shows: [6, LAB_MODES.length, 3] },
   { where: 'a phone', viewport: PHONE, first: 'hidden', shows: [6, 0, 3] },
 ] as const;
 
@@ -133,6 +141,8 @@ describe("a film's pages served as the lab renders them", () => {
           expect(html).toMatch(new RegExp(`data-page="${part}"[^>]*data-active="true"`));
           expect(html).toContain(`Opening ${PROBE}…`);
           for (const film of FILM_PARTS) expect(html).not.toContain(film);
+          // Titled as the shell titles it, before it hydrates (SU-9).
+          expect(yield* servedTitle(page, documents[0]?.html ?? '')).toBe(`${name} · ${PROBE}`);
           // The film, staged in the browser, in the hydrated shell's body.
           yield* waitFor(page, ready);
           yield* until(page, `document.querySelector('.stage canvas') !== null`);

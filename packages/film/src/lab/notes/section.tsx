@@ -25,9 +25,10 @@ const DRAG_PX = 6;
 export const Section = () => {
   const { state, actions } = useNotes();
   const page = useLabPage();
-  // A note begun (Note frame, its key, a pin) shows the Note mode, where it is written.
-  createEffect(state.composerOpen, (shown) => {
-    if (shown) page.showMode('note');
+  // A note begun (Note frame, its key, a pin) shows the Note mode, where it is written: once
+  // it waits for its words, so the strip folding in Note never moves the frame under a drag.
+  createEffect(state.composerTyping, (typing) => {
+    if (typing) page.showMode('note');
   });
   let area = Option.none<HTMLTextAreaElement>();
   const open = () => state.composerOpen();

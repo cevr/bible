@@ -719,7 +719,8 @@ waiting to be written for the entry left dropped. A bare `#<seconds>` (an old li
 A film's Scenes (`lab/scenes/`) is its **tape**: the whole film end to end
 as stills, wrapped like lines of text (a still every 5 s; a line a minute
 on a laptop, so the whole film is one screen, and half a minute on a phone;
-⌘+ and ⌘− step it between 2.5, 5 and 10 s, kept in this browser). A tape is
+⌘+ and ⌘− step it between 2.5, 5 and 10 s, kept in this browser; Finer
+and Coarser tape name the step they go to, and ⋯ Info the one it is). A tape is
 an editor's contact sheet read in film order: each still is the frame at
 the middle of its step, drawn from the code as it stands by the one source
 of stills (`player/stills.ts`, the lines on screen first; with captions
@@ -727,10 +728,11 @@ while the preview's are on, the tape drawn again as its toggle turns), each **cu
 thin rule at its scene's exact time carrying the scene's name, and a band
 under each line says each scene's state. Over it the **tape bar** holds the
 acts ruler, the preview's track (in two lanes: the scenes' names along its
-top, its ticks below them, so no name runs over a tick), the legend (scenes
-out of date, not rendered and approved; the check's findings and warnings
-on scenes, each line once, and the film's own lines, counted as Project and
-Choices count the check, `lab/scenes/marks.ts` `checkCount`) and Follow (the
+top, its ticks below them, so no name runs over a tick), the legend (a
+colour key: scenes out of date, not rendered and approved; the check's
+findings on scenes by level, errors and warnings, and the film's own lines;
+each with its count in ⋯ Info, each line once, adding up to Project's count
+of findings, `lab/scenes/marks.ts` `checkCount`) and Follow (the
 playhead's line stays in sight while it plays; a scrub turns it off). A
 cut's name takes only its room: shortened with an ellipsis, set before the
 row's last rule where it fits there, or dropped. A tap on a still selects its scene (the path; Back
@@ -1075,8 +1077,9 @@ its end, `untilOffset`, a point's y or a number; Shift ten), and their
 write's receipt says what moved, before → after; S turns the viewer's Snap
 off or on (`film-studio.snap`; Shift flips it for one move, `placesFreely`),
 the strip's Snap toggle its touch path; `.` and `,` go to the next or
-previous cue edge on the strip, Tab and ⇧Tab select the next or previous cue
-(a focused button or link keeps Tab for focus). The inspector's footer
+previous cue edge on the strip, Tab and ⇧Tab select the next or previous cue,
+the playhead put at its start first as ⌘K's Go to does, so the strip (8 s of a
+long scene on a phone) shows it (a focused button or link keeps Tab for focus). The inspector's footer
 (`Hint`) names the keys of the commands about the selection and its
 gestures, only while the pointer or focus is in the inspector, never on a
 touch screen (`pointer: coarse`), where the long-press menu is the hint.
@@ -1216,7 +1219,11 @@ so a key rebound in `?` reads as rebound.
 - **Timeline dock**: the lab's foot under the picture: the film's timeline
   (its scenes end to end, the playhead) and the cue strip (the scene under
   the playhead, zoomed: its words, a lane per cue). Not a dock of tabs: a
-  mode's tools live in the inspector.
+  mode's tools live in the inspector. The lanes and Snap are Edit's: in
+  Note and Record, and on a phone in every mode but Edit, the strip folds
+  to its words, so the mode's own controls start on the first screen. A
+  note begun shows Note once its mark is lifted, so the frame never moves
+  under the drag.
 - **Mode tray**: the segmented toolbar at the head of the lab's inspector,
   Edit · Note · Motion · Compare · Record (`lab/mode.ts`): one pressed, and
   the inspector shows that tool only. Kept per viewer in the browser; a
@@ -1357,13 +1364,19 @@ joins the `Layer.mergeAll` in `labHandler`, and the page calls
 
 **The Studio** (`lab/studio/`, Solid 2 + effect-machine) is the lab's panel
 for recording the final voiceover beat by beat. It lists every beat with a
-line and where its take stands (`recorded`, `staging`, `stale: <why>`, with
-the counts), reads the selected beat as a teleprompter (the sheet's lines, a
+line, each with a dot in its take's state colour and shape (filled, a ring,
+half filled; `recorded`, `scratch` for
+a staging take, `stale: <why>`: the word in the beat's name and title, the
+counts in the list's, the selected beat's under the list), then Record and
+the meter over the teleprompter, so R is on a phone's first screen; it
+reads the selected beat as a teleprompter (the sheet's lines, a
 quotation set apart with who said it, marks stripped), and records it:
 
 - **Capture** (`capture-browser.ts`, behind the `Capture` service in
   `capture.ts`): `getUserMedia` with echo cancelling, noise suppression and
-  gain control off, one channel, the microphone picked (`enumerateDevices`;
+  gain control off, one channel, the microphone picked from ⌘K (`Choose
+microphone: …`, `micCommands`; named in the panel when it is not the
+  default; `enumerateDevices`;
   the choice is remembered in this browser as `film-lab-mic`, a `keptText` in
   `ViewerStore`, `browser/storage.ts`), into an
   `AudioWorklet` (`worklet.ts`) on an `AudioContext` at the device's own
@@ -1410,7 +1423,7 @@ ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and 
 The provider (`context.tsx`) builds the Studio's own runtime (the stage, the
 studio's routes, the capture), so the shell knows nothing of it, and hands
 the section derived values and actions (`view.ts`: the controls each state
-offers with their keys, the status line, the meter, the counts), never the
+offers with their keys, the status line, the meter, the badges), never the
 machine's states. The beat is the link's (`beatAt`, `lab/place.ts`): the
 one `?beat=` picks, else the path's scene (a beat is a scene's take), so
 Record opens where the lab is and Copy link cites the beat. A beat picked is
@@ -1538,7 +1551,9 @@ are removed after the workers exit; a direct `bun test` builds its own scripts.
 **Notes** (`lab/notes/`, Solid 2): on the canvas a
 click pins a point, a drag draws a box, and the Pen toggle draws freehand
 ink; `n` or the **Note frame** button beside the Pen (its touch path)
-notes the whole frame, Escape drops the draft. The composer shows
+notes the whole frame, Escape drops the draft. The Pen and Note frame are
+Note mode's, over its notes; `n` and ⌘K Note this frame work in any mode,
+and the note begun shows Note. The composer shows
 the scene, time, frame and the nearest cue and mark, and pauses playback.
 A note written with a selection carries it as a **scope chip**
 (`one · rise · t 0.5–1.0 s`: the scene, the cue selected and the in and out
@@ -1680,7 +1695,10 @@ otherwise (a line that does not decode, a crash, 30 s gone) is itself one
 error finding, `FreshProcessFailed`, in its words.
 
 **The editor** (`lab/editor/`, Solid 2): a strip under the timeline shows the
-current scene zoomed, its words and marks, and one row per cue. Drag a cue's
+current scene zoomed, its words and marks, and one row per cue. On a phone a
+scene longer than 8 s shows the 8 s around the playhead, held inside the scene
+(`stripWindow`, `lab/editor/grip.ts`), so a cue is a finger wide; a scrub keeps
+the window it began in, and a cue's bar is clipped to it. Drag a cue's
 body to move its offset, its left edge to move its start (offset and dur),
 its right edge to move its end (dur): an edge is the bar's outer 6 px, 14 px
 under a finger (`edgeFor`, `lab/editor/grip.ts`). A finger has no
@@ -1995,7 +2013,9 @@ packet by path. The judge writes no choice. It logs `judge.drawn label= stills=`
 The review is the lab's home page (`/`, served by `film lab`): every render
 under the review's roots, compared in sync, and each film's options, picked
 where they are heard. Each film on it is a card that opens its Scenes (its
-other parts in its menu, `filmCommands`); every move between parts is the
+other parts in its menu, `filmCommands`), its state as its Project's head
+says it: the state band and `0/20 approved · 20 out of date` (`filmCounts`),
+from the film's project read with the page; every move between parts is the
 shell's page bar (Films · Scenes · Lab · Choices · Project · Play), the film
 switcher or a command, never a link in a page's text. It is the lab's
 server's (`tools/review.ts`, `review-http.ts`, `choices.ts`,
@@ -2232,14 +2252,21 @@ and links), the index, the films, the quality (Proxy or Original) and the
 lightbox. The header is the studio's shell (`PageShell`,
 `lab/page-shell.tsx`): Films, the film switcher, the page bar, a drill-down
 crumb and Go to… (⌘K: Go to finds a folder, a set, or a film's choices or
-project by name, `destinationsOf`; home lists every folder, with no filter
-field). A card in focus on Choices is its `?point=`, and the sheet open on
+project by name, `destinationsOf`, and on a film's choices each choice
+point, `pointDestinations`; home lists every folder, with no filter
+field). Choices opens with a kinds strip once it shows two kinds (Score,
+Looks, Sounds, Voice, Levels, each with its count): a tap goes to the kind's
+first point as Go to does. Going to a point is one step Back walks: its
+card in focus (`?point=`, a Show only that hides it cleared), in view, and
+the keyboard on its first control, so the next audition is its own. A card in focus on Choices is its `?point=`, and the sheet open on
 Choices or on a set is its `?inspect=` (`useInspectorPlace`), so a link
 opens it and Back closes it.
 Refresh (`review.refresh`) and the copy played (`review.quality`: Play the
 proxies, Play the originals) are the page's commands, in ⌘K and the page's
 long-press menu; a proxy still being made still offers its original in
-place. On a film's choices and its project, Show only… (`review.only-stale`,
+place. A Folder's loose video shows its picture and name; its file is its
+long-press menu's (`review.file-open` Open the file, Copy link to the file,
+`review.file-info` Info: its size, age and proxy; UR-17). On a film's choices and its project, Show only… (`review.only-stale`,
 `review.only-unapproved`, `review.only-comments`, and `review.only-all` to
 show every point again; AA-14) keeps the points in one state: out of date (a
 stale variant), awaiting approval (its picked variant, or any while none is
@@ -2275,10 +2302,11 @@ the comment box (both in the inspector); a level point's knob is a slider, writt
 one `POST …/choices/say`, answered by the film's choices with it recorded,
 which the page shows as they are. Undo and Redo are the page's commands
 (⌘Z, ⇧⌘Z, the receipt's button, the page's menu), naming what they would
-undo or redo (`Undo score play brass`); the film's static check is a count chip beside
-the page's writes, the one the write answered, and after a pick or a knob
-`film check --sound` runs (`GET …/choices/check`): its receipt says it is
-running, then its findings count, as a second chip. A chip opens the
+undo or redo (`Undo score play brass`); the film's static check is the one
+the write answered, and after a pick or a knob `film check --sound` runs
+(`GET …/choices/check`): its receipt says it is running, then its findings
+count. No chip counts them at rest on Choices (Project's film panel has
+them): Show findings (⌘K, the page's long-press menu) opens the
 **Findings** sheet (`options/findings.tsx`, `review.findings`): each
 check's findings grouped, a timed one with its timecode, which seeks the
 picture there; F and ⇧F walk the timed findings forward and back. A write is
@@ -2294,7 +2322,7 @@ sheet is its `?point=`, a part's render point, `render:scenes:<id>`,
 `useInspectorPlace`, so a link opens it and Back closes it; an old project
 link to a choice's card goes on to that card on Choices, `legacyPlace`) is
 the film by its address tree, laid out as a DAW's arrangement: the film's
-panel (its name, length, `n/N current · n/N approved`, the check's findings
+panel (its name, length, `n/N approved · n out of date · n not rendered`, the check's findings
 as a count chip, a state band of a segment a scene, and its picture), then
 each act a panel (its name, scenes, length and approvals) holding its
 scenes, then the scenes in no act. No choice's card is on it: Choices holds
@@ -2331,8 +2359,8 @@ so it takes back exactly the approvals it gave (`Project.gave`, each
 `Approval.op`), never one given since, and says what it took
 (`Project.took`). The film's transport is docked (`.sh-dock`: over the tab
 bar on a phone, under the header on a laptop); while the film has no
-render, the dock says "No film render yet: render the scenes to play the
-cut". Each say answers the fresh `ProjectView`, which the page
+render, the dock says "No render of the whole film yet" (its scenes'
+renders may all be there: what is missing is the film's). Each say answers the fresh `ProjectView`, which the page
 shows in place (a playing clip plays on, a half-typed comment stays); a
 source write reads it again (`data-reading` on the film while it does). The
 answers land in any order, so the page shows the newest asked

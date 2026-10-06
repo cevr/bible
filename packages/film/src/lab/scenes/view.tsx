@@ -1,7 +1,7 @@
 // A film's Scenes (`/films/<film>/scenes[/<scene>]`, design language §6):
 // the whole film end to end as stills, wrapped like lines of text (the tape,
 // `tape.ts`), under the tape bar (the acts ruler, the preview's track of
-// scene bands, ticks and playhead, then the legend, the step and Follow).
+// scene bands, ticks and playhead, then the legend's colour key and Follow).
 // Each still is the frame at the middle of its step, drawn from the code as
 // it stands by the one source of stills (`player/stills.ts`), the lines on
 // screen first, with captions while the preview's captions are on (its
@@ -25,7 +25,7 @@
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
-import { Array as Arr, Boolean as Bool, Effect, Match, Option } from 'effect';
+import { Array as Arr, Boolean as Bool, Effect, Match, Option, Result } from 'effect';
 import { createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js';
 import { type Host, addressOn, monotonicMs, onTraverse } from '../../browser/host.ts';
 import { Frames } from '../../browser/frames.ts';
@@ -51,8 +51,8 @@ import { PHONE, useMatches } from '../viewport.ts';
 import { pressed } from '../review/format.ts';
 import { Sheet } from '../review/inspector.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
-import { SceneCard, SceneFindings, sceneHue } from './card.tsx';
-import { type Said, type ScenesRead, scenesCalls } from './data.ts';
+import { SceneCard, SceneFindings, SceneState, sceneHue } from './card.tsx';
+import { type Said, type ScenesRead, findingsOf, scenesCalls } from './data.ts';
 import { bandState, legendOf, marksOf } from './marks.ts';
 import { scenesPlaceOf, withScene } from './place.ts';
 import {
@@ -121,7 +121,7 @@ const gaveText = (after: ProjectView): string =>
     },
   );
 
-/** What a step reads as on the legend: `5 s a still · a line a minute`. */
+/** What a step reads as in Info: `5 s a still · a line a minute`. */
 const stepText = (step: number, perRow: number) => {
   const line = step * perRow;
   const lineWords = Bool.match(line === 60, {
@@ -230,11 +230,11 @@ export const ScenesView = (props: ScenesViewProps) => {
 
   // What the lab knows of each scene: read once, and again after each say.
   const [read, setRead] = createSignal<ScenesRead>(
-    { project: Option.none(), findings: [] },
+    { project: Option.none(), check: Result.succeed([]) },
     fromHost,
   );
   Effect.runFork(Effect.tap(calls.read, (r) => Effect.sync(() => setRead(r))));
-  const marks = createMemo(() => marksOf(read().project, read().findings));
+  const marks = createMemo(() => marksOf(read().project, findingsOf(read())));
 
   // The tape: its step kept per viewer, its line length the window's.
   const step = useAtomValue(() => keptStep);
@@ -435,6 +435,8 @@ export const ScenesView = (props: ScenesViewProps) => {
     {
       id: 'scenes.finer',
       label: 'Finer tape',
+      // The step it goes to, as the view menu (⋯) names it: the tape's step is said nowhere at rest.
+      labelIn: () => `Finer tape: ${stepFrom(stepOf(step()), false)} s a still`,
       group: 'View',
       keys: ['mod+='],
       touch: 'the view menu (⋯)',
@@ -444,6 +446,7 @@ export const ScenesView = (props: ScenesViewProps) => {
     {
       id: 'scenes.coarser',
       label: 'Coarser tape',
+      labelIn: () => `Coarser tape: ${stepFrom(stepOf(step()), true)} s a still`,
       group: 'View',
       keys: ['mod+-'],
       touch: 'the view menu (⋯)',
@@ -480,7 +483,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   ];
   onCleanup(props.hub.commands.register(...commands));
 
-  /** The tape bar: the acts ruler over the preview's track, the legend, the step and Follow. */
+  /** The tape bar: the acts ruler over the preview's track, the legend and Follow. */
   const acts = createMemo(() =>
     Option.match(read().project, {
       onNone: () => [],
@@ -727,6 +730,7 @@ export const ScenesView = (props: ScenesViewProps) => {
             </>
           }
         />
+        <SceneState marks={marks()(scene)} />
         <SceneFindings marks={marks()(scene)} />
         <Show when={!short && Option.isSome(read().project)}>
           <section class="sc-section" data-section="comment">
@@ -775,7 +779,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   /** The selected scene (the path's), as the sheet's footer and its target name it. */
   const focused = () => Option.getOrElse(chosen(), () => '');
 
-  const legend = createMemo(() => legendOf(order, marks(), read().findings));
+  const legend = createMemo(() => legendOf(order, marks(), read().check));
   // The page scrolls as a whole, the tape bar and the card held under the header.
   document.body.classList.add('scenes');
   onCleanup(() => document.body.classList.remove('scenes'));
@@ -807,22 +811,25 @@ export const ScenesView = (props: ScenesViewProps) => {
             </div>
           </Show>
           <div class="sc-track" ref={(el: HTMLDivElement) => el.append(player.bar)} />
-          {/* One row, whatever the film's marks: the counts scroll in their own strip, the step gives way first. */}
+          {/* One row, whatever the film's marks: the colour key scrolls in its own strip.
+              Its counts and the tape's step are Info's (⋯). */}
           <div class="sc-legend">
             <span class="sc-legend-items">
               <For each={legend()} keyed={(l) => l.mark}>
                 {(l) => (
-                  <span class="sc-legend-item" data-mark={l().mark} data-state={l().state}>
+                  <span
+                    class="sc-legend-item"
+                    data-mark={l().mark}
+                    data-state={l().state}
+                    title={l().why}
+                  >
                     <i class="sc-dot" data-state={l().state} />
-                    {l().text}
+                    {l().word}
                   </span>
                 )}
               </For>
             </span>
             <span class="sc-spacer" />
-            <span class="sc-step" data-role="step">
-              {stepText(tape().step, tape().perRow)}
-            </span>
             <button
               type="button"
               class="sh-btn sc-follow"
@@ -841,6 +848,8 @@ export const ScenesView = (props: ScenesViewProps) => {
           class="sc-tape"
           data-role="tape"
           data-stills={String(tape().rows.reduce((n, r) => n + r.stills.length, 0))}
+          data-step={String(tape().step)}
+          data-line={String(tape().step * tape().perRow)}
           data-first-still={Option.getOrElse(
             Option.map(firstStill(), (ms) => String(Math.round(ms))),
             () => '',
@@ -914,6 +923,14 @@ export const ScenesView = (props: ScenesViewProps) => {
               <dd>{timecode(film.duration, film.fps)}</dd>
               <dt>scenes</dt>
               <dd>{scenes.length}</dd>
+              <Show when={legend().length > 0}>
+                <dt>marks</dt>
+                <dd data-fact="marks">
+                  {legend()
+                    .map((l) => l.text)
+                    .join(' · ')}
+                </dd>
+              </Show>
               <dt>stills</dt>
               <dd data-fact="stills">
                 {`${tape().rows.reduce((n, r) => n + r.stills.length, 0)} · ${stepText(tape().step, tape().perRow)}`}

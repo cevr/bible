@@ -11,7 +11,7 @@ import { RegistryProvider, useAtomRefresh, useAtomSet, useAtomValue } from '@bib
 import { Place, UrlState } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, isServer } from '@solidjs/web';
-import { Clock, Effect, Equal, Layer, Option, Schema } from 'effect';
+import { Array as Arr, Clock, Effect, Equal, Layer, Option, Schema } from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -28,7 +28,7 @@ import {
   untrack,
   useContext,
 } from 'solid-js';
-import type { SeenPoint } from '../../core/choice.ts';
+import { type SeenPoint, seenVariants } from '../../core/choice.ts';
 import type { DrawStills } from './options/stills.tsx';
 import { ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { Viewport } from '../../browser/viewport.ts';
@@ -40,7 +40,7 @@ import {
   hostLayer,
   onTraverse,
 } from '../../browser/host.ts';
-import { type Command, type CommandId, quietly, said } from '../../command/command.ts';
+import { type Command, type CommandId, quiet, quietly, said } from '../../command/command.ts';
 import { goToCommands } from '../../command/go.ts';
 import { registerWhile } from '../command/changes.ts';
 import { type Context, selected } from '../../command/context.ts';
@@ -51,9 +51,9 @@ import { served } from '../api.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
 import { ReviewApi, reviewApiLayer } from './api.ts';
-import type { Quality } from './format.ts';
+import { type Quality, fileInfoText } from './format.ts';
 import { OptionsApi, optionsApiLayer } from './options/api.ts';
-import { Places, legacyPlace } from '../../core/api.ts';
+import { Places, legacyPlace, pageHref, reviewFileUrl } from '../../core/api.ts';
 import { onChoicesTab } from '../../core/point.ts';
 import {
   type SyncActor,
@@ -61,6 +61,9 @@ import {
   type SyncState,
   ViewEvent,
   ViewState,
+  modesOf,
+  nextLayout,
+  nextModeView,
   otherOf,
   playsIn,
   spawnSync,
@@ -76,6 +79,7 @@ import {
   keptTime,
   placeOf,
   queryOfView,
+  shownQuery,
   viewOf,
 } from './place.ts';
 import { PlayerKey, type SyncDriver, playerCommands, makeSync, playerEvent } from './sync.ts';
@@ -91,7 +95,13 @@ interface ReviewStateValue {
   readonly films: Accessor<AsyncResult.AsyncResult<ReviewFilms, LabFailure>>;
   readonly quality: Accessor<Quality>;
   /** The image the lightbox shows, when it is open. */
-  readonly lightbox: Accessor<Option.Option<string>>;
+  readonly lightbox: Accessor<Option.Option<Shown>>;
+}
+
+/** An image the lightbox shows: its source, and the caption under it (what its card no longer says, UR-18). */
+export interface Shown {
+  readonly src: string;
+  readonly caption: string;
 }
 
 interface ReviewActions {
@@ -101,7 +111,7 @@ interface ReviewActions {
   readonly refresh: () => void;
   readonly quality: (quality: Quality) => void;
   /** Open the lightbox on an image, or close it. */
-  readonly show: (src: Option.Option<string>) => void;
+  readonly show: (shown: Option.Option<Shown>) => void;
 }
 
 interface ReviewMeta {
@@ -250,7 +260,7 @@ export const Root = (
 
   const address = addressOn(props.host);
 
-  const [lightbox, setLightbox] = createSignal(Option.none<string>());
+  const [lightbox, setLightbox] = createSignal(Option.none<Shown>());
   // Escape closes the lightbox while it is open, from a field too.
   onCleanup(
     props.hub.commands.register({
@@ -326,7 +336,12 @@ export const Root = (
       },
     };
     onCleanup(
-      props.hub.commands.register(...openCommands(value.actions.go, place), ...pageCommands(value)),
+      props.hub.commands.register(
+        ...openCommands(value.actions.go, place),
+        ...versionCommands(() => AsyncResult.value(index()), address.go),
+        ...fileCommands(() => AsyncResult.value(index()), value.meta.now),
+        ...pageCommands(value),
+      ),
     );
     // Every folder, set and film's page is a place ⌘K goes to by its name.
     registerWhile(props.hub, () =>
@@ -398,6 +413,98 @@ const openCommands = (
         (p) => () => go(ReviewPlace.Film({ film: p.film, point: p.point })),
       ),
     ),
+  ];
+};
+
+/** How many of a set's versions its card's menu names: the first nine. */
+const NAMED_VERSIONS = 9;
+
+/**
+ * A set card's versions, by name, in its long-press menu (UR-12, UR2-6): the
+ * card shows its strip and its title, and Open version n · <label> opens
+ * the set at that version's sheet.
+ */
+const versionCommands = (
+  index: Accessor<Option.Option<ReviewIndex>>,
+  open: (href: string) => void,
+): ReadonlyArray<Command> =>
+  Arr.makeBy(NAMED_VERSIONS, (i): Command => {
+    const n = i + 1;
+    const version = (ctx: Context) =>
+      Option.flatMap(selected(ctx, 'Set'), (s) =>
+        index().pipe(
+          Option.flatMap((ix) =>
+            Option.fromUndefinedOr(ix.folders.find((f) => f.ref === s.folder)),
+          ),
+          Option.flatMap((f) => Option.fromUndefinedOr(f.sets.find((x) => x.id === s.point))),
+          Option.flatMap((set) => Option.fromUndefinedOr(seenVariants(set)[i])),
+          Option.map((v) => ({ set: s, version: v })),
+        ),
+      );
+    return {
+      id: `review.open-version-${n}`,
+      label: `Open version ${n}`,
+      labelIn: (ctx) =>
+        Option.match(version(ctx), {
+          onNone: () => `Open version ${n}`,
+          onSome: ({ version: v }) => `Open version ${n} · ${v.label}`,
+        }),
+      group: 'Open',
+      about: ['Set'],
+      touch: `long-press a version stack, then Open version ${n}`,
+      when: (ctx) => Option.isSome(version(ctx)),
+      run: quietly((ctx) => {
+        Option.map(version(ctx), ({ set, version: v }) =>
+          open(pageHref.set(set.folder, set.point, v.id)),
+        );
+      }),
+    };
+  });
+
+/**
+ * A loose video's file, from its long-press menu and ⌘K while it is
+ * selected (UR-17): Open the file in a tab of its own, and Info, saying its
+ * size, its age and its proxy, which the card no longer prints at rest. Copy
+ * link copies the file's own link (`citeOf`).
+ */
+const fileCommands = (
+  index: Accessor<Option.Option<ReviewIndex>>,
+  now: () => number,
+): ReadonlyArray<Command> => {
+  const video = (ctx: Context) =>
+    Option.flatMap(selected(ctx, 'File'), (file) =>
+      Option.flatMap(index(), (ix) =>
+        Option.fromUndefinedOr(ix.folders.flatMap((f) => f.videos).find((v) => v.ref === file.ref)),
+      ),
+    );
+  const about = {
+    group: 'Open',
+    about: ['File'],
+    when: (ctx) => Option.isSome(video(ctx)),
+  } as const satisfies Pick<Command, 'group' | 'about' | 'when'>;
+  return [
+    {
+      id: 'review.file-open',
+      label: 'Open the file',
+      touch: 'long-press a video, then Open the file',
+      ...about,
+      run: quietly((ctx) =>
+        Option.map(video(ctx), (v) => window.open(reviewFileUrl(v.ref), '_blank', 'noreferrer')),
+      ),
+    },
+    {
+      id: 'review.file-info',
+      label: 'Info',
+      touch: 'long-press a video, then Info',
+      ...about,
+      run: (ctx) =>
+        Effect.succeed(
+          Option.match(video(ctx), {
+            onNone: () => quiet,
+            onSome: (v) => said(fileInfoText(v, now())),
+          }),
+        ),
+    },
   ];
 };
 
@@ -518,12 +625,12 @@ const SetBody = (
       ),
     );
   // A link asking for what the set cannot show (a pair on a set of one, an
-  // other it does not hold) shows what `viewOf` makes of it, and the URL is
-  // corrected to say so, in the same entry.
+  // other it does not hold, the old notes) shows what `viewOf` makes of it,
+  // and the URL is corrected to say so, in the same entry.
   createEffect(
     () =>
       Option.map(at(), (v) =>
-        Place.href(Places.set, { ...v, query: { ...v.query, ...queryOfView(view()) } }),
+        Place.href(Places.set, { ...v, query: shownQuery(v.query, view(), first) }),
       ),
     (shown) => {
       Option.map(shown, address.follow);
@@ -548,7 +655,7 @@ const SetBody = (
       ),
     ),
   );
-  // Nothing plays behind the moments, the difference or the notes; a pair (or
+  // Nothing plays behind the moments or the difference; a pair (or
   // its wipe) hears one of its two.
   createEffect(
     () => [view(), sync().audible] as const,
@@ -620,6 +727,37 @@ const SetBody = (
         hearable,
         hear: (id) => sendSync(SyncEvent.HeardChosen({ id })),
       }),
+    ),
+  );
+  // The set's modes and Compare's layouts by key and ⌘K, each the next one
+  // round (UR-21); their touch path the segmented controls (`ViewTabs`).
+  const modes = modesOf(props.set.variants.length);
+  onCleanup(
+    meta.hub.commands.register(
+      {
+        id: 'set.next-mode',
+        label: 'Next mode: All, Compare, Moments',
+        group: 'Review',
+        keys: ['v'],
+        touch: "tap one of the set's modes",
+        when: () => modes.length > 1,
+        run: quietly(() => {
+          sendView(ViewEvent.ViewChosen({ view: nextModeView(viewNameOf(view()), modes) }));
+        }),
+      },
+      {
+        id: 'set.next-layout',
+        label: 'Next Compare layout: side by side, wipe, difference',
+        group: 'Review',
+        keys: ['shift+v'],
+        touch: 'in Compare, tap one of its layouts',
+        when: () => Option.isSome(nextLayout(viewNameOf(view()))),
+        run: quietly(() => {
+          Option.map(nextLayout(viewNameOf(view())), (layout) =>
+            sendView(ViewEvent.ViewChosen({ view: layout })),
+          );
+        }),
+      },
     ),
   );
   onCleanup(

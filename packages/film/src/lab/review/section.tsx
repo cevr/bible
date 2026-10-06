@@ -38,6 +38,7 @@ import type { ReviewFile, ReviewFolder, ReviewIndex, ReviewVideo } from '../../c
 import { timecode } from '../../core/time.ts';
 import {
   Places,
+  ProjectView,
   type Say,
   type SetSayPost,
   pageHref,
@@ -45,12 +46,16 @@ import {
   reviewFrameUrl,
   withdrawSay,
 } from '../../core/api.ts';
+import { served } from '../api.ts';
+import { StateBand } from '../scenes/card.tsx';
+import { filmCounts, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
+import { OptionsApi } from './options/api.ts';
 import { newestAsked } from './asked.ts';
-import { InspectName, Inspector, useInspectorPlace, useThing } from './inspector.tsx';
+import { InspectName, Inspector, useInspected, useInspectorPlace, useThing } from './inspector.tsx';
 import { ApproveButton, Comments, SayBox } from './options/choice.tsx';
 import type { ThingVerb } from './things.ts';
-import { Go, SetProvider, useReview, useSet } from './context.tsx';
+import { Go, SetProvider, type Shown, useReview, useSet } from './context.tsx';
 import {
   agoText,
   approvalText,
@@ -68,12 +73,17 @@ import {
   videoSource,
 } from './format.ts';
 import {
+  LAYOUTS,
+  type Layout,
   Rate,
+  type SetMode,
   SyncEvent,
   type SyncState,
   ViewEvent,
-  ViewName,
   clockParts,
+  modeOf,
+  modeView,
+  modesOf,
   playsIn,
   reachOf,
   runningOf,
@@ -169,25 +179,57 @@ const FolderCard = (props: { readonly folder: ReviewFolder }) => {
   );
 };
 
+/** A heading over its things, shown while it has `count` of them; the count itself is not said at rest (UR-7). */
 const Section = (props: {
   readonly title: string;
   readonly count: number;
   readonly children: JSX.Element;
 }) => (
   <Show when={props.count > 0}>
-    <h2 class="rv-h">
-      {props.title} <small>{props.count}</small>
-    </h2>
+    <h2 class="rv-h">{props.title}</h2>
     {props.children}
   </Show>
 );
 
 /**
+ * A film's state on its card, as its Project's head says it (SU-8): the
+ * state band and `n/N approved · n out of date`, from the film's project,
+ * read for the card (by the server, sent with the page). Its band marks the
+ * renders and approvals; the check's findings are Project's. Nothing while
+ * the project is read or when the film has none.
+ */
+const FilmState = (props: { readonly film: string }) => {
+  const { meta } = useReview();
+  const readAtom = untrack(() =>
+    meta.runtime
+      .atom(OptionsApi.use((api) => api.project(props.film)))
+      .pipe(served(`review.project:${props.film}`, ProjectView)),
+  );
+  const read = useAtomValue(() => readAtom);
+  return (
+    <Show when={Option.getOrUndefined(AsyncResult.value(read()))}>
+      {(view: Accessor<ProjectView>) => (
+        <>
+          <StateBand
+            scenes={view().project.scenes}
+            marks={(scene) => marksOf(Option.some(view()), [])(scene)}
+          />
+          <div class="rv-film-counts" data-role="counts">
+            {filmCounts(view().project.scenes)}
+          </div>
+        </>
+      )}
+    </Show>
+  );
+};
+
+/**
  * The app's films (none when the app has no films), each a card that opens
  * its Scenes, with the stills of the folder its renders sit in when the
- * review holds one; its context menu opens its other parts (`filmCommands`).
- * The page bar and the switcher are the other ways into a film: no card
- * links to a part in its text.
+ * review holds one, and its state (`FilmState`); its context menu opens its other parts (`filmCommands`),
+ * which no line on the card spells out (a gesture is the `?` sheet's). The
+ * switcher is the other way into a film; the page bar shows once one is
+ * chosen.
  */
 const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
   const { state } = useReview();
@@ -222,7 +264,7 @@ const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
                   </Show>
                   <div class="rv-body">
                     <b>{film}</b>
-                    <div class="rv-meta">Scenes · long-press for its other parts</div>
+                    <FilmState film={film} />
                   </div>
                 </a>
               )}
@@ -300,23 +342,38 @@ const Markdown = (props: { readonly file: string }) => {
   );
 };
 
-/** A video in no set: its poster, its captions, and a link to the file itself. */
+/**
+ * A still that opens in the lightbox with its caption (`shown`): a button, so
+ * a tap, a click, Enter and Space all open it, and its name says what opens.
+ */
+const Zoom = (props: { readonly still: string; readonly alt: string; readonly shown: Shown }) => {
+  const { actions } = useReview();
+  return (
+    <button
+      type="button"
+      class="rv-zoom"
+      aria-label={`Open ${props.shown.caption}`}
+      onClick={() => actions.show(Option.some(props.shown))}
+    >
+      <img class="rv-media" loading="lazy" src={props.still} alt={props.alt} />
+    </button>
+  );
+};
+
+/**
+ * A video in no set: its poster, its captions and its name. Its file (Open
+ * the file, Copy link, Info: its size, age and proxy) is its long-press
+ * menu's (UR-17).
+ */
 const LooseVideo = (props: {
   readonly video: ReviewVideo;
   readonly docs: ReadonlyArray<ReviewFile>;
 }) => {
-  const { state, meta } = useReview();
-  const now = meta.now();
+  const { state } = useReview();
   const captions = captionsFor(props.video, props.docs);
-  const ready = () =>
-    Match.value(props.video.phone).pipe(
-      Match.when('ready', () => ' · proxy ready'),
-      Match.when('pending', () => ' · proxy coming'),
-      Match.orElse(() => ''),
-    );
   const source = createMemo(() => videoSource(props.video, state.quality()));
   return (
-    <div class="rv-card rv-tall">
+    <Target of={Selection.cases.File.make({ ref: props.video.ref })} class="rv-card rv-tall">
       <Show when={Option.getOrUndefined(source())} fallback={<ProxyPending video={props.video} />}>
         {(src) => (
           <video
@@ -334,18 +391,16 @@ const LooseVideo = (props: {
       </Show>
       <div class="rv-cap">
         <span class="rv-name">{props.video.name}</span>
-        <span class="rv-tag">
-          {sizeText(props.video.size)} · {agoText(props.video.mtime, now)}
-          {ready()}
-        </span>
-        <a class="rv-hint" href={reviewFileUrl(props.video.ref)} target="_blank" rel="noreferrer">
-          file
-        </a>
       </div>
-    </div>
+    </Target>
   );
 };
 
+/**
+ * A version stack's card: its strip, its title, and how many versions when
+ * there is more than one (UR-15); their names are its long-press menu's
+ * (Open version n, UR-12).
+ */
 const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoint }) => (
   <Target
     of={Selection.cases.Set.make({ folder: props.folder.ref, point: props.set.id })}
@@ -355,8 +410,9 @@ const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoi
         <Strip refs={seenVariants(props.set).map((v) => v.video.ref)} />
         <div class="rv-body">
           <b>{props.set.title}</b>
-          <span class="rv-badge">{versionsText(props.set.variants.length)}</span>
-          <div class="rv-meta">{props.set.variants.map((v) => v.label).join(' · ')}</div>
+          <Show when={props.set.variants.length >= 2}>
+            <span class="rv-badge">{versionsText(props.set.variants.length)}</span>
+          </Show>
         </div>
       </Go>
     )}
@@ -365,7 +421,7 @@ const SetCard = (props: { readonly folder: ReviewFolder; readonly set: ChoicePoi
 
 /** A folder: its sets, then whatever is in none of them. */
 const FolderBody = (props: { readonly folder: ReviewFolder }) => {
-  const { actions, meta } = useReview();
+  const { meta } = useReview();
   const now = meta.now();
   const markdown = props.folder.docs.filter(isMarkdown);
   const other = props.folder.docs.filter((d) => !isMarkdown(d) && !d.name.endsWith('.vtt'));
@@ -391,17 +447,15 @@ const FolderBody = (props: { readonly folder: ReviewFolder }) => {
           <For each={props.folder.images}>
             {(image) => (
               <div class="rv-card">
-                <img
-                  class="rv-media rv-zoom"
-                  loading="lazy"
-                  src={reviewFileUrl(image.ref)}
+                {/* Its name and age are the lightbox's caption (UR-18). */}
+                <Zoom
+                  still={reviewFileUrl(image.ref)}
                   alt={image.name}
-                  onClick={() => actions.show(Option.some(reviewFileUrl(image.ref)))}
+                  shown={{
+                    src: reviewFileUrl(image.ref),
+                    caption: `${image.name} · ${agoText(image.mtime, now)}`,
+                  }}
                 />
-                <div class="rv-cap">
-                  <span class="rv-name">{image.name}</span>
-                  <span class="rv-tag">{agoText(image.mtime, now)}</span>
-                </div>
               </div>
             )}
           </For>
@@ -492,39 +546,59 @@ export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
   );
 };
 
-const VIEW_TITLES = {
+const MODE_TITLES = {
   all: 'All',
+  compare: 'Compare',
+  moments: 'Moments',
+} as const satisfies Record<SetMode, string>;
+
+/** Compare's layouts (Frame.io's comparison viewer): side by side, wiped, the difference. */
+const LAYOUT_TITLES = {
   pair: 'Side by side',
   wipe: 'Wipe',
-  moments: 'Moments',
   diff: 'Difference',
-  notes: 'Notes',
-} as const satisfies Record<ViewName, string>;
+} as const satisfies Record<Layout, string>;
 
-/** The views of the first against one other: a stack of one has none of them. */
-const PAIRED: ReadonlyArray<ViewName> = ['pair', 'wipe', 'diff'];
-
-/** All, side by side, its wipe (a stack of two or more), the moments, the difference (two or more), the notes. */
+/**
+ * The set's modes as one segmented control (UR-21, UR2-5), and in Compare
+ * its layouts as a second: the touch path of `v` and `⇧V` (`viewCommands`).
+ */
 const ViewTabs = () => {
   const { set, view, send } = useSet();
-  const offered = ViewName.literals.filter(
-    (name) => !PAIRED.includes(name) || set.variants.length >= 2,
-  );
+  const name = () => viewNameOf(view());
   return (
-    <div class="sh-seg rv-views">
-      <For each={offered}>
-        {(name) => (
-          <button
-            type="button"
-            data-view={name}
-            aria-pressed={pressed(viewNameOf(view()) === name)}
-            onClick={() => send.view(ViewEvent.ViewChosen({ view: name }))}
-          >
-            {VIEW_TITLES[name]}
-          </button>
-        )}
-      </For>
-    </div>
+    <>
+      <div class="sh-seg rv-views">
+        <For each={modesOf(set.variants.length)}>
+          {(mode) => (
+            <button
+              type="button"
+              data-view={mode}
+              aria-pressed={pressed(modeOf(name()) === mode)}
+              onClick={() => send.view(ViewEvent.ViewChosen({ view: modeView(mode, name()) }))}
+            >
+              {MODE_TITLES[mode]}
+            </button>
+          )}
+        </For>
+      </div>
+      <Show when={modeOf(name()) === 'compare'}>
+        <div class="sh-seg rv-layouts">
+          <For each={LAYOUTS}>
+            {(layout) => (
+              <button
+                type="button"
+                data-view={layout}
+                aria-pressed={pressed(name() === layout)}
+                onClick={() => send.view(ViewEvent.ViewChosen({ view: layout }))}
+              >
+                {LAYOUT_TITLES[layout]}
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
+    </>
   );
 };
 
@@ -571,7 +645,8 @@ export const Transport = (props: {
         )}
       </button>
       <span class="rv-time" data-state={sync()._tag}>
-        {clockParts(sync()).at}
+        {/* The time: a laptop's header shows it already (`useShellTime`), so its row leaves it out. */}
+        <span class="rv-time-at">{clockParts(sync()).at}</span>
         {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
         <span class="rv-time-rest">{clockParts(sync()).rest}</span>
       </span>
@@ -772,6 +847,20 @@ const VersionName = (props: { readonly version: SeenVariant }) => {
   );
 };
 
+/**
+ * A version's state on its caption, when its record proves it stale: the
+ * short badge (UR-29); why, in its inspector's Info (`StaleTag`).
+ */
+const StaleBadge = (props: { readonly variant: SeenVariant }) => (
+  <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
+    {(words) => (
+      <span class="rv-badge" data-approval="stale" title={words()}>
+        Out of date
+      </span>
+    )}
+  </Show>
+);
+
 /** Why a variant is stale, when its record proves it; nothing otherwise (`recordedStaleText`). */
 const StaleTag = (props: { readonly variant: SeenVariant }) => (
   <Show when={Option.getOrUndefined(recordedStaleText(props.variant))}>
@@ -813,7 +902,11 @@ const VariantVideo = (props: { readonly variant: SeenVariant; readonly class?: s
   );
 };
 
-/** A variant's caption: its letter, its name, why it is stale, its lines, and the 🔊 that makes it the one heard. */
+/**
+ * A variant's caption: its letter, its name, Out of date when it is, and the
+ * 🔊 that makes it the one heard; its lines and why it is stale are its
+ * inspector's Info (UR-29, UR-30).
+ */
 const VariantCap = (props: { readonly variant: SeenVariant }) => {
   const { set, sync, send } = useSet();
   const audible = () => sync().audible === props.variant.id;
@@ -821,10 +914,7 @@ const VariantCap = (props: { readonly variant: SeenVariant }) => {
     <div class="rv-cap">
       <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
       <VersionName version={props.variant} />
-      <StaleTag variant={props.variant} />
-      <span class="rv-tag" title={props.variant.lines.join(' · ')}>
-        {props.variant.lines.join(' · ')}
-      </span>
+      <StaleBadge variant={props.variant} />
       <button
         type="button"
         class={['sh-tool', 'rv-sound', { on: audible() }]}
@@ -837,14 +927,17 @@ const VariantCap = (props: { readonly variant: SeenVariant }) => {
   );
 };
 
-/** A variant's video on the set's clock, and its caption. */
+/** A variant's video on the set's clock, and its caption; marked while its inspector is open (SU-13). */
 const VariantCard = (props: { readonly variant: SeenVariant }) => {
   const { folder, set, sync } = useSet();
+  // A card is keyed by its version: its selection is fixed for as long as it lives.
+  const inspected = useInspected(untrack(() => versionOf(folder, set, props.variant.id)));
   return (
     <Target
       of={versionOf(folder, set, props.variant.id)}
       class={['rv-card', { 'rv-audible': sync().audible === props.variant.id }]}
       data-id={props.variant.id}
+      data-selected={pressed(inspected())}
     >
       <VariantVideo variant={props.variant} />
       <VariantCap variant={props.variant} />
@@ -1124,7 +1217,6 @@ const MomentPick = (props: { readonly moments: ReadonlyArray<number>; readonly i
   const { send } = useSet();
   return (
     <div class="rv-row rv-pick">
-      <span class="rv-hint">Moment (←/→):</span>
       <For each={props.moments.map((t, i) => ({ t, i }))}>
         {(m) => (
           <button
@@ -1142,15 +1234,14 @@ const MomentPick = (props: { readonly moments: ReadonlyArray<number>; readonly i
   );
 };
 
-/** A still's caption: the variant's letter, its name, why it is stale and its lines (no 🔊: nothing plays). */
+/** A still's caption: the variant's letter, its name and Out of date when it is (no 🔊: nothing plays). */
 const StillCap = (props: { readonly variant: SeenVariant }) => {
   const { set } = useSet();
   return (
     <div class="rv-cap">
       <span class="rv-letter">{letterOf(set, props.variant.id)}</span>
       <VersionName version={props.variant} />
-      <StaleTag variant={props.variant} />
-      <span class="rv-tag">{props.variant.lines.join(' · ')}</span>
+      <StaleBadge variant={props.variant} />
     </div>
   );
 };
@@ -1180,7 +1271,6 @@ const WithMoments = (props: {
 };
 
 const MomentsView = (props: { readonly index: number }) => {
-  const { actions } = useReview();
   const { folder, set } = useSet();
   return (
     <WithMoments index={props.index}>
@@ -1195,17 +1285,13 @@ const MomentsView = (props: { readonly index: number }) => {
                   class="rv-card"
                   data-id={variant.id}
                 >
-                  <img
-                    class="rv-media rv-zoom"
-                    src={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
+                  <Zoom
+                    still={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
                     alt={`${variant.label} at ${timecode(at())}`}
-                    onClick={() =>
-                      actions.show(
-                        Option.some(
-                          reviewFrameUrl(variant.video.ref, Option.some(at()), LIGHTBOX_W),
-                        ),
-                      )
-                    }
+                    shown={{
+                      src: reviewFrameUrl(variant.video.ref, Option.some(at()), LIGHTBOX_W),
+                      caption: `${variant.label} at ${timecode(at())}`,
+                    }}
                   />
                   <StillCap variant={variant} />
                 </Target>
@@ -1277,41 +1363,6 @@ const DiffView = (props: { readonly other: string; readonly index: number }) => 
   );
 };
 
-const NotesView = () => {
-  const { folder, set } = useSet();
-  const now = useReview().meta.now();
-  return (
-    <div class="rv-grid rv-wide">
-      <For each={set.variants}>
-        {(variant) => (
-          <Target of={versionOf(folder, set, variant.id)} class="rv-note" data-id={variant.id}>
-            <div class="rv-verdict">
-              <b>
-                {letterOf(set, variant.id)} · {variant.label}
-              </b>
-              {approvalText(variant.approval)}
-              <StaleTag variant={variant} />
-              <For each={variant.lines}>{(line) => <div class="rv-hint">{line}</div>}</For>
-            </div>
-            <Show
-              when={Option.getOrUndefined(variant.notes)}
-              keyed
-              fallback={
-                <p class="rv-hint">
-                  {variant.video.ref} · {sizeText(variant.video.size)} ·{' '}
-                  {agoText(variant.video.mtime, now)}
-                </p>
-              }
-            >
-              {(notes: ReviewFile) => <Markdown file={notes.ref} />}
-            </Show>
-          </Target>
-        )}
-      </For>
-    </div>
-  );
-};
-
 /**
  * The set's page: the transport over the view it shows, and its versions as
  * the page's things. The page owns each version's thing and sheet, not the
@@ -1354,7 +1405,6 @@ const SetBody = () => {
           Wipe: (s) => <WipeView other={s.other} />,
           Moments: (s) => <MomentsView index={s.index} />,
           Diff: (s) => <DiffView other={s.other} index={s.index} />,
-          Notes: () => <NotesView />,
         }),
       )}
       <For each={set.variants}>{(variant) => <VersionInspector version={variant} />}</For>

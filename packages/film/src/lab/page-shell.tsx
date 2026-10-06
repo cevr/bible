@@ -17,7 +17,7 @@
 
 import { Menu } from '@bible/ui/menu';
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
-import { For, type JSX, Portal, Show, isServer } from '@solidjs/web';
+import { For, type JSX, Portal, Show, isServer, useHead } from '@solidjs/web';
 import { Effect, Option } from 'effect';
 import {
   type Accessor,
@@ -224,6 +224,14 @@ const filmPart = (part: Part): Part =>
 const plainClick = (e: MouseEvent) =>
   e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
+/**
+ * A page's title, naming where it is as the header does: its depth, its part
+ * and its film (`Choices · righteousness-by-faith`, `woman · versions ·
+ * Project · …`, `Films`).
+ */
+const pageTitle = (crumb: Option.Option<string>, part: Part, film: Option.Option<string>) =>
+  [...Option.toArray(crumb), PART_TITLE[part], ...Option.toArray(film)].join(' · ');
+
 /** The studio's shell around a page. */
 export const PageShell = (props: PageShellProps) => {
   const kept = useAtomValue(() => lastFilm);
@@ -233,6 +241,18 @@ export const PageShell = (props: PageShellProps) => {
   });
   /** The film the tabs lead into: the page's, else the one last opened. */
   const film = () => Option.orElse(props.film(), kept);
+  // The tab's title is the shell's, printed once for the server's head and the browser's
+  // (`useHead`): the served page is titled before it hydrates.
+  useHead(() => ({
+    tag: 'title',
+    props: {
+      children: pageTitle(
+        Option.flatMap(Option.fromUndefinedOr(props.crumb), (crumb) => crumb()),
+        props.part(),
+        props.film(),
+      ),
+    },
+  }));
   const [time, setTime] = createSignal(Option.none<ShellTime>(), { ownedWrite: true });
   // The page's own tools land here (`ShellTools`), laid out as the header's
   // own controls, once the page is mounted (its element is the client's).

@@ -36,11 +36,11 @@
 // - Spacing (WCAG 2.5.8, at `--hit`): a target 24 px each way or more whose
 //   `--hit` circle reaches no other target cannot be missed for a neighbour.
 
-import { Deferred, Effect, Exit, Schedule, type Scope } from 'effect';
+import { Deferred, Effect, Exit, Option, Schedule, type Scope } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
-import { rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
+import { menuEntry, openCommandMenu, rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
 import {
   type FakeRoute,
   type Viewport,
@@ -65,6 +65,7 @@ import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import {
   DESK_HIT,
   PHONE_HIT,
+  firstScreenItems,
   targetBoxes,
   undersizedTargets,
 } from '../../src/lab/fixtures/touch-targets.ts';
@@ -77,6 +78,8 @@ interface Device {
   readonly viewport: Viewport;
   readonly pointer: string;
   readonly hit: number;
+  /** Which of a view's budgets is this device's. */
+  readonly budget: keyof Budget;
 }
 
 const PHONE: Device = {
@@ -84,20 +87,43 @@ const PHONE: Device = {
   viewport: { width: 390, height: 844, coarse: true },
   pointer: '(pointer: coarse)',
   hit: PHONE_HIT,
+  budget: 'phone',
 };
 const LAPTOP: Device = {
   name: 'a laptop',
   viewport: { width: 1440, height: 900 },
   pointer: '(pointer: fine)',
   hit: DESK_HIT,
+  budget: 'laptop',
 };
 const DEVICES: ReadonlyArray<Device> = [PHONE, LAPTOP];
+
+/**
+ * The most things a view shows on its first screen at rest on each device
+ * (`firstScreenItems`: its controls, pictures and text leaves, as the
+ * UI-reduction sweep's `count.js` counts them; UR2-17, Progressive
+ * disclosure: a thing earns a place at rest by being used in most visits).
+ * A budget is raised only in the commit that adds the thing, saying why
+ * most visits use it.
+ */
+interface Budget {
+  readonly phone: number;
+  readonly laptop: number;
+}
+
+/** A view's budget: at most `phone` things on a phone, `laptop` on a laptop. */
+const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
+
+/** The Lab's Edit: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
+const LAB_EDIT = most(51, 55);
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
 interface State {
   readonly name: string;
   readonly open: (viewport: Viewport) => Effect.Effect<Tab, never, Scope.Scope>;
   readonly disclose: (page: Tab) => Effect.Effect<void>;
+  /** A view at rest: the most targets it shows (`Budget`). */
+  readonly budget?: Budget;
   /** The layer the state opens, measured within itself; none: the whole page. */
   readonly layer?: string;
 }
@@ -227,11 +253,19 @@ const KEYS = '[data-role="keys-sheet"]';
 const CHOICES_READY = ['.rv-transport', '.rv-knob input[type="range"]', `${STRINGS} .lab-count`];
 
 const STATES: ReadonlyArray<State> = [
-  { name: 'Films', open: review(pageHref.home(), '.rv-main a[href]'), disclose: AT_REST },
+  {
+    name: 'Films',
+    // At rest once each card shows its film's state (SU-8).
+    open: review(pageHref.home(), '.rv-film-card [data-role="counts"]'),
+    disclose: AT_REST,
+    budget: most(8, 8),
+  },
   {
     name: 'Choices, over a picture, with comment counts',
     open: review(CHOICES, ...CHOICES_READY),
     disclose: AT_REST,
+    // The kinds strip's four tabs (SU-5) are its index on a page this long.
+    budget: most(45, 33),
   },
   {
     name: "Choices, a variant's inspector",
@@ -241,8 +275,13 @@ const STATES: ReadonlyArray<State> = [
   },
   {
     name: 'Choices, the Findings sheet',
-    open: review(CHOICES, '[data-act="findings"][data-check="check"][data-findings="2"]'),
-    disclose: opens('[data-act="findings"][data-check="check"]', `${FINDINGS} .rv-at`),
+    open: review(CHOICES, ...CHOICES_READY),
+    disclose: (page) =>
+      Effect.gen(function* () {
+        yield* openCommandMenu(page, 'findings');
+        yield* page.click(menuEntry('review.findings'));
+        yield* waitFor(page, `${FINDINGS} .rv-at`);
+      }),
     layer: FINDINGS,
   },
   {
@@ -261,6 +300,7 @@ const STATES: ReadonlyArray<State> = [
     name: 'Project, its panels, stills and dock, with comment counts',
     open: review(PROJECT, ...PROJECT_READY),
     disclose: AT_REST,
+    budget: most(38, 30),
   },
   {
     name: "Project, a scene row's sheet",
@@ -287,23 +327,28 @@ const STATES: ReadonlyArray<State> = [
     name: 'a Set, with a comment count',
     open: review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video', '[data-comments]'),
     disclose: AT_REST,
+    budget: most(27, 28),
   },
   {
     name: 'a Set, its wipe (the grip a slider)',
     open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=wipe`, '.rv-wipe-grip'),
     disclose: AT_REST,
+    budget: most(33, 27),
   },
   {
     name: 'a Set, its diff',
     open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=diff`, '.rv-diff'),
     disclose: AT_REST,
+    budget: most(32, 26),
   },
   {
     name: 'a Folder, with its set and loose videos',
-    open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]'),
+    open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name'),
     disclose: AT_REST,
+    // A loose video is one card, its file in its menu (UR-17).
+    budget: most(20, 18),
   },
-  { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST },
+  { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
   {
     name: 'Lab, Edit, a cue that runs until a mark selected (its End field, the Snap toggle)',
     open: (viewport) =>
@@ -316,10 +361,10 @@ const STATES: ReadonlyArray<State> = [
       }),
     disclose: AT_REST,
   },
-  { name: 'Lab, Note', open: lab('note'), disclose: AT_REST },
-  { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST },
-  { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST },
-  { name: 'Lab, Record', open: lab('record'), disclose: AT_REST },
+  { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(39, 43) },
+  { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(43, 50) },
+  { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(41, 48) },
+  { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(36, 40) },
   {
     name: "Lab, the command menu's Go to",
     open: lab('edit'),
@@ -347,6 +392,7 @@ const STATES: ReadonlyArray<State> = [
     name: 'Scenes',
     open: player(pageHref.scenes(PROBE), STILL),
     disclose: AT_REST,
+    budget: most(20, 21),
   },
   {
     // The scene's sheet is a layer, as an inspector is: the tape under it is the case above.
@@ -359,6 +405,7 @@ const STATES: ReadonlyArray<State> = [
     name: 'Play',
     open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
     disclose: AT_REST,
+    budget: most(18, 18),
   },
   {
     // Play's ticks, turned on from the view menu: each a target its finger can hold.
@@ -403,6 +450,60 @@ for (const device of DEVICES) {
     }
   });
 }
+
+/** What `view` shows on its first screen (`firstScreenItems`) is at most `budget` things; else each one is named, `C` a control, `T` text. */
+const withinBudget = (page: Tab, budget: number, view: string) => {
+  const now = firstScreenItems();
+  return page.until(`${now}.length <= ${budget}`, {
+    now,
+    say: (found) =>
+      `${view} shows more than ${budget} things on its first screen at rest: ${found}`,
+  });
+};
+
+/** Put `tag` saying "planted" on the first screen, over the page. */
+const plant = (page: Tab, tag: 'button' | 'p') =>
+  page.evaluate(
+    `(() => { const el = document.createElement('${tag}'); el.textContent = 'planted'; Object.assign(el.style, { position: 'fixed', top: '120px', left: '16px', zIndex: '999' }); document.body.append(el); return true; })()`,
+  );
+
+for (const device of DEVICES) {
+  describe(`the targets each view shows at rest on ${device.name} (UR2-17)`, () => {
+    for (const [state, budget] of STATES.flatMap((s) =>
+      Option.toArray(Option.map(Option.fromUndefinedOr(s.budget), (b) => [s, b] as const)),
+    )) {
+      it.live(
+        `${state.name}: at most ${budget[device.budget]}`,
+        () =>
+          Effect.gen(function* () {
+            const page = yield* state.open(device.viewport);
+            yield* withinBudget(page, budget[device.budget], `${state.name} on ${device.name}`);
+          }).pipe(Effect.scoped),
+        SLOW,
+      );
+    }
+  });
+}
+
+describe('the at-rest budget (UR2-17)', () => {
+  for (const [tag, what] of [
+    ['button', 'a button'],
+    ['p', 'a line of text'],
+  ] as const) {
+    it.live(
+      `fails the Lab's Edit on a phone with ${what} planted past its budget`,
+      () =>
+        Effect.gen(function* () {
+          const page = yield* lab('edit')(PHONE.viewport);
+          yield* withinBudget(page, LAB_EDIT.phone, 'the Lab');
+          yield* plant(page, tag);
+          const exit = yield* Effect.exit(withinBudget(page, LAB_EDIT.phone, 'the Lab, planted'));
+          expect(Exit.isFailure(exit)).toBe(true);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
+});
 
 /**
  * The review's transport as a script reads it: whether its dock stands on
@@ -488,7 +589,7 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
     ['Choices', review(CHOICES, ...CHOICES_READY)],
     ['Project', review(PROJECT, ...PROJECT_READY)],
     ['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')],
-    ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]')],
+    ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name')],
     ['Scenes', player(pageHref.scenes(PROBE), STILL)],
     [
       "Scenes, its legend full (out of date, not rendered, approved, findings, warnings, the film's)",
@@ -628,7 +729,17 @@ const servedHeld =
 for (const device of DEVICES) {
   describe(`the UI face's fallback on ${device.name} (G10)`, () => {
     const PAGES = [
-      ['Lab', servedHeld('lab', [], pageHref.lab(PROBE), '.lab-panel[data-staged="true"]')],
+      // At rest once the scene's source is read: its knob fields writable, their titles their own.
+      [
+        'Lab',
+        servedHeld(
+          'lab',
+          [],
+          pageHref.lab(PROBE),
+          '.lab-panel[data-staged="true"]',
+          '.lab-knob input[data-field="x"]:not([disabled])',
+        ),
+      ],
       ['Play', servedHeld('player', [], pageHref.play(PROBE), '.bar [data-act="play"]')],
       ['Scenes', servedHeld('player', [], pageHref.scenes(PROBE), STILL)],
       ['Project', servedHeld('review', studioRoutes, PROJECT, ...PROJECT_READY)],

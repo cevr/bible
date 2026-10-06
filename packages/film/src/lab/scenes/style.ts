@@ -8,6 +8,8 @@
 // which on a phone peeks over the tab bar with the card in brief. The player
 // page and the review page each inject it with the shell's styles.
 
+import { PHONE } from '../viewport.ts';
+
 export const SCENES_CSS = `
 body.scenes { display: block; height: auto; }
 .sc { display: grid; grid-template-columns: minmax(0, 1fr); }
@@ -37,7 +39,6 @@ body.scenes { display: block; height: auto; }
   scrollbar-width: none; }
 .sc-legend-item { display: inline-flex; flex: none; align-items: center; gap: var(--s-1); white-space: nowrap; }
 .sc-spacer { flex: 1 1 0; }
-.sc-step { flex: 0 1000 auto; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .sc-dot { display: inline-block; flex: none; width: 6px; height: 6px; border-radius: var(--r-dot); background: var(--text-3); }
 .sc-dot[data-state="stale"] { background: var(--state-stale); }
 .sc-dot[data-state="rendered"] { background: var(--state-rendered); }
@@ -127,7 +128,7 @@ body.scenes { display: block; height: auto; }
 
 /* The phone: lowered, the sheet keeps the card in brief over the tab bar (picture, name, marks, Open in Lab);
    raised, the whole card. */
-@media (max-width: 899px) {
+@media ${PHONE} {
   .sc-focus.lab-inspector-sheet[data-peek="true"] > .lab-inspector-body { display: flex; }
   .sc-focus[data-peek="true"] .sc-card { grid-template-columns: 7rem minmax(0, 1fr); column-gap: var(--s-3); align-items: center; }
   .sc-focus[data-peek="true"] .sc-card-picture { grid-row: span 2; }

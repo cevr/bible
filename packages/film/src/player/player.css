@@ -632,11 +632,12 @@ body.lab .stage {
   background: var(--surface-2);
   border-radius: var(--r-1);
 }
-/* The words stay at the top of the strip while its cues scroll under them. */
+/* The words stay at the top of the strip while its cues scroll under them; those outside its window are clipped. */
 .lab-strip-words {
   position: sticky;
   top: 0;
   z-index: 1;
+  overflow: hidden;
   height: 18px;
   background: var(--surface-2);
   border-bottom: 1px solid var(--line);
@@ -679,6 +680,21 @@ body.lab .stage {
   /* Inside the rows' scroll box: a sideways finger marks a range, an upright one scrolls (the browser took both). */
   touch-action: pan-y;
 }
+/*
+ * The cue lanes and their Snap are Edit's (and Motion's and Compare's on a
+ * laptop): in Note and Record, and on a phone in every mode but Edit, the
+ * strip folds to its words, so the mode's own controls start on the first
+ * screen (UR2-3, SU-4).
+ */
+.lab-strip:is([data-mode='note'], [data-mode='record'])
+  :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
+  display: none;
+}
+@media (max-width: 899px) {
+  .lab-strip:not([data-mode='edit']) :is(.lab-strip-row, .lab-strip-head > [data-act='snap']) {
+    display: none;
+  }
+}
 .lab-cue-label {
   position: absolute;
   left: calc(-1 * var(--cue-names));
@@ -688,6 +704,12 @@ body.lab .stage {
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: var(--lh-2);
+}
+/* A cue's lane: its bar, clipped to the strip's window (on a phone, 8 s of a long scene). */
+.lab-cue-lane {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 /* A cue's bar, its grips at either end (the edges a drag takes). */
 .lab-cue {
@@ -815,6 +837,18 @@ body.lab .stage {
   margin: 0;
   color: var(--text-2);
   font-size: var(--fs-2);
+}
+/* The film's own findings, apart from the scene's: in their most pressing level's colour. */
+.lab-findings-film {
+  margin: 0;
+  font-size: var(--fs-2);
+  font-weight: var(--w-2);
+}
+.lab-findings-film[data-state='findings'] {
+  color: var(--state-findings);
+}
+.lab-findings-film[data-state='warning'] {
+  color: var(--state-warning);
 }
 .lab-findings {
   margin: 0;
@@ -1008,7 +1042,6 @@ body.play .sh-body {
 .studio:focus-within {
   border-color: var(--accent);
 }
-.studio-counts,
 .studio-waiting {
   margin: 0;
   color: var(--text-2);
@@ -1020,16 +1053,44 @@ body.play .sh-body {
   margin: 0;
   padding: 0;
 }
+/* Every beat on screen: the list wraps and never scrolls, so its dots are the count. */
 .studio-beats ol {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-1);
-  max-height: 120px;
-  overflow: auto;
 }
 /* A beat is the kit's quiet button, a small one; the selected beat is pressed. */
 .studio-beats .sh-btn {
+  gap: var(--s-1);
   padding: 0 var(--s-2);
+  font-size: var(--fs-2);
+}
+/*
+ * A beat's take as a dot in its state's colour and its own shape, so colour is
+ * never the only sign (WCAG 1.4.1): scratch a ring, recorded filled, stale half
+ * filled (UR2-4); its word is the beat's name and title.
+ */
+.studio-dot {
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border: 1.5px solid var(--state-scratch);
+  border-radius: 50%;
+  background: transparent;
+}
+.studio-dot[data-state='recorded'] {
+  border-color: var(--state-approved);
+  background: var(--state-approved);
+}
+.studio-dot[data-state='stale'] {
+  border-color: var(--state-stale);
+  background: linear-gradient(90deg, var(--state-stale) 50%, transparent 50%);
+}
+/* The selected beat's state in words: what a dot says, for a finger. */
+.studio-beat-state {
+  margin: var(--s-1) 0 0;
+  color: var(--text-2);
   font-size: var(--fs-2);
 }
 .lab-badge.recorded {
@@ -1073,15 +1134,11 @@ body.play .sh-body {
   display: grid;
   gap: var(--s-2);
 }
-.studio-mic label {
-  display: flex;
-  gap: var(--s-2);
-  align-items: center;
-}
-/* The microphone's select is the kit's field, as wide as the row leaves. */
-.studio-mic select {
-  flex: 1;
-  min-width: 0;
+/* The microphone in use, named only when it is not the default. */
+.studio-mic-name {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-2);
 }
 .studio-meter {
   display: flex;
