@@ -31,6 +31,25 @@ describe('the in-memory file system', () => {
     );
   });
 
+  // Each writer runs long enough for the scheduler to yield it mid-write.
+  it.live("keeps every byte two writers append at once, 1,500 each, as a disk's 'a' does", () => {
+    const files = new Map<string, Uint8Array>();
+    return over(
+      files,
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const writer = (byte: string) =>
+          Effect.forEach(
+            Array.from({ length: 1500 }, () => byte),
+            (b) => fs.writeFileString(FILE, b, { flag: 'a' }),
+            { discard: true },
+          );
+        yield* Effect.all([writer('a'), writer('b')], { concurrency: 2, discard: true });
+        expect(read(files).length).toBe(3000);
+      }),
+    );
+  });
+
   it.effect("replaces with 'w' or no flag; 'wx' and 'ax' create only a path not there", () => {
     const files = new Map<string, Uint8Array>();
     return over(

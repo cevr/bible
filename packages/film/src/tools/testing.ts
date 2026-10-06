@@ -133,7 +133,8 @@ const WRITE_MODES: Partial<Record<FileSystem.OpenFlag, WriteMode>> = {
  * bytes after the file's; `wx` and `ax` (create, never replace) refuse a
  * path already there, a file or a folder, as AlreadyExists, as Node's
  * EEXIST: a lock taken that way is refused while another holds it. A flag
- * not modelled is BadArgument, naming it.
+ * not modelled is BadArgument, naming it. The checks, the join and the set
+ * are one synchronous step, so writes run at once all land, as on a disk.
  */
 const writeInto = (
   files: Map<string, Uint8Array>,
@@ -185,7 +186,9 @@ const writeInto = (
         },
       },
     );
-    return Effect.sync(() => void files.set(path, landed));
+    // Set in the same synchronous step as the read above: no other write lands between.
+    files.set(path, landed);
+    return Effect.void;
   });
 
 /**
