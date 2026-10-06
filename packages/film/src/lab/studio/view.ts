@@ -1,8 +1,8 @@
 // What the studio's panel shows of its recorder, derived: the controls each
 // state offers (each with the command that presses it, `commands.ts`, whose
 // key the panel names as bound), whether ←/→ step through the beats, the
-// status line, the recording under review, the beat list's counts and
-// badges, the meter's reading, and each attempt's line. The provider hands
+// status line, the recording under review, the beat list's badges, the
+// meter's reading, and each attempt's line. The provider hands
 // these to the components, so none of them reads the machine's states. Pure.
 
 import { Match, Option, Predicate } from 'effect';
@@ -120,7 +120,8 @@ export const statusOf = (state: RecorderState, level: Option.Option<Level>): str
     Match.tagsExhaustive({
       Idle: (s) =>
         Option.match(s.kept, {
-          onNone: () => 'ready: R records this beat',
+          // At rest with nothing to report the line is empty: the Record button names its key.
+          onNone: () => '',
           onSome: (k) =>
             [
               `kept ${k.file}: heard “${k.transcript}” · ${percent(k.wer)} words differ`,
@@ -196,17 +197,18 @@ export const unsubmitted = (state: RecorderState): Option.Option<string> =>
 export const atRest = (state: RecorderState): boolean =>
   stepsBeats(state) && Option.isNone(unsubmitted(state));
 
-/** How many beats stand where: `1 recorded · 2 staging · 1 stale`. */
-export const beatCounts = (beats: ReadonlyArray<StudioBeat>): string =>
-  (['recorded', 'staging', 'stale'] as const)
-    .map((state) => `${beats.filter((b) => b.state === state).length} ${state}`)
-    .join(' · ');
+/** A beat's state in the owner's words: a staging take is the scratch voice the recording replaces. */
+const BEAT_WORD: Readonly<Record<StudioBeat['state'], string>> = {
+  recorded: 'recorded',
+  staging: 'scratch',
+  stale: 'stale',
+};
 
 /** A beat's badge: its state, and why it is stale. */
 export const beatBadge = (beat: StudioBeat): string =>
   Option.match(
     Option.fromUndefinedOr(beat.staleReason).pipe(Option.filter(() => beat.state === 'stale')),
-    { onNone: () => beat.state, onSome: (reason) => `stale: ${reason}` },
+    { onNone: () => BEAT_WORD[beat.state], onSome: (reason) => `stale: ${reason}` },
   );
 
 /** The beat `step` away from `id` in the list, if there is one. */

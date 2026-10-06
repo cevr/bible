@@ -12,7 +12,6 @@ import {
   atRest,
   attemptLine,
   beatBadge,
-  beatCounts,
   controlsOf,
   eventOf,
   meterOf,
@@ -178,12 +177,8 @@ describe('the beat list', () => {
     beat('d', 'staging'),
   ];
 
-  test('counts each state', () => {
-    expect(beatCounts(beats)).toBe('1 recorded · 2 staging · 1 stale');
-  });
-
-  test('a stale badge says why', () => {
-    expect(beats.map(beatBadge)).toEqual(['recorded', 'staging', 'stale: text changed', 'staging']);
+  test("a badge names its state in the owner's words, and a stale one says why", () => {
+    expect(beats.map(beatBadge)).toEqual(['recorded', 'scratch', 'stale: text changed', 'scratch']);
   });
 
   test('←/→ step to the neighbour, and stop at either end', () => {

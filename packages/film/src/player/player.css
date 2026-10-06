@@ -1035,7 +1035,6 @@ body.play .sh-body {
 .studio:focus-within {
   border-color: var(--accent);
 }
-.studio-counts,
 .studio-waiting {
   margin: 0;
   color: var(--text-2);

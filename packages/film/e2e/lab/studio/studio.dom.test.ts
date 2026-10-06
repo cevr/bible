@@ -127,6 +127,9 @@ const askedMoreThan = (asked: ReadonlyArray<Asked>, path: string, least: number)
 /** Wait until the status line reads `pattern`. */
 const statusIs = (page: Tab, pattern: RegExp) => textIs(page, '[data-role="status"]', pattern);
 
+/** The status line of a recorder at rest with nothing to report: empty (the Record button names its key). */
+const AT_REST = /^$/;
+
 /** Wait until the recording has kept at least `seconds` of the microphone, as its status counts. */
 const recorded = (page: Tab, seconds: number) =>
   page.until(`(() => {
@@ -195,12 +198,14 @@ describe('the studio', () => {
         Effect.gen(function* () {
           const { page, errors } = yield* withMic({ allowed: true });
           yield* page.waitFor('[data-beat="thesis"]');
-          yield* textIs(page, '.studio-counts', '1 recorded · 1 staging · 1 stale');
+          // Each beat's badge says where its take stands; no line of counts repeats them (UR2-4).
           yield* textsAre(page, '[data-role="badge"]', [
             'recorded',
-            'staging',
+            'scratch',
             'stale: text changed',
           ]);
+          yield* countIs(page, '.studio-counts', 0);
+          yield* textIs(page, '[data-role="status"]', '');
           yield* textIs(page, '[data-role="prompter"]', 'In the beginning.');
           yield* page.click('[data-beat="thesis"]');
           yield* page.waitFor('.studio-quotation cite');
@@ -408,7 +413,7 @@ describe('the studio', () => {
           yield* press(page, 'r');
           yield* statusIs(page, /^recording in [123]…$/);
           yield* press(page, 'Escape');
-          yield* statusIs(page, /^ready/);
+          yield* statusIs(page, AT_REST);
           expect(errors).toEqual([]);
         }),
       ),
@@ -536,7 +541,7 @@ describe('the studio', () => {
           yield* press(page, 'r');
           yield* statusIs(page, /^recording in [123]…$/);
           yield* press(page, 'Escape');
-          yield* statusIs(page, /^ready/);
+          yield* statusIs(page, AT_REST);
           // The row kept: its player still carries the mark.
           yield* until(
             page,
@@ -581,7 +586,7 @@ describe('the studio', () => {
           yield* page.waitFor('[data-role="clip"]');
           yield* textIs(page, '[data-role="clip"]', 'clipping: turn the input down');
           yield* press(page, 'Escape');
-          yield* statusIs(page, /^ready/);
+          yield* statusIs(page, AT_REST);
         }),
       ),
     60_000,

@@ -47,7 +47,6 @@ import {
   type Meter,
   atRest,
   attemptLine,
-  beatCounts,
   controlFor,
   controlsOf,
   eventOf,
@@ -84,8 +83,6 @@ type StudioTone = 'rest' | 'busy' | 'warn' | 'kept' | 'refused';
 interface StudioStateValue {
   /** Every beat with a line, in the film's order. */
   readonly beats: Accessor<ReadonlyArray<StudioBeat>>;
-  /** How many beats are recorded, staging, stale. */
-  readonly counts: Accessor<string>;
   /** Why the beats are not shown, while they are not. */
   readonly beatsStatus: Accessor<string>;
   /** The beat selected. */
@@ -350,7 +347,6 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   const value: StudioContextValue = {
     state: {
       beats,
-      counts: () => beatCounts(beats()),
       beatsStatus: () =>
         AsyncResult.match(beatsResult(), {
           onInitial: () => 'reading the beats…',

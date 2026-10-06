@@ -1363,8 +1363,8 @@ joins the `Layer.mergeAll` in `labHandler`, and the page calls
 
 **The Studio** (`lab/studio/`, Solid 2 + effect-machine) is the lab's panel
 for recording the final voiceover beat by beat. It lists every beat with a
-line and where its take stands (`recorded`, `staging`, `stale: <why>`, with
-the counts), reads the selected beat as a teleprompter (the sheet's lines, a
+line and where its take stands on its badge (`recorded`, `scratch` for a
+staging take, `stale: <why>`), reads the selected beat as a teleprompter (the sheet's lines, a
 quotation set apart with who said it, marks stripped), and records it:
 
 - **Capture** (`capture-browser.ts`, behind the `Capture` service in
@@ -1416,7 +1416,7 @@ ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and 
 The provider (`context.tsx`) builds the Studio's own runtime (the stage, the
 studio's routes, the capture), so the shell knows nothing of it, and hands
 the section derived values and actions (`view.ts`: the controls each state
-offers with their keys, the status line, the meter, the counts), never the
+offers with their keys, the status line, the meter, the badges), never the
 machine's states. The beat is the link's (`beatAt`, `lab/place.ts`): the
 one `?beat=` picks, else the path's scene (a beat is a scene's take), so
 Record opens where the lab is and Copy link cites the beat. A beat picked is

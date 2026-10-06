@@ -52,12 +52,11 @@ const Prompter = () => {
   );
 };
 
-/** Every beat, where its take stands, and the counts. */
+/** Every beat and where its take stands (its badge). */
 const Beats = () => {
   const { state, actions } = useStudio();
   return (
     <div class="studio-beats">
-      <p class="studio-counts">{state.counts()}</p>
       <Show when={state.beatsStatus()}>{(status) => <p class="lab-status">{status()}</p>}</Show>
       <ol>
         <For each={state.beats()}>
