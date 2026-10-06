@@ -255,7 +255,8 @@ const CHOICES_READY = ['.rv-transport', '.rv-knob input[type="range"]', `${STRIN
 const STATES: ReadonlyArray<State> = [
   {
     name: 'Films',
-    open: review(pageHref.home(), '.rv-main a[href]'),
+    // At rest once each card shows its film's state (SU-8).
+    open: review(pageHref.home(), '.rv-film-card [data-role="counts"]'),
     disclose: AT_REST,
     budget: most(8, 8),
   },
@@ -299,7 +300,7 @@ const STATES: ReadonlyArray<State> = [
     name: 'Project, its panels, stills and dock, with comment counts',
     open: review(PROJECT, ...PROJECT_READY),
     disclose: AT_REST,
-    budget: most(39, 30),
+    budget: most(38, 30),
   },
   {
     name: "Project, a scene row's sheet",
@@ -344,7 +345,8 @@ const STATES: ReadonlyArray<State> = [
     name: 'a Folder, with its set and loose videos',
     open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap .rv-name'),
     disclose: AT_REST,
-    budget: most(24, 22),
+    // A loose video is one card, its file in its menu (UR-17).
+    budget: most(20, 18),
   },
   { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
   {
@@ -727,7 +729,17 @@ const servedHeld =
 for (const device of DEVICES) {
   describe(`the UI face's fallback on ${device.name} (G10)`, () => {
     const PAGES = [
-      ['Lab', servedHeld('lab', [], pageHref.lab(PROBE), '.lab-panel[data-staged="true"]')],
+      // At rest once the scene's source is read: its knob fields writable, their titles their own.
+      [
+        'Lab',
+        servedHeld(
+          'lab',
+          [],
+          pageHref.lab(PROBE),
+          '.lab-panel[data-staged="true"]',
+          '.lab-knob input[data-field="x"]:not([disabled])',
+        ),
+      ],
       ['Play', servedHeld('player', [], pageHref.play(PROBE), '.bar [data-act="play"]')],
       ['Scenes', servedHeld('player', [], pageHref.scenes(PROBE), STILL)],
       ['Project', servedHeld('review', studioRoutes, PROJECT, ...PROJECT_READY)],
