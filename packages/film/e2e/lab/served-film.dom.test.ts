@@ -12,10 +12,20 @@
 import { Effect, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
-import { DESK, PHONE, hold, json, openServed, route } from '../../src/lab/fixtures/harness.ts';
+import { UNTOKENED } from '../../src/lab/fixtures/drawn-tokens.ts';
+import {
+  DESK,
+  type FakeRoute,
+  PHONE,
+  hold,
+  json,
+  openServed,
+  route,
+} from '../../src/lab/fixtures/harness.ts';
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { targetBoxes } from '../../src/lab/fixtures/touch-targets.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
+import { STUDIO_FILM, studioRoutes } from '../../src/lab/fixtures/studio-film.ts';
 import { countIs, evaluates, textHas, until, waitFor } from '../../src/lab/fixtures/settled.ts';
 import { LAB_MODES } from '../../src/lab/mode.ts';
 
@@ -207,4 +217,72 @@ describe("a film's pages served as the lab renders them", () => {
         }).pipe(Effect.scoped),
       SLOW,
     );
+});
+
+/** The pages served at rest, each once what it shows at rest has landed. */
+const DRAWN: ReadonlyArray<{
+  readonly name: string;
+  readonly page: 'review' | 'player' | 'lab';
+  readonly routes: ReadonlyArray<FakeRoute>;
+  readonly href: string;
+  readonly ready: string;
+}> = [
+  {
+    name: 'Films',
+    page: 'review',
+    routes: studioRoutes,
+    href: pageHref.home(),
+    ready: '.rv-main a[href]',
+  },
+  {
+    name: 'Choices',
+    page: 'review',
+    routes: studioRoutes,
+    href: pageHref.choices(STUDIO_FILM),
+    ready: '.rv-knob input[type="range"]',
+  },
+  {
+    name: 'Project',
+    page: 'review',
+    routes: studioRoutes,
+    href: pageHref.project(STUDIO_FILM),
+    ready: '.pj-dock .rv-transport',
+  },
+  {
+    name: 'Scenes',
+    page: 'player',
+    routes: [],
+    href: pageHref.scenes(PROBE),
+    ready: '.sc-still[data-drawn="true"] canvas',
+  },
+  {
+    name: 'Play',
+    page: 'player',
+    routes: [],
+    href: pageHref.play(PROBE),
+    ready: '.bar [data-act="play"]',
+  },
+  {
+    name: 'Lab',
+    page: 'lab',
+    routes: [],
+    href: pageHref.lab(PROBE),
+    ready: '.lab-panel[data-staged="true"]',
+  },
+];
+
+describe('a served page draws its chrome only in its tokens (G9, DL-9)', () => {
+  for (const viewport of [PHONE, DESK])
+    for (const { name, page: served, routes, href, ready } of DRAWN)
+      it.live(
+        `${name} at ${viewport.width}: every colour, family, size, weight, leading, radius and spacing drawn is a token's`,
+        () =>
+          Effect.gen(function* () {
+            const { page } = yield* openServed(served, routes, { href, viewport });
+            yield* waitFor(page, ready);
+            yield* until(page, `document.fonts.status === 'loaded'`);
+            yield* evaluates(page, UNTOKENED, []);
+          }).pipe(Effect.scoped),
+        SLOW,
+      );
 });
