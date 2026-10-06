@@ -12,10 +12,8 @@
 // the viewport around it), so a press on another dialog's backdrop or a
 // popup's never does.
 import type { JSX } from '@solidjs/web';
-import { createUniqueId, onCleanup, untrack } from 'solid-js';
+import { createUniqueId, untrack } from 'solid-js';
 
-import { useFloatingParentNodeId } from '../../floating-ui-solid/FloatingTree.tsx';
-import { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
 import { contains, getTarget } from '../../floating-ui-solid/utils/element.ts';
 import { useScrollLock } from '../../utils/useScrollLock.ts';
@@ -57,25 +55,14 @@ export interface DialogRootProps {
  * Doesn't render its own HTML element.
  */
 export function DialogRoot(props: DialogRootProps): JSX.Element {
-  const floatingNested = useFloatingParentNodeId() != null;
-
   const modal = (): DialogModal => props.modal ?? true;
   const disablePointerDismissal = () => props.disablePointerDismissal ?? false;
-
-  const floatingTree = new FloatingTreeStore();
-  const floatingNodeId = createUniqueId();
-  const floatingNode = { id: floatingNodeId, parentId: null };
-  floatingTree.addNode(floatingNode);
-  onCleanup(() => floatingTree.removeNode(floatingNode));
 
   const store = createDialogStore({
     openProp: () => props.open,
     modal,
     disablePointerDismissal,
-    floatingNested,
     floatingId: createUniqueId(),
-    floatingTree,
-    floatingNodeId,
     onOpenChange: () => props.onOpenChange,
     onOpenChangeComplete: () => props.onOpenChangeComplete,
   });
@@ -126,7 +113,6 @@ export function DialogRoot(props: DialogRootProps): JSX.Element {
       }
       return true;
     },
-    externalTree: floatingTree,
   });
 
   useScrollLock(() => store.open() && modal() === true, store.popupElement);

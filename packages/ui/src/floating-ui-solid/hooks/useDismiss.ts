@@ -1,8 +1,7 @@
 // Upstream: packages/react/src/floating-ui-react/hooks/useDismiss.ts
 //
-// Closes a popup on Escape and on a press outside it. A press inside a child
-// popup of the floating tree is not outside; Escape closes the innermost
-// open popup only. A press that starts inside and ends
+// Closes a popup on Escape and on a press outside it (its popup and its
+// trigger are inside). A press that starts inside and ends
 // outside (a text selection drag) does not close an `intentional` popup.
 // Touch scrolls do not count as presses. The React-portal bookkeeping
 // upstream (`insideReactTree`) is not needed: Solid's events follow the DOM.
@@ -23,7 +22,6 @@ import { addEventListener, mergeCleanups, ownerDocument } from '../../utils/dom.
 import { platform } from '../../utils/platform.ts';
 import { Timeout, useTimeout } from '../../utils/timers.ts';
 import type { FloatingRootContext } from '../FloatingRootContext.ts';
-import { type FloatingTreeStore, getNodeChildren, useFloatingTree } from '../FloatingTree.tsx';
 import {
   contains,
   createAttribute,
@@ -57,15 +55,13 @@ export interface UseDismissProps {
     | { mouse: PressType; touch: PressType }
     | (() => PressType | { mouse: PressType; touch: PressType })
     | undefined;
-  externalTree?: FloatingTreeStore | undefined;
 }
 
 export function useDismiss(
   context: FloatingRootContext,
   props: UseDismissProps = {},
 ): ElementProps {
-  const { dataRef, events } = context;
-  const tree = useFloatingTree(props.externalTree);
+  const { events } = context;
 
   const enabled = () => props.enabled ?? true;
   const escapeKey = () => props.escapeKey ?? true;
@@ -87,13 +83,6 @@ export function useDismiss(
 
   const cancelDismissOnEndTimeout = useTimeout();
 
-  // An open child popup takes Escape: it closes first.
-  const hasOpenChild = () => {
-    const nodeId = dataRef.current.floatingContext?.nodeId;
-    const children = tree ? getNodeChildren(tree.nodesRef.current, nodeId) : [];
-    return children.some((child) => child.context?.open);
-  };
-
   const isEventWithinOwnElements = (event: Event) =>
     isEventTargetWithin(event, untrack(context.floatingElement)) ||
     isEventTargetWithin(event, untrack(context.domReferenceElement));
@@ -103,9 +92,6 @@ export function useDismiss(
       return;
     }
     if (isComposing) {
-      return;
-    }
-    if (hasOpenChild()) {
       return;
     }
     const eventDetails = createChangeEventDetails(REASONS.escapeKey, event);
@@ -212,16 +198,6 @@ export function useDismiss(
         );
       }
 
-      function isEventWithinFloatingTree(event: Event) {
-        const nodeId = dataRef.current.floatingContext?.nodeId;
-        const targetIsInsideChildren =
-          tree &&
-          getNodeChildren(tree.nodesRef.current, nodeId).some((node) =>
-            isEventTargetWithin(event, node.context?.elements.floating),
-          );
-        return isEventWithinOwnElements(event) || targetIsInsideChildren;
-      }
-
       function closeOnPressOutside(event: MouseEvent | PointerEvent | TouchEvent) {
         if (shouldIgnoreEvent(event)) {
           if (event.type !== 'click' && !isEventWithinOwnElements(event)) {
@@ -294,7 +270,7 @@ export function useDismiss(
           }
         }
 
-        if (isEventWithinFloatingTree(event)) {
+        if (isEventWithinOwnElements(event)) {
           return;
         }
 
@@ -421,7 +397,7 @@ export function useDismiss(
           }
           return;
         }
-        if (isEventWithinFloatingTree(event)) {
+        if (isEventWithinOwnElements(event)) {
           return;
         }
         if (startedPrevented) {

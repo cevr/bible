@@ -75,7 +75,6 @@ export function DialogPopupFocus(props: DialogPopupFocusProps): JSX.Element {
       returnFocus={props.finalFocus}
       modal={store.modal() !== false}
       restoreFocus="popup"
-      externalTree={store.floatingTree}
     >
       {props.children}
     </FloatingFocusManager>

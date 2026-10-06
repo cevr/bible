@@ -13,12 +13,6 @@ import { createEffect, createUniqueId, untrack } from 'solid-js';
 
 import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext.ts';
 import { useDirectionAccessor } from '../../internals/DirectionContext.ts';
-import {
-  FloatingTree,
-  useFloatingNodeId,
-  useFloatingParentNodeId,
-} from '../../floating-ui-solid/FloatingTree.tsx';
-import { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
 import { useListNavigation } from '../../floating-ui-solid/hooks/useListNavigation.ts';
 import { useTypeahead } from '../../floating-ui-solid/hooks/useTypeahead.ts';
@@ -102,10 +96,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
 
   const rootId = createUniqueId();
   const floatingId = createUniqueId();
-  const floatingTreeRoot = new FloatingTreeStore();
-  const floatingParentNodeId = useFloatingParentNodeId();
-  const floatingNodeId = useFloatingNodeId(floatingTreeRoot);
-  const nested = floatingParentNodeId != null;
 
   let openRead = () => false;
   const { openMethod, triggerProps: interactionTypeProps } = useOpenInteractionType(() =>
@@ -120,9 +110,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     openMethod,
     floatingId,
     rootId,
-    floatingTreeRoot,
-    floatingNodeId,
-    floatingParentNodeId,
     onOpenChange: setOpen,
     onOpenChangeComplete: () => props.onOpenChangeComplete,
   });
@@ -157,7 +144,7 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
   function setOpen(nextOpen: boolean, eventDetails: BaseUIChangeEventDetails) {
     const reason = eventDetails.reason as MenuChangeEventReason;
     const isOpen = untrack(store.open);
-    // Relayed tree events can ask a closed menu to close.
+    // A trigger's cancel-open can ask a closed menu to close.
     if (!nextOpen && !isOpen) {
       return;
     }
@@ -239,7 +226,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
       }
       return allowOutsidePressDismissal;
     },
-    externalTree: floatingTreeRoot,
   });
 
   const direction = useDirectionAccessor();
@@ -268,7 +254,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
       store.setActiveIndex(nextActiveIndex, getHighlightReason(event), event);
     },
     openOnArrowKeyDown: parent.type !== 'context-menu',
-    externalTree: nested ? floatingTreeRoot : undefined,
   });
 
   const typeahead = useTypeahead(floatingRootContext, {
@@ -360,9 +345,5 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     syncHighlightedItem,
   };
 
-  return (
-    <FloatingTree externalTree={floatingTreeRoot}>
-      <MenuRootContext value={context}>{props.children}</MenuRootContext>
-    </FloatingTree>
-  );
+  return <MenuRootContext value={context}>{props.children}</MenuRootContext>;
 }

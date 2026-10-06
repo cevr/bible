@@ -52,7 +52,6 @@ export interface FloatingUIOpenChangeDetails {
   open: boolean;
   reason: string;
   nativeEvent: Event;
-  nested: boolean;
   triggerElement?: Element | undefined;
 }
 

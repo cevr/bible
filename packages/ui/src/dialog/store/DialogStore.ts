@@ -7,8 +7,6 @@
 // then the interactions hear of it, then the state changes.
 import { type Accessor, createSignal, untrack } from 'solid-js';
 
-import type { FloatingContext } from '../../floating-ui-solid/FloatingRootContext.ts';
-import type { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { REASONS } from '../../internals/reasons.ts';
 import { createPopupStore, type PopupStore } from '../../utils/popups/popupStore.ts';
@@ -30,11 +28,7 @@ export interface DialogStoreOptions {
   openProp: () => boolean | undefined;
   modal: Accessor<DialogModal>;
   disablePointerDismissal: Accessor<boolean>;
-  /** Whether the dialog sits inside another floating element (a menu). */
-  floatingNested: boolean;
   floatingId: string;
-  floatingTree: FloatingTreeStore;
-  floatingNodeId: string;
   onOpenChange: () => ((open: boolean, eventDetails: DialogChangeEventDetails) => void) | undefined;
   onOpenChangeComplete: () => ((open: boolean) => void) | undefined;
 }
@@ -50,8 +44,6 @@ export interface DialogStore extends PopupStore {
   setViewportElement: (element: HTMLElement | null) => void;
   readonly backdropRef: { current: HTMLElement | null };
   readonly internalBackdropRef: { current: HTMLElement | null };
-  readonly floatingTree: FloatingTreeStore;
-  readonly floatingNodeId: string;
   /** Asks the dialog to open or close (through `onOpenChange`, which may cancel). */
   setOpen: (open: boolean, eventDetails: BaseUIChangeEventDetails) => void;
 }
@@ -60,7 +52,6 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
   const popup = createPopupStore({
     openProp: options.openProp,
     floatingId: options.floatingId,
-    nested: options.floatingNested,
     popupIsFloatingElement: true,
     onOpenChange: (open, details) => setOpen(open, details),
     onOpenChangeComplete: options.onOpenChangeComplete,
@@ -84,29 +75,6 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
     popup.applyOpenState(nextOpen, details.trigger);
   }
 
-  // What the floating tree and the interactions read of this dialog.
-  const floatingContext: FloatingContext = {
-    get open() {
-      return untrack(popup.open);
-    },
-    nodeId: options.floatingNodeId,
-    placement: null,
-    elements: {
-      get floating() {
-        return untrack(popup.popupElement);
-      },
-      get domReference() {
-        return untrack(popup.floatingRootContext.domReferenceElement);
-      },
-    },
-    dataRef: popup.floatingRootContext.dataRef,
-  };
-  popup.floatingRootContext.dataRef.current.floatingContext = floatingContext;
-  const node = options.floatingTree.nodesRef.current.find((n) => n.id === options.floatingNodeId);
-  if (node) {
-    node.context = floatingContext;
-  }
-
   return {
     ...popup,
     modal: options.modal,
@@ -119,8 +87,6 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
     setViewportElement: (element) => setViewportElement(() => element),
     backdropRef: { current: null },
     internalBackdropRef: { current: null },
-    floatingTree: options.floatingTree,
-    floatingNodeId: options.floatingNodeId,
     setOpen,
   };
 }

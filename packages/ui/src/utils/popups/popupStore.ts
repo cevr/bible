@@ -41,8 +41,6 @@ export interface PopupStoreOptions {
   openProp: () => boolean | undefined;
   /** The popup's id when its element sets none. */
   floatingId: string;
-  /** Whether the popup is nested in another floating element. */
-  nested: boolean;
   /** Whether Floating UI positions the popup element itself rather than the positioner. */
   popupIsFloatingElement?: boolean | undefined;
   /** Whether a popup open from the start plays its enter transition. */
@@ -129,7 +127,6 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
     floatingId: () => popupElement()?.id || options.floatingId,
     onOpenChange: (next, details) => options.onOpenChange(next, details),
     triggerElements,
-    nested: options.nested,
   });
 
   const popupId = () => popupElement()?.id || options.floatingId || undefined;
