@@ -61,8 +61,6 @@ function registerSwipeVars() {
 export interface DrawerPopupState {
   open: boolean;
   transitionStatus: TransitionStatus;
-  /** Whether the drawer is nested within a dialog. */
-  nested: boolean;
   /** The direction a swipe dismisses the drawer in. */
   swipeDirection: DrawerSwipeDirection;
   /** Whether the drawer is being swiped. */
@@ -136,7 +134,6 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
     get transitionStatus() {
       return store.transitionStatus();
     },
-    nested: store.nested,
     get swipeDirection() {
       return drawer.swipeDirection();
     },

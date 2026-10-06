@@ -5,14 +5,14 @@
 // Groups a dialog's parts and owns its state. The same root serves dialogs
 // and drawers, each opened by its owner's `open` (upstream's trigger is left
 // out). It wires what the parts share: Escape and outside presses close the
-// topmost dialog, and page scroll locks while a modal dialog is open.
+// dialog, and page scroll locks while a modal dialog is open. Upstream's
+// nested dialog stacks are left out: no page opens a dialog inside another.
 //
 // An outside press on a modal dialog closes it only on its own backdrop (or
 // the viewport around it), so a press on another dialog's backdrop or a
-// nested popup's never does. A dialog opened inside another reports its open
-// state to its parent, which counts its open nested dialogs.
+// popup's never does.
 import type { JSX } from '@solidjs/web';
-import { createEffect, createUniqueId, onCleanup, untrack } from 'solid-js';
+import { createUniqueId, onCleanup, untrack } from 'solid-js';
 
 import { useFloatingParentNodeId } from '../../floating-ui-solid/FloatingTree.tsx';
 import { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
@@ -25,7 +25,7 @@ import {
   type DialogChangeEventReason,
   type DialogModal,
 } from '../store/DialogStore.ts';
-import { DialogRootContext, useDialogRootContextOptional } from './DialogRootContext.ts';
+import { DialogRootContext } from './DialogRootContext.ts';
 
 export type { DialogChangeEventDetails, DialogChangeEventReason };
 
@@ -57,16 +57,14 @@ export interface DialogRootProps {
  * Doesn't render its own HTML element.
  */
 export function DialogRoot(props: DialogRootProps): JSX.Element {
-  const parent = useDialogRootContextOptional();
   const floatingNested = useFloatingParentNodeId() != null;
 
   const modal = (): DialogModal => props.modal ?? true;
   const disablePointerDismissal = () => props.disablePointerDismissal ?? false;
 
-  // Nested dialogs join their parent's tree, so presses inside them are inside it.
-  const floatingTree = parent?.store.floatingTree ?? new FloatingTreeStore();
+  const floatingTree = new FloatingTreeStore();
   const floatingNodeId = createUniqueId();
-  const floatingNode = { id: floatingNodeId, parentId: parent?.store.floatingNodeId ?? null };
+  const floatingNode = { id: floatingNodeId, parentId: null };
   floatingTree.addNode(floatingNode);
   onCleanup(() => floatingTree.removeNode(floatingNode));
 
@@ -74,7 +72,6 @@ export function DialogRoot(props: DialogRootProps): JSX.Element {
     openProp: () => props.open,
     modal,
     disablePointerDismissal,
-    nested: parent != null,
     floatingNested,
     floatingId: createUniqueId(),
     floatingTree,
@@ -82,8 +79,6 @@ export function DialogRoot(props: DialogRootProps): JSX.Element {
     onOpenChange: () => props.onOpenChange,
     onOpenChangeComplete: () => props.onOpenChangeComplete,
   });
-
-  const isTopmost = () => store.nestedOpenDialogCount() === 0;
 
   const dismiss = useDismiss(store.floatingRootContext, {
     outsidePressEvent() {
@@ -111,7 +106,7 @@ export function DialogRoot(props: DialogRootProps): JSX.Element {
         }
       }
       const target = getTarget(event) as Element | null;
-      if (!untrack(isTopmost) || untrack(disablePointerDismissal)) {
+      if (untrack(disablePointerDismissal)) {
         return false;
       }
       if (untrack(modal)) {
@@ -131,30 +126,10 @@ export function DialogRoot(props: DialogRootProps): JSX.Element {
       }
       return true;
     },
-    get escapeKey() {
-      return isTopmost();
-    },
     externalTree: floatingTree,
   });
 
   useScrollLock(() => store.open() && modal() === true, store.popupElement);
-
-  // A nested dialog reports to its parent how many dialogs (itself included) are open in it.
-  if (parent) {
-    createEffect(
-      () => [store.open(), store.nestedOpenDialogCount()] as const,
-      ([isOpen, dialogCount]) => {
-        if (!isOpen) {
-          parent.store.setNestedOpenDialogCount(0);
-          return undefined;
-        }
-        parent.store.setNestedOpenDialogCount(dialogCount + 1);
-        return () => {
-          parent.store.setNestedOpenDialogCount(0);
-        };
-      },
-    );
-  }
 
   const context: DialogRootContext = {
     store,

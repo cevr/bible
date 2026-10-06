@@ -509,12 +509,9 @@ export function DrawerViewport(componentProps: DrawerViewportProps): JSX.Element
     swipeStrength: swipeRelease,
   };
 
-  // As upstream's, the drawer's viewport leaves out the dialog's `data-nested-dialog-open`.
   return (
     <DrawerViewportContext value={context}>
-      {untrack(() =>
-        renderDialogViewport(componentProps, swipeProps, { suppressNestedDialogOpen: true }),
-      )}
+      {untrack(() => renderDialogViewport(componentProps, swipeProps))}
     </DrawerViewportContext>
   );
 }

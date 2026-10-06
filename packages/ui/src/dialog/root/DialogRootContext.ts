@@ -24,7 +24,3 @@ export function useDialogRootContext(): DialogRootContext {
   }
   return context;
 }
-
-export function useDialogRootContextOptional(): DialogRootContext | null {
-  return useContext(DialogRootContext);
-}

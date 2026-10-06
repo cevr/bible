@@ -12,16 +12,12 @@ import type { TransitionStatus } from '../../internals/transitions.ts';
 import type { BaseUIComponentProps, HTMLProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { onClientCleanup } from '../../utils/onClientCleanup.ts';
+import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
-import { dialogStateAttributesMapping } from '../utils/stateAttributesMapping.ts';
 
 export interface DialogViewportState {
   open: boolean;
   transitionStatus: TransitionStatus;
-  /** Whether the dialog is nested within another dialog. */
-  nested: boolean;
-  /** Whether a dialog nested in this one is open. */
-  nestedDialogOpen: boolean;
 }
 
 export interface DialogViewportProps extends BaseUIComponentProps<'div', DialogViewportState> {}
@@ -30,7 +26,6 @@ export interface DialogViewportProps extends BaseUIComponentProps<'div', DialogV
 export function renderDialogViewport(
   componentProps: DialogViewportProps,
   internalProps?: HTMLProps,
-  options: { suppressNestedDialogOpen?: boolean } = {},
 ): JSX.Element {
   const { store } = useDialogRootContext();
   const elementProps = omit(componentProps, 'class', 'style', 'render');
@@ -44,16 +39,12 @@ export function renderDialogViewport(
     get transitionStatus() {
       return store.transitionStatus();
     },
-    nested: store.nested,
-    get nestedDialogOpen() {
-      return !options.suppressNestedDialogOpen && store.nestedOpenDialogCount() > 0;
-    },
   };
 
   return useRenderElement('div', componentProps, {
     state,
     ref: (el: HTMLElement) => store.setViewportElement(el),
-    stateAttributesMapping: dialogStateAttributesMapping,
+    stateAttributesMapping: popupTransitionStateMapping,
     props: [
       {
         role: 'presentation',

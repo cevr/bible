@@ -2,7 +2,7 @@
 //
 // Groups a drawer's parts. A drawer is a dialog underneath (the same root)
 // that a swipe in `swipeDirection` dismisses. On Android the system back
-// gesture closes it when no dialog is open on top of it. Upstream's snap
+// gesture closes it. Upstream's snap
 // points, nested drawer stacks, swipe area and provider indent are left out.
 import type { JSX } from '@solidjs/web';
 import { createEffect, untrack } from 'solid-js';
@@ -85,12 +85,12 @@ function DrawerRootScope(props: {
     swipeDirection: () => props.swipeDirection,
   };
 
-  // The Android back gesture closes the topmost drawer (Chromium's CloseWatcher).
-  // Desktop keeps Escape to `useDismiss`, so nesting resolves one way.
+  // The Android back gesture closes the open drawer (Chromium's CloseWatcher).
+  // Desktop keeps Escape to `useDismiss`.
   createEffect(
-    () => [store.open(), store.nestedOpenDialogCount() === 0, store.popupElement()] as const,
-    ([open, isTopmost, popupElement]) => {
-      if (!open || !isTopmost || !platform.os.android) {
+    () => [store.open(), store.popupElement()] as const,
+    ([open, popupElement]) => {
+      if (!open || !platform.os.android) {
         return undefined;
       }
       const win = ownerWindow(popupElement) as Window & {
