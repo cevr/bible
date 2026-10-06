@@ -673,6 +673,14 @@
       }
     },
     {
+      // A browser test that sends touches runs alone, as test.serial
+      // (packages/film/lint/touches-serial.ts).
+      "files": ["**/packages/film/e2e/**/*.test.ts"],
+      "rules": {
+        "film/touches-serial": "error"
+      }
+    },
+    {
       // A test that spawns a process declares its timeout (packages/film/lint/spawn-budget.ts).
       "files": ["**/packages/film/**/*.test.ts"],
       "rules": {

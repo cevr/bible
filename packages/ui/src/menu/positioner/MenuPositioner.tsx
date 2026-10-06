@@ -7,7 +7,6 @@
 import { isServer, type JSX } from '@solidjs/web';
 import { createContext, omit, onCleanup, Show, untrack, useContext } from 'solid-js';
 
-import { FloatingNode } from '../../floating-ui-solid/FloatingTree.tsx';
 import { CompositeList } from '../../internals/composite/CompositeList.tsx';
 import { DROPDOWN_COLLISION_AVOIDANCE } from '../../internals/constants.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
@@ -114,7 +113,6 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
     get sticky() {
       return props.sticky ?? false;
     },
-    nodeId: store.floatingNodeId,
     get disableAnchorTracking() {
       return props.disableAnchorTracking ?? false;
     },
@@ -131,7 +129,6 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
         rootBoundary: 'layoutViewport' as const,
       };
     },
-    externalTree: store.floatingTreeRoot,
   });
 
   // The server set no element to let go.
@@ -184,24 +181,22 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
           cutout={parent.type === undefined ? store.activeTriggerElement() : null}
         />
       </Show>
-      <FloatingNode id={store.floatingNodeId}>
-        <CompositeList
-          elementsRef={store.itemDomElements}
-          labelsRef={store.itemLabels}
-          onMapChange={syncHighlightedItem}
-        >
-          {/* Built inside the providers, so the popup and items read them. */}
-          {untrack(() =>
-            usePositioner(componentProps, state, {
-              styles: positioner.positionerStyles,
-              transitionStatus: store.transitionStatus,
-              props: elementProps,
-              ref: (el: HTMLElement) => store.setPositionerElement(el),
-              inert: () => !store.open(),
-            }),
-          )}
-        </CompositeList>
-      </FloatingNode>
+      <CompositeList
+        elementsRef={store.itemDomElements}
+        labelsRef={store.itemLabels}
+        onMapChange={syncHighlightedItem}
+      >
+        {/* Built inside the providers, so the popup and items read them. */}
+        {untrack(() =>
+          usePositioner(componentProps, state, {
+            styles: positioner.positionerStyles,
+            transitionStatus: store.transitionStatus,
+            props: elementProps,
+            ref: (el: HTMLElement) => store.setPositionerElement(el),
+            inert: () => !store.open(),
+          }),
+        )}
+      </CompositeList>
     </MenuPositionerContext>
   );
 }

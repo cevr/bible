@@ -21,7 +21,7 @@
 // never a fixed time.
 
 import { Array as Arr, Deferred, Effect, Exit, Match, Option, Schedule, Schema } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../../../src/core/api.ts';
 import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import { FreshProcessFailed, VerbRefused } from '../../../../src/core/refusals.ts';
@@ -1026,7 +1026,8 @@ describe("a film's project", () => {
     SLOW,
   );
 
-  it.live(
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
     "a long press on an act's header offers its approvals from the command registry; the approve's receipt says before → after, and its Undo withdraws just what it approved",
     () =>
       Effect.gen(function* () {
@@ -1062,7 +1063,7 @@ describe("a film's project", () => {
           { address: { _tag: 'Scenes', ids: ['open'] }, say: { _tag: 'Withdraw', given: 'op-1' } },
         ]);
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped, Effect.runPromise),
     SLOW,
   );
 

@@ -1,13 +1,14 @@
 // Upstream: packages/react/src/internals/composite/root/CompositeRoot.test.tsx (the key cases)
 //
 // The pure step of a composite's roving tab stop: which index a key moves to.
-// Items here are placeholders (null elements), disabled by index.
+// Items here are placeholders (null elements); skipping a disabled item reads
+// the DOM, so the browser tests cover it (toggle.test.ts, "skips a disabled
+// toggle with the arrows").
 import { describe, expect, it } from 'bun:test';
 
 import {
   type CompositeNavigationParameters,
   getCompositeNavigationIndex,
-  getFallbackIndex,
   getNavigationKeys,
   hasModifierKey,
 } from './composite.ts';
@@ -64,31 +65,15 @@ describe('getCompositeNavigationIndex', () => {
     expect(step({ key: 'ArrowLeft', highlightedIndex: 0, loopFocus: false }).index).toBe(-1);
   });
 
-  it('skips disabled items, and wraps past disabled ends', () => {
-    expect(step({ key: 'ArrowRight', disabledIndices: [1, 2] }).index).toBe(3);
-    expect(step({ key: 'ArrowRight', highlightedIndex: 2, disabledIndices: [3] }).index).toBe(0);
-    expect(step({ key: 'ArrowLeft', highlightedIndex: 1, disabledIndices: [0] }).index).toBe(3);
-  });
-
-  it('moves to the first and last enabled items on Home and End only when enabled', () => {
+  it('moves to the first and last items on Home and End only when enabled', () => {
     expect(step({ key: 'End' }).handled).toBe(false);
     expect(step({ key: 'End', enableHomeAndEndKeys: true })).toEqual({ index: 3, handled: true });
-    expect(
-      step({ key: 'Home', highlightedIndex: 3, enableHomeAndEndKeys: true, disabledIndices: [0] })
-        .index,
-    ).toBe(1);
+    expect(step({ key: 'Home', highlightedIndex: 3, enableHomeAndEndKeys: true }).index).toBe(0);
   });
 
   it('ignores keys a composite does not use', () => {
     expect(step({ key: 'a' })).toEqual({ index: 0, handled: false });
     expect(step({ key: 'PageDown' }).handled).toBe(false);
-  });
-});
-
-describe('getFallbackIndex', () => {
-  it('is the first enabled item, or 0 when every item is disabled', () => {
-    expect(getFallbackIndex(items(3), [0])).toBe(0);
-    expect(getFallbackIndex(items(3), [0, 1, 2])).toBe(0);
   });
 });
 

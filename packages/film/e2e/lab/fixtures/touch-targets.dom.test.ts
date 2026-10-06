@@ -4,8 +4,9 @@
 // covered passes on the free part beside it), spacing looks at neighbours'
 // hit-slops, a backing input is left out only when nothing of it can be seen
 // or pressed, only a link on a line of text is inline, a link inside a label
-// is the link's area and never the label's field's, and a layer is measured
-// within itself, its menu items as targets.
+// is the link's area and never the label's field's, a target scrolling
+// cannot bring into the window fails, and a layer is measured within itself,
+// its menu items as targets.
 
 import { Effect } from 'effect';
 import { describe, it } from 'effect-bun-test';
@@ -100,6 +101,13 @@ describe('the touch-target measure', () => {
        <label for="agree" class="at" style="left:100px;top:400px;width:44px;height:44px"><a href="#terms" style="display:block;width:44px;height:44px">terms</a></label>`,
         ['input[type=checkbox].at "" 2×2 □2'],
       ),
+  );
+
+  it.live('fails a target that scrolled to stays out of the window, none of it to tap', () =>
+    offenders(
+      `<button style="position:fixed;left:500px;top:100px;width:44px;height:44px">off</button>`,
+      ['button "off" out of the window'],
+    ),
   );
 
   it.live("measures a layer's own targets, menu items among them, and not what lies under it", () =>

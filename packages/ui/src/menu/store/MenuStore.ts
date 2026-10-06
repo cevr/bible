@@ -1,12 +1,11 @@
 // Upstream: packages/react/src/menu/store/MenuStore.ts
 //
 // A menu's state: the popup's (open, mounted, active trigger, elements) plus
-// the highlighted item, how the menu opened, and its tree. A context menu
+// the highlighted item and how the menu opened. A context menu
 // shares its root id and mouse-up gesture flag with the context menu around it.
 import { type Accessor, createSignal, untrack } from 'solid-js';
 
 import type { ContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext.ts';
-import type { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { REASONS } from '../../internals/reasons.ts';
 import { createPopupStore, type PopupStore } from '../../utils/popups/popupStore.ts';
@@ -40,15 +39,11 @@ export type MenuInstantType = 'dismiss' | 'click' | undefined;
 export interface MenuStoreOptions {
   parent: MenuParent;
   openProp: () => boolean | undefined;
-  defaultOpen: boolean;
   disabled: () => boolean;
   modal: () => boolean | undefined;
   openMethod: Accessor<InteractionType | null>;
   floatingId: string;
   rootId: string;
-  floatingTreeRoot: FloatingTreeStore;
-  floatingNodeId: string;
-  floatingParentNodeId: string | null;
   onOpenChange: (open: boolean, details: BaseUIChangeEventDetails) => void;
   onOpenChangeComplete: () => ((open: boolean) => void) | undefined;
 }
@@ -68,9 +63,6 @@ export interface MenuStore extends PopupStore {
   isActive: (index: number) => boolean;
   instantType: Accessor<MenuInstantType>;
   lastOpenChangeReason: Accessor<MenuChangeEventReason | null>;
-  readonly floatingTreeRoot: FloatingTreeStore;
-  readonly floatingNodeId: string;
-  readonly floatingParentNodeId: string | null;
   /** Asks the menu to open or close (through `onOpenChange`, which may cancel). */
   setOpen: (open: boolean, details: BaseUIChangeEventDetails) => void;
   /** Applies an accepted open change with the menu's own state. */
@@ -98,9 +90,7 @@ export interface MenuStore extends PopupStore {
 export function createMenuStore(options: MenuStoreOptions): MenuStore {
   const popup = createPopupStore({
     openProp: options.openProp,
-    defaultOpen: options.defaultOpen,
     floatingId: options.floatingId,
-    nested: options.floatingParentNodeId != null,
     onOpenChange: (open, details) => options.onOpenChange(open, details),
     onOpenChangeComplete: options.onOpenChangeComplete,
   });
@@ -137,9 +127,6 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
     isActive: (index) => activeIndex() === index,
     instantType,
     lastOpenChangeReason,
-    floatingTreeRoot: options.floatingTreeRoot,
-    floatingNodeId: options.floatingNodeId,
-    floatingParentNodeId: options.floatingParentNodeId,
     setOpen: (open, details) => popup.floatingRootContext.setOpen(open, details),
     applyMenuOpenState(open, details, menuState) {
       setLastOpenChangeReason(menuState.reason);

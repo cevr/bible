@@ -16,8 +16,13 @@
 //   registered rule turned on in .oxlintrc.json;
 // - each `bun run <script>`: a script of the root, this package, or the app
 //   whose scripts run the film commands (its package.json, never its films);
-// - each path written from the repo root (`packages/…`, `apps/…`, `.claude/…`,
-//   `.github/…`) exists;
+// - each path written in backticks, in these docs and in NORTH_STAR.md,
+//   PRIOR_ARTS.md, CLAUDE.md and the packages' and apps' READMEs, from the
+//   repo root or from the doc's own package (`lab/page-shell.tsx`, `src/…`),
+//   exists, and each symbol written after it (`tools/review.ts`
+//   `Review.read`) is in its code; an anchor names a symbol, never a
+//   `path:line`, so a moved line keeps it and a renamed symbol fails it
+//   (a receipt `at <commit>` or a path `deleted` names the tree as it was);
 // - each `--flag` given to a film command (`bun run render <film> --stills …`)
 //   is declared by a `Flag` in src/tools (`--no-x` by its `x`);
 // - on a command line that runs `check` (`bun run check …  # warns …`), each
@@ -40,12 +45,13 @@ interface Code {
   readonly filmCommands: ReadonlySet<string>;
   readonly flags: ReadonlySet<string>;
   readonly tags: ReadonlySet<string>;
-  readonly exists: (repoPath: string) => boolean;
 }
 
 interface Doc {
   readonly path: string;
   readonly text: string;
+  /** Where a relative path in it is read from, first match wins; `''` is the repo's root. */
+  readonly bases: ReadonlyArray<string>;
 }
 
 const matches = (text: string, pattern: RegExp): ReadonlyArray<RegExpExecArray> =>
@@ -142,11 +148,133 @@ const scriptDrift = (doc: Doc, code: Code) =>
     .filter((script) => !code.scripts.has(script))
     .map((script) => `bun run ${script}: no such script`);
 
-const pathDrift = (doc: Doc, code: Code) =>
-  matches(doc.text, /`((?:packages|apps|\.claude|\.github)\/[^`\s]+)`/g)
-    .map((m) => firstGroup(m).replace(/:\d.*$/, ''))
-    .filter((path) => !/[<*{…]/.test(path) && !code.exists(path))
-    .map((path) => `path ${path} does not exist`);
+/**
+ * A path a doc writes in backticks, read from one of the doc's bases, and the
+ * symbols written after it (`lab/page-shell.tsx` `partHref`, `Review.read`).
+ */
+interface Anchor {
+  readonly written: string;
+  /** The path without a `:line`, a trailing `/` or a call's `(…)`. */
+  readonly path: string;
+  /** Written as `path:line`, which a moved line breaks without a sound. */
+  readonly line: boolean;
+  /** A receipt that names the tree as it was: `… at \`<commit>\`` or `… deleted`. */
+  readonly receipt: boolean;
+  readonly symbols: ReadonlyArray<string>;
+}
+
+/**
+ * A table row about another repo, its first cell the repo's slug
+ * (`cgwire/kitsu`; a `film/<rule>` is a rule): its paths are that repo's.
+ */
+const ANOTHER_REPO = /^\| `(?!film\/)[\w-]+\/[\w.-]+` +\|/;
+
+/** Each path a doc writes, with the symbols after it: `path` `A`, `B`. */
+const anchorsIn = (doc: Doc): ReadonlyArray<Anchor> =>
+  doc.text
+    .split('\n')
+    .filter((line) => !ANOTHER_REPO.test(line))
+    .flatMap((line) =>
+      matches(
+        line,
+        /`([\w@-][\w.@-]*\/[^`\s]*)`((?:\s+`[^`\n]+`(?:,\s+`[^`\n]+`)*)?)(\s+(?:at\s+`[0-9a-f]{7,40}`|deleted\b))?/g,
+      ).flatMap((m) => {
+        const written = firstGroup(m);
+        if (/[<*{…]/.test(written)) return [];
+        const path = written.replace(/:[\d,-]+$/, '').replace(/\/$/, '');
+        return [
+          {
+            written,
+            path,
+            line: path !== written.replace(/\/$/, ''),
+            receipt: group(m, 3) !== '',
+            // A directory's list (`tools/` `lab*.ts`, `api-server.ts`) names files, not symbols.
+            symbols: matches(group(m, 2), /`([^`]+)`/g)
+              .map(firstGroup)
+              .filter(
+                (symbol) =>
+                  /\.\w+$/.test(path) && /^(?:'[\w-]+'|[A-Za-z_$][\w$.]*(?:\(.*\))?)$/.test(symbol),
+              ),
+          },
+        ];
+      }),
+    );
+
+/** An anchor as the tree has it: the file it names under the doc's bases, and that file's text. */
+interface Found {
+  readonly anchor: Anchor;
+  /** Under none of the doc's bases (its first directory is none of theirs): another tree's path. */
+  readonly ours: boolean;
+  readonly file: Option.Option<string>;
+  readonly text: Option.Option<string>;
+}
+
+/** A file's code without its comments, which may still name what the code dropped. */
+const uncommented = (text: string) => text.replace(/\/\*[\s\S]*?\*\/|(?<![:'"`\w])\/\/.*$/gm, '');
+
+/** Whether a file's code has a symbol: each part of `Review.read` as a word, a `'lab'` as written. */
+const declares = (text: string, symbol: string) => {
+  const code = uncommented(text);
+  if (symbol.startsWith("'")) return code.includes(symbol);
+  return symbol
+    .replace(/\(.*\)$/, '')
+    .split('.')
+    .every((part) => new RegExp(`(?<![\\w$])${part.replaceAll('$', '\\$')}(?![\\w$])`).test(code));
+};
+
+/**
+ * What a doc's anchors name that the tree lacks: a path that is gone, a
+ * symbol its file no longer declares, or a `path:line` (a line moves under
+ * an edit and still resolves; a symbol fails when it is renamed). A receipt
+ * at a commit or of a deletion names the tree as it was, so it is not read.
+ */
+const anchorDrift = (found: ReadonlyArray<Found>) =>
+  found
+    .filter(({ anchor, ours }) => ours && !anchor.receipt)
+    .flatMap(({ anchor, file, text }) => [
+      ...[`${anchor.written}: name a symbol, not a line`].filter(() => anchor.line),
+      ...Option.match(file, {
+        onNone: () => [`path ${anchor.path} does not exist`],
+        onSome: (at) =>
+          anchor.symbols
+            .filter((symbol) => !Option.exists(text, (t) => declares(t, symbol)))
+            .map((symbol) => `${at} has no ${symbol}`),
+      }),
+    ]);
+
+/** Each anchor looked up under the doc's bases: the first base that has its first directory reads it. */
+const findAnchors = Effect.fn('test.docs.findAnchors')(function* (root: string, doc: Doc) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const isDirectory = (at: string) =>
+    Effect.map(
+      Effect.option(fs.stat(path.join(root, at))),
+      Option.exists((info) => info.type === 'Directory'),
+    );
+  return yield* Effect.forEach(anchorsIn(doc), (anchor) =>
+    Effect.gen(function* () {
+      const first = anchor.path.split('/')[0] ?? '';
+      const bases = yield* Effect.filter(doc.bases, (base) => isDirectory(path.join(base, first)));
+      const under = yield* Effect.filter(bases, (base) =>
+        fs.exists(path.join(root, base, anchor.path)),
+      );
+      const file = Option.map(Option.fromUndefinedOr(under[0]), (base) =>
+        path.join(base, anchor.path),
+      );
+      // Read only when a symbol is to be found in it.
+      const read = Option.filter(file, () => anchor.symbols.length > 0);
+      return {
+        anchor,
+        ours: bases.length > 0,
+        file,
+        text: yield* Option.match(read, {
+          onNone: () => Effect.succeed(Option.none<string>()),
+          onSome: (at) => Effect.option(fs.readFileString(path.join(root, at))),
+        }),
+      } satisfies Found;
+    }),
+  );
+});
 
 /** Each `--flag` given to a film command on a line, before its `#` comment. */
 const flagDrift = (line: string, code: Code) =>
@@ -175,7 +303,6 @@ const drift = (doc: Doc, code: Code): ReadonlyArray<string> =>
     ...spanDrift(doc, code),
     ...ruleDrift(doc, code),
     ...scriptDrift(doc, code),
-    ...pathDrift(doc, code),
     ...doc.text
       .split('\n')
       .flatMap((line) => [...flagDrift(line, code), ...findingDrift(line, code)]),
@@ -213,13 +340,6 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
   const oxlintrc = yield* read('.oxlintrc.json');
   const tools = (yield* sources('packages/film/src/tools')).join('\n');
   const src = (yield* sources('packages/film/src')).join('\n');
-  const tracked = new Set(
-    yield* Effect.forEach(['packages', 'apps', '.claude', '.github'], (dir) =>
-      Effect.map(fs.readDirectory(at(dir), { recursive: true }), (files) =>
-        files.filter((f) => !f.includes('node_modules')).map((f) => `${dir}/${f}`),
-      ),
-    ).pipe(Effect.map((all) => all.flat())),
-  );
   return {
     routes: new Set(routesOf(LabHttpApi).map((r) => `${r.method} ${r.path}`)),
     registered: new Set(matches(plugin, /^ {4}'([a-z-]+)': /gm).map(firstGroup)),
@@ -230,11 +350,12 @@ const readCode = Effect.fn('test.docs.readCode')(function* (root: string) {
     ),
     flags: new Set(matches(tools, /Flag\.\w+\(\s*'([a-z][a-z-]*)'/g).map(firstGroup)),
     tags: new Set(matches(src, /TaggedError<(\w+)>/g).map(firstGroup)),
-    exists: (repoPath: string) => tracked.has(repoPath.replace(/\/$/, '')),
   } satisfies Code;
 });
 
-/** The docs that teach the framework. */
+const FILM_SRC = 'packages/film/src';
+
+/** The docs that teach the framework, read in full against the code. */
 const readDocs = Effect.fn('test.docs.readDocs')(function* (root: string) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -242,34 +363,72 @@ const readDocs = Effect.fn('test.docs.readDocs')(function* (root: string) {
     ['.claude/skills/film', '.claude/skills/film-architecture-loop'],
     (dir) =>
       Effect.map(fs.readDirectory(path.join(root, dir), { recursive: true }), (files) =>
-        files.filter((f) => f.endsWith('.md')).map((f) => `${dir}/${f}`),
+        files.filter((f) => f.endsWith('.md')).map((f) => [`${dir}/${f}`, ['', FILM_SRC]] as const),
       ),
   );
-  return yield* Effect.forEach(['packages/film/README.md', ...skills.flat()], (file) =>
-    Effect.map(fs.readFileString(path.join(root, file)), (text) => ({ path: file, text })),
+  return yield* readEach(root, [
+    ['packages/film/README.md', ['', 'packages/film', FILM_SRC]],
+    ...skills.flat(),
+  ]);
+});
+
+/** The docs that name the code in passing: their routes and anchors are read. */
+const SPANNED: ReadonlyArray<readonly [string, ReadonlyArray<string>]> = [
+  ['NORTH_STAR.md', ['', FILM_SRC]],
+  ['PRIOR_ARTS.md', ['', FILM_SRC]],
+  ['apps/animations/README.md', ['', 'apps/animations', 'apps/animations/src', FILM_SRC]],
+];
+
+/** The docs read for their anchors alone: they teach another package. */
+const ANCHORED: ReadonlyArray<readonly [string, ReadonlyArray<string>]> = [
+  ['CLAUDE.md', ['']],
+  ['packages/ui/README.md', ['', 'packages/ui']],
+  ['packages/url-state/README.md', ['', 'packages/url-state']],
+  ['packages/atom-solid/README.md', ['', 'packages/atom-solid']],
+  ['apps/egw-search/README.md', ['', 'apps/egw-search']],
+];
+
+const readEach = Effect.fn('test.docs.readEach')(function* (
+  root: string,
+  docs: ReadonlyArray<readonly [string, ReadonlyArray<string>]>,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  return yield* Effect.forEach(docs, ([file, bases]) =>
+    Effect.map(fs.readFileString(`${root}/${file}`), (text): Doc => ({ path: file, text, bases })),
   );
 });
+
+/** What each doc's anchors name that the tree lacks, one line each. */
+const anchorsDrift = (root: string, docs: ReadonlyArray<Doc>) =>
+  Effect.map(
+    Effect.forEach(docs, (doc) =>
+      Effect.map(findAnchors(root, doc), (found) =>
+        anchorDrift(found).map((what) => `${doc.path}: ${what}`),
+      ),
+    ),
+    (each) => each.flat(),
+  );
 
 const ROOT = Effect.map(Path.Path, (path) => path.join(import.meta.dir, '..', '..', '..'));
 
 describe('the docs', () => {
   it.effect.layer(BunServices.layer)(
-    'name only routes, rules, scripts, paths, flags and findings the code has',
+    'name only routes, rules, scripts, paths, symbols, flags and findings the code has',
     () =>
       Effect.gen(function* () {
         const root = yield* ROOT;
-        const [code, docs] = yield* Effect.all([readCode(root), readDocs(root)]);
+        const [code, docs, spanned, anchored] = yield* Effect.all([
+          readCode(root),
+          readDocs(root),
+          readEach(root, SPANNED),
+          readEach(root, ANCHORED),
+        ]);
         expect(docs.flatMap((doc) => drift(doc, code))).toEqual([]);
         // The owner's runbook, the prior arts and the app's README name routes too.
-        const fs = yield* FileSystem.FileSystem;
-        const others = yield* Effect.forEach(
-          ['NORTH_STAR.md', 'PRIOR_ARTS.md', 'apps/animations/README.md'],
-          (file) =>
-            Effect.map(fs.readFileString(`${root}/${file}`), (text) => ({ path: file, text })),
-        );
         expect(
-          others.flatMap((doc) => spanDrift(doc, code).map((what) => `${doc.path}: ${what}`)),
+          spanned.flatMap((doc) => spanDrift(doc, code).map((what) => `${doc.path}: ${what}`)),
         ).toEqual([]);
+        expect(yield* anchorsDrift(root, [...docs, ...spanned, ...anchored])).toEqual([]);
         expect(undocumented(docs, code)).toEqual([]);
         // Each registered rule is on for the paths it guards.
         expect(Array.from(code.registered).filter((rule) => !code.enabled.has(rule))).toEqual([]);
@@ -278,9 +437,11 @@ describe('the docs', () => {
 
   it.effect.layer(BunServices.layer)('fail a doc that names what the code no longer has', () =>
     Effect.gen(function* () {
-      const code = yield* readCode(yield* ROOT);
+      const root = yield* ROOT;
+      const code = yield* readCode(root);
       const stale: Doc = {
         path: 'stale.md',
+        bases: ['', FILM_SRC],
         text: [
           '| `GET /index.json` | the old index |',
           'Mute a take with `film/no-such-rule`, then `bun run nothing`.',
@@ -288,6 +449,10 @@ describe('the docs', () => {
           'bun run render <film> --tag p7   # render a tagged variant',
           'bun run check <film>             # warns VoiceLevel, SeamLong',
           'Its frame is `/review/frame`; say it with `POST /review/project/<film>/say`.',
+          'Every page a Place (`packages/film/src/core/api.ts` `Places`, `pageHrefs`).',
+          'The review is read by `tools/review.ts` `Review.write`, the bar at `lab/page-shell.tsx:346`.',
+          'Gone with its links (`player/lookbook.ts` deleted, `packages/ui/src/tabs/TabsRoot.tsx:101` at `4a471dae`).',
+          '| `cgwire/kitsu` | its routes in `packages/kitsu/src/router.js` |',
         ].join('\n'),
       };
       expect(drift(stale, code)).toEqual([
@@ -296,9 +461,14 @@ describe('the docs', () => {
         'stale.md: route POST /review/project/:film/say is declared by no API',
         'stale.md: rule film/no-such-rule is not registered',
         'stale.md: bun run nothing: no such script',
-        'stale.md: path packages/film/src/tools/gone.ts does not exist',
         'stale.md: bun run render --tag: no command declares the flag',
         'stale.md: VoiceLevel is no finding',
+      ]);
+      expect(yield* anchorsDrift(root, [stale])).toEqual([
+        'stale.md: path packages/film/src/tools/gone.ts does not exist',
+        'stale.md: packages/film/src/core/api.ts has no pageHrefs',
+        'stale.md: packages/film/src/tools/review.ts has no Review.write',
+        'stale.md: lab/page-shell.tsx:346: name a symbol, not a line',
       ]);
     }),
   );

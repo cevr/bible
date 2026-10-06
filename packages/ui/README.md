@@ -24,7 +24,7 @@ Every part takes `class` and `style` (a value or a function of the part's state)
           - `Menu.GroupLabel`: `<div aria-hidden>` that names the group.
         - `Menu.Separator`: `<div role="separator">`.
 
-Upstream's hover opening, submenus, arrow (and `arrowPadding`), backdrop, link, checkbox and radio items, `keepMounted`, `actionsRef` and `highlightItemOnHover` are left out; a part returns with its first consumer.
+Upstream's hover opening, submenus, arrow (and `arrowPadding`), backdrop, link, checkbox and radio items, `defaultOpen`, `keepMounted`, `actionsRef` and `highlightItemOnHover` are left out; a part returns with its first consumer.
 
 | Member                | Attribute                                   | Present when                                                                                     |
 | --------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -65,13 +65,13 @@ The other members set the menu's attributes and CSS variables (see Menu).
 
 - `Dialog.Root`: no element; owns the dialog's state. Its owner opens it through `open` (there is no trigger part); on close, focus returns to what had it before.
   - `Dialog.Portal`: `<div>` at the end of `<body>`, rendered while mounted.
-    - `Dialog.Backdrop`: `<div role="presentation">`; only the outermost dialog of a nested stack renders one, unless `forceRender`.
+    - `Dialog.Backdrop`: `<div role="presentation">`; a press on it closes its own dialog only.
     - `Dialog.Popup`: `<div role="dialog">`.
       - `Dialog.Title`: `<h2>` that labels the popup.
       - `Dialog.Description`: `<p>` that describes the popup.
       - `Dialog.Close`: `<button>` that closes the dialog.
 
-Upstream's trigger, `Dialog.Viewport`, the portal's `keepMounted` and `actionsRef` are left out; a part returns with its first consumer.
+Upstream's trigger, `Dialog.Viewport`, nested dialog stacks (`data-nested`, `data-nested-dialog-open`, `--nested-dialogs`, the backdrop's `forceRender`), `defaultOpen`, the portal's `keepMounted` and `actionsRef` are left out; a part returns with its first consumer. Dialogs open side by side close one at a time, newest first.
 
 | Member     | Attribute                                   | Present when                                             |
 | ---------- | ------------------------------------------- | -------------------------------------------------------- |
@@ -79,13 +79,9 @@ Upstream's trigger, `Dialog.Viewport`, the portal's `keepMounted` and `actionsRe
 | `Backdrop` | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition |
 | `Popup`    | `data-open` / `data-closed`                 | the dialog is open / closed                              |
 | `Popup`    | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition |
-| `Popup`    | `data-nested`                               | the dialog is nested in another dialog                   |
-| `Popup`    | `data-nested-dialog-open`                   | a dialog nested in this one is open                      |
 | `Close`    | `data-disabled`                             | the button is disabled                                   |
 
 `Title` and `Description` set none.
-
-CSS variables on `Dialog.Popup`: `--nested-dialogs` (how many dialogs nested in it are open).
 
 ### Drawer
 
@@ -98,7 +94,7 @@ CSS variables on `Dialog.Popup`: `--nested-dialogs` (how many dialogs nested in 
         - `Drawer.Content`: `<div data-drawer-content>`, a region where a mouse press never starts a swipe.
         - `Drawer.Title`, `Drawer.Close`: the dialog's `<h2>` and `<button>`.
 
-Upstream's swipe area, backdrop, description, snap points, nested drawer stacks and the provider's indent are left out; a part returns with its first consumer.
+Upstream's swipe area, backdrop, description, snap points, nested drawer stacks (and a drawer's `data-nested` inside a dialog), `defaultOpen` and the provider's indent are left out; a part returns with its first consumer.
 
 A swipe released past half the popup (or flicked) calls `onOpenChange(false, details)` with the reason `swipe`. An owner that refuses it calls `details.cancel()`, and the sheet springs back. Otherwise the sheet holds its exit pose (`data-swipe-dismiss`, `data-ending-style`) until the owner closes the drawer, however many frames later. Upstream instead reads `open` still being true a frame later as a refusal. An owner that neither cancels nor closes leaves the sheet held in its exit pose, with no timeout. Every film owner closes.
 
@@ -106,10 +102,8 @@ A swipe released past half the popup (or flicked) calls `onOpenChange(false, det
 | ---------- | ------------------------------------------- | ------------------------------------------------------------------------------------- |
 | `Viewport` | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
 | `Viewport` | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                              |
-| `Viewport` | `data-nested`                               | the drawer is nested in a dialog (no `data-nested-dialog-open`)                       |
 | `Popup`    | `data-open` / `data-closed`                 | the drawer is open / closed                                                           |
 | `Popup`    | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition (also after a swipe dismiss) |
-| `Popup`    | `data-nested`                               | the drawer is nested in a dialog                                                      |
 | `Popup`    | `data-swipe-direction`                      | always: the direction a swipe dismisses it (`up`, `down`, `left` or `right`)          |
 | `Popup`    | `data-swiping`                              | the drawer is being swiped                                                            |
 | `Popup`    | `data-swipe-dismiss`                        | the drawer is being dismissed by a swipe release                                      |

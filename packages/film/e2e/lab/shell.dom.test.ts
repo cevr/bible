@@ -8,7 +8,7 @@
 
 import { BunServices } from '@effect/platform-bun';
 import { Deferred, Effect, Exit, FileSystem, Option } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
 import { FilmUnknown } from '../../src/core/refusals.ts';
 import { timecode } from '../../src/core/time.ts';
@@ -268,7 +268,8 @@ describe('the lab shell', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live(
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
     'a drag that starts in another scene is no step either, by mouse or finger; a tap there is one Back walks',
     () =>
       Effect.gen(function* () {
@@ -310,7 +311,7 @@ describe('the lab shell', () => {
           yield* page.back;
           yield* evaluates(page, 'location.pathname', '/films/probe/lab/one');
         }
-      }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped, Effect.runPromise),
   );
 
   it.live(

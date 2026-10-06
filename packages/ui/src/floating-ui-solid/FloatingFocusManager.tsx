@@ -3,7 +3,7 @@
 // Moves focus into a popup when it opens and back to its trigger (or what
 // had focus before) when it closes. A modal popup traps Tab between focus
 // guards and hides the rest of the page from assistive tech; a non-modal one
-// closes when focus leaves it for something outside its tree. Focus lost
+// closes when focus leaves it, its trigger and its portal. Focus lost
 // inside the popup (its focused element removed) can be restored.
 //
 // Upstream also tracks focus moving through React portals that stay inside
@@ -22,12 +22,6 @@ import { platform } from '../utils/platform.ts';
 import { useAnimationFrame, useTimeout } from '../utils/timers.ts';
 import type { FloatingRootContext } from './FloatingRootContext.ts';
 import { type MaybeRef, resolveRef, usePortalContext } from './FloatingPortal.tsx';
-import {
-  type FloatingTreeStore,
-  getNodeAncestors,
-  getNodeChildren,
-  useFloatingTree,
-} from './FloatingTree.tsx';
 import { isElementVisible } from './utils/composite.ts';
 import {
   activeElement,
@@ -182,7 +176,6 @@ export interface FloatingFocusManagerProps {
   previousFocusableElement?: MaybeRef<HTMLElement | null> | null | undefined;
   /** Receives the guard before the content, to focus the popup programmatically. */
   beforeContentFocusGuardRef?: { current: HTMLSpanElement | null } | undefined;
-  externalTree?: FloatingTreeStore | undefined;
   /** Elements outside the popup that count as inside it. */
   getInsideElements?: (() => Array<Element | null | undefined>) | undefined;
 }
@@ -190,7 +183,6 @@ export interface FloatingFocusManagerProps {
 export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Element {
   const context = props.context;
   const { events, dataRef } = context;
-  const tree = useFloatingTree(props.externalTree);
   const portalContext = usePortalContext();
 
   const disabled = () => props.disabled ?? false;
@@ -202,8 +194,6 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
   const openInteractionType = () =>
     props.openInteractionType === undefined ? '' : props.openInteractionType;
   const floatingFocusElement = () => getFloatingFocusElement(context.floatingElement());
-
-  const getNodeId = () => dataRef.current.floatingContext?.nodeId;
 
   let preventReturnFocus = false;
 
@@ -361,7 +351,6 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         }
 
         queueMicrotask(() => {
-          const nodeId = getNodeId();
           const insideElements = getResolvedInsideElements();
           const isRelatedFocusGuard =
             relatedTarget?.hasAttribute(createAttribute('focus-guard')) &&
@@ -387,21 +376,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
             context.triggerElements.hasMatchingElement((trigger) =>
               contains(trigger, relatedTarget),
             ) ||
-            isRelatedFocusGuard ||
-            (tree &&
-              (getNodeChildren(tree.nodesRef.current, nodeId).find(
-                (node) =>
-                  contains(node.context?.elements.floating, relatedTarget) ||
-                  contains(node.context?.elements.domReference, relatedTarget),
-              ) ||
-                getNodeAncestors(tree.nodesRef.current, nodeId).find(
-                  (node) =>
-                    [
-                      node.context?.elements.floating,
-                      getFloatingFocusElement(node.context?.elements.floating),
-                    ].includes(relatedTarget) ||
-                    node.context?.elements.domReference === relatedTarget,
-                )))
+            isRelatedFocusGuard
           );
 
           if (currentTarget === domReference && focusElement) {
@@ -486,7 +461,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
     },
   );
 
-  // Hides everything outside the popup's tree from assistive tech while open.
+  // Hides everything outside the popup from assistive tech while open.
   createEffect(
     () =>
       [
@@ -627,9 +602,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
         if (details.reason !== REASONS.outsidePress) {
           return;
         }
-        if (details.nested) {
-          preventReturnFocus = false;
-        } else if (
+        if (
           isVirtualClick(details.nativeEvent as MouseEvent) ||
           isVirtualPointerEvent(details.nativeEvent as PointerEvent)
         ) {
@@ -678,15 +651,11 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
       return () => {
         events.off('openchange', onOpenChangeLocal);
         const activeEl = activeElement(doc);
-        const isFocusInsideFloatingTree =
+        const isFocusInside =
           contains(floating, activeEl) ||
           getResolvedInsideElements().some(
             (element) => element === activeEl || contains(element, activeEl),
-          ) ||
-          (tree &&
-            getNodeChildren(tree.nodesRef.current, getNodeId(), false).some((node) =>
-              contains(node.context?.elements.floating, activeEl),
-            ));
+          );
         const returnFocusValue = enabledReturnFocus;
         const returnElement = getReturnElement(closeType);
         const job = { cancelled: false };
@@ -706,7 +675,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
             isHTMLElement(tabbableReturnElement) &&
             // Focus that moved elsewhere after open is respected (floating-ui#2607).
             (!hasExplicitReturnFocus && tabbableReturnElement !== activeEl && activeEl !== doc.body
-              ? isFocusInsideFloatingTree
+              ? isFocusInside
               : true)
           ) {
             const focusOptions: FocusOptions & { focusVisible?: boolean } = {

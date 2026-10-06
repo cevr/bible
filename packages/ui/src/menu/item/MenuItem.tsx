@@ -15,6 +15,7 @@ import { createUniqueId, omit, untrack } from 'solid-js';
 
 import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext.ts';
 import { useCompositeListItem } from '../../internals/composite/CompositeList.tsx';
+import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import type { BaseUIComponentProps, NativeButtonProps } from '../../internals/types.ts';
 import { dispatchClickWithModifiers, useButton } from '../../internals/useButton.ts';
@@ -86,10 +87,7 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
     },
     onClick(event: MouseEvent) {
       if (untrack(() => componentProps.closeOnClick ?? true)) {
-        store.floatingTreeRoot.events.emit('close', {
-          domEvent: event,
-          reason: REASONS.itemPress,
-        });
+        store.setOpen(false, createChangeEventDetails(REASONS.itemPress, event));
       }
     },
     onMouseUp(event: MouseEvent) {

@@ -6,9 +6,9 @@
 // The dialog's behaviour cases: closing (Close, Escape, outside presses per
 // modal mode, an owner that keeps it open), focus (trap, initial, final, the
 // return to the button that opened it), scroll lock, the ARIA wiring and
-// nested dialogs. Every dialog opens from its owner's `open`, as every page's
-// does; upstream's trigger cases, detached triggers, handles and payloads,
-// alert dialogs, shadow roots, and React-only machinery (Suspense, act
+// dialogs open side by side. Every dialog opens from its owner's `open`, as
+// every page's does; upstream's trigger cases, detached triggers, handles and
+// payloads, nested dialogs, alert dialogs, shadow roots, and React-only machinery (Suspense, act
 // timing, owner stacks) are left out.
 import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
 
@@ -274,74 +274,7 @@ describe('Dialog.Popup focus', () => {
   });
 });
 
-describe('nested dialogs', () => {
-  it('marks the nested popup and counts open nested dialogs', async () => {
-    const page = await h.open('nested');
-    await page.click('#open');
-    const parent = page.locator('#parent-popup');
-    await see(parent).toBeVisible();
-    await see(parent).not.toHaveAttribute('data-nested', '');
-    await see(parent).toHaveCSS('--nested-dialogs', '0');
-    await page.click('#child-open');
-    const child = page.locator('#child-popup');
-    await see(child).toBeVisible();
-    await see(child).toHaveAttribute('data-nested', '');
-    await see(parent).toHaveAttribute('data-nested-dialog-open', '');
-    await see(parent).toHaveCSS('--nested-dialogs', '1');
-    await page.click('#grandchild-open');
-    await see(page.locator('#grandchild-popup')).toBeVisible();
-    await see(parent).toHaveCSS('--nested-dialogs', '2');
-    await see(child).toHaveCSS('--nested-dialogs', '1');
-    await page.click('#grandchild-close');
-    await see(parent).toHaveCSS('--nested-dialogs', '1');
-    await page.click('#child-close');
-    await see(child).toHaveCount(0);
-    await see(parent).not.toHaveAttribute('data-nested-dialog-open', '');
-    await see(parent).toHaveCSS('--nested-dialogs', '0');
-  });
-
-  it('renders only the outermost backdrop', async () => {
-    const page = await h.open('nested');
-    await page.click('#open');
-    await page.click('#child-open');
-    await see(page.locator('#child-popup')).toBeVisible();
-    await see(page.locator('#parent-backdrop')).toHaveCount(1);
-    await see(page.locator('#child-backdrop')).toHaveCount(0);
-  });
-
-  it('Escape closes only the topmost dialog', async () => {
-    const page = await h.open('nested');
-    await page.click('#open');
-    await page.click('#child-open');
-    await see.poll(() => focused(page)).toBe('grandchild-open');
-    await page.keyboard.press('Escape');
-    await see(page.locator('#child-popup')).toHaveCount(0);
-    await see(page.locator('#parent-popup')).toBeVisible();
-    expect(await logOf(page)).toEqual(['child false escape-key']);
-    await see.poll(() => focused(page)).toBe('child-open');
-  });
-
-  it('an outside press closes only the topmost dialog', async () => {
-    const page = await h.open('nested');
-    await page.click('#open');
-    await page.click('#child-open');
-    await see(page.locator('#child-popup')).toBeVisible();
-    await page.mouse.click(790, 590);
-    await see(page.locator('#child-popup')).toHaveCount(0);
-    await see(page.locator('#parent-popup')).toBeVisible();
-    await page.mouse.click(790, 590);
-    await see(page.locator('#parent-popup')).toHaveCount(0);
-  });
-
-  it('a press inside the nested dialog leaves the parent open', async () => {
-    const page = await h.open('nested');
-    await page.click('#open');
-    await page.click('#child-open');
-    await page.click('#child-popup');
-    await see(page.locator('#child-popup')).toBeVisible();
-    await see(page.locator('#parent-popup')).toBeVisible();
-  });
-
+describe('dialogs side by side', () => {
   it('side-by-side modal dialogs close one at a time, newest first', async () => {
     const page = await h.open('side-by-side');
     await page.click('#open');

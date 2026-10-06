@@ -15,6 +15,12 @@ interface Seam {
 const SEAM_DB = 1;
 /** A step across the join larger than this many median steps is a click. */
 const SEAM_CLICK = 8;
+/**
+ * The least median step a click is measured against: an amplitude, not a
+ * time, so a silent channel's ratio stays finite (a step over silence is
+ * then a click, as it is heard).
+ */
+const QUIET_STEP = 1e-9;
 
 /** The mean square of every channel over `[from, to)`. */
 const power = (pcm: Pcm, from: number, to: number): number => {
@@ -34,7 +40,7 @@ const clickOf = (pcm: Pcm): number => {
     for (let i = 1; i < pcm.frames; i += stride)
       steps.push(Math.abs((plane[i] ?? 0) - (plane[i - 1] ?? 0)));
     steps.sort((a, b) => a - b);
-    const typical = Math.max(steps[Math.floor(steps.length / 2)] ?? 0, 1e-9);
+    const typical = Math.max(steps[Math.floor(steps.length / 2)] ?? 0, QUIET_STEP);
     worst = Math.max(worst, Math.abs((plane[0] ?? 0) - (plane[pcm.frames - 1] ?? 0)) / typical);
   }
   return worst;

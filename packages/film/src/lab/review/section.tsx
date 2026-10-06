@@ -538,7 +538,7 @@ export const ProxyPending = (props: { readonly video: ReviewVideo }) => {
       />
       <p class="rv-row">
         <span class="rv-hint">Proxy being made ({sizeText(props.video.size)} original)</span>
-        <button type="button" onClick={() => actions.quality('full')}>
+        <button type="button" class="sh-btn" onClick={() => actions.quality('full')}>
           Play the original
         </button>
       </p>

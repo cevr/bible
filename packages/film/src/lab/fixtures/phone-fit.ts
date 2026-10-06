@@ -10,8 +10,12 @@
 // that leaves nothing. The chrome is measured where it holds most: at the
 // page's top, its middle and its end, each the union of the rows its fixed
 // and stuck (sticky, with an edge set, to the window rather than to a box
-// that scrolls on its own) elements cover in the window.
+// that scrolls on its own) elements cover in the window. A layer the page
+// has open (a scene's sheet, as an inspector is), with the frame that holds
+// it in the window, is no chrome: it is shut to go back to the page. Its
+// width and its controls are measured as the page's are.
 
+import { jsonOf } from './tab.ts';
 import type { Tab } from './tab.ts';
 
 /** The most of the window's height a page's chrome may hold. */
@@ -24,10 +28,11 @@ const CHROME_MAX = 0.25;
  * box's sides; `chrome`, the chrome's largest share of the window's height,
  * 0 to 1; `bars`, the chrome's bars where it holds most, each as its class
  * and its rows. It scrolls the page to measure its chrome, and back to where
- * it was.
+ * it was. `layer` (a selector) is the open layer, left out of the chrome.
  */
-const PHONE_FIT = `(() => {
+export const phoneFit = (layer?: string) => `(() => {
   const root = document.documentElement;
+  const LAYER = ${jsonOf(layer ?? '')};
   const clipping = (el) => {
     const s = getComputedStyle(el);
     return s.overflowX !== 'visible' || s.overflowY !== 'visible' || s.contain.includes('paint');
@@ -67,7 +72,9 @@ const PHONE_FIT = `(() => {
   const barsNow = () => {
     const rows = [];
     for (const el of document.body.querySelectorAll('*')) {
-      if (!stays(el) || !el.checkVisibility()) continue;
+      // The open layer, and the frame that holds it in the window (a sheet's viewport), are no bar.
+      const layered = LAYER !== '' && (el.closest(LAYER) !== null || el.querySelector(LAYER) !== null);
+      if (!stays(el) || !el.checkVisibility() || layered) continue;
       const r = el.getBoundingClientRect();
       const top = Math.max(0, r.top);
       const bottom = Math.min(innerHeight, r.bottom);
@@ -102,16 +109,20 @@ const PHONE_FIT = `(() => {
 })()`;
 
 /**
- * Wait until the page fits its window (a phone's: 390 × 844): no sideways
- * scroll, every control inside the width, chrome at most `CHROME_MAX`. A
- * timeout fails with what the page answers then (`PHONE_FIT`), so the bar or
- * the control over is named.
+ * A script answering whether the page fits its window: no sideways scroll,
+ * every control inside the width, chrome at most `CHROME_MAX`; `layer`, the
+ * open layer, is no chrome.
  */
-export const fitsPhone = (page: Tab) =>
-  page.until(
-    `(() => { const f = ${PHONE_FIT}; return f.sideways === 0 && f.outside.length === 0 && f.chrome <= ${CHROME_MAX}; })()`,
-    {
-      now: PHONE_FIT,
-      say: (found) => `the page does not fit the window (chrome at most ${CHROME_MAX}): ${found}`,
-    },
-  );
+export const fits = (layer?: string) =>
+  `(() => { const f = ${phoneFit(layer)}; return f.sideways === 0 && f.outside.length === 0 && f.chrome <= ${CHROME_MAX}; })()`;
+
+/**
+ * Wait until the page fits its window (a phone's: 390 × 844), by `fits`;
+ * `layer`, the layer it has open, is no chrome. A timeout fails with what the
+ * page answers then (`phoneFit`), so the bar or the control over is named.
+ */
+export const fitsPhone = (page: Tab, layer?: string) =>
+  page.until(fits(layer), {
+    now: phoneFit(layer),
+    say: (found) => `the page does not fit the window (chrome at most ${CHROME_MAX}): ${found}`,
+  });

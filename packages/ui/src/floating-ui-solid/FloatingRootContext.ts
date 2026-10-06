@@ -20,21 +20,8 @@ import { createEventEmitter, type FloatingEvents, isClickLikeEvent } from './uti
 
 export type ReferenceType = Element | VirtualElement;
 
-/** The live view of a popup that a floating tree node reads. */
-export interface FloatingContext {
-  readonly open: boolean;
-  readonly nodeId: string | undefined;
-  readonly placement: string | null;
-  readonly elements: {
-    readonly floating: HTMLElement | null;
-    readonly domReference: Element | null;
-  };
-  readonly dataRef: { current: ContextData };
-}
-
 export interface ContextData {
   openEvent?: Event | undefined;
-  floatingContext?: FloatingContext | undefined;
   typing?: boolean | undefined;
   [key: string]: unknown;
 }
@@ -56,7 +43,6 @@ export interface FloatingRootContext {
   dispatchOpenChange(open: boolean, eventDetails: BaseUIChangeEventDetails): void;
   readonly dataRef: { current: ContextData };
   readonly events: FloatingEvents;
-  readonly nested: boolean;
   readonly triggerElements: PopupTriggerMap;
 }
 
@@ -69,7 +55,6 @@ export interface FloatingRootContextOptions {
   floatingId?: Accessor<string | undefined> | undefined;
   onOpenChange(open: boolean, eventDetails: BaseUIChangeEventDetails): void;
   triggerElements?: PopupTriggerMap | undefined;
-  nested?: boolean | undefined;
 }
 
 export function createFloatingRootContext(
@@ -80,7 +65,6 @@ export function createFloatingRootContext(
   });
   const dataRef: { current: ContextData } = { current: {} };
   const events = createEventEmitter();
-  const nested = options.nested ?? false;
 
   const context: FloatingRootContext = {
     open: options.open,
@@ -107,14 +91,12 @@ export function createFloatingRootContext(
         open,
         reason: eventDetails.reason,
         nativeEvent: event,
-        nested,
         triggerElement: eventDetails.trigger,
       };
       events.emit('openchange', details);
     },
     dataRef,
     events,
-    nested,
     triggerElements: options.triggerElements ?? new PopupTriggerMap(),
   };
   return context;

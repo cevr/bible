@@ -306,6 +306,11 @@ export interface View {
   readonly navigate: (url: string) => Promise<void>;
   readonly reload: () => Promise<void>;
   readonly resize: (width: number, height: number) => Promise<void>;
+  /**
+   * The view is not to be lent again: closed once the case gives it back.
+   * Chrome hears no touch on a view two fingers were down on at once.
+   */
+  readonly retire: () => void;
 }
 
 /** `Page.addScriptToEvaluateOnNewDocument`'s answer: the script's id, to remove it by. */
@@ -575,6 +580,8 @@ export const makeTab = (
       down: (x: number, y: number) =>
         Effect.suspend(() => {
           fingers.set(id, { x, y });
+          // Two down at once leave the view deaf to touch once they lift: it is not lent again.
+          if (fingers.size > 1) view.retire();
           return report('touchStart');
         }),
       move: (x: number, y: number, steps = 1) =>

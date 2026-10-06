@@ -4,8 +4,7 @@
 // described by its description. Focus moves into it on open (the first
 // tabbable element) and, on close, back to what had it before the owner
 // opened the dialog; a modal or trap-focus dialog keeps Tab inside. Arrow, Home and End keys stop here, so
-// a composite widget around the dialog does not move. It carries the number
-// of dialogs open nested in it as `--nested-dialogs`.
+// a composite widget around the dialog does not move.
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
 
@@ -19,13 +18,10 @@ import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { FOCUSABLE_POPUP_PROPS } from '../../utils/popups/popupStore.ts';
 import { onClientCleanup } from '../../utils/onClientCleanup.ts';
+import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
 import { useDialogPortalContext } from '../portal/DialogPortal.tsx';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
 import type { DialogStore } from '../store/DialogStore.ts';
-import {
-  DialogPopupCssVars,
-  dialogStateAttributesMapping,
-} from '../utils/stateAttributesMapping.ts';
 
 export type DialogFocusTarget =
   | boolean
@@ -35,10 +31,6 @@ export type DialogFocusTarget =
 export interface DialogPopupState {
   open: boolean;
   transitionStatus: TransitionStatus;
-  /** Whether the dialog is nested within a parent dialog. */
-  nested: boolean;
-  /** Whether a dialog nested in this one is open. */
-  nestedDialogOpen: boolean;
 }
 
 export interface DialogPopupProps extends BaseUIComponentProps<'div', DialogPopupState> {
@@ -83,7 +75,6 @@ export function DialogPopupFocus(props: DialogPopupFocusProps): JSX.Element {
       returnFocus={props.finalFocus}
       modal={store.modal() !== false}
       restoreFocus="popup"
-      externalTree={store.floatingTree}
     >
       {props.children}
     </FloatingFocusManager>
@@ -130,17 +121,13 @@ export function DialogPopup(componentProps: DialogPopupProps): JSX.Element {
     get transitionStatus() {
       return store.transitionStatus();
     },
-    nested: store.nested,
-    get nestedDialogOpen() {
-      return store.nestedOpenDialogCount() > 0;
-    },
   };
 
   const element = () =>
     useRenderElement('div', componentProps, {
       state,
       ref: (el: HTMLElement) => store.setPopupElement(el),
-      stateAttributesMapping: dialogStateAttributesMapping,
+      stateAttributesMapping: popupTransitionStateMapping,
       props: [
         popupProps,
         {
@@ -156,9 +143,6 @@ export function DialogPopup(componentProps: DialogPopupProps): JSX.Element {
           role: 'dialog',
           ...FOCUSABLE_POPUP_PROPS,
           onKeyDown: stopCompositeKeys,
-          get style() {
-            return { [DialogPopupCssVars.nestedDialogs]: String(store.nestedOpenDialogCount()) };
-          },
         },
         elementProps,
       ],

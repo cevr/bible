@@ -60,13 +60,15 @@ const SWEPT = [
  *   `@ts-expect-error` lines compiled;
  * - a fixture film's modules export what the film loader reads by name
  *   (`scenes`, `voice`, `look`, `script`);
- * - a lint fixture is a film's code a rule reads.
+ * - a lint fixture is a film's code a rule reads;
+ * - the server-write page exports the renders `served` bundles by name.
  * A default export is its loader's (oxlint's plugin), and is not swept either.
  */
 const UNSWEPT = (file: string) =>
   file.endsWith('.types.ts') ||
   file.includes('/fixtures/films/') ||
-  file.startsWith('packages/film/lint/fixtures/');
+  file.startsWith('packages/film/lint/fixtures/') ||
+  file === 'packages/film/src/lab/fixtures/server-write-page.tsx';
 
 /** `packages/film/package.json`'s specifiers: `./core` → `./src/core/index.ts`. */
 const PackageExports = Schema.fromJsonString(

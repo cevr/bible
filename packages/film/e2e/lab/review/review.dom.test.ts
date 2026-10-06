@@ -12,7 +12,7 @@
 // phone's width folds the grid to one column without scrolling sideways.
 
 import { Effect, Match, Option, Schema } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
 import {
@@ -442,7 +442,8 @@ describe('the review page', () => {
     SLOW,
   );
 
-  it.live(
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
     "a long-press on a version's picture steps the set on or back, one step or ten (SU-11)",
     () =>
       Effect.gen(function* () {
@@ -468,7 +469,7 @@ describe('the review page', () => {
         yield* page.clock.runFor(500);
         yield* textHas(page, '.rv-time', '00:00:20:00');
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped, Effect.runPromise),
     SLOW,
   );
 

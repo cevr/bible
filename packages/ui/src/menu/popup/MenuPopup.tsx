@@ -2,7 +2,7 @@
 //
 // The menu's `role="menu"` container. Focus moves into it on open (the menu
 // focuses itself, or the item list navigation highlights) and back to the
-// trigger on close; a context menu traps focus. An item press closes the menu.
+// trigger on close; a context menu traps focus.
 import { isServer, type JSX } from '@solidjs/web';
 import { omit, onCleanup, untrack } from 'solid-js';
 
@@ -10,7 +10,6 @@ import {
   FloatingFocusManager,
   type InteractionType,
 } from '../../floating-ui-solid/FloatingFocusManager.tsx';
-import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { type TransitionStatus, useOpenChangeComplete } from '../../internals/transitions.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import type { Align, Side } from '../../internals/useAnchorPositioning.ts';
@@ -18,7 +17,7 @@ import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
 import { useMenuPositionerContext } from '../positioner/MenuPositioner.tsx';
 import { useMenuRootContext } from '../root/MenuRootContext.ts';
-import type { MenuChangeEventReason, MenuInstantType } from '../store/MenuStore.ts';
+import type { MenuInstantType } from '../store/MenuStore.ts';
 
 export interface MenuPopupState {
   transitionStatus: TransitionStatus;
@@ -56,14 +55,8 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
     },
   });
 
-  const handleClose = (event: { domEvent: Event | undefined; reason: MenuChangeEventReason }) => {
-    store.setOpen(false, createChangeEventDetails(event.reason, event.domEvent));
-  };
-  const events = store.floatingTreeRoot.events;
-  events.on('close', handleClose);
-  // Its listener goes first, then the element; the server set no element to let go.
+  // The server set no element to let go.
   onCleanup(() => {
-    events.off('close', handleClose);
     if (!isServer) store.setPopupElement(null);
   });
 
@@ -133,7 +126,6 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
       getInsideElements={
         parent.type === undefined ? () => [store.beforeTriggerFocusGuardRef.current] : undefined
       }
-      externalTree={store.floatingTreeRoot}
       previousFocusableElement={store.activeTriggerElement() as HTMLElement | null}
       nextFocusableElement={parent.type === undefined ? store.triggerFocusTargetRef : undefined}
       beforeContentFocusGuardRef={store.beforeContentFocusGuardRef}

@@ -2,17 +2,11 @@
 //
 // A dialog's state: the popup's (open, mounted, elements) plus whether it
 // is modal, whether outside presses dismiss it, the ids of its title and
-// description, its viewport, and how many dialogs are open nested in it
-// (a drawer is a dialog here). Opening and
+// description, and its viewport (a drawer is a dialog here). Opening and
 // closing go through `setOpen`: `onOpenChange` first (which may cancel),
 // then the interactions hear of it, then the state changes.
-//
-// Nested dialogs share one floating tree, so a press inside a child dialog
-// is inside its parents too.
 import { type Accessor, createSignal, untrack } from 'solid-js';
 
-import type { FloatingContext } from '../../floating-ui-solid/FloatingRootContext.ts';
-import type { FloatingTreeStore } from '../../floating-ui-solid/FloatingTreeStore.ts';
 import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { REASONS } from '../../internals/reasons.ts';
 import { createPopupStore, type PopupStore } from '../../utils/popups/popupStore.ts';
@@ -32,16 +26,9 @@ export type DialogModal = boolean | 'trap-focus';
 
 export interface DialogStoreOptions {
   openProp: () => boolean | undefined;
-  defaultOpen: boolean;
   modal: Accessor<DialogModal>;
   disablePointerDismissal: Accessor<boolean>;
-  /** Whether the dialog is nested in another dialog. */
-  nested: boolean;
-  /** Whether the dialog sits inside another floating element (a menu). */
-  floatingNested: boolean;
   floatingId: string;
-  floatingTree: FloatingTreeStore;
-  floatingNodeId: string;
   onOpenChange: () => ((open: boolean, eventDetails: DialogChangeEventDetails) => void) | undefined;
   onOpenChangeComplete: () => ((open: boolean) => void) | undefined;
 }
@@ -49,11 +36,6 @@ export interface DialogStoreOptions {
 export interface DialogStore extends PopupStore {
   modal: Accessor<DialogModal>;
   disablePointerDismissal: Accessor<boolean>;
-  readonly nested: boolean;
-  /** How many dialogs are open nested in this one (a chain counts each level). */
-  nestedOpenDialogCount: Accessor<number>;
-  /** A nested dialog reports its open count here; a close reports zero. */
-  setNestedOpenDialogCount: (count: number) => void;
   titleElementId: Accessor<string | undefined>;
   setTitleElementId: (id: string | undefined) => void;
   descriptionElementId: Accessor<string | undefined>;
@@ -62,8 +44,6 @@ export interface DialogStore extends PopupStore {
   setViewportElement: (element: HTMLElement | null) => void;
   readonly backdropRef: { current: HTMLElement | null };
   readonly internalBackdropRef: { current: HTMLElement | null };
-  readonly floatingTree: FloatingTreeStore;
-  readonly floatingNodeId: string;
   /** Asks the dialog to open or close (through `onOpenChange`, which may cancel). */
   setOpen: (open: boolean, eventDetails: BaseUIChangeEventDetails) => void;
 }
@@ -71,16 +51,13 @@ export interface DialogStore extends PopupStore {
 export function createDialogStore(options: DialogStoreOptions): DialogStore {
   const popup = createPopupStore({
     openProp: options.openProp,
-    defaultOpen: options.defaultOpen,
     floatingId: options.floatingId,
-    nested: options.floatingNested,
     popupIsFloatingElement: true,
     onOpenChange: (open, details) => setOpen(open, details),
     onOpenChangeComplete: options.onOpenChangeComplete,
   });
 
   const owned = { ownedWrite: true } as const;
-  const [nestedOpenDialogCount, setNestedOpenDialogCount] = createSignal(0, owned);
   const [titleElementId, setTitleElementId] = createSignal<string | undefined>(undefined, owned);
   const [descriptionElementId, setDescriptionElementId] = createSignal<string | undefined>(
     undefined,
@@ -98,36 +75,10 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
     popup.applyOpenState(nextOpen, details.trigger);
   }
 
-  // What the floating tree and the interactions read of this dialog.
-  const floatingContext: FloatingContext = {
-    get open() {
-      return untrack(popup.open);
-    },
-    nodeId: options.floatingNodeId,
-    placement: null,
-    elements: {
-      get floating() {
-        return untrack(popup.popupElement);
-      },
-      get domReference() {
-        return untrack(popup.floatingRootContext.domReferenceElement);
-      },
-    },
-    dataRef: popup.floatingRootContext.dataRef,
-  };
-  popup.floatingRootContext.dataRef.current.floatingContext = floatingContext;
-  const node = options.floatingTree.nodesRef.current.find((n) => n.id === options.floatingNodeId);
-  if (node) {
-    node.context = floatingContext;
-  }
-
   return {
     ...popup,
     modal: options.modal,
     disablePointerDismissal: options.disablePointerDismissal,
-    nested: options.nested,
-    nestedOpenDialogCount,
-    setNestedOpenDialogCount: (count) => setNestedOpenDialogCount(count),
     titleElementId,
     setTitleElementId: (id) => setTitleElementId(() => id),
     descriptionElementId,
@@ -136,8 +87,6 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
     setViewportElement: (element) => setViewportElement(() => element),
     backdropRef: { current: null },
     internalBackdropRef: { current: null },
-    floatingTree: options.floatingTree,
-    floatingNodeId: options.floatingNodeId,
     setOpen,
   };
 }

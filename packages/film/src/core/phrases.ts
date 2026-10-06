@@ -11,6 +11,7 @@ import type { Placed } from './layout.ts';
 import { CLAUSE, SENTENCE } from './narration.ts';
 import type { HeardWord, Word } from './schema.ts';
 import type { ResolvedShort } from './shorts.ts';
+import { CLOCK_EPSILON } from './time.ts';
 import { heard } from './voiced.ts';
 
 /** The most words a phrase holds. */
@@ -121,7 +122,7 @@ export const phrasesOf = (
         Option.flatMap(Arr.last(first), (i) => Arr.get(words, i)),
         Option.flatMap(Arr.head(then), (i) => Arr.get(words, i)),
       ]),
-      ([last, next]) => next.start - last.end <= PHRASE_GAP + 1e-9,
+      ([last, next]) => next.start - last.end <= PHRASE_GAP + CLOCK_EPSILON,
     );
   const sentences = cutBefore(run(0, words.length), (i) => turns.has(i) || ends(i - 1));
   const chunks = sentences.flatMap((sentence) =>

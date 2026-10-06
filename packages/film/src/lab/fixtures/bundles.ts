@@ -36,6 +36,7 @@ export const ENTRIES = [
   'player-page.ts',
   'player-hydrated-page.ts',
   'capture-page.ts',
+  'on-screen-page.tsx',
 ];
 
 /**

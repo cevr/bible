@@ -9,6 +9,7 @@ import { Array as Arr, Option, Result, Schema } from 'effect';
 import { type ShortError, ShortSpanEmpty, UnknownScene } from './errors.ts';
 import { type Placed, pointIn } from './layout.ts';
 import type { ScenePoint, Short, ShortSpan } from './schema.ts';
+import { CLOCK_EPSILON } from './time.ts';
 
 /** A short as it plays: 1080 × 1920, vertical. */
 export const SHORT_WIDTH = 1080;
@@ -257,7 +258,7 @@ export const shortSpanAt = (short: ResolvedShort, s: number): number => {
   const spans = short.spans;
   let i = spans.length - 1;
   // The first span also holds every time before it.
-  while (i > 0 && s < (spans[i]?.at ?? 0) - 1e-9) i--;
+  while (i > 0 && s < (spans[i]?.at ?? 0) - CLOCK_EPSILON) i--;
   return i;
 };
 
@@ -274,6 +275,6 @@ export const shortPieces = (
   short.spans.flatMap((span) => {
     const a = Math.max(from, span.at);
     const b = Math.min(to, span.at + (span.to - span.from));
-    if (b <= a + 1e-9) return [];
+    if (b <= a + CLOCK_EPSILON) return [];
     return [{ start: span.from + (a - span.at), duration: b - a }];
   });

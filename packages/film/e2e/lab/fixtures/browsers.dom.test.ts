@@ -5,9 +5,12 @@
 // page that throws and logs as it goes. The view it gave back is lent again
 // (no new view opened): the next page on it sees none of that, its own
 // server answers, and nothing the first page did reaches its errors or log.
+// A view two fingers were down on at once is closed rather than lent again:
+// Chrome hears no touch on it after, and the next case's finger lands on a
+// view of its own.
 
 import { Effect, Option } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import {
   asset,
   openTab,
@@ -143,5 +146,45 @@ describe('the pool of views', () => {
       );
       expect(firstAsked).toContain('/hold');
     }),
+  );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    "closes a view two fingers were down on at once, and the next case's touch lands",
+    () =>
+      Effect.gen(function* () {
+        const phone = {
+          width: 390,
+          height: 844,
+          coarse: true,
+          microphone: false,
+          init: [],
+          assets: [],
+          serve: page('touch').serve([]),
+        };
+        yield* Effect.scoped(
+          Effect.gen(function* () {
+            const tab = yield* openTab(phone);
+            yield* tab.goto('/');
+            yield* tab.finger.down(100, 100);
+            yield* tab.finger.second.down(200, 200);
+            yield* tab.finger.second.up;
+            yield* tab.finger.up;
+          }),
+        );
+        // The view last given back is the next lent: the one two fingers were down on, unless closed.
+        yield* Effect.scoped(
+          Effect.gen(function* () {
+            const tab = yield* openTab(phone);
+            yield* tab.goto('/');
+            yield* tab.evaluate(
+              `(window.seen = [], addEventListener('touchstart', () => window.seen.push('touchstart')), true)`,
+            );
+            yield* tab.finger.down(100, 100);
+            yield* tab.finger.up;
+            yield* evaluates(tab, 'window.seen', ['touchstart']);
+          }),
+        );
+      }).pipe(Effect.runPromise),
   );
 });

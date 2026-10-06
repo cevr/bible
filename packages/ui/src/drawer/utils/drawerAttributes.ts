@@ -21,8 +21,6 @@ export const DrawerPopupDataAttributes = {
   closed: CommonPopupDataAttributes.closed,
   startingStyle: CommonPopupDataAttributes.startingStyle,
   endingStyle: CommonPopupDataAttributes.endingStyle,
-  /** Present when the drawer is nested within a dialog. */
-  nested: 'data-nested',
   /** Present when the drawer is dismissed by swiping. */
   swipeDismiss: 'data-swipe-dismiss',
   /** The swipe direction: `up`, `down`, `left` or `right`. */

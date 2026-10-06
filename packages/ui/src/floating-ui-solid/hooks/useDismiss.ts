@@ -1,8 +1,7 @@
 // Upstream: packages/react/src/floating-ui-react/hooks/useDismiss.ts
 //
-// Closes a popup on Escape and on a press outside it. A press inside a child
-// popup of the floating tree is not outside; Escape closes the innermost
-// open popup only (unless `bubbles`). A press that starts inside and ends
+// Closes a popup on Escape and on a press outside it (its popup and its
+// trigger are inside). A press that starts inside and ends
 // outside (a text selection drag) does not close an `intentional` popup.
 // Touch scrolls do not count as presses. The React-portal bookkeeping
 // upstream (`insideReactTree`) is not needed: Solid's events follow the DOM.
@@ -23,7 +22,6 @@ import { addEventListener, mergeCleanups, ownerDocument } from '../../utils/dom.
 import { platform } from '../../utils/platform.ts';
 import { Timeout, useTimeout } from '../../utils/timers.ts';
 import type { FloatingRootContext } from '../FloatingRootContext.ts';
-import { type FloatingTreeStore, getNodeChildren, useFloatingTree } from '../FloatingTree.tsx';
 import {
   contains,
   createAttribute,
@@ -39,17 +37,6 @@ export interface ElementProps {
   reference?: HTMLProps | undefined;
   floating?: HTMLProps | undefined;
   trigger?: HTMLProps | undefined;
-}
-
-export function normalizeBubbles(
-  normalizable?: boolean | { escapeKey?: boolean | undefined; outsidePress?: boolean | undefined },
-) {
-  return {
-    escapeKey:
-      typeof normalizable === 'boolean' ? normalizable : (normalizable?.escapeKey ?? false),
-    outsidePress:
-      typeof normalizable === 'boolean' ? normalizable : (normalizable?.outsidePress ?? true),
-  };
 }
 
 export interface UseDismissProps {
@@ -68,25 +55,17 @@ export interface UseDismissProps {
     | { mouse: PressType; touch: PressType }
     | (() => PressType | { mouse: PressType; touch: PressType })
     | undefined;
-  /** Whether Escape or an outside press also closes the parent popups. */
-  bubbles?:
-    | boolean
-    | { escapeKey?: boolean | undefined; outsidePress?: boolean | undefined }
-    | undefined;
-  externalTree?: FloatingTreeStore | undefined;
 }
 
 export function useDismiss(
   context: FloatingRootContext,
   props: UseDismissProps = {},
 ): ElementProps {
-  const { dataRef, events } = context;
-  const tree = useFloatingTree(props.externalTree);
+  const { events } = context;
 
   const enabled = () => props.enabled ?? true;
   const escapeKey = () => props.escapeKey ?? true;
   const outsidePress = () => props.outsidePress ?? true;
-  const bubbles = () => normalizeBubbles(props.bubbles);
 
   let pressStartedInside = false;
   let pressStartPrevented = false;
@@ -104,14 +83,6 @@ export function useDismiss(
 
   const cancelDismissOnEndTimeout = useTimeout();
 
-  const hasBlockingChild = (bubbleKey: '__escapeKeyBubbles' | '__outsidePressBubbles') => {
-    const nodeId = dataRef.current.floatingContext?.nodeId;
-    const children = tree ? getNodeChildren(tree.nodesRef.current, nodeId) : [];
-    return children.some(
-      (child) => child.context?.open && !child.context.dataRef.current[bubbleKey],
-    );
-  };
-
   const isEventWithinOwnElements = (event: Event) =>
     isEventTargetWithin(event, untrack(context.floatingElement)) ||
     isEventTargetWithin(event, untrack(context.domReferenceElement));
@@ -123,16 +94,12 @@ export function useDismiss(
     if (isComposing) {
       return;
     }
-    const escapeKeyBubbles = bubbles().escapeKey;
-    if (!escapeKeyBubbles && hasBlockingChild('__escapeKeyBubbles')) {
-      return;
-    }
     const eventDetails = createChangeEventDetails(REASONS.escapeKey, event);
     context.setOpen(false, eventDetails);
     if (!eventDetails.isCanceled) {
       event.preventDefault();
     }
-    if (!escapeKeyBubbles && !eventDetails.isPropagationAllowed) {
+    if (!eventDetails.isPropagationAllowed) {
       event.stopPropagation();
     }
   };
@@ -175,7 +142,6 @@ export function useDismiss(
       floating: context.floatingElement(),
       escapeKey: escapeKey(),
       outsidePressEnabled: outsidePress() !== false,
-      bubbles: bubbles(),
     }),
     (deps) => {
       if (!deps.open || !deps.enabled) {
@@ -184,9 +150,6 @@ export function useDismiss(
         }
         return undefined;
       }
-
-      dataRef.current['__escapeKeyBubbles'] = deps.bubbles.escapeKey;
-      dataRef.current['__outsidePressBubbles'] = deps.bubbles.outsidePress;
 
       const compositionTimeout = new Timeout();
       const preventedPressSuppressionTimeout = new Timeout();
@@ -233,16 +196,6 @@ export function useDismiss(
           (computed === 'intentional' && event.type !== 'click') ||
           (computed === 'sloppy' && event.type === 'click')
         );
-      }
-
-      function isEventWithinFloatingTree(event: Event) {
-        const nodeId = dataRef.current.floatingContext?.nodeId;
-        const targetIsInsideChildren =
-          tree &&
-          getNodeChildren(tree.nodesRef.current, nodeId).some((node) =>
-            isEventTargetWithin(event, node.context?.elements.floating),
-          );
-        return isEventWithinOwnElements(event) || targetIsInsideChildren;
       }
 
       function closeOnPressOutside(event: MouseEvent | PointerEvent | TouchEvent) {
@@ -317,7 +270,7 @@ export function useDismiss(
           }
         }
 
-        if (isEventWithinFloatingTree(event)) {
+        if (isEventWithinOwnElements(event)) {
           return;
         }
 
@@ -338,10 +291,6 @@ export function useDismiss(
 
         const press = outsidePress();
         if (typeof press === 'function' && !press(event as MouseEvent | TouchEvent)) {
-          return;
-        }
-
-        if (hasBlockingChild('__outsidePressBubbles')) {
           return;
         }
 
@@ -448,7 +397,7 @@ export function useDismiss(
           }
           return;
         }
-        if (isEventWithinFloatingTree(event)) {
+        if (isEventWithinOwnElements(event)) {
           return;
         }
         if (startedPrevented) {

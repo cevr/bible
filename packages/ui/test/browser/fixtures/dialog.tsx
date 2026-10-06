@@ -92,58 +92,6 @@ function BasicDialog(): JSX.Element {
   );
 }
 
-function NestedDialog(): JSX.Element {
-  const parent = ownerOpen('open');
-  const child = ownerOpen('child-open');
-  const grandchild = ownerOpen('grandchild-open');
-  return (
-    <>
-      <parent.Opener>Open</parent.Opener>
-      <Dialog.Root
-        open={parent.open()}
-        onOpenChange={(open, details) => {
-          log(`parent ${open} ${details.reason}`);
-          parent.setOpen(open);
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Backdrop id="parent-backdrop" />
-          <Dialog.Popup id="parent-popup">
-            <Dialog.Title>Parent</Dialog.Title>
-            <child.Opener>Open child</child.Opener>
-            <Dialog.Root
-              open={child.open()}
-              onOpenChange={(open, details) => {
-                log(`child ${open} ${details.reason}`);
-                child.setOpen(open);
-              }}
-            >
-              <Dialog.Portal>
-                <Dialog.Backdrop id="child-backdrop" />
-                <Dialog.Popup id="child-popup">
-                  <Dialog.Title>Child</Dialog.Title>
-                  <grandchild.Opener>Open grandchild</grandchild.Opener>
-                  <Dialog.Root
-                    open={grandchild.open()}
-                    onOpenChange={(open) => grandchild.setOpen(open)}
-                  >
-                    <Dialog.Portal>
-                      <Dialog.Popup id="grandchild-popup">
-                        <Dialog.Close id="grandchild-close">Close grandchild</Dialog.Close>
-                      </Dialog.Popup>
-                    </Dialog.Portal>
-                  </Dialog.Root>
-                  <Dialog.Close id="child-close">Close child</Dialog.Close>
-                </Dialog.Popup>
-              </Dialog.Portal>
-            </Dialog.Root>
-          </Dialog.Popup>
-        </Dialog.Portal>
-      </Dialog.Root>
-    </>
-  );
-}
-
 /** Three dialogs side by side, each opened from the one before. */
 function SideBySide(): JSX.Element {
   const first = ownerOpen('open');
@@ -218,7 +166,6 @@ function withPopupStyles(fixture: () => JSX.Element): () => JSX.Element {
 
 export const fixtures: Record<string, () => JSX.Element> = {
   dialog: withPopupStyles(BasicDialog),
-  nested: withPopupStyles(NestedDialog),
   'side-by-side': withPopupStyles(SideBySide),
   animated: withPopupStyles(Animated),
 };

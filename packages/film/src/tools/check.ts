@@ -421,7 +421,7 @@ const declaresEnd = (p: Placed) =>
   Predicate.isNotUndefined(p.spec.tail) ||
   Option.exists(
     Option.fromUndefinedOr(p.spec.min),
-    (min) => min > p.speechStart + p.voice.duration + DEFAULT_TAIL + 1e-9,
+    (min) => min > p.speechStart + p.voice.duration + DEFAULT_TAIL + CLOCK_EPSILON,
   );
 
 /**
@@ -436,7 +436,7 @@ export const longSeams = (placed: ReadonlyArray<Placed>): ReadonlyArray<SeamLong
     return Option.match(seamAfter(p, q), {
       onNone: () => [],
       onSome: (seam) => {
-        if (seam <= MAX_SEAM + 1e-9) return [];
+        if (seam <= MAX_SEAM + CLOCK_EPSILON) return [];
         return [SeamLong.make({ from: p.spec.id, to: q.spec.id, seam, max: MAX_SEAM })];
       },
     });
@@ -1534,7 +1534,9 @@ export const holdCandidates = (placed: ReadonlyArray<Placed>): ReadonlyArray<Hol
     return Option.match(spokenSpan(p), {
       onNone: () => [],
       onSome: (spoken) => {
-        const gaps = gapsIn(spoken, busySpans(p)).filter((g) => g.to - g.from > HOLD + 1e-9);
+        const gaps = gapsIn(spoken, busySpans(p)).filter(
+          (g) => g.to - g.from > HOLD + CLOCK_EPSILON,
+        );
         return gaps.map((g) => ({ scene: p.spec.id, from: p.start + g.from, to: p.start + g.to }));
       },
     });
@@ -1596,6 +1598,9 @@ type Mark = {
   readonly scale: number;
 };
 
+/** Float noise on a box's edges (an edge is a sum, `x + w`), in the box's units, not seconds. */
+const BOX_NOISE = 1e-9;
+
 /** A mark's box moved no more than `STILL_DRIFT` of its own units, and it faded no more than `STILL_FADE`. */
 const boxAtRest = (a: Mark, b: Mark) =>
   Math.max(
@@ -1604,7 +1609,8 @@ const boxAtRest = (a: Mark, b: Mark) =>
     Math.abs(a.x + a.w - (b.x + b.w)),
     Math.abs(a.y + a.h - (b.y + b.h)),
   ) <=
-    STILL_DRIFT * Math.min(a.scale, b.scale) + 1e-9 && Math.abs(a.alpha - b.alpha) <= STILL_FADE;
+    STILL_DRIFT * Math.min(a.scale, b.scale) + BOX_NOISE &&
+  Math.abs(a.alpha - b.alpha) <= STILL_FADE;
 
 /** The picture in a probed frame: everything but the caption line and its plate, which are the voice. */
 const pictureOf = (probed: Probed): Probed => ({

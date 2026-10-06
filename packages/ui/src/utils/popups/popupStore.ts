@@ -39,11 +39,8 @@ type Ref<T> = { current: T };
 export interface PopupStoreOptions {
   /** The owner's `open` prop; `undefined` leaves the popup in charge. */
   openProp: () => boolean | undefined;
-  defaultOpen: boolean;
   /** The popup's id when its element sets none. */
   floatingId: string;
-  /** Whether the popup is nested in another floating element. */
-  nested: boolean;
   /** Whether Floating UI positions the popup element itself rather than the positioner. */
   popupIsFloatingElement?: boolean | undefined;
   /** Whether a popup open from the start plays its enter transition. */
@@ -87,7 +84,7 @@ export interface PopupStore {
 }
 
 export function createPopupStore(options: PopupStoreOptions): PopupStore {
-  const [ownOpen, setOwnOpen] = createSignal(options.defaultOpen, { ownedWrite: true });
+  const [ownOpen, setOwnOpen] = createSignal(false, { ownedWrite: true });
   const open = () => options.openProp() ?? ownOpen();
   const [activeTriggerId, setActiveTriggerId] = createSignal<string | null>(null, {
     ownedWrite: true,
@@ -130,7 +127,6 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
     floatingId: () => popupElement()?.id || options.floatingId,
     onOpenChange: (next, details) => options.onOpenChange(next, details),
     triggerElements,
-    nested: options.nested,
   });
 
   const popupId = () => popupElement()?.id || options.floatingId || undefined;
@@ -138,7 +134,7 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
   const ownsOpenPopup = (triggerId: string | undefined) =>
     triggerId !== undefined && open() && activeTriggerId() === triggerId;
 
-  // A popup opened with no trigger (its `open` prop, `defaultOpen`) claims its only trigger.
+  // A popup opened with no trigger (its `open` prop) claims its only trigger.
   createEffect(
     () => [open(), triggerCount(), activeTriggerId()] as const,
     ([isOpen, count, activeId]) => {

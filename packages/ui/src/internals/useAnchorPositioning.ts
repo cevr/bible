@@ -29,15 +29,7 @@ import type { JSX } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 
 import { useDirectionAccessor } from './DirectionContext.ts';
-import type {
-  FloatingContext,
-  FloatingRootContext,
-} from '../floating-ui-solid/FloatingRootContext.ts';
-import {
-  type FloatingTreeStore,
-  setFloatingNodeContext,
-  useFloatingTree,
-} from '../floating-ui-solid/FloatingTree.tsx';
+import type { FloatingRootContext } from '../floating-ui-solid/FloatingRootContext.ts';
 import { arrow, hide } from '../floating-ui-solid/middleware.ts';
 import { ownerDocument, ownerWindow } from '../utils/dom.ts';
 import { CommonPositionerCssVars } from '../utils/popupStateMapping.ts';
@@ -89,11 +81,9 @@ export interface UseAnchorPositioningSharedParameters {
 export interface UseAnchorPositioningParameters extends UseAnchorPositioningSharedParameters {
   floatingRootContext: FloatingRootContext;
   mounted: boolean;
-  nodeId?: string | undefined;
   shift?:
     | { crossAxis?: boolean | undefined; rootBoundary?: 'layoutViewport' | undefined }
     | undefined;
-  externalTree?: FloatingTreeStore | undefined;
 }
 
 export interface UseAnchorPositioningReturnValue {
@@ -103,7 +93,6 @@ export interface UseAnchorPositioningReturnValue {
   physicalSide: Accessor<PhysicalSide>;
   anchorHidden: Accessor<boolean>;
   isPositioned: Accessor<boolean>;
-  context: FloatingContext;
   update: () => void;
 }
 
@@ -147,7 +136,6 @@ export function useAnchorPositioning(
 ): UseAnchorPositioningReturnValue {
   const rootContext = params.floatingRootContext;
   const direction = useDirectionAccessor();
-  const tree = useFloatingTree(params.externalTree);
 
   const [x, setX] = createSignal(0, { ownedWrite: true });
   const [y, setY] = createSignal(0, { ownedWrite: true });
@@ -471,33 +459,6 @@ export function useAnchorPositioning(
     return base as JSX.CSSProperties;
   });
 
-  // What the floating tree reads of this popup.
-  const context: FloatingContext = {
-    get open() {
-      return untrack(rootContext.open);
-    },
-    get nodeId() {
-      return params.nodeId;
-    },
-    get placement() {
-      return untrack(renderedPlacement);
-    },
-    elements: {
-      get floating() {
-        return untrack(rootContext.floatingElement);
-      },
-      get domReference() {
-        return untrack(rootContext.domReferenceElement);
-      },
-    },
-    dataRef: rootContext.dataRef,
-  };
-  rootContext.dataRef.current.floatingContext = context;
-  createEffect(
-    () => params.nodeId,
-    (nodeId) => setFloatingNodeContext(tree, nodeId, context),
-  );
-
   return {
     positionerStyles,
     side: () => getLogicalSide(sideParam(), renderedSide(), isRtl()),
@@ -505,7 +466,6 @@ export function useAnchorPositioning(
     physicalSide: renderedSide,
     anchorHidden: () => Boolean(middlewareData().hide?.referenceHidden),
     isPositioned,
-    context,
     update,
   };
 }

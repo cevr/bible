@@ -505,7 +505,7 @@ x264 (core 165) spends 3.6 MB on 8 s of paper at 78–86 s and 4.0 MB at
 
 Not `@mediabunny/server`'s libx264: it (through NodeAV) runs a fixed
 `qp` with qmin = qmax on the default preset, with no CRF, preset or tune to
-pass (`@mediabunny/server`'s `src/video-encoder.ts`), and at equal size it kept far
+pass (`@mediabunny/server/src/video-encoder.ts`), and at equal size it kept far
 less grain: q23 was 444 MB and kept 0.33–0.67, against x264 CRF 23 tune
 grain's 487 MB at 0.75–0.83; over those 8 s of paper, 4 Mbps (4.3 MB) and
 q22 (2.7 MB) both smoothed it flat.
@@ -1494,7 +1494,9 @@ module. The browser E2E tests (`e2e/lab/**/*.dom.test.ts`, and
 `e2e/player/` for the play page and the Scenes) open the real
 page over a probe film in headless Chrome with the lab API faked
 (`lab/fixtures/harness.ts`), or served (`openServed`: the page's server
-entry rendered, then hydrated with no mismatch), and the page's clock the test's
+entry rendered, failing any render that writes a signal or a store, then
+hydrated with no mismatch; `e2e/lab/fixtures/served.test.ts` proves a
+writing render fails), and the page's clock the test's
 (`lab/fixtures/clock.ts`): a count-in, a retry or a loop's playback is moved
 on with `page.clock`, not waited out, and `canvas.toBlob` encodes at once
 (Chromium's waits for idle time a busy page may not leave, up to 5 s). The
@@ -1515,7 +1517,8 @@ uninterruptible step that lends the view and put back before the view is
 given back; a view whose pointer cannot be put back is discarded, never lent
 again (`lab/fixtures/lease.ts`, its own test over a fake view); a view
 leaves the pool only inside that step, so a case interrupted before it
-takes none. Every other tab has a mouse's pointer (Blink's fine pointer and
+takes none. A view two fingers were down on at once is retired and closed
+when given back: Chrome hears no touch on it after. Every other tab has a mouse's pointer (Blink's fine pointer and
 hover, set as Chrome starts: headless Chrome has none, and `(pointer: none)`
 would give a desk the phone's density). The
 touch-target guard (`e2e/lab/touch.dom.test.ts`) opens every studio page
@@ -1539,7 +1542,9 @@ target 24 px or more whose `--hit` circle reaches no neighbour's area
 (`e2e/lab/fixtures/touch-targets.dom.test.ts` holds the measure to synthetic
 shapes). Every page also fits a phone (G8, `fitsPhone`,
 `lab/fixtures/phone-fit.ts`): no sideways scroll, each control inside the
-width, its chrome at most a quarter of the height. The tab answers the page's requests itself (the
+width, its chrome at most a quarter of the height
+(`e2e/lab/fixtures/phone-fit.dom.test.ts` holds the measure to synthetic
+pages). The tab answers the page's requests itself (the
 protocol's `Fetch`), types and clicks with native input events, and waits in
 the page on its real timers, so a file's cases run at once (`concurrentTestGlob` in `bunfig.toml`), three at a time per
 worker (`--max-concurrency=3` in the E2E script: at most eight workers, one
@@ -2694,6 +2699,12 @@ whose kept answer only a wait reads (a baseline the page keeps).
 its timeout in milliseconds as its last argument: a cold start's time is the
 machine's, and bun's default 5 s fails a loaded one.
 A spawn inside a service the test provides is not seen.
+`film/touches-serial` (`lint/touches-serial.ts`) holds the browser tests
+(`e2e/`): a finger (`page.finger`, one or two) is read, and the touch gesture
+(`touch`, `lab/fixtures/gestures.ts`) called, only inside a `test.serial(…)`
+body, since while one tab's touches are under way Chrome drops, or lands as a
+bare click, the touches a file's other cases send their own tabs at the same
+time.
 `film/no-history-comment` (`lint/no-history-comment.ts`) holds every comment
 in `packages/film` and `apps/animations`: a comment says what the code does
 today and why, and how it got here lives in the ledger and `git log`. It

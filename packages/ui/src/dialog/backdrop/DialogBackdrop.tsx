@@ -1,8 +1,7 @@
 // Upstream: packages/react/src/dialog/backdrop/DialogBackdrop.tsx
 //
-// An overlay under the dialog's popup. Only the outermost dialog of a nested
-// stack renders one, unless `forceRender`. A press on it is an outside press
-// of its own dialog only.
+// An overlay under the dialog's popup. A press on it is an outside press of
+// its own dialog only.
 import type { JSX } from '@solidjs/web';
 import { omit, onCleanup } from 'solid-js';
 
@@ -17,10 +16,7 @@ export interface DialogBackdropState {
   transitionStatus: TransitionStatus;
 }
 
-export interface DialogBackdropProps extends BaseUIComponentProps<'div', DialogBackdropState> {
-  /** Whether the backdrop renders even in a nested dialog. @default false */
-  forceRender?: boolean | undefined;
-}
+export interface DialogBackdropProps extends BaseUIComponentProps<'div', DialogBackdropState> {}
 
 /**
  * An overlay displayed beneath the popup.
@@ -28,7 +24,7 @@ export interface DialogBackdropProps extends BaseUIComponentProps<'div', DialogB
  */
 export function DialogBackdrop(componentProps: DialogBackdropProps): JSX.Element {
   const { store } = useDialogRootContext();
-  const elementProps = omit(componentProps, 'class', 'style', 'render', 'forceRender');
+  const elementProps = omit(componentProps, 'class', 'style', 'render');
 
   onCleanup(() => {
     store.backdropRef.current = null;
@@ -44,9 +40,6 @@ export function DialogBackdrop(componentProps: DialogBackdropProps): JSX.Element
   };
 
   return useRenderElement('div', componentProps, {
-    get enabled() {
-      return (componentProps.forceRender ?? false) || !store.nested;
-    },
     state,
     ref: (el: HTMLElement) => {
       store.backdropRef.current = el;

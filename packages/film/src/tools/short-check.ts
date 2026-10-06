@@ -16,6 +16,7 @@ import {
   type SafeZoneName,
   safeRect,
 } from '../core/shorts.ts';
+import { CLOCK_EPSILON } from '../core/time.ts';
 import { heldStill } from './check.ts';
 import {
   type ShortFinding,
@@ -30,7 +31,7 @@ export const shortLength = (short: ResolvedShort): Option.Option<ShortLength> =>
   const { max, from, to } = SHORT_RULES.length;
   return Option.liftPredicate(
     ShortLength.make({ short: short.id, length: short.duration, max, from, to }),
-    (f) => f.length > to + 1e-9 || f.length < from - 1e-9,
+    (f) => f.length > to + CLOCK_EPSILON || f.length < from - CLOCK_EPSILON,
   );
 };
 
@@ -48,7 +49,7 @@ export const hookWord = (
   });
   return Option.liftPredicate(
     ShortHook.make({ short: short.id, reason: 'late word', at, max: SHORT_RULES.firstWord }),
-    () => at > SHORT_RULES.firstWord + 1e-9,
+    () => at > SHORT_RULES.firstWord + CLOCK_EPSILON,
   );
 };
 
@@ -64,7 +65,7 @@ export const loopGap = (
   });
   return Option.liftPredicate(
     ShortLoop.make({ short: short.id, reason: 'gap', value: gap, max: SHORT_RULES.loopGap }),
-    () => gap > SHORT_RULES.loopGap + 1e-9,
+    () => gap > SHORT_RULES.loopGap + CLOCK_EPSILON,
   );
 };
 
