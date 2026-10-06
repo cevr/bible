@@ -65,7 +65,7 @@ import type { Tab } from '../../src/lab/fixtures/tab.ts';
 import {
   DESK_HIT,
   PHONE_HIT,
-  shownTargets,
+  firstScreenItems,
   targetBoxes,
   undersizedTargets,
 } from '../../src/lab/fixtures/touch-targets.ts';
@@ -99,21 +99,23 @@ const LAPTOP: Device = {
 const DEVICES: ReadonlyArray<Device> = [PHONE, LAPTOP];
 
 /**
- * The most targets a view shows at rest on each device (`shownTargets`),
- * wherever they stand on the page (UR2-17, Progressive disclosure: a control
- * earns a place at rest by being used in most visits). A budget is raised
- * only in the commit that adds the control, saying why most visits use it.
+ * The most things a view shows on its first screen at rest on each device
+ * (`firstScreenItems`: its controls, pictures and text leaves, as the
+ * UI-reduction sweep's `count.js` counts them; UR2-17, Progressive
+ * disclosure: a thing earns a place at rest by being used in most visits).
+ * A budget is raised only in the commit that adds the thing, saying why
+ * most visits use it.
  */
 interface Budget {
   readonly phone: number;
   readonly laptop: number;
 }
 
-/** A view's budget: at most `phone` targets on a phone, `laptop` on a laptop. */
+/** A view's budget: at most `phone` things on a phone, `laptop` on a laptop. */
 const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
 
-/** The Lab's Edit: its budget, which a planted target passes (the budget's positive control). */
-const LAB_EDIT = most(25, 26);
+/** The Lab's Edit: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
+const LAB_EDIT = most(51, 55);
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
 interface State {
@@ -255,14 +257,14 @@ const STATES: ReadonlyArray<State> = [
     name: 'Films',
     open: review(pageHref.home(), '.rv-main a[href]'),
     disclose: AT_REST,
-    budget: most(6, 6),
+    budget: most(8, 8),
   },
   {
     name: 'Choices, over a picture, with comment counts',
     open: review(CHOICES, ...CHOICES_READY),
     disclose: AT_REST,
     // The kinds strip's four tabs (SU-5) are its index on a page this long.
-    budget: most(66, 67),
+    budget: most(45, 33),
   },
   {
     name: "Choices, a variant's inspector",
@@ -297,7 +299,7 @@ const STATES: ReadonlyArray<State> = [
     name: 'Project, its panels, stills and dock, with comment counts',
     open: review(PROJECT, ...PROJECT_READY),
     disclose: AT_REST,
-    budget: most(25, 30),
+    budget: most(39, 30),
   },
   {
     name: "Project, a scene row's sheet",
@@ -324,25 +326,25 @@ const STATES: ReadonlyArray<State> = [
     name: 'a Set, with a comment count',
     open: review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video', '[data-comments]'),
     disclose: AT_REST,
-    budget: most(20, 21),
+    budget: most(27, 28),
   },
   {
     name: 'a Set, its wipe (the grip a slider)',
     open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=wipe`, '.rv-wipe-grip'),
     disclose: AT_REST,
-    budget: most(25, 26),
+    budget: most(33, 27),
   },
   {
     name: 'a Set, its diff',
     open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=diff`, '.rv-diff'),
     disclose: AT_REST,
-    budget: most(24, 24),
+    budget: most(32, 26),
   },
   {
     name: 'a Folder, with its set and loose videos',
     open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]'),
     disclose: AT_REST,
-    budget: most(13, 12),
+    budget: most(24, 22),
   },
   { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
   {
@@ -357,10 +359,10 @@ const STATES: ReadonlyArray<State> = [
       }),
     disclose: AT_REST,
   },
-  { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(21, 22) },
-  { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(24, 26) },
-  { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(23, 25) },
-  { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(19, 20) },
+  { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(39, 43) },
+  { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(43, 50) },
+  { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(41, 48) },
+  { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(36, 40) },
   {
     name: "Lab, the command menu's Go to",
     open: lab('edit'),
@@ -388,7 +390,7 @@ const STATES: ReadonlyArray<State> = [
     name: 'Scenes',
     open: player(pageHref.scenes(PROBE), STILL),
     disclose: AT_REST,
-    budget: most(10, 11),
+    budget: most(20, 21),
   },
   {
     // The scene's sheet is a layer, as an inspector is: the tape under it is the case above.
@@ -401,7 +403,7 @@ const STATES: ReadonlyArray<State> = [
     name: 'Play',
     open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
     disclose: AT_REST,
-    budget: most(11, 12),
+    budget: most(18, 18),
   },
   {
     // Play's ticks, turned on from the view menu: each a target its finger can hold.
@@ -447,14 +449,21 @@ for (const device of DEVICES) {
   });
 }
 
-/** The targets `view` shows (`shownTargets`) are at most `budget`; else each one is named. */
+/** What `view` shows on its first screen (`firstScreenItems`) is at most `budget` things; else each one is named, `C` a control, `T` text. */
 const withinBudget = (page: Tab, budget: number, view: string) => {
-  const now = shownTargets();
+  const now = firstScreenItems();
   return page.until(`${now}.length <= ${budget}`, {
     now,
-    say: (found) => `${view} shows more than ${budget} targets at rest: ${found}`,
+    say: (found) =>
+      `${view} shows more than ${budget} things on its first screen at rest: ${found}`,
   });
 };
+
+/** Put `tag` saying "planted" on the first screen, over the page. */
+const plant = (page: Tab, tag: 'button' | 'p') =>
+  page.evaluate(
+    `(() => { const el = document.createElement('${tag}'); el.textContent = 'planted'; Object.assign(el.style, { position: 'fixed', top: '120px', left: '16px', zIndex: '999' }); document.body.append(el); return true; })()`,
+  );
 
 for (const device of DEVICES) {
   describe(`the targets each view shows at rest on ${device.name} (UR2-17)`, () => {
@@ -475,20 +484,23 @@ for (const device of DEVICES) {
 }
 
 describe('the at-rest budget (UR2-17)', () => {
-  it.live(
-    "fails the Lab's Edit on a phone with one target planted past its budget",
-    () =>
-      Effect.gen(function* () {
-        const page = yield* lab('edit')(PHONE.viewport);
-        yield* withinBudget(page, LAB_EDIT.phone, 'the Lab');
-        yield* page.evaluate(
-          `(() => { const b = document.createElement('button'); b.textContent = 'planted'; document.querySelector('.lab-panel').append(b); return true; })()`,
-        );
-        const exit = yield* Effect.exit(withinBudget(page, LAB_EDIT.phone, 'the Lab, planted'));
-        expect(Exit.isFailure(exit)).toBe(true);
-      }).pipe(Effect.scoped),
-    SLOW,
-  );
+  for (const [tag, what] of [
+    ['button', 'a button'],
+    ['p', 'a line of text'],
+  ] as const) {
+    it.live(
+      `fails the Lab's Edit on a phone with ${what} planted past its budget`,
+      () =>
+        Effect.gen(function* () {
+          const page = yield* lab('edit')(PHONE.viewport);
+          yield* withinBudget(page, LAB_EDIT.phone, 'the Lab');
+          yield* plant(page, tag);
+          const exit = yield* Effect.exit(withinBudget(page, LAB_EDIT.phone, 'the Lab, planted'));
+          expect(Exit.isFailure(exit)).toBe(true);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+  }
 });
 
 /**
