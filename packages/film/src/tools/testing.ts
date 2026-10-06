@@ -113,11 +113,27 @@ const folderAndParents = (path: string, recursive: boolean): ReadonlyArray<strin
   return parts.slice(1).map((_, i) => parts.slice(0, i + 2).join('/'));
 };
 
+/** How a write lands: over what is there or after it, and whether only a path not there takes it. */
+interface WriteMode {
+  readonly append: boolean;
+  readonly exclusive: boolean;
+}
+
+/** The write flags this file system models; any other is refused, never taken for a plain write. */
+const WRITE_MODES: Partial<Record<FileSystem.OpenFlag, WriteMode>> = {
+  w: { append: false, exclusive: false },
+  wx: { append: false, exclusive: true },
+  a: { append: true, exclusive: false },
+  ax: { append: true, exclusive: true },
+};
+
 /**
- * `path` written with `bytes`, or NotFound when its folder was never made nor
- * holds a file. Written `wx` (create, never replace), a path already there,
- * a file or a folder, is AlreadyExists, as Node's EEXIST: a lock taken that
- * way is refused while another holds it.
+ * `path` written with `bytes` as `flag` says (`w` when none), or NotFound
+ * when its folder was never made nor holds a file. `a` and `ax` add the
+ * bytes after the file's; `wx` and `ax` (create, never replace) refuse a
+ * path already there, a file or a folder, as AlreadyExists, as Node's
+ * EEXIST: a lock taken that way is refused while another holds it. A flag
+ * not modelled is BadArgument, naming it.
  */
 const writeInto = (
   files: Map<string, Uint8Array>,
@@ -125,10 +141,19 @@ const writeInto = (
   method: string,
   path: string,
   bytes: Uint8Array,
-  /** Written `wx`. */
-  exclusive: boolean,
+  flag: FileSystem.OpenFlag = 'w',
 ) =>
   Effect.suspend(() => {
+    const modelled = Option.fromUndefinedOr(WRITE_MODES[flag]);
+    if (Option.isNone(modelled))
+      return Effect.fail(
+        PlatformError.badArgument({
+          module: 'FileSystem',
+          method,
+          description: `the in-memory file system models no '${flag}' write (only w, wx, a, ax): ${path}`,
+        }),
+      );
+    const mode = modelled.value;
     const parent = path.slice(0, path.lastIndexOf('/'));
     const made =
       parent === '' ||
@@ -139,7 +164,7 @@ const writeInto = (
       files.has(path) ||
       folders.has(path) ||
       [...files.keys()].some((f) => f.startsWith(`${path}/`));
-    if (exclusive && there)
+    if (mode.exclusive && there)
       return Effect.fail(
         PlatformError.systemError({
           _tag: 'AlreadyExists',
@@ -148,7 +173,19 @@ const writeInto = (
           pathOrDescriptor: path,
         }),
       );
-    return Effect.sync(() => void files.set(path, bytes));
+    const landed = Option.match(
+      Option.filter(Option.fromUndefinedOr(files.get(path)), () => mode.append),
+      {
+        onNone: () => bytes,
+        onSome: (before) => {
+          const joined = new Uint8Array(before.length + bytes.length);
+          joined.set(before);
+          joined.set(bytes, before.length);
+          return joined;
+        },
+      },
+    );
+    return Effect.sync(() => void files.set(path, landed));
   });
 
 /**
@@ -189,9 +226,9 @@ const memoryOps = (
       }),
     // A write needs its folder, as Node's does: ENOENT when it was never made.
     writeFile: (path, data, options) =>
-      writeInto(files, folders, 'writeFile', path, data, options?.flag === 'wx'),
+      writeInto(files, folders, 'writeFile', path, data, options?.flag),
     writeFileString: (path, data, options) =>
-      writeInto(files, folders, 'writeFileString', path, text(data), options?.flag === 'wx'),
+      writeInto(files, folders, 'writeFileString', path, text(data), options?.flag),
     makeDirectory: (path, options) =>
       Effect.sync(() => {
         for (const folder of folderAndParents(path, options?.recursive === true))
