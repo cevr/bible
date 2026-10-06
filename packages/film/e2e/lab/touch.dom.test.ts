@@ -578,7 +578,8 @@ const drawnIn = (place: PlaceName, state: State, device: Device) =>
 const LONG_PRESSED: State = {
   name: "Project, an act's long-press menu",
   open: review(PROJECT, ...PROJECT_READY),
-  disclose: heldOn('.pj-act-head .pj-act-meta'),
+  // Made in its case, not as the table is: a call in an initializer runs where it is declared.
+  disclose: (page) => heldOn('.pj-act-head .pj-act-meta')(page),
   layer: CONTEXT_MENU,
 };
 

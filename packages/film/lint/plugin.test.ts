@@ -65,7 +65,7 @@ const MESSAGES = {
     "a cue's last part split by a fraction written in the draw: declare it as its own cue that lands on the cue's end ({ after: cue, dur, ends: true }) and read it with f.at, so a drag of the cue carries it.",
   'no-cue-remap.ts:35 film/no-cue-remap':
     "a step part way through a cue, written in the draw: declare the instant as its own cue ({ with: cue, offset, dur: 0 }) and read f.at(instant) > 0, where the lab can reach it and a sound can follow it; an instant the drawing's own shape makes is read from that shape (Math.cos(f.at('flip') * Math.PI) < 0).",
-  'touches-serial.ts:16 film/touches-serial':
+  'touches-serial.ts:17 film/touches-serial':
     "a touch outside test.serial: while one tab's touches are under way Chrome drops, or lands as a bare click, the touches the file's other cases send their own tabs at the same time. Run this case as test.serial.",
   'spawn-budget.ts:14 film/spawn-budget':
     "this test spawns a process and has no timeout: a cold start's time is the machine's, so give it its budget in milliseconds as the last argument.",
