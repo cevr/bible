@@ -10,7 +10,7 @@
 // The scene's file is named once, on the strip's head.
 
 import { Deferred, Effect, Exit, Option, Schedule } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import { SourceRefused } from '../../../src/core/refusals.ts';
 import {
@@ -179,31 +179,43 @@ describe('the cue strip', () => {
       }).pipe(Effect.scoped),
   );
 
-  it.live(
+  // Serial: while two fingers are down on one tab, Chrome drops the touches the file's other
+  // cases send their own tabs at the same time (a finger's drag there never lands).
+  test.serial(
     "a second finger put down while a lane's drag marks a range marks no range of its own",
     () =>
-      Effect.gen(function* () {
-        const { page } = yield* openLab([], { href: labAt(1) });
-        const lane = '.lab-strip-row:has([data-cue="fall"])';
-        yield* page.waitFor(lane);
-        const rows = yield* page.box('.lab-strip-rows');
-        const row = yield* page.box(lane);
-        const x = rows.x + 4;
-        const y = row.y + row.height / 2;
-        yield* page.finger.down(x, y);
-        yield* page.finger.move(x + 30, y, 15);
-        // A second finger lands further along the lane and slides on while the first is down,
-        // then the first lifts before it: the range marked last would be the second's.
-        yield* page.finger.second.down(x + 120, y);
-        yield* page.finger.second.move(x + 200, y, 15);
-        yield* page.finger.up;
-        yield* page.finger.second.up;
-        yield* page.waitFor('[data-role="in-out"]');
-        const band = yield* page.box('[data-role="in-out"]');
-        // The range is the first finger's: from where it went down to where it lifted.
-        expect(band.x).toBeLessThan(x + 10);
-        expect(band.x + band.width).toBeLessThan(x + 60);
-      }).pipe(Effect.scoped),
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const { page } = yield* openLab([], { href: labAt(1) });
+          const lane = '.lab-strip-row:has([data-cue="fall"])';
+          yield* page.waitFor(lane);
+          const rows = yield* page.box('.lab-strip-rows');
+          const row = yield* page.box(lane);
+          const x = rows.x + 4;
+          const y = row.y + row.height / 2;
+          // Every press the lanes are given, counted, so the second finger's is one they were
+          // given; and every finger lifted, so the range is read once the page has both lifts.
+          yield* page.evaluate(
+            `(window.pressed = 0, window.lifted = 0, document.querySelector('.lab-strip-rows').addEventListener('pointerdown', () => window.pressed++, true), addEventListener('touchend', () => window.lifted++, true), 0)`,
+          );
+          yield* page.finger.down(x, y);
+          yield* page.finger.move(x + 30, y, 15);
+          // A second finger lands further along the lane and slides on while the first is
+          // down: the range marked last would be the second's.
+          yield* page.finger.second.down(x + 120, y);
+          yield* page.finger.second.move(x + 200, y, 15);
+          yield* evaluates(page, 'window.pressed', 2);
+          // Both lift. (Chrome lifts a finger only as the touch ends: the two lift together.)
+          yield* page.finger.second.up;
+          yield* page.finger.up;
+          yield* evaluates(page, 'window.lifted', 2);
+          yield* page.waitFor('[data-role="in-out"]');
+          const band = yield* page.box('[data-role="in-out"]');
+          // The range is the first finger's: from where it went down to where it lifted.
+          expect(band.x).toBeLessThan(x + 10);
+          expect(band.x + band.width).toBeLessThan(x + 60);
+        }).pipe(Effect.scoped),
+      ),
   );
 
   it.live('a drag of a cue body writes its offset once, on release, and selects it', () =>
