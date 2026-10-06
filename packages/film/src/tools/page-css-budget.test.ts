@@ -10,22 +10,32 @@
 
 import { BunHttpPlatform, BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
-import { Context, Effect, FileSystem, Layer } from 'effect';
+import { Context, Effect, FileSystem, Layer, Option, Struct } from 'effect';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
+import { Place } from '@bible/url-state';
 import { LAB_PAGES, LAB_SERVERS } from '../../../../apps/animations/server.ts';
+import { Places, pageHref } from '../core/api.ts';
 import { LabPage, PageBundler } from './lab-page.ts';
 import { PageReads } from './api-server.ts';
 import { PageRenderer } from './page-render.ts';
 
-/** Each place a phone opens, by the path the lab serves it at. */
-const PLACES = [
-  ['Films', '/'],
-  ['Choices', '/films/f/choices'],
-  ['Project', '/films/f/project'],
-  ['Scenes', '/films/f/scenes'],
-  ['Lab', '/films/f/lab'],
-  ['Play', '/films/f/play'],
-] as const;
+/**
+ * Every place a page is at (`Places`, `core/api.ts`), by a link the lab
+ * serves it at: a place added there is weighed here, or this fails to
+ * typecheck.
+ */
+const PLACES = {
+  home: pageHref.home(),
+  folder: pageHref.folder('f'),
+  set: pageHref.set('f', 'p'),
+  choices: pageHref.choices('f'),
+  project: pageHref.project('f'),
+  scenes: pageHref.scenes('f'),
+  scene: pageHref.scene('f', 's'),
+  play: pageHref.play('f'),
+  lab: pageHref.lab('f'),
+  labScene: pageHref.labScene('f', 's'),
+} satisfies Record<keyof typeof Places, string>;
 
 /**
  * The most a page's render-blocking CSS may weigh, in bytes, as built
@@ -105,9 +115,15 @@ describe("a page's render-blocking CSS", () => {
             if (status !== 200) return Number.POSITIVE_INFINITY;
             return new TextEncoder().encode(body).byteLength;
           });
-        const weighed = yield* Effect.forEach(PLACES, ([place, pathname]) =>
+        // Each link is at the place it is keyed by.
+        expect(
+          Struct.keys(PLACES).filter((place) =>
+            Option.isNone(Place.decode(Places[place], PLACES[place])),
+          ),
+        ).toEqual([]);
+        const weighed = yield* Effect.forEach(Struct.keys(PLACES), (place) =>
           Effect.gen(function* () {
-            const { status, body } = yield* ask(pathname);
+            const { status, body } = yield* ask(PLACES[place]);
             // The server rendered it: its head holds the page's own styles.
             const rendered = status === 200 && body.includes('<style data-page-style');
             return { place, rendered, bytes: yield* blockingCss(body, size) };

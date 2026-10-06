@@ -20,6 +20,10 @@
 // layer (a sheet, a menu, a dialog) is measured within itself; what lies
 // under it was measured with it closed.
 //
+// Both guards are keyed by place (`Places`, `core/api.ts`; G13): a place
+// added there is opened here or named exempt with its reason, or this fails
+// to typecheck, and each case checks its page stands at its place.
+//
 // Every page also fits a phone (G8, `fitsPhone`): no sideways scroll, each
 // control inside the width, its chrome at most a quarter of the height; a
 // film's Scenes is asked with its tape bar's legend at its fullest. And every
@@ -36,9 +40,10 @@
 // - Spacing (WCAG 2.5.8, at `--hit`): a target 24 px each way or more whose
 //   `--hit` circle reaches no other target cannot be missed for a neighbour.
 
-import { Deferred, Effect, Exit, Schedule, type Scope } from 'effect';
+import { Deferred, Effect, Exit, Option, Schedule, type Scope, Struct } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { pageHref } from '../../src/core/api.ts';
+import { Place } from '@bible/url-state';
+import { Places, pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
 import { rightClick, touch } from '../../src/lab/fixtures/gestures.ts';
 import {
@@ -101,6 +106,38 @@ interface State {
   /** The layer the state opens, measured within itself; none: the whole page. */
   readonly layer?: string;
 }
+
+/** Every place a page is at (`Places`, `core/api.ts`). */
+type PlaceName = keyof typeof Places;
+
+/** A place a guard here does not open, and why. */
+interface Exempt {
+  readonly exempt: string;
+}
+
+/**
+ * What a guard opens at each place: a place added to `Places` is opened here
+ * or named exempt with its reason, or this fails to typecheck; and each case
+ * checks its page is at the place it is keyed by (`isAt`).
+ */
+type ByPlace<A> = Readonly<Record<PlaceName, ReadonlyArray<A> | Exempt>>;
+
+/** Each case of `cases` with the place it is keyed by; an exempt place has none. */
+const byPlace = <A>(cases: ByPlace<A>): ReadonlyArray<readonly [PlaceName, A]> =>
+  Struct.keys(cases).flatMap((place) => {
+    const at = cases[place];
+    if ('exempt' in at) return [];
+    return at.map((one) => [place, one] as const);
+  });
+
+/** Dies unless the page is at `place`: its path and query decode as that place's. */
+const isAt = (page: Tab, place: PlaceName) =>
+  Effect.flatMap(page.evaluate<string>('location.pathname + location.search'), (href) =>
+    Option.match(Place.decode(Places[place], href), {
+      onNone: () => Effect.die(`the page is at ${href}, not at the place ${place}`),
+      onSome: () => Effect.void,
+    }),
+  );
 
 /** The page as it opens: nothing disclosed. */
 const AT_REST = () => Effect.void;
@@ -226,154 +263,186 @@ const KEYS = '[data-role="keys-sheet"]';
 /** Choices at rest: its picture's transport, a knob, a comment's count. */
 const CHOICES_READY = ['.rv-transport', '.rv-knob input[type="range"]', `${STRINGS} .lab-count`];
 
-const STATES: ReadonlyArray<State> = [
-  { name: 'Films', open: review(pageHref.home(), '.rv-main a[href]'), disclose: AT_REST },
-  {
-    name: 'Choices, over a picture, with comment counts',
-    open: review(CHOICES, ...CHOICES_READY),
-    disclose: AT_REST,
-  },
-  {
-    name: "Choices, a variant's inspector",
-    open: review(CHOICES, ...CHOICES_READY),
-    disclose: opens(`${STRINGS} .lab-inspect`, `${INSPECTOR} [data-act="close-inspector"]`),
-    layer: INSPECTOR,
-  },
-  {
-    name: 'Choices, the Findings sheet',
-    open: review(CHOICES, '[data-act="findings"][data-check="check"][data-findings="2"]'),
-    disclose: opens('[data-act="findings"][data-check="check"]', `${FINDINGS} .rv-at`),
-    layer: FINDINGS,
-  },
-  {
-    name: "Choices, a variant's context menu",
-    open: review(CHOICES, ...CHOICES_READY),
-    disclose: menuOn(`${STRINGS} .rv-name`),
-    layer: CONTEXT_MENU,
-  },
-  {
-    name: 'Choices, the command menu',
-    open: review(CHOICES, ...CHOICES_READY),
-    disclose: pressed('Control+k', `${COMMAND_MENU} [data-command]`),
-    layer: COMMAND_MENU,
-  },
-  {
-    name: 'Project, its panels, stills and dock, with comment counts',
-    open: review(PROJECT, ...PROJECT_READY),
-    disclose: AT_REST,
-  },
-  {
-    name: "Project, a scene row's sheet",
-    open: review(PROJECT, ...PROJECT_READY),
-    disclose: opens(
-      '.rv-scene[data-scene="open"] .sc-card-picture',
-      `${INSPECTOR} .rv-comment-input`,
-    ),
-    layer: INSPECTOR,
-  },
-  {
-    name: "Project, an act's long-press menu",
-    open: review(PROJECT, ...PROJECT_READY),
-    disclose: heldOn('.pj-act-head .pj-act-meta'),
-    layer: CONTEXT_MENU,
-  },
-  {
-    name: "Project, the film's inspector",
-    open: review(PROJECT, ...PROJECT_READY),
-    disclose: opens('.pj-film-head .lab-inspect', `${INSPECTOR} .rv-comment-input`),
-    layer: INSPECTOR,
-  },
-  {
-    name: 'a Set, with a comment count',
-    open: review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video', '[data-comments]'),
-    disclose: AT_REST,
-  },
-  {
-    name: 'a Set, its wipe (the grip a slider)',
-    open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=wipe`, '.rv-wipe-grip'),
-    disclose: AT_REST,
-  },
-  {
-    name: 'a Set, its diff',
-    open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=diff`, '.rv-diff'),
-    disclose: AT_REST,
-  },
-  {
-    name: 'a Folder, with its set and loose videos',
-    open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]'),
-    disclose: AT_REST,
-  },
-  { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST },
-  {
-    name: 'Lab, Edit, a cue that runs until a mark selected (its End field, the Snap toggle)',
-    open: (viewport) =>
-      Effect.gen(function* () {
-        const href = labAt(10, { selection: { _tag: 'Cue', scene: 'three', name: 'push' } });
-        const { page } = yield* openLab([], { viewport, mode: 'edit', href });
-        yield* waitFor(page, '.lab-edit-cue input[data-field="end"]:not([disabled])');
-        yield* waitFor(page, '[data-act="snap"]');
-        return page;
-      }),
-    disclose: AT_REST,
-  },
-  { name: 'Lab, Note', open: lab('note'), disclose: AT_REST },
-  { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST },
-  { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST },
-  { name: 'Lab, Record', open: lab('record'), disclose: AT_REST },
-  {
-    name: "Lab, the command menu's Go to",
-    open: lab('edit'),
-    disclose: (page) =>
-      Effect.gen(function* () {
-        yield* page.press('Control+k');
-        yield* page.fill('.lab-command-query', 'go to');
-        yield* waitFor(page, `${COMMAND_MENU} [data-command^="go."]`);
-      }),
-    layer: COMMAND_MENU,
-  },
-  {
-    name: 'Lab, the context menu',
-    open: lab('edit'),
-    disclose: menuOn('.lab-panel'),
-    layer: CONTEXT_MENU,
-  },
-  {
-    name: 'Lab, the keys dialog',
-    open: lab('edit'),
-    disclose: pressed('?', `${KEYS} [data-command]`),
-    layer: KEYS,
-  },
-  {
-    name: 'Scenes',
-    open: player(pageHref.scenes(PROBE), STILL),
-    disclose: AT_REST,
-  },
-  {
-    // The scene's sheet is a layer, as an inspector is: the tape under it is the case above.
-    name: "Scenes, a scene selected (its sheet, the Project's scene inspector's)",
-    open: player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
-    disclose: AT_REST,
-    layer: '[data-role="scene"]',
-  },
-  {
-    name: 'Play',
-    open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
-    disclose: AT_REST,
-  },
-  {
-    // Play's ticks, turned on from the view menu: each a target its finger can hold.
-    name: 'Play, its ticks on',
-    open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
-    disclose: (page) =>
-      Effect.andThen(
-        opens(
-          '[data-act="view-menu"]',
-          '[data-role="view-menu"] [data-command="view.ticks"]',
-        )(page),
-        opens('[data-role="view-menu"] [data-command="view.ticks"]', '.bar[data-ticks="on"]')(page),
+/** The Lab with a cue that runs until a mark selected: its scene's place, its End field and the Snap toggle shown. */
+const labCue = (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const href = labAt(10, { selection: { _tag: 'Cue', scene: 'three', name: 'push' } });
+    const { page } = yield* openLab([], { viewport, mode: 'edit', href });
+    yield* waitFor(page, '.lab-edit-cue input[data-field="end"]:not([disabled])');
+    yield* waitFor(page, '[data-act="snap"]');
+    return page;
+  });
+
+/**
+ * A film's Lab link (`pageHref.lab`) is the Lab's place only until it opens:
+ * the path names the scene under the playhead (`lab/place.ts`), so a film
+ * with a scene stands at `labScene`, where its Lab is measured.
+ */
+const LAB_MOVES: Exempt = {
+  exempt: "a film's Lab moves to the scene under its playhead as it opens: measured at labScene",
+};
+
+const STATES: ByPlace<State> = {
+  lab: LAB_MOVES,
+  home: [{ name: 'Films', open: review(pageHref.home(), '.rv-main a[href]'), disclose: AT_REST }],
+  choices: [
+    {
+      name: 'Choices, over a picture, with comment counts',
+      open: review(CHOICES, ...CHOICES_READY),
+      disclose: AT_REST,
+    },
+    {
+      name: "Choices, a variant's inspector",
+      open: review(CHOICES, ...CHOICES_READY),
+      disclose: opens(`${STRINGS} .lab-inspect`, `${INSPECTOR} [data-act="close-inspector"]`),
+      layer: INSPECTOR,
+    },
+    {
+      name: 'Choices, the Findings sheet',
+      open: review(CHOICES, '[data-act="findings"][data-check="check"][data-findings="2"]'),
+      disclose: opens('[data-act="findings"][data-check="check"]', `${FINDINGS} .rv-at`),
+      layer: FINDINGS,
+    },
+    {
+      name: "Choices, a variant's context menu",
+      open: review(CHOICES, ...CHOICES_READY),
+      disclose: menuOn(`${STRINGS} .rv-name`),
+      layer: CONTEXT_MENU,
+    },
+    {
+      name: 'Choices, the command menu',
+      open: review(CHOICES, ...CHOICES_READY),
+      disclose: pressed('Control+k', `${COMMAND_MENU} [data-command]`),
+      layer: COMMAND_MENU,
+    },
+  ],
+  project: [
+    {
+      name: 'Project, its panels, stills and dock, with comment counts',
+      open: review(PROJECT, ...PROJECT_READY),
+      disclose: AT_REST,
+    },
+    {
+      name: "Project, a scene row's sheet",
+      open: review(PROJECT, ...PROJECT_READY),
+      disclose: opens(
+        '.rv-scene[data-scene="open"] .sc-card-picture',
+        `${INSPECTOR} .rv-comment-input`,
       ),
-  },
-];
+      layer: INSPECTOR,
+    },
+    {
+      name: "Project, an act's long-press menu",
+      open: review(PROJECT, ...PROJECT_READY),
+      disclose: heldOn('.pj-act-head .pj-act-meta'),
+      layer: CONTEXT_MENU,
+    },
+    {
+      name: "Project, the film's inspector",
+      open: review(PROJECT, ...PROJECT_READY),
+      disclose: opens('.pj-film-head .lab-inspect', `${INSPECTOR} .rv-comment-input`),
+      layer: INSPECTOR,
+    },
+  ],
+  set: [
+    {
+      name: 'a Set, with a comment count',
+      open: review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video', '[data-comments]'),
+      disclose: AT_REST,
+    },
+    {
+      name: 'a Set, its wipe (the grip a slider)',
+      open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=wipe`, '.rv-wipe-grip'),
+      disclose: AT_REST,
+    },
+    {
+      name: 'a Set, its diff',
+      open: review(`${pageHref.set(STUDIO_FOLDER, STUDIO_SET)}?view=diff`, '.rv-diff'),
+      disclose: AT_REST,
+    },
+  ],
+  folder: [
+    {
+      name: 'a Folder, with its set and loose videos',
+      open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]'),
+      disclose: AT_REST,
+    },
+  ],
+  labScene: [
+    {
+      name: 'Lab, Edit, a cue that runs until a mark selected (its End field, the Snap toggle)',
+      open: labCue,
+      disclose: AT_REST,
+    },
+    { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST },
+    { name: 'Lab, Note', open: lab('note'), disclose: AT_REST },
+    { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST },
+    { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST },
+    { name: 'Lab, Record', open: lab('record'), disclose: AT_REST },
+    {
+      name: "Lab, the command menu's Go to",
+      open: lab('edit'),
+      disclose: (page) =>
+        Effect.gen(function* () {
+          yield* page.press('Control+k');
+          yield* page.fill('.lab-command-query', 'go to');
+          yield* waitFor(page, `${COMMAND_MENU} [data-command^="go."]`);
+        }),
+      layer: COMMAND_MENU,
+    },
+    {
+      name: 'Lab, the context menu',
+      open: lab('edit'),
+      disclose: menuOn('.lab-panel'),
+      layer: CONTEXT_MENU,
+    },
+    {
+      name: 'Lab, the keys dialog',
+      open: lab('edit'),
+      disclose: pressed('?', `${KEYS} [data-command]`),
+      layer: KEYS,
+    },
+  ],
+  scenes: [
+    {
+      name: 'Scenes',
+      open: player(pageHref.scenes(PROBE), STILL),
+      disclose: AT_REST,
+    },
+  ],
+  scene: [
+    {
+      // The scene's sheet is a layer, as an inspector is: the tape under it is the case above.
+      name: "Scenes, a scene selected (its sheet, the Project's scene inspector's)",
+      open: player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
+      disclose: AT_REST,
+      layer: '[data-role="scene"]',
+    },
+  ],
+  play: [
+    {
+      name: 'Play',
+      open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
+      disclose: AT_REST,
+    },
+    {
+      // Play's ticks, turned on from the view menu: each a target its finger can hold.
+      name: 'Play, its ticks on',
+      open: player(pageHref.play(PROBE), '.bar [data-act="play"]'),
+      disclose: (page) =>
+        Effect.andThen(
+          opens(
+            '[data-act="view-menu"]',
+            '[data-role="view-menu"] [data-command="view.ticks"]',
+          )(page),
+          opens(
+            '[data-role="view-menu"] [data-command="view.ticks"]',
+            '.bar[data-ticks="on"]',
+          )(page),
+        ),
+    },
+  ],
+};
 
 /** Every shown target in `layer` (the page when none) is `device`'s size, or kept by a principle; else each one under it is named. */
 const sized = (page: Tab, device: Device, layer?: string) => {
@@ -387,12 +456,13 @@ const sized = (page: Tab, device: Device, layer?: string) => {
 
 for (const device of DEVICES) {
   describe(`touch targets on ${device.name}`, () => {
-    for (const state of STATES) {
+    for (const [place, state] of byPlace(STATES)) {
       it.live(
         state.name,
         () =>
           Effect.gen(function* () {
             const page = yield* state.open(device.viewport);
+            yield* isAt(page, place);
             // The page has the device's pointer, so its density tokens are the device's.
             yield* page.until(`matchMedia('${device.pointer}').matches`);
             yield* state.disclose(page);
@@ -483,24 +553,41 @@ describe("the Lab's transport on a phone (DL-10)", () => {
 });
 
 describe('every page fits a phone, 390 × 844 (G8)', () => {
-  const PAGES = [
-    ['Films', review(pageHref.home(), '.rv-main a[href]')],
-    ['Choices', review(CHOICES, ...CHOICES_READY)],
-    ['Project', review(PROJECT, ...PROJECT_READY)],
-    ['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')],
-    ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]')],
-    ['Scenes', player(pageHref.scenes(PROBE), STILL)],
-    [
-      "Scenes, its legend full (out of date, not rendered, approved, findings, warnings, the film's)",
-      player(pageHref.scenes(PROBE), '.sc-legend-item[data-mark="film"]', WORK_ROUTES),
+  const PAGES: ByPlace<readonly [string, State['open']]> = {
+    home: [['Films', review(pageHref.home(), '.rv-main a[href]')]],
+    choices: [['Choices', review(CHOICES, ...CHOICES_READY)]],
+    project: [['Project', review(PROJECT, ...PROJECT_READY)]],
+    set: [['a Set', review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video')]],
+    folder: [
+      ['a Folder', review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]')],
     ],
-    ['Lab', lab('edit')],
-    ['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')],
-  ] as const;
-  for (const [name, open] of PAGES) {
+    scenes: [
+      ['Scenes', player(pageHref.scenes(PROBE), STILL)],
+      [
+        "Scenes, its legend full (out of date, not rendered, approved, findings, warnings, the film's)",
+        player(pageHref.scenes(PROBE), '.sc-legend-item[data-mark="film"]', WORK_ROUTES),
+      ],
+    ],
+    scene: {
+      exempt:
+        "a selected scene opens its sheet, a layer over the tape as an inspector is, never the page's chrome: the tape under it fits as Scenes, and the sheet's targets are measured above",
+    },
+    lab: LAB_MOVES,
+    labScene: [
+      ['Lab', lab('edit')],
+      ['Lab, a scene with a cue selected', labCue],
+    ],
+    play: [['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')]],
+  };
+  for (const [place, [name, open]] of byPlace(PAGES)) {
     it.live(
       `${name}: no sideways scroll, every control inside the width, chrome at most a quarter of the height`,
-      () => Effect.flatMap(open(PHONE.viewport), fitsPhone).pipe(Effect.scoped),
+      () =>
+        Effect.gen(function* () {
+          const page = yield* open(PHONE.viewport);
+          yield* isAt(page, place);
+          yield* fitsPhone(page);
+        }).pipe(Effect.scoped),
       SLOW,
     );
   }
