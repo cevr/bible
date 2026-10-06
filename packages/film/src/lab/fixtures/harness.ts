@@ -295,6 +295,9 @@ const labScriptFor = (narrated: boolean): Effect.Effect<Asset> => {
   return Effect.succeed(labScript);
 };
 
+/** The studio's tokens (`player/tokens.css`), as every page served here links them. */
+export const tokensCss: string = tokens;
+
 /** The styles `lab.html` and `index.html` link: the tokens, then the player's. */
 const css = `${tokens}${playerCss}`;
 

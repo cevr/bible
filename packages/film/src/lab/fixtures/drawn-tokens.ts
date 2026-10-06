@@ -1,24 +1,44 @@
 // What a page draws, read back from the browser (G9, the design language's
 // DL-9): every colour, font family, size, weight, leading, radius and
-// spacing the studio's chrome is drawn with resolves to a token of
-// `player/tokens.css`, as the page's own `:root` resolves it at its width
-// and pointer. The source guard (`style-tokens.test.ts`) reads how a value
-// is spelled; this reads what is drawn, so a value no rule spells (a user
-// agent's default: a `<p>`'s margin, `bold`'s 700, a native field's colour)
-// or one built where no regex looks (a computed `calc`, a style set from
-// data) is read the same as a literal.
+// spacing the studio's chrome is drawn with, and every colour in its
+// gradients and shadows, resolves to a token of `player/tokens.css`, as the
+// page's own `:root` resolves it at its width and pointer. Only the tokens
+// that file declares count: a variable a page or a part declares for itself
+// is no token, so a value it carries is read as the literal it is. The
+// source guard (`style-tokens.test.ts`) reads how a value is spelled; this
+// reads what is drawn, so a value no rule spells (a user agent's default: a
+// `<p>`'s margin, `bold`'s 700, a native field's colour) or one built where
+// no regex looks (a computed `calc`, a style set from data) is read the same
+// as a literal.
 //
 // Allowed beside the tokens, each by name:
 // - a token negated (a gutter pulled back by `calc(-1 * var(--gutter))`);
+// - a colour a token's value holds (`--shadow-pop`'s shade);
 // - a scene's hue, `hsl(<hue> var(--scene-sat) var(--scene-light))`: any
 //   hue at the tokens' saturation and lightness;
 // - a native part the engine colours itself: a range's and a select's own
 //   colours (text, ground, edge) and leading (`NATIVE`);
 // - a visually hidden field (1 × 1 or less), never seen;
+// - the compositions in `COMPOSED`, each tokens summed, or a share of the
+//   window, for a part's room;
 // - the geometry in `GEOMETRY`, each a size a shape needs, not a step of
 //   the scale.
 
 import { Schema } from 'effect';
+
+/**
+ * Sizes a part composes of tokens or of the window, by the expression that
+ * composes them: each resolved at the page's window as the tokens are, and
+ * drawn as a token is.
+ */
+const COMPOSED = {
+  'calc(2 * var(--s-8) + var(--s-2))':
+    "the lab strip's cue-name column (`--cue-names`): each name, then a step of room before its row",
+  '75dvh':
+    "a phone's open sheet (`--cmd-sheet-height`): the room the page keeps under it, so all of the page scrolls above it",
+  '40dvh':
+    "the room the Scenes' tape keeps under a selected scene's sheet, so its last row scrolls above it",
+} satisfies Readonly<Record<string, string>>;
 
 /**
  * Sizes a shape needs, by the value drawn (a negated one too): each is a
@@ -33,49 +53,44 @@ const GEOMETRY = {
     "a phone's dock and a step under it (`--dock-h` + `--s-3`): the page's room below its last row",
 } satisfies Readonly<Record<string, string>>;
 
-/** The geometry's values, as a script's array literal. */
-const GEOMETRY_VALUES = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.String)))(
-  Object.keys(GEOMETRY),
-);
+/** A list of strings as a script's array literal. */
+const arrayOf = Schema.encodeSync(Schema.fromJsonString(Schema.Array(Schema.String)));
+
+/** The tokens `css` (`player/tokens.css`'s text) declares, by name, each once. */
+const tokenNames = (css: string): ReadonlyArray<string> => [
+  ...new Set([...css.matchAll(/(?<![\w-])(--[\w-]+)\s*:/g)].flatMap((m) => m.slice(1, 2))),
+];
 
 /**
- * A script answering every value the page draws that resolves to no token,
- * as `property value: element`, one line per value and property (its first
- * element named); none, `[]`.
+ * A script answering every value the page draws that resolves to no token
+ * of `tokensCss` (`player/tokens.css`'s text), as `property value: element`,
+ * one line per value and property (its first element named); none, `[]`.
  */
-export const UNTOKENED = `(() => {
+export const untokened = (tokensCss: string) => `(() => {
   const root = document.documentElement;
   const rootStyle = getComputedStyle(root);
-  // Each token, with where it is declared: the root's, and a part's own
-  // (\`--cue-names\` on the strip), resolved inside the first element it is on.
-  const declared = [];
-  const collect = (rules) => {
-    for (const rule of rules) {
-      if (rule.cssRules) collect(rule.cssRules);
-      if (!rule.style || !rule.selectorText) continue;
-      for (const p of rule.style) if (p.startsWith('--')) declared.push([p, rule.selectorText]);
-    }
-  };
-  for (const sheet of document.styleSheets) {
-    try { collect(sheet.cssRules); } catch { /* a sheet from another origin */ }
-  }
+  const TOKENS = ${arrayOf(tokenNames(tokensCss))};
   const probe = document.createElement('i');
   probe.style.cssText = 'position:absolute;display:block;visibility:hidden;left:0;top:0';
+  document.body.append(probe);
+  const colourOf = (v) => {
+    probe.style.color = 'rgb(1, 2, 3)';
+    probe.style.color = v;
+    return getComputedStyle(probe).color;
+  };
+  // A colour inside a value: a colour function, a hex, or a colour's name.
+  const COLOUR_PARTS = /[a-z-]+\\((?:[^()]|\\([^()]*\\))*\\)|#[0-9a-f]{3,8}\\b|[a-z]+/gi;
   const colours = new Set();
   const lengths = new Set();
   const weights = new Set();
   const families = new Set();
-  for (const [name, selector] of declared) {
-    let host = null;
-    try { host = selector === ':root' ? document.body : document.querySelector(selector); } catch { host = null; }
-    if (host === null || host instanceof SVGElement) continue;
-    host.append(probe);
-    const raw = getComputedStyle(host).getPropertyValue(name).trim();
+  // Each token as the root resolves it (at this width and pointer).
+  for (const name of TOKENS) {
+    const raw = rootStyle.getPropertyValue(name).trim();
     if (raw === '') continue;
-    probe.style.color = 'rgb(1, 2, 3)';
-    probe.style.color = 'var(' + name + ')';
-    const colour = getComputedStyle(probe).color;
+    const colour = colourOf('var(' + name + ')');
     if (CSS.supports('color', raw) || (raw.startsWith('var(') && colour !== 'rgb(1, 2, 3)')) colours.add(colour);
+    for (const part of raw.match(COLOUR_PARTS) ?? []) if (CSS.supports('color', part)) colours.add(colourOf(part));
     probe.style.width = '';
     probe.style.width = 'var(' + name + ')';
     const width = getComputedStyle(probe).width;
@@ -87,9 +102,14 @@ export const UNTOKENED = `(() => {
     probe.style.fontFamily = 'var(' + name + ')';
     if (name === '--font') families.add(getComputedStyle(probe).fontFamily);
   }
+  // Read as a padding is (a width snaps to the layout's 1/64 px; a padding does not).
+  for (const composed of ${arrayOf(Object.keys(COMPOSED))}) {
+    probe.style.paddingLeft = composed;
+    lengths.add(getComputedStyle(probe).paddingLeft);
+  }
   probe.remove();
   lengths.add('0px');
-  for (const v of ${GEOMETRY_VALUES}) lengths.add(v);
+  for (const v of ${arrayOf(Object.keys(GEOMETRY))}) lengths.add(v);
   const negated = (v) => (v.startsWith('-') ? v.slice(1) : '-' + v);
   const isLength = (v) => lengths.has(v) || lengths.has(negated(v));
   const rgb = (v) => (/^rgba?\\(([\\d.]+), ([\\d.]+), ([\\d.]+)/.exec(v) ?? []).slice(1).map(Number);
@@ -105,6 +125,8 @@ export const UNTOKENED = `(() => {
     return Math.abs(s - sat) < 0.02 && Math.abs(l - light) < 0.01;
   };
   const isColour = (v) => v === 'rgba(0, 0, 0, 0)' || colours.has(v) || sceneHue(v);
+  // The colours a computed gradient or shadow draws with, each as the engine writes a colour.
+  const COLOURS_IN = /(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\\([^()]*\\)/g;
   const NATIVE = (el) => el.matches('input[type="range"], select');
   const name = (el) => {
     const cls = typeof el.className === 'string' ? el.className.trim().split(/\\s+/).filter(Boolean).slice(0, 2).join('.') : '';
@@ -134,6 +156,8 @@ export const UNTOKENED = `(() => {
       if (!weights.has(s.fontWeight)) off('font-weight', s.fontWeight, el);
       if (!lengths.has(s.lineHeight) && !(NATIVE(el) && s.lineHeight === 'normal')) off('line-height', s.lineHeight, el);
       if (!isColour(s.color) && !NATIVE(el)) off('color', s.color, el);
+      if (s.textShadow !== 'none')
+        for (const c of s.textShadow.match(COLOURS_IN) ?? []) if (!isColour(c)) off('text-shadow', c, el);
     }
     if (svg && SHAPES.has(el.tagName)) {
       if (FILLED.has(el.tagName) && s.fill !== 'none' &&!s.fill.startsWith('url(') && !isColour(s.fill)) off('fill', s.fill, el);
@@ -141,6 +165,10 @@ export const UNTOKENED = `(() => {
     }
     if (!svg) {
       if (!isColour(s.backgroundColor) && !NATIVE(el)) off('background-color', s.backgroundColor, el);
+      for (const [p, key] of [['backgroundImage', 'background-image'], ['boxShadow', 'box-shadow']]) {
+        if (s[p] === 'none') continue;
+        for (const c of s[p].match(COLOURS_IN) ?? []) if (!isColour(c)) off(key, c, el);
+      }
       for (const side of ['Top', 'Right', 'Bottom', 'Left']) {
         if (s['border' + side + 'Style'] === 'none' || s['border' + side + 'Width'] === '0px') continue;
         if (!isColour(s['border' + side + 'Color']) && !NATIVE(el)) off('border-color', s['border' + side + 'Color'], el);

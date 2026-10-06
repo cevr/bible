@@ -19,12 +19,15 @@
 // and the `@font-face` rule a page's head declares), and it is held to the
 // token: it is the family `--font` names first.
 //
-// What a served page draws is read back as well (`lab/fixtures/drawn-tokens.ts`,
-// `e2e/lab/served-film.dom.test.ts`; G9): a value no rule here spells (a user
-// agent's default, a `calc`, a style set from data) is caught by computing
-// it, never by widening these patterns. This guard stays for what that check
-// cannot see: a canvas painting the chrome, and every page and state the
-// served test does not open.
+// What a page draws is read back as well (`lab/fixtures/drawn-tokens.ts`, run
+// over every page and disclosed state of `e2e/lab/touch.dom.test.ts` at 390
+// and 1440; G9): a value no rule here spells (a user agent's default, a
+// `calc`, a style set from data, a weight) is caught by computing it, never
+// by widening these patterns. This guard stays for what only it sees: a
+// canvas painting the chrome (its pixels are no computed style), the `@font-face`
+// registration held to `--font`, and every state no page test opens (a
+// toast, the lab's failed page, a drag under way, a look-book's page,
+// an error a fixture never answers), whose literals it reads from source.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';

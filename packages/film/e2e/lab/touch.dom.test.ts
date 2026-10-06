@@ -6,13 +6,17 @@
 // the phone (`PHONE_HIT`), 28 px on the laptop (`DESK_HIT`). The area is
 // what a tap reaches (`undersizedTargets`, `fixtures/touch-targets.ts`):
 // padding and a pseudo-element hit-slop count, a covered part does not. A
-// failure names each target under it, with what a pointer meets.
+// failure names each target under it, with what a pointer meets. In each of
+// the same states on both devices, everything drawn is drawn in the tokens
+// (G9, DL-9: `untokened`, `fixtures/drawn-tokens.ts`), a failure naming each
+// value off them.
 //
 // The disclosed states are the fixture film's (`fixtures/studio-film.ts`):
 // Project's panels with their stills and its dock, a scene row's sheet, an
 // act's long-press menu, an inspector, the lab editor's Snap toggle and an
 // `until` cue's End field, the Findings sheet, the command
-// menu (⌘K, its Go to…), the context menu, the keys dialog, the lab's modes,
+// menu (⌘K, its Go to…), the context menu, the keys dialog, the lab's modes
+// (Record's with its beats listed and the recorder on one),
 // comment counts on their rows, the Choices transport over a picture, a Set's
 // wipe and diff, a film's Scenes with a scene selected and the
 // Folder's loose videos. A short name with no count beside it is as wide as
@@ -58,7 +62,9 @@ import {
   openReview,
   openServed,
   route,
+  tokensCss,
 } from '../../src/lab/fixtures/harness.ts';
+import { untokened } from '../../src/lab/fixtures/drawn-tokens.ts';
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import { evaluates, until, waitFor } from '../../src/lab/fixtures/settled.ts';
@@ -107,6 +113,13 @@ interface State {
   readonly disclose: (page: Tab) => Effect.Effect<void>;
   /** The layer the state opens, measured within itself; none: the whole page. */
   readonly layer?: string;
+  /**
+   * What the state draws off the tokens today, by device name (`untokened`'s
+   * lines), each a defect kept as it is until the owner takes the change of
+   * its pixels; none: nothing. A new value off them still fails, and so does
+   * one fixed, until it is struck from here.
+   */
+  readonly drawnOff?: Readonly<Record<string, ReadonlyArray<string>>>;
 }
 
 /** Every place a page is at (`Places`, `core/api.ts`). */
@@ -162,6 +175,39 @@ const review =
 /** The lab in `mode`. */
 const lab = (mode: LabMode) => (viewport: Viewport) =>
   Effect.map(openLab([], { viewport, mode }), (o) => o.page);
+
+/** A beat to record, as the studio's routes answer it. */
+const beat = (id: string, state: string, text: string) => ({
+  id,
+  file: `${id}.wav`,
+  parts: [{ kind: 'line', text }],
+  sources: [],
+  state,
+  recorded: state === 'recorded',
+  attempts: 0,
+});
+
+/** The studio's routes over the probe film: a beat recorded, one to record, none tried yet. */
+const RECORD_ROUTES: ReadonlyArray<FakeRoute> = [
+  route('GET', /^\/studio\/beats$/, () =>
+    json({
+      film: PROBE,
+      beats: [
+        beat('opening', 'recorded', 'In the beginning.'),
+        beat('thesis', 'staging', 'The law is holy.'),
+      ],
+    }),
+  ),
+  route('GET', /^\/studio\/takes\/\w+\/attempts$/, () => json({ beat: 'thesis', attempts: [] })),
+];
+
+/** The lab's Record mode with its beats listed, the recorder on the first to record. */
+const recording = (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const { page } = yield* openLab(RECORD_ROUTES, { viewport, mode: 'record' });
+    yield* waitFor(page, '.studio-beats');
+    return page;
+  });
 
 /** The player at `href`, once `ready` shows, over `routes` and the harness's own. */
 const player =
@@ -373,6 +419,16 @@ const STATES: ByPlace<State> = {
       name: 'a Folder, with its set and loose videos',
       open: review(pageHref.folder(STUDIO_FOLDER), '.rv-card.rv-tall .rv-cap a[href]'),
       disclose: AT_REST,
+      // A loose video still in proxy offers its original by a bare button
+      // (`review/section.tsx`, "Play the original"): the user agent's face
+      // and padding, not `.sh-btn`'s.
+      drawnOff: {
+        'a phone': [
+          'background-color rgb(107, 107, 107): rv-row > button',
+          'paddingLeft 6px: rv-row > button',
+          'paddingRight 6px: rv-row > button',
+        ],
+      },
     },
   ],
   labScene: [
@@ -385,7 +441,7 @@ const STATES: ByPlace<State> = {
     { name: 'Lab, Note', open: lab('note'), disclose: AT_REST },
     { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST },
     { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST },
-    { name: 'Lab, Record', open: lab('record'), disclose: AT_REST },
+    { name: 'Lab, Record, its beats and the recorder', open: recording, disclose: AT_REST },
     {
       name: "Lab, the command menu's Go to",
       open: lab('edit'),
@@ -474,6 +530,28 @@ for (const device of DEVICES) {
             yield* page.until(`matchMedia('${device.pointer}').matches`);
             yield* state.disclose(page);
             yield* sized(page, device, state.layer);
+          }).pipe(Effect.scoped),
+        SLOW,
+      );
+    }
+  });
+
+  describe(`drawn only in its tokens on ${device.name} (G9, DL-9)`, () => {
+    for (const [place, state] of byPlace(STATES)) {
+      it.live(
+        `${state.name}: every colour, family, size, weight, leading, radius, spacing, shadow and gradient drawn is a token's`,
+        () =>
+          Effect.gen(function* () {
+            const page = yield* state.open(device.viewport);
+            yield* isAt(page, place);
+            yield* page.until(`matchMedia('${device.pointer}').matches`);
+            yield* state.disclose(page);
+            yield* until(page, `document.fonts.status === 'loaded'`);
+            yield* evaluates(
+              page,
+              untokened(tokensCss),
+              Option.getOrElse(Option.fromUndefinedOr(state.drawnOff?.[device.name]), () => []),
+            );
           }).pipe(Effect.scoped),
         SLOW,
       );
