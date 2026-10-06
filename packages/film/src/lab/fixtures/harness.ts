@@ -312,7 +312,7 @@ const stampOf = (build: Option.Option<PageBuild>) =>
  * `lab-server`) when the test gives one: then it waits on the rebuild.
  */
 const labPage = (style: string, script: Asset, build: Option.Option<PageBuild>) =>
-  `<!doctype html><html><head><meta charset="utf-8"><title>Lab</title><style>${style}</style>${stampOf(build)}</head><body class="lab">${scriptOf(script)}</body></html>`;
+  `<!doctype html><html><head><meta charset="utf-8"><style>${style}</style>${stampOf(build)}</head><body class="lab">${scriptOf(script)}</body></html>`;
 
 /** The page's JSON body, when it sent one. */
 const bodyOf = (request: Request): Option.Option<Json> =>
@@ -589,7 +589,7 @@ export const openLab = Effect.fn('lab.fixture.open')(function* (
 
 /** The player's page as the app's `index.html` has it, with its styles inline. */
 const playerPage = (style: string, script: Asset) =>
-  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Player</title><style>${style}</style></head><body>${scriptOf(script)}</body></html>`;
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${style}</style></head><body>${scriptOf(script)}</body></html>`;
 
 /** Where the player opens, and how wide its window is. */
 interface PlayerAt {
@@ -631,7 +631,7 @@ export const openPlayer = Effect.fn('lab.fixture.player')(function* (
 
 /** The review page, stamped with the build it was served at when the test gives one: then a film's choices hear its mixes. */
 const reviewPage = (script: Asset, build: Option.Option<PageBuild>) =>
-  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Film review</title><style>${tokens}</style>${stampOf(build)}</head><body>${scriptOf(script)}</body></html>`;
+  `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>${tokens}</style>${stampOf(build)}</head><body>${scriptOf(script)}</body></html>`;
 
 /** Where the review opens, and how wide its window is (a phone's, or a desk's). */
 interface ReviewAt {
@@ -860,6 +860,16 @@ interface OpenServed extends OpenLab {
   /** Each document the server answered, in order. */
   readonly documents: ReadonlyArray<Document>;
 }
+
+/**
+ * The title a served document gives its tab before it hydrates: `html`
+ * loaded in a frame of `page` without the page's script (the one it loads
+ * by `src`); its inline ones run, as the browser runs them while it parses.
+ */
+export const servedTitle = (page: Tab, html: string) =>
+  page.evaluate<string>(
+    `new Promise((done) => { const frame = document.createElement('iframe'); frame.onload = () => { done(frame.contentDocument.title); frame.remove(); }; frame.srcdoc = ${Schema.encodeSync(JsonText)(html.replace(/<script\b[^>]*\bsrc=[^>]*>[\s\S]*?<\/script>/g, ''))}; document.body.append(frame); })`,
+  );
 
 /**
  * Open page `name` (the review, the lab, or the Scenes and Play pages) at

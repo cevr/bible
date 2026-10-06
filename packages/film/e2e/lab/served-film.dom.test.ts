@@ -12,7 +12,15 @@
 import { Effect, Schedule, Schema } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
 import { pageHref } from '../../src/core/api.ts';
-import { DESK, PHONE, hold, json, openServed, route } from '../../src/lab/fixtures/harness.ts';
+import {
+  DESK,
+  PHONE,
+  hold,
+  json,
+  openServed,
+  route,
+  servedTitle,
+} from '../../src/lab/fixtures/harness.ts';
 import { fitsPhone } from '../../src/lab/fixtures/phone-fit.ts';
 import { targetBoxes } from '../../src/lab/fixtures/touch-targets.ts';
 import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
@@ -133,6 +141,8 @@ describe("a film's pages served as the lab renders them", () => {
           expect(html).toMatch(new RegExp(`data-page="${part}"[^>]*data-active="true"`));
           expect(html).toContain(`Opening ${PROBE}…`);
           for (const film of FILM_PARTS) expect(html).not.toContain(film);
+          // Titled as the shell titles it, before it hydrates (SU-9).
+          expect(yield* servedTitle(page, documents[0]?.html ?? '')).toBe(`${name} · ${PROBE}`);
           // The film, staged in the browser, in the hydrated shell's body.
           yield* waitFor(page, ready);
           yield* until(page, `document.querySelector('.stage canvas') !== null`);
