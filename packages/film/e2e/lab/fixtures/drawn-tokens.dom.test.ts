@@ -57,6 +57,18 @@ describe('the drawn-token check', () => {
     drawn(`<div style="display:flex;width:300px"><i style="margin-left:auto">pushed</i></div>`, []),
   );
 
+  // The engine resolves the mix to one colour (`color(srgb …)`), which no token holds.
+  it.live('names a colour mixed from the current colour and a literal', () =>
+    drawn(
+      `<div style="color:var(--text-1);background:linear-gradient(color-mix(in srgb, currentcolor, crimson), transparent)">g</div>
+       <div style="color:var(--text-1);box-shadow:0 0 4px color-mix(in srgb, currentcolor, crimson)">s</div>`,
+      [
+        'background-image color(srgb 0.878431 0.476471 0.537255): div',
+        'box-shadow color(srgb 0.878431 0.476471 0.537255): div',
+      ],
+    ),
+  );
+
   it.live('names a colour a page declares in a variable of its own', () =>
     drawn(
       `<style>.bad { --rogue: crimson; --wide: 5px; color: var(--rogue); padding-left: var(--wide); }</style>
