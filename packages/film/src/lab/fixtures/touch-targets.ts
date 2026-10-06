@@ -73,7 +73,8 @@ const TARGETS = [
  * the whole page when none) whose usable area holds no `hit`-px square and
  * no exception keeps, as `tag.class "text" W×H □S` (the area's width and
  * height, and the side of the largest square in it); none, `[]`. It scrolls
- * each target into view to reach it, and leaves the page scrolled to the top.
+ * each target into view to reach it, and leaves the page scrolled to the top;
+ * one that scrolling leaves wholly out of the window is `… out of the window`.
  * A layer (a sheet, a menu, a dialog) is measured `within` itself: what lies
  * under it is measured with it closed.
  */
@@ -151,7 +152,11 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
     const top = Math.max(0, Math.min(...boxes.map((b) => b.top)) - MARGIN);
     const right = Math.min(innerWidth, Math.max(...boxes.map((b) => b.right)) + MARGIN);
     const bottom = Math.min(innerHeight, Math.max(...boxes.map((b) => b.bottom)) + MARGIN);
-    if (right <= left || bottom <= top) continue;
+    // Scrolled to, a target with none of it in the window cannot be tapped.
+    if (!boxes.some((b) => b.right > 0 && b.left < innerWidth && b.bottom > 0 && b.top < innerHeight)) {
+      out.push(named(el) + ' out of the window');
+      continue;
+    }
     // Each point: 1 on the target, 2 on another (not one that encloses it), 0 on nothing that counts.
     const x0 = Math.floor(left) + 0.5, y0 = Math.floor(top) + 0.5;
     const cols = Math.max(0, Math.ceil((right - x0) / STEP)), rows = Math.max(0, Math.ceil((bottom - y0) / STEP));
