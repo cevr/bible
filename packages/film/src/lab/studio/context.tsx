@@ -32,7 +32,7 @@ import { beatAt, labHrefWith } from '../place.ts';
 import type { LabFailure } from '../api.ts';
 import { Actor } from '../actor.tsx';
 import { useLabPage } from '../panel.tsx';
-import { useLab } from '../shell.tsx';
+import { Lab, useLab } from '../shell.tsx';
 import { type Stage, stageLayer } from '../stage.ts';
 import { StudioApi, studioApiLayer } from './api.ts';
 import { Capture } from './capture.ts';
@@ -47,6 +47,7 @@ import {
   type Meter,
   atRest,
   attemptLine,
+  beatCounts,
   controlFor,
   controlsOf,
   eventOf,
@@ -83,6 +84,8 @@ type StudioTone = 'rest' | 'busy' | 'warn' | 'kept' | 'refused';
 interface StudioStateValue {
   /** Every beat with a line, in the film's order. */
   readonly beats: Accessor<ReadonlyArray<StudioBeat>>;
+  /** How many beats are recorded, scratch, stale: the beat list's label, disclosed. */
+  readonly counts: Accessor<string>;
   /** Why the beats are not shown, while they are not. */
   readonly beatsStatus: Accessor<string>;
   /** The beat selected. */
@@ -347,6 +350,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   const value: StudioContextValue = {
     state: {
       beats,
+      counts: () => beatCounts(beats()),
       beatsStatus: () =>
         AsyncResult.match(beatsResult(), {
           onInitial: () => 'reading the beats…',
@@ -413,7 +417,7 @@ const waitingText = (beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>) =>
  * The studio's state and actions, for its section. The recorder is spawned
  * once the beats are read, on the link's beat (`?beat=`, else the path's
  * scene, so Record opens where the lab is) or else the first; until then the
- * children render nothing and the fallback says why.
+ * children render nothing and the fallback says why, in Record's panel only.
  */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
@@ -435,7 +439,15 @@ export const Provider = (props: ParentProps) => {
   const opened = beatAt(addressOn(meta.host).href());
   const start = createMemo(() => Option.getOrUndefined(startBeat(beats(), opened)));
   return (
-    <Show when={start()} keyed fallback={<p class="studio-waiting">{waitingText(beats())}</p>}>
+    <Show
+      when={start()}
+      keyed
+      fallback={
+        <Lab.Fill at="record">
+          <p class="studio-waiting">{waitingText(beats())}</p>
+        </Lab.Fill>
+      }
+    >
       {(beat: string) => (
         <Actor runtime={runtime} spawn={spawnRecorder(beat)}>
           {(actor) => (

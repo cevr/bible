@@ -142,7 +142,7 @@ describe('the cue strip', () => {
           yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);
           yield* evaluates(page, strip, [lanes, lanes, true]);
           // The mode's first control stands over the tab bar, on the first screen. (Record's
-          // recorder needs the studio's routes: `studio/` checks it.)
+          // recorder needs the studio's routes: `studio/studio.dom.test.ts` checks its R so.)
           yield* evaluates(page, FIRST_ON_SCREEN, 'on screen');
         }
       }).pipe(Effect.scoped),

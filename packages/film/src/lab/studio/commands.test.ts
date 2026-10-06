@@ -8,7 +8,7 @@ import { Effect, Option } from 'effect';
 import { BY_BUTTON, type Command, quiet } from '../../command/command.ts';
 import { contextAt } from '../../command/context.ts';
 import { SttUntimed, TakeMismatch } from '../../core/refusals.ts';
-import { studioCommands } from './commands.ts';
+import { micCommands, studioCommands } from './commands.ts';
 import { RecorderState } from './machine.ts';
 import { type Act, controlFor, stepsBeats } from './view.ts';
 import { encodeWav } from './wav.ts';
@@ -102,5 +102,26 @@ describe('the studio as commands', () => {
       ['studio.beat-next', ['arrowright'], ['studio']],
       ['studio.beat-previous', ['arrowleft'], ['studio']],
     ]);
+  });
+});
+
+describe('the microphone as commands', () => {
+  test('⌘K offers each microphone but the one in use, found by typing, and picks it', () => {
+    const picked: Array<Option.Option<string>> = [];
+    const commands = micCommands(
+      [
+        { id: '', label: 'Default microphone', selected: false },
+        { id: 'usb', label: 'USB', selected: true },
+        { id: 'default', label: 'Default - Desk', selected: false },
+      ],
+      (device) => picked.push(device),
+    );
+    // A device whose own id is `default` (Chrome's alias) is a device's entry, apart from the default's.
+    expect(commands.map((c) => [c.id, c.label, c.typed])).toEqual([
+      ['studio.mic.default', 'Choose microphone: Default microphone', true],
+      ['studio.mic.device.default', 'Choose microphone: Default - Desk', true],
+    ]);
+    for (const c of commands) Effect.runSync(c.run(ctx, BY_BUTTON));
+    expect(picked).toEqual([Option.none(), Option.some('default')]);
   });
 });

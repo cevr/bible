@@ -12,6 +12,7 @@ import {
   atRest,
   attemptLine,
   beatBadge,
+  beatCounts,
   controlsOf,
   eventOf,
   meterOf,
@@ -179,6 +180,10 @@ describe('the beat list', () => {
 
   test("a badge names its state in the owner's words, and a stale one says why", () => {
     expect(beats.map(beatBadge)).toEqual(['recorded', 'scratch', 'stale: text changed', 'scratch']);
+  });
+
+  test("counts each state in the owner's words", () => {
+    expect(beatCounts(beats)).toBe('1 recorded · 2 scratch · 1 stale');
   });
 
   test('←/→ step to the neighbour, and stop at either end', () => {

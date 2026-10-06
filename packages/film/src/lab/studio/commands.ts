@@ -5,11 +5,12 @@
 // command menu offers each while it has something to do. The studio owns
 // these keys (`command/keymap.ts`): one with nothing to do now is still not
 // the lab's. Each answers quietly: the recorder's status line says what
-// happened.
+// happened. The microphone is picked here too: a ⌘K entry per one the
+// browser lists (`micCommands`), no key, the one in use not offered.
 
 import { Option } from 'effect';
 import { type Command, quietly } from '../../command/command.ts';
-import type { Act, Control, ControlCommand } from './view.ts';
+import type { Act, Control, ControlCommand, MicOption } from './view.ts';
 
 /** What the studio's commands drive: the recorder's controls now, and the beat list. */
 interface StudioVerbs {
@@ -61,3 +62,31 @@ export const studioCommands = (verbs: StudioVerbs): ReadonlyArray<Command> => [
     run: quietly(() => verbs.step(by)),
   })),
 ];
+
+/**
+ * A ⌘K entry per microphone of `mics` but the one in use (`Choose
+ * microphone: <label>`, found by typing: `studio.mic.device.<id>`, the default
+ * `studio.mic.default`), each picking it as the select once did.
+ */
+export const micCommands = (
+  mics: ReadonlyArray<MicOption>,
+  pick: (device: Option.Option<string>) => void,
+): ReadonlyArray<Command> =>
+  mics
+    .filter((mic) => !mic.selected)
+    .map((mic): Command => {
+      const device = Option.filter(Option.some(mic.id), (id) => id !== '');
+      return {
+        // A device's own id may be `default` too (Chrome's alias): it is a device's, apart.
+        id: Option.match(device, {
+          onNone: () => 'studio.mic.default',
+          onSome: (id) => `studio.mic.device.${id}`,
+        }),
+        label: `Choose microphone: ${mic.label}`,
+        group: 'Studio',
+        typed: true,
+        touch: 'the command menu: type "microphone"',
+        when: () => true,
+        run: quietly(() => pick(device)),
+      };
+    });

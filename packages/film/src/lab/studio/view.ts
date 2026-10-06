@@ -1,8 +1,8 @@
 // What the studio's panel shows of its recorder, derived: the controls each
 // state offers (each with the command that presses it, `commands.ts`, whose
 // key the panel names as bound), whether ←/→ step through the beats, the
-// status line, the recording under review, the beat list's badges, the
-// meter's reading, and each attempt's line. The provider hands
+// status line, the recording under review, the beat list's badges and
+// counts, the meter's reading, and each attempt's line. The provider hands
 // these to the components, so none of them reads the machine's states. Pure.
 
 import { Match, Option, Predicate } from 'effect';
@@ -203,6 +203,12 @@ const BEAT_WORD: Readonly<Record<StudioBeat['state'], string>> = {
   staging: 'scratch',
   stale: 'stale',
 };
+
+/** How many beats stand where, in the owner's words: `1 recorded · 2 scratch · 1 stale` (the beat list's label). */
+export const beatCounts = (beats: ReadonlyArray<StudioBeat>): string =>
+  (['recorded', 'staging', 'stale'] as const)
+    .map((state) => `${beats.filter((b) => b.state === state).length} ${BEAT_WORD[state]}`)
+    .join(' · ');
 
 /** A beat's badge: its state, and why it is stale. */
 export const beatBadge = (beat: StudioBeat): string =>

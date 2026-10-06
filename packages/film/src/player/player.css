@@ -1046,16 +1046,36 @@ body.play .sh-body {
   margin: 0;
   padding: 0;
 }
+/* Every beat on screen: the list wraps and never scrolls, so its dots are the count. */
 .studio-beats ol {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-1);
-  max-height: 120px;
-  overflow: auto;
 }
 /* A beat is the kit's quiet button, a small one; the selected beat is pressed. */
 .studio-beats .sh-btn {
+  gap: var(--s-1);
   padding: 0 var(--s-2);
+  font-size: var(--fs-2);
+}
+/* A beat's take as a dot in its state's colour (UR2-4); its word is the beat's name and title. */
+.studio-dot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--state-scratch);
+}
+.studio-dot[data-state='recorded'] {
+  background: var(--state-approved);
+}
+.studio-dot[data-state='stale'] {
+  background: var(--state-stale);
+}
+/* The selected beat's state in words: what a dot says, for a finger. */
+.studio-beat-state {
+  margin: var(--s-1) 0 0;
+  color: var(--text-2);
   font-size: var(--fs-2);
 }
 .lab-badge.recorded {
@@ -1099,15 +1119,11 @@ body.play .sh-body {
   display: grid;
   gap: var(--s-2);
 }
-.studio-mic label {
-  display: flex;
-  gap: var(--s-2);
-  align-items: center;
-}
-/* The microphone's select is the kit's field, as wide as the row leaves. */
-.studio-mic select {
-  flex: 1;
-  min-width: 0;
+/* The microphone in use, named only when it is not the default. */
+.studio-mic-name {
+  margin: 0;
+  color: var(--text-2);
+  font-size: var(--fs-2);
 }
 .studio-meter {
   display: flex;

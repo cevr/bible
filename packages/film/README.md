@@ -1363,13 +1363,18 @@ joins the `Layer.mergeAll` in `labHandler`, and the page calls
 
 **The Studio** (`lab/studio/`, Solid 2 + effect-machine) is the lab's panel
 for recording the final voiceover beat by beat. It lists every beat with a
-line and where its take stands on its badge (`recorded`, `scratch` for a
-staging take, `stale: <why>`), reads the selected beat as a teleprompter (the sheet's lines, a
+line, each with a dot in its take's state colour (`recorded`, `scratch` for
+a staging take, `stale: <why>`: the word in the beat's name and title, the
+counts in the list's, the selected beat's under the list), then Record and
+the meter over the teleprompter, so R is on a phone's first screen; it
+reads the selected beat as a teleprompter (the sheet's lines, a
 quotation set apart with who said it, marks stripped), and records it:
 
 - **Capture** (`capture-browser.ts`, behind the `Capture` service in
   `capture.ts`): `getUserMedia` with echo cancelling, noise suppression and
-  gain control off, one channel, the microphone picked (`enumerateDevices`;
+  gain control off, one channel, the microphone picked from ⌘K (`Choose
+microphone: …`, `micCommands`; named in the panel when it is not the
+  default; `enumerateDevices`;
   the choice is remembered in this browser as `film-lab-mic`, a `keptText` in
   `ViewerStore`, `browser/storage.ts`), into an
   `AudioWorklet` (`worklet.ts`) on an `AudioContext` at the device's own
