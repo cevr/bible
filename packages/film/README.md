@@ -2243,8 +2243,10 @@ crumb and Go to… (⌘K: Go to finds a folder, a set, or a film's choices or
 project by name, `destinationsOf`, and on a film's choices each choice
 point, `pointDestinations`; home lists every folder, with no filter
 field). Choices opens with a kinds strip once it shows two kinds (Score,
-Looks, Sounds, Voice, Levels, each with its count): a tap brings the kind's
-heading into view. A card in focus on Choices is its `?point=`, and the sheet open on
+Looks, Sounds, Voice, Levels, each with its count): a tap goes to the kind's
+first point as Go to does. Going to a point is one step Back walks: its
+card in focus (`?point=`, a Show only that hides it cleared), in view, and
+the keyboard on its first control, so the next audition is its own. A card in focus on Choices is its `?point=`, and the sheet open on
 Choices or on a set is its `?inspect=` (`useInspectorPlace`), so a link
 opens it and Back closes it.
 Refresh (`review.refresh`) and the copy played (`review.quality`: Play the

@@ -12,11 +12,11 @@
 // are counts that open the Findings sheet (`findings.tsx`).
 
 import { For, type JSX, Show } from '@solidjs/web';
-import { type Accessor, createEffect, createMemo, onCleanup } from 'solid-js';
+import { type Accessor, createEffect, createMemo, flush, onCleanup } from 'solid-js';
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
-import { Duration, Effect, Fiber, Option } from 'effect';
+import { Array as Arr, Duration, Effect, Fiber, Option } from 'effect';
 import { playableOf } from '../../../browser/media.ts';
 import { type Command, type CommandId, boundChange, quietly } from '../../../command/command.ts';
 import { type Destination, goToCommands } from '../../../command/go.ts';
@@ -38,7 +38,7 @@ import { pressed, sizeText, videoSource } from '../format.ts';
 import { useInspectorPlace } from '../inspector.tsx';
 import { ProxyPending, Transport } from '../section.tsx';
 import { ChoiceAct } from './api.ts';
-import { ChoiceCard, ChoiceSheets, HearButton, revealPoint } from './choice.tsx';
+import { ChoiceCard, ChoiceSheets, HearButton, focusPoint, revealPoint } from './choice.tsx';
 import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
 import { REVIEW_REDO, REVIEW_UNDO } from './receipt.ts';
 
@@ -242,23 +242,25 @@ const KINDS: ReadonlyArray<{ readonly kind: ChoiceKind; readonly title: string }
   { kind: 'level', title: 'Levels' },
 ];
 
-/** The id of a kind's heading, which its tab in the kinds strip brings into view. */
-const kindHeading = (kind: ChoiceKind) => `kind-${kind}`;
-
-/** The kinds the page shows, each with how many of its points are shown. */
+/** The kinds the page shows, each with how many of its points are shown and the first of them. */
 interface ShownKind {
   readonly kind: ChoiceKind;
   readonly title: string;
   readonly count: number;
+  readonly first: string;
 }
 
 /**
  * The kinds strip (design language §7): a tab per kind the page shows, with
- * how many points it has, that brings the kind's heading into view; shown
- * once there are two kinds to move between. A point itself is ⌘K's: Go to
- * finds it by its name (`pointDestinations`).
+ * how many points it has, that goes to the kind's first point as Go to does
+ * (`?point=`, so Back and a link come back to it); shown once there are two
+ * kinds to move between. A point itself is ⌘K's: Go to finds it by its name
+ * (`pointDestinations`).
  */
-const KindsStrip = (props: { readonly kinds: ReadonlyArray<ShownKind> }) => (
+const KindsStrip = (props: {
+  readonly kinds: ReadonlyArray<ShownKind>;
+  readonly go: (point: string) => void;
+}) => (
   <Show when={props.kinds.length > 1}>
     <nav class="rv-kinds" data-role="kinds" aria-label="Kinds">
       <For each={props.kinds} keyed={(k) => k.kind}>
@@ -267,12 +269,7 @@ const KindsStrip = (props: { readonly kinds: ReadonlyArray<ShownKind> }) => (
             type="button"
             class="sh-btn"
             data-kind={k().kind}
-            onClick={() =>
-              Option.map(
-                Option.fromNullishOr(document.getElementById(kindHeading(k().kind))),
-                (heading) => heading.scrollIntoView({ block: 'start' }),
-              )
-            }
+            onClick={() => props.go(k().first)}
           >
             {k().title} <span class="rv-count">{k().count}</span>
           </button>
@@ -296,14 +293,11 @@ const pointDestinations = (
 
 /** A heading and a card for each of `points` (how many, the kinds strip says: UR-7). */
 const ChoiceSection = (props: {
-  readonly kind: ChoiceKind;
   readonly title: string;
   readonly points: ReadonlyArray<ChoicePoint>;
 }) => (
   <Show when={props.points.length > 0}>
-    <h2 class="rv-h" id={kindHeading(props.kind)}>
-      {props.title}
-    </h2>
+    <h2 class="rv-h">{props.title}</h2>
     <div class="rv-list">
       <For each={props.points} keyed={(p) => p.id}>
         {(point) => <ChoiceCard point={point()} />}
@@ -388,17 +382,31 @@ const FilmBody = () => {
       Option.map(point, revealPoint);
     },
   );
-  // Each point is a place ⌘K goes to: its card in focus (`?point=`, its sheet closed) and in view.
+  // Going to a point (⌘K's Go to, a kind's tab) is one step Back walks: its card in focus
+  // (`?point=`, its sheet closed, a Show only that hides it cleared), in view, and the
+  // keyboard on it, so the keys' next audition is its own.
   const setAt = useAtomSet(() => choicesPlace);
-  const { meta } = useReview();
-  registerWhile(meta.hub, () =>
-    goToCommands(
-      pointDestinations(choices().points, (point) => {
-        Option.map(at(), (v) => setAt({ ...v, query: { ...v.query, point, inspect: '' } }));
-        revealPoint(point);
+  const goToPoint = (point: string) => {
+    const shows = choices().points.some((p) => p.id === point && shownIn(only())(p));
+    Option.map(at(), (v) =>
+      setAt({
+        ...v,
+        query: {
+          ...v.query,
+          point,
+          inspect: '',
+          only: Option.getOrElse(
+            Option.liftPredicate(v.query.only, () => shows),
+            () => '',
+          ),
+        },
       }),
-    ),
-  );
+    );
+    flush();
+    focusPoint(point);
+  };
+  const { meta } = useReview();
+  registerWhile(meta.hub, () => goToCommands(pointDestinations(choices().points, goToPoint)));
   const shown = createMemo(() =>
     KINDS.map((k) => ({
       ...k,
@@ -413,13 +421,19 @@ const FilmBody = () => {
       <Player />
       <OnlyShown />
       <KindsStrip
-        kinds={shown()
-          .filter((k) => k.points.length > 0)
-          .map((k) => ({ kind: k.kind, title: k.title, count: k.points.length }))}
+        kinds={shown().flatMap((k) =>
+          Option.toArray(
+            Option.map(Arr.head(k.points), (first) => ({
+              kind: k.kind,
+              title: k.title,
+              count: k.points.length,
+              first: first.id,
+            })),
+          ),
+        )}
+        go={goToPoint}
       />
-      <For each={shown()}>
-        {(k) => <ChoiceSection kind={k.kind} title={k.title} points={k.points} />}
-      </For>
+      <For each={shown()}>{(k) => <ChoiceSection title={k.title} points={k.points} />}</For>
       <Show when={choices().points.length === 0}>
         <p class="empty">This film has nothing to choose between.</p>
       </Show>

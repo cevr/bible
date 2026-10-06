@@ -348,6 +348,22 @@ const MIX = "(document.querySelector('audio.rv-mix')?.getAttribute('src') ?? '')
 /** A variant's element by its point and id. */
 const at = (point: string, id: string) => `[data-point="${point}"] [data-variant="${id}"]`;
 
+/** The fake film's level and its take, as Go to and the kinds strip go to them. */
+const LEVEL = 'level:const:PAPER';
+const TAKE = 'take:paper.page';
+
+/** Whether the URL's card in focus is `point` (`''`: none). */
+const pointIs = (point: string) =>
+  `(new URLSearchParams(location.search).get('point') ?? '') === '${point}'`;
+
+/** Whether the card of `point` lies on the screen. */
+const cardInView = (point: string) =>
+  `(() => { const c = document.getElementById('point-${point}'); if (!c) return false; const r = c.getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; })()`;
+
+/** Whether the keyboard is in the card of `point`. */
+const focusIn = (point: string) =>
+  `document.activeElement?.closest('.rv-option')?.id === 'point-${point}'`;
+
 /** The open inspector: one at a time. */
 const INSPECTOR = '[data-role="inspector"]';
 
@@ -511,28 +527,46 @@ describe("a film's choices", () => {
   );
 
   it.live(
-    'a kinds strip names each kind with its count and brings it into view; ⌘K goes to a point by its name (SU-5)',
+    "a kinds strip names each kind with its count and goes to its first point: in view, in focus, Back's and a reload's (SU-5)",
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
         yield* page.resize(390, 600);
         yield* textsAre(page, '.rv-kinds .sh-btn', ['Score 1', 'Looks 1', 'Sounds 1', 'Levels 1']);
         yield* click(page, '.rv-kinds [data-kind="level"]');
-        yield* until(
-          page,
-          `(() => { const r = document.getElementById('kind-level').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()`,
-        );
-        // A point is a place Go to finds by its name: its card in focus and in view.
+        yield* until(page, pointIs(LEVEL));
+        yield* until(page, cardInView(LEVEL));
+        yield* until(page, focusIn(LEVEL));
+        // The jump is a step: Back walks it, and a reload lands on it again.
+        yield* page.back;
+        yield* until(page, pointIs(''));
+        yield* page.goto(`${FILM}?point=${encodeURIComponent(LEVEL)}`);
+        yield* page.reload;
+        yield* until(page, cardInView(LEVEL));
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'Go to a point hidden by Show only shows every point, focuses its card, and the keys then hear its variants (SU-5)',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { href: `${FILM}?only=stale` });
+        yield* page.resize(390, 600);
+        yield* waitFor(page, at('score', 'piano'));
+        yield* countIs(page, `[id="point-${TAKE}"]`, 0);
+        // The keyboard was on the score's card: the go moves it.
+        yield* page.focus(`${at('score', 'piano')} [data-act="hear"]`);
         yield* openCommandMenu(page, 'paper.page');
-        yield* click(page, menuEntry('go.choice.take:paper.page'));
-        yield* until(
-          page,
-          `new URLSearchParams(location.search).get('point') === 'take:paper.page'`,
-        );
-        yield* until(
-          page,
-          `(() => { const r = document.getElementById('point-take:paper.page').getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; })()`,
-        );
+        yield* click(page, menuEntry(`go.choice.${TAKE}`));
+        yield* until(page, pointIs(TAKE));
+        yield* until(page, "new URLSearchParams(location.search).get('only') === null");
+        yield* until(page, cardInView(TAKE));
+        yield* until(page, focusIn(TAKE));
+        // The next audition is the gone-to point's, not the one focused before.
+        yield* page.press('Alt+ArrowRight');
+        yield* until(page, `new URLSearchParams(location.search).get('heard') === '${TAKE}'`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,

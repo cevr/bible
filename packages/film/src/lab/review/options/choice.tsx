@@ -710,6 +710,24 @@ export const revealPoint = (point: string) =>
     card.scrollIntoView({ block: 'center' });
   });
 
+/** A card's first control: where the keyboard lands when the card is gone to. */
+const FIRST_CONTROL = '.rv-body :is(button, input, select, a[href])';
+
+/**
+ * Reveal the card of `point` and put the keyboard on its first control, so
+ * what the keys select next (an audition, a pick) is this point's and not
+ * the one focused before.
+ */
+export const focusPoint = (point: string) => {
+  revealPoint(point);
+  Option.map(
+    Option.flatMap(Option.fromNullishOr(document.getElementById(`point-${point}`)), (card) =>
+      Option.fromNullishOr(card.querySelector<HTMLElement>(FIRST_CONTROL)),
+    ),
+    (control) => control.focus({ preventScroll: true }),
+  );
+};
+
 /** Where a choice's says go: the film's choices, under its point. */
 const choiceSayer = (point: () => ChoicePoint): Sayer => ({
   use: () => {
