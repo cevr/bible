@@ -2,7 +2,7 @@
 //
 // Closes a popup on Escape and on a press outside it. A press inside a child
 // popup of the floating tree is not outside; Escape closes the innermost
-// open popup only (unless `bubbles`). A press that starts inside and ends
+// open popup only. A press that starts inside and ends
 // outside (a text selection drag) does not close an `intentional` popup.
 // Touch scrolls do not count as presses. The React-portal bookkeeping
 // upstream (`insideReactTree`) is not needed: Solid's events follow the DOM.
@@ -41,17 +41,6 @@ export interface ElementProps {
   trigger?: HTMLProps | undefined;
 }
 
-export function normalizeBubbles(
-  normalizable?: boolean | { escapeKey?: boolean | undefined; outsidePress?: boolean | undefined },
-) {
-  return {
-    escapeKey:
-      typeof normalizable === 'boolean' ? normalizable : (normalizable?.escapeKey ?? false),
-    outsidePress:
-      typeof normalizable === 'boolean' ? normalizable : (normalizable?.outsidePress ?? true),
-  };
-}
-
 export interface UseDismissProps {
   /** Whether Escape and outside presses close the popup. Read live. */
   enabled?: boolean | undefined;
@@ -68,11 +57,6 @@ export interface UseDismissProps {
     | { mouse: PressType; touch: PressType }
     | (() => PressType | { mouse: PressType; touch: PressType })
     | undefined;
-  /** Whether Escape or an outside press also closes the parent popups. */
-  bubbles?:
-    | boolean
-    | { escapeKey?: boolean | undefined; outsidePress?: boolean | undefined }
-    | undefined;
   externalTree?: FloatingTreeStore | undefined;
 }
 
@@ -86,7 +70,6 @@ export function useDismiss(
   const enabled = () => props.enabled ?? true;
   const escapeKey = () => props.escapeKey ?? true;
   const outsidePress = () => props.outsidePress ?? true;
-  const bubbles = () => normalizeBubbles(props.bubbles);
 
   let pressStartedInside = false;
   let pressStartPrevented = false;
@@ -104,12 +87,11 @@ export function useDismiss(
 
   const cancelDismissOnEndTimeout = useTimeout();
 
-  const hasBlockingChild = (bubbleKey: '__escapeKeyBubbles' | '__outsidePressBubbles') => {
+  // An open child popup takes Escape: it closes first.
+  const hasOpenChild = () => {
     const nodeId = dataRef.current.floatingContext?.nodeId;
     const children = tree ? getNodeChildren(tree.nodesRef.current, nodeId) : [];
-    return children.some(
-      (child) => child.context?.open && !child.context.dataRef.current[bubbleKey],
-    );
+    return children.some((child) => child.context?.open);
   };
 
   const isEventWithinOwnElements = (event: Event) =>
@@ -123,8 +105,7 @@ export function useDismiss(
     if (isComposing) {
       return;
     }
-    const escapeKeyBubbles = bubbles().escapeKey;
-    if (!escapeKeyBubbles && hasBlockingChild('__escapeKeyBubbles')) {
+    if (hasOpenChild()) {
       return;
     }
     const eventDetails = createChangeEventDetails(REASONS.escapeKey, event);
@@ -132,7 +113,7 @@ export function useDismiss(
     if (!eventDetails.isCanceled) {
       event.preventDefault();
     }
-    if (!escapeKeyBubbles && !eventDetails.isPropagationAllowed) {
+    if (!eventDetails.isPropagationAllowed) {
       event.stopPropagation();
     }
   };
@@ -175,7 +156,6 @@ export function useDismiss(
       floating: context.floatingElement(),
       escapeKey: escapeKey(),
       outsidePressEnabled: outsidePress() !== false,
-      bubbles: bubbles(),
     }),
     (deps) => {
       if (!deps.open || !deps.enabled) {
@@ -184,9 +164,6 @@ export function useDismiss(
         }
         return undefined;
       }
-
-      dataRef.current['__escapeKeyBubbles'] = deps.bubbles.escapeKey;
-      dataRef.current['__outsidePressBubbles'] = deps.bubbles.outsidePress;
 
       const compositionTimeout = new Timeout();
       const preventedPressSuppressionTimeout = new Timeout();
@@ -338,10 +315,6 @@ export function useDismiss(
 
         const press = outsidePress();
         if (typeof press === 'function' && !press(event as MouseEvent | TouchEvent)) {
-          return;
-        }
-
-        if (hasBlockingChild('__outsidePressBubbles')) {
           return;
         }
 
