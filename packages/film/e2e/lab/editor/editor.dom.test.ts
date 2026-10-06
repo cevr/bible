@@ -503,6 +503,25 @@ describe('the cue strip', () => {
       expect(posted(asked)).toEqual([]);
     }).pipe(Effect.scoped),
   );
+
+  it.live("a scene's source still being read reads as pending, never as refused", () =>
+    Effect.gen(function* () {
+      const { page } = yield* openLab([route('GET', /^\/scenes\/one\/source$/, () => hold)], {
+        href: labAt(1),
+      });
+      yield* page.waitFor('.lab-knob .lab-edit-note');
+      yield* evaluates(
+        page,
+        `[...document.querySelectorAll('.lab-knob .lab-edit-note')].map((n) => n.textContent).filter((t) => t !== 'reading the source…')`,
+        [],
+      );
+      yield* evaluates(
+        page,
+        `document.querySelector('.lab-panel').textContent.includes('cannot edit')`,
+        false,
+      );
+    }).pipe(Effect.scoped),
+  );
 });
 
 describe('one write at a time', () => {

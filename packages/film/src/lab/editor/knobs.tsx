@@ -72,8 +72,7 @@ const Row = (props: { readonly scene: string; readonly name: string; readonly va
   const selected = useSelected();
   const fields = createMemo(() => state.fieldsOf(knobOf(props.scene, props.name)));
   const field = (id: string) => fields().find((f) => f.id === id);
-  const refusal = () =>
-    knobRefusal(state.inspectedSource().source, state.inspectedSource().error, props.name);
+  const refusal = () => knobRefusal(state.inspectedSource(), props.name);
   return (
     <Target
       of={knobOf(props.scene, props.name)}

@@ -40,6 +40,7 @@ import { useLab } from '../shell.tsx';
 import {
   CueGrip,
   KnobGrip,
+  type SourceKnown,
   type Write,
   cueRefusal,
   fieldsOf,
@@ -56,13 +57,6 @@ import { type EditActor, EditEvent, spawnEditor } from './machine.ts';
 /** The editor's slot among the page's receipts (`Hub.announce`). */
 const EDIT_SLOT = 'edit';
 
-/** What the lab knows of a scene's source: it, or why it could not be read. */
-interface Known {
-  readonly source: Option.Option<SceneSource>;
-  /** The server's reason, when the source could not be read. */
-  readonly error: string;
-}
-
 interface EditorState {
   /** The findings to list: the landed write's, else the check the page loaded with. */
   readonly findings: Accessor<ReadonlyArray<CheckLine>>;
@@ -70,8 +64,8 @@ interface EditorState {
   readonly stripScene: Accessor<string>;
   /** The scene the inspector shows: the selection's, else the strip's. */
   readonly inspected: Accessor<string>;
-  readonly stripSource: Accessor<Known>;
-  readonly inspectedSource: Accessor<Known>;
+  readonly stripSource: Accessor<SourceKnown>;
+  readonly inspectedSource: Accessor<SourceKnown>;
   /** The film's check as the page loaded: findings, the latest change, what Undo and Redo would do. */
   readonly report: Accessor<Option.Option<CheckReport>>;
   /** Whether a grip follows a press now (Pressed or Dragging): the strip offers Cancel while it does. */
@@ -135,11 +129,12 @@ const EditorContext = createContext<EditorContextValue>();
 /** The editor's context: only inside `<Editor.Provider>`. */
 export const useEditor = (): EditorContextValue => useContext(EditorContext);
 
-const knownOf = (result: AsyncResult.AsyncResult<SceneSource, unknown>): Known =>
+/** A source read as the editor knows it: no answer yet is still being read. */
+const knownOf = (result: AsyncResult.AsyncResult<SceneSource, unknown>): SourceKnown =>
   AsyncResult.match(result, {
-    onInitial: () => ({ source: Option.none(), error: '' }),
-    onFailure: (f) => ({ source: Option.none(), error: reasonOf(f.cause) }),
-    onSuccess: (s) => ({ source: Option.some(s.value), error: '' }),
+    onInitial: () => ({ source: Option.none(), reading: true, error: '' }),
+    onFailure: (f) => ({ source: Option.none(), reading: false, error: reasonOf(f.cause) }),
+    onSuccess: (s) => ({ source: Option.some(s.value), reading: false, error: '' }),
   });
 
 const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
@@ -232,7 +227,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       onNone: () => [],
       onSome: (span) => dragFields(span, p.edge),
     });
-    const refused = cueRefusal(stripSource().source, stripSource().error, p.cue, fields);
+    const refused = cueRefusal(stripSource(), p.cue, fields);
     if (Option.isSome(refused)) {
       send(EditEvent.Refuse({ message: refused.value }));
       return false;
@@ -270,7 +265,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   /** The knob handle `p` presses, selected and grabbed: whether it was grabbed. */
   const grabKnobOf = (p: KnobPress): boolean => {
     labActions.select(Option.some(knobOf(p.scene, p.knob)));
-    const refused = knobRefusal(stripSource().source, stripSource().error, p.knob);
+    const refused = knobRefusal(stripSource(), p.knob);
     if (Option.isSome(refused)) {
       send(EditEvent.Refuse({ message: refused.value }));
       return false;
@@ -358,13 +353,14 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     });
 
   /** What the lab knows of `scene`'s source: the inspected scene's, else the strip's. */
-  const sourceOf = (scene: string): Known =>
+  const sourceOf = (scene: string): SourceKnown =>
     Option.getOrElse(
       Option.fromUndefinedOr(
         [inspectedSource(), stripSource()][[inspected(), stripScene()].indexOf(scene)],
       ),
-      (): Known => ({
+      (): SourceKnown => ({
         source: Option.none(),
+        reading: false,
         error: `${scene} is neither inspected nor on the strip`,
       }),
     );
@@ -372,13 +368,11 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   /** The inspector's fields of `s`, read again with each reload. */
   const fieldsAt = (s: LabSelection): ReadonlyArray<Inspected> => {
     lab.revision();
-    const known = sourceOf(s.scene);
     return fieldsOf(s, {
       timeline: stage.timelineOf(s.scene),
       cues: stage.cuesOf(s.scene),
       knobs: stage.knobsOf(s.scene),
-      source: known.source,
-      error: known.error,
+      known: sourceOf(s.scene),
       fps: film.fps,
       commit,
     });

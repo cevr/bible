@@ -437,18 +437,31 @@ export const drag = (grip: Grip, pointer: Pointer): Dragged =>
     }),
   );
 
+/** What the lab knows of a scene's source: it, or that it is still being read, or why it could not be. */
+export interface SourceKnown {
+  readonly source: Option.Option<SceneSource>;
+  /** Whether its read is still out: no answer yet is pending, never a refusal. */
+  readonly reading: boolean;
+  /** The server's reason, when the source could not be read. */
+  readonly error: string;
+}
+
+/** What a write says while `known` has no source: that it is still being read, or why there is none. */
+const unsourced = (known: SourceKnown): string =>
+  Match.value(known.reading).pipe(
+    Match.when(true, () => 'reading the source…'),
+    Match.orElse(() => `cannot edit: ${known.error || 'no source for this scene'}`),
+  );
+
 /**
- * Why knob `knob` cannot be written, when it cannot: the scene has no source
- * the lab can read (`error`, as the server said), its knobs object is one the
- * lab will not rewrite, or the knob's value is computed in source.
+ * Why knob `knob` cannot be written, when it cannot: the scene's source is
+ * still being read, or there is none the lab can read (`error`, as the server
+ * said), its knobs object is one the lab will not rewrite, or the knob's
+ * value is computed in source.
  */
-export const knobRefusal = (
-  source: Option.Option<SceneSource>,
-  error: string,
-  knob: string,
-): Option.Option<string> =>
-  Option.match(source, {
-    onNone: () => Option.some(`cannot edit: ${error || 'no source for this scene'}`),
+export const knobRefusal = (known: SourceKnown, knob: string): Option.Option<string> =>
+  Option.match(known.source, {
+    onNone: () => Option.some(unsourced(known)),
     onSome: (s) => {
       const refused = Arr.findFirst(s.refused, (r) => r.field === 'knobs');
       if (Option.isSome(refused))
@@ -465,19 +478,19 @@ export const knobRefusal = (
 const PAST = { undo: 'undid', redo: 'redid' } as const;
 
 /**
- * Why a write of `fields` to `cue` cannot land, when it cannot: the scene has
- * no source the lab can read (`error`, as the server said), its timeline is
- * one the lab will not rewrite, the cue is not in it, or a field it sets is
- * computed in source (named). A drag writes `dragFields` of its edge.
+ * Why a write of `fields` to `cue` cannot land, when it cannot: the scene's
+ * source is still being read, or there is none the lab can read (`error`, as
+ * the server said), its timeline is one the lab will not rewrite, the cue is
+ * not in it, or a field it sets is computed in source (named). A drag writes
+ * `dragFields` of its edge.
  */
 export const cueRefusal = (
-  source: Option.Option<SceneSource>,
-  error: string,
+  known: SourceKnown,
   cue: string,
   fields: ReadonlyArray<keyof CuePatch>,
 ): Option.Option<string> =>
-  Option.match(source, {
-    onNone: () => Option.some(`cannot edit: ${error || 'no source for this scene'}`),
+  Option.match(known.source, {
+    onNone: () => Option.some(unsourced(known)),
     onSome: (s) => {
       const refused = Arr.findFirst(s.refused, (r) => r.field === 'timeline');
       if (Option.isSome(refused)) return Option.some(`cannot drag ${cue}: ${refused.value.reason}`);
@@ -539,8 +552,7 @@ interface FieldsIn {
   readonly timeline: Timeline;
   readonly cues: ReadonlyMap<string, ResolvedCue>;
   readonly knobs: Knobs;
-  readonly source: Option.Option<SceneSource>;
-  readonly error: string;
+  readonly known: SourceKnown;
   readonly fps: number;
   readonly commit: (write: Write, edit: SceneEdit) => void;
 }
@@ -603,7 +615,7 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
           label: 'offset',
           spec: fieldOf(CueOffset, at.fps),
           value: offset,
-          refusal: cueRefusal(at.source, at.error, name, ['offset']),
+          refusal: cueRefusal(at.known, name, ['offset']),
           write: (v) => write({ offset: v }),
         };
         const durField: Inspected = {
@@ -611,7 +623,7 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
           label: 'dur',
           spec: fieldOf(CueDur, at.fps),
           value: cue.dur,
-          refusal: cueRefusal(at.source, at.error, name, ['dur']),
+          refusal: cueRefusal(at.known, name, ['dur']),
           write: (v) => write({ dur: Math.max(0, v) }),
         };
         const durSpec = fieldOf(CueDur, at.fps);
@@ -620,7 +632,7 @@ const cueFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Ins
           label: 'end',
           spec: { ...durSpec, min: Option.some(cue.start) },
           value: cue.end,
-          refusal: cueRefusal(at.source, at.error, name, dragFields(span, 'end')),
+          refusal: cueRefusal(at.known, name, dragFields(span, 'end')),
           write: (v) => {
             const bar = { start: cue.start, end: Math.max(cue.start, v) };
             Option.map(dragPatch(span, cue, 'end', bar, 1 / at.fps), write);
@@ -647,7 +659,7 @@ const knobText = (value: Knob): string =>
 
 /** Knob `name`'s fields: its number, or its point's x and y (canvas pixels). */
 const knobFields = (scene: string, name: string, at: FieldsIn): ReadonlyArray<Inspected> => {
-  const refusal = knobRefusal(at.source, at.error, name);
+  const refusal = knobRefusal(at.known, name);
   const write = (before: Knob, value: Knob) =>
     at.commit(
       KnobWrite.make({
