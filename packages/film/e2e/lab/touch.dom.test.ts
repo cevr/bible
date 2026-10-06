@@ -139,13 +139,6 @@ interface State {
   readonly budget?: Budget;
   /** The layer the state opens, measured within itself; none: the whole page. */
   readonly layer?: string;
-  /**
-   * What the state draws off the tokens today, by device name (`untokened`'s
-   * lines), each a defect kept as it is until the owner takes the change of
-   * its pixels; none: nothing. A new value off them still fails, and so does
-   * one fixed, until it is struck from here.
-   */
-  readonly drawnOff?: Readonly<Record<string, ReadonlyArray<string>>>;
 }
 
 /** Every place a page is at (`Places`, `core/api.ts`). */
@@ -460,16 +453,6 @@ const STATES: ByPlace<State> = {
       disclose: AT_REST,
       // A loose video is one card, its file in its menu (UR-17).
       budget: most(20, 18),
-      // A loose video still in proxy offers its original by a bare button
-      // (`review/section.tsx`, "Play the original"): the user agent's face
-      // and padding, not `.sh-btn`'s.
-      drawnOff: {
-        'a phone': [
-          'background-color rgb(107, 107, 107): rv-row > button',
-          'paddingLeft 6px: rv-row > button',
-          'paddingRight 6px: rv-row > button',
-        ],
-      },
     },
   ],
   labScene: [
@@ -580,16 +563,12 @@ const targetsIn = (place: PlaceName, state: State, device: Device) =>
     yield* sized(page, device, state.layer);
   }).pipe(Effect.scoped);
 
-/** Everything `state` draws is drawn in the tokens (`untokened`), but what it names `drawnOff`. */
+/** Everything `state` draws is drawn in the tokens (`untokened`). */
 const drawnIn = (place: PlaceName, state: State, device: Device) =>
   Effect.gen(function* () {
     const page = yield* disclosed(place, state, device);
     yield* until(page, `document.fonts.status === 'loaded'`);
-    yield* evaluates(
-      page,
-      untokened(tokensCss),
-      Option.getOrElse(Option.fromUndefinedOr(state.drawnOff?.[device.name]), () => []),
-    );
+    yield* evaluates(page, untokened(tokensCss), []);
   }).pipe(Effect.scoped);
 
 /**
