@@ -47,7 +47,7 @@
 //   `--hit` circle reaches no other target cannot be missed for a neighbour.
 
 import { Deferred, Effect, Exit, Option, Schedule, type Scope, Struct } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import { Place } from '@bible/url-state';
 import { Places, pageHref } from '../../src/core/api.ts';
 import type { LabMode } from '../../src/lab/mode.ts';
@@ -385,12 +385,6 @@ const STATES: ByPlace<State> = {
       layer: INSPECTOR,
     },
     {
-      name: "Project, an act's long-press menu",
-      open: review(PROJECT, ...PROJECT_READY),
-      disclose: heldOn('.pj-act-head .pj-act-meta'),
-      layer: CONTEXT_MENU,
-    },
-    {
       name: "Project, the film's inspector",
       open: review(PROJECT, ...PROJECT_READY),
       disclose: opens('.pj-film-head .lab-inspect', `${INSPECTOR} .rv-comment-input`),
@@ -517,46 +511,75 @@ const sized = (page: Tab, device: Device, layer?: string) => {
   });
 };
 
+/** `state` opened at `place` on `device`, with the device's pointer, and disclosed. */
+const disclosed = (place: PlaceName, state: State, device: Device) =>
+  Effect.gen(function* () {
+    const page = yield* state.open(device.viewport);
+    yield* isAt(page, place);
+    // The page has the device's pointer, so its density tokens are the device's.
+    yield* page.until(`matchMedia('${device.pointer}').matches`);
+    yield* state.disclose(page);
+    return page;
+  });
+
+/** Every target `state` shows is `device`'s size (`sized`). */
+const targetsIn = (place: PlaceName, state: State, device: Device) =>
+  Effect.gen(function* () {
+    const page = yield* disclosed(place, state, device);
+    yield* sized(page, device, state.layer);
+  }).pipe(Effect.scoped);
+
+/** Everything `state` draws is drawn in the tokens (`untokened`), but what it names `drawnOff`. */
+const drawnIn = (place: PlaceName, state: State, device: Device) =>
+  Effect.gen(function* () {
+    const page = yield* disclosed(place, state, device);
+    yield* until(page, `document.fonts.status === 'loaded'`);
+    yield* evaluates(
+      page,
+      untokened(tokensCss),
+      Option.getOrElse(Option.fromUndefinedOr(state.drawnOff?.[device.name]), () => []),
+    );
+  }).pipe(Effect.scoped);
+
+/**
+ * A state a finger's long press discloses: kept out of `STATES`, whose cases
+ * run at once, and asked in a serial case of its own (`film/touches-serial`).
+ */
+const LONG_PRESSED: State = {
+  name: "Project, an act's long-press menu",
+  open: review(PROJECT, ...PROJECT_READY),
+  disclose: heldOn('.pj-act-head .pj-act-meta'),
+  layer: CONTEXT_MENU,
+};
+
 for (const device of DEVICES) {
   describe(`touch targets on ${device.name}`, () => {
-    for (const [place, state] of byPlace(STATES)) {
-      it.live(
-        state.name,
-        () =>
-          Effect.gen(function* () {
-            const page = yield* state.open(device.viewport);
-            yield* isAt(page, place);
-            // The page has the device's pointer, so its density tokens are the device's.
-            yield* page.until(`matchMedia('${device.pointer}').matches`);
-            yield* state.disclose(page);
-            yield* sized(page, device, state.layer);
-          }).pipe(Effect.scoped),
-        SLOW,
-      );
-    }
+    for (const [place, state] of byPlace(STATES))
+      it.live(state.name, () => targetsIn(place, state, device), SLOW);
   });
 
   describe(`drawn only in its tokens on ${device.name} (G9, DL-9)`, () => {
-    for (const [place, state] of byPlace(STATES)) {
+    for (const [place, state] of byPlace(STATES))
       it.live(
         `${state.name}: every colour, family, size, weight, leading, radius, spacing, shadow and gradient drawn is a token's`,
-        () =>
-          Effect.gen(function* () {
-            const page = yield* state.open(device.viewport);
-            yield* isAt(page, place);
-            yield* page.until(`matchMedia('${device.pointer}').matches`);
-            yield* state.disclose(page);
-            yield* until(page, `document.fonts.status === 'loaded'`);
-            yield* evaluates(
-              page,
-              untokened(tokensCss),
-              Option.getOrElse(Option.fromUndefinedOr(state.drawnOff?.[device.name]), () => []),
-            );
-          }).pipe(Effect.scoped),
+        () => drawnIn(place, state, device),
         SLOW,
       );
-    }
   });
+
+  // Serial: while a finger is down on one tab, Chrome drops, or lands as a bare click, the
+  // touches the file's other cases send their own tabs at the same time.
+  test.serial(
+    `${LONG_PRESSED.name} on ${device.name}: its targets are the device's size, and it is drawn in its tokens`,
+    () =>
+      Effect.runPromise(
+        Effect.andThen(
+          targetsIn('project', LONG_PRESSED, device),
+          drawnIn('project', LONG_PRESSED, device),
+        ),
+      ),
+    2 * SLOW,
+  );
 }
 
 /**
@@ -862,7 +885,8 @@ for (const device of DEVICES) {
 }
 
 describe('a finger on a slider', () => {
-  it.live(
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
     "drags a level from the top edge of its box, where a finger meets it, not only on the track's line",
     () =>
       Effect.gen(function* () {
@@ -888,7 +912,7 @@ describe('a finger on a slider', () => {
           Effect.repeat({ schedule: Schedule.spaced('25 millis'), until: (sent) => sent }),
           Effect.timeout('10 seconds'),
         );
-      }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped, Effect.runPromise),
     SLOW,
   );
 });

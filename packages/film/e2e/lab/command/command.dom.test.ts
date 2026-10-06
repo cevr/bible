@@ -10,7 +10,7 @@
 // the film plays, in ⌘K or a cue's menu, runs.
 
 import { Effect } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import {
   MENU_ITEMS,
   closeCommandMenu,
@@ -248,7 +248,8 @@ describe("a cue's context menu", () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live('a touch held still opens it; a touch that moves does not', () =>
+  // Serial, each case here: a finger's touches (`film/touches-serial`).
+  test.serial('a touch held still opens it; a touch that moves does not', () =>
     Effect.gen(function* () {
       const { page } = yield* openLab([], { href: labAt(1) });
       yield* page.waitFor(RISE);
@@ -265,35 +266,45 @@ describe("a cue's context menu", () => {
       yield* page.clock.runFor(700);
       yield* page.waitFor('[data-role="context-menu"] [data-command="link.copy"]');
       yield* evaluates(page, URL_T, 1);
-    }).pipe(Effect.scoped),
+    }).pipe(Effect.scoped, Effect.runPromise),
   );
 
-  it.live('a finger that drags a cue owns the press: the bar follows it, and no menu opens', () =>
-    Effect.gen(function* () {
-      const { page } = yield* openLab([], { href: labAt(1) });
-      yield* page.waitFor(RISE);
-      const before = yield* page.evaluate<string>(BAR_LEFT);
-      const at = yield* page.box(RISE);
-      const x = at.x + at.width / 2;
-      const y = at.y + at.height / 2;
-      yield* page.clock.hold;
-      // Past the press's slop, short of the browser's own: the drag has it.
-      yield* page.finger.down(x, y);
-      yield* page.finger.move(x + 14, y, 7);
-      yield* page.clock.runFor(700);
-      yield* evaluates(page, `${BAR_LEFT} !== ${jsonOf(before)}`, true);
-      yield* evaluates(page, `document.querySelector('[data-role="context-menu"]') === null`, true);
-      // Further, past the browser's slop: still the drag's, never a pan's.
-      const near = yield* page.evaluate<string>(BAR_LEFT);
-      yield* page.finger.move(x + 40, y, 13);
-      yield* page.clock.runFor(100);
-      yield* evaluates(page, `${BAR_LEFT} !== ${jsonOf(near)}`, true);
-      yield* evaluates(page, `document.querySelector('[data-role="context-menu"]') === null`, true);
-      yield* page.finger.up;
-    }).pipe(Effect.scoped),
+  test.serial(
+    'a finger that drags a cue owns the press: the bar follows it, and no menu opens',
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab([], { href: labAt(1) });
+        yield* page.waitFor(RISE);
+        const before = yield* page.evaluate<string>(BAR_LEFT);
+        const at = yield* page.box(RISE);
+        const x = at.x + at.width / 2;
+        const y = at.y + at.height / 2;
+        yield* page.clock.hold;
+        // Past the press's slop, short of the browser's own: the drag has it.
+        yield* page.finger.down(x, y);
+        yield* page.finger.move(x + 14, y, 7);
+        yield* page.clock.runFor(700);
+        yield* evaluates(page, `${BAR_LEFT} !== ${jsonOf(before)}`, true);
+        yield* evaluates(
+          page,
+          `document.querySelector('[data-role="context-menu"]') === null`,
+          true,
+        );
+        // Further, past the browser's slop: still the drag's, never a pan's.
+        const near = yield* page.evaluate<string>(BAR_LEFT);
+        yield* page.finger.move(x + 40, y, 13);
+        yield* page.clock.runFor(100);
+        yield* evaluates(page, `${BAR_LEFT} !== ${jsonOf(near)}`, true);
+        yield* evaluates(
+          page,
+          `document.querySelector('[data-role="context-menu"]') === null`,
+          true,
+        );
+        yield* page.finger.up;
+      }).pipe(Effect.scoped, Effect.runPromise),
   );
 
-  it.live(
+  test.serial(
     'a finger held still owns the press as the menu: moved once it opens, the bar stays',
     () =>
       Effect.gen(function* () {
@@ -309,6 +320,6 @@ describe("a cue's context menu", () => {
         yield* page.clock.runFor(100);
         yield* evaluates(page, BAR_LEFT, before);
         yield* page.finger.up;
-      }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped, Effect.runPromise),
   );
 });

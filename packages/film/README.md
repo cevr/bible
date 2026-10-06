@@ -1504,7 +1504,8 @@ uninterruptible step that lends the view and put back before the view is
 given back; a view whose pointer cannot be put back is discarded, never lent
 again (`lab/fixtures/lease.ts`, its own test over a fake view); a view
 leaves the pool only inside that step, so a case interrupted before it
-takes none. Every other tab has a mouse's pointer (Blink's fine pointer and
+takes none. A view two fingers were down on at once is retired and closed
+when given back: Chrome hears no touch on it after. Every other tab has a mouse's pointer (Blink's fine pointer and
 hover, set as Chrome starts: headless Chrome has none, and `(pointer: none)`
 would give a desk the phone's density). The
 touch-target guard (`e2e/lab/touch.dom.test.ts`) opens every studio page
@@ -2670,10 +2671,12 @@ whose kept answer only a wait reads (a baseline the page keeps).
 its timeout in milliseconds as its last argument: a cold start's time is the
 machine's, and bun's default 5 s fails a loaded one.
 A spawn inside a service the test provides is not seen.
-`film/two-fingers-serial` (`lint/two-fingers-serial.ts`) holds the browser
-tests (`e2e/`): a second finger (`page.finger.second`) is read only inside a
-`test.serial(…)` body, since while two fingers are down on one tab Chrome
-drops the touches a file's other cases send their own tabs at the same time.
+`film/touches-serial` (`lint/touches-serial.ts`) holds the browser tests
+(`e2e/`): a finger (`page.finger`, one or two) is read, and the touch gesture
+(`touch`, `lab/fixtures/gestures.ts`) called, only inside a `test.serial(…)`
+body, since while one tab's touches are under way Chrome drops, or lands as a
+bare click, the touches a file's other cases send their own tabs at the same
+time.
 `film/no-history-comment` (`lint/no-history-comment.ts`) holds every comment
 in `packages/film` and `apps/animations`: a comment says what the code does
 today and why, and how it got here lives in the ledger and `git log`. It

@@ -406,7 +406,8 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
-  it.live(
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
     "Play's HUD on a phone: a tap on the picture while it plays hides the controls and shows them; at rest a tap plays",
     () =>
       Effect.gen(function* () {
@@ -443,7 +444,7 @@ describe('the player', () => {
         yield* textIs(page, '.bar [data-act="play"]', '▶︎');
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped, Effect.runPromise),
   );
 
   // Serial: while two fingers are down on one tab, Chrome drops the touches the file's other
@@ -508,7 +509,8 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
-  it.live(
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
     'a tick held by a finger says its name, which stays a moment once it lifts (UR-115)',
     () =>
       Effect.gen(function* () {
@@ -525,10 +527,11 @@ describe('the player', () => {
         yield* page.finger.up;
         yield* evaluates(page, "document.querySelector('.bar .tip').hidden", false);
         yield* evaluates(page, "document.querySelector('.bar .tip').hidden", true);
-      }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped, Effect.runPromise),
   );
 
-  it.live("a name still held stays: the last tick's lingering name never hides the next", () =>
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial("a name still held stays: the last tick's lingering name never hides the next", () =>
     Effect.gen(function* () {
       const { page } = yield* openPlayer(
         { href: pageHref.play(PROBE), viewport: PHONE },
@@ -565,7 +568,7 @@ describe('the player', () => {
       yield* page.finger.up;
       yield* page.clock.runFor(1600);
       yield* evaluates(page, "document.querySelector('.bar .tip').hidden", true);
-    }).pipe(Effect.scoped),
+    }).pipe(Effect.scoped, Effect.runPromise),
   );
 
   it.live(
@@ -879,7 +882,8 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
-  it.live(
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
     "a finger held on the play page's film lists its frame and scene steps (AA-8), and ×10 steps ten frames: Shift's step by touch",
     () =>
       Effect.gen(function* () {
@@ -909,10 +913,11 @@ describe('the player', () => {
         // Frame 15 (0.5 s at 30 fps), ten on: frame 25, kept to the millisecond rounded up.
         yield* evaluates(page, 'location.hash', `#t=${Math.ceil((25 / 30) * 1000) / 1000}`);
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped, Effect.runPromise),
   );
 
-  it.live(
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
     "a finger clears the Scenes' selection, as Escape does (G8): a still's menu lists it",
     () =>
       Effect.gen(function* () {
@@ -933,6 +938,6 @@ describe('the player', () => {
         yield* countIs(page, '.sc-focus', 0);
         yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped, Effect.runPromise),
   );
 });

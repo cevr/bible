@@ -10,7 +10,7 @@
 // chip whose × clears it; a finger the frame's menu took marks nothing.
 
 import { Effect, Option, Predicate, Schedule } from 'effect';
-import { describe, expect, it } from 'effect-bun-test';
+import { describe, expect, it, test } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import {
   type Asked,
@@ -306,7 +306,8 @@ describe('marking a frame', () => {
     SLOW,
   );
 
-  it.live(
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
     "a finger held still owns the press as the frame's menu: slid 30 px and lifted, it draws no box and opens no composer",
     () =>
       Effect.gen(function* () {
@@ -342,7 +343,7 @@ describe('marking a frame', () => {
         yield* page.clock.runFor(100);
         yield* waitFor(page, '.lab-compose:not([hidden])');
         yield* attached(page, '.lab-overlay circle.lab-draft');
-      }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped, Effect.runPromise),
     SLOW,
   );
 
