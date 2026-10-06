@@ -262,7 +262,7 @@ const STATES: ReadonlyArray<State> = [
     open: review(CHOICES, ...CHOICES_READY),
     disclose: AT_REST,
     // The kinds strip's four tabs (SU-5) are its index on a page this long.
-    budget: most(67, 68),
+    budget: most(66, 67),
   },
   {
     name: "Choices, a variant's inspector",
@@ -324,7 +324,7 @@ const STATES: ReadonlyArray<State> = [
     name: 'a Set, with a comment count',
     open: review(pageHref.set(STUDIO_FOLDER, STUDIO_SET), '.rv-main video', '[data-comments]'),
     disclose: AT_REST,
-    budget: most(23, 24),
+    budget: most(20, 21),
   },
   {
     name: 'a Set, its wipe (the grip a slider)',
@@ -357,10 +357,10 @@ const STATES: ReadonlyArray<State> = [
       }),
     disclose: AT_REST,
   },
-  { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(22, 23) },
-  { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(27, 28) },
-  { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(26, 27) },
-  { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(22, 23) },
+  { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(21, 22) },
+  { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(24, 26) },
+  { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(23, 25) },
+  { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(19, 20) },
   {
     name: "Lab, the command menu's Go to",
     open: lab('edit'),
