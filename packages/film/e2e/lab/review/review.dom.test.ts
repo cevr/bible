@@ -193,6 +193,16 @@ describe('the review page', () => {
         yield* page.click(`a.rv-card[href="${FOLDER}"]`);
         yield* until(page, `location.pathname === '${FOLDER}'`);
         yield* textHas(page, '.sh-header [data-role="crumb"]', 'Roofs at dusk');
+        // The tab's title names the Folder first, then its part (SU-9).
+        yield* until(page, "document.title.startsWith('Roofs at dusk · ')");
+        // A phone's header names the Folder too (SU-10).
+        yield* page.resize(390, 844);
+        yield* evaluates(
+          page,
+          `document.querySelector('.sh-header [data-role="crumb"]').checkVisibility()`,
+          true,
+        );
+        yield* page.resize(1440, 900);
         yield* textsAre(page, '[data-review-blurb] li', [
           'Cold opening',
           'Message arrives',

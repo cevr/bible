@@ -140,8 +140,9 @@ const filmName = (href: string, films: Films): string =>
  * draws in asked for, `narratedFilms`; what draws it waits for them,
  * `pictureFacesWait`, so text measures true from the first frame: a short's
  * hook and captions are measured once, on the first frame that draws them),
- * title the page, and put the film's canvas on the stage, undrawn; its
- * captions are on unless an export page says `captions=0`.
+ * and put the film's canvas on the stage, undrawn; its captions are on
+ * unless an export page says `captions=0`. The page's title is the shell's
+ * (`page-shell.tsx`).
  */
 export const stageFilm = async (films: Films, href: string): Promise<Staged> => {
   const name = filmName(href, films);
@@ -150,7 +151,6 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
   if (load === undefined)
     throw new Error(`unknown film "${name}"; have ${Object.keys(films).join(', ')}`);
   const film = await load();
-  document.title = film.title;
 
   const canvas = document.createElement('canvas');
   canvas.width = film.width;

@@ -189,9 +189,10 @@ const Section = (props: {
 /**
  * The app's films (none when the app has no films), each a card that opens
  * its Scenes, with the stills of the folder its renders sit in when the
- * review holds one; its context menu opens its other parts (`filmCommands`).
- * The page bar and the switcher are the other ways into a film: no card
- * links to a part in its text.
+ * review holds one; its context menu opens its other parts (`filmCommands`),
+ * which no line on the card spells out (a gesture is the `?` sheet's). The
+ * switcher is the other way into a film; the page bar shows once one is
+ * chosen.
  */
 const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
   const { state } = useReview();
@@ -226,7 +227,6 @@ const Films = (props: { readonly folders: ReadonlyArray<ReviewFolder> }) => {
                   </Show>
                   <div class="rv-body">
                     <b>{film}</b>
-                    <div class="rv-meta">Scenes · long-press for its other parts</div>
                   </div>
                 </a>
               )}

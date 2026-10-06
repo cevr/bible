@@ -10,7 +10,7 @@ import { parseHref } from '@bible/url-state';
 import { Equal, type Layer, Match, Option } from 'effect';
 import type { HttpClient } from 'effect/http';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { createEffect, createMemo } from 'solid-js';
+import { createMemo } from 'solid-js';
 import type { ReviewIndex } from '../../core/review.ts';
 import { Root, useReview } from './context.tsx';
 import { Inspecting } from './inspector.tsx';
@@ -118,12 +118,6 @@ const Shell = (props: { readonly children: JSX.Element }) => {
   const index = () => AsyncResult.value(state.index());
   const film = () => filmOf(state.place(), films());
   const depth = () => depthOf(state.place(), index());
-  createEffect(
-    () => [...Option.toArray(depth()), ...Option.toArray(film()), 'Lab'],
-    (trail) => {
-      document.title = trail.join(' · ');
-    },
-  );
   return (
     <PageShell
       part={() => partOf(state.place(), films())}

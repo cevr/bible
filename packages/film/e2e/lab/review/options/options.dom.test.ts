@@ -414,6 +414,10 @@ describe("a film's choices", () => {
     () =>
       Effect.gen(function* () {
         const { page, errors } = yield* openReview(fakeFilm());
+        // No film chosen: no page bar of tabs that cannot act, and no gesture hint on the card (UR2-14).
+        yield* page.waitFor('.rv-film-card[data-film="toy"]');
+        yield* evaluates(page, "document.querySelector('.sh-pagebar').checkVisibility()", false);
+        yield* countIs(page, '.rv-film-card .rv-meta', 0);
         // A film card opens its choices from its context menu, which offers each of its parts.
         yield* rightClick(page, '.rv-film-card[data-film="toy"]');
         yield* evaluates(page, `${MENU_ITEMS}.filter((id) => id.startsWith('film.'))`, [
@@ -427,6 +431,9 @@ describe("a film's choices", () => {
         yield* until(page, `location.pathname === '${FILM}'`);
         yield* waitFor(page, '.rv-transport');
         yield* waitFor(page, '.rv-picture video');
+        yield* evaluates(page, "document.querySelector('.sh-pagebar').checkVisibility()", true);
+        // The tab's title names the part before the film (SU-9).
+        yield* until(page, "document.title === 'Choices · toy'");
         // The picked option is heard first; the picture's own sound is muted.
         yield* until(
           page,

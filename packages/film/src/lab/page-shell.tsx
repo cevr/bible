@@ -233,6 +233,18 @@ export const PageShell = (props: PageShellProps) => {
   });
   /** The film the tabs lead into: the page's, else the one last opened. */
   const film = () => Option.orElse(props.film(), kept);
+  // The tab's title names where it is, as the header does: its depth, its part and its film
+  // (`Choices · righteousness-by-faith`, `woman · versions · Project · …`, `Films`).
+  createEffect(
+    () => [
+      ...Option.toArray(Option.flatMap(Option.fromUndefinedOr(props.crumb), (crumb) => crumb())),
+      PART_TITLE[props.part()],
+      ...Option.toArray(props.film()),
+    ],
+    (trail) => {
+      document.title = trail.join(' · ');
+    },
+  );
   const [time, setTime] = createSignal(Option.none<ShellTime>(), { ownedWrite: true });
   // The page's own tools land here (`ShellTools`), laid out as the header's
   // own controls, once the page is mounted (its element is the client's).
