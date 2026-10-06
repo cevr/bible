@@ -18,6 +18,13 @@
 // the tokens, the UI face's own registration (`player/face.ts`: its faces,
 // and the `@font-face` rule a page's head declares), and it is held to the
 // token: it is the family `--font` names first.
+//
+// What a served page draws is read back as well (`lab/fixtures/drawn-tokens.ts`,
+// `e2e/lab/served-film.dom.test.ts`; G9): a value no rule here spells (a user
+// agent's default, a `calc`, a style set from data) is caught by computing
+// it, never by widening these patterns. This guard stays for what that check
+// cannot see: a canvas painting the chrome, and every page and state the
+// served test does not open.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
