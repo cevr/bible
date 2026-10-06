@@ -52,6 +52,9 @@ const fake = (
             slot.calls.push(`resize ${width}×${height}`);
           }),
         ),
+      retire: () => {
+        slot.calls.push('retire');
+      },
     } satisfies View,
   };
   return slot;

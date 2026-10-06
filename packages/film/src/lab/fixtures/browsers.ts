@@ -104,11 +104,14 @@ interface Lease {
   readonly console: (type: string, args: ReadonlyArray<unknown>) => void;
 }
 
-/** A pooled view: the view, the tab's way of driving it, and the case holding it, if one is. */
+/**
+ * A pooled view: the view, the tab's way of driving it, the case holding it,
+ * if one is, and whether it is retired (`View.retire`): closed when given back.
+ */
 interface Slot {
   readonly view: Bun.WebView;
   readonly lent: View;
-  readonly held: { lease: Option.Option<Lease> };
+  readonly held: { lease: Option.Option<Lease>; retired: boolean };
 }
 
 /** The views no case holds, the last one back on top. */
@@ -180,7 +183,7 @@ const routeRequest = (slot: Slot) => (event: Event) => {
 
 /** A new view for the pool, its session up, every request to the tests' site paused for it. */
 const makeSlot = Effect.gen(function* () {
-  const held: Slot['held'] = { lease: Option.none() };
+  const held: Slot['held'] = { lease: Option.none(), retired: false };
   const view = yield* openView(yield* flags, {
     width: 800,
     height: 600,
@@ -198,6 +201,9 @@ const makeSlot = Effect.gen(function* () {
       navigate: (url) => view.navigate(url),
       reload: () => view.reload(),
       resize: (width, height) => view.resize(width, height),
+      retire: () => {
+        held.retired = true;
+      },
     },
   };
   view.addEventListener('Fetch.requestPaused', routeRequest(slot));
@@ -220,7 +226,8 @@ const makeSlot = Effect.gen(function* () {
  * A case's hold on a view, sized and pointed as `ask` says, until the scope
  * closes (`lease`). Then the view has the mouse's pointer again, waits on the
  * idle page with no history behind it, and goes back to the pool; a view
- * that cannot is closed instead.
+ * that cannot, or that is retired (two fingers were down on it at once), is
+ * closed instead.
  */
 const lend = (held: Lease, ask: Ask) =>
   lease<Slot>(
@@ -236,6 +243,7 @@ const lend = (held: Lease, ask: Ask) =>
           yield* Effect.tryPromise(() => slot.lent.cdp('Page.resetNavigationHistory'));
         }),
       giveBack: (slot) => {
+        if (slot.held.retired) return slot.view.close();
         idle.push(slot);
       },
       discard: (slot) => {
