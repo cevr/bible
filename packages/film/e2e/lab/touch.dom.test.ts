@@ -261,7 +261,8 @@ const STATES: ReadonlyArray<State> = [
     name: 'Choices, over a picture, with comment counts',
     open: review(CHOICES, ...CHOICES_READY),
     disclose: AT_REST,
-    budget: most(63, 64),
+    // The kinds strip's four tabs (SU-5) are its index on a page this long.
+    budget: most(67, 68),
   },
   {
     name: "Choices, a variant's inspector",

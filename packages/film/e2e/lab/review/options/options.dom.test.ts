@@ -57,6 +57,7 @@ import {
   evaluates,
   textHas,
   textIs,
+  textsAre,
   until,
   valueIs,
   waitFor,
@@ -503,6 +504,34 @@ describe("a film's choices", () => {
         yield* until(
           page,
           "document.querySelector('.rv-time').textContent.startsWith('00:00:02:00')",
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a kinds strip names each kind with its count and brings it into view; ⌘K goes to a point by its name (SU-5)',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeFilm(), { href: FILM });
+        yield* page.resize(390, 600);
+        yield* textsAre(page, '.rv-kinds .sh-btn', ['Score 1', 'Looks 1', 'Sounds 1', 'Levels 1']);
+        yield* click(page, '.rv-kinds [data-kind="level"]');
+        yield* until(
+          page,
+          `(() => { const r = document.getElementById('kind-level').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()`,
+        );
+        // A point is a place Go to finds by its name: its card in focus and in view.
+        yield* openCommandMenu(page, 'paper.page');
+        yield* click(page, menuEntry('go.choice.take:paper.page'));
+        yield* until(
+          page,
+          `new URLSearchParams(location.search).get('point') === 'take:paper.page'`,
+        );
+        yield* until(
+          page,
+          `(() => { const r = document.getElementById('point-take:paper.page').getBoundingClientRect(); return r.bottom > 0 && r.top < innerHeight; })()`,
         );
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),

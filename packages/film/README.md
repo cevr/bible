@@ -2240,8 +2240,11 @@ and links), the index, the films, the quality (Proxy or Original) and the
 lightbox. The header is the studio's shell (`PageShell`,
 `lab/page-shell.tsx`): Films, the film switcher, the page bar, a drill-down
 crumb and Go to… (⌘K: Go to finds a folder, a set, or a film's choices or
-project by name, `destinationsOf`; home lists every folder, with no filter
-field). A card in focus on Choices is its `?point=`, and the sheet open on
+project by name, `destinationsOf`, and on a film's choices each choice
+point, `pointDestinations`; home lists every folder, with no filter
+field). Choices opens with a kinds strip once it shows two kinds (Score,
+Looks, Sounds, Voice, Levels, each with its count): a tap brings the kind's
+heading into view. A card in focus on Choices is its `?point=`, and the sheet open on
 Choices or on a set is its `?inspect=` (`useInspectorPlace`), so a link
 opens it and Back closes it.
 Refresh (`review.refresh`) and the copy played (`review.quality`: Play the

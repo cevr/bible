@@ -220,6 +220,11 @@ a.rv-card:hover { background: var(--surface-2); }
 }
 .rv-tag[data-state="stale"] { color: var(--state-stale); }
 .rv-choices { display: contents; }
+/* The kinds strip: one row of tabs (scrolling sideways on a phone); a heading it brings in clears the header. */
+.rv-kinds { display: flex; gap: var(--s-1); margin-top: var(--s-3); overflow-x: auto; }
+.rv-kinds .sh-btn { flex: none; }
+.rv-kinds .rv-count { color: var(--text-3); font-variant-numeric: tabular-nums; }
+.rv-choices .rv-h[id] { scroll-margin-top: calc(var(--header-h) + var(--s-2)); }
 .rv-group + .rv-group { margin-top: var(--s-4); }
 .rv-group h3 { display: flex; gap: var(--s-2); align-items: baseline; margin: 0; font-size: var(--fs-2); font-weight: var(--w-2); color: var(--text-2); }
 .rv-at { font: inherit; font-variant-numeric: tabular-nums; color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; }

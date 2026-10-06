@@ -3,7 +3,8 @@
 // film has (`core/choice.ts`), a card each (`choice.tsx`), by kind: the
 // score's options (`play` in `sound.ts`), its looks (`looks` in
 // `palette.ts`), each library sound's takes (the library's lock), each
-// beat's recorded voice, and each sound layer's level (a knob). Undo and
+// beat's recorded voice, and each sound layer's level (a knob), under a
+// kinds strip that jumps to each kind; ⌘K goes to each point. Undo and
 // Redo are the page's commands, each naming the source change it steps, and
 // every write says what it did in a receipt; the film's check is the one the
 // last write answered; after a pick or a knob the sound check runs (`film
@@ -12,13 +13,15 @@
 
 import { For, type JSX, Show } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, onCleanup } from 'solid-js';
-import { useAtomValue } from '@bible/atom-solid';
+import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
 import { Duration, Effect, Fiber, Option } from 'effect';
 import { playableOf } from '../../../browser/media.ts';
 import { type Command, type CommandId, boundChange, quietly } from '../../../command/command.ts';
+import { type Destination, goToCommands } from '../../../command/go.ts';
 import { Selection } from '../../../command/selection.ts';
+import { registerWhile } from '../../command/changes.ts';
 import {
   type ChoiceKind,
   type ChoicePoint,
@@ -239,13 +242,68 @@ const KINDS: ReadonlyArray<{ readonly kind: ChoiceKind; readonly title: string }
   { kind: 'level', title: 'Levels' },
 ];
 
+/** The id of a kind's heading, which its tab in the kinds strip brings into view. */
+const kindHeading = (kind: ChoiceKind) => `kind-${kind}`;
+
+/** The kinds the page shows, each with how many of its points are shown. */
+interface ShownKind {
+  readonly kind: ChoiceKind;
+  readonly title: string;
+  readonly count: number;
+}
+
+/**
+ * The kinds strip (design language §7): a tab per kind the page shows, with
+ * how many points it has, that brings the kind's heading into view; shown
+ * once there are two kinds to move between. A point itself is ⌘K's: Go to
+ * finds it by its name (`pointDestinations`).
+ */
+const KindsStrip = (props: { readonly kinds: ReadonlyArray<ShownKind> }) => (
+  <Show when={props.kinds.length > 1}>
+    <nav class="rv-kinds" data-role="kinds" aria-label="Kinds">
+      <For each={props.kinds} keyed={(k) => k.kind}>
+        {(k) => (
+          <button
+            type="button"
+            class="sh-btn"
+            data-kind={k().kind}
+            onClick={() =>
+              Option.map(
+                Option.fromNullishOr(document.getElementById(kindHeading(k().kind))),
+                (heading) => heading.scrollIntoView({ block: 'start' }),
+              )
+            }
+          >
+            {k().title} <span class="rv-count">{k().count}</span>
+          </button>
+        )}
+      </For>
+    </nav>
+  </Show>
+);
+
+/** Each of `points` as a place ⌘K goes to by its name: its card, brought into view and in focus (`?point=`). */
+const pointDestinations = (
+  points: ReadonlyArray<ChoicePoint>,
+  focus: (point: string) => void,
+): ReadonlyArray<Destination> =>
+  points.map((point) => ({
+    kind: 'choice',
+    id: point.id,
+    name: `${point.title} ${point.id}`,
+    go: () => focus(point.id),
+  }));
+
 /** A heading and a card for each of `points` (how many, the kinds strip says: UR-7). */
 const ChoiceSection = (props: {
+  readonly kind: ChoiceKind;
   readonly title: string;
   readonly points: ReadonlyArray<ChoicePoint>;
 }) => (
   <Show when={props.points.length > 0}>
-    <h2 class="rv-h">{props.title}</h2>
+    <h2 class="rv-h" id={kindHeading(props.kind)}>
+      {props.title}
+    </h2>
     <div class="rv-list">
       <For each={props.points} keyed={(p) => p.id}>
         {(point) => <ChoiceCard point={point()} />}
@@ -330,6 +388,23 @@ const FilmBody = () => {
       Option.map(point, revealPoint);
     },
   );
+  // Each point is a place ⌘K goes to: its card in focus (`?point=`, its sheet closed) and in view.
+  const setAt = useAtomSet(() => choicesPlace);
+  const { meta } = useReview();
+  registerWhile(meta.hub, () =>
+    goToCommands(
+      pointDestinations(choices().points, (point) => {
+        Option.map(at(), (v) => setAt({ ...v, query: { ...v.query, point, inspect: '' } }));
+        revealPoint(point);
+      }),
+    ),
+  );
+  const shown = createMemo(() =>
+    KINDS.map((k) => ({
+      ...k,
+      points: choices().points.filter((p) => p.kind === k.kind && shownIn(only())(p)),
+    })),
+  );
   return (
     // The page's own box (`display: contents`): says while the film is read again.
     <div class="rv-choices" data-reading={pressed(reading())}>
@@ -337,13 +412,13 @@ const FilmBody = () => {
       <Findings />
       <Player />
       <OnlyShown />
-      <For each={KINDS}>
-        {(k) => (
-          <ChoiceSection
-            title={k.title}
-            points={choices().points.filter((p) => p.kind === k.kind && shownIn(only())(p))}
-          />
-        )}
+      <KindsStrip
+        kinds={shown()
+          .filter((k) => k.points.length > 0)
+          .map((k) => ({ kind: k.kind, title: k.title, count: k.points.length }))}
+      />
+      <For each={shown()}>
+        {(k) => <ChoiceSection kind={k.kind} title={k.title} points={k.points} />}
       </For>
       <Show when={choices().points.length === 0}>
         <p class="empty">This film has nothing to choose between.</p>
