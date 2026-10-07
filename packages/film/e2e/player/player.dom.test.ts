@@ -481,6 +481,31 @@ describe('the player', () => {
       }).pipe(Effect.scoped, Effect.runPromise),
   );
 
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    "Play's HUD on a phone, played from ▶: once faded, the first tap on the picture brings the controls back, wherever the focus was",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: PHONE },
+          BAR_READY,
+        );
+        yield* page.clock.hold;
+        // A finger plays the film from ▶ (Chromium leaves the focus on it), and the controls fade.
+        yield* touch(page, '.bar [data-act="play"]', 0);
+        yield* page.finger.up;
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        yield* page.clock.runFor(HUD_IDLE_MS + 200);
+        yield* evaluates(page, controls(false), true);
+        // One tap on the picture shows them, the film still playing.
+        yield* touch(page, '.stage canvas', 0);
+        yield* page.finger.up;
+        yield* evaluates(page, controls(true), true);
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.runPromise),
+  );
+
   // Serial: while two fingers are down on one tab, Chrome drops the touches the file's other
   // cases send their own tabs at the same time (a tick's held name never shows).
   test.serial(

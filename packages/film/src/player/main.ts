@@ -561,10 +561,18 @@ export const mountPreview = (
       if (!onPlay()) return;
       // A finger on the picture is the picture's tap, which toggles the HUD.
       if (e instanceof PointerEvent && e.target === canvas && e.pointerType !== 'mouse') return;
+      // The focus leaving a control restarts a shown HUD's wait and never shows it (a tap moves
+      // the focus before its click); only the keyboard's focus landing on a control shows it.
+      if (e.type === 'focusout') return hud.focusLeft();
+      if (
+        e.type === 'focusin' &&
+        !(e.target instanceof Element && e.target.matches(':focus-visible'))
+      )
+        return;
       hud.wake();
     };
-    // The focus moving wakes it too: Tab landing on a faded control shows it,
-    // and the focus leaving the controls starts the wait again.
+    // The keyboard's focus moving wakes it too: Tab landing on a faded control
+    // shows it, and the focus leaving the controls starts the wait again.
     for (const type of ['pointermove', 'pointerdown', 'keydown', 'focusin', 'focusout'])
       document.addEventListener(type, wake, { capture: true, signal: leaving.signal });
     // A film's ticks (hundreds of them) are off on Play until the viewer turns
