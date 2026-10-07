@@ -15,6 +15,8 @@ import { Effect, Match, Option, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
+import { tone } from '../../../src/lab/fixtures/tone.ts';
+import { STEP_S } from '../../../src/lab/review/machine.ts';
 import {
   type FakeRoute,
   type Json,
@@ -752,10 +754,18 @@ describe('the review page', () => {
     "a long-press on a version's picture steps the set on or back, one step or ten (SU-11)",
     () =>
       Effect.gen(function* () {
-        const { page, errors } = yield* openReview(routes, {
-          href: SET,
-          viewport: { width: 390, height: 844 },
-        });
+        // Thirty seconds of tone, past the twenty ten steps go: a step of another size lands elsewhere.
+        const long = tone(30, 0.1);
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/(files|phone)\/[^?]*\.mp4/, () => ({
+              _tag: 'Wav',
+              bytes: long,
+            })),
+            ...routes,
+          ],
+          { href: SET, viewport: { width: 390, height: 844 } },
+        );
         yield* waitFor(page, '.rv-transport');
         const MENU = '[data-role="context-menu"]';
         /** A long press on the second version's picture, on the page's held clock. */
@@ -772,8 +782,8 @@ describe('the review page', () => {
         yield* page.click(`${MENU} [data-command="review.step-next"][data-step="coarse"]`);
         // The menu closes, and runs its row, on the held clock.
         yield* page.clock.runFor(500);
-        // Ten steps on from the start: past the media's ten seconds, so it stands at the end.
-        yield* textIs(page, '.rv-time-at', '00:00:10:00');
+        // Ten steps of two seconds on from the start.
+        yield* textIs(page, '.rv-time-at', `00:00:${10 * STEP_S}:00`);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.runPromise),
     SLOW,
