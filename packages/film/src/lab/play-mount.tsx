@@ -10,7 +10,7 @@
 
 import { Place } from '@bible/url-state';
 import { Array as Arr, Effect, Match, Option, Schema } from 'effect';
-import { createSignal, onCleanup } from 'solid-js';
+import { createSignal, onCleanup, onSettled } from 'solid-js';
 import { Places, pageHref } from '../core/api.ts';
 import type { Placed } from '../core/layout.ts';
 import { type Host, addressOn } from '../browser/host.ts';
@@ -61,7 +61,11 @@ const scenesTime = (host: Host, placed: ReadonlyArray<Placed>): TimeInUrl => {
   };
 };
 
-/** The preview's stage and transport in the shell's body; its time is the header's timecode. */
+/**
+ * Play's body: the preview's stage and transport in the shell's body, its
+ * HUD hearing the viewer over the shell's Play part; its time is the
+ * header's timecode.
+ */
 const Preview = (props: { readonly player: Player; readonly stage: HTMLElement }) => {
   const [at, setAt] = createSignal(props.player.now(), { ownedWrite: true });
   onCleanup(
@@ -70,11 +74,23 @@ const Preview = (props: { readonly player: Player; readonly stage: HTMLElement }
     }),
   );
   useShellTime(at, props.player.film.fps);
+  let body = Option.none<HTMLElement>();
+  onSettled(() =>
+    Option.getOrUndefined(
+      Option.map(
+        Option.flatMap(body, (el) =>
+          Option.fromNullishOr(el.closest<HTMLElement>('[data-part="play"]')),
+        ),
+        props.player.playOn,
+      ),
+    ),
+  );
   return (
     <div
       class="play-body"
       ref={(el: HTMLDivElement) => {
         el.append(props.stage, props.player.bar);
+        body = Option.some(el);
       }}
     />
   );

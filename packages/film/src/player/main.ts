@@ -109,6 +109,12 @@ export interface Player {
   drawable(): boolean;
   /** Called after every frame the preview draws (none while it is not `drawable`), until the returned function is called. */
   onDraw(listener: (T: number) => void): () => void;
+  /**
+   * The bar is on a film's Play page, in `part` (the shell's Play part):
+   * its HUD fades while the film plays and comes back at the viewer's input,
+   * until the returned function is called.
+   */
+  playOn(part: HTMLElement): () => void;
 }
 
 /** An app's film registry: each film's name and its loader. */
@@ -330,8 +336,9 @@ export const mountPreview = (
   let drawable = false;
 
   const page = hub.context().page;
-  /** Whether the bar is on a film's Play page (the shell's part), where the HUD fades and the ticks are the viewer's. */
-  const onPlay = () => bar.closest('[data-part="play"]') !== null;
+  /** The film's Play page the bar is on (the shell's part, `Player.playOn`), where the HUD fades and the ticks are the viewer's. */
+  let playPage = Option.none<HTMLElement>();
+  const onPlay = () => Option.isSome(playPage);
   /** Whether the keyboard's focus is on one of the HUD's controls (the bar, the header, the tab bar): they stay while it is. */
   const focusHeld = () =>
     Option.match(Option.fromNullishOr(document.activeElement), {
@@ -536,8 +543,7 @@ export const mountPreview = (
   }
   // The picture: a click plays or pauses; on Play a finger's tap while it
   // plays shows or hides the HUD instead (its ❚❚ pauses), as a phone's
-  // players do. Any other input on Play shows the HUD (`hud.ts`), for as long
-  // as the bar is on the page.
+  // players do. Any other input on Play shows the HUD (`hud.ts`, `playOn`).
   let pressedBy = 'mouse';
   canvas.addEventListener('pointerdown', (e) => {
     pressedBy = e.pointerType;
@@ -546,27 +552,45 @@ export const mountPreview = (
     if (onPlay() && playing && pressedBy !== 'mouse') hud.toggle();
     else toggle();
   });
-  if (page === 'player') {
-    const leaving = new AbortController();
-    const wake = (e: Event) => {
-      if (!bar.isConnected) return leaving.abort();
-      if (!onPlay()) return;
-      // A finger on the picture is the picture's tap, which toggles the HUD.
-      if (e instanceof PointerEvent && e.target === canvas && e.pointerType !== 'mouse') return;
-      // The focus leaving a control restarts a shown HUD's wait and never shows it (a tap moves
-      // the focus before its click); only the keyboard's focus landing on a control shows it.
-      if (e.type === 'focusout') return hud.focusLeft();
-      if (
-        e.type === 'focusin' &&
-        !(e.target instanceof Element && e.target.matches(':focus-visible'))
-      )
-        return;
+  /**
+   * The bar on Play, in `part` (the shell's Play part, the whole window):
+   * the HUD hears the viewer there, the page's own elements, and the keys
+   * through the page's keymap, until the returned stop. A pointer moved or
+   * pressed shows it, but a finger on the picture, whose tap toggles it; so
+   * does any command the page runs (a key, a menu, ⌘K), and the keyboard's
+   * focus landing on a control (Tab onto a faded one). The focus leaving a
+   * control restarts a shown HUD's wait and never shows it: a tap moves the
+   * focus before its click, and its meaning never depends on where the
+   * focus was.
+   */
+  const playOn = (part: HTMLElement): (() => void) => {
+    const listening = new AbortController();
+    const options = { capture: true, signal: listening.signal };
+    const pointed = (e: PointerEvent) => {
+      if (e.target === canvas && e.pointerType !== 'mouse') return;
       hud.wake();
     };
-    // The keyboard's focus moving wakes it too: Tab landing on a faded control
-    // shows it, and the focus leaving the controls starts the wait again.
-    for (const type of ['pointermove', 'pointerdown', 'keydown', 'focusin', 'focusout'])
-      document.addEventListener(type, wake, { capture: true, signal: leaving.signal });
+    part.addEventListener('pointermove', pointed, options);
+    part.addEventListener('pointerdown', pointed, options);
+    part.addEventListener(
+      'focusin',
+      (e) => {
+        if (e.target instanceof Element && e.target.matches(':focus-visible')) hud.wake();
+      },
+      options,
+    );
+    part.addEventListener('focusout', () => hud.focusLeft(), options);
+    const unheard = hub.receipts(() => hud.wake());
+    playPage = Option.some(part);
+    draw();
+    return () => {
+      listening.abort();
+      unheard();
+      playPage = Option.none();
+      hud.playing(false);
+    };
+  };
+  if (page === 'player') {
     // A film's ticks (hundreds of them) are off on Play until the viewer turns
     // them on (⋯ → Show the ticks), kept in this browser; their legend shows with them.
     const ticksKept = AtomRegistry.make();
@@ -656,6 +680,7 @@ export const mountPreview = (
       draw();
     },
     knobReads: () => reads,
+    playOn,
     onDraw: (listener) => {
       listeners.push(listener);
       return () => {
