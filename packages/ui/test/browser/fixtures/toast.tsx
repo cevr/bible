@@ -1,12 +1,10 @@
 // Fixtures for Toast: a receipt raised through a manager created outside
-// the component tree (the Undo action in its action slot), toasts added
-// from inside the tree with `useToastManager`, and an element swiped with
-// `useSwipeDismiss` on its own.
+// the component tree (the Undo action in its action slot), and toasts added
+// from inside the tree with `useToastManager`.
 import type { JSX } from '@solidjs/web';
-import { createSignal, For } from 'solid-js';
+import { For } from 'solid-js';
 
 import { Toast, type ToastObject } from '../../../src/toast/index.ts';
-import { useSwipeDismiss } from '../../../src/utils/useSwipeDismiss.ts';
 import { log, param } from './log.ts';
 
 interface Receipt {
@@ -128,39 +126,6 @@ function ReceiptFixture(): JSX.Element {
   );
 }
 
-function SwipeBox(): JSX.Element {
-  const [element, setElement] = createSignal<HTMLElement | null>(null, { ownedWrite: true });
-  const [dismissed, setDismissed] = createSignal(false);
-  const swipe = useSwipeDismiss({
-    enabled: true,
-    directions: ['right'],
-    element,
-    movementCssVars: { x: '--movement-x', y: '--movement-y' },
-    onDismiss: (_event, details) => {
-      log(`dismiss ${details.direction}`);
-      setDismissed(true);
-    },
-    onRelease: (details) => {
-      log(`release ${details.direction ?? 'none'} ${Math.round(details.deltaX)}`);
-    },
-  });
-  return (
-    <div style={{ padding: '40px' }}>
-      <div
-        id="swipe-box"
-        ref={setElement}
-        {...swipe.getPointerProps()}
-        data-swiping={swipe.swiping() ? '' : undefined}
-        data-dismissed={dismissed() ? '' : undefined}
-        style={{ width: '200px', height: '80px', background: '#ccc', ...swipe.getDragStyles() }}
-      >
-        <button id="swipe-button">button</button>
-      </div>
-    </div>
-  );
-}
-
 export const fixtures: Record<string, () => JSX.Element> = {
   receipt: ReceiptFixture,
-  'swipe-dismiss': SwipeBox,
 };

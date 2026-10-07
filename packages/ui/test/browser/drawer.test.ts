@@ -7,19 +7,13 @@
 // opens from its owner's `open`, as every page's does. Gestures are
 // synthetic pointer events whose `timeStamp` is set, so a drag's velocity is
 // exact. The touch scroll arbitration's iOS cases are left out.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('drawer.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('drawer.tsx');
 
 interface DragOptions {
   /** Moves between the press and the release. @default 8 */
@@ -212,6 +206,28 @@ describe('swipe to dismiss', () => {
     await see(page.locator('#popup')).toHaveAttribute('data-swiping', '');
     // The swipe starts at the first move (15px in), so 45px of the 60px count.
     expect(await styleVar(page, '#popup', '--drawer-swipe-movement-y')).toBe('45px');
+  });
+
+  it('damps a drag against the dismiss direction to its square root', async () => {
+    const page = await h.open('drawer');
+    await openDrawer(page);
+    // 48px up in four moves; the swipe starts at the first (12px in), so 36px count, damped to 6.
+    await pressAndMove(page, { x: 400, y: 450 }, { x: 400, y: 402 });
+    await see(page.locator('#popup')).toHaveAttribute('data-swiping', '');
+    expect(await styleVar(page, '#popup', '--drawer-swipe-movement-y')).toBe('-6px');
+  });
+
+  it('a mouse drag that stays on a button never starts a swipe', async () => {
+    const page = await h.open('drawer');
+    await openDrawer(page);
+    const box = await page.locator('#first').boundingBox();
+    const x = (box?.x ?? 0) + 10;
+    const y = (box?.y ?? 0) + 10;
+    // A flick that would dismiss from the sheet itself (60px in 40ms).
+    await drag(page, { x, y }, { x, y: y + 60 }, { steps: 4, stepMs: 10 });
+    await see(page.locator('#popup')).toBeVisible();
+    await see(page.locator('#popup')).not.toHaveAttribute('data-swiping', '');
+    expect(await logOf(page)).toEqual([]);
   });
 
   it('a drag against the dismiss direction does not dismiss', async () => {

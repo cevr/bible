@@ -8,19 +8,13 @@
 // Upstream's cases for parts not ported (hover opening, submenus, checkbox,
 // radio and link items, arrow, backdrop, filter, list, viewport, detached
 // triggers, menubar) and for React-only machinery are left out.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('menu.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('menu.tsx');
 
 describe('Menu.Trigger', () => {
   it('carries the button ARIA and toggles the menu on click', async () => {

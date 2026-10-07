@@ -1,7 +1,8 @@
 // Upstream: packages/react/src/utils/useSwipeDismiss.test.tsx
 //
 // The swipe's pure geometry. The gesture itself (pointer events, threshold,
-// damping while dragging) is covered in test/browser/toast.test.ts.
+// damping while dragging) is covered through its one part, the drawer, in
+// test/browser/drawer.test.ts.
 import { describe, expect, it } from 'bun:test';
 
 import { applyDirectionalDamping, getDisplacement, parseTransform } from './useSwipeDismiss.ts';

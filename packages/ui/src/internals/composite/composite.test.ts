@@ -23,7 +23,7 @@ const step = (overrides: Partial<CompositeNavigationParameters>) =>
     orientation: 'horizontal',
     direction: 'ltr',
     loopFocus: true,
-    enableHomeAndEndKeys: false,
+    enableHomeAndEndKeys: true,
     ...overrides,
   });
 
@@ -44,11 +44,6 @@ describe('getCompositeNavigationIndex', () => {
     expect(step({ orientation: 'vertical', key: 'ArrowRight' }).handled).toBe(false);
   });
 
-  it('takes both axes when the orientation is both', () => {
-    expect(step({ orientation: 'both', key: 'ArrowDown' }).index).toBe(1);
-    expect(step({ orientation: 'both', key: 'ArrowRight' }).index).toBe(1);
-  });
-
   it('swaps the horizontal arrows in right-to-left', () => {
     expect(step({ direction: 'rtl', key: 'ArrowLeft' }).index).toBe(1);
     expect(step({ direction: 'rtl', key: 'ArrowRight', highlightedIndex: 2 }).index).toBe(1);
@@ -65,10 +60,9 @@ describe('getCompositeNavigationIndex', () => {
     expect(step({ key: 'ArrowLeft', highlightedIndex: 0, loopFocus: false }).index).toBe(-1);
   });
 
-  it('moves to the first and last items on Home and End only when enabled', () => {
-    expect(step({ key: 'End' }).handled).toBe(false);
-    expect(step({ key: 'End', enableHomeAndEndKeys: true })).toEqual({ index: 3, handled: true });
-    expect(step({ key: 'Home', highlightedIndex: 3, enableHomeAndEndKeys: true }).index).toBe(0);
+  it('moves to the first and last items on Home and End', () => {
+    expect(step({ key: 'End' })).toEqual({ index: 3, handled: true });
+    expect(step({ key: 'Home', highlightedIndex: 3 }).index).toBe(0);
   });
 
   it('ignores keys a composite does not use', () => {

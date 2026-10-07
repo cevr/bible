@@ -10,19 +10,13 @@
 // every page's does; upstream's trigger cases, detached triggers, handles and
 // payloads, nested dialogs, alert dialogs, shadow roots, and React-only machinery (Suspense, act
 // timing, owner stacks) are left out.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('dialog.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('dialog.tsx');
 
 /** Whether the page's scroll is locked (the scroller's `overflow` is hidden). */
 const scrollLocked = (page: Page) =>

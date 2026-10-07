@@ -8,7 +8,8 @@
 //
 // The bottom sheet is 300px tall on an 800x600 page (its top edge at y=300);
 // the side sheet is 300px wide (its left edge at x=500). Their transforms
-// read the drawer's CSS variables, as a styled drawer's do.
+// read the drawer's CSS variables, as a styled drawer's do. The sheet's first
+// button is 100px tall, so a drag can stay on it.
 import type { JSX } from '@solidjs/web';
 import { createSignal, Show } from 'solid-js';
 
@@ -71,7 +72,7 @@ function BasicDrawer(): JSX.Element {
             <Drawer.Popup id="popup" class="popup">
               <Drawer.Title id="title">Sheet</Drawer.Title>
               <Drawer.Content id="content">Selectable text</Drawer.Content>
-              <button type="button" id="first">
+              <button type="button" id="first" style={{ height: '100px' }}>
                 first
               </button>
               <Drawer.Close id="close">Close</Drawer.Close>

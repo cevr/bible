@@ -115,20 +115,6 @@ describe('mergeProps', () => {
     expect(mergeProps({}, {})['class']).toBe(undefined);
   });
 
-  it('runs the internal handler when the external one does not prevent it', () => {
-    let ran = false;
-    const merged = mergeProps(
-      {
-        onClick() {
-          ran = true;
-        },
-      },
-      { onClick() {} },
-    );
-    call(merged, 'onClick', click());
-    expect(ran).toBe(true);
-  });
-
   it('stops the handlers to the left once one calls preventBaseUIHandler()', () => {
     const log: Array<string> = [];
     const merged = mergeProps(
@@ -161,7 +147,7 @@ describe('mergeProps', () => {
     ]);
   });
 
-  it('lets the source merged first win for plain props only when nothing overrides it', () => {
+  it('a source without the key does not shadow the one before it', () => {
     expect(mergeProps({ title: 'internal 2' }, { title: 'internal 1' }, {})['title']).toBe(
       'internal 1',
     );

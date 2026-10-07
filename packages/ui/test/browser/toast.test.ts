@@ -5,27 +5,20 @@
 // packages/react/src/toast/action/ToastAction.test.tsx,
 // packages/react/src/toast/close/ToastClose.test.tsx,
 // packages/react/src/toast/title/ToastTitle.test.tsx,
-// packages/react/src/toast/content/ToastContent.test.tsx,
-// packages/react/src/utils/useSwipeDismiss.test.tsx
+// packages/react/src/toast/content/ToastContent.test.tsx
 //
 // The behaviour cases, against a receipt toast (a title, a tone, an Undo
 // action) raised through a manager created outside the tree; its title
 // carries the receipt's count. Timers run on
 // Playwright's clock. Upstream's cases for React-only machinery (strict
 // mode, abandoned renders, layout-effect ordering) are left out.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('toast.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('toast.tsx');
 
 const roots = (page: Page) => page.locator('[data-testid="root"]');
 
@@ -329,47 +322,5 @@ describe('swipe', () => {
     await page.click('#raise');
     await drag(page, '[data-testid="action"]', 120, 0);
     await see(roots(page)).toHaveCount(1);
-  });
-});
-
-describe('useSwipeDismiss', () => {
-  it('dismisses past the threshold and reports the release', async () => {
-    const page = await h.open('swipe-dismiss');
-    await drag(page, '#swipe-box', 100, 0);
-    await see(page.locator('#swipe-box')).toHaveAttribute('data-dismissed', '');
-    const lines = await logOf(page);
-    expect(lines.at(-1)).toBe('dismiss right');
-    expect(lines.find((line) => line.startsWith('release'))).toMatch(/^release right \d+$/);
-  });
-
-  it('snaps back below the threshold', async () => {
-    const page = await h.open('swipe-dismiss');
-    await drag(page, '#swipe-box', 20, 0);
-    await see(page.locator('#swipe-box')).not.toHaveAttribute('data-dismissed', '');
-    await see(page.locator('#swipe-box')).toHaveCSS('--movement-x', '0px');
-    expect(await logOf(page)).not.toContain('dismiss right');
-  });
-
-  it('damps movement against the allowed direction while dragging', async () => {
-    const page = await h.open('swipe-dismiss');
-    const box = await page.locator('#swipe-box').boundingBox();
-    if (!box) {
-      throw new Error('no box');
-    }
-    await page.mouse.move(box.x + 150, box.y + 60);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 140, box.y + 60);
-    await page.mouse.move(box.x + 40, box.y + 60, { steps: 5 });
-    await see(page.locator('#swipe-box')).toHaveAttribute('data-swiping', '');
-    // 100px to the left, damped to its square root.
-    await see(page.locator('#swipe-box')).toHaveCSS('--movement-x', '-10px');
-    await page.mouse.up();
-    await see(page.locator('#swipe-box')).not.toHaveAttribute('data-dismissed', '');
-  });
-
-  it('does not start a swipe while the pointer stays on a button', async () => {
-    const page = await h.open('swipe-dismiss');
-    await drag(page, '#swipe-button', 4, 0, 2);
-    expect(await logOf(page)).toEqual([]);
   });
 });

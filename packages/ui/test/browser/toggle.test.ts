@@ -6,11 +6,11 @@
 // and its roving focus per orientation and direction. Upstream's console
 // spy for a missing `value` is left out (a test-runner spy); the behaviour of
 // toggles without values is kept.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
 /** Runs `run` over `items` one after another (each step waits on the page). */
 const inSequence = <T>(items: ReadonlyArray<T>, run: (item: T) => Promise<void>) =>
@@ -19,13 +19,7 @@ const inSequence = <T>(items: ReadonlyArray<T>, run: (item: T) => Promise<void>)
     Promise.resolve(),
   );
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('toggle.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('toggle.tsx');
 
 describe('Toggle', () => {
   it('toggles its own pressed state, reporting each change', async () => {

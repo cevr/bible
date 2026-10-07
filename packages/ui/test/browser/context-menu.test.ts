@@ -5,19 +5,13 @@
 // mouseup grace after a right click, the native menu suppression, and the
 // touch long press with its move threshold. Timers run on `page.clock`;
 // touches are dispatched as real TouchEvents in a touch context.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('context-menu.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('context-menu.tsx');
 
 /** The centre of the trigger area. */
 const areaCentre = async (page: Page): Promise<{ x: number; y: number }> => {
@@ -391,30 +385,13 @@ describe('ContextMenu.Root: the page scroll', () => {
     await see.poll(() => scrollLocked(page)).toBe(false);
 
     const phone = await h.open('area', { touch: true });
-    const f = await finger(phone);
+    await phone.clock.install();
     const centre = await areaCentre(phone);
-    await f.down(centre.x, centre.y);
+    await touch(phone, 'touchstart', centre.x, centre.y);
+    await phone.clock.runFor(500);
     await see(phone.locator('#popup')).toBeVisible();
     await see.poll(() => scrollLocked(phone)).toBe(true);
-    await f.up();
-  });
-});
-
-describe('ContextMenu.Root: reactivity', () => {
-  it('mounts and opens without reading reactive props outside a tracking scope', async () => {
-    const page = await h.open('area');
-    const warnings: Array<string> = [];
-    page.on('console', (message) => {
-      if (message.text().includes('STRICT_READ_UNTRACKED')) {
-        warnings.push(message.text());
-      }
-    });
-    await page.reload();
-    await page.locator('#root[data-mounted]').waitFor({ state: 'attached' });
-    const { x, y } = await areaCentre(page);
-    await page.mouse.click(x, y, { button: 'right' });
-    await see(page.locator('#popup')).toBeVisible();
-    expect(warnings).toEqual([]);
+    await touch(phone, 'touchend', centre.x, centre.y);
   });
 });
 

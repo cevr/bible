@@ -13,19 +13,13 @@
 // driven with `pointermove` events carrying `movementX`/`movementY` (as
 // upstream drives it), and the real-mouse drags run with the lock refused,
 // the path WebKit and refused locks take.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, harness, logOf } from './harness.ts';
+import { harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('number-field.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('number-field.tsx');
 
 const open = (fixture: string, query: Record<string, string> = {}) => h.open(fixture, { query });
 const input = (page: Page) => page.locator('#input');
