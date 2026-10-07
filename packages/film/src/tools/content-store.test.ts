@@ -67,13 +67,30 @@ const withAsset = (key: string) => (m: typeof Assets.Type) => ({
   assets: { ...m.assets, [key]: { hash: key, file: `${key}.flac` } },
 });
 
-/** `effect` run while the test clock passes every wait a writer makes for another's lock. */
-const waited = <A, E>(effect: Effect.Effect<A, E>) =>
+/**
+ * `effect` run while the test clock passes every wait a writer makes for
+ * another's lock, from once `refused` (its first refusal, when the disk is
+ * between it and its first try) is done.
+ */
+const waited = <A, E>(effect: Effect.Effect<A, E>, refused: Effect.Effect<unknown> = Effect.void) =>
   Effect.gen(function* () {
     const running = yield* Effect.forkChild(effect);
+    yield* refused;
     for (let i = 0; i < 300; i += 1) yield* TestClock.adjust('20 millis');
     return yield* Fiber.join(running);
   });
+
+/** Bun's lock, telling `refused` when it is refused. */
+const tellingRefusal = (refused: Deferred.Deferred<boolean>): ManifestLockService => ({
+  take: (file) =>
+    bunManifestLock
+      .take(file)
+      .pipe(
+        Effect.tap((got) =>
+          Effect.when(Deferred.succeed(refused, true), Effect.succeed(Option.isNone(got))),
+        ),
+      ),
+});
 
 /** The timeout of a test that starts a process of its own: a cold start's time is the machine's. */
 const SPAWNS_MS = 30_000;
@@ -169,8 +186,14 @@ describe('ContentStore', () => {
         );
         expect(said).toContain('held');
         // Another process holds it: this writer waits its whole wait, and is refused.
-        const store = yield* storeOnDisk;
-        const refused = yield* waited(Effect.flip(store.update(shared, withAsset('x'))));
+        const first = yield* Deferred.make<boolean>();
+        const store = yield* storeOnDisk.pipe(
+          Effect.provideService(ManifestLock, tellingRefusal(first)),
+        );
+        const refused = yield* waited(
+          Effect.flip(store.update(shared, withAsset('x'))),
+          Deferred.await(first),
+        );
         expect(refused).toMatchObject({ _tag: 'StoreLocked', file: shared.file });
         // Killed where it stands: the next change lands at its first try, no clock passing.
         yield* holder.kill({ killSignal: 'SIGKILL' });
