@@ -119,12 +119,17 @@ export const labOpensAt = (placed: ReadonlyArray<Placed>, href: string): number 
 };
 
 /**
- * The studio's beat at `href`: the one the link picks (`?beat=`), else the
- * path's scene (a beat is a scene's take), so Record opens where the lab is.
+ * The studio's beat at `href`, among the beats `listed`: the one the link
+ * picks (`?beat=`), else the path's scene (a beat is a scene's take), so
+ * Record opens where the lab is. A beat the film does not list (a link made
+ * before a scene was renamed) reads as absent.
  */
-export const beatAt = (href: string): Option.Option<string> => {
+export const beatAt = (href: string, listed: ReadonlyArray<string>): Option.Option<string> => {
   const place = labPlaceOf(href);
-  return Option.orElse(place.beat, () => place.scene);
+  const isListed = (id: string) => listed.includes(id);
+  return Option.orElse(Option.filter(place.beat, isListed), () =>
+    Option.filter(place.scene, isListed),
+  );
 };
 
 /** What the lab writes beside the frame's time: its pick, its note, the studio's beat, the compare's mode and the loop. */

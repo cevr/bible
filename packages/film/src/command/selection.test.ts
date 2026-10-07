@@ -8,7 +8,6 @@ import {
   cueOf,
   knobOf,
   labKeysOf,
-  sameSelection,
   selectionOf,
   selectionText,
 } from './selection.ts';
@@ -201,12 +200,6 @@ describe("a selection in the pages' URLs", () => {
   test("writes a cue's or a knob's lab keys", () => {
     expect(labKeysOf(cueOf('one', 'rise'))).toEqual({ cue: 'rise' });
     expect(labKeysOf(knobOf('one', 'size'))).toEqual({ knob: 'size' });
-  });
-
-  test('tells two selections of one thing from two of different things', () => {
-    expect(sameSelection(cueOf('one', 'rise'), cueOf('one', 'rise'))).toBe(true);
-    expect(sameSelection(cueOf('one', 'rise'), knobOf('one', 'rise'))).toBe(false);
-    expect(sameSelection(cueOf('one', 'rise'), cueOf('two', 'rise'))).toBe(false);
   });
 
   test('reads as a person names it', () => {
