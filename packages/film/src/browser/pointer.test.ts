@@ -110,6 +110,19 @@ describe("Pointer.press's drag", () => {
       expect(p.done()).toBe(true);
     });
 
+  for (const left of ['blur', 'visibilitychange'])
+    test(`ends once when the page is left (${left}), not lifted: a release outside it is never heard`, () => {
+      const p = page();
+      p.press(5);
+      p.send('pointermove', 5, 10);
+      p.window.dispatchEvent(new Event(left));
+      p.window.dispatchEvent(new Event(left));
+      p.send('pointermove', 5, 50);
+      expect(p.moves).toEqual([10]);
+      expect(p.ends).toEqual([Option.none()]);
+      expect(p.done()).toBe(true);
+    });
+
   test('interrupted, it hears nothing more and tells no end', () => {
     const p = page();
     p.press(1);

@@ -2831,7 +2831,8 @@ in memory when the page may not use its storage. Every drag (the
 player's track, the strip's scrub and its cue bars, a knob's handle, the
 wipe's divider, a note's mark) follows its press through `Pointer`
 (`browser/pointer.ts`), which ends it once: lifted, or ended by the browser
-(`pointercancel`, `lostpointercapture`). A surface (the strip, the notes,
+(`pointercancel`, `lostpointercapture`, or the page left mid-press: the
+window's `blur`, the tab hidden). A surface (the strip, the notes,
 the editor's grips, a divider, the blink, the tape) follows one press at a
 time (`Pointer.press`): a second finger's press on it does nothing. The
 lint refuses a press's end heard, or its capture taken, anywhere else
