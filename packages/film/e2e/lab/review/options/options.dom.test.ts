@@ -539,6 +539,11 @@ describe("a film's choices", () => {
         yield* until(page, pointIs(LEVEL));
         yield* until(page, cardInView(LEVEL));
         yield* until(page, focusIn(LEVEL));
+        // Scrolled down the page, the strip stays under the header, to go to another kind.
+        yield* until(
+          page,
+          "scrollY > 0 && Math.round(document.querySelector('.rv-kinds').getBoundingClientRect().top) === Math.round(document.querySelector('.sh-header').getBoundingClientRect().bottom)",
+        );
         // The jump is a step: Back walks it, and a reload lands on it again.
         yield* page.back;
         yield* until(page, pointIs(''));

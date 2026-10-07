@@ -228,8 +228,18 @@ a.rv-card:hover { background: var(--surface-2); }
 }
 .rv-tag[data-state="stale"] { color: var(--state-stale); }
 .rv-choices { display: contents; }
-/* The kinds strip: one row of tabs (scrolling sideways on a phone). */
-.rv-kinds { display: flex; gap: var(--s-1); margin-top: var(--s-3); overflow-x: auto; }
+/*
+ * The kinds strip: one row of tabs (scrolling sideways on a phone), held
+ * under the header as the page scrolls, as Scenes' tape bar is; on a laptop
+ * under the dock held there too.
+ */
+.rv-kinds {
+  display: flex; gap: var(--s-1); margin-top: var(--s-1); padding: var(--s-2) 0; overflow-x: auto;
+  position: sticky; top: var(--header-h); z-index: 10; background: var(--surface-0);
+}
+@media ${WIDE} {
+  .rv-kinds { top: calc(var(--header-h) + var(--dock-h)); }
+}
 .rv-kinds .sh-btn { flex: none; }
 .rv-kinds .rv-count { color: var(--text-3); font-variant-numeric: tabular-nums; }
 .rv-group + .rv-group { margin-top: var(--s-4); }
