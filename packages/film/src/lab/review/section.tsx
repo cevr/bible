@@ -1017,23 +1017,41 @@ const VariantCap = (props: { readonly variant: SeenVariant }) => {
   );
 };
 
-/** A variant's video on the set's clock, and its caption; marked while its inspector is open (SU-13). */
-const VariantCard = (props: { readonly variant: SeenVariant }) => {
+/**
+ * A version's card, in whichever view of the set shows it: its context
+ * menu's, lit while it is the one heard (`audible`, where the view plays),
+ * and marked while its inspector is open, so no view leaves the inspected
+ * version unmarked.
+ */
+const VersionCard = (
+  props: ParentProps<{ readonly version: string; readonly audible?: boolean }>,
+) => {
   const { folder, set, sync } = useSet();
   // A card is keyed by its version: its selection is fixed for as long as it lives.
-  const inspected = useInspected(untrack(() => versionOf(folder, set, props.variant.id)));
+  const of = untrack(() => versionOf(folder, set, props.version));
+  const inspected = useInspected(of);
   return (
     <Target
-      of={versionOf(folder, set, props.variant.id)}
-      class={['rv-card', { 'rv-audible': sync().audible === props.variant.id }]}
-      data-id={props.variant.id}
+      of={of}
+      class={[
+        'rv-card',
+        { 'rv-audible': props.audible === true && sync().audible === props.version },
+      ]}
+      data-id={props.version}
       data-selected={pressed(inspected())}
     >
-      <VariantVideo variant={props.variant} />
-      <VariantCap variant={props.variant} />
+      {props.children}
     </Target>
   );
 };
+
+/** A variant's video on the set's clock, and its caption. */
+const VariantCard = (props: { readonly variant: SeenVariant }) => (
+  <VersionCard version={props.variant.id} audible>
+    <VariantVideo variant={props.variant} />
+    <VariantCap variant={props.variant} />
+  </VersionCard>
+);
 
 const gridClass = (count: number) => {
   if (count <= 2) return 'rv-grid rv-two';
@@ -1164,7 +1182,7 @@ const WipePanes = (props: {
  */
 const WipeView = (props: { readonly other: string }) => {
   const { meta } = useReview();
-  const { folder, set, sync } = useSet();
+  const { set } = useSet();
   const pair = () => pairOf(set, props.other);
   const [split, setSplit] = createSignal(WIPE_AT, { ownedWrite: true });
   let frame = Option.none<HTMLElement>();
@@ -1288,13 +1306,9 @@ const WipeView = (props: { readonly other: string }) => {
       <div class="rv-grid rv-two rv-wipe-caps">
         <For each={[pair().first, pair().other].flatMap(Option.toArray)}>
           {(variant) => (
-            <Target
-              of={versionOf(folder, set, variant.id)}
-              class={['rv-card', { 'rv-audible': sync().audible === variant.id }]}
-              data-id={variant.id}
-            >
+            <VersionCard version={variant.id} audible>
               <VariantCap variant={variant} />
-            </Target>
+            </VersionCard>
           )}
         </For>
       </div>
@@ -1361,7 +1375,7 @@ const WithMoments = (props: {
 };
 
 const MomentsView = (props: { readonly index: number }) => {
-  const { folder, set } = useSet();
+  const { set } = useSet();
   return (
     <WithMoments index={props.index}>
       {(ms, at) => (
@@ -1370,11 +1384,7 @@ const MomentsView = (props: { readonly index: number }) => {
           <div class={gridClass(set.variants.length)}>
             <For each={set.variants}>
               {(variant) => (
-                <Target
-                  of={versionOf(folder, set, variant.id)}
-                  class="rv-card"
-                  data-id={variant.id}
-                >
+                <VersionCard version={variant.id}>
                   <Zoom
                     still={reviewFrameUrl(variant.video.ref, Option.some(at()), MOMENT_W)}
                     alt={`${variant.label} at ${timecode(at())}`}
@@ -1384,7 +1394,7 @@ const MomentsView = (props: { readonly index: number }) => {
                     }}
                   />
                   <StillCap variant={variant} />
-                </Target>
+                </VersionCard>
               )}
             </For>
           </div>
@@ -1401,7 +1411,7 @@ const MomentsView = (props: { readonly index: number }) => {
  * playing videos: the server cuts both at the one `t`, so the blend is exact.
  */
 const DiffView = (props: { readonly other: string; readonly index: number }) => {
-  const { folder, set } = useSet();
+  const { set } = useSet();
   const pair = () => pairOf(set, props.other);
   const frameOf = (variant: SeenVariant, t: number) =>
     reviewFrameUrl(variant.video.ref, Option.some(t), MOMENT_W);
@@ -1437,13 +1447,9 @@ const DiffView = (props: { readonly other: string; readonly index: number }) => 
           <div class="rv-grid rv-two rv-wipe-caps">
             <For each={[pair().first, pair().other].flatMap(Option.toArray)}>
               {(variant) => (
-                <Target
-                  of={versionOf(folder, set, variant.id)}
-                  class="rv-card"
-                  data-id={variant.id}
-                >
+                <VersionCard version={variant.id}>
                   <StillCap variant={variant} />
-                </Target>
+                </VersionCard>
               )}
             </For>
           </div>

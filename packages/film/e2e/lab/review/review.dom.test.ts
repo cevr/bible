@@ -27,6 +27,7 @@ import {
 } from '../../../src/lab/fixtures/harness.ts';
 import {
   attributeIs,
+  attributesAre,
   countIs,
   evaluates,
   textHas,
@@ -393,6 +394,14 @@ describe('the review page', () => {
         // A reload opens the view the URL keeps.
         yield* page.goto(`${SET}?view=moments&m=2`);
         yield* waitFor(page, 'button[data-moment="2"][aria-pressed="true"]');
+
+        // Every view marks the version whose sheet is open: Moments and Difference too.
+        yield* page.goto(`${SET}?view=moments&inspect=B`);
+        yield* waitFor(page, '[data-role="inspector"]');
+        yield* attributesAre(page, '.rv-card[data-selected="true"]', 'data-id', ['B']);
+        yield* page.goto(`${SET}?view=diff&other=B&inspect=B`);
+        yield* waitFor(page, '[data-role="inspector"]');
+        yield* attributesAre(page, '.rv-card[data-selected="true"]', 'data-id', ['B']);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
