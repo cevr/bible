@@ -768,6 +768,21 @@ describe('the player', () => {
   );
 
   it.live(
+    "the tape's lines mount, and are laid out again across the phone's width, with no cleanup Solid cannot run",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+        );
+        yield* page.resize(PHONE.width, PHONE.height);
+        yield* attributeIs(page, TAPE, 'data-line', '30');
+        yield* page.waitFor(STILL_DRAWN);
+        expect(page.logged.filter((m) => m.text.includes('NO_OWNER_CLEANUP'))).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     "a Scenes link naming a scene and no time opens at that scene's start; one with a time keeps it (SU-2)",
     () =>
       Effect.gen(function* () {

@@ -523,17 +523,22 @@ export const ScenesView = (props: ScenesViewProps) => {
       const r = body.getBoundingClientRect();
       return timeAt(tape(), row.index, (e.clientX - r.left) / Math.max(r.width, 1));
     };
+    // The line's watch stops with the line (its owner), not in its ref, which has none; a
+    // line laid out afresh in its place may hold its row's entry by then.
+    let unwatch = () => {};
+    let mine = Option.none<HTMLElement>();
+    onCleanup(() => {
+      unwatch();
+      if (Option.exists(mine, (el) => rows.get(row.index) === el)) rows.delete(row.index);
+    });
     return (
       <div
         class="sc-line"
         data-row={row.index}
         ref={(el: HTMLDivElement) => {
+          mine = Option.some(el);
           rows.set(row.index, el);
-          const unwatch = onScreen.watch(el, () => row.stills.map((s) => s.t));
-          onCleanup(() => {
-            unwatch();
-            rows.delete(row.index);
-          });
+          unwatch = onScreen.watch(el, () => row.stills.map((s) => s.t));
         }}
       >
         <span class="sc-line-tc">{lineTime(row.from, film.fps)}</span>
