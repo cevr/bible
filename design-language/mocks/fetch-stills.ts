@@ -8,16 +8,32 @@
 // tape still every 5 s of film time (`tape-000.jpg`, `tape-005.jpg`, …), one
 // poster a scene (`poster-<scene>.jpg`), and the Lab's large frame
 // (`big-cold.jpg`, cold at 9.5 s). A scene with no render is named and skipped.
+// The folder then holds exactly this run's stills: every still of those three
+// kinds the run did not write (a skipped scene's, another film's, a render
+// since gone) is removed, so a mock shows a missing still as missing, never an
+// old one as current.
 //
 //   LAB=http://127.0.0.1:8270 bun design-language/mocks/fetch-stills.ts
 //
 // `LAB` is the lab's address (required); `FILM` the film (default
 // righteousness-by-faith); `OUT` the folder written (default `stills/` here).
 
-import { Array as Arr, Cause, Config, Console, Effect, Option, Record } from 'effect';
+import {
+  Array as Arr,
+  Cause,
+  Config,
+  Console,
+  Effect,
+  FileSystem,
+  Layer,
+  Option,
+  Record,
+} from 'effect';
 import { FetchHttpClient } from 'effect/http';
 import { HttpApiClient } from 'effect/http-api';
 
+// The script sits in no package; the film package carries the Bun platform it reads files through.
+import { layer as BunFileSystem } from '../../packages/film/node_modules/@effect/platform-bun/dist/BunFileSystem.js';
 import { LabHttpApi, type ProjectView } from '../../packages/film/src/core/api.ts';
 
 /** Seconds of film time between two tape stills, as §6's tape lays them. */
@@ -29,20 +45,25 @@ const BIG = [['cold', 9.5, 'big-cold.jpg']] as const;
 export const sceneVideo = (view: ProjectView, scene: string): Option.Option<string> =>
   Option.map(Record.get(view.videos, scene), (video) => video.ref);
 
+/** A file this script writes: a tape still, a poster or a large frame. */
+const isStill = (file: string) => /^(?:tape|poster|big)-[\w-]+\.jpg$/.test(file);
+
 const fetchStills = Effect.gen(function* () {
   const lab = yield* Config.String('LAB');
   const film = yield* Config.String('FILM').pipe(Config.withDefault('righteousness-by-faith'));
   const out = yield* Config.String('OUT').pipe(Config.withDefault(`${import.meta.dir}/stills`));
   const client = yield* HttpApiClient.make(LabHttpApi, { baseUrl: lab });
+  const fs = yield* FileSystem.FileSystem;
   const view = yield* client.project.get({ params: { film }, query: {} });
-  // A frame's bytes written under `out`; a scene with no render is named and skipped.
+  yield* fs.makeDirectory(out, { recursive: true });
+  // A frame's bytes written under `out`, and its name; a scene with no render is named and skipped.
   const frame = (scene: string, t: number, w: number, file: string) =>
     Option.match(sceneVideo(view, scene), {
-      onNone: () => Console.log(`miss ${file}: no render of ${scene}`),
+      onNone: () => Console.log(`miss ${file}: no render of ${scene}`).pipe(Effect.as([])),
       onSome: (ref) =>
         client.review.frame({ query: { ref, t, w } }).pipe(
-          // oxlint-disable-next-line effect/noGlobals -- the script's one host write, at its edge
-          Effect.flatMap((bytes) => Effect.promise(() => Bun.write(`${out}/${file}`, bytes))),
+          Effect.flatMap((bytes) => fs.writeFile(`${out}/${file}`, bytes)),
+          Effect.as([file]),
         ),
     });
   // The scenes the film's cut places, each with its span of film time.
@@ -50,13 +71,13 @@ const fetchStills = Effect.gen(function* () {
     view.project.scenes.map(({ scene, span }) => Option.map(span, (at) => ({ scene, span: at }))),
   );
   const end = Math.max(0, ...scenes.map((s) => s.span.start + s.span.dur));
-  yield* Effect.forEach(
+  const tape = yield* Effect.forEach(
     Arr.makeBy(Math.ceil(end / STEP), (i) => i * STEP),
     (t) =>
       Option.match(
         Arr.findLast(scenes, (s) => s.span.start <= t + 0.001),
         {
-          onNone: () => Effect.void,
+          onNone: () => Effect.succeed([]),
           // A little into the step, never past the scene's last frame.
           onSome: (at) =>
             frame(
@@ -68,11 +89,19 @@ const fetchStills = Effect.gen(function* () {
         },
       ),
   );
-  yield* Effect.forEach(scenes, (s) =>
+  const posters = yield* Effect.forEach(scenes, (s) =>
     frame(s.scene, Math.min(s.span.dur * 0.45, s.span.dur - 0.1), 480, `poster-${s.scene}.jpg`),
   );
-  yield* Effect.forEach(BIG, ([scene, t, file]) => frame(scene, t, 1280, file));
-  yield* Console.log(`${film}: ${scenes.length} scenes over ${end.toFixed(1)} s into ${out}`);
+  const big = yield* Effect.forEach(BIG, ([scene, t, file]) => frame(scene, t, 1280, file));
+  // The folder is this run's stills: any other still is a skipped scene's, another film's or a gone render's.
+  const written = new Set([tape, posters, big].flat(2));
+  const stale = (yield* fs.readDirectory(out)).filter(
+    (file) => isStill(file) && !written.has(file),
+  );
+  yield* Effect.forEach(stale, (file) => fs.remove(`${out}/${file}`));
+  yield* Console.log(
+    `${film}: ${scenes.length} scenes over ${end.toFixed(1)} s, ${written.size} stills into ${out}, ${stale.length} stale removed`,
+  );
 });
 
 /** The fetch as one run: a failure (no `LAB`, a lab not answering) is printed, not swallowed. */
@@ -80,7 +109,7 @@ export const run = () =>
   Effect.runPromise(
     fetchStills.pipe(
       Effect.tapCause((cause) => Console.error(Cause.pretty(cause))),
-      Effect.provide(FetchHttpClient.layer),
+      Effect.provide(Layer.mergeAll(FetchHttpClient.layer, BunFileSystem)),
     ),
   );
 
