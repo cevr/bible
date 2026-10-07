@@ -356,3 +356,29 @@ Pass 3 opens with:
 - **Leftovers:**
   - 908 `/tmp/atom-solid-ssr-*` and 763 `/tmp/bible-ui-browser*` directories from before their leaks were fixed.
   - p2-reduction's note: a scene over 8 s has no e2e, because no probe scene is that long.
+
+## Pass 3
+
+Opened 2026-10-07 at `121f862d`, at the owner's word ("continue where it left off"). Pass 2 cannot be the last: its batches moved every area, and three Carried rows stay open.
+
+### Baseline
+
+- Count: pass 2's pathspec, unchanged. The command and the per-directory table are in `~/.cache/architecture-loop/bible-tools/coverage-pass3.txt`. The sweeps also read the eight files pass 2 changed outside it: `player/player.css`, `player/tokens.css`, and `tools/{content-store,narrator,project-cli,testing,check,film-check}.ts`.
+
+| Package               | Lines  | Files |
+| --------------------- | ------ | ----- |
+| `packages/film` (lab) | 43,977 | 192   |
+| `packages/ui`         | 16,217 | 124   |
+| `packages/url-state`  | 1,430  | 12    |
+| `packages/atom-solid` | 568    | 3     |
+| `apps/animations`     | 359    | 7     |
+| total                 | 62,551 | 338   |
+
+Pass 2 opened at 72,666 lines and 429 files.
+
+### Coverage
+
+No new directory. Every directory in the pathspec was swept in pass 2, so the close rule's "no unswept directory" holds. Pass 2 changed every area, so pass 3 sweeps all seven areas again, not only the five the pause note named. The areas are `player-shell`, `review-scenes`, `editor-timing`, `host-commands`, `server`, `state` and `ui-port`.
+
+- `PRIOR_ARTS.md` → To survey is empty: no prior-art sweep this pass.
+- Leftovers: the 1,671 old `/tmp` test directories are already gone (checked 2026-10-07), so that row is closed.
