@@ -62,8 +62,8 @@ interface LabPageValue {
   /** Show `mode` in the panel, and keep it for this viewer. */
   readonly showMode: (mode: LabMode) => void;
   /**
-   * The beats the film lists, as the studio read them (its one read): the
-   * first list heard decides, once, whether the link's `?beat=` opens Record.
+   * The beats the film lists, as the studio read them (its one read): with
+   * them the panel decides, once an entry, whether its `?beat=` opens Record.
    */
   readonly beatsListed: (beats: ReadonlyArray<string>) => void;
   /** What a reload held by the owner's unsaved work waits for; empty while none waits. */
@@ -219,25 +219,47 @@ export const LabPage = (
       () => modeOf(kept()),
     ),
   );
-  /** Whether the viewer has picked a mode on this page: after that, no link's beat changes it. */
+  /** Whether the viewer has picked a mode since the link last cited another beat or note. */
   let picked = false;
   const showMode = (m: LabMode) => {
     picked = true;
     setChosen(Option.some(m));
     keep(m);
   };
-  // A link that names a beat (`?beat=`) the film lists shows Record (the only
-  // mode that shows beats), decided once, when the studio's list is first
-  // heard: a beat the film no longer lists, a list never read, or a mode the
-  // viewer picked meanwhile leaves the mode as it is, and a note cited beside
-  // it keeps Note. The recorder's own beat is the studio's (`beatAt`).
-  let beatsHeard = false;
+  // Each time the link comes to cite another beat or note (an entry: a
+  // reload, a pasted link, a beat picked, Back), one that names a beat
+  // (`?beat=`) the film lists, and no note, shows Record (the only mode that
+  // shows beats). It is decided once an entry, when both the entry and the
+  // studio's list are known: a beat the film no longer lists, a list never
+  // read, or a mode the viewer picked on the entry before then leaves the
+  // mode as it is. The path's scene alone never opens Record; the
+  // recorder's own beat is the studio's (`beatAt`).
+  const [listed, setListed] = createSignal(Option.none<ReadonlyArray<string>>(), {
+    ownedWrite: true,
+  });
+  const cited = createMemo(
+    () => `${Option.getOrElse(here().beat, () => '')}?${Option.getOrElse(here().note, () => '')}`,
+  );
+  let entry = Option.none<string>();
+  let decided = false;
+  createEffect(
+    () => [cited(), listed()] as const,
+    ([cite, beats]) => {
+      if (!Option.contains(entry, cite)) {
+        entry = Option.some(cite);
+        decided = false;
+        picked = false;
+      }
+      if (decided || Option.isNone(beats)) return;
+      decided = true;
+      const at = untrack(here);
+      const listedBeat = Option.filter(at.beat, (b) => beats.value.includes(b));
+      if (!picked && Option.isNone(at.note) && Option.isSome(listedBeat))
+        setChosen(Option.some<LabMode>('record'));
+    },
+  );
   const beatsListed = (beats: ReadonlyArray<string>) => {
-    if (beatsHeard) return;
-    beatsHeard = true;
-    const at = untrack(here);
-    if (!picked && Option.isNone(at.note) && Option.exists(at.beat, (b) => beats.includes(b)))
-      setChosen(Option.some<LabMode>('record'));
+    setListed(Option.some(beats));
   };
   // A note picked (a link, a pin, Back) shows the Note mode on this page, the
   // only one that shows notes, and leaves the viewer's own mode as it was (a

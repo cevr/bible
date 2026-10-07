@@ -200,6 +200,12 @@ const shownAt = (page: Tab, t: number) => evaluates(page, URL_T, t);
 const startOf = (scene: string) =>
   probeFilm().placed.find((p) => p.spec.id === scene)?.start ?? Number.NaN;
 
+/** The beat the URL cites (`?beat=`), or '' for none. */
+const BEAT_IN_URL = "new URLSearchParams(location.search).get('beat') ?? ''";
+
+/** The note the URL selects (`?note=`), or '' for none. */
+const NOTE_IN_URL = "new URLSearchParams(location.search).get('note') ?? ''";
+
 /** The probe film's beats, one a scene, each with one line to record. */
 const SCENE_BEATS: Json = {
   film: PROBE,
@@ -360,6 +366,52 @@ describe('the studio', () => {
           yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
           yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
           yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    'each entry that names a listed beat and no note shows Record: Back from a note to a beat picked lands in Record on it',
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const note = {
+            scene: 'two',
+            T: 0.5,
+            frame: 15,
+            text: 'the ball rises too early',
+            id: 'n1',
+            film: PROBE,
+            seq: 1,
+            changed: 1,
+            status: 'open',
+            still: 'n1.png',
+            thread: [],
+            createdAt: '2026-09-28T00:00:00.000Z',
+          };
+          const { page } = yield* openLab(
+            [
+              route('GET', /^\/studio\/beats$/, () => json(SCENE_BEATS)),
+              route('GET', /^\/notes$/, () => json({ film: PROBE, seq: 1, notes: [note] })),
+              ...studioRoutes,
+            ],
+            { href: labAt(startOf('two') + 0.5, { beat: 'two' }), mic: { allowed: true } },
+          );
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'record');
+          yield* page.waitFor('[data-beat="two"].selected');
+          // A beat picked, then a note opened from its pin on the timeline: Note shows it.
+          yield* page.click('[data-beat="three"]');
+          yield* evaluates(page, BEAT_IN_URL, 'three');
+          yield* page.click('.track .tick.note');
+          yield* evaluates(page, NOTE_IN_URL, 'n1');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'note');
+          // Back to the beat picked, no note: Record, on it.
+          yield* page.back;
+          yield* evaluates(page, NOTE_IN_URL, '');
+          yield* evaluates(page, BEAT_IN_URL, 'three');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'record');
+          yield* page.waitFor('[data-beat="three"].selected');
         }),
       ),
     60_000,
