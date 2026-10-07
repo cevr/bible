@@ -61,7 +61,8 @@ body { overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 .sh-tool:hover:not(:disabled), .sh-tool[data-popup-open] { background: var(--surface-3); color: var(--text-1); }
 .sh-tool:disabled { color: var(--text-3); cursor: default; }
 .sh-tool .sh-dots { fill: currentColor; stroke: none; }
-.sh-tool:is([aria-pressed="true"], .on) { color: var(--accent); }
+/* Pressed wins over hover: a pressed tool under the pointer takes the hover's ground and keeps its colour. */
+.sh-tool:is([aria-pressed="true"], .on), .sh-tool:is([aria-pressed="true"], .on):hover:not(:disabled) { color: var(--accent); }
 .sh kbd { font-family: var(--font); font-size: var(--fs-1); line-height: var(--lh-1); padding: 0 var(--s-1);
   border: 1px solid var(--line-strong); border-radius: var(--r-1); color: var(--text-2); }
 .sh-header :focus-visible { outline: none; box-shadow: var(--focus-ring); }

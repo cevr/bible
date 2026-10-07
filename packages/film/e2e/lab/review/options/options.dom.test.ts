@@ -494,6 +494,16 @@ describe("a film's choices", () => {
           true,
         );
         yield* countIs(page, '.rv-sound:not(:has(svg.sh-icon))[data-act="hear"]', 0);
+        // Pressed wins over hover: with the pointer on it, it keeps the pressed colour.
+        const pianoHear = `${at('score', 'piano')} [data-act="hear"]`;
+        const onPiano = yield* page.box(pianoHear);
+        yield* page.mouse.move(onPiano.x + onPiano.width / 2, onPiano.y + onPiano.height / 2);
+        yield* evaluates(
+          page,
+          `document.querySelector('${pianoHear}').matches(':hover') && ${speaker('piano')} === ${accent}`,
+          true,
+        );
+        yield* page.mouse.move(1, 1);
         // A take in place, and alone.
         yield* click(page, `${at('take:paper.page', WAITING)} [data-act="hear"]`);
         yield* until(
