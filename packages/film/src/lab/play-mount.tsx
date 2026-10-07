@@ -15,7 +15,7 @@ import { Places, pageHref } from '../core/api.ts';
 import type { Placed } from '../core/layout.ts';
 import { type Host, addressOn } from '../browser/host.ts';
 import type { Hub } from '../command/hub.ts';
-import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
+import { type Films, type Player, mountPreview, stageFilm } from '../player/main.ts';
 import { TIME_MOVE, onTheMs, type TimeInUrl } from '../player/t-in-url.ts';
 import { type FilmBody, PLAY_PAGE, playOn, playPartOf } from './film-page.tsx';
 import { mountStudio } from './page-client.tsx';
@@ -86,11 +86,12 @@ const NoBody = () => <></>;
 /**
  * The Scenes or Play page's body for `pages` over `host`: the film its path
  * names staged, its preview mounted on the page's commands, under the
- * Scenes' tape or on its own as the link says. A film that does not start
- * ends the page (`end`: its keys) and says why in its place.
+ * Scenes' tape or on its own as the link says. A film that does not start,
+ * or whose faces do not load, fails the page (`fail`: its keys end, and it
+ * says why in its place).
  */
 const playBody =
-  (pages: Films, host: Host, end: Effect.Effect<void>): FilmBody =>
+  (pages: Films, host: Host, fail: (why: string) => Effect.Effect<void>): FilmBody =>
   (hub: Hub) =>
     Effect.runPromiseWith(host)(
       Effect.gen(function* () {
@@ -111,6 +112,7 @@ const playBody =
             Match.orElse(() => playTime(staged.name, host)),
           ),
           hub,
+          fail,
         );
         yield* Effect.logInfo(`play.mounted film=${staged.name} part=${part}`);
         return {
@@ -129,15 +131,7 @@ const playBody =
             ),
         };
       }).pipe(
-        Effect.catchTag('PlayStartFailed', (e) =>
-          Effect.andThen(
-            end,
-            Effect.sync(() => {
-              showFailure(e.reason);
-              return { default: NoBody };
-            }),
-          ),
-        ),
+        Effect.catchTag('PlayStartFailed', (e) => Effect.as(fail(e.reason), { default: NoBody })),
       ),
     );
 
@@ -152,5 +146,5 @@ export const mountPlay = (pages: Films): void =>
   mountStudio({
     page: PLAY_PAGE,
     event: 'play.shell',
-    on: (host, end) => playOn(host, Object.keys(pages), playBody(pages, host, end)),
+    on: (host, fail) => playOn(host, Object.keys(pages), playBody(pages, host, fail)),
   });

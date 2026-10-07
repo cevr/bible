@@ -165,17 +165,6 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
 };
 
 /**
- * A page that could not start: the error, in place of the page, as text (an
- * error's words may hold markup, a film's name from the URL among them).
- */
-export const showFailure = (e: unknown): void => {
-  const shown = document.createElement('pre');
-  shown.style.cssText = 'color:var(--state-findings);padding:24px;white-space:pre-wrap';
-  shown.textContent = String(e instanceof Error ? (e.stack ?? e.message) : e);
-  document.body.replaceChildren(shown);
-};
-
-/**
  * The scrubbable preview of a staged film: its bar and timeline, its clock,
  * and its transport, registered as commands with the page's `hub` (whose
  * keymap binds their keys, which the `?` sheet lists). Its legend (the
@@ -184,12 +173,15 @@ export const showFailure = (e: unknown): void => {
  * once the viewer turns them on (`ticksCommand`), and the HUD fades while the
  * film plays (`hud.ts`). The lab's transport reads in the scene's time (the
  * header keeps the film's), and its captions are the view menu's and `c`.
+ * Its film's faces failing to load fail the page (`fail`: it ends, and says
+ * why).
  */
 export const mountPreview = (
   { film, canvas, ctx, captions }: Staged,
   host: Host,
   time: TimeInUrl,
   hub: Hub,
+  fail: (why: string) => Effect.Effect<void>,
 ): Player => {
   const bar = document.createElement('div');
   bar.className = 'bar';
@@ -596,8 +588,9 @@ export const mountPreview = (
     );
   }
   // The first frame: at once when the film's faces are in, else once they
-  // have loaded (the bar stands meanwhile). A face that will not load says so
-  // in place of the page, as a film that will not load does.
+  // have loaded (the bar stands meanwhile). A face that will not load fails
+  // the page, as a film that will not load does: the film stops, and the
+  // page ends and says why in its place (`fail`).
   Option.match(pictureFacesWait(document.fonts), {
     onNone: () => {
       drawable = true;
@@ -611,7 +604,14 @@ export const mountPreview = (
               draw();
             }),
           ),
-          Effect.catchCause((cause) => Effect.sync(() => showFailure(Cause.squash(cause)))),
+          Effect.catchCause((cause) =>
+            Effect.andThen(
+              Effect.sync(() => {
+                if (playing) toggle();
+              }),
+              fail(Cause.pretty(cause)),
+            ),
+          ),
         ),
       );
     },

@@ -10,7 +10,7 @@
 import { Effect, Schema } from 'effect';
 import type { Film } from '../canvas/film.ts';
 import { type Host, addressOn } from '../browser/host.ts';
-import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
+import { type Films, type Player, mountPreview, stageFilm } from '../player/main.ts';
 import { TIME_MOVE, type TimeInUrl } from '../player/t-in-url.ts';
 import { LabClient } from './api.ts';
 import { labHrefWith, labOpensAt } from './place.ts';
@@ -101,11 +101,11 @@ const NoBody = () => <></>;
 /**
  * The lab's body for `films` over `host`: the film its path names staged,
  * its preview mounted on the page's commands, and the lab around it. A film
- * that does not start ends the page (`end`: its panel's notes feed, its
- * keys) and says why in its place.
+ * that does not start, or whose faces do not load, fails the page (`fail`:
+ * its panel's notes feed and its keys end, and it says why in its place).
  */
 const labBody =
-  (films: Films, host: Host, end: Effect.Effect<void>): FilmBody =>
+  (films: Films, host: Host, fail: (why: string) => Effect.Effect<void>): FilmBody =>
   (hub) =>
     Effect.runPromiseWith(host)(
       Effect.gen(function* () {
@@ -114,21 +114,19 @@ const labBody =
           try: () => stageFilm(films, address.href()),
           catch: (cause) => LabStartFailed.make({ reason: String(cause) }),
         });
-        const player = mountPreview(staged, host, labTime(staged.name, staged.film, host), hub);
+        const player = mountPreview(
+          staged,
+          host,
+          labTime(staged.name, staged.film, host),
+          hub,
+          fail,
+        );
         yield* Effect.logInfo(`lab.mounted film=${staged.name}`);
         return {
           default: () => <LabBody player={player} />,
         };
       }).pipe(
-        Effect.catchTag('LabStartFailed', (e) =>
-          Effect.andThen(
-            end,
-            Effect.sync(() => {
-              showFailure(e.reason);
-              return { default: NoBody };
-            }),
-          ),
-        ),
+        Effect.catchTag('LabStartFailed', (e) => Effect.as(fail(e.reason), { default: NoBody })),
       ),
     );
 
@@ -142,5 +140,6 @@ export const mountLab = (films: Films): void =>
   mountStudio({
     page: LAB_PAGE,
     event: 'lab.shell',
-    on: (host, end) => labOn(host, Object.keys(films), LabClient.layer, labBody(films, host, end)),
+    on: (host, fail) =>
+      labOn(host, Object.keys(films), LabClient.layer, labBody(films, host, fail)),
   });
