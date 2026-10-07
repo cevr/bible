@@ -55,8 +55,32 @@ describe('review routes', () => {
       );
       expect(frame.status).toBe(200);
       expect(frame.headers.get('content-type')).toBe('image/jpeg');
-      expect(frame.headers.get('cache-control')).toBe('max-age=86400');
     }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
+  );
+
+  it.effect(
+    'a frame is asked again on each load: its URL names the render, not its version, so a render rewritten in place shows its new frame',
+    () =>
+      Effect.gen(function* () {
+        const url = labUrls.review.frame({ query: { ref: 'out/art/roof.A.mp4', t: 2, w: 320 } });
+        const first = yield* reviewTestAsk(reviewTestGet(url));
+        expect(first.headers.get('cache-control')).toBe('no-cache');
+        const tag = first.headers.get('etag') ?? '';
+        expect(tag).not.toBe('');
+        expect(yield* reviewTestBody(first)).toBe('0123456789');
+        expect((yield* reviewTestAsk(reviewTestGet(url, { 'if-none-match': tag }))).status).toBe(
+          304,
+        );
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const render = path.join(yield* ReviewTestRoot, 'out', 'art', 'roof.A.mp4');
+        yield* fs.writeFileString(render, 'rendered again');
+        // Its mtime moved on (2100-01-01, in seconds), as a render's is.
+        yield* fs.utimes(render, 4_102_444_800, 4_102_444_800);
+        const again = yield* reviewTestAsk(reviewTestGet(url, { 'if-none-match': tag }));
+        expect(again.status).toBe(200);
+        expect(yield* reviewTestBody(again)).toBe('rendered again');
+      }).pipe(Effect.scoped, Effect.provide(reviewHttpFixture)),
   );
 
   it.effect(

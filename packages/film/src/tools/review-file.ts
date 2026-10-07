@@ -17,11 +17,11 @@ const MIME_TYPES = { m4a: 'audio/mp4', vtt: 'text/vtt; charset=utf-8' };
 /**
  * The cache policies the lab answers a file with, by how it changes under
  * its URL: `fresh`, asked again on every load (a render or a mix rewritten
- * in place, a film's narration); `derived`, named by what it is made of (a
- * take or an attempt by its hash, a note's still by its number, a phone
- * copy or a frame by its source's path and mtime), kept a day; `hashed`, a
- * build's script or style named by its own bytes' hash, kept a year,
- * immutable.
+ * in place, a render's phone copy or frame, named by the render's ref and
+ * not its version, a film's narration); `derived`, named by what it is made
+ * of (a take or an attempt by its hash, a note's still by its number), kept
+ * a day; `hashed`, a build's script or style named by its own bytes' hash,
+ * kept a year, immutable.
  */
 export const CACHE = {
   fresh: 'no-cache',

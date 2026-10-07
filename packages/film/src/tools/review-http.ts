@@ -53,7 +53,8 @@ export const reviewGroup = HttpApiBuilder.group(LabHttpApi, 'review', (handlers)
           const ref = yield* refOf(request, REVIEW_PHONE);
           const copy = yield* (yield* Review).phone(ref);
           if (Option.isNone(copy)) return yield* PhoneCopyUnmade.make({ ref });
-          return yield* serveFile(request, copy.value, CACHE.derived);
+          // Named by its render's ref, not the render's version: asked again each time, as the render is.
+          return yield* serveFile(request, copy.value, CACHE.fresh);
         }),
       ),
     )
@@ -65,7 +66,8 @@ export const reviewGroup = HttpApiBuilder.group(LabHttpApi, 'review', (handlers)
             Option.fromUndefinedOr(query.t),
             query.w ?? 960,
           );
-          return yield* serveFile(request, frame, CACHE.derived);
+          // Named by its render's ref, a time and a width, not the render's version: asked again each time.
+          return yield* serveFile(request, frame, CACHE.fresh);
         }),
       ),
     )
