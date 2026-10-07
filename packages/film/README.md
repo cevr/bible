@@ -1407,7 +1407,9 @@ ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and 
   task; the answer is the take kept (what was heard, its word error) or the
   server's refusal in its own words. A `TakeMismatch` with the attempt it
   saved offers **Accept anyway** (a guarded transition: `keep` with
-  `acceptMismatch`). Each beat's attempts (newest first: heard, word error,
+  `acceptMismatch`). The status line says how to act on a refusal (Accept
+  anyway or Record again after a mismatch, Back to hear what a lost
+  microphone kept), each control with its key as bound now (`statusOf`). Each beat's attempts (newest first: heard, word error,
   length, kept, recorded for an earlier line) play from their audio route
   and **Keep** makes one the take.
 - **After a take is kept and mixed** the machine asks the stage to reload the

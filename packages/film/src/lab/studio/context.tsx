@@ -25,6 +25,7 @@ import {
 } from 'solid-js';
 import * as UrlAtom from '@bible/url-state/atom';
 import { said } from '../../command/command.ts';
+import { hubKeys } from '../command/changes.ts';
 import { attemptUrl } from '../../core/api.ts';
 import type { StudioBeat, StudioBeats } from '../../core/studio.ts';
 import { type BrowserServices, addressOn, hostLayer } from '../../browser/host.ts';
@@ -169,6 +170,8 @@ const settling = (tag: string) => tag === 'Importing' || tag === 'Checking';
 const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads: Reads }>) => {
   const { meta } = useLab();
   const { runtime } = props.reads;
+  // The status line names each control's key as bound now: a rebound key reads as rebound.
+  const keys = hubKeys(meta.hub);
   const stateAtom = ActorAtom.make(props.actor);
   const recorder = useAtomValue(() => stateAtom);
   const send = useAtomSet(() => stateAtom);
@@ -360,7 +363,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
       beat,
       current: () => Option.fromUndefinedOr(beats().find((b) => b.id === beat())),
       controls: () => controlsOf(recorder()),
-      status: () => statusOf(recorder(), level()),
+      status: () => statusOf(recorder(), level(), keys.titled),
       tone,
       review,
       meter: () => meterOf(level()),
