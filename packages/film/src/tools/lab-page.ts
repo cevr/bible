@@ -1353,7 +1353,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
         return HttpServerResponse.text(failedPage(built.outcome.reason, stamp, tokens), {
           status: 500,
           contentType: HTML,
-          headers: { 'cache-control': 'no-store' },
+          headers: { 'cache-control': CACHE.none },
         });
       const html = Option.fromUndefinedOr(built.outcome.pages.get(name));
       if (Option.isNone(html)) return NOT_FOUND;
@@ -1363,14 +1363,14 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       if (request.method !== 'GET' || !built.outcome.server.entries.has(name))
         return HttpServerResponse.text(text, {
           contentType: HTML,
-          headers: { 'cache-control': 'no-store' },
+          headers: { 'cache-control': CACHE.none },
         });
       const { read } = yield* PageReads;
       const build = { id: built.kept, bundle: built.outcome.server };
       const body = rendered(name, text, build, urlOf(request), read);
       return HttpServerResponse.stream(Stream.encodeText(body), {
         contentType: HTML,
-        headers: { 'cache-control': 'no-store' },
+        headers: { 'cache-control': CACHE.none },
       });
     });
 
@@ -1422,7 +1422,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       onSome: (file) =>
         HttpServerResponse.uint8Array(file.bytes, {
           contentType: HTML,
-          headers: { 'cache-control': 'no-store' },
+          headers: { 'cache-control': CACHE.none },
         }),
     });
 
@@ -1483,7 +1483,7 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
   const moved = (from: string, to: string) =>
     Effect.as(
       Effect.logInfo(`lab.page.moved from=${from} to=${to}`),
-      HttpServerResponse.redirect(to, { status: 302, headers: { 'cache-control': 'no-store' } }),
+      HttpServerResponse.redirect(to, { status: 302, headers: { 'cache-control': CACHE.none } }),
     );
 
   // A narration file by its exact URL, then a built file, then an old link

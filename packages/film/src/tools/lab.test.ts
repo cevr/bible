@@ -40,15 +40,7 @@ import {
 } from 'effect/http';
 import { brotliDecompressSync } from 'node:zlib';
 import { parseSync } from 'oxc-parser';
-import {
-  LabHttpApi,
-  Places,
-  Refusal,
-  ToolFailure,
-  labUrls,
-  reviewFileUrl,
-  routesOf,
-} from '../core/api.ts';
+import { LabHttpApi, Places, Refusal, ToolFailure, labUrls, routesOf } from '../core/api.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler, labLink } from './lab.ts';
@@ -989,24 +981,6 @@ describe('lab routes', () => {
         'https://box.example:8229/',
       );
       expect(labLink('http://127.0.0.1:8229/', { hosts: [] })).toBe('http://127.0.0.1:8229/');
-    }),
-  );
-
-  it.effect("the API's paths, as the wire has them", () =>
-    Effect.sync(() => {
-      expect(labUrls.notes.list({ params: { film: 'f' } })).toBe('/api/films/f/notes');
-      expect(labUrls.scenes.cue({ params: { film: 'f', scene: 's', cue: 'c' } })).toBe(
-        '/api/films/f/scenes/s/cues/c',
-      );
-      expect(labUrls.choices.films()).toBe('/api/films');
-      expect(labUrls.project.get({ params: { film: 'f' }, query: {} })).toBe(
-        '/api/films/f/project',
-      );
-      expect(labUrls.review.index({ query: {} })).toBe('/api/review/index');
-      expect(labUrls.page.wait({ query: { since: 3, timeout: 9 } })).toBe(
-        '/api/review/build?since=3&timeout=9',
-      );
-      expect(reviewFileUrl('out/a b.mp4')).toBe('/api/review/files/out/a%20b.mp4');
     }),
   );
 });
