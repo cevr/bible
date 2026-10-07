@@ -36,6 +36,19 @@ a.rv-card { text-decoration: none; }
 a.rv-card:hover { background: var(--surface-2); }
 .rv-card video, .rv-media { display: block; width: 100%; aspect-ratio: 16 / 9; background: var(--surface-0); object-fit: contain; }
 .rv-card.rv-tall video { aspect-ratio: auto; max-height: 70vh; }
+/*
+ * On a laptop a Set's version picture (one alone takes the page's width) is
+ * no taller than the room left under the header, the set's tools row, the
+ * docked transport and the gaps between them, less its caption (a hit and
+ * its padding): the caption, its speaker and its name stay on the first
+ * screen. Contained, so a shorter box letterboxes the frame.
+ */
+@media ${WIDE} {
+  .rv-grid > .rv-card[data-id] video {
+    max-height: calc(100dvh - var(--header-h) - var(--s-4) - var(--control-h) - 2 * var(--s-1)
+      - 2 * var(--s-3) - var(--dock-h) - var(--hit) - 2 * var(--s-2));
+  }
+}
 /* A version's picture is its card's to press: a long-press opens the card's menu (its steps,
    SU-11), never the browser's own over a video, which takes the touch. */
 .rv-card video:not([controls]) { pointer-events: none; }
@@ -175,7 +188,7 @@ a.rv-card:hover { background: var(--surface-2); }
  * holding its scenes: one row of cards on a laptop (the act's arrangement,
  * scrolling sideways when it runs long), a row each on a phone, edge to edge.
  */
-.pj-no-cut { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rv-no-cut { margin: 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pj-film { margin-bottom: var(--s-4); }
 /* Its lines stand apart, so the chip's hit-slop never reaches the name's line. */
 .pj-film-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); min-height: var(--hit); }
@@ -232,7 +245,7 @@ a.rv-card:hover { background: var(--surface-2); }
  * under the dock held there too.
  */
 .rv-kinds {
-  display: flex; gap: var(--s-1); margin-top: var(--s-1); padding: var(--s-2) 0; overflow-x: auto;
+  display: flex; gap: var(--s-1); margin-top: var(--s-1); padding: var(--s-1) 0; overflow-x: auto;
   position: sticky; top: var(--header-h); z-index: 10; background: var(--surface-0);
 }
 @media ${WIDE} {

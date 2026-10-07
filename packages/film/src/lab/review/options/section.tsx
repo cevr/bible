@@ -54,26 +54,23 @@ const pictureLabel = (p: ReviewVideo): string => {
 /**
  * The film's player: its transport, docked as Project's is, over the render
  * the sound plays over, and the one `<audio>` heard with it (`FilmTransport`,
- * `FilmPicture`); while the film has no render, a line that says so.
+ * `FilmPicture`); while the film has no render, the dock says so (`NoCut`).
  */
-const Player = () => {
-  const { picture } = useFilm();
-  return (
-    <Show
-      when={Option.isSome(picture())}
-      fallback={
-        <p class="rv-hint rv-note">
-          No render of this film under the review's roots yet: each option plays alone below.
-        </p>
-      }
-    >
-      <section class="sh-dock">
-        <FilmTransport />
-      </section>
-      <FilmPicture />
-    </Show>
-  );
-};
+const Player = () => (
+  <>
+    <section class="sh-dock">
+      <FilmTransport fallback={<NoCut />} />
+    </section>
+    <FilmPicture />
+  </>
+);
+
+/** What the dock says where the transport would be while the film has no render: one line, on Choices and Project alike. */
+export const NoCut = () => (
+  <p class="rv-hint rv-no-cut" data-role="no-cut">
+    No render of the whole film yet
+  </p>
+);
 
 /**
  * The film's transport (play, the time, the scrub, the rate) on its player's

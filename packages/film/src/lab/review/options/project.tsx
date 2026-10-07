@@ -94,7 +94,7 @@ import {
   useThing,
 } from '../inspector.tsx';
 import type { ThingVerb } from '../things.ts';
-import { FilmPicture, FilmTransport, OnlyShown, StepCommands } from './section.tsx';
+import { FilmPicture, FilmTransport, NoCut, OnlyShown, StepCommands } from './section.tsx';
 
 const FILM: PartAddress = { _tag: 'Film' };
 
@@ -919,13 +919,7 @@ const ProjectReady = (props: { readonly film: string }) => {
  */
 const Dock = () => (
   <section class="sh-dock pj-dock">
-    <FilmTransport
-      fallback={
-        <p class="rv-hint pj-no-cut" data-role="no-cut">
-          No render of the whole film yet
-        </p>
-      }
-    />
+    <FilmTransport fallback={<NoCut />} />
   </section>
 );
 

@@ -542,6 +542,21 @@ describe("a film's choices", () => {
   );
 
   it.live(
+    'with no render of the film, the dock says so where the transport would be, in the words Project says it',
+    () =>
+      Effect.gen(function* () {
+        const bare = route('GET', /^\/api\/films\/toy\/choices$/, () =>
+          json({ ...(choices(freshToy()) as Readonly<Record<string, Json>>), pictures: [] }),
+        );
+        const { page, errors } = yield* openReview([bare, ...fakeFilm()], { href: FILM });
+        yield* textIs(page, '.sh-dock [data-role="no-cut"]', 'No render of the whole film yet');
+        yield* countIs(page, '.rv-transport', 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a kinds strip names each kind with its count and goes to its first point: in view, in focus, Back's and a reload's (SU-5)",
     () =>
       Effect.gen(function* () {

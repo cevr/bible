@@ -873,6 +873,48 @@ describe('the review page', () => {
   );
 
   it.live(
+    "on a laptop a version's caption stays on the first screen: its picture's height is capped to the room under the header, the tray and the transport",
+    () =>
+      Effect.gen(function* () {
+        // A set of one version: its picture takes the page's whole width.
+        const lone: Json = {
+          folders: [
+            {
+              ref: 'out/one',
+              mtime: 0,
+              sets: [
+                {
+                  id: 'render:one',
+                  kind: 'render',
+                  title: 'One',
+                  lines: [],
+                  start: 0,
+                  marks: [],
+                  variants: [variant('A', 'Only')],
+                },
+              ],
+              videos: [],
+              images: [],
+              docs: [],
+            },
+          ],
+        };
+        const { page, errors } = yield* openReview(
+          [route('GET', /^\/api\/review\/index/, () => json(lone)), ...routes],
+          { href: pageHref.set('out/one', 'render:one'), viewport: { width: 1440, height: 900 } },
+        );
+        yield* waitFor(page, '.rv-card[data-id="A"] video');
+        yield* evaluates(
+          page,
+          'document.querySelector(\'.rv-card[data-id="A"] .rv-cap\').getBoundingClientRect().bottom <= innerHeight',
+          true,
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     "a version's inspector holds its Info, its approve and its comments, said over the set's route",
     () =>
       Effect.gen(function* () {
