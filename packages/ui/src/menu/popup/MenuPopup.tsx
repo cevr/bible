@@ -6,10 +6,7 @@
 import { isServer, type JSX } from '@solidjs/web';
 import { omit, onCleanup, untrack } from 'solid-js';
 
-import {
-  FloatingFocusManager,
-  type InteractionType,
-} from '../../floating-ui-solid/FloatingFocusManager.tsx';
+import { FloatingFocusManager } from '../../floating-ui-solid/FloatingFocusManager.tsx';
 import { type TransitionStatus, useOpenChangeComplete } from '../../internals/transitions.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import type { Align, Side } from '../../internals/useAnchorPositioning.ts';
@@ -27,22 +24,12 @@ export interface MenuPopupState {
   instant: MenuInstantType;
 }
 
-export interface MenuPopupProps extends BaseUIComponentProps<'div', MenuPopupState> {
-  /**
-   * What takes focus when the menu closes: `false` nothing, `true` the
-   * default (the trigger), an element, or a function of how it closed.
-   */
-  finalFocus?:
-    | boolean
-    | { current: HTMLElement | null }
-    | ((closeType: InteractionType) => boolean | HTMLElement | null | void)
-    | undefined;
-}
+export interface MenuPopupProps extends BaseUIComponentProps<'div', MenuPopupState> {}
 
 export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
-  const { store, parent, popupProps, orientation } = useMenuRootContext();
+  const { store, parent, popupProps } = useMenuRootContext();
   const { side, align } = useMenuPositionerContext();
-  const elementProps = omit(componentProps, 'class', 'style', 'render', 'finalFocus', 'id');
+  const elementProps = omit(componentProps, 'class', 'style', 'render', 'id');
   const isContextMenu = parent.type === 'context-menu';
 
   useOpenChangeComplete({
@@ -91,10 +78,6 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
             return componentProps.id ?? store.floatingId;
           },
           role: 'menu',
-          // `menu` is vertical unless it says otherwise.
-          get 'aria-orientation'() {
-            return orientation() === 'horizontal' ? 'horizontal' : undefined;
-          },
           get 'aria-labelledby'() {
             if (componentProps['aria-labelledby'] != null || componentProps['aria-label']) {
               return componentProps['aria-labelledby'];
@@ -120,7 +103,6 @@ export function MenuPopup(componentProps: MenuPopupProps): JSX.Element {
       openInteractionType={store.openMethod()}
       modal={isContextMenu}
       disabled={!store.mounted()}
-      returnFocus={componentProps.finalFocus ?? true}
       initialFocus
       restoreFocus
       getInsideElements={

@@ -3,15 +3,12 @@
 // The dialog's `role="dialog"` container, labelled by its title and
 // described by its description. Focus moves into it on open (the first
 // tabbable element) and, on close, back to what had it before the owner
-// opened the dialog; a modal or trap-focus dialog keeps Tab inside. Arrow, Home and End keys stop here, so
-// a composite widget around the dialog does not move.
+// opened the dialog; a modal dialog keeps Tab inside. Arrow, Home and End
+// keys stop here, so a composite widget around the dialog does not move.
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
 
-import {
-  FloatingFocusManager,
-  type InteractionType,
-} from '../../floating-ui-solid/FloatingFocusManager.tsx';
+import { FloatingFocusManager } from '../../floating-ui-solid/FloatingFocusManager.tsx';
 import { COMPOSITE_KEYS } from '../../internals/composite/composite.ts';
 import { type TransitionStatus, useOpenChangeComplete } from '../../internals/transitions.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
@@ -23,29 +20,12 @@ import { useDialogPortalContext } from '../portal/DialogPortal.tsx';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
 import type { DialogStore } from '../store/DialogStore.ts';
 
-export type DialogFocusTarget =
-  | boolean
-  | { current: HTMLElement | null }
-  | ((interactionType: InteractionType) => boolean | HTMLElement | null | void);
-
 export interface DialogPopupState {
   open: boolean;
   transitionStatus: TransitionStatus;
 }
 
-export interface DialogPopupProps extends BaseUIComponentProps<'div', DialogPopupState> {
-  /**
-   * What takes focus on open: `false` nothing, `true` the default (the first
-   * tabbable element), an element, or a function (called with `''`: an
-   * owner's open has no interaction type).
-   */
-  initialFocus?: DialogFocusTarget | undefined;
-  /**
-   * What takes focus on close: `false` nothing, `true` the default (what had
-   * focus before the dialog opened), an element, or a function of how it closed.
-   */
-  finalFocus?: DialogFocusTarget | undefined;
-}
+export interface DialogPopupProps extends BaseUIComponentProps<'div', DialogPopupState> {}
 
 /** Stops the composite navigation keys from reaching a widget around the popup. */
 export function stopCompositeKeys(event: KeyboardEvent) {
@@ -56,8 +36,12 @@ export function stopCompositeKeys(event: KeyboardEvent) {
 
 export interface DialogPopupFocusProps {
   store: DialogStore;
-  initialFocus: DialogFocusTarget | undefined;
-  finalFocus: DialogFocusTarget | undefined;
+  /**
+   * What takes focus on open, read as the popup opens: an element, `false`
+   * for nothing, `true` or `null` for the first tabbable element. Without it,
+   * the first tabbable element.
+   */
+  initialFocus?: (() => HTMLElement | boolean | null) | undefined;
   children: JSX.Element;
 }
 
@@ -72,8 +56,7 @@ export function DialogPopupFocus(props: DialogPopupFocusProps): JSX.Element {
       disabled={!store.mounted()}
       closeOnFocusOut={!store.disablePointerDismissal()}
       initialFocus={props.initialFocus}
-      returnFocus={props.finalFocus}
-      modal={store.modal() !== false}
+      modal={store.modal()}
       restoreFocus="popup"
     >
       {props.children}
@@ -101,15 +84,7 @@ export function useDialogOpenChangeComplete(store: DialogStore) {
 export function DialogPopup(componentProps: DialogPopupProps): JSX.Element {
   const { store, popupProps } = useDialogRootContext();
   useDialogPortalContext();
-  const elementProps = omit(
-    componentProps,
-    'class',
-    'style',
-    'render',
-    'initialFocus',
-    'finalFocus',
-    'id',
-  );
+  const elementProps = omit(componentProps, 'class', 'style', 'render', 'id');
 
   useDialogOpenChangeComplete(store);
   onClientCleanup(() => store.setPopupElement(null));
@@ -148,13 +123,5 @@ export function DialogPopup(componentProps: DialogPopupProps): JSX.Element {
       ],
     });
 
-  return (
-    <DialogPopupFocus
-      store={store}
-      initialFocus={componentProps.initialFocus ?? true}
-      finalFocus={componentProps.finalFocus}
-    >
-      {untrack(element)}
-    </DialogPopupFocus>
-  );
+  return <DialogPopupFocus store={store}>{untrack(element)}</DialogPopupFocus>;
 }

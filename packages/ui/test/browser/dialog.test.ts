@@ -4,25 +4,19 @@
 // packages/react/src/dialog/close/DialogClose.test.tsx
 //
 // The dialog's behaviour cases: closing (Close, Escape, outside presses per
-// modal mode, an owner that keeps it open), focus (trap, initial, final, the
-// return to the button that opened it), scroll lock, the ARIA wiring and
+// modal mode, an owner that keeps it open), focus (trap, the first tabbable
+// element, the return to the button that opened it), scroll lock, the ARIA wiring and
 // dialogs open side by side. Every dialog opens from its owner's `open`, as
 // every page's does; upstream's trigger cases, detached triggers, handles and
 // payloads, nested dialogs, alert dialogs, shadow roots, and React-only machinery (Suspense, act
 // timing, owner stacks) are left out.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('dialog.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('dialog.tsx');
 
 /** Whether the page's scroll is locked (the scroller's `overflow` is hidden). */
 const scrollLocked = (page: Page) =>
@@ -44,6 +38,16 @@ describe('Dialog.Root', () => {
     await see(popup).toHaveAttribute('aria-describedby', 'description');
     await see(popup).toHaveAttribute('data-open', '');
     expect(await logOf(page)).not.toContainEqual(expect.stringMatching(/^open /));
+  });
+
+  it("keeps a newer title's id when an older title unmounts", async () => {
+    const page = await h.open('dialog', { query: { titles: 'two' } });
+    await page.click('#open');
+    const popup = page.locator('#popup');
+    await see(popup).toHaveAttribute('aria-labelledby', 'title-2');
+    await page.evaluate(() => (window as unknown as { __dropTitle: () => void }).__dropTitle());
+    await see(page.locator('#title')).toHaveCount(0);
+    await see(popup).toHaveAttribute('aria-labelledby', 'title-2');
   });
 
   it('closes from Dialog.Close with reason close-press', async () => {
@@ -125,14 +129,6 @@ describe('outside press', () => {
     expect(await focused(page)).toBe('outside');
   });
 
-  it('a trap-focus dialog closes on a press outside', async () => {
-    const page = await h.open('dialog', { query: { modal: 'trap-focus' } });
-    await page.click('#open');
-    await see(page.locator('#popup')).toBeVisible();
-    await page.mouse.click(700, 500);
-    await see(page.locator('#popup')).toHaveCount(0);
-  });
-
   it('with a user backdrop closes on the click, not on the mousedown', async () => {
     const page = await h.open('dialog', { query: { backdrop: 'user', modal: 'false' } });
     await page.click('#open');
@@ -191,30 +187,26 @@ describe('modal', () => {
     await see.poll(() => scrollLocked(page)).toBe(false);
   });
 
-  for (const modal of ['false', 'trap-focus']) {
-    it(`does not lock page scroll when modal=${modal}`, async () => {
-      const page = await h.open('dialog', { query: { tall: 'true', modal } });
-      await page.click('#open');
-      await see.poll(() => focused(page)).toBe('first');
-      expect(await scrollLocked(page)).toBe(false);
-    });
-  }
+  it('does not lock page scroll when non-modal', async () => {
+    const page = await h.open('dialog', { query: { tall: 'true', modal: 'false' } });
+    await page.click('#open');
+    await see.poll(() => focused(page)).toBe('first');
+    expect(await scrollLocked(page)).toBe(false);
+  });
 
-  for (const modal of ['true', 'trap-focus']) {
-    it(`traps Tab inside the popup when modal=${modal}`, async () => {
-      const page = await h.open('dialog', { query: { modal } });
-      await page.click('#open');
-      await see.poll(() => focused(page)).toBe('first');
-      await page.keyboard.press('Tab');
-      await see.poll(() => focused(page)).toBe('input');
-      await page.keyboard.press('Tab');
-      await see.poll(() => focused(page)).toBe('close');
-      await page.keyboard.press('Tab');
-      await see.poll(() => focused(page)).toBe('first');
-      await page.keyboard.press('Shift+Tab');
-      await see.poll(() => focused(page)).toBe('close');
-    });
-  }
+  it('traps Tab inside the popup of a modal dialog', async () => {
+    const page = await h.open('dialog');
+    await page.click('#open');
+    await see.poll(() => focused(page)).toBe('first');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('input');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('close');
+    await page.keyboard.press('Tab');
+    await see.poll(() => focused(page)).toBe('first');
+    await page.keyboard.press('Shift+Tab');
+    await see.poll(() => focused(page)).toBe('close');
+  });
 });
 
 describe('Dialog.Popup focus', () => {
@@ -234,43 +226,6 @@ describe('Dialog.Popup focus', () => {
     await page.click('#close');
     await see(page.locator('#popup')).toHaveCount(0);
     await see.poll(() => focused(page)).toBe('open');
-  });
-
-  it('focuses the initialFocus ref', async () => {
-    const page = await h.open('dialog', { query: { initial: 'input' } });
-    await page.click('#open');
-    await see.poll(() => focused(page)).toBe('input');
-  });
-
-  it('does not move focus when initialFocus is false', async () => {
-    const page = await h.open('dialog', { query: { initial: 'false' } });
-    await page.click('#open');
-    await see(page.locator('#popup')).toBeVisible();
-    await see.poll(() => focused(page)).toBe('open');
-  });
-
-  it("calls an initialFocus function with no interaction type for an owner's open", async () => {
-    const page = await h.open('dialog', { query: { initial: 'function' } });
-    await page.click('#open');
-    await see.poll(() => focused(page)).toBe('input');
-    expect(await logOf(page)).toContain('initialFocus ""');
-  });
-
-  it('focuses the finalFocus ref on close', async () => {
-    const page = await h.open('dialog', { query: { final: 'outside' } });
-    await page.click('#open');
-    await see.poll(() => focused(page)).toBe('first');
-    await page.keyboard.press('Escape');
-    await see.poll(() => focused(page)).toBe('outside');
-  });
-
-  it('does not move focus on close when finalFocus is false', async () => {
-    const page = await h.open('dialog', { query: { final: 'false' } });
-    await page.click('#open');
-    await see.poll(() => focused(page)).toBe('first');
-    await page.keyboard.press('Escape');
-    await see(page.locator('#popup')).toHaveCount(0);
-    expect(await focused(page)).not.toBe('open');
   });
 });
 

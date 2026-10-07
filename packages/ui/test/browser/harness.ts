@@ -7,6 +7,8 @@
 // Real Chromium, not a fake DOM: focus, pointer and touch events, layout and
 // `:focus-visible` are what the parts are about, and a fake DOM gets them
 // wrong. Run with `bun run test:browser` (it needs Playwright's Chromium).
+import { afterAll, afterEach, beforeAll } from 'bun:test';
+
 import { transform } from '@solidjs/compiler';
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test';
 import type { BunPlugin } from 'bun';
@@ -54,7 +56,6 @@ const PAGE = `<!doctype html>
 export interface Harness {
   /** Opens `fixture` in a fresh page; `query` reaches the fixture as URL params. */
   open(fixture: string, options?: OpenOptions): Promise<Page>;
-  close(): Promise<void>;
 }
 
 export interface OpenOptions {
@@ -65,25 +66,58 @@ export interface OpenOptions {
 }
 
 /**
- * Starts the server and Chromium for one test file, serving the fixtures
- * `fixtureFile` (a file under `fixtures/`) exports as `fixtures`.
+ * The browser for one test file, serving the fixtures `fixtureFile` (a file
+ * under `fixtures/`) exports as `fixtures`. Call it at the top of the test
+ * file: it registers the file's hooks. The server and Chromium start before
+ * the first case and stop after the last.
+ *
+ * A case fails when any page it opened reported an uncaught error, a console
+ * error or a console warning (Solid's development diagnostics are warnings)
+ * at any time, during mount or after. Each case's pages close when it ends,
+ * so nothing a page does later lands on the next case.
  */
-export const harness = async (fixtureFile: string): Promise<Harness> => {
-  const script = await bundle(`${import.meta.dir}/fixtures/${fixtureFile}`);
-  const server = Bun.serve({
-    port: 0,
-    fetch(request) {
-      const url = new URL(request.url);
-      if (url.pathname === '/client.js') {
-        return new Response(script, { headers: { 'content-type': 'text/javascript' } });
-      }
-      return new Response(PAGE, { headers: { 'content-type': 'text/html;charset=utf-8' } });
-    },
+export const harness = (fixtureFile: string): Harness => {
+  let server: ReturnType<typeof Bun.serve> | undefined;
+  let browser: Browser | undefined;
+  let contexts: Array<BrowserContext> = [];
+  let problems: Array<string> = [];
+
+  beforeAll(async () => {
+    const script = await bundle(`${import.meta.dir}/fixtures/${fixtureFile}`);
+    server = Bun.serve({
+      port: 0,
+      fetch(request) {
+        const url = new URL(request.url);
+        if (url.pathname === '/client.js') {
+          return new Response(script, { headers: { 'content-type': 'text/javascript' } });
+        }
+        return new Response(PAGE, { headers: { 'content-type': 'text/html;charset=utf-8' } });
+      },
+    });
+    browser = await chromium.launch();
   });
-  const browser: Browser = await chromium.launch();
-  const contexts: Array<BrowserContext> = [];
+
+  afterEach(async () => {
+    const closing = contexts;
+    contexts = [];
+    await Promise.all(closing.map((context) => context.close()));
+    const found = problems;
+    problems = [];
+    if (found.length > 0) {
+      throw new Error(`the page reported problems:\n${found.join('\n')}`);
+    }
+  });
+
+  afterAll(async () => {
+    await browser?.close();
+    await server?.stop(true);
+  });
+
   return {
     async open(fixture, options = {}) {
+      if (!browser || !server) {
+        throw new Error('harness: open a fixture inside a case');
+      }
       const context = await browser.newContext({
         hasTouch: options.touch ?? false,
         isMobile: options.touch ?? false,
@@ -92,11 +126,11 @@ export const harness = async (fixtureFile: string): Promise<Harness> => {
       contexts.push(context);
       const page = await context.newPage();
       page.setDefaultTimeout(5000);
-      const problems: Array<string> = [];
       page.on('pageerror', (error) => problems.push(`pageerror: ${error.message}`));
       page.on('console', (message) => {
-        if (message.type() === 'error') {
-          problems.push(`console: ${message.text()}`);
+        const type = message.type();
+        if (type === 'error' || type === 'warning') {
+          problems.push(`console.${type}: ${message.text()}`);
         }
       });
       const query = new URLSearchParams({ fixture, ...options.query });
@@ -110,11 +144,6 @@ export const harness = async (fixtureFile: string): Promise<Harness> => {
           );
         });
       return page;
-    },
-    async close() {
-      await Promise.all(contexts.map((context) => context.close()));
-      await browser.close();
-      await server.stop(true);
     },
   };
 };

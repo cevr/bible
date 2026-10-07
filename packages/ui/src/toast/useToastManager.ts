@@ -1,28 +1,25 @@
 // Upstream: packages/react/src/toast/useToastManager.ts
 //
-// The toasts of the enclosing `Toast.Provider` and the methods that manage
-// them. `toasts` is a live getter: read it in JSX or a tracking scope.
+// The toasts of the enclosing `Toast.Provider`. `toasts` is a live getter:
+// read it in JSX or a tracking scope. Upstream's `add` and `close` members
+// are left out: toasts are added and closed through a `createToastManager`.
 import { createMemo } from 'solid-js';
 
-import type { ToastManagerAddOptions, ToastObject } from './types.ts';
+import type { ToastObject } from './types.ts';
 import { useToastProviderContext } from './ToastProviderContext.ts';
 
 export interface UseToastManagerReturnValue<Data extends object = object> {
   readonly toasts: ToastObject<Data>[];
-  add: <T extends Data = Data>(options: ToastManagerAddOptions<T>) => string;
-  close: (toastId?: string) => void;
 }
 
-/** Returns the array of toasts and methods to manage them. */
+/** Returns the array of toasts. */
 export function useToastManager<Data extends object = object>(): UseToastManagerReturnValue<Data> {
-  const { store, state } = useToastProviderContext();
+  const { state } = useToastProviderContext();
   const toasts = createMemo(() => state().toasts);
 
   return {
     get toasts() {
       return toasts() as ToastObject<Data>[];
     },
-    add: store.addToast,
-    close: store.closeToast,
   };
 }

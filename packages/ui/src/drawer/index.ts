@@ -2,8 +2,7 @@
 //
 // The drawer: a dialog that slides in from an edge and swipes away.
 // `Drawer.Root`, `Drawer.Portal`, `Drawer.Viewport`, `Drawer.Popup`,
-// `Drawer.Content`, `Drawer.Title` and `Drawer.Close`; the parts' types, and
-// their `data-*` attributes and CSS variables.
+// `Drawer.Content`, `Drawer.Title` and `Drawer.Close`, and the parts' types.
 export * as Drawer from './index.parts.ts';
 
 export type * from './content/DrawerContent.tsx';

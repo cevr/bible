@@ -17,7 +17,7 @@ import {
   type ContextMenuRootContext as ContextMenuRootContextValue,
 } from './ContextMenuRootContext.ts';
 
-export interface ContextMenuRootProps extends Omit<MenuRootProps, 'modal' | 'onOpenChange'> {
+export interface ContextMenuRootProps extends Omit<MenuRootProps, 'onOpenChange'> {
   /** Called when the menu opens or closes. */
   onOpenChange?:
     | ((open: boolean, eventDetails: ContextMenuRootChangeEventDetails) => void)
@@ -45,8 +45,6 @@ export function ContextMenuRoot(props: ContextMenuRootProps): JSX.Element {
       setAnchor(() => next);
     },
     internalBackdropRef: { current: null },
-    actionsRef: { current: null },
-    positionerRef: { current: null },
     allowMouseUpTriggerRef: { current: true },
     initialCursorPointRef: { current: null },
     rootId: createUniqueId(),

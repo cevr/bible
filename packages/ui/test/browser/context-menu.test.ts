@@ -5,19 +5,13 @@
 // mouseup grace after a right click, the native menu suppression, and the
 // touch long press with its move threshold. Timers run on `page.clock`;
 // touches are dispatched as real TouchEvents in a touch context.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('context-menu.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('context-menu.tsx');
 
 /** The centre of the trigger area. */
 const areaCentre = async (page: Page): Promise<{ x: number; y: number }> => {
@@ -123,6 +117,30 @@ describe('ContextMenu.Trigger: right click', () => {
     expect(Math.round(box?.x ?? 0)).toBe(x + 2);
     await see(page.locator('#positioner')).toHaveCSS('position', 'fixed');
     expect(await logOf(page)).toContain('open true trigger-press');
+  });
+
+  it('shifted to stay on screen, the menu grows from the pointer', async () => {
+    const page = await h.open('area');
+    await page.addStyleTag({ content: '#popup { width: 200px; }' });
+    const area = await page.locator('#area').boundingBox();
+    if (!area) {
+      throw new Error('no #area');
+    }
+    // Too narrow a window for the 200px menu at either alignment: it shifts 27px left.
+    const x = Math.round(area.x + 2);
+    // Below the area's field, whose own menu the root declines.
+    const y = Math.round(area.y + 100);
+    const width = x + 200 - 20;
+    await page.setViewportSize({ width, height: 600 });
+    await page.mouse.click(x, y, { button: 'right' });
+    await see(page.locator('#positioner')).not.toHaveCSS('opacity', '0');
+    const box = await page.locator('#positioner').boundingBox();
+    expect(Math.round((box?.x ?? 0) + (box?.width ?? 0))).toBe(width - 5);
+    const origin = await page
+      .locator('#positioner')
+      .evaluate((el) => el.style.getPropertyValue('--transform-origin'));
+    const [originX] = origin.split(' ');
+    expect(Math.round(Number.parseFloat(originX ?? '') + (box?.x ?? 0))).toBe(x);
   });
 
   it('a second right click elsewhere in the area moves the menu there', async () => {
@@ -391,56 +409,12 @@ describe('ContextMenu.Root: the page scroll', () => {
     await see.poll(() => scrollLocked(page)).toBe(false);
 
     const phone = await h.open('area', { touch: true });
-    const f = await finger(phone);
+    await phone.clock.install();
     const centre = await areaCentre(phone);
-    await f.down(centre.x, centre.y);
+    await touch(phone, 'touchstart', centre.x, centre.y);
+    await phone.clock.runFor(500);
     await see(phone.locator('#popup')).toBeVisible();
     await see.poll(() => scrollLocked(phone)).toBe(true);
-    await f.up();
-  });
-});
-
-describe('ContextMenu.Root: reactivity', () => {
-  it('mounts and opens without reading reactive props outside a tracking scope', async () => {
-    const page = await h.open('area');
-    const warnings: Array<string> = [];
-    page.on('console', (message) => {
-      if (message.text().includes('STRICT_READ_UNTRACKED')) {
-        warnings.push(message.text());
-      }
-    });
-    await page.reload();
-    await page.locator('#root[data-mounted]').waitFor({ state: 'attached' });
-    const { x, y } = await areaCentre(page);
-    await page.mouse.click(x, y, { button: 'right' });
-    await see(page.locator('#popup')).toBeVisible();
-    expect(warnings).toEqual([]);
-  });
-});
-
-describe('ContextMenu.Root: disabled', () => {
-  it('a press pending when the root becomes disabled does not open', async () => {
-    const page = await h.open('area', { touch: true });
-    await page.clock.install();
-    await page.clock.pauseAt(Date.now() + 10_000);
-    const { x, y } = await areaCentre(page);
-    await touch(page, 'touchstart', x, y);
-    await page.clock.runFor(200);
-    await page.evaluate(() =>
-      (window as unknown as { __setDisabled: (next: boolean) => void }).__setDisabled(true),
-    );
-    await page.clock.runFor(600);
-    await see(page.locator('#popup')).toHaveCount(0);
-    expect(await logOf(page)).not.toContain('open true trigger-press');
-  });
-
-  it('does not open on right click or long press, and leaves the native menu alone', async () => {
-    const page = await h.open('area', { query: { disabled: 'true' }, touch: true });
-    await page.clock.install();
-    const { x, y } = await areaCentre(page);
-    expect(await nativeMenuBlocked(page, '#area')).toBe(false);
-    await touch(page, 'touchstart', x, y);
-    await page.clock.runFor(600);
-    await see(page.locator('#popup')).toHaveCount(0);
+    await touch(phone, 'touchend', centre.x, centre.y);
   });
 });

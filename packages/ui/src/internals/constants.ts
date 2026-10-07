@@ -4,15 +4,9 @@
 import type { JSX } from '@solidjs/web';
 
 export const TYPEAHEAD_RESET_MS = 500;
-export const DISABLED_TRANSITIONS_STYLE = { style: { transition: 'none' } };
-/** Marks a trigger that opens on press, so focus leaving for it does not close the popup. */
-export const CLICK_TRIGGER_IDENTIFIER = 'data-base-ui-click-trigger';
 /** Marks an element a swipe gesture does not start from. */
 export const BASE_UI_SWIPE_IGNORE_ATTRIBUTE = 'data-base-ui-swipe-ignore';
 export const BASE_UI_SWIPE_IGNORE_SELECTOR = `[${BASE_UI_SWIPE_IGNORE_ATTRIBUTE}]`;
-
-/** For dropdowns that keep to top/bottom and cap their height with `--available-height`. */
-export const DROPDOWN_COLLISION_AVOIDANCE = { fallbackAxisSide: 'none' } as const;
 
 /** Hides the empty `aria-owns` owner span (iOS VoiceControl still reads what it owns). */
 export const ownerVisuallyHidden: JSX.CSSProperties = {

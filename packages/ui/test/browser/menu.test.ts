@@ -8,19 +8,13 @@
 // Upstream's cases for parts not ported (hover opening, submenus, checkbox,
 // radio and link items, arrow, backdrop, filter, list, viewport, detached
 // triggers, menubar) and for React-only machinery are left out.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('menu.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('menu.tsx');
 
 describe('Menu.Trigger', () => {
   it('carries the button ARIA and toggles the menu on click', async () => {
@@ -101,8 +95,6 @@ describe('Menu.Popup', () => {
     await see(popup).toHaveAttribute('aria-labelledby', 'trigger');
     await see(page.locator('#cut')).toHaveAttribute('role', 'menuitem');
     await see(page.locator('#sep')).toHaveAttribute('role', 'separator');
-    await see(page.locator('#copy')).toHaveAttribute('aria-disabled', 'true');
-    await see(page.locator('#copy')).toHaveAttribute('data-disabled', '');
   });
 });
 
@@ -123,8 +115,7 @@ describe('keyboard navigation', () => {
     await see.poll(() => focused(page)).toBe('cut');
   });
 
-  // Upstream: 'includes disabled items during keyboard navigation' (aria-disabled items stay reachable).
-  it('arrow keys reach disabled items, wrap, and Home/End jump', async () => {
+  it('arrow keys move the highlight, wrap, and Home/End jump', async () => {
     const page = await h.open('menu');
     await page.focus('#trigger');
     await page.keyboard.press('ArrowDown');
@@ -147,15 +138,6 @@ describe('keyboard navigation', () => {
     await see.poll(() => focused(page)).toBe('cut');
   });
 
-  it('stops at the ends when loopFocus is false', async () => {
-    const page = await h.open('menu', { query: { loop: 'false' } });
-    await page.focus('#trigger');
-    await page.keyboard.press('ArrowDown');
-    await see.poll(() => focused(page)).toBe('cut');
-    await page.keyboard.press('ArrowUp');
-    await see.poll(() => focused(page)).toBe('cut');
-  });
-
   it('typeahead highlights the item whose label starts with the typed text', async () => {
     const page = await h.open('menu');
     await page.focus('#trigger');
@@ -163,6 +145,25 @@ describe('keyboard navigation', () => {
     await see.poll(() => focused(page)).toBe('cut');
     await page.keyboard.type('gr');
     await see.poll(() => focused(page)).toBe('grid');
+  });
+
+  it('arrow keys follow the new order after the items move while the menu is open', async () => {
+    const page = await h.open('sorted');
+    await page.focus('#trigger');
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('alpha');
+    await page.evaluate(() => (window as unknown as { __reverse: () => void }).__reverse());
+    await see(page.locator('[role="menuitem"]').first()).toHaveId('charlie');
+    // The highlight stays on alpha, the item it was on.
+    await see(page.locator('[data-highlighted]')).toHaveId('alpha');
+    // alpha is last now: the next item down wraps to charlie, then bravo.
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('charlie');
+    await see(page.locator('#charlie')).toHaveAttribute('data-highlighted', '');
+    await page.keyboard.press('ArrowDown');
+    await see.poll(() => focused(page)).toBe('bravo');
+    await page.keyboard.press('Home');
+    await see.poll(() => focused(page)).toBe('charlie');
   });
 
   it('typeahead wraps the search past the highlighted item', async () => {
@@ -174,15 +175,6 @@ describe('keyboard navigation', () => {
     await see.poll(() => focused(page)).toBe('more');
     await page.keyboard.press('c');
     await see.poll(() => focused(page)).toBe('cut');
-  });
-
-  it('typeahead reaches aria-disabled items', async () => {
-    const page = await h.open('menu');
-    await page.focus('#trigger');
-    await page.keyboard.press('ArrowDown');
-    await see.poll(() => focused(page)).toBe('cut');
-    await page.keyboard.type('co');
-    await see.poll(() => focused(page)).toBe('copy');
   });
 
   it('Escape closes and returns focus to the trigger', async () => {
@@ -198,15 +190,12 @@ describe('keyboard navigation', () => {
 });
 
 describe('Menu.Item', () => {
-  it('runs onClick and closes the menu; closeOnClick=false keeps it open', async () => {
+  it('runs onClick and closes the menu', async () => {
     const page = await h.open('menu');
     await page.click('#trigger');
-    await page.click('#paste');
-    await see(page.locator('#popup')).toBeVisible();
     await page.click('#cut');
     await see(page.locator('#popup')).toHaveCount(0);
     const lines = await logOf(page);
-    expect(lines).toContain('click paste');
     expect(lines).toContain('click cut');
     expect(lines).toContain('open false item-press');
   });
@@ -219,14 +208,6 @@ describe('Menu.Item', () => {
     await page.keyboard.press('Enter');
     await see(page.locator('#popup')).toHaveCount(0);
     expect(await logOf(page)).toContain('click cut');
-  });
-
-  it('a disabled item does not run onClick nor close the menu', async () => {
-    const page = await h.open('menu');
-    await page.click('#trigger');
-    await page.locator('#copy').click({ force: true });
-    await see(page.locator('#popup')).toBeVisible();
-    expect(await logOf(page)).not.toContain('click copy');
   });
 
   it('hovering an item highlights it', async () => {
@@ -286,7 +267,7 @@ describe('dismissal', () => {
     expect(await logOf(page)).toContain('open false focus-out');
   });
 
-  it('a modal menu opened by the mouse locks the page scroll; one a finger opens does not', async () => {
+  it('a menu opened by the mouse locks the page scroll; one a finger opens does not', async () => {
     const scrollLocked = (page: Page) =>
       page.evaluate(() =>
         [document.documentElement, document.body].some(
@@ -310,16 +291,7 @@ describe('dismissal', () => {
     expect(await scrollLocked(phone)).toBe(false);
   });
 
-  it('an outside press closes the menu', async () => {
-    const page = await h.open('menu', { query: { modal: 'false' } });
-    await page.click('#trigger');
-    await see(page.locator('#popup')).toBeVisible();
-    await page.mouse.click(700, 500);
-    await see(page.locator('#popup')).toHaveCount(0);
-    expect(await logOf(page)).toContain('open false outside-press');
-  });
-
-  it('a modal menu covers the page with an internal backdrop cut out around the trigger', async () => {
+  it('covers the page with an internal backdrop cut out around the trigger; a press on it closes the menu', async () => {
     const page = await h.open('menu');
     await page.click('#trigger');
     await see(page.locator('#popup')).toBeVisible();
@@ -331,5 +303,6 @@ describe('dismissal', () => {
     expect(await internal.evaluate((el) => el.style.clipPath)).toContain('polygon');
     await page.mouse.click(700, 500);
     await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).toContain('open false outside-press');
   });
 });

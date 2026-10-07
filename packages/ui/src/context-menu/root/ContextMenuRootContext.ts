@@ -6,8 +6,6 @@
 // keeps the releasing mouseup of the opening press from activating an item.
 import { type Accessor, createContext, useContext } from 'solid-js';
 
-import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
-
 export interface ContextMenuAnchor {
   getBoundingClientRect: () => DOMRect;
 }
@@ -16,11 +14,6 @@ export interface ContextMenuRootContext {
   anchor: Accessor<ContextMenuAnchor>;
   setAnchor: (anchor: ContextMenuAnchor) => void;
   internalBackdropRef: { current: HTMLElement | null };
-  /** The menu's open-change pipeline, set by the menu root. */
-  actionsRef: {
-    current: { setOpen: (open: boolean, details: BaseUIChangeEventDetails) => void } | null;
-  };
-  positionerRef: { current: HTMLElement | null };
   allowMouseUpTriggerRef: { current: boolean };
   initialCursorPointRef: { current: { x: number; y: number } | null };
   rootId: string;

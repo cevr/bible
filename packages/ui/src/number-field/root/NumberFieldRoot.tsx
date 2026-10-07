@@ -1,24 +1,31 @@
 // Upstream: packages/react/src/number-field/root/NumberFieldRoot.tsx
 //
-// Groups the number field's parts and owns its value: controlled or not,
-// validated (snapped, clamped, cleaned of float noise) on every change, and
-// shown as formatted text in the input. Typed text stays as typed until it
-// is committed on blur; step changes (keys, scrub) rewrite it at once.
-// Upstream's hidden `<input type="number">` for forms, its stepper buttons
-// and its wheel stepping are left out: a field here commits through
-// `onValueCommitted`, not a form. Renders a `<div>`.
+// Groups the number field's parts. The owner holds the value and hears only
+// commits: a change of the field's own (typed, stepped, scrubbed) is
+// validated (clamped, cleaned of float noise), shown and held until its
+// commit, which reports it; the field then shows the owner's value again, so
+// a value the owner takes stays and one it declines goes back. An edit that
+// ends without a commit (a scrub cancelled, the field disabled, typed text
+// that does not read, the part holding the edit unmounted) drops its change
+// the same way. Typed text
+// stays as typed until it is committed on blur; steps (keys, scrub) rewrite
+// it at once.
+// Upstream's uncontrolled mode, `onValueChange`, the hidden
+// `<input type="number">` for forms, its stepper buttons and its wheel
+// stepping are left out. Renders a `<div>`.
 import type { JSX } from '@solidjs/web';
-import { createEffect, createSignal, createUniqueId, omit, untrack } from 'solid-js';
+import { createEffect, createSignal, omit, untrack } from 'solid-js';
 
-import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { formatNumber } from '../../utils/formatNumber.ts';
 import { platform } from '../../utils/platform.ts';
-import { useControlled } from '../../utils/useControlled.ts';
 import { stateAttributesMapping } from '../utils/stateAttributesMapping.ts';
-import type { EventWithOptionalKeyState, IncrementValueParameters } from '../utils/types.ts';
-import { getKeyState } from '../utils/types.ts';
+import type {
+  EventWithOptionalKeyState,
+  IncrementValueParameters,
+  ValueChange,
+} from '../utils/types.ts';
 import { toValidatedNumber } from '../utils/validate.ts';
 import { getAllowedNonNumericKeys } from './allowedNonNumericKeys.ts';
 import {
@@ -27,47 +34,28 @@ import {
   type NumberFieldRootContextValue,
 } from './NumberFieldRootContext.ts';
 import type {
-  NumberFieldRootChangeEventDetails,
   NumberFieldRootCommitEventDetails,
   NumberFieldRootState,
 } from './NumberFieldRootState.ts';
 
 export interface NumberFieldRootProps extends Omit<
   BaseUIComponentProps<'div', NumberFieldRootState>,
-  'onChange' | 'id'
+  'onChange'
 > {
-  /** The id of the input element. */
-  id?: string | undefined;
+  /** The owner's value, shown whenever the field holds no uncommitted change. */
+  value: number | null;
   /** The minimum value. */
   min?: number | undefined;
   /** The maximum value. */
   max?: number | undefined;
-  /**
-   * Whether typed text may fall outside `min`/`max` without clamping, so native
-   * range validation can occur. Step interactions still clamp.
-   * @default false
-   */
-  allowOutOfRange?: boolean | undefined;
   /** The step while Alt is held. @default 0.1 */
   smallStep?: number | undefined;
-  /**
-   * The step of the arrow keys and scrub area. `'any'` turns off step
-   * validation; interactive steps then use 1.
-   * @default 1
-   */
-  step?: number | 'any' | undefined;
+  /** The step of the arrow keys and scrub area. @default 1 */
+  step?: number | undefined;
   /** The step while Shift is held. @default 10 */
   largeStep?: number | undefined;
   /** Whether the field ignores user interaction. @default false */
   disabled?: boolean | undefined;
-  /** Whether the user cannot change the value. @default false */
-  readOnly?: boolean | undefined;
-  /** The value (controlled). */
-  value?: number | null | undefined;
-  /** The value when first rendered (uncontrolled). */
-  defaultValue?: number | undefined;
-  /** Whether stepping snaps to the nearest multiple of the step. @default false */
-  snapOnStep?: boolean | undefined;
   /**
    * Whether typed arithmetic is read on commit: `0.42*2`, `(1+2)/4`, and text
    * opening with `+`, `*` or `/` applied to the value before editing (`+0.1`,
@@ -84,13 +72,6 @@ export interface NumberFieldRootProps extends Omit<
   /** The locale the value is formatted and parsed in; the runtime's by default. */
   locale?: Intl.LocalesArgument | undefined;
   /**
-   * Called when the value changes. `details.reason` is `input-change`,
-   * `input-clear`, `input-blur`, `input-paste`, `keyboard` or `scrub`.
-   */
-  onValueChange?:
-    | ((value: number | null, details: NumberFieldRootChangeEventDetails) => void)
-    | undefined;
-  /**
    * Called when the value is committed: on blur after typing, on release after
    * scrubbing, and with each keyboard step.
    */
@@ -103,63 +84,140 @@ const ROOT_PROPS = [
   'class',
   'style',
   'render',
-  'id',
+  'value',
   'min',
   'max',
-  'allowOutOfRange',
   'smallStep',
   'step',
   'largeStep',
   'disabled',
-  'readOnly',
-  'value',
-  'defaultValue',
-  'snapOnStep',
   'allowExpressions',
   'commitOnEnter',
   'format',
   'locale',
-  'onValueChange',
   'onValueCommitted',
 ] as const;
 
+/**
+ * What the field holds of its own. `none`: it shows the owner's value.
+ * `editing`: an edit in progress (a scrub, typing, a step), with the change it
+ * holds until it ends (`held`: none yet while typed text has not read as a
+ * number) and the text the person typed (`typed`: none while stepping, the
+ * held value shown formatted). `kept`: typed text that never read, kept after
+ * its edit ended over the owner's value `over`, until that value changes.
+ */
+type Edit =
+  | { readonly kind: 'none' }
+  | {
+      readonly kind: 'editing';
+      readonly held: { readonly value: number | null } | undefined;
+      readonly typed: string | undefined;
+    }
+  | { readonly kind: 'kept'; readonly text: string; readonly over: number | null };
+
+const NO_EDIT: Edit = { kind: 'none' };
+
 export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
-  const generatedId = createUniqueId();
   const disabled = () => props.disabled ?? false;
-  const readOnly = () => props.readOnly ?? false;
   const minWithDefault = () => props.min ?? Number.MIN_SAFE_INTEGER;
   const maxWithDefault = () => props.max ?? Number.MAX_SAFE_INTEGER;
 
-  const [value, setValueUnwrapped] = useControlled<number | null>({
-    controlled: () => props.value,
-    default: () => props.defaultValue ?? null,
-  });
+  // The edit, read by the handlers as written (a write shows in the signal
+  // only at the next flush) and mirrored into a signal for what renders.
+  let edit: Edit = NO_EDIT;
+  const [editShown, setEditShown] = createSignal<Edit>(NO_EDIT, { ownedWrite: true });
+  const setEdit = (next: Edit) => {
+    edit = next;
+    setEditShown(() => next);
+  };
+
+  const value = (): number | null => {
+    const shown = editShown();
+    return shown.kind === 'editing' && shown.held !== undefined ? shown.held.value : props.value;
+  };
+  // The text typed stays as typed; otherwise the input shows the value formatted.
+  const inputValue = (): string => {
+    const shown = editShown();
+    if (shown.kind === 'editing' && shown.typed !== undefined) {
+      return shown.typed;
+    }
+    if (shown.kind === 'kept' && props.value === shown.over) {
+      return shown.text;
+    }
+    return formatNumber(value(), props.locale, props.format);
+  };
   const [isScrubbing, setScrubbing] = createSignal(false, { ownedWrite: true });
   const [inputElement, setInputElement] = createSignal<HTMLInputElement | null>(null, {
     ownedWrite: true,
   });
-  const [inputValue, setInputValue] = createSignal(
-    untrack(() => formatNumber(value(), props.locale, props.format)),
-    { ownedWrite: true },
-  );
 
-  const allowInputSyncRef = { current: true };
   const valueRef = { current: untrack(value) };
   const lastChangedValueRef: { current: number | null } = { current: null };
-  const hasPendingCommitRef = { current: false };
 
   // Steps start from the value the field last rendered.
   createEffect(value, (next) => {
     valueRef.current = next;
   });
 
+  // Kept text gives way to the owner's next value for good.
+  createEffect(
+    () => props.value,
+    (ownerValue) => {
+      if (edit.kind === 'kept' && ownerValue !== edit.over) {
+        setEdit(NO_EDIT);
+      }
+    },
+  );
+
+  const isTyping = () => edit.kind === 'editing' && edit.typed !== undefined;
+
+  /** Typed text: the edit becomes (or stays) typing, its held change kept. */
+  const setTypedText = (text: string) => {
+    setEdit({
+      kind: 'editing',
+      held: edit.kind === 'editing' ? edit.held : undefined,
+      typed: text,
+    });
+  };
+
+  /** Typing stops (a step, a scrub, a commit begins): the held change shows formatted. */
+  const stopTyping = () => {
+    if (edit.kind !== 'editing' || edit.typed === undefined) {
+      return;
+    }
+    setEdit(
+      edit.held === undefined ? NO_EDIT : { kind: 'editing', held: edit.held, typed: undefined },
+    );
+  };
+
+  // Every edit ends here, committed or discarded: what it held goes, and the
+  // field shows the owner's value again.
+  const endEdit = () => {
+    setEdit(NO_EDIT);
+  };
+
+  const discardEdit = (options?: { readonly keepText?: string }) => {
+    if (options?.keepText === undefined) {
+      endEdit();
+      return;
+    }
+    setEdit({ kind: 'kept', text: options.keepText, over: untrack(() => props.value) });
+  };
+
   const onValueCommitted = (
     next: number | null,
     details: NumberFieldRootCommitEventDetails,
   ): void => {
-    hasPendingCommitRef.current = false;
+    endEdit();
     untrack(() => props.onValueCommitted)?.(next, details);
   };
+
+  // A field disabled mid-edit drops the edit: a disabled field commits nothing.
+  createEffect(disabled, (isDisabled) => {
+    if (isDisabled) {
+      endEdit();
+    }
+  });
 
   const getStepAmount = (event?: EventWithOptionalKeyState): number =>
     untrack(() => {
@@ -169,87 +227,56 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
       if (event?.shiftKey) {
         return props.largeStep ?? 10;
       }
-      return props.step === 'any' ? 1 : (props.step ?? 1);
+      return props.step ?? 1;
     });
 
-  const setValue = (
-    unvalidatedValue: number | null,
-    details: NumberFieldRootChangeEventDetails,
-  ): boolean =>
+  const setValue = (unvalidatedValue: number | null, change: ValueChange): boolean =>
     untrack(() => {
-      const keyState = getKeyState(details.event);
-      const direction = details.direction;
-      // Direct text entry (typing, paste, clear) behaves natively; steps
-      // (keys, scrub) do not.
-      const isInputReason = details.reason.startsWith('input-');
-      const shouldClamp = !(props.allowOutOfRange ?? false) || !isInputReason;
+      const isInputReason = change.reason.startsWith('input-');
       const current = value();
 
       const validatedValue = toValidatedNumber(
         unvalidatedValue,
-        direction ? getStepAmount(keyState) * direction : undefined,
+        change.direction !== undefined,
         minWithDefault(),
         maxWithDefault(),
-        props.min ?? 0,
         props.format,
-        props.snapOnStep ?? false,
-        keyState?.altKey ?? false,
-        shouldClamp,
       );
 
-      // Text entry reports even an unchanged number: the typed text may have
-      // clamped or snapped back to it.
-      const shouldFireChange =
+      // Text entry holds even an unchanged number: the typed text may have
+      // clamped back to it.
+      const changed =
         validatedValue !== current ||
-        (isInputReason && (unvalidatedValue !== current || !allowInputSyncRef.current));
+        (isInputReason && (unvalidatedValue !== current || isTyping()));
 
-      if (shouldFireChange) {
-        props.onValueChange?.(validatedValue, details);
-        if (details.isCanceled) {
-          return false;
-        }
-        setValueUnwrapped(validatedValue);
-        hasPendingCommitRef.current = true;
+      // Step changes show at once (formatted); typed text stays until it is committed.
+      if (changed) {
+        setEdit({
+          kind: 'editing',
+          held: { value: validatedValue },
+          typed: edit.kind === 'editing' ? edit.typed : undefined,
+        });
+      } else if (edit.kind === 'kept') {
+        // A step that changes nothing still shows the value in place of kept text.
+        endEdit();
       }
 
       lastChangedValueRef.current = validatedValue;
-
-      // Step changes show at once; typed text stays until it is committed.
-      if (allowInputSyncRef.current) {
-        setInputValue(formatNumber(validatedValue, props.locale, props.format));
-      }
-      return shouldFireChange;
+      return changed;
     });
 
   const incrementValue = (amount: number, params: IncrementValueParameters): boolean => {
     const prevValue = params.currentValue == null ? valueRef.current : params.currentValue;
     if (typeof prevValue !== 'number') {
-      // An empty field is seeded with 0, clamped into range; the seed is not
-      // a step, so it carries no direction to snap by.
-      return setValue(0, createChangeEventDetails(params.reason, params.event));
+      // An empty field is seeded with 0, clamped into range; the seed is not a step.
+      return setValue(0, { reason: params.reason, event: params.event });
     }
-    return setValue(
-      prevValue + amount * params.direction,
-      createChangeEventDetails(params.reason, params.event, undefined, {
-        direction: params.direction,
-      }),
-    );
+    return setValue(prevValue + amount * params.direction, {
+      reason: params.reason,
+      event: params.event,
+      direction: params.direction,
+    });
   };
-
-  // The input shows the formatted value whenever it changes from outside,
-  // unless the person is typing (the text then waits for blur).
-  createEffect(
-    () => [value(), inputValue(), props.locale, props.format] as const,
-    ([next, text, locale, format]) => {
-      if (!allowInputSyncRef.current) {
-        return;
-      }
-      const formatted = formatNumber(next, locale, format);
-      if (formatted !== text) {
-        setInputValue(formatted);
-      }
-    },
-  );
 
   // iOS's numeric keyboard has no minus key (and "numeric" no decimal key).
   const inputMode = (): InputMode => {
@@ -277,9 +304,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     get disabled() {
       return disabled();
     },
-    get readOnly() {
-      return readOnly();
-    },
     get value() {
       return value();
     },
@@ -293,9 +317,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
 
   const context: NumberFieldRootContextValue = {
     state,
-    get id() {
-      return props.id ?? generatedId;
-    },
     get min() {
       return props.min;
     },
@@ -326,19 +347,20 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
           locale: props.locale,
           format: props.format,
           minWithDefault: minWithDefault(),
-          allowOutOfRange: props.allowOutOfRange ?? false,
         }),
       ),
-    setInputValue: (text) => setInputValue(text),
+    setTypedText,
+    stopTyping,
+    isTyping,
     setInputElement: (element) => setInputElement(() => element),
     inputElement,
     focusInput,
     setScrubbing: (scrubbing) => setScrubbing(scrubbing),
     onValueCommitted,
-    allowInputSyncRef,
+    discardEdit,
     valueRef,
     lastChangedValueRef,
-    hasPendingCommitRef,
+    hasPendingCommit: () => edit.kind === 'editing' && edit.held !== undefined,
   };
 
   const elementProps = omit(props, ...ROOT_PROPS);

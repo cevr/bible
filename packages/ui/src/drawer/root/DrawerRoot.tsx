@@ -13,7 +13,6 @@ import {
   DialogRoot,
 } from '../../dialog/root/DialogRoot.tsx';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext.ts';
-import type { DialogModal } from '../../dialog/store/DialogStore.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import { addEventListener, NOOP, ownerWindow } from '../../utils/dom.ts';
@@ -30,16 +29,12 @@ export interface DrawerRootState {}
 export interface DrawerRootProps {
   open?: boolean | undefined;
   /**
-   * Whether the open drawer is modal.
-   * - `true`: focus is trapped, page scroll is locked, and outside pointer interaction is blocked.
-   * - `false`: the rest of the page stays interactive.
-   * - `'trap-focus'`: focus is trapped, but page scroll and outside pointer interaction are not blocked.
-   * @default true
+   * Whether the open drawer is modal: focus trapped, page scroll locked and
+   * outside pointer interaction blocked. Otherwise the rest of the page stays
+   * interactive. @default true
    */
-  modal?: DialogModal | undefined;
+  modal?: boolean | undefined;
   onOpenChange?: ((open: boolean, eventDetails: DrawerRootChangeEventDetails) => void) | undefined;
-  /** Called after the open or close transition finishes. */
-  onOpenChangeComplete?: ((open: boolean) => void) | undefined;
   /**
    * Whether outside presses leave the drawer open (for a non-modal drawer,
    * also focus moving outside). @default false
@@ -61,7 +56,6 @@ export function DrawerRoot(props: DrawerRootProps): JSX.Element {
       modal={props.modal}
       disablePointerDismissal={props.disablePointerDismissal}
       onOpenChange={props.onOpenChange}
-      onOpenChangeComplete={props.onOpenChangeComplete}
     >
       <DrawerRootScope swipeDirection={props.swipeDirection ?? 'down'}>
         {props.children}

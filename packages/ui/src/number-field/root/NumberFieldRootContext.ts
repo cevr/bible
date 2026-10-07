@@ -7,11 +7,14 @@
 import { createContext, useContext } from 'solid-js';
 
 import type {
-  NumberFieldRootChangeEventDetails,
   NumberFieldRootCommitEventDetails,
   NumberFieldRootState,
 } from './NumberFieldRootState.ts';
-import type { EventWithOptionalKeyState, IncrementValueParameters } from '../utils/types.ts';
+import type {
+  EventWithOptionalKeyState,
+  IncrementValueParameters,
+  ValueChange,
+} from '../utils/types.ts';
 
 export type InputMode = 'numeric' | 'decimal' | 'text';
 
@@ -22,8 +25,6 @@ export interface ValueCell<T> {
 
 export interface NumberFieldRootContextValue {
   readonly state: NumberFieldRootState;
-  /** The input's `id`. */
-  readonly id: string;
   readonly min: number | undefined;
   readonly max: number | undefined;
   readonly inputMode: InputMode;
@@ -33,29 +34,38 @@ export interface NumberFieldRootContextValue {
   readonly allowExpressions: boolean;
   /** Whether Enter commits typed text (not in upstream). */
   readonly commitOnEnter: boolean;
-  /** Validates and stores a value; whether a change was reported (and not canceled). */
-  setValue: (value: number | null, details: NumberFieldRootChangeEventDetails) => boolean;
+  /** Validates a value and holds it until its commit; whether it changed. */
+  setValue: (value: number | null, change: ValueChange) => boolean;
   /** Steps the value by `amount` in `direction`; an empty field is seeded instead. */
   incrementValue: (amount: number, params: IncrementValueParameters) => boolean;
   /** The step the event's modifiers pick: Alt `smallStep`, Shift `largeStep`, else `step`. */
   getStepAmount: (event?: EventWithOptionalKeyState) => number;
   /** The characters besides digits the input accepts for the locale and format. */
   getAllowedNonNumericKeys: () => Set<string>;
-  setInputValue: (text: string) => void;
+  /** Sets the text the person typed: the edit is typing until it stops or ends. */
+  setTypedText: (text: string) => void;
+  /** Stops typing (a step or a commit begins): the held change shows formatted. */
+  stopTyping: () => void;
+  /** Whether the input holds text the person typed and has not committed. */
+  isTyping: () => boolean;
   setInputElement: (element: HTMLInputElement | null) => void;
   inputElement: () => HTMLInputElement | null;
   /** Focuses the input with the caret at the end. */
   focusInput: () => void;
   setScrubbing: (scrubbing: boolean) => void;
+  /** Ends the edit by its commit, which the owner hears. */
   onValueCommitted: (value: number | null, details: NumberFieldRootCommitEventDetails) => void;
-  /** `false` while the input holds text the person typed and has not committed. */
-  allowInputSyncRef: ValueCell<boolean>;
-  /** The value steps start from: the stored value, or the dirty text just synced. */
+  /**
+   * Ends the edit with no commit: the field shows the owner's value again, or,
+   * given `keepText`, shows that text until the owner's value changes.
+   */
+  discardEdit: (options?: { readonly keepText?: string }) => void;
+  /** The value steps start from: the value the field last rendered. */
   valueRef: ValueCell<number | null>;
   /** The value the last applied change stored. */
   lastChangedValueRef: ValueCell<number | null>;
   /** Whether a change was applied that no commit has reported yet. */
-  hasPendingCommitRef: ValueCell<boolean>;
+  hasPendingCommit: () => boolean;
 }
 
 export const NumberFieldRootContext = createContext<NumberFieldRootContextValue | null>(null);

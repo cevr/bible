@@ -54,5 +54,3 @@ export interface FloatingUIOpenChangeDetails {
   nativeEvent: Event;
   triggerElement?: Element | undefined;
 }
-
-export type Orientation = 'horizontal' | 'vertical';

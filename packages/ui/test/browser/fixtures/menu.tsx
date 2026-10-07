@@ -1,16 +1,13 @@
-// Fixtures for the menu: one menu with plain items (one disabled, one that
-// keeps the menu open), a separator and a group with a label. URL params:
-// `modal=false` for a non-modal menu, `loop=false` to stop focus wrapping,
-// `animated=true` for a popup that fades out over 300 ms.
+// Fixtures for the menu: one menu with plain items, a separator and a group
+// with a label. URL param: `animated=true` for a popup that fades out over
+// 300 ms. `sorted` is a menu of keyed rows that reverse while it is open.
 import type { JSX } from '@solidjs/web';
-import { Show } from 'solid-js';
+import { createSignal, For, Show } from 'solid-js';
 
 import { Menu } from '../../../src/menu/index.ts';
 import { log, param } from './log.ts';
 
 function FullMenu(): JSX.Element {
-  const modal = param('modal') !== 'false';
-  const loopFocus = param('loop') !== 'false';
   return (
     <div style={{ padding: '40px' }}>
       <Show when={param('animated') === 'true'}>
@@ -23,8 +20,6 @@ function FullMenu(): JSX.Element {
         before
       </button>
       <Menu.Root
-        modal={modal}
-        loopFocus={loopFocus}
         onOpenChange={(open, details) => log(`open ${open} ${details.reason}`)}
         onOpenChangeComplete={(open) => log(`complete ${open}`)}
       >
@@ -35,10 +30,10 @@ function FullMenu(): JSX.Element {
               <Menu.Item id="cut" onClick={() => log('click cut')}>
                 Cut
               </Menu.Item>
-              <Menu.Item id="copy" disabled onClick={() => log('click copy')}>
+              <Menu.Item id="copy" onClick={() => log('click copy')}>
                 Copy
               </Menu.Item>
-              <Menu.Item id="paste" closeOnClick={false} onClick={() => log('click paste')}>
+              <Menu.Item id="paste" onClick={() => log('click paste')}>
                 Paste
               </Menu.Item>
               <Menu.Separator id="sep" />
@@ -62,6 +57,38 @@ function FullMenu(): JSX.Element {
   );
 }
 
+/**
+ * A menu whose items are a keyed list, as the lab's rows are:
+ * `window.__reverse()` reverses the list while the menu is open, so the
+ * items' elements move in the DOM.
+ */
+function SortedMenu(): JSX.Element {
+  const [names, setNames] = createSignal(['alpha', 'bravo', 'charlie']);
+  (window as unknown as { __reverse: () => void }).__reverse = () =>
+    setNames((current) => [...current].reverse());
+  return (
+    <div style={{ padding: '40px' }}>
+      <Menu.Root>
+        <Menu.Trigger id="trigger">Rows</Menu.Trigger>
+        <Menu.Portal>
+          <Menu.Positioner id="positioner" sideOffset={4} align="start">
+            <Menu.Popup id="popup">
+              <For each={names()}>
+                {(name) => (
+                  <Menu.Item id={name} onClick={() => log(`click ${name}`)}>
+                    {name}
+                  </Menu.Item>
+                )}
+              </For>
+            </Menu.Popup>
+          </Menu.Positioner>
+        </Menu.Portal>
+      </Menu.Root>
+    </div>
+  );
+}
+
 export const fixtures: Record<string, () => JSX.Element> = {
   menu: () => <FullMenu />,
+  sorted: () => <SortedMenu />,
 };

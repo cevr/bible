@@ -1,12 +1,11 @@
-// Fixtures for Toast: a receipt raised through a manager created outside
-// the component tree (the Undo action in its action slot), toasts added
-// from inside the tree with `useToastManager`, and an element swiped with
-// `useSwipeDismiss` on its own.
+// Fixtures for Toast: receipts raised through a manager created outside the
+// component tree (the Undo action in its action slot), and listed through
+// `useToastManager`. URL params: `timeout` (each receipt's), `limit`, and
+// `swipe=up`.
 import type { JSX } from '@solidjs/web';
-import { createSignal, For } from 'solid-js';
+import { For } from 'solid-js';
 
 import { Toast, type ToastObject } from '../../../src/toast/index.ts';
-import { useSwipeDismiss } from '../../../src/utils/useSwipeDismiss.ts';
 import { log, param } from './log.ts';
 
 interface Receipt {
@@ -20,12 +19,12 @@ let receiptCount = 0;
 function raiseReceipt(said: string, tone: Receipt['tone'] = 'neutral') {
   receiptCount += 1;
   const count = receiptCount;
+  const timeout = param('timeout');
   const id: string = receipts.add({
     title: `${said} ${count}`,
     type: tone,
-    priority: param('priority') === 'high' ? 'high' : 'low',
+    timeout: timeout === null ? undefined : Number(timeout),
     data: { tone },
-    onClose: () => log(`closed ${count}`),
     onRemove: () => log(`removed ${count}`),
     actionProps: {
       children: 'Undo',
@@ -81,23 +80,7 @@ function ToastList(): JSX.Element {
   );
 }
 
-/** Adds toasts from inside the tree, through `useToastManager`. */
-function InsideControls(): JSX.Element {
-  const manager = Toast.useToastManager();
-  return (
-    <button
-      id="add-inside"
-      onClick={() => {
-        manager.add({ title: 'Inside' });
-      }}
-    >
-      add inside
-    </button>
-  );
-}
-
 function ReceiptFixture(): JSX.Element {
-  const timeout = Number(param('timeout') ?? '5000');
   const limit = Number(param('limit') ?? '3');
   return (
     <>
@@ -107,11 +90,10 @@ function ReceiptFixture(): JSX.Element {
       <button id="raise-danger" onClick={() => raiseReceipt('Removed tag', 'danger')}>
         raise danger
       </button>
-      <button id="close-all" onClick={() => receipts.close()}>
-        close all
+      <button id="raise-plain" onClick={() => receipts.add({ title: 'Plain' })}>
+        raise plain
       </button>
-      <Toast.Provider toastManager={receipts} timeout={timeout} limit={limit}>
-        <InsideControls />
+      <Toast.Provider toastManager={receipts} limit={limit}>
         <Toast.Portal>
           <Toast.Viewport
             id="viewport"
@@ -128,39 +110,6 @@ function ReceiptFixture(): JSX.Element {
   );
 }
 
-function SwipeBox(): JSX.Element {
-  const [element, setElement] = createSignal<HTMLElement | null>(null, { ownedWrite: true });
-  const [dismissed, setDismissed] = createSignal(false);
-  const swipe = useSwipeDismiss({
-    enabled: true,
-    directions: ['right'],
-    element,
-    movementCssVars: { x: '--movement-x', y: '--movement-y' },
-    onDismiss: (_event, details) => {
-      log(`dismiss ${details.direction}`);
-      setDismissed(true);
-    },
-    onRelease: (details) => {
-      log(`release ${details.direction ?? 'none'} ${Math.round(details.deltaX)}`);
-    },
-  });
-  return (
-    <div style={{ padding: '40px' }}>
-      <div
-        id="swipe-box"
-        ref={setElement}
-        {...swipe.getPointerProps()}
-        data-swiping={swipe.swiping() ? '' : undefined}
-        data-dismissed={dismissed() ? '' : undefined}
-        style={{ width: '200px', height: '80px', background: '#ccc', ...swipe.getDragStyles() }}
-      >
-        <button id="swipe-button">button</button>
-      </div>
-    </div>
-  );
-}
-
 export const fixtures: Record<string, () => JSX.Element> = {
   receipt: ReceiptFixture,
-  'swipe-dismiss': SwipeBox,
 };

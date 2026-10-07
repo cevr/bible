@@ -2,8 +2,7 @@
 // packages/react/src/toast/root/ToastRootCssVars.ts,
 // packages/react/src/toast/root/ToastRootDataAttributes.ts
 //
-// One toast: a non-modal `dialog` (`alertdialog` for high priority)
-// labelled by its title. It measures its
+// One toast: a non-modal `dialog` labelled by its title. It measures its
 // natural height into the store (the stack's offsets read it), removes
 // itself once its exit animations finish, closes on Escape while focus is
 // inside, and can be swiped away: a drag in an allowed direction follows
@@ -40,7 +39,7 @@ import { useToastProviderContext, useToastSelector } from './ToastProviderContex
 import { ToastRootContext, type ToastRootContextValue } from './ToastRootContext.ts';
 import type { ToastObject } from './types.ts';
 
-export const ToastRootCssVars = {
+const ToastRootCssVars = {
   /** Indicates the index of the toast in the list. */
   index: '--toast-index',
   /** Indicates the vertical pixels offset of the toast in the list when expanded. */
@@ -53,7 +52,7 @@ export const ToastRootCssVars = {
   swipeMovementY: '--toast-swipe-movement-y',
 } as const;
 
-export const ToastRootDataAttributes = {
+const ToastRootDataAttributes = {
   /** Present when the toast is expanded in the viewport. */
   expanded: 'data-expanded',
   /** Present when the toast was limited because the toast limit was exceeded. */
@@ -85,7 +84,7 @@ export interface ToastRootState {
   swipeDirection: SwipeDirection | undefined;
 }
 
-export const toastRootStateAttributesMapping: StateAttributesMapping<ToastRootState> = {
+const toastRootStateAttributesMapping: StateAttributesMapping<ToastRootState> = {
   ...(transitionStatusMapping as StateAttributesMapping<ToastRootState>),
   swipeDirection(value) {
     return value ? { [ToastRootDataAttributes.swipeDirection]: value } : null;
@@ -158,7 +157,6 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     selectors.toastVisibleIndex(state, toastId()),
   );
   const offsetY = useToastSelector(context, (state) => selectors.toastOffsetY(state, toastId()));
-  const focused = useToastSelector(context, selectors.focused);
   const expanded = useToastSelector(context, selectors.expanded);
 
   useOpenChangeComplete({
@@ -461,19 +459,12 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     },
   );
 
-  const isHighPriority = () => toast().priority === 'high';
-
   const defaultProps: HTMLProps = {
-    get role() {
-      return isHighPriority() ? 'alertdialog' : 'dialog';
-    },
+    role: 'dialog',
     tabindex: 0,
     'aria-modal': 'false',
     get 'aria-labelledby'() {
       return titleId();
-    },
-    get 'aria-hidden'() {
-      return isHighPriority() && !focused() ? 'true' : undefined;
     },
     onPointerDown: handlePointerDown,
     onPointerMove: handlePointerMove,

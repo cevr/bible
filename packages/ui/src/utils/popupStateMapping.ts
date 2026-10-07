@@ -31,11 +31,8 @@ export const CommonPositionerCssVars = {
   anchorWidth: '--anchor-width',
   anchorHeight: '--anchor-height',
   transformOrigin: '--transform-origin',
-  positionerWidth: '--positioner-width',
-  positionerHeight: '--positioner-height',
 } as const;
 
-const TRIGGER_HOOK = { [CommonTriggerDataAttributes.popupOpen]: '' };
 const PRESSABLE_TRIGGER_HOOK = {
   [CommonTriggerDataAttributes.popupOpen]: '',
   [CommonTriggerDataAttributes.pressed]: '',
@@ -43,12 +40,6 @@ const PRESSABLE_TRIGGER_HOOK = {
 const POPUP_OPEN_HOOK = { [CommonPopupDataAttributes.open]: '' };
 const POPUP_CLOSED_HOOK = { [CommonPopupDataAttributes.closed]: '' };
 const ANCHOR_HIDDEN_HOOK = { [CommonPopupDataAttributes.anchorHidden]: '' };
-
-export const triggerOpenStateMapping: StateAttributesMapping<{ open: boolean }> = {
-  open(value) {
-    return value ? TRIGGER_HOOK : null;
-  },
-};
 
 export const pressableTriggerOpenStateMapping: StateAttributesMapping<{ open: boolean }> = {
   open(value) {

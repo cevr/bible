@@ -18,32 +18,28 @@ import { createEffect, onCleanup, untrack } from 'solid-js';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import type { FloatingUIOpenChangeDetails, HTMLProps } from '../../internals/types.ts';
-import { addEventListener, mergeCleanups, ownerDocument } from '../../utils/dom.ts';
+import {
+  addEventListener,
+  contains,
+  getTarget,
+  mergeCleanups,
+  ownerDocument,
+} from '../../utils/dom.ts';
 import { platform } from '../../utils/platform.ts';
 import { Timeout, useTimeout } from '../../utils/timers.ts';
 import type { FloatingRootContext } from '../FloatingRootContext.ts';
-import {
-  contains,
-  createAttribute,
-  getTarget,
-  isEventTargetWithin,
-  isRootElement,
-} from '../utils/element.ts';
+import { createAttribute, isEventTargetWithin, isRootElement } from '../utils/element.ts';
 import { isVirtualClick } from '../utils/event.ts';
 
 type PressType = 'intentional' | 'sloppy';
 
 export interface ElementProps {
-  reference?: HTMLProps | undefined;
-  floating?: HTMLProps | undefined;
-  trigger?: HTMLProps | undefined;
+  reference: HTMLProps;
+  floating: HTMLProps;
+  trigger: HTMLProps;
 }
 
 export interface UseDismissProps {
-  /** Whether Escape and outside presses close the popup. Read live. */
-  enabled?: boolean | undefined;
-  /** Whether Escape closes the popup. */
-  escapeKey?: boolean | undefined;
   /** Whether an outside press closes it, or a function deciding per event. */
   outsidePress?: boolean | ((event: MouseEvent | TouchEvent) => boolean) | undefined;
   /**
@@ -63,8 +59,6 @@ export function useDismiss(
 ): ElementProps {
   const { events } = context;
 
-  const enabled = () => props.enabled ?? true;
-  const escapeKey = () => props.escapeKey ?? true;
   const outsidePress = () => props.outsidePress ?? true;
 
   let pressStartedInside = false;
@@ -88,7 +82,7 @@ export function useDismiss(
     isEventTargetWithin(event, untrack(context.domReferenceElement));
 
   const closeOnEscapeKeyDown = (event: KeyboardEvent) => {
-    if (!untrack(context.open) || !enabled() || !escapeKey() || event.key !== 'Escape') {
+    if (!untrack(context.open) || event.key !== 'Escape') {
       return;
     }
     if (isComposing) {
@@ -99,13 +93,11 @@ export function useDismiss(
     if (!eventDetails.isCanceled) {
       event.preventDefault();
     }
-    if (!eventDetails.isPropagationAllowed) {
-      event.stopPropagation();
-    }
+    event.stopPropagation();
   };
 
   const markPressStartedInside = (event: PointerEvent | MouseEvent) => {
-    if (!untrack(context.open) || !enabled() || event.button !== 0) {
+    if (!untrack(context.open) || event.button !== 0) {
       return;
     }
     const target = getTarget(event) as Element | null;
@@ -119,7 +111,7 @@ export function useDismiss(
   };
 
   const markInsidePressStartPrevented = (event: PointerEvent | MouseEvent) => {
-    if (!untrack(context.open) || !enabled() || !event.defaultPrevented) {
+    if (!untrack(context.open) || !event.defaultPrevented) {
       return;
     }
     if (pressStartedInside) {
@@ -138,16 +130,12 @@ export function useDismiss(
   createEffect(
     () => ({
       open: context.open(),
-      enabled: enabled(),
       floating: context.floatingElement(),
-      escapeKey: escapeKey(),
       outsidePressEnabled: outsidePress() !== false,
     }),
     (deps) => {
-      if (!deps.open || !deps.enabled) {
-        if (!deps.open) {
-          sawPressWhileOpen = false;
-        }
+      if (!deps.open) {
+        sawPressWhileOpen = false;
         return undefined;
       }
 
@@ -302,7 +290,6 @@ export function useDismiss(
           getOutsidePressEvent() !== 'sloppy' ||
           event.pointerType === 'touch' ||
           !untrack(context.open) ||
-          !enabled() ||
           isEventWithinOwnElements(event)
         ) {
           return;
@@ -314,7 +301,6 @@ export function useDismiss(
         if (
           getOutsidePressEvent() !== 'sloppy' ||
           !untrack(context.open) ||
-          !enabled() ||
           isEventWithinOwnElements(event)
         ) {
           return;
@@ -445,12 +431,9 @@ export function useDismiss(
       }
 
       const unsubscribe = mergeCleanups(
-        deps.escapeKey &&
-          mergeCleanups(
-            addEventListener(doc, 'keydown', closeOnEscapeKeyDown),
-            addEventListener(doc, 'compositionstart', handleCompositionStart),
-            addEventListener(doc, 'compositionend', handleCompositionEnd),
-          ),
+        addEventListener(doc, 'keydown', closeOnEscapeKeyDown),
+        addEventListener(doc, 'compositionstart', handleCompositionStart),
+        addEventListener(doc, 'compositionend', handleCompositionEnd),
         deps.outsidePressEnabled &&
           mergeCleanups(
             addEventListener(doc, 'click', closeOnPressOutsideCapture, true),

@@ -10,7 +10,7 @@ import type { HTMLProps } from '../../internals/types.ts';
 import { useTimeout } from '../../utils/timers.ts';
 import type { FloatingRootContext } from '../FloatingRootContext.ts';
 import { isElementVisible } from '../utils/composite.ts';
-import { contains } from '../utils/element.ts';
+import { contains } from '../../utils/dom.ts';
 import { stopEvent } from '../utils/event.ts';
 
 export interface UseTypeaheadProps {
@@ -21,7 +21,6 @@ export interface UseTypeaheadProps {
   /** The items' elements: a hidden or `:disabled` item is never matched. */
   elementsRef?: { current: Array<HTMLElement | null> } | undefined;
   onTyping?: ((isTyping: boolean) => void) | undefined;
-  enabled?: boolean | undefined;
   resetMs?: number | undefined;
 }
 
@@ -35,10 +34,6 @@ export function useTypeahead(
   let matchIndex: number | null = null;
 
   const onKeyDown = (event: KeyboardEvent) => {
-    if (!(props.enabled ?? true)) {
-      return;
-    }
-
     const isItemAvailable = (index: number) => {
       const element = props.elementsRef?.current[index];
       return !((element && !isElementVisible(element)) || element?.matches(':disabled'));

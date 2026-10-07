@@ -7,7 +7,7 @@
 const cache = new Map<string, Intl.NumberFormat>();
 
 /** A locale argument as a stable string key (arrays joined by commas). */
-export function stringifyLocale(locale?: Intl.LocalesArgument): string {
+function stringifyLocale(locale?: Intl.LocalesArgument): string {
   if (Array.isArray(locale)) {
     return locale.map((value: Intl.LocalesArgument) => stringifyLocale(value)).join(',');
   }

@@ -169,9 +169,16 @@ export function findScrollableTouchTarget(
 
 type ElementFromPointRoot = Node & Partial<Pick<Document, 'elementFromPoint'>>;
 
-// `Document.elementFromPoint` retargets shadow content to the shadow host, so
-// callers pass `getRootNode()` (a document or a shadow root).
-function getElementAtPoint(root: ElementFromPointRoot | null | undefined, x: number, y: number) {
+/**
+ * The element at a point. `Document.elementFromPoint` retargets shadow
+ * content to the shadow host, so callers pass `getRootNode()` (a document or
+ * a shadow root).
+ */
+export function getElementAtPoint(
+  root: ElementFromPointRoot | null | undefined,
+  x: number,
+  y: number,
+) {
   return typeof root?.elementFromPoint === 'function' ? root.elementFromPoint(x, y) : null;
 }
 

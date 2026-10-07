@@ -11,12 +11,10 @@ import type { ClassProp, ComponentRenderFn, HTMLProps, StyleProp } from '../type
 import { type IntrinsicTagName, useRenderElement } from '../useRenderElement.tsx';
 import { useCompositeItem } from './useCompositeItem.ts';
 
-export interface CompositeItemProps<Metadata, State extends object> {
+export interface CompositeItemProps<State extends object> {
   class?: ClassProp<State> | undefined;
   style?: StyleProp<State> | undefined;
   render?: ComponentRenderFn<HTMLProps, State> | undefined;
-  /** The item's metadata, read reactively. */
-  metadata?: (() => Metadata) | undefined;
   /** The element's props (children included), merged after the item's own. */
   props?: ReadonlyArray<PropsInput> | undefined;
   state?: State | undefined;
@@ -26,10 +24,8 @@ export interface CompositeItemProps<Metadata, State extends object> {
   tag?: IntrinsicTagName | undefined;
 }
 
-export function CompositeItem<Metadata, State extends object>(
-  props: CompositeItemProps<Metadata, State>,
-): JSX.Element {
-  const item = useCompositeItem<Metadata>({ metadata: untrack(() => props.metadata) });
+export function CompositeItem<State extends object>(props: CompositeItemProps<State>): JSX.Element {
+  const item = useCompositeItem();
   return useRenderElement(untrack(() => props.tag) ?? 'div', props, {
     get state() {
       return props.state;

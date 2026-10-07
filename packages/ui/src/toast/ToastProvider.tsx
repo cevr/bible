@@ -1,8 +1,9 @@
 // Upstream: packages/react/src/toast/provider/ToastProvider.tsx
 //
 // Owns the toasts of the parts inside it: a store created once, kept in
-// step with the `timeout` and `limit` props, and fed by a `toastManager`
-// created outside the tree when one is given.
+// step with the `limit` prop, and fed by a `toastManager` created outside
+// the tree when one is given. Upstream's provider-wide `timeout` is left
+// out: a toast takes its own `timeout`, else 5000 ms.
 import type { JSX } from '@solidjs/web';
 import { createEffect, createSignal, onCleanup, untrack } from 'solid-js';
 
@@ -14,12 +15,6 @@ export interface ToastProviderState {}
 
 export interface ToastProviderProps {
   children?: JSX.Element;
-  /**
-   * The default amount of time (in ms) before a toast is auto dismissed.
-   * A value of `0` will prevent the toast from being dismissed automatically.
-   * @default 5000
-   */
-  timeout?: number | undefined;
   /**
    * The maximum number of toasts that can be displayed at once.
    * When the limit is exceeded, the oldest toasts are marked as `limited` (via the `data-limited`
@@ -33,7 +28,6 @@ export interface ToastProviderProps {
 
 export function ToastProvider(props: ToastProviderProps): JSX.Element {
   const store = new ToastStore({
-    timeout: untrack(() => props.timeout ?? 5000),
     limit: untrack(() => props.limit ?? 3),
     viewport: null,
     toasts: [],
@@ -50,11 +44,10 @@ export function ToastProvider(props: ToastProviderProps): JSX.Element {
     store.dispose();
   });
 
-  // Changing `limit` also recomputes each toast's `limited` flag.
   createEffect(
-    () => [props.timeout ?? 5000, props.limit ?? 3] as const,
-    ([timeout, limit]) => {
-      store.syncProviderProps(timeout, limit);
+    () => props.limit ?? 3,
+    (limit) => {
+      store.setLimit(limit);
     },
   );
 

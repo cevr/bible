@@ -1,6 +1,6 @@
 // Not in upstream: one owner per press. A finger's press may become a long
 // press (a context menu's trigger) or a drag (a consumer's, such as the film
-// lab's `Pointer.drag`); whichever claims the press's pointer first has it
+// lab's `Pointer.press`); whichever claims the press's pointer first has it
 // until that pointer lifts or is cancelled, and every other claim on it is
 // refused. The long press claims as its delay ends, a drag as it starts
 // moving, so a drag that started is no long press, and a long press that

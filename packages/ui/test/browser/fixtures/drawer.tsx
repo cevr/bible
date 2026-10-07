@@ -3,12 +3,16 @@
 // closes reach the owner through `onOpenChange`. URL params for `drawer`:
 // `direction` (the root's `swipeDirection`: `down` by default, or `right`
 // for a side sheet), `modal=false`, `owner=cancel` for an owner that cancels
-// every close. `async-owner` is the studio's shape: an
+// every close, `initial=first|false` for an `initialFocus` that returns the
+// first button or `false`, `body=tall` for a `Drawer.Content` that scrolls
+// (120px tall over 600px of content, as the phone inspector's body does).
+// `async-owner` is the studio's shape: an
 // `open` that stays true, under a page that drops the drawer later.
 //
 // The bottom sheet is 300px tall on an 800x600 page (its top edge at y=300);
 // the side sheet is 300px wide (its left edge at x=500). Their transforms
-// read the drawer's CSS variables, as a styled drawer's do.
+// read the drawer's CSS variables, as a styled drawer's do. The sheet's first
+// button is 100px tall, so a drag can stay on it.
 import type { JSX } from '@solidjs/web';
 import { createSignal, Show } from 'solid-js';
 
@@ -46,6 +50,10 @@ function ownerOpen(id: string) {
 function BasicDrawer(): JSX.Element {
   const owner = ownerOpen('open');
   const direction = directionParam();
+  let first: HTMLElement | undefined;
+  const initial = param('initial');
+  const initialFocus =
+    initial === 'first' ? () => first ?? true : initial === 'false' ? () => false : undefined;
   return (
     <div>
       <style>{STYLES}</style>
@@ -68,10 +76,21 @@ function BasicDrawer(): JSX.Element {
       >
         <Drawer.Portal>
           <Drawer.Viewport id="viewport" class="viewport">
-            <Drawer.Popup id="popup" class="popup">
+            <Drawer.Popup id="popup" class="popup" initialFocus={initialFocus}>
               <Drawer.Title id="title">Sheet</Drawer.Title>
-              <Drawer.Content id="content">Selectable text</Drawer.Content>
-              <button type="button" id="first">
+              {param('body') === 'tall' ? (
+                <Drawer.Content id="content" style={{ height: '120px', 'overflow-y': 'auto' }}>
+                  <div style={{ height: '600px' }}>Selectable text</div>
+                </Drawer.Content>
+              ) : (
+                <Drawer.Content id="content">Selectable text</Drawer.Content>
+              )}
+              <button
+                type="button"
+                id="first"
+                ref={(el) => (first = el)}
+                style={{ height: '100px' }}
+              >
                 first
               </button>
               <Drawer.Close id="close">Close</Drawer.Close>

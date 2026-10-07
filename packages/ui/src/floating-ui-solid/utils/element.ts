@@ -2,17 +2,14 @@
 // packages/react/src/floating-ui-react/utils/constants.ts,
 // packages/react/src/floating-ui-react/utils/createAttribute.ts
 //
-// Element predicates the interactions share: typeable fields, interactive
-// elements, `:focus-visible`, and the element inside a popup that takes focus.
+// Element predicates the interactions share: typeable fields, `:focus-visible`,
+// and the element inside a popup that takes focus.
 import { isHTMLElement } from '@floating-ui/utils/dom';
 
-import { activeElement, closest, contains, getTarget } from '../../utils/dom.ts';
 import { platform } from '../../utils/platform.ts';
 
-export { activeElement, closest, contains, getTarget };
-
 export const FOCUSABLE_ATTRIBUTE = 'data-base-ui-focusable';
-export const TYPEABLE_SELECTOR =
+const TYPEABLE_SELECTOR =
   "input:not([type='hidden']):not([disabled])," +
   "[contenteditable]:not([contenteditable='false']),textarea:not([disabled])";
 export const ARROW_LEFT = 'ArrowLeft';
@@ -41,15 +38,6 @@ export function isRootElement(element: Element): boolean {
 
 export function isTypeableElement(element: unknown): boolean {
   return isHTMLElement(element) && element.matches(TYPEABLE_SELECTOR);
-}
-
-export function isInteractiveElement(element: Element | null) {
-  return (
-    closest(
-      element,
-      `button,a[href],[role="button"],select,[tabindex]:not([tabindex="-1"]),${TYPEABLE_SELECTOR}`,
-    ) != null
-  );
 }
 
 export function matchesFocusVisible(element: Element | null) {

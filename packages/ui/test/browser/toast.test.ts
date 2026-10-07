@@ -5,27 +5,20 @@
 // packages/react/src/toast/action/ToastAction.test.tsx,
 // packages/react/src/toast/close/ToastClose.test.tsx,
 // packages/react/src/toast/title/ToastTitle.test.tsx,
-// packages/react/src/toast/content/ToastContent.test.tsx,
-// packages/react/src/utils/useSwipeDismiss.test.tsx
+// packages/react/src/toast/content/ToastContent.test.tsx
 //
 // The behaviour cases, against a receipt toast (a title, a tone, an Undo
 // action) raised through a manager created outside the tree; its title
 // carries the receipt's count. Timers run on
 // Playwright's clock. Upstream's cases for React-only machinery (strict
 // mode, abandoned renders, layout-effect ordering) are left out.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('toast.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('toast.tsx');
 
 const roots = (page: Page) => page.locator('[data-testid="root"]');
 
@@ -87,21 +80,7 @@ describe('createToastManager', () => {
     await see(action).toHaveAttribute('type', 'button');
     await action.click();
     await see(roots(page)).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['undo 1', 'closed 1', 'removed 1']);
-  });
-
-  it('closes every toast', async () => {
-    const page = await openReceipt();
-    await page.click('#raise');
-    await page.click('#raise');
-    await see(roots(page)).toHaveCount(2);
-    await page.click('#close-all');
-    await see(roots(page)).toHaveCount(0);
-    const lines = await logOf(page);
-    expect(lines.filter((line) => line.startsWith('closed')).sort()).toEqual([
-      'closed 1',
-      'closed 2',
-    ]);
+    expect(await logOf(page)).toEqual(['undo 1', 'removed 1']);
   });
 
   it('newest toast first, with its index and offset variables', async () => {
@@ -127,13 +106,12 @@ describe('createToastManager', () => {
   });
 });
 
-describe('useToastManager', () => {
-  it('adds a toast from inside the tree', async () => {
+describe('Toast.Action', () => {
+  it('renders nothing for a toast without action content', async () => {
     const page = await openReceipt();
-    await page.click('#add-inside');
+    await page.click('#raise-plain');
     await see(roots(page)).toHaveCount(1);
-    await see(roots(page).first().getByTestId('title')).toHaveText('Inside');
-    // No action content: the action part renders nothing.
+    await see(roots(page).first().getByTestId('title')).toHaveText('Plain');
     await see(roots(page).first().getByTestId('action')).toHaveCount(0);
   });
 });
@@ -148,10 +126,10 @@ describe('timeout', () => {
     await see(roots(page)).toHaveCount(1);
     await page.clock.runFor(200);
     await see(roots(page)).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['closed 1', 'removed 1']);
+    expect(await logOf(page)).toEqual(['removed 1']);
   });
 
-  it('uses the provider timeout; 0 never dismisses', async () => {
+  it('never dismisses a toast whose timeout is 0', async () => {
     const page = await openReceipt({ timeout: '0' });
     await page.click('#raise');
     await page.clock.runFor(60_000);
@@ -208,7 +186,7 @@ describe('keyboard', () => {
     await see(close).toHaveAttribute('aria-hidden', 'true');
     await close.click();
     await see(roots(page)).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['closed 1', 'removed 1']);
+    expect(await logOf(page)).toEqual(['removed 1']);
   });
 
   it('F6 focuses the viewport, Tab enters the first toast, Shift+Tab returns', async () => {
@@ -249,17 +227,6 @@ describe('limit', () => {
   });
 });
 
-describe('priority', () => {
-  it('announces a high priority toast through a hidden alert', async () => {
-    const page = await openReceipt({ priority: 'high' });
-    await page.click('#raise');
-    const root = roots(page).first();
-    await see(root).toHaveAttribute('role', 'alertdialog');
-    await see(root).toHaveAttribute('aria-hidden', 'true');
-    await see(page.locator('[role="alert"]')).toContainText('Deleted note');
-  });
-});
-
 describe('swipe', () => {
   it('dismisses when dragged right past the threshold', async () => {
     const page = await openReceipt();
@@ -267,7 +234,7 @@ describe('swipe', () => {
     await see(roots(page)).toHaveCount(1);
     await drag(page, '[data-testid="title"]', 100, 0);
     await see(roots(page)).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['closed 1', 'removed 1']);
+    expect(await logOf(page)).toEqual(['removed 1']);
   });
 
   it('dismisses when dragged down past the threshold, the receipts’ other direction', async () => {
@@ -276,7 +243,7 @@ describe('swipe', () => {
     await see(roots(page)).toHaveCount(1);
     await drag(page, '[data-testid="title"]', 0, 100);
     await see(roots(page)).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['closed 1', 'removed 1']);
+    expect(await logOf(page)).toEqual(['removed 1']);
   });
 
   it('marks the toast swiping while dragging, with the swipe direction', async () => {
@@ -324,52 +291,39 @@ describe('swipe', () => {
     await see(roots(page)).toHaveCount(1);
   });
 
+  it('dismisses when swiped down by a finger', async () => {
+    const page = await h.open('receipt', { touch: true });
+    await page.clock.install();
+    await page.click('#raise');
+    await see(roots(page)).toHaveCount(1);
+    // The browser's own touches (CDP), so the pointer events are its own: pointerType touch.
+    const cdp = await page.context().newCDPSession(page);
+    const at = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) =>
+      cdp.send('Input.dispatchTouchEvent', {
+        type,
+        touchPoints: type === 'touchEnd' ? [] : [{ x, y }],
+      });
+    const box = await page.locator('[data-testid="title"]').boundingBox();
+    if (!box) {
+      throw new Error('no box');
+    }
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await at('touchStart', x, y);
+    // Ten moves of 10px, one after another.
+    await Array.from({ length: 10 }, (_, i) => y + (i + 1) * 10).reduce<Promise<unknown>>(
+      (previous, moveY) => previous.then(() => at('touchMove', x, moveY)),
+      Promise.resolve(),
+    );
+    await at('touchEnd', x, y + 100);
+    await see(roots(page)).toHaveCount(0);
+    expect(await logOf(page)).toEqual(['removed 1']);
+  });
+
   it('does not start a swipe from a button inside the toast', async () => {
     const page = await openReceipt();
     await page.click('#raise');
     await drag(page, '[data-testid="action"]', 120, 0);
     await see(roots(page)).toHaveCount(1);
-  });
-});
-
-describe('useSwipeDismiss', () => {
-  it('dismisses past the threshold and reports the release', async () => {
-    const page = await h.open('swipe-dismiss');
-    await drag(page, '#swipe-box', 100, 0);
-    await see(page.locator('#swipe-box')).toHaveAttribute('data-dismissed', '');
-    const lines = await logOf(page);
-    expect(lines.at(-1)).toBe('dismiss right');
-    expect(lines.find((line) => line.startsWith('release'))).toMatch(/^release right \d+$/);
-  });
-
-  it('snaps back below the threshold', async () => {
-    const page = await h.open('swipe-dismiss');
-    await drag(page, '#swipe-box', 20, 0);
-    await see(page.locator('#swipe-box')).not.toHaveAttribute('data-dismissed', '');
-    await see(page.locator('#swipe-box')).toHaveCSS('--movement-x', '0px');
-    expect(await logOf(page)).not.toContain('dismiss right');
-  });
-
-  it('damps movement against the allowed direction while dragging', async () => {
-    const page = await h.open('swipe-dismiss');
-    const box = await page.locator('#swipe-box').boundingBox();
-    if (!box) {
-      throw new Error('no box');
-    }
-    await page.mouse.move(box.x + 150, box.y + 60);
-    await page.mouse.down();
-    await page.mouse.move(box.x + 140, box.y + 60);
-    await page.mouse.move(box.x + 40, box.y + 60, { steps: 5 });
-    await see(page.locator('#swipe-box')).toHaveAttribute('data-swiping', '');
-    // 100px to the left, damped to its square root.
-    await see(page.locator('#swipe-box')).toHaveCSS('--movement-x', '-10px');
-    await page.mouse.up();
-    await see(page.locator('#swipe-box')).not.toHaveAttribute('data-dismissed', '');
-  });
-
-  it('does not start a swipe while the pointer stays on a button', async () => {
-    const page = await h.open('swipe-dismiss');
-    await drag(page, '#swipe-button', 4, 0, 2);
-    expect(await logOf(page)).toEqual([]);
   });
 });

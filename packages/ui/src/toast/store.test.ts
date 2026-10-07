@@ -10,7 +10,6 @@ function createStore(toasts: ToastObject[]) {
   return new ToastStore({
     // Mirrors `addToast`, which always stamps an `updateKey` on the way in.
     toasts: toasts.map((toast) => ({ updateKey: 0, ...toast })),
-    timeout: 0,
     limit: 3,
     hovering: false,
     focused: false,
@@ -144,16 +143,6 @@ describe('ToastStore', () => {
     expect(onRemove).not.toHaveBeenCalled();
   });
 
-  it('calls onClose once, and not for toasts already ending', () => {
-    const onClose = mock(() => {});
-    const store = createStore([]);
-    store.addToast({ id: 'a', onClose });
-    store.addToast({ id: 'b', onClose });
-    store.closeToast('a');
-    store.closeToast();
-    expect(onClose).toHaveBeenCalledTimes(2);
-  });
-
   it('does not invoke onRemove for a toast that is no longer in the store', () => {
     const onRemove = mock(() => {});
     const store = createStore([{ id: 'a', onRemove }]);
@@ -170,12 +159,12 @@ describe('ToastStore', () => {
       // Ordered newest-first, matching how `addToast` prepends.
       const store = createStore([{ id: 'c' }, { id: 'b' }, { id: 'a' }]);
 
-      store.syncProviderProps(0, 1);
+      store.setLimit(1);
       expect(selectors.toast(store.state, 'c')?.limited).toBe(false);
       expect(selectors.toast(store.state, 'b')?.limited).toBe(true);
       expect(selectors.toast(store.state, 'a')?.limited).toBe(true);
 
-      store.syncProviderProps(0, 3);
+      store.setLimit(3);
       expect(selectors.toast(store.state, 'c')?.limited).toBe(false);
       expect(selectors.toast(store.state, 'b')?.limited).toBe(false);
       expect(selectors.toast(store.state, 'a')?.limited).toBe(false);
@@ -183,7 +172,7 @@ describe('ToastStore', () => {
 
     it('marks toasts past the limit as they are added, skipping ending ones', () => {
       const store = createStore([]);
-      store.syncProviderProps(0, 2);
+      store.setLimit(2);
       store.addToast({ id: 'a' });
       store.addToast({ id: 'b' });
       store.addToast({ id: 'c' });
@@ -198,14 +187,12 @@ describe('ToastStore', () => {
       jest.useRealTimers();
     });
 
-    it('auto-dismisses after the toast timeout, else the store timeout', () => {
+    it('auto-dismisses after the toast timeout, else 5000 ms; never with timeout 0', () => {
       jest.useFakeTimers();
       const store = createStore([]);
-      store.syncProviderProps(5000, 3);
       store.addToast({ id: 'default' });
       store.addToast({ id: 'short', timeout: 100 });
       store.addToast({ id: 'never', timeout: 0 });
-      store.addToast({ id: 'loading', type: 'loading' });
 
       jest.advanceTimersByTime(100);
       expect(statusOf(store, 'short')).toBe('ending');
@@ -216,7 +203,6 @@ describe('ToastStore', () => {
 
       jest.advanceTimersByTime(60_000);
       expect(statusOf(store, 'never')).toBe('starting');
-      expect(statusOf(store, 'loading')).toBe('starting');
     });
 
     it('re-pauses timers after the last toast is closed and a new one is added', () => {
@@ -228,7 +214,7 @@ describe('ToastStore', () => {
 
       // Closing the last toast clears the paused flag, else the next toast's
       // timer could never be paused again.
-      store.closeToast(store.state.toasts[0]?.id);
+      store.closeToast(store.state.toasts[0]?.id ?? '');
 
       store.addToast({ title: 'b', timeout: 100 });
       const newToastId = store.state.toasts[0]?.id ?? '';
@@ -247,7 +233,8 @@ describe('ToastStore', () => {
       store.addToast({ id: 'b', title: 'b', timeout: 100 });
       store.pauseTimers();
 
-      store.closeToast();
+      store.closeToast('a');
+      store.closeToast('b');
 
       store.addToast({ id: 'c', title: 'c', timeout: 100 });
       store.pauseTimers();
@@ -260,7 +247,7 @@ describe('ToastStore', () => {
       jest.useFakeTimers();
       const store = createStore([]);
 
-      store.addToast({ id: 'loading', title: 'loading', type: 'loading' });
+      store.addToast({ id: 'untimed', title: 'untimed', timeout: 0 });
       store.addToast({ id: 'timed', title: 'timed', timeout: 100 });
       store.pauseTimers();
 
@@ -384,13 +371,14 @@ describe('ToastStore', () => {
       expect(statusOf(store, 'a')).toBe('ending');
     });
 
-    it('schedules a timer when a loading toast becomes another type', () => {
+    it('schedules a timer when an untimed toast is re-added with a timeout', () => {
+      // A busy receipt held until its outcome replaces it.
       jest.useFakeTimers();
       const store = createStore([]);
-      store.addToast({ id: 'a', type: 'loading', timeout: 100 });
+      store.addToast({ id: 'a', type: 'busy', timeout: 0 });
       jest.advanceTimersByTime(500);
       expect(statusOf(store, 'a')).not.toBe('ending');
-      store.addToast({ id: 'a', type: 'success' });
+      store.addToast({ id: 'a', type: 'done', timeout: 100 });
       jest.advanceTimersByTime(100);
       expect(statusOf(store, 'a')).toBe('ending');
     });

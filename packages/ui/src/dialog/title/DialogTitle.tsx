@@ -5,10 +5,11 @@
 // each registers its id with the dialog, which names it in the popup's
 // `aria-labelledby` or `aria-describedby` while it is rendered.
 import type { JSX } from '@solidjs/web';
-import { createEffect, createUniqueId, omit } from 'solid-js';
+import { omit } from 'solid-js';
 
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
+import { useRegisteredId } from '../../utils/useRegisteredId.ts';
 import { useDialogRootContext } from '../root/DialogRootContext.ts';
 
 export interface DialogTitleState {}
@@ -18,22 +19,6 @@ export interface DialogTitleProps extends BaseUIComponentProps<'h2', DialogTitle
 export interface DialogDescriptionState {}
 
 export interface DialogDescriptionProps extends BaseUIComponentProps<'p', DialogDescriptionState> {}
-
-/** The part's id (its own or a generated one), registered with `register` while it renders. */
-function useRegisteredId(
-  props: { id?: string | false | undefined },
-  register: (id: string | undefined) => void,
-): () => string {
-  const fallbackId = createUniqueId();
-  const id = () => props.id || fallbackId;
-  createEffect(id, (value) => {
-    register(value);
-    return () => {
-      register(undefined);
-    };
-  });
-  return id;
-}
 
 /**
  * A heading that labels the dialog.

@@ -28,20 +28,13 @@ export const platform = {
     ios,
     android,
     mac,
-    windows: lowerPlatform.startsWith('win'),
-    linux: !android && /^(linux|chrome os)/.test(lowerPlatform),
     apple: mac || ios,
   },
   engine: {
     webkit,
     gecko: !webkit && lowerUserAgent.includes('firefox'),
-    blink: !webkit && lowerUserAgent.includes('chrom'),
   },
   env: {
     jsdom: /jsdom|happydom/.test(lowerUserAgent),
-  },
-  // VoiceOver is the screen reader on Apple platforms.
-  screenReader: {
-    voiceOver: mac || ios,
   },
 } as const;

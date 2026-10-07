@@ -4,19 +4,13 @@
 //
 // Dropped: the React-element `render` form (Solid has no element to clone),
 // React.lazy unwrapping and the uppercase-render-name warning (both React).
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see } from '@playwright/test';
 
-import { type Harness, harness, logOf } from './harness.ts';
+import { harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('foundations.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('foundations.tsx');
 
 describe('useRenderElement', () => {
   it('turns state into data attributes, live, props overriding them', async () => {
@@ -40,15 +34,6 @@ describe('useRenderElement', () => {
     const page = await h.open('refs');
     await page.click('#check');
     expect(await logOf(page)).toEqual(['props ref div', 'params ref div', 'same with-ref']);
-  });
-
-  it('renders nothing while enabled is false, and again once it is true', async () => {
-    const page = await h.open('enabled');
-    await see(page.locator('#toggled')).toHaveCount(1);
-    await page.click('#toggle');
-    await see(page.locator('#toggled')).toHaveCount(0);
-    await page.click('#toggle');
-    await see(page.locator('#toggled')).toHaveText('here');
   });
 
   it('accepts class and style as functions of the state', async () => {
@@ -78,21 +63,6 @@ describe('useRenderElement', () => {
     expect(await logOf(page)).toEqual(['user click']);
     await page.click('#fn-class');
     expect(await logOf(page)).toEqual(['user click', 'internal click']);
-  });
-
-  it('renders without reading reactive props outside a tracking scope', async () => {
-    const page = await h.open('class-style');
-    const warnings: Array<string> = [];
-    page.on('console', (message) => {
-      if (message.text().includes('STRICT_READ_UNTRACKED')) {
-        warnings.push(message.text());
-      }
-    });
-    await page.reload();
-    await page.locator('#root[data-mounted]').waitFor({ state: 'attached' });
-    await page.click('#fn-class');
-    await see(page.locator('#fn-class')).toHaveClass(/\bon\b/);
-    expect(warnings).toEqual([]);
   });
 
   it('calls render with the merged props and the live state', async () => {

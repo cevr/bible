@@ -1,13 +1,13 @@
 // Upstream: packages/react/src/number-field/scrub-area/NumberFieldScrubArea.tsx
 //
 // An area the user presses and drags across to change the value: every
-// `pixelSensitivity` pixels of movement along `direction` steps the value
-// by the movement times the step (Shift: `largeStep`, Alt: `smallStep`), and
-// the release commits. A mouse press focuses the input and asks for pointer
+// 2 pixels of horizontal movement step the value by the movement times the
+// step (Shift: `largeStep`, Alt: `smallStep`), and the release commits. A mouse press focuses the input and asks for pointer
 // lock, so the drag is not stopped by the screen's edge. WebKit and touch
 // scrub without pointer lock. A press that does not move clicks its target.
 // Upstream's `ScrubAreaCursor`, the virtual cursor drawn under the lock, is
-// left out. Renders a `<span>`.
+// left out, and so are its vertical `direction` and its `pixelSensitivity`.
+// Renders a `<span>`.
 import type { JSX } from '@solidjs/web';
 import { createEffect, createSignal, omit, onCleanup, untrack } from 'solid-js';
 
@@ -35,29 +35,20 @@ const SCRUB_AREA_STYLE: JSX.CSSProperties = {
   'user-select': 'none',
 };
 
+// How many pixels the pointer moves before the value changes.
+const PIXEL_SENSITIVITY = 2;
+
 export interface NumberFieldScrubAreaState extends NumberFieldRootState {}
 
 export interface NumberFieldScrubAreaProps extends BaseUIComponentProps<
   'span',
   NumberFieldScrubAreaState
-> {
-  /** The axis of movement that scrubs. @default 'horizontal' */
-  direction?: 'horizontal' | 'vertical' | undefined;
-  /** How many pixels the pointer moves before the value changes. @default 2 */
-  pixelSensitivity?: number | undefined;
-}
+> {}
 
 export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps): JSX.Element {
   const ctx = useNumberFieldRootContext();
   const state = ctx.state;
-  const elementProps = omit(
-    componentProps,
-    'class',
-    'style',
-    'render',
-    'direction',
-    'pixelSensitivity',
-  );
+  const elementProps = omit(componentProps, 'class', 'style', 'render');
 
   const [scrubAreaElement, setScrubAreaElement] = createSignal<HTMLSpanElement | null>(null, {
     ownedWrite: true,
@@ -109,16 +100,14 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
   };
 
   const scrubBy = (event: PointerEvent, cumulativeDelta: number): number => {
-    const vertical = untrack(() => componentProps.direction) === 'vertical';
-    const next = cumulativeDelta + (vertical ? event.movementY : event.movementX);
-    if (Math.abs(next) < (untrack(() => componentProps.pixelSensitivity) ?? 2)) {
+    const next = cumulativeDelta + event.movementX;
+    if (Math.abs(next) < PIXEL_SENSITIVITY) {
       return next;
     }
     didMove = true;
-    const dValue = vertical ? -event.movementY : event.movementX;
-    const rawAmount = dValue * ctx.getStepAmount(getKeyState(event));
+    const rawAmount = event.movementX * ctx.getStepAmount(getKeyState(event));
     if (rawAmount !== 0) {
-      ctx.allowInputSyncRef.current = true;
+      ctx.stopTyping();
       ctx.incrementValue(Math.abs(rawAmount), {
         direction: rawAmount >= 0 ? 1 : -1,
         event,
@@ -130,9 +119,9 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
 
   // Window listeners only while scrubbing, so an unrelated release does not commit.
   createEffect(
-    () => [ctx.inputElement(), state.disabled, state.readOnly, isScrubbing()] as const,
-    ([input, disabled, readOnly, scrubbing]) => {
-      if (!input || disabled || readOnly || !scrubbing) {
+    () => [ctx.inputElement(), state.disabled, isScrubbing()] as const,
+    ([input, disabled, scrubbing]) => {
+      if (!input || disabled || !scrubbing) {
         return undefined;
       }
       let cumulativeDelta = 0;
@@ -164,8 +153,8 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
     },
   );
 
-  // A scrub stopped without its release: the lock and the scrubbing state go, with no
-  // commit and no click. A later release finds no scrub to end.
+  // A scrub stopped without its release: the lock, the scrubbing state and the scrubbed
+  // value go, with no commit and no click. A later release finds no scrub to end.
   const cancelScrub = (disposing: boolean) => {
     if (!isScrubbingNow) {
       return;
@@ -180,13 +169,14 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
       setIsScrubbing(false);
     }
     ctx.setScrubbing(false);
+    ctx.discardEdit();
   };
 
-  // Disabled or made read-only mid-scrub.
+  // Disabled mid-scrub.
   createEffect(
-    () => state.disabled || state.readOnly,
-    (blocked) => {
-      if (blocked) {
+    () => state.disabled,
+    (disabled) => {
+      if (disabled) {
         cancelScrub(false);
       }
       return undefined;
@@ -198,9 +188,9 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
 
   // A one-finger scrub must not scroll the page; pinch-zoom still may.
   createEffect(
-    () => [scrubAreaElement(), state.disabled, state.readOnly] as const,
-    ([element, disabled, readOnly]) => {
-      if (!element || disabled || readOnly) {
+    () => [scrubAreaElement(), state.disabled] as const,
+    ([element, disabled]) => {
+      if (!element || disabled) {
         return undefined;
       }
       return addEventListener<TouchEvent>(
@@ -246,7 +236,7 @@ export function NumberFieldScrubArea(componentProps: NumberFieldScrubAreaProps):
     ref: (element: HTMLSpanElement) => setScrubAreaElement(element),
     onPointerDown(event: PointerEvent) {
       untrack(() => {
-        if (event.defaultPrevented || state.readOnly || event.button || state.disabled) {
+        if (event.defaultPrevented || event.button || state.disabled) {
           return;
         }
         const isTouch = event.pointerType === 'touch';

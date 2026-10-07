@@ -10,7 +10,7 @@
 // long press also reads the press's pointer moves, since a browser holds
 // back the touch's own moves within its slop (wider than 10px) while its
 // pointer moves arrive. A consumer's drag that starts claims the press (the
-// film lab's `Pointer.drag` does, past `LONG_PRESS_MOVE_THRESHOLD`), and a
+// film lab's `Pointer.press` does, past `LONG_PRESS_MOVE_THRESHOLD`), and a
 // press another holds is no long press, nor opens on the browser's own long
 // press `contextmenu`; a long press claims the press as it opens the menu,
 // so no drag starts under the open menu. Also not in upstream: the open is
@@ -22,7 +22,7 @@
 // the touch that opened the menu is cancelled, so the browser's click after
 // it does not choose the item the menu opened under the finger.
 import type { JSX } from '@solidjs/web';
-import { createEffect, omit, onCleanup, untrack } from 'solid-js';
+import { omit, onCleanup, onSettled, untrack } from 'solid-js';
 
 import { stopEvent } from '../../floating-ui-solid/utils/event.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
@@ -85,7 +85,7 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     });
     allowMouseUp = false;
     const details = createChangeEventDetails(REASONS.triggerPress, event);
-    contextMenu.actionsRef.current?.setOpen(true, details);
+    store.setOpen(true, details);
     if (details.isCanceled) {
       return false;
     }
@@ -101,9 +101,6 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
   }
 
   function handleContextMenu(event: MouseEvent) {
-    if (untrack(store.disabled)) {
-      return;
-    }
     // The browser's own long press on a touch a drag has taken: its menu stays shut, as ours does.
     if (pressTaken()) {
       stopEvent(event);
@@ -133,16 +130,13 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
         allowMouseUpTimeout.clear();
         allowMouseUp = false;
         const mouseUpTarget = getTarget(mouseEvent) as Element | null;
-        if (contains(contextMenu.positionerRef.current, mouseUpTarget)) {
+        if (contains(untrack(store.positionerElement), mouseUpTarget)) {
           return;
         }
         if (mouseUpTarget && findRootOwnerId(mouseUpTarget) === contextMenu.rootId) {
           return;
         }
-        contextMenu.actionsRef.current?.setOpen(
-          false,
-          createChangeEventDetails(REASONS.cancelOpen, mouseEvent),
-        );
+        store.setOpen(false, createChangeEventDetails(REASONS.cancelOpen, mouseEvent));
       },
       { once: true, signal: controller.signal },
     );
@@ -154,10 +148,6 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
   }
 
   function handleTouchStart(event: TouchEvent) {
-    if (untrack(store.disabled)) {
-      cancelLongPress();
-      return;
-    }
     contextMenu.allowMouseUpTriggerRef.current = false;
     pressOpened = false;
     const touch = event.touches[0];
@@ -169,8 +159,8 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     const position = { x: touch.clientX, y: touch.clientY };
     touchPosition = position;
     longPressTimeout.start(LONG_PRESS_DELAY, () => {
-      // The root may have been disabled while the finger was down, or a drag taken the press.
-      if (!untrack(store.disabled) && !pressTaken()) {
+      // A drag may have taken the press while the finger was down.
+      if (!pressTaken()) {
         handleLongPress(position.x, position.y, event);
       }
     });
@@ -235,21 +225,14 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
   });
 
   // The browser's context menu stays closed over the menu's backdrop (over the area, the open
-  // that went ahead closes it). Disabling the root drops a pending long press.
-  createEffect(
-    () => store.disabled(),
-    (disabled) => {
-      if (disabled) {
-        cancelLongPress();
-        return undefined;
+  // that went ahead closes it).
+  onSettled(() =>
+    addEventListener(ownerDocument(triggerElement), 'contextmenu', (event) => {
+      const target = getTarget(event) as HTMLElement | null;
+      if (contains(contextMenu.internalBackdropRef.current, target)) {
+        event.preventDefault();
       }
-      return addEventListener(ownerDocument(triggerElement), 'contextmenu', (event) => {
-        const target = getTarget(event) as HTMLElement | null;
-        if (contains(contextMenu.internalBackdropRef.current, target)) {
-          event.preventDefault();
-        }
-      });
-    },
+    }),
   );
 
   const state: ContextMenuTriggerState = {

@@ -10,6 +10,7 @@ import { type Accessor, createSignal, untrack } from 'solid-js';
 import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { REASONS } from '../../internals/reasons.ts';
 import { createPopupStore, type PopupStore } from '../../utils/popups/popupStore.ts';
+import type { RegisterId } from '../../utils/useRegisteredId.ts';
 
 export type DialogChangeEventReason =
   | typeof REASONS.outsidePress
@@ -22,11 +23,9 @@ export type DialogChangeEventReason =
 
 export type DialogChangeEventDetails = BaseUIChangeEventDetails<DialogChangeEventReason>;
 
-export type DialogModal = boolean | 'trap-focus';
-
 export interface DialogStoreOptions {
   openProp: () => boolean | undefined;
-  modal: Accessor<DialogModal>;
+  modal: Accessor<boolean>;
   disablePointerDismissal: Accessor<boolean>;
   floatingId: string;
   onOpenChange: () => ((open: boolean, eventDetails: DialogChangeEventDetails) => void) | undefined;
@@ -34,12 +33,12 @@ export interface DialogStoreOptions {
 }
 
 export interface DialogStore extends PopupStore {
-  modal: Accessor<DialogModal>;
+  modal: Accessor<boolean>;
   disablePointerDismissal: Accessor<boolean>;
   titleElementId: Accessor<string | undefined>;
-  setTitleElementId: (id: string | undefined) => void;
+  setTitleElementId: RegisterId;
   descriptionElementId: Accessor<string | undefined>;
-  setDescriptionElementId: (id: string | undefined) => void;
+  setDescriptionElementId: RegisterId;
   viewportElement: Accessor<HTMLElement | null>;
   setViewportElement: (element: HTMLElement | null) => void;
   readonly backdropRef: { current: HTMLElement | null };
@@ -80,9 +79,9 @@ export function createDialogStore(options: DialogStoreOptions): DialogStore {
     modal: options.modal,
     disablePointerDismissal: options.disablePointerDismissal,
     titleElementId,
-    setTitleElementId: (id) => setTitleElementId(() => id),
+    setTitleElementId: (update) => setTitleElementId(update),
     descriptionElementId,
-    setDescriptionElementId: (id) => setDescriptionElementId(() => id),
+    setDescriptionElementId: (update) => setDescriptionElementId(update),
     viewportElement,
     setViewportElement: (element) => setViewportElement(() => element),
     backdropRef: { current: null },

@@ -2,7 +2,7 @@
 // packages/react/src/dialog/portal/DialogPortalContext.ts
 //
 // Moves the dialog's parts into a portal node at the end of `<body>` (or
-// `container`). Renders only while the dialog is mounted (upstream's
+// where it is written, with `inline`). Renders only while the dialog is mounted (upstream's
 // `keepMounted` is left out: no page keeps a closed dialog in the DOM). A
 // modal dialog gets a transparent internal backdrop that catches outside
 // presses, so the page underneath does not receive them.
@@ -55,7 +55,7 @@ export function DialogPortal(props: DialogPortalProps): JSX.Element {
     <Show when={store.mounted()}>
       <DialogPortalContext value={true}>
         <FloatingPortal {...props}>
-          <Show when={store.modal() === true}>
+          <Show when={store.modal()}>
             <ModalBackdrop />
           </Show>
           {props.children}

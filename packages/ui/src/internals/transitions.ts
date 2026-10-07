@@ -16,7 +16,7 @@ import { NOOP } from '../utils/dom.ts';
 import { useAnimationFrame } from '../utils/timers.ts';
 import type { StateAttributesMapping } from './getStateAttributesProps.ts';
 
-export type TransitionStatus = 'starting' | 'ending' | 'idle' | undefined;
+export type TransitionStatus = 'starting' | 'ending' | undefined;
 
 export const TransitionStatusDataAttributes = {
   startingStyle: 'data-starting-style',
@@ -40,14 +40,7 @@ export const transitionStatusMapping: StateAttributesMapping<{
   },
 };
 
-export interface TransitionStatusOptions {
-  /** Report `idle` once an open popup has settled, instead of `undefined`. */
-  enableIdleState?: boolean | undefined;
-  /** Play the starting transition when the popup is open from the start. */
-  animateInitialOpen?: boolean | undefined;
-}
-
-export interface TransitionStatusReturn {
+interface TransitionStatusReturn {
   mounted: Accessor<boolean>;
   transitionStatus: Accessor<TransitionStatus>;
   /** Unmounts a closed popup (the exit transition is done). */
@@ -57,24 +50,19 @@ export interface TransitionStatusReturn {
 /**
  * Mounting and the transition status for an `open` flag: mounted while open
  * and until `unmount()` after it closes; `starting` for the first frame
- * after opening, `ending` while closed but mounted.
+ * after opening, `ending` while closed but mounted. A popup open from the
+ * start shows no starting frame.
  */
-export function createTransitionStatus(
-  open: Accessor<boolean>,
-  options: TransitionStatusOptions = {},
-): TransitionStatusReturn {
+function createTransitionStatus(open: Accessor<boolean>): TransitionStatusReturn {
   const initiallyOpen = untrack(open);
   const [kept, setKept] = createSignal(initiallyOpen);
-  const [started, setStarted] = createSignal(initiallyOpen && !options.animateInitialOpen);
+  const [started, setStarted] = createSignal(initiallyOpen);
   const frame = useAnimationFrame();
 
   const mounted = createMemo(() => open() || kept());
   const transitionStatus = createMemo<TransitionStatus>(() => {
     if (open()) {
-      if (!started()) {
-        return 'starting';
-      }
-      return options.enableIdleState ? 'idle' : undefined;
+      return started() ? undefined : 'starting';
     }
     return mounted() ? 'ending' : undefined;
   });
@@ -100,28 +88,19 @@ export function createTransitionStatus(
   };
 }
 
-export function getFiniteAnimations(element: Element, options?: GetAnimationsOptions): Animation[] {
-  return element.getAnimations(options).filter((animation) => {
+function getFiniteAnimations(element: Element): Animation[] {
+  return element.getAnimations().filter((animation) => {
     const timing = animation.effect?.getTiming();
     return timing?.duration !== Infinity && timing?.iterations !== Infinity;
   });
 }
 
-declare global {
-  // Tests may set it to skip waiting on animations.
-  var BASE_UI_ANIMATIONS_DISABLED: boolean | undefined;
-}
-
 /**
  * Returns a function that runs a callback once the element's finite CSS
  * animations and transitions finish (on the next frame, so ones that just
- * started are seen). With `waitForStartingStyleRemoved` it first waits for
- * `data-starting-style` to leave the element.
+ * started are seen).
  */
-export function useAnimationsFinished(
-  element: Accessor<HTMLElement | null | undefined>,
-  waitForStartingStyleRemoved = false,
-) {
+function useAnimationsFinished(element: Accessor<HTMLElement | null | undefined>) {
   const frame = useAnimationFrame();
 
   return (fnToExecute: () => void, signal: AbortSignal | null = null) => {
@@ -131,10 +110,7 @@ export function useAnimationsFinished(
       return;
     }
 
-    if (
-      typeof resolvedElement.getAnimations !== 'function' ||
-      globalThis.BASE_UI_ANIMATIONS_DISABLED
-    ) {
+    if (typeof resolvedElement.getAnimations !== 'function') {
       fnToExecute();
       return;
     }
@@ -161,23 +137,6 @@ export function useAnimationsFinished(
         },
       );
     };
-
-    if (waitForStartingStyleRemoved) {
-      const attribute = TransitionStatusDataAttributes.startingStyle;
-      if (!resolvedElement.hasAttribute(attribute)) {
-        frame.request(exec);
-        return;
-      }
-      const observer = new MutationObserver(() => {
-        if (!resolvedElement.hasAttribute(attribute)) {
-          observer.disconnect();
-          exec();
-        }
-      });
-      observer.observe(resolvedElement, { attributes: true, attributeFilter: [attribute] });
-      signal?.addEventListener('abort', () => observer.disconnect(), { once: true });
-      return;
-    }
 
     frame.request(exec);
   };
@@ -208,16 +167,16 @@ export function useOpenChangeComplete(parameters: OpenChangeCompleteParameters) 
   );
 }
 
-export interface UnmountAfterCloseParameters extends TransitionStatusOptions {
+export interface UnmountAfterCloseParameters {
   open: Accessor<boolean>;
   element: Accessor<HTMLElement | null | undefined>;
-  onUnmount?: (() => void) | undefined;
+  onUnmount: () => void;
 }
 
 /** `createTransitionStatus`, unmounting once the exit animations finish. */
 export function createUnmountAfterClose(parameters: UnmountAfterCloseParameters) {
   const { open, element, onUnmount } = parameters;
-  const status = createTransitionStatus(open, parameters);
+  const status = createTransitionStatus(open);
 
   useOpenChangeComplete({
     enabled: () => status.mounted() && !open(),
@@ -228,7 +187,7 @@ export function createUnmountAfterClose(parameters: UnmountAfterCloseParameters)
         return;
       }
       status.unmount();
-      onUnmount?.();
+      onUnmount();
     },
   });
 

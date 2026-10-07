@@ -6,20 +6,15 @@
 // dismiss (past the threshold, by a flick, or springing back). Every drawer
 // opens from its owner's `open`, as every page's does. Gestures are
 // synthetic pointer events whose `timeStamp` is set, so a drag's velocity is
-// exact. The touch scroll arbitration's iOS cases are left out.
-import { afterAll, beforeAll, describe, expect, it } from 'bun:test';
+// exact. A finger on a scrolling body is the browser's own touches, so it
+// scrolls natively; the touch scroll arbitration's iOS cases are left out.
+import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
 
-import { type Harness, focused, harness, logOf } from './harness.ts';
+import { focused, harness, logOf } from './harness.ts';
 
-let h: Harness;
-beforeAll(async () => {
-  h = await harness('drawer.tsx');
-});
-afterAll(async () => {
-  await h.close();
-});
+const h = harness('drawer.tsx');
 
 interface DragOptions {
   /** Moves between the press and the release. @default 8 */
@@ -164,6 +159,20 @@ describe('Drawer.Root', () => {
     ]);
   });
 
+  it('focuses the element initialFocus returns on open', async () => {
+    const page = await h.open('drawer', { query: { initial: 'first' } });
+    await page.click('#open');
+    await see(page.locator('#popup')).toBeVisible();
+    await see.poll(() => focused(page)).toBe('first');
+  });
+
+  it('leaves focus where it was when initialFocus returns false', async () => {
+    const page = await h.open('drawer', { query: { initial: 'false' } });
+    await page.click('#open');
+    await see(page.locator('#popup')).toBeVisible();
+    await see.poll(() => focused(page)).toBe('open');
+  });
+
   it('takes its swipe direction per instance', async () => {
     const page = await h.open('drawer', { query: { direction: 'right' } });
     await openDrawer(page);
@@ -212,6 +221,28 @@ describe('swipe to dismiss', () => {
     await see(page.locator('#popup')).toHaveAttribute('data-swiping', '');
     // The swipe starts at the first move (15px in), so 45px of the 60px count.
     expect(await styleVar(page, '#popup', '--drawer-swipe-movement-y')).toBe('45px');
+  });
+
+  it('damps a drag against the dismiss direction to its square root', async () => {
+    const page = await h.open('drawer');
+    await openDrawer(page);
+    // 48px up in four moves; the swipe starts at the first (12px in), so 36px count, damped to 6.
+    await pressAndMove(page, { x: 400, y: 450 }, { x: 400, y: 402 });
+    await see(page.locator('#popup')).toHaveAttribute('data-swiping', '');
+    expect(await styleVar(page, '#popup', '--drawer-swipe-movement-y')).toBe('-6px');
+  });
+
+  it('a mouse drag that stays on a button never starts a swipe', async () => {
+    const page = await h.open('drawer');
+    await openDrawer(page);
+    const box = await page.locator('#first').boundingBox();
+    const x = (box?.x ?? 0) + 10;
+    const y = (box?.y ?? 0) + 10;
+    // A flick that would dismiss from the sheet itself (60px in 40ms).
+    await drag(page, { x, y }, { x, y: y + 60 }, { steps: 4, stepMs: 10 });
+    await see(page.locator('#popup')).toBeVisible();
+    await see(page.locator('#popup')).not.toHaveAttribute('data-swiping', '');
+    expect(await logOf(page)).toEqual([]);
   });
 
   it('a drag against the dismiss direction does not dismiss', async () => {
@@ -281,5 +312,53 @@ describe('swipe to dismiss', () => {
     const y = (box?.y ?? 0) + (box?.height ?? 0) / 2;
     await drag(page, { x, y }, { x, y: y + 250 });
     await see(page.locator('#popup')).toBeVisible();
+  });
+});
+
+/**
+ * A finger pressed at the middle of `#content` and moved `distance` px down
+ * in `steps` moves, then lifted: the browser's own touches (CDP), so it
+ * scrolls natively where nothing prevents it.
+ */
+async function fingerDownContent(page: Page, distance: number, steps: number) {
+  const cdp = await page.context().newCDPSession(page);
+  const at = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: type === 'touchEnd' ? [] : [{ x, y }],
+    });
+  const box = await page.locator('#content').boundingBox();
+  const x = (box?.x ?? 0) + 20;
+  const y = (box?.y ?? 0) + (box?.height ?? 0) / 2;
+  await at('touchStart', x, y);
+  // One move after another, in order.
+  await Array.from({ length: steps }, (_, i) => y + (distance * (i + 1)) / steps).reduce<
+    Promise<unknown>
+  >((previous, moveY) => previous.then(() => at('touchMove', x, moveY)), Promise.resolve());
+  await at('touchEnd', x, y + distance);
+}
+
+const contentScrollTop = (page: Page) => page.locator('#content').evaluate((el) => el.scrollTop);
+
+describe('a finger on a scrolling body', () => {
+  it('scrolls a body scrolled down, and leaves the sheet open', async () => {
+    const page = await h.open('drawer', { touch: true, query: { body: 'tall' } });
+    await openDrawer(page);
+    await page.locator('#content').evaluate((el) => (el.scrollTop = 300));
+    await fingerDownContent(page, 80, 8);
+    await see.poll(() => contentScrollTop(page)).toBeLessThan(300);
+    expect(await contentScrollTop(page)).toBeGreaterThan(0);
+    await see(page.locator('#popup')).toBeVisible();
+    await see(page.locator('#popup')).not.toHaveAttribute('data-swiping', '');
+    expect(await logOf(page)).toEqual([]);
+  });
+
+  it('dismisses the sheet from a body at its top', async () => {
+    const page = await h.open('drawer', { touch: true, query: { body: 'tall' } });
+    await openDrawer(page);
+    expect(await contentScrollTop(page)).toBe(0);
+    await fingerDownContent(page, 200, 10);
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).toEqual(['open false swipe']);
   });
 });

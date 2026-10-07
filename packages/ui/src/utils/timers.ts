@@ -63,30 +63,3 @@ export function useAnimationFrame(): AnimationFrame {
   onCleanup(frame.cancel);
   return frame;
 }
-
-export class Interval {
-  currentId: ReturnType<typeof setInterval> | 0 = 0;
-
-  start(delay: number, fn: () => void): void {
-    this.clear();
-    this.currentId = setInterval(fn, delay);
-  }
-
-  isStarted(): boolean {
-    return this.currentId !== 0;
-  }
-
-  clear = (): void => {
-    if (this.currentId !== 0) {
-      clearInterval(this.currentId);
-      this.currentId = 0;
-    }
-  };
-}
-
-/** An `Interval` cleared when the current owner is disposed. */
-export function useInterval(): Interval {
-  const interval = new Interval();
-  onCleanup(interval.clear);
-  return interval;
-}

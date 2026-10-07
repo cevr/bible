@@ -11,7 +11,6 @@ import type { JSX } from '@solidjs/web';
 import { createEffect, omit, untrack } from 'solid-js';
 
 import {
-  type DialogFocusTarget,
   DialogPopupFocus,
   stopCompositeKeys,
   useDialogOpenChangeComplete,
@@ -69,16 +68,11 @@ export interface DrawerPopupState {
 
 export interface DrawerPopupProps extends BaseUIComponentProps<'div', DrawerPopupState> {
   /**
-   * What takes focus on open: `false` nothing, `true` the first tabbable
-   * element, an element, or a function of how it opened. The popup itself by
+   * What takes focus on open, read as the drawer opens: an element, `false`
+   * for nothing, `true` for the first tabbable element. The popup itself by
    * default.
    */
-  initialFocus?: DialogFocusTarget | undefined;
-  /**
-   * What takes focus on close: `false` nothing, `true` the default (what had
-   * focus before), an element, or a function of how it closed.
-   */
-  finalFocus?: DialogFocusTarget | undefined;
+  initialFocus?: (() => HTMLElement | boolean) | undefined;
 }
 
 const SWIPING_HOOK = { [DrawerPopupDataAttributes.swiping]: '' };
@@ -98,15 +92,7 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
   const drawer = useDrawerRootContext();
   const swipe = useDrawerViewportContext();
   useDialogPortalContext();
-  const elementProps = omit(
-    componentProps,
-    'class',
-    'style',
-    'render',
-    'initialFocus',
-    'finalFocus',
-    'id',
-  );
+  const elementProps = omit(componentProps, 'class', 'style', 'render', 'initialFocus', 'id');
 
   if (!swipe) {
     console.error(
@@ -189,7 +175,6 @@ export function DrawerPopup(componentProps: DrawerPopupProps): JSX.Element {
           ? () => untrack(store.popupElement)
           : componentProps.initialFocus
       }
-      finalFocus={componentProps.finalFocus}
     >
       {untrack(element)}
     </DialogPopupFocus>

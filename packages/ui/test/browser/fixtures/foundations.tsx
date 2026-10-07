@@ -1,5 +1,5 @@
 // Fixtures for the foundations: `useRenderElement` (state attributes, the
-// render prop, refs, `enabled`, live params) and a late `children` key.
+// render prop, refs, live params) and a late `children` key.
 import type { JSX } from '@solidjs/web';
 import { createSignal, createStore, omit } from 'solid-js';
 
@@ -130,27 +130,6 @@ function Refs() {
   );
 }
 
-function Enabled() {
-  const [enabled, setEnabled] = createSignal(true);
-  return (
-    <>
-      {useRenderElement(
-        'div',
-        {},
-        {
-          get enabled() {
-            return enabled();
-          },
-          props: { id: 'toggled', children: 'here' },
-        },
-      )}
-      <button id="toggle" onClick={() => setEnabled((value) => !value)}>
-        toggle
-      </button>
-    </>
-  );
-}
-
 /** `params.props` and `params.state` as getters returning a fresh record each time. */
 function LiveParams() {
   const [count, setCount] = createSignal(0);
@@ -210,7 +189,6 @@ export const fixtures: Record<string, () => JSX.Element> = {
   'state-attributes': () => <StateAttributes />,
   'class-style': () => <ClassStyle />,
   refs: () => <Refs />,
-  enabled: () => <Enabled />,
   'live-params': () => <LiveParams />,
   'late-children': () => <LateChildren />,
 };

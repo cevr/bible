@@ -1,8 +1,7 @@
 // Upstream: packages/react/src/number-field/utils/validate.test.ts
 //
-// What the field stores for a candidate value: step snapping (directional,
-// and nearest for small steps), clamping, float-noise cleanup, and the
-// format's rounding options.
+// What the field stores for a candidate value: clamping, float-noise cleanup
+// of stepped values, and the format's rounding options.
 import { describe, expect, it } from 'bun:test';
 
 import {
@@ -11,43 +10,28 @@ import {
   toValidatedNumber as toValidatedNumberImpl,
 } from './utils/validate.ts';
 
-const min = Number.MIN_SAFE_INTEGER;
-const max = Number.MAX_SAFE_INTEGER;
-
 interface ValidateOptions {
-  step: number | undefined;
+  stepped: boolean;
   minWithDefault: number;
   maxWithDefault: number;
-  minWithZeroDefault: number;
   format: NumberFormatOptionsWithRounding | undefined;
-  snapOnStep: boolean;
-  small: boolean;
-  clamp: boolean;
 }
 
 const defaultOptions: ValidateOptions = {
-  step: 1,
-  minWithDefault: min,
-  maxWithDefault: max,
-  minWithZeroDefault: 0,
+  stepped: true,
+  minWithDefault: Number.MIN_SAFE_INTEGER,
+  maxWithDefault: Number.MAX_SAFE_INTEGER,
   format: undefined,
-  snapOnStep: true,
-  small: false,
-  clamp: true,
 };
 
 // Over the positional signature, so cases can spread option objects.
 const toValidatedNumber = (value: number | null, options: ValidateOptions) =>
   toValidatedNumberImpl(
     value,
-    options.step,
+    options.stepped,
     options.minWithDefault,
     options.maxWithDefault,
-    options.minWithZeroDefault,
     options.format,
-    options.snapOnStep,
-    options.small,
-    options.clamp,
   );
 
 const formatted = (value: number, format: NumberFormatOptionsWithRounding) =>
@@ -368,87 +352,39 @@ describe('NumberField validate', () => {
       expect(toValidatedNumber(null, defaultOptions)).toBe(null);
     });
 
-    it('skips clamping when clamp is false', () => {
-      expect(
-        toValidatedNumber(12, {
-          ...defaultOptions,
-          minWithDefault: 0,
-          maxWithDefault: 10,
-          step: undefined,
-          snapOnStep: false,
-          clamp: false,
-        }),
-      ).toBe(12);
-    });
-
-    it('preserves parsed input beyond 15 significant digits when step is undefined', () => {
-      const options = { ...defaultOptions, step: undefined };
+    it('preserves parsed input beyond 15 significant digits when not stepped', () => {
+      const options = { ...defaultOptions, stepped: false };
       expect(toValidatedNumber(1.234567890123456, options)).toBe(1.234567890123456);
       expect(toValidatedNumber(0.1234567890123456, options)).toBe(0.1234567890123456);
     });
 
     it('cleans arithmetic noise when stepping', () => {
-      expect(
-        toValidatedNumber(0.1 + 0.7, { ...defaultOptions, step: 0.1, snapOnStep: false }),
-      ).toBe(0.8);
+      expect(toValidatedNumber(0.1 + 0.7, defaultOptions)).toBe(0.8);
+      expect(toValidatedNumber(0.2 + 0.1, defaultOptions)).toBe(0.3);
     });
 
     it('preserves large fractional values when stepping cleanup would be too coarse', () => {
       const steppedValue = 100000000000000.1 + 0.1;
-      expect(
-        toValidatedNumber(steppedValue, { ...defaultOptions, step: 0.1, snapOnStep: false }),
-      ).toBe(steppedValue);
+      expect(toValidatedNumber(steppedValue, defaultOptions)).toBe(steppedValue);
     });
 
     it('preserves high-significance step values', () => {
       const step = 0.1234567890123456;
-      expect(toValidatedNumber(step, { ...defaultOptions, step, snapOnStep: false })).toBe(step);
+      expect(toValidatedNumber(step, defaultOptions)).toBe(step);
     });
 
-    describe('incrementing', () => {
-      it.each([
-        [5, 1, 5],
-        [5.5, 1, 5],
-        [-0.3, 1, -1],
-        [9, 5, 5],
-        [12, 5, 10],
-      ])('snaps %p to the step below (step %p) → %p', (value, step, expected) => {
-        expect(toValidatedNumber(value, { ...defaultOptions, step })).toBe(expected);
-      });
-
-      it('keeps the value when step is undefined and within bounds', () => {
-        expect(toValidatedNumber(5.5, { ...defaultOptions, step: undefined })).toBe(5.5);
-      });
-
-      it('preserves exact value when snapOnStep is false', () => {
-        expect(toValidatedNumber(9.7, { ...defaultOptions, step: 5, snapOnStep: false })).toBe(9.7);
-      });
-    });
-
-    describe('decrementing', () => {
-      it.each([
-        [5, -1, 5],
-        [5.5, -1, 6],
-        [-0.3, -1, 0],
-        [9, -5, 10],
-        [12, -5, 15],
-      ])('snaps %p to the step above (step %p) → %p', (value, step, expected) => {
-        expect(toValidatedNumber(value, { ...defaultOptions, step })).toBe(expected);
-      });
-
-      it('preserves exact value when snapOnStep is false', () => {
-        expect(toValidatedNumber(12.3, { ...defaultOptions, step: -5, snapOnStep: false })).toBe(
-          12.3,
-        );
-      });
+    it('clamps to min and max', () => {
+      const bounds = { ...defaultOptions, minWithDefault: -10, maxWithDefault: 10 };
+      expect(toValidatedNumber(13, bounds)).toBe(10);
+      expect(toValidatedNumber(-13, { ...bounds, stepped: false })).toBe(-10);
+      expect(toValidatedNumber(5.5, { ...bounds, stepped: false })).toBe(5.5);
     });
   });
 
-  it('applies roundingMode after step validation', () => {
+  it('applies roundingMode to a stepped value', () => {
     expect(
       toValidatedNumber(1.239, {
         ...defaultOptions,
-        step: 0.001,
         format: { maximumFractionDigits: 2, roundingMode: 'floor' },
       }),
     ).toBe(1.23);
@@ -458,8 +394,7 @@ describe('NumberField validate', () => {
     expect(
       toValidatedNumber(0.01236, {
         ...defaultOptions,
-        step: undefined,
-        snapOnStep: false,
+        stepped: false,
         maxWithDefault: 0.01235,
         format: { style: 'percent', maximumFractionDigits: 2 },
       }),
@@ -470,19 +405,11 @@ describe('NumberField validate', () => {
     expect(
       toValidatedNumber(0.01234, {
         ...defaultOptions,
-        step: undefined,
-        snapOnStep: false,
+        stepped: false,
         minWithDefault: 0.01235,
-        minWithZeroDefault: 0.01235,
         format: { style: 'percent', maximumFractionDigits: 2, roundingMode: 'floor' },
       }),
     ).toBe(0.01235);
-  });
-
-  it('removes floating point errors when stepping', () => {
-    expect(toValidatedNumber(0.2 + 0.1, { ...defaultOptions, step: 0.1, snapOnStep: false })).toBe(
-      0.3,
-    );
   });
 
   it('clamps before rounding for non-integer bounds', () => {
@@ -490,85 +417,11 @@ describe('NumberField validate', () => {
     expect(
       toValidatedNumber(0.4, {
         ...defaultOptions,
-        step: undefined,
-        snapOnStep: false,
+        stepped: false,
         minWithDefault: 0.6,
-        minWithZeroDefault: 0,
         maxWithDefault: 10,
         format: { maximumFractionDigits: 0 },
       }),
     ).toBe(1);
-  });
-
-  describe('fractional step with snapOnStep', () => {
-    it('handles increment with step 0.1 without getting stuck', () => {
-      expect(toValidatedNumber(100.1 + 0.1, { ...defaultOptions, step: 0.1 })).toBe(100.2);
-    });
-
-    it('handles decrement with step -0.1 without getting stuck', () => {
-      expect(toValidatedNumber(100.1 - 0.1, { ...defaultOptions, step: -0.1 })).toBe(100);
-    });
-
-    it('handles multiple increments with step 0.01', () => {
-      expect(toValidatedNumber(0.01 + 0.01, { ...defaultOptions, step: 0.01 })).toBe(0.02);
-    });
-
-    it('handles fractional step when a minimum is set', () => {
-      expect(
-        toValidatedNumber(3 + 0.2 + 0.2, {
-          ...defaultOptions,
-          step: 0.2,
-          minWithDefault: 3,
-          minWithZeroDefault: 3,
-        }),
-      ).toBe(3.4);
-    });
-
-    it('rounds to the nearest value when using small step', () => {
-      expect(toValidatedNumber(0.15, { ...defaultOptions, step: 0.1, small: true })).toBe(0.2);
-    });
-
-    it('rounds negative small steps to the nearest value', () => {
-      expect(toValidatedNumber(-0.15, { ...defaultOptions, step: -0.1, small: true })).toBe(-0.2);
-    });
-  });
-
-  it('keeps rounded out-of-range values when clamping is disabled', () => {
-    expect(
-      toValidatedNumber(12.349, {
-        ...defaultOptions,
-        step: undefined,
-        snapOnStep: false,
-        format: { maximumFractionDigits: 2 },
-        minWithDefault: 0,
-        minWithZeroDefault: 0,
-        maxWithDefault: 10,
-        clamp: false,
-      }),
-    ).toBe(12.35);
-  });
-
-  it('clamps to a non-step-aligned max after snapping so the boundary is reachable', () => {
-    expect(
-      toValidatedNumber(13, {
-        ...defaultOptions,
-        step: 3,
-        minWithDefault: 0,
-        minWithZeroDefault: 0,
-        maxWithDefault: 10,
-      }),
-    ).toBe(10);
-  });
-
-  it('clamps to a non-step-aligned min after snapping so the boundary is reachable', () => {
-    expect(
-      toValidatedNumber(-13, {
-        ...defaultOptions,
-        step: -3,
-        minWithDefault: -10,
-        minWithZeroDefault: -10,
-        maxWithDefault: 0,
-      }),
-    ).toBe(-10);
   });
 });

@@ -10,13 +10,14 @@ import { generateToastId } from './utils.ts';
 
 export type ToastManagerEvent =
   | { action: 'add'; options: ToastObject<object> }
-  | { action: 'close'; options: { id: string | undefined } };
+  | { action: 'close'; options: { id: string } };
 
 export interface ToastManager<Data extends object = object> {
   /** How a `Toast.Provider` listens; not for callers. */
   ' subscribe': (listener: (event: ToastManagerEvent) => void) => () => void;
   add: <T extends Data = Data>(options: ToastManagerAddOptions<T>) => string;
-  close: (id?: string) => void;
+  /** Closes the toast with `id`. */
+  close: (id: string) => void;
 }
 
 /** Creates a new toast manager. */
