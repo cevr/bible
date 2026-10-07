@@ -12,6 +12,7 @@ import { BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
   ConfigProvider,
+  Console,
   Context,
   Deferred,
   Effect,
@@ -249,9 +250,40 @@ const post = (path: string, body: string, headers: Record<string, string> = {}) 
     body,
   });
 
-/** A logger that keeps every line the lab logs in `lines`, and prints none. */
-const loggedInto = (lines: Array<string>) =>
-  Logger.layer([Logger.make(({ message }) => lines.push([message].flat().join(' ')))]);
+/** What a console was written: each line, by the stream it went to. */
+interface Written {
+  readonly stderr: Array<string>;
+  readonly stdout: Array<string>;
+}
+
+/**
+ * The lab's logging as the CLI gives it, at the root around everything it
+ * runs (logs to stderr, through the default logger), onto a console that
+ * keeps each line in `written` by its stream, and prints none.
+ */
+const loggingInto = (written: Written) => {
+  const line = (args: ReadonlyArray<unknown>) => args.map(String).join(' ');
+  return Layer.mergeAll(
+    Layer.succeed(Logger.LogToStderr, true),
+    Layer.succeed(Console.Console, {
+      ...globalThis.console,
+      error: (...args: ReadonlyArray<unknown>) => {
+        written.stderr.push(line(args));
+      },
+      log: (...args: ReadonlyArray<unknown>) => {
+        written.stdout.push(line(args));
+      },
+    }),
+  );
+};
+
+/** The lines of `lines` that log `event`, from the event's name on, the logger's prefix gone. */
+const eventLines = (lines: ReadonlyArray<string>, event: string) =>
+  lines.flatMap((line) => {
+    const at = line.indexOf(`${event} `);
+    if (at < 0) return [];
+    return [line.slice(at)];
+  });
 
 /** A GET with the test's headers. */
 const get = (path: string, headers: Record<string, string> = {}) =>
@@ -786,12 +818,11 @@ describe('lab routes', () => {
   );
 
   it.effect(
-    'the gate: every route and every kind of page path, against every request it refuses, and what it lets in, each refusal logged once',
+    'the gate: every route and every kind of page path, against every request it refuses, and what it lets in, each refusal logged once to stderr',
     () => {
-      const logged: Array<string> = [];
+      const written: Written = { stderr: [], stdout: [] };
       return Effect.gen(function* () {
-        // The gate logs in the handler's own runtime: its logger goes in beside the routes.
-        const lab = yield* labHandler(LOOPBACK, loggedInto(logged));
+        const lab = yield* labHandler(LOOPBACK);
         const answer = (request: Request) =>
           Effect.gen(function* () {
             const res = yield* Effect.promise(() => lab(request, bound));
@@ -944,31 +975,31 @@ describe('lab routes', () => {
             }),
           ))[1],
         ).toBe(200);
-        // Every refusal is one line of the gate's log, naming what was refused.
-        const lines = logged
-          .filter((line) => line.startsWith('api.request.refused '))
-          .map((line) => line.split(' reason=')[0] ?? '');
+        // Every refusal is one line of the gate's log on stderr, naming what was refused;
+        // stdout carries none.
+        const lines = eventLines(written.stderr, 'api.request.refused').map(
+          (line) => line.split(' reason=')[0] ?? '',
+        );
         expect(refusals.length).toBeGreaterThan(600);
         expect(Arr.sort(lines, Order.String)).toEqual(Arr.sort(refusals, Order.String));
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files())));
+        expect(eventLines(written.stdout, 'api.request.refused')).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide([labLayer(files()), loggingInto(written)]));
     },
   );
 
   it.effect(
-    "a handler's failure is logged with the request it answers: its method and path",
+    "a handler's failure is logged to stderr with the request it answers: its method and path",
     () => {
-      const logged: Array<string> = [];
+      const written: Written = { stderr: [], stdout: [] };
       return Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK, loggedInto(logged));
+        const lab = yield* labHandler(LOOPBACK);
         const asked = labUrls.notes.list({ params: { film: 'nope' } });
         const status = yield* Effect.promise(() => lab(get(asked), bound).then((r) => r.status));
         expect(status).toBe(404);
         expect(
-          logged
-            .filter((line) => line.startsWith('api.request.failed '))
-            .map((line) => line.split(' reason=')[0]),
+          eventLines(written.stderr, 'api.request.failed').map((line) => line.split(' reason=')[0]),
         ).toEqual([`api.request.failed method=GET path=${asked} status=404 tag=FilmUnknown`]);
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files())));
+      }).pipe(Effect.scoped, Effect.provide([labLayer(files()), loggingInto(written)]));
     },
   );
 

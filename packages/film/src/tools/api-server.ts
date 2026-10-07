@@ -539,7 +539,7 @@ const pageRoute = (
         Context.get(platform, HttpPlatform.HttpPlatform),
       );
     }),
-  ).pipe(HttpRouter.provideRequest(Layer.succeedContext(platform)));
+  );
 
 /** An API's routes (`HttpApiBuilder.layer(api)` over its groups' handlers), their services provided. */
 type ApiRoutes = Layer.Layer<
@@ -558,8 +558,10 @@ export type BesideRoutes = Layer.Layer<never, never, HttpRouter.HttpRouter>;
 /**
  * `api`'s routes served as one web handler: the gate with `allowed` in
  * front of every path, then the routes (and any `beside` them), then `page`
- * for the paths no route takes outside the API's own. Closed when the scope
- * closes.
+ * for the paths no route takes outside the API's own. Every request runs
+ * on the caller's services, the gate's included, so each line it logs goes
+ * through the caller's logging (the CLI's, to stderr). Closed when the
+ * scope closes.
  */
 export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
@@ -581,7 +583,7 @@ export const serveApi = <Id extends string, Groups extends HttpApiGroup.Constrai
       options.beside,
       gate(options.allowed),
       pageRoute(options.page, prefixesOf(api), platform, self),
-    ).pipe(Layer.provide(Etag.layerWeak), Layer.provide(Layer.succeedContext(platform)));
+    ).pipe(Layer.provide(Etag.layerWeak), Layer.provideMerge(Layer.succeedContext(platform)));
     const { handler } = yield* Effect.acquireRelease(
       Effect.sync(() => HttpRouter.toWebHandler(app, { disableLogger: true })),
       (web) => Effect.promise(() => web.dispose()),
