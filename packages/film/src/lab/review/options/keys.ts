@@ -1,7 +1,7 @@
 // The choices' keys over the selected point (the point of a focused or
 // long-pressed variant's row, its card, the project's `?point=`).
 // Audition (AA-13): ⌥→ and ⌥← hear the point's next or previous variant in
-// place, as its 🔊 does, and put the focus on that variant's row; Enter
+// place, as its speaker does, and put the focus on that variant's row; Enter
 // picks the variant heard while it is the one selected (a focused Pick on
 // another row keeps its own Enter). The instants the point plays at (UR-45):
 // `.` and `,` jump the clock to its next or previous one past the time
@@ -143,7 +143,7 @@ const auditionCommand = (deck: Deck, toward: Toward, label: string, key: string)
     }),
   group: 'Review',
   keys: [key],
-  touch: 'tap a variant’s 🔊',
+  touch: 'tap a variant’s speaker',
   when: (ctx) => Option.isSome(auditionOf(deck, ctx, toward)),
   run: quietly((ctx) =>
     Option.map(auditionOf(deck, ctx, toward), (v) =>

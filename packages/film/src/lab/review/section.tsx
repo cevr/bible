@@ -100,7 +100,7 @@ import { ReviewPlace as Place } from './place.ts';
 import { Selection } from '../../command/selection.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
 import { CommandChip } from '../command/command-chip.tsx';
-import { useShellTime } from '../page-shell.tsx';
+import { HearIcon, useShellTime } from '../page-shell.tsx';
 import { hubKeys } from '../command/changes.ts';
 import { wipeCommands, wipeTitle } from '../wipe-keys.ts';
 import { rateCommands, rateId, rateText, rateTitle } from '../../player/transport.ts';
@@ -667,7 +667,7 @@ const TransportRow = (
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
   return (
-    <section class={['rv-transport', { 'rv-alone': props.alone === true }]}>
+    <section class={['rv-transport', { 'rv-alone-row': props.alone === true }]}>
       <button
         type="button"
         class="sh-btn rv-big"
@@ -994,8 +994,8 @@ const VariantVideo = (props: { readonly variant: SeenVariant; readonly class?: s
 
 /**
  * A variant's caption: its letter, its name, Out of date when it is, and the
- * 🔊 that makes it the one heard; its lines and why it is stale are its
- * inspector's Info (UR-29, UR-30).
+ * speaker that makes it the one heard; its lines and why it is stale are its
+ * inspector's Info.
  */
 const VariantCap = (props: { readonly variant: SeenVariant }) => {
   const { set, sync, send } = useSet();
@@ -1011,7 +1011,7 @@ const VariantCap = (props: { readonly variant: SeenVariant }) => {
         title="Hear this one"
         onClick={() => send.sync(SyncEvent.HeardChosen({ id: props.variant.id }))}
       >
-        🔊
+        <HearIcon />
       </button>
     </div>
   );
@@ -1178,7 +1178,7 @@ const WipePanes = (props: {
  * first left of a divider and the other right of it; the divider dragged by
  * its grip, clamped to the frame. The divider is this page's, not the
  * link's: a different split shows the same comparison. Each one's caption
- * (its 🔊, its inspector) sits under the frame.
+ * (its speaker, its inspector) sits under the frame.
  */
 const WipeView = (props: { readonly other: string }) => {
   const { meta } = useReview();
@@ -1338,7 +1338,7 @@ const MomentPick = (props: { readonly moments: ReadonlyArray<number>; readonly i
   );
 };
 
-/** A still's caption: the variant's letter, its name and Out of date when it is (no 🔊: nothing plays). */
+/** A still's caption: the variant's letter, its name and Out of date when it is (no speaker: nothing plays). */
 const StillCap = (props: { readonly variant: SeenVariant }) => {
   const { set } = useSet();
   return (

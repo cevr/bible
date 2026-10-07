@@ -242,12 +242,12 @@ describe('the review page', () => {
         // Never the browser's controls: at rest its picture plays it; once it moves,
         // the review's transport row shows under it, and pauses it.
         yield* countIs(page, '.rv-tall video[controls]', 0);
-        yield* countIs(page, '.rv-tall .rv-alone', 0);
+        yield* countIs(page, '.rv-tall .rv-alone-row', 0);
         yield* page.click('.rv-tall [data-act="play-video"]');
-        yield* textIs(page, '.rv-tall .rv-alone [data-act="play"]', '❚❚');
+        yield* textIs(page, '.rv-tall .rv-alone-row [data-act="play"]', '❚❚');
         // Paused where it began (this video never moves), it is at rest again.
-        yield* page.click('.rv-tall .rv-alone [data-act="play"]');
-        yield* countIs(page, '.rv-tall .rv-alone', 0);
+        yield* page.click('.rv-tall .rv-alone-row [data-act="play"]');
+        yield* countIs(page, '.rv-tall .rv-alone-row', 0);
         // A loose video shows its name; its file is its menu's: Open, Copy link, Info (UR-17).
         yield* textIs(page, '.rv-tall .rv-cap', 'walk.mp4');
         yield* rightClick(page, '.rv-tall .rv-cap');

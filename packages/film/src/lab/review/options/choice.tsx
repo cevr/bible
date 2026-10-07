@@ -3,7 +3,7 @@
 // knob (a sound layer's level: a slider, and its value a field typed to the
 // step, nudged by its arrows), and each variant with its state when it is not
 // current (in full in its sheet), what it is, how it is seen or
-// heard (a render's video; a take alone, its own file; in place: 🔊 over the
+// heard (a render's video; a take alone, its own file; in place: a speaker over the
 // picture), the verbs its state allows (pick, unpick, reject), its approval
 // (approve, unapprove) and what was said of it; at rest only what most
 // visits use, the rest in the variant's inspector, its menu and its keys
@@ -45,6 +45,7 @@ import {
 import type { ThingVerb, VerbId } from '../things.ts';
 import { type InPlace, verbTitle } from './keys.ts';
 import { Field } from '../../command/inspector.tsx';
+import { HearIcon } from '../../page-shell.tsx';
 
 /** The approve button's words for an approval. */
 const APPROVE_TITLE = {
@@ -68,7 +69,7 @@ export interface Sayer {
   readonly use: () => OwnSay;
 }
 
-/** The 🔊 that makes `playing` the sound over the picture. */
+/** The speaker that makes `playing` the sound over the picture. */
 export const HearButton = (props: { readonly playing: Playing; readonly disabled?: boolean }) => {
   const { playing, hear } = useFilm();
   const on = () => samePlaying(playing(), props.playing);
@@ -82,7 +83,7 @@ export const HearButton = (props: { readonly playing: Playing; readonly disabled
       disabled={props.disabled}
       onClick={() => hear(props.playing)}
     >
-      🔊
+      <HearIcon />
     </button>
   );
 };

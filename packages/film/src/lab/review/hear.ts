@@ -1,5 +1,5 @@
 // Hear version n (UR-27): on a version stack's page, `1`…`9` make one of the
-// stack's first nine versions the one heard, as its card's 🔊 does, its
+// stack's first nine versions the one heard, as its card's speaker does, its
 // number the one its card shows. Each is offered while its version can be
 // heard (the view plays, a pair holds it) and is not the one heard already,
 // and says the version's number and label. Pure.
@@ -29,7 +29,7 @@ export const hearVersionCommands = (hearing: Hearing): ReadonlyArray<Command> =>
       labelIn: () => `Hear version ${n} · ${version.label}`,
       group: 'Review',
       keys: [String(n)],
-      touch: 'tap its 🔊',
+      touch: 'tap its speaker',
       when: () => hearing.hearable(version.id) && hearing.heard() !== version.id,
       run: quietly(() => hearing.hear(version.id)),
     };

@@ -481,6 +481,19 @@ describe("a film's choices", () => {
           `${MIX}.startsWith('/api/films/toy/choices/mix?point=score&variant=piano')`,
         );
         yield* waitFor(page, `${at('score', 'piano')} [data-act="hear"][aria-pressed="true"]`);
+        // Its speaker is the shell's line icon, drawn in the kit's pressed colour (no emoji, no
+        // filter), seen with the pointer off it.
+        yield* page.mouse.move(1, 1);
+        const speaker = (variant: string) =>
+          `getComputedStyle(document.querySelector('${at('score', variant)} [data-act="hear"] svg.sh-icon')).stroke`;
+        const accent =
+          "(() => { const p = document.createElement('i'); p.style.color = 'var(--accent)'; document.body.append(p); const c = getComputedStyle(p).color; p.remove(); return c; })()";
+        yield* evaluates(
+          page,
+          `${speaker('piano')} === ${accent} && ${speaker('strings')} !== ${accent}`,
+          true,
+        );
+        yield* countIs(page, '.rv-sound:not(:has(svg.sh-icon))[data-act="hear"]', 0);
         // A take in place, and alone.
         yield* click(page, `${at('take:paper.page', WAITING)} [data-act="hear"]`);
         yield* until(

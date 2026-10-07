@@ -70,10 +70,8 @@ a.rv-card:hover { background: var(--surface-2); }
   color: var(--text-2); font-size: var(--fs-2); line-height: var(--lh-2); flex: 1; min-width: 0;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-/* A hear button is the kit's icon button, at its caption's end; its glyph is grey until it is on. */
-.rv-sound { filter: grayscale(1); }
+/* A hear button is the kit's icon button (a speaker, \`--accent\` once it is on), at its caption's end. */
 .rv-cap > .rv-sound { margin-left: auto; }
-.rv-sound.on { filter: none; }
 .rv-letter {
   font-weight: var(--w-3); min-width: var(--s-6); height: var(--s-6); padding: 0 var(--s-1); border-radius: var(--r-1);
   display: grid; place-items: center; background: var(--surface-3); color: var(--text-1); flex: none; font-size: var(--fs-2);
@@ -121,9 +119,9 @@ a.rv-card:hover { background: var(--surface-2); }
  */
 .rv-alone-picture { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
 .rv-alone-picture:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.rv-alone { padding: var(--s-2) var(--s-3); }
+.rv-alone-row { padding: var(--s-2) var(--s-3); }
 @media ${WIDE} {
-  .rv-alone .rv-time-at { display: inline; }
+  .rv-alone-row .rv-time-at { display: inline; }
 }
 .rv-lightbox {
   position: fixed; inset: 0; background: var(--backdrop-deep); display: grid; place-items: center;

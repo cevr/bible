@@ -651,7 +651,7 @@ const sameVariant = (a: InPlace, b: InPlace): boolean =>
   a.point === b.point && a.variant === b.variant;
 
 /**
- * Put the focus on the row of `heard`'s variant (its 🔊), so the next key
+ * Put the focus on the row of `heard`'s variant (its speaker), so the next key
  * is about it: an audition step selects what it hears.
  */
 const focusVariant = (heard: InPlace): void => {

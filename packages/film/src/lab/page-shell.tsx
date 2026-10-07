@@ -93,7 +93,7 @@ export const ShellTools = (props: ParentProps) => {
 };
 
 /** The shell's icons, by name. */
-type IconName = Part | 'search' | 'chevron' | 'undo' | 'redo';
+type IconName = Part | 'search' | 'chevron' | 'undo' | 'redo' | 'hear';
 
 /**
  * Each icon's strokes, drawn only for the icon shown: an element made is a
@@ -139,6 +139,9 @@ const ICON_STROKES: Readonly<Record<IconName, () => JSX.Element>> = {
   chevron: () => <path d="M7 10l5 5 5-5" />,
   undo: () => <path d="M9 6l-5 5 5 5M4 11h10a6 6 0 0 1 6 6v1" />,
   redo: () => <path d="M15 6l5 5-5 5M20 11H10a6 6 0 0 0-6 6v1" />,
+  hear: () => (
+    <path d="M4 9.5h3.5l4.5-4v13l-4.5-4H4zM15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+  ),
 };
 
 /** A line icon of the shell's, 20 px in the tab bar and 16 px in the header. */
@@ -147,6 +150,9 @@ const Icon = (props: { readonly of: IconName }) => (
     {ICON_STROKES[props.of]()}
   </svg>
 );
+
+/** The speaker a hear button holds: the shell's line icon, so the kit's pressed colour reaches it. */
+export const HearIcon = () => <Icon of="hear" />;
 
 /**
  * One of a page's own tools in the header (`ShellTools`, the Lab's Undo and

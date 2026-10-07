@@ -709,7 +709,7 @@ const SetBody = (
       onSome: (o) => id === first || id === o,
     });
   };
-  // A version of this set heard alone, from its context menu (as its 🔊 does).
+  // A version of this set heard alone, from its context menu (as its speaker does).
   const versionHere = (ctx: Context) =>
     Option.filter(
       selected(ctx, 'Version'),
@@ -766,7 +766,7 @@ const SetBody = (
       label: 'Hear this version',
       group: 'Review',
       about: ['Version'],
-      touch: 'long-press a version, then Hear this version (or tap its 🔊)',
+      touch: 'long-press a version, then Hear this version (or tap its speaker)',
       when: (ctx) => Option.isSome(versionHere(ctx)),
       run: quietly((ctx) =>
         Option.map(versionHere(ctx), (v) => sendSync(SyncEvent.HeardChosen({ id: v.version }))),
