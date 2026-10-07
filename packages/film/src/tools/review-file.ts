@@ -21,9 +21,11 @@ const MIME_TYPES = { m4a: 'audio/mp4', vtt: 'text/vtt; charset=utf-8' };
  * take or an attempt by its hash, a note's still by its number, a phone
  * copy or a frame by its source's path and mtime), kept a day; `hashed`, a
  * build's script or style named by its own bytes' hash, kept a year,
- * immutable.
+ * immutable; `none`, never stored (a page, built from the source as it
+ * stands, and a redirect to one).
  */
 export const CACHE = {
+  none: 'no-store',
   fresh: 'no-cache',
   derived: 'max-age=86400',
   hashed: 'max-age=31536000, immutable',
