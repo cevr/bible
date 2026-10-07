@@ -22,10 +22,8 @@ const lab = UrlAtom.place(Lab);
 const timeOf = Schema.encodeSync(Codec.Finite);
 
 export const App = () => {
-  const place = useAtomValue(
-    () => lab,
-    (value) => Option.getOrThrow(value),
-  );
+  const value = useAtomValue(() => lab);
+  const place = () => Option.getOrThrow(value());
   return (
     <main>
       <p id="film">{place().path.film}</p>

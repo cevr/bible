@@ -1,6 +1,6 @@
 // `film/host-events-through-adapter`: a page hears the host's navigation, key
 // and drag events through its adapter, never by its own listener on the
-// window or the document, and a press is held and ended by `Pointer.drag`
+// window or the document, and a press is held and ended by `Pointer.press`
 // alone, whatever it was pressed on. A listener of its own skips what the
 // adapter holds once: the typing test (a key pressed into a field is the
 // field's), the drag's every ending (`pointercancel` and
@@ -25,7 +25,7 @@ import { memberName } from './nodes.ts';
 
 const URL = "use @bible/url-state's Location";
 const KEYS = 'use Keys.listen (packages/film/src/browser/keys.ts)';
-const DRAG = 'use Pointer.drag (packages/film/src/browser/pointer.ts)';
+const DRAG = 'use Pointer.press (packages/film/src/browser/pointer.ts)';
 
 /** Each event a page hears through an adapter, and the adapter. */
 const THROUGH: ReadonlyMap<string, string> = new Map([
@@ -101,7 +101,7 @@ export const hostEventsThroughAdapter = Rule.define({
   meta: Rule.meta({
     type: 'problem',
     description:
-      'A page hears navigation, key and drag events through its adapter (Location, Keys, Pointer), never by its own listener on the window or the document, and a press is held and ended by Pointer.drag alone.',
+      'A page hears navigation, key and drag events through its adapter (Location, Keys, Pointer), never by its own listener on the window or the document, and a press is held and ended by Pointer.press alone.',
     schema: [
       {
         type: 'object',

@@ -203,7 +203,7 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   // by the beat it is on now, so none still names a beat the recorder left.
   const address = addressOn(meta.host);
   const href = useAtomValue(() => UrlAtom.href);
-  const linked = createMemo(() => listedBeat(beats(), beatAt(href())), { equals: Equal.equals });
+  const linked = createMemo(() => beatAt(href(), beatIds(beats())), { equals: Equal.equals });
   const due = createMemo(
     () => {
       const now = recorder();
@@ -388,19 +388,14 @@ const Body = (props: ParentProps<{ readonly actor: RecorderActor; readonly reads
   return <StudioContext value={value}>{props.children}</StudioContext>;
 };
 
-/** `beat`, while the server lists it. */
-const listedBeat = (
-  beats: ReadonlyArray<StudioBeat>,
-  beat: Option.Option<string>,
-): Option.Option<string> => Option.filter(beat, (id) => beats.some((x) => x.id === id));
+/** The ids of the beats the server lists. */
+const beatIds = (beats: ReadonlyArray<StudioBeat>): ReadonlyArray<string> =>
+  beats.map((beat) => beat.id);
 
-/** The beat the recorder starts on: the link's (`beatAt`), while the server lists it, else the first. */
-const startBeat = (
-  beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>,
-  linked: Option.Option<string>,
-) =>
+/** The beat the recorder starts on: the link's at `href` (`beatAt`), else the first. */
+const startBeat = (beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>, href: string) =>
   Option.flatMap(AsyncResult.value(beats), (b) =>
-    Option.orElse(listedBeat(b.beats, linked), () =>
+    Option.orElse(beatAt(href, beatIds(b.beats)), () =>
       Option.map(Option.fromUndefinedOr(b.beats[0]), (first) => first.id),
     ),
   );
@@ -436,7 +431,7 @@ export const Provider = (props: ParentProps) => {
   };
   const beats = useAtomValue(() => reads.beats);
   // Read once: the link's later beats move the recorder spawned here (`linked`), never respawn it.
-  const opened = beatAt(addressOn(meta.host).href());
+  const opened = addressOn(meta.host).href();
   const start = createMemo(() => Option.getOrUndefined(startBeat(beats(), opened)));
   return (
     <Show

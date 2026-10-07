@@ -31,8 +31,9 @@ const pointer = (type: string, id: number, x = 0, pointerType = 'mouse') =>
   }) as PointerEvent;
 
 /**
- * A page with one pressable element: pressing it begins a drag, as a page's
- * own `pointerdown` handler does; the moves and the end the drag told.
+ * A page with one pressable element, its own surface: pressing it begins a
+ * drag, as a page's own `pointerdown` handler does; the moves and the end
+ * the drag told.
  */
 const page = () => {
   const window = new EventTarget();
@@ -47,10 +48,13 @@ const page = () => {
     drag = Option.some(
       Effect.runForkWith(host)(
         Pointer.use((p) =>
-          p.drag(down, {
-            move: (ev) => moves.push(ev.clientX),
-            end: (lifted) => ends.push(Option.map(lifted, (ev) => ev.clientX)),
-          }),
+          p.press(down, new Surface('the element'), () =>
+            Option.some({
+              move: (ev: PointerEvent) => moves.push(ev.clientX),
+              end: (lifted: Option.Option<PointerEvent>) =>
+                ends.push(Option.map(lifted, (ev) => ev.clientX)),
+            }),
+          ),
         ),
       ),
     );
@@ -74,7 +78,7 @@ const page = () => {
   };
 };
 
-describe('Pointer.drag', () => {
+describe("Pointer.press's drag", () => {
   test("captures the pointer, hears its moves (not another's), and ends once, lifted", () => {
     const p = page();
     p.press(7);

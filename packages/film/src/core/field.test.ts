@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Option, Schema } from 'effect';
-import { fieldOf, inspected, nudged, refusalOf, stepOf } from './field.ts';
+import { fieldOf, inspected, nudged, refusalOf } from './field.ts';
 import { CueDur, CueOffset, KnobNumber, Pixel } from './schema.ts';
 
 const FPS = 30;
@@ -53,7 +53,6 @@ describe('nudged', () => {
     expect(nudged(spec, 0.4, 'normal', 1)).toBe(0.433);
     expect(nudged(spec, 0.4, 'coarse', -1)).toBe(0.067);
     expect(nudged(spec, 0.4, 'fine', 1)).toBe(0.401);
-    expect(stepOf(spec, 'fine')).toBe(0.001);
   });
 
   test('stops at the bounds', () => {
