@@ -10,7 +10,7 @@
 // long press also reads the press's pointer moves, since a browser holds
 // back the touch's own moves within its slop (wider than 10px) while its
 // pointer moves arrive. A consumer's drag that starts claims the press (the
-// film lab's `Pointer.drag` does, past `LONG_PRESS_MOVE_THRESHOLD`), and a
+// film lab's `Pointer.press` does, past `LONG_PRESS_MOVE_THRESHOLD`), and a
 // press another holds is no long press, nor opens on the browser's own long
 // press `contextmenu`; a long press claims the press as it opens the menu,
 // so no drag starts under the open menu. Also not in upstream: the open is

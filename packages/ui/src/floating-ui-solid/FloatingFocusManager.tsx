@@ -523,7 +523,7 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
           sync: openedByVirtualPress,
           preventScroll: target === focusElement,
           shouldFocus() {
-            // Closed meanwhile (Tab out of a kept-mounted popup): leave focus where it went.
+            // Closed meanwhile (Tab out of a popup still mounted for its exit animation): leave focus where it went.
             if (!untrack(context.open)) {
               return false;
             }

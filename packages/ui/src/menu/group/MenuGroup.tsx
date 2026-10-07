@@ -20,7 +20,7 @@ export function useMenuGroupRootContext(): MenuGroupContextValue {
   const context = useContext(MenuGroupContext);
   if (context === null) {
     throw new Error(
-      'Base UI: MenuGroupContext is missing. Menu group parts must be used within <Menu.Group> or <Menu.RadioGroup>.',
+      'Base UI: MenuGroupContext is missing. Menu group parts must be used within <Menu.Group>.',
     );
   }
   return context;
