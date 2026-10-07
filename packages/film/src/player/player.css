@@ -2,15 +2,11 @@
 * {
   box-sizing: border-box;
 }
+/* The ground (its colours and type) is the tokens' (`tokens.css`); a player's page fills the window. */
 html,
 body {
   margin: 0;
   height: 100%;
-  background: var(--surface-0);
-  color: var(--text-1);
-  font-family: var(--font);
-  font-size: var(--body-fs);
-  line-height: var(--body-lh);
 }
 body {
   display: grid;
@@ -325,17 +321,9 @@ body.lab .stage {
     align-content: start;
     padding-bottom: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));
   }
+  /* The row is the shell's dock (its place and look, `page-shell-style.ts`), on one line. */
   body.lab .bar > .row {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
-    z-index: 25;
-    height: var(--dock-h);
     flex-wrap: nowrap;
-    padding: 0 var(--gutter);
-    background: var(--surface-1);
-    border-top: var(--border);
   }
   /* Docked, the row keeps the controls and the scene's time; the scene's
      name shortens, and its length and line are the strip head's and the captions'.
