@@ -28,7 +28,8 @@ import { Selection } from '../../command/selection.ts';
 import type { Hub } from '../../command/hub.ts';
 import { Target, type TargetElementProps } from '../command/context-menu.tsx';
 import { hubKeys } from '../command/changes.ts';
-import type { BrowserServices } from '../../browser/host.ts';
+import type { BrowserServices, Host } from '../../browser/host.ts';
+import { SelectionSheet } from '../selection-sheet.tsx';
 import { type LabApi, NotesApi, reasonOf, served } from '../api.ts';
 import { FeedEvent, FeedState, feedText, spawnFeed, startOf } from './feed.ts';
 
@@ -50,6 +51,8 @@ interface NotesStaged {
   readonly noteFrame: () => void;
   /** Whether the composer shows. */
   readonly composerOpen: Accessor<boolean>;
+  /** Close the selected note's sheet (a phone's: its Close, Escape, a swipe): the note goes. */
+  readonly dismiss: () => void;
 }
 
 interface NotesFeedValue {
@@ -285,19 +288,35 @@ const ReplyForm = (props: { readonly note: Note }) => {
   );
 };
 
-/** One note in the list: its place, words, still and thread. */
-const Item = (props: { readonly film: string; readonly note: Note }) => {
+interface ItemProps {
+  readonly film: string;
+  readonly host: Host;
+  readonly hub: Hub;
+  readonly note: Note;
+}
+
+/**
+ * One note in the list: its place, words, still and thread, and on the
+ * selected one its reply: in place, or on a phone, once the film is staged,
+ * in the selection's sheet, which peeks the note's label and its status.
+ */
+const Item = (props: ItemProps) => {
   const feed = useNotesFeed();
   const selected = () => Option.exists(feed.selected(), (s) => s.id === props.note.id);
   const at = () => Option.map(feed.staged(), (s) => s.whenOf(props.note));
+  const of = () => Selection.cases.Note.make({ id: props.note.id });
   return (
     <Target
-      of={Selection.cases.Note.make({ id: props.note.id })}
+      of={of()}
       render={(p: TargetElementProps) => <li {...p} />}
       class={['lab-note-item', props.note.status, { selected: selected() }]}
       data-id={props.note.id}
       onClick={(e) => {
         if (e.target instanceof HTMLInputElement || e.target instanceof HTMLButtonElement) return;
+        // The sheet stands in the item, fixed over the page: a tap in it opens nothing.
+        const inSheet = (el: Element) =>
+          Option.isSome(Option.fromNullishOr(el.closest('.lab-inspector-sheet')));
+        if (e.target instanceof Element && inSheet(e.target)) return;
         Option.map(feed.staged(), (s) => s.select(props.note));
       }}
     >
@@ -320,9 +339,19 @@ const Item = (props: { readonly film: string; readonly note: Note }) => {
           )}
         </For>
       </ol>
-      <Show when={selected() && props.note.status !== 'resolved'}>
-        <ReplyForm note={props.note} />
-        <span class="lab-status">{feed.threadStatus()}</span>
+      <Show when={selected()}>
+        <SelectionSheet
+          host={props.host}
+          hub={props.hub}
+          of={Option.as(feed.staged(), of())}
+          peek={`note ${label(props.note, at())} · ${props.note.status}`}
+          dismiss={() => Option.map(feed.staged(), (s) => s.dismiss())}
+        >
+          <Show when={props.note.status !== 'resolved'}>
+            <ReplyForm note={props.note} />
+            <span class="lab-status">{feed.threadStatus()}</span>
+          </Show>
+        </SelectionSheet>
       </Show>
     </Target>
   );
@@ -332,7 +361,7 @@ const Item = (props: { readonly film: string; readonly note: Note }) => {
  * The feed's status, and the notes, newest first (how to make one while
  * there is none): what the server sends, and the browser follows.
  */
-export const List = (props: { readonly film: string; readonly hub: Hub }) => {
+export const List = (props: { readonly film: string; readonly host: Host; readonly hub: Hub }) => {
   const feed = useNotesFeed();
   // Note this frame's key as bound now: a rebound key reads as rebound.
   const keys = hubKeys(props.hub);
@@ -342,7 +371,7 @@ export const List = (props: { readonly film: string; readonly hub: Hub }) => {
       <span class="lab-feed">{feedText(feed.state())}</span>
       <ol class="lab-notes">
         <For each={[...feed.notes()].reverse()} keyed={(n) => n.id}>
-          {(note) => <Item film={props.film} note={note()} />}
+          {(note) => <Item film={props.film} host={props.host} hub={props.hub} note={note()} />}
         </For>
       </ol>
       <Show when={feed.notes().length === 0 && !composing()}>

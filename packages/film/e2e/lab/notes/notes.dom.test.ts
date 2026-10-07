@@ -585,6 +585,44 @@ describe('the thread', () => {
       }).pipe(Effect.scoped),
     SLOW,
   );
+
+  it.live(
+    "on a phone the selected note's reply stands in a sheet peeking its label above the dock; a tap opens it, and Close drops the note",
+    () =>
+      Effect.gen(function* () {
+        const { page, asked } = yield* openLab(
+          [
+            route('GET', /^\/notes$/, () => notesFile(1, [noteJson('n1')])),
+            route('POST', /^\/notes\/n1\/reply$/, () => json(noteJson('n1'))),
+          ],
+          { href: labAt(3, { note: 'n1' }), mode: 'note', viewport: PHONE },
+        );
+        const sheet = '.lab-selection-sheet';
+        yield* attributeIs(page, sheet, 'data-peek', 'true');
+        yield* textHas(page, `${sheet} .lab-sheet-title`, 'note n1 · ');
+        yield* textHas(page, `${sheet} .lab-sheet-title`, ' · open');
+        yield* evaluates(
+          page,
+          `(() => { const dock = document.querySelector('body.lab .bar > .row').getBoundingClientRect(); const b = document.querySelector('${sheet} .lab-inspector-head').getBoundingClientRect(); return b.height > 0 && b.bottom <= dock.top + 0.5; })()`,
+          true,
+        );
+        yield* click(page, `${sheet} [data-act="sheet"]`);
+        yield* attributeIs(page, sheet, 'data-peek', 'false');
+        yield* page.fill(`${sheet} .lab-reply-input`, 'see frame 31');
+        yield* answered(
+          page,
+          '/notes/n1/reply',
+          page.pressIn(`${sheet} .lab-reply-input`, 'Enter'),
+        );
+        expect(posted(asked, /^\/notes\/n1\/reply$/)).toEqual([
+          Option.some({ text: 'see frame 31' }),
+        ]);
+        yield* click(page, `${sheet} [data-act="close-inspector"]`);
+        yield* evaluates(page, NOTE_IN_URL, '');
+        yield* evaluates(page, `document.querySelectorAll('${sheet}').length`, 0);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
 });
 
 const agentReply: Reply = {

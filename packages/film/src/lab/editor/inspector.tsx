@@ -27,7 +27,8 @@ import { Field, Hint } from '../command/inspector.tsx';
 import { HeaderTool } from '../page-shell.tsx';
 import { Lab, useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
-import { EASE_BOX, anchorText, easePoints, easeY, findingsIn } from './format.ts';
+import { EASE_BOX, anchorText, easePoints, easeY, findingsIn, peekText } from './format.ts';
+import { SelectionSheet } from '../selection-sheet.tsx';
 import { hubKeys } from '../command/changes.ts';
 import { countState } from '../scenes/marks.ts';
 import { cueCommit, cueRefusal } from './grip.ts';
@@ -268,19 +269,43 @@ const GESTURES: Readonly<Record<LabSelection['_tag'], ReadonlyArray<string>>> = 
 /**
  * The editor's controls in its section of the page's panel: the inspector,
  * `children` (the knobs, until they move), the hint for the selection, and
- * the findings. The scene's file is named once, on the strip's head.
+ * the findings. The scene's file is named once, on the strip's head. On a
+ * phone, while a cue or a knob is selected, the inspector and the knobs
+ * stand in the selection's sheet (`SelectionSheet`), peeking its one line.
  */
 export const Section = (props: ParentProps) => {
-  const { state: lab, meta } = useLab();
+  const { state: lab, meta, actions } = useLab();
+  const { state } = useEditor();
   const cueSelected = () => Option.filter(lab.selection(), (s) => s._tag === 'Cue');
+  // The selection's one line for a phone's peek: its fields as they stand, a cue's ease.
+  const peek = () =>
+    Option.match(lab.selection(), {
+      onNone: () => '',
+      onSome: (s) => {
+        lab.revision();
+        return peekText(
+          s,
+          state.fieldsOf(s),
+          Option.map(Option.fromUndefinedOr(meta.stage.cuesOf(s.scene).get(s.name)), (c) => c.ease),
+        );
+      },
+    });
   return (
     <>
       <Lab.Fill at="edit">
         <div class="lab-edit-body lab-inspector">
-          <Show when={Option.getOrUndefined(cueSelected())} keyed>
-            {(s: LabSelection) => <CueInspector selection={s} />}
-          </Show>
-          {props.children}
+          <SelectionSheet
+            host={meta.host}
+            hub={meta.hub}
+            of={lab.selection()}
+            peek={peek()}
+            dismiss={actions.dismissSelection}
+          >
+            <Show when={Option.getOrUndefined(cueSelected())} keyed>
+              {(s: LabSelection) => <CueInspector selection={s} />}
+            </Show>
+            {props.children}
+          </SelectionSheet>
           <Show when={Option.getOrUndefined(lab.selection())} keyed>
             {(s: LabSelection) => <Hint hub={meta.hub} selection={s} gestures={GESTURES[s._tag]} />}
           </Show>

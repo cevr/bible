@@ -21,6 +21,28 @@ export const anchorText = (span: Span): string => {
   return `scene ${span.at}`;
 };
 
+/**
+ * The selection in one line, as a phone's sheet peeks it (design language
+ * §7): what it is and its name, each of its fields' values (to two places,
+ * a number knob's bare), then a cue's ease: `cue rise · offset 0.00 · dur
+ * 0.60 · inOutCubic`, `knob spot · x 120.00 · y 340.00`, `knob size · 1.20`.
+ */
+export const peekText = (
+  selection: { readonly _tag: 'Cue' | 'Knob'; readonly name: string },
+  fields: ReadonlyArray<{ readonly id: string; readonly value: number }>,
+  ease: Option.Option<string>,
+): string =>
+  [
+    `${selection._tag.toLowerCase()} ${selection.name}`,
+    ...fields.map((f) =>
+      [
+        ...Option.toArray(Option.liftPredicate(f.id, (id) => id !== 'value')),
+        f.value.toFixed(2),
+      ].join(' '),
+    ),
+    ...Option.toArray(ease),
+  ].join(' · ');
+
 /** An ease drawing's box: 0→1 across, with room for an overshoot. */
 export const EASE_BOX = { w: 44, h: 30 } as const;
 

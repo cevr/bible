@@ -179,7 +179,7 @@ const Panel = (props: {
           <Frame hub={page.hub} />
         </header>
         {at('compose')}
-        <List film={page.name} hub={page.hub} />
+        <List film={page.name} host={page.host} hub={page.hub} />
       </div>
       <section class="lab-studio" data-mode-of="record">
         {at('record')}

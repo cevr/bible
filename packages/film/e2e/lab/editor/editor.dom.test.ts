@@ -13,6 +13,7 @@ import { Deferred, Effect, Exit, Option, Predicate, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import { pageHref } from '../../../src/core/api.ts';
+import { DEFAULT_EASE } from '../../../src/core/time.ts';
 import { SourceRefused, StepNotNewest } from '../../../src/core/refusals.ts';
 import { LONG, LONG_SCENE } from '../../../src/lab/fixtures/long-film.ts';
 import {
@@ -47,6 +48,18 @@ const posted = (asked: ReadonlyArray<Asked>) =>
 /** Wait until the editor's receipt reads something containing `part`. */
 const statusSays = (page: Tab, part: string) =>
   textHas(page, '[data-receipt="edit"] .lab-receipt-said', part);
+
+/** A phone's sheet of the selected cue or knob. */
+const SELECTION_SHEET = '.lab-selection-sheet';
+
+/** Whether `selector` shows whole on the first screen, above the Lab's dock row. */
+const onScreenOverDock = (selector: string) => `(() => {
+  const dock = document.querySelector('body.lab .bar > .row').getBoundingClientRect();
+  const b = document.querySelector('${selector}').getBoundingClientRect();
+  return b.height > 0 && b.top >= 0 && b.bottom <= dock.top + 0.5
+    ? 'over the dock'
+    : '${selector} at ' + Math.round(b.top) + '-' + Math.round(b.bottom) + ', the dock at ' + Math.round(dock.top);
+})()`;
 
 /** The box the receipts showing take together, as the script's `r`. */
 const RECEIPTS_BOX = `
@@ -1020,6 +1033,8 @@ describe('the inspector', () => {
           const box = yield* page.box(bar);
           yield* page.finger.down(box.x + box.width / 2, box.y + box.height / 2);
           yield* page.finger.up;
+          // Its sheet peeks; a tap on its head opens it whole.
+          yield* page.click(`${SELECTION_SHEET} [data-act="sheet"]`);
           const end = '.lab-edit-cue input[data-field="end"]';
           yield* page.waitFor(`${end}:not([disabled])`);
           yield* textHas(page, '.lab-edit-cue', '{held}');
@@ -1035,6 +1050,73 @@ describe('the inspector', () => {
           expect(errors).toEqual([]);
         }).pipe(Effect.scoped),
       ),
+  );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    "on a phone, the selected cue stands in a sheet peeking one line above the dock, naming it; a tap opens its fields over the dock; Close, and Back over a tap's pick, close it",
+    () =>
+      Effect.runPromise(
+        Effect.gen(function* () {
+          const { page, errors } = yield* openLab([], {
+            href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }),
+            viewport: PHONE,
+          });
+          const head = `${SELECTION_SHEET} .lab-inspector-head`;
+          const offset = `${SELECTION_SHEET} input[data-field="offset"]`;
+          yield* attributeIs(page, SELECTION_SHEET, 'data-peek', 'true');
+          yield* textIs(
+            page,
+            `${SELECTION_SHEET} .lab-sheet-title`,
+            `cue rise · offset 0.00 · dur 0.60 · ${DEFAULT_EASE}`,
+          );
+          yield* evaluates(page, onScreenOverDock(head), 'over the dock');
+          yield* evaluates(page, `document.querySelector('${offset}').checkVisibility()`, false);
+          yield* page.click(`${SELECTION_SHEET} [data-act="sheet"]`);
+          yield* attributeIs(page, SELECTION_SHEET, 'data-peek', 'false');
+          yield* page.waitFor(`${offset}:not([disabled])`);
+          yield* evaluates(page, onScreenOverDock(offset), 'over the dock');
+          // The link named the cue: Close follows to name none, adding no entry.
+          yield* page.click(`${SELECTION_SHEET} [data-act="close-inspector"]`);
+          yield* countIs(page, SELECTION_SHEET, 0);
+          yield* until(page, "new URLSearchParams(location.search).get('cue') === null");
+          // A tap picks it again, a step of its own: Back over it closes the sheet.
+          const bar = yield* page.box('.lab-cue[data-cue="rise"]');
+          yield* page.finger.down(bar.x + bar.width / 2, bar.y + bar.height / 2);
+          yield* page.finger.up;
+          yield* attributeIs(page, SELECTION_SHEET, 'data-peek', 'true');
+          // Close goes Back over that step: Forward still has it, and Back closes it again.
+          yield* page.click(`${SELECTION_SHEET} [data-act="close-inspector"]`);
+          yield* countIs(page, SELECTION_SHEET, 0);
+          yield* until(page, "new URLSearchParams(location.search).get('cue') === null");
+          yield* page.forward;
+          yield* attributeIs(page, SELECTION_SHEET, 'data-peek', 'true');
+          yield* page.back;
+          yield* countIs(page, SELECTION_SHEET, 0);
+          yield* until(page, "new URLSearchParams(location.search).get('cue') === null");
+          expect(errors).toEqual([]);
+        }).pipe(Effect.scoped),
+      ),
+  );
+
+  it.live("on a phone, a selected knob's sheet peeks its name and its values", () =>
+    Effect.gen(function* () {
+      const { page, errors } = yield* openLab([], {
+        href: labAt(10, { selection: { _tag: 'Knob', scene: 'three', name: 'pole' } }),
+        viewport: PHONE,
+      });
+      yield* attributeIs(page, SELECTION_SHEET, 'data-peek', 'true');
+      yield* until(
+        page,
+        `/^knob pole · x -?\\d+\\.\\d\\d · y -?\\d+\\.\\d\\d$/.test(document.querySelector('${SELECTION_SHEET} .lab-sheet-title').textContent)`,
+      );
+      yield* evaluates(
+        page,
+        onScreenOverDock(`${SELECTION_SHEET} .lab-inspector-head`),
+        'over the dock',
+      );
+      expect(errors).toEqual([]);
+    }).pipe(Effect.scoped),
   );
 
   it.live(

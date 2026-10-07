@@ -39,6 +39,8 @@ body {
   /* What the phone's sheet stands on: the tab bar and the shell's dock (\`.sh .sh-dock\`), set below. */
   --cmd-sheet-floor: env(safe-area-inset-bottom);
   --cmd-grip-height: 4px;
+  /* A phone's sheet lowered to its head: a target's height, the sheet's padding round it, its top line. */
+  --cmd-peek-h: calc(var(--hit) + 2 * var(--s-3) + 1px);
 }
 `;
 
@@ -210,6 +212,18 @@ const COMMAND_RULES = `
   .lab-inspector-head .lab-inspector-close { position: relative; z-index: 1; min-height: var(--hit); }
   .lab-inspector-sheet[data-peek="true"] > :not(.lab-inspector-head) { display: none; }
   body:has(.lab-inspector-sheet:not([data-peek="true"])) .sh-body { padding-bottom: var(--cmd-sheet-height); }
+  /*
+   * The Lab's selection (a cue, a knob, a note) peeks one line above its
+   * dock, what it is and its values, cut short rather than wrapped; the
+   * page's foot clears the peek, or the whole sheet, as it clears the dock.
+   */
+  .lab-selection-sheet .lab-sheet-title {
+    flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  body.lab:has(.lab-selection-sheet) { padding-bottom: calc(var(--cmd-sheet-floor) + var(--cmd-peek-h)); }
+  body.lab:has(.lab-selection-sheet:not([data-peek="true"])) {
+    padding-bottom: calc(var(--cmd-sheet-floor) + var(--cmd-sheet-height));
+  }
 }
 .lab-clamp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /*

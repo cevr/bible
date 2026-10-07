@@ -34,8 +34,10 @@ import { type LabApi, type NotesApi, labApiLayer } from './api.ts';
 import { goToCommands } from '../command/go.ts';
 import type { CompareView } from '../core/api.ts';
 import type { Hub } from '../command/hub.ts';
-import type { LabSelection } from '../command/selection.ts';
-import { type LabPick, labHrefWith } from './place.ts';
+import { type LabSelection, Selection } from '../command/selection.ts';
+import { targetAttr } from '../command/target.ts';
+import { type LabPick, labHrefWith, labPlaceOf } from './place.ts';
+import { useSheetDismissal } from './review/inspector.tsx';
 import { Fill, useLabPage } from './panel.tsx';
 import { reloadOnRebuild } from './rebuilt.ts';
 import { type ReloadGate, makeReloadGate } from './reload-gate.ts';
@@ -66,6 +68,13 @@ interface LabActions {
   readonly select: (selection: Option.Option<LabSelection>) => void;
   /** Select a note, or none: a new history entry, so Back undoes the pick. */
   readonly selectNote: (note: Option.Option<string>) => void;
+  /**
+   * Close the selection's sheet (a phone's inspector: its Close, Escape, a
+   * swipe): the cue or knob goes, by the sheets' one rule (`useSheetDismissal`).
+   */
+  readonly dismissSelection: () => void;
+  /** Close the selected note's sheet the same way: the note goes. */
+  readonly dismissNote: () => void;
   /** Drop the note from the URL in place (it is gone from the feed): no entry to come back to. */
   readonly forgetNote: () => void;
   /** Compare with HEAD by `view`, the owner's pick: a new history entry, so Back walks the views. */
@@ -236,6 +245,17 @@ const Staged = (props: RootProps) => {
     labHrefWith(name, player.film.placed, address.href(), pick, player.now());
 
   const { here } = page;
+  // A phone's inspector is a sheet the selection keeps open: a tap that picks on a
+  // shut sheet is a step of its own, so closing it goes Back over that step; any
+  // other entry follows to pick none (the review's sheets' one rule).
+  const sheet = useSheetDismissal(host, (href, thing) =>
+    sheetThings(labPlaceOf(href)).includes(thing),
+  );
+  /** Go to `pick`: a step Back walks, the opening of a sheet when it picks on a shut one. */
+  const pick = (next: Partial<LabPick>, shut: boolean) => {
+    if (shut) for (const thing of sheetThings(next)) sheet.opening(thing);
+    address.go(picked(next));
+  };
   const value: LabContextValue = {
     state: {
       T,
@@ -252,8 +272,11 @@ const Staged = (props: RootProps) => {
         place();
         return () => pinned.delete(layer);
       },
-      select: (selection) => address.go(picked({ selection })),
-      selectNote: (note) => address.go(picked({ note })),
+      select: (selection) => pick({ selection }, Option.isNone(untrack(here).selection)),
+      selectNote: (note) => pick({ note }, Option.isNone(untrack(here).note)),
+      dismissSelection: () =>
+        sheet.dismiss(() => Option.some(picked({ selection: Option.none() }))),
+      dismissNote: () => sheet.dismiss(() => Option.some(picked({ note: Option.none() }))),
       forgetNote: () => address.follow(picked({ note: Option.none() })),
       compareBy: (view) => {
         if (view !== untrack(() => here().view)) address.go(picked({ view }));
@@ -276,6 +299,17 @@ const Staged = (props: RootProps) => {
   // writes share one address bar.
   return <LabContext value={value}>{props.children}</LabContext>;
 };
+
+/** What a pick keeps a phone's sheet open for (its cue or knob, its note), as a target names it. */
+const sheetThings = (pick: Partial<Pick<LabPick, 'selection' | 'note'>>): ReadonlyArray<string> =>
+  [
+    ...Option.toArray(Option.flatten(Option.fromUndefinedOr(pick.selection))),
+    ...Option.toArray(
+      Option.map(Option.flatten(Option.fromUndefinedOr(pick.note)), (id) =>
+        Selection.cases.Note.make({ id }),
+      ),
+    ),
+  ].map(targetAttr);
 
 /** How long the picture flashes when new code lands. */
 const LANDED_MS = 900;

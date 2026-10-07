@@ -10,7 +10,9 @@
 // that leaves nothing. The chrome is measured where it holds most: at the
 // page's top, its middle and its end, each the union of the rows its fixed
 // and stuck (sticky, with an edge set, to the window rather than to a box
-// that scrolls on its own) elements cover in the window. A layer the page
+// that scrolls on its own) elements cover in the window; a see-through frame
+// (a sheet's viewport over the whole window, taking no pointer) is what it
+// holds, so a sheet lowered to its peek counts as the peek. A layer the page
 // has open (a scene's sheet, as an inspector is), with the frame that holds
 // it in the window, is no chrome: it is shut to go back to the page. Its
 // width and its controls are measured as the page's are.
@@ -69,17 +71,28 @@ export const phoneFit = (layer?: string) => `(() => {
     if (s.position === 'fixed') return true;
     return s.position === 'sticky' && (s.top !== 'auto' || s.bottom !== 'auto') && !inScroller(el);
   };
+  // A frame that holds pieces in the window (a sheet's viewport) draws nothing and takes no
+  // pointer: its bar is what it holds (a sheet lowered to a peek holds the peek's rows), not itself.
+  const frame = (el) => {
+    const s = getComputedStyle(el);
+    return s.pointerEvents === 'none' && s.backgroundColor === 'rgba(0, 0, 0, 0)' && s.borderTopStyle === 'none' && s.boxShadow === 'none';
+  };
   const barsNow = () => {
     const rows = [];
-    for (const el of document.body.querySelectorAll('*')) {
-      // The open layer, and the frame that holds it in the window (a sheet's viewport), are no bar.
-      const layered = LAYER !== '' && (el.closest(LAYER) !== null || el.querySelector(LAYER) !== null);
-      if (!stays(el) || !el.checkVisibility() || layered) continue;
+    const row = (el) => {
       const r = el.getBoundingClientRect();
       const top = Math.max(0, r.top);
       const bottom = Math.min(innerHeight, r.bottom);
       // A visually hidden field (1 × 1, fixed so it never moves the page) is no bar.
       if (bottom - top > 2 && r.width > 2) rows.push({ name: el.className || el.tagName, top, bottom });
+    };
+    for (const el of document.body.querySelectorAll('*')) {
+      // The open layer, and the frame that holds it in the window (a sheet's viewport), are no bar.
+      const layered = LAYER !== '' && (el.closest(LAYER) !== null || el.querySelector(LAYER) !== null);
+      if (!stays(el) || !el.checkVisibility() || layered) continue;
+      // What stays on its own is a bar of its own.
+      if (frame(el)) for (const held of el.children) if (!stays(held) && held.checkVisibility()) row(held);
+      if (!frame(el)) row(el);
     }
     rows.sort((a, b) => a.top - b.top);
     let held = 0;
@@ -110,19 +123,20 @@ export const phoneFit = (layer?: string) => `(() => {
 
 /**
  * A script answering whether the page fits its window: no sideways scroll,
- * every control inside the width, chrome at most `CHROME_MAX`; `layer`, the
- * open layer, is no chrome.
+ * every control inside the width, chrome at most `chrome` (`CHROME_MAX`
+ * unless the page's case names its own, saying why); `layer`, the open
+ * layer, is no chrome.
  */
-export const fits = (layer?: string) =>
-  `(() => { const f = ${phoneFit(layer)}; return f.sideways === 0 && f.outside.length === 0 && f.chrome <= ${CHROME_MAX}; })()`;
+export const fits = (layer?: string, chrome: number = CHROME_MAX) =>
+  `(() => { const f = ${phoneFit(layer)}; return f.sideways === 0 && f.outside.length === 0 && f.chrome <= ${chrome}; })()`;
 
 /**
  * Wait until the page fits its window (a phone's: 390 × 844), by `fits`;
  * `layer`, the layer it has open, is no chrome. A timeout fails with what the
  * page answers then (`phoneFit`), so the bar or the control over is named.
  */
-export const fitsPhone = (page: Tab, layer?: string) =>
-  page.until(fits(layer), {
+export const fitsPhone = (page: Tab, layer?: string, chrome: number = CHROME_MAX) =>
+  page.until(fits(layer, chrome), {
     now: phoneFit(layer),
-    say: (found) => `the page does not fit the window (chrome at most ${CHROME_MAX}): ${found}`,
+    say: (found) => `the page does not fit the window (chrome at most ${chrome}): ${found}`,
   });

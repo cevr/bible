@@ -337,14 +337,35 @@ const KEYS = '[data-role="keys-sheet"]';
 /** Choices at rest: its picture's transport, a knob, a comment's count. */
 const CHOICES_READY = ['.rv-transport', '.rv-knob input[type="range"]', `${STRINGS} .lab-count`];
 
-/** The Lab with a cue that runs until a mark selected: its scene's place, its End field and the Snap toggle shown. */
+/** A phone's sheet of the selected cue or knob. */
+const SELECTION_SHEET = '.lab-selection-sheet';
+
+/** The most of a phone's height the Lab's chrome holds with its selection peeking (G8's quarter, and the peek). */
+const LAB_PEEKING_CHROME = 0.28;
+
+/**
+ * The Lab with a cue that runs until a mark selected, at rest: its scene's
+ * place, the Snap toggle shown, its End field written and shown (on a phone
+ * in the selection's sheet, peeking its one line above the dock).
+ */
 const labCue = (viewport: Viewport) =>
   Effect.gen(function* () {
     const href = labAt(10, { selection: { _tag: 'Cue', scene: 'three', name: 'push' } });
     const { page } = yield* openLab([], { viewport, mode: 'edit', href });
-    yield* waitFor(page, '.lab-edit-cue input[data-field="end"]:not([disabled])');
+    yield* page.attached('.lab-edit-cue input[data-field="end"]:not([disabled])');
     yield* waitFor(page, '[data-act="snap"]');
+    yield* waitFor(page, `:is(${SELECTION_SHEET} .lab-sheet-title, .lab-edit-cue)`);
     return page;
+  });
+
+/** The selected cue's fields shown: on a phone, its sheet opened by a tap on its head. */
+const cueFieldsShown = (page: Tab) =>
+  Effect.gen(function* () {
+    const phone = yield* page.evaluate<boolean>(
+      `document.querySelector('${SELECTION_SHEET}') !== null`,
+    );
+    if (phone) yield* page.click(`${SELECTION_SHEET} [data-act="sheet"]`);
+    yield* waitFor(page, '.lab-edit-cue input[data-field="end"]:not([disabled])');
   });
 
 /** The Lab's Note mode with a cue selected: a note begun there is scoped to the cue, its × beside it. */
@@ -468,9 +489,20 @@ const STATES: ByPlace<State> = {
   ],
   labScene: [
     {
-      name: 'Lab, Edit, a cue that runs until a mark selected (its End field, the Snap toggle)',
+      name: 'Lab, Edit, a cue that runs until a mark selected (on a phone its sheet peeking)',
       open: labCue,
       disclose: AT_REST,
+      // A phone's peek counted: its grip, its line and its Close over the Edit's at rest, the
+      // fields in the sheet below it. A laptop's panel shows the cue's fields, its eases and the knobs.
+      budget: most(40, 80),
+    },
+    {
+      // On a phone the opened sheet is a layer, as an inspector is: the Lab under it is the case
+      // above. On a laptop the fields stand in the panel: the page is measured.
+      name: 'Lab, Edit, a cue that runs until a mark selected, its fields shown (its End field, the Snap toggle)',
+      open: labCue,
+      disclose: cueFieldsShown,
+      layer: `:is(${SELECTION_SHEET}, :root:not(:has(${SELECTION_SHEET})))`,
     },
     { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
     { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(39, 43) },
@@ -770,7 +802,10 @@ describe("the Lab's transport on a phone (DL-10)", () => {
 
 describe('every page fits a phone, 390 × 844 (G8)', () => {
   /** A page: its name, how it opens, and the layer it opens, which is no chrome. */
-  const PAGES: ByPlace<readonly [name: string, open: State['open'], layer?: string]> = {
+  /** A page: its name, how it opens, and how it is measured: the layer it opens (no chrome), its own chrome limit. */
+  const PAGES: ByPlace<
+    readonly [name: string, open: State['open'], fit?: { layer?: string; chrome?: number }]
+  > = {
     home: [['Films', review(pageHref.home(), '.rv-main a[href]')]],
     choices: [['Choices', review(CHOICES, ...CHOICES_READY)]],
     project: [['Project', review(PROJECT, ...PROJECT_READY)]],
@@ -790,24 +825,33 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
         // Its sheet is a layer over the tape, as an inspector is: shut to go back, so no chrome.
         "Scenes, a scene selected: its sheet's width and controls the page's, the sheet no chrome",
         player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
-        '[data-role="scene"]',
+        { layer: '[data-role="scene"]' },
       ],
     ],
     lab: LAB_MOVES,
     labScene: [
       ['Lab', lab('edit')],
-      ['Lab, a scene with a cue selected', labCue],
+      // Its sheet peeks one line above the dock, counted as chrome: the stack the design
+      // language draws for the Lab on a phone (§7) is the header (44 px), the peek (69), the dock
+      // (61) and the tab bar (56), 230 of 844 px, 0.27 of the height, past the quarter.
+      ['Lab, a scene with a cue selected', labCue, { chrome: LAB_PEEKING_CHROME }],
+      [
+        // Opened, the sheet is a layer over the Lab, as an inspector is: shut to go back, so no chrome.
+        "Lab, a scene with a cue selected, its sheet opened: the sheet's width and controls the page's, the sheet no chrome",
+        (viewport) => Effect.tap(labCue(viewport), cueFieldsShown),
+        { layer: SELECTION_SHEET },
+      ],
     ],
     play: [['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')]],
   };
-  for (const [place, [name, open, layer]] of byPlace(PAGES)) {
+  for (const [place, [name, open, fit = {}]] of byPlace(PAGES)) {
     it.live(
-      `${name}: no sideways scroll, every control inside the width, chrome at most a quarter of the height`,
+      `${name}: no sideways scroll, every control inside the width, chrome at most ${fit.chrome ?? 'a quarter'} of the height`,
       () =>
         Effect.gen(function* () {
           const page = yield* open(PHONE.viewport);
           yield* isAt(page, place);
-          yield* fitsPhone(page, layer);
+          yield* fitsPhone(page, fit.layer, fit.chrome);
         }).pipe(Effect.scoped),
       SLOW,
     );

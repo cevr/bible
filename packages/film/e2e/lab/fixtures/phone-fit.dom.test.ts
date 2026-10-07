@@ -3,6 +3,7 @@
 // that fits: a block wider than the window scrolls sideways, a control the
 // page fixes past the window's side is outside, and a sticky header taller
 // than a quarter of the window is too much chrome. An open sheet is chrome
+// (the sheet, not the see-through frame it stands in; lowered, its peek)
 // unless named the page's layer, whose controls are still kept inside the
 // width. `fitsPhone`, the wait the
 // page tests run, passes the page that fits and fails one that does not,
@@ -57,6 +58,8 @@ const FAR = `<button data-act="far" style="position:fixed;left:370px;top:400px">
 const TALL = `<header style="position:sticky;top:0;height:300px"></header><div class="page"></div>`;
 /** A sheet in a frame over the whole window, as a dialog's viewport holds it. */
 const SHEET = `<div class="page"></div><div class="frame" style="position:fixed;inset:0;pointer-events:none"><div data-role="sheet" style="position:absolute;left:0;bottom:0;width:390px;height:500px"><button data-act="close">close</button></div></div>`;
+/** A sheet lowered to its one line, fixed in its see-through frame, as the Lab's selection peeks. */
+const PEEK = `<div class="page"></div><div class="frame" style="position:fixed;inset:0;pointer-events:none"><div data-role="sheet" style="position:fixed;left:0;bottom:117px;width:390px;height:69px;pointer-events:auto"></div></div>`;
 
 describe('the phone-fit measure', () => {
   it.live('passes a page within the width, its control inside it, its header slim', () =>
@@ -75,11 +78,17 @@ describe('the phone-fit measure', () => {
     measured(TALL, false, 'chrome', 300 / 844),
   );
 
-  it.live('refuses an open sheet as chrome, and takes it for a layer once named so', () =>
-    Effect.gen(function* () {
-      yield* measured(SHEET, false, 'chrome', 1);
-      yield* measured(SHEET, true, 'chrome', 0, '[data-role="sheet"]');
-    }),
+  it.live(
+    'refuses an open sheet as chrome, the sheet and not the frame it stands in, and takes it for a layer once named so',
+    () =>
+      Effect.gen(function* () {
+        yield* measured(SHEET, false, 'chrome', 500 / 844);
+        yield* measured(SHEET, true, 'chrome', 0, '[data-role="sheet"]');
+      }),
+  );
+
+  it.live('counts a sheet lowered to a peek as its peek, the frame round it none', () =>
+    measured(PEEK, true, 'chrome', 69 / 844),
   );
 
   it.live("refuses a layer's control past the window, its width measured as the page's", () =>

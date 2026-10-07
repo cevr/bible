@@ -13,13 +13,44 @@ import {
   type FindingAddress,
   RequestId,
 } from '../../core/schema.ts';
-import { findingTime, findingsIn, findingsOf, receiptOf } from './format.ts';
+import { findingTime, findingsIn, findingsOf, peekText, receiptOf } from './format.ts';
 import { CueWrite, StepWrite } from './grip.ts';
 import { EditState } from './machine.ts';
 
 const late: CheckLine = { level: 'warning', tag: 'late', message: 'rise ends after the scene' };
 const early: CheckLine = { level: 'error', tag: 'early', message: 'fall starts before its mark' };
 const report: CheckReport = { findings: [early] };
+
+describe('peekText', () => {
+  test("a cue's peek: its name, its offset and dur to two places, its ease", () => {
+    expect(
+      peekText(
+        { _tag: 'Cue', name: 'charge' },
+        [
+          { id: 'offset', value: 0.4 },
+          { id: 'dur', value: 0.6 },
+        ],
+        Option.some('out'),
+      ),
+    ).toBe('cue charge · offset 0.40 · dur 0.60 · out');
+  });
+
+  test("a knob's peek: a point's x and y, a number bare", () => {
+    expect(
+      peekText(
+        { _tag: 'Knob', name: 'spot' },
+        [
+          { id: 'x', value: 120 },
+          { id: 'y', value: 340.5 },
+        ],
+        Option.none(),
+      ),
+    ).toBe('knob spot · x 120.00 · y 340.50');
+    expect(
+      peekText({ _tag: 'Knob', name: 'size' }, [{ id: 'value', value: 1.2 }], Option.none()),
+    ).toBe('knob size · 1.20');
+  });
+});
 
 describe('findingsOf', () => {
   test("a landed write's findings, else the check the page loaded with", () => {

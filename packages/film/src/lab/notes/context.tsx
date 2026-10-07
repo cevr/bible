@@ -277,6 +277,7 @@ const Body = (props: ParentProps<{ readonly composer: ComposerActor }>) => {
       select: actions.select,
       noteFrame: actions.noteFrame,
       composerOpen: () => composerOpen(composer()),
+      dismiss: labActions.dismissNote,
     }),
   );
   // A note a context menu opened on, when it is not the one open already.

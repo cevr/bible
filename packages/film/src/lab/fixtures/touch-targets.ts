@@ -19,7 +19,9 @@
 // the tab order (`aria-hidden`, `tabindex="-1"`) and physically hidden
 // (clipped away, 1 × 1, or transparent with no pointer events), such as the
 // form input a number field keeps beside its visible one; the visible one is
-// measured. Anything shown that a pointer can land on is measured.
+// measured. A popup's focus guard (in the tab order only to send the focus
+// on, and as hidden) is none either. Anything shown that a pointer can land
+// on is measured.
 //
 // A hit-slop stays off its neighbours: where a target's slop (a positioned
 // `::before` or `::after` drawn past its padding box) lies over another
@@ -91,7 +93,9 @@ const TARGETS = [
 const SHOWN = `
   const boxOf = (el) => el.getBoundingClientRect();
   const backing = (el) => {
-    if (!(el.tabIndex < 0 && el.closest('[aria-hidden="true"]'))) return false;
+    // A focus guard is in the tab order only to send the focus on at once: nothing to press either.
+    const passing = el.tabIndex < 0 || el.hasAttribute('data-base-ui-focus-guard');
+    if (!(passing && el.closest('[aria-hidden="true"]'))) return false;
     const r = boxOf(el), s = getComputedStyle(el);
     return (r.width <= 1 && r.height <= 1) || /inset\\(50%/.test(s.clipPath) || s.clip === 'rect(0px, 0px, 0px, 0px)' ||
       (Number(s.opacity) === 0 && s.pointerEvents === 'none');
