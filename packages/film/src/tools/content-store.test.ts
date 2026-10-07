@@ -6,10 +6,12 @@ import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import {
   Array as Arr,
+  Cause,
   Clock,
   Context,
   Deferred,
   Effect,
+  Exit,
   Fiber,
   FileSystem,
   Layer,
@@ -329,6 +331,25 @@ describe('ContentStore', () => {
       });
       yield* waited(thisOneRuns(store.update(assets, withAsset('x'))));
       expect([...files.keys()]).toEqual([assets.file]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect('a change that takes its own lock again dies naming it, never waiting on itself', () =>
+    Effect.gen(function* () {
+      const store = yield* storeOn(new Map());
+      const lock = lockFile(assets.file);
+      const again = [
+        store.holding(assets, () => store.holding(assets, () => Effect.void)),
+        store.holding(assets, () => store.update(assets, withAsset('x'))),
+        store.transact(assets, (m) => store.holding(assets, () => Effect.succeed([1, m] as const))),
+      ];
+      for (const nested of again) {
+        const exit = yield* Effect.exit(nested);
+        expect(Exit.isFailure(exit) && Cause.pretty(exit.cause)).toContain(lock);
+      }
+      // Another manifest's lock, taken inside, is no lock taken again.
+      yield* store.holding(assets, () => store.update(manifest, (m) => m));
+      expect(Object.keys((yield* store.read(assets)).assets)).toEqual([]);
     }).pipe(Effect.scoped),
   );
 

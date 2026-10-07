@@ -33,6 +33,11 @@
 //    removed, only while it holds that text, in the background, tried again
 //    until the disk lets it (RETIRE), or at this store's next change of the
 //    file if that comes first.
+// 6. A decision about a manifest is made while holding its lock: `transact`
+//    and `holding` hand their change the manifest as read under the lock, and
+//    neither takes a path and a bare effect. A change that takes the same
+//    lock again dies naming it, rather than waiting on itself. A value read
+//    before the lock and carried in stays the reviewer's to catch.
 //
 // A file is written whole (`writeWhole`): beside it under a name of the
 // writer's own (`<file>.<pid>-<n>.<host tag>.partial`), then renamed over it
@@ -198,6 +203,11 @@ const takings = { count: 0 };
 /** The lock of the manifest at `file`. */
 export const lockFile = (file: string): string => `${file}.lock`;
 
+/** The manifests whose locks the running change holds, in its fiber and those it forks. */
+const Held = Context.Reference<ReadonlySet<string>>('@bible/film/tools/ContentStore/Held', {
+  defaultValue: () => new Set(),
+});
+
 /** What a writer holds while it breaks `lock`: one breaker at a time. */
 const breakerFile = (lock: string): string => `${lock}.break`;
 
@@ -356,16 +366,19 @@ interface ContentStoreService {
     change: (current: A) => Effect.Effect<readonly [B, A], E, R>,
   ) => Effect.Effect<B, E | StoreError, R>;
   /**
-   * `effect` holding `file`'s lock (the one its `transact` takes), in this
-   * process and across processes, without rewriting `file`: for what changes
-   * the files a manifest names (a take put away, or brought back with the
-   * text that names it) and must not interleave with a change of the
-   * manifest. Not reentrant: `effect` must not take the same lock again.
+   * `use` of the manifest as it is, holding its lock (the one its
+   * `transact` takes), in this process and across processes, without
+   * rewriting it: for what changes the files a manifest names (a take put
+   * away, or brought back with the text that names it) and must not
+   * interleave with a change of the manifest. What `use` decides from is
+   * read under that lock. A lock taken again inside itself (a `holding` or
+   * `transact` of the same file within `use`) dies naming the file, rather
+   * than waiting on itself.
    */
-  readonly holding: <A, E, R>(
-    file: string,
-    effect: Effect.Effect<A, E, R>,
-  ) => Effect.Effect<A, E | StoreLocked | PlatformError, R>;
+  readonly holding: <A, B, E, R>(
+    manifest: Manifest<A>,
+    use: (current: A) => Effect.Effect<B, E, R>,
+  ) => Effect.Effect<B, E | StoreError, R>;
   /** Write a file whole: a reader never sees half of it. */
   readonly writeFile: (file: string, bytes: Uint8Array) => Effect.Effect<void, PlatformError>;
   /** Produce the asset unless its stored hash is current, then record it. `None` when skipped. */
@@ -587,9 +600,18 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           ),
         );
 
-      /** `change` holding `file`'s lock, in this process and across processes. */
+      /**
+       * `change` holding `file`'s lock, in this process and across processes.
+       * Taken again inside `change`, it dies naming the file: it would wait on
+       * itself, in this process's queue or on its own lock, forever.
+       */
       const locked = <A, E, R>(file: string, change: Effect.Effect<A, E, R>) =>
         Effect.gen(function* () {
+          const held = yield* Held;
+          if (held.has(file))
+            return yield* Effect.die(
+              `ContentStore: ${lockFile(file)} is taken again by a change that holds it`,
+            );
           const lock = lockFile(file);
           const processes = yield* Processes;
           const started = yield* processes
@@ -606,10 +628,10 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
             fs
               .makeDirectory(path.dirname(file), { recursive: true })
               .pipe(Effect.andThen(take(file, lock, owner))),
-            () => change,
+            () => Effect.provideService(change, Held, new Set([...held, file])),
             () => give(file, lock, owner),
-          );
-        }).pipe(writerOf(file).withPermits(1));
+          ).pipe(writerOf(file).withPermits(1));
+        });
 
       const read = Effect.fn('ContentStore.read')(function* <A>(manifest: Manifest<A>) {
         if (!(yield* fs.exists(manifest.file))) return manifest.empty;
@@ -639,6 +661,14 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           }),
         ).pipe(Effect.withSpan('ContentStore.transact'));
 
+      const holding = <A, B, E, R>(
+        manifest: Manifest<A>,
+        use: (current: A) => Effect.Effect<B, E, R>,
+      ) =>
+        locked(manifest.file, Effect.flatMap(read(manifest), use)).pipe(
+          Effect.withSpan('ContentStore.holding'),
+        );
+
       const modify = <A, E>(manifest: Manifest<A>, change: (current: A) => Result.Result<A, E>) =>
         transact(manifest, (current: A) =>
           Effect.map(Effect.fromResult(change(current)), (next) => [next, next] as const),
@@ -662,7 +692,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         update,
         modify,
         transact,
-        holding: locked,
+        holding,
         writeFile,
         ensure,
       });

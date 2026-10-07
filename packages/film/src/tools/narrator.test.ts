@@ -600,8 +600,7 @@ describe('Narrator', () => {
       // The lab's Undo, as `land` makes it: under the timings' lock, the take
       // brought back first, then the timings that name it, once the sweep
       // has asked for the lock (or, holding none, swept).
-      const undo = lab.holding(
-        paths.timings.file,
+      const undo = lab.holding(paths.timings, () =>
         Effect.gen(function* () {
           yield* fs.copyFile(`${paths.narration}/attempts/a/${back}`, `${paths.narration}/${back}`);
           yield* Deferred.succeed(brought, true);
