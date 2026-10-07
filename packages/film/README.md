@@ -1643,7 +1643,7 @@ change with `git diff`.
 On a phone (below 900 px) the selected cue's or knob's fields, and the
 selected note's reply, stand in the selection's sheet
 (`lab/selection-sheet.tsx`, over the review's `Sheet`): it peeks one line
-above the dock (`cue rise · offset 0.00 · dur 0.60 · inOutCubic`,
+above the dock (`cue rise · offset 0.00 · dur 0.60 · ease inOutCubic`,
 `peekText` in `lab/editor/format.ts`; `note n1 · one · … · open`), opens
 whole on a tap of its head, and its open state is the selection: Back closes
 it as it unpicks, and Close, Escape or a swipe unpick by the review sheets'

@@ -32,7 +32,7 @@ describe('peekText', () => {
         ],
         Option.some('out'),
       ),
-    ).toBe('cue charge · offset 0.40 · dur 0.60 · out');
+    ).toBe('cue charge · offset 0.40 · dur 0.60 · ease out');
   });
 
   test("a knob's peek: a point's x and y, a number bare", () => {

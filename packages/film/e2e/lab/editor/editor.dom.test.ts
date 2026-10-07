@@ -1068,7 +1068,7 @@ describe('the inspector', () => {
           yield* textIs(
             page,
             `${SELECTION_SHEET} .lab-sheet-title`,
-            `cue rise · offset 0.00 · dur 0.60 · ${DEFAULT_EASE}`,
+            `cue rise · offset 0.00 · dur 0.60 · ease ${DEFAULT_EASE}`,
           );
           yield* evaluates(page, onScreenOverDock(head), 'over the dock');
           yield* evaluates(page, `document.querySelector('${offset}').checkVisibility()`, false);
