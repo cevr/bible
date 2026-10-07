@@ -21,6 +21,12 @@
 // form input a number field keeps beside its visible one; the visible one is
 // measured. Anything shown that a pointer can land on is measured.
 //
+// A hit-slop stays off its neighbours: where a target's slop (a positioned
+// `::before` or `::after` past its box) lies over another control's box,
+// one that neither holds nor is held by it, a tap on that control's edge is
+// the target's, though both still hold a square. The target fails then, as
+// `… reaches over …`, whatever its size.
+//
 // Exceptions are WCAG 2.5.8's (target size, minimum), never by page:
 // - Inline: a link in running text, with words before or after it on its
 //   own line, so the line of text sets its size.
@@ -165,7 +171,8 @@ export const firstScreenItems = (): string => `(() => {
  * An expression run in the page: each shown target in `within` (a selector;
  * the whole page when none) whose usable area holds no `hit`-px square and
  * no exception keeps, as `tag.class "text" W×H □S` (the area's width and
- * height, and the side of the largest square in it); none, `[]`. It scrolls
+ * height, and the side of the largest square in it), and each whose hit-slop
+ * lies over a neighbour's box, as `… reaches over <the neighbour>`; none, `[]`. It scrolls
  * each target into view to reach it, and leaves the page scrolled to the top;
  * one that scrolling leaves wholly out of the window is `… out of the window`.
  * A layer (a sheet, a menu, a dialog) is measured `within` itself: what lies
@@ -216,12 +223,41 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
   };
   const targets = [...new Set([...document.querySelectorAll(WITHIN)].flatMap((root) => [root, ...root.querySelectorAll(TARGETS)]))]
     .filter((el) => el.matches(TARGETS) && shown(el));
+  // How far past its box a target's hit-slop (a positioned \`::before\` or \`::after\`) can reach: its own size.
+  const slopReach = (el) => Math.max(0, ...['::before', '::after'].map((part) => {
+    const s = getComputedStyle(el, part);
+    if (s.content === 'none' || s.content === 'normal' || s.position !== 'absolute') return 0;
+    return Math.max(parseFloat(s.width) || 0, parseFloat(s.height) || 0);
+  }));
+  // The neighbours whose box a point of the target's hit-slop lies over, each sampled every STEP px
+  // where its box meets the slop's reach outside the target's own box.
+  const over = (el, set) => {
+    const reach = slopReach(el);
+    if (reach === 0) return [];
+    const b = boxOf(el);
+    return targets.filter((other) => {
+      if (other === el || other.contains(el) || el.contains(other) || inSet(set, other)) return false;
+      const o = boxOf(other);
+      const l = Math.max(o.left, b.left - reach), r = Math.min(o.right, b.right + reach);
+      const t = Math.max(o.top, b.top - reach), bt = Math.min(o.bottom, b.bottom + reach);
+      for (let y = t + 0.5; y < bt; y += STEP)
+        for (let x = l + 0.5; x < r; x += STEP) {
+          if (x >= b.left && x < b.right && y >= b.top && y < b.bottom) continue;
+          const node = document.elementFromPoint(x, y);
+          if (node === null || !inSet(set, node)) continue;
+          const owner = node.closest(TARGETS);
+          if (owner === null || owner === el || owner.contains(el)) return true;
+        }
+      return false;
+    });
+  };
   const out = [];
   for (const el of targets) {
     if (inline(el)) continue;
     const set = setOf(el);
     const lead = set.reduce((a, b) => (boxOf(b).width * boxOf(b).height > boxOf(a).width * boxOf(a).height ? b : a));
     lead.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
+    for (const other of over(el, set)) out.push(named(el) + ' reaches over ' + named(other));
     const boxes = set.map(boxOf);
     const left = Math.max(0, Math.min(...boxes.map((b) => b.left)) - MARGIN);
     const top = Math.max(0, Math.min(...boxes.map((b) => b.top)) - MARGIN);
