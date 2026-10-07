@@ -9,20 +9,30 @@
 // One writer at a time: a change holds the manifest's lock, a file beside it
 // (`<file>.lock`) created only if there is none, for its read, its change and
 // its write; fibers of one process queue on a semaphore per file first. The
-// lock names its holder (pid, host, when taken, a token no other taking in
-// its process has, when its process started), so no two takings write the
-// same lock: a lock whose holder is gone (a pid on this host that no longer
-// runs, or now runs a process started since) was left by a crash, and
-// the next writer breaks it and says so. So is one this store gave back but
-// could not remove or read back (a busy disk, no file handle left): a lock is
-// lost only on proof, no lock there or another holder's text; else it keeps
-// that lock's path and the very text it wrote there, and removes the lock at
-// that path only while it holds that text, as its own leftover: in the
-// background, tried again until the disk lets it (RETIRE), so other
-// processes wait only as long as the disk refuses, or at its next change of
-// the file if that comes first. A running holder's lock is never
-// broken, however long it is held, nor one held on another host; a writer
-// that waits its whole wait for one fails as StoreLocked and logs who holds it.
+// lock names its holder: pid, host, when taken, a token no other taking in
+// its process has, and when its process started. What the lock holds to:
+//
+// 1. One holder. A lock is created only where none is, and given back only
+//    while it holds the very text its holder wrote (`give`).
+// 2. A stale lock is broken by exactly one breaker. A writer judges and moves
+//    a lock only while it holds the lock's breaker (`<file>.lock.break`,
+//    taken and given back as a lock is), so of writers finding one stale
+//    lock one breaks it and the rest judge afresh whatever lock is there next
+//    (`breakStale`). A lock moved by a writer from before the breaker is
+//    checked and put back where none has been taken since (`bury`).
+// 3. A holder is named so that a reused pid does not keep it. A lock is stale
+//    only when its holder is gone: a pid on this host that no longer runs, or
+//    that now runs a process started since the lock was taken. A running
+//    holder's lock is never broken, however long it is held, nor one held on
+//    another host; a writer that waits its whole wait for one fails as
+//    StoreLocked and logs who holds it.
+// 4. Only proof loses a lock on give-back: no lock there, or another holder's
+//    text. Any other failure (a busy disk, no file handle left) keeps the
+//    lock's path and the text this store wrote there as its own leftover.
+// 5. A leftover blocks other processes only while the disk refuses: it is
+//    removed, only while it holds that text, in the background, tried again
+//    until the disk lets it (RETIRE), or at this store's next change of the
+//    file if that comes first.
 //
 // A file is written whole (`writeWhole`): beside it under a name of the
 // writer's own (`<file>.<pid>-<n>.<host tag>.partial`), then renamed over it
@@ -187,6 +197,9 @@ const takings = { count: 0 };
 
 /** The lock of the manifest at `file`. */
 export const lockFile = (file: string): string => `${file}.lock`;
+
+/** What a writer holds while it breaks `lock`: one breaker at a time. */
+const breakerFile = (lock: string): string => `${lock}.break`;
 
 /** Whether process `pid` is running: signal 0 checks without sending anything. */
 const isAlive = (pid: number) =>
@@ -391,13 +404,14 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
       });
 
       /**
-       * Break the lock if it is stale. Moved aside first (a rename is atomic,
-       * so of two writers breaking it at once only one moves it), then checked
-       * to be the very lock judged stale; a live lock moved by mistake (taken
-       * between the judging and the move) is put back, unless a third writer
-       * has taken the lock since: its lock stays.
+       * Remove `lock` (the lock, or its breaker) if it is stale. Moved aside
+       * first (a rename is atomic, so of two writers removing it at once only
+       * one moves it), then checked to be the very lock judged stale; a live
+       * lock moved by mistake (taken between the judging and the move, by a
+       * writer that takes no breaker) is put back, unless a third writer has
+       * taken the lock since: its lock stays.
        */
-      const breakStale = Effect.fn('ContentStore.breakStale')(function* (lock: string) {
+      const bury = Effect.fn('ContentStore.bury')(function* (lock: string) {
         const held = yield* fs.readFileString(lock).pipe(Effect.option);
         const owner = Option.flatMap(held, decodeOwner);
         const now = yield* Clock.currentTimeMillis;
@@ -499,29 +513,6 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         });
 
       /**
-       * Take `lock` (a file created only if there is none) for one change:
-       * while another is there, this store's own leftover is settled first
-       * (`retire`), then a stale lock broken (`breakStale`).
-       */
-      const take = (lock: string, owner: LockOwner) =>
-        fs.writeFileString(lock, encodeOwner(owner), { flag: 'wx' }).pipe(
-          Effect.tapError((error) =>
-            Effect.when(
-              Effect.andThen(Effect.ignore(retire(lock)), breakStale(lock)),
-              Effect.succeed(isAlreadyExists(error)),
-            ),
-          ),
-          Effect.retry({
-            while: isAlreadyExists,
-            times: LOCK_TRIES,
-            schedule: Schedule.spaced(LOCK_SPACING),
-          }),
-          Effect.catchIf(isAlreadyExists, () =>
-            Effect.andThen(heldBy(lock), Effect.fail(StoreLocked.make({ lock }))),
-          ),
-        );
-
-      /**
        * Give `lock` back, if it still holds the very text this writer wrote.
        * It is lost only on proof: no lock there (NotFound), or another
        * holder's text. Any other failure, of the read or the removal, keeps
@@ -549,6 +540,53 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         );
       };
 
+      /**
+       * Break `lock` if it is stale, one breaker at a time across processes:
+       * it is judged and moved only while its breaker is held (`<lock>.break`,
+       * a file created only if there is none, naming its holder as a lock
+       * does, given back as a lock is), so of writers that find one stale lock
+       * exactly one breaks it, and a lock taken since is judged afresh by the
+       * next. A breaker left by a crash is removed once stale (`bury`), and
+       * the writer tries again; so is this store's own leftover breaker.
+       */
+      const breakStale = (file: string, lock: string, owner: LockOwner) => {
+        const breaker = breakerFile(lock);
+        return Effect.ignore(retire(breaker)).pipe(
+          Effect.andThen(
+            Effect.acquireUseRelease(
+              fs.writeFileString(breaker, encodeOwner(owner), { flag: 'wx' }),
+              () => bury(lock),
+              () => give(file, breaker, owner),
+            ),
+          ),
+          Effect.catchIf(isAlreadyExists, () => bury(breaker)),
+          Effect.ignore,
+        );
+      };
+
+      /**
+       * Take `file`'s lock (a file created only if there is none) for one
+       * change: while another is there, this store's own leftover is settled
+       * first (`retire`), then a stale lock broken (`breakStale`).
+       */
+      const take = (file: string, lock: string, owner: LockOwner) =>
+        fs.writeFileString(lock, encodeOwner(owner), { flag: 'wx' }).pipe(
+          Effect.tapError((error) =>
+            Effect.when(
+              Effect.andThen(Effect.ignore(retire(lock)), breakStale(file, lock, owner)),
+              Effect.succeed(isAlreadyExists(error)),
+            ),
+          ),
+          Effect.retry({
+            while: isAlreadyExists,
+            times: LOCK_TRIES,
+            schedule: Schedule.spaced(LOCK_SPACING),
+          }),
+          Effect.catchIf(isAlreadyExists, () =>
+            Effect.andThen(heldBy(lock), Effect.fail(StoreLocked.make({ lock }))),
+          ),
+        );
+
       /** `change` holding `file`'s lock, in this process and across processes. */
       const locked = <A, E, R>(file: string, change: Effect.Effect<A, E, R>) =>
         Effect.gen(function* () {
@@ -567,7 +605,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           return yield* Effect.acquireUseRelease(
             fs
               .makeDirectory(path.dirname(file), { recursive: true })
-              .pipe(Effect.andThen(take(lock, owner))),
+              .pipe(Effect.andThen(take(file, lock, owner))),
             () => change,
             () => give(file, lock, owner),
           );

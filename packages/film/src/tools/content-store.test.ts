@@ -8,6 +8,7 @@ import {
   Array as Arr,
   Clock,
   Context,
+  Deferred,
   Effect,
   Fiber,
   FileSystem,
@@ -229,6 +230,106 @@ describe('ContentStore', () => {
       yield* store.update(shared, (m) => m);
       expect(seen.map((text) => text.includes('"third"'))).toEqual([true]);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  it.live('a stale lock is broken by one writer alone, so no two writers ever hold it', () =>
+    Effect.gen(function* () {
+      const real = yield* FileSystem.FileSystem;
+      const dir = yield* real.makeTempDirectoryScoped();
+      const shared = { ...assets, file: `${dir}/assets.json` };
+      const lock = lockFile(shared.file);
+      // Left by a crash: a pid no process has.
+      yield* real.writeFileString(
+        lock,
+        yield* Schema.encodeEffect(LockOwnerJson)({
+          pid: 2 ** 22 + 7,
+          created: 0,
+          token: 'crashed',
+        }),
+      );
+      // Each change counts the writers inside one at once, and stays until let go.
+      const release = yield* Deferred.make<boolean>();
+      const inside = { now: 0, most: 0 };
+      const change = (entered: Deferred.Deferred<boolean>) => (m: typeof Assets.Type) =>
+        Effect.gen(function* () {
+          inside.now += 1;
+          inside.most = Math.max(inside.most, inside.now);
+          yield* Deferred.succeed(entered, true);
+          yield* Deferred.await(release);
+          inside.now -= 1;
+          return [true, m] as const;
+        });
+      const storeWith = (fs: FileSystem.FileSystem) =>
+        Effect.map(
+          Layer.build(
+            ContentStore.layer.pipe(Layer.provide(Layer.succeed(FileSystem.FileSystem, fs))),
+          ),
+          Context.get(ContentStore),
+        );
+      const writer = Effect.fn('test.writer')(function* (fs: FileSystem.FileSystem) {
+        const store = yield* storeWith(fs);
+        const entered = yield* Deferred.make<boolean>();
+        return { entered, run: Effect.forkDetach(store.transact(shared, change(entered))) };
+      });
+      const second = yield* writer(real);
+      const third = yield* writer(real);
+      // A soon inside, or not at all.
+      const settle = (w: typeof second) =>
+        Effect.ignore(Effect.timeout(Deferred.await(w.entered), '300 millis'));
+      // Around this writer's move of the crashed lock: a second writer breaks it
+      // too, then a third finds no lock the moment it is moved.
+      let raced = false;
+      const racing = FileSystem.FileSystem.of({
+        ...real,
+        rename: (from, to) => {
+          if (raced || from !== lock) return real.rename(from, to);
+          raced = true;
+          return Effect.gen(function* () {
+            const b = yield* second.run;
+            yield* settle(second);
+            yield* real.rename(from, to);
+            const c = yield* third.run;
+            yield* settle(third);
+            racers.push(b, c);
+            yield* Deferred.succeed(played, true);
+          });
+        },
+      });
+      const racers: Array<Fiber.Fiber<boolean, unknown>> = [];
+      const played = yield* Deferred.make<boolean>();
+      const first = yield* writer(racing);
+      const a = yield* first.run;
+      yield* Effect.ignore(Effect.timeout(Deferred.await(played), '3 seconds'));
+      yield* Deferred.succeed(release, true);
+      yield* Fiber.join(a);
+      yield* Fiber.joinAll(racers);
+      expect(raced).toBe(true);
+      expect(inside.most).toBe(1);
+      expect(yield* real.readDirectory(dir)).toEqual(['assets.json']);
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  it.effect('a crashed breaker is removed, and the stale lock it was breaking then broken', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const store = yield* storeOn(files);
+      const lock = lockFile(assets.file);
+      const crashed = yield* Schema.encodeEffect(LockOwnerJson)({
+        pid: 4242,
+        created: 0,
+        token: 'gone',
+      });
+      files.set(lock, text(crashed));
+      files.set(`${lock}.break`, text(crashed));
+      // Only this process runs.
+      const thisOneRuns = Effect.provideService(Processes, {
+        host: 'here',
+        alive: (pid) => Effect.succeed(pid === process.pid),
+        startOf: () => Effect.succeedNone,
+      });
+      yield* waited(thisOneRuns(store.update(assets, withAsset('x'))));
+      expect([...files.keys()]).toEqual([assets.file]);
+    }).pipe(Effect.scoped),
   );
 
   it.effect('a live holder keeps its lock however long it holds it', () => {
