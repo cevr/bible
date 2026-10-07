@@ -312,6 +312,40 @@ describe('the studio', () => {
   );
 
   it.live(
+    "a pasted link that names a beat opens in Record on it; a link that names none, or a beat the film no longer lists, opens in the viewer's own mode",
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const scenes = {
+            film: PROBE,
+            beats: probeFilm().placed.map((p) =>
+              beat(p.spec.id, 'staging', [{ kind: 'line', text: `In ${p.spec.id}.` }]),
+            ),
+          };
+          const routes = [route('GET', /^\/studio\/beats$/, () => json(scenes)), ...studioRoutes];
+          const two = startOf('two');
+          // The viewer's own mode is Edit (nothing kept); the link cites the beat three.
+          const { page } = yield* openLab(routes, {
+            href: labAt(two + 0.5, { beat: 'three' }),
+            mic: { allowed: true },
+          });
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'record');
+          yield* page.waitFor('[data-beat="three"].selected');
+          yield* textIs(page, '[data-role="prompter"]', 'In three.');
+          // The cited beat was not the viewer's pick: a link without one opens in their own mode.
+          yield* page.goto(labAt(two + 0.5));
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
+          // A dead link, citing a beat the film no longer lists, cites none: it opens in their mode too.
+          yield* page.goto(labAt(two + 0.5, { beat: 'gone' }));
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
+          yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
     'the link moves the recorder only at rest: a take it holds stays on its beat, said so, and a recorder back at rest follows the link',
     () =>
       scoped(

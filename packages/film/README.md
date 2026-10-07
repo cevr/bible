@@ -1426,7 +1426,9 @@ the section derived values and actions (`view.ts`: the controls each state
 offers with their keys, the status line, the meter, the badges), never the
 machine's states. The beat is the link's (`beatAt`, `lab/place.ts`): the
 one `?beat=` picks, else the path's scene (a beat is a scene's take), so
-Record opens where the lab is and Copy link cites the beat. A beat picked is
+Record opens where the lab is and Copy link cites the beat. A pasted link
+that names a beat the film lists opens in Record, as one naming a note opens
+in Note, and leaves the viewer's own mode as it was (`lab/panel.tsx`). A beat picked is
 a step Back walks and ←/→ follows in place; the link landing on another beat
 (Back, Forward, play into the next scene with none picked) moves a recorder
 at rest (`Idle`, `Failed`) to it, and never one mid-take.
