@@ -9,449 +9,87 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;650&display=swap"
     />
+    <link rel="stylesheet" href="../../packages/film/src/player/tokens.css" />
+    <link rel="stylesheet" href="kit.css" />
     <style>
-      /* ── Tokens (design-language.md §3) ─────────────────────────────── */
-      :root {
-        color-scheme: dark;
-        --surface-0: #0e0d0c;
-        --surface-1: #161513;
-        --surface-2: #1e1c1a;
-        --surface-3: #292724;
-        --line: #2f2c29;
-        --line-strong: #45413b;
-        --text-1: #e4dfd6;
-        --text-2: #a19b91;
-        --text-3: #6b665f;
-        --accent: #e0ad45;
-        --accent-ink: #17120a;
-        --accent-wash: rgb(224 173 69 / 0.14);
-        --state-rendered: #8aa9c8;
-        --state-stale: #d9874a;
-        --state-approved: #76c09a;
-        --state-findings: #e0705a;
-        --state-warning: #d9b56a;
-        --state-recording: #e5484d;
-        --state-note: #f0609a;
-        --state-agent: #7fc4c0;
-        --state-scratch: var(--text-3);
-        --scene-sat: 30%;
-        --scene-light: 32%;
-        --font: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        --font-features: 'calt' 0;
-        --fs-1: 10px;
-        --lh-1: 14px;
-        --fs-2: 11px;
-        --lh-2: 16px;
-        --fs-3: 12px;
-        --lh-3: 18px;
-        --fs-4: 13px;
-        --lh-4: 20px;
-        --fs-5: 16px;
-        --lh-5: 22px;
-        --fs-read: 18px;
-        --lh-read: 28px;
-        --w-1: 400;
-        --w-2: 500;
-        --w-3: 650;
-        --track-caps: 0.06em;
-        --s-1: 4px;
-        --s-2: 8px;
-        --s-3: 12px;
-        --s-4: 16px;
-        --s-5: 20px;
-        --s-6: 24px;
-        --s-8: 32px;
-        --r-1: 2px;
-        --r-2: 4px;
-        --r-sheet: 12px;
-        --r-dot: 50%;
-        --border: 1px solid var(--line);
-        --shadow-pop: 0 8px 28px rgb(0 0 0 / 0.55);
-        --focus-ring: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--accent);
-        --t-fast: 80ms;
-        --t-base: 140ms;
-        --t-sheet: 220ms;
-        --ease: cubic-bezier(0.2, 0, 0, 1);
-        --control-h: 36px;
-        --hit: 44px;
-        --row-h: 40px;
-        --header-h: 44px;
-        --tabbar-h: 56px;
-        --panel-head-h: 32px;
-        --gutter: 16px;
-        --body-fs: var(--fs-4);
-        --body-lh: var(--lh-4);
-      }
-      @media (min-width: 900px) and (pointer: fine) {
-        :root {
-          --control-h: 24px;
-          --hit: 28px;
-          --row-h: 28px;
-          --header-h: 40px;
-          --panel-head-h: 28px;
-          --gutter: 12px;
-          --body-fs: var(--fs-3);
-          --body-lh: var(--lh-3);
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        :root {
-          --t-fast: 0ms;
-          --t-base: 0ms;
-          --t-sheet: 0ms;
-        }
-      }
-
-      /* ── Kit: shell, page bar, panel, controls (§4, §5) ─────────────── */
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
-      }
-      body {
+      /* ── Page: a Set (version stack) ─────────────────────────────── */
+      .work {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 1px;
         background: var(--surface-0);
-        color: var(--text-1);
-        font-family: var(--font);
-        font-feature-settings: var(--font-features);
-        font-size: var(--body-fs);
-        line-height: var(--body-lh);
-        -webkit-font-smoothing: antialiased;
-        overflow-x: hidden;
-      }
-      button {
-        font: inherit;
-        color: inherit;
-        cursor: pointer;
-      }
-      svg.i {
-        width: 16px;
-        height: 16px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 1.6;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        flex: none;
-      }
-      svg.i.fill {
-        fill: currentColor;
-        stroke: none;
-      }
-      .hdr {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        height: var(--header-h);
-        display: flex;
-        align-items: center;
-        gap: var(--s-1);
-        padding: 0 calc(var(--gutter) - 4px);
-        background: var(--surface-1);
-        border-bottom: var(--border);
-      }
-      .home {
-        display: inline-grid;
-        place-items: center;
-        width: var(--hit);
-        height: var(--hit);
-        color: var(--text-2);
-        border: 0;
-        background: none;
-        padding: 0;
-      }
-      .switcher {
-        align-self: center;
-        display: inline-flex;
-        align-items: center;
-        gap: var(--s-1);
-        min-width: 0;
-        height: var(--control-h);
-        padding: 0 var(--s-2);
-        border: 0;
-        border-radius: var(--r-2);
-        background: none;
-        font-size: var(--fs-3);
-        font-weight: var(--w-2);
-      }
-      .switcher span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .switcher .i {
-        width: 12px;
-        height: 12px;
-        color: var(--text-3);
-      }
-      .vsep {
-        width: 1px;
-        height: 16px;
-        background: var(--line);
-        flex: none;
-        margin: 0 var(--s-1);
-      }
-      .spacer {
-        flex: 1;
-        min-width: 0;
-      }
-      .tc {
-        font-size: var(--fs-5);
-        line-height: var(--lh-5);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-        padding: 0 var(--s-2);
-      }
-      .tc i {
-        font-style: normal;
-        color: var(--text-3);
-      }
-      .tc .ff {
-        color: var(--text-2);
-      }
-      .icon-btn {
-        display: inline-grid;
-        place-items: center;
-        width: var(--hit);
-        height: var(--hit);
-        border: 0;
-        background: none;
-        color: var(--text-2);
-        border-radius: var(--r-2);
-        padding: 0;
-        flex: none;
-      }
-      .icon-btn[data-pressed] {
-        color: var(--accent);
-      }
-      .cmdk {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--s-2);
-        height: var(--control-h);
-        padding: 0 var(--s-2);
-        border: var(--border);
-        border-radius: var(--r-2);
-        background: var(--surface-2);
-        color: var(--text-3);
-        font-size: var(--fs-2);
-      }
-      kbd {
-        font-family: var(--font);
-        font-size: var(--fs-1);
-        line-height: 14px;
-        padding: 0 4px;
-        border: 1px solid var(--line-strong);
-        border-radius: var(--r-1);
-        color: var(--text-2);
-      }
-      .pagebar {
-        display: flex;
-        align-items: stretch;
-        align-self: stretch;
-      }
-      .pagebar a {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 0 var(--s-3);
-        color: var(--text-2);
-        text-decoration: none;
-        font-size: var(--fs-2);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-      }
-      .pagebar a svg {
-        display: none;
-      }
-      .pagebar a[data-active] {
-        color: var(--text-1);
-      }
-      .pagebar a[data-active]::after {
-        content: '';
-        position: absolute;
-        left: var(--s-3);
-        right: var(--s-3);
-        bottom: -1px;
-        height: 2px;
-        background: var(--accent);
-      }
-      .crumb {
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        font-size: var(--fs-2);
-        color: var(--text-2);
-        white-space: nowrap;
-        min-width: 0;
-      }
-      .crumb .i {
-        width: 12px;
-        height: 12px;
-        color: var(--text-3);
-      }
-      .crumb b {
-        color: var(--text-1);
-        font-weight: var(--w-2);
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .panel {
-        background: var(--surface-1);
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-      }
-      .phead {
-        height: var(--panel-head-h);
-        flex: none;
-        display: flex;
-        align-items: center;
-        gap: var(--s-2);
-        padding: 0 var(--gutter);
-        border-bottom: var(--border);
-      }
-      .phead h2 {
-        margin: 0;
-        font-size: var(--fs-2);
-        line-height: var(--lh-2);
-        font-weight: var(--w-2);
-        letter-spacing: var(--track-caps);
-        text-transform: uppercase;
-        color: var(--text-2);
-        white-space: nowrap;
-      }
-      .phead .meta {
-        font-size: var(--fs-2);
-        color: var(--text-3);
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .phead .icon-btn {
-        width: var(--control-h);
-        height: var(--control-h);
-      }
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--s-2);
-        height: var(--control-h);
-        padding: 0 var(--s-3);
-        border: 1px solid var(--line-strong);
-        border-radius: var(--r-2);
-        background: none;
-        color: var(--text-1);
-        font-size: var(--fs-3);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-      }
-      .btn.primary {
-        background: var(--accent);
-        border-color: var(--accent);
-        color: var(--accent-ink);
-      }
-      .seg {
-        display: inline-flex;
-        border: var(--border);
-        border-radius: var(--r-2);
-        overflow: hidden;
-        flex: none;
-      }
-      .seg button {
-        min-width: var(--hit);
-        min-height: var(--hit);
-        border: 0;
-        background: none;
-        padding: 0 var(--s-2);
-        color: var(--text-2);
-        font-size: var(--fs-2);
-        font-weight: var(--w-2);
-      }
-      .seg button + button {
-        border-left: var(--border);
-      }
-      .seg button[data-pressed] {
-        background: var(--surface-3);
-        color: var(--text-1);
-      }
-      @media (max-width: 899px) {
-        .lap {
-          display: none !important;
-        }
-        body {
-          padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
-        }
-        .pagebar {
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          z-index: 30;
-          height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
-          padding-bottom: env(safe-area-inset-bottom);
-          background: var(--surface-2);
-          border-top: var(--border);
-        }
-        .pagebar a {
-          flex: 1;
-          flex-direction: column;
-          justify-content: center;
-          gap: 3px;
-          padding: 0;
-          font-size: var(--fs-1);
-          line-height: var(--lh-1);
-        }
-        .pagebar a svg {
-          display: block;
-          width: 20px;
-          height: 20px;
-        }
-        .pagebar a[data-active] svg {
-          color: var(--accent);
-        }
-        .pagebar a[data-active]::after {
-          display: none;
-        }
-        .pagebar a.films {
-          display: none;
-        }
       }
       @media (min-width: 900px) {
-        .ph {
-          display: none !important;
+        .work {
+          grid-template-columns: minmax(0, 1fr) var(--inspector-w);
+          height: calc(100dvh - var(--header-h));
+        }
+        .work > * {
+          overflow: hidden;
         }
       }
-      .transport {
+      .main {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        min-width: 0;
+        min-height: 0;
+      }
+      /* The mode tray: Side by side joins All and Moments from two versions. */
+      .bar {
         display: flex;
         align-items: center;
         gap: var(--s-2);
-        height: calc(var(--control-h) + 12px);
-        padding: 0 calc(var(--gutter) - 4px);
+        height: calc(var(--control-h) + var(--s-3));
+        padding: 0 var(--gutter);
         background: var(--surface-1);
       }
-      .transport .play {
-        width: var(--hit);
-        height: var(--hit);
-        display: inline-grid;
+      .viewer {
+        flex: 1;
+        min-height: 0;
+        background: var(--surface-0);
+        container-type: size;
+        display: grid;
         place-items: center;
-        border: 0;
+      }
+      .version {
+        position: relative;
+        width: min(100cqw - 24px, (100cqh - 24px) * 16 / 9);
+        aspect-ratio: 16 / 9;
+        background: url(stills/big-cold.jpg) center / cover;
+        outline: 2px solid var(--accent);
+        outline-offset: 0;
+      }
+      /* The label over the picture: letter, name, and the speaker that plays this version's sound. */
+      .version .tag {
+        position: absolute;
+        left: var(--s-2);
+        top: var(--s-2);
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+        height: var(--s-6);
+        padding: 0 var(--s-1) 0 0;
+        background: var(--on-picture-shade);
         border-radius: var(--r-2);
-        background: none;
-        color: var(--text-1);
+        font-size: var(--fs-2);
+      }
+      .version .tag .l {
+        display: grid;
+        place-items: center;
+        width: var(--s-6);
+        height: var(--s-6);
+        background: var(--accent);
+        color: var(--accent-ink);
+        border-radius: var(--r-2) 0 0 var(--r-2);
+        font-weight: var(--w-3);
+      }
+      /* The speaker keeps its full target: it overhangs the label, which keeps its drawn size. */
+      .version .tag .icon-btn {
+        margin: calc((var(--s-6) - var(--hit)) / 2);
+      }
+      .transport > button {
         flex: none;
-      }
-      .tc-s {
-        font-size: var(--fs-3);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-      }
-      .tc-s i {
-        font-style: normal;
-        color: var(--text-3);
       }
       .tc-s .of {
         color: var(--text-3);
@@ -461,19 +99,9 @@
         position: relative;
         flex: 1;
         min-width: 40px;
-        height: 4px;
+        height: var(--s-1);
         background: var(--surface-3);
-        border-radius: 2px;
-      }
-      .ratechip {
-        height: 24px;
-        padding: 0 var(--s-2);
-        border: 1px solid var(--line-strong);
-        border-radius: var(--r-2);
-        background: none;
-        color: var(--text-2);
-        font-size: var(--fs-2);
-        flex: none;
+        border-radius: var(--r-1);
       }
       .scrub b {
         position: absolute;
@@ -486,7 +114,7 @@
       .area {
         width: 100%;
         min-width: 0;
-        height: var(--control-h);
+        height: var(--hit);
         padding: 0 var(--s-2);
         background: var(--surface-2);
         color: var(--text-1);
@@ -494,6 +122,34 @@
         border-radius: var(--r-1);
         font: inherit;
         font-size: var(--body-fs);
+      }
+      /* A panel's menu keeps its full target in the shorter panel head; its glyph sits on the gutter. */
+      .phead .icon-btn {
+        margin-block: calc((var(--panel-head-h) - var(--hit)) / 2);
+        margin-inline-end: calc((var(--s-4) - var(--hit)) / 2);
+      }
+      .btn.primary kbd {
+        border-color: var(--accent-ink);
+        color: var(--accent-ink);
+      }
+      .insp {
+        display: flex;
+        flex-direction: column;
+      }
+      .insp .body {
+        padding: var(--s-3) var(--gutter);
+        display: grid;
+        gap: var(--s-3);
+      }
+      .insp .title {
+        font-size: var(--fs-5);
+        line-height: var(--lh-5);
+        font-weight: var(--w-3);
+        margin: 0;
+      }
+      .insp .sub {
+        font-size: var(--fs-2);
+        color: var(--text-2);
       }
       .group {
         border-top: var(--border);
@@ -504,6 +160,7 @@
         align-items: center;
         gap: var(--s-2);
         height: var(--row-h);
+        min-height: var(--hit);
         padding: 0 var(--gutter);
         font-size: var(--fs-2);
         color: var(--text-2);
@@ -537,155 +194,7 @@
         margin: 0;
         overflow-wrap: anywhere;
       }
-      .sheet {
-        background: var(--surface-2);
-        border-top: 1px solid var(--line-strong);
-        border-radius: var(--r-sheet) var(--r-sheet) 0 0;
-      }
-      .sheet .grab {
-        width: 32px;
-        height: 4px;
-        border-radius: 2px;
-        background: var(--line-strong);
-        margin: 6px auto 0;
-      }
-      .peek {
-        display: flex;
-        align-items: center;
-        gap: var(--s-2);
-        padding: var(--s-2) var(--gutter);
-        min-height: 44px;
-      }
-      .peek b {
-        font-weight: var(--w-3);
-      }
-      .hint {
-        margin-top: auto;
-        padding: var(--s-2) var(--gutter);
-        border-top: var(--border);
-        font-size: var(--fs-1);
-        line-height: var(--lh-1);
-        color: var(--text-3);
-      }
-      .hint kbd {
-        font-size: 9px;
-      }
-
-      /* ── Page: a Set (version stack) ─────────────────────────────── */
-      .work {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        gap: 1px;
-        background: var(--surface-0);
-      }
-      @media (min-width: 900px) {
-        .work {
-          grid-template-columns: minmax(0, 1fr) 320px;
-          height: calc(100dvh - var(--header-h));
-        }
-        .work > * {
-          overflow: hidden;
-        }
-      }
-      .main {
-        display: flex;
-        flex-direction: column;
-        gap: 1px;
-        min-width: 0;
-        min-height: 0;
-      }
-      .bar {
-        display: flex;
-        align-items: center;
-        gap: var(--s-2);
-        height: calc(var(--control-h) + 12px);
-        padding: 0 var(--gutter);
-        background: var(--surface-1);
-      }
-      .viewer {
-        flex: 1;
-        min-height: 0;
-        background: var(--surface-0);
-        container-type: size;
-        display: grid;
-        place-items: center;
-      }
-      @media (max-width: 899px) {
-        .viewer {
-          container-type: normal;
-          padding: var(--s-2) 0;
-        }
-      }
-      .version {
-        position: relative;
-        width: min(100cqw - 24px, (100cqh - 24px) * 16 / 9);
-        aspect-ratio: 16 / 9;
-        background: url(stills/big-cold.jpg) center / cover;
-        outline: 2px solid var(--accent);
-        outline-offset: 0;
-      }
-      @media (max-width: 899px) {
-        .version {
-          width: 100%;
-          outline-width: 0;
-          box-shadow: inset 0 -2px 0 var(--accent);
-        }
-      }
-      .version .tag {
-        position: absolute;
-        left: 8px;
-        top: 8px;
-        display: flex;
-        align-items: center;
-        gap: var(--s-2);
-        height: 24px;
-        padding: 0 var(--s-1) 0 0;
-        background: rgb(14 13 12 / 0.82);
-        border-radius: var(--r-2);
-        font-size: var(--fs-2);
-      }
-      .version .tag .l {
-        display: grid;
-        place-items: center;
-        width: 24px;
-        height: 24px;
-        background: var(--accent);
-        color: var(--accent-ink);
-        border-radius: var(--r-2) 0 0 var(--r-2);
-        font-weight: var(--w-3);
-      }
-      .version .tag .icon-btn {
-        width: 24px;
-        height: 24px;
-      }
-      .insp {
-        display: flex;
-        flex-direction: column;
-      }
-      .insp .body {
-        padding: var(--s-3) var(--gutter);
-        display: grid;
-        gap: var(--s-3);
-      }
-      .insp .title {
-        font-size: var(--fs-5);
-        line-height: var(--lh-5);
-        font-weight: var(--w-3);
-        margin: 0;
-      }
-      .insp .sub {
-        font-size: var(--fs-2);
-        color: var(--text-2);
-      }
-      .moment {
-        display: flex;
-        align-items: center;
-        gap: var(--s-2);
-      }
-      .moment .tc-s {
-        font-size: var(--fs-2);
-        color: var(--text-2);
-      }
+      /* The phone: the sheet's peek and the transport docked over the tab bar. */
       .bottom {
         position: fixed;
         left: 0;
@@ -696,12 +205,45 @@
       .bottom .transport {
         border-top: var(--border);
       }
+      .sheet {
+        background: var(--surface-2);
+        border-top: 1px solid var(--line-strong);
+        border-radius: var(--r-sheet) var(--r-sheet) 0 0;
+      }
+      .sheet .grab {
+        width: var(--s-8);
+        height: var(--s-1);
+        border-radius: var(--r-1);
+        background: var(--line-strong);
+        margin: 6px auto 0;
+      }
+      .peek {
+        display: flex;
+        align-items: center;
+        gap: var(--s-2);
+        padding: var(--s-2) var(--gutter);
+        min-height: var(--hit);
+      }
+      .peek b {
+        font-weight: var(--w-3);
+      }
+      .peek .ago {
+        color: var(--text-3);
+        font-size: var(--fs-2);
+      }
       @media (max-width: 899px) {
-        .main {
-          padding-bottom: 110px;
+        .viewer {
+          container-type: normal;
+          padding: var(--s-2) 0;
         }
-        .bar {
-          padding: 0 var(--gutter);
+        .version {
+          width: 100%;
+          outline-width: 0;
+          box-shadow: inset 0 -2px 0 var(--accent);
+        }
+        /* Room under the content for the docked sheet peek and transport. */
+        .main {
+          padding-bottom: calc(var(--dock-h) + var(--hit) + var(--s-8) + var(--s-2));
         }
       }
     </style>
@@ -743,7 +285,6 @@
       </symbol>
       <symbol id="i-chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" /></symbol>
       <symbol id="i-right" viewBox="0 0 24 24"><path d="M10 7l5 5-5 5" /></symbol>
-      <symbol id="i-back" viewBox="0 0 24 24"><path d="M14 7l-5 5 5 5" /></symbol>
       <symbol id="i-speaker" viewBox="0 0 24 24">
         <path d="M4 9.5h4l5-4v13l-5-4H4z" />
         <path d="M16.5 9a4 4 0 0 1 0 6" />
@@ -751,8 +292,8 @@
     </svg>
 
     <header class="hdr">
-      <button class="home ph" aria-label="Back to Project">
-        <svg class="i"><use href="#i-back" /></svg>
+      <button class="home ph" aria-label="Films">
+        <svg class="i"><use href="#i-films" /></svg>
       </button>
       <nav class="pagebar" aria-label="Pages">
         <a class="films" href="films.html"
@@ -774,14 +315,14 @@
         <a href="project.html" data-active
           ><svg class="i"><use href="#i-project" /></svg>Project</a
         >
-        <a href="#"
+        <a href="play.html"
           ><svg class="i"><use href="#i-play" /></svg>Play</a
         >
       </nav>
       <span class="crumb lap"
         ><svg class="i"><use href="#i-right" /></svg><b>cold · versions</b></span
       >
-      <span class="crumb ph"><b>cold · versions</b></span>
+      <span class="crumb ph" style="padding-left: var(--s-1)"><b>cold · versions</b></span>
       <span class="spacer"></span>
       <output class="tc lap">00<i>:</i>00<i>:</i>00<i>:</i><span class="ff">00</span></output>
       <span class="cmdk lap"
@@ -799,11 +340,9 @@
     <div class="work">
       <div class="main">
         <div class="bar">
-          <div class="seg" role="group" aria-label="Show">
-            <button data-pressed>All</button><button>Side by side</button><button>Moments</button>
+          <div class="seg-ctl" role="group" aria-label="Show">
+            <button data-pressed>All</button><button>Moments</button>
           </div>
-          <span class="spacer"></span>
-          <span style="font-size: var(--fs-2); color: var(--text-3)">1 version</span>
         </div>
         <div class="viewer">
           <div class="version">
@@ -841,8 +380,8 @@
           </div>
         </section>
         <div class="transport lap" style="border-top: var(--border)">
-          <button class="play" aria-label="Play">
-            <svg class="i fill" style="width: 18px; height: 18px"><use href="#i-play" /></svg>
+          <button class="play primary" aria-label="Play">
+            <svg class="i fill"><use href="#i-play" /></svg>
           </button>
           <span class="tc-s"
             >00<i>:</i>00<i>:</i>00<i>:</i>00 <span class="of">/ 00:00:25:06</span></span
@@ -865,10 +404,7 @@
             <p class="title">1 · main</p>
             <span class="sub">scene cold · share · 3 d ago</span>
           </div>
-          <button class="btn primary" style="width: 100%">
-            Approve
-            <kbd style="border-color: rgb(23 18 10 / 0.35); color: var(--accent-ink)">A</kbd>
-          </button>
+          <button class="btn primary" style="width: 100%">Approve <kbd>A</kbd></button>
           <input class="area" placeholder="Comment on version 1…" />
         </div>
         <details class="group">
@@ -894,13 +430,13 @@
       <div class="sheet">
         <div class="grab"></div>
         <div class="peek">
-          <b>1 · main</b><span style="color: var(--text-3); font-size: var(--fs-2)">3 d ago</span
-          ><span class="spacer"></span><button class="btn primary">Approve</button>
+          <b>1 · main</b><span class="ago">3 d ago</span><span class="spacer"></span
+          ><button class="btn primary">Approve</button>
         </div>
       </div>
       <div class="transport">
-        <button class="play" aria-label="Play">
-          <svg class="i fill" style="width: 18px; height: 18px"><use href="#i-play" /></svg>
+        <button class="play primary" aria-label="Play">
+          <svg class="i fill"><use href="#i-play" /></svg>
         </button>
         <span class="tc-s">00<i>:</i>00<i>:</i>00<i>:</i>00</span>
         <span class="scrub"><b></b></span>

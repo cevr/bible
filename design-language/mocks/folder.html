@@ -9,399 +9,10 @@
       rel="stylesheet"
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;650&display=swap"
     />
+    <link rel="stylesheet" href="../../packages/film/src/player/tokens.css" />
+    <link rel="stylesheet" href="kit.css" />
     <style>
-      /* ── Tokens (design-language.md §3) ─────────────────────────────── */
-      :root {
-        color-scheme: dark;
-        --surface-0: #0e0d0c;
-        --surface-1: #161513;
-        --surface-2: #1e1c1a;
-        --surface-3: #292724;
-        --line: #2f2c29;
-        --line-strong: #45413b;
-        --text-1: #e4dfd6;
-        --text-2: #a19b91;
-        --text-3: #6b665f;
-        --accent: #e0ad45;
-        --accent-ink: #17120a;
-        --accent-wash: rgb(224 173 69 / 0.14);
-        --state-rendered: #8aa9c8;
-        --state-stale: #d9874a;
-        --state-approved: #76c09a;
-        --state-findings: #e0705a;
-        --state-warning: #d9b56a;
-        --state-recording: #e5484d;
-        --state-note: #f0609a;
-        --state-agent: #7fc4c0;
-        --state-scratch: var(--text-3);
-        --scene-sat: 30%;
-        --scene-light: 32%;
-        --font: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        --font-features: 'calt' 0;
-        --fs-1: 10px;
-        --lh-1: 14px;
-        --fs-2: 11px;
-        --lh-2: 16px;
-        --fs-3: 12px;
-        --lh-3: 18px;
-        --fs-4: 13px;
-        --lh-4: 20px;
-        --fs-5: 16px;
-        --lh-5: 22px;
-        --fs-read: 18px;
-        --lh-read: 28px;
-        --w-1: 400;
-        --w-2: 500;
-        --w-3: 650;
-        --track-caps: 0.06em;
-        --s-1: 4px;
-        --s-2: 8px;
-        --s-3: 12px;
-        --s-4: 16px;
-        --s-5: 20px;
-        --s-6: 24px;
-        --s-8: 32px;
-        --r-1: 2px;
-        --r-2: 4px;
-        --r-sheet: 12px;
-        --r-dot: 50%;
-        --border: 1px solid var(--line);
-        --shadow-pop: 0 8px 28px rgb(0 0 0 / 0.55);
-        --focus-ring: 0 0 0 1px var(--surface-0), 0 0 0 2px var(--accent);
-        --t-fast: 80ms;
-        --t-base: 140ms;
-        --t-sheet: 220ms;
-        --ease: cubic-bezier(0.2, 0, 0, 1);
-        --control-h: 36px;
-        --hit: 44px;
-        --row-h: 40px;
-        --header-h: 44px;
-        --tabbar-h: 56px;
-        --panel-head-h: 32px;
-        --gutter: 16px;
-        --body-fs: var(--fs-4);
-        --body-lh: var(--lh-4);
-      }
-      @media (min-width: 900px) and (pointer: fine) {
-        :root {
-          --control-h: 24px;
-          --hit: 28px;
-          --row-h: 28px;
-          --header-h: 40px;
-          --panel-head-h: 28px;
-          --gutter: 12px;
-          --body-fs: var(--fs-3);
-          --body-lh: var(--lh-3);
-        }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        :root {
-          --t-fast: 0ms;
-          --t-base: 0ms;
-          --t-sheet: 0ms;
-        }
-      }
-
-      /* ── Kit: shell, page bar, panel, controls (§4, §5) ─────────────── */
-      * {
-        box-sizing: border-box;
-      }
-      html,
-      body {
-        margin: 0;
-      }
-      body {
-        background: var(--surface-0);
-        color: var(--text-1);
-        font-family: var(--font);
-        font-feature-settings: var(--font-features);
-        font-size: var(--body-fs);
-        line-height: var(--body-lh);
-        -webkit-font-smoothing: antialiased;
-        overflow-x: hidden;
-      }
-      button {
-        font: inherit;
-        color: inherit;
-        cursor: pointer;
-      }
-      svg.i {
-        width: 16px;
-        height: 16px;
-        fill: none;
-        stroke: currentColor;
-        stroke-width: 1.6;
-        stroke-linecap: round;
-        stroke-linejoin: round;
-        flex: none;
-      }
-      svg.i.fill {
-        fill: currentColor;
-        stroke: none;
-      }
-      .hdr {
-        position: sticky;
-        top: 0;
-        z-index: 20;
-        height: var(--header-h);
-        display: flex;
-        align-items: center;
-        gap: var(--s-1);
-        padding: 0 calc(var(--gutter) - 4px);
-        background: var(--surface-1);
-        border-bottom: var(--border);
-      }
-      .home {
-        display: inline-grid;
-        place-items: center;
-        width: var(--hit);
-        height: var(--hit);
-        color: var(--text-2);
-        border: 0;
-        background: none;
-        padding: 0;
-      }
-      .home[data-active] {
-        color: var(--accent);
-      }
-      .switcher {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--s-1);
-        min-width: 0;
-        height: var(--control-h);
-        padding: 0 var(--s-2);
-        border: 0;
-        border-radius: var(--r-2);
-        background: none;
-        font-size: var(--fs-3);
-        font-weight: var(--w-2);
-      }
-      .switcher span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-      .switcher .i {
-        width: 12px;
-        height: 12px;
-        color: var(--text-3);
-      }
-      .vsep {
-        width: 1px;
-        height: 16px;
-        background: var(--line);
-        flex: none;
-        margin: 0 var(--s-1);
-      }
-      .spacer {
-        flex: 1;
-        min-width: 0;
-      }
-      .icon-btn {
-        display: inline-grid;
-        place-items: center;
-        width: var(--hit);
-        height: var(--hit);
-        border: 0;
-        background: none;
-        color: var(--text-2);
-        border-radius: var(--r-2);
-        padding: 0;
-        flex: none;
-      }
-      .icon-btn[data-pressed] {
-        color: var(--text-1);
-        background: var(--surface-3);
-      }
-      .cmdk {
-        display: inline-flex;
-        align-items: center;
-        gap: var(--s-2);
-        height: var(--control-h);
-        padding: 0 var(--s-2);
-        border: var(--border);
-        border-radius: var(--r-2);
-        background: var(--surface-2);
-        color: var(--text-3);
-        font-size: var(--fs-2);
-      }
-      kbd {
-        font-family: var(--font);
-        font-size: var(--fs-1);
-        line-height: 14px;
-        padding: 0 4px;
-        border: 1px solid var(--line-strong);
-        border-radius: var(--r-1);
-        color: var(--text-2);
-      }
-      .pagebar {
-        display: flex;
-        align-items: stretch;
-        align-self: stretch;
-      }
-      .pagebar a {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 0 var(--s-3);
-        color: var(--text-2);
-        text-decoration: none;
-        font-size: var(--fs-2);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-      }
-      .pagebar a svg {
-        display: none;
-      }
-      .pagebar a[data-active] {
-        color: var(--text-1);
-      }
-      .pagebar a[data-active]::after {
-        content: '';
-        position: absolute;
-        left: var(--s-3);
-        right: var(--s-3);
-        bottom: -1px;
-        height: 2px;
-        background: var(--accent);
-      }
-      .panel {
-        background: var(--surface-1);
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-      }
-      .phead {
-        height: var(--panel-head-h);
-        flex: none;
-        display: flex;
-        align-items: center;
-        gap: var(--s-2);
-        padding: 0 var(--gutter);
-        border-bottom: var(--border);
-      }
-      .phead h2 {
-        margin: 0;
-        font-size: var(--fs-2);
-        line-height: var(--lh-2);
-        font-weight: var(--w-2);
-        letter-spacing: var(--track-caps);
-        text-transform: uppercase;
-        color: var(--text-2);
-        white-space: nowrap;
-      }
-      .phead .meta {
-        font-size: var(--fs-2);
-        color: var(--text-3);
-        white-space: nowrap;
-      }
-      .phead .icon-btn {
-        width: var(--control-h);
-        height: var(--control-h);
-      }
-      .btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--s-2);
-        height: var(--control-h);
-        padding: 0 var(--s-3);
-        border: 1px solid var(--line-strong);
-        border-radius: var(--r-2);
-        background: none;
-        color: var(--text-1);
-        font-size: var(--fs-3);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-      }
-      .chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
-        height: 16px;
-        padding: 0 var(--s-1);
-        border: 1px solid currentColor;
-        border-radius: var(--r-1);
-        font-size: var(--fs-1);
-        line-height: var(--lh-1);
-        font-weight: var(--w-2);
-        white-space: nowrap;
-      }
-      .chip[data-state='stale'] {
-        color: var(--state-stale);
-      }
-      .chip[data-state='approved'] {
-        color: var(--state-approved);
-      }
-      .chip[data-state='findings'] {
-        color: var(--state-findings);
-      }
-      .chip[data-state='warning'] {
-        color: var(--state-warning);
-      }
-      .chip[data-state='quiet'] {
-        color: var(--text-2);
-        border-color: var(--line-strong);
-      }
-      .dot {
-        display: inline-block;
-        width: 6px;
-        height: 6px;
-        border-radius: var(--r-dot);
-        background: currentColor;
-        flex: none;
-      }
-      @media (max-width: 899px) {
-        .lap {
-          display: none !important;
-        }
-        body {
-          padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
-        }
-        .pagebar {
-          position: fixed;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          z-index: 30;
-          height: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
-          padding-bottom: env(safe-area-inset-bottom);
-          background: var(--surface-2);
-          border-top: var(--border);
-        }
-        .pagebar a {
-          flex: 1;
-          flex-direction: column;
-          justify-content: center;
-          gap: 3px;
-          padding: 0;
-          font-size: var(--fs-1);
-          line-height: var(--lh-1);
-        }
-        .pagebar a svg {
-          display: block;
-          width: 20px;
-          height: 20px;
-        }
-        .pagebar a[data-active] svg {
-          color: var(--accent);
-        }
-        .pagebar a[data-active]::after {
-          display: none;
-        }
-        .pagebar a.films {
-          display: none;
-        }
-      }
-      @media (min-width: 900px) {
-        .ph {
-          display: none !important;
-        }
-      }
-
-      /* ── Page: Films, the project manager ─────────────────────────── */
+      /* ── Page: a Folder of renders, under its film's Project (DL-11) ── */
       .work {
         display: grid;
         gap: 1px;
@@ -411,15 +22,30 @@
       @media (min-width: 900px) {
         .work {
           min-height: calc(100dvh - var(--header-h));
-          grid-template-rows: auto 1fr;
         }
       }
+      .sum {
+        padding: var(--s-3) var(--gutter);
+        font-size: var(--fs-3);
+        color: var(--text-2);
+        border-bottom: var(--border);
+      }
+      .sum .n {
+        color: var(--text-1);
+      }
+      /* A panel's menu keeps its full target in the shorter panel head; its glyph sits on the gutter. */
+      .phead .icon-btn {
+        margin-block: calc((var(--panel-head-h) - var(--hit)) / 2);
+        margin-inline-end: calc((var(--s-4) - var(--hit)) / 2);
+      }
+      /* The code's rule for a folder's sets (`.rv-grid.rv-wide`): one column on the phone, three at 1440. */
       .grid {
         display: grid;
         gap: var(--s-3);
         padding: var(--s-3) var(--gutter) var(--s-4);
-        grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 440px), 1fr));
       }
+      /* A version stack: its still and its scene. A count shows only from two versions. */
       .card {
         background: var(--surface-2);
         border: var(--border);
@@ -428,9 +54,8 @@
         display: flex;
         flex-direction: column;
         min-width: 0;
-      }
-      .card[data-selected] {
-        border-color: var(--accent);
+        color: inherit;
+        text-decoration: none;
       }
       .card .pic {
         position: relative;
@@ -442,22 +67,8 @@
         aspect-ratio: 16 / 9;
         object-fit: cover;
       }
-      .card .pic .len {
-        position: absolute;
-        right: 6px;
-        bottom: 6px;
-        font-size: var(--fs-1);
-        padding: 0 4px;
-        background: rgb(14 13 12 / 0.8);
-        border-radius: var(--r-1);
-        color: var(--text-1);
-      }
-      .card .body {
-        padding: var(--s-2) var(--s-3) var(--s-3);
-        display: grid;
-        gap: 6px;
-      }
       .card .name {
+        padding: var(--s-2) var(--s-3) var(--s-3);
         font-weight: var(--w-3);
         font-size: var(--fs-4);
         overflow: hidden;
@@ -467,109 +78,6 @@
       @media (min-width: 900px) {
         .card .name {
           font-size: var(--fs-3);
-        }
-      }
-      .card .meta {
-        font-size: var(--fs-2);
-        color: var(--text-2);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2px var(--s-2);
-      }
-      .card .meta .n {
-        color: var(--text-1);
-      }
-      .sband {
-        display: flex;
-        gap: 1px;
-        height: 4px;
-      }
-      .sband i {
-        flex: 1;
-        background: var(--state-stale);
-        position: relative;
-      }
-      .sband i[data-f]::after {
-        content: '';
-        position: absolute;
-        left: 50%;
-        top: -3px;
-        width: 3px;
-        height: 3px;
-        border-radius: var(--r-dot);
-        background: var(--state-findings);
-      }
-      .row {
-        display: flex;
-        align-items: center;
-        gap: var(--s-2);
-        flex-wrap: wrap;
-      }
-      .row .k {
-        font-size: var(--fs-1);
-        color: var(--text-3);
-        text-transform: uppercase;
-        letter-spacing: var(--track-caps);
-      }
-      .strip4 {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1px;
-        background: var(--surface-0);
-      }
-      .strip4 img {
-        display: block;
-        width: 100%;
-        aspect-ratio: 16 / 9;
-        object-fit: cover;
-      }
-      .empty {
-        padding: var(--s-4) var(--gutter);
-        color: var(--text-3);
-        font-size: var(--fs-2);
-      }
-      /* ── Page: a Folder of renders, under its film's Project (DL-11) ── */
-      .crumb {
-        display: inline-flex;
-        align-items: center;
-        gap: 2px;
-        font-size: var(--fs-2);
-        color: var(--text-2);
-        white-space: nowrap;
-        min-width: 0;
-      }
-      .crumb .i {
-        width: 12px;
-        height: 12px;
-        color: var(--text-3);
-      }
-      .crumb b {
-        color: var(--text-1);
-        font-weight: var(--w-2);
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .sum {
-        padding: var(--s-3) var(--gutter);
-        font-size: var(--fs-3);
-        color: var(--text-2);
-        border-bottom: var(--border);
-      }
-      .sum .n {
-        color: var(--text-1);
-      }
-      .card .name {
-        display: flex;
-        align-items: center;
-        gap: var(--s-2);
-      }
-      .card .name span {
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      @media (min-width: 900px) {
-        .grid {
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
         }
       }
     </style>
@@ -610,7 +118,6 @@
         <circle cx="19" cy="12" r="1.6" />
       </symbol>
       <symbol id="i-chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" /></symbol>
-      <symbol id="i-list" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" /></symbol>
       <symbol id="i-right" viewBox="0 0 24 24"><path d="M10 7l5 5-5 5" /></symbol>
     </svg>
 
@@ -645,7 +152,7 @@
       <span class="crumb lap"
         ><svg class="i"><use href="#i-right" /></svg><b>righteousness-by-faith · renders</b></span
       >
-      <span class="crumb ph" style="padding-left: 4px"
+      <span class="crumb ph" style="padding-left: var(--s-1)"
         ><b>righteousness-by-faith · renders</b></span
       >
       <span class="spacer"></span>
@@ -675,7 +182,7 @@
       </section>
     </div>
     <script>
-      // The folder's version stacks: one per scene, each with its one version (main), as the folder holds them.
+      // The folder's version stacks: one per scene, each holding one version (main), so no card shows a count.
       const SCENES = [
         'cold',
         'title',
@@ -699,9 +206,9 @@
         'end',
       ];
       document.getElementById('sets').innerHTML = SCENES.map(
-        (n) => `<a class="card" href="set.html" style="color:inherit;text-decoration:none">
+        (n) => `<a class="card" href="set.html">
   <div class="pic"><img src="stills/poster-${n}.jpg" alt="${n}" loading="lazy" /></div>
-  <div class="body"><div class="name"><span>scene ${n}</span><span class="chip" data-state="quiet">1 version</span></div><div class="meta"><span>main</span></div></div>
+  <div class="name">scene ${n}</div>
 </a>`,
       ).join('');
     </script>
