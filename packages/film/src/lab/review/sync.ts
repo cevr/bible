@@ -4,7 +4,8 @@
 // port (`browser/media.ts`), and plays them through `Media.playOrMute`. The
 // first variant's video is the clock (its time is the set's); every other
 // that drifts more than DRIFT_S from it is put back on it. Only the audible
-// one is unmuted. A seek moves every video; a stall pauses them all until
+// one is unmuted. A lone player's driver tells the machine when its clock
+// cannot play (`tellsFailure`); a set plays on over a video that fails. A seek moves every video; a stall pauses them all until
 // each has enough to play on (`Buffering`). A seek or a play it sets going
 // on a video lasts only while that video is attached: replaced, detached or
 // stopped, it ends. The player's transport (space, ←/→) is declared here
@@ -43,6 +44,16 @@ export interface SyncDriver {
   readonly stop: () => void;
 }
 
+export interface SyncOptions {
+  /**
+   * Whether the machine is told when the clock's media cannot play
+   * (`MediaFailed`): a play refused as it cannot be, or the media's error. A
+   * lone player tells it, having nothing else to show; a set plays on over a
+   * video that fails, its other videos still compared.
+   */
+  readonly tellsFailure?: boolean;
+}
+
 interface Attached {
   readonly video: Playable;
   /** Aborted when the video is let go: its listeners, and its seeks and plays, end. */
@@ -57,6 +68,7 @@ export const makeSync = (
   first: string,
   send: (event: SyncEvent) => void,
   host: Context.Context<Frames | Media>,
+  options: SyncOptions = {},
 ): SyncDriver => {
   const videos = new Map<string, Attached>();
   let current = Option.none<SyncState>();
@@ -79,14 +91,25 @@ export const makeSync = (
   const forkOn = (a: Attached, effect: Effect.Effect<unknown, never, Frames | Media>) => {
     Effect.runForkWith(host)(effect, { signal: a.held.signal });
   };
+  /** `id`'s media cannot play, for `reason`: the machine told, when it is the clock's and this player tells it. */
+  const failed = (id: string, reason: string) => {
+    if (options.tellsFailure === true && id === first) send(Events.MediaFailed({ reason }));
+  };
   /**
-   * Play `a`'s video; a browser that will not play sound unasked plays it muted
-   * (any other refusal, a pause before it started, is left as it is).
+   * Play `id`'s video `a`; a browser that will not play sound unasked plays it
+   * muted; one that cannot play it at all fails it (`failed`); a pause before
+   * it started is left as it is.
    */
-  const play = (a: Attached) =>
+  const play = (id: string, a: Attached) =>
     forkOn(
       a,
-      Media.use((media) => media.playOrMute(a.video)),
+      Media.use((media) => media.playOrMute(a.video)).pipe(
+        Effect.tap((played) =>
+          Effect.sync(() => {
+            if (played._tag === 'Failed') failed(id, played.name);
+          }),
+        ),
+      ),
     );
   const seekTo = (a: Attached, t: number) => forkOn(a, a.video.seek(t));
 
@@ -149,7 +172,7 @@ export const makeSync = (
       for (const a of all()) seekTo(a, state.t);
     }
     if (runningOf(state)) {
-      for (const a of all()) if (!a.video.playing()) play(a);
+      for (const [id, a] of videos) if (!a.video.playing()) play(id, a);
       run();
       return;
     }
@@ -176,6 +199,7 @@ export const makeSync = (
       signal,
     );
     video.on('stalled', () => send(Events.Stalled), signal);
+    video.on('error', () => failed(id, 'error'), signal);
     video.on(
       'ended',
       () => {
@@ -186,7 +210,7 @@ export const makeSync = (
     Option.map(current, (state) => {
       hear(state);
       seekTo(attached, state.t);
-      if (runningOf(state)) play(attached);
+      if (runningOf(state)) play(id, attached);
     });
   };
 

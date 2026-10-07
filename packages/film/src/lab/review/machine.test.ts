@@ -14,6 +14,7 @@ import {
   SyncState,
   UNKNOWN_END,
   ViewEvent,
+  atRest,
   ViewState,
   clockParts,
   modeOf,
@@ -195,6 +196,33 @@ describe('the synced player', () => {
       expect(result.finalState._tag).toBe('Paused');
     }),
   );
+
+  it.effect('fails where it stands once its media cannot play, and stays failed', () =>
+    Effect.gen(function* () {
+      const result = yield* simulate(player, [
+        SyncEvent.Measured({ end: 10 }),
+        SyncEvent.PlayPressed,
+        SyncEvent.Ticked({ t: 3 }),
+        SyncEvent.MediaFailed({ reason: 'NotSupportedError' }),
+        SyncEvent.Toggled,
+        SyncEvent.ScrubMoved({ t: 5 }),
+        SyncEvent.Stepped({ by: STEP_S }),
+      ]);
+      expect(result.finalState).toEqual(
+        SyncState.Failed({ ...clock, t: 3, reason: 'NotSupportedError' }),
+      );
+      expect(runningOf(result.finalState)).toBe(false);
+    }),
+  );
+
+  test('is at rest only paused where it opens: a scrub, even back to the start, is not', () => {
+    expect(atRest(SyncState.Paused(clock))).toBe(true);
+    expect(atRest(SyncState.Paused({ ...clock, t: 2 }))).toBe(false);
+    expect(atRest(SyncState.Scrubbing({ ...clock, resume: false }))).toBe(false);
+    expect(atRest(SyncState.Playing(clock))).toBe(false);
+    expect(atRest(SyncState.Buffering(clock))).toBe(false);
+    expect(atRest(SyncState.Failed({ ...clock, reason: 'NotSupportedError' }))).toBe(false);
+  });
 
   test('runs the videos only while playing', () => {
     expect(runningOf(SyncState.Playing(clock))).toBe(true);

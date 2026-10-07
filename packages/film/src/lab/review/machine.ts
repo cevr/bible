@@ -12,6 +12,7 @@
 //   any ─ScrubMoved→ Scrubbing ─ScrubReleased→ Playing | Paused (as it was)
 //   Playing | Buffering ─Ended→ Paused (at the end)
 //   any ─Stepped | Landed | Measured | HeardChosen | RateChosen→ the same, changed
+//   any ─MediaFailed→ Failed (where it stood; it hears nothing more)
 //
 //   All | Pair | Wipe | Moments | Diff ─ViewChosen→ any (Pair, Wipe, Diff only with a second version)
 //   Pair | Wipe | Diff ─OtherChosen→ the same, against that other
@@ -62,6 +63,8 @@ export const SyncState = State({
   Scrubbing: { ...Clock, resume: Schema.Boolean },
   /** Playing, but a video has stalled: the rest wait for it. */
   Buffering: Clock,
+  /** Its media cannot play (`reason`: the refusal's name, or `error`): it stays where it stood. */
+  Failed: { ...Clock, reason: Schema.String },
 });
 export type SyncState = typeof SyncState.Type;
 
@@ -84,6 +87,8 @@ export const SyncEvent = Event({
   Measured: { end: Schema.Finite },
   HeardChosen: { id: Schema.String },
   RateChosen: { rate: Rate },
+  /** The clock's media cannot play: a play refused as it cannot be (not for sound), or an error. */
+  MediaFailed: { reason: Schema.String },
 });
 export type SyncEvent = typeof SyncEvent.Type;
 
@@ -116,6 +121,7 @@ const withClock = (state: SyncState, clock: SyncClock): SyncState =>
       Playing: () => SyncState.Playing(clock),
       Scrubbing: (s) => SyncState.Scrubbing({ ...clock, resume: s.resume }),
       Buffering: () => SyncState.Buffering(clock),
+      Failed: (s) => SyncState.Failed({ ...clock, reason: s.reason }),
     }),
   );
 
@@ -137,9 +143,11 @@ const resumes = (state: SyncState): boolean =>
       Playing: () => true,
       Scrubbing: (s) => s.resume,
       Buffering: () => true,
+      Failed: () => false,
     }),
   );
 
+/** Every state that plays, or can: a failed player hears nothing more. */
 const ANY = [
   SyncState.Paused,
   SyncState.Playing,
@@ -213,6 +221,9 @@ export const syncMachine = (audible: string, start: number, at: number = start) 
     )
     .on(ANY, SyncEvent.RateChosen, ({ state, event }) =>
       withClock(state, { ...clockOf(state), rate: event.rate }),
+    )
+    .on(ANY, SyncEvent.MediaFailed, ({ state, event }) =>
+      SyncState.Failed({ ...clockOf(state), reason: event.reason }),
     );
 
 /** The synced player's actor, started. */
@@ -223,6 +234,21 @@ export type SyncActor = Effect.Success<ReturnType<typeof spawnSync>>;
 
 /** Whether the videos should be running: only while playing (a stall holds them all). */
 export const runningOf = (state: SyncState): boolean => state._tag === 'Playing';
+
+/**
+ * Whether the player is at rest: paused where it opens. A scrub is never at
+ * rest, even at the start, so whatever shows only once the player has moved
+ * stays for the whole scrub.
+ */
+export const atRest = (state: SyncState): boolean =>
+  state._tag === 'Paused' && state.t === state.start;
+
+/** Why the player's media cannot play, once it cannot. */
+export const failureOf = (state: SyncState): Option.Option<string> =>
+  Match.value(state).pipe(
+    Match.tag('Failed', (failed) => Option.some(failed.reason)),
+    Match.orElse(() => Option.none()),
+  );
 
 /**
  * What the transport says of the clock, in two parts: where it is

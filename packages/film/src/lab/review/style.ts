@@ -125,6 +125,8 @@ a.rv-card:hover { background: var(--surface-2); }
   .rv-time-rest { display: none; }
 }
 .rv-time[data-state="Buffering"] { color: var(--accent); }
+/* A player whose media cannot play says so in place of its clock. */
+.rv-failed { color: var(--state-warning); font-size: var(--fs-5); line-height: var(--lh-5); flex: none; }
 /*
  * A lone video (a video in no set, a render in a sheet): its picture a press
  * that plays or pauses it, then, once it has moved, its row under it in its

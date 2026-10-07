@@ -11,8 +11,11 @@ import { manualFrames } from '../../browser/fixtures/frames.ts';
 import { fakeMedia } from '../../browser/fixtures/media.ts';
 import { hostOf } from '../../browser/host.ts';
 import { Media } from '../../browser/media.ts';
-import { type SyncEvent, SyncState } from './machine.ts';
-import { makeSync } from './sync.ts';
+import { SyncEvent, SyncState } from './machine.ts';
+import { type SyncOptions, makeSync } from './sync.ts';
+
+/** Let the forked plays settle: their answers heard, and what came of them told. */
+const settle = Effect.repeat(Effect.yieldNow, { times: 10 });
 
 /** A set's clock at `t` seconds, `a` audible. */
 const clock = (t: number, seek = 0) => ({
@@ -25,7 +28,7 @@ const clock = (t: number, seek = 0) => ({
 });
 
 /** A driver over two stand-in videos, `a` (the clock) and `b`, both loaded; what it told the machine. */
-const rig = (refuse?: { readonly a?: string; readonly b?: string }) => {
+const rig = (refuse?: { readonly a?: string; readonly b?: string }, options?: SyncOptions) => {
   const frames = manualFrames();
   const told: Array<SyncEvent> = [];
   const host = hostOf(
@@ -34,7 +37,7 @@ const rig = (refuse?: { readonly a?: string; readonly b?: string }) => {
       Media.layerOver(() => fakeMedia().media),
     ),
   );
-  const driver = makeSync('a', (event) => told.push(event), host);
+  const driver = makeSync('a', (event) => told.push(event), host, options);
   const a = fakeMedia(refuse?.a);
   const b = fakeMedia(refuse?.b);
   a.el.load(10);
@@ -120,6 +123,42 @@ describe('the sync driver', () => {
       driver.stop();
       yield* Effect.yieldNow;
       expect(waiting()).toEqual([0, 0, 0]);
+    }),
+  );
+
+  it.effect(
+    'a player that tells failures says its clock cannot play: a play refused as unsupported',
+    () =>
+      Effect.gen(function* () {
+        const { driver, a, told, frames } = rig({ a: 'NotSupportedError' }, { tellsFailure: true });
+        driver.apply(SyncState.Playing(clock(0)));
+        yield* a.answered;
+        yield* settle;
+        expect(told).toEqual([SyncEvent.MediaFailed({ reason: 'NotSupportedError' })]);
+        // Failed, its videos are paused and its clock's loop stops.
+        driver.apply(SyncState.Failed({ ...clock(0), reason: 'NotSupportedError' }));
+        frames.frame(16);
+        expect(frames.pending()).toBe(0);
+        expect(a.el.paused).toBe(true);
+      }),
+  );
+
+  test("a player that tells failures says its clock's media failed, never another's", () => {
+    const { a, b, tags } = rig({}, { tellsFailure: true });
+    b.el.fire('error');
+    expect(tags()).toEqual([]);
+    a.el.fire('error');
+    expect(tags()).toEqual(['MediaFailed']);
+  });
+
+  it.effect("a set's driver plays on over media that fails: it tells none of it", () =>
+    Effect.gen(function* () {
+      const { driver, a, tags } = rig({ a: 'NotSupportedError' });
+      driver.apply(SyncState.Playing(clock(0)));
+      yield* a.answered;
+      yield* settle;
+      a.el.fire('error');
+      expect(tags()).toEqual([]);
     }),
   );
 

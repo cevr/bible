@@ -11,10 +11,12 @@
 // the rest say no state; the view lives in the URL through a reload; and a
 // phone's width folds the grid to one column without scrolling sideways.
 
-import { Effect, Match, Option, Schema } from 'effect';
+import { Effect, FileSystem, Match, Option, Schema } from 'effect';
+import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
+import { tone } from '../../../src/lab/fixtures/tone.ts';
 import {
   type FakeRoute,
   type Json,
@@ -152,6 +154,25 @@ const FOLDER = pageHref.folder('out/art');
 const SET = pageHref.set('out/art', 'render:roof');
 const SKY = pageHref.set('out/art', 'render:sky');
 
+/** The folder's loose video (`walk.mp4`), played on a clock of its own: its card, row and element. */
+const LONE = '.rv-tall';
+const LONE_ROW = `${LONE} .rv-alone-row`;
+const LONE_VIDEO = `document.querySelector('${LONE} video')`;
+
+/** What a lone video that cannot play says. */
+const CANNOT_PLAY = 'Can’t play this video';
+
+/** The loose video's file, answered with `answer`. */
+const walkServes = (answer: FakeRoute['answer']) =>
+  route('GET', /^\/api\/review\/files\/out\/art\/walk\.mp4/, answer);
+
+/** The lone video's scrub moved to `t` (`input`), or let go (`change`), as a drag does. */
+const scrub = (type: 'input' | 'change', t: number) => `(() => {
+  const range = document.querySelector('${LONE_ROW} input[type="range"]');
+  range.value = '${t}';
+  range.dispatchEvent(new Event('${type}', { bubbles: true }));
+})()`;
+
 describe('the review page', () => {
   it.live(
     'lists the folders, finds one by name, and opens one: its set, its loose video, its doc',
@@ -239,15 +260,8 @@ describe('the review page', () => {
         yield* page.back;
         yield* textHas(page, '.rv-card', 'walk.mp4');
         yield* attributeIs(page, '.rv-tall track', 'src', '/api/review/files/out/art/walk.vtt');
-        // Never the browser's controls: at rest its picture plays it; once it moves,
-        // the review's transport row shows under it, and pauses it.
+        // Never the browser's controls (how it plays: the lone video's own cases below).
         yield* countIs(page, '.rv-tall video[controls]', 0);
-        yield* countIs(page, '.rv-tall .rv-alone-row', 0);
-        yield* page.click('.rv-tall [data-act="play-video"]');
-        yield* textIs(page, '.rv-tall .rv-alone-row [data-act="play"]', '❚❚');
-        // Paused where it began (this video never moves), it is at rest again.
-        yield* page.click('.rv-tall .rv-alone-row [data-act="play"]');
-        yield* countIs(page, '.rv-tall .rv-alone-row', 0);
         // A loose video shows its name; its file is its menu's: Open, Copy link, Info (UR-17).
         yield* textIs(page, '.rv-tall .rv-cap', 'walk.mp4');
         yield* rightClick(page, '.rv-tall .rv-cap');
@@ -278,6 +292,104 @@ describe('the review page', () => {
         yield* countIs(page, '.rv-note script', 0);
         yield* page.back;
         yield* textHas(page, '.rv-h', 'Renders');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a loose video plays on a clock of its own: its time moves, and a scrub back to the start, let go, plays on',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'review-alone-' });
+        // Ten seconds of tone: real media the page plays.
+        const wav = `${dir}/tone.wav`;
+        yield* fs.writeFile(wav, tone(10, 0.1));
+        const { page, errors } = yield* openReview([walkServes(() => file(wav)), ...routes], {
+          href: FOLDER,
+        });
+        yield* waitFor(page, `${LONE} [data-act="play-video"]`);
+        // At rest its picture is the one control: no row.
+        yield* countIs(page, LONE_ROW, 0);
+        yield* page.click(`${LONE} [data-act="play-video"]`);
+        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '❚❚');
+        // Its time moves, and the row's clock says so.
+        yield* until(page, `${LONE_VIDEO}.currentTime > 1.5`);
+        yield* until(
+          page,
+          `document.querySelector('${LONE_ROW} .rv-time-at').textContent !== '00:00:00:00'`,
+        );
+        // Scrubbed back to the start, the row stays for the whole scrub; let go, it plays on.
+        yield* page.evaluate(scrub('input', 0));
+        yield* countIs(page, LONE_ROW, 1);
+        yield* page.evaluate(scrub('change', 0));
+        yield* until(page, `${LONE_VIDEO}.currentTime < 1`);
+        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '❚❚');
+        yield* until(page, `!${LONE_VIDEO}.paused && ${LONE_VIDEO}.currentTime > 1.2`);
+        // Paused, then scrubbed back to the start and let go, it is at rest again.
+        yield* page.click(`${LONE_ROW} [data-act="play"]`);
+        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '▶');
+        yield* page.evaluate(scrub('input', 0));
+        yield* countIs(page, LONE_ROW, 1);
+        yield* page.evaluate(scrub('change', 0));
+        yield* countIs(page, LONE_ROW, 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    SLOW,
+  );
+
+  it.live(
+    'a loose video that cannot play says so, and never shows as playing: a play refused as unsupported',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'review-alone-' });
+        const wav = `${dir}/tone.wav`;
+        yield* fs.writeFile(wav, tone(10, 0.1));
+        const { page, errors } = yield* openReview([walkServes(() => file(wav)), ...routes], {
+          href: FOLDER,
+        });
+        yield* waitFor(page, `${LONE} [data-act="play-video"]`);
+        yield* until(page, `${LONE_VIDEO}.readyState >= 1`);
+        // The browser loads it, but will not play it.
+        yield* page.evaluate(`(() => {
+          HTMLMediaElement.prototype.play = function () {
+            return Promise.reject(new DOMException('refused', 'NotSupportedError'));
+          };
+        })()`);
+        yield* page.click(`${LONE} [data-act="play-video"]`);
+        yield* textIs(page, `${LONE_ROW} [data-role="failed"]`, CANNOT_PLAY);
+        yield* attributeIs(
+          page,
+          `${LONE_ROW} [data-role="failed"]`,
+          'data-reason',
+          'NotSupportedError',
+        );
+        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '▶');
+        yield* attributeIs(page, `${LONE_ROW} [data-act="play"]`, 'disabled', '');
+        // A press on its picture plays nothing more.
+        yield* page.click(`${LONE} [data-act="play-video"]`);
+        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '▶');
+        yield* evaluates(page, `${LONE_VIDEO}.paused`, true);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    SLOW,
+  );
+
+  it.live(
+    'a loose video whose media fails to load says so before it is pressed',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(
+          [walkServes(() => text('gone', 404)), ...routes],
+          { href: FOLDER },
+        );
+        yield* textIs(page, `${LONE_ROW} [data-role="failed"]`, CANNOT_PLAY);
+        yield* attributeIs(page, `${LONE_ROW} [data-role="failed"]`, 'data-reason', 'error');
+        yield* page.click(`${LONE} [data-act="play-video"]`);
+        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '▶');
+        yield* evaluates(page, `${LONE_VIDEO}.paused`, true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
