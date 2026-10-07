@@ -12,7 +12,8 @@
 //   any ─ScrubMoved→ Scrubbing ─ScrubReleased→ Playing | Paused (as it was)
 //   Playing | Buffering ─Ended→ Paused (at the end)
 //   any ─Stepped | Landed | Measured | HeardChosen | RateChosen→ the same, changed
-//   any ─MediaFailed→ Failed (where it stood; it hears nothing more)
+//   any ─MediaFailed→ Failed (where it stood; it hears nothing more: a failure is its
+//     source's, and a new source or a retry is a fresh player, `PlayedAlone`)
 //
 //   All | Pair | Wipe | Moments | Diff ─ViewChosen→ any (Pair, Wipe, Diff only with a second version)
 //   Pair | Wipe | Diff ─OtherChosen→ the same, against that other

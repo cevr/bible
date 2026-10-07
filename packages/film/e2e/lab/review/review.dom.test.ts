@@ -82,7 +82,17 @@ const pendingSky: Json = {
   phone: 'pending',
 };
 
-const index: Json = {
+/** The folder's loose video, its proxy `phone` (none made, or ready). */
+const walkOf = (phone: 'none' | 'ready'): Json => ({
+  ref: 'out/art/walk.mp4',
+  name: 'walk.mp4',
+  size: 4096,
+  mtime: 0,
+  phone,
+});
+
+/** The index, its loose video `walk`. */
+const indexOf = (walk: Json): Json => ({
   folders: [
     {
       ref: 'out/art',
@@ -118,7 +128,7 @@ const index: Json = {
           variants: [variant('D', 'Dusk', { media: { _tag: 'Seen', video: pendingSky } })],
         },
       ],
-      videos: [{ ref: 'out/art/walk.mp4', name: 'walk.mp4', size: 4096, mtime: 0, phone: 'none' }],
+      videos: [walk],
       images: [],
       downloads: [
         { ref: 'out/art/master #1.mp4', name: 'master #1.mp4', size: 1700000000, mtime: 0 },
@@ -137,7 +147,9 @@ const index: Json = {
       docs: [],
     },
   ],
-};
+});
+
+const index = indexOf(walkOf('none'));
 
 const routes: ReadonlyArray<FakeRoute> = [
   route('GET', /^\/api\/review\/index/, () => json(index)),
@@ -161,7 +173,7 @@ const LONE_VIDEO = `document.querySelector('${LONE} video')`;
 const LONE_FAILED = `${LONE} [data-act="play-video"] [data-role="failed"]`;
 
 /** What a lone video that cannot play says. */
-const CANNOT_PLAY = 'Can’t play this video';
+const CANNOT_PLAY = 'Can’t play this video · Try again';
 
 /** The loose video's file, answered with `answer`. */
 const walkServes = (answer: FakeRoute['answer']) =>
@@ -360,10 +372,9 @@ describe('the review page', () => {
           };
         })()`);
         yield* page.click(`${LONE} [data-act="play-video"]`);
-        // Its picture says so and takes no more presses; no row offers a play or a scrub.
+        // Its picture says so (a press on it tries again); no row offers a play or a scrub.
         yield* textIs(page, LONE_FAILED, CANNOT_PLAY);
         yield* attributeIs(page, LONE_FAILED, 'data-reason', 'NotSupportedError');
-        yield* attributeIs(page, `${LONE} [data-act="play-video"]`, 'disabled', '');
         yield* countIs(page, LONE_ROW, 0);
         yield* evaluates(page, `${LONE_VIDEO}.paused`, true);
         expect(errors).toEqual([]);
@@ -381,11 +392,70 @@ describe('the review page', () => {
         );
         yield* textIs(page, LONE_FAILED, CANNOT_PLAY);
         yield* attributeIs(page, LONE_FAILED, 'data-reason', 'error');
-        yield* attributeIs(page, `${LONE} [data-act="play-video"]`, 'disabled', '');
         yield* countIs(page, LONE_ROW, 0);
         yield* evaluates(page, `${LONE_VIDEO}.paused`, true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a loose video whose proxy fails plays its original once the page plays the originals: a failure is its source’s',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'review-alone-' });
+        const wav = `${dir}/tone.wav`;
+        yield* fs.writeFile(wav, tone(10, 0.1));
+        // A phone plays the proxies, and this one will not load; the original plays.
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => json(indexOf(walkOf('ready')))),
+            route('GET', /^\/api\/review\/phone\/out\/art\/walk\.mp4/, () => text('gone', 404)),
+            walkServes(() => file(wav)),
+            ...routes,
+          ],
+          { href: FOLDER, viewport: { width: 390, height: 844 } },
+        );
+        yield* textIs(page, LONE_FAILED, CANNOT_PLAY);
+        yield* openCommandMenu(page, 'play the');
+        yield* page.click(menuEntry('review.quality'));
+        yield* countIs(page, LONE_FAILED, 0);
+        yield* page.click(`${LONE} [data-act="play-video"]`);
+        yield* until(page, `!${LONE_VIDEO}.paused && ${LONE_VIDEO}.currentTime > 0.5`);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    SLOW,
+  );
+
+  it.live(
+    'a loose video that failed to load tries again at a press on its picture, and plays once its media loads',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'review-alone-' });
+        const wav = `${dir}/tone.wav`;
+        yield* fs.writeFile(wav, tone(10, 0.1));
+        // The first ask finds the server unavailable; the next finds the file.
+        let asks = 0;
+        const { page, errors } = yield* openReview(
+          [
+            walkServes(() => {
+              asks += 1;
+              if (asks === 1) return text('unavailable', 503);
+              return file(wav);
+            }),
+            ...routes,
+          ],
+          { href: FOLDER },
+        );
+        yield* textIs(page, LONE_FAILED, CANNOT_PLAY);
+        yield* page.click(`${LONE} [data-act="play-video"]`);
+        yield* countIs(page, LONE_FAILED, 0);
+        yield* until(page, `!${LONE_VIDEO}.paused && ${LONE_VIDEO}.currentTime > 0.5`);
+        expect(asks).toBeGreaterThan(1);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
     SLOW,
   );
 

@@ -146,7 +146,6 @@ a.rv-card:hover { background: var(--surface-2); }
  */
 .rv-alone-picture { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
 .rv-alone-picture:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.rv-alone-picture:disabled { cursor: default; }
 /* One whose media cannot play says so across the foot of its picture. */
 .rv-alone-picture .rv-failed {
   position: absolute; left: 0; right: 0; bottom: 0; padding: var(--s-2) var(--s-3);

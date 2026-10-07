@@ -707,21 +707,70 @@ const TransportRow = (
 /** The one video a lone player plays: its clock and the one heard. */
 const ALONE = 'alone';
 
-/** What a lone video whose media cannot play says, on its picture. */
-const CANNOT_PLAY = 'Can’t play this video';
+/** What a lone video whose media cannot play says, on its picture, which tries it again. */
+const CANNOT_PLAY = 'Can’t play this video · Try again';
+
+/** One try at a lone video's source: the `n`th (0: the first; later ones are retries). */
+interface Try {
+  readonly src: string;
+  readonly n: number;
+}
 
 /**
  * A video on a clock of its own (a video in no set, a render in a sheet),
- * never the browser's controls: at rest (`atRest`) its picture is the one
- * control, a press plays or pauses it; once it has moved (playing, scrubbed,
- * paused past its start) the review's transport row shows under it (play,
- * the clock, a scrub), for the whole of a scrub. Once its media cannot play
- * (`Failed`) its picture says so and takes no press, and no row shows: there
- * is nothing to play or scrub. It is heard, and its time is its own, not the
- * page's. `children` are its `<track>`s.
+ * never the browser's controls. A failure is its source's: each try at a
+ * source (a new source, or a retry of a failed one) is a fresh player over a
+ * fresh element (`LonePlayer`), so nothing of a failed try outlives it.
+ * `children` are its `<track>`s.
  */
 export const PlayedAlone = (
   props: ParentProps<{ readonly src: string; readonly poster: string }>,
+) => {
+  const [retried, setRetried] = createSignal<Option.Option<Try>>(Option.none());
+  // A new source is its first try; the same source keeps its retries.
+  const current = createMemo((): Try => ({
+    src: props.src,
+    n: Option.getOrElse(
+      Option.map(
+        Option.filter(retried(), (r) => r.src === props.src),
+        (r) => r.n,
+      ),
+      () => 0,
+    ),
+  }));
+  return (
+    <Show when={current()} keyed>
+      {(at: Try) => (
+        <LonePlayer
+          src={at.src}
+          poster={props.poster}
+          retried={at.n > 0}
+          retry={() => setRetried(Option.some({ src: at.src, n: at.n + 1 }))}
+        >
+          {props.children}
+        </LonePlayer>
+      )}
+    </Show>
+  );
+};
+
+/**
+ * One try at a lone video: at rest (`atRest`) its picture is the one
+ * control, a press plays or pauses it; once it has moved (playing, scrubbed,
+ * paused past its start) the review's transport row shows under it (play,
+ * the clock, a scrub), for the whole of a scrub. Once its media cannot play
+ * (`Failed`) its picture says so and no row shows (there is nothing to play
+ * or scrub); a press on the picture then `retry`s, and a retry plays as it
+ * starts (the press asked for it). It is heard, and its time is its own, not
+ * the page's.
+ */
+const LonePlayer = (
+  props: ParentProps<{
+    readonly src: string;
+    readonly poster: string;
+    readonly retried: boolean;
+    readonly retry: () => void;
+  }>,
 ) => {
   const { meta } = useReview();
   return (
@@ -733,6 +782,7 @@ export const PlayedAlone = (
         const driver = makeSync(ALONE, send, meta.host, { tellsFailure: true });
         onCleanup(driver.stop);
         createEffect(sync, (state) => driver.apply(state));
+        if (props.retried) onSettled(() => send(SyncEvent.Toggled));
         const failure = () => failureOf(sync());
         const failed = () => Option.isSome(failure());
         const label = () =>
@@ -745,8 +795,10 @@ export const PlayedAlone = (
               data-act="play-video"
               title={label()}
               aria-label={label()}
-              disabled={failed()}
-              onClick={() => send(SyncEvent.Toggled)}
+              onClick={() => {
+                if (failed()) props.retry();
+                else send(SyncEvent.Toggled);
+              }}
             >
               <video
                 preload="metadata"
