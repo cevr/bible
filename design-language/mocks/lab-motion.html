@@ -80,6 +80,12 @@
         position: relative;
         background: var(--surface-2);
       }
+      /* The cue lanes stay on a laptop, where a range across a lane sets the loop; a phone folds the strip to its words. */
+      @media (max-width: 899px) {
+        .strip .cues {
+          display: none;
+        }
+      }
       .cue-row {
         position: relative;
         height: 15px;

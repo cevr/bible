@@ -35,7 +35,7 @@
         background: var(--surface-0);
         min-width: 0;
       }
-      /* The kinds: a filter of quiet toggles, none pressed at rest, each with its count. */
+      /* The kinds: quiet buttons, each with its count, that go to the kind's first point (`?point=`); every kind stays listed. */
       .kinds {
         position: sticky;
         top: 0;
@@ -400,7 +400,7 @@
         <div class="transport lap">
           <p class="nocut">No render of the whole film yet</p>
         </div>
-        <div class="kinds" role="group" aria-label="Kinds">
+        <nav class="kinds" aria-label="Kinds">
           <button class="btn">Score <small>1</small></button
           ><button class="btn">Looks <small>1</small></button
           ><button class="btn">Sounds <small>30</small></button
@@ -408,7 +408,7 @@
           ><button class="icon-btn lap" aria-label="Choices menu">
             <svg class="i fill"><use href="#i-more" /></svg>
           </button>
-        </div>
+        </nav>
 
         <section class="point">
           <header><b>score</b><span>plays piano</span><span class="k">film</span></header>
