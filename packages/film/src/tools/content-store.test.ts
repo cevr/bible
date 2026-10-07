@@ -1,13 +1,12 @@
-// ContentStore: updates finishing together all land, in one process or two,
-// and a current hash skips the work.
+// ContentStore: updates finishing together all land, in one process or many,
+// one writer holding a manifest's lock at a time; a writer that dies lets it
+// go at once; and a current hash skips the work.
 
 import { BunServices } from '@effect/platform-bun';
-import { test } from 'bun:test';
 import { describe, expect, it } from 'effect-bun-test';
 import {
   Array as Arr,
   Cause,
-  Clock,
   Context,
   Deferred,
   Effect,
@@ -18,19 +17,15 @@ import {
   Option,
   Path,
   Schema,
+  Stream,
 } from 'effect';
-import * as PlatformError from 'effect/PlatformError';
+import { ChildProcess, ChildProcessSpawner } from 'effect/process';
 import { TestClock } from 'effect/testing';
 import { type SoundManifest, SoundManifestJson } from '../core/schema.ts';
-import {
-  ContentStore,
-  LockOwnerJson,
-  type Manifest,
-  Processes,
-  lockFile,
-  lockVerdict,
-} from './content-store.ts';
-import { memoryFileSystem, storeLayer, text } from './testing.ts';
+import { ContentStore, type Manifest } from './content-store.ts';
+import { ManifestLock, type ManifestLockService } from './manifest-lock.ts';
+import { bunManifestLock, lockFile } from './manifest-lock-bun.ts';
+import { memoryFileSystem, memoryManifestLock, storeLayer } from './testing.ts';
 
 const manifest: Manifest<SoundManifest> = {
   file: '/films/test/sound/manifest.json',
@@ -50,61 +45,22 @@ const assets: Manifest<typeof Assets.Type> = {
 };
 
 /**
- * A store over `files`, whose file system refuses to create a file that is
- * there (`wx`), as a disk does: another process, as far as any lock knows.
+ * A store over `files`, its locks `locks`: another process, as far as its
+ * locks know, beside every other store over the same ones.
  */
-const storeOn = (files: Map<string, Uint8Array>) =>
+const storeOn = (files: Map<string, Uint8Array>, locks: ManifestLockService) =>
   Effect.map(
-    Layer.build(ContentStore.layer.pipe(Layer.provide([memoryFileSystem(files), Path.layer]))),
+    Layer.build(
+      ContentStore.layer.pipe(
+        Layer.provide([memoryFileSystem(files), Path.layer]),
+        Layer.provide(Layer.succeed(ManifestLock, locks)),
+      ),
+    ),
     Context.get(ContentStore),
   );
 
-/**
- * A store over `files` whose file system is the in-memory one with `over`'s
- * operations in place of its own (each handed the in-memory one).
- */
-const storeOver = (
-  files: Map<string, Uint8Array>,
-  over: (memory: FileSystem.FileSystem) => Partial<FileSystem.FileSystem>,
-) =>
-  Effect.gen(function* () {
-    const memory = yield* Effect.map(
-      Layer.build(memoryFileSystem(files)),
-      Context.get(FileSystem.FileSystem),
-    );
-    const disk = FileSystem.FileSystem.of({ ...memory, ...over(memory) });
-    return yield* Effect.map(
-      Layer.build(
-        ContentStore.layer.pipe(
-          Layer.provide([Layer.succeed(FileSystem.FileSystem, disk), Path.layer]),
-        ),
-      ),
-      Context.get(ContentStore),
-    );
-  });
-
-/**
- * A store over `files` whose first give-back of `lock` fails to remove it (a
- * busy disk, say); the process runs on.
- */
-const flakyStoreOn = (files: Map<string, Uint8Array>, lock: string) => {
-  let refusals = 1;
-  return storeOver(files, (memory) => ({
-    remove: (file, options) =>
-      Effect.suspend(() => {
-        if (file !== lock || refusals === 0) return memory.remove(file, options);
-        refusals -= 1;
-        return Effect.fail(
-          PlatformError.systemError({
-            _tag: 'Busy',
-            module: 'FileSystem',
-            method: 'remove',
-            pathOrDescriptor: file,
-          }),
-        );
-      }),
-  }));
-};
+/** A store of its own over the disk, its locks this host's: another process, as far as they know. */
+const storeOnDisk = Effect.map(Layer.build(ContentStore.layer), Context.get(ContentStore));
 
 /** An entry `key` added to the assets. */
 const withAsset = (key: string) => (m: typeof Assets.Type) => ({
@@ -119,19 +75,17 @@ const waited = <A, E>(effect: Effect.Effect<A, E>) =>
     return yield* Fiber.join(running);
   });
 
+/** The timeout of a test that starts a process of its own: a cold start's time is the machine's. */
+const SPAWNS_MS = 30_000;
+
 describe('ContentStore', () => {
   it.effect('keeps every entry when updates race', () =>
     Effect.gen(function* () {
       const store = yield* ContentStore;
       const ids = ['a', 'b', 'c', 'd', 'e', 'f'];
-      yield* Effect.forEach(
-        ids,
-        (id) =>
-          store.update(assets, (m) => ({
-            assets: { ...m.assets, [id]: { hash: id, file: `${id}.flac` } },
-          })),
-        { concurrency: ids.length },
-      );
+      yield* Effect.forEach(ids, (id) => store.update(assets, withAsset(id)), {
+        concurrency: ids.length,
+      });
       const stored = yield* store.read(assets);
       expect(Object.keys(stored.assets).toSorted()).toEqual(ids);
     }).pipe(Effect.provide(storeLayer(new Map()))),
@@ -142,24 +96,133 @@ describe('ContentStore', () => {
       const fs = yield* FileSystem.FileSystem;
       const dir = yield* fs.makeTempDirectoryScoped();
       const shared = { ...assets, file: `${dir}/assets.json` };
-      // Each store is its own layer: another process, as far as any lock knows.
-      const own = Effect.map(Layer.build(ContentStore.layer), Context.get(ContentStore));
-      const [a, b] = [yield* own, yield* own];
+      const [a, b] = [yield* storeOnDisk, yield* storeOnDisk];
       const burst = (store: typeof a, who: string) =>
-        Effect.forEach(
-          Arr.range(1, 20),
-          (i) =>
-            store.update(shared, (m) => ({
-              assets: { ...m.assets, [`${who}${i}`]: { hash: who, file: `${who}${i}.flac` } },
-            })),
-          { concurrency: 4 },
-        );
+        Effect.forEach(Arr.range(1, 20), (i) => store.update(shared, withAsset(`${who}${i}`)), {
+          concurrency: 4,
+        });
       yield* Effect.all([burst(a, 'a'), burst(b, 'b')], { concurrency: 2 });
       const stored = yield* Schema.decodeEffect(assets.codec)(
         yield* fs.readFileString(shared.file),
       );
       expect(Object.keys(stored.assets).length).toBe(40);
-      expect(yield* fs.readDirectory(dir)).toEqual(['assets.json']);
+      // The manifest, and its lock file, which stays.
+      expect((yield* fs.readDirectory(dir)).toSorted()).toEqual([
+        '.assets.json.lock',
+        'assets.json',
+      ]);
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  it.live(
+    'writers of many stores at once on disk hold the lock one at a time, and lose no entry',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const dir = yield* fs.makeTempDirectoryScoped();
+        const shared = { ...assets, file: `${dir}/assets.json` };
+        // Each change counts the writers inside at once, and goes to the disk
+        // once inside, so any other writer let in meanwhile is counted.
+        const inside = { now: 0, most: 0 };
+        const change = (key: string) => (m: typeof Assets.Type) =>
+          Effect.gen(function* () {
+            inside.now += 1;
+            inside.most = Math.max(inside.most, inside.now);
+            yield* fs.exists(shared.file);
+            inside.now -= 1;
+            return [key, withAsset(key)(m)] as const;
+          });
+        const keys = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        const stores = yield* Effect.forEach(keys, () => storeOnDisk);
+        yield* Effect.forEach(
+          Arr.zip(stores, keys),
+          ([store, key]) => store.transact(shared, change(key)),
+          { concurrency: keys.length },
+        );
+        expect(inside.most).toBe(1);
+        const stored = yield* Schema.decodeEffect(assets.codec)(
+          yield* fs.readFileString(shared.file),
+        );
+        expect(Object.keys(stored.assets).toSorted()).toEqual(keys);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+  );
+
+  it.effect(
+    'a writer killed holding the lock lets it go at once; alive, it holds however long',
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const dir = yield* fs.makeTempDirectoryScoped();
+        const shared = { ...assets, file: `${dir}/assets.json` };
+        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+        const holder = yield* spawner.spawn(
+          ChildProcess.make('bun', [
+            path.join(import.meta.dir, 'fixtures', 'hold-manifest.ts'),
+            shared.file,
+          ]),
+        );
+        const said = yield* holder.stdout.pipe(
+          Stream.decodeText(),
+          Stream.takeUntil((chunk) => chunk.includes('held')),
+          Stream.mkString,
+        );
+        expect(said).toContain('held');
+        // Another process holds it: this writer waits its whole wait, and is refused.
+        const store = yield* storeOnDisk;
+        const refused = yield* waited(Effect.flip(store.update(shared, withAsset('x'))));
+        expect(refused).toMatchObject({ _tag: 'StoreLocked', file: shared.file });
+        // Killed where it stands: the next change lands at its first try, no clock passing.
+        yield* holder.kill({ killSignal: 'SIGKILL' });
+        yield* Effect.ignore(holder.exitCode);
+        yield* store.update(shared, withAsset('x'));
+        const stored = yield* store.read(shared);
+        expect(Object.keys(stored.assets)).toEqual(['x']);
+      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+    SPAWNS_MS,
+  );
+
+  it.effect(
+    'a holder in memory holds however long, and lets go when its change ends however it ends',
+    () =>
+      Effect.gen(function* () {
+        const files = new Map<string, Uint8Array>();
+        const locks = memoryManifestLock();
+        const [lab, cli] = [yield* storeOn(files, locks), yield* storeOn(files, locks)];
+        const holding = yield* Deferred.make<boolean>();
+        const held = yield* Effect.forkChild(
+          lab.holding(assets, () => Effect.andThen(Deferred.succeed(holding, true), Effect.never)),
+        );
+        yield* Deferred.await(holding);
+        yield* TestClock.adjust('1 hour');
+        const refused = yield* waited(Effect.flip(cli.update(assets, withAsset('x'))));
+        expect(refused).toMatchObject({ _tag: 'StoreLocked', file: assets.file });
+        // Its change cut short, as a process's end cuts it: the lock is let go.
+        yield* Fiber.interrupt(held);
+        yield* cli.update(assets, withAsset('x'));
+        expect(Object.keys((yield* cli.read(assets)).assets)).toEqual(['x']);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live("the in-memory lock and Bun's: one holder, refused while held, free once let go", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const dir = yield* fs.makeTempDirectoryScoped();
+      const file = `${dir}/assets.json`;
+      for (const locks of [memoryManifestLock(), bunManifestLock]) {
+        const first = yield* locks.take(file);
+        expect(Option.isSome(first)).toBe(true);
+        expect(yield* locks.take(file)).toEqual(Option.none());
+        yield* Option.getOrElse(first, () => Effect.void);
+        const again = yield* locks.take(file);
+        expect(Option.isSome(again)).toBe(true);
+        yield* Option.getOrElse(again, () => Effect.void);
+      }
+      // Bun's, held, is one empty file beside the manifest: it writes no journal.
+      const held = yield* bunManifestLock.take(file);
+      expect(yield* fs.readDirectory(dir)).toEqual(['.assets.json.lock']);
+      yield* Option.getOrElse(held, () => Effect.void);
+      expect(Number((yield* fs.stat(lockFile(file))).size)).toBe(0);
     }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
@@ -184,160 +247,9 @@ describe('ContentStore', () => {
     }).pipe(Effect.provide(storeLayer(new Map()))),
   );
 
-  it.live('breaking a stale lock never clobbers a lock a third writer took meanwhile', () =>
-    Effect.gen(function* () {
-      const real = yield* FileSystem.FileSystem;
-      const dir = yield* real.makeTempDirectoryScoped();
-      const shared = { ...assets, file: `${dir}/assets.json` };
-      const lock = lockFile(shared.file);
-      const now = yield* Clock.currentTimeMillis;
-      const owner = (pid: number, token: string) =>
-        Schema.encodeSync(LockOwnerJson)({ pid, created: now, token });
-      // Left by a crash: a pid no process has.
-      yield* real.writeFileString(lock, owner(2 ** 22 + 7, 'crashed'));
-      // The race, played in order around this writer's break: another writer
-      // breaks the crashed lock and takes its own just before this one moves
-      // it aside, and a third takes the lock the moment it is moved.
-      let raced = false;
-      const seen: Array<string> = [];
-      const racing = FileSystem.FileSystem.of({
-        ...real,
-        rename: (from, to) => {
-          if (raced || from !== lock) return real.rename(from, to);
-          raced = true;
-          return real
-            .writeFileString(lock, owner(process.pid, 'second'))
-            .pipe(
-              Effect.andThen(real.rename(from, to)),
-              Effect.andThen(real.writeFileString(lock, owner(process.pid, 'third'))),
-            );
-        },
-        // What the lock holds when this writer next judges it; then the third lets go.
-        readFileString: (file, encoding) =>
-          real.readFileString(file, encoding).pipe(
-            Effect.tap((text) =>
-              Effect.when(
-                Effect.sync(() => seen.push(text)).pipe(Effect.andThen(real.remove(lock))),
-                Effect.sync(() => raced && file === lock && seen.length === 0),
-              ),
-            ),
-          ),
-      });
-      const store = yield* Effect.map(
-        Layer.build(
-          ContentStore.layer.pipe(Layer.provide(Layer.succeed(FileSystem.FileSystem, racing))),
-        ),
-        Context.get(ContentStore),
-      );
-      yield* store.update(shared, (m) => m);
-      expect(seen.map((text) => text.includes('"third"'))).toEqual([true]);
-    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
-  );
-
-  it.live('a stale lock is broken by one writer alone, so no two writers ever hold it', () =>
-    Effect.gen(function* () {
-      const real = yield* FileSystem.FileSystem;
-      const dir = yield* real.makeTempDirectoryScoped();
-      const shared = { ...assets, file: `${dir}/assets.json` };
-      const lock = lockFile(shared.file);
-      // Left by a crash: a pid no process has.
-      yield* real.writeFileString(
-        lock,
-        yield* Schema.encodeEffect(LockOwnerJson)({
-          pid: 2 ** 22 + 7,
-          created: 0,
-          token: 'crashed',
-        }),
-      );
-      // Each change counts the writers inside one at once, and stays until let go.
-      const release = yield* Deferred.make<boolean>();
-      const inside = { now: 0, most: 0 };
-      const change = (entered: Deferred.Deferred<boolean>) => (m: typeof Assets.Type) =>
-        Effect.gen(function* () {
-          inside.now += 1;
-          inside.most = Math.max(inside.most, inside.now);
-          yield* Deferred.succeed(entered, true);
-          yield* Deferred.await(release);
-          inside.now -= 1;
-          return [true, m] as const;
-        });
-      const storeWith = (fs: FileSystem.FileSystem) =>
-        Effect.map(
-          Layer.build(
-            ContentStore.layer.pipe(Layer.provide(Layer.succeed(FileSystem.FileSystem, fs))),
-          ),
-          Context.get(ContentStore),
-        );
-      const writer = Effect.fn('test.writer')(function* (fs: FileSystem.FileSystem) {
-        const store = yield* storeWith(fs);
-        const entered = yield* Deferred.make<boolean>();
-        return { entered, run: Effect.forkDetach(store.transact(shared, change(entered))) };
-      });
-      const second = yield* writer(real);
-      const third = yield* writer(real);
-      // A soon inside, or not at all.
-      const settle = (w: typeof second) =>
-        Effect.ignore(Effect.timeout(Deferred.await(w.entered), '300 millis'));
-      // Around this writer's move of the crashed lock: a second writer breaks it
-      // too, then a third finds no lock the moment it is moved.
-      let raced = false;
-      const racing = FileSystem.FileSystem.of({
-        ...real,
-        rename: (from, to) => {
-          if (raced || from !== lock) return real.rename(from, to);
-          raced = true;
-          return Effect.gen(function* () {
-            const b = yield* second.run;
-            yield* settle(second);
-            yield* real.rename(from, to);
-            const c = yield* third.run;
-            yield* settle(third);
-            racers.push(b, c);
-            yield* Deferred.succeed(played, true);
-          });
-        },
-      });
-      const racers: Array<Fiber.Fiber<boolean, unknown>> = [];
-      const played = yield* Deferred.make<boolean>();
-      const first = yield* writer(racing);
-      const a = yield* first.run;
-      yield* Effect.ignore(Effect.timeout(Deferred.await(played), '3 seconds'));
-      yield* Deferred.succeed(release, true);
-      yield* Fiber.join(a);
-      yield* Fiber.joinAll(racers);
-      expect(raced).toBe(true);
-      expect(inside.most).toBe(1);
-      expect(yield* real.readDirectory(dir)).toEqual(['assets.json']);
-    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
-  );
-
-  it.effect('a crashed breaker is removed, and the stale lock it was breaking then broken', () =>
-    Effect.gen(function* () {
-      const files = new Map<string, Uint8Array>();
-      const store = yield* storeOn(files);
-      const lock = lockFile(assets.file);
-      const crashed = yield* Schema.encodeEffect(LockOwnerJson)({
-        pid: 4242,
-        created: 0,
-        token: 'gone',
-      });
-      files.set(lock, text(crashed));
-      files.set(`${lock}.break`, text(crashed));
-      // Only this process runs.
-      const thisOneRuns = Effect.provideService(Processes, {
-        host: 'here',
-        alive: (pid) => Effect.succeed(pid === process.pid),
-        startOf: () => Effect.succeedNone,
-      });
-      yield* waited(thisOneRuns(store.update(assets, withAsset('x'))));
-      expect([...files.keys()]).toEqual([assets.file]);
-    }).pipe(Effect.scoped),
-  );
-
   it.effect('a change that takes its own lock again dies naming it, never waiting on itself', () =>
     Effect.gen(function* () {
-      const store = yield* storeOn(new Map());
-      const lock = lockFile(assets.file);
+      const store = yield* storeOn(new Map(), memoryManifestLock());
       const again = [
         store.holding(assets, () => store.holding(assets, () => Effect.void)),
         store.holding(assets, () => store.update(assets, withAsset('x'))),
@@ -345,226 +257,11 @@ describe('ContentStore', () => {
       ];
       for (const nested of again) {
         const exit = yield* Effect.exit(nested);
-        expect(Exit.isFailure(exit) && Cause.pretty(exit.cause)).toContain(lock);
+        expect(Exit.isFailure(exit) && Cause.pretty(exit.cause)).toContain(assets.file);
       }
       // Another manifest's lock, taken inside, is no lock taken again.
       yield* store.holding(assets, () => store.update(manifest, (m) => m));
       expect(Object.keys((yield* store.read(assets)).assets)).toEqual([]);
     }).pipe(Effect.scoped),
   );
-
-  it.effect('a live holder keeps its lock however long it holds it', () => {
-    // Taken a minute ago by this very process, which still runs: a slow change, not a crash.
-    const held = Schema.encodeSync(LockOwnerJson)({ pid: process.pid, created: 0, token: 'slow' });
-    return Effect.gen(function* () {
-      const files = new Map<string, Uint8Array>();
-      const store = yield* storeOn(files);
-      const lock = lockFile(assets.file);
-      yield* TestClock.adjust('1 minute');
-      files.set(lock, text(held));
-      const refused = yield* waited(Effect.flip(store.update(assets, (m) => m)));
-      expect(refused._tag).toBe('StoreLocked');
-      expect(new TextDecoder().decode(files.get(lock))).toBe(held);
-    }).pipe(Effect.scoped);
-  });
-
-  it.effect('a lock this writer failed to give back is its own: its next change takes it', () =>
-    Effect.gen(function* () {
-      const files = new Map<string, Uint8Array>();
-      const lock = lockFile(assets.file);
-      const store = yield* flakyStoreOn(files, lock);
-      const add = (key: string) =>
-        store.update(assets, (m) => ({
-          assets: { ...m.assets, [key]: { hash: key, file: `${key}.flac` } },
-        }));
-      yield* add('a');
-      expect(files.has(lock)).toBe(true);
-      yield* waited(add('b'));
-      expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['a', 'b']);
-      expect(files.has(lock)).toBe(false);
-    }).pipe(Effect.scoped),
-  );
-
-  it.effect('a lock it could not give back blocks no other process once the disk lets it go', () =>
-    Effect.gen(function* () {
-      const files = new Map<string, Uint8Array>();
-      const lock = lockFile(assets.file);
-      const lab = yield* flakyStoreOn(files, lock);
-      // Another process: a store of its own over the same files.
-      const cli = yield* storeOn(files);
-      yield* lab.update(assets, withAsset('a'));
-      expect(files.has(lock)).toBe(true);
-      yield* waited(cli.update(assets, withAsset('b')));
-      expect(Object.keys((yield* cli.read(assets)).assets)).toEqual(['a', 'b']);
-      expect(files.has(lock)).toBe(false);
-    }).pipe(Effect.scoped),
-  );
-
-  it.effect('a give-back whose read fails, not finding the lock gone, keeps it as its own', () =>
-    Effect.gen(function* () {
-      const files = new Map<string, Uint8Array>();
-      const lock = lockFile(assets.file);
-      // The lock read once more as the change gives it back fails, as EMFILE would.
-      let failRead = false;
-      const store = yield* storeOver(files, (memory) => ({
-        readFileString: (file, encoding) =>
-          Effect.suspend(() => {
-            if (file !== lock || !failRead) return memory.readFileString(file, encoding);
-            failRead = false;
-            return Effect.fail(
-              PlatformError.systemError({
-                _tag: 'Unknown',
-                module: 'FileSystem',
-                method: 'readFileString',
-                pathOrDescriptor: file,
-                description: 'EMFILE: too many open files',
-              }),
-            );
-          }),
-      }));
-      yield* store.update(assets, (m) => {
-        failRead = true;
-        return withAsset('a')(m);
-      });
-      yield* waited(store.update(assets, withAsset('b')));
-      expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['a', 'b']);
-      expect(files.has(lock)).toBe(false);
-    }).pipe(Effect.scoped),
-  );
-
-  it.effect('its leftover is that lock as it wrote it; its token elsewhere is not', () =>
-    Effect.gen(function* () {
-      const files = new Map<string, Uint8Array>();
-      const lock = lockFile(assets.file);
-      const store = yield* flakyStoreOn(files, lock);
-      yield* store.update(assets, (m) => m);
-      const left = yield* Schema.decodeEffect(LockOwnerJson)(
-        new TextDecoder().decode(files.get(lock)),
-      );
-      // A live writer on another host whose token is the leftover's.
-      const live = yield* Schema.encodeEffect(LockOwnerJson)({
-        pid: 4242,
-        host: 'elsewhere',
-        created: 0,
-        token: left.token,
-      });
-      const other: Manifest<typeof Assets.Type> = { ...assets, file: '/films/test/other.json' };
-      files.set(lockFile(other.file), text(live));
-      const elsewhere = yield* waited(Effect.flip(store.update(other, (m) => m)));
-      expect(elsewhere._tag).toBe('StoreLocked');
-      expect(new TextDecoder().decode(files.get(lockFile(other.file)))).toBe(live);
-      // The leftover gone after all, and that writer took this lock since.
-      files.set(lock, text(live));
-      const here = yield* waited(Effect.flip(store.update(assets, (m) => m)));
-      expect(here._tag).toBe('StoreLocked');
-      expect(new TextDecoder().decode(files.get(lock))).toBe(live);
-    }).pipe(Effect.scoped),
-  );
-
-  it.effect("a dead holder's lock is recovered; a holder on another host is never judged", () =>
-    Effect.gen(function* () {
-      const files = new Map<string, Uint8Array>();
-      const store = yield* storeOn(files);
-      const lock = lockFile(assets.file);
-      const heldOn = (host: string) =>
-        Schema.encodeSync(LockOwnerJson)({ pid: 4242, created: 0, token: 'gone', host });
-      // No process on this host runs, as far as this probe says.
-      const noneRunning = Effect.provideService(Processes, {
-        host: 'here',
-        alive: () => Effect.succeed(false),
-        startOf: () => Effect.succeedNone,
-      });
-      // Pid 4242 on another host: whether it runs cannot be known from here.
-      files.set(lock, text(heldOn('elsewhere')));
-      const refused = yield* waited(Effect.flip(noneRunning(store.update(assets, (m) => m))));
-      expect(refused._tag).toBe('StoreLocked');
-      expect(new TextDecoder().decode(files.get(lock))).toBe(heldOn('elsewhere'));
-      // Pid 4242 on this host, gone: its lock is broken and the change lands.
-      files.set(lock, text(heldOn('here')));
-      yield* waited(
-        noneRunning(
-          store.update(assets, (m) => ({
-            assets: { ...m.assets, x: { hash: 'x', file: 'x.flac' } },
-          })),
-        ),
-      );
-      expect(files.has(lock)).toBe(false);
-      expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['x']);
-    }).pipe(Effect.scoped),
-  );
-
-  it.effect('a lock whose pid now runs a process started since was left by a crash', () =>
-    Effect.gen(function* () {
-      const files = new Map<string, Uint8Array>();
-      const store = yield* storeOn(files);
-      const lock = lockFile(assets.file);
-      const takenBy = (started: string) =>
-        Schema.encodeSync(LockOwnerJson)({
-          pid: 4242,
-          host: 'here',
-          created: 0,
-          token: 't',
-          started,
-        });
-      // Pid 4242 runs, as a process that started at tick 900 of this boot.
-      const reused = Effect.provideService(Processes, {
-        host: 'here',
-        alive: () => Effect.succeed(true),
-        startOf: () => Effect.succeedSome('boot/900'),
-      });
-      // Taken by that very process: it holds.
-      files.set(lock, text(takenBy('boot/900')));
-      const refused = yield* waited(Effect.flip(reused(store.update(assets, (m) => m))));
-      expect(refused._tag).toBe('StoreLocked');
-      // Taken by the pid's earlier process, started at tick 100, which crashed: broken.
-      files.set(lock, text(takenBy('boot/100')));
-      yield* waited(reused(store.update(assets, withAsset('x'))));
-      expect(files.has(lock)).toBe(false);
-      expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['x']);
-    }).pipe(Effect.scoped),
-  );
-
-  it.live('the lock a change holds on disk names when its process started, as this host says', () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const dir = yield* fs.makeTempDirectoryScoped();
-      const shared = { ...assets, file: `${dir}/assets.json` };
-      const store = yield* Effect.map(Layer.build(ContentStore.layer), Context.get(ContentStore));
-      const held = yield* store.transact(shared, (m) =>
-        Effect.map(
-          fs.readFileString(lockFile(shared.file)),
-          (lock) => [Schema.decodeSync(LockOwnerJson)(lock), m] as const,
-        ),
-      );
-      const started = yield* (yield* Processes).startOf(process.pid);
-      // This host (Linux, /proc) says, and says the same of one process each time.
-      expect(Option.isSome(started)).toBe(true);
-      expect(Option.fromUndefinedOr(held.started)).toEqual(started);
-      expect(yield* (yield* Processes).startOf(process.pid)).toEqual(started);
-    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
-  );
-
-  test('a lock is stale only once its holder is gone; a running one holds however old, and another host is never judged', () => {
-    const owner = { pid: 42, host: 'here', created: 1_000_000, token: 't' };
-    const alive = () => true;
-    const gone = () => false;
-    const hourLater = 1_000_000 + 3_600_000;
-    expect(lockVerdict(Option.some(owner), hourLater, 'here', alive)).toEqual(Option.none());
-    expect(lockVerdict(Option.some(owner), 1_000_000 + 1_000, 'here', gone)).toEqual(
-      Option.some('its holder, pid 42, is gone'),
-    );
-    expect(lockVerdict(Option.some(owner), hourLater, 'there', gone)).toEqual(Option.none());
-    // A lock from before the host was written is judged as this host's.
-    const { host: _, ...unnamed } = owner;
-    expect(lockVerdict(Option.some(unnamed), hourLater, 'here', gone)).toEqual(
-      Option.some('its holder, pid 42, is gone'),
-    );
-    // One whose holder cannot be read ages from its file's mtime.
-    expect(lockVerdict(Option.none(), 1_000_000 + 29_000, 'here', gone, 1_000_000)).toEqual(
-      Option.none(),
-    );
-    expect(lockVerdict(Option.none(), 1_000_000 + 31_000, 'here', gone, 1_000_000)).toEqual(
-      Option.some('its holder cannot be read, and it was made 31 s ago'),
-    );
-  });
 });

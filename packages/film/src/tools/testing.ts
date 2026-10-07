@@ -58,6 +58,7 @@ import { LookFailed, type SceneTimes, type StillView } from '../core/easel.ts';
 import { Easel } from './easel.ts';
 import { RenderCatalogue } from './catalogue.ts';
 import { ContentStore } from './content-store.ts';
+import { ManifestLock, type ManifestLockService } from './manifest-lock.ts';
 import { labHandler } from './lab.ts';
 import { NotesStore } from './notes-store.ts';
 import { type DialogueRequest, ElevenLabs, type TtsRequest } from './elevenlabs.ts';
@@ -1538,8 +1539,29 @@ export const longHoldTimings: Timings = {
   scenes: { long: spokenTake(TWENTY) },
 };
 
+/**
+ * Manifest locks held in memory, as one host's kernel holds them: every
+ * store built over the same one is another process, as far as its locks
+ * know. A holder lets go when its change ends, however it ends.
+ */
+export const memoryManifestLock = (): ManifestLockService => {
+  const held = new Set<string>();
+  return {
+    take: (file) =>
+      Effect.sync(() => {
+        if (held.has(file)) return Option.none();
+        held.add(file);
+        return Option.some(Effect.sync(() => void held.delete(file)));
+      }),
+  };
+};
+
+/** Manifest locks in memory (`memoryManifestLock`), fresh each time the layer is built. */
+export const memoryLocks = Layer.sync(ManifestLock, memoryManifestLock);
+
+/** A store over `files`, its locks in memory, its own. */
 export const storeLayer = (files: Map<string, Uint8Array>) =>
-  ContentStore.layer.pipe(Layer.provide([memoryFileSystem(files), Path.layer]));
+  ContentStore.layer.pipe(Layer.provide([memoryFileSystem(files), Path.layer, memoryLocks]));
 
 /**
  * A probed line of text: a `w` × `h` box at (`x`, `y`), turned `rot` radians

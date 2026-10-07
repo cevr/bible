@@ -15,7 +15,14 @@ import { FilmRepo } from './film-repo.ts';
 import { Media } from './media.ts';
 import { MasterStampJson, Mixer, planOf, stampManifest } from './mixer.ts';
 import { NO_SCORES } from './media-store.ts';
-import { memoryFileSystem, noRecording, testFilm, testVoice, text } from './testing.ts';
+import {
+  memoryFileSystem,
+  memoryLocks,
+  noRecording,
+  testFilm,
+  testVoice,
+  text,
+} from './testing.ts';
 
 const scenes: ReadonlyArray<Timed> = [{ id: 'a', say: 'Hello.', min: 5 }];
 const timings: Timings = {
@@ -87,7 +94,7 @@ const setup = (finish: Finish, rate = MIX_RATE) => {
     }),
   ).pipe(Layer.provide(writingMedia(files, finish, rate, hung)));
   const fs = memoryFileSystem(files);
-  const store = ContentStore.layer.pipe(Layer.provide([fs, Path.layer]));
+  const store = ContentStore.layer.pipe(Layer.provide([fs, Path.layer, memoryLocks]));
   const layer = Mixer.layer.pipe(Layer.provideMerge(store), Layer.provide([fs, repo, media]));
   /** `effect` with one mixer and one store, sharing their locks. */
   const run = <A, E>(effect: Effect.Effect<A, E, Mixer | ContentStore>) =>

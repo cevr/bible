@@ -63,6 +63,7 @@ import {
   echoPages,
   freshFilm,
   memoryFileSystem,
+  memoryLocks,
   noReview,
   noSource,
   noStudio,
@@ -227,6 +228,7 @@ const labLayer = (store: Map<string, Uint8Array>, pages = echoPages) =>
     Layer.provideMerge(ContentStore.layer),
     Layer.provideMerge([
       memoryFileSystem(store),
+      memoryLocks,
       Path.layer,
       ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: '/lab' })),
     ]),

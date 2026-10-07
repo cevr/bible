@@ -21,7 +21,9 @@ import type { Pcm } from '../core/audio.ts';
 import { captionCues } from '../core/captions.ts';
 import { hashText, parse, takeScript, voiceFor, voiceKey } from '../core/narration.ts';
 import { type Cast, type Timed, type Timings, TimingsJson, type Voice } from '../core/schema.ts';
-import { ContentStore, Processes, lockFile, writeWholeWith } from './content-store.ts';
+import { ContentStore, Processes, writeWholeWith } from './content-store.ts';
+import { ManifestLock, type ManifestLockService } from './manifest-lock.ts';
+import { bunManifestLock } from './manifest-lock-bun.ts';
 import { ElevenLabs } from './elevenlabs.ts';
 import type { LoadedFilm } from './film-repo.ts';
 import {
@@ -40,6 +42,7 @@ import {
   fakeMedia,
   fakeLength,
   memoryFileSystem,
+  memoryManifestLock,
   storeLayer,
   testFilm,
   testVoice,
@@ -110,13 +113,9 @@ const narrate = (
 
 const spoken = (calls: ElevenLabsCalls) => calls.tts.map((r) => r.text);
 
-/** A host's processes as a sweep sees them: its name and which pids run; none says when it started. */
+/** A host's processes as a sweep sees them: its name and which pids run. */
 const processesOn = (host: string, alive: (pid: number) => boolean) =>
-  Effect.provideService(Processes, {
-    host,
-    alive: (pid) => Effect.succeed(alive(pid)),
-    startOf: () => Effect.succeedNone,
-  });
+  Effect.provideService(Processes, { host, alive: (pid) => Effect.succeed(alive(pid)) });
 
 describe('Narrator', () => {
   it.effect('records a stale beat once, and skips it once current', () =>
@@ -481,7 +480,11 @@ describe('Narrator', () => {
 
     const run = (files: Map<string, Uint8Array>, fs: Layer.Layer<FileSystem.FileSystem>) => {
       const layer = Narrator.layer.pipe(
-        Layer.provideMerge(ContentStore.layer.pipe(Layer.provide([fs, Path.layer]))),
+        Layer.provideMerge(
+          ContentStore.layer.pipe(
+            Layer.provide([fs, Path.layer, Layer.succeed(ManifestLock, memoryManifestLock())]),
+          ),
+        ),
         Layer.provide([fs, Path.layer, fakeElevenLabs(files, emptyCalls()), fakeMedia(files)]),
       );
       return narrate(layer, testVoice, reRecordA);
@@ -581,22 +584,18 @@ describe('Narrator', () => {
         yield* Deferred.make<boolean>(),
         yield* Deferred.make<boolean>(),
       ];
-      // The narrate's file system says when it asks for the timings' lock.
-      const lock = lockFile(paths.timings.file);
-      const watched = FileSystem.FileSystem.of({
-        ...fs,
-        writeFileString: (file, data, options) => {
-          if (file !== lock) return fs.writeFileString(file, data, options);
-          return Effect.andThen(
-            Deferred.succeed(asked, true),
-            fs.writeFileString(file, data, options),
-          );
-        },
-      });
+      // The narrate's locks say when it asks for the timings' lock.
+      const asking: ManifestLockService = {
+        take: (file) =>
+          Effect.andThen(
+            Effect.when(Deferred.succeed(asked, true), Effect.succeed(file === paths.timings.file)),
+            bunManifestLock.take(file),
+          ),
+      };
       // Each store is its own layer: another process, as far as any lock knows.
       const own = Effect.map(Layer.build(ContentStore.layer), Context.get(ContentStore));
       const lab = yield* own;
-      const narrate = yield* own.pipe(Effect.provideService(FileSystem.FileSystem, watched));
+      const narrate = yield* own.pipe(Effect.provideService(ManifestLock, asking));
       // The lab's Undo, as `land` makes it: under the timings' lock, the take
       // brought back first, then the timings that name it, once the sweep
       // has asked for the lock (or, holding none, swept).
@@ -613,7 +612,6 @@ describe('Narrator', () => {
       // `film narrate` sweeps the narration while the Undo holds the lock.
       yield* sweepNarration(paths).pipe(
         Effect.provideService(ContentStore, narrate),
-        Effect.provideService(FileSystem.FileSystem, watched),
         Effect.ensuring(Deferred.succeed(swept, true)),
       );
       yield* Fiber.join(undoing);
@@ -625,6 +623,9 @@ describe('Narrator', () => {
 
   describe('two writers on one film', () => {
     const DIR = '/films/test/narration';
+    /** One host in memory: its paths, and its manifest locks, which every store of a test shares. */
+    const host = () =>
+      Layer.mergeAll(Path.layer, Layer.succeed(ManifestLock, memoryManifestLock()));
     /** A film's files: just its timings, `recorded`. */
     const filed = () => new Map([[TIMINGS, text(Schema.encodeSync(TimingsJson)(recorded))]]);
     /** A file system over `files`, as another process sees them. */
@@ -694,7 +695,7 @@ describe('Narrator', () => {
         expect(after.scenes['b']?.file).toMatch(/^b\.[0-9a-f]{12}\.mp3$/);
         expect(placed(files, after)).toMatchObject({ inNarration: true });
         expect(putAway).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide(Path.layer)),
+      }).pipe(Effect.scoped, Effect.provide(host())),
     );
 
     it.live("another run's sweep waits for a take placed in narration/ to be named", () =>
@@ -721,28 +722,35 @@ describe('Narrator', () => {
           },
         });
         // The second says when it finds the timings' lock held, and waits for it.
-        const lock = lockFile(TIMINGS);
-        const asking = FileSystem.FileSystem.of({
-          ...fs,
-          writeFileString: (file, data, options) => {
-            if (file !== lock) return fs.writeFileString(file, data, options);
-            return fs
-              .writeFileString(file, data, options)
-              .pipe(Effect.tapError(() => Deferred.succeed(asked, true)));
-          },
-        });
+        const locks = yield* ManifestLock;
+        const asking: ManifestLockService = {
+          take: (file) =>
+            locks
+              .take(file)
+              .pipe(
+                Effect.tap((got) =>
+                  Effect.when(
+                    Deferred.succeed(asked, true),
+                    Effect.succeed(file === TIMINGS && Option.isNone(got)),
+                  ),
+                ),
+              ),
+        };
         const recording = yield* Effect.forkChild(firstRun(placing, files));
         yield* Deferred.await(landed);
         // A second `film narrate` sweeps: it waits for the lock, or, holding none, sweeps.
         const sweeping = yield* Effect.forkChild(
-          sweepElsewhere(asking).pipe(Effect.ensuring(Deferred.succeed(swept, true))),
+          sweepElsewhere(fs).pipe(
+            Effect.provideService(ManifestLock, asking),
+            Effect.ensuring(Deferred.succeed(swept, true)),
+          ),
         );
         yield* Effect.raceFirst(Deferred.await(asked), Deferred.await(swept));
         yield* Deferred.succeed(go, true);
         const after = yield* Fiber.join(recording);
         yield* Fiber.join(sweeping);
         expect(placed(files, after)).toMatchObject({ inNarration: true });
-      }).pipe(Effect.scoped, Effect.provide(Path.layer)),
+      }).pipe(Effect.scoped, Effect.provide(host())),
     );
 
     /**
@@ -784,7 +792,7 @@ describe('Narrator', () => {
         expect(new TextDecoder().decode(files.get(`${DIR}/full.wav`))).toBe('the mix');
       }).pipe(
         Effect.scoped,
-        Effect.provide(Path.layer),
+        Effect.provide(host()),
         processesOn('here', (pid) => pid === process.pid),
       ),
     );
@@ -801,7 +809,7 @@ describe('Narrator', () => {
         yield* Fiber.interrupt(mixing);
       }).pipe(
         Effect.scoped,
-        Effect.provide(Path.layer),
+        Effect.provide(host()),
         processesOn('here', () => true),
       ),
     );
@@ -819,7 +827,7 @@ describe('Narrator', () => {
           true,
         );
         expect(new TextDecoder().decode(files.get(`${DIR}/full.wav`))).toBe('the mix');
-      }).pipe(Effect.scoped, Effect.provide(Path.layer)),
+      }).pipe(Effect.scoped, Effect.provide(host())),
     );
 
     it.effect(
@@ -835,7 +843,7 @@ describe('Narrator', () => {
           yield* Deferred.succeed(finish, true);
           expect(Exit.isSuccess(yield* Fiber.join(mixing))).toBe(true);
           expect(new TextDecoder().decode(files.get(`${DIR}/full.wav`))).toBe('the mix');
-        }).pipe(Effect.scoped, Effect.provide(Path.layer)),
+        }).pipe(Effect.scoped, Effect.provide(host())),
     );
   });
 });
