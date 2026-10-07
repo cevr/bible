@@ -39,14 +39,14 @@ a.rv-card:hover { background: var(--surface-2); }
 /*
  * On a laptop a Set's picture is no taller than its view's room on the
  * first screen (\`--rv-room\`: under the header, the set's tools row, the
- * docked transport and the gaps between them), less what its view shows
- * over and under it, so its captions (\`--rv-cap-h\`: a hit and its padding),
- * their speakers and names stay on the first screen. A version's picture
+ * docked transport and the gaps between them), less the rows its view shows
+ * over it (\`--rv-pick-h\`: a row of chips and its gap). A version's picture
  * (one alone takes the page's width) is contained, so a shorter box
- * letterboxes the frame. A wipe's frame and a difference's (under their
- * chip rows, \`--rv-pick-h\`; a difference's hint under it) are narrowed to
- * that height at 16:9, so their pictures still fill them and the divider
- * splits the picture itself.
+ * letterboxes the frame, and is less its caption too (\`--rv-cap-h\`: a hit
+ * and its padding), which stays on the first screen. A wipe's frame and a
+ * difference's are narrowed to the room at 16:9, so their pictures still
+ * fill them and the divider splits the picture itself; their captions start
+ * at the fold, as the at-rest budget (UR2-17) counts those views.
  */
 @media ${WIDE} {
   .rv-main {
@@ -56,13 +56,10 @@ a.rv-card:hover { background: var(--surface-2); }
     --rv-pick-h: calc(var(--control-h) + var(--s-3));
   }
   .rv-grid > .rv-card[data-id] video { max-height: calc(var(--rv-room) - var(--rv-cap-h)); }
-  .rv-wipe {
-    max-width: calc((var(--rv-room) - var(--rv-pick-h) - var(--s-2) - var(--rv-cap-h)) * 16 / 9);
-    margin-inline: auto;
-  }
+  .rv-wipe { max-width: calc((var(--rv-room) - var(--rv-pick-h)) * 16 / 9); margin-inline: auto; }
+  /* A difference shows stills: no transport is docked over it, its room is the dock's too. */
   .rv-diff {
-    max-width: calc((var(--rv-room) - 2 * var(--rv-pick-h) - var(--lh-2) - var(--s-2)
-      - var(--rv-cap-h)) * 16 / 9);
+    max-width: calc((var(--rv-room) + var(--dock-h) + var(--s-3) - 2 * var(--rv-pick-h)) * 16 / 9);
     margin-inline: auto;
   }
 }
@@ -142,15 +139,20 @@ a.rv-card:hover { background: var(--surface-2); }
   .rv-time-rest { display: none; }
 }
 .rv-time[data-state="Buffering"] { color: var(--accent); }
-/* A player whose media cannot play says so in place of its clock. */
-.rv-failed { color: var(--state-warning); font-size: var(--fs-5); line-height: var(--lh-5); flex: none; }
 /*
  * A lone video (a video in no set, a render in a sheet): its picture a press
  * that plays or pauses it, then, once it has moved, its row under it in its
  * card. Its clock is its own, so the row says its time on a laptop too.
  */
-.rv-alone-picture { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+.rv-alone-picture { position: relative; display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
 .rv-alone-picture:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.rv-alone-picture:disabled { cursor: default; }
+/* One whose media cannot play says so across the foot of its picture. */
+.rv-alone-picture .rv-failed {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: var(--s-2) var(--s-3);
+  background: var(--backdrop-deep); color: var(--state-warning);
+  font-size: var(--fs-2); line-height: var(--lh-2); text-align: left;
+}
 .rv-alone-row { padding: var(--s-2) var(--s-3); }
 @media ${WIDE} {
   .rv-alone-row .rv-time-at { display: inline; }

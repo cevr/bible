@@ -158,6 +158,7 @@ const SKY = pageHref.set('out/art', 'render:sky');
 const LONE = '.rv-tall';
 const LONE_ROW = `${LONE} .rv-alone-row`;
 const LONE_VIDEO = `document.querySelector('${LONE} video')`;
+const LONE_FAILED = `${LONE} [data-act="play-video"] [data-role="failed"]`;
 
 /** What a lone video that cannot play says. */
 const CANNOT_PLAY = 'Can’t play this video';
@@ -359,18 +360,11 @@ describe('the review page', () => {
           };
         })()`);
         yield* page.click(`${LONE} [data-act="play-video"]`);
-        yield* textIs(page, `${LONE_ROW} [data-role="failed"]`, CANNOT_PLAY);
-        yield* attributeIs(
-          page,
-          `${LONE_ROW} [data-role="failed"]`,
-          'data-reason',
-          'NotSupportedError',
-        );
-        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '▶');
-        yield* attributeIs(page, `${LONE_ROW} [data-act="play"]`, 'disabled', '');
-        // A press on its picture plays nothing more.
-        yield* page.click(`${LONE} [data-act="play-video"]`);
-        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '▶');
+        // Its picture says so and takes no more presses; no row offers a play or a scrub.
+        yield* textIs(page, LONE_FAILED, CANNOT_PLAY);
+        yield* attributeIs(page, LONE_FAILED, 'data-reason', 'NotSupportedError');
+        yield* attributeIs(page, `${LONE} [data-act="play-video"]`, 'disabled', '');
+        yield* countIs(page, LONE_ROW, 0);
         yield* evaluates(page, `${LONE_VIDEO}.paused`, true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
@@ -385,10 +379,10 @@ describe('the review page', () => {
           [walkServes(() => text('gone', 404)), ...routes],
           { href: FOLDER },
         );
-        yield* textIs(page, `${LONE_ROW} [data-role="failed"]`, CANNOT_PLAY);
-        yield* attributeIs(page, `${LONE_ROW} [data-role="failed"]`, 'data-reason', 'error');
-        yield* page.click(`${LONE} [data-act="play-video"]`);
-        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '▶');
+        yield* textIs(page, LONE_FAILED, CANNOT_PLAY);
+        yield* attributeIs(page, LONE_FAILED, 'data-reason', 'error');
+        yield* attributeIs(page, `${LONE} [data-act="play-video"]`, 'disabled', '');
+        yield* countIs(page, LONE_ROW, 0);
         yield* evaluates(page, `${LONE_VIDEO}.paused`, true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
@@ -1027,14 +1021,13 @@ describe('the review page', () => {
   );
 
   it.live(
-    'on a laptop a wipe and a difference keep their captions on the first screen: their picture is no taller than the room, and still 16:9',
+    'on a laptop a wipe and a difference keep their whole picture on the first screen: no taller than the room, and still 16:9',
     () =>
       Effect.gen(function* () {
-        // Where `frame` ends, whether it is 16:9, and where the captions under it end.
+        // Whether `frame` is 16:9 and ends on the first screen, then its height and end.
         const fits = (frame: string) => `(() => {
           const r = document.querySelector('${frame}').getBoundingClientRect();
-          const caps = Math.max(...Array.from(document.querySelectorAll('.rv-wipe-caps .rv-cap'), (c) => c.getBoundingClientRect().bottom));
-          return [Math.round(r.height - (r.width * 9) / 16) === 0, caps <= innerHeight, Math.round(r.height), Math.round(caps), innerHeight].join(' ');
+          return [Math.round(r.height - (r.width * 9) / 16) === 0, r.bottom <= innerHeight, Math.round(r.height), Math.round(r.bottom), innerHeight].join(' ');
         })()`;
         const { page, errors } = yield* openReview(routes, {
           href: `${SET}?view=wipe&other=B`,

@@ -651,13 +651,9 @@ export const Transport = (props: {
   );
 };
 
-/** What a player whose media cannot play says, in place of its clock. */
-const CANNOT_PLAY = 'Can’t play this video';
-
 /**
  * A synced player's row: play, the clock and a scrub (`scrubs` names what it
- * moves), then `children` (the docked transport's rate chip). Once its media
- * cannot play, it says so in place of the clock, and neither plays nor scrubs.
+ * moves), then `children` (the docked transport's rate chip).
  */
 const TransportRow = (
   props: ParentProps<{
@@ -672,8 +668,6 @@ const TransportRow = (
   const { sync } = props;
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
-  const failure = () => failureOf(sync());
-  const failed = () => Option.isSome(failure());
   return (
     <section class={['rv-transport', { 'rv-alone-row': props.alone === true }]}>
       <button
@@ -682,7 +676,6 @@ const TransportRow = (
         data-primary=""
         data-act="play"
         title={props.title}
-        disabled={failed()}
         onClick={() => send.sync(SyncEvent.Toggled)}
       >
         {Match.value(playing()).pipe(
@@ -690,29 +683,14 @@ const TransportRow = (
           Match.orElse(() => '▶'),
         )}
       </button>
-      <Show
-        when={failed()}
-        fallback={
-          <span class="rv-time" data-state={sync()._tag}>
-            {/* The time: a laptop's header shows the docked one's already (`useShellTime`), so its row leaves it out. */}
-            <span class="rv-time-at">{clockParts(sync()).at}</span>
-            {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
-            <span class="rv-time-rest">{clockParts(sync()).rest}</span>
-          </span>
-        }
-      >
-        <span
-          class="rv-failed"
-          data-role="failed"
-          role="alert"
-          data-reason={Option.getOrElse(failure(), () => '')}
-        >
-          {CANNOT_PLAY}
-        </span>
-      </Show>
+      <span class="rv-time" data-state={sync()._tag}>
+        {/* The time: a laptop's header shows the docked one's already (`useShellTime`), so its row leaves it out. */}
+        <span class="rv-time-at">{clockParts(sync()).at}</span>
+        {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
+        <span class="rv-time-rest">{clockParts(sync()).rest}</span>
+      </span>
       <input
         type="range"
-        disabled={failed()}
         aria-label={props.scrubs}
         min={sync().start}
         max={reachOf(sync())}
@@ -729,14 +707,18 @@ const TransportRow = (
 /** The one video a lone player plays: its clock and the one heard. */
 const ALONE = 'alone';
 
+/** What a lone video whose media cannot play says, on its picture. */
+const CANNOT_PLAY = 'Can’t play this video';
+
 /**
  * A video on a clock of its own (a video in no set, a render in a sheet),
  * never the browser's controls: at rest (`atRest`) its picture is the one
- * control, a press plays or pauses it; otherwise (playing, scrubbed, paused
- * past its start, or failed) the review's transport row shows under it
- * (play, the clock, a scrub), and says so when its media cannot play. It is
- * heard, and its time is its own, not the page's. `children` are its
- * `<track>`s.
+ * control, a press plays or pauses it; once it has moved (playing, scrubbed,
+ * paused past its start) the review's transport row shows under it (play,
+ * the clock, a scrub), for the whole of a scrub. Once its media cannot play
+ * (`Failed`) its picture says so and takes no press, and no row shows: there
+ * is nothing to play or scrub. It is heard, and its time is its own, not the
+ * page's. `children` are its `<track>`s.
  */
 export const PlayedAlone = (
   props: ParentProps<{ readonly src: string; readonly poster: string }>,
@@ -751,14 +733,19 @@ export const PlayedAlone = (
         const driver = makeSync(ALONE, send, meta.host, { tellsFailure: true });
         onCleanup(driver.stop);
         createEffect(sync, (state) => driver.apply(state));
+        const failure = () => failureOf(sync());
+        const failed = () => Option.isSome(failure());
+        const label = () =>
+          Option.match(failure(), { onNone: () => 'Play / pause', onSome: () => CANNOT_PLAY });
         return (
           <>
             <button
               type="button"
               class="rv-alone-picture"
               data-act="play-video"
-              title="Play / pause"
-              aria-label="Play / pause"
+              title={label()}
+              aria-label={label()}
+              disabled={failed()}
               onClick={() => send(SyncEvent.Toggled)}
             >
               <video
@@ -770,8 +757,17 @@ export const PlayedAlone = (
               >
                 {props.children}
               </video>
+              <Show when={failed()}>
+                <span
+                  class="rv-failed"
+                  data-role="failed"
+                  data-reason={Option.getOrElse(failure(), () => '')}
+                >
+                  {CANNOT_PLAY}
+                </span>
+              </Show>
             </button>
-            <Show when={!atRest(sync())}>
+            <Show when={!atRest(sync()) && !failed()}>
               <TransportRow
                 sync={sync}
                 send={send}
