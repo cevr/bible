@@ -6,7 +6,8 @@
 // dismiss (past the threshold, by a flick, or springing back). Every drawer
 // opens from its owner's `open`, as every page's does. Gestures are
 // synthetic pointer events whose `timeStamp` is set, so a drag's velocity is
-// exact. The touch scroll arbitration's iOS cases are left out.
+// exact. A finger on a scrolling body is the browser's own touches, so it
+// scrolls natively; the touch scroll arbitration's iOS cases are left out.
 import { describe, expect, it } from 'bun:test';
 
 import { expect as see, type Page } from '@playwright/test';
@@ -311,5 +312,53 @@ describe('swipe to dismiss', () => {
     const y = (box?.y ?? 0) + (box?.height ?? 0) / 2;
     await drag(page, { x, y }, { x, y: y + 250 });
     await see(page.locator('#popup')).toBeVisible();
+  });
+});
+
+/**
+ * A finger pressed at the middle of `#content` and moved `distance` px down
+ * in `steps` moves, then lifted: the browser's own touches (CDP), so it
+ * scrolls natively where nothing prevents it.
+ */
+async function fingerDownContent(page: Page, distance: number, steps: number) {
+  const cdp = await page.context().newCDPSession(page);
+  const at = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) =>
+    cdp.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: type === 'touchEnd' ? [] : [{ x, y }],
+    });
+  const box = await page.locator('#content').boundingBox();
+  const x = (box?.x ?? 0) + 20;
+  const y = (box?.y ?? 0) + (box?.height ?? 0) / 2;
+  await at('touchStart', x, y);
+  // One move after another, in order.
+  await Array.from({ length: steps }, (_, i) => y + (distance * (i + 1)) / steps).reduce<
+    Promise<unknown>
+  >((previous, moveY) => previous.then(() => at('touchMove', x, moveY)), Promise.resolve());
+  await at('touchEnd', x, y + distance);
+}
+
+const contentScrollTop = (page: Page) => page.locator('#content').evaluate((el) => el.scrollTop);
+
+describe('a finger on a scrolling body', () => {
+  it('scrolls a body scrolled down, and leaves the sheet open', async () => {
+    const page = await h.open('drawer', { touch: true, query: { body: 'tall' } });
+    await openDrawer(page);
+    await page.locator('#content').evaluate((el) => (el.scrollTop = 300));
+    await fingerDownContent(page, 80, 8);
+    await see.poll(() => contentScrollTop(page)).toBeLessThan(300);
+    expect(await contentScrollTop(page)).toBeGreaterThan(0);
+    await see(page.locator('#popup')).toBeVisible();
+    await see(page.locator('#popup')).not.toHaveAttribute('data-swiping', '');
+    expect(await logOf(page)).toEqual([]);
+  });
+
+  it('dismisses the sheet from a body at its top', async () => {
+    const page = await h.open('drawer', { touch: true, query: { body: 'tall' } });
+    await openDrawer(page);
+    expect(await contentScrollTop(page)).toBe(0);
+    await fingerDownContent(page, 200, 10);
+    await see(page.locator('#popup')).toHaveCount(0);
+    expect(await logOf(page)).toEqual(['open false swipe']);
   });
 });

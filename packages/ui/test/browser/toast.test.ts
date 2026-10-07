@@ -291,6 +291,35 @@ describe('swipe', () => {
     await see(roots(page)).toHaveCount(1);
   });
 
+  it('dismisses when swiped down by a finger', async () => {
+    const page = await h.open('receipt', { touch: true });
+    await page.clock.install();
+    await page.click('#raise');
+    await see(roots(page)).toHaveCount(1);
+    // The browser's own touches (CDP), so the pointer events are its own: pointerType touch.
+    const cdp = await page.context().newCDPSession(page);
+    const at = (type: 'touchStart' | 'touchMove' | 'touchEnd', x: number, y: number) =>
+      cdp.send('Input.dispatchTouchEvent', {
+        type,
+        touchPoints: type === 'touchEnd' ? [] : [{ x, y }],
+      });
+    const box = await page.locator('[data-testid="title"]').boundingBox();
+    if (!box) {
+      throw new Error('no box');
+    }
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    await at('touchStart', x, y);
+    // Ten moves of 10px, one after another.
+    await Array.from({ length: 10 }, (_, i) => y + (i + 1) * 10).reduce<Promise<unknown>>(
+      (previous, moveY) => previous.then(() => at('touchMove', x, moveY)),
+      Promise.resolve(),
+    );
+    await at('touchEnd', x, y + 100);
+    await see(roots(page)).toHaveCount(0);
+    expect(await logOf(page)).toEqual(['removed 1']);
+  });
+
   it('does not start a swipe from a button inside the toast', async () => {
     const page = await openReceipt();
     await page.click('#raise');

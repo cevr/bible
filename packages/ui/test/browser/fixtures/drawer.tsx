@@ -4,7 +4,9 @@
 // `direction` (the root's `swipeDirection`: `down` by default, or `right`
 // for a side sheet), `modal=false`, `owner=cancel` for an owner that cancels
 // every close, `initial=first|false` for an `initialFocus` that returns the
-// first button or `false`. `async-owner` is the studio's shape: an
+// first button or `false`, `body=tall` for a `Drawer.Content` that scrolls
+// (120px tall over 600px of content, as the phone inspector's body does).
+// `async-owner` is the studio's shape: an
 // `open` that stays true, under a page that drops the drawer later.
 //
 // The bottom sheet is 300px tall on an 800x600 page (its top edge at y=300);
@@ -76,7 +78,13 @@ function BasicDrawer(): JSX.Element {
           <Drawer.Viewport id="viewport" class="viewport">
             <Drawer.Popup id="popup" class="popup" initialFocus={initialFocus}>
               <Drawer.Title id="title">Sheet</Drawer.Title>
-              <Drawer.Content id="content">Selectable text</Drawer.Content>
+              {param('body') === 'tall' ? (
+                <Drawer.Content id="content" style={{ height: '120px', 'overflow-y': 'auto' }}>
+                  <div style={{ height: '600px' }}>Selectable text</div>
+                </Drawer.Content>
+              ) : (
+                <Drawer.Content id="content">Selectable text</Drawer.Content>
+              )}
               <button
                 type="button"
                 id="first"
