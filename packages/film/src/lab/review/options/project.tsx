@@ -57,7 +57,7 @@ import {
 import type { ReviewVideo } from '../../../core/review.ts';
 import { FILM_FPS, timecode } from '../../../core/time.ts';
 import { SceneCard, SceneFindings, StateBand } from '../../scenes/card.tsx';
-import { filmCounts, marksOf } from '../../scenes/marks.ts';
+import { filmCounts, marksOf, projectPlaced } from '../../scenes/marks.ts';
 import { type LabFailure, served } from '../../api.ts';
 import { type Ask, newestAsked } from '../asked.ts';
 import { Go, OPEN_ON_CHOICES, plainClick, useReview } from '../context.tsx';
@@ -413,6 +413,7 @@ const SceneRow = (props: {
     marksOf(
       Option.some(props.at.view()),
       Option.getOrElse(AsyncResult.value(findings()), () => []),
+      projectPlaced(props.at.view()),
     )(props.scene.scene);
   const card = (size: 'tile' | 'focus', picture: JSX.Element, verb: JSX.Element) => (
     <SceneCard
@@ -715,6 +716,7 @@ const FilmBand = (props: { readonly at: ProjectValue }) => {
     marksOf(
       Option.some(props.at.view()),
       Option.getOrElse(AsyncResult.value(findings()), () => []),
+      projectPlaced(props.at.view()),
     );
   return <StateBand scenes={props.at.view().project.scenes} marks={(scene) => marks()(scene)} />;
 };

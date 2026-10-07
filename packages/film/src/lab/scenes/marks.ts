@@ -1,7 +1,7 @@
 // What a scene's card and the tape say of each scene at a glance (design
 // language §6): its act, its render's state (out of date, not rendered) and
 // its approval (approved, or approved earlier) from the film's project, and the check's findings about it
-// (a finding whose address names the scene). Each mark is a chip: a word in
+// (a finding whose time is in the scene, or whose address names it: `findingScenes`). Each mark is a chip: a word in
 // the state's colour (`MarkChip.state`, a `--state-*` token's name), why in full its title. The
 // tape's legend counts them over the film, the film's own lines too. The check is counted
 // one way here for every page (`checkCount`, `countState`: Scenes, Project, Choices): each
@@ -11,9 +11,10 @@
 // be read (yet, or at all: a short has no project): the scene then has no
 // such mark, never a wrong one. Pure.
 
-import { Array as Arr, Boolean as Bool, Option, Result } from 'effect';
+import { Array as Arr, Boolean as Bool, Match, Option, Result } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
+import { sceneAt } from '../../core/layout.ts';
 import type { CheckLine } from '../../core/schema.ts';
 import { APPROVAL_TEXT, stateText } from '../review/format.ts';
 
@@ -32,20 +33,54 @@ interface MarkChip {
   readonly state: 'stale' | 'rendered' | 'approved' | 'findings' | 'warning';
 }
 
-/** Whether `line` is about `scene`: its address names the scene. */
-const about = (line: CheckLine, scene: string): boolean =>
-  Option.exists(
-    Option.fromUndefinedOr(line.address),
-    (a) => a.part._tag === 'Scenes' && a.part.ids.includes(scene),
+/** A scene as a finding is placed against it: its id, and where it starts in film seconds. */
+interface PlacedScene {
+  readonly id: string;
+  readonly start: number;
+}
+
+/** The project's scenes as findings are placed against them: each that says where it starts. */
+export const projectPlaced = (view: ProjectView): ReadonlyArray<PlacedScene> =>
+  view.project.scenes.flatMap((s) =>
+    Option.toArray(Option.map(s.span, (span) => ({ id: s.scene, start: span.start }))),
+  );
+
+/**
+ * The scenes `line` is about: by its time first (the scene `placed` shows
+ * then, `sceneAt`, as the playhead would), else by its address's scenes;
+ * none when it has neither, the film's own (the film's or an act's with no
+ * time, or no place).
+ */
+const findingScenes = (
+  line: CheckLine,
+  placed: ReadonlyArray<PlacedScene>,
+): Option.Option<ReadonlyArray<string>> =>
+  Option.flatMap(Option.fromUndefinedOr(line.address), (at) =>
+    Option.orElse(
+      Option.flatMap(Option.fromUndefinedOr(at.time), (t) =>
+        Option.map(sceneAt(placed, t), (p): ReadonlyArray<string> => [p.id]),
+      ),
+      () =>
+        Match.value(at.part).pipe(
+          Match.tag('Scenes', (part): Option.Option<ReadonlyArray<string>> =>
+            Option.some(part.ids),
+          ),
+          Match.orElse(() => Option.none<ReadonlyArray<string>>()),
+        ),
+    ),
   );
 
 /** Whether `line` is about one of `scenes`. */
-const aboutAny = (line: CheckLine, scenes: ReadonlyArray<string>): boolean =>
-  scenes.some((scene) => about(line, scene));
+const aboutAny = (
+  line: CheckLine,
+  scenes: ReadonlyArray<string>,
+  placed: ReadonlyArray<PlacedScene>,
+): boolean =>
+  Option.exists(findingScenes(line, placed), (ids) => ids.some((id) => scenes.includes(id)));
 
-/** Whether `line` is the film's own: addressed to no scene (the film's, an act's, or no place). */
-const filmsOwn = (line: CheckLine): boolean =>
-  !Option.exists(Option.fromUndefinedOr(line.address), (a) => a.part._tag === 'Scenes');
+/** Whether `line` is the film's own: about no scene (`findingScenes`). */
+const filmsOwn = (line: CheckLine, placed: ReadonlyArray<PlacedScene>): boolean =>
+  Option.isNone(findingScenes(line, placed));
 
 /**
  * The check's lines counted one way, wherever a page counts them (a scene's
@@ -81,9 +116,16 @@ export const countState = (
   );
 };
 
-/** What is known of each scene, from the project (when read) and the check's findings. */
+/**
+ * What is known of each scene, from the project (when read) and the check's
+ * findings, each about the scenes `findingScenes` places it in.
+ */
 export const marksOf =
-  (project: Option.Option<ProjectView>, findings: ReadonlyArray<CheckLine>) =>
+  (
+    project: Option.Option<ProjectView>,
+    findings: ReadonlyArray<CheckLine>,
+    placed: ReadonlyArray<PlacedScene>,
+  ) =>
   (scene: string): SceneMarks => ({
     act: Option.flatMap(project, (v) =>
       Option.map(
@@ -94,7 +136,7 @@ export const marksOf =
     render: Option.flatMap(project, (v) =>
       Arr.findFirst(v.project.scenes, (s) => s.scene === scene),
     ),
-    findings: findings.filter((line) => about(line, scene)),
+    findings: findings.filter((line) => aboutAny(line, [scene], placed)),
   });
 
 /** `n` of `one`, in words: `1 error`, `3 errors`. */
@@ -206,27 +248,28 @@ const counted = (
   [n].filter((k) => k > 0).map((k) => ({ mark, word, text: `${word} ${k}`, state }));
 
 /**
- * The tape's legend over `scenes`: how many are out of date, not rendered
- * and approved; then the check's lines about them, each once, by level
- * (`checkCount`: errors in the findings' colour, warnings in the
- * warnings'), and the film's own lines (`filmsOwn`: addressed to no scene)
+ * The tape's legend over the film's `placed` scenes: how many are out of
+ * date, not rendered and approved; then the check's lines about them, each
+ * once, by level (`checkCount`: errors in the findings' colour, warnings in
+ * the warnings'), and the film's own lines (`filmsOwn`: about no scene)
  * apart, in the colour of their most pressing level. None left at 0. A
- * check that failed says so, why in its title: never a clean film (RS-1).
+ * check that failed says so, why in its title: never a clean film.
  */
 export const legendOf = (
-  scenes: ReadonlyArray<string>,
+  placed: ReadonlyArray<PlacedScene>,
   marks: (scene: string) => SceneMarks,
   check: Result.Result<ReadonlyArray<CheckLine>, string>,
 ): ReadonlyArray<LegendLine> => {
   const lines = Result.getOrElse(check, () => []);
+  const scenes = placed.map((p) => p.id);
   const all = scenes.map(marks);
   const stale = all.filter((m) => Option.exists(m.render, (r) => r.state === 'stale')).length;
   const missing = all.filter((m) => Option.exists(m.render, (r) => r.state === 'missing')).length;
   const approved = all.filter((m) =>
     Option.exists(m.render, (r) => r.approval === 'approved'),
   ).length;
-  const theirs = checkCount(lines.filter((l) => aboutAny(l, scenes)));
-  const film = lines.filter(filmsOwn);
+  const theirs = checkCount(lines.filter((l) => aboutAny(l, scenes, placed)));
+  const film = lines.filter((l) => filmsOwn(l, placed));
   return [
     ...counted('stale', 'out of date', stale, 'stale'),
     ...counted('missing', 'not rendered', missing, 'rendered'),

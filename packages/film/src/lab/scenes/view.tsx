@@ -252,7 +252,7 @@ export const ScenesView = (props: ScenesViewProps) => {
     fromHost,
   );
   Effect.runFork(Effect.tap(calls.read, (r) => Effect.sync(() => setRead(r))));
-  const marks = createMemo(() => marksOf(read().project, findingsOf(read())));
+  const marks = createMemo(() => marksOf(read().project, findingsOf(read()), scenes));
 
   // The tape: its step kept per viewer, its line length the window's.
   const step = useAtomValue(() => keptStep);
@@ -768,7 +768,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   /** The selected scene (the path's), as the sheet's footer and its target name it. */
   const focused = () => Option.getOrElse(chosen(), () => '');
 
-  const legend = createMemo(() => legendOf(order, marks(), read().check));
+  const legend = createMemo(() => legendOf(scenes, marks(), read().check));
   // The page scrolls as a whole, the tape bar and the card held under the header.
   document.body.classList.add('scenes');
   onCleanup(() => document.body.classList.remove('scenes'));

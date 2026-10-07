@@ -1,5 +1,6 @@
 // A scene's marks come from what the page has read: its act, render state
-// and approval from the project, and the findings whose address names it.
+// and approval from the project, and the findings about it: whose time is in
+// it, else whose address names it.
 // Unread, a scene has no such mark (never a wrong one); its chips say the
 // most pressing first, and the legend counts the film's.
 
@@ -54,8 +55,15 @@ const FINDINGS: ReadonlyArray<CheckLine> = [
   { level: 'error', tag: 'Film', message: 'about the whole film' },
 ];
 
+/** The film's scenes where they start: one at 0 s, two at 4 s, three at 9 s. */
+const PLACED = [
+  { id: 'one', start: 0 },
+  { id: 'two', start: 4 },
+  { id: 'three', start: 9 },
+];
+
 describe('marksOf', () => {
-  const marks = marksOf(Option.some(VIEW), FINDINGS);
+  const marks = marksOf(Option.some(VIEW), FINDINGS, PLACED);
 
   test("a scene's act, render and the findings that name it", () => {
     const one = marks('one');
@@ -66,7 +74,7 @@ describe('marksOf', () => {
   });
 
   test('a project not read leaves a scene with no act and no render state', () => {
-    const unread = marksOf(Option.none(), [])('one');
+    const unread = marksOf(Option.none(), [], PLACED)('one');
     expect(unread.act).toEqual(Option.none());
     expect(unread.render).toEqual(Option.none());
     expect(chipsOf(unread)).toEqual([]);
@@ -94,6 +102,7 @@ describe('marksOf', () => {
         },
       }),
       [],
+      PLACED,
     )('one');
     expect(chipsOf(bySound).map((c) => [c.text, c.why])).toEqual([
       ['Out of date', "out of date: the film's sound changed since it was made"],
@@ -103,9 +112,7 @@ describe('marksOf', () => {
   });
 
   test("the legend counts the film's scenes out of date, approved, and the check's lines once each by level, the film's apart; none left at 0", () => {
-    expect(
-      legendOf(['one', 'two', 'three'], marks, Result.succeed(FINDINGS)).map((l) => l.text),
-    ).toEqual([
+    expect(legendOf(PLACED, marks, Result.succeed(FINDINGS)).map((l) => l.text)).toEqual([
       'out of date 1',
       'not rendered 1',
       'approved 1',
@@ -113,19 +120,44 @@ describe('marksOf', () => {
       'warnings 1',
       'film 1',
     ]);
+    const two = PLACED.filter((p) => p.id === 'two');
     expect(
-      legendOf(['two'], marksOf(Option.some(VIEW), []), Result.succeed([])).map((l) => l.text),
+      legendOf(two, marksOf(Option.some(VIEW), [], two), Result.succeed([])).map((l) => l.text),
     ).toEqual(['approved 1']);
   });
 
+  test("a finding with a time is the scene's playing then, as the Lab's inspector places it: one addressed to the film too", () => {
+    const deadAir: CheckLine = {
+      level: 'warning',
+      tag: 'DeadAir',
+      message: 'no sound 5.0-6.2 s',
+      address: { part: { _tag: 'Film' }, time: 5 },
+    };
+    const timed = marksOf(Option.some(VIEW), [deadAir], PLACED);
+    expect(timed('two').findings).toEqual([deadAir]);
+    expect(timed('one').findings).toEqual([]);
+    expect(legendOf(PLACED, timed, Result.succeed([deadAir])).map((l) => l.text)).toEqual([
+      'out of date 1',
+      'not rendered 1',
+      'approved 1',
+      'warnings 1',
+    ]);
+  });
+
   test("the tape bar's legend is a colour key, its words without the counts Info keeps (UR2-13)", () => {
-    expect(
-      legendOf(['one', 'two', 'three'], marks, Result.succeed(FINDINGS)).map((l) => l.word),
-    ).toEqual(['out of date', 'not rendered', 'approved', 'errors', 'warnings', 'film']);
+    expect(legendOf(PLACED, marks, Result.succeed(FINDINGS)).map((l) => l.word)).toEqual([
+      'out of date',
+      'not rendered',
+      'approved',
+      'errors',
+      'warnings',
+      'film',
+    ]);
   });
 
   test('a check that failed says so, why in its title: never a clean film (RS-1)', () => {
-    const failed = legendOf(['two'], marksOf(Option.some(VIEW), []), Result.fail('lab down'));
+    const two = PLACED.filter((p) => p.id === 'two');
+    const failed = legendOf(two, marksOf(Option.some(VIEW), [], two), Result.fail('lab down'));
     expect(failed.map((l) => [l.text, l.state])).toEqual([
       ['approved 1', 'approved'],
       ['check failed', 'findings'],
@@ -140,11 +172,7 @@ describe('marksOf', () => {
       ),
       { level: 'warning', tag: 'AudioStale', message: "the film's audio is older than its script" },
     ];
-    const legend = legendOf(
-      ['one', 'two', 'three'],
-      marksOf(Option.none(), lines),
-      Result.succeed(lines),
-    );
+    const legend = legendOf(PLACED, marksOf(Option.none(), lines, PLACED), Result.succeed(lines));
     expect(legend.map((l) => [l.text, l.state])).toEqual([
       ['warnings 20', 'warning'],
       ['film 1', 'warning'],

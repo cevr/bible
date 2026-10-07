@@ -212,7 +212,7 @@ const FilmState = (props: { readonly film: string }) => {
         <>
           <StateBand
             scenes={view().project.scenes}
-            marks={(scene) => marksOf(Option.some(view()), [])(scene)}
+            marks={(scene) => marksOf(Option.some(view()), [], [])(scene)}
           />
           <div class="rv-film-counts" data-role="counts">
             {filmCounts(view().project.scenes)}
