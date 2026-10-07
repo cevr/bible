@@ -5,11 +5,15 @@
 // tool stands until they have loaded, so no frame is drawn in a fallback
 // face. A face that will not load fails the page as a film that will not
 // start does: the film stops if it plays, the page ends (no key heard, no
-// feed asking) and says why. The probe
+// feed asking) and says why. A film's Scenes wait the same way, and their
+// header's timecode follows the player's time while they wait. The probe
 // film's face (`PROBE_FACE`) is the lab's file, held or refused here.
 
 import { Deferred, Effect, Exit } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
+import { pageHref } from '../../src/core/api.ts';
+import { timecode } from '../../src/core/time.ts';
+import { PROBE } from '../../src/lab/fixtures/probe-film.ts';
 import {
   PHONE,
   PROBE_FACE_FILE,
@@ -32,6 +36,12 @@ import {
 
 /** Long enough to bundle the server entry once, render, open, hydrate and stage the film. */
 const SLOW = 60_000;
+
+/** A laptop's window. */
+const DESK = { width: 1440, height: 900 };
+
+/** Where a seek on the Scenes goes, in film seconds: inside the probe film, off its start. */
+const SEEK_S = 2;
 
 /** Whether the stage's canvas has nothing drawn on it. */
 const BLANK = `(() => {
@@ -98,6 +108,32 @@ describe("a film's picture faces on the Lab", () => {
         yield* evaluates(page, BLANK, false);
         yield* evaluates(page, 'window.__fills.length > 0', true);
         yield* evaluates(page, '[...new Set(window.__fills)]', ['loaded']);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    "held on a film's Scenes: the header's timecode follows a seek though no frame is drawn",
+    () =>
+      Effect.gen(function* () {
+        const gate = yield* Deferred.make<void>();
+        const { page, errors } = yield* openServed(
+          'player',
+          [route('GET', PROBE_FACE_PATH, () => later(gate, file(PROBE_FACE_FILE)))],
+          { href: pageHref.scenes(PROBE), viewport: DESK, mountedOnly: true },
+        );
+        yield* evaluates(page, FACE_STATUS, 'loading');
+        yield* textIs(page, '.sh-tc', timecode(0));
+        // A seek while the face is held: the player's time moves, drawn or not.
+        yield* page.evaluate(`(location.hash = '#t=${SEEK_S}', 0)`);
+        yield* textIs(page, '.sh-tc', timecode(SEEK_S));
+        yield* evaluates(page, FACE_STATUS, 'loading');
+        // The face lands, and the page with it, standing where the seek left it.
+        yield* Deferred.done(gate, Exit.void);
+        yield* evaluates(page, FACE_STATUS, 'loaded');
+        yield* evaluates(page, "document.readyState === 'complete'", true);
+        yield* textIs(page, '.sh-tc', timecode(SEEK_S));
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
     SLOW,
