@@ -260,10 +260,6 @@ export const ScenesView = (props: ScenesViewProps) => {
   const phone = useMatches(props.host, PHONE);
   const tape = createMemo(() => tapeOf(scenes, film.duration, stepOf(step()), perRowAt(phone())));
   const [follow, setFollow] = createSignal(true, fromHost);
-  // A press on the tape bar's track scrubs or seeks away from the playhead: Follow turns off (design §6).
-  const unfollow = () => setFollow(false);
-  player.track.addEventListener('pointerdown', unfollow);
-  onCleanup(() => player.track.removeEventListener('pointerdown', unfollow));
 
   // The stills: one at a time, a frame apart, the lines on screen first; drawn as the
   // preview draws, with its captions or without them (its toggle, C): turned, the tape
@@ -803,7 +799,16 @@ export const ScenesView = (props: ScenesViewProps) => {
               </For>
             </div>
           </Show>
-          <div class="sc-track" ref={(el: HTMLDivElement) => el.append(player.bar)} />
+          {/* A press on the preview's track (the bar's one part shown here) scrubs or seeks away
+              from the playhead: Follow turns off (design §6). The track's own handler follows the
+              press; this only hears it pass. */}
+          <div
+            class="sc-track"
+            ref={(el: HTMLDivElement) => el.append(player.bar)}
+            onPointerDown={(e: PointerEvent) => {
+              if (e.target instanceof Node && player.track.contains(e.target)) setFollow(false);
+            }}
+          />
           {/* One row, whatever the film's marks: the colour key scrolls in its own strip.
               Its counts and the tape's step are Info's (⋯). */}
           <div class="sc-legend">
