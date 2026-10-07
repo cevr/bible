@@ -5,7 +5,7 @@
 import { type Vec2, vec2 } from 'math';
 import { probeOf, recordInk } from './probe.ts';
 import { hash2, noise1 } from '../core/random.ts';
-import { clamp, lerp } from '../core/time.ts';
+import { clamp, frameAtOrBefore, lerp } from '../core/time.ts';
 
 export type Pt = readonly [number, number];
 export type Path = ReadonlyArray<Pt>;
@@ -199,7 +199,7 @@ const normal: Vec2 = [0, 0];
 export const BOIL_FPS = 12;
 
 /** The boil tick at film second `T`: the frame the compositor and a short both draw it on. */
-export const boilTick = (T: number): number => Math.floor(T * BOIL_FPS + 1e-6);
+export const boilTick = (T: number): number => frameAtOrBefore(T, BOIL_FPS);
 
 export interface Hand {
   /** The boil tick (`BOIL_FPS` a second); lines re-jitter every tick. */

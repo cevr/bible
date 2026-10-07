@@ -7,7 +7,7 @@ import { describe, expect, test } from 'bun:test';
 import { Option, Schema } from 'effect';
 import { storeOver } from '../browser/storage.ts';
 import { deniedStorage, memoryStorage, refusingStorage } from '../browser/fixtures/storage.ts';
-import { DEFAULT_VIEW, type LabView, viewStore } from './view-state.ts';
+import { DEFAULT_VIEW, viewStore } from './view-state.ts';
 
 /** A value as stored JSON text, the lab's view or not. */
 const jsonText = Schema.encodeSync(Schema.fromJsonString(Schema.Unknown));
@@ -96,13 +96,14 @@ describe('lab view state', () => {
     expect(page().get()).toEqual(DEFAULT_VIEW);
   });
 
-  test('a stored A–B range (the link holds it now, #loop=) is dropped, the rest of its view kept; a looped cue is kept', () => {
+  test('a stored loop that is not a looped cue (an older tab kept an A–B range) is no loop, the rest of its view kept; a looped cue is kept', () => {
     const { storage, page } = tab();
-    const stored = (loop: NonNullable<LabView['loop']>) => {
+    const stored = (loop: Schema.Json) => {
       storage.setItem('film-lab-view:f', jsonText({ ...DEFAULT_VIEW, rate: 0.5, loop }));
       return page().get();
     };
     expect(stored({ kind: 'ab', from: 10, to: 12 })).toEqual({ ...DEFAULT_VIEW, rate: 0.5 });
+    expect(stored('nonsense')).toEqual({ ...DEFAULT_VIEW, rate: 0.5 });
     // A cue loop is resolved against the film when it is applied, so it is kept.
     expect(stored({ kind: 'cue', scene: 'hand', name: 'topple' }).loop).toEqual({
       kind: 'cue',

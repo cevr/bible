@@ -5,12 +5,53 @@ import {
   ease,
   envelope,
   invLerp,
+  frameAtOrAfter,
+  frameAtOrBefore,
+  framesOf,
   keys,
   lerp,
+  offTheMs,
+  onTheMs,
   progress,
   staggered,
   timecode,
 } from './time.ts';
+
+describe('the time grid', () => {
+  test('a time written to #t= or as an in point reads back in its own frame, never before it', () => {
+    // A scene that starts off the millisecond grid: `]` seeks to its exact start.
+    for (const T of [12.3333333, 4.5, 0, 7.12999, 99.0001]) {
+      const read = onTheMs(T);
+      expect(read).toBeGreaterThanOrEqual(T);
+      expect(read - T).toBeLessThan(0.001);
+    }
+    // A time already on the grid is written as itself, so reloads never creep.
+    expect(onTheMs(12.33)).toBe(12.33);
+  });
+
+  test('an out point rounds down, so a span marked never reaches past the times marked', () => {
+    for (const T of [12.3333333, 4.5, 0, 7.12999, 99.0001]) {
+      const read = offTheMs(T);
+      expect(read).toBeLessThanOrEqual(T);
+      expect(T - read).toBeLessThan(0.001);
+    }
+    expect(offTheMs(12.33)).toBe(12.33);
+    expect([onTheMs(3.4562), offTheMs(3.4562)]).toEqual([3.457, 3.456]);
+  });
+
+  test('a time on a frame is that frame, either way; float noise around it is not the next', () => {
+    // 0.1 + 0.2 is a hair over 0.3: still frame 9 at 30 fps, both ways.
+    expect([frameAtOrAfter(0.1 + 0.2, 30), frameAtOrBefore(0.1 + 0.2, 30)]).toEqual([9, 9]);
+    expect([frameAtOrAfter(0.31, 30), frameAtOrBefore(0.31, 30)]).toEqual([10, 9]);
+    // A boil tick at 12 a second: 0.25 s is the third tick's start.
+    expect(frameAtOrBefore(0.25 - 1e-12, 12)).toBe(3);
+  });
+
+  test('the frames a span holds: the first at or after its start, the last before its end', () => {
+    expect(framesOf({ from: 1, to: 2 }, 30)).toEqual({ first: 30, last: 59 });
+    expect(framesOf({ from: 3.4562, to: 7.4562 }, 30)).toEqual({ first: 104, last: 223 });
+  });
+});
 
 describe('time', () => {
   test('a time reads as the timecode of its nearest frame: HH:MM:SS:FF', () => {

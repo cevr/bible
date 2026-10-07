@@ -45,6 +45,7 @@ import type { ProbeSink } from '../canvas/probe.ts';
 import { isStandInCanvas, recorder, standInDom } from '../canvas/fixtures/stand-in.ts';
 import { sceneMoments } from '../core/moments.ts';
 import { FNV_START, fnvStep, fnvText } from '../core/random.ts';
+import { framesOf } from '../core/time.ts';
 import { inkOverFace } from './check.ts';
 import { type DrawFinding, DrawThrew, FrameImpure, InkOverFace } from './findings.ts';
 
@@ -265,8 +266,7 @@ const drawMoments = (film: Film): ReadonlyArray<DrawMoment> => {
     pure: m.at.includes('start') || m.at.includes('60%'),
   }));
   const edges = film.placed.flatMap((p) => {
-    const first = Math.ceil(p.start * fps - 1e-6);
-    const last = Math.ceil((p.start + p.dur) * fps - 1e-6) - 1;
+    const { first, last } = framesOf({ from: p.start, to: p.start + p.dur }, fps);
     const at = (label: string, frame: number): DrawMoment => ({
       scene: p.spec.id,
       at: label,

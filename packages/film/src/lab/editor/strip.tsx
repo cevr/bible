@@ -28,7 +28,7 @@ import { useLabPage } from '../panel.tsx';
 import { useLab } from '../shell.tsx';
 import { useEditor } from './context.tsx';
 import { anchorText } from './format.ts';
-import { type StripWindow, dragModeAt, edgeFor, stripWindow } from './grip.ts';
+import { SourceKnown, type StripWindow, dragModeAt, edgeFor, stripWindow } from './grip.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { useMotion } from '../motion/context.tsx';
 import type { LoopRange } from '../../player/main.ts';
@@ -158,9 +158,10 @@ export const Strip = () => {
   const { state: motionState, actions: motion } = useMotion();
   const [marking, setMarking] = createSignal(Option.none<LoopRange>());
   const file = () =>
-    Option.match(state.stripSource().source, {
-      onNone: () => state.stripSource().error,
-      onSome: (s) => s.file,
+    SourceKnown.$match(state.stripSource(), {
+      Reading: () => 'reading the source…',
+      Unread: ({ reason }) => reason,
+      Read: ({ source }) => source.file,
     });
   // A key as bound now: a rebound key reads as rebound.
   const keys = hubKeys(meta.hub);

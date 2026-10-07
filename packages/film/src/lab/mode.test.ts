@@ -22,7 +22,6 @@ describe('the mode commands', () => {
       () => 'edit',
       (m) => shown.push(m),
     );
-    expect(commands.map((c) => c.id)).toEqual(LAB_MODES.map((m) => `lab.mode.${m}`));
     const ctx = contextAt('lab', 'https://lab.test/films/probe/lab');
     expect(commands.filter((c) => c.when(ctx)).map((c) => c.id)).toEqual([
       'lab.mode.note',

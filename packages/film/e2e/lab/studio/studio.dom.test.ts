@@ -663,12 +663,15 @@ describe('the studio', () => {
           yield* shownAt(page, 1);
           yield* textIs(page, '[data-act="play"]', PAUSED);
           yield* countIs(page, '[data-beat="close"].selected', 1);
+          // ← steps back a beat.
+          yield* press(page, 'ArrowLeft');
+          yield* page.waitFor('[data-beat="thesis"].selected');
           // Out of the studio the lab's keys are the lab's again: → steps the film (ten frames
           // with Shift), not the beat.
           yield* page.evaluate('document.activeElement.blur()');
           yield* press(page, 'Shift+ArrowRight');
           yield* page.until(`Math.abs(${URL_T} - ${1 + 10 / 30}) < 0.002`);
-          yield* countIs(page, '[data-beat="close"].selected', 1);
+          yield* countIs(page, '[data-beat="thesis"].selected', 1);
         }),
       ),
     60_000,

@@ -7,7 +7,7 @@
 // receipt it lands with (the page's toast, `lab/command/receipts.tsx`).
 
 import { For, Show } from '@solidjs/web';
-import { Array as Arr, Option, Result } from 'effect';
+import { Option, Result } from 'effect';
 import type { ParentProps } from 'solid-js';
 import { createMemo } from 'solid-js';
 import type { SceneSpec } from '../../canvas/film.ts';
@@ -30,7 +30,7 @@ import { useEditor } from './context.tsx';
 import { EASE_BOX, anchorText, easePoints, easeY, findingsIn } from './format.ts';
 import { hubKeys } from '../command/changes.ts';
 import { countState } from '../scenes/marks.ts';
-import { cueCommit } from './grip.ts';
+import { cueCommit, cueRefusal } from './grip.ts';
 
 /** A small drawing of an ease: 0→1 across, with room for an overshoot. */
 const Curve = (props: { readonly name: EaseName }) => (
@@ -63,13 +63,8 @@ const CueFields = (props: CueFieldsProps) => {
   const scene = () => props.placed.spec.id;
   const fields = createMemo(() => state.fieldsOf(cueOf(scene(), props.name)));
   const field = (id: string) => fields().find((f) => f.id === id);
-  const writable = (field: 'ease') =>
-    Option.exists(state.inspectedSource().source, (s) =>
-      Option.exists(
-        Arr.findFirst(s.cues, (c) => c.name === props.name),
-        (c) => c[field] !== 'computed',
-      ),
-    );
+  // Why an ease cannot be written, as a drag or a typed field would be told.
+  const easeRefusal = createMemo(() => cueRefusal(state.inspectedSource(), props.name, ['ease']));
   const write = (patch: CuePatch) => {
     const commit = cueCommit(scene(), props.name, props.span, props.cue, patch);
     actions.commit(commit.write, {
@@ -114,8 +109,8 @@ const CueFields = (props: CueFieldsProps) => {
               class="sh-btn lab-ease"
               aria-pressed={`${e === props.cue.ease}`}
               data-ease={e}
-              title={e}
-              disabled={!writable('ease')}
+              title={Option.getOrElse(easeRefusal(), () => e)}
+              disabled={Option.isSome(easeRefusal())}
               onClick={() => {
                 if (e !== props.span.ease) write({ ease: e });
               }}
@@ -169,11 +164,20 @@ export const History = () => {
     Option.flatMap(state.report(), (r) => Option.fromUndefinedOr(r[verb]));
   // Each names its key as bound now: a rebound key reads as rebound.
   const keys = hubKeys(meta.hub);
+  // It names what the step will take: the stack's top as the page read it, the newest once
+  // the page has changed the stack since (`edit.undo`'s label says the same).
   const title = (verb: 'undo' | 'redo') =>
     keys.titled(
       Option.match(stepOf(verb), {
         onNone: () => `${verb} (nothing to ${verb})`,
-        onSome: (s) => `${verb} ${s.target}`,
+        onSome: (s) =>
+          Option.match(
+            Option.liftPredicate(s.target, () => state.stackCurrent()),
+            {
+              onNone: () => verb,
+              onSome: (target) => `${verb} ${target}`,
+            },
+          ),
       }),
       `edit.${verb}`,
     );

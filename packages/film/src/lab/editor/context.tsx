@@ -15,13 +15,21 @@
 // commands on the page's hub (`commands.ts`), and what its writes did is said
 // there as they land: the page's receipts.
 
-import { useAtomSet, useAtomValue } from '@bible/atom-solid';
-import { Effect, Equal, Fiber, Option, Result } from 'effect';
+import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { Effect, Equal, Fiber, Match, Option, Result } from 'effect';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createEffect, createMemo, onCleanup, untrack, useContext } from 'solid-js';
+import {
+  createContext,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  untrack,
+  useContext,
+} from 'solid-js';
 import { Pointer, Surface } from '../../browser/pointer.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
@@ -40,7 +48,7 @@ import { useLab } from '../shell.tsx';
 import {
   CueGrip,
   KnobGrip,
-  type SourceKnown,
+  SourceKnown,
   type Write,
   cueRefusal,
   fieldsOf,
@@ -48,6 +56,7 @@ import {
   knobRefusal,
   placesFreely,
   snapTargets,
+  unreadFor,
 } from './grip.ts';
 import { type Handle, knobMode } from './handles.ts';
 import { cueDestinations, editorCommands, snapOf, snapText } from './commands.ts';
@@ -68,6 +77,8 @@ interface EditorState {
   readonly inspectedSource: Accessor<SourceKnown>;
   /** The film's check as the page loaded: findings, the latest change, what Undo and Redo would do. */
   readonly report: Accessor<Option.Option<CheckReport>>;
+  /** Whether `report`'s Undo and Redo are still the newest the page knows: false once it has changed the stack. */
+  readonly stackCurrent: Accessor<boolean>;
   /** Whether a grip follows a press now (Pressed or Dragging): the strip offers Cancel while it does. */
   readonly holding: Accessor<boolean>;
   /** The inspector's fields of a cue or knob, as the lab holds it now (`grip.ts`). */
@@ -132,9 +143,9 @@ export const useEditor = (): EditorContextValue => useContext(EditorContext);
 /** A source read as the editor knows it: no answer yet is still being read. */
 const knownOf = (result: AsyncResult.AsyncResult<SceneSource, unknown>): SourceKnown =>
   AsyncResult.match(result, {
-    onInitial: () => ({ source: Option.none(), reading: true, error: '' }),
-    onFailure: (f) => ({ source: Option.none(), reading: false, error: reasonOf(f.cause) }),
-    onSuccess: (s) => ({ source: Option.some(s.value), reading: false, error: '' }),
+    onInitial: () => SourceKnown.Reading(),
+    onFailure: (f) => unreadFor(reasonOf(f.cause)),
+    onSuccess: (s) => SourceKnown.Read({ source: s.value }),
   });
 
 const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
@@ -147,7 +158,18 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   const sources = Atom.family((scene: string) =>
     runtime.atom(LabApi.use((api) => api.source(scene))),
   );
-  const checkAtom = runtime.atom(LabApi.use((api) => api.check));
+  // One count orders this page's history reads and the changes its writes made: each read
+  // carries the count it was asked at, so it can claim only the changes made before it.
+  let count = 0;
+  const next = () => {
+    count += 1;
+    return count;
+  };
+  const checkAtom = runtime.atom(
+    Effect.flatMap(Effect.sync(next), (asked) =>
+      LabApi.use((api) => Effect.map(api.check, (report) => ({ report, asked }))),
+    ),
+  );
 
   const stripScene = lab.scene;
   const inspected = createMemo(() =>
@@ -158,7 +180,8 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   const stripSource = createMemo(() => knownOf(stripResult()));
   const inspectedSource = createMemo(() => knownOf(inspectedResult()));
   const checked = useAtomValue(() => checkAtom);
-  const report = createMemo(() => AsyncResult.value(checked()));
+  const read = createMemo(() => AsyncResult.value(checked()));
+  const report = createMemo(() => Option.map(read(), (r) => r.report));
 
   const kept = useAtomValue(() => keptSnap);
   const keep = useAtomSet(() => keptSnap);
@@ -219,9 +242,20 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     if (grabbed) following = Option.some(drag);
   };
 
+  /** Whether the machine takes a press now; when it does not (a write out), the editor's slot says why. */
+  const pressTaken = (): boolean =>
+    Option.match(notTaken(edit(), 'press'), {
+      onSome: (why) => {
+        meta.hub.announce(refused(`not moved: ${why}`), EDIT_SLOT);
+        return false;
+      },
+      onNone: () => true,
+    });
+
   /** The cue `p` presses, selected and grabbed: whether a grip was grabbed. */
   const grabCue = (p: Press): boolean => {
     labActions.select(Option.some(cueOf(p.scene, p.cue)));
+    if (!pressTaken()) return false;
     const timeline = stage.timelineOf(p.scene);
     const fields = Option.match(Option.fromUndefinedOr(timeline[p.cue]), {
       onNone: () => [],
@@ -265,6 +299,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   /** The knob handle `p` presses, selected and grabbed: whether it was grabbed. */
   const grabKnobOf = (p: KnobPress): boolean => {
     labActions.select(Option.some(knobOf(p.scene, p.knob)));
+    if (!pressTaken()) return false;
     const refused = knobRefusal(stripSource(), p.knob);
     if (Option.isSome(refused)) {
       send(EditEvent.Refuse({ message: refused.value }));
@@ -303,16 +338,17 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   });
   onCleanup(letGo);
 
-  // A write out holds every reload (the rebuild its own scene file starts) until it is
-  // answered, so its receipt and its Undo are said before the page goes, and outlive it.
+  // A grip held holds every reload (an agent's save of any file the build reads), so the
+  // drag is not lost under the finger; a write out holds it (the rebuild its own scene file
+  // starts) until it is answered, so its receipt and its Undo are said before the page goes,
+  // and outlive it.
   const out = createMemo(() => edit()._tag === 'Writing' || edit()._tag === 'Checking');
-  createEffect(out, (writing) => {
-    Effect.runFork(
-      meta.reloads.hold(
-        'edit',
-        Option.liftPredicate('wait for the write’s answer', () => writing),
-      ),
-    );
+  const waitsFor = createMemo((): Option.Option<string> => {
+    if (holding()) return Option.some('let go of the cue or handle');
+    return Option.liftPredicate('wait for the write’s answer', () => out());
+  });
+  createEffect(waitsFor, (why) => {
+    Effect.runFork(meta.reloads.hold('edit', why));
   });
   onCleanup(() => {
     Effect.runFork(meta.reloads.hold('edit', Option.none()));
@@ -332,14 +368,39 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     },
   );
 
-  // The changes this page's writes and steps made: the history it read at load predates them.
-  const madeHere = new Set<ChangeId>();
+  // The changes this page's writes and steps made, each with the count it landed at.
+  const [made, setMade] = createSignal<ReadonlyMap<ChangeId, number>>(new Map());
   createEffect(
     () => edit(),
     (state) => {
-      if (state._tag === 'Written') Option.map(state.change, (c) => madeHere.add(c));
+      if (state._tag === 'Written')
+        Option.map(state.change, (c) => setMade((m) => new Map([...m, [c, next()]])));
     },
   );
+  // Those the history as read cannot hold: made after that read was asked. A read asked
+  // after a change holds it; one asked before does not, whenever its answer lands.
+  const madeHere = createMemo(() => {
+    const asked = Option.match(read(), { onNone: () => 0, onSome: (r) => r.asked });
+    return new Set([...made()].filter(([, at]) => at > asked).map(([c]) => c));
+  });
+  // A step refused (another client's change came after the one it named, or the change is
+  // gone) reads the history again, so Undo's label and the change it names move together
+  // to the stack as it is, and the next press steps what the refusal said to.
+  const readHistory = useAtomRefresh(() => checkAtom);
+  let stepOut = false;
+  createEffect(
+    () => edit(),
+    (state) => {
+      const refusedStep = stepOut && state._tag === 'Refused';
+      stepOut = Match.value(state).pipe(
+        Match.tag('Writing', 'Checking', (s) => s.write._tag === 'StepWrite'),
+        Match.orElse(() => false),
+      );
+      if (refusedStep) readHistory();
+    },
+  );
+  // The stack as the page read it names what Undo and Redo step until the page changes it.
+  const stackCurrent = createMemo(() => madeHere().size === 0);
 
   // Each step is its own request, with an id no other has: with no answer, the lab says by it
   // whether it landed. A receipt's names its change, so the lab steps that one or refuses.
@@ -358,11 +419,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       Option.fromUndefinedOr(
         [inspectedSource(), stripSource()][[inspected(), stripScene()].indexOf(scene)],
       ),
-      (): SourceKnown => ({
-        source: Option.none(),
-        reading: false,
-        error: `${scene} is neither inspected nor on the strip`,
-      }),
+      () => SourceKnown.Unread({ reason: `${scene} is neither inspected nor on the strip` }),
     );
 
   /** The inspector's fields of `s`, read again with each reload. */
@@ -437,6 +494,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     meta.hub.commands.register(
       ...editorCommands({
         undoable: (verb) => Option.flatMap(report(), (r) => Option.fromUndefinedOr(r[verb])),
+        stackCurrent,
         // A change this page made since it read the history is one that history cannot
         // know: judged as unread, so the lab decides (it reloads onto the history soon).
         whyNot: (verb, bound) =>
@@ -445,7 +503,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
             meta.name,
             Option.filter(
               report(),
-              () => !Option.exists(boundChange(bound), (c) => madeHere.has(c)),
+              () => !Option.exists(boundChange(bound), (c) => madeHere().has(c)),
             ),
           )(bound),
         step,
@@ -476,6 +534,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       stripSource,
       inspectedSource,
       report,
+      stackCurrent,
       holding,
       fieldsOf: fieldsAt,
       snap,

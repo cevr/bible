@@ -17,7 +17,7 @@ import type {
   NotesWait,
   Reply,
 } from './schema.ts';
-import { CLOCK_EPSILON } from './time.ts';
+import { framesOf } from './time.ts';
 
 /** Where a time falls on the film: its scene, how far into it, and the cue edge and mark nearest it there. */
 interface Moment {
@@ -71,12 +71,12 @@ export const nearestMoment = (placed: ReadonlyArray<Placed>, T: number): Option.
 /**
  * Film seconds `local` into placed scene `p`: as it is while inside the scene;
  * at or past its end (the scene got shorter), the scene's last frame, the last
- * one that starts before its end (a hair of float error is not a frame).
+ * one that starts before its end on the film's one frame grid (`framesOf`:
+ * an end within a millionth of a frame past a frame start is not a frame).
  */
 const inScene = (p: Placed, fps: number, local: number) => {
   if (local < p.dur) return p.start + local;
-  const end = (p.start + p.dur) * fps;
-  return Math.max(p.start, (Math.ceil(end - CLOCK_EPSILON) - 1) / fps);
+  return Math.max(p.start, framesOf({ from: p.start, to: p.start + p.dur }, fps).last / fps);
 };
 
 /**

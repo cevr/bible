@@ -64,7 +64,8 @@ describe('loops', () => {
       Effect.gen(function* () {
         const { page } = yield* openLab([], { href: labAt(1), mode: 'motion' });
         yield* page.waitFor('.lab-motion [data-act="loop"]');
-        yield* fromChip(page, 'loop', 'motion.in');
+        // I marks the in point, O the out point: the keys as bound by default.
+        yield* page.press('i');
         yield* motionSays(page, 'in 00:00:01:00');
         // The player is paused, so the hold's jump leaves the film where it stands.
         yield* page.clock.hold;

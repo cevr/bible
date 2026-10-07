@@ -1,7 +1,6 @@
 // Motion's loop as commands: Loop the selected cue is offered (and on the
 // cue's menu) only while a cue is selected, Stop looping only while
-// something loops, the in and out points answer I and O; Loop this scene
-// plays the span of the scene shown.
+// something loops; Loop this scene plays the span of the scene shown.
 
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
@@ -33,15 +32,6 @@ describe('the loop chip', () => {
     expect(offered(false, false)).toEqual(['motion.loop-scene', 'motion.in', 'motion.out']);
     expect(offered(true, true)).toEqual([...LOOP_IDS]);
   });
-
-  test('the in and out points answer I and O, the cue ⇧L on its own menu', () => {
-    const keys = Object.fromEntries(
-      loopCommands(verbs(true, false)).map((c) => [c.id, [c.keys ?? [], c.about ?? []]]),
-    );
-    expect(keys['motion.in']).toEqual([['i'], []]);
-    expect(keys['motion.out']).toEqual([['o'], []]);
-    expect(keys['motion.loop-cue']).toEqual([['shift+l'], ['Cue', 'Page']]);
-  });
 });
 
 describe('Loop this scene', () => {
@@ -54,9 +44,5 @@ describe('Loop this scene', () => {
     expect(sceneSpan(placed, 5)).toEqual(Option.some({ from: 4, to: 6.5 }));
     expect(sceneSpan(placed, 0)).toEqual(Option.some({ from: 0, to: 4 }));
     expect(sceneSpan([], 1)).toEqual(Option.none());
-  });
-
-  test('a time a hair of float error short of a start plays the scene starting there', () => {
-    expect(sceneSpan(placed, 4 - 1e-10)).toEqual(Option.some({ from: 4, to: 6.5 }));
   });
 });

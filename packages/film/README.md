@@ -699,7 +699,7 @@ pages also set a place's value directly (`UrlState.set` and `update`,
 | `/films/<film>/project`          | review | `point` (the card in focus, its sheet open), `heard`, `variant`, `picture`, `only`                                      | `t` (the picture)                    |
 | `/films/<film>/scenes[/<scene>]` | player |                                                                                                                         | `t` (film time)                      |
 | `/films/<film>/play`             | player |                                                                                                                         | `t` (film time)                      |
-| `/films/<film>/lab`              | lab    | `note`, `view` (the compare with HEAD)                                                                                  | `t` (film time), `loop`              |
+| `/films/<film>/lab`              | lab    | `note`, `view` (Compare's mode)                                                                                         | `t` (film time), `loop`              |
 | `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`, `beat` (the studio's), `view`                                                   | `t` (from the scene's start), `loop` |
 
 The lab writes a scene's place (`lab/place.ts`): the path names the
@@ -904,7 +904,8 @@ recorded and answered from the timings. A reload never takes work only the
 page holds: a take being recorded, under review, refused with its recording
 or on its way, or a note being made, holds every reload (`lab/reload-gate.ts`),
 which runs once it is submitted, discarded or saved; the panel says what it
-waits for. An editor write on its way holds it too: a scene file is page
+waits for. A cue or a knob handle held in the editor holds it (the drag is
+not lost under the finger), and an editor write on its way holds it too: a scene file is page
 code, so the lab rebuilds the page as soon as the write is in, before it
 answers (its check comes first), and the reload waits for that answer, so
 the write's receipt and its Undo are said before the page goes and come back
@@ -1152,9 +1153,18 @@ Undo and Redo through `stepWhyNot`) and sends the change's id with the step
 else refuses (`StepNotNewest`, 409). A command with no `fits` acts on no
 single change, so a bound receipt never runs it. There is no unbound Undo
 (`said` takes an `Undoing`, the command with its change): a write that
-made no change (a value already so, whose answer names no change) offers
-none, since a step that names no change steps whatever is newest, an
-earlier write's or another film's. A done receipt
+made no change (a value already so, whose answer names no change) says so
+(`cue rise offset 0.433 → 0.433 s (already so)`) and offers none, since a
+step that names no change steps whatever is newest, an earlier write's or
+another film's. Undo and Redo by key or the editor's header name the
+change their label names (the stack's top as the page read it), so a
+change another client made since (a voice pick, a studio keep) is refused
+(`StepNotNewest`) rather than stepped in its place, and the refusal reads
+the history again, so the label and the change the next press names move to
+the stack as it is now; once the page has
+changed the stack itself since the history it holds was asked for (each
+read carries the count it was asked at, each change the page made the
+count it landed at), the label names none and the step is the newest. A done receipt
 shows 5 s, a refusal 10 s, a busy one until replaced. The lab reloads after
 a scene write; the receipts showing as the page hides are kept in the tab
 (`film-receipts` in `TabStore`, for the same page: the lab's film, or the
@@ -1403,7 +1413,9 @@ ImportUnanswered | AcceptAnyway | KeepAttempt | Retry`. Arm pauses the film and 
   task; the answer is the take kept (what was heard, its word error) or the
   server's refusal in its own words. A `TakeMismatch` with the attempt it
   saved offers **Accept anyway** (a guarded transition: `keep` with
-  `acceptMismatch`). Each beat's attempts (newest first: heard, word error,
+  `acceptMismatch`). The status line says how to act on a refusal (Accept
+  anyway or Record again after a mismatch, Back to hear what a lost
+  microphone kept), each control with its key as bound now (`statusOf`). Each beat's attempts (newest first: heard, word error,
   length, kept, recorded for an earlier line) play from their audio route
   and **Keep** makes one the take.
 - **After a take is kept and mixed** the machine asks the stage to reload the
@@ -1735,8 +1747,8 @@ The lab's stage holds each scene's `ShownEdit` and hands them to the player
 whole (`Player.showEdits`), which draws every frame with them (`film.render(…,
 { edits })`, which resolves nothing and never throws for an edit; the film
 keeps nothing, so the next frame draws what it is handed); an edit that does
-not resolve is not shown, and the status says why. Compare with HEAD resolves
-HEAD's literals over today's the same way: when they name what today's
+not resolve is not shown, and the status says why. Compare with the last
+commit resolves its literals over today's the same way: when they name what today's
 narration lacks, it draws no layer and its line says why. The release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
 fields (the inspector's, stepped by frames; for an `until` cue, an `end`
@@ -1744,7 +1756,7 @@ field instead of `dur`, never before its start, which writes `untilOffset` as
 the right edge's drag does, and its point as `until {mark}`, `until speechEnd`
 or `until the end of cue "roll"`, with its offset when it has one,
 `until {first} + 0.10 s`: `untilEndText`), and an ease picker drawing each curve (the ease is only ever data:
-`f.at` takes none, so the picker always changes the frame). Knobs take the inspector's fields (a number's name scrubs it, a point's x and y step by pixels); a point knob also gets a handle on the frame.
+`f.at` takes none, so the picker always changes the frame); its buttons are off, titled with why, whenever a write of `ease` would be refused (`cueRefusal`, as a field's or a drag's is). Knobs take the inspector's fields (a number's name scrubs it, a point's x and y step by pixels); a point knob also gets a handle on the frame.
 `RenderOptions.knobs` records each read with the canvas transform at the
 read (`KnobRead.transform`, like the probe reads it), so the handle sits at
 `transform · value` and a drag maps the pointer back through the inverse
@@ -1822,27 +1834,28 @@ the in point here (I), Set the out point here (O) and Stop looping
 cue under 0.2 s loops with 0.4 s either side. The in and out points loop
 any range (the machine's A and B; the section says `looping in 00:00:01:00 –
 out 00:00:02:00`). The review's synced player has the same rate chip over its rates
-(½×, 1×). The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop | Linked | Unlinked`; a B not after A stays `Marked`, and a range plays from A as it is made, its points kept to the millisecond. The range is the link's (`#loop=`): the provider and the link agree, each following the other only where they differ (`Linked` puts a range the link names in the machine without playing, `Unlinked` ends one), and the part of a range past the film's end is not looped (`linkedRange`). The provider plays the state through `rangeOf` each frame drawn.
+(½×, 1×). The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop | Linked | Unlinked`; a B not after A stays `Marked`, and a range plays from A as it is made, its points kept to the millisecond inside the times marked (A rounded up, as `#t=` is, and B down: `core/time.ts` `onTheMs`, `offTheMs`), so Loop this scene starts in that scene. The range is the link's (`#loop=`): the provider and the link agree, each following the other only where they differ (`Linked` puts a range the link names in the machine without playing, `Unlinked` ends one), and the part of a range past the film's end is not looped (`linkedRange`). The provider plays the state through `rangeOf` each frame drawn.
 
-**Compare** (`lab/compare/`, Solid 2) reads the scene's file at HEAD
+**Compare** (`lab/compare/`, Solid 2) reads the scene's file at the last
+commit (git's HEAD: the page says "last commit" wherever it names it)
 (`GET /api/films/<film>/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`
 and parses it with the locator and parser the writer uses; read once per
 scene while a mode is on, and again after it is turned off and on, so a
-commit made since shows) and draws the frame with HEAD's timeline and knobs
+commit made since shows) and draws the frame with the last commit's timeline and knobs
 through today's code (`player.renderShown`, the frame as the lab shows it,
-with HEAD's edit over whatever else the lab previews) on a layer over the
-film: wipe (HEAD left of a draggable
+with the last commit's edit over whatever else the lab previews) on a layer over the
+film: wipe (the last commit left of a draggable
 divider, its grip a finger's `--hit` across however small the frame shows,
-and a slider by the keyboard: `lab/wipe-keys.ts`), blink, or diff (a _difference matte_: HEAD laid over the frame in
+and a slider by the keyboard: `lab/wipe-keys.ts`), blink, or diff (a _difference matte_: the last commit laid over the frame in
 the `difference` blend, so what did not change is black and what an edit
 moved is lit). A blink is also flipped by hand: on the frame, a press held
-shows HEAD until it lifts (a phone's way, where there are no keys). The mode
+shows the last commit until it lifts (a phone's way, where there are no keys). The mode
 is one effect-machine (`lab/compare/machine.ts`): `Off | Wipe | Blink | Held | Diff`
 on `Choose | Split | Flip | Hold`, a blink flipping itself every 450 ms by the
 machine's timeout and waiting while held. The mode is the link's (`?view=off|wipe|blink|diff`
 on `/films/<film>/lab[/<scene>]`: each mode the owner picks is an entry, so Back walks
 the views; the machine moving on its own is written in place); the divider is the tab's, kept in `film-lab-view:<film>` (`TabStore`) and never in the link. Only data can differ that way; when the file's code
-changed since HEAD the panel says so, and a HEAD the server cannot give shows the server's reason.
+changed since the last commit the panel says so, and a last commit the server cannot give shows the server's reason.
 
 **The look-book** (`player/lookbook-sheet.ts`) is one sheet of the whole film:
 the palette (`createFilm({ palette })`) as swatches, then per scene a row of
@@ -2824,7 +2837,8 @@ in memory when the page may not use its storage. Every drag (the
 player's track, the strip's scrub and its cue bars, a knob's handle, the
 wipe's divider, a note's mark) follows its press through `Pointer`
 (`browser/pointer.ts`), which ends it once: lifted, or ended by the browser
-(`pointercancel`, `lostpointercapture`). A surface (the strip, the notes,
+(`pointercancel`, `lostpointercapture`, or the page left mid-press: the
+window's `blur`, the tab hidden). A surface (the strip, the notes,
 the editor's grips, a divider, the blink, the tape) follows one press at a
 time (`Pointer.press`): a second finger's press on it does nothing. The
 lint refuses a press's end heard, or its capture taken, anywhere else

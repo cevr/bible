@@ -3,8 +3,9 @@
 // note's mark) goes through `Pointer`. The press itself is the element's
 // own `pointerdown`; from it the drag captures the pointer on that element,
 // hears its moves, and ends once: lifted (`pointerup`), or taken by the
-// browser (`pointercancel`, as a phone's page pan sends) or let go
-// (`lostpointercapture`), so a drag the browser ends never keeps scrubbing.
+// browser (`pointercancel`, as a phone's page pan sends), let go
+// (`lostpointercapture`), or left (the window's `blur`, the tab hidden), so a
+// drag the browser ends never keeps scrubbing or holds the page's reload.
 // The page it listens on is the adapter's (`pointerOn`): the window live
 // (`pointer-browser.ts`), a test's own `EventTarget` in a test. It is the one
 // place a press is captured and its end heard (`film/host-events-through-adapter`).
@@ -134,6 +135,12 @@ const pointerOn = (page: EventTarget): PointerOps => {
         its(() => ended(Option.none())),
         options,
       );
+      // The page left mid-press (the window's focus gone, the tab hidden): a release
+      // outside it may never be heard, so the press ends as one the browser took. Only
+      // a visible page is pressed, so any visibility change mid-press is its hiding.
+      for (const left of ['blur', 'visibilitychange'])
+        // oxlint-disable-next-line film/host-events-through-adapter -- Pointer's own: the page the press is on left
+        page.addEventListener(left, () => ended(Option.none()), options);
       return Effect.sync(() => listening.abort());
     });
   return {

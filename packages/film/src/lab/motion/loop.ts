@@ -13,12 +13,14 @@
 // no DOM. The range is the link's (`#loop=`, `lab/place.ts`): a link that
 // names one (pasted, reloaded, or landed on by Back) puts the machine in it
 // without playing, and one that names none ends a range. Marks are kept to
-// the millisecond, as the link prints them. The view (sessionStorage) keeps a
+// the millisecond, as the link prints them, inside the times marked: A
+// rounds up (`onTheMs`, as `#t=` does) and B down (`offTheMs`), so a range
+// marked on a scene starts in that scene. The view (sessionStorage) keeps a
 // looped cue through the reload a write causes.
 
 import { Effect, Match, Option, Schema } from 'effect';
 import { Event, Machine, State } from 'effect-machine';
-import { type Interval, timecode, toMs } from '../../core/time.ts';
+import { type Interval, offTheMs, onTheMs, timecode } from '../../core/time.ts';
 import type { LoopRange } from '../../player/main.ts';
 import type { LabView } from '../view-state.ts';
 import { Stage, type StageOps } from '../stage.ts';
@@ -115,8 +117,10 @@ const mark = (a: Option.Option<number>, b: Option.Option<number>) =>
 /** The loop machine, starting in `initial` (`loopAt`: the link's range, else the view's cue). */
 export const loopMachine = (initial: LoopState) =>
   Machine.make({ state: LoopState, event: LoopEvent, initial })
-    .on(ANY, LoopEvent.MarkA, ({ state, event }) => mark(Option.some(toMs(event.t)), bOf(state)))
-    .on(ANY, LoopEvent.MarkB, ({ state, event }) => mark(aOf(state), Option.some(toMs(event.t))))
+    .on(ANY, LoopEvent.MarkA, ({ state, event }) => mark(Option.some(onTheMs(event.t)), bOf(state)))
+    .on(ANY, LoopEvent.MarkB, ({ state, event }) =>
+      mark(aOf(state), Option.some(offTheMs(event.t))),
+    )
     .on(ANY, LoopEvent.Linked, ({ event }) => LoopState.Range({ from: event.from, to: event.to }))
     .on(LoopState.Range, LoopEvent.Unlinked, () => LoopState.Off)
     .on(ANY, LoopEvent.LoopCue, ({ event }) => {
@@ -192,15 +196,7 @@ export const loopAt = (link: Option.Option<Interval>, kept: Option.Option<ViewLo
     Option.orElse(
       Option.map(link, (span): LoopState => LoopState.Range(span)),
       () =>
-        Option.flatMap(kept, (loop) =>
-          Option.map(
-            Option.liftPredicate(
-              loop,
-              (l): l is Extract<ViewLoop, { readonly kind: 'cue' }> => l.kind === 'cue',
-            ),
-            (cue): LoopState => LoopState.Cue({ scene: cue.scene, name: cue.name }),
-          ),
-        ),
+        Option.map(kept, (cue): LoopState => LoopState.Cue({ scene: cue.scene, name: cue.name })),
     ),
     (): LoopState => LoopState.Off,
   );

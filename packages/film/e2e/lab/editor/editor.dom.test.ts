@@ -9,11 +9,11 @@
 // inside the panel, and F and ⇧F walk those with a place on the time line.
 // The scene's file is named once, on the strip's head.
 
-import { Deferred, Effect, Exit, Option, Schedule } from 'effect';
+import { Deferred, Effect, Exit, Option, Predicate, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import { pageHref } from '../../../src/core/api.ts';
-import { SourceRefused } from '../../../src/core/refusals.ts';
+import { SourceRefused, StepNotNewest } from '../../../src/core/refusals.ts';
 import { LONG, LONG_SCENE } from '../../../src/lab/fixtures/long-film.ts';
 import {
   type Asked,
@@ -490,6 +490,77 @@ describe('the cue strip', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live('a rebuild while a cue is held waits until it is let go', () =>
+    Effect.gen(function* () {
+      const rebuild = Deferred.makeUnsafe<void>();
+      let waits = 0;
+      const { page } = yield* openLab(
+        [
+          route('GET', /^\/api\/review\/build\?/, () => {
+            waits += 1;
+            if (waits > 1) return hold;
+            return later(rebuild, json({ build: 1, server: 'lab' }));
+          }),
+        ],
+        { href: labAt(1), build: { build: 0, server: 'lab' } },
+      );
+      yield* editable(page);
+      yield* page.evaluate('window.loadedOnce = true');
+      const rebuilt = yield* page.nextAnswer((a) => a.url.includes('/api/review/build'));
+      const rise = yield* page.box('.lab-cue[data-cue="rise"]');
+      yield* page.mouse.move(rise.x + rise.width / 2, rise.y + rise.height / 2);
+      yield* page.mouse.down;
+      yield* runClock(page, 50);
+      // An agent's save of a file the build reads lands mid-press.
+      yield* Deferred.done(rebuild, Exit.void);
+      yield* rebuilt;
+      yield* runClock(page, 300);
+      yield* textHas(page, '.lab-reload-waiting', 'once you let go of the cue');
+      yield* evaluates(page, 'window.loadedOnce === true', true);
+      // Let go without a move: nothing to write, and the reload follows.
+      yield* page.mouse.up;
+      yield* evaluates(page, 'window.loadedOnce === true', false);
+    }).pipe(Effect.scoped),
+  );
+
+  for (const [left, target] of [
+    ['blur', 'window'],
+    ['visibilitychange', 'document'],
+  ] as const)
+    it.live(
+      `a cue held when the page is left (${left}) lets go, and the rebuild it held follows`,
+      () =>
+        Effect.gen(function* () {
+          const rebuild = Deferred.makeUnsafe<void>();
+          let waits = 0;
+          const { page, asked } = yield* openLab(
+            [
+              route('GET', /^\/api\/review\/build\?/, () => {
+                waits += 1;
+                if (waits > 1) return hold;
+                return later(rebuild, json({ build: 1, server: 'lab' }));
+              }),
+            ],
+            { href: labAt(1), build: { build: 0, server: 'lab' } },
+          );
+          yield* editable(page);
+          yield* page.evaluate('window.loadedOnce = true');
+          const rebuilt = yield* page.nextAnswer((a) => a.url.includes('/api/review/build'));
+          const rise = yield* page.box('.lab-cue[data-cue="rise"]');
+          yield* page.mouse.move(rise.x + rise.width / 2, rise.y + rise.height / 2);
+          yield* page.mouse.down;
+          yield* runClock(page, 50);
+          yield* Deferred.done(rebuild, Exit.void);
+          yield* rebuilt;
+          yield* runClock(page, 300);
+          yield* textHas(page, '.lab-reload-waiting', 'once you let go of the cue');
+          // The window loses focus, or the tab hides; the release, outside the page, is never heard.
+          yield* page.evaluate(`${target}.dispatchEvent(new Event('${left}', { bubbles: true }))`);
+          yield* evaluates(page, 'window.loadedOnce === true', false);
+          expect(posted(asked)).toEqual([]);
+        }).pipe(Effect.scoped),
+    );
+
   it.live('a write the server refuses shows its text', () =>
     Effect.gen(function* () {
       const failure = SourceRefused.make({
@@ -680,7 +751,7 @@ describe('one write at a time', () => {
         }).pipe(Effect.scoped),
     );
 
-  it.live('a drag while a write is out is not taken', () =>
+  it.live('a drag while a write is out is not taken, and says why', () =>
     Effect.gen(function* () {
       const { page, asked, errors } = yield* openLab(
         [route('POST', /^\/scenes\/\w+\/cues\//, () => hold)],
@@ -692,8 +763,15 @@ describe('one write at a time', () => {
       yield* dragBar(page, 'rise', 0.5, 60);
       yield* postedReach(asked, 1);
       yield* statusSays(page, 'writing…');
+      // At 1440×900 the receipt lies over the strip's last lane: put it away first.
+      yield* page.click('[data-receipt="edit"] .lab-receipt-close');
+      yield* countIs(page, '[data-receipt="edit"]', 0);
+      const fall = yield* page.box('.lab-cue[data-cue="fall"]');
       yield* dragBar(page, 'fall', 0.5, 40);
       yield* runClock(page, 200);
+      yield* statusSays(page, 'not moved: a write is still out; drag once it lands');
+      // The press is not followed: the bar stays where it was.
+      expect(Math.round((yield* page.box('.lab-cue[data-cue="fall"]')).x)).toBe(Math.round(fall.x));
       expect(posted(asked).map((p) => p.path)).toEqual(['/scenes/one/cues/rise']);
       expect(errors).toEqual([]);
     }).pipe(Effect.scoped),
@@ -742,6 +820,27 @@ describe('the inspector', () => {
         { path: '/scenes/one/cues/rise', body: Option.some({ offset: 0.3 }) },
         { path: '/scenes/one/cues/rise', body: Option.some({ ease: 'linear' }) },
       ]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('its eases, on a timeline the lab will not rewrite, are off and say why', () =>
+    Effect.gen(function* () {
+      const overridden = {
+        ...sourceOne,
+        refused: [{ field: 'timeline', reason: 'the registry overrides it' }],
+      };
+      const { page, asked } = yield* openLab(
+        [route('GET', /^\/scenes\/one\/source$/, () => json(overridden))],
+        { href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }) },
+      );
+      const linear = '.lab-ease[data-ease="linear"]';
+      yield* page.waitFor(`${linear}[title^="cannot"]`);
+      yield* evaluates(
+        page,
+        `[document.querySelector('${linear}').disabled, document.querySelector('${linear}').title]`,
+        [true, 'cannot drag rise: the registry overrides it'],
+      );
+      expect(posted(asked)).toEqual([]);
     }).pipe(Effect.scoped),
   );
 
@@ -999,7 +1098,7 @@ describe('the inspector', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live('Undo asks the server to undo, as a request of its own, and says what it undid', () =>
+  it.live('Undo asks the server to undo the change it names, and says what it undid', () =>
     Effect.gen(function* () {
       const report = {
         findings: [{ level: 'warning', tag: 'late', message: 'rise ends after the scene' }],
@@ -1026,13 +1125,145 @@ describe('the inspector', () => {
       yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
       // An Undo is undone by Redo.
       yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Redo');
-      // With an id unique to the request: the one a check asks after when it has no answer.
+      // With an id unique to the request (the one a check asks after when it has no answer),
+      // naming the change its title names, so a newer change another client made is refused.
       expect(posted(asked)).toEqual([
         {
           path: '/undo',
-          body: Option.some({ request: expect.stringMatching(/^[0-9a-z]+-[0-9a-z]+$/) }),
+          body: Option.some({
+            request: expect.stringMatching(/^[0-9a-z]+-[0-9a-z]+$/),
+            change: 'k1',
+          }),
         },
       ]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "Undo refused for another client's newer change reads the history again, so the next Undo names and steps that change",
+    () =>
+      Effect.gen(function* () {
+        const mine = {
+          scene: 'one',
+          file: 'scenes/one.ts',
+          target: 'cue rise offset',
+          change: 'k1',
+        };
+        // Another client's voice pick, after the page read the history: the newest change now.
+        const theirs = { scene: 'one', file: 'scenes/one.ts', target: 'voice b1', change: 'k2' };
+        let top = mine;
+        const { page, asked } = yield* openLab(
+          [
+            route('GET', /^\/check$/, () => json({ findings: [], undo: top })),
+            // The lab steps only the newest change: one named before it is refused.
+            route('POST', /^\/undo$/, (request) => {
+              if (
+                Option.exists(
+                  request.body,
+                  (b) => Predicate.hasProperty(b, 'change') && b.change === 'k2',
+                )
+              )
+                return json({ ...theirs, target: 'undo voice b1', findings: [] });
+              return refused(
+                StepNotNewest.make({
+                  verb: 'undo',
+                  reason: 'voice b1 came after it: undo that first',
+                }),
+              );
+            }),
+          ],
+          { href: labAt(1) },
+        );
+        yield* page.waitFor('.sh-header [data-act="undo"]:not([disabled])');
+        top = theirs;
+        yield* page.click('.sh-header [data-act="undo"]:not([disabled])');
+        yield* statusSays(page, 'voice b1 came after it: undo that first');
+        // The history read again: Undo now names the change the refusal said to undo first.
+        yield* page.waitFor('.sh-header [data-act="undo"][title*="voice b1"]');
+        yield* page.click('.sh-header [data-act="undo"]:not([disabled])');
+        yield* statusSays(page, 'undid voice b1');
+        expect(posted(asked).map((a) => a.body)).toEqual([
+          Option.some({ request: expect.any(String), change: 'k1' }),
+          Option.some({ request: expect.any(String), change: 'k2' }),
+        ]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'a write this page made while the history was being read again is not covered by that read: Undo names none and steps the newest',
+    () =>
+      Effect.gen(function* () {
+        const mine = {
+          scene: 'one',
+          file: 'scenes/one.ts',
+          target: 'cue fall offset',
+          change: 'k1',
+        };
+        const theirs = { scene: 'one', file: 'scenes/one.ts', target: 'voice b1', change: 'k2' };
+        // The history read again after the refusal answers only once let.
+        const reread = Deferred.makeUnsafe<void>();
+        let reads = 0;
+        const { page, asked } = yield* openLab(
+          [
+            route('GET', /^\/check$/, () => {
+              reads += 1;
+              if (reads === 1) return json({ findings: [], undo: mine });
+              return later(reread, json({ findings: [], undo: theirs }));
+            }),
+            route('POST', /^\/undo$/, (request) => {
+              if (Option.exists(request.body, (b) => Predicate.hasProperty(b, 'change')))
+                return refused(
+                  StepNotNewest.make({
+                    verb: 'undo',
+                    reason: 'voice b1 came after it: undo that first',
+                  }),
+                );
+              return json({
+                ...mine,
+                target: 'undo cue rise offset',
+                change: changeOf('cue'),
+                findings: [],
+              });
+            }),
+          ],
+          { href: labAt(1) },
+        );
+        yield* editable(page);
+        yield* page.waitFor('.sh-header [data-act="undo"]:not([disabled])');
+        // 1. Undo k1 is refused: another client's change came after it.
+        yield* page.click('.sh-header [data-act="undo"]:not([disabled])');
+        yield* statusSays(page, 'voice b1 came after it: undo that first');
+        // 2. The history is read again; its answer, naming k2, is out.
+        yield* Effect.sync(() => reads).pipe(
+          Effect.repeat({
+            until: (n) => n >= 2,
+            schedule: Schedule.spaced('10 millis'),
+            times: 500,
+          }),
+        );
+        // 3. This page's write lands, a change that read cannot hold.
+        yield* dragBar(page, 'rise', 0.5, 60);
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        // 4. The read lands, naming k2: it predates the write, so Undo names none.
+        const landed = yield* page.nextAnswer((a) => a.url.endsWith('/check'));
+        yield* Deferred.done(reread, Exit.void);
+        yield* landed;
+        yield* runClock(page, 100);
+        yield* evaluates(
+          page,
+          `document.querySelector('.sh-header [data-act="undo"]').title.includes('voice b1')`,
+          false,
+        );
+        yield* page.click('.sh-header [data-act="undo"]:not([disabled])');
+        yield* statusSays(page, 'undid cue rise offset');
+        expect(
+          posted(asked)
+            .filter((a) => a.path === '/undo')
+            .map((a) => a.body),
+        ).toEqual([
+          Option.some({ request: expect.any(String), change: 'k1' }),
+          Option.some({ request: expect.any(String) }),
+        ]);
+      }).pipe(Effect.scoped),
   );
 });

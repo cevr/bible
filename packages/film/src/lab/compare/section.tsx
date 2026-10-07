@@ -26,9 +26,9 @@ import { CompareMode } from './machine.ts';
 
 const TITLES = {
   off: 'draw only now',
-  wipe: 'HEAD left of the divider, now right of it',
-  blink: 'flip between HEAD and now; press and hold the frame to hold HEAD',
-  diff: 'HEAD over now in the difference blend: black where nothing moved',
+  wipe: 'the last commit left of the divider, now right of it',
+  blink: 'flip between the last commit and now; press and hold the frame to hold the last commit',
+  diff: 'the last commit over now in the difference blend: black where nothing moved',
 } as const satisfies Record<CompareMode, string>;
 
 /**
@@ -45,7 +45,7 @@ export const Section = () => {
       <div class="lab-motion-row">
         <ToggleGroup<CompareMode>
           class="sh-seg"
-          aria-label="Compare with HEAD"
+          aria-label="Compare with the last commit"
           value={[state.mode()]}
           onValueChange={(pressed) => {
             Option.map(Arr.head(pressed), (m) => meta.hub.invokeId(compareCommandId(m), BY_BUTTON));
@@ -145,7 +145,7 @@ export const Hold = () => {
   return (
     <Show when={shown()}>
       <rect class="lab-hold" x="0" y="0" width={film.width} height={film.height} ref={press}>
-        <title>press and hold to hold HEAD</title>
+        <title>press and hold to hold the last commit</title>
       </rect>
     </Show>
   );
@@ -184,7 +184,7 @@ export const Divider = () => {
           <line x1={w().x} x2={w().x} y1="0" y2={film.height} />
           <Grip x={w().x} />
           <text x={w().x - 16} y="44" text-anchor="end">
-            HEAD
+            last commit
           </text>
           <text x={w().x + 16} y="44">
             now
@@ -264,7 +264,7 @@ const Grip = (props: { readonly x: number }) => {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={percent()}
-        aria-valuetext={`${percent()}% of the frame shows HEAD`}
+        aria-valuetext={`${percent()}% of the frame shows the last commit`}
         ref={grab}
       >
         <title>{wipeTitle('compare', keys.first)}</title>

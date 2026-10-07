@@ -16,7 +16,7 @@
 // back on its point), an `ends` once it runs `until` a point. A write is
 // judged by the span its text holds (`cueLanded`), decoded, never rebuilt.
 
-import { Array as Arr, Match, Option, Predicate, Result, Schema } from 'effect';
+import { Array as Arr, Equal, Match, Option, Predicate, Result, Schema } from 'effect';
 import {
   type ArrayExpression,
   type CallExpression,
@@ -553,19 +553,19 @@ const fieldState = (prop: Option.Option<ObjectProperty>, literal: (e: Expression
   });
 
 const editableCue = (file: string, cue: string, span: ObjectExpression): EditableCue => {
-  const state = (key: TimingKey, literal: (e: Expression) => boolean) =>
+  const state = (key: TimingKey) =>
     Result.match(propertyOf(file, cue, span, key), {
       onFailure: (): FieldState => 'computed',
-      onSuccess: (prop) => fieldState(prop, literal),
+      onSuccess: (prop) => fieldState(prop, isLiteralFor(key)),
     });
   return {
     name: cue,
-    offset: state('offset', isNumberLiteral),
-    dur: state('dur', isNumberLiteral),
-    until: state('until', isUntilLiteral),
-    untilOffset: state('untilOffset', isNumberLiteral),
-    ease: state('ease', isStringLiteral),
-    stagger: state('stagger', isNumberLiteral),
+    offset: state('offset'),
+    dur: state('dur'),
+    until: state('until'),
+    untilOffset: state('untilOffset'),
+    ease: state('ease'),
+    stagger: state('stagger'),
   };
 };
 
@@ -624,7 +624,7 @@ const valueText = (key: TimingKey, patch: CuePatch): Option.Option<string> => {
     case 'until':
       return Option.map(Option.fromUndefinedOr(patch.until), stringText);
     case 'untilOffset':
-      // 0 is the point itself: the key is taken away (`untilOffsetDrop`), never written.
+      // 0 is the point itself: the key is taken away (`droppedBy`), never written.
       return Option.map(
         Option.filter(Option.fromUndefinedOr(patch.untilOffset), (v) => toMs(v) !== 0),
         numberText,
@@ -636,11 +636,28 @@ const valueText = (key: TimingKey, patch: CuePatch): Option.Option<string> => {
   }
 };
 
-const isLiteralFor = (key: TimingKey) => {
-  if (key === 'until') return isUntilLiteral;
-  if (key === 'ease') return isStringLiteral;
-  return isNumberLiteral;
-};
+/**
+ * The literal each key a cue patch sets is written as: a number, a string,
+ * or an end (`isUntilLiteral`: a mark's name, or an object of literals). One
+ * per key of `CuePatch`, so a key added there is a type error here.
+ */
+const CUE_KIND = {
+  offset: 'number',
+  dur: 'number',
+  until: 'until',
+  untilOffset: 'number',
+  ease: 'string',
+  stagger: 'number',
+} as const satisfies Record<TimingKey, 'number' | 'string' | 'until'>;
+
+/** Whether an expression is the literal `key` is written as (`CUE_KIND`). */
+const isLiteralFor = (key: TimingKey): ((e: Expression) => boolean) =>
+  Match.value(CUE_KIND[key]).pipe(
+    Match.when('number', () => isNumberLiteral),
+    Match.when('string', () => isStringLiteral),
+    Match.when('until', () => isUntilLiteral),
+    Match.exhaustive,
+  );
 
 /** The field a span's other end is: a `dur` written replaces `until`, and the reverse. */
 const otherEnd = (key: TimingKey): Option.Option<TimingKey> => {
@@ -776,29 +793,37 @@ const removal = (
   });
 };
 
+/** Every key a span of any kind declares (`Span`'s members together). */
+type SpanKey = Span extends infer S ? (S extends unknown ? keyof S : never) : never;
+
 /**
  * What stands in for a span's value the source computes (`until: MARK`), by
  * its key: a value of the key's type, so the span still decodes and reads the
- * same on both sides of a write that leaves that value be.
+ * same on both sides of a write that leaves that value be. Every key of
+ * `Span` has one, so a key added there is a type error here until it does.
  */
-const STAND_IN: ReadonlyMap<string, string | number | boolean> = new Map<
-  string,
-  string | number | boolean
->([
-  ['mark', ''],
-  ['word', ''],
-  ['after', ''],
-  ['with', ''],
-  ['at', 'start'],
-  ['offset', 0],
-  ['dur', 0],
-  ['ends', true],
-  ['until', ''],
-  ['untilOffset', 0],
-  ['ease', 'linear'],
-  ['stagger', 0],
-  ['silence', true],
-]);
+const STAND_IN = {
+  mark: '',
+  word: '',
+  after: '',
+  with: '',
+  at: 'start',
+  offset: 0,
+  dur: 0,
+  ends: true,
+  until: '',
+  untilOffset: 0,
+  ease: 'linear',
+  stagger: 0,
+  silence: true,
+} satisfies Record<SpanKey, string | number | boolean>;
+
+/** The stand-in for a value under `key`, a key a span declares; none for a key no span has. */
+const standIn = (key: string): Option.Option<string | number | boolean> =>
+  Option.flatMap(
+    Option.liftPredicate(key, (k): k is SpanKey => Object.hasOwn(STAND_IN, k)),
+    (k) => Option.some(STAND_IN[k]),
+  );
 
 /**
  * A span object as a `Span`: every literal value as the source declares it,
@@ -815,9 +840,7 @@ const literalSpan = (span: ObjectExpression): Option.Option<Span> =>
           onSome: (key) =>
             Option.toArray(
               Option.map(
-                Option.orElse(Option.flatMap(valueOf(p), plain), () =>
-                  Option.fromUndefinedOr(STAND_IN.get(key)),
-                ),
+                Option.orElse(Option.flatMap(valueOf(p), plain), () => standIn(key)),
                 (value) => [key, value] as const,
               ),
             ),
@@ -972,7 +995,7 @@ const sameSpan = Schema.toEquivalence(Span);
 /**
  * What of a write of `patch` to cue `cue` did not land in `after`, the text
  * written over `before`: none when the span `after` holds, decoded from its
- * text (a value it computes by its stand-in, `spanShape`), is the span
+ * text by `literalSpan` (a value it computes reads as its `STAND_IN`), is the span
  * `patch` makes of the one `before` held (`patchSpan` over `writtenPatch`);
  * else the cue, and the span it holds against the one it was to hold, or that
  * it holds none (it does not decode, as an `until` beside an `ends` would not).
@@ -995,7 +1018,7 @@ export const cueLanded = (
       const entries = (s: Span) => new Map(Object.entries(s));
       const [is, ought] = [entries(held.value), entries(meant.value)];
       return Arr.dedupe([...is.keys(), ...ought.keys()])
-        .filter((key) => is.get(key) !== ought.get(key))
+        .filter((key) => !Equal.equals(is.get(key), ought.get(key)))
         .map((key) => `cue ${cue} ${key}`);
     }),
   );

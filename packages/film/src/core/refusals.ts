@@ -407,6 +407,6 @@ export class HeadUnavailable extends Schema.TaggedError<HeadUnavailable>()('Head
   reason: Schema.String,
 }) {
   override get message() {
-    return `${this.file}: no HEAD version to compare with: ${this.reason}`;
+    return `${this.file}: no version at the last commit to compare with: ${this.reason}`;
   }
 }

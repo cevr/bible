@@ -80,7 +80,7 @@ const RecorderRefusal = Schema.Union([
   MicLost,
   ImportUnanswered,
 ]);
-type RecorderRefusal = typeof RecorderRefusal.Type;
+export type RecorderRefusal = typeof RecorderRefusal.Type;
 
 /** What an import sends: the recording made just now, or an attempt the server keeps. */
 const Work = Schema.Union([

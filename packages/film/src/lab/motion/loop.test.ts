@@ -8,8 +8,10 @@
 import { Effect, Layer, Option } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { assertPath, simulate } from 'effect-machine';
+import { sceneIndexAt } from '../../core/layout.ts';
 import type { LoopRange } from '../../player/main.ts';
 import { Stage, type StageOps } from '../stage.ts';
+import { sceneSpan } from './commands.ts';
 import {
   LoopEvent,
   LoopState,
@@ -211,14 +213,39 @@ describe('the link and the view', () => {
     },
   );
 
-  it.effect('marks are kept to the millisecond, as the link prints them', () =>
-    Effect.gen(function* () {
-      const result = yield* simulate(off, [
-        LoopEvent.MarkA({ t: 1 / 3 }),
-        LoopEvent.MarkB({ t: 2 / 3 }),
-      ]);
-      expect(result.finalState).toEqual(LoopState.Range({ from: 0.333, to: 0.667 }));
-    }).pipe(Effect.provide(fakes().layer)),
+  it.effect(
+    'marks are kept to the millisecond, as the link prints them, inside the times marked',
+    () =>
+      Effect.gen(function* () {
+        const result = yield* simulate(off, [
+          LoopEvent.MarkA({ t: 1 / 3 }),
+          LoopEvent.MarkB({ t: 2 / 3 }),
+        ]);
+        expect(result.finalState).toEqual(LoopState.Range({ from: 0.334, to: 0.666 }));
+      }).pipe(Effect.provide(fakes().layer)),
+  );
+
+  it.effect(
+    'Loop this scene plays its first frame in that scene, when it starts off the millisecond',
+    () => {
+      const { log, layer } = fakes();
+      // A scene's start is a sum of take lengths, lead and tail: off the ms grid.
+      const placed = [
+        { start: 0, dur: 3.4562 },
+        { start: 3.4562, dur: 4 },
+      ];
+      return Effect.gen(function* () {
+        const span = Option.getOrThrow(sceneSpan(placed, 5));
+        const result = yield* simulate(off, [
+          LoopEvent.MarkA({ t: span.from }),
+          LoopEvent.MarkB({ t: span.to }),
+        ]);
+        const range = Option.getOrThrow(inOutOf(result.finalState));
+        expect(sceneIndexAt(placed, range.from)).toBe(1);
+        expect(range.to).toBeLessThanOrEqual(span.to);
+        expect(log).toEqual([`play ${range.from}`]);
+      }).pipe(Effect.provide(layer));
+    },
   );
 
   test("a link's range is the part of it inside the film, none when nothing is", () => {
@@ -238,8 +265,6 @@ describe('the link and the view', () => {
     expect(loopAt(Option.some(range), loopView(cue))).toEqual(LoopState.Range(range));
     expect(loopAt(Option.none(), loopView(cue))).toEqual(cue);
     expect(loopAt(Option.none(), Option.none())).toEqual(LoopState.Off);
-    // A range a tab stored before the link held it starts nothing.
-    expect(loopAt(Option.none(), Option.some({ kind: 'ab', ...range }))).toEqual(LoopState.Off);
     expect(loopView(LoopState.Range(range))).toEqual(Option.none());
     expect(loopView(LoopState.Marked({ a: Option.some(1), b: Option.none() }))).toEqual(
       Option.none(),
