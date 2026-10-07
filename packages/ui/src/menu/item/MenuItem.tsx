@@ -4,10 +4,9 @@
 // packages/react/src/menu/item/useMenuItemCommonProps.ts
 //
 // An item that runs an action: pressing it (or Enter/Space while it is
-// highlighted) fires `onClick` and closes the menu (`closeOnClick`). It is a
-// `menuitem` in the roving tab order (the highlighted one is tabbable), and
-// releasing the mouse on it after pressing the trigger (press, drag, release)
-// activates it. A disabled item stays focusable so the arrow keys still reach
+// highlighted) fires `onClick` and closes the menu. It is a `menuitem` in
+// the roving tab order (the highlighted one is tabbable), and releasing the
+// mouse on it after pressing the trigger (press, drag, release) activates
 // it. In a context menu, the release of the right-click that opened the menu
 // does not activate the item under the pointer.
 import type { JSX } from '@solidjs/web';
@@ -17,61 +16,35 @@ import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRo
 import { useCompositeListItem } from '../../internals/composite/CompositeList.tsx';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
-import type { BaseUIComponentProps, NativeButtonProps } from '../../internals/types.ts';
+import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { dispatchClickWithModifiers, useButton } from '../../internals/useButton.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { platform } from '../../utils/platform.ts';
 import { useMenuRootContext } from '../root/MenuRootContext.ts';
 
 export interface MenuItemState {
-  disabled: boolean;
   highlighted: boolean;
 }
 
-export interface MenuItemProps
-  extends NativeButtonProps, BaseUIComponentProps<'div', MenuItemState> {
-  /** @default false */
-  disabled?: boolean | undefined;
+export interface MenuItemProps extends BaseUIComponentProps<'div', MenuItemState> {
   /** The text typeahead matches; the item's text content when not given. */
   label?: string | undefined;
-  /** Whether pressing the item closes the menu. @default true */
-  closeOnClick?: boolean | undefined;
 }
 
 export function MenuItem(componentProps: MenuItemProps): JSX.Element {
   const { store, itemProps } = useMenuRootContext();
   const contextMenu = useContextMenuRootContext();
-  const elementProps = omit(
-    componentProps,
-    'class',
-    'style',
-    'render',
-    'id',
-    'label',
-    'nativeButton',
-    'disabled',
-    'closeOnClick',
-  );
+  const elementProps = omit(componentProps, 'class', 'style', 'render', 'id', 'label');
   const listItem = useCompositeListItem({
     get label() {
       return componentProps.label;
     },
   });
   const id = untrack(() => componentProps.id) || createUniqueId();
-  const disabled = () => (componentProps.disabled ?? false) || store.disabled();
   const highlighted = () => store.isActive(listItem.index());
   let itemElement: HTMLElement | null = null;
 
-  const { getButtonProps, buttonRef } = useButton({
-    get disabled() {
-      return disabled();
-    },
-    focusableWhenDisabled: true,
-    get native() {
-      return componentProps.nativeButton ?? false;
-    },
-    composite: true,
-  });
+  const { getButtonProps, buttonRef } = useButton({ native: false, composite: true });
 
   const ownProps = {
     id,
@@ -86,9 +59,7 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
       }
     },
     onClick(event: MouseEvent) {
-      if (untrack(() => componentProps.closeOnClick ?? true)) {
-        store.setOpen(false, createChangeEventDetails(REASONS.itemPress, event));
-      }
+      store.setOpen(false, createChangeEventDetails(REASONS.itemPress, event));
     },
     onMouseUp(event: MouseEvent) {
       if (contextMenu) {
@@ -111,7 +82,7 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
         store.allowMouseUpTriggerRef.current &&
         (contextMenu === null || event.button === 2)
       ) {
-        // Pressed on the trigger, dragged here and released: a pick, which always closes.
+        // Pressed on the trigger, dragged here and released: a pick.
         // `detail: 1` and a mouse pointer mark it a mouse click, not a keyboard one.
         dispatchClickWithModifiers(itemElement, event, { detail: 1, pointerType: 'mouse' });
       }
@@ -119,9 +90,6 @@ export function MenuItem(componentProps: MenuItemProps): JSX.Element {
   };
 
   const state: MenuItemState = {
-    get disabled() {
-      return disabled();
-    },
     get highlighted() {
       return highlighted();
     },

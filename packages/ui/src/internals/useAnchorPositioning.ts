@@ -1,9 +1,11 @@
 // Upstream: packages/react/src/internals/useAnchorPositioning.ts,
-// packages/react/src/floating-ui-react/hooks/useFloating.ts
+// packages/react/src/floating-ui-react/hooks/useFloating.ts,
+// packages/react/src/floating-ui-react/middleware/arrow.ts (the centre the origin reads)
 //
-// Positions a popup against its anchor (the trigger, or `anchor`) with
-// Floating UI: a side and alignment with offsets, collision avoidance (flip
-// to the other side, shift along the edge), and the CSS variables the
+// Positions a menu's popup under its anchor (the trigger, or a context menu's
+// point) with Floating UI: an alignment with offsets, the dropdown's
+// collision avoidance (flip to the top, or to the other alignment, and shift
+// along the edge; never to a left or right side), and the CSS variables the
 // popup's styles read (`--available-width/height`, `--anchor-width/height`,
 // `--transform-origin`). It re-positions while the anchor scrolls or
 // resizes. Until the first position is computed the popup is invisible and
@@ -15,112 +17,49 @@ import {
   limitShift,
   type Middleware,
   type MiddlewareData,
-  type MiddlewareState,
   offset,
-  type Padding,
   type Placement,
-  type Rect,
   shift as floatingShift,
   size,
   type VirtualElement,
 } from '@floating-ui/dom';
-import { getAlignment, getSide, getSideAxis } from '@floating-ui/utils';
+import { clamp, getAlignment, getSide } from '@floating-ui/utils';
 import type { JSX } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 
 import type { FloatingRootContext } from '../floating-ui-solid/FloatingRootContext.ts';
-import { arrow, hide } from '../floating-ui-solid/middleware.ts';
-import { ownerDocument, ownerWindow } from '../utils/dom.ts';
+import { hide } from '../floating-ui-solid/middleware.ts';
+import { ownerWindow } from '../utils/dom.ts';
 import { CommonPositionerCssVars } from '../utils/popupStateMapping.ts';
 
-type PhysicalSide = 'top' | 'right' | 'bottom' | 'left';
-export type Side = PhysicalSide | 'inline-end' | 'inline-start';
+/** The side the popup renders on: under its anchor, or over it after a flip. */
+export type Side = 'top' | 'bottom';
 export type Align = 'start' | 'center' | 'end';
-export type Boundary = 'clipping-ancestors' | Element | Element[] | Rect;
-export type OffsetFunction = (data: {
-  side: Side;
-  align: Align;
-  anchor: { width: number; height: number };
-  positioner: { width: number; height: number };
-}) => number;
 
-export interface CollisionAvoidance {
-  /** `flip` to the other side, `shift` along it, or `none`. */
-  side?: 'flip' | 'shift' | 'none' | undefined;
-  /** `flip` start and end, `shift` to fit, or `none`. */
-  align?: 'flip' | 'shift' | 'none' | undefined;
-  /** When neither side of the axis fits: the perpendicular side to try first, or `none`. */
-  fallbackAxisSide?: 'start' | 'end' | 'none' | undefined;
-}
+/** The space kept between the popup and the edges it must stay inside. */
+const COLLISION_PADDING = 5;
 
-export type AnchorValue =
-  | Element
-  | VirtualElement
-  | null
-  | { current: Element | null }
-  | (() => Element | VirtualElement | null)
-  | undefined;
-
-export interface UseAnchorPositioningSharedParameters {
-  /** What the popup is positioned against; the trigger when not given. */
-  anchor?: AnchorValue;
-  positionMethod?: 'absolute' | 'fixed' | undefined;
-  side?: Side | undefined;
-  sideOffset?: number | OffsetFunction | undefined;
-  align?: Align | undefined;
-  alignOffset?: number | OffsetFunction | undefined;
-  collisionBoundary?: Boundary | undefined;
-  collisionPadding?: Padding | undefined;
-  /** Whether the popup stays in view after its anchor scrolls out. */
-  sticky?: boolean | undefined;
-  disableAnchorTracking?: boolean | undefined;
-  collisionAvoidance?: CollisionAvoidance | undefined;
-}
-
-export interface UseAnchorPositioningParameters extends UseAnchorPositioningSharedParameters {
+export interface UseAnchorPositioningParameters {
   floatingRootContext: FloatingRootContext;
   mounted: boolean;
-  shift?:
-    | { crossAxis?: boolean | undefined; rootBoundary?: 'layoutViewport' | undefined }
-    | undefined;
+  /** What the popup is positioned against in place of the trigger. */
+  anchor: VirtualElement | undefined;
+  positionMethod: 'absolute' | 'fixed';
+  sideOffset: number;
+  align: Align;
+  alignOffset: number;
+  /**
+   * Whether a shift may move the popup over its anchor, within the viewport,
+   * rather than flipping it (a context menu kept on screen at the pointer).
+   */
+  shiftCrossAxis: boolean;
 }
 
 export interface UseAnchorPositioningReturnValue {
   positionerStyles: Accessor<JSX.CSSProperties>;
   side: Accessor<Side>;
   align: Accessor<Align>;
-  physicalSide: Accessor<PhysicalSide>;
   anchorHidden: Accessor<boolean>;
-  isPositioned: Accessor<boolean>;
-  update: () => void;
-}
-
-function getLogicalSide(sideParam: Side, renderedSide: PhysicalSide): Side {
-  const isLogicalSideParam = sideParam === 'inline-start' || sideParam === 'inline-end';
-  return {
-    top: 'top',
-    right: isLogicalSideParam ? 'inline-end' : 'right',
-    bottom: 'bottom',
-    left: isLogicalSideParam ? 'inline-start' : 'left',
-  }[renderedSide] as Side;
-}
-
-function getOffsetData(state: MiddlewareState, sideParam: Side) {
-  const { rects, placement } = state;
-  return {
-    side: getLogicalSide(sideParam, getSide(placement)),
-    align: getAlignment(placement) || 'center',
-    anchor: { width: rects.reference.width, height: rects.reference.height },
-    positioner: { width: rects.floating.width, height: rects.floating.height },
-  } as const;
-}
-
-function resolveAnchor(anchor: AnchorValue): Element | VirtualElement | null {
-  const value = typeof anchor === 'function' ? anchor() : anchor;
-  if (value != null && 'current' in value) {
-    return value.current;
-  }
-  return value ?? null;
 }
 
 function roundByDPR(element: Element, value: number) {
@@ -149,22 +88,8 @@ export function useAnchorPositioning(
     ownedWrite: true,
   });
 
-  const sideParam = () => params.side ?? 'bottom';
-
-  const side = createMemo<PhysicalSide>(
-    () =>
-      ({
-        top: 'top',
-        right: 'right',
-        bottom: 'bottom',
-        left: 'left',
-        'inline-end': 'right',
-        'inline-start': 'left',
-      })[sideParam()] as PhysicalSide,
-  );
-  const placementAlign = (): Align => params.align ?? 'center';
   const placement = createMemo<Placement>(() =>
-    placementAlign() === 'center' ? side() : (`${side()}-${placementAlign()}` as Placement),
+    params.align === 'center' ? 'bottom' : (`bottom-${params.align}` as Placement),
   );
 
   createEffect(
@@ -177,90 +102,39 @@ export function useAnchorPositioning(
   );
 
   const buildMiddleware = (): Middleware[] => {
-    const avoidance = params.collisionAvoidance ?? {};
-    const collisionAvoidanceSide = avoidance.side || 'flip';
-    const collisionAvoidanceAlign = avoidance.align || 'flip';
-    const fallbackAxisSide = avoidance.fallbackAxisSide || 'end';
-    const shiftCrossAxis = params.shift?.crossAxis ?? false;
-    const sticky = params.sticky ?? false;
-    const currentSideParam = sideParam();
-    const sideOffset = params.sideOffset ?? 0;
-    const alignOffset = params.alignOffset ?? 0;
-    const paddingParam = params.collisionPadding ?? 5;
-    const collisionPadding =
-      typeof paddingParam === 'number'
-        ? { top: paddingParam, right: paddingParam, bottom: paddingParam, left: paddingParam }
-        : {
-            top: paddingParam.top || 0,
-            right: paddingParam.right || 0,
-            bottom: paddingParam.bottom || 0,
-            left: paddingParam.left || 0,
-          };
-    // A bias to the preferred side, in `flip()` only: on iOS a centered input
-    // with the keyboard open would otherwise flip to the top.
-    const bias = 1;
-    const biasTop = currentSideParam === 'bottom' ? bias : 0;
-    const biasBottom = currentSideParam === 'top' ? bias : 0;
-    const biasLeft = currentSideParam === 'right' ? bias : 0;
-    const biasRight = currentSideParam === 'left' ? bias : 0;
-    const boundary =
-      params.collisionBoundary === 'clipping-ancestors' || params.collisionBoundary == null
-        ? 'clippingAncestors'
-        : params.collisionBoundary;
-    const common = { boundary, padding: collisionPadding } as const;
+    const shiftCrossAxis = params.shiftCrossAxis;
+    const sideOffset = params.sideOffset;
+    const alignOffset = params.alignOffset;
+    const common = { boundary: 'clippingAncestors', padding: COLLISION_PADDING } as const;
 
-    const middleware: Array<Middleware | null | undefined> = [];
-    middleware.push(
-      offset((state) => {
-        const data = getOffsetData(state, currentSideParam);
-        const sideAxis = typeof sideOffset === 'function' ? sideOffset(data) : sideOffset;
-        const alignAxis = typeof alignOffset === 'function' ? alignOffset(data) : alignOffset;
-        return { mainAxis: sideAxis, crossAxis: alignAxis, alignmentAxis: alignAxis };
-      }),
-    );
-
-    const shiftDisabled = collisionAvoidanceAlign === 'none' && collisionAvoidanceSide !== 'shift';
-    const crossAxisShiftEnabled =
-      !shiftDisabled && (sticky || shiftCrossAxis || collisionAvoidanceSide === 'shift');
-
-    const flipMiddleware =
-      collisionAvoidanceSide === 'none'
-        ? null
-        : flip({
-            ...common,
-            // A larger padding than size()'s, so a popup capped by --available-height still flips.
-            padding: {
-              top: collisionPadding.top + bias + biasTop,
-              right: collisionPadding.right + bias + biasRight,
-              bottom: collisionPadding.bottom + bias + biasBottom,
-              left: collisionPadding.left + bias + biasLeft,
-            },
-            mainAxis: !shiftCrossAxis && collisionAvoidanceSide === 'flip',
-            crossAxis: collisionAvoidanceAlign === 'flip' ? 'alignment' : false,
-            fallbackAxisSideDirection: fallbackAxisSide,
-          });
-    const shiftMiddleware = shiftDisabled
-      ? null
-      : floatingShift({
-          ...common,
-          rootBoundary: params.shift?.rootBoundary === 'layoutViewport' ? 'viewport' : undefined,
-          mainAxis: collisionAvoidanceAlign !== 'none',
-          crossAxis: crossAxisShiftEnabled,
-          limiter: sticky || shiftCrossAxis ? undefined : limitShift(),
-        });
+    // One pixel more than size()'s padding, so a popup capped by --available-height
+    // still flips, and one more on top as a bias to the bottom: on iOS a centered
+    // input with the keyboard open would otherwise flip to the top.
+    const flipPadding = COLLISION_PADDING + 1;
+    const flipMiddleware = flip({
+      ...common,
+      padding: { top: flipPadding + 1, right: flipPadding, bottom: flipPadding, left: flipPadding },
+      mainAxis: !shiftCrossAxis,
+      crossAxis: 'alignment',
+      fallbackAxisSideDirection: 'none',
+    });
+    const shiftMiddleware = floatingShift({
+      ...common,
+      rootBoundary: shiftCrossAxis ? 'viewport' : undefined,
+      mainAxis: true,
+      crossAxis: shiftCrossAxis,
+      limiter: shiftCrossAxis ? undefined : limitShift(),
+    });
 
     // https://floating-ui.com/docs/flip#combining-with-shift
-    if (
-      collisionAvoidanceSide === 'shift' ||
-      collisionAvoidanceAlign === 'shift' ||
-      untrack(placementAlign) === 'center'
-    ) {
-      middleware.push(shiftMiddleware, flipMiddleware);
-    } else {
-      middleware.push(flipMiddleware, shiftMiddleware);
-    }
+    const avoidance =
+      untrack(() => params.align) === 'center'
+        ? [shiftMiddleware, flipMiddleware]
+        : [flipMiddleware, shiftMiddleware];
 
-    middleware.push(
+    return [
+      offset({ mainAxis: sideOffset, crossAxis: alignOffset, alignmentAxis: alignOffset }),
+      ...avoidance,
       size({
         ...common,
         apply({ elements: { floating }, availableWidth, availableHeight, rects }) {
@@ -282,66 +156,36 @@ export function useAnchorPositioning(
           floatingStyle.setProperty(CommonPositionerCssVars.anchorHeight, `${anchorHeight}px`);
         },
       }),
-      // The transform origin is computed from an arrow; no popup draws one, so a stand-in.
-      arrow((state) => ({
-        element: ownerDocument(state.elements.floating).createElement('div'),
-        padding: 0,
-      })),
       {
         name: 'transformOrigin',
         fn(state) {
-          const {
-            elements: { floating },
-            middlewareData: data,
-            placement: rendered,
-            platform,
-            rects,
-            y: stateY,
-          } = state;
-          const renderedSide = getSide(rendered);
+          const { elements, middlewareData: data, placement: rendered, rects } = state;
           const renderedAlign = getAlignment(rendered);
-          const isVertical = getSideAxis(renderedSide) === 'y';
-          const sideOffsetValue =
-            typeof sideOffset === 'function'
-              ? sideOffset(getOffsetData(state, currentSideParam))
-              : sideOffset;
+          const shiftX = data.shift?.x || 0;
+          const shiftY = data.shift?.y || 0;
           // An aligned popup grows from its aligned edge until a shift breaks the
-          // alignment; everything else grows from the stand-in arrow's point.
-          let crossOrigin: string;
-          if (
-            renderedAlign &&
-            Math.abs(isVertical ? data.shift?.x || 0 : data.shift?.y || 0) <= 1
-          ) {
-            const platformRtl = (platform.isRTL as ((el: Element) => boolean) | undefined)?.(
-              floating,
-            );
-            crossOrigin =
-              (renderedAlign === 'start') === (isVertical && platformRtl === true) ? '100%' : '0%';
-          } else {
-            crossOrigin = `${isVertical ? data.arrow?.x || 0 : data.arrow?.y || 0}px`;
-          }
-          // The anchor-facing edge, or the anchor's center when the popup overlaps it.
+          // alignment; anything else grows from under the anchor's centre.
+          const crossOrigin =
+            renderedAlign && Math.abs(shiftX) <= 1
+              ? renderedAlign === 'start'
+                ? '0%'
+                : '100%'
+              : `${clamp(0, rects.reference.x + rects.reference.width / 2 - state.x, rects.floating.width)}px`;
+          // The anchor-facing edge, or the anchor's centre when a shift moved the popup over it.
           let sideOrigin =
-            renderedSide === 'top' || renderedSide === 'left'
-              ? `calc(100% + ${sideOffsetValue}px)`
-              : `${-sideOffsetValue}px`;
-          if (
-            crossAxisShiftEnabled &&
-            isVertical &&
-            Math.abs(data.shift?.y || 0) > sideOffsetValue
-          ) {
-            sideOrigin = `${rects.reference.y + rects.reference.height / 2 - stateY}px`;
+            getSide(rendered) === 'top' ? `calc(100% + ${sideOffset}px)` : `${-sideOffset}px`;
+          if (shiftCrossAxis && Math.abs(shiftY) > sideOffset) {
+            sideOrigin = `${rects.reference.y + rects.reference.height / 2 - state.y}px`;
           }
-          floating.style.setProperty(
+          elements.floating.style.setProperty(
             CommonPositionerCssVars.transformOrigin,
-            isVertical ? `${crossOrigin} ${sideOrigin}` : `${sideOrigin} ${crossOrigin}`,
+            `${crossOrigin} ${sideOrigin}`,
           );
           return {};
         },
       },
       hide,
-    );
-    return middleware.filter((m): m is Middleware => m != null);
+    ];
   };
 
   let generation = 0;
@@ -352,10 +196,9 @@ export function useAnchorPositioning(
       return;
     }
     const current = ++generation;
-    const positionMethod = params.positionMethod ?? 'absolute';
     computePosition(reference, floating, {
       placement: untrack(placement),
-      strategy: positionMethod,
+      strategy: untrack(() => params.positionMethod),
       middleware: buildMiddleware(),
     }).then((data) => {
       if (current !== generation || !untrack(() => params.mounted)) {
@@ -372,93 +215,60 @@ export function useAnchorPositioning(
 
   // The anchor, when given, replaces the trigger as what the popup is positioned against.
   createEffect(
-    () => (params.mounted ? resolveAnchor(params.anchor) : undefined),
+    () => (params.mounted ? params.anchor : undefined),
     (anchor) => {
-      if (anchor !== undefined && anchor !== null) {
+      if (anchor !== undefined) {
         rootContext.setPositionReference(anchor);
-      } else if (anchor === null) {
-        rootContext.setPositionReference(null);
       }
     },
   );
 
   // Positions while mounted, re-running as the anchor moves or resizes.
   createEffect(
-    () =>
-      [
-        params.mounted,
-        rootContext.referenceElement(),
-        rootContext.floatingElement(),
-        params.disableAnchorTracking ?? false,
-      ] as const,
-    ([mounted, reference, floating, disableTracking]) => {
+    () => [params.mounted, rootContext.referenceElement(), rootContext.floatingElement()] as const,
+    ([mounted, reference, floating]) => {
       if (!mounted || !reference || !floating) {
         return undefined;
       }
-      return autoUpdate(reference, floating, update, {
-        ancestorScroll: !disableTracking,
-        elementResize: !disableTracking && typeof ResizeObserver !== 'undefined',
-        layoutShift: !disableTracking && typeof IntersectionObserver !== 'undefined',
-      });
+      return autoUpdate(reference, floating, update);
     },
   );
 
   // A changed option re-positions.
   createEffect(
-    () => [
-      placement(),
-      params.positionMethod,
-      params.sideOffset,
-      params.alignOffset,
-      params.collisionBoundary,
-      params.collisionPadding,
-      params.sticky,
-      params.collisionAvoidance,
-    ],
+    () => [placement(), params.positionMethod, params.sideOffset, params.alignOffset],
     () => update(),
   );
 
-  const renderedSide = () => getSide(renderedPlacement());
-  const renderedAlign = () => (getAlignment(renderedPlacement()) || 'center') as Align;
-
   const positionerStyles = createMemo<JSX.CSSProperties>(() => {
     const positioned = isPositioned();
-    const method = params.positionMethod ?? 'absolute';
     // Fixed until positioned, so focusing into the popup cannot scroll the page.
-    const position = positioned ? strategy() || method : 'fixed';
-    const base: Record<string, string | number | undefined> = {};
-    if (!positioned) {
-      base['position'] = position;
-      base['top'] = '0px';
-      base['left'] = '0px';
-    } else {
+    const base: Record<string, string | number | undefined> = {
+      position: positioned ? strategy() : 'fixed',
+      top: '0px',
+      left: '0px',
+    };
+    if (positioned) {
       const floating = untrack(rootContext.floatingElement);
       const rx = floating ? roundByDPR(floating, x()) : x();
       const ry = floating ? roundByDPR(floating, y()) : y();
-      base['position'] = position;
-      base['left'] = '0px';
-      base['top'] = '0px';
       base['transform'] = `translate(${rx}px, ${ry}px)`;
       if (floating && (ownerWindow(floating).devicePixelRatio || 1) >= 1.5) {
         base['will-change'] = 'transform';
       }
+    } else {
+      base['opacity'] = '0';
     }
     // Seeded so `max-height: var(--available-height)` resolves before size() writes the real value.
     base[CommonPositionerCssVars.availableWidth] = '100vw';
     base[CommonPositionerCssVars.availableHeight] = '100vh';
-    if (!positioned) {
-      base['opacity'] = '0';
-    }
     return base as JSX.CSSProperties;
   });
 
   return {
     positionerStyles,
-    side: () => getLogicalSide(sideParam(), renderedSide()),
-    align: renderedAlign,
-    physicalSide: renderedSide,
+    side: () => getSide(renderedPlacement()) as Side,
+    align: () => (getAlignment(renderedPlacement()) || 'center') as Align,
     anchorHidden: () => Boolean(middlewareData().hide?.referenceHidden),
-    isPositioned,
-    update,
   };
 }

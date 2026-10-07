@@ -2,7 +2,7 @@
 
 Base UI's unstyled parts, ported to Solid 2 (the `2.0.0-rc` line of `solid-js` and `@solidjs/web`). No part ships a style: each part shows its state as `data-*` attributes (and, where a value has to reach CSS, as CSS custom properties), and the consumer styles it through those attributes and its own `class`. Each part is imported from its subpath, for example `import { Menu } from '@bible/ui/menu'`; there is no root entry. The package keeps only the parts a page draws: a part upstream has and this list lacks returns with its first consumer, and the attribute names below are the styling contract (no `*DataAttributes` constants are exported). Unit tests run with `bun run test` and the browser tests with `bun run test:browser` (Playwright, `test/browser`), both from `packages/ui`.
 
-Every part takes `class` and `style` (a value or a function of the part's state) and `render` (a function of the merged props and the state that replaces the default element). A part's state becomes attributes by one rule unless the part maps it otherwise: `true` becomes a bare `data-<key>` attribute (the key lowercased: `readOnly` is `data-readonly`), another truthy value its string, and a falsy value nothing. Attributes named `data-base-ui-*`, `data-rootownerid`, `data-tabindex`, `data-type="inside"` and `data-type="outside"` (the focus guards) are internal markers, not styling hooks. Every `Portal` takes `container` and `inline`: with `inline` its `<div>` renders where it is written instead of at the end of `<body>`, the same in the server's render and the browser's, so a popup open at the first render is in the server's markup (for a `position: fixed` popup under no transform, filter or `contain`); without it, a server render leaves the portal out.
+Every part takes `class` and `style` (a value or a function of the part's state) and `render` (a function of the merged props and the state that replaces the default element). A part's state becomes attributes by one rule unless the part maps it otherwise: `true` becomes a bare `data-<key>` attribute (the key lowercased: `readOnly` is `data-readonly`), another truthy value its string, and a falsy value nothing. Attributes named `data-base-ui-*`, `data-rootownerid`, `data-tabindex`, `data-type="inside"` and `data-type="outside"` (the focus guards) are internal markers, not styling hooks. Every `Portal` takes `inline`: with it its `<div>` renders where it is written instead of at the end of `<body>`, the same in the server's render and the browser's, so a popup open at the first render is in the server's markup (for a `position: fixed` popup under no transform, filter or `contain`); without it, a server render leaves the portal out.
 
 ## Parts
 
@@ -14,34 +14,31 @@ Every part takes `class` and `style` (a value or a function of the part's state)
 
 `import { Menu } from '@bible/ui/menu'`
 
-- `Menu.Root`: no element; owns the menu's state.
+- `Menu.Root`: no element; owns the menu's state (`onOpenChange`, `onOpenChangeComplete`). A menu is vertical and modal, wraps its arrow keys, and opens only from its trigger.
   - `Menu.Trigger`: `<button>` that opens the menu on press or with the arrow keys.
-  - `Menu.Portal`: `<div>` at the end of `<body>` (or `container`), rendered while the menu is mounted.
-    - `Menu.Positioner`: `<div role="presentation">` that places the popup.
+  - `Menu.Portal`: `<div>` at the end of `<body>`, rendered while the menu is mounted.
+    - `Menu.Positioner`: `<div role="presentation">` that places the popup under the trigger (`sideOffset`, `align`), flipping above it or to the other alignment and shifting to stay in view.
       - `Menu.Popup`: `<div role="menu">`.
-        - `Menu.Item`: `<div role="menuitem">` that runs an action.
+        - `Menu.Item`: `<div role="menuitem">` that runs an action and closes the menu (`label` for typeahead).
         - `Menu.Group`: `<div role="group">`.
           - `Menu.GroupLabel`: `<div aria-hidden>` that names the group.
         - `Menu.Separator`: `<div role="separator">`.
 
-Upstream's hover opening, submenus, arrow (and `arrowPadding`), backdrop, link, checkbox and radio items, `defaultOpen`, `keepMounted`, `actionsRef` and `highlightItemOnHover` are left out; a part returns with its first consumer.
+Upstream's hover opening, submenus, arrow (and `arrowPadding`), backdrop, link, checkbox and radio items, `defaultOpen`, `keepMounted`, `actionsRef` and `highlightItemOnHover` are left out, and so are the options no page passes: the root's `open`, `modal`, `disabled`, `loopFocus`, `orientation` and `onItemHighlighted`; the trigger's and item's `disabled` and `nativeButton`; the item's `closeOnClick`; the positioner's `side`, `alignOffset`, `anchor`, `positionMethod` and collision options; the popup's `finalFocus`; the separator's `orientation`. A part or an option returns with its first consumer.
 
-| Member                | Attribute                                   | Present when                                                                                     |
-| --------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `Trigger`             | `data-popup-open`, `data-pressed`           | the menu this trigger opened is open (both together)                                             |
-| `Trigger`             | `data-disabled`                             | the trigger or the menu is disabled                                                              |
-| `Positioner`          | `data-open` / `data-closed`                 | the menu is open / closed                                                                        |
-| `Positioner`, `Popup` | `data-side`                                 | always: `top`, `bottom`, `left`, `right`, `inline-start` or `inline-end` (after collision flips) |
-| `Positioner`, `Popup` | `data-align`                                | always: `start`, `center` or `end`                                                               |
-| `Positioner`          | `data-anchor-hidden`                        | the anchor has scrolled out of view                                                              |
-| `Positioner`, `Popup` | `data-instant`                              | transitions are skipped, with the reason: `click` or `dismiss`                                   |
-| `Popup`               | `data-open` / `data-closed`                 | the menu is open / closed                                                                        |
-| `Popup`               | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition                                         |
-| `Item`                | `data-highlighted`                          | the item is under the keyboard or the pointer                                                    |
-| `Item`                | `data-disabled`                             | the item (or the menu) is disabled                                                               |
-| `Separator`           | `data-orientation`                          | always: `horizontal` unless `orientation` says otherwise                                         |
+| Member                | Attribute                                   | Present when                                                   |
+| --------------------- | ------------------------------------------- | -------------------------------------------------------------- |
+| `Trigger`             | `data-popup-open`, `data-pressed`           | the menu this trigger opened is open (both together)           |
+| `Positioner`          | `data-open` / `data-closed`                 | the menu is open / closed                                      |
+| `Positioner`, `Popup` | `data-side`                                 | always: `bottom`, or `top` after a collision flip              |
+| `Positioner`, `Popup` | `data-align`                                | always: `start`, `center` or `end`                             |
+| `Positioner`          | `data-anchor-hidden`                        | the anchor has scrolled out of view                            |
+| `Positioner`, `Popup` | `data-instant`                              | transitions are skipped, with the reason: `click` or `dismiss` |
+| `Popup`               | `data-open` / `data-closed`                 | the menu is open / closed                                      |
+| `Popup`               | `data-starting-style` / `data-ending-style` | the enter transition's first frame / the exit transition       |
+| `Item`                | `data-highlighted`                          | the item is under the keyboard or the pointer                  |
 
-`Group` and `GroupLabel` set none.
+`Group`, `GroupLabel` and `Separator` set none.
 
 CSS variables on `Menu.Positioner`: `--anchor-width`, `--anchor-height` (the anchor's size, snapped to device pixels), `--available-width`, `--available-height` (the room before the collision boundary; `100vw` and `100vh` until measured), `--transform-origin` (the anchor's side, for a scale from the anchor).
 
@@ -51,7 +48,7 @@ CSS variables on `Menu.Positioner`: `--anchor-width`, `--anchor-height` (the anc
 
 - `ContextMenu.Root`: no element; a menu opened by a right click or by a touch held still for 500 ms (`LONG_PRESS_DELAY`; moving more than 10 px first cancels it). The lift of the touch that opened it is spent, so it never chooses the item that opened under the finger, and a press a drag has claimed (`@bible/ui/press`) opens nothing.
   - `ContextMenu.Trigger`: `<div>`, the area that opens the menu.
-  - `ContextMenu.Portal > ContextMenu.Positioner > ContextMenu.Popup`, and every other member, are the menu's (`Item`, `Group`, `GroupLabel`, `Separator`); the positioner sits at the pointer.
+  - `ContextMenu.Portal > ContextMenu.Positioner > ContextMenu.Popup`, and every other member, are the menu's (`Item`, `Group`, `GroupLabel`, `Separator`); the positioner sits at the pointer, start-aligned and nudged so the first item is under it, and takes no `sideOffset` or `align`. The root's `disabled` is left out.
 
 | Member    | Attribute                         | Present when                             |
 | --------- | --------------------------------- | ---------------------------------------- |

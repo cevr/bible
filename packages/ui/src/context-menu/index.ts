@@ -6,4 +6,3 @@ export * as ContextMenu from './index.parts.ts';
 
 export type * from './root/ContextMenuRoot.tsx';
 export type * from './trigger/ContextMenuTrigger.tsx';
-export type * from './positioner/ContextMenuPositioner.tsx';

@@ -17,7 +17,6 @@ export const REASONS = {
   closeWatcher: 'close-watcher',
   listNavigation: 'list-navigation',
   keyboard: 'keyboard',
-  pointer: 'pointer',
   scrub: 'scrub',
   cancelOpen: 'cancel-open',
   swipe: 'swipe',

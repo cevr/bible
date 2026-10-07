@@ -1,14 +1,14 @@
 // Upstream: packages/react/src/floating-ui-react/hooks/useListNavigation.ts
 //
-// Arrow-key navigation over a menu's list of items: Arrow keys move the
-// highlight (skipping disabled items, wrapping with `loopFocus`), Home/End
-// jump to the ends, an arrow on the closed trigger opens the popup and
-// highlights the first or last item, the cross-axis arrow closes a nested
-// list (a context menu is one, as upstream marks it), and the pointer
-// highlights the item under it. The highlighted item takes focus.
-// Upstream's virtual focus (`aria-activedescendant`), selected index,
-// combobox, escape-to-none and grid modes are left out: Menu, the one
-// caller, uses none of them.
+// Arrow-key navigation over a menu's vertical list of items: ArrowUp and
+// ArrowDown move the highlight (skipping hidden and `:disabled` items,
+// wrapping at the ends), Home/End jump to the ends, an arrow on the closed
+// trigger opens the popup and highlights the first or last item, ArrowLeft
+// closes a nested list (a context menu is one, as upstream marks it), and
+// the pointer highlights the item under it. The highlighted item takes
+// focus. Upstream's virtual focus (`aria-activedescendant`), selected index,
+// horizontal lists, combobox, escape-to-none and grid modes are left out:
+// Menu, the one caller, uses none of them.
 import { isHTMLElement } from '@floating-ui/utils/dom';
 import { type Accessor, createEffect, untrack } from 'solid-js';
 
@@ -20,9 +20,9 @@ import { platform } from '../../utils/platform.ts';
 import { useAnimationFrame } from '../../utils/timers.ts';
 import type { FloatingRootContext } from '../FloatingRootContext.ts';
 import {
+  findNonDisabledListIndex,
   getMaxListIndex,
   getMinListIndex,
-  getNextListIndex,
   isIndexOutOfListBounds,
 } from '../utils/composite.ts';
 import {
@@ -34,8 +34,6 @@ import {
 } from '../utils/element.ts';
 import { enqueueFocus, isVirtualClick, isVirtualPointerEvent, stopEvent } from '../utils/event.ts';
 
-export type ListOrientation = 'vertical' | 'horizontal' | 'both';
-
 export interface UseListNavigationReturn {
   floating: HTMLProps;
   item: HTMLProps;
@@ -46,42 +44,14 @@ function isStationaryWebKitPointer(event: MouseEvent | PointerEvent) {
   return platform.engine.webkit && event.movementX === 0 && event.movementY === 0;
 }
 
-function doSwitch(
-  orientation: ListOrientation | undefined,
-  vertical: boolean,
-  horizontal: boolean,
-) {
-  switch (orientation) {
-    case 'vertical':
-      return vertical;
-    case 'horizontal':
-      return horizontal;
-    default:
-      return vertical || horizontal;
-  }
+/** Whether `key` moves along the list. */
+function isListKey(key: string) {
+  return key === ARROW_UP || key === ARROW_DOWN;
 }
 
-export function isMainOrientationKey(key: string, orientation: ListOrientation | undefined) {
-  const vertical = key === ARROW_UP || key === ARROW_DOWN;
-  const horizontal = key === ARROW_LEFT || key === ARROW_RIGHT;
-  return doSwitch(orientation, vertical, horizontal);
-}
-
-export function isMainOrientationToEndKey(key: string, orientation: ListOrientation | undefined) {
-  const vertical = key === ARROW_DOWN;
-  const horizontal = key === ARROW_RIGHT;
-  return (
-    doSwitch(orientation, vertical, horizontal) || key === 'Enter' || key === ' ' || key === ''
-  );
-}
-
-export function isCrossOrientationCloseKey(key: string, orientation: ListOrientation | undefined) {
-  const vertical = key === ARROW_LEFT;
-  const horizontal = key === ARROW_UP;
-  if (orientation === 'both') {
-    return key === 'Escape';
-  }
-  return doSwitch(orientation, vertical, horizontal);
+/** Whether `key` moves toward the list's end (or, opening it, starts at the first item). */
+function isToEndKey(key: string) {
+  return key === ARROW_DOWN || key === 'Enter' || key === ' ' || key === '';
 }
 
 export interface UseListNavigationProps {
@@ -91,13 +61,9 @@ export interface UseListNavigationProps {
   activeIndex: number | null;
   /** Called when navigation moves the highlight. */
   onNavigate?: ((activeIndex: number | null, event: Event | undefined) => void) | undefined;
-  enabled?: boolean | undefined;
   openOnArrowKeyDown?: boolean | undefined;
-  loopFocus?: boolean | undefined;
   /** Whether the list is nested (upstream's submenu; here a context menu, as upstream marks it). */
   nested?: boolean | undefined;
-  /** The list's axis, and the trigger's: the key that opens the popup runs along it. */
-  orientation?: ListOrientation | undefined;
 }
 
 export function useListNavigation(
@@ -105,12 +71,9 @@ export function useListNavigation(
   props: UseListNavigationProps,
 ): UseListNavigationReturn {
   const listRef = props.listRef;
-  const enabled = () => props.enabled ?? true;
   const activeIndex = () => props.activeIndex;
-  const loopFocus = () => props.loopFocus ?? false;
   const nested = () => props.nested ?? false;
   const openOnArrowKeyDown = () => props.openOnArrowKeyDown ?? true;
-  const orientation = () => props.orientation ?? 'vertical';
 
   const floatingFocusElement: Accessor<HTMLElement | null> = () =>
     getFloatingFocusElement(untrack(context.floatingElement));
@@ -174,11 +137,8 @@ export function useListNavigation(
   });
 
   createEffect(
-    () => [enabled(), context.open(), context.floatingElement()] as const,
-    ([isEnabled, open, floating]) => {
-      if (!isEnabled) {
-        return;
-      }
+    () => [context.open(), context.floatingElement()] as const,
+    ([open, floating]) => {
       if (open && floating) {
         index = -1;
       } else if (previousMounted) {
@@ -189,11 +149,8 @@ export function useListNavigation(
   );
 
   createEffect(
-    () => [enabled(), context.open(), context.floatingElement(), activeIndex()] as const,
-    ([isEnabled, open, floating, active]) => {
-      if (!isEnabled) {
-        return;
-      }
+    () => [context.open(), context.floatingElement(), activeIndex()] as const,
+    ([open, floating, active]) => {
       if (!open) {
         forceSyncFocus = false;
         return;
@@ -228,9 +185,7 @@ export function useListNavigation(
               runs += 1;
             } else {
               index =
-                key == null ||
-                isMainOrientationToEndKey(key, untrack(orientation)) ||
-                untrack(nested)
+                key == null || isToEndKey(key) || untrack(nested)
                   ? getMinListIndex(listRef.current)
                   : getMaxListIndex(listRef.current);
               key = null;
@@ -256,7 +211,7 @@ export function useListNavigation(
   );
 
   const syncCurrentTarget = (event: Event) => {
-    if (!untrack(enabled) || !untrack(context.open)) {
+    if (!untrack(context.open)) {
       return;
     }
     const itemIndex = listRef.current.indexOf(event.currentTarget as HTMLElement);
@@ -286,13 +241,8 @@ export function useListNavigation(
       return;
     }
 
-    const currentOrientation = untrack(orientation);
-
-    if (untrack(nested) && isCrossOrientationCloseKey(event.key, currentOrientation)) {
-      // No list sits in a parent list, so an arrow is left to the page; Escape stops here.
-      if (!event.key.startsWith('Arrow')) {
-        stopEvent(event);
-      }
+    if (untrack(nested) && event.key === ARROW_LEFT) {
+      // No list sits in a parent list, so the arrow is left to the page.
       context.setOpen(false, createChangeEventDetails(REASONS.listNavigation, event));
       returnFocusToTrigger();
       return;
@@ -304,10 +254,8 @@ export function useListNavigation(
     }
 
     const currentIndex = index;
-    // The keys reach a menu's disabled items (upstream: "includes disabled items during
-    // keyboard navigation"); the menu refuses to run them.
-    const minIndex = getMinListIndex(listRef.current, true);
-    const maxIndex = getMaxListIndex(listRef.current, true);
+    const minIndex = getMinListIndex(listRef.current);
+    const maxIndex = getMaxListIndex(listRef.current);
 
     if (event.key === 'Home') {
       stopEvent(event);
@@ -320,7 +268,7 @@ export function useListNavigation(
       onNavigate(event);
     }
 
-    if (isMainOrientationKey(event.key, currentOrientation)) {
+    if (isListKey(event.key)) {
       stopEvent(event);
 
       const currentTarget = event.currentTarget as Element;
@@ -330,22 +278,26 @@ export function useListNavigation(
         contains(currentTarget, focusedElement) &&
         !listRef.current.some((item) => item != null && contains(item, focusedElement))
       ) {
-        index = isMainOrientationToEndKey(event.key, currentOrientation) ? minIndex : maxIndex;
+        index = isToEndKey(event.key) ? minIndex : maxIndex;
         onNavigate(event);
         return;
       }
 
-      const next = getNextListIndex(listRef.current, currentIndex, {
-        decrement: !isMainOrientationToEndKey(event.key, currentOrientation),
-        loopFocus: untrack(loopFocus),
-        reachDisabled: true,
-        minIndex,
-        maxIndex,
-      });
-      if (next.wrapped) {
+      // Past either end the highlight wraps to the other.
+      const decrement = event.key === ARROW_UP;
+      const wraps = decrement ? currentIndex <= minIndex : currentIndex >= maxIndex;
+      if (wraps) {
         forceSyncFocus = false;
+        index = decrement ? maxIndex : minIndex;
+      } else {
+        index = findNonDisabledListIndex(listRef.current, {
+          startingIndex: currentIndex,
+          decrement,
+        });
       }
-      index = next.index;
+      if (isIndexOutOfListBounds(listRef.current, index)) {
+        index = -1;
+      }
       onNavigate(event);
     }
   };
@@ -389,9 +341,6 @@ export function useListNavigation(
 
   const floating: HTMLProps = {
     onKeyDown(event: KeyboardEvent) {
-      if (!untrack(enabled)) {
-        return;
-      }
       if (event.key === 'Tab' && event.shiftKey && untrack(context.open)) {
         const target = getTarget(event) as Element | null;
         if (target && !contains(floatingFocusElement(), target)) {
@@ -434,9 +383,6 @@ export function useListNavigation(
 
   const trigger: HTMLProps = {
     onKeyDown(event: KeyboardEvent) {
-      if (!untrack(enabled)) {
-        return;
-      }
       const currentOpen = untrack(context.open);
       isPointerModality = false;
       const isNested = untrack(nested);
@@ -444,7 +390,7 @@ export function useListNavigation(
       const isArrowKey = event.key.startsWith('Arrow');
       // A nested list has no parent list, so either arrow axis opens it.
       const isParentCrossOpenKey = event.key === ARROW_RIGHT || event.key === ARROW_DOWN;
-      const isMainKey = isMainOrientationKey(event.key, untrack(orientation));
+      const isMainKey = isListKey(event.key);
       const isNavigationKey =
         (isNested ? isParentCrossOpenKey : isMainKey) ||
         event.key === 'Enter' ||
@@ -462,7 +408,7 @@ export function useListNavigation(
         if (isParentCrossOpenKey) {
           stopEvent(event);
           if (currentOpen) {
-            index = getMinListIndex(listRef.current, true);
+            index = getMinListIndex(listRef.current);
             onNavigate(event);
           } else {
             openOnNavigationKeyDown(event);
@@ -487,7 +433,7 @@ export function useListNavigation(
       if (event.target !== event.currentTarget) {
         return;
       }
-      if (untrack(enabled) && untrack(context.open)) {
+      if (untrack(context.open)) {
         index = -1;
         onNavigate(event);
       }

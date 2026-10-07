@@ -1,36 +1,18 @@
 // Fixtures for the context menu: a 300×200 area that opens a menu with
 // items, and a field in the area whose open the root declines;
 // and the lab's shape, one root whose page trigger wraps target triggers (`nested`).
-// URL params: `disabled=true` disables the root; `window.__setDisabled(bool)`
-// changes it later; `under=true` opens the menu over the point it opens at,
-// its first item under it (as a menu kept on a phone's screen lands under the finger).
+// URL param: `under=true` moves the popup 20px up and left, over the point the
+// menu opens at, its first item under it (as a menu kept on a phone's screen
+// lands under the finger).
 import type { JSX } from '@solidjs/web';
-import { createSignal } from 'solid-js';
 
 import { ContextMenu } from '../../../src/context-menu/index.ts';
 import { log, param } from './log.ts';
 
-/**
- * The area menu's positioner: with `under=true`, over the point the menu
- * opens at (its first item under it), else at the root's own offsets.
- */
-function Positioner(props: { readonly children: JSX.Element }): JSX.Element {
-  if (param('under') === 'true') {
-    return (
-      <ContextMenu.Positioner id="positioner" sideOffset={-20} alignOffset={-20}>
-        {props.children}
-      </ContextMenu.Positioner>
-    );
-  }
-  return <ContextMenu.Positioner id="positioner">{props.children}</ContextMenu.Positioner>;
-}
-
 function AreaMenu(): JSX.Element {
-  const [disabled, setDisabled] = createSignal(param('disabled') === 'true');
-  (window as unknown as { __setDisabled: (next: boolean) => void }).__setDisabled = setDisabled;
+  const under = param('under') === 'true';
   return (
     <ContextMenu.Root
-      disabled={disabled()}
       onOpenChange={(open, details) => {
         // The field inside the area keeps its own menu: the open on it is declined.
         if (open && (details.event.target as Element | null)?.id === 'field') {
@@ -49,8 +31,11 @@ function AreaMenu(): JSX.Element {
         <input id="field" style={{ display: 'block', width: '80px' }} />
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
-        <Positioner>
-          <ContextMenu.Popup id="popup">
+        <ContextMenu.Positioner id="positioner">
+          <ContextMenu.Popup
+            id="popup"
+            style={under ? { transform: 'translate(-20px, -20px)' } : undefined}
+          >
             <ContextMenu.Item id="copy" onClick={() => log('click copy')}>
               Copy
             </ContextMenu.Item>
@@ -58,7 +43,7 @@ function AreaMenu(): JSX.Element {
               Paste
             </ContextMenu.Item>
           </ContextMenu.Popup>
-        </Positioner>
+        </ContextMenu.Positioner>
       </ContextMenu.Portal>
     </ContextMenu.Root>
   );

@@ -2,12 +2,11 @@
 // packages/react/src/utils/resolveRef.ts
 //
 // Renders a popup into a portal node (a `<div data-base-ui-portal>` in the
-// body, or in the given container), out of any clipping ancestor. A
+// body, or in the enclosing portal's node), out of any clipping ancestor. A
 // non-modal popup in a portal is still in the Tab order where its trigger
 // is: guards before and after the trigger's place send focus into the portal
 // and back out, and tabbing out past the end closes the popup.
-import { type JSX, Portal, isServer } from '@solidjs/web';
-import { isNode } from '@floating-ui/utils/dom';
+import { type JSX, Portal } from '@solidjs/web';
 import {
   type Accessor,
   createContext,
@@ -75,11 +74,9 @@ const attr = createAttribute('portal');
 export interface FloatingPortalState {}
 
 export interface FloatingPortalProps extends BaseUIComponentProps<'div', FloatingPortalState> {
-  /** The element the portal node is rendered into (the enclosing portal's, else the body). `null` waits. */
-  container?: MaybeRef<HTMLElement | ShadowRoot | null> | undefined;
   /**
-   * Render the portal node where the portal is written, not moved into
-   * `container`: the same in the server's render and the browser's, so a
+   * Render the portal node where the portal is written, not moved into the
+   * enclosing portal's node or the body: the same in the server's render and the browser's, so a
    * popup open at the first render is in the server's markup and hydrates
    * there. For a popup positioned against the window (`position: fixed`)
    * under no ancestor that would hold it (a transform, a filter, `contain`).
@@ -101,14 +98,8 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
   const id = createUniqueId();
   let focusInsideDisabled = false;
 
-  const mount = () => {
-    const container = props.container;
-    if (container === null) {
-      return null;
-    }
-    const resolved = container && (isNode(container) ? container : container.current);
-    return resolved ?? parent?.portalNode() ?? document.body;
-  };
+  // The enclosing portal's node, else the body.
+  const mount = () => parent?.portalNode() ?? document.body;
 
   const shouldRenderGuards = () => {
     const state = focusManagerState();
@@ -164,7 +155,7 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
     afterOutsideRef,
   };
 
-  const elementProps = omit(props, 'class', 'style', 'render', 'container', 'inline');
+  const elementProps = omit(props, 'class', 'style', 'render', 'inline');
 
   function PortalElement() {
     onClientCleanup(() => setPortalNode(null));
@@ -198,14 +189,10 @@ export function FloatingPortal(props: FloatingPortalProps): JSX.Element {
           when={props.inline === true}
           fallback={
             /* A server render has no body to portal into: Solid's server `Portal`
-               renders nothing and never reads its mount, so the server takes this
-               branch without one, as the client's hydration will. */
-            <Show when={isServer || mount()}>
-              {/* Solid only appends into the mount, which a shadow root supports too. */}
-              <Portal mount={(mount() ?? undefined) as Element | undefined}>
-                <PortalElement />
-              </Portal>
-            </Show>
+               renders nothing and never reads its mount, as the client's hydration expects. */
+            <Portal mount={mount()}>
+              <PortalElement />
+            </Portal>
           }
         >
           <PortalElement />

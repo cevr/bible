@@ -3,7 +3,7 @@
 // A menu's state: the popup's (open, mounted, active trigger, elements) plus
 // the highlighted item and how the menu opened. A context menu
 // shares its root id and mouse-up gesture flag with the context menu around it.
-import { type Accessor, createSignal, untrack } from 'solid-js';
+import { type Accessor, createSignal } from 'solid-js';
 
 import type { ContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext.ts';
 import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
@@ -27,18 +27,10 @@ export type MenuChangeEventReason =
 
 export type MenuChangeEventDetails = BaseUIChangeEventDetails<MenuChangeEventReason>;
 
-export type MenuHighlightEventReason =
-  | typeof REASONS.keyboard
-  | typeof REASONS.pointer
-  | typeof REASONS.none;
-
 export type MenuInstantType = 'dismiss' | 'click' | undefined;
 
 export interface MenuStoreOptions {
   parent: MenuParent;
-  openProp: () => boolean | undefined;
-  disabled: () => boolean;
-  modal: () => boolean | undefined;
   openMethod: Accessor<InteractionType | null>;
   floatingId: string;
   rootId: string;
@@ -48,15 +40,12 @@ export interface MenuStoreOptions {
 
 export interface MenuStore extends PopupStore {
   readonly parent: MenuParent;
-  disabled: Accessor<boolean>;
-  /** Whether the open menu is modal. */
-  modal: Accessor<boolean>;
   openMethod: Accessor<InteractionType | null>;
   /** The id the menu's popup carries as `data-rootownerid`. */
   rootId: Accessor<string>;
+  /** The highlighted item's index (`null` for none). */
   activeIndex: Accessor<number | null>;
-  /** Moves the highlight; the reason reaches `onItemHighlighted`. */
-  setActiveIndex: (index: number | null, reason: MenuHighlightEventReason, event?: Event) => void;
+  setActiveIndex: (index: number | null) => void;
   isActive: (index: number) => boolean;
   instantType: Accessor<MenuInstantType>;
   lastOpenChangeReason: Accessor<MenuChangeEventReason | null>;
@@ -73,23 +62,17 @@ export interface MenuStore extends PopupStore {
   readonly typingRef: { current: boolean };
   /** Whether a mouseup on an item activates it (a press on the trigger dragged onto it). */
   allowMouseUpTriggerRef: { current: boolean };
-  /** Why the next highlight change happens, reported once it lands. */
-  highlightReason: MenuHighlightEventReason;
-  highlightEvent: Event | undefined;
-  /** The item last reported as highlighted. */
-  reportedItem: HTMLElement | undefined;
 }
 
 export function createMenuStore(options: MenuStoreOptions): MenuStore {
   const popup = createPopupStore({
-    openProp: options.openProp,
     floatingId: options.floatingId,
     onOpenChange: (open, details) => options.onOpenChange(open, details),
     onOpenChangeComplete: options.onOpenChangeComplete,
   });
 
   const owned = { ownedWrite: true } as const;
-  const [activeIndex, setActiveIndexSignal] = createSignal<number | null>(null, owned);
+  const [activeIndex, setActiveIndex] = createSignal<number | null>(null, owned);
   const [instantType, setInstantType] = createSignal<MenuInstantType>(undefined, owned);
   const [lastOpenChangeReason, setLastOpenChangeReason] =
     createSignal<MenuChangeEventReason | null>(null, owned);
@@ -100,21 +83,10 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
   const store: MenuStore = {
     ...popup,
     parent,
-    disabled: options.disabled,
-    modal: () => options.modal() ?? true,
     openMethod: options.openMethod,
     rootId: () => contextMenu?.rootId ?? options.rootId,
     activeIndex,
-    setActiveIndex(index, reason, event) {
-      // Only a change is tagged; a write back to the reported item reports `none`.
-      if (untrack(activeIndex) !== index) {
-        const item = index === null ? undefined : store.itemDomElements.current[index];
-        const isWriteBack = item === store.reportedItem;
-        store.highlightReason = isWriteBack ? 'none' : reason;
-        store.highlightEvent = isWriteBack ? undefined : event;
-      }
-      setActiveIndexSignal(index);
-    },
+    setActiveIndex: (index) => setActiveIndex(index),
     isActive: (index) => activeIndex() === index,
     instantType,
     lastOpenChangeReason,
@@ -128,9 +100,6 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
     itemLabels: { current: [] },
     typingRef: { current: false },
     allowMouseUpTriggerRef: contextMenu?.allowMouseUpTriggerRef ?? { current: false },
-    highlightReason: 'none',
-    highlightEvent: undefined,
-    reportedItem: undefined,
   };
   return store;
 }

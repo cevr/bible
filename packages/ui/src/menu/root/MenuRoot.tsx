@@ -2,12 +2,12 @@
 //
 // Groups a menu's parts and owns its state. Opening and closing go through
 // one pipeline: `onOpenChange` (which may cancel), then the interactions
-// hear of it, then the menu records why it changed, whether the keyboard
-// opened it (so focus lands on an item) and whether its transition is
-// skipped. The root wires the interactions the parts share: Escape and
-// outside presses, arrow-key navigation, typeahead, and how it was opened.
-// Upstream's hover opening and submenus are left out: each menu, a context
-// menu included, is the only menu of its tree.
+// hear of it, then the menu records why it changed and whether its
+// transition is skipped. The root wires the interactions the parts share:
+// Escape and outside presses, arrow-key navigation, typeahead, and how it
+// was opened. A menu is vertical, modal, wraps its arrow keys and opens
+// only from its trigger. Upstream's hover opening and submenus are left
+// out: each menu, a context menu included, is the only menu of its tree.
 import type { JSX } from '@solidjs/web';
 import { createEffect, createUniqueId, untrack } from 'solid-js';
 
@@ -16,13 +16,8 @@ import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
 import { useListNavigation } from '../../floating-ui-solid/hooks/useListNavigation.ts';
 import { useTypeahead } from '../../floating-ui-solid/hooks/useTypeahead.ts';
 import { TYPEAHEAD_RESET_MS } from '../../internals/constants.ts';
-import {
-  type BaseUIChangeEventDetails,
-  type BaseUIGenericEventDetails,
-  createGenericEventDetails,
-} from '../../internals/createBaseUIEventDetails.ts';
+import type { BaseUIChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
-import type { Orientation } from '../../internals/types.ts';
 import { mergeProps } from '../../merge-props/mergeProps.ts';
 import { FOCUSABLE_POPUP_PROPS } from '../../utils/popups/popupStore.ts';
 import { useTimeout } from '../../utils/timers.ts';
@@ -31,53 +26,19 @@ import {
   createMenuStore,
   type MenuChangeEventDetails,
   type MenuChangeEventReason,
-  type MenuHighlightEventReason,
   type MenuInstantType,
   type MenuParent,
 } from '../store/MenuStore.ts';
 import { isKeyboardClick } from '../utils/isKeyboardOpen.ts';
 import { MenuRootContext, useMenuRootContextOptional } from './MenuRootContext.ts';
 
-export type { MenuChangeEventDetails, MenuChangeEventReason, MenuHighlightEventReason };
-
-export type MenuHighlightEventDetails = BaseUIGenericEventDetails<
-  MenuHighlightEventReason,
-  { label: string | undefined }
->;
+export type { MenuChangeEventDetails, MenuChangeEventReason };
 
 export interface MenuRootProps {
-  /** @default true */
-  loopFocus?: boolean | undefined;
-  /**
-   * Whether the open menu is modal: page scroll locked and outside pointer
-   * interaction blocked. @default true
-   */
-  modal?: boolean | undefined;
   onOpenChange?: ((open: boolean, eventDetails: MenuChangeEventDetails) => void) | undefined;
   /** Called after the open or close transition finishes. */
   onOpenChangeComplete?: ((open: boolean) => void) | undefined;
-  onItemHighlighted?:
-    | ((item: HTMLElement | undefined, eventDetails: MenuHighlightEventDetails) => void)
-    | undefined;
-  open?: boolean | undefined;
-  /** @default 'vertical' */
-  orientation?: Orientation | undefined;
-  /** @default false */
-  disabled?: boolean | undefined;
   children?: JSX.Element;
-}
-
-function getHighlightReason(event: Event | undefined): MenuHighlightEventReason {
-  if (event == null) {
-    return REASONS.none;
-  }
-  if (event.type.startsWith('key')) {
-    return REASONS.keyboard;
-  }
-  if (event.type.startsWith('mouse') || event.type.startsWith('pointer')) {
-    return REASONS.pointer;
-  }
-  return REASONS.none;
 }
 
 /**
@@ -103,9 +64,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
 
   const store = createMenuStore({
     parent,
-    openProp: () => props.open,
-    disabled: () => props.disabled ?? false,
-    modal: () => props.modal,
     openMethod,
     floatingId,
     rootId,
@@ -187,12 +145,7 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     });
   }
 
-  const enabled = () => !store.disabled();
-
   const dismiss = useDismiss(floatingRootContext, {
-    get enabled() {
-      return enabled();
-    },
     outsidePress() {
       if (parent.type !== 'context-menu' || openEvent?.type === 'contextmenu') {
         return true;
@@ -201,81 +154,34 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     },
   });
 
-  const loopFocus = () => props.loopFocus ?? true;
-  const orientation = () => props.orientation ?? 'vertical';
-
   const listNavigation = useListNavigation(floatingRootContext, {
-    get enabled() {
-      return enabled();
-    },
     listRef: store.itemDomElements,
     get activeIndex() {
       return store.activeIndex();
     },
     nested: parent.type !== undefined,
-    get loopFocus() {
-      return loopFocus();
-    },
-    get orientation() {
-      return orientation();
-    },
-    onNavigate(nextActiveIndex, event) {
-      store.setActiveIndex(nextActiveIndex, getHighlightReason(event), event);
+    onNavigate(nextActiveIndex) {
+      store.setActiveIndex(nextActiveIndex);
     },
     openOnArrowKeyDown: parent.type !== 'context-menu',
   });
 
   const typeahead = useTypeahead(floatingRootContext, {
-    get enabled() {
-      return enabled();
-    },
     listRef: store.itemLabels,
     elementsRef: store.itemDomElements,
     get activeIndex() {
       return store.activeIndex();
     },
     resetMs: TYPEAHEAD_RESET_MS,
-    onMatch(index, event) {
+    onMatch(index) {
       if (untrack(store.open) && index !== untrack(store.activeIndex)) {
-        store.setActiveIndex(index, REASONS.keyboard, event);
+        store.setActiveIndex(index);
       }
     },
     onTyping(nextTyping) {
       store.typingRef.current = nextTyping;
     },
   });
-
-  // Reports the highlighted item when `activeIndex` lands, and again once the item registry
-  // settles, since an index can come to name another element.
-  let lastHighlightIndex = -1;
-  const syncHighlightedItem = () => {
-    const index = untrack(store.activeIndex);
-    const item = index === null ? undefined : (store.itemDomElements.current[index] ?? undefined);
-    // An item removed this tick stays registered until the list flushes, which calls back here.
-    if (item?.isConnected === false) {
-      return;
-    }
-    const itemIndex = item === undefined || index === null ? -1 : index;
-    if (lastHighlightIndex === itemIndex && store.reportedItem === item) {
-      return;
-    }
-    lastHighlightIndex = itemIndex;
-    store.reportedItem = item;
-    const { highlightReason, highlightEvent } = store;
-    store.highlightReason = REASONS.none;
-    store.highlightEvent = undefined;
-    const onItemHighlighted = untrack(() => props.onItemHighlighted);
-    if (!onItemHighlighted) {
-      return;
-    }
-    onItemHighlighted(
-      item,
-      createGenericEventDetails(highlightReason, highlightEvent, {
-        label: item === undefined ? undefined : (store.itemLabels.current[itemIndex] ?? undefined),
-      }),
-    );
-  };
-  createEffect(store.activeIndex, () => syncHighlightedItem());
 
   const activeTriggerProps = mergeProps(
     typeahead.reference,
@@ -307,11 +213,9 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
   const context: MenuRootContext = {
     store,
     parent,
-    orientation,
     triggerProps: (active) => (active ? activeTriggerProps : inactiveTriggerProps),
     popupProps,
     itemProps: listNavigation.item,
-    syncHighlightedItem,
   };
 
   return <MenuRootContext value={context}>{props.children}</MenuRootContext>;

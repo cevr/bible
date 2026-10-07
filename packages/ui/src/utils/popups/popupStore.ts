@@ -3,7 +3,7 @@
 // packages/react/src/utils/popups/useTriggerFocusGuards.ts
 //
 // The state every popup (menu, dialog) keeps: whether it is open
-// (the owner's `open` prop wins over its own), whether it is still mounted
+// (a dialog owner's `open` prop wins over its own), whether it is still mounted
 // for an exit transition, which trigger opened it, its popup and positioner
 // elements, and the floating root context its interactions read. A part
 // family builds its own store over this one and runs its own open-change
@@ -11,7 +11,7 @@
 //
 // Upstream's stores are external stores React subscribes to; here each field
 // is a signal and the selectors are plain functions over them.
-import { type Accessor, createEffect, createSignal, flush, untrack } from 'solid-js';
+import { type Accessor, createSignal, flush, untrack } from 'solid-js';
 
 import {
   createFloatingRootContext,
@@ -37,8 +37,8 @@ export const FOCUSABLE_POPUP_PROPS = {
 type Ref<T> = { current: T };
 
 export interface PopupStoreOptions {
-  /** The owner's `open` prop; `undefined` leaves the popup in charge. */
-  openProp: () => boolean | undefined;
+  /** The owner's `open` prop (a dialog's); none, or `undefined`, leaves the popup in charge. */
+  openProp?: (() => boolean | undefined) | undefined;
   /** The popup's id when its element sets none. */
   floatingId: string;
   /** Whether Floating UI positions the popup element itself rather than the positioner. */
@@ -80,7 +80,7 @@ export interface PopupStore {
 
 export function createPopupStore(options: PopupStoreOptions): PopupStore {
   const [ownOpen, setOwnOpen] = createSignal(false, { ownedWrite: true });
-  const open = () => options.openProp() ?? ownOpen();
+  const open = () => options.openProp?.() ?? ownOpen();
   const [activeTriggerId, setActiveTriggerId] = createSignal<string | null>(null, {
     ownedWrite: true,
   });
@@ -93,7 +93,6 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
   const [positionerElement, setPositionerElement] = createSignal<HTMLElement | null>(null, {
     ownedWrite: true,
   });
-  const [triggerCount, setTriggerCount] = createSignal(0, { ownedWrite: true });
   const triggerElements = new PopupTriggerMap();
 
   const onOpenChangeComplete = (isOpen: boolean) => {
@@ -125,22 +124,6 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
   const ownsOpenPopup = (triggerId: string | undefined) =>
     triggerId !== undefined && open() && activeTriggerId() === triggerId;
 
-  // A popup opened with no trigger (its `open` prop) claims its only trigger.
-  createEffect(
-    () => [open(), triggerCount(), activeTriggerId()] as const,
-    ([isOpen, count, activeId]) => {
-      if (!isOpen || activeId !== null || count !== 1) {
-        return;
-      }
-      const first = triggerElements.entries().next();
-      if (!first.done) {
-        const [id, element] = first.value;
-        setActiveTriggerId(id);
-        setActiveTrigger(() => element);
-      }
-    },
-  );
-
   return {
     open,
     mounted: status.mounted,
@@ -158,17 +141,12 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
     isOpenedByTrigger: ownsOpenPopup,
     isMountedByTrigger: (triggerId) =>
       triggerId !== undefined && activeTriggerId() === triggerId && status.mounted(),
-    triggerPopupId: (triggerId) =>
-      ownsOpenPopup(triggerId) ||
-      (triggerId !== undefined && open() && activeTriggerId() == null && triggerCount() === 1)
-        ? popupId()
-        : undefined,
+    triggerPopupId: (triggerId) => (ownsOpenPopup(triggerId) ? popupId() : undefined),
     registerTrigger(triggerId, element) {
       const registered = triggerElements.getById(triggerId);
       if (element === null) {
         if (registered) {
           triggerElements.delete(triggerId);
-          setTriggerCount(triggerElements.size);
         }
         return;
       }
@@ -176,7 +154,6 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
         return;
       }
       triggerElements.add(triggerId, element);
-      setTriggerCount(triggerElements.size);
       if (untrack(activeTriggerId) === triggerId) {
         setActiveTrigger(() => element);
       }

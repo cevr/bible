@@ -1,19 +1,21 @@
 // Upstream: packages/react/src/menu/positioner/MenuPositioner.tsx,
-// packages/react/src/menu/positioner/MenuPositionerContext.ts
+// packages/react/src/menu/positioner/MenuPositionerContext.ts,
+// packages/react/src/context-menu/positioner/ContextMenuPositioner.tsx
 //
-// Positions the menu's popup against its trigger (a context menu at the
-// pointer). A modal menu gets a transparent backdrop (with a hole over a
-// top-level menu's trigger), and locks page scroll unless a touch opened it.
+// Positions the menu's popup under its trigger, or, in a context menu, at
+// the pointer: fixed, start-aligned and nudged -5/2 off the point so its
+// first item sits under it, shifting over the point to stay on screen. The
+// open menu is modal: a transparent backdrop covers the page (with a hole
+// over a top-level menu's trigger), and page scroll is locked unless a touch
+// opened it.
 import { isServer, type JSX } from '@solidjs/web';
 import { createContext, omit, onCleanup, Show, untrack, useContext } from 'solid-js';
 
 import { CompositeList } from '../../internals/composite/CompositeList.tsx';
-import { DROPDOWN_COLLISION_AVOIDANCE } from '../../internals/constants.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import {
   type Align,
   type Side,
-  type UseAnchorPositioningSharedParameters,
   useAnchorPositioning,
 } from '../../internals/useAnchorPositioning.ts';
 import { InternalBackdrop } from '../../utils/FocusGuard.tsx';
@@ -49,86 +51,38 @@ export interface MenuPositionerState {
   instant: MenuInstantType;
 }
 
-export interface MenuPositionerProps
-  extends UseAnchorPositioningSharedParameters, BaseUIComponentProps<'div', MenuPositionerState> {}
+export interface MenuPositionerProps extends BaseUIComponentProps<'div', MenuPositionerState> {
+  /** The gap between the trigger and the popup, in pixels. @default 0 */
+  sideOffset?: number | undefined;
+  /** How the popup lines up with the trigger. @default 'center' */
+  align?: Align | undefined;
+}
 
 export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element {
-  const { store, parent, syncHighlightedItem } = useMenuRootContext();
+  const { store, parent } = useMenuRootContext();
   useMenuPortalContext();
-  const elementProps = omit(
-    componentProps,
-    'class',
-    'style',
-    'render',
-    'anchor',
-    'positionMethod',
-    'side',
-    'align',
-    'sideOffset',
-    'alignOffset',
-    'collisionBoundary',
-    'collisionPadding',
-    'sticky',
-    'disableAnchorTracking',
-    'collisionAvoidance',
-  );
+  const elementProps = omit(componentProps, 'class', 'style', 'render', 'sideOffset', 'align');
 
   const contextMenu = parent.type === 'context-menu' ? parent.context : undefined;
   const props = componentProps;
 
-  const align = (): Align | undefined => props.align ?? (contextMenu ? 'start' : undefined);
-  // A context menu sits just off the pointer, its first item under it.
-  const contextMenuOffsets = () => contextMenu && !props.side && align() !== 'center';
-  const collisionAvoidance = () => props.collisionAvoidance ?? DROPDOWN_COLLISION_AVOIDANCE;
-
   const positioner = useAnchorPositioning({
-    get anchor() {
-      return props.anchor ?? (contextMenu ? contextMenu.anchor() : undefined);
-    },
     floatingRootContext: store.floatingRootContext,
-    get positionMethod() {
-      return contextMenu ? 'fixed' : (props.positionMethod ?? 'absolute');
-    },
     get mounted() {
       return store.mounted();
     },
-    get side() {
-      return props.side;
+    get anchor() {
+      return contextMenu?.anchor();
     },
+    positionMethod: contextMenu ? 'fixed' : 'absolute',
     get sideOffset() {
-      return props.sideOffset ?? (contextMenuOffsets() ? -5 : 0);
+      return contextMenu ? -5 : (props.sideOffset ?? 0);
     },
     get align() {
-      return align();
+      return contextMenu ? 'start' : (props.align ?? 'center');
     },
-    get alignOffset() {
-      return props.alignOffset ?? (contextMenuOffsets() ? 2 : 0);
-    },
-    get collisionBoundary() {
-      return props.collisionBoundary ?? 'clipping-ancestors';
-    },
-    get collisionPadding() {
-      return props.collisionPadding ?? 5;
-    },
-    get sticky() {
-      return props.sticky ?? false;
-    },
-    get disableAnchorTracking() {
-      return props.disableAnchorTracking ?? false;
-    },
-    get collisionAvoidance() {
-      return collisionAvoidance();
-    },
-    get shift() {
-      if (!contextMenu) {
-        return undefined;
-      }
-      const avoidance = collisionAvoidance();
-      return {
-        crossAxis: !('side' in avoidance && avoidance.side === 'flip'),
-        rootBoundary: 'layoutViewport' as const,
-      };
-    },
+    alignOffset: contextMenu ? 2 : 0,
+    shiftCrossAxis: contextMenu !== undefined,
   });
 
   // The server set no element to let go.
@@ -137,7 +91,7 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
   });
 
   useAnchoredPopupScrollLock(
-    () => store.open() && store.modal(),
+    store.open,
     () => store.openMethod() === 'touch',
     store.positionerElement,
     store.activeTriggerElement,
@@ -161,8 +115,6 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
     },
   };
 
-  const shouldRenderBackdrop = () => store.mounted() && store.modal();
-
   const positionerContext: MenuPositionerContextValue = {
     side: positioner.side,
     align: positioner.align,
@@ -170,7 +122,7 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
 
   return (
     <MenuPositionerContext value={positionerContext}>
-      <Show when={shouldRenderBackdrop()}>
+      <Show when={store.mounted()}>
         <InternalBackdrop
           ref={(el: HTMLDivElement) => {
             if (contextMenu) {
@@ -181,11 +133,7 @@ export function MenuPositioner(componentProps: MenuPositionerProps): JSX.Element
           cutout={parent.type === undefined ? store.activeTriggerElement() : null}
         />
       </Show>
-      <CompositeList
-        elementsRef={store.itemDomElements}
-        labelsRef={store.itemLabels}
-        onMapChange={syncHighlightedItem}
-      >
+      <CompositeList elementsRef={store.itemDomElements} labelsRef={store.itemLabels}>
         {/* Built inside the providers, so the popup and items read them. */}
         {untrack(() =>
           usePositioner(componentProps, state, {

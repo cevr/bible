@@ -5,19 +5,16 @@
 // for the trigger, the popup and the items.
 import { createContext, useContext } from 'solid-js';
 
-import type { HTMLProps, Orientation } from '../../internals/types.ts';
+import type { HTMLProps } from '../../internals/types.ts';
 import type { MenuParent, MenuStore } from '../store/MenuStore.ts';
 
 export interface MenuRootContext {
   store: MenuStore;
   parent: MenuParent;
-  orientation: () => Orientation;
   /** The props of the trigger that opened the menu (`active`) or of another trigger. */
   triggerProps: (active: boolean) => HTMLProps;
   popupProps: HTMLProps;
   itemProps: HTMLProps;
-  /** Reports the highlighted item again once the item registry settles. */
-  syncHighlightedItem: () => void;
 }
 
 export const MenuRootContext = createContext<MenuRootContext | null>(null);

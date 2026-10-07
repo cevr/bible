@@ -17,7 +17,7 @@ import {
   type ContextMenuRootContext as ContextMenuRootContextValue,
 } from './ContextMenuRootContext.ts';
 
-export interface ContextMenuRootProps extends Omit<MenuRootProps, 'modal' | 'onOpenChange'> {
+export interface ContextMenuRootProps extends Omit<MenuRootProps, 'onOpenChange'> {
   /** Called when the menu opens or closes. */
   onOpenChange?:
     | ((open: boolean, eventDetails: ContextMenuRootChangeEventDetails) => void)

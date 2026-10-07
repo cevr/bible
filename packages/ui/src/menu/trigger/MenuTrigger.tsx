@@ -19,7 +19,7 @@ import {
 import { useClick } from '../../floating-ui-solid/hooks/useClick.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
-import type { BaseUIComponentProps, NativeButtonProps } from '../../internals/types.ts';
+import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useButton } from '../../internals/useButton.ts';
 import { propsFromAccessor, useRenderElement } from '../../internals/useRenderElement.tsx';
 import { contains, ownerDocument } from '../../utils/dom.ts';
@@ -34,43 +34,22 @@ import { findRootOwnerId } from '../utils/isKeyboardOpen.ts';
 export interface MenuTriggerState {
   /** Whether the menu is open and was opened by this trigger. */
   open: boolean;
-  disabled: boolean;
 }
 
-export interface MenuTriggerProps
-  extends NativeButtonProps, BaseUIComponentProps<'button', MenuTriggerState> {
-  /** @default false */
-  disabled?: boolean | undefined;
-}
+export interface MenuTriggerProps extends BaseUIComponentProps<'button', MenuTriggerState> {}
 
 export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
   const { store, triggerProps } = useMenuRootContext();
-  const elementProps = omit(
-    componentProps,
-    'class',
-    'style',
-    'render',
-    'disabled',
-    'nativeButton',
-    'id',
-  );
+  const elementProps = omit(componentProps, 'class', 'style', 'render', 'id');
   const triggerId = untrack(() => componentProps.id) || createUniqueId();
   const [triggerElement, setTriggerElement] = createSignal<HTMLElement | null>(null, {
     ownedWrite: true,
   });
 
-  const disabled = () => (componentProps.disabled ?? false) || store.disabled();
   const isOpenedByThisTrigger = () => store.isOpenedByTrigger(triggerId);
   const isMountedByThisTrigger = () => store.isMountedByTrigger(triggerId);
 
-  const { getButtonProps, buttonRef } = useButton({
-    get disabled() {
-      return disabled();
-    },
-    get native() {
-      return componentProps.nativeButton ?? true;
-    },
-  });
+  const { getButtonProps, buttonRef } = useButton();
 
   createEffect(isOpenedByThisTrigger, (opened) => {
     if (!opened) {
@@ -105,11 +84,7 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
     store.setOpen(false, createChangeEventDetails(REASONS.cancelOpen, mouseEvent));
   };
 
-  const click = useClick(store.floatingRootContext, {
-    get enabled() {
-      return !disabled();
-    },
-  });
+  const click = useClick(store.floatingRootContext);
 
   const rootTriggerProps = propsFromAccessor(() => triggerProps(isMountedByThisTrigger()));
 
@@ -118,9 +93,6 @@ export function MenuTrigger(componentProps: MenuTriggerProps): JSX.Element {
   );
 
   const state: MenuTriggerState = {
-    get disabled() {
-      return disabled();
-    },
     get open() {
       return isOpenedByThisTrigger();
     },

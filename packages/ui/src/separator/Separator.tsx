@@ -1,41 +1,20 @@
-// Upstream: packages/react/src/separator/Separator.tsx,
-// packages/react/src/separator/SeparatorDataAttributes.ts
+// Upstream: packages/react/src/separator/Separator.tsx
 //
-// A `role="separator"` between groups of items, horizontal unless told
-// otherwise (`data-orientation`).
+// A horizontal `role="separator"` between groups of items.
 import type { JSX } from '@solidjs/web';
 import { omit } from 'solid-js';
 
-import type { BaseUIComponentProps, Orientation } from '../internals/types.ts';
+import type { BaseUIComponentProps } from '../internals/types.ts';
 import { useRenderElement } from '../internals/useRenderElement.tsx';
 
-export interface SeparatorState {
-  orientation: Orientation;
-}
+export interface SeparatorState {}
 
-export interface SeparatorProps extends BaseUIComponentProps<'div', SeparatorState> {
-  /** @default 'horizontal' */
-  orientation?: Orientation | undefined;
-}
+export interface SeparatorProps extends BaseUIComponentProps<'div', SeparatorState> {}
 
 export function Separator(componentProps: SeparatorProps): JSX.Element {
-  const elementProps = omit(componentProps, 'class', 'style', 'render', 'orientation');
-  const orientation = () => componentProps.orientation ?? 'horizontal';
-  const state: SeparatorState = {
-    get orientation() {
-      return orientation();
-    },
-  };
+  const elementProps = omit(componentProps, 'class', 'style', 'render');
   return useRenderElement('div', componentProps, {
-    state,
-    props: [
-      {
-        role: 'separator',
-        get 'aria-orientation'() {
-          return orientation();
-        },
-      },
-      elementProps,
-    ],
+    state: {},
+    props: [{ role: 'separator' }, elementProps],
   });
 }

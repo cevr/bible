@@ -22,7 +22,7 @@
 // the touch that opened the menu is cancelled, so the browser's click after
 // it does not choose the item the menu opened under the finger.
 import type { JSX } from '@solidjs/web';
-import { createEffect, omit, onCleanup, untrack } from 'solid-js';
+import { omit, onCleanup, onSettled } from 'solid-js';
 
 import { stopEvent } from '../../floating-ui-solid/utils/event.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
@@ -101,9 +101,6 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
   }
 
   function handleContextMenu(event: MouseEvent) {
-    if (untrack(store.disabled)) {
-      return;
-    }
     // The browser's own long press on a touch a drag has taken: its menu stays shut, as ours does.
     if (pressTaken()) {
       stopEvent(event);
@@ -154,10 +151,6 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
   }
 
   function handleTouchStart(event: TouchEvent) {
-    if (untrack(store.disabled)) {
-      cancelLongPress();
-      return;
-    }
     contextMenu.allowMouseUpTriggerRef.current = false;
     pressOpened = false;
     const touch = event.touches[0];
@@ -169,8 +162,8 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
     const position = { x: touch.clientX, y: touch.clientY };
     touchPosition = position;
     longPressTimeout.start(LONG_PRESS_DELAY, () => {
-      // The root may have been disabled while the finger was down, or a drag taken the press.
-      if (!untrack(store.disabled) && !pressTaken()) {
+      // A drag may have taken the press while the finger was down.
+      if (!pressTaken()) {
         handleLongPress(position.x, position.y, event);
       }
     });
@@ -235,21 +228,14 @@ export function ContextMenuTrigger(componentProps: ContextMenuTriggerProps): JSX
   });
 
   // The browser's context menu stays closed over the menu's backdrop (over the area, the open
-  // that went ahead closes it). Disabling the root drops a pending long press.
-  createEffect(
-    () => store.disabled(),
-    (disabled) => {
-      if (disabled) {
-        cancelLongPress();
-        return undefined;
+  // that went ahead closes it).
+  onSettled(() =>
+    addEventListener(ownerDocument(triggerElement), 'contextmenu', (event) => {
+      const target = getTarget(event) as HTMLElement | null;
+      if (contains(contextMenu.internalBackdropRef.current, target)) {
+        event.preventDefault();
       }
-      return addEventListener(ownerDocument(triggerElement), 'contextmenu', (event) => {
-        const target = getTarget(event) as HTMLElement | null;
-        if (contains(contextMenu.internalBackdropRef.current, target)) {
-          event.preventDefault();
-        }
-      });
-    },
+    }),
   );
 
   const state: ContextMenuTriggerState = {

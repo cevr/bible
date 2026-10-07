@@ -18,20 +18,11 @@ import type { FloatingRootContext } from '../FloatingRootContext.ts';
 import { isTypeableElement } from '../utils/element.ts';
 import { isMouseLikePointerType, isVirtualPointerEvent } from '../utils/event.ts';
 
-export interface UseClickProps {
-  enabled?: boolean | undefined;
-}
-
 type PointerKind = 'mouse' | 'pen' | 'touch' | 'virtual' | undefined;
 
-export function useClick(
-  context: FloatingRootContext,
-  props: UseClickProps = {},
-): { reference: HTMLProps } {
+export function useClick(context: FloatingRootContext): { reference: HTMLProps } {
   let pointerType: PointerKind;
   const frame = useAnimationFrame();
-
-  const enabled = () => props.enabled ?? true;
 
   const setOpen = (nextOpen: boolean, nativeEvent: MouseEvent, target: HTMLElement) => {
     context.setOpen(nextOpen, createChangeEventDetails(REASONS.triggerPress, nativeEvent, target));
@@ -44,16 +35,13 @@ export function useClick(
 
   const reference: HTMLProps = {
     onPointerDown(event: PointerEvent) {
-      if (!enabled()) {
-        return;
-      }
       pointerType =
         isMouseLikePointerType(event.pointerType, true) && isVirtualPointerEvent(event)
           ? 'virtual'
           : (event.pointerType as PointerKind);
     },
     onMouseDown(event: MouseEvent) {
-      if (!enabled() || event.button !== 0) {
+      if (event.button !== 0) {
         return;
       }
       const nextOpen = getNextOpen(untrack(context.open), event.currentTarget);
@@ -68,9 +56,6 @@ export function useClick(
       frame.request(() => setOpen(nextOpen, event, currentTarget));
     },
     onClick(event: MouseEvent) {
-      if (!enabled()) {
-        return;
-      }
       // A pointer press already acted on mousedown; only a keyboard click acts here.
       if (pointerType) {
         pointerType = undefined;
