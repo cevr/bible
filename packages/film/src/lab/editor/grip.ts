@@ -482,10 +482,6 @@ export const SourceKnown = Data.taggedEnum<SourceKnown>();
 export const unreadFor = (reason: string) =>
   SourceKnown.Unread({ reason: reason || 'no source for this scene' });
 
-/** The source `known` holds, once read. */
-export const sourceIn = (known: SourceKnown): Option.Option<SceneSource> =>
-  Option.map(Option.liftPredicate(known, SourceKnown.$is('Read')), (k) => k.source);
-
 /** Why a write cannot land: what `known` with no source in it says, else `refusal` of its source. */
 const withSource = (
   known: SourceKnown,

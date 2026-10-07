@@ -785,6 +785,27 @@ describe('the inspector', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.live('its eases, on a timeline the lab will not rewrite, are off and say why', () =>
+    Effect.gen(function* () {
+      const overridden = {
+        ...sourceOne,
+        refused: [{ field: 'timeline', reason: 'the registry overrides it' }],
+      };
+      const { page, asked } = yield* openLab(
+        [route('GET', /^\/scenes\/one\/source$/, () => json(overridden))],
+        { href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }) },
+      );
+      const linear = '.lab-ease[data-ease="linear"]';
+      yield* page.waitFor(`${linear}[title^="cannot"]`);
+      yield* evaluates(
+        page,
+        `[document.querySelector('${linear}').disabled, document.querySelector('${linear}').title]`,
+        [true, 'cannot drag rise: the registry overrides it'],
+      );
+      expect(posted(asked)).toEqual([]);
+    }).pipe(Effect.scoped),
+  );
+
   it.live('⌥→ nudges the selected cue a frame later, and ⇧⌥→ ten frames', () =>
     Effect.gen(function* () {
       const { page, asked, errors } = yield* openLab([], {

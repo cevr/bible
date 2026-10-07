@@ -1742,7 +1742,7 @@ field instead of `dur`, never before its start, which writes `untilOffset` as
 the right edge's drag does, and its point as `until {mark}`, `until speechEnd`
 or `until the end of cue "roll"`, with its offset when it has one,
 `until {first} + 0.10 s`: `untilEndText`), and an ease picker drawing each curve (the ease is only ever data:
-`f.at` takes none, so the picker always changes the frame). Knobs take the inspector's fields (a number's name scrubs it, a point's x and y step by pixels); a point knob also gets a handle on the frame.
+`f.at` takes none, so the picker always changes the frame); its buttons are off, titled with why, whenever a write of `ease` would be refused (`cueRefusal`, as a field's or a drag's is). Knobs take the inspector's fields (a number's name scrubs it, a point's x and y step by pixels); a point knob also gets a handle on the frame.
 `RenderOptions.knobs` records each read with the canvas transform at the
 read (`KnobRead.transform`, like the probe reads it), so the handle sits at
 `transform · value` and a drag maps the pointer back through the inverse
