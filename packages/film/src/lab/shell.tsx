@@ -247,13 +247,17 @@ const Staged = (props: RootProps) => {
   const { here } = page;
   // A phone's inspector is a sheet the selection keeps open: a tap that picks on a
   // shut sheet is a step of its own, so closing it goes Back over that step; any
-  // other entry follows to pick none (the review's sheets' one rule).
-  const sheet = useSheetDismissal(host, (href, thing) =>
-    sheetThings(labPlaceOf(href)).includes(thing),
-  );
-  /** Go to `pick`: a step Back walks, the opening of a sheet when it picks on a shut one. */
-  const pick = (next: Partial<LabPick>, shut: boolean) => {
-    if (shut) for (const thing of sheetThings(next)) sheet.opening(thing);
+  // other entry follows to pick none (the review's sheets' one rule). The cue or
+  // knob and the note are picked apart, so each sheet has its own: closing one
+  // never goes Back over the other's opening.
+  const sheetOf = (part: 'selection' | 'note') =>
+    useSheetDismissal(host, (href, thing) =>
+      sheetThings({ [part]: labPlaceOf(href)[part] }).includes(thing),
+    );
+  const sheets = { selection: sheetOf('selection'), note: sheetOf('note') } as const;
+  /** Go to `pick` of `part`: a step Back walks, its sheet's opening when it picks on a shut one. */
+  const pick = (part: 'selection' | 'note', next: Partial<LabPick>, shut: boolean) => {
+    if (shut) for (const thing of sheetThings(next)) sheets[part].opening(thing);
     address.go(picked(next));
   };
   const value: LabContextValue = {
@@ -272,11 +276,12 @@ const Staged = (props: RootProps) => {
         place();
         return () => pinned.delete(layer);
       },
-      select: (selection) => pick({ selection }, Option.isNone(untrack(here).selection)),
-      selectNote: (note) => pick({ note }, Option.isNone(untrack(here).note)),
+      select: (selection) =>
+        pick('selection', { selection }, Option.isNone(untrack(here).selection)),
+      selectNote: (note) => pick('note', { note }, Option.isNone(untrack(here).note)),
       dismissSelection: () =>
-        sheet.dismiss(() => Option.some(picked({ selection: Option.none() }))),
-      dismissNote: () => sheet.dismiss(() => Option.some(picked({ note: Option.none() }))),
+        sheets.selection.dismiss(() => Option.some(picked({ selection: Option.none() }))),
+      dismissNote: () => sheets.note.dismiss(() => Option.some(picked({ note: Option.none() }))),
       forgetNote: () => address.follow(picked({ note: Option.none() })),
       compareBy: (view) => {
         if (view !== untrack(() => here().view)) address.go(picked({ view }));

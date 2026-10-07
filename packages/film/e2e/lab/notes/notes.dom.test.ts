@@ -623,6 +623,36 @@ describe('the thread', () => {
       }).pipe(Effect.scoped),
     SLOW,
   );
+
+  it.live(
+    "on a phone, closing the cue's sheet drops the cue alone, though a note was picked after it",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openLab(
+          [route('GET', /^\/notes$/, () => notesFile(1, [noteJson('n1')]))],
+          {
+            href: labAt(1, { selection: { _tag: 'Cue', scene: 'one', name: 'rise' } }),
+            mode: 'note',
+            viewport: PHONE,
+          },
+        );
+        const cueSheet = '.lab-edit .lab-selection-sheet';
+        // The cue came by a link; the note is picked by a tap, a step of its own.
+        yield* click(page, '.lab-note-item[data-id="n1"] .lab-note-text');
+        yield* evaluates(page, NOTE_IN_URL, 'n1');
+        yield* click(page, '.lab-modes [data-mode-pick="edit"]');
+        yield* attributeIs(page, cueSheet, 'data-peek', 'true');
+        yield* click(page, `${cueSheet} [data-act="close-inspector"]`);
+        yield* evaluates(page, `document.querySelectorAll('${cueSheet}').length`, 0);
+        yield* evaluates(
+          page,
+          "[new URLSearchParams(location.search).get('cue') ?? '', new URLSearchParams(location.search).get('note')]",
+          ['', 'n1'],
+        );
+      }).pipe(Effect.scoped),
+    // Past a wait's own limit, so a sheet that stays fails naming what the page last showed.
+    2 * SLOW,
+  );
 });
 
 const agentReply: Reply = {
