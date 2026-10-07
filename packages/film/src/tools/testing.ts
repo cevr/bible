@@ -98,19 +98,84 @@ import { Choices } from './choices.ts';
 import { HttpServerRequest, HttpServerResponse } from 'effect/http';
 import { LabPage } from './lab-page.ts';
 
-const notFound = (method: string, path: string) =>
+/** A refusal of `method` on `path`, filed under the kind Effect gives Node's error (`why`, its code). */
+const refusal = (_tag: PlatformError.SystemErrorTag, method: string, path: string, why?: string) =>
   PlatformError.systemError({
-    _tag: 'NotFound',
+    _tag,
     module: 'FileSystem',
     method,
     pathOrDescriptor: path,
+    description: why,
   });
 
-/** The folders `path` and, when `recursive`, every one above it. */
-const folderAndParents = (path: string, recursive: boolean): ReadonlyArray<string> => {
-  if (!recursive) return [path];
+const notFound = (method: string, path: string) => refusal('NotFound', method, path, 'ENOENT');
+
+/** Every folder from the root down to `path`, `path` included. */
+const pathDown = (path: string): ReadonlyArray<string> => {
   const parts = path.split('/');
   return parts.slice(1).map((_, i) => parts.slice(0, i + 2).join('/'));
+};
+
+/** What a path holds in the in-memory tree. */
+type Held = 'file' | 'folder' | 'nothing';
+
+/**
+ * The in-memory tree over a map of path → bytes and the set of folders made:
+ * what a path holds (a folder is there when made, or when a file or a folder
+ * is made under it), and why a path cannot be made.
+ */
+const treeOn = (files: Map<string, Uint8Array>, folders: Set<string>) => {
+  const holds = (path: string): Held => {
+    if (files.has(path)) return 'file';
+    const inside = (p: string) => p.startsWith(`${path}/`);
+    if (folders.has(path) || [...files.keys()].some(inside) || [...folders].some(inside))
+      return 'folder';
+    return 'nothing';
+  };
+  /**
+   * Why `path` cannot be made, as Node refuses it: its folder never made
+   * (ENOENT) or a file (ENOTDIR); none when it can, a path at the root
+   * included.
+   */
+  const unplaceable = (
+    method: string,
+    path: string,
+  ): Option.Option<PlatformError.PlatformError> => {
+    const parent = path.slice(0, path.lastIndexOf('/'));
+    if (parent === '') return Option.none();
+    const held = holds(parent);
+    if (held === 'nothing') return Option.some(notFound(method, path));
+    if (held === 'file') return Option.some(refusal('BadResource', method, path, 'ENOTDIR'));
+    return Option.none();
+  };
+  return { holds, unplaceable };
+};
+
+/** `use` given `path` as the tree keys it: with no trailing slash. */
+const keyed = <A>(
+  path: string,
+  use: (key: string) => Effect.Effect<A, PlatformError.PlatformError>,
+) => Effect.suspend(() => use(path.replace(/(?<=.)\/+$/, '')));
+
+/**
+ * `use` given `path` to make (`keyed`). A path that is not absolute (a
+ * relative one, or a Windows one) is BadArgument: the in-memory file system
+ * has no folder to make it in, so it refuses it rather than guess one. Read,
+ * such a path is simply not there.
+ */
+const placed = <A>(
+  method: string,
+  path: string,
+  use: (key: string) => Effect.Effect<A, PlatformError.PlatformError>,
+) => {
+  if (path.startsWith('/')) return keyed(path, use);
+  return Effect.fail(
+    PlatformError.badArgument({
+      module: 'FileSystem',
+      method,
+      description: `the in-memory file system makes absolute paths only: ${path}`,
+    }),
+  );
 };
 
 /** How a write lands: over what is there or after it, and whether only a path not there takes it. */
@@ -128,8 +193,9 @@ const WRITE_MODES: Partial<Record<FileSystem.OpenFlag, WriteMode>> = {
 };
 
 /**
- * `path` written with `bytes` as `flag` says (`w` when none), or NotFound
- * when its folder was never made nor holds a file. `a` and `ax` add the
+ * `path` written with `bytes` as `flag` says (`w` when none), as Node writes
+ * it: NotFound when its folder was never made (ENOENT), BadResource when that
+ * is a file (ENOTDIR) or `path` is a folder (EISDIR). `a` and `ax` add the
  * bytes after the file's; `wx` and `ax` (create, never replace) refuse a
  * path already there, a file or a folder, as AlreadyExists, as Node's
  * EEXIST: a lock taken that way is refused while another holds it. A flag
@@ -140,11 +206,11 @@ const writeInto = (
   files: Map<string, Uint8Array>,
   folders: Set<string>,
   method: string,
-  path: string,
+  asked: string,
   bytes: Uint8Array,
   flag: FileSystem.OpenFlag = 'w',
 ) =>
-  Effect.suspend(() => {
+  placed(method, asked, (path) => {
     const modelled = Option.fromUndefinedOr(WRITE_MODES[flag]);
     if (Option.isNone(modelled))
       return Effect.fail(
@@ -155,25 +221,13 @@ const writeInto = (
         }),
       );
     const mode = modelled.value;
-    const parent = path.slice(0, path.lastIndexOf('/'));
-    const made =
-      parent === '' ||
-      folders.has(parent) ||
-      [...files.keys()].some((f) => f.startsWith(`${parent}/`));
-    if (!made) return Effect.fail(notFound(method, path));
-    const there =
-      files.has(path) ||
-      folders.has(path) ||
-      [...files.keys()].some((f) => f.startsWith(`${path}/`));
-    if (mode.exclusive && there)
-      return Effect.fail(
-        PlatformError.systemError({
-          _tag: 'AlreadyExists',
-          module: 'FileSystem',
-          method,
-          pathOrDescriptor: path,
-        }),
-      );
+    const tree = treeOn(files, folders);
+    const unplaced = tree.unplaceable(method, path);
+    if (Option.isSome(unplaced)) return Effect.fail(unplaced.value);
+    const held = tree.holds(path);
+    if (mode.exclusive && held !== 'nothing')
+      return Effect.fail(refusal('AlreadyExists', method, path, 'EEXIST'));
+    if (held === 'folder') return Effect.fail(refusal('BadResource', method, path, 'EISDIR'));
     const landed = Option.match(
       Option.filter(Option.fromUndefinedOr(files.get(path)), () => mode.append),
       {
@@ -191,20 +245,47 @@ const writeInto = (
     return Effect.void;
   });
 
-/**
- * File operations over a map of path → bytes, and `folders`, the set of
- * folders made (a folder with files in it exists whether made or not), so a
- * test can see a folder left empty.
- */
 /** A byte count as a number. */
 const byteCount = (input: ByteSize.Input): number =>
   Number(ByteSize.toBigInt(ByteSize.fromInputUnsafe(input)));
 
+/** What `stat` answers: a path's kind, its size, and its mtime when the test keeps one. */
+const infoOf = (
+  type: FileSystem.File.Type,
+  size: number,
+  mtime: Option.Option<number>,
+): FileSystem.File.Info => ({
+  type,
+  mtime: Option.map(mtime, (at) => DateTime.toDate(DateTime.makeUnsafe(at))),
+  atime: Option.none(),
+  birthtime: Option.none(),
+  dev: 0,
+  ino: Option.none(),
+  mode: 0o644,
+  nlink: Option.none(),
+  uid: Option.none(),
+  gid: Option.none(),
+  rdev: Option.none(),
+  size: ByteSize.bytes(size),
+  blksize: Option.none(),
+  blocks: Option.none(),
+});
+
+/**
+ * File operations over a map of path → bytes, and `folders`, the set of
+ * folders made (a folder with files in it exists whether made or not), so a
+ * test can see a folder left empty. Each refuses what Node's file system
+ * refuses, filed under the same kind: the contract in `testing.test.ts` runs
+ * every one against both. One thing it does not model: a link copies the
+ * bytes, so a write in place through one name is not seen through the other
+ * (no tool writes through a linked name).
+ */
 const memoryOps = (
   files: Map<string, Uint8Array>,
   folders = new Set<string>(),
   mtimes: ReadonlyMap<string, number> = new Map(),
 ) => {
+  const tree = treeOn(files, folders);
   /** A folder under `/tmp` no other call has made: `<prefix><n>`. */
   const tempFolder = (prefix = 'tmp-') => {
     let n = 1;
@@ -213,61 +294,104 @@ const memoryOps = (
     folders.add(dir);
     return dir;
   };
+  /** Every path at or under `path`: the folder's own and all it holds. */
+  const atOrUnder = (path: string) => (p: string) => p === path || p.startsWith(`${path}/`);
+  /** `path` gone, with everything under it. */
+  const drop = (path: string) => {
+    for (const file of [...files.keys()].filter(atOrUnder(path))) files.delete(file);
+    for (const folder of [...folders].filter(atOrUnder(path))) folders.delete(folder);
+  };
+  /**
+   * The bytes of the file at `key`: NotFound when nothing is there, and
+   * `ofFolder` for a folder (Node's EISDIR to a read).
+   */
+  const fileAt = (
+    method: string,
+    key: string,
+    ofFolder = () => refusal('BadResource', method, key, 'EISDIR'),
+  ) =>
+    Effect.fromOption(Option.fromUndefinedOr(files.get(key)), () => {
+      if (tree.holds(key) === 'folder') return ofFolder();
+      return notFound(method, key);
+    });
+  const bytesAt = (method: string, path: string) => keyed(path, (key) => fileAt(method, key));
   return {
-    exists: (path) =>
-      Effect.succeed(
-        files.has(path) ||
-          folders.has(path) ||
-          [...files.keys()].some((f) => f.startsWith(`${path}/`)),
-      ),
-    readFile: (path) =>
-      Effect.fromOption(Option.fromNullishOr(files.get(path)), () => notFound('readFile', path)),
+    exists: (path) => keyed(path, (key) => Effect.succeed(tree.holds(key) !== 'nothing')),
+    readFile: (path) => bytesAt('readFile', path),
     readFileString: (path) =>
-      Option.match(Option.fromNullishOr(files.get(path)), {
-        onNone: () => Effect.fail(notFound('readFileString', path)),
-        onSome: (bytes) => Effect.succeed(new TextDecoder().decode(bytes)),
-      }),
-    // A write needs its folder, as Node's does: ENOENT when it was never made.
+      Effect.map(bytesAt('readFileString', path), (bytes) => new TextDecoder().decode(bytes)),
     writeFile: (path, data, options) =>
       writeInto(files, folders, 'writeFile', path, data, options?.flag),
     writeFileString: (path, data, options) =>
       writeInto(files, folders, 'writeFileString', path, text(data), options?.flag),
+    // Made as Node's `mkdir` makes it: one folder in a folder that is there
+    // (ENOENT when not, EEXIST when the path is taken), or with `recursive`
+    // every folder down to it (ENOTDIR through a file, EEXIST on one).
     makeDirectory: (path, options) =>
-      Effect.sync(() => {
-        for (const folder of folderAndParents(path, options?.recursive === true))
-          folders.add(folder);
-      }),
-    rename: (from, to) =>
-      Option.match(Option.fromNullishOr(files.get(from)), {
-        onNone: () => Effect.fail(notFound('rename', from)),
-        onSome: (bytes) =>
-          Effect.sync(() => {
-            files.delete(from);
-            files.set(to, bytes);
-          }),
-      }),
-    // A folder goes with everything under it when `recursive` asks; without
-    // it Node's `rm` refuses any folder, empty or not (EISDIR), and so does this.
-    remove: (path, options) =>
-      Effect.suspend(() => {
-        const isFolder =
-          folders.has(path) || [...files.keys()].some((f) => f.startsWith(`${path}/`));
-        if (isFolder && options?.recursive !== true)
-          return Effect.fail(
-            PlatformError.systemError({
-              _tag: 'BadResource',
-              module: 'FileSystem',
-              method: 'remove',
-              pathOrDescriptor: path,
-              description: 'Path is a directory: rm returned EISDIR',
-            }),
-          );
+      placed('makeDirectory', path, (key) => {
+        const recursive = options?.recursive === true;
+        const held = tree.holds(key);
+        if (held === 'file' || (held === 'folder' && !recursive))
+          return Effect.fail(refusal('AlreadyExists', 'makeDirectory', key, 'EEXIST'));
+        if (!recursive)
+          return Option.match(tree.unplaceable('makeDirectory', key), {
+            onSome: Effect.fail,
+            onNone: () => Effect.sync(() => void folders.add(key)),
+          });
+        const down = pathDown(key);
+        if (down.some((folder) => tree.holds(folder) === 'file'))
+          return Effect.fail(refusal('BadResource', 'makeDirectory', key, 'ENOTDIR'));
         return Effect.sync(() => {
-          for (const file of [...files.keys()])
-            if (file === path || file.startsWith(`${path}/`)) files.delete(file);
-          for (const folder of [...folders])
-            if (folder === path || folder.startsWith(`${path}/`)) folders.delete(folder);
+          for (const folder of down) folders.add(folder);
         });
+      }),
+    // Moved as Node's `rename` moves it, into a folder that is there: a file
+    // over a file (EISDIR over a folder); a folder, with all it holds, to a
+    // path that is free or an empty folder (ENOTDIR over a file, ENOTEMPTY
+    // over a folder holding anything, EINVAL into itself).
+    rename: (from, to) =>
+      keyed(from, (source) =>
+        placed('rename', to, (target) => {
+          const moving = tree.holds(source);
+          if (moving === 'nothing') return Effect.fail(notFound('rename', source));
+          const unplaced = tree.unplaceable('rename', target);
+          if (Option.isSome(unplaced)) return Effect.fail(unplaced.value);
+          const there = tree.holds(target);
+          if (moving === 'file') {
+            if (there === 'folder')
+              return Effect.fail(refusal('BadResource', 'rename', target, 'EISDIR'));
+            return Effect.map(fileAt('rename', source), (bytes) => {
+              files.delete(source);
+              files.set(target, bytes);
+            });
+          }
+          if (atOrUnder(source)(target))
+            return Effect.fail(refusal('Unknown', 'rename', target, 'EINVAL'));
+          if (there === 'file')
+            return Effect.fail(refusal('BadResource', 'rename', target, 'ENOTDIR'));
+          const holding = [...files.keys(), ...folders].some((p) => p.startsWith(`${target}/`));
+          if (holding) return Effect.fail(refusal('Unknown', 'rename', target, 'ENOTEMPTY'));
+          return Effect.sync(() => {
+            const moved = (p: string) => `${target}${p.slice(source.length)}`;
+            const movedFiles = [...files].filter(([p]) => atOrUnder(source)(p));
+            const movedFolders = [...folders].filter(atOrUnder(source));
+            drop(source);
+            for (const [p, bytes] of movedFiles) files.set(moved(p), bytes);
+            for (const folder of [target, ...movedFolders.map(moved)]) folders.add(folder);
+          });
+        }),
+      ),
+    // Removed as Node's `rm` removes it: NotFound for nothing there unless
+    // `force`; a folder, empty or not, with everything in it only when
+    // `recursive` asks (Node's ERR_FS_EISDIR, which Effect files as Unknown).
+    remove: (path, options) =>
+      keyed(path, (key) => {
+        const held = tree.holds(key);
+        if (held === 'nothing' && options?.force === true) return Effect.void;
+        if (held === 'nothing') return Effect.fail(notFound('remove', key));
+        if (held === 'folder' && options?.recursive !== true)
+          return Effect.fail(refusal('Unknown', 'remove', key, 'ERR_FS_EISDIR'));
+        return Effect.sync(() => drop(key));
       }),
     // A new folder each call, as the system's are.
     makeTempDirectory: (options) => Effect.sync(() => tempFolder(options?.prefix)),
@@ -275,51 +399,63 @@ const memoryOps = (
     makeTempDirectoryScoped: (options) =>
       Effect.acquireRelease(
         Effect.sync(() => tempFolder(options?.prefix)),
-        (dir) =>
-          Effect.sync(() => {
-            for (const file of [...files.keys()])
-              if (file.startsWith(`${dir}/`)) files.delete(file);
-            for (const folder of [...folders])
-              if (folder === dir || folder.startsWith(`${dir}/`)) folders.delete(folder);
-          }),
+        (dir) => Effect.sync(() => drop(dir)),
       ),
-    // The files and folders directly in `path`: made, or holding a file.
-    readDirectory: (path) =>
-      Effect.sync(() => [
-        ...new Set(
-          [...files.keys(), ...folders]
-            .filter((f) => f.startsWith(`${path}/`))
-            .map((f) => f.slice(path.length + 1).split('/')[0] ?? ''),
-        ),
-      ]),
-    // A file's size and kind, as a file server reads them before it answers a range,
-    // and its mtime when the test keeps one (`mtimes`).
-    stat: (path) =>
-      Effect.fromOption(Option.fromNullishOr(files.get(path)), () => notFound('stat', path)).pipe(
-        Effect.map((bytes): FileSystem.File.Info => ({
-          type: 'File',
-          mtime: Option.map(Option.fromUndefinedOr(mtimes.get(path)), (at) =>
-            DateTime.toDate(DateTime.makeUnsafe(at)),
+    // The names in a folder, made or holding a file, or with `recursive`
+    // every path under it; NotFound for nothing there, BadResource for a
+    // file (ENOTDIR).
+    readDirectory: (path, options) =>
+      keyed(path, (key) => {
+        const held = tree.holds(key);
+        if (held === 'nothing') return Effect.fail(notFound('readDirectory', key));
+        if (held === 'file')
+          return Effect.fail(refusal('BadResource', 'readDirectory', key, 'ENOTDIR'));
+        const under = [...files.keys(), ...folders]
+          .filter((p) => p.startsWith(`${key}/`))
+          .map((p) => p.slice(key.length + 1).split('/'));
+        const depth = (parts: ReadonlyArray<string>) => {
+          if (options?.recursive === true) return parts.length;
+          return 1;
+        };
+        const names = under.flatMap((parts) =>
+          parts.slice(0, depth(parts)).map((_, i) => parts.slice(0, i + 1).join('/')),
+        );
+        return Effect.succeed([...new Set(names)]);
+      }),
+    // A second name for a file, where nothing is (EEXIST when taken), in a
+    // folder that is there. Its bytes are copied (see above).
+    link: (from, to) =>
+      keyed(from, (source) =>
+        placed('link', to, (target) =>
+          Effect.flatMap(
+            fileAt('link', source, () => refusal('Unknown', 'link', source, 'EPERM')),
+            (bytes) => {
+              const unplaced = tree.unplaceable('link', target);
+              if (Option.isSome(unplaced)) return Effect.fail(unplaced.value);
+              if (tree.holds(target) !== 'nothing')
+                return Effect.fail(refusal('AlreadyExists', 'link', target, 'EEXIST'));
+              return Effect.sync(() => void files.set(target, bytes.slice()));
+            },
           ),
-          atime: Option.none(),
-          birthtime: Option.none(),
-          dev: 0,
-          ino: Option.none(),
-          mode: 0o644,
-          nlink: Option.none(),
-          uid: Option.none(),
-          gid: Option.none(),
-          rdev: Option.none(),
-          size: ByteSize.bytes(bytes.byteLength),
-          blksize: Option.none(),
-          blocks: Option.none(),
-        })),
+        ),
       ),
+    // A file's size and kind, as a file server reads them before it answers a range,
+    // a folder's kind, and its mtime when the test keeps one (`mtimes`).
+    stat: (path) =>
+      keyed(path, (key) => {
+        const held = tree.holds(key);
+        if (held === 'nothing') return Effect.fail(notFound('stat', key));
+        const mtime = Option.fromUndefinedOr(mtimes.get(key));
+        return Effect.succeed(
+          Option.match(Option.fromUndefinedOr(files.get(key)), {
+            onSome: (bytes) => infoOf('File', bytes.byteLength, mtime),
+            onNone: () => infoOf('Directory', 0, mtime),
+          }),
+        );
+      }),
     // A file's bytes from `offset`, `bytesToRead` of them when given, as one chunk.
     stream: (path, options) =>
-      Stream.fromEffect(
-        Effect.fromOption(Option.fromNullishOr(files.get(path)), () => notFound('stream', path)),
-      ).pipe(
+      Stream.fromEffect(bytesAt('stream', path)).pipe(
         Stream.map((bytes) => {
           const from = Option.getOrElse(
             Option.map(Option.fromNullishOr(options?.offset), byteCount),
@@ -706,7 +842,7 @@ export const crashingFileSystem = (files: Map<string, Uint8Array>, nth: number) 
       pathOrDescriptor: path,
       description: 'crash',
     });
-  /** A write the count leaves out (a lock's text, a folder): after the crash it lands no more than the rest. */
+  /** A write the count leaves out (a lock's text, a folder, a link): after the crash it lands no more than the rest. */
   const after = (method: string, path: string) =>
     Effect.suspend(() => {
       if (gone()) return Effect.fail(crashed(method, path));
@@ -728,6 +864,7 @@ export const crashingFileSystem = (files: Map<string, Uint8Array>, nth: number) 
       after('writeFileString', path).pipe(Effect.andThen(ops.writeFileString(path, data, options))),
     makeDirectory: (path, options) =>
       after('makeDirectory', path).pipe(Effect.andThen(ops.makeDirectory(path, options))),
+    link: (from, to) => after('link', to).pipe(Effect.andThen(ops.link(from, to))),
   });
   return { layer, ops: () => count };
 };
@@ -1129,7 +1266,6 @@ export const fakeRenderHost = (ledger: RenderLedger, host: FakeRenderHost = {}) 
     Option.fromNullishOr(host.encoders),
     (): ReadonlyArray<Encoder['_tag']> => ['Hardware', 'Software'],
   );
-  /** The first of `candidates` this browser has, as a page chooses. */
   /** The first of `candidates` this browser has, as a page chooses; `Missing` when it has none. */
   const encoder = (candidates: ReadonlyArray<Encoder>): Effect.Effect<EncoderChoice> =>
     Effect.sync(() => {

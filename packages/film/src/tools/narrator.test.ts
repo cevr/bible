@@ -17,7 +17,6 @@ import {
   Result,
   Schema,
 } from 'effect';
-import * as PlatformError from 'effect/PlatformError';
 import type { Pcm } from '../core/audio.ts';
 import { captionCues } from '../core/captions.ts';
 import { hashText, parse, takeScript, voiceFor, voiceKey } from '../core/narration.ts';
@@ -623,29 +622,7 @@ describe('Narrator', () => {
     const filed = () => new Map([[TIMINGS, text(Schema.encodeSync(TimingsJson)(recorded))]]);
     /** A file system over `files`, as another process sees them. */
     const fileSystemOf = (files: Map<string, Uint8Array>) =>
-      Effect.map(Layer.build(memoryFileSystem(files)), (context) => {
-        const fs = Context.get(context, FileSystem.FileSystem);
-        // A `wx` write only creates, as a disk's does, so two stores' locks
-        // exclude each other: `memoryFileSystem` writes over what is there.
-        return FileSystem.FileSystem.of({
-          ...fs,
-          writeFileString: (file, data, options) =>
-            Effect.suspend(() => {
-              const only = Option.exists(Option.fromNullishOr(options?.flag), (f) =>
-                f.includes('x'),
-              );
-              if (!only || !files.has(file)) return fs.writeFileString(file, data, options);
-              return Effect.fail(
-                PlatformError.systemError({
-                  _tag: 'AlreadyExists',
-                  module: 'FileSystem',
-                  method: 'writeFileString',
-                  pathOrDescriptor: file,
-                }),
-              );
-            }),
-        });
-      });
+      Effect.map(Layer.build(memoryFileSystem(files)), Context.get(FileSystem.FileSystem));
     /** The sweep a second `film narrate` opens with, through `fs`: its store its own, so its locks another process's. */
     const sweepElsewhere = (fs: FileSystem.FileSystem) =>
       Effect.gen(function* () {
