@@ -680,12 +680,15 @@ through `@bible/url-state`, and every link is printed by `pageHref` over the
 same places. Whether a move is a step Back walks is the place's declaration
 alone (`pageMove`, `core/api.ts`): a new path or a cited key (a selection,
 a view, a moment chosen, the compare's mode) is a history entry; a
-refinement and the playhead replace the entry. A page names only why it
-moves (`addressOn`, `browser/host.ts`): the viewer went somewhere (`go`,
-entered as the place declares), or the URL follows what the page did on its
-own (`follow`: play, a drag, a ←/→ step through the moments, a correction, a
-note gone from the feed, an old link's redirect), which always rewrites the
-entry.
+refinement and the playhead replace the entry. Every write enters history
+by that declaration (`Place.history`), through either of two doors. A page
+that moves for a reason names only the reason (`addressOn`,
+`browser/host.ts`): the viewer went somewhere (`go`, entered as the place
+declares), or the URL follows what the page did on its own (`follow`: play,
+a drag, a ←/→ step through the moments, a correction, a note gone from the
+feed, an old link's redirect), which always rewrites the entry. The review
+pages also set a place's value directly (`UrlState.set` and `update`,
+`UrlAtom.place`'s setter: a sheet opened, the synced players' time).
 
 | Place                            | Page   | Query                                                                                                                   | Hash                                 |
 | -------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
@@ -2060,7 +2063,7 @@ own names, and the stored and wire words stay as they are.
   master that will not open plays on `<video>`, which keeps every action;
   the frame says which in `data-engine` (`asking`, `webcodecs`, `video`) and,
   on `<video>`, why in its tooltip. The panes' sound plays through the page's
-  one sound context (`Media.sound`, set to `playback` on Safari so it plays
+  one sound context (`media-browser.ts` `pageSound`, set to `playback` on Safari so it plays
   through the silent switch), only at 1× (another rate would change its
   pitch). A hidden page stands the panes (clock and sound stopped, decoders
   and frames still decoding let go) and, shown again, they draw afresh and

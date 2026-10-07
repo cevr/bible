@@ -8,14 +8,11 @@
 // effects. `Media` owns what is the host's rule: what a refused play means
 // (`play`: the browser's refusal of sound nobody asked for is `Blocked`, a
 // play a pause cut short is `Aborted`), the fallback to muted play
-// (`playOrMute`), the audio a page makes (`audio(src)`), the engine a
+// (`playOrMute`), the audio a page makes (`audio(src)`), and the engine a
 // compare plays on (`compare`: the WebCodecs panes where the browser and
-// the files allow, `webcodecs-browser.ts`, else `<video>`), and the one
-// sound context the panes play through (`sound`): made on the first ask,
-// which a press makes, so the browser lets it run; asked again on each
-// play, so a context the browser held suspended is woken by the next press;
-// and made with the audio session set to `playback`, so an iPhone's silent
-// switch does not mute it, as it does not a `<video>`.
+// the files allow, `webcodecs-browser.ts`, else `<video>`). The panes'
+// sound context is that live adapter's own (`media-browser.ts`
+// `pageSound`).
 
 import { type Cause, Context, Data, Effect, Layer, Option, type Scope } from 'effect';
 import type { Engine } from './media-choice.ts';
@@ -181,11 +178,6 @@ interface MediaOps {
   /** Play `media`; if the browser refuses its sound, play it muted. */
   readonly playOrMute: (media: Playable) => Effect.Effect<Played>;
   /**
-   * The page's one sound context, woken: ask it in a press (a play is one).
-   * None where the page makes no sound of its own (a test).
-   */
-  readonly sound: Effect.Effect<Option.Option<AudioContext>>;
-  /**
    * The engine a compare of the renders at `urls` plays on, chosen by what
    * the browser and the files allow; whatever it opens is the scope's from
    * the moment it is made.
@@ -199,14 +191,11 @@ const NO_PANES = () => Effect.succeed(onVideo('this page has no WebCodecs panes'
 export class Media extends Context.Service<Media, MediaOps>()('@bible/film/browser/Media') {
   /**
    * The host's media, its audio made by `audio` (live an `Audio` element, a
-   * fake in a test), its sound context by `sound` (live the page's one
-   * `AudioContext`; none in a test), its compares chosen by `compare` (live
-   * the review page's WebCodecs panes, `webcodecs-browser.ts`; `<video>`
-   * elsewhere).
+   * fake in a test), its compares chosen by `compare` (live the review
+   * page's WebCodecs panes, `webcodecs-browser.ts`; `<video>` elsewhere).
    */
   static readonly layerOver = (
     audio: (src: string) => Playable,
-    sound: () => Option.Option<AudioContext> = () => Option.none(),
     compare: MediaOps['compare'] = NO_PANES,
   ): Layer.Layer<Media> =>
     Layer.succeed(
@@ -214,7 +203,6 @@ export class Media extends Context.Service<Media, MediaOps>()('@bible/film/brows
       Media.of({
         audio,
         play,
-        sound: Effect.sync(sound),
         compare,
         playOrMute: (media) =>
           Effect.flatMap(play(media), (played) => {

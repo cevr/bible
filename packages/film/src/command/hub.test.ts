@@ -1,38 +1,24 @@
 import { describe, expect, test } from 'bun:test';
-import { Effect, Layer, Option } from 'effect';
+import { Effect, Layer } from 'effect';
 import { Clipboard } from '../browser/clipboard.ts';
+import { memoryStorage } from '../browser/fixtures/storage.ts';
 import { hostOf } from '../browser/host.ts';
 import { Keys } from '../browser/keys.ts';
 import { storeOver } from '../browser/storage.ts';
 import { type Command, type Receipt, quietly, said } from './command.ts';
-import { makeHub } from './hub.ts';
+import { makeHub, titledNow } from './hub.ts';
 import { cueOf } from './selection.ts';
 import { pageHref } from '../core/api.ts';
 
-/** A browser storage of the test's own. */
-const memoryStorage = (): Storage => {
-  const kept = new Map<string, string>();
-  return {
-    get length() {
-      return kept.size;
-    },
-    clear: () => kept.clear(),
-    getItem: (k) => Option.getOrNull(Option.fromUndefinedOr(kept.get(k))),
-    key: (i) => Option.getOrNull(Option.fromUndefinedOr([...kept.keys()][i])),
-    removeItem: (k) => {
-      kept.delete(k);
-    },
-    setItem: (k, v) => {
-      kept.set(k, v);
-    },
-  };
-};
-
-/** A page whose presses go to `target`, with a hub over `storage` at `href`. */
-const pageWith = (storage: Storage, href = pageHref.labScene('f', 'one', { cue: 'rise' })) => {
+/** A page whose presses go to `target`, with a hub over `storage` at `href`, on a Mac's keyboard unless `mac` is false. */
+const pageWith = (
+  storage: Storage,
+  href = pageHref.labScene('f', 'one', { cue: 'rise' }),
+  mac = true,
+) => {
   const target = new EventTarget();
   const host = hostOf(
-    Layer.mergeAll(Keys.layerOn(target, true), Clipboard.memory([], 'https://lab.test')),
+    Layer.mergeAll(Keys.layerOn(target, mac), Clipboard.memory([], 'https://lab.test')),
   );
   const hub = Effect.runSyncWith(host)(
     makeHub(
@@ -140,7 +126,12 @@ describe('the hub', () => {
     expect(playing.ran).toEqual(['normal', 'normal']);
   });
 
-  test('says how chords read on its keyboard', () => {
-    expect(pageWith(memoryStorage()).hub.mac).toBe(true);
+  test("names a command's key as the page's keyboard writes it", () => {
+    const titled = (mac: boolean) => {
+      const { hub } = pageWith(memoryStorage(), pageHref.lab('f'), mac);
+      hub.commands.register(counter('edit.undo', { keys: ['mod+z'] }).command);
+      return titledNow(hub, 'Undo', 'edit.undo');
+    };
+    expect([titled(true), titled(false)]).toEqual(['Undo (⌘Z)', 'Undo (Ctrl+Z)']);
   });
 });
