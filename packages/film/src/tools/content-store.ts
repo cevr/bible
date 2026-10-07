@@ -15,9 +15,11 @@
 // the next writer breaks it and says so. So is one this store gave back but
 // could not remove or read back (a busy disk, no file handle left): a lock is
 // lost only on proof, no lock there or another holder's text; else it keeps
-// that lock's path and the very text it wrote there, and its next change
-// breaks the lock at that path only while it holds that text, as its own
-// leftover. A running holder's lock is never
+// that lock's path and the very text it wrote there, and removes the lock at
+// that path only while it holds that text, as its own leftover: in the
+// background, tried again until the disk lets it (RETIRE), so other
+// processes wait only as long as the disk refuses, or at its next change of
+// the file if that comes first. A running holder's lock is never
 // broken, however long it is held, nor one held on another host; a writer
 // that waits its whole wait for one fails as StoreLocked and logs who holds it.
 //
@@ -36,6 +38,7 @@ import {
   Context,
   Duration,
   Effect,
+  FiberMap,
   FileSystem,
   Layer,
   Option,
@@ -142,6 +145,12 @@ const isStale = (stored: Option.Option<string>, hash: string, force: boolean): b
 /** How often, and how many times, a writer tries another process's lock before giving up. */
 const LOCK_TRIES = 250;
 const LOCK_SPACING = Duration.millis(20);
+
+/**
+ * How a lock this store could not remove is tried again in the background:
+ * soon, then less often, never more than 5 s apart, until the disk lets it.
+ */
+const RETIRE = Schedule.min([Schedule.exponential('50 millis'), Schedule.spaced('5 seconds')]);
 
 /**
  * Who holds a manifest's lock: its process, the host it runs on, when it
@@ -252,6 +261,7 @@ export const lockVerdict = (
   });
 
 const isAlreadyExists = (error: PlatformError) => error.reason._tag === 'AlreadyExists';
+const isNotFound = (error: PlatformError) => error.reason._tag === 'NotFound';
 
 interface ContentStoreService {
   /** The manifest as stored, or its empty value when there is no file yet. */
@@ -317,6 +327,8 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         });
       /** Each lock this store gave back but could not remove, by path: the text it wrote there. */
       const leftovers = new Map<string, string>();
+      /** The leftovers being removed in the background, by path: one fiber each, gone with the store. */
+      const retiring = yield* FiberMap.make<string>();
 
       const writeFile = Effect.fn('ContentStore.writeFile')(function* (
         file: string,
@@ -357,12 +369,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           Option.filter(owner, (o) => holdsOn(o, processes.host)),
           { onNone: () => Effect.succeed(true), onSome: (o) => processes.alive(o.pid) },
         );
-        // This store's leftover: the lock at this path holding the very text it wrote there.
-        const leftover = Option.filter(held, (t) => leftovers.get(lock) === t);
-        const verdict = Option.match(leftover, {
-          onSome: () => Option.some('this store gave it back, and its removal failed'),
-          onNone: () => lockVerdict(owner, now, processes.host, () => running, since),
-        });
+        const verdict = lockVerdict(owner, now, processes.host, () => running, since);
         if (Option.isNone(verdict)) return;
         const grave = `${lock}.stale-${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}`;
         const moved = yield* fs.rename(lock, grave).pipe(Effect.option);
@@ -376,9 +383,46 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           return;
         }
         yield* fs.remove(grave, { recursive: true }).pipe(Effect.ignore);
-        if (Option.isSome(leftover)) leftovers.delete(lock);
         yield* Effect.logWarning(`store.lock.broken lock=${lock} reason="${verdict.value}"`);
       });
+
+      /**
+       * This store's leftover at `lock` settled: removed while the lock still
+       * holds the very text this store wrote there, and forgotten once no
+       * lock is there or another holder's is. It fails, kept, while the disk
+       * still refuses. Run under the file's semaphore, so no change of this
+       * process interleaves; no other process removes it, its holder running.
+       */
+      const retire = (lock: string) =>
+        Effect.gen(function* () {
+          const left = Option.fromUndefinedOr(leftovers.get(lock));
+          if (Option.isNone(left)) return;
+          const held = yield* fs.readFileString(lock).pipe(
+            Effect.asSome,
+            Effect.catchIf(isNotFound, () => Effect.succeed(Option.none<string>())),
+          );
+          const ours = Option.contains(held, left.value);
+          if (ours) yield* fs.remove(lock).pipe(Effect.catchIf(isNotFound, () => Effect.void));
+          leftovers.delete(lock);
+          if (ours)
+            yield* Effect.logWarning(
+              `store.lock.broken lock=${lock} reason="this store gave it back, and its removal failed"`,
+            );
+        });
+
+      /**
+       * `lock`'s leftover removed in the background (`retire`) under `file`'s
+       * semaphore, tried again on RETIRE until the disk lets it: so it blocks
+       * other processes only as long as the disk refuses, not until this
+       * store next changes `file`. One fiber per lock, in the store's scope.
+       */
+      const retireLater = (file: string, lock: string) =>
+        FiberMap.run(
+          retiring,
+          lock,
+          writerOf(file).withPermits(1)(retire(lock)).pipe(Effect.retry(RETIRE), Effect.ignore),
+          { onlyIfMissing: true },
+        );
 
       /** Who holds `lock`, as the log names them once a writer has waited its whole wait. */
       const heldBy = (lock: string) =>
@@ -398,11 +442,18 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           );
         });
 
-      /** Take `lock` (a file created only if there is none) for one change. */
+      /**
+       * Take `lock` (a file created only if there is none) for one change:
+       * while another is there, this store's own leftover is settled first
+       * (`retire`), then a stale lock broken (`breakStale`).
+       */
       const take = (lock: string, owner: LockOwner) =>
         fs.writeFileString(lock, encodeOwner(owner), { flag: 'wx' }).pipe(
           Effect.tapError((error) =>
-            Effect.when(breakStale(lock), Effect.succeed(isAlreadyExists(error))),
+            Effect.when(
+              Effect.andThen(Effect.ignore(retire(lock)), breakStale(lock)),
+              Effect.succeed(isAlreadyExists(error)),
+            ),
           ),
           Effect.retry({
             while: isAlreadyExists,
@@ -418,10 +469,10 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
        * Give `lock` back, if it still holds the very text this writer wrote.
        * It is lost only on proof: no lock there (NotFound), or another
        * holder's text. Any other failure, of the read or the removal, keeps
-       * it as this store's leftover, its path and that text, for its next
-       * change to take.
+       * it as this store's leftover, its path and that text, removed in the
+       * background (`retireLater`) or by its next change of `file`.
        */
-      const give = (lock: string, owner: LockOwner) => {
+      const give = (file: string, lock: string, owner: LockOwner) => {
         const written = encodeOwner(owner);
         const lost = (why: string) =>
           Effect.logWarning(`store.unlock.lost lock=${lock} reason="${why}"`);
@@ -431,10 +482,12 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           yield* fs.remove(lock);
         }).pipe(
           Effect.catchTag('PlatformError', (error) => {
-            if (error.reason._tag === 'NotFound') return lost('no lock is there');
-            return Effect.andThen(
-              Effect.sync(() => void leftovers.set(lock, written)),
-              Effect.logWarning(`store.unlock lock=${lock} reason=${error.message}`),
+            if (isNotFound(error)) return lost('no lock is there');
+            return Effect.sync(() => void leftovers.set(lock, written)).pipe(
+              Effect.andThen(
+                Effect.logWarning(`store.unlock lock=${lock} reason=${error.message}`),
+              ),
+              Effect.andThen(retireLater(file, lock)),
             );
           }),
         );
@@ -455,7 +508,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
               .makeDirectory(path.dirname(file), { recursive: true })
               .pipe(Effect.andThen(take(lock, owner))),
             () => change,
-            () => give(lock, owner),
+            () => give(file, lock, owner),
           );
         }).pipe(writerOf(file).withPermits(1));
 

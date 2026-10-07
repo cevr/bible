@@ -263,6 +263,21 @@ describe('ContentStore', () => {
     }).pipe(Effect.scoped),
   );
 
+  it.effect('a lock it could not give back blocks no other process once the disk lets it go', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const lock = lockFile(assets.file);
+      const lab = yield* flakyStoreOn(files, lock);
+      // Another process: a store of its own over the same files.
+      const cli = yield* storeOn(files);
+      yield* lab.update(assets, withAsset('a'));
+      expect(files.has(lock)).toBe(true);
+      yield* waited(cli.update(assets, withAsset('b')));
+      expect(Object.keys((yield* cli.read(assets)).assets)).toEqual(['a', 'b']);
+      expect(files.has(lock)).toBe(false);
+    }).pipe(Effect.scoped),
+  );
+
   it.effect('a give-back whose read fails, not finding the lock gone, keeps it as its own', () =>
     Effect.gen(function* () {
       const files = new Map<string, Uint8Array>();
