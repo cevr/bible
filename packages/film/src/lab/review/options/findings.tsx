@@ -1,16 +1,16 @@
-// The film's findings on Choices and Project (UR-37/38): the check after the
-// last write and the sound check after the last pick or knob, read when asked
-// for and never over the player. Show findings (⌘K, the page's long-press
-// menu) opens one Findings sheet beside the page with both checks as groups,
-// each finding's time a button that moves the clock to it. F and ⇧F walk the
-// clock to the next or previous finding with a time, as they do in the lab.
-// At rest only Project shows each check's count, a chip in the film's panel
-// that opens the sheet too (UR2-10, design language §7); Choices keeps the
-// sheet, its command and its keys. Until the check answers its chip says it
-// is checking, and a check that failed says so: only an answer counts as
-// clean.
+// The film's findings on Choices and Project: the check after the last write
+// and the sound check after the last pick or knob, read when asked for and
+// never over the player. Show findings (⌘K, the page's long-press menu)
+// opens the Findings sheet, in the one sheet frame (`Sheet`: beside the page
+// on a laptop, a bottom sheet swiped down on a phone), with both checks as
+// groups, each finding's time a button that moves the clock to it. F and ⇧F
+// walk the clock to the next or previous finding with a time, as they do in
+// the lab. At rest only Project shows each check's count, a chip in the
+// film's panel that opens the sheet too (design language §7); Choices keeps
+// the sheet, its command and its keys. Until the check answers its chip and
+// its group say it is checking, with no count, and a check that failed says
+// so: only an answer counts as clean.
 
-import { Drawer } from '@bible/ui/drawer';
 import { For, Show } from '@solidjs/web';
 import { Boolean as Bool, Match, Option } from 'effect';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
@@ -22,6 +22,7 @@ import { timecode } from '../../../core/time.ts';
 import type { LabFailure } from '../../api.ts';
 import { useReview } from '../context.tsx';
 import { failedText } from '../format.ts';
+import { Sheet } from '../inspector.tsx';
 import { SyncEvent } from '../machine.ts';
 import { useFilm } from './context.tsx';
 import { countState } from '../../scenes/marks.ts';
@@ -175,75 +176,63 @@ export const Findings = (props: { readonly chips?: boolean }) => {
         </For>
       </Show>
       <Show when={open()}>
-        <Drawer.Root
-          open
-          modal={false}
-          disablePointerDismissal
-          swipeDirection="right"
-          onOpenChange={(next) => {
-            if (!next) setOpen(false);
-          }}
+        <Sheet
+          host={meta.host}
+          hub={meta.hub}
+          role="findings"
+          title="Findings"
+          initialFocus={() => true}
+          onClose={() => setOpen(false)}
         >
-          <Drawer.Portal>
-            <Drawer.Viewport class="lab-inspector-viewport">
-              <Drawer.Popup class="lab-inspector-sheet lab-inspector" data-role="findings">
-                <header class="lab-inspector-head">
-                  <Drawer.Title class="lab-sheet-title">Findings</Drawer.Title>
-                  <Drawer.Close class="lab-inspector-close" data-act="close-findings">
-                    Close
-                  </Drawer.Close>
-                </header>
-                <Drawer.Content class="lab-inspector-body">
-                  <For each={checks()} keyed={(c) => c.name}>
-                    {(check) => (
-                      <section
-                        class="rv-group"
-                        data-check={check().name}
-                        data-findings={Option.getOrUndefined(countOf(check()))}
-                      >
-                        <h3>
-                          {check().name} <span class="lab-count">{foundBy(check()).length}</span>
-                        </h3>
-                        <Show when={Option.getOrUndefined(unanswered(check()))}>
-                          {(state) => (
-                            <p class="rv-hint" data-state={state()}>
-                              {Match.value(state()).pipe(
-                                Match.when('checking', () => 'checking…'),
-                                Match.orElse(() => `failed: ${failedText(check().result)}`),
-                              )}
-                            </p>
+          <For each={checks()} keyed={(c) => c.name}>
+            {(check) => (
+              <section
+                class="rv-group"
+                data-check={check().name}
+                data-findings={Option.getOrUndefined(countOf(check()))}
+              >
+                <h3>
+                  {check().name}{' '}
+                  <Show when={Option.getOrUndefined(countOf(check()))}>
+                    {(n) => <span class="lab-count">{n()}</span>}
+                  </Show>
+                </h3>
+                <Show when={Option.getOrUndefined(unanswered(check()))}>
+                  {(state) => (
+                    <p class="rv-hint" data-state={state()}>
+                      {Match.value(state()).pipe(
+                        Match.when('checking', () => 'checking…'),
+                        Match.orElse(() => `failed: ${failedText(check().result)}`),
+                      )}
+                    </p>
+                  )}
+                </Show>
+                <ul class="rv-findings">
+                  <For each={foundBy(check())}>
+                    {(f) => (
+                      <li data-level={f.level}>
+                        <Show when={Option.getOrUndefined(timeOf(f))}>
+                          {(t) => (
+                            <button
+                              type="button"
+                              class="rv-at"
+                              data-at={String(t())}
+                              disabled={Option.isNone(picture())}
+                              onClick={() => seek(t())}
+                            >
+                              {timecode(t())}
+                            </button>
                           )}
-                        </Show>
-                        <ul class="rv-findings">
-                          <For each={foundBy(check())}>
-                            {(f) => (
-                              <li data-level={f.level}>
-                                <Show when={Option.getOrUndefined(timeOf(f))}>
-                                  {(t) => (
-                                    <button
-                                      type="button"
-                                      class="rv-at"
-                                      data-at={String(t())}
-                                      disabled={Option.isNone(picture())}
-                                      onClick={() => seek(t())}
-                                    >
-                                      {timecode(t())}
-                                    </button>
-                                  )}
-                                </Show>{' '}
-                                <b>{f.tag}</b> {f.message}
-                              </li>
-                            )}
-                          </For>
-                        </ul>
-                      </section>
+                        </Show>{' '}
+                        <b>{f.tag}</b> {f.message}
+                      </li>
                     )}
                   </For>
-                </Drawer.Content>
-              </Drawer.Popup>
-            </Drawer.Viewport>
-          </Drawer.Portal>
-        </Drawer.Root>
+                </ul>
+              </section>
+            )}
+          </For>
+        </Sheet>
       </Show>
     </>
   );

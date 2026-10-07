@@ -738,8 +738,14 @@ describe("a film's project", () => {
         yield* waitFor(page, `${FILM} .pj-band [data-scene]`);
         yield* textIs(page, chip, 'checking…');
         yield* attributeIs(page, chip, 'data-state', 'checking');
+        // The sheet's group counts nothing while it checks: only an answer has a count.
+        const group = '[data-role="findings"] [data-check="check"] h3 .lab-count';
+        yield* click(page, chip);
+        yield* waitFor(page, '[data-role="findings"] [data-state="checking"]');
+        yield* countIs(page, group, 0);
         yield* Deferred.done(land, Exit.void);
         yield* textIs(page, chip, '1 finding');
+        yield* textIs(page, group, '1');
 
         const failing = route('GET', /^\/api\/films\/toy\/check$/, () =>
           refused(FreshProcessFailed.make({ command: 'film check', reason: 'exit 1' })),
@@ -1023,6 +1029,32 @@ describe("a film's project", () => {
         yield* countIs(page, '.rv-note', 0);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    'on a phone the Findings sheet is the one sheet: its grip lowers it, and a swipe down closes it',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(fakeProject({ findings: [CLOSE_FINDING] }), {
+          href: PROJECT,
+          viewport: { ...PHONE, coarse: true },
+        });
+        const sheet = '[data-role="findings"]';
+        yield* click(page, `${FILM} [data-act="findings"][data-check="check"]`);
+        yield* waitFor(page, `${sheet} [data-check="check"] li`);
+        yield* click(page, `${sheet} [data-act="sheet"]`);
+        yield* attributeIs(page, sheet, 'data-peek', 'true');
+        yield* click(page, `${sheet} [data-act="sheet"]`);
+        yield* attributeIs(page, sheet, 'data-peek', 'false');
+        const head = yield* page.box(`${sheet} .lab-inspector-head`);
+        const x = head.x + head.width / 2;
+        const y = head.y + head.height / 2;
+        yield* page.finger.drag({ x, y }, { x, y: y + 400 });
+        yield* countIs(page, sheet, 0);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.runPromise),
     SLOW,
   );
 

@@ -354,15 +354,17 @@ export const Inspector = (props: {
  * to a peek and raises it again. Its head holds its title and Close. Close,
  * Escape and a swipe each call `onClose`, and its page says what that is (a
  * URL's step). Its footer prints the keys of the commands about `of` while
- * the pointer or the focus is in it (`Hint`). It opens whole, or lowered on
- * a phone when `peeked`; what a lowered sheet still shows is its page's
- * styles' to say (its head alone, or Scenes' card in brief).
+ * the pointer or the focus is in it (`Hint`); a sheet about no one thing
+ * (the page's Findings) has none. It opens whole, or lowered on a phone
+ * when `peeked`; what a lowered sheet still shows is its page's styles' to
+ * say (its head alone, or Scenes' card in brief).
  */
 export const Sheet = (props: {
   readonly host: Context.Context<Viewport>;
   readonly hub: Hub;
-  readonly of: Selection;
-  /** Its `data-role`: `inspector`, `scene`. */
+  /** The thing it is about, when it is about one. */
+  readonly of?: Selection;
+  /** Its `data-role`: `inspector`, `scene`, `findings`. */
   readonly role: string;
   readonly title: JSX.Element;
   /** Its page's class for it, beside the sheet's own. */
@@ -401,7 +403,9 @@ export const Sheet = (props: {
               ...Option.toArray(Option.fromUndefinedOr(props.class)),
             ].join(' ')}
             data-role={props.role}
-            data-target={targetAttr(props.of)}
+            data-target={Option.getOrUndefined(
+              Option.map(Option.fromUndefinedOr(props.of), targetAttr),
+            )}
             data-peek={pressed(peek())}
             initialFocus={props.initialFocus}
           >
@@ -413,7 +417,9 @@ export const Sheet = (props: {
               </Drawer.Close>
             </header>
             <Drawer.Content class="lab-inspector-body">{props.children}</Drawer.Content>
-            <Hint hub={props.hub} selection={props.of} gestures={[]} />
+            <Show when={props.of}>
+              {(of) => <Hint hub={props.hub} selection={of()} gestures={[]} />}
+            </Show>
           </Drawer.Popup>
         </Drawer.Viewport>
       </Drawer.Portal>

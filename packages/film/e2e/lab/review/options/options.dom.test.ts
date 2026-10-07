@@ -1025,7 +1025,7 @@ describe("a film's choices", () => {
           '[data-role="findings"] [data-check="sound check"] .rv-at',
           '00:00:02:00',
         );
-        yield* click(page, '[data-act="close-findings"]');
+        yield* click(page, '[data-role="findings"] [data-act="close-inspector"]');
         yield* countIs(page, '[data-role="findings"]', 0);
         yield* page.press('f');
         yield* until(page, "location.hash === '#t=2'");
