@@ -10,7 +10,7 @@
 // of that part would: an `until` cue's end is a field as its right edge is a
 // grip, so a bar too short for edges still has its end by touch.
 
-import { Array as Arr, Match, Option, Schema } from 'effect';
+import { Array as Arr, Data, Match, Option, Schema } from 'effect';
 import type { SceneEdit, SceneSpec } from '../../canvas/film.ts';
 import { applyAffine } from '../../core/affine.ts';
 import type { Placed } from '../../core/layout.ts';
@@ -18,6 +18,7 @@ import { moved } from '../../command/command.ts';
 import type { LabSelection } from '../../command/selection.ts';
 import { type Inspected, fieldOf } from '../../core/field.ts';
 import {
+  CUE_PATCH_KEYS,
   ChangeId,
   CueDur,
   CueOffset,
@@ -224,9 +225,11 @@ export const Write = Schema.Union([CueWrite, KnobWrite, StepWrite]);
 export type Write = typeof Write.Type;
 
 /** The fields that set a span's whole end: a dur replaces an until and an until a dur. */
-const RESETS: ReadonlyArray<string> = ['dur', 'until'];
+const RESETS = ['dur', 'until'] as const satisfies ReadonlyArray<keyof CuePatch>;
 /** The fields a span's end is: its dur, or its until and the offset off it. */
-const ENDS: ReadonlyArray<string> = ['dur', 'until', 'untilOffset'];
+const ENDS = ['dur', 'until', 'untilOffset'] as const satisfies ReadonlyArray<keyof CuePatch>;
+/** Whether `field` is one of `fields`. */
+const among = (fields: ReadonlyArray<string>, field: string): boolean => fields.includes(field);
 
 /**
  * `b`'s fields over `a`'s: a dur replaces an until and an until a dur, each
@@ -259,10 +262,10 @@ export const cueSaidText = (write: Pick<CueWrite, 'cue' | 'said'>): string =>
 const saidOver = (a: Pick<CueWrite, 'said'>, b: Pick<CueWrite, 'said'>) => {
   const earlier = movesOf(a);
   const later = movesOf(b);
-  const ends = Object.keys(later).some((f) => RESETS.includes(f));
+  const ends = Object.keys(later).some((f) => among(RESETS, f));
   // In the order first said: `a`'s fields (each moved on by `b`'s, or kept), then `b`'s new ones.
   const kept = Object.entries(earlier)
-    .filter(([field]) => field in later || !(ends && ENDS.includes(field)))
+    .filter(([field]) => field in later || !(ends && among(ENDS, field)))
     .map(([field, e]): [string, CueSaid[string]] => [
       field,
       Option.match(Option.fromUndefinedOr(later[field]), {
@@ -463,50 +466,57 @@ export const drag = (grip: Grip, pointer: Pointer): Dragged =>
     }),
   );
 
-/** What the lab knows of a scene's source: it, or that it is still being read, or why it could not be. */
-export interface SourceKnown {
-  readonly source: Option.Option<SceneSource>;
-  /** Whether its read is still out: no answer yet is pending, never a refusal. */
-  readonly reading: boolean;
-  /** The server's reason, when the source could not be read. */
-  readonly error: string;
-}
+/**
+ * What the lab knows of a scene's source: its read is still out (no answer
+ * yet is pending, never a refusal), or it was read, or it could not be
+ * (`reason`, as the server said, or why the lab asked for none).
+ */
+export type SourceKnown = Data.TaggedEnum<{
+  Reading: {};
+  Read: { readonly source: SceneSource };
+  Unread: { readonly reason: string };
+}>;
+export const SourceKnown = Data.taggedEnum<SourceKnown>();
 
-/** What a write says while `known` has no source: that it is still being read, or why there is none. */
-const unsourced = (known: SourceKnown): string =>
-  Match.value(known.reading).pipe(
-    Match.when(true, () => 'reading the source…'),
-    Match.orElse(() => `cannot edit: ${known.error || 'no source for this scene'}`),
-  );
+/** A source the server could not read, for `reason` (its words, which may be none). */
+export const unreadFor = (reason: string) =>
+  SourceKnown.Unread({ reason: reason || 'no source for this scene' });
+
+/** Why a write cannot land: what `known` with no source in it says, else `refusal` of its source. */
+const withSource = (
+  known: SourceKnown,
+  refusal: (s: SceneSource) => Option.Option<string>,
+): Option.Option<string> =>
+  SourceKnown.$match(known, {
+    Reading: () => Option.some('reading the source…'),
+    Unread: ({ reason }) => Option.some(`cannot edit: ${reason}`),
+    Read: ({ source }) => refusal(source),
+  });
 
 /**
  * Why knob `knob` cannot be written, when it cannot: the scene's source is
- * still being read, or there is none the lab can read (`error`, as the server
- * said), its knobs object is one the lab will not rewrite, or the knob's
- * value is computed in source.
+ * still being read, or there is none the lab can read (the server's reason),
+ * its knobs object is one the lab will not rewrite, or the knob's value is
+ * computed in source.
  */
 export const knobRefusal = (known: SourceKnown, knob: string): Option.Option<string> =>
-  Option.match(known.source, {
-    onNone: () => Option.some(unsourced(known)),
-    onSome: (s) => {
-      const refused = Arr.findFirst(s.refused, (r) => r.field === 'knobs');
-      if (Option.isSome(refused))
-        return Option.some(`cannot move ${knob}: ${refused.value.reason}`);
-      const literal = Option.exists(
-        Arr.findFirst(s.knobs, (k) => k.name === knob),
-        (k) => k.state === 'literal',
-      );
-      if (literal) return Option.none();
-      return Option.some(`cannot move ${knob}: it is computed in the source`);
-    },
+  withSource(known, (s) => {
+    const refused = Arr.findFirst(s.refused, (r) => r.field === 'knobs');
+    if (Option.isSome(refused)) return Option.some(`cannot move ${knob}: ${refused.value.reason}`);
+    const literal = Option.exists(
+      Arr.findFirst(s.knobs, (k) => k.name === knob),
+      (k) => k.state === 'literal',
+    );
+    if (literal) return Option.none();
+    return Option.some(`cannot move ${knob}: it is computed in the source`);
   });
 
 const PAST = { undo: 'undid', redo: 'redid' } as const;
 
 /**
  * Why a write of `fields` to `cue` cannot land, when it cannot: the scene's
- * source is still being read, or there is none the lab can read (`error`, as
- * the server said), its timeline is one the lab will not rewrite, the cue is
+ * source is still being read, or there is none the lab can read (the
+ * server's reason), its timeline is one the lab will not rewrite, the cue is
  * not in it, or a field it sets is computed in source (named). A drag writes
  * `dragFields` of its edge.
  */
@@ -515,25 +525,22 @@ export const cueRefusal = (
   cue: string,
   fields: ReadonlyArray<keyof CuePatch>,
 ): Option.Option<string> =>
-  Option.match(known.source, {
-    onNone: () => Option.some(unsourced(known)),
-    onSome: (s) => {
-      const refused = Arr.findFirst(s.refused, (r) => r.field === 'timeline');
-      if (Option.isSome(refused)) return Option.some(`cannot drag ${cue}: ${refused.value.reason}`);
-      return Option.match(
-        Arr.findFirst(s.cues, (c) => c.name === cue),
-        {
-          onNone: () => Option.some(`cannot drag ${cue}: its span is computed in the source`),
-          onSome: (found) => {
-            const computed = fields.filter((f) => found[f] === 'computed');
-            if (computed.length === 0) return Option.none();
-            return Option.some(
-              `cannot drag ${cue}: its ${computed.join(' and ')} is computed in the source`,
-            );
-          },
+  withSource(known, (s) => {
+    const refused = Arr.findFirst(s.refused, (r) => r.field === 'timeline');
+    if (Option.isSome(refused)) return Option.some(`cannot drag ${cue}: ${refused.value.reason}`);
+    return Option.match(
+      Arr.findFirst(s.cues, (c) => c.name === cue),
+      {
+        onNone: () => Option.some(`cannot drag ${cue}: its span is computed in the source`),
+        onSome: (found) => {
+          const computed = fields.filter((f) => found[f] === 'computed');
+          if (computed.length === 0) return Option.none();
+          return Option.some(
+            `cannot drag ${cue}: its ${computed.join(' and ')} is computed in the source`,
+          );
         },
-      );
-    },
+      },
+    );
   });
 
 /** What a cue or knob write moved, in words: none when the page did not say. */
@@ -547,7 +554,8 @@ const writeSaid = (w: CueWrite | KnobWrite): string =>
 /**
  * What the receipt says once `write` has landed as `result`: what it moved,
  * before → after, when the page knew (else what the lab wrote), or what an
- * Undo or Redo walked.
+ * Undo or Redo walked. A write that changed nothing (no `change`) says the
+ * value was already so; the lab's own words already do.
  */
 export const wroteNote = (write: Write, result: LabWrite): string =>
   Match.value(write).pipe(
@@ -560,9 +568,16 @@ export const wroteNote = (write: Write, result: LabWrite): string =>
         onNone: () => '',
         onSome: (why) => ` (not resolved: ${why})`,
       });
-      const said = Option.getOrElse(
+      const already = Option.match(Option.fromUndefinedOr(result.change), {
+        onNone: () => ' (already so)',
+        onSome: () => '',
+      });
+      const said = Option.match(
         Option.filter(Option.some(writeSaid(w)), (s) => s !== ''),
-        () => `wrote ${result.file}: ${result.target}`,
+        {
+          onNone: () => `wrote ${result.file}: ${result.target}`,
+          onSome: (s) => `${s}${already}`,
+        },
       );
       return `${said}${unresolved}`;
     }),
@@ -591,29 +606,55 @@ const printed = (v: number): string => String(toMs(v));
  * → after, for each field it sets: `{ offset: 0.4 → 0.367 s, dur: 1 →
  * 1.033 s }` (`cueSaidText` words it).
  */
-const cueSaid = (span: Span, cue: ResolvedCue, patch: CuePatch): CueSaid => {
-  const part = (field: string, before: string, after: Option.Option<string>, unit = '') =>
-    Option.toArray(
-      Option.map(after, (a): [string, CueSaid[string]] => [field, { before, after: a, unit }]),
-    );
-  const has = Option.fromUndefinedOr;
-  const offset = Option.getOrElse(has(span.offset), () => 0);
-  const until = Option.match(has(span.until), { onNone: () => 'its dur', onSome: untilText });
-  const parts = [
-    ...part('offset', printed(offset), Option.map(has(patch.offset), printed), 's'),
-    ...part('dur', printed(cue.dur), Option.map(has(patch.dur), printed), 's'),
-    ...part('until', until, Option.map(has(patch.until), untilText)),
-    ...part(
-      'untilOffset',
-      printed(Option.getOrElse(has(span.untilOffset), () => 0)),
-      Option.map(has(patch.untilOffset), printed),
+const cueSaid = (span: Span, cue: ResolvedCue, patch: CuePatch): CueSaid =>
+  Object.fromEntries(
+    CUE_PATCH_KEYS.flatMap((key) =>
+      Option.toArray(Option.map(SAID[key](span, cue, patch), (m) => [key, m] as const)),
+    ),
+  );
+
+/** A field moved, `before` → what `patch` sets it to (`after`), in `unit`. */
+const movedTo =
+  <A>(after: Option.Option<A>, words: (a: A) => string) =>
+  (before: string, unit = ''): Option.Option<CueSaid[string]> =>
+    Option.map(after, (a) => ({ before, after: words(a), unit }));
+
+/**
+ * Each field a cue patch sets as its receipt says it moved, before (the span
+ * as written, the cue as resolved) → after (the value set), with its unit;
+ * none when the patch leaves it. One per key of `CuePatch`, so a key added
+ * there is a type error here.
+ */
+const SAID = {
+  offset: (span, _, patch) =>
+    movedTo(Option.fromUndefinedOr(patch.offset), printed)(
+      printed(Option.getOrElse(Option.fromUndefinedOr(span.offset), () => 0)),
       's',
     ),
-    ...part('ease', cue.ease, has(patch.ease)),
-    ...part('stagger', printed(cue.stagger), Option.map(has(patch.stagger), printed)),
-  ];
-  return Object.fromEntries(parts);
-};
+  dur: (_, cue, patch) =>
+    movedTo(Option.fromUndefinedOr(patch.dur), printed)(printed(cue.dur), 's'),
+  until: (span, _, patch) =>
+    movedTo(
+      Option.fromUndefinedOr(patch.until),
+      untilText,
+    )(
+      Option.match(Option.fromUndefinedOr(span.until), {
+        onNone: () => 'its dur',
+        onSome: untilText,
+      }),
+    ),
+  untilOffset: (span, _, patch) =>
+    movedTo(Option.fromUndefinedOr(patch.untilOffset), printed)(
+      printed(Option.getOrElse(Option.fromUndefinedOr(span.untilOffset), () => 0)),
+      's',
+    ),
+  ease: (_, cue, patch) => movedTo(Option.fromUndefinedOr(patch.ease), String)(cue.ease),
+  stagger: (_, cue, patch) =>
+    movedTo(Option.fromUndefinedOr(patch.stagger), printed)(printed(cue.stagger)),
+} satisfies Record<
+  keyof CuePatch,
+  (span: Span, cue: ResolvedCue, patch: CuePatch) => Option.Option<CueSaid[string]>
+>;
 
 /**
  * Cue `name`'s fields: its offset, and its dur or, when it runs `until` a

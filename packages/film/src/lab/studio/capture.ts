@@ -28,10 +28,13 @@ export class CaptureFailed extends Schema.TaggedError<CaptureFailed>()('CaptureF
   }
 }
 
-/** The microphone went away mid-take: what was recorded up to then is kept to hear. */
+/**
+ * The microphone went away mid-take: what was recorded up to then is kept to
+ * hear. The status line adds how, naming Back's key as bound (`statusOf`).
+ */
 export class MicLost extends Schema.TaggedError<MicLost>()('MicLost', {}) {
   override get message() {
-    return 'the microphone went away (unplugged, or another app took it); the recording up to then is kept: Back (Esc) to hear it';
+    return 'the microphone went away (unplugged, or another app took it); the recording up to then is kept';
   }
 }
 

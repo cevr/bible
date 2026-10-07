@@ -40,12 +40,12 @@ describe('compareText', () => {
   test('off says nothing; reading says so', () => {
     expect(compareText('off', 'one', AsyncResult.success(head), Option.none())).toBe('');
     expect(compareText('wipe', 'one', AsyncResult.initial(), Option.none())).toBe(
-      'reading one at HEAD…',
+      'reading one at the last commit…',
     );
   });
   test('the file it read, and what changed since', () => {
     expect(compareText('wipe', 'one', AsyncResult.success(head), Option.none())).toBe(
-      'scenes/one.ts at HEAD',
+      'scenes/one.ts at the last commit',
     );
     expect(
       compareText(
@@ -55,13 +55,13 @@ describe('compareText', () => {
         Option.none(),
       ),
     ).toBe(
-      "scenes/one.ts at HEAD · code changed since HEAD — compare shows data only · HEAD's timeline and knobs are the same as now",
+      "scenes/one.ts at the last commit · code changed since the last commit — compare shows data only · the last commit's timeline and knobs are the same as now",
     );
   });
   test("HEAD refused: the server's reason, in its words", () => {
     const refused = HeadUnavailable.make({ file: 'scenes/one.ts', reason: 'not in git' });
     expect(compareText('wipe', 'one', AsyncResult.fail(refused), Option.none())).toBe(
-      'one: scenes/one.ts: no HEAD version to compare with: not in git',
+      'one: scenes/one.ts: no version at the last commit to compare with: not in git',
     );
   });
   test("HEAD's timeline that does not resolve now: why, in the timeline's words", () => {
@@ -72,7 +72,7 @@ describe('compareText', () => {
       known: ['rise'],
     });
     expect(compareText('wipe', 'one', AsyncResult.success(head), Option.some(missing))).toBe(
-      `one: HEAD's timeline does not resolve now: cue "rise": scene "one" has no mark {soar}; its marks are {rise}`,
+      `one: the last commit's timeline does not resolve now: cue "rise": scene "one" has no mark {soar}; its marks are {rise}`,
     );
   });
 });

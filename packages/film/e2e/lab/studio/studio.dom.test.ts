@@ -12,7 +12,17 @@
 // warns of clipping; a mic refused says so.
 
 import { BunServices } from '@effect/platform-bun';
-import { Effect, type FileSystem, Option, type Path, Result, Schedule, type Scope } from 'effect';
+import {
+  Deferred,
+  Effect,
+  Exit,
+  type FileSystem,
+  Option,
+  type Path,
+  Result,
+  Schedule,
+  type Scope,
+} from 'effect';
 import { Base64 } from 'effect/encoding';
 import { TakeMismatch } from '../../../src/core/refusals.ts';
 import { describe, expect, it } from 'effect-bun-test';
@@ -24,9 +34,11 @@ import {
   URL_T,
   json,
   labAt,
+  later,
   openLab,
   refused,
   route,
+  text,
 } from '../../../src/lab/fixtures/harness.ts';
 import { menuEntry, openCommandMenu } from '../../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
@@ -188,6 +200,20 @@ const shownAt = (page: Tab, t: number) => evaluates(page, URL_T, t);
 const startOf = (scene: string) =>
   probeFilm().placed.find((p) => p.spec.id === scene)?.start ?? Number.NaN;
 
+/** The beat the URL cites (`?beat=`), or '' for none. */
+const BEAT_IN_URL = "new URLSearchParams(location.search).get('beat') ?? ''";
+
+/** The note the URL selects (`?note=`), or '' for none. */
+const NOTE_IN_URL = "new URLSearchParams(location.search).get('note') ?? ''";
+
+/** The probe film's beats, one a scene, each with one line to record. */
+const SCENE_BEATS: Json = {
+  film: PROBE,
+  beats: probeFilm().placed.map((p) =>
+    beat(p.spec.id, 'staging', [{ kind: 'line', text: `In ${p.spec.id}.` }]),
+  ),
+};
+
 const scoped = <A, E>(self: Effect.Effect<A, E, Scope.Scope | FileSystem.FileSystem | Path.Path>) =>
   self.pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
@@ -306,6 +332,136 @@ describe('the studio', () => {
           yield* page.reload;
           yield* page.waitFor('[data-beat="three"].selected');
           yield* textIs(page, '[data-role="prompter"]', 'In three.');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    "a pasted link that names a beat opens in Record on it; a link that names none, or a beat the film no longer lists, opens in the viewer's own mode",
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const scenes = {
+            film: PROBE,
+            beats: probeFilm().placed.map((p) =>
+              beat(p.spec.id, 'staging', [{ kind: 'line', text: `In ${p.spec.id}.` }]),
+            ),
+          };
+          const routes = [route('GET', /^\/studio\/beats$/, () => json(scenes)), ...studioRoutes];
+          const two = startOf('two');
+          // The viewer's own mode is Edit (nothing kept); the link cites the beat three.
+          const { page } = yield* openLab(routes, {
+            href: labAt(two + 0.5, { beat: 'three' }),
+            mic: { allowed: true },
+          });
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'record');
+          yield* page.waitFor('[data-beat="three"].selected');
+          yield* textIs(page, '[data-role="prompter"]', 'In three.');
+          // The cited beat was not the viewer's pick: a link without one opens in their own mode.
+          yield* page.goto(labAt(two + 0.5));
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
+          // A dead link, citing a beat the film no longer lists, cites none: it opens in their mode too.
+          yield* page.goto(labAt(two + 0.5, { beat: 'gone' }));
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
+          yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    'each entry that names a listed beat and no note shows Record: Back from a note to a beat picked lands in Record on it',
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const note = {
+            scene: 'two',
+            T: 0.5,
+            frame: 15,
+            text: 'the ball rises too early',
+            id: 'n1',
+            film: PROBE,
+            seq: 1,
+            changed: 1,
+            status: 'open',
+            still: 'n1.png',
+            thread: [],
+            createdAt: '2026-09-28T00:00:00.000Z',
+          };
+          const { page } = yield* openLab(
+            [
+              route('GET', /^\/studio\/beats$/, () => json(SCENE_BEATS)),
+              route('GET', /^\/notes$/, () => json({ film: PROBE, seq: 1, notes: [note] })),
+              ...studioRoutes,
+            ],
+            { href: labAt(startOf('two') + 0.5, { beat: 'two' }), mic: { allowed: true } },
+          );
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'record');
+          yield* page.waitFor('[data-beat="two"].selected');
+          // A beat picked, then a note opened from its pin on the timeline: Note shows it.
+          yield* page.click('[data-beat="three"]');
+          yield* evaluates(page, BEAT_IN_URL, 'three');
+          yield* page.click('.track .tick.note');
+          yield* evaluates(page, NOTE_IN_URL, 'n1');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'note');
+          // Back to the beat picked, no note: Record, on it.
+          yield* page.back;
+          yield* evaluates(page, NOTE_IN_URL, '');
+          yield* evaluates(page, BEAT_IN_URL, 'three');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'record');
+          yield* page.waitFor('[data-beat="three"].selected');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    'a mode the viewer picks while the beats are read stays theirs: the beats landing after never open Record over it',
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const gate = yield* Deferred.make<void>();
+          const { page } = yield* openLab(
+            [
+              route('GET', /^\/studio\/beats$/, () => later(gate, json(SCENE_BEATS))),
+              ...studioRoutes,
+            ],
+            { href: labAt(startOf('two') + 0.5, { beat: 'three' }), mic: { allowed: true } },
+          );
+          yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
+          yield* page.click('.lab-modes [data-mode-pick="motion"]');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'motion');
+          yield* Deferred.done(gate, Exit.void);
+          // The beats land: the recorder stands on the cited beat, and the panel stays in Motion.
+          yield* attached(page, '[data-beat="three"].selected');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'motion');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    "the panel and the studio read one beat list: a dead link's beat, the list unread, never opens Record",
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          // The first read of the beats is refused; any later one would list them.
+          const answers = [text('the beats are down', 500)];
+          const { page } = yield* openLab(
+            [
+              route('GET', /^\/studio\/beats$/, () => answers.shift() ?? json(SCENE_BEATS)),
+              ...studioRoutes,
+            ],
+            { href: labAt(startOf('two') + 0.5, { beat: 'gone' }), mic: { allowed: true } },
+          );
+          yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
+          yield* until(
+            page,
+            `document.querySelector('.studio-waiting') !== null || document.querySelector('[data-beat].selected') !== null`,
+          );
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
         }),
       ),
     60_000,
@@ -507,12 +663,15 @@ describe('the studio', () => {
           yield* shownAt(page, 1);
           yield* textIs(page, '[data-act="play"]', PAUSED);
           yield* countIs(page, '[data-beat="close"].selected', 1);
+          // ← steps back a beat.
+          yield* press(page, 'ArrowLeft');
+          yield* page.waitFor('[data-beat="thesis"].selected');
           // Out of the studio the lab's keys are the lab's again: → steps the film (ten frames
           // with Shift), not the beat.
           yield* page.evaluate('document.activeElement.blur()');
           yield* press(page, 'Shift+ArrowRight');
           yield* page.until(`Math.abs(${URL_T} - ${1 + 10 / 30}) < 0.002`);
-          yield* countIs(page, '[data-beat="close"].selected', 1);
+          yield* countIs(page, '[data-beat="thesis"].selected', 1);
         }),
       ),
     60_000,

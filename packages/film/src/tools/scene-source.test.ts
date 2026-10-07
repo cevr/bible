@@ -349,6 +349,18 @@ describe('scene source', () => {
       ]);
     });
 
+  it('names only the field that missed, never an object end that landed as it was', () => {
+    const before = scene.replace(
+      "bare: { at: 'speech' }",
+      "bare: { at: 'speech', until: { cue: 'topple' } }",
+    );
+    // The offset landed as 0.5, not the 0.3 asked; the end is as it was.
+    const after = before.replace("at: 'speech',", "at: 'speech', offset: 0.5,");
+    expect(ok(cueLanded(FILE, before, after, 'hand', 'bare', { offset: 0.3 }))).toEqual([
+      'cue bare offset',
+    ]);
+  });
+
   it('preserves a computed or ambiguous object end when asked to replace it with dur', () => {
     for (const until of [
       '{ cue: PARENT }',

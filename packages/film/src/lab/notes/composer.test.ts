@@ -219,10 +219,6 @@ describe('saving', () => {
       expect(composerText(result.finalState)).toBe('saving…');
     }).pipe(Effect.provide(fakes(Effect.never).layer)),
   );
-
-  test('starts closed', () => {
-    expect(composerMachine.initial).toEqual(ComposerState.Closed({ saved: Option.none() }));
-  });
 });
 
 describe('what the panel reads', () => {

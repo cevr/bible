@@ -318,6 +318,32 @@ describe('the player', () => {
   );
 
   it.live(
+    "on a phone Play's picture spans the window, and its row reads the clock whole, then the scene and CC",
+    () =>
+      Effect.gen(function* () {
+        const { page } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: PHONE },
+          BAR_READY,
+        );
+        yield* evaluates(
+          page,
+          `Math.round(document.querySelector('.stage canvas').getBoundingClientRect().width)`,
+          PHONE.width,
+        );
+        // Left to right on the row's first line: ▶, the timecode, the length, the scene, CC.
+        yield* evaluates(
+          page,
+          `(() => {
+            const boxes = ['[data-act="play"]', '.tc', '.of', '.scene', '[data-act="captions"]']
+              .map((s) => document.querySelector('.bar .row ' + s).getBoundingClientRect());
+            return boxes.every((b, i) => i === 0 || (b.left >= boxes[i - 1].right && Math.abs(b.top + b.height / 2 - boxes[0].top - boxes[0].height / 2) < 4));
+          })()`,
+          true,
+        );
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     "the Scenes' legend says a check that failed, why in its title: never a clean film (RS-1)",
     () =>
       Effect.gen(function* () {
@@ -498,6 +524,52 @@ describe('the player', () => {
         yield* evaluates(page, controls(true), true);
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.runPromise),
+  );
+
+  // Serial: a finger's touches (`film/touches-serial`).
+  test.serial(
+    "Play's HUD on a phone, played from ▶: once faded, the first tap on the picture brings the controls back, wherever the focus was",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: PHONE },
+          BAR_READY,
+        );
+        yield* page.clock.hold;
+        // A finger plays the film from ▶ (Chromium leaves the focus on it), and the controls fade.
+        yield* touch(page, '.bar [data-act="play"]', 0);
+        yield* page.finger.up;
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        yield* page.clock.runFor(HUD_IDLE_MS + 200);
+        yield* evaluates(page, controls(false), true);
+        // One tap on the picture shows them, the film still playing.
+        yield* touch(page, '.stage canvas', 0);
+        yield* page.finger.up;
+        yield* evaluates(page, controls(true), true);
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped, Effect.runPromise),
+  );
+
+  it.live(
+    "Play's HUD on a laptop: once faded, any key brings the controls back, one the keymap binds or not",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.play(PROBE), viewport: DESK },
+          BAR_READY,
+        );
+        yield* page.clock.hold;
+        yield* page.press('Space');
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        yield* page.clock.runFor(HUD_IDLE_MS + 200);
+        yield* evaluates(page, controls(false), true);
+        // Q is bound to nothing: still the viewer's hand on the keyboard.
+        yield* page.press('q');
+        yield* evaluates(page, controls(true), true);
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   // Serial: while two fingers are down on one tab, Chrome drops the touches the file's other
@@ -919,8 +991,11 @@ describe('the player', () => {
            window.__first = Object.fromEntries([...document.querySelectorAll('.sc-still')].map((s) => [s.dataset.t, window.__pixels(s.dataset.t)]));`,
         );
         const captions = `document.querySelector('[data-act="captions"]').click()`;
+        // CC is a toggle that says its state: pressed while the captions show.
+        yield* attributeIs(page, '[data-act="captions"]', 'aria-pressed', 'true');
         // Turned, a still with a caption is drawn again without it: its pixels differ.
         yield* page.evaluate(captions);
+        yield* attributeIs(page, '[data-act="captions"]', 'aria-pressed', 'false');
         yield* evaluates(
           page,
           `(window.__t = Object.keys(window.__first).find((t) => ((now) => now !== null && now !== window.__first[t])(window.__pixels(t)))) !== undefined`,

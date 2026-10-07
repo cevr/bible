@@ -5,6 +5,7 @@
 
 import { Array as Arr, Option, Order } from 'effect';
 import { type Placed, transitionDur } from './layout.ts';
+import { framesOf } from './time.ts';
 
 /** A frame in a scene, and why it was picked (`mark name`, `cue name start`, `60%`). */
 export interface SceneMoment {
@@ -45,8 +46,7 @@ export const sceneMoments = (
     ];
     // The first scene has nothing to arrive from.
     const settled = Math.min(p.index, 1) * transitionDur(p.spec.enter);
-    const first = Math.ceil((p.start + settled) * fps - 1e-6);
-    const last = Math.ceil((p.start + p.dur) * fps - 1e-6) - 1;
+    const { first, last } = framesOf({ from: p.start + settled, to: p.start + p.dur }, fps);
     const byFrame = new Map<number, Array<string>>();
     for (const [at, t] of moments) {
       const frame = Math.min(last, Math.max(first, Math.round((p.start + t) * fps)));

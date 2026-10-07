@@ -83,8 +83,10 @@ body.lab .sh-await { grid-column: 1; grid-row: 2; }
   .sh-tab[data-active="true"]::after { display: none; }
   /* The crumb names the subject on a phone too (a Set's scene, a Folder's), shortened first (SU-10). */
   .sh-crumb { flex: 0 1 auto; font-size: var(--fs-1); }
-  .sh-dock { position: fixed; left: 0; right: 0; z-index: 25; height: var(--dock-h);
-    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); border-top: var(--border); }
+  /* The phone's dock, the one docked row: a page's (\`.sh-dock\`) and the Lab's transport row (\`player.css\`). */
+  .sh-dock, body.lab .bar > .row { position: fixed; left: 0; right: 0; z-index: 25; height: var(--dock-h);
+    bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); border-top: var(--border);
+    padding: 0 var(--gutter); background: var(--surface-1); }
   .sh[data-film="false"] .sh-dock { bottom: env(safe-area-inset-bottom); }
   .sh-body:has(.sh-dock) { padding-bottom: calc(var(--dock-h) + var(--s-3)); }
 }

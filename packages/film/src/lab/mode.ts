@@ -2,7 +2,8 @@
 // Edit · Note · Motion · Compare · Record, picked on the mode tray (the
 // inspector's header) or from ⌘K. The mode is a per-viewer convenience kept
 // in the browser (`film-studio.lab-mode`); a note a link cites shows Note as
-// it lands (only Note shows notes), so the mode never needs the URL. Pure.
+// it lands (only Note shows notes), and a beat it cites that the film lists
+// shows Record (only Record shows beats), so the mode never needs the URL. Pure.
 
 import { Option } from 'effect';
 import { type Command, quietly } from '../command/command.ts';

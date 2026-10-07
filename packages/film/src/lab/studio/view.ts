@@ -5,12 +5,17 @@
 // counts, the meter's reading, and each attempt's line. The provider hands
 // these to the components, so none of them reads the machine's states. Pure.
 
-import { Match, Option, Predicate } from 'effect';
+import { Match, Option, Predicate, Schema } from 'effect';
 import { timecode } from '../../core/time.ts';
 import { STUDIO_IMPORT_WAIT_S, type StudioAttempt, type StudioBeat } from '../../core/studio.ts';
 import { minutes } from './api.ts';
-import { clipping, dbfs, type Level, type MicDevice } from './capture.ts';
-import { RecorderEvent, type RecorderState, mismatchAttempt } from './machine.ts';
+import { clipping, dbfs, type Level, type MicDevice, MicLost } from './capture.ts';
+import {
+  RecorderEvent,
+  type RecorderRefusal,
+  type RecorderState,
+  mismatchAttempt,
+} from './machine.ts';
 import { wavSeconds } from './wav.ts';
 
 /** What a control does. */
@@ -111,11 +116,34 @@ const leftOf = (state: RecorderState, level: Option.Option<Level>): Option.Optio
 export const nearLimit = (state: RecorderState, level: Option.Option<Level>): boolean =>
   Option.exists(leftOf(state, level), (left) => left <= NEAR_LIMIT_S);
 
-/** How the panel accepts a take heard as something else (the server's words say only what was heard). */
-const ACCEPT_HINT = 'Accept anyway (K) keeps it as the take; Record (R) reads it again';
+/** A control's words with its command's key as bound now, `Back (Esc)` (`HubKeys.titled`). */
+export type Keyed = (title: string, command: ControlCommand) => string;
 
-/** The status line: where the recorder stands, a take's result, or the refusal in the server's words. */
-export const statusOf = (state: RecorderState, level: Option.Option<Level>): string =>
+/**
+ * How the panel acts on `refusal`, each control named with its key as bound:
+ * a take heard as something else is accepted or read again (the server's
+ * words say only what was heard); what a lost microphone kept is heard by Back.
+ */
+const hintsOf = (refusal: RecorderRefusal, keyed: Keyed): ReadonlyArray<string> => [
+  ...Option.match(mismatchAttempt(refusal), {
+    onNone: () => [],
+    onSome: () => [
+      `${keyed('Accept anyway', 'studio.submit')} keeps it as the take; ${keyed('Record', 'studio.record')} reads it again`,
+    ],
+  }),
+  ...Option.toArray(
+    Option.liftPredicate(`${keyed('Back', 'studio.back')} to hear it`, () =>
+      Schema.is(MicLost)(refusal),
+    ),
+  ),
+];
+
+/**
+ * The status line: where the recorder stands, a take's result, or the
+ * refusal in the server's words and how to act on it (`keyed` names each
+ * control's key as bound).
+ */
+export const statusOf = (state: RecorderState, level: Option.Option<Level>, keyed: Keyed): string =>
   Match.value(state).pipe(
     Match.tagsExhaustive({
       Idle: (s) =>
@@ -155,14 +183,7 @@ export const statusOf = (state: RecorderState, level: Option.Option<Level>): str
         ),
       Checking: () =>
         `the lab has not answered in ${minutes(STUDIO_IMPORT_WAIT_S)}: reading its attempts to see whether the take was kept…`,
-      Failed: (s) =>
-        [
-          s.refusal.message,
-          ...Option.match(mismatchAttempt(s.refusal), {
-            onNone: () => [],
-            onSome: () => [ACCEPT_HINT],
-          }),
-        ].join('\n'),
+      Failed: (s) => [s.refusal.message, ...hintsOf(s.refusal, keyed)].join('\n'),
     }),
   );
 

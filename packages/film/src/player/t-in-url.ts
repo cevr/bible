@@ -14,14 +14,8 @@
 
 import { type Throttled, type Timers, throttled } from './throttle.ts';
 
-/**
- * `T` as `#t=` keeps it: to the millisecond, rounded up, so a reload reads it
- * back in its own frame and never before it. A scene's start that falls
- * between two hundredths (`]` seeks there exactly) would read back in the
- * scene before. The nudge below 1e-6 keeps a time already on the grid as
- * itself, so reload after reload never creeps.
- */
-export const onTheMs = (T: number): number => Math.ceil(T * 1000 - 1e-6) / 1000;
+/** `T` as `#t=` keeps it: to the millisecond, rounded up (core/time.ts `onTheMs`). */
+export { onTheMs } from '../core/time.ts';
 
 /**
  * Why T is written: it moved on its own or under a drag, or came to rest

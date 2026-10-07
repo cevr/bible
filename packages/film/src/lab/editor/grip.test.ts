@@ -10,7 +10,7 @@
 import { describe, expect, test } from 'bun:test';
 import { Option } from 'effect';
 import type { SceneEdit } from '../../canvas/film.ts';
-import { RequestId, type ResolvedCue, type SceneSource } from '../../core/schema.ts';
+import { ChangeId, RequestId, type ResolvedCue, type SceneSource } from '../../core/schema.ts';
 import { dragFields, dragPatch } from '../../core/timeline.ts';
 import {
   type CueGrip,
@@ -29,24 +29,21 @@ import {
   cueSaidText,
   joined,
   placesFreely,
-  type SourceKnown,
+  SourceKnown,
   snapEdge,
+  unreadFor,
   stripWindow,
   wroteNote,
 } from './grip.ts';
 
 /** A source the lab has read. */
-const read = (source: SceneSource): SourceKnown => ({
-  source: Option.some(source),
-  reading: false,
-  error: '',
-});
+const read = (source: SceneSource) => SourceKnown.Read({ source });
 
-/** No source, for `error` (the server's reason). */
-const unread = (error: string): SourceKnown => ({ source: Option.none(), reading: false, error });
+/** No source, for `reason` (the server's). */
+const unread = (reason: string) => SourceKnown.Unread({ reason });
 
 /** A source still being read. */
-const READING: SourceKnown = { source: Option.none(), reading: true, error: '' };
+const READING = SourceKnown.Reading();
 
 describe('joined', () => {
   const write = (patch: CueWrite['patch'], said: NonNullable<CueWrite['said']>) =>
@@ -201,7 +198,7 @@ describe("a cue's fields", () => {
         timeline: { rise: span },
         cues: new Map([['rise', cue]]),
         knobs: {},
-        known: { source: Option.none(), reading: false, error: '' },
+        known: unread('no source for this scene'),
         fps: 30,
         commit: (write, edit) => void commits.push({ write, edit }),
       },
@@ -402,7 +399,7 @@ describe('cueRefusal', () => {
     expect(cueRefusal(unread('SceneNotFound: no file'), 'rise', ['offset'])).toEqual(
       Option.some('cannot edit: SceneNotFound: no file'),
     );
-    expect(cueRefusal(unread(''), 'rise', ['offset'])).toEqual(
+    expect(cueRefusal(unreadFor(''), 'rise', ['offset'])).toEqual(
       Option.some('cannot edit: no source for this scene'),
     );
   });
@@ -436,6 +433,19 @@ describe('wroteNote', () => {
     expect(wroteNote(write, { ...result, unresolved: 'no layout' })).toBe(
       'wrote scenes/one.ts: cue rise offset (not resolved: no layout)',
     );
+  });
+  test('a write that changed nothing says the value was already so, not that it moved', () => {
+    // Two nudges that cancel, joined while a write was out.
+    const write = {
+      _tag: 'CueWrite' as const,
+      scene: 'one',
+      cue: 'rise',
+      patch: { offset: 0.433 },
+      said: { offset: { before: '0.433', after: '0.433', unit: 's' } },
+    };
+    const changed = { ...result, change: ChangeId.make('c1') };
+    expect(wroteNote(write, changed)).toBe('cue rise offset 0.433 → 0.433 s');
+    expect(wroteNote(write, result)).toBe('cue rise offset 0.433 → 0.433 s (already so)');
   });
   test('an undo or redo names what it put back', () => {
     const undo = {

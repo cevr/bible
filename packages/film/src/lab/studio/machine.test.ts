@@ -651,7 +651,7 @@ describe('an import the lab does not answer', () => {
             }),
           }),
         );
-        expect(statusOf(state, Option.none())).toBe(
+        expect(statusOf(state, Option.none(), (title) => title)).toBe(
           'kept a.new.flac: heard “hello word” · 0.0% words differ · the lab had not mixed it when the studio stopped waiting; reload once the lab log says mixed',
         );
         expect(posts(log)).toEqual([`take a ${wav.length} bytes`]);

@@ -13,7 +13,8 @@
 // (a per-viewer convenience kept in this browser, safe to lose). A page
 // with a playhead shows its time in the header as a timecode
 // (`useShellTime`), and a page below a part names its depth in one crumb
-// (`crumb`); a tap on the timecode copies the link to here (AA-1).
+// (`crumb`); a tap on the timecode copies the link to here (AA-1). The
+// tab's title names what the page has selected (`subject`) before the rest.
 
 import { Menu } from '@bible/ui/menu';
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
@@ -37,10 +38,12 @@ import { keptText } from '../browser/storage.ts';
 import { ViewerStore } from '../browser/storage-browser.ts';
 import type { Hub } from '../command/hub.ts';
 import { BY_BUTTON } from '../command/command.ts';
+import type { Player } from '../player/main.ts';
 import { filmCommands, partCommandId, partCommands } from '../command/go.ts';
 import { hubKeys } from './command/changes.ts';
 import { COMMAND_MENU, GO_TO_COMMAND } from './command/command-menu.tsx';
 import { ViewMenu } from './command/view-menu.tsx';
+import { pageTitle } from './page-title.ts';
 import { pressed } from './review/format.ts';
 
 /** The film last opened in this browser: where the tabs lead from Films. */
@@ -71,6 +74,21 @@ export const useShellTime = (at: Accessor<number>, fps: number = FILM_FPS): void
     });
     if (!isServer) onCleanup(() => write(Option.none()));
   });
+};
+
+/**
+ * Show `player`'s playhead as the header's timecode for as long as the
+ * calling component is mounted: every time it moves, drawn or not (a frame
+ * waits on the film's faces; the time does not).
+ */
+export const usePlayerTime = (player: Pick<Player, 'now' | 'onMove' | 'film'>): void => {
+  const [at, setAt] = createSignal(player.now(), { ownedWrite: true });
+  onCleanup(
+    player.onMove((T) => {
+      setAt(T);
+    }),
+  );
+  useShellTime(at, player.film.fps);
 };
 
 /** The header's slot for a page's own tools, before the timecode: none until the page is the client's. */
@@ -213,6 +231,8 @@ interface PageShellProps {
   readonly follow?: (href: string) => boolean;
   /** The page's depth below its part, after the page bar (`cold · versions`). */
   readonly crumb?: Accessor<Option.Option<string>>;
+  /** What the page has selected (a scene), first in the tab's title; the page's body shows it, so the header does not. */
+  readonly subject?: Accessor<Option.Option<string>>;
   readonly children: JSX.Element;
 }
 
@@ -230,13 +250,9 @@ const filmPart = (part: Part): Part =>
 const plainClick = (e: MouseEvent) =>
   e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
-/**
- * A page's title, naming where it is as the header does: its depth, its part
- * and its film (`Choices · righteousness-by-faith`, `woman · versions ·
- * Project · …`, `Films`).
- */
-const pageTitle = (crumb: Option.Option<string>, part: Part, film: Option.Option<string>) =>
-  [...Option.toArray(crumb), PART_TITLE[part], ...Option.toArray(film)].join(' · ');
+/** A name the page may give (its crumb, its subject): none where it gives none. */
+const given = (at: PageShellProps['crumb']): Option.Option<string> =>
+  Option.flatMap(Option.fromUndefinedOr(at), (read) => read());
 
 /** The studio's shell around a page. */
 export const PageShell = (props: PageShellProps) => {
@@ -252,11 +268,7 @@ export const PageShell = (props: PageShellProps) => {
   useHead(() => ({
     tag: 'title',
     props: {
-      children: pageTitle(
-        Option.flatMap(Option.fromUndefinedOr(props.crumb), (crumb) => crumb()),
-        props.part(),
-        props.film(),
-      ),
+      children: pageTitle([given(props.subject), given(props.crumb)], props.part(), props.film()),
     },
   }));
   const [time, setTime] = createSignal(Option.none<ShellTime>(), { ownedWrite: true });
@@ -373,11 +385,7 @@ export const PageShell = (props: PageShellProps) => {
             <nav class="sh-pagebar" aria-label="Pages">
               <For each={PARTS.filter((p) => p !== 'films')}>{(part) => tab(part)}</For>
             </nav>
-            <Show
-              when={Option.getOrUndefined(
-                Option.flatMap(Option.fromUndefinedOr(props.crumb), (crumb) => crumb()),
-              )}
-            >
+            <Show when={Option.getOrUndefined(given(props.crumb))}>
               {(text) => (
                 <span class="sh-crumb" data-role="crumb">
                   <i>›</i>

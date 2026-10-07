@@ -6,10 +6,11 @@ src/films/*/narration/full.wav
 # What the track was mixed from (`mixKey`), written beside it by the same mix.
 src/films/*/narration/full.json
 # Writes in flight: a file lands as `<file>.<pid>-<n>.<host tag>.partial`
-# (takes, timings, sound, the mix; `writeWhole`) and is renamed only once whole,
-# and a manifest is held by `<file>.lock` while it changes. A crash can leave
-# either: `narrate` removes the partials whose writer is gone, with any take the
-# timings no longer name, and the next writer breaks a lock whose holder is gone.
+# (takes, timings, sound, the mix; `writeWhole`) and is renamed only once whole;
+# a crash can leave one, and `narrate` removes the partials whose writer is gone,
+# with any take the timings no longer name. A manifest's lock file,
+# `.<file>.lock`, stays beside it; the operating system's lock on it is let go
+# when its holder exits.
 src/films/**/*.partial
 src/films/**/*.lock
 src/films/*/narration/*.take.mp3
@@ -24,6 +25,6 @@ src/films/*/narration/attempts/
 src/films/*/sound/*
 !src/films/*/sound/manifest.json
 # A library file in flight (`<file>.<pid>-<n>.<host tag>.partial`, then renamed), and the
-# lock file's lock while it changes.
+# library's lock file, `.library.lock.json.lock`.
 **/sounds/**/*.partial
 **/sounds/**/*.lock

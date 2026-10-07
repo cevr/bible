@@ -30,7 +30,13 @@ describe('compare with HEAD', () => {
       const { page, asked, errors } = yield* openLab([], { href: labAt(1), mode: 'compare' });
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
-      yield* compareSays(page, 'scenes/one.ts at HEAD');
+      yield* compareSays(page, 'scenes/one.ts at the last commit');
+      yield* attributeIs(
+        page,
+        '.lab-compare-tools .sh-seg',
+        'aria-label',
+        'Compare with the last commit',
+      );
       yield* page.waitFor('canvas.lab-compare:not([hidden])');
       yield* clipIs(page, 'inset(0px 50% 0px 0px)');
       const grip = yield* page.box('.lab-divider circle');
@@ -92,7 +98,7 @@ describe('compare with HEAD', () => {
       const headReads = () => asked.filter((a) => a.path === '/scenes/one/head').length;
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
-      yield* compareSays(page, 'at HEAD');
+      yield* compareSays(page, 'at the last commit');
       yield* click(page, '.lab-compare-tools [data-mode="off"]');
       yield* page.attached('canvas.lab-compare[hidden]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
@@ -128,7 +134,10 @@ describe('compare with HEAD', () => {
       );
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
-      yield* compareSays(page, 'one: scenes/one.ts: no HEAD version to compare with: not in git');
+      yield* compareSays(
+        page,
+        'one: scenes/one.ts: no version at the last commit to compare with: not in git',
+      );
       yield* evaluates(page, "document.querySelector('canvas.lab-compare')?.hidden", true);
     }).pipe(Effect.scoped),
   );
@@ -153,7 +162,7 @@ describe('compare with HEAD', () => {
       );
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
-      yield* compareSays(page, "one: HEAD's timeline does not resolve now: ");
+      yield* compareSays(page, "one: the last commit's timeline does not resolve now: ");
       yield* compareSays(page, '{soar}');
       yield* evaluates(page, "document.querySelector('canvas.lab-compare')?.hidden", true);
       expect(errors).toEqual([]);
@@ -171,7 +180,7 @@ describe('compare with HEAD', () => {
         const view = "new URLSearchParams(location.search).get('view')";
         const blend = "document.querySelector('canvas.lab-compare')?.style.mixBlendMode";
         yield* click(page, '.lab-compare-tools [data-mode="diff"]');
-        yield* compareSays(page, 'at HEAD');
+        yield* compareSays(page, 'at the last commit');
         yield* page.waitFor('canvas.lab-compare:not([hidden])');
         yield* page.until(`${blend} === 'difference'`);
         // Whole, not clipped to a divider.
@@ -238,10 +247,10 @@ describe('compare with HEAD', () => {
       const { page } = yield* openLab([], { href: labAt(1), mode: 'compare' });
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"]');
       yield* click(page, '.lab-compare-tools [data-mode="wipe"]');
-      yield* compareSays(page, 'at HEAD');
+      yield* compareSays(page, 'at the last commit');
       yield* page.reload;
       yield* page.waitFor('.lab-compare-tools [data-mode="wipe"][aria-pressed="true"]');
-      yield* compareSays(page, 'at HEAD');
+      yield* compareSays(page, 'at the last commit');
     }).pipe(Effect.scoped),
   );
 });

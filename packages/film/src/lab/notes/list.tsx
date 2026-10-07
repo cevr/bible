@@ -182,7 +182,7 @@ export const NotesFeed = (
         group: 'Notes',
         keys: ['n'],
         touch:
-          'the Note frame button in the header; click the frame to pin a point, drag to draw a box',
+          'the Note frame button in the header; tap the frame to pin a point, drag to draw a box',
         when: () => Option.isSome(staged()),
         run: quietly(() => Option.map(staged(), (s) => s.noteFrame())),
       },
@@ -347,8 +347,8 @@ export const List = (props: { readonly film: string; readonly hub: Hub }) => {
       </ol>
       <Show when={feed.notes().length === 0 && !composing()}>
         <p class="lab-feed" data-role="notes-empty">
-          No notes yet: click the frame to pin a point, drag to draw a box, or press{' '}
-          <kbd>{keys.first(NOTE_FRAME)}</kbd> to note the whole frame.
+          No notes yet: tap or click the frame to pin a point, drag for a box, or Note frame (
+          <kbd>{keys.first(NOTE_FRAME)}</kbd>) for the whole frame.
         </p>
       </Show>
     </Loading>

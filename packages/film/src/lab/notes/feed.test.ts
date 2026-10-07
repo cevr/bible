@@ -7,20 +7,12 @@
 
 import { Cause, Effect, Exit, Layer, Option, SubscriptionRef } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
-import { Machine, assertPath, simulate } from 'effect-machine';
+import { assertPath, simulate } from 'effect-machine';
 import { TestClock } from 'effect/testing';
 import type { Note, NotesFile, NotesWait } from '../../core/schema.ts';
 import { ServerFailed } from '../../core/api.ts';
 import { type LabFailure, NotesApi, type NotesCalls } from '../api.ts';
-import {
-  FeedEvent,
-  FeedState,
-  RETRY_MS,
-  feedMachine,
-  feedText,
-  spawnFeed,
-  startOf,
-} from './feed.ts';
+import { FeedEvent, FeedState, RETRY_MS, feedFrom, feedText, spawnFeed, startOf } from './feed.ts';
 
 const note = (id: string, text = 'the ball rises too early'): Note => ({
   scene: 'one',
@@ -80,11 +72,15 @@ const file = (seq: number, notes: ReadonlyArray<Note>): NotesFile => ({
 /** No calls: the transitions alone. */
 const quiet = fake([]).layer;
 
+/** A feed connecting from nothing, as a page sent no notes starts. */
+const fresh = FeedState.Connecting({ notes: [], cursor: 0 });
+const connecting = feedFrom(fresh);
+
 describe('the transitions', () => {
   it.effect('connecting goes live on the notes read; a wait with nothing new waits again', () =>
     Effect.gen(function* () {
       yield* assertPath(
-        feedMachine,
+        connecting,
         [
           FeedEvent.Synced({ notes: [note('n1')], cursor: 1 }),
           FeedEvent.Waited({ cursor: 1 }),
@@ -97,7 +93,7 @@ describe('the transitions', () => {
 
   it.effect('a drop loses the feed, keeping the notes; a retry connects again', () =>
     Effect.gen(function* () {
-      const result = yield* simulate(feedMachine, [
+      const result = yield* simulate(connecting, [
         FeedEvent.Synced({ notes: [note('n1')], cursor: 1 }),
         FeedEvent.Dropped({ reason: 'notes.json is being written' }),
         FeedEvent.Retry,
@@ -112,7 +108,7 @@ describe('the transitions', () => {
   it.effect('a change this page made reads the notes again, live or lost', () =>
     Effect.gen(function* () {
       yield* assertPath(
-        feedMachine,
+        connecting,
         [
           FeedEvent.Synced({ notes: [], cursor: 0 }),
           FeedEvent.Refresh,
@@ -126,7 +122,7 @@ describe('the transitions', () => {
 
   it.effect('the cursor never goes back', () =>
     Effect.gen(function* () {
-      const result = yield* simulate(feedMachine, [
+      const result = yield* simulate(connecting, [
         FeedEvent.Synced({ notes: [], cursor: 4 }),
         FeedEvent.Waited({ cursor: 2 }),
       ]);
@@ -136,7 +132,7 @@ describe('the transitions', () => {
 });
 
 /** The feed, spawned and connecting. */
-const started = Machine.spawn(feedMachine).pipe(Effect.tap((actor) => actor.start));
+const started = spawnFeed(fresh);
 
 describe('the connection, through an actor', () => {
   it.effect('reads, waits past the cursor, and reads again when a wait brings changes', () => {

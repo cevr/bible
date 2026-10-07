@@ -6,6 +6,7 @@
 
 import { Array as Arr, Match, Option, Result, Schema } from 'effect';
 import type { Placed } from './layout.ts';
+import { framesOf } from './time.ts';
 
 /** A scene's clock as a look reads it: where it sits in the film, and its marks and cues in scene-local seconds. */
 export const SceneTimes = Schema.Struct({
@@ -224,8 +225,8 @@ export const momentOf = (
 ): Result.Result<Moment, PlaceError> =>
   Result.flatMap(lookAtOf(text), (at) =>
     Result.map(secondOf(scene, at), (second) => {
-      const first = Math.ceil(scene.start * fps - 1e-6);
-      const last = Math.max(first, Math.ceil((scene.start + scene.dur) * fps - 1e-6) - 1);
+      const held = framesOf({ from: scene.start, to: scene.start + scene.dur }, fps);
+      const [first, last] = [held.first, Math.max(held.first, held.last)];
       const frame = Math.min(last, Math.max(first, Math.round((scene.start + second) * fps)));
       return { at: text, frame, time: frame / fps - scene.start };
     }),

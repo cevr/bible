@@ -130,7 +130,7 @@ interface Budget {
 const most = (phone: number, laptop: number): Budget => ({ phone, laptop });
 
 /** The Lab's Edit: its budget, which a planted button or a planted line of text passes (the budget's positive controls). */
-const LAB_EDIT = most(51, 55);
+const LAB_EDIT = most(50, 54);
 
 /** A page in one state: how it opens on a device, what discloses the state, and the layer measured. */
 interface State {
@@ -482,8 +482,8 @@ const STATES: ByPlace<State> = {
         '[data-role="note-scope"] [data-act="clear-scope"]',
       ),
     },
-    { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(43, 50) },
-    { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(41, 48) },
+    { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(42, 49) },
+    { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(40, 44) },
     // Its budget is the resting Record's, with no beats listed.
     { name: 'Lab, Record', open: lab('record'), disclose: AT_REST, budget: most(36, 40) },
     { name: 'Lab, Record, its beats and the recorder', open: recording, disclose: AT_REST },
