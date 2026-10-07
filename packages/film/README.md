@@ -1159,7 +1159,9 @@ step that names no change steps whatever is newest, an earlier write's or
 another film's. Undo and Redo by key or the editor's header name the
 change their label names (the stack's top as the page read it), so a
 change another client made since (a voice pick, a studio keep) is refused
-(`StepNotNewest`) rather than stepped in its place; once the page has
+(`StepNotNewest`) rather than stepped in its place, and the refusal reads
+the history again, so the label and the change the next press names move to
+the stack as it is now; once the page has
 changed the stack itself, before it reloads onto the new history, the
 label names none and the step is the newest. A done receipt
 shows 5 s, a refusal 10 s, a busy one until replaced. The lab reloads after

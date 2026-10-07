@@ -9,11 +9,11 @@
 // inside the panel, and F and ⇧F walk those with a place on the time line.
 // The scene's file is named once, on the strip's head.
 
-import { Deferred, Effect, Exit, Option, Schedule } from 'effect';
+import { Deferred, Effect, Exit, Option, Predicate, Schedule } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import type { Tab } from '../../../src/lab/fixtures/tab.ts';
 import { pageHref } from '../../../src/core/api.ts';
-import { SourceRefused } from '../../../src/core/refusals.ts';
+import { SourceRefused, StepNotNewest } from '../../../src/core/refusals.ts';
 import { LONG, LONG_SCENE } from '../../../src/lab/fixtures/long-film.ts';
 import {
   type Asked,
@@ -1099,5 +1099,55 @@ describe('the inspector', () => {
         },
       ]);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "Undo refused for another client's newer change reads the history again, so the next Undo names and steps that change",
+    () =>
+      Effect.gen(function* () {
+        const mine = {
+          scene: 'one',
+          file: 'scenes/one.ts',
+          target: 'cue rise offset',
+          change: 'k1',
+        };
+        // Another client's voice pick, after the page read the history: the newest change now.
+        const theirs = { scene: 'one', file: 'scenes/one.ts', target: 'voice b1', change: 'k2' };
+        let top = mine;
+        const { page, asked } = yield* openLab(
+          [
+            route('GET', /^\/check$/, () => json({ findings: [], undo: top })),
+            // The lab steps only the newest change: one named before it is refused.
+            route('POST', /^\/undo$/, (request) => {
+              if (
+                Option.exists(
+                  request.body,
+                  (b) => Predicate.hasProperty(b, 'change') && b.change === 'k2',
+                )
+              )
+                return json({ ...theirs, target: 'undo voice b1', findings: [] });
+              return refused(
+                StepNotNewest.make({
+                  verb: 'undo',
+                  reason: 'voice b1 came after it: undo that first',
+                }),
+              );
+            }),
+          ],
+          { href: labAt(1) },
+        );
+        yield* page.waitFor('.sh-header [data-act="undo"]:not([disabled])');
+        top = theirs;
+        yield* page.click('.sh-header [data-act="undo"]:not([disabled])');
+        yield* statusSays(page, 'voice b1 came after it: undo that first');
+        // The history read again: Undo now names the change the refusal said to undo first.
+        yield* page.waitFor('.sh-header [data-act="undo"][title*="voice b1"]');
+        yield* page.click('.sh-header [data-act="undo"]:not([disabled])');
+        yield* statusSays(page, 'undid voice b1');
+        expect(posted(asked).map((a) => a.body)).toEqual([
+          Option.some({ request: expect.any(String), change: 'k1' }),
+          Option.some({ request: expect.any(String), change: 'k2' }),
+        ]);
+      }).pipe(Effect.scoped),
   );
 });

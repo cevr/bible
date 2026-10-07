@@ -15,8 +15,8 @@
 // commands on the page's hub (`commands.ts`), and what its writes did is said
 // there as they land: the page's receipts.
 
-import { useAtomSet, useAtomValue } from '@bible/atom-solid';
-import { Effect, Equal, Fiber, Option, Result } from 'effect';
+import { useAtomRefresh, useAtomSet, useAtomValue } from '@bible/atom-solid';
+import { Effect, Equal, Fiber, Match, Option, Result } from 'effect';
 import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
@@ -356,13 +356,33 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     },
   );
 
-  // The changes this page's writes and steps made: the history it read at load predates them.
+  // The changes this page's writes and steps made since it last read the history: that read predates them.
   const [madeHere, setMadeHere] = createSignal<ReadonlySet<ChangeId>>(new Set());
   createEffect(
     () => edit(),
     (state) => {
       if (state._tag === 'Written')
         Option.map(state.change, (c) => setMadeHere((made) => new Set([...made, c])));
+    },
+  );
+  // A history read again holds every change made before it, this page's as well.
+  createEffect(report, () => {
+    setMadeHere(new Set<ChangeId>());
+  });
+  // A step refused (another client's change came after the one it named, or the change is
+  // gone) reads the history again, so Undo's label and the change it names move together
+  // to the stack as it is, and the next press steps what the refusal said to.
+  const readHistory = useAtomRefresh(() => checkAtom);
+  let stepOut = false;
+  createEffect(
+    () => edit(),
+    (state) => {
+      const refusedStep = stepOut && state._tag === 'Refused';
+      stepOut = Match.value(state).pipe(
+        Match.tag('Writing', 'Checking', (s) => s.write._tag === 'StepWrite'),
+        Match.orElse(() => false),
+      );
+      if (refusedStep) readHistory();
     },
   );
   // The stack as the page read it names what Undo and Redo step until the page changes it.
