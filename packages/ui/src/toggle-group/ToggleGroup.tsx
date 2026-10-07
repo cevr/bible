@@ -133,7 +133,6 @@ export function ToggleGroup<Value extends string = string>(
         state={state}
         props={[defaultProps, elementProps]}
         loopFocus={props.loopFocus ?? true}
-        enableHomeAndEndKeys
         orientation={orientation()}
       />
     </ToggleGroupContext>

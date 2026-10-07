@@ -17,13 +17,12 @@ import {
 } from 'solid-js';
 
 import { useClick } from '../../floating-ui-solid/hooks/useClick.ts';
-import { contains } from '../../floating-ui-solid/utils/element.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import type { BaseUIComponentProps, NativeButtonProps } from '../../internals/types.ts';
 import { useButton } from '../../internals/useButton.ts';
 import { propsFromAccessor, useRenderElement } from '../../internals/useRenderElement.tsx';
-import { ownerDocument } from '../../utils/dom.ts';
+import { contains, ownerDocument } from '../../utils/dom.ts';
 import { FocusGuard } from '../../utils/FocusGuard.tsx';
 import { isMouseWithinBounds } from '../../utils/getPseudoElementBounds.ts';
 import { pressableTriggerOpenStateMapping } from '../../utils/popupStateMapping.ts';

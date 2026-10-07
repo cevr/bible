@@ -4,7 +4,7 @@
 // props merged under the user's, `class` and `style` resolved against the
 // state, and either the default tag or the user's `render` function.
 //
-// `params` may hold getters: `enabled`, `state` and `props` are read inside
+// `params` may hold getters: `state` and `props` are read inside
 // a reactive scope, so a part passes live values without rebuilding the
 // element. `render` is called once per change of the `render` prop, with the
 // merged props and the state (both live views: spread or read them in a reactive scope).
@@ -30,8 +30,6 @@ export interface UseRenderElementComponentProps<State> {
 }
 
 export interface UseRenderElementParameters<State> {
-  /** When `false`, nothing renders. */
-  enabled?: boolean | undefined;
   /** The state the `data-*` attributes, `class`, `style` and `render` read. */
   state?: State | undefined;
   /** Refs the rendered element is passed to, besides any in `props`. */
@@ -105,13 +103,9 @@ export function useRenderElement<State extends object>(
   const state = propsFromAccessor(() => (params.state ?? EMPTY_STATE) as HTMLProps) as State;
   const tag = element ?? 'div';
   const Tag = dynamic(() => tag, { static: true });
-  const defaults = tag === 'button' ? { type: 'button' } : tag === 'img' ? { alt: '' } : undefined;
-  const tagProps = defaults ? mergePropsN([defaults, props]) : props;
+  const tagProps = tag === 'button' ? mergePropsN([{ type: 'button' }, props]) : props;
 
   return createMemo(() => {
-    if (params.enabled === false) {
-      return undefined;
-    }
     const render = componentProps.render;
     return untrack(() => (render ? render(props, state) : <Tag {...tagProps} />));
   }) as unknown as JSX.Element;

@@ -12,9 +12,10 @@ import { untrack } from 'solid-js';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import type { HTMLProps } from '../../internals/types.ts';
+import { getTarget } from '../../utils/dom.ts';
 import { useAnimationFrame } from '../../utils/timers.ts';
 import type { FloatingRootContext } from '../FloatingRootContext.ts';
-import { getTarget, isTypeableElement } from '../utils/element.ts';
+import { isTypeableElement } from '../utils/element.ts';
 import { isMouseLikePointerType, isVirtualPointerEvent } from '../utils/event.ts';
 
 export interface UseClickProps {

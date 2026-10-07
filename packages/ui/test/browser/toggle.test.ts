@@ -3,7 +3,7 @@
 //
 // Toggle's pressed state (owned or the owner's, cancelable) and ToggleGroup's
 // shared value (single or multiple, controlled or not), its disabled state,
-// and its roving focus per orientation and direction. Upstream's console
+// and its roving focus per orientation. Upstream's console
 // spy for a missing `value` is left out (a test-runner spy); the behaviour of
 // toggles without values is kept.
 import { describe, expect, it } from 'bun:test';
@@ -164,14 +164,12 @@ describe('ToggleGroup', () => {
   });
 
   const cases = [
-    ['ltr', 'horizontal', 'ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'],
-    ['ltr', 'vertical', 'ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft'],
-    ['rtl', 'horizontal', 'ArrowLeft', 'ArrowRight', 'ArrowDown', 'ArrowUp'],
-    ['rtl', 'vertical', 'ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'],
+    ['horizontal', 'ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'],
+    ['vertical', 'ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft'],
   ] as const;
-  for (const [direction, orientation, next, prev, ignoredNext, ignoredPrev] of cases) {
-    it(`moves the tab stop with the arrows: ${direction} ${orientation}`, async () => {
-      const page = await h.open('group', { query: { direction, orientation } });
+  for (const [orientation, next, prev, ignoredNext, ignoredPrev] of cases) {
+    it(`moves the tab stop with the arrows: ${orientation}`, async () => {
+      const page = await h.open('group', { query: { orientation } });
       await page.focus('#before');
       await page.keyboard.press('Tab');
       await see.poll(() => focused(page)).toBe('one');

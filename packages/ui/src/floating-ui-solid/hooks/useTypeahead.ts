@@ -10,7 +10,7 @@ import type { HTMLProps } from '../../internals/types.ts';
 import { useTimeout } from '../../utils/timers.ts';
 import type { FloatingRootContext } from '../FloatingRootContext.ts';
 import { isElementVisible } from '../utils/composite.ts';
-import { contains } from '../utils/element.ts';
+import { contains } from '../../utils/dom.ts';
 import { stopEvent } from '../utils/event.ts';
 
 export interface UseTypeaheadProps {

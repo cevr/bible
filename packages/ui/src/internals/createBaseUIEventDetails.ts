@@ -1,8 +1,7 @@
 // Upstream: packages/react/src/internals/createBaseUIEventDetails.ts
 //
 // The details every change callback receives: why (`reason`), the DOM event
-// behind it, the trigger involved, and `cancel()` to keep the current state
-// or `allowPropagation()` to let an Escape reach the parent popup.
+// behind it, the trigger involved, and `cancel()` to keep the current state.
 
 /** The details of a change a callback may cancel. */
 export type BaseUIChangeEventDetails<
@@ -12,9 +11,7 @@ export type BaseUIChangeEventDetails<
   reason: Reason;
   event: Event;
   cancel: () => void;
-  allowPropagation: () => void;
   readonly isCanceled: boolean;
-  readonly isPropagationAllowed: boolean;
   trigger: Element | undefined;
 } & CustomProperties;
 
@@ -37,21 +34,14 @@ export function createChangeEventDetails<
   customProperties?: CustomProperties,
 ): BaseUIChangeEventDetails<Reason, CustomProperties> {
   let canceled = false;
-  let allowPropagation = false;
   const details = {
     reason,
     event: event ?? new Event('base-ui'),
     cancel() {
       canceled = true;
     },
-    allowPropagation() {
-      allowPropagation = true;
-    },
     get isCanceled() {
       return canceled;
-    },
-    get isPropagationAllowed() {
-      return allowPropagation;
     },
     trigger,
     ...customProperties,

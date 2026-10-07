@@ -5,7 +5,6 @@
 export const REASONS = {
   none: 'none',
   triggerPress: 'trigger-press',
-  triggerFocus: 'trigger-focus',
   outsidePress: 'outside-press',
   itemPress: 'item-press',
   closePress: 'close-press',
@@ -25,4 +24,3 @@ export const REASONS = {
 } as const;
 
 export type BaseUIEventReasons = typeof REASONS;
-export type BaseUIEventReason = BaseUIEventReasons[keyof BaseUIEventReasons];

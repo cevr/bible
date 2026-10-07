@@ -132,7 +132,7 @@ export function Toggle<Value extends string = string>(props: ToggleProps<Value>)
 
   if (group) {
     return (
-      <CompositeItem<unknown, ToggleState>
+      <CompositeItem<ToggleState>
         tag="button"
         render={props.render}
         class={props.class}

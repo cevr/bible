@@ -16,14 +16,12 @@ export type MenuParent =
   | { type: undefined };
 
 export type MenuChangeEventReason =
-  | typeof REASONS.triggerFocus
   | typeof REASONS.triggerPress
   | typeof REASONS.outsidePress
   | typeof REASONS.focusOut
   | typeof REASONS.listNavigation
   | typeof REASONS.escapeKey
   | typeof REASONS.itemPress
-  | typeof REASONS.closePress
   | typeof REASONS.cancelOpen
   | typeof REASONS.none;
 
@@ -54,7 +52,6 @@ export interface MenuStore extends PopupStore {
   /** Whether the open menu is modal. */
   modal: Accessor<boolean>;
   openMethod: Accessor<InteractionType | null>;
-  keyboardOpen: Accessor<boolean>;
   /** The id the menu's popup carries as `data-rootownerid`. */
   rootId: Accessor<string>;
   activeIndex: Accessor<number | null>;
@@ -69,11 +66,7 @@ export interface MenuStore extends PopupStore {
   applyMenuOpenState: (
     open: boolean,
     details: BaseUIChangeEventDetails,
-    menuState: {
-      reason: MenuChangeEventReason;
-      keyboardOpen: boolean;
-      instantType: MenuInstantType;
-    },
+    menuState: { reason: MenuChangeEventReason; instantType: MenuInstantType },
   ) => void;
   readonly itemDomElements: { current: Array<HTMLElement | null> };
   readonly itemLabels: { current: Array<string | null> };
@@ -96,7 +89,6 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
   });
 
   const owned = { ownedWrite: true } as const;
-  const [keyboardOpen, setKeyboardOpen] = createSignal(false, owned);
   const [activeIndex, setActiveIndexSignal] = createSignal<number | null>(null, owned);
   const [instantType, setInstantType] = createSignal<MenuInstantType>(undefined, owned);
   const [lastOpenChangeReason, setLastOpenChangeReason] =
@@ -111,7 +103,6 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
     disabled: options.disabled,
     modal: () => options.modal() ?? true,
     openMethod: options.openMethod,
-    keyboardOpen,
     rootId: () => contextMenu?.rootId ?? options.rootId,
     activeIndex,
     setActiveIndex(index, reason, event) {
@@ -130,7 +121,6 @@ export function createMenuStore(options: MenuStoreOptions): MenuStore {
     setOpen: (open, details) => popup.floatingRootContext.setOpen(open, details),
     applyMenuOpenState(open, details, menuState) {
       setLastOpenChangeReason(menuState.reason);
-      setKeyboardOpen(menuState.keyboardOpen);
       setInstantType(menuState.instantType);
       popup.applyOpenState(open, details.trigger);
     },

@@ -12,26 +12,25 @@ import { getNodeName, isHTMLElement } from '@floating-ui/utils/dom';
 import type { JSX } from '@solidjs/web';
 import { createEffect, onCleanup, Show, untrack } from 'solid-js';
 
-import { CLICK_TRIGGER_IDENTIFIER } from '../internals/constants.ts';
 import { createChangeEventDetails } from '../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../internals/reasons.ts';
 import type { FloatingUIOpenChangeDetails } from '../internals/types.ts';
-import { addEventListener, mergeCleanups, ownerDocument, ownerWindow } from '../utils/dom.ts';
+import {
+  activeElement,
+  addEventListener,
+  contains,
+  getTarget,
+  mergeCleanups,
+  ownerDocument,
+  ownerWindow,
+} from '../utils/dom.ts';
 import { FocusGuard } from '../utils/FocusGuard.tsx';
 import { platform } from '../utils/platform.ts';
 import { useAnimationFrame, useTimeout } from '../utils/timers.ts';
 import type { FloatingRootContext } from './FloatingRootContext.ts';
 import { type MaybeRef, resolveRef, usePortalContext } from './FloatingPortal.tsx';
 import { isElementVisible } from './utils/composite.ts';
-import {
-  activeElement,
-  closest,
-  contains,
-  createAttribute,
-  getFloatingFocusElement,
-  getTarget,
-  isTypeableElement,
-} from './utils/element.ts';
+import { createAttribute, getFloatingFocusElement, isTypeableElement } from './utils/element.ts';
 import { enqueueFocus, isVirtualClick, isVirtualPointerEvent, stopEvent } from './utils/event.ts';
 import { markOthers } from './utils/markOthers.ts';
 import {
@@ -283,13 +282,6 @@ export function FloatingFocusManager(props: FloatingFocusManagerProps): JSX.Elem
           );
         pointerDownOutside = !pointerTargetInside;
         lastInteractionType = (event.pointerType as InteractionType) || 'keyboard';
-        if (closest(target, `[${CLICK_TRIGGER_IDENTIFIER}]`)) {
-          isPointerDown = true;
-          // Reset next tick, so one click on a click trigger does not keep focus-out closing off.
-          pointerDownTimeout.start(0, () => {
-            isPointerDown = false;
-          });
-        }
       };
       const onKeyDown = () => {
         lastInteractionType = 'keyboard';

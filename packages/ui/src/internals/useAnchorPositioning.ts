@@ -28,7 +28,6 @@ import { getAlignment, getSide, getSideAxis } from '@floating-ui/utils';
 import type { JSX } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, createSignal, untrack } from 'solid-js';
 
-import { useDirectionAccessor } from './DirectionContext.ts';
 import type { FloatingRootContext } from '../floating-ui-solid/FloatingRootContext.ts';
 import { arrow, hide } from '../floating-ui-solid/middleware.ts';
 import { ownerDocument, ownerWindow } from '../utils/dom.ts';
@@ -96,22 +95,20 @@ export interface UseAnchorPositioningReturnValue {
   update: () => void;
 }
 
-function getLogicalSide(sideParam: Side, renderedSide: PhysicalSide, isRtl: boolean): Side {
+function getLogicalSide(sideParam: Side, renderedSide: PhysicalSide): Side {
   const isLogicalSideParam = sideParam === 'inline-start' || sideParam === 'inline-end';
-  const logicalRight = isRtl ? 'inline-start' : 'inline-end';
-  const logicalLeft = isRtl ? 'inline-end' : 'inline-start';
   return {
     top: 'top',
-    right: isLogicalSideParam ? logicalRight : 'right',
+    right: isLogicalSideParam ? 'inline-end' : 'right',
     bottom: 'bottom',
-    left: isLogicalSideParam ? logicalLeft : 'left',
+    left: isLogicalSideParam ? 'inline-start' : 'left',
   }[renderedSide] as Side;
 }
 
-function getOffsetData(state: MiddlewareState, sideParam: Side, isRtl: boolean) {
+function getOffsetData(state: MiddlewareState, sideParam: Side) {
   const { rects, placement } = state;
   return {
-    side: getLogicalSide(sideParam, getSide(placement), isRtl),
+    side: getLogicalSide(sideParam, getSide(placement)),
     align: getAlignment(placement) || 'center',
     anchor: { width: rects.reference.width, height: rects.reference.height },
     positioner: { width: rects.floating.width, height: rects.floating.height },
@@ -135,7 +132,6 @@ export function useAnchorPositioning(
   params: UseAnchorPositioningParameters,
 ): UseAnchorPositioningReturnValue {
   const rootContext = params.floatingRootContext;
-  const direction = useDirectionAccessor();
 
   const [x, setX] = createSignal(0, { ownedWrite: true });
   const [y, setY] = createSignal(0, { ownedWrite: true });
@@ -154,19 +150,18 @@ export function useAnchorPositioning(
   });
 
   const sideParam = () => params.side ?? 'bottom';
-  const isRtl = () => direction() === 'rtl';
 
-  const side = createMemo<PhysicalSide>(() => {
-    const rtl = isRtl();
-    return {
-      top: 'top',
-      right: 'right',
-      bottom: 'bottom',
-      left: 'left',
-      'inline-end': rtl ? 'left' : 'right',
-      'inline-start': rtl ? 'right' : 'left',
-    }[sideParam()] as PhysicalSide;
-  });
+  const side = createMemo<PhysicalSide>(
+    () =>
+      ({
+        top: 'top',
+        right: 'right',
+        bottom: 'bottom',
+        left: 'left',
+        'inline-end': 'right',
+        'inline-start': 'left',
+      })[sideParam()] as PhysicalSide,
+  );
   const placementAlign = (): Align => params.align ?? 'center';
   const placement = createMemo<Placement>(() =>
     placementAlign() === 'center' ? side() : (`${side()}-${placementAlign()}` as Placement),
@@ -189,7 +184,6 @@ export function useAnchorPositioning(
     const shiftCrossAxis = params.shift?.crossAxis ?? false;
     const sticky = params.sticky ?? false;
     const currentSideParam = sideParam();
-    const rtl = isRtl();
     const sideOffset = params.sideOffset ?? 0;
     const alignOffset = params.alignOffset ?? 0;
     const paddingParam = params.collisionPadding ?? 5;
@@ -218,7 +212,7 @@ export function useAnchorPositioning(
     const middleware: Array<Middleware | null | undefined> = [];
     middleware.push(
       offset((state) => {
-        const data = getOffsetData(state, currentSideParam, rtl);
+        const data = getOffsetData(state, currentSideParam);
         const sideAxis = typeof sideOffset === 'function' ? sideOffset(data) : sideOffset;
         const alignAxis = typeof alignOffset === 'function' ? alignOffset(data) : alignOffset;
         return { mainAxis: sideAxis, crossAxis: alignAxis, alignmentAxis: alignAxis };
@@ -309,7 +303,7 @@ export function useAnchorPositioning(
           const isVertical = getSideAxis(renderedSide) === 'y';
           const sideOffsetValue =
             typeof sideOffset === 'function'
-              ? sideOffset(getOffsetData(state, currentSideParam, rtl))
+              ? sideOffset(getOffsetData(state, currentSideParam))
               : sideOffset;
           // An aligned popup grows from its aligned edge until a shift breaks the
           // alignment; everything else grows from the stand-in arrow's point.
@@ -420,7 +414,6 @@ export function useAnchorPositioning(
       params.collisionPadding,
       params.sticky,
       params.collisionAvoidance,
-      isRtl(),
     ],
     () => update(),
   );
@@ -461,7 +454,7 @@ export function useAnchorPositioning(
 
   return {
     positionerStyles,
-    side: () => getLogicalSide(sideParam(), renderedSide(), isRtl()),
+    side: () => getLogicalSide(sideParam(), renderedSide()),
     align: renderedAlign,
     physicalSide: renderedSide,
     anchorHidden: () => Boolean(middlewareData().hide?.referenceHidden),

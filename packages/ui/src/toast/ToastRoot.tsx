@@ -40,7 +40,7 @@ import { useToastProviderContext, useToastSelector } from './ToastProviderContex
 import { ToastRootContext, type ToastRootContextValue } from './ToastRootContext.ts';
 import type { ToastObject } from './types.ts';
 
-export const ToastRootCssVars = {
+const ToastRootCssVars = {
   /** Indicates the index of the toast in the list. */
   index: '--toast-index',
   /** Indicates the vertical pixels offset of the toast in the list when expanded. */
@@ -53,7 +53,7 @@ export const ToastRootCssVars = {
   swipeMovementY: '--toast-swipe-movement-y',
 } as const;
 
-export const ToastRootDataAttributes = {
+const ToastRootDataAttributes = {
   /** Present when the toast is expanded in the viewport. */
   expanded: 'data-expanded',
   /** Present when the toast was limited because the toast limit was exceeded. */
@@ -85,7 +85,7 @@ export interface ToastRootState {
   swipeDirection: SwipeDirection | undefined;
 }
 
-export const toastRootStateAttributesMapping: StateAttributesMapping<ToastRootState> = {
+const toastRootStateAttributesMapping: StateAttributesMapping<ToastRootState> = {
   ...(transitionStatusMapping as StateAttributesMapping<ToastRootState>),
   swipeDirection(value) {
     return value ? { [ToastRootDataAttributes.swipeDirection]: value } : null;

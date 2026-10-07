@@ -10,7 +10,7 @@ import { untrack } from 'solid-js';
 import type { PropsInput } from '../../merge-props/mergeProps.ts';
 import type { ClassProp, ComponentRenderFn, HTMLProps, StyleProp } from '../types.ts';
 import { useRenderElement } from '../useRenderElement.tsx';
-import { CompositeList, type CompositeMetadata } from './CompositeList.tsx';
+import { CompositeList } from './CompositeList.tsx';
 import { CompositeRootContext, type CompositeRootContextValue } from './CompositeRootContext.ts';
 import { type UseCompositeRootParameters, useCompositeRoot } from './useCompositeRoot.ts';
 
@@ -31,9 +31,6 @@ export function CompositeRoot<State extends object>(props: CompositeRootProps<St
     get loopFocus() {
       return props.loopFocus;
     },
-    get enableHomeAndEndKeys() {
-      return props.enableHomeAndEndKeys;
-    },
   });
 
   const context: CompositeRootContextValue = {
@@ -53,10 +50,7 @@ export function CompositeRoot<State extends object>(props: CompositeRootProps<St
 
   return (
     <CompositeRootContext value={context}>
-      <CompositeList<unknown>
-        elementsRef={root.elementsRef}
-        onMapChange={(map) => root.onMapChange(map as Map<Element, CompositeMetadata<unknown>>)}
-      >
+      <CompositeList elementsRef={root.elementsRef} onMapChange={root.onMapChange}>
         <Element />
       </CompositeList>
     </CompositeRootContext>

@@ -37,7 +37,7 @@ export function useMenuGroupRootContext(): MenuGroupContextValue {
 }
 
 /** The label id a group's label registers. */
-export function createGroupLabelId() {
+function createGroupLabelId() {
   const [labelId, setLabelId] = createSignal<string | undefined>(undefined, { ownedWrite: true });
   const update: MenuGroupContextValue = (fn) => setLabelId((current) => fn(current));
   return { labelId, update };

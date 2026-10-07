@@ -50,7 +50,6 @@ export interface UseFocusableWhenDisabledParameters {
   focusableWhenDisabled?: boolean | undefined;
   disabled: boolean;
   composite?: boolean | undefined;
-  tabIndex?: number | undefined;
   isNativeButton: boolean;
 }
 
@@ -68,11 +67,10 @@ export function useFocusableWhenDisabled(params: UseFocusableWhenDisabledParamet
       if (composite()) {
         return undefined;
       }
-      const tabIndex = params.tabIndex ?? 0;
       if (!params.isNativeButton && params.disabled) {
-        return params.focusableWhenDisabled ? tabIndex : -1;
+        return params.focusableWhenDisabled ? 0 : -1;
       }
-      return tabIndex;
+      return 0;
     },
     get 'aria-disabled'() {
       const isFocusableComposite = composite() && params.focusableWhenDisabled !== false;
@@ -97,7 +95,6 @@ export function useFocusableWhenDisabled(params: UseFocusableWhenDisabledParamet
 export interface UseButtonParameters {
   disabled?: boolean | undefined;
   focusableWhenDisabled?: boolean | undefined;
-  tabIndex?: number | undefined;
   /** Whether the element is a native `<button>`. */
   native?: boolean | undefined;
   /** Whether the button is an item of a composite widget (Space acts on keydown). */
@@ -121,6 +118,15 @@ function isValidLinkElement(elem: Element | null): elem is HTMLAnchorElement {
 
 type Handler<E extends Event> = ((event: E) => void) | undefined;
 
+/** The handlers `getButtonProps` wraps, so the external ones reach the element only through it. */
+const WRAPPED_HANDLERS: ReadonlySet<PropertyKey> = new Set([
+  'onClick',
+  'onMouseDown',
+  'onKeyDown',
+  'onKeyUp',
+  'onPointerDown',
+]);
+
 export function useButton(params: UseButtonParameters = {}): UseButtonReturnValue {
   const [element, setElement] = createSignal<HTMLElement | null>(null, { ownedWrite: true });
   const disabled = () => params.disabled ?? false;
@@ -136,9 +142,6 @@ export function useButton(params: UseButtonParameters = {}): UseButtonReturnValu
     },
     get composite() {
       return isCompositeItem();
-    },
-    get tabIndex() {
-      return params.tabIndex;
     },
     get isNativeButton() {
       return isNativeButton();
@@ -278,31 +281,9 @@ export function useButton(params: UseButtonParameters = {}): UseButtonReturnValu
       },
     };
     const rest = new Proxy(externalProps, {
-      get: (target, key) =>
-        key === 'onClick' ||
-        key === 'onMouseDown' ||
-        key === 'onKeyDown' ||
-        key === 'onKeyUp' ||
-        key === 'onPointerDown'
-          ? undefined
-          : Reflect.get(target, key),
-      has: (target, key) =>
-        key === 'onClick' ||
-        key === 'onMouseDown' ||
-        key === 'onKeyDown' ||
-        key === 'onKeyUp' ||
-        key === 'onPointerDown'
-          ? false
-          : Reflect.has(target, key),
-      ownKeys: (target) =>
-        Reflect.ownKeys(target).filter(
-          (key) =>
-            key !== 'onClick' &&
-            key !== 'onMouseDown' &&
-            key !== 'onKeyDown' &&
-            key !== 'onKeyUp' &&
-            key !== 'onPointerDown',
-        ),
+      get: (target, key) => (WRAPPED_HANDLERS.has(key) ? undefined : Reflect.get(target, key)),
+      has: (target, key) => !WRAPPED_HANDLERS.has(key) && Reflect.has(target, key),
+      ownKeys: (target) => Reflect.ownKeys(target).filter((key) => !WRAPPED_HANDLERS.has(key)),
     });
     return mergeProps(internal, kind, focusableProps, rest);
   };

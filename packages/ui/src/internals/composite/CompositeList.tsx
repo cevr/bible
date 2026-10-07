@@ -11,43 +11,38 @@
 import type { JSX } from '@solidjs/web';
 import { type Accessor, createContext, createSignal, onCleanup, useContext } from 'solid-js';
 
-export type CompositeMetadata<CustomMetadata> = { index: number } & CustomMetadata;
+/** Each registered item's element and its index. */
+export type CompositeIndexMap = Map<Element, number>;
 
-export interface CompositeListRegistration<Metadata> {
-  metadata: Metadata | null;
+interface CompositeListRegistration {
   label: string | null | undefined;
 }
 
-export interface CompositeListContextValue<Metadata> {
-  register: (node: Element, registration: CompositeListRegistration<Metadata>) => void;
+interface CompositeListContextValue {
+  register: (node: Element, registration: CompositeListRegistration) => void;
   unregister: (node: Element) => void;
-  subscribeMapChange: (fn: (map: Map<Element, CompositeMetadata<Metadata>>) => void) => () => void;
+  subscribeMapChange: (fn: (map: CompositeIndexMap) => void) => () => void;
 }
 
-// Metadata types meet only in the items and the list that share one; the context holds `unknown`.
-const CompositeListContext = createContext<CompositeListContextValue<unknown>>({
+const CompositeListContext = createContext<CompositeListContextValue>({
   register: () => {},
   unregister: () => {},
   subscribeMapChange: () => () => {},
 });
 
-export function useCompositeListContext<Metadata>(): CompositeListContextValue<Metadata> {
-  return useContext(CompositeListContext) as CompositeListContextValue<Metadata>;
-}
-
-interface CompositeListItemEntry<Metadata> {
+interface CompositeListItemEntry {
   index: number;
   element: HTMLElement;
-  registration: CompositeListRegistration<Metadata>;
+  registration: CompositeListRegistration;
 }
 
-export interface CompositeListProps<Metadata> {
+export interface CompositeListProps {
   children?: JSX.Element;
   /** The items' elements by index: list navigation's `listRef`. */
   elementsRef: { current: Array<HTMLElement | null> };
   /** The items' labels by index: typeahead's `listRef`. */
   labelsRef?: { current: Array<string | null> } | undefined;
-  onMapChange?: ((map: Map<Element, CompositeMetadata<Metadata>>) => void) | undefined;
+  onMapChange?: ((map: CompositeIndexMap) => void) | undefined;
 }
 
 function sortByDocumentPosition(a: Element, b: Element) {
@@ -81,8 +76,8 @@ function hasMovedNode(entries: MutationRecord[]) {
 }
 
 /** The connected items in document order, each with its index there. */
-function getSnapshot<Metadata>(map: Map<Element, CompositeListRegistration<Metadata>>) {
-  const items: CompositeListItemEntry<Metadata>[] = [];
+function getSnapshot(map: Map<Element, CompositeListRegistration>) {
+  const items: CompositeListItemEntry[] = [];
   map.forEach((registration, node) => {
     if (node.isConnected) {
       items.push({ index: -1, element: node as HTMLElement, registration });
@@ -95,25 +90,22 @@ function getSnapshot<Metadata>(map: Map<Element, CompositeListRegistration<Metad
   return items;
 }
 
-export function CompositeList<Metadata>(props: CompositeListProps<Metadata>): JSX.Element {
-  const map = new Map<Element, CompositeListRegistration<Metadata>>();
-  const listeners = new Set<(map: Map<Element, CompositeMetadata<Metadata>>) => void>();
+export function CompositeList(props: CompositeListProps): JSX.Element {
+  const map = new Map<Element, CompositeListRegistration>();
+  const listeners = new Set<(map: CompositeIndexMap) => void>();
   let scheduled = false;
   let disposed = false;
-  let previousItems: readonly CompositeListItemEntry<Metadata>[] | null = null;
+  let previousItems: readonly CompositeListItemEntry[] | null = null;
   let mutationObserver: MutationObserver | null = null;
 
-  const syncRefs = (items: readonly CompositeListItemEntry<Metadata>[]) => {
-    const nextMap = new Map<Element, CompositeMetadata<Metadata>>();
+  const syncRefs = (items: readonly CompositeListItemEntry[]) => {
+    const nextMap: CompositeIndexMap = new Map();
     props.elementsRef.current.length = 0;
     if (props.labelsRef) {
       props.labelsRef.current.length = 0;
     }
     for (const item of items) {
-      nextMap.set(item.element, {
-        ...(item.registration.metadata ?? ({} as Metadata)),
-        index: item.index,
-      });
+      nextMap.set(item.element, item.index);
       props.elementsRef.current[item.index] = item.element;
       if (props.labelsRef) {
         props.labelsRef.current[item.index] =
@@ -175,12 +167,7 @@ export function CompositeList<Metadata>(props: CompositeListProps<Metadata>): JS
       prev.length !== items.length ||
       items.some((item, index) => {
         const p = prev[index];
-        return (
-          !p ||
-          item.index !== p.index ||
-          item.element !== p.element ||
-          item.registration.metadata !== p.registration.metadata
-        );
+        return !p || item.index !== p.index || item.element !== p.element;
       });
     observe(items.map((item) => item.element));
     previousItems = items;
@@ -208,7 +195,7 @@ export function CompositeList<Metadata>(props: CompositeListProps<Metadata>): JS
     }
   });
 
-  const value: CompositeListContextValue<Metadata> = {
+  const value: CompositeListContextValue = {
     register(node, registration) {
       map.set(node, registration);
       schedule();
@@ -223,17 +210,12 @@ export function CompositeList<Metadata>(props: CompositeListProps<Metadata>): JS
     },
   };
 
-  return (
-    <CompositeListContext value={value as CompositeListContextValue<unknown>}>
-      {props.children}
-    </CompositeListContext>
-  );
+  return <CompositeListContext value={value}>{props.children}</CompositeListContext>;
 }
 
-export interface UseCompositeListItemParameters<Metadata> {
+export interface UseCompositeListItemParameters {
   /** The typeahead label; the element's text when not given. */
   label?: string | null | undefined;
-  metadata?: Metadata | undefined;
 }
 
 export interface UseCompositeListItemReturnValue {
@@ -243,15 +225,15 @@ export interface UseCompositeListItemReturnValue {
 }
 
 /** Registers an item in the enclosing `CompositeList`; its index follows its document position. */
-export function useCompositeListItem<Metadata>(
-  params: UseCompositeListItemParameters<Metadata> = {},
+export function useCompositeListItem(
+  params: UseCompositeListItemParameters = {},
 ): UseCompositeListItemReturnValue {
-  const { register, unregister, subscribeMapChange } = useCompositeListContext<Metadata>();
+  const { register, unregister, subscribeMapChange } = useContext(CompositeListContext);
   const [internalIndex, setInternalIndex] = createSignal(-1, { ownedWrite: true });
   let node: Element | null = null;
 
   const unsubscribe = subscribeMapChange((map) => {
-    const i = node ? map.get(node)?.index : null;
+    const i = node ? map.get(node) : null;
     if (i != null) {
       setInternalIndex(i);
     }
@@ -273,7 +255,6 @@ export function useCompositeListItem<Metadata>(
       node = element;
       if (element) {
         register(element, {
-          metadata: params.metadata ?? null,
           get label() {
             return params.label;
           },

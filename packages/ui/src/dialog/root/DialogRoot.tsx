@@ -15,7 +15,7 @@ import type { JSX } from '@solidjs/web';
 import { createUniqueId, untrack } from 'solid-js';
 
 import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
-import { contains, getTarget } from '../../floating-ui-solid/utils/element.ts';
+import { contains, getTarget } from '../../utils/dom.ts';
 import { useScrollLock } from '../../utils/useScrollLock.ts';
 import {
   createDialogStore,
@@ -119,7 +119,7 @@ export function DialogRoot(props: DialogRootProps): JSX.Element {
 
   const context: DialogRootContext = {
     store,
-    popupProps: dismiss.floating ?? {},
+    popupProps: dismiss.floating,
   };
 
   return <DialogRootContext value={context}>{props.children}</DialogRootContext>;

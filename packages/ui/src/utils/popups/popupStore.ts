@@ -43,13 +43,9 @@ export interface PopupStoreOptions {
   floatingId: string;
   /** Whether Floating UI positions the popup element itself rather than the positioner. */
   popupIsFloatingElement?: boolean | undefined;
-  /** Whether a popup open from the start plays its enter transition. */
-  animateInitialOpen?: boolean | undefined;
   /** The family's open-change pipeline, which the interactions call. */
   onOpenChange: (open: boolean, details: BaseUIChangeEventDetails) => void;
   onOpenChangeComplete?: (() => ((open: boolean) => void) | undefined) | undefined;
-  /** Runs as the popup unmounts after closing. */
-  onUnmount?: (() => void) | undefined;
 }
 
 export interface PopupStore {
@@ -68,7 +64,6 @@ export interface PopupStore {
   floatingId: string;
   /** The popup's rendered id (its element's, else `floatingId`). */
   popupId: () => string | undefined;
-  isTriggerActive: (triggerId: string | undefined) => boolean;
   isOpenedByTrigger: (triggerId: string | undefined) => boolean;
   isMountedByTrigger: (triggerId: string | undefined) => boolean;
   /** The popup id for the trigger's `aria-controls`: set while that trigger owns the open popup. */
@@ -108,11 +103,9 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
   const status = createUnmountAfterClose({
     open,
     element: popupElement,
-    animateInitialOpen: options.animateInitialOpen,
     onUnmount() {
       setActiveTriggerId(null);
       setActiveTrigger(null);
-      options.onUnmount?.();
       onOpenChangeComplete(false);
     },
   });
@@ -121,10 +114,8 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
 
   const floatingRootContext = createFloatingRootContext({
     open,
-    transitionStatus: status.transitionStatus,
     referenceElement: activeTriggerElement as Accessor<ReferenceType | null>,
     floatingElement: options.popupIsFloatingElement ? popupElement : positionerElement,
-    floatingId: () => popupElement()?.id || options.floatingId,
     onOpenChange: (next, details) => options.onOpenChange(next, details),
     triggerElements,
   });
@@ -164,7 +155,6 @@ export function createPopupStore(options: PopupStoreOptions): PopupStore {
     floatingRootContext,
     floatingId: options.floatingId,
     popupId,
-    isTriggerActive: (triggerId) => triggerId !== undefined && activeTriggerId() === triggerId,
     isOpenedByTrigger: ownsOpenPopup,
     isMountedByTrigger: (triggerId) =>
       triggerId !== undefined && activeTriggerId() === triggerId && status.mounted(),

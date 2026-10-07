@@ -12,7 +12,6 @@ import type { JSX } from '@solidjs/web';
 import { createEffect, createUniqueId, untrack } from 'solid-js';
 
 import { useContextMenuRootContext } from '../../context-menu/root/ContextMenuRootContext.ts';
-import { useDirectionAccessor } from '../../internals/DirectionContext.ts';
 import { useDismiss } from '../../floating-ui-solid/hooks/useDismiss.ts';
 import { useListNavigation } from '../../floating-ui-solid/hooks/useListNavigation.ts';
 import { useTypeahead } from '../../floating-ui-solid/hooks/useTypeahead.ts';
@@ -36,7 +35,7 @@ import {
   type MenuInstantType,
   type MenuParent,
 } from '../store/MenuStore.ts';
-import { isKeyboardClick, isKeyboardOpen } from '../utils/isKeyboardOpen.ts';
+import { isKeyboardClick } from '../utils/isKeyboardOpen.ts';
 import { MenuRootContext, useMenuRootContextOptional } from './MenuRootContext.ts';
 
 export type { MenuChangeEventDetails, MenuChangeEventReason, MenuHighlightEventReason };
@@ -120,8 +119,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
   let openEvent: Event | null = null;
   let allowOutsidePressDismissal = parent.type !== 'context-menu';
   const allowOutsidePressDismissalTimeout = useTimeout();
-  let allowTouchToClose = true;
-  const allowTouchToCloseTimeout = useTimeout();
 
   createEffect(store.open, (isOpen) => {
     if (!isOpen) {
@@ -169,26 +166,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     floatingRootContext.dispatchOpenChange(nextOpen, eventDetails);
 
     const nativeEvent = eventDetails.event;
-    if (
-      !nextOpen &&
-      reason !== REASONS.itemPress &&
-      nativeEvent?.type === 'click' &&
-      (nativeEvent as PointerEvent).pointerType === 'touch' &&
-      !allowTouchToClose
-    ) {
-      return;
-    }
-    // Some touch browsers fire focus before the click; the click must not close what focus opened.
-    if (nextOpen && reason === REASONS.triggerFocus) {
-      allowTouchToClose = false;
-      allowTouchToCloseTimeout.start(300, () => {
-        allowTouchToClose = true;
-      });
-    } else {
-      allowTouchToClose = true;
-      allowTouchToCloseTimeout.clear();
-    }
-
     const isDismissClose = !nextOpen && (reason === REASONS.escapeKey || reason == null);
     openEvent = nativeEvent;
 
@@ -199,11 +176,7 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
       instantType = 'dismiss';
     }
 
-    store.applyMenuOpenState(nextOpen, eventDetails, {
-      reason,
-      keyboardOpen: nextOpen && isKeyboardOpen(reason, nativeEvent),
-      instantType,
-    });
+    store.applyMenuOpenState(nextOpen, eventDetails, { reason, instantType });
   }
 
   if (parent.type === 'context-menu') {
@@ -228,7 +201,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     },
   });
 
-  const direction = useDirectionAccessor();
   const loopFocus = () => props.loopFocus ?? true;
   const orientation = () => props.orientation ?? 'vertical';
 
@@ -246,9 +218,6 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     },
     get orientation() {
       return orientation();
-    },
-    get rtl() {
-      return direction() === 'rtl';
     },
     onNavigate(nextActiveIndex, event) {
       store.setActiveIndex(nextActiveIndex, getHighlightReason(event), event);
@@ -311,7 +280,7 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
   const activeTriggerProps = mergeProps(
     typeahead.reference,
     listNavigation.trigger,
-    dismiss.reference ?? {},
+    dismiss.reference,
     interactionTypeProps,
     {
       'aria-haspopup': 'menu',
@@ -323,7 +292,7 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
 
   const inactiveTriggerProps = mergeProps(
     listNavigation.trigger,
-    dismiss.trigger ?? {},
+    dismiss.trigger,
     interactionTypeProps,
     { 'aria-haspopup': 'menu', 'aria-expanded': 'false' },
   );
@@ -332,7 +301,7 @@ export function MenuRoot(props: MenuRootProps): JSX.Element {
     FOCUSABLE_POPUP_PROPS,
     typeahead.floating,
     listNavigation.floating,
-    dismiss.floating ?? {},
+    dismiss.floating,
   );
 
   const context: MenuRootContext = {

@@ -13,7 +13,6 @@ import { isElement } from '@floating-ui/utils/dom';
 import { type Accessor, createSignal, untrack } from 'solid-js';
 
 import type { BaseUIChangeEventDetails } from '../internals/createBaseUIEventDetails.ts';
-import type { TransitionStatus } from '../internals/transitions.ts';
 import type { FloatingUIOpenChangeDetails } from '../internals/types.ts';
 import { PopupTriggerMap } from '../utils/popups/popupTriggerMap.ts';
 import { createEventEmitter, type FloatingEvents, isClickLikeEvent } from './utils/event.ts';
@@ -21,20 +20,17 @@ import { createEventEmitter, type FloatingEvents, isClickLikeEvent } from './uti
 export type ReferenceType = Element | VirtualElement;
 
 export interface ContextData {
+  /** The event that opened the popup, kept while it is open. */
   openEvent?: Event | undefined;
-  typing?: boolean | undefined;
-  [key: string]: unknown;
 }
 
 export interface FloatingRootContext {
   open: Accessor<boolean>;
-  transitionStatus: Accessor<TransitionStatus>;
   /** The trigger element (the active one when there are several). */
   domReferenceElement: Accessor<Element | null>;
   /** What the popup is positioned against: the position reference if set, else the trigger. */
   referenceElement: Accessor<ReferenceType | null>;
   floatingElement: Accessor<HTMLElement | null>;
-  floatingId: Accessor<string | undefined>;
   /** Sets the anchor the popup is positioned against, apart from its trigger. */
   setPositionReference(node: ReferenceType | null): void;
   /** Asks the popup to open or close; the part decides (a change callback may cancel). */
@@ -48,11 +44,9 @@ export interface FloatingRootContext {
 
 export interface FloatingRootContextOptions {
   open: Accessor<boolean>;
-  transitionStatus?: Accessor<TransitionStatus> | undefined;
   /** The trigger, or a virtual element (a context menu's pointer position). */
   referenceElement: Accessor<ReferenceType | null>;
   floatingElement: Accessor<HTMLElement | null>;
-  floatingId?: Accessor<string | undefined> | undefined;
   onOpenChange(open: boolean, eventDetails: BaseUIChangeEventDetails): void;
   triggerElements?: PopupTriggerMap | undefined;
 }
@@ -68,14 +62,12 @@ export function createFloatingRootContext(
 
   const context: FloatingRootContext = {
     open: options.open,
-    transitionStatus: options.transitionStatus ?? (() => undefined),
     domReferenceElement: () => {
       const reference = options.referenceElement();
       return isElement(reference) ? reference : null;
     },
     referenceElement: () => positionReference() ?? options.referenceElement(),
     floatingElement: options.floatingElement,
-    floatingId: options.floatingId ?? (() => undefined),
     setPositionReference(node) {
       setPositionReference(() => node);
     },

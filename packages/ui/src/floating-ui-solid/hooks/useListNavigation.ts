@@ -15,7 +15,7 @@ import { type Accessor, createEffect, untrack } from 'solid-js';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import type { HTMLProps } from '../../internals/types.ts';
-import { ownerDocument } from '../../utils/dom.ts';
+import { activeElement, contains, getTarget, ownerDocument } from '../../utils/dom.ts';
 import { platform } from '../../utils/platform.ts';
 import { useAnimationFrame } from '../../utils/timers.ts';
 import type { FloatingRootContext } from '../FloatingRootContext.ts';
@@ -30,10 +30,7 @@ import {
   ARROW_LEFT,
   ARROW_RIGHT,
   ARROW_UP,
-  activeElement,
-  contains,
   getFloatingFocusElement,
-  getTarget,
 } from '../utils/element.ts';
 import { enqueueFocus, isVirtualClick, isVirtualPointerEvent, stopEvent } from '../utils/event.ts';
 
@@ -70,34 +67,16 @@ export function isMainOrientationKey(key: string, orientation: ListOrientation |
   return doSwitch(orientation, vertical, horizontal);
 }
 
-export function isMainOrientationToEndKey(
-  key: string,
-  orientation: ListOrientation | undefined,
-  rtl: boolean,
-) {
+export function isMainOrientationToEndKey(key: string, orientation: ListOrientation | undefined) {
   const vertical = key === ARROW_DOWN;
-  const horizontal = rtl ? key === ARROW_LEFT : key === ARROW_RIGHT;
+  const horizontal = key === ARROW_RIGHT;
   return (
     doSwitch(orientation, vertical, horizontal) || key === 'Enter' || key === ' ' || key === ''
   );
 }
 
-export function isCrossOrientationOpenKey(
-  key: string,
-  orientation: ListOrientation | undefined,
-  rtl: boolean,
-) {
-  const vertical = rtl ? key === ARROW_LEFT : key === ARROW_RIGHT;
-  const horizontal = key === ARROW_DOWN;
-  return doSwitch(orientation, vertical, horizontal);
-}
-
-export function isCrossOrientationCloseKey(
-  key: string,
-  orientation: ListOrientation | undefined,
-  rtl: boolean,
-) {
-  const vertical = rtl ? key === ARROW_RIGHT : key === ARROW_LEFT;
+export function isCrossOrientationCloseKey(key: string, orientation: ListOrientation | undefined) {
+  const vertical = key === ARROW_LEFT;
   const horizontal = key === ARROW_UP;
   if (orientation === 'both') {
     return key === 'Escape';
@@ -117,7 +96,6 @@ export interface UseListNavigationProps {
   loopFocus?: boolean | undefined;
   /** Whether the list is nested (upstream's submenu; here a context menu, as upstream marks it). */
   nested?: boolean | undefined;
-  rtl?: boolean | undefined;
   /** The list's axis, and the trigger's: the key that opens the popup runs along it. */
   orientation?: ListOrientation | undefined;
 }
@@ -131,7 +109,6 @@ export function useListNavigation(
   const activeIndex = () => props.activeIndex;
   const loopFocus = () => props.loopFocus ?? false;
   const nested = () => props.nested ?? false;
-  const rtl = () => props.rtl ?? false;
   const openOnArrowKeyDown = () => props.openOnArrowKeyDown ?? true;
   const orientation = () => props.orientation ?? 'vertical';
 
@@ -252,7 +229,7 @@ export function useListNavigation(
             } else {
               index =
                 key == null ||
-                isMainOrientationToEndKey(key, untrack(orientation), untrack(rtl)) ||
+                isMainOrientationToEndKey(key, untrack(orientation)) ||
                 untrack(nested)
                   ? getMinListIndex(listRef.current)
                   : getMaxListIndex(listRef.current);
@@ -289,9 +266,6 @@ export function useListNavigation(
     }
   };
 
-  // No list sits in a parent list, so a nested one's parent axis is unset: either arrow axis counts.
-  const parentOrientation: ListOrientation | undefined = undefined;
-
   const returnFocusToTrigger = () => {
     const returnElement = untrack(context.domReferenceElement);
     if (isHTMLElement(returnElement)) {
@@ -313,10 +287,10 @@ export function useListNavigation(
     }
 
     const currentOrientation = untrack(orientation);
-    const isRtl = untrack(rtl);
 
-    if (untrack(nested) && isCrossOrientationCloseKey(event.key, currentOrientation, isRtl)) {
-      if (!isMainOrientationKey(event.key, parentOrientation)) {
+    if (untrack(nested) && isCrossOrientationCloseKey(event.key, currentOrientation)) {
+      // No list sits in a parent list, so an arrow is left to the page; Escape stops here.
+      if (!event.key.startsWith('Arrow')) {
         stopEvent(event);
       }
       context.setOpen(false, createChangeEventDetails(REASONS.listNavigation, event));
@@ -356,15 +330,13 @@ export function useListNavigation(
         contains(currentTarget, focusedElement) &&
         !listRef.current.some((item) => item != null && contains(item, focusedElement))
       ) {
-        index = isMainOrientationToEndKey(event.key, currentOrientation, isRtl)
-          ? minIndex
-          : maxIndex;
+        index = isMainOrientationToEndKey(event.key, currentOrientation) ? minIndex : maxIndex;
         onNavigate(event);
         return;
       }
 
       const next = getNextListIndex(listRef.current, currentIndex, {
-        decrement: !isMainOrientationToEndKey(event.key, currentOrientation, isRtl),
+        decrement: !isMainOrientationToEndKey(event.key, currentOrientation),
         loopFocus: untrack(loopFocus),
         reachDisabled: true,
         minIndex,
@@ -467,11 +439,11 @@ export function useListNavigation(
       }
       const currentOpen = untrack(context.open);
       isPointerModality = false;
-      const isRtl = untrack(rtl);
       const isNested = untrack(nested);
 
       const isArrowKey = event.key.startsWith('Arrow');
-      const isParentCrossOpenKey = isCrossOrientationOpenKey(event.key, parentOrientation, isRtl);
+      // A nested list has no parent list, so either arrow axis opens it.
+      const isParentCrossOpenKey = event.key === ARROW_RIGHT || event.key === ARROW_DOWN;
       const isMainKey = isMainOrientationKey(event.key, untrack(orientation));
       const isNavigationKey =
         (isNested ? isParentCrossOpenKey : isMainKey) ||
@@ -483,8 +455,7 @@ export function useListNavigation(
       }
 
       if (isNavigationKey) {
-        const isParentMainKey = isMainOrientationKey(event.key, parentOrientation);
-        key = isNested && isParentMainKey ? null : event.key;
+        key = isNested && isArrowKey ? null : event.key;
       }
 
       if (isNested) {

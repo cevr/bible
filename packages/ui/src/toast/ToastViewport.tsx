@@ -29,7 +29,7 @@ import { selectors } from './store.ts';
 import { useToastProviderContext, useToastSelector } from './ToastProviderContext.ts';
 import { isFocusVisible } from './utils.ts';
 
-export const ToastViewportCssVars = {
+const ToastViewportCssVars = {
   /** Indicates the height of the frontmost toast. */
   frontmostHeight: '--toast-frontmost-height',
 } as const;

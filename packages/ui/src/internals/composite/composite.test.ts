@@ -9,7 +9,6 @@ import { describe, expect, it } from 'bun:test';
 import {
   type CompositeNavigationParameters,
   getCompositeNavigationIndex,
-  getNavigationKeys,
   hasModifierKey,
 } from './composite.ts';
 
@@ -21,9 +20,7 @@ const step = (overrides: Partial<CompositeNavigationParameters>) =>
     highlightedIndex: 0,
     elements: items(4),
     orientation: 'horizontal',
-    direction: 'ltr',
     loopFocus: true,
-    enableHomeAndEndKeys: true,
     ...overrides,
   });
 
@@ -42,15 +39,6 @@ describe('getCompositeNavigationIndex', () => {
     expect(step({ orientation: 'vertical', key: 'ArrowDown' }).index).toBe(1);
     expect(step({ orientation: 'vertical', key: 'ArrowUp', highlightedIndex: 2 }).index).toBe(1);
     expect(step({ orientation: 'vertical', key: 'ArrowRight' }).handled).toBe(false);
-  });
-
-  it('swaps the horizontal arrows in right-to-left', () => {
-    expect(step({ direction: 'rtl', key: 'ArrowLeft' }).index).toBe(1);
-    expect(step({ direction: 'rtl', key: 'ArrowRight', highlightedIndex: 2 }).index).toBe(1);
-    expect(getNavigationKeys('horizontal', 'rtl')).toMatchObject({
-      forward: 'ArrowLeft',
-      backward: 'ArrowRight',
-    });
   });
 
   it('wraps at the ends when looping, and stops there when not', () => {
