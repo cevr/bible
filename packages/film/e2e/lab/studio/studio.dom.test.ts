@@ -12,7 +12,17 @@
 // warns of clipping; a mic refused says so.
 
 import { BunServices } from '@effect/platform-bun';
-import { Effect, type FileSystem, Option, type Path, Result, Schedule, type Scope } from 'effect';
+import {
+  Deferred,
+  Effect,
+  Exit,
+  type FileSystem,
+  Option,
+  type Path,
+  Result,
+  Schedule,
+  type Scope,
+} from 'effect';
 import { Base64 } from 'effect/encoding';
 import { TakeMismatch } from '../../../src/core/refusals.ts';
 import { describe, expect, it } from 'effect-bun-test';
@@ -24,9 +34,11 @@ import {
   URL_T,
   json,
   labAt,
+  later,
   openLab,
   refused,
   route,
+  text,
 } from '../../../src/lab/fixtures/harness.ts';
 import { menuEntry, openCommandMenu } from '../../../src/lab/fixtures/gestures.ts';
 import { PROBE, probeFilm } from '../../../src/lab/fixtures/probe-film.ts';
@@ -188,6 +200,14 @@ const shownAt = (page: Tab, t: number) => evaluates(page, URL_T, t);
 const startOf = (scene: string) =>
   probeFilm().placed.find((p) => p.spec.id === scene)?.start ?? Number.NaN;
 
+/** The probe film's beats, one a scene, each with one line to record. */
+const SCENE_BEATS: Json = {
+  film: PROBE,
+  beats: probeFilm().placed.map((p) =>
+    beat(p.spec.id, 'staging', [{ kind: 'line', text: `In ${p.spec.id}.` }]),
+  ),
+};
+
 const scoped = <A, E>(self: Effect.Effect<A, E, Scope.Scope | FileSystem.FileSystem | Path.Path>) =>
   self.pipe(Effect.scoped, Effect.provide(BunServices.layer));
 
@@ -339,6 +359,56 @@ describe('the studio', () => {
           yield* page.goto(labAt(two + 0.5, { beat: 'gone' }));
           yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
           yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    'a mode the viewer picks while the beats are read stays theirs: the beats landing after never open Record over it',
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          const gate = yield* Deferred.make<void>();
+          const { page } = yield* openLab(
+            [
+              route('GET', /^\/studio\/beats$/, () => later(gate, json(SCENE_BEATS))),
+              ...studioRoutes,
+            ],
+            { href: labAt(startOf('two') + 0.5, { beat: 'three' }), mic: { allowed: true } },
+          );
+          yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
+          yield* page.click('.lab-modes [data-mode-pick="motion"]');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'motion');
+          yield* Deferred.done(gate, Exit.void);
+          // The beats land: the recorder stands on the cited beat, and the panel stays in Motion.
+          yield* attached(page, '[data-beat="three"].selected');
+          yield* attributeIs(page, '.lab-panel', 'data-mode', 'motion');
+        }),
+      ),
+    60_000,
+  );
+
+  it.live(
+    "the panel and the studio read one beat list: a dead link's beat, the list unread, never opens Record",
+    () =>
+      scoped(
+        Effect.gen(function* () {
+          // The first read of the beats is refused; any later one would list them.
+          const answers = [text('the beats are down', 500)];
+          const { page } = yield* openLab(
+            [
+              route('GET', /^\/studio\/beats$/, () => answers.shift() ?? json(SCENE_BEATS)),
+              ...studioRoutes,
+            ],
+            { href: labAt(startOf('two') + 0.5, { beat: 'gone' }), mic: { allowed: true } },
+          );
+          yield* attributeIs(page, '.lab-panel', 'data-staged', 'true');
+          yield* until(
+            page,
+            `document.querySelector('.studio-waiting') !== null || document.querySelector('[data-beat].selected') !== null`,
+          );
           yield* attributeIs(page, '.lab-panel', 'data-mode', 'edit');
         }),
       ),

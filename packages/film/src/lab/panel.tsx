@@ -1,20 +1,20 @@
 // The Lab's page as the server and the browser both render it (PA-12): the
 // lab's place as the URL holds it, the mode the panel shows, and the panel
-// itself, with the mode tray, each tool's section with its name, and the
-// film's notes under the pen and the Note frame button (`notes/list.tsx`).
+// itself, with the mode tray, each tool's section, and the film's notes
+// under the pen and the Note frame button (`notes/list.tsx`).
 // None of it reads the film's code, which the server never imports: the
 // tools' own controls (the cue inspector, the knobs, the findings, the
 // onion and the speed, the compare's modes, the recorder) need the staged
 // film, so each section keeps a slot (`Slot`) that the staged lab
 // (`shell.tsx`'s `Lab.Root`, each tool's provider) fills once the browser
-// has staged the film (`Fill`). Until then a section shows its name.
+// has staged the film (`Fill`). Until then a section holds only its head line.
 
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Toggle } from '@bible/ui/toggle';
 import { ToggleGroup } from '@bible/ui/toggle-group';
 import * as UrlAtom from '@bible/url-state/atom';
-import { For, Portal, Show, isServer } from '@solidjs/web';
-import { Array as Arr, Effect, Equal, Layer, Option } from 'effect';
+import { For, Portal, Show } from '@solidjs/web';
+import { Array as Arr, Equal, Layer, Option } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
 import {
@@ -31,7 +31,7 @@ import { type Host, hostLayer } from '../browser/host.ts';
 import { keptText } from '../browser/storage.ts';
 import { ViewerStore } from '../browser/storage-browser.ts';
 import type { Hub } from '../command/hub.ts';
-import { LabClient, labApiLayer } from './api.ts';
+import { type LabClient, labApiLayer } from './api.ts';
 import { LAB_MODES, type LabMode, MODE_TITLE, modeCommands, modeOf } from './mode.ts';
 import { labPlaceOf } from './place.ts';
 import { Frame, List, NotesFeed, Pen, type PageRuntime } from './notes/list.tsx';
@@ -44,15 +44,6 @@ const pickOf = (href: string) => {
 
 /** The lab's place: the cue or knob picked, the note, the studio's beat a link cites, the compare's view. */
 type LabPick = ReturnType<typeof pickOf>;
-
-/**
- * The beat `pick` cites (`?beat=`) when the film lists it: with the film's
- * beats not read yet (`listed` none), the beat as cited.
- */
-const citedBeat = (pick: LabPick, listed: Option.Option<ReadonlySet<string>>) =>
-  Option.filter(pick.beat, (beat) =>
-    Option.match(listed, { onNone: () => true, onSome: (beats) => beats.has(beat) }),
-  );
 
 /** The places in the panel the staged lab fills: each tool's controls, by section. */
 type SlotName = 'edit' | 'motion-head' | 'motion' | 'compare' | 'compose' | 'record';
@@ -70,6 +61,11 @@ interface LabPageValue {
   readonly mode: Accessor<LabMode>;
   /** Show `mode` in the panel, and keep it for this viewer. */
   readonly showMode: (mode: LabMode) => void;
+  /**
+   * The beats the film lists, as the studio read them (its one read): the
+   * first list heard decides, once, whether the link's `?beat=` opens Record.
+   */
+  readonly beatsListed: (beats: ReadonlyArray<string>) => void;
   /** What a reload held by the owner's unsaved work waits for; empty while none waits. */
   readonly reloadWaiting: Accessor<string>;
   readonly setReloadWaiting: (waiting: string) => void;
@@ -212,47 +208,36 @@ export const LabPage = (
   );
   const href = useAtomValue(() => UrlAtom.href);
   const here = createMemo(() => pickOf(href()), { equals: Equal.equals });
-  // The beats the film lists, read in the browser once a link cites one: a
-  // cited beat the film no longer lists is no beat, and lands nowhere.
-  const [listed, setListed] = createSignal(Option.none<ReadonlySet<string>>(), {
-    ownedWrite: true,
-  });
-  let beatsAsked = false;
-  createEffect(
-    () => Option.isSome(here().beat),
-    (cites) => {
-      if (!cites || beatsAsked || isServer) return;
-      beatsAsked = true;
-      Effect.runFork(
-        LabClient.use((client) => client.studio.beats({ params: { film: props.name } })).pipe(
-          Effect.tap((read) =>
-            Effect.sync(() => setListed(Option.some(new Set(read.beats.map((b) => b.id))))),
-          ),
-          // Unread, the beat stays as cited: Record says why it shows no beats.
-          Effect.ignore,
-          Effect.provide(props.client),
-        ),
-      );
-    },
-  );
-  // The mode: the one picked on this page, else Note on a link that names a
-  // note, else Record on one that names a beat the film lists (only they show
-  // them), else the viewer's kept one.
+  // The mode: the one shown on this page (picked, or a cited note's or
+  // beat's), else Note on a link that names a note, else the viewer's kept one.
   const kept = useAtomValue(() => keptMode);
   const keep = useAtomSet(() => keptMode);
   const [chosen, setChosen] = createSignal(Option.none<LabMode>(), { ownedWrite: true });
   const mode = createMemo(() =>
     Option.getOrElse(
-      Option.orElse(
-        Option.orElse(chosen(), () => Option.map(here().note, (): LabMode => 'note')),
-        () => Option.map(citedBeat(here(), listed()), (): LabMode => 'record'),
-      ),
+      Option.orElse(chosen(), () => Option.map(here().note, (): LabMode => 'note')),
       () => modeOf(kept()),
     ),
   );
+  /** Whether the viewer has picked a mode on this page: after that, no link's beat changes it. */
+  let picked = false;
   const showMode = (m: LabMode) => {
+    picked = true;
     setChosen(Option.some(m));
     keep(m);
+  };
+  // A link that names a beat (`?beat=`) the film lists shows Record (the only
+  // mode that shows beats), decided once, when the studio's list is first
+  // heard: a beat the film no longer lists, a list never read, or a mode the
+  // viewer picked meanwhile leaves the mode as it is, and a note cited beside
+  // it keeps Note. The recorder's own beat is the studio's (`beatAt`).
+  let beatsHeard = false;
+  const beatsListed = (beats: ReadonlyArray<string>) => {
+    if (beatsHeard) return;
+    beatsHeard = true;
+    const at = untrack(here);
+    if (!picked && Option.isNone(at.note) && Option.exists(at.beat, (b) => beats.includes(b)))
+      setChosen(Option.some<LabMode>('record'));
   };
   // A note picked (a link, a pin, Back) shows the Note mode on this page, the
   // only one that shows notes, and leaves the viewer's own mode as it was (a
@@ -262,19 +247,6 @@ export const LabPage = (
     () => here().note,
     (note) => {
       Option.map(note, () => setChosen(Option.some<LabMode>('note')));
-    },
-  );
-  // A beat a link cites (a pasted link, Back) shows Record the same way, once
-  // the film is read to list it; a note cited beside it keeps Note.
-  createEffect(
-    () =>
-      Option.getOrElse(
-        Option.filter(here().beat, (beat) => Option.exists(listed(), (beats) => beats.has(beat))),
-        () => '',
-      ),
-    (beat) => {
-      if (beat !== '' && Option.isNone(untrack(here).note))
-        setChosen(Option.some<LabMode>('record'));
     },
   );
   onCleanup(props.hub.commands.register(...modeCommands(mode, showMode)));
@@ -297,6 +269,7 @@ export const LabPage = (
     here,
     mode,
     showMode,
+    beatsListed,
     reloadWaiting,
     setReloadWaiting,
     staged: () => {
