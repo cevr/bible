@@ -71,7 +71,8 @@ export const nearestMoment = (placed: ReadonlyArray<Placed>, T: number): Option.
 /**
  * Film seconds `local` into placed scene `p`: as it is while inside the scene;
  * at or past its end (the scene got shorter), the scene's last frame, the last
- * one that starts before its end (a hair of float error is not a frame).
+ * one that starts before its end on the film's one frame grid (`framesOf`:
+ * an end within a millionth of a frame past a frame start is not a frame).
  */
 const inScene = (p: Placed, fps: number, local: number) => {
   if (local < p.dur) return p.start + local;
