@@ -40,11 +40,12 @@ export const compareText = (
 ): string => {
   if (mode === 'off') return '';
   return AsyncResult.match(head, {
-    onInitial: () => `reading ${scene} at HEAD…`,
+    onInitial: () => `reading ${scene} at the last commit…`,
     onFailure: (f) => `${scene}: ${reasonOf(f.cause)}`,
     onSuccess: ({ value }) =>
       Option.match(unresolved, {
-        onSome: (err) => `${scene}: HEAD's timeline does not resolve now: ${err.message}`,
+        onSome: (err) =>
+          `${scene}: the last commit's timeline does not resolve now: ${err.message}`,
         onNone: () => headText(value),
       }),
   });
@@ -53,14 +54,17 @@ export const compareText = (
 /** The file HEAD was read from, and what changed since. */
 const headText = (value: HeadSource): string =>
   [
-    `${value.file} at HEAD`,
+    `${value.file} at the last commit`,
     ...Option.toArray(
       Option.liftPredicate(
-        'code changed since HEAD — compare shows data only',
+        'code changed since the last commit — compare shows data only',
         () => value.codeChanged,
       ),
     ),
     ...Option.toArray(
-      Option.liftPredicate("HEAD's timeline and knobs are the same as now", () => value.sameData),
+      Option.liftPredicate(
+        "the last commit's timeline and knobs are the same as now",
+        () => value.sameData,
+      ),
     ),
   ].join(' · ');

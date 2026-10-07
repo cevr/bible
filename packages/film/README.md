@@ -696,7 +696,7 @@ entry.
 | `/films/<film>/project`          | review | `point` (the card in focus, its sheet open), `heard`, `variant`, `picture`, `only`                                      | `t` (the picture)                    |
 | `/films/<film>/scenes[/<scene>]` | player |                                                                                                                         | `t` (film time)                      |
 | `/films/<film>/play`             | player |                                                                                                                         | `t` (film time)                      |
-| `/films/<film>/lab`              | lab    | `note`, `view` (the compare with HEAD)                                                                                  | `t` (film time), `loop`              |
+| `/films/<film>/lab`              | lab    | `note`, `view` (Compare's mode)                                                                                         | `t` (film time), `loop`              |
 | `/films/<film>/lab/<scene>`      | lab    | `cue` or `knob` (of the scene), `note`, `beat` (the studio's), `view`                                                   | `t` (from the scene's start), `loop` |
 
 The lab writes a scene's place (`lab/place.ts`): the path names the
@@ -1733,8 +1733,8 @@ The lab's stage holds each scene's `ShownEdit` and hands them to the player
 whole (`Player.showEdits`), which draws every frame with them (`film.render(…,
 { edits })`, which resolves nothing and never throws for an edit; the film
 keeps nothing, so the next frame draws what it is handed); an edit that does
-not resolve is not shown, and the status says why. Compare with HEAD resolves
-HEAD's literals over today's the same way: when they name what today's
+not resolve is not shown, and the status says why. Compare with the last
+commit resolves its literals over today's the same way: when they name what today's
 narration lacks, it draws no layer and its line says why. The release writes. The
 inspector shows the selected cue's anchor (read-only), `offset` and `dur`
 fields (the inspector's, stepped by frames; for an `until` cue, an `end`
@@ -1822,25 +1822,26 @@ any range (the machine's A and B; the section says `looping in 00:00:01:00 –
 out 00:00:02:00`). The review's synced player has the same rate chip over its rates
 (½×, 1×). The loop is one effect-machine (`lab/motion/loop.ts`): `Off | Marked | Range | Cue` on `MarkA | MarkB | LoopCue | Stop | Linked | Unlinked`; a B not after A stays `Marked`, and a range plays from A as it is made, its points kept to the millisecond inside the times marked (A rounded up, as `#t=` is, and B down: `core/time.ts` `onTheMs`, `offTheMs`), so Loop this scene starts in that scene. The range is the link's (`#loop=`): the provider and the link agree, each following the other only where they differ (`Linked` puts a range the link names in the machine without playing, `Unlinked` ends one), and the part of a range past the film's end is not looped (`linkedRange`). The provider plays the state through `rangeOf` each frame drawn.
 
-**Compare** (`lab/compare/`, Solid 2) reads the scene's file at HEAD
+**Compare** (`lab/compare/`, Solid 2) reads the scene's file at the last
+commit (git's HEAD: the page says "last commit" wherever it names it)
 (`GET /api/films/<film>/scenes/:scene/head`: `SceneHead` runs `git show HEAD:<file>`
 and parses it with the locator and parser the writer uses; read once per
 scene while a mode is on, and again after it is turned off and on, so a
-commit made since shows) and draws the frame with HEAD's timeline and knobs
+commit made since shows) and draws the frame with the last commit's timeline and knobs
 through today's code (`player.renderShown`, the frame as the lab shows it,
-with HEAD's edit over whatever else the lab previews) on a layer over the
-film: wipe (HEAD left of a draggable
+with the last commit's edit over whatever else the lab previews) on a layer over the
+film: wipe (the last commit left of a draggable
 divider, its grip a finger's `--hit` across however small the frame shows,
-and a slider by the keyboard: `lab/wipe-keys.ts`), blink, or diff (a _difference matte_: HEAD laid over the frame in
+and a slider by the keyboard: `lab/wipe-keys.ts`), blink, or diff (a _difference matte_: the last commit laid over the frame in
 the `difference` blend, so what did not change is black and what an edit
 moved is lit). A blink is also flipped by hand: on the frame, a press held
-shows HEAD until it lifts (a phone's way, where there are no keys). The mode
+shows the last commit until it lifts (a phone's way, where there are no keys). The mode
 is one effect-machine (`lab/compare/machine.ts`): `Off | Wipe | Blink | Held | Diff`
 on `Choose | Split | Flip | Hold`, a blink flipping itself every 450 ms by the
 machine's timeout and waiting while held. The mode is the link's (`?view=off|wipe|blink|diff`
 on `/films/<film>/lab[/<scene>]`: each mode the owner picks is an entry, so Back walks
 the views; the machine moving on its own is written in place); the divider is the tab's, kept in `film-lab-view:<film>` (`TabStore`) and never in the link. Only data can differ that way; when the file's code
-changed since HEAD the panel says so, and a HEAD the server cannot give shows the server's reason.
+changed since the last commit the panel says so, and a last commit the server cannot give shows the server's reason.
 
 **The look-book** (`player/lookbook-sheet.ts`) is one sheet of the whole film:
 the palette (`createFilm({ palette })`) as swatches, then per scene a row of
