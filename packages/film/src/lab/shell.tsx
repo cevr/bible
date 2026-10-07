@@ -190,9 +190,6 @@ const Staged = (props: RootProps) => {
     onSettled(() => flashLanded(frame, host));
   }
 
-  document.body.classList.add('lab');
-  onCleanup(() => document.body.classList.remove('lab'));
-
   const [revision, setRevision] = createSignal(0, fromDraw);
   // Every reload (a write's, a kept take's, the rebuild's) waits while a panel holds
   // unsaved work; the page's panel says what it waits for.
