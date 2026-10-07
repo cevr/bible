@@ -2063,7 +2063,7 @@ own names, and the stored and wire words stay as they are.
   master that will not open plays on `<video>`, which keeps every action;
   the frame says which in `data-engine` (`asking`, `webcodecs`, `video`) and,
   on `<video>`, why in its tooltip. The panes' sound plays through the page's
-  one sound context (`Media.sound`, set to `playback` on Safari so it plays
+  one sound context (`media-browser.ts` `pageSound`, set to `playback` on Safari so it plays
   through the silent switch), only at 1× (another rate would change its
   pitch). A hidden page stands the panes (clock and sound stopped, decoders
   and frames still decoding let go) and, shown again, they draw afresh and
