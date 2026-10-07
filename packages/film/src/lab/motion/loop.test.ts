@@ -265,8 +265,6 @@ describe('the link and the view', () => {
     expect(loopAt(Option.some(range), loopView(cue))).toEqual(LoopState.Range(range));
     expect(loopAt(Option.none(), loopView(cue))).toEqual(cue);
     expect(loopAt(Option.none(), Option.none())).toEqual(LoopState.Off);
-    // A range a tab stored before the link held it starts nothing.
-    expect(loopAt(Option.none(), Option.some({ kind: 'ab', ...range }))).toEqual(LoopState.Off);
     expect(loopView(LoopState.Range(range))).toEqual(Option.none());
     expect(loopView(LoopState.Marked({ a: Option.some(1), b: Option.none() }))).toEqual(
       Option.none(),

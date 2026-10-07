@@ -196,15 +196,7 @@ export const loopAt = (link: Option.Option<Interval>, kept: Option.Option<ViewLo
     Option.orElse(
       Option.map(link, (span): LoopState => LoopState.Range(span)),
       () =>
-        Option.flatMap(kept, (loop) =>
-          Option.map(
-            Option.liftPredicate(
-              loop,
-              (l): l is Extract<ViewLoop, { readonly kind: 'cue' }> => l.kind === 'cue',
-            ),
-            (cue): LoopState => LoopState.Cue({ scene: cue.scene, name: cue.name }),
-          ),
-        ),
+        Option.map(kept, (cue): LoopState => LoopState.Cue({ scene: cue.scene, name: cue.name })),
     ),
     (): LoopState => LoopState.Off,
   );

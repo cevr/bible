@@ -6,24 +6,27 @@
 // that does not decode is the default view: the page still keeps what it was
 // told while it lives, and only then does a reload start from the default.
 // The loop the view keeps is a looped cue; the A–B range is the link's
-// (`#loop=`, `lab/place.ts`), and a range a tab stored before the link held
-// it is read and dropped; so is a studio beat (the link's `?beat=` now).
+// (`#loop=`, `lab/place.ts`), and so is the studio's beat (`?beat=`). A
+// stored loop that is not a looped cue reads as no loop, and the rest of
+// the view still decodes.
 
-import { Option, Schema } from 'effect';
+import { Effect, Option, Schema } from 'effect';
 import { type StoreRuntime, keptJson } from '../browser/storage.ts';
 
 /** The rates the lab plays at: the only ones a stored view may hold. */
 export const RATES = [0.25, 0.5, 1] as const;
 
+/** The cue the view loops, by its scene and name. */
+const LoopedCue = Schema.Struct({
+  kind: Schema.Literal('cue'),
+  scene: Schema.String,
+  name: Schema.String,
+});
+
 export const LabView = Schema.Struct({
   rate: Schema.Literals(RATES),
-  loop: Schema.optionalKey(
-    Schema.Union([
-      Schema.Struct({ kind: Schema.Literal('cue'), scene: Schema.String, name: Schema.String }),
-      /** A range a tab stored before the link held it: read, so the rest of its view decodes, and dropped. */
-      Schema.Struct({ kind: Schema.Literal('ab'), from: Schema.Finite, to: Schema.Finite }),
-    ]),
-  ),
+  /** A stored loop that does not decode as a looped cue is no loop. */
+  loop: Schema.optionalKey(LoopedCue.pipe(Schema.catchDecoding(() => Effect.succeedNone))),
   onion: Schema.Struct({ on: Schema.Boolean, count: Schema.Finite, spacing: Schema.Finite }),
   /** The wipe's divider, this viewer's; the compare's mode is the link's (`?view=`). */
   compare: Schema.Struct({ split: Schema.Finite }),
@@ -45,8 +48,8 @@ export const DEFAULT_VIEW: LabView = {
   playing: false,
 };
 
-/** A loop the view keeps: a cue's, or an A–B span. */
-type ViewLoop = LabView extends { readonly loop?: infer L } ? L : never;
+/** The loop the view keeps: the looped cue. */
+type ViewLoop = typeof LoopedCue.Type;
 
 /** A change to the view: the keys it names; `loop: Option.none()` turns the loop off. */
 type ViewPatch = Partial<Omit<LabView, 'loop'>> & {
@@ -67,20 +70,13 @@ const withLoop = (view: LabView, loop: Option.Option<ViewLoop>): LabView => {
   });
 };
 
-/** `view` with its looped cue, and no A–B range: a range is the link's (`#loop=`) now. */
-const fitView = (view: LabView): LabView =>
-  withLoop(
-    view,
-    Option.filter(Option.fromUndefinedOr(view.loop), (loop) => loop.kind === 'cue'),
-  );
-
 /**
  * The view of `film` kept in `store` (the tab's, `TabStore`): read once,
  * kept in memory, written through on each patch.
  */
 export const viewStore = (film: string, store: StoreRuntime): ViewStore => {
   const kept = keptJson(store, `film-lab-view:${film}`, LabView, () => DEFAULT_VIEW);
-  let view = fitView(kept.get());
+  let view = kept.get();
   return {
     get: () => view,
     patch: ({ loop, ...change }) => {
