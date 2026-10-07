@@ -694,3 +694,41 @@ describe('NumberField.ScrubArea', () => {
     expect(await commitsOf(page)).toEqual([]);
   });
 });
+
+describe('NumberField: unmounting mid-edit', () => {
+  const show = (page: Page, next: { input?: boolean; root?: boolean }) =>
+    page.evaluate((parts) => {
+      (window as unknown as { __show: (next: { input?: boolean; root?: boolean }) => void }).__show(
+        parts,
+      );
+    }, next);
+
+  it("drops the typed value when the input unmounts, back on the owner's value", async () => {
+    // A rounding format reads the text again on any commit; the leaving blur must not.
+    const page = await open('unmounting-parts', {
+      format: JSON.stringify({ maximumFractionDigits: 2 }),
+    });
+    await input(page).click();
+    await input(page).selectText();
+    await page.keyboard.type('10');
+    await show(page, { input: false });
+    await see(input(page)).toHaveCount(0);
+    await show(page, { input: true });
+    await see(input(page)).toHaveValue('5');
+    await input(page).focus();
+    await input(page).blur();
+    expect(await commitsOf(page)).toEqual([]);
+  });
+
+  it('drops the typed value quietly when the whole field unmounts', async () => {
+    const page = await open('unmounting-parts');
+    await input(page).click();
+    await input(page).selectText();
+    await page.keyboard.type('10');
+    await show(page, { root: false });
+    await see(input(page)).toHaveCount(0);
+    await show(page, { root: true });
+    await see(input(page)).toHaveValue('5');
+    expect(await commitsOf(page)).toEqual([]);
+  });
+});

@@ -5,8 +5,9 @@
 // validated (clamped, cleaned of float noise), shown and held until its
 // commit, which reports it; the field then shows the owner's value again, so
 // a value the owner takes stays and one it declines goes back. An edit that
-// ends without a commit (a scrub cancelled or unmounted, the field disabled,
-// typed text that does not read) drops its change the same way. Typed text
+// ends without a commit (a scrub cancelled, the field disabled, typed text
+// that does not read, the part holding the edit unmounted) drops its change
+// the same way. Typed text
 // stays as typed until it is committed on blur; steps (keys, scrub) rewrite
 // it at once.
 // Upstream's uncontrolled mode, `onValueChange`, the hidden

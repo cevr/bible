@@ -12,7 +12,7 @@
 // relative to the value the field held when typing began.
 // Renders an `<input>`.
 import type { JSX } from '@solidjs/web';
-import { omit, untrack } from 'solid-js';
+import { omit, onCleanup, untrack } from 'solid-js';
 
 import { createGenericEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
@@ -137,6 +137,16 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     }
     ctx.allowInputSyncRef.current = false;
   };
+
+  // Unmounted mid-typing: the typed edit is dropped, not committed. A browser
+  // that blurs the input as it leaves the page blurs it after this.
+  let unmounted = false;
+  onCleanup(() => {
+    unmounted = true;
+    if (!ctx.allowInputSyncRef.current) {
+      ctx.discardEdit();
+    }
+  });
 
   const typedExpression = (text: string) => ctx.allowExpressions && isExpression(text);
 
@@ -381,7 +391,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     ref: (element: HTMLInputElement) => ctx.setInputElement(element),
     onBlur(event: FocusEvent) {
       untrack(() => {
-        if (event.defaultPrevented || state.disabled) {
+        if (event.defaultPrevented || state.disabled || unmounted) {
           return;
         }
         commitTyped(event, REASONS.inputBlur);

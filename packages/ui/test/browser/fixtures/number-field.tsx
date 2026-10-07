@@ -2,8 +2,9 @@
 // the owner holds `value` and takes each commit, unless `mirror=false` (an
 // owner that declines every commit). `field` reads its value, bounds, steps,
 // format, locale and flags from the URL; its buttons set the owner's value
-// to 42 or null. `enter-commits` blurs on Enter, and `unmounting` drops its
-// scrub area mid-scrub.
+// to 42 or null. `enter-commits` blurs on Enter, `unmounting` drops its
+// scrub area mid-scrub, and `unmounting-parts` drops its input or its root
+// when the test asks.
 // `window.__set({ disabled })` changes the field's `disabled` later, applied
 // at once (flushed), so a test can change it inside a press's own task;
 // `window.__flush()` applies pending writes, so a test can read the input
@@ -144,8 +145,43 @@ function Unmounting(): JSX.Element {
   );
 }
 
+/**
+ * A field (with the URL's `format`) whose input, or whole root, the page
+ * drops and brings back: `window.__show({ input, root })`, applied at once.
+ */
+function UnmountingParts(): JSX.Element {
+  const held = owner(5);
+  const [input, setInput] = createSignal(true);
+  const [root, setRoot] = createSignal(true);
+  (window as unknown as { __show: (next: { input?: boolean; root?: boolean }) => void }).__show = (
+    next,
+  ) => {
+    if (next.input !== undefined) {
+      setInput(next.input);
+    }
+    if (next.root !== undefined) {
+      setRoot(next.root);
+    }
+    flush();
+  };
+  return (
+    <Show when={root()}>
+      <NumberField.Root
+        value={held.value()}
+        format={formatParam()}
+        onValueCommitted={held.onValueCommitted}
+      >
+        <Show when={input()}>
+          <NumberField.Input id="input" aria-label="Amount" />
+        </Show>
+      </NumberField.Root>
+    </Show>
+  );
+}
+
 export const fixtures: Record<string, () => JSX.Element> = {
   field: Field,
   'enter-commits': EnterCommits,
   unmounting: Unmounting,
+  'unmounting-parts': UnmountingParts,
 };
