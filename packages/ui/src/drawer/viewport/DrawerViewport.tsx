@@ -1,6 +1,12 @@
-// Upstream: packages/react/src/drawer/viewport/DrawerViewport.tsx
+// Upstream: packages/react/src/drawer/viewport/DrawerViewport.tsx,
+// packages/react/src/dialog/viewport/DialogViewport.tsx
 //
-// The dialog's viewport, plus the drawer's swipe. A drag on the popup in the
+// A positioning container around the drawer's popup that can be made
+// scrollable. It renders inside the portal, so while the drawer is mounted,
+// and lets pointer events through once the drawer closes. Upstream's
+// `Dialog.Viewport` part is left out: no page draws one.
+//
+// It carries the drawer's swipe. A drag on the popup in the
 // dismiss direction moves it with the pointer. Releasing past half the
 // popup's size (at least 10px) or with a fast flick dismisses it; anything
 // less springs it back, as does a dismissal the owner cancels. An accepted
@@ -13,13 +19,8 @@
 // selected never starts a swipe.
 import { isElement } from '@floating-ui/utils/dom';
 import type { JSX } from '@solidjs/web';
-import { createEffect, createSignal, untrack } from 'solid-js';
+import { createEffect, createSignal, omit, untrack } from 'solid-js';
 
-import { renderDialogViewport } from '../../dialog/viewport/DialogViewport.tsx';
-import type {
-  DialogViewportProps,
-  DialogViewportState,
-} from '../../dialog/viewport/DialogViewport.tsx';
 import { useDialogRootContext } from '../../dialog/root/DialogRootContext.ts';
 import {
   BASE_UI_SWIPE_IGNORE_ATTRIBUTE,
@@ -27,7 +28,12 @@ import {
 } from '../../internals/constants.ts';
 import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
-import { TransitionStatusDataAttributes } from '../../internals/transitions.ts';
+import {
+  type TransitionStatus,
+  TransitionStatusDataAttributes,
+} from '../../internals/transitions.ts';
+import type { BaseUIComponentProps } from '../../internals/types.ts';
+import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { clamp } from '../../utils/clamp.ts';
 import {
   activeElement,
@@ -37,9 +43,12 @@ import {
   getTarget,
   ownerDocument,
 } from '../../utils/dom.ts';
+import { onClientCleanup } from '../../utils/onClientCleanup.ts';
+import { popupTransitionStateMapping } from '../../utils/popupStateMapping.ts';
 import {
   findScrollableTouchTarget,
   getDisplacement,
+  getElementAtPoint,
   type ScrollAxis,
   type SwipeDirection,
   type UseSwipeDismissReleaseDetails,
@@ -81,9 +90,12 @@ interface TouchScrollState {
   drawerAxisAttributed: boolean;
 }
 
-export interface DrawerViewportState extends DialogViewportState {}
+export interface DrawerViewportState {
+  open: boolean;
+  transitionStatus: TransitionStatus;
+}
 
-export interface DrawerViewportProps extends DialogViewportProps {}
+export interface DrawerViewportProps extends BaseUIComponentProps<'div', DrawerViewportState> {}
 
 /**
  * A positioning container for the drawer popup that can be made scrollable.
@@ -509,18 +521,37 @@ export function DrawerViewport(componentProps: DrawerViewportProps): JSX.Element
     swipeStrength: swipeRelease,
   };
 
-  return (
-    <DrawerViewportContext value={context}>
-      {untrack(() => renderDialogViewport(componentProps, swipeProps))}
-    </DrawerViewportContext>
-  );
-}
+  const state: DrawerViewportState = {
+    get open() {
+      return store.open();
+    },
+    get transitionStatus() {
+      return store.transitionStatus();
+    },
+  };
+  const elementProps = omit(componentProps, 'class', 'style', 'render');
 
-type ElementFromPointRoot = Node & Partial<Pick<Document, 'elementFromPoint'>>;
+  // A thunk, built under the provider below so the popup inside reads it.
+  const element = () => {
+    onClientCleanup(() => store.setViewportElement(null));
+    return useRenderElement('div', componentProps, {
+      state,
+      ref: (el: HTMLElement) => store.setViewportElement(el),
+      stateAttributesMapping: popupTransitionStateMapping,
+      props: [
+        {
+          role: 'presentation',
+          get style() {
+            return { 'pointer-events': store.open() ? undefined : 'none' };
+          },
+        },
+        swipeProps,
+        elementProps,
+      ],
+    });
+  };
 
-// `elementFromPoint` retargets shadow content to its host, so the callers pass `getRootNode()`.
-function getElementAtPoint(root: ElementFromPointRoot | null | undefined, x: number, y: number) {
-  return typeof root?.elementFromPoint === 'function' ? root.elementFromPoint(x, y) : null;
+  return <DrawerViewportContext value={context}>{untrack(element)}</DrawerViewportContext>;
 }
 
 function nodeElement(node: Node | null | undefined): Element | null {
