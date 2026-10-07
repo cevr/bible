@@ -241,12 +241,6 @@ export const clockParts = (state: SyncState) => {
   return { at: timecode(Math.max(0, state.t)), rest: ` / ${end}${waiting}` };
 };
 
-/** What the transport says of the clock, in timecode: `00:00:12:09 / 00:00:25:00`, and when it waits on a video. */
-export const clockText = (state: SyncState): string => {
-  const { at, rest } = clockParts(state);
-  return `${at}${rest}`;
-};
-
 /** The scrub bar's reach: the first video's end once known, else where the clock is. */
 export const reachOf = (state: SyncState): number => {
   if (state.end >= UNKNOWN_END) return Math.max(state.t, state.start);

@@ -4,10 +4,10 @@
 // `.vtt` lies beside them), its sheets and stills (a lightbox), its docs
 // (markdown inline). A stack plays every version on one clock: all of them,
 // the first side by side with one other or wiped against it (a stack of two
-// or more), every version's frame at a few moments, the first and one
-// other's difference at a moment, or the notes. A version's name opens its
-// inspector: its Info, its approve and unapprove, what was said of it and
-// the comment box, said over the set's route (UI-7).
+// or more), every version's frame at a few moments, or the first and one
+// other's difference at a moment. A version's name opens its inspector: its
+// Info (its notes among it), its approve and unapprove, what was said of it
+// and the comment box, said over the set's route.
 
 import { useAtomValue } from '@bible/atom-solid';
 import { For, type JSX, Show } from '@solidjs/web';

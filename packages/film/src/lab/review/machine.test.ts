@@ -15,7 +15,7 @@ import {
   UNKNOWN_END,
   ViewEvent,
   ViewState,
-  clockText,
+  clockParts,
   modeOf,
   modeView,
   modesOf,
@@ -204,13 +204,18 @@ describe('the synced player', () => {
   });
 
   test('says where the clock is, the end once known, and when it waits', () => {
-    expect(clockText(SyncState.Paused({ ...clock, end: UNKNOWN_END }))).toBe('00:00:01:00 / …');
-    expect(clockText(SyncState.Buffering({ ...clock, t: 4 }))).toBe(
-      '00:00:04:00 / 00:00:10:00 · waiting',
-    );
-    expect(clockText(SyncState.Paused({ ...clock, t: 65.24, end: 70 }))).toBe(
-      '00:01:05:07 / 00:01:10:00',
-    );
+    expect(clockParts(SyncState.Paused({ ...clock, end: UNKNOWN_END }))).toEqual({
+      at: '00:00:01:00',
+      rest: ' / …',
+    });
+    expect(clockParts(SyncState.Buffering({ ...clock, t: 4 }))).toEqual({
+      at: '00:00:04:00',
+      rest: ' / 00:00:10:00 · waiting',
+    });
+    expect(clockParts(SyncState.Paused({ ...clock, t: 65.24, end: 70 }))).toEqual({
+      at: '00:01:05:07',
+      rest: ' / 00:01:10:00',
+    });
     expect(reachOf(SyncState.Paused({ ...clock, end: UNKNOWN_END }))).toBe(1);
     expect(reachOf(SyncState.Paused(clock))).toBe(10);
   });

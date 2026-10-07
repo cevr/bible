@@ -8,8 +8,9 @@
 // Redo are the page's commands, each naming the source change it steps, and
 // every write says what it did in a receipt; the film's check is the one the
 // last write answered; after a pick or a knob the sound check runs (`film
-// check --sound`: dead air, balance against the picked score); both checks
-// are counts that open the Findings sheet (`findings.tsx`).
+// check --sound`: dead air, balance against the picked score). Neither
+// shows at rest: both are groups of the Findings sheet (`findings.tsx`),
+// opened by Show findings (⌘K, the page's long-press menu).
 
 import { For, type JSX, Show } from '@solidjs/web';
 import { type Accessor, createEffect, createMemo, flush, onCleanup } from 'solid-js';
