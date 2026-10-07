@@ -109,15 +109,29 @@ export interface Player {
   drawable(): boolean;
   /** Called after every frame the preview draws (none while it is not `drawable`), until the returned function is called. */
   onDraw(listener: (T: number) => void): () => void;
+  /**
+   * Called with the time shown each time the preview shows it (every move:
+   * a seek, a scrub, play), drawn or not: before the film's faces load no
+   * frame is drawn, yet T moves. Until the returned function is called.
+   */
+  onMove(listener: (T: number) => void): () => void;
+  /**
+   * The bar is on a film's Play page, in `part` (the shell's Play part):
+   * its HUD fades while the film plays and comes back at the viewer's input,
+   * until the returned function is called.
+   */
+  playOn(part: HTMLElement): () => void;
 }
 
 /** An app's film registry: each film's name and its loader. */
 export type Films = Record<string, () => Promise<Film>>;
 
-/** A page's film, loaded and on the stage: its name, its canvas and the captions switch. */
+/** A page's film, loaded and on the stage: its name, its stage and canvas, and the captions switch. */
 export interface Staged {
   readonly name: string;
   readonly film: Film;
+  /** The element the canvas stands in, which a page places. */
+  readonly stage: HTMLElement;
   readonly canvas: HTMLCanvasElement;
   readonly ctx: CanvasRenderingContext2D;
   readonly captions: { on: boolean };
@@ -161,18 +175,7 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
   stage.className = 'stage';
   stage.append(canvas);
   document.body.append(stage);
-  return { name, film, canvas, ctx, captions };
-};
-
-/**
- * A page that could not start: the error, in place of the page, as text (an
- * error's words may hold markup, a film's name from the URL among them).
- */
-export const showFailure = (e: unknown): void => {
-  const shown = document.createElement('pre');
-  shown.style.cssText = 'color:var(--state-findings);padding:24px;white-space:pre-wrap';
-  shown.textContent = String(e instanceof Error ? (e.stack ?? e.message) : e);
-  document.body.replaceChildren(shown);
+  return { name, film, stage, canvas, ctx, captions };
 };
 
 /**
@@ -184,12 +187,15 @@ export const showFailure = (e: unknown): void => {
  * once the viewer turns them on (`ticksCommand`), and the HUD fades while the
  * film plays (`hud.ts`). The lab's transport reads in the scene's time (the
  * header keeps the film's), and its captions are the view menu's and `c`.
+ * Its film's faces failing to load fail the page (`fail`: it ends, and says
+ * why).
  */
 export const mountPreview = (
   { film, canvas, ctx, captions }: Staged,
   host: Host,
   time: TimeInUrl,
   hub: Hub,
+  fail: (why: string) => Effect.Effect<void>,
 ): Player => {
   const bar = document.createElement('div');
   bar.className = 'bar';
@@ -214,6 +220,7 @@ export const mountPreview = (
   const sceneEl = q<HTMLSpanElement>('.scene');
   const sayEl = q<HTMLSpanElement>('.say');
   const playBtn = q<HTMLButtonElement>('[data-act="play"]');
+  const captionsBtn = q<HTMLButtonElement>('[data-act="captions"]');
   const tip = q<HTMLDivElement>('.tip');
 
   const hue = (i: number) => `hsl(${(i * 47) % 360} var(--scene-sat) var(--scene-light))`;
@@ -307,7 +314,10 @@ export const mountPreview = (
   const nowMs = monotonicMs(host);
   const clock = makeClock(() => nowMs() / 1000);
   let loop: LoopRange | undefined;
-  const listeners: Array<(T: number) => void> = [];
+  /** Hears every frame drawn. */
+  const drawnTo = listenersOf();
+  /** Hears the time each time it is shown, drawn or not (no frame is drawn until the faces load). */
+  const movedTo = listenersOf();
   let reads: KnobRead[] = [];
   /**
    * T in the URL (`time`, the page's own place), so a reload lands on this
@@ -338,8 +348,9 @@ export const mountPreview = (
   let drawable = false;
 
   const page = hub.context().page;
-  /** Whether the bar is on a film's Play page (the shell's part), where the HUD fades and the ticks are the viewer's. */
-  const onPlay = () => bar.closest('[data-part="play"]') !== null;
+  /** The film's Play page the bar is on (the shell's part, `Player.playOn`), where the HUD fades and the ticks are the viewer's. */
+  let playPage = Option.none<HTMLElement>();
+  const onPlay = () => Option.isSome(playPage);
   /** Whether the keyboard's focus is on one of the HUD's controls (the bar, the header, the tab bar): they stay while it is. */
   const focusHeld = () =>
     Option.match(Option.fromNullishOr(document.activeElement), {
@@ -359,9 +370,9 @@ export const mountPreview = (
     if (drawable) {
       reads = [];
       film.render(ctx, T, shownOptions({ knobs: reads }));
-      // As they stand at this frame: a listener that stops listening skips none of the rest.
-      for (const listener of [...listeners]) listener(T);
+      drawnTo.call(T);
     }
+    movedTo.call(T);
     const cur = film.sceneAt(T);
     head.style.left = `${(T / film.duration) * 100}%`;
     const shownRate = rate === 1 ? '' : ` · ${rate}× muted`;
@@ -379,6 +390,8 @@ export const mountPreview = (
     playBtn.textContent = playing ? '❚❚' : '▶︎';
     // On Play the line is the captions' alone while they show (`player.css`).
     bar.dataset['captions'] = captions.on ? 'on' : 'off';
+    // The captions' button is a toggle, its state said to a reader and drawn as the kit's pressed look.
+    captionsBtn.ariaPressed = String(captions.on);
     if (onPlay()) hud.playing(playing);
     url.moved();
   };
@@ -482,8 +495,7 @@ export const mountPreview = (
     );
   });
   playBtn.addEventListener('click', toggle);
-  // The captions' button, on the player's pages; the lab's captions are the view menu's and `c` (UR2-12).
-  const captionsBtn = q<HTMLButtonElement>('[data-act="captions"]');
+  // The captions' button, on the player's pages; the lab's captions are the view menu's and `c`.
   if (page === 'lab') captionsBtn.remove();
   captionsBtn.addEventListener('click', () => {
     captions.on = !captions.on;
@@ -544,8 +556,7 @@ export const mountPreview = (
   }
   // The picture: a click plays or pauses; on Play a finger's tap while it
   // plays shows or hides the HUD instead (its ❚❚ pauses), as a phone's
-  // players do. Any other input on Play shows the HUD (`hud.ts`), for as long
-  // as the bar is on the page.
+  // players do. Any other input on Play shows the HUD (`hud.ts`, `playOn`).
   let pressedBy = 'mouse';
   canvas.addEventListener('pointerdown', (e) => {
     pressedBy = e.pointerType;
@@ -554,19 +565,48 @@ export const mountPreview = (
     if (onPlay() && playing && pressedBy !== 'mouse') hud.toggle();
     else toggle();
   });
-  if (page === 'player') {
-    const leaving = new AbortController();
-    const wake = (e: Event) => {
-      if (!bar.isConnected) return leaving.abort();
-      if (!onPlay()) return;
-      // A finger on the picture is the picture's tap, which toggles the HUD.
-      if (e instanceof PointerEvent && e.target === canvas && e.pointerType !== 'mouse') return;
+  /**
+   * The bar on Play, in `part` (the shell's Play part, the whole window):
+   * the HUD hears the viewer there, the page's own elements, and the keys
+   * through the page's one key listener, until the returned stop. A pointer
+   * moved or pressed shows it, but a finger on the picture, whose tap toggles
+   * it; so does any key pressed (bound or not, `Hub.presses`), any command
+   * the page runs (a menu's, ⌘K's), and the keyboard's
+   * focus landing on a control (Tab onto a faded one). The focus leaving a
+   * control restarts a shown HUD's wait and never shows it: a tap moves the
+   * focus before its click, and its meaning never depends on where the
+   * focus was.
+   */
+  const playOn = (part: HTMLElement): (() => void) => {
+    const listening = new AbortController();
+    const options = { capture: true, signal: listening.signal };
+    const pointed = (e: PointerEvent) => {
+      if (e.target === canvas && e.pointerType !== 'mouse') return;
       hud.wake();
     };
-    // The focus moving wakes it too: Tab landing on a faded control shows it,
-    // and the focus leaving the controls starts the wait again.
-    for (const type of ['pointermove', 'pointerdown', 'keydown', 'focusin', 'focusout'])
-      document.addEventListener(type, wake, { capture: true, signal: leaving.signal });
+    part.addEventListener('pointermove', pointed, options);
+    part.addEventListener('pointerdown', pointed, options);
+    part.addEventListener(
+      'focusin',
+      (e) => {
+        if (e.target instanceof Element && e.target.matches(':focus-visible')) hud.wake();
+      },
+      options,
+    );
+    part.addEventListener('focusout', () => hud.focusLeft(), options);
+    const unpressed = hub.presses(() => hud.wake());
+    const unheard = hub.receipts(() => hud.wake());
+    playPage = Option.some(part);
+    draw();
+    return () => {
+      listening.abort();
+      unpressed();
+      unheard();
+      playPage = Option.none();
+      hud.playing(false);
+    };
+  };
+  if (page === 'player') {
     // A film's ticks (hundreds of them) are off on Play until the viewer turns
     // them on (⋯ → Show the ticks), kept in this browser; their legend shows with them.
     const ticksKept = AtomRegistry.make();
@@ -588,8 +628,9 @@ export const mountPreview = (
     );
   }
   // The first frame: at once when the film's faces are in, else once they
-  // have loaded (the bar stands meanwhile). A face that will not load says so
-  // in place of the page, as a film that will not load does.
+  // have loaded (the bar stands meanwhile). A face that will not load fails
+  // the page, as a film that will not load does: the film stops, and the
+  // page ends and says why in its place (`fail`).
   Option.match(pictureFacesWait(document.fonts), {
     onNone: () => {
       drawable = true;
@@ -603,7 +644,14 @@ export const mountPreview = (
               draw();
             }),
           ),
-          Effect.catchCause((cause) => Effect.sync(() => showFailure(Cause.squash(cause)))),
+          Effect.catchCause((cause) =>
+            Effect.andThen(
+              Effect.sync(() => {
+                if (playing) toggle();
+              }),
+              fail(Cause.pretty(cause)),
+            ),
+          ),
         ),
       );
     },
@@ -648,11 +696,25 @@ export const mountPreview = (
       draw();
     },
     knobReads: () => reads,
-    onDraw: (listener) => {
-      listeners.push(listener);
+    playOn,
+    onDraw: drawnTo.add,
+    onMove: movedTo.add,
+  };
+};
+
+/** Listeners of T: each heard until its returned stop. */
+const listenersOf = () => {
+  const all: Array<(T: number) => void> = [];
+  return {
+    /** Call each with `T`, as they stand now: a listener that stops listening skips none of the rest. */
+    call: (T: number) => {
+      for (const listener of [...all]) listener(T);
+    },
+    add: (listener: (T: number) => void): (() => void) => {
+      all.push(listener);
       return () => {
-        const at = listeners.indexOf(listener);
-        if (at >= 0) listeners.splice(at, 1);
+        const at = all.indexOf(listener);
+        if (at >= 0) all.splice(at, 1);
       };
     },
   };

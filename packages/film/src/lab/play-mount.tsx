@@ -9,24 +9,18 @@
 // (`player/render.test.ts`).
 
 import { Place } from '@bible/url-state';
-import { Array as Arr, Effect, Match, Option, Schema } from 'effect';
-import { createSignal, onCleanup } from 'solid-js';
+import { Array as Arr, Effect, Match, Option } from 'effect';
+import { type Component, onSettled } from 'solid-js';
 import { Places, pageHref } from '../core/api.ts';
 import type { Placed } from '../core/layout.ts';
 import { type Host, addressOn } from '../browser/host.ts';
-import type { Hub } from '../command/hub.ts';
-import { type Films, type Player, mountPreview, showFailure, stageFilm } from '../player/main.ts';
+import { type Films, type Player, mountPreview, stageFilm } from '../player/main.ts';
 import { TIME_MOVE, onTheMs, type TimeInUrl } from '../player/t-in-url.ts';
-import { type FilmBody, PLAY_PAGE, playOn, playPartOf } from './film-page.tsx';
+import { type FilmBody, PLAY_PAGE, playOn, playPartOf, stagedBody } from './film-page.tsx';
 import { mountStudio } from './page-client.tsx';
-import { useShellTime } from './page-shell.tsx';
+import { usePlayerTime } from './page-shell.tsx';
 import { scenesOpensAt, withTime } from './scenes/place.ts';
 import { ScenesView } from './scenes/view.tsx';
-
-/** The page could not start: the film did not load, or the registry has no such film. */
-class PlayStartFailed extends Schema.TaggedError<PlayStartFailed>()('PlayStartFailed', {
-  reason: Schema.String,
-}) {}
 
 /** The play page's time: `#t=`, in film seconds. */
 const playTime = (name: string, host: Host): TimeInUrl => {
@@ -61,85 +55,80 @@ const scenesTime = (host: Host, placed: ReadonlyArray<Placed>): TimeInUrl => {
   };
 };
 
-/** The preview's stage and transport in the shell's body; its time is the header's timecode. */
+/**
+ * Play's body: the preview's stage and transport in the shell's body, its
+ * HUD hearing the viewer over the shell's Play part; its time is the
+ * header's timecode.
+ */
 const Preview = (props: { readonly player: Player; readonly stage: HTMLElement }) => {
-  const [at, setAt] = createSignal(props.player.now(), { ownedWrite: true });
-  onCleanup(
-    props.player.onDraw((T) => {
-      setAt(T);
-    }),
+  usePlayerTime(props.player);
+  let body = Option.none<HTMLElement>();
+  onSettled(() =>
+    Option.getOrUndefined(
+      Option.map(
+        Option.flatMap(body, (el) =>
+          Option.fromNullishOr(el.closest<HTMLElement>('[data-part="play"]')),
+        ),
+        props.player.playOn,
+      ),
+    ),
   );
-  useShellTime(at, props.player.film.fps);
   return (
     <div
       class="play-body"
       ref={(el: HTMLDivElement) => {
         el.append(props.stage, props.player.bar);
+        body = Option.some(el);
       }}
     />
   );
 };
 
-/** Nothing: the body of a page whose film did not start (the failure is the page's). */
-const NoBody = () => <></>;
+/** A part's time in the URL, and its body around the preview once mounted. */
+interface PartOf {
+  readonly time: TimeInUrl;
+  readonly view: (player: Player) => Component;
+}
 
 /**
  * The Scenes or Play page's body for `pages` over `host`: the film its path
  * names staged, its preview mounted on the page's commands, under the
- * Scenes' tape or on its own as the link says. A film that does not start
- * ends the page (`end`: its keys) and says why in its place.
+ * Scenes' tape or on its own as the link says. A film that does not start,
+ * or whose faces do not load, fails the page (`fail`: its keys end, and it
+ * says why in its place).
  */
-const playBody =
-  (pages: Films, host: Host, end: Effect.Effect<void>): FilmBody =>
-  (hub: Hub) =>
-    Effect.runPromiseWith(host)(
-      Effect.gen(function* () {
-        const address = addressOn(host);
-        const staged = yield* Effect.tryPromise({
-          try: () => stageFilm(pages, address.href()),
-          catch: (cause) => PlayStartFailed.make({ reason: String(cause) }),
-        });
-        const stage = staged.canvas.parentElement;
-        if (!(stage instanceof HTMLElement))
-          return yield* PlayStartFailed.make({ reason: 'the film has no stage' });
-        const part = playPartOf(address.href());
-        const player = mountPreview(
-          staged,
-          host,
-          Match.value(part).pipe(
-            Match.when('scenes', () => scenesTime(host, staged.film.placed)),
-            Match.orElse(() => playTime(staged.name, host)),
+const playBody = (pages: Films, host: Host, fail: (why: string) => Effect.Effect<void>): FilmBody =>
+  stagedBody(
+    host,
+    () => stageFilm(pages, addressOn(host).href()),
+    fail,
+    (staged, hub) => {
+      const part = playPartOf(addressOn(host).href());
+      const { time, view } = Match.value(part).pipe(
+        Match.when('scenes', (): PartOf => ({
+          time: scenesTime(host, staged.film.placed),
+          view: (player) => () => (
+            <ScenesView
+              name={staged.name}
+              player={player}
+              stage={staged.stage}
+              host={host}
+              hub={hub}
+            />
           ),
-          hub,
-        );
-        yield* Effect.logInfo(`play.mounted film=${staged.name} part=${part}`);
-        return {
-          default: () =>
-            Match.value(part).pipe(
-              Match.when('scenes', () => (
-                <ScenesView
-                  name={staged.name}
-                  player={player}
-                  stage={stage}
-                  host={host}
-                  hub={hub}
-                />
-              )),
-              Match.orElse(() => <Preview player={player} stage={stage} />),
-            ),
-        };
-      }).pipe(
-        Effect.catchTag('PlayStartFailed', (e) =>
-          Effect.andThen(
-            end,
-            Effect.sync(() => {
-              showFailure(e.reason);
-              return { default: NoBody };
-            }),
-          ),
-        ),
-      ),
-    );
+        })),
+        Match.orElse((): PartOf => ({
+          time: playTime(staged.name, host),
+          view: (player) => () => <Preview player={player} stage={staged.stage} />,
+        })),
+      );
+      const player = mountPreview(staged, host, time, hub, fail);
+      return Effect.as(
+        Effect.logInfo(`play.mounted film=${staged.name} part=${part}`),
+        view(player),
+      );
+    },
+  );
 
 /**
  * Mount a film's Scenes or Play page for `pages` (its films and their
@@ -152,5 +141,5 @@ export const mountPlay = (pages: Films): void =>
   mountStudio({
     page: PLAY_PAGE,
     event: 'play.shell',
-    on: (host, end) => playOn(host, Object.keys(pages), playBody(pages, host, end)),
+    on: (host, fail) => playOn(host, Object.keys(pages), playBody(pages, host, fail)),
   });

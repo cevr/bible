@@ -18,7 +18,7 @@ import { planKey } from './mixer.ts';
 import { project } from './project-cli.ts';
 import { Renderer } from './renderer.ts';
 import { Stamps, sceneStamps } from './stamp.ts';
-import { memoryFileSystem, reviewMedia, testFilm } from './testing.ts';
+import { memoryFileSystem, memoryLocks, reviewMedia, testFilm } from './testing.ts';
 
 const isVerbRefused = Schema.is(VerbRefused);
 
@@ -97,7 +97,7 @@ const servicesWith = (catalogue: Layer.Layer<RenderCatalogue, never, ContentStor
     catalogue,
   ).pipe(
     Layer.provideMerge(ContentStore.layer),
-    Layer.provideMerge(Layer.mergeAll(memoryFileSystem(new Map()), Path.layer)),
+    Layer.provideMerge(Layer.mergeAll(memoryFileSystem(new Map()), Path.layer, memoryLocks)),
   );
 
 /** `approve` renders nothing: its renderer is never built. */

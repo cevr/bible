@@ -11,8 +11,8 @@
 // registers them with its page's hub for as long as it lives, so the lab's
 // keys, ⌘K and the `?` sheet read them as they read the lab's own.
 
-import { Effect, Option } from 'effect';
-import { type Command, type Invocation, quiet } from '../command/command.ts';
+import { Option } from 'effect';
+import { type Command, type Invocation, quietly } from '../command/command.ts';
 import type { PageName } from '../core/api.ts';
 
 /** The frames a step moves by: one, ten with the coarse modifier, one with the fine one. */
@@ -39,13 +39,6 @@ const always = () => true;
 /** What play says, by whether the film plays. */
 const PLAY_LABEL: Readonly<Record<'true' | 'false', string>> = { true: 'Pause', false: 'Play' };
 
-/** Run `move` and answer quietly. */
-const doing = (move: () => void) => () =>
-  Effect.sync(() => {
-    move();
-    return quiet;
-  });
-
 /** How a phone plays and pauses, by page: on Play a tap while it plays shows the HUD (`hud.ts`). */
 const TOUCH_PLAY: Readonly<Record<PageName, string>> = {
   player: 'tap the film; while it plays, the bar’s ❚❚',
@@ -70,7 +63,7 @@ export const transportCommands = (page: PageName, transport: Transport): Readonl
     keys: ['space'],
     touch: TOUCH_PLAY[page],
     when: always,
-    run: doing(transport.toggle),
+    run: quietly(() => transport.toggle()),
   },
   {
     id: 'play.frame-next',
@@ -81,7 +74,7 @@ export const transportCommands = (page: PageName, transport: Transport): Readonl
     stepped: true,
     touch: 'long-press the film, then Next frame (or ×10)',
     when: always,
-    run: (_ctx, how) => doing(() => transport.stepFrames(FRAMES_BY_STEP[how.step]))(),
+    run: quietly((_ctx, how) => transport.stepFrames(FRAMES_BY_STEP[how.step])),
   },
   {
     id: 'play.frame-previous',
@@ -92,7 +85,7 @@ export const transportCommands = (page: PageName, transport: Transport): Readonl
     stepped: true,
     touch: 'long-press the film, then Previous frame (or ×10)',
     when: always,
-    run: (_ctx, how) => doing(() => transport.stepFrames(-FRAMES_BY_STEP[how.step]))(),
+    run: quietly((_ctx, how) => transport.stepFrames(-FRAMES_BY_STEP[how.step])),
   },
   {
     id: 'play.scene-next',
@@ -102,7 +95,7 @@ export const transportCommands = (page: PageName, transport: Transport): Readonl
     about: ['Page'],
     touch: 'long-press the film, then Next scene',
     when: always,
-    run: doing(transport.nextScene),
+    run: quietly(() => transport.nextScene()),
   },
   {
     id: 'play.scene-previous',
@@ -112,7 +105,7 @@ export const transportCommands = (page: PageName, transport: Transport): Readonl
     about: ['Page'],
     touch: 'long-press the film, then Scene start',
     when: always,
-    run: doing(transport.previousScene),
+    run: quietly(() => transport.previousScene()),
   },
   {
     id: 'view.captions',
@@ -121,7 +114,7 @@ export const transportCommands = (page: PageName, transport: Transport): Readonl
     keys: ['c'],
     touch: TOUCH_CAPTIONS[page],
     when: always,
-    run: doing(transport.toggleCaptions),
+    run: quietly(() => transport.toggleCaptions()),
   },
 ];
 
@@ -167,7 +160,9 @@ export const rateCommands = <R extends number>(rates: Rates<R>): ReadonlyArray<C
     keys: [key],
     touch: 'the rate chip',
     when: () => Option.isSome(step(by)),
-    run: doing(() => Option.map(step(by), rates.choose)),
+    run: quietly(() => {
+      Option.map(step(by), rates.choose);
+    }),
   });
   return [
     ...rates.all.map((rate): Command => ({
@@ -177,7 +172,7 @@ export const rateCommands = <R extends number>(rates: Rates<R>): ReadonlyArray<C
       keys: ['k'].filter(() => rate === 1),
       touch: 'the rate chip',
       when: () => rates.now() !== rate,
-      run: doing(() => rates.choose(rate)),
+      run: quietly(() => rates.choose(rate)),
     })),
     stepCommand('play.slower', 'Slower', 'j', -1),
     stepCommand('play.faster', 'Faster', 'l', 1),
@@ -210,7 +205,7 @@ export const ticksCommand = (ticks: Ticks): Command => ({
   keys: [],
   touch: 'the view menu (⋯), then Show the ticks',
   when: () => ticks.here(),
-  run: doing(ticks.toggle),
+  run: quietly(() => ticks.toggle()),
 });
 
 /** What the legend's command says, by whether the legend shows. */
@@ -262,5 +257,5 @@ export const legendCommand = (legend: Legend): Command => ({
   about: ['Page'],
   touch: 'hold the page, or the command menu',
   when: always,
-  run: doing(legend.toggle),
+  run: quietly(() => legend.toggle()),
 });

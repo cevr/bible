@@ -4,7 +4,7 @@
 // context its commands read (`context.ts`: the page's URL and what is
 // selected there, refined by whatever on the page knows more, such as
 // whether the film plays), the one key listener on the page (`listen`,
-// through `Keys`), and the receipts every command answers with, and those a
+// through `Keys`; every press heard, bound or not, `presses`), and the receipts every command answers with, and those a
 // page's writes announce as they land (`announce`: a drag's, a field's, a
 // say's), handed to whoever shows them, each in its slot (the command's id,
 // or the writer's name: a slot's next receipt replaces its last, so
@@ -55,6 +55,8 @@ export interface Hub {
   readonly invokeId: (id: CommandId, how: Invocation) => void;
   /** Hand every receipt to `sink`, with its slot, until the returned stop. */
   readonly receipts: (sink: (receipt: Receipt, slot: string) => void) => () => void;
+  /** Tell `listener` of every key pressed on the page, whatever the keymap does with it, until the returned stop. */
+  readonly presses: (listener: () => void) => () => void;
   /** Say `receipt` in `slot`: what a write no command ran said as it landed, or while it is out. */
   readonly announce: (receipt: Receipt, slot: string) => void;
   /** The viewer's keymap overrides, as kept. */
@@ -140,8 +142,10 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
   };
   const bindings = () => bindingsOf(commands.all(), kept.get());
 
-  /** One press, bound and run: whether the keymap took it (its default is then prevented). */
+  const pressHeard = new Set<() => void>();
+  /** One press, heard, then bound and run: whether the keymap took it (its default is then prevented). */
   const press = (pressed: KeyPress): boolean => {
+    for (const heard of pressHeard) heard();
     // A press inside a marked thing (a version's card, a variant's row) is about it too.
     const ctx = withFocused(context(focusOf(pressed.target)), targetAt(pressed.target));
     return Resolved.$match(resolve(pressed, ctx, commands.all(), bindings()), {
@@ -172,6 +176,10 @@ const hubOf = (page: PageName, href: () => string, store: StoreRuntime, mac: boo
     receipts: (sink) => {
       sinks.add(sink);
       return () => sinks.delete(sink);
+    },
+    presses: (listener) => {
+      pressHeard.add(listener);
+      return () => pressHeard.delete(listener);
     },
     announce,
     overrides: kept.get,

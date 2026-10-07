@@ -416,6 +416,7 @@ const waitingText = (beats: AsyncResult.AsyncResult<StudioBeats, LabFailure>) =>
  */
 export const Provider = (props: ParentProps) => {
   const { meta } = useLab();
+  const page = useLabPage();
   // Its own runtime over the page's one client: the panels' services know nothing of the studio.
   const runtime: StudioRuntime = Atom.runtime(
     Layer.mergeAll(
@@ -423,13 +424,21 @@ export const Provider = (props: ParentProps) => {
       studioApiLayer(meta.name),
       browserCaptureLayer,
       hostLayer(meta.host),
-    ).pipe(Layer.provide(useLabPage().client)),
+    ).pipe(Layer.provide(page.client)),
   );
   const reads: Reads = {
     runtime,
     beats: runtime.atom(StudioApi.use((api) => api.beats)),
   };
   const beats = useAtomValue(() => reads.beats);
+  // The panel hears the list this one read gives (the page's only read of
+  // the beats), so its mode and the recorder never disagree on a beat.
+  createEffect(
+    () => Option.map(AsyncResult.value(beats()), (b) => beatIds(b.beats)),
+    (listed) => {
+      Option.map(listed, page.beatsListed);
+    },
+  );
   // Read once: the link's later beats move the recorder spawned here (`linked`), never respawn it.
   const opened = addressOn(meta.host).href();
   const start = createMemo(() => Option.getOrUndefined(startBeat(beats(), opened)));

@@ -10,7 +10,7 @@ import { FilmUnknown } from '../core/refusals.ts';
 import { FilmFolder } from './film-repo.ts';
 import { notes } from './notes-cli.ts';
 import { NotesStore } from './notes-store.ts';
-import { memoryFileSystem, text } from './testing.ts';
+import { memoryFileSystem, memoryLocks, text } from './testing.ts';
 
 /** One film, `f`, under `/films`; notes under `/lab`. */
 const notesOver = (files: Map<string, Uint8Array>, folders: Set<string>) => {
@@ -19,6 +19,7 @@ const notesOver = (files: Map<string, Uint8Array>, folders: Set<string>) => {
     Layer.provide(ContentStore.layer),
     Layer.provideMerge([
       memoryFileSystem(files, folders),
+      memoryLocks,
       Path.layer,
       ConfigProvider.layer(ConfigProvider.fromUnknown({ FILMS_LAB: '/lab' })),
     ]),

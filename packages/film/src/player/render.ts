@@ -13,12 +13,12 @@ import type { Host } from '../browser/host.ts';
 import { BrowserHost } from '../browser/host-browser.ts';
 import { composeContact } from './contact.ts';
 import { composeStill } from './still.ts';
-import { bytesBase64, canvasBase64, canvasLuma } from './dom.ts';
+import { bytesBase64, canvasBase64, canvasLuma, showFailure } from './dom.ts';
 import { encodeChunk, encoderChoice } from './encode.ts';
 import { pictureFacesWait } from './face.ts';
 import { composeLookbook } from './lookbook-sheet.ts';
 import { lookFrames } from './look-frames.ts';
-import { type Films, type Staged, showFailure, stageFilm } from './main.ts';
+import { type Films, type Staged, stageFilm } from './main.ts';
 
 declare global {
   interface Window {

@@ -154,6 +154,30 @@ describe("a film's pages served as the lab renders them", () => {
       SLOW,
     );
 
+  for (const { name, page: served, part } of [
+    { name: 'Scenes', page: 'player', part: 'scenes' },
+    { name: 'Lab', page: 'lab', part: 'lab' },
+  ] as const)
+    it.live(
+      `${name} on a scene's path: the tab's title names the scene first, served and hydrated`,
+      () =>
+        Effect.gen(function* () {
+          const { page, documents } = yield* openServed(
+            served,
+            [
+              route('GET', /^\/notes$/, () => json({ film: PROBE, seq: 0, notes: [] })),
+              route('GET', /^\/api\/review\/build\?/, () => hold),
+            ],
+            { href: `/films/${PROBE}/${part}/two`, viewport: DESK },
+          );
+          const title = `two · ${name} · ${PROBE}`;
+          expect(yield* servedTitle(page, documents[0]?.html ?? '')).toBe(title);
+          yield* until(page, `document.querySelector('.stage canvas') !== null`);
+          yield* evaluates(page, 'document.title', title);
+        }).pipe(Effect.scoped),
+      SLOW,
+    );
+
   for (const { where, viewport, first, shows } of LAB_WINDOWS)
     it.live(
       `Lab on ${where}: the server's document holds the panel, each tool's section and the film's notes as the server read them, none of the film; the browser adopts the notes, reads them no second time, and puts the film's tools in the panel; no control the server painted moves`,

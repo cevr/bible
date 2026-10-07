@@ -76,9 +76,24 @@ describe('makeHud', () => {
     expect(hud.shown()).toBe(true);
     // The focus leaves the controls: they fade a wait later.
     focus.held = false;
-    hud.wake();
+    hud.focusLeft();
+    clock.advance(HUD_IDLE_MS - 1);
+    expect(hud.shown()).toBe(true);
+    clock.advance(1);
+    expect(hud.shown()).toBe(false);
+  });
+
+  test('the focus leaving a control never shows faded controls, so the tap that moved it is the picture’s toggle', () => {
+    const { hud, clock, said } = hudOn();
+    hud.playing(true);
     clock.advance(HUD_IDLE_MS);
     expect(hud.shown()).toBe(false);
+    hud.focusLeft();
+    expect(hud.shown()).toBe(false);
+    expect(clock.pending()).toBe(0);
+    hud.toggle();
+    expect(hud.shown()).toBe(true);
+    expect(said).toEqual([false, true]);
   });
 
   test('the film standing shows them and stops the wait; playing again, the same frames say nothing', () => {
