@@ -773,6 +773,15 @@ export const PlayedAlone = (
 ) => {
   const { meta } = useReview();
   const [retried, setRetried] = createSignal<Option.Option<Try>>(Option.none());
+  // The play a press on a failed picture asked for: the retry's element's alone, taken once
+  // as that element starts (a source switched away and back is a new try, which plays only
+  // if the clock plays).
+  let asked = Option.none<Try>();
+  const takeAsked = (at: Try) => {
+    const mine = Option.exists(asked, (a) => a.src === at.src && a.n === at.n);
+    if (mine) asked = Option.none();
+    return mine;
+  };
   // A new source is its first try; the same source keeps its retries.
   const current = createMemo((): Try => ({
     src: props.src,
@@ -808,14 +817,16 @@ export const PlayedAlone = (
               onClick={() => {
                 if (!failed()) return send(SyncEvent.Toggled);
                 const at = untrack(current);
-                setRetried(Option.some({ src: at.src, n: at.n + 1 }));
+                const next = { src: at.src, n: at.n + 1 };
+                asked = Option.some(next);
+                setRetried(Option.some(next));
               }}
             >
               <Show when={current()} keyed>
                 {(at: Try) => {
                   const ref = useClockMedia(driver, ALONE);
-                  // A retry plays as it starts: the press asked for it.
-                  if (at.n > 0) onSettled(() => send(SyncEvent.Toggled));
+                  // A retry plays as it starts: the press asked for it, once.
+                  if (takeAsked(at)) onSettled(() => send(SyncEvent.Toggled));
                   return (
                     <video
                       preload="metadata"

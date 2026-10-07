@@ -477,6 +477,48 @@ describe('the review page', () => {
   );
 
   it.live(
+    "a retry's play is the retry's alone: once its proxy plays, the originals and the proxy again keep it playing",
+    () =>
+      Effect.gen(function* () {
+        // A phone plays the proxy; its first ask finds the server unavailable, the next the file.
+        let asks = 0;
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/index/, () => json(indexOf(walkOf('ready')))),
+            route('GET', /^\/api\/review\/phone\/out\/art\/walk\.mp4/, () => {
+              asks += 1;
+              if (asks === 1) return text('unavailable', 503);
+              return TONE;
+            }),
+            ...routes,
+          ],
+          { href: FOLDER, viewport: { width: 390, height: 844 } },
+        );
+        const playing = `!${LONE_VIDEO}.paused && ${LONE_VIDEO}.currentTime > 0.5`;
+        const pause = `${LONE_ROW} [data-act="play"]`;
+        yield* textIs(page, LONE_FAILED, CANNOT_PLAY);
+        yield* page.click(`${LONE} [data-act="play-video"]`);
+        yield* until(page, playing);
+        for (const [quality, src] of [
+          ['play the originals', '/api/review/files/'],
+          ['play the proxies', '/api/review/phone/'],
+        ] as const) {
+          yield* openCommandMenu(page, quality);
+          yield* page.click(menuEntry('review.quality'));
+          yield* until(page, `${LONE_VIDEO}.src.includes('${src}')`);
+          yield* until(page, playing);
+          yield* textIs(page, pause, '❚❚');
+        }
+        // Still playing a beat later: no play asked again turns it off.
+        yield* page.clock.runFor(500);
+        yield* evaluates(page, `${LONE_VIDEO}.paused`, false);
+        yield* textIs(page, pause, '❚❚');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
     'a loose video keeps its place when the page plays the originals: the original stands where the proxy stood, playing',
     () =>
       Effect.gen(function* () {
