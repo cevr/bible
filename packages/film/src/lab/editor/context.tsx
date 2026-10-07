@@ -21,7 +21,15 @@ import * as ActorAtom from 'effect-machine/atom';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
 import * as Atom from 'effect/reactivity/Atom';
 import type { Accessor, ParentProps } from 'solid-js';
-import { createContext, createEffect, createMemo, onCleanup, untrack, useContext } from 'solid-js';
+import {
+  createContext,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  untrack,
+  useContext,
+} from 'solid-js';
 import { Pointer, Surface } from '../../browser/pointer.ts';
 import { keptText } from '../../browser/storage.ts';
 import { ViewerStore } from '../../browser/storage-browser.ts';
@@ -68,6 +76,8 @@ interface EditorState {
   readonly inspectedSource: Accessor<SourceKnown>;
   /** The film's check as the page loaded: findings, the latest change, what Undo and Redo would do. */
   readonly report: Accessor<Option.Option<CheckReport>>;
+  /** Whether `report`'s Undo and Redo are still the newest the page knows: false once it has changed the stack. */
+  readonly stackCurrent: Accessor<boolean>;
   /** Whether a grip follows a press now (Pressed or Dragging): the strip offers Cancel while it does. */
   readonly holding: Accessor<boolean>;
   /** The inspector's fields of a cue or knob, as the lab holds it now (`grip.ts`). */
@@ -345,13 +355,16 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
   );
 
   // The changes this page's writes and steps made: the history it read at load predates them.
-  const madeHere = new Set<ChangeId>();
+  const [madeHere, setMadeHere] = createSignal<ReadonlySet<ChangeId>>(new Set());
   createEffect(
     () => edit(),
     (state) => {
-      if (state._tag === 'Written') Option.map(state.change, (c) => madeHere.add(c));
+      if (state._tag === 'Written')
+        Option.map(state.change, (c) => setMadeHere((made) => new Set([...made, c])));
     },
   );
+  // The stack as the page read it names what Undo and Redo step until the page changes it.
+  const stackCurrent = createMemo(() => madeHere().size === 0);
 
   // Each step is its own request, with an id no other has: with no answer, the lab says by it
   // whether it landed. A receipt's names its change, so the lab steps that one or refuses.
@@ -449,6 +462,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
     meta.hub.commands.register(
       ...editorCommands({
         undoable: (verb) => Option.flatMap(report(), (r) => Option.fromUndefinedOr(r[verb])),
+        stackCurrent,
         // A change this page made since it read the history is one that history cannot
         // know: judged as unread, so the lab decides (it reloads onto the history soon).
         whyNot: (verb, bound) =>
@@ -457,7 +471,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
             meta.name,
             Option.filter(
               report(),
-              () => !Option.exists(boundChange(bound), (c) => madeHere.has(c)),
+              () => !Option.exists(boundChange(bound), (c) => madeHere().has(c)),
             ),
           )(bound),
         step,
@@ -488,6 +502,7 @@ const Body = (props: ParentProps<{ readonly actor: EditActor }>) => {
       stripSource,
       inspectedSource,
       report,
+      stackCurrent,
       holding,
       fieldsOf: fieldsAt,
       snap,

@@ -1006,7 +1006,7 @@ describe('the inspector', () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live('Undo asks the server to undo, as a request of its own, and says what it undid', () =>
+  it.live('Undo asks the server to undo the change it names, and says what it undid', () =>
     Effect.gen(function* () {
       const report = {
         findings: [{ level: 'warning', tag: 'late', message: 'rise ends after the scene' }],
@@ -1033,11 +1033,15 @@ describe('the inspector', () => {
       yield* statusSays(page, 'undid cue rise offset in scenes/one.ts');
       // An Undo is undone by Redo.
       yield* textIs(page, '[data-receipt="edit"] [data-act="receipt-undo"]', 'Redo');
-      // With an id unique to the request: the one a check asks after when it has no answer.
+      // With an id unique to the request (the one a check asks after when it has no answer),
+      // naming the change its title names, so a newer change another client made is refused.
       expect(posted(asked)).toEqual([
         {
           path: '/undo',
-          body: Option.some({ request: expect.stringMatching(/^[0-9a-z]+-[0-9a-z]+$/) }),
+          body: Option.some({
+            request: expect.stringMatching(/^[0-9a-z]+-[0-9a-z]+$/),
+            change: 'k1',
+          }),
         },
       ]);
     }).pipe(Effect.scoped),

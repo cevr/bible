@@ -42,7 +42,9 @@ const held = EditState.Pressed({ grip, note: '' });
 const commandsIn = (state: EditState, more: Partial<Parameters<typeof editorCommands>[0]> = {}) => {
   const stepped: Array<string> = [];
   const commands = editorCommands({
-    undoable: () => Option.some({ target: 'cue rise offset in scenes/one.ts' }),
+    undoable: () =>
+      Option.some({ target: 'cue rise offset in scenes/one.ts', change: ChangeId.make('c-0') }),
+    stackCurrent: () => true,
     whyNot: () => Option.none(),
     step: (verb) => void stepped.push(verb),
     notTaken: (asked) => notTaken(state, asked),
@@ -93,6 +95,34 @@ describe('Undo while the machine cannot step', () => {
     const { undo, stepped } = commandsIn(EditState.Idle({ note: '' }));
     expect(Effect.runSync(undo.run(ctx, BY_BUTTON))).toEqual(quiet);
     expect(stepped).toEqual(['undo']);
+  });
+});
+
+describe('Undo by key or button steps the change its label names', () => {
+  /** The steps taken, each its verb and the change it named (`newest` for none). */
+  const stepsOf = (stackCurrent: boolean) => {
+    const stepped: Array<string> = [];
+    const { undo } = commandsIn(EditState.Idle({ note: '' }), {
+      undoable: () => Option.some({ target: 'cue rise offset', change: ChangeId.make('c-rise') }),
+      stackCurrent: () => stackCurrent,
+      step: (verb, change) =>
+        void stepped.push(`${verb} ${Option.getOrElse(change, () => 'newest')}`),
+    });
+    return { undo, stepped };
+  };
+
+  test('a voice pick from another client since the history was read: the step names the cue, so the lab refuses it rather than undo the pick', () => {
+    const { undo, stepped } = stepsOf(true);
+    expect(undo.labelIn?.(ctx)).toBe('Undo cue rise offset');
+    expect(Effect.runSync(undo.run(ctx, BY_BUTTON))).toEqual(quiet);
+    expect(stepped).toEqual(['undo c-rise']);
+  });
+
+  test('a change this page made since it read the history: the label names none, and the step is the newest', () => {
+    const { undo, stepped } = stepsOf(false);
+    expect(undo.labelIn?.(ctx)).toBe('Undo');
+    Effect.runSync(undo.run(ctx, BY_BUTTON));
+    expect(stepped).toEqual(['undo newest']);
   });
 });
 

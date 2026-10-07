@@ -169,11 +169,20 @@ export const History = () => {
     Option.flatMap(state.report(), (r) => Option.fromUndefinedOr(r[verb]));
   // Each names its key as bound now: a rebound key reads as rebound.
   const keys = hubKeys(meta.hub);
+  // It names what the step will take: the stack's top as the page read it, the newest once
+  // the page has changed the stack since (`edit.undo`'s label says the same).
   const title = (verb: 'undo' | 'redo') =>
     keys.titled(
       Option.match(stepOf(verb), {
         onNone: () => `${verb} (nothing to ${verb})`,
-        onSome: (s) => `${verb} ${s.target}`,
+        onSome: (s) =>
+          Option.match(
+            Option.liftPredicate(s.target, () => state.stackCurrent()),
+            {
+              onNone: () => verb,
+              onSome: (target) => `${verb} ${target}`,
+            },
+          ),
       }),
       `edit.${verb}`,
     );

@@ -41,8 +41,12 @@ import type { StepVerb } from '../api.ts';
 
 /** What the editor's commands drive. */
 interface EditorVerbs {
-  /** What the server's stack would undo or redo now (its target), if anything. */
-  readonly undoable: (verb: StepVerb) => Option.Option<{ readonly target: string }>;
+  /** What the server's stack would undo or redo now (its target and change), as the page read it, if anything. */
+  readonly undoable: (
+    verb: StepVerb,
+  ) => Option.Option<{ readonly target: string; readonly change: ChangeId }>;
+  /** Whether the stack as the page read it is still the newest it knows: false once the page has changed it. */
+  readonly stackCurrent: () => boolean;
   /** Why a step of `verb` cannot take the change `bound` names (a receipt's), or none when it can. */
   readonly whyNot: (verb: StepVerb, bound: Bound) => Option.Option<Unfit>;
   /** Undo or Redo `change` (a receipt's), or the newest with none. */
@@ -113,11 +117,20 @@ const toSelect = (verbs: EditorVerbs, ctx: Context): Option.Option<LabSelection>
     (s) => !Option.exists(verbs.selected(), (now) => sameSelection(now, s)),
   );
 
+/**
+ * The change an Undo or Redo by key or header button names: the one the
+ * stack as the page read it would step, so the lab steps it or refuses
+ * (another client's change came after it); none once the page has changed
+ * the stack since, when the step is the newest and its label names none.
+ */
+const named = (verbs: EditorVerbs, verb: StepVerb) =>
+  Option.filter(verbs.undoable(verb), () => verbs.stackCurrent());
+
 const stepCommand = (verbs: EditorVerbs, verb: StepVerb, label: string, key: string): Command => ({
   id: `edit.${verb}`,
   label,
   labelIn: () =>
-    Option.match(verbs.undoable(verb), {
+    Option.match(named(verbs, verb), {
       onNone: () => label,
       onSome: (s) => `${label} ${s.target}`,
     }),
@@ -138,7 +151,12 @@ const stepCommand = (verbs: EditorVerbs, verb: StepVerb, label: string, key: str
       Option.match(verbs.notTaken(verb), {
         onSome: (why) => refused(`${verb} not taken: ${why}`),
         onNone: () => {
-          verbs.step(verb, Option.flatMap(Option.fromUndefinedOr(how.bound), boundChange));
+          verbs.step(
+            verb,
+            Option.orElse(Option.flatMap(Option.fromUndefinedOr(how.bound), boundChange), () =>
+              Option.map(named(verbs, verb), (s) => s.change),
+            ),
+          );
           return quiet;
         },
       }),

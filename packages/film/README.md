@@ -1149,8 +1149,14 @@ else refuses (`StepNotNewest`, 409). A command with no `fits` acts on no
 single change, so a bound receipt never runs it. There is no unbound Undo
 (`said` takes an `Undoing`, the command with its change): a write that
 made no change (a value already so, whose answer names no change) says so
-(`cue rise offset 0.433 → 0.433 s (already so)`) and offers none, since a step that names no change steps whatever is newest, an
-earlier write's or another film's. A done receipt
+(`cue rise offset 0.433 → 0.433 s (already so)`) and offers none, since a
+step that names no change steps whatever is newest, an earlier write's or
+another film's. Undo and Redo by key or the editor's header name the
+change their label names (the stack's top as the page read it), so a
+change another client made since (a voice pick, a studio keep) is refused
+(`StepNotNewest`) rather than stepped in its place; once the page has
+changed the stack itself, before it reloads onto the new history, the
+label names none and the step is the newest. A done receipt
 shows 5 s, a refusal 10 s, a busy one until replaced. The lab reloads after
 a scene write; the receipts showing as the page hides are kept in the tab
 (`film-receipts` in `TabStore`, for the same page: the lab's film, or the
