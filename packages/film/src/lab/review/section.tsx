@@ -49,7 +49,7 @@ import {
 } from '../../core/api.ts';
 import { served } from '../api.ts';
 import { StateBand } from '../scenes/card.tsx';
-import { filmCounts, marksOf } from '../scenes/marks.ts';
+import { filmCounts, filmLength, marksOf } from '../scenes/marks.ts';
 import { ReviewApi } from './api.ts';
 import { OptionsApi } from './options/api.ts';
 import { newestAsked } from './asked.ts';
@@ -199,8 +199,9 @@ const Section = (props: {
 );
 
 /**
- * A film's state on its card, as its Project's head says it (SU-8): the
- * state band and `n/N approved · n out of date`, from the film's project,
+ * A film's state on its card, as its Project's head says it (SU-8): its
+ * length and scenes (`8:46 · 20 scenes`, `filmLength`), the state band and
+ * `n/N approved · n out of date`, from the film's project,
  * read for the card (by the server, sent with the page). Its band marks the
  * renders and approvals; the check's findings are Project's. Nothing while
  * the project is read or when the film has none.
@@ -217,6 +218,9 @@ const FilmState = (props: { readonly film: string }) => {
     <Show when={Option.getOrUndefined(AsyncResult.value(read()))}>
       {(view: Accessor<ProjectView>) => (
         <>
+          <div class="rv-film-length" data-role="length">
+            {filmLength(view().project.scenes)}
+          </div>
           <StateBand
             scenes={view().project.scenes}
             marks={(scene) => marksOf(Option.some(view()), [], [])(scene)}

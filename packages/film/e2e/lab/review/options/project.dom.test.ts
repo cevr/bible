@@ -1278,6 +1278,13 @@ describe("a film's project", () => {
         // A film card says the film's state as its project's head does: the band (renders and
         // approvals) and the counts (SU-8).
         const card = '.rv-film-card[data-film="toy"]';
+        // Over the band, its length (the last scene's end, to the second) and its scenes.
+        yield* textIs(page, `${card} [data-role="length"]`, '0:15 · 4 scenes');
+        yield* evaluates(
+          page,
+          `document.querySelector('${card} [data-role="length"]').nextElementSibling.classList.contains('pj-band')`,
+          true,
+        );
         yield* waitFor(page, `${card} .pj-band [data-scene]`);
         yield* attributesAre(page, `${card} .pj-band [data-scene]`, 'data-state', [
           'none',

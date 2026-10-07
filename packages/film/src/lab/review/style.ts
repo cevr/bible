@@ -225,7 +225,7 @@ a.rv-card:hover { background: var(--surface-2); }
 .pj-film-head .sh-btn { position: relative; min-height: var(--control-h); }
 .pj-film-head .sh-btn::before { content: ''; position: absolute; left: 0; right: 0;
   top: min(0px, calc((var(--control-h) - var(--hit)) / 2)); bottom: min(0px, calc((var(--control-h) - var(--hit)) / 2)); }
-.pj-film-length, .pj-film-counts, .rv-film-counts { color: var(--text-2); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
+.pj-film-length, .pj-film-counts, .rv-film-length, .rv-film-counts { color: var(--text-2); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
 /* A Films card's band sits between the film's name and its counts. */
 .rv-film-card .pj-band { margin: var(--s-2) 0; }
 /* A segment a scene in its hue, its state a foot of the state's colour, a dot when it has findings. */

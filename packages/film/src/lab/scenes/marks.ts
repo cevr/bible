@@ -203,6 +203,25 @@ export const chipsOf = (marks: SceneMarks): ReadonlyArray<MarkChip> => {
 };
 
 /**
+ * A film's length and its scenes, as a Films card says it over its band:
+ * `8:46 · 20 scenes`. The length is where its last scene ends (the latest
+ * start + dur among the scenes that say where they sit), to the second; a
+ * film none of whose scenes says so is its scenes alone.
+ */
+export const filmLength = (scenes: ReadonlyArray<ProjectScene>): string => {
+  const ends = Arr.getSomes(scenes.map((s) => Option.map(s.span, (p) => p.start + p.dur)));
+  const last = Arr.match(ends, {
+    onEmpty: () => Option.none<number>(),
+    onNonEmpty: (all) => Option.some(Math.max(...all)),
+  });
+  const length = Option.map(last, (end) => {
+    const seconds = Math.round(end);
+    return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  });
+  return [...Option.toArray(length), counted(scenes.length, 'scene')].join(' · ');
+};
+
+/**
  * A film's scenes summed up in the chips' words, as Project's head and a
  * Films card say it: `0/4 approved · 1 out of date · 1 not rendered`, the
  * last two left out at 0.

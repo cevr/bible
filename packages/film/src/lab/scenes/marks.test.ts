@@ -9,7 +9,15 @@ import { Option, Result } from 'effect';
 import type { ProjectView } from '../../core/api.ts';
 import type { ProjectScene } from '../../core/catalogue.ts';
 import type { CheckLine } from '../../core/schema.ts';
-import { bandState, checkCount, chipsOf, filmCounts, legendOf, marksOf } from './marks.ts';
+import {
+  bandState,
+  checkCount,
+  chipsOf,
+  filmCounts,
+  filmLength,
+  legendOf,
+  marksOf,
+} from './marks.ts';
 
 const scene = (
   id: string,
@@ -181,6 +189,28 @@ describe('marksOf', () => {
     // numbers add up to the chip's (one word, `findings`, for every line of the check).
     expect(checkCount(lines)).toEqual({ errors: 0, warnings: 21 });
     expect(legend.reduce((sum, l) => sum + Number(l.text.split(' ').at(-1)), 0)).toBe(21);
+  });
+});
+
+describe('filmLength', () => {
+  const placed = (id: string, start: number, dur: number): ProjectScene => ({
+    ...scene(id, 'current'),
+    span: Option.some({ start, dur }),
+  });
+
+  test("a film's length is where its last scene ends, to the second, then its scenes", () => {
+    const scenes = Array.from({ length: 20 }, (_, i) => placed(`s${i}`, i * 26.3, 26.3));
+    expect(filmLength(scenes)).toBe('8:46 · 20 scenes');
+  });
+
+  test('a scene that does not say where it sits is counted, never measured', () => {
+    expect(filmLength([placed('a', 0, 4), scene('b', 'missing'), placed('c', 4, 5.4)])).toBe(
+      '0:09 · 3 scenes',
+    );
+  });
+
+  test('no scene says where it sits: its scenes alone, one said as one', () => {
+    expect(filmLength([scene('a', 'current')])).toBe('1 scene');
   });
 });
 
