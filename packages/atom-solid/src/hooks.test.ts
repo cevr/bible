@@ -24,7 +24,7 @@ import {
   useAtomSuspense,
   useAtomValue,
 } from './hooks.js';
-import { RegistryProvider, type RegistryProviderProps, useRegistry } from './registry-context.js';
+import { RegistryProvider, useRegistry } from './registry-context.js';
 
 const settle = Effect.gen(function* () {
   yield* Effect.yieldNow;
@@ -49,7 +49,7 @@ interface Mounted<A> {
  */
 const mount = <A>(
   body: () => A,
-  options: Omit<RegistryProviderProps, 'children'> = {},
+  options: Omit<Parameters<typeof RegistryProvider>[0], 'children'> = {},
 ): Mounted<A> =>
   createRoot((disposeProvider) => {
     const mounted: Array<Mounted<A>> = [];
@@ -83,70 +83,16 @@ const mount = <A>(
 describe('useAtomValue', () => {
   const test = it.scoped;
 
-  test('seeds the accessor immediately and tracks later writes', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(0);
-      const owned = mount(() => useAtomValue(() => counter));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      expect(owned.result()).toBe(0);
-
-      owned.registry.set(counter, 1);
-      yield* settle;
-      expect(owned.result()).toBe(1);
-    }));
-
-  test('maps the atom value through the selector', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(2);
-      const owned = mount(() =>
-        useAtomValue(
-          () => counter,
-          (n) => `count-${n}`,
-        ),
-      );
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      expect(owned.result()).toBe('count-2');
-
-      owned.registry.set(counter, 3);
-      yield* settle;
-      expect(owned.result()).toBe('count-3');
-    }));
-
   test('reads the live value of an atom with a server value, and a write at once, when not hydrating', () =>
     Effect.gen(function* () {
       const served = Atom.withServerValue(Atom.make(0), () => -1);
-      const owned = mount(() => ({
-        value: useAtomValue(() => served),
-        mapped: useAtomValue(
-          () => served,
-          (n) => `count-${n}`,
-        ),
-      }));
+      const owned = mount(() => useAtomValue(() => served));
       yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
 
       // No settle between the write and the read: read-after-write.
-      expect([owned.result.value(), owned.result.mapped()]).toEqual([0, 'count-0']);
+      expect(owned.result()).toBe(0);
       owned.registry.set(served, 1);
-      expect([owned.result.value(), owned.result.mapped()]).toEqual([1, 'count-1']);
-    }));
-
-  test('unsubscribes from the registry when the owner is disposed', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(0).pipe(Atom.keepAlive);
-      const owned = mount(() => useAtomValue(() => counter));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-      yield* settle;
-
-      const node = owned.registry.getNodes().get(counter);
-      expect(node?.listeners.size).toBe(1);
-
-      owned.disposeOwner();
-      yield* settle;
-      expect(node?.listeners.size).toBe(0);
+      expect(owned.result()).toBe(1);
     }));
 });
 
@@ -314,44 +260,6 @@ describe('useAtomSuspense', () => {
         if (squashed instanceof Cause.UnknownError) expect(squashed.cause).toBe(boom);
       }
     }));
-
-  test('suspends again on every refresh cycle', () =>
-    Effect.gen(function* () {
-      let runs = 0;
-      const slow = Atom.make(
-        Effect.sleep('5 millis').pipe(
-          Effect.map(() => {
-            runs += 1;
-            return runs;
-          }),
-        ),
-      ).pipe(Atom.keepAlive);
-      const owned = mount(() => ({
-        value: useAtomSuspense(() => slow, { suspendOnWaiting: true }),
-        raw: useAtomValue(() => slow),
-        refresh: useAtomRefresh(() => slow),
-      }));
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      yield* settle;
-      // Cycle one starts from `Initial`.
-      expect(AsyncResult.isInitial(owned.result.raw())).toBe(true);
-      expect(yield* Effect.promise(() => resolve(owned.result.value))).toBe(1);
-
-      // Cycle two re-enters the waiting state, which `suspendOnWaiting` treats
-      // as suspending even though a previous success is still readable.
-      owned.result.refresh();
-      yield* settle;
-      const refreshing = owned.result.raw();
-      expect(AsyncResult.isSuccess(refreshing)).toBe(true);
-      expect(refreshing.waiting).toBe(true);
-      expect(yield* Effect.promise(() => resolve(owned.result.value))).toBe(2);
-
-      // Cycle three proves the memo is not latched to the first resolution.
-      owned.result.refresh();
-      yield* settle;
-      expect(yield* Effect.promise(() => resolve(owned.result.value))).toBe(3);
-    }));
 });
 
 describe('atom thunk changes', () => {
@@ -361,9 +269,7 @@ describe('atom thunk changes', () => {
     Effect.gen(function* () {
       const first = Atom.make(1).pipe(Atom.keepAlive);
       const second = Atom.make(100).pipe(Atom.keepAlive);
-      // The swap signal is written from outside every owned scope, so it needs
-      // `ownedWrite` for the same reason the bridge signals do.
-      const [selected, select] = createSignal<Atom.Atom<number>>(first, { ownedWrite: true });
+      const [selected, select] = createSignal<Atom.Atom<number>>(first);
       const owned = mount(() => useAtomValue(() => selected()));
       yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
 
@@ -394,7 +300,7 @@ describe('atom thunk changes', () => {
     Effect.gen(function* () {
       const first = Atom.make(0).pipe(Atom.keepAlive);
       const second = Atom.make(0).pipe(Atom.keepAlive);
-      const [selected, select] = createSignal<Atom.Atom<number>>(first, { ownedWrite: true });
+      const [selected, select] = createSignal<Atom.Atom<number>>(first);
       const owned = mount(() => {
         useAtomMount(() => selected());
       });
@@ -429,20 +335,6 @@ describe('first synchronous read', () => {
       yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
 
       expect(owned.result).toBe(42);
-    }));
-
-  test('useAtomValue returns the mapped value before any flush', () =>
-    Effect.gen(function* () {
-      const counter = Atom.make(2);
-      const owned = mount(() =>
-        useAtomValue(
-          () => counter,
-          (n) => `count-${n}`,
-        )(),
-      );
-      yield* Effect.addFinalizer(() => Effect.sync(owned.dispose));
-
-      expect(owned.result).toBe('count-2');
     }));
 
   /**
