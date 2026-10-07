@@ -350,6 +350,7 @@ describe('ContentStore', () => {
       const noneRunning = Effect.provideService(Processes, {
         host: 'here',
         alive: () => Effect.succeed(false),
+        startOf: () => Effect.succeedNone,
       });
       // Pid 4242 on another host: whether it runs cannot be known from here.
       files.set(lock, text(heldOn('elsewhere')));
@@ -368,6 +369,57 @@ describe('ContentStore', () => {
       expect(files.has(lock)).toBe(false);
       expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['x']);
     }).pipe(Effect.scoped),
+  );
+
+  it.effect('a lock whose pid now runs a process started since was left by a crash', () =>
+    Effect.gen(function* () {
+      const files = new Map<string, Uint8Array>();
+      const store = yield* storeOn(files);
+      const lock = lockFile(assets.file);
+      const takenBy = (started: string) =>
+        Schema.encodeSync(LockOwnerJson)({
+          pid: 4242,
+          host: 'here',
+          created: 0,
+          token: 't',
+          started,
+        });
+      // Pid 4242 runs, as a process that started at tick 900 of this boot.
+      const reused = Effect.provideService(Processes, {
+        host: 'here',
+        alive: () => Effect.succeed(true),
+        startOf: () => Effect.succeedSome('boot/900'),
+      });
+      // Taken by that very process: it holds.
+      files.set(lock, text(takenBy('boot/900')));
+      const refused = yield* waited(Effect.flip(reused(store.update(assets, (m) => m))));
+      expect(refused._tag).toBe('StoreLocked');
+      // Taken by the pid's earlier process, started at tick 100, which crashed: broken.
+      files.set(lock, text(takenBy('boot/100')));
+      yield* waited(reused(store.update(assets, withAsset('x'))));
+      expect(files.has(lock)).toBe(false);
+      expect(Object.keys((yield* store.read(assets)).assets)).toEqual(['x']);
+    }).pipe(Effect.scoped),
+  );
+
+  it.live('the lock a change holds on disk names when its process started, as this host says', () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const dir = yield* fs.makeTempDirectoryScoped();
+      const shared = { ...assets, file: `${dir}/assets.json` };
+      const store = yield* Effect.map(Layer.build(ContentStore.layer), Context.get(ContentStore));
+      const held = yield* store.transact(shared, (m) =>
+        Effect.map(
+          fs.readFileString(lockFile(shared.file)),
+          (lock) => [Schema.decodeSync(LockOwnerJson)(lock), m] as const,
+        ),
+      );
+      const started = yield* (yield* Processes).startOf(process.pid);
+      // This host (Linux, /proc) says, and says the same of one process each time.
+      expect(Option.isSome(started)).toBe(true);
+      expect(Option.fromUndefinedOr(held.started)).toEqual(started);
+      expect(yield* (yield* Processes).startOf(process.pid)).toEqual(started);
+    }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
   );
 
   test('a lock is stale only once its holder is gone; a running one holds however old, and another host is never judged', () => {

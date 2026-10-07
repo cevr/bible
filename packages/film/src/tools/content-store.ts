@@ -10,8 +10,9 @@
 // (`<file>.lock`) created only if there is none, for its read, its change and
 // its write; fibers of one process queue on a semaphore per file first. The
 // lock names its holder (pid, host, when taken, a token no other taking in
-// its process has), so no two takings write the same lock: a lock whose holder
-// is gone (a pid on this host that no longer runs) was left by a crash, and
+// its process has, when its process started), so no two takings write the
+// same lock: a lock whose holder is gone (a pid on this host that no longer
+// runs, or now runs a process started since) was left by a crash, and
 // the next writer breaks it and says so. So is one this store gave back but
 // could not remove or read back (a busy disk, no file handle left): a lock is
 // lost only on proof, no lock there or another holder's text; else it keeps
@@ -154,15 +155,20 @@ const RETIRE = Schedule.min([Schedule.exponential('50 millis'), Schedule.spaced(
 
 /**
  * Who holds a manifest's lock: its process, the host it runs on, when it
- * took it (epoch ms), and a token of its own (`<pid>-<n>`, the process's nth
- * taking). A lock from before the host was written names none, and is judged
- * as this host's.
+ * took it (epoch ms), a token of its own (`<pid>-<n>`, the process's nth
+ * taking), and when its process started (`Processes.startOf`), which no later
+ * process given the same pid shares. A lock from before the host was written
+ * names none, and is judged as this host's; one from before the start was
+ * written (or from a host whose process table says none) names none, and is
+ * judged by its pid alone. A store from before `started` reads a lock that
+ * has it, the key being one it ignores.
  */
 const LockOwner = Schema.Struct({
   pid: Schema.Int,
   host: Schema.optionalKey(Schema.String),
   created: Schema.Finite,
   token: Schema.String,
+  started: Schema.optionalKey(Schema.String),
 });
 type LockOwner = typeof LockOwner.Type;
 export const LockOwnerJson = Schema.fromJsonString(LockOwner);
@@ -193,23 +199,69 @@ const isAlive = (pid: number) =>
     },
   );
 
-/** The processes a lock's holder is judged among: this host's name, and whether a pid on it runs. */
+/**
+ * When process `pid` started, as `<boot id>/<start>`: its start time in
+ * clock ticks since boot (`/proc/<pid>/stat`, field 22) under this boot's id,
+ * so no later process given the same pid, nor one after a reboot, shares it.
+ * None where `/proc` does not say (another system, or no such process).
+ */
+const startOf = (pid: number) =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const proc = (file: string) => Effect.option(fs.readFileString(file));
+    const stat = yield* proc(`/proc/${pid}/stat`);
+    const boot = yield* proc('/proc/sys/kernel/random/boot_id');
+    // The fields after the command's name, which may hold spaces, start at field 3.
+    const ticks = Option.flatMap(stat, (s) =>
+      Arr.get(s.slice(s.lastIndexOf(')') + 2).split(' '), 22 - 3),
+    );
+    return Option.zipWith(boot, ticks, (b, t) => `${b.trim()}/${t}`);
+  });
+
+/**
+ * The processes a lock's holder is judged among: this host's name, whether a
+ * pid on it runs, and when the process with that pid started (`startOf`, read
+ * through the store's file system).
+ */
 interface ProcessesService {
   readonly host: string;
   readonly alive: (pid: number) => Effect.Effect<boolean>;
+  readonly startOf: (
+    pid: number,
+  ) => Effect.Effect<Option.Option<string>, never, FileSystem.FileSystem>;
 }
 
 /**
- * This host's processes (`process.kill(pid, 0)`, `os.hostname()`): what
- * says whether a lock's holder is gone. Tests set it.
+ * This host's processes (`process.kill(pid, 0)`, `/proc`, `os.hostname()`):
+ * what says whether a lock's holder is gone. Tests set it.
  */
 export const Processes = Context.Reference<ProcessesService>('@bible/film/tools/Processes', {
-  defaultValue: () => ({ host: hostname(), alive: (pid) => Effect.sync(() => isAlive(pid)) }),
+  defaultValue: () => ({
+    host: hostname(),
+    alive: (pid) => Effect.sync(() => isAlive(pid)),
+    startOf,
+  }),
 });
 
 /** Whether `owner` runs on host `here`: one that names no host is taken to. */
 const holdsOn = (owner: LockOwner, here: string): boolean =>
   Option.getOrElse(Option.fromUndefinedOr(owner.host), () => here) === here;
+
+/**
+ * Whether `owner`, a holder on this host, still runs: its pid runs and, when
+ * both the lock and the host name a start, as the very process that took the
+ * lock, not a later one given its pid.
+ */
+const holderRuns = (processes: ProcessesService, owner: LockOwner) =>
+  Effect.gen(function* () {
+    if (!(yield* processes.alive(owner.pid))) return false;
+    const took = Option.fromUndefinedOr(owner.started);
+    if (Option.isNone(took)) return true;
+    return Option.match(yield* processes.startOf(owner.pid), {
+      onNone: () => true,
+      onSome: (now) => now === took.value,
+    });
+  });
 
 /**
  * Whether the partial `name` was left by a writer that is gone: a pid on
@@ -232,18 +284,18 @@ export const partialAbandoned = (name: string): Effect.Effect<boolean> =>
 
 /**
  * Why a lock held by `owner` is stale, or none while it holds. A lock is
- * stale only when its holder is gone: a holder on this host (`here`) whose
- * pid no longer runs (`alive`, asked of it alone). One held by a running
- * process holds however long it is held (a slow or suspended change is
- * still a change), and one held on another host is never judged, since its
- * pid means nothing here. A holder that cannot be read (none) ages from
+ * stale only when its holder is gone: a holder on this host (`here`) that no
+ * longer runs (`runs`, asked of it alone: `holderRuns`). One held by a
+ * running process holds however long it is held (a slow or suspended change
+ * is still a change), and one held on another host is never judged, since
+ * its pid means nothing here. A holder that cannot be read (none) ages from
  * `since`, its file's mtime, and is stale past UNREAD_LOCK_STALE. Pure.
  */
 export const lockVerdict = (
   owner: Option.Option<LockOwner>,
   now: number,
   here: string,
-  alive: (pid: number) => boolean,
+  runs: (owner: LockOwner) => boolean,
   since: number = now,
 ): Option.Option<string> =>
   Option.match(owner, {
@@ -255,7 +307,7 @@ export const lockVerdict = (
       );
     },
     onSome: (o) => {
-      if (!holdsOn(o, here) || alive(o.pid)) return Option.none<string>();
+      if (!holdsOn(o, here) || runs(o)) return Option.none<string>();
       return Option.some(`its holder, pid ${o.pid}, is gone`);
     },
   });
@@ -367,7 +419,11 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         // Only a holder on this host is asked after: another's pid means nothing here.
         const running = yield* Option.match(
           Option.filter(owner, (o) => holdsOn(o, processes.host)),
-          { onNone: () => Effect.succeed(true), onSome: (o) => processes.alive(o.pid) },
+          {
+            onNone: () => Effect.succeed(true),
+            onSome: (o) =>
+              holderRuns(processes, o).pipe(Effect.provideService(FileSystem.FileSystem, fs)),
+          },
         );
         const verdict = lockVerdict(owner, now, processes.host, () => running, since);
         if (Option.isNone(verdict)) return;
@@ -497,11 +553,16 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
       const locked = <A, E, R>(file: string, change: Effect.Effect<A, E, R>) =>
         Effect.gen(function* () {
           const lock = lockFile(file);
+          const processes = yield* Processes;
+          const started = yield* processes
+            .startOf(process.pid)
+            .pipe(Effect.provideService(FileSystem.FileSystem, fs));
           const owner: LockOwner = {
             pid: process.pid,
-            host: (yield* Processes).host,
+            host: processes.host,
             created: yield* Clock.currentTimeMillis,
             token: `${process.pid}-${(takings.count += 1)}`,
+            ...Option.match(started, { onNone: () => ({}), onSome: (s) => ({ started: s }) }),
           };
           return yield* Effect.acquireUseRelease(
             fs

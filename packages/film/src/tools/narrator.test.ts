@@ -110,6 +110,14 @@ const narrate = (
 
 const spoken = (calls: ElevenLabsCalls) => calls.tts.map((r) => r.text);
 
+/** A host's processes as a sweep sees them: its name and which pids run; none says when it started. */
+const processesOn = (host: string, alive: (pid: number) => boolean) =>
+  Effect.provideService(Processes, {
+    host,
+    alive: (pid) => Effect.succeed(alive(pid)),
+    startOf: () => Effect.succeedNone,
+  });
+
 describe('Narrator', () => {
   it.effect('records a stale beat once, and skips it once current', () =>
     Effect.gen(function* () {
@@ -778,10 +786,7 @@ describe('Narrator', () => {
       }).pipe(
         Effect.scoped,
         Effect.provide(Path.layer),
-        Effect.provideService(Processes, {
-          host: 'here',
-          alive: (pid) => Effect.succeed(pid === process.pid),
-        }),
+        processesOn('here', (pid) => pid === process.pid),
       ),
     );
 
@@ -792,15 +797,13 @@ describe('Narrator', () => {
         // The writer's partial is on disk; then, as far as this host knows, its process is gone.
         const { mixing } = yield* midMix(fs);
         expect(partialsIn(files)).toHaveLength(1);
-        yield* sweepElsewhere(fs).pipe(
-          Effect.provideService(Processes, { host: 'here', alive: () => Effect.succeed(false) }),
-        );
+        yield* sweepElsewhere(fs).pipe(processesOn('here', () => false));
         expect(partialsIn(files)).toEqual([]);
         yield* Fiber.interrupt(mixing);
       }).pipe(
         Effect.scoped,
         Effect.provide(Path.layer),
-        Effect.provideService(Processes, { host: 'here', alive: () => Effect.succeed(true) }),
+        processesOn('here', () => true),
       ),
     );
 
@@ -811,9 +814,7 @@ describe('Narrator', () => {
         // A mix started before the upgrade names only its pid, which runs on some host but not here.
         const partial = `${DIR}/full.wav.4242-7.partial`;
         files.set(partial, text('the mix'));
-        yield* sweepElsewhere(fs).pipe(
-          Effect.provideService(Processes, { host: 'here', alive: () => Effect.succeed(false) }),
-        );
+        yield* sweepElsewhere(fs).pipe(processesOn('here', () => false));
         // The mix lands its track.
         expect(Exit.isSuccess(yield* Effect.exit(fs.rename(partial, `${DIR}/full.wav`)))).toBe(
           true,
@@ -829,16 +830,9 @@ describe('Narrator', () => {
           const files = filed();
           const fs = yield* fileSystemOf(files);
           // The mix runs on another host sharing the folder.
-          const { mixing, finish } = yield* midMix(fs).pipe(
-            Effect.provideService(Processes, {
-              host: 'elsewhere',
-              alive: () => Effect.succeed(true),
-            }),
-          );
+          const { mixing, finish } = yield* midMix(fs).pipe(processesOn('elsewhere', () => true));
           // Here, no process has the mix's pid.
-          yield* sweepElsewhere(fs).pipe(
-            Effect.provideService(Processes, { host: 'here', alive: () => Effect.succeed(false) }),
-          );
+          yield* sweepElsewhere(fs).pipe(processesOn('here', () => false));
           yield* Deferred.succeed(finish, true);
           expect(Exit.isSuccess(yield* Fiber.join(mixing))).toBe(true);
           expect(new TextDecoder().decode(files.get(`${DIR}/full.wav`))).toBe('the mix');
