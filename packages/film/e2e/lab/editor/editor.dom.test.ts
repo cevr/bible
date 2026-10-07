@@ -48,6 +48,55 @@ const posted = (asked: ReadonlyArray<Asked>) =>
 const statusSays = (page: Tab, part: string) =>
   textHas(page, '[data-receipt="edit"] .lab-receipt-said', part);
 
+/** The box the receipts showing take together, as the script's `r`. */
+const RECEIPTS_BOX = `
+  const shown = [...document.querySelectorAll('[data-role="receipts"] .lab-receipt')]
+    .map((t) => t.getBoundingClientRect())
+    .filter((b) => b.height > 0);
+  const r = {
+    left: Math.min(...shown.map((b) => b.left)),
+    right: Math.max(...shown.map((b) => b.right)),
+    top: Math.min(...shown.map((b) => b.top)),
+    bottom: Math.max(...shown.map((b) => b.bottom)),
+  };`;
+
+/**
+ * The controls the receipts showing cover, as `tag.class` (none: they cover
+ * none): every visible button, field, link and cue bar outside the stack,
+ * and every lane of the strip, whose box meets theirs; `pinned`, only those
+ * that stand where they are (fixed or sticky: the page scrolls under them).
+ */
+const KEPT = { all: 'true', pinned: 'pinned(el)' } as const;
+const receiptCovers = (which: keyof typeof KEPT) => `(() => {
+  const stack = document.querySelector('[data-role="receipts"]');
+  ${RECEIPTS_BOX}
+  if (shown.length === 0) return ['no receipt showing'];
+  const pinned = (el) => {
+    for (let e = el; e !== null; e = e.parentElement) {
+      if (['fixed', 'sticky'].includes(getComputedStyle(e).position)) return true;
+    }
+    return false;
+  };
+  const controls = document.querySelectorAll('button, input, select, textarea, a[href], [role="button"], [role="slider"], [tabindex="0"], .lab-cue, .lab-strip-rows > *');
+  return [...controls]
+    .filter((el) => !stack.contains(el))
+    .filter((el) => ${KEPT[which]})
+    .filter((el) => {
+      const b = el.getBoundingClientRect();
+      return b.width > 0 && b.height > 0 && getComputedStyle(el).visibility !== 'hidden'
+        && b.left < r.right && b.right > r.left && b.top < r.bottom && b.bottom > r.top;
+    })
+    .map((el) => el.tagName.toLowerCase() + '.' + [...el.classList].join('.'));
+})()`;
+
+/** Whether the receipts' stack stands inside the viewer (the stage), at its bottom-left. */
+const RECEIPT_OVER_VIEWER = `(() => {
+  ${RECEIPTS_BOX}
+  const v = document.querySelector('.stage').getBoundingClientRect();
+  return shown.length > 0 && r.left >= v.left && r.bottom <= v.bottom && r.top >= v.top
+    && r.left - v.left < v.right - r.right;
+})()`;
+
 /** Wait until the lab has posted `n` writes. */
 const postedReach = (asked: ReadonlyArray<Asked>, n: number) =>
   Effect.sync(() => posted(asked).length).pipe(
@@ -261,6 +310,37 @@ describe('the cue strip', () => {
       );
       yield* attributeIs(page, '.lab-cue[data-cue="rise"]', 'class', /\bselected\b/);
     }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    "on a laptop a receipt stands bottom-left over the viewer, over no control: not the timeline dock's, not the inspector's",
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], {
+          href: labAt(1),
+          viewport: { width: 1440, height: 900 },
+        });
+        yield* editable(page);
+        yield* dragBar(page, 'rise', 0.5, 60);
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        yield* evaluates(page, RECEIPT_OVER_VIEWER, true);
+        yield* evaluates(page, receiptCovers('all'), []);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
+    'on a phone a receipt stands first in the bottom stack, over no control: above the inspector’s peek, the transport and the tab bar',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openLab([], { href: labAt(1), viewport: PHONE });
+        yield* editable(page);
+        yield* dragBar(page, 'rise', 0.5, 30);
+        yield* statusSays(page, 'cue rise offset 0 → ');
+        // The page scrolls under the stack; what stands in the stack never does.
+        yield* evaluates(page, receiptCovers('pinned'), []);
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
   );
 
   it.live(

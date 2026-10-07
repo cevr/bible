@@ -184,7 +184,8 @@ const COMMAND_RULES = `
  */
 @media ${PHONE} {
   body:has(.sh[data-film="true"]) { --cmd-sheet-floor: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
-  body:has(.sh[data-film="true"] .sh-dock) {
+  /* The shell's dock, or the Lab's (its transport row, docked as the shell's dock is). */
+  body:has(.sh[data-film="true"] .sh-dock), body.lab:has(.bar > .row) {
     --cmd-sheet-floor: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));
   }
   body:has(.sh[data-film="false"] .sh-dock) { --cmd-sheet-floor: calc(var(--dock-h) + env(safe-area-inset-bottom)); }
@@ -211,10 +212,33 @@ const COMMAND_RULES = `
   body:has(.lab-inspector-sheet:not([data-peek="true"])) .sh-body { padding-bottom: var(--cmd-sheet-height); }
 }
 .lab-clamp { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/*
+ * The receipts (design language §5) cover no control. On a phone they are
+ * first in the bottom stack: over what the sheet stands on (the tab bar, the
+ * dock) and over a sheet's peek. On the Lab's laptop layout they stand
+ * bottom-left over the viewer (the stage), never over the timeline dock or
+ * the inspector. Elsewhere, at the foot, centred.
+ */
 .lab-receipts {
   position: fixed; z-index: calc(var(--cmd-layer) + 2); left: 50%; bottom: var(--gutter); transform: translateX(-50%);
   width: min(var(--cmd-toast-width), calc(100vw - 2 * var(--gutter)));
   display: flex; flex-direction: column; gap: var(--s-1); outline: none;
+}
+@media ${PHONE} {
+  .lab-receipts { bottom: calc(var(--cmd-sheet-floor) + var(--s-2)); }
+  .lab-inspector-sheet { anchor-name: --cmd-sheet; }
+  body:has(.lab-inspector-sheet) .lab-receipts { position-anchor: --cmd-sheet; bottom: calc(anchor(top) + var(--s-2)); }
+}
+/* A browser with no anchor positioning keeps them at the foot, centred. */
+@supports (anchor-name: --a) {
+  @media ${WIDE} {
+    body.lab .stage { anchor-name: --lab-viewer; }
+    body.lab .lab-receipts {
+      position-anchor: --lab-viewer; transform: none;
+      left: calc(anchor(left) + var(--gutter)); bottom: calc(anchor(bottom) + var(--gutter));
+      width: min(var(--cmd-toast-width), calc(anchor-size(width) - 2 * var(--gutter)));
+    }
+  }
 }
 .lab-receipt {
   background: var(--surface-2); color: var(--text-1); border: 1px solid var(--line-strong);
