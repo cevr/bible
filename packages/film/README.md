@@ -1459,11 +1459,11 @@ log at its own `seq` and a wait over it answers at once, even when the log is
 empty, so an open page and `--watch` keep hearing); `wait` polls the file for them (every 200 ms), so it sees a reply
 the CLI wrote while the server was waiting. Each change is one
 `ContentStore.transact`, as every manifest's is: written whole, one writer at
-a time across processes (`notes.json.lock`, created only if there is none and
-naming its holder's pid and host; a lock whose holder is gone, a pid on this
-host that no longer runs, is broken, and a running holder's never is, however
-long it holds it; one held past about 5 s fails with `StoreLocked`, and the
-log names who holds it, `store.lock.held`). A
+a time across processes (the operating system's lock on `.notes.json.lock`,
+which the kernel lets go the moment its holder's process ends, a crash too,
+and which a running holder keeps however long it holds it; a change that
+waits past about 5 s fails with `StoreLocked`, and the log says so,
+`store.lock.held`). A
 note's still is written under the same lock, before the note that names it.
 
 `nearestMoment(placed, T)` (`core/notes.ts`) names the scene at `T` and, in
