@@ -340,9 +340,6 @@ const CHOICES_READY = ['.rv-transport', '.rv-knob input[type="range"]', `${STRIN
 /** A phone's sheet of the selected cue or knob. */
 const SELECTION_SHEET = '.lab-selection-sheet';
 
-/** The most of a phone's height the Lab's chrome holds with its selection peeking (G8's quarter, and the peek). */
-const LAB_PEEKING_CHROME = 0.28;
-
 /**
  * The Lab with a cue that runs until a mark selected, at rest: its scene's
  * place, the Snap toggle shown, its End field written and shown (on a phone
@@ -802,10 +799,7 @@ describe("the Lab's transport on a phone (DL-10)", () => {
 
 describe('every page fits a phone, 390 × 844 (G8)', () => {
   /** A page: its name, how it opens, and the layer it opens, which is no chrome. */
-  /** A page: its name, how it opens, and how it is measured: the layer it opens (no chrome), its own chrome limit. */
-  const PAGES: ByPlace<
-    readonly [name: string, open: State['open'], fit?: { layer?: string; chrome?: number }]
-  > = {
+  const PAGES: ByPlace<readonly [name: string, open: State['open'], layer?: string]> = {
     home: [['Films', review(pageHref.home(), '.rv-main a[href]')]],
     choices: [['Choices', review(CHOICES, ...CHOICES_READY)]],
     project: [['Project', review(PROJECT, ...PROJECT_READY)]],
@@ -825,33 +819,32 @@ describe('every page fits a phone, 390 × 844 (G8)', () => {
         // Its sheet is a layer over the tape, as an inspector is: shut to go back, so no chrome.
         "Scenes, a scene selected: its sheet's width and controls the page's, the sheet no chrome",
         player(pageHref.scene(PROBE, 'two'), '.sc-focus .sc-card'),
-        { layer: '[data-role="scene"]' },
+        '[data-role="scene"]',
       ],
     ],
     lab: LAB_MOVES,
     labScene: [
       ['Lab', lab('edit')],
-      // Its sheet peeks one line above the dock, counted as chrome: the stack the design
-      // language draws for the Lab on a phone (§7) is the header (44 px), the peek (69), the dock
-      // (61) and the tab bar (56), 230 of 844 px, 0.27 of the height, past the quarter.
-      ['Lab, a scene with a cue selected', labCue, { chrome: LAB_PEEKING_CHROME }],
+      // Its sheet peeks one line above the dock, counted as chrome: the header, the peek, the
+      // dock and the tab bar, within the quarter.
+      ['Lab, a scene with a cue selected', labCue],
       [
         // Opened, the sheet is a layer over the Lab, as an inspector is: shut to go back, so no chrome.
         "Lab, a scene with a cue selected, its sheet opened: the sheet's width and controls the page's, the sheet no chrome",
         (viewport) => Effect.tap(labCue(viewport), cueFieldsShown),
-        { layer: SELECTION_SHEET },
+        SELECTION_SHEET,
       ],
     ],
     play: [['Play', player(pageHref.play(PROBE), '.bar [data-act="play"]')]],
   };
-  for (const [place, [name, open, fit = {}]] of byPlace(PAGES)) {
+  for (const [place, [name, open, layer]] of byPlace(PAGES)) {
     it.live(
-      `${name}: no sideways scroll, every control inside the width, chrome at most ${fit.chrome ?? 'a quarter'} of the height`,
+      `${name}: no sideways scroll, every control inside the width, chrome at most a quarter of the height`,
       () =>
         Effect.gen(function* () {
           const page = yield* open(PHONE.viewport);
           yield* isAt(page, place);
-          yield* fitsPhone(page, fit.layer, fit.chrome);
+          yield* fitsPhone(page, layer);
         }).pipe(Effect.scoped),
       SLOW,
     );

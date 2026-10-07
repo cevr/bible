@@ -123,20 +123,19 @@ export const phoneFit = (layer?: string) => `(() => {
 
 /**
  * A script answering whether the page fits its window: no sideways scroll,
- * every control inside the width, chrome at most `chrome` (`CHROME_MAX`
- * unless the page's case names its own, saying why); `layer`, the open
- * layer, is no chrome.
+ * every control inside the width, chrome at most `CHROME_MAX`; `layer`, the
+ * open layer, is no chrome.
  */
-export const fits = (layer?: string, chrome: number = CHROME_MAX) =>
-  `(() => { const f = ${phoneFit(layer)}; return f.sideways === 0 && f.outside.length === 0 && f.chrome <= ${chrome}; })()`;
+export const fits = (layer?: string) =>
+  `(() => { const f = ${phoneFit(layer)}; return f.sideways === 0 && f.outside.length === 0 && f.chrome <= ${CHROME_MAX}; })()`;
 
 /**
  * Wait until the page fits its window (a phone's: 390 × 844), by `fits`;
  * `layer`, the layer it has open, is no chrome. A timeout fails with what the
  * page answers then (`phoneFit`), so the bar or the control over is named.
  */
-export const fitsPhone = (page: Tab, layer?: string, chrome: number = CHROME_MAX) =>
-  page.until(fits(layer, chrome), {
+export const fitsPhone = (page: Tab, layer?: string) =>
+  page.until(fits(layer), {
     now: phoneFit(layer),
-    say: (found) => `the page does not fit the window (chrome at most ${chrome}): ${found}`,
+    say: (found) => `the page does not fit the window (chrome at most ${CHROME_MAX}): ${found}`,
   });
