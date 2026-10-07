@@ -3,7 +3,8 @@
 // thread, and a bad body or an unknown note answers with its status. A page
 // is sent compressed, a streamed one chunk by chunk. A client that leaves
 // mid-build or mid-render, on the real server, leaves the watches whole and
-// stops the render's reads. And the lab never imports a film: no module its
+// stops the render's reads; one that leaves mid-ask of a film's track
+// leaves its next mix heard. And the lab never imports a film: no module its
 // handler runs reaches a loader.
 
 import { describe, expect, it } from 'effect-bun-test';
@@ -449,6 +450,58 @@ const drivenPages = (
       );
     }),
   ).pipe(Layer.provide(Path.layer));
+
+/** Film `f`'s mixed track on disk (`trackPages`). */
+const TRACK = '/app/films/f/narration/full.wav';
+
+/** When `TRACK` was first mixed (ms). */
+const MIXED_AT = 1_900_000_000_000;
+
+/**
+ * The app's pages over film `f` and its track (`TRACK`, first mixed at
+ * `MIXED_AT`) in `files`, each file's mtime as `mtimes` keeps it, and no
+ * watch that ever hears a save: the first look for the track's folder (as
+ * its watch is made) is done on `arming` and held until `armed` is.
+ */
+const trackPages = (
+  files: Map<string, Uint8Array>,
+  mtimes: Map<string, number>,
+  arming: Deferred.Deferred<void>,
+  armed: Deferred.Deferred<void>,
+) => {
+  const page = text('<!doctype html><html><head></head><body></body></html>');
+  for (const name of ['review', 'lab', 'player']) files.set(`/app/${name}.html`, page);
+  files.set('/app/films/f/scenes/index.ts', text('export {};\n'));
+  files.set(TRACK, text('mix one'));
+  mtimes.set(TRACK, MIXED_AT);
+  const fileSystem = Layer.effect(
+    FileSystem.FileSystem,
+    Effect.map(FileSystem.FileSystem, (fs) =>
+      FileSystem.FileSystem.of({
+        ...fs,
+        exists: (path) =>
+          Effect.gen(function* () {
+            if (path === TRACK.slice(0, TRACK.lastIndexOf('/')))
+              if (yield* Deferred.done(arming, Exit.void)) yield* Deferred.await(armed);
+            return yield* fs.exists(path);
+          }),
+        watch: () => Stream.never,
+      }),
+    ),
+  ).pipe(Layer.provide(memoryFileSystem(files, new Set(), mtimes)));
+  const spec: LabPageSpec = {
+    pages: { review: '/app/review.html', lab: '/app/lab.html', player: '/app/player.html' },
+    servers: {},
+    films: '/app/films',
+  };
+  return Layer.mergeAll(
+    echoPages,
+    LabPage.layer(spec).pipe(
+      Layer.provide([PageBundler.layerTest, PageRenderer.layerTest]),
+      Layer.provide([fileSystem, Path.layer]),
+    ),
+  );
+};
 
 /** The pages' build now, as a page another server served hears it at once. */
 const buildNow = Effect.flatMap(LabPage, (page) =>
@@ -1105,5 +1158,39 @@ describe('a client that goes away', () => {
         Effect.scoped,
         Effect.provide([labLayer(files(), rendering), rendering, FetchHttpClient.layer]),
       ),
+  );
+
+  it.live(
+    "mid-ask of a film's track keeps the check after arming: a mix that lands before the track's watch is armed still wakes the film's wait",
+    () => {
+      const disk = new Map<string, Uint8Array>();
+      const mtimes = new Map<string, number>();
+      const arming = Deferred.makeUnsafe<void>();
+      const armed = Deferred.makeUnsafe<void>();
+      const pages = trackPages(disk, mtimes, arming, armed);
+      return Effect.gen(function* () {
+        const page = yield* LabPage;
+        const f = Option.some('f');
+        const since = (yield* page.wait({ since: 0, server: Option.some('another'), film: f }, 0))
+          .build;
+        const { url, gone } = yield* served();
+        const client = yield* HttpClient.HttpClient;
+        // A page asks for the track, and leaves while the track's watch is made.
+        const leaving = yield* Effect.forkChild(
+          Effect.orDie(client.get(new URL('/films/f/narration/full.wav', url))),
+        );
+        yield* Deferred.await(arming);
+        // The mix lands before that watch is armed, so no watch hears it.
+        yield* Effect.sync(() => {
+          disk.set(TRACK, text('mix two'));
+          mtimes.set(TRACK, MIXED_AT + 10_000);
+        });
+        yield* Fiber.interrupt(leaving);
+        yield* Deferred.await(gone);
+        yield* Deferred.done(armed, Exit.void);
+        const heard = yield* page.wait({ since, server: Option.none(), film: f }, '2 seconds');
+        expect(heard.build).toBeGreaterThan(since);
+      }).pipe(Effect.scoped, Effect.provide([labLayer(disk, pages), pages, FetchHttpClient.layer]));
+    },
   );
 });

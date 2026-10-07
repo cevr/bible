@@ -1011,7 +1011,10 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
    * `file`, asked for at `pathname`, there or not: when it is its film's
    * mixed track, it is watched for from now on (through the nearest folder
    * there, before a film's first mix), so the next mix wakes the film's
-   * pages; one that landed before the watch was armed is heard after.
+   * pages; one that landed before the watch was armed is heard after. The
+   * track kept and its check after arming are one step a request that
+   * leaves cannot cut: every later ask finds the track kept and checks
+   * nothing.
    */
   const trackAsked = (pathname: string, file: string) =>
     Effect.gen(function* () {
@@ -1019,8 +1022,12 @@ const make = Effect.fnUntraced(function* (spec: LabPageSpec) {
       if (pathname !== narrationUrls(filmOf(master)).audio) return;
       if ((yield* Ref.get(masters)).has(master)) return;
       const at = yield* mtimeOf(master);
-      yield* rewatchAfter(Ref.update(masters, (known) => new Map([...known, [master, at]])));
-      yield* landedUnwatched([master]);
+      yield* Effect.uninterruptible(
+        Effect.andThen(
+          rewatchAfter(Ref.update(masters, (known) => new Map([...known, [master, at]]))),
+          landedUnwatched([master]),
+        ),
+      );
     });
 
   /**
