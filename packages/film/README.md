@@ -744,8 +744,10 @@ Project's scene inspector stands in (`Sheet`, `lab/review/inspector.tsx`):
 beside the tape, and on a phone a sheet over the tab bar that opens lowered
 to the card in brief. It holds the live frame, in, out and length in
 timecode, its marks, Open in Lab (E), Approve (A), its findings
-(`SceneFindings`, the Project's too) and a comment; its Close clears the
-selection, a step Back walks. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
+(`SceneFindings`, the Project's too) and a comment; its Close (Escape, a
+swipe) clears the selection and adds no entry, by the inspectors' rule
+(`useSheetDismissal`): it goes Back over the tap that opened the sheet, else
+the entry is rewritten to the tape. ⇧-click or ⌘-click adds scenes, and ⇧A approves them all in one
 say; an approve's receipt offers Undo (`project.undo-approve`), as
 Project's does. The palette and the film's counts are in
 the view menu (⋯). A short's Open goes to its play page, as the lab opens

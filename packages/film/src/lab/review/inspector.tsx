@@ -229,7 +229,7 @@ interface SheetDismissal {
  * landed on after a Close) is rewritten to name none (`addressOn(host).follow`).
  * `names` says whether an href names `thing`'s sheet open.
  */
-const useSheetDismissal = (
+export const useSheetDismissal = (
   host: Host,
   names: (href: string, thing: string) => boolean,
 ): SheetDismissal => {

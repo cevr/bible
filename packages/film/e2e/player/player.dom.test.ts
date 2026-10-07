@@ -720,6 +720,53 @@ describe('the player', () => {
   );
 
   it.live(
+    "the scene sheet's Close and Escape add no entry, as an inspector's: they go Back over the tap that opened it, else the entry follows to the tape",
+    () =>
+      Effect.gen(function* () {
+        const at = 'navigation.currentEntry.index';
+        const { page, errors } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: DESK },
+          STILL_DRAWN,
+        );
+        const start = Number(yield* page.evaluate(at));
+        // A tap opens the sheet, a step of its own; Close goes Back over it.
+        yield* clickInScene(page, 'one');
+        yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
+        yield* evaluates(page, at, start + 1);
+        yield* page.click('.sc-focus [data-act="close-inspector"]');
+        yield* countIs(page, '.sc-focus', 0);
+        yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
+        yield* evaluates(page, at, start);
+        // A second tap moves the open sheet, a step Back walks; Close then rewrites that
+        // entry, so Back lands on the first scene, not on a sheet it closed.
+        yield* clickInScene(page, 'one');
+        yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
+        yield* clickInScene(page, 'two');
+        yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'two'));
+        yield* evaluates(page, at, start + 2);
+        yield* page.click('.sc-focus [data-act="close-inspector"]');
+        yield* countIs(page, '.sc-focus', 0);
+        yield* evaluates(page, 'location.pathname', pageHref.scenes(PROBE));
+        yield* evaluates(page, at, start + 2);
+        yield* page.evaluate('history.back()');
+        yield* evaluates(page, 'location.pathname', pageHref.scene(PROBE, 'one'));
+        yield* textIs(page, '.sc-focus .sc-card-name', 'one');
+        expect(errors).toEqual([]);
+        // A link's sheet: Escape rewrites its entry to the tape, adding none.
+        const linked = yield* openPlayer(
+          { href: pageHref.scene(PROBE, 'two'), viewport: DESK },
+          '.sc-focus .sc-card',
+        );
+        const length = Number(yield* linked.page.evaluate('history.length'));
+        yield* linked.page.press('Escape');
+        yield* countIs(linked.page, '.sc-focus', 0);
+        yield* evaluates(linked.page, 'location.pathname', pageHref.scenes(PROBE));
+        yield* evaluates(linked.page, 'history.length', length);
+        expect(linked.errors).toEqual([]);
+      }).pipe(Effect.scoped),
+  );
+
+  it.live(
     "a tap on the tape selects its scene and moves the playhead there; Back deselects; Open in Lab opens the scene's lab",
     () =>
       Effect.gen(function* () {

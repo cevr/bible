@@ -14,7 +14,8 @@
 // the Project shows) stands in the one sheet (`Sheet`, the Project's scene
 // inspector's) beside the tape, a sheet over the tab bar on a phone: the
 // live frame, its act, in, out and length, its marks, Open in Lab (E) and
-// Approve (A), its findings and a comment; its Close clears the selection.
+// Approve (A), its findings and a comment; its Close (and Escape, and a
+// swipe) clears the selection, adding no entry, as an inspector's does.
 // ⇧-click or ⌘-click adds scenes to the selection, and ⇧A approves them all
 // in one say; an approve's receipt offers Undo, as Project's does.
 // The selection is the URL's path and the playhead its `#t=` (`place.ts`):
@@ -49,7 +50,7 @@ import { useShellTime } from '../page-shell.tsx';
 import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { pressed } from '../review/format.ts';
-import { Sheet } from '../review/inspector.tsx';
+import { Sheet, useSheetDismissal } from '../review/inspector.tsx';
 import { useOnScreenFirst } from '../review/options/stills.tsx';
 import { SceneCard, SceneFindings, SceneState, sceneHue } from './card.tsx';
 import { type Said, type ScenesRead, findingsOf, scenesCalls } from './data.ts';
@@ -178,12 +179,27 @@ export const ScenesView = (props: ScenesViewProps) => {
   );
   /** Every scene selected, the path's first. */
   const picked = (): ReadonlyArray<string> => Arr.dedupe([...Option.toArray(chosen()), ...added()]);
+  // The scene sheet is dismissed by the inspectors' one rule: no entry of its own.
+  const dismissal = useSheetDismissal(props.host, (href, scene) =>
+    Option.contains(selectedOf(href), scene),
+  );
   /** Select `scene` (none: clear): a step Back walks; the scenes added go with it. */
   const select = (scene: Option.Option<string>) => {
     setAdded([]);
     if (Option.getOrElse(scene, () => '') === Option.getOrElse(chosen(), () => '')) return;
+    if (Option.isNone(chosen())) Option.map(scene, dismissal.opening);
     Option.map(withScene(address.href(), scene), address.go);
     setChosen(scene);
+  };
+  /**
+   * Close the scene sheet (its Close, Escape, a swipe): Back over the tap
+   * that opened it, else the entry follows to the tape; the selection goes.
+   */
+  const dismiss = () => {
+    if (Option.isNone(chosen())) return;
+    setAdded([]);
+    dismissal.dismiss(() => withScene(address.href(), Option.none()));
+    setChosen(Option.none());
   };
   /** Add `scene` to the selection, or take it out: the first one picked is the path's. */
   const toggle = (scene: string) => {
@@ -430,7 +446,7 @@ export const ScenesView = (props: ScenesViewProps) => {
       about: ['Scene'],
       touch: 'long-press a still, then Clear the selection',
       when: () => Option.isSome(chosen()),
-      run: quietly(() => select(Option.none())),
+      run: quietly(dismiss),
     },
     {
       id: 'scenes.finer',
@@ -867,7 +883,8 @@ export const ScenesView = (props: ScenesViewProps) => {
       {/* One sheet while a scene is selected, its contents the scene's: a tap on another
           still keeps it as it stands (lowered or raised) and shows that scene. On a phone
           it opens lowered, its card in brief over the tab bar; its Close (and Escape, and a
-          swipe) clears the selection, a step Back walks. The focus stays on the tape. */}
+          swipe) clears the selection by the inspectors' rule (`dismiss`): Back over the tap
+          that opened it, else the entry follows to the tape. The focus stays on the tape. */}
       <Show when={Option.isSome(chosen())}>
         <Sheet
           host={props.host}
@@ -887,7 +904,7 @@ export const ScenesView = (props: ScenesViewProps) => {
             </>
           }
           initialFocus={() => false}
-          onClose={() => select(Option.none())}
+          onClose={dismiss}
         >
           <Show when={Option.getOrUndefined(chosen())} keyed>
             {(scene) => <Focus scene={scene} />}
