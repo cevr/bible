@@ -530,9 +530,11 @@ describe('NumberField.ScrubArea', () => {
     expect(await lockedMove(page, -4)).toBe(-4);
     expect(await lockedMove(page, 2, true)).toBe(20);
 
-    const shown = await input(page).inputValue();
     await page.mouse.up();
     expect(await page.evaluate(() => document.pointerLockElement)).toBe(null);
+    // Chromium's own recentering moves may scrub on until the release, so the
+    // value is read once it is over: one commit, the value the field then shows.
+    const shown = await input(page).inputValue();
     expect(await commitsOf(page)).toEqual([`commit ${shown} scrub`]);
   });
 
