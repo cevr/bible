@@ -382,3 +382,61 @@ No new directory. Every directory in the pathspec was swept in pass 2, so the cl
 
 - `PRIOR_ARTS.md` → To survey is empty: no prior-art sweep this pass.
 - Leftovers: the 1,671 old `/tmp` test directories are already gone (checked 2026-10-07), so that row is closed.
+
+### Sweeps (pass 3)
+
+18 read-only sweeps, reports in `~/.cache/architecture-loop/bible-tools/pass3/`. No area reports polish only, except the ui reduction project sweep.
+
+| Sweep                       | Verdict                             | P1  | P2  | P3  |
+| --------------------------- | ----------------------------------- | --- | --- | --- |
+| area player-shell           | structural work left                | 1   | 1   | 7   |
+| area review-scenes          | structural work left                | 0   | 5   | 5   |
+| area editor-timing          | one edge bug                        | 0   | 1   | 6   |
+| area host-commands          | one edge bug                        | 0   | 1   | 8   |
+| area server                 | one edge bug                        | 0   | 1   | 7   |
+| area state                  | one edge bug                        | 0   | 1   | 6   |
+| area ui-port                | structural work left (~550 lines)   | 0   | 1   | 12  |
+| review film-lab-client      | structural work left                | 0   | 3   | 8   |
+| review film-lab-server      | structural work left                | 0   | 1   | 8   |
+| review url-state/atom-solid | structural work left                | 0   | 1   | 3   |
+| review ui-a                 | structural work left (~450 lines)   | 0   | 2   | 6   |
+| review ui-b                 | one deletion batch (~350 lines)     | 0   | 1   | 3   |
+| guardrails                  | structural work left                | 0   | 4   | 10  |
+| project url state           | (pending)                           |     |     |     |
+| project studio ui           | done-when met; structural work left | 0   | 1   | 10  |
+| project ui reduction        | done-when met; only polish          | 0   | 0   | 3   |
+| project design language     | done-when not met                   | 0   | 2   | 9   |
+| project one gate            | first half met                      | 0   | 1   | 2   |
+
+Carried rows:
+
+- **Compare on `Playable`:** reworded. The lab's own compare redraws HEAD on the canvas and plays no media, so that half is closed (area-editor-timing). What stays open is the review's set compare on phones, which `browser/media-choice.ts` keeps on `<video>` until an iPhone is measured.
+- **Scene over 8 s:** closed. p2-reduction's long-scene Tab test covers it (review-film-lab-client).
+- **`film lookbook`:** confirmed open: 672 stills, 154.8 MB, plus a 2036×27,790 sheet of about 226 MB (area-review-scenes).
+- **Whole-film render:** the owner's, unchanged.
+
+### Decisions (decided by principle)
+
+- **The content store's lock is redesigned from its invariants, not patched a fifth time** (SV3-1..3, R3-film-lab-server-1, GR-11). Breaking a stale lock is serialized. Only a NotFound read means the lock was lost. A holder is named by a token that survives pid reuse. A decision is typed so it can be made only inside the lock. It is proved against one file-system contract that the in-memory and Bun file systems both pass (GR-3, R3-film-lab-server-3). Decided by fix-root-causes and correctness-over-pragmatism; the lock class (D2, D11, D15) recurred in every pass.
+- **A guard that reads source is an early warning; the structural check runs in the real browser** (GR-1, GR-2, D9). The e2e harness wraps the host APIs (listeners, history, location, the Navigation API, touches) and fails a case when a non-adapter caller reaches them. The lint rules keep their fast feedback and gain the spellings the sweep found. Decided by encode-lessons-in-structure: D9 recurred in both passes, and no source pattern can list every spelling.
+- **Any console warning or error, at any time in a case, fails the e2e and the ui browser harness** (RS3-3, R3-ui-a-6, ui-b harness). Decided by encode-lessons-in-structure: the class happened twice.
+- **Options and props that only tests pass are dead** (UI3-*, R3-ui-a-2, R3-ui-b-1, R3-atom-solid-1..3): they go with their tests, and an option returns with its first consumer. A dead-export check joins the gate. Decided by subtract-before-you-add and test-through-public-interfaces.
+- **The two swipe engines stay split** (ui-port): upstream Base UI has the same split, and neither sweep found a defect in either. Decided by subtract-before-you-add: merging them costs more than it removes.
+- **Rounding a time to the media grid has one owner** (ET3-1, `keptTime`, R3-film-lab-server-6): an in point rounds up and an out point rounds down, through `core`, and the raw `1e-6` nudges become one named helper. Decided by derive-dont-sync; D3 recurred in both passes.
+- **A narration take that misses the script:** p2-narrate discards it before `attempts/`. p3-store checks whether any product surface reads `attempts/` (the Choices voice pick can "Accept anyway" a take over the word-error limit). If one does, a mismatched take goes back to `attempts/`, decided by correctness-over-pragmatism (paid output the owner can still pick). If none does, the decision stands, with that receipt.
+- **Ledger ids leave code comments** (GR-14): comments describe today's behavior, and the history comment rule gains ledger ids. Decided by encode-lessons-in-structure.
+- **SV3-6 and SV2-8** (copies of Effect's compression negotiation) stay until upstream exports them. Proposing it upstream is publishing, so it waits on the owner.
+- **Every item a pass lists ends done, carried or rejected** (SU-17 was dropped in pass 2, as SU-7 was in pass 1). Each apply report lists every item id once, and the orchestrator checks each batch's done row against its triage row before writing it. Decided by encode-lessons-in-structure; the check lives in the loop (`apply-common.md`, step 8), not in the product.
+- **PSH3-1 is fixed whatever iPhone Safari does:** a tap's meaning must not depend on where the focus was. Decided by correctness-over-pragmatism.
+- **HC-8's legacy approve-receipt decode goes now,** not at a later close: pass 3 is the pass meant to close. Decided by subtract-before-you-add.
+
+### Triage
+
+Waves: A runs now (disjoint files). B starts when the url-state project sweep reports. C (`p3-design`) follows B, so its mocks draw the code as B leaves it. D (`p3-guards`) runs last, over everything merged, and turns its new checks on against the final tree.
+
+| Batch     | Files it owns                                                                                                          | Items                                                                                                                                                                                                                                                                                       | Wave |
+| --------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- |
+| p3-store  | `tools/content-store.ts`, `tools/testing.ts`, `tools/narrator.ts` and their tests, `tools/*review*project*` test state | SV3-1, SV3-2, SV3-3, R3-film-lab-server-1 (the lock, decided above), GR-11, GR-3 + R3-film-lab-server-3 (one file-system contract, memory and Bun), R3-film-lab-server-2, -4, -9, OG3-2, the narration-mismatch check (decided above)                                                       | A    |
+| p3-server | `tools/{lab-page,api-server,lab,review-file,page-render*}.ts`, `core/page-render.ts`, NORTH_STAR → Rejected            | OG3-1 (the gate logs through the lab's logger, the test through the CLI's), OG3-3, SV3-4, SV3-5, SV3-7, SV3-8, R3-film-lab-server-T1 (measure; speed only with a cheaper tier), -T2; SV3-6 rejected (decided above)                                                                         | A    |
+| p3-host   | `browser/**`, `command/**`, `lab/command/**` (not `receipts.tsx`'s `priority` line)                                    | HC-1 (an invisible hit area, no pixel moves, with its touch case), HC-2, HC-3, HC-7, HC-8 (decided above), HC-9; R3-film-lab-server-T5, -T6, -T7                                                                                                                                            | A    |
+| p3-ui     | `packages/ui/**`, and `lab/command/receipts.tsx`'s `priority: 'low'`                                                   | UI3-1..UI3-13; R3-ui-a-1..8 (R3-ui-a-6: any console error after mount fails the harness), R3-ui-a-T1..T5, -T7, gaps G1-G2; R3-ui-b-1..5 and its gaps (a finger scrolling the sheet body; a receipt swiped by touch); the README's styling section; swipe engines stay split (decided above) | A    |
