@@ -2,8 +2,10 @@
 // shares once the browser has staged the film (the film and its player, the
 // lab API's base, the view kept through a reload, the frame shown), beside
 // what the Lab's page holds on both sides (`panel.tsx`, `useLabPage`: the
-// lab's place, the pick and the note the URL holds, `lab/place.ts`, the mode
-// and a held reload, which tools read from the page itself), and the
+// lab's place as the URL holds it, `lab/place.ts`, the mode and a held
+// reload). `LabState` hands the place's pick, note and compare view on as
+// accessors derived from the page's place, never kept apart from it; the
+// mode and a held reload are read from the page itself. The
 // pieces place themselves: layers pinned over the film canvas
 // (`<Lab.Overlay>`, `<Lab.Layer>`), the slot under the player's timeline
 // (`<Lab.Strip>`), and each tool's controls in its section of the page's
@@ -187,9 +189,6 @@ const Staged = (props: RootProps) => {
     view.patch({ landed: false });
     onSettled(() => flashLanded(frame, host));
   }
-
-  document.body.classList.add('lab');
-  onCleanup(() => document.body.classList.remove('lab'));
 
   const [revision, setRevision] = createSignal(0, fromDraw);
   // Every reload (a write's, a kept take's, the rebuild's) waits while a panel holds

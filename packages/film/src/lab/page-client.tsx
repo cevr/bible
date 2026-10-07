@@ -3,8 +3,9 @@
 // marked `PAGE_ROOT`, its styles in the head), or, served as built (no
 // server entry, a render that failed or was cut, a kept build), rendered
 // anew with its styles added and its root made. Either way the same
-// components run. A film page whose film does not start ends (`PageEnd`):
-// its tree disposed and its keys unheard before it says why in its place.
+// components run. A film page whose film does not start, or whose faces do
+// not load, fails (`PageEnd`): its tree disposed and its keys unheard before
+// it says why in its place.
 // Every studio page mounts in the one sequence `mountStudio` runs (the Lab,
 // Scenes and Play, and the review).
 
@@ -19,6 +20,7 @@ import type { Viewport } from '../browser/viewport.ts';
 import type { Hub } from '../command/hub.ts';
 import { legacyPlace } from '../core/api.ts';
 import { PAGE_CUT, PAGE_MOUNTED, PAGE_ROOT, PAGE_STYLE } from '../core/page-render.ts';
+import { showFailure } from '../player/dom.ts';
 import { registerFace } from '../player/face.ts';
 
 /** A page as its browser entry mounts it: the same parts its server entry renders (`pageRender`). */
@@ -75,14 +77,15 @@ const rendered = (page: MountedPage): (() => void) => {
 
 /**
  * A film page's end, made before the page is mounted (its body, loaded
- * later, may end it) and settled once it is (`mounted`). Ending it disposes
- * its tree and stops its key listener, so a film that does not start leaves
- * no part of the page running behind the words that say why: no feed asking
- * its server again, no key heard.
+ * later, may end it) and settled once it is (`mounted`). Failing it disposes
+ * its tree and stops its key listener, then says why in its place, so a film
+ * that does not start (or whose faces do not load) leaves no part of the
+ * page running behind the words: no feed asking its server again, no key
+ * heard. It is the one way a studio page says it failed.
  */
 interface PageEnd {
-  /** End the page: once it is mounted, at once if it already is. */
-  readonly end: Effect.Effect<void>;
+  /** End the page (once it is mounted, at once if it already is), then show `why` in its place. */
+  readonly fail: (why: string) => Effect.Effect<void>;
   /** The page mounted as `page`, hearing its keys on `listening`: what ending it stops. */
   readonly mounted: (page: MountedAs, listening: Fiber.Fiber<unknown>) => Effect.Effect<void>;
 }
@@ -91,7 +94,11 @@ interface PageEnd {
 const makePageEnd: Effect.Effect<PageEnd> = Effect.map(
   Deferred.make<Effect.Effect<void>>(),
   (stop): PageEnd => ({
-    end: Effect.flatten(Deferred.await(stop)),
+    fail: (why) =>
+      Effect.andThen(
+        Effect.flatten(Deferred.await(stop)),
+        Effect.sync(() => showFailure(why)),
+      ),
     mounted: (page, listening) =>
       Effect.asVoid(
         Deferred.succeed(
@@ -115,12 +122,12 @@ interface StudioPage {
    */
   readonly media?: Layer.Layer<Media, never, Frames | Viewport>;
   /**
-   * Its commands' hub and its app over `host`, given what ends the page: a
-   * film page's body, loaded later, ends it when its film does not start.
+   * Its commands' hub and its app over `host`, given what fails the page: a
+   * film page's body, loaded later, fails it when its film does not start.
    */
   readonly on: (
     host: Host,
-    end: Effect.Effect<void>,
+    fail: (why: string) => Effect.Effect<void>,
   ) => Effect.Effect<
     { readonly hub: Hub; readonly app: () => JSX.Element },
     never,
@@ -148,7 +155,7 @@ export const mountStudio = (studio: StudioPage): void => {
       Option.map(legacyPlace(address.href()), address.follow);
       registerFace(document.fonts);
       const ending = yield* makePageEnd;
-      const { hub, app } = yield* studio.on(host, ending.end);
+      const { hub, app } = yield* studio.on(host, ending.fail);
       const listening = yield* Effect.forkDetach(hub.listen);
       const mounted = mountPage({ ...studio.page, app });
       yield* ending.mounted(mounted, listening);

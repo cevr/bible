@@ -3,7 +3,10 @@
 // stands and names where the film is while they load, and only what draws
 // the film waits (`pictureFacesWait`): the stage's canvas stays blank and no
 // tool stands until they have loaded, so no frame is drawn in a fallback
-// face. The probe film's face (`PROBE_FACE`) is the lab's file, held here.
+// face. A face that will not load fails the page as a film that will not
+// start does: the film stops if it plays, the page ends (no key heard, no
+// feed asking) and says why. The probe
+// film's face (`PROBE_FACE`) is the lab's file, held or refused here.
 
 import { Deferred, Effect, Exit } from 'effect';
 import { describe, expect, it } from 'effect-bun-test';
@@ -12,11 +15,20 @@ import {
   PROBE_FACE_FILE,
   PROBE_FACE_PATH,
   file,
+  json,
   later,
   openServed,
   route,
+  text,
 } from '../../src/lab/fixtures/harness.ts';
-import { attributeIs, evaluates, textHas, textIs, until } from '../../src/lab/fixtures/settled.ts';
+import {
+  attributeIs,
+  countIs,
+  evaluates,
+  textHas,
+  textIs,
+  until,
+} from '../../src/lab/fixtures/settled.ts';
 
 /** Long enough to bundle the server entry once, render, open, hydrate and stage the film. */
 const SLOW = 60_000;
@@ -72,6 +84,13 @@ describe("a film's picture faces on the Lab", () => {
           `document.querySelector('.lab-panel').dataset.staged === 'true'`,
           false,
         );
+        // The header's timecode follows the player's time, drawn or not: a seek on the bar moves
+        // it, and the canvas stays blank.
+        yield* countIs(page, '.sh-tc', 1);
+        yield* until(page, "(window.__tc = document.querySelector('.sh-tc').textContent, true)");
+        yield* page.click('.bar .track');
+        yield* until(page, "document.querySelector('.sh-tc').textContent !== window.__tc");
+        yield* evaluates(page, BLANK, true);
         yield* until(page, RECORD_FILLS);
         // The face lands: the frame is drawn, every fill with it loaded, and the tools stand.
         yield* Deferred.done(gate, Exit.void);
@@ -80,6 +99,41 @@ describe("a film's picture faces on the Lab", () => {
         yield* evaluates(page, 'window.__fills.length > 0', true);
         yield* evaluates(page, '[...new Set(window.__fills)]', ['loaded']);
         expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'refused while the film plays: the film stops, the page ends and says why in its place: no key heard, no play, and the notes feed asks nothing more',
+    () =>
+      Effect.gen(function* () {
+        const WAIT = /^\/notes\/wait/;
+        const gate = yield* Deferred.make<void>();
+        const { page, asked } = yield* openServed(
+          'lab',
+          [
+            route('GET', PROBE_FACE_PATH, () => later(gate, text('no such face', 404))),
+            // The notes feed asks again as soon as each wait is answered: while the page runs, it keeps asking.
+            route('GET', WAIT, () => json({ cursor: 0, events: [] })),
+          ],
+          { viewport: PHONE, mountedOnly: true },
+        );
+        // The viewer plays the film while its face is held, then the face is refused.
+        yield* page.click('.bar [data-act="play"]');
+        yield* textIs(page, '.bar [data-act="play"]', '❚❚');
+        yield* Deferred.done(gate, Exit.void);
+        yield* countIs(page, 'body > pre', 1);
+        yield* countIs(page, '.bar', 0);
+        const hash = yield* page.evaluate<string>('location.hash');
+        const waits = () => asked.filter((a) => WAIT.test(a.path)).length;
+        const before = waits();
+        // Space would play the film, and its time would move; long past any pause the feed would make.
+        yield* page.press('Space');
+        yield* page.clock.runFor(10_000);
+        // A request of the test's own, behind any the page made meanwhile.
+        yield* page.evaluate("fetch('/api/films/probe/check').then((r) => r.status)");
+        expect(waits()).toBe(before);
+        yield* evaluates(page, 'location.hash', hash);
       }).pipe(Effect.scoped),
     SLOW,
   );

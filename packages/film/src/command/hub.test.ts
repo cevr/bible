@@ -68,6 +68,23 @@ describe('the hub', () => {
     expect(frame.ran).toEqual(['normal', 'coarse']);
   });
 
+  test('every press is heard, bound or not, apart from what it runs, until its listener stops', () => {
+    const { hub, stop, keydown } = pageWith(memoryStorage());
+    const frame = counter('play.frame-next', { keys: ['arrowright'] });
+    hub.commands.register(frame.command);
+    let heard = 0;
+    const unheard = hub.presses(() => {
+      heard += 1;
+    });
+    keydown('ArrowRight');
+    keydown('q');
+    expect([heard, frame.ran.length]).toEqual([2, 1]);
+    unheard();
+    keydown('q');
+    expect(heard).toBe(2);
+    stop();
+  });
+
   test('a rebound key survives the page: a new hub over the same storage reads it', () => {
     const storage = memoryStorage();
     const first = pageWith(storage);

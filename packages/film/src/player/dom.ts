@@ -1,5 +1,5 @@
-// The player's DOM helpers: a child the markup must have, bytes or a canvas
-// as base64, and a canvas's luma.
+// The player's DOM helpers: a child the markup must have, a page's failure in
+// its place, bytes or a canvas as base64, and a canvas's luma.
 
 import type { LumaArea } from '../core/export-handle.ts';
 
@@ -8,6 +8,20 @@ export const required = <T extends Element>(root: ParentNode, sel: string): T =>
   const found = root.querySelector<T>(sel);
   if (found === null) throw new Error(`missing ${sel}`);
   return found;
+};
+
+/**
+ * A page that could not start: the error, in place of the page, as text (an
+ * error's words may hold markup, a film's name from the URL among them). The
+ * render page says it here (`render.ts`); a studio page says it only as it
+ * ends (`PageEnd.fail`, lab/page-client.tsx), so nothing of it runs on
+ * behind the words.
+ */
+export const showFailure = (e: unknown): void => {
+  const shown = document.createElement('pre');
+  shown.style.cssText = 'color:var(--state-findings);padding:24px;white-space:pre-wrap';
+  shown.textContent = String(e instanceof Error ? (e.stack ?? e.message) : e);
+  document.body.replaceChildren(shown);
 };
 
 /** Bytes as base64: what the export handle hands back across `page.evaluate`. */

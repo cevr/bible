@@ -137,7 +137,7 @@ describe('the cue strip', () => {
   const strip = `['.lab-strip-row', '[data-act="snap"]', '.lab-strip-words'].map((s) => document.querySelector(s).checkVisibility())`;
 
   it.live(
-    'folds to its words in Note and Record, and on a phone in every mode but Edit (UR2-3, SU-4)',
+    'folds to its words in Note, Compare and Record, and on a phone in every mode but Edit (UR2-3, SU-4)',
     () =>
       Effect.gen(function* () {
         const { page } = yield* openLab([], { href: labAt(1) });
@@ -147,7 +147,7 @@ describe('the cue strip', () => {
           ['note', false],
           ['record', false],
           ['motion', true],
-          ['compare', true],
+          ['compare', false],
           ['edit', true],
         ] as const) {
           yield* page.click(`.lab-modes [data-mode-pick="${mode}"]`);

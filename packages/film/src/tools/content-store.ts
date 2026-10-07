@@ -6,18 +6,26 @@
 // review, a `film project` child per request, `sfx make` and a terminal's
 // `project render` all write the same files, and every write lands.
 //
-// One writer at a time: a change holds the manifest's lock, a file beside it
-// (`<file>.lock`) created only if there is none, for its read, its change and
-// its write; fibers of one process queue on a semaphore per file first. The
-// lock names its holder (pid, host, when taken, a token no other taking in
-// its process has), so no two takings write the same lock: a lock whose holder
-// is gone (a pid on this host that no longer runs) was left by a crash, and
-// the next writer breaks it and says so. So is one this store gave back but
-// could not remove (a busy disk): it keeps that lock's path and the very text
-// it wrote there, and its next change breaks the lock at that path only while
-// it holds that text, as its own leftover. A running holder's lock is never
-// broken, however long it is held, nor one held on another host; a writer
-// that waits its whole wait for one fails as StoreLocked and logs who holds it.
+// One writer at a time: a change holds the manifest's lock (`ManifestLock`)
+// for its read, its change and its write; fibers of one process queue on a
+// semaphore per file first. What the lock holds to:
+//
+// 1. One holder. The lock is the operating system's, held for its holder's
+//    process: no two writers, of one process or of two, hold it at once.
+// 2. A holder that is gone holds nothing. The kernel lets the lock go when
+//    its process ends, a crash too, so the next writer takes it at once;
+//    nothing judges a holder stale, and a running holder's lock is never
+//    taken from it, however long it holds it. A writer that waits its whole
+//    wait for one fails as StoreLocked.
+// 3. A decision about a manifest is made while holding its lock: `transact`
+//    and `holding` hand their change the manifest as read under the lock, and
+//    neither takes a path and a bare effect. A change that takes the same
+//    lock again dies naming it, rather than waiting on itself. A value read
+//    before the lock and carried in stays the reviewer's to catch.
+//
+// Every writer holds this lock: a store from before it (a `<file>.lock` it
+// made and judged) is not run beside it, the lab restarting with the code it
+// serves and every child or terminal command starting from it.
 //
 // A file is written whole (`writeWhole`): beside it under a name of the
 // writer's own (`<file>.<pid>-<n>.<host tag>.partial`), then renamed over it
@@ -30,7 +38,6 @@
 
 import {
   Array as Arr,
-  Clock,
   Context,
   Duration,
   Effect,
@@ -49,6 +56,7 @@ import type { PlatformError } from 'effect/PlatformError';
 import { hostname } from 'node:os';
 import { sha256Hex } from './digest.ts';
 import { FileInvalid, StoreLocked } from './errors.ts';
+import { ManifestLock } from './manifest-lock.ts';
 
 /** A manifest file, its codec, and what it holds before anything is generated. */
 export interface Manifest<A> {
@@ -141,35 +149,10 @@ const isStale = (stored: Option.Option<string>, hash: string, force: boolean): b
 const LOCK_TRIES = 250;
 const LOCK_SPACING = Duration.millis(20);
 
-/**
- * Who holds a manifest's lock: its process, the host it runs on, when it
- * took it (epoch ms), and a token of its own (`<pid>-<n>`, the process's nth
- * taking). A lock from before the host was written names none, and is judged
- * as this host's.
- */
-const LockOwner = Schema.Struct({
-  pid: Schema.Int,
-  host: Schema.optionalKey(Schema.String),
-  created: Schema.Finite,
-  token: Schema.String,
+/** The manifests whose locks the running change holds, in its fiber and those it forks. */
+const Held = Context.Reference<ReadonlySet<string>>('@bible/film/tools/ContentStore/Held', {
+  defaultValue: () => new Set(),
 });
-type LockOwner = typeof LockOwner.Type;
-export const LockOwnerJson = Schema.fromJsonString(LockOwner);
-const decodeOwner = Schema.decodeUnknownOption(LockOwnerJson);
-const encodeOwner = Schema.encodeSync(LockOwnerJson);
-
-/**
- * A lock whose holder cannot be read (a lock directory of an older store,
- * or a file left empty by a crash mid-write) and that is older than this was
- * left by a crash: a holder writes itself into the lock as it creates it.
- */
-const UNREAD_LOCK_STALE = Duration.seconds(30);
-
-/** The locks this process has taken, every store's: each taking's token is its count. */
-const takings = { count: 0 };
-
-/** The lock of the manifest at `file`. */
-export const lockFile = (file: string): string => `${file}.lock`;
 
 /** Whether process `pid` is running: signal 0 checks without sending anything. */
 const isAlive = (pid: number) =>
@@ -182,7 +165,7 @@ const isAlive = (pid: number) =>
     },
   );
 
-/** The processes a lock's holder is judged among: this host's name, and whether a pid on it runs. */
+/** The processes a partial's writer is judged among: this host's name, and whether a pid on it runs. */
 interface ProcessesService {
   readonly host: string;
   readonly alive: (pid: number) => Effect.Effect<boolean>;
@@ -190,15 +173,11 @@ interface ProcessesService {
 
 /**
  * This host's processes (`process.kill(pid, 0)`, `os.hostname()`): what
- * says whether a lock's holder is gone. Tests set it.
+ * says whether a partial's writer is gone. Tests set it.
  */
 export const Processes = Context.Reference<ProcessesService>('@bible/film/tools/Processes', {
   defaultValue: () => ({ host: hostname(), alive: (pid) => Effect.sync(() => isAlive(pid)) }),
 });
-
-/** Whether `owner` runs on host `here`: one that names no host is taken to. */
-const holdsOn = (owner: LockOwner, here: string): boolean =>
-  Option.getOrElse(Option.fromUndefinedOr(owner.host), () => here) === here;
 
 /**
  * Whether the partial `name` was left by a writer that is gone: a pid on
@@ -206,9 +185,9 @@ const holdsOn = (owner: LockOwner, here: string): boolean =>
  * another host (its pid means nothing here), and one that names no host
  * (`<file>.<pid>-<n>.partial`, a writer from before partials carried it, on
  * any host) or no writer at all (`<file>.partial`), whose writer cannot be
- * told. Unlike a lock, a stale partial blocks no writer and is git-ignored,
- * while removing a live one loses its write, so a partial is removed only
- * when its writer is known to be gone.
+ * told. A stale partial blocks no writer and is git-ignored, while removing
+ * a live one loses its write, so a partial is removed only when its writer
+ * is known to be gone.
  */
 export const partialAbandoned = (name: string): Effect.Effect<boolean> =>
   Effect.gen(function* () {
@@ -218,38 +197,6 @@ export const partialAbandoned = (name: string): Effect.Effect<boolean> =>
     if (writer.value.host !== hostTag(processes.host)) return false;
     return !(yield* processes.alive(writer.value.pid));
   });
-
-/**
- * Why a lock held by `owner` is stale, or none while it holds. A lock is
- * stale only when its holder is gone: a holder on this host (`here`) whose
- * pid no longer runs (`alive`, asked of it alone). One held by a running
- * process holds however long it is held (a slow or suspended change is
- * still a change), and one held on another host is never judged, since its
- * pid means nothing here. A holder that cannot be read (none) ages from
- * `since`, its file's mtime, and is stale past UNREAD_LOCK_STALE. Pure.
- */
-export const lockVerdict = (
-  owner: Option.Option<LockOwner>,
-  now: number,
-  here: string,
-  alive: (pid: number) => boolean,
-  since: number = now,
-): Option.Option<string> =>
-  Option.match(owner, {
-    onNone: () => {
-      const age = now - since;
-      if (age <= Duration.toMillis(UNREAD_LOCK_STALE)) return Option.none<string>();
-      return Option.some(
-        `its holder cannot be read, and it was made ${Math.round(age / 1000)} s ago`,
-      );
-    },
-    onSome: (o) => {
-      if (!holdsOn(o, here) || alive(o.pid)) return Option.none<string>();
-      return Option.some(`its holder, pid ${o.pid}, is gone`);
-    },
-  });
-
-const isAlreadyExists = (error: PlatformError) => error.reason._tag === 'AlreadyExists';
 
 interface ContentStoreService {
   /** The manifest as stored, or its empty value when there is no file yet. */
@@ -279,16 +226,19 @@ interface ContentStoreService {
     change: (current: A) => Effect.Effect<readonly [B, A], E, R>,
   ) => Effect.Effect<B, E | StoreError, R>;
   /**
-   * `effect` holding `file`'s lock (the one its `transact` takes), in this
-   * process and across processes, without rewriting `file`: for what changes
-   * the files a manifest names (a take put away, or brought back with the
-   * text that names it) and must not interleave with a change of the
-   * manifest. Not reentrant: `effect` must not take the same lock again.
+   * `use` of the manifest as it is, holding its lock (the one its
+   * `transact` takes), in this process and across processes, without
+   * rewriting it: for what changes the files a manifest names (a take put
+   * away, or brought back with the text that names it) and must not
+   * interleave with a change of the manifest. What `use` decides from is
+   * read under that lock. A lock taken again inside itself (a `holding` or
+   * `transact` of the same file within `use`) dies naming the file, rather
+   * than waiting on itself.
    */
-  readonly holding: <A, E, R>(
-    file: string,
-    effect: Effect.Effect<A, E, R>,
-  ) => Effect.Effect<A, E | StoreLocked | PlatformError, R>;
+  readonly holding: <A, B, E, R>(
+    manifest: Manifest<A>,
+    use: (current: A) => Effect.Effect<B, E, R>,
+  ) => Effect.Effect<B, E | StoreError, R>;
   /** Write a file whole: a reader never sees half of it. */
   readonly writeFile: (file: string, bytes: Uint8Array) => Effect.Effect<void, PlatformError>;
   /** Produce the asset unless its stored hash is current, then record it. `None` when skipped. */
@@ -305,6 +255,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
+      const locks = yield* ManifestLock;
       /** One writer at a time in this process, per manifest. */
       const writers = new Map<string, Semaphore.Semaphore>();
       const writerOf = (file: string) =>
@@ -313,8 +264,6 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           writers.set(file, made);
           return made;
         });
-      /** Each lock this store gave back but could not remove, by path: the text it wrote there. */
-      const leftovers = new Map<string, string>();
 
       const writeFile = Effect.fn('ContentStore.writeFile')(function* (
         file: string,
@@ -325,135 +274,48 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
       });
 
       /**
-       * Break the lock if it is stale. Moved aside first (a rename is atomic,
-       * so of two writers breaking it at once only one moves it), then checked
-       * to be the very lock judged stale; a live lock moved by mistake (taken
-       * between the judging and the move) is put back, unless a third writer
-       * has taken the lock since: its lock stays.
+       * Take `file`'s lock for one change, trying again while another holds
+       * it; what lets it go. A writer that tries its every try fails as
+       * StoreLocked, and says so.
        */
-      const breakStale = Effect.fn('ContentStore.breakStale')(function* (lock: string) {
-        const held = yield* fs.readFileString(lock).pipe(Effect.option);
-        const owner = Option.flatMap(held, decodeOwner);
-        const now = yield* Clock.currentTimeMillis;
-        // An owner that cannot be read (being written, or an old lock directory) ages from its mtime.
-        const mtime = fs.stat(lock).pipe(
-          Effect.map((info) =>
-            Option.getOrElse(
-              Option.map(info.mtime, (d) => d.getTime()),
-              () => now,
-            ),
-          ),
-          Effect.orElseSucceed(() => now),
-        );
-        const since = yield* Option.match(owner, {
-          onSome: (o) => Effect.succeed(o.created),
-          onNone: () => mtime,
-        });
-        const processes = yield* Processes;
-        // Only a holder on this host is asked after: another's pid means nothing here.
-        const running = yield* Option.match(
-          Option.filter(owner, (o) => holdsOn(o, processes.host)),
-          { onNone: () => Effect.succeed(true), onSome: (o) => processes.alive(o.pid) },
-        );
-        // This store's leftover: the lock at this path holding the very text it wrote there.
-        const leftover = Option.filter(held, (t) => leftovers.get(lock) === t);
-        const verdict = Option.match(leftover, {
-          onSome: () => Option.some('this store gave it back, and its removal failed'),
-          onNone: () => lockVerdict(owner, now, processes.host, () => running, since),
-        });
-        if (Option.isNone(verdict)) return;
-        const grave = `${lock}.stale-${process.pid}-${yield* Random.nextIntBetween(0, 1e9)}`;
-        const moved = yield* fs.rename(lock, grave).pipe(Effect.option);
-        if (Option.isNone(moved)) return;
-        const buried = yield* fs.readFileString(grave).pipe(Effect.option);
-        const text = (o: Option.Option<string>) => Option.getOrElse(o, () => '');
-        if (text(buried) !== text(held)) {
-          // Back only where no lock is: a link fails on one a third writer took meanwhile.
-          yield* fs.link(grave, lock).pipe(Effect.ignore);
-          yield* fs.remove(grave, { recursive: true }).pipe(Effect.ignore);
-          return;
-        }
-        yield* fs.remove(grave, { recursive: true }).pipe(Effect.ignore);
-        if (Option.isSome(leftover)) leftovers.delete(lock);
-        yield* Effect.logWarning(`store.lock.broken lock=${lock} reason="${verdict.value}"`);
-      });
-
-      /** Who holds `lock`, as the log names them once a writer has waited its whole wait. */
-      const heldBy = (lock: string) =>
-        Effect.gen(function* () {
-          const owner = Option.flatMap(
-            yield* fs.readFileString(lock).pipe(Effect.option),
-            decodeOwner,
-          );
-          const now = yield* Clock.currentTimeMillis;
-          const holder = Option.match(owner, {
-            onNone: () => 'holder=unreadable',
-            onSome: (o) =>
-              `pid=${o.pid} host=${Option.getOrElse(Option.fromUndefinedOr(o.host), () => 'unnamed')} held=${Math.round((now - o.created) / 1000)}s`,
-          });
-          yield* Effect.logWarning(
-            `store.lock.held lock=${lock} ${holder} reason="a running writer holds it; it is broken only once that writer is gone"`,
-          );
-        });
-
-      /** Take `lock` (a file created only if there is none) for one change. */
-      const take = (lock: string, owner: LockOwner) =>
-        fs.writeFileString(lock, encodeOwner(owner), { flag: 'wx' }).pipe(
-          Effect.tapError((error) =>
-            Effect.when(breakStale(lock), Effect.succeed(isAlreadyExists(error))),
-          ),
+      const take = (file: string) =>
+        locks.take(file).pipe(
+          Effect.flatMap(Effect.fromOption),
           Effect.retry({
-            while: isAlreadyExists,
+            while: (error) => error._tag === 'NoSuchElementError',
             times: LOCK_TRIES,
             schedule: Schedule.spaced(LOCK_SPACING),
           }),
-          Effect.catchIf(isAlreadyExists, () =>
-            Effect.andThen(heldBy(lock), Effect.fail(StoreLocked.make({ lock }))),
+          Effect.catchTag('NoSuchElementError', () =>
+            Effect.andThen(
+              Effect.logWarning(
+                `store.lock.held file=${file} reason="another writer held it past every try"`,
+              ),
+              Effect.fail(StoreLocked.make({ file })),
+            ),
           ),
         );
 
       /**
-       * Give `lock` back, if it still holds the very text this writer wrote (a
-       * lock broken as stale is someone else's now). One whose removal fails is
-       * kept as this store's leftover, its path and that text, for its next
-       * change to take.
+       * `change` holding `file`'s lock, in this process and across processes.
+       * Taken again inside `change`, it dies naming the file: it would wait on
+       * itself, in this process's queue or on its own lock, forever.
        */
-      const give = (lock: string, owner: LockOwner) => {
-        const written = encodeOwner(owner);
-        return Effect.gen(function* () {
-          const held = yield* fs.readFileString(lock).pipe(Effect.option);
-          if (Option.contains(held, written)) return yield* fs.remove(lock);
-          yield* Effect.logWarning(
-            `store.unlock.lost lock=${lock} reason="another writer holds it now"`,
-          );
-        }).pipe(
-          Effect.catchTag('PlatformError', (error) =>
-            Effect.andThen(
-              Effect.sync(() => void leftovers.set(lock, written)),
-              Effect.logWarning(`store.unlock lock=${lock} reason=${error.message}`),
-            ),
-          ),
-        );
-      };
-
-      /** `change` holding `file`'s lock, in this process and across processes. */
       const locked = <A, E, R>(file: string, change: Effect.Effect<A, E, R>) =>
         Effect.gen(function* () {
-          const lock = lockFile(file);
-          const owner: LockOwner = {
-            pid: process.pid,
-            host: (yield* Processes).host,
-            created: yield* Clock.currentTimeMillis,
-            token: `${process.pid}-${(takings.count += 1)}`,
-          };
+          const held = yield* Held;
+          if (held.has(file))
+            return yield* Effect.die(
+              `ContentStore: the lock of ${file} is taken again by a change that holds it`,
+            );
           return yield* Effect.acquireUseRelease(
             fs
               .makeDirectory(path.dirname(file), { recursive: true })
-              .pipe(Effect.andThen(take(lock, owner))),
-            () => change,
-            () => give(lock, owner),
-          );
-        }).pipe(writerOf(file).withPermits(1));
+              .pipe(Effect.andThen(take(file))),
+            () => Effect.provideService(change, Held, new Set([...held, file])),
+            (release) => release,
+          ).pipe(writerOf(file).withPermits(1));
+        });
 
       const read = Effect.fn('ContentStore.read')(function* <A>(manifest: Manifest<A>) {
         if (!(yield* fs.exists(manifest.file))) return manifest.empty;
@@ -483,6 +345,14 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
           }),
         ).pipe(Effect.withSpan('ContentStore.transact'));
 
+      const holding = <A, B, E, R>(
+        manifest: Manifest<A>,
+        use: (current: A) => Effect.Effect<B, E, R>,
+      ) =>
+        locked(manifest.file, Effect.flatMap(read(manifest), use)).pipe(
+          Effect.withSpan('ContentStore.holding'),
+        );
+
       const modify = <A, E>(manifest: Manifest<A>, change: (current: A) => Result.Result<A, E>) =>
         transact(manifest, (current: A) =>
           Effect.map(Effect.fromResult(change(current)), (next) => [next, next] as const),
@@ -506,7 +376,7 @@ export class ContentStore extends Context.Service<ContentStore, ContentStoreServ
         update,
         modify,
         transact,
-        holding: locked,
+        holding,
         writeFile,
         ensure,
       });

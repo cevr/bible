@@ -1,6 +1,6 @@
 // The Play page's HUD: its controls (the bar, the header and the tab bar)
 // shown at rest, and faded while the film plays once no pointer has moved and
-// no key, tap or focus move has come for `HUD_IDLE_MS`, so the picture is all
+// no key, tap or keyboard focus move has come for `HUD_IDLE_MS`, so the picture is all
 // there is. Any input brings them back and starts the wait again; a tap on
 // the picture while it plays hides shown controls and shows hidden ones, as
 // a phone's players do. While the keyboard's focus is on a control (`held`)
@@ -8,7 +8,9 @@
 // focus. Faded, they stay in the accessibility tree and the tab order
 // (`player.css` fades only their look and their taps), so a keyboard or a
 // screen reader reaches play and pause as ever, and the focus landing on one
-// brings them back. Framework-free; its timers are the page host's
+// brings them back. The focus leaving a control never brings them back
+// (`focusLeft`): a tap's meaning never depends on where the focus was.
+// Framework-free; its timers are the page host's
 // (`timersOn`), or a test's.
 
 import { Option } from 'effect';
@@ -23,8 +25,15 @@ export const HUD_IDLE_MS = 3000;
 interface Hud {
   /** The film plays (`true`) or stands: standing, the controls show. */
   playing(on: boolean): void;
-  /** An input (a pointer moved or pressed, a key, the focus moving): show the controls, and wait again. */
+  /** An input (a pointer moved or pressed, a key, the keyboard's focus landing on a control): show the controls, and wait again. */
   wake(): void;
+  /**
+   * The focus left a control: shown, the controls wait again from now (a
+   * control that held them no longer does); faded, they stay faded. A tap
+   * that moves the focus off a control is then the tap's alone: on the
+   * picture it shows faded controls, wherever the focus was.
+   */
+  focusLeft(): void;
   /** A tap on the picture while it plays: hide the controls if shown, else show them. */
   toggle(): void;
   shown(): boolean;
@@ -82,6 +91,9 @@ export const makeHud = (
       }
     },
     wake,
+    focusLeft: () => {
+      if (shown) wait();
+    },
     toggle: () => {
       if (!shown) return wake();
       stopWaiting();

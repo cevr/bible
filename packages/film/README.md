@@ -1233,15 +1233,18 @@ so a key rebound in `?` reads as rebound.
 - **Timeline dock**: the lab's foot under the picture: the film's timeline
   (its scenes end to end, the playhead) and the cue strip (the scene under
   the playhead, zoomed: its words, a lane per cue). Not a dock of tabs: a
-  mode's tools live in the inspector. The lanes and Snap are Edit's: in
-  Note and Record, and on a phone in every mode but Edit, the strip folds
-  to its words, so the mode's own controls start on the first screen. A
+  mode's tools live in the inspector. The lanes and Snap are Edit's (and
+  Motion's on a laptop, for its loop): in Note, Compare and Record, and on
+  a phone in every mode but Edit, the strip folds to its words, so the
+  mode's own controls start on the first screen and the picture keeps its
+  room. A
   note begun shows Note once its mark is lifted, so the frame never moves
   under the drag.
 - **Mode tray**: the segmented toolbar at the head of the lab's inspector,
   Edit · Note · Motion · Compare · Record (`lab/mode.ts`): one pressed, and
-  the inspector shows that tool only. Kept per viewer in the browser; a
-  cited note opens on Note.
+  the inspector shows that tool only, under no heading repeating it. Kept
+  per viewer in the browser; a cited note opens on Note, and a cited beat
+  the film lists on Record.
 - **HUD**: the readout laid over or beside the picture: the player's bar
   (scene, time; its keys legend hidden until asked for).
 - **Inspector**: the panel that shows and edits the selected thing: in the
@@ -1442,7 +1445,9 @@ the section derived values and actions (`view.ts`: the controls each state
 offers with their keys, the status line, the meter, the badges), never the
 machine's states. The beat is the link's (`beatAt`, `lab/place.ts`): the
 one `?beat=` picks, else the path's scene (a beat is a scene's take), so
-Record opens where the lab is and Copy link cites the beat. A beat picked is
+Record opens where the lab is and Copy link cites the beat. A pasted link
+that names a beat the film lists opens in Record, as one naming a note opens
+in Note, and leaves the viewer's own mode as it was (`lab/panel.tsx`). A beat picked is
 a step Back walks and ←/→ follows in place; the link landing on another beat
 (Back, Forward, play into the next scene with none picked) moves a recorder
 at rest (`Idle`, `Failed`) to it, and never one mid-take.
@@ -1474,11 +1479,11 @@ log at its own `seq` and a wait over it answers at once, even when the log is
 empty, so an open page and `--watch` keep hearing); `wait` polls the file for them (every 200 ms), so it sees a reply
 the CLI wrote while the server was waiting. Each change is one
 `ContentStore.transact`, as every manifest's is: written whole, one writer at
-a time across processes (`notes.json.lock`, created only if there is none and
-naming its holder's pid and host; a lock whose holder is gone, a pid on this
-host that no longer runs, is broken, and a running holder's never is, however
-long it holds it; one held past about 5 s fails with `StoreLocked`, and the
-log names who holds it, `store.lock.held`). A
+a time across processes (the operating system's lock on `.notes.json.lock`,
+which the kernel lets go the moment its holder's process ends, a crash too,
+and which a running holder keeps however long it holds it; a change that
+waits past about 5 s fails with `StoreLocked`, and the log says so,
+`store.lock.held`). A
 note's still is written under the same lock, before the note that names it.
 
 `nearestMoment(placed, T)` (`core/notes.ts`) names the scene at `T` and, in

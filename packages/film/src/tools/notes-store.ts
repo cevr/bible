@@ -3,7 +3,7 @@
 // `film notes` both read and write it through this store, so either works
 // without the other. Every change is one `ContentStore.transact`: written
 // whole, one writer at a time across processes (the manifest's lock,
-// `notes.json.lock`), its still written under the same lock, so a note saved
+// `ManifestLock`), its still written under the same lock, so a note saved
 // in the lab and a reply sent from the CLI at the same moment both land.
 
 import {
