@@ -91,6 +91,8 @@ const MESSAGES = {
     'a JSX handler hears keydown on its own: declare a command with its keys (packages/film/src/command/command.ts), registered with the page hub.',
   'keys-through-keymap.tsx:18 film/keys-through-keymap':
     'addEventListener hears contextmenu on its own: open a context menu through @bible/ui ContextMenu over the selection’s commands (packages/film/src/lab/command/).',
+  'one-breakpoint.ts:8 film/one-breakpoint':
+    "a breakpoint written out: ask the studio's one breakpoint through PHONE or WIDE (packages/film/src/lab/viewport.ts), so the width is declared once.",
   'framing-is-a-knob.ts:9 film/framing-is-a-knob':
     'a framing written in the scene: make it knobs (a point and a zoom, read with knobCamera), a move between framings a shotPath of them, and a push that keeps going pushOn with a number knob, so the lab can reach it.',
   'no-history-comment.ts:4 film/no-history-comment':

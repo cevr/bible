@@ -13,7 +13,10 @@
 // root (`mountLab`, `mountPlay`, `mountReview`). Each surface fits a phone:
 // no wider than the screen less its gutters, scrolling inside itself. An
 // inspector field is the kit's number field (`.lab-num`), styled where the
-// kit is, never here.
+// kit is, never here. A phone's width is the studio's one breakpoint
+// (`PHONE`, `WIDE`), asked through its owner.
+
+import { PHONE, WIDE } from '../viewport.ts';
 
 /**
  * The command surfaces' own constants: the four paddings and heights they
@@ -168,7 +171,7 @@ const COMMAND_RULES = `
   line-height: var(--cmd-count-size);
 }
 /* Beside the page, not over it: on a wide screen the page makes room while an inspector is open. */
-@media (min-width: 900px) { body:has(.lab-inspector-sheet) { padding-right: var(--inspector-w); } }
+@media ${WIDE} { body:has(.lab-inspector-sheet) { padding-right: var(--inspector-w); } }
 .lab-inspector-grip { display: none; }
 /*
  * On a phone (the shell's width) the sheet rises from the bottom (design
@@ -179,7 +182,7 @@ const COMMAND_RULES = `
  * above the grip. While it stands whole the page makes room under it, so its
  * last row can be scrolled above it.
  */
-@media (max-width: 899px) {
+@media ${PHONE} {
   body:has(.sh[data-film="true"]) { --cmd-sheet-floor: calc(var(--tabbar-h) + env(safe-area-inset-bottom)); }
   body:has(.sh[data-film="true"] .sh-dock) {
     --cmd-sheet-floor: calc(var(--tabbar-h) + var(--dock-h) + env(safe-area-inset-bottom));

@@ -635,6 +635,28 @@
       }
     },
     {
+      // A style in TypeScript asks the window through the studio's one
+      // breakpoint, never a width written out
+      // (packages/film/lint/one-breakpoint.ts).
+      "files": [
+        "**/packages/film/src/lab/**/*.ts",
+        "**/packages/film/src/lab/**/*.tsx",
+        "**/packages/film/src/player/**/*.ts",
+        "**/packages/film/src/browser/**/*.ts",
+        "**/packages/film/src/command/**/*.ts"
+      ],
+      "rules": {
+        "film/one-breakpoint": "error"
+      }
+    },
+    {
+      // The tests that write widths out to check the breakpoint's value.
+      "files": ["**/packages/film/src/**/fixtures/**", "**/packages/film/src/**/*.test.ts"],
+      "rules": {
+        "film/one-breakpoint": "off"
+      }
+    },
+    {
       // The host's adapters serve every page and import none of them.
       "files": ["**/packages/film/src/browser/**/*.ts"],
       "rules": {

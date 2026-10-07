@@ -16,6 +16,7 @@ import { noHistoryComment } from './no-history-comment.ts';
 import { noPointFreeLog } from './no-point-free-log.ts';
 import { noReadOnce } from './no-read-once.ts';
 import { noUnprobedInk } from './no-unprobed-ink.ts';
+import { oneBreakpoint } from './one-breakpoint.ts';
 import { spanEndsOnAnchor } from './span-ends-on-anchor.ts';
 import { spawnBudget } from './spawn-budget.ts';
 import { touchesSerial } from './touches-serial.ts';
@@ -35,6 +36,7 @@ export default Plugin.define({
     'no-point-free-log': noPointFreeLog,
     'no-read-once': noReadOnce,
     'no-unprobed-ink': noUnprobedInk,
+    'one-breakpoint': oneBreakpoint,
     'span-ends-on-anchor': spanEndsOnAnchor,
     'spawn-budget': spawnBudget,
     'touches-serial': touchesSerial,

@@ -16,10 +16,11 @@ const PHONE_WIDEST = 899;
 /**
  * A phone's width, the studio's one: under it the shell is a phone's
  * (`page-shell-style.ts`), a sheet rises from the bottom, Scenes' tape lays
- * six stills a line and the review plays the 720p copy. The shell's, the
- * review's and the Scenes' styles say it through `PHONE` and `WIDE`; a
- * stylesheet that writes the widths out (`player.css`, `tokens.css`, the
- * commands' `command/style.ts`) is held to it by `viewport.test.ts`.
+ * six stills a line and the review plays the 720p copy. Every style written
+ * in TypeScript (the shell's, the review's, the Scenes', the commands') says
+ * it through `PHONE` and `WIDE`, and `film/one-breakpoint` refuses a width
+ * written out there; the stylesheets that cannot import it (`player.css`,
+ * `tokens.css`) are held to its value by `viewport.test.ts`.
  */
 export const PHONE = `(max-width: ${PHONE_WIDEST}px)`;
 

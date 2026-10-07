@@ -1,7 +1,7 @@
 // The studio's one breakpoint: every width a stylesheet asks of the window
 // is a phone's (`PHONE`) or wider than one (`WIDE`). The styles written in
-// TypeScript say it through the two; the stylesheets that cannot are held to
-// it here.
+// TypeScript say it through the two (`film/one-breakpoint` refuses a width
+// written out there); the stylesheets that cannot are held to it here.
 
 import { BunServices } from '@effect/platform-bun';
 import { describe, expect, it } from 'effect-bun-test';
@@ -45,7 +45,8 @@ describe("the studio's breakpoint", () => {
         Object.keys(sheets).map((name) => ({ name, off: [] })),
       );
       // The TypeScript styles ask it too, through `PHONE` and `WIDE`.
-      expect(widthsIn(`${SHELL_CSS}${REVIEW_CSS}${SCENES_CSS}`).length).toBeGreaterThan(0);
+      for (const css of [SHELL_CSS, REVIEW_CSS, SCENES_CSS, COMMAND_CSS])
+        expect(widthsIn(css).length).toBeGreaterThan(0);
     }),
   );
 });

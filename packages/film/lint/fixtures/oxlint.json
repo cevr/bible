@@ -18,7 +18,8 @@
     "film/touches-serial": "error",
     "film/host-events-through-adapter": "error",
     "film/keys-through-keymap": "error",
-    "film/keys-named-as-bound": "error"
+    "film/keys-named-as-bound": "error",
+    "film/one-breakpoint": "error"
   },
   "overrides": [
     {
