@@ -236,9 +236,18 @@ const COMMAND_RULES = `
   color: var(--text-1); font: var(--fs-2)/var(--body-lh) var(--font);
 }
 .lab-scope-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/*
+ * The scope's × is drawn the count dot's size, its box its min-width (no
+ * user agent padding), and reached as a target of the pointer's size
+ * (\`--hit\`) through a hit-slop past it each way, as a name's is.
+ */
 .lab-scope button {
-  background: none; border: 0; color: var(--text-2); cursor: pointer; font: inherit;
-  min-width: var(--cmd-count-size); min-height: var(--cmd-count-size);
+  position: relative; background: none; border: 0; color: var(--text-2); cursor: pointer; font: inherit;
+  min-width: var(--cmd-count-size); min-height: var(--cmd-count-size); padding-inline: 0;
+}
+.lab-scope button::before {
+  content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: max(100%, var(--hit)); height: max(100%, var(--hit));
 }
 .lab-scope button:hover { color: var(--text-1); }
 .lab-strip-range { position: absolute; top: 0; bottom: 0; background: var(--accent-wash); pointer-events: none; }

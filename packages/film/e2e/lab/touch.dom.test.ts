@@ -14,7 +14,8 @@
 // The disclosed states are the fixture film's (`fixtures/studio-film.ts`):
 // Project's panels with their stills and its dock, a scene row's sheet, an
 // act's long-press menu, an inspector, the lab editor's Snap toggle and an
-// `until` cue's End field, the Findings sheet, the command
+// `until` cue's End field, a note begun on a selected cue (its scope and
+// the scope's ×), the Findings sheet, the command
 // menu (⌘K, its Go to…), the context menu, the keys dialog, the lab's modes
 // (Record's with its beats listed and the recorder on one),
 // comment counts on their rows, the Choices transport over a picture, a Set's
@@ -345,6 +346,15 @@ const labCue = (viewport: Viewport) =>
     return page;
   });
 
+/** The Lab's Note mode with a cue selected: a note begun there is scoped to the cue, its × beside it. */
+const labNoteOnCue = (viewport: Viewport) =>
+  Effect.gen(function* () {
+    const href = labAt(10, { selection: { _tag: 'Cue', scene: 'three', name: 'push' } });
+    const { page } = yield* openLab([], { viewport, mode: 'note', href });
+    yield* waitFor(page, '[data-act="note-frame"]');
+    return page;
+  });
+
 /**
  * A film's Lab link (`pageHref.lab`) is the Lab's place only until it opens:
  * the path names the scene under the playhead (`lab/place.ts`), so a film
@@ -463,6 +473,14 @@ const STATES: ByPlace<State> = {
     },
     { name: 'Lab, Edit', open: lab('edit'), disclose: AT_REST, budget: LAB_EDIT },
     { name: 'Lab, Note', open: lab('note'), disclose: AT_REST, budget: most(39, 43) },
+    {
+      name: 'Lab, Note with a scoped composer',
+      open: labNoteOnCue,
+      disclose: opens(
+        '[data-act="note-frame"]',
+        '[data-role="note-scope"] [data-act="clear-scope"]',
+      ),
+    },
     { name: 'Lab, Motion', open: lab('motion'), disclose: AT_REST, budget: most(43, 50) },
     { name: 'Lab, Compare', open: lab('compare'), disclose: AT_REST, budget: most(41, 48) },
     // Its budget is the resting Record's, with no beats listed.
