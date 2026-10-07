@@ -2,7 +2,8 @@
 // window, and one owner of it (`packages/film/src/lab/viewport.ts`: `PHONE`,
 // `WIDE`). A style written in TypeScript asks the window through those two,
 // so the width is declared once; refused is a media query width written out
-// in a string or a template (`(max-width: 899px)`, `(min-width: 900px)`),
+// in a string or a template (`(max-width: 899px)`, `(min-width: 900px )`,
+// `(width >= 900px)`),
 // where a change of the breakpoint would leave it behind. The owner itself
 // builds both from one number, so it writes no width out. The stylesheets that
 // cannot import the owner (`player.css`, `tokens.css`) are held to its value
@@ -17,8 +18,25 @@ import {
   Visitor,
 } from 'oxlint-plugin-effect/rule-bindings';
 
-/** A media query's width written out: `(max-width: 899px)`, `(min-width:900px)`. */
-const WIDTH = /\((?:max|min)-width:\s*\d+(?:\.\d+)?px\)/;
+/** A length written out: `900px`, `56.25em`. */
+const LENGTH = String.raw`\d+(?:\.\d+)?(?:px|em|rem)`;
+
+/** A range comparison: `<`, `<=`, `>`, `>=`, `=`. */
+const COMPARED = String.raw`(?:[<>]=?|=)`;
+
+/**
+ * A media query's width written out, with any whitespace CSS allows: the
+ * colon form (`(max-width: 899px)`, `( min-width:900px )`, `(width: 900px)`)
+ * and the range form (`(width >= 900px)`, `(900px <= width)`,
+ * `(400px < width <= 899px)`).
+ */
+const WIDTH = new RegExp(
+  [
+    String.raw`\(\s*(?:max-|min-)?width\s*:\s*${LENGTH}\s*\)`,
+    String.raw`\(\s*width\s*${COMPARED}\s*${LENGTH}\s*\)`,
+    String.raw`\(\s*${LENGTH}\s*${COMPARED}\s*width(?:\s*${COMPARED}\s*${LENGTH})?\s*\)`,
+  ].join('|'),
+);
 
 const MESSAGE =
   "a breakpoint written out: ask the studio's one breakpoint through PHONE or WIDE (packages/film/src/lab/viewport.ts), so the width is declared once.";
