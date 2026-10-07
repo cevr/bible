@@ -2,8 +2,10 @@
 // pages, each one shape it must read right: the usable area is what a tap
 // reaches (a target half under a neighbour fails; a target whose middle is
 // covered passes on the free part beside it), spacing looks at neighbours'
-// hit-slops, a hit-slop over a neighbour's box fails, a backing input is left out only when nothing of it can be seen
-// or pressed, only a link on a line of text is inline, a link inside a label
+// hit-slops, a hit-slop over a neighbour's box fails (its last pixel row
+// too) and one the measure cannot place exactly fails as unanchored, a
+// backing input is left out only when nothing of it can be seen or
+// pressed, only a link on a line of text is inline, a link inside a label
 // is the link's area and never the label's field's, a target scrolling
 // cannot bring into the window fails, and a layer is measured within itself,
 // its menu items as targets.
@@ -60,31 +62,68 @@ describe('the touch-target measure', () => {
 
   it.live("fails a spaced target when a neighbour's hit-slop reaches into its circle", () =>
     offenders(
-      `<style>.slop { position: absolute; } .slop::before { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }</style>
+      `<style>.slop { position: absolute; } .slop::before { content: ''; position: absolute; left: -12px; top: -12px; width: 44px; height: 44px; }</style>
        <button class="at" style="left:100px;top:500px;width:30px;height:30px">T</button>
        <button class="slop" style="left:145px;top:505px;width:20px;height:20px">N</button>`,
       ['button.at "T" 30×30 □30'],
     ),
   );
 
+  /** A hit-slop 44 px square, centred on its 18 × 22 target by its offsets alone. */
+  const CENTRED = `<style>.slop { position: absolute; } .slop::before { content: ''; position: absolute; left: -13px; top: -11px; width: 44px; height: 44px; }</style>`;
+
   it.live(
     "fails a hit-slop that lies over a neighbour's box: a tap on its edge is the slop's",
     () =>
       offenders(
-        `<style>.slop { position: absolute; } .slop::before { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }</style>
+        `${CENTRED}
        <button class="at" style="left:16px;top:331px;width:358px;height:60px">field</button>
        <button class="slop" style="left:200px;top:300px;width:18px;height:22px">x</button>`,
         ['button.slop "x" reaches over button.at "field"'],
       ),
   );
 
+  it.live("fails a hit-slop that takes only the neighbour's last pixel row", () =>
+    offenders(
+      // The slop spans y 390–434; the field ends at 391: its bottom row is the slop's.
+      `${CENTRED}
+       <button class="at" style="left:16px;top:331px;width:358px;height:60px">field</button>
+       <button class="slop" style="left:200px;top:401px;width:18px;height:22px">x</button>`,
+      ['button.slop "x" reaches over button.at "field"'],
+    ),
+  );
+
+  it.live('fails a hit-slop sized by its padding, as large as any other', () =>
+    offenders(
+      `<style>.pad { position: absolute; } .pad::before { content: ''; position: absolute; left: -13px; top: -11px; width: 0; height: 0; padding: 22px; }</style>
+       <button class="at" style="left:16px;top:331px;width:358px;height:60px">field</button>
+       <button class="pad" style="left:200px;top:401px;width:18px;height:22px">x</button>`,
+      ['button.pad "x" reaches over button.at "field"'],
+    ),
+  );
+
   it.live('keeps a hit-slop that grows away from its neighbour', () =>
     offenders(
-      `<style>.up { position: absolute; } .up::before { content: ''; position: absolute; left: 50%; bottom: 0; width: 44px; height: 44px; transform: translateX(-50%); }</style>
+      `<style>.up { position: absolute; } .up::before { content: ''; position: absolute; left: -13px; bottom: 0; width: 44px; height: 44px; }</style>
        <button class="at" style="left:16px;top:331px;width:358px;height:60px">field</button>
        <button class="up" style="left:200px;top:300px;width:18px;height:22px">x</button>`,
       [],
     ),
+  );
+
+  it.live(
+    'fails a hit-slop it cannot place exactly: moved by a transform, or held by no positioned target',
+    () =>
+      offenders(
+        `<style>.turned { position: absolute; } .turned::before { content: ''; position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; transform: translate(-50%, -50%); }
+         .loose::before { content: ''; position: absolute; left: -13px; top: -11px; width: 44px; height: 44px; }</style>
+       <button class="turned" style="left:100px;top:100px;width:44px;height:44px">turned</button>
+       <div style="position:absolute;left:100px;top:300px"><button class="loose" style="width:44px;height:44px">loose</button></div>`,
+        [
+          'button.turned "turned" hit-slop is not anchored to its target',
+          'button.loose "loose" hit-slop is not anchored to its target',
+        ],
+      ),
   );
 
   it.live('keeps a spaced target whose circle reaches no other target', () =>

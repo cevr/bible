@@ -22,10 +22,19 @@
 // measured. Anything shown that a pointer can land on is measured.
 //
 // A hit-slop stays off its neighbours: where a target's slop (a positioned
-// `::before` or `::after` past its box) lies over another control's box,
-// one that neither holds nor is held by it, a tap on that control's edge is
-// the target's, though both still hold a square. The target fails then, as
-// `… reaches over …`, whatever its size.
+// `::before` or `::after` drawn past its padding box) lies over another
+// control's box, one that neither holds nor is held by it, a tap on that
+// control's edge is the target's, though both still hold a square. The
+// slop's rectangle is worked out exactly from its own offsets and size,
+// and every whole pixel where it meets the neighbour's box is asked who a
+// tap there reaches; the target fails, as `… reaches over …`, on any one
+// that is its. A slop that cannot be placed exactly (its target is not its
+// containing block, or it, its target or an ancestor beyond a move is
+// transformed) fails as `… hit-slop is not anchored to its target`. The
+// studio's hit areas are a target's own box (its padding and minimum
+// size), and `::before` slops (a name's, the note scope's ×, the findings
+// chip's); a child element or padding never reaches past the target's box,
+// so neither is in this check's scope.
 //
 // Exceptions are WCAG 2.5.8's (target size, minimum), never by page:
 // - Inline: a link in running text, with words before or after it on its
@@ -223,32 +232,79 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
   };
   const targets = [...new Set([...document.querySelectorAll(WITHIN)].flatMap((root) => [root, ...root.querySelectorAll(TARGETS)]))]
     .filter((el) => el.matches(TARGETS) && shown(el));
-  // How far past its box a target's hit-slop (a positioned \`::before\` or \`::after\`) can reach: its own size.
-  const slopReach = (el) => Math.max(0, ...['::before', '::after'].map((part) => {
-    const s = getComputedStyle(el, part);
-    if (s.content === 'none' || s.content === 'normal' || s.position !== 'absolute') return 0;
-    return Math.max(parseFloat(s.width) || 0, parseFloat(s.height) || 0);
-  }));
-  // The neighbours whose box a point of the target's hit-slop lies over, each sampled every STEP px
-  // where its box meets the slop's reach outside the target's own box.
+  const px = (v) => parseFloat(v) || 0;
+  const turned = (s) => s.transform !== 'none' || s.translate !== 'none' || s.rotate !== 'none' || s.scale !== 'none';
+  // An ancestor's transform that is more than a move: a box under it is not where its offsets say.
+  const bent = (el) => {
+    for (let n = el.parentElement; n; n = n.parentElement) {
+      const s = getComputedStyle(n);
+      if (s.rotate !== 'none' || s.scale !== 'none') return true;
+      if (s.transform !== 'none' && !/^matrix\\(1, 0, 0, 1, /.test(s.transform)) return true;
+    }
+    return false;
+  };
+  // A target's hit-slops: each positioned \`::before\` or \`::after\` it draws past its padding box, as its
+  // rectangle in the window, worked out from the slop's resolved offsets and size (px for a positioned
+  // box) from the target's padding box, its containing block; \`loose\` when that cannot be exact: the
+  // target is not the slop's containing block (static, or a broken inline), or the target, the slop or
+  // an ancestor (beyond a move) is transformed. A pseudo-element inside the padding box draws on the
+  // target and reaches nothing.
+  const slopsOf = (el) => {
+    const host = getComputedStyle(el);
+    const r = boxOf(el);
+    const pw = r.width - px(host.borderLeftWidth) - px(host.borderRightWidth);
+    const ph = r.height - px(host.borderTopWidth) - px(host.borderBottomWidth);
+    const slops = [];
+    for (const part of ['::before', '::after']) {
+      const s = getComputedStyle(el, part);
+      if (s.content === 'none' || s.content === 'normal' || s.display === 'none' || s.pointerEvents === 'none') continue;
+      if (s.position !== 'absolute' && s.position !== 'fixed') continue;
+      const edges = s.boxSizing === 'border-box' ? [0, 0] : [
+        px(s.paddingLeft) + px(s.paddingRight) + px(s.borderLeftWidth) + px(s.borderRightWidth),
+        px(s.paddingTop) + px(s.paddingBottom) + px(s.borderTopWidth) + px(s.borderBottomWidth),
+      ];
+      const x = px(s.left) + px(s.marginLeft), y = px(s.top) + px(s.marginTop);
+      const w = px(s.width) + edges[0], h = px(s.height) + edges[1];
+      const anchored = s.position === 'absolute' && host.position !== 'static' &&
+        (host.display !== 'inline' || el.getClientRects().length === 1);
+      if (anchored && x >= 0 && y >= 0 && x + w <= pw && y + h <= ph) continue;
+      if (!anchored || turned(s) || turned(host) || bent(el)) {
+        slops.push('loose');
+        continue;
+      }
+      const ox = r.left + px(host.borderLeftWidth) - el.scrollLeft, oy = r.top + px(host.borderTopWidth) - el.scrollTop;
+      slops.push({ left: ox + x, top: oy + y, right: ox + x + w, bottom: oy + y + h });
+    }
+    return slops;
+  };
+  // Where a hit-slop lies over another control's box (one that neither holds nor is held by the
+  // target): each whole pixel of that overlap, outside the target's own box, asked
+  // \`elementFromPoint\` at its corner (the browser hit-tests a point as the pixel from it), so the
+  // slop counts only where it is on top. \`loose\`: a slop that cannot be placed exactly.
   const over = (el, set) => {
-    const reach = slopReach(el);
-    if (reach === 0) return [];
+    const slops = slopsOf(el);
+    if (slops.includes('loose')) return 'loose';
     const b = boxOf(el);
+    const mine = (node) => {
+      if (node === null || !inSet(set, node)) return false;
+      const owner = node.closest(TARGETS);
+      return owner === null || owner === el || owner.contains(el);
+    };
     return targets.filter((other) => {
       if (other === el || other.contains(el) || el.contains(other) || inSet(set, other)) return false;
       const o = boxOf(other);
-      const l = Math.max(o.left, b.left - reach), r = Math.min(o.right, b.right + reach);
-      const t = Math.max(o.top, b.top - reach), bt = Math.min(o.bottom, b.bottom + reach);
-      for (let y = t + 0.5; y < bt; y += STEP)
-        for (let x = l + 0.5; x < r; x += STEP) {
-          if (x >= b.left && x < b.right && y >= b.top && y < b.bottom) continue;
-          const node = document.elementFromPoint(x, y);
-          if (node === null || !inSet(set, node)) continue;
-          const owner = node.closest(TARGETS);
-          if (owner === null || owner === el || owner.contains(el)) return true;
-        }
-      return false;
+      return slops.some((s) => {
+        const l = Math.max(o.left, s.left), r = Math.min(o.right, s.right);
+        const t = Math.max(o.top, s.top), bt = Math.min(o.bottom, s.bottom);
+        for (let y = Math.floor(t); y < bt; y += 1)
+          for (let x = Math.floor(l); x < r; x += 1) {
+            // This pixel's share of the overlap, when all of it is in the target's own box, is no slop's.
+            const inBox = Math.max(x, l) >= b.left && Math.min(x + 1, r) <= b.right &&
+              Math.max(y, t) >= b.top && Math.min(y + 1, bt) <= b.bottom;
+            if (!inBox && mine(document.elementFromPoint(x, y))) return true;
+          }
+        return false;
+      });
     });
   };
   const out = [];
@@ -257,7 +313,9 @@ export const undersizedTargets = (hit: number, within = ':root'): string => `(()
     const set = setOf(el);
     const lead = set.reduce((a, b) => (boxOf(b).width * boxOf(b).height > boxOf(a).width * boxOf(a).height ? b : a));
     lead.scrollIntoView({ block: 'center', inline: 'center', behavior: 'instant' });
-    for (const other of over(el, set)) out.push(named(el) + ' reaches over ' + named(other));
+    const reached = over(el, set);
+    if (reached === 'loose') out.push(named(el) + ' hit-slop is not anchored to its target');
+    else for (const other of reached) out.push(named(el) + ' reaches over ' + named(other));
     const boxes = set.map(boxOf);
     const left = Math.max(0, Math.min(...boxes.map((b) => b.left)) - MARGIN);
     const top = Math.max(0, Math.min(...boxes.map((b) => b.top)) - MARGIN);

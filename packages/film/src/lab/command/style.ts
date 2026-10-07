@@ -154,7 +154,8 @@ const COMMAND_RULES = `
 .lab-named:has(> .lab-count-hit) > .lab-inspect { min-width: var(--hit); }
 .lab-inspect { position: relative; }
 .lab-inspect::before {
-  content: ''; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  content: ''; position: absolute;
+  left: calc(50% - max(50%, var(--hit) / 2)); top: calc(50% - max(50%, var(--hit) / 2));
   width: max(100%, var(--hit)); height: max(100%, var(--hit));
 }
 .lab-count-hit {
@@ -247,7 +248,7 @@ const COMMAND_RULES = `
   min-width: var(--cmd-count-size); min-height: var(--cmd-count-size); padding-inline: 0;
 }
 .lab-scope button::before {
-  content: ''; position: absolute; left: 50%; bottom: 0; transform: translateX(-50%);
+  content: ''; position: absolute; left: calc(50% - max(50%, var(--hit) / 2)); bottom: 0;
   width: max(100%, var(--hit)); height: max(100%, var(--hit));
 }
 .lab-scope button:hover { color: var(--text-1); }
