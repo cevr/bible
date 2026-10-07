@@ -11,15 +11,14 @@
 // the rest say no state; the view lives in the URL through a reload; and a
 // phone's width folds the grid to one column without scrolling sideways.
 
-import { Effect, FileSystem, Match, Option, Schema } from 'effect';
-import { BunServices } from '@effect/platform-bun';
+import { Effect, Match, Option, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { SetSayPost, pageHref } from '../../../src/core/api.ts';
 import { ReviewFileUnknown } from '../../../src/core/refusals.ts';
-import { tone } from '../../../src/lab/fixtures/tone.ts';
 import {
   type FakeRoute,
   type Json,
+  TONE,
   file,
   json,
   openReview,
@@ -175,6 +174,24 @@ const LONE_FAILED = `${LONE} [data-act="play-video"] [data-role="failed"]`;
 /** What a lone video that cannot play says. */
 const CANNOT_PLAY = 'Can’t play this video · Try again';
 
+/** Where a page's synced player says its clock cannot play, and what it says. */
+const SET_FAILED = '.rv-transport [data-role="failed"]';
+const CANNOT_PLAY_CLOCK = 'Can’t play this video';
+
+/**
+ * Where the next video made after now first plays from, kept as
+ * `STARTED_AT`: every video in the page is marked seen, and the first
+ * unmarked one to start playing says its time then.
+ */
+const WATCH_START = `(() => {
+  for (const v of document.querySelectorAll('video')) v.dataset.seen = '';
+  window.__startedAt = undefined;
+  document.addEventListener('playing', (e) => {
+    if (!('seen' in e.target.dataset)) window.__startedAt ??= e.target.currentTime;
+  }, true);
+})()`;
+const STARTED_AT = 'window.__startedAt';
+
 /** The loose video's file, answered with `answer`. */
 const walkServes = (answer: FakeRoute['answer']) =>
   route('GET', /^\/api\/review\/files\/out\/art\/walk\.mp4/, answer);
@@ -314,14 +331,7 @@ describe('the review page', () => {
     'a loose video plays on a clock of its own: its time moves, and a scrub back to the start, let go, plays on',
     () =>
       Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'review-alone-' });
-        // Ten seconds of tone: real media the page plays.
-        const wav = `${dir}/tone.wav`;
-        yield* fs.writeFile(wav, tone(10, 0.1));
-        const { page, errors } = yield* openReview([walkServes(() => file(wav)), ...routes], {
-          href: FOLDER,
-        });
+        const { page, errors } = yield* openReview(routes, { href: FOLDER });
         yield* waitFor(page, `${LONE} [data-act="play-video"]`);
         // At rest its picture is the one control: no row.
         yield* countIs(page, LONE_ROW, 0);
@@ -348,7 +358,7 @@ describe('the review page', () => {
         yield* page.evaluate(scrub('change', 0));
         yield* countIs(page, LONE_ROW, 0);
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     SLOW,
   );
 
@@ -356,13 +366,7 @@ describe('the review page', () => {
     'a loose video that cannot play says so, and never shows as playing: a play refused as unsupported',
     () =>
       Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'review-alone-' });
-        const wav = `${dir}/tone.wav`;
-        yield* fs.writeFile(wav, tone(10, 0.1));
-        const { page, errors } = yield* openReview([walkServes(() => file(wav)), ...routes], {
-          href: FOLDER,
-        });
+        const { page, errors } = yield* openReview(routes, { href: FOLDER });
         yield* waitFor(page, `${LONE} [data-act="play-video"]`);
         yield* until(page, `${LONE_VIDEO}.readyState >= 1`);
         // The browser loads it, but will not play it.
@@ -378,7 +382,7 @@ describe('the review page', () => {
         yield* countIs(page, LONE_ROW, 0);
         yield* evaluates(page, `${LONE_VIDEO}.paused`, true);
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     SLOW,
   );
 
@@ -403,16 +407,11 @@ describe('the review page', () => {
     'a loose video whose proxy fails plays its original once the page plays the originals: a failure is its source’s',
     () =>
       Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'review-alone-' });
-        const wav = `${dir}/tone.wav`;
-        yield* fs.writeFile(wav, tone(10, 0.1));
         // A phone plays the proxies, and this one will not load; the original plays.
         const { page, errors } = yield* openReview(
           [
             route('GET', /^\/api\/review\/index/, () => json(indexOf(walkOf('ready')))),
             route('GET', /^\/api\/review\/phone\/out\/art\/walk\.mp4/, () => text('gone', 404)),
-            walkServes(() => file(wav)),
             ...routes,
           ],
           { href: FOLDER, viewport: { width: 390, height: 844 } },
@@ -424,7 +423,7 @@ describe('the review page', () => {
         yield* page.click(`${LONE} [data-act="play-video"]`);
         yield* until(page, `!${LONE_VIDEO}.paused && ${LONE_VIDEO}.currentTime > 0.5`);
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     SLOW,
   );
 
@@ -432,10 +431,6 @@ describe('the review page', () => {
     'a loose video that failed to load tries again at a press on its picture, and plays once its media loads',
     () =>
       Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'review-alone-' });
-        const wav = `${dir}/tone.wav`;
-        yield* fs.writeFile(wav, tone(10, 0.1));
         // The first ask finds the server unavailable; the next finds the file.
         let asks = 0;
         const { page, errors } = yield* openReview(
@@ -443,7 +438,7 @@ describe('the review page', () => {
             walkServes(() => {
               asks += 1;
               if (asks === 1) return text('unavailable', 503);
-              return file(wav);
+              return TONE;
             }),
             ...routes,
           ],
@@ -455,7 +450,81 @@ describe('the review page', () => {
         yield* until(page, `!${LONE_VIDEO}.paused && ${LONE_VIDEO}.currentTime > 0.5`);
         expect(asks).toBeGreaterThan(1);
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a loose video that fails as it plays tries again where the failure left it, and plays',
+    () =>
+      Effect.gen(function* () {
+        const { page, errors } = yield* openReview(routes, { href: FOLDER });
+        yield* waitFor(page, `${LONE} [data-act="play-video"]`);
+        yield* page.click(`${LONE} [data-act="play-video"]`);
+        yield* until(page, `!${LONE_VIDEO}.paused && ${LONE_VIDEO}.currentTime > 2`);
+        // Its media fails two seconds in, as a dropped connection's does.
+        yield* page.evaluate(`${LONE_VIDEO}.dispatchEvent(new Event('error'))`);
+        yield* textIs(page, LONE_FAILED, CANNOT_PLAY);
+        yield* page.evaluate(WATCH_START);
+        yield* page.click(`${LONE} [data-act="play-video"]`);
+        yield* countIs(page, LONE_FAILED, 0);
+        // The retry's element starts where the failure left it, and plays.
+        yield* until(page, `${STARTED_AT} > 1.9 && !${LONE_VIDEO}.paused`);
+        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '❚❚');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a loose video keeps its place when the page plays the originals: the original stands where the proxy stood, playing',
+    () =>
+      Effect.gen(function* () {
+        // A phone plays the proxy; both copies are the same ten seconds of tone.
+        const { page, errors } = yield* openReview(
+          [route('GET', /^\/api\/review\/index/, () => json(indexOf(walkOf('ready')))), ...routes],
+          { href: FOLDER, viewport: { width: 390, height: 844 } },
+        );
+        yield* waitFor(page, `${LONE} [data-act="play-video"]`);
+        yield* evaluates(page, `${LONE_VIDEO}.src.includes('/api/review/phone/')`, true);
+        yield* page.click(`${LONE} [data-act="play-video"]`);
+        yield* until(page, `!${LONE_VIDEO}.paused && ${LONE_VIDEO}.currentTime > 2`);
+        yield* page.evaluate(WATCH_START);
+        yield* openCommandMenu(page, 'play the');
+        yield* page.click(menuEntry('review.quality'));
+        yield* until(page, `${LONE_VIDEO}.src.includes('/api/review/files/')`);
+        // The original starts where the proxy stood, or past it, and plays on.
+        yield* until(page, `${STARTED_AT} > 1.9 && !${LONE_VIDEO}.paused`);
+        yield* textIs(page, `${LONE_ROW} [data-act="play"]`, '❚❚');
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
+    SLOW,
+  );
+
+  it.live(
+    'a set whose clock cannot load says so on its transport, and never shows as playing',
+    () =>
+      Effect.gen(function* () {
+        // The first version's video is the set's clock, and its file is gone.
+        const { page, errors } = yield* openReview(
+          [
+            route('GET', /^\/api\/review\/files\/out\/art\/roof\.A\.mp4/, () => text('gone', 404)),
+            ...routes,
+          ],
+          { href: SET },
+        );
+        yield* waitFor(page, '.rv-transport');
+        yield* page.press('Space');
+        yield* textIs(page, SET_FAILED, CANNOT_PLAY_CLOCK);
+        yield* attributeIs(page, SET_FAILED, 'data-reason', /.+/);
+        yield* textIs(page, '.rv-transport [data-act="play"]', '▶');
+        yield* evaluates(
+          page,
+          "[...document.querySelectorAll('.rv-card video')].every((v) => v.paused)",
+          true,
+        );
+        expect(errors).toEqual([]);
+      }).pipe(Effect.scoped),
     SLOW,
   );
 
@@ -490,7 +559,7 @@ describe('the review page', () => {
         // Every video stands where the clock does.
         yield* until(
           page,
-          "Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - 2) < 0.01 || v.readyState === 0)",
+          "Array.from(document.querySelectorAll('.rv-card video')).every((v) => Math.abs(v.currentTime - 2) < 0.01)",
         );
         // The rate chip opens the rates but the one it plays at; J steps one slower.
         yield* page.click('.rv-transport [data-act="rate"]');
@@ -661,7 +730,8 @@ describe('the review page', () => {
         yield* page.click(`${MENU} [data-command="review.step-next"][data-step="coarse"]`);
         // The menu closes, and runs its row, on the held clock.
         yield* page.clock.runFor(500);
-        yield* textHas(page, '.rv-time', '00:00:20:00');
+        // Ten steps on from the start: past the media's ten seconds, so it stands at the end.
+        yield* textIs(page, '.rv-time-at', '00:00:10:00');
         expect(errors).toEqual([]);
       }).pipe(Effect.scoped, Effect.runPromise),
     SLOW,

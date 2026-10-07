@@ -3,7 +3,8 @@
 // as it moves; a video that drifts from the clock is put back on it, one
 // within the drift is left alone; a set waiting on a stalled video resumes
 // once every video can play on; a play the browser refuses sound for plays
-// muted; only the audible video is unmuted.
+// muted; only the audible video is unmuted; the clock's media that cannot
+// play is told, and so is its new media after.
 
 import { describe, expect, it, test } from 'effect-bun-test';
 import { Effect, Layer } from 'effect';
@@ -12,7 +13,7 @@ import { fakeMedia } from '../../browser/fixtures/media.ts';
 import { hostOf } from '../../browser/host.ts';
 import { Media } from '../../browser/media.ts';
 import { SyncEvent, SyncState } from './machine.ts';
-import { type SyncOptions, makeSync } from './sync.ts';
+import { makeSync } from './sync.ts';
 
 /** Let the forked plays settle: their answers heard, and what came of them told. */
 const settle = Effect.repeat(Effect.yieldNow, { times: 10 });
@@ -28,7 +29,7 @@ const clock = (t: number, seek = 0) => ({
 });
 
 /** A driver over two stand-in videos, `a` (the clock) and `b`, both loaded; what it told the machine. */
-const rig = (refuse?: { readonly a?: string; readonly b?: string }, options?: SyncOptions) => {
+const rig = (refuse?: { readonly a?: string; readonly b?: string }) => {
   const frames = manualFrames();
   const told: Array<SyncEvent> = [];
   const host = hostOf(
@@ -37,14 +38,13 @@ const rig = (refuse?: { readonly a?: string; readonly b?: string }, options?: Sy
       Media.layerOver(() => fakeMedia().media),
     ),
   );
-  const driver = makeSync('a', (event) => told.push(event), host, options);
+  const driver = makeSync('a', (event) => told.push(event), host);
   const a = fakeMedia(refuse?.a);
   const b = fakeMedia(refuse?.b);
   a.el.load(10);
   b.el.load(10);
-  driver.attach('a', a.media);
-  driver.attach('b', b.media);
-  return { frames, told, driver, a, b, tags: () => told.map((e) => e._tag) };
+  const release = { a: driver.attach('a', a.media), b: driver.attach('b', b.media) };
+  return { frames, told, driver, a, b, release, tags: () => told.map((e) => e._tag) };
 };
 
 describe('the sync driver', () => {
@@ -102,9 +102,9 @@ describe('the sync driver', () => {
       }),
   );
 
-  it.effect('a seek still pending ends when its video is replaced, detached or stopped', () =>
+  it.effect('a seek still pending ends when its video is replaced, released or stopped', () =>
     Effect.gen(function* () {
-      const { driver, a, b } = rig();
+      const { driver, a, b, release } = rig();
       const c = fakeMedia();
       c.el.load(10);
       for (const v of [a, b, c]) v.el.holdsSeeks = true;
@@ -117,7 +117,7 @@ describe('the sync driver', () => {
       driver.attach('a', fakeMedia().media);
       yield* Effect.yieldNow;
       expect(waiting()).toEqual([0, 1, 1]);
-      driver.detach('b');
+      release.b();
       yield* Effect.yieldNow;
       expect(waiting()).toEqual([0, 0, 1]);
       driver.stop();
@@ -126,41 +126,56 @@ describe('the sync driver', () => {
     }),
   );
 
-  it.effect(
-    'a player that tells failures says its clock cannot play: a play refused as unsupported',
-    () =>
-      Effect.gen(function* () {
-        const { driver, a, told, frames } = rig({ a: 'NotSupportedError' }, { tellsFailure: true });
-        driver.apply(SyncState.Playing(clock(0)));
-        yield* a.answered;
-        yield* settle;
-        expect(told).toEqual([SyncEvent.MediaFailed({ reason: 'NotSupportedError' })]);
-        // Failed, its videos are paused and its clock's loop stops.
-        driver.apply(SyncState.Failed({ ...clock(0), reason: 'NotSupportedError' }));
-        frames.frame(16);
-        expect(frames.pending()).toBe(0);
-        expect(a.el.paused).toBe(true);
-      }),
+  test('a video let go after another took its place leaves the one in its place', () => {
+    const { driver, a, release } = rig();
+    const next = fakeMedia();
+    next.el.load(10);
+    driver.attach('a', next.media);
+    release.a();
+    driver.apply(SyncState.Paused(clock(4, 1)));
+    expect(next.asked.slice(-2)).toEqual(['seek 4', 'pause']);
+    expect(a.asked).not.toContain('seek 4');
+  });
+
+  it.effect('a player says its clock cannot play: a play refused as unsupported', () =>
+    Effect.gen(function* () {
+      const { driver, a, told, frames } = rig({ a: 'NotSupportedError' });
+      driver.apply(SyncState.Playing(clock(0)));
+      yield* a.answered;
+      yield* settle;
+      expect(told).toEqual([SyncEvent.MediaFailed({ reason: 'NotSupportedError' })]);
+      // Failed, its videos are paused and its clock's loop stops.
+      driver.apply(SyncState.Failed({ ...clock(0), reason: 'NotSupportedError' }));
+      frames.frame(16);
+      expect(frames.pending()).toBe(0);
+      expect(a.el.paused).toBe(true);
+    }),
   );
 
-  test("a player that tells failures says its clock's media failed, never another's", () => {
-    const { a, b, tags } = rig({}, { tellsFailure: true });
+  test("a player says its clock's media failed, never another's", () => {
+    const { a, b, tags } = rig();
     b.el.fire('error');
     expect(tags()).toEqual([]);
     a.el.fire('error');
     expect(tags()).toEqual(['MediaFailed']);
   });
 
-  it.effect("a set's driver plays on over media that fails: it tells none of it", () =>
-    Effect.gen(function* () {
-      const { driver, a, tags } = rig({ a: 'NotSupportedError' });
-      driver.apply(SyncState.Playing(clock(0)));
-      yield* a.answered;
-      yield* settle;
-      a.el.fire('error');
-      expect(tags()).toEqual([]);
-    }),
-  );
+  test("the clock's new media, after its last failed, is told; another's, or over a clock that plays, is not", () => {
+    const { driver, tags } = rig();
+    const media = () => {
+      const v = fakeMedia();
+      v.el.load(10);
+      return v.media;
+    };
+    driver.apply(SyncState.Playing(clock(2)));
+    driver.attach('a', media());
+    expect(tags()).toEqual([]);
+    driver.apply(SyncState.Failed({ ...clock(2), reason: 'error' }));
+    driver.attach('b', media());
+    expect(tags()).toEqual([]);
+    driver.attach('a', media());
+    expect(tags()).toEqual(['MediaReplaced']);
+  });
 
   test('stopped, every video is paused and no frame is asked for', () => {
     const { frames, driver, a, b } = rig();

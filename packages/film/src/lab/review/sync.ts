@@ -4,12 +4,15 @@
 // port (`browser/media.ts`), and plays them through `Media.playOrMute`. The
 // first variant's video is the clock (its time is the set's); every other
 // that drifts more than DRIFT_S from it is put back on it. Only the audible
-// one is unmuted. A lone player's driver tells the machine when its clock
-// cannot play (`tellsFailure`); a set plays on over a video that fails. A seek moves every video; a stall pauses them all until
-// each has enough to play on (`Buffering`). A seek or a play it sets going
-// on a video lasts only while that video is attached: replaced, detached or
-// stopped, it ends. The player's transport (space, ←/→) is declared here
-// too, as the page's commands, for every page with a synced player.
+// one is unmuted. The machine is told when the clock's media cannot play
+// (`MediaFailed`), and when the clock's media is new (`MediaReplaced`: each
+// source, and each retry, is a fresh element attached), so a failure is its
+// media's alone; another video that fails is left out of the comparison. A
+// seek moves every video; a stall pauses them all until each has enough to
+// play on (`Buffering`). A seek or a play it sets going on a video lasts
+// only while that video is attached: replaced, released or stopped, it
+// ends. The player's transport (space, ←/→) is declared here too, as the
+// page's commands, for every page with a synced player.
 
 import { type Context, Data, Effect, Option } from 'effect';
 import { Frames } from '../../browser/frames.ts';
@@ -34,24 +37,17 @@ const TICK_S = 0.05;
 export const drifted = (video: number, t: number): boolean => Math.abs(video - t) > DRIFT_S;
 
 export interface SyncDriver {
-  /** A variant's video joins the set: it takes the clock, the rate and the sound as they are. */
-  readonly attach: (id: string, video: Playable) => void;
-  /** Its card is gone. */
-  readonly detach: (id: string) => void;
+  /**
+   * A variant's video joins the set, in the place of any it had: it takes the
+   * clock, the rate and the sound as they are. What it gives lets this video
+   * go (its element gone, its placeholder back), and leaves a video attached
+   * in its place since as it is.
+   */
+  readonly attach: (id: string, video: Playable) => () => void;
   /** The machine's state, made so. */
   readonly apply: (state: SyncState) => void;
   /** Every video paused, every listener and the clock's loop stopped. */
   readonly stop: () => void;
-}
-
-export interface SyncOptions {
-  /**
-   * Whether the machine is told when the clock's media cannot play
-   * (`MediaFailed`): a play refused as it cannot be, or the media's error. A
-   * lone player tells it, having nothing else to show; a set plays on over a
-   * video that fails, its other videos still compared.
-   */
-  readonly tellsFailure?: boolean;
 }
 
 interface Attached {
@@ -68,7 +64,6 @@ export const makeSync = (
   first: string,
   send: (event: SyncEvent) => void,
   host: Context.Context<Frames | Media>,
-  options: SyncOptions = {},
 ): SyncDriver => {
   const videos = new Map<string, Attached>();
   let current = Option.none<SyncState>();
@@ -91,9 +86,9 @@ export const makeSync = (
   const forkOn = (a: Attached, effect: Effect.Effect<unknown, never, Frames | Media>) => {
     Effect.runForkWith(host)(effect, { signal: a.held.signal });
   };
-  /** `id`'s media cannot play, for `reason`: the machine told, when it is the clock's and this player tells it. */
+  /** `id`'s media cannot play, for `reason`: the machine told, when it is the clock's. */
   const failed = (id: string, reason: string) => {
-    if (options.tellsFailure === true && id === first) send(Events.MediaFailed({ reason }));
+    if (id === first) send(Events.MediaFailed({ reason }));
   };
   /**
    * Play `id`'s video `a`; a browser that will not play sound unasked plays it
@@ -184,11 +179,22 @@ export const makeSync = (
     halt();
   };
 
+  /** Let `a` go, when it is still `id`'s video: its listeners, seeks and plays end, and it pauses. */
+  const release = (id: string, a: Attached) => {
+    if (videos.get(id) !== a) return;
+    a.held.abort();
+    fork(a.video.pause);
+    videos.delete(id);
+  };
+
   const attach = (id: string, video: Playable) => {
     Option.map(Option.fromUndefinedOr(videos.get(id)), (old) => old.held.abort());
     const attached: Attached = { video, held: new AbortController() };
     const signal = attached.held.signal;
     videos.set(id, attached);
+    // The clock's new media, while its last failed: the failure was that media's.
+    if (id === first && Option.exists(current, (state) => state._tag === 'Failed'))
+      send(Events.MediaReplaced);
     video.on(
       'measured',
       () => {
@@ -212,22 +218,15 @@ export const makeSync = (
       seekTo(attached, state.t);
       if (runningOf(state)) play(id, attached);
     });
-  };
-
-  const detach = (id: string) => {
-    Option.map(Option.fromUndefinedOr(videos.get(id)), (a) => {
-      a.held.abort();
-      fork(a.video.pause);
-    });
-    videos.delete(id);
+    return () => release(id, attached);
   };
 
   const stop = () => {
     halt();
-    for (const id of [...videos.keys()]) detach(id);
+    for (const [id, a] of [...videos]) release(id, a);
   };
 
-  return { attach, detach, apply, stop };
+  return { attach, apply, stop };
 };
 
 /** What a synced player is asked: play or pause, or a step back or on (`by` steps). */

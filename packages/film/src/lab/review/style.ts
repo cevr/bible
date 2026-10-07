@@ -139,6 +139,11 @@ a.rv-card:hover { background: var(--surface-2); }
   .rv-time-rest { display: none; }
 }
 .rv-time[data-state="Buffering"] { color: var(--accent); }
+/* A clock whose media cannot play: the row says so where the scrub was. */
+.rv-transport > .rv-failed {
+  flex: 1 1 0; min-width: 0; color: var(--state-warning);
+  font-size: var(--fs-2); line-height: var(--lh-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 /*
  * A lone video (a video in no set, a render in a sheet): its picture a press
  * that plays or pauses it, then, once it has moved, its row under it in its

@@ -12,8 +12,9 @@
 //   any ─ScrubMoved→ Scrubbing ─ScrubReleased→ Playing | Paused (as it was)
 //   Playing | Buffering ─Ended→ Paused (at the end)
 //   any ─Stepped | Landed | Measured | HeardChosen | RateChosen→ the same, changed
-//   any ─MediaFailed→ Failed (where it stood; it hears nothing more: a failure is its
-//     source's, and a new source or a retry is a fresh player, `PlayedAlone`)
+//   any ─MediaFailed→ Failed (where it stood; it hears nothing more of that media)
+//   Failed ─MediaReplaced→ Paused (where it stood: a failure is its media's, and the
+//     clock's new media, another source or a retry of the same, starts there afresh)
 //
 //   All | Pair | Wipe | Moments | Diff ─ViewChosen→ any (Pair, Wipe, Diff only with a second version)
 //   Pair | Wipe | Diff ─OtherChosen→ the same, against that other
@@ -90,6 +91,8 @@ export const SyncEvent = Event({
   RateChosen: { rate: Rate },
   /** The clock's media cannot play: a play refused as it cannot be (not for sound), or an error. */
   MediaFailed: { reason: Schema.String },
+  /** The clock's media is new: another source, or a retry of the same, in a fresh element. */
+  MediaReplaced: {},
 });
 export type SyncEvent = typeof SyncEvent.Type;
 
@@ -148,7 +151,7 @@ const resumes = (state: SyncState): boolean =>
     }),
   );
 
-/** Every state that plays, or can: a failed player hears nothing more. */
+/** Every state that plays, or can: a failed player hears only that its media is new. */
 const ANY = [
   SyncState.Paused,
   SyncState.Playing,
@@ -225,7 +228,8 @@ export const syncMachine = (audible: string, start: number, at: number = start) 
     )
     .on(ANY, SyncEvent.MediaFailed, ({ state, event }) =>
       SyncState.Failed({ ...clockOf(state), reason: event.reason }),
-    );
+    )
+    .on(SyncState.Failed, SyncEvent.MediaReplaced, ({ state }) => SyncState.Paused(clockOf(state)));
 
 /** The synced player's actor, started. */
 export const spawnSync = (audible: string, start: number, at: number = start) =>

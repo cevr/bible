@@ -17,16 +17,15 @@
 // lands; and a phone's width scrolls nothing sideways. Every wait is on the
 // page (a selector, a condition) or its clock, never a fixed time.
 
-import { Deferred, Effect, Exit, FileSystem, Option, Schedule, Schema } from 'effect';
-import { BunServices } from '@effect/platform-bun';
+import { Deferred, Effect, Exit, Option, Schedule, Schema } from 'effect';
 import { describe, expect, it, test } from 'effect-bun-test';
 import { pageHref } from '../../../../src/core/api.ts';
 import type { Tab } from '../../../../src/lab/fixtures/tab.ts';
 import {
   type FakeRoute,
   type Json,
+  TONE,
   changeOf,
-  file,
   json,
   later,
   openReview,
@@ -62,7 +61,6 @@ import {
   valueIs,
   waitFor,
 } from '../../../../src/lab/fixtures/settled.ts';
-import { tone } from '../../../../src/lab/fixtures/tone.ts';
 
 const SLOW = 30_000;
 
@@ -1664,19 +1662,14 @@ describe("a film's choices", () => {
     'a mix that loads on a retry while the film plays is heard',
     () =>
       Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const dir = yield* fs.makeTempDirectoryScoped({ prefix: 'options-mix-' });
-        // The picture and the mix: ten seconds of tone each, real media the page plays.
-        const wav = `${dir}/tone.wav`;
-        yield* fs.writeFile(wav, tone(10, 0.1));
+        // The picture and the mix are the harness's tone, real media the page plays.
         let asks = 0;
         const routes: ReadonlyArray<FakeRoute> = [
-          route('GET', /^\/api\/review\/files\/out\/toy\/toy\.mp4/, () => file(wav)),
           // The first ask is cut off while the mix renders; the retry finds it made.
           route('GET', /^\/api\/films\/toy\/choices\/mix\?point=score&variant=strings/, () => {
             asks += 1;
             if (asks === 1) return text('the connection dropped', 502);
-            return file(wav);
+            return TONE;
           }),
           ...fakeFilm(),
         ];
@@ -1698,7 +1691,7 @@ describe("a film's choices", () => {
         yield* until(page, "document.querySelector('.rv-picture video').paused === false");
         yield* until(page, "document.querySelector('audio.rv-mix').paused === false");
         expect(errors).toEqual([]);
-      }).pipe(Effect.scoped, Effect.provide(BunServices.layer)),
+      }).pipe(Effect.scoped),
     SLOW,
   );
 

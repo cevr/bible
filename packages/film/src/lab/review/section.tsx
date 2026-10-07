@@ -94,7 +94,7 @@ import {
   spawnSync,
   viewNameOf,
 } from './machine.ts';
-import { makeSync } from './sync.ts';
+import { makeSync, type SyncDriver } from './sync.ts';
 import { Actor } from '../actor.tsx';
 import { Loaded, useWrite, writeStatus } from './loaded.tsx';
 import { escapeHtml, markdownHtml } from './markdown.ts';
@@ -651,9 +651,15 @@ export const Transport = (props: {
   );
 };
 
+/** What a page's player whose clock cannot play says, in its row, in place of the scrub. */
+const CANNOT_PLAY_CLOCK = 'Can’t play this video';
+
 /**
  * A synced player's row: play, the clock and a scrub (`scrubs` names what it
- * moves), then `children` (the docked transport's rate chip).
+ * moves), then `children` (the docked transport's rate chip). Once its
+ * clock's media cannot play (`Failed`) the row says so in place of the
+ * scrub, and play is off: there is nothing to play or scrub until the page
+ * gives the clock new media (another quality, another picture).
  */
 const TransportRow = (
   props: ParentProps<{
@@ -668,6 +674,7 @@ const TransportRow = (
   const { sync } = props;
   const send = { sync: props.send };
   const playing = () => runningOf(sync()) || sync()._tag === 'Buffering';
+  const failure = () => failureOf(sync());
   return (
     <section class={['rv-transport', { 'rv-alone-row': props.alone === true }]}>
       <button
@@ -676,6 +683,7 @@ const TransportRow = (
         data-primary=""
         data-act="play"
         title={props.title}
+        disabled={Option.isSome(failure())}
         onClick={() => send.sync(SyncEvent.Toggled)}
       >
         {Match.value(playing()).pipe(
@@ -689,16 +697,27 @@ const TransportRow = (
         {/* The end, and a wait: a phone's row leaves them out (the scrub shows the end). */}
         <span class="rv-time-rest">{clockParts(sync()).rest}</span>
       </span>
-      <input
-        type="range"
-        aria-label={props.scrubs}
-        min={sync().start}
-        max={reachOf(sync())}
-        step="0.05"
-        value={sync().t}
-        onInput={(e) => send.sync(SyncEvent.ScrubMoved({ t: Number(e.currentTarget.value) }))}
-        onChange={() => send.sync(SyncEvent.ScrubReleased)}
-      />
+      <Show
+        when={Option.getOrUndefined(failure())}
+        fallback={
+          <input
+            type="range"
+            aria-label={props.scrubs}
+            min={sync().start}
+            max={reachOf(sync())}
+            step="0.05"
+            value={sync().t}
+            onInput={(e) => send.sync(SyncEvent.ScrubMoved({ t: Number(e.currentTarget.value) }))}
+            onChange={() => send.sync(SyncEvent.ScrubReleased)}
+          />
+        }
+      >
+        {(reason) => (
+          <span class="rv-failed" data-role="failed" data-reason={reason()}>
+            {CANNOT_PLAY_CLOCK}
+          </span>
+        )}
+      </Show>
       {props.children}
     </section>
   );
@@ -717,15 +736,38 @@ interface Try {
 }
 
 /**
+ * The `ref` of a media element that joins `driver` as `id`, for as long as
+ * the calling owner lives: a page makes a fresh element for each source (and
+ * each retry), so the driver knows the clock's media is new, and lets this
+ * one go as it leaves, whatever replaced it since.
+ */
+export const useClockMedia = (driver: SyncDriver, id: string) => {
+  let release = Option.none<() => void>();
+  onCleanup(() => Option.map(release, (letGo) => letGo()));
+  return (el: HTMLMediaElement) => {
+    release = Option.some(driver.attach(id, playableOf(el)));
+  };
+};
+
+/**
  * A video on a clock of its own (a video in no set, a render in a sheet),
- * never the browser's controls. A failure is its source's: each try at a
- * source (a new source, or a retry of a failed one) is a fresh player over a
- * fresh element (`LonePlayer`), so nothing of a failed try outlives it.
- * `children` are its `<track>`s.
+ * never the browser's controls: at rest (`atRest`) its picture is the one
+ * control, a press plays or pauses it; once it has moved (playing, scrubbed,
+ * paused past its start) the review's transport row shows under it (play,
+ * the clock, a scrub), for the whole of a scrub. A failure is its media's:
+ * each try at a source (a new source, or a retry of a failed one) is a fresh
+ * element on the same clock, so a new source stands where the last stood,
+ * playing if it played, and nothing of a failed try outlives it. Once its
+ * media cannot play (`Failed`) its picture says so and no row shows (there
+ * is nothing to play or scrub); a press on the picture then tries again,
+ * from where the failure left it, and plays as it starts (the press asked
+ * for it). It is heard, and its time is its own, not the page's. `children`
+ * are its `<track>`s.
  */
 export const PlayedAlone = (
   props: ParentProps<{ readonly src: string; readonly poster: string }>,
 ) => {
+  const { meta } = useReview();
   const [retried, setRetried] = createSignal<Option.Option<Try>>(Option.none());
   // A new source is its first try; the same source keeps its retries.
   const current = createMemo((): Try => ({
@@ -739,50 +781,14 @@ export const PlayedAlone = (
     ),
   }));
   return (
-    <Show when={current()} keyed>
-      {(at: Try) => (
-        <LonePlayer
-          src={at.src}
-          poster={props.poster}
-          retried={at.n > 0}
-          retry={() => setRetried(Option.some({ src: at.src, n: at.n + 1 }))}
-        >
-          {props.children}
-        </LonePlayer>
-      )}
-    </Show>
-  );
-};
-
-/**
- * One try at a lone video: at rest (`atRest`) its picture is the one
- * control, a press plays or pauses it; once it has moved (playing, scrubbed,
- * paused past its start) the review's transport row shows under it (play,
- * the clock, a scrub), for the whole of a scrub. Once its media cannot play
- * (`Failed`) its picture says so and no row shows (there is nothing to play
- * or scrub); a press on the picture then `retry`s, and a retry plays as it
- * starts (the press asked for it). It is heard, and its time is its own, not
- * the page's.
- */
-const LonePlayer = (
-  props: ParentProps<{
-    readonly src: string;
-    readonly poster: string;
-    readonly retried: boolean;
-    readonly retry: () => void;
-  }>,
-) => {
-  const { meta } = useReview();
-  return (
     <Actor runtime={meta.runtime} spawn={spawnSync(ALONE, 0)}>
       {(actor) => {
         const syncAtom = ActorAtom.make(actor);
         const sync = useAtomValue(() => syncAtom);
         const send = useAtomSet(() => syncAtom);
-        const driver = makeSync(ALONE, send, meta.host, { tellsFailure: true });
+        const driver = makeSync(ALONE, send, meta.host);
         onCleanup(driver.stop);
         createEffect(sync, (state) => driver.apply(state));
-        if (props.retried) onSettled(() => send(SyncEvent.Toggled));
         const failure = () => failureOf(sync());
         const failed = () => Option.isSome(failure());
         const label = () =>
@@ -796,19 +802,29 @@ const LonePlayer = (
               title={label()}
               aria-label={label()}
               onClick={() => {
-                if (failed()) props.retry();
-                else send(SyncEvent.Toggled);
+                if (!failed()) return send(SyncEvent.Toggled);
+                const at = untrack(current);
+                setRetried(Option.some({ src: at.src, n: at.n + 1 }));
               }}
             >
-              <video
-                preload="metadata"
-                playsinline
-                poster={props.poster}
-                src={props.src}
-                ref={(el: HTMLVideoElement) => driver.attach(ALONE, playableOf(el))}
-              >
-                {props.children}
-              </video>
+              <Show when={current()} keyed>
+                {(at: Try) => {
+                  const ref = useClockMedia(driver, ALONE);
+                  // A retry plays as it starts: the press asked for it.
+                  if (at.n > 0) onSettled(() => send(SyncEvent.Toggled));
+                  return (
+                    <video
+                      preload="metadata"
+                      playsinline
+                      poster={props.poster}
+                      src={at.src}
+                      ref={ref}
+                    >
+                      {props.children}
+                    </video>
+                  );
+                }}
+              </Show>
               <Show when={failed()}>
                 <span
                   class="rv-failed"
@@ -1034,32 +1050,33 @@ const StaleTag = (props: { readonly variant: SeenVariant }) => (
   </Show>
 );
 
-/** A variant's video on the set's clock (its proxy's placeholder until there is one). */
+/**
+ * A variant's video on the set's clock (its proxy's placeholder until there
+ * is one). Each source is a fresh element, so a failure stays that source's;
+ * the clock holds only a video on the page, and lets go when the placeholder
+ * returns.
+ */
 const VariantVideo = (props: { readonly variant: SeenVariant; readonly class?: string }) => {
   const { state } = useReview();
   const { driver } = useSet();
   const source = createMemo(() => videoSource(props.variant.video, state.quality()));
-  onCleanup(() => driver.detach(props.variant.id));
   return (
     <Show
       when={Option.getOrUndefined(source())}
+      keyed
       fallback={<ProxyPending video={props.variant.video} />}
     >
-      {(src) => {
-        // The clock holds only a video on the page: it lets go when the placeholder returns.
-        onCleanup(() => driver.detach(props.variant.id));
-        return (
-          <video
-            class={props.class}
-            data-id={props.variant.id}
-            preload="auto"
-            playsinline
-            muted
-            src={src()}
-            ref={(el: HTMLVideoElement) => driver.attach(props.variant.id, playableOf(el))}
-          />
-        );
-      }}
+      {(src: string) => (
+        <video
+          class={props.class}
+          data-id={props.variant.id}
+          preload="auto"
+          playsinline
+          muted
+          src={src}
+          ref={useClockMedia(driver, props.variant.id)}
+        />
+      )}
     </Show>
   );
 };
@@ -1221,17 +1238,18 @@ const WipePanes = (props: {
   const canvases: Array<HTMLCanvasElement> = [];
   const ids = [props.first.id, props.other.id];
   let made = Option.none<ComparePanes>();
+  const releases: Array<() => void> = [];
   // Once both canvases are in the page; let go with the wipe (a cleanup inside `onSettled` is refused).
   onSettled(() => {
     const compare = props.chosen.panes(canvases);
     made = Option.some(compare);
     compare.panes.forEach((pane, i) =>
-      Option.map(Option.fromUndefinedOr(ids[i]), (id) => driver.attach(id, pane)),
+      Option.map(Option.fromUndefinedOr(ids[i]), (id) => releases.push(driver.attach(id, pane))),
     );
   });
   onCleanup(() =>
     Option.map(made, ({ dispose }) => {
-      for (const id of ids) driver.detach(id);
+      for (const release of releases) release();
       dispose();
     }),
   );

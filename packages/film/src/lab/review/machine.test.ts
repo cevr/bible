@@ -215,6 +215,30 @@ describe('the synced player', () => {
     }),
   );
 
+  it.effect(
+    'given new media after failing, stands paused where it failed; playing, new media changes nothing',
+    () =>
+      Effect.gen(function* () {
+        const result = yield* simulate(player, [
+          SyncEvent.Measured({ end: 10 }),
+          SyncEvent.PlayPressed,
+          SyncEvent.Ticked({ t: 3 }),
+          SyncEvent.MediaReplaced,
+          SyncEvent.MediaFailed({ reason: 'error' }),
+          SyncEvent.MediaReplaced,
+        ]);
+        expect(result.states.map((s) => s._tag)).toEqual([
+          'Paused',
+          'Paused',
+          'Playing',
+          'Playing',
+          'Failed',
+          'Paused',
+        ]);
+        expect(result.finalState).toEqual(SyncState.Paused({ ...clock, t: 3 }));
+      }),
+  );
+
   test('is at rest only paused where it opens: a scrub, even back to the start, is not', () => {
     expect(atRest(SyncState.Paused(clock))).toBe(true);
     expect(atRest(SyncState.Paused({ ...clock, t: 2 }))).toBe(false);

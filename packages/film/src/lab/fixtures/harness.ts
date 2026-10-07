@@ -4,7 +4,8 @@
 // lab API answered by routes the test gives (then the defaults below). Every
 // request the page makes is kept, so a test can read what the lab wrote.
 // The review page (`openReview`) and the player's (`openPlayer`, the play
-// page and the Scenes) are served the same way, the player's routes too.
+// page and the Scenes) are served the same way, the player's routes too; the
+// review's videos and mixes are real media (`TONE`) unless a test says not.
 
 import { BunServices } from '@effect/platform-bun';
 import {
@@ -40,6 +41,7 @@ import { labHref } from '../place.ts';
 import type { LabMode } from '../mode.ts';
 import { narrationUrls } from '../../player/narrated.ts';
 import { PROBE, probeFilm } from './probe-film.ts';
+import { tone } from './tone.ts';
 import { type Request, type Response, type Tab, jsonOf } from './tab.ts';
 
 const API = `/api/films/${PROBE}`;
@@ -106,6 +108,7 @@ type Answer =
   | { readonly _tag: 'Refused'; readonly refusal: Refusal }
   | { readonly _tag: 'Text'; readonly status: number; readonly text: string }
   | { readonly _tag: 'File'; readonly path: string }
+  | { readonly _tag: 'Wav'; readonly bytes: Uint8Array }
   | { readonly _tag: 'Hold' }
   | { readonly _tag: 'Later'; readonly gate: Deferred.Deferred<void>; readonly then: Answer };
 
@@ -131,6 +134,11 @@ export const later = (gate: Deferred.Deferred<void>, then: Answer): Answer => ({
 });
 /** A file on disk, its type read from its name (a fixture video). */
 export const file = (path: string): Answer => ({ _tag: 'File', path });
+/**
+ * Ten seconds of tone (`tone.ts`): the real media every fixture player plays
+ * (its videos, its mixes), its time moving on the media's own clock.
+ */
+export const TONE: Answer = { _tag: 'Wav', bytes: tone(10, 0.1) };
 
 /**
  * A fake lab route: the method, the path under `/api/films/probe` it
@@ -234,6 +242,17 @@ const defaults: ReadonlyArray<FakeRoute> = [
   route('POST', /^\/scenes\/\w+\/knobs\//, () => json(wrote('knob'))),
   route('POST', /^\/(undo|redo)$/, (asked) => json(wrote(asked.path.slice(1)))),
   route('GET', PROBE_FACE_PATH, () => file(PROBE_FACE_FILE)),
+];
+
+/**
+ * The review's defaults, after a test's own routes: every video a player
+ * plays (an original, a proxy) and every mix it hears is real media
+ * (`TONE`), so a player plays as it does on the lab's; a case that wants a
+ * file missing or slow says so in a route of its own.
+ */
+const reviewDefaults: ReadonlyArray<FakeRoute> = [
+  route('GET', /^\/api\/review\/(files|phone)\/[^?]*\.mp4/, () => TONE),
+  route('GET', /^\/api\/films\/[^/]+\/choices\/mix/, () => TONE),
 ];
 
 /**
@@ -348,6 +367,7 @@ const answer = (found: Answer): Effect.Effect<Option.Option<Response>> => {
   if (found._tag === 'Hold') return Effect.succeedNone;
   if (found._tag === 'Later') return Effect.andThen(Deferred.await(found.gate), answer(found.then));
   if (found._tag === 'File') return Effect.asSome(fileAnswer(found.path));
+  if (found._tag === 'Wav') return Effect.succeedSome(respond(found.bytes, 'audio/wav'));
   if (found._tag === 'Text')
     return Effect.succeedSome(respond(found.text, 'text/plain', found.status));
   if (found._tag === 'Refused')
@@ -687,7 +707,7 @@ export const openReview = Effect.fn('lab.fixture.review')(function* (
         respond(reviewPage(script, Option.fromUndefinedOr(at.build)), 'text/html'),
       ),
       '',
-      routes,
+      [...routes, ...reviewDefaults],
       asked,
     ),
   });
@@ -726,7 +746,7 @@ const SERVED: Readonly<Record<ServedName, ServedPage>> = {
     ),
     html: (script, build) => reviewPage(script, build),
     prefix: '',
-    defaults: [],
+    defaults: reviewDefaults,
     home: '/',
   },
   lab: {

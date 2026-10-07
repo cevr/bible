@@ -19,7 +19,6 @@ import { Place } from '@bible/url-state';
 import * as UrlAtom from '@bible/url-state/atom';
 import { Places } from '../../../core/api.ts';
 import { Array as Arr, Duration, Effect, Fiber, Option } from 'effect';
-import { playableOf } from '../../../browser/media.ts';
 import { type Command, type CommandId, boundChange, quietly } from '../../../command/command.ts';
 import { type Destination, goToCommands } from '../../../command/go.ts';
 import { Selection } from '../../../command/selection.ts';
@@ -38,7 +37,7 @@ import { stepWhyNot } from '../../api.ts';
 import { useReview } from '../context.tsx';
 import { pressed, sizeText, videoSource } from '../format.ts';
 import { useInspectorPlace } from '../inspector.tsx';
-import { ProxyPending, Transport } from '../section.tsx';
+import { ProxyPending, Transport, useClockMedia } from '../section.tsx';
 import { ChoiceAct } from './api.ts';
 import { ChoiceCard, ChoiceSheets, HearButton, focusPoint } from './choice.tsx';
 import { FilmProvider, PICTURE, Playing, useAct, useFilm } from './context.tsx';
@@ -89,9 +88,12 @@ export const FilmTransport = (props: { readonly fallback?: JSX.Element }) => {
 /**
  * The render the sound plays over, on the clock, and the one `<audio>` heard
  * with it. Made once while the film has a picture: a write's answer (new
- * choices, the same picture) updates it in place, so a playing film plays on;
- * choosing another picture changes the one `<video>`'s source. None while
- * the film has no render.
+ * choices, the same picture) updates it in place, so a playing film plays on.
+ * Each source (another picture, another quality) is a fresh `<video>` on the
+ * same clock: it stands where the last stood, playing if it played, and a
+ * failure stays the source's that failed. The clock holds only a video on
+ * the page: it lets go when the placeholder returns. None while the film has
+ * no render.
  */
 export const FilmPicture = () => {
   const { state } = useReview();
@@ -123,20 +125,16 @@ export const FilmPicture = () => {
               </div>
             </Show>
             <div class="rv-card rv-picture" data-id={PICTURE}>
-              <Show when={src()} fallback={<ProxyPending video={video()} />}>
-                {(source) => {
-                  // The clock holds only a video on the page: it lets go when the placeholder returns.
-                  onCleanup(() => driver.detach(PICTURE));
-                  return (
-                    <video
-                      preload="auto"
-                      playsinline
-                      muted
-                      src={source()}
-                      ref={(el: HTMLVideoElement) => driver.attach(PICTURE, playableOf(el))}
-                    />
-                  );
-                }}
+              <Show when={src()} keyed fallback={<ProxyPending video={video()} />}>
+                {(source: string) => (
+                  <video
+                    preload="auto"
+                    playsinline
+                    muted
+                    src={source}
+                    ref={useClockMedia(driver, PICTURE)}
+                  />
+                )}
               </Show>
               <div class="rv-cap">
                 <span class="rv-name">{video().name}</span>
@@ -167,10 +165,8 @@ const Mix = (props: { readonly src: string }) => {
   const src = props.src;
   let tries = 0;
   let waiting = Option.none<Fiber.Fiber<void>>();
-  onCleanup(() => {
-    Option.map(waiting, (f) => Effect.runFork(Fiber.interrupt(f)));
-    driver.detach(src);
-  });
+  onCleanup(() => Option.map(waiting, (f) => Effect.runFork(Fiber.interrupt(f))));
+  const join = useClockMedia(driver, src);
   const attach = (el: HTMLAudioElement) => {
     el.addEventListener('error', () => {
       if (tries >= MIX_TRIES) return;
@@ -183,7 +179,7 @@ const Mix = (props: { readonly src: string }) => {
         ),
       );
     });
-    driver.attach(src, playableOf(el));
+    join(el);
   };
   return <audio class="rv-mix" preload="auto" src={src} ref={attach} />;
 };

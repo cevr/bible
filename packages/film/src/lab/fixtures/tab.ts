@@ -8,7 +8,7 @@
 // saying what it waited for. Closed, the tab takes its scripts for new pages
 // off the view, which goes on to another case.
 
-import { Effect, FiberSet, Option, Schema, type Scope } from 'effect';
+import { Effect, FiberSet, Option, Predicate, Schema, type Scope } from 'effect';
 import { BrowserFailed } from '../../tools/errors.ts';
 import { CLOCK, REAL_TIMERS } from './clock.ts';
 
@@ -269,6 +269,7 @@ const Paused = Schema.Struct({
   request: Schema.Struct({
     url: Schema.String,
     method: Schema.String,
+    headers: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
     postData: Schema.optionalKey(Schema.String),
     postDataEntries: Schema.optionalKey(
       Schema.Array(Schema.Struct({ bytes: Schema.optionalKey(Schema.String) })),
@@ -291,6 +292,55 @@ const bodyOf = (request: typeof Paused.Type.request) =>
         .map((bytes) => bytes.toString('utf8'))
         .join(''),
   });
+
+/** A request's `Range` header (`bytes=<from>-<to>`, as a media element asks), any case. */
+const rangeOf = (request: typeof Paused.Type.request): Option.Option<string> =>
+  Option.fromUndefinedOr(
+    Object.entries(request.headers ?? {}).find(([name]) => name.toLowerCase() === 'range')?.[1],
+  );
+
+/**
+ * `r` as a server that serves byte ranges answers it, as the lab's does: a
+ * whole file says it takes ranges, and a range asked is cut from it (206).
+ * A media element seeks only in media served so.
+ */
+const ranged = (r: Response, range: Option.Option<string>): Response => {
+  const body = r.body;
+  if (r.status !== 200 || Predicate.isString(body)) return r;
+  const headers = { 'accept-ranges': 'bytes', ...r.headers };
+  const last = body.length - 1;
+  return Option.match(
+    Option.flatMap(range, (asked) => Option.fromNullishOr(/^bytes=(\d+)-(\d*)$/.exec(asked))),
+    {
+      onNone: () => ({ ...r, headers }),
+      onSome: ([, from = '0', to = '']) => {
+        const start = Number(from);
+        // An open range (`bytes=<from>-`) runs to the end.
+        const asked = Option.map(
+          Option.liftPredicate(to, (digits) => digits !== ''),
+          Number,
+        );
+        const end = Math.min(
+          Option.getOrElse(asked, () => last),
+          last,
+        );
+        if (start > end)
+          return {
+            ...r,
+            status: 416,
+            body: '',
+            headers: { ...headers, 'content-range': `bytes */${body.length}` },
+          };
+        return {
+          ...r,
+          status: 206,
+          body: body.subarray(start, end + 1),
+          headers: { ...headers, 'content-range': `bytes ${start}-${end}/${body.length}` },
+        };
+      },
+    },
+  );
+};
 
 /** A protocol call's parameters. */
 type Wire = string | number | boolean | ReadonlyArray<Wire> | { readonly [key: string]: Wire };
@@ -355,8 +405,9 @@ export const makeTab = (
         }),
         Option.match({
           onNone: () => Effect.void,
-          onSome: (r) =>
-            send('Fetch.fulfillRequest', {
+          onSome: (whole) => {
+            const r = ranged(whole, rangeOf(paused.request));
+            return send('Fetch.fulfillRequest', {
               requestId: paused.requestId,
               responseCode: r.status,
               responseHeaders: [
@@ -373,7 +424,8 @@ export const makeTab = (
                     listener({ url: paused.request.url, status: r.status });
                 }),
               ),
-            ),
+            );
+          },
         }),
       );
 
