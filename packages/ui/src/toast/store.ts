@@ -18,6 +18,9 @@ type ToastInternalUpdateOptions<Data extends object> = Partial<
   Omit<ToastObject<Data>, 'id' | 'updateKey'>
 >;
 
+/** How long (in ms) a toast without its own `timeout` shows. */
+const DEFAULT_TIMEOUT = 5000;
+
 /**
  * A toast once it lives in the store. `addToast` is the only way in and it always
  * assigns `updateKey`, so unlike the public `ToastObject` it is never missing.
@@ -29,7 +32,6 @@ export type State = {
   toastMetadata: Map<string, ToastMetadata>;
   hovering: boolean;
   focused: boolean;
-  timeout: number;
   limit: number;
   isWindowFocused: boolean;
   viewport: HTMLElement | null;
@@ -92,7 +94,6 @@ export const selectors = {
   toastIndex: (state: State, id: string) => state.toastMetadata.get(id)?.domIndex ?? -1,
   toastOffsetY: (state: State, id: string) => state.toastMetadata.get(id)?.offsetY ?? 0,
   toastVisibleIndex: (state: State, id: string) => state.toastMetadata.get(id)?.visibleIndex ?? -1,
-  focused: (state: State) => state.focused,
   expanded: (state: State) => state.hovering || state.focused,
   expandedOrOutOfFocus: (state: State) => state.hovering || state.focused || !state.isWindowFocused,
   prevFocusElement: (state: State) => state.prevFocusElement,
@@ -157,22 +158,13 @@ export class ToastStore {
     this.set('viewport', viewport);
   };
 
-  syncProviderProps(timeout: number, limit: number) {
-    const limitChanged = this.state.limit !== limit;
-
-    if (this.state.timeout === timeout && !limitChanged) {
+  /** Sets the limit, and with it each toast's `limited` flag. */
+  setLimit(limit: number) {
+    if (this.state.limit === limit) {
       return;
     }
-
-    const updates: Partial<State> = { timeout, limit };
-
-    if (limitChanged) {
-      const newToasts = applyLimited(this.state.toasts, limit);
-      updates.toasts = newToasts;
-      updates.toastMetadata = createToastMetadata(newToasts);
-    }
-
-    this.update(updates);
+    const newToasts = applyLimited(this.state.toasts, limit);
+    this.update({ limit, toasts: newToasts, toastMetadata: createToastMetadata(newToasts) });
   }
 
   /** Clears every pending timer (the provider unmounted). */
@@ -200,7 +192,7 @@ export class ToastStore {
   }
 
   addToast = <Data extends object>(toast: ToastManagerAddOptions<Data>): string => {
-    const { timeout, limit } = this.state;
+    const { limit } = this.state;
     const id = toast.id || generateToastId();
 
     if (toast.id) {
@@ -227,8 +219,8 @@ export class ToastStore {
     const updatedToasts = [toastToAdd as StoredToast, ...this.state.toasts];
     this.setToasts(applyLimited(updatedToasts, limit));
 
-    const duration = toastToAdd.timeout ?? timeout;
-    if (toastToAdd.type !== 'loading' && duration > 0) {
+    const duration = toastToAdd.timeout ?? DEFAULT_TIMEOUT;
+    if (duration > 0) {
       this.scheduleTimer(id, duration, () => this.closeToast(id));
     }
 
@@ -250,7 +242,7 @@ export class ToastStore {
     updates: ToastInternalUpdateOptions<Data>,
     upsert: boolean = false,
   ) => {
-    const { timeout, toasts } = this.state;
+    const { toasts } = this.state;
     const prevToast = selectors.toast(this.state, id);
     if (!prevToast) {
       return;
@@ -275,8 +267,8 @@ export class ToastStore {
     }
 
     this.clearTimer(id);
-    const nextTimeout = nextToast.timeout ?? timeout;
-    if (nextToast.type !== 'loading' && nextTimeout > 0) {
+    const nextTimeout = nextToast.timeout ?? DEFAULT_TIMEOUT;
+    if (nextTimeout > 0) {
       this.scheduleTimer(id, nextTimeout, () => this.closeToast(id));
       if (selectors.expandedOrOutOfFocus(this.state)) {
         this.pauseTimers();
@@ -284,36 +276,18 @@ export class ToastStore {
     }
   };
 
-  closeToast = (toastId?: string) => {
-    const closeAll = toastId === undefined;
+  closeToast = (toastId: string) => {
     const { limit, toasts } = this.state;
-    let toastsToClose: StoredToast[];
-
-    if (closeAll) {
-      toastsToClose = toasts;
-      this.clearTimers();
-    } else {
-      const toast = selectors.toast(this.state, toastId);
-      if (!toast) {
-        return;
-      }
-      toastsToClose = [toast];
-      this.clearTimer(toastId);
+    if (!selectors.toast(this.state, toastId)) {
+      return;
     }
+    this.clearTimer(toastId);
 
     const endingToasts = toasts.map((item) =>
-      closeAll || item.id === toastId
-        ? { ...item, transitionStatus: 'ending' as const, height: 0 }
-        : item,
+      item.id === toastId ? { ...item, transitionStatus: 'ending' as const, height: 0 } : item,
     );
     const newToasts = applyLimited(endingToasts, limit);
     this.setToasts(newToasts, !newToasts.some((toast) => toast.transitionStatus !== 'ending'));
-
-    toastsToClose.forEach((toast) => {
-      if (toast.transitionStatus !== 'ending') {
-        toast.onClose?.();
-      }
-    });
 
     this.handleFocusManagement(toastId);
   };
@@ -391,14 +365,6 @@ export class ToastStore {
     });
   }
 
-  private clearTimers() {
-    this.timers.forEach((timer) => {
-      timer.timeout?.clear();
-    });
-    this.timers.clear();
-    this.areTimersPaused = false;
-  }
-
   private clearTimer(id: string) {
     const timer = this.timers.get(id);
     timer?.timeout?.clear();
@@ -434,18 +400,13 @@ export class ToastStore {
     this.update(updates);
   }
 
-  private handleFocusManagement(toastId: string | undefined) {
+  private handleFocusManagement(toastId: string) {
     const viewport = this.state.viewport;
     if (!viewport) {
       return;
     }
     const activeEl = activeElement(ownerDocument(viewport));
     if (!contains(viewport, activeEl) || !isFocusVisible(activeEl)) {
-      return;
-    }
-
-    if (toastId === undefined) {
-      this.restoreFocusToPrevElement();
       return;
     }
 

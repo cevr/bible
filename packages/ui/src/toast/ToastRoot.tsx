@@ -2,8 +2,7 @@
 // packages/react/src/toast/root/ToastRootCssVars.ts,
 // packages/react/src/toast/root/ToastRootDataAttributes.ts
 //
-// One toast: a non-modal `dialog` (`alertdialog` for high priority)
-// labelled by its title. It measures its
+// One toast: a non-modal `dialog` labelled by its title. It measures its
 // natural height into the store (the stack's offsets read it), removes
 // itself once its exit animations finish, closes on Escape while focus is
 // inside, and can be swiped away: a drag in an allowed direction follows
@@ -158,7 +157,6 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     selectors.toastVisibleIndex(state, toastId()),
   );
   const offsetY = useToastSelector(context, (state) => selectors.toastOffsetY(state, toastId()));
-  const focused = useToastSelector(context, selectors.focused);
   const expanded = useToastSelector(context, selectors.expanded);
 
   useOpenChangeComplete({
@@ -461,19 +459,12 @@ export function ToastRoot(props: ToastRootProps): JSX.Element {
     },
   );
 
-  const isHighPriority = () => toast().priority === 'high';
-
   const defaultProps: HTMLProps = {
-    get role() {
-      return isHighPriority() ? 'alertdialog' : 'dialog';
-    },
+    role: 'dialog',
     tabindex: 0,
     'aria-modal': 'false',
     get 'aria-labelledby'() {
       return titleId();
-    },
-    get 'aria-hidden'() {
-      return isHighPriority() && !focused() ? 'true' : undefined;
     },
     onPointerDown: handlePointerDown,
     onPointerMove: handlePointerMove,

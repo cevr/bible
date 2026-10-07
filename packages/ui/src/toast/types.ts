@@ -12,11 +12,7 @@ export interface ToastObject<Data extends object = object> {
   ref?: { current: HTMLElement | null } | undefined;
   /** The title of the toast. */
   title?: JSX.Element;
-  /**
-   * The type of the toast. Used to conditionally style the toast,
-   * including conditionally rendering elements based on the type.
-   * A `loading` toast does not auto-dismiss.
-   */
+  /** The type of the toast, which its parts render as `data-type` for styling. */
   type?: string | undefined;
   /**
    * The amount of time (in ms) before the toast is auto dismissed.
@@ -24,13 +20,6 @@ export interface ToastObject<Data extends object = object> {
    * @default 5000
    */
   timeout?: number | undefined;
-  /**
-   * The priority of the toast.
-   * - `low` - The toast will be announced politely.
-   * - `high` - The toast will be announced urgently.
-   * @default 'low'
-   */
-  priority?: 'low' | 'high' | undefined;
   /** The transition status of the toast. */
   transitionStatus?: 'starting' | 'ending' | undefined;
   /** A counter that increments whenever the toast is upserted. */
@@ -39,8 +28,6 @@ export interface ToastObject<Data extends object = object> {
   limited?: boolean | undefined;
   /** The measured height of the toast. */
   height?: number | undefined;
-  /** Called when the toast is closed. */
-  onClose?: (() => void) | undefined;
   /** Called when the toast is removed from the list after its exit animations finish. */
   onRemove?: (() => void) | undefined;
   /** The props for the action button (`Toast.Action`); `children` is its label. */

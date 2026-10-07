@@ -80,21 +80,7 @@ describe('createToastManager', () => {
     await see(action).toHaveAttribute('type', 'button');
     await action.click();
     await see(roots(page)).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['undo 1', 'closed 1', 'removed 1']);
-  });
-
-  it('closes every toast', async () => {
-    const page = await openReceipt();
-    await page.click('#raise');
-    await page.click('#raise');
-    await see(roots(page)).toHaveCount(2);
-    await page.click('#close-all');
-    await see(roots(page)).toHaveCount(0);
-    const lines = await logOf(page);
-    expect(lines.filter((line) => line.startsWith('closed')).sort()).toEqual([
-      'closed 1',
-      'closed 2',
-    ]);
+    expect(await logOf(page)).toEqual(['undo 1', 'removed 1']);
   });
 
   it('newest toast first, with its index and offset variables', async () => {
@@ -120,13 +106,12 @@ describe('createToastManager', () => {
   });
 });
 
-describe('useToastManager', () => {
-  it('adds a toast from inside the tree', async () => {
+describe('Toast.Action', () => {
+  it('renders nothing for a toast without action content', async () => {
     const page = await openReceipt();
-    await page.click('#add-inside');
+    await page.click('#raise-plain');
     await see(roots(page)).toHaveCount(1);
-    await see(roots(page).first().getByTestId('title')).toHaveText('Inside');
-    // No action content: the action part renders nothing.
+    await see(roots(page).first().getByTestId('title')).toHaveText('Plain');
     await see(roots(page).first().getByTestId('action')).toHaveCount(0);
   });
 });
@@ -141,10 +126,10 @@ describe('timeout', () => {
     await see(roots(page)).toHaveCount(1);
     await page.clock.runFor(200);
     await see(roots(page)).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['closed 1', 'removed 1']);
+    expect(await logOf(page)).toEqual(['removed 1']);
   });
 
-  it('uses the provider timeout; 0 never dismisses', async () => {
+  it('never dismisses a toast whose timeout is 0', async () => {
     const page = await openReceipt({ timeout: '0' });
     await page.click('#raise');
     await page.clock.runFor(60_000);
@@ -201,7 +186,7 @@ describe('keyboard', () => {
     await see(close).toHaveAttribute('aria-hidden', 'true');
     await close.click();
     await see(roots(page)).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['closed 1', 'removed 1']);
+    expect(await logOf(page)).toEqual(['removed 1']);
   });
 
   it('F6 focuses the viewport, Tab enters the first toast, Shift+Tab returns', async () => {
@@ -242,17 +227,6 @@ describe('limit', () => {
   });
 });
 
-describe('priority', () => {
-  it('announces a high priority toast through a hidden alert', async () => {
-    const page = await openReceipt({ priority: 'high' });
-    await page.click('#raise');
-    const root = roots(page).first();
-    await see(root).toHaveAttribute('role', 'alertdialog');
-    await see(root).toHaveAttribute('aria-hidden', 'true');
-    await see(page.locator('[role="alert"]')).toContainText('Deleted note');
-  });
-});
-
 describe('swipe', () => {
   it('dismisses when dragged right past the threshold', async () => {
     const page = await openReceipt();
@@ -260,7 +234,7 @@ describe('swipe', () => {
     await see(roots(page)).toHaveCount(1);
     await drag(page, '[data-testid="title"]', 100, 0);
     await see(roots(page)).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['closed 1', 'removed 1']);
+    expect(await logOf(page)).toEqual(['removed 1']);
   });
 
   it('dismisses when dragged down past the threshold, the receipts’ other direction', async () => {
@@ -269,7 +243,7 @@ describe('swipe', () => {
     await see(roots(page)).toHaveCount(1);
     await drag(page, '[data-testid="title"]', 0, 100);
     await see(roots(page)).toHaveCount(0);
-    expect(await logOf(page)).toEqual(['closed 1', 'removed 1']);
+    expect(await logOf(page)).toEqual(['removed 1']);
   });
 
   it('marks the toast swiping while dragging, with the swipe direction', async () => {

@@ -114,16 +114,16 @@ CSS variables on `Drawer.Popup`: `--drawer-swipe-movement-x`, `--drawer-swipe-mo
 
 `import { Toast } from '@bible/ui/toast'`
 
-- `Toast.Provider`: no element; owns the toasts (with `Toast.useToastManager` inside and `Toast.createToastManager` outside the tree).
+- `Toast.Provider`: no element; owns the toasts, added and closed through a `Toast.createToastManager` made outside the tree and listed inside it with `Toast.useToastManager().toasts`.
   - `Toast.Portal`: `<div>` at the end of `<body>`.
     - `Toast.Viewport`: `<div role="region">` the stacked toasts live in.
-      - `Toast.Root`: `<div role="dialog">` (`alertdialog` for high priority), one toast, labelled by its title.
+      - `Toast.Root`: `<div role="dialog">`, one toast, labelled by its title.
         - `Toast.Content`: `<div>` around the toast's content.
           - `Toast.Title`: `<h2>`, rendered only when there is a title.
           - `Toast.Action`: `<button>`, rendered only when it has a label.
           - `Toast.Close`: `<button>` that closes the toast.
 
-A manager has `add` and `close`; an `add` with an existing `id` updates that toast in place and restarts its timer. Upstream's description, anchored toasts (`Toast.Positioner`, `Toast.Arrow`, `positionerProps`), `update` and `promise` are left out; a part returns with its first consumer.
+A manager has `add` and `close(id)`; an `add` with an existing `id` updates that toast in place and restarts its timer. A toast shows for its `timeout` (5000 ms unless it says, never at 0). Upstream's description, anchored toasts (`Toast.Positioner`, `Toast.Arrow`, `positionerProps`), `update` and `promise` are left out, and so are a toast's `priority` (and the urgent announcement of a high one), its `onClose` and the `loading` type, closing every toast, the provider's `timeout`, and `useToastManager`'s `add` and `close`; a part or option returns with its first consumer.
 
 | Member                     | Attribute                                   | Present when                                                  |
 | -------------------------- | ------------------------------------------- | ------------------------------------------------------------- |

@@ -6,10 +6,9 @@
 // them (a mouse leave waits for exiting toasts and touch gestures to
 // finish). F6 anywhere moves focus to the viewport, and Shift+Tab from it
 // returns focus where it was. Focus guards around it send Tab to the first
-// toast, or back out. High-priority toasts are also announced through a
-// visually hidden `role="alert"` copy while the viewport is not focused.
+// toast, or back out.
 import type { JSX } from '@solidjs/web';
-import { createEffect, createMemo, For, omit, Show } from 'solid-js';
+import { createEffect, createMemo, omit, Show } from 'solid-js';
 
 import type { BaseUIComponentProps, HTMLProps } from '../internals/types.ts';
 import { useRenderElement } from '../internals/useRenderElement.tsx';
@@ -23,7 +22,6 @@ import {
   ownerWindow,
 } from '../utils/dom.ts';
 import { FocusGuard } from '../utils/FocusGuard.tsx';
-import { visuallyHidden } from '../utils/visuallyHidden.ts';
 import { useTimeout } from '../utils/timers.ts';
 import { selectors } from './store.ts';
 import { useToastProviderContext, useToastSelector } from './ToastProviderContext.ts';
@@ -52,16 +50,12 @@ export function ToastViewport(props: ToastViewportProps): JSX.Element {
 
   const isEmpty = useToastSelector(context, selectors.isEmpty);
   const toasts = useToastSelector(context, selectors.toasts);
-  const focused = useToastSelector(context, selectors.focused);
   const expanded = useToastSelector(context, selectors.expanded);
   const prevFocusElement = useToastSelector(context, selectors.prevFocusElement);
   const viewportElement = useToastSelector(context, (state) => state.viewport);
   const frontmostHeight = createMemo(() => toasts()[0]?.height);
   const hasTransitioningToasts = createMemo(() =>
     toasts().some((toast) => toast.transitionStatus === 'ending'),
-  );
-  const highPriorityToasts = createMemo(() =>
-    toasts().filter((toast) => toast.priority === 'high'),
   );
 
   createEffect(
@@ -290,17 +284,6 @@ export function ToastViewport(props: ToastViewportProps): JSX.Element {
     <>
       {focusGuard()}
       {element}
-      <Show when={!focused() && highPriorityToasts().length > 0}>
-        <div style={visuallyHidden}>
-          <For each={highPriorityToasts()} keyed={(toast) => toast.id}>
-            {(toast) => (
-              <div role="alert" aria-atomic="true">
-                <div>{toast().title}</div>
-              </div>
-            )}
-          </For>
-        </div>
-      </Show>
     </>
   );
 }

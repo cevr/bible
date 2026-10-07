@@ -167,7 +167,6 @@ export const Receipts = (props: {
       type: Option.match(held, { onNone: () => kept.tone, onSome: () => 'refused' }),
       // Held, it stays until its Undo can act or a receipt supersedes it.
       timeout: Option.match(held, { onNone: () => SHOWN_FOR[kept.tone], onSome: () => 0 }),
-      priority: 'low',
       data: kept,
       onRemove: () => {
         if (showing.get(kept.slot) !== kept) return;
