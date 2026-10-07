@@ -612,7 +612,7 @@ export const ScenesView = (props: ScenesViewProps) => {
               )}
             </For>
           </div>
-          <div class="sc-stills" style={{ '--per-row': String(tape().perRow) }}>
+          <div class="sc-stills">
             <For each={row.stills} keyed={(s) => s.t}>
               {(still) => {
                 const t = untrack(() => still().t);
@@ -844,6 +844,7 @@ export const ScenesView = (props: ScenesViewProps) => {
         </div>
         <div
           class="sc-tape"
+          style={{ '--rows': String(tape().rows.length), '--per-row': String(tape().perRow) }}
           data-role="tape"
           data-stills={String(tape().rows.reduce((n, r) => n + r.stills.length, 0))}
           data-step={String(tape().step)}

@@ -339,6 +339,25 @@ describe('the player', () => {
       }).pipe(Effect.scoped),
   );
 
+  it.live(
+    'on a laptop the Scenes fit the film: every row of the tape on one screen, its stills sized to the room the rows have',
+    () =>
+      Effect.gen(function* () {
+        // A window so short that the probe film's one line, at the full width, would run past it.
+        const { page } = yield* openPlayer(
+          { href: pageHref.scenes(PROBE), viewport: { width: 1440, height: 246 } },
+          STILL_DRAWN,
+        );
+        yield* countIs(page, '.sc-line', 1);
+        yield* evaluates(page, 'document.documentElement.scrollHeight <= innerHeight', true);
+        yield* evaluates(
+          page,
+          "document.querySelector('.sc-line-body').getBoundingClientRect().width < document.querySelector('.sc-tape').getBoundingClientRect().width * 0.9",
+          true,
+        );
+      }).pipe(Effect.scoped),
+  );
+
   it.live('a drag along the tape scrubs away from the playhead and turns Follow off', () =>
     Effect.gen(function* () {
       const { page, errors } = yield* openPlayer(

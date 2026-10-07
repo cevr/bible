@@ -9,7 +9,7 @@
 // kit's comment section that sheet and the review's inspectors hold. The
 // player page and the review page each inject it with the shell's styles.
 
-import { PHONE } from '../viewport.ts';
+import { PHONE, WIDE } from '../viewport.ts';
 
 export const SCENES_CSS = `
 body.scenes { display: block; height: auto; }
@@ -63,6 +63,21 @@ body.scenes { display: block; height: auto; }
 .sc-cut[data-flip="true"] > .sc-dot { left: -9px; }
 .sc-cut[data-flip="true"] .sc-cut-name { left: auto; right: 12px; }
 .sc-cut[data-named="false"] .sc-cut-name { display: none; }
+/*
+ * Fit film, on a laptop: a line is as wide as lets every row of the tape
+ * (\`--rows\`, \`--per-row\` stills each) fit the window under the header and
+ * the tape bar, each row its label line, its stills and its band; never
+ * under half the width, so a long film's tape scrolls rather than shrinks
+ * to nothing. The tape bar's height is its parts' tokens.
+ */
+@media ${WIDE} {
+  .sc-tape {
+    --sc-bar-h: calc(var(--s-2) + 2 * var(--lh-1) + 3px + 15px + 2 * var(--s-1) + var(--hit) + 1px);
+    --sc-room: calc(100dvh - var(--header-h) - var(--sc-bar-h) - var(--s-2) - var(--s-8));
+    --sc-still-h: calc((var(--sc-room) - (var(--rows) - 1) * var(--s-1)) / var(--rows) - var(--lh-1) - var(--s-1) - 2px);
+  }
+  .sc-line-body { max-width: max(50%, calc(var(--sc-still-h) * 16 / 9 * var(--per-row) + (var(--per-row) - 1) * 1px)); }
+}
 .sc-stills { display: grid; grid-template-columns: repeat(var(--per-row), minmax(0, 1fr)); gap: 1px; }
 .sc-still { aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-2); border-radius: var(--r-1); }
 .sc-still canvas { display: block; width: 100%; height: 100%; }
