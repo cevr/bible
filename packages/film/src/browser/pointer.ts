@@ -48,19 +48,14 @@ export class Surface {
 
 interface PointerOps {
   /**
-   * Follow the press `down` began until it ends: its moves and its end go to
-   * `steps`, and the effect is done then. Interrupted, it stops listening
-   * and tells nothing more. Call it in the press's own handler, so nothing
-   * of the press is missed.
-   */
-  readonly drag: (down: PointerEvent, steps: DragSteps) => Effect.Effect<void>;
-  /**
    * The press `down` on `surface`, taken only while it holds no press:
-   * `take` is the press's own work, run at once, and answers the
-   * drag to follow (`drag`), which the surface holds until it ends or is
-   * interrupted; none, a press with nothing to follow, holds nothing. A
-   * press while the surface holds one is not the surface's: `take` never
-   * runs. Call it in the press's own handler, as `drag`.
+   * `take` is the press's own work, run at once, and answers the drag to
+   * follow, whose moves and end go to its steps and which the surface holds
+   * until it ends or is interrupted (interrupted, it stops listening and
+   * tells nothing more); none, a press with nothing to follow, holds
+   * nothing. A press while the surface holds one is not the surface's:
+   * `take` never runs. Call it in the press's own handler, so nothing of
+   * the press is missed.
    */
   readonly press: (
     down: PointerEvent,
@@ -82,7 +77,8 @@ const captures = (target: EventTarget): target is Element => 'setPointerCapture'
 const pointerOn = (page: EventTarget): PointerOps => {
   /** The surfaces following a press now. */
   const holding = new WeakSet<Surface>();
-  const drag: PointerOps['drag'] = (down, steps) =>
+  /** The press `down` began, followed until it ends: done then. */
+  const drag = (down: PointerEvent, steps: DragSteps): Effect.Effect<void> =>
     Effect.callback<void>((resume) => {
       const id = down.pointerId;
       const held = Option.filter(Option.fromNullishOr(down.currentTarget), captures);
@@ -141,7 +137,6 @@ const pointerOn = (page: EventTarget): PointerOps => {
       return Effect.sync(() => listening.abort());
     });
   return {
-    drag,
     press: (down, surface, take) =>
       Effect.suspend(() => {
         if (holding.has(surface)) return Effect.void;

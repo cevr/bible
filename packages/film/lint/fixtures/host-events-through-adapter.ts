@@ -14,7 +14,7 @@ globalThis.addEventListener('hashchange', hear); // RED film/host-events-through
 document.addEventListener('pointermove', hear); // RED film/host-events-through-adapter
 self.addEventListener('pointercancel', hear); // RED film/host-events-through-adapter
 
-// A press is owned and ended by Pointer.drag alone, on whatever it was pressed on.
+// A press is owned and ended by Pointer.press alone, on whatever it was pressed on.
 el.addEventListener('pointerup', hear); // RED film/host-events-through-adapter
 document.body.addEventListener('pointercancel', hear); // RED film/host-events-through-adapter
 el.addEventListener('lostpointercapture', hear); // RED film/host-events-through-adapter
