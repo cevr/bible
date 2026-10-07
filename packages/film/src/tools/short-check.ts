@@ -16,7 +16,7 @@ import {
   type SafeZoneName,
   safeRect,
 } from '../core/shorts.ts';
-import { CLOCK_EPSILON } from '../core/time.ts';
+import { CLOCK_EPSILON, frameAtOrAfter } from '../core/time.ts';
 import { heldStill } from './check.ts';
 import {
   type ShortFinding,
@@ -246,7 +246,7 @@ export const zoneFrames = (
 ): ReadonlyArray<number> => {
   const frames = Math.round(short.duration * short.fps);
   const every = Arr.makeBy(Math.ceil(short.duration * 2), (i) => Math.round(i * 0.5 * short.fps));
-  const starts = phrases.map((p) => Math.ceil(p.start * short.fps - 1e-6));
+  const starts = phrases.map((p) => frameAtOrAfter(p.start, short.fps));
   return Arr.sort(
     Arr.dedupe([...every, ...starts].filter((f) => f >= 0 && f < frames)),
     Order.Number,

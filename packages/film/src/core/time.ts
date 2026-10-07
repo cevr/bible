@@ -61,6 +61,37 @@ export interface Interval {
 export const toMs = (v: number): number => Math.round(v * 1000) / 1000 + 0;
 
 /**
+ * How far off a step of a time grid (a frame, a millisecond) a time may lie
+ * and still be on that step: the float noise of seconds times a rate. A time
+ * already on the grid reads as its own step, never the one after, so a time
+ * rounded onto the grid and read again never creeps.
+ */
+const GRID_NUDGE = 1e-6;
+
+/** The first frame at or after `t` seconds, at `fps` (a millisecond's index at 1000). */
+export const frameAtOrAfter = (t: number, fps: number): number => Math.ceil(t * fps - GRID_NUDGE);
+
+/** The last frame at or before `t` seconds, at `fps`. */
+export const frameAtOrBefore = (t: number, fps: number): number => Math.floor(t * fps + GRID_NUDGE);
+
+/** The frames that start inside `span` at `fps`: the first at or after its start, the last before its end. */
+export const framesOf = (span: Interval, fps: number) => ({
+  first: frameAtOrAfter(span.from, fps),
+  last: frameAtOrAfter(span.to, fps) - 1,
+});
+
+/**
+ * `T` to the millisecond, rounded up: an in point, and `#t=` (`Places`,
+ * core/api.ts), so a reload reads a time back in its own frame and never
+ * before it. A scene's start that falls between two milliseconds (`]` seeks
+ * there exactly) would read back in the scene before.
+ */
+export const onTheMs = (T: number): number => frameAtOrAfter(T, 1000) / 1000;
+
+/** `T` to the millisecond, rounded down: an out point, so a span marked never reaches past the times marked. */
+export const offTheMs = (T: number): number => frameAtOrBefore(T, 1000) / 1000;
+
+/**
  * How far apart two times on a scene's clock may be and still be one time: a
  * sum of seconds (a mark plus an offset) carries float noise in its last bits
  * (0.1 + 0.2 is 0.30000000000000004), far below the millisecond a file keeps.

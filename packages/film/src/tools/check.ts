@@ -57,7 +57,7 @@ import {
   soundState,
 } from '../core/sfx.ts';
 import { cueTime, movementSpans, scoreOptionState, scoreOptions } from '../core/sound.ts';
-import { CLOCK_EPSILON, DEFAULT_EASE, type Interval } from '../core/time.ts';
+import { CLOCK_EPSILON, DEFAULT_EASE, type Interval, framesOf } from '../core/time.ts';
 import { endsLate } from '../core/timeline.ts';
 import type { PartError } from '../core/acts.ts';
 import type {
@@ -1548,8 +1548,7 @@ export const holdCandidates = (placed: ReadonlyArray<Placed>): ReadonlyArray<Hol
  * from it, and a sway slower than it is sampled at more than one phase.
  */
 export const holdTicks = (hold: Interval, fps: number): ReadonlyArray<number> => {
-  const first = Math.ceil(hold.from * fps - 1e-6);
-  const last = Math.ceil(hold.to * fps - 1e-6) - 1;
+  const { first, last } = framesOf(hold, fps);
   const per = fps / BOIL_FPS;
   const ticks = Arr.range(0, Math.floor((last - first) / per)).map(
     (k) => first + Math.round(k * per),
