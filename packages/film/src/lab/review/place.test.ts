@@ -140,8 +140,12 @@ describe('the place in the URL', () => {
     ).toBe('replace');
   });
 
-  test("keeps a player's time to the ms, and none at its start", () => {
+  test("keeps a player's time to the ms rounded up, as every #t= is, and none at its start", () => {
     expect(keptTime(12.34567, 0)).toEqual(Option.some(12.346));
+    // Rounded up, never to the nearest: a reload reads it back in its own frame, not before it.
+    expect(keptTime(12.3451, 0)).toEqual(Option.some(12.346));
+    // A time on the ms already stays itself.
+    expect(keptTime(12.346, 0)).toEqual(Option.some(12.346));
     expect(keptTime(2, 2)).toEqual(Option.none());
     expect(keptTime(0, 0)).toEqual(Option.none());
   });

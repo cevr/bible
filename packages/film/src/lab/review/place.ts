@@ -12,6 +12,7 @@ import { Data, Match, Option } from 'effect';
 import { Places, pageHref } from '../../core/api.ts';
 import type { Destination } from '../../command/go.ts';
 import type { ReviewFilms, ReviewIndex } from '../../core/review.ts';
+import { onTheMs } from '../../player/t-in-url.ts';
 import { folderTitle } from './format.ts';
 import { type ViewEvent, ViewState, otherOf, viewNameOf } from './machine.ts';
 
@@ -134,9 +135,12 @@ export const destinationsOf = (
   ),
 ];
 
-/** The time a URL keeps for a player at `t`: none at its `start`, else to the ms. */
+/**
+ * The time a URL keeps for a player at `t`: none at its `start`, else to the
+ * ms rounded up, as every `#t=` is (`onTheMs`).
+ */
 export const keptTime = (t: number, start: number): Option.Option<number> =>
-  Option.liftPredicate(Math.round(t * 1000) / 1000, (ms) => ms !== start);
+  Option.liftPredicate(onTheMs(t), (ms) => ms !== onTheMs(start));
 
 /**
  * The query a set's URL is corrected to once its view is shown: the view
