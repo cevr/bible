@@ -46,6 +46,7 @@ import { timecode, timecodeParts } from '../../core/time.ts';
 import type { Player } from '../../player/main.ts';
 import { makeStills } from '../../player/stills.ts';
 import { onTheMs } from '../../player/t-in-url.ts';
+import { LabClient } from '../api.ts';
 import { useShellTime } from '../page-shell.tsx';
 import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts';
 import { PHONE, useMatches } from '../viewport.ts';
@@ -155,7 +156,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   }));
   const order = scenes.map((s) => s.id);
   const short = isShortKey(props.name);
-  const calls = scenesCalls(props.name, !short);
+  const calls = scenesCalls(props.name, !short, LabClient.layer);
   /** Where a scene opens: its lab; a short's play page (a short has no lab). */
   const openWords = Bool.match(short, {
     onTrue: () => 'Open in Play',

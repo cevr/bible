@@ -12,8 +12,9 @@
 
 import { Boolean as Bool, Effect, Layer, Option, Result } from 'effect';
 import type { ProjectView, Say } from '../../core/api.ts';
+import { hostOf } from '../../browser/host.ts';
 import type { CheckLine } from '../../core/schema.ts';
-import { LabClient } from '../api.ts';
+import type { LabClient } from '../api.ts';
 import { failureText } from '../review/format.ts';
 import { OptionsApi, optionsApiLayer } from '../review/options/api.ts';
 
@@ -46,9 +47,17 @@ interface ScenesCalls {
 /** Nothing read: no project, no findings (a short's, which runs no check). */
 const NOTHING: ScenesRead = { project: Option.none(), check: Result.succeed([]) };
 
-/** The calls of `film`'s Scenes; a short's read no project (it has none). */
-export const scenesCalls = (film: string, hasProject: boolean): ScenesCalls => {
-  const client = optionsApiLayer.pipe(Layer.provide(LabClient.layer));
+/**
+ * The calls of `film`'s Scenes over `client` (the page's one client of the
+ * lab), its options API built once for every call; a short's read no
+ * project (it has none).
+ */
+export const scenesCalls = (
+  film: string,
+  hasProject: boolean,
+  client: Layer.Layer<LabClient>,
+): ScenesCalls => {
+  const api = hostOf(optionsApiLayer.pipe(Layer.provide(client)));
   return {
     read: Bool.match(hasProject, {
       onFalse: () => Effect.succeed(NOTHING),
@@ -65,7 +74,7 @@ export const scenesCalls = (film: string, hasProject: boolean): ScenesCalls => {
             },
             { concurrency: 2 },
           ),
-        ).pipe(Effect.provide(client)),
+        ).pipe(Effect.provide(api)),
     }),
     say: (ids, say) =>
       OptionsApi.use((api) =>
@@ -75,7 +84,7 @@ export const scenesCalls = (film: string, hasProject: boolean): ScenesCalls => {
           onSuccess: (project): Said => ({ _tag: 'Said', project }),
           onFailure: (e): Said => ({ _tag: 'Refused', reason: e.message }),
         }),
-        Effect.provide(client),
+        Effect.provide(api),
       ),
   };
 };
