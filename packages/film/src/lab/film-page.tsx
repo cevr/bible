@@ -17,7 +17,7 @@ import { RegistryProvider } from '@bible/atom-solid';
 import * as UrlAtom from '@bible/url-state/atom';
 import { type JSX, clientOnly } from '@solidjs/web';
 import type { Component } from 'solid-js';
-import { Effect, type Layer, Option } from 'effect';
+import { Effect, type Layer, Option, Schema } from 'effect';
 import { type PageName, type Part, filmOfPage } from '../core/api.ts';
 import { type Host, addressOn, hostLayer } from '../browser/host.ts';
 import type { Hub } from '../command/hub.ts';
@@ -40,6 +40,39 @@ export type FilmBody = (hub: Hub) => Promise<{ readonly default: Component }>;
 /** The body of a page the server renders: never loaded, as the server stages no film. */
 export const SERVER_BODY: FilmBody = () =>
   Effect.runPromise(Effect.die('a page rendered on the server stages no film'));
+
+/** A film page could not start: its film did not load, or the registry has no such film. */
+class FilmStartFailed extends Schema.TaggedError<FilmStartFailed>()('FilmStartFailed', {
+  reason: Schema.String,
+}) {}
+
+/** Nothing: the body of a page whose film did not start (the failure is the page's). */
+const NoBody: Component = () => <></>;
+
+/**
+ * A film page's body over `host` (the browser's entries, `mount.tsx`,
+ * `play-mount.tsx`): its film staged (`stage`), then `view` of it with the
+ * page's commands. A film that does not start fails the page (`fail`: it
+ * ends, and says why in its place), and the body is nothing.
+ */
+export const stagedBody =
+  <S,>(
+    host: Host,
+    stage: () => Promise<S>,
+    fail: (why: string) => Effect.Effect<void>,
+    view: (staged: S, hub: Hub) => Effect.Effect<Component>,
+  ): FilmBody =>
+  (hub) =>
+    Effect.runPromiseWith(host)(
+      Effect.tryPromise({
+        try: stage,
+        catch: (cause) => FilmStartFailed.make({ reason: String(cause) }),
+      }).pipe(
+        Effect.flatMap((staged) => view(staged, hub)),
+        Effect.map((body) => ({ default: body })),
+        Effect.catchTag('FilmStartFailed', (e) => Effect.as(fail(e.reason), { default: NoBody })),
+      ),
+    );
 
 /** The parts a film's page is: the Lab, or the Scenes or Play page (the player's). */
 type FilmPart = Extract<Part, 'lab' | 'scenes' | 'play'>;

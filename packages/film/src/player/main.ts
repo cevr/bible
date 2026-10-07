@@ -120,10 +120,12 @@ export interface Player {
 /** An app's film registry: each film's name and its loader. */
 export type Films = Record<string, () => Promise<Film>>;
 
-/** A page's film, loaded and on the stage: its name, its canvas and the captions switch. */
+/** A page's film, loaded and on the stage: its name, its stage and canvas, and the captions switch. */
 export interface Staged {
   readonly name: string;
   readonly film: Film;
+  /** The element the canvas stands in, which a page places. */
+  readonly stage: HTMLElement;
   readonly canvas: HTMLCanvasElement;
   readonly ctx: CanvasRenderingContext2D;
   readonly captions: { on: boolean };
@@ -167,7 +169,7 @@ export const stageFilm = async (films: Films, href: string): Promise<Staged> => 
   stage.className = 'stage';
   stage.append(canvas);
   document.body.append(stage);
-  return { name, film, canvas, ctx, captions };
+  return { name, film, stage, canvas, ctx, captions };
 };
 
 /**
