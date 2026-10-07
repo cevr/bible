@@ -2896,7 +2896,11 @@ to itself (`globalThis.window`, `window.top`, `parent`, `document.defaultView`),
 so no chain reaches a name past its ban; `effect/noReflectGet` refuses
 `Reflect.get(window, …)`; `film/host-events-through-adapter`
 (`lint/`) refuses a window or document listener for a navigation, key or
-drag event; `effect/noGlobals` holds in the player as everywhere. The
+drag event however it is spelled (an event named by a const or a loop, an
+alias of the window, a handler property such as `onpopstate`, a bare or a
+borrowed `addEventListener`), a host listener whose event it cannot read,
+and a press's end heard on any element, a JSX handler included;
+`effect/noGlobals` holds in the player as everywhere. The
 fixtures and tests are the host's side and exempt; a live adapter
 (`*-browser.ts`) is not: each line where it reaches the one host API it
 adapts says so (`oxlint-disable-next-line`, with why), so an adapter that

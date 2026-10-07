@@ -148,7 +148,9 @@
       // `popstate` or `hashchange` listener on the window is the film's
       // `host-events-through-adapter` rule's to refuse; the key and drag
       // events it also refuses name the film's own adapters, so they stay
-      // allowed here.
+      // allowed here. The URL's bans are the film block's URL bans, every
+      // global hop among them (packages/film/lint/config.test.ts probes both
+      // blocks, and holds this one to the film's URL entries).
       "files": [
         "**/packages/url-state/src/**/*.ts",
         "**/packages/url-state/src/**/*.tsx",
@@ -173,18 +175,72 @@
           "error",
           { "name": "history", "message": "Use @bible/url-state's Location." },
           { "name": "location", "message": "Use @bible/url-state's Location." },
-          { "name": "onpopstate", "message": "Use @bible/url-state's Location." }
+          { "name": "onpopstate", "message": "Use @bible/url-state's Location." },
+          { "name": "onhashchange", "message": "Use @bible/url-state's Location." },
+          { "name": "navigation", "message": "Use @bible/url-state's Location." },
+          {
+            "name": "top",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: through `top` every ban after it is passed."
+          },
+          {
+            "name": "parent",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: through `parent` every ban after it is passed."
+          },
+          {
+            "name": "frames",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: through `frames` every ban after it is passed."
+          }
         ],
         "no-restricted-properties": [
           "error",
+          {
+            "object": "document",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "document",
+            "property": "URL",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "document",
+            "property": "documentURI",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "document",
+            "property": "defaultView",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: through `document.defaultView` every ban after it is passed."
+          },
+          {
+            "object": "window",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "history",
+            "message": "Use @bible/url-state's Location."
+          },
           {
             "object": "window",
             "property": "location",
             "message": "Use @bible/url-state's Location."
           },
           {
-            "object": "window",
-            "property": "history",
+            "object": "globalThis",
+            "property": "location",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "location",
             "message": "Use @bible/url-state's Location."
           },
           {
@@ -194,18 +250,148 @@
           },
           {
             "object": "globalThis",
-            "property": "location",
+            "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "onhashchange",
             "message": "Use @bible/url-state's Location."
           },
           {
             "object": "globalThis",
-            "property": "history",
+            "property": "onhashchange",
             "message": "Use @bible/url-state's Location."
           },
           {
-            "object": "document",
-            "property": "location",
+            "object": "self",
+            "property": "onhashchange",
             "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "globalThis",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "self",
+            "property": "document",
+            "message": "Reach `document` bare, where its host members (document.location) are banned by name."
+          },
+          {
+            "object": "window",
+            "property": "window",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "window",
+            "property": "globalThis",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "window",
+            "property": "self",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "window",
+            "property": "top",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "window",
+            "property": "parent",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "window",
+            "property": "frames",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "window",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "globalThis",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "self",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "top",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "parent",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "globalThis",
+            "property": "frames",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "window",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "globalThis",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "self",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "top",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "parent",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
+          },
+          {
+            "object": "self",
+            "property": "frames",
+            "message": "Reach the global object as `window`, `globalThis` or `self`, one level: a chain of its own names passes every ban after it."
           }
         ]
       }
@@ -765,6 +951,8 @@
           { "name": "history", "message": "Use @bible/url-state's Location." },
           { "name": "location", "message": "Use @bible/url-state's Location." },
           { "name": "onpopstate", "message": "Use @bible/url-state's Location." },
+          { "name": "onhashchange", "message": "Use @bible/url-state's Location." },
+          { "name": "navigation", "message": "Use @bible/url-state's Location." },
           {
             "name": "localStorage",
             "message": "Use Effect's KeyValueStore: ViewerStore (packages/film/src/browser/storage.ts)."
@@ -899,6 +1087,46 @@
           {
             "object": "self",
             "property": "onpopstate",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "onhashchange",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "onhashchange",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "onhashchange",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "window",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "globalThis",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "self",
+            "property": "navigation",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "document",
+            "property": "URL",
+            "message": "Use @bible/url-state's Location."
+          },
+          {
+            "object": "document",
+            "property": "documentURI",
             "message": "Use @bible/url-state's Location."
           },
           {
