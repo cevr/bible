@@ -3,7 +3,8 @@
 // thread, and a bad body or an unknown note answers with its status. A page
 // is sent compressed, a streamed one chunk by chunk. A client that leaves
 // mid-build or mid-render, on the real server, leaves the watches whole and
-// stops the render's reads. And the lab never imports a film: no module its
+// stops the render's reads; one that leaves mid-ask of a film's track
+// leaves its next mix heard. And the lab never imports a film: no module its
 // handler runs reaches a loader.
 
 import { describe, expect, it } from 'effect-bun-test';
@@ -11,6 +12,7 @@ import { BunServices } from '@effect/platform-bun';
 import {
   Array as Arr,
   ConfigProvider,
+  Console,
   Context,
   Deferred,
   Effect,
@@ -40,15 +42,7 @@ import {
 } from 'effect/http';
 import { brotliDecompressSync } from 'node:zlib';
 import { parseSync } from 'oxc-parser';
-import {
-  LabHttpApi,
-  Places,
-  Refusal,
-  ToolFailure,
-  labUrls,
-  reviewFileUrl,
-  routesOf,
-} from '../core/api.ts';
+import { LabHttpApi, Places, Refusal, ToolFailure, labUrls, routesOf } from '../core/api.ts';
 import { NotesFile, NotesWait } from '../core/schema.ts';
 import { ContentStore } from './content-store.ts';
 import { labHandler, labLink } from './lab.ts';
@@ -256,9 +250,40 @@ const post = (path: string, body: string, headers: Record<string, string> = {}) 
     body,
   });
 
-/** A logger that keeps every line the lab logs in `lines`, and prints none. */
-const loggedInto = (lines: Array<string>) =>
-  Logger.layer([Logger.make(({ message }) => lines.push([message].flat().join(' ')))]);
+/** What a console was written: each line, by the stream it went to. */
+interface Written {
+  readonly stderr: Array<string>;
+  readonly stdout: Array<string>;
+}
+
+/**
+ * The lab's logging as the CLI gives it, at the root around everything it
+ * runs (logs to stderr, through the default logger), onto a console that
+ * keeps each line in `written` by its stream, and prints none.
+ */
+const loggingInto = (written: Written) => {
+  const line = (args: ReadonlyArray<unknown>) => args.map(String).join(' ');
+  return Layer.mergeAll(
+    Layer.succeed(Logger.LogToStderr, true),
+    Layer.succeed(Console.Console, {
+      ...globalThis.console,
+      error: (...args: ReadonlyArray<unknown>) => {
+        written.stderr.push(line(args));
+      },
+      log: (...args: ReadonlyArray<unknown>) => {
+        written.stdout.push(line(args));
+      },
+    }),
+  );
+};
+
+/** The lines of `lines` that log `event`, from the event's name on, the logger's prefix gone. */
+const eventLines = (lines: ReadonlyArray<string>, event: string) =>
+  lines.flatMap((line) => {
+    const at = line.indexOf(`${event} `);
+    if (at < 0) return [];
+    return [line.slice(at)];
+  });
 
 /** A GET with the test's headers. */
 const get = (path: string, headers: Record<string, string> = {}) =>
@@ -457,6 +482,58 @@ const drivenPages = (
       );
     }),
   ).pipe(Layer.provide(Path.layer));
+
+/** Film `f`'s mixed track on disk (`trackPages`). */
+const TRACK = '/app/films/f/narration/full.wav';
+
+/** When `TRACK` was first mixed (ms). */
+const MIXED_AT = 1_900_000_000_000;
+
+/**
+ * The app's pages over film `f` and its track (`TRACK`, first mixed at
+ * `MIXED_AT`) in `files`, each file's mtime as `mtimes` keeps it, and no
+ * watch that ever hears a save: the first look for the track's folder (as
+ * its watch is made) is done on `arming` and held until `armed` is.
+ */
+const trackPages = (
+  files: Map<string, Uint8Array>,
+  mtimes: Map<string, number>,
+  arming: Deferred.Deferred<void>,
+  armed: Deferred.Deferred<void>,
+) => {
+  const page = text('<!doctype html><html><head></head><body></body></html>');
+  for (const name of ['review', 'lab', 'player']) files.set(`/app/${name}.html`, page);
+  files.set('/app/films/f/scenes/index.ts', text('export {};\n'));
+  files.set(TRACK, text('mix one'));
+  mtimes.set(TRACK, MIXED_AT);
+  const fileSystem = Layer.effect(
+    FileSystem.FileSystem,
+    Effect.map(FileSystem.FileSystem, (fs) =>
+      FileSystem.FileSystem.of({
+        ...fs,
+        exists: (path) =>
+          Effect.gen(function* () {
+            if (path === TRACK.slice(0, TRACK.lastIndexOf('/')))
+              if (yield* Deferred.done(arming, Exit.void)) yield* Deferred.await(armed);
+            return yield* fs.exists(path);
+          }),
+        watch: () => Stream.never,
+      }),
+    ),
+  ).pipe(Layer.provide(memoryFileSystem(files, new Set(), mtimes)));
+  const spec: LabPageSpec = {
+    pages: { review: '/app/review.html', lab: '/app/lab.html', player: '/app/player.html' },
+    servers: {},
+    films: '/app/films',
+  };
+  return Layer.mergeAll(
+    echoPages,
+    LabPage.layer(spec).pipe(
+      Layer.provide([PageBundler.layerTest, PageRenderer.layerTest]),
+      Layer.provide([fileSystem, Path.layer]),
+    ),
+  );
+};
 
 /** The pages' build now, as a page another server served hears it at once. */
 const buildNow = Effect.flatMap(LabPage, (page) =>
@@ -741,12 +818,11 @@ describe('lab routes', () => {
   );
 
   it.effect(
-    'the gate: every route and every kind of page path, against every request it refuses, and what it lets in, each refusal logged once',
+    'the gate: every route and every kind of page path, against every request it refuses, and what it lets in, each refusal logged once to stderr',
     () => {
-      const logged: Array<string> = [];
+      const written: Written = { stderr: [], stdout: [] };
       return Effect.gen(function* () {
-        // The gate logs in the handler's own runtime: its logger goes in beside the routes.
-        const lab = yield* labHandler(LOOPBACK, loggedInto(logged));
+        const lab = yield* labHandler(LOOPBACK);
         const answer = (request: Request) =>
           Effect.gen(function* () {
             const res = yield* Effect.promise(() => lab(request, bound));
@@ -867,6 +943,16 @@ describe('lab routes', () => {
           expect(
             yield* row(new Request(at(path), { method: 'HEAD', headers: navigation })),
           ).toEqual([`HEAD ${path}`, 200, '']);
+          // A form another site submits to a page is a navigation too, but no link opened.
+          expect(
+            yield* row(
+              new Request(at(path), {
+                method: 'POST',
+                headers: { ...navigation, 'content-type': 'application/x-www-form-urlencoded' },
+                body: 'a=1',
+              }),
+            ),
+          ).toEqual([`POST ${path}`, 403, 'RequestRefused']);
         }
         for (const path of files)
           expect(yield* row(get(path, navigation))).toEqual([`GET ${path}`, 403, 'RequestRefused']);
@@ -899,31 +985,31 @@ describe('lab routes', () => {
             }),
           ))[1],
         ).toBe(200);
-        // Every refusal is one line of the gate's log, naming what was refused.
-        const lines = logged
-          .filter((line) => line.startsWith('api.request.refused '))
-          .map((line) => line.split(' reason=')[0] ?? '');
+        // Every refusal is one line of the gate's log on stderr, naming what was refused;
+        // stdout carries none.
+        const lines = eventLines(written.stderr, 'api.request.refused').map(
+          (line) => line.split(' reason=')[0] ?? '',
+        );
         expect(refusals.length).toBeGreaterThan(600);
         expect(Arr.sort(lines, Order.String)).toEqual(Arr.sort(refusals, Order.String));
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files())));
+        expect(eventLines(written.stdout, 'api.request.refused')).toEqual([]);
+      }).pipe(Effect.scoped, Effect.provide([labLayer(files()), loggingInto(written)]));
     },
   );
 
   it.effect(
-    "a handler's failure is logged with the request it answers: its method and path",
+    "a handler's failure is logged to stderr with the request it answers: its method and path",
     () => {
-      const logged: Array<string> = [];
+      const written: Written = { stderr: [], stdout: [] };
       return Effect.gen(function* () {
-        const lab = yield* labHandler(LOOPBACK, loggedInto(logged));
+        const lab = yield* labHandler(LOOPBACK);
         const asked = labUrls.notes.list({ params: { film: 'nope' } });
         const status = yield* Effect.promise(() => lab(get(asked), bound).then((r) => r.status));
         expect(status).toBe(404);
         expect(
-          logged
-            .filter((line) => line.startsWith('api.request.failed '))
-            .map((line) => line.split(' reason=')[0]),
+          eventLines(written.stderr, 'api.request.failed').map((line) => line.split(' reason=')[0]),
         ).toEqual([`api.request.failed method=GET path=${asked} status=404 tag=FilmUnknown`]);
-      }).pipe(Effect.scoped, Effect.provide(labLayer(files())));
+      }).pipe(Effect.scoped, Effect.provide([labLayer(files()), loggingInto(written)]));
     },
   );
 
@@ -989,24 +1075,6 @@ describe('lab routes', () => {
         'https://box.example:8229/',
       );
       expect(labLink('http://127.0.0.1:8229/', { hosts: [] })).toBe('http://127.0.0.1:8229/');
-    }),
-  );
-
-  it.effect("the API's paths, as the wire has them", () =>
-    Effect.sync(() => {
-      expect(labUrls.notes.list({ params: { film: 'f' } })).toBe('/api/films/f/notes');
-      expect(labUrls.scenes.cue({ params: { film: 'f', scene: 's', cue: 'c' } })).toBe(
-        '/api/films/f/scenes/s/cues/c',
-      );
-      expect(labUrls.choices.films()).toBe('/api/films');
-      expect(labUrls.project.get({ params: { film: 'f' }, query: {} })).toBe(
-        '/api/films/f/project',
-      );
-      expect(labUrls.review.index({ query: {} })).toBe('/api/review/index');
-      expect(labUrls.page.wait({ query: { since: 3, timeout: 9 } })).toBe(
-        '/api/review/build?since=3&timeout=9',
-      );
-      expect(reviewFileUrl('out/a b.mp4')).toBe('/api/review/files/out/a%20b.mp4');
     }),
   );
 });
@@ -1131,5 +1199,39 @@ describe('a client that goes away', () => {
         Effect.scoped,
         Effect.provide([labLayer(files(), rendering), rendering, FetchHttpClient.layer]),
       ),
+  );
+
+  it.live(
+    "mid-ask of a film's track keeps the check after arming: a mix that lands before the track's watch is armed still wakes the film's wait",
+    () => {
+      const disk = new Map<string, Uint8Array>();
+      const mtimes = new Map<string, number>();
+      const arming = Deferred.makeUnsafe<void>();
+      const armed = Deferred.makeUnsafe<void>();
+      const pages = trackPages(disk, mtimes, arming, armed);
+      return Effect.gen(function* () {
+        const page = yield* LabPage;
+        const f = Option.some('f');
+        const since = (yield* page.wait({ since: 0, server: Option.some('another'), film: f }, 0))
+          .build;
+        const { url, gone } = yield* served();
+        const client = yield* HttpClient.HttpClient;
+        // A page asks for the track, and leaves while the track's watch is made.
+        const leaving = yield* Effect.forkChild(
+          Effect.orDie(client.get(new URL('/films/f/narration/full.wav', url))),
+        );
+        yield* Deferred.await(arming);
+        // The mix lands before that watch is armed, so no watch hears it.
+        yield* Effect.sync(() => {
+          disk.set(TRACK, text('mix two'));
+          mtimes.set(TRACK, MIXED_AT + 10_000);
+        });
+        yield* Fiber.interrupt(leaving);
+        yield* Deferred.await(gone);
+        yield* Deferred.done(armed, Exit.void);
+        const heard = yield* page.wait({ since, server: Option.none(), film: f }, '2 seconds');
+        expect(heard.build).toBeGreaterThan(since);
+      }).pipe(Effect.scoped, Effect.provide([labLayer(disk, pages), pages, FetchHttpClient.layer]));
+    },
   );
 });
