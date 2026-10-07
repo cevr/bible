@@ -943,6 +943,16 @@ describe('lab routes', () => {
           expect(
             yield* row(new Request(at(path), { method: 'HEAD', headers: navigation })),
           ).toEqual([`HEAD ${path}`, 200, '']);
+          // A form another site submits to a page is a navigation too, but no link opened.
+          expect(
+            yield* row(
+              new Request(at(path), {
+                method: 'POST',
+                headers: { ...navigation, 'content-type': 'application/x-www-form-urlencoded' },
+                body: 'a=1',
+              }),
+            ),
+          ).toEqual([`POST ${path}`, 403, 'RequestRefused']);
         }
         for (const path of files)
           expect(yield* row(get(path, navigation))).toEqual([`GET ${path}`, 403, 'RequestRefused']);
