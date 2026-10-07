@@ -73,6 +73,8 @@ const LINKS: ReadonlyArray<
   ],
   ['/films/rbf/scenes', 'scenes', 'player', '/films/rbf/scenes'],
   ['/films/rbf/scenes/roof', 'scene', 'player', '/films/rbf/scenes/roof'],
+  // A blank time is no time, though `Number` reads it as 0.
+  ['/films/rbf/scenes/roof#t=%20', 'scene', 'player', '/films/rbf/scenes/roof'],
   ['/films/rbf/play', 'play', 'player', '/films/rbf/play'],
   ['/films/rbf/play#t=42', 'play', 'player', '/films/rbf/play#t=42'],
   [
