@@ -7,11 +7,14 @@
 import { createContext, useContext } from 'solid-js';
 
 import type {
-  NumberFieldRootChangeEventDetails,
   NumberFieldRootCommitEventDetails,
   NumberFieldRootState,
 } from './NumberFieldRootState.ts';
-import type { EventWithOptionalKeyState, IncrementValueParameters } from '../utils/types.ts';
+import type {
+  EventWithOptionalKeyState,
+  IncrementValueParameters,
+  ValueChange,
+} from '../utils/types.ts';
 
 export type InputMode = 'numeric' | 'decimal' | 'text';
 
@@ -22,8 +25,6 @@ export interface ValueCell<T> {
 
 export interface NumberFieldRootContextValue {
   readonly state: NumberFieldRootState;
-  /** The input's `id`. */
-  readonly id: string;
   readonly min: number | undefined;
   readonly max: number | undefined;
   readonly inputMode: InputMode;
@@ -33,8 +34,8 @@ export interface NumberFieldRootContextValue {
   readonly allowExpressions: boolean;
   /** Whether Enter commits typed text (not in upstream). */
   readonly commitOnEnter: boolean;
-  /** Validates and stores a value; whether a change was reported (and not canceled). */
-  setValue: (value: number | null, details: NumberFieldRootChangeEventDetails) => boolean;
+  /** Validates a value and holds it until its commit; whether it changed. */
+  setValue: (value: number | null, change: ValueChange) => boolean;
   /** Steps the value by `amount` in `direction`; an empty field is seeded instead. */
   incrementValue: (amount: number, params: IncrementValueParameters) => boolean;
   /** The step the event's modifiers pick: Alt `smallStep`, Shift `largeStep`, else `step`. */
@@ -55,7 +56,7 @@ export interface NumberFieldRootContextValue {
   /** The value the last applied change stored. */
   lastChangedValueRef: ValueCell<number | null>;
   /** Whether a change was applied that no commit has reported yet. */
-  hasPendingCommitRef: ValueCell<boolean>;
+  hasPendingCommit: () => boolean;
 }
 
 export const NumberFieldRootContext = createContext<NumberFieldRootContextValue | null>(null);

@@ -2,7 +2,7 @@
 
 Base UI's unstyled parts, ported to Solid 2 (the `2.0.0-rc` line of `solid-js` and `@solidjs/web`). No part ships a style: each part shows its state as `data-*` attributes (and, where a value has to reach CSS, as CSS custom properties), and the consumer styles it through those attributes and its own `class`. Each part is imported from its subpath, for example `import { Menu } from '@bible/ui/menu'`; there is no root entry. The package keeps only the parts a page draws: a part upstream has and this list lacks returns with its first consumer, and the attribute names below are the styling contract (no `*DataAttributes` constants are exported). Unit tests run with `bun run test` and the browser tests with `bun run test:browser` (Playwright, `test/browser`), both from `packages/ui`.
 
-Every part takes `class` and `style` (a value or a function of the part's state) and `render` (a function of the merged props and the state that replaces the default element). A part's state becomes attributes by one rule unless the part maps it otherwise: `true` becomes a bare `data-<key>` attribute (the key lowercased: `readOnly` is `data-readonly`), another truthy value its string, and a falsy value nothing. Attributes named `data-base-ui-*`, `data-rootownerid`, `data-tabindex`, `data-type="inside"` and `data-type="outside"` (the focus guards) are internal markers, not styling hooks. Every `Portal` takes `inline`: with it its `<div>` renders where it is written instead of at the end of `<body>`, the same in the server's render and the browser's, so a popup open at the first render is in the server's markup (for a `position: fixed` popup under no transform, filter or `contain`); without it, a server render leaves the portal out.
+Every part takes `class` and `style` (a value or a function of the part's state) and `render` (a function of the merged props and the state that replaces the default element). A part's state becomes attributes by one rule unless the part maps it otherwise: `true` becomes a bare `data-<key>` attribute (the key lowercased), another truthy value its string, and a falsy value nothing. Attributes named `data-base-ui-*`, `data-rootownerid`, `data-tabindex`, `data-type="inside"` and `data-type="outside"` (the focus guards) are internal markers, not styling hooks. Every `Portal` takes `inline`: with it its `<div>` renders where it is written instead of at the end of `<body>`, the same in the server's render and the browser's, so a popup open at the first render is in the server's markup (for a `position: fixed` popup under no transform, filter or `contain`); without it, a server render leaves the portal out.
 
 ## Parts
 
@@ -147,18 +147,17 @@ CSS variables:
 
 `import { NumberField } from '@bible/ui/number-field'`
 
-- `NumberField.Root`: `<div>` that owns the value and reports it through `onValueChange` and `onValueCommitted` (upstream's hidden form input, `name`, `form` and `required` are left out).
-  - `NumberField.ScrubArea`: `<span role="presentation">` dragged across to change the value (under pointer lock for a mouse, outside WebKit).
+- `NumberField.Root`: `<div>`. Its owner holds `value` and hears only `onValueCommitted`: the field shows its own change (typed, stepped, scrubbed) from the change until its commit, then the owner's value again, so a value the owner declines goes back (upstream's hidden form input, `name`, `form` and `required` are left out).
+  - `NumberField.ScrubArea`: `<span role="presentation">` dragged across horizontally to change the value, a step every 2 pixels (under pointer lock for a mouse, outside WebKit).
   - `NumberField.Input`: `<input>`, the text input; the arrow keys step it (Shift `largeStep`, Alt `smallStep`).
 
-Upstream's stepper buttons, `Group`, `ScrubAreaCursor` and `allowWheelScrub` are left out; a part returns with its first consumer.
+Upstream's stepper buttons, `Group`, `ScrubAreaCursor` and `allowWheelScrub` are left out, and so are the root's `defaultValue`, `onValueChange`, `id`, `readOnly`, `snapOnStep`, `allowOutOfRange` and `step: 'any'`, and the scrub area's `direction` and `pixelSensitivity`; a part or option returns with its first consumer.
 
 Every member carries the same attributes:
 
 | Member | Attribute        | Present when                |
 | ------ | ---------------- | --------------------------- |
 | all    | `data-disabled`  | the field is disabled       |
-| all    | `data-readonly`  | the field is read-only      |
 | all    | `data-scrubbing` | the value is being scrubbed |
 
 The value and the input's text are not attributes. No CSS variables.

@@ -2,8 +2,8 @@
 //
 // The text input of the number field. Typing accepts digits (in any numeral
 // system the parser reads) and the symbols the locale and format render;
-// each parseable keystroke reports `input-change`, and the text is formatted
-// and committed on blur. ArrowUp/ArrowDown step (Shift: `largeStep`, Alt:
+// each parseable keystroke changes the value, and the text is formatted and
+// committed on blur. ArrowUp/ArrowDown step (Shift: `largeStep`, Alt:
 // `smallStep`), Home/End jump to `min`/`max` when set, and each such key
 // commits at once. A paste is inserted at the caret.
 // Not in upstream: with the root's `commitOnEnter`, Enter commits typed text
@@ -14,10 +14,7 @@
 import type { JSX } from '@solidjs/web';
 import { omit, untrack } from 'solid-js';
 
-import {
-  createChangeEventDetails,
-  createGenericEventDetails,
-} from '../../internals/createBaseUIEventDetails.ts';
+import { createGenericEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import { REASONS } from '../../internals/reasons.ts';
 import type { BaseUIComponentProps, HTMLProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
@@ -158,19 +155,15 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     changeReason: typeof REASONS.inputBlur | typeof REASONS.keyboard,
   ) => {
     const hadManualInput = !ctx.allowInputSyncRef.current;
-    const hadPendingProgrammaticChange = ctx.hasPendingCommitRef.current;
+    const hadPendingChange = ctx.hasPendingCommit();
     const value = state.value;
     const inputValue = state.inputValue;
     ctx.allowInputSyncRef.current = true;
 
     if (inputValue.trim() === '') {
-      const clearDetails = createChangeEventDetails(REASONS.inputClear, event);
-      ctx.setValue(null, clearDetails);
-      if (clearDetails.isCanceled) {
-        return;
-      }
+      ctx.setValue(null, { reason: REASONS.inputClear, event });
       // An untouched empty field that nothing changed has nothing to commit.
-      if (hadManualInput || hadPendingProgrammaticChange || value !== null) {
+      if (hadManualInput || hadPendingChange || value !== null) {
         ctx.onValueCommitted(null, createGenericEventDetails(REASONS.inputClear, event));
       }
       return;
@@ -195,16 +188,12 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     }
 
     const shouldUpdateValue = value !== committed;
-    const shouldCommit = hadManualInput || shouldUpdateValue || hadPendingProgrammaticChange;
+    const shouldCommit = hadManualInput || shouldUpdateValue || hadPendingChange;
 
     // Commit what `setValue` stored (clamped), not the raw text.
     let committedValue = committed;
     if (shouldUpdateValue) {
-      const changeDetails = createChangeEventDetails(changeReason, event);
-      ctx.setValue(committed, changeDetails);
-      if (changeDetails.isCanceled) {
-        return;
-      }
+      ctx.setValue(committed, { reason: changeReason, event });
       committedValue = ctx.lastChangedValueRef.current;
     }
     if (shouldCommit) {
@@ -225,7 +214,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
 
     if (targetValue.trim() === '') {
       ctx.setInputValue(targetValue);
-      ctx.setValue(null, createChangeEventDetails(REASONS.inputClear, event));
+      ctx.setValue(null, { reason: REASONS.inputClear, event });
       return;
     }
 
@@ -254,7 +243,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     const parsedValue = parseNumber(targetValue, ctx.locale, ctx.format);
     ctx.setInputValue(targetValue);
     if (parsedValue !== null) {
-      ctx.setValue(parsedValue, createChangeEventDetails(REASONS.inputChange, event));
+      ctx.setValue(parsedValue, { reason: REASONS.inputChange, event });
     }
   };
 
@@ -317,10 +306,6 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
       ctx.allowInputSyncRef.current = true;
     }
     if (isStepKey) {
-      // A canceled step must not commit a value left from an earlier change.
-      if (!hadManualInput) {
-        ctx.lastChangedValueRef.current = ctx.valueRef.current;
-      }
       changed = ctx.incrementValue(amount, {
         direction: event.key === 'ArrowUp' ? 1 : -1,
         currentValue,
@@ -328,7 +313,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
         reason: REASONS.keyboard,
       });
     } else if (boundaryValue !== null) {
-      changed = ctx.setValue(boundaryValue, createChangeEventDetails(REASONS.keyboard, event));
+      changed = ctx.setValue(boundaryValue, { reason: REASONS.keyboard, event });
     }
 
     // Commit the stored (clamped, snapped) value.
@@ -367,7 +352,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     }
     startTyping();
     if (parsedValue !== null) {
-      ctx.setValue(parsedValue, createChangeEventDetails(REASONS.inputPaste, event));
+      ctx.setValue(parsedValue, { reason: REASONS.inputPaste, event });
     }
     ctx.setInputValue(nextText);
     // The caret goes just after the inserted text.
@@ -377,14 +362,8 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
   };
 
   const inputProps: HTMLProps = {
-    get id() {
-      return ctx.id;
-    },
     get disabled() {
       return state.disabled;
-    },
-    get readonly() {
-      return state.readOnly;
     },
     get inputmode() {
       return ctx.inputMode;
@@ -400,7 +379,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     ref: (element: HTMLInputElement) => ctx.setInputElement(element),
     onBlur(event: FocusEvent) {
       untrack(() => {
-        if (event.defaultPrevented || state.disabled || state.readOnly) {
+        if (event.defaultPrevented || state.disabled) {
           return;
         }
         commitTyped(event, REASONS.inputBlur);
@@ -416,7 +395,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     },
     onKeyDown(event: InputEvent<KeyboardEvent>) {
       untrack(() => {
-        if (event.defaultPrevented || state.readOnly || state.disabled) {
+        if (event.defaultPrevented || state.disabled) {
           return;
         }
         onStepKey(event);
@@ -424,7 +403,7 @@ export function NumberFieldInput(componentProps: NumberFieldInputProps): JSX.Ele
     },
     onPaste(event: InputEvent<ClipboardEvent>) {
       untrack(() => {
-        if (event.defaultPrevented || state.readOnly || state.disabled) {
+        if (event.defaultPrevented || state.disabled) {
           return;
         }
         onPaste(event);

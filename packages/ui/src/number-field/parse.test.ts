@@ -319,16 +319,13 @@ describe('NumberField parse', () => {
   });
 
   describe('getAllowedNonNumericKeys', () => {
-    const base = { locale: 'en-US', format: undefined, allowOutOfRange: false };
+    const base = { locale: 'en-US', format: undefined };
 
     it('allows minus signs only when negatives are reachable', () => {
       const nonNegative = getAllowedNonNumericKeys({ ...base, minWithDefault: 0 });
       expect(nonNegative.has('-')).toBe(false);
       expect(nonNegative.has('+')).toBe(true);
       expect(getAllowedNonNumericKeys({ ...base, minWithDefault: -5 }).has('-')).toBe(true);
-      expect(
-        getAllowedNonNumericKeys({ ...base, minWithDefault: 0, allowOutOfRange: true }).has('-'),
-      ).toBe(true);
     });
 
     it('allows the percent and permille variants only for percent formats', () => {
@@ -366,7 +363,6 @@ describe('NumberField parse', () => {
         locale: 'de-DE',
         format: { maximumFractionDigits: 0 },
         minWithDefault: 0,
-        allowOutOfRange: false,
       });
       expect(keys.has(',')).toBe(true);
     });

@@ -19,7 +19,6 @@ export interface AllowedNonNumericKeysOptions {
   locale: Intl.LocalesArgument | undefined;
   format: Intl.NumberFormatOptions | undefined;
   minWithDefault: number;
-  allowOutOfRange: boolean;
 }
 
 export function getAllowedNonNumericKeys(options: AllowedNonNumericKeysOptions): Set<string> {
@@ -65,10 +64,9 @@ export function getAllowedNonNumericKeys(options: AllowedNonNumericKeysOptions):
     addAll(PERMILLE);
   }
 
-  // Minus when negatives are valid, or when out-of-range entry lets native
-  // underflow validation be reached from the keyboard.
+  // Minus only when negatives are valid.
   addAll(PLUS_SIGNS_WITH_ASCII);
-  if (options.minWithDefault < 0 || options.allowOutOfRange) {
+  if (options.minWithDefault < 0) {
     addAll(MINUS_SIGNS_WITH_ASCII);
   }
 

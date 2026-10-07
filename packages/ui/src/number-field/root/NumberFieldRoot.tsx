@@ -1,24 +1,28 @@
 // Upstream: packages/react/src/number-field/root/NumberFieldRoot.tsx
 //
-// Groups the number field's parts and owns its value: controlled or not,
-// validated (snapped, clamped, cleaned of float noise) on every change, and
-// shown as formatted text in the input. Typed text stays as typed until it
-// is committed on blur; step changes (keys, scrub) rewrite it at once.
-// Upstream's hidden `<input type="number">` for forms, its stepper buttons
-// and its wheel stepping are left out: a field here commits through
-// `onValueCommitted`, not a form. Renders a `<div>`.
+// Groups the number field's parts. The owner holds the value and hears only
+// commits: a change of the field's own (typed, stepped, scrubbed) is
+// validated (clamped, cleaned of float noise), shown and held until its
+// commit, which reports it; the field then shows the owner's value again, so
+// a value the owner takes stays and one it declines goes back. Typed text
+// stays as typed until it is committed on blur; steps (keys, scrub) rewrite
+// it at once.
+// Upstream's uncontrolled mode, `onValueChange`, the hidden
+// `<input type="number">` for forms, its stepper buttons and its wheel
+// stepping are left out. Renders a `<div>`.
 import type { JSX } from '@solidjs/web';
-import { createEffect, createSignal, createUniqueId, omit, untrack } from 'solid-js';
+import { createEffect, createSignal, omit, untrack } from 'solid-js';
 
-import { createChangeEventDetails } from '../../internals/createBaseUIEventDetails.ts';
 import type { BaseUIComponentProps } from '../../internals/types.ts';
 import { useRenderElement } from '../../internals/useRenderElement.tsx';
 import { formatNumber } from '../../utils/formatNumber.ts';
 import { platform } from '../../utils/platform.ts';
-import { useControlled } from '../../utils/useControlled.ts';
 import { stateAttributesMapping } from '../utils/stateAttributesMapping.ts';
-import type { EventWithOptionalKeyState, IncrementValueParameters } from '../utils/types.ts';
-import { getKeyState } from '../utils/types.ts';
+import type {
+  EventWithOptionalKeyState,
+  IncrementValueParameters,
+  ValueChange,
+} from '../utils/types.ts';
 import { toValidatedNumber } from '../utils/validate.ts';
 import { getAllowedNonNumericKeys } from './allowedNonNumericKeys.ts';
 import {
@@ -27,47 +31,28 @@ import {
   type NumberFieldRootContextValue,
 } from './NumberFieldRootContext.ts';
 import type {
-  NumberFieldRootChangeEventDetails,
   NumberFieldRootCommitEventDetails,
   NumberFieldRootState,
 } from './NumberFieldRootState.ts';
 
 export interface NumberFieldRootProps extends Omit<
   BaseUIComponentProps<'div', NumberFieldRootState>,
-  'onChange' | 'id'
+  'onChange'
 > {
-  /** The id of the input element. */
-  id?: string | undefined;
+  /** The owner's value, shown whenever the field holds no uncommitted change. */
+  value: number | null;
   /** The minimum value. */
   min?: number | undefined;
   /** The maximum value. */
   max?: number | undefined;
-  /**
-   * Whether typed text may fall outside `min`/`max` without clamping, so native
-   * range validation can occur. Step interactions still clamp.
-   * @default false
-   */
-  allowOutOfRange?: boolean | undefined;
   /** The step while Alt is held. @default 0.1 */
   smallStep?: number | undefined;
-  /**
-   * The step of the arrow keys and scrub area. `'any'` turns off step
-   * validation; interactive steps then use 1.
-   * @default 1
-   */
-  step?: number | 'any' | undefined;
+  /** The step of the arrow keys and scrub area. @default 1 */
+  step?: number | undefined;
   /** The step while Shift is held. @default 10 */
   largeStep?: number | undefined;
   /** Whether the field ignores user interaction. @default false */
   disabled?: boolean | undefined;
-  /** Whether the user cannot change the value. @default false */
-  readOnly?: boolean | undefined;
-  /** The value (controlled). */
-  value?: number | null | undefined;
-  /** The value when first rendered (uncontrolled). */
-  defaultValue?: number | undefined;
-  /** Whether stepping snaps to the nearest multiple of the step. @default false */
-  snapOnStep?: boolean | undefined;
   /**
    * Whether typed arithmetic is read on commit: `0.42*2`, `(1+2)/4`, and text
    * opening with `+`, `*` or `/` applied to the value before editing (`+0.1`,
@@ -84,13 +69,6 @@ export interface NumberFieldRootProps extends Omit<
   /** The locale the value is formatted and parsed in; the runtime's by default. */
   locale?: Intl.LocalesArgument | undefined;
   /**
-   * Called when the value changes. `details.reason` is `input-change`,
-   * `input-clear`, `input-blur`, `input-paste`, `keyboard` or `scrub`.
-   */
-  onValueChange?:
-    | ((value: number | null, details: NumberFieldRootChangeEventDetails) => void)
-    | undefined;
-  /**
    * Called when the value is committed: on blur after typing, on release after
    * scrubbing, and with each keyboard step.
    */
@@ -103,37 +81,37 @@ const ROOT_PROPS = [
   'class',
   'style',
   'render',
-  'id',
+  'value',
   'min',
   'max',
-  'allowOutOfRange',
   'smallStep',
   'step',
   'largeStep',
   'disabled',
-  'readOnly',
-  'value',
-  'defaultValue',
-  'snapOnStep',
   'allowExpressions',
   'commitOnEnter',
   'format',
   'locale',
-  'onValueChange',
   'onValueCommitted',
 ] as const;
 
+/** A change the field holds until its commit. */
+interface Pending {
+  readonly value: number | null;
+}
+
 export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
-  const generatedId = createUniqueId();
   const disabled = () => props.disabled ?? false;
-  const readOnly = () => props.readOnly ?? false;
   const minWithDefault = () => props.min ?? Number.MIN_SAFE_INTEGER;
   const maxWithDefault = () => props.max ?? Number.MAX_SAFE_INTEGER;
 
-  const [value, setValueUnwrapped] = useControlled<number | null>({
-    controlled: () => props.value,
-    default: () => props.defaultValue ?? null,
+  const [pending, setPending] = createSignal<Pending | undefined>(undefined, {
+    ownedWrite: true,
   });
+  const value = (): number | null => {
+    const held = pending();
+    return held === undefined ? props.value : held.value;
+  };
   const [isScrubbing, setScrubbing] = createSignal(false, { ownedWrite: true });
   const [inputElement, setInputElement] = createSignal<HTMLInputElement | null>(null, {
     ownedWrite: true,
@@ -146,7 +124,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
   const allowInputSyncRef = { current: true };
   const valueRef = { current: untrack(value) };
   const lastChangedValueRef: { current: number | null } = { current: null };
-  const hasPendingCommitRef = { current: false };
 
   // Steps start from the value the field last rendered.
   createEffect(value, (next) => {
@@ -157,7 +134,7 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     next: number | null,
     details: NumberFieldRootCommitEventDetails,
   ): void => {
-    hasPendingCommitRef.current = false;
+    setPending(undefined);
     untrack(() => props.onValueCommitted)?.(next, details);
   };
 
@@ -169,47 +146,30 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
       if (event?.shiftKey) {
         return props.largeStep ?? 10;
       }
-      return props.step === 'any' ? 1 : (props.step ?? 1);
+      return props.step ?? 1;
     });
 
-  const setValue = (
-    unvalidatedValue: number | null,
-    details: NumberFieldRootChangeEventDetails,
-  ): boolean =>
+  const setValue = (unvalidatedValue: number | null, change: ValueChange): boolean =>
     untrack(() => {
-      const keyState = getKeyState(details.event);
-      const direction = details.direction;
-      // Direct text entry (typing, paste, clear) behaves natively; steps
-      // (keys, scrub) do not.
-      const isInputReason = details.reason.startsWith('input-');
-      const shouldClamp = !(props.allowOutOfRange ?? false) || !isInputReason;
+      const isInputReason = change.reason.startsWith('input-');
       const current = value();
 
       const validatedValue = toValidatedNumber(
         unvalidatedValue,
-        direction ? getStepAmount(keyState) * direction : undefined,
+        change.direction !== undefined,
         minWithDefault(),
         maxWithDefault(),
-        props.min ?? 0,
         props.format,
-        props.snapOnStep ?? false,
-        keyState?.altKey ?? false,
-        shouldClamp,
       );
 
-      // Text entry reports even an unchanged number: the typed text may have
-      // clamped or snapped back to it.
-      const shouldFireChange =
+      // Text entry holds even an unchanged number: the typed text may have
+      // clamped back to it.
+      const changed =
         validatedValue !== current ||
         (isInputReason && (unvalidatedValue !== current || !allowInputSyncRef.current));
 
-      if (shouldFireChange) {
-        props.onValueChange?.(validatedValue, details);
-        if (details.isCanceled) {
-          return false;
-        }
-        setValueUnwrapped(validatedValue);
-        hasPendingCommitRef.current = true;
+      if (changed) {
+        setPending({ value: validatedValue });
       }
 
       lastChangedValueRef.current = validatedValue;
@@ -218,22 +178,20 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
       if (allowInputSyncRef.current) {
         setInputValue(formatNumber(validatedValue, props.locale, props.format));
       }
-      return shouldFireChange;
+      return changed;
     });
 
   const incrementValue = (amount: number, params: IncrementValueParameters): boolean => {
     const prevValue = params.currentValue == null ? valueRef.current : params.currentValue;
     if (typeof prevValue !== 'number') {
-      // An empty field is seeded with 0, clamped into range; the seed is not
-      // a step, so it carries no direction to snap by.
-      return setValue(0, createChangeEventDetails(params.reason, params.event));
+      // An empty field is seeded with 0, clamped into range; the seed is not a step.
+      return setValue(0, { reason: params.reason, event: params.event });
     }
-    return setValue(
-      prevValue + amount * params.direction,
-      createChangeEventDetails(params.reason, params.event, undefined, {
-        direction: params.direction,
-      }),
-    );
+    return setValue(prevValue + amount * params.direction, {
+      reason: params.reason,
+      event: params.event,
+      direction: params.direction,
+    });
   };
 
   // The input shows the formatted value whenever it changes from outside,
@@ -277,9 +235,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     get disabled() {
       return disabled();
     },
-    get readOnly() {
-      return readOnly();
-    },
     get value() {
       return value();
     },
@@ -293,9 +248,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
 
   const context: NumberFieldRootContextValue = {
     state,
-    get id() {
-      return props.id ?? generatedId;
-    },
     get min() {
       return props.min;
     },
@@ -326,7 +278,6 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
           locale: props.locale,
           format: props.format,
           minWithDefault: minWithDefault(),
-          allowOutOfRange: props.allowOutOfRange ?? false,
         }),
       ),
     setInputValue: (text) => setInputValue(text),
@@ -338,7 +289,7 @@ export function NumberFieldRoot(props: NumberFieldRootProps): JSX.Element {
     allowInputSyncRef,
     valueRef,
     lastChangedValueRef,
-    hasPendingCommitRef,
+    hasPendingCommit: () => untrack(pending) !== undefined,
   };
 
   const elementProps = omit(props, ...ROOT_PROPS);
