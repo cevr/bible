@@ -28,6 +28,22 @@
 import { LONG_PRESS_MOVE_THRESHOLD, claimPress, liftHeldByOther } from '@bible/ui/press';
 import { Context, Effect, Layer, Option, Result } from 'effect';
 
+/**
+ * A press that moves less than this many screen pixels is a tap (a click, a
+ * seek); as far or farther, a drag. Each surface measures it along the axes
+ * it drags on: a note surface in both, the strip's lanes across time only.
+ * (A finger's drag claiming its press from a long press is another rule:
+ * `LONG_PRESS_MOVE_THRESHOLD`.)
+ */
+export const DRAG_PX = 6;
+
+/**
+ * Whether a click is the page's to take: a plain primary click. A modified
+ * one (a new tab or window, a download) is the browser's.
+ */
+export const plainClick = (e: MouseEvent): boolean =>
+  e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
+
 /** What a drag tells its owner. */
 interface DragSteps {
   /** Each move of the pressed pointer. */

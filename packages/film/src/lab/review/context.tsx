@@ -32,6 +32,7 @@ import { type SeenPoint, seenVariants } from '../../core/choice.ts';
 import type { DrawStills } from './options/stills.tsx';
 import { ReviewFilms, type ReviewFolder, ReviewIndex } from '../../core/review.ts';
 import { Viewport } from '../../browser/viewport.ts';
+import { plainClick } from '../../browser/pointer.ts';
 import { PHONE } from '../viewport.ts';
 import {
   type BrowserServices,
@@ -146,10 +147,6 @@ const ReviewContext = createContext<ReviewContextValue>();
 
 /** The review's context: only inside `<Root>`. */
 export const useReview = (): ReviewContextValue => useContext(ReviewContext);
-
-/** Whether a click is the page's to take: a plain primary click. A modified one (a new tab or window, a download) is the browser's. */
-export const plainClick = (e: MouseEvent) =>
-  e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
 /**
  * The review's one link to a place: a plain click goes there in the page

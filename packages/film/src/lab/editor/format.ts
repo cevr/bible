@@ -3,10 +3,10 @@
 
 import { Match, Option } from 'effect';
 import { type Receipt, busy, refused, said } from '../../command/command.ts';
-import { sceneAt } from '../../core/layout.ts';
 import type { CheckLine, CheckReport, EaseName, Span } from '../../core/schema.ts';
 import { ease } from '../../core/time.ts';
 import type { StepVerb } from '../api.ts';
+import { findingScenes } from '../scenes/marks.ts';
 import type { EditState } from './machine.ts';
 
 /** What a cue's span starts from, in words. */
@@ -78,30 +78,20 @@ interface SceneFindings {
 }
 
 /**
- * `findings` as the inspector shows them in `scene`: one whose address names
- * the scene, or whose time is in it (`sceneAt`, the scene the playhead shows
- * there), is the scene's; one with no place (no address, or the whole film or
- * an act with no time) is the film's, shown with every scene, having no
- * other; the rest are counted as elsewhere.
+ * `findings` as the inspector shows them in `scene`, each placed as the
+ * Scenes' tape places it (`findingScenes`): one whose time is in the scene
+ * (the scene the playhead shows there), or whose address names it, is the
+ * scene's; one with no place (no address, or the whole film or an act with
+ * no time) is the film's, shown with every scene, having no other; the rest
+ * are counted as elsewhere.
  */
 export const findingsIn = (
   findings: ReadonlyArray<CheckLine>,
   placed: ReadonlyArray<{ readonly spec: { readonly id: string }; readonly start: number }>,
   scene: string,
 ): SceneFindings => {
-  const playing = (t: number): ReadonlyArray<string> =>
-    Option.match(sceneAt(placed, t), { onNone: () => [], onSome: (p) => [p.spec.id] });
-  const named = (f: CheckLine): Option.Option<ReadonlyArray<string>> =>
-    Option.flatMap(Option.fromUndefinedOr(f.address), (at) =>
-      Option.orElse(Option.map(Option.fromUndefinedOr(at.time), playing), () =>
-        Match.value(at.part).pipe(
-          Match.tag('Scenes', (part): Option.Option<ReadonlyArray<string>> =>
-            Option.some(part.ids),
-          ),
-          Match.orElse(() => Option.none<ReadonlyArray<string>>()),
-        ),
-      ),
-    );
+  const scenes = placed.map((p) => ({ id: p.spec.id, start: p.start }));
+  const named = (f: CheckLine) => findingScenes(f, scenes);
   const here = findings.filter((f) => Option.exists(named(f), (ids) => ids.includes(scene)));
   const film = findings.filter((f) => Option.isNone(named(f)));
   return { here, film, elsewhere: findings.length - here.length - film.length };

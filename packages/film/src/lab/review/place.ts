@@ -12,7 +12,7 @@ import { Data, Match, Option } from 'effect';
 import { Places, pageHref } from '../../core/api.ts';
 import type { Destination } from '../../command/go.ts';
 import type { ReviewFilms, ReviewIndex } from '../../core/review.ts';
-import { onTheMs } from '../../player/t-in-url.ts';
+import { onTheMs } from '../../core/time.ts';
 import { folderTitle } from './format.ts';
 import { type ViewEvent, ViewState, otherOf, viewNameOf } from './machine.ts';
 

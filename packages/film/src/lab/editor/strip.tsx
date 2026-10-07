@@ -12,7 +12,7 @@
 import { For, Show } from '@solidjs/web';
 import { Effect, Option, Result } from 'effect';
 import { createMemo, createSignal } from 'solid-js';
-import { Pointer, Surface } from '../../browser/pointer.ts';
+import { DRAG_PX, Pointer, Surface } from '../../browser/pointer.ts';
 import type { SceneSpec } from '../../canvas/film.ts';
 import { type Placed, sceneOf } from '../../core/layout.ts';
 import { timecode } from '../../core/time.ts';
@@ -32,9 +32,6 @@ import { SourceKnown, type StripWindow, dragModeAt, edgeFor, stripWindow } from 
 import { PHONE, useMatches } from '../viewport.ts';
 import { useMotion } from '../motion/context.tsx';
 import type { LoopRange } from '../../player/main.ts';
-
-/** A press on a lane that moves less than this many screen pixels is a tap (a seek); more marks a range. */
-const DRAG_PX = 6;
 
 /** Where scene second `t` sits across the strip showing `w`. */
 const pct = (w: StripWindow, t: number) => `${((t - w.from) / w.span) * 100}%`;

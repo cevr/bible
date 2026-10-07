@@ -8,15 +8,12 @@
 import { For, Portal, Show } from '@solidjs/web';
 import { Effect, Option } from 'effect';
 import { createEffect } from 'solid-js';
-import { Pointer, Surface } from '../../browser/pointer.ts';
+import { DRAG_PX, Pointer, Surface } from '../../browser/pointer.ts';
 import type { InkStroke, Note, NoteBox, Point } from '../../core/schema.ts';
 import { useLabPage } from '../panel.tsx';
 import { Lab, useLab } from '../shell.tsx';
 import { useNotes } from './context.tsx';
 import { filmPixel } from './draft.ts';
-
-/** A pointer that moves less than this many screen pixels clicked; more, it dragged. */
-const DRAG_PX = 6;
 
 /**
  * The composer, in the notes' place in the page's panel, above the notes the

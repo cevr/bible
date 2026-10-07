@@ -26,7 +26,7 @@
 import { useAtomSet, useAtomValue } from '@bible/atom-solid';
 import { Dialog } from '@bible/ui/dialog';
 import { For, Show } from '@solidjs/web';
-import { Array as Arr, Boolean as Bool, Effect, Match, Option, Result } from 'effect';
+import { Array as Arr, Boolean as Bool, Effect, type Layer, Match, Option, Result } from 'effect';
 import { createEffect, createMemo, createSignal, onCleanup, untrack } from 'solid-js';
 import { type Host, addressOn, monotonicMs, onTraverse } from '../../browser/host.ts';
 import { Frames } from '../../browser/frames.ts';
@@ -42,13 +42,12 @@ import { targetAttr } from '../../command/target.ts';
 import { type ProjectView, type Say, pageHref } from '../../core/api.ts';
 import { sceneAt } from '../../core/layout.ts';
 import { isShortKey } from '../../core/shorts.ts';
-import { timecode, timecodeParts } from '../../core/time.ts';
+import { onTheMs, timecode, timecodeParts } from '../../core/time.ts';
 import { counted } from '../../core/words.ts';
 import type { Player } from '../../player/main.ts';
 import { makeStills } from '../../player/stills.ts';
-import { onTheMs } from '../../player/t-in-url.ts';
-import { LabClient } from '../api.ts';
-import { useShellTime } from '../page-shell.tsx';
+import type { LabClient } from '../api.ts';
+import { usePlayerTime } from '../page-shell.tsx';
 import { approveUndo, tookText, undoApprove } from '../review/options/receipt.ts';
 import { PHONE, useMatches } from '../viewport.ts';
 import { pressed } from '../review/format.ts';
@@ -142,6 +141,8 @@ interface ScenesViewProps {
   readonly stage: HTMLElement;
   readonly host: Host;
   readonly hub: Hub;
+  /** The page's one client of the lab's API (`play-mount.tsx`): the scenes' reads and says go through it. */
+  readonly client: Layer.Layer<LabClient>;
 }
 
 /** A film's Scenes. */
@@ -156,7 +157,7 @@ export const ScenesView = (props: ScenesViewProps) => {
   }));
   const order = scenes.map((s) => s.id);
   const short = isShortKey(props.name);
-  const calls = scenesCalls(props.name, !short, LabClient.layer);
+  const calls = scenesCalls(props.name, !short, props.client);
   /** Where a scene opens: its lab; a short's play page (a short has no lab). */
   const openWords = Bool.match(short, {
     onTrue: () => 'Open in Play',
@@ -233,6 +234,8 @@ export const ScenesView = (props: ScenesViewProps) => {
     })),
   );
 
+  // The header's timecode is the playhead's, every time it moves, drawn or not.
+  usePlayerTime(player);
   // The playhead, and the captions on or off, as the preview draws them.
   const [T, setT] = createSignal(player.now(), { ...fromHost, equals: false });
   const [playing, setPlaying] = createSignal(player.playing(), fromHost);
@@ -244,7 +247,6 @@ export const ScenesView = (props: ScenesViewProps) => {
       setCaptions(player.captions.on);
     }),
   );
-  useShellTime(T, film.fps);
 
   // What the lab knows of each scene: read once, and again after each say.
   const [read, setRead] = createSignal<ScenesRead>(

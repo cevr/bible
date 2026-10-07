@@ -34,6 +34,7 @@ import { PARTS, PART_TITLE, type Part, filmTimeOn, hasPart, partHref } from '../
 import { FILM_FPS, timecodeParts } from '../core/time.ts';
 import type { Host } from '../browser/host.ts';
 import { PageLoad } from '../browser/page-load.ts';
+import { plainClick } from '../browser/pointer.ts';
 import { keptText } from '../browser/storage.ts';
 import { ViewerStore } from '../browser/storage-browser.ts';
 import type { Hub } from '../command/hub.ts';
@@ -245,10 +246,6 @@ const filmPart = (part: Part): Part =>
     Option.liftPredicate(part, (p) => p !== 'films'),
     (): Part => 'scenes',
   );
-
-/** Whether a click is a plain one: no modifier, the main button (a new tab is the browser's). */
-const plainClick = (e: MouseEvent) =>
-  e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;
 
 /** A name the page may give (its crumb, its subject): none where it gives none. */
 const given = (at: PageShellProps['crumb']): Option.Option<string> =>

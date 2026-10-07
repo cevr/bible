@@ -9,13 +9,14 @@
 // (`player/render.test.ts`).
 
 import { Place } from '@bible/url-state';
-import { Array as Arr, Effect, Match, Option } from 'effect';
+import { Array as Arr, Effect, type Layer, Match, Option } from 'effect';
 import { type Component, onSettled } from 'solid-js';
 import { Places, pageHref } from '../core/api.ts';
 import type { Placed } from '../core/layout.ts';
 import { type Host, addressOn } from '../browser/host.ts';
 import { type Films, type Player, mountPreview, stageFilm } from '../player/main.ts';
 import { TIME_MOVE, onTheMs, type TimeInUrl } from '../player/t-in-url.ts';
+import { LabClient } from './api.ts';
 import { type FilmBody, PLAY_PAGE, playOn, playPartOf, stagedBody } from './film-page.tsx';
 import { mountStudio } from './page-client.tsx';
 import { usePlayerTime } from './page-shell.tsx';
@@ -95,9 +96,15 @@ interface PartOf {
  * names staged, its preview mounted on the page's commands, under the
  * Scenes' tape or on its own as the link says. A film that does not start,
  * or whose faces do not load, fails the page (`fail`: its keys end, and it
- * says why in its place).
+ * says why in its place). The Scenes read and say through `client`, the
+ * page's one client of the lab's API.
  */
-const playBody = (pages: Films, host: Host, fail: (why: string) => Effect.Effect<void>): FilmBody =>
+const playBody = (
+  pages: Films,
+  host: Host,
+  client: Layer.Layer<LabClient>,
+  fail: (why: string) => Effect.Effect<void>,
+): FilmBody =>
   stagedBody(
     host,
     () => stageFilm(pages, addressOn(host).href()),
@@ -114,6 +121,7 @@ const playBody = (pages: Films, host: Host, fail: (why: string) => Effect.Effect
               stage={staged.stage}
               host={host}
               hub={hub}
+              client={client}
             />
           ),
         })),
@@ -141,5 +149,6 @@ export const mountPlay = (pages: Films): void =>
   mountStudio({
     page: PLAY_PAGE,
     event: 'play.shell',
-    on: (host, fail) => playOn(host, Object.keys(pages), playBody(pages, host, fail)),
+    on: (host, fail) =>
+      playOn(host, Object.keys(pages), playBody(pages, host, LabClient.layer, fail)),
   });

@@ -50,9 +50,10 @@ export const projectPlaced = (view: ProjectView): ReadonlyArray<PlacedScene> =>
  * The scenes `line` is about: by its time first (the scene `placed` shows
  * then, `sceneAt`, as the playhead would), else by its address's scenes;
  * none when it has neither, the film's own (the film's or an act's with no
- * time, or no place).
+ * time, or no place). The one rule for every page that places a finding:
+ * the tape's marks here, the Lab's inspector (`editor/format.ts` `findingsIn`).
  */
-const findingScenes = (
+export const findingScenes = (
   line: CheckLine,
   placed: ReadonlyArray<PlacedScene>,
 ): Option.Option<ReadonlyArray<string>> =>
